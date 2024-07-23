@@ -1,0 +1,1267 @@
+[
+  {
+    "id": "1",
+    "attributes": {
+      "class": ".custom-header-container",
+      "nodeType": "TEXT Node"
+    },
+    "locator": "[_midscene_retrieve_task_id='1']",
+    "center": [
+      960,
+      248
+    ],
+    "content": "GitHub Octicon logo\n  \n  \n    Help\n    Community\n    Status\n  \n  \n  \n    GitHub.com\n    Twitter\n    \n      \n    \n\n    \n\n\n    \n      \n          \n            \n          \n          \n            \n          \n          \n            \n          \n          \n            \n          \n          \n            \n          \n          \n            \n          \n          \n            \n          \n        \n          x\n        \n      \n      \n          \n            \n              Get email notifications whenever GitHub creates,  updates or resolves an incident.\n            \n            \n              \n                \n                Email address:\n                \n                \n                \n                  Enter OTP:\n                  \n                  Resend OTP in:  seconds \n                  \n                    Didn't receive the OTP?\n                    Resend OTP \n                  \n                \n                  \n                  \n                  By subscribing you agree to our Privacy Policy. This site is protected by reCAPTCHA and the Google Privacy Policy and Terms of Service apply.\n          \n\n          \n            \n                Get text message notifications whenever GitHub creates or resolves an incident.\n            \n            \n              \n              \n              \n                \n                  \n                  Country code:\n                  \n                      Afghanistan (+93)\nAlbania (+355)\nAlgeria (+213)\nAmerican Samoa (+1)\nAndorra (+376)\nAngola (+244)\nAnguilla (+1)\nAntigua and Barbuda (+1)\nArgentina (+54)\nArmenia (+374)\nAruba (+297)\nAustralia/Cocos/Christmas Island (+61)\nAustria (+43)\nAzerbaijan (+994)\nBahamas (+1)\nBahrain (+973)\nBangladesh (+880)\nBarbados (+1)\nBelarus (+375)\nBelgium (+32)\nBelize (+501)\nBenin (+229)\nBermuda (+1)\nBolivia (+591)\nBosnia and Herzegovina (+387)\nBotswana (+267)\nBrazil (+55)\nBrunei (+673)\nBulgaria (+359)\nBurkina Faso (+226)\nBurundi (+257)\nCambodia (+855)\nCameroon (+237)\nCanada (+1)\nCape Verde (+238)\nCayman Islands (+1)\nCentral Africa (+236)\nChad (+235)\nChile (+56)\nChina (+86)\nColombia (+57)\nComoros (+269)\nCongo (+242)\nCongo, Dem Rep (+243)\nCosta Rica (+506)\nCroatia (+385)\nCyprus (+357)\nCzech Republic (+420)\nDenmark (+45)\nDjibouti (+253)\nDominica (+1)\nDominican Republic (+1)\nEgypt (+20)\nEl Salvador (+503)\nEquatorial Guinea (+240)\nEstonia (+372)\nEthiopia (+251)\nFaroe Islands (+298)\nFiji (+679)\nFinland/Aland Islands (+358)\nFrance (+33)\nFrench Guiana (+594)\nFrench Polynesia (+689)\nGabon (+241)\nGambia (+220)\nGeorgia (+995)\nGermany (+49)\nGhana (+233)\nGibraltar (+350)\nGreece (+30)\nGreenland (+299)\nGrenada (+1)\nGuadeloupe (+590)\nGuam (+1)\nGuatemala (+502)\nGuinea (+224)\nGuyana (+592)\nHaiti (+509)\nHonduras (+504)\nHong Kong (+852)\nHungary (+36)\nIceland (+354)\nIndia (+91)\nIndonesia (+62)\nIraq (+964)\nIreland (+353)\nIsrael (+972)\nItaly (+39)\nJamaica (+1)\nJapan (+81)\nJordan (+962)\nKenya (+254)\nKorea, Republic of (+82)\nKosovo (+383)\nKuwait (+965)\nKyrgyzstan (+996)\nLaos (+856)\nLatvia (+371)\nLebanon (+961)\nLesotho (+266)\nLiberia (+231)\nLibya (+218)\nLiechtenstein (+423)\nLithuania (+370)\nLuxembourg (+352)\nMacao (+853)\nMacedonia (+389)\nMadagascar (+261)\nMalawi (+265)\nMalaysia (+60)\nMaldives (+960)\nMali (+223)\nMalta (+356)\nMartinique (+596)\nMauritania (+222)\nMauritius (+230)\nMexico (+52)\nMonaco (+377)\nMongolia (+976)\nMontenegro (+382)\nMontserrat (+1)\nMorocco/Western Sahara (+212)\nMozambique (+258)\nNamibia (+264)\nNepal (+977)\nNetherlands (+31)\nNew Zealand (+64)\nNicaragua (+505)\nNiger (+227)\nNigeria (+234)\nNorway (+47)\nOman (+968)\nPakistan (+92)\nPalestinian Territory (+970)\nPanama (+507)\nParaguay (+595)\nPeru (+51)\nPhilippines (+63)\nPoland (+48)\nPortugal (+351)\nPuerto Rico (+1)\nQatar (+974)\nReunion/Mayotte (+262)\nRomania (+40)\nRussia/Kazakhstan (+7)\nRwanda (+250)\nSamoa (+685)\nSan Marino (+378)\nSaudi Arabia (+966)\nSenegal (+221)\nSerbia (+381)\nSeychelles (+248)\nSierra Leone (+232)\nSingapore (+65)\nSlovakia (+421)\nSlovenia (+386)\nSouth Africa (+27)\nSpain (+34)\nSri Lanka (+94)\nSt Kitts and Nevis (+1)\nSt Lucia (+1)\nSt Vincent Grenadines (+1)\nSudan (+249)\nSuriname (+597)\nSwaziland (+268)\nSweden (+46)\nSwitzerland (+41)\nTaiwan (+886)\nTajikistan (+992)\nTanzania (+255)\nThailand (+66)\nTogo (+228)\nTonga (+676)\nTrinidad and Tobago (+1)\nTunisia (+216)\nTurkey (+90)\nTurks and Caicos Islands (+1)\nUganda (+256)\nUkraine (+380)\nUnited Arab Emirates (+971)\nUnited Kingdom (+44)\nUnited States (+1)\nUruguay (+598)\nUzbekistan (+998)\nVenezuela (+58)\nVietnam (+84)\nVirgin Islands, British (+1)\nVirgin Islands, U.S. (+1)\nYemen (+967)\nZambia (+260)\nZimbabwe (+263)\n                  \n                  Phone number:\n                  \n                  \n                  \n                  \n                    Change number\n                    Enter OTP:\n                    \n                    Resend OTP in: 30 seconds \n                    \n                      Didn't receive the OTP?\n                      Resend OTP \n                    \n                    \n                \n              \n\n                \n                \n              Message and data rates may apply. By subscribing you agree to our Privacy Policy, the Atlassian Terms of Service, and the Atlassian Privacy Policy. This site is protected by reCAPTCHA and the Google Privacy Policy and Terms of Service apply.\n          \n\n          \n            \n              Get incident updates and maintenance status messages in Slack.\n            \n            Subscribe via Slack\n            By subscribing you acknowledge our Privacy Policy. In addition, you agree to the Atlassian Cloud Terms of Service and acknowledge Atlassian's Privacy Policy.\n          \n\n\n          \n            \n              Get webhook notifications whenever GitHub creates an incident, updates an incident, resolves an incident or changes a component status.\n            \n            \n              \n                \n                  Webhook URL:\n                  \n                  The URL we should send the webhooks to\n                \n              \n\n              \n                \n                  Email address:\n                  \n                  We'll send you email if your endpoint fails\n                \n              \n\n                \n                \n                By subscribing you agree to our Privacy Policy. This site is protected by reCAPTCHA and the Google Privacy Policy and Terms of Service apply.\n\n          \n\n          \n            \n            or \n            view our profile.\n            \n              .twitter-follow-button {\n                margin-bottom: -6px;\n              }\n            \n\n              !function(d,s,id){var js,fjs=d.getElementsByTagName(s)[0],p=/^http:/.test(d.location)?'http':'https';if(!d.getElementById(id)){js=d.createElement(s);js.id=id;js.src=p+'://platform.twitter.com/widgets.js';fjs.parentNode.insertBefore(js,fjs);}}(document, 'script', 'twitter-wjs');\n          \n\n          \n            Visit our support site.\n          \n\n          \n            Get the Atom Feed or RSS Feed.\n          \n      \n    \n  \n    \n    \n\n\n\n\n\n      \n  \n\n\n  $(function () {\n    const phoneNumberInput = $('#phone-number');\n    const errorDiv = $('#sms-atl-error')\n    if(errorDiv.length){\n      function checkSelectedCountry() {\n        const selectedCountry = $('#phone-country').val();\n        const isOtpEnabled = $('#phone-number-country-code').attr('data-otp-enabled') === 'true';\n        const form = document.getElementById('subscribe-form-sms');\n        form.action = '/subscriptions/new-sms';\n        const isOtpFlow = document.getElementById('otp_verify_flow');\n        document.getElementById('otp-container').style.display = \"none\";\n        if(false && selectedCountry === 'sg') { // Replace 'SG' with the actual value representing Singapore in your select tag\n          phoneNumberInput.prop('disabled', true);\n          errorDiv.html(`Due to new Singapore government regulations, we're currently not supporting text subscriptions in Singapore.<a href=\"https://community.atlassian.com/t5/Statuspage-articles/Attention-SMS-notifications-will-be-disabled-on-August-1st-2023/ba-p/2424398\" target=\"_blank\"> Learn more.</a> <br> Select another method to subscribe.`);\n        } else {\n          phoneNumberInput.prop('readonly', false);\n          errorDiv.html('');\n          if(false){\n            if(isOtpEnabled){\n              document.getElementById('subscribe-btn-sms').value = \"Send OTP\";\n            }\n            else {\n              isOtpFlow.value = false;\n              document.getElementById('subscribe-btn-sms').value = \"Subscribe via Text Message\";\n            }\n          }\n        }\n      }\n\n      $('#phone-country').on('change', checkSelectedCountry);\n      checkSelectedCountry();\n    }\n  });\n\n  document.addEventListener('DOMContentLoaded', function() {\n    const dropdown = document.querySelector('#phone-number-country-code .phone-country');\n    if (dropdown){\n      const wrapperDiv = document.getElementById('phone-number-country-code');\n      const selectedOption = dropdown.options[dropdown.selectedIndex];\n      const otpEnabled = selectedOption.getAttribute('data-otp-enabled');\n\n      wrapperDiv.setAttribute('data-otp-enabled', otpEnabled);\n\n      dropdown.addEventListener('change', function() {\n        const selectedOption = dropdown.options[dropdown.selectedIndex];\n        const otpEnabled = selectedOption.getAttribute('data-otp-enabled');\n\n        wrapperDiv.setAttribute('data-otp-enabled', otpEnabled);\n      });\n    }\n  });\n\n  var countdownTimer;\n  var resendBtn = document.getElementById('resend');\n  var timer = document.getElementById('timer');\n  var form = document.getElementById('subscribe-form-sms');\n  var RESEND_TIMER = 30;\n  $(function() {\n    $('#subscribe-form-sms').on('ajax:success', function(e, data, status, xhr){\n      const form = this;\n      const action = form.getAttribute('action');\n      if (data.type === 'success' && data.otp_flow === true) {\n        document.getElementById('subscriber_code').value = data.subscriber_code\n        document.getElementById('otp-container').style.display = \"block\";\n        $('#phone-number').prop('readonly', true);\n        var display = document.getElementById('countdown');\n        disableResend();\n        startTimer(RESEND_TIMER, display)\n        document.getElementById('subscribe-btn-sms').value = \"Verify OTP and Subscribe\";\n        document.getElementById('otp_verify_flow').value = true;\n        form.action = '/subscriptions/verify-otp';\n      } else if (data.type === 'success' && action.includes('verify')){\n        document.getElementById('otp-container').style.display = \"none\";\n        $('#phone-number').val('').prop('readonly', false);\n        $('#otp').val('');\n        document.getElementById('subscribe-btn-sms').value = \"Send OTP\";\n        document.getElementById('otp_verify_flow').value = false;\n        form.action = '/subscriptions/new-sms';\n        SP.currentPage.updatesDropdown.hide();\n      }\n    });\n    $(\"#btn-subcriber-change-number\").on('click', () => {\n      document.getElementById('otp-container').style.display = \"none\";\n      $('#phone-number').prop('readonly', false);\n      document.getElementById('subscribe-btn-sms').value = \"Send OTP\";\n      form.action = '/subscriptions/new-sms';\n      return false\n    })\n    $('#resend-otp-btn').on('click', function(e) {\n      e.preventDefault();\n      let phoneNumber = $('#phone-number').val();\n      let countryCode = $('.phone-country').val();\n      $.ajax({\n        type: 'POST',\n        url: \"/subscriptions/new-sms\",\n        data: {\n          phone_number: phoneNumber,\n          phone_country: countryCode,\n          type: 'resend'\n        },\n      }).done(function(data) {\n        var messageOptions = (data.type !== undefined && data.type !== null) ? { cssClass: data.type } : {};\n        HRB.utils.notify(data.text, messageOptions);\n        var display = document.getElementById('countdown');\n        disableResend();\n        timer.style.display = \"none\"\n        if (data.type === 'success') {\n          startTimer(RESEND_TIMER, display);\n        }\n      })\n    });\n  })\n\n  function startTimer(duration, display){\n    var timer = duration, seconds;\n    clearInterval(countdownTimer);\n    countdownTimer = setInterval(function () {\n      seconds = parseInt(timer % 60, 10);\n      display.textContent = seconds;\n      if(--timer < 0){\n        enableResend();\n        clearInterval(countdownTimer);\n      }\n    }, 1000);\n    disableResend();\n  }\n  function enableResend(){\n    resendBtn.style.display = \"block\";\n    timer.style.display = \"none\"\n  }\n  function disableResend(){\n    resendBtn.style.display = \"none\";\n    timer.style.display = \"block\"\n  }\n\n  $(function() {\n    $('#subscribe-form-email').on('submit', function() {\n      var tokenField = document.getElementById('email-otp-token-field');\n      let page_code = \"kctbh9vrtdwd\"\n      let key = keyForEmailOtpToken($('#email').val(), page_code);\n      tokenField.value = localStorage.getItem(key);\n    });\n  });\n\n  var emailOtpCountdownTimer;\n  var emailOtpResendBtn = document.getElementById('resend-email-otp');\n  var emailOtpTimer = document.getElementById('email-otp-timer');\n  var emailOtpForm = document.getElementById('subscribe-form-email');\n  var EMAIL_OTP_RESEND_TIMER = 600;\n  $(function() {\n    $('#subscribe-form-email').on('ajax:success', function(e, data, status, xhr){\n      const form = this;\n      const action = form.getAttribute('action');\n      if (data.type === 'success' && data.email_otp_verify_flow === true) {\n        document.getElementById('email-otp-container').style.display = \"block\";\n        var display = document.getElementById('email-otp-countdown');\n        display.textContent = EMAIL_OTP_RESEND_TIMER;\n        disableEmailOtpResend();\n        startEmailOtpTimer(EMAIL_OTP_RESEND_TIMER, display)\n        document.getElementById('subscribe-btn-email').value = \"Verify OTP and Subscribe\";\n        document.getElementById('email_otp_verify_flow').value = true;\n        form.action = '/subscriptions/verify-email-otp';\n      } else if (data.type === 'success' && action.includes('verify')){\n        let email =  $('#email')\n        let page_code = \"kctbh9vrtdwd\"\n        let key = keyForEmailOtpToken(email.val(), page_code);\n        localStorage.setItem(key, data.email_otp_auth_token);\n\n        document.getElementById('email-otp-container').style.display = \"none\";\n        email.val('').prop('readonly', false);\n        $('#email-otp').val('');\n        document.getElementById('subscribe-btn-email').value = \"Send OTP\";\n        document.getElementById('email_otp_verify_flow').value = false;\n        form.action = '/subscriptions/new-email';\n        SP.currentPage.updatesDropdown.hide();\n      }\n    });\n    $('#resend-email-otp-btn').on('click', function(e) {\n      e.preventDefault();\n      let email = $('#email').val();\n      $.ajax({\n        type: 'POST',\n        url: \"/subscriptions/new-email\",\n        data: {\n          email: email\n        },\n      }).done(function(data) {\n        var messageOptions = (data.type !== undefined && data.type !== null) ? { cssClass: data.type } : {};\n        HRB.utils.notify(data.text, messageOptions);\n        if (data.type === 'success') {\n          var display = document.getElementById('email-otp-countdown');\n          display.textContent = EMAIL_OTP_RESEND_TIMER;\n          disableEmailOtpResend();\n          emailOtpTimer.style.display = \"none\"\n          startEmailOtpTimer(EMAIL_OTP_RESEND_TIMER, display);\n        }\n      })\n    });\n  })\n\n  function startEmailOtpTimer(duration, display){\n    var timer = duration, seconds;\n    clearInterval(emailOtpCountdownTimer);\n    emailOtpCountdownTimer = setInterval(function () {\n      seconds = parseInt(timer, 10);\n      display.textContent = seconds;\n      if(--timer < 0){\n        enableEmailOtpResend();\n        clearInterval(emailOtpCountdownTimer);\n      }\n    }, 1000);\n    disableEmailOtpResend();\n  }\n\n  function enableEmailOtpResend(){\n    emailOtpResendBtn.style.display = \"block\";\n    emailOtpTimer.style.display = \"none\"\n  }\n  function disableEmailOtpResend(){\n    emailOtpResendBtn.style.display = \"none\";\n    emailOtpTimer.style.display = \"block\"\n  }\n  function keyForEmailOtpToken(email, pageCode) {\n    return email + '|' + pageCode+ '|SUBSCRIBE_VIA_EMAIL';\n  }",
+    "rect": {
+      "left": 0,
+      "top": 0,
+      "width": 1920,
+      "height": 495
+    }
+  },
+  {
+    "id": "2",
+    "attributes": {
+      "class": ".header.d-md-flex.flex-md-justify-between.flex-md-items-center.px-4.py-3.text-center.text-md-left.bg-white.box-shadow-large",
+      "nodeType": "TEXT Node"
+    },
+    "locator": "[_midscene_retrieve_task_id='2']",
+    "center": [
+      960,
+      37
+    ],
+    "content": "GitHub Octicon logo\n  \n  \n    Help\n    Community\n    Status\n  \n  \n  \n    GitHub.com\n    Twitter\n    \n      \n    \n\n    \n\n\n    \n      \n          \n            \n          \n          \n            \n          \n          \n            \n          \n          \n            \n          \n          \n            \n          \n          \n            \n          \n          \n            \n          \n        \n          x\n        \n      \n      \n          \n            \n              Get email notifications whenever GitHub creates,  updates or resolves an incident.\n            \n            \n              \n                \n                Email address:\n                \n                \n                \n                  Enter OTP:\n                  \n                  Resend OTP in:  seconds \n                  \n                    Didn't receive the OTP?\n                    Resend OTP \n                  \n                \n                  \n                  \n                  By subscribing you agree to our Privacy Policy. This site is protected by reCAPTCHA and the Google Privacy Policy and Terms of Service apply.\n          \n\n          \n            \n                Get text message notifications whenever GitHub creates or resolves an incident.\n            \n            \n              \n              \n              \n                \n                  \n                  Country code:\n                  \n                      Afghanistan (+93)\nAlbania (+355)\nAlgeria (+213)\nAmerican Samoa (+1)\nAndorra (+376)\nAngola (+244)\nAnguilla (+1)\nAntigua and Barbuda (+1)\nArgentina (+54)\nArmenia (+374)\nAruba (+297)\nAustralia/Cocos/Christmas Island (+61)\nAustria (+43)\nAzerbaijan (+994)\nBahamas (+1)\nBahrain (+973)\nBangladesh (+880)\nBarbados (+1)\nBelarus (+375)\nBelgium (+32)\nBelize (+501)\nBenin (+229)\nBermuda (+1)\nBolivia (+591)\nBosnia and Herzegovina (+387)\nBotswana (+267)\nBrazil (+55)\nBrunei (+673)\nBulgaria (+359)\nBurkina Faso (+226)\nBurundi (+257)\nCambodia (+855)\nCameroon (+237)\nCanada (+1)\nCape Verde (+238)\nCayman Islands (+1)\nCentral Africa (+236)\nChad (+235)\nChile (+56)\nChina (+86)\nColombia (+57)\nComoros (+269)\nCongo (+242)\nCongo, Dem Rep (+243)\nCosta Rica (+506)\nCroatia (+385)\nCyprus (+357)\nCzech Republic (+420)\nDenmark (+45)\nDjibouti (+253)\nDominica (+1)\nDominican Republic (+1)\nEgypt (+20)\nEl Salvador (+503)\nEquatorial Guinea (+240)\nEstonia (+372)\nEthiopia (+251)\nFaroe Islands (+298)\nFiji (+679)\nFinland/Aland Islands (+358)\nFrance (+33)\nFrench Guiana (+594)\nFrench Polynesia (+689)\nGabon (+241)\nGambia (+220)\nGeorgia (+995)\nGermany (+49)\nGhana (+233)\nGibraltar (+350)\nGreece (+30)\nGreenland (+299)\nGrenada (+1)\nGuadeloupe (+590)\nGuam (+1)\nGuatemala (+502)\nGuinea (+224)\nGuyana (+592)\nHaiti (+509)\nHonduras (+504)\nHong Kong (+852)\nHungary (+36)\nIceland (+354)\nIndia (+91)\nIndonesia (+62)\nIraq (+964)\nIreland (+353)\nIsrael (+972)\nItaly (+39)\nJamaica (+1)\nJapan (+81)\nJordan (+962)\nKenya (+254)\nKorea, Republic of (+82)\nKosovo (+383)\nKuwait (+965)\nKyrgyzstan (+996)\nLaos (+856)\nLatvia (+371)\nLebanon (+961)\nLesotho (+266)\nLiberia (+231)\nLibya (+218)\nLiechtenstein (+423)\nLithuania (+370)\nLuxembourg (+352)\nMacao (+853)\nMacedonia (+389)\nMadagascar (+261)\nMalawi (+265)\nMalaysia (+60)\nMaldives (+960)\nMali (+223)\nMalta (+356)\nMartinique (+596)\nMauritania (+222)\nMauritius (+230)\nMexico (+52)\nMonaco (+377)\nMongolia (+976)\nMontenegro (+382)\nMontserrat (+1)\nMorocco/Western Sahara (+212)\nMozambique (+258)\nNamibia (+264)\nNepal (+977)\nNetherlands (+31)\nNew Zealand (+64)\nNicaragua (+505)\nNiger (+227)\nNigeria (+234)\nNorway (+47)\nOman (+968)\nPakistan (+92)\nPalestinian Territory (+970)\nPanama (+507)\nParaguay (+595)\nPeru (+51)\nPhilippines (+63)\nPoland (+48)\nPortugal (+351)\nPuerto Rico (+1)\nQatar (+974)\nReunion/Mayotte (+262)\nRomania (+40)\nRussia/Kazakhstan (+7)\nRwanda (+250)\nSamoa (+685)\nSan Marino (+378)\nSaudi Arabia (+966)\nSenegal (+221)\nSerbia (+381)\nSeychelles (+248)\nSierra Leone (+232)\nSingapore (+65)\nSlovakia (+421)\nSlovenia (+386)\nSouth Africa (+27)\nSpain (+34)\nSri Lanka (+94)\nSt Kitts and Nevis (+1)\nSt Lucia (+1)\nSt Vincent Grenadines (+1)\nSudan (+249)\nSuriname (+597)\nSwaziland (+268)\nSweden (+46)\nSwitzerland (+41)\nTaiwan (+886)\nTajikistan (+992)\nTanzania (+255)\nThailand (+66)\nTogo (+228)\nTonga (+676)\nTrinidad and Tobago (+1)\nTunisia (+216)\nTurkey (+90)\nTurks and Caicos Islands (+1)\nUganda (+256)\nUkraine (+380)\nUnited Arab Emirates (+971)\nUnited Kingdom (+44)\nUnited States (+1)\nUruguay (+598)\nUzbekistan (+998)\nVenezuela (+58)\nVietnam (+84)\nVirgin Islands, British (+1)\nVirgin Islands, U.S. (+1)\nYemen (+967)\nZambia (+260)\nZimbabwe (+263)\n                  \n                  Phone number:\n                  \n                  \n                  \n                  \n                    Change number\n                    Enter OTP:\n                    \n                    Resend OTP in: 30 seconds \n                    \n                      Didn't receive the OTP?\n                      Resend OTP \n                    \n                    \n                \n              \n\n                \n                \n              Message and data rates may apply. By subscribing you agree to our Privacy Policy, the Atlassian Terms of Service, and the Atlassian Privacy Policy. This site is protected by reCAPTCHA and the Google Privacy Policy and Terms of Service apply.\n          \n\n          \n            \n              Get incident updates and maintenance status messages in Slack.\n            \n            Subscribe via Slack\n            By subscribing you acknowledge our Privacy Policy. In addition, you agree to the Atlassian Cloud Terms of Service and acknowledge Atlassian's Privacy Policy.\n          \n\n\n          \n            \n              Get webhook notifications whenever GitHub creates an incident, updates an incident, resolves an incident or changes a component status.\n            \n            \n              \n                \n                  Webhook URL:\n                  \n                  The URL we should send the webhooks to\n                \n              \n\n              \n                \n                  Email address:\n                  \n                  We'll send you email if your endpoint fails\n                \n              \n\n                \n                \n                By subscribing you agree to our Privacy Policy. This site is protected by reCAPTCHA and the Google Privacy Policy and Terms of Service apply.\n\n          \n\n          \n            \n            or \n            view our profile.\n            \n              .twitter-follow-button {\n                margin-bottom: -6px;\n              }\n            \n\n              !function(d,s,id){var js,fjs=d.getElementsByTagName(s)[0],p=/^http:/.test(d.location)?'http':'https';if(!d.getElementById(id)){js=d.createElement(s);js.id=id;js.src=p+'://platform.twitter.com/widgets.js';fjs.parentNode.insertBefore(js,fjs);}}(document, 'script', 'twitter-wjs');\n          \n\n          \n            Visit our support site.\n          \n\n          \n            Get the Atom Feed or RSS Feed.",
+    "rect": {
+      "left": 0,
+      "top": 0,
+      "width": 1920,
+      "height": 73
+    }
+  },
+  {
+    "id": "3",
+    "attributes": {
+      "class": ".f4.list-style-none.py-2.mt-2.mt-md-0",
+      "nodeType": "TEXT Node"
+    },
+    "locator": "[_midscene_retrieve_task_id='3']",
+    "center": [
+      399,
+      36
+    ],
+    "content": "Help\n    Community\n    Status",
+    "rect": {
+      "left": 24,
+      "top": 16,
+      "width": 749,
+      "height": 40
+    }
+  },
+  {
+    "id": "4",
+    "attributes": {
+      "class": ".mr-3.mr-lg-4.py-2",
+      "href": "https://help.github.com",
+      "nodeType": "TEXT Node"
+    },
+    "locator": "[_midscene_retrieve_task_id='4']",
+    "center": [
+      41,
+      37
+    ],
+    "content": "Help",
+    "rect": {
+      "left": 24,
+      "top": 19,
+      "width": 34,
+      "height": 35
+    }
+  },
+  {
+    "id": "5",
+    "attributes": {
+      "class": ".mr-3.mr-lg-4.py-2",
+      "href": "https://github.community",
+      "nodeType": "TEXT Node"
+    },
+    "locator": "[_midscene_retrieve_task_id='5']",
+    "center": [
+      128,
+      37
+    ],
+    "content": "Community",
+    "rect": {
+      "left": 86,
+      "top": 19,
+      "width": 83,
+      "height": 35
+    }
+  },
+  {
+    "id": "6",
+    "attributes": {
+      "class": ".py-2.text-gray",
+      "href": "/",
+      "nodeType": "TEXT Node"
+    },
+    "locator": "[_midscene_retrieve_task_id='6']",
+    "center": [
+      220,
+      37
+    ],
+    "content": "Status",
+    "rect": {
+      "left": 197,
+      "top": 19,
+      "width": 46,
+      "height": 35
+    }
+  },
+  {
+    "id": "7",
+    "attributes": {
+      "class": ".f4.list-style-none.py-2.text-md-right",
+      "nodeType": "TEXT Node"
+    },
+    "locator": "[_midscene_retrieve_task_id='7']",
+    "center": [
+      1522,
+      36
+    ],
+    "content": "GitHub.com\n    Twitter\n    \n      \n    \n\n    \n\n\n    \n      \n          \n            \n          \n          \n            \n          \n          \n            \n          \n          \n            \n          \n          \n            \n          \n          \n            \n          \n          \n            \n          \n        \n          x\n        \n      \n      \n          \n            \n              Get email notifications whenever GitHub creates,  updates or resolves an incident.\n            \n            \n              \n                \n                Email address:\n                \n                \n                \n                  Enter OTP:\n                  \n                  Resend OTP in:  seconds \n                  \n                    Didn't receive the OTP?\n                    Resend OTP \n                  \n                \n                  \n                  \n                  By subscribing you agree to our Privacy Policy. This site is protected by reCAPTCHA and the Google Privacy Policy and Terms of Service apply.\n          \n\n          \n            \n                Get text message notifications whenever GitHub creates or resolves an incident.\n            \n            \n              \n              \n              \n                \n                  \n                  Country code:\n                  \n                      Afghanistan (+93)\nAlbania (+355)\nAlgeria (+213)\nAmerican Samoa (+1)\nAndorra (+376)\nAngola (+244)\nAnguilla (+1)\nAntigua and Barbuda (+1)\nArgentina (+54)\nArmenia (+374)\nAruba (+297)\nAustralia/Cocos/Christmas Island (+61)\nAustria (+43)\nAzerbaijan (+994)\nBahamas (+1)\nBahrain (+973)\nBangladesh (+880)\nBarbados (+1)\nBelarus (+375)\nBelgium (+32)\nBelize (+501)\nBenin (+229)\nBermuda (+1)\nBolivia (+591)\nBosnia and Herzegovina (+387)\nBotswana (+267)\nBrazil (+55)\nBrunei (+673)\nBulgaria (+359)\nBurkina Faso (+226)\nBurundi (+257)\nCambodia (+855)\nCameroon (+237)\nCanada (+1)\nCape Verde (+238)\nCayman Islands (+1)\nCentral Africa (+236)\nChad (+235)\nChile (+56)\nChina (+86)\nColombia (+57)\nComoros (+269)\nCongo (+242)\nCongo, Dem Rep (+243)\nCosta Rica (+506)\nCroatia (+385)\nCyprus (+357)\nCzech Republic (+420)\nDenmark (+45)\nDjibouti (+253)\nDominica (+1)\nDominican Republic (+1)\nEgypt (+20)\nEl Salvador (+503)\nEquatorial Guinea (+240)\nEstonia (+372)\nEthiopia (+251)\nFaroe Islands (+298)\nFiji (+679)\nFinland/Aland Islands (+358)\nFrance (+33)\nFrench Guiana (+594)\nFrench Polynesia (+689)\nGabon (+241)\nGambia (+220)\nGeorgia (+995)\nGermany (+49)\nGhana (+233)\nGibraltar (+350)\nGreece (+30)\nGreenland (+299)\nGrenada (+1)\nGuadeloupe (+590)\nGuam (+1)\nGuatemala (+502)\nGuinea (+224)\nGuyana (+592)\nHaiti (+509)\nHonduras (+504)\nHong Kong (+852)\nHungary (+36)\nIceland (+354)\nIndia (+91)\nIndonesia (+62)\nIraq (+964)\nIreland (+353)\nIsrael (+972)\nItaly (+39)\nJamaica (+1)\nJapan (+81)\nJordan (+962)\nKenya (+254)\nKorea, Republic of (+82)\nKosovo (+383)\nKuwait (+965)\nKyrgyzstan (+996)\nLaos (+856)\nLatvia (+371)\nLebanon (+961)\nLesotho (+266)\nLiberia (+231)\nLibya (+218)\nLiechtenstein (+423)\nLithuania (+370)\nLuxembourg (+352)\nMacao (+853)\nMacedonia (+389)\nMadagascar (+261)\nMalawi (+265)\nMalaysia (+60)\nMaldives (+960)\nMali (+223)\nMalta (+356)\nMartinique (+596)\nMauritania (+222)\nMauritius (+230)\nMexico (+52)\nMonaco (+377)\nMongolia (+976)\nMontenegro (+382)\nMontserrat (+1)\nMorocco/Western Sahara (+212)\nMozambique (+258)\nNamibia (+264)\nNepal (+977)\nNetherlands (+31)\nNew Zealand (+64)\nNicaragua (+505)\nNiger (+227)\nNigeria (+234)\nNorway (+47)\nOman (+968)\nPakistan (+92)\nPalestinian Territory (+970)\nPanama (+507)\nParaguay (+595)\nPeru (+51)\nPhilippines (+63)\nPoland (+48)\nPortugal (+351)\nPuerto Rico (+1)\nQatar (+974)\nReunion/Mayotte (+262)\nRomania (+40)\nRussia/Kazakhstan (+7)\nRwanda (+250)\nSamoa (+685)\nSan Marino (+378)\nSaudi Arabia (+966)\nSenegal (+221)\nSerbia (+381)\nSeychelles (+248)\nSierra Leone (+232)\nSingapore (+65)\nSlovakia (+421)\nSlovenia (+386)\nSouth Africa (+27)\nSpain (+34)\nSri Lanka (+94)\nSt Kitts and Nevis (+1)\nSt Lucia (+1)\nSt Vincent Grenadines (+1)\nSudan (+249)\nSuriname (+597)\nSwaziland (+268)\nSweden (+46)\nSwitzerland (+41)\nTaiwan (+886)\nTajikistan (+992)\nTanzania (+255)\nThailand (+66)\nTogo (+228)\nTonga (+676)\nTrinidad and Tobago (+1)\nTunisia (+216)\nTurkey (+90)\nTurks and Caicos Islands (+1)\nUganda (+256)\nUkraine (+380)\nUnited Arab Emirates (+971)\nUnited Kingdom (+44)\nUnited States (+1)\nUruguay (+598)\nUzbekistan (+998)\nVenezuela (+58)\nVietnam (+84)\nVirgin Islands, British (+1)\nVirgin Islands, U.S. (+1)\nYemen (+967)\nZambia (+260)\nZimbabwe (+263)\n                  \n                  Phone number:\n                  \n                  \n                  \n                  \n                    Change number\n                    Enter OTP:\n                    \n                    Resend OTP in: 30 seconds \n                    \n                      Didn't receive the OTP?\n                      Resend OTP \n                    \n                    \n                \n              \n\n                \n                \n              Message and data rates may apply. By subscribing you agree to our Privacy Policy, the Atlassian Terms of Service, and the Atlassian Privacy Policy. This site is protected by reCAPTCHA and the Google Privacy Policy and Terms of Service apply.\n          \n\n          \n            \n              Get incident updates and maintenance status messages in Slack.\n            \n            Subscribe via Slack\n            By subscribing you acknowledge our Privacy Policy. In addition, you agree to the Atlassian Cloud Terms of Service and acknowledge Atlassian's Privacy Policy.\n          \n\n\n          \n            \n              Get webhook notifications whenever GitHub creates an incident, updates an incident, resolves an incident or changes a component status.\n            \n            \n              \n                \n                  Webhook URL:\n                  \n                  The URL we should send the webhooks to\n                \n              \n\n              \n                \n                  Email address:\n                  \n                  We'll send you email if your endpoint fails\n                \n              \n\n                \n                \n                By subscribing you agree to our Privacy Policy. This site is protected by reCAPTCHA and the Google Privacy Policy and Terms of Service apply.\n\n          \n\n          \n            \n            or \n            view our profile.\n            \n              .twitter-follow-button {\n                margin-bottom: -6px;\n              }\n            \n\n              !function(d,s,id){var js,fjs=d.getElementsByTagName(s)[0],p=/^http:/.test(d.location)?'http':'https';if(!d.getElementById(id)){js=d.createElement(s);js.id=id;js.src=p+'://platform.twitter.com/widgets.js';fjs.parentNode.insertBefore(js,fjs);}}(document, 'script', 'twitter-wjs');\n          \n\n          \n            Visit our support site.\n          \n\n          \n            Get the Atom Feed or RSS Feed.",
+    "rect": {
+      "left": 1147,
+      "top": 16,
+      "width": 749,
+      "height": 40
+    }
+  },
+  {
+    "id": "8",
+    "attributes": {
+      "class": ".py-2",
+      "href": "https://github.com",
+      "nodeType": "TEXT Node"
+    },
+    "locator": "[_midscene_retrieve_task_id='8']",
+    "center": [
+      1586,
+      37
+    ],
+    "content": "GitHub.com",
+    "rect": {
+      "left": 1543,
+      "top": 19,
+      "width": 86,
+      "height": 35
+    }
+  },
+  {
+    "id": "9",
+    "attributes": {
+      "class": ".py-2.ml-3.ml-lg-4",
+      "href": "https://twitter.com/githubstatus",
+      "nodeType": "TEXT Node"
+    },
+    "locator": "[_midscene_retrieve_task_id='9']",
+    "center": [
+      1683,
+      37
+    ],
+    "content": "Twitter",
+    "rect": {
+      "left": 1658,
+      "top": 19,
+      "width": 50,
+      "height": 35
+    }
+  },
+  {
+    "id": "10",
+    "attributes": {
+      "class": ".d-inline.py-2.ml-3.ml-lg-4",
+      "nodeType": "TEXT Node"
+    },
+    "locator": "[_midscene_retrieve_task_id='10']",
+    "center": [
+      1816,
+      37
+    ],
+    "content": "x\n        \n      \n      \n          \n            \n              Get email notifications whenever GitHub creates,  updates or resolves an incident.\n            \n            \n              \n                \n                Email address:\n                \n                \n                \n                  Enter OTP:\n                  \n                  Resend OTP in:  seconds \n                  \n                    Didn't receive the OTP?\n                    Resend OTP \n                  \n                \n                  \n                  \n                  By subscribing you agree to our Privacy Policy. This site is protected by reCAPTCHA and the Google Privacy Policy and Terms of Service apply.\n          \n\n          \n            \n                Get text message notifications whenever GitHub creates or resolves an incident.\n            \n            \n              \n              \n              \n                \n                  \n                  Country code:\n                  \n                      Afghanistan (+93)\nAlbania (+355)\nAlgeria (+213)\nAmerican Samoa (+1)\nAndorra (+376)\nAngola (+244)\nAnguilla (+1)\nAntigua and Barbuda (+1)\nArgentina (+54)\nArmenia (+374)\nAruba (+297)\nAustralia/Cocos/Christmas Island (+61)\nAustria (+43)\nAzerbaijan (+994)\nBahamas (+1)\nBahrain (+973)\nBangladesh (+880)\nBarbados (+1)\nBelarus (+375)\nBelgium (+32)\nBelize (+501)\nBenin (+229)\nBermuda (+1)\nBolivia (+591)\nBosnia and Herzegovina (+387)\nBotswana (+267)\nBrazil (+55)\nBrunei (+673)\nBulgaria (+359)\nBurkina Faso (+226)\nBurundi (+257)\nCambodia (+855)\nCameroon (+237)\nCanada (+1)\nCape Verde (+238)\nCayman Islands (+1)\nCentral Africa (+236)\nChad (+235)\nChile (+56)\nChina (+86)\nColombia (+57)\nComoros (+269)\nCongo (+242)\nCongo, Dem Rep (+243)\nCosta Rica (+506)\nCroatia (+385)\nCyprus (+357)\nCzech Republic (+420)\nDenmark (+45)\nDjibouti (+253)\nDominica (+1)\nDominican Republic (+1)\nEgypt (+20)\nEl Salvador (+503)\nEquatorial Guinea (+240)\nEstonia (+372)\nEthiopia (+251)\nFaroe Islands (+298)\nFiji (+679)\nFinland/Aland Islands (+358)\nFrance (+33)\nFrench Guiana (+594)\nFrench Polynesia (+689)\nGabon (+241)\nGambia (+220)\nGeorgia (+995)\nGermany (+49)\nGhana (+233)\nGibraltar (+350)\nGreece (+30)\nGreenland (+299)\nGrenada (+1)\nGuadeloupe (+590)\nGuam (+1)\nGuatemala (+502)\nGuinea (+224)\nGuyana (+592)\nHaiti (+509)\nHonduras (+504)\nHong Kong (+852)\nHungary (+36)\nIceland (+354)\nIndia (+91)\nIndonesia (+62)\nIraq (+964)\nIreland (+353)\nIsrael (+972)\nItaly (+39)\nJamaica (+1)\nJapan (+81)\nJordan (+962)\nKenya (+254)\nKorea, Republic of (+82)\nKosovo (+383)\nKuwait (+965)\nKyrgyzstan (+996)\nLaos (+856)\nLatvia (+371)\nLebanon (+961)\nLesotho (+266)\nLiberia (+231)\nLibya (+218)\nLiechtenstein (+423)\nLithuania (+370)\nLuxembourg (+352)\nMacao (+853)\nMacedonia (+389)\nMadagascar (+261)\nMalawi (+265)\nMalaysia (+60)\nMaldives (+960)\nMali (+223)\nMalta (+356)\nMartinique (+596)\nMauritania (+222)\nMauritius (+230)\nMexico (+52)\nMonaco (+377)\nMongolia (+976)\nMontenegro (+382)\nMontserrat (+1)\nMorocco/Western Sahara (+212)\nMozambique (+258)\nNamibia (+264)\nNepal (+977)\nNetherlands (+31)\nNew Zealand (+64)\nNicaragua (+505)\nNiger (+227)\nNigeria (+234)\nNorway (+47)\nOman (+968)\nPakistan (+92)\nPalestinian Territory (+970)\nPanama (+507)\nParaguay (+595)\nPeru (+51)\nPhilippines (+63)\nPoland (+48)\nPortugal (+351)\nPuerto Rico (+1)\nQatar (+974)\nReunion/Mayotte (+262)\nRomania (+40)\nRussia/Kazakhstan (+7)\nRwanda (+250)\nSamoa (+685)\nSan Marino (+378)\nSaudi Arabia (+966)\nSenegal (+221)\nSerbia (+381)\nSeychelles (+248)\nSierra Leone (+232)\nSingapore (+65)\nSlovakia (+421)\nSlovenia (+386)\nSouth Africa (+27)\nSpain (+34)\nSri Lanka (+94)\nSt Kitts and Nevis (+1)\nSt Lucia (+1)\nSt Vincent Grenadines (+1)\nSudan (+249)\nSuriname (+597)\nSwaziland (+268)\nSweden (+46)\nSwitzerland (+41)\nTaiwan (+886)\nTajikistan (+992)\nTanzania (+255)\nThailand (+66)\nTogo (+228)\nTonga (+676)\nTrinidad and Tobago (+1)\nTunisia (+216)\nTurkey (+90)\nTurks and Caicos Islands (+1)\nUganda (+256)\nUkraine (+380)\nUnited Arab Emirates (+971)\nUnited Kingdom (+44)\nUnited States (+1)\nUruguay (+598)\nUzbekistan (+998)\nVenezuela (+58)\nVietnam (+84)\nVirgin Islands, British (+1)\nVirgin Islands, U.S. (+1)\nYemen (+967)\nZambia (+260)\nZimbabwe (+263)\n                  \n                  Phone number:\n                  \n                  \n                  \n                  \n                    Change number\n                    Enter OTP:\n                    \n                    Resend OTP in: 30 seconds \n                    \n                      Didn't receive the OTP?\n                      Resend OTP \n                    \n                    \n                \n              \n\n                \n                \n              Message and data rates may apply. By subscribing you agree to our Privacy Policy, the Atlassian Terms of Service, and the Atlassian Privacy Policy. This site is protected by reCAPTCHA and the Google Privacy Policy and Terms of Service apply.\n          \n\n          \n            \n              Get incident updates and maintenance status messages in Slack.\n            \n            Subscribe via Slack\n            By subscribing you acknowledge our Privacy Policy. In addition, you agree to the Atlassian Cloud Terms of Service and acknowledge Atlassian's Privacy Policy.\n          \n\n\n          \n            \n              Get webhook notifications whenever GitHub creates an incident, updates an incident, resolves an incident or changes a component status.\n            \n            \n              \n                \n                  Webhook URL:\n                  \n                  The URL we should send the webhooks to\n                \n              \n\n              \n                \n                  Email address:\n                  \n                  We'll send you email if your endpoint fails\n                \n              \n\n                \n                \n                By subscribing you agree to our Privacy Policy. This site is protected by reCAPTCHA and the Google Privacy Policy and Terms of Service apply.\n\n          \n\n          \n            \n            or \n            view our profile.\n            \n              .twitter-follow-button {\n                margin-bottom: -6px;\n              }\n            \n\n              !function(d,s,id){var js,fjs=d.getElementsByTagName(s)[0],p=/^http:/.test(d.location)?'http':'https';if(!d.getElementById(id)){js=d.createElement(s);js.id=id;js.src=p+'://platform.twitter.com/widgets.js';fjs.parentNode.insertBefore(js,fjs);}}(document, 'script', 'twitter-wjs');\n          \n\n          \n            Visit our support site.\n          \n\n          \n            Get the Atom Feed or RSS Feed.",
+    "rect": {
+      "left": 1736,
+      "top": 19,
+      "width": 160,
+      "height": 35
+    }
+  },
+  {
+    "id": "11",
+    "attributes": {
+      "class": ".updates-dropdown-container",
+      "data-js-hook": "updates-dropdown-container",
+      "style": "display: inline-block;",
+      "nodeType": "TEXT Node"
+    },
+    "locator": "[_midscene_retrieve_task_id='11']",
+    "center": [
+      1816,
+      36
+    ],
+    "content": "x\n        \n      \n      \n          \n            \n              Get email notifications whenever GitHub creates,  updates or resolves an incident.\n            \n            \n              \n                \n                Email address:\n                \n                \n                \n                  Enter OTP:\n                  \n                  Resend OTP in:  seconds \n                  \n                    Didn't receive the OTP?\n                    Resend OTP \n                  \n                \n                  \n                  \n                  By subscribing you agree to our Privacy Policy. This site is protected by reCAPTCHA and the Google Privacy Policy and Terms of Service apply.\n          \n\n          \n            \n                Get text message notifications whenever GitHub creates or resolves an incident.\n            \n            \n              \n              \n              \n                \n                  \n                  Country code:\n                  \n                      Afghanistan (+93)\nAlbania (+355)\nAlgeria (+213)\nAmerican Samoa (+1)\nAndorra (+376)\nAngola (+244)\nAnguilla (+1)\nAntigua and Barbuda (+1)\nArgentina (+54)\nArmenia (+374)\nAruba (+297)\nAustralia/Cocos/Christmas Island (+61)\nAustria (+43)\nAzerbaijan (+994)\nBahamas (+1)\nBahrain (+973)\nBangladesh (+880)\nBarbados (+1)\nBelarus (+375)\nBelgium (+32)\nBelize (+501)\nBenin (+229)\nBermuda (+1)\nBolivia (+591)\nBosnia and Herzegovina (+387)\nBotswana (+267)\nBrazil (+55)\nBrunei (+673)\nBulgaria (+359)\nBurkina Faso (+226)\nBurundi (+257)\nCambodia (+855)\nCameroon (+237)\nCanada (+1)\nCape Verde (+238)\nCayman Islands (+1)\nCentral Africa (+236)\nChad (+235)\nChile (+56)\nChina (+86)\nColombia (+57)\nComoros (+269)\nCongo (+242)\nCongo, Dem Rep (+243)\nCosta Rica (+506)\nCroatia (+385)\nCyprus (+357)\nCzech Republic (+420)\nDenmark (+45)\nDjibouti (+253)\nDominica (+1)\nDominican Republic (+1)\nEgypt (+20)\nEl Salvador (+503)\nEquatorial Guinea (+240)\nEstonia (+372)\nEthiopia (+251)\nFaroe Islands (+298)\nFiji (+679)\nFinland/Aland Islands (+358)\nFrance (+33)\nFrench Guiana (+594)\nFrench Polynesia (+689)\nGabon (+241)\nGambia (+220)\nGeorgia (+995)\nGermany (+49)\nGhana (+233)\nGibraltar (+350)\nGreece (+30)\nGreenland (+299)\nGrenada (+1)\nGuadeloupe (+590)\nGuam (+1)\nGuatemala (+502)\nGuinea (+224)\nGuyana (+592)\nHaiti (+509)\nHonduras (+504)\nHong Kong (+852)\nHungary (+36)\nIceland (+354)\nIndia (+91)\nIndonesia (+62)\nIraq (+964)\nIreland (+353)\nIsrael (+972)\nItaly (+39)\nJamaica (+1)\nJapan (+81)\nJordan (+962)\nKenya (+254)\nKorea, Republic of (+82)\nKosovo (+383)\nKuwait (+965)\nKyrgyzstan (+996)\nLaos (+856)\nLatvia (+371)\nLebanon (+961)\nLesotho (+266)\nLiberia (+231)\nLibya (+218)\nLiechtenstein (+423)\nLithuania (+370)\nLuxembourg (+352)\nMacao (+853)\nMacedonia (+389)\nMadagascar (+261)\nMalawi (+265)\nMalaysia (+60)\nMaldives (+960)\nMali (+223)\nMalta (+356)\nMartinique (+596)\nMauritania (+222)\nMauritius (+230)\nMexico (+52)\nMonaco (+377)\nMongolia (+976)\nMontenegro (+382)\nMontserrat (+1)\nMorocco/Western Sahara (+212)\nMozambique (+258)\nNamibia (+264)\nNepal (+977)\nNetherlands (+31)\nNew Zealand (+64)\nNicaragua (+505)\nNiger (+227)\nNigeria (+234)\nNorway (+47)\nOman (+968)\nPakistan (+92)\nPalestinian Territory (+970)\nPanama (+507)\nParaguay (+595)\nPeru (+51)\nPhilippines (+63)\nPoland (+48)\nPortugal (+351)\nPuerto Rico (+1)\nQatar (+974)\nReunion/Mayotte (+262)\nRomania (+40)\nRussia/Kazakhstan (+7)\nRwanda (+250)\nSamoa (+685)\nSan Marino (+378)\nSaudi Arabia (+966)\nSenegal (+221)\nSerbia (+381)\nSeychelles (+248)\nSierra Leone (+232)\nSingapore (+65)\nSlovakia (+421)\nSlovenia (+386)\nSouth Africa (+27)\nSpain (+34)\nSri Lanka (+94)\nSt Kitts and Nevis (+1)\nSt Lucia (+1)\nSt Vincent Grenadines (+1)\nSudan (+249)\nSuriname (+597)\nSwaziland (+268)\nSweden (+46)\nSwitzerland (+41)\nTaiwan (+886)\nTajikistan (+992)\nTanzania (+255)\nThailand (+66)\nTogo (+228)\nTonga (+676)\nTrinidad and Tobago (+1)\nTunisia (+216)\nTurkey (+90)\nTurks and Caicos Islands (+1)\nUganda (+256)\nUkraine (+380)\nUnited Arab Emirates (+971)\nUnited Kingdom (+44)\nUnited States (+1)\nUruguay (+598)\nUzbekistan (+998)\nVenezuela (+58)\nVietnam (+84)\nVirgin Islands, British (+1)\nVirgin Islands, U.S. (+1)\nYemen (+967)\nZambia (+260)\nZimbabwe (+263)\n                  \n                  Phone number:\n                  \n                  \n                  \n                  \n                    Change number\n                    Enter OTP:\n                    \n                    Resend OTP in: 30 seconds \n                    \n                      Didn't receive the OTP?\n                      Resend OTP \n                    \n                    \n                \n              \n\n                \n                \n              Message and data rates may apply. By subscribing you agree to our Privacy Policy, the Atlassian Terms of Service, and the Atlassian Privacy Policy. This site is protected by reCAPTCHA and the Google Privacy Policy and Terms of Service apply.\n          \n\n          \n            \n              Get incident updates and maintenance status messages in Slack.\n            \n            Subscribe via Slack\n            By subscribing you acknowledge our Privacy Policy. In addition, you agree to the Atlassian Cloud Terms of Service and acknowledge Atlassian's Privacy Policy.\n          \n\n\n          \n            \n              Get webhook notifications whenever GitHub creates an incident, updates an incident, resolves an incident or changes a component status.\n            \n            \n              \n                \n                  Webhook URL:\n                  \n                  The URL we should send the webhooks to\n                \n              \n\n              \n                \n                  Email address:\n                  \n                  We'll send you email if your endpoint fails\n                \n              \n\n                \n                \n                By subscribing you agree to our Privacy Policy. This site is protected by reCAPTCHA and the Google Privacy Policy and Terms of Service apply.\n\n          \n\n          \n            \n            or \n            view our profile.\n            \n              .twitter-follow-button {\n                margin-bottom: -6px;\n              }\n            \n\n              !function(d,s,id){var js,fjs=d.getElementsByTagName(s)[0],p=/^http:/.test(d.location)?'http':'https';if(!d.getElementById(id)){js=d.createElement(s);js.id=id;js.src=p+'://platform.twitter.com/widgets.js';fjs.parentNode.insertBefore(js,fjs);}}(document, 'script', 'twitter-wjs');\n          \n\n          \n            Visit our support site.\n          \n\n          \n            Get the Atom Feed or RSS Feed.",
+    "rect": {
+      "left": 1736,
+      "top": 24,
+      "width": 160,
+      "height": 24
+    }
+  },
+  {
+    "id": "12",
+    "locator": "[_midscene_retrieve_task_id='12']",
+    "attributes": {
+      "src": "https://user-images.githubusercontent.com/19292210/60553863-044dd200-9cea-11e9-987e-7db84449f215.png",
+      "class": ".illo-desktop-header",
+      "style": "display: none;",
+      "alt": "GitHub header",
+      "nodeType": "IMG Node"
+    },
+    "content": "",
+    "rect": {
+      "left": 0,
+      "top": 73,
+      "width": 1920,
+      "height": 422
+    },
+    "center": [
+      960,
+      284
+    ]
+  },
+  {
+    "id": "13",
+    "attributes": {
+      "class": ".page-status.status-none",
+      "nodeType": "TEXT Node"
+    },
+    "locator": "[_midscene_retrieve_task_id='13']",
+    "center": [
+      960,
+      428
+    ],
+    "content": "All Systems Operational",
+    "rect": {
+      "left": 470,
+      "top": 400,
+      "width": 980,
+      "height": 55
+    }
+  },
+  {
+    "id": "14",
+    "attributes": {
+      "class": ".status.font-large",
+      "nodeType": "TEXT Node"
+    },
+    "locator": "[_midscene_retrieve_task_id='14']",
+    "center": [
+      632,
+      427
+    ],
+    "content": "All Systems Operational",
+    "rect": {
+      "left": 522,
+      "top": 415,
+      "width": 219,
+      "height": 24
+    }
+  },
+  {
+    "id": "15",
+    "attributes": {
+      "class": ".components-section.font-regular",
+      "nodeType": "TEXT Node"
+    },
+    "locator": "[_midscene_retrieve_task_id='15']",
+    "center": [
+      960,
+      756
+    ],
+    "content": "Git Operations\n   \n\n    ?\n\n  \n\n  \n\nNormal\n\n          \n          \n            \n\n\n   \n      API Requests\n   \n\n    ?\n\n  \n\n  \n\nNormal\n\n          \n          \n            \n\n\n   \n      Webhooks\n   \n\n    ?\n\n  \n\n  \n\nNormal\n\n          \n          \n            \n\n\n   \n      Visit www.githubstatus.com for more information\n   \n\n\n  \n\n  \n\nNormal\n\n          \n          \n            \n\n\n   \n      Issues\n   \n\n    ?\n\n  \n\n  \n\nNormal\n\n          \n          \n            \n\n\n   \n      Pull Requests\n   \n\n    ?\n\n  \n\n  \n\nNormal\n\n          \n          \n            \n\n\n   \n      Actions\n   \n\n    ?\n\n  \n\n  \n\nNormal\n\n          \n          \n            \n\n\n   \n      Packages\n   \n\n    ?\n\n  \n\n  \n\nNormal\n\n          \n          \n            \n\n\n   \n      Pages\n   \n\n    ?\n\n  \n\n  \n\nNormal\n\n          \n          \n            \n\n\n   \n      Codespaces\n   \n\n    ?\n\n  \n\n  \n\nNormal\n\n          \n          \n            \n\n\n   \n      Copilot\n   \n\n\n  \n\n  \n\nNormal",
+    "rect": {
+      "left": 470,
+      "top": 503,
+      "width": 980,
+      "height": 505
+    }
+  },
+  {
+    "id": "16",
+    "attributes": {
+      "class": ".components-container.two-columns",
+      "nodeType": "TEXT Node"
+    },
+    "locator": "[_midscene_retrieve_task_id='16']",
+    "center": [
+      960,
+      783
+    ],
+    "content": "Git Operations\n   \n\n    ?\n\n  \n\n  \n\nNormal\n\n          \n          \n            \n\n\n   \n      API Requests\n   \n\n    ?\n\n  \n\n  \n\nNormal\n\n          \n          \n            \n\n\n   \n      Webhooks\n   \n\n    ?\n\n  \n\n  \n\nNormal\n\n          \n          \n            \n\n\n   \n      Visit www.githubstatus.com for more information\n   \n\n\n  \n\n  \n\nNormal\n\n          \n          \n            \n\n\n   \n      Issues\n   \n\n    ?\n\n  \n\n  \n\nNormal\n\n          \n          \n            \n\n\n   \n      Pull Requests\n   \n\n    ?\n\n  \n\n  \n\nNormal\n\n          \n          \n            \n\n\n   \n      Actions\n   \n\n    ?\n\n  \n\n  \n\nNormal\n\n          \n          \n            \n\n\n   \n      Packages\n   \n\n    ?\n\n  \n\n  \n\nNormal\n\n          \n          \n            \n\n\n   \n      Pages\n   \n\n    ?\n\n  \n\n  \n\nNormal\n\n          \n          \n            \n\n\n   \n      Codespaces\n   \n\n    ?\n\n  \n\n  \n\nNormal\n\n          \n          \n            \n\n\n   \n      Copilot\n   \n\n\n  \n\n  \n\nNormal",
+    "rect": {
+      "left": 470,
+      "top": 558,
+      "width": 980,
+      "height": 449
+    }
+  },
+  {
+    "id": "17",
+    "attributes": {
+      "class": ".component-container.border-color",
+      "nodeType": "TEXT Node"
+    },
+    "locator": "[_midscene_retrieve_task_id='17']",
+    "center": [
+      717,
+      605
+    ],
+    "content": "Git Operations\n   \n\n    ?\n\n  \n\n  \n\nNormal",
+    "rect": {
+      "left": 472,
+      "top": 561,
+      "width": 489,
+      "height": 88
+    }
+  },
+  {
+    "id": "18",
+    "attributes": {
+      "data-component-id": "8l4ygp009s5s",
+      "class": ".component-inner-container.status-green.",
+      "data-component-status": "operational",
+      "nodeType": "TEXT Node"
+    },
+    "locator": "[_midscene_retrieve_task_id='18']",
+    "center": [
+      716,
+      606
+    ],
+    "content": "Git Operations\n   \n\n    ?\n\n  \n\n  \n\nNormal",
+    "rect": {
+      "left": 492,
+      "top": 579,
+      "width": 448,
+      "height": 54
+    }
+  },
+  {
+    "id": "19",
+    "attributes": {
+      "class": ".name",
+      "nodeType": "TEXT Node"
+    },
+    "locator": "[_midscene_retrieve_task_id='19']",
+    "center": [
+      546,
+      593
+    ],
+    "content": "Git Operations",
+    "rect": {
+      "left": 492,
+      "top": 581,
+      "width": 107,
+      "height": 24
+    }
+  },
+  {
+    "id": "20",
+    "attributes": {
+      "class": ".tooltip-base.tool.tooltipstered",
+      "nodeType": "TEXT Node"
+    },
+    "locator": "[_midscene_retrieve_task_id='20']",
+    "center": [
+      618,
+      591
+    ],
+    "content": "?",
+    "rect": {
+      "left": 609,
+      "top": 582,
+      "width": 18,
+      "height": 18
+    }
+  },
+  {
+    "id": "21",
+    "attributes": {
+      "class": ".status-msg",
+      "nodeType": "TEXT Node"
+    },
+    "locator": "[_midscene_retrieve_task_id='21']",
+    "center": [
+      716,
+      619
+    ],
+    "content": "Normal",
+    "rect": {
+      "left": 492,
+      "top": 605,
+      "width": 448,
+      "height": 28
+    }
+  },
+  {
+    "id": "22",
+    "attributes": {
+      "class": ".component-container.border-color",
+      "nodeType": "TEXT Node"
+    },
+    "locator": "[_midscene_retrieve_task_id='22']",
+    "center": [
+      1206,
+      605
+    ],
+    "content": "API Requests\n   \n\n    ?\n\n  \n\n  \n\nNormal",
+    "rect": {
+      "left": 961,
+      "top": 561,
+      "width": 489,
+      "height": 88
+    }
+  },
+  {
+    "id": "23",
+    "attributes": {
+      "data-component-id": "brv1bkgrwx7q",
+      "class": ".component-inner-container.status-green.",
+      "data-component-status": "operational",
+      "nodeType": "TEXT Node"
+    },
+    "locator": "[_midscene_retrieve_task_id='23']",
+    "center": [
+      1205,
+      606
+    ],
+    "content": "API Requests\n   \n\n    ?\n\n  \n\n  \n\nNormal",
+    "rect": {
+      "left": 981,
+      "top": 579,
+      "width": 448,
+      "height": 54
+    }
+  },
+  {
+    "id": "24",
+    "attributes": {
+      "class": ".name",
+      "nodeType": "TEXT Node"
+    },
+    "locator": "[_midscene_retrieve_task_id='24']",
+    "center": [
+      1030,
+      593
+    ],
+    "content": "API Requests",
+    "rect": {
+      "left": 981,
+      "top": 581,
+      "width": 98,
+      "height": 24
+    }
+  },
+  {
+    "id": "25",
+    "attributes": {
+      "class": ".tooltip-base.tool.tooltipstered",
+      "nodeType": "TEXT Node"
+    },
+    "locator": "[_midscene_retrieve_task_id='25']",
+    "center": [
+      1097,
+      591
+    ],
+    "content": "?",
+    "rect": {
+      "left": 1088,
+      "top": 582,
+      "width": 18,
+      "height": 18
+    }
+  },
+  {
+    "id": "26",
+    "attributes": {
+      "class": ".status-msg",
+      "nodeType": "TEXT Node"
+    },
+    "locator": "[_midscene_retrieve_task_id='26']",
+    "center": [
+      1205,
+      619
+    ],
+    "content": "Normal",
+    "rect": {
+      "left": 981,
+      "top": 605,
+      "width": 448,
+      "height": 28
+    }
+  },
+  {
+    "id": "27",
+    "attributes": {
+      "class": ".component-container.border-color",
+      "nodeType": "TEXT Node"
+    },
+    "locator": "[_midscene_retrieve_task_id='27']",
+    "center": [
+      717,
+      695
+    ],
+    "content": "Webhooks\n   \n\n    ?\n\n  \n\n  \n\nNormal",
+    "rect": {
+      "left": 472,
+      "top": 651,
+      "width": 489,
+      "height": 88
+    }
+  },
+  {
+    "id": "28",
+    "attributes": {
+      "data-component-id": "4230lsnqdsld",
+      "class": ".component-inner-container.status-green.",
+      "data-component-status": "operational",
+      "nodeType": "TEXT Node"
+    },
+    "locator": "[_midscene_retrieve_task_id='28']",
+    "center": [
+      716,
+      695
+    ],
+    "content": "Webhooks\n   \n\n    ?\n\n  \n\n  \n\nNormal",
+    "rect": {
+      "left": 492,
+      "top": 668,
+      "width": 448,
+      "height": 54
+    }
+  },
+  {
+    "id": "29",
+    "attributes": {
+      "class": ".name",
+      "nodeType": "TEXT Node"
+    },
+    "locator": "[_midscene_retrieve_task_id='29']",
+    "center": [
+      531,
+      682
+    ],
+    "content": "Webhooks",
+    "rect": {
+      "left": 492,
+      "top": 670,
+      "width": 78,
+      "height": 24
+    }
+  },
+  {
+    "id": "30",
+    "attributes": {
+      "class": ".tooltip-base.tool.tooltipstered",
+      "nodeType": "TEXT Node"
+    },
+    "locator": "[_midscene_retrieve_task_id='30']",
+    "center": [
+      588,
+      681
+    ],
+    "content": "?",
+    "rect": {
+      "left": 579,
+      "top": 672,
+      "width": 18,
+      "height": 18
+    }
+  },
+  {
+    "id": "31",
+    "attributes": {
+      "class": ".status-msg",
+      "nodeType": "TEXT Node"
+    },
+    "locator": "[_midscene_retrieve_task_id='31']",
+    "center": [
+      716,
+      708
+    ],
+    "content": "Normal",
+    "rect": {
+      "left": 492,
+      "top": 694,
+      "width": 448,
+      "height": 28
+    }
+  },
+  {
+    "id": "32",
+    "attributes": {
+      "class": ".component-container.border-color",
+      "nodeType": "TEXT Node"
+    },
+    "locator": "[_midscene_retrieve_task_id='32']",
+    "center": [
+      1206,
+      695
+    ],
+    "content": "Issues\n   \n\n    ?\n\n  \n\n  \n\nNormal",
+    "rect": {
+      "left": 961,
+      "top": 651,
+      "width": 489,
+      "height": 88
+    }
+  },
+  {
+    "id": "33",
+    "attributes": {
+      "data-component-id": "kr09ddfgbfsf",
+      "class": ".component-inner-container.status-green.",
+      "data-component-status": "operational",
+      "nodeType": "TEXT Node"
+    },
+    "locator": "[_midscene_retrieve_task_id='33']",
+    "center": [
+      1205,
+      695
+    ],
+    "content": "Issues\n   \n\n    ?\n\n  \n\n  \n\nNormal",
+    "rect": {
+      "left": 981,
+      "top": 668,
+      "width": 448,
+      "height": 54
+    }
+  },
+  {
+    "id": "34",
+    "attributes": {
+      "class": ".name",
+      "nodeType": "TEXT Node"
+    },
+    "locator": "[_midscene_retrieve_task_id='34']",
+    "center": [
+      1005,
+      682
+    ],
+    "content": "Issues",
+    "rect": {
+      "left": 981,
+      "top": 670,
+      "width": 47,
+      "height": 24
+    }
+  },
+  {
+    "id": "35",
+    "attributes": {
+      "class": ".tooltip-base.tool.tooltipstered",
+      "nodeType": "TEXT Node"
+    },
+    "locator": "[_midscene_retrieve_task_id='35']",
+    "center": [
+      1046,
+      681
+    ],
+    "content": "?",
+    "rect": {
+      "left": 1037,
+      "top": 672,
+      "width": 18,
+      "height": 18
+    }
+  },
+  {
+    "id": "36",
+    "attributes": {
+      "class": ".status-msg",
+      "nodeType": "TEXT Node"
+    },
+    "locator": "[_midscene_retrieve_task_id='36']",
+    "center": [
+      1205,
+      708
+    ],
+    "content": "Normal",
+    "rect": {
+      "left": 981,
+      "top": 694,
+      "width": 448,
+      "height": 28
+    }
+  },
+  {
+    "id": "37",
+    "attributes": {
+      "class": ".component-container.border-color",
+      "nodeType": "TEXT Node"
+    },
+    "locator": "[_midscene_retrieve_task_id='37']",
+    "center": [
+      717,
+      784
+    ],
+    "content": "Pull Requests\n   \n\n    ?\n\n  \n\n  \n\nNormal",
+    "rect": {
+      "left": 472,
+      "top": 740,
+      "width": 489,
+      "height": 88
+    }
+  },
+  {
+    "id": "38",
+    "attributes": {
+      "data-component-id": "hhtssxt0f5v2",
+      "class": ".component-inner-container.status-green.",
+      "data-component-status": "operational",
+      "nodeType": "TEXT Node"
+    },
+    "locator": "[_midscene_retrieve_task_id='38']",
+    "center": [
+      716,
+      785
+    ],
+    "content": "Pull Requests\n   \n\n    ?\n\n  \n\n  \n\nNormal",
+    "rect": {
+      "left": 492,
+      "top": 758,
+      "width": 448,
+      "height": 54
+    }
+  },
+  {
+    "id": "39",
+    "attributes": {
+      "class": ".name",
+      "nodeType": "TEXT Node"
+    },
+    "locator": "[_midscene_retrieve_task_id='39']",
+    "center": [
+      542,
+      772
+    ],
+    "content": "Pull Requests",
+    "rect": {
+      "left": 492,
+      "top": 760,
+      "width": 100,
+      "height": 24
+    }
+  },
+  {
+    "id": "40",
+    "attributes": {
+      "class": ".tooltip-base.tool.tooltipstered",
+      "nodeType": "TEXT Node"
+    },
+    "locator": "[_midscene_retrieve_task_id='40']",
+    "center": [
+      611,
+      770
+    ],
+    "content": "?",
+    "rect": {
+      "left": 602,
+      "top": 761,
+      "width": 18,
+      "height": 18
+    }
+  },
+  {
+    "id": "41",
+    "attributes": {
+      "class": ".status-msg",
+      "nodeType": "TEXT Node"
+    },
+    "locator": "[_midscene_retrieve_task_id='41']",
+    "center": [
+      716,
+      798
+    ],
+    "content": "Normal",
+    "rect": {
+      "left": 492,
+      "top": 784,
+      "width": 448,
+      "height": 28
+    }
+  },
+  {
+    "id": "42",
+    "attributes": {
+      "class": ".component-container.border-color",
+      "nodeType": "TEXT Node"
+    },
+    "locator": "[_midscene_retrieve_task_id='42']",
+    "center": [
+      1206,
+      784
+    ],
+    "content": "Actions\n   \n\n    ?\n\n  \n\n  \n\nNormal",
+    "rect": {
+      "left": 961,
+      "top": 740,
+      "width": 489,
+      "height": 88
+    }
+  },
+  {
+    "id": "43",
+    "attributes": {
+      "data-component-id": "br0l2tvcx85d",
+      "class": ".component-inner-container.status-green.",
+      "data-component-status": "operational",
+      "nodeType": "TEXT Node"
+    },
+    "locator": "[_midscene_retrieve_task_id='43']",
+    "center": [
+      1205,
+      785
+    ],
+    "content": "Actions\n   \n\n    ?\n\n  \n\n  \n\nNormal",
+    "rect": {
+      "left": 981,
+      "top": 758,
+      "width": 448,
+      "height": 54
+    }
+  },
+  {
+    "id": "44",
+    "attributes": {
+      "class": ".name",
+      "nodeType": "TEXT Node"
+    },
+    "locator": "[_midscene_retrieve_task_id='44']",
+    "center": [
+      1009,
+      772
+    ],
+    "content": "Actions",
+    "rect": {
+      "left": 981,
+      "top": 760,
+      "width": 56,
+      "height": 24
+    }
+  },
+  {
+    "id": "45",
+    "attributes": {
+      "class": ".tooltip-base.tool.tooltipstered",
+      "nodeType": "TEXT Node"
+    },
+    "locator": "[_midscene_retrieve_task_id='45']",
+    "center": [
+      1055,
+      770
+    ],
+    "content": "?",
+    "rect": {
+      "left": 1046,
+      "top": 761,
+      "width": 18,
+      "height": 18
+    }
+  },
+  {
+    "id": "46",
+    "attributes": {
+      "class": ".status-msg",
+      "nodeType": "TEXT Node"
+    },
+    "locator": "[_midscene_retrieve_task_id='46']",
+    "center": [
+      1205,
+      798
+    ],
+    "content": "Normal",
+    "rect": {
+      "left": 981,
+      "top": 784,
+      "width": 448,
+      "height": 28
+    }
+  },
+  {
+    "id": "47",
+    "attributes": {
+      "class": ".component-container.border-color",
+      "nodeType": "TEXT Node"
+    },
+    "locator": "[_midscene_retrieve_task_id='47']",
+    "center": [
+      717,
+      874
+    ],
+    "content": "Packages\n   \n\n    ?\n\n  \n\n  \n\nNormal",
+    "rect": {
+      "left": 472,
+      "top": 830,
+      "width": 489,
+      "height": 88
+    }
+  },
+  {
+    "id": "48",
+    "attributes": {
+      "data-component-id": "st3j38cctv9l",
+      "class": ".component-inner-container.status-green.",
+      "data-component-status": "operational",
+      "nodeType": "TEXT Node"
+    },
+    "locator": "[_midscene_retrieve_task_id='48']",
+    "center": [
+      716,
+      874
+    ],
+    "content": "Packages\n   \n\n    ?\n\n  \n\n  \n\nNormal",
+    "rect": {
+      "left": 492,
+      "top": 847,
+      "width": 448,
+      "height": 54
+    }
+  },
+  {
+    "id": "49",
+    "attributes": {
+      "class": ".name",
+      "nodeType": "TEXT Node"
+    },
+    "locator": "[_midscene_retrieve_task_id='49']",
+    "center": [
+      528,
+      861
+    ],
+    "content": "Packages",
+    "rect": {
+      "left": 492,
+      "top": 849,
+      "width": 71,
+      "height": 24
+    }
+  },
+  {
+    "id": "50",
+    "attributes": {
+      "class": ".tooltip-base.tool.tooltipstered",
+      "nodeType": "TEXT Node"
+    },
+    "locator": "[_midscene_retrieve_task_id='50']",
+    "center": [
+      581,
+      860
+    ],
+    "content": "?",
+    "rect": {
+      "left": 572,
+      "top": 851,
+      "width": 18,
+      "height": 18
+    }
+  },
+  {
+    "id": "51",
+    "attributes": {
+      "class": ".status-msg",
+      "nodeType": "TEXT Node"
+    },
+    "locator": "[_midscene_retrieve_task_id='51']",
+    "center": [
+      716,
+      887
+    ],
+    "content": "Normal",
+    "rect": {
+      "left": 492,
+      "top": 873,
+      "width": 448,
+      "height": 28
+    }
+  },
+  {
+    "id": "52",
+    "attributes": {
+      "class": ".component-container.border-color",
+      "nodeType": "TEXT Node"
+    },
+    "locator": "[_midscene_retrieve_task_id='52']",
+    "center": [
+      1206,
+      874
+    ],
+    "content": "Pages\n   \n\n    ?\n\n  \n\n  \n\nNormal",
+    "rect": {
+      "left": 961,
+      "top": 830,
+      "width": 489,
+      "height": 88
+    }
+  },
+  {
+    "id": "53",
+    "attributes": {
+      "data-component-id": "vg70hn9s2tyj",
+      "class": ".component-inner-container.status-green.",
+      "data-component-status": "operational",
+      "nodeType": "TEXT Node"
+    },
+    "locator": "[_midscene_retrieve_task_id='53']",
+    "center": [
+      1205,
+      874
+    ],
+    "content": "Pages\n   \n\n    ?\n\n  \n\n  \n\nNormal",
+    "rect": {
+      "left": 981,
+      "top": 847,
+      "width": 448,
+      "height": 54
+    }
+  },
+  {
+    "id": "54",
+    "attributes": {
+      "class": ".name",
+      "nodeType": "TEXT Node"
+    },
+    "locator": "[_midscene_retrieve_task_id='54']",
+    "center": [
+      1004,
+      861
+    ],
+    "content": "Pages",
+    "rect": {
+      "left": 981,
+      "top": 849,
+      "width": 45,
+      "height": 24
+    }
+  },
+  {
+    "id": "55",
+    "attributes": {
+      "class": ".tooltip-base.tool.tooltipstered",
+      "nodeType": "TEXT Node"
+    },
+    "locator": "[_midscene_retrieve_task_id='55']",
+    "center": [
+      1045,
+      860
+    ],
+    "content": "?",
+    "rect": {
+      "left": 1036,
+      "top": 851,
+      "width": 18,
+      "height": 18
+    }
+  },
+  {
+    "id": "56",
+    "attributes": {
+      "class": ".status-msg",
+      "nodeType": "TEXT Node"
+    },
+    "locator": "[_midscene_retrieve_task_id='56']",
+    "center": [
+      1205,
+      887
+    ],
+    "content": "Normal",
+    "rect": {
+      "left": 981,
+      "top": 873,
+      "width": 448,
+      "height": 28
+    }
+  },
+  {
+    "id": "57",
+    "attributes": {
+      "class": ".component-container.border-color",
+      "nodeType": "TEXT Node"
+    },
+    "locator": "[_midscene_retrieve_task_id='57']",
+    "center": [
+      717,
+      963
+    ],
+    "content": "Codespaces\n   \n\n    ?\n\n  \n\n  \n\nNormal",
+    "rect": {
+      "left": 472,
+      "top": 919,
+      "width": 489,
+      "height": 88
+    }
+  },
+  {
+    "id": "58",
+    "attributes": {
+      "data-component-id": "h2ftsgbw7kmk",
+      "class": ".component-inner-container.status-green.",
+      "data-component-status": "operational",
+      "nodeType": "TEXT Node"
+    },
+    "locator": "[_midscene_retrieve_task_id='58']",
+    "center": [
+      716,
+      963
+    ],
+    "content": "Codespaces\n   \n\n    ?\n\n  \n\n  \n\nNormal",
+    "rect": {
+      "left": 492,
+      "top": 936,
+      "width": 448,
+      "height": 54
+    }
+  },
+  {
+    "id": "59",
+    "attributes": {
+      "class": ".name",
+      "nodeType": "TEXT Node"
+    },
+    "locator": "[_midscene_retrieve_task_id='59']",
+    "center": [
+      538,
+      950
+    ],
+    "content": "Codespaces",
+    "rect": {
+      "left": 492,
+      "top": 938,
+      "width": 92,
+      "height": 24
+    }
+  },
+  {
+    "id": "60",
+    "attributes": {
+      "class": ".tooltip-base.tool.tooltipstered",
+      "nodeType": "TEXT Node"
+    },
+    "locator": "[_midscene_retrieve_task_id='60']",
+    "center": [
+      602,
+      949
+    ],
+    "content": "?",
+    "rect": {
+      "left": 593,
+      "top": 940,
+      "width": 18,
+      "height": 18
+    }
+  },
+  {
+    "id": "61",
+    "attributes": {
+      "class": ".status-msg",
+      "nodeType": "TEXT Node"
+    },
+    "locator": "[_midscene_retrieve_task_id='61']",
+    "center": [
+      716,
+      976
+    ],
+    "content": "Normal",
+    "rect": {
+      "left": 492,
+      "top": 962,
+      "width": 448,
+      "height": 28
+    }
+  },
+  {
+    "id": "62",
+    "attributes": {
+      "class": ".component-container.border-color",
+      "nodeType": "TEXT Node"
+    },
+    "locator": "[_midscene_retrieve_task_id='62']",
+    "center": [
+      1206,
+      963
+    ],
+    "content": "Copilot\n   \n\n\n  \n\n  \n\nNormal",
+    "rect": {
+      "left": 961,
+      "top": 919,
+      "width": 489,
+      "height": 88
+    }
+  },
+  {
+    "id": "63",
+    "attributes": {
+      "data-component-id": "pjmpxvq2cmr2",
+      "class": ".component-inner-container.status-green.",
+      "data-component-status": "operational",
+      "nodeType": "TEXT Node"
+    },
+    "locator": "[_midscene_retrieve_task_id='63']",
+    "center": [
+      1205,
+      963
+    ],
+    "content": "Copilot\n   \n\n\n  \n\n  \n\nNormal",
+    "rect": {
+      "left": 981,
+      "top": 936,
+      "width": 448,
+      "height": 54
+    }
+  },
+  {
+    "id": "64",
+    "attributes": {
+      "class": ".name",
+      "nodeType": "TEXT Node"
+    },
+    "locator": "[_midscene_retrieve_task_id='64']",
+    "center": [
+      1008,
+      950
+    ],
+    "content": "Copilot",
+    "rect": {
+      "left": 981,
+      "top": 938,
+      "width": 53,
+      "height": 24
+    }
+  },
+  {
+    "id": "65",
+    "attributes": {
+      "class": ".status-msg",
+      "nodeType": "TEXT Node"
+    },
+    "locator": "[_midscene_retrieve_task_id='65']",
+    "center": [
+      1205,
+      976
+    ],
+    "content": "Normal",
+    "rect": {
+      "left": 981,
+      "top": 962,
+      "width": 448,
+      "height": 28
+    }
+  }
+]

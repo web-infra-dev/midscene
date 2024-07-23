@@ -1,0 +1,135 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`extract > get elements and sections 1`] = `"1970-01-01 19:25:01"`;
+
+exports[`extract > get elements and sections 2`] = `
+{
+  "name": "Stella",
+}
+`;
+
+exports[`extract > get elements and sections 3`] = `
+[
+  {
+    "Field 2": "Kace Cervantes",
+    "Field 3": "Aylin Sawyer",
+    "Field 4": "Jefferson Kirby",
+    "Field 5": "Skyla Jefferson",
+    "id": "30S",
+  },
+  {
+    "Field 2": "Florence Davenport",
+    "Field 3": "Dariel Acevedo",
+    "Field 4": "Ashlynn Delacruz",
+    "Field 5": "Memphis Leal",
+    "id": "70U",
+  },
+  {
+    "Field 2": "Crystal Newman",
+    "Field 3": "Anderson Brown",
+    "Field 4": "Charlotte Griffith",
+    "Field 5": "Franklin Everett",
+    "id": "3AY",
+  },
+  {
+    "Field 2": "Kori Payne",
+    "Field 3": "Edward Blevins",
+    "Field 4": "Aila Gill",
+    "Field 5": "Matthias Reed",
+    "id": "YPG",
+  },
+  {
+    "Field 2": "Magnolia Duke",
+    "Field 3": "Kalel Glover",
+    "Field 4": "Alessia Barton",
+    "Field 5": "Cassius Peck",
+    "id": "ZEN",
+  },
+]
+`;
+
+exports[`extract > local page, kv prompt 1`] = `
+{
+  "table-fields": [
+    "ID",
+    "Field 2",
+    "Field 3",
+    "Field 4",
+    "Field 5",
+  ],
+}
+`;
+
+exports[`extract > local page, kv prompt 2`] = `
+{
+  "fields": [
+    "ID",
+    "Field 2",
+    "Field 3",
+    "Field 4",
+    "Field 5",
+  ],
+}
+`;
+
+exports[`extract > local page, one-line prompt, array style data 1`] = `
+[
+  "30S",
+  "Kace Cervantes",
+  "Aylin Sawyer",
+  "Jefferson Kirby",
+  "Skyla Jefferson",
+]
+`;
+
+exports[`insight - basic > customize AI vendor 1`] = `
+[
+  Element {
+    "center": [
+      131,
+      91,
+    ],
+    "content": "1970-01-01 19:25:01",
+    "locator": "[data-midscene-task-1='1']",
+    "page": CdpPage {
+      "_isDragging": false,
+      "_timeoutSettings": TimeoutSettings {},
+    },
+    "rect": {
+      "height": 23,
+      "left": 20,
+      "top": 80,
+      "width": 223,
+    },
+  },
+  Element {
+    "center": [
+      122,
+      141,
+    ],
+    "content": "User Name: Stella",
+    "locator": "[data-midscene-task-1='2']",
+    "page": CdpPage {
+      "_isDragging": false,
+      "_timeoutSettings": TimeoutSettings {},
+    },
+    "rect": {
+      "height": 20,
+      "left": 21,
+      "top": 131,
+      "width": 203,
+    },
+  },
+]
+`;
+
+exports[`insight - basic > customize AI vendor and describer 1`] = `
+[
+  {
+    "content": "foo-1",
+  },
+  {
+    "content": "foo-2",
+  },
+]
+`;

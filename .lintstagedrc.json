@@ -1,0 +1,4 @@
+{
+  "**/*.{js,ts,jsx,tsx}": ["emox prettier --write", "emox eslint"],
+  "**/*.{css,json}": ["emox prettier --write"]
+}

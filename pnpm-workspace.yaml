@@ -1,0 +1,6 @@
+packages:
+  - apps/site
+  - packages/midscene
+  - packages/playwright-demo
+  - packages/visualizer
+  - packages/web-integration

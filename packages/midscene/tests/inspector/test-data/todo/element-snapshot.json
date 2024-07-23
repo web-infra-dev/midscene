@@ -1,0 +1,395 @@
+[
+  {
+    "id": "1",
+    "attributes": {
+      "nodeType": "TEXT Node"
+    },
+    "locator": "[_midscene_retrieve_task_id='1']",
+    "center": [
+      640,
+      66
+    ],
+    "content": "todos",
+    "rect": {
+      "left": 365,
+      "top": 56,
+      "width": 550,
+      "height": 20
+    }
+  },
+  {
+    "id": "2",
+    "locator": "[_midscene_retrieve_task_id='2']",
+    "attributes": {
+      "class": ".new-todo",
+      "id": "todo-input",
+      "type": "text",
+      "data-testid": "text-input",
+      "placeholder": "What needs to be done?",
+      "nodeType": "INPUT Node"
+    },
+    "content": "What needs to be done?",
+    "rect": {
+      "left": 365,
+      "top": 130,
+      "width": 550,
+      "height": 65
+    },
+    "center": [
+      640,
+      163
+    ]
+  },
+  {
+    "id": "3",
+    "locator": "[_midscene_retrieve_task_id='3']",
+    "attributes": {
+      "class": ".toggle-all",
+      "type": "checkbox",
+      "data-testid": "toggle-all",
+      "nodeType": "INPUT Node"
+    },
+    "content": "",
+    "rect": {
+      "left": 369,
+      "top": 133,
+      "width": 40,
+      "height": 60
+    },
+    "center": [
+      389,
+      163
+    ]
+  },
+  {
+    "id": "4",
+    "attributes": {
+      "class": ".toggle-all-label",
+      "for": "toggle-all",
+      "nodeType": "TEXT Node"
+    },
+    "locator": "[_midscene_retrieve_task_id='4']",
+    "center": [
+      388,
+      164
+    ],
+    "content": "Toggle All Input",
+    "rect": {
+      "left": 365,
+      "top": 131,
+      "width": 45,
+      "height": 65
+    }
+  },
+  {
+    "id": "5",
+    "locator": "[_midscene_retrieve_task_id='5']",
+    "attributes": {
+      "class": ".toggle",
+      "type": "checkbox",
+      "data-testid": "todo-item-toggle",
+      "nodeType": "INPUT Node"
+    },
+    "content": "",
+    "rect": {
+      "left": 365,
+      "top": 205,
+      "width": 40,
+      "height": 40
+    },
+    "center": [
+      385,
+      225
+    ]
+  },
+  {
+    "id": "6",
+    "attributes": {
+      "data-testid": "todo-item-label",
+      "nodeType": "TEXT Node"
+    },
+    "locator": "[_midscene_retrieve_task_id='6']",
+    "center": [
+      640,
+      226
+    ],
+    "content": "Learn Python",
+    "rect": {
+      "left": 365,
+      "top": 196,
+      "width": 550,
+      "height": 59
+    }
+  },
+  {
+    "id": "7",
+    "locator": "[_midscene_retrieve_task_id='7']",
+    "attributes": {
+      "class": ".toggle",
+      "type": "checkbox",
+      "data-testid": "todo-item-toggle",
+      "nodeType": "INPUT Node"
+    },
+    "content": "",
+    "rect": {
+      "left": 365,
+      "top": 265,
+      "width": 40,
+      "height": 40
+    },
+    "center": [
+      385,
+      285
+    ]
+  },
+  {
+    "id": "8",
+    "attributes": {
+      "data-testid": "todo-item-label",
+      "nodeType": "TEXT Node"
+    },
+    "locator": "[_midscene_retrieve_task_id='8']",
+    "center": [
+      640,
+      286
+    ],
+    "content": "Learn Rust",
+    "rect": {
+      "left": 365,
+      "top": 256,
+      "width": 550,
+      "height": 59
+    }
+  },
+  {
+    "id": "9",
+    "locator": "[_midscene_retrieve_task_id='9']",
+    "attributes": {
+      "class": ".destroy",
+      "data-testid": "todo-item-button",
+      "nodeType": "BUTTON Node"
+    },
+    "content": "×",
+    "rect": {
+      "left": 865,
+      "top": 265,
+      "width": 40,
+      "height": 40
+    },
+    "center": [
+      885,
+      285
+    ]
+  },
+  {
+    "id": "10",
+    "locator": "[_midscene_retrieve_task_id='10']",
+    "attributes": {
+      "class": ".toggle",
+      "type": "checkbox",
+      "data-testid": "todo-item-toggle",
+      "nodeType": "INPUT Node"
+    },
+    "content": "",
+    "rect": {
+      "left": 365,
+      "top": 325,
+      "width": 40,
+      "height": 40
+    },
+    "center": [
+      385,
+      345
+    ]
+  },
+  {
+    "id": "11",
+    "attributes": {
+      "data-testid": "todo-item-label",
+      "nodeType": "TEXT Node"
+    },
+    "locator": "[_midscene_retrieve_task_id='11']",
+    "center": [
+      640,
+      346
+    ],
+    "content": "Learn AI",
+    "rect": {
+      "left": 365,
+      "top": 316,
+      "width": 550,
+      "height": 59
+    }
+  },
+  {
+    "id": "12",
+    "attributes": {
+      "class": ".todo-count",
+      "nodeType": "TEXT Node"
+    },
+    "locator": "[_midscene_retrieve_task_id='12']",
+    "center": [
+      416,
+      395
+    ],
+    "content": "3 items left!",
+    "rect": {
+      "left": 380,
+      "top": 385,
+      "width": 72,
+      "height": 20
+    }
+  },
+  {
+    "id": "13",
+    "attributes": {
+      "class": ".selected",
+      "href": "#/",
+      "nodeType": "TEXT Node"
+    },
+    "locator": "[_midscene_retrieve_task_id='13']",
+    "center": [
+      565,
+      395
+    ],
+    "content": "All",
+    "rect": {
+      "left": 550,
+      "top": 382,
+      "width": 30,
+      "height": 26
+    }
+  },
+  {
+    "id": "14",
+    "attributes": {
+      "class": ".",
+      "href": "#/active",
+      "nodeType": "TEXT Node"
+    },
+    "locator": "[_midscene_retrieve_task_id='14']",
+    "center": [
+      613,
+      395
+    ],
+    "content": "Active",
+    "rect": {
+      "left": 586,
+      "top": 382,
+      "width": 54,
+      "height": 26
+    }
+  },
+  {
+    "id": "15",
+    "attributes": {
+      "class": ".",
+      "href": "#/completed",
+      "nodeType": "TEXT Node"
+    },
+    "locator": "[_midscene_retrieve_task_id='15']",
+    "center": [
+      688,
+      395
+    ],
+    "content": "Completed",
+    "rect": {
+      "left": 645,
+      "top": 382,
+      "width": 85,
+      "height": 26
+    }
+  },
+  {
+    "id": "16",
+    "locator": "[_midscene_retrieve_task_id='16']",
+    "attributes": {
+      "class": ".clear-completed",
+      "nodeType": "BUTTON Node"
+    },
+    "content": "Clear completed",
+    "rect": {
+      "left": 797,
+      "top": 385,
+      "width": 103,
+      "height": 19
+    },
+    "center": [
+      849,
+      395
+    ]
+  },
+  {
+    "id": "17",
+    "attributes": {
+      "nodeType": "TEXT Node"
+    },
+    "locator": "[_midscene_retrieve_task_id='17']",
+    "center": [
+      640,
+      486
+    ],
+    "content": "Double-click to edit a todo",
+    "rect": {
+      "left": 365,
+      "top": 480,
+      "width": 550,
+      "height": 11
+    }
+  },
+  {
+    "id": "18",
+    "attributes": {
+      "nodeType": "TEXT Node"
+    },
+    "locator": "[_midscene_retrieve_task_id='18']",
+    "center": [
+      640,
+      508
+    ],
+    "content": "Created by the TodoMVC Team",
+    "rect": {
+      "left": 365,
+      "top": 502,
+      "width": 550,
+      "height": 11
+    }
+  },
+  {
+    "id": "19",
+    "attributes": {
+      "nodeType": "TEXT Node"
+    },
+    "locator": "[_midscene_retrieve_task_id='19']",
+    "center": [
+      640,
+      530
+    ],
+    "content": "Part of TodoMVC",
+    "rect": {
+      "left": 365,
+      "top": 524,
+      "width": 550,
+      "height": 11
+    }
+  },
+  {
+    "id": "20",
+    "attributes": {
+      "href": "http://todomvc.com",
+      "nodeType": "TEXT Node"
+    },
+    "locator": "[_midscene_retrieve_task_id='20']",
+    "center": [
+      656,
+      530
+    ],
+    "content": "TodoMVC",
+    "rect": {
+      "left": 632,
+      "top": 523,
+      "width": 48,
+      "height": 13
+    }
+  }
+]

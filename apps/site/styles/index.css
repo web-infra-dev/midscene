@@ -1,0 +1,17 @@
+.dark {
+  --rp-c-text-1: rgba(255, 255, 255, 1);
+}
+
+:root {
+  --rp-c-text-1: #000;
+  --rp-code-block-bg: #efefef;
+  --rp-c-text-code:#2d4956;
+  --rp-home-feature-bg: #F1F1f1;
+}
+
+@media (min-width: 768px) {
+  .md\:text-6xl {
+      font-size: 3.3rem;
+      line-height: 1;
+  }
+}

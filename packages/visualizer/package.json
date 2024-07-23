@@ -1,0 +1,47 @@
+{
+  "name": "midscene-visualizer",
+  "version": "0.1.0",
+  "types": "./dist/types/index.d.ts",
+  "jsnext:source": "./src/index.ts",
+  "main": "./dist/lib/index.js",
+  "module": "./dist/es/index.js",
+  "scripts": {
+    "dev": "modern dev",
+    "build": "modern build",
+    "build:watch": "modern build -w",
+    "new": "modern new",
+    "upgrade": "modern upgrade",
+    "prepublishOnly": "modern release --doc-only"
+  },
+  "dependencies": {
+    "@ant-design/icons": "5.3.7",
+    "@modern-js/runtime": "^2.54.2",
+    "antd": "5.17.3",
+    "dayjs": "1.11.11",
+    "pixi.js": "8.1.1",
+    "react": "~18.2.0",
+    "react-dom": "~18.2.0",
+    "@midscene/core": "workspace:*",
+    "zustand": "4.5.2"
+  },
+  "peerDependencies": {},
+  "devDependencies": {
+    "@modern-js/module-tools": "^2.54.2",
+    "@modern-js/plugin-module-doc": "^2.33.1",
+    "react": "~18.2.0",
+    "react-dom": "~18.2.0",
+    "@types/react": "~18.2.22",
+    "@types/react-dom": "~18.2.7",
+    "typescript": "~5.0.4",
+    "rimraf": "~3.0.2"
+  },
+  "sideEffects": [
+    "**/*.css",
+    "**/*.less",
+    "**/*.sass",
+    "**/*.scss"
+  ],
+  "publishConfig": {
+    "access": "public"
+  }
+}

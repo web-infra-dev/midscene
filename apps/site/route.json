@@ -1,0 +1,18 @@
+{
+  "common": {
+    "statusPages": {
+      "404": "404.html"
+    }
+  },
+  "routes": [
+    {
+      "isApi": false,
+      "entryPath": "./",
+      "isSpa": false,
+      "isGarr": false,
+      "isSSR": false,
+      "redirect": "",
+      "regexDomain": false
+    }
+  ]
+}

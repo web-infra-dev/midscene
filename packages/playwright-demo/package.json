@@ -1,0 +1,33 @@
+{
+  "name": "midscene-playwright-demo",
+  "private": true,
+  "version": "0.1.0",
+  "types": "./dist/types/index.d.ts",
+  "jsnext:source": "./src/index.ts",
+  "main": "./dist/lib/index.js",
+  "module": "./dist/es/index.js",
+  "scripts": {
+    "dev": "modern dev",
+    "build": "modern build",
+    "build:watch": "modern build -w",
+    "new": "modern new",
+    "upgrade": "modern upgrade",
+    "test": "modern test",
+    "e2e": "playwright test --config=playwright.config.ts",
+    "e2e:ui": "playwright test --config=playwright.config.ts --ui"
+  },
+  "devDependencies": {
+    "@modern-js/module-tools": "2.56.1",
+    "@modern-js/plugin-testing": "2.56.1",
+    "@playwright/test": "^1.44.1",
+    "@types/jest": "~29.2.4",
+    "@types/node": "~16.11.7",
+    "eslint-plugin-prettier": "~4.2.1",
+    "rimraf": "~3.0.2",
+    "@midscene/web": "workspace:*",
+    "typescript": "~5.0.4"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

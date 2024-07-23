@@ -1,0 +1,7 @@
+# calculate bin dir
+set -e
+INFRA_DIR_NAME=$(dirname $(dirname "$0"))
+BIN_DIR_NAME=$INFRA_DIR_NAME/node_modules/.bin
+# export bin dir
+export PATH=$PATH:$BIN_DIR_NAME
+$BIN_DIR_NAME/lint-staged

@@ -1,0 +1,12 @@
+[
+  {
+    "text": "Docs",
+    "link": "/doc/getting-started/introduction",
+    "activeMatch": "/doc/"
+  },
+  {
+    "text": "Visualization Tool",
+    "link": "/visualization/",
+    "activeMatch": "/visualization/"
+  }
+]

@@ -1,0 +1,171 @@
+# Introduction
+
+<video controls>
+  <source src="/MidScene_L.mp4" type="video/mp4" />
+</video>
+
+Writing UI automation is often an annoying task. Understanding the characteristics of the DOM while writing code is not easy. Worse, writing tests for an existing web page that lacks predefined `#id` or `data-test-xxx` properties can make your selectors unmanageable and the entire test file impossible to maintain.
+
+### Using high-level understanding of UI to reshape the automation
+
+With MidScene.js, we harness the power of AI’s multi-modality to turn your UI into consistent and well-organized outputs. What you have to do is describe the expected data shape from screenshot, AI will do the magical reasoning for you, and TypeScript will ensure a first-class developing experience. There won't be any `.selector`s in your script any longer.
+
+Finally, the joy of programming will come back!
+
+
+### Flow Chart
+
+Here is a flowchart illustrating the main process of MidScene.
+
+![](/flow.png)
+
+### Features
+
+#### Locate - Find by natural language
+
+Using GPT-4o, you can now locate the elements by natural language. Just like someone is viewing your page. DOM selectors should no longer be necessary.
+
+```typescript
+const downloadBtns = await insight.find('download buttons on the page', {multi: true});
+console.log(downloadBtns);
+```
+
+The result would be like
+```typescript
+[
+  { content: 'Download', rect: { left: 1451, top: 78, width: 74, height: 22 } },
+  { content: 'Download Mac Universal', rect: { left: 432, top: 328, width: 232, height: 65 } }
+]
+```
+
+#### Understand - And answer in JSON
+
+Besides basic locator and segmentation, MidScene can help you to understand the UI. 
+By providing the AI with the data shape you want, you will receive a predictable answer, both in terms of data structure and value. You may have never thought about UI automation in this way.
+
+Use `query` to  achieve this.
+
+For example, if you want to understand some properties while locating elements:
+
+```typescript
+const downloadBtns = await insight.find(query('download buttons on the page', {
+  textsOnButton: 'string',
+  backgroundColor: 'string, color of text, one of blue / red / yellow / green / white / black / others',
+  type: '`major` or `minor`. The Bigger one is major and the others are minor',
+  platform: 'string. Say `unknown` when it is not clear on the element',
+}), {multi: true});
+```
+
+The result would be like
+```typescript
+[
+  {
+    content: 'Download Mac Universal',
+    rect: { left: 432, top: 328, width: 232, height: 65 },
+    textsOnButton: 'Download Mac Universal', // <------ The data mentions in prompt
+    backgroundColor: 'blue',
+    type: 'major',
+    platform: 'Mac'
+  },
+  {
+    content: 'Download',
+    type: 'minor',
+    platform: 'unknown'
+    // ...
+  }
+]
+```
+
+You can also extract data from a section by using `query`.
+For example, if you want to get the service status from the github status page: 
+
+```typescript
+const result = await insightStatus.segment({
+  'services': query( // They are all the prompts being sent to the AI
+    'a list with service names and status',
+    { items: '{service: "service name as string", status: "string, like normal"}[]' },
+  ),
+});
+```
+
+Here is the return value:
+```typescript
+[
+  { service: 'Git Operations', status: 'Normal' },
+  { service: 'API Requests', status: 'Normal' },
+  { service: 'Webhooks', status: 'Normal' },
+  // ...
+]
+```
+
+#### Typed - Out-of-box TypeScript definitions
+
+The custom data shape you defined can have types assigned automatically. Simply use dot notation to access them.
+
+Let's take the `result` above as a sample. TypeScript will give you the basic type hint:
+```typescript 
+const result: {
+    services: UISection<{
+        items: unknown;
+    }>;
+}
+```
+
+By providing a generic type parameter, the return value can be explicitly specified.
+
+```typescript
+const result = await insight.segment({
+  'services': query<{items: {service: string, status: string}[]}>(
+    'a list with service names and status',
+    { items: '{service: "service name as string", status: "string, like normal"}[]' },
+  ),
+});
+
+const { items } = result.services;
+```
+
+TypeScript will give you the following definition:
+
+```typescript
+const items: {
+  service: string;
+  status: string;
+}[]
+```
+
+#### Segment - Customized UI splitting
+
+Describing the sections inside a page, and let AI help you to find them out.
+
+```typescript
+// The param map is also a prompt being sent to the AI model.
+const manySections = await insight.segment({
+  cookiePrompt: 'cookie prompt with its action buttons on the top of the page',
+  topRightWidgets: 'widgets on the top right corner',
+});
+```
+
+The data is as follows.
+
+```typescript
+{
+  cookiePrompt: {
+    texts: [ [Object], [Object], [Object], [Object], [Object], [Object] ],
+    rect: { left: 144, top: 8, width: 1655, height: 49 }
+  },
+  topRightWidgets: {
+    texts: [ [Object], [Object] ],
+    rect: { left: 1241, top: 64, width: 284, height: 50 }
+  },
+}
+```
+
+#### Online Visualization - Help to visualize your prompt
+
+With our visualization tool, you can easily debug the prompt and AI response. 
+
+All intermediate data, such as the query, coordinates, split reason, and custom data, can be visualized.
+
+You may open the [Online Visualization Tool](/visualization/index.html) to see the showcase.
+
+![](/Visualizer.gif)

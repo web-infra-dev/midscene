@@ -1,0 +1,21 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`executor > insight - basic run 1`] = `
+{
+  "element": {
+    "center": [
+      250,
+      250,
+    ],
+    "content": "test-executor",
+    "id": "0",
+    "rect": {
+      "height": 100,
+      "left": 200,
+      "top": 200,
+      "width": 100,
+    },
+    "tap": [MockFunction spy],
+  },
+}
+`;

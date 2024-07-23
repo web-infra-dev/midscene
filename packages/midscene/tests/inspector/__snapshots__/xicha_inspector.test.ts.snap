@@ -1,0 +1,70 @@
+[
+  {
+    "elements": [
+      {
+        "id": "1",
+        "text": "",
+      },
+    ],
+    "error": [],
+    "prompt": "Top left menu bar icon",
+  },
+  {
+    "elements": [
+      {
+        "id": "2",
+        "text": "中文",
+      },
+    ],
+    "error": [],
+    "prompt": "Switch language(中文、english)",
+  },
+  {
+    "elements": [
+      {
+        "id": "4",
+        "text": "",
+      },
+    ],
+    "error": [],
+    "prompt": "Top right shopping cart",
+  },
+  {
+    "elements": [
+      {
+        "id": "22",
+        "text": "6.82",
+      },
+      {
+        "id": "28",
+        "text": "6.54",
+      },
+    ],
+    "error": [],
+    "prompt": "The price number on the right of the drink picture",
+  },
+  {
+    "elements": [
+      {
+        "id": "23",
+        "text": "选规格",
+      },
+      {
+        "id": "29",
+        "text": "选规格",
+      },
+    ],
+    "error": [],
+    "prompt": "选择规格按钮",
+  },
+  {
+    "elements": [
+      {
+        "id": "30",
+        "text": "",
+      },
+    ],
+    "error": [],
+    "prompt": "Bottom right Customer service button",
+  },
+]

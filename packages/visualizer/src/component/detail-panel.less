@@ -1,0 +1,47 @@
+@import './common.less';
+
+@layout-space: 10px;
+
+.detail-panel {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding: @layout-space;
+  background: #FFF;
+
+  .ant-segmented{
+    padding: 0;
+  }
+
+  .view-switcher{
+    margin-bottom: @layout-space;
+    flex-shrink: 0;
+  }
+
+  .detail-content{
+    box-sizing: border-box;
+    justify-content: center;
+    flex-direction: column;
+    display: flex;
+    flex-grow: 1;
+  }
+
+  .blackboard {
+    margin: 0 auto;
+  }
+
+  .screenshot-item {
+    margin-bottom: @layout-space;
+
+    .screenshot-item-title {
+      // font-weight: bold;
+      margin-bottom: 5px;
+    }
+
+    img {
+      border: 1px solid @heavy-border-color;
+      max-width: 100%;
+    }
+  }
+
+}

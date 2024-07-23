@@ -1,0 +1,21 @@
+{
+  "name": "midscene-doc",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "rspress dev",
+    "build": "rspress build",
+    "preview": "rspress preview"
+  },
+  "dependencies": {
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "@arco-design/web-react": "2.63.1",
+    "querystring": "0.2.1",
+    "rspress": "^1.24.0",
+    "midscene-visualizer": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^16"
+  }
+}

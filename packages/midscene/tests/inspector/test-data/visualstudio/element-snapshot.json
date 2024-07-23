@@ -1,0 +1,881 @@
+[
+  {
+    "id": "1",
+    "attributes": {
+      "class": ".navbar-fixed-container",
+      "nodeType": "TEXT Node"
+    },
+    "locator": "[_midscene_retrieve_task_id='1']",
+    "center": [
+      640,
+      29
+    ],
+    "content": "Visual Studio Code\n      \t\t\t\t\t\n      \t                    \n      \t                    \n      \t                    \n      \t\t    \t\t\n      \t            \n      \t            \n      \t                \n      \t                    Docs\n      \t                    Updates\n      \t                    Blog\n      \t                    API\n                              Extensions\n      \t                    FAQ\n                              Learn\n      \t                    Search\n      \t                \n      \n      \t                \n      \t\t\t\t\t\t\n      \t\t\t\t\t\t\t\n                                      \n      \t\t\t\t\t\t\t\t\n      \t\t\t\t\t\t\t\n      \t\t\t\t\t\t\n      \t                    \n      \t                        \n      \t\t\t\t\t\t\t\t\n      \t\t\t\t\t\t\t\t\n      \t                        \n      \t                    \n      \t                    \n      \t                        \n      \t                            \n      \t                                \n      \t                                \n      \t                                    \n      \t                                        \n      \t                                        \n      \t                                    \n      \t                                \n      \t                            \n      \t                        \t                    \n      \t                    \n      \t                    \n      \t\t\t\t\t\tDownload",
+    "rect": {
+      "left": 0,
+      "top": 0,
+      "width": 1280,
+      "height": 58
+    }
+  },
+  {
+    "id": "2",
+    "attributes": {
+      "class": ".navbar.navbar-inverse.navbar-fixed-top.affix-top",
+      "data-spy": "affix",
+      "data-offset-top": "1",
+      "nodeType": "TEXT Node"
+    },
+    "locator": "[_midscene_retrieve_task_id='2']",
+    "center": [
+      640,
+      29
+    ],
+    "content": "Visual Studio Code\n      \t\t\t\t\t\n      \t                    \n      \t                    \n      \t                    \n      \t\t    \t\t\n      \t            \n      \t            \n      \t                \n      \t                    Docs\n      \t                    Updates\n      \t                    Blog\n      \t                    API\n                              Extensions\n      \t                    FAQ\n                              Learn\n      \t                    Search\n      \t                \n      \n      \t                \n      \t\t\t\t\t\t\n      \t\t\t\t\t\t\t\n                                      \n      \t\t\t\t\t\t\t\t\n      \t\t\t\t\t\t\t\n      \t\t\t\t\t\t\n      \t                    \n      \t                        \n      \t\t\t\t\t\t\t\t\n      \t\t\t\t\t\t\t\t\n      \t                        \n      \t                    \n      \t                    \n      \t                        \n      \t                            \n      \t                                \n      \t                                \n      \t                                    \n      \t                                        \n      \t                                        \n      \t                                    \n      \t                                \n      \t                            \n      \t                        \t                    \n      \t                    \n      \t                    \n      \t\t\t\t\t\tDownload",
+    "rect": {
+      "left": 0,
+      "top": 0,
+      "width": 1280,
+      "height": 58
+    }
+  },
+  {
+    "id": "3",
+    "attributes": {
+      "role": "navigation",
+      "aria-label": "Top Level",
+      "nodeType": "TEXT Node"
+    },
+    "locator": "[_midscene_retrieve_task_id='3']",
+    "center": [
+      640,
+      29
+    ],
+    "content": "Visual Studio Code\n      \t\t\t\t\t\n      \t                    \n      \t                    \n      \t                    \n      \t\t    \t\t\n      \t            \n      \t            \n      \t                \n      \t                    Docs\n      \t                    Updates\n      \t                    Blog\n      \t                    API\n                              Extensions\n      \t                    FAQ\n                              Learn\n      \t                    Search\n      \t                \n      \n      \t                \n      \t\t\t\t\t\t\n      \t\t\t\t\t\t\t\n                                      \n      \t\t\t\t\t\t\t\t\n      \t\t\t\t\t\t\t\n      \t\t\t\t\t\t\n      \t                    \n      \t                        \n      \t\t\t\t\t\t\t\t\n      \t\t\t\t\t\t\t\t\n      \t                        \n      \t                    \n      \t                    \n      \t                        \n      \t                            \n      \t                                \n      \t                                \n      \t                                    \n      \t                                        \n      \t                                        \n      \t                                    \n      \t                                \n      \t                            \n      \t                        \t                    \n      \t                    \n      \t                    \n      \t\t\t\t\t\tDownload",
+    "rect": {
+      "left": 0,
+      "top": 0,
+      "width": 1280,
+      "height": 58
+    }
+  },
+  {
+    "id": "4",
+    "attributes": {
+      "class": ".container",
+      "nodeType": "TEXT Node"
+    },
+    "locator": "[_midscene_retrieve_task_id='4']",
+    "center": [
+      640,
+      29
+    ],
+    "content": "Visual Studio Code\n      \t\t\t\t\t\n      \t                    \n      \t                    \n      \t                    \n      \t\t    \t\t\n      \t            \n      \t            \n      \t                \n      \t                    Docs\n      \t                    Updates\n      \t                    Blog\n      \t                    API\n                              Extensions\n      \t                    FAQ\n                              Learn\n      \t                    Search\n      \t                \n      \n      \t                \n      \t\t\t\t\t\t\n      \t\t\t\t\t\t\t\n                                      \n      \t\t\t\t\t\t\t\t\n      \t\t\t\t\t\t\t\n      \t\t\t\t\t\t\n      \t                    \n      \t                        \n      \t\t\t\t\t\t\t\t\n      \t\t\t\t\t\t\t\t\n      \t                        \n      \t                    \n      \t                    \n      \t                        \n      \t                            \n      \t                                \n      \t                                \n      \t                                    \n      \t                                        \n      \t                                        \n      \t                                    \n      \t                                \n      \t                            \n      \t                        \t                    \n      \t                    \n      \t                    \n      \t\t\t\t\t\tDownload",
+    "rect": {
+      "left": 40,
+      "top": 0,
+      "width": 1200,
+      "height": 58
+    }
+  },
+  {
+    "id": "5",
+    "attributes": {
+      "class": ".nav.navbar-header",
+      "nodeType": "TEXT Node"
+    },
+    "locator": "[_midscene_retrieve_task_id='5']",
+    "center": [
+      191,
+      29
+    ],
+    "content": "Visual Studio Code",
+    "rect": {
+      "left": 80,
+      "top": 0,
+      "width": 221,
+      "height": 58
+    }
+  },
+  {
+    "id": "6",
+    "attributes": {
+      "nodeType": "TEXT Node"
+    },
+    "locator": "[_midscene_retrieve_task_id='6']",
+    "center": [
+      201,
+      29
+    ],
+    "content": "Visual Studio Code",
+    "rect": {
+      "left": 116,
+      "top": 17,
+      "width": 170,
+      "height": 24
+    }
+  },
+  {
+    "id": "7",
+    "attributes": {
+      "class": ".navbar-collapse.collapse",
+      "style": "max-height: min(60vh, 400px);",
+      "nodeType": "TEXT Node"
+    },
+    "locator": "[_midscene_retrieve_task_id='7']",
+    "center": [
+      640,
+      29
+    ],
+    "content": "Docs\n      \t                    Updates\n      \t                    Blog\n      \t                    API\n                              Extensions\n      \t                    FAQ\n                              Learn\n      \t                    Search\n      \t                \n      \n      \t                \n      \t\t\t\t\t\t\n      \t\t\t\t\t\t\t\n                                      \n      \t\t\t\t\t\t\t\t\n      \t\t\t\t\t\t\t\n      \t\t\t\t\t\t\n      \t                    \n      \t                        \n      \t\t\t\t\t\t\t\t\n      \t\t\t\t\t\t\t\t\n      \t                        \n      \t                    \n      \t                    \n      \t                        \n      \t                            \n      \t                                \n      \t                                \n      \t                                    \n      \t                                        \n      \t                                        \n      \t                                    \n      \t                                \n      \t                            \n      \t                        \t                    \n      \t                    \n      \t                    \n      \t\t\t\t\t\tDownload",
+    "rect": {
+      "left": 80,
+      "top": 0,
+      "width": 1120,
+      "height": 58
+    }
+  },
+  {
+    "id": "8",
+    "attributes": {
+      "class": ".nav.navbar-nav.navbar-left",
+      "nodeType": "TEXT Node"
+    },
+    "locator": "[_midscene_retrieve_task_id='8']",
+    "center": [
+      541,
+      29
+    ],
+    "content": "Docs\n      \t                    Updates\n      \t                    Blog\n      \t                    API\n                              Extensions\n      \t                    FAQ\n                              Learn\n      \t                    Search",
+    "rect": {
+      "left": 301,
+      "top": 0,
+      "width": 480,
+      "height": 58
+    }
+  },
+  {
+    "id": "9",
+    "attributes": {
+      "id": "nav-docs",
+      "href": "/docs",
+      "nodeType": "TEXT Node"
+    },
+    "locator": "[_midscene_retrieve_task_id='9']",
+    "center": [
+      332,
+      29
+    ],
+    "content": "Docs",
+    "rect": {
+      "left": 301,
+      "top": 0,
+      "width": 62,
+      "height": 58
+    }
+  },
+  {
+    "id": "10",
+    "attributes": {
+      "id": "nav-updates",
+      "href": "/updates",
+      "nodeType": "TEXT Node"
+    },
+    "locator": "[_midscene_retrieve_task_id='10']",
+    "center": [
+      407,
+      29
+    ],
+    "content": "Updates",
+    "rect": {
+      "left": 363,
+      "top": 0,
+      "width": 87,
+      "height": 58
+    }
+  },
+  {
+    "id": "11",
+    "attributes": {
+      "id": "nav-blogs",
+      "href": "/blogs",
+      "nodeType": "TEXT Node"
+    },
+    "locator": "[_midscene_retrieve_task_id='11']",
+    "center": [
+      478,
+      29
+    ],
+    "content": "Blog",
+    "rect": {
+      "left": 449,
+      "top": 0,
+      "width": 57,
+      "height": 58
+    }
+  },
+  {
+    "id": "12",
+    "attributes": {
+      "id": "nav-extend",
+      "href": "/api",
+      "nodeType": "TEXT Node"
+    },
+    "locator": "[_midscene_retrieve_task_id='12']",
+    "center": [
+      532,
+      29
+    ],
+    "content": "API",
+    "rect": {
+      "left": 507,
+      "top": 0,
+      "width": 49,
+      "height": 58
+    }
+  },
+  {
+    "id": "13",
+    "attributes": {
+      "href": "https://marketplace.visualstudio.com/VSCode",
+      "target": "_blank",
+      "rel": "noopener",
+      "id": "nav-extensions",
+      "nodeType": "TEXT Node"
+    },
+    "locator": "[_midscene_retrieve_task_id='13']",
+    "center": [
+      609,
+      29
+    ],
+    "content": "Extensions",
+    "rect": {
+      "left": 556,
+      "top": 0,
+      "width": 105,
+      "height": 58
+    }
+  },
+  {
+    "id": "14",
+    "attributes": {
+      "id": "nav-faqs",
+      "href": "/docs/supporting/faq",
+      "nodeType": "TEXT Node"
+    },
+    "locator": "[_midscene_retrieve_task_id='14']",
+    "center": [
+      688,
+      29
+    ],
+    "content": "FAQ",
+    "rect": {
+      "left": 660,
+      "top": 0,
+      "width": 55,
+      "height": 58
+    }
+  },
+  {
+    "id": "15",
+    "attributes": {
+      "id": "nav-learn",
+      "href": "/learn",
+      "nodeType": "TEXT Node"
+    },
+    "locator": "[_midscene_retrieve_task_id='15']",
+    "center": [
+      748,
+      29
+    ],
+    "content": "Learn",
+    "rect": {
+      "left": 715,
+      "top": 0,
+      "width": 66,
+      "height": 58
+    }
+  },
+  {
+    "id": "16",
+    "attributes": {
+      "class": ".nav.navbar-nav.navbar-right",
+      "role": "presentation",
+      "nodeType": "TEXT Node"
+    },
+    "locator": "[_midscene_retrieve_task_id='16']",
+    "center": [
+      1025,
+      29
+    ],
+    "content": "Download",
+    "rect": {
+      "left": 849,
+      "top": 0,
+      "width": 351,
+      "height": 58
+    }
+  },
+  {
+    "id": "17",
+    "locator": "[_midscene_retrieve_task_id='17']",
+    "attributes": {
+      "type": "button",
+      "class": ".theme-switch",
+      "nodeType": "BUTTON Node"
+    },
+    "content": "",
+    "rect": {
+      "left": 849,
+      "top": 13,
+      "width": 32,
+      "height": 32
+    },
+    "center": [
+      865,
+      29
+    ]
+  },
+  {
+    "id": "18",
+    "locator": "[_midscene_retrieve_task_id='18']",
+    "attributes": {
+      "class": ".theme-icon-dark",
+      "src": "/assets/icons/theme-dark.svg",
+      "alt": "Switch to the light theme",
+      "nodeType": "IMG Node"
+    },
+    "content": "",
+    "rect": {
+      "left": 855,
+      "top": 19,
+      "width": 20,
+      "height": 20
+    },
+    "center": [
+      865,
+      29
+    ]
+  },
+  {
+    "id": "19",
+    "locator": "[_midscene_retrieve_task_id='19']",
+    "attributes": {
+      "type": "text",
+      "name": "q",
+      "class": ".search-box.form-control",
+      "placeholder": "Search Docs",
+      "aria-label": "Search text",
+      "nodeType": "INPUT Node"
+    },
+    "content": "Search Docs",
+    "rect": {
+      "left": 885,
+      "top": 13,
+      "width": 200,
+      "height": 32
+    },
+    "center": [
+      985,
+      29
+    ]
+  },
+  {
+    "id": "20",
+    "locator": "[_midscene_retrieve_task_id='20']",
+    "attributes": {
+      "tabindex": "0",
+      "class": ".btn",
+      "type": "submit",
+      "aria-label": "Search",
+      "nodeType": "BUTTON Node"
+    },
+    "content": "",
+    "rect": {
+      "left": 892,
+      "top": 19,
+      "width": 28,
+      "height": 20
+    },
+    "center": [
+      906,
+      29
+    ]
+  },
+  {
+    "id": "21",
+    "locator": "[_midscene_retrieve_task_id='21']",
+    "attributes": {
+      "class": ".search-icon-light",
+      "src": "/assets/icons/search.svg",
+      "alt": "Search",
+      "nodeType": "IMG Node"
+    },
+    "content": "",
+    "rect": {
+      "left": 898,
+      "top": 22,
+      "width": 16,
+      "height": 16
+    },
+    "center": [
+      906,
+      30
+    ]
+  },
+  {
+    "id": "22",
+    "attributes": {
+      "class": ".link-button",
+      "href": "/Download",
+      "id": "nav-download",
+      "nodeType": "TEXT Node"
+    },
+    "locator": "[_midscene_retrieve_task_id='22']",
+    "center": [
+      1147,
+      29
+    ],
+    "content": "Download",
+    "rect": {
+      "left": 1093,
+      "top": 13,
+      "width": 107,
+      "height": 32
+    }
+  },
+  {
+    "id": "23",
+    "attributes": {
+      "nodeType": "TEXT Node"
+    },
+    "locator": "[_midscene_retrieve_task_id='23']",
+    "center": [
+      1147,
+      30
+    ],
+    "content": "Download",
+    "rect": {
+      "left": 1109,
+      "top": 20,
+      "width": 75,
+      "height": 19
+    }
+  },
+  {
+    "id": "24",
+    "attributes": {
+      "class": ".updates-banner.home.",
+      "nodeType": "TEXT Node"
+    },
+    "locator": "[_midscene_retrieve_task_id='24']",
+    "center": [
+      640,
+      85
+    ],
+    "content": "Version 1.91 is now available! Read about the new features and fixes from June.\n          \n          Dismiss this update",
+    "rect": {
+      "left": 0,
+      "top": 58,
+      "width": 1280,
+      "height": 54
+    }
+  },
+  {
+    "id": "25",
+    "attributes": {
+      "class": ".container",
+      "nodeType": "TEXT Node"
+    },
+    "locator": "[_midscene_retrieve_task_id='25']",
+    "center": [
+      624,
+      85
+    ],
+    "content": "Version 1.91 is now available! Read about the new features and fixes from June.",
+    "rect": {
+      "left": 24,
+      "top": 58,
+      "width": 1200,
+      "height": 54
+    }
+  },
+  {
+    "id": "26",
+    "attributes": {
+      "class": ".message",
+      "nodeType": "TEXT Node"
+    },
+    "locator": "[_midscene_retrieve_task_id='26']",
+    "center": [
+      624,
+      85
+    ],
+    "content": "Version 1.91 is now available! Read about the new features and fixes from June.",
+    "rect": {
+      "left": 64,
+      "top": 74,
+      "width": 1120,
+      "height": 22
+    }
+  },
+  {
+    "id": "27",
+    "attributes": {
+      "href": "/updates",
+      "id": "banner-link-updates",
+      "nodeType": "TEXT Node"
+    },
+    "locator": "[_midscene_retrieve_task_id='27']",
+    "center": [
+      404,
+      86
+    ],
+    "content": "Version 1.91",
+    "rect": {
+      "left": 364,
+      "top": 77,
+      "width": 79,
+      "height": 17
+    }
+  },
+  {
+    "id": "28",
+    "attributes": {
+      "class": ".container.hero-content",
+      "nodeType": "TEXT Node"
+    },
+    "locator": "[_midscene_retrieve_task_id='28']",
+    "center": [
+      640,
+      394
+    ],
+    "content": "Free. Built on open source. Runs everywhere.\n            Code Editing. Redefined.\n            \n                \n                    \n                    \n                        Download for macOS\n                        Download for Windows\n                        \n                            \n                                .debDebian, Ubuntu...\n                                .rpmRed Hat, Fedora...\n                            \n                            \n                                \n                                    .deb (x86)\n                                    .rpm (x86)\n                                    .tar.gz (x86)\n                                \n                            \n                        \n                    DownloadStable Build\n                    \n                    \n                \n                Web, Insiders edition, or other platforms\n                By using VS Code, you agree to its license and privacy statement.",
+    "rect": {
+      "left": 40,
+      "top": 144,
+      "width": 1200,
+      "height": 499
+    }
+  },
+  {
+    "id": "29",
+    "attributes": {
+      "class": ".hero-text.col-sm-12.col-md-4",
+      "nodeType": "TEXT Node"
+    },
+    "locator": "[_midscene_retrieve_task_id='29']",
+    "center": [
+      240,
+      394
+    ],
+    "content": "Free. Built on open source. Runs everywhere.\n            Code Editing. Redefined.\n            \n                \n                    \n                    \n                        Download for macOS\n                        Download for Windows\n                        \n                            \n                                .debDebian, Ubuntu...\n                                .rpmRed Hat, Fedora...\n                            \n                            \n                                \n                                    .deb (x86)\n                                    .rpm (x86)\n                                    .tar.gz (x86)\n                                \n                            \n                        \n                    DownloadStable Build\n                    \n                    \n                \n                Web, Insiders edition, or other platforms\n                By using VS Code, you agree to its license and privacy statement.",
+    "rect": {
+      "left": 40,
+      "top": 144,
+      "width": 400,
+      "height": 499
+    }
+  },
+  {
+    "id": "30",
+    "attributes": {
+      "class": ".hero-tag",
+      "nodeType": "TEXT Node"
+    },
+    "locator": "[_midscene_retrieve_task_id='30']",
+    "center": [
+      246,
+      195
+    ],
+    "content": "Free. Built on open source. Runs everywhere.",
+    "rect": {
+      "left": 80,
+      "top": 176,
+      "width": 331,
+      "height": 38
+    }
+  },
+  {
+    "id": "31",
+    "attributes": {
+      "nodeType": "TEXT Node"
+    },
+    "locator": "[_midscene_retrieve_task_id='31']",
+    "center": [
+      240,
+      337
+    ],
+    "content": "Code Editing. Redefined.",
+    "rect": {
+      "left": 80,
+      "top": 232,
+      "width": 320,
+      "height": 210
+    }
+  },
+  {
+    "id": "32",
+    "attributes": {
+      "class": ".download-content-wrapper",
+      "nodeType": "TEXT Node"
+    },
+    "locator": "[_midscene_retrieve_task_id='32']",
+    "center": [
+      240,
+      543
+    ],
+    "content": "Download for macOS\n                        Download for Windows\n                        \n                            \n                                .debDebian, Ubuntu...\n                                .rpmRed Hat, Fedora...\n                            \n                            \n                                \n                                    .deb (x86)\n                                    .rpm (x86)\n                                    .tar.gz (x86)\n                                \n                            \n                        \n                    DownloadStable Build\n                    \n                    \n                \n                Web, Insiders edition, or other platforms\n                By using VS Code, you agree to its license and privacy statement.",
+    "rect": {
+      "left": 80,
+      "top": 474,
+      "width": 320,
+      "height": 137
+    }
+  },
+  {
+    "id": "33",
+    "attributes": {
+      "id": "download-buttons",
+      "class": ".download-hero.alt-downloads.win",
+      "nodeType": "TEXT Node"
+    },
+    "locator": "[_midscene_retrieve_task_id='33']",
+    "center": [
+      240,
+      499
+    ],
+    "content": "Download for macOS\n                        Download for Windows\n                        \n                            \n                                .debDebian, Ubuntu...\n                                .rpmRed Hat, Fedora...\n                            \n                            \n                                \n                                    .deb (x86)\n                                    .rpm (x86)\n                                    .tar.gz (x86)\n                                \n                            \n                        \n                    DownloadStable Build",
+    "rect": {
+      "left": 80,
+      "top": 474,
+      "width": 320,
+      "height": 50
+    }
+  },
+  {
+    "id": "34",
+    "attributes": {
+      "class": ".primary-buttons",
+      "nodeType": "TEXT Node"
+    },
+    "locator": "[_midscene_retrieve_task_id='34']",
+    "center": [
+      240,
+      499
+    ],
+    "content": "Download for macOS\n                        Download for Windows\n                        \n                            \n                                .debDebian, Ubuntu...\n                                .rpmRed Hat, Fedora...\n                            \n                            \n                                \n                                    .deb (x86)\n                                    .rpm (x86)\n                                    .tar.gz (x86)\n                                \n                            \n                        \n                    DownloadStable Build",
+    "rect": {
+      "left": 80,
+      "top": 474,
+      "width": 320,
+      "height": 50
+    }
+  },
+  {
+    "id": "35",
+    "locator": "[_midscene_retrieve_task_id='35']",
+    "attributes": {
+      "class": ".link-button.dlink",
+      "data-os": "win",
+      "id": "download-buttons-win",
+      "nodeType": "BUTTON Node"
+    },
+    "content": "Download for Windows",
+    "rect": {
+      "left": 80,
+      "top": 474,
+      "width": 241,
+      "height": 50
+    },
+    "center": [
+      201,
+      499
+    ]
+  },
+  {
+    "id": "36",
+    "attributes": {
+      "id": "download-matrix-label",
+      "class": ".subtext",
+      "nodeType": "TEXT Node"
+    },
+    "locator": "[_midscene_retrieve_task_id='36']",
+    "center": [
+      240,
+      551
+    ],
+    "content": "Web, Insiders edition, or other platforms",
+    "rect": {
+      "left": 80,
+      "top": 540,
+      "width": 320,
+      "height": 22
+    }
+  },
+  {
+    "id": "37",
+    "attributes": {
+      "href": "https://vscode.dev/",
+      "target": "_blank",
+      "rel": "noopener",
+      "title": "For quick code edits locally or remotely on GitHub and Azure Repos.",
+      "id": "download-buttons-web",
+      "nodeType": "TEXT Node"
+    },
+    "locator": "[_midscene_retrieve_task_id='37']",
+    "center": [
+      95,
+      552
+    ],
+    "content": "Web",
+    "rect": {
+      "left": 80,
+      "top": 543,
+      "width": 29,
+      "height": 17
+    }
+  },
+  {
+    "id": "38",
+    "attributes": {
+      "href": "/insiders",
+      "id": "download-buttons-insiders",
+      "nodeType": "TEXT Node"
+    },
+    "locator": "[_midscene_retrieve_task_id='38']",
+    "center": [
+      168,
+      552
+    ],
+    "content": "Insiders edition",
+    "rect": {
+      "left": 117,
+      "top": 543,
+      "width": 101,
+      "height": 17
+    }
+  },
+  {
+    "id": "39",
+    "attributes": {
+      "href": "/Download",
+      "nodeType": "TEXT Node"
+    },
+    "locator": "[_midscene_retrieve_task_id='39']",
+    "center": [
+      295,
+      552
+    ],
+    "content": "other platforms",
+    "rect": {
+      "left": 244,
+      "top": 543,
+      "width": 102,
+      "height": 17
+    }
+  },
+  {
+    "id": "40",
+    "attributes": {
+      "class": ".subtext.terms",
+      "nodeType": "TEXT Node"
+    },
+    "locator": "[_midscene_retrieve_task_id='40']",
+    "center": [
+      240,
+      596
+    ],
+    "content": "By using VS Code, you agree to its license and privacy statement.",
+    "rect": {
+      "left": 80,
+      "top": 579,
+      "width": 320,
+      "height": 33
+    }
+  },
+  {
+    "id": "41",
+    "attributes": {
+      "class": ".wrap-together",
+      "nodeType": "TEXT Node"
+    },
+    "locator": "[_midscene_retrieve_task_id='41']",
+    "center": [
+      160,
+      604
+    ],
+    "content": "license and privacy statement.",
+    "rect": {
+      "left": 80,
+      "top": 595,
+      "width": 160,
+      "height": 17
+    }
+  },
+  {
+    "id": "42",
+    "attributes": {
+      "href": "https://code.visualstudio.com/license",
+      "target": "_blank",
+      "rel": "noopener",
+      "title": "View the Visual Studio Code license.",
+      "nodeType": "TEXT Node"
+    },
+    "locator": "[_midscene_retrieve_task_id='42']",
+    "center": [
+      99,
+      604
+    ],
+    "content": "license",
+    "rect": {
+      "left": 80,
+      "top": 597,
+      "width": 37,
+      "height": 13
+    }
+  },
+  {
+    "id": "43",
+    "attributes": {
+      "href": "https://go.microsoft.com/fwlink/?LinkId=521839",
+      "target": "_blank",
+      "rel": "noopener",
+      "title": "View the Microsoft privacy statement.",
+      "nodeType": "TEXT Node"
+    },
+    "locator": "[_midscene_retrieve_task_id='43']",
+    "center": [
+      190,
+      604
+    ],
+    "content": "privacy statement",
+    "rect": {
+      "left": 143,
+      "top": 597,
+      "width": 94,
+      "height": 13
+    }
+  },
+  {
+    "id": "44",
+    "locator": "[_midscene_retrieve_task_id='44']",
+    "attributes": {
+      "src": "/assets/home/home-screenshot-mac-2x-v2-light.png",
+      "alt": "Visual Studio Code in action with AI-powered suggestions from GitHub Copilot, built-in terminal and powerful extensions for all languages and tools",
+      "class": ".hero-image.light",
+      "nodeType": "IMG Node"
+    },
+    "content": "",
+    "rect": {
+      "left": 480,
+      "top": 166,
+      "width": 720,
+      "height": 457
+    },
+    "center": [
+      840,
+      395
+    ]
+  }
+]

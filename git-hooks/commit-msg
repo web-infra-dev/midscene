@@ -1,0 +1,5 @@
+# calculate bin dir
+set -e
+INFRA_DIR_NAME=$(dirname $(dirname "$0"))
+cd $INFRA_DIR_NAME
+node_modules/.bin/commitlint --config .commitlintrc.js --edit $1

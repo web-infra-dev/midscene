@@ -1,0 +1,52 @@
+[
+  {
+    "elements": [
+      {
+        "id": "2",
+        "text": "What needs to be done?",
+      },
+    ],
+    "error": [],
+    "prompt": "任务输入框",
+  },
+  {
+    "elements": [
+      {
+        "id": "8",
+        "text": "Learn Rust",
+      },
+    ],
+    "error": [],
+    "prompt": "任务列表中的第二项",
+  },
+  {
+    "elements": [
+      {
+        "id": "9",
+        "text": "×",
+      },
+    ],
+    "error": [],
+    "prompt": "第二项任务右边的删除按钮",
+  },
+  {
+    "elements": [
+      {
+        "id": "10",
+        "text": "",
+      },
+    ],
+    "error": [],
+    "prompt": "任务列表中第三项左边的勾选按钮",
+  },
+  {
+    "elements": [
+      {
+        "id": "15",
+        "text": "Completed",
+      },
+    ],
+    "error": [],
+    "prompt": "任务列表下面的 Completed 状态按钮",
+  },
+]

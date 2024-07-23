@@ -1,0 +1,561 @@
+[
+  {
+    "id": "1",
+    "locator": "[_midscene_retrieve_task_id='1']",
+    "attributes": {
+      "src": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACwAAAAsBAMAAADsqkcyAAAABGdBTUEAALGPC/xhBQAAAAFzUkdCAK7OHOkAAAAhUExURUxpcfOtAPOtAPSuAPSuAPStAPOvAPKsAO+vAO+vAPSuADVGh/QAAAAKdFJOUwA/gN/FmG9QECBSnvm3AAAAUElEQVQoz2NgGDSAURALEGCIWoUFLGVYhRUweGETXcIwTQkLyGAYZqDYGAtwZ7DCHlRYRRczlGAzxHy4BVUbtgSRiSv54EhsOJImjoQ8aAAAnI6GWHtsGtQAAAAASUVORK5CYII=",
+      "class": ".icon",
+      "nodeType": "IMG Node"
+    },
+    "content": "",
+    "rect": {
+      "left": 15,
+      "top": 17,
+      "width": 22,
+      "height": 22
+    },
+    "center": [
+      26,
+      28
+    ]
+  },
+  {
+    "id": "2",
+    "attributes": {
+      "class": ".lang-item-text.lang-show-text",
+      "nodeType": "TEXT Node"
+    },
+    "locator": "[_midscene_retrieve_task_id='2']",
+    "center": [
+      81,
+      28
+    ],
+    "content": "中文",
+    "rect": {
+      "left": 59,
+      "top": 14,
+      "width": 44,
+      "height": 28
+    }
+  },
+  {
+    "id": "3",
+    "locator": "[_midscene_retrieve_task_id='3']",
+    "attributes": {
+      "src": "https://dec-pub-img.obs.ap-southeast-3.myhuaweicloud.com/rfkle/16509415998546650.jpg",
+      "class": ".img",
+      "nodeType": "IMG Node"
+    },
+    "content": "",
+    "rect": {
+      "left": 203,
+      "top": 8,
+      "width": 44,
+      "height": 44
+    },
+    "center": [
+      225,
+      30
+    ]
+  },
+  {
+    "id": "4",
+    "locator": "[_midscene_retrieve_task_id='4']",
+    "attributes": {
+      "src": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADIAAAAyCAYAAAAeP4ixAAAACXBIWXMAABYlAAAWJQFJUiTwAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAPeSURBVHgB7VlNTttAFH7PSauqqCqV+rPE7FCSSrlBHS5QeoLCCQonIJyA9ASkN+AE4GV3BDWQqBvCupUadqhK5vXN2E6m4BnbUWtbbT6JxMTjsb95733zzRhgiSWW+C+AaRtubHguVMGFHDHs+37atolEJIFKFY8IwIO8QTACxO5l/+QgqWklqcHLV+tnTLcJRQBhlT+95y/cm+/fRp9tTau2k7Wat82dufKYI/KRgI4hLwhwEXEfMfjmXzq25lYi4MwiMR70T3chZ9Tr3ioBHvLhqkzx4dAfmdo6to6IVGhlOMZQAMhJf18rES60teCLi64ACNLum6CYdiIFYyrmEXEEPLW1tRLBqNCJRlAAKuK31Hpma2snEtYIId5AAXj0aE6EMKxXA6yqxZKrLkage0XHivKeQ9ZhQRgLoPbwwv8EGaFPtiyxnYsvJ3v6+V7PH9caLXWMCUSMEWk2vdmFFKNaLIttRZTTz+GHgAXgVGE3cgycvrsbDc+71ygSGoI1a1+mE7e38xHAGCL6CFFB8qzDXCOa3AnnvvxOBc3SAJEyp5XqF2DuFIi6cSaRQgnm1HMtXS0uv8NLvxuFHQHfwAJgSXWjY4FgGAxU0Z5Nzqa+jCdQm4AmhgmRgkjIPI/Nbwtcl2sw8FBq1I2WnUSkmIsRQWG/UOJhFTq8DlAj5hAeqTVLSqw8cfbnhpTapnZci0H9Lapaum6bzJqUR0F0EN7IdSp4mkRGRqL+evNQqpS6D5CfIN2RkCxGRLvQqkiDC5+lVyNTxataffOIlwDNuwQaDe/D4xU8m5HglKIJ7Nj6B83n2QbJOCHK4kK5fkwhrZd9v11rePKu+8HNidcxuF1vtMYUpQaBK4IHC/8ln6awY7PmWWCOSEbnK8mICa1z4fvRb2rCZALqb44xR2Rv0PdbaUikdcD2hVVGhA/WUingsO1gg8ADoVwrR6bHxM6zbChISAfshMNtc8BGIsr5krIOmQ1jSKgLfwDKAc/zxuiAzfI7n4B+QIHQ08/mgM3yG6kWwjWUBJiVSJLzzR0pHHAskSTnW0bEp1aC880baRxwqTcfZiC6Dr4y1ojufKeiVKmVjYjufCslIDJzF1lVK43zzROa4GSeR1I537ygb52aHHB8RAre870LSjGg8REJnS+UJSL6gBoccNKWaTkUS9szMDlgA5Fw5wIKelN1B2zjveiYJ+hYNx5r4xHEOX9u8eFqrd66Yko+FAie0bd4UNUMf/sAerFt4n6UpvHnBE+hJBGJMJnSu68D/zjunPGtbkAG5CbBWx6SxK2hvwn5WoMjcpB1dbnEEkv8g/gF7BF6kDDXbdkAAAAASUVORK5CYII=",
+      "class": ".icon",
+      "nodeType": "IMG Node"
+    },
+    "content": "",
+    "rect": {
+      "left": 350,
+      "top": 16,
+      "width": 25,
+      "height": 25
+    },
+    "center": [
+      363,
+      29
+    ]
+  },
+  {
+    "id": "5",
+    "attributes": {
+      "nodeType": "TEXT Node"
+    },
+    "locator": "[_midscene_retrieve_task_id='5']",
+    "center": [
+      200,
+      80
+    ],
+    "content": "商家暂未开通外卖和自取业务",
+    "rect": {
+      "left": 75,
+      "top": 69,
+      "width": 250,
+      "height": 21
+    }
+  },
+  {
+    "id": "6",
+    "attributes": {
+      "nodeType": "TEXT Node"
+    },
+    "locator": "[_midscene_retrieve_task_id='6']",
+    "center": [
+      209,
+      98
+    ],
+    "content": "喜茶 HEYTEA (Vivocity)",
+    "rect": {
+      "left": 22,
+      "top": 80,
+      "width": 373,
+      "height": 36
+    }
+  },
+  {
+    "id": "7",
+    "attributes": {
+      "nodeType": "TEXT Node"
+    },
+    "locator": "[_midscene_retrieve_task_id='7']",
+    "center": [
+      209,
+      133
+    ],
+    "content": "全岛派送，起送价 S$ 11",
+    "rect": {
+      "left": 22,
+      "top": 122,
+      "width": 373,
+      "height": 21
+    }
+  },
+  {
+    "id": "8",
+    "locator": "[_midscene_retrieve_task_id='8']",
+    "attributes": {
+      "src": "https://dec-pub-img.obs.ap-southeast-3.myhuaweicloud.com/rfkle/16558697767831080.jpeg",
+      "nodeType": "IMG Node"
+    },
+    "content": "",
+    "rect": {
+      "left": 16,
+      "top": 260,
+      "width": 368,
+      "height": 180
+    },
+    "center": [
+      200,
+      350
+    ]
+  },
+  {
+    "id": "9",
+    "attributes": {
+      "nodeType": "TEXT Node"
+    },
+    "locator": "[_midscene_retrieve_task_id='9']",
+    "center": [
+      200,
+      482
+    ],
+    "content": "喜茶为芝士现泡茶的原创者。自创立以来，喜茶专注于呈现来自世界各地的优质茶香， 让茶饮这一古老文化焕发出新的生命力。",
+    "rect": {
+      "left": 16,
+      "top": 450,
+      "width": 368,
+      "height": 63
+    }
+  },
+  {
+    "id": "10",
+    "attributes": {
+      "nodeType": "TEXT Node"
+    },
+    "locator": "[_midscene_retrieve_task_id='10']",
+    "center": [
+      128,
+      569
+    ],
+    "content": "菜单",
+    "rect": {
+      "left": 112,
+      "top": 557,
+      "width": 32,
+      "height": 24
+    }
+  },
+  {
+    "id": "11",
+    "attributes": {
+      "nodeType": "TEXT Node"
+    },
+    "locator": "[_midscene_retrieve_task_id='11']",
+    "center": [
+      200,
+      569
+    ],
+    "content": "评价",
+    "rect": {
+      "left": 184,
+      "top": 557,
+      "width": 32,
+      "height": 24
+    }
+  },
+  {
+    "id": "12",
+    "attributes": {
+      "nodeType": "TEXT Node"
+    },
+    "locator": "[_midscene_retrieve_task_id='12']",
+    "center": [
+      272,
+      569
+    ],
+    "content": "商家",
+    "rect": {
+      "left": 256,
+      "top": 557,
+      "width": 32,
+      "height": 24
+    }
+  },
+  {
+    "id": "13",
+    "attributes": {
+      "nodeType": "TEXT Node"
+    },
+    "locator": "[_midscene_retrieve_task_id='13']",
+    "center": [
+      29,
+      623
+    ],
+    "content": "时令鲜果",
+    "rect": {
+      "left": 5,
+      "top": 614,
+      "width": 48,
+      "height": 18
+    }
+  },
+  {
+    "id": "14",
+    "attributes": {
+      "nodeType": "TEXT Node"
+    },
+    "locator": "[_midscene_retrieve_task_id='14']",
+    "center": [
+      35,
+      683
+    ],
+    "content": "清爽不喝腻",
+    "rect": {
+      "left": 5,
+      "top": 674,
+      "width": 60,
+      "height": 18
+    }
+  },
+  {
+    "id": "15",
+    "attributes": {
+      "nodeType": "TEXT Node"
+    },
+    "locator": "[_midscene_retrieve_task_id='15']",
+    "center": [
+      35,
+      743
+    ],
+    "content": "经典不踩雷",
+    "rect": {
+      "left": 5,
+      "top": 734,
+      "width": 60,
+      "height": 18
+    }
+  },
+  {
+    "id": "16",
+    "attributes": {
+      "nodeType": "TEXT Node"
+    },
+    "locator": "[_midscene_retrieve_task_id='16']",
+    "center": [
+      23,
+      803
+    ],
+    "content": "要浓郁",
+    "rect": {
+      "left": 5,
+      "top": 794,
+      "width": 36,
+      "height": 18
+    }
+  },
+  {
+    "id": "17",
+    "attributes": {
+      "nodeType": "TEXT Node"
+    },
+    "locator": "[_midscene_retrieve_task_id='17']",
+    "center": [
+      23,
+      863
+    ],
+    "content": "要简单",
+    "rect": {
+      "left": 5,
+      "top": 854,
+      "width": 36,
+      "height": 18
+    }
+  },
+  {
+    "id": "18",
+    "attributes": {
+      "nodeType": "TEXT Node"
+    },
+    "locator": "[_midscene_retrieve_task_id='18']",
+    "center": [
+      126,
+      633
+    ],
+    "content": "时令鲜果 (1)",
+    "rect": {
+      "left": 88,
+      "top": 622,
+      "width": 76,
+      "height": 21
+    }
+  },
+  {
+    "id": "19",
+    "locator": "[_midscene_retrieve_task_id='19']",
+    "attributes": {
+      "src": "https://dec-pub-img.obs.ap-southeast-3.myhuaweicloud.com/djlxq/16509428649460869.jpeg",
+      "class": ".img",
+      "nodeType": "IMG Node"
+    },
+    "content": "",
+    "rect": {
+      "left": 88,
+      "top": 659,
+      "width": 90,
+      "height": 90
+    },
+    "center": [
+      133,
+      704
+    ]
+  },
+  {
+    "id": "20",
+    "attributes": {
+      "nodeType": "TEXT Node"
+    },
+    "locator": "[_midscene_retrieve_task_id='20']",
+    "center": [
+      288,
+      670
+    ],
+    "content": "多肉大橘（首创）",
+    "rect": {
+      "left": 188,
+      "top": 659,
+      "width": 199,
+      "height": 21
+    }
+  },
+  {
+    "id": "21",
+    "attributes": {
+      "class": ".van-ellipsis",
+      "nodeType": "TEXT Node"
+    },
+    "locator": "[_midscene_retrieve_task_id='21']",
+    "center": [
+      288,
+      691
+    ],
+    "content": "果肉丰盈，粒粒饱满多汁；精心调配果汁与绿妍茶底的比例打制成冰沙；搭配清甜的无香精桂花冻与Q谈脆波波，再用香水柠檬片作点缀，口感丰富，香气有层次。默认标准杯500ml，可根据个人喜好选择加大杯650ml。",
+    "rect": {
+      "left": 188,
+      "top": 684,
+      "width": 199,
+      "height": 13
+    }
+  },
+  {
+    "id": "22",
+    "attributes": {
+      "class": ".price",
+      "nodeType": "TEXT Node"
+    },
+    "locator": "[_midscene_retrieve_task_id='22']",
+    "center": [
+      211,
+      736
+    ],
+    "content": "6.82",
+    "rect": {
+      "left": 192,
+      "top": 723,
+      "width": 37,
+      "height": 25
+    }
+  },
+  {
+    "id": "23",
+    "attributes": {
+      "class": ".handle-btn",
+      "nodeType": "TEXT Node"
+    },
+    "locator": "[_midscene_retrieve_task_id='23']",
+    "center": [
+      355,
+      732
+    ],
+    "content": "选规格",
+    "rect": {
+      "left": 322,
+      "top": 720,
+      "width": 65,
+      "height": 24
+    }
+  },
+  {
+    "id": "24",
+    "attributes": {
+      "nodeType": "TEXT Node"
+    },
+    "locator": "[_midscene_retrieve_task_id='24']",
+    "center": [
+      134,
+      776
+    ],
+    "content": "清爽不喝腻 (5)",
+    "rect": {
+      "left": 88,
+      "top": 765,
+      "width": 92,
+      "height": 21
+    }
+  },
+  {
+    "id": "25",
+    "locator": "[_midscene_retrieve_task_id='25']",
+    "attributes": {
+      "src": "https://dec-pub-img.obs.ap-southeast-3.myhuaweicloud.com/djlxq/16509428062990437.jpeg",
+      "class": ".img",
+      "nodeType": "IMG Node"
+    },
+    "content": "",
+    "rect": {
+      "left": 88,
+      "top": 802,
+      "width": 90,
+      "height": 90
+    },
+    "center": [
+      133,
+      847
+    ]
+  },
+  {
+    "id": "26",
+    "attributes": {
+      "nodeType": "TEXT Node"
+    },
+    "locator": "[_midscene_retrieve_task_id='26']",
+    "center": [
+      288,
+      813
+    ],
+    "content": "轻芒芒甘露",
+    "rect": {
+      "left": 188,
+      "top": 802,
+      "width": 199,
+      "height": 21
+    }
+  },
+  {
+    "id": "27",
+    "attributes": {
+      "class": ".van-ellipsis",
+      "nodeType": "TEXT Node"
+    },
+    "locator": "[_midscene_retrieve_task_id='27']",
+    "center": [
+      288,
+      834
+    ],
+    "content": "更清爽的芒芒甘露，芒着清爽，芒着解腻。当季芒果，新鲜手切，香甜浓郁；加入红柚果粒与Q弹的脆波波，轻盈不轻量。清爽的芒果绿妍冰沙平衡椰浆的比例，清爽不简单。",
+    "rect": {
+      "left": 188,
+      "top": 827,
+      "width": 199,
+      "height": 13
+    }
+  },
+  {
+    "id": "28",
+    "attributes": {
+      "class": ".price",
+      "nodeType": "TEXT Node"
+    },
+    "locator": "[_midscene_retrieve_task_id='28']",
+    "center": [
+      211,
+      879
+    ],
+    "content": "6.54",
+    "rect": {
+      "left": 192,
+      "top": 866,
+      "width": 37,
+      "height": 25
+    }
+  },
+  {
+    "id": "29",
+    "attributes": {
+      "class": ".handle-btn",
+      "nodeType": "TEXT Node"
+    },
+    "locator": "[_midscene_retrieve_task_id='29']",
+    "center": [
+      355,
+      875
+    ],
+    "content": "选规格",
+    "rect": {
+      "left": 322,
+      "top": 863,
+      "width": 65,
+      "height": 24
+    }
+  },
+  {
+    "id": "30",
+    "locator": "[_midscene_retrieve_task_id='30']",
+    "attributes": {
+      "src": "/img/customer.8a8d9dc9.png",
+      "nodeType": "IMG Node"
+    },
+    "content": "",
+    "rect": {
+      "left": 358,
+      "top": 813,
+      "width": 42,
+      "height": 42
+    },
+    "center": [
+      379,
+      834
+    ]
+  }
+]

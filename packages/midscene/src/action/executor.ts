@@ -1,0 +1,152 @@
+import assert from 'assert';
+import {
+  ExecutionTask,
+  ExecutionTaskApply,
+  ExecutionDump,
+  ExecutionTaskInsightFindOutput,
+  ExecutionTaskReturn,
+  ExecutorContext,
+} from '@/types';
+import { actionDumpFileExt, getPkgInfo, writeDumpFile } from '@/utils';
+
+const logFileExt = actionDumpFileExt;
+
+export class Executor {
+  name: string;
+
+  description?: string;
+
+  tasks: ExecutionTask[];
+
+  // status of executor
+  status: 'init' | 'pending' | 'running' | 'completed' | 'error';
+
+  errorMsg?: string;
+
+  dumpFileName?: string;
+
+  constructor(name: string, description?: string, tasks?: ExecutionTaskApply[]) {
+    this.status = tasks && tasks.length > 0 ? 'pending' : 'init';
+    this.name = name;
+    this.description = description;
+    this.tasks = (tasks || []).map((item) => this.markTaskAsPending(item));
+  }
+
+  private markTaskAsPending(task: ExecutionTaskApply): ExecutionTask {
+    return {
+      status: 'pending',
+      ...task,
+    };
+  }
+
+  async append(task: ExecutionTaskApply[] | ExecutionTaskApply): Promise<void> {
+    assert(this.status !== 'error', 'executor is in error state, cannot append task');
+    if (Array.isArray(task)) {
+      this.tasks.push(...task.map((item) => this.markTaskAsPending(item)));
+    } else {
+      this.tasks.push(this.markTaskAsPending(task));
+    }
+    if (this.status !== 'running') {
+      this.status = 'pending';
+    }
+  }
+
+  async flush(): Promise<void> {
+    if (this.status === 'init' && this.tasks.length > 0) {
+      console.warn('illegal state for executor, status is init but tasks are not empty');
+    }
+
+    assert(this.status !== 'running', 'executor is already running');
+    assert(this.status !== 'completed', 'executor is already completed');
+    assert(this.status !== 'error', 'executor is in error state');
+
+    const nextPendingIndex = this.tasks.findIndex((task) => task.status === 'pending');
+    if (nextPendingIndex < 0) {
+      // all tasks are completed
+      return;
+    }
+
+    this.status = 'running';
+    let taskIndex = nextPendingIndex;
+    let successfullyCompleted = true;
+    let errorMsg = '';
+
+    let previousFindOutput: ExecutionTaskInsightFindOutput | undefined;
+
+    while (taskIndex < this.tasks.length) {
+      const task = this.tasks[taskIndex];
+      assert(task.status === 'pending', `task status should be pending, but got: ${task.status}`);
+      task.timing = {
+        start: Date.now(),
+      };
+      try {
+        task.status = 'running';
+        assert(
+          ['Insight', 'Action', 'Planning'].indexOf(task.type) >= 0,
+          `unsupported task type: ${task.type}`,
+        );
+
+        const { executor, param } = task;
+        assert(executor, `executor is required for task type: ${task.type}`);
+
+        let returnValue;
+        const executorContext: ExecutorContext = {
+          task,
+          element: previousFindOutput?.element,
+        };
+        if (task.type === 'Insight') {
+          assert(task.subType === 'find', `unsupported insight subType: ${task.subType}`);
+          returnValue = await task.executor(param, executorContext);
+          previousFindOutput = (returnValue as ExecutionTaskReturn<ExecutionTaskInsightFindOutput>)?.output;
+        } else if (task.type === 'Action' || task.type === 'Planning') {
+          returnValue = await task.executor(param, executorContext);
+        } else {
+          console.warn(`unsupported task type: ${task.type}, will try to execute it directly`);
+          returnValue = await task.executor(param, executorContext);
+        }
+
+        Object.assign(task, returnValue);
+
+        task.status = 'success';
+        task.timing.end = Date.now();
+        task.timing.cost = task.timing.end - task.timing.start;
+        taskIndex++;
+      } catch (e: any) {
+        successfullyCompleted = false;
+        task.status = 'fail';
+        errorMsg = `${e?.message}\n${e?.stack}`;
+        task.error = errorMsg;
+        task.timing.end = Date.now();
+        task.timing.cost = task.timing.end - task.timing.start;
+        this.errorMsg = errorMsg;
+        break;
+      }
+    }
+
+    // set all remaining tasks as cancelled
+    for (let i = taskIndex + 1; i < this.tasks.length; i++) {
+      this.tasks[i].status = 'cancelled';
+    }
+
+    if (successfullyCompleted) {
+      this.status = 'completed';
+    } else {
+      this.status = 'error';
+      throw new Error(`executor failed: ${errorMsg}`);
+    }
+  }
+
+  dump() {
+    const dumpData: ExecutionDump = {
+      sdkVersion: getPkgInfo().version,
+      logTime: Date.now(),
+      name: this.name,
+      description: this.description,
+      tasks: this.tasks,
+    };
+    const fileContent = JSON.stringify(dumpData, null, 2);
+    this.dumpFileName = this.dumpFileName || `pid-${process.pid}-${Date.now()}`;
+    const dumpPath = writeDumpFile(this.dumpFileName, logFileExt, fileContent);
+    return dumpPath;
+  }
+}

@@ -1,0 +1,25 @@
+[
+  {
+    "type": "dir",
+    "name": "getting-started",
+    "label": "Getting Started",
+    "collapsible": false,
+    "collapsed": false
+  },
+  {
+    "type": "dir",
+    "name": "usage",
+    "label": "Usage",
+    "collapsible": false,
+    "collapsed": false
+  },
+  "prompting-tips.md",
+  {
+    "type": "dir",
+    "name": "integration",
+    "label": "Integration",
+    "collapsible": false,
+    "collapsed": false
+  },
+  "faq.md"
+]
