@@ -7,6 +7,10 @@
     "build": "rspress build",
     "preview": "rspress preview"
   },
+  "engines": {
+    "pnpm": ">=9.3.0",
+    "node": ">=18.19.0"
+  },
   "packageManager": "pnpm@9.3.0",
   "dependencies": {
     "react": "^18.2.0",
