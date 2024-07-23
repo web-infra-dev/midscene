@@ -4,7 +4,9 @@
 
 
 <div align="center">
+
 English | [简体中文](README.ch.md)
+
 </div>
 
 # MidScene.js
