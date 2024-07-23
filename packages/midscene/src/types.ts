@@ -80,6 +80,8 @@ export abstract class UIContext<ElementType extends BaseElement = BaseElement> {
 
   abstract content: ElementType[];
 
+  abstract size: Size;
+
   // abstract describer: () => Promise<{
   //   description: string;
   //   elementById: (id: string) => ElementType;

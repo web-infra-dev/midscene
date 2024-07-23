@@ -5,7 +5,7 @@ import path from 'path';
 import type { Page as PlaywrightPage } from 'playwright';
 import { Page } from 'puppeteer';
 import { UIContext, PlaywrightParserOpt } from '@midscene/core';
-import { alignCoordByTrim, base64Encoded } from '@midscene/core/image';
+import { alignCoordByTrim, base64Encoded, imageInfo } from '@midscene/core/image';
 import { getTmpFile } from '@midscene/core/utils';
 import { WebElementInfo, WebElementInfoType } from './element';
 
@@ -21,12 +21,13 @@ export async function parseContextFromPlaywrightPage(
   const captureElementSnapshot = await getElementInfosFromPage(page);
   // align element
   const elementsInfo = await alignElements(screenshotBuffer, captureElementSnapshot, page);
-  const baseContext = {
-    content: elementsInfo,
-    screenshotBase64,
-  };
+  const size = await imageInfo(screenshotBase64);
+
+  
   return {
-    ...baseContext,
+    content: elementsInfo,
+    size,
+    screenshotBase64,
   };
 }
 
