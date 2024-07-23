@@ -1,3 +1,4 @@
+/* eslint-disable max-lines */
 import { useEffect, useMemo, useRef, useState } from 'react';
 import * as PIXI from 'pixi.js';
 
@@ -5,7 +6,7 @@ import './timeline.less';
 import { ExecutionRecorderItem, ExecutionTask } from '@midscene/core';
 import { useAllCurrentTasks, useExecutionDump } from './store';
 
-export interface TimelineItem {
+interface TimelineItem {
   id: string;
   img: string;
   timeOffset: number;
@@ -15,10 +16,15 @@ export interface TimelineItem {
   height?: number;
 }
 
-export interface HighlightParam {
+interface HighlightParam {
   mouseX: number;
   mouseY: number;
   item: TimelineItem;
+}
+
+interface HighlightMask {
+  startMs: number;
+  endMs: number;
 }
 
 // Function to clone a sprite
@@ -40,16 +46,58 @@ const TimelineWidget = (props: {
   onHighlight?: (param: HighlightParam) => any;
   onUnhighlight?: () => any;
   onTap?: (param: TimelineItem) => any;
+  highlightMask?: HighlightMask;
 }): JSX.Element => {
   const domRef = useRef<HTMLDivElement>(null); // Should be HTMLDivElement not HTMLInputElement
   const app = useMemo<PIXI.Application>(() => new PIXI.Application(), []);
 
   const gridsContainer = useMemo(() => new PIXI.Container(), []);
   const screenshotsContainer = useMemo(() => new PIXI.Container(), []);
+  const highlightMaskContainer = useMemo(() => new PIXI.Container(), []);
+  // eslint-disable-next-line @typescript-eslint/no-empty-function
+  const containerUpdaterRef = useRef((_s: number | undefined, _e: number | undefined) => {});
   const indicatorContainer = useMemo(() => new PIXI.Container(), []);
 
   const allScreenshots = props.screenshots || [];
   const maxTime = allScreenshots[allScreenshots.length - 1].timeOffset;
+
+  const sizeRatio = 2;
+
+  const titleBg = 0xdddddd; // @title-bg
+  const sideBg = 0xececec;
+  const gridTextColor = 0;
+  const shotBorderColor = 0x777777;
+  const gridLineColor = 0xcccccc; // @border-color
+  const gridHighlightColor = 0x06b1ab; // @main-blue
+  const timeContentFontSize = 20;
+  const commonPadding = 12;
+  const timeTextTop = commonPadding;
+  const timeTitleBottom = timeTextTop * 2 + timeContentFontSize;
+
+  const closestScreenshotItemOnXY = (x: number, _y: number) => {
+    // find out the screenshot that is closest to the mouse on the left
+    let closestScreenshot: TimelineItem | undefined; // already sorted
+    let closestIndex = -1;
+    for (let i = 0; i < allScreenshots.length; i++) {
+      const shot = allScreenshots[i];
+      if (shot.x! <= x) {
+        closestScreenshot = allScreenshots[i];
+        closestIndex = i;
+      } else {
+        break;
+      }
+    }
+    return {
+      closestScreenshot,
+      closestIndex,
+    };
+  };
+
+  useMemo(() => {
+    const { startMs, endMs } = props.highlightMask || {};
+    const fn = containerUpdaterRef.current;
+    fn(startMs, endMs);
+  }, [props.highlightMask?.startMs, props.highlightMask?.endMs]);
 
   useEffect(() => {
     Promise.resolve(
@@ -58,8 +106,6 @@ const TimelineWidget = (props: {
           return;
         }
 
-        const sizeRatio = 2;
-
         // width of domRef
         const { clientWidth, clientHeight } = domRef.current;
         const canvasWidth = clientWidth * sizeRatio;
@@ -67,7 +113,6 @@ const TimelineWidget = (props: {
 
         let singleGridWidth = 100 * sizeRatio;
         let gridCount = Math.floor(canvasWidth / singleGridWidth);
-        console.log('gridCount', gridCount, maxTime);
         const stepCandidate = [
           50, 100, 200, 300, 500, 1000, 2000, 3000, 5000, 6000, 8000, 9000, 10000, 20000, 30000, 40000, 60000,
           90000, 12000, 300000,
@@ -83,12 +128,7 @@ const TimelineWidget = (props: {
           singleGridWidth = Math.floor(singleGridWidth * (1 / gridRatio) * 0.9);
           gridCount = Math.floor(canvasWidth / singleGridWidth);
         }
-        // resize grid
-        // singleGridWidth = Math.floor((canvasWidth / maxTime) * timeStep);
 
-        console.log('timeStep', timeStep);
-
-        // const timeStep = Math.max(50, Math.round((maxTime - 50) / gridCount / 50) * 50);
         const leftForTimeOffset = (timeOffset: number) => {
           return Math.floor((singleGridWidth * timeOffset) / timeStep);
         };
@@ -96,21 +136,10 @@ const TimelineWidget = (props: {
           return Math.floor((left * timeStep) / singleGridWidth);
         };
 
-        const titleBg = 0xdddddd; // @title-bg
-        const sideBg = 0xececec;
-        const gridTextColor = 0;
-        const shotBorderColor = 0x777777;
-        const gridLineColor = 0xcccccc; // @border-color
-        const gridHighlightColor = 0x06b1ab; // @main-blue
-        const timeContentFontSize = 20;
-        const commonPadding = 12;
-        const timeTextTop = commonPadding;
-        const timeTitleBottom = timeTextTop * 2 + timeContentFontSize;
-
         await app.init({
           width: canvasWidth,
           height: canvasHeight,
-          background: sideBg,
+          backgroundColor: sideBg,
         });
         domRef.current.replaceChildren(app.canvas);
 
@@ -200,24 +229,38 @@ const TimelineWidget = (props: {
           };
         });
 
-        const closestScreenshotItemOnXY = (x: number, _y: number) => {
-          // find out the screenshot that is closest to the mouse on the left
-          let closestScreenshot: TimelineItem | undefined; // already sorted
-          let closestIndex = -1;
-          for (let i = 0; i < allScreenshots.length; i++) {
-            const shot = allScreenshots[i];
-            if (shot.x! <= x) {
-              closestScreenshot = allScreenshots[i];
-              closestIndex = i;
-            } else {
-              break;
-            }
+        const highlightMaskUpdater = (start: number | undefined, end: number | undefined) => {
+          highlightMaskContainer.removeChildren();
+
+          if (typeof start === 'undefined' || typeof end === 'undefined') {
+            return;
           }
-          return {
-            closestScreenshot,
-            closestIndex,
-          };
+
+          const leftBorder = new PIXI.Graphics();
+          leftBorder.beginFill(gridHighlightColor, 1);
+          leftBorder.drawRect(leftForTimeOffset(start), 0, sizeRatio, canvasHeight);
+          leftBorder.endFill();
+          highlightMaskContainer.addChild(leftBorder);
+
+          const rightBorder = new PIXI.Graphics();
+          rightBorder.beginFill(gridHighlightColor, 1);
+          rightBorder.drawRect(leftForTimeOffset(end), 0, sizeRatio, canvasHeight);
+          rightBorder.endFill();
+          highlightMaskContainer.addChild(rightBorder);
+
+          const mask = new PIXI.Graphics();
+          mask.beginFill(gridHighlightColor, 0.3);
+          mask.drawRect(
+            leftForTimeOffset(start),
+            0,
+            leftForTimeOffset(end) - leftForTimeOffset(start),
+            canvasHeight,
+          );
+          mask.endFill();
+          highlightMaskContainer.addChild(mask);
         };
+        highlightMaskUpdater(props.highlightMask?.startMs, props.highlightMask?.endMs);
+        containerUpdaterRef.current = highlightMaskUpdater;
 
         // keep tracking the position of the mouse moving above the canvas
         app.stage.interactive = true;
@@ -258,7 +301,7 @@ const TimelineWidget = (props: {
           // cursor line
           const indicator = new PIXI.Graphics();
           indicator.beginFill(gridHighlightColor, 1);
-          indicator.drawRect(x - 1, 0, 2, canvasHeight);
+          indicator.drawRect(x - 1, 0, 3, canvasHeight);
           indicator.endFill();
           indicatorContainer.addChild(indicator);
 
@@ -288,8 +331,8 @@ const TimelineWidget = (props: {
         };
 
         const onPointerTap = (event: PointerEvent) => {
-          const x = event.offsetX;
-          const y = event.offsetY;
+          const x = event.offsetX * sizeRatio;
+          const y = event.offsetY * sizeRatio;
           const { closestScreenshot } = closestScreenshotItemOnXY(x, y);
           if (closestScreenshot) {
             props.onTap?.(closestScreenshot);
@@ -297,6 +340,7 @@ const TimelineWidget = (props: {
         };
 
         app.stage.addChild(screenshotsContainer);
+        app.stage.addChild(highlightMaskContainer);
         app.stage.addChild(indicatorContainer);
 
         const canvas = app.view;
@@ -314,8 +358,10 @@ const Timeline = () => {
   const allTasks = useAllCurrentTasks();
   const wrapper = useRef<HTMLDivElement>(null);
   const setActiveTask = useExecutionDump((store) => store.setActiveTask);
+  const activeTask = useExecutionDump((store) => store.activeTask);
   const [highlightItem, setHighlightItem] = useState<TimelineItem | undefined>();
   const [popupX, setPopupX] = useState(0);
+
   // should be first task time ?
   let startingTime = -1;
   let idCount = 1;
@@ -376,13 +422,23 @@ const Timeline = () => {
   const wrapperW = wrapper.current?.getBoundingClientRect().width || 0;
   const left = Math.min(popupX, wrapperW - 500);
 
+  const highlightMaskConfig: HighlightMask | undefined =
+    activeTask?.timing?.start && activeTask?.timing?.end
+      ? {
+          startMs: activeTask?.timing.start - startingTime || 0,
+          endMs: activeTask?.timing.end - startingTime || 0,
+        }
+      : undefined;
+
   return (
     <div className="timeline-wrapper" ref={wrapper}>
       <TimelineWidget
+        // key={dimensions.width}
         screenshots={allScreenshots}
         onTap={itemOnTap}
         onHighlight={onHighlightItem}
         onUnhighlight={unhighlight}
+        highlightMask={highlightMaskConfig}
       />
       <div
         className="timeline-zoom-view"

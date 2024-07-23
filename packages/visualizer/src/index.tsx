@@ -1,9 +1,9 @@
 import './index.less';
-import { Layout, ConfigProvider, message, Upload, Button } from 'antd';
+import { ConfigProvider, message, Upload, Button } from 'antd';
 import type { UploadProps } from 'antd';
-import { useEffect } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Helmet } from '@modern-js/runtime/head';
-import Sider from 'antd/es/layout/Sider';
+import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
 import Timeline from './component/timeline';
 import DetailPanel from './component/detail-panel';
 import Logo from './component/assets/logo-plain.svg';
@@ -11,12 +11,13 @@ import { useExecutionDump, useInsightDump } from '@/component/store';
 import DetailSide from '@/component/detail-side';
 import Sidebar from '@/component/sidebar';
 
-const { Content } = Layout;
 const { Dragger } = Upload;
 const Index = (): JSX.Element => {
   const executionDump = useExecutionDump((store) => store.dump);
   const setGroupedDump = useExecutionDump((store) => store.setGroupedDump);
   const reset = useExecutionDump((store) => store.reset);
+  const [mainLayoutChangFlag, setMainLayoutChangFlag] = useState(0);
+  const mainLayoutChangedRef = useRef(false);
 
   useEffect(() => {
     return () => {
@@ -54,7 +55,7 @@ const Index = (): JSX.Element => {
         if (typeof result === 'string') {
           try {
             const data = JSON.parse(result);
-
+            // setMainLayoutChangFlag((prev) => prev + 1);
             setGroupedDump(data);
             // if (ifActionFile) {
             // } else {
@@ -95,12 +96,12 @@ const Index = (): JSX.Element => {
           <p className="ant-upload-text">
             Click or drag the{' '}
             <b>
-              <i>.insight.json</i>
+              <i>.all-logs.json</i>
             </b>{' '}
-            or{' '}
+            {/* or{' '}
             <b>
               <i>.actions.json</i>
-            </b>{' '}
+            </b>{' '} */}
             file into this area.
           </p>
           <p className="ant-upload-text">
@@ -127,18 +128,51 @@ const Index = (): JSX.Element => {
     // dump
   } else {
     mainContent = (
-      <div className="main-right">
-        <Timeline />
-        <div className="main-content">
-          <div className="main-side">
-            <DetailSide />
-          </div>
+      <PanelGroup
+        autoSaveId="main-page-layout"
+        direction="horizontal"
+        onLayout={() => {
+          if (mainLayoutChangFlag === 0) {
+            requestAnimationFrame(() => {
+              setMainLayoutChangFlag(1); // first layout
+            });
+          }
+        }}
+      >
+        <Panel maxSize={95}>
+          <Sidebar />
+        </Panel>
+        <PanelResizeHandle
+          onDragging={(isChanging) => {
+            if (mainLayoutChangedRef.current && !isChanging) {
+              // not changing anymore
+              setMainLayoutChangFlag((prev) => prev + 1);
+            }
+            mainLayoutChangedRef.current = isChanging;
+          }}
+        />
+        <Panel defaultSize={80} maxSize={95}>
+          <div className="main-right">
+            {mainLayoutChangFlag > 0 ? <Timeline key={mainLayoutChangFlag} /> : null}
+            <div className="main-content">
+              <PanelGroup autoSaveId="page-detail-layout" direction="horizontal">
+                <Panel maxSize={95}>
+                  <div className="main-side">
+                    <DetailSide />
+                  </div>
+                </Panel>
+                <PanelResizeHandle />
 
-          <div className="main-canvas-container">
-            <DetailPanel />
+                <Panel defaultSize={75} maxSize={95}>
+                  <div className="main-canvas-container">
+                    <DetailPanel />
+                  </div>
+                </Panel>
+              </PanelGroup>
+            </div>
           </div>
-        </div>
-      </div>
+        </Panel>
+      </PanelGroup>
     );
   }
 
@@ -158,16 +192,7 @@ const Index = (): JSX.Element => {
       <Helmet>
         <title>MidScene.js - Visualization Tool</title>
       </Helmet>
-      <div className="page-container">
-        <Layout style={{ height: '100' }}>
-          <Sider width={240} style={{ background: 'none', display: executionDump ? 'block' : 'none' }}>
-            <Sidebar />
-          </Sider>
-          <Layout>
-            <Content>{mainContent}</Content>
-          </Layout>
-        </Layout>
-      </div>
+      <div className="page-container">{mainContent}</div>
     </ConfigProvider>
   );
 };

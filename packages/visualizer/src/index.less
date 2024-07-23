@@ -7,6 +7,7 @@ body {
   padding: 0;
   margin: 0;
   font-family: PingFang SC, Hiragino Sans GB, Microsoft YaHei, Arial, sans-serif;
+  font-size: 14px;
 }
 
 // local debug
@@ -90,6 +91,7 @@ footer.mt-8{
     background: #F5F5F5;
     overflow-x: hidden;
     overflow-y: scroll;
+    border-left: 1px solid @border-color;
   }
     
   .main-side {
@@ -98,11 +100,10 @@ footer.mt-8{
     // margin: calc(@layout-space/2);
     // padding-left: @layout-padding;
     overflow-y: scroll;
-    border-right: 1px solid @border-color;
 
-    flex-basis: 380px; /* Set the fixed width */
-    flex-grow: 0;     /* Prevent it from growing */
-    flex-shrink: 0;   /* Prevent it from shrinking */
+    // flex-basis: 380px; /* Set the fixed width */
+    // flex-grow: 0;     /* Prevent it from growing */
+    // flex-shrink: 0;   /* Prevent it from shrinking */
   }
 
   .json-content {

@@ -147,6 +147,9 @@ importers:
       react-dom:
         specifier: ~18.2.0
         version: 18.2.0(react@18.2.0)
+      react-resizable-panels:
+        specifier: 2.0.22
+        version: 2.0.22(react-dom@18.2.0(react@18.2.0))(react@18.2.0)
       zustand:
         specifier: 4.5.2
         version: 4.5.2(@types/react@18.2.79)(immer@9.0.21)(react@18.2.0)
@@ -238,10 +241,10 @@ packages:
       react: '>=16.9.0'
 
   '@arco-design/color@0.4.0':
-    resolution: {integrity: sha512-52nOdlM8QHLcznl8G5eeFrbbXlVrgiodKYbU8bK8PAprEOWLmgy1o1z67euBBlHuWPQX4xYA+QxYUrc7bQWP2g==}
+    resolution: {integrity: sha512-s7p9MSwJgHeL8DwcATaXvWT3m2SigKpxx4JA1BGPHL4gfvaQsmQfrLBDpjOJFJuJ2jG2dMt3R3P8Pm9E65q18g==}
 
   '@arco-design/web-react@2.63.1':
-    resolution: {integrity: sha512-SNuMpRC6K2BgajYYnWIboSP3vxwwxDEGuPjUrx5kNImAvG2g4IBpbvmH37X9jiVI3F/y0iMVanwlvyHY4phe9w==}
+    resolution: {integrity: sha512-Ted5MY5iM7I4Cqf1QaHBZ55DZHO6oQQa8Oaazz0ku3f+pa/y8eEWM1le4rkXTvNdtDete6M2gFRS0OWguI6DEw==}
     peerDependencies:
       react: '>=16'
       react-dom: '>=16'
@@ -1723,6 +1726,7 @@ packages:
   '@humanwhocodes/config-array@0.11.14':
     resolution: {integrity: sha512-3T8LkOmg45BV5FICb15QQMsyUSWrQ8AygVfC7ZG32zOalnqrilm018ZVCw0eapXux8FtA33q8PSRSstjee3jSg==}
     engines: {node: '>=10.10.0'}
+    deprecated: Use @eslint/config-array instead
 
   '@humanwhocodes/module-importer@1.0.1':
     resolution: {integrity: sha512-bxveV4V8v5Yb4ncFTT3rPSgZBOpCkjfK0y4oVVVJwIuDVBRMDXrPyXRL988i5ap9m9bnyEEjWfm5WkBmtffLfA==}
@@ -8009,6 +8013,12 @@ packages:
     resolution: {integrity: sha512-jCvmsr+1IUSMUyzOkRcvnVbX3ZYC6g9TDrDbFuFmRDq7PD4yaGbLKNQL6k2jnArV8hjYxh7hVhAZB6s9HDGpZA==}
     engines: {node: '>=0.10.0'}
 
+  react-resizable-panels@2.0.22:
+    resolution: {integrity: sha512-G8x8o7wjQxCG+iF4x4ngKVBpe0CY+DAZ/SaiDoqBEt0yuKJe9OE/VVYMBMMugQ3GyQ65NnSJt23tujlaZZe75A==}
+    peerDependencies:
+      react: ^16.14.0 || ^17.0.0 || ^18.0.0
+      react-dom: ^16.14.0 || ^17.0.0 || ^18.0.0
+
   react-router-dom@6.11.1:
     resolution: {integrity: sha512-dPC2MhoPeTQ1YUOt5uIK376SMNWbwUxYRWk2ZmTT4fZfwlOvabF8uduRKKJIyfkCZvMgiF0GSCQckmkGGijIrg==}
     engines: {node: '>=14'}
@@ -12723,7 +12733,7 @@ snapshots:
   '@modern-js/babel-preset-base@2.32.1(react-dom@18.2.0(react@18.2.0))(react@18.2.0)':
     dependencies:
       '@babel/core': 7.24.9
-      '@babel/parser': 7.24.7
+      '@babel/parser': 7.24.8
       '@babel/plugin-transform-runtime': 7.24.7(@babel/core@7.24.9)
       '@babel/plugin-transform-typescript': 7.24.7(@babel/core@7.24.9)
       '@babel/preset-env': 7.24.7(@babel/core@7.24.9)
@@ -12731,8 +12741,8 @@ snapshots:
       '@babel/preset-typescript': 7.24.7(@babel/core@7.24.9)
       '@babel/runtime': 7.24.7
       '@babel/template': 7.24.7
-      '@babel/traverse': 7.24.7(supports-color@5.5.0)
-      '@babel/types': 7.24.7
+      '@babel/traverse': 7.24.8
+      '@babel/types': 7.24.9
       '@modern-js/utils': 2.32.1(react-dom@18.2.0(react@18.2.0))(react@18.2.0)
       '@swc/helpers': 0.5.1
       '@types/babel__core': 7.20.5
@@ -12901,8 +12911,8 @@ snapshots:
   '@modern-js/builder-shared@2.32.1(@types/express@4.17.21)(react-dom@18.2.0(react@18.2.0))(react@18.2.0)(ts-node@10.9.2(@types/node@20.5.1)(typescript@5.0.4))(tsconfig-paths@4.2.0)(typescript@5.0.4)':
     dependencies:
       '@babel/core': 7.24.9
-      '@babel/parser': 7.24.7
-      '@babel/types': 7.24.7
+      '@babel/parser': 7.24.8
+      '@babel/types': 7.24.9
       '@modern-js/prod-server': 2.32.1(@types/express@4.17.21)(react-dom@18.2.0(react@18.2.0))(react@18.2.0)
       '@modern-js/server': 2.32.1(@types/express@4.17.21)(react-dom@18.2.0(react@18.2.0))(react@18.2.0)(ts-node@10.9.2(@types/node@20.5.1)(typescript@5.0.4))(tsconfig-paths@4.2.0)
       '@modern-js/types': 2.32.1
@@ -20826,6 +20836,11 @@ snapshots:
   react-refresh@0.14.0: {}
 
   react-refresh@0.14.2: {}
+
+  react-resizable-panels@2.0.22(react-dom@18.2.0(react@18.2.0))(react@18.2.0):
+    dependencies:
+      react: 18.2.0
+      react-dom: 18.2.0(react@18.2.0)
 
   react-router-dom@6.11.1(react-dom@18.2.0(react@18.2.0))(react@18.2.0):
     dependencies:
