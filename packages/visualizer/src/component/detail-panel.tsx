@@ -110,7 +110,7 @@ const DetailPanel = (): JSX.Element => {
           <Segmented
             options={options}
             value={viewType}
-            onChange={(value) => {
+            onChange={(value: any) => {
               setViewType(value);
             }}
           />
