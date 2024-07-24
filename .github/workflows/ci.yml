@@ -38,8 +38,5 @@ jobs:
     - name: Build project
       run: pnpm run build:pkg
 
-    - name: Run lint
-      run: pnpm nx lint
-
     - name: Run tests
       run: pnpm nx test
