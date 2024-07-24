@@ -129,8 +129,8 @@ export const useInsightDump = create<{
   return {
     ...initData,
     loadData: (data: InsightDump) => {
-      console.log('will load dump data');
-      console.log(data);
+      // console.log('will load dump data');
+      // console.log(data);
       set({
         _loadId: ++loadId,
         data,

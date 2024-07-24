@@ -152,6 +152,10 @@ const TimelineWidget = (props: {
           height: canvasHeight,
           backgroundColor: sideBg,
         });
+        if (!domRef.current) {
+          app.destroy();
+          return;
+        }
         domRef.current.replaceChildren(app.canvas);
 
         const pixiTextForNumber = (num: number) => {
