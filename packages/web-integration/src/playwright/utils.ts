@@ -5,7 +5,7 @@ import path from 'path';
 import type { Page as PlaywrightPage } from 'playwright';
 import { Page } from 'puppeteer';
 import { UIContext, PlaywrightParserOpt } from '@midscene/core';
-import { alignCoordByTrim, base64Encoded, imageInfo } from '@midscene/core/image';
+import { alignCoordByTrim, base64Encoded, imageInfo, imageInfoOfBase64 } from '@midscene/core/image';
 import { getTmpFile } from '@midscene/core/utils';
 import { WebElementInfo, WebElementInfoType } from './element';
 
@@ -14,16 +14,15 @@ export async function parseContextFromPlaywrightPage(
   _opt?: PlaywrightParserOpt,
 ): Promise<UIContext<WebElementInfo>> {
   assert(page, 'page is required');
-  const file = getTmpFile('jpeg');
+  const file = '/Users/bytedance/workspace/midscene/packages/midscene/tests/fixtures/heytea.jpeg'; // getTmpFile('jpeg');
   await page.screenshot({ path: file, type: 'jpeg', quality: 75 });
   const screenshotBuffer = readFileSync(file);
   const screenshotBase64 = base64Encoded(file);
   const captureElementSnapshot = await getElementInfosFromPage(page);
   // align element
   const elementsInfo = await alignElements(screenshotBuffer, captureElementSnapshot, page);
-  const size = await imageInfo(screenshotBase64);
+  const size = await imageInfoOfBase64(screenshotBase64);
 
-  
   return {
     content: elementsInfo,
     size,

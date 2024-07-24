@@ -240,18 +240,6 @@ packages:
     peerDependencies:
       react: '>=16.9.0'
 
-<<<<<<< HEAD
-  '@arco-design/color@0.4.0':
-    resolution: {integrity: sha512-s7p9MSwJgHeL8DwcATaXvWT3m2SigKpxx4JA1BGPHL4gfvaQsmQfrLBDpjOJFJuJ2jG2dMt3R3P8Pm9E65q18g==}
-
-  '@arco-design/web-react@2.63.1':
-    resolution: {integrity: sha512-Ted5MY5iM7I4Cqf1QaHBZ55DZHO6oQQa8Oaazz0ku3f+pa/y8eEWM1le4rkXTvNdtDete6M2gFRS0OWguI6DEw==}
-    peerDependencies:
-      react: '>=16'
-      react-dom: '>=16'
-
-=======
->>>>>>> @{-1}
   '@arr/every@1.0.1':
     resolution: {integrity: sha512-UQFQ6SgyJ6LX42W8rHCs8KVc0JS0tzVL9ct4XYedJukskYVWTo49tNiMEK9C2HTyarbNiT/RVIRSY82vH+6sTg==}
     engines: {node: '>=4'}
@@ -11864,11 +11852,7 @@ snapshots:
       '@babel/preset-typescript': 7.24.7(@babel/core@7.24.9)
       '@babel/runtime': 7.24.8
       '@babel/template': 7.24.7
-<<<<<<< HEAD
-      '@babel/traverse': 7.24.8
-=======
       '@babel/traverse': 7.24.8(supports-color@5.5.0)
->>>>>>> @{-1}
       '@babel/types': 7.24.9
       '@modern-js/utils': 2.32.1(react-dom@18.2.0(react@18.2.0))(react@18.2.0)
       '@swc/helpers': 0.5.1

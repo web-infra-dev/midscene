@@ -100,9 +100,8 @@ describe('executor', () => {
     expect(tapperFn.mock.calls[0][1].element).toBe(element);
     expect(tapperFn.mock.calls[0][1].task).toBeTruthy();
 
-    executor.dump();
-    const latestFile = join(getDumpDir(), 'latest.action-dump.json');
-    expect(existsSync(latestFile)).toBeTruthy();
+    const dump = executor.dump();
+    expect(dump.logTime).toBeTruthy();
 
   }, {
     timeout: 999 * 1000,
@@ -134,11 +133,8 @@ describe('executor', () => {
     expect(tapperFn).toBeCalledTimes(0);
 
 
-    const dumpPath = initExecutor.dump();
-
-    const dumpJsonContent1 = JSON.parse(readFileSync(dumpPath, 'utf-8'));
-    expect(dumpJsonContent1.tasks.length).toBe(2);
-
+    const dumpContent1 = initExecutor.dump();
+    expect(dumpContent1.tasks.length).toBe(2);
 
     // append while running
     await Promise.all([
@@ -161,9 +157,8 @@ describe('executor', () => {
     expect(initExecutor.status).toBe('pending');
 
     // same dumpPath to append
-    initExecutor.dump();
-    const dumpJsonContent2 = JSON.parse(readFileSync(dumpPath, 'utf-8'));
-    expect(dumpJsonContent2.tasks.length).toBe(4);
+    const dumpContent2 = initExecutor.dump();
+    expect(dumpContent2.tasks.length).toBe(4);
   });
 
   // it('insight - run with error', async () => {

@@ -17,12 +17,23 @@ const Index = (): JSX.Element => {
   const executionDump = useExecutionDump((store) => store.dump);
   const setGroupedDump = useExecutionDump((store) => store.setGroupedDump);
   const reset = useExecutionDump((store) => store.reset);
-  const [mainLayoutChangFlag, setMainLayoutChangFlag] = useState(0);
+  const [mainLayoutChangeFlag, setMainLayoutChangeFlag] = useState(0);
   const mainLayoutChangedRef = useRef(false);
 
   useEffect(() => {
     return () => {
       reset();
+    };
+  }, []);
+
+  useEffect(() => {
+    const onResize = () => {
+      setMainLayoutChangeFlag((prev) => prev + 1);
+    };
+    window.addEventListener('resize', onResize);
+
+    return () => {
+      window.removeEventListener('resize', onResize);
     };
   }, []);
 
@@ -57,7 +68,7 @@ const Index = (): JSX.Element => {
         if (typeof result === 'string') {
           try {
             const data = JSON.parse(result);
-            // setMainLayoutChangFlag((prev) => prev + 1);
+            // setMainLayoutChangeFlag((prev) => prev + 1);
             setGroupedDump(data);
             // if (ifActionFile) {
             // } else {
@@ -133,7 +144,7 @@ const Index = (): JSX.Element => {
         direction="horizontal"
         onLayout={() => {
           if (!mainLayoutChangedRef.current) {
-            setMainLayoutChangFlag((prev) => prev + 1);
+            setMainLayoutChangeFlag((prev) => prev + 1);
           }
         }}
       >
@@ -144,14 +155,14 @@ const Index = (): JSX.Element => {
           onDragging={(isChanging) => {
             if (mainLayoutChangedRef.current && !isChanging) {
               // not changing anymore
-              setMainLayoutChangFlag((prev) => prev + 1);
+              setMainLayoutChangeFlag((prev) => prev + 1);
             }
             mainLayoutChangedRef.current = isChanging;
           }}
         />
         <Panel defaultSize={80} maxSize={95}>
           <div className="main-right">
-            <Timeline key={mainLayoutChangFlag} />
+            <Timeline key={mainLayoutChangeFlag} />
             <div className="main-content">
               <PanelGroup autoSaveId="page-detail-layout" direction="horizontal">
                 <Panel maxSize={95}>

@@ -24,6 +24,13 @@ describe('image utils', () => {
     expect(info).toMatchSnapshot();
   });
 
+  it('jpeg + base64 + imageInfo', async () => {
+    const image = getFixture('heytea.jpeg');
+    const base64 = base64Encoded(image);
+    const info = await imageInfoOfBase64(base64);
+    expect(info).toMatchSnapshot();
+  });
+
   it('trim image', async () => {
     const file = getFixture('long-text.png');
     const info = await trimImage(file);

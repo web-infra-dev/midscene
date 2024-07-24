@@ -1,74 +1,120 @@
-import { readFileSync } from 'fs';
 import { TestInfo, TestType } from '@playwright/test';
-import { GroupedActionDump } from '@midscene/core';
+import { ExecutionDump, GroupedActionDump } from '@midscene/core';
 import { groupedActionDumpFileExt, writeDumpFile } from '@midscene/core/utils';
-import { PlayWrightAI } from './actions';
+import { PlayWrightActionAgent } from './actions';
 
-export { PlayWrightAI } from './actions';
+export { PlayWrightActionAgent } from './actions';
 
 export type APITestType = Pick<TestType<any, any>, 'step'>;
 
-const instanceKeyName = 'midscene-ai-instance';
-
-const actionDumps: GroupedActionDump[] = [];
-const writeOutActionDumps = () => {
-  writeDumpFile(`playwright-${process.pid}`, groupedActionDumpFileExt, JSON.stringify(actionDumps));
-};
-
-/**
- * A helper function to generate a playwright fixture for ai(). Can be used in
- * a playwright setup
- */
-
 export const PlaywrightAiFixture = () => {
-  return {
-    ai: async ({ page }: any, use: any, testInfo: TestInfo) => {
-      let groupName: string;
-      let caseName: string;
-      const titlePath = [...testInfo.titlePath];
-      // use the last item of testInfo.titlePath() as the caseName, join the previous ones with ">" as groupName
-      if (titlePath.length > 1) {
-        caseName = titlePath.pop()!;
-        groupName = titlePath.join(' > ');
-      } else if (titlePath.length === 1) {
-        caseName = titlePath[0];
-        groupName = caseName;
-      } else {
-        caseName = 'unnamed';
-        groupName = 'unnamed';
-      }
+  const dumps: GroupedActionDump[] = [];
 
-      // find the GroupedActionDump in actionDumps or create a new one
-      let actionDump = actionDumps.find((dump) => dump.groupName === groupName);
-      if (!actionDump) {
-        actionDump = {
-          groupName,
-          executions: [],
-        };
-        actionDumps.push(actionDump);
-      }
-
-      const wrapped = async (task: string /* options: any */) => {
-        const aiInstance = page[instanceKeyName] ?? new PlayWrightAI(page, { taskName: caseName });
-        let error: Error | undefined;
-        try {
-          await aiInstance.action(task);
-        } catch (e: any) {
-          error = e;
-        }
-        if (aiInstance.dumpPath) {
-          actionDump!.executions.push(JSON.parse(readFileSync(aiInstance.dumpPath, 'utf8')));
-          writeOutActionDumps();
-        }
-        if (error) {
-          throw new Error(error.message, { cause: error });
-        }
+  const appendDump = (groupName: string, execution: ExecutionDump) => {
+    let currentDump = dumps.find((dump) => dump.groupName === groupName);
+    if (!currentDump) {
+      currentDump = {
+        groupName,
+        executions: [],
       };
-      await use(wrapped);
+      dumps.push(currentDump);
+    }
+    currentDump.executions.push(execution);
+  };
+
+  const writeOutActionDumps = () => {
+    writeDumpFile(`playwright-${process.pid}`, groupedActionDumpFileExt, JSON.stringify(dumps));
+  };
+
+  const groupAndCaseForTest = (testInfo: TestInfo) => {
+    let groupName: string;
+    let caseName: string;
+    const titlePath = [...testInfo.titlePath];
+
+    if (titlePath.length > 1) {
+      caseName = titlePath.pop()!;
+      groupName = titlePath.join(' > ');
+    } else if (titlePath.length === 1) {
+      caseName = titlePath[0];
+      groupName = caseName;
+    } else {
+      caseName = 'unnamed';
+      groupName = 'unnamed';
+    }
+    return { groupName, caseName };
+  };
+
+  const aiAction = async (page: any, testInfo: TestInfo, taskPrompt: string) => {
+    const { groupName, caseName } = groupAndCaseForTest(testInfo);
+
+    const actionAgent = new PlayWrightActionAgent(page, { taskName: caseName });
+    let error: Error | undefined;
+    try {
+      await actionAgent.action(taskPrompt);
+    } catch (e: any) {
+      error = e;
+    }
+    if (actionAgent.actionDump) {
+      appendDump(groupName, actionAgent.actionDump);
+      writeOutActionDumps();
+    }
+    if (error) {
+      // playwright cli won't print error cause, so we print it here
+      console.error(error);
+      throw new Error(error.message, { cause: error });
+    }
+  };
+
+  const aiQuery = async (page: any, testInfo: TestInfo, demand: any) => {
+    const { groupName, caseName } = groupAndCaseForTest(testInfo);
+
+    const actionAgent = new PlayWrightActionAgent(page, { taskName: caseName });
+    let error: Error | undefined;
+    let result: any;
+    try {
+      result = await actionAgent.query(demand);
+    } catch (e: any) {
+      error = e;
+    }
+    if (actionAgent.actionDump) {
+      appendDump(groupName, actionAgent.actionDump);
+      writeOutActionDumps();
+    }
+    if (error) {
+      // playwright cli won't print error cause, so we print it here
+      console.error(error);
+      throw new Error(error.message, { cause: error });
+    }
+    return result;
+  };
+
+  return {
+    // shortcut
+    ai: async ({ page }: any, use: any, testInfo: TestInfo) => {
+      await use(async (taskPrompt: string, type = 'action') => {
+        if (type === 'action') {
+          return aiAction(page, testInfo, taskPrompt);
+        } else if (type === 'query') {
+          return aiQuery(page, testInfo, taskPrompt);
+        }
+        throw new Error(`Unknown or Unsupported task type: ${type}, only support 'action' or 'query'`);
+      });
+    },
+    aiAction: async ({ page }: any, use: any, testInfo: TestInfo) => {
+      await use(async (taskPrompt: string) => {
+        await aiAction(page, testInfo, taskPrompt);
+      });
+    },
+    aiQuery: async ({ page }: any, use: any, testInfo: TestInfo) => {
+      await use(async function (demand: any) {
+        return aiQuery(page, testInfo, demand);
+      });
     },
   };
 };
 
 export type PlayWrightAiFixtureType = {
-  ai: (task: string | string[]) => ReturnType<PlayWrightAI['action']>;
+  ai: <T = any>(prompt: string, type?: 'action' | 'query') => Promise<T>;
+  aiAction: (taskPrompt: string) => ReturnType<PlayWrightActionAgent['action']>;
+  aiQuery: <T = any>(demand: any) => Promise<T>;
 };

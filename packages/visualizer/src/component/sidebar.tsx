@@ -146,9 +146,9 @@ const Sidebar = (): JSX.Element => {
           case 0:
             seperator = <div className="side-seperator side-seperator-space-up" />;
             break;
-          case group.executions.length - 1:
-            seperator = <div className="side-seperator side-seperator-space-down" />;
-            break;
+          // case group.executions.length - 1:
+          //   seperator = <div className="side-seperator side-seperator-space-down" />;
+          //   break;
           default:
             seperator = (
               <div className="side-seperator side-seperator-line side-seperator-space-up side-seperator-space-down" />
@@ -178,9 +178,14 @@ const Sidebar = (): JSX.Element => {
     <div className="side-bar">
       <div className="top-controls">
         <div className="brand" onClick={reset}>
-          <img src={logo} alt="Logo" style={{ width: 70, height: 70, margin: 'auto' }} onClick={() => {
-            location.reload();
-          }} />
+          <img
+            src={logo}
+            alt="Logo"
+            style={{ width: 70, height: 70, margin: 'auto' }}
+            onClick={() => {
+              location.reload();
+            }}
+          />
         </div>
         <div className="task-list">{sideList}</div>
         <div className="side-seperator side-seperator-line side-seperator-space-up" />

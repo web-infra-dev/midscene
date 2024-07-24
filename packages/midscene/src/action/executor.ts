@@ -7,9 +7,7 @@ import {
   ExecutionTaskReturn,
   ExecutorContext,
 } from '@/types';
-import { actionDumpFileExt, getPkgInfo, writeDumpFile } from '@/utils';
-
-const logFileExt = actionDumpFileExt;
+import { getPkgInfo } from '@/utils';
 
 export class Executor {
   name: string;
@@ -95,7 +93,10 @@ export class Executor {
           element: previousFindOutput?.element,
         };
         if (task.type === 'Insight') {
-          assert(task.subType === 'find', `unsupported insight subType: ${task.subType}`);
+          assert(
+            task.subType === 'find' || task.subType === 'query',
+            `unsupported insight subType: ${task.subType}`,
+          );
           returnValue = await task.executor(param, executorContext);
           previousFindOutput = (returnValue as ExecutionTaskReturn<ExecutionTaskInsightFindOutput>)?.output;
         } else if (task.type === 'Action' || task.type === 'Planning') {
@@ -136,7 +137,7 @@ export class Executor {
     }
   }
 
-  dump() {
+  dump(): ExecutionDump {
     const dumpData: ExecutionDump = {
       sdkVersion: getPkgInfo().version,
       logTime: Date.now(),
@@ -144,9 +145,6 @@ export class Executor {
       description: this.description,
       tasks: this.tasks,
     };
-    const fileContent = JSON.stringify(dumpData, null, 2);
-    this.dumpFileName = this.dumpFileName || `pid-${process.pid}-${Date.now()}`;
-    const dumpPath = writeDumpFile(this.dumpFileName, logFileExt, fileContent);
-    return dumpPath;
+    return dumpData;
   }
 }
