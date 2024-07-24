@@ -14,10 +14,3 @@ exports[`Show case - vscode site, write demo data > split the Github status page
   "Webhooks": "Normal",
 }
 `;
-
-exports[`todo mvc > find and click 1`] = `
-[
-  "buy some cheese",
-  "feed the cat",
-]
-`;

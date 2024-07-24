@@ -45,7 +45,6 @@
     "new": "modern new",
     "upgrade": "modern upgrade",
     "prepublishOnly": "npm run build",
-    "test": "vitest --run",
     "e2e": "playwright test --config=playwright.config.ts",
     "e2e:ui": "playwright test --config=playwright.config.ts --ui"
   },

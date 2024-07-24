@@ -73,7 +73,6 @@ export async function runTestCases(
             elements: elements.map((element)=> {
                 return {
                     id: element.id.toString(),
-                    text: element.text,
                 };
             }),
             prompt,

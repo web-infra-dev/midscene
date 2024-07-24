@@ -5,7 +5,7 @@ export default defineConfig({
   root: path.join(__dirname, 'docs'),
   title: 'MidScene.js',
   description: 'Your AI-Driven UI Compass',
-  icon: '/rspress-icon.png',
+  icon: '/midscene-icon.png',
   logo: {
     light: '/midscene_with_text_light.png',
     dark: '/midscene_with_text_dark.png',

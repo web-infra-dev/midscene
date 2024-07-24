@@ -3,7 +3,6 @@
     "elements": [
       {
         "id": "1",
-        "text": "",
       },
     ],
     "error": [],
@@ -13,7 +12,6 @@
     "elements": [
       {
         "id": "2",
-        "text": "中文",
       },
     ],
     "error": [],
@@ -23,7 +21,6 @@
     "elements": [
       {
         "id": "4",
-        "text": "",
       },
     ],
     "error": [],
@@ -33,11 +30,9 @@
     "elements": [
       {
         "id": "22",
-        "text": "6.82",
       },
       {
         "id": "28",
-        "text": "6.54",
       },
     ],
     "error": [],
@@ -47,11 +42,9 @@
     "elements": [
       {
         "id": "23",
-        "text": "选规格",
       },
       {
         "id": "29",
-        "text": "选规格",
       },
     ],
     "error": [],
@@ -61,10 +54,9 @@
     "elements": [
       {
         "id": "30",
-        "text": "",
       },
     ],
     "error": [],
     "prompt": "Bottom right Customer service button",
   },
-]
+]]

@@ -5,6 +5,8 @@
   "description": "",
   "main": "index.js",
   "scripts": {
+    "build:pkg": "nx run-many --target=build --projects=@midscene/core,@midscene/visualizer,@midscene/web --verbose",
+    "test": "nx run-many --target=test --projects=@midscene/core,@midscene/visualizer,@midscene/web --verbose",
     "prepare": "husky install git-hooks",
     "format:ci": "pretty-quick --since HEAD~1",
     "format": "pretty-quick --staged",
