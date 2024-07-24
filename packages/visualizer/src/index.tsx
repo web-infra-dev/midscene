@@ -10,6 +10,7 @@ import Logo from './component/assets/logo-plain.svg';
 import { useExecutionDump, useInsightDump } from '@/component/store';
 import DetailSide from '@/component/detail-side';
 import Sidebar from '@/component/sidebar';
+import GlobalHoverPreview from './component/global-hover-preview';
 
 const { Dragger } = Upload;
 const Index = (): JSX.Element => {
@@ -193,6 +194,7 @@ const Index = (): JSX.Element => {
         <title>MidScene.js - Visualization Tool</title>
       </Helmet>
       <div className="page-container">{mainContent}</div>
+      <GlobalHoverPreview />
     </ConfigProvider>
   );
 };

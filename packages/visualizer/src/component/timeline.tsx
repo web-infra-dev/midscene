@@ -47,6 +47,7 @@ const TimelineWidget = (props: {
   onUnhighlight?: () => any;
   onTap?: (param: TimelineItem) => any;
   highlightMask?: HighlightMask;
+  hoverMask?: HighlightMask;
 }): JSX.Element => {
   const domRef = useRef<HTMLDivElement>(null); // Should be HTMLDivElement not HTMLInputElement
   const app = useMemo<PIXI.Application>(() => new PIXI.Application(), []);
@@ -54,8 +55,10 @@ const TimelineWidget = (props: {
   const gridsContainer = useMemo(() => new PIXI.Container(), []);
   const screenshotsContainer = useMemo(() => new PIXI.Container(), []);
   const highlightMaskContainer = useMemo(() => new PIXI.Container(), []);
-  // eslint-disable-next-line @typescript-eslint/no-empty-function
-  const containerUpdaterRef = useRef((_s: number | undefined, _e: number | undefined) => {});
+  const containerUpdaterRef = useRef(
+    // eslint-disable-next-line @typescript-eslint/no-empty-function
+    (_s: number | undefined, _e: number | undefined, _hs: number | undefined, _he: number | undefined) => {},
+  );
   const indicatorContainer = useMemo(() => new PIXI.Container(), []);
 
   const allScreenshots = props.screenshots || [];
@@ -73,6 +76,8 @@ const TimelineWidget = (props: {
   const commonPadding = 12;
   const timeTextTop = commonPadding;
   const timeTitleBottom = timeTextTop * 2 + timeContentFontSize;
+  const highlightMaskAlpha = 0.6;
+  const hoverMaskAlpha = 0.3;
 
   const closestScreenshotItemOnXY = (x: number, _y: number) => {
     // find out the screenshot that is closest to the mouse on the left
@@ -95,9 +100,15 @@ const TimelineWidget = (props: {
 
   useMemo(() => {
     const { startMs, endMs } = props.highlightMask || {};
+    const { startMs: hoverStartMs, endMs: hoverEndMs } = props.hoverMask || {};
     const fn = containerUpdaterRef.current;
-    fn(startMs, endMs);
-  }, [props.highlightMask?.startMs, props.highlightMask?.endMs]);
+    fn(startMs, endMs, hoverStartMs, hoverEndMs);
+  }, [
+    props.highlightMask?.startMs,
+    props.highlightMask?.endMs,
+    props.hoverMask?.startMs,
+    props.hoverMask?.endMs,
+  ]);
 
   useEffect(() => {
     Promise.resolve(
@@ -229,37 +240,46 @@ const TimelineWidget = (props: {
           };
         });
 
-        const highlightMaskUpdater = (start: number | undefined, end: number | undefined) => {
+        const highlightMaskUpdater = (
+          start: number | undefined,
+          end: number | undefined,
+          hoverStart: number | undefined,
+          hoverEnd: number | undefined,
+        ) => {
           highlightMaskContainer.removeChildren();
 
-          if (typeof start === 'undefined' || typeof end === 'undefined') {
-            return;
-          }
+          const mask = (start: number | undefined, end: number | undefined, alpha: number) => {
+            if (typeof start === 'undefined' || typeof end === 'undefined' || end === 0) {
+              return;
+            }
+            const leftBorder = new PIXI.Graphics();
+            leftBorder.beginFill(gridHighlightColor, 1);
+            leftBorder.drawRect(leftForTimeOffset(start), 0, sizeRatio, canvasHeight);
+            leftBorder.endFill();
+            highlightMaskContainer.addChild(leftBorder);
 
-          const leftBorder = new PIXI.Graphics();
-          leftBorder.beginFill(gridHighlightColor, 1);
-          leftBorder.drawRect(leftForTimeOffset(start), 0, sizeRatio, canvasHeight);
-          leftBorder.endFill();
-          highlightMaskContainer.addChild(leftBorder);
+            const rightBorder = new PIXI.Graphics();
+            rightBorder.beginFill(gridHighlightColor, 1);
+            rightBorder.drawRect(leftForTimeOffset(end), 0, sizeRatio, canvasHeight);
+            rightBorder.endFill();
+            highlightMaskContainer.addChild(rightBorder);
 
-          const rightBorder = new PIXI.Graphics();
-          rightBorder.beginFill(gridHighlightColor, 1);
-          rightBorder.drawRect(leftForTimeOffset(end), 0, sizeRatio, canvasHeight);
-          rightBorder.endFill();
-          highlightMaskContainer.addChild(rightBorder);
+            const mask = new PIXI.Graphics();
+            mask.beginFill(gridHighlightColor, alpha);
+            mask.drawRect(
+              leftForTimeOffset(start),
+              0,
+              leftForTimeOffset(end) - leftForTimeOffset(start),
+              canvasHeight,
+            );
+            mask.endFill();
+            highlightMaskContainer.addChild(mask);
+          };
 
-          const mask = new PIXI.Graphics();
-          mask.beginFill(gridHighlightColor, 0.3);
-          mask.drawRect(
-            leftForTimeOffset(start),
-            0,
-            leftForTimeOffset(end) - leftForTimeOffset(start),
-            canvasHeight,
-          );
-          mask.endFill();
-          highlightMaskContainer.addChild(mask);
+          mask(start, end, highlightMaskAlpha);
+          mask(hoverStart, hoverEnd, hoverMaskAlpha);
         };
-        highlightMaskUpdater(props.highlightMask?.startMs, props.highlightMask?.endMs);
+        highlightMaskUpdater(props.highlightMask?.startMs, props.highlightMask?.endMs, 0, 0);
         containerUpdaterRef.current = highlightMaskUpdater;
 
         // keep tracking the position of the mouse moving above the canvas
@@ -359,8 +379,9 @@ const Timeline = () => {
   const wrapper = useRef<HTMLDivElement>(null);
   const setActiveTask = useExecutionDump((store) => store.setActiveTask);
   const activeTask = useExecutionDump((store) => store.activeTask);
-  const [highlightItem, setHighlightItem] = useState<TimelineItem | undefined>();
-  const [popupX, setPopupX] = useState(0);
+  const hoverTask = useExecutionDump((store) => store.hoverTask);
+  const setHoverTask = useExecutionDump((store) => store.setHoverTask);
+  const setHoverPreviewConfig = useExecutionDump((store) => store.setHoverPreviewConfig);
 
   // should be first task time ?
   let startingTime = -1;
@@ -400,7 +421,6 @@ const Timeline = () => {
     .sort((a, b) => a.timeOffset - b.timeOffset);
 
   const itemOnTap = (item: TimelineItem) => {
-    console.log('onTap');
     const task = idTaskMap[item.id];
     if (task) {
       setActiveTask(task);
@@ -409,26 +429,41 @@ const Timeline = () => {
 
   const onHighlightItem = (param: HighlightParam) => {
     const { mouseX, item } = param;
-    setPopupX(mouseX);
-    setHighlightItem(item);
+    const refBounding = wrapper.current?.getBoundingClientRect();
+    const task = idTaskMap[item.id];
+    if (task) {
+      setHoverTask(task);
+      setHoverPreviewConfig({
+        x: mouseX + (refBounding?.left || 0),
+        y: (refBounding?.bottom || 1) - 1,
+      });
+    } else {
+      setHoverTask(null);
+      setHoverPreviewConfig(null);
+    }
   };
 
   const unhighlight = () => {
-    setHighlightItem(undefined);
+    setHoverTask(null);
+    setHoverPreviewConfig(null);
   };
 
-  const zoomViewWidth = '500px';
   // overall left of wrapper
-  const wrapperW = wrapper.current?.getBoundingClientRect().width || 0;
-  const left = Math.min(popupX, wrapperW - 500);
 
-  const highlightMaskConfig: HighlightMask | undefined =
-    activeTask?.timing?.start && activeTask?.timing?.end
+  const maskConfigForTask = (task?: ExecutionTask | null): HighlightMask | undefined => {
+    if (!task) {
+      return undefined;
+    }
+    return task.timing?.start && task.timing?.end
       ? {
-          startMs: activeTask?.timing.start - startingTime || 0,
-          endMs: activeTask?.timing.end - startingTime || 0,
+          startMs: task.timing.start - startingTime || 0,
+          endMs: task.timing.end - startingTime || 0,
         }
       : undefined;
+  };
+
+  const highlightMaskConfig = maskConfigForTask(activeTask);
+  const hoverMaskConfig = maskConfigForTask(hoverTask);
 
   return (
     <div className="timeline-wrapper" ref={wrapper}>
@@ -439,13 +474,8 @@ const Timeline = () => {
         onHighlight={onHighlightItem}
         onUnhighlight={unhighlight}
         highlightMask={highlightMaskConfig}
+        hoverMask={hoverMaskConfig}
       />
-      <div
-        className="timeline-zoom-view"
-        style={{ width: zoomViewWidth, left, display: highlightItem ? 'block' : 'none' }}
-      >
-        {highlightItem ? <img src={highlightItem?.img} /> : null}
-      </div>
     </div>
   );
 };

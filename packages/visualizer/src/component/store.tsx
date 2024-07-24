@@ -2,7 +2,6 @@ import { create } from 'zustand';
 import {
   InsightDump,
   BaseElement,
-  ExecutionDump,
   ExecutionTaskInsightFind,
   ExecutionTask,
   GroupedActionDump,
@@ -28,13 +27,18 @@ export const useExecutionDump = create<{
   dump: GroupedActionDump[] | null;
   setGroupedDump: (dump: GroupedActionDump[]) => void;
   activeTask: ExecutionTask | null;
-  // selectedTaskIndex: number;
   setActiveTask: (task: ExecutionTask) => void;
+  hoverTask: ExecutionTask | null;
+  setHoverTask: (task: ExecutionTask | null) => void;
+  hoverPreviewConfig: { x: number; y: number } | null;
+  setHoverPreviewConfig: (config: { x: number; y: number } | null) => void;
   reset: () => void;
-}>((set, get) => {
+}>((set) => {
   const initData = {
     dump: null,
     activeTask: null,
+    hoverTask: null,
+    hoverPreviewConfig: null,
   };
 
   const syncToInsightDump = (dump: InsightDump) => {
@@ -69,6 +73,21 @@ export const useExecutionDump = create<{
         syncToInsightDump((task as ExecutionTaskInsightFind).log!.dump!);
       } else {
         resetInsightDump();
+      }
+    },
+    setHoverTask(task: ExecutionTask | null) {
+      set({ hoverTask: task });
+    },
+    setHoverPreviewConfig(config: { x: number; y: number } | null) {
+      if (config) {
+        set({
+          hoverPreviewConfig: {
+            x: Math.floor(config.x),
+            y: Math.floor(config.y),
+          },
+        });
+      } else {
+        set({ hoverPreviewConfig: null });
       }
     },
     reset: () => {

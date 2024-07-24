@@ -315,7 +315,7 @@ const DetailSide = (): JSX.Element => {
   let timelineData: TimelineItemProps[] = [];
   if (plans) {
     timelineData = timelineData.concat(
-      plans.map((item, index) => {
+      plans.map((item) => {
         return {
           color: '#06B1AB',
           children: (
@@ -338,10 +338,10 @@ const DetailSide = (): JSX.Element => {
       <PanelTitle title="Task Meta" />
       {metaKVElement}
       {/* Param  */}
-      <PanelTitle title="Task Param" />
+      <PanelTitle title="Param" />
       {taskParam}
       {/* Response */}
-      <PanelTitle title="Task Output" />
+      <PanelTitle title="Output" />
       <div className="item-list item-list-space-up">
         {errorSection}
         {dataCard}
