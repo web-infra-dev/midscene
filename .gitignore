@@ -99,3 +99,7 @@ playwright/.cache/
 midscene_run/
 
 __ai_responses__/
+
+
+.nx/cache
+.nx/workspace-data

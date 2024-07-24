@@ -7,10 +7,14 @@
     "build": "rspress build",
     "preview": "rspress preview"
   },
+  "engines": {
+    "pnpm": ">=9.3.0",
+    "node": ">=18.19.0"
+  },
+  "packageManager": "pnpm@9.3.0",
   "dependencies": {
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "@arco-design/web-react": "2.63.1",
     "querystring": "0.2.1",
     "rspress": "^1.24.0",
     "midscene-visualizer": "workspace:*"
