@@ -12,7 +12,7 @@ import { ExecutionTask } from '@midscene/core';
 import { Button } from 'antd';
 import PanelTitle from './panel-title';
 import { timeCostStrElement } from './misc';
-import Logo from './assets/logo-plain2.svg';
+import logo from './assets/logo-plain2.svg';
 import { useAllCurrentTasks, useExecutionDump } from '@/component/store';
 import { typeStr } from '@/utils';
 
@@ -149,13 +149,9 @@ const Sidebar = (): JSX.Element => {
     <div className="side-bar">
       <div className="top-controls">
         <div className="brand" onClick={reset}>
-          <Logo
-            // @ts-expect-error
-            style={{ width: 70, height: 70, margin: 'auto' }}
-            onClick={() => {
-              location.reload();
-            }}
-          />
+          <img src={logo} alt="Logo" style={{ width: 70, height: 70, margin: 'auto' }} onClick={() => {
+            location.reload();
+          }} />
         </div>
         <div className="task-list">{sideList}</div>
         <div className="side-seperator side-seperator-line side-seperator-space-up" />

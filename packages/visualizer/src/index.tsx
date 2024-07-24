@@ -6,7 +6,7 @@ import { Helmet } from '@modern-js/runtime/head';
 import Sider from 'antd/es/layout/Sider';
 import Timeline from './component/timeline';
 import DetailPanel from './component/detail-panel';
-import Logo from './component/assets/logo-plain.svg';
+import logo from './component/assets/logo-plain.svg';
 import { useExecutionDump, useInsightDump } from '@/component/store';
 import DetailSide from '@/component/detail-side';
 import Sidebar from '@/component/sidebar';
@@ -36,6 +36,7 @@ const Index = (): JSX.Element => {
   const uploadProps: UploadProps = {
     name: 'file',
     multiple: false,
+    capture: false,
     customRequest: () => {
       // noop
     },
@@ -88,9 +89,7 @@ const Index = (): JSX.Element => {
       <div className="main-right uploader-wrapper">
         <Dragger className="uploader" {...uploadProps}>
           <p className="ant-upload-drag-icon">
-            {/* @ts-expect-error */}
-            <Logo style={{ width: 100, height: 100, margin: 'auto' }} />
-            {/* <img src={logo} alt="logo" style={{ width: 100, margin: 'auto' }} /> */}
+            <img src={logo} alt="Logo" style={{ width: 100, height: 100, margin: 'auto' }} />
           </p>
           <p className="ant-upload-text">
             Click or drag the{' '}

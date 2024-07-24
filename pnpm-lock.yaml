@@ -46,7 +46,7 @@ importers:
 
   apps/site:
     dependencies:
-      midscene-visualizer:
+      '@midscene/visualizer':
         specifier: workspace:*
         version: link:../../packages/visualizer
       querystring:
