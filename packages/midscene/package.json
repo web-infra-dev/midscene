@@ -60,7 +60,7 @@
     "build:watch": "modern build -w",
     "new": "modern new",
     "upgrade": "modern upgrade",
-    "test": "vitest --run -u",
+    "test": "vitest --run",
     "prepublishOnly": "npm run build"
   },
   "dependencies": {
