@@ -3,7 +3,7 @@ import path from 'path';
 
 const enableTest = process.env.AITEST;
 
-const aiModelTest = enableTest !== 'true' ? ['tests/inspector/*.test.ts', 'tests/openai.test.ts', 'tests/showcase.test.ts']: [];
+const aiModelTest = enableTest !== 'true' ? ['tests/ai-model/**/*.test.ts']: [];
 
 export default defineConfig({
   test: {
