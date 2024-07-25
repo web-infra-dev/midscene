@@ -42,7 +42,7 @@ export const PlaywrightAiFixture = () => {
       await use(async (taskPrompt: string, type = 'action') => {
         const { groupName, caseName } = groupAndCaseForTest(testInfo);
         const agent = agentForPage(page);
-        return agent.ai(taskPrompt, type, groupName, caseName);
+        return agent.ai(taskPrompt, type, caseName, groupName);
       });
     },
     aiAction: async ({ page }: any, use: any, testInfo: TestInfo) => {
@@ -50,14 +50,14 @@ export const PlaywrightAiFixture = () => {
         const agent = agentForPage(page);
 
         const { groupName, caseName } = groupAndCaseForTest(testInfo);
-        await agent.aiAction(taskPrompt, groupName, caseName);
+        await agent.aiAction(taskPrompt, caseName, groupName);
       });
     },
     aiQuery: async ({ page }: any, use: any, testInfo: TestInfo) => {
       await use(async function (demand: any) {
         const agent = agentForPage(page);
         const { groupName, caseName } = groupAndCaseForTest(testInfo);
-        return agent.aiQuery(demand, groupName, caseName);
+        return agent.aiQuery(demand, caseName, groupName);
       });
     },
   };

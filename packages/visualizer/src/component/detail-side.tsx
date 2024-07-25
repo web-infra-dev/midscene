@@ -320,6 +320,7 @@ const DetailSide = (): JSX.Element => {
       content={<pre>{JSON.stringify(dump.data, undefined, 2)}</pre>}
     ></Card>
   ) : null;
+  console.log('dump is', dump);
 
   const plans = (task as ExecutionTaskPlanning)?.output?.plans;
   let timelineData: TimelineItemProps[] = [];

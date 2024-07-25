@@ -29,7 +29,7 @@ export class PageAgent {
     writeDumpFile(`playwright-${process.pid}`, groupedActionDumpFileExt, JSON.stringify(this.dumps));
   }
 
-  async aiAction(taskPrompt: string, dumpGroupName = 'MidScene / Web', dumpCaseName = 'AI Action') {
+  async aiAction(taskPrompt: string, dumpCaseName = 'AI Action', dumpGroupName = 'MidScene / Web') {
     const actionAgent = new PageTaskExecutor(this.page, { taskName: dumpCaseName });
     let error: Error | undefined;
     try {
@@ -48,7 +48,7 @@ export class PageAgent {
     }
   }
 
-  async aiQuery(demand: any, dumpGroupName = 'MidScene / Web', dumpCaseName = 'AI Query') {
+  async aiQuery(demand: any, dumpCaseName = 'AI Query', dumpGroupName = 'MidScene / Web') {
     const actionAgent = new PageTaskExecutor(this.page, { taskName: dumpCaseName });
     let error: Error | undefined;
     let result: any;
@@ -69,11 +69,11 @@ export class PageAgent {
     return result;
   }
 
-  async ai(taskPrompt: string, type = 'action', dumpGroupName = 'MidScene / Web', dumpCaseName = 'AI') {
+  async ai(taskPrompt: string, type = 'action', dumpCaseName = 'AI', dumpGroupName = 'MidScene / Web') {
     if (type === 'action') {
-      return this.aiAction(taskPrompt, dumpGroupName, dumpCaseName);
+      return this.aiAction(taskPrompt, dumpCaseName, dumpGroupName);
     } else if (type === 'query') {
-      return this.aiQuery(taskPrompt, dumpGroupName, dumpCaseName);
+      return this.aiQuery(taskPrompt, dumpCaseName, dumpGroupName);
     }
     throw new Error(`Unknown or Unsupported task type: ${type}, only support 'action' or 'query'`);
   }

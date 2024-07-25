@@ -1,5 +1,1 @@
-import { PageAgent } from '@/common/agent';
-
-const PuppeteerAgent = PageAgent;
-
-export { PuppeteerAgent };
+export { PageAgent as PuppeteerAgent } from '@/common/agent';

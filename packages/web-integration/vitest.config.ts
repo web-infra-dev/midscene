@@ -8,6 +8,6 @@ export default defineConfig({
     },
   },
   test: {
-    include: ['./tests/puppeteer/*.spec.ts'],
+    include: ['./tests/puppeteer/**/*.spec.ts'],
   },
 });

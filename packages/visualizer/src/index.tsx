@@ -148,7 +148,7 @@ const Index = (props: { hideLogo?: boolean }): JSX.Element => {
           }
         }}
       >
-        <Panel maxSize={95}>
+        <Panel maxSize={95} defaultSize={20}>
           <Sidebar hideLogo={props?.hideLogo} />
         </Panel>
         <PanelResizeHandle
