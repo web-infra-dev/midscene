@@ -3,7 +3,6 @@
     "elements": [
       {
         "id": "2",
-        "text": "What needs to be done?",
       },
     ],
     "error": [],
@@ -13,7 +12,6 @@
     "elements": [
       {
         "id": "8",
-        "text": "Learn Rust",
       },
     ],
     "error": [],
@@ -23,7 +21,6 @@
     "elements": [
       {
         "id": "9",
-        "text": "×",
       },
     ],
     "error": [],
@@ -33,7 +30,6 @@
     "elements": [
       {
         "id": "10",
-        "text": "",
       },
     ],
     "error": [],
@@ -43,7 +39,6 @@
     "elements": [
       {
         "id": "15",
-        "text": "Completed",
       },
     ],
     "error": [],
