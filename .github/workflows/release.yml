@@ -13,10 +13,10 @@ on:
 
 jobs:
   release:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     strategy:
       matrix:
-        node-version: [16.14.0]
+        node-version: [18.19.0]
     steps:
     - uses: actions/checkout@v2
       with:
@@ -30,7 +30,7 @@ jobs:
       uses: pnpm/action-setup@v2
       with:
         version: 9.3.0
-        
+
     - name: Setup Node.js
       uses: actions/setup-node@v4
       with:
