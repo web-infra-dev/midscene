@@ -15,7 +15,7 @@
       },
     ],
     "error": [],
-    "prompt": "Switch language(包括中文、english内容)",
+    "prompt": "Switch language(include：中文、english text)",
   },
   {
     "elements": [

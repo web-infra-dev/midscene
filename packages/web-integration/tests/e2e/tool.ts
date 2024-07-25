@@ -37,7 +37,7 @@ export async function generateTestData(page: PlaywrightPage, targetDir: string, 
 export function generateTestDataPath(testDataName: string) {
   // `dist/lib/index.js` Is the default export path
   const modulePath = require.resolve('@midscene/core').replace('dist/lib/index.js', '');
-  const midsceneTestDataPath = path.join(modulePath, `tests/inspector/test-data/${testDataName}`);
+  const midsceneTestDataPath = path.join(modulePath, `tests/ai-model/inspector/test-data/${testDataName}`);
 
   return midsceneTestDataPath;
 }
