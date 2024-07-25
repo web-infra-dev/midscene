@@ -33,7 +33,9 @@ export function systemPromptToTaskPlanning(query: string) {
   * Input: 'Weather in Shanghai'
   * KeyboardPress: 'Enter'
   
-  Remember: The actions you composed MUST be based on the page context information you get. Instead of making up actions that are not related to the page context.
+  Remember: 
+  1. The actions you composed MUST be based on the page context information you get. Instead of making up actions that are not related to the page context.
+  2. In most cases, you should Find one element first, then do other actions on it. For example, alway Find one element, then hover on it. But if you think it's necessary to do other actions first (like global scroll, global key press), you can do that.
 
   If any error occurs during the task planning (like the page content and task are irrelevant, or the element mentioned does not exist at all), please return the error message with explanation in the errors field. The thoughts、prompts、error messages should all in the same language as the user query.
   

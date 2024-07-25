@@ -7,6 +7,7 @@ import {
   BaseElement,
   ExecutionTaskAction,
   ExecutionTaskInsightFind,
+  ExecutionTaskInsightQuery,
   ExecutionTaskPlanning,
   UISection,
 } from '@midscene/core';
@@ -152,6 +153,10 @@ const DetailSide = (): JSX.Element => {
       </span>
     );
 
+    if (Array.isArray(data) || typeof data !== 'object') {
+      return <pre className="description-content">{JSON.stringify(data, undefined, 2)}</pre>;
+    }
+
     return Object.keys(data).map((key) => {
       const value = data[key];
       let content;
@@ -201,14 +206,20 @@ const DetailSide = (): JSX.Element => {
     taskParam = MetaKV({
       data: [
         { key: 'type', content: (task && typeStr(task)) || '' },
-        { key: 'userPrompt', content: (task as ExecutionTaskPlanning)?.param?.userPrompt },
+        { key: 'param', content: (task as ExecutionTaskPlanning)?.param?.userPrompt },
       ],
     });
   } else if (task?.type === 'Insight') {
     taskParam = MetaKV({
       data: [
         { key: 'type', content: (task && typeStr(task)) || '' },
-        { key: 'query', content: (task as ExecutionTaskInsightFind)?.param?.query },
+        {
+          key: 'param',
+          content: JSON.stringify(
+            (task as ExecutionTaskInsightFind)?.param?.query ||
+              (task as ExecutionTaskInsightQuery)?.param?.dataDemand,
+          ),
+        },
       ],
     });
   } else if (task?.type === 'Action') {
@@ -302,20 +313,14 @@ const DetailSide = (): JSX.Element => {
   ) : null;
 
   const dataCard = dump?.data ? (
-    <Card
-      liteMode={true}
-      title="Data Extracted"
-      onMouseEnter={noop}
-      onMouseLeave={noop}
-      content={<pre>{kv(dump.data)}</pre>}
-    ></Card>
+    <Card liteMode={true} onMouseEnter={noop} onMouseLeave={noop} content={<pre>{kv(dump.data)}</pre>}></Card>
   ) : null;
 
   const plans = (task as ExecutionTaskPlanning)?.output?.plans;
   let timelineData: TimelineItemProps[] = [];
   if (plans) {
     timelineData = timelineData.concat(
-      plans.map((item, index) => {
+      plans.map((item) => {
         return {
           color: '#06B1AB',
           children: (
@@ -338,10 +343,10 @@ const DetailSide = (): JSX.Element => {
       <PanelTitle title="Task Meta" />
       {metaKVElement}
       {/* Param  */}
-      <PanelTitle title="Task Param" />
+      <PanelTitle title="Param" />
       {taskParam}
       {/* Response */}
-      <PanelTitle title="Task Output" />
+      <PanelTitle title="Output" />
       <div className="item-list item-list-space-up">
         {errorSection}
         {dataCard}

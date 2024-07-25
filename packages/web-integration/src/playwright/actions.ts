@@ -2,13 +2,16 @@ import assert from 'assert';
 import type { Page as PlaywrightPage } from 'playwright';
 import Insight, {
   DumpSubscriber,
+  ExecutionDump,
   ExecutionRecorderItem,
   ExecutionTaskActionApply,
   ExecutionTaskApply,
   ExecutionTaskInsightFindApply,
+  ExecutionTaskInsightQueryApply,
   ExecutionTaskPlanningApply,
   Executor,
   InsightDump,
+  InsightExtractParam,
   PlanningAction,
   PlanningActionParamHover,
   PlanningActionParamInputOrKeyPress,
@@ -21,14 +24,14 @@ import { base64Encoded } from '@midscene/core/image';
 import { parseContextFromPlaywrightPage } from './utils';
 import { WebElementInfo } from './element';
 
-export class PlayWrightAI {
+export class PlayWrightActionAgent {
   page: PlaywrightPage;
 
   insight: Insight<WebElementInfo>;
 
   executor: Executor;
 
-  dumpPath?: string;
+  actionDump?: ExecutionDump;
 
   constructor(page: PlaywrightPage, opt?: { taskName?: string }) {
     this.page = page;
@@ -38,7 +41,7 @@ export class PlayWrightAI {
     this.executor = new Executor(opt?.taskName || 'MidScene - PlayWrightAI');
   }
 
-  private async screenshotTiming(timing: ExecutionRecorderItem['timing']) {
+  private async recordScreenshot(timing: ExecutionRecorderItem['timing']) {
     const file = getTmpFile('jpeg');
     await this.page.screenshot({
       ...commonScreenshotParam,
@@ -61,12 +64,12 @@ export class PlayWrightAI {
         const { task } = context;
         // set the recorder before executor in case of error
         task.recorder = recorder;
-        const shot = await this.screenshotTiming(`before ${task.type}`);
+        const shot = await this.recordScreenshot(`before ${task.type}`);
         recorder.push(shot);
         const result = await taskApply.executor(param, context, ...args);
         if (taskApply.type === 'Action') {
           await sleep(1000);
-          const shot2 = await this.screenshotTiming('after Action');
+          const shot2 = await this.recordScreenshot('after Action');
           recorder.push(shot2);
         }
         return result;
@@ -190,7 +193,6 @@ export class PlayWrightAI {
   }
 
   async action(userPrompt: string /* , actionInfo?: { actionType?: EventActions[number]['action'] } */) {
-    // TODO: what if multiple actions ?
     this.executor.description = userPrompt;
     const pageContext = await this.insight.contextRetrieverFn();
 
@@ -215,7 +217,7 @@ export class PlayWrightAI {
       // plan
       await this.executor.append(this.wrapExecutorWithScreenshot(planningTask));
       await this.executor.flush();
-      this.dumpPath = this.executor.dump();
+      this.actionDump = this.executor.dump();
 
       // append tasks
       const executables = await this.convertPlanToExecutable(plans);
@@ -223,7 +225,7 @@ export class PlayWrightAI {
 
       // flush actions
       await this.executor.flush();
-      this.executor.dump();
+      this.actionDump = this.executor.dump();
 
       assert(
         this.executor.status !== 'error',
@@ -231,9 +233,44 @@ export class PlayWrightAI {
       );
     } catch (e: any) {
       // keep the dump before throwing
-      this.dumpPath = this.executor.dump();
+      this.actionDump = this.executor.dump();
       const err = new Error(e.message, { cause: e });
       throw err;
     }
+  }
+
+  async query(demand: InsightExtractParam) {
+    this.executor.description = JSON.stringify(demand);
+    let data: any;
+    const queryTask: ExecutionTaskInsightQueryApply = {
+      type: 'Insight',
+      subType: 'query',
+      param: {
+        dataDemand: demand,
+      },
+      executor: async (param) => {
+        let insightDump: InsightDump | undefined;
+        const dumpCollector: DumpSubscriber = (dump) => {
+          insightDump = dump;
+        };
+        this.insight.onceDumpUpdatedFn = dumpCollector;
+        data = await this.insight.extract<any>(param.dataDemand);
+        return {
+          output: data,
+          log: { dump: insightDump },
+        };
+      },
+    };
+    try {
+      await this.executor.append(this.wrapExecutorWithScreenshot(queryTask));
+      await this.executor.flush();
+      this.actionDump = this.executor.dump();
+    } catch (e: any) {
+      // keep the dump before throwing
+      this.actionDump = this.executor.dump();
+      const err = new Error(e.message, { cause: e });
+      throw err;
+    }
+    return data;
   }
 }

@@ -70,22 +70,12 @@ export interface AISectionParseResponse<DataShape> {
  * context
  */
 
-// export type ContextDescriberFn = () => Promise<{
-//   description: string;
-//   elementById: (id: string) => BaseElement;
-// }>;
-
 export abstract class UIContext<ElementType extends BaseElement = BaseElement> {
   abstract screenshotBase64: string;
 
   abstract content: ElementType[];
 
   abstract size: Size;
-
-  // abstract describer: () => Promise<{
-  //   description: string;
-  //   elementById: (id: string) => ElementType;
-  // }>;
 }
 
 /**
@@ -215,7 +205,7 @@ export interface ExecutionRecorderItem {
   timing?: string;
 }
 
-export type ExecutionTaskType = 'Planning' | 'Insight' | 'Action';
+export type ExecutionTaskType = 'Planning' | 'Insight' | 'Action' | 'Assertion';
 
 export interface ExecutorContext {
   task: ExecutionTask;
@@ -291,22 +281,19 @@ export type ExecutionTaskInsightFind = ExecutionTask<ExecutionTaskInsightFindApp
 /*
 task - insight-extract
 */
-// export interface ExecutionTaskInsightExtractParam {
-//   dataDemand: InsightExtractParam;
-// }
+export interface ExecutionTaskInsightQueryParam {
+  dataDemand: InsightExtractParam;
+}
 
-// export interface ExecutionTaskInsightExtractOutput {
-//   data: any;
-// }
+export interface ExecutionTaskInsightQueryOutput {
+  data: any;
+}
 
-// export type ExecutionTaskInsightExtractApply = ExecutionTaskApply<
-//   'insight-extract', // TODO: remove task-extract ?
-//   ExecutionTaskInsightExtractParam
-// >;
+export type ExecutionTaskInsightQueryApply = ExecutionTaskApply<'Insight', ExecutionTaskInsightQueryParam>;
 
-// export type ExecutionTaskInsightExtract = ExecutionTask<ExecutionTaskInsightExtractApply>;
+export type ExecutionTaskInsightQuery = ExecutionTask<ExecutionTaskInsightQueryApply>;
 
-export type ExecutionTaskInsight = ExecutionTaskInsightFind; // | ExecutionTaskInsightExtract;
+// export type ExecutionTaskInsight = ExecutionTaskInsightFind; // | ExecutionTaskInsightExtract;
 
 /*
 task - action (i.e. interact) 

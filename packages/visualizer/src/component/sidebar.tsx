@@ -16,7 +16,12 @@ import logo from './assets/logo-plain2.svg';
 import { useAllCurrentTasks, useExecutionDump } from '@/component/store';
 import { typeStr } from '@/utils';
 
-const SideItem = (props: { task: ExecutionTask; selected?: boolean; onClick?: () => void }): JSX.Element => {
+const SideItem = (props: {
+  task: ExecutionTask;
+  selected?: boolean;
+  onClick?: () => void;
+  onItemHover?: (task: ExecutionTask | null, x?: number, y?: number) => any;
+}): JSX.Element => {
   const { task, onClick, selected } = props;
 
   const selectedClass = selected ? 'selected' : '';
@@ -40,8 +45,22 @@ const SideItem = (props: { task: ExecutionTask; selected?: boolean; onClick?: ()
 
   const contentRow =
     task.type === 'Planning' ? <div className="side-item-content">{task.param?.userPrompt} </div> : null;
+  // add hover listener
   return (
-    <div className={`side-item ${selectedClass}`} onClick={onClick}>
+    <div
+      className={`side-item ${selectedClass}`}
+      onClick={onClick}
+      // collect x,y (refer to the body) for hover preview
+      onMouseEnter={(event) => {
+        const rect = event.currentTarget.getBoundingClientRect();
+        const x = rect.left + rect.width;
+        const y = rect.top;
+        props.onItemHover?.(task, x, y);
+      }}
+      onMouseLeave={() => {
+        props.onItemHover?.(null);
+      }}
+    >
       {' '}
       <div className={`side-item-name`}>
         <span className={`status-icon status-icon-${task.status}`}>{statusIcon}</span>
@@ -57,6 +76,8 @@ const Sidebar = (): JSX.Element => {
   const groupedDumps = useExecutionDump((store) => store.dump);
   const setActiveTask = useExecutionDump((store) => store.setActiveTask);
   const activeTask = useExecutionDump((store) => store.activeTask);
+  const setHoverTask = useExecutionDump((store) => store.setHoverTask);
+  const setHoverPreviewConfig = useExecutionDump((store) => store.setHoverPreviewConfig);
   // const selectedTaskIndex = useExecutionDump((store) => store.selectedTaskIndex);
   // const setSelectedTaskIndex = useExecutionDump((store) => store.setSelectedTaskIndex);
   const reset = useExecutionDump((store) => store.reset);
@@ -106,8 +127,16 @@ const Sidebar = (): JSX.Element => {
               task={task}
               selected={task === activeTask}
               onClick={() => {
-                console.log('click', task);
                 setActiveTask(task);
+              }}
+              onItemHover={(hoverTask, x, y) => {
+                if (hoverTask && x && y) {
+                  setHoverPreviewConfig({ x, y });
+                  setHoverTask(hoverTask);
+                } else {
+                  setHoverPreviewConfig(null);
+                  setHoverTask(null);
+                }
               }}
             />
           );
@@ -117,9 +146,9 @@ const Sidebar = (): JSX.Element => {
           case 0:
             seperator = <div className="side-seperator side-seperator-space-up" />;
             break;
-          case group.executions.length - 1:
-            seperator = <div className="side-seperator side-seperator-space-down" />;
-            break;
+          // case group.executions.length - 1:
+          //   seperator = <div className="side-seperator side-seperator-space-down" />;
+          //   break;
           default:
             seperator = (
               <div className="side-seperator side-seperator-line side-seperator-space-up side-seperator-space-down" />
@@ -149,9 +178,14 @@ const Sidebar = (): JSX.Element => {
     <div className="side-bar">
       <div className="top-controls">
         <div className="brand" onClick={reset}>
-          <img src={logo} alt="Logo" style={{ width: 70, height: 70, margin: 'auto' }} onClick={() => {
-            location.reload();
-          }} />
+          <img
+            src={logo}
+            alt="Logo"
+            style={{ width: 70, height: 70, margin: 'auto' }}
+            onClick={() => {
+              location.reload();
+            }}
+          />
         </div>
         <div className="task-list">{sideList}</div>
         <div className="side-seperator side-seperator-line side-seperator-space-up" />

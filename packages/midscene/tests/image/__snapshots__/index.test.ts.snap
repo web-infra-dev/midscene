@@ -27,6 +27,13 @@ exports[`image utils > imageInfo 1`] = `
 }
 `;
 
+exports[`image utils > jpeg + base64 + imageInfo 1`] = `
+{
+  "height": 905,
+  "width": 400,
+}
+`;
+
 exports[`image utils > trim image 1`] = `
 {
   "height": 70,

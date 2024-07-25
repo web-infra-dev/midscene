@@ -38,7 +38,6 @@ export function getPkgInfo(): PkgInfo {
 let logDir = join(process.cwd(), './midscene_run/');
 let logEnvReady = false;
 export const insightDumpFileExt = 'insight-dump.json';
-export const actionDumpFileExt = 'action-dump.json';
 export const groupedActionDumpFileExt = 'all-logs.json';
 
 export function getDumpDir() {
