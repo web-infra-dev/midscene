@@ -9,7 +9,7 @@ const testCases = [
     multi: false,
   },
   {
-    description: 'Switch language(包括中文、english内容)',
+    description: 'Switch language(include：中文、english text)',
     multi: false,
   },
   {
