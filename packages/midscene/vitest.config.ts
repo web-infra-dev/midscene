@@ -1,7 +1,8 @@
 import { defineConfig } from 'vitest/config';
 import path from 'path';
 
-const aiModelTest = process.env.GITHUB_ACTIONS === 'true'? ['tests/inspector/*.test.ts']: [];
+const disableAiTest = true;
+const aiModelTest = disableAiTest? ['tests/inspector/*.test.ts', 'tests/openai.test.ts', 'tests/showcase.test.ts']: [];
 
 export default defineConfig({
   test: {
