@@ -1,10 +1,6 @@
 import assert from 'assert';
 import puppeteer, { Viewport } from 'puppeteer';
 
-function sleep(ms: number) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
 export async function launchPage(
   url: string,
   opt?: {
