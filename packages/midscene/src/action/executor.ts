@@ -3,7 +3,7 @@ import {
   ExecutionTask,
   ExecutionTaskApply,
   ExecutionDump,
-  ExecutionTaskInsightFindOutput,
+  ExecutionTaskInsightLocateOutput,
   ExecutionTaskReturn,
   ExecutorContext,
 } from '@/types';
@@ -69,7 +69,7 @@ export class Executor {
     let successfullyCompleted = true;
     let errorMsg = '';
 
-    let previousFindOutput: ExecutionTaskInsightFindOutput | undefined;
+    let previousFindOutput: ExecutionTaskInsightLocateOutput | undefined;
 
     while (taskIndex < this.tasks.length) {
       const task = this.tasks[taskIndex];
@@ -94,11 +94,14 @@ export class Executor {
         };
         if (task.type === 'Insight') {
           assert(
-            task.subType === 'find' || task.subType === 'query',
+            task.subType === 'Locate' || task.subType === 'Query',
             `unsupported insight subType: ${task.subType}`,
           );
           returnValue = await task.executor(param, executorContext);
-          previousFindOutput = (returnValue as ExecutionTaskReturn<ExecutionTaskInsightFindOutput>)?.output;
+          if (task.subType === 'Locate') {
+            previousFindOutput = (returnValue as ExecutionTaskReturn<ExecutionTaskInsightLocateOutput>)
+              ?.output;
+          }
         } else if (task.type === 'Action' || task.type === 'Planning') {
           returnValue = await task.executor(param, executorContext);
         } else {

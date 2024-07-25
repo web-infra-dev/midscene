@@ -54,7 +54,7 @@ const Index = (): JSX.Element => {
       // noop
     },
     beforeUpload(file) {
-      const ifValidFile = file.name.endsWith('all-logs.json'); // || file.name.endsWith('.insight.json');
+      const ifValidFile = file.name.endsWith('web-dump.json'); // || file.name.endsWith('.insight.json');
       // const ifActionFile =
       //   file.name.endsWith('.actions.json') || /_force_regard_as_action_file/.test(location.href);
       if (!ifValidFile) {
@@ -107,7 +107,7 @@ const Index = (): JSX.Element => {
           <p className="ant-upload-text">
             Click or drag the{' '}
             <b>
-              <i>.all-logs.json</i>
+              <i>.web-dump.json</i>
             </b>{' '}
             {/* or{' '}
             <b>

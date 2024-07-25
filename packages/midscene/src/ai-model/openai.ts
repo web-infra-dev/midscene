@@ -5,19 +5,22 @@ import wrapper from 'langsmith/wrappers';
 import { AIResponseFormat } from '@/types';
 
 const envConfigKey = 'MIDSCENE_OPENAI_INIT_CONFIG_JSON';
-const envModelKey = 'MIDSCENE_OPENAI_MODEL';
+const envModelKey = 'MIDSCENE_MODEL_NAME';
 const envSmithDebug = 'MIDSCENE_LANGSMITH_DEBUG';
 
+let extraConfig: ClientOptions = {};
+if (typeof process.env[envConfigKey] === 'string') {
+  console.log('will use env config for openai');
+  extraConfig = JSON.parse(process.env[envConfigKey]);
+}
+
+let model = 'gpt-4o';
+if (typeof process.env[envModelKey] === 'string') {
+  console.log(`will use model: ${process.env[envModelKey]}`);
+  model = process.env[envModelKey];
+}
+
 async function createOpenAI() {
-  let extraConfig: ClientOptions = {};
-
-  if (typeof process.env[envConfigKey] === 'string') {
-    console.log('will use env config for openai');
-    extraConfig = JSON.parse(process.env[envConfigKey]);
-  } else if (!process.env.OPENAI_API_KEY) {
-    console.warn('OPENAI_API is missing');
-  }
-
   const openai = new OpenAI(extraConfig);
 
   if (process.env[envSmithDebug]) {
@@ -35,7 +38,7 @@ export async function call(
 ): Promise<string> {
   const openai = await createOpenAI();
   const completion = await openai.chat.completions.create({
-    model: process.env[envModelKey] || 'gpt-4o',
+    model,
     messages,
     response_format: { type: responseFormat },
   });

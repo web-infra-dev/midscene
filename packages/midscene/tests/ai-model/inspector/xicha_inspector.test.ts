@@ -31,7 +31,7 @@ const testCases = [
 ];
 
 repeat(5, (repeatIndex) => {
-  test('xicha: inspector element', async () => {
+  test('xicha: inspect element', async () => {
     const { context } = await getPageTestData(path.join(__dirname, './test-data/xicha'));
 
     const { aiResponse, filterUnStableinf } = await runTestCases(testCases, async (testCase)=>{

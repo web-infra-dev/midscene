@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import {
   InsightDump,
   BaseElement,
-  ExecutionTaskInsightFind,
+  ExecutionTaskInsightLocate,
   ExecutionTask,
   GroupedActionDump,
 } from '../../../midscene/dist/types';
@@ -69,8 +69,8 @@ export const useExecutionDump = create<{
     },
     setActiveTask(task: ExecutionTask) {
       set({ activeTask: task });
-      if ((task as ExecutionTaskInsightFind).log?.dump?.matchedElement) {
-        syncToInsightDump((task as ExecutionTaskInsightFind).log!.dump!);
+      if ((task as ExecutionTaskInsightLocate).log?.dump?.matchedElement) {
+        syncToInsightDump((task as ExecutionTaskInsightLocate).log!.dump!);
       } else {
         resetInsightDump();
       }

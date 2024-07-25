@@ -1,6 +1,6 @@
 /* eslint-disable max-lines-per-function */
 import { it, describe, expect, vi } from 'vitest';
-import { DumpSubscriber, ExecutionTaskActionApply, ExecutionTaskInsightFind, ExecutionTaskInsightFindApply, InsightDump } from '@/index';
+import { DumpSubscriber, ExecutionTaskActionApply, ExecutionTaskInsightLocate, ExecutionTaskInsightLocateApply, InsightDump } from '@/index';
 import { Executor } from '@/action/executor';
 import { fakeInsight } from 'tests/utils';
 import { join } from 'path';
@@ -15,11 +15,11 @@ const insightFindTask = (shouldThrow?: boolean) => {
   const insight = fakeInsight('test-executor');
   insight.onceDumpUpdatedFn = dumpCollector;
 
-  const insightFindTask: ExecutionTaskInsightFindApply = {
+  const insightFindTask: ExecutionTaskInsightLocateApply = {
     type: 'Insight',
-    subType: 'find',
+    subType: 'Locate',
     param: {
-      query: 'test',
+      prompt: 'test',
     },
     async executor(param) {
       if (shouldThrow) {
@@ -28,7 +28,7 @@ const insightFindTask = (shouldThrow?: boolean) => {
       }
       return {
         output: {
-          element: await insight.find(param.query),
+          element: await insight.locate(param.prompt),
         }, 
         log: {
           dump: insightDump,
@@ -85,7 +85,7 @@ describe('executor', () => {
 
     const executor = new Executor('test', 'hello, this is a test',inputTasks);
     await executor.flush();
-    const tasks = executor.tasks as ExecutionTaskInsightFind[];
+    const tasks = executor.tasks as ExecutionTaskInsightLocate[];
     const {element} = tasks[0].output!;
     expect(element).toBeTruthy();
     
@@ -164,7 +164,7 @@ describe('executor', () => {
   // it('insight - run with error', async () => {
   //   const executor = new Executor('test', 'test-description',[insightFindTask(true), insightFindTask()]);
   //   const r = await executor.flush();
-  //   const tasks = executor.tasks as ExecutionTaskInsightFind[];
+  //   const tasks = executor.tasks as ExecutionTaskInsightLocate[];
 
   //   expect(tasks.length).toBe(2);
   //   expect(tasks[0].status).toBe('fail');

@@ -3,7 +3,7 @@
 A typical process to understand a UI is like:
 * Build an `Insight` instance
 * Locate something
-  * Use `insight.find` to locate an easily identifiable element
+  * Use `insight.locate` to locate an easily identifiable element
   * Use `insight.segment` to find an area consisting of multiple elements (i.e. a section).
   * By passing a `query`, both `find` and `segment` can be used to extract data from the user interface. For example, extract a username from an input element or extract well-structured table data from a section.
 * Make an interaction or an assertion
@@ -65,10 +65,10 @@ Usually you need to find an `element` to interact with the page.
 Use `await find(queryPrompt, opt?: {multi: boolean})` to find one or more basic elements. For example:
 ```typescript
 // find one text element
-const result = await insight.find('the biggest Download button');
+const result = await insight.locate('the biggest Download button');
 
 // find all the buttons on nav bar
-const result = await insight.find('the nav bar buttons', {multi: true});
+const result = await insight.locate('the nav bar buttons', {multi: true});
 ```
 
 ### extract data from element(s)
@@ -77,7 +77,7 @@ Pass `query(queryPrompt, dataShape)` as `queryPrompt`, you can extract customize
 
 ```typescript
 // find one text element
-const result = await insight.find(query('the biggest Download button', {{
+const result = await insight.locate(query('the biggest Download button', {{
   textColor: 'string, color of text, one of blue / red / yellow / green / white / black / others',
   backgroundColor: 'string, color of background, one of blue / red / yellow / green / white / black / others',
 }}));
@@ -223,7 +223,7 @@ query<RichUI>(
 On the other hand, if you do not need to extract any data from the UI, you can use a plain string as a shortcut instead of a query.
 
 ```typescript
-const result1 = await insight.find('the biggest Download button');
+const result1 = await insight.locate('the biggest Download button');
 
 const result2 = await insight.segment({
   'data-record': 'Data Record title and table',

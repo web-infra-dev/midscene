@@ -6,7 +6,7 @@ import Insight, {
   ExecutionRecorderItem,
   ExecutionTaskActionApply,
   ExecutionTaskApply,
-  ExecutionTaskInsightFindApply,
+  ExecutionTaskInsightLocateApply,
   ExecutionTaskInsightQueryApply,
   ExecutionTaskPlanningApply,
   Executor,
@@ -81,12 +81,12 @@ export class PlayWrightActionAgent {
   private async convertPlanToExecutable(plans: PlanningAction[]) {
     const tasks: ExecutionTaskApply[] = plans
       .map((plan) => {
-        if (plan.type === 'Find') {
-          const taskFind: ExecutionTaskInsightFindApply = {
+        if (plan.type === 'Locate') {
+          const taskFind: ExecutionTaskInsightLocateApply = {
             type: 'Insight',
-            subType: 'find',
+            subType: 'Locate',
             param: {
-              query: plan.thought,
+              prompt: plan.thought,
             },
             executor: async (param) => {
               let insightDump: InsightDump | undefined;
@@ -94,8 +94,8 @@ export class PlayWrightActionAgent {
                 insightDump = dump;
               };
               this.insight.onceDumpUpdatedFn = dumpCollector;
-              const element = await this.insight.find(param.query);
-              assert(element, `Element not found: ${param.query}`);
+              const element = await this.insight.locate(param.prompt);
+              assert(element, `Element not found: ${param.prompt}`);
               return {
                 output: {
                   element,
@@ -244,7 +244,7 @@ export class PlayWrightActionAgent {
     let data: any;
     const queryTask: ExecutionTaskInsightQueryApply = {
       type: 'Insight',
-      subType: 'query',
+      subType: 'Query',
       param: {
         dataDemand: demand,
       },

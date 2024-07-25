@@ -107,9 +107,6 @@ export interface BasicSectionQuery {
 export type InsightExtractParam = string | Record<string, string>;
 
 export interface InsightTaskInfo {
-  // TODO: remove name / url
-  name?: string;
-  url?: string;
   durationMs: number;
   systemPrompt?: string;
   rawResponse?: string;
@@ -121,7 +118,7 @@ export interface DumpMeta {
 }
 
 export interface InsightDump extends DumpMeta {
-  type: 'find' | 'extract';
+  type: 'locate' | 'extract';
   logId: string;
   context: UIContext;
   userQuery: {
@@ -157,7 +154,7 @@ export type ElementById = (id: string) => BaseElement | null;
 
 export interface PlanningAction<ParamType = any> {
   thought: string;
-  type: 'Find' | 'Tap' | 'Hover' | 'Input' | 'KeyboardPress' | 'Scroll' | 'Error';
+  type: 'Locate' | 'Tap' | 'Hover' | 'Input' | 'KeyboardPress' | 'Scroll' | 'Error';
   param: ParamType;
 }
 
@@ -257,26 +254,26 @@ export interface ExecutionDump extends DumpMeta {
 /*
 task - insight-find
 */
-export interface ExecutionTaskInsightFindParam {
-  query: string;
+export interface ExecutionTaskInsightLocateParam {
+  prompt: string;
 }
 
-export interface ExecutionTaskInsightFindOutput {
+export interface ExecutionTaskInsightLocateOutput {
   element: BaseElement | null;
 }
 
-export interface ExecutionTaskInsightFindLog {
+export interface ExecutionTaskInsightLocateLog {
   dump?: InsightDump;
 }
 
-export type ExecutionTaskInsightFindApply = ExecutionTaskApply<
+export type ExecutionTaskInsightLocateApply = ExecutionTaskApply<
   'Insight',
-  ExecutionTaskInsightFindParam,
-  ExecutionTaskInsightFindOutput,
-  ExecutionTaskInsightFindLog
+  ExecutionTaskInsightLocateParam,
+  ExecutionTaskInsightLocateOutput,
+  ExecutionTaskInsightLocateLog
 >;
 
-export type ExecutionTaskInsightFind = ExecutionTask<ExecutionTaskInsightFindApply>;
+export type ExecutionTaskInsightLocate = ExecutionTask<ExecutionTaskInsightLocateApply>;
 
 /*
 task - insight-extract
@@ -293,7 +290,7 @@ export type ExecutionTaskInsightQueryApply = ExecutionTaskApply<'Insight', Execu
 
 export type ExecutionTaskInsightQuery = ExecutionTask<ExecutionTaskInsightQueryApply>;
 
-// export type ExecutionTaskInsight = ExecutionTaskInsightFind; // | ExecutionTaskInsightExtract;
+// export type ExecutionTaskInsight = ExecutionTaskInsightLocate; // | ExecutionTaskInsightExtract;
 
 /*
 task - action (i.e. interact) 

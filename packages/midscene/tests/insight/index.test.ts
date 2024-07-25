@@ -46,7 +46,7 @@
 //     const insight = await Insight.fromPuppeteerBrowser(browser, {
 //       aiVendorFn: aiVendor as any,
 //     });
-//     const result = await insight.find('top navigation elements', {multi: true});
+//     const result = await insight.locate('top navigation elements', {multi: true});
 //     expect(aiVendor).toHaveBeenCalled();
 //     expect(result.length).toBe(2);
 //     expect(result).toMatchSnapshot();
@@ -68,13 +68,13 @@
 
 //     const dumpCollector = vi.fn();
 //     insight.onceDumpUpdatedFn = dumpCollector;
-//     await insight.find('top navigation elements', {multi: true});
+//     await insight.locate('top navigation elements', {multi: true});
 //     expect(dumpCollector.mock.calls.length).toBe(2); // first dump and update
 //     const firstDump = dumpCollector.mock.calls[0][0];
 //     const secondDump = dumpCollector.mock.calls[1][0];
 //     expect(firstDump.logId === secondDump.logId).toBeTruthy();
 
-//     await insight.find('another find');
+//     await insight.locate('another find');
 //     expect(dumpCollector.mock.calls.length).toBe(2); // only be called once
 
 
@@ -98,7 +98,7 @@
 //       aiVendorFn: aiVendor as any,
 //     });
 //     try {
-//       await insight.find('top navigation elements', {multi: true});
+//       await insight.locate('top navigation elements', {multi: true});
 //     } catch(e) {
 //       //
 //     }
@@ -166,8 +166,8 @@
 //       },
 //     );
 
-//     await insight.find('f-query');
-//     await insight.find('any prompt');
+//     await insight.locate('f-query');
+//     await insight.locate('any prompt');
 
 //     expect(count).toBe(2);
 
@@ -193,11 +193,11 @@
 //   it('find elements with properties of online page', async () => {
 //     browser = await launch(vscodeSite);
 //     const insight = await Insight.fromPuppeteerBrowser(browser);
-//     const btn = await insight.find('the main download button on the page');
+//     const btn = await insight.locate('the main download button on the page');
 //     expect(btn).toBeTruthy();
 //     expect(/download/i.test(btn!.content)).toBeTruthy();
     
-//     const btnWithProperties = await insight.find('all the download buttons on the page', {multi: true});
+//     const btnWithProperties = await insight.locate('all the download buttons on the page', {multi: true});
 //     expect(btnWithProperties.length).toBeGreaterThanOrEqual(2);
 //   });
 // });

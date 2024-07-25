@@ -60,14 +60,14 @@ export default class Insight<ElementType extends BaseElement = BaseElement> {
       this.aiVendorFn = opt.aiVendorFn;
     }
     if (typeof opt?.taskInfo !== 'undefined') {
-      this.taskInfo = opt.taskInfo; // TODO: remove `name` field
+      this.taskInfo = opt.taskInfo;
     }
   }
 
-  async find(queryPrompt: string): Promise<ElementType | null>;
-  async find(queryPrompt: string, opt: { multi: true }): Promise<ElementType[]>;
-  async find(queryPrompt: string, opt?: FindElementOptions) {
-    assert(queryPrompt, 'query is required for find');
+  async locate(queryPrompt: string): Promise<ElementType | null>;
+  async locate(queryPrompt: string, opt: { multi: true }): Promise<ElementType[]>;
+  async locate(queryPrompt: string, opt?: FindElementOptions) {
+    assert(queryPrompt, 'query is required for located');
     const dumpSubscriber = this.onceDumpUpdatedFn;
     this.onceDumpUpdatedFn = undefined;
     const context = await this.contextRetrieverFn();
@@ -90,11 +90,11 @@ export default class Insight<ElementType extends BaseElement = BaseElement> {
 
     let errorLog: string | undefined;
     if (parseResult.errors?.length) {
-      errorLog = `find - AI response error: \n${parseResult.errors.join('\n')}`;
+      errorLog = `locate - AI response error: \n${parseResult.errors.join('\n')}`;
     }
 
     const dumpData: PartialInsightDumpFromSDK = {
-      type: 'find',
+      type: 'locate',
       context,
       userQuery: {
         element: queryPrompt,
@@ -118,7 +118,7 @@ export default class Insight<ElementType extends BaseElement = BaseElement> {
       const element = elementById(item.id);
 
       if (!element) {
-        console.warn(`find: cannot find element id=${item.id}. Maybe an unstable response from AI model`);
+        console.warn(`locate: cannot find element id=${item.id}. Maybe an unstable response from AI model`);
         return;
       }
       elements.push(element);
@@ -136,7 +136,7 @@ export default class Insight<ElementType extends BaseElement = BaseElement> {
     if (opt?.multi) {
       return elements;
     } else if (elements.length >= 2) {
-      console.warn(`find: multiple elements found, return the first one. (query: ${queryPrompt})`);
+      console.warn(`locate: multiple elements found, return the first one. (query: ${queryPrompt})`);
       return elements[0];
     } else if (elements.length === 1) {
       return elements[0];
