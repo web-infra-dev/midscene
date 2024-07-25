@@ -85,7 +85,7 @@ async function main() {
 }
 
 async function build() {
-  await run('pnpm', ['build']);
+  await run('pnpm', ['run', 'build:pkg']);
 }
 
 async function test() {
