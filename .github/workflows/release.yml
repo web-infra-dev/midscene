@@ -30,16 +30,12 @@ jobs:
       uses: pnpm/action-setup@v2
       with:
         version: 9.3.0
+        
     - name: Setup Node.js
       uses: actions/setup-node@v4
       with:
         node-version: '18'
         cache: 'pnpm'
-    - name: Cache .pnpm-store
-      uses: actions/cache@v2
-      with:
-        path: ~/.pnpm-store
-        key: ${{ runner.os }}-node${{ matrix.node-version }}-${{ hashFiles('**/pnpm-lock.yaml') }}
   
     - name: Install dependencies
       run: pnpm install --frozen-lockfile
