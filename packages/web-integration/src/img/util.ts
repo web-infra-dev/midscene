@@ -1,10 +1,10 @@
-import { getElementInfosFromPage } from '../playwright/utils';
-import { NodeType } from '@/html-element/constants';
-import { ElementInfo } from '@/html-element/extractInfo';
+import { getElementInfosFromPage } from '../common/utils';
+import { NodeType } from '@/extractor/constants';
+import { ElementInfo } from '@/extractor/extractor';
 
 export async function getElementInfos(page: any) {
   const captureElementSnapshot: Array<ElementInfo> = await getElementInfosFromPage(page);
-  const elementsPostionInfo = captureElementSnapshot.map((elementInfo) => {
+  const elementsPositionInfo = captureElementSnapshot.map((elementInfo) => {
     return {
       label: elementInfo.id.toString(),
       x: elementInfo.rect.left,
@@ -14,15 +14,15 @@ export async function getElementInfos(page: any) {
       attributes: elementInfo.attributes,
     };
   });
-  const elementsPostionInfoWithoutText = elementsPostionInfo.filter((elementInfo) => {
+  const elementsPositionInfoWithoutText = elementsPositionInfo.filter((elementInfo) => {
     if (elementInfo.attributes.nodeType === NodeType.TEXT) {
       return false;
     }
     return true;
   });
   return {
-    elementsPostionInfo,
+    elementsPositionInfo,
     captureElementSnapshot,
-    elementsPostionInfoWithoutText,
+    elementsPositionInfoWithoutText,
   };
 }

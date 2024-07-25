@@ -313,7 +313,12 @@ const DetailSide = (): JSX.Element => {
   ) : null;
 
   const dataCard = dump?.data ? (
-    <Card liteMode={true} onMouseEnter={noop} onMouseLeave={noop} content={<pre>{kv(dump.data)}</pre>}></Card>
+    <Card
+      liteMode={true}
+      onMouseEnter={noop}
+      onMouseLeave={noop}
+      content={<pre>{JSON.stringify(dump.data, undefined, 2)}</pre>}
+    ></Card>
   ) : null;
 
   const plans = (task as ExecutionTaskPlanning)?.output?.plans;

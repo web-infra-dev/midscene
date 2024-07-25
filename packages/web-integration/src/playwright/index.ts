@@ -1,113 +1,63 @@
+import { randomUUID } from 'crypto';
 import { TestInfo, TestType } from '@playwright/test';
-import { ExecutionDump, GroupedActionDump } from '@midscene/core';
-import { groupedActionDumpFileExt, writeDumpFile } from '@midscene/core/utils';
-import { PlayWrightActionAgent } from './actions';
-
-export { PlayWrightActionAgent } from './actions';
+import { PageTaskExecutor } from '../common/tasks';
+import { WebPage } from '@/common/page';
+import { PageAgent } from '@/common/agent';
 
 export type APITestType = Pick<TestType<any, any>, 'step'>;
 
+const groupAndCaseForTest = (testInfo: TestInfo) => {
+  let groupName: string;
+  let caseName: string;
+  const titlePath = [...testInfo.titlePath];
+
+  if (titlePath.length > 1) {
+    caseName = titlePath.pop()!;
+    groupName = titlePath.join(' > ');
+  } else if (titlePath.length === 1) {
+    caseName = titlePath[0];
+    groupName = caseName;
+  } else {
+    caseName = 'unnamed';
+    groupName = 'unnamed';
+  }
+  return { groupName, caseName };
+};
+
+const midSceneAgentKeyId = '_midSceneAgentId';
 export const PlaywrightAiFixture = () => {
-  const dumps: GroupedActionDump[] = [];
-
-  const appendDump = (groupName: string, execution: ExecutionDump) => {
-    let currentDump = dumps.find((dump) => dump.groupName === groupName);
-    if (!currentDump) {
-      currentDump = {
-        groupName,
-        executions: [],
-      };
-      dumps.push(currentDump);
+  const pageAgentMap: Record<string, PageAgent> = {};
+  const agentForPage = (page: WebPage) => {
+    let idForPage = (page as any)[midSceneAgentKeyId];
+    if (!idForPage) {
+      idForPage = randomUUID();
+      (page as any)[midSceneAgentKeyId] = idForPage;
+      pageAgentMap[idForPage] = new PageAgent(page);
     }
-    currentDump.executions.push(execution);
-  };
-
-  const writeOutActionDumps = () => {
-    writeDumpFile(`playwright-${process.pid}`, groupedActionDumpFileExt, JSON.stringify(dumps));
-  };
-
-  const groupAndCaseForTest = (testInfo: TestInfo) => {
-    let groupName: string;
-    let caseName: string;
-    const titlePath = [...testInfo.titlePath];
-
-    if (titlePath.length > 1) {
-      caseName = titlePath.pop()!;
-      groupName = titlePath.join(' > ');
-    } else if (titlePath.length === 1) {
-      caseName = titlePath[0];
-      groupName = caseName;
-    } else {
-      caseName = 'unnamed';
-      groupName = 'unnamed';
-    }
-    return { groupName, caseName };
-  };
-
-  const aiAction = async (page: any, testInfo: TestInfo, taskPrompt: string) => {
-    const { groupName, caseName } = groupAndCaseForTest(testInfo);
-
-    const actionAgent = new PlayWrightActionAgent(page, { taskName: caseName });
-    let error: Error | undefined;
-    try {
-      await actionAgent.action(taskPrompt);
-    } catch (e: any) {
-      error = e;
-    }
-    if (actionAgent.actionDump) {
-      appendDump(groupName, actionAgent.actionDump);
-      writeOutActionDumps();
-    }
-    if (error) {
-      // playwright cli won't print error cause, so we print it here
-      console.error(error);
-      throw new Error(error.message, { cause: error });
-    }
-  };
-
-  const aiQuery = async (page: any, testInfo: TestInfo, demand: any) => {
-    const { groupName, caseName } = groupAndCaseForTest(testInfo);
-
-    const actionAgent = new PlayWrightActionAgent(page, { taskName: caseName });
-    let error: Error | undefined;
-    let result: any;
-    try {
-      result = await actionAgent.query(demand);
-    } catch (e: any) {
-      error = e;
-    }
-    if (actionAgent.actionDump) {
-      appendDump(groupName, actionAgent.actionDump);
-      writeOutActionDumps();
-    }
-    if (error) {
-      // playwright cli won't print error cause, so we print it here
-      console.error(error);
-      throw new Error(error.message, { cause: error });
-    }
-    return result;
+    return pageAgentMap[idForPage];
   };
 
   return {
-    // shortcut
     ai: async ({ page }: any, use: any, testInfo: TestInfo) => {
       await use(async (taskPrompt: string, type = 'action') => {
-        if (type === 'action') {
-          return aiAction(page, testInfo, taskPrompt);
-        } else if (type === 'query') {
-          return aiQuery(page, testInfo, taskPrompt);
-        }
-        throw new Error(`Unknown or Unsupported task type: ${type}, only support 'action' or 'query'`);
+        const { groupName, caseName } = groupAndCaseForTest(testInfo);
+        const agent = agentForPage(page);
+        return agent.ai(taskPrompt, type, groupName, caseName);
       });
     },
     aiAction: async ({ page }: any, use: any, testInfo: TestInfo) => {
       await use(async (taskPrompt: string) => {
-        await aiAction(page, testInfo, taskPrompt);
+        const agent = agentForPage(page);
+
+        const { groupName, caseName } = groupAndCaseForTest(testInfo);
+        await agent.aiAction(taskPrompt, groupName, caseName);
       });
     },
     aiQuery: async ({ page }: any, use: any, testInfo: TestInfo) => {
       await use(async function (demand: any) {
-        return aiQuery(page, testInfo, demand);
+        const agent = agentForPage(page);
+        const { groupName, caseName } = groupAndCaseForTest(testInfo);
+        return agent.aiQuery(demand, groupName, caseName);
       });
     },
   };
@@ -115,6 +65,6 @@ export const PlaywrightAiFixture = () => {
 
 export type PlayWrightAiFixtureType = {
   ai: <T = any>(prompt: string, type?: 'action' | 'query') => Promise<T>;
-  aiAction: (taskPrompt: string) => ReturnType<PlayWrightActionAgent['action']>;
+  aiAction: (taskPrompt: string) => ReturnType<PageTaskExecutor['action']>;
   aiQuery: <T = any>(demand: any) => Promise<T>;
 };

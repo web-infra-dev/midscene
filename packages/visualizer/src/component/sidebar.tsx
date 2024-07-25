@@ -72,7 +72,7 @@ const SideItem = (props: {
   );
 };
 
-const Sidebar = (): JSX.Element => {
+const Sidebar = (props: { hideLogo?: boolean }): JSX.Element => {
   const groupedDumps = useExecutionDump((store) => store.dump);
   const setActiveTask = useExecutionDump((store) => store.setActiveTask);
   const activeTask = useExecutionDump((store) => store.activeTask);
@@ -177,7 +177,7 @@ const Sidebar = (): JSX.Element => {
   return (
     <div className="side-bar">
       <div className="top-controls">
-        <div className="brand" onClick={reset}>
+        <div className="brand" onClick={reset} style={{ display: props?.hideLogo ? 'none' : 'block' }}>
           <img
             src={logo}
             alt="Logo"

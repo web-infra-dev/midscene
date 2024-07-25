@@ -8,7 +8,6 @@ export default defineConfig({
     },
   },
   test: {
-    // 你的其他配置...
     include: [],
   },
 });
