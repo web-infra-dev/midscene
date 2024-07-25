@@ -1,7 +1,7 @@
 /* eslint-disable max-len */
 /* eslint-disable max-lines-per-function */
 import { it, describe, expect, vi, beforeEach, afterAll } from 'vitest';
-import Insight, { getSection , ExecutionTaskActionApply, ExecutionTaskInsightFindApply, Executor, BaseElement } from '@/index';
+import Insight, { getSection , ExecutionTaskActionApply, ExecutionTaskInsightLocateApply, Executor, BaseElement } from '@/index';
 
 // import { launch } from 'tests/utils';
 import { copyFileSync, existsSync, readFileSync } from 'fs';
@@ -25,7 +25,7 @@ describe('Show case - vscode site, write demo data', () => {
 
   it('download buttons of vscode', async (context) => {
     const insight = new Insight(generateUIContext(path.join(__dirname, './inspector/test-data/visualstudio')));
-    const downloadBtns = await insight.find('download buttons on the page');
+    const downloadBtns = await insight.locate('download buttons on the page');
     assert(downloadBtns, 'donwload buttons not found');
     expect(downloadBtns.content).toBe('Download for Windows');
   });
@@ -59,7 +59,7 @@ describe('Show case - vscode site, write demo data', () => {
 //     browser = await launch(todomvc);
 //     const insight = await Insight.fromPuppeteerBrowser(browser);
 
-//     const insightTask: ExecutionTaskInsightFindApply = {
+//     const insightTask: ExecutionTaskInsightLocateApply = {
 //       type: 'Insight',
 //       param: {
 //         query: 'input box of the page',
@@ -144,7 +144,7 @@ describe('Show case - vscode site, write demo data', () => {
 //     browser = await launch(vscodeSite);
 //     const insight = await Insight.fromPuppeteerBrowser(browser);
 
-//     const downloadBtns = await insight.find('download buttons on the page', {multi: true});
+//     const downloadBtns = await insight.locate('download buttons on the page', {multi: true});
 //     expect(downloadBtns.length).toBe(2);
 //   });
 
@@ -163,7 +163,7 @@ describe('Show case - vscode site, write demo data', () => {
 //     browser = await launch(vscodeSite);
 //     const insight = await Insight.fromPuppeteerBrowser(browser);
 
-//     const downloadBtns = await insight.find(query('download buttons on the page', {
+//     const downloadBtns = await insight.locate(query('download buttons on the page', {
 //       textsOnButton: 'string',
 //       backgroundColor: 'string, color of text, one of blue / red / yellow / green / white / black / others',
 //       type: '`major` or `minor`. The Bigger one is major and the others are minor',

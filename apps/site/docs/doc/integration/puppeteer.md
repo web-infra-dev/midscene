@@ -11,7 +11,7 @@ const insightA = await Insight.fromPuppeteerPage(page);
 const insightB = await Insight.fromPuppeteerBrowser(browser);
 
 // continue your code here
-const button = await insightA.find(/* ... */);
+const button = await insightA.locate(/* ... */);
 
 // perform a click action by coordinates
 await page.mouse.click(...button.center);

@@ -29,7 +29,7 @@ const testTodoCases = [
 
 
 repeat(2, (repeatIndex) => {
-  it('todo: inspector element', async () => {
+  it('todo: inspect element', async () => {
     const { context } = await getPageTestData(path.join(__dirname, './test-data/todo'));
   
     const { aiResponse, filterUnStableinf } = await runTestCases(testTodoCases, async (testCase)=>{

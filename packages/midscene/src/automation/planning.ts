@@ -14,8 +14,8 @@ export function systemPromptToTaskPlanning(query: string) {
   Actions are executed in the order listed in the list. After executing the actions, the task should be completed.
 
   Each action has a type and corresponding param. To be detailed:
-  * type: 'Find', it means to locate one element
-    * param: { prompt: string }, the prompt describes 'which element to find on page'. Our AI engine will use this prompt to locate the element, so it should clearly describe the obvious features of the element, such as its content, color, size, shape, and position. For example, 'The biggest Download Button on the left side of the page.'
+  * type: 'Locate', it means to locate one element
+    * param: { prompt: string }, the prompt describes 'which element to focus on page'. Our AI engine will use this prompt to locate the element, so it should clearly describe the obvious features of the element, such as its content, color, size, shape, and position. For example, 'The biggest Download Button on the left side of the page.'
   * type: 'Tap', tap the previous element found 
     * param: null
   * type: 'Hover', hover the previous element found
@@ -35,7 +35,7 @@ export function systemPromptToTaskPlanning(query: string) {
   
   Remember: 
   1. The actions you composed MUST be based on the page context information you get. Instead of making up actions that are not related to the page context.
-  2. In most cases, you should Find one element first, then do other actions on it. For example, alway Find one element, then hover on it. But if you think it's necessary to do other actions first (like global scroll, global key press), you can do that.
+  2. In most cases, you should Locate one element first, then do other actions on it. For example, alway Find one element, then hover on it. But if you think it's necessary to do other actions first (like global scroll, global key press), you can do that.
 
   If any error occurs during the task planning (like the page content and task are irrelevant, or the element mentioned does not exist at all), please return the error message with explanation in the errors field. The thoughts、prompts、error messages should all in the same language as the user query.
   

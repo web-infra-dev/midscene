@@ -6,7 +6,7 @@ import { Tooltip, Tag, Timeline, TimelineItemProps } from 'antd';
 import {
   BaseElement,
   ExecutionTaskAction,
-  ExecutionTaskInsightFind,
+  ExecutionTaskInsightLocate,
   ExecutionTaskInsightQuery,
   ExecutionTaskPlanning,
   UISection,
@@ -216,7 +216,7 @@ const DetailSide = (): JSX.Element => {
         {
           key: 'param',
           content: JSON.stringify(
-            (task as ExecutionTaskInsightFind)?.param?.query ||
+            (task as ExecutionTaskInsightLocate)?.param?.prompt ||
               (task as ExecutionTaskInsightQuery)?.param?.dataDemand,
           ),
         },

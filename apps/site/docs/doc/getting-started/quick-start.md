@@ -38,7 +38,7 @@ Promise.resolve(
 
     // ⭐ find the main download button and its backgroundColor ⭐
     const insight = await Insight.fromPuppeteerBrowser(browser);
-    const downloadBtn = await insight.find(
+    const downloadBtn = await insight.locate(
       query('main download button on the page', {
         textsOnButton: 'string',
         backgroundColor: 'string, color of text, one of blue / red / yellow / green / white / black / others',

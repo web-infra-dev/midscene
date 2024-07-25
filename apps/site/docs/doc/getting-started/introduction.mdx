@@ -26,7 +26,7 @@ Here is a flowchart illustrating the main process of MidScene.
 Using GPT-4o, you can now locate the elements by natural language. Just like someone is viewing your page. DOM selectors should no longer be necessary.
 
 ```typescript
-const downloadBtns = await insight.find('download buttons on the page', {multi: true});
+const downloadBtns = await insight.locate('download buttons on the page', {multi: true});
 console.log(downloadBtns);
 ```
 
@@ -48,7 +48,7 @@ Use `query` to  achieve this.
 For example, if you want to understand some properties while locating elements:
 
 ```typescript
-const downloadBtns = await insight.find(query('download buttons on the page', {
+const downloadBtns = await insight.locate(query('download buttons on the page', {
   textsOnButton: 'string',
   backgroundColor: 'string, color of text, one of blue / red / yellow / green / white / black / others',
   type: '`major` or `minor`. The Bigger one is major and the others are minor',
