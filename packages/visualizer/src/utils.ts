@@ -1,10 +1,10 @@
 /* eslint-disable @typescript-eslint/no-empty-function */
 import dayjs from 'dayjs';
-import type { ExecutionDump, ExecutionTaskInsight, InsightDump, ExecutionTask } from '@midscene/core';
+import type { ExecutionDump, ExecutionTaskInsightFind, InsightDump, ExecutionTask } from '@midscene/core';
 
 export function insightDumpToExecutionDump(insightDump: InsightDump | InsightDump[]): ExecutionDump {
-  const insightToTask = (insightDump: InsightDump): ExecutionTaskInsight => {
-    const task: ExecutionTaskInsight = {
+  const insightToTask = (insightDump: InsightDump): ExecutionTaskInsightFind => {
+    const task: ExecutionTaskInsightFind = {
       type: 'Insight',
       subType: insightDump.type === 'find' ? 'find' : 'extract',
       status: insightDump.error ? 'fail' : 'success',
