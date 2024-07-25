@@ -10,8 +10,7 @@
     "build": "modern build",
     "build:watch": "modern build -w",
     "new": "modern new",
-    "upgrade": "modern upgrade",
-    "prepublishOnly": "modern release --doc-only"
+    "upgrade": "modern upgrade"
   },
   "dependencies": {
     "@ant-design/icons": "5.3.7",
