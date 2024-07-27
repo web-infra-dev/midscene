@@ -4,6 +4,7 @@ import type { UploadProps } from 'antd';
 import { useEffect, useRef, useState } from 'react';
 import { Helmet } from '@modern-js/runtime/head';
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
+import { GroupedActionDump } from '@midscene/core';
 import Timeline from './component/timeline';
 import DetailPanel from './component/detail-panel';
 import Logo from './component/assets/logo-plain.svg';
@@ -14,7 +15,13 @@ import DetailSide from '@/component/detail-side';
 import Sidebar from '@/component/sidebar';
 
 const { Dragger } = Upload;
-const Index = (): JSX.Element => {
+
+interface VisualizerProps {
+  dump?: GroupedActionDump[];
+}
+
+export function Visualizer(dumpInfo: VisualizerProps) {
+  const { dump } = dumpInfo;
   const executionDump = useExecutionDump((store) => store.dump);
   const setGroupedDump = useExecutionDump((store) => store.setGroupedDump);
   const reset = useExecutionDump((store) => store.reset);
@@ -22,6 +29,9 @@ const Index = (): JSX.Element => {
   const mainLayoutChangedRef = useRef(false);
 
   useEffect(() => {
+    if (dump) {
+      setGroupedDump(dump);
+    }
     return () => {
       reset();
     };
@@ -206,6 +216,6 @@ const Index = (): JSX.Element => {
       <GlobalHoverPreview />
     </ConfigProvider>
   );
-};
+}
 
-export default Index;
+export default Visualizer;
