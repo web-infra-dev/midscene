@@ -180,9 +180,9 @@ const Sidebar = (): JSX.Element => {
         <div className="brand" onClick={reset}>
           <Logo
             style={{ width: 70, height: 70, margin: 'auto' }}
-            onClick={() => {
-              location.reload();
-            }}
+            // onClick={() => {
+            //   location.reload();
+            // }}
           />
         </div>
         <div className="task-list">{sideList}</div>

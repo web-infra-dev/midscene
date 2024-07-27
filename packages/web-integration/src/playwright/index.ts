@@ -26,8 +26,8 @@ export const PlaywrightAiFixture = () => {
     currentDump.executions.push(execution);
   };
 
-  const writeOutActionDumps = () => {
-    return writeDumpFile(`playwright-${process.pid}`, groupedActionDumpFileExt, JSON.stringify(dumps));
+  const writeOutActionDumps = (testId: string) => {
+    return writeDumpFile(`playwright-${testId}`, groupedActionDumpFileExt, JSON.stringify(dumps));
   };
 
   const groupAndCaseForTest = (testInfo: TestInfo) => {
@@ -60,7 +60,7 @@ export const PlaywrightAiFixture = () => {
     }
     if (actionAgent.actionDump) {
       appendDump(groupName, actionAgent.actionDump);
-      const dumpPath = writeOutActionDumps();
+      const dumpPath = writeOutActionDumps(testInfo.testId);
       testInfo.annotations.push({
         type: 'PLAYWRIGHT_AI_ACTION',
         description: JSON.stringify({
