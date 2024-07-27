@@ -8,8 +8,12 @@ declare module '@midscene/visualizer' {
 export function Report() {
   const [dumpJson, setDumpJson] = useState<any>(null);
   const [isLoading, setLoading] = useState<any>(true);
+  // eslint-disable-next-line node/prefer-global/url-search-params
+  const searchParams = new URLSearchParams(window.location.search);
+  const dumpId = searchParams.get('dumpId')?.toString() || '';
+
   useEffect(() => {
-    fetch('/latest.web-dump.json')
+    fetch(`/${dumpId}`)
       .then((response) => {
         if (!response.ok) {
           throw new Error(`HTTP error! Status: ${response.status}`);

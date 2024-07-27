@@ -5,48 +5,6 @@ import type { MenuProps, CollapseProps } from 'antd';
 import styeld from './Home.module.css';
 import './TestResult.css';
 
-// const testDataList = [
-//   {
-//     testId: '45161835cecba6378a04-b2821fd5751102caa08c',
-//     title: 'ai todo',
-//     status: 'passed',
-//     duration: 13245,
-//     location: {
-//       file: '/Users/bytedance/github/midscene/packages/web-integration/tests/e2e/ai-auto-todo.spec.ts',
-//       line: 8,
-//       column: 5,
-//     },
-//     dumpPath:
-//       '/Users/bytedance/github/midscene/packages/web-integration/midscene_run/playwright-73776.web-dump.json',
-//   },
-//   {
-//     testId: '31de72c0afc13db9dc09-50c9ddc9a1d0c466547f',
-//     title: 'ai order2',
-//     status: 'passed',
-//     duration: 21461,
-//     location: {
-//       file: '/Users/bytedance/github/midscene/packages/web-integration/tests/e2e/ai-xicha.spec.ts',
-//       line: 36,
-//       column: 5,
-//     },
-//     dumpPath:
-//       '/Users/bytedance/github/midscene/packages/web-integration/midscene_run/playwright-73777.web-dump.json',
-//   },
-//   {
-//     testId: '31de72c0afc13db9dc09-00e11f768b63da0c779a',
-//     title: 'ai order',
-//     status: 'failed',
-//     duration: 79536,
-//     location: {
-//       file: '/Users/bytedance/github/midscene/packages/web-integration/tests/e2e/ai-xicha.spec.ts',
-//       line: 9,
-//       column: 5,
-//     },
-//     dumpPath:
-//       '/Users/bytedance/github/midscene/packages/web-integration/midscene_run/playwright-73778.web-dump.json',
-//   },
-// ];
-
 type TestStatus = 'passed' | 'failed' | 'flaky' | 'skipped';
 
 type TestData = {

@@ -6,7 +6,7 @@ export default () => {
   return (
     <BrowserRouter>
       <ul>
-        <Link to="/">Home Page</Link>
+        <Link to="/">Back to Home</Link>
       </ul>
       <Routes>
         <Route index element={<Home />} />
