@@ -1,13 +1,11 @@
-import { Helmet } from '@modern-js/runtime/head';
 import { Visualizer } from '@midscene/visualizer';
-import { useEffect, useState } from 'react';
-import './index.css';
+import React, { useEffect, useState } from 'react';
 
 declare module '@midscene/visualizer' {
   export function Visualizer(dumpInfo: any): any;
 }
 
-const Index = () => {
+export function Report() {
   const [dumpJson, setDumpJson] = useState<any>(null);
   const [isLoading, setLoading] = useState<any>(true);
   useEffect(() => {
@@ -29,19 +27,10 @@ const Index = () => {
   }, []);
   return (
     <div className="container-box">
-      {/* <Helmet>
-        <link
-          rel="icon"
-          type="image/x-icon"
-          href="https://lf3-static.bytednsdoc.com/obj/eden-cn/uhbfnupenuhf/favicon.ico"
-        />
-      </Helmet> */}
       <div>
         <main>{!isLoading && <Visualizer dump={dumpJson} />}</main>
         <div></div>
       </div>
     </div>
   );
-};
-
-export default Index;
+}

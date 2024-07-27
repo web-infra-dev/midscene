@@ -27,7 +27,8 @@
     "@modern-js/runtime": "2.56.2",
     "@midscene/visualizer": "workspace:*",
     "react": "~18.2.0",
-    "react-dom": "~18.2.0"
+    "react-dom": "~18.2.0",
+    "antd": "5.19.3"
   },
   "devDependencies": {
     "@modern-js/app-tools": "2.56.2",
