@@ -12,7 +12,7 @@ import { ExecutionTask } from '@midscene/core';
 import { Button } from 'antd';
 import PanelTitle from './panel-title';
 import { timeCostStrElement } from './misc';
-import logo from './assets/logo-plain2.svg';
+import Logo from './assets/logo-plain2.svg';
 import { useAllCurrentTasks, useExecutionDump } from '@/component/store';
 import { typeStr } from '@/utils';
 
@@ -178,9 +178,7 @@ const Sidebar = (): JSX.Element => {
     <div className="side-bar">
       <div className="top-controls">
         <div className="brand" onClick={reset}>
-          <img
-            src={logo}
-            alt="Logo"
+          <Logo
             style={{ width: 70, height: 70, margin: 'auto' }}
             onClick={() => {
               location.reload();

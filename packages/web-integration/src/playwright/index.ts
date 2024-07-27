@@ -7,6 +7,10 @@ export { PlayWrightActionAgent } from './actions';
 
 export type APITestType = Pick<TestType<any, any>, 'step'>;
 
+// const midScenePlaywrightTestData: {
+//   [testId: string]: string
+// } = {};
+
 export const PlaywrightAiFixture = () => {
   const dumps: GroupedActionDump[] = [];
 
@@ -23,7 +27,7 @@ export const PlaywrightAiFixture = () => {
   };
 
   const writeOutActionDumps = () => {
-    writeDumpFile(`playwright-${process.pid}`, groupedActionDumpFileExt, JSON.stringify(dumps));
+    return writeDumpFile(`playwright-${process.pid}`, groupedActionDumpFileExt, JSON.stringify(dumps));
   };
 
   const groupAndCaseForTest = (testInfo: TestInfo) => {
@@ -56,7 +60,14 @@ export const PlaywrightAiFixture = () => {
     }
     if (actionAgent.actionDump) {
       appendDump(groupName, actionAgent.actionDump);
-      writeOutActionDumps();
+      const dumpPath = writeOutActionDumps();
+      testInfo.annotations.push({
+        type: 'PLAYWRIGHT_AI_ACTION',
+        description: JSON.stringify({
+          testId: testInfo.testId,
+          dumpPath,
+        }),
+      });
     }
     if (error) {
       // playwright cli won't print error cause, so we print it here

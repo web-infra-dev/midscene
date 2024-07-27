@@ -19,5 +19,5 @@
     "strict": true
   },
   "exclude": [ "node_modules"],
-  "include": ["src", "tests", "./playwright.config.ts"]
+  "include": ["src", "tests", "./playwright.config.ts", "midscene-reporter.ts"]
 }
