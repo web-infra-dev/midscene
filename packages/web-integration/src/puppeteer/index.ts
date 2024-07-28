@@ -1,6 +1,1 @@
-// export { Element } from './element';
-// export {
-//   parseContextFromPuppeteerBrowser,
-//   parseContextFromPuppeteerPage,
-//   parseContextFromPlaywrightPage,
-// } from './utils';
+export { PageAgent as PuppeteerAgent } from '@/common/agent';

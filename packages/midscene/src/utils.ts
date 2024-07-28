@@ -87,8 +87,8 @@ export function getTmpDir() {
   return path;
 }
 
-export function getTmpFile(fileExt: string) {
-  const filename = `${randomUUID()}.${fileExt}`;
+export function getTmpFile(fileExtWithoutDot: string) {
+  const filename = `${randomUUID()}.${fileExtWithoutDot}`;
   return join(getTmpDir(), filename);
 }
 

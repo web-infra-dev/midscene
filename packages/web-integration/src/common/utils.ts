@@ -2,19 +2,19 @@ import fs, { readFileSync } from 'fs';
 import assert from 'assert';
 import { Buffer } from 'buffer';
 import path from 'path';
-import type { Page as PlaywrightPage } from 'playwright';
-import { Page } from 'puppeteer';
 import { UIContext, PlaywrightParserOpt } from '@midscene/core';
-import { alignCoordByTrim, base64Encoded, imageInfo, imageInfoOfBase64 } from '@midscene/core/image';
+import { alignCoordByTrim, base64Encoded, imageInfoOfBase64 } from '@midscene/core/image';
 import { getTmpFile } from '@midscene/core/utils';
-import { WebElementInfo, WebElementInfoType } from './element';
+import { WebElementInfo, WebElementInfoType } from '../web-element';
+import { WebPage } from './page';
 
-export async function parseContextFromPlaywrightPage(
-  page: PlaywrightPage,
+export async function parseContextFromWebPage(
+  page: WebPage,
   _opt?: PlaywrightParserOpt,
 ): Promise<UIContext<WebElementInfo>> {
   assert(page, 'page is required');
-  const file = '/Users/bytedance/workspace/midscene/packages/midscene/tests/fixtures/heytea.jpeg'; // getTmpFile('jpeg');
+
+  const file = getTmpFile('jpeg');
   await page.screenshot({ path: file, type: 'jpeg', quality: 75 });
   const screenshotBuffer = readFileSync(file);
   const screenshotBase64 = base64Encoded(file);
@@ -30,7 +30,7 @@ export async function parseContextFromPlaywrightPage(
   };
 }
 
-export async function getElementInfosFromPage(page: Page | PlaywrightPage) {
+export async function getElementInfosFromPage(page: WebPage) {
   const pathDir = findNearestPackageJson(__dirname);
   assert(pathDir, `can't find pathDir, with ${__dirname}`);
   const scriptPath = path.join(pathDir, './dist/script/htmlElement.js');
@@ -44,7 +44,7 @@ export async function getElementInfosFromPage(page: Page | PlaywrightPage) {
 async function alignElements(
   screenshotBuffer: Buffer,
   elements: WebElementInfoType[],
-  page: PlaywrightPage,
+  page: WebPage,
 ): Promise<WebElementInfo[]> {
   const textsAligned: WebElementInfo[] = [];
   for (const item of elements) {

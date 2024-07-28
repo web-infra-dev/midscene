@@ -1,6 +1,6 @@
-import { Page } from 'playwright';
 import { BaseElement, Rect } from '@midscene/core';
-import { NodeType } from '../html-element/constants';
+import { NodeType } from './extractor/constants';
+import { WebPage } from './common/page';
 
 export interface WebElementInfoType extends BaseElement {
   id: string;
@@ -20,7 +20,7 @@ export class WebElementInfo implements BaseElement {
 
   center: [number, number];
 
-  page: Page;
+  page: WebPage;
 
   id: string;
 
@@ -39,7 +39,7 @@ export class WebElementInfo implements BaseElement {
   }: {
     content: string;
     rect: Rect;
-    page: Page;
+    page: WebPage;
     locator: string;
     id: string;
     attributes: {
@@ -54,21 +54,5 @@ export class WebElementInfo implements BaseElement {
     this.locator = locator;
     this.id = id;
     this.attributes = attributes;
-  }
-
-  async tap() {
-    await this.page.mouse.click(this.center[0], this.center[1]);
-  }
-
-  async hover() {
-    await this.page.mouse.move(this.center[0], this.center[1]);
-  }
-
-  async type(text: string) {
-    await this.page.keyboard.type(text);
-  }
-
-  async press(key: Parameters<typeof this.page.keyboard.press>[0]) {
-    await this.page.keyboard.press(key);
   }
 }

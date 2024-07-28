@@ -13,7 +13,7 @@ import DetailSide from '@/component/detail-side';
 import Sidebar from '@/component/sidebar';
 
 const { Dragger } = Upload;
-const Index = (): JSX.Element => {
+const Index = (props: { hideLogo?: boolean }): JSX.Element => {
   const executionDump = useExecutionDump((store) => store.dump);
   const setGroupedDump = useExecutionDump((store) => store.setGroupedDump);
   const reset = useExecutionDump((store) => store.reset);
@@ -148,8 +148,8 @@ const Index = (): JSX.Element => {
           }
         }}
       >
-        <Panel maxSize={95}>
-          <Sidebar />
+        <Panel maxSize={95} defaultSize={20}>
+          <Sidebar hideLogo={props?.hideLogo} />
         </Panel>
         <PanelResizeHandle
           onDragging={(isChanging) => {

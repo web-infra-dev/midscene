@@ -8,7 +8,7 @@ import {
   LogoutOutlined,
   MinusOutlined,
 } from '@ant-design/icons';
-import { ExecutionTask } from '@midscene/core';
+import { ExecutionTask, ExecutionTaskInsightQuery } from '@midscene/core';
 import { Button } from 'antd';
 import PanelTitle from './panel-title';
 import { timeCostStrElement } from './misc';
@@ -43,8 +43,17 @@ const SideItem = (props: {
     statusText = timeCostStrElement(task.timing.cost);
   }
 
-  const contentRow =
-    task.type === 'Planning' ? <div className="side-item-content">{task.param?.userPrompt} </div> : null;
+  let contentRow: JSX.Element | undefined;
+  if (task.type === 'Planning') {
+    contentRow = <div className="side-item-content">{task.param?.userPrompt}</div>;
+  } else if (task.type === 'Insight' && task.subType === 'Query') {
+    // debugger;
+    const demand = (task as ExecutionTaskInsightQuery).param?.dataDemand;
+    const contentToShow = typeof demand === 'string' ? demand : JSON.stringify(demand);
+    contentRow = <div className="side-item-content">{contentToShow}</div>;
+  } else {
+    // debugger;
+  }
   // add hover listener
   return (
     <div
@@ -72,7 +81,7 @@ const SideItem = (props: {
   );
 };
 
-const Sidebar = (): JSX.Element => {
+const Sidebar = (props: { hideLogo?: boolean }): JSX.Element => {
   const groupedDumps = useExecutionDump((store) => store.dump);
   const setActiveTask = useExecutionDump((store) => store.setActiveTask);
   const activeTask = useExecutionDump((store) => store.activeTask);
@@ -177,7 +186,7 @@ const Sidebar = (): JSX.Element => {
   return (
     <div className="side-bar">
       <div className="top-controls">
-        <div className="brand" onClick={reset}>
+        <div className="brand" onClick={reset} style={{ display: props?.hideLogo ? 'none' : 'block' }}>
           <img
             src={logo}
             alt="Logo"

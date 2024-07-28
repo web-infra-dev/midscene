@@ -11,7 +11,7 @@ import { isButtonElement, isImgElement, isInputElement } from './dom-util';
 
 interface NodeDescriptor {
   node: Node;
-  childrens: NodeDescriptor[];
+  children: NodeDescriptor[];
 }
 
 export interface ElementInfo {
@@ -39,7 +39,7 @@ function generateId(numberId: number) {
 
 export function extractTextWithPositionDFS(initNode: Node = container): ElementInfo[] {
   const elementInfoArray: ElementInfo[] = [];
-  const nodeMapTree: NodeDescriptor = { node: initNode, childrens: [] };
+  const nodeMapTree: NodeDescriptor = { node: initNode, children: [] };
   let nodeIndex = 1;
 
   function dfs(node: Node, parentNode: NodeDescriptor | null = null): void {
@@ -47,9 +47,9 @@ export function extractTextWithPositionDFS(initNode: Node = container): ElementI
       return;
     }
 
-    const currentNodeDes: NodeDescriptor = { node, childrens: [] };
-    if (parentNode?.childrens) {
-      parentNode.childrens.push(currentNodeDes);
+    const currentNodeDes: NodeDescriptor = { node, children: [] };
+    if (parentNode?.children) {
+      parentNode.children.push(currentNodeDes);
     }
 
     collectElementInfo(node);
