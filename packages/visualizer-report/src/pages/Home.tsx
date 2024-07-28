@@ -79,7 +79,7 @@ const TestResult = (props: {
       label: fileName,
       children: groupTestDataWithFileName[fileName].map((testData, key) => {
         const timeMinutes = Math.floor(testData.duration / 1000 / 60);
-        const timeSeconds = (testData.duration / 1000) % 60;
+        const timeSeconds = Math.floor((testData.duration / 1000) % 60);
         return (
           <div
             className={styeld['test-details']}

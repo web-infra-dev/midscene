@@ -11,14 +11,18 @@ import { generateTestData } from './util';
 
 const testDataList: Array<TestData> = [];
 
-class MyReporter implements Reporter {
+function logger(...message: any[]) {
+  console.log('Midscene e2e report:', ...message);
+}
+
+class MidSceneReporter implements Reporter {
   onBegin(config: FullConfig, suite: Suite) {
     const suites = suite.allTests();
-    console.log(`Starting the run with ${suites.length} tests`);
+    logger(`Starting the run with ${suites.length} tests`);
   }
 
   onTestBegin(test: TestCase, _result: TestResult) {
-    console.log(`Starting test ${test.title}`);
+    logger(`Starting test ${test.title}`);
   }
 
   onTestEnd(test: TestCase, result: TestResult) {
@@ -30,7 +34,7 @@ class MyReporter implements Reporter {
     });
     aiActionTestData.forEach((testData) => {
       const parseData = JSON.parse(testData.description!);
-      if (parseData.testId === test.id) {
+      if (parseData.testId === test.id && !testDataList.find((item) => item.testId === test.id)) {
         testDataList.push({
           testId: test.id,
           title: test.title,
@@ -41,14 +45,16 @@ class MyReporter implements Reporter {
         });
       }
     });
-    console.log(`Finished test ${test.title}: ${result.status}`);
+    logger(`Finished test ${test.title}: ${result.status}`);
   }
 
   onEnd(result: FullResult) {
-    console.log('testDataList', JSON.stringify(testDataList));
-    console.log(`Finished the run: ${result.status}`);
+    logger(`Finished the run: ${result.status}`);
     generateTestData(testDataList);
+    logger(
+      `The report is generated successfully. Run the "node ./midscene-report/index.js" command to start the report`,
+    );
   }
 }
 
-export default MyReporter;
+export default MidSceneReporter;

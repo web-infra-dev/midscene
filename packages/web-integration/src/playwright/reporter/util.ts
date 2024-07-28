@@ -29,14 +29,12 @@ export function generateTestData(testDataList: Array<TestData>) {
     fsExtra.copySync(reportHtmlDir, tempDir);
     // Then move the contents of the temporary directory to the destination directory
     fsExtra.moveSync(tempDir, reportDir, { overwrite: true });
-    console.log('Copy completed!');
   } catch (err) {
     console.error('An error occurred while copying the folder.', err);
   }
 
   try {
     fsExtra.removeSync(path.join(reportDir, 'public'));
-    console.log('Public Folder deleted successfully!');
   } catch (err) {
     console.error('An error occurred while deleting the folder.', err);
   }
@@ -56,16 +54,15 @@ export function generateTestData(testDataList: Array<TestData>) {
       path.join(reportDir, 'public', 'test-data-list.json'),
       JSON.stringify({ 'test-list': filterDataList }),
     );
-    console.log('File written successfully!');
   } catch (err) {
     console.error('An error occurred while writing to the file.', err);
   }
 
-  const filePath = path.join(reportDir, 'index.js'); // File path
-  const searchValue = 'Server is listening on http://[::]:'; // The content to be replaced can be a string or a regular expression
-  const replaceValue = 'The report has been generated on http://127.0.0.1:'; // The replaced content
-
+  // modify log content
   try {
+    const filePath = path.join(reportDir, 'index.js'); // File path
+    const searchValue = 'Server is listening on http://[::]:'; // The content to be replaced can be a string or a regular expression
+    const replaceValue = 'The report has been generated on http://127.0.0.1:'; // The replaced content
     // Read file contents
     let fileContent = fs.readFileSync(filePath, 'utf8');
 
@@ -75,8 +72,18 @@ export function generateTestData(testDataList: Array<TestData>) {
 
     // Writes the modified content to the file
     fsExtra.outputFileSync(filePath, fileContent);
+  } catch (err) {
+    console.error('An error occurred:', err);
+  }
 
-    console.log('File content replaced and written successfully!');
+  // close log
+  try {
+    const filePath = path.join(reportDir, 'node_modules/@modern-js/prod-server/dist/cjs/apply.js'); // File path
+    let fileContent = fs.readFileSync(filePath, 'utf8');
+    fileContent = fileContent.replace('(0, import_server_core.logPlugin)(),', '');
+
+    // Writes the modified content to the file
+    fsExtra.outputFileSync(filePath, fileContent);
   } catch (err) {
     console.error('An error occurred:', err);
   }
