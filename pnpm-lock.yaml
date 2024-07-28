@@ -254,6 +254,9 @@ importers:
       '@midscene/core':
         specifier: workspace:*
         version: link:../midscene
+      '@midscene/visualizer-report':
+        specifier: workspace:*
+        version: link:../visualizer-report
       openai:
         specifier: 4.47.1
         version: 4.47.1
@@ -270,6 +273,9 @@ importers:
       '@types/node':
         specifier: ^18.0.0
         version: 18.19.41
+      fs-extra:
+        specifier: 11.2.0
+        version: 11.2.0
       playwright:
         specifier: 1.44.1
         version: 1.44.1

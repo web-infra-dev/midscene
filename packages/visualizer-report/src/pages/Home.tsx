@@ -94,7 +94,7 @@ const TestResult = (props: {
                 {testData.title}
               </span>
               <span>
-                持续时间: {timeMinutes !== 0 && `${timeMinutes}m`} {timeSeconds && `${timeSeconds}s`}
+                duration: {timeMinutes !== 0 && `${timeMinutes}m`} {timeSeconds && `${timeSeconds}s`}
               </span>
             </div>
             <div className={styeld['test-file-path']}>
@@ -181,7 +181,7 @@ export function Home() {
       })
       .then((data) => {
         setTestDataJson(data['test-list']);
-        console.log('data', data); // 在此处处理 JSON 数据
+        console.log('data', data, data['test-list']); // 在此处处理 JSON 数据
       })
       .catch((error) => console.error('Error:', error))
       .finally(() => {
@@ -189,7 +189,8 @@ export function Home() {
       });
   }, []);
 
-  function TestResultReport() {
+  function TestResultReport(props: { testDataList: TestData[] }) {
+    const { testDataList } = props;
     const statusDataList = testDataList?.reduce(
       (res, next) => {
         res[next.status] = [...(res[next.status] || []), next];
@@ -213,5 +214,5 @@ export function Home() {
       </div>
     );
   }
-  return <>{!isLoading && <TestResultReport />}</>;
+  return <>{!isLoading && <TestResultReport testDataList={testDataList} />}</>;
 }
