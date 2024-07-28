@@ -81,7 +81,7 @@ const SideItem = (props: {
   );
 };
 
-const Sidebar = (props: { hideLogo?: boolean }): JSX.Element => {
+const Sidebar = (props: { hideLogo?: boolean; logoAction?: () => void }): JSX.Element => {
   const groupedDumps = useExecutionDump((store) => store.dump);
   const setActiveTask = useExecutionDump((store) => store.setActiveTask);
   const activeTask = useExecutionDump((store) => store.activeTask);
@@ -189,9 +189,13 @@ const Sidebar = (props: { hideLogo?: boolean }): JSX.Element => {
         <div className="brand" onClick={reset} style={{ display: props?.hideLogo ? 'none' : 'flex' }}>
           <Logo
             style={{ width: 70, height: 70, margin: 'auto' }}
-            // onClick={() => {
-            //   location.reload();
-            // }}
+            onClick={() => {
+              if (props.logoAction) {
+                props.logoAction();
+              } else {
+                location.reload();
+              }
+            }}
           />
         </div>
         <div className="task-list">{sideList}</div>

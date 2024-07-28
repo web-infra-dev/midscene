@@ -1,11 +1,13 @@
 import { Visualizer } from '@midscene/visualizer';
 import React, { useEffect, useState } from 'react';
+import { useNavigate } from '@modern-js/runtime/router';
 
 declare module '@midscene/visualizer' {
   export function Visualizer(dumpInfo: any): any;
 }
 
 export function Report() {
+  const navigation = useNavigate();
   const [dumpJson, setDumpJson] = useState<any>(null);
   const [isLoading, setLoading] = useState<any>(true);
   // eslint-disable-next-line node/prefer-global/url-search-params
@@ -32,7 +34,16 @@ export function Report() {
   return (
     <div className="container-box">
       <div>
-        <main>{!isLoading && <Visualizer dump={dumpJson} />}</main>
+        <main>
+          {!isLoading && (
+            <Visualizer
+              dump={dumpJson}
+              logoAction={() => {
+                navigation('/');
+              }}
+            />
+          )}
+        </main>
         <div></div>
       </div>
     </div>
