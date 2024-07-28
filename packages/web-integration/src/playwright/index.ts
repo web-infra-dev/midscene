@@ -89,7 +89,7 @@ export const PlaywrightAiFixture = () => {
     }
     if (actionAgent.actionDump) {
       appendDump(groupName, actionAgent.actionDump);
-      writeOutActionDumps();
+      writeOutActionDumps(testInfo.testId);
     }
     if (error) {
       // playwright cli won't print error cause, so we print it here

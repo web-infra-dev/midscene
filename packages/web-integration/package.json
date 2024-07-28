@@ -12,6 +12,11 @@
       "import": "./dist/es/index.js",
       "require": "./dist/lib/index.js"
     },
+    "./playwright-report": {
+      "types": "./dist/types/playwright-report.d.ts",
+      "import": "./dist/es/playwright-report.js",
+      "require": "./dist/lib/inplaywright-report.js"
+    },
     "./constants": {
       "types": "./dist/types/constants.d.ts",
       "import": "./dist/es/constants.js",
@@ -27,6 +32,9 @@
     "*": {
       ".": [
         "./dist/types/index.d.ts"
+      ],
+      "playwright-report": [
+        "./dist/types/playwright-report.d.ts"
       ],
       "constants": [
         "./dist/types/constants.d.ts"

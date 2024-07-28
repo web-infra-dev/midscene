@@ -13,6 +13,9 @@ export default defineConfig({
   runtime: {
     router: true,
   },
+  output: {
+    disableSourceMap: false,
+  },
   plugins: [
     appTools({
       bundler: 'experimental-rspack',
