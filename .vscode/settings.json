@@ -14,7 +14,6 @@
   "[javascript]": {
     "editor.defaultFormatter": "dbaeumer.vscode-eslint"
   },
-  "editor.formatOnSave": true,
   "editor.formatOnSaveMode": "modifications",
   "[less]": {
     "editor.defaultFormatter": "esbenp.prettier-vscode"

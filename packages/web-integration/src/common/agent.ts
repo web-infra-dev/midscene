@@ -8,9 +8,14 @@ export class PageAgent {
 
   dumps: GroupedActionDump[];
 
-  constructor(page: WebPage) {
+  testId: string;
+
+  dumpFile?: string;
+
+  constructor(page: WebPage, testId?: string) {
     this.page = page;
     this.dumps = [];
+    this.testId = testId || String(process.pid);
   }
 
   appendDump(groupName: string, execution: ExecutionDump) {
@@ -26,7 +31,11 @@ export class PageAgent {
   }
 
   writeOutActionDumps() {
-    writeDumpFile(`playwright-${process.pid}`, groupedActionDumpFileExt, JSON.stringify(this.dumps));
+    this.dumpFile = writeDumpFile(
+      `playwright-${this.testId}`,
+      groupedActionDumpFileExt,
+      JSON.stringify(this.dumps),
+    );
   }
 
   async aiAction(taskPrompt: string, dumpCaseName = 'AI Action', dumpGroupName = 'MidScene / Web') {

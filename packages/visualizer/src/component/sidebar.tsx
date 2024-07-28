@@ -12,7 +12,7 @@ import { ExecutionTask, ExecutionTaskInsightQuery } from '@midscene/core';
 import { Button } from 'antd';
 import PanelTitle from './panel-title';
 import { timeCostStrElement } from './misc';
-import logo from './assets/logo-plain2.svg';
+import Logo from './assets/logo-plain2.svg';
 import { useAllCurrentTasks, useExecutionDump } from '@/component/store';
 import { typeStr } from '@/utils';
 
@@ -81,7 +81,7 @@ const SideItem = (props: {
   );
 };
 
-const Sidebar = (props: { hideLogo?: boolean }): JSX.Element => {
+const Sidebar = (props: { hideLogo?: boolean; logoAction?: () => void }): JSX.Element => {
   const groupedDumps = useExecutionDump((store) => store.dump);
   const setActiveTask = useExecutionDump((store) => store.setActiveTask);
   const activeTask = useExecutionDump((store) => store.activeTask);
@@ -186,13 +186,15 @@ const Sidebar = (props: { hideLogo?: boolean }): JSX.Element => {
   return (
     <div className="side-bar">
       <div className="top-controls">
-        <div className="brand" onClick={reset} style={{ display: props?.hideLogo ? 'none' : 'block' }}>
-          <img
-            src={logo}
-            alt="Logo"
+        <div className="brand" onClick={reset} style={{ display: props?.hideLogo ? 'none' : 'flex' }}>
+          <Logo
             style={{ width: 70, height: 70, margin: 'auto' }}
             onClick={() => {
-              location.reload();
+              if (props.logoAction) {
+                props.logoAction();
+              } else {
+                location.reload();
+              }
             }}
           />
         </div>

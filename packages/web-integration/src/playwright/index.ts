@@ -27,44 +27,74 @@ const groupAndCaseForTest = (testInfo: TestInfo) => {
 const midSceneAgentKeyId = '_midSceneAgentId';
 export const PlaywrightAiFixture = () => {
   const pageAgentMap: Record<string, PageAgent> = {};
-  const agentForPage = (page: WebPage) => {
+  const agentForPage = (page: WebPage, testId: string) => {
     let idForPage = (page as any)[midSceneAgentKeyId];
     if (!idForPage) {
       idForPage = randomUUID();
       (page as any)[midSceneAgentKeyId] = idForPage;
-      pageAgentMap[idForPage] = new PageAgent(page);
+      pageAgentMap[idForPage] = new PageAgent(page, testId);
     }
     return pageAgentMap[idForPage];
   };
 
   return {
     ai: async ({ page }: any, use: any, testInfo: TestInfo) => {
-      await use(async (taskPrompt: string, type = 'action') => {
+      await use(async (taskPrompt: string, opts?: { type?: 'action' | 'query' }) => {
         const { groupName, caseName } = groupAndCaseForTest(testInfo);
-        const agent = agentForPage(page);
-        return agent.ai(taskPrompt, type, caseName, groupName);
+        const agent = agentForPage(page, testInfo.testId);
+        const actionType = opts?.type || 'action';
+        const result = await agent.ai(taskPrompt, actionType, caseName, groupName);
+        if (agent.dumpFile) {
+          testInfo.annotations.push({
+            type: 'PLAYWRIGHT_AI_ACTION',
+            description: JSON.stringify({
+              testId: testInfo.testId,
+              dumpPath: agent.dumpFile,
+            }),
+          });
+        }
+        return result;
       });
     },
     aiAction: async ({ page }: any, use: any, testInfo: TestInfo) => {
       await use(async (taskPrompt: string) => {
-        const agent = agentForPage(page);
+        const agent = agentForPage(page, testInfo.testId);
 
         const { groupName, caseName } = groupAndCaseForTest(testInfo);
         await agent.aiAction(taskPrompt, caseName, groupName);
+        if (agent.dumpFile) {
+          testInfo.annotations.push({
+            type: 'PLAYWRIGHT_AI_ACTION',
+            description: JSON.stringify({
+              testId: testInfo.testId,
+              dumpPath: agent.dumpFile,
+            }),
+          });
+        }
       });
     },
     aiQuery: async ({ page }: any, use: any, testInfo: TestInfo) => {
       await use(async function (demand: any) {
-        const agent = agentForPage(page);
+        const agent = agentForPage(page, testInfo.testId);
         const { groupName, caseName } = groupAndCaseForTest(testInfo);
-        return agent.aiQuery(demand, caseName, groupName);
+        const result = await agent.aiQuery(demand, caseName, groupName);
+        if (agent.dumpFile) {
+          testInfo.annotations.push({
+            type: 'PLAYWRIGHT_AI_ACTION',
+            description: JSON.stringify({
+              testId: testInfo.testId,
+              dumpPath: agent.dumpFile,
+            }),
+          });
+        }
+        return result;
       });
     },
   };
 };
 
 export type PlayWrightAiFixtureType = {
-  ai: <T = any>(prompt: string, type?: 'action' | 'query') => Promise<T>;
+  ai: <T = any>(prompt: string, opts?: { type?: 'action' | 'query' }) => Promise<T>;
   aiAction: (taskPrompt: string) => ReturnType<PageTaskExecutor['action']>;
   aiQuery: <T = any>(demand: any) => Promise<T>;
 };
