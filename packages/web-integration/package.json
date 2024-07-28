@@ -70,7 +70,8 @@
     "playwright": "1.44.1",
     "puppeteer": "^22.8.0",
     "@playwright/test": "1.44.1",
-    "fs-extra": "11.2.0"
+    "fs-extra": "11.2.0",
+    "@types/fs-extra": "11.0.4"
   },
   "peerDependencies": {
     "@playwright/test": "^1.44.1",
