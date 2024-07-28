@@ -39,10 +39,11 @@ export const PlaywrightAiFixture = () => {
 
   return {
     ai: async ({ page }: any, use: any, testInfo: TestInfo) => {
-      await use(async (taskPrompt: string, type = 'action') => {
+      await use(async (taskPrompt: string, opts?: { type?: 'action' | 'query' }) => {
         const { groupName, caseName } = groupAndCaseForTest(testInfo);
         const agent = agentForPage(page, testInfo.testId);
-        const result = await agent.ai(taskPrompt, type, caseName, groupName);
+        const actionType = opts?.type || 'action';
+        const result = await agent.ai(taskPrompt, actionType, caseName, groupName);
         if (agent.dumpFile) {
           testInfo.annotations.push({
             type: 'PLAYWRIGHT_AI_ACTION',
@@ -93,7 +94,7 @@ export const PlaywrightAiFixture = () => {
 };
 
 export type PlayWrightAiFixtureType = {
-  ai: <T = any>(prompt: string, type?: 'action' | 'query') => Promise<T>;
+  ai: <T = any>(prompt: string, opts?: { type?: 'action' | 'query' }) => Promise<T>;
   aiAction: (taskPrompt: string) => ReturnType<PageTaskExecutor['action']>;
   aiQuery: <T = any>(demand: any) => Promise<T>;
 };

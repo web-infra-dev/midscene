@@ -186,7 +186,7 @@ const Sidebar = (props: { hideLogo?: boolean }): JSX.Element => {
   return (
     <div className="side-bar">
       <div className="top-controls">
-        <div className="brand" onClick={reset} style={{ display: props?.hideLogo ? 'none' : 'block' }}>
+        <div className="brand" onClick={reset} style={{ display: props?.hideLogo ? 'none' : 'flex' }}>
           <Logo
             style={{ width: 70, height: 70, margin: 'auto' }}
             // onClick={() => {
