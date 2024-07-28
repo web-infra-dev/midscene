@@ -121,7 +121,7 @@ importers:
         specifier: 2.56.1
         version: 2.56.1(@jest/transform@29.7.0)(@modern-js/runtime@2.56.2(react-dom@18.2.0(react@18.2.0))(react@18.2.0))(@rsbuild/core@1.0.1-beta.3)(@types/node@16.11.68)(react-dom@18.2.0(react@18.2.0))(react@18.2.0)(ts-node@10.9.2(@types/node@16.11.68)(typescript@5.0.4))(tsconfig-paths@4.2.0)(typescript@5.0.4)(zod@3.23.8)
       '@playwright/test':
-        specifier: ^1.44.1
+        specifier: 1.44.1
         version: 1.44.1
       '@types/jest':
         specifier: ~29.2.4

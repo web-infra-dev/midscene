@@ -11,6 +11,11 @@
     "lint": "modern lint",
     "upgrade": "modern upgrade"
   },
+  "files": [
+    "dist",
+    ".output",
+    "README.md"
+  ],
   "engines": {
     "node": ">=16.18.1"
   },
