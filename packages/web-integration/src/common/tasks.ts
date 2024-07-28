@@ -1,5 +1,4 @@
 import assert from 'assert';
-import type { Page as PlaywrightPage } from 'playwright';
 import Insight, {
   DumpSubscriber,
   ExecutionDump,
@@ -21,24 +20,26 @@ import Insight, {
 } from '@midscene/core';
 import { commonScreenshotParam, getTmpFile, sleep } from '@midscene/core/utils';
 import { base64Encoded } from '@midscene/core/image';
-import { parseContextFromPlaywrightPage } from './utils';
-import { WebElementInfo } from './element';
+import type { KeyInput, Page as PuppeteerPage } from 'puppeteer';
+import { WebElementInfo } from '../web-element';
+import { parseContextFromWebPage } from './utils';
+import { WebPage } from '@/common/page';
 
-export class PlayWrightActionAgent {
-  page: PlaywrightPage;
+export class PageTaskExecutor {
+  page: WebPage;
 
   insight: Insight<WebElementInfo>;
 
-  executor: Executor;
+  taskExecutor: Executor;
 
-  actionDump?: ExecutionDump;
+  executionDump?: ExecutionDump;
 
-  constructor(page: PlaywrightPage, opt?: { taskName?: string }) {
+  constructor(page: WebPage, opt?: { taskName?: string }) {
     this.page = page;
     this.insight = new Insight<WebElementInfo>(async () => {
-      return await parseContextFromPlaywrightPage(page);
+      return await parseContextFromWebPage(page);
     });
-    this.executor = new Executor(opt?.taskName || 'MidScene - PlayWrightAI');
+    this.taskExecutor = new Executor(opt?.taskName || 'MidScene - PlayWrightAI');
   }
 
   private async recordScreenshot(timing: ExecutionRecorderItem['timing']) {
@@ -117,7 +118,6 @@ export class PlayWrightActionAgent {
               await this.page.keyboard.type(taskParam.value);
             },
           };
-          // TODO: return a recorder Object
           return taskActionInput;
         } else if (plan.type === 'KeyboardPress') {
           const taskActionKeyboardPress: ExecutionTaskActionApply<PlanningActionParamInputOrKeyPress> = {
@@ -126,7 +126,7 @@ export class PlayWrightActionAgent {
             param: plan.param,
             executor: async (taskParam) => {
               assert(taskParam.value, 'No key to press');
-              await this.page.keyboard.press(taskParam.value);
+              await this.page.keyboard.press(taskParam.value as KeyInput);
             },
           };
           return taskActionKeyboardPress;
@@ -158,7 +158,7 @@ export class PlayWrightActionAgent {
             param: plan.param,
             executor: async (taskParam) => {
               const scrollToEventName = taskParam.scrollType;
-              const innerHeight = await this.page.evaluate(() => window.innerHeight);
+              const innerHeight = await (this.page as PuppeteerPage).evaluate(() => window.innerHeight);
 
               switch (scrollToEventName) {
                 case 'ScrollUntilTop':
@@ -193,7 +193,7 @@ export class PlayWrightActionAgent {
   }
 
   async action(userPrompt: string /* , actionInfo?: { actionType?: EventActions[number]['action'] } */) {
-    this.executor.description = userPrompt;
+    this.taskExecutor.description = userPrompt;
     const pageContext = await this.insight.contextRetrieverFn();
 
     let plans: PlanningAction[] = [];
@@ -215,32 +215,32 @@ export class PlayWrightActionAgent {
 
     try {
       // plan
-      await this.executor.append(this.wrapExecutorWithScreenshot(planningTask));
-      await this.executor.flush();
-      this.actionDump = this.executor.dump();
+      await this.taskExecutor.append(this.wrapExecutorWithScreenshot(planningTask));
+      await this.taskExecutor.flush();
+      this.executionDump = this.taskExecutor.dump();
 
       // append tasks
       const executables = await this.convertPlanToExecutable(plans);
-      await this.executor.append(executables);
+      await this.taskExecutor.append(executables);
 
       // flush actions
-      await this.executor.flush();
-      this.actionDump = this.executor.dump();
+      await this.taskExecutor.flush();
+      this.executionDump = this.taskExecutor.dump();
 
       assert(
-        this.executor.status !== 'error',
-        `failed to execute tasks: ${this.executor.status}, msg: ${this.executor.errorMsg || ''}`,
+        this.taskExecutor.status !== 'error',
+        `failed to execute tasks: ${this.taskExecutor.status}, msg: ${this.taskExecutor.errorMsg || ''}`,
       );
     } catch (e: any) {
       // keep the dump before throwing
-      this.actionDump = this.executor.dump();
+      this.executionDump = this.taskExecutor.dump();
       const err = new Error(e.message, { cause: e });
       throw err;
     }
   }
 
   async query(demand: InsightExtractParam) {
-    this.executor.description = JSON.stringify(demand);
+    this.taskExecutor.description = JSON.stringify(demand);
     let data: any;
     const queryTask: ExecutionTaskInsightQueryApply = {
       type: 'Insight',
@@ -262,12 +262,12 @@ export class PlayWrightActionAgent {
       },
     };
     try {
-      await this.executor.append(this.wrapExecutorWithScreenshot(queryTask));
-      await this.executor.flush();
-      this.actionDump = this.executor.dump();
+      await this.taskExecutor.append(this.wrapExecutorWithScreenshot(queryTask));
+      await this.taskExecutor.flush();
+      this.executionDump = this.taskExecutor.dump();
     } catch (e: any) {
       // keep the dump before throwing
-      this.actionDump = this.executor.dump();
+      this.executionDump = this.taskExecutor.dump();
       const err = new Error(e.message, { cause: e });
       throw err;
     }

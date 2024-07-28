@@ -71,6 +71,7 @@ export function generateTestData(testDataList: Array<TestData>) {
 
     // Replace file contents
     fileContent = fileContent.replace(searchValue, replaceValue);
+    fileContent = fileContent.replace('8080', '9988');
 
     // Writes the modified content to the file
     fsExtra.outputFileSync(filePath, fileContent);

@@ -16,12 +16,9 @@ import Sidebar from '@/component/sidebar';
 
 const { Dragger } = Upload;
 
-interface VisualizerProps {
-  dump?: GroupedActionDump[];
-}
+export function Visualizer(props: { hideLogo?: boolean; dump?: GroupedActionDump[] }): JSX.Element {
+  const { dump } = props;
 
-export function Visualizer(dumpInfo: VisualizerProps) {
-  const { dump } = dumpInfo;
   const executionDump = useExecutionDump((store) => store.dump);
   const setGroupedDump = useExecutionDump((store) => store.setGroupedDump);
   const reset = useExecutionDump((store) => store.reset);
@@ -159,8 +156,8 @@ export function Visualizer(dumpInfo: VisualizerProps) {
           }
         }}
       >
-        <Panel maxSize={95}>
-          <Sidebar />
+        <Panel maxSize={95} defaultSize={20}>
+          <Sidebar hideLogo={props?.hideLogo} />
         </Panel>
         <PanelResizeHandle
           onDragging={(isChanging) => {

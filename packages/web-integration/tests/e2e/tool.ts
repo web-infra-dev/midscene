@@ -6,7 +6,7 @@ import { getElementInfos } from '@/img/util';
 import { processImageElementInfo } from '@/img/img';
 
 export async function generateTestData(page: PlaywrightPage, targetDir: string, inputImgBase64: string) {
-  const { elementsPostionInfo, captureElementSnapshot, elementsPostionInfoWithoutText } =
+  const { elementsPositionInfo, captureElementSnapshot, elementsPositionInfoWithoutText } =
     await getElementInfos(page);
 
   const inputImagePath = path.join(targetDir, 'input.png');
@@ -17,8 +17,8 @@ export async function generateTestData(page: PlaywrightPage, targetDir: string, 
 
   const { compositeElementInfoImgBase64, compositeElementInfoImgWithoutTextBase64 } =
     await processImageElementInfo({
-      elementsPostionInfo,
-      elementsPostionInfoWithoutText,
+      elementsPositionInfo,
+      elementsPositionInfoWithoutText,
       inputImgBase64,
     });
 

@@ -5,6 +5,7 @@ import {
   ExecutionTaskInsightLocate,
   ExecutionTask,
   GroupedActionDump,
+  ExecutionTaskInsightQuery,
 } from '../../../midscene/dist/types';
 
 export const useBlackboardPreference = create<{
@@ -33,7 +34,7 @@ export const useExecutionDump = create<{
   hoverPreviewConfig: { x: number; y: number } | null;
   setHoverPreviewConfig: (config: { x: number; y: number } | null) => void;
   reset: () => void;
-}>((set) => {
+}>((set, get) => {
   const initData = {
     dump: null,
     activeTask: null,
@@ -62,14 +63,15 @@ export const useExecutionDump = create<{
       // set the first one as selected
       for (const item of dump) {
         if (item.executions.length > 0 && item.executions[0].tasks.length > 0) {
-          set({ activeTask: item.executions[0].tasks[0] });
+          get().setActiveTask(item.executions[0].tasks[0]);
           break;
         }
       }
     },
     setActiveTask(task: ExecutionTask) {
       set({ activeTask: task });
-      if ((task as ExecutionTaskInsightLocate).log?.dump?.matchedElement) {
+      console.log('task set', task);
+      if (task.type === 'Insight') {
         syncToInsightDump((task as ExecutionTaskInsightLocate).log!.dump!);
       } else {
         resetInsightDump();

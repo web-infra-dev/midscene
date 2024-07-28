@@ -8,7 +8,7 @@ export default defineConfig({
     buildType: 'bundle',
     format: 'iife',
     input: {
-      htmlElement:'src/html-element/index.ts',
+      htmlElement:'src/extractor/index.ts',
     },
     outDir: 'dist/script',
     esbuildOptions: options => {

@@ -1,6 +1,5 @@
-import path from 'path';
 import { ExecutionDump, GroupedActionDump } from '@midscene/core';
-import { groupedActionDumpFileExt, writeDumpFile, getTmpDir } from '@midscene/core/utils';
+import { groupedActionDumpFileExt, writeDumpFile } from '@midscene/core/utils';
 import { PageTaskExecutor } from '../common/tasks';
 import { WebPage } from '@/common/page';
 
@@ -9,15 +8,14 @@ export class PageAgent {
 
   dumps: GroupedActionDump[];
 
-  dumpFileName: string;
+  testId: string;
 
-  dumpFilePath: string;
+  dumpFile?: string;
 
-  constructor(page: WebPage) {
+  constructor(page: WebPage, testId?: string) {
     this.page = page;
     this.dumps = [];
-    this.dumpFileName = `playwright-${process.pid}`;
-    this.dumpFilePath = path.join(getTmpDir(), `${this.dumpFileName}.${groupedActionDumpFileExt}`);
+    this.testId = testId || String(process.pid);
   }
 
   appendDump(groupName: string, execution: ExecutionDump) {
@@ -33,8 +31,8 @@ export class PageAgent {
   }
 
   writeOutActionDumps() {
-    this.dumpFilePath = writeDumpFile(
-      this.dumpFileName,
+    this.dumpFile = writeDumpFile(
+      `playwright-${this.testId}`,
       groupedActionDumpFileExt,
       JSON.stringify(this.dumps),
     );

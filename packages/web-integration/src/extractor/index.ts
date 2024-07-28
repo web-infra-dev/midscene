@@ -1,0 +1,1 @@
+export { extractTextWithPositionDFS } from './extractor';

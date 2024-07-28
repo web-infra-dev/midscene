@@ -1,7 +1,7 @@
 import assert from 'assert';
 import { Buffer } from 'node:buffer';
 import sharp from 'sharp';
-import { NodeType } from '@/html-element/constants';
+import { NodeType } from '@/extractor/constants';
 
 // Define picture path
 type ElementType = {
@@ -80,8 +80,8 @@ const createSvgOverlay = (elements: Array<ElementType>, imageWidth: number, imag
 
 export const processImageElementInfo = async (options: {
   inputImgBase64: string;
-  elementsPostionInfo: Array<ElementType>;
-  elementsPostionInfoWithoutText: Array<ElementType>;
+  elementsPositionInfo: Array<ElementType>;
+  elementsPositionInfoWithoutText: Array<ElementType>;
 }) => {
   // Get the size of the original image
   const base64Image = options.inputImgBase64.split(';base64,').pop();
@@ -93,8 +93,8 @@ export const processImageElementInfo = async (options: {
 
   if (width && height) {
     // Create svg overlay
-    const svgOverlay = createSvgOverlay(options.elementsPostionInfo, width, height);
-    const svgOverlayWithoutText = createSvgOverlay(options.elementsPostionInfoWithoutText, width, height);
+    const svgOverlay = createSvgOverlay(options.elementsPositionInfo, width, height);
+    const svgOverlayWithoutText = createSvgOverlay(options.elementsPositionInfoWithoutText, width, height);
 
     // Composite picture
     const compositeElementInfoImgBase64 = await sharp(imageBuffer)
@@ -109,7 +109,7 @@ export const processImageElementInfo = async (options: {
         throw err;
       });
 
-    // Composite picture withtoutText
+    // Composite picture withoutText
     const compositeElementInfoImgWithoutTextBase64 = await sharp(imageBuffer)
       // .resize(newDimensions.width, newDimensions.height)
       .composite([{ input: svgOverlayWithoutText, blend: 'over' }])

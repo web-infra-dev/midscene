@@ -18,15 +18,15 @@ const ScreenshotItem = (props: { time: string; img: string }) => {
   );
 };
 
+const VIEW_TYPE_BLACKBOARD = 'blackboard';
 const VIEW_TYPE_SCREENSHOT = 'screenshot';
 const VIEW_TYPE_JSON = 'json';
-const VIEW_TYPE_BLACKBOARD = 'blackboard';
 
 const DetailPanel = (): JSX.Element => {
   const dumpId = useInsightDump((store) => store._loadId);
   const blackboardViewAvailable = Boolean(dumpId);
   const activeTask = useExecutionDump((store) => store.activeTask);
-  const [preferredViewType, setViewType] = useState(dumpId ? VIEW_TYPE_BLACKBOARD : VIEW_TYPE_SCREENSHOT);
+  const [preferredViewType, setViewType] = useState(VIEW_TYPE_BLACKBOARD);
 
   const viewType =
     preferredViewType === VIEW_TYPE_BLACKBOARD && !dumpId ? VIEW_TYPE_SCREENSHOT : preferredViewType;
