@@ -38,5 +38,5 @@ export default defineConfig({
       use: { ...devices['Desktop Chrome'] },
     },
   ],
-  reporter: './dist/es/playwright-report.js',
+  reporter: './src/playwright/reporter/index.ts',
 });

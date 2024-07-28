@@ -12,7 +12,9 @@ import { generateTestData } from './util';
 const testDataList: Array<TestData> = [];
 
 function logger(...message: any[]) {
-  console.log('Midscene e2e report:', ...message);
+  if (process.env.DEBUG === 'true') {
+    console.log('Midscene e2e report:', ...message);
+  }
 }
 
 class MidSceneReporter implements Reporter {
@@ -51,7 +53,8 @@ class MidSceneReporter implements Reporter {
   onEnd(result: FullResult) {
     logger(`Finished the run: ${result.status}`);
     generateTestData(testDataList);
-    logger(
+    console.log(
+      '\x1b[32m%s\x1b[0m',
       `The report is generated successfully. Run the "node ./midscene-report/index.js" command to start the report`,
     );
   }
