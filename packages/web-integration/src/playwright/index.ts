@@ -39,16 +39,8 @@ export const PlaywrightAiFixture = () => {
 
   return {
     ai: async ({ page }: any, use: any, testInfo: TestInfo) => {
-      console.log('start', testInfo.title, {
-        file: testInfo.file,
-        line: testInfo.line,
-      });
       const agent = agentForPage(page, testInfo.testId);
       await use(async (taskPrompt: string, opts?: { type?: 'action' | 'query' }) => {
-        console.log('use', testInfo.title, {
-          file: testInfo.file,
-          line: testInfo.line,
-        });
         const { groupName, caseName } = groupAndCaseForTest(testInfo);
         const actionType = opts?.type || 'action';
         const result = await agent.ai(taskPrompt, actionType, caseName, groupName);
@@ -63,10 +55,6 @@ export const PlaywrightAiFixture = () => {
           }),
         });
       }
-      console.log('end', testInfo.title, {
-        file: testInfo.file,
-        line: testInfo.line,
-      });
     },
     aiAction: async ({ page }: any, use: any, testInfo: TestInfo) => {
       const agent = agentForPage(page, testInfo.testId);
