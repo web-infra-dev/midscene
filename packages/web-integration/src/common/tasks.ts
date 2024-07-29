@@ -23,6 +23,7 @@ import { base64Encoded } from '@midscene/core/image';
 import type { KeyInput, Page as PuppeteerPage } from 'puppeteer';
 import { WebElementInfo } from '../web-element';
 import { parseContextFromWebPage } from './utils';
+import { TaskCache } from './task-cache';
 import { WebPage } from '@/common/page';
 
 export class PageTaskExecutor {
@@ -34,11 +35,14 @@ export class PageTaskExecutor {
 
   executionDump?: ExecutionDump;
 
+  taskCache: TaskCache;
+
   constructor(page: WebPage, opt?: { taskName?: string }) {
     this.page = page;
     this.insight = new Insight<WebElementInfo>(async () => {
       return await parseContextFromWebPage(page);
     });
+    this.taskCache = new TaskCache(this.insight);
     this.taskExecutor = new Executor(opt?.taskName || 'MidScene - PlayWrightAI');
   }
 
@@ -95,7 +99,7 @@ export class PageTaskExecutor {
                 insightDump = dump;
               };
               this.insight.onceDumpUpdatedFn = dumpCollector;
-              const element = await this.insight.locate(param.prompt);
+              const element = await this.taskCache.locate(param.prompt);
               assert(element, `Element not found: ${param.prompt}`);
               return {
                 output: {
@@ -194,7 +198,6 @@ export class PageTaskExecutor {
 
   async action(userPrompt: string /* , actionInfo?: { actionType?: EventActions[number]['action'] } */) {
     this.taskExecutor.description = userPrompt;
-    const pageContext = await this.insight.contextRetrieverFn();
 
     let plans: PlanningAction[] = [];
     const planningTask: ExecutionTaskPlanningApply = {
@@ -202,8 +205,8 @@ export class PageTaskExecutor {
       param: {
         userPrompt,
       },
-      async executor(param) {
-        const planResult = await plan(pageContext, param.userPrompt);
+      executor: async (param) => {
+        const planResult = await this.taskCache.plan(param.userPrompt);
         assert(planResult.plans.length > 0, 'No plans found');
         // eslint-disable-next-line prefer-destructuring
         plans = planResult.plans;

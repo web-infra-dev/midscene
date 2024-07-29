@@ -50,6 +50,7 @@
     "build:pkg": "modern build -c ./modern.config.ts",
     "build:script": "modern build -c ./modern.inspect.config.ts",
     "build:watch": "modern build -w -c ./modern.config.ts & modern build -w -c ./modern.inspect.config.ts",
+    "test": "vitest --run",
     "new": "modern new",
     "upgrade": "modern upgrade",
     "prepublishOnly": "npm run build",

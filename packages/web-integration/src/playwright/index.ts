@@ -39,17 +39,16 @@ export const PlaywrightAiFixture = () => {
 
   return {
     ai: async ({ page }: any, use: any, testInfo: TestInfo) => {
+      console.log('ai start', testInfo.title);
       const agent = agentForPage(page, testInfo.testId);
       await use(async (taskPrompt: string, opts?: { type?: 'action' | 'query' }) => {
-        console.log('use', testInfo.title, {
-          file: testInfo.file,
-          line: testInfo.line,
-        });
+        console.log('ai taskPrompt', taskPrompt);
         const { groupName, caseName } = groupAndCaseForTest(testInfo);
         const actionType = opts?.type || 'action';
         const result = await agent.ai(taskPrompt, actionType, caseName, groupName);
         return result;
       });
+      console.log('ai end', testInfo.title);
       if (agent.dumpFile) {
         testInfo.annotations.push({
           type: 'MIDSCENE_AI_ACTION',
