@@ -14,16 +14,19 @@ export class PageAgent {
 
   actionAgent: PageTaskExecutor;
 
-  constructor(page: WebPage, opts: { testId: string; groupName: string }) {
+  constructor(page: WebPage, opts: { testId: string; taskFile?: string; taskTitle?: string }) {
     this.page = page;
     this.dumps = [
       {
-        groupName: opts.groupName,
+        groupName: opts.taskFile || 'unnamed',
         executions: [],
       },
     ];
     this.testId = opts.testId || String(process.pid);
-    this.actionAgent = new PageTaskExecutor(this.page);
+    this.actionAgent = new PageTaskExecutor(this.page, {
+      taskFile: opts.taskFile || 'unnamed',
+      taskTitle: opts.taskTitle || 'unnamed',
+    });
   }
 
   appendDump(execution: ExecutionDump) {
@@ -32,11 +35,11 @@ export class PageAgent {
   }
 
   writeOutActionDumps() {
-    this.dumpFile = writeDumpFile(
-      `playwright-${this.testId}`,
-      groupedActionDumpFileExt,
-      JSON.stringify(this.dumps),
-    );
+    this.dumpFile = writeDumpFile({
+      fileName: `playwright-${this.testId}`,
+      fileExt: groupedActionDumpFileExt,
+      fileContent: JSON.stringify(this.dumps),
+    });
   }
 
   async aiAction(taskPrompt: string) {

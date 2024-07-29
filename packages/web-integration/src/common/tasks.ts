@@ -30,19 +30,16 @@ export class PageTaskExecutor {
 
   insight: Insight<WebElementInfo>;
 
-  taskExecutor: Executor;
-
   executionDump?: ExecutionDump;
 
   taskCache: TaskCache;
 
-  constructor(page: WebPage, opt?: { taskName?: string }) {
+  constructor(page: WebPage, opts: { taskFile: string; taskTitle: string }) {
     this.page = page;
     this.insight = new Insight<WebElementInfo>(async () => {
       return await parseContextFromWebPage(page);
     });
-    this.taskCache = new TaskCache(this.insight);
-    this.taskExecutor = new Executor(opt?.taskName || 'MidScene - PlayWrightAI');
+    this.taskCache = new TaskCache(this.insight, opts);
   }
 
   private async recordScreenshot(timing: ExecutionRecorderItem['timing']) {
@@ -196,7 +193,8 @@ export class PageTaskExecutor {
   }
 
   async action(userPrompt: string /* , actionInfo?: { actionType?: EventActions[number]['action'] } */) {
-    this.taskExecutor.description = userPrompt;
+    const taskExecutor = new Executor(userPrompt);
+    taskExecutor.description = userPrompt;
 
     let plans: PlanningAction[] = [];
     const planningTask: ExecutionTaskPlanningApply = {
@@ -217,32 +215,34 @@ export class PageTaskExecutor {
 
     try {
       // plan
-      await this.taskExecutor.append(this.wrapExecutorWithScreenshot(planningTask));
-      await this.taskExecutor.flush();
-      this.executionDump = this.taskExecutor.dump();
+      await taskExecutor.append(this.wrapExecutorWithScreenshot(planningTask));
+      await taskExecutor.flush();
+      this.executionDump = taskExecutor.dump();
 
       // append tasks
       const executables = await this.convertPlanToExecutable(plans);
-      await this.taskExecutor.append(executables);
+      await taskExecutor.append(executables);
 
       // flush actions
-      await this.taskExecutor.flush();
-      this.executionDump = this.taskExecutor.dump();
+      await taskExecutor.flush();
+      this.executionDump = taskExecutor.dump();
 
       assert(
-        this.taskExecutor.status !== 'error',
-        `failed to execute tasks: ${this.taskExecutor.status}, msg: ${this.taskExecutor.errorMsg || ''}`,
+        taskExecutor.status !== 'error',
+        `failed to execute tasks: ${taskExecutor.status}, msg: ${taskExecutor.errorMsg || ''}`,
       );
     } catch (e: any) {
       // keep the dump before throwing
-      this.executionDump = this.taskExecutor.dump();
+      this.executionDump = taskExecutor.dump();
       const err = new Error(e.message, { cause: e });
       throw err;
     }
   }
 
   async query(demand: InsightExtractParam) {
-    this.taskExecutor.description = JSON.stringify(demand);
+    const description = JSON.stringify(demand);
+    const taskExecutor = new Executor(description);
+    taskExecutor.description = description;
     let data: any;
     const queryTask: ExecutionTaskInsightQueryApply = {
       type: 'Insight',
@@ -264,12 +264,12 @@ export class PageTaskExecutor {
       },
     };
     try {
-      await this.taskExecutor.append(this.wrapExecutorWithScreenshot(queryTask));
-      await this.taskExecutor.flush();
-      this.executionDump = this.taskExecutor.dump();
+      await taskExecutor.append(this.wrapExecutorWithScreenshot(queryTask));
+      await taskExecutor.flush();
+      this.executionDump = taskExecutor.dump();
     } catch (e: any) {
       // keep the dump before throwing
-      this.executionDump = this.taskExecutor.dump();
+      this.executionDump = taskExecutor.dump();
       const err = new Error(e.message, { cause: e });
       throw err;
     }

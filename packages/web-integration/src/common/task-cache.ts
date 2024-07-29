@@ -24,9 +24,9 @@ type LocateTask = {
 };
 
 type AiTaskCache = {
-  testFile: string;
-  testTitle: string;
-  testContentHash: string;
+  taskFile: string;
+  taskTitle: string;
+  taskContentHash: string;
   aiTasks: Array<PlanTask | LocateTask>;
 };
 
@@ -37,13 +37,16 @@ export class TaskCache {
 
   newCache: AiTaskCache;
 
-  constructor(insight: Insight<WebElementInfo>, cache?: AiTaskCache) {
+  constructor(
+    insight: Insight<WebElementInfo>,
+    opts: { taskFile: string; taskTitle: string; cache?: AiTaskCache },
+  ) {
     this.insight = insight;
-    this.cache = cache;
+    this.cache = opts.cache;
     this.newCache = {
-      testFile: '',
-      testTitle: '',
-      testContentHash: '',
+      taskFile: opts.taskFile,
+      taskTitle: opts.taskTitle,
+      taskContentHash: '',
       aiTasks: [],
     };
   }
