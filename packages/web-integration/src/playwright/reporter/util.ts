@@ -114,9 +114,7 @@ function modifyRoutesJson(reportDir: string, testDataList: Array<TestData>) {
 
     // Write the updated js on data back to the file
     fs.writeFileSync(filePath, JSON.stringify(jsonData, null, 2), 'utf8');
-
-    console.log('文件更新成功');
   } catch (err) {
-    console.error('操作失败:', err);
+    console.error('modifyRoutesJson fail:', err);
   }
 }
