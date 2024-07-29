@@ -1,6 +1,6 @@
 # Quick Start
 
-In this example, we use OpenAI GPT-4o and Puppeteer.js to _________. Remember to prepare an OpenAI key that is eligible for accessing GPT-4o before running.
+In this example, we use OpenAI GPT-4o and Puppeteer.js to search headphones on ebay, and then get the result items and prices in JSON format. Remember to prepare an OpenAI key that is eligible for accessing GPT-4o before running.
 
 > [Puppeteer](https://pptr.dev/) is a Node.js library which provides a high-level API to control Chrome or Firefox over the DevTools Protocol or WebDriver BiDi. Puppeteer runs in the headless (no visible UI) by default but can be configured to run in a visible ("headful") browser.
 
@@ -73,3 +73,5 @@ npx ts-node demo.ts
 ```
 
 After running, MidScene will generate a log dump, which is placed in `./midscene_run/latest.web-dump.json` by default. Then put this file into [Visualization Tool](/visualization/), and you will have a clearer understanding of the process.
+
+Click the 'Load Demo' button in the [Visualization Tool](/visualization/), you will be able to see the results of the previous code as well as some other samples.
