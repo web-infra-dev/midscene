@@ -58,7 +58,11 @@ export function writeInsightDump(
     const length = logContent.push(dataString);
     logIdIndexMap[id] = length - 1;
   }
-  writeDumpFile(logFileName, logFileExt, `[\n${logContent.join(',\n')}\n]`);
+  writeDumpFile({
+    fileName: logFileName,
+    fileExt: logFileExt,
+    fileContent: `[\n${logContent.join(',\n')}\n]`,
+  });
 
   return id;
 }

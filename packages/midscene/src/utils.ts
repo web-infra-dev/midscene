@@ -47,16 +47,23 @@ export function setDumpDir(dir: string) {
   logDir = dir;
 }
 
-export function writeDumpFile(fileName: string, fileExt: string, fileContent: string) {
+export function writeDumpFile(opts: {
+  fileName: string;
+  fileExt: string;
+  fileContent: string;
+  type?: 'dump' | 'cache';
+}) {
+  const { fileName, fileExt, fileContent, type = 'dump' } = opts;
+  const targetDir = type === 'cache' ? join(getDumpDir(), 'cache') : join(getDumpDir(), 'dump-logger');
+  if (!existsSync(targetDir)) {
+    mkdirSync(targetDir, { recursive: true });
+  }
   // Ensure directory exists
   if (!logEnvReady) {
-    assert(logDir, 'logDir should be set before writing dump file');
-    if (!existsSync(logDir)) {
-      mkdirSync(logDir, { recursive: true });
-    }
+    assert(targetDir, 'logDir should be set before writing dump file');
 
     // gitIgnore in the parent directory
-    const gitIgnorePath = join(logDir, '../.gitignore');
+    const gitIgnorePath = join(targetDir, '../../.gitignore');
     let gitIgnoreContent = '';
     if (existsSync(gitIgnorePath)) {
       gitIgnoreContent = readFileSync(gitIgnorePath, 'utf-8');
@@ -67,16 +74,19 @@ export function writeDumpFile(fileName: string, fileExt: string, fileContent: st
     if (!gitIgnoreContent.includes(`${logDirName}/`)) {
       writeFileSync(
         gitIgnorePath,
-        `${gitIgnoreContent}\n# MidScene.js dump files\n${logDirName}/\n`,
+        `${gitIgnoreContent}\n# MidScene.js dump files\n${logDirName}/midscene-report\n${logDirName}/dump-logger\n`,
         'utf-8',
       );
     }
     logEnvReady = true;
   }
 
-  const filePath = join(getDumpDir(), `${fileName}.${fileExt}`);
+  const filePath = join(targetDir, `${fileName}.${fileExt}`);
   writeFileSync(filePath, fileContent);
-  copyFileSync(filePath, join(getDumpDir(), `latest.${fileExt}`));
+
+  if (type === 'dump') {
+    copyFileSync(filePath, join(targetDir, `latest.${fileExt}`));
+  }
 
   return filePath;
 }
