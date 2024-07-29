@@ -55,7 +55,7 @@ class MidSceneReporter implements Reporter {
     generateTestData(testDataList);
     console.log(
       '\x1b[32m%s\x1b[0m',
-      `The report is generated successfully. Run the "node ./midscene-report/index.js" command to start the report`,
+      `The report is generated successfully. Run the "node ./midscene_run/midscene-report/index.js" command to start the report`,
     );
   }
 }

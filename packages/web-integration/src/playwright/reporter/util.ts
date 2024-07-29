@@ -14,7 +14,7 @@ export function generateTestData(testDataList: Array<TestData>) {
     }
   }, [] as Array<TestData>);
   const projectDir = process.cwd();
-  const reportDir = path.join(projectDir, 'midscene-report');
+  const reportDir = path.join(projectDir, 'midscene_run', 'midscene-report');
 
   // Create a report folder
   if (!fs.existsSync(reportDir)) {
@@ -86,5 +86,37 @@ export function generateTestData(testDataList: Array<TestData>) {
     fsExtra.outputFileSync(filePath, fileContent);
   } catch (err) {
     console.error('An error occurred:', err);
+  }
+
+  // add static data
+  modifyRoutesJson(reportDir, testDataList);
+}
+
+function modifyRoutesJson(reportDir: string, testDataList: Array<TestData>) {
+  const filePath = path.join(reportDir, 'route.json');
+  try {
+    const data = fs.readFileSync(filePath, 'utf8');
+
+    const newPaths = testDataList.map((testData) => {
+      const fileName = testData.dumpPath?.split('/').pop();
+      return {
+        urlPath: `/${fileName}`,
+        isSPA: true,
+        isSSR: false,
+        entryPath: `public/${fileName}`,
+      };
+    });
+
+    const jsonData = JSON.parse(data);
+
+    // Insert the new path data into the js, OS and n structure
+    jsonData.routes.push(...newPaths);
+
+    // Write the updated js on data back to the file
+    fs.writeFileSync(filePath, JSON.stringify(jsonData, null, 2), 'utf8');
+
+    console.log('文件更新成功');
+  } catch (err) {
+    console.error('操作失败:', err);
   }
 }
