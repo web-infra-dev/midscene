@@ -1,6 +1,7 @@
 import { ExecutionDump, GroupedActionDump } from '@midscene/core';
 import { groupedActionDumpFileExt, writeDumpFile } from '@midscene/core/utils';
 import { PageTaskExecutor } from '../common/tasks';
+import { AiTaskCache } from './task-cache';
 import { WebPage } from '@/common/page';
 
 export class PageAgent {
@@ -14,7 +15,7 @@ export class PageAgent {
 
   actionAgent: PageTaskExecutor;
 
-  constructor(page: WebPage, opts: { testId: string; taskFile?: string; taskTitle?: string }) {
+  constructor(page: WebPage, opts: { testId: string; taskFile: string; cache?: AiTaskCache }) {
     this.page = page;
     this.dumps = [
       {
@@ -24,8 +25,7 @@ export class PageAgent {
     ];
     this.testId = opts.testId || String(process.pid);
     this.actionAgent = new PageTaskExecutor(this.page, {
-      taskFile: opts.taskFile || 'unnamed',
-      taskTitle: opts.taskTitle || 'unnamed',
+      cache: opts.cache || { aiTasks: [] },
     });
   }
 

@@ -1,7 +1,7 @@
 import { randomUUID } from 'crypto';
 import { TestInfo, TestType } from '@playwright/test';
-import { writeDumpFile } from '@midscene/core/utils';
 import { PageTaskExecutor } from '../common/tasks';
+import { readTestCache, writeTestCache } from './cache';
 import { WebPage } from '@/common/page';
 import { PageAgent } from '@/common/agent';
 
@@ -33,10 +33,11 @@ export const PlaywrightAiFixture = () => {
     if (!idForPage) {
       idForPage = randomUUID();
       (page as any)[midSceneAgentKeyId] = idForPage;
+      const testCase = readTestCache(opts.taskFile, opts.taskTitle) || { aiTasks: [] };
       pageAgentMap[idForPage] = new PageAgent(page, {
         testId: `${opts.testId}-${idForPage}`,
         taskFile: opts.taskFile,
-        taskTitle: opts.taskTitle,
+        cache: testCase,
       });
     }
     return pageAgentMap[idForPage];
@@ -52,13 +53,7 @@ export const PlaywrightAiFixture = () => {
         return result;
       });
       const taskCacheJson = agent.actionAgent.taskCache.generateTaskCache();
-      writeDumpFile({
-        fileName: `${taskCacheJson.taskFile}(${taskCacheJson.taskTitle})`,
-        fileExt: 'json',
-        fileContent: JSON.stringify(taskCacheJson),
-        type: 'cache',
-      });
-      // console.log('cache content', JSON.stringify(agent.actionAgent.taskCache.generateTaskCache()));
+      writeTestCache(taskFile, taskTitle, taskCacheJson);
       if (agent.dumpFile) {
         testInfo.annotations.push({
           type: 'MIDSCENE_AI_ACTION',

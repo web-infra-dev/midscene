@@ -22,7 +22,7 @@ import { base64Encoded } from '@midscene/core/image';
 import type { KeyInput, Page as PuppeteerPage } from 'puppeteer';
 import { WebElementInfo } from '../web-element';
 import { parseContextFromWebPage } from './utils';
-import { TaskCache } from './task-cache';
+import { AiTaskCache, TaskCache } from './task-cache';
 import { WebPage } from '@/common/page';
 
 export class PageTaskExecutor {
@@ -34,7 +34,7 @@ export class PageTaskExecutor {
 
   taskCache: TaskCache;
 
-  constructor(page: WebPage, opts: { taskFile: string; taskTitle: string }) {
+  constructor(page: WebPage, opts: { cache: AiTaskCache }) {
     this.page = page;
     this.insight = new Insight<WebElementInfo>(async () => {
       return await parseContextFromWebPage(page);

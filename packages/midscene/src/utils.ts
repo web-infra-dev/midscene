@@ -43,8 +43,13 @@ export const groupedActionDumpFileExt = 'web-dump.json';
 export function getDumpDir() {
   return logDir;
 }
+
 export function setDumpDir(dir: string) {
   logDir = dir;
+}
+
+export function getDumpDirPath(type: 'dump' | 'cache') {
+  return join(getDumpDir(), type);
 }
 
 export function writeDumpFile(opts: {
@@ -54,7 +59,7 @@ export function writeDumpFile(opts: {
   type?: 'dump' | 'cache';
 }) {
   const { fileName, fileExt, fileContent, type = 'dump' } = opts;
-  const targetDir = type === 'cache' ? join(getDumpDir(), 'cache') : join(getDumpDir(), 'dump-logger');
+  const targetDir = getDumpDirPath(type);
   if (!existsSync(targetDir)) {
     mkdirSync(targetDir, { recursive: true });
   }
