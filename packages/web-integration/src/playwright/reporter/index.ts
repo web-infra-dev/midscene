@@ -29,7 +29,7 @@ class MidSceneReporter implements Reporter {
 
   onTestEnd(test: TestCase, result: TestResult) {
     const aiActionTestData = test.annotations.filter((annotation) => {
-      if (annotation.type === 'PLAYWRIGHT_AI_ACTION') {
+      if (annotation.type === 'MIDSCENE_AI_ACTION') {
         return true;
       }
       return false;
