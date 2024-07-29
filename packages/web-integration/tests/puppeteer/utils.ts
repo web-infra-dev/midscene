@@ -8,7 +8,7 @@ export async function launchPage(
   },
 ) {
   const browser = await puppeteer.launch({
-    headless: false,
+    // headless: false,
   });
 
   const page = (await browser.pages())[0];

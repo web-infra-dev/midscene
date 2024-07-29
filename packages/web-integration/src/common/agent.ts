@@ -18,7 +18,7 @@ export class PageAgent {
     this.testId = testId || String(process.pid);
   }
 
-  appendDump(groupName: string, execution: ExecutionDump) {
+  private appendDump(groupName: string, execution: ExecutionDump) {
     let currentDump = this.dumps.find((dump) => dump.groupName === groupName);
     if (!currentDump) {
       currentDump = {
@@ -38,8 +38,8 @@ export class PageAgent {
     );
   }
 
-  async aiAction(taskPrompt: string, dumpCaseName = 'AI Action', dumpGroupName = 'MidScene / Web') {
-    const actionAgent = new PageTaskExecutor(this.page, { taskName: dumpCaseName });
+  async aiAction(taskPrompt: string, taskName = 'AI Action', dumpGroupName = 'MidScene / Web') {
+    const actionAgent = new PageTaskExecutor(this.page, { taskName });
     let error: Error | undefined;
     try {
       await actionAgent.action(taskPrompt);
@@ -57,8 +57,8 @@ export class PageAgent {
     }
   }
 
-  async aiQuery(demand: any, dumpCaseName = 'AI Query', dumpGroupName = 'MidScene / Web') {
-    const actionAgent = new PageTaskExecutor(this.page, { taskName: dumpCaseName });
+  async aiQuery(demand: any, taskName = 'AI Query', dumpGroupName = 'MidScene / Web') {
+    const actionAgent = new PageTaskExecutor(this.page, { taskName });
     let error: Error | undefined;
     let result: any;
     try {
@@ -78,11 +78,11 @@ export class PageAgent {
     return result;
   }
 
-  async ai(taskPrompt: string, type = 'action', dumpCaseName = 'AI', dumpGroupName = 'MidScene / Web') {
+  async ai(taskPrompt: string, type = 'action', taskName = 'AI', dumpGroupName = 'MidScene / Web') {
     if (type === 'action') {
-      return this.aiAction(taskPrompt, dumpCaseName, dumpGroupName);
+      return this.aiAction(taskPrompt, taskName, dumpGroupName);
     } else if (type === 'query') {
-      return this.aiQuery(taskPrompt, dumpCaseName, dumpGroupName);
+      return this.aiQuery(taskPrompt, taskName, dumpGroupName);
     }
     throw new Error(`Unknown or Unsupported task type: ${type}, only support 'action' or 'query'`);
   }
