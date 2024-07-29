@@ -16,7 +16,6 @@ import Insight, {
   PlanningActionParamInputOrKeyPress,
   PlanningActionParamScroll,
   PlanningActionParamTap,
-  plan,
 } from '@midscene/core';
 import { commonScreenshotParam, getTmpFile, sleep } from '@midscene/core/utils';
 import { base64Encoded } from '@midscene/core/image';

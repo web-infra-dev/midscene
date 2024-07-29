@@ -27,12 +27,15 @@ const groupAndCaseForTest = (testInfo: TestInfo) => {
 const midSceneAgentKeyId = '_midSceneAgentId';
 export const PlaywrightAiFixture = () => {
   const pageAgentMap: Record<string, PageAgent> = {};
-  const agentForPage = (page: WebPage, testId: string) => {
+  const agentForPage = (page: WebPage, testId: string, groupName: string) => {
     let idForPage = (page as any)[midSceneAgentKeyId];
     if (!idForPage) {
       idForPage = randomUUID();
       (page as any)[midSceneAgentKeyId] = idForPage;
-      pageAgentMap[idForPage] = new PageAgent(page, `${testId}-${idForPage}`);
+      pageAgentMap[idForPage] = new PageAgent(page, {
+        testId: `${testId}-${idForPage}`,
+        groupName,
+      });
     }
     return pageAgentMap[idForPage];
   };
@@ -40,12 +43,12 @@ export const PlaywrightAiFixture = () => {
   return {
     ai: async ({ page }: any, use: any, testInfo: TestInfo) => {
       console.log('ai start', testInfo.title);
-      const agent = agentForPage(page, testInfo.testId);
+      const { groupName } = groupAndCaseForTest(testInfo);
+      const agent = agentForPage(page, testInfo.testId, groupName);
       await use(async (taskPrompt: string, opts?: { type?: 'action' | 'query' }) => {
         console.log('ai taskPrompt', taskPrompt);
-        const { groupName, caseName } = groupAndCaseForTest(testInfo);
         const actionType = opts?.type || 'action';
-        const result = await agent.ai(taskPrompt, actionType, caseName, groupName);
+        const result = await agent.ai(taskPrompt, actionType);
         return result;
       });
       console.log('ai end', testInfo.title);
@@ -60,10 +63,10 @@ export const PlaywrightAiFixture = () => {
       }
     },
     aiAction: async ({ page }: any, use: any, testInfo: TestInfo) => {
-      const agent = agentForPage(page, testInfo.testId);
+      const { groupName } = groupAndCaseForTest(testInfo);
+      const agent = agentForPage(page, testInfo.testId, groupName);
       await use(async (taskPrompt: string) => {
-        const { groupName, caseName } = groupAndCaseForTest(testInfo);
-        await agent.aiAction(taskPrompt, caseName, groupName);
+        await agent.aiAction(taskPrompt);
       });
       if (agent.dumpFile) {
         testInfo.annotations.push({
@@ -76,10 +79,10 @@ export const PlaywrightAiFixture = () => {
       }
     },
     aiQuery: async ({ page }: any, use: any, testInfo: TestInfo) => {
-      const agent = agentForPage(page, testInfo.testId);
+      const { groupName } = groupAndCaseForTest(testInfo);
+      const agent = agentForPage(page, testInfo.testId, groupName);
       await use(async function (demand: any) {
-        const { groupName, caseName } = groupAndCaseForTest(testInfo);
-        const result = await agent.aiQuery(demand, caseName, groupName);
+        const result = await agent.aiQuery(demand);
         return result;
       });
       if (agent.dumpFile) {
