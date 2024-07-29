@@ -32,7 +32,7 @@ const browser = await puppeteer.launch({
 });
 
 const page = await browser.newPage();
-await page.goto('https://www.bing.com');
+await page.goto('https://www.ebay.com');
 await page.waitForNavigation({
   timeout: 20 * 1000,
   waitUntil: 'networkidle0',
@@ -40,19 +40,36 @@ await page.waitForNavigation({
 const page = await launchPage();
 
 // init MidScene agent
-const agent = new PuppeteerAgent(page);
-await agent.aiAction('type "how much is the ferry ticket in Shanghai" in search box, hit Enter');
+const mid = new PuppeteerAgent(page);
 
+// perform a search
+await mid.aiAction('type "Headphones" in search box, hit Enter');
+await sleep(5000);
+
+// find the items
+const items = await mid.aiQuery(
+  '{itemTitle: string, price: Number}[], find item in list and corresponding price',
+);
+console.log('headphones in stock', items);
 ```
 
-Using ts-node to run:
+Using ts-node to run, you will get the data of Headphones on ebay:
 
 ```bash
 # run
 npx ts-node demo.ts
 
-# it should print '... is blue'
+# it should print 
+#  [
+#   {
+#     itemTitle: 'JBL Tour Pro 2 - True wireless Noise Cancelling earbuds with Smart Charging Case',
+#     price: 551.21
+#   },
+#   {
+#     itemTitle: 'Soundcore Space One无线耳机40H ANC播放时间2XStronger语音还原',
+#     price: 543.94
+#   }
+# ]
 ```
 
 After running, MidScene will generate a log dump, which is placed in `./midscene_run/latest.web-dump.json` by default. Then put this file into [Visualization Tool](/visualization/), and you will have a clearer understanding of the process.
-

@@ -26,7 +26,7 @@ Ensure everything you expect from the LLM is visible in the screenshot.
 
 For example:
 
-Good ✅: "string, color of text, one of blue / red / yellow / green / white / black / others
+Good ✅: "string, color of text, one of blue / red / yellow / green / white / black / others"
 
 Bad ❌: "string, hex value of text color"
 
