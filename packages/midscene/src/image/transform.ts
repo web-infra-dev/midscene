@@ -125,7 +125,14 @@ export async function trimImage(image: string | Buffer): Promise<{
   width: number;
   height: number;
 } | null> {
-  const { info } = await Sharp(image).trim().toBuffer({
+  const imgInstance = Sharp(image);
+  const instanceInfo = await imgInstance.metadata();
+
+  if (!instanceInfo.width || instanceInfo.width <= 3 || !instanceInfo.height || instanceInfo.height <= 3) {
+    return null;
+  }
+
+  const { info } = await imgInstance.trim().toBuffer({
     resolveWithObject: true,
   });
 
@@ -157,17 +164,26 @@ export async function trimImage(image: string | Buffer): Promise<{
  * @returns A Promise that resolves to a rectangle object representing the aligned coordinates
  * @throws Error if there is an error during image processing
  */
-export async function alignCoordByTrim(image: string | Buffer, center: Rect): Promise<Rect> {
-  const img = await Sharp(image).extract(center).toBuffer();
-  const trimInfo = await trimImage(img);
-  if (!trimInfo) {
-    return center;
+export async function alignCoordByTrim(image: string | Buffer, centerRect: Rect): Promise<Rect> {
+  const imgInfo = await Sharp(image).metadata();
+  if (!imgInfo?.width || !imgInfo.height || imgInfo.width <= 3 || imgInfo.height <= 3) {
+    return centerRect;
   }
+  try {
+    const img = await Sharp(image).extract(centerRect).toBuffer();
+    const trimInfo = await trimImage(img);
+    if (!trimInfo) {
+      return centerRect;
+    }
 
-  return {
-    left: center.left - trimInfo.trimOffsetLeft,
-    top: center.top - trimInfo.trimOffsetTop,
-    width: trimInfo.width,
-    height: trimInfo.height,
-  };
+    return {
+      left: centerRect.left - trimInfo.trimOffsetLeft,
+      top: centerRect.top - trimInfo.trimOffsetTop,
+      width: trimInfo.width,
+      height: trimInfo.height,
+    };
+  } catch (e) {
+    console.log(imgInfo);
+    throw e;
+  }
 }

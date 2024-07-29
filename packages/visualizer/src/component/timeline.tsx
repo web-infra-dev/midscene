@@ -1,5 +1,5 @@
 /* eslint-disable max-lines */
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import * as PIXI from 'pixi.js';
 
 import './timeline.less';
@@ -436,7 +436,7 @@ const Timeline = () => {
     const refBounding = wrapper.current?.getBoundingClientRect();
     const task = idTaskMap[item.id];
     if (task) {
-      setHoverTask(task);
+      setHoverTask(task, item.timeOffset + startingTime);
       setHoverPreviewConfig({
         x: mouseX + (refBounding?.left || 0),
         y: (refBounding?.bottom || 1) - 1,

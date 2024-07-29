@@ -4,168 +4,44 @@
   <source src="/MidScene_L.mp4" type="video/mp4" />
 </video>
 
-Writing UI automation is often an annoying task. Understanding the characteristics of the DOM while writing code is not easy. Worse, writing tests for an existing web page that lacks predefined `#id` or `data-test-xxx` properties can make your selectors unmanageable and the entire test file impossible to maintain.
+UI automation can be quite frustrating. It is always full of *#id*, *data-test-xxx* and *.selectors* that are hard to maintain, not to mention when a refactor happens to the page.
 
-### Using high-level understanding of UI to reshape the automation
+Introducing MidScene.js, an SDK that aims to restore the joy of programming by automating tasks.
 
-With MidScene.js, we harness the power of AI’s multi-modality to turn your UI into consistent and well-organized outputs. What you have to do is describe the expected data shape from screenshot, AI will do the magical reasoning for you, and TypeScript will ensure a first-class developing experience. There won't be any `.selector`s in your script any longer.
+With MidScene.js, we harness the power of multimodal LLM to make your UI outputs consistent and well-organized. All you need to do is describe the interaction steps or the expected data format based on a screenshot, and the AI will execute these tasks for you. Finally, it will bring back the joy of programming!
 
-Finally, the joy of programming will come back!
+## Features
 
+### Public LLMs are Fine
 
-### Flow Chart
+It is fine to use publicly available LLMs such as GPT-4. There is no need for custom training. To experience the out-of-the-box AI-driven automation, token is all you need. 😀
 
-Here is a flowchart illustrating the main process of MidScene.
+### Execute Actions
 
-![](/flow.png)
+Use `.aiAction` to perform a series of actions by describing the steps.
 
-### Features
+For example `.aiAction('Enter "Learn JS today" in the task box, then press Enter to create')`.
 
-#### Locate - Find by natural language
+### Extract Data from Page
 
-Using GPT-4o, you can now locate the elements by natural language. Just like someone is viewing your page. DOM selectors should no longer be necessary.
+`.aiQuery` is the method to extract customized data from the UI.
 
-```typescript
-const downloadBtns = await insight.locate('download buttons on the page', {multi: true});
-console.log(downloadBtns);
-```
+For example, by calling `const dataB = await agent.aiQuery('string[], task names in the list');`, you will get an array with string of the task names.
 
-The result would be like
-```typescript
-[
-  { content: 'Download', rect: { left: 1451, top: 78, width: 74, height: 22 } },
-  { content: 'Download Mac Universal', rect: { left: 432, top: 328, width: 232, height: 65 } }
-]
-```
+### Perform Assertions
 
-#### Understand - And answer in JSON
+Call `.aiAssert` to perform assertions on the page.
 
-Besides basic locator and segmentation, MidScene can help you to understand the UI. 
-By providing the AI with the data shape you want, you will receive a predictable answer, both in terms of data structure and value. You may have never thought about UI automation in this way.
+#### Visualization Tool
 
-Use `query` to  achieve this.
-
-For example, if you want to understand some properties while locating elements:
-
-```typescript
-const downloadBtns = await insight.locate(query('download buttons on the page', {
-  textsOnButton: 'string',
-  backgroundColor: 'string, color of text, one of blue / red / yellow / green / white / black / others',
-  type: '`major` or `minor`. The Bigger one is major and the others are minor',
-  platform: 'string. Say `unknown` when it is not clear on the element',
-}), {multi: true});
-```
-
-The result would be like
-```typescript
-[
-  {
-    content: 'Download Mac Universal',
-    rect: { left: 432, top: 328, width: 232, height: 65 },
-    textsOnButton: 'Download Mac Universal', // <------ The data mentions in prompt
-    backgroundColor: 'blue',
-    type: 'major',
-    platform: 'Mac'
-  },
-  {
-    content: 'Download',
-    type: 'minor',
-    platform: 'unknown'
-    // ...
-  }
-]
-```
-
-You can also extract data from a section by using `query`.
-For example, if you want to get the service status from the github status page: 
-
-```typescript
-const result = await insightStatus.segment({
-  'services': query( // They are all the prompts being sent to the AI
-    'a list with service names and status',
-    { items: '{service: "service name as string", status: "string, like normal"}[]' },
-  ),
-});
-```
-
-Here is the return value:
-```typescript
-[
-  { service: 'Git Operations', status: 'Normal' },
-  { service: 'API Requests', status: 'Normal' },
-  { service: 'Webhooks', status: 'Normal' },
-  // ...
-]
-```
-
-#### Typed - Out-of-box TypeScript definitions
-
-The custom data shape you defined can have types assigned automatically. Simply use dot notation to access them.
-
-Let's take the `result` above as a sample. TypeScript will give you the basic type hint:
-```typescript 
-const result: {
-    services: UISection<{
-        items: unknown;
-    }>;
-}
-```
-
-By providing a generic type parameter, the return value can be explicitly specified.
-
-```typescript
-const result = await insight.segment({
-  'services': query<{items: {service: string, status: string}[]}>(
-    'a list with service names and status',
-    { items: '{service: "service name as string", status: "string, like normal"}[]' },
-  ),
-});
-
-const { items } = result.services;
-```
-
-TypeScript will give you the following definition:
-
-```typescript
-const items: {
-  service: string;
-  status: string;
-}[]
-```
-
-#### Segment - Customized UI splitting
-
-Describing the sections inside a page, and let AI help you to find them out.
-
-```typescript
-// The param map is also a prompt being sent to the AI model.
-const manySections = await insight.segment({
-  cookiePrompt: 'cookie prompt with its action buttons on the top of the page',
-  topRightWidgets: 'widgets on the top right corner',
-});
-```
-
-The data is as follows.
-
-```typescript
-{
-  cookiePrompt: {
-    texts: [ [Object], [Object], [Object], [Object], [Object], [Object] ],
-    rect: { left: 144, top: 8, width: 1655, height: 49 }
-  },
-  topRightWidgets: {
-    texts: [ [Object], [Object] ],
-    rect: { left: 1241, top: 64, width: 284, height: 50 }
-  },
-}
-```
-
-#### Online Visualization - Help to visualize your prompt
-
-With our visualization tool, you can easily debug the prompt and AI response. 
-
-All intermediate data, such as the query, coordinates, split reason, and custom data, can be visualized.
+With our visualization tool, you can easily debug the prompt and AI response. All intermediate data, such as queries, plans, and actions, can be visualized.
 
 You may open the [Online Visualization Tool](/visualization/index.html) to see the showcase.
 
 ![](/Visualizer.gif)
+
+## Flow Chart
+
+Here is a flowchart illustrating the core process of MidScene.
+
+![](/flow.png)

@@ -10,13 +10,13 @@ const envSmithDebug = 'MIDSCENE_LANGSMITH_DEBUG';
 
 let extraConfig: ClientOptions = {};
 if (typeof process.env[envConfigKey] === 'string') {
-  console.log('will use env config for openai');
+  console.log('config for openai loaded');
   extraConfig = JSON.parse(process.env[envConfigKey]);
 }
 
 let model = 'gpt-4o';
 if (typeof process.env[envModelKey] === 'string') {
-  console.log(`will use model: ${process.env[envModelKey]}`);
+  console.log(`model: ${process.env[envModelKey]}`);
   model = process.env[envModelKey];
 }
 
@@ -24,7 +24,7 @@ async function createOpenAI() {
   const openai = new OpenAI(extraConfig);
 
   if (process.env[envSmithDebug]) {
-    console.log('DEBUGGING MODE: using langsmith wrapper');
+    console.log('DEBUGGING MODE: langsmith wrapper enabled');
     const openai = wrapper.wrapOpenAI(new OpenAI());
     return openai;
   }

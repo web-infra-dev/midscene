@@ -3,7 +3,7 @@ pageType: home
 
 hero:
   name: MidScene.js
-  text: Joyful Automation
+  text: Joyful Automation by AI
   tagline: 
   actions:
     - theme: brand
@@ -16,20 +16,20 @@ hero:
     src: /midscene.png
     alt: MidScene Logo
 features:
-  - title: AI & Natural Language Query
-    details: You can now locate the elements by nature language. Just like someone is viewing your page. DOM selectors should no longer be necessary.
+  - title: Interact by Natural Language
+    details: Describe the steps, let MidScene plan and execute for you.
     icon: 🔍
   - title: Understand UI, Answer in JSON
-    details: By prompting AI with the data shape you want, you will receive a predictable answer, both in terms of JSON structure and value.
+    details: Provide prompts for the desired data format, and then receive the predictable answer in JSON format.
     icon: 🤔
-  - title: TypeScript-friendly
-    details: The custom data shape from AI can have types assigned automatically. Simply use dot notation to access them.
-    icon: ⌨️
-  - title: Out-of-box AI Model
-    details: It is fine to use GPT-4o. There is no need to do any custom training.
+  - title: AI Assertion
+    details: Make assertions in natural language. It’s all based on AI understanding.
+    icon: 🤔
+  - title: Public LLMs are Fine
+    details: It is fine to use public LLMs like GPT-4o. There is no need for any custom training.
     icon: 🪓
   - title: Visualization
-    details: With our visualization tool, you can easily debug the prompt and reasoning.
+    details: With our visualization tool, you can easily understand and debug the whole process.
     icon: 🎞️
   - title: Brand New Experience !
     details: Experience a whole new world of automation development. Enjoy !

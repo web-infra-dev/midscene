@@ -14,12 +14,5 @@
     "collapsed": false
   },
   "prompting-tips.md",
-  {
-    "type": "dir",
-    "name": "integration",
-    "label": "Integration",
-    "collapsible": false,
-    "collapsed": false
-  },
   "faq.md"
 ]

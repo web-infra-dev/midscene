@@ -9,15 +9,17 @@ vi.setConfig({
 
 describe('puppeteer integration', () => {
   it('basic launch', async () => {
-    const page = await launchPage('https://www.bing.com');
+    const page = await launchPage('https://www.ebay.com');
 
     const agent = new PuppeteerAgent(page);
 
-    await agent.aiAction('type "how much is the ferry ticket in Shanghai" in search box, hit Enter');
+    await agent.aiAction('type "Headphones" in search box, hit Enter');
     await sleep(5000);
 
-    const relatedSearch = await agent.aiQuery('string[], related search keywords on the right');
-    console.log('related search', relatedSearch);
-    expect(relatedSearch.length).toBeGreaterThan(3);
+    const items = await agent.aiQuery(
+      '{itemTitle: string, price: Number}[], find item in list and corresponding price',
+    );
+    console.log('related search', items);
+    expect(items.length).toBeGreaterThanOrEqual(2);
   });
 });

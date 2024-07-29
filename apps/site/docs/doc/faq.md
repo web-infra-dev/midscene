@@ -1,4 +1,4 @@
-# Q & A
+# FAQ
 
 #### About the token cost
 
@@ -13,19 +13,10 @@ Here are some typical data.
 
 The above price data was calculated in June 2024.
 
-#### How can I do assertions with MidScene ?
+#### The automation process is running more slowly than it did before
 
-MidScene.js is an SDK for UI understanding, rather than a testing framework. You should integrate it with a familiar testing framework.
+Since MidScene.js will invoke the AI each time it performs planning and querying, the running time may increase by a factor of 5 to 10. This is inevitable for now, but it may improve with advancements in LLMs.
 
-Here are some feasible ways:
-* Using Playwright, see [Integrate with Playwright](/doc/integration/playwright)
-* Using [Vitest](https://vitest.dev/) + [puppeteer](https://pptr.dev/), see [Integrate with Puppeteer](/doc/integration/puppeteer)
+Despite the increased time and cost, MidScene stands out in practical applications due to its unique development experience and easy-to-maintain codebase. We are confident that incorporating automation scripts powered by MidScene will significantly enhance your project’s efficiency, streamline complex tasks, and boost overall productivity. By integrating MidScene, your team can focus on more strategic and innovative activities, leading to faster development cycles and better outcomes.
 
-
-#### What's the "element" in MidScene ? 
-
-An element in MidScene is an object defined by MidScene. Currently, it contains only text elements, primarily consisting of text content and coordinates. It is different from elements in the browser, so you cannot call browser methods on it.
-
-#### Failed to interact with web page ?
-
-The coordinates returned from MidScene only represent their positions at the time they are collected. You should check the latest UI style when interacting with the UI.
+In short, it is worth the time and cost.

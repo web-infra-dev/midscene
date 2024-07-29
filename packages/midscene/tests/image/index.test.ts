@@ -43,7 +43,12 @@ describe('image utils', () => {
     // colorful
     const c = await trimImage(getFixture('colorful.png'));
     expect(c).toMatchSnapshot();
+
+    // 2x2
+    const small = await trimImage(getFixture('2x2.jpeg'));
+    expect(small).toBeNull();
   });
+
 
   it('align a sub-image', async () => {
     const file = getFixture('long-text.png');
