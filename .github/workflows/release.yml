@@ -1,0 +1,47 @@
+name: Release
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Release Version(minor,patch,preminor,prepatch)'
+        required: true
+        default: 'patch'
+      branch:
+        description: 'Release Branch(confirm release branch)'
+        required: true
+        default: 'main'
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [18.19.0]
+    steps:
+    - uses: actions/checkout@v2
+      with:
+        ref: ${{ github.event.inputs.branch }}
+    - name: Pushing to the protected branch 'protected'
+      uses: CasperWA/push-protected@v2
+      with:
+        token: ${{ secrets.PUSH_TO_PROTECTED_BRANCH }}
+        branch: ${{ github.event.inputs.branch }}
+    - name: Setup pnpm
+      uses: pnpm/action-setup@v2
+      with:
+        version: 9.3.0
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'pnpm'
+  
+    - name: Install dependencies
+      run: pnpm install --frozen-lockfile
+
+    - name: release
+      run: node ./scripts/release.js --version=${{ github.event.inputs.version }}
+      env:
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+          

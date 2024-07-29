@@ -86,6 +86,7 @@ output_resource
 tsconfig.tsbuildinfo
 
 .temp
+.output
 
 # emo infraDir: ''
 
@@ -97,7 +98,7 @@ playwright/.cache/
 
 # MidScene.js dump files
 midscene_run/
-
+midscene-report/
 __ai_responses__/
 
 

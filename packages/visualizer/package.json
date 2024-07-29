@@ -5,13 +5,16 @@
   "jsnext:source": "./src/index.ts",
   "main": "./dist/lib/index.js",
   "module": "./dist/es/index.js",
+  "files": [
+    "dist",
+    "README.md"
+  ],
   "scripts": {
     "dev": "modern dev",
     "build": "modern build",
     "build:watch": "modern build -w",
     "new": "modern new",
-    "upgrade": "modern upgrade",
-    "prepublishOnly": "modern release --doc-only"
+    "upgrade": "modern upgrade"
   },
   "dependencies": {
     "@ant-design/icons": "5.3.7",
@@ -28,8 +31,8 @@
   "devDependencies": {
     "@modern-js/module-tools": "^2.54.2",
     "@modern-js/plugin-module-doc": "^2.33.1",
-    "@types/react": "~18.2.22",
-    "@types/react-dom": "~18.2.7",
+    "@types/react": "18.3.3",
+    "@types/react-dom": "18.3.0",
     "react": "~18.2.0",
     "react-dom": "~18.2.0",
     "rimraf": "~3.0.2",

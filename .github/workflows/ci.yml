@@ -11,6 +11,9 @@ on:
 jobs:
   main:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [18.19.0]
 
     env:
       MIDSCENE_OPENAI_INIT_CONFIG_JSON: ${{ secrets.MIDSCENE_OPENAI_INIT_CONFIG_JSON }}

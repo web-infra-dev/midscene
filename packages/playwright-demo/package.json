@@ -1,7 +1,7 @@
 {
   "name": "midscene-playwright-demo",
   "private": true,
-  "version": "0.1.0",
+  "version": "0.0.1",
   "types": "./dist/types/index.d.ts",
   "jsnext:source": "./src/index.ts",
   "main": "./dist/lib/index.js",
@@ -19,7 +19,7 @@
   "devDependencies": {
     "@modern-js/module-tools": "2.56.1",
     "@modern-js/plugin-testing": "2.56.1",
-    "@playwright/test": "^1.44.1",
+    "@playwright/test": "1.44.1",
     "@types/jest": "~29.2.4",
     "@types/node": "~16.11.7",
     "eslint-plugin-prettier": "~4.2.1",

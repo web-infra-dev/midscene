@@ -1,11 +1,15 @@
 {
   "name": "@midscene/core",
   "description": "Hello, It's MidScene",
-  "version": "0.1.1",
+  "version": "0.0.1",
   "jsnext:source": "./src/index.ts",
   "main": "./dist/lib/index.js",
   "module": "./dist/es/index.js",
   "types": "./dist/types/index.d.ts",
+  "files": [
+    "dist",
+    "README.md"
+  ],
   "exports": {
     ".": {
       "types": "./dist/types/index.d.ts",
@@ -38,22 +42,22 @@
       "require": "./dist/lib/image.js"
     }
   },
-	"typesVersions": {
-		"*": {
-			".": [
-				"./dist/types/index.d.ts"
-			],
-			"utils": [
-				"./dist/types/utils.d.ts"
-			],
-			"ai-model": [
-				"./dist/types/ai-model.d.ts"
-			],
-			"image": [
-				"./dist/types/image.d.ts"
-			]
-		}
-	},
+  "typesVersions": {
+    "*": {
+      ".": [
+        "./dist/types/index.d.ts"
+      ],
+      "utils": [
+        "./dist/types/utils.d.ts"
+      ],
+      "ai-model": [
+        "./dist/types/ai-model.d.ts"
+      ],
+      "image": [
+        "./dist/types/image.d.ts"
+      ]
+    }
+  },
   "scripts": {
     "dev": "modern dev",
     "build": "modern build",

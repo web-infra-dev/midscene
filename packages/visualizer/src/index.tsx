@@ -4,16 +4,25 @@ import type { UploadProps } from 'antd';
 import { useEffect, useRef, useState } from 'react';
 import { Helmet } from '@modern-js/runtime/head';
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
+import { GroupedActionDump } from '@midscene/core';
 import Timeline from './component/timeline';
 import DetailPanel from './component/detail-panel';
-import logo from './component/assets/logo-plain.svg';
+import Logo from './component/assets/logo-plain.svg';
 import GlobalHoverPreview from './component/global-hover-preview';
-import { useExecutionDump, useInsightDump } from '@/component/store';
+// import ReactComponent from './global';
+import { useExecutionDump } from '@/component/store';
 import DetailSide from '@/component/detail-side';
 import Sidebar from '@/component/sidebar';
 
 const { Dragger } = Upload;
-const Index = (props: { hideLogo?: boolean }): JSX.Element => {
+
+export function Visualizer(props: {
+  hideLogo?: boolean;
+  logoAction?: () => void;
+  dump?: GroupedActionDump[];
+}): JSX.Element {
+  const { dump } = props;
+
   const executionDump = useExecutionDump((store) => store.dump);
   const setGroupedDump = useExecutionDump((store) => store.setGroupedDump);
   const reset = useExecutionDump((store) => store.reset);
@@ -21,6 +30,9 @@ const Index = (props: { hideLogo?: boolean }): JSX.Element => {
   const mainLayoutChangedRef = useRef(false);
 
   useEffect(() => {
+    if (dump) {
+      setGroupedDump(dump);
+    }
     return () => {
       reset();
     };
@@ -102,7 +114,7 @@ const Index = (props: { hideLogo?: boolean }): JSX.Element => {
       <div className="main-right uploader-wrapper">
         <Dragger className="uploader" {...uploadProps}>
           <p className="ant-upload-drag-icon">
-            <img src={logo} alt="Logo" style={{ width: 100, height: 100, margin: 'auto' }} />
+            <Logo style={{ width: 100, height: 100, margin: 'auto' }} />
           </p>
           <p className="ant-upload-text">
             Click or drag the{' '}
@@ -149,7 +161,7 @@ const Index = (props: { hideLogo?: boolean }): JSX.Element => {
         }}
       >
         <Panel maxSize={95} defaultSize={20}>
-          <Sidebar hideLogo={props?.hideLogo} />
+          <Sidebar hideLogo={props?.hideLogo} logoAction={props?.logoAction} />
         </Panel>
         <PanelResizeHandle
           onDragging={(isChanging) => {
@@ -205,6 +217,6 @@ const Index = (props: { hideLogo?: boolean }): JSX.Element => {
       <GlobalHoverPreview />
     </ConfigProvider>
   );
-};
+}
 
-export default Index;
+export default Visualizer;

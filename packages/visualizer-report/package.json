@@ -1,0 +1,53 @@
+{
+  "name": "@midscene/visualizer-report",
+  "version": "0.0.1",
+  "scripts": {
+    "reset": "npx rimraf ./**/node_modules",
+    "dev": "modern dev",
+    "build": "MODERNJS_DEPLOY=node modern deploy",
+    "start": "modern start",
+    "serve": "modern serve",
+    "new": "modern new",
+    "lint": "modern lint",
+    "upgrade": "modern upgrade"
+  },
+  "files": [
+    "dist",
+    ".output",
+    "README.md"
+  ],
+  "engines": {
+    "node": ">=16.18.1"
+  },
+  "lint-staged": {
+    "*.{js,jsx,ts,tsx,mjs,cjs}": [
+      "node --max_old_space_size=8192 ./node_modules/eslint/bin/eslint.js --fix --color --cache --quiet"
+    ]
+  },
+  "eslintIgnore": [
+    "node_modules/",
+    "dist/"
+  ],
+  "dependencies": {
+    "@modern-js/runtime": "2.56.2",
+    "@midscene/visualizer": "workspace:*",
+    "react": "~18.2.0",
+    "react-dom": "~18.2.0",
+    "antd": "5.19.3"
+  },
+  "devDependencies": {
+    "@modern-js/app-tools": "2.56.2",
+    "@modern-js/eslint-config": "2.56.2",
+    "@modern-js/tsconfig": "2.56.2",
+    "@modern-js-app/eslint-config": "2.56.2",
+    "typescript": "~5.0.4",
+    "@types/jest": "~29.2.4",
+    "@types/node": "~16.11.7",
+    "@types/react": "18.3.3",
+    "@types/react-dom": "18.3.0",
+    "lint-staged": "~13.1.0",
+    "prettier": "~2.8.1",
+    "husky": "~8.0.1",
+    "rimraf": "~3.0.2"
+  }
+}

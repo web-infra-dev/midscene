@@ -18,8 +18,16 @@ test('ai order', async ({ ai, aiQuery }) => {
   await ai('点击选好了按钮');
   await ai('点击右上角商品图标按钮');
 
-  // 随便滚动一下
-  await ai('滚动到最下面');
+  // // 随便滚动一下
+  // await ai('滚动到最下面');
+
+  const cardDetail = await aiQuery({
+    productName: '商品名称，在价格上面',
+    productPrice: '商品价格， string',
+    productDescription: '商品描述（饮品的各种参数，吸管、冰沙等），在价格下面',
+  });
+
+  expect(cardDetail.productName.indexOf('多肉葡萄')).toBeGreaterThanOrEqual(0);
 
   const cardDetail = await aiQuery({
     productName: '商品名称，在价格上面',
