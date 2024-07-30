@@ -1,0 +1,328 @@
+{
+  "taskFile": "ai-auto-todo.spec.ts:8",
+  "taskTitle": "ai todo",
+  "aiTasks": [
+    {
+      "type": "plan",
+      "prompt": "Enter \"Learn JS today\" in the task box, then press Enter to create",
+      "pageContext": {
+        "url": "",
+        "width": 1280,
+        "height": 720
+      },
+      "response": {
+        "plans": [
+          {
+            "thought": "The task box is clearly identified by the placeholder text 'What needs to be done?'. I will locate this input element for further actions.",
+            "type": "Locate",
+            "param": {
+              "prompt": "The input box with placeholder text 'What needs to be done?' in the center of the page."
+            }
+          },
+          {
+            "thought": "Entering 'Learn JS today' into the located input box.",
+            "type": "Input",
+            "param": {
+              "value": "Learn JS today"
+            }
+          },
+          {
+            "thought": "After entering the text, pressing Enter to create the task.",
+            "type": "KeyboardPress",
+            "param": {
+              "value": "Enter"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "type": "locate",
+      "prompt": "The task box is clearly identified by the placeholder text 'What needs to be done?'. I will locate this input element for further actions.",
+      "pageContext": {
+        "url": "",
+        "width": 1280,
+        "height": 720
+      },
+      "response": {
+        "elements": [
+          {
+            "reason": "The element with ID '2' matches the description because it is an input field with the placeholder text 'What needs to be done?', indicating the task input area.",
+            "text": "What needs to be done?",
+            "id": "2"
+          }
+        ],
+        "errors": []
+      }
+    },
+    {
+      "type": "plan",
+      "prompt": "Enter \"Learn Rust tomorrow\" in the task box, then press Enter to create",
+      "pageContext": {
+        "url": "",
+        "width": 1280,
+        "height": 720
+      },
+      "response": {
+        "plans": [
+          {
+            "thought": "To create a new task, we need to input text 'Learn Rust tomorrow' in the task entry box.",
+            "type": "Locate",
+            "param": {
+              "prompt": "The task box with the placeholder 'What needs to be done?'"
+            }
+          },
+          {
+            "thought": "Input task text.",
+            "type": "Input",
+            "param": {
+              "value": "Learn Rust tomorrow"
+            }
+          },
+          {
+            "thought": "Press Enter to create the task.",
+            "type": "KeyboardPress",
+            "param": {
+              "value": "Enter"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "type": "locate",
+      "prompt": "To create a new task, we need to input text 'Learn Rust tomorrow' in the task entry box.",
+      "pageContext": {
+        "url": "",
+        "width": 1280,
+        "height": 720
+      },
+      "response": {
+        "elements": [
+          {
+            "reason": "Based on the description 'To create a new task, we need to input text 'Learn JS today' in the task entry box,' the element needs to be an input field for entering tasks. The element with ID '2' matches this description as it has a placeholder 'What needs to be done?' and is of type 'INPUT Node'.",
+            "text": "What needs to be done?",
+            "id": "2"
+          }
+        ],
+        "errors": []
+      }
+    },
+    {
+      "type": "plan",
+      "prompt": "Enter \"Learning AI the day after tomorrow\" in the task box, then press Enter to create",
+      "pageContext": {
+        "url": "",
+        "width": 1280,
+        "height": 720
+      },
+      "response": {
+        "plans": [
+          {
+            "thought": "Locate the task input field to enter the new task",
+            "type": "Locate",
+            "param": {
+              "prompt": "The input field with the placeholder 'What needs to be done?'"
+            }
+          },
+          {
+            "thought": "Input the task 'Learning AI the day after tomorrow' into the task input field",
+            "type": "Input",
+            "param": {
+              "value": "Learning AI the day after tomorrow"
+            }
+          },
+          {
+            "thought": "Press Enter to add the new task to the list",
+            "type": "KeyboardPress",
+            "param": {
+              "value": "Enter"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "type": "locate",
+      "prompt": "Locate the task input field to enter the new task",
+      "pageContext": {
+        "url": "",
+        "width": 1280,
+        "height": 720
+      },
+      "response": {
+        "elements": [
+          {
+            "reason": "The input field for adding new tasks matches the description with placeholder text 'What needs to be done?'",
+            "text": "What needs to be done?",
+            "id": "2"
+          }
+        ],
+        "errors": []
+      }
+    },
+    {
+      "type": "plan",
+      "prompt": "Move your mouse over the second item in the task list and click the Delete button to the right of the second task",
+      "pageContext": {
+        "url": "",
+        "width": 1280,
+        "height": 720
+      },
+      "response": {
+        "plans": [
+          {
+            "thought": "Locate the second item in the task list.",
+            "type": "Locate",
+            "param": {
+              "prompt": "The task labeled 'Learn Rust tomorrow'."
+            }
+          },
+          {
+            "thought": "Hover over the second item in the task list to make the delete button visible.",
+            "type": "Hover",
+            "param": null
+          },
+          {
+            "thought": "Click the delete button to the right of the second task.",
+            "type": "Locate",
+            "param": {
+              "prompt": "The delete button to the right of the task labeled 'Learn Rust tomorrow'."
+            }
+          },
+          {
+            "thought": "Tap the delete button to remove the second task.",
+            "type": "Tap",
+            "param": null
+          }
+        ]
+      }
+    },
+    {
+      "type": "locate",
+      "prompt": "Locate the second item in the task list.",
+      "pageContext": {
+        "url": "",
+        "width": 1280,
+        "height": 720
+      },
+      "response": {
+        "elements": [
+          {
+            "reason": "The second item in the task list is \"Learn Rust tomorrow\" according to the image. In the element description, this matches with id '8'.",
+            "text": "Learn Rust tomorrow",
+            "id": "8"
+          }
+        ],
+        "errors": []
+      }
+    },
+    {
+      "type": "locate",
+      "prompt": "Click the delete button to the right of the second task.",
+      "pageContext": {
+        "url": "",
+        "width": 1280,
+        "height": 720
+      },
+      "response": {
+        "elements": [
+          {
+            "reason": "The element with id '9' is the delete button to the right of the 'Learn Rust tomorrow' task.",
+            "text": "×",
+            "id": "9"
+          }
+        ],
+        "errors": []
+      }
+    },
+    {
+      "type": "plan",
+      "prompt": "Click the check button to the left of the second task",
+      "pageContext": {
+        "url": "",
+        "width": 1280,
+        "height": 720
+      },
+      "response": {
+        "plans": [
+          {
+            "thought": "Based on the user's request, we need to locate and click the check button to the left of the second task titled 'Learning AI the day after tomorrow.' This task is feasible as the check button is identifiable in the provided JSON description of the elements.",
+            "type": "Locate",
+            "param": {
+              "prompt": "The check button to the left of the second task titled 'Learning AI the day after tomorrow', located at the coordinates (372, 269), a checkbox input element."
+            }
+          },
+          {
+            "thought": "Clicking the located check button to mark the task as completed.",
+            "type": "Tap",
+            "param": null
+          }
+        ]
+      }
+    },
+    {
+      "type": "locate",
+      "prompt": "Based on the user's request, we need to locate and click the check button to the left of the second task titled 'Learning AI the day after tomorrow.' This task is feasible as the check button is identifiable in the provided JSON description of the elements.",
+      "pageContext": {
+        "url": "",
+        "width": 1280,
+        "height": 720
+      },
+      "response": {
+        "elements": [
+          {
+            "reason": "The element matches the description, being the checkbox associated with the task titled 'Learning AI the day after tomorrow'.",
+            "text": "",
+            "id": "7"
+          }
+        ],
+        "errors": []
+      }
+    },
+    {
+      "type": "plan",
+      "prompt": "Click the completed Status button below the task list",
+      "pageContext": {
+        "url": "",
+        "width": 1280,
+        "height": 720
+      },
+      "response": {
+        "plans": [
+          {
+            "thought": "The user wants to interact with the 'Completed' status button located below the task list. This button is labeled as 'Completed' in the provided page context.",
+            "type": "Locate",
+            "param": {
+              "prompt": "The 'Completed' button below the task list, next to 'Active' and 'Clear completed'."
+            }
+          },
+          {
+            "thought": "Tap on the located 'Completed' button to fulfill the user request.",
+            "type": "Tap",
+            "param": null
+          }
+        ]
+      }
+    },
+    {
+      "type": "locate",
+      "prompt": "The user wants to interact with the 'Completed' status button located below the task list. This button is labeled as 'Completed' in the provided page context.",
+      "pageContext": {
+        "url": "",
+        "width": 1280,
+        "height": 720
+      },
+      "response": {
+        "elements": [
+          {
+            "reason": "This element is identified as the 'Completed' status button because it is located below the task list and labeled as 'Completed'.",
+            "text": "Completed",
+            "id": "13"
+          }
+        ],
+        "errors": []
+      }
+    }
+  ]
+}

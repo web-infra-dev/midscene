@@ -17,6 +17,7 @@ describe('TaskCache', () => {
     insightMock = {
       contextRetrieverFn: vi.fn(),
       locate: vi.fn(),
+      setAiVendorFn: vi.fn(),
     } as unknown as Insight<WebElementInfo>;
     taskCache = new TaskCache(insightMock);
     pageContext = { size: { width: 1024, height: 768 }, content: [], screenshotBase64: '' };
@@ -63,12 +64,7 @@ describe('TaskCache', () => {
   describe('locate', () => {
     it('should return cached locate result if available', async () => {
       const cachedLocate = {
-        output: {
-          element: { id: 'element1' } as WebElementInfo,
-        },
-        log: {
-          dump: undefined,
-        },
+        elements: [{ id: 'element1' }],
       } as LocateTask['response'];
       taskCache.cache = {
         aiTasks: [
@@ -92,12 +88,7 @@ describe('TaskCache', () => {
     it('should call locate function and cache the result if no valid cache', async () => {
       const locateElement = { id: 'newElement' } as WebElementInfo;
       const newLocate = {
-        output: {
-          element: locateElement,
-        },
-        log: {
-          dump: undefined,
-        },
+        elements: [locateElement],
       };
       (insightMock.contextRetrieverFn as Mock).mockResolvedValue(pageContext);
       (insightMock.locate as Mock).mockResolvedValue(locateElement);

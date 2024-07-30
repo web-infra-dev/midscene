@@ -16,6 +16,7 @@ import {
   BaseElement,
   DumpSubscriber,
   InsightExtractParam,
+  AIElementParseResponse,
 } from '@/types';
 
 const sortByOrder = (a: UISection, b: UISection) => {
@@ -26,8 +27,9 @@ const sortByOrder = (a: UISection, b: UISection) => {
   }
 };
 
-export interface FindElementOptions {
+export interface LocateOpts {
   multi?: boolean;
+  callAI?: typeof callAI<AIElementParseResponse>;
 }
 
 // export type UnwrapDataShape<T> = T extends EnhancedQuery<infer DataShape> ? DataShape : {};
@@ -64,9 +66,10 @@ export default class Insight<ElementType extends BaseElement = BaseElement> {
     }
   }
 
-  async locate(queryPrompt: string): Promise<ElementType | null>;
+  async locate(queryPrompt: string, opt?: { callAI: LocateOpts['callAI'] }): Promise<ElementType | null>;
   async locate(queryPrompt: string, opt: { multi: true }): Promise<ElementType[]>;
-  async locate(queryPrompt: string, opt?: FindElementOptions) {
+  async locate(queryPrompt: string, opt?: LocateOpts) {
+    const { callAI = this.aiVendorFn, multi = false } = opt || {};
     assert(queryPrompt, 'query is required for located');
     const dumpSubscriber = this.onceDumpUpdatedFn;
     this.onceDumpUpdatedFn = undefined;
@@ -74,9 +77,9 @@ export default class Insight<ElementType extends BaseElement = BaseElement> {
 
     const startTime = Date.now();
     const { parseResult, systemPrompt, elementById } = await AiInspectElement({
-      callAI: this.aiVendorFn,
+      callAI,
       context,
-      multi: Boolean(opt?.multi),
+      multi: Boolean(multi),
       findElementDescription: queryPrompt,
     });
     // const parseResult = await this.aiVendorFn<AIElementParseResponse>(msgs);

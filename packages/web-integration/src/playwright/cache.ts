@@ -4,22 +4,20 @@ import { writeDumpFile, getDumpDirPath } from '@midscene/core/utils';
 import { AiTaskCache } from '@/common/task-cache';
 
 export function writeTestCache(taskFile: string, taskTitle: string, taskCacheJson: AiTaskCache) {
-  if (process.env.MIDSCENE_CACHE === 'true') {
-    writeDumpFile({
-      fileName: `${taskFile}(${taskTitle})`,
-      fileExt: 'json',
-      fileContent: JSON.stringify(
-        {
-          taskFile,
-          taskTitle,
-          ...taskCacheJson,
-        },
-        null,
-        2,
-      ),
-      type: 'cache',
-    });
-  }
+  writeDumpFile({
+    fileName: `${taskFile}(${taskTitle})`,
+    fileExt: 'json',
+    fileContent: JSON.stringify(
+      {
+        taskFile,
+        taskTitle,
+        ...taskCacheJson,
+      },
+      null,
+      2,
+    ),
+    type: 'cache',
+  });
 }
 
 export function readTestCache(taskFile: string, taskTitle: string) {

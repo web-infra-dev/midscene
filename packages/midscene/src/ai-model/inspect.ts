@@ -8,7 +8,7 @@ export async function AiInspectElement<ElementType extends BaseElement = BaseEle
   context: UIContext<ElementType>;
   multi: boolean;
   findElementDescription: string;
-  callAI?: typeof callToGetJSONObject;
+  callAI?: typeof callToGetJSONObject<AIElementParseResponse>;
 }) {
   const { context, multi, findElementDescription, callAI = callToGetJSONObject } = options;
   const { screenshotBase64 } = context;
@@ -35,7 +35,7 @@ export async function AiInspectElement<ElementType extends BaseElement = BaseEle
       ],
     },
   ];
-  const parseResult = await callAI<AIElementParseResponse>(msgs);
+  const parseResult = await callAI(msgs);
   return {
     parseResult,
     elementById,

@@ -93,15 +93,17 @@ export class TaskCache {
     const locateCache = await this.readCache(pageContext, 'locate', userPrompt);
     let locateResult: LocateTask['response'] | undefined;
     const callAI = this.insight.aiVendorFn<AIElementParseResponse>;
-    const aiResponse = async (message: ChatCompletionMessageParam[]) => {
-      if (locateCache && !('plans' in locateCache)) {
-        return Promise.resolve(locateCache);
-      }
-      return await callAI(message);
-    };
-    const resetAiVendorFn = this.insight.setAiVendorFn<AIElementParseResponse>(aiResponse);
 
-    const element = await this.insight.locate(userPrompt);
+    const element = await this.insight.locate(userPrompt, {
+      callAI: async (message: ChatCompletionMessageParam[]) => {
+        if (locateCache && !('plans' in locateCache)) {
+          locateResult = locateCache;
+          return Promise.resolve(locateCache);
+        }
+        locateResult = await callAI(message);
+        return locateResult;
+      },
+    });
 
     if (locateResult) {
       this.newCache?.aiTasks.push({
@@ -110,9 +112,6 @@ export class TaskCache {
         pageContext: { url: '', width: pageContext.size.width, height: pageContext.size.height },
         response: locateResult,
       });
-    }
-    if (resetAiVendorFn) {
-      resetAiVendorFn();
     }
     return element;
   }
@@ -147,7 +146,7 @@ export class TaskCache {
       // The corresponding element cannot be found in the new context
       if (
         taskRes?.type === 'locate' &&
-        taskRes.response.elements.every((element) =>
+        taskRes.response?.elements.every((element) =>
           pageContext.content.some((contentElement) => contentElement.id === element.id),
         )
       ) {

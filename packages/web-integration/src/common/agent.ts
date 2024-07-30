@@ -15,7 +15,7 @@ export class PageAgent {
 
   actionAgent: PageTaskExecutor;
 
-  constructor(page: WebPage, opts: { testId: string; taskFile: string; cache?: AiTaskCache }) {
+  constructor(page: WebPage, opts: { testId?: string; taskFile?: string; cache?: AiTaskCache }) {
     this.page = page;
     this.dumps = [
       {
@@ -23,7 +23,7 @@ export class PageAgent {
         executions: [],
       },
     ];
-    this.testId = opts.testId || String(process.pid);
+    this.testId = opts?.testId || String(process.pid);
     this.actionAgent = new PageTaskExecutor(this.page, {
       cache: opts.cache || { aiTasks: [] },
     });
