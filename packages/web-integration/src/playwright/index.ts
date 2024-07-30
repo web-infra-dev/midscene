@@ -1,4 +1,5 @@
 import { randomUUID } from 'crypto';
+import type { Page as PlaywrightPage } from 'playwright';
 import { TestInfo, TestType } from '@playwright/test';
 import { PageTaskExecutor } from '../common/tasks';
 import { readTestCache, writeTestCache } from './cache';
@@ -44,10 +45,11 @@ export const PlaywrightAiFixture = () => {
   };
 
   return {
-    ai: async ({ page }: any, use: any, testInfo: TestInfo) => {
+    ai: async ({ page }: { page: PlaywrightPage }, use: any, testInfo: TestInfo) => {
       const { taskFile, taskTitle } = groupAndCaseForTest(testInfo);
       const agent = agentForPage(page, { testId: testInfo.testId, taskFile, taskTitle });
       await use(async (taskPrompt: string, opts?: { type?: 'action' | 'query' }) => {
+        await page.waitForLoadState('networkidle');
         const actionType = opts?.type || 'action';
         const result = await agent.ai(taskPrompt, actionType);
         return result;
@@ -64,10 +66,11 @@ export const PlaywrightAiFixture = () => {
         });
       }
     },
-    aiAction: async ({ page }: any, use: any, testInfo: TestInfo) => {
+    aiAction: async ({ page }: { page: PlaywrightPage }, use: any, testInfo: TestInfo) => {
       const { taskFile, taskTitle } = groupAndCaseForTest(testInfo);
       const agent = agentForPage(page, { testId: testInfo.testId, taskFile, taskTitle });
       await use(async (taskPrompt: string) => {
+        await page.waitForLoadState('networkidle');
         await agent.aiAction(taskPrompt);
       });
       if (agent.dumpFile) {
@@ -80,10 +83,11 @@ export const PlaywrightAiFixture = () => {
         });
       }
     },
-    aiQuery: async ({ page }: any, use: any, testInfo: TestInfo) => {
+    aiQuery: async ({ page }: { page: PlaywrightPage }, use: any, testInfo: TestInfo) => {
       const { taskFile, taskTitle } = groupAndCaseForTest(testInfo);
       const agent = agentForPage(page, { testId: testInfo.testId, taskFile, taskTitle });
       await use(async function (demand: any) {
+        await page.waitForLoadState('networkidle');
         const result = await agent.aiQuery(demand);
         return result;
       });
