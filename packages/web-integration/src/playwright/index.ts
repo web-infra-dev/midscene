@@ -34,11 +34,11 @@ export const PlaywrightAiFixture = () => {
     if (!idForPage) {
       idForPage = randomUUID();
       (page as any)[midSceneAgentKeyId] = idForPage;
-      const testCase = readTestCache(opts.taskFile, opts.taskTitle) || { aiTasks: [] };
+      // const testCase = readTestCache(opts.taskFile, opts.taskTitle) || { aiTasks: [] };
       pageAgentMap[idForPage] = new PageAgent(page, {
         testId: `${opts.testId}-${idForPage}`,
         taskFile: opts.taskFile,
-        cache: testCase,
+        // cache: testCase,
       });
     }
     return pageAgentMap[idForPage];
@@ -52,10 +52,10 @@ export const PlaywrightAiFixture = () => {
         await page.waitForLoadState('networkidle');
         const actionType = opts?.type || 'action';
         const result = await agent.ai(taskPrompt, actionType);
+        const taskCacheJson = agent.actionAgent.taskCache.generateTaskCache();
+        writeTestCache(taskFile, taskTitle, taskCacheJson);
         return result;
       });
-      const taskCacheJson = agent.actionAgent.taskCache.generateTaskCache();
-      writeTestCache(taskFile, taskTitle, taskCacheJson);
       if (agent.dumpFile) {
         testInfo.annotations.push({
           type: 'MIDSCENE_AI_ACTION',

@@ -146,7 +146,14 @@ export class TaskCache {
   async readCache(pageContext: UIContext<WebElementInfo>, type: 'plan' | 'locate', userPrompt: string) {
     if (this.cache) {
       const { aiTasks } = this.cache;
-      const taskRes = aiTasks.shift();
+      const index = aiTasks.findIndex((item) => item.prompt === userPrompt);
+
+      if (index === -1) {
+        return false;
+      }
+
+      const taskRes = aiTasks.splice(index, 1)[0];
+
       // The corresponding element cannot be found in the new context
       if (
         taskRes?.type === 'locate' &&
