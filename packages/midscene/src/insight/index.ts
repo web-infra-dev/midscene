@@ -282,4 +282,12 @@ export default class Insight<ElementType extends BaseElement = BaseElement> {
 
     return mergedData;
   }
+
+  setAiVendorFn<T>(aiVendorFn: typeof callAI<T>) {
+    const origin = this.aiVendorFn;
+    this.aiVendorFn<T> = aiVendorFn;
+    return () => {
+      this.aiVendorFn = origin;
+    };
+  }
 }

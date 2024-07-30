@@ -90,9 +90,21 @@ export class PageTaskExecutor {
               prompt: plan.thought,
             },
             executor: async (param) => {
-              const response = await this.taskCache.locate(param.prompt);
-              assert(response.output, `Element not found: ${param.prompt}`);
-              return response;
+              let insightDump: InsightDump | undefined;
+              const dumpCollector: DumpSubscriber = (dump) => {
+                insightDump = dump;
+              };
+              this.insight.onceDumpUpdatedFn = dumpCollector;
+              const element = await this.taskCache.locate(param.prompt);
+              assert(element, `Element not found: ${param.prompt}`);
+              return {
+                output: {
+                  element,
+                },
+                log: {
+                  dump: insightDump,
+                },
+              };
             },
           };
           return taskFind;

@@ -1,4 +1,5 @@
-import Insight, { DumpSubscriber, InsightDump, PlanningAction, UIContext, plan } from '@midscene/core';
+import Insight, { AIElementParseResponse, PlanningAction, UIContext, plan } from '@midscene/core';
+import { ChatCompletionMessageParam } from 'openai/resources';
 import { WebElementInfo } from '../web-element';
 
 type PlanTask = {
@@ -20,14 +21,7 @@ export type LocateTask = {
     width: number;
     height: number;
   };
-  response: {
-    output: {
-      element: WebElementInfo | null;
-    };
-    log: {
-      dump: InsightDump | undefined;
-    };
-  };
+  response: AIElementParseResponse;
 };
 
 export type AiTasks = Array<PlanTask | LocateTask>;
@@ -94,37 +88,33 @@ export class TaskCache {
    * @param userPrompt - The prompt information provided by the user
    * @return A Promise that resolves to the found WebElementInfo object or null if not found
    */
-  async locate(userPrompt: string): Promise<LocateTask['response']> {
+  async locate(userPrompt: string): Promise<WebElementInfo | null> {
     const pageContext = await this.insight.contextRetrieverFn();
     const locateCache = await this.readCache(pageContext, 'locate', userPrompt);
-    let locateResult: LocateTask['response'];
-    // If the cache is valid, return the cache
-    if (locateCache && !('plans' in locateCache)) {
-      locateResult = locateCache;
-    } else {
-      let insightDump: InsightDump | undefined;
-      const dumpCollector: DumpSubscriber = (dump) => {
-        insightDump = dump;
-      };
-      this.insight.onceDumpUpdatedFn = dumpCollector;
-      const element = await this.insight.locate(userPrompt);
-      locateResult = {
-        output: {
-          element,
-        },
-        log: {
-          dump: insightDump,
-        },
-      };
-    }
+    let locateResult: LocateTask['response'] | undefined;
+    const callAI = this.insight.aiVendorFn<AIElementParseResponse>;
+    const aiResponse = async (message: ChatCompletionMessageParam[]) => {
+      if (locateCache && !('plans' in locateCache)) {
+        return Promise.resolve(locateCache);
+      }
+      return await callAI(message);
+    };
+    const resetAiVendorFn = this.insight.setAiVendorFn<AIElementParseResponse>(aiResponse);
 
-    this.newCache?.aiTasks.push({
-      type: 'locate',
-      prompt: userPrompt,
-      pageContext: { url: '', width: pageContext.size.width, height: pageContext.size.height },
-      response: locateResult,
-    });
-    return locateResult;
+    const element = await this.insight.locate(userPrompt);
+
+    if (locateResult) {
+      this.newCache?.aiTasks.push({
+        type: 'locate',
+        prompt: userPrompt,
+        pageContext: { url: '', width: pageContext.size.width, height: pageContext.size.height },
+        response: locateResult,
+      });
+    }
+    if (resetAiVendorFn) {
+      resetAiVendorFn();
+    }
+    return element;
   }
 
   /**
@@ -157,7 +147,9 @@ export class TaskCache {
       // The corresponding element cannot be found in the new context
       if (
         taskRes?.type === 'locate' &&
-        !pageContext.content.find((e) => e.id === taskRes.response?.output.element?.id)
+        taskRes.response.elements.every((element) =>
+          pageContext.content.some((contentElement) => contentElement.id === element.id),
+        )
       ) {
         return false;
       }
