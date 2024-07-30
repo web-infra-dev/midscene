@@ -66,6 +66,7 @@
   "dependencies": {
     "openai": "4.47.1",
     "sharp": "0.33.3",
+    "inquirer": "10.1.5",
     "@midscene/core": "workspace:*",
     "@midscene/visualizer-report": "workspace:*"
   },

@@ -1,0 +1,320 @@
+{
+  "taskFile": "ai-xicha.spec.ts:10",
+  "taskTitle": "ai order",
+  "aiTasks": [
+    {
+      "type": "plan",
+      "prompt": "点击左上角语言切换按钮(英文、中文)，在弹出的下拉列表中点击中文",
+      "pageContext": {
+        "url": "",
+        "width": 400,
+        "height": 905
+      },
+      "response": {
+        "plans": [
+          {
+            "thought": "需要找到当前页面中的语言切换按钮。",
+            "type": "Locate",
+            "param": {
+              "prompt": "左上角标注为 English 的按钮"
+            }
+          },
+          {
+            "thought": "点击语言切换按钮，以显示下拉列表。",
+            "type": "Tap",
+            "param": null
+          },
+          {
+            "thought": "需要在下拉列表中找到中文选项并点击。",
+            "type": "Locate",
+            "param": {
+              "prompt": "显示的下拉列表中的中文选项"
+            }
+          },
+          {
+            "thought": "点击中文选项以切换语言。",
+            "type": "Tap",
+            "param": null
+          }
+        ]
+      }
+    },
+    {
+      "type": "locate",
+      "prompt": "需要找到当前页面中的语言切换按钮。",
+      "pageContext": {
+        "url": "",
+        "width": 400,
+        "height": 905
+      },
+      "response": {
+        "elements": [
+          {
+            "reason": "The element containing 'text English' matches the description of 'current page language switch button'. Its position and text content suggest it is the language switch button.",
+            "text": "English",
+            "id": "2"
+          }
+        ],
+        "errors": []
+      }
+    },
+    {
+      "type": "locate",
+      "prompt": "需要在下拉列表中找到中文选项并点击。",
+      "pageContext": {
+        "url": "",
+        "width": 400,
+        "height": 905
+      },
+      "response": {
+        "elements": [
+          {
+            "reason": "The element with ID 32 matches the description. The element is located in the dropdown list, indicates the Chinese option, and needs to be clicked.",
+            "text": "中文",
+            "id": "32"
+          }
+        ],
+        "errors": []
+      }
+    },
+    {
+      "type": "plan",
+      "prompt": "在向下滚动一屏",
+      "pageContext": {
+        "url": "",
+        "width": 400,
+        "height": 905
+      },
+      "response": {
+        "plans": [
+          {
+            "thought": "用户想要向下滚动一屏，页面上有下方的内容还未显示完全，符合用户需求。",
+            "type": "Scroll",
+            "param": {
+              "scrollType": "ScrollDown"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "type": "plan",
+      "prompt": "直接点击多肉葡萄的规格按钮",
+      "pageContext": {
+        "url": "",
+        "width": 400,
+        "height": 905
+      },
+      "response": {
+        "plans": [
+          {
+            "thought": "找到多肉葡萄的选规格按钮，这个按钮在页面中的位置显而易见。",
+            "type": "Locate",
+            "param": {
+              "prompt": "文本为'多肉葡萄（首创）'右侧的黄色按钮，带有'选规格'文本"
+            }
+          },
+          {
+            "thought": "点击多肉葡萄的选规格按钮以完成任务。",
+            "type": "Tap",
+            "param": null
+          }
+        ]
+      }
+    },
+    {
+      "type": "locate",
+      "prompt": "找到多肉葡萄的选规格按钮，这个按钮在页面中的位置显而易见。",
+      "pageContext": {
+        "url": "",
+        "width": 400,
+        "height": 905
+      },
+      "response": {
+        "elements": [
+          {
+            "reason": "The '选规格' button for '多肉葡萄(首创)' is the button closest to the description provided. According to the image and element information, the button is visible and prominently placed next to the specified product.",
+            "text": "选规格",
+            "id": "42"
+          }
+        ],
+        "errors": []
+      }
+    },
+    {
+      "type": "plan",
+      "prompt": "点击不使用吸管、点击冰沙推荐、点击正常冰推荐",
+      "pageContext": {
+        "url": "",
+        "width": 400,
+        "height": 905
+      },
+      "response": {
+        "plans": [
+          {
+            "thought": "The user asked to click on the checkbox labeled '不使用吸管'. This can be located by finding the checkbox element near the text '不使用吸管'.",
+            "type": "Locate",
+            "param": {
+              "prompt": "The checkbox near the text that reads '不使用吸管'"
+            }
+          },
+          {
+            "thought": "Click on the checkbox for '不使用吸管'.",
+            "type": "Tap",
+            "param": null
+          },
+          {
+            "thought": "The user asked to click on the checkbox labeled '冰沙（推荐）'. This can be located by finding the checkbox element near the text '冰沙（推荐）'.",
+            "type": "Locate",
+            "param": {
+              "prompt": "The checkbox near the text that reads '冰沙（推荐）'"
+            }
+          },
+          {
+            "thought": "Click on the checkbox for '冰沙（推荐）'.",
+            "type": "Tap",
+            "param": null
+          },
+          {
+            "thought": "The user asked to click on the checkbox labeled '正常冰（推荐）'. This can be located by finding the checkbox element near the text '正常冰（推荐）'.",
+            "type": "Locate",
+            "param": {
+              "prompt": "The checkbox near the text that reads '正常冰（推荐）'"
+            }
+          },
+          {
+            "thought": "Click on the checkbox for '正常冰（推荐）'.",
+            "type": "Tap",
+            "param": null
+          }
+        ]
+      }
+    },
+    {
+      "type": "locate",
+      "prompt": "The user asked to click on the checkbox labeled '不使用吸管'. This can be located by finding the checkbox element near the text '不使用吸管'.",
+      "pageContext": {
+        "url": "",
+        "width": 400,
+        "height": 905
+      },
+      "response": {
+        "elements": [
+          {
+            "reason": "The element with ID '70' matches the text '不使用吸管' and is paired with a checkbox element (ID '69').",
+            "text": "不使用吸管",
+            "id": "69"
+          }
+        ],
+        "errors": []
+      }
+    },
+    {
+      "type": "locate",
+      "prompt": "The user asked to click on the checkbox labeled '冰沙（推荐）'. This can be located by finding the checkbox element near the text '冰沙（推荐）'.",
+      "pageContext": {
+        "url": "",
+        "width": 400,
+        "height": 905
+      },
+      "response": {
+        "elements": [
+          {
+            "reason": "The checkbox labeled '冰沙（推荐）' is near the text '冰沙（推荐）'. The element with ID '73' has the text '冰沙（推荐）', and the closest checkbox is the one with ID '72' based on their 'top' positions in the rect data.",
+            "text": "冰沙（推荐）",
+            "id": "72"
+          }
+        ],
+        "errors": []
+      }
+    },
+    {
+      "type": "locate",
+      "prompt": "The user asked to click on the checkbox labeled '正常冰（推荐）'. This can be located by finding the checkbox element near the text '正常冰（推荐）'.",
+      "pageContext": {
+        "url": "",
+        "width": 400,
+        "height": 905
+      },
+      "response": {
+        "elements": [
+          {
+            "reason": "The checkbox with the label '正常冰（推荐）' is located at the bottom section of the selection list for ice amount, and the corresponding text content supports this.",
+            "text": "正常冰（推荐）",
+            "id": "77"
+          }
+        ],
+        "errors": []
+      }
+    },
+    {
+      "type": "plan",
+      "prompt": "向下滚动一屏",
+      "pageContext": {
+        "url": "",
+        "width": 400,
+        "height": 905
+      },
+      "response": {
+        "plans": [
+          {
+            "thought": "根据用户的需求，需要向下滚动一屏。",
+            "type": "Scroll",
+            "param": {
+              "scrollType": "ScrollDown"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "type": "plan",
+      "prompt": "点击标准甜、点击绿妍（推荐）、点击标准口味",
+      "pageContext": {
+        "url": "",
+        "width": 400,
+        "height": 905
+      },
+      "response": {
+        "plans": [
+          {
+            "thought": "根据用户需要点击标准甜（推荐），定位到‘标准甜（推荐）’选择框。",
+            "type": "Locate",
+            "param": {
+              "prompt": "标准甜（推荐）选择框"
+            }
+          },
+          {
+            "thought": "点击标准甜（推荐）选择框。",
+            "type": "Tap",
+            "param": null
+          },
+          {
+            "thought": "根据用户需要点击绿妍（推荐），定位到‘绿妍（推荐）’选择框。",
+            "type": "Locate",
+            "param": {
+              "prompt": "绿妍（推荐）选择框"
+            }
+          },
+          {
+            "thought": "点击绿妍（推荐）选择框。",
+            "type": "Tap",
+            "param": null
+          },
+          {
+            "thought": "根据用户需要点击标准口味（推荐），定位到‘标准口味（推荐）’选择框。",
+            "type": "Locate",
+            "param": {
+              "prompt": "标准口味（推荐）选择框"
+            }
+          },
+          {
+            "thought": "点击标准口味（推荐）选择框。",
+            "type": "Tap",
+            "param": null
+          }
+        ]
+      }
+    }
+  ]
+}
