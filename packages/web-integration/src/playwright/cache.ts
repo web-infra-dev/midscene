@@ -7,7 +7,15 @@ export function writeTestCache(taskFile: string, taskTitle: string, taskCacheJso
   writeDumpFile({
     fileName: `${taskFile}(${taskTitle})`,
     fileExt: 'json',
-    fileContent: JSON.stringify(taskCacheJson),
+    fileContent: JSON.stringify(
+      {
+        taskFile,
+        taskTitle,
+        ...taskCacheJson,
+      },
+      null,
+      2,
+    ),
     type: 'cache',
   });
 }

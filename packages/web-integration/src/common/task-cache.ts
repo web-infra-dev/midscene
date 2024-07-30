@@ -1,4 +1,4 @@
-import Insight, { PlanningAction, UIContext, plan } from '@midscene/core';
+import Insight, { DumpSubscriber, InsightDump, PlanningAction, UIContext, plan } from '@midscene/core';
 import { WebElementInfo } from '../web-element';
 
 type PlanTask = {
@@ -12,7 +12,7 @@ type PlanTask = {
   response: { plans: PlanningAction[] };
 };
 
-type LocateTask = {
+export type LocateTask = {
   type: 'locate';
   prompt: string;
   pageContext: {
@@ -20,7 +20,14 @@ type LocateTask = {
     width: number;
     height: number;
   };
-  response: WebElementInfo | null;
+  response: {
+    output: {
+      element: WebElementInfo | null;
+    };
+    log: {
+      dump: InsightDump | undefined;
+    };
+  };
 };
 
 export type AiTasks = Array<PlanTask | LocateTask>;
@@ -36,9 +43,9 @@ export class TaskCache {
 
   newCache: AiTaskCache;
 
-  constructor(insight: Insight<WebElementInfo>, opts: { cache: AiTaskCache }) {
+  constructor(insight: Insight<WebElementInfo>, opts?: { cache: AiTaskCache }) {
     this.insight = insight;
-    this.cache = opts.cache;
+    this.cache = opts?.cache;
     this.newCache = {
       aiTasks: [],
     };
@@ -87,15 +94,28 @@ export class TaskCache {
    * @param userPrompt - The prompt information provided by the user
    * @return A Promise that resolves to the found WebElementInfo object or null if not found
    */
-  async locate(userPrompt: string): Promise<WebElementInfo | null> {
+  async locate(userPrompt: string): Promise<LocateTask['response']> {
     const pageContext = await this.insight.contextRetrieverFn();
     const locateCache = await this.readCache(pageContext, 'locate', userPrompt);
-    let locateResult: WebElementInfo | null;
+    let locateResult: LocateTask['response'];
     // If the cache is valid, return the cache
     if (locateCache && !('plans' in locateCache)) {
       locateResult = locateCache;
     } else {
-      locateResult = await this.insight.locate(userPrompt);
+      let insightDump: InsightDump | undefined;
+      const dumpCollector: DumpSubscriber = (dump) => {
+        insightDump = dump;
+      };
+      this.insight.onceDumpUpdatedFn = dumpCollector;
+      const element = await this.insight.locate(userPrompt);
+      locateResult = {
+        output: {
+          element,
+        },
+        log: {
+          dump: insightDump,
+        },
+      };
     }
 
     this.newCache?.aiTasks.push({
@@ -128,7 +148,10 @@ export class TaskCache {
       const { aiTasks } = this.cache;
       const taskRes = aiTasks.shift();
       // The corresponding element cannot be found in the new context
-      if (taskRes?.type === 'locate' && !pageContext.content.find((e) => e.id === taskRes.response?.id)) {
+      if (
+        taskRes?.type === 'locate' &&
+        !pageContext.content.find((e) => e.id === taskRes.response?.output.element?.id)
+      ) {
         return false;
       }
       if (

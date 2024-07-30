@@ -19,7 +19,7 @@ export class PageAgent {
     this.page = page;
     this.dumps = [
       {
-        groupName: opts.taskFile || 'unnamed',
+        groupName: opts?.taskFile || 'unnamed',
         executions: [],
       },
     ];

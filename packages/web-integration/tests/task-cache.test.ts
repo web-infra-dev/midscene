@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, vi, Mock } from 'vitest';
 import Insight, { PlanningAction, UIContext, plan } from '@midscene/core';
-import { TaskCache } from '../src/common/task-cache'; // 假设 TaskCache 类在当前目录下
+import { LocateTask, TaskCache } from '../src/common/task-cache'; // 假设 TaskCache 类在当前目录下
 import { WebElementInfo } from '../src/web-element';
 
 // Mocking the dependencies
@@ -26,9 +26,6 @@ describe('TaskCache', () => {
     it('should return cached plan result if available', async () => {
       const cachedPlan = { plans: [{ thought: 'test', type: 'Locate', param: {} }] as PlanningAction[] };
       taskCache.cache = {
-        testFile: '',
-        testTitle: '',
-        testContentHash: '',
         aiTasks: [
           {
             type: 'plan',
@@ -65,11 +62,15 @@ describe('TaskCache', () => {
 
   describe('locate', () => {
     it('should return cached locate result if available', async () => {
-      const cachedLocate = { id: 'element1' } as WebElementInfo;
+      const cachedLocate = {
+        output: {
+          element: { id: 'element1' } as WebElementInfo,
+        },
+        log: {
+          dump: undefined,
+        },
+      } as LocateTask['response'];
       taskCache.cache = {
-        testFile: '',
-        testTitle: '',
-        testContentHash: '',
         aiTasks: [
           {
             type: 'locate',
@@ -89,9 +90,17 @@ describe('TaskCache', () => {
     });
 
     it('should call locate function and cache the result if no valid cache', async () => {
-      const newLocate = { id: 'newElement' } as WebElementInfo;
+      const locateElement = { id: 'newElement' } as WebElementInfo;
+      const newLocate = {
+        output: {
+          element: locateElement,
+        },
+        log: {
+          dump: undefined,
+        },
+      };
       (insightMock.contextRetrieverFn as Mock).mockResolvedValue(pageContext);
-      (insightMock.locate as Mock).mockResolvedValue(newLocate);
+      (insightMock.locate as Mock).mockResolvedValue(locateElement);
 
       const result = await taskCache.locate('newTestPrompt');
 
@@ -116,9 +125,6 @@ describe('TaskCache', () => {
         plans: [{ thought: 'test', type: 'Locate', param: {} }] as PlanningAction<any>[],
       };
       taskCache.cache = {
-        testFile: '',
-        testTitle: '',
-        testContentHash: '',
         aiTasks: [
           {
             type: 'plan',
