@@ -66,7 +66,7 @@ export const getTask = async (): Promise<void> => {
   }
 
   // Let the user select the JSON file to process
-  const selectedFile = await inquirer.prompt<SelectedFilePrompt>([
+  const { selectedFile } = await inquirer.prompt<SelectedFilePrompt>([
     {
       type: 'list',
       name: 'selectedFile',
@@ -76,7 +76,7 @@ export const getTask = async (): Promise<void> => {
   ] as any);
   console.log('selectedFile', selectedFile);
 
-  const filePath = path.join(targetDir, selectedFile.selectedFile);
+  const filePath = path.join(targetDir, selectedFile);
   const tasksFile: TasksFile = readJsonFile(filePath);
 
   // Provide options to select or exclude tasks
