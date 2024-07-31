@@ -1,6 +1,8 @@
 # Quick Start
 
-In this example, we use OpenAI GPT-4o and Puppeteer.js to search headphones on ebay, and then get the result items and prices in JSON format. Remember to prepare an OpenAI key that is eligible for accessing GPT-4o before running.
+In this example, we use OpenAI GPT-4o and Puppeteer.js to search headphones on ebay, and then get the result items and prices in JSON format. 
+
+Remember to prepare an OpenAI key that is eligible for accessing GPT-4o before running.
 
 > [Puppeteer](https://pptr.dev/) is a Node.js library which provides a high-level API to control Chrome or Firefox over the DevTools Protocol or WebDriver BiDi. Puppeteer runs in the headless (no visible UI) by default but can be configured to run in a visible ("headful") browser.
 
@@ -19,8 +21,7 @@ npm install @midscene/web --save-dev
 npm install puppeteer ts-node --save-dev 
 ```
 
-Write a simple demo to **extract the main download button of vscode website**.
-Save the following code as `./demo.ts`.
+Write and save the following code as `./demo.ts`.
 
 ```typescript
 import puppeteer, { Viewport } from 'puppeteer';
@@ -39,19 +40,30 @@ await page.waitForNavigation({
 });
 const page = await launchPage();
 
-// init MidScene agent
+// 👀 init MidScene agent 
 const mid = new PuppeteerAgent(page);
 
-// perform a search
+// 👀 perform a search
 await mid.aiAction('type "Headphones" in search box, hit Enter');
 await sleep(5000);
 
-// find the items
+// 👀 find the items
 const items = await mid.aiQuery(
   '{itemTitle: string, price: Number}[], find item in list and corresponding price',
 );
 console.log('headphones in stock', items);
 ```
+
+:::tip
+You may have noticed that the key lines of code for this only consist of two lines. They are all written in plain language.
+
+```typescript
+await mid.aiAction('type "Headphones" in search box, hit Enter');
+await mid.aiQuery(
+  '{itemTitle: string, price: Number}[], find item in list and corresponding price',
+);
+```
+:::
 
 Using ts-node to run, you will get the data of Headphones on ebay:
 

@@ -2,7 +2,7 @@
 
 ## config AI vendor
 
-MidScene uses the OpenAI SDK as the default AI service. Currently OpenAI GPT-4o seems to perform best. However, you can customize the caller configuration with environment variables.
+MidScene uses the OpenAI SDK as the default AI service. You can customize the configuration using environment variables.
 
 There are the main configs, in which `OPENAI_API_KEY` is required.
 
@@ -17,7 +17,7 @@ Optional:
 
 ```bash
 # optional, if you want to use a customized endpoint
-export OPENAI_BASE_URL="..."
+export OPENAI_BASE_URL="https://..."
 
 # optional, if you want to specify a model name other than gpt-4o
 export MIDSCENE_MODEL_NAME='claude-3-opus-20240229';
@@ -27,6 +27,8 @@ export MIDSCENE_OPENAI_INIT_CONFIG_JSON='{"baseURL":"....","defaultHeaders":{"ke
 ```
 
 ## Use in Puppeteer
+
+To initialize：
 
 ```typescript
 import { PuppeteerAgent } from '@midscene/web/puppeteer';
@@ -54,7 +56,7 @@ await page.waitForNavigation({
 
 // init MidScene agent, perform actions
 const mid = new PuppeteerAgent(page);
-await mid.ai('type "how much is the ferry ticket in Shanghai" in search box, hit Enter');
+await mid.ai('type "Headphones" in search box, hit Enter');
 ```
 
 ## Use in Playwright
@@ -63,7 +65,7 @@ await mid.ai('type "how much is the ferry ticket in Shanghai" in search box, hit
 
 > In the following documentation, you may see functions called with the `mid.` prefix. If you use destructuring in Playwright, like `async ({ ai, aiQuery }) => { /* ... */}`, you can call the functions without this prefix. It's just a matter of syntax.
 
-### `.aiAction(steps: string)` or `.ai(steps: string)` - perform your actions
+### `.aiAction(steps: string)` or `.ai(steps: string)` - Control the page
 
 You can use `.aiAction` to perform a series of actions. It accepts a `steps: string` as a parameter, which describes the actions. In the prompt, you should clearly describe the steps. MidScene will take care of the rest.
 
@@ -79,25 +81,23 @@ await mid.aiAction('Move your mouse over the second item in the task list and cl
 await mid.ai('Click the "completed" status button below the task list');
 ```
 
-Steps should always be clearly described. A very brief prompt like 'Tweet "Hello World"' will result in unstable performance and a high likelihood of failure. 
+Steps should always be clearly and thoroughly described. A very brief prompt like 'Tweet "Hello World"' will result in unstable performance and a high likelihood of failure. 
 
 Under the hood, MidScene will plan the detailed steps by sending your page context and a screenshot to the AI. After that, MidScene will execute the steps one by one. If MidScene deems it impossible to execute, an error will be thrown. 
 
-The main capabilities of MidScene are as follows, which can be seen in the visualization tools:
-1. **Planning**: Determine the steps to accomplish the task
-2. **Find**: Identify the target element using a natural language description
-3. **Action**: Tap, scroll, keyboard input, hover
-4. **Others**: Sleep
+The main capabilities of MidScene are as follows, and your task will be split into these types. You can see them in the visualization tools:
+
+1. **Locator**: Identify the target element using a natural language description
+2. **Action**: Tap, scroll, keyboard input, hover
+3. **Others**: Sleep
 
 Currently, MidScene can't plan steps that include conditions and loops.
 
-:::tip Why can't MidScene smartly plan the actions according to my one-line goal? 
+Related Docs:
+* [FAQ: Can MidScene smartly plan the actions according to my one-line goal? Like executing "Tweet 'hello world'](../more/faq.html)
+* [Tips for Prompting](../more/prompting-tips.html)
 
-MidScene aims to be an automation assistance SDK. Its action stability (i.e., perform the same actions on each run) is a key feature. To achieve this, we encourage you to write down detailed instructions to help the AI better understand each step of your task. If you want a 'goal-to-task' AI planning tool, you can build one on top of MidScene.
-
-:::
-
-### `.aiQuery(dataShape: any)` - extract any data from page
+### `.aiQuery(dataDemand: any)` - extract any data from page
 
 You can extract customized data from the UI. Provided that the multi-modal AI can perform inference, it can return both data directly written on the page and any data based on "understanding". The return value can be any valid primitive type, like String, Number, JSON, Array, etc. Just describe it in the `dataDemand`.
 
@@ -137,9 +137,6 @@ This method will soon be available in MidScene.
 LangSmith is a platform designed to debug the LLMs. To integrate LangSmith, please follow these steps:
 
 ```shell
-# install langsmith dependency
-npm i langsmith
-
 # set env variables
 
 # Flag to enable debug

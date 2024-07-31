@@ -13,6 +13,11 @@
     "collapsible": false,
     "collapsed": false
   },
-  "prompting-tips.md",
-  "faq.md"
+  {
+    "type": "dir",
+    "name": "more",
+    "label": "More",
+    "collapsible": false,
+    "collapsed": false
+  }
 ]
