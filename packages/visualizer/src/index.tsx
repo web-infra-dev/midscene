@@ -9,12 +9,13 @@ import Timeline from './component/timeline';
 import DetailPanel from './component/detail-panel';
 import Logo from './component/assets/logo-plain.svg';
 import GlobalHoverPreview from './component/global-hover-preview';
-// import ReactComponent from './global';
 import { useExecutionDump } from '@/component/store';
 import DetailSide from '@/component/detail-side';
 import Sidebar from '@/component/sidebar';
 
 const { Dragger } = Upload;
+
+let globalRenderCount = 1;
 
 export function Visualizer(props: {
   hideLogo?: boolean;
@@ -48,15 +49,6 @@ export function Visualizer(props: {
       window.removeEventListener('resize', onResize);
     };
   }, []);
-
-  // TODO
-  // const loadInsightDump = (dump: InsightDump) => {
-  //   console.log('will convert insight dump to execution dump');
-  //   const data = insightDumpToExecutionDump(dump);
-  //   console.log(data);
-
-  //   setExecutionDump(data);
-  // };
 
   const uploadProps: UploadProps = {
     name: 'file',
@@ -197,6 +189,33 @@ export function Visualizer(props: {
     );
   }
 
+  const [containerHeight, setContainerHeight] = useState('100%');
+  useEffect(() => {
+    const ifInRspressPage = document.querySelector('.rspress-nav');
+
+    // modify rspress theme
+    const navHeightKey = '--rp-nav-height';
+    const originalNavHeight = getComputedStyle(document.documentElement).getPropertyValue(navHeightKey);
+
+    if (ifInRspressPage) {
+      setContainerHeight('calc(100vh - 72px)');
+      document.documentElement.style.setProperty(navHeightKey, '42px');
+    }
+
+    // Cleanup function to revert the change
+    return () => {
+      if (ifInRspressPage) {
+        document.documentElement.style.setProperty(navHeightKey, originalNavHeight);
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      globalRenderCount += 1;
+    };
+  }, []);
+
   return (
     <ConfigProvider
       theme={{
@@ -213,7 +232,9 @@ export function Visualizer(props: {
       <Helmet>
         <title>MidScene.js - Visualization Tool</title>
       </Helmet>
-      <div className="page-container">{mainContent}</div>
+      <div className="page-container" key={`render-${globalRenderCount}`} style={{ height: containerHeight }}>
+        {mainContent}
+      </div>
       <GlobalHoverPreview />
     </ConfigProvider>
   );
