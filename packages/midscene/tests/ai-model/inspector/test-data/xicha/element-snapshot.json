@@ -1,9 +1,9 @@
 [
   {
-    "id": "922e98a196",
+    "id": "6ad26dfdca",
     "indexId": "1",
-    "nodeHashId": "922e98a196",
-    "locator": "[_midscene_retrieve_task_id='922e98a196']",
+    "nodeHashId": "6ad26dfdca",
+    "locator": "[_midscene_retrieve_task_id='6ad26dfdca']",
     "attributes": {
       "src": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACwAAAAsBAMAAADsqkcyAAAABGdBTUEAALGPC/xhBQAAAAFzUkdCAK7OHOkAAAAhUExURUxpcfOtAPOtAPSuAPSuAPStAPOvAPKsAO+vAO+vAPSuADVGh/QAAAAKdFJOUwA/gN/FmG9QECBSnvm3AAAAUElEQVQoz2NgGDSAURALEGCIWoUFLGVYhRUweGETXcIwTQkLyGAYZqDYGAtwZ7DCHlRYRRczlGAzxHy4BVUbtgSRiSv54EhsOJImjoQ8aAAAnI6GWHtsGtQAAAAASUVORK5CYII=",
       "class": ".icon",
@@ -22,14 +22,14 @@
     ]
   },
   {
-    "id": "83ffa89342",
+    "id": "ba59909699",
     "indexId": "2",
-    "nodeHashId": "83ffa89342",
+    "nodeHashId": "ba59909699",
     "attributes": {
       "class": ".lang-item-text.lang-show-text",
       "nodeType": "TEXT Node"
     },
-    "locator": "[_midscene_retrieve_task_id='83ffa89342']",
+    "locator": "[_midscene_retrieve_task_id='ba59909699']",
     "center": [
       81,
       28
@@ -43,10 +43,10 @@
     }
   },
   {
-    "id": "d9d2b2ef13",
+    "id": "f05ef98d09",
     "indexId": "3",
-    "nodeHashId": "d9d2b2ef13",
-    "locator": "[_midscene_retrieve_task_id='d9d2b2ef13']",
+    "nodeHashId": "f05ef98d09",
+    "locator": "[_midscene_retrieve_task_id='f05ef98d09']",
     "attributes": {
       "src": "https://dec-pub-img.obs.ap-southeast-3.myhuaweicloud.com/rfkle/16509415998546650.jpg",
       "class": ".img",
@@ -65,10 +65,10 @@
     ]
   },
   {
-    "id": "a525985342",
+    "id": "f775c69cb4",
     "indexId": "4",
-    "nodeHashId": "a525985342",
-    "locator": "[_midscene_retrieve_task_id='a525985342']",
+    "nodeHashId": "f775c69cb4",
+    "locator": "[_midscene_retrieve_task_id='f775c69cb4']",
     "attributes": {
       "src": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADIAAAAyCAYAAAAeP4ixAAAACXBIWXMAABYlAAAWJQFJUiTwAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAPeSURBVHgB7VlNTttAFH7PSauqqCqV+rPE7FCSSrlBHS5QeoLCCQonIJyA9ASkN+AE4GV3BDWQqBvCupUadqhK5vXN2E6m4BnbUWtbbT6JxMTjsb95733zzRhgiSWW+C+AaRtubHguVMGFHDHs+37atolEJIFKFY8IwIO8QTACxO5l/+QgqWklqcHLV+tnTLcJRQBhlT+95y/cm+/fRp9tTau2k7Wat82dufKYI/KRgI4hLwhwEXEfMfjmXzq25lYi4MwiMR70T3chZ9Tr3ioBHvLhqkzx4dAfmdo6to6IVGhlOMZQAMhJf18rES60teCLi64ACNLum6CYdiIFYyrmEXEEPLW1tRLBqNCJRlAAKuK31Hpma2snEtYIId5AAXj0aE6EMKxXA6yqxZKrLkage0XHivKeQ9ZhQRgLoPbwwv8EGaFPtiyxnYsvJ3v6+V7PH9caLXWMCUSMEWk2vdmFFKNaLIttRZTTz+GHgAXgVGE3cgycvrsbDc+71ygSGoI1a1+mE7e38xHAGCL6CFFB8qzDXCOa3AnnvvxOBc3SAJEyp5XqF2DuFIi6cSaRQgnm1HMtXS0uv8NLvxuFHQHfwAJgSXWjY4FgGAxU0Z5Nzqa+jCdQm4AmhgmRgkjIPI/Nbwtcl2sw8FBq1I2WnUSkmIsRQWG/UOJhFTq8DlAj5hAeqTVLSqw8cfbnhpTapnZci0H9Lapaum6bzJqUR0F0EN7IdSp4mkRGRqL+evNQqpS6D5CfIN2RkCxGRLvQqkiDC5+lVyNTxataffOIlwDNuwQaDe/D4xU8m5HglKIJ7Nj6B83n2QbJOCHK4kK5fkwhrZd9v11rePKu+8HNidcxuF1vtMYUpQaBK4IHC/8ln6awY7PmWWCOSEbnK8mICa1z4fvRb2rCZALqb44xR2Rv0PdbaUikdcD2hVVGhA/WUingsO1gg8ADoVwrR6bHxM6zbChISAfshMNtc8BGIsr5krIOmQ1jSKgLfwDKAc/zxuiAzfI7n4B+QIHQ08/mgM3yG6kWwjWUBJiVSJLzzR0pHHAskSTnW0bEp1aC880baRxwqTcfZiC6Dr4y1ojufKeiVKmVjYjufCslIDJzF1lVK43zzROa4GSeR1I537ygb52aHHB8RAre870LSjGg8REJnS+UJSL6gBoccNKWaTkUS9szMDlgA5Fw5wIKelN1B2zjveiYJ+hYNx5r4xHEOX9u8eFqrd66Yko+FAie0bd4UNUMf/sAerFt4n6UpvHnBE+hJBGJMJnSu68D/zjunPGtbkAG5CbBWx6SxK2hvwn5WoMjcpB1dbnEEkv8g/gF7BF6kDDXbdkAAAAASUVORK5CYII=",
       "class": ".icon",
@@ -87,13 +87,13 @@
     ]
   },
   {
-    "id": "017f62d0f8",
+    "id": "67bd3fba57",
     "indexId": "5",
-    "nodeHashId": "017f62d0f8",
+    "nodeHashId": "67bd3fba57",
     "attributes": {
       "nodeType": "TEXT Node"
     },
-    "locator": "[_midscene_retrieve_task_id='017f62d0f8']",
+    "locator": "[_midscene_retrieve_task_id='67bd3fba57']",
     "center": [
       200,
       80
@@ -107,13 +107,13 @@
     }
   },
   {
-    "id": "2e84c1cd56",
+    "id": "c900f4b633",
     "indexId": "6",
-    "nodeHashId": "2e84c1cd56",
+    "nodeHashId": "c900f4b633",
     "attributes": {
       "nodeType": "TEXT Node"
     },
-    "locator": "[_midscene_retrieve_task_id='2e84c1cd56']",
+    "locator": "[_midscene_retrieve_task_id='c900f4b633']",
     "center": [
       209,
       98
@@ -127,13 +127,13 @@
     }
   },
   {
-    "id": "d54886a117",
+    "id": "6f761c984e",
     "indexId": "7",
-    "nodeHashId": "d54886a117",
+    "nodeHashId": "6f761c984e",
     "attributes": {
       "nodeType": "TEXT Node"
     },
-    "locator": "[_midscene_retrieve_task_id='d54886a117']",
+    "locator": "[_midscene_retrieve_task_id='6f761c984e']",
     "center": [
       209,
       133
@@ -147,10 +147,10 @@
     }
   },
   {
-    "id": "b5ec66f05c",
+    "id": "49118bbc89",
     "indexId": "8",
-    "nodeHashId": "b5ec66f05c",
-    "locator": "[_midscene_retrieve_task_id='b5ec66f05c']",
+    "nodeHashId": "49118bbc89",
+    "locator": "[_midscene_retrieve_task_id='49118bbc89']",
     "attributes": {
       "src": "https://dec-pub-img.obs.ap-southeast-3.myhuaweicloud.com/rfkle/16558697767831080.jpeg",
       "nodeType": "IMG Node"
@@ -168,13 +168,13 @@
     ]
   },
   {
-    "id": "7ea2ef875a",
+    "id": "31c3a4bba6",
     "indexId": "9",
-    "nodeHashId": "7ea2ef875a",
+    "nodeHashId": "31c3a4bba6",
     "attributes": {
       "nodeType": "TEXT Node"
     },
-    "locator": "[_midscene_retrieve_task_id='7ea2ef875a']",
+    "locator": "[_midscene_retrieve_task_id='31c3a4bba6']",
     "center": [
       200,
       482
@@ -188,13 +188,13 @@
     }
   },
   {
-    "id": "473b1ded7d",
+    "id": "079f969064",
     "indexId": "10",
-    "nodeHashId": "473b1ded7d",
+    "nodeHashId": "079f969064",
     "attributes": {
       "nodeType": "TEXT Node"
     },
-    "locator": "[_midscene_retrieve_task_id='473b1ded7d']",
+    "locator": "[_midscene_retrieve_task_id='079f969064']",
     "center": [
       128,
       569
@@ -208,13 +208,13 @@
     }
   },
   {
-    "id": "f5802f6ed9",
+    "id": "b0931353bd",
     "indexId": "11",
-    "nodeHashId": "f5802f6ed9",
+    "nodeHashId": "b0931353bd",
     "attributes": {
       "nodeType": "TEXT Node"
     },
-    "locator": "[_midscene_retrieve_task_id='f5802f6ed9']",
+    "locator": "[_midscene_retrieve_task_id='b0931353bd']",
     "center": [
       200,
       569
@@ -228,13 +228,13 @@
     }
   },
   {
-    "id": "89fc0b0d35",
+    "id": "afab9cd02f",
     "indexId": "12",
-    "nodeHashId": "89fc0b0d35",
+    "nodeHashId": "afab9cd02f",
     "attributes": {
       "nodeType": "TEXT Node"
     },
-    "locator": "[_midscene_retrieve_task_id='89fc0b0d35']",
+    "locator": "[_midscene_retrieve_task_id='afab9cd02f']",
     "center": [
       272,
       569
@@ -248,13 +248,13 @@
     }
   },
   {
-    "id": "3d75e7ffed",
+    "id": "88e7fb5aed",
     "indexId": "13",
-    "nodeHashId": "3d75e7ffed",
+    "nodeHashId": "88e7fb5aed",
     "attributes": {
       "nodeType": "TEXT Node"
     },
-    "locator": "[_midscene_retrieve_task_id='3d75e7ffed']",
+    "locator": "[_midscene_retrieve_task_id='88e7fb5aed']",
     "center": [
       29,
       623
@@ -268,13 +268,13 @@
     }
   },
   {
-    "id": "421b8a6b81",
+    "id": "cee3c6676f",
     "indexId": "14",
-    "nodeHashId": "421b8a6b81",
+    "nodeHashId": "cee3c6676f",
     "attributes": {
       "nodeType": "TEXT Node"
     },
-    "locator": "[_midscene_retrieve_task_id='421b8a6b81']",
+    "locator": "[_midscene_retrieve_task_id='cee3c6676f']",
     "center": [
       35,
       683
@@ -288,13 +288,13 @@
     }
   },
   {
-    "id": "1c97ba3453",
+    "id": "512ab699a2",
     "indexId": "15",
-    "nodeHashId": "1c97ba3453",
+    "nodeHashId": "512ab699a2",
     "attributes": {
       "nodeType": "TEXT Node"
     },
-    "locator": "[_midscene_retrieve_task_id='1c97ba3453']",
+    "locator": "[_midscene_retrieve_task_id='512ab699a2']",
     "center": [
       35,
       743
@@ -308,13 +308,13 @@
     }
   },
   {
-    "id": "3e1d602a7f",
+    "id": "3948acb8ad",
     "indexId": "16",
-    "nodeHashId": "3e1d602a7f",
+    "nodeHashId": "3948acb8ad",
     "attributes": {
       "nodeType": "TEXT Node"
     },
-    "locator": "[_midscene_retrieve_task_id='3e1d602a7f']",
+    "locator": "[_midscene_retrieve_task_id='3948acb8ad']",
     "center": [
       23,
       803
@@ -328,13 +328,13 @@
     }
   },
   {
-    "id": "99bb9bb316",
+    "id": "985ed5922f",
     "indexId": "17",
-    "nodeHashId": "99bb9bb316",
+    "nodeHashId": "985ed5922f",
     "attributes": {
       "nodeType": "TEXT Node"
     },
-    "locator": "[_midscene_retrieve_task_id='99bb9bb316']",
+    "locator": "[_midscene_retrieve_task_id='985ed5922f']",
     "center": [
       23,
       863
@@ -348,13 +348,13 @@
     }
   },
   {
-    "id": "f3f15f2dcb",
+    "id": "e54bc06de4",
     "indexId": "18",
-    "nodeHashId": "f3f15f2dcb",
+    "nodeHashId": "e54bc06de4",
     "attributes": {
       "nodeType": "TEXT Node"
     },
-    "locator": "[_midscene_retrieve_task_id='f3f15f2dcb']",
+    "locator": "[_midscene_retrieve_task_id='e54bc06de4']",
     "center": [
       126,
       633
@@ -368,10 +368,10 @@
     }
   },
   {
-    "id": "294b5a7cf5",
+    "id": "02bf1e20e5",
     "indexId": "19",
-    "nodeHashId": "294b5a7cf5",
-    "locator": "[_midscene_retrieve_task_id='294b5a7cf5']",
+    "nodeHashId": "02bf1e20e5",
+    "locator": "[_midscene_retrieve_task_id='02bf1e20e5']",
     "attributes": {
       "src": "https://dec-pub-img.obs.ap-southeast-3.myhuaweicloud.com/djlxq/16509428649460869.jpeg",
       "class": ".img",
@@ -390,13 +390,13 @@
     ]
   },
   {
-    "id": "d071bab206",
+    "id": "c93bedf4d3",
     "indexId": "20",
-    "nodeHashId": "d071bab206",
+    "nodeHashId": "c93bedf4d3",
     "attributes": {
       "nodeType": "TEXT Node"
     },
-    "locator": "[_midscene_retrieve_task_id='d071bab206']",
+    "locator": "[_midscene_retrieve_task_id='c93bedf4d3']",
     "center": [
       288,
       670
@@ -410,14 +410,14 @@
     }
   },
   {
-    "id": "9bfbd170a4",
+    "id": "1b673db570",
     "indexId": "21",
-    "nodeHashId": "9bfbd170a4",
+    "nodeHashId": "1b673db570",
     "attributes": {
       "class": ".van-ellipsis",
       "nodeType": "TEXT Node"
     },
-    "locator": "[_midscene_retrieve_task_id='9bfbd170a4']",
+    "locator": "[_midscene_retrieve_task_id='1b673db570']",
     "center": [
       288,
       691
@@ -431,14 +431,14 @@
     }
   },
   {
-    "id": "3fb89d359f",
+    "id": "14103376fb",
     "indexId": "22",
-    "nodeHashId": "3fb89d359f",
+    "nodeHashId": "14103376fb",
     "attributes": {
       "class": ".price",
       "nodeType": "TEXT Node"
     },
-    "locator": "[_midscene_retrieve_task_id='3fb89d359f']",
+    "locator": "[_midscene_retrieve_task_id='14103376fb']",
     "center": [
       211,
       736
@@ -452,14 +452,14 @@
     }
   },
   {
-    "id": "ae0ba24c99",
+    "id": "580cfae23c",
     "indexId": "23",
-    "nodeHashId": "ae0ba24c99",
+    "nodeHashId": "580cfae23c",
     "attributes": {
       "class": ".handle-btn",
       "nodeType": "TEXT Node"
     },
-    "locator": "[_midscene_retrieve_task_id='ae0ba24c99']",
+    "locator": "[_midscene_retrieve_task_id='580cfae23c']",
     "center": [
       355,
       732
@@ -473,13 +473,13 @@
     }
   },
   {
-    "id": "e579cdc4f3",
+    "id": "7f10fa6626",
     "indexId": "24",
-    "nodeHashId": "e579cdc4f3",
+    "nodeHashId": "7f10fa6626",
     "attributes": {
       "nodeType": "TEXT Node"
     },
-    "locator": "[_midscene_retrieve_task_id='e579cdc4f3']",
+    "locator": "[_midscene_retrieve_task_id='7f10fa6626']",
     "center": [
       134,
       776
@@ -493,10 +493,10 @@
     }
   },
   {
-    "id": "601f9881f4",
+    "id": "eb294263b8",
     "indexId": "25",
-    "nodeHashId": "601f9881f4",
-    "locator": "[_midscene_retrieve_task_id='601f9881f4']",
+    "nodeHashId": "eb294263b8",
+    "locator": "[_midscene_retrieve_task_id='eb294263b8']",
     "attributes": {
       "src": "https://dec-pub-img.obs.ap-southeast-3.myhuaweicloud.com/djlxq/16509428062990437.jpeg",
       "class": ".img",
@@ -515,13 +515,13 @@
     ]
   },
   {
-    "id": "0d1b4d3ea4",
+    "id": "2e297d0b4a",
     "indexId": "26",
-    "nodeHashId": "0d1b4d3ea4",
+    "nodeHashId": "2e297d0b4a",
     "attributes": {
       "nodeType": "TEXT Node"
     },
-    "locator": "[_midscene_retrieve_task_id='0d1b4d3ea4']",
+    "locator": "[_midscene_retrieve_task_id='2e297d0b4a']",
     "center": [
       288,
       813
@@ -535,14 +535,14 @@
     }
   },
   {
-    "id": "1316f3c07a",
+    "id": "9f0e2a5328",
     "indexId": "27",
-    "nodeHashId": "1316f3c07a",
+    "nodeHashId": "9f0e2a5328",
     "attributes": {
       "class": ".van-ellipsis",
       "nodeType": "TEXT Node"
     },
-    "locator": "[_midscene_retrieve_task_id='1316f3c07a']",
+    "locator": "[_midscene_retrieve_task_id='9f0e2a5328']",
     "center": [
       288,
       834
@@ -556,14 +556,14 @@
     }
   },
   {
-    "id": "c4300a7c45",
+    "id": "0250e12e67",
     "indexId": "28",
-    "nodeHashId": "c4300a7c45",
+    "nodeHashId": "0250e12e67",
     "attributes": {
       "class": ".price",
       "nodeType": "TEXT Node"
     },
-    "locator": "[_midscene_retrieve_task_id='c4300a7c45']",
+    "locator": "[_midscene_retrieve_task_id='0250e12e67']",
     "center": [
       211,
       879
@@ -577,14 +577,14 @@
     }
   },
   {
-    "id": "a50d88f84c",
+    "id": "925c254744",
     "indexId": "29",
-    "nodeHashId": "a50d88f84c",
+    "nodeHashId": "925c254744",
     "attributes": {
       "class": ".handle-btn",
       "nodeType": "TEXT Node"
     },
-    "locator": "[_midscene_retrieve_task_id='a50d88f84c']",
+    "locator": "[_midscene_retrieve_task_id='925c254744']",
     "center": [
       355,
       875
@@ -598,10 +598,10 @@
     }
   },
   {
-    "id": "df4f252aab",
+    "id": "cad3004a2d",
     "indexId": "30",
-    "nodeHashId": "df4f252aab",
-    "locator": "[_midscene_retrieve_task_id='df4f252aab']",
+    "nodeHashId": "cad3004a2d",
+    "locator": "[_midscene_retrieve_task_id='cad3004a2d']",
     "attributes": {
       "src": "/img/customer.8a8d9dc9.png",
       "nodeType": "IMG Node"

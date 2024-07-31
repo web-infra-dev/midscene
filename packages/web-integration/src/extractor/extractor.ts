@@ -73,7 +73,7 @@ export function extractTextWithPositionDFS(initNode: Node = container): ElementI
 
     if (isInputElement(node)) {
       const attributes = getNodeAttributes(node);
-      const nodeHashId = generateHash(attributes.placeholder, rect, attributes);
+      const nodeHashId = generateHash(attributes.placeholder, rect);
       const selector = setDataForNode(node, nodeHashId);
       elementInfoArray.push({
         id: nodeHashId,
@@ -95,7 +95,7 @@ export function extractTextWithPositionDFS(initNode: Node = container): ElementI
       const attributes = getNodeAttributes(node);
       const pseudo = getPseudoElementContent(node);
       const content = node.innerText || pseudo.before || pseudo.after || '';
-      const nodeHashId = generateHash(content, rect, attributes);
+      const nodeHashId = generateHash(content, rect);
       const selector = setDataForNode(node, nodeHashId);
       elementInfoArray.push({
         id: nodeHashId,
@@ -115,7 +115,7 @@ export function extractTextWithPositionDFS(initNode: Node = container): ElementI
 
     if (isImgElement(node)) {
       const attributes = getNodeAttributes(node);
-      const nodeHashId = generateHash('', rect, attributes);
+      const nodeHashId = generateHash('', rect);
       const selector = setDataForNode(node, nodeHashId);
       elementInfoArray.push({
         id: nodeHashId,
@@ -160,7 +160,7 @@ export function extractTextWithPositionDFS(initNode: Node = container): ElementI
         return;
       }
       const attributes = getNodeAttributes(node);
-      const nodeHashId = generateHash(text, rect, attributes);
+      const nodeHashId = generateHash(text, rect);
       const selector = setDataForNode(node, nodeHashId);
       elementInfoArray.push({
         id: nodeHashId,

@@ -1,5 +1,4 @@
 // import { TEXT_MAX_SIZE } from './constants';
-// @ts-expect-error
 import SHA256 from 'js-sha256';
 
 export function logger(..._msg: any[]): void {
@@ -161,11 +160,14 @@ export function getNodeAttributes(node: HTMLElement | Node): Record<string, stri
   return Object.fromEntries(attributesList);
 }
 
-export function generateHash(content: string, rect: any, attributes: any): string {
+export function generateHash(content: string, rect: any): string {
   // Combine the input into a string
-  const combined = JSON.stringify({ content, rect, attributes });
+  const combined = JSON.stringify({ content, rect });
   // Generates the ha-256 hash value
+  // @ts-expect-error
   const hashHex = SHA256(combined);
   // Returns the first 10 characters as a short hash
   return hashHex.slice(0, 10);
 }
+
+(window as any).generateHash = generateHash;
