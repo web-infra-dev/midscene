@@ -1,7 +1,9 @@
 [
   {
-    "id": "1",
-    "locator": "[_midscene_retrieve_task_id='1']",
+    "id": "922e98a196",
+    "indexId": "1",
+    "nodeHashId": "922e98a196",
+    "locator": "[_midscene_retrieve_task_id='922e98a196']",
     "attributes": {
       "src": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACwAAAAsBAMAAADsqkcyAAAABGdBTUEAALGPC/xhBQAAAAFzUkdCAK7OHOkAAAAhUExURUxpcfOtAPOtAPSuAPSuAPStAPOvAPKsAO+vAO+vAPSuADVGh/QAAAAKdFJOUwA/gN/FmG9QECBSnvm3AAAAUElEQVQoz2NgGDSAURALEGCIWoUFLGVYhRUweGETXcIwTQkLyGAYZqDYGAtwZ7DCHlRYRRczlGAzxHy4BVUbtgSRiSv54EhsOJImjoQ8aAAAnI6GWHtsGtQAAAAASUVORK5CYII=",
       "class": ".icon",
@@ -20,12 +22,14 @@
     ]
   },
   {
-    "id": "2",
+    "id": "83ffa89342",
+    "indexId": "2",
+    "nodeHashId": "83ffa89342",
     "attributes": {
       "class": ".lang-item-text.lang-show-text",
       "nodeType": "TEXT Node"
     },
-    "locator": "[_midscene_retrieve_task_id='2']",
+    "locator": "[_midscene_retrieve_task_id='83ffa89342']",
     "center": [
       81,
       28
@@ -39,8 +43,10 @@
     }
   },
   {
-    "id": "3",
-    "locator": "[_midscene_retrieve_task_id='3']",
+    "id": "d9d2b2ef13",
+    "indexId": "3",
+    "nodeHashId": "d9d2b2ef13",
+    "locator": "[_midscene_retrieve_task_id='d9d2b2ef13']",
     "attributes": {
       "src": "https://dec-pub-img.obs.ap-southeast-3.myhuaweicloud.com/rfkle/16509415998546650.jpg",
       "class": ".img",
@@ -59,8 +65,10 @@
     ]
   },
   {
-    "id": "4",
-    "locator": "[_midscene_retrieve_task_id='4']",
+    "id": "a525985342",
+    "indexId": "4",
+    "nodeHashId": "a525985342",
+    "locator": "[_midscene_retrieve_task_id='a525985342']",
     "attributes": {
       "src": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADIAAAAyCAYAAAAeP4ixAAAACXBIWXMAABYlAAAWJQFJUiTwAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAPeSURBVHgB7VlNTttAFH7PSauqqCqV+rPE7FCSSrlBHS5QeoLCCQonIJyA9ASkN+AE4GV3BDWQqBvCupUadqhK5vXN2E6m4BnbUWtbbT6JxMTjsb95733zzRhgiSWW+C+AaRtubHguVMGFHDHs+37atolEJIFKFY8IwIO8QTACxO5l/+QgqWklqcHLV+tnTLcJRQBhlT+95y/cm+/fRp9tTau2k7Wat82dufKYI/KRgI4hLwhwEXEfMfjmXzq25lYi4MwiMR70T3chZ9Tr3ioBHvLhqkzx4dAfmdo6to6IVGhlOMZQAMhJf18rES60teCLi64ACNLum6CYdiIFYyrmEXEEPLW1tRLBqNCJRlAAKuK31Hpma2snEtYIId5AAXj0aE6EMKxXA6yqxZKrLkage0XHivKeQ9ZhQRgLoPbwwv8EGaFPtiyxnYsvJ3v6+V7PH9caLXWMCUSMEWk2vdmFFKNaLIttRZTTz+GHgAXgVGE3cgycvrsbDc+71ygSGoI1a1+mE7e38xHAGCL6CFFB8qzDXCOa3AnnvvxOBc3SAJEyp5XqF2DuFIi6cSaRQgnm1HMtXS0uv8NLvxuFHQHfwAJgSXWjY4FgGAxU0Z5Nzqa+jCdQm4AmhgmRgkjIPI/Nbwtcl2sw8FBq1I2WnUSkmIsRQWG/UOJhFTq8DlAj5hAeqTVLSqw8cfbnhpTapnZci0H9Lapaum6bzJqUR0F0EN7IdSp4mkRGRqL+evNQqpS6D5CfIN2RkCxGRLvQqkiDC5+lVyNTxataffOIlwDNuwQaDe/D4xU8m5HglKIJ7Nj6B83n2QbJOCHK4kK5fkwhrZd9v11rePKu+8HNidcxuF1vtMYUpQaBK4IHC/8ln6awY7PmWWCOSEbnK8mICa1z4fvRb2rCZALqb44xR2Rv0PdbaUikdcD2hVVGhA/WUingsO1gg8ADoVwrR6bHxM6zbChISAfshMNtc8BGIsr5krIOmQ1jSKgLfwDKAc/zxuiAzfI7n4B+QIHQ08/mgM3yG6kWwjWUBJiVSJLzzR0pHHAskSTnW0bEp1aC880baRxwqTcfZiC6Dr4y1ojufKeiVKmVjYjufCslIDJzF1lVK43zzROa4GSeR1I537ygb52aHHB8RAre870LSjGg8REJnS+UJSL6gBoccNKWaTkUS9szMDlgA5Fw5wIKelN1B2zjveiYJ+hYNx5r4xHEOX9u8eFqrd66Yko+FAie0bd4UNUMf/sAerFt4n6UpvHnBE+hJBGJMJnSu68D/zjunPGtbkAG5CbBWx6SxK2hvwn5WoMjcpB1dbnEEkv8g/gF7BF6kDDXbdkAAAAASUVORK5CYII=",
       "class": ".icon",
@@ -79,11 +87,13 @@
     ]
   },
   {
-    "id": "5",
+    "id": "017f62d0f8",
+    "indexId": "5",
+    "nodeHashId": "017f62d0f8",
     "attributes": {
       "nodeType": "TEXT Node"
     },
-    "locator": "[_midscene_retrieve_task_id='5']",
+    "locator": "[_midscene_retrieve_task_id='017f62d0f8']",
     "center": [
       200,
       80
@@ -97,11 +107,13 @@
     }
   },
   {
-    "id": "6",
+    "id": "2e84c1cd56",
+    "indexId": "6",
+    "nodeHashId": "2e84c1cd56",
     "attributes": {
       "nodeType": "TEXT Node"
     },
-    "locator": "[_midscene_retrieve_task_id='6']",
+    "locator": "[_midscene_retrieve_task_id='2e84c1cd56']",
     "center": [
       209,
       98
@@ -115,11 +127,13 @@
     }
   },
   {
-    "id": "7",
+    "id": "d54886a117",
+    "indexId": "7",
+    "nodeHashId": "d54886a117",
     "attributes": {
       "nodeType": "TEXT Node"
     },
-    "locator": "[_midscene_retrieve_task_id='7']",
+    "locator": "[_midscene_retrieve_task_id='d54886a117']",
     "center": [
       209,
       133
@@ -133,8 +147,10 @@
     }
   },
   {
-    "id": "8",
-    "locator": "[_midscene_retrieve_task_id='8']",
+    "id": "b5ec66f05c",
+    "indexId": "8",
+    "nodeHashId": "b5ec66f05c",
+    "locator": "[_midscene_retrieve_task_id='b5ec66f05c']",
     "attributes": {
       "src": "https://dec-pub-img.obs.ap-southeast-3.myhuaweicloud.com/rfkle/16558697767831080.jpeg",
       "nodeType": "IMG Node"
@@ -152,11 +168,13 @@
     ]
   },
   {
-    "id": "9",
+    "id": "7ea2ef875a",
+    "indexId": "9",
+    "nodeHashId": "7ea2ef875a",
     "attributes": {
       "nodeType": "TEXT Node"
     },
-    "locator": "[_midscene_retrieve_task_id='9']",
+    "locator": "[_midscene_retrieve_task_id='7ea2ef875a']",
     "center": [
       200,
       482
@@ -170,11 +188,13 @@
     }
   },
   {
-    "id": "10",
+    "id": "473b1ded7d",
+    "indexId": "10",
+    "nodeHashId": "473b1ded7d",
     "attributes": {
       "nodeType": "TEXT Node"
     },
-    "locator": "[_midscene_retrieve_task_id='10']",
+    "locator": "[_midscene_retrieve_task_id='473b1ded7d']",
     "center": [
       128,
       569
@@ -188,11 +208,13 @@
     }
   },
   {
-    "id": "11",
+    "id": "f5802f6ed9",
+    "indexId": "11",
+    "nodeHashId": "f5802f6ed9",
     "attributes": {
       "nodeType": "TEXT Node"
     },
-    "locator": "[_midscene_retrieve_task_id='11']",
+    "locator": "[_midscene_retrieve_task_id='f5802f6ed9']",
     "center": [
       200,
       569
@@ -206,11 +228,13 @@
     }
   },
   {
-    "id": "12",
+    "id": "89fc0b0d35",
+    "indexId": "12",
+    "nodeHashId": "89fc0b0d35",
     "attributes": {
       "nodeType": "TEXT Node"
     },
-    "locator": "[_midscene_retrieve_task_id='12']",
+    "locator": "[_midscene_retrieve_task_id='89fc0b0d35']",
     "center": [
       272,
       569
@@ -224,11 +248,13 @@
     }
   },
   {
-    "id": "13",
+    "id": "3d75e7ffed",
+    "indexId": "13",
+    "nodeHashId": "3d75e7ffed",
     "attributes": {
       "nodeType": "TEXT Node"
     },
-    "locator": "[_midscene_retrieve_task_id='13']",
+    "locator": "[_midscene_retrieve_task_id='3d75e7ffed']",
     "center": [
       29,
       623
@@ -242,11 +268,13 @@
     }
   },
   {
-    "id": "14",
+    "id": "421b8a6b81",
+    "indexId": "14",
+    "nodeHashId": "421b8a6b81",
     "attributes": {
       "nodeType": "TEXT Node"
     },
-    "locator": "[_midscene_retrieve_task_id='14']",
+    "locator": "[_midscene_retrieve_task_id='421b8a6b81']",
     "center": [
       35,
       683
@@ -260,11 +288,13 @@
     }
   },
   {
-    "id": "15",
+    "id": "1c97ba3453",
+    "indexId": "15",
+    "nodeHashId": "1c97ba3453",
     "attributes": {
       "nodeType": "TEXT Node"
     },
-    "locator": "[_midscene_retrieve_task_id='15']",
+    "locator": "[_midscene_retrieve_task_id='1c97ba3453']",
     "center": [
       35,
       743
@@ -278,11 +308,13 @@
     }
   },
   {
-    "id": "16",
+    "id": "3e1d602a7f",
+    "indexId": "16",
+    "nodeHashId": "3e1d602a7f",
     "attributes": {
       "nodeType": "TEXT Node"
     },
-    "locator": "[_midscene_retrieve_task_id='16']",
+    "locator": "[_midscene_retrieve_task_id='3e1d602a7f']",
     "center": [
       23,
       803
@@ -296,11 +328,13 @@
     }
   },
   {
-    "id": "17",
+    "id": "99bb9bb316",
+    "indexId": "17",
+    "nodeHashId": "99bb9bb316",
     "attributes": {
       "nodeType": "TEXT Node"
     },
-    "locator": "[_midscene_retrieve_task_id='17']",
+    "locator": "[_midscene_retrieve_task_id='99bb9bb316']",
     "center": [
       23,
       863
@@ -314,11 +348,13 @@
     }
   },
   {
-    "id": "18",
+    "id": "f3f15f2dcb",
+    "indexId": "18",
+    "nodeHashId": "f3f15f2dcb",
     "attributes": {
       "nodeType": "TEXT Node"
     },
-    "locator": "[_midscene_retrieve_task_id='18']",
+    "locator": "[_midscene_retrieve_task_id='f3f15f2dcb']",
     "center": [
       126,
       633
@@ -332,8 +368,10 @@
     }
   },
   {
-    "id": "19",
-    "locator": "[_midscene_retrieve_task_id='19']",
+    "id": "294b5a7cf5",
+    "indexId": "19",
+    "nodeHashId": "294b5a7cf5",
+    "locator": "[_midscene_retrieve_task_id='294b5a7cf5']",
     "attributes": {
       "src": "https://dec-pub-img.obs.ap-southeast-3.myhuaweicloud.com/djlxq/16509428649460869.jpeg",
       "class": ".img",
@@ -352,11 +390,13 @@
     ]
   },
   {
-    "id": "20",
+    "id": "d071bab206",
+    "indexId": "20",
+    "nodeHashId": "d071bab206",
     "attributes": {
       "nodeType": "TEXT Node"
     },
-    "locator": "[_midscene_retrieve_task_id='20']",
+    "locator": "[_midscene_retrieve_task_id='d071bab206']",
     "center": [
       288,
       670
@@ -370,12 +410,14 @@
     }
   },
   {
-    "id": "21",
+    "id": "9bfbd170a4",
+    "indexId": "21",
+    "nodeHashId": "9bfbd170a4",
     "attributes": {
       "class": ".van-ellipsis",
       "nodeType": "TEXT Node"
     },
-    "locator": "[_midscene_retrieve_task_id='21']",
+    "locator": "[_midscene_retrieve_task_id='9bfbd170a4']",
     "center": [
       288,
       691
@@ -389,12 +431,14 @@
     }
   },
   {
-    "id": "22",
+    "id": "3fb89d359f",
+    "indexId": "22",
+    "nodeHashId": "3fb89d359f",
     "attributes": {
       "class": ".price",
       "nodeType": "TEXT Node"
     },
-    "locator": "[_midscene_retrieve_task_id='22']",
+    "locator": "[_midscene_retrieve_task_id='3fb89d359f']",
     "center": [
       211,
       736
@@ -408,12 +452,14 @@
     }
   },
   {
-    "id": "23",
+    "id": "ae0ba24c99",
+    "indexId": "23",
+    "nodeHashId": "ae0ba24c99",
     "attributes": {
       "class": ".handle-btn",
       "nodeType": "TEXT Node"
     },
-    "locator": "[_midscene_retrieve_task_id='23']",
+    "locator": "[_midscene_retrieve_task_id='ae0ba24c99']",
     "center": [
       355,
       732
@@ -427,11 +473,13 @@
     }
   },
   {
-    "id": "24",
+    "id": "e579cdc4f3",
+    "indexId": "24",
+    "nodeHashId": "e579cdc4f3",
     "attributes": {
       "nodeType": "TEXT Node"
     },
-    "locator": "[_midscene_retrieve_task_id='24']",
+    "locator": "[_midscene_retrieve_task_id='e579cdc4f3']",
     "center": [
       134,
       776
@@ -445,8 +493,10 @@
     }
   },
   {
-    "id": "25",
-    "locator": "[_midscene_retrieve_task_id='25']",
+    "id": "601f9881f4",
+    "indexId": "25",
+    "nodeHashId": "601f9881f4",
+    "locator": "[_midscene_retrieve_task_id='601f9881f4']",
     "attributes": {
       "src": "https://dec-pub-img.obs.ap-southeast-3.myhuaweicloud.com/djlxq/16509428062990437.jpeg",
       "class": ".img",
@@ -465,11 +515,13 @@
     ]
   },
   {
-    "id": "26",
+    "id": "0d1b4d3ea4",
+    "indexId": "26",
+    "nodeHashId": "0d1b4d3ea4",
     "attributes": {
       "nodeType": "TEXT Node"
     },
-    "locator": "[_midscene_retrieve_task_id='26']",
+    "locator": "[_midscene_retrieve_task_id='0d1b4d3ea4']",
     "center": [
       288,
       813
@@ -483,12 +535,14 @@
     }
   },
   {
-    "id": "27",
+    "id": "1316f3c07a",
+    "indexId": "27",
+    "nodeHashId": "1316f3c07a",
     "attributes": {
       "class": ".van-ellipsis",
       "nodeType": "TEXT Node"
     },
-    "locator": "[_midscene_retrieve_task_id='27']",
+    "locator": "[_midscene_retrieve_task_id='1316f3c07a']",
     "center": [
       288,
       834
@@ -502,12 +556,14 @@
     }
   },
   {
-    "id": "28",
+    "id": "c4300a7c45",
+    "indexId": "28",
+    "nodeHashId": "c4300a7c45",
     "attributes": {
       "class": ".price",
       "nodeType": "TEXT Node"
     },
-    "locator": "[_midscene_retrieve_task_id='28']",
+    "locator": "[_midscene_retrieve_task_id='c4300a7c45']",
     "center": [
       211,
       879
@@ -521,12 +577,14 @@
     }
   },
   {
-    "id": "29",
+    "id": "a50d88f84c",
+    "indexId": "29",
+    "nodeHashId": "a50d88f84c",
     "attributes": {
       "class": ".handle-btn",
       "nodeType": "TEXT Node"
     },
-    "locator": "[_midscene_retrieve_task_id='29']",
+    "locator": "[_midscene_retrieve_task_id='a50d88f84c']",
     "center": [
       355,
       875
@@ -540,8 +598,10 @@
     }
   },
   {
-    "id": "30",
-    "locator": "[_midscene_retrieve_task_id='30']",
+    "id": "df4f252aab",
+    "indexId": "30",
+    "nodeHashId": "df4f252aab",
+    "locator": "[_midscene_retrieve_task_id='df4f252aab']",
     "attributes": {
       "src": "/img/customer.8a8d9dc9.png",
       "nodeType": "IMG Node"
