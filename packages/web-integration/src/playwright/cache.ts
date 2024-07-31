@@ -1,17 +1,18 @@
-import { join } from 'path';
+import path, { join } from 'path';
 import fs from 'fs';
-import { writeDumpFile, getDumpDirPath, getPkgInfo } from '@midscene/core/utils';
+import { writeDumpFile, getDumpDirPath } from '@midscene/core/utils';
 import { AiTaskCache } from '@/common/task-cache';
+import { findNearestPackageJson } from '@/common/utils';
 
 export function writeTestCache(taskFile: string, taskTitle: string, taskCacheJson: AiTaskCache) {
-  const pkgInfo = getPkgInfo();
+  const packageJson = getPkgInfo();
   writeDumpFile({
     fileName: `${taskFile}(${taskTitle})`,
     fileExt: 'json',
     fileContent: JSON.stringify(
       {
-        pkgName: pkgInfo.name,
-        pkgVersion: pkgInfo.version,
+        pkgName: packageJson.name,
+        pkgVersion: packageJson.version,
         taskFile,
         taskTitle,
         ...taskCacheJson,
@@ -39,4 +40,24 @@ export function readTestCache(taskFile: string, taskTitle: string) {
     }
   }
   return undefined;
+}
+
+function getPkgInfo(): { name: string; version: string } {
+  const packageJsonDir = findNearestPackageJson(__dirname);
+  if (!packageJsonDir) {
+    console.error('Cannot find package.json directory: ', __dirname);
+    return {
+      name: '@midscene/web',
+      version: '0.0.0',
+    };
+  }
+
+  const packageJsonPath = path.join(packageJsonDir, 'package.json');
+  const data = fs.readFileSync(packageJsonPath, 'utf8');
+  const packageJson = JSON.parse(data);
+
+  return {
+    name: packageJson.name,
+    version: packageJson.version,
+  };
 }

@@ -70,7 +70,7 @@ async function alignElements(
  * @param {string} dir - Home directory
  * @returns {string|null} - The most recent package.json file path or null
  */
-function findNearestPackageJson(dir: string) {
+export function findNearestPackageJson(dir: string) {
   const packageJsonPath = path.join(dir, 'package.json');
 
   if (fs.existsSync(packageJsonPath)) {
