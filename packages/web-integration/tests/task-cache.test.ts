@@ -1,107 +1,157 @@
-import { describe, it, expect, beforeEach, vi, Mock } from 'vitest';
-import Insight, { PlanningAction, UIContext, plan } from '@midscene/core';
-import { LocateTask, TaskCache } from '../src/common/task-cache'; // 假设 TaskCache 类在当前目录下
+import { describe, it, expect, beforeEach } from 'vitest';
+import Insight, { PlanningAction, UIContext } from '@midscene/core';
+import { AiTaskCache, TaskCache } from '../src/common/task-cache'; // 假设 TaskCache 类在当前目录下
 import { WebElementInfo } from '../src/web-element';
 
-// Mocking the dependencies
-vi.mock('@midscene/core', () => ({
-  plan: vi.fn(),
-}));
-
 describe('TaskCache', () => {
-  let insightMock: Insight<WebElementInfo>;
+  let size: { width: number; height: number };
+  // let insightMock: Insight<WebElementInfo>;
   let taskCache: TaskCache;
   let pageContext: UIContext<WebElementInfo>;
 
   beforeEach(() => {
-    insightMock = {
-      contextRetrieverFn: vi.fn(),
-      locate: vi.fn(),
-      setAiVendorFn: vi.fn(),
-    } as unknown as Insight<WebElementInfo>;
-    taskCache = new TaskCache(insightMock);
+    size = {
+      width: 700,
+      height: 50,
+    };
     pageContext = { size: { width: 1024, height: 768 }, content: [], screenshotBase64: '' };
+    taskCache = new TaskCache(
+      new Insight<WebElementInfo>(async () => {
+        return Promise.resolve({
+          content: [] as Array<WebElementInfo>,
+          screenshotBase64: '',
+          size,
+        });
+      }),
+    );
   });
 
   describe('plan', () => {
     it('should return cached plan result if available', async () => {
-      const cachedPlan = { plans: [{ thought: 'test', type: 'Locate', param: {} }] as PlanningAction[] };
-      taskCache.cache = {
+      const locateElement = { id: 'newElement' } as WebElementInfo;
+      const aiResponse = { plans: [{ thought: 'test', type: 'Locate', param: {} }] as PlanningAction[] };
+      const cacheTask = {
         aiTasks: [
           {
             type: 'plan',
             prompt: 'testPrompt',
-            pageContext: { url: '', width: 1024, height: 768 },
-            response: cachedPlan,
+            pageContext: { url: '', ...size },
+            response: aiResponse,
           },
         ],
-      };
+      } as AiTaskCache;
 
-      (insightMock.contextRetrieverFn as Mock).mockResolvedValue(pageContext);
+      const taskCache = new TaskCache(
+        new Insight<WebElementInfo>(async () => {
+          return Promise.resolve({
+            content: [locateElement] as Array<WebElementInfo>,
+            screenshotBase64: '',
+            size,
+          });
+        }),
+        {
+          cache: cacheTask,
+        },
+      );
 
       const result = await taskCache.plan('testPrompt');
-
-      expect(result).toEqual(cachedPlan);
+      expect(result).toEqual(aiResponse);
     });
 
     it('should call plan function and cache the result if no valid cache', async () => {
-      const newPlan = { plans: [{ thought: 'test', type: 'Locate', param: {} }] as PlanningAction[] };
-      (insightMock.contextRetrieverFn as Mock).mockResolvedValue(pageContext);
-      (plan as Mock).mockResolvedValue(newPlan);
+      const aiResponse: any = { plans: [{ thought: 'test', type: 'Locate', param: {} }] as PlanningAction[] };
 
-      const result = await taskCache.plan('newTestPrompt');
+      const taskCache = new TaskCache(
+        new Insight<WebElementInfo>(async () => {
+          return Promise.resolve({
+            content: [] as Array<WebElementInfo>,
+            screenshotBase64: '',
+            size,
+          });
+        }),
+      );
+      const result = await taskCache.plan('newTestPrompt', {
+        callAI: async () => {
+          return Promise.resolve({
+            actions: aiResponse.plans,
+          });
+        },
+      });
 
-      expect(result).toEqual(newPlan);
-      expect(taskCache.newCache.aiTasks).toContainEqual({
+      expect(result).toEqual(aiResponse);
+      expect(taskCache.generateTaskCache().aiTasks).toContainEqual({
         type: 'plan',
         prompt: 'newTestPrompt',
-        pageContext: { url: '', width: 1024, height: 768 },
-        response: newPlan,
+        pageContext: { url: '', ...size },
+        response: aiResponse,
       });
     });
   });
 
   describe('locate', () => {
     it('should return cached locate result if available', async () => {
-      const cachedLocate = {
-        elements: [{ id: '111' }],
-      } as LocateTask['response'];
-      taskCache.cache = {
+      const locateElement = { id: 'newElement' } as WebElementInfo;
+      const aiResponse: any = {
+        elements: [locateElement],
+      } as any;
+      const cacheTask = {
         aiTasks: [
           {
             type: 'locate',
             prompt: 'testPrompt',
-            pageContext: { url: '', width: 1024, height: 768 },
-            response: cachedLocate,
+            pageContext: { url: '', ...size },
+            response: aiResponse,
           },
         ],
-      };
+      } as AiTaskCache;
 
-      pageContext.content = [{ id: '111' } as WebElementInfo];
-      (insightMock.contextRetrieverFn as Mock).mockResolvedValue(pageContext);
-      (insightMock.locate as Mock).mockResolvedValue({ id: '111' });
+      const taskCache = new TaskCache(
+        new Insight<WebElementInfo>(async () => {
+          return Promise.resolve({
+            content: [locateElement] as Array<WebElementInfo>,
+            screenshotBase64: '',
+            size,
+          });
+        }),
+        {
+          cache: cacheTask,
+        },
+      );
 
       const result = await taskCache.locate('testPrompt');
 
-      expect(result).toEqual(cachedLocate);
+      expect(result).toEqual(aiResponse.elements[0]);
     });
 
     it('should call locate function and cache the result if no valid cache', async () => {
       const locateElement = { id: 'newElement' } as WebElementInfo;
-      // const newLocate = {
-      //   elements: [locateElement],
-      // };
-      (insightMock.contextRetrieverFn as Mock).mockResolvedValue(pageContext);
-      (insightMock.locate as Mock).mockResolvedValue(locateElement);
-
+      const aiResponse: any = {
+        elements: [locateElement],
+      } as any;
+      const taskCache = new TaskCache(
+        new Insight<WebElementInfo>(
+          async () => {
+            return Promise.resolve({
+              content: [locateElement] as Array<WebElementInfo>,
+              screenshotBase64: '',
+              size,
+            });
+          },
+          {
+            aiVendorFn: async () => {
+              return Promise.resolve(aiResponse);
+            },
+          },
+        ),
+      );
       const result = await taskCache.locate('newTestPrompt');
 
       expect(result).toEqual(locateElement);
-      expect(taskCache.newCache.aiTasks).toContainEqual({
+      expect(taskCache.generateTaskCache().aiTasks).toContainEqual({
         type: 'locate',
         prompt: 'newTestPrompt',
-        pageContext: { url: '', width: 1024, height: 768 },
-        response: locateElement,
+        pageContext: { url: '', width: 700, height: 50 },
+        response: aiResponse,
       });
     });
   });

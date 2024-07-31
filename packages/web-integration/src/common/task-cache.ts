@@ -57,7 +57,12 @@ export class TaskCache {
    * @param userPrompt - The prompt information provided by the user
    * @return A Promise that resolves to an object containing the planning result
    */
-  async plan(userPrompt: string): Promise<{ plans: PlanningAction[] }> {
+  async plan(
+    userPrompt: string,
+    opts?: {
+      callAI?: Parameters<typeof plan>[1]['callAI'];
+    },
+  ): Promise<{ plans: PlanningAction[] }> {
     const pageContext = await this.insight.contextRetrieverFn();
     const planCache = await this.readCache(pageContext, 'plan', userPrompt);
     let planResult: { plans: PlanningAction[] };
@@ -65,7 +70,10 @@ export class TaskCache {
     if (planCache && 'plans' in planCache) {
       planResult = planCache;
     } else {
-      planResult = await plan(pageContext, userPrompt);
+      planResult = await plan(userPrompt, {
+        context: pageContext,
+        ...(opts || {}),
+      });
     }
 
     this.newCache?.aiTasks.push({
