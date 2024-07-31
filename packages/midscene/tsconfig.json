@@ -18,5 +18,5 @@
     "strict": true
   },
   "exclude": ["**/node_modules"],
-  "include": ["src"]
+  "include": ["src", "tests"]
 }
