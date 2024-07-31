@@ -64,7 +64,7 @@ describe('TaskCache', () => {
   describe('locate', () => {
     it('should return cached locate result if available', async () => {
       const cachedLocate = {
-        elements: [{ id: 'element1' }],
+        elements: [{ id: '111' }],
       } as LocateTask['response'];
       taskCache.cache = {
         aiTasks: [
@@ -77,8 +77,9 @@ describe('TaskCache', () => {
         ],
       };
 
-      pageContext.content = [{ id: 'element1' } as WebElementInfo];
+      pageContext.content = [{ id: '111' } as WebElementInfo];
       (insightMock.contextRetrieverFn as Mock).mockResolvedValue(pageContext);
+      (insightMock.locate as Mock).mockResolvedValue({ id: '111' });
 
       const result = await taskCache.locate('testPrompt');
 
@@ -87,20 +88,20 @@ describe('TaskCache', () => {
 
     it('should call locate function and cache the result if no valid cache', async () => {
       const locateElement = { id: 'newElement' } as WebElementInfo;
-      const newLocate = {
-        elements: [locateElement],
-      };
+      // const newLocate = {
+      //   elements: [locateElement],
+      // };
       (insightMock.contextRetrieverFn as Mock).mockResolvedValue(pageContext);
       (insightMock.locate as Mock).mockResolvedValue(locateElement);
 
       const result = await taskCache.locate('newTestPrompt');
 
-      expect(result).toEqual(newLocate);
+      expect(result).toEqual(locateElement);
       expect(taskCache.newCache.aiTasks).toContainEqual({
         type: 'locate',
         prompt: 'newTestPrompt',
         pageContext: { url: '', width: 1024, height: 768 },
-        response: newLocate,
+        response: locateElement,
       });
     });
   });

@@ -25,7 +25,7 @@ export class PageAgent {
     ];
     this.testId = opts?.testId || String(process.pid);
     this.actionAgent = new PageTaskExecutor(this.page, {
-      cache: opts.cache || { aiTasks: [] },
+      cache: opts?.cache || { aiTasks: [] },
     });
   }
 
