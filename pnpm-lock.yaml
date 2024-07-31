@@ -285,6 +285,9 @@ importers:
       fs-extra:
         specifier: 11.2.0
         version: 11.2.0
+      js-sha256:
+        specifier: 0.11.0
+        version: 0.11.0
       playwright:
         specifier: 1.44.1
         version: 1.44.1
@@ -7011,6 +7014,9 @@ packages:
   jiti@1.21.6:
     resolution: {integrity: sha512-2yTgeWTWzMWkHu6Jp9NKgePDaYHbntiwvYuuJLbbN9vl7DC9DvXKOB2BC3ZZ92D3cvV/aflH0osDfwpHepQ53w==}
     hasBin: true
+
+  js-sha256@0.11.0:
+    resolution: {integrity: sha512-6xNlKayMZvds9h1Y1VWc0fQHQ82BxTXizWPEtEeGvmOUYpBRy4gbWroHLpzowe6xiQhHpelCQiE7HEdznyBL9Q==}
 
   js-stringify@1.0.2:
     resolution: {integrity: sha512-rtS5ATOo2Q5k1G+DADISilDA6lv79zIiwFd6CcjuIxGKLFm5C+RLImRscVap9k55i+MOZwgliw+NejvkLuGD5g==}
@@ -20470,6 +20476,8 @@ snapshots:
 
   jiti@1.21.6:
     optional: true
+
+  js-sha256@0.11.0: {}
 
   js-stringify@1.0.2: {}
 

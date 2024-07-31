@@ -1,6 +1,8 @@
 // import { TEXT_MAX_SIZE } from './constants';
+// @ts-expect-error
+import SHA256 from 'js-sha256';
 
-export function logger(...msg: any[]): void {
+export function logger(..._msg: any[]): void {
   // console.log(...msg);
 }
 
@@ -10,11 +12,11 @@ const taskIdKey = '_midscene_retrieve_task_id';
 // const nodeDataIdKey = 'data-midscene-task-';
 // const nodeIndexKey = '_midscene_retrieve_node_index';
 
-function selectorForValue(val: number): string {
+function selectorForValue(val: number | string): string {
   return `[${taskIdKey}='${val}']`;
 }
 
-export function setDataForNode(node: HTMLElement | Node, nodeIndex: number): string {
+export function setDataForNode(node: HTMLElement | Node, nodeHash: string): string {
   const taskId = taskIdKey;
   if (!(node instanceof HTMLElement)) {
     return '';
@@ -24,8 +26,8 @@ export function setDataForNode(node: HTMLElement | Node, nodeIndex: number): str
     return '';
   }
 
-  const selector = selectorForValue(nodeIndex);
-  node.setAttribute(taskIdKey, nodeIndex.toString());
+  const selector = selectorForValue(nodeHash);
+  node.setAttribute(taskIdKey, nodeHash.toString());
   return selector;
 }
 
@@ -157,4 +159,13 @@ export function getNodeAttributes(node: HTMLElement | Node): Record<string, stri
   });
 
   return Object.fromEntries(attributesList);
+}
+
+export function generateHash(content: string, rect: any, attributes: any): string {
+  // Combine the input into a string
+  const combined = JSON.stringify({ content, rect, attributes });
+  // Generates the ha-256 hash value
+  const hashHex = SHA256(combined);
+  // Returns the first 10 characters as a short hash
+  return hashHex.slice(0, 10);
 }
