@@ -8,7 +8,6 @@ import type {
 } from '@playwright/test/reporter';
 import { TestData } from './type';
 import { generateTestData } from './util';
-import { getTask } from './select-cache-file';
 
 const testDataList: Array<TestData> = [];
 
@@ -20,7 +19,6 @@ function logger(...message: any[]) {
 
 class MidSceneReporter implements Reporter {
   async onBegin(config: FullConfig, suite: Suite) {
-    await getTask();
     const suites = suite.allTests();
     logger(`Starting the run with ${suites.length} tests`);
   }

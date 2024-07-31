@@ -218,25 +218,6 @@
       }
     },
     {
-      "type": "locate",
-      "prompt": "Locate the delete button to the right of the second task.",
-      "pageContext": {
-        "url": "",
-        "width": 1280,
-        "height": 720
-      },
-      "response": {
-        "elements": [
-          {
-            "reason": "The element with ID 9 is determined to be a delete button located to the right of the second task labeled 'Learn Rust tomorrow'. The coordinates (left: 878, top: 278) and size of the button (14x14) match its expected positioning in the UI.",
-            "text": "×",
-            "id": "9"
-          }
-        ],
-        "errors": []
-      }
-    },
-    {
       "type": "plan",
       "prompt": "Click the check button to the left of the second task",
       "pageContext": {
