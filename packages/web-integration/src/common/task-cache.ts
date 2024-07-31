@@ -146,9 +146,15 @@ export class TaskCache {
       // The corresponding element cannot be found in the new context
       if (
         taskRes?.type === 'locate' &&
-        taskRes.response?.elements.every((element) =>
-          pageContext.content.some((contentElement) => contentElement.id === element.id),
-        )
+        !taskRes.response?.elements.every((element) => {
+          const findIndex = pageContext.content.findIndex(
+            (contentElement) => contentElement.id === element.id,
+          );
+          if (findIndex === -1) {
+            return false;
+          }
+          return true;
+        })
       ) {
         return false;
       }
