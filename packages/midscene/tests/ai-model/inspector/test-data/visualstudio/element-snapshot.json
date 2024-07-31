@@ -1,11 +1,13 @@
 [
   {
-    "id": "1",
+    "id": "3c48f3761a",
+    "indexId": "1",
+    "nodeHashId": "3c48f3761a",
     "attributes": {
       "class": ".navbar-fixed-container",
       "nodeType": "TEXT Node"
     },
-    "locator": "[_midscene_retrieve_task_id='1']",
+    "locator": "[_midscene_retrieve_task_id='3c48f3761a']",
     "center": [
       640,
       29
@@ -19,14 +21,16 @@
     }
   },
   {
-    "id": "2",
+    "id": "20a0671c1d",
+    "indexId": "2",
+    "nodeHashId": "20a0671c1d",
     "attributes": {
       "class": ".navbar.navbar-inverse.navbar-fixed-top.affix-top",
       "data-spy": "affix",
       "data-offset-top": "1",
       "nodeType": "TEXT Node"
     },
-    "locator": "[_midscene_retrieve_task_id='2']",
+    "locator": "[_midscene_retrieve_task_id='20a0671c1d']",
     "center": [
       640,
       29
@@ -40,13 +44,15 @@
     }
   },
   {
-    "id": "3",
+    "id": "7b6fe3dcb8",
+    "indexId": "3",
+    "nodeHashId": "7b6fe3dcb8",
     "attributes": {
       "role": "navigation",
       "aria-label": "Top Level",
       "nodeType": "TEXT Node"
     },
-    "locator": "[_midscene_retrieve_task_id='3']",
+    "locator": "[_midscene_retrieve_task_id='7b6fe3dcb8']",
     "center": [
       640,
       29
@@ -60,12 +66,14 @@
     }
   },
   {
-    "id": "4",
+    "id": "1e0baa9b7a",
+    "indexId": "4",
+    "nodeHashId": "1e0baa9b7a",
     "attributes": {
       "class": ".container",
       "nodeType": "TEXT Node"
     },
-    "locator": "[_midscene_retrieve_task_id='4']",
+    "locator": "[_midscene_retrieve_task_id='1e0baa9b7a']",
     "center": [
       640,
       29
@@ -79,12 +87,14 @@
     }
   },
   {
-    "id": "5",
+    "id": "ee0de032ce",
+    "indexId": "5",
+    "nodeHashId": "ee0de032ce",
     "attributes": {
       "class": ".nav.navbar-header",
       "nodeType": "TEXT Node"
     },
-    "locator": "[_midscene_retrieve_task_id='5']",
+    "locator": "[_midscene_retrieve_task_id='ee0de032ce']",
     "center": [
       191,
       29
@@ -98,11 +108,13 @@
     }
   },
   {
-    "id": "6",
+    "id": "c19f746613",
+    "indexId": "6",
+    "nodeHashId": "c19f746613",
     "attributes": {
       "nodeType": "TEXT Node"
     },
-    "locator": "[_midscene_retrieve_task_id='6']",
+    "locator": "[_midscene_retrieve_task_id='c19f746613']",
     "center": [
       201,
       29
@@ -116,13 +128,15 @@
     }
   },
   {
-    "id": "7",
+    "id": "1f09b8e327",
+    "indexId": "7",
+    "nodeHashId": "1f09b8e327",
     "attributes": {
       "class": ".navbar-collapse.collapse",
       "style": "max-height: min(60vh, 400px);",
       "nodeType": "TEXT Node"
     },
-    "locator": "[_midscene_retrieve_task_id='7']",
+    "locator": "[_midscene_retrieve_task_id='1f09b8e327']",
     "center": [
       640,
       29
@@ -136,12 +150,14 @@
     }
   },
   {
-    "id": "8",
+    "id": "111871c884",
+    "indexId": "8",
+    "nodeHashId": "111871c884",
     "attributes": {
       "class": ".nav.navbar-nav.navbar-left",
       "nodeType": "TEXT Node"
     },
-    "locator": "[_midscene_retrieve_task_id='8']",
+    "locator": "[_midscene_retrieve_task_id='111871c884']",
     "center": [
       541,
       29
@@ -155,13 +171,15 @@
     }
   },
   {
-    "id": "9",
+    "id": "73950e0517",
+    "indexId": "9",
+    "nodeHashId": "73950e0517",
     "attributes": {
       "id": "nav-docs",
       "href": "/docs",
       "nodeType": "TEXT Node"
     },
-    "locator": "[_midscene_retrieve_task_id='9']",
+    "locator": "[_midscene_retrieve_task_id='73950e0517']",
     "center": [
       332,
       29
@@ -175,13 +193,15 @@
     }
   },
   {
-    "id": "10",
+    "id": "4df8bea149",
+    "indexId": "10",
+    "nodeHashId": "4df8bea149",
     "attributes": {
       "id": "nav-updates",
       "href": "/updates",
       "nodeType": "TEXT Node"
     },
-    "locator": "[_midscene_retrieve_task_id='10']",
+    "locator": "[_midscene_retrieve_task_id='4df8bea149']",
     "center": [
       407,
       29
@@ -195,13 +215,15 @@
     }
   },
   {
-    "id": "11",
+    "id": "3f3dd048d9",
+    "indexId": "11",
+    "nodeHashId": "3f3dd048d9",
     "attributes": {
       "id": "nav-blogs",
       "href": "/blogs",
       "nodeType": "TEXT Node"
     },
-    "locator": "[_midscene_retrieve_task_id='11']",
+    "locator": "[_midscene_retrieve_task_id='3f3dd048d9']",
     "center": [
       478,
       29
@@ -215,13 +237,15 @@
     }
   },
   {
-    "id": "12",
+    "id": "fa4b01870e",
+    "indexId": "12",
+    "nodeHashId": "fa4b01870e",
     "attributes": {
       "id": "nav-extend",
       "href": "/api",
       "nodeType": "TEXT Node"
     },
-    "locator": "[_midscene_retrieve_task_id='12']",
+    "locator": "[_midscene_retrieve_task_id='fa4b01870e']",
     "center": [
       532,
       29
@@ -235,7 +259,9 @@
     }
   },
   {
-    "id": "13",
+    "id": "fb23a7a892",
+    "indexId": "13",
+    "nodeHashId": "fb23a7a892",
     "attributes": {
       "href": "https://marketplace.visualstudio.com/VSCode",
       "target": "_blank",
@@ -243,7 +269,7 @@
       "id": "nav-extensions",
       "nodeType": "TEXT Node"
     },
-    "locator": "[_midscene_retrieve_task_id='13']",
+    "locator": "[_midscene_retrieve_task_id='fb23a7a892']",
     "center": [
       609,
       29
@@ -257,13 +283,15 @@
     }
   },
   {
-    "id": "14",
+    "id": "4a00eef80d",
+    "indexId": "14",
+    "nodeHashId": "4a00eef80d",
     "attributes": {
       "id": "nav-faqs",
       "href": "/docs/supporting/faq",
       "nodeType": "TEXT Node"
     },
-    "locator": "[_midscene_retrieve_task_id='14']",
+    "locator": "[_midscene_retrieve_task_id='4a00eef80d']",
     "center": [
       688,
       29
@@ -277,13 +305,15 @@
     }
   },
   {
-    "id": "15",
+    "id": "cd994d818d",
+    "indexId": "15",
+    "nodeHashId": "cd994d818d",
     "attributes": {
       "id": "nav-learn",
       "href": "/learn",
       "nodeType": "TEXT Node"
     },
-    "locator": "[_midscene_retrieve_task_id='15']",
+    "locator": "[_midscene_retrieve_task_id='cd994d818d']",
     "center": [
       748,
       29
@@ -297,13 +327,15 @@
     }
   },
   {
-    "id": "16",
+    "id": "2bc3b6e860",
+    "indexId": "16",
+    "nodeHashId": "2bc3b6e860",
     "attributes": {
       "class": ".nav.navbar-nav.navbar-right",
       "role": "presentation",
       "nodeType": "TEXT Node"
     },
-    "locator": "[_midscene_retrieve_task_id='16']",
+    "locator": "[_midscene_retrieve_task_id='2bc3b6e860']",
     "center": [
       1025,
       29
@@ -317,8 +349,10 @@
     }
   },
   {
-    "id": "17",
-    "locator": "[_midscene_retrieve_task_id='17']",
+    "id": "bce7fabaf0",
+    "indexId": "17",
+    "nodeHashId": "bce7fabaf0",
+    "locator": "[_midscene_retrieve_task_id='bce7fabaf0']",
     "attributes": {
       "type": "button",
       "class": ".theme-switch",
@@ -337,8 +371,10 @@
     ]
   },
   {
-    "id": "18",
-    "locator": "[_midscene_retrieve_task_id='18']",
+    "id": "d9e663d606",
+    "indexId": "18",
+    "nodeHashId": "d9e663d606",
+    "locator": "[_midscene_retrieve_task_id='d9e663d606']",
     "attributes": {
       "class": ".theme-icon-dark",
       "src": "/assets/icons/theme-dark.svg",
@@ -358,8 +394,10 @@
     ]
   },
   {
-    "id": "19",
-    "locator": "[_midscene_retrieve_task_id='19']",
+    "id": "8d348c61d8",
+    "indexId": "19",
+    "nodeHashId": "8d348c61d8",
+    "locator": "[_midscene_retrieve_task_id='8d348c61d8']",
     "attributes": {
       "type": "text",
       "name": "q",
@@ -381,8 +419,10 @@
     ]
   },
   {
-    "id": "20",
-    "locator": "[_midscene_retrieve_task_id='20']",
+    "id": "db98aa0cca",
+    "indexId": "20",
+    "nodeHashId": "db98aa0cca",
+    "locator": "[_midscene_retrieve_task_id='db98aa0cca']",
     "attributes": {
       "tabindex": "0",
       "class": ".btn",
@@ -403,8 +443,10 @@
     ]
   },
   {
-    "id": "21",
-    "locator": "[_midscene_retrieve_task_id='21']",
+    "id": "565ddc357f",
+    "indexId": "21",
+    "nodeHashId": "565ddc357f",
+    "locator": "[_midscene_retrieve_task_id='565ddc357f']",
     "attributes": {
       "class": ".search-icon-light",
       "src": "/assets/icons/search.svg",
@@ -424,14 +466,16 @@
     ]
   },
   {
-    "id": "22",
+    "id": "d5dcd6ddd7",
+    "indexId": "22",
+    "nodeHashId": "d5dcd6ddd7",
     "attributes": {
       "class": ".link-button",
       "href": "/Download",
       "id": "nav-download",
       "nodeType": "TEXT Node"
     },
-    "locator": "[_midscene_retrieve_task_id='22']",
+    "locator": "[_midscene_retrieve_task_id='d5dcd6ddd7']",
     "center": [
       1147,
       29
@@ -445,11 +489,13 @@
     }
   },
   {
-    "id": "23",
+    "id": "d0bf0193b6",
+    "indexId": "23",
+    "nodeHashId": "d0bf0193b6",
     "attributes": {
       "nodeType": "TEXT Node"
     },
-    "locator": "[_midscene_retrieve_task_id='23']",
+    "locator": "[_midscene_retrieve_task_id='d0bf0193b6']",
     "center": [
       1147,
       30
@@ -463,12 +509,14 @@
     }
   },
   {
-    "id": "24",
+    "id": "c5250649df",
+    "indexId": "24",
+    "nodeHashId": "c5250649df",
     "attributes": {
       "class": ".updates-banner.home.",
       "nodeType": "TEXT Node"
     },
-    "locator": "[_midscene_retrieve_task_id='24']",
+    "locator": "[_midscene_retrieve_task_id='c5250649df']",
     "center": [
       640,
       85
@@ -482,12 +530,14 @@
     }
   },
   {
-    "id": "25",
+    "id": "3a3150d64d",
+    "indexId": "25",
+    "nodeHashId": "3a3150d64d",
     "attributes": {
       "class": ".container",
       "nodeType": "TEXT Node"
     },
-    "locator": "[_midscene_retrieve_task_id='25']",
+    "locator": "[_midscene_retrieve_task_id='3a3150d64d']",
     "center": [
       624,
       85
@@ -501,12 +551,14 @@
     }
   },
   {
-    "id": "26",
+    "id": "7dbe0f26e6",
+    "indexId": "26",
+    "nodeHashId": "7dbe0f26e6",
     "attributes": {
       "class": ".message",
       "nodeType": "TEXT Node"
     },
-    "locator": "[_midscene_retrieve_task_id='26']",
+    "locator": "[_midscene_retrieve_task_id='7dbe0f26e6']",
     "center": [
       624,
       85
@@ -520,13 +572,15 @@
     }
   },
   {
-    "id": "27",
+    "id": "6dc523d552",
+    "indexId": "27",
+    "nodeHashId": "6dc523d552",
     "attributes": {
       "href": "/updates",
       "id": "banner-link-updates",
       "nodeType": "TEXT Node"
     },
-    "locator": "[_midscene_retrieve_task_id='27']",
+    "locator": "[_midscene_retrieve_task_id='6dc523d552']",
     "center": [
       404,
       86
@@ -540,12 +594,14 @@
     }
   },
   {
-    "id": "28",
+    "id": "65979c1309",
+    "indexId": "28",
+    "nodeHashId": "65979c1309",
     "attributes": {
       "class": ".container.hero-content",
       "nodeType": "TEXT Node"
     },
-    "locator": "[_midscene_retrieve_task_id='28']",
+    "locator": "[_midscene_retrieve_task_id='65979c1309']",
     "center": [
       640,
       394
@@ -559,12 +615,14 @@
     }
   },
   {
-    "id": "29",
+    "id": "5393bf7369",
+    "indexId": "29",
+    "nodeHashId": "5393bf7369",
     "attributes": {
       "class": ".hero-text.col-sm-12.col-md-4",
       "nodeType": "TEXT Node"
     },
-    "locator": "[_midscene_retrieve_task_id='29']",
+    "locator": "[_midscene_retrieve_task_id='5393bf7369']",
     "center": [
       240,
       394
@@ -578,12 +636,14 @@
     }
   },
   {
-    "id": "30",
+    "id": "11b0e820b4",
+    "indexId": "30",
+    "nodeHashId": "11b0e820b4",
     "attributes": {
       "class": ".hero-tag",
       "nodeType": "TEXT Node"
     },
-    "locator": "[_midscene_retrieve_task_id='30']",
+    "locator": "[_midscene_retrieve_task_id='11b0e820b4']",
     "center": [
       246,
       195
@@ -597,11 +657,13 @@
     }
   },
   {
-    "id": "31",
+    "id": "8e502ef37e",
+    "indexId": "31",
+    "nodeHashId": "8e502ef37e",
     "attributes": {
       "nodeType": "TEXT Node"
     },
-    "locator": "[_midscene_retrieve_task_id='31']",
+    "locator": "[_midscene_retrieve_task_id='8e502ef37e']",
     "center": [
       240,
       337
@@ -615,12 +677,14 @@
     }
   },
   {
-    "id": "32",
+    "id": "db16cbabe1",
+    "indexId": "32",
+    "nodeHashId": "db16cbabe1",
     "attributes": {
       "class": ".download-content-wrapper",
       "nodeType": "TEXT Node"
     },
-    "locator": "[_midscene_retrieve_task_id='32']",
+    "locator": "[_midscene_retrieve_task_id='db16cbabe1']",
     "center": [
       240,
       543
@@ -634,13 +698,15 @@
     }
   },
   {
-    "id": "33",
+    "id": "e19862f42d",
+    "indexId": "33",
+    "nodeHashId": "e19862f42d",
     "attributes": {
       "id": "download-buttons",
       "class": ".download-hero.alt-downloads.win",
       "nodeType": "TEXT Node"
     },
-    "locator": "[_midscene_retrieve_task_id='33']",
+    "locator": "[_midscene_retrieve_task_id='e19862f42d']",
     "center": [
       240,
       499
@@ -654,12 +720,14 @@
     }
   },
   {
-    "id": "34",
+    "id": "b87ab2f426",
+    "indexId": "34",
+    "nodeHashId": "b87ab2f426",
     "attributes": {
       "class": ".primary-buttons",
       "nodeType": "TEXT Node"
     },
-    "locator": "[_midscene_retrieve_task_id='34']",
+    "locator": "[_midscene_retrieve_task_id='b87ab2f426']",
     "center": [
       240,
       499
@@ -673,8 +741,10 @@
     }
   },
   {
-    "id": "35",
-    "locator": "[_midscene_retrieve_task_id='35']",
+    "id": "6b7df42607",
+    "indexId": "35",
+    "nodeHashId": "6b7df42607",
+    "locator": "[_midscene_retrieve_task_id='6b7df42607']",
     "attributes": {
       "class": ".link-button.dlink",
       "data-os": "win",
@@ -694,13 +764,15 @@
     ]
   },
   {
-    "id": "36",
+    "id": "d68be42f77",
+    "indexId": "36",
+    "nodeHashId": "d68be42f77",
     "attributes": {
       "id": "download-matrix-label",
       "class": ".subtext",
       "nodeType": "TEXT Node"
     },
-    "locator": "[_midscene_retrieve_task_id='36']",
+    "locator": "[_midscene_retrieve_task_id='d68be42f77']",
     "center": [
       240,
       551
@@ -714,7 +786,9 @@
     }
   },
   {
-    "id": "37",
+    "id": "14baaa2623",
+    "indexId": "37",
+    "nodeHashId": "14baaa2623",
     "attributes": {
       "href": "https://vscode.dev/",
       "target": "_blank",
@@ -723,7 +797,7 @@
       "id": "download-buttons-web",
       "nodeType": "TEXT Node"
     },
-    "locator": "[_midscene_retrieve_task_id='37']",
+    "locator": "[_midscene_retrieve_task_id='14baaa2623']",
     "center": [
       95,
       552
@@ -737,13 +811,15 @@
     }
   },
   {
-    "id": "38",
+    "id": "7b2cf3cedb",
+    "indexId": "38",
+    "nodeHashId": "7b2cf3cedb",
     "attributes": {
       "href": "/insiders",
       "id": "download-buttons-insiders",
       "nodeType": "TEXT Node"
     },
-    "locator": "[_midscene_retrieve_task_id='38']",
+    "locator": "[_midscene_retrieve_task_id='7b2cf3cedb']",
     "center": [
       168,
       552
@@ -757,12 +833,14 @@
     }
   },
   {
-    "id": "39",
+    "id": "1ccfe9d811",
+    "indexId": "39",
+    "nodeHashId": "1ccfe9d811",
     "attributes": {
       "href": "/Download",
       "nodeType": "TEXT Node"
     },
-    "locator": "[_midscene_retrieve_task_id='39']",
+    "locator": "[_midscene_retrieve_task_id='1ccfe9d811']",
     "center": [
       295,
       552
@@ -776,12 +854,14 @@
     }
   },
   {
-    "id": "40",
+    "id": "f1bde78cf2",
+    "indexId": "40",
+    "nodeHashId": "f1bde78cf2",
     "attributes": {
       "class": ".subtext.terms",
       "nodeType": "TEXT Node"
     },
-    "locator": "[_midscene_retrieve_task_id='40']",
+    "locator": "[_midscene_retrieve_task_id='f1bde78cf2']",
     "center": [
       240,
       596
@@ -795,12 +875,14 @@
     }
   },
   {
-    "id": "41",
+    "id": "e148d7bf06",
+    "indexId": "41",
+    "nodeHashId": "e148d7bf06",
     "attributes": {
       "class": ".wrap-together",
       "nodeType": "TEXT Node"
     },
-    "locator": "[_midscene_retrieve_task_id='41']",
+    "locator": "[_midscene_retrieve_task_id='e148d7bf06']",
     "center": [
       160,
       604
@@ -814,7 +896,9 @@
     }
   },
   {
-    "id": "42",
+    "id": "021500977a",
+    "indexId": "42",
+    "nodeHashId": "021500977a",
     "attributes": {
       "href": "https://code.visualstudio.com/license",
       "target": "_blank",
@@ -822,7 +906,7 @@
       "title": "View the Visual Studio Code license.",
       "nodeType": "TEXT Node"
     },
-    "locator": "[_midscene_retrieve_task_id='42']",
+    "locator": "[_midscene_retrieve_task_id='021500977a']",
     "center": [
       99,
       604
@@ -836,7 +920,9 @@
     }
   },
   {
-    "id": "43",
+    "id": "655082c963",
+    "indexId": "43",
+    "nodeHashId": "655082c963",
     "attributes": {
       "href": "https://go.microsoft.com/fwlink/?LinkId=521839",
       "target": "_blank",
@@ -844,7 +930,7 @@
       "title": "View the Microsoft privacy statement.",
       "nodeType": "TEXT Node"
     },
-    "locator": "[_midscene_retrieve_task_id='43']",
+    "locator": "[_midscene_retrieve_task_id='655082c963']",
     "center": [
       190,
       604
@@ -858,8 +944,10 @@
     }
   },
   {
-    "id": "44",
-    "locator": "[_midscene_retrieve_task_id='44']",
+    "id": "a47e0f3097",
+    "indexId": "44",
+    "nodeHashId": "a47e0f3097",
+    "locator": "[_midscene_retrieve_task_id='a47e0f3097']",
     "attributes": {
       "src": "/assets/home/home-screenshot-mac-2x-v2-light.png",
       "alt": "Visual Studio Code in action with AI-powered suggestions from GitHub Copilot, built-in terminal and powerful extensions for all languages and tools",
