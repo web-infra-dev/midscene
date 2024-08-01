@@ -1,51 +1,61 @@
 import { randomUUID } from 'crypto';
+import type { Page as PlaywrightPage } from 'playwright';
 import { TestInfo, TestType } from '@playwright/test';
 import { PageTaskExecutor } from '../common/tasks';
+import { readTestCache, writeTestCache } from './cache';
 import { WebPage } from '@/common/page';
 import { PageAgent } from '@/common/agent';
 
 export type APITestType = Pick<TestType<any, any>, 'step'>;
 
 const groupAndCaseForTest = (testInfo: TestInfo) => {
-  let groupName: string;
-  let caseName: string;
+  let taskFile: string;
+  let taskTitle: string;
   const titlePath = [...testInfo.titlePath];
 
   if (titlePath.length > 1) {
-    caseName = titlePath.pop()!;
-    groupName = `${titlePath.join(' > ')}:${testInfo.line}`;
+    taskTitle = titlePath.pop()!;
+    taskFile = `${titlePath.join(' > ')}:${testInfo.line}`;
   } else if (titlePath.length === 1) {
-    caseName = titlePath[0];
-    groupName = `${caseName}:${testInfo.line}`;
+    taskTitle = titlePath[0];
+    taskFile = `${taskTitle}:${testInfo.line}`;
   } else {
-    caseName = 'unnamed';
-    groupName = 'unnamed';
+    taskTitle = 'unnamed';
+    taskFile = 'unnamed';
   }
-  return { groupName, caseName };
+  return { taskFile, taskTitle };
 };
 
 const midSceneAgentKeyId = '_midSceneAgentId';
 export const PlaywrightAiFixture = () => {
   const pageAgentMap: Record<string, PageAgent> = {};
-  const agentForPage = (page: WebPage, testId: string) => {
+  const agentForPage = (page: WebPage, opts: { testId: string; taskFile: string; taskTitle: string }) => {
     let idForPage = (page as any)[midSceneAgentKeyId];
     if (!idForPage) {
       idForPage = randomUUID();
       (page as any)[midSceneAgentKeyId] = idForPage;
-      pageAgentMap[idForPage] = new PageAgent(page, `${testId}-${idForPage}`);
+      const testCase = readTestCache(opts.taskFile, opts.taskTitle) || { aiTasks: [] };
+      pageAgentMap[idForPage] = new PageAgent(page, {
+        testId: `${opts.testId}-${idForPage}`,
+        taskFile: opts.taskFile,
+        cache: testCase,
+      });
     }
     return pageAgentMap[idForPage];
   };
 
   return {
-    ai: async ({ page }: any, use: any, testInfo: TestInfo) => {
-      const agent = agentForPage(page, testInfo.testId);
+    ai: async ({ page }: { page: PlaywrightPage }, use: any, testInfo: TestInfo) => {
+      const { taskFile, taskTitle } = groupAndCaseForTest(testInfo);
+      const agent = agentForPage(page, { testId: testInfo.testId, taskFile, taskTitle });
       await use(async (taskPrompt: string, opts?: { type?: 'action' | 'query' }) => {
-        const { groupName, caseName } = groupAndCaseForTest(testInfo);
+        await page.waitForLoadState('networkidle');
         const actionType = opts?.type || 'action';
-        const result = await agent.ai(taskPrompt, actionType, caseName, groupName);
+        const result = await agent.ai(taskPrompt, actionType);
         return result;
       });
+      const taskCacheJson = agent.actionAgent.taskCache.generateTaskCache();
+      writeTestCache(taskFile, taskTitle, taskCacheJson);
       if (agent.dumpFile) {
         testInfo.annotations.push({
           type: 'MIDSCENE_AI_ACTION',
@@ -56,11 +66,12 @@ export const PlaywrightAiFixture = () => {
         });
       }
     },
-    aiAction: async ({ page }: any, use: any, testInfo: TestInfo) => {
-      const agent = agentForPage(page, testInfo.testId);
+    aiAction: async ({ page }: { page: PlaywrightPage }, use: any, testInfo: TestInfo) => {
+      const { taskFile, taskTitle } = groupAndCaseForTest(testInfo);
+      const agent = agentForPage(page, { testId: testInfo.testId, taskFile, taskTitle });
       await use(async (taskPrompt: string) => {
-        const { groupName, caseName } = groupAndCaseForTest(testInfo);
-        await agent.aiAction(taskPrompt, caseName, groupName);
+        await page.waitForLoadState('networkidle');
+        await agent.aiAction(taskPrompt);
       });
       if (agent.dumpFile) {
         testInfo.annotations.push({
@@ -72,11 +83,12 @@ export const PlaywrightAiFixture = () => {
         });
       }
     },
-    aiQuery: async ({ page }: any, use: any, testInfo: TestInfo) => {
-      const agent = agentForPage(page, testInfo.testId);
+    aiQuery: async ({ page }: { page: PlaywrightPage }, use: any, testInfo: TestInfo) => {
+      const { taskFile, taskTitle } = groupAndCaseForTest(testInfo);
+      const agent = agentForPage(page, { testId: testInfo.testId, taskFile, taskTitle });
       await use(async function (demand: any) {
-        const { groupName, caseName } = groupAndCaseForTest(testInfo);
-        const result = await agent.aiQuery(demand, caseName, groupName);
+        await page.waitForLoadState('networkidle');
+        const result = await agent.aiQuery(demand);
         return result;
       });
       if (agent.dumpFile) {

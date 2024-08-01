@@ -1,4 +1,5 @@
 import {
+  generateHash,
   getNodeAttributes,
   getPseudoElementContent,
   logger,
@@ -16,6 +17,8 @@ interface NodeDescriptor {
 
 export interface ElementInfo {
   id: string;
+  indexId: string;
+  nodeHashId: string;
   locator: string | void;
   attributes: {
     nodeType: NodeType;
@@ -70,9 +73,12 @@ export function extractTextWithPositionDFS(initNode: Node = container): ElementI
 
     if (isInputElement(node)) {
       const attributes = getNodeAttributes(node);
-      const selector = setDataForNode(node, nodeIndex);
+      const nodeHashId = generateHash(attributes.placeholder, rect);
+      const selector = setDataForNode(node, nodeHashId);
       elementInfoArray.push({
-        id: generateId(nodeIndex++),
+        id: nodeHashId,
+        indexId: generateId(nodeIndex++),
+        nodeHashId,
         locator: selector,
         attributes: {
           ...attributes,
@@ -88,15 +94,19 @@ export function extractTextWithPositionDFS(initNode: Node = container): ElementI
     if (isButtonElement(node)) {
       const attributes = getNodeAttributes(node);
       const pseudo = getPseudoElementContent(node);
-      const selector = setDataForNode(node, nodeIndex);
+      const content = node.innerText || pseudo.before || pseudo.after || '';
+      const nodeHashId = generateHash(content, rect);
+      const selector = setDataForNode(node, nodeHashId);
       elementInfoArray.push({
-        id: generateId(nodeIndex++),
+        id: nodeHashId,
+        indexId: generateId(nodeIndex++),
+        nodeHashId,
         locator: selector,
         attributes: {
           ...attributes,
           nodeType: NodeType.BUTTON,
         },
-        content: node.innerText || pseudo.before || pseudo.after || '',
+        content,
         rect,
         center: [Math.round(rect.left + rect.width / 2), Math.round(rect.top + rect.height / 2)],
       });
@@ -105,9 +115,12 @@ export function extractTextWithPositionDFS(initNode: Node = container): ElementI
 
     if (isImgElement(node)) {
       const attributes = getNodeAttributes(node);
-      const selector = setDataForNode(node, nodeIndex);
+      const nodeHashId = generateHash('', rect);
+      const selector = setDataForNode(node, nodeHashId);
       elementInfoArray.push({
-        id: generateId(nodeIndex++),
+        id: nodeHashId,
+        indexId: generateId(nodeIndex++),
+        nodeHashId,
         locator: selector,
         attributes: {
           ...attributes,
@@ -147,9 +160,12 @@ export function extractTextWithPositionDFS(initNode: Node = container): ElementI
         return;
       }
       const attributes = getNodeAttributes(node);
-      const selector = setDataForNode(node, nodeIndex);
+      const nodeHashId = generateHash(text, rect);
+      const selector = setDataForNode(node, nodeHashId);
       elementInfoArray.push({
-        id: generateId(nodeIndex++),
+        id: nodeHashId,
+        indexId: generateId(nodeIndex++),
+        nodeHashId,
         attributes: {
           ...attributes,
           nodeType: NodeType.TEXT,

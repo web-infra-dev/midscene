@@ -50,11 +50,15 @@
     "build:pkg": "modern build -c ./modern.config.ts",
     "build:script": "modern build -c ./modern.inspect.config.ts",
     "build:watch": "modern build -w -c ./modern.config.ts & modern build -w -c ./modern.inspect.config.ts",
+    "test": "vitest --run",
+    "test:all": "AITEST=true vitest --run",
     "new": "modern new",
     "upgrade": "modern upgrade",
     "prepublishOnly": "npm run build",
     "e2e": "playwright test --config=playwright.config.ts",
-    "e2e:ui": "playwright test --config=playwright.config.ts --ui"
+    "e2e:cache": "MIDSCENE_CACHE=true playwright test --config=playwright.config.ts",
+    "e2e:ui": "playwright test --config=playwright.config.ts --ui",
+    "e2e:ui-cache": "MIDSCENE_CACHE=true playwright test --config=playwright.config.ts  --ui"
   },
   "files": [
     "dist",
@@ -63,11 +67,13 @@
   "dependencies": {
     "openai": "4.47.1",
     "sharp": "0.33.3",
+    "inquirer": "10.1.5",
     "@midscene/core": "workspace:*",
     "@midscene/visualizer-report": "workspace:*"
   },
   "devDependencies": {
     "@modern-js/module-tools": "^2.54.2",
+    "js-sha256": "0.11.0",
     "@types/node": "^18.0.0",
     "typescript": "~5.0.4",
     "vitest": "^1.6.0",

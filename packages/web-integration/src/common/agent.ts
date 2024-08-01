@@ -1,6 +1,7 @@
 import { ExecutionDump, GroupedActionDump } from '@midscene/core';
 import { groupedActionDumpFileExt, writeDumpFile } from '@midscene/core/utils';
 import { PageTaskExecutor } from '../common/tasks';
+import { AiTaskCache } from './task-cache';
 import { WebPage } from '@/common/page';
 
 export class PageAgent {
@@ -12,42 +13,46 @@ export class PageAgent {
 
   dumpFile?: string;
 
-  constructor(page: WebPage, testId?: string) {
+  actionAgent: PageTaskExecutor;
+
+  constructor(page: WebPage, opts: { testId?: string; taskFile?: string; cache?: AiTaskCache }) {
     this.page = page;
-    this.dumps = [];
-    this.testId = testId || String(process.pid);
+    this.dumps = [
+      {
+        groupName: opts?.taskFile || 'unnamed',
+        executions: [],
+      },
+    ];
+    this.testId = opts?.testId || String(process.pid);
+    this.actionAgent = new PageTaskExecutor(this.page, {
+      cache: opts?.cache || { aiTasks: [] },
+    });
   }
 
-  appendDump(groupName: string, execution: ExecutionDump) {
-    let currentDump = this.dumps.find((dump) => dump.groupName === groupName);
-    if (!currentDump) {
-      currentDump = {
-        groupName,
-        executions: [],
-      };
-      this.dumps.push(currentDump);
-    }
+  appendDump(execution: ExecutionDump) {
+    const currentDump = this.dumps[0];
     currentDump.executions.push(execution);
   }
 
   writeOutActionDumps() {
-    this.dumpFile = writeDumpFile(
-      `playwright-${this.testId}`,
-      groupedActionDumpFileExt,
-      JSON.stringify(this.dumps),
-    );
+    this.dumpFile = writeDumpFile({
+      fileName: `playwright-${this.testId}`,
+      fileExt: groupedActionDumpFileExt,
+      fileContent: JSON.stringify(this.dumps),
+    });
   }
 
-  async aiAction(taskPrompt: string, dumpCaseName = 'AI Action', dumpGroupName = 'MidScene / Web') {
-    const actionAgent = new PageTaskExecutor(this.page, { taskName: dumpCaseName });
+  async aiAction(taskPrompt: string) {
     let error: Error | undefined;
     try {
-      await actionAgent.action(taskPrompt);
+      await this.actionAgent.action(taskPrompt);
     } catch (e: any) {
       error = e;
     }
-    if (actionAgent.executionDump) {
-      this.appendDump(dumpGroupName, actionAgent.executionDump);
+    // console.log('cache logic', actionAgent.taskCache.generateTaskCache());
+    if (this.actionAgent.executionDump) {
+      this.appendDump(this.actionAgent.executionDump);
+      // this.appendDump(dumpGroupName, actionAgent.executionDump);
       this.writeOutActionDumps();
     }
     if (error) {
@@ -57,17 +62,16 @@ export class PageAgent {
     }
   }
 
-  async aiQuery(demand: any, dumpCaseName = 'AI Query', dumpGroupName = 'MidScene / Web') {
-    const actionAgent = new PageTaskExecutor(this.page, { taskName: dumpCaseName });
+  async aiQuery(demand: any) {
     let error: Error | undefined;
     let result: any;
     try {
-      result = await actionAgent.query(demand);
+      result = await this.actionAgent.query(demand);
     } catch (e: any) {
       error = e;
     }
-    if (actionAgent.executionDump) {
-      this.appendDump(dumpGroupName, actionAgent.executionDump);
+    if (this.actionAgent.executionDump) {
+      this.appendDump(this.actionAgent.executionDump);
       this.writeOutActionDumps();
     }
     if (error) {
@@ -78,11 +82,11 @@ export class PageAgent {
     return result;
   }
 
-  async ai(taskPrompt: string, type = 'action', dumpCaseName = 'AI', dumpGroupName = 'MidScene / Web') {
+  async ai(taskPrompt: string, type = 'action') {
     if (type === 'action') {
-      return this.aiAction(taskPrompt, dumpCaseName, dumpGroupName);
+      return this.aiAction(taskPrompt);
     } else if (type === 'query') {
-      return this.aiQuery(taskPrompt, dumpCaseName, dumpGroupName);
+      return this.aiQuery(taskPrompt);
     }
     throw new Error(`Unknown or Unsupported task type: ${type}, only support 'action' or 'query'`);
   }

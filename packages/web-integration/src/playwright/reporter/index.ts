@@ -18,7 +18,7 @@ function logger(...message: any[]) {
 }
 
 class MidSceneReporter implements Reporter {
-  onBegin(config: FullConfig, suite: Suite) {
+  async onBegin(config: FullConfig, suite: Suite) {
     const suites = suite.allTests();
     logger(`Starting the run with ${suites.length} tests`);
   }

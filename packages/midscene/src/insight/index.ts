@@ -16,6 +16,7 @@ import {
   BaseElement,
   DumpSubscriber,
   InsightExtractParam,
+  AIElementParseResponse,
 } from '@/types';
 
 const sortByOrder = (a: UISection, b: UISection) => {
@@ -26,8 +27,9 @@ const sortByOrder = (a: UISection, b: UISection) => {
   }
 };
 
-export interface FindElementOptions {
+export interface LocateOpts {
   multi?: boolean;
+  callAI?: typeof callAI<AIElementParseResponse>;
 }
 
 // export type UnwrapDataShape<T> = T extends EnhancedQuery<infer DataShape> ? DataShape : {};
@@ -36,8 +38,11 @@ export type AnyValue<T> = {
   [K in keyof T]: unknown extends T[K] ? any : T[K];
 };
 
-export default class Insight<ElementType extends BaseElement = BaseElement> {
-  contextRetrieverFn: () => Promise<UIContext<ElementType>> | UIContext<ElementType>;
+export default class Insight<
+  ElementType extends BaseElement = BaseElement,
+  ContextType extends UIContext<ElementType> = UIContext<ElementType>,
+> {
+  contextRetrieverFn: () => Promise<ContextType> | ContextType;
 
   aiVendorFn: typeof callAI = callAI;
 
@@ -45,10 +50,7 @@ export default class Insight<ElementType extends BaseElement = BaseElement> {
 
   taskInfo?: Omit<InsightTaskInfo, 'durationMs'>;
 
-  constructor(
-    context: UIContext<ElementType> | (() => Promise<UIContext<ElementType>> | UIContext<ElementType>),
-    opt?: InsightOptions,
-  ) {
+  constructor(context: ContextType | (() => Promise<ContextType> | ContextType), opt?: InsightOptions) {
     assert(context, 'context is required for Insight');
     if (typeof context === 'function') {
       this.contextRetrieverFn = context;
@@ -64,9 +66,10 @@ export default class Insight<ElementType extends BaseElement = BaseElement> {
     }
   }
 
-  async locate(queryPrompt: string): Promise<ElementType | null>;
+  async locate(queryPrompt: string, opt?: { callAI: LocateOpts['callAI'] }): Promise<ElementType | null>;
   async locate(queryPrompt: string, opt: { multi: true }): Promise<ElementType[]>;
-  async locate(queryPrompt: string, opt?: FindElementOptions) {
+  async locate(queryPrompt: string, opt?: LocateOpts) {
+    const { callAI = this.aiVendorFn, multi = false } = opt || {};
     assert(queryPrompt, 'query is required for located');
     const dumpSubscriber = this.onceDumpUpdatedFn;
     this.onceDumpUpdatedFn = undefined;
@@ -74,9 +77,9 @@ export default class Insight<ElementType extends BaseElement = BaseElement> {
 
     const startTime = Date.now();
     const { parseResult, systemPrompt, elementById } = await AiInspectElement({
-      callAI: this.aiVendorFn,
+      callAI,
       context,
-      multi: Boolean(opt?.multi),
+      multi: Boolean(multi),
       findElementDescription: queryPrompt,
     });
     // const parseResult = await this.aiVendorFn<AIElementParseResponse>(msgs);
@@ -281,5 +284,13 @@ export default class Insight<ElementType extends BaseElement = BaseElement> {
     );
 
     return mergedData;
+  }
+
+  setAiVendorFn<T>(aiVendorFn: typeof callAI<T>) {
+    const origin = this.aiVendorFn;
+    this.aiVendorFn<T> = aiVendorFn;
+    return () => {
+      this.aiVendorFn = origin;
+    };
   }
 }

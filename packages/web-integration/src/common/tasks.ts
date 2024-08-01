@@ -1,5 +1,6 @@
 import assert from 'assert';
 import Insight, {
+  AIElementParseResponse,
   DumpSubscriber,
   ExecutionDump,
   ExecutionRecorderItem,
@@ -11,35 +12,37 @@ import Insight, {
   Executor,
   InsightDump,
   InsightExtractParam,
+  plan,
   PlanningAction,
   PlanningActionParamHover,
   PlanningActionParamInputOrKeyPress,
   PlanningActionParamScroll,
   PlanningActionParamTap,
-  plan,
 } from '@midscene/core';
 import { commonScreenshotParam, getTmpFile, sleep } from '@midscene/core/utils';
 import { base64Encoded } from '@midscene/core/image';
 import type { KeyInput, Page as PuppeteerPage } from 'puppeteer';
+import { ChatCompletionMessageParam } from 'openai/resources';
 import { WebElementInfo } from '../web-element';
-import { parseContextFromWebPage } from './utils';
+import { parseContextFromWebPage, WebUIContext } from './utils';
+import { AiTaskCache, TaskCache } from './task-cache';
 import { WebPage } from '@/common/page';
 
 export class PageTaskExecutor {
   page: WebPage;
 
-  insight: Insight<WebElementInfo>;
-
-  taskExecutor: Executor;
+  insight: Insight<WebElementInfo, WebUIContext>;
 
   executionDump?: ExecutionDump;
 
-  constructor(page: WebPage, opt?: { taskName?: string }) {
+  taskCache: TaskCache;
+
+  constructor(page: WebPage, opts: { cache: AiTaskCache }) {
     this.page = page;
-    this.insight = new Insight<WebElementInfo>(async () => {
+    this.insight = new Insight<WebElementInfo, WebUIContext>(async () => {
       return await parseContextFromWebPage(page);
     });
-    this.taskExecutor = new Executor(opt?.taskName || 'MidScene - PlayWrightAI');
+    this.taskCache = new TaskCache(opts);
   }
 
   private async recordScreenshot(timing: ExecutionRecorderItem['timing']) {
@@ -95,14 +98,42 @@ export class PageTaskExecutor {
                 insightDump = dump;
               };
               this.insight.onceDumpUpdatedFn = dumpCollector;
-              const element = await this.insight.locate(param.prompt);
+              const pageContext = await this.insight.contextRetrieverFn();
+              const locateCache = this.taskCache.readCache(pageContext, 'locate', param.prompt);
+              let locateResult: AIElementParseResponse | undefined;
+              const callAI = this.insight.aiVendorFn<AIElementParseResponse>;
+              const element = await this.insight.locate(param.prompt, {
+                callAI: async (message: ChatCompletionMessageParam[]) => {
+                  if (locateCache) {
+                    locateResult = locateCache;
+                    return Promise.resolve(locateCache);
+                  }
+                  locateResult = await callAI(message);
+                  return locateResult;
+                },
+              });
+
               assert(element, `Element not found: ${param.prompt}`);
+              if (locateResult) {
+                this.taskCache.saveCache({
+                  type: 'locate',
+                  pageContext: {
+                    url: pageContext.url,
+                    size: pageContext.size,
+                  },
+                  prompt: param.prompt,
+                  response: locateResult,
+                });
+              }
               return {
                 output: {
                   element,
                 },
                 log: {
                   dump: insightDump,
+                },
+                cache: {
+                  hit: Boolean(locateResult),
                 },
               };
             },
@@ -193,8 +224,8 @@ export class PageTaskExecutor {
   }
 
   async action(userPrompt: string /* , actionInfo?: { actionType?: EventActions[number]['action'] } */) {
-    this.taskExecutor.description = userPrompt;
-    const pageContext = await this.insight.contextRetrieverFn();
+    const taskExecutor = new Executor(userPrompt);
+    taskExecutor.description = userPrompt;
 
     let plans: PlanningAction[] = [];
     const planningTask: ExecutionTaskPlanningApply = {
@@ -202,45 +233,70 @@ export class PageTaskExecutor {
       param: {
         userPrompt,
       },
-      async executor(param) {
-        const planResult = await plan(pageContext, param.userPrompt);
+      executor: async (param) => {
+        const pageContext = await this.insight.contextRetrieverFn();
+        let planResult: { plans: PlanningAction[] };
+        const planCache = this.taskCache.readCache(pageContext, 'plan', userPrompt);
+        if (planCache) {
+          planResult = planCache;
+        } else {
+          planResult = await plan(param.userPrompt, {
+            context: pageContext,
+          });
+        }
+
         assert(planResult.plans.length > 0, 'No plans found');
         // eslint-disable-next-line prefer-destructuring
         plans = planResult.plans;
+
+        this.taskCache.saveCache({
+          type: 'plan',
+          pageContext: {
+            url: pageContext.url,
+            size: pageContext.size,
+          },
+          prompt: userPrompt,
+          response: planResult,
+        });
         return {
           output: planResult,
+          cache: {
+            hint: Boolean(planCache),
+          },
         };
       },
     };
 
     try {
       // plan
-      await this.taskExecutor.append(this.wrapExecutorWithScreenshot(planningTask));
-      await this.taskExecutor.flush();
-      this.executionDump = this.taskExecutor.dump();
+      await taskExecutor.append(this.wrapExecutorWithScreenshot(planningTask));
+      await taskExecutor.flush();
+      this.executionDump = taskExecutor.dump();
 
       // append tasks
       const executables = await this.convertPlanToExecutable(plans);
-      await this.taskExecutor.append(executables);
+      await taskExecutor.append(executables);
 
       // flush actions
-      await this.taskExecutor.flush();
-      this.executionDump = this.taskExecutor.dump();
+      await taskExecutor.flush();
+      this.executionDump = taskExecutor.dump();
 
       assert(
-        this.taskExecutor.status !== 'error',
-        `failed to execute tasks: ${this.taskExecutor.status}, msg: ${this.taskExecutor.errorMsg || ''}`,
+        taskExecutor.status !== 'error',
+        `failed to execute tasks: ${taskExecutor.status}, msg: ${taskExecutor.errorMsg || ''}`,
       );
     } catch (e: any) {
       // keep the dump before throwing
-      this.executionDump = this.taskExecutor.dump();
+      this.executionDump = taskExecutor.dump();
       const err = new Error(e.message, { cause: e });
       throw err;
     }
   }
 
   async query(demand: InsightExtractParam) {
-    this.taskExecutor.description = JSON.stringify(demand);
+    const description = JSON.stringify(demand);
+    const taskExecutor = new Executor(description);
+    taskExecutor.description = description;
     let data: any;
     const queryTask: ExecutionTaskInsightQueryApply = {
       type: 'Insight',
@@ -262,12 +318,12 @@ export class PageTaskExecutor {
       },
     };
     try {
-      await this.taskExecutor.append(this.wrapExecutorWithScreenshot(queryTask));
-      await this.taskExecutor.flush();
-      this.executionDump = this.taskExecutor.dump();
+      await taskExecutor.append(this.wrapExecutorWithScreenshot(queryTask));
+      await taskExecutor.flush();
+      this.executionDump = taskExecutor.dump();
     } catch (e: any) {
       // keep the dump before throwing
-      this.executionDump = this.taskExecutor.dump();
+      this.executionDump = taskExecutor.dump();
       const err = new Error(e.message, { cause: e });
       throw err;
     }

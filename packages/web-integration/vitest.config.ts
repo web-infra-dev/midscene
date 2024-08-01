@@ -1,6 +1,10 @@
 import { defineConfig } from 'vitest/config';
 import path from 'path';
 
+const enableTest = process.env.AITEST;
+
+const aiModelTest = enableTest !== 'true' ? ['tests/puppeteer/bing.test.ts']: [];
+
 export default defineConfig({
   resolve: {
     alias: {
@@ -8,6 +12,7 @@ export default defineConfig({
     },
   },
   test: {
-    include: ['./tests/puppeteer/**/*.spec.ts'],
+    include: ['./tests/**/*.test.ts'],
+    exclude: [...aiModelTest]
   },
 });
