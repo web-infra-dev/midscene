@@ -1,6 +1,6 @@
-# SDK 接口文档
+# API 接口文档
 
-## 配置 AI 供应商
+## 配置 AI 服务商
 
 MidScene 默认集成了 OpenAI SDK 调用 AI 服务，你也可以通过环境变量来自定义配置。
 
@@ -26,7 +26,9 @@ export MIDSCENE_MODEL_NAME='claude-3-opus-20240229';
 export MIDSCENE_OPENAI_INIT_CONFIG_JSON='{"baseURL":"....","defaultHeaders":{"key": "value"}}'
 ```
 
-## 在 Puppeteer 中使用
+## 集成
+
+### 与 Puppeteer 集成
 
 初始化方法：
 
@@ -36,30 +38,11 @@ import { PuppeteerAgent } from '@midscene/web/puppeteer';
 const mid = new PuppeteerAgent(puppeteerPageInstance);
 ```
 
-一个完整案例：
+你可以在[快速开始](../getting-started/quick-start) 中找到完整的集成样例。
 
-```typescript
-import puppeteer, { Viewport } from 'puppeteer';
-import { PuppeteerAgent } from '@midscene/web/puppeteer';
+## 与 Playwright 集成
 
-// 初始化 Puppeteer Page
-const browser = await puppeteer.launch({
-  headless: false, // here we use headed mode to help debug
-});
-
-const page = await browser.newPage();
-await page.goto('https://www.bing.com');
-await page.waitForNavigation({
-  timeout: 20 * 1000,
-  waitUntil: 'networkidle0',
-});
-
-// 初始化 MidScene agent, 执行操作
-const mid = new PuppeteerAgent(page);
-await mid.ai('type "Headphones" in search box, hit Enter');
-```
-
-## 在 Playwright 中使用
+你可以在[快速开始](../getting-started/quick-start) 中找到完整的集成样例。
 
 ## API
 

@@ -26,7 +26,9 @@ export MIDSCENE_MODEL_NAME='claude-3-opus-20240229';
 export MIDSCENE_OPENAI_INIT_CONFIG_JSON='{"baseURL":"....","defaultHeaders":{"key": "value"}}'
 ```
 
-## Use in Puppeteer
+## Integration
+
+### Puppeteer
 
 To initialize：
 
@@ -36,30 +38,11 @@ import { PuppeteerAgent } from '@midscene/web/puppeteer';
 const mid = new PuppeteerAgent(puppeteerPageInstance);
 ```
 
-A complete sample:
+You can view the integration sample in [quick-start](../getting-started/quick-start).
 
-```typescript
-import puppeteer, { Viewport } from 'puppeteer';
-import { PuppeteerAgent } from '@midscene/web/puppeteer';
+### Playwright
 
-// init Puppeteer page
-const browser = await puppeteer.launch({
-  headless: false, // here we use headed mode to help debug
-});
-
-const page = await browser.newPage();
-await page.goto('https://www.bing.com');
-await page.waitForNavigation({
-  timeout: 20 * 1000,
-  waitUntil: 'networkidle0',
-});
-
-// init MidScene agent, perform actions
-const mid = new PuppeteerAgent(page);
-await mid.ai('type "Headphones" in search box, hit Enter');
-```
-
-## Use in Playwright
+You can view the integration sample in [quick-start](../getting-started/quick-start).
 
 ## API
 

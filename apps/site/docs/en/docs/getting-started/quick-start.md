@@ -1,10 +1,10 @@
 # Quick Start
 
-In this example, we use OpenAI GPT-4o and Puppeteer.js to search headphones on ebay, and then get the result items and prices in JSON format. 
+In this example, we use OpenAI GPT-4o to search headphones on ebay, and then get the result items and prices in JSON format. 
 
-Remember to prepare an OpenAI key that is eligible for accessing GPT-4o before running.
+Remember to prepare an API key that is eligible for accessing OpenAI's GPT-4o before running.
 
-> [Puppeteer](https://pptr.dev/) is a Node.js library which provides a high-level API to control Chrome or Firefox over the DevTools Protocol or WebDriver BiDi. Puppeteer runs in the headless (no visible UI) by default but can be configured to run in a visible ("headful") browser.
+## Preparation
 
 Config the API key
 
@@ -20,6 +20,57 @@ npm install @midscene/web --save-dev
 # for demo use
 npm install puppeteer ts-node --save-dev 
 ```
+
+## Integrate with Playwright
+
+> [Playwright.js](https://playwright.com/) is an open-source automation library developed by Microsoft, primarily designed for end-to-end testing and web scraping of web applications.
+
+### Step 1. update playwright.config.ts
+
+```diff
+export default defineConfig({
+  testDir: './e2e',
++ timeout: 90 * 1000,
++ reporter: '@midscene/web/playwright-report',
+});
+```
+
+### Step 2. extend the `test` instance
+
+Save the following code as `./fixture.ts`;
+
+```typescript
+import { test as base } from '@playwright/test';
+import type { PlayWrightAiFixtureType } from '@midscene/web';
+import { PlaywrightAiFixture } from '@midscene/web';
+
+export const test = base.extend<PlayWrightAiFixtureType>(PlaywrightAiFixture());
+```
+
+### Step 3. write the test case
+
+Save the following code as `./e2e/ebay.spec.ts`;
+
+```typescript
+// ...
+```
+
+### Step 4. run the test case
+
+```bash
+npx playwright test ./test/ebay.spec.ts
+```
+
+### Step 5. view test report after running
+
+```bash
+
+```
+
+
+## Integrate with Puppeteer
+
+> [Puppeteer](https://pptr.dev/) is a Node.js library which provides a high-level API to control Chrome or Firefox over the DevTools Protocol or WebDriver BiDi. Puppeteer runs in the headless (no visible UI) by default but can be configured to run in a visible ("headful") browser.
 
 Write and save the following code as `./demo.ts`.
 

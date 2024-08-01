@@ -1,8 +1,8 @@
 # 快速开始
 
-在这个例子中，我们将使用 OpenAI GPT-4o 和 Puppeteer.js 在 eBay 上搜索 "耳机"，并以 JSON 格式返回商品和价格结果。
+在这个例子中，我们将使用 OpenAI GPT-4o 在 ebay 上搜索 "耳机"，并以 JSON 格式返回商品和价格结果。
 
-在运行该示例之前，请确保您已经准备了有权限访问 GPT-4o 的 OpenAI key。
+在运行该示例之前，请确保您已经准备了能够调用 OpenAI GPT-4o 模型的 API key。
 
 > [Puppeteer](https://pptr.dev/) 是一个 Node.js 库，它通过 DevTools Protocol 或 WebDriver BiDi 提供了用于控制 Chrome 或 Firefox 的高级 API。默认情况下，Puppeteer 运行在无头模式（headless mode, 即没有可见的 UI），但也可以配置为在有头模式（headed mode, 即有可见的浏览器界面）下运行。
 
@@ -17,9 +17,41 @@ export OPENAI_API_KEY="sk-abcdefghijklmnopqrstuvwxyz"
 
 ```bash
 npm install @midscene/web --save-dev
-# for demo use
+# 供 demo 使用
 npm install puppeteer ts-node --save-dev 
 ```
+
+## 集成到 Playwright
+
+> [Playwright.js](https://playwright.com/) 是由微软开发的一个开源自动化库，主要用于对网络应用程序进行端到端测试（end-to-end test）和网页抓取。
+
+### 第一步：更新 playwright.config.ts
+
+```diff
+export default defineConfig({
+  testDir: './e2e',
++ timeout: 90 * 1000,
++ reporter: '@midscene/web/playwright-report',
+});
+```
+
+### 第二步：扩展 `test` 实例
+
+把下方代码保存为 `./fixture.ts`;
+
+```typescript
+import { test as base } from '@playwright/test';
+import type { PlayWrightAiFixtureType } from '@midscene/web';
+import { PlaywrightAiFixture } from '@midscene/web';
+
+export const test = base.extend<PlayWrightAiFixtureType>(PlaywrightAiFixture());
+```
+
+TODO__________________________
+
+## 集成到 Puppeteer
+
+> [Puppeteer](https://pptr.dev/) 是一个 Node.js 库，它通过 DevTools 协议或 WebDriver BiDi 提供控制 Chrome 或 Firefox 的高级 API。Puppeteer 默认在无界面模式（headless）下运行，但可以配置为在可见的浏览器模式（headed）中运行。
 
 编写下方代码，保存为 `./demo.ts`
 

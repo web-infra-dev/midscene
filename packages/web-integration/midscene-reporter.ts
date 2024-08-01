@@ -11,7 +11,6 @@ import type {
   TestResult,
   Location,
 } from '@playwright/test/reporter';
-// @ts-expect-error
 import fsExtra from 'fs-extra';
 
 type TestData = {
@@ -31,7 +30,7 @@ type TestData = {
 
 const testDataList: Array<TestData> = [];
 
-class MyReporter implements Reporter {
+class MidScenePlaywrightReporter implements Reporter {
   onBegin(config: FullConfig, suite: Suite) {
     const suites = suite.allTests();
     console.log(`Starting the run with ${suites.length} tests`);
@@ -84,11 +83,14 @@ function generateTestData(testDataList: Array<TestData>) {
 
   // Create a report folder
   if (!fs.existsSync(reportDir)) {
-    fs.mkdirSync(reportDir);
+    fs.mkdirSync(reportDir, { recursive: true });
   }
 
   // Copy the contents of the report html folder to the report folder
   const reportHtmlDir = path.join(projectDir, `node_modules/@midscene/visualizer-report/.output`);
+  if (!fs.existsSync(reportHtmlDir)) {
+    fs.mkdirSync(reportHtmlDir, { recursive: true });
+  }
   const tempDir = path.join(os.tmpdir(), 'temp-folder');
   try {
     // First copy to the temporary directory
@@ -147,4 +149,4 @@ function generateTestData(testDataList: Array<TestData>) {
   }
 }
 
-export default MyReporter;
+export default MidScenePlaywrightReporter;
