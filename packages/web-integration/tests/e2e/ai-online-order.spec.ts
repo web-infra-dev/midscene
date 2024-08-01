@@ -7,7 +7,7 @@ test.beforeEach(async ({ page }) => {
   await page.waitForLoadState('networkidle');
 });
 
-test('ai order', async ({ ai, aiQuery }) => {
+test('ai online order', async ({ ai, aiQuery }) => {
   await ai('点击左上角语言切换按钮(英文、中文)，在弹出的下拉列表中点击中文');
   await ai('在向下滚动一屏');
   await ai('直接点击多肉葡萄的规格按钮');
