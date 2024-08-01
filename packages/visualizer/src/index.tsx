@@ -198,8 +198,9 @@ export function Visualizer(props: {
     const originalNavHeight = getComputedStyle(document.documentElement).getPropertyValue(navHeightKey);
 
     if (ifInRspressPage) {
-      setContainerHeight('calc(100vh - 72px)');
-      document.documentElement.style.setProperty(navHeightKey, '42px');
+      const newNavHeight = '42px';
+      setContainerHeight(`calc(100vh - ${newNavHeight})`);
+      document.documentElement.style.setProperty(navHeightKey, newNavHeight);
     }
 
     // Cleanup function to revert the change
