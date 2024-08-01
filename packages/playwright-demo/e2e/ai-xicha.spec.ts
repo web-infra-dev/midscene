@@ -32,4 +32,3 @@ test('ai order', async ({ page, ai }) => {
   //   productDescription: content.productDescription,
   // });
 });
-

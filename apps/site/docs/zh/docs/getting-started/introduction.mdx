@@ -1,0 +1,57 @@
+# 介绍
+
+<video controls>
+  <source src="/MidScene_L.mp4" type="video/mp4" />
+</video>
+
+UI 自动化太难写了。自动化脚本里到处都是选择器，比如 `#ids`、`data-test-xxx`、`.selectors`。在页面重构的时候，维护自动化脚本更会会是一场灾难。
+
+我们在这里推出 MidScene.js。通过 AI 加持，它能让自动化脚本变得简单、可维护，助你重拾编码的乐趣。
+
+MidScene.js 采用了多模态大语言模型（LLM），能够直观地“理解”你的用户界面并执行必要的操作。你只需描述交互步骤或期望的数据格式，AI 就能为你完成任务。
+
+# 特性
+
+### 开箱即用的大型语言模型 (LLM)
+
+你可以直接使用公开可用的 LLM，例如 GPT-4，而不需要任何定制训练。只需 API Key 和 token 额度，你就能体验全新的编码体验。😀
+
+### 通过 AI 执行交互
+
+使用 `.aiAction` 方法，你可以通过描述步骤来执行交互。
+
+比如：
+
+```javascript
+.aiAction('在任务框中输入 "Learn JS today"，然后按 Enter 键创建任务')
+```
+
+### 通过 AI 从页面提取数据
+
+`.aiQuery` 方法用于从 UI 中提取定制的数据。
+
+例如：
+
+```javascript
+const dataB = await agent.aiQuery('string[], 任务列表中的任务名');
+```
+
+你会得到一个包含任务名字符串的数组。
+
+### 通过 AI 执行断言
+
+调用 `.aiAssert` 方法可以对页面进行断言。
+
+### 可视化工具
+
+我们提供的可视化工具，可以非常方便地调试提示和 AI 的响应。所有的中间数据，例如查询（Query）、计划（Planning）和动作（Actions），都可以被可视化。
+
+你可以打开 [可视化工具](/visualization/index.html) 来查看示例。
+
+![可视化工具示例](/Visualizer.gif)
+
+## 流程图
+
+下图展示了 MidScene 的核心流程。
+
+![](/flow.png)

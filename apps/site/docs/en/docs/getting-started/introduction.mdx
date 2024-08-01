@@ -1,0 +1,47 @@
+# Introduction
+
+<video controls>
+  <source src="/MidScene_L.mp4" type="video/mp4" />
+</video>
+
+UI automation can be frustrating, often involving a maze of *#ids*, *data-test-xxx* attributes, and *.selectors* that are difficult to maintain, especially when the page undergoes a refactor.
+
+Introducing MidScene.js, an innovative SDK designed to bring joy back to programming by simplifying automation tasks.
+
+MidScene.js leverages a multimodal Large Language Model (LLM) to intuitively “understand” your user interface and carry out the necessary actions. You can simply describe the interaction steps or expected data formats, and the AI will handle the execution for you.
+
+## Features
+
+### Out-of-box LLM
+
+It is fine to use publicly available LLMs such as GPT-4o. There is no need for custom training. To experience the brand new way of writing automation, token is all you need. 😀
+
+### Execute Actions by AI
+
+Use `.aiAction` to perform a series of actions by describing the steps.
+
+For example `.aiAction('Enter "Learn JS today" in the task box, then press Enter to create')`.
+
+### Extract Data from Page by AI
+
+`.aiQuery` is the method to extract customized data from the UI.
+
+For example, by calling `const dataB = await agent.aiQuery('string[], task names in the list');`, you will get an array with string of the task names.
+
+### Perform Assertions by AI
+
+Call `.aiAssert` to perform assertions on the page.
+
+### Visualization Tool
+
+With our visualization tool, you can easily debug the prompt and AI response. All intermediate data, such as queries, plans, and actions, can be visualized.
+
+You may open the [Online Visualization Tool](/visualization/index.html) to see the showcase.
+
+![](/Visualizer.gif)
+
+## Flow Chart
+
+Here is a flowchart illustrating the core process of MidScene.
+
+![](/flow.png)

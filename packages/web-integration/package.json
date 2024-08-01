@@ -15,7 +15,7 @@
     "./playwright-report": {
       "types": "./dist/types/playwright-report.d.ts",
       "import": "./dist/es/playwright-report.js",
-      "require": "./dist/lib/inplaywright-report.js"
+      "require": "./dist/lib/playwright-report.js"
     },
     "./constants": {
       "types": "./dist/types/constants.d.ts",

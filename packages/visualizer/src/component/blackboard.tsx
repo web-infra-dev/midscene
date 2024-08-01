@@ -67,7 +67,11 @@ const BlackBoard = (): JSX.Element => {
     // Clean up the PIXI application when the component unmounts
     return () => {
       console.log('will destroy');
-      app?.destroy(true, { children: true, texture: true });
+      try {
+        app.destroy(true, { children: true, texture: true });
+      } catch (e) {
+        console.warn('destroy failed', e);
+      }
     };
   }, [app, screenWidth, screenHeight]);
 

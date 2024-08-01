@@ -26,6 +26,14 @@ test('ai online order', async ({ ai, aiQuery }) => {
 
   expect(cardDetail.productName.indexOf('多肉葡萄')).toBeGreaterThanOrEqual(0);
 
+  const cardDetail = await aiQuery({
+    productName: '商品名称，在价格上面',
+    productPrice: '商品价格， string',
+    productDescription: '商品描述（饮品的各种参数，吸管、冰沙等），在价格下面',
+  });
+
+  expect(cardDetail.productName.indexOf('多肉葡萄')).toBeGreaterThanOrEqual(0);
+
   // const content = await aiQuery(query('购物车商品详情', {
   //   productName: "商品名称，在价格上面",
   //   productPrice: "商品价格",

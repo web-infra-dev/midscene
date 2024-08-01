@@ -89,9 +89,7 @@ export class PageTaskExecutor {
           const taskFind: ExecutionTaskInsightLocateApply = {
             type: 'Insight',
             subType: 'Locate',
-            param: {
-              prompt: plan.thought,
-            },
+            param: plan.param,
             executor: async (param) => {
               let insightDump: InsightDump | undefined;
               const dumpCollector: DumpSubscriber = (dump) => {
@@ -144,7 +142,10 @@ export class PageTaskExecutor {
             type: 'Action',
             subType: 'Input',
             param: plan.param,
-            executor: async (taskParam) => {
+            executor: async (taskParam, { element }) => {
+              if (element) {
+                await this.page.mouse.click(element.center[0], element.center[1]);
+              }
               assert(taskParam.value, 'No value to input');
               await this.page.keyboard.type(taskParam.value);
             },

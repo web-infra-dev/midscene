@@ -8,10 +8,10 @@ export async function launchPage(
   },
 ) {
   const browser = await puppeteer.launch({
-    headless: false,
+    // headless: false,
   });
 
-  const page = (await browser.pages())[0];
+  const page = await browser.newPage();
   const viewportConfig = {
     width: opt?.viewport?.width || 1920,
     height: opt?.viewport?.height || 1080,

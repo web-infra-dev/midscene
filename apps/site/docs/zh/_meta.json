@@ -1,0 +1,12 @@
+[
+  {
+    "text": "文档",
+    "link": "/docs/getting-started/introduction",
+    "activeMatch": "/docs"
+  },
+  {
+    "text": "可视化工具",
+    "link": "/visualization/",
+    "activeMatch": "/visualization/"
+  }
+]

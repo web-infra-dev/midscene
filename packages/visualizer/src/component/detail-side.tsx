@@ -183,19 +183,19 @@ const DetailSide = (): JSX.Element => {
   const metaKVElement = MetaKV({
     data: [
       {
-        key: 'Status',
+        key: 'status',
         content: task?.status || '',
       },
       {
-        key: 'Start',
+        key: 'start',
         content: timeStr(task?.timing?.start),
       },
       {
-        key: 'End',
+        key: 'end',
         content: timeStr(task?.timing?.end),
       },
       {
-        key: 'Time Cost',
+        key: 'time cost',
         content: timeCostStrElement(task?.timing?.cost),
       },
     ],

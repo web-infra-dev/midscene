@@ -6,13 +6,18 @@ const size = 400; // @max-size
 const GlobalHoverPreview = () => {
   const wrapperRef = useRef<HTMLDivElement>(null);
   const hoverTask = useExecutionDump((store) => store.hoverTask);
+  const hoverTimestamp = useExecutionDump((store) => store.hoverTimestamp);
   const hoverPreviewConfig = useExecutionDump((store) => store.hoverPreviewConfig);
   const [imageW, setImageW] = useState(size);
   const [imageH, setImageH] = useState(size);
 
   const images = hoverTask?.recorder
     ?.filter((item) => {
-      return item.screenshot;
+      let valid = Boolean(item.screenshot);
+      if (hoverTimestamp) {
+        valid = valid && item.ts >= hoverTimestamp;
+      }
+      return valid;
     })
     .map((item) => item.screenshot);
 

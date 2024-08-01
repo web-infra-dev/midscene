@@ -13,13 +13,11 @@
     "collapsible": false,
     "collapsed": false
   },
-  "prompting-tips.md",
   {
     "type": "dir",
-    "name": "integration",
-    "label": "Integration",
+    "name": "more",
+    "label": "More",
     "collapsible": false,
     "collapsed": false
-  },
-  "faq.md"
+  }
 ]

@@ -5,7 +5,6 @@ import {
   ExecutionTaskInsightLocate,
   ExecutionTask,
   GroupedActionDump,
-  ExecutionTaskInsightQuery,
 } from '../../../midscene/dist/types';
 
 export const useBlackboardPreference = create<{
@@ -30,7 +29,8 @@ export const useExecutionDump = create<{
   activeTask: ExecutionTask | null;
   setActiveTask: (task: ExecutionTask) => void;
   hoverTask: ExecutionTask | null;
-  setHoverTask: (task: ExecutionTask | null) => void;
+  hoverTimestamp: number | null;
+  setHoverTask: (task: ExecutionTask | null, timestamp?: number | null) => void;
   hoverPreviewConfig: { x: number; y: number } | null;
   setHoverPreviewConfig: (config: { x: number; y: number } | null) => void;
   reset: () => void;
@@ -39,6 +39,7 @@ export const useExecutionDump = create<{
     dump: null,
     activeTask: null,
     hoverTask: null,
+    hoverTimestamp: null,
     hoverPreviewConfig: null,
   };
 
@@ -77,8 +78,8 @@ export const useExecutionDump = create<{
         resetInsightDump();
       }
     },
-    setHoverTask(task: ExecutionTask | null) {
-      set({ hoverTask: task });
+    setHoverTask(task: ExecutionTask | null, timestamp?: number | null) {
+      set({ hoverTask: task, hoverTimestamp: timestamp || null });
     },
     setHoverPreviewConfig(config: { x: number; y: number } | null) {
       if (config) {
