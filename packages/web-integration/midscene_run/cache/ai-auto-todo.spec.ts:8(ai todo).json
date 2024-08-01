@@ -6,71 +6,82 @@
   "aiTasks": [
     {
       "type": "plan",
+      "pageContext": {
+        "url": "https://todomvc.com/examples/react/dist/",
+        "size": {
+          "width": 1280,
+          "height": 720
+        }
+      },
       "prompt": "Enter \"Learn JS today\" in the task box, then press Enter to create",
       "response": {
         "plans": [
           {
-            "thought": "The task involves finding the input task box where text 'What needs to be done?' appears. Then, it is required to enter 'Learn JS today' and press Enter.",
+            "thought": "The task box is the input field with the placeholder 'What needs to be done?'.",
             "type": "Locate",
             "param": {
-              "prompt": "The input box with placeholder text 'What needs to be done?' at the center of the page."
+              "prompt": "The input field with the placeholder text 'What needs to be done?'"
             }
           },
           {
-            "thought": "Entering the given text into the input box.",
+            "thought": "Enter the given text 'Learn JS today' into the input field.",
             "type": "Input",
             "param": {
               "value": "Learn JS today"
             }
           },
           {
-            "thought": "Hitting Enter to create the task.",
+            "thought": "Press Enter to create the task after entering the text.",
             "type": "KeyboardPress",
             "param": {
               "value": "Enter"
             }
           }
         ]
-      },
-      "pageContext": {
-        "url": "",
-        "width": 1280,
-        "height": 720
       }
     },
     {
       "type": "locate",
-      "prompt": "The task involves finding the input task box where text 'What needs to be done?' appears. Then, it is required to enter 'Learn JS today' and press Enter.",
+      "pageContext": {
+        "url": "https://todomvc.com/examples/react/dist/",
+        "size": {
+          "width": 1280,
+          "height": 720
+        }
+      },
+      "prompt": "The task box is the input field with the placeholder 'What needs to be done?'.",
       "response": {
         "elements": [
           {
-            "reason": "The element with ID '3530a9c1eb' has the placeholder text 'What needs to be done?', indicating it is the input box where tasks are entered.",
+            "reason": "The element has the placeholder 'What needs to be done?' and matches the description as an input field.",
             "text": "What needs to be done?",
             "id": "3530a9c1eb"
           }
         ],
         "errors": []
-      },
-      "pageContext": {
-        "url": "",
-        "width": 1280,
-        "height": 720
       }
     },
     {
       "type": "plan",
+      "pageContext": {
+        "url": "https://todomvc.com/examples/react/dist/",
+        "size": {
+          "width": 1280,
+          "height": 720
+        }
+      },
       "prompt": "Enter \"Learn Rust tomorrow\" in the task box, then press Enter to create",
       "response": {
         "plans": [
           {
-            "thought": "The user wants to add a new task 'Learn Rust tomorrow'. For this, we need to locate the input box first.",
+            "thought": "Locate the element to input the task.",
             "type": "Locate",
             "param": {
-              "prompt": "The input box with the placeholder 'What needs to be done?' located at the top center of the page"
+              "prompt": "The task input box with the placeholder 'What needs to be done?'"
             }
           },
           {
-            "thought": "Input the task 'Learn Rust tomorrow' into the input box.",
+            "thought": "Input the task description 'Learn Rust tomorrow'.",
             "type": "Input",
             "param": {
               "value": "Learn Rust tomorrow"
@@ -84,246 +95,139 @@
             }
           }
         ]
-      },
-      "pageContext": {
-        "url": "",
-        "width": 1280,
-        "height": 720
       }
     },
     {
       "type": "locate",
-      "prompt": "The user wants to add a new task 'Learn Rust tomorrow'. For this, we need to locate the input box first.",
+      "pageContext": {
+        "url": "https://todomvc.com/examples/react/dist/",
+        "size": {
+          "width": 1280,
+          "height": 720
+        }
+      },
+      "prompt": "Locate the element to input the task.",
       "response": {
         "elements": [
           {
-            "reason": "The element 'todo-input' is an input field located at the top of the 'Learn JS today' task list, matching the description of an 'input box' for adding new tasks.",
+            "reason": "The element matches the description 'Locate the element to input the task.' as it is an input node with a placeholder indicating it is for inputting tasks.",
             "text": "What needs to be done?",
             "id": "3530a9c1eb"
           }
         ],
         "errors": []
-      },
-      "pageContext": {
-        "url": "",
-        "width": 1280,
-        "height": 720
       }
     },
     {
       "type": "plan",
+      "pageContext": {
+        "url": "https://todomvc.com/examples/react/dist/",
+        "size": {
+          "width": 1280,
+          "height": 720
+        }
+      },
       "prompt": "Enter \"Learning AI the day after tomorrow\" in the task box, then press Enter to create",
       "response": {
         "plans": [
           {
-            "thought": "The user wants to add a new task in the todo list. The input box is the obvious element to access for this action.",
+            "thought": "首先定位到任务输入框，页面描述中包含了 'What needs to be done?' 作为其 placeholder。",
             "type": "Locate",
             "param": {
-              "prompt": "The input box with placeholder text 'What needs to be done?'"
+              "prompt": "包含 'What needs to be done?' placeholder 的输入框"
             }
           },
           {
-            "thought": "Input the required text in the task box.",
+            "thought": "在输入框中输入 'Learning AI the day after tomorrow'。",
             "type": "Input",
             "param": {
               "value": "Learning AI the day after tomorrow"
             }
           },
           {
-            "thought": "Press Enter to add the task to the todo list.",
+            "thought": "按下 Enter 键以创建任务。",
             "type": "KeyboardPress",
             "param": {
               "value": "Enter"
             }
           }
         ]
-      },
-      "pageContext": {
-        "url": "",
-        "width": 1280,
-        "height": 720
       }
     },
     {
       "type": "locate",
-      "prompt": "The user wants to add a new task in the todo list. The input box is the obvious element to access for this action.",
+      "pageContext": {
+        "url": "https://todomvc.com/examples/react/dist/",
+        "size": {
+          "width": 1280,
+          "height": 720
+        }
+      },
+      "prompt": "首先定位到任务输入框，页面描述中包含了 'What needs to be done?' 作为其 placeholder。",
       "response": {
         "elements": [
           {
-            "reason": "The input box is the obvious element to access for adding a new task. It matches the 'What needs to be done?' placeholder description.",
+            "reason": "The element contains the 'What needs to be done?' as its placeholder in the INPUT Node, matching the user description.",
             "text": "What needs to be done?",
             "id": "3530a9c1eb"
           }
         ],
         "errors": []
-      },
-      "pageContext": {
-        "url": "",
-        "width": 1280,
-        "height": 720
       }
     },
     {
       "type": "plan",
+      "pageContext": {
+        "url": "https://todomvc.com/examples/react/dist/",
+        "size": {
+          "width": 1280,
+          "height": 720
+        }
+      },
       "prompt": "Move your mouse over the second item in the task list and click the Delete button to the right of the second task",
       "response": {
         "plans": [
           {
-            "thought": "Locate the second task in the task list which says 'Learn Rust tomorrow'",
+            "thought": "Moving the mouse over the second item in the task list",
             "type": "Locate",
             "param": {
-              "prompt": "The task item with text 'Learn Rust tomorrow'"
+              "prompt": "The text element with content 'Learn Rust tomorrow' at the second position of the list"
             }
           },
           {
-            "thought": "Hover over the located task item to reveal the delete button",
-            "type": "Hover",
-            "param": null
-          },
-          {
-            "thought": "Locate the delete button for the hovered task",
+            "thought": "Locate the delete button beside the second task to click on it",
             "type": "Locate",
             "param": {
-              "prompt": "The delete button to the right of the task item with text 'Learn Rust tomorrow'"
+              "prompt": "The delete button immediately to the right of the second task 'Learn Rust tomorrow'"
             }
           },
           {
-            "thought": "Click the delete button to remove the second task",
+            "thought": "Clicking on the delete button to delete the task",
             "type": "Tap",
             "param": null
           }
         ]
-      },
-      "pageContext": {
-        "url": "",
-        "width": 1280,
-        "height": 720
       }
     },
     {
       "type": "locate",
-      "prompt": "Locate the second task in the task list which says 'Learn Rust tomorrow'",
+      "pageContext": {
+        "url": "https://todomvc.com/examples/react/dist/",
+        "size": {
+          "width": 1280,
+          "height": 720
+        }
+      },
+      "prompt": "Moving the mouse over the second item in the task list",
       "response": {
         "elements": [
           {
-            "reason": "The second task in the task list is 'Learn Rust tomorrow'. This matches the element with the content 'Learn Rust tomorrow' from the elementInfos.",
+            "reason": "The second item in the task list is 'Learn Rust tomorrow', according to the content, and its position is within the task list area.",
             "text": "Learn Rust tomorrow",
             "id": "10bc260820"
           }
         ],
         "errors": []
-      },
-      "pageContext": {
-        "url": "",
-        "width": 1280,
-        "height": 720
-      }
-    },
-    {
-      "type": "locate",
-      "prompt": "Locate the delete button for the hovered task",
-      "response": {
-        "elements": [
-          {
-            "reason": "The element is the delete button for the task 'Learn Rust tomorrow', identified by the text '×', which matches the description given.",
-            "text": "×",
-            "id": "7ccd467339"
-          }
-        ],
-        "errors": []
-      },
-      "pageContext": {
-        "url": "",
-        "width": 1280,
-        "height": 720
-      }
-    },
-    {
-      "type": "plan",
-      "prompt": "Click the check button to the left of the second task",
-      "response": {
-        "plans": [
-          {
-            "thought": "The user wants to click the check button to the left of the second task, which is 'Learning AI the day after tomorrow'. Based on the page description and screenshot, we can see this checkbox next to the task.",
-            "type": "Locate",
-            "param": {
-              "prompt": "The checkbox to the left of the text 'Learning AI the day after tomorrow'"
-            }
-          },
-          {
-            "thought": "After locating the checkbox next to the second task, the next step is to tap on it to mark it.",
-            "type": "Tap",
-            "param": null
-          }
-        ]
-      },
-      "pageContext": {
-        "url": "",
-        "width": 1280,
-        "height": 720
-      }
-    },
-    {
-      "type": "locate",
-      "prompt": "The user wants to click the check button to the left of the second task, which is 'Learning AI the day after tomorrow'. Based on the page description and screenshot, we can see this checkbox next to the task.",
-      "response": {
-        "elements": [
-          {
-            "reason": "The element with the ID 'c0751f3b26' is identified as the checkbox to the left of the text 'Learning AI the day after tomorrow'. This matches the description provided by the user.",
-            "text": "",
-            "id": "c0751f3b26"
-          }
-        ],
-        "errors": []
-      },
-      "pageContext": {
-        "url": "",
-        "width": 1280,
-        "height": 720
-      }
-    },
-    {
-      "type": "plan",
-      "prompt": "Click the completed Status button below the task list",
-      "response": {
-        "plans": [
-          {
-            "thought": "The user wants to click on the completed status button located below the task list.",
-            "type": "Locate",
-            "param": {
-              "prompt": "The 'Completed' status button below the list of tasks."
-            }
-          },
-          {
-            "thought": "Once the completed status button is located, click on it.",
-            "type": "Tap",
-            "param": null
-          }
-        ]
-      },
-      "pageContext": {
-        "url": "",
-        "width": 1280,
-        "height": 720
-      }
-    },
-    {
-      "type": "locate",
-      "prompt": "The user wants to click on the completed status button located below the task list.",
-      "response": {
-        "elements": [
-          {
-            "reason": "The description mentions the 'Completed' status button. The element with id '663a34de3b' has the content 'Completed' and matches the position below the task list.",
-            "text": "Completed",
-            "id": "663a34de3b"
-          }
-        ],
-        "errors": []
-      },
-      "pageContext": {
-        "url": "",
-        "width": 1280,
-        "height": 720
       }
     }
   ]
