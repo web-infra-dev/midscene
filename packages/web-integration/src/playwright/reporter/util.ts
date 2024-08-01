@@ -22,7 +22,7 @@ export function generateTestData(testDataList: Array<TestData>) {
   }
 
   // Copy the contents of the report html folder to the report folder
-  const reportHtmlDir = path.join(projectDir, `node_modules/@midscene/visualizer-report/.output`);
+  const reportHtmlDir = path.join(projectDir, `dist/visualizer-report`);
   const tempDir = path.join(os.tmpdir(), 'temp-folder');
   try {
     // First copy to the temporary directory
@@ -59,34 +59,34 @@ export function generateTestData(testDataList: Array<TestData>) {
   }
 
   // modify log content
-  try {
-    const filePath = path.join(reportDir, 'index.js'); // File path
-    const searchValue = 'Server is listening on http://[::]:'; // The content to be replaced can be a string or a regular expression
-    const replaceValue = 'The report has been generated on http://127.0.0.1:'; // The replaced content
-    // Read file contents
-    let fileContent = fs.readFileSync(filePath, 'utf8');
+  // try {
+  //   const filePath = path.join(reportDir, 'index.js'); // File path
+  //   const searchValue = 'Server is listening on http://[::]:'; // The content to be replaced can be a string or a regular expression
+  //   const replaceValue = 'The report has been generated on http://127.0.0.1:'; // The replaced content
+  //   // Read file contents
+  //   let fileContent = fs.readFileSync(filePath, 'utf8');
 
-    // Replace file contents
-    fileContent = fileContent.replace(searchValue, replaceValue);
-    fileContent = fileContent.replaceAll('8080', '9988');
+  //   // Replace file contents
+  //   fileContent = fileContent.replace(searchValue, replaceValue);
+  //   fileContent = fileContent.replaceAll('8080', '9988');
 
-    // Writes the modified content to the file
-    fsExtra.outputFileSync(filePath, fileContent);
-  } catch (err) {
-    console.error('An error occurred:', err);
-  }
+  //   // Writes the modified content to the file
+  //   fsExtra.outputFileSync(filePath, fileContent);
+  // } catch (err) {
+  //   console.error('An error occurred:', err);
+  // }
 
   // close log
-  try {
-    const filePath = path.join(reportDir, 'node_modules/@modern-js/prod-server/dist/cjs/apply.js'); // File path
-    let fileContent = fs.readFileSync(filePath, 'utf8');
-    fileContent = fileContent.replace('(0, import_server_core.logPlugin)(),', '');
+  // try {
+  //   const filePath = path.join(reportDir, 'node_modules/@modern-js/prod-server/dist/cjs/apply.js'); // File path
+  //   let fileContent = fs.readFileSync(filePath, 'utf8');
+  //   fileContent = fileContent.replace('(0, import_server_core.logPlugin)(),', '');
 
-    // Writes the modified content to the file
-    fsExtra.outputFileSync(filePath, fileContent);
-  } catch (err) {
-    console.error('An error occurred:', err);
-  }
+  //   // Writes the modified content to the file
+  //   fsExtra.outputFileSync(filePath, fileContent);
+  // } catch (err) {
+  //   console.error('An error occurred:', err);
+  // }
 
   // add static data
   modifyRoutesJson(reportDir, testDataList);

@@ -4,7 +4,7 @@
   "scripts": {
     "reset": "npx rimraf ./**/node_modules",
     "dev": "modern dev",
-    "build": "MODERNJS_DEPLOY=node modern deploy",
+    "build": "modern build",
     "start": "modern start",
     "serve": "modern serve",
     "new": "modern new",
@@ -13,7 +13,6 @@
   },
   "files": [
     "dist",
-    ".output",
     "README.md"
   ],
   "engines": {
