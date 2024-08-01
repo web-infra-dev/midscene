@@ -356,6 +356,7 @@
     "attributes": {
       "type": "button",
       "class": ".theme-switch",
+      "id": "theme-toggle",
       "nodeType": "BUTTON Node"
     },
     "content": "",

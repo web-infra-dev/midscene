@@ -45,14 +45,14 @@ test('generate githubstatus test data', async ({ page }) => {
   await generateTestData(page, midsceneTestDataPath, base64String);
 });
 
-test('generate xicha test data', async ({ page }) => {
+test('generate online order test data', async ({ page }) => {
   page.setViewportSize({ width: 400, height: 905 });
   await page.goto('https://heyteavivocity.meuu.online/home');
   await page.evaluate('window.localStorage.setItem("LOCALE", "zh-CN")');
   await page.goto('https://heyteavivocity.meuu.online/home');
   await page.waitForLoadState('networkidle');
 
-  const midsceneTestDataPath = generateTestDataPath('xicha');
+  const midsceneTestDataPath = generateTestDataPath('online_order');
   const buffer = await page.screenshot();
 
   const base64String = buffer.toString('base64');

@@ -34,7 +34,7 @@ repeat(5, (repeatIndex) => {
   test(
     'xicha: inspect element',
     async () => {
-      const { context } = await getPageTestData(path.join(__dirname, './test-data/xicha'));
+      const { context } = await getPageTestData(path.join(__dirname, './test-data/online_order'));
 
       const { aiResponse, filterUnStableinf } = await runTestCases(testCases, async (testCase) => {
         const { parseResult } = await AiInspectElement({
@@ -45,11 +45,11 @@ repeat(5, (repeatIndex) => {
         return parseResult;
       });
       writeFileSyncWithDir(
-        path.join(__dirname, `__ai_responses__/xicha-inspector-element-${repeatIndex}.json`),
+        path.join(__dirname, `__ai_responses__/online_order-inspector-element-${repeatIndex}.json`),
         JSON.stringify(aiResponse, null, 2),
         { encoding: 'utf-8' },
       );
-      expect(filterUnStableinf).toMatchFileSnapshot('./__snapshots__/xicha_inspector.test.ts.snap');
+      expect(filterUnStableinf).toMatchFileSnapshot('./__snapshots__/online_order_inspector.test.ts.snap');
     },
     {
       timeout: 99999,
