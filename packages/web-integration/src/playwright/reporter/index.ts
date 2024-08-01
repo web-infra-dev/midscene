@@ -18,7 +18,7 @@ function logger(...message: any[]) {
 }
 
 class MidSceneReporter implements Reporter {
-  onBegin(config: FullConfig, suite: Suite) {
+  async onBegin(config: FullConfig, suite: Suite) {
     const suites = suite.allTests();
     logger(`Starting the run with ${suites.length} tests`);
   }
@@ -29,7 +29,7 @@ class MidSceneReporter implements Reporter {
 
   onTestEnd(test: TestCase, result: TestResult) {
     const aiActionTestData = test.annotations.filter((annotation) => {
-      if (annotation.type === 'PLAYWRIGHT_AI_ACTION') {
+      if (annotation.type === 'MIDSCENE_AI_ACTION') {
         return true;
       }
       return false;
@@ -55,7 +55,7 @@ class MidSceneReporter implements Reporter {
     generateTestData(testDataList);
     console.log(
       '\x1b[32m%s\x1b[0m',
-      `The report is generated successfully. Run the "node ./midscene-report/index.js" command to start the report`,
+      `The report is generated successfully. Run the "node ./midscene_run/midscene-report/index.js" command to start the report`,
     );
   }
 }

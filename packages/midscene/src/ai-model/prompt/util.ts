@@ -199,7 +199,15 @@ export async function describeUserPage<ElementType extends BaseElement = BaseEle
   context: Omit<UIContext<ElementType>, 'describer'>,
 ) {
   const { screenshotBase64 } = context;
-  const { width, height } = await imageInfoOfBase64(screenshotBase64);
+  let width: number;
+  let height: number;
+
+  if (context.size) {
+    ({ width, height } = context.size);
+  } else {
+    const imgSize = await imageInfoOfBase64(screenshotBase64);
+    ({ width, height } = imgSize);
+  }
 
   const elementsInfo = context.content;
   const idElementMap: Record<string, ElementType> = {};

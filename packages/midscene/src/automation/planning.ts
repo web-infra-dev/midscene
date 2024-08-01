@@ -1,6 +1,6 @@
 import { ChatCompletionMessageParam } from 'openai/resources';
 import { PlanningAction, PlanningAIResponse, UIContext } from '@/types';
-import { callToGetJSONObject as callAI } from '@/ai-model/openai';
+import { callToGetJSONObject } from '@/ai-model/openai';
 import { describeUserPage } from '@/ai-model';
 
 const characteristic =
@@ -60,7 +60,14 @@ export function systemPromptToTaskPlanning(query: string) {
   `;
 }
 
-export async function plan(context: UIContext, userPrompt: string): Promise<{ plans: PlanningAction[] }> {
+export async function plan(
+  userPrompt: string,
+  opts: {
+    context: UIContext;
+    callAI?: typeof callToGetJSONObject<PlanningAIResponse>;
+  },
+): Promise<{ plans: PlanningAction[] }> {
+  const { callAI = callToGetJSONObject<PlanningAIResponse>, context } = opts || {};
   const { screenshotBase64 } = context;
   const { description } = await describeUserPage(context);
   const systemPrompt = systemPromptToTaskPlanning(userPrompt);
@@ -84,7 +91,7 @@ export async function plan(context: UIContext, userPrompt: string): Promise<{ pl
     },
   ];
 
-  const planFromAI = await callAI<PlanningAIResponse>(msgs);
+  const planFromAI = await callAI(msgs);
   if (planFromAI.error) {
     throw new Error(planFromAI.error);
   }
