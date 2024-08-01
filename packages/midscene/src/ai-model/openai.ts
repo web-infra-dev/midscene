@@ -1,7 +1,7 @@
 import assert from 'assert';
 import OpenAI, { ClientOptions } from 'openai';
 import { ChatCompletionMessageParam } from 'openai/resources';
-import wrapper from 'langsmith/wrappers';
+import { wrapOpenAI } from 'langsmith/wrappers';
 import { AIResponseFormat } from '@/types';
 
 const envConfigKey = 'MIDSCENE_OPENAI_INIT_CONFIG_JSON';
@@ -24,8 +24,13 @@ async function createOpenAI() {
   const openai = new OpenAI(extraConfig);
 
   if (process.env[envSmithDebug]) {
+<<<<<<< Updated upstream
     console.log('DEBUGGING MODE: langsmith wrapper enabled');
     const openai = wrapper.wrapOpenAI(new OpenAI());
+=======
+    console.log('DEBUGGING MODE: using langsmith wrapper');
+    const openai = wrapOpenAI(new OpenAI());
+>>>>>>> Stashed changes
     return openai;
   }
 
