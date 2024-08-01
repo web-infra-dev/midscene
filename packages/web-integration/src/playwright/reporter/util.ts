@@ -14,7 +14,7 @@ export function generateTestData(testDataList: Array<TestData>) {
     }
   }, [] as Array<TestData>);
   const projectDir = process.cwd();
-  const reportDir = path.join(projectDir, 'midscene_run', 'midscene-report');
+  const reportDir = path.join(projectDir, 'midscene_run', 'report');
 
   // Create a report folder
   if (!fs.existsSync(reportDir)) {
