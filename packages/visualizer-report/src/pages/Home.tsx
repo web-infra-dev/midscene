@@ -172,7 +172,7 @@ export function Home() {
   const [testDataList, setTestDataJson] = useState<Array<TestData>>([]);
   const [isLoading, setLoading] = useState<any>(true);
   useEffect(() => {
-    fetch('/test-data-list.json')
+    fetch('/public/test-data-list.json')
       .then((response) => {
         if (!response.ok) {
           throw new Error(`HTTP error! Status: ${response.status}`);

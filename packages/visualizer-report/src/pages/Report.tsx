@@ -15,7 +15,7 @@ export function Report() {
   const dumpId = searchParams.get('dumpId')?.toString() || '';
 
   useEffect(() => {
-    fetch(`/${dumpId}`)
+    fetch(`/public/${dumpId}`)
       .then((response) => {
         if (!response.ok) {
           throw new Error(`HTTP error! Status: ${response.status}`);
