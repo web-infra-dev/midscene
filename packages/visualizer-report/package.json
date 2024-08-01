@@ -1,6 +1,6 @@
 {
   "name": "@midscene/visualizer-report",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "scripts": {
     "reset": "npx rimraf ./**/node_modules",
     "dev": "modern dev",
