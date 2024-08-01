@@ -133,7 +133,7 @@ export class PageTaskExecutor {
                   dump: insightDump,
                 },
                 cache: {
-                  hint: Boolean(locateResult),
+                  hit: Boolean(locateResult),
                 },
               };
             },
