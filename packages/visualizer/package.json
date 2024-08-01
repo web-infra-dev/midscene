@@ -1,6 +1,6 @@
 {
   "name": "@midscene/visualizer",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "types": "./dist/types/index.d.ts",
   "jsnext:source": "./src/index.ts",
   "main": "./dist/lib/index.js",
