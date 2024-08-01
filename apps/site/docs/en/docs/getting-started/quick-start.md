@@ -27,6 +27,12 @@ npm install puppeteer ts-node --save-dev
 
 We assume you already have a project with Puppeteer.
 
+### add the dependency
+
+```bash
+npm install @midscene/web --save-dev
+```
+
 ### Step 1. update playwright.config.ts
 
 ```diff
@@ -108,33 +114,42 @@ npm install puppeteer ts-node --save-dev
 Write and save the following code as `./demo.ts`.
 
 ```typescript
-import puppeteer, { Viewport } from 'puppeteer';
-import { PuppeteerAgent } from '@midscene/web/puppeteer';
+import puppeteer from "puppeteer";
+import { PuppeteerAgent } from "@midscene/web";
 
-// init Puppeteer page
-const browser = await puppeteer.launch({
-  headless: false, // here we use headed mode to help debug
-});
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+Promise.resolve(
+  (async () => {
+    const browser = await puppeteer.launch({
+      headless: false, // here we use headed mode to help debug
+    });
 
-const page = await browser.newPage();
-await page.goto('https://www.ebay.com');
-await page.waitForNavigation({
-  timeout: 20 * 1000,
-  waitUntil: 'networkidle0',
-});
+    const page = await browser.newPage();
+    await page.setViewport({
+      width: 1280,
+      height: 800,
+      deviceScaleFactor: 1,
+    });
 
-// 👀 init MidScene agent 
-const mid = new PuppeteerAgent(page);
+    await page.goto("https://www.ebay.com");
+    await sleep(5000);
 
-// 👀 type keywords, perform a search
-await mid.aiAction('type "Headphones" in search box, hit Enter');
-await page.waitForNetworkIdle();
+    // 👀 init MidScene agent
+    const mid = new PuppeteerAgent(page);
 
-// 👀 find the items
-const items = await mid.aiQuery(
-  '{itemTitle: string, price: Number}[], find item in list and corresponding price',
+    // 👀 type keywords, perform a search
+    await mid.aiAction('type "Headphones" in search box, hit Enter');
+    await sleep(5000);
+
+    // 👀 understand the page content, find the items
+    const items = await mid.aiQuery(
+      "{itemTitle: string, price: Number}[], find item in list and corresponding price"
+    );
+    console.log("headphones in stock", items);
+
+    await browser.close();
+  })()
 );
-console.log('headphones in stock', items);
 ```
 
 :::tip
@@ -174,3 +189,8 @@ npx ts-node demo.ts
 After running, MidScene will generate a log dump, which is placed in `./midscene_run/report/latest.web-dump.json` by default. Then put this file into [Visualization Tool](/visualization/), and you will have a clearer understanding of the process.
 
 Click the 'Load Demo' button in the [Visualization Tool](/visualization/), you will be able to see the results of the previous code as well as some other samples.
+
+
+## Demo Projects
+
+You can clone a complete demo project in this repo: https://github.com/web-infra-dev/midscene-example/
