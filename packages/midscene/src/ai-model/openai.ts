@@ -24,7 +24,11 @@ async function createOpenAI() {
   const openai = new OpenAI(extraConfig);
 
   if (process.env[envSmithDebug]) {
+<<<<<<< Updated upstream
     console.log('DEBUGGING MODE: langsmith wrapper enabled');
+=======
+    console.log('DEBUGGING MODE: using langsmith wrapper');
+>>>>>>> Stashed changes
     const openai = wrapOpenAI(new OpenAI());
     return openai;
   }
