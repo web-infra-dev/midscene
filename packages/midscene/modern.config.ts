@@ -12,7 +12,7 @@ export default defineConfig({
       'ai-model': 'src/ai-model/index.ts',
     },
     // input: ['src/utils.ts', 'src/index.ts', 'src/image/index.ts'],
-    externals: ['langsmith/wrappers', 'buffer'],
+    externals: ['node:buffer'],
     target: 'es2017'
   },
 });

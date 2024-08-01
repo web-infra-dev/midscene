@@ -1,5 +1,5 @@
 import assert from 'node:assert';
-import { Buffer } from 'buffer';
+import { Buffer } from 'node:buffer';
 import { readFileSync } from 'node:fs';
 import Sharp from 'sharp';
 import { Size } from '..';
