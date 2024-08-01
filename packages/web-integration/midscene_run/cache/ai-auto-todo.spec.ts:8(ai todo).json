@@ -188,21 +188,26 @@
       "response": {
         "plans": [
           {
-            "thought": "Moving the mouse over the second item in the task list",
+            "thought": "I need to locate the second item in the task list first.",
             "type": "Locate",
             "param": {
-              "prompt": "The text element with content 'Learn Rust tomorrow' at the second position of the list"
+              "prompt": "The text node with content 'Learn Rust tomorrow'."
             }
           },
           {
-            "thought": "Locate the delete button beside the second task to click on it",
+            "thought": "Hover over the second task item after locating it.",
+            "type": "Hover",
+            "param": null
+          },
+          {
+            "thought": "Locate the delete button to the right of the second task item.",
             "type": "Locate",
             "param": {
-              "prompt": "The delete button immediately to the right of the second task 'Learn Rust tomorrow'"
+              "prompt": "The button to the right of the text 'Learn Rust tomorrow'."
             }
           },
           {
-            "thought": "Clicking on the delete button to delete the task",
+            "thought": "Click on the delete button after locating it.",
             "type": "Tap",
             "param": null
           }
@@ -218,13 +223,130 @@
           "height": 720
         }
       },
-      "prompt": "Moving the mouse over the second item in the task list",
+      "prompt": "I need to locate the second item in the task list first.",
       "response": {
         "elements": [
           {
-            "reason": "The second item in the task list is 'Learn Rust tomorrow', according to the content, and its position is within the task list area.",
+            "reason": "The second item in the task list is 'Learn Rust tomorrow', which is located below the first item 'Learn JS today'.",
             "text": "Learn Rust tomorrow",
             "id": "10bc260820"
+          }
+        ],
+        "errors": []
+      }
+    },
+    {
+      "type": "locate",
+      "pageContext": {
+        "url": "https://todomvc.com/examples/react/dist/",
+        "size": {
+          "width": 1280,
+          "height": 720
+        }
+      },
+      "prompt": "Locate the delete button to the right of the second task item.",
+      "response": {
+        "elements": [
+          {
+            "reason": "The element ID 7ccd467339 is the delete button located to the right of the second task item 'Learn Rust tomorrow', which matches the user's description.",
+            "text": "×",
+            "id": "7ccd467339"
+          }
+        ],
+        "errors": []
+      }
+    },
+    {
+      "type": "plan",
+      "pageContext": {
+        "url": "https://todomvc.com/examples/react/dist/",
+        "size": {
+          "width": 1280,
+          "height": 720
+        }
+      },
+      "prompt": "Click the check button to the left of the second task",
+      "response": {
+        "plans": [
+          {
+            "thought": "I need to locate the checkbox to the left of the second task to mark it complete.",
+            "type": "Locate",
+            "param": {
+              "prompt": "The checkbox to the left of 'Learning AI the day after tomorrow'"
+            }
+          },
+          {
+            "thought": "Click the located checkbox to mark the second task as complete.",
+            "type": "Tap",
+            "param": null
+          }
+        ]
+      }
+    },
+    {
+      "type": "locate",
+      "pageContext": {
+        "url": "https://todomvc.com/examples/react/dist/",
+        "size": {
+          "width": 1280,
+          "height": 720
+        }
+      },
+      "prompt": "I need to locate the checkbox to the left of the second task to mark it complete.",
+      "response": {
+        "elements": [
+          {
+            "reason": "The element is a checkbox and is located to the left of the second task in the list, as described in the request.",
+            "text": "",
+            "id": "c0751f3b26"
+          }
+        ],
+        "errors": []
+      }
+    },
+    {
+      "type": "plan",
+      "pageContext": {
+        "url": "https://todomvc.com/examples/react/dist/",
+        "size": {
+          "width": 1280,
+          "height": 720
+        }
+      },
+      "prompt": "Click the completed Status button below the task list",
+      "response": {
+        "plans": [
+          {
+            "thought": "The task is asking to click the completed Status button. From the image and the json description, the 'Completed' button appears just below the task list.",
+            "type": "Locate",
+            "param": {
+              "prompt": "The Completed button below the task list"
+            }
+          },
+          {
+            "thought": "After locating the Completed button, the next action is to click it.",
+            "type": "Tap",
+            "param": null
+          }
+        ]
+      }
+    },
+    {
+      "type": "locate",
+      "pageContext": {
+        "url": "https://todomvc.com/examples/react/dist/",
+        "size": {
+          "width": 1280,
+          "height": 720
+        }
+      },
+      "prompt": "The task is asking to click the completed Status button. From the image and the json description, the 'Completed' button appears just below the task list.",
+      "response": {
+        "elements": [
+          {
+            "reason": "The element with ID '663a34de3b' is identified as the 'Completed' status button as it matches the content 'Completed' and is located in the correct region consistently with the provided image and task description.",
+            "text": "Completed",
+            "id": "663a34de3b"
           }
         ],
         "errors": []
