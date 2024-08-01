@@ -19,5 +19,5 @@
     "strict": true
   },
   "exclude": [ "node_modules"],
-  "include": ["src", "e2e", "./playwright.config.ts", "./vitest.config"]
+  "include": ["src", "e2e", "./playwright.config.ts", "./modern.config.ts"]
 }
