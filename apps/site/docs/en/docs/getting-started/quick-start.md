@@ -16,7 +16,7 @@ export OPENAI_API_KEY="sk-abcdefghijklmnopqrstuvwxyz"
 Install 
 
 ```bash
-npm install @midscene/web --save-dev
+npm install @midscene/webaeb --save-dev
 # for demo use
 npm install puppeteer ts-node --save-dev 
 ```
@@ -49,24 +49,46 @@ export const test = base.extend<PlayWrightAiFixtureType>(PlaywrightAiFixture());
 
 ### Step 3. write the test case
 
-Save the following code as `./e2e/ebay.spec.ts`;
+Save the following code as `./e2e/ebay-search.spec.ts`
 
 ```typescript
-// ...
+import { expect } from "@playwright/test";
+import { test } from "./fixture";
+
+test.beforeEach(async ({ page }) => {
+  page.setViewportSize({ width: 400, height: 905 });
+  await page.goto("https://www.ebay.com");
+  await page.waitForLoadState("networkidle");
+});
+
+test("search headphone on ebay", async ({ ai, aiQuery }) => {
+  // 👀 type keywords, perform a search
+  await ai('type "Headphones" in search box, hit Enter');
+
+  // 👀 find the items
+  const items = await aiQuery(
+    "{itemTitle: string, price: Number}[], find item in list and corresponding price"
+  );
+
+  console.log("headphones in stock", items);
+  expect(items?.length).toBeGreaterThan(1);
+});
+
 ```
 
 ### Step 4. run the test case
 
 ```bash
-npx playwright test ./test/ebay.spec.ts
+npx playwright test ./e2e/ebay-search.spec.ts
 ```
 
 ### Step 5. view test report after running
 
+Follow the instructions in the command line to server the report
+
 ```bash
 
 ```
-
 
 ## Integrate with Puppeteer
 
@@ -94,7 +116,7 @@ const page = await launchPage();
 // 👀 init MidScene agent 
 const mid = new PuppeteerAgent(page);
 
-// 👀 perform a search
+// 👀 type keywords, perform a search
 await mid.aiAction('type "Headphones" in search box, hit Enter');
 await sleep(5000);
 

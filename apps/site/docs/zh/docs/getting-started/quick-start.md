@@ -47,7 +47,50 @@ import { PlaywrightAiFixture } from '@midscene/web';
 export const test = base.extend<PlayWrightAiFixtureType>(PlaywrightAiFixture());
 ```
 
-TODO__________________________
+### 第三步：编写测试用例
+
+编写下方代码，保存为 `./e2e/ebay-search.spec.ts`
+
+```typescript
+import { expect } from "@playwright/test";
+import { test } from "./fixture";
+
+test.beforeEach(async ({ page }) => {
+  page.setViewportSize({ width: 400, height: 905 });
+  await page.goto("https://www.ebay.com");
+  await page.waitForLoadState("networkidle");
+});
+
+test("search headphone on ebay", async ({ ai, aiQuery }) => {
+  // 👀 输入关键字，执行搜索
+  // 注：尽管这是一个英文页面，你也可以用中文指令控制它
+  await ai('在搜索框输入 "Headphones" ，敲回车');
+
+  // 👀 找到列表里耳机相关的信息
+  const items = await aiQuery(
+    '{itemTitle: string, price: Number}[], 找到列表里的商品标题和价格'
+  );
+
+  console.log("headphones in stock", items);
+  expect(items?.length).toBeGreaterThan(0);
+});
+
+```
+
+### Step 4. 运行测试用例
+
+```bash
+npx playwright test ./e2e/ebay-search.spec.ts
+```
+
+### Step 5. 查看测试报告
+
+Follow the instructions in the command line to server the report
+
+```bash
+
+```
+
 
 ## 集成到 Puppeteer
 
@@ -76,12 +119,13 @@ const page = await launchPage();
 const mid = new PuppeteerAgent(page);
 
 // 👀 执行搜索
-await mid.aiAction('type "Headphones" in search box, hit Enter');
+// 注：尽管这是一个英文页面，你也可以用中文指令控制它
+await mid.aiAction('在搜索框输入 "Headphones" ，敲回车');
 await sleep(5000);
 
 // 👀 提取数据
 const items = await mid.aiQuery(
-  '{itemTitle: string, price: Number}[], find item in list and corresponding price',
+  '{itemTitle: string, price: Number}[], 找到列表里的商品标题和价格',
 );
 console.log('headphones in stock', items);
 ```
@@ -91,9 +135,9 @@ console.log('headphones in stock', items);
 你可能已经注意到了，上述文件中的关键代码只有两行，且都是用自然语言编写的
 
 ```typescript
-await mid.aiAction('type "Headphones" in search box, hit Enter');
+await mid.aiAction('在搜索框输入 "Headphones" ，敲回车');
 await mid.aiQuery(
-  '{itemTitle: string, price: Number}[], find item in list and corresponding price',
+  '{itemTitle: string, price: Number}[], 找到列表里的商品标题和价格',
 );
 ```
 :::
