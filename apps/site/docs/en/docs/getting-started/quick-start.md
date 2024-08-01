@@ -13,7 +13,7 @@ Config the API key
 export OPENAI_API_KEY="sk-abcdefghijklmnopqrstuvwxyz"
 ```
 
-Install 
+Install Dependencies
 
 ```bash
 npm install @midscene/webaeb --save-dev
@@ -24,6 +24,8 @@ npm install puppeteer ts-node --save-dev
 ## Integrate with Playwright
 
 > [Playwright.js](https://playwright.com/) is an open-source automation library developed by Microsoft, primarily designed for end-to-end testing and web scraping of web applications.
+
+We assume you already have a project with Puppeteer.
 
 ### Step 1. update playwright.config.ts
 
@@ -94,6 +96,15 @@ Follow the instructions in the command line to server the report
 
 > [Puppeteer](https://pptr.dev/) is a Node.js library which provides a high-level API to control Chrome or Firefox over the DevTools Protocol or WebDriver BiDi. Puppeteer runs in the headless (no visible UI) by default but can be configured to run in a visible ("headful") browser.
 
+### Step 1. install dependencies
+
+```bash
+npm install @midscene/web --save-dev
+npm install puppeteer ts-node --save-dev 
+```
+
+### Step 2. write scripts
+
 Write and save the following code as `./demo.ts`.
 
 ```typescript
@@ -111,14 +122,13 @@ await page.waitForNavigation({
   timeout: 20 * 1000,
   waitUntil: 'networkidle0',
 });
-const page = await launchPage();
 
 // 👀 init MidScene agent 
 const mid = new PuppeteerAgent(page);
 
 // 👀 type keywords, perform a search
 await mid.aiAction('type "Headphones" in search box, hit Enter');
-await sleep(5000);
+await page.waitForNetworkIdle();
 
 // 👀 find the items
 const items = await mid.aiQuery(
@@ -137,6 +147,8 @@ await mid.aiQuery(
 );
 ```
 :::
+
+### Step 3. run
 
 Using ts-node to run, you will get the data of Headphones on ebay:
 
@@ -157,6 +169,8 @@ npx ts-node demo.ts
 # ]
 ```
 
-After running, MidScene will generate a log dump, which is placed in `./midscene_run/latest.web-dump.json` by default. Then put this file into [Visualization Tool](/visualization/), and you will have a clearer understanding of the process.
+### Step 4. view test report after running
+
+After running, MidScene will generate a log dump, which is placed in `./midscene_run/report/latest.web-dump.json` by default. Then put this file into [Visualization Tool](/visualization/), and you will have a clearer understanding of the process.
 
 Click the 'Load Demo' button in the [Visualization Tool](/visualization/), you will be able to see the results of the previous code as well as some other samples.
