@@ -1,5 +1,6 @@
 import assert from 'assert';
 import Insight, {
+  AIElementParseResponse,
   DumpSubscriber,
   ExecutionDump,
   ExecutionRecorderItem,
@@ -11,6 +12,7 @@ import Insight, {
   Executor,
   InsightDump,
   InsightExtractParam,
+  plan,
   PlanningAction,
   PlanningActionParamHover,
   PlanningActionParamInputOrKeyPress,
@@ -20,15 +22,16 @@ import Insight, {
 import { commonScreenshotParam, getTmpFile, sleep } from '@midscene/core/utils';
 import { base64Encoded } from '@midscene/core/image';
 import type { KeyInput, Page as PuppeteerPage } from 'puppeteer';
+import { ChatCompletionMessageParam } from 'openai/resources';
 import { WebElementInfo } from '../web-element';
-import { parseContextFromWebPage } from './utils';
+import { parseContextFromWebPage, WebUIContext } from './utils';
 import { AiTaskCache, TaskCache } from './task-cache';
 import { WebPage } from '@/common/page';
 
 export class PageTaskExecutor {
   page: WebPage;
 
-  insight: Insight<WebElementInfo>;
+  insight: Insight<WebElementInfo, WebUIContext>;
 
   executionDump?: ExecutionDump;
 
@@ -36,10 +39,10 @@ export class PageTaskExecutor {
 
   constructor(page: WebPage, opts: { cache: AiTaskCache }) {
     this.page = page;
-    this.insight = new Insight<WebElementInfo>(async () => {
+    this.insight = new Insight<WebElementInfo, WebUIContext>(async () => {
       return await parseContextFromWebPage(page);
     });
-    this.taskCache = new TaskCache(this.insight, opts);
+    this.taskCache = new TaskCache(opts);
   }
 
   private async recordScreenshot(timing: ExecutionRecorderItem['timing']) {
@@ -95,14 +98,42 @@ export class PageTaskExecutor {
                 insightDump = dump;
               };
               this.insight.onceDumpUpdatedFn = dumpCollector;
-              const element = await this.taskCache.locate(param.prompt);
+              const pageContext = await this.insight.contextRetrieverFn();
+              const locateCache = this.taskCache.readCache(pageContext, 'locate', param.prompt);
+              let locateResult: AIElementParseResponse | undefined;
+              const callAI = this.insight.aiVendorFn<AIElementParseResponse>;
+              const element = await this.insight.locate(param.prompt, {
+                callAI: async (message: ChatCompletionMessageParam[]) => {
+                  if (locateCache) {
+                    locateResult = locateCache;
+                    return Promise.resolve(locateCache);
+                  }
+                  locateResult = await callAI(message);
+                  return locateResult;
+                },
+              });
+
               assert(element, `Element not found: ${param.prompt}`);
+              if (locateResult) {
+                this.taskCache.saveCache({
+                  type: 'locate',
+                  pageContext: {
+                    url: pageContext.url,
+                    size: pageContext.size,
+                  },
+                  prompt: param.prompt,
+                  response: locateResult,
+                });
+              }
               return {
                 output: {
                   element,
                 },
                 log: {
                   dump: insightDump,
+                },
+                cache: {
+                  hint: Boolean(locateResult),
                 },
               };
             },
@@ -203,12 +234,35 @@ export class PageTaskExecutor {
         userPrompt,
       },
       executor: async (param) => {
-        const planResult = await this.taskCache.plan(param.userPrompt);
+        const pageContext = await this.insight.contextRetrieverFn();
+        let planResult: { plans: PlanningAction[] };
+        const planCache = this.taskCache.readCache(pageContext, 'plan', userPrompt);
+        if (planCache) {
+          planResult = planCache;
+        } else {
+          planResult = await plan(param.userPrompt, {
+            context: pageContext,
+          });
+        }
+
         assert(planResult.plans.length > 0, 'No plans found');
         // eslint-disable-next-line prefer-destructuring
         plans = planResult.plans;
+
+        this.taskCache.saveCache({
+          type: 'plan',
+          pageContext: {
+            url: pageContext.url,
+            size: pageContext.size,
+          },
+          prompt: userPrompt,
+          response: planResult,
+        });
         return {
           output: planResult,
+          cache: {
+            hint: Boolean(planCache),
+          },
         };
       },
     };

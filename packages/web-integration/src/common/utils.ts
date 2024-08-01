@@ -8,12 +8,17 @@ import { getTmpFile } from '@midscene/core/utils';
 import { WebElementInfo, WebElementInfoType } from '../web-element';
 import { WebPage } from './page';
 
+export type WebUIContext = UIContext<WebElementInfo> & {
+  url: string;
+};
+
 export async function parseContextFromWebPage(
   page: WebPage,
   _opt?: PlaywrightParserOpt,
-): Promise<UIContext<WebElementInfo>> {
+): Promise<WebUIContext> {
   assert(page, 'page is required');
 
+  const url = page.url();
   const file = getTmpFile('jpeg');
   await page.screenshot({ path: file, type: 'jpeg', quality: 75 });
   const screenshotBuffer = readFileSync(file);
@@ -27,6 +32,7 @@ export async function parseContextFromWebPage(
     content: elementsInfo,
     size,
     screenshotBase64,
+    url,
   };
 }
 

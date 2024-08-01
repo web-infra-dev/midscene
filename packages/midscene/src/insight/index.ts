@@ -38,8 +38,11 @@ export type AnyValue<T> = {
   [K in keyof T]: unknown extends T[K] ? any : T[K];
 };
 
-export default class Insight<ElementType extends BaseElement = BaseElement> {
-  contextRetrieverFn: () => Promise<UIContext<ElementType>> | UIContext<ElementType>;
+export default class Insight<
+  ElementType extends BaseElement = BaseElement,
+  ContextType extends UIContext<ElementType> = UIContext<ElementType>,
+> {
+  contextRetrieverFn: () => Promise<ContextType> | ContextType;
 
   aiVendorFn: typeof callAI = callAI;
 
@@ -47,10 +50,7 @@ export default class Insight<ElementType extends BaseElement = BaseElement> {
 
   taskInfo?: Omit<InsightTaskInfo, 'durationMs'>;
 
-  constructor(
-    context: UIContext<ElementType> | (() => Promise<UIContext<ElementType>> | UIContext<ElementType>),
-    opt?: InsightOptions,
-  ) {
+  constructor(context: ContextType | (() => Promise<ContextType> | ContextType), opt?: InsightOptions) {
     assert(context, 'context is required for Insight');
     if (typeof context === 'function') {
       this.contextRetrieverFn = context;

@@ -7,11 +7,6 @@
     {
       "type": "plan",
       "prompt": "Enter \"Learn JS today\" in the task box, then press Enter to create",
-      "pageContext": {
-        "url": "",
-        "width": 1280,
-        "height": 720
-      },
       "response": {
         "plans": [
           {
@@ -36,16 +31,16 @@
             }
           }
         ]
+      },
+      "pageContext": {
+        "url": "",
+        "width": 1280,
+        "height": 720
       }
     },
     {
       "type": "locate",
       "prompt": "The task involves finding the input task box where text 'What needs to be done?' appears. Then, it is required to enter 'Learn JS today' and press Enter.",
-      "pageContext": {
-        "url": "",
-        "width": 1280,
-        "height": 720
-      },
       "response": {
         "elements": [
           {
@@ -55,16 +50,16 @@
           }
         ],
         "errors": []
+      },
+      "pageContext": {
+        "url": "",
+        "width": 1280,
+        "height": 720
       }
     },
     {
       "type": "plan",
       "prompt": "Enter \"Learn Rust tomorrow\" in the task box, then press Enter to create",
-      "pageContext": {
-        "url": "",
-        "width": 1280,
-        "height": 720
-      },
       "response": {
         "plans": [
           {
@@ -89,16 +84,16 @@
             }
           }
         ]
+      },
+      "pageContext": {
+        "url": "",
+        "width": 1280,
+        "height": 720
       }
     },
     {
       "type": "locate",
       "prompt": "The user wants to add a new task 'Learn Rust tomorrow'. For this, we need to locate the input box first.",
-      "pageContext": {
-        "url": "",
-        "width": 1280,
-        "height": 720
-      },
       "response": {
         "elements": [
           {
@@ -108,16 +103,16 @@
           }
         ],
         "errors": []
+      },
+      "pageContext": {
+        "url": "",
+        "width": 1280,
+        "height": 720
       }
     },
     {
       "type": "plan",
       "prompt": "Enter \"Learning AI the day after tomorrow\" in the task box, then press Enter to create",
-      "pageContext": {
-        "url": "",
-        "width": 1280,
-        "height": 720
-      },
       "response": {
         "plans": [
           {
@@ -142,16 +137,16 @@
             }
           }
         ]
+      },
+      "pageContext": {
+        "url": "",
+        "width": 1280,
+        "height": 720
       }
     },
     {
       "type": "locate",
       "prompt": "The user wants to add a new task in the todo list. The input box is the obvious element to access for this action.",
-      "pageContext": {
-        "url": "",
-        "width": 1280,
-        "height": 720
-      },
       "response": {
         "elements": [
           {
@@ -161,16 +156,16 @@
           }
         ],
         "errors": []
+      },
+      "pageContext": {
+        "url": "",
+        "width": 1280,
+        "height": 720
       }
     },
     {
       "type": "plan",
       "prompt": "Move your mouse over the second item in the task list and click the Delete button to the right of the second task",
-      "pageContext": {
-        "url": "",
-        "width": 1280,
-        "height": 720
-      },
       "response": {
         "plans": [
           {
@@ -198,16 +193,16 @@
             "param": null
           }
         ]
+      },
+      "pageContext": {
+        "url": "",
+        "width": 1280,
+        "height": 720
       }
     },
     {
       "type": "locate",
       "prompt": "Locate the second task in the task list which says 'Learn Rust tomorrow'",
-      "pageContext": {
-        "url": "",
-        "width": 1280,
-        "height": 720
-      },
       "response": {
         "elements": [
           {
@@ -217,16 +212,16 @@
           }
         ],
         "errors": []
+      },
+      "pageContext": {
+        "url": "",
+        "width": 1280,
+        "height": 720
       }
     },
     {
       "type": "locate",
       "prompt": "Locate the delete button for the hovered task",
-      "pageContext": {
-        "url": "",
-        "width": 1280,
-        "height": 720
-      },
       "response": {
         "elements": [
           {
@@ -236,16 +231,16 @@
           }
         ],
         "errors": []
+      },
+      "pageContext": {
+        "url": "",
+        "width": 1280,
+        "height": 720
       }
     },
     {
       "type": "plan",
       "prompt": "Click the check button to the left of the second task",
-      "pageContext": {
-        "url": "",
-        "width": 1280,
-        "height": 720
-      },
       "response": {
         "plans": [
           {
@@ -261,16 +256,16 @@
             "param": null
           }
         ]
+      },
+      "pageContext": {
+        "url": "",
+        "width": 1280,
+        "height": 720
       }
     },
     {
       "type": "locate",
       "prompt": "The user wants to click the check button to the left of the second task, which is 'Learning AI the day after tomorrow'. Based on the page description and screenshot, we can see this checkbox next to the task.",
-      "pageContext": {
-        "url": "",
-        "width": 1280,
-        "height": 720
-      },
       "response": {
         "elements": [
           {
@@ -280,16 +275,16 @@
           }
         ],
         "errors": []
+      },
+      "pageContext": {
+        "url": "",
+        "width": 1280,
+        "height": 720
       }
     },
     {
       "type": "plan",
       "prompt": "Click the completed Status button below the task list",
-      "pageContext": {
-        "url": "",
-        "width": 1280,
-        "height": 720
-      },
       "response": {
         "plans": [
           {
@@ -305,16 +300,16 @@
             "param": null
           }
         ]
+      },
+      "pageContext": {
+        "url": "",
+        "width": 1280,
+        "height": 720
       }
     },
     {
       "type": "locate",
       "prompt": "The user wants to click on the completed status button located below the task list.",
-      "pageContext": {
-        "url": "",
-        "width": 1280,
-        "height": 720
-      },
       "response": {
         "elements": [
           {
@@ -324,6 +319,11 @@
           }
         ],
         "errors": []
+      },
+      "pageContext": {
+        "url": "",
+        "width": 1280,
+        "height": 720
       }
     }
   ]

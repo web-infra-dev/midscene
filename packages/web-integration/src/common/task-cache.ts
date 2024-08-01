@@ -1,14 +1,15 @@
-import Insight, { AIElementParseResponse, PlanningAction, UIContext, plan } from '@midscene/core';
-import { ChatCompletionMessageParam } from 'openai/resources';
-import { WebElementInfo } from '../web-element';
+import { AIElementParseResponse, PlanningAction } from '@midscene/core';
+import { WebUIContext } from './utils';
 
-type PlanTask = {
+export type PlanTask = {
   type: 'plan';
   prompt: string;
   pageContext: {
     url: string;
-    width: number;
-    height: number;
+    size: {
+      width: number;
+      height: number;
+    };
   };
   response: { plans: PlanningAction[] };
 };
@@ -18,8 +19,10 @@ export type LocateTask = {
   prompt: string;
   pageContext: {
     url: string;
-    width: number;
-    height: number;
+    size: {
+      width: number;
+      height: number;
+    };
   };
   response: AIElementParseResponse;
 };
@@ -31,97 +34,15 @@ export type AiTaskCache = {
 };
 
 export class TaskCache {
-  insight: Insight<WebElementInfo>;
-
   cache: AiTaskCache | undefined;
 
   newCache: AiTaskCache;
 
-  constructor(insight: Insight<WebElementInfo>, opts?: { cache: AiTaskCache }) {
-    this.insight = insight;
+  constructor(opts?: { cache: AiTaskCache }) {
     this.cache = opts?.cache;
     this.newCache = {
       aiTasks: [],
     };
-  }
-
-  /**
-   * Plan based on user prompts and page context
-   *
-   * This function is used to plan based on user prompts and page context.
-   * It first retrieves the page context and then attempts to read the cache based on the context and user prompts.
-   * If the cache is valid and contains the 'plans' key, it returns the cached result.
-   * Otherwise, it calls the 'plan' function to obtain a new planning result and caches this result.
-   * Finally, it returns the planning result.
-   *
-   * @param userPrompt - The prompt information provided by the user
-   * @return A Promise that resolves to an object containing the planning result
-   */
-  async plan(
-    userPrompt: string,
-    opts?: {
-      callAI?: Parameters<typeof plan>[1]['callAI'];
-    },
-  ): Promise<{ plans: PlanningAction[] }> {
-    const pageContext = await this.insight.contextRetrieverFn();
-    const planCache = await this.readCache(pageContext, 'plan', userPrompt);
-    let planResult: { plans: PlanningAction[] };
-    // If the cache is valid, return the cache
-    if (planCache && 'plans' in planCache) {
-      planResult = planCache;
-    } else {
-      planResult = await plan(userPrompt, {
-        context: pageContext,
-        ...(opts || {}),
-      });
-    }
-
-    this.newCache?.aiTasks.push({
-      type: 'plan',
-      prompt: userPrompt,
-      pageContext: { url: '', width: pageContext.size.width, height: pageContext.size.height },
-      response: planResult,
-    });
-    return planResult;
-  }
-
-  /**
-   * Asynchronously locate a web element based on user prompt and page context
-   *
-   * This function uses an asynchronous approach to locate a web element.
-   * It first retrieves the page context, then attempts to read from the cache based on the context and user prompt.
-   * If there is no valid cache or the cache does not match the requirements, it will execute the `locate` method of the `insight` object.
-   * Finally, it updates the cache with the latest location results and returns the located web element information or `null` if not found.
-   *
-   * @param userPrompt - The prompt information provided by the user
-   * @return A Promise that resolves to the found WebElementInfo object or null if not found
-   */
-  async locate(userPrompt: string): Promise<WebElementInfo | null> {
-    const pageContext = await this.insight.contextRetrieverFn();
-    const locateCache = await this.readCache(pageContext, 'locate', userPrompt);
-    let locateResult: LocateTask['response'] | undefined;
-    const callAI = this.insight.aiVendorFn<AIElementParseResponse>;
-
-    const element = await this.insight.locate(userPrompt, {
-      callAI: async (message: ChatCompletionMessageParam[]) => {
-        if (locateCache && !('plans' in locateCache)) {
-          locateResult = locateCache;
-          return Promise.resolve(locateCache);
-        }
-        locateResult = await callAI(message);
-        return locateResult;
-      },
-    });
-
-    if (locateResult) {
-      this.newCache?.aiTasks.push({
-        type: 'locate',
-        prompt: userPrompt,
-        pageContext: { url: '', width: pageContext.size.width, height: pageContext.size.height },
-        response: locateResult,
-      });
-    }
-    return element;
   }
 
   /**
@@ -140,7 +61,13 @@ export class TaskCache {
    * @param userPrompt String type, representing user prompt information
    * @return Returns a Promise object that resolves to a boolean or object
    */
-  async readCache(pageContext: UIContext<WebElementInfo>, type: 'plan' | 'locate', userPrompt: string) {
+  readCache(pageContext: WebUIContext, type: 'plan', userPrompt: string): PlanTask['response'];
+  readCache(pageContext: WebUIContext, type: 'locate', userPrompt: string): LocateTask['response'];
+  readCache(
+    pageContext: WebUIContext,
+    type: 'plan' | 'locate',
+    userPrompt: string,
+  ): PlanTask['response'] | LocateTask['response'] | false {
     if (this.cache) {
       const { aiTasks } = this.cache;
       const index = aiTasks.findIndex((item) => item.prompt === userPrompt);
@@ -178,9 +105,16 @@ export class TaskCache {
     return false;
   }
 
-  pageContextEqual(taskPageContext: LocateTask['pageContext'], pageContext: UIContext<WebElementInfo>) {
+  saveCache(cache: PlanTask | LocateTask) {
+    if (cache) {
+      this.newCache?.aiTasks.push(cache);
+    }
+  }
+
+  pageContextEqual(taskPageContext: LocateTask['pageContext'], pageContext: WebUIContext) {
     return (
-      taskPageContext.width === pageContext.size.width && taskPageContext.height === pageContext.size.height
+      taskPageContext.size.width === pageContext.size.width &&
+      taskPageContext.size.height === pageContext.size.height
     );
   }
 
