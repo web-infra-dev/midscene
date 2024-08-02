@@ -13,17 +13,6 @@ Config the API key
 export OPENAI_API_KEY="sk-abcdefghijklmnopqrstuvwxyz"
 ```
 
-<<<<<<< HEAD
-=======
-Install Dependencies
-
-```bash
-npm install @midscene/webaeb --save-dev
-# for demo use
-npm install puppeteer ts-node --save-dev 
-```
-
->>>>>>> @{-1}
 ## Integrate with Playwright
 
 > [Playwright.js](https://playwright.com/) is an open-source automation library developed by Microsoft, primarily designed for end-to-end testing and web scraping of web applications.

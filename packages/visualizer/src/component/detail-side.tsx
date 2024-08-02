@@ -198,6 +198,10 @@ const DetailSide = (): JSX.Element => {
         key: 'time cost',
         content: timeCostStrElement(task?.timing?.cost),
       },
+      {
+        key: 'cache',
+        content: task?.cache ? JSON.stringify(task?.cache) : 'false',
+      },
     ],
   });
 

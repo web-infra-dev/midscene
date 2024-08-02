@@ -209,6 +209,10 @@ export interface ExecutorContext {
   element?: BaseElement | null;
 }
 
+export interface TaskCacheInfo {
+  hit: boolean;
+}
+
 export interface ExecutionTaskApply<
   Type extends ExecutionTaskType = any,
   TaskParam = any,
@@ -228,6 +232,7 @@ export interface ExecutionTaskReturn<TaskOutput = unknown, TaskLog = unknown> {
   output?: TaskOutput;
   log?: TaskLog;
   recorder?: ExecutionRecorderItem[];
+  cache?: TaskCacheInfo;
 }
 
 export type ExecutionTask<E extends ExecutionTaskApply<any, any, any> = ExecutionTaskApply<any, any, any>> =
