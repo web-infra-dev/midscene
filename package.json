@@ -15,7 +15,7 @@
 		"commit": "cz"
 	},
 	"lint-staged": {
-		"*": "biome check --apply --no-errors-on-unmatched --files-ignore-unknown=true"
+		"*": "biome check --changed --apply --no-errors-on-unmatched --files-ignore-unknown=true"
 	},
 	"keywords": [],
 	"author": "",
