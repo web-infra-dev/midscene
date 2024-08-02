@@ -38,12 +38,5 @@ jobs:
     - name: Install dependencies
       run: pnpm install --frozen-lockfile
 
-    - name: Lint changed files
-      run: |
-        git fetch origin main
-        DIFF_FILES=$(git diff origin/main...HEAD --name-only --diff-filter=ACMRTUXB | grep -E '\.js$|\.jsx$|\.ts$|\.tsx$')
-        if [ -n "$DIFF_FILES" ]; then
-          npx eslint $DIFF_FILES
-        else
-          echo "No JavaScript/TypeScript files changed."
-        fi
+    - name: Lint Code Base
+      run: pnpm biome lint --changed --since main
