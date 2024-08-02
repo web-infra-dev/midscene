@@ -9,7 +9,7 @@ const envModelKey = 'MIDSCENE_MODEL_NAME';
 const envSmithDebug = 'MIDSCENE_LANGSMITH_DEBUG';
 
 let extraConfig: ClientOptions = {};
-if (typeof process.env[envConfigKey] === 'string') {
+if (typeof process.env[envConfigKey] === 'string' && process.env[envConfigKey]) {
   console.log('config for openai loaded');
   extraConfig = JSON.parse(process.env[envConfigKey]);
 }

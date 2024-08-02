@@ -16,12 +16,6 @@ Good ✅: "Find the search box (it should be along with a region switch, such as
 
 Bad ❌: "Search 'headphone'"
 
-### Infer from the UI, not the DOM properties
-
-All the data sent to the LLM are the screenshots and element coordinates. The DOM is almost invisible to the LLM. So do not expect the LLM infer any information from the DOM (such as `test-id-*` properties).
-
-Ensure everything you expect from the LLM is visible in the screenshot.
-
 ### LLMs can NOT tell the exact number like coords or hex-style color, give it some choices
 
 For example:
@@ -35,12 +29,6 @@ Bad ❌: "[number, number], the [x, y] coords of the main button"
 ### Use visualization tool to debug
 
 Use the visualization tool to debug and understand each step of MidScene. Just upload the log, and view the AI's parse results. You can find [the tool](/visualization/) on the navigation bar on this site. 
-
-### non-English prompting is acceptable
-
-Since most AI models can understand many languages, feel free to write the prompt in any language you prefer. It usually works even if the prompt is in a language different from the page's language.
-
-Good ✅: "点击顶部左侧导航栏中的“首页”链接"
 
 ### Remember to cross-check the result by assertion
 
@@ -57,4 +45,14 @@ expect(taskList.length).toBe(1);
 expect(taskList[0]).toBe('Learning AI the day after tomorrow');
 ```
 
+### Infer from the UI, not the DOM properties
 
+All the data sent to the LLM are the screenshots and element coordinates. The DOM is almost invisible to the LLM. So do not expect the LLM infer any information from the DOM (such as `test-id-*` properties).
+
+Ensure everything you expect from the LLM is visible in the screenshot.
+
+### non-English prompting is acceptable
+
+Since most AI models can understand many languages, feel free to write the prompt in any language you prefer. It usually works even if the prompt is in a language different from the page's language.
+
+Good ✅: "点击顶部左侧导航栏中的“首页”链接"

@@ -262,7 +262,7 @@ export class PageTaskExecutor {
         return {
           output: planResult,
           cache: {
-            hint: Boolean(planCache),
+            hit: Boolean(planCache),
           },
         };
       },
