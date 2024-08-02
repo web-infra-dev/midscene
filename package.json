@@ -32,7 +32,7 @@
     "@changesets/cli": "2.24.1",
     "commitizen": "4.2.5",
     "nx": "19.5.2",
-    "semver": "7.3.7",
+    "semver": "7.5.2",
     "dayjs": "1.11.2",
     "minimist": "1.2.6",
     "execa": "4.1.0",
