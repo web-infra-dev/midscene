@@ -24,7 +24,7 @@ features:
     icon: 🤔
   - title: Intuitive Assertion
     details: Make assertions in natural language. It’s all based on AI understanding.
-    icon: 🤔
+    icon: ⛳
   - title: Out-of-box LLM
     details: It is fine to use public multimodal LLMs like GPT-4o. There is no need for any custom training.
     icon: 🪓
