@@ -23,9 +23,7 @@ export OPENAI_API_KEY="sk-abcdefghijklmnopqrstuvwxyz"
 
 ### 新增依赖 
 
-```bash
-npm install @midscene/web --save-dev
-```
+<PackageManagerTabs command="install @midscene/web --save-dev" />
 
 ### 第一步：更新 playwright.config.ts
 
@@ -53,7 +51,7 @@ export const test = base.extend<PlayWrightAiFixtureType>(PlaywrightAiFixture());
 
 编写下方代码，保存为 `./e2e/ebay-search.spec.ts`
 
-```typescript
+```typescript title="./e2e/ebay-search.spec.ts"
 import { expect } from "@playwright/test";
 import { test } from "./fixture";
 
@@ -109,7 +107,7 @@ npm install puppeteer ts-node --save-dev
 
 编写下方代码，保存为 `./demo.ts`
 
-```typescript
+```typescript title="./demo.ts"
 import puppeteer from "puppeteer";
 import { PuppeteerAgent } from "@midscene/web";
 
@@ -186,4 +184,8 @@ npx ts-node demo.ts
 
 运行 MidScene 之后，系统会生成一个日志文件，默认存放在 `./midscene_run/report/latest.web-dump.json`。然后，你可以把这个文件导入 [可视化工具](/visualization/)，这样你就能更清楚地了解整个过程。
 
+## 访问示例报告
+
 在 [可视化工具](/visualization/) 中，点击 `Load Demo` 按钮，你将能够看到上方代码的运行结果以及其他的一些示例。
+
+![](/view-demo-visualization.gif)
