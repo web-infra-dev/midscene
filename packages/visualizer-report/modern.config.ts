@@ -9,12 +9,19 @@ export default defineConfig({
       react: path.resolve(__dirname, 'node_modules/react'),
       'react-dom': path.resolve(__dirname, 'node_modules/react-dom'),
     },
+    mainEntryName: 'index',
   },
   runtime: {
     router: true,
   },
+  html: {
+    disableHtmlFolder: true,
+  },
   output: {
     disableSourceMap: false,
+    distPath: {
+      html: '.',
+    },
   },
   plugins: [
     appTools({

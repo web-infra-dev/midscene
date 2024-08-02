@@ -1,7 +1,7 @@
 {
   "name": "@midscene/web",
   "description": "Web integration for MidScene.js",
-  "version": "0.1.0",
+  "version": "0.1.4",
   "jsnext:source": "./src/index.ts",
   "main": "./dist/lib/index.js",
   "module": "./dist/es/index.js",
@@ -46,7 +46,7 @@
   },
   "scripts": {
     "dev": "modern dev",
-    "build": "npm run build:pkg && npm run build:script",
+    "build": "npm run build:pkg && npm run build:script && node ./report-script.mjs",
     "build:pkg": "modern build -c ./modern.config.ts",
     "build:script": "modern build -c ./modern.inspect.config.ts",
     "build:watch": "modern build -w -c ./modern.config.ts & modern build -w -c ./modern.inspect.config.ts",

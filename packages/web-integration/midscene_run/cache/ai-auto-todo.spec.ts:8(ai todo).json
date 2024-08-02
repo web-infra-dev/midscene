@@ -1,6 +1,6 @@
 {
   "pkgName": "@midscene/web",
-  "pkgVersion": "0.0.1",
+  "pkgVersion": "0.1.2",
   "taskFile": "ai-auto-todo.spec.ts:8",
   "taskTitle": "ai todo",
   "aiTasks": [
@@ -17,21 +17,21 @@
       "response": {
         "plans": [
           {
-            "thought": "The task box is the input field with the placeholder 'What needs to be done?'.",
+            "thought": "The user wants to input a new task in the todo list input box and then press enter to create it. The input field is identified by its placeholder text 'What needs to be done?'.",
             "type": "Locate",
             "param": {
-              "prompt": "The input field with the placeholder text 'What needs to be done?'"
+              "prompt": "The input box with the placeholder text 'What needs to be done?'."
             }
           },
           {
-            "thought": "Enter the given text 'Learn JS today' into the input field.",
+            "thought": "Once the input box is located, we need to enter the task description.",
             "type": "Input",
             "param": {
               "value": "Learn JS today"
             }
           },
           {
-            "thought": "Press Enter to create the task after entering the text.",
+            "thought": "After entering the task, we need to commit it by pressing 'Enter'.",
             "type": "KeyboardPress",
             "param": {
               "value": "Enter"
@@ -49,11 +49,11 @@
           "height": 720
         }
       },
-      "prompt": "The task box is the input field with the placeholder 'What needs to be done?'.",
+      "prompt": "The input box with the placeholder text 'What needs to be done?'.",
       "response": {
         "elements": [
           {
-            "reason": "The element has the placeholder 'What needs to be done?' and matches the description as an input field.",
+            "reason": "The element with ID '3530a9c1eb' is an INPUT Node. Its placeholder text is 'What needs to be done?', which matches the user's description.",
             "text": "What needs to be done?",
             "id": "3530a9c1eb"
           }
@@ -74,21 +74,21 @@
       "response": {
         "plans": [
           {
-            "thought": "Locate the element to input the task.",
+            "thought": "The user wants to input a new task and hit enter for creation. First, we need to locate the task input box.",
             "type": "Locate",
             "param": {
-              "prompt": "The task input box with the placeholder 'What needs to be done?'"
+              "prompt": "The input box with placeholder text 'What needs to be done?'"
             }
           },
           {
-            "thought": "Input the task description 'Learn Rust tomorrow'.",
+            "thought": "Typing 'Learn Rust tomorrow' into the task input box.",
             "type": "Input",
             "param": {
               "value": "Learn Rust tomorrow"
             }
           },
           {
-            "thought": "Press Enter to create the task.",
+            "thought": "Pressing Enter to create the task.",
             "type": "KeyboardPress",
             "param": {
               "value": "Enter"
@@ -106,11 +106,11 @@
           "height": 720
         }
       },
-      "prompt": "Locate the element to input the task.",
+      "prompt": "The input box with placeholder text 'What needs to be done?'",
       "response": {
         "elements": [
           {
-            "reason": "The element matches the description 'Locate the element to input the task.' as it is an input node with a placeholder indicating it is for inputting tasks.",
+            "reason": "The element is an input node with the placeholder text 'What needs to be done?' located at 366px from the left and 130px from the top.",
             "text": "What needs to be done?",
             "id": "3530a9c1eb"
           }
@@ -131,21 +131,21 @@
       "response": {
         "plans": [
           {
-            "thought": "首先定位到任务输入框，页面描述中包含了 'What needs to be done?' 作为其 placeholder。",
+            "thought": "Focusing on the input task box based on its placeholder text.",
             "type": "Locate",
             "param": {
-              "prompt": "包含 'What needs to be done?' placeholder 的输入框"
+              "prompt": "The input box with placeholder text 'What needs to be done?' near the top center of the page."
             }
           },
           {
-            "thought": "在输入框中输入 'Learning AI the day after tomorrow'。",
+            "thought": "Entering the desired task text into the located input box.",
             "type": "Input",
             "param": {
               "value": "Learning AI the day after tomorrow"
             }
           },
           {
-            "thought": "按下 Enter 键以创建任务。",
+            "thought": "Pressing the Enter key to add the new task to the list.",
             "type": "KeyboardPress",
             "param": {
               "value": "Enter"
@@ -163,11 +163,11 @@
           "height": 720
         }
       },
-      "prompt": "首先定位到任务输入框，页面描述中包含了 'What needs to be done?' 作为其 placeholder。",
+      "prompt": "The input box with placeholder text 'What needs to be done?' near the top center of the page.",
       "response": {
         "elements": [
           {
-            "reason": "The element contains the 'What needs to be done?' as its placeholder in the INPUT Node, matching the user description.",
+            "reason": "The element matches the description as it is an input box with the placeholder text 'What needs to be done?' near the top center of the page.",
             "text": "What needs to be done?",
             "id": "3530a9c1eb"
           }
@@ -188,26 +188,26 @@
       "response": {
         "plans": [
           {
-            "thought": "I need to locate the second item in the task list first.",
+            "thought": "First, I need to locate the second task, which is 'Learn Rust tomorrow'.",
             "type": "Locate",
             "param": {
-              "prompt": "The text node with content 'Learn Rust tomorrow'."
+              "prompt": "The task with the text 'Learn Rust tomorrow'"
             }
           },
           {
-            "thought": "Hover over the second task item after locating it.",
+            "thought": "Hover over the second task to reveal the Delete button.",
             "type": "Hover",
             "param": null
           },
           {
-            "thought": "Locate the delete button to the right of the second task item.",
+            "thought": "Now, I need to locate the Delete button for the second task.",
             "type": "Locate",
             "param": {
-              "prompt": "The button to the right of the text 'Learn Rust tomorrow'."
+              "prompt": "The Delete button to the right of the task 'Learn Rust tomorrow'"
             }
           },
           {
-            "thought": "Click on the delete button after locating it.",
+            "thought": "I will now click the located Delete button.",
             "type": "Tap",
             "param": null
           }
@@ -223,11 +223,11 @@
           "height": 720
         }
       },
-      "prompt": "I need to locate the second item in the task list first.",
+      "prompt": "The task with the text 'Learn Rust tomorrow'",
       "response": {
         "elements": [
           {
-            "reason": "The second item in the task list is 'Learn Rust tomorrow', which is located below the first item 'Learn JS today'.",
+            "reason": "The element has the content 'Learn Rust tomorrow', matching the description provided.",
             "text": "Learn Rust tomorrow",
             "id": "10bc260820"
           }
@@ -244,11 +244,11 @@
           "height": 720
         }
       },
-      "prompt": "Locate the delete button to the right of the second task item.",
+      "prompt": "The Delete button to the right of the task 'Learn Rust tomorrow'",
       "response": {
         "elements": [
           {
-            "reason": "The element ID 7ccd467339 is the delete button located to the right of the second task item 'Learn Rust tomorrow', which matches the user's description.",
+            "reason": "The element is a 'BUTTON Node' (an 'X' button) situated to the right of the text node labeled 'Learn Rust tomorrow’",
             "text": "×",
             "id": "7ccd467339"
           }
@@ -269,14 +269,14 @@
       "response": {
         "plans": [
           {
-            "thought": "I need to locate the checkbox to the left of the second task to mark it complete.",
+            "thought": "The user asked to click the check button to the left of the second task labeled 'Learning AI the day after tomorrow', so I need to locate that checkbox first.",
             "type": "Locate",
             "param": {
-              "prompt": "The checkbox to the left of 'Learning AI the day after tomorrow'"
+              "prompt": "Checkbox on the left of 'Learning AI the day after tomorrow'"
             }
           },
           {
-            "thought": "Click the located checkbox to mark the second task as complete.",
+            "thought": "Now that the checkbox is located, it should be tapped to mark the task as done.",
             "type": "Tap",
             "param": null
           }
@@ -292,11 +292,11 @@
           "height": 720
         }
       },
-      "prompt": "I need to locate the checkbox to the left of the second task to mark it complete.",
+      "prompt": "Checkbox on the left of 'Learning AI the day after tomorrow'",
       "response": {
         "elements": [
           {
-            "reason": "The element is a checkbox and is located to the left of the second task in the list, as described in the request.",
+            "reason": "This element is a checkbox located to the left of the 'Learning AI the day after tomorrow' text, matching the user's description.",
             "text": "",
             "id": "c0751f3b26"
           }
@@ -317,14 +317,14 @@
       "response": {
         "plans": [
           {
-            "thought": "The task is asking to click the completed Status button. From the image and the json description, the 'Completed' button appears just below the task list.",
+            "thought": "The user wants to click the 'Completed' status button below the task list to filter the tasks and see only the completed ones. This element is identifiable by its text content 'Completed'.",
             "type": "Locate",
             "param": {
-              "prompt": "The Completed button below the task list"
+              "prompt": "The 'Completed' status button below the task list with the text 'Completed'."
             }
           },
           {
-            "thought": "After locating the Completed button, the next action is to click it.",
+            "thought": "Click the located 'Completed' status button to filter the task list.",
             "type": "Tap",
             "param": null
           }
@@ -340,11 +340,11 @@
           "height": 720
         }
       },
-      "prompt": "The task is asking to click the completed Status button. From the image and the json description, the 'Completed' button appears just below the task list.",
+      "prompt": "The 'Completed' status button below the task list with the text 'Completed'.",
       "response": {
         "elements": [
           {
-            "reason": "The element with ID '663a34de3b' is identified as the 'Completed' status button as it matches the content 'Completed' and is located in the correct region consistently with the provided image and task description.",
+            "reason": "The 'Completed' status button below the task list and next to 'Active' with the text 'Completed'. In the provided JSON, the text 'Completed' is found in element with id 663a34de3b.",
             "text": "Completed",
             "id": "663a34de3b"
           }
