@@ -32,7 +32,8 @@ We assume you already have a project with Puppeteer.
 export default defineConfig({
   testDir: './e2e',
 + timeout: 90 * 1000,
-+ reporter: '@midscene/web/playwright-report',
++ reporter: [["list"], ["@midscene/web/playwright-report"]],
+
 });
 ```
 

@@ -31,7 +31,8 @@ export OPENAI_API_KEY="sk-abcdefghijklmnopqrstuvwxyz"
 export default defineConfig({
   testDir: './e2e',
 + timeout: 90 * 1000,
-+ reporter: '@midscene/web/playwright-report',
++ reporter: [["list"], ["@midscene/web/playwright-report"]],
+
 });
 ```
 
