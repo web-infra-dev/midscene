@@ -17,5 +17,8 @@
 			"ignore": [".nx"],
 			"linter": { "rules": {} }
 		}
-	]
+	],
+	"vcs": {
+		"defaultBranch": "main"
+	}
 }
