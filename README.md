@@ -24,14 +24,14 @@ MidScene.js is an AI-powered automation SDK can control the page, perform assert
 
 ## Features ✨
 
-- **Natural Language Interaction**: Describe the steps and let MidScene plan and control the user interface for you 👆
-- **Understand UI, Answer in JSON**: Provide prompts regarding the desired data format, and then receive the expected response in JSON format. 🔍
-- **Intuitive Assertion**: Make assertions in natural language. It’s all based on AI understanding. 🤔
-- **Out-of-box LLM**: It is fine to use public multimodal LLMs like GPT-4o. There is no need for any custom training. 🪓
-- **Visualization**: With our visualization tool, you can easily understand and debug the whole process. 🎞️
-- **Brand New Experience!**: Experience a whole new world of automation development. Enjoy! 🔥
+- **Natural Language Interaction 👆**: Describe the steps and let MidScene plan and control the user interface for you
+- **Understand UI, Answer in JSON 🔍**: Provide prompts regarding the desired data format, and then receive the expected response in JSON format.
+- **Intuitive Assertion 🤔**: Make assertions in natural language. It’s all based on AI understanding.
+- **Out-of-box LLM 🪓**: It is fine to use public multimodal LLMs like GPT-4o. There is no need for any custom training.
+- **Visualization 🎞️**: With our visualization tool, you can easily understand and debug the whole process.
+- **Brand New Experience! 🔥**: Experience a whole new world of automation development. Enjoy!
 
-## Resources
+## Resources 📄
 
 * [Home Page: http://midscenejs.com](https://midscenejs.com/)
 * [Quick Start](https://midscenejs.com/docs/getting-started/quick-start.html)
