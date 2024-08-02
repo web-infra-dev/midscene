@@ -1,7 +1,22 @@
-# calculate bin dir
-set -e
-INFRA_DIR_NAME=$(dirname $(dirname "$0"))
-BIN_DIR_NAME=$INFRA_DIR_NAME/node_modules/.bin
-# export bin dir
-export PATH=$PATH:$BIN_DIR_NAME
-$BIN_DIR_NAME/lint-staged
+#!/bin/bash
+
+# Gets a list of changed files
+changed_files=$(git diff --cached --name-only --diff-filter=ACM | grep '\.py$')
+
+if [ -z "$changed_files" ]; then
+    echo "No Python files to check."
+    exit 0
+fi
+
+# Run biome to check for changed files
+echo "Running Biome on changed files..."
+biome check $changed_files
+
+# Check biome's exit status
+if [ $? -ne 0 ]; then
+    echo "Biome checks failed."
+    exit 1
+fi
+
+echo "Biome checks passed."
+exit 0
