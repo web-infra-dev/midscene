@@ -47,8 +47,8 @@ importers:
         specifier: ^13.0.3
         version: 13.3.0(enquirer@2.4.1)
       minimist:
-        specifier: 1.2.5
-        version: 1.2.5
+        specifier: 1.2.6
+        version: 1.2.6
       nx:
         specifier: 19.5.2
         version: 19.5.2

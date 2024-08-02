@@ -34,7 +34,7 @@
     "nx": "19.5.2",
     "semver": "7.3.7",
     "dayjs": "1.11.2",
-    "minimist": "1.2.5",
+    "minimist": "1.2.6",
     "execa": "4.1.0",
     "chalk": "4.1.2",
     "@jsdevtools/version-bump-prompt": "6.1.0"
