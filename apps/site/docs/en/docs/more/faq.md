@@ -29,9 +29,9 @@ Here are some typical data with GPT-4o.
 
 |Task | Resolution | Prompt Tokens / Price | Completion Tokens / Price |
 |-----|------------|--------------|---------------|
-|Plan the steps to search on eBay homepage| 1280x800| 6,975 / $0.034875 |150 / $0.00225|
-|Locate the search box on the eBay homepage| 8,004 / $0.04002 | 92 / $0.00138|
-|Query the information about the item in the search results| 13,403 / $0.067015 | 95 / $0.001425|
+|Plan the steps to search on eBay homepage| 1280x800 | 6,975 / $0.034875 |150 / $0.00225|
+|Locate the search box on the eBay homepage| 1280x800 | 8,004 / $0.04002 | 92 / $0.00138|
+|Query the information about the item in the search results| 1280x800 | 13,403 / $0.067015 | 95 / $0.001425|
 
 > The price data was calculated in August 2024.
 
