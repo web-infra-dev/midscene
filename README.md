@@ -3,22 +3,37 @@
 </p>
 
 
-<div align="center">
+<h1 align="center">MidScene.js</h1>
+<div align="center"> English | [简体中文](README.zh.md) </div>
 
-English | [简体中文](README.ch.md)
+<p align="center">
+  Joyful UI Automation
+</p>
 
-</div>
+<p align="center">
+  <img src="https://img.shields.io/npm/v/@midscene/web?style=flat-square&color=00a8f0" alt="npm version" />
+  <img src="https://img.shields.io/npm/dm/@midscene/web.svg?style=flat-square&color=00a8f0" alt="downloads" />
+  <img src="https://img.shields.io/badge/License-MIT-blue.svg?style=flat-square&color=00a8f0" alt="License" />
+</p>
 
-# MidScene.js
-
-Welcome to **Midscene**! This is a brand-new framework for AI automated page operations and information extraction, leveraging Natural Language Query (NLQ) and Artificial Intelligence (AI) technologies to simplify complex data queries and user interface interactions. With Midscene, you can easily operate pages, locate elements, generate custom data structures, and automatically assign types using natural language, all without any custom training.
+MidScene.js is an AI-powered automation SDK can control the page, perform assertions, and extract data in JSON format using natural language.
 
 ## Features ✨
 
-- **Natural Language Page Control**: Operate pages using natural language, including actions like clicking and typing 🗣️💻
-- **Natural Language Query**: Locate page elements using natural language, eliminating the need for DOM selectors 🔍🗂️
-- **JSON Responses**: Prompt AI to generate the required data structures, ensuring the predictability of JSON structures and values 📊📋
-- **TypeScript Friendly**: Automatically assign types and access data easily using dot notation 📝🔍
-- **Visualization Tools**: Easily debug prompts and reasoning processes with visualization tools 🛠️👀
-- **New Experience**: Enjoy a new world of automated development 🌟🚀
-- **Ready-to-Use AI Models**: Utilize GPT-4o without any custom training 🤖🔧
+- **Natural Language Interaction**: Describe the steps and let MidScene plan and control the user interface for you 👆
+- **Understand UI, Answer in JSON**: Provide prompts regarding the desired data format, and then receive the expected response in JSON format. 🔍
+- **Intuitive Assertion**: Make assertions in natural language. It’s all based on AI understanding. 🤔
+- **Out-of-box LLM**: It is fine to use public multimodal LLMs like GPT-4o. There is no need for any custom training. 🪓
+- **Visualization**: With our visualization tool, you can easily understand and debug the whole process. 🎞️
+- **Brand New Experience!**: Experience a whole new world of automation development. Enjoy! 🔥
+
+## Resources
+
+* [Home Page: http://midscenejs.com](https://midscenejs.com/)
+* [Quick Start](https://midscenejs.com/docs/getting-started/quick-start.html)
+* [API Reference](https://midscenejs.com/docs/usage/API.html)
+* [Visualization Tool](https://midscenejs.com/visualization/index.html)
+
+## License
+
+MidScene.js is [MIT licensed](https://github.com/web-infra-dev/midscene/blob/main/LICENSE).

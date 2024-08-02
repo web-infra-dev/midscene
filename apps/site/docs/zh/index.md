@@ -19,22 +19,22 @@ hero:
     alt: MidScene Logo
 features:
 
-  - title: 自然语言控制界面
-    details: 描述操作步骤，MidScene 为你自动操控界面
+  - title: 自然语言互动
+    details: 只需描述你的步骤，MidScene 会为你规划和操作用户界面
     icon: 👆
-  - title: 理解界面，提取数据
-    details: 描述你需要的数据和格式，由 MidScene 提取并生成 JSON
+  - title: 理解UI、JSON格式回答
+    details: 你可以提出关于数据格式的要求，然后得到 JSON 格式的预期回应
     icon: 🔍
-  - title: 描述并断言
-    details: 使用自然语言对界面进行断言
+  - title: 直观断言
+    details: 用自然语言表达你的断言，AI 会理解并处理
     icon: 🤔
-  - title: 开箱即用的模型
-    details: 无需自行训练模型，可以直接使用 GPT-4o
+  - title: 开箱即用的LLM
+    details: 使用公开的多模态语言模型（如GPT-4o），无需任何定制训练
     icon: 🪓
-  - title: 可视化工具
-    details: 使用配套的可视化工具，清晰掌握 SDK 的每个步骤
+  - title: 可视化
+    details: 通过我们的可视化工具，你可以轻松理解和调试整个过程
     icon: 🎞️
-  - title: 前所未有的新体验!
-    details: 更自然、更易于维护的 UI 自动化编写体验。试试吧！
+  - title: 全新体验
+    details: 体验全新的自动化开发模式，尽情享受吧！
     icon: 🔥
 ---
