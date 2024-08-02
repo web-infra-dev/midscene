@@ -13,14 +13,6 @@ Config the API key
 export OPENAI_API_KEY="sk-abcdefghijklmnopqrstuvwxyz"
 ```
 
-Install Dependencies
-
-```bash
-npm install @midscene/webaeb --save-dev
-# for demo use
-npm install puppeteer ts-node --save-dev 
-```
-
 ## Integrate with Playwright
 
 > [Playwright.js](https://playwright.com/) is an open-source automation library developed by Microsoft, primarily designed for end-to-end testing and web scraping of web applications.
@@ -189,8 +181,3 @@ npx ts-node demo.ts
 After running, MidScene will generate a log dump, which is placed in `./midscene_run/report/latest.web-dump.json` by default. Then put this file into [Visualization Tool](/visualization/), and you will have a clearer understanding of the process.
 
 Click the 'Load Demo' button in the [Visualization Tool](/visualization/), you will be able to see the results of the previous code as well as some other samples.
-
-
-## Demo Projects
-
-You can clone a complete demo project in this repo: https://github.com/web-infra-dev/midscene-example/
