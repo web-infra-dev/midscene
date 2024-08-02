@@ -30,3 +30,14 @@ MidScene.js 是一个由 AI 驱动的自动化 SDK，能够使用自然语言对
 - **开箱即用的LLM**：使用公开的多模态语言模型（ 如GPT-4o ），无需任何定制训练。 🪓
 - **可视化**：通过我们的可视化工具，你可以轻松理解和调试整个过程。 🎞️
 - **全新体验**：体验全新的自动化开发世界，尽情享受吧！🔥
+
+## 资源
+
+* [官网首页: http://midscenejs.com](https://midscenejs.com/)
+* [快速入门](https://midscenejs.com/docs/getting-started/quick-start.html)
+* [API 文档](https://midscenejs.com/docs/usage/API.html)
+* [可视化工具](https://midscenejs.com/visualization/index.html)
+
+## 授权许可
+
+MidScene.js 遵循 [MIT 许可协议](https://github.com/web-infra-dev/midscene/blob/main/LICENSE)。
