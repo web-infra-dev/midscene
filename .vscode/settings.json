@@ -12,8 +12,5 @@
 		"vue",
 		"html"
 	],
-	"editor.formatOnSaveMode": "modifications",
-	"[less]": {
-		"editor.defaultFormatter": "esbenp.prettier-vscode"
-	}
+	"editor.formatOnSaveMode": "modifications"
 }

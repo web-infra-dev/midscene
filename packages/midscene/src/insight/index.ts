@@ -1,9 +1,9 @@
-import assert from "assert";
+import assert from 'assert';
 import {
 	AiExtractElementInfo,
 	AiInspectElement,
 	callToGetJSONObject as callAI,
-} from "@/ai-model/index";
+} from '@/ai-model/index';
 import {
 	AIElementParseResponse,
 	BaseElement,
@@ -14,19 +14,19 @@ import {
 	PartialInsightDumpFromSDK,
 	UIContext,
 	UISection,
-} from "@/types";
+} from '@/types';
 import {
 	extractSectionQuery,
 	// describeUserPage as defaultDescriber,
 	ifElementTypeResponse,
 	splitElementResponse,
-} from "../ai-model/prompt/util";
+} from '../ai-model/prompt/util';
 import {
 	expandLiteSection,
 	idsIntoElements,
 	shallowExpandIds,
 	writeInsightDump,
-} from "./utils";
+} from './utils';
 
 const sortByOrder = (a: UISection, b: UISection) => {
 	if (a.rect.top - b.rect.top !== 0) {
@@ -57,30 +57,30 @@ export default class Insight<
 
 	onceDumpUpdatedFn?: DumpSubscriber;
 
-	taskInfo?: Omit<InsightTaskInfo, "durationMs">;
+	taskInfo?: Omit<InsightTaskInfo, 'durationMs'>;
 
 	constructor(
 		context: ContextType | (() => Promise<ContextType> | ContextType),
 		opt?: InsightOptions,
 	) {
-		assert(context, "context is required for Insight");
-		if (typeof context === "function") {
+		assert(context, 'context is required for Insight');
+		if (typeof context === 'function') {
 			this.contextRetrieverFn = context;
 		} else {
 			this.contextRetrieverFn = () => Promise.resolve(context);
 		}
 
-		if (typeof opt?.aiVendorFn !== "undefined") {
+		if (typeof opt?.aiVendorFn !== 'undefined') {
 			this.aiVendorFn = opt.aiVendorFn;
 		}
-		if (typeof opt?.taskInfo !== "undefined") {
+		if (typeof opt?.taskInfo !== 'undefined') {
 			this.taskInfo = opt.taskInfo;
 		}
 	}
 
 	async locate(
 		queryPrompt: string,
-		opt?: { callAI: LocateOpts["callAI"] },
+		opt?: { callAI: LocateOpts['callAI'] },
 	): Promise<ElementType | null>;
 	async locate(
 		queryPrompt: string,
@@ -88,7 +88,7 @@ export default class Insight<
 	): Promise<ElementType[]>;
 	async locate(queryPrompt: string, opt?: LocateOpts) {
 		const { callAI = this.aiVendorFn, multi = false } = opt || {};
-		assert(queryPrompt, "query is required for located");
+		assert(queryPrompt, 'query is required for located');
 		const dumpSubscriber = this.onceDumpUpdatedFn;
 		this.onceDumpUpdatedFn = undefined;
 		const context = await this.contextRetrieverFn();
@@ -111,11 +111,11 @@ export default class Insight<
 
 		let errorLog: string | undefined;
 		if (parseResult.errors?.length) {
-			errorLog = `locate - AI response error: \n${parseResult.errors.join("\n")}`;
+			errorLog = `locate - AI response error: \n${parseResult.errors.join('\n')}`;
 		}
 
 		const dumpData: PartialInsightDumpFromSDK = {
-			type: "locate",
+			type: 'locate',
 			context,
 			userQuery: {
 				element: queryPrompt,
@@ -180,12 +180,12 @@ export default class Insight<
 		let dataQuery: Record<string, string> | string = {};
 		const sectionQueryMap: Record<string, string> = {};
 		assert(
-			typeof dataDemand === "object" || typeof dataDemand === "string",
+			typeof dataDemand === 'object' || typeof dataDemand === 'string',
 			`dataDemand should be object or string, but get ${typeof dataDemand}`,
 		);
 		const dumpSubscriber = this.onceDumpUpdatedFn;
 		this.onceDumpUpdatedFn = undefined;
-		if (typeof dataDemand === "string") {
+		if (typeof dataDemand === 'string') {
 			dataQuery = dataDemand;
 		} else {
 			// filter all sectionQuery
@@ -205,7 +205,7 @@ export default class Insight<
 			const sectionQueryPrompt = sectionQueryMap[name];
 			return {
 				name,
-				description: sectionQueryPrompt || "",
+				description: sectionQueryPrompt || '',
 			};
 		});
 
@@ -230,11 +230,11 @@ export default class Insight<
 
 		let errorLog: string | undefined;
 		if (parseResult.errors?.length) {
-			errorLog = `segment - AI response error: \n${parseResult.errors.join("\n")}`;
+			errorLog = `segment - AI response error: \n${parseResult.errors.join('\n')}`;
 		}
 
 		const dumpData: PartialInsightDumpFromSDK = {
-			type: "extract",
+			type: 'extract',
 			context,
 			userQuery: {
 				dataDemand,
@@ -283,10 +283,10 @@ export default class Insight<
 		let mergedData = data;
 
 		// expand elements in object style data
-		if (data && typeof data === "object" && !Array.isArray(data)) {
+		if (data && typeof data === 'object' && !Array.isArray(data)) {
 			shallowExpandIds(data, ifElementTypeResponse, (id) => {
 				const idList = splitElementResponse(id);
-				if (typeof idList === "string") {
+				if (typeof idList === 'string') {
 					return elementById(idList);
 				} else if (Array.isArray(idList)) {
 					return idsIntoElements(idList, elementById);
