@@ -1,6 +1,6 @@
 # 快速开始
 
-我们用这个需求来举例：使用 OpenAI GPT-4o 在 ebay 上搜索 "耳机"，并以 JSON 格式返回商品和价格结果。
+我们用这个需求来举例：使用 OpenAI GPT-4o 在 eBay 上搜索 "耳机"，并以 JSON 格式返回商品和价格结果。
 
 在运行该示例之前，请确保您已经准备了能够调用 OpenAI GPT-4o 模型的 API key。
 
@@ -87,10 +87,11 @@ npx playwright test ./e2e/ebay-search.spec.ts
 
 ### Step 5. 查看测试报告
 
-Follow the instructions in the command line to server the report
+根据命令行输出，执行命令，可以以此打开可视化报告
 
 ```bash
-
+# 样例
+npx http-server ./midscene_run/report -p 9888 -o -s
 ```
 
 ## 集成到 Puppeteer

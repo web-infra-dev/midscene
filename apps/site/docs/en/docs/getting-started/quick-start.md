@@ -1,6 +1,6 @@
 # Quick Start
 
-In this example, we use OpenAI GPT-4o to search headphones on ebay, and then get the result items and prices in JSON format. 
+In this example, we use OpenAI GPT-4o to search headphones on eBay, and then get the result items and prices in JSON format. 
 
 Remember to prepare an API key that is eligible for accessing OpenAI's GPT-4o before running.
 
@@ -84,10 +84,11 @@ npx playwright test ./e2e/ebay-search.spec.ts
 
 ### Step 5. view test report after running
 
-Follow the instructions in the command line to server the report
+Follow the instructions in the command line to server the report. 
 
 ```bash
-
+# sample command
+npx http-server ./midscene_run/report -p 9888 -o -s
 ```
 
 ## Integrate with Puppeteer
@@ -157,7 +158,7 @@ await mid.aiQuery(
 
 ### Step 3. run
 
-Using ts-node to run, you will get the data of Headphones on ebay:
+Using ts-node to run, you will get the data of Headphones on eBay:
 
 ```bash
 # run
