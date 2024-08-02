@@ -1,0 +1,49 @@
+name: Lint
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  main:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [18.19.0]
+
+    env:
+      MIDSCENE_OPENAI_INIT_CONFIG_JSON: ${{ secrets.MIDSCENE_OPENAI_INIT_CONFIG_JSON }}
+      MIDSCENE_OPENAI_MODEL: ${{ secrets.MIDSCENE_OPENAI_MODEL }}
+
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Setup pnpm
+      uses: pnpm/action-setup@v2
+      with:
+        version: 9.3.0
+  
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'pnpm'
+
+    - name: Install dependencies
+      run: pnpm install --frozen-lockfile
+
+    - name: Lint changed files
+      run: |
+        git fetch origin main
+        DIFF_FILES=$(git diff origin/main...HEAD --name-only --diff-filter=ACMRTUXB | grep -E '\.js$|\.jsx$|\.ts$|\.tsx$')
+        if [ -n "$DIFF_FILES" ]; then
+          npx eslint $DIFF_FILES
+        else
+          echo "No JavaScript/TypeScript files changed."
+        fi

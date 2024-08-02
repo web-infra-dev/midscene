@@ -1,21 +1,19 @@
 {
-  "eslint.nodePath": "node_modules",
-  "eslint.trace.server": "verbose",
-  "eslint.workingDirectories": [
-    {
-      "mode": "auto"
-    }
-  ],
-  "editor.defaultFormatter": "esbenp.prettier-vscode",
-  "prettier.prettierPath": "node_modules/prettier",
-  "[typescript]": {
-    "editor.defaultFormatter": "dbaeumer.vscode-eslint"
-  },
-  "[javascript]": {
-    "editor.defaultFormatter": "dbaeumer.vscode-eslint"
-  },
-  "editor.formatOnSaveMode": "modifications",
-  "[less]": {
-    "editor.defaultFormatter": "esbenp.prettier-vscode"
-  }
+	"editor.codeActionsOnSave": {
+		"source.organizeImports.biome": "explicit"
+	},
+	"editor.defaultFormatter": "biomejs.biome",
+	"editor.formatOnSave": true,
+	"eslint.validate": [
+		"javascript",
+		"javascriptreact",
+		"typescript",
+		"typescriptreact",
+		"vue",
+		"html"
+	],
+	"editor.formatOnSaveMode": "modifications",
+	"[less]": {
+		"editor.defaultFormatter": "esbenp.prettier-vscode"
+	}
 }

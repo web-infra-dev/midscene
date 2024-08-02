@@ -1,23 +1,32 @@
 import assert from 'assert';
 import {
-  // describeUserPage as defaultDescriber,
-  ifElementTypeResponse,
-  splitElementResponse,
-  extractSectionQuery,
-} from '../ai-model/prompt/util';
-import { expandLiteSection, shallowExpandIds, idsIntoElements, writeInsightDump } from './utils';
-import { AiInspectElement, callToGetJSONObject as callAI, AiExtractElementInfo } from '@/ai-model/index';
+	AiExtractElementInfo,
+	AiInspectElement,
+	callToGetJSONObject as callAI,
+} from "@/ai-model/index";
 import {
-  UISection,
-  UIContext,
-  InsightOptions,
-  InsightTaskInfo,
-  PartialInsightDumpFromSDK,
-  BaseElement,
-  DumpSubscriber,
-  InsightExtractParam,
-  AIElementParseResponse,
-} from '@/types';
+	AIElementParseResponse,
+	BaseElement,
+	DumpSubscriber,
+	InsightExtractParam,
+	InsightOptions,
+	InsightTaskInfo,
+	PartialInsightDumpFromSDK,
+	UIContext,
+	UISection,
+} from "@/types";
+import {
+	extractSectionQuery,
+	// describeUserPage as defaultDescriber,
+	ifElementTypeResponse,
+	splitElementResponse,
+} from "../ai-model/prompt/util";
+import {
+	expandLiteSection,
+	idsIntoElements,
+	shallowExpandIds,
+	writeInsightDump,
+} from "./utils";
 
 const sortByOrder = (a: UISection, b: UISection) => {
   if (a.rect.top - b.rect.top !== 0) {
@@ -286,11 +295,4 @@ export default class Insight<
     return mergedData;
   }
 
-  setAiVendorFn<T>(aiVendorFn: typeof callAI<T>) {
-    const origin = this.aiVendorFn;
-    this.aiVendorFn<T> = aiVendorFn;
-    return () => {
-      this.aiVendorFn = origin;
-    };
-  }
 }
