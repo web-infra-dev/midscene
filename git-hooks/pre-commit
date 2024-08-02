@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Gets a list of changed files
-changed_files=$(git diff --cached --name-only --diff-filter=ACM | grep '\.py$')
+changed_files=$(git diff --cached --name-only --diff-filter=ACM | grep -E '\.(js|jsx|ts|tsx|json|html|css|scss|md)$')
 
 if [ -z "$changed_files" ]; then
     echo "No Python files to check."
