@@ -5,7 +5,9 @@
 
 <h1 align="center">MidScene.js</h1>
 <div align="center">
+
 English | [简体中文](./README.zh.md)
+
 </div>
 
 <p align="center">
