@@ -3,9 +3,7 @@ pageType: home
 
 hero:
   name: MidScene.js
-  text: |
-    Powered by AI
-    Joyful UI Automation
+  text: AI 加持，更愉悦的 UI 自动化
   tagline: 
   actions:
     - theme: brand

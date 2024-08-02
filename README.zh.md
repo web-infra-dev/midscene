@@ -10,7 +10,7 @@
 </div>
 
 <p align="center">
-  Joyful UI Automation
+  AI 加持，更愉悦的 UI 自动化
 </p>
 
 <p align="center">
