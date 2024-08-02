@@ -3,7 +3,9 @@ pageType: home
 
 hero:
   name: MidScene.js
-  text: Joyful Automation by AI
+  text: |
+    Powered by AI
+    Joyful UI Automation
   tagline: 
   actions:
     - theme: brand
@@ -17,14 +19,14 @@ hero:
     alt: MidScene Logo
 features:
   - title: Natural Language Interaction
-    details: Describe the steps, let MidScene plan and execute for you.
-    icon: 🔍
+    details: Describe the steps and let MidScene plan and control the user interface for you
+    icon: 👆
   - title: Understand UI, Answer in JSON
-    details: Provide prompts for the desired data format, and then receive the predictable answer in JSON format.
-    icon: 🤔
+    details: Provide prompts regarding the desired data format, and then receive the expected response in JSON format.
+    icon: 🔍
   - title: Intuitive Assertion
     details: Make assertions in natural language. It’s all based on AI understanding.
-    icon: ⛳
+    icon: 🤔
   - title: Out-of-box LLM
     details: It is fine to use public multimodal LLMs like GPT-4o. There is no need for any custom training.
     icon: 🪓

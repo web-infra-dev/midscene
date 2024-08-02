@@ -1,5 +1,8 @@
 # Quick Start
 
+import { PackageManagerTabs } from '@theme';
+
+
 In this example, we use OpenAI GPT-4o to search headphones on eBay, and then get the result items and prices in JSON format. 
 
 Remember to prepare an API key that is eligible for accessing OpenAI's GPT-4o before running.
@@ -21,9 +24,7 @@ We assume you already have a project with Puppeteer.
 
 ### add the dependency
 
-```bash
-npm install @midscene/web --save-dev
-```
+<PackageManagerTabs command="install @midscene/web --save-dev" />
 
 ### Step 1. update playwright.config.ts
 
@@ -51,7 +52,7 @@ export const test = base.extend<PlayWrightAiFixtureType>(PlaywrightAiFixture());
 
 Save the following code as `./e2e/ebay-search.spec.ts`
 
-```typescript
+```typescript title="./e2e/ebay-search.spec.ts"
 import { expect } from "@playwright/test";
 import { test } from "./fixture";
 
@@ -97,16 +98,13 @@ npx http-server ./midscene_run/report -p 9888 -o -s
 
 ### Step 1. install dependencies
 
-```bash
-npm install @midscene/web --save-dev
-npm install puppeteer ts-node --save-dev 
-```
+<PackageManagerTabs command="install @midscene/web puppeteer ts-node --save-dev" />
 
 ### Step 2. write scripts
 
 Write and save the following code as `./demo.ts`.
 
-```typescript
+```typescript title="./demo.ts"
 import puppeteer from "puppeteer";
 import { PuppeteerAgent } from "@midscene/web";
 
@@ -181,4 +179,9 @@ npx ts-node demo.ts
 
 After running, MidScene will generate a log dump, which is placed in `./midscene_run/report/latest.web-dump.json` by default. Then put this file into [Visualization Tool](/visualization/), and you will have a clearer understanding of the process.
 
+
+## View demo report
+
 Click the 'Load Demo' button in the [Visualization Tool](/visualization/), you will be able to see the results of the previous code as well as some other samples.
+
+![](/view-demo-visualization.gif)

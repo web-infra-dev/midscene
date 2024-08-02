@@ -9,6 +9,7 @@ import Timeline from './component/timeline';
 import DetailPanel from './component/detail-panel';
 import Logo from './component/assets/logo-plain.svg';
 import GlobalHoverPreview from './component/global-hover-preview';
+import demoDump from './demo-dump.json';
 import { useExecutionDump } from '@/component/store';
 import DetailSide from '@/component/detail-side';
 import Sidebar from '@/component/sidebar';
@@ -90,14 +91,8 @@ export function Visualizer(props: {
     },
   };
 
-  const loadTasksDemo = () => {
-    // setExecutionDump(actionDemo);
-    // message.info('Your are viewing the demo data.');
-  };
-
-  const loadInsightDemo = () => {
-    // loadInsightDump(InsightDemo);
-    // message.info('Your are viewing the demo data.');
+  const loadDemoDump = () => {
+    setGroupedDump(demoDump as any);
   };
 
   let mainContent: JSX.Element;
@@ -122,7 +117,7 @@ export function Visualizer(props: {
           <p className="ant-upload-text">
             The latest dump file is usually placed in{' '}
             <b>
-              <i>./midscene_run/</i>
+              <i>./midscene_run/report</i>
             </b>
           </p>
           <p className="ant-upload-text">
@@ -130,11 +125,8 @@ export function Visualizer(props: {
           </p>
         </Dragger>
         <div className="demo-loader">
-          <Button type="link" onClick={loadTasksDemo}>
-            Load Tasks Demo
-          </Button>
-          <Button type="link" onClick={loadInsightDemo}>
-            Load Insight Demo
+          <Button type="link" onClick={loadDemoDump}>
+            Load Demo
           </Button>
         </div>
       </div>
