@@ -1,6 +1,6 @@
 # 快速开始
 
-在这个例子中，我们将使用 OpenAI GPT-4o 在 ebay 上搜索 "耳机"，并以 JSON 格式返回商品和价格结果。
+我们用这个需求来举例：使用 OpenAI GPT-4o 在 eBay 上搜索 "耳机"，并以 JSON 格式返回商品和价格结果。
 
 在运行该示例之前，请确保您已经准备了能够调用 OpenAI GPT-4o 模型的 API key。
 
@@ -11,7 +11,7 @@
 配置 API Key
 
 ```bash
-# replace by your own
+# 更新为你自己的 Key
 export OPENAI_API_KEY="sk-abcdefghijklmnopqrstuvwxyz"
 ```
 
@@ -87,10 +87,11 @@ npx playwright test ./e2e/ebay-search.spec.ts
 
 ### Step 5. 查看测试报告
 
-Follow the instructions in the command line to server the report
+根据命令行输出，执行命令，可以以此打开可视化报告
 
 ```bash
-
+# 样例
+npx http-server ./midscene_run/report -p 9888 -o -s
 ```
 
 ## 集成到 Puppeteer
@@ -186,7 +187,3 @@ npx ts-node demo.ts
 运行 MidScene 之后，系统会生成一个日志文件，默认存放在 `./midscene_run/report/latest.web-dump.json`。然后，你可以把这个文件导入 [可视化工具](/visualization/)，这样你就能更清楚地了解整个过程。
 
 在 [可视化工具](/visualization/) 中，点击 `Load Demo` 按钮，你将能够看到上方代码的运行结果以及其他的一些示例。
-
-## 完整的样例工程
-
-你可以在这里 Clone 完整的样例工程项目： https://github.com/web-infra-dev/midscene-example/

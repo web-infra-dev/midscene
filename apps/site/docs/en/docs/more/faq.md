@@ -23,16 +23,17 @@ MidScene needs a multimodal Large Language Model (LLM) to understand the UI. Cur
 
 ### About the token cost
 
-Image resolution and element numbers (i.e., a UI context size created by MidScene) form the token bill.
+Image resolution and element numbers (i.e., a UI context size created by MidScene) will affect the token bill.
 
-Here are some typical data.
+Here are some typical data with GPT-4o.
 
-|Task | Resolution | Input tokens | Output tokens | GPT-4o Price |
-|-----|------------|--------------|---------------|----------------|
-|Find the download button on the VSCode website| 1920x1080| 2011|54| $0.011|
-|Split the Github status page| 1920x1080| 3609|1020| $0.034|
+|Task | Resolution | Prompt Tokens / Price | Completion Tokens / Price |
+|-----|------------|--------------|---------------|
+|Plan the steps to search on eBay homepage| 1280x800 | 6,975 / $0.034875 |150 / $0.00225|
+|Locate the search box on the eBay homepage| 1280x800 | 8,004 / $0.04002 | 92 / $0.00138|
+|Query the information about the item in the search results| 1280x800 | 13,403 / $0.067015 | 95 / $0.001425|
 
-> The price data was calculated in June 2024.
+> The price data was calculated in August 2024.
 
 ### The automation process is running more slowly than it did before
 

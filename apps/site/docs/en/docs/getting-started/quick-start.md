@@ -1,6 +1,6 @@
 # Quick Start
 
-In this example, we use OpenAI GPT-4o to search headphones on ebay, and then get the result items and prices in JSON format. 
+In this example, we use OpenAI GPT-4o to search headphones on eBay, and then get the result items and prices in JSON format. 
 
 Remember to prepare an API key that is eligible for accessing OpenAI's GPT-4o before running.
 
@@ -11,14 +11,6 @@ Config the API key
 ```bash
 # replace by your own
 export OPENAI_API_KEY="sk-abcdefghijklmnopqrstuvwxyz"
-```
-
-Install Dependencies
-
-```bash
-npm install @midscene/webaeb --save-dev
-# for demo use
-npm install puppeteer ts-node --save-dev 
 ```
 
 ## Integrate with Playwright
@@ -92,10 +84,11 @@ npx playwright test ./e2e/ebay-search.spec.ts
 
 ### Step 5. view test report after running
 
-Follow the instructions in the command line to server the report
+Follow the instructions in the command line to server the report. 
 
 ```bash
-
+# sample command
+npx http-server ./midscene_run/report -p 9888 -o -s
 ```
 
 ## Integrate with Puppeteer
@@ -165,7 +158,7 @@ await mid.aiQuery(
 
 ### Step 3. run
 
-Using ts-node to run, you will get the data of Headphones on ebay:
+Using ts-node to run, you will get the data of Headphones on eBay:
 
 ```bash
 # run
@@ -189,8 +182,3 @@ npx ts-node demo.ts
 After running, MidScene will generate a log dump, which is placed in `./midscene_run/report/latest.web-dump.json` by default. Then put this file into [Visualization Tool](/visualization/), and you will have a clearer understanding of the process.
 
 Click the 'Load Demo' button in the [Visualization Tool](/visualization/), you will be able to see the results of the previous code as well as some other samples.
-
-
-## Demo Projects
-
-You can clone a complete demo project in this repo: https://github.com/web-infra-dev/midscene-example/

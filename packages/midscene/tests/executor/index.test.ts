@@ -1,11 +1,13 @@
-/* eslint-disable max-lines-per-function */
 import { it, describe, expect, vi } from 'vitest';
-import { DumpSubscriber, ExecutionTaskActionApply, ExecutionTaskInsightLocate, ExecutionTaskInsightLocateApply, InsightDump } from '@/index';
-import { Executor } from '@/action/executor';
 import { fakeInsight } from 'tests/utils';
-import { join } from 'path';
-import { getDumpDir } from '@/utils';
-import { existsSync, readFileSync } from 'fs';
+import {
+  DumpSubscriber,
+  ExecutionTaskActionApply,
+  ExecutionTaskInsightLocate,
+  ExecutionTaskInsightLocateApply,
+  InsightDump,
+} from '@/index';
+import { Executor } from '@/action/executor';
 
 const insightFindTask = (shouldThrow?: boolean) => {
   let insightDump: InsightDump | undefined;
@@ -29,15 +31,18 @@ const insightFindTask = (shouldThrow?: boolean) => {
       return {
         output: {
           element: await insight.locate(param.prompt),
-        }, 
+        },
         log: {
           dump: insightDump,
+        },
+        cache: {
+          hit: false,
         },
       };
     },
   };
   return insightFindTask;
-}
+};
 
 // const insightExtractTask = () => {
 //   let insightDump: InsightDump | undefined;
@@ -46,7 +51,7 @@ const insightFindTask = (shouldThrow?: boolean) => {
 //   };
 //   const insight = fakeInsight('test-executor');
 //   insight.onceDumpUpdatedFn = dumpCollector;
-  
+
 //   const task: any = {
 //     type: 'Insight-extract',
 //     param: {
@@ -67,45 +72,50 @@ const insightFindTask = (shouldThrow?: boolean) => {
 // }
 
 describe('executor', () => {
-  it('insight - basic run', async () => {
-    const insightTask1 = insightFindTask();
+  it(
+    'insight - basic run',
+    async () => {
+      const insightTask1 = insightFindTask();
 
-    const taskParam = {
-      action: 'tap',
-      anything: 'acceptable',
-    };
-    const tapperFn = vi.fn();
-    const actionTask: ExecutionTaskActionApply = {
-      type: 'Action',
-      param: taskParam,
-      executor: tapperFn,
-    };
+      const taskParam = {
+        action: 'tap',
+        anything: 'acceptable',
+      };
+      const tapperFn = vi.fn();
+      const actionTask: ExecutionTaskActionApply = {
+        type: 'Action',
+        param: taskParam,
+        executor: tapperFn,
+      };
 
-    const inputTasks = [insightTask1, actionTask];
+      const inputTasks = [insightTask1, actionTask];
 
-    const executor = new Executor('test', 'hello, this is a test',inputTasks);
-    await executor.flush();
-    const tasks = executor.tasks as ExecutionTaskInsightLocate[];
-    const {element} = tasks[0].output!;
-    expect(element).toBeTruthy();
-    
-    expect(tasks.length).toBe(inputTasks.length);
-    expect(tasks[0].status).toBe('success');
-    expect(tasks[0].output).toMatchSnapshot();
-    expect(tasks[0].log!.dump).toBeTruthy();
-    expect(tasks[0].timing?.end).toBeTruthy();
-    
-    expect(tapperFn).toBeCalledTimes(1);
-    expect(tapperFn.mock.calls[0][0]).toBe(taskParam);
-    expect(tapperFn.mock.calls[0][1].element).toBe(element);
-    expect(tapperFn.mock.calls[0][1].task).toBeTruthy();
+      const executor = new Executor('test', 'hello, this is a test', inputTasks);
+      await executor.flush();
+      const tasks = executor.tasks as ExecutionTaskInsightLocate[];
+      const { element } = tasks[0].output!;
+      expect(element).toBeTruthy();
 
-    const dump = executor.dump();
-    expect(dump.logTime).toBeTruthy();
+      expect(tasks.length).toBe(inputTasks.length);
+      expect(tasks[0].status).toBe('success');
+      expect(tasks[0].output).toMatchSnapshot();
+      expect(tasks[0].log!.dump).toBeTruthy();
+      expect(tasks[0].timing?.end).toBeTruthy();
+      expect(tasks[0].cache).toBeTruthy();
+      expect(tasks[0].cache?.hit).toEqual(false);
 
-  }, {
-    timeout: 999 * 1000,
-  });
+      expect(tapperFn).toBeCalledTimes(1);
+      expect(tapperFn.mock.calls[0][0]).toBe(taskParam);
+      expect(tapperFn.mock.calls[0][1].element).toBe(element);
+      expect(tapperFn.mock.calls[0][1].task).toBeTruthy();
+
+      const dump = executor.dump();
+      expect(dump.logTime).toBeTruthy();
+    },
+    {
+      timeout: 999 * 1000,
+    },
+  );
 
   it('insight - init and append', async () => {
     const initExecutor = new Executor('test');
@@ -132,7 +142,6 @@ describe('executor', () => {
     expect(initExecutor.tasks.length).toBe(2);
     expect(tapperFn).toBeCalledTimes(0);
 
-
     const dumpContent1 = initExecutor.dump();
     expect(dumpContent1.tasks.length).toBe(2);
 
@@ -147,7 +156,7 @@ describe('executor', () => {
         expect(initExecutor.status).toBe('running');
       })(),
     ]);
-  
+
     expect(initExecutor.status).toBe('completed');
     expect(initExecutor.tasks.length).toBe(3);
     expect(initExecutor.tasks[2].status).toBe('success');
@@ -173,7 +182,7 @@ describe('executor', () => {
   //   expect(tasks[1].status).toBe('cancelled');
   //   expect(executor.status).toBe('error');
   //   expect(r).toBeFalsy();
-    
+
   //   // expect to throw an error
   //   expect(async () => {
   //     await executor.flush();
