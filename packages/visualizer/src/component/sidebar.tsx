@@ -201,7 +201,7 @@ const Sidebar = (props: { hideLogo?: boolean; logoAction?: () => void }): JSX.El
         <div className="task-list">{sideList}</div>
         <div className="side-seperator side-seperator-line side-seperator-space-up" />
         <div className="task-meta-section">
-          <div className="task-meta">use Command + ⬆︎ / ⬇︎ to switch</div>
+          <div className="task-meta">switch: Command + Up / Down</div>
         </div>
       </div>
       <div className="bottom-controls">

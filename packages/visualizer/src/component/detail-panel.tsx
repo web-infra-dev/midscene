@@ -98,11 +98,10 @@ const DetailPanel = (): JSX.Element => {
           theme={{
             components: {
               Segmented: {
-                itemSelectedBg: '#D7D7D7',
+                itemSelectedBg: '#bfc4da50',
                 itemSelectedColor: '#000000',
                 // itemHoverColor: '#ffffff',
-                // itemHoverBg: '#A3D6D2', // @sub-blue
-                /* 这里是你的组件 token */
+                // itemHoverBg: '#A3D6D2',
               },
             },
           }}

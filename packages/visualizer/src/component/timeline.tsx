@@ -66,17 +66,18 @@ const TimelineWidget = (props: {
 
   const sizeRatio = 2;
 
-  const titleBg = 0xdddddd; // @title-bg
-  const sideBg = 0xf7f7f7; // @side-bg
+  const titleBg = 0xf8f8f8; // @title-bg
+  const sideBg = 0xffffff;
   const gridTextColor = 0;
   const shotBorderColor = 0x777777;
-  const gridLineColor = 0xcccccc; // @border-color
-  const gridHighlightColor = 0x06b1ab; // @main-blue
+  const gridLineColor = 0xe5e5e5; // @border-color
+  const gridHighlightColor = 0xbfc4da; // @selected-bg
+  const highlightMaskAlpha = 0.6;
   const timeContentFontSize = 20;
   const commonPadding = 12;
   const timeTextTop = commonPadding;
   const timeTitleBottom = timeTextTop * 2 + timeContentFontSize;
-  const highlightMaskAlpha = 0.6;
+  const hoverMaskColor = 0xdcdcdc; // @hover-bg
   const hoverMaskAlpha = 0.3;
 
   const closestScreenshotItemOnXY = (x: number, _y: number) => {
@@ -174,6 +175,11 @@ const TimelineWidget = (props: {
         titleBgSection.drawRect(0, 0, canvasWidth, timeTitleBottom);
         titleBgSection.endFill();
         gridsContainer.addChild(titleBgSection);
+        const titleBottomBorder = new PIXI.Graphics();
+        titleBottomBorder.beginFill(gridLineColor);
+        titleBottomBorder.drawRect(0, timeTitleBottom, canvasWidth, sizeRatio);
+        titleBottomBorder.endFill();
+        gridsContainer.addChild(titleBottomBorder);
 
         const gridHeight = canvasHeight;
         for (let i = 1; i <= gridCount; i++) {
@@ -252,7 +258,7 @@ const TimelineWidget = (props: {
         ) => {
           highlightMaskContainer.removeChildren();
 
-          const mask = (start: number | undefined, end: number | undefined, alpha: number) => {
+          const mask = (start: number | undefined, end: number | undefined, color: number, alpha: number) => {
             if (typeof start === 'undefined' || typeof end === 'undefined' || end === 0) {
               return;
             }
@@ -280,8 +286,8 @@ const TimelineWidget = (props: {
             highlightMaskContainer.addChild(mask);
           };
 
-          mask(start, end, highlightMaskAlpha);
-          mask(hoverStart, hoverEnd, hoverMaskAlpha);
+          mask(start, end, gridHighlightColor, highlightMaskAlpha);
+          mask(hoverStart, hoverEnd, hoverMaskColor, hoverMaskAlpha);
         };
         highlightMaskUpdater(props.highlightMask?.startMs, props.highlightMask?.endMs, 0, 0);
         containerUpdaterRef.current = highlightMaskUpdater;
