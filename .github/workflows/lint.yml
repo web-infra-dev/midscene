@@ -44,18 +44,10 @@ jobs:
     - name: Check Dependency Version
       run: pnpm run check-dependency-version
 
-    - name: Get list of changed files
-      id: changes
-      run: echo "$(git diff main...HEAD --name-only)" > changed_files.txt
+    - name: Check for changed files
+      run: git diff --name-only main
 
-    - name: Display changed files
-      run: cat changed_files.txt
-
-    - name: Run Biome lint
+    - name: Debug Biome lint
       run: |
-        if [ -s changed_files.txt ]; then
-          npx biome lint --changed --since main --diagnostic-level=warn --no-errors-on-unmatched
-        else
-          echo "No changes detected"
-        fi
+        npx biome lint --changed --since main --diagnostic-level=warn --no-errors-on-unmatched --verbose
 
