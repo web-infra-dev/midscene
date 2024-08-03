@@ -72,7 +72,7 @@
     "@midscene/visualizer-report": "workspace:*"
   },
   "devDependencies": {
-    "@modern-js/module-tools": "^2.54.2",
+    "@modern-js/module-tools": "^2.56.1",
     "js-sha256": "0.11.0",
     "@types/node": "^18.0.0",
     "typescript": "~5.0.4",

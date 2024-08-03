@@ -1,30 +1,38 @@
-import assert from 'assert';
+import assert from 'node:assert';
 import {
-  // describeUserPage as defaultDescriber,
-  ifElementTypeResponse,
-  splitElementResponse,
-  extractSectionQuery,
-} from '../ai-model/prompt/util';
-import { expandLiteSection, shallowExpandIds, idsIntoElements, writeInsightDump } from './utils';
-import { AiInspectElement, callToGetJSONObject as callAI, AiExtractElementInfo } from '@/ai-model/index';
-import {
-  UISection,
-  UIContext,
-  InsightOptions,
-  InsightTaskInfo,
-  PartialInsightDumpFromSDK,
+  AiExtractElementInfo,
+  AiInspectElement,
+  callToGetJSONObject as callAI,
+} from '@/ai-model/index';
+import type {
+  AIElementParseResponse,
   BaseElement,
   DumpSubscriber,
   InsightExtractParam,
-  AIElementParseResponse,
+  InsightOptions,
+  InsightTaskInfo,
+  PartialInsightDumpFromSDK,
+  UIContext,
+  UISection,
 } from '@/types';
+import {
+  extractSectionQuery,
+  // describeUserPage as defaultDescriber,
+  ifElementTypeResponse,
+  splitElementResponse,
+} from '../ai-model/prompt/util';
+import {
+  expandLiteSection,
+  idsIntoElements,
+  shallowExpandIds,
+  writeInsightDump,
+} from './utils';
 
 const sortByOrder = (a: UISection, b: UISection) => {
   if (a.rect.top - b.rect.top !== 0) {
     return a.rect.top - b.rect.top;
-  } else {
-    return a.rect.left - b.rect.left;
   }
+  return a.rect.left - b.rect.left;
 };
 
 export interface LocateOpts {
@@ -50,7 +58,10 @@ export default class Insight<
 
   taskInfo?: Omit<InsightTaskInfo, 'durationMs'>;
 
-  constructor(context: ContextType | (() => Promise<ContextType> | ContextType), opt?: InsightOptions) {
+  constructor(
+    context: ContextType | (() => Promise<ContextType> | ContextType),
+    opt?: InsightOptions,
+  ) {
     assert(context, 'context is required for Insight');
     if (typeof context === 'function') {
       this.contextRetrieverFn = context;
@@ -66,8 +77,14 @@ export default class Insight<
     }
   }
 
-  async locate(queryPrompt: string, opt?: { callAI: LocateOpts['callAI'] }): Promise<ElementType | null>;
-  async locate(queryPrompt: string, opt: { multi: true }): Promise<ElementType[]>;
+  async locate(
+    queryPrompt: string,
+    opt?: { callAI: LocateOpts['callAI'] },
+  ): Promise<ElementType | null>;
+  async locate(
+    queryPrompt: string,
+    opt: { multi: true },
+  ): Promise<ElementType[]>;
   async locate(queryPrompt: string, opt?: LocateOpts) {
     const { callAI = this.aiVendorFn, multi = false } = opt || {};
     assert(queryPrompt, 'query is required for located');
@@ -117,11 +134,14 @@ export default class Insight<
     }
 
     const elements: BaseElement[] = [];
+    // biome-ignore lint/complexity/noForEach: <explanation>
     parseResult.elements.forEach((item) => {
       const element = elementById(item.id);
 
       if (!element) {
-        console.warn(`locate: cannot find element id=${item.id}. Maybe an unstable response from AI model`);
+        console.warn(
+          `locate: cannot find element id=${item.id}. Maybe an unstable response from AI model`,
+        );
         return;
       }
       elements.push(element);
@@ -138,18 +158,23 @@ export default class Insight<
 
     if (opt?.multi) {
       return elements;
-    } else if (elements.length >= 2) {
-      console.warn(`locate: multiple elements found, return the first one. (query: ${queryPrompt})`);
-      return elements[0];
-    } else if (elements.length === 1) {
-      return elements[0];
-    } else {
-      return null;
     }
+    if (elements.length >= 2) {
+      console.warn(
+        `locate: multiple elements found, return the first one. (query: ${queryPrompt})`,
+      );
+      return elements[0];
+    }
+    if (elements.length === 1) {
+      return elements[0];
+    }
+    return null;
   }
 
   async extract<T = any>(input: string): Promise<T>;
-  async extract<T extends Record<string, string>>(input: T): Promise<Record<keyof T, any>>;
+  async extract<T extends Record<string, string>>(
+    input: T,
+  ): Promise<Record<keyof T, any>>;
   async extract<T extends object>(input: Record<keyof T, string>): Promise<T>;
 
   async extract<T>(dataDemand: InsightExtractParam): Promise<any> {
@@ -188,12 +213,13 @@ export default class Insight<
     const context = await this.contextRetrieverFn();
 
     const startTime = Date.now();
-    const { parseResult, systemPrompt, elementById } = await AiExtractElementInfo<T>({
-      context,
-      dataQuery,
-      sectionConstraints,
-      callAI: this.aiVendorFn,
-    });
+    const { parseResult, systemPrompt, elementById } =
+      await AiExtractElementInfo<T>({
+        context,
+        dataQuery,
+        sectionConstraints,
+        callAI: this.aiVendorFn,
+      });
 
     const timeCost = Date.now() - startTime;
     const taskInfo: InsightTaskInfo = {
@@ -230,7 +256,9 @@ export default class Insight<
     // expand all ids into original elements
     const sectionsArr = (parseResult.sections || [])
       .map((liteSection) => {
-        const section: UISection = expandLiteSection(liteSection, (id) => elementById(id));
+        const section: UISection = expandLiteSection(liteSection, (id) =>
+          elementById(id),
+        );
         return section;
       })
       .sort(sortByOrder);
@@ -261,7 +289,8 @@ export default class Insight<
         const idList = splitElementResponse(id);
         if (typeof idList === 'string') {
           return elementById(idList);
-        } else if (Array.isArray(idList)) {
+        }
+        if (Array.isArray(idList)) {
           return idsIntoElements(idList, elementById);
         }
         return idList; // i.e. null
@@ -284,13 +313,5 @@ export default class Insight<
     );
 
     return mergedData;
-  }
-
-  setAiVendorFn<T>(aiVendorFn: typeof callAI<T>) {
-    const origin = this.aiVendorFn;
-    this.aiVendorFn<T> = aiVendorFn;
-    return () => {
-      this.aiVendorFn = origin;
-    };
   }
 }

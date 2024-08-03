@@ -1,0 +1,43 @@
+{
+  "$schema": "https://biomejs.dev/schemas/1.8.3/schema.json",
+  "organizeImports": { "enabled": true },
+  "files": {
+    "ignore": [
+      "node_modules/**",
+      "**/midscene_run",
+      ".nx",
+      "**/dist",
+      "**/doc_build",
+      "*-dump.json"
+    ]
+  },
+  "javascript": {
+    "formatter": {
+      "quoteStyle": "single"
+    }
+  },
+  "linter": {
+    "enabled": true,
+    "rules": {
+      "recommended": true,
+      "style": {},
+      "suspicious": { "noExplicitAny": "off" }
+    }
+  },
+  "overrides": [
+    {
+      "include": ["*.ts", "*.d.ts", "*.tsx"],
+      "ignore": [".nx"],
+      "linter": { "rules": {} }
+    }
+  ],
+  "vcs": {
+    "defaultBranch": "main"
+  },
+  "formatter": {
+    "lineWidth": 80,
+    "indentStyle": "space",
+    "indentWidth": 2,
+    "lineEnding": "lf"
+  }
+}
