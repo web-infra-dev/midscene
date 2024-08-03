@@ -24,6 +24,14 @@ jobs:
       with:
         fetch-depth: 0
 
+    - name: Fetch all branches
+      run: |
+        git fetch --all
+        for branch in $(git branch -r | grep -v '\->'); do
+          git branch --track ${branch#origin/} $branch || true
+        done
+        git pull --all
+
     - name: Setup pnpm
       uses: pnpm/action-setup@v2
       with:
@@ -38,8 +46,9 @@ jobs:
     - name: Install Dependencies
       run: pnpm install --ignore-scripts
 
+    - name: Check Dependency Version
+      run: pnpm run check-dependency-version
+
     - name: Lint
       run: pnpm run lint
 
-    - name: Check Dependency Version
-      run: pnpm run check-dependency-version
