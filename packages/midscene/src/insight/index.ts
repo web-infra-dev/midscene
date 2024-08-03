@@ -43,7 +43,6 @@ export interface LocateOpts {
 // export type UnwrapDataShape<T> = T extends EnhancedQuery<infer DataShape> ? DataShape : {};
 
 export type AnyValue<T> = {
-  // biome-ignore lint/suspicious/noExplicitAny: <explanation>
   [K in keyof T]: unknown extends T[K] ? any : T[K];
 };
 
@@ -172,15 +171,12 @@ export default class Insight<
     return null;
   }
 
-  // biome-ignore lint/suspicious/noExplicitAny: <explanation>
   async extract<T = any>(input: string): Promise<T>;
   async extract<T extends Record<string, string>>(
     input: T,
-    // biome-ignore lint/suspicious/noExplicitAny: <explanation>
   ): Promise<Record<keyof T, any>>;
   async extract<T extends object>(input: Record<keyof T, string>): Promise<T>;
 
-  // biome-ignore lint/suspicious/noExplicitAny: <explanation>
   async extract<T>(dataDemand: InsightExtractParam): Promise<any> {
     let dataQuery: Record<string, string> | string = {};
     const sectionQueryMap: Record<string, string> = {};
@@ -268,7 +264,6 @@ export default class Insight<
       .sort(sortByOrder);
 
     // deal sections array into a map
-    // biome-ignore lint/suspicious/noExplicitAny: <explanation>
     const sectionMap = sectionsArr.reduce((acc: any, section) => {
       const { name } = section;
 
