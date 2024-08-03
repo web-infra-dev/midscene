@@ -28,10 +28,10 @@
     "dist/"
   ],
   "dependencies": {
-    "@modern-js/runtime": "2.56.2",
+    "@modern-js/runtime": "^2.56.2",
     "@midscene/visualizer": "workspace:*",
-    "react": "~18.2.0",
-    "react-dom": "~18.2.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
     "antd": "5.19.3"
   },
   "devDependencies": {
@@ -41,11 +41,11 @@
     "@modern-js-app/eslint-config": "2.56.2",
     "typescript": "~5.0.4",
     "@types/jest": "~29.2.4",
-    "@types/node": "~16.11.7",
+    "@types/node": "^18.0.0",
     "@types/react": "18.3.3",
     "@types/react-dom": "18.3.0",
     "lint-staged": "~13.1.0",
-    "prettier": "~2.8.1",
+    "prettier": "^3.3.3",
     "husky": "~8.0.1",
     "rimraf": "~3.0.2"
   }

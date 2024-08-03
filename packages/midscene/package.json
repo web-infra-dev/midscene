@@ -73,7 +73,7 @@
     "sharp": "0.33.3"
   },
   "devDependencies": {
-    "@modern-js/module-tools": "^2.54.2",
+    "@modern-js/module-tools": "^2.56.1",
     "@types/node": "^18.0.0",
     "langsmith": "0.1.36",
     "typescript": "~5.0.4",

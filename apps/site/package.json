@@ -20,6 +20,6 @@
     "@midscene/visualizer": "workspace:*"
   },
   "devDependencies": {
-    "@types/node": "^16"
+    "@types/node": "^18.0.0"
   }
 }
