@@ -45,7 +45,10 @@ jobs:
       run: pnpm run check-dependency-version
 
     - name: Check for changed files
-      run: git diff --name-only main
+      run: |
+        git fetch origin
+        git branch -a
+        git diff --name-only main
 
     - name: Debug Biome lint
       run: |
