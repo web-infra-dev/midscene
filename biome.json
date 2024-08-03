@@ -16,7 +16,7 @@
 			"quoteStyle": "single"
 		}
 	},
-	"linter": { "enabled": true, "rules": { "recommended": false } },
+	"linter": { "enabled": true, "rules": { "recommended": true } },
 	"overrides": [
 		{
 			"include": ["*.ts", "*.d.ts", "*.tsx"],
@@ -26,5 +26,11 @@
 	],
 	"vcs": {
 		"defaultBranch": "main"
+	},
+	"formatter": {
+		"lineWidth": 80,
+		"indentStyle": "space",
+		"indentWidth": 2,
+		"lineEnding": "lf"
 	}
 }

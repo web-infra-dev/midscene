@@ -8,7 +8,7 @@
     "e2e": "nx run-many --target=e2e --projects=@midscene/core,@midscene/visualizer,@midscene/web --verbose",
     "prepare": "pnpm run build:pkg && simple-git-hooks",
     "check-dependency-version": "check-dependency-version-consistency .",
-    "lint": "biome lint ./ --diagnostic-level=warn",
+    "lint": "biome lint ./  --changed --diagnostic-level=warn --fix",
     "format:ci": "pretty-quick --since HEAD~1",
     "format": "pretty-quick --staged",
     "commit": "cz"

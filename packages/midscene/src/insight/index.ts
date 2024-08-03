@@ -1,315 +1,322 @@
-import assert from 'assert';
+import assert from 'node:assert';
 import {
-	AiExtractElementInfo,
-	AiInspectElement,
-	callToGetJSONObject as callAI,
+  AiExtractElementInfo,
+  AiInspectElement,
+  callToGetJSONObject as callAI,
 } from '@/ai-model/index';
-import {
-	AIElementParseResponse,
-	BaseElement,
-	DumpSubscriber,
-	InsightExtractParam,
-	InsightOptions,
-	InsightTaskInfo,
-	PartialInsightDumpFromSDK,
-	UIContext,
-	UISection,
+import type {
+  AIElementParseResponse,
+  BaseElement,
+  DumpSubscriber,
+  InsightExtractParam,
+  InsightOptions,
+  InsightTaskInfo,
+  PartialInsightDumpFromSDK,
+  UIContext,
+  UISection,
 } from '@/types';
 import {
-	extractSectionQuery,
-	// describeUserPage as defaultDescriber,
-	ifElementTypeResponse,
-	splitElementResponse,
+  extractSectionQuery,
+  // describeUserPage as defaultDescriber,
+  ifElementTypeResponse,
+  splitElementResponse,
 } from '../ai-model/prompt/util';
 import {
-	expandLiteSection,
-	idsIntoElements,
-	shallowExpandIds,
-	writeInsightDump,
+  expandLiteSection,
+  idsIntoElements,
+  shallowExpandIds,
+  writeInsightDump,
 } from './utils';
 
 const sortByOrder = (a: UISection, b: UISection) => {
-	if (a.rect.top - b.rect.top !== 0) {
-		return a.rect.top - b.rect.top;
-	} else {
-		return a.rect.left - b.rect.left;
-	}
+  if (a.rect.top - b.rect.top !== 0) {
+    return a.rect.top - b.rect.top;
+  }
+  return a.rect.left - b.rect.left;
 };
 
 export interface LocateOpts {
-	multi?: boolean;
-	callAI?: typeof callAI<AIElementParseResponse>;
+  multi?: boolean;
+  callAI?: typeof callAI<AIElementParseResponse>;
 }
 
 // export type UnwrapDataShape<T> = T extends EnhancedQuery<infer DataShape> ? DataShape : {};
 
 export type AnyValue<T> = {
-	[K in keyof T]: unknown extends T[K] ? any : T[K];
+  // biome-ignore lint/suspicious/noExplicitAny: <explanation>
+  [K in keyof T]: unknown extends T[K] ? any : T[K];
 };
 
 export default class Insight<
-	ElementType extends BaseElement = BaseElement,
-	ContextType extends UIContext<ElementType> = UIContext<ElementType>,
+  ElementType extends BaseElement = BaseElement,
+  ContextType extends UIContext<ElementType> = UIContext<ElementType>,
 > {
-	contextRetrieverFn: () => Promise<ContextType> | ContextType;
+  contextRetrieverFn: () => Promise<ContextType> | ContextType;
 
-	aiVendorFn: typeof callAI = callAI;
+  aiVendorFn: typeof callAI = callAI;
 
-	onceDumpUpdatedFn?: DumpSubscriber;
+  onceDumpUpdatedFn?: DumpSubscriber;
 
-	taskInfo?: Omit<InsightTaskInfo, 'durationMs'>;
+  taskInfo?: Omit<InsightTaskInfo, 'durationMs'>;
 
-	constructor(
-		context: ContextType | (() => Promise<ContextType> | ContextType),
-		opt?: InsightOptions,
-	) {
-		assert(context, 'context is required for Insight');
-		if (typeof context === 'function') {
-			this.contextRetrieverFn = context;
-		} else {
-			this.contextRetrieverFn = () => Promise.resolve(context);
-		}
+  constructor(
+    context: ContextType | (() => Promise<ContextType> | ContextType),
+    opt?: InsightOptions,
+  ) {
+    assert(context, 'context is required for Insight');
+    if (typeof context === 'function') {
+      this.contextRetrieverFn = context;
+    } else {
+      this.contextRetrieverFn = () => Promise.resolve(context);
+    }
 
-		if (typeof opt?.aiVendorFn !== 'undefined') {
-			this.aiVendorFn = opt.aiVendorFn;
-		}
-		if (typeof opt?.taskInfo !== 'undefined') {
-			this.taskInfo = opt.taskInfo;
-		}
-	}
+    if (typeof opt?.aiVendorFn !== 'undefined') {
+      this.aiVendorFn = opt.aiVendorFn;
+    }
+    if (typeof opt?.taskInfo !== 'undefined') {
+      this.taskInfo = opt.taskInfo;
+    }
+  }
 
-	async locate(
-		queryPrompt: string,
-		opt?: { callAI: LocateOpts['callAI'] },
-	): Promise<ElementType | null>;
-	async locate(
-		queryPrompt: string,
-		opt: { multi: true },
-	): Promise<ElementType[]>;
-	async locate(queryPrompt: string, opt?: LocateOpts) {
-		const { callAI = this.aiVendorFn, multi = false } = opt || {};
-		assert(queryPrompt, 'query is required for located');
-		const dumpSubscriber = this.onceDumpUpdatedFn;
-		this.onceDumpUpdatedFn = undefined;
-		const context = await this.contextRetrieverFn();
+  async locate(
+    queryPrompt: string,
+    opt?: { callAI: LocateOpts['callAI'] },
+  ): Promise<ElementType | null>;
+  async locate(
+    queryPrompt: string,
+    opt: { multi: true },
+  ): Promise<ElementType[]>;
+  async locate(queryPrompt: string, opt?: LocateOpts) {
+    const { callAI = this.aiVendorFn, multi = false } = opt || {};
+    assert(queryPrompt, 'query is required for located');
+    const dumpSubscriber = this.onceDumpUpdatedFn;
+    this.onceDumpUpdatedFn = undefined;
+    const context = await this.contextRetrieverFn();
 
-		const startTime = Date.now();
-		const { parseResult, systemPrompt, elementById } = await AiInspectElement({
-			callAI,
-			context,
-			multi: Boolean(multi),
-			findElementDescription: queryPrompt,
-		});
-		// const parseResult = await this.aiVendorFn<AIElementParseResponse>(msgs);
-		const timeCost = Date.now() - startTime;
-		const taskInfo: InsightTaskInfo = {
-			...(this.taskInfo ? this.taskInfo : {}),
-			durationMs: timeCost,
-			rawResponse: JSON.stringify(parseResult),
-			systemPrompt,
-		};
+    const startTime = Date.now();
+    const { parseResult, systemPrompt, elementById } = await AiInspectElement({
+      callAI,
+      context,
+      multi: Boolean(multi),
+      findElementDescription: queryPrompt,
+    });
+    // const parseResult = await this.aiVendorFn<AIElementParseResponse>(msgs);
+    const timeCost = Date.now() - startTime;
+    const taskInfo: InsightTaskInfo = {
+      ...(this.taskInfo ? this.taskInfo : {}),
+      durationMs: timeCost,
+      rawResponse: JSON.stringify(parseResult),
+      systemPrompt,
+    };
 
-		let errorLog: string | undefined;
-		if (parseResult.errors?.length) {
-			errorLog = `locate - AI response error: \n${parseResult.errors.join('\n')}`;
-		}
+    let errorLog: string | undefined;
+    if (parseResult.errors?.length) {
+      errorLog = `locate - AI response error: \n${parseResult.errors.join('\n')}`;
+    }
 
-		const dumpData: PartialInsightDumpFromSDK = {
-			type: 'locate',
-			context,
-			userQuery: {
-				element: queryPrompt,
-			},
-			matchedSection: [],
-			matchedElement: [],
-			data: null,
-			taskInfo,
-			error: errorLog,
-		};
+    const dumpData: PartialInsightDumpFromSDK = {
+      type: 'locate',
+      context,
+      userQuery: {
+        element: queryPrompt,
+      },
+      matchedSection: [],
+      matchedElement: [],
+      data: null,
+      taskInfo,
+      error: errorLog,
+    };
 
-		const logId = writeInsightDump(dumpData, undefined, dumpSubscriber);
+    const logId = writeInsightDump(dumpData, undefined, dumpSubscriber);
 
-		if (errorLog) {
-			console.error(errorLog);
-			throw new Error(errorLog);
-		}
+    if (errorLog) {
+      console.error(errorLog);
+      throw new Error(errorLog);
+    }
 
-		const elements: BaseElement[] = [];
-		parseResult.elements.forEach((item) => {
-			const element = elementById(item.id);
+    const elements: BaseElement[] = [];
+    // biome-ignore lint/complexity/noForEach: <explanation>
+    parseResult.elements.forEach((item) => {
+      const element = elementById(item.id);
 
-			if (!element) {
-				console.warn(
-					`locate: cannot find element id=${item.id}. Maybe an unstable response from AI model`,
-				);
-				return;
-			}
-			elements.push(element);
-		});
+      if (!element) {
+        console.warn(
+          `locate: cannot find element id=${item.id}. Maybe an unstable response from AI model`,
+        );
+        return;
+      }
+      elements.push(element);
+    });
 
-		writeInsightDump(
-			{
-				...dumpData,
-				matchedElement: elements,
-			},
-			logId,
-			dumpSubscriber,
-		);
+    writeInsightDump(
+      {
+        ...dumpData,
+        matchedElement: elements,
+      },
+      logId,
+      dumpSubscriber,
+    );
 
-		if (opt?.multi) {
-			return elements;
-		} else if (elements.length >= 2) {
-			console.warn(
-				`locate: multiple elements found, return the first one. (query: ${queryPrompt})`,
-			);
-			return elements[0];
-		} else if (elements.length === 1) {
-			return elements[0];
-		} else {
-			return null;
-		}
-	}
+    if (opt?.multi) {
+      return elements;
+    }
+    if (elements.length >= 2) {
+      console.warn(
+        `locate: multiple elements found, return the first one. (query: ${queryPrompt})`,
+      );
+      return elements[0];
+    }
+    if (elements.length === 1) {
+      return elements[0];
+    }
+    return null;
+  }
 
-	async extract<T = any>(input: string): Promise<T>;
-	async extract<T extends Record<string, string>>(
-		input: T,
-	): Promise<Record<keyof T, any>>;
-	async extract<T extends object>(input: Record<keyof T, string>): Promise<T>;
+  // biome-ignore lint/suspicious/noExplicitAny: <explanation>
+  async extract<T = any>(input: string): Promise<T>;
+  async extract<T extends Record<string, string>>(
+    input: T,
+    // biome-ignore lint/suspicious/noExplicitAny: <explanation>
+  ): Promise<Record<keyof T, any>>;
+  async extract<T extends object>(input: Record<keyof T, string>): Promise<T>;
 
-	async extract<T>(dataDemand: InsightExtractParam): Promise<any> {
-		let dataQuery: Record<string, string> | string = {};
-		const sectionQueryMap: Record<string, string> = {};
-		assert(
-			typeof dataDemand === 'object' || typeof dataDemand === 'string',
-			`dataDemand should be object or string, but get ${typeof dataDemand}`,
-		);
-		const dumpSubscriber = this.onceDumpUpdatedFn;
-		this.onceDumpUpdatedFn = undefined;
-		if (typeof dataDemand === 'string') {
-			dataQuery = dataDemand;
-		} else {
-			// filter all sectionQuery
-			for (const key in dataDemand) {
-				const query = dataDemand[key];
-				const sectionQuery = extractSectionQuery(query);
-				if (sectionQuery) {
-					sectionQueryMap[key] = sectionQuery;
-				} else {
-					dataQuery[key] = query;
-				}
-			}
-			dataQuery = dataDemand;
-		}
+  // biome-ignore lint/suspicious/noExplicitAny: <explanation>
+  async extract<T>(dataDemand: InsightExtractParam): Promise<any> {
+    let dataQuery: Record<string, string> | string = {};
+    const sectionQueryMap: Record<string, string> = {};
+    assert(
+      typeof dataDemand === 'object' || typeof dataDemand === 'string',
+      `dataDemand should be object or string, but get ${typeof dataDemand}`,
+    );
+    const dumpSubscriber = this.onceDumpUpdatedFn;
+    this.onceDumpUpdatedFn = undefined;
+    if (typeof dataDemand === 'string') {
+      dataQuery = dataDemand;
+    } else {
+      // filter all sectionQuery
+      for (const key in dataDemand) {
+        const query = dataDemand[key];
+        const sectionQuery = extractSectionQuery(query);
+        if (sectionQuery) {
+          sectionQueryMap[key] = sectionQuery;
+        } else {
+          dataQuery[key] = query;
+        }
+      }
+      dataQuery = dataDemand;
+    }
 
-		const sectionConstraints = Object.keys(sectionQueryMap).map((name) => {
-			const sectionQueryPrompt = sectionQueryMap[name];
-			return {
-				name,
-				description: sectionQueryPrompt || '',
-			};
-		});
+    const sectionConstraints = Object.keys(sectionQueryMap).map((name) => {
+      const sectionQueryPrompt = sectionQueryMap[name];
+      return {
+        name,
+        description: sectionQueryPrompt || '',
+      };
+    });
 
-		const context = await this.contextRetrieverFn();
+    const context = await this.contextRetrieverFn();
 
-		const startTime = Date.now();
-		const { parseResult, systemPrompt, elementById } =
-			await AiExtractElementInfo<T>({
-				context,
-				dataQuery,
-				sectionConstraints,
-				callAI: this.aiVendorFn,
-			});
+    const startTime = Date.now();
+    const { parseResult, systemPrompt, elementById } =
+      await AiExtractElementInfo<T>({
+        context,
+        dataQuery,
+        sectionConstraints,
+        callAI: this.aiVendorFn,
+      });
 
-		const timeCost = Date.now() - startTime;
-		const taskInfo: InsightTaskInfo = {
-			...(this.taskInfo ? this.taskInfo : {}),
-			durationMs: timeCost,
-			rawResponse: JSON.stringify(parseResult),
-			systemPrompt,
-		};
+    const timeCost = Date.now() - startTime;
+    const taskInfo: InsightTaskInfo = {
+      ...(this.taskInfo ? this.taskInfo : {}),
+      durationMs: timeCost,
+      rawResponse: JSON.stringify(parseResult),
+      systemPrompt,
+    };
 
-		let errorLog: string | undefined;
-		if (parseResult.errors?.length) {
-			errorLog = `segment - AI response error: \n${parseResult.errors.join('\n')}`;
-		}
+    let errorLog: string | undefined;
+    if (parseResult.errors?.length) {
+      errorLog = `segment - AI response error: \n${parseResult.errors.join('\n')}`;
+    }
 
-		const dumpData: PartialInsightDumpFromSDK = {
-			type: 'extract',
-			context,
-			userQuery: {
-				dataDemand,
-			},
-			matchedSection: [],
-			matchedElement: [],
-			data: null,
-			taskInfo,
-			error: errorLog,
-		};
-		const logId = writeInsightDump(dumpData, undefined, dumpSubscriber);
+    const dumpData: PartialInsightDumpFromSDK = {
+      type: 'extract',
+      context,
+      userQuery: {
+        dataDemand,
+      },
+      matchedSection: [],
+      matchedElement: [],
+      data: null,
+      taskInfo,
+      error: errorLog,
+    };
+    const logId = writeInsightDump(dumpData, undefined, dumpSubscriber);
 
-		if (errorLog) {
-			console.error(errorLog);
-			throw new Error(errorLog);
-		}
+    if (errorLog) {
+      console.error(errorLog);
+      throw new Error(errorLog);
+    }
 
-		// expand all ids into original elements
-		const sectionsArr = (parseResult.sections || [])
-			.map((liteSection) => {
-				const section: UISection = expandLiteSection(liteSection, (id) =>
-					elementById(id),
-				);
-				return section;
-			})
-			.sort(sortByOrder);
+    // expand all ids into original elements
+    const sectionsArr = (parseResult.sections || [])
+      .map((liteSection) => {
+        const section: UISection = expandLiteSection(liteSection, (id) =>
+          elementById(id),
+        );
+        return section;
+      })
+      .sort(sortByOrder);
 
-		// deal sections array into a map
-		const sectionMap = sectionsArr.reduce((acc: any, section) => {
-			const { name } = section;
+    // deal sections array into a map
+    // biome-ignore lint/suspicious/noExplicitAny: <explanation>
+    const sectionMap = sectionsArr.reduce((acc: any, section) => {
+      const { name } = section;
 
-			if (acc[name]) {
-				let i = 1;
-				while (acc[`${name}_${i}`]) {
-					i++;
-				}
-				console.warn(`section name conflict: ${name}, rename to ${name}_${i}`);
-				acc[`${name}_${i}`] = section;
-			} else {
-				acc[name] = section;
-			}
-			return acc;
-		}, {});
+      if (acc[name]) {
+        let i = 1;
+        while (acc[`${name}_${i}`]) {
+          i++;
+        }
+        console.warn(`section name conflict: ${name}, rename to ${name}_${i}`);
+        acc[`${name}_${i}`] = section;
+      } else {
+        acc[name] = section;
+      }
+      return acc;
+    }, {});
 
-		const { data } = parseResult;
-		let mergedData = data;
+    const { data } = parseResult;
+    let mergedData = data;
 
-		// expand elements in object style data
-		if (data && typeof data === 'object' && !Array.isArray(data)) {
-			shallowExpandIds(data, ifElementTypeResponse, (id) => {
-				const idList = splitElementResponse(id);
-				if (typeof idList === 'string') {
-					return elementById(idList);
-				} else if (Array.isArray(idList)) {
-					return idsIntoElements(idList, elementById);
-				}
-				return idList; // i.e. null
-			});
+    // expand elements in object style data
+    if (data && typeof data === 'object' && !Array.isArray(data)) {
+      shallowExpandIds(data, ifElementTypeResponse, (id) => {
+        const idList = splitElementResponse(id);
+        if (typeof idList === 'string') {
+          return elementById(idList);
+        }
+        if (Array.isArray(idList)) {
+          return idsIntoElements(idList, elementById);
+        }
+        return idList; // i.e. null
+      });
 
-			mergedData = {
-				...data,
-				...sectionMap,
-			};
-		}
+      mergedData = {
+        ...data,
+        ...sectionMap,
+      };
+    }
 
-		writeInsightDump(
-			{
-				...dumpData,
-				matchedSection: Object.values(sectionMap),
-				data: mergedData,
-			},
-			logId,
-			dumpSubscriber,
-		);
+    writeInsightDump(
+      {
+        ...dumpData,
+        matchedSection: Object.values(sectionMap),
+        data: mergedData,
+      },
+      logId,
+      dumpSubscriber,
+    );
 
-		return mergedData;
-	}
+    return mergedData;
+  }
 }
