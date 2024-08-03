@@ -35,8 +35,11 @@ jobs:
         node-version: '18'
         cache: 'pnpm'
 
-    - name: Install dependencies
-      run: pnpm install --frozen-lockfile
+    - name: Install Dependencies
+      run: pnpm install --ignore-scripts
 
-    - name: Lint Code Base
-      run: pnpm biome lint --changed --since main
+    - name: Lint
+      run: pnpm run lint
+
+    - name: Check Dependency Version
+      run: pnpm run check-dependency-version
