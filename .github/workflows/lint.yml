@@ -54,7 +54,7 @@ jobs:
     - name: Run Biome lint
       run: |
         if [ -s changed_files.txt ]; then
-          biome lint --files $(cat changed_files.txt) --diagnostic-level=warn --fix
+          npx biome lint --files $(cat changed_files.txt) --diagnostic-level=warn --fix
         else
           echo "No changes detected"
         fi
