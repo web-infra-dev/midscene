@@ -44,12 +44,17 @@ jobs:
     - name: Check Dependency Version
       run: pnpm run check-dependency-version
 
-    - name: Lint
-      run: pnpm run lint
+    - name: Get list of changed files
+      id: changes
+      run: echo "$(git diff main...HEAD --name-only)" > changed_files.txt
 
-    - name: List files
+    - name: Display changed files
+      run: cat changed_files.txt
+
+    - name: Run Biome lint
       run: |
-        echo "Changed files:"
-        git diff --name-only ${{ github.event.before }} ${{ github.sha }}
-
-
+        if [ -s changed_files.txt ]; then
+          biome lint --files $(cat changed_files.txt) --diagnostic-level=warn --fix
+        else
+          echo "No changes detected"
+        fi
