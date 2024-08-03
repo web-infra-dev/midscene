@@ -25,12 +25,7 @@ jobs:
         fetch-depth: 0
 
     - name: Fetch all branches
-      run: |
-        git fetch --all
-        for branch in $(git branch -r | grep -v '\->'); do
-          git branch --track ${branch#origin/} $branch || true
-        done
-        git pull --all
+      run: git fetch --all
 
     - name: Setup pnpm
       uses: pnpm/action-setup@v2
