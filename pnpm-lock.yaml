@@ -9506,6 +9506,11 @@ packages:
     engines: {node: '>=10'}
     hasBin: true
 
+  semver@7.5.2:
+    resolution: {integrity: sha512-SoftuTROv/cRjCze/scjGyiDtcUyxw1rgYQSZY7XTmtR5hX+dm76iDbTH8TkLPHCQmlbQVSSbNZCPM2hb0knnQ==}
+    engines: {node: '>=10'}
+    hasBin: true
+
   semver@7.5.4:
     resolution: {integrity: sha512-1bCSESV6Pv+i21Hvpxp3Dx+pSD8lIPt8uVjRrxAUt/nbswYc+tK6Y2btiULjd4+fnq15PX+nqQDC7Oft7WkwcA==}
     engines: {node: '>=10'}
@@ -12945,7 +12950,7 @@ snapshots:
       globby: 11.1.0
       inquirer: 7.3.3
       log-symbols: 4.1.0
-      semver: 7.3.7
+      semver: 7.5.2
 
   '@loadable/babel-plugin@5.15.3(@babel/core@7.24.9)':
     dependencies:
@@ -21277,7 +21282,7 @@ snapshots:
     dependencies:
       hosted-git-info: 4.1.0
       is-core-module: 2.15.0
-      semver: 7.3.7
+      semver: 7.5.2
       validate-npm-package-license: 3.0.4
 
   normalize-path@3.0.0: {}
@@ -23390,6 +23395,10 @@ snapshots:
   semver@6.3.1: {}
 
   semver@7.3.7:
+    dependencies:
+      lru-cache: 6.0.0
+
+  semver@7.5.2:
     dependencies:
       lru-cache: 6.0.0
 

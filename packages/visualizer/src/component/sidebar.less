@@ -53,9 +53,7 @@
 
   .side-sub-title {
     padding: 0 @side-horizontal-padding;
-    font-weight: bold;
-    // margin-top: @side-vertical-spacing;
-    // color: @strong-text;
+    margin-bottom: 6px;
   }
 
   .side-item {
@@ -66,17 +64,11 @@
     
     &:hover {
       background: @hover-bg;
-      color: @hover-text;
     }
     
     &.selected
     {
       background: @selected-bg;
-      color: @selected-text;
-      
-      .status-text {
-        color: @selected-text;
-      }
     }
 
     .side-item-content {
@@ -103,7 +95,7 @@
     }
     
     .status-icon-success {
-      color: rgb(58, 119, 58);
+      color:#2B8243;
     }
 
     .status-icon-fail {
