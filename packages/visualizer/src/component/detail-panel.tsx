@@ -16,7 +16,7 @@ const ScreenshotItem = (props: { time: string; img: string }) => {
     <div className="screenshot-item">
       <div className="screenshot-item-title">{props.time}</div>
       <div>
-        <img src={props.img} />
+        <img src={props.img} alt="screenshot" />
       </div>
     </div>
   );

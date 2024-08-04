@@ -10,8 +10,7 @@
       "**/doc_build",
       "*-dump.json",
       "script_get_all_texts.tmp.js",
-      "**/playwright-report/**",
-      "packages/visualizer/**"
+      "**/playwright-report/**"
     ]
   },
   "javascript": {
@@ -23,9 +22,15 @@
     "enabled": true,
     "rules": {
       "recommended": true,
-      "style": {},
+      "a11y": { "useKeyWithClickEvents": "off" },
+      "style": { "noParameterAssign": "off", "noNonNullAssertion": "off" },
+      "correctness": { "useExhaustiveDependencies": "off" },
       "complexity": { "noForEach": "off" },
-      "suspicious": { "noExplicitAny": "off" }
+      "suspicious": {
+        "noExplicitAny": "off",
+        "noArrayIndexKey": "off",
+        "noImplicitAnyLet": "off"
+      }
     }
   },
   "overrides": [
