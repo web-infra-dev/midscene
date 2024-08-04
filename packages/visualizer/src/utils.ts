@@ -34,7 +34,9 @@ export function insightDumpToExecutionDump(
         cost: insightDump.taskInfo?.durationMs,
         start: insightDump.logTime - insightDump.taskInfo?.durationMs,
       },
-      executor: () => {},
+      executor: async () => {
+        return undefined
+      },
     };
     return task;
   };
