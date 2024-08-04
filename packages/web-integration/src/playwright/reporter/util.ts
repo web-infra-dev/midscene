@@ -11,6 +11,7 @@ export function generateTestData(testDataList: Array<TestData>) {
       if (res.find((item) => item.testId === testData.testId)) {
         return res;
       }
+      // biome-ignore lint/performance/noAccumulatingSpread: <explanation>
       return [...res, testData];
     },
     [] as Array<TestData>,

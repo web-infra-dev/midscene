@@ -87,6 +87,7 @@ export function idsIntoElements(
   }, []);
 }
 
+// biome-ignore lint/complexity/noBannedTypes: <explanation>
 export function shallowExpandIds<DataScheme extends object = {}>(
   data: DataScheme,
   ifMeet: (id: string) => boolean,

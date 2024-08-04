@@ -97,7 +97,7 @@ describe('executor', () => {
       );
       await executor.flush();
       const tasks = executor.tasks as ExecutionTaskInsightLocate[];
-      const { element } = tasks[0].output!;
+      const { element } = tasks[0].output || {};
       expect(element).toBeTruthy();
 
       expect(tasks.length).toBe(inputTasks.length);

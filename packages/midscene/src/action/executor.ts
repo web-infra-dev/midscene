@@ -101,6 +101,7 @@ export class Executor {
         const { executor, param } = task;
         assert(executor, `executor is required for task type: ${task.type}`);
 
+        // biome-ignore lint/suspicious/noImplicitAnyLet: <explanation>
         let returnValue;
         const executorContext: ExecutorContext = {
           task,

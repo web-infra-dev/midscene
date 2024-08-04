@@ -14,7 +14,7 @@ const groupAndCaseForTest = (testInfo: TestInfo) => {
   const titlePath = [...testInfo.titlePath];
 
   if (titlePath.length > 1) {
-    taskTitle = titlePath.pop()!;
+    taskTitle = titlePath.pop() || 'unnamed';
     taskFile = `${titlePath.join(' > ')}:${testInfo.line}`;
   } else if (titlePath.length === 1) {
     taskTitle = titlePath[0];

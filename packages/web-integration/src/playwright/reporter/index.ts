@@ -35,7 +35,7 @@ class MidSceneReporter implements Reporter {
       return false;
     });
     aiActionTestData.forEach((testData) => {
-      const parseData = JSON.parse(testData.description!);
+      const parseData = JSON.parse(testData?.description || '{}');
       if (
         parseData.testId === test.id &&
         !testDataList.find((item) => item.testId === test.id)

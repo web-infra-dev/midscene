@@ -30,7 +30,7 @@ export function Report() {
       .finally(() => {
         setLoading(false);
       });
-  }, []);
+  }, [dumpId]);
   return (
     <div className="container-box">
       <div>
