@@ -1,6 +1,12 @@
-import { alignCoordByTrim, base64Encoded, imageInfo, imageInfoOfBase64, trimImage } from '@/image';
+import {
+  alignCoordByTrim,
+  base64Encoded,
+  imageInfo,
+  imageInfoOfBase64,
+  trimImage,
+} from '@/image';
 import { getFixture } from 'tests/utils';
-import { describe, it, expect } from 'vitest';
+import { describe, expect, it } from 'vitest';
 
 describe('image utils', () => {
   const image = getFixture('icon.png');
@@ -49,10 +55,14 @@ describe('image utils', () => {
     expect(small).toBeNull();
   });
 
-
   it('align a sub-image', async () => {
     const file = getFixture('long-text.png');
-    const rect = await alignCoordByTrim(file, { left: 140, top: 50, width: 200, height: 80 });
+    const rect = await alignCoordByTrim(file, {
+      left: 140,
+      top: 50,
+      width: 200,
+      height: 80,
+    });
     expect(rect).toMatchSnapshot();
   });
 });

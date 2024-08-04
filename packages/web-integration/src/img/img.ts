@@ -1,7 +1,7 @@
-import assert from 'assert';
+import assert from 'node:assert';
 import { Buffer } from 'node:buffer';
+import type { NodeType } from '@/extractor/constants';
 import sharp from 'sharp';
-import { NodeType } from '@/extractor/constants';
 
 // Define picture path
 type ElementType = {
@@ -16,7 +16,11 @@ type ElementType = {
   };
 };
 
-const createSvgOverlay = (elements: Array<ElementType>, imageWidth: number, imageHeight: number) => {
+const createSvgOverlay = (
+  elements: Array<ElementType>,
+  imageWidth: number,
+  imageHeight: number,
+) => {
   let svgContent = `<svg width="${imageWidth}" height="${imageHeight}" xmlns="http://www.w3.org/2000/svg">`;
 
   // Define color array
@@ -26,7 +30,7 @@ const createSvgOverlay = (elements: Array<ElementType>, imageWidth: number, imag
   ];
 
   // Define clipping path
-  svgContent += `<defs>`;
+  svgContent += '<defs>';
   elements.forEach((element, index) => {
     svgContent += `
       <clipPath id="clip${index}">
@@ -34,7 +38,7 @@ const createSvgOverlay = (elements: Array<ElementType>, imageWidth: number, imag
       </clipPath>
     `;
   });
-  svgContent += `</defs>`;
+  svgContent += '</defs>';
 
   elements.forEach((element, index) => {
     // Calculate the width and height of the text
@@ -74,7 +78,7 @@ const createSvgOverlay = (elements: Array<ElementType>, imageWidth: number, imag
     `;
   });
 
-  svgContent += `</svg>`;
+  svgContent += '</svg>';
   return Buffer.from(svgContent);
 };
 
@@ -93,8 +97,16 @@ export const processImageElementInfo = async (options: {
 
   if (width && height) {
     // Create svg overlay
-    const svgOverlay = createSvgOverlay(options.elementsPositionInfo, width, height);
-    const svgOverlayWithoutText = createSvgOverlay(options.elementsPositionInfoWithoutText, width, height);
+    const svgOverlay = createSvgOverlay(
+      options.elementsPositionInfo,
+      width,
+      height,
+    );
+    const svgOverlayWithoutText = createSvgOverlay(
+      options.elementsPositionInfoWithoutText,
+      width,
+      height,
+    );
 
     // Composite picture
     const compositeElementInfoImgBase64 = await sharp(imageBuffer)
@@ -126,7 +138,6 @@ export const processImageElementInfo = async (options: {
       compositeElementInfoImgBase64,
       compositeElementInfoImgWithoutTextBase64,
     };
-  } else {
-    throw Error('Image processing failed because width or height is undefined');
   }
+  throw Error('Image processing failed because width or height is undefined');
 };

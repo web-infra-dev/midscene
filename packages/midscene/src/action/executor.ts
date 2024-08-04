@@ -1,8 +1,8 @@
-import assert from 'assert';
-import {
+import assert from 'node:assert';
+import type {
+  ExecutionDump,
   ExecutionTask,
   ExecutionTaskApply,
-  ExecutionDump,
   ExecutionTaskInsightLocateOutput,
   ExecutionTaskReturn,
   ExecutorContext,
@@ -23,7 +23,11 @@ export class Executor {
 
   dumpFileName?: string;
 
-  constructor(name: string, description?: string, tasks?: ExecutionTaskApply[]) {
+  constructor(
+    name: string,
+    description?: string,
+    tasks?: ExecutionTaskApply[],
+  ) {
     this.status = tasks && tasks.length > 0 ? 'pending' : 'init';
     this.name = name;
     this.description = description;
@@ -38,7 +42,10 @@ export class Executor {
   }
 
   async append(task: ExecutionTaskApply[] | ExecutionTaskApply): Promise<void> {
-    assert(this.status !== 'error', 'executor is in error state, cannot append task');
+    assert(
+      this.status !== 'error',
+      'executor is in error state, cannot append task',
+    );
     if (Array.isArray(task)) {
       this.tasks.push(...task.map((item) => this.markTaskAsPending(item)));
     } else {
@@ -51,14 +58,18 @@ export class Executor {
 
   async flush(): Promise<void> {
     if (this.status === 'init' && this.tasks.length > 0) {
-      console.warn('illegal state for executor, status is init but tasks are not empty');
+      console.warn(
+        'illegal state for executor, status is init but tasks are not empty',
+      );
     }
 
     assert(this.status !== 'running', 'executor is already running');
     assert(this.status !== 'completed', 'executor is already completed');
     assert(this.status !== 'error', 'executor is in error state');
 
-    const nextPendingIndex = this.tasks.findIndex((task) => task.status === 'pending');
+    const nextPendingIndex = this.tasks.findIndex(
+      (task) => task.status === 'pending',
+    );
     if (nextPendingIndex < 0) {
       // all tasks are completed
       return;
@@ -73,7 +84,10 @@ export class Executor {
 
     while (taskIndex < this.tasks.length) {
       const task = this.tasks[taskIndex];
-      assert(task.status === 'pending', `task status should be pending, but got: ${task.status}`);
+      assert(
+        task.status === 'pending',
+        `task status should be pending, but got: ${task.status}`,
+      );
       task.timing = {
         start: Date.now(),
       };
@@ -99,13 +113,16 @@ export class Executor {
           );
           returnValue = await task.executor(param, executorContext);
           if (task.subType === 'Locate') {
-            previousFindOutput = (returnValue as ExecutionTaskReturn<ExecutionTaskInsightLocateOutput>)
-              ?.output;
+            previousFindOutput = (
+              returnValue as ExecutionTaskReturn<ExecutionTaskInsightLocateOutput>
+            )?.output;
           }
         } else if (task.type === 'Action' || task.type === 'Planning') {
           returnValue = await task.executor(param, executorContext);
         } else {
-          console.warn(`unsupported task type: ${task.type}, will try to execute it directly`);
+          console.warn(
+            `unsupported task type: ${task.type}, will try to execute it directly`,
+          );
           returnValue = await task.executor(param, executorContext);
         }
 

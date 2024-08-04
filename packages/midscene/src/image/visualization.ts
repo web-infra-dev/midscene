@@ -1,8 +1,8 @@
-import { Buffer } from 'buffer';
-import Sharp from 'sharp';
-import { Color, UIContext, UISection } from '..';
-import { imageInfo } from './info';
+import { Buffer } from 'node:buffer';
 import { getTmpFile } from '@/utils';
+import Sharp from 'sharp';
+import type { Color, UIContext, UISection } from '..';
+import { imageInfo } from './info';
 
 const colors: Color[] = [
   {
@@ -97,11 +97,11 @@ export async function composeSectionDiagram(
     sectionNameColorMap[section.name] = color;
     return `
             <rect x="${left * ratio}" y="${top * ratio}" width="${width * ratio}" height="${
-      height * ratio
-    }" fill="${color.hex}" />
+              height * ratio
+            }" fill="${color.hex}" />
             <text x="${left * ratio}" y="${
-      top * ratio + textFontSize
-    }" font-family="Arial" font-size="${textFontSize}" fill="black">
+              top * ratio + textFontSize
+            }" font-family="Arial" font-size="${textFontSize}" fill="black">
                 ${section.name}
             </text>
         `;

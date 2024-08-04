@@ -1,12 +1,12 @@
-import { BaseElement, Rect } from '@midscene/core';
-import { NodeType } from './extractor/constants';
-import { WebPage } from './common/page';
+import type { BaseElement, Rect } from '@midscene/core';
+import type { WebPage } from './common/page';
+import type { NodeType } from './extractor/constants';
 
 export interface WebElementInfoType extends BaseElement {
   id: string;
   locator: string;
   attributes: {
-    ['nodeType']: NodeType;
+    nodeType: NodeType;
     [key: string]: string;
   };
 }
@@ -25,7 +25,7 @@ export class WebElementInfo implements BaseElement {
   id: string;
 
   attributes: {
-    ['nodeType']: NodeType;
+    nodeType: NodeType;
     [key: string]: string;
   };
 
@@ -43,13 +43,16 @@ export class WebElementInfo implements BaseElement {
     locator: string;
     id: string;
     attributes: {
-      ['nodeType']: NodeType;
+      nodeType: NodeType;
       [key: string]: string;
     };
   }) {
     this.content = content;
     this.rect = rect;
-    this.center = [Math.floor(rect.left + rect.width / 2), Math.floor(rect.top + rect.height / 2)];
+    this.center = [
+      Math.floor(rect.left + rect.width / 2),
+      Math.floor(rect.top + rect.height / 2),
+    ];
     this.page = page;
     this.locator = locator;
     this.id = id;

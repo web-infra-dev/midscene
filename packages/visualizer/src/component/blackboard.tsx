@@ -1,10 +1,10 @@
 'use client';
-import * as PIXI from 'pixi.js';
-import { ReactElement, useEffect, useMemo, useRef, useState } from 'react';
 import { Checkbox } from 'antd';
 import type { CheckboxProps } from 'antd';
-import { Rect } from '../../../midscene/dist/types';
-import { highlightColorForType, colorForName } from './color';
+import * as PIXI from 'pixi.js';
+import { type ReactElement, useEffect, useMemo, useRef, useState } from 'react';
+import type { Rect } from '../../../midscene/dist/types';
+import { colorForName, highlightColorForType } from './color';
 import './blackboard.less';
 import { useBlackboardPreference, useInsightDump } from './store';
 
@@ -17,9 +17,15 @@ const noop = () => {
 
 const BlackBoard = (): JSX.Element => {
   const dump = useInsightDump((store) => store.data);
-  const setHighlightSectionNames = useInsightDump((store) => store.setHighlightSectionNames);
-  const setHighlightElements = useInsightDump((store) => store.setHighlightElements);
-  const highlightSectionNames = useInsightDump((store) => store.highlightSectionNames);
+  const setHighlightSectionNames = useInsightDump(
+    (store) => store.setHighlightSectionNames,
+  );
+  const setHighlightElements = useInsightDump(
+    (store) => store.setHighlightElements,
+  );
+  const highlightSectionNames = useInsightDump(
+    (store) => store.highlightSectionNames,
+  );
   const highlightElements = useInsightDump((store) => store.highlightElements);
 
   const { context, matchedSection: sections, matchedElement: elements } = dump!;
@@ -37,7 +43,8 @@ const BlackBoard = (): JSX.Element => {
 
   // key overlays
   const pixiBgRef = useRef<PIXI.Sprite>();
-  const { bgVisible, setBgVisible, textsVisible, setTextsVisible } = useBlackboardPreference();
+  const { bgVisible, setBgVisible, textsVisible, setTextsVisible } =
+    useBlackboardPreference();
 
   useEffect(() => {
     Promise.resolve(
@@ -45,7 +52,11 @@ const BlackBoard = (): JSX.Element => {
         if (!domRef.current || !screenWidth) {
           return;
         }
-        await app.init({ width: screenWidth, height: screenHeight, background: 0xffffff });
+        await app.init({
+          width: screenWidth,
+          height: screenHeight,
+          background: 0xffffff,
+        });
         const canvasEl = domRef.current;
         domRef.current.appendChild(app.canvas); // Ensure app.view is appended
         const { clientWidth } = domRef.current.parentElement!;
@@ -141,7 +152,9 @@ const BlackBoard = (): JSX.Element => {
       const [graphics, texts] = rectMarkForItem(
         section.rect,
         section.name,
-        ifHighlight ? highlightColorForType('section') : colorForName('section', section.name),
+        ifHighlight
+          ? highlightColorForType('section')
+          : colorForName('section', section.name),
         ifHighlight ? 1 : itemFillAlpha,
         () => {
           setHighlightSectionNames([section.name]);
@@ -161,7 +174,14 @@ const BlackBoard = (): JSX.Element => {
       if (elements.includes(element)) {
         return;
       }
-      const [graphics, texts] = rectMarkForItem(rect, '', highlightColorForType('element'), 1, noop, noop);
+      const [graphics, texts] = rectMarkForItem(
+        rect,
+        '',
+        highlightColorForType('element'),
+        1,
+        noop,
+        noop,
+      );
       itemMarkContainer.addChild(graphics);
       textContainer.addChild(texts);
     });
@@ -173,7 +193,9 @@ const BlackBoard = (): JSX.Element => {
       const [graphics, texts] = rectMarkForItem(
         rect,
         content,
-        ifHighlight ? highlightColorForType('element') : colorForName('element', content),
+        ifHighlight
+          ? highlightColorForType('element')
+          : colorForName('element', content),
         ifHighlight ? 1 : itemFillAlpha,
         () => {
           setHighlightElements([element]);
@@ -190,7 +212,9 @@ const BlackBoard = (): JSX.Element => {
       const { content } = section;
       const ifHighlight = highlightSectionNames.includes(section.name);
 
-      const sectionTheme = ifHighlight ? '#FFFFFF' : colorForName('section', section.name);
+      const sectionTheme = ifHighlight
+        ? '#FFFFFF'
+        : colorForName('section', section.name);
 
       content.forEach((text) => {
         const { content, rect } = text;
@@ -245,13 +269,17 @@ const BlackBoard = (): JSX.Element => {
   if (highlightElementRects.length === 1) {
     bottomTipA = (
       <div className="bottom-tip">
-        <div className="bottom-tip-item">Element: {JSON.stringify(highlightElementRects[0])}</div>
+        <div className="bottom-tip-item">
+          Element: {JSON.stringify(highlightElementRects[0])}
+        </div>
       </div>
     );
   } else if (highlightElementRects.length > 1) {
     bottomTipA = (
       <div className="bottom-tip">
-        <div className="bottom-tip-item">Element: {JSON.stringify(highlightElementRects)}</div>
+        <div className="bottom-tip-item">
+          Element: {JSON.stringify(highlightElementRects)}
+        </div>
       </div>
     );
   }
@@ -260,20 +288,28 @@ const BlackBoard = (): JSX.Element => {
   if (highlightSectionRects.length === 1) {
     bottomTipB = (
       <div className="bottom-tip">
-        <div className="bottom-tip-item">Section: {JSON.stringify(highlightSectionRects[0])}</div>
+        <div className="bottom-tip-item">
+          Section: {JSON.stringify(highlightSectionRects[0])}
+        </div>
       </div>
     );
   } else if (highlightSectionRects.length > 1) {
     bottomTipB = (
       <div className="bottom-tip">
-        <div className="bottom-tip-item">Sections: {JSON.stringify(highlightSectionRects)}</div>
+        <div className="bottom-tip-item">
+          Sections: {JSON.stringify(highlightSectionRects)}
+        </div>
       </div>
     );
   }
 
   return (
     <div className="blackboard">
-      <div className="blackboard-main-content" style={{ width: '100%' }} ref={domRef} />
+      <div
+        className="blackboard-main-content"
+        style={{ width: '100%' }}
+        ref={domRef}
+      />
       <div className="blackboard-filter">
         <div className="overlay-control">
           <Checkbox checked={bgVisible} onChange={onSetBg}>

@@ -1,8 +1,8 @@
-import { ExecutionDump, GroupedActionDump } from '@midscene/core';
+import type { WebPage } from '@/common/page';
+import type { ExecutionDump, GroupedActionDump } from '@midscene/core';
 import { groupedActionDumpFileExt, writeDumpFile } from '@midscene/core/utils';
 import { PageTaskExecutor } from '../common/tasks';
-import { AiTaskCache } from './task-cache';
-import { WebPage } from '@/common/page';
+import type { AiTaskCache } from './task-cache';
 
 export class PageAgent {
   page: WebPage;
@@ -15,7 +15,10 @@ export class PageAgent {
 
   actionAgent: PageTaskExecutor;
 
-  constructor(page: WebPage, opts?: { testId?: string; taskFile?: string; cache?: AiTaskCache }) {
+  constructor(
+    page: WebPage,
+    opts?: { testId?: string; taskFile?: string; cache?: AiTaskCache },
+  ) {
     this.page = page;
     this.dumps = [
       {
@@ -85,9 +88,12 @@ export class PageAgent {
   async ai(taskPrompt: string, type = 'action') {
     if (type === 'action') {
       return this.aiAction(taskPrompt);
-    } else if (type === 'query') {
+    }
+    if (type === 'query') {
       return this.aiQuery(taskPrompt);
     }
-    throw new Error(`Unknown or Unsupported task type: ${type}, only support 'action' or 'query'`);
+    throw new Error(
+      `Unknown or Unsupported task type: ${type}, only support 'action' or 'query'`,
+    );
   }
 }

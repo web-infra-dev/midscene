@@ -1,3 +1,5 @@
+import { NodeType, TEXT_SIZE_THRESHOLD } from './constants';
+import { isButtonElement, isImgElement, isInputElement } from './dom-util';
 import {
   generateHash,
   getNodeAttributes,
@@ -7,8 +9,6 @@ import {
   validTextNodeContent,
   visibleRect,
 } from './util';
-import { NodeType, TEXT_SIZE_THRESHOLD } from './constants';
-import { isButtonElement, isImgElement, isInputElement } from './dom-util';
 
 interface NodeDescriptor {
   node: Node;
@@ -19,7 +19,7 @@ export interface ElementInfo {
   id: string;
   indexId: string;
   nodeHashId: string;
-  locator: string | void;
+  locator: string | undefined;
   attributes: {
     nodeType: NodeType;
     [key: string]: string;
@@ -40,7 +40,9 @@ function generateId(numberId: number) {
   return `${numberId}`;
 }
 
-export function extractTextWithPositionDFS(initNode: Node = container): ElementInfo[] {
+export function extractTextWithPositionDFS(
+  initNode: Node = container,
+): ElementInfo[] {
   const elementInfoArray: ElementInfo[] = [];
   const nodeMapTree: NodeDescriptor = { node: initNode, children: [] };
   let nodeIndex = 1;
@@ -86,7 +88,10 @@ export function extractTextWithPositionDFS(initNode: Node = container): ElementI
         },
         content: attributes.placeholder || '',
         rect,
-        center: [Math.round(rect.left + rect.width / 2), Math.round(rect.top + rect.height / 2)],
+        center: [
+          Math.round(rect.left + rect.width / 2),
+          Math.round(rect.top + rect.height / 2),
+        ],
       });
       return;
     }
@@ -108,7 +113,10 @@ export function extractTextWithPositionDFS(initNode: Node = container): ElementI
         },
         content,
         rect,
-        center: [Math.round(rect.left + rect.width / 2), Math.round(rect.top + rect.height / 2)],
+        center: [
+          Math.round(rect.left + rect.width / 2),
+          Math.round(rect.top + rect.height / 2),
+        ],
       });
       return;
     }
@@ -128,7 +136,10 @@ export function extractTextWithPositionDFS(initNode: Node = container): ElementI
         },
         content: '',
         rect,
-        center: [Math.round(rect.left + rect.width / 2), Math.round(rect.top + rect.height / 2)],
+        center: [
+          Math.round(rect.left + rect.width / 2),
+          Math.round(rect.top + rect.height / 2),
+        ],
       });
       return;
     }
@@ -155,7 +166,10 @@ export function extractTextWithPositionDFS(initNode: Node = container): ElementI
 
     const text = validTextNodeContent(node);
     if (text) {
-      if (rect.width < TEXT_SIZE_THRESHOLD || rect.height < TEXT_SIZE_THRESHOLD) {
+      if (
+        rect.width < TEXT_SIZE_THRESHOLD ||
+        rect.height < TEXT_SIZE_THRESHOLD
+      ) {
         logger('Element is too small', text);
         return;
       }
@@ -171,7 +185,10 @@ export function extractTextWithPositionDFS(initNode: Node = container): ElementI
           nodeType: NodeType.TEXT,
         },
         locator: selector,
-        center: [Math.round(rect.left + rect.width / 2), Math.round(rect.top + rect.height / 2)],
+        center: [
+          Math.round(rect.left + rect.width / 2),
+          Math.round(rect.top + rect.height / 2),
+        ],
         // attributes,
         content: text,
         rect,

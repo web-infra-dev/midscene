@@ -1,9 +1,10 @@
-import { getElementInfosFromPage } from '../common/utils';
 import { NodeType } from '@/extractor/constants';
-import { ElementInfo } from '@/extractor/extractor';
+import type { ElementInfo } from '@/extractor/extractor';
+import { getElementInfosFromPage } from '../common/utils';
 
 export async function getElementInfos(page: any) {
-  const captureElementSnapshot: Array<ElementInfo> = await getElementInfosFromPage(page);
+  const captureElementSnapshot: Array<ElementInfo> =
+    await getElementInfosFromPage(page);
   const elementsPositionInfo = captureElementSnapshot.map((elementInfo) => {
     return {
       label: elementInfo.indexId.toString(),
@@ -14,12 +15,14 @@ export async function getElementInfos(page: any) {
       attributes: elementInfo.attributes,
     };
   });
-  const elementsPositionInfoWithoutText = elementsPositionInfo.filter((elementInfo) => {
-    if (elementInfo.attributes.nodeType === NodeType.TEXT) {
-      return false;
-    }
-    return true;
-  });
+  const elementsPositionInfoWithoutText = elementsPositionInfo.filter(
+    (elementInfo) => {
+      if (elementInfo.attributes.nodeType === NodeType.TEXT) {
+        return false;
+      }
+      return true;
+    },
+  );
   return {
     elementsPositionInfo,
     captureElementSnapshot,

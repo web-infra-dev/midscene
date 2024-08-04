@@ -1,7 +1,7 @@
 import { test } from './fixture';
 
 test.beforeEach(async ({ page }) => {
-  page.setViewportSize({ width: 400, height: 905});
+  page.setViewportSize({ width: 400, height: 905 });
   await page.goto('https://heyteavivocity.meuu.online/home');
   await page.waitForLoadState('networkidle');
 });

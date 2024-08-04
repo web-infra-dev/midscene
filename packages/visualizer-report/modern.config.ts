@@ -1,4 +1,4 @@
-import path from 'path';
+import path from 'node:path';
 import { appTools, defineConfig } from '@modern-js/app-tools';
 
 // https://modernjs.dev/en/configure/app/usage

@@ -14,7 +14,7 @@
 // const localPage = `file://${getFixture('simple.html')}`;
 // describe('automation - planning', () => {
 //   let browser: Browser;
-//   beforeEach(() => 
+//   beforeEach(() =>
 //      async () => {
 //       await browser?.close();
 //     },

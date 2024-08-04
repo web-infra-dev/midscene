@@ -1,16 +1,16 @@
 {
-	"editor.codeActionsOnSave": {
-		"source.organizeImports.biome": "explicit"
-	},
-	"editor.defaultFormatter": "biomejs.biome",
-	"editor.formatOnSave": true,
-	"eslint.validate": [
-		"javascript",
-		"javascriptreact",
-		"typescript",
-		"typescriptreact",
-		"vue",
-		"html"
-	],
-	"editor.formatOnSaveMode": "modifications"
+  "editor.codeActionsOnSave": {
+    "source.organizeImports.biome": "explicit"
+  },
+  "editor.defaultFormatter": "biomejs.biome",
+  "editor.formatOnSave": true,
+  "eslint.validate": [
+    "javascript",
+    "javascriptreact",
+    "typescript",
+    "typescriptreact",
+    "vue",
+    "html"
+  ],
+  "editor.formatOnSaveMode": "modifications"
 }

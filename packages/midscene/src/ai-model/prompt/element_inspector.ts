@@ -1,4 +1,7 @@
-export function systemPromptToFindElement(description: string, multi?: boolean) {
+export function systemPromptToFindElement(
+  description: string,
+  multi?: boolean,
+) {
   return `
 ## Role:
 You are an expert in software page image (2D) and page element text analysis.

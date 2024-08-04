@@ -1,6 +1,9 @@
+import {
+  retrieveSection as promptOneSection,
+  retrieveElement,
+} from '@/ai-model/prompt/util';
 /** Everything you need to parse a query */
 import getAllContentScript from './fixture/script_get_all_texts';
-import { retrieveElement, retrieveSection as promptOneSection } from '@/ai-model/prompt/util';
 
 export function pageScriptToGetTexts(selector?: string) {
   let prependScript = '';
@@ -9,7 +12,9 @@ export function pageScriptToGetTexts(selector?: string) {
       const id = selector.slice(1);
       prependScript = `window.get_all_text_container = document.getElementById('${id}');`;
     } else {
-      throw new Error(`selector not supported yet: ${selector}. Only id selector (#id-name) is supported.`);
+      throw new Error(
+        `selector not supported yet: ${selector}. Only id selector (#id-name) is supported.`,
+      );
     }
   }
 

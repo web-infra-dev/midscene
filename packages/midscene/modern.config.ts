@@ -1,4 +1,4 @@
-import { moduleTools, defineConfig } from '@modern-js/module-tools';
+import { defineConfig, moduleTools } from '@modern-js/module-tools';
 
 export default defineConfig({
   plugins: [moduleTools()],
@@ -13,6 +13,6 @@ export default defineConfig({
     },
     // input: ['src/utils.ts', 'src/index.ts', 'src/image/index.ts'],
     externals: ['node:buffer'],
-    target: 'es2017'
+    target: 'es2017',
   },
 });

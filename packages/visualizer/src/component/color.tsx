@@ -16,19 +16,20 @@ function djb2Hash(str?: string): number {
   return hash >>> 0; // Convert to unsigned 32
 }
 
-export function colorForName(type: 'section' | 'element', name: string): string {
+export function colorForName(
+  type: 'section' | 'element',
+  name: string,
+): string {
   const hashNumber = djb2Hash(name);
   if (type === 'section') {
     return sectionColor[hashNumber % sectionColor.length];
-  } else {
-    return elementColor[hashNumber % elementColor.length];
   }
+  return elementColor[hashNumber % elementColor.length];
 }
 
 export function highlightColorForType(type: 'section' | 'element'): string {
   if (type === 'section') {
     return highlightColorForSection;
-  } else {
-    return highlightColorForElement;
   }
+  return highlightColorForElement;
 }

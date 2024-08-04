@@ -1,21 +1,26 @@
+import assert from 'node:assert';
+import { randomUUID } from 'node:crypto';
 /* eslint-disable @typescript-eslint/ban-types */
-import { existsSync } from 'fs';
-import { join } from 'path';
-import { randomUUID } from 'crypto';
-import assert from 'assert';
-import {
-  UISection,
-  UIContext,
-  Rect,
+import { existsSync } from 'node:fs';
+import { join } from 'node:path';
+import type {
+  BaseElement,
+  DumpMeta,
+  DumpSubscriber,
+  ElementById,
   InsightDump,
   LiteUISection,
   PartialInsightDumpFromSDK,
-  BaseElement,
-  ElementById,
-  DumpSubscriber,
-  DumpMeta,
+  Rect,
+  UIContext,
+  UISection,
 } from '@/types';
-import { getDumpDir, getPkgInfo, insightDumpFileExt, writeDumpFile } from '@/utils';
+import {
+  getDumpDir,
+  getPkgInfo,
+  insightDumpFileExt,
+  writeDumpFile,
+} from '@/utils';
 
 let logFileName = '';
 const logContent: string[] = [];
@@ -67,7 +72,10 @@ export function writeInsightDump(
   return id;
 }
 
-export function idsIntoElements(ids: string[], elementById: ElementById): BaseElement[] {
+export function idsIntoElements(
+  ids: string[],
+  elementById: ElementById,
+): BaseElement[] {
   return ids.reduce<BaseElement[]>((acc, id) => {
     const element = elementById(id);
     if (element) {
@@ -101,7 +109,10 @@ export function shallowExpandIds<DataScheme extends object = {}>(
   return data;
 }
 
-export function expandLiteSection(liteSection: LiteUISection, elementById: ElementById): UISection {
+export function expandLiteSection(
+  liteSection: LiteUISection,
+  elementById: ElementById,
+): UISection {
   const { textIds, ...remainingFields } = liteSection;
 
   const texts: BaseElement[] = idsIntoElements(textIds, elementById);
@@ -111,7 +122,8 @@ export function expandLiteSection(liteSection: LiteUISection, elementById: Eleme
   let rightMost = -1;
   let bottomMost = -1;
   texts.forEach((text) => {
-    leftMost = leftMost === -1 ? text.rect.left : Math.min(leftMost, text.rect.left);
+    leftMost =
+      leftMost === -1 ? text.rect.left : Math.min(leftMost, text.rect.left);
     topMost = topMost === -1 ? text.rect.top : Math.min(topMost, text.rect.top);
     rightMost = Math.max(rightMost, text.rect.left + text.rect.width);
     bottomMost = Math.max(bottomMost, text.rect.top + text.rect.height);

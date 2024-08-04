@@ -1,32 +1,32 @@
-import assert from 'assert';
+import assert from 'node:assert';
+import type { WebPage } from '@/common/page';
 import Insight, {
-  AIElementParseResponse,
-  DumpSubscriber,
-  ExecutionDump,
-  ExecutionRecorderItem,
-  ExecutionTaskActionApply,
-  ExecutionTaskApply,
-  ExecutionTaskInsightLocateApply,
-  ExecutionTaskInsightQueryApply,
-  ExecutionTaskPlanningApply,
+  type AIElementParseResponse,
+  type DumpSubscriber,
+  type ExecutionDump,
+  type ExecutionRecorderItem,
+  type ExecutionTaskActionApply,
+  type ExecutionTaskApply,
+  type ExecutionTaskInsightLocateApply,
+  type ExecutionTaskInsightQueryApply,
+  type ExecutionTaskPlanningApply,
   Executor,
-  InsightDump,
-  InsightExtractParam,
+  type InsightDump,
+  type InsightExtractParam,
   plan,
-  PlanningAction,
-  PlanningActionParamHover,
-  PlanningActionParamInputOrKeyPress,
-  PlanningActionParamScroll,
-  PlanningActionParamTap,
+  type PlanningAction,
+  type PlanningActionParamHover,
+  type PlanningActionParamInputOrKeyPress,
+  type PlanningActionParamScroll,
+  type PlanningActionParamTap,
 } from '@midscene/core';
-import { commonScreenshotParam, getTmpFile, sleep } from '@midscene/core/utils';
 import { base64Encoded } from '@midscene/core/image';
+import { commonScreenshotParam, getTmpFile, sleep } from '@midscene/core/utils';
+import type { ChatCompletionMessageParam } from 'openai/resources';
 import type { KeyInput, Page as PuppeteerPage } from 'puppeteer';
-import { ChatCompletionMessageParam } from 'openai/resources';
-import { WebElementInfo } from '../web-element';
-import { parseContextFromWebPage, WebUIContext } from './utils';
-import { AiTaskCache, TaskCache } from './task-cache';
-import { WebPage } from '@/common/page';
+import type { WebElementInfo } from '../web-element';
+import { type AiTaskCache, TaskCache } from './task-cache';
+import { type WebUIContext, parseContextFromWebPage } from './utils';
 
 export class PageTaskExecutor {
   page: WebPage;
@@ -60,7 +60,9 @@ export class PageTaskExecutor {
     return item;
   }
 
-  private wrapExecutorWithScreenshot(taskApply: ExecutionTaskApply): ExecutionTaskApply {
+  private wrapExecutorWithScreenshot(
+    taskApply: ExecutionTaskApply,
+  ): ExecutionTaskApply {
     const taskWithScreenshot: ExecutionTaskApply = {
       ...taskApply,
       executor: async (param, context, ...args) => {
@@ -97,7 +99,11 @@ export class PageTaskExecutor {
               };
               this.insight.onceDumpUpdatedFn = dumpCollector;
               const pageContext = await this.insight.contextRetrieverFn();
-              const locateCache = this.taskCache.readCache(pageContext, 'locate', param.prompt);
+              const locateCache = this.taskCache.readCache(
+                pageContext,
+                'locate',
+                param.prompt,
+              );
               let locateResult: AIElementParseResponse | undefined;
               const callAI = this.insight.aiVendorFn<AIElementParseResponse>;
               const element = await this.insight.locate(param.prompt, {
@@ -137,85 +143,109 @@ export class PageTaskExecutor {
             },
           };
           return taskFind;
-        } else if (plan.type === 'Input') {
-          const taskActionInput: ExecutionTaskActionApply<PlanningActionParamInputOrKeyPress> = {
-            type: 'Action',
-            subType: 'Input',
-            param: plan.param,
-            executor: async (taskParam, { element }) => {
-              if (element) {
-                await this.page.mouse.click(element.center[0], element.center[1]);
-              }
-              assert(taskParam.value, 'No value to input');
-              await this.page.keyboard.type(taskParam.value);
-            },
-          };
-          return taskActionInput;
-        } else if (plan.type === 'KeyboardPress') {
-          const taskActionKeyboardPress: ExecutionTaskActionApply<PlanningActionParamInputOrKeyPress> = {
-            type: 'Action',
-            subType: 'KeyboardPress',
-            param: plan.param,
-            executor: async (taskParam) => {
-              assert(taskParam.value, 'No key to press');
-              await this.page.keyboard.press(taskParam.value as KeyInput);
-            },
-          };
-          return taskActionKeyboardPress;
-        } else if (plan.type === 'Tap') {
-          const taskActionTap: ExecutionTaskActionApply<PlanningActionParamTap> = {
-            type: 'Action',
-            subType: 'Tap',
-            executor: async (param, { element }) => {
-              assert(element, 'Element not found, cannot tap');
-              await this.page.mouse.click(element.center[0], element.center[1]);
-            },
-          };
-          return taskActionTap;
-        } else if (plan.type === 'Hover') {
-          const taskActionHover: ExecutionTaskActionApply<PlanningActionParamHover> = {
-            type: 'Action',
-            subType: 'Hover',
-            executor: async (param, { element }) => {
-              // console.log('executor args', param, element);
-              assert(element, 'Element not found, cannot hover');
-              await this.page.mouse.move(element.center[0], element.center[1]);
-            },
-          };
-          return taskActionHover;
-        } else if (plan.type === 'Scroll') {
-          const taskActionScroll: ExecutionTaskActionApply<PlanningActionParamScroll> = {
-            type: 'Action',
-            subType: 'Scroll',
-            param: plan.param,
-            executor: async (taskParam) => {
-              const scrollToEventName = taskParam.scrollType;
-              const innerHeight = await (this.page as PuppeteerPage).evaluate(() => window.innerHeight);
-
-              switch (scrollToEventName) {
-                case 'ScrollUntilTop':
-                  await this.page.mouse.wheel(0, -9999999);
-                  break;
-                case 'ScrollUntilBottom':
-                  await this.page.mouse.wheel(0, 9999999);
-                  break;
-                case 'ScrollUp':
-                  await this.page.mouse.wheel(0, -innerHeight);
-                  break;
-                case 'ScrollDown':
-                  await this.page.mouse.wheel(0, innerHeight);
-                  break;
-                default:
-                  console.error('Unknown scroll event type:', scrollToEventName);
-              }
-            },
-          };
-          return taskActionScroll;
-        } else if (plan.type === 'Error') {
-          throw new Error(`Got a task plan with type Error: ${plan.thought}`);
-        } else {
-          throw new Error(`Unknown or Unsupported task type: ${plan.type}`);
         }
+        if (plan.type === 'Input') {
+          const taskActionInput: ExecutionTaskActionApply<PlanningActionParamInputOrKeyPress> =
+            {
+              type: 'Action',
+              subType: 'Input',
+              param: plan.param,
+              executor: async (taskParam, { element }) => {
+                if (element) {
+                  await this.page.mouse.click(
+                    element.center[0],
+                    element.center[1],
+                  );
+                }
+                assert(taskParam.value, 'No value to input');
+                await this.page.keyboard.type(taskParam.value);
+              },
+            };
+          return taskActionInput;
+        }
+        if (plan.type === 'KeyboardPress') {
+          const taskActionKeyboardPress: ExecutionTaskActionApply<PlanningActionParamInputOrKeyPress> =
+            {
+              type: 'Action',
+              subType: 'KeyboardPress',
+              param: plan.param,
+              executor: async (taskParam) => {
+                assert(taskParam.value, 'No key to press');
+                await this.page.keyboard.press(taskParam.value as KeyInput);
+              },
+            };
+          return taskActionKeyboardPress;
+        }
+        if (plan.type === 'Tap') {
+          const taskActionTap: ExecutionTaskActionApply<PlanningActionParamTap> =
+            {
+              type: 'Action',
+              subType: 'Tap',
+              executor: async (param, { element }) => {
+                assert(element, 'Element not found, cannot tap');
+                await this.page.mouse.click(
+                  element.center[0],
+                  element.center[1],
+                );
+              },
+            };
+          return taskActionTap;
+        }
+        if (plan.type === 'Hover') {
+          const taskActionHover: ExecutionTaskActionApply<PlanningActionParamHover> =
+            {
+              type: 'Action',
+              subType: 'Hover',
+              executor: async (param, { element }) => {
+                // console.log('executor args', param, element);
+                assert(element, 'Element not found, cannot hover');
+                await this.page.mouse.move(
+                  element.center[0],
+                  element.center[1],
+                );
+              },
+            };
+          return taskActionHover;
+        }
+        if (plan.type === 'Scroll') {
+          const taskActionScroll: ExecutionTaskActionApply<PlanningActionParamScroll> =
+            {
+              type: 'Action',
+              subType: 'Scroll',
+              param: plan.param,
+              executor: async (taskParam) => {
+                const scrollToEventName = taskParam.scrollType;
+                const innerHeight = await (this.page as PuppeteerPage).evaluate(
+                  () => window.innerHeight,
+                );
+
+                switch (scrollToEventName) {
+                  case 'ScrollUntilTop':
+                    await this.page.mouse.wheel(0, -9999999);
+                    break;
+                  case 'ScrollUntilBottom':
+                    await this.page.mouse.wheel(0, 9999999);
+                    break;
+                  case 'ScrollUp':
+                    await this.page.mouse.wheel(0, -innerHeight);
+                    break;
+                  case 'ScrollDown':
+                    await this.page.mouse.wheel(0, innerHeight);
+                    break;
+                  default:
+                    console.error(
+                      'Unknown scroll event type:',
+                      scrollToEventName,
+                    );
+                }
+              },
+            };
+          return taskActionScroll;
+        }
+        if (plan.type === 'Error') {
+          throw new Error(`Got a task plan with type Error: ${plan.thought}`);
+        }
+        throw new Error(`Unknown or Unsupported task type: ${plan.type}`);
       })
       .map((task: ExecutionTaskApply) => {
         return this.wrapExecutorWithScreenshot(task);
@@ -224,7 +254,9 @@ export class PageTaskExecutor {
     return tasks;
   }
 
-  async action(userPrompt: string /* , actionInfo?: { actionType?: EventActions[number]['action'] } */) {
+  async action(
+    userPrompt: string /* , actionInfo?: { actionType?: EventActions[number]['action'] } */,
+  ) {
     const taskExecutor = new Executor(userPrompt);
     taskExecutor.description = userPrompt;
 
@@ -237,7 +269,11 @@ export class PageTaskExecutor {
       executor: async (param) => {
         const pageContext = await this.insight.contextRetrieverFn();
         let planResult: { plans: PlanningAction[] };
-        const planCache = this.taskCache.readCache(pageContext, 'plan', userPrompt);
+        const planCache = this.taskCache.readCache(
+          pageContext,
+          'plan',
+          userPrompt,
+        );
         if (planCache) {
           planResult = planCache;
         } else {

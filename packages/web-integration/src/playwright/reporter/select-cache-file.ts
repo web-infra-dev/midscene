@@ -1,5 +1,5 @@
-import fs from 'fs';
-import path from 'path';
+import fs from 'node:fs';
+import path from 'node:path';
 import inquirer from 'inquirer';
 
 interface Task {
@@ -103,7 +103,8 @@ export const getTask = async (): Promise<void> => {
   const { selectedTasks } = await inquirer.prompt<SelectedTasksPrompt>([
     {
       type: 'checkbox',
-      message: action === 'select' ? 'Select tasks to run' : 'Select tasks to exclude',
+      message:
+        action === 'select' ? 'Select tasks to run' : 'Select tasks to exclude',
       name: 'selectedTasks',
       choices: taskChoices,
     },
@@ -111,10 +112,14 @@ export const getTask = async (): Promise<void> => {
 
   if (action === 'select') {
     // Retain tasks based on user selection
-    tasksFile.aiTasks = tasksFile.aiTasks.filter((_, index) => selectedTasks.includes(index));
+    tasksFile.aiTasks = tasksFile.aiTasks.filter((_, index) =>
+      selectedTasks.includes(index),
+    );
   } else if (action === 'exclude') {
     // Exclude tasks based on user selection
-    tasksFile.aiTasks = tasksFile.aiTasks.filter((_, index) => !selectedTasks.includes(index));
+    tasksFile.aiTasks = tasksFile.aiTasks.filter(
+      (_, index) => !selectedTasks.includes(index),
+    );
   }
 
   // Write the updated tasks back to the JSON file

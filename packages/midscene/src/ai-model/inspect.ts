@@ -1,16 +1,28 @@
-import { ChatCompletionMessageParam } from 'openai/resources';
-import { systemPromptToFindElement } from './prompt/element_inspector';
+import type {
+  AIElementParseResponse,
+  AISectionParseResponse,
+  BaseElement,
+  UIContext,
+} from '@/types';
+import type { ChatCompletionMessageParam } from 'openai/resources';
 import { callToGetJSONObject } from './openai';
+import { systemPromptToFindElement } from './prompt/element_inspector';
 import { describeUserPage, systemPromptToExtract } from './prompt/util';
-import { AIElementParseResponse, AISectionParseResponse, BaseElement, UIContext } from '@/types';
 
-export async function AiInspectElement<ElementType extends BaseElement = BaseElement>(options: {
+export async function AiInspectElement<
+  ElementType extends BaseElement = BaseElement,
+>(options: {
   context: UIContext<ElementType>;
   multi: boolean;
   findElementDescription: string;
   callAI?: typeof callToGetJSONObject<AIElementParseResponse>;
 }) {
-  const { context, multi, findElementDescription, callAI = callToGetJSONObject } = options;
+  const {
+    context,
+    multi,
+    findElementDescription,
+    callAI = callToGetJSONObject,
+  } = options;
   const { screenshotBase64 } = context;
   const { description, elementById } = await describeUserPage(context);
 
@@ -43,7 +55,10 @@ export async function AiInspectElement<ElementType extends BaseElement = BaseEle
   };
 }
 
-export async function AiExtractElementInfo<T, ElementType extends BaseElement = BaseElement>(options: {
+export async function AiExtractElementInfo<
+  T,
+  ElementType extends BaseElement = BaseElement,
+>(options: {
   dataQuery: string | Record<string, string>;
   sectionConstraints: {
     name: string;
@@ -52,7 +67,12 @@ export async function AiExtractElementInfo<T, ElementType extends BaseElement = 
   context: UIContext<ElementType>;
   callAI?: typeof callToGetJSONObject;
 }) {
-  const { dataQuery, sectionConstraints, context, callAI = callToGetJSONObject } = options;
+  const {
+    dataQuery,
+    sectionConstraints,
+    context,
+    callAI = callToGetJSONObject,
+  } = options;
   const systemPrompt = systemPromptToExtract(dataQuery, sectionConstraints);
 
   const { screenshotBase64 } = context;

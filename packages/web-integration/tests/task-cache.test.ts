@@ -1,8 +1,8 @@
-import { describe, it, expect, beforeEach } from 'vitest';
-import { AIElementParseResponse } from '@midscene/core';
-import { LocateTask, PlanTask, TaskCache } from '@/common/task-cache';
-import { WebElementInfo } from '@/web-element';
-import { WebUIContext } from '@/common/utils';
+import { type LocateTask, type PlanTask, TaskCache } from '@/common/task-cache';
+import type { WebUIContext } from '@/common/utils';
+import type { WebElementInfo } from '@/web-element';
+import type { AIElementParseResponse } from '@midscene/core';
+import { beforeEach, describe, expect, it } from 'vitest';
 
 describe('TaskCache', () => {
   let taskCache: TaskCache;
@@ -23,15 +23,30 @@ describe('TaskCache', () => {
   });
 
   it('should return false if no cache is available', async () => {
-    const result = taskCache.readCache(formalPageContext, 'plan', 'test prompt');
+    const result = taskCache.readCache(
+      formalPageContext,
+      'plan',
+      'test prompt',
+    );
     expect(result).toBe(false);
   });
 
   it('should return false if the prompt does not match', async () => {
     taskCache.cache = {
-      aiTasks: [{ type: 'plan', prompt: 'different prompt', pageContext, response: { plans: [] } }],
+      aiTasks: [
+        {
+          type: 'plan',
+          prompt: 'different prompt',
+          pageContext,
+          response: { plans: [] },
+        },
+      ],
     };
-    const result = taskCache.readCache(formalPageContext, 'plan', 'test prompt');
+    const result = taskCache.readCache(
+      formalPageContext,
+      'plan',
+      'test prompt',
+    );
     expect(result).toBe(false);
   });
 
@@ -42,20 +57,39 @@ describe('TaskCache', () => {
           type: 'locate',
           prompt: 'test prompt',
           pageContext,
-          response: { elements: [{ id: 'element3' }] } as AIElementParseResponse,
+          response: {
+            elements: [{ id: 'element3' }],
+          } as AIElementParseResponse,
         },
       ],
     };
-    const result = taskCache.readCache(formalPageContext, 'locate', 'test prompt');
+    const result = taskCache.readCache(
+      formalPageContext,
+      'locate',
+      'test prompt',
+    );
     expect(result).toBe(false);
   });
 
   it('should return cached response if the conditions match', async () => {
-    const cachedResponse = { plans: [{ type: 'Locate', thought: '', param: {} }] } as PlanTask['response'];
+    const cachedResponse = {
+      plans: [{ type: 'Locate', thought: '', param: {} }],
+    } as PlanTask['response'];
     taskCache.cache = {
-      aiTasks: [{ type: 'plan', prompt: 'test prompt', pageContext, response: cachedResponse }],
+      aiTasks: [
+        {
+          type: 'plan',
+          prompt: 'test prompt',
+          pageContext,
+          response: cachedResponse,
+        },
+      ],
     };
-    const result = taskCache.readCache(formalPageContext, 'plan', 'test prompt');
+    const result = taskCache.readCache(
+      formalPageContext,
+      'plan',
+      'test prompt',
+    );
     expect(result).toEqual(cachedResponse);
   });
 
@@ -74,8 +108,14 @@ describe('TaskCache', () => {
     const isEqual = taskCache.pageContextEqual(pageContext, formalPageContext);
     expect(isEqual).toBe(true);
 
-    const differentContext = { ...formalPageContext, size: { width: 800, height: 600 } };
-    const isNotEqual = taskCache.pageContextEqual(pageContext, differentContext);
+    const differentContext = {
+      ...formalPageContext,
+      size: { width: 800, height: 600 },
+    };
+    const isNotEqual = taskCache.pageContextEqual(
+      pageContext,
+      differentContext,
+    );
     expect(isNotEqual).toBe(false);
   });
 

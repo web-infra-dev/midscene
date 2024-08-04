@@ -15,7 +15,10 @@ function selectorForValue(val: number | string): string {
   return `[${taskIdKey}='${val}']`;
 }
 
-export function setDataForNode(node: HTMLElement | Node, nodeHash: string): string {
+export function setDataForNode(
+  node: HTMLElement | Node,
+  nodeHash: string,
+): string {
   const taskId = taskIdKey;
   if (!(node instanceof HTMLElement)) {
     return '';
@@ -30,12 +33,19 @@ export function setDataForNode(node: HTMLElement | Node, nodeHash: string): stri
   return selector;
 }
 
-export function getPseudoElementContent(element: Node): { before: string; after: string } {
+export function getPseudoElementContent(element: Node): {
+  before: string;
+  after: string;
+} {
   if (!(element instanceof HTMLElement)) {
     return { before: '', after: '' };
   }
-  const beforeContent = window.getComputedStyle(element, '::before').getPropertyValue('content');
-  const afterContent = window.getComputedStyle(element, '::after').getPropertyValue('content');
+  const beforeContent = window
+    .getComputedStyle(element, '::before')
+    .getPropertyValue('content');
+  const afterContent = window
+    .getComputedStyle(element, '::after')
+    .getPropertyValue('content');
   return {
     before: beforeContent === 'none' ? '' : beforeContent.replace(/"/g, ''),
     after: afterContent === 'none' ? '' : afterContent.replace(/"/g, ''),
@@ -44,7 +54,11 @@ export function getPseudoElementContent(element: Node): { before: string; after:
 
 export function hasOverflowY(element: HTMLElement): boolean {
   const style = window.getComputedStyle(element);
-  return style.overflowY === 'scroll' || style.overflowY === 'auto' || style.overflowY === 'hidden';
+  return (
+    style.overflowY === 'scroll' ||
+    style.overflowY === 'auto' ||
+    style.overflowY === 'hidden'
+  );
 }
 
 export function visibleRect(
@@ -81,8 +95,11 @@ export function visibleRect(
   const isInViewport =
     rect.top >= 0 + scrollTop &&
     rect.left >= 0 + scrollLeft &&
-    rect.bottom <= (window.innerHeight || document.documentElement.clientHeight) + scrollTop &&
-    rect.right <= (window.innerWidth || document.documentElement.clientWidth) + scrollLeft;
+    rect.bottom <=
+      (window.innerHeight || document.documentElement.clientHeight) +
+        scrollTop &&
+    rect.right <=
+      (window.innerWidth || document.documentElement.clientWidth) + scrollLeft;
 
   if (!isInViewport) {
     logger('Element is not in the viewport');
@@ -142,7 +159,9 @@ export function validTextNodeContent(node: Node): string | false {
   return false;
 }
 
-export function getNodeAttributes(node: HTMLElement | Node): Record<string, string> {
+export function getNodeAttributes(
+  node: HTMLElement | Node,
+): Record<string, string> {
   if (!node || !(node instanceof HTMLElement) || !node.attributes) {
     return {};
   }

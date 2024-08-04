@@ -1,7 +1,7 @@
-import { it, describe, expect, vi } from 'vitest';
-import { sleep } from '@midscene/core/utils';
-import { launchPage } from './utils';
 import { PuppeteerAgent } from '@/puppeteer';
+import { sleep } from '@midscene/core/utils';
+import { describe, expect, it, vi } from 'vitest';
+import { launchPage } from './utils';
 
 vi.setConfig({
   testTimeout: 60 * 1000,

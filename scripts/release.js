@@ -1,4 +1,4 @@
-const fs = require('fs');
+const fs = require('node:fs');
 const semver = require('semver');
 const dayjs = require('dayjs');
 const args = require('minimist')(process.argv.slice(2));
@@ -96,7 +96,7 @@ async function bumpVersion() {
   let version = args.version;
   if (version && actionPublishCanary) {
     const hash = dayjs().format('YYYYMMDDHHmmss');
-    version = semver.inc(currentVersion, version, 'beta-' + hash);
+    version = semver.inc(currentVersion, version, `beta-${hash}`);
   }
 
   return await bumpPrompt({

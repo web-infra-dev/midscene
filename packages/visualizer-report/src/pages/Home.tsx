@@ -1,7 +1,8 @@
 import { useNavigate } from '@modern-js/runtime/router';
-import React, { useEffect, useState } from 'react';
-import { Menu, Collapse } from 'antd';
-import type { MenuProps, CollapseProps } from 'antd';
+import { Collapse, Menu } from 'antd';
+import type { CollapseProps, MenuProps } from 'antd';
+import type React from 'react';
+import { useEffect, useState } from 'react';
 import styeld from './Home.module.css';
 import './TestResult.css';
 
@@ -73,7 +74,9 @@ const TestResult = (props: {
       },
     ) || {};
 
-  const items: CollapseProps['items'] = Object.keys(groupTestDataWithFileName).map((fileName, key) => {
+  const items: CollapseProps['items'] = Object.keys(
+    groupTestDataWithFileName,
+  ).map((fileName, key) => {
     return {
       key,
       label: fileName,
@@ -94,7 +97,8 @@ const TestResult = (props: {
                 {testData.title}
               </span>
               <span>
-                duration: {timeMinutes !== 0 && `${timeMinutes}m`} {timeSeconds && `${timeSeconds}s`}
+                duration: {timeMinutes !== 0 && `${timeMinutes}m`}{' '}
+                {timeSeconds && `${timeSeconds}s`}
               </span>
             </div>
             <div className={styeld['test-file-path']}>
@@ -161,7 +165,12 @@ export const StatsNavView: React.FC<{
   return (
     <>
       <div className={styeld.nav}>
-        <Menu onClick={onClick} selectedKeys={[status]} mode="horizontal" items={items} />
+        <Menu
+          onClick={onClick}
+          selectedKeys={[status]}
+          mode="horizontal"
+          items={items}
+        />
       </div>
       <TestResult status={status} statusDataList={statusDataList} />
     </>
@@ -210,7 +219,10 @@ export function Home() {
 
     return (
       <div className={styeld.container}>
-        <StatsNavView stats={{ total, passed, failed, flaky, skipped, ok }} statusDataList={statusDataList} />
+        <StatsNavView
+          stats={{ total, passed, failed, flaky, skipped, ok }}
+          statusDataList={statusDataList}
+        />
       </div>
     );
   }

@@ -1,5 +1,5 @@
-import { AIElementParseResponse, PlanningAction } from '@midscene/core';
-import { WebUIContext } from './utils';
+import type { AIElementParseResponse, PlanningAction } from '@midscene/core';
+import type { WebUIContext } from './utils';
 
 export type PlanTask = {
   type: 'plan';
@@ -61,8 +61,16 @@ export class TaskCache {
    * @param userPrompt String type, representing user prompt information
    * @return Returns a Promise object that resolves to a boolean or object
    */
-  readCache(pageContext: WebUIContext, type: 'plan', userPrompt: string): PlanTask['response'];
-  readCache(pageContext: WebUIContext, type: 'locate', userPrompt: string): LocateTask['response'];
+  readCache(
+    pageContext: WebUIContext,
+    type: 'plan',
+    userPrompt: string,
+  ): PlanTask['response'];
+  readCache(
+    pageContext: WebUIContext,
+    type: 'locate',
+    userPrompt: string,
+  ): LocateTask['response'];
   readCache(
     pageContext: WebUIContext,
     type: 'plan' | 'locate',
@@ -111,7 +119,10 @@ export class TaskCache {
     }
   }
 
-  pageContextEqual(taskPageContext: LocateTask['pageContext'], pageContext: WebUIContext) {
+  pageContextEqual(
+    taskPageContext: LocateTask['pageContext'],
+    pageContext: WebUIContext,
+  ) {
     return (
       taskPageContext.size.width === pageContext.size.width &&
       taskPageContext.size.height === pageContext.size.height

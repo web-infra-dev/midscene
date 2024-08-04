@@ -14,7 +14,7 @@ export type ScrollType = 'up' | 'down' | 'bottom' | 'top';
  */
 export const detachCPDSession = async (page: Page) => {
   if (cdpSessionByPage.has(page)) {
-    await cdpSessionByPage.get(page)!.detach();
+    await cdpSessionByPage.get(page)?.detach();
     cdpSessionByPage.delete(page);
   }
 };
@@ -28,7 +28,9 @@ export const getCDPSession = async (page: Page): Promise<CDPSession> => {
       const session = await page.context().newCDPSession(page);
       cdpSessionByPage.set(page, session);
     } catch (e) {
-      throw Error('The ai() function can only be run against Chromium browsers.');
+      throw Error(
+        'The ai() function can only be run against Chromium browsers.',
+      );
     }
   }
 
@@ -45,7 +47,7 @@ export const scrollIntoView = async (page: Page, args: { id: string }) => {
   const cdpSession = await getCDPSession(page);
 
   await cdpSession.send('DOM.scrollIntoViewIfNeeded', {
-    backendNodeId: parseInt(args.id, 10),
+    backendNodeId: Number.parseInt(args.id, 10),
   });
 };
 
@@ -66,7 +68,10 @@ export const get = async (page: Page, args: { url: string }) => {
   });
 };
 
-export const scrollElement = async (page: Page, args: { id: string; target: ScrollType }) => {
+export const scrollElement = async (
+  page: Page,
+  args: { id: string; target: ScrollType },
+) => {
   await runFunctionOn(page, {
     functionDeclaration: `function() {
       let element = this
@@ -98,7 +103,7 @@ export const scrollElement = async (page: Page, args: { id: string; target: Scro
           throw Error('Unsupported scroll target ${args.target}')
       }
     }`,
-    backendNodeId: parseInt(args.id, 10),
+    backendNodeId: Number.parseInt(args.id, 10),
   });
 };
 
@@ -109,7 +114,9 @@ export const runFunctionOn = async (
   const cdpSession = await getCDPSession(page);
   const {
     object: { objectId },
-  } = await cdpSession.send('DOM.resolveNode', { backendNodeId: args.backendNodeId });
+  } = await cdpSession.send('DOM.resolveNode', {
+    backendNodeId: args.backendNodeId,
+  });
   await cdpSession.send('Runtime.callFunctionOn', {
     functionDeclaration: args.functionDeclaration,
     objectId,
@@ -119,15 +126,20 @@ export const runFunctionOn = async (
 export const clearElement = async (page: Page, args: { id: string }) => {
   return await runFunctionOn(page, {
     functionDeclaration: `function() {this.value=''}`,
-    backendNodeId: parseInt(args.id, 10),
+    backendNodeId: Number.parseInt(args.id, 10),
   });
 };
 
-export const sendKeysToElement = async (page: Page, args: { id: string; value: string[] }) => {
+export const sendKeysToElement = async (
+  page: Page,
+  args: { id: string; value: string[] },
+) => {
   const cdpSession = await getCDPSession(page);
   const value = args.value[0];
 
-  const { nodeId } = await cdpSession.send('DOM.requestNode', { objectId: args.id });
+  const { nodeId } = await cdpSession.send('DOM.requestNode', {
+    objectId: args.id,
+  });
   await cdpSession.send('DOM.focus', { nodeId });
 
   // eslint-disable-next-line @typescript-eslint/prefer-for-of
@@ -141,10 +153,15 @@ export const sendKeysToElement = async (page: Page, args: { id: string; value: s
   return true;
 };
 
-export const getElementAttribute = async (page: Page, args: { id: string; name: string }) => {
+export const getElementAttribute = async (
+  page: Page,
+  args: { id: string; name: string },
+) => {
   const cdpSession = await getCDPSession(page);
 
-  const { nodeId } = await cdpSession.send('DOM.requestNode', { objectId: args.id });
+  const { nodeId } = await cdpSession.send('DOM.requestNode', {
+    objectId: args.id,
+  });
   const { attributes } = await cdpSession.send('DOM.getAttributes', { nodeId });
 
   for (let i = 0; i < attributes.length; i++) {
@@ -158,7 +175,7 @@ export const getElementAttribute = async (page: Page, args: { id: string; name: 
 export const getElementTagName = async (page: Page, args: { id: string }) => {
   const cdpSession = await getCDPSession(page);
   const returnedValue = await cdpSession.send('Runtime.callFunctionOn', {
-    functionDeclaration: `function() {return this.tagName}`,
+    functionDeclaration: 'function() {return this.tagName}',
     objectId: args.id,
     returnByValue: true,
   });
@@ -168,7 +185,9 @@ export const getElementTagName = async (page: Page, args: { id: string }) => {
 
 export const clickElement = async (page: Page, args: { id: string }) => {
   const cdpSession = await getCDPSession(page);
-  const { centerX, centerY } = await getContentQuads(page, { backendNodeId: parseInt(args.id, 10) });
+  const { centerX, centerY } = await getContentQuads(page, {
+    backendNodeId: Number.parseInt(args.id, 10),
+  });
 
   await cdpSession.send('Input.dispatchMouseEvent', {
     type: 'mousePressed',
@@ -191,12 +210,23 @@ export const clickElement = async (page: Page, args: { id: string }) => {
   return true;
 };
 
-export const getContentQuads = async (page: Page, args: { backendNodeId: number }) => {
+export const getContentQuads = async (
+  page: Page,
+  args: { backendNodeId: number },
+) => {
   const cdpSession = await getCDPSession(page);
   const quadsResponse = await cdpSession.send('DOM.getContentQuads', args);
 
-  const [topLeftX, topLeftY, topRightX, topRightY, bottomRightX, bottomRightY, bottomLeftX, bottomLeftY] =
-    quadsResponse.quads[0];
+  const [
+    topLeftX,
+    topLeftY,
+    topRightX,
+    topRightY,
+    bottomRightX,
+    bottomRightY,
+    bottomLeftX,
+    bottomLeftY,
+  ] = quadsResponse.quads[0];
 
   const width = topRightX - topLeftX;
   const height = bottomRightY - topRightY;
@@ -227,7 +257,10 @@ export const getContentQuads = async (page: Page, args: { backendNodeId: number 
   };
 };
 
-export const focusElement = async (page: Page, args: { backendNodeId: number }) => {
+export const focusElement = async (
+  page: Page,
+  args: { backendNodeId: number },
+) => {
   const cdpSession = await getCDPSession(page);
   await cdpSession.send('DOM.focus', args);
 };
@@ -235,7 +268,8 @@ export const focusElement = async (page: Page, args: { backendNodeId: number }) 
 export const getElementRect = async (page: Page, args: { id: string }) => {
   const cdpSession = await getCDPSession(page);
   const returnedValue = await cdpSession.send('Runtime.callFunctionOn', {
-    functionDeclaration: `function() {return JSON.parse(JSON.stringify(this.getBoundingClientRect()))}`,
+    functionDeclaration:
+      'function() {return JSON.parse(JSON.stringify(this.getBoundingClientRect()))}',
     objectId: args.id,
     returnByValue: true,
   });
@@ -243,7 +277,10 @@ export const getElementRect = async (page: Page, args: { id: string }) => {
   return returnedValue.result.value;
 };
 
-export const findElements = async (page: Page, args: { using: string; value: string }) => {
+export const findElements = async (
+  page: Page,
+  args: { using: string; value: string },
+) => {
   switch (args.using) {
     case 'css selector':
     case 'tag name':
@@ -253,9 +290,14 @@ export const findElements = async (page: Page, args: { using: string; value: str
   }
 };
 
-export const querySelectorAll = async (page: Page, args: { selector: string }) => {
+export const querySelectorAll = async (
+  page: Page,
+  args: { selector: string },
+) => {
   const cdpSession = await getCDPSession(page);
-  const rootDocumentNode = await cdpSession.send('DOM.getDocument', { depth: -1 });
+  const rootDocumentNode = await cdpSession.send('DOM.getDocument', {
+    depth: -1,
+  });
   const returned = await cdpSession.send('DOM.querySelectorAll', {
     nodeId: rootDocumentNode.root.nodeId,
     selector: args.selector,
@@ -264,7 +306,9 @@ export const querySelectorAll = async (page: Page, args: { selector: string }) =
     async (nodeId) => await cdpSession.send('DOM.resolveNode', { nodeId }),
   );
   const resolvedNodes = await Promise.all(resolvedNodesPromises);
-  const returnValue = resolvedNodes.map((node) => ({ [WEBDRIVER_ELEMENT_KEY]: node.object.objectId }));
+  const returnValue = resolvedNodes.map((node) => ({
+    [WEBDRIVER_ELEMENT_KEY]: node.object.objectId,
+  }));
   return returnValue;
 };
 
@@ -275,21 +319,34 @@ export const getCurrentUrl = async (page: Page) => {
   return returnValue;
 };
 
-export const executeScript = async (page: Page, args: { script: string; args: any[] }) => {
+export const executeScript = async (
+  page: Page,
+  args: { script: string; args: any[] },
+) => {
   const functionDeclaration = `function() { ${args.script} }`;
   const functionArgs = args.args.map((arg) => {
-    if (typeof arg === 'boolean' || typeof arg === 'string' || typeof arg === 'number') {
+    if (
+      typeof arg === 'boolean' ||
+      typeof arg === 'string' ||
+      typeof arg === 'number'
+    ) {
       return { value: arg };
-    } else if (arg && typeof arg === 'object' && Reflect.has(arg, WEBDRIVER_ELEMENT_KEY)) {
-      return { objectId: arg[WEBDRIVER_ELEMENT_KEY] };
-    } else {
-      return { value: undefined };
     }
+    if (
+      arg &&
+      typeof arg === 'object' &&
+      Reflect.has(arg, WEBDRIVER_ELEMENT_KEY)
+    ) {
+      return { objectId: arg[WEBDRIVER_ELEMENT_KEY] };
+    }
+    return { value: undefined };
   });
 
   const cdpSession = await getCDPSession(page);
   await cdpSession.send('Runtime.enable');
-  const window = await cdpSession.send('Runtime.evaluate', { expression: 'window' });
+  const window = await cdpSession.send('Runtime.evaluate', {
+    expression: 'window',
+  });
 
   const returnedRef = await cdpSession.send('Runtime.callFunctionOn', {
     objectId: window.result.objectId,
@@ -303,20 +360,26 @@ export const executeScript = async (page: Page, args: { script: string; args: an
       ownProperties: true,
     });
     return nodeProperties.result
-      .map((e: any) => (!isNaN(parseInt(e.name, 10)) ? { [WEBDRIVER_ELEMENT_KEY]: e.value?.objectId } : null))
+      .map((e: any) =>
+        !Number.isNaN(Number.parseInt(e.name, 10))
+          ? { [WEBDRIVER_ELEMENT_KEY]: e.value?.objectId }
+          : null,
+      )
       .filter((e: any) => e);
-  } else if (returnedRef.result.className === 'HTMLHtmlElement') {
-    return { [WEBDRIVER_ELEMENT_KEY]: returnedRef.result.objectId };
-  } else {
-    const returnedValue = await cdpSession.send('Runtime.callFunctionOn', {
-      objectId: window.result.objectId,
-      functionDeclaration,
-      arguments: functionArgs,
-      returnByValue: true,
-    });
-
-    return returnedValue.result.value;
   }
+  if (returnedRef.result.className === 'HTMLHtmlElement') {
+    return { [WEBDRIVER_ELEMENT_KEY]: returnedRef.result.objectId };
+  }
+  const returnedValue = await cdpSession.send('Runtime.callFunctionOn', {
+    objectId: window.result.objectId,
+    functionDeclaration,
+    arguments: functionArgs,
+    returnByValue: true,
+  });
+
+  return returnedValue.result.value;
 };
 
-type CDPSession = Awaited<ReturnType<ReturnType<Page['context']>['newCDPSession']>>;
+type CDPSession = Awaited<
+  ReturnType<ReturnType<Page['context']>['newCDPSession']>
+>;

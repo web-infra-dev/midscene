@@ -41,11 +41,11 @@
 //   it('system prompt for extract, wo/ section', () => {
 //     const prompt = systemPromptToExtract('help me to find out');
 //     expect(prompt).toMatchSnapshot();
-    
+
 //     const prompt2 = systemPromptToExtract({foo: 'tell me the color of sea'});
 //     expect(prompt2).toMatchSnapshot();
 //   });
-  
+
 //   it('system prompt for extract, w/ section', () => {
 //     const prompt = systemPromptToExtract('find something', sectionQuery1);
 //     expect(prompt).toMatchSnapshot();

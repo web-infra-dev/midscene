@@ -1,15 +1,18 @@
-import assert from 'assert';
-import OpenAI, { ClientOptions } from 'openai';
-import { ChatCompletionMessageParam } from 'openai/resources';
-import { wrapOpenAI } from 'langsmith/wrappers';
+import assert from 'node:assert';
 import { AIResponseFormat } from '@/types';
+import { wrapOpenAI } from 'langsmith/wrappers';
+import OpenAI, { type ClientOptions } from 'openai';
+import type { ChatCompletionMessageParam } from 'openai/resources';
 
 const envConfigKey = 'MIDSCENE_OPENAI_INIT_CONFIG_JSON';
 const envModelKey = 'MIDSCENE_MODEL_NAME';
 const envSmithDebug = 'MIDSCENE_LANGSMITH_DEBUG';
 
 let extraConfig: ClientOptions = {};
-if (typeof process.env[envConfigKey] === 'string' && process.env[envConfigKey]) {
+if (
+  typeof process.env[envConfigKey] === 'string' &&
+  process.env[envConfigKey]
+) {
   console.log('config for openai loaded');
   extraConfig = JSON.parse(process.env[envConfigKey]);
 }
@@ -48,7 +51,9 @@ export async function call(
   return content;
 }
 
-export async function callToGetJSONObject<T>(messages: ChatCompletionMessageParam[]): Promise<T> {
+export async function callToGetJSONObject<T>(
+  messages: ChatCompletionMessageParam[],
+): Promise<T> {
   const response = await call(messages, AIResponseFormat.JSON);
   assert(response, 'empty response');
   return JSON.parse(response);
