@@ -1,10 +1,10 @@
-import { randomUUID } from 'crypto';
-import type { Page as PlaywrightPage } from 'playwright';
-import { TestInfo, TestType } from '@playwright/test';
-import { PageTaskExecutor } from '../common/tasks';
-import { readTestCache, writeTestCache } from './cache';
-import { WebPage } from '@/common/page';
+import { randomUUID } from 'node:crypto';
 import { PageAgent } from '@/common/agent';
+import type { WebPage } from '@/common/page';
+import type { TestInfo, TestType } from '@playwright/test';
+import type { Page as PlaywrightPage } from 'playwright';
+import type { PageTaskExecutor } from '../common/tasks';
+import { readTestCache, writeTestCache } from './cache';
 
 export type APITestType = Pick<TestType<any, any>, 'step'>;
 
@@ -14,7 +14,7 @@ const groupAndCaseForTest = (testInfo: TestInfo) => {
   const titlePath = [...testInfo.titlePath];
 
   if (titlePath.length > 1) {
-    taskTitle = titlePath.pop()!;
+    taskTitle = titlePath.pop() || 'unnamed';
     taskFile = `${titlePath.join(' > ')}:${testInfo.line}`;
   } else if (titlePath.length === 1) {
     taskTitle = titlePath[0];
@@ -29,12 +29,17 @@ const groupAndCaseForTest = (testInfo: TestInfo) => {
 const midSceneAgentKeyId = '_midSceneAgentId';
 export const PlaywrightAiFixture = () => {
   const pageAgentMap: Record<string, PageAgent> = {};
-  const agentForPage = (page: WebPage, opts: { testId: string; taskFile: string; taskTitle: string }) => {
+  const agentForPage = (
+    page: WebPage,
+    opts: { testId: string; taskFile: string; taskTitle: string },
+  ) => {
     let idForPage = (page as any)[midSceneAgentKeyId];
     if (!idForPage) {
       idForPage = randomUUID();
       (page as any)[midSceneAgentKeyId] = idForPage;
-      const testCase = readTestCache(opts.taskFile, opts.taskTitle) || { aiTasks: [] };
+      const testCase = readTestCache(opts.taskFile, opts.taskTitle) || {
+        aiTasks: [],
+      };
       pageAgentMap[idForPage] = new PageAgent(page, {
         testId: `${opts.testId}-${idForPage}`,
         taskFile: opts.taskFile,
@@ -45,15 +50,25 @@ export const PlaywrightAiFixture = () => {
   };
 
   return {
-    ai: async ({ page }: { page: PlaywrightPage }, use: any, testInfo: TestInfo) => {
+    ai: async (
+      { page }: { page: PlaywrightPage },
+      use: any,
+      testInfo: TestInfo,
+    ) => {
       const { taskFile, taskTitle } = groupAndCaseForTest(testInfo);
-      const agent = agentForPage(page, { testId: testInfo.testId, taskFile, taskTitle });
-      await use(async (taskPrompt: string, opts?: { type?: 'action' | 'query' }) => {
-        await page.waitForLoadState('networkidle');
-        const actionType = opts?.type || 'action';
-        const result = await agent.ai(taskPrompt, actionType);
-        return result;
+      const agent = agentForPage(page, {
+        testId: testInfo.testId,
+        taskFile,
+        taskTitle,
       });
+      await use(
+        async (taskPrompt: string, opts?: { type?: 'action' | 'query' }) => {
+          await page.waitForLoadState('networkidle');
+          const actionType = opts?.type || 'action';
+          const result = await agent.ai(taskPrompt, actionType);
+          return result;
+        },
+      );
       const taskCacheJson = agent.actionAgent.taskCache.generateTaskCache();
       writeTestCache(taskFile, taskTitle, taskCacheJson);
       if (agent.dumpFile) {
@@ -66,9 +81,17 @@ export const PlaywrightAiFixture = () => {
         });
       }
     },
-    aiAction: async ({ page }: { page: PlaywrightPage }, use: any, testInfo: TestInfo) => {
+    aiAction: async (
+      { page }: { page: PlaywrightPage },
+      use: any,
+      testInfo: TestInfo,
+    ) => {
       const { taskFile, taskTitle } = groupAndCaseForTest(testInfo);
-      const agent = agentForPage(page, { testId: testInfo.testId, taskFile, taskTitle });
+      const agent = agentForPage(page, {
+        testId: testInfo.testId,
+        taskFile,
+        taskTitle,
+      });
       await use(async (taskPrompt: string) => {
         await page.waitForLoadState('networkidle');
         await agent.aiAction(taskPrompt);
@@ -83,10 +106,18 @@ export const PlaywrightAiFixture = () => {
         });
       }
     },
-    aiQuery: async ({ page }: { page: PlaywrightPage }, use: any, testInfo: TestInfo) => {
+    aiQuery: async (
+      { page }: { page: PlaywrightPage },
+      use: any,
+      testInfo: TestInfo,
+    ) => {
       const { taskFile, taskTitle } = groupAndCaseForTest(testInfo);
-      const agent = agentForPage(page, { testId: testInfo.testId, taskFile, taskTitle });
-      await use(async function (demand: any) {
+      const agent = agentForPage(page, {
+        testId: testInfo.testId,
+        taskFile,
+        taskTitle,
+      });
+      await use(async (demand: any) => {
         await page.waitForLoadState('networkidle');
         const result = await agent.aiQuery(demand);
         return result;
@@ -105,7 +136,10 @@ export const PlaywrightAiFixture = () => {
 };
 
 export type PlayWrightAiFixtureType = {
-  ai: <T = any>(prompt: string, opts?: { type?: 'action' | 'query' }) => Promise<T>;
+  ai: <T = any>(
+    prompt: string,
+    opts?: { type?: 'action' | 'query' },
+  ) => Promise<T>;
   aiAction: (taskPrompt: string) => ReturnType<PageTaskExecutor['action']>;
   aiQuery: <T = any>(demand: any) => Promise<T>;
 };

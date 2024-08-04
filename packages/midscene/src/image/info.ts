@@ -2,7 +2,7 @@ import assert from 'node:assert';
 import { Buffer } from 'node:buffer';
 import { readFileSync } from 'node:fs';
 import Sharp from 'sharp';
-import { Size } from '..';
+import type { Size } from '..';
 /**
  * Retrieves the dimensions of an image asynchronously
  *
@@ -47,7 +47,8 @@ export function base64Encoded(image: string, withHeader = true) {
   }
   if (image.endsWith('png')) {
     return `data:image/png;base64,${imageBuffer.toString('base64')}`;
-  } else if (image.endsWith('jpg') || image.endsWith('jpeg')) {
+  }
+  if (image.endsWith('jpg') || image.endsWith('jpeg')) {
     return `data:image/jpeg;base64,${imageBuffer.toString('base64')}`;
   }
   throw new Error('unsupported image type');

@@ -1,25 +1,28 @@
-import path from 'path';
-import assert from 'assert';
-import os from 'os';
-import fsExtra from 'fs-extra';
-import { TestData } from './type';
+import assert from 'node:assert';
+import os from 'node:os';
+import path from 'node:path';
 import { findNearestPackageJson } from '@/common/utils';
+import fsExtra from 'fs-extra';
+import type { TestData } from './type';
 
 export function generateTestData(testDataList: Array<TestData>) {
-  const filterDataList = testDataList.reduce((res, testData) => {
-    if (res.find((item) => item.testId === testData.testId)) {
-      return res;
-    } else {
+  const filterDataList = testDataList.reduce(
+    (res, testData) => {
+      if (res.find((item) => item.testId === testData.testId)) {
+        return res;
+      }
+      // biome-ignore lint/performance/noAccumulatingSpread: <explanation>
       return [...res, testData];
-    }
-  }, [] as Array<TestData>);
+    },
+    [] as Array<TestData>,
+  );
   const reportDir = findNearestPackageJson(__dirname);
   assert(reportDir, `can't get reportDir from ${__dirname}`);
 
   const targetReportDir = path.join(process.cwd(), 'midscene_run', 'report');
 
   // Copy the contents of the report html folder to the report folder
-  const reportHtmlDir = path.join(reportDir, `dist/visualizer-report`);
+  const reportHtmlDir = path.join(reportDir, 'dist/visualizer-report');
   const tempDir = path.join(os.tmpdir(), 'temp-folder');
   try {
     // First copy to the temporary directory

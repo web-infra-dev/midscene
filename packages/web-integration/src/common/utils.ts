@@ -1,12 +1,16 @@
-import fs, { readFileSync } from 'fs';
-import assert from 'assert';
-import { Buffer } from 'buffer';
-import path from 'path';
-import { UIContext, PlaywrightParserOpt } from '@midscene/core';
-import { alignCoordByTrim, base64Encoded, imageInfoOfBase64 } from '@midscene/core/image';
+import assert from 'node:assert';
+import type { Buffer } from 'node:buffer';
+import fs, { readFileSync } from 'node:fs';
+import path from 'node:path';
+import type { PlaywrightParserOpt, UIContext } from '@midscene/core';
+import {
+  alignCoordByTrim,
+  base64Encoded,
+  imageInfoOfBase64,
+} from '@midscene/core/image';
 import { getTmpFile } from '@midscene/core/utils';
-import { WebElementInfo, WebElementInfoType } from '../web-element';
-import { WebPage } from './page';
+import { WebElementInfo, type WebElementInfoType } from '../web-element';
+import type { WebPage } from './page';
 
 export type WebUIContext = UIContext<WebElementInfo> & {
   url: string;
@@ -25,7 +29,11 @@ export async function parseContextFromWebPage(
   const screenshotBase64 = base64Encoded(file);
   const captureElementSnapshot = await getElementInfosFromPage(page);
   // align element
-  const elementsInfo = await alignElements(screenshotBuffer, captureElementSnapshot, page);
+  const elementsInfo = await alignElements(
+    screenshotBuffer,
+    captureElementSnapshot,
+    page,
+  );
   const size = await imageInfoOfBase64(screenshotBase64);
 
   return {

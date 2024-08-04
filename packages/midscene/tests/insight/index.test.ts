@@ -27,7 +27,7 @@
 // const localPage = `file://${getFixture('simple.html')}`;
 // describe('insight - basic', () => {
 //   let browser: Browser;
-//   beforeEach(() => 
+//   beforeEach(() =>
 //      async () => {
 //       await browser?.close();
 //     },
@@ -77,12 +77,11 @@
 //     await insight.locate('another find');
 //     expect(dumpCollector.mock.calls.length).toBe(2); // only be called once
 
-
 //     const dumpCollector2 = vi.fn();
 //     insight.onceDumpUpdatedFn = dumpCollector2;
 //     await insight.extract('should fail');
 //     expect(dumpCollector2.mock.calls.length).toBe(2);
-    
+
 //     await insight.extract('should fail');
 //     expect(dumpCollector2.mock.calls.length).toBe(2);
 //   });
@@ -109,7 +108,7 @@
 //     try {
 //       await insight.extract('something');
 //     } catch(e) {
-//       // 
+//       //
 //     }
 
 //     const logContent2 = readFileSync(join(getDumpDir(), './latest.insight.json'), 'utf-8');
@@ -184,7 +183,7 @@
 // describe('find', () => {
 //   const vscodeSite = 'https://code.visualstudio.com/';
 //   let browser: Browser;
-//   beforeEach(() => 
+//   beforeEach(() =>
 //      async () => {
 //       await browser?.close();
 //     },
@@ -196,7 +195,7 @@
 //     const btn = await insight.locate('the main download button on the page');
 //     expect(btn).toBeTruthy();
 //     expect(/download/i.test(btn!.content)).toBeTruthy();
-    
+
 //     const btnWithProperties = await insight.locate('all the download buttons on the page', {multi: true});
 //     expect(btnWithProperties.length).toBeGreaterThanOrEqual(2);
 //   });
@@ -204,7 +203,7 @@
 
 // describe('extract', () => {
 //   let browser: Browser;
-//   beforeEach(() => 
+//   beforeEach(() =>
 //      async () => {
 //       await browser?.close();
 //     },
@@ -228,7 +227,7 @@
 
 //     // types mismatch, should raise an error
 //     await insight.extract<{dataItem: number}>({
-//       foo: 'abcde', // should be error 
+//       foo: 'abcde', // should be error
 //     });
 //     [
 //       result, // should be: any

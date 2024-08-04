@@ -8,7 +8,10 @@
       ".nx",
       "**/dist",
       "**/doc_build",
-      "*-dump.json"
+      "*-dump.json",
+      "script_get_all_texts.tmp.js",
+      "**/playwright-report/**",
+      "packages/visualizer/**"
     ]
   },
   "javascript": {
@@ -21,6 +24,7 @@
     "rules": {
       "recommended": true,
       "style": {},
+      "complexity": { "noForEach": "off" },
       "suspicious": { "noExplicitAny": "off" }
     }
   },

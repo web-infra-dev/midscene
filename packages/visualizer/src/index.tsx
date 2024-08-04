@@ -1,18 +1,18 @@
 import './index.less';
-import { ConfigProvider, message, Upload, Button } from 'antd';
-import type { UploadProps } from 'antd';
-import { useEffect, useRef, useState } from 'react';
-import { Helmet } from '@modern-js/runtime/head';
-import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
-import { GroupedActionDump } from '@midscene/core';
-import Timeline from './component/timeline';
-import DetailPanel from './component/detail-panel';
-import Logo from './component/assets/logo-plain.svg';
-import GlobalHoverPreview from './component/global-hover-preview';
-import demoDump from './demo-dump.json';
-import { useExecutionDump } from '@/component/store';
 import DetailSide from '@/component/detail-side';
 import Sidebar from '@/component/sidebar';
+import { useExecutionDump } from '@/component/store';
+import type { GroupedActionDump } from '@midscene/core';
+import { Helmet } from '@modern-js/runtime/head';
+import { Button, ConfigProvider, Upload, message } from 'antd';
+import type { UploadProps } from 'antd';
+import { useEffect, useRef, useState } from 'react';
+import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
+import Logo from './component/assets/logo-plain.svg';
+import DetailPanel from './component/detail-panel';
+import GlobalHoverPreview from './component/global-hover-preview';
+import Timeline from './component/timeline';
+import demoDump from './demo-dump.json';
 
 const { Dragger } = Upload;
 
@@ -121,7 +121,8 @@ export function Visualizer(props: {
             </b>
           </p>
           <p className="ant-upload-text">
-            All data will be processed locally by the browser. No data will be sent to the server.
+            All data will be processed locally by the browser. No data will be
+            sent to the server.
           </p>
         </Dragger>
         <div className="demo-loader">
@@ -160,7 +161,10 @@ export function Visualizer(props: {
           <div className="main-right">
             <Timeline key={mainLayoutChangeFlag} />
             <div className="main-content">
-              <PanelGroup autoSaveId="page-detail-layout" direction="horizontal">
+              <PanelGroup
+                autoSaveId="page-detail-layout"
+                direction="horizontal"
+              >
                 <Panel maxSize={95}>
                   <div className="main-side">
                     <DetailSide />
@@ -187,7 +191,9 @@ export function Visualizer(props: {
 
     // modify rspress theme
     const navHeightKey = '--rp-nav-height';
-    const originalNavHeight = getComputedStyle(document.documentElement).getPropertyValue(navHeightKey);
+    const originalNavHeight = getComputedStyle(
+      document.documentElement,
+    ).getPropertyValue(navHeightKey);
 
     if (ifInRspressPage) {
       const newNavHeight = '42px';
@@ -198,7 +204,10 @@ export function Visualizer(props: {
     // Cleanup function to revert the change
     return () => {
       if (ifInRspressPage) {
-        document.documentElement.style.setProperty(navHeightKey, originalNavHeight);
+        document.documentElement.style.setProperty(
+          navHeightKey,
+          originalNavHeight,
+        );
       }
     };
   }, []);
@@ -225,7 +234,11 @@ export function Visualizer(props: {
       <Helmet>
         <title>MidScene.js - Visualization Tool</title>
       </Helmet>
-      <div className="page-container" key={`render-${globalRenderCount}`} style={{ height: containerHeight }}>
+      <div
+        className="page-container"
+        key={`render-${globalRenderCount}`}
+        style={{ height: containerHeight }}
+      >
         {mainContent}
       </div>
       <GlobalHoverPreview />

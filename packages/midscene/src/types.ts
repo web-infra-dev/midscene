@@ -15,17 +15,17 @@ export interface Size {
 export type Rect = Point & Size;
 
 enum NodeType {
-  'INPUT' = 'INPUT Node',
-  'BUTTON' = 'BUTTON Node',
-  'IMG' = 'IMG Node',
-  'TEXT' = 'TEXT Node',
+  INPUT = 'INPUT Node',
+  BUTTON = 'BUTTON Node',
+  IMG = 'IMG Node',
+  TEXT = 'TEXT Node',
 }
 
 export abstract class BaseElement {
   abstract id: string;
 
   abstract attributes: {
-    ['nodeType']: NodeType;
+    nodeType: NodeType;
     [key: string]: string;
   };
 
@@ -82,7 +82,9 @@ export abstract class UIContext<ElementType extends BaseElement = BaseElement> {
  * insight
  */
 
-export type CallAIFn = <T>(messages: ChatCompletionMessageParam[]) => Promise<T>;
+export type CallAIFn = <T>(
+  messages: ChatCompletionMessageParam[],
+) => Promise<T>;
 
 export interface InsightOptions {
   taskInfo?: Omit<InsightTaskInfo, 'durationMs'>;
@@ -133,7 +135,10 @@ export interface InsightDump extends DumpMeta {
   error?: string;
 }
 
-export type PartialInsightDumpFromSDK = Omit<InsightDump, 'sdkVersion' | 'logTime' | 'logId'>;
+export type PartialInsightDumpFromSDK = Omit<
+  InsightDump,
+  'sdkVersion' | 'logTime' | 'logId'
+>;
 
 export type DumpSubscriber = (dump: InsightDump) => Promise<void> | void;
 
@@ -154,7 +159,14 @@ export type ElementById = (id: string) => BaseElement | null;
 
 export interface PlanningAction<ParamType = any> {
   thought: string;
-  type: 'Locate' | 'Tap' | 'Hover' | 'Input' | 'KeyboardPress' | 'Scroll' | 'Error';
+  type:
+    | 'Locate'
+    | 'Tap'
+    | 'Hover'
+    | 'Input'
+    | 'KeyboardPress'
+    | 'Scroll'
+    | 'Error';
   param: ParamType;
 }
 
@@ -170,7 +182,11 @@ export interface PlanningActionParamInputOrKeyPress {
   value: string;
 }
 export interface PlanningActionParamScroll {
-  scrollType: 'ScrollUntilBottom' | 'ScrollUntilTop' | 'ScrollDown' | 'ScrollUp';
+  scrollType:
+    | 'ScrollUntilBottom'
+    | 'ScrollUntilTop'
+    | 'ScrollDown'
+    | 'ScrollUp';
 }
 
 /**
@@ -225,7 +241,10 @@ export interface ExecutionTaskApply<
   executor: (
     param: TaskParam,
     context: ExecutorContext,
-  ) => Promise<ExecutionTaskReturn<TaskOutput, TaskLog> | void> | void;
+  ) => // biome-ignore lint/suspicious/noConfusingVoidType: <explanation>
+    | Promise<ExecutionTaskReturn<TaskOutput, TaskLog> | undefined | void>
+    | undefined
+    | void;
 }
 
 export interface ExecutionTaskReturn<TaskOutput = unknown, TaskLog = unknown> {
@@ -235,20 +254,29 @@ export interface ExecutionTaskReturn<TaskOutput = unknown, TaskLog = unknown> {
   cache?: TaskCacheInfo;
 }
 
-export type ExecutionTask<E extends ExecutionTaskApply<any, any, any> = ExecutionTaskApply<any, any, any>> =
-  E &
-    ExecutionTaskReturn<
-      E extends ExecutionTaskApply<any, any, infer TaskOutput, any> ? TaskOutput : unknown,
-      E extends ExecutionTaskApply<any, any, any, infer TaskLog> ? TaskLog : unknown
-    > & {
-      status: 'pending' | 'running' | 'success' | 'fail' | 'cancelled';
-      error?: string;
-      timing?: {
-        start: number;
-        end?: number;
-        cost?: number;
-      };
+export type ExecutionTask<
+  E extends ExecutionTaskApply<any, any, any> = ExecutionTaskApply<
+    any,
+    any,
+    any
+  >,
+> = E &
+  ExecutionTaskReturn<
+    E extends ExecutionTaskApply<any, any, infer TaskOutput, any>
+      ? TaskOutput
+      : unknown,
+    E extends ExecutionTaskApply<any, any, any, infer TaskLog>
+      ? TaskLog
+      : unknown
+  > & {
+    status: 'pending' | 'running' | 'success' | 'fail' | 'cancelled';
+    error?: string;
+    timing?: {
+      start: number;
+      end?: number;
+      cost?: number;
     };
+  };
 
 export interface ExecutionDump extends DumpMeta {
   name: string;
@@ -278,7 +306,8 @@ export type ExecutionTaskInsightLocateApply = ExecutionTaskApply<
   ExecutionTaskInsightLocateLog
 >;
 
-export type ExecutionTaskInsightLocate = ExecutionTask<ExecutionTaskInsightLocateApply>;
+export type ExecutionTaskInsightLocate =
+  ExecutionTask<ExecutionTaskInsightLocateApply>;
 
 /*
 task - insight-extract
@@ -291,9 +320,13 @@ export interface ExecutionTaskInsightQueryOutput {
   data: any;
 }
 
-export type ExecutionTaskInsightQueryApply = ExecutionTaskApply<'Insight', ExecutionTaskInsightQueryParam>;
+export type ExecutionTaskInsightQueryApply = ExecutionTaskApply<
+  'Insight',
+  ExecutionTaskInsightQueryParam
+>;
 
-export type ExecutionTaskInsightQuery = ExecutionTask<ExecutionTaskInsightQueryApply>;
+export type ExecutionTaskInsightQuery =
+  ExecutionTask<ExecutionTaskInsightQueryApply>;
 
 // export type ExecutionTaskInsight = ExecutionTaskInsightLocate; // | ExecutionTaskInsightExtract;
 

@@ -134,7 +134,6 @@ export default class Insight<
     }
 
     const elements: BaseElement[] = [];
-    // biome-ignore lint/complexity/noForEach: <explanation>
     parseResult.elements.forEach((item) => {
       const element = elementById(item.id);
 

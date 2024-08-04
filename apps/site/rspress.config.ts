@@ -1,4 +1,4 @@
-import * as path from 'path';
+import * as path from 'node:path';
 import { defineConfig } from 'rspress/config';
 
 export default defineConfig({
@@ -12,7 +12,13 @@ export default defineConfig({
   },
   themeConfig: {
     darkMode: false,
-    socialLinks: [{ icon: 'github', mode: 'link', content: 'https://github.com/web-infra-dev/midscene' }],
+    socialLinks: [
+      {
+        icon: 'github',
+        mode: 'link',
+        content: 'https://github.com/web-infra-dev/midscene',
+      },
+    ],
     locales: [
       {
         lang: 'en',

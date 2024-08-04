@@ -1,6 +1,12 @@
-import assert from 'assert';
-import { Size, UISection, UIContext, BasicSectionQuery, BaseElement } from '@/types';
+import assert from 'node:assert';
 import { imageInfoOfBase64 } from '@/image';
+import type {
+  BaseElement,
+  BasicSectionQuery,
+  Size,
+  UIContext,
+  UISection,
+} from '@/types';
 
 const characteristic =
   'You are a versatile professional in software UI design and testing. Your outstanding contributions will impact the user experience of billions of users.';
@@ -63,11 +69,14 @@ skill content:
 * There may be some special commands in DATA_DEMAND, please pay extra attention
   - ${ONE_ELEMENT_LOCATOR_PREFIX} and ${ELEMENTS_LOCATOR_PREFIX}: if you see a description that mentions the keyword ${ONE_ELEMENT_LOCATOR_PREFIX} or ${ELEMENTS_LOCATOR_PREFIX}(e.g. follow ${ONE_ELEMENT_LOCATOR_PREFIX} : i want to find ...), it means user wants to locate a specific element meets the description. Return in this way: prefix + the id / comma-separated ids, for example: ${ONE_ELEMENT_LOCATOR_PREFIX}/1 , ${ELEMENTS_LOCATOR_PREFIX}/1,2,3 . If not found, keep the prefix and leave the suffix empty, like ${ONE_ELEMENT_LOCATOR_PREFIX}/ .`;
 
-export function promptsOfSectionQuery(constraints: BasicSectionQuery[]): string {
+export function promptsOfSectionQuery(
+  constraints: BasicSectionQuery[],
+): string {
   if (!constraints.length) {
     return '';
   }
-  const instruction = 'Use your segment_a_web_page skill to find the following section(s)';
+  const instruction =
+    'Use your segment_a_web_page skill to find the following section(s)';
   const singleSection = (c: BasicSectionQuery) => {
     assert(
       c.name || c.description,
@@ -76,7 +85,9 @@ export function promptsOfSectionQuery(constraints: BasicSectionQuery[]): string 
 
     const number = 'One section';
     const name = c.name ? `named \`${c.name}\`` : '';
-    const description = c.description ? `, usage or criteria : ${c.description}` : '';
+    const description = c.description
+      ? `, usage or criteria : ${c.description}`
+      : '';
     const basic = `* ${number} ${name}${description}`;
 
     return basic;
@@ -88,7 +99,8 @@ export function systemPromptToExtract(
   dataQuery: Record<string, string> | string,
   sections?: BasicSectionQuery[],
 ) {
-  const allSectionNames: string[] = sections?.filter((c) => c.name).map((c) => c.name || '') || [];
+  const allSectionNames: string[] =
+    sections?.filter((c) => c.name).map((c) => c.name || '') || [];
   const sectionFindingPrompt = promptsOfSectionQuery(sections || []);
   const sectionReturnFormat = allSectionNames.length
     ? '  sections: [], // detailed information of each section from segment_a_web_page skill'
@@ -149,7 +161,9 @@ type PromptElementType = {
   content: BaseElement['content'];
 };
 
-export function describeElement(elements: (Pick<BaseElement, 'rect' | 'content'> & { id: string })[]) {
+export function describeElement(
+  elements: (Pick<BaseElement, 'rect' | 'content'> & { id: string })[],
+) {
   const sliceLength = 80;
   return elements
     .map((item) =>
@@ -159,7 +173,9 @@ export function describeElement(elements: (Pick<BaseElement, 'rect' | 'content'>
         item.rect.top,
         item.rect.left + item.rect.width,
         item.rect.top + item.rect.height,
-        item.content.length > sliceLength ? `${item.content.slice(0, sliceLength)}...` : item.content,
+        item.content.length > sliceLength
+          ? `${item.content.slice(0, sliceLength)}...`
+          : item.content,
       ].join(', '),
     )
     .join('\n');
@@ -172,7 +188,10 @@ The sections are formatted in the following way:
 `;
 }
 
-export function describeSections(sections: UISection[], colorOfSectionName: (name: string) => string) {
+export function describeSections(
+  sections: UISection[],
+  colorOfSectionName: (name: string) => string,
+) {
   return sections
     .map((item) =>
       [
@@ -195,9 +214,9 @@ export function truncateText(text: string) {
   return text;
 }
 
-export async function describeUserPage<ElementType extends BaseElement = BaseElement>(
-  context: Omit<UIContext<ElementType>, 'describer'>,
-) {
+export async function describeUserPage<
+  ElementType extends BaseElement = BaseElement,
+>(context: Omit<UIContext<ElementType>, 'describer'>) {
   const { screenshotBase64 } = context;
   let width: number;
   let height: number;
@@ -236,29 +255,37 @@ export async function describeUserPage<ElementType extends BaseElement = BaseEle
 }
 
 function cropfieldInformation(elementsInfo: BaseElement[]) {
-  const elementInfosDescription: Array<PromptElementType> = elementsInfo.map((item) => {
-    const { id, attributes = {}, rect, content } = item;
-    const tailorContent = truncateText(content);
-    const tailorAttributes = Object.keys(attributes).reduce((res, currentKey: string) => {
-      const attributeVal = (attributes as any)[currentKey];
-      res[currentKey] = truncateText(attributeVal);
-      return res;
-    }, {} as BaseElement['attributes']);
+  const elementInfosDescription: Array<PromptElementType> = elementsInfo.map(
+    (item) => {
+      const { id, attributes = {}, rect, content } = item;
+      const tailorContent = truncateText(content);
+      const tailorAttributes = Object.keys(attributes).reduce(
+        (res, currentKey: string) => {
+          const attributeVal = (attributes as any)[currentKey];
+          res[currentKey] = truncateText(attributeVal);
+          return res;
+        },
+        {} as BaseElement['attributes'],
+      );
 
-    return {
-      id,
-      attributes: tailorAttributes,
-      rect,
-      content: tailorContent,
-    };
-  });
+      return {
+        id,
+        attributes: tailorAttributes,
+        rect,
+        content: tailorContent,
+      };
+    },
+  );
   return JSON.stringify(elementInfosDescription);
 }
 
 /**
  * elements
  */
-export function retrieveElement(prompt: string, opt?: { multi: boolean }): string {
+export function retrieveElement(
+  prompt: string,
+  opt?: { multi: boolean },
+): string {
   if (opt?.multi) {
     return `follow ${ELEMENTS_LOCATOR_PREFIX}: ${prompt}`;
   }
@@ -269,10 +296,15 @@ export function ifElementTypeResponse(response: string): boolean {
   if (typeof response !== 'string') {
     return false;
   }
-  return response.startsWith(ONE_ELEMENT_LOCATOR_PREFIX) || response.startsWith(ELEMENTS_LOCATOR_PREFIX);
+  return (
+    response.startsWith(ONE_ELEMENT_LOCATOR_PREFIX) ||
+    response.startsWith(ELEMENTS_LOCATOR_PREFIX)
+  );
 }
 
-export function splitElementResponse(response: string): string | null | string[] {
+export function splitElementResponse(
+  response: string,
+): string | null | string[] {
   const oneElementSplitter = `${ONE_ELEMENT_LOCATOR_PREFIX}/`;
   if (response.startsWith(oneElementSplitter)) {
     const id = response.slice(oneElementSplitter.length);

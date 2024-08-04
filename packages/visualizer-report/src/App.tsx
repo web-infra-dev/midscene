@@ -1,6 +1,6 @@
 import { BrowserRouter, Route, Routes } from '@modern-js/runtime/router';
-import { Report } from './pages/Report';
 import { Home } from './pages/Home';
+import { Report } from './pages/Report';
 
 export default () => {
   return (

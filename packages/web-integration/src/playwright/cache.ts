@@ -1,10 +1,14 @@
-import path, { join } from 'path';
-import fs from 'fs';
-import { writeDumpFile, getDumpDirPath } from '@midscene/core/utils';
-import { AiTaskCache } from '@/common/task-cache';
+import fs from 'node:fs';
+import path, { join } from 'node:path';
+import type { AiTaskCache } from '@/common/task-cache';
 import { findNearestPackageJson } from '@/common/utils';
+import { getDumpDirPath, writeDumpFile } from '@midscene/core/utils';
 
-export function writeTestCache(taskFile: string, taskTitle: string, taskCacheJson: AiTaskCache) {
+export function writeTestCache(
+  taskFile: string,
+  taskTitle: string,
+  taskCacheJson: AiTaskCache,
+) {
   const packageJson = getPkgInfo();
   writeDumpFile({
     fileName: `${taskFile}(${taskTitle})`,
@@ -25,13 +29,19 @@ export function writeTestCache(taskFile: string, taskTitle: string, taskCacheJso
 }
 
 export function readTestCache(taskFile: string, taskTitle: string) {
-  const cacheFile = join(getDumpDirPath('cache'), `${taskFile}(${taskTitle}).json`);
+  const cacheFile = join(
+    getDumpDirPath('cache'),
+    `${taskFile}(${taskTitle}).json`,
+  );
   const pkgInfo = getPkgInfo();
   if (process.env.MIDSCENE_CACHE === 'true' && fs.existsSync(cacheFile)) {
     try {
       const data = fs.readFileSync(cacheFile, 'utf8');
       const jsonData = JSON.parse(data);
-      if (jsonData.pkgName !== pkgInfo.name || jsonData.pkgVersion !== pkgInfo.version) {
+      if (
+        jsonData.pkgName !== pkgInfo.name ||
+        jsonData.pkgVersion !== pkgInfo.version
+      ) {
         return undefined;
       }
       return jsonData as AiTaskCache;

@@ -1,10 +1,10 @@
 import { create } from 'zustand';
-import {
-  InsightDump,
+import type {
   BaseElement,
-  ExecutionTaskInsightLocate,
   ExecutionTask,
+  ExecutionTaskInsightLocate,
   GroupedActionDump,
+  InsightDump,
 } from '../../../midscene/dist/types';
 
 export const useBlackboardPreference = create<{
@@ -73,7 +73,7 @@ export const useExecutionDump = create<{
       set({ activeTask: task });
       console.log('task set', task);
       if (task.type === 'Insight') {
-        syncToInsightDump((task as ExecutionTaskInsightLocate).log!.dump!);
+        syncToInsightDump((task as ExecutionTaskInsightLocate).log?.dump!);
       } else {
         resetInsightDump();
       }
@@ -127,7 +127,12 @@ export const useInsightDump = create<{
   reset: () => void;
 }>((set) => {
   let loadId = 0;
-  const initData = { _loadId: 0, highlightSectionNames: [], highlightElements: [], data: null };
+  const initData = {
+    _loadId: 0,
+    highlightSectionNames: [],
+    highlightElements: [],
+    data: null,
+  };
 
   return {
     ...initData,

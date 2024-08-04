@@ -1,5 +1,5 @@
 /* eslint-disable */
-(function () {
+(() => {
   const TEXT_SIZE_THRESHOLD = 9;
   const taskIdKey = '_midscene_retrieve_task_id';
   const nodeDataIdKey = 'data-midscene-task-';
@@ -45,7 +45,11 @@
 
     // Check if the computed display property is "none"
     const style = window.getComputedStyle(el);
-    if (style.display === 'none' || style.visibility === 'hidden' || style.opacity === '0') {
+    if (
+      style.display === 'none' ||
+      style.visibility === 'hidden' ||
+      style.opacity === '0'
+    ) {
       console.log('Element is hidden');
       return false;
     }
@@ -58,18 +62,29 @@
     }
 
     // Check if the element is hidden via clipping or scrolling.
-    const scrollLeft = window.pageXOffset || document.documentElement.scrollLeft;
+    const scrollLeft =
+      window.pageXOffset || document.documentElement.scrollLeft;
     const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
 
     const isInViewport =
       rect.top >= 0 + scrollTop &&
       rect.left >= 0 + scrollLeft &&
-      rect.bottom <= (window.innerHeight || document.documentElement.clientHeight) + scrollTop &&
-      rect.right <= (window.innerWidth || document.documentElement.clientWidth) + scrollLeft;
+      rect.bottom <=
+        (window.innerHeight || document.documentElement.clientHeight) +
+          scrollTop &&
+      rect.right <=
+        (window.innerWidth || document.documentElement.clientWidth) +
+          scrollLeft;
 
     if (!isInViewport) {
       console.log('Element is not in the viewport');
-      console.log(rect, window.innerHeight, window.innerWidth, scrollTop, scrollLeft);
+      console.log(
+        rect,
+        window.innerHeight,
+        window.innerWidth,
+        scrollTop,
+        scrollLeft,
+      );
       return false;
     }
 
@@ -86,7 +101,12 @@
           rect.bottom > parentRect.bottom + tolerance ||
           rect.right > parentRect.right + tolerance
         ) {
-          console.log('Element is clipped by an ancestor', parent, rect, parentRect);
+          console.log(
+            'Element is clipped by an ancestor',
+            parent,
+            rect,
+            parentRect,
+          );
           return false;
         }
       }
@@ -157,7 +177,10 @@
         }
         const { rect } = answerRect;
 
-        if (rect.width < TEXT_SIZE_THRESHOLD || rect.height < TEXT_SIZE_THRESHOLD) {
+        if (
+          rect.width < TEXT_SIZE_THRESHOLD ||
+          rect.height < TEXT_SIZE_THRESHOLD
+        ) {
           console.log('Element is too small', text);
           return;
         }
@@ -170,7 +193,10 @@
           locator: selector,
           content: text,
           rect,
-          center: [Math.round(rect.left + rect.width / 2), Math.round(rect.top + rect.height / 2)],
+          center: [
+            Math.round(rect.left + rect.width / 2),
+            Math.round(rect.top + rect.height / 2),
+          ],
         });
 
         // should stop searching if the text is found
@@ -192,6 +218,8 @@
   window.extractTextWithPositionDFS = extractTextWithPositionDFS;
   window.ifNodeIsValid = validTextNodeContent;
   const container =
-    typeof window.get_all_text_container === 'undefined' ? document.body : window.get_all_text_container;
+    typeof window.get_all_text_container === 'undefined'
+      ? document.body
+      : window.get_all_text_container;
   return extractTextWithPositionDFS(container);
 })();

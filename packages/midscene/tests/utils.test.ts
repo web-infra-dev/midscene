@@ -1,12 +1,18 @@
-import { getDumpDir, getTmpDir, getTmpFile, overlapped, setDumpDir } from '@/utils';
-import { tmpdir } from 'os';
-import { describe, it, expect } from 'vitest';
+import { tmpdir } from 'node:os';
+import {
+  getDumpDir,
+  getTmpDir,
+  getTmpFile,
+  overlapped,
+  setDumpDir,
+} from '@/utils';
+import { describe, expect, it } from 'vitest';
 
 describe('utils', () => {
   it('tmpDir', () => {
     const testDir = getTmpDir();
     expect(typeof testDir).toBe('string');
-  
+
     const testFile = getTmpFile('txt');
     expect(testFile.endsWith('.txt')).toBe(true);
   });
@@ -28,5 +34,4 @@ describe('utils', () => {
     const target2 = { left: 200, top: 200, width: 100, height: 100 };
     expect(overlapped(container, target2)).toBeFalsy();
   });
-
 });

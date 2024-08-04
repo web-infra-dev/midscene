@@ -31,7 +31,7 @@
 //       rect: { top: 0, left: 0, width: 100, height: 100 },
 //       center: [0,0] as [number, number],
 //     }));
-  
+
 //     const elementIds = ['1', '2', '3'];
 //     const elements = idsIntoElements(elementIds, elementById);
 //     expect(elements).toMatchSnapshot();
@@ -60,7 +60,7 @@
 //       }
 //       return null;
 //     };
-  
+
 //     const data1 = {
 //       title: 'title',
 //       element: '9',
@@ -117,7 +117,6 @@
 //     expect(aligned).toMatchSnapshot();
 //   });
 
-
 //   it('get context of online context', async () => {
 //     const browser = await launch('https://www.baidu.com');
 //     const context = await parseContextFromPuppeteerBrowser(browser);
@@ -130,7 +129,7 @@
 //     // append
 //     const logId = writeInsightDump(mockDumpData, tmpDir);
 //     expect(typeof logId).toBe('string');
-    
+
 //     const getLatestContent = () => {
 //       const file = join(tmpDir, 'latest.insight.json');
 //       const content = JSON.parse(readFileSync(file, 'utf-8'));
@@ -156,5 +155,4 @@
 //     expect(data[0].hello).toBe('world');
 //   });
 // });
-
 

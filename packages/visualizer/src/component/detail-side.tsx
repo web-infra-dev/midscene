@@ -1,9 +1,9 @@
 /* eslint-disable max-lines */
 'use client';
 import './detail-side.less';
+import { timeStr, typeStr } from '@/utils';
 import { RadiusSettingOutlined } from '@ant-design/icons';
-import { Tooltip, Tag, Timeline, TimelineItemProps } from 'antd';
-import {
+import type {
   BaseElement,
   ExecutionTaskAction,
   ExecutionTaskInsightLocate,
@@ -11,11 +11,11 @@ import {
   ExecutionTaskPlanning,
   UISection,
 } from '@midscene/core';
+import { Tag, Timeline, type TimelineItemProps, Tooltip } from 'antd';
 import { highlightColorForType } from './color';
-import { useExecutionDump, useInsightDump } from './store';
-import PanelTitle from './panel-title';
 import { timeCostStrElement } from './misc';
-import { timeStr, typeStr } from '@/utils';
+import PanelTitle from './panel-title';
+import { useExecutionDump, useInsightDump } from './store';
 
 const noop = () => {};
 const Card = (props: {
@@ -28,11 +28,23 @@ const Card = (props: {
   onMouseLeave?: () => void;
   content: any;
 }) => {
-  const { highlightWithColor, title, subtitle, onMouseEnter, onMouseLeave, content, characteristic } = props;
+  const {
+    highlightWithColor,
+    title,
+    subtitle,
+    onMouseEnter,
+    onMouseLeave,
+    content,
+    characteristic,
+  } = props;
   const titleTag = props.characteristic ? (
     <div className="item-extra">
       <div className="title-tag">
-        <Tooltip placement="bottomRight" title={characteristic} mouseEnterDelay={0}>
+        <Tooltip
+          placement="bottomRight"
+          title={characteristic}
+          mouseEnterDelay={0}
+        >
           <span>
             <RadiusSettingOutlined />
           </span>
@@ -41,9 +53,13 @@ const Card = (props: {
     </div>
   ) : null;
 
-  const titleRightPaddingClass = props.characteristic ? 'title-right-padding' : '';
+  const titleRightPaddingClass = props.characteristic
+    ? 'title-right-padding'
+    : '';
   const modeClass = props.liteMode ? 'item-lite' : '';
-  const highlightStyle = highlightWithColor ? { backgroundColor: highlightWithColor } : {};
+  const highlightStyle = highlightWithColor
+    ? { backgroundColor: highlightWithColor }
+    : {};
   return (
     <div
       className={`item ${modeClass} ${highlightWithColor ? 'item-highlight' : ''}`}
@@ -53,21 +69,32 @@ const Card = (props: {
     >
       {/* {extraSection} */}
 
-      <div className={`title ${titleRightPaddingClass}`} style={{ display: title ? 'block' : 'none' }}>
+      <div
+        className={`title ${titleRightPaddingClass}`}
+        style={{ display: title ? 'block' : 'none' }}
+      >
         {title}
         {titleTag}
       </div>
-      <div className={`subtitle ${titleRightPaddingClass}`} style={{ display: subtitle ? 'block' : 'none' }}>
+      <div
+        className={`subtitle ${titleRightPaddingClass}`}
+        style={{ display: subtitle ? 'block' : 'none' }}
+      >
         {subtitle}
       </div>
-      <div className="description" style={{ display: content ? 'block' : 'none' }}>
+      <div
+        className="description"
+        style={{ display: content ? 'block' : 'none' }}
+      >
         {content}
       </div>
     </div>
   );
 };
 
-const MetaKV = (props: { data: { key: string; content: string | JSX.Element }[] }) => {
+const MetaKV = (props: {
+  data: { key: string; content: string | JSX.Element }[];
+}) => {
   return (
     <div className="meta-kv">
       {props.data.map((item, index) => {
@@ -94,27 +121,33 @@ const DetailSide = (): JSX.Element => {
   const task = useExecutionDump((store) => store.activeTask);
   const dump = useInsightDump((store) => store.data);
   const { matchedSection: sections, matchedElement: elements } = dump || {};
-  const highlightSectionNames = useInsightDump((store) => store.highlightSectionNames);
+  const highlightSectionNames = useInsightDump(
+    (store) => store.highlightSectionNames,
+  );
   const highlightElements = useInsightDump((store) => store.highlightElements);
-  const setHighlightSectionNames = useInsightDump((store) => store.setHighlightSectionNames);
-  const setHighlightElements = useInsightDump((store) => store.setHighlightElements);
+  const setHighlightSectionNames = useInsightDump(
+    (store) => store.setHighlightSectionNames,
+  );
+  const setHighlightElements = useInsightDump(
+    (store) => store.setHighlightElements,
+  );
 
-  const setHighlightSectionName = function (name: string) {
+  const setHighlightSectionName = (name: string) => {
     setHighlightSectionNames([name]);
   };
-  const setHighlightElement = function (element: BaseElement) {
+  const setHighlightElement = (element: BaseElement) => {
     setHighlightElements([element]);
   };
 
-  const unhighlightSection = function () {
+  const unhighlightSection = () => {
     setHighlightSectionNames([]);
   };
 
-  const unhighlightElement = function () {
+  const unhighlightElement = () => {
     setHighlightElements([]);
   };
 
-  const kv = function (data: Record<string, unknown>) {
+  const kv = (data: Record<string, unknown>) => {
     const isElementItem = (value: unknown): value is BaseElement =>
       Boolean(value) &&
       typeof value === 'object' &&
@@ -154,7 +187,11 @@ const DetailSide = (): JSX.Element => {
     );
 
     if (Array.isArray(data) || typeof data !== 'object') {
-      return <pre className="description-content">{JSON.stringify(data, undefined, 2)}</pre>;
+      return (
+        <pre className="description-content">
+          {JSON.stringify(data, undefined, 2)}
+        </pre>
+      );
     }
 
     return Object.keys(data).map((key) => {
@@ -162,14 +199,27 @@ const DetailSide = (): JSX.Element => {
       let content;
       if (typeof value === 'object' && isElementItem(value)) {
         content = elementEl(value);
-      } else if (Array.isArray(value) && value.some((item) => isElementItem(item))) {
-        content = value.map((item, index) => <span key={index}>{elementEl(item)}</span>);
+      } else if (
+        Array.isArray(value) &&
+        value.some((item) => isElementItem(item))
+      ) {
+        content = value.map((item, index) => (
+          <span key={index}>{elementEl(item)}</span>
+        ));
       } else if (typeof value === 'object' && isSectionItem(value)) {
         content = sectionEl(value);
-      } else if (Array.isArray(value) && value.some((item) => isSectionItem(item))) {
-        content = value.map((item, index) => <span key={index}>{sectionEl(item)}</span>);
+      } else if (
+        Array.isArray(value) &&
+        value.some((item) => isSectionItem(item))
+      ) {
+        content = value.map((item, index) => (
+          <span key={index}>{sectionEl(item)}</span>
+        ));
       } else {
-        content = typeof value === 'string' ? value : JSON.stringify(value, undefined, 2);
+        content =
+          typeof value === 'string'
+            ? value
+            : JSON.stringify(value, undefined, 2);
       }
 
       return (
@@ -210,7 +260,10 @@ const DetailSide = (): JSX.Element => {
     taskParam = MetaKV({
       data: [
         { key: 'type', content: (task && typeStr(task)) || '' },
-        { key: 'param', content: (task as ExecutionTaskPlanning)?.param?.userPrompt },
+        {
+          key: 'param',
+          content: (task as ExecutionTaskPlanning)?.param?.userPrompt,
+        },
       ],
     });
   } else if (task?.type === 'Insight') {
@@ -232,7 +285,11 @@ const DetailSide = (): JSX.Element => {
         { key: 'type', content: (task && typeStr(task)) || '' },
         {
           key: 'value',
-          content: JSON.stringify((task as ExecutionTaskAction)?.param?.value, undefined, 2),
+          content: JSON.stringify(
+            (task as ExecutionTaskAction)?.param?.value,
+            undefined,
+            2,
+          ),
         },
       ],
     });
@@ -251,7 +308,9 @@ const DetailSide = (): JSX.Element => {
           'sectionCharacteristics',
         ]);
         const sectionKV = Object.keys(kvToShow).length ? kv(kvToShow) : null;
-        const highlightColor = ifHighlight ? highlightColorForType('section') : undefined;
+        const highlightColor = ifHighlight
+          ? highlightColorForType('section')
+          : undefined;
 
         return (
           <Card
@@ -271,7 +330,9 @@ const DetailSide = (): JSX.Element => {
   const matchedElementsEl = elements?.length
     ? elements.map((element, idx) => {
         const ifHighlight = highlightElements.includes(element);
-        const highlightColor = ifHighlight ? highlightColorForType('element') : undefined;
+        const highlightColor = ifHighlight
+          ? highlightColorForType('element')
+          : undefined;
 
         const elementKV = kv(
           objectWithoutKeys(element as any, [
@@ -322,7 +383,7 @@ const DetailSide = (): JSX.Element => {
       onMouseEnter={noop}
       onMouseLeave={noop}
       content={<pre>{JSON.stringify(dump.data, undefined, 2)}</pre>}
-    ></Card>
+    />
   ) : null;
   console.log('dump is', dump);
 
@@ -339,7 +400,11 @@ const DetailSide = (): JSX.Element => {
                 <b>{typeStr(item as any)}</b>
               </p>
               <p>{item.thought}</p>
-              <p>{item.param ? JSON.stringify(item.param || {}, undefined, 2) : null}</p>
+              <p>
+                {item.param
+                  ? JSON.stringify(item.param || {}, undefined, 2)
+                  : null}
+              </p>
             </>
           ),
         };

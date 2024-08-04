@@ -1,5 +1,6 @@
 import './sidebar.less';
-import { useEffect } from 'react';
+import { useAllCurrentTasks, useExecutionDump } from '@/component/store';
+import { typeStr } from '@/utils';
 import {
   ArrowRightOutlined,
   CheckOutlined,
@@ -8,13 +9,12 @@ import {
   LogoutOutlined,
   MinusOutlined,
 } from '@ant-design/icons';
-import { ExecutionTask, ExecutionTaskInsightQuery } from '@midscene/core';
+import type { ExecutionTask, ExecutionTaskInsightQuery } from '@midscene/core';
 import { Button } from 'antd';
-import PanelTitle from './panel-title';
-import { timeCostStrElement } from './misc';
+import { useEffect } from 'react';
 import Logo from './assets/logo-plain2.svg';
-import { useAllCurrentTasks, useExecutionDump } from '@/component/store';
-import { typeStr } from '@/utils';
+import { timeCostStrElement } from './misc';
+import PanelTitle from './panel-title';
 
 const SideItem = (props: {
   task: ExecutionTask;
@@ -45,11 +45,14 @@ const SideItem = (props: {
 
   let contentRow: JSX.Element | undefined;
   if (task.type === 'Planning') {
-    contentRow = <div className="side-item-content">{task.param?.userPrompt}</div>;
+    contentRow = (
+      <div className="side-item-content">{task.param?.userPrompt}</div>
+    );
   } else if (task.type === 'Insight' && task.subType === 'Query') {
     // debugger;
     const demand = (task as ExecutionTaskInsightQuery).param?.dataDemand;
-    const contentToShow = typeof demand === 'string' ? demand : JSON.stringify(demand);
+    const contentToShow =
+      typeof demand === 'string' ? demand : JSON.stringify(demand);
     contentRow = <div className="side-item-content">{contentToShow}</div>;
   } else {
     // debugger;
@@ -71,8 +74,10 @@ const SideItem = (props: {
       }}
     >
       {' '}
-      <div className={`side-item-name`}>
-        <span className={`status-icon status-icon-${task.status}`}>{statusIcon}</span>
+      <div className={'side-item-name'}>
+        <span className={`status-icon status-icon-${task.status}`}>
+          {statusIcon}
+        </span>
         <div className="title">{typeStr(task)}</div>
         <div className="status-text">{statusText}</div>
       </div>
@@ -81,18 +86,25 @@ const SideItem = (props: {
   );
 };
 
-const Sidebar = (props: { hideLogo?: boolean; logoAction?: () => void }): JSX.Element => {
+const Sidebar = (props: {
+  hideLogo?: boolean;
+  logoAction?: () => void;
+}): JSX.Element => {
   const groupedDumps = useExecutionDump((store) => store.dump);
   const setActiveTask = useExecutionDump((store) => store.setActiveTask);
   const activeTask = useExecutionDump((store) => store.activeTask);
   const setHoverTask = useExecutionDump((store) => store.setHoverTask);
-  const setHoverPreviewConfig = useExecutionDump((store) => store.setHoverPreviewConfig);
+  const setHoverPreviewConfig = useExecutionDump(
+    (store) => store.setHoverPreviewConfig,
+  );
   // const selectedTaskIndex = useExecutionDump((store) => store.selectedTaskIndex);
   // const setSelectedTaskIndex = useExecutionDump((store) => store.setSelectedTaskIndex);
   const reset = useExecutionDump((store) => store.reset);
 
   const allTasks = useAllCurrentTasks();
-  const currentSelectedIndex = allTasks?.findIndex((task) => task === activeTask);
+  const currentSelectedIndex = allTasks?.findIndex(
+    (task) => task === activeTask,
+  );
 
   useEffect(() => {
     // all tasks
@@ -153,7 +165,9 @@ const Sidebar = (props: { hideLogo?: boolean; logoAction?: () => void }): JSX.El
         let seperator: JSX.Element;
         switch (indexOfExecution) {
           case 0:
-            seperator = <div className="side-seperator side-seperator-space-up" />;
+            seperator = (
+              <div className="side-seperator side-seperator-space-up" />
+            );
             break;
           // case group.executions.length - 1:
           //   seperator = <div className="side-seperator side-seperator-space-down" />;
@@ -186,7 +200,11 @@ const Sidebar = (props: { hideLogo?: boolean; logoAction?: () => void }): JSX.El
   return (
     <div className="side-bar">
       <div className="top-controls">
-        <div className="brand" onClick={reset} style={{ display: props?.hideLogo ? 'none' : 'flex' }}>
+        <div
+          className="brand"
+          onClick={reset}
+          style={{ display: props?.hideLogo ? 'none' : 'flex' }}
+        >
           <Logo
             style={{ width: 70, height: 70, margin: 'auto' }}
             onClick={() => {

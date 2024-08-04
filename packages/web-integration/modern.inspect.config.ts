@@ -1,4 +1,4 @@
-import { moduleTools, defineConfig } from '@modern-js/module-tools';
+import { defineConfig, moduleTools } from '@modern-js/module-tools';
 
 // It was split into two configuration files because of a bug in the build config array
 export default defineConfig({
@@ -8,13 +8,13 @@ export default defineConfig({
     buildType: 'bundle',
     format: 'iife',
     input: {
-      htmlElement:'src/extractor/index.ts',
+      htmlElement: 'src/extractor/index.ts',
     },
     outDir: 'dist/script',
-    esbuildOptions: options => {
-      options.globalName = 'midscene_element_inspector'
+    esbuildOptions: (options) => {
+      options.globalName = 'midscene_element_inspector';
       return options;
     },
     target: 'es2017',
-  }
+  },
 });

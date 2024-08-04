@@ -1,16 +1,29 @@
+import type {
+  ExecutionDump,
+  ExecutionTask,
+  ExecutionTaskInsightLocate,
+  InsightDump,
+} from '@midscene/core';
 /* eslint-disable @typescript-eslint/no-empty-function */
 import dayjs from 'dayjs';
-import type { ExecutionDump, ExecutionTaskInsightLocate, InsightDump, ExecutionTask } from '@midscene/core';
 
-export function insightDumpToExecutionDump(insightDump: InsightDump | InsightDump[]): ExecutionDump {
-  const insightToTask = (insightDump: InsightDump): ExecutionTaskInsightLocate => {
+export function insightDumpToExecutionDump(
+  insightDump: InsightDump | InsightDump[],
+): ExecutionDump {
+  const insightToTask = (
+    insightDump: InsightDump,
+  ): ExecutionTaskInsightLocate => {
     const task: ExecutionTaskInsightLocate = {
       type: 'Insight',
       subType: insightDump.type === 'locate' ? 'Locate' : 'Query',
       status: insightDump.error ? 'fail' : 'success',
       param: {
-        ...(insightDump.userQuery.element ? { query: insightDump.userQuery } : {}),
-        ...(insightDump.userQuery.dataDemand ? { dataDemand: insightDump.userQuery.dataDemand } : {}),
+        ...(insightDump.userQuery.element
+          ? { query: insightDump.userQuery }
+          : {}),
+        ...(insightDump.userQuery.dataDemand
+          ? { dataDemand: insightDump.userQuery.dataDemand }
+          : {}),
         insight: {} as any,
       } as any,
       log: {
@@ -34,15 +47,14 @@ export function insightDumpToExecutionDump(insightDump: InsightDump | InsightDum
       tasks: [insightToTask(insightDump)],
     };
     return result;
-  } else {
-    const result: ExecutionDump = {
-      sdkVersion: insightDump[0].sdkVersion,
-      logTime: insightDump[0].logTime,
-      name: 'Insight',
-      tasks: insightDump.map(insightToTask),
-    };
-    return result;
   }
+  const result: ExecutionDump = {
+    sdkVersion: insightDump[0].sdkVersion,
+    logTime: insightDump[0].logTime,
+    name: 'Insight',
+    tasks: insightDump.map(insightToTask),
+  };
+  return result;
 }
 
 export function timeStr(timestamp?: number) {

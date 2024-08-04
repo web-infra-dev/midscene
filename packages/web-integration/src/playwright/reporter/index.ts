@@ -6,7 +6,7 @@ import type {
   TestCase,
   TestResult,
 } from '@playwright/test/reporter';
-import { TestData } from './type';
+import type { TestData } from './type';
 import { generateTestData } from './util';
 
 const testDataList: Array<TestData> = [];
@@ -35,8 +35,11 @@ class MidSceneReporter implements Reporter {
       return false;
     });
     aiActionTestData.forEach((testData) => {
-      const parseData = JSON.parse(testData.description!);
-      if (parseData.testId === test.id && !testDataList.find((item) => item.testId === test.id)) {
+      const parseData = JSON.parse(testData?.description || '{}');
+      if (
+        parseData.testId === test.id &&
+        !testDataList.find((item) => item.testId === test.id)
+      ) {
         testDataList.push({
           testId: test.id,
           title: test.title,

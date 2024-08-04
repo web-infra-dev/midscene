@@ -1,11 +1,15 @@
 'use client';
 import './detail-panel.less';
-import { Segmented, ConfigProvider } from 'antd';
-import { CameraOutlined, FileTextOutlined, ScheduleOutlined } from '@ant-design/icons';
+import { useExecutionDump, useInsightDump } from '@/component/store';
+import { filterBase64Value, timeStr } from '@/utils';
+import {
+  CameraOutlined,
+  FileTextOutlined,
+  ScheduleOutlined,
+} from '@ant-design/icons';
+import { ConfigProvider, Segmented } from 'antd';
 import { useEffect, useState } from 'react';
 import BlackBoard from './blackboard';
-import { useExecutionDump, useInsightDump } from '@/component/store';
-import { timeStr, filterBase64Value } from '@/utils';
 
 const ScreenshotItem = (props: { time: string; img: string }) => {
   return (
@@ -29,14 +33,18 @@ const DetailPanel = (): JSX.Element => {
   const [preferredViewType, setViewType] = useState(VIEW_TYPE_BLACKBOARD);
 
   const viewType =
-    preferredViewType === VIEW_TYPE_BLACKBOARD && !dumpId ? VIEW_TYPE_SCREENSHOT : preferredViewType;
+    preferredViewType === VIEW_TYPE_BLACKBOARD && !dumpId
+      ? VIEW_TYPE_SCREENSHOT
+      : preferredViewType;
 
   let content;
   if (!activeTask) {
     content = <div>please select a task</div>;
   } else if (viewType === VIEW_TYPE_JSON) {
     content = (
-      <div className="json-content">{filterBase64Value(JSON.stringify(activeTask, undefined, 2))}</div>
+      <div className="json-content">
+        {filterBase64Value(JSON.stringify(activeTask, undefined, 2))}
+      </div>
     );
   } else if (viewType === VIEW_TYPE_BLACKBOARD) {
     if (dumpId) {
@@ -52,8 +60,12 @@ const DetailPanel = (): JSX.Element => {
             .filter((item) => item.screenshot)
             .map((item, index) => {
               const fullTime = timeStr(item.ts);
-              const str = item.timing ? `${fullTime} / ${item.timing}` : fullTime;
-              return <ScreenshotItem key={index} time={str} img={item.screenshot!} />;
+              const str = item.timing
+                ? `${fullTime} / ${item.timing}`
+                : fullTime;
+              return (
+                <ScreenshotItem key={index} time={str} img={item.screenshot!} />
+              );
             })}
         </div>
       );
@@ -71,7 +83,11 @@ const DetailPanel = (): JSX.Element => {
         } else if (viewType === VIEW_TYPE_SCREENSHOT) {
           setViewType(VIEW_TYPE_JSON);
         } else {
-          setViewType(blackboardViewAvailable ? VIEW_TYPE_BLACKBOARD : VIEW_TYPE_SCREENSHOT);
+          setViewType(
+            blackboardViewAvailable
+              ? VIEW_TYPE_BLACKBOARD
+              : VIEW_TYPE_SCREENSHOT,
+          );
         }
         e.preventDefault();
       }
@@ -85,11 +101,19 @@ const DetailPanel = (): JSX.Element => {
   });
 
   const options = [
-    { label: 'Screenshots', value: VIEW_TYPE_SCREENSHOT, icon: <CameraOutlined /> },
+    {
+      label: 'Screenshots',
+      value: VIEW_TYPE_SCREENSHOT,
+      icon: <CameraOutlined />,
+    },
     { label: 'JSON View', value: VIEW_TYPE_JSON, icon: <FileTextOutlined /> },
   ];
   if (blackboardViewAvailable) {
-    options.unshift({ label: 'Visualization', value: VIEW_TYPE_BLACKBOARD, icon: <ScheduleOutlined /> });
+    options.unshift({
+      label: 'Visualization',
+      value: VIEW_TYPE_BLACKBOARD,
+      icon: <ScheduleOutlined />,
+    });
   }
   return (
     <div className="detail-panel">

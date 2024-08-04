@@ -1,7 +1,7 @@
-import { ChatCompletionMessageParam } from 'openai/resources';
-import { PlanningAction, PlanningAIResponse, UIContext } from '@/types';
-import { callToGetJSONObject } from '@/ai-model/openai';
 import { describeUserPage } from '@/ai-model';
+import { callToGetJSONObject } from '@/ai-model/openai';
+import type { PlanningAIResponse, PlanningAction, UIContext } from '@/types';
+import type { ChatCompletionMessageParam } from 'openai/resources';
 
 const characteristic =
   'You are a versatile professional in software UI design and testing. Your outstanding contributions will impact the user experience of billions of users.';
@@ -67,7 +67,8 @@ export async function plan(
     callAI?: typeof callToGetJSONObject<PlanningAIResponse>;
   },
 ): Promise<{ plans: PlanningAction[] }> {
-  const { callAI = callToGetJSONObject<PlanningAIResponse>, context } = opts || {};
+  const { callAI = callToGetJSONObject<PlanningAIResponse>, context } =
+    opts || {};
   const { screenshotBase64 } = context;
   const { description } = await describeUserPage(context);
   const systemPrompt = systemPromptToTaskPlanning(userPrompt);

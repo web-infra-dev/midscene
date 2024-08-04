@@ -44,13 +44,6 @@ jobs:
     - name: Check Dependency Version
       run: pnpm run check-dependency-version
 
-    - name: Check for changed files
-      run: |
-        git fetch origin
-        git branch -a
-        git diff --name-only main
-
-    - name: Debug Biome lint
-      run: |
-        npx biome lint --changed --since main --diagnostic-level=warn --no-errors-on-unmatched --verbose
+    - name: Biome lint
+      run: npx biome check . --diagnostic-level=warn --no-errors-on-unmatched
 

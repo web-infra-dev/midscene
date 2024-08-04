@@ -1,9 +1,15 @@
-import { tmpdir } from 'os';
-import { basename, join } from 'path';
-import { copyFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from 'fs';
-import { randomUUID } from 'crypto';
-import assert from 'assert';
-import { Rect } from './types';
+import assert from 'node:assert';
+import { randomUUID } from 'node:crypto';
+import {
+  copyFileSync,
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  writeFileSync,
+} from 'node:fs';
+import { tmpdir } from 'node:os';
+import { basename, join } from 'node:path';
+import type { Rect } from './types';
 
 interface PkgInfo {
   name: string;
@@ -27,12 +33,11 @@ export function getPkgInfo(): PkgInfo {
     const { name, version } = JSON.parse(readFileSync(pkgJsonFile, 'utf-8'));
     pkg = { name, version };
     return pkg;
-  } else {
-    return {
-      name: 'midscene-unknown-page-name',
-      version: '0.0.0',
-    };
   }
+  return {
+    name: 'midscene-unknown-page-name',
+    version: '0.0.0',
+  };
 }
 
 let logDir = join(process.cwd(), './midscene_run/');

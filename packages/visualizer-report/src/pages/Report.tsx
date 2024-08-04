@@ -1,6 +1,6 @@
 import { Visualizer } from '@midscene/visualizer';
-import React, { useEffect, useState } from 'react';
 import { useNavigate } from '@modern-js/runtime/router';
+import React, { useEffect, useState } from 'react';
 
 declare module '@midscene/visualizer' {
   export function Visualizer(dumpInfo: any): any;
@@ -30,7 +30,7 @@ export function Report() {
       .finally(() => {
         setLoading(false);
       });
-  }, []);
+  }, [dumpId]);
   return (
     <div className="container-box">
       <div>
@@ -44,7 +44,7 @@ export function Report() {
             />
           )}
         </main>
-        <div></div>
+        <div />
       </div>
     </div>
   );

@@ -1,5 +1,5 @@
-import Insight from './insight';
 import { Executor } from './action/executor';
+import Insight from './insight';
 import { getElement, getSection } from './query';
 import { setDumpDir } from './utils';
 

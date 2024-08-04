@@ -1,5 +1,5 @@
-import assert from 'assert';
-import puppeteer, { Viewport } from 'puppeteer';
+import assert from 'node:assert';
+import puppeteer, { type Viewport } from 'puppeteer';
 
 export async function launchPage(
   url: string,
@@ -26,7 +26,10 @@ export async function launchPage(
     (async () => {
       const response = await page.goto(url);
       if (response?.status) {
-        assert(response.status() <= 399, `Page load failed: ${response.status()}`);
+        assert(
+          response.status() <= 399,
+          `Page load failed: ${response.status()}`,
+        );
       }
     })(),
   ]);

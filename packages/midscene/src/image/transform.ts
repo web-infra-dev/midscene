@@ -1,6 +1,6 @@
 import { Buffer } from 'node:buffer';
+import type { Rect } from '@/types';
 import Sharp from 'sharp';
-import { Rect } from '@/types';
 
 /**
  * Saves a Base64-encoded image to a file
@@ -10,7 +10,10 @@ import { Rect } from '@/types';
  * @param options.outputPath - The path where the image will be saved
  * @throws Error if there is an error during the saving process
  */
-export async function saveBase64Image(options: { base64Data: string; outputPath: string }): Promise<void> {
+export async function saveBase64Image(options: {
+  base64Data: string;
+  outputPath: string;
+}): Promise<void> {
   const { base64Data, outputPath } = options;
   // Remove the base64 data prefix (if any)
   const base64Image = base64Data.split(';base64,').pop() || base64Data;
@@ -84,7 +87,10 @@ export async function resizeImg(base64Data: string) {
  * @returns {Object} An object containing the new width and height.
  * @throws {Error} Throws an error if the width or height is not a positive number.
  */
-export function calculateNewDimensions(originalWidth: number, originalHeight: number) {
+export function calculateNewDimensions(
+  originalWidth: number,
+  originalHeight: number,
+) {
   // In low mode, the image is scaled to 512x512 pixels and 85 tokens are used to represent the image.
   // In high mode, the model looks at low-resolution images and then creates detailed crop images, using 170 tokens for each 512x512 pixel tile. In practical applications, it is recommended to control the image size within 2048x768 pixels
   const maxWidth = 768; // Maximum width
@@ -128,7 +134,12 @@ export async function trimImage(image: string | Buffer): Promise<{
   const imgInstance = Sharp(image);
   const instanceInfo = await imgInstance.metadata();
 
-  if (!instanceInfo.width || instanceInfo.width <= 3 || !instanceInfo.height || instanceInfo.height <= 3) {
+  if (
+    !instanceInfo.width ||
+    instanceInfo.width <= 3 ||
+    !instanceInfo.height ||
+    instanceInfo.height <= 3
+  ) {
     return null;
   }
 
@@ -136,7 +147,10 @@ export async function trimImage(image: string | Buffer): Promise<{
     resolveWithObject: true,
   });
 
-  if (typeof info.trimOffsetLeft === 'undefined' || typeof info.trimOffsetTop === 'undefined') {
+  if (
+    typeof info.trimOffsetLeft === 'undefined' ||
+    typeof info.trimOffsetTop === 'undefined'
+  ) {
     return null;
   }
 
@@ -164,9 +178,17 @@ export async function trimImage(image: string | Buffer): Promise<{
  * @returns A Promise that resolves to a rectangle object representing the aligned coordinates
  * @throws Error if there is an error during image processing
  */
-export async function alignCoordByTrim(image: string | Buffer, centerRect: Rect): Promise<Rect> {
+export async function alignCoordByTrim(
+  image: string | Buffer,
+  centerRect: Rect,
+): Promise<Rect> {
   const imgInfo = await Sharp(image).metadata();
-  if (!imgInfo?.width || !imgInfo.height || imgInfo.width <= 3 || imgInfo.height <= 3) {
+  if (
+    !imgInfo?.width ||
+    !imgInfo.height ||
+    imgInfo.width <= 3 ||
+    imgInfo.height <= 3
+  ) {
     return centerRect;
   }
   try {

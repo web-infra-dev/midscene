@@ -16,10 +16,7 @@
       "width": 22,
       "height": 22
     },
-    "center": [
-      26,
-      28
-    ]
+    "center": [26, 28]
   },
   {
     "id": "ba59909699",
@@ -30,10 +27,7 @@
       "nodeType": "TEXT Node"
     },
     "locator": "[_midscene_retrieve_task_id='ba59909699']",
-    "center": [
-      81,
-      28
-    ],
+    "center": [81, 28],
     "content": "中文",
     "rect": {
       "left": 59,
@@ -59,10 +53,7 @@
       "width": 44,
       "height": 44
     },
-    "center": [
-      225,
-      30
-    ]
+    "center": [225, 30]
   },
   {
     "id": "f775c69cb4",
@@ -81,10 +72,7 @@
       "width": 25,
       "height": 25
     },
-    "center": [
-      363,
-      29
-    ]
+    "center": [363, 29]
   },
   {
     "id": "67bd3fba57",
@@ -94,10 +82,7 @@
       "nodeType": "TEXT Node"
     },
     "locator": "[_midscene_retrieve_task_id='67bd3fba57']",
-    "center": [
-      200,
-      80
-    ],
+    "center": [200, 80],
     "content": "商家暂未开通外卖和自取业务",
     "rect": {
       "left": 75,
@@ -114,10 +99,7 @@
       "nodeType": "TEXT Node"
     },
     "locator": "[_midscene_retrieve_task_id='c900f4b633']",
-    "center": [
-      209,
-      98
-    ],
+    "center": [209, 98],
     "content": "喜茶 HEYTEA (Vivocity)",
     "rect": {
       "left": 22,
@@ -134,10 +116,7 @@
       "nodeType": "TEXT Node"
     },
     "locator": "[_midscene_retrieve_task_id='6f761c984e']",
-    "center": [
-      209,
-      133
-    ],
+    "center": [209, 133],
     "content": "全岛派送，起送价 S$ 11",
     "rect": {
       "left": 22,
@@ -162,10 +141,7 @@
       "width": 368,
       "height": 180
     },
-    "center": [
-      200,
-      350
-    ]
+    "center": [200, 350]
   },
   {
     "id": "31c3a4bba6",
@@ -175,10 +151,7 @@
       "nodeType": "TEXT Node"
     },
     "locator": "[_midscene_retrieve_task_id='31c3a4bba6']",
-    "center": [
-      200,
-      482
-    ],
+    "center": [200, 482],
     "content": "喜茶为芝士现泡茶的原创者。自创立以来，喜茶专注于呈现来自世界各地的优质茶香， 让茶饮这一古老文化焕发出新的生命力。",
     "rect": {
       "left": 16,
@@ -195,10 +168,7 @@
       "nodeType": "TEXT Node"
     },
     "locator": "[_midscene_retrieve_task_id='079f969064']",
-    "center": [
-      128,
-      569
-    ],
+    "center": [128, 569],
     "content": "菜单",
     "rect": {
       "left": 112,
@@ -215,10 +185,7 @@
       "nodeType": "TEXT Node"
     },
     "locator": "[_midscene_retrieve_task_id='b0931353bd']",
-    "center": [
-      200,
-      569
-    ],
+    "center": [200, 569],
     "content": "评价",
     "rect": {
       "left": 184,
@@ -235,10 +202,7 @@
       "nodeType": "TEXT Node"
     },
     "locator": "[_midscene_retrieve_task_id='afab9cd02f']",
-    "center": [
-      272,
-      569
-    ],
+    "center": [272, 569],
     "content": "商家",
     "rect": {
       "left": 256,
@@ -255,10 +219,7 @@
       "nodeType": "TEXT Node"
     },
     "locator": "[_midscene_retrieve_task_id='88e7fb5aed']",
-    "center": [
-      29,
-      623
-    ],
+    "center": [29, 623],
     "content": "时令鲜果",
     "rect": {
       "left": 5,
@@ -275,10 +236,7 @@
       "nodeType": "TEXT Node"
     },
     "locator": "[_midscene_retrieve_task_id='cee3c6676f']",
-    "center": [
-      35,
-      683
-    ],
+    "center": [35, 683],
     "content": "清爽不喝腻",
     "rect": {
       "left": 5,
@@ -295,10 +253,7 @@
       "nodeType": "TEXT Node"
     },
     "locator": "[_midscene_retrieve_task_id='512ab699a2']",
-    "center": [
-      35,
-      743
-    ],
+    "center": [35, 743],
     "content": "经典不踩雷",
     "rect": {
       "left": 5,
@@ -315,10 +270,7 @@
       "nodeType": "TEXT Node"
     },
     "locator": "[_midscene_retrieve_task_id='3948acb8ad']",
-    "center": [
-      23,
-      803
-    ],
+    "center": [23, 803],
     "content": "要浓郁",
     "rect": {
       "left": 5,
@@ -335,10 +287,7 @@
       "nodeType": "TEXT Node"
     },
     "locator": "[_midscene_retrieve_task_id='985ed5922f']",
-    "center": [
-      23,
-      863
-    ],
+    "center": [23, 863],
     "content": "要简单",
     "rect": {
       "left": 5,
@@ -355,10 +304,7 @@
       "nodeType": "TEXT Node"
     },
     "locator": "[_midscene_retrieve_task_id='e54bc06de4']",
-    "center": [
-      126,
-      633
-    ],
+    "center": [126, 633],
     "content": "时令鲜果 (1)",
     "rect": {
       "left": 88,
@@ -384,10 +330,7 @@
       "width": 90,
       "height": 90
     },
-    "center": [
-      133,
-      704
-    ]
+    "center": [133, 704]
   },
   {
     "id": "c93bedf4d3",
@@ -397,10 +340,7 @@
       "nodeType": "TEXT Node"
     },
     "locator": "[_midscene_retrieve_task_id='c93bedf4d3']",
-    "center": [
-      288,
-      670
-    ],
+    "center": [288, 670],
     "content": "多肉大橘（首创）",
     "rect": {
       "left": 188,
@@ -418,10 +358,7 @@
       "nodeType": "TEXT Node"
     },
     "locator": "[_midscene_retrieve_task_id='1b673db570']",
-    "center": [
-      288,
-      691
-    ],
+    "center": [288, 691],
     "content": "果肉丰盈，粒粒饱满多汁；精心调配果汁与绿妍茶底的比例打制成冰沙；搭配清甜的无香精桂花冻与Q谈脆波波，再用香水柠檬片作点缀，口感丰富，香气有层次。默认标准杯500ml，可根据个人喜好选择加大杯650ml。",
     "rect": {
       "left": 188,
@@ -439,10 +376,7 @@
       "nodeType": "TEXT Node"
     },
     "locator": "[_midscene_retrieve_task_id='14103376fb']",
-    "center": [
-      211,
-      736
-    ],
+    "center": [211, 736],
     "content": "6.82",
     "rect": {
       "left": 192,
@@ -460,10 +394,7 @@
       "nodeType": "TEXT Node"
     },
     "locator": "[_midscene_retrieve_task_id='580cfae23c']",
-    "center": [
-      355,
-      732
-    ],
+    "center": [355, 732],
     "content": "选规格",
     "rect": {
       "left": 322,
@@ -480,10 +411,7 @@
       "nodeType": "TEXT Node"
     },
     "locator": "[_midscene_retrieve_task_id='7f10fa6626']",
-    "center": [
-      134,
-      776
-    ],
+    "center": [134, 776],
     "content": "清爽不喝腻 (5)",
     "rect": {
       "left": 88,
@@ -509,10 +437,7 @@
       "width": 90,
       "height": 90
     },
-    "center": [
-      133,
-      847
-    ]
+    "center": [133, 847]
   },
   {
     "id": "2e297d0b4a",
@@ -522,10 +447,7 @@
       "nodeType": "TEXT Node"
     },
     "locator": "[_midscene_retrieve_task_id='2e297d0b4a']",
-    "center": [
-      288,
-      813
-    ],
+    "center": [288, 813],
     "content": "轻芒芒甘露",
     "rect": {
       "left": 188,
@@ -543,10 +465,7 @@
       "nodeType": "TEXT Node"
     },
     "locator": "[_midscene_retrieve_task_id='9f0e2a5328']",
-    "center": [
-      288,
-      834
-    ],
+    "center": [288, 834],
     "content": "更清爽的芒芒甘露，芒着清爽，芒着解腻。当季芒果，新鲜手切，香甜浓郁；加入红柚果粒与Q弹的脆波波，轻盈不轻量。清爽的芒果绿妍冰沙平衡椰浆的比例，清爽不简单。",
     "rect": {
       "left": 188,
@@ -564,10 +483,7 @@
       "nodeType": "TEXT Node"
     },
     "locator": "[_midscene_retrieve_task_id='0250e12e67']",
-    "center": [
-      211,
-      879
-    ],
+    "center": [211, 879],
     "content": "6.54",
     "rect": {
       "left": 192,
@@ -585,10 +501,7 @@
       "nodeType": "TEXT Node"
     },
     "locator": "[_midscene_retrieve_task_id='925c254744']",
-    "center": [
-      355,
-      875
-    ],
+    "center": [355, 875],
     "content": "选规格",
     "rect": {
       "left": 322,
@@ -613,9 +526,6 @@
       "width": 42,
       "height": 42
     },
-    "center": [
-      379,
-      834
-    ]
+    "center": [379, 834]
   }
 ]

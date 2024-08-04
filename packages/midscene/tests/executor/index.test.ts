@@ -1,13 +1,13 @@
-import { it, describe, expect, vi } from 'vitest';
-import { fakeInsight } from 'tests/utils';
-import {
+import { Executor } from '@/action/executor';
+import type {
   DumpSubscriber,
   ExecutionTaskActionApply,
   ExecutionTaskInsightLocate,
   ExecutionTaskInsightLocateApply,
   InsightDump,
 } from '@/index';
-import { Executor } from '@/action/executor';
+import { fakeInsight } from 'tests/utils';
+import { describe, expect, it, vi } from 'vitest';
 
 const insightFindTask = (shouldThrow?: boolean) => {
   let insightDump: InsightDump | undefined;
@@ -90,16 +90,20 @@ describe('executor', () => {
 
       const inputTasks = [insightTask1, actionTask];
 
-      const executor = new Executor('test', 'hello, this is a test', inputTasks);
+      const executor = new Executor(
+        'test',
+        'hello, this is a test',
+        inputTasks,
+      );
       await executor.flush();
       const tasks = executor.tasks as ExecutionTaskInsightLocate[];
-      const { element } = tasks[0].output!;
+      const { element } = tasks[0].output || {};
       expect(element).toBeTruthy();
 
       expect(tasks.length).toBe(inputTasks.length);
       expect(tasks[0].status).toBe('success');
       expect(tasks[0].output).toMatchSnapshot();
-      expect(tasks[0].log!.dump).toBeTruthy();
+      expect(tasks[0].log?.dump).toBeTruthy();
       expect(tasks[0].timing?.end).toBeTruthy();
       expect(tasks[0].cache).toBeTruthy();
       expect(tasks[0].cache?.hit).toEqual(false);

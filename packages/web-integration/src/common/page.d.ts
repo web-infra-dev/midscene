@@ -1,5 +1,5 @@
 import type { Page as PlaywrightPage } from 'playwright';
-import type { Page as PuppeteerPage, KeyInput } from 'puppeteer';
+import type { KeyInput, Page as PuppeteerPage } from 'puppeteer';
 
 export type WebPage = PlaywrightPage | PuppeteerPage;
 export type WebKeyInput = KeyInput;

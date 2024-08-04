@@ -7,10 +7,7 @@
       "nodeType": "TEXT Node"
     },
     "locator": "[_midscene_retrieve_task_id='ab22d01377']",
-    "center": [
-      640,
-      66
-    ],
+    "center": [640, 66],
     "content": "todos",
     "rect": {
       "left": 365,
@@ -39,10 +36,7 @@
       "width": 550,
       "height": 65
     },
-    "center": [
-      640,
-      163
-    ]
+    "center": [640, 163]
   },
   {
     "id": "eb02ad0e19",
@@ -62,10 +56,7 @@
       "width": 40,
       "height": 60
     },
-    "center": [
-      389,
-      163
-    ]
+    "center": [389, 163]
   },
   {
     "id": "22625b5e51",
@@ -77,10 +68,7 @@
       "nodeType": "TEXT Node"
     },
     "locator": "[_midscene_retrieve_task_id='22625b5e51']",
-    "center": [
-      388,
-      164
-    ],
+    "center": [388, 164],
     "content": "Toggle All Input",
     "rect": {
       "left": 365,
@@ -107,10 +95,7 @@
       "width": 40,
       "height": 40
     },
-    "center": [
-      385,
-      225
-    ]
+    "center": [385, 225]
   },
   {
     "id": "46449cb0ef",
@@ -121,10 +106,7 @@
       "nodeType": "TEXT Node"
     },
     "locator": "[_midscene_retrieve_task_id='46449cb0ef']",
-    "center": [
-      640,
-      226
-    ],
+    "center": [640, 226],
     "content": "Learn Python",
     "rect": {
       "left": 365,
@@ -151,10 +133,7 @@
       "width": 40,
       "height": 40
     },
-    "center": [
-      385,
-      285
-    ]
+    "center": [385, 285]
   },
   {
     "id": "b5bacc879a",
@@ -165,10 +144,7 @@
       "nodeType": "TEXT Node"
     },
     "locator": "[_midscene_retrieve_task_id='b5bacc879a']",
-    "center": [
-      640,
-      286
-    ],
+    "center": [640, 286],
     "content": "Learn Rust",
     "rect": {
       "left": 365,
@@ -194,10 +170,7 @@
       "width": 40,
       "height": 40
     },
-    "center": [
-      885,
-      285
-    ]
+    "center": [885, 285]
   },
   {
     "id": "eb987bf616",
@@ -217,10 +190,7 @@
       "width": 40,
       "height": 40
     },
-    "center": [
-      385,
-      345
-    ]
+    "center": [385, 345]
   },
   {
     "id": "6c30e37d29",
@@ -231,10 +201,7 @@
       "nodeType": "TEXT Node"
     },
     "locator": "[_midscene_retrieve_task_id='6c30e37d29']",
-    "center": [
-      640,
-      346
-    ],
+    "center": [640, 346],
     "content": "Learn AI",
     "rect": {
       "left": 365,
@@ -252,10 +219,7 @@
       "nodeType": "TEXT Node"
     },
     "locator": "[_midscene_retrieve_task_id='12fb207e82']",
-    "center": [
-      416,
-      395
-    ],
+    "center": [416, 395],
     "content": "3 items left!",
     "rect": {
       "left": 380,
@@ -274,10 +238,7 @@
       "nodeType": "TEXT Node"
     },
     "locator": "[_midscene_retrieve_task_id='944c1fae15']",
-    "center": [
-      565,
-      395
-    ],
+    "center": [565, 395],
     "content": "All",
     "rect": {
       "left": 550,
@@ -296,10 +257,7 @@
       "nodeType": "TEXT Node"
     },
     "locator": "[_midscene_retrieve_task_id='fc1a3e34a0']",
-    "center": [
-      613,
-      395
-    ],
+    "center": [613, 395],
     "content": "Active",
     "rect": {
       "left": 586,
@@ -318,10 +276,7 @@
       "nodeType": "TEXT Node"
     },
     "locator": "[_midscene_retrieve_task_id='0f8f471e06']",
-    "center": [
-      688,
-      395
-    ],
+    "center": [688, 395],
     "content": "Completed",
     "rect": {
       "left": 645,
@@ -346,10 +301,7 @@
       "width": 103,
       "height": 19
     },
-    "center": [
-      849,
-      395
-    ]
+    "center": [849, 395]
   },
   {
     "id": "586415981c",
@@ -359,10 +311,7 @@
       "nodeType": "TEXT Node"
     },
     "locator": "[_midscene_retrieve_task_id='586415981c']",
-    "center": [
-      640,
-      486
-    ],
+    "center": [640, 486],
     "content": "Double-click to edit a todo",
     "rect": {
       "left": 365,
@@ -379,10 +328,7 @@
       "nodeType": "TEXT Node"
     },
     "locator": "[_midscene_retrieve_task_id='d501ec8b0c']",
-    "center": [
-      640,
-      508
-    ],
+    "center": [640, 508],
     "content": "Created by the TodoMVC Team",
     "rect": {
       "left": 365,
@@ -399,10 +345,7 @@
       "nodeType": "TEXT Node"
     },
     "locator": "[_midscene_retrieve_task_id='332bc0052f']",
-    "center": [
-      640,
-      530
-    ],
+    "center": [640, 530],
     "content": "Part of TodoMVC",
     "rect": {
       "left": 365,
@@ -420,10 +363,7 @@
       "nodeType": "TEXT Node"
     },
     "locator": "[_midscene_retrieve_task_id='70ba39c5c6']",
-    "center": [
-      656,
-      530
-    ],
+    "center": [656, 530],
     "content": "TodoMVC",
     "rect": {
       "left": 632,
