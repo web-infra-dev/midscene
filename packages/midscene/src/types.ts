@@ -241,9 +241,10 @@ export interface ExecutionTaskApply<
   executor: (
     param: TaskParam,
     context: ExecutorContext,
-  ) =>
-    | Promise<ExecutionTaskReturn<TaskOutput, TaskLog> | undefined>
-    | undefined;
+  ) => // biome-ignore lint/suspicious/noConfusingVoidType: <explanation>
+    | Promise<ExecutionTaskReturn<TaskOutput, TaskLog> | undefined | void>
+    | undefined
+    | void;
 }
 
 export interface ExecutionTaskReturn<TaskOutput = unknown, TaskLog = unknown> {
