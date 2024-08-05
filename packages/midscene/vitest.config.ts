@@ -1,5 +1,13 @@
 import path from 'node:path';
+//@ts-ignore
+import dotenv from 'dotenv';
 import { defineConfig } from 'vitest/config';
+
+/**
+ * Read environment variables from file.
+ * https://github.com/motdotla/dotenv
+ */
+dotenv.config();
 
 const enableTest = process.env.AITEST;
 

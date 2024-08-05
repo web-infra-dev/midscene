@@ -29,6 +29,9 @@ importers:
       commitizen:
         specifier: 4.2.5
         version: 4.2.5(@types/node@20.5.1)(typescript@5.5.4)
+      cspell-ban-words:
+        specifier: ^0.0.3
+        version: 0.0.3
       dayjs:
         specifier: 1.11.11
         version: 1.11.11
@@ -94,6 +97,9 @@ importers:
       '@types/node':
         specifier: ^18.0.0
         version: 18.19.41
+      dotenv:
+        specifier: 16.4.5
+        version: 16.4.5
       langsmith:
         specifier: 0.1.36
         version: 0.1.36(openai@4.47.1)
@@ -277,6 +283,9 @@ importers:
       '@types/node':
         specifier: ^18.0.0
         version: 18.19.41
+      dotenv:
+        specifier: 16.4.5
+        version: 16.4.5
       fs-extra:
         specifier: 11.2.0
         version: 11.2.0
@@ -5019,6 +5028,9 @@ packages:
 
   crypto-browserify@3.12.0:
     resolution: {integrity: sha512-fz4spIh+znjO2VjL+IdhEpRJ3YN6sMzITSBijk6FK2UvTqruSQW+/cCZTSNsMiZNvUeq0CqurF+dAbyiGOY6Wg==}
+
+  cspell-ban-words@0.0.3:
+    resolution: {integrity: sha512-Q7ZO16DFWEP8Vv5CJ63LG95/FomTuxB6WvKhvGUDE3L2hiYl7n2fH+0qoSXL5C3zH6NRPQT4rDS66t1Pi/fILA==}
 
   css-color-keywords@1.0.0:
     resolution: {integrity: sha512-FyyrDHZKEjXDpNJYvVsV960FiqQyXc/LlYmsxl2BcdMb2WPx0OGRVgTg55rPSyLSNMqP52R9r8geSp7apN3Ofg==}
@@ -17537,6 +17549,8 @@ snapshots:
       public-encrypt: 4.0.3
       randombytes: 2.1.0
       randomfill: 1.0.4
+
+  cspell-ban-words@0.0.3: {}
 
   css-color-keywords@1.0.0: {}
 

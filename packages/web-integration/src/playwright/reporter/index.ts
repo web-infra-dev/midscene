@@ -58,7 +58,7 @@ class MidsceneReporter implements Reporter {
     generateTestData(testDataList);
     console.log(
       '\x1b[32m%s\x1b[0m',
-      `Midscene report has been generated.\nRun "npx http-server ./midscene_run/report -p 9888 -o -s" to view.`
+      `Midscene report has been generated.\nRun "npx http-server ./midscene_run/report -o -s -c-1" to view.`,
     );
   }
 }
