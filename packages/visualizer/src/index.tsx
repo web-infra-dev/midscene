@@ -232,7 +232,7 @@ export function Visualizer(props: {
       }}
     >
       <Helmet>
-        <title>MidScene.js - Visualization Tool</title>
+        <title>Midscene.js - Visualization Tool</title>
       </Helmet>
       <div
         className="page-container"

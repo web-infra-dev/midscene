@@ -1,9 +1,9 @@
 <p align="center">
-  <img alt="MidScene.js"  width="260" src="https://github.com/user-attachments/assets/bff5e76f-ea5c-42b7-bd12-0143a04671cf">
+  <img alt="Midscene.js"  width="260" src="https://github.com/user-attachments/assets/bff5e76f-ea5c-42b7-bd12-0143a04671cf">
 </p>
 
 
-<h1 align="center">MidScene.js</h1>
+<h1 align="center">Midscene.js</h1>
 <div align="center">
 
 English | [简体中文](./README.zh.md)
@@ -20,11 +20,11 @@ English | [简体中文](./README.zh.md)
   <img src="https://img.shields.io/badge/License-MIT-blue.svg?style=flat-square&color=00a8f0" alt="License" />
 </p>
 
-MidScene.js is an AI-powered automation SDK can control the page, perform assertions, and extract data in JSON format using natural language.
+Midscene.js is an AI-powered automation SDK can control the page, perform assertions, and extract data in JSON format using natural language.
 
 ## Features ✨
 
-- **Natural Language Interaction 👆**: Describe the steps and let MidScene plan and control the user interface for you
+- **Natural Language Interaction 👆**: Describe the steps and let Midscene plan and control the user interface for you
 - **Understand UI, Answer in JSON 🔍**: Provide prompts regarding the desired data format, and then receive the expected response in JSON format.
 - **Intuitive Assertion 🤔**: Make assertions in natural language. It’s all based on AI understanding.
 - **Out-of-box LLM 🪓**: It is fine to use public multimodal LLMs like GPT-4o. There is no need for any custom training.
@@ -40,4 +40,4 @@ MidScene.js is an AI-powered automation SDK can control the page, perform assert
 
 ## License
 
-MidScene.js is [MIT licensed](https://github.com/web-infra-dev/midscene/blob/main/LICENSE).
+Midscene.js is [MIT licensed](https://github.com/web-infra-dev/midscene/blob/main/LICENSE).

@@ -2,7 +2,7 @@
 
 ## config AI vendor
 
-MidScene uses the OpenAI SDK as the default AI service. You can customize the configuration using environment variables.
+Midscene uses the OpenAI SDK as the default AI service. You can customize the configuration using environment variables.
 
 There are the main configs, in which `OPENAI_API_KEY` is required.
 
@@ -50,7 +50,7 @@ You can view the integration sample in [quick-start](../getting-started/quick-st
 
 ### `.aiAction(steps: string)` or `.ai(steps: string)` - Control the page
 
-You can use `.aiAction` to perform a series of actions. It accepts a `steps: string` as a parameter, which describes the actions. In the prompt, you should clearly describe the steps. MidScene will take care of the rest.
+You can use `.aiAction` to perform a series of actions. It accepts a `steps: string` as a parameter, which describes the actions. In the prompt, you should clearly describe the steps. Midscene will take care of the rest.
 
 `.ai` is the shortcut for `.aiAction`.
 
@@ -66,18 +66,18 @@ await mid.ai('Click the "completed" status button below the task list');
 
 Steps should always be clearly and thoroughly described. A very brief prompt like 'Tweet "Hello World"' will result in unstable performance and a high likelihood of failure. 
 
-Under the hood, MidScene will plan the detailed steps by sending your page context and a screenshot to the AI. After that, MidScene will execute the steps one by one. If MidScene deems it impossible to execute, an error will be thrown. 
+Under the hood, Midscene will plan the detailed steps by sending your page context and a screenshot to the AI. After that, Midscene will execute the steps one by one. If Midscene deems it impossible to execute, an error will be thrown. 
 
-The main capabilities of MidScene are as follows, and your task will be split into these types. You can see them in the visualization tools:
+The main capabilities of Midscene are as follows, and your task will be split into these types. You can see them in the visualization tools:
 
 1. **Locator**: Identify the target element using a natural language description
 2. **Action**: Tap, scroll, keyboard input, hover
 3. **Others**: Sleep
 
-Currently, MidScene can't plan steps that include conditions and loops.
+Currently, Midscene can't plan steps that include conditions and loops.
 
 Related Docs:
-* [FAQ: Can MidScene smartly plan the actions according to my one-line goal? Like executing "Tweet 'hello world'](../more/faq.html)
+* [FAQ: Can Midscene smartly plan the actions according to my one-line goal? Like executing "Tweet 'hello world'](../more/faq.html)
 * [Tips for Prompting](../more/prompting-tips.html)
 
 ### `.aiQuery(dataDemand: any)` - extract any data from page
@@ -107,9 +107,9 @@ const dataC = await mid.aiQuery('{name: string, age: string}[], Data Record in t
 
 ### `.aiAssert(conditionPrompt: string, errorMsg?: string)` - do an assertion
 
-This method will soon be available in MidScene.
+This method will soon be available in Midscene.
 
-`.aiAssert` works just like the normal `assert` method, except that the condition is a prompt string written in natural language. MidScene will call AI to determine if the `conditionPrompt` is true. If not, a detailed reason will be concatenated to the `errorMsg`.
+`.aiAssert` works just like the normal `assert` method, except that the condition is a prompt string written in natural language. Midscene will call AI to determine if the `conditionPrompt` is true. If not, a detailed reason will be concatenated to the `errorMsg`.
 
 ```typescript
 // coming soon
@@ -132,7 +132,7 @@ export LANGCHAIN_API_KEY="your_key_here"
 export LANGCHAIN_PROJECT="your_project_name_here"
 ```
 
-Launch MidScene, you should see logs like this:
+Launch Midscene, you should see logs like this:
 
 ```log
 DEBUGGING MODE: langsmith wrapper enabled

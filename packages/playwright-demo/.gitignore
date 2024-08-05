@@ -4,5 +4,5 @@ node_modules/
 /blob-report/
 /playwright/.cache/
 
-# MidScene.js dump files
+# Midscene.js dump files
 midscene_run/
