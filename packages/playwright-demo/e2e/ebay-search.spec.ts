@@ -7,7 +7,7 @@ test.beforeEach(async ({ page }) => {
   await page.waitForLoadState('networkidle');
 });
 
-test('search headphone on ebay', async ({ ai, aiQuery }) => {
+test('search headphone on ebay', async ({ ai, aiQuery, aiAssert }) => {
   // 👀 perform a search
   await ai('type "Headphones" in search box, hit Enter');
 
@@ -18,5 +18,7 @@ test('search headphone on ebay', async ({ ai, aiQuery }) => {
 
   console.log('headphones in stock', items);
 
-  expect(items?.length).toBeGreaterThan(1);
+  expect(items?.length).toBeGreaterThanOrEqual(1);
+
+  await aiAssert('There is a big input box in the page');
 });

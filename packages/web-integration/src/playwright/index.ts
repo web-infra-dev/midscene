@@ -26,17 +26,17 @@ const groupAndCaseForTest = (testInfo: TestInfo) => {
   return { taskFile, taskTitle };
 };
 
-const midSceneAgentKeyId = '_midSceneAgentId';
+const midsceneAgentKeyId = '_midsceneAgentId';
 export const PlaywrightAiFixture = () => {
   const pageAgentMap: Record<string, PageAgent> = {};
   const agentForPage = (
     page: WebPage,
     opts: { testId: string; taskFile: string; taskTitle: string },
   ) => {
-    let idForPage = (page as any)[midSceneAgentKeyId];
+    let idForPage = (page as any)[midsceneAgentKeyId];
     if (!idForPage) {
       idForPage = randomUUID();
-      (page as any)[midSceneAgentKeyId] = idForPage;
+      (page as any)[midsceneAgentKeyId] = idForPage;
       const testCase = readTestCache(opts.taskFile, opts.taskTitle) || {
         aiTasks: [],
       };
@@ -69,7 +69,7 @@ export const PlaywrightAiFixture = () => {
           return result;
         },
       );
-      const taskCacheJson = agent.actionAgent.taskCache.generateTaskCache();
+      const taskCacheJson = agent.taskExecutor.taskCache.generateTaskCache();
       writeTestCache(taskFile, taskTitle, taskCacheJson);
       if (agent.dumpFile) {
         testInfo.annotations.push({
@@ -132,6 +132,31 @@ export const PlaywrightAiFixture = () => {
         });
       }
     },
+    aiAssert: async (
+      { page }: { page: PlaywrightPage },
+      use: any,
+      testInfo: TestInfo,
+    ) => {
+      const { taskFile, taskTitle } = groupAndCaseForTest(testInfo);
+      const agent = agentForPage(page, {
+        testId: testInfo.testId,
+        taskFile,
+        taskTitle,
+      });
+      await use(async (assertion: string, errorMsg?: string) => {
+        await page.waitForLoadState('networkidle');
+        await agent.aiAssert(assertion, errorMsg);
+      });
+      if (agent.dumpFile) {
+        testInfo.annotations.push({
+          type: 'MIDSCENE_AI_ACTION',
+          description: JSON.stringify({
+            testId: testInfo.testId,
+            dumpPath: agent.dumpFile,
+          }),
+        });
+      }
+    },
   };
 };
 
@@ -142,4 +167,5 @@ export type PlayWrightAiFixtureType = {
   ) => Promise<T>;
   aiAction: (taskPrompt: string) => ReturnType<PageTaskExecutor['action']>;
   aiQuery: <T = any>(demand: any) => Promise<T>;
+  aiAssert: (assertion: string, errorMsg?: string) => Promise<void>;
 };

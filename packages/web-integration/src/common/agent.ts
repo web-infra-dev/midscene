@@ -13,7 +13,7 @@ export class PageAgent {
 
   dumpFile?: string;
 
-  actionAgent: PageTaskExecutor;
+  taskExecutor: PageTaskExecutor;
 
   constructor(
     page: WebPage,
@@ -27,7 +27,7 @@ export class PageAgent {
       },
     ];
     this.testId = opts?.testId || String(process.pid);
-    this.actionAgent = new PageTaskExecutor(this.page, {
+    this.taskExecutor = new PageTaskExecutor(this.page, {
       cache: opts?.cache || { aiTasks: [] },
     });
   }
@@ -48,14 +48,14 @@ export class PageAgent {
   async aiAction(taskPrompt: string) {
     let error: Error | undefined;
     try {
-      await this.actionAgent.action(taskPrompt);
+      await this.taskExecutor.action(taskPrompt);
     } catch (e: any) {
       error = e;
     }
-    // console.log('cache logic', actionAgent.taskCache.generateTaskCache());
-    if (this.actionAgent.executionDump) {
-      this.appendDump(this.actionAgent.executionDump);
-      // this.appendDump(dumpGroupName, actionAgent.executionDump);
+    // console.log('cache logic', taskExecutor.taskCache.generateTaskCache());
+    if (this.taskExecutor.executionDump) {
+      this.appendDump(this.taskExecutor.executionDump);
+      // this.appendDump(dumpGroupName, taskExecutor.executionDump);
       this.writeOutActionDumps();
     }
     if (error) {
@@ -69,12 +69,12 @@ export class PageAgent {
     let error: Error | undefined;
     let result: any;
     try {
-      result = await this.actionAgent.query(demand);
+      result = await this.taskExecutor.query(demand);
     } catch (e: any) {
       error = e;
     }
-    if (this.actionAgent.executionDump) {
-      this.appendDump(this.actionAgent.executionDump);
+    if (this.taskExecutor.executionDump) {
+      this.appendDump(this.taskExecutor.executionDump);
       this.writeOutActionDumps();
     }
     if (error) {
@@ -85,6 +85,19 @@ export class PageAgent {
     return result;
   }
 
+  async aiAssert(assertion: string, msg?: string) {
+    const assertionResult = await this.taskExecutor.assert(assertion);
+    if (this.taskExecutor.executionDump) {
+      this.appendDump(this.taskExecutor.executionDump);
+      this.writeOutActionDumps();
+    }
+    if (!assertionResult.pass) {
+      const errMsg = msg || `Assertion failed: ${assertion}`;
+      const reasonMsg =  `Reason: ${assertionResult.thought}`;
+      throw new Error(`${errMsg}\n${reasonMsg}`);
+    }
+  }
+
   async ai(taskPrompt: string, type = 'action') {
     if (type === 'action') {
       return this.aiAction(taskPrompt);
@@ -92,8 +105,13 @@ export class PageAgent {
     if (type === 'query') {
       return this.aiQuery(taskPrompt);
     }
+
+    if(type === 'assert') {
+      return this.aiAssert(taskPrompt);
+    }
+
     throw new Error(
-      `Unknown or Unsupported task type: ${type}, only support 'action' or 'query'`,
+      `Unknown type: ${type}, only support 'action', 'query', 'assert'`,
     );
   }
 }

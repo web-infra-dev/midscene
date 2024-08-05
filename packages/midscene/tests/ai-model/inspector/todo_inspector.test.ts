@@ -7,6 +7,7 @@ import {
   runTestCases,
   writeFileSyncWithDir,
 } from './util';
+import { AiAssert } from '@/ai-model/inspect';
 
 const testTodoCases = [
   {
@@ -39,7 +40,7 @@ repeat(2, (repeatIndex) => {
         path.join(__dirname, './test-data/todo'),
       );
 
-      const { aiResponse, filterUnStableinf } = await runTestCases(
+      const { aiResponse, filterUnstableResult } = await runTestCases(
         testTodoCases,
         async (testCase) => {
           const { parseResult } = await AiInspectElement({
@@ -58,12 +59,39 @@ repeat(2, (repeatIndex) => {
         JSON.stringify(aiResponse, null, 2),
         { encoding: 'utf-8' },
       );
-      expect(filterUnStableinf).toMatchFileSnapshot(
+      expect(filterUnstableResult).toMatchFileSnapshot(
         './__snapshots__/todo_inspector.test.ts.snap',
       );
     },
     {
-      timeout: 99999,
+      timeout: 90 * 1000,
     },
   );
+});
+
+repeat(2, () => {
+  it('todo: assert', async () => {
+    const { context } = await getPageTestData(
+      path.join(__dirname, './test-data/todo'),
+    );
+  
+    const {pass, thought } = await AiAssert({
+      context,
+      assertion: 'There are three tasks in the list',
+    });
+  
+    expect(pass).toBeTruthy();
+    expect(thought).toBeTruthy();
+  
+    const {pass: pass2, thought: thought2 } = await AiAssert({
+      context,
+      assertion: 'There is an button to sort the list in a time order',
+    });
+  
+    expect(pass2).toBeFalsy();
+    expect(thought2).toBeTruthy();
+  },    {
+    timeout: 90 * 1000,
+  },);
+  
 });

@@ -43,7 +43,7 @@ repeat(5, (repeatIndex) => {
         path.join(__dirname, './test-data/online_order'),
       );
 
-      const { aiResponse, filterUnStableinf } = await runTestCases(
+      const { aiResponse, filterUnstableResult } = await runTestCases(
         testCases,
         async (testCase) => {
           const { parseResult } = await AiInspectElement({
@@ -62,12 +62,12 @@ repeat(5, (repeatIndex) => {
         JSON.stringify(aiResponse, null, 2),
         { encoding: 'utf-8' },
       );
-      expect(filterUnStableinf).toMatchFileSnapshot(
+      expect(filterUnstableResult).toMatchFileSnapshot(
         './__snapshots__/online_order_inspector.test.ts.snap',
       );
     },
     {
-      timeout: 99999,
+      timeout: 90 * 1000,
     },
   );
 });

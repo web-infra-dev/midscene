@@ -56,7 +56,7 @@ export class Executor {
     }
   }
 
-  async flush(): Promise<void> {
+  async flush(): Promise<any> {
     if (this.status === 'init' && this.tasks.length > 0) {
       console.warn(
         'illegal state for executor, status is init but tasks are not empty',
@@ -108,7 +108,7 @@ export class Executor {
         };
         if (task.type === 'Insight') {
           assert(
-            task.subType === 'Locate' || task.subType === 'Query',
+            task.subType === 'Locate' || task.subType === 'Query' || task.subType === 'Assert',
             `unsupported insight subType: ${task.subType}`,
           );
           returnValue = await task.executor(param, executorContext);
@@ -151,6 +151,10 @@ export class Executor {
 
     if (successfullyCompleted) {
       this.status = 'completed';
+      if(this.tasks.length) {
+        // return the last output
+        return this.tasks[this.tasks.length - 1].output;
+      }
     } else {
       this.status = 'error';
       throw new Error(`executor failed: ${errorMsg}`);

@@ -65,7 +65,7 @@ export async function runTestCases(
     }
   });
 
-  const filterUnStableinf = aiResponse.map((aiInfo) => {
+  const filterUnstableResult = aiResponse.map((aiInfo) => {
     const { elements = [], prompt, error = [] } = aiInfo;
     return {
       elements: elements.map((element) => {
@@ -80,7 +80,7 @@ export async function runTestCases(
 
   return {
     aiResponse,
-    filterUnStableinf,
+    filterUnstableResult,
   };
 }
 
@@ -132,4 +132,9 @@ export async function getPageTestData(targetDir: string) {
     snapshotJson,
     screenshotBase64: base64Encoded(resizeOutputImgP),
   };
+}
+
+export async function getPageDataOfTestName(testName: string) {
+  const targetDir = path.join(__dirname, `test-data/${testName}`);
+  return await getPageTestData(targetDir);
 }

@@ -4,7 +4,8 @@ import { defineConfig } from 'rspress/config';
 export default defineConfig({
   root: path.join(__dirname, 'docs'),
   title: 'Midscene.js',
-  description: 'Your AI-Driven UI Compass',
+  description:
+    'An AI-powered automation SDK can control the page, perform assertions, and extract data in JSON format using natural language.',
   icon: '/midscene-icon.png',
   logo: {
     light: '/midscene_with_text_light.png',

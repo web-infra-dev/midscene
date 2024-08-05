@@ -4,7 +4,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { launchPage } from './utils';
 
 vi.setConfig({
-  testTimeout: 60 * 1000,
+  testTimeout: 90 * 1000,
 });
 
 describe('puppeteer integration', () => {
@@ -22,6 +22,8 @@ describe('puppeteer integration', () => {
     );
     console.log('headphones in stock', items);
     expect(items.length).toBeGreaterThanOrEqual(2);
+
+    await mid.aiAssert('There is a category filter on the left');
   });
 
   it('extract the Github service status', async () => {
@@ -32,5 +34,7 @@ describe('puppeteer integration', () => {
       'this is a service status page. Extract all status data with this scheme: {[serviceName]: [statusText]}',
     );
     console.log('Github service status', result);
+
+    await mid.aiAssert('food delivery service is in normal state');
   });
 });

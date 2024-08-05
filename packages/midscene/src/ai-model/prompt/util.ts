@@ -136,6 +136,25 @@ Return in the following JSON format:
 `;
 }
 
+
+export function systemPromptToAssert(
+  assertion: string,
+) {
+  return `
+${characteristic}
+${contextFormatIntro}
+
+Based on the information you get, assert the following:
+${assertion}
+
+Return in the following JSON format:
+{
+  thought: string, // string, the thought of the assertion
+  pass: true, // true or false, whether the assertion is passed
+}
+`;
+}
+
 /*
 To modify the response format:
   1. update the function `describeSectionResponseFormat` here

@@ -11,10 +11,12 @@ import Insight, {
   type ExecutionTaskInsightQueryApply,
   type ExecutionTaskPlanningApply,
   Executor,
+  type InsightAssertionResponse,
   type InsightDump,
   type InsightExtractParam,
   plan,
   type PlanningAction,
+  type PlanningActionParamAssert,
   type PlanningActionParamHover,
   type PlanningActionParamInputOrKeyPress,
   type PlanningActionParamScroll,
@@ -144,6 +146,32 @@ export class PageTaskExecutor {
           };
           return taskFind;
         }
+        if (plan.type === 'Assert') {
+          const assertPlan = plan as PlanningAction<PlanningActionParamAssert>;
+          const taskAssert: ExecutionTaskApply = {
+            type: 'Insight',
+            subType: 'Assert',
+            param: assertPlan.param,
+            executor: async () => {
+              let insightDump: InsightDump | undefined;
+              const dumpCollector: DumpSubscriber = (dump) => {
+                insightDump = dump;
+              };
+              this.insight.onceDumpUpdatedFn = dumpCollector;
+              const assertion = await this.insight.assert(
+                assertPlan.param.assertion,
+              );
+
+              return {
+                output: assertion,
+                log: {
+                  dump: insightDump,
+                },
+              };
+            },
+          };
+          return taskAssert;
+        }
         if (plan.type === 'Input') {
           const taskActionInput: ExecutionTaskActionApply<PlanningActionParamInputOrKeyPress> =
             {
@@ -163,6 +191,7 @@ export class PageTaskExecutor {
             };
           return taskActionInput;
         }
+
         if (plan.type === 'KeyboardPress') {
           const taskActionKeyboardPress: ExecutionTaskActionApply<PlanningActionParamInputOrKeyPress> =
             {
@@ -365,5 +394,25 @@ export class PageTaskExecutor {
       throw err;
     }
     return data;
+  }
+
+  async assert(assertion: string): Promise<InsightAssertionResponse> {
+    const description = assertion;
+    const taskExecutor = new Executor(description);
+    taskExecutor.description = description;
+    const assertionPlan: PlanningAction<PlanningActionParamAssert> = {
+      type: 'Assert',
+      param: {
+        assertion,
+      },
+    };
+    const assertTask = await this.convertPlanToExecutable([assertionPlan]);
+
+    await taskExecutor.append(this.wrapExecutorWithScreenshot(assertTask[0]));
+    const assertionResult: InsightAssertionResponse =
+      await taskExecutor.flush();
+    this.executionDump = taskExecutor.dump();
+
+    return assertionResult;
   }
 }

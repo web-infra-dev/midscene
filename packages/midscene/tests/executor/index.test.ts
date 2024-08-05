@@ -44,39 +44,12 @@ const insightFindTask = (shouldThrow?: boolean) => {
   return insightFindTask;
 };
 
-// const insightExtractTask = () => {
-//   let insightDump: InsightDump | undefined;
-//   const dumpCollector: DumpSubscriber = (dump) => {
-//     insightDump = dump;
-//   };
-//   const insight = fakeInsight('test-executor');
-//   insight.onceDumpUpdatedFn = dumpCollector;
-
-//   const task: any = {
-//     type: 'Insight-extract',
-//     param: {
-//       dataDemand: 'data-demand',
-//     },
-//     async executor(param: any) {
-//       return {
-//         output: {
-//           data: await insight.extract(param.dataDemand as any),
-//         },
-//         log: {
-//           dump: insightDump,
-//         },
-//       };
-//     },
-//   };
-//   return task;
-// }
-
 describe('executor', () => {
   it(
     'insight - basic run',
     async () => {
       const insightTask1 = insightFindTask();
-
+      const flushResultData = 'abcdef';
       const taskParam = {
         action: 'tap',
         anything: 'acceptable',
@@ -87,15 +60,24 @@ describe('executor', () => {
         param: taskParam,
         executor: tapperFn,
       };
+      const actionTask2: ExecutionTaskActionApply = {
+        type: 'Action',
+        param: taskParam,
+        executor: async () => {
+          return {
+            output: flushResultData,
+          } as any;
+        },
+      };
 
-      const inputTasks = [insightTask1, actionTask];
+      const inputTasks = [insightTask1, actionTask, actionTask2];
 
       const executor = new Executor(
         'test',
         'hello, this is a test',
         inputTasks,
       );
-      await executor.flush();
+      const flushResult = await executor.flush();
       const tasks = executor.tasks as ExecutionTaskInsightLocate[];
       const { element } = tasks[0].output || {};
       expect(element).toBeTruthy();
@@ -115,6 +97,8 @@ describe('executor', () => {
 
       const dump = executor.dump();
       expect(dump.logTime).toBeTruthy();
+
+      expect(flushResult).toBe(flushResultData);
     },
     {
       timeout: 999 * 1000,
@@ -150,7 +134,7 @@ describe('executor', () => {
     expect(dumpContent1.tasks.length).toBe(2);
 
     // append while running
-    await Promise.all([
+    const output = await Promise.all([
       initExecutor.flush(),
       (async () => {
         // sleep 200ms

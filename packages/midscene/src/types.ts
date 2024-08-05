@@ -66,6 +66,11 @@ export interface AISectionParseResponse<DataShape> {
   errors?: string[];
 }
 
+export interface AIAssertionResponse {
+  pass: boolean;
+  thought: string;
+}
+
 /**
  * context
  */
@@ -110,7 +115,6 @@ export type InsightExtractParam = string | Record<string, string>;
 
 export interface InsightTaskInfo {
   durationMs: number;
-  systemPrompt?: string;
   rawResponse?: string;
 }
 
@@ -120,17 +124,20 @@ export interface DumpMeta {
 }
 
 export interface InsightDump extends DumpMeta {
-  type: 'locate' | 'extract';
+  type: 'locate' | 'extract' | 'assert';
   logId: string;
   context: UIContext;
   userQuery: {
     element?: string;
     dataDemand?: InsightExtractParam;
     sections?: Record<string, string>;
+    assertion?: string;
   }; // ?
   matchedSection: UISection[];
   matchedElement: BaseElement[];
   data: any;
+  assertionPass?: boolean;
+  assertionThought?: string;
   taskInfo: InsightTaskInfo;
   error?: string;
 }
@@ -152,13 +159,15 @@ export interface LiteUISection {
 
 export type ElementById = (id: string) => BaseElement | null;
 
+export type InsightAssertionResponse = AIAssertionResponse;
+
 /**
  * planning
  *
  */
 
 export interface PlanningAction<ParamType = any> {
-  thought: string;
+  thought?: string;
   type:
     | 'Locate'
     | 'Tap'
@@ -166,7 +175,8 @@ export interface PlanningAction<ParamType = any> {
     | 'Input'
     | 'KeyboardPress'
     | 'Scroll'
-    | 'Error';
+    | 'Error'
+    | 'Assert';
   param: ParamType;
 }
 
@@ -187,6 +197,10 @@ export interface PlanningActionParamScroll {
     | 'ScrollUntilTop'
     | 'ScrollDown'
     | 'ScrollUp';
+}
+
+export interface PlanningActionParamAssert {
+  assertion: string;
 }
 
 /**
@@ -285,7 +299,7 @@ export interface ExecutionDump extends DumpMeta {
 }
 
 /*
-task - insight-find
+task - insight-locate
 */
 export interface ExecutionTaskInsightLocateParam {
   prompt: string;
@@ -295,7 +309,7 @@ export interface ExecutionTaskInsightLocateOutput {
   element: BaseElement | null;
 }
 
-export interface ExecutionTaskInsightLocateLog {
+export interface ExecutionTaskInsightDumpLog {
   dump?: InsightDump;
 }
 
@@ -303,14 +317,14 @@ export type ExecutionTaskInsightLocateApply = ExecutionTaskApply<
   'Insight',
   ExecutionTaskInsightLocateParam,
   ExecutionTaskInsightLocateOutput,
-  ExecutionTaskInsightLocateLog
+  ExecutionTaskInsightDumpLog
 >;
 
 export type ExecutionTaskInsightLocate =
   ExecutionTask<ExecutionTaskInsightLocateApply>;
 
 /*
-task - insight-extract
+task - insight-query
 */
 export interface ExecutionTaskInsightQueryParam {
   dataDemand: InsightExtractParam;
@@ -322,14 +336,30 @@ export interface ExecutionTaskInsightQueryOutput {
 
 export type ExecutionTaskInsightQueryApply = ExecutionTaskApply<
   'Insight',
-  ExecutionTaskInsightQueryParam
+  ExecutionTaskInsightQueryParam,
+  any,
+  ExecutionTaskInsightDumpLog
 >;
 
 export type ExecutionTaskInsightQuery =
   ExecutionTask<ExecutionTaskInsightQueryApply>;
 
-// export type ExecutionTaskInsight = ExecutionTaskInsightLocate; // | ExecutionTaskInsightExtract;
+/*
+task - assertion
+*/
+export interface ExecutionTaskInsightAssertionParam {
+  assertion: string;
+}
 
+export type ExecutionTaskInsightAssertionApply = ExecutionTaskApply<
+  'Insight',
+  ExecutionTaskInsightAssertionParam,
+  InsightAssertionResponse,
+  ExecutionTaskInsightDumpLog
+>;
+
+export type ExecutionTaskInsightAssertion = ExecutionTask<ExecutionTaskInsightAssertionApply>;
+  
 /*
 task - action (i.e. interact) 
 */
@@ -345,8 +375,6 @@ export type ExecutionTaskAction = ExecutionTask<ExecutionTaskActionApply>;
 /*
 task - planning
 */
-
-export type ExectuionTaskPlanningParam = PlanningAIResponse;
 
 export type ExecutionTaskPlanningApply = ExecutionTaskApply<
   'Planning',

@@ -4,7 +4,7 @@ import { defineConfig } from 'vitest/config';
 const enableTest = process.env.AITEST;
 
 const aiModelTest =
-  enableTest !== 'true' ? ['tests/ai-model/**/*.test.ts'] : [];
+  enableTest === 'true' || enableTest=== "1" ? [] : ['tests/ai-model/**/*.test.ts', 'tests/automation/planning.test.ts'];
 
 export default defineConfig({
   test: {
@@ -13,7 +13,6 @@ export default defineConfig({
     // Need to improve the corresponding testing
     exclude: [
       'tests/insight/*.test.ts',
-      'tests/automation/planning.test.ts',
       ...aiModelTest,
     ],
   },

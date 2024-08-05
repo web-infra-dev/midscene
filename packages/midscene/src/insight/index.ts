@@ -8,6 +8,7 @@ import type {
   AIElementParseResponse,
   BaseElement,
   DumpSubscriber,
+  InsightAssertionResponse,
   InsightExtractParam,
   InsightOptions,
   InsightTaskInfo,
@@ -17,7 +18,6 @@ import type {
 } from '@/types';
 import {
   extractSectionQuery,
-  // describeUserPage as defaultDescriber,
   ifElementTypeResponse,
   splitElementResponse,
 } from '../ai-model/prompt/util';
@@ -27,6 +27,7 @@ import {
   shallowExpandIds,
   writeInsightDump,
 } from './utils';
+import { AiAssert } from '@/ai-model/inspect';
 
 const sortByOrder = (a: UISection, b: UISection) => {
   if (a.rect.top - b.rect.top !== 0) {
@@ -93,7 +94,7 @@ export default class Insight<
     const context = await this.contextRetrieverFn();
 
     const startTime = Date.now();
-    const { parseResult, systemPrompt, elementById } = await AiInspectElement({
+    const { parseResult, elementById } = await AiInspectElement({
       callAI,
       context,
       multi: Boolean(multi),
@@ -105,7 +106,6 @@ export default class Insight<
       ...(this.taskInfo ? this.taskInfo : {}),
       durationMs: timeCost,
       rawResponse: JSON.stringify(parseResult),
-      systemPrompt,
     };
 
     let errorLog: string | undefined;
@@ -212,7 +212,7 @@ export default class Insight<
     const context = await this.contextRetrieverFn();
 
     const startTime = Date.now();
-    const { parseResult, systemPrompt, elementById } =
+    const { parseResult, elementById } =
       await AiExtractElementInfo<T>({
         context,
         dataQuery,
@@ -225,7 +225,6 @@ export default class Insight<
       ...(this.taskInfo ? this.taskInfo : {}),
       durationMs: timeCost,
       rawResponse: JSON.stringify(parseResult),
-      systemPrompt,
     };
 
     let errorLog: string | undefined;
@@ -312,5 +311,51 @@ export default class Insight<
     );
 
     return mergedData;
+  }
+
+  async assert(assertion: string) : Promise<InsightAssertionResponse> {
+    if(typeof assertion !== 'string') {
+      throw new Error('This is the assert method for Midscene, the first argument should be a string. If you want to use the assert method from Node.js, please import it from the Node.js assert module.');
+    }
+
+    const dumpSubscriber = this.onceDumpUpdatedFn;
+    this.onceDumpUpdatedFn = undefined;
+
+    const context = await this.contextRetrieverFn();
+    const startTime = Date.now();
+    const assertResult = await AiAssert({
+      assertion,
+      callAI: this.aiVendorFn,
+      context,
+    });
+
+    const timeCost = Date.now() - startTime;
+    const taskInfo: InsightTaskInfo = {
+      ...(this.taskInfo ? this.taskInfo : {}),
+      durationMs: timeCost,
+      rawResponse: JSON.stringify(assertResult),
+    };
+
+    const { thought, pass } = assertResult;
+    const dumpData: PartialInsightDumpFromSDK = {
+      type: 'assert',
+      context,
+      userQuery: {
+        assertion,
+      },
+      matchedSection: [],
+      matchedElement: [],
+      data: null,
+      taskInfo,
+      assertionPass: pass,
+      assertionThought: thought,
+      error: pass ? undefined: thought,
+    };
+    writeInsightDump(dumpData, undefined, dumpSubscriber);
+
+    return {
+      pass,
+      thought,
+    }
   }
 }

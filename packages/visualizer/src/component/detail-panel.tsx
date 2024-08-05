@@ -27,13 +27,14 @@ const VIEW_TYPE_SCREENSHOT = 'screenshot';
 const VIEW_TYPE_JSON = 'json';
 
 const DetailPanel = (): JSX.Element => {
+  const dumpContext = useInsightDump(store => store.data);
   const dumpId = useInsightDump((store) => store._loadId);
-  const blackboardViewAvailable = Boolean(dumpId);
+  const blackboardViewAvailable = Boolean(dumpContext);
   const activeTask = useExecutionDump((store) => store.activeTask);
   const [preferredViewType, setViewType] = useState(VIEW_TYPE_BLACKBOARD);
 
   const viewType =
-    preferredViewType === VIEW_TYPE_BLACKBOARD && !dumpId
+    preferredViewType === VIEW_TYPE_BLACKBOARD && !blackboardViewAvailable
       ? VIEW_TYPE_SCREENSHOT
       : preferredViewType;
 
@@ -47,7 +48,7 @@ const DetailPanel = (): JSX.Element => {
       </div>
     );
   } else if (viewType === VIEW_TYPE_BLACKBOARD) {
-    if (dumpId) {
+    if (blackboardViewAvailable) {
       content = <BlackBoard key={`${dumpId}`} />;
     } else {
       content = <div>invalid view</div>;
