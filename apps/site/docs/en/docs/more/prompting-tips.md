@@ -1,6 +1,6 @@
 # Tips for Prompting
 
-The natural language parameter passed to MidScene will be part of the prompt sent to the LLM. There are certain techniques in prompt engineering that can help improve the understanding of user interfaces.
+The natural language parameter passed to Midscene will be part of the prompt sent to the LLM. There are certain techniques in prompt engineering that can help improve the understanding of user interfaces.
 
 ### The purpose of optimization is to get a stable response from AI
 
@@ -28,7 +28,7 @@ Bad ❌: "[number, number], the [x, y] coords of the main button"
 
 ### Use visualization tool to debug
 
-Use the visualization tool to debug and understand each step of MidScene. Just upload the log, and view the AI's parse results. You can find [the tool](/visualization/) on the navigation bar on this site. 
+Use the visualization tool to debug and understand each step of Midscene. Just upload the log, and view the AI's parse results. You can find [the tool](/visualization/) on the navigation bar on this site. 
 
 ### Remember to cross-check the result by assertion
 

@@ -84,7 +84,7 @@ export function writeDumpFile(opts: {
     if (!gitIgnoreContent.includes(`${logDirName}/`)) {
       writeFileSync(
         gitIgnorePath,
-        `${gitIgnoreContent}\n# MidScene.js dump files\n${logDirName}/report\n${logDirName}/dump-logger\n`,
+        `${gitIgnoreContent}\n# Midscene.js dump files\n${logDirName}/report\n${logDirName}/dump-logger\n`,
         'utf-8',
       );
     }

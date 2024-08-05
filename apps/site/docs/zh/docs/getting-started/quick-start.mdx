@@ -131,7 +131,7 @@ Promise.resolve(
     await page.goto("https://www.ebay.com");
     await sleep(5000);
 
-    // 👀 初始化 MidScene agent 
+    // 👀 初始化 Midscene agent 
     const mid = new PuppeteerAgent(page);
 
     // 👀 执行搜索
@@ -185,7 +185,7 @@ npx ts-node demo.ts
 
 ### 第四步：查看运行报告
 
-运行 MidScene 之后，系统会生成一个日志文件，默认存放在 `./midscene_run/report/latest.web-dump.json`。然后，你可以把这个文件导入 [可视化工具](/visualization/)，这样你就能更清楚地了解整个过程。
+运行 Midscene 之后，系统会生成一个日志文件，默认存放在 `./midscene_run/report/latest.web-dump.json`。然后，你可以把这个文件导入 [可视化工具](/visualization/)，这样你就能更清楚地了解整个过程。
 
 ## 访问示例报告
 

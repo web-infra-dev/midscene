@@ -2,7 +2,7 @@
 pageType: home
 
 hero:
-  name: MidScene.js
+  name: Midscene.js
   text: AI 加持，更愉悦的 UI 自动化
   tagline: 
   actions:
@@ -14,11 +14,11 @@ hero:
       link: /docs/getting-started/quick-start
   image:
     src: /midscene.png
-    alt: MidScene Logo
+    alt: Midscene Logo
 features:
 
   - title: 自然语言互动
-    details: 只需描述你的步骤，MidScene 会为你规划和操作用户界面
+    details: 只需描述你的步骤，Midscene 会为你规划和操作用户界面
     icon: 👆
   - title: 理解UI、JSON格式回答
     details: 你可以提出关于数据格式的要求，然后得到 JSON 格式的预期回应
