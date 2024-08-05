@@ -11,7 +11,8 @@
     "lint": "npx biome check . --diagnostic-level=warn --no-errors-on-unmatched --fix",
     "format:ci": "pretty-quick --since HEAD~1",
     "format": "pretty-quick --staged",
-    "commit": "cz"
+    "commit": "cz",
+    "check-spell": "npx cspell"
   },
   "simple-git-hooks": {
     "pre-commit": "npx nano-staged"
@@ -48,6 +49,7 @@
     "nano-staged": "^0.8.0",
     "nx": "^19.5.4",
     "prettier": "^3.3.3",
-    "simple-git-hooks": "^2.11.1"
+    "simple-git-hooks": "^2.11.1",
+    "cspell-ban-words": "^0.0.3"
   }
 }

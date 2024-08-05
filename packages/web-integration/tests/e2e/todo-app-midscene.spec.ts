@@ -42,7 +42,7 @@
 //     'control-layer': query<ControlLayerSection>('status and control layer of todo (if exists)', {
 //       numbersLeft: 'number',
 //       tipElement: retrieveOneElement(
-//         'the element indicates the number of remaining items, like `xx items left`',
+//         'the element indicates the number of remaining items, like ` items left`',
 //       ),
 //       controlElements: retrieveElements('control elements, used to filter items'),
 //     }),
