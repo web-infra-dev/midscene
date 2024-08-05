@@ -27,8 +27,8 @@ features:
   - title: Intuitive Assertion
     details: Make assertions in natural language. It’s all based on AI understanding.
     icon: 🤔
-  - title: Out-of-box LLM
-    details: It is fine to use public multimodal LLMs like GPT-4o. There is no need for any custom training.
+  - title: Immediate Integration
+    details: Quickly integrate GPT-4o and web automation tools like Playwright or Puppeteer into your project with our SDK. Instant setup and seamless integration.
     icon: 🪓
   - title: Visualization
     details: With our visualization tool, you can easily understand and debug the whole process.
