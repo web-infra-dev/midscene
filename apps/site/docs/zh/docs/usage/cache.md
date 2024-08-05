@@ -93,7 +93,7 @@ test('online order2', async ({ page, ai, aiQuery }) => {
 ```
 
 
-当上面的 `test` 将按照 `online order` 和 `online order2` 这两个维度产生缓存，分别会在项目的根目录中的 `midscene/midscene_run/cache` 中生成 `online-order.spec:5(online order).json` 和 `online-order.spec:5(online order2).json` 缓存文件。
+当上面的 `test` 将按照 `online order` 和 `online order2` 这两个维度产生缓存，分别会在项目的根目录中的 `midscene/midscene_run/cache` 中生成 `online-order.spec:11(online order).json` 和 `online-order.spec:16(online order2).json` 缓存文件。
 
 > 缓存文件介绍
 
