@@ -1,39 +1,39 @@
 # 缓存
 
-Midscene.js 提供了 AI 缓存能力，用于提升整个 AI 执行过程的稳定性和速度。这里得缓存主要指的是缓存 AI 识别页面的元素，在页面元素尚未发生变化时 AI 的查询结果会发生缓存。
+Midscene.js 提供了 AI 缓存能力，用于提升整个 AI 执行过程的稳定性和速度。这里的缓存主要指的是缓存 AI 识别页面的元素，在页面元素尚未发生变化时，AI 的查询结果会被缓存。
 
 ## 使用说明
 
 目前缓存的能力仅在 `Playwright` 上进行了支持，Midscene 能够支持测试组级别的缓存。
 
-> 使用方式
+**使用方式**
 
 ```diff
 - playwright test --config=playwright.config.ts
 + MIDSCENE_CACHE=true playwright test --config=playwright.config.ts
 ```
 
-> 使用效果
+**使用效果**
 
-* before 
+* **before**
 
 ![](/cache/no-cache-time.png)
 
-* after
+* **after**
 
 ![](/cache/use-cache-time.png)
 
 
 ## 缓存内容
 
-目前 Midscene 在 Playwright 上的缓存策略主要是以测试组为单位在每个测试组里的 ai 行为将发生缓存，目前缓存的内容主要是两类：
+目前 Midscene 在 Playwright 上的缓存策略主要是以测试组为单位，在每个测试组里的 AI 行为将发生缓存。目前缓存的内容主要有两类：
 
 * AI 对于任务的规划
 * AI 对于元素的识别
 
-不会对 aiQuery 的内容进行缓存，因此可以通过 aiQuery 来确认前面 ai 的任务是否是符合预期的。
+不会对 `aiQuery` 的内容进行缓存，因此可以通过 `aiQuery` 来确认前面 AI 的任务是否符合预期。
 
-> 任务规划
+**任务规划**
 
 ```js
 await ai("将鼠标移动到第二条任务后，点击任务右边的删除按钮");
@@ -46,11 +46,11 @@ Hover: 移动鼠标到第二条任务 "今天学习 JS" 上
 Click: 点击任务 "今天学习 JS" 右边的删除按钮
 ```
 
-当页面的 url 地址和页面的宽高未发生变化时，开启缓存后将会直接缓存上面任务的结果。
+当页面的 URL 地址和页面的宽高未发生变化时，开启缓存后将会直接缓存上面任务的结果。
 
-> 元素识别
+**元素识别**
 
-在 AI 对用户的指令进行了任务规划后，则需要针对特定的元素进行操作，那么就需要用到 AI 对于页面元素的识别能力，例如下面的任务：
+在 AI 对用户的指令进行了任务规划后，需要针对特定的元素进行操作，那么就需要用到 AI 对于页面元素的识别能力，例如下面的任务：
 
 ```js
 Hover: 移动鼠标到第二条任务 "今天学习 JS" 上
@@ -62,8 +62,8 @@ Hover: 移动鼠标到第二条任务 "今天学习 JS" 上
 Text Element: "今天学习 JS"
 Left: 200
 Top: 300
-width: 100
-height: 30
+Width: 100
+Height: 30
 ```
 
 ## 缓存策略
@@ -71,31 +71,26 @@ height: 30
 当使用 `MIDSCENE_CACHE=true` 环境变量后，将会自动按照 `Playwright` 的测试组进行缓存：
 
 ```ts
-//online-order.spec.ts
+// todo-mvc.spec.ts
 import { expect } from 'playwright/test';
 import { test } from './fixture';
 
 test.beforeEach(async ({ page }) => {
-  page.setViewportSize({ width: 400, height: 905 });
-  await page.goto('https://heyteavivocity.meuu.online/home');
-  await page.waitForLoadState('networkidle');
+  await page.goto("https://todomvc.com/examples/react/dist/");
 });
 
-test('online order', async ({ page, ai, aiQuery }) => {
-  await ai('点击左上角语言切换按钮(英文、中文)，在弹出的下拉列表中点击中文');
-  await ai('向下滚动一屏');
+test('ai todo', async ({ page, ai, aiQuery }) => {
+  await ai("在任务框 input 输入 今天学习 JS，按回车键");
 });
 
-test('online order2', async ({ page, ai, aiQuery }) => {
-  await ai('点击左上角语言切换按钮(英文、中文)，在弹出的下拉列表中点击中文');
-  await ai('向下滚动一屏');
+test('ai todo2', async ({ page, ai, aiQuery }) => {
+  await ai("在任务框 input 输入 今天学习 JS，按回车键");
 });
 ```
 
+上面的 `test` 将按照 `ai todo` 和 `ai todo2` 这两个维度产生缓存，分别会在项目的根目录中的 `midscene/midscene_run/cache` 中生成 `todo-mvc.spec:10(ai todo).json` 和 `todo-mvc.spec:13(ai todo2).json` 缓存文件。
 
-当上面的 `test` 将按照 `online order` 和 `online order2` 这两个维度产生缓存，分别会在项目的根目录中的 `midscene/midscene_run/cache` 中生成 `online-order.spec:11(online order).json` 和 `online-order.spec:16(online order2).json` 缓存文件。
-
-> 缓存文件介绍
+**缓存文件介绍**
 
 ```json
 {
@@ -103,7 +98,7 @@ test('online order2', async ({ page, ai, aiQuery }) => {
   // 当前使用的 midscene 版本
   "pkgVersion": "0.1.2",
   // 测试文件地址和行数
-  "taskFile": "ai-auto-todo.spec.ts:8",
+  "taskFile": "todo-mvc.spec.ts:10",
   // 测试任务标题
   "taskTitle": "ai todo",
   "aiTasks": [
@@ -177,18 +172,18 @@ test('online order2', async ({ page, ai, aiQuery }) => {
         ],
         "errors": []
       }
-    },
+    }
   ]
+  //...
 }
 ```
 
 当使用了 `MIDSCENE_CACHE=true` 环境变量并且有缓存文件时，将会通过上面的缓存文件读取 AI 对应的结果。以下是缓存命中的条件：
 
-1. 相同的测试文件和测试 title
-2. midscene 包名、版本和上次的任务是一致的
-3. 对应任务执行的页面地址、页面宽高是一致的
+1. 相同的测试文件和测试标题
+2. Midscene 包名、版本和上次的任务一致
+3. 对应任务执行的页面地址、页面宽高一致
 4. 当前页面存在和上次一模一样的元素（仅针对定位元素任务要求）
-
 
 ## 常见问题
 
@@ -196,21 +191,14 @@ test('online order2', async ({ page, ai, aiQuery }) => {
 
 缓存能力主要解决了以下问题：
 
-1. AI 响应延迟高，一个任务将会耗费几秒钟，当有几十条甚至几百条任务任务时将会有较高的耗时
-2. AI 响应稳定性，通过调教和实验中我们发现 GPT 4o 在页面元素识别的任务上有 90%+ 的准确率但是尚无法达到 100% 的准确率，通过缓存能力能够有效的降低线上稳定性问题
-
+1. AI 响应延迟高，一个任务将会耗费几秒钟，当有几十条甚至几百条任务时将会有较高的耗时
+2. AI 响应稳定性，通过调教和实验中我们发现 GPT-4 在页面元素识别的任务上有 90%+ 的准确率，但尚无法达到 100% 的准确率，通过缓存能力能够有效降低线上稳定性问题
 
 ### 未命中缓存会发生什么？
 
-对于未命中缓存的 ai 行为将会交给 AI 重新执行任务并在整个测试组执行结束后更新缓存，可以通过查看 cache 文件来确定哪些任务是否有更新。
+对于未命中缓存的 AI 行为将会交给 AI 重新执行任务，并在整个测试组执行结束后更新缓存，可以通过查看缓存文件来确定哪些任务是否有更新。
 
 ### 如何手动去掉缓存？
 
-* 当删除掉对应的缓存文件时，整个测试组的缓存将会自动失效
-* 当删除掉缓存文件里面特定的任务时，对应的任务将会自动失效，任务执行成功后将会更新任务，删除前面的任务不会影响后面的任务
-
-
-
-
-
-
+* 删除对应的缓存文件时，整个测试组的缓存将会自动失效
+* 删除缓存文件里面特定的任务时，对应的任务将会自动失效，任务执行成功后将会更新任务，删除前面的任务不会影响后面的任务
