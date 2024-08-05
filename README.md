@@ -22,8 +22,8 @@ English | [简体中文](./README.zh.md)
 
 Midscene.js is an AI-powered automation SDK can control the page, perform assertions, and extract data in JSON format using natural language.
 
-![ai-todo](https://github.com/user-attachments/assets/87f52b81-cbf1-4e6d-bdac-9a3bde74347f)
 
+<img alt="ai-todo"  width="400" src="https://github.com/user-attachments/assets/87f52b81-cbf1-4e6d-bdac-9a3bde74347f">
 
 
 ## Features ✨
