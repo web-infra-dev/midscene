@@ -33,7 +33,7 @@ Midscene.js 是一个由 AI 驱动的自动化 SDK，能够使用自然语言对
 
 ## 资源 📄
 
-* [官网首页: http://midscenejs.com](https://midscenejs.com/)
+* [官网首页: https://midscenejs.com](https://midscenejs.com/)
 * [快速入门](https://midscenejs.com/docs/getting-started/quick-start.html)
 * [API 文档](https://midscenejs.com/docs/usage/API.html)
 * [可视化工具](https://midscenejs.com/visualization/index.html)

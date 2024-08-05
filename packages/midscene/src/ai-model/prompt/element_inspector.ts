@@ -38,9 +38,9 @@ You are an expert in software page image (2D) and page element text analysis.
   "elements": [
     // If no matching elements are found, return an empty array []
     {
-      "reason": "xxx", // The thought process for finding the element, replace xxx with your thought process
-      "text": "xxx", // Replace xxx with the text of elementInfo, if none, leave empty
-      "id": "xxx" // Replace xxx with the ID of elementInfo
+      "reason": "PLACEHOLDER", // The thought process for finding the element, replace PLACEHOLDER with your thought process
+      "text": "PLACEHOLDER", // Replace PLACEHOLDER with the text of elementInfo, if none, leave empty
+      "id": "PLACEHOLDER" // Replace PLACEHOLDER with the ID of elementInfo
     }
     // More elements...
   ],
