@@ -1,15 +1,19 @@
-import {
+import assert from 'node:assert';
+import type {
   AIAssertionResponse,
-  type AIElementParseResponse,
-  type AISectionParseResponse,
-  type BaseElement,
-  type UIContext,
+  AIElementParseResponse,
+  AISectionParseResponse,
+  BaseElement,
+  UIContext,
 } from '@/types';
 import type { ChatCompletionMessageParam } from 'openai/resources';
 import { callToGetJSONObject } from './openai';
 import { systemPromptToFindElement } from './prompt/element_inspector';
-import { describeUserPage, systemPromptToAssert, systemPromptToExtract } from './prompt/util';
-import assert from 'assert';
+import {
+  describeUserPage,
+  systemPromptToAssert,
+  systemPromptToExtract,
+} from './prompt/util';
 
 export async function AiInspectElement<
   ElementType extends BaseElement = BaseElement,
@@ -112,11 +116,7 @@ export async function AiAssert<
   context: UIContext<ElementType>;
   callAI?: typeof callToGetJSONObject;
 }) {
-  const {
-    assertion,
-    context,
-    callAI = callToGetJSONObject,
-  } = options;
+  const { assertion, context, callAI = callToGetJSONObject } = options;
 
   assert(assertion, 'assertion should be a string');
   const systemPrompt = systemPromptToAssert(assertion);

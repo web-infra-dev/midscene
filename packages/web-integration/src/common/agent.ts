@@ -93,7 +93,7 @@ export class PageAgent {
     }
     if (!assertionResult.pass) {
       const errMsg = msg || `Assertion failed: ${assertion}`;
-      const reasonMsg =  `Reason: ${assertionResult.thought}`;
+      const reasonMsg = `Reason: ${assertionResult.thought}`;
       throw new Error(`${errMsg}\n${reasonMsg}`);
     }
   }
@@ -106,7 +106,7 @@ export class PageAgent {
       return this.aiQuery(taskPrompt);
     }
 
-    if(type === 'assert') {
+    if (type === 'assert') {
       return this.aiAssert(taskPrompt);
     }
 

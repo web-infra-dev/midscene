@@ -4,6 +4,7 @@ import {
   AiInspectElement,
   callToGetJSONObject as callAI,
 } from '@/ai-model/index';
+import { AiAssert } from '@/ai-model/inspect';
 import type {
   AIElementParseResponse,
   BaseElement,
@@ -27,7 +28,6 @@ import {
   shallowExpandIds,
   writeInsightDump,
 } from './utils';
-import { AiAssert } from '@/ai-model/inspect';
 
 const sortByOrder = (a: UISection, b: UISection) => {
   if (a.rect.top - b.rect.top !== 0) {
@@ -212,13 +212,12 @@ export default class Insight<
     const context = await this.contextRetrieverFn();
 
     const startTime = Date.now();
-    const { parseResult, elementById } =
-      await AiExtractElementInfo<T>({
-        context,
-        dataQuery,
-        sectionConstraints,
-        callAI: this.aiVendorFn,
-      });
+    const { parseResult, elementById } = await AiExtractElementInfo<T>({
+      context,
+      dataQuery,
+      sectionConstraints,
+      callAI: this.aiVendorFn,
+    });
 
     const timeCost = Date.now() - startTime;
     const taskInfo: InsightTaskInfo = {
@@ -313,9 +312,11 @@ export default class Insight<
     return mergedData;
   }
 
-  async assert(assertion: string) : Promise<InsightAssertionResponse> {
-    if(typeof assertion !== 'string') {
-      throw new Error('This is the assert method for Midscene, the first argument should be a string. If you want to use the assert method from Node.js, please import it from the Node.js assert module.');
+  async assert(assertion: string): Promise<InsightAssertionResponse> {
+    if (typeof assertion !== 'string') {
+      throw new Error(
+        'This is the assert method for Midscene, the first argument should be a string. If you want to use the assert method from Node.js, please import it from the Node.js assert module.',
+      );
     }
 
     const dumpSubscriber = this.onceDumpUpdatedFn;
@@ -349,13 +350,13 @@ export default class Insight<
       taskInfo,
       assertionPass: pass,
       assertionThought: thought,
-      error: pass ? undefined: thought,
+      error: pass ? undefined : thought,
     };
     writeInsightDump(dumpData, undefined, dumpSubscriber);
 
     return {
       pass,
       thought,
-    }
+    };
   }
 }

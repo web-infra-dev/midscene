@@ -358,8 +358,9 @@ export type ExecutionTaskInsightAssertionApply = ExecutionTaskApply<
   ExecutionTaskInsightDumpLog
 >;
 
-export type ExecutionTaskInsightAssertion = ExecutionTask<ExecutionTaskInsightAssertionApply>;
-  
+export type ExecutionTaskInsightAssertion =
+  ExecutionTask<ExecutionTaskInsightAssertionApply>;
+
 /*
 task - action (i.e. interact) 
 */

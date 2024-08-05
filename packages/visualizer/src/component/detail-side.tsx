@@ -388,8 +388,8 @@ const DetailSide = (): JSX.Element => {
     />
   ) : null;
 
-  let assertionCard : JSX.Element | null = null;
-  if(task?.type === 'Insight' && task.subType === 'Assert') {
+  let assertionCard: JSX.Element | null = null;
+  if (task?.type === 'Insight' && task.subType === 'Assert') {
     assertionCard = (
       <Card
         liteMode={true}
@@ -398,14 +398,17 @@ const DetailSide = (): JSX.Element => {
         onMouseLeave={noop}
         content={
           <pre className="description-content">
-            {JSON.stringify((task as ExecutionTaskInsightAssertion).output, undefined, 2)}
+            {JSON.stringify(
+              (task as ExecutionTaskInsightAssertion).output,
+              undefined,
+              2,
+            )}
           </pre>
         }
       />
     );
   }
 
-  
   const plans = (task as ExecutionTaskPlanning)?.output?.plans;
   let timelineData: TimelineItemProps[] = [];
   if (plans) {

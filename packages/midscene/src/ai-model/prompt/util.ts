@@ -136,10 +136,7 @@ Return in the following JSON format:
 `;
 }
 
-
-export function systemPromptToAssert(
-  assertion: string,
-) {
+export function systemPromptToAssert(assertion: string) {
   return `
 ${characteristic}
 ${contextFormatIntro}

@@ -27,7 +27,7 @@ const VIEW_TYPE_SCREENSHOT = 'screenshot';
 const VIEW_TYPE_JSON = 'json';
 
 const DetailPanel = (): JSX.Element => {
-  const dumpContext = useInsightDump(store => store.data);
+  const dumpContext = useInsightDump((store) => store.data);
   const dumpId = useInsightDump((store) => store._loadId);
   const blackboardViewAvailable = Boolean(dumpContext);
   const activeTask = useExecutionDump((store) => store.activeTask);
