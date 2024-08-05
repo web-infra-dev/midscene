@@ -1,17 +1,20 @@
 import { defineConfig, devices } from '@playwright/test';
+//@ts-ignore
+import dotenv from 'dotenv';
 
 /**
  * Read environment variables from file.
  * https://github.com/motdotla/dotenv
  */
-// require('dotenv').config();
+dotenv.config();
 
 /**
  * See https://playwright.dev/docs/test-configuration.
  */
 export default defineConfig({
   testDir: './tests/e2e',
-  timeout: 90 * 1000,
+  testIgnore: 'generate-test-data.spec.ts',
+  timeout: 900 * 1000,
   /* Run tests in files in parallel */
   fullyParallel: true,
   /* Fail the build on CI if you accidentally left test.only in the source code. */
@@ -38,5 +41,5 @@ export default defineConfig({
       use: { ...devices['Desktop Chrome'] },
     },
   ],
-  reporter: './src/playwright/reporter/index.ts',
+  reporter: [['list'], ['./src/playwright/reporter/index.ts']],
 });
