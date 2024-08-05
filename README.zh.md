@@ -22,6 +22,10 @@
 
 Midscene.js 是一个由 AI 驱动的自动化 SDK，能够使用自然语言对网页进行操作、验证，并提取 JSON 格式的数据。
 
+<p align="center">
+  <video src="https://github.com/user-attachments/assets/995486bf-0905-43a0-ae33-234b1307dcf1" controls/>
+</p>
+
 ## 特性 ✨
 
 - **自然语言互动 👆**：只需描述你的步骤，Midscene 会为你规划和操作用户界面
