@@ -15,7 +15,13 @@ Midscene.js 提供了 AI 缓存能力，用于提升整个 AI 执行过程的稳
 
 > 使用效果
 
-效果对比图片
+* before 
+
+![](/cache/no-cache-time.png)
+
+* after
+
+![](/cache/use-cache-time.png)
 
 
 ## 缓存内容
