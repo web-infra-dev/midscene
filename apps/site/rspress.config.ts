@@ -3,7 +3,7 @@ import { defineConfig } from 'rspress/config';
 
 export default defineConfig({
   root: path.join(__dirname, 'docs'),
-  title: 'MidScene.js',
+  title: 'Midscene.js',
   description: 'Your AI-Driven UI Compass',
   icon: '/midscene-icon.png',
   logo: {
@@ -38,15 +38,15 @@ export default defineConfig({
       lang: 'en',
       // The label in nav bar to switch language
       label: 'English',
-      title: 'MidScene.js',
-      description: 'MidScene.js',
+      title: 'Midscene.js',
+      description: 'Midscene.js',
     },
     {
       lang: 'zh',
       // The label in nav bar to switch language
       label: '简体中文',
-      title: 'MidScene.js',
-      description: 'MidScene.js',
+      title: 'Midscene.js',
+      description: 'Midscene.js',
     },
   ],
   lang: 'en',

@@ -1,6 +1,6 @@
 {
   "name": "@midscene/core",
-  "description": "Hello, It's MidScene",
+  "description": "Hello, It's Midscene",
   "version": "0.1.4",
   "jsnext:source": "./src/index.ts",
   "main": "./dist/lib/index.js",

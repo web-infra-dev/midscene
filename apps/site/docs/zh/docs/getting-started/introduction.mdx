@@ -2,41 +2,34 @@
 
 UI 自动化太难写了。自动化脚本里到处都是选择器，比如 `#ids`、`data-test-xxx`、`.selectors`。在页面重构的时候，维护自动化脚本更将会是一场灾难。
 
-我们在这里推出 MidScene.js，助你重拾编码的乐趣。
+我们在这里推出 Midscene.js，助你重拾编码的乐趣。
 
-MidScene.js 采用了多模态大语言模型（LLM），能够直观地“理解”你的用户界面并执行必要的操作。你只需描述交互步骤或期望的数据格式，AI 就能为你完成任务。
+Midscene.js 采用了多模态大语言模型（LLM），能够直观地“理解”你的用户界面并执行必要的操作。你只需描述交互步骤或期望的数据格式，AI 就能为你完成任务。
 
-# 特性
+## 特性
 
 ### 开箱即用的大型语言模型 (LLM)
 
 你可以直接使用公开可用的 LLM，例如 GPT-4，而不需要任何定制训练。只需 API Key 和 token 额度，你就能体验全新的编码体验。😀
 
-### 通过 AI 执行交互
+### 通过 AI 执行交互、提取数据和断言
 
-使用 `.aiAction` 方法，你可以通过描述步骤来执行交互。
+你可以使用 `.aiAction` 方法描述步骤并执行交互，使用 `.aiQuery` 从 UI 中提取数据，使用 `.aiAssert` 来执行断言。
 
 比如：
 
-```javascript
-.aiAction('在任务框中输入 "Learn JS today"，然后按 Enter 键创建任务')
+```typescript
+// 👀 输入关键字，执行搜索
+// 注：尽管这是一个英文页面，你也可以用中文指令控制它
+await ai('在搜索框输入 "Headphones" ，敲回车');
+
+// 👀 找到列表里耳机相关的信息
+const items = await aiQuery(
+  '{itemTitle: string, price: Number}[], 找到列表里的商品标题和价格'
+);
+
+console.log("headphones in stock", items);
 ```
-
-### 通过 AI 从页面提取数据
-
-`.aiQuery` 方法用于从 UI 中提取定制的数据。
-
-例如：
-
-```javascript
-const dataB = await agent.aiQuery('string[], 任务列表中的任务名');
-```
-
-你会得到一个包含任务名字符串的数组。
-
-### 通过 AI 执行断言
-
-调用 `.aiAssert` 方法可以对页面进行断言。
 
 ### 可视化工具
 
@@ -48,6 +41,6 @@ const dataB = await agent.aiQuery('string[], 任务列表中的任务名');
 
 ## 流程图
 
-下图展示了 MidScene 的核心流程。
+下图展示了 Midscene 的核心流程。
 
 ![](/flow.png)

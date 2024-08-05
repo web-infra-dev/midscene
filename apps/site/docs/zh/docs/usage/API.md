@@ -2,7 +2,7 @@
 
 ## 配置 AI 服务商
 
-MidScene 默认集成了 OpenAI SDK 调用 AI 服务，你也可以通过环境变量来自定义配置。
+Midscene 默认集成了 OpenAI SDK 调用 AI 服务，你也可以通过环境变量来自定义配置。
 
 主要配置项如下，其中 `OPENAI_API_KEY` 是必选项：
 
@@ -50,7 +50,7 @@ const mid = new PuppeteerAgent(puppeteerPageInstance);
 
 ### `.aiAction(steps: string)` 或 `.ai(steps: string)` - 控制界面
 
-你可以使用 `.aiAction` 来执行一系列操作。它接受一个参数 `steps: string` 用于描述这些操作。在这个参数中，你应该清楚地描述每一个步骤，然后 MidScene 会自动为你分析并执行。
+你可以使用 `.aiAction` 来执行一系列操作。它接受一个参数 `steps: string` 用于描述这些操作。在这个参数中，你应该清楚地描述每一个步骤，然后 Midscene 会自动为你分析并执行。
 
 `.ai` 是 `.aiAction` 的简写。
 
@@ -66,7 +66,7 @@ await mid.ai('点击任务列表下方的 "completed" 状态按钮');
 
 务必使用清晰、详细的步骤描述。使用非常简略的指令（如 “发一条微博” ）会导致非常不稳定的执行结果或运行失败。
 
-在底层，MidScene 会将页面上下文和截图发送给 LLM，以详细规划步骤。随后，MidScene 会逐步执行这些步骤。如果 MidScene 认为无法执行，将抛出一个错误。
+在底层，Midscene 会将页面上下文和截图发送给 LLM，以详细规划步骤。随后，Midscene 会逐步执行这些步骤。如果 Midscene 认为无法执行，将抛出一个错误。
 
 你的任务会被拆解成下述内置方法，你可以在可视化工具中看到它们：
 
@@ -74,15 +74,15 @@ await mid.ai('点击任务列表下方的 "completed" 状态按钮');
 2. **操作（Action）**：点击、滚动、键盘输入、悬停（hover）
 3. **其他**：等待（sleep）
 
-目前，MidScene 无法规划包含条件和循环的步骤。
+目前，Midscene 无法规划包含条件和循环的步骤。
 
 关联文档:
-* [FAQ: MidScene 能否根据一句话指令实现智能操作？比如执行 "发一条微博"'](../more/faq.html)
+* [FAQ: Midscene 能否根据一句话指令实现智能操作？比如执行 "发一条微博"'](../more/faq.html)
 * [编写提示词的技巧](../more/prompting-tips.html)
 
 ### `.aiQuery(dataShape: any)` - 从页面提取数据
 
-这个方法可以从 UI 提取自定义数据。它不仅能返回页面上直接书写的数据，还能基于“理解”返回数据（前提是多模态 AI 能够推理）。返回值可以是任何合法的基本类型，比如字符串、数字、JSON、数组等。你只需在 `dataDemand` 中描述它，MidScene 就会给你满足格式的返回。
+这个方法可以从 UI 提取自定义数据。它不仅能返回页面上直接书写的数据，还能基于“理解”返回数据（前提是多模态 AI 能够推理）。返回值可以是任何合法的基本类型，比如字符串、数字、JSON、数组等。你只需在 `dataDemand` 中描述它，Midscene 就会给你满足格式的返回。
 
 例如，从页面解析详细信息：
 
@@ -107,7 +107,7 @@ const dataC = await mid.aiQuery('{name: string, age: string}[], 表格中的数�
 
 这个方法即将上线。
 
-`.aiAssert` 的功能类似于一般的 `assert` 方法，但可以用自然语言编写条件参数 `conditionPrompt`。MidScene 会调用 AI 来判断条件是否为真。若满足条件，详细原因会附加到 `errorMsg` 中。
+`.aiAssert` 的功能类似于一般的 `assert` 方法，但可以用自然语言编写条件参数 `conditionPrompt`。Midscene 会调用 AI 来判断条件是否为真。若满足条件，详细原因会附加到 `errorMsg` 中。
 
 ## 使用 LangSmith （可选）
 
@@ -127,7 +127,7 @@ export LANGCHAIN_API_KEY="your_key_here"
 export LANGCHAIN_PROJECT="your_project_name_here"
 ```
 
-启动 MidScene 后，你应该会看到类似如下的日志：
+启动 Midscene 后，你应该会看到类似如下的日志：
 
 ```log
 DEBUGGING MODE: langsmith wrapper enabled

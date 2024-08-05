@@ -2,31 +2,37 @@
 
 UI automation can be frustrating, often involving a maze of *#ids*, *data-test-xxx* attributes, and *.selectors* that are difficult to maintain, especially when the page undergoes a refactor.
 
-Introducing MidScene.js, an innovative SDK designed to bring joy back to programming by simplifying automation tasks.
+Introducing Midscene.js, an innovative SDK designed to bring joy back to programming by simplifying automation tasks.
 
-MidScene.js leverages a multimodal Large Language Model (LLM) to intuitively “understand” your user interface and carry out the necessary actions. You can simply describe the interaction steps or expected data formats, and the AI will handle the execution for you.
+Midscene.js leverages a multimodal Large Language Model (LLM) to intuitively “understand” your user interface and carry out the necessary actions. You can simply describe the interaction steps or expected data formats, and the AI will handle the execution for you.
 
 ## Features
 
-### Out-of-box LLM
+### Interact, query and assert by natural language
 
-It is fine to use publicly available LLMs such as GPT-4o. There is no need for custom training. To experience the brand new way of writing automation, token is all you need. 😀
+Use `.aiAction` to perform a series of actions by describing the steps, `.aiQuery` to extract customized data from the UI, and `.aiAssert` to perform assertions on the page.
 
-### Execute Actions by AI
+It is all based on natural language processing, bringing you a new experience in writing automation.
 
-Use `.aiAction` to perform a series of actions by describing the steps.
+For example 
 
-For example `.aiAction('Enter "Learn JS today" in the task box, then press Enter to create')`.
+```typescript
+// 👀 type keywords, perform a search
+await ai('type "Headphones" in search box, hit Enter');
 
-### Extract Data from Page by AI
+// 👀 find the items
+const items = await aiQuery(
+  "{itemTitle: string, price: Number}[], find item in list and corresponding price"
+);
 
-`.aiQuery` is the method to extract customized data from the UI.
+console.log("headphones in stock", items);
+```
 
-For example, by calling `const dataB = await agent.aiQuery('string[], task names in the list');`, you will get an array with string of the task names.
+### Immediate Integration
 
-### Perform Assertions by AI
+Quickly integrate GPT-4o and web automation tools like Playwright or Puppeteer into your project with Midscene. 
 
-Call `.aiAssert` to perform assertions on the page.
+You can setup your automation now with all your familiar tools. No custom training is need.
 
 ### Visualization Tool
 
@@ -38,6 +44,6 @@ You may open the [Online Visualization Tool](/visualization/index.html) to see t
 
 ## Flow Chart
 
-Here is a flowchart illustrating the core process of MidScene.
+Here is a flowchart that describes the core process of the interaction between Midscene and AI.
 
 ![](/flow.png)

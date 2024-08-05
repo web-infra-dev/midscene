@@ -1,8 +1,8 @@
 <p align="center">
-  <img alt="MidScene.js"  width="260" src="https://github.com/user-attachments/assets/bff5e76f-ea5c-42b7-bd12-0143a04671cf">
+  <img alt="Midscene.js"  width="260" src="https://github.com/user-attachments/assets/bff5e76f-ea5c-42b7-bd12-0143a04671cf">
 </p>
 
-<h1 align="center">MidScene.js</h1>
+<h1 align="center">Midscene.js</h1>
 <div align="center">
 
 [English](./README.md) | 简体中文
@@ -20,11 +20,11 @@
 </p>
 
 
-MidScene.js 是一个由 AI 驱动的自动化 SDK，能够使用自然语言对网页进行操作、验证，并提取 JSON 格式的数据。
+Midscene.js 是一个由 AI 驱动的自动化 SDK，能够使用自然语言对网页进行操作、验证，并提取 JSON 格式的数据。
 
 ## 特性 ✨
 
-- **自然语言互动 👆**：只需描述你的步骤，MidScene 会为你规划和操作用户界面
+- **自然语言互动 👆**：只需描述你的步骤，Midscene 会为你规划和操作用户界面
 - **理解UI、JSON格式回答 🔍**：你可以提出关于数据格式的要求，然后得到 JSON 格式的预期回应。
 - **直观断言 🤔**：用自然语言表达你的断言，AI 会理解并处理。
 - **开箱即用的LLM 🪓**：使用公开的多模态大语言模型（ 如GPT-4o ），无需任何定制训练。
@@ -40,4 +40,4 @@ MidScene.js 是一个由 AI 驱动的自动化 SDK，能够使用自然语言对
 
 ## 授权许可
 
-MidScene.js 遵循 [MIT 许可协议](https://github.com/web-infra-dev/midscene/blob/main/LICENSE)。
+Midscene.js 遵循 [MIT 许可协议](https://github.com/web-infra-dev/midscene/blob/main/LICENSE)。
