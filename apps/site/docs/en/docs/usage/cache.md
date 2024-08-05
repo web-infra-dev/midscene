@@ -30,7 +30,7 @@ Currently, the caching capability is only supported on `Playwright`, and Midscen
 
 Currently, Midscene's caching strategy on Playwright is mainly based on test suites, and AI behaviors within each test suite will be cached. The cache content mainly includes two types:
 
-* AI task planning
+* AI task planning (planning is the result of ai and ai action methods)
 * AI element recognition
 
 The content of `aiQuery` will not be cached, so `aiQuery` can be used to verify whether the previous AI tasks meet expectations.

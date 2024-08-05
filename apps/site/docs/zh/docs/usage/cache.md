@@ -28,7 +28,7 @@ Midscene.js 提供了 AI 缓存能力，用于提升整个 AI 执行过程的稳
 
 目前 Midscene 在 Playwright 上的缓存策略主要是以测试组为单位，在每个测试组里的 AI 行为将发生缓存。目前缓存的内容主要有两类：
 
-* AI 对于任务的规划
+* AI 对于任务的规划（Planning, 即 ai 和 aiAction 方法的结果）
 * AI 对于元素的识别
 
 不会对 `aiQuery` 的内容进行缓存，因此可以通过 `aiQuery` 来确认前面 AI 的任务是否符合预期。
