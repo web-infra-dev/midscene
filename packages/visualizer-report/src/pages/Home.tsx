@@ -84,10 +84,8 @@ const TestResult = (props: {
         const timeMinutes = Math.floor(testData.duration / 1000 / 60);
         const timeSeconds = Math.floor((testData.duration / 1000) % 60);
         return (
-          // biome-ignore lint/a11y/useKeyWithClickEvents: <explanation>
           <div
             className={styeld['test-details']}
-            // biome-ignore lint/suspicious/noArrayIndexKey: <explanation>
             key={key}
             onClick={() => {
               navigator(`/report?dumpId=${testData.dumpPath.split('/').pop()}`);
