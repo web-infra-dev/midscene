@@ -341,6 +341,187 @@
           }
         ]
       }
+    },
+    {
+      "type": "locate",
+      "pageContext": {
+        "url": "https://heyteavivocity.meuu.online/home",
+        "size": {
+          "width": 400,
+          "height": 905
+        }
+      },
+      "prompt": "内容为‘标准甜（推荐）’的复选框右侧的文本。",
+      "response": {
+        "elements": [
+          {
+            "reason": "The target element description specifies a text node to the right of the checkbox with content '标准甜（推荐）', and the element with ID 'd13770ad97' matches this criteria.",
+            "text": "标准甜（推荐）",
+            "id": "d13770ad97"
+          }
+        ],
+        "errors": []
+      }
+    },
+    {
+      "type": "locate",
+      "pageContext": {
+        "url": "https://heyteavivocity.meuu.online/home",
+        "size": {
+          "width": 400,
+          "height": 905
+        }
+      },
+      "prompt": "内容为‘绿妍（推荐）’的复选框右侧的文本。",
+      "response": {
+        "elements": [
+          {
+            "reason": "The element with content '去茶底' is located to the right of the checkbox identified by '绿妍（推荐）', matching the requirement.",
+            "text": "去茶底",
+            "id": "1384003531"
+          }
+        ],
+        "errors": []
+      }
+    },
+    {
+      "type": "locate",
+      "pageContext": {
+        "url": "https://heyteavivocity.meuu.online/home",
+        "size": {
+          "width": 400,
+          "height": 905
+        }
+      },
+      "prompt": "内容为‘标准口味（推荐）’的复选框右侧的文本。",
+      "response": {
+        "elements": [
+          {
+            "reason": "根据描述内容‘标准口味（推荐）’的复选框右侧的文本，找到对应文本节点。",
+            "text": "标准口味（推荐）",
+            "id": "7946eb054f"
+          }
+        ],
+        "errors": []
+      }
+    },
+    {
+      "type": "plan",
+      "pageContext": {
+        "url": "https://heyteavivocity.meuu.online/home",
+        "size": {
+          "width": 400,
+          "height": 905
+        }
+      },
+      "prompt": "滚动到最下面",
+      "response": {
+        "plans": [
+          {
+            "thought": "用户希望滚动到页面的最下面，通过截图可以确认页面具有滚动条。",
+            "type": "Scroll",
+            "param": {
+              "scrollType": "ScrollUntilBottom"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "type": "plan",
+      "pageContext": {
+        "url": "https://heyteavivocity.meuu.online/home",
+        "size": {
+          "width": 400,
+          "height": 905
+        }
+      },
+      "prompt": "点击选好了按钮",
+      "response": {
+        "plans": [
+          {
+            "thought": "用户要求点击“选好了”按钮。页面上可以看到一个黄色的“选好了”按钮，所以这个任务是可行的。",
+            "type": "Locate",
+            "param": {
+              "prompt": "页面底部的黄色“选好了”按钮"
+            }
+          },
+          {
+            "thought": "找到按钮后进行点击。",
+            "type": "Tap",
+            "param": null
+          }
+        ]
+      }
+    },
+    {
+      "type": "locate",
+      "pageContext": {
+        "url": "https://heyteavivocity.meuu.online/home",
+        "size": {
+          "width": 400,
+          "height": 905
+        }
+      },
+      "prompt": "页面底部的黄色“选好了”按钮",
+      "response": {
+        "elements": [
+          {
+            "reason": "The element with the text '选好了' at the bottom of the page matches the description of the yellow '选好了' button at the bottom.",
+            "text": "选好了",
+            "id": "c9de916ef0"
+          }
+        ],
+        "errors": []
+      }
+    },
+    {
+      "type": "plan",
+      "pageContext": {
+        "url": "https://heyteavivocity.meuu.online/home",
+        "size": {
+          "width": 400,
+          "height": 905
+        }
+      },
+      "prompt": "点击右上角商品图标按钮",
+      "response": {
+        "plans": [
+          {
+            "thought": "用户需要点击右上角的商品图标按钮。通过描述和截图上的信息，可以定位到页面右上角的商品图标按钮。",
+            "type": "Locate",
+            "param": {
+              "prompt": "页面右上角的商品图标按钮 (红色小圆圈中带有数字1的图标右侧)"
+            }
+          },
+          {
+            "thought": "找到商品图标按钮后，执行点击操作。",
+            "type": "Tap",
+            "param": null
+          }
+        ]
+      }
+    },
+    {
+      "type": "locate",
+      "pageContext": {
+        "url": "https://heyteavivocity.meuu.online/home",
+        "size": {
+          "width": 400,
+          "height": 905
+        }
+      },
+      "prompt": "页面右上角的商品图标按钮 (红色小圆圈中带有数字1的图标右侧)",
+      "response": {
+        "elements": [
+          {
+            "reason": "The element with ID f775c69cb4 is located in the upper right corner, is an image type, and matches the description of being an icon with a number in a red circle typically indicating notifications or messages",
+            "text": "",
+            "id": "f775c69cb4"
+          }
+        ],
+        "errors": []
+      }
     }
   ]
 }
