@@ -40,7 +40,7 @@ const mid = new PuppeteerAgent(puppeteerPageInstance);
 
 你可以在[快速开始](../getting-started/quick-start) 中找到完整的集成样例。
 
-## 与 Playwright 集成
+### 与 Playwright 集成
 
 你可以在[快速开始](../getting-started/quick-start) 中找到完整的集成样例。
 
