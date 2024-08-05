@@ -26,8 +26,8 @@ features:
   - title: 直观断言
     details: 用自然语言表达你的断言，AI 会理解并处理
     icon: 🤔
-  - title: 开箱即用的LLM
-    details: 使用公开的多模态语言模型（如GPT-4o），无需任何定制训练
+  - title: 立即集成
+    details: 你可以使用 GPT-4o、Playwright 和 Puppeteer 等熟悉的工具，立即开始集成
     icon: 🪓
   - title: 可视化
     details: 通过我们的可视化工具，你可以轻松理解和调试整个过程
