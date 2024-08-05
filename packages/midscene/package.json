@@ -66,7 +66,8 @@
     "@types/node": "^18.0.0",
     "langsmith": "0.1.36",
     "typescript": "~5.0.4",
-    "vitest": "^1.6.0"
+    "vitest": "^1.6.0",
+    "dotenv": "16.4.5"
   },
   "engines": {
     "node": ">=16.0.0"

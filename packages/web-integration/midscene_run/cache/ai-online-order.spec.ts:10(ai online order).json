@@ -1,6 +1,6 @@
 {
   "pkgName": "@midscene/web",
-  "pkgVersion": "0.1.2",
+  "pkgVersion": "0.1.4",
   "taskFile": "ai-online-order.spec.ts:10",
   "taskTitle": "ai online order",
   "aiTasks": [
@@ -17,26 +17,26 @@
       "response": {
         "plans": [
           {
-            "thought": "需要找到左上角的语言切换按钮",
+            "thought": "找到页面左上角的语言切换按钮",
             "type": "Locate",
             "param": {
-              "prompt": "左上角标有 \"English\" 的按钮"
+              "prompt": "The top left language switch button with the text 'English'"
             }
           },
           {
-            "thought": "点击语言切换按钮以展开下拉菜单",
+            "thought": "点击语言切换按钮",
             "type": "Tap",
             "param": null
           },
           {
-            "thought": "在弹出的下拉列表中找出 \"中文\" 并点击",
+            "thought": "在弹出下拉列表中找到 '中文' 选项",
             "type": "Locate",
             "param": {
-              "prompt": "下拉列表中的 \"中文\" 选项"
+              "prompt": "The dropdown item with the text '中文'"
             }
           },
           {
-            "thought": "选择中文选项",
+            "thought": "点击 '中文' 选项",
             "type": "Tap",
             "param": null
           }
@@ -52,11 +52,11 @@
           "height": 905
         }
       },
-      "prompt": "左上角标有 \"English\" 的按钮",
+      "prompt": "The top left language switch button with the text 'English'",
       "response": {
         "elements": [
           {
-            "reason": "The element with the text 'English' is located in the upper left corner and matches the description.",
+            "reason": "The element is a text node with the content 'English'. It is located in the upper left section of the page where a language switch button would typically be placed based on the description box.",
             "text": "English",
             "id": "57c026f0b8"
           }
@@ -73,11 +73,11 @@
           "height": 905
         }
       },
-      "prompt": "下拉列表中的 \"中文\" 选项",
+      "prompt": "The dropdown item with the text '中文'",
       "response": {
         "elements": [
           {
-            "reason": "The element with the id 'efc0b2ff38' is the 'TEXT Node' that matches the description “下拉列表中的 '中文' 选项”. It contains the text '中文' and is part of the dropdown menu.",
+            "reason": "Found the dropdown item with the text '中文': It is a TEXT Node with the content '中文' and matches the user's description.",
             "text": "中文",
             "id": "efc0b2ff38"
           }
@@ -98,7 +98,7 @@
       "response": {
         "plans": [
           {
-            "thought": "执行用户想要向下滚动一屏的动作。",
+            "thought": "根据用户的请求，向下滚动一屏",
             "type": "Scroll",
             "param": {
               "scrollType": "ScrollDown"
@@ -120,14 +120,14 @@
       "response": {
         "plans": [
           {
-            "thought": "用户需要点击多肉葡萄的规格按钮，这个按钮在列表中的一项，需要先找到对应商品，再点击按钮。",
+            "thought": "根据用户的描述，点击“多肉葡萄”的“选规格”按钮，这个按钮位于页面中部，因此我们需要先定位这个按钮。",
             "type": "Locate",
             "param": {
-              "prompt": "在页面中部，内容为'多肉葡萄（首创）'所在项的'选规格'按钮"
+              "prompt": "页面中部，旁边的名称是“多肉葡萄（首创）”的黄色按钮，写着“选规格”。"
             }
           },
           {
-            "thought": "找到按钮后，点击它。",
+            "thought": "找到“多肉葡萄”的“选规格”按钮后点击它。",
             "type": "Tap",
             "param": null
           }
@@ -143,11 +143,11 @@
           "height": 905
         }
       },
-      "prompt": "在页面中部，内容为'多肉葡萄（首创）'所在项的'选规格'按钮",
+      "prompt": "页面中部，旁边的名称是“多肉葡萄（首创）”的黄色按钮，写着“选规格”。",
       "response": {
         "elements": [
           {
-            "reason": "I identified the '选规格' button corresponding to the item '多肉葡萄（首创）' by locating the text '多肉葡萄（首创）' with ID '65b6fcae72' in the JSON description, and then finding the corresponding '选规格' button, which is situated close to this text item. The description and the screenshot match the required item.",
+            "reason": "Located in the middle of the page, next to the name '多肉葡萄（首创）'",
             "text": "选规格",
             "id": "427d3179c2"
           }
@@ -168,38 +168,174 @@
       "response": {
         "plans": [
           {
-            "thought": "任务是点击'不使用吸管'，'冰沙推荐'，'正常冰推荐'。可以在页面上找到这些选项并点击。",
+            "thought": "根据用户要求，页面上有各种选项供选择，包括\"不使用吸管\"、\"冰沙（推荐）\"、\"正常冰（推荐）\"。",
             "type": "Locate",
             "param": {
-              "prompt": "勾选框旁边的文字内容为'不使用吸管'的复选框"
+              "prompt": "左侧第二个复选框，上面显示\"不使用吸管\"的复选框"
             }
           },
           {
-            "thought": "用户需要选择'不使用吸管'选项。",
+            "thought": "点击复选框以选中\"不使用吸管\"选项。",
             "type": "Tap",
             "param": null
           },
           {
-            "thought": "下一步是选择'冰沙（推荐）'。",
+            "thought": "找到页面上显示\"冰沙（推荐）\"的复选框。",
             "type": "Locate",
             "param": {
-              "prompt": "勾选框旁边的文字内容为'冰沙（推荐）'的复选框"
+              "prompt": "左侧显示\"冰沙（推荐）\"的复选框"
             }
           },
           {
-            "thought": "用户需要选择'冰沙推荐'选项。",
+            "thought": "点击选中\"冰沙（推荐）\"选项。",
             "type": "Tap",
             "param": null
           },
           {
-            "thought": "最后一步是选择'正常冰（推荐）'。",
+            "thought": "找到页面上显示\"正常冰（推荐）\"的复选框。",
             "type": "Locate",
             "param": {
-              "prompt": "勾选框旁边的文字内容为'正常冰（推荐）'的复选框"
+              "prompt": "左侧显示\"正常冰（推荐）\"的复选框"
             }
           },
           {
-            "thought": "用户需要选择'正常冰推荐'选项。",
+            "thought": "点击选中\"正常冰（推荐）\"选项。",
+            "type": "Tap",
+            "param": null
+          }
+        ]
+      }
+    },
+    {
+      "type": "locate",
+      "pageContext": {
+        "url": "https://heyteavivocity.meuu.online/home",
+        "size": {
+          "width": 400,
+          "height": 905
+        }
+      },
+      "prompt": "左侧第二个复选框，上面显示\"不使用吸管\"的复选框",
+      "response": {
+        "elements": [
+          {
+            "reason": "The element is the second checkbox from the top on the left and contains the text '不使用吸管'. It matches the description provided.",
+            "text": "不使用吸管",
+            "id": "6384a887d9"
+          }
+        ],
+        "errors": []
+      }
+    },
+    {
+      "type": "locate",
+      "pageContext": {
+        "url": "https://heyteavivocity.meuu.online/home",
+        "size": {
+          "width": 400,
+          "height": 905
+        }
+      },
+      "prompt": "左侧显示\"冰沙（推荐）\"的复选框",
+      "response": {
+        "elements": [
+          {
+            "reason": "The element matches the description '冰沙（推荐）' and is a checkbox located on the left side.",
+            "text": "冰沙（推荐）",
+            "id": "e673260398"
+          }
+        ],
+        "errors": []
+      }
+    },
+    {
+      "type": "locate",
+      "pageContext": {
+        "url": "https://heyteavivocity.meuu.online/home",
+        "size": {
+          "width": 400,
+          "height": 905
+        }
+      },
+      "prompt": "左侧显示\"正常冰（推荐）\"的复选框",
+      "response": {
+        "elements": [
+          {
+            "reason": "The element contains the text '正常冰（推荐）' and is a checkbox located on the left side of the image.",
+            "text": "正常冰（推荐）",
+            "id": "0b385ab4dc"
+          }
+        ],
+        "errors": []
+      }
+    },
+    {
+      "type": "plan",
+      "pageContext": {
+        "url": "https://heyteavivocity.meuu.online/home",
+        "size": {
+          "width": 400,
+          "height": 905
+        }
+      },
+      "prompt": "向下滚动一屏",
+      "response": {
+        "plans": [
+          {
+            "thought": "根据用户的指令，页面应向下滚动一屏内容。",
+            "type": "Scroll",
+            "param": {
+              "scrollType": "ScrollDown"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "type": "plan",
+      "pageContext": {
+        "url": "https://heyteavivocity.meuu.online/home",
+        "size": {
+          "width": 400,
+          "height": 905
+        }
+      },
+      "prompt": "点击标准甜、点击绿妍（推荐）、点击标准口味",
+      "response": {
+        "plans": [
+          {
+            "thought": "用户希望选择标准甜，因此先找到标准甜的选项进行点击。",
+            "type": "Locate",
+            "param": {
+              "prompt": "内容为‘标准甜（推荐）’的复选框右侧的文本。"
+            }
+          },
+          {
+            "thought": "点击标准甜。",
+            "type": "Tap",
+            "param": null
+          },
+          {
+            "thought": "用户希望选择绿妍茶底，因此先找到绿妍的选项进行点击。",
+            "type": "Locate",
+            "param": {
+              "prompt": "内容为‘绿妍（推荐）’的复选框右侧的文本。"
+            }
+          },
+          {
+            "thought": "点击绿妍。",
+            "type": "Tap",
+            "param": null
+          },
+          {
+            "thought": "用户希望选择标准口味，因此先找到标准口味的选项进行点击。",
+            "type": "Locate",
+            "param": {
+              "prompt": "内容为‘标准口味（推荐）’的复选框右侧的文本。"
+            }
+          },
+          {
+            "thought": "点击标准口味。",
             "type": "Tap",
             "param": null
           }
