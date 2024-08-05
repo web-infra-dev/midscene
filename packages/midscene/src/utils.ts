@@ -85,7 +85,7 @@ export function writeDumpFile(opts: {
       writeFileSync(
         gitIgnorePath,
         `${gitIgnoreContent}\n# Midscene.js dump files\n${logDirName}/report\n${logDirName}/dump-logger\n`,
-        'utf-8'
+        'utf-8',
       );
     }
     logEnvReady = true;
