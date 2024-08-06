@@ -1,6 +1,6 @@
 {
   "name": "@midscene/visualizer-report",
-  "version": "0.1.4",
+  "version": "0.2.0",
   "scripts": {
     "reset": "npx rimraf ./**/node_modules",
     "dev": "modern dev",
@@ -11,7 +11,10 @@
     "lint": "modern lint",
     "upgrade": "modern upgrade"
   },
-  "files": ["dist", "README.md"],
+  "files": [
+    "dist",
+    "README.md"
+  ],
   "engines": {
     "node": ">=16.18.1"
   },
@@ -20,7 +23,10 @@
       "node --max_old_space_size=8192 ./node_modules/eslint/bin/eslint.js --fix --color --cache --quiet"
     ]
   },
-  "eslintIgnore": ["node_modules/", "dist/"],
+  "eslintIgnore": [
+    "node_modules/",
+    "dist/"
+  ],
   "dependencies": {
     "@modern-js/runtime": "^2.56.2",
     "@midscene/visualizer": "workspace:*",
