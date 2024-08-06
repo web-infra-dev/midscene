@@ -63,7 +63,7 @@ test.beforeEach(async ({ page }) => {
   await page.waitForLoadState("networkidle");
 });
 
-test("search headphone on ebay", async ({ ai, aiQuery }) => {
+test("search headphone on ebay", async ({ ai, aiQuery, aiAssert }) => {
   // 👀 输入关键字，执行搜索
   // 注：尽管这是一个英文页面，你也可以用中文指令控制它
   await ai('在搜索框输入 "Headphones" ，敲回车');
@@ -75,6 +75,9 @@ test("search headphone on ebay", async ({ ai, aiQuery }) => {
 
   console.log("headphones in stock", items);
   expect(items?.length).toBeGreaterThan(0);
+
+  // 👀 用 AI 断言
+  await aiAssert("界面左侧有类目筛选功能");
 });
 
 ```
@@ -144,6 +147,9 @@ Promise.resolve(
     );
     console.log("耳机商品信息", items);
 
+    // 👀 用 AI 断言
+    await mid.aiAssert("界面左侧有类目筛选功能");
+
     await browser.close();
   })()
 );
@@ -151,13 +157,14 @@ Promise.resolve(
 
 :::tip
 
-你可能已经注意到了，上述文件中的关键代码只有两行，且都是用自然语言编写的
+你可能已经注意到了，上述文件中的关键代码只有三行，且都是用自然语言编写的
 
 ```typescript
 await mid.aiAction('在搜索框输入 "Headphones" ，敲回车');
 await mid.aiQuery(
   '{itemTitle: string, price: Number}[], 找到列表里的商品标题和价格',
 );
+await mid.aiAssert("界面左侧有类目筛选功能");
 ```
 :::
 
