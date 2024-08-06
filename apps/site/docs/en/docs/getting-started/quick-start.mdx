@@ -33,7 +33,6 @@ export default defineConfig({
   testDir: './e2e',
 + timeout: 90 * 1000,
 + reporter: [["list"], ["@midscene/web/playwright-report"]],
-
 });
 ```
 
@@ -58,12 +57,12 @@ import { expect } from "@playwright/test";
 import { test } from "./fixture";
 
 test.beforeEach(async ({ page }) => {
-  page.setViewportSize({ width: 400, height: 905 });
+  page.setViewportSize({ width: 1280, height: 800 });
   await page.goto("https://www.ebay.com");
   await page.waitForLoadState("networkidle");
 });
 
-test("search headphone on ebay", async ({ ai, aiQuery }) => {
+test("search headphone on ebay", async ({ ai, aiQuery, aiAssert }) => {
   // 👀 type keywords, perform a search
   await ai('type "Headphones" in search box, hit Enter');
 
@@ -73,7 +72,10 @@ test("search headphone on ebay", async ({ ai, aiQuery }) => {
   );
 
   console.log("headphones in stock", items);
-  expect(items?.length).toBeGreaterThan(1);
+  expect(items?.length).toBeGreaterThan(0);
+
+  // 👀 assert by AI
+  await aiAssert("There is a category filter on the left");
 });
 
 ```
@@ -139,19 +141,23 @@ Promise.resolve(
     );
     console.log("headphones in stock", items);
 
+    // 👀 assert by AI
+    await mid.aiAssert("There is a category filter on the left");
+
     await browser.close();
   })()
 );
 ```
 
 :::tip
-You may have noticed that the key lines of code for this only consist of two lines. They are all written in plain language.
+You may have noticed that the key lines of code for this only consist of three lines. They are all written in plain language.
 
 ```typescript
 await mid.aiAction('type "Headphones" in search box, hit Enter');
 await mid.aiQuery(
   '{itemTitle: string, price: Number}[], find item in list and corresponding price',
 );
+await mid.aiAssert("There is a category filter on the left");
 ```
 :::
 

@@ -103,11 +103,13 @@ const dataB = await mid.aiQuery('string[]，列表中的任务名称');
 const dataC = await mid.aiQuery('{name: string, age: string}[], 表格中的数据记录');
 ```
 
-### `.aiAssert(conditionPrompt: string, errorMsg?: string)` - 进行断言
+### `.aiAssert(assertion: string, errorMsg?: string)` - 进行断言
 
-这个方法即将上线。
+`.aiAssert` 的功能类似于一般的断言（assert）方法，但可以用自然语言编写条件参数 `assertion`。Midscene 会调用 AI 来判断条件是否为真。若条件不满足，SDK 会抛出一个错误并在 `errorMsg` 后附上 AI 生成的错误原因。
 
-`.aiAssert` 的功能类似于一般的 `assert` 方法，但可以用自然语言编写条件参数 `conditionPrompt`。Midscene 会调用 AI 来判断条件是否为真。若满足条件，详细原因会附加到 `errorMsg` 中。
+```typescript
+await mid.aiAssert('界面中应该有个搜索框');
+```
 
 ## 使用 LangSmith （可选）
 

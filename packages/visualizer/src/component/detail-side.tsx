@@ -6,6 +6,7 @@ import { RadiusSettingOutlined } from '@ant-design/icons';
 import type {
   BaseElement,
   ExecutionTaskAction,
+  ExecutionTaskInsightAssertion,
   ExecutionTaskInsightLocate,
   ExecutionTaskInsightQuery,
   ExecutionTaskPlanning,
@@ -274,7 +275,8 @@ const DetailSide = (): JSX.Element => {
           key: 'param',
           content: JSON.stringify(
             (task as ExecutionTaskInsightLocate)?.param?.prompt ||
-              (task as ExecutionTaskInsightQuery)?.param?.dataDemand,
+              (task as ExecutionTaskInsightQuery)?.param?.dataDemand ||
+              (task as ExecutionTaskInsightAssertion)?.param?.assertion,
           ),
         },
       ],
@@ -363,7 +365,7 @@ const DetailSide = (): JSX.Element => {
 
   // const [showQuery, setShowQuery] = useState(false);
 
-  const errorSection = dump?.error ? (
+  const errorSection = task?.error ? (
     <Card
       liteMode={true}
       title="Error"
@@ -371,7 +373,7 @@ const DetailSide = (): JSX.Element => {
       onMouseLeave={noop}
       content={
         <pre className="description-content" style={{ color: '#F00' }}>
-          {dump.error}
+          {task.error}
         </pre>
       }
     />
@@ -385,7 +387,27 @@ const DetailSide = (): JSX.Element => {
       content={<pre>{JSON.stringify(dump.data, undefined, 2)}</pre>}
     />
   ) : null;
-  console.log('dump is', dump);
+
+  let assertionCard: JSX.Element | null = null;
+  if (task?.type === 'Insight' && task.subType === 'Assert') {
+    assertionCard = (
+      <Card
+        liteMode={true}
+        title="Assert"
+        onMouseEnter={noop}
+        onMouseLeave={noop}
+        content={
+          <pre className="description-content">
+            {JSON.stringify(
+              (task as ExecutionTaskInsightAssertion).output,
+              undefined,
+              2,
+            )}
+          </pre>
+        }
+      />
+    );
+  }
 
   const plans = (task as ExecutionTaskPlanning)?.output?.plans;
   let timelineData: TimelineItemProps[] = [];
@@ -425,6 +447,7 @@ const DetailSide = (): JSX.Element => {
       <div className="item-list item-list-space-up">
         {errorSection}
         {dataCard}
+        {assertionCard}
         {matchedSectionsEl}
         {matchedElementsEl}
         <Timeline items={timelineData} />

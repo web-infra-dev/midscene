@@ -17,7 +17,7 @@ function logger(...message: any[]) {
   }
 }
 
-class MidSceneReporter implements Reporter {
+class MidsceneReporter implements Reporter {
   async onBegin(config: FullConfig, suite: Suite) {
     const suites = suite.allTests();
     logger(`Starting the run with ${suites.length} tests`);
@@ -63,4 +63,4 @@ class MidSceneReporter implements Reporter {
   }
 }
 
-export default MidSceneReporter;
+export default MidsceneReporter;
