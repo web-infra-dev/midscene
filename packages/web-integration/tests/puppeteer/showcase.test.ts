@@ -13,8 +13,7 @@ describe('puppeteer integration', () => {
     const mid = new PuppeteerAgent(page);
 
     // perform a search
-    await mid.aiAction('type "Headphones" in search box, hit Enter');
-    await sleep(5000);
+    await mid.aiAction('type "Headphones" in search box, hit Enter, wait 5s');
 
     // find the items
     const items = await mid.aiQuery(
