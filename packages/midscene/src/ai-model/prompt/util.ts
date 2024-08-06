@@ -251,7 +251,7 @@ export async function describeUserPage<
     return { ...item };
   });
 
-  const elementInfosDescription = cropfieldInformation(elementsInfo);
+  const elementInfosDescription = cropFieldInformation(elementsInfo);
 
   return {
     description: `
@@ -270,7 +270,7 @@ export async function describeUserPage<
   };
 }
 
-function cropfieldInformation(elementsInfo: BaseElement[]) {
+function cropFieldInformation(elementsInfo: BaseElement[]) {
   const elementInfosDescription: Array<PromptElementType> = elementsInfo.map(
     (item) => {
       const { id, attributes = {}, rect, content } = item;

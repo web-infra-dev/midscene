@@ -1,9 +1,9 @@
+import assert from 'node:assert';
+import { writeFileSync } from 'node:fs';
 import { PuppeteerAgent } from '@midscene/web';
+import ora from 'ora-classic';
 import puppeteer from 'puppeteer';
 import { type ArgumentValueType, findOnlyItemInArgs, parse } from './args';
-import assert from 'node:assert';
-import ora from 'ora-classic';
-import { writeFileSync } from 'node:fs';
 
 let spinner: ora.Ora | undefined;
 const stepString = (name: string, param?: string) => {
@@ -36,7 +36,7 @@ const preferenceArgs = {
   viewportScale: 'viewport-scale',
   useragent: 'user-agent',
   // preferCache: 'prefer-cache',
-  // cookieJar: 'cookie-jar',
+  // cookie: 'cookie',
 };
 
 const actionArgs = {
@@ -54,6 +54,40 @@ const welcome = '\nWelcome to @midscene/cli\n';
 console.log(welcome);
 
 const args = parse(process.argv);
+
+if (findOnlyItemInArgs(args, 'help')) {
+  console.log(`
+  Usage: midscene [options] [actions]
+
+  Options:
+    --url <url>                 The URL to visit, required
+    --user-agent <ua>           The user agent to use, optional
+    --viewport-width <width>    The width of the viewport, optional
+    --viewport-height <height>  The height of the viewport, optional
+    --viewport-scale <scale>    The device scale factor, optional
+    --headed                    Run in headed mode, default false
+    --help                      Display this help message
+    --version                   Display the version
+
+  Actions (order matters, can be used multiple times):
+    --action <action>           Perform an action, optional
+    --assert <assert>           Perform an assert, optional
+    --query-output <path>       Save the result of the query to a file, optional
+    --query <query>             Perform a query, optional
+    --sleep <ms>                Sleep for a number of milliseconds, optional
+
+  Examples:
+    midscene --headed --url https://wwww.bing.com --action "type 'weather today', hit enter"
+    midscene --url https://www.githubstatus.com/ --query-output status.json --query '{name: string, status: string}[], service status of github page'
+  `);
+  process.exit(0);
+}
+
+if (findOnlyItemInArgs(args, 'version')) {
+  const versionFromPkgJson = require('../package.json').version;
+  console.log(`@midscene/cli version ${versionFromPkgJson}`);
+  process.exit(0);
+}
 
 // check each arg is either in the preferenceArgs or actionArgs
 args.forEach((arg) => {
@@ -117,13 +151,22 @@ Promise.resolve(
     try {
       let index = 0;
       let outputPath: string | undefined;
+      let actionStarted = false;
       while (index <= args.length - 1) {
         const arg = args[index];
         argName = arg.name;
         argValue = arg.value;
-        const ifShouldUpdateSpin = Object.keys(actionArgs).includes(argName);
-        if (ifShouldUpdateSpin) {
-          updateSpin(stepString(argName, String(argValue)));
+        updateSpin(stepString(argName, String(argValue)));
+        const validActionArg = Object.values(actionArgs).includes(argName);
+        // once action started, you cannot use preferenceArgs
+        if (actionStarted) {
+          assert(
+            validActionArg,
+            `You cannot use ${argName} here. Please change the order of the arguments.`,
+          );
+        }
+        if (validActionArg) {
+          actionStarted = true;
         }
         switch (argName) {
           case actionArgs.action: {
@@ -189,6 +232,4 @@ Promise.resolve(
   })(),
 );
 
-// TODO: print report
-// TODO: --help
-// TODO: --version
+// TODO: print report after running

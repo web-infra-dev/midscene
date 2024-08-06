@@ -5,8 +5,7 @@
   "jsnext:source": "./src/index.ts",
   "main": "./dist/lib/index.js",
   "bin": {
-    "midscene": "./bin/midscene",
-    "mid": "./bin/midscene"
+    "midscene": "./bin/midscene"
   },
   "files": [
     "dist",
