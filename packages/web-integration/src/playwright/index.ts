@@ -15,10 +15,10 @@ const groupAndCaseForTest = (testInfo: TestInfo) => {
 
   if (titlePath.length > 1) {
     taskTitle = titlePath.pop() || 'unnamed';
-    taskFile = `${titlePath.join(' > ')}:${testInfo.line}`;
+    taskFile = `${titlePath.join(' > ')}`;
   } else if (titlePath.length === 1) {
     taskTitle = titlePath[0];
-    taskFile = `${taskTitle}:${testInfo.line}`;
+    taskFile = `${taskTitle}`;
   } else {
     taskTitle = 'unnamed';
     taskFile = 'unnamed';
