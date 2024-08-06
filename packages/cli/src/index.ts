@@ -1,0 +1,194 @@
+import { PuppeteerAgent } from '@midscene/web';
+import puppeteer from 'puppeteer';
+import { type ArgumentValueType, findOnlyItemInArgs, parse } from './args';
+import assert from 'node:assert';
+import ora from 'ora-classic';
+import { writeFileSync } from 'node:fs';
+
+let spinner: ora.Ora | undefined;
+const stepString = (name: string, param?: string) => {
+  const paramStr = name === 'sleep' ? `${param}ms` : param;
+  return `${name}\n  ${paramStr ? `${paramStr}` : ''}`;
+};
+
+const printStep = (name: string, param?: string) => {
+  if (spinner) {
+    spinner.stop();
+  }
+  console.log(`- ${stepString(name, param)}`);
+};
+
+const updateSpin = (text: string) => {
+  if (!spinner) {
+    spinner = ora(text);
+    spinner.start();
+  } else {
+    spinner.text = text;
+    spinner.start();
+  }
+};
+
+const preferenceArgs = {
+  url: 'url',
+  headed: 'headed',
+  viewportWidth: 'viewport-width',
+  viewportHeight: 'viewport-height',
+  viewportScale: 'viewport-scale',
+  useragent: 'user-agent',
+  // preferCache: 'prefer-cache',
+  // cookieJar: 'cookie-jar',
+};
+
+const actionArgs = {
+  action: 'action',
+  assert: 'assert',
+  queryOutput: 'query-output',
+  query: 'query',
+  sleep: 'sleep',
+};
+
+const defaultUA =
+  'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36';
+
+const welcome = '\nWelcome to @midscene/cli\n';
+console.log(welcome);
+
+const args = parse(process.argv);
+
+// check each arg is either in the preferenceArgs or actionArgs
+args.forEach((arg) => {
+  assert(
+    Object.values(preferenceArgs).includes(arg.name) ||
+      Object.values(actionArgs).includes(arg.name),
+    `Unknown argument: ${arg.name}`,
+  );
+});
+
+// prepare the viewport config
+const preferHeaded = findOnlyItemInArgs(args, preferenceArgs.headed);
+const userExpectWidth = findOnlyItemInArgs(args, preferenceArgs.viewportWidth);
+const userExpectHeight = findOnlyItemInArgs(
+  args,
+  preferenceArgs.viewportHeight,
+);
+const userExpectDpr = findOnlyItemInArgs(args, preferenceArgs.viewportScale);
+const viewportConfig = {
+  width: typeof userExpectWidth === 'number' ? userExpectWidth : 1280,
+  height: typeof userExpectHeight === 'number' ? userExpectHeight : 1280,
+  deviceScaleFactor: typeof userExpectDpr === 'number' ? userExpectDpr : 1,
+};
+const url = findOnlyItemInArgs(args, preferenceArgs.url);
+assert(url, 'URL is required');
+assert(typeof url === 'string', 'URL must be a string');
+
+const preferredUA = findOnlyItemInArgs(args, preferenceArgs.useragent);
+const ua = typeof preferredUA === 'string' ? preferredUA : defaultUA;
+
+printStep(preferenceArgs.url, url);
+printStep(preferenceArgs.useragent, ua);
+printStep('viewport', JSON.stringify(viewportConfig));
+if (preferHeaded) {
+  printStep(preferenceArgs.headed, 'true');
+}
+
+Promise.resolve(
+  (async () => {
+    updateSpin(stepString('launch', 'puppeteer'));
+    const browser = await puppeteer.launch({
+      headless: !preferHeaded,
+    });
+
+    const page = await browser.newPage();
+    await page.setUserAgent(ua);
+
+    await page.setViewport(viewportConfig);
+
+    updateSpin(stepString('launch', url));
+    await page.goto(url);
+    updateSpin(stepString('waitForNetworkIdle', url));
+    await page.waitForNetworkIdle();
+    printStep('launched', url);
+
+    const agent = new PuppeteerAgent(page);
+
+    let errorWhenRunning: Error | undefined;
+    let argName: string;
+    let argValue: ArgumentValueType;
+    try {
+      let index = 0;
+      let outputPath: string | undefined;
+      while (index <= args.length - 1) {
+        const arg = args[index];
+        argName = arg.name;
+        argValue = arg.value;
+        const ifShouldUpdateSpin = Object.keys(actionArgs).includes(argName);
+        if (ifShouldUpdateSpin) {
+          updateSpin(stepString(argName, String(argValue)));
+        }
+        switch (argName) {
+          case actionArgs.action: {
+            const param = arg.value;
+            assert(param, 'missing action');
+            assert(typeof param === 'string', 'action must be a string');
+            await agent.aiAction(param);
+            printStep(argName, String(argValue));
+            break;
+          }
+          case actionArgs.assert: {
+            const param = arg.value;
+            assert(param, 'missing assert');
+            assert(typeof param === 'string', 'assert must be a string');
+            await agent.aiAssert(param);
+            printStep(argName, String(argValue));
+            break;
+          }
+          case actionArgs.queryOutput: {
+            const param = arg.value;
+            assert(param, 'missing query-output');
+            assert(typeof param === 'string', 'query-output must be a string');
+            outputPath = param;
+            printStep(argName, String(argValue));
+            break;
+          }
+          case actionArgs.query: {
+            const param = arg.value;
+            assert(param, 'missing query');
+            assert(typeof param === 'string', 'query must be a string');
+            const value = await agent.aiQuery(param);
+            printStep(argName, String(argValue));
+            printStep('answer', value);
+            if (outputPath) {
+              writeFileSync(
+                outputPath,
+                typeof value === 'object'
+                  ? JSON.stringify(value, null, 2)
+                  : value,
+              );
+            }
+            break;
+          }
+          case actionArgs.sleep: {
+            const param = arg.value;
+            if (!param) break;
+            assert(typeof param === 'number', 'sleep must be a number');
+            await new Promise((resolve) => setTimeout(resolve, param));
+            printStep(argName, String(argValue));
+            break;
+          }
+        }
+        index += 1;
+      }
+    } catch (e: any) {
+      printStep(`${argName!} - Failed`, String(argValue!));
+      printStep('Error', e.message);
+      errorWhenRunning = e;
+    }
+
+    await browser.close();
+    process.exit(errorWhenRunning ? 1 : 0);
+  })(),
+);
+
+// TODO: print report
+// TODO: --help
+// TODO: --version

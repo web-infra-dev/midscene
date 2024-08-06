@@ -1,0 +1,38 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`args > should parse arguments 1`] = `
+[
+  {
+    "name": "url",
+    "value": "https://example.com",
+  },
+  {
+    "name": "width",
+    "value": 500,
+  },
+  {
+    "name": "action",
+    "value": "click",
+  },
+  {
+    "name": "assert",
+    "value": "this is an assertion",
+  },
+  {
+    "name": "query-output",
+    "value": "output.json",
+  },
+  {
+    "name": "query",
+    "value": "title",
+  },
+  {
+    "name": "query",
+    "value": "content",
+  },
+  {
+    "name": "prefer-cache",
+    "value": true,
+  },
+]
+`;

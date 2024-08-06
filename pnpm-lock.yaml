@@ -82,6 +82,37 @@ importers:
         specifier: ^18.0.0
         version: 18.19.41
 
+  packages/cli:
+    dependencies:
+      '@midscene/web':
+        specifier: workspace:*
+        version: link:../web-integration
+      ora-classic:
+        specifier: 5.4.2
+        version: 5.4.2
+      puppeteer:
+        specifier: ^22.8.0
+        version: 22.13.1(typescript@5.0.4)
+      yargs:
+        specifier: 17.7.2
+        version: 17.7.2
+    devDependencies:
+      '@modern-js/module-tools':
+        specifier: ^2.56.1
+        version: 2.56.1(eslint@8.57.0)(typescript@5.0.4)
+      '@types/node':
+        specifier: ^18.0.0
+        version: 18.19.41
+      '@types/yargs':
+        specifier: 17.0.32
+        version: 17.0.32
+      typescript:
+        specifier: ~5.0.4
+        version: 5.0.4
+      vitest:
+        specifier: ^1.6.0
+        version: 1.6.0(@types/node@18.19.41)(jsdom@20.0.3)(terser@5.31.3)
+
   packages/midscene:
     dependencies:
       openai:
@@ -7960,6 +7991,10 @@ packages:
   optionator@0.9.4:
     resolution: {integrity: sha512-6IpQ7mKUxRcZNLIObR0hz7lxsapSSIYNZJwXPGeF0mTVqGKFIXj1DQcMoT22S3ROcLyY/rz0PWaWZ9ayWmad9g==}
     engines: {node: '>= 0.8.0'}
+
+  ora-classic@5.4.2:
+    resolution: {integrity: sha512-/xX8D5AMHB+LnvEJHOglmq6pXwm65CQ/gqPrIjIN5GJ1Bl9KC9fSmgzR/FwjrtalDj/WVxukAVuH8GP00Zpiaw==}
+    engines: {node: '>=10'}
 
   ora@5.3.0:
     resolution: {integrity: sha512-zAKMgGXUim0Jyd6CXK9lraBnD3H5yPGBPPOkC23a2BG6hsm4Zu6OQSjQuEtV0BHDf4aKHcUFvJiGRrFuW3MG8g==}
@@ -21467,6 +21502,18 @@ snapshots:
       prelude-ls: 1.2.1
       type-check: 0.4.0
       word-wrap: 1.2.5
+
+  ora-classic@5.4.2:
+    dependencies:
+      bl: 4.1.0
+      chalk: 4.1.2
+      cli-cursor: 3.1.0
+      cli-spinners: 2.9.2
+      is-interactive: 1.0.0
+      is-unicode-supported: 0.1.0
+      log-symbols: 4.1.0
+      strip-ansi: 6.0.1
+      wcwidth: 1.0.1
 
   ora@5.3.0:
     dependencies:
