@@ -31,6 +31,7 @@
     "@modern-js/module-tools": "^2.56.1",
     "@types/node": "^18.0.0",
     "@types/yargs": "17.0.32",
+    "execa": "9.3.0",
     "typescript": "~5.0.4",
     "vitest": "^1.6.0"
   },

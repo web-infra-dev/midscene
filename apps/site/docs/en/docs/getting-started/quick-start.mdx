@@ -8,12 +8,38 @@ Remember to prepare an API key that is eligible for accessing OpenAI's GPT-4o be
 
 ## Preparation
 
-Config the API key
+Config the OpenAI API key, or [customize model vendor](../usage/model-vendor.html)
 
 ```bash
 # replace by your own
 export OPENAI_API_KEY="sk-abcdefghijklmnopqrstuvwxyz"
 ```
+
+## Experience with Command Line Tools
+
+Command line version of Midscene is a very convenient way to experience the basics.
+
+⁠Ensure that you have [Node.js](https://nodejs.org/) installed.
+
+```bash
+# headless mode to visit bing.com and search for 'weather today'
+npx @midscene/cli --url https://wwww.bing.com --action "type 'weather today', hit enter"
+
+# headed mode (i.e. visible browser) to visit bing.com and search for 'weather today'
+npx @midscene/cli --headed --url https://wwww.bing.com --action "type 'weather today', hit enter"
+
+# visit github status page and save the status to ./status.json
+npx @midscene/cli \
+  --url https://www.githubstatus.com/ \
+  --query-output status.json \
+  --query '{name: string, status: string}[], service status of github page'
+```
+
+If you want to dive deep into Midscene, we recommend using the SDK version and integrating it with Playwright or Puppeteer.
+
+### View test report after running
+
+After running, Midscene will generate a log dump, which is placed in `./midscene_run/report/latest.web-dump.json` by default. Then put this file into [Visualization Tool](/visualization/), and you will have a clearer understanding of the process.
 
 ## Integrate with Playwright
 
@@ -181,10 +207,9 @@ npx ts-node demo.ts
 # ]
 ```
 
-### Step 4. view test report after running
+### View test report after running
 
 After running, Midscene will generate a log dump, which is placed in `./midscene_run/report/latest.web-dump.json` by default. Then put this file into [Visualization Tool](/visualization/), and you will have a clearer understanding of the process.
-
 
 ## View demo report
 
