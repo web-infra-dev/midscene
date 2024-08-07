@@ -6,12 +6,19 @@ import puppeteer from 'puppeteer';
 import { type ArgumentValueType, findOnlyItemInArgs, parse } from './args';
 
 let spinner: ora.Ora | undefined;
-const stepString = (name: string, param?: string) => {
-  const paramStr = name === 'sleep' ? `${param}ms` : param;
+const stepString = (name: string, param?: any) => {
+  let paramStr;
+  if (typeof param === 'object') {
+    paramStr = JSON.stringify(param, null, 2);
+  } else if (name === 'sleep') {
+    paramStr = `${param}ms`;
+  } else {
+    paramStr = param;
+  }
   return `${name}\n  ${paramStr ? `${paramStr}` : ''}`;
 };
 
-const printStep = (name: string, param?: string) => {
+const printStep = (name: string, param?: any) => {
   if (spinner) {
     spinner.stop();
   }
@@ -77,7 +84,14 @@ if (findOnlyItemInArgs(args, 'help')) {
     --sleep <ms>                Sleep for a number of milliseconds, optional
 
   Examples:
+
+    # headless mode to visit bing.com and search for 'weather today'
+    midscene --url https://wwww.bing.com --action "type 'weather today', hit enter"
+
+    # headed mode (i.e. visible browser) to visit bing.com and search for 'weather today'
     midscene --headed --url https://wwww.bing.com --action "type 'weather today', hit enter"
+
+    # visit github status page and save the status to status.json
     midscene --url https://www.githubstatus.com/ --query-output status.json --query '{name: string, status: string}[], service status of github page'
   `);
   process.exit(0);
