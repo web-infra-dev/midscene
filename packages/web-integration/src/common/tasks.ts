@@ -20,6 +20,7 @@ import Insight, {
   type PlanningActionParamHover,
   type PlanningActionParamInputOrKeyPress,
   type PlanningActionParamScroll,
+  type PlanningActionParamSleep,
   type PlanningActionParamTap,
 } from '@midscene/core';
 import { base64Encoded } from '@midscene/core/image';
@@ -191,7 +192,6 @@ export class PageTaskExecutor {
             };
           return taskActionInput;
         }
-
         if (plan.type === 'KeyboardPress') {
           const taskActionKeyboardPress: ExecutionTaskActionApply<PlanningActionParamInputOrKeyPress> =
             {
@@ -270,6 +270,19 @@ export class PageTaskExecutor {
               },
             };
           return taskActionScroll;
+        }
+        if (plan.type === 'Sleep') {
+          const taskActionSleep: ExecutionTaskActionApply<PlanningActionParamSleep> =
+            {
+              type: 'Action',
+              subType: 'Sleep',
+              param: plan.param,
+              executor: async (taskParam) => {
+                assert(taskParam.timeMs, 'No time to sleep');
+                await sleep(taskParam.timeMs);
+              },
+            };
+          return taskActionSleep;
         }
         if (plan.type === 'Error') {
           throw new Error(`Got a task plan with type Error: ${plan.thought}`);
