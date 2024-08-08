@@ -8,7 +8,10 @@ import type {
 } from '@/types';
 import type { ChatCompletionMessageParam } from 'openai/resources';
 import { callToGetJSONObject } from './openai';
-import { systemPromptToFindElement } from './prompt/element_inspector';
+import {
+  multiDescription,
+  systemPromptToFindElement,
+} from './prompt/element_inspector';
 import {
   describeUserPage,
   systemPromptToAssert,
@@ -54,9 +57,7 @@ export async function AiInspectElement<
           type: 'text',
           text: JSON.stringify({
             description: findElementDescription,
-            multi: multi
-              ? 'multiple elements matching the description (two or more)'
-              : 'The element closest to the description (only one)',
+            multi: multiDescription(multi),
           }),
         },
       ],

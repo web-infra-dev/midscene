@@ -129,3 +129,9 @@ Output Example:
   
   `;
 }
+
+export function multiDescription(multi: boolean) {
+  return multi
+    ? 'multiple elements matching the description (two or more)'
+    : 'The element closest to the description (only one)';
+}

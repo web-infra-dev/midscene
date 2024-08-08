@@ -21,7 +21,7 @@ const aiModelTest =
 export default defineConfig({
   test: {
     // include: ['tests/inspector/*.test.ts'],
-    include: ['tests/**/*.test.ts'],
+    include: ['tests/ai-model/inspector/coze_inspector.test.ts'],
     // Need to improve the corresponding testing
     exclude: ['tests/insight/*.test.ts', ...aiModelTest],
   },

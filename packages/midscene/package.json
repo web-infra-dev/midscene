@@ -59,9 +59,11 @@
   },
   "dependencies": {
     "openai": "4.47.1",
-    "sharp": "0.33.3"
+    "sharp": "0.33.3",
+    "node-fetch": "2.6.7"
   },
   "devDependencies": {
+    "@types/node-fetch": "2.6.11",
     "@modern-js/module-tools": "^2.56.1",
     "@types/node": "^18.0.0",
     "langsmith": "0.1.36",

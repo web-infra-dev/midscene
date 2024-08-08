@@ -1,6 +1,6 @@
 {
   "pkgName": "@midscene/web",
-  "pkgVersion": "0.1.4",
+  "pkgVersion": "0.2.0",
   "taskFile": "ai-online-order.spec.ts",
   "taskTitle": "ai online order",
   "aiTasks": [
@@ -17,26 +17,26 @@
       "response": {
         "plans": [
           {
-            "thought": "需要切换语言，需要找到明显的语言选择按钮。",
+            "thought": "找到页面左上角的语言切换按钮（显示为“English”）。",
             "type": "Locate",
             "param": {
-              "prompt": "页面左上角显示语言的文字或按钮"
+              "prompt": "页面左上角，显示为“English”的语言切换按钮。"
             }
           },
           {
-            "thought": "点击语言切换按钮",
+            "thought": "点击语言切换按钮以显示语言下拉列表。",
             "type": "Tap",
             "param": null
           },
           {
-            "thought": "需要选择中文，需要找到下拉列表中的中文选项",
+            "thought": "在弹出的下拉列表中找到并选择“中文”选项。",
             "type": "Locate",
             "param": {
-              "prompt": "下拉列表中显示'中文'的文字"
+              "prompt": "弹出下拉列表中的“中文”选项。"
             }
           },
           {
-            "thought": "点击中文选项",
+            "thought": "点击“中文”选项以切换页面语言。",
             "type": "Tap",
             "param": null
           }
@@ -52,11 +52,11 @@
           "height": 905
         }
       },
-      "prompt": "页面左上角显示语言的文字或按钮",
+      "prompt": "页面左上角，显示为“English”的语言切换按钮。",
       "response": {
         "elements": [
           {
-            "reason": "The element containing the text 'English' is located in the upper left corner of the page, consistent with the description which asks for the language displayed in the top left corner.",
+            "reason": "The element 'English' is the language switch button located in the top left corner of the page, which matches the user's description.",
             "text": "English",
             "id": "57c026f0b8"
           }
@@ -73,11 +73,11 @@
           "height": 905
         }
       },
-      "prompt": "下拉列表中显示'中文'的文字",
+      "prompt": "弹出下拉列表中的“中文”选项。",
       "response": {
         "elements": [
           {
-            "reason": "The element with the text '中文' is a text node located within a dropdown list, as indicated in the screenshot.",
+            "reason": "The description specifies looking for a '中文' option in a dropdown. The element with id 'efc0b2ff38' matches this content and is located within the bounds of a dropdown list in the screenshot.",
             "text": "中文",
             "id": "efc0b2ff38"
           }
@@ -98,7 +98,7 @@
       "response": {
         "plans": [
           {
-            "thought": "用户要求向下滚动一屏，页面包含了多个菜单项和商品信息，满足滚动需求。",
+            "thought": "用户要求向下滚动一屏，在当前页面上这个操作是可行的。",
             "type": "Scroll",
             "param": {
               "scrollType": "ScrollDown"
@@ -120,14 +120,14 @@
       "response": {
         "plans": [
           {
-            "thought": "找到多肉葡萄的选规格按钮，这是用户所描述的任务。",
+            "thought": "找到并点击多肉葡萄对应的规格按钮。",
             "type": "Locate",
             "param": {
-              "prompt": "内容是“多肉葡萄（首创）”的下方黄色按钮"
+              "prompt": "显示价格为9.32 S$的“选规格”按钮，其右侧黄色按钮。"
             }
           },
           {
-            "thought": "点击找到的按钮。",
+            "thought": "点击多肉葡萄的规格按钮，完成任务。",
             "type": "Tap",
             "param": null
           }
@@ -143,11 +143,11 @@
           "height": 905
         }
       },
-      "prompt": "内容是“多肉葡萄（首创）”的下方黄色按钮",
+      "prompt": "显示价格为9.32 S$的“选规格”按钮，其右侧黄色按钮。",
       "response": {
         "elements": [
           {
-            "reason": "The button below the content '多肉葡萄（首创）' matches the user's description of a yellow button with the text '选规格'.",
+            "reason": "The element description indicates finding a button corresponding to a price of 9.32 S$. By examining the positions and rect properties, the nearest button to the specified price is found.",
             "text": "选规格",
             "id": "427d3179c2"
           }
@@ -168,38 +168,38 @@
       "response": {
         "plans": [
           {
-            "thought": "根据要求，首先点击选择\"不使用吸管\"。",
+            "thought": "根据用户要求，首先找到并点击“不使用吸管”选项。",
             "type": "Locate",
             "param": {
-              "prompt": "标签为“不使用吸管”的复选框，位于页面中部偏下方。"
+              "prompt": "文本内容为'不使用吸管'的复选框"
             }
           },
           {
-            "thought": "点击\"不使用吸管\"。",
+            "thought": "点击找到的“不使用吸管”复选框。",
             "type": "Tap",
             "param": null
           },
           {
-            "thought": "然后点击冰沙推荐选项。",
+            "thought": "然后找到并点击'冰沙（推荐）'的选项。",
             "type": "Locate",
             "param": {
-              "prompt": "标签为\"冰沙（推荐）\"的复选框，位于“不使用吸管”选项的下方。"
+              "prompt": "文本内容为'冰沙（推荐）'的复选框"
             }
           },
           {
-            "thought": "点击冰沙推荐。",
+            "thought": "点击找到的'冰沙（推荐）'复选框。",
             "type": "Tap",
             "param": null
           },
           {
-            "thought": "最后点击正常冰推荐选项。",
+            "thought": "最后找到并点击'正常冰（推荐）'的选项。",
             "type": "Locate",
             "param": {
-              "prompt": "标签为\"正常冰（推荐）\"的复选框，位于“冰沙（推荐）”的下方。"
+              "prompt": "文本内容为'正常冰（推荐）'的复选框"
             }
           },
           {
-            "thought": "点击正常冰推荐。",
+            "thought": "点击找到的'正常冰（推荐）'复选框。",
             "type": "Tap",
             "param": null
           }
@@ -215,13 +215,13 @@
           "height": 905
         }
       },
-      "prompt": "标签为“不使用吸管”的复选框，位于页面中部偏下方。",
+      "prompt": "文本内容为'不使用吸管'的复选框",
       "response": {
         "elements": [
           {
-            "reason": "The element '不使用吸管' corresponds to the checkbox label '不使用吸管'. It is located towards the middle-bottom part of the page as described.",
-            "text": "不使用吸管",
-            "id": "e83902c611"
+            "reason": "The input element (type: checkbox) with associated text '不使用吸管' is found at the specified coordinates, matching the user's description accurately.",
+            "text": "",
+            "id": "6384a887d9"
           }
         ],
         "errors": []
@@ -236,12 +236,12 @@
           "height": 905
         }
       },
-      "prompt": "标签为\"冰沙（推荐）\"的复选框，位于“不使用吸管”选项的下方。",
+      "prompt": "文本内容为'冰沙（推荐）'的复选框",
       "response": {
         "elements": [
           {
-            "reason": "根据描述，“冰沙（推荐）”选项在“不使用吸管”选项的下方，并是一个复选框类型的元素。",
-            "text": "冰沙（推荐）",
+            "reason": "The checkbox closest to the text content '冰沙（推荐）' should be selected based on the description.",
+            "text": "",
             "id": "04f0538285"
           }
         ],
@@ -257,13 +257,13 @@
           "height": 905
         }
       },
-      "prompt": "标签为\"正常冰（推荐）\"的复选框，位于“冰沙（推荐）”的下方。",
+      "prompt": "文本内容为'正常冰（推荐）'的复选框",
       "response": {
         "elements": [
           {
-            "reason": "The checkbox labeled '正常冰（推荐）' is located below the option '冰沙（推荐）'. This matches the user's description.",
+            "reason": "The checkbox with the text '正常冰（推荐）' is mentioned in the description and matches the content in the given JSON.",
             "text": "正常冰（推荐）",
-            "id": "0b385ab4dc"
+            "id": "f59967b279"
           }
         ],
         "errors": []
@@ -282,41 +282,13 @@
       "response": {
         "plans": [
           {
-            "thought": "在页面中找到用户需要的滚动位置。",
-            "type": "Locate",
-            "param": {
-              "prompt": "最后一项少冰复选框下面的空白区域"
-            }
-          },
-          {
-            "thought": "向下滚动一屏来实现用户要求。",
+            "thought": "The task is to scroll down one screen. This action is feasible on the current page.",
             "type": "Scroll",
             "param": {
               "scrollType": "ScrollDown"
             }
           }
         ]
-      }
-    },
-    {
-      "type": "locate",
-      "pageContext": {
-        "url": "https://heyteavivocity.meuu.online/home",
-        "size": {
-          "width": 400,
-          "height": 905
-        }
-      },
-      "prompt": "最后一项少冰复选框下面的空白区域",
-      "response": {
-        "elements": [
-          {
-            "reason": "The area described as \"the blank area under the 少冰 (Less Ice) checkbox\" should be an empty area immediately below the element with id 'a5060a97b5'. The closest matching element below it in the description list is the checkbox element with id '05408139ae'. This element is an INPUT Node situated directly below the 少冰 checkbox.",
-            "text": "",
-            "id": "05408139ae"
-          }
-        ],
-        "errors": []
       }
     },
     {
@@ -332,38 +304,38 @@
       "response": {
         "plans": [
           {
-            "thought": "根据用户的要求，首先需要点击“标准甜（推荐）”的选项。",
+            "thought": "找到“标准甜（推荐）”的选项，它位于‘甜度’部分。",
             "type": "Locate",
             "param": {
-              "prompt": "标有“标准甜（推荐）”文字旁边的复选框"
+              "prompt": "‘标准甜（推荐）’的复选框，在页面上方‘甜度’部分。"
             }
           },
           {
-            "thought": "点击该复选框",
+            "thought": "点击“标准甜（推荐）”的复选框。",
             "type": "Tap",
             "param": null
           },
           {
-            "thought": "接下来需要点击“绿妍（推荐）”的选项。",
+            "thought": "找到“绿妍（推荐）”的选项，它位于‘茶底’部分。",
             "type": "Locate",
             "param": {
-              "prompt": "标有“绿妍（推荐）”文字旁边的复选框"
+              "prompt": "‘绿妍（推荐）’的复选框，在页面中部‘茶底’部分。"
             }
           },
           {
-            "thought": "点击该复选框",
+            "thought": "点击“绿妍（推荐）”的复选框。",
             "type": "Tap",
             "param": null
           },
           {
-            "thought": "最后需要点击“标准口味（推荐）”的选项。",
+            "thought": "找到“标准口味（推荐）”的选项，它位于‘口味’部分。",
             "type": "Locate",
             "param": {
-              "prompt": "标有“标准口味（推荐）”文字旁边的复选框"
+              "prompt": "‘标准口味（推荐）’的复选框，在页面中下部‘口味’部分。"
             }
           },
           {
-            "thought": "点击该复选框",
+            "thought": "点击“标准口味（推荐）”的复选框。",
             "type": "Tap",
             "param": null
           }
@@ -379,11 +351,11 @@
           "height": 905
         }
       },
-      "prompt": "标有“标准甜（推荐）”文字旁边的复选框",
+      "prompt": "‘标准甜（推荐）’的复选框，在页面上方‘甜度’部分。",
       "response": {
         "elements": [
           {
-            "reason": "The checkbox closest to the text '标准甜（推荐）' matches the description provided, it has the appropriate 'nodeType' and 'class' attributes, and is located next to the specified text.",
+            "reason": "It is located in the '甜度(必选, 最多选1)' section and corresponds to the '标准甜（推荐）' element closest to the description, representing the checkbox.",
             "text": "",
             "id": "5280c060a7"
           }
@@ -400,12 +372,12 @@
           "height": 905
         }
       },
-      "prompt": "标有“绿妍（推荐）”文字旁边的复选框",
+      "prompt": "‘绿妍（推荐）’的复选框，在页面中部‘茶底’部分。",
       "response": {
         "elements": [
           {
-            "reason": "The checkbox next to the text '绿妍（推荐）' (Green Yan (recommended)) is located close to the mention of this text in the description. This matches the user requirement for a checkbox.",
-            "text": "",
+            "reason": "Based on the description '绿妍（推荐）'的复选框' and its location in the '茶底 (recommended tea base)' section in the middle of the page, the element with content '绿妍（推荐）' and matching checkbox type is identified.",
+            "text": "绿妍（推荐）",
             "id": "5570045013"
           }
         ],
@@ -421,11 +393,11 @@
           "height": 905
         }
       },
-      "prompt": "标有“标准口味（推荐）”文字旁边的复选框",
+      "prompt": "‘标准口味（推荐）’的复选框，在页面中下部‘口味’部分。",
       "response": {
         "elements": [
           {
-            "reason": "The element matches the description '标有“标准口味（推荐）”文字旁边的复选框'. It is a checkbox located next to the text node containing '标准口味（推荐）'",
+            "reason": "The checkbox '标准口味（推荐）' is in the '口味' section which is near the bottom of the page.",
             "text": "标准口味（推荐）",
             "id": "0d204274f0"
           }
@@ -446,7 +418,7 @@
       "response": {
         "plans": [
           {
-            "thought": "用户想要滚动到页面的最底部，这可以通过页面的全局滚动动作实现。",
+            "thought": "The task is to scroll to the bottom of the page. Given the page layout, executing a scrolling action until the bottom is reached will fulfill this request.",
             "type": "Scroll",
             "param": {
               "scrollType": "ScrollUntilBottom"
@@ -468,14 +440,14 @@
       "response": {
         "plans": [
           {
-            "thought": "用户希望点击页面上的'选好了'按钮，以确认选择好的物品。",
+            "thought": "页面上有一个黄色按钮，上面写着“选好了”。需要点击该按钮。",
             "type": "Locate",
             "param": {
-              "prompt": "带有'选好了'字样的黄色按钮，位于页面底部中央。"
+              "prompt": "黄色按钮，内容为“选好了”"
             }
           },
           {
-            "thought": "点击找到的'选好了'按钮以完成用户任务。",
+            "thought": "点击之前定位到的按钮。",
             "type": "Tap",
             "param": null
           }
@@ -491,11 +463,11 @@
           "height": 905
         }
       },
-      "prompt": "带有'选好了'字样的黄色按钮，位于页面底部中央。",
+      "prompt": "黄色按钮，内容为“选好了”",
       "response": {
         "elements": [
           {
-            "reason": "The button has the text '选好了' and is located at the bottom center of the page. Based on the description and the screenshot, the element is located at the bottom and has a yellow background.",
+            "reason": "Reason for finding element: The given description specifies a yellow button with content '选好了'. This matches exactly with element ID 'c9de916ef0', which is a BUTTON Node and contains the text '选好了'.",
             "text": "选好了",
             "id": "c9de916ef0"
           }
@@ -516,14 +488,14 @@
       "response": {
         "plans": [
           {
-            "thought": "用户希望点击右上角的商品图标按钮。从页面描述和截图中，可以看到右上角有一个红色带数字1的图标按钮。",
+            "thought": "根据任务描述，用户希望点击页面右上角的商品图标按钮。",
             "type": "Locate",
             "param": {
-              "prompt": "右上角带有红色数字1的商品图标按钮"
+              "prompt": "位于页面右上角的带有数字1的商品图标按钮，位置在坐标(352, 16)"
             }
           },
           {
-            "thought": "点击该按钮。",
+            "thought": "找到商品图标按钮后，执行点击操作。",
             "type": "Tap",
             "param": null
           }
@@ -539,11 +511,11 @@
           "height": 905
         }
       },
-      "prompt": "右上角带有红色数字1的商品图标按钮",
+      "prompt": "位于页面右上角的带有数字1的商品图标按钮，位置在坐标(352, 16)",
       "response": {
         "elements": [
           {
-            "reason": "The element is located in the upper right corner, is an image type, and appears to have a red notification badge with the number 1, consistent with a shopping cart icon button.",
+            "reason": "This element, identified with id 'f775c69cb4', is an image node that matches the description. It is located in the upper right corner of the page at the coordinates (352, 16) and resembles the shopping cart icon with a notification badge showing the number '1'.",
             "text": "",
             "id": "f775c69cb4"
           }

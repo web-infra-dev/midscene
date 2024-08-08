@@ -84,6 +84,9 @@ importers:
 
   packages/midscene:
     dependencies:
+      node-fetch:
+        specifier: 2.6.7
+        version: 2.6.7
       openai:
         specifier: 4.47.1
         version: 4.47.1
@@ -97,6 +100,9 @@ importers:
       '@types/node':
         specifier: ^18.0.0
         version: 18.19.41
+      '@types/node-fetch':
+        specifier: 2.6.11
+        version: 2.6.11
       dotenv:
         specifier: 16.4.5
         version: 16.4.5
@@ -7808,8 +7814,8 @@ packages:
     resolution: {integrity: sha512-/jKZoMpw0F8GRwl4/eLROPA3cfcXtLApP0QzLmUT/HuPCZWyB7IY9ZrMeKw2O/nFIqPQB3PVM9aYm0F312AXDQ==}
     engines: {node: '>=10.5.0'}
 
-  node-fetch@2.7.0:
-    resolution: {integrity: sha512-c4FRfUm/dbcWZ7U+1Wq0AwCyFL+3nt2bEw05wfxSz+DWpWsitgmSgYmy2dQdWyKC1694ELPqMs/YzUSNozLt8A==}
+  node-fetch@2.6.7:
+    resolution: {integrity: sha512-ZjMPFEfVx5j+y2yF35Kzx5sF7kDzxuDj6ziH4FFbOp87zKDZNx8yExJIb05OGF4Nlt9IHFIMBkRl41VdvcNdbQ==}
     engines: {node: 4.x || >=6.0.0}
     peerDependencies:
       encoding: ^0.1.0
@@ -13017,7 +13023,7 @@ snapshots:
       detect-libc: 2.0.3
       https-proxy-agent: 5.0.1
       make-dir: 3.1.0
-      node-fetch: 2.7.0
+      node-fetch: 2.6.7
       nopt: 5.0.0
       npmlog: 5.0.1
       rimraf: 3.0.2
@@ -21258,7 +21264,7 @@ snapshots:
 
   node-domexception@1.0.0: {}
 
-  node-fetch@2.7.0:
+  node-fetch@2.6.7:
     dependencies:
       whatwg-url: 5.0.0
 
@@ -21454,7 +21460,7 @@ snapshots:
       agentkeepalive: 4.5.0
       form-data-encoder: 1.7.2
       formdata-node: 4.4.1
-      node-fetch: 2.7.0
+      node-fetch: 2.6.7
       web-streams-polyfill: 3.3.3
     transitivePeerDependencies:
       - encoding
