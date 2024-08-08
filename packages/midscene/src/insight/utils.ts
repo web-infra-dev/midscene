@@ -19,6 +19,7 @@ import {
   getDumpDir,
   getPkgInfo,
   insightDumpFileExt,
+  stringifyDumpData,
   writeDumpFile,
 } from '@/utils';
 
@@ -55,7 +56,7 @@ export function writeInsightDump(
       logFileName = `${pid}_${baseData.logTime}-${Math.random()}`;
     }
   }
-  const dataString = JSON.stringify(finalData, null, 2);
+  const dataString = stringifyDumpData(finalData, 2);
 
   if (typeof logIdIndexMap[id] === 'number') {
     logContent[logIdIndexMap[id]] = dataString;
