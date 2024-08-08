@@ -12,7 +12,7 @@ export async function plan(
     context: UIContext;
     callAI?: typeof OpenAiActionPlan;
   },
-  useModel?: 'coze' | 'openAi',
+  useModel?: 'coze' | 'openAI',
 ): Promise<{ plans: PlanningAction[] }> {
   const { callAI, context } = opts || {};
   const { screenshotBase64 } = context;

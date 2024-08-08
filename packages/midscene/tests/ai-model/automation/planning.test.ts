@@ -17,7 +17,7 @@ describe('automation - planning', () => {
       {
         context,
       },
-      'openAi',
+      'openAI',
     );
     expect(plans.length).toBe(3);
     expect(plans[0].thought).toBeTruthy();
@@ -35,7 +35,7 @@ describe('automation - planning', () => {
         {
           context,
         },
-        'openAi',
+        'openAI',
       );
     }).rejects.toThrowError();
   });
@@ -49,7 +49,7 @@ describe('automation - planning', () => {
         {
           context,
         },
-        'openAi',
+        'openAI',
       );
     } catch (e: any) {
       error = e;
@@ -71,7 +71,7 @@ describe('automation - planning', () => {
     ];
 
     for (const instruction of instructions) {
-      const { plans } = await plan(instruction, { context }, 'openAi');
+      const { plans } = await plan(instruction, { context }, 'openAI');
       expect(plans).toBeTruthy();
       // console.log(`instruction: ${instruction}\nplans: ${JSON.stringify(plans, undefined, 2)}`);
     }

@@ -4,6 +4,6 @@ export { describeUserPage } from './prompt/util';
 
 export type { ChatCompletionMessageParam } from 'openai/resources';
 
-export { AiInspectElement, AiExtractElementInfo } from './inspect';
+export { AiInspectElement, AiExtractElementInfo, AiAssert } from './inspect';
 
 export { plan } from './automation';

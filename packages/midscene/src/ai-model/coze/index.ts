@@ -1,10 +1,15 @@
 import assert from 'node:assert';
-import type { AIElementParseResponse, PlanningAIResponse } from '@/types';
+import type {
+  AIAssertionResponse,
+  AIElementParseResponse,
+  PlanningAIResponse,
+} from '@/types';
 import { multiDescription } from '../prompt/element_inspector';
 import { callCozeAi } from './base';
 
 const INSPECT_ELEMENT_BOT_ID = '7390985487806775304';
 const AI_ACTION_BOT_ID = '7400540491193958417';
+const AI_ASSERT_BOT_ID = '7400712103818264594';
 
 export async function CozeAiInspectElement(msg: {
   findElementDescription: string;
@@ -57,13 +62,18 @@ export async function CozeAiAssert(msg: {
 }) {
   const { assertion, screenshotBase64, pageDescription } = msg;
 
-  const parseResult = await callCozeAi<PlanningAIResponse>({
+  const parseResult = await callCozeAi<AIAssertionResponse>({
     query: JSON.stringify({
-      assertion: assertion,
+      assertion: `
+        Here is the description of the assertion. Just go ahead:
+        =====================================
+        ${assertion}
+        =====================================
+      `,
       elementDescription: pageDescription,
     }),
     imgs: [screenshotBase64],
-    botId: AI_ACTION_BOT_ID,
+    botId: AI_ASSERT_BOT_ID,
   });
   return parseResult;
 }

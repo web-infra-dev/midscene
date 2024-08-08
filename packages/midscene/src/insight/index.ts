@@ -5,6 +5,7 @@ import {
   callToGetJSONObject as callAI,
 } from '@/ai-model/index';
 import { AiAssert } from '@/ai-model/inspect';
+import type { OpenAiInspectElement } from '@/ai-model/openai';
 import type {
   AIElementParseResponse,
   BaseElement,
@@ -38,7 +39,7 @@ const sortByOrder = (a: UISection, b: UISection) => {
 
 export interface LocateOpts {
   multi?: boolean;
-  callAI?: typeof callAI<AIElementParseResponse>;
+  callAI?: typeof OpenAiInspectElement;
 }
 
 // export type UnwrapDataShape<T> = T extends EnhancedQuery<infer DataShape> ? DataShape : {};
@@ -53,7 +54,7 @@ export default class Insight<
 > {
   contextRetrieverFn: () => Promise<ContextType> | ContextType;
 
-  aiVendorFn: typeof callAI = callAI;
+  aiVendorFn: (...args: Array<any>) => Promise<any> = callAI;
 
   onceDumpUpdatedFn?: DumpSubscriber;
 
@@ -80,14 +81,14 @@ export default class Insight<
 
   async locate(
     queryPrompt: string,
-    opt?: { callAI: LocateOpts['callAI'] },
+    opt?: { callAI: typeof OpenAiInspectElement },
   ): Promise<ElementType | null>;
   async locate(
     queryPrompt: string,
     opt: { multi: true },
   ): Promise<ElementType[]>;
   async locate(queryPrompt: string, opt?: LocateOpts) {
-    const { callAI = this.aiVendorFn, multi = false } = opt || {};
+    const { callAI, multi = false } = opt || {};
     assert(queryPrompt, 'query is required for located');
     const dumpSubscriber = this.onceDumpUpdatedFn;
     this.onceDumpUpdatedFn = undefined;

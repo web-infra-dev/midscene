@@ -25,7 +25,7 @@ export async function AiInspectElement<
   findElementDescription: string;
   callAI?: (
     options: Parameters<typeof OpenAiInspectElement>[0],
-  ) => AIElementParseResponse;
+  ) => Promise<AIElementParseResponse>;
   useModel?: 'coze' | 'openAI';
 }) {
   const { context, multi, findElementDescription, callAI, useModel } = options;
