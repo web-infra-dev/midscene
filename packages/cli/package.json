@@ -1,0 +1,43 @@
+{
+  "name": "@midscene/cli",
+  "description": "Cli for Midscene.js",
+  "version": "0.1.0",
+  "jsnext:source": "./src/index.ts",
+  "main": "./dist/lib/index.js",
+  "bin": {
+    "midscene": "./bin/midscene"
+  },
+  "files": ["dist", "README.md"],
+  "scripts": {
+    "dev": "modern dev",
+    "build": "modern build",
+    "build:watch": "modern build -w",
+    "new": "modern new",
+    "upgrade": "modern upgrade",
+    "test": "vitest --run",
+    "test:all": "AITEST=true vitest --run",
+    "prepublishOnly": "npm run build"
+  },
+  "dependencies": {
+    "@midscene/web": "workspace:*",
+    "ora-classic": "5.4.2",
+    "puppeteer": "^22.8.0",
+    "yargs": "17.7.2"
+  },
+  "devDependencies": {
+    "@modern-js/module-tools": "^2.56.1",
+    "@types/node": "^18.0.0",
+    "@types/yargs": "17.0.32",
+    "execa": "9.3.0",
+    "typescript": "~5.0.4",
+    "vitest": "^1.6.0"
+  },
+  "engines": {
+    "node": ">=16.0.0"
+  },
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org"
+  },
+  "license": "MIT"
+}

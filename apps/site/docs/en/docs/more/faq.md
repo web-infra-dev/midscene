@@ -21,6 +21,8 @@ There are some limitations with Midscene. We are still working on them.
 
 Midscene needs a multimodal Large Language Model (LLM) to understand the UI. Currently, we find that OpenAI's  GPT-4o performs much better than others.
 
+You can [customize model vendor](../usage/model-vendor.html) if needed.
+
 ### About the token cost
 
 Image resolution and element numbers (i.e., a UI context size created by Midscene) will affect the token bill.
@@ -34,6 +36,12 @@ Here are some typical data with GPT-4o.
 |Query the information about the item in the search results| 1280x800 | 13,403 / $0.067015 | 95 / $0.001425|
 
 > The price data was calculated in August 2024.
+
+### What data is sent to LLM ?
+
+Currently, the contents are: 
+1. the key information extracted from the DOM, such as text content, class name, tag name, coordinates; 
+2. a screenshot of the page.
 
 ### The automation process is running more slowly than it did before
 
