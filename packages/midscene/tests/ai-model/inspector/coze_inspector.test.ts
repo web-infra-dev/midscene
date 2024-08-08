@@ -44,10 +44,11 @@ it(
       testTodoCases,
       context,
       async (testCase) => {
-        const { parseResult } = await CozeAiInspectElement({
+        const { parseResult } = await AiInspectElement({
           context,
           multi: testCase.multi,
           findElementDescription: testCase.description,
+          useModel: 'coze',
         });
         return parseResult;
       },

@@ -1,7 +1,3 @@
-import { describeUserPage } from '@/ai-model';
-import { callToGetJSONObject } from '@/ai-model/openai';
-import type { PlanningAIResponse, PlanningAction, UIContext } from '@/types';
-import type { ChatCompletionMessageParam } from 'openai/resources';
 
 const characteristic =
   'You are a versatile professional in software UI design and testing. Your outstanding contributions will impact the user experience of billions of users.';
@@ -53,60 +49,4 @@ export function systemPromptToTaskPlanning() {
     error?: string, // Overall error messages. If there is any error occurs during the task planning (i.e. error in previous 'actions' array), conclude the errors again, put error messages here
   }
   `;
-}
-
-export async function plan(
-  userPrompt: string,
-  opts: {
-    context: UIContext;
-    callAI?: typeof callToGetJSONObject<PlanningAIResponse>;
-  },
-): Promise<{ plans: PlanningAction[] }> {
-  const { callAI = callToGetJSONObject<PlanningAIResponse>, context } =
-    opts || {};
-  const { screenshotBase64 } = context;
-  const { description } = await describeUserPage(context);
-  const systemPrompt = systemPromptToTaskPlanning();
-  const msgs: ChatCompletionMessageParam[] = [
-    { role: 'system', content: systemPrompt },
-    {
-      role: 'user',
-      content: [
-        {
-          type: 'image_url',
-          image_url: {
-            url: screenshotBase64,
-            detail: 'high',
-          },
-        },
-        {
-          type: 'text',
-          text: description,
-        },
-        {
-          type: 'text',
-          text: `
-              Here is the description of the task. Just go ahead:
-              =====================================
-              ${userPrompt}
-              =====================================
-          `,
-        },
-      ],
-    },
-  ];
-
-  const planFromAI = await callAI(msgs);
-  if (planFromAI.error) {
-    throw new Error(planFromAI.error);
-  }
-
-  const { actions } = planFromAI;
-  actions.forEach((task) => {
-    if (task.type === 'Error') {
-      throw new Error(task.thought);
-    }
-  });
-
-  return { plans: actions };
 }
