@@ -127,3 +127,17 @@ export async function sleep(ms: number) {
 }
 
 export const commonScreenshotParam = { type: 'jpeg', quality: 75 } as any;
+
+export function replacerForPageObject(key: string, value: any) {
+  if (value && value.constructor?.name === 'Page') {
+    return '[Page object]';
+  }
+  if (value && value.constructor?.name === 'Browser') {
+    return '[Browser object]';
+  }
+  return value;
+}
+
+export function stringifyDumpData(data: any, indents?: number) {
+  return JSON.stringify(data, replacerForPageObject, indents);
+}

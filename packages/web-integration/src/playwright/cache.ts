@@ -2,7 +2,11 @@ import fs from 'node:fs';
 import path, { join } from 'node:path';
 import type { AiTaskCache } from '@/common/task-cache';
 import { findNearestPackageJson } from '@/common/utils';
-import { getDumpDirPath, writeDumpFile } from '@midscene/core/utils';
+import {
+  getDumpDirPath,
+  stringifyDumpData,
+  writeDumpFile,
+} from '@midscene/core/utils';
 
 export function writeTestCache(
   taskFile: string,
@@ -13,7 +17,7 @@ export function writeTestCache(
   writeDumpFile({
     fileName: `${taskFile}(${taskTitle})`,
     fileExt: 'json',
-    fileContent: JSON.stringify(
+    fileContent: stringifyDumpData(
       {
         pkgName: packageJson.name,
         pkgVersion: packageJson.version,
@@ -21,7 +25,6 @@ export function writeTestCache(
         taskTitle,
         ...taskCacheJson,
       },
-      null,
       2,
     ),
     type: 'cache',

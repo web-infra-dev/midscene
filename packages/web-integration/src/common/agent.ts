@@ -1,6 +1,10 @@
 import type { WebPage } from '@/common/page';
 import type { ExecutionDump, GroupedActionDump } from '@midscene/core';
-import { groupedActionDumpFileExt, writeDumpFile } from '@midscene/core/utils';
+import {
+  groupedActionDumpFileExt,
+  stringifyDumpData,
+  writeDumpFile,
+} from '@midscene/core/utils';
 import { PageTaskExecutor } from '../common/tasks';
 import type { AiTaskCache } from './task-cache';
 
@@ -41,7 +45,7 @@ export class PageAgent {
     this.dumpFile = writeDumpFile({
       fileName: `playwright-${this.testId}`,
       fileExt: groupedActionDumpFileExt,
-      fileContent: JSON.stringify(this.dumps),
+      fileContent: stringifyDumpData(this.dumps),
     });
   }
 
