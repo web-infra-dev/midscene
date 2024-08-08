@@ -1,13 +1,16 @@
 {
   "name": "@midscene/cli",
   "description": "Cli for Midscene.js",
-  "version": "0.1.0",
+  "version": "0.2.1",
   "jsnext:source": "./src/index.ts",
   "main": "./dist/lib/index.js",
   "bin": {
     "midscene": "./bin/midscene"
   },
-  "files": ["dist", "README.md"],
+  "files": [
+    "dist",
+    "README.md"
+  ],
   "scripts": {
     "dev": "modern dev",
     "build": "modern build",
