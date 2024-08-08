@@ -6,7 +6,7 @@ import type { ChatCompletionMessageParam } from 'openai/resources';
 const characteristic =
   'You are a versatile professional in software UI design and testing. Your outstanding contributions will impact the user experience of billions of users.';
 
-export function systemPromptToTaskPlanning(query: string) {
+export function systemPromptToTaskPlanning() {
   return `
   ${characteristic}
   
@@ -52,11 +52,6 @@ export function systemPromptToTaskPlanning(query: string) {
     ],
     error?: string, // Overall error messages. If there is any error occurs during the task planning (i.e. error in previous 'actions' array), conclude the errors again, put error messages here
   }
-
-  Here is the description of the task. Just go ahead:
-  =====================================
-  ${query}
-  =====================================
   `;
 }
 
@@ -71,7 +66,7 @@ export async function plan(
     opts || {};
   const { screenshotBase64 } = context;
   const { description } = await describeUserPage(context);
-  const systemPrompt = systemPromptToTaskPlanning(userPrompt);
+  const systemPrompt = systemPromptToTaskPlanning();
   const msgs: ChatCompletionMessageParam[] = [
     { role: 'system', content: systemPrompt },
     {
@@ -87,6 +82,15 @@ export async function plan(
         {
           type: 'text',
           text: description,
+        },
+        {
+          type: 'text',
+          text: `
+              Here is the description of the task. Just go ahead:
+              =====================================
+              ${userPrompt}
+              =====================================
+          `,
         },
       ],
     },

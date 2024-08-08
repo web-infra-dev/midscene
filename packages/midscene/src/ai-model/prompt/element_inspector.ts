@@ -1,7 +1,4 @@
-export function systemPromptToFindElement(
-  description: string,
-  multi?: boolean,
-) {
+export function systemPromptToFindElement() {
   return `
 ## Role:
 You are an expert in software page image (2D) and page element text analysis.
@@ -17,12 +14,8 @@ You are an expert in software page image (2D) and page element text analysis.
 
 ## Workflow:
 1. Receive the user's element description, screenshot, and element description information. Note that the text may contain non-English characters (e.g., Chinese), indicating that the application may be non-English.
-2. Based on the description (${description}), locate the target element ID in the list of element descriptions and the screenshot.
-3. Return the number of elements: ${
-    multi
-      ? 'multiple elements matching the description (two or more)'
-      : 'The element closest to the description (only one)'
-  }.
+2. Based on the user's description, locate the target element ID in the list of element descriptions and the screenshot.
+3. Found the required number of elements
 4. Return JSON data containing the selection reason and element ID.
 
 ## Constraints:
@@ -54,6 +47,8 @@ Input Example:
 \`\`\`json
 // Description: "Shopping cart icon in the upper right corner"
 {
+  "description": "PLACEHOLDER", // Description of the target element
+  "multi": "PLACEHOLDER", //Find the number of elements
   "screenshot": "path/screenshot.png",
   "text": '{
       "pageSize": {

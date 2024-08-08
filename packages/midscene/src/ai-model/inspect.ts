@@ -32,7 +32,7 @@ export async function AiInspectElement<
   const { screenshotBase64 } = context;
   const { description, elementById } = await describeUserPage(context);
 
-  const systemPrompt = systemPromptToFindElement(findElementDescription, multi);
+  const systemPrompt = systemPromptToFindElement();
 
   const msgs: ChatCompletionMessageParam[] = [
     { role: 'system', content: systemPrompt },
@@ -49,6 +49,15 @@ export async function AiInspectElement<
         {
           type: 'text',
           text: description,
+        },
+        {
+          type: 'text',
+          text: JSON.stringify({
+            description: findElementDescription,
+            multi: multi
+              ? 'multiple elements matching the description (two or more)'
+              : 'The element closest to the description (only one)',
+          }),
         },
       ],
     },
