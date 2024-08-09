@@ -1,5 +1,6 @@
 import assert from 'node:assert';
 import fetch from 'node-fetch';
+import type { ChatCompletionUserMessageParam } from 'openai/resources';
 
 export const COZE_BOT_TOKEN = 'COZE_BOT_TOKEN';
 
@@ -39,16 +40,56 @@ export async function callCozeAi<T>(options: {
     }),
   });
   if (!completion.ok) {
-    console.log('CozeAiInspectElement reponse error', completion);
+    console.error('CozeAiInspectElement reponse error', completion);
     throw new Error('Network response was not ok');
   }
 
   const aiResponse = await completion.json();
-  if (!aiResponse?.messages[0]?.content) {
-    console.log('aiResponse', aiResponse);
-    throw new Error('aiResponse is undefined');
+  if (aiResponse.code !== 0) {
+    console.error('error response', aiResponse);
+    throw new Error('error response', aiResponse);
+  }
+
+  if (!aiResponse?.messages || !aiResponse?.messages[0]?.content) {
+    console.error('aiResponse', aiResponse);
+    throw new Error('aiResponse is undefined', aiResponse);
   }
   const parseContent = aiResponse?.messages[0]?.content;
   assert(parseContent, 'empty content');
-  return JSON.parse(parseContent);
+  try {
+    return JSON.parse(parseContent);
+  } catch (err) {
+    console.error("can't parse coze content", aiResponse, err);
+    throw Error("can't parse coze content");
+  }
+}
+
+export function transfromOpenAiArgsToCoze(msg: ChatCompletionUserMessageParam) {
+  if (msg.role !== 'user') throw Error(`can't transfrom ${msg} to coze args`);
+  // const query = '';
+  // const imgs = msg.content
+  if (typeof msg.content === 'string') {
+    return {
+      query: msg.content,
+      imgs: [],
+    };
+  }
+
+  return {
+    query: msg.content.reduce((res, next) => {
+      if (next.type === 'text') {
+        res += `\n${next.text}`;
+      }
+      return res;
+    }, ''),
+    imgs: msg.content.reduce(
+      (res, next) => {
+        if (next.type === 'image_url') {
+          res.push(next.image_url.url);
+        }
+        return res;
+      },
+      [] as Array<string>,
+    ),
+  };
 }

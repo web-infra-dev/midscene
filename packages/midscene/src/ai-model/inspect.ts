@@ -6,9 +6,21 @@ import type {
   BaseElement,
   UIContext,
 } from '@/types';
-import type { ChatCompletionMessageParam } from 'openai/resources';
-import { CozeAiAssert, CozeAiInspectElement } from './coze';
-import { useCozeModel } from './coze/base';
+import type {
+  ChatCompletionMessageParam,
+  ChatCompletionSystemMessageParam,
+  ChatCompletionUserMessageParam,
+} from 'openai/resources';
+import {
+  CozeAiAssert,
+  CozeAiInspectElement,
+  EXTRACT_INFO_BOT_ID,
+} from './coze';
+import {
+  callCozeAi,
+  transfromOpenAiArgsToCoze,
+  useCozeModel,
+} from './coze/base';
 import { OpenAiAssert, OpenAiInspectElement } from './openai';
 import { callToGetJSONObject, useOpenAIModel } from './openai/base';
 import {
@@ -79,25 +91,25 @@ export async function AiExtractElementInfo<
   ElementType extends BaseElement = BaseElement,
 >(options: {
   dataQuery: string | Record<string, string>;
-  sectionConstraints: {
-    name: string;
-    description: string;
-  }[];
   context: UIContext<ElementType>;
+  useModel?: 'coze' | 'openAI';
   callAI?: typeof callToGetJSONObject;
 }) {
   const {
     dataQuery,
-    sectionConstraints,
     context,
     callAI = callToGetJSONObject,
+    useModel,
   } = options;
-  const systemPrompt = systemPromptToExtract(dataQuery, sectionConstraints);
+  const systemPrompt = systemPromptToExtract();
 
   const { screenshotBase64 } = context;
   const { description, elementById } = await describeUserPage(context);
 
-  const msgs: ChatCompletionMessageParam[] = [
+  const msgs: [
+    ChatCompletionSystemMessageParam,
+    ChatCompletionUserMessageParam,
+  ] = [
     { role: 'system', content: systemPrompt },
     {
       role: 'user',
@@ -110,17 +122,47 @@ export async function AiExtractElementInfo<
         },
         {
           type: 'text',
-          text: description,
+          text: `
+pageDescription: ${description}
+
+Use your extract_data_from_UI skill to find the following data, placing it in the \`data\` field
+DATA_DEMAND start:
+=====================================
+${
+  typeof dataQuery === 'object'
+    ? `return in key-value style object, keys are ${Object.keys(dataQuery).join(',')}`
+    : ''
+};
+${typeof dataQuery === 'string' ? dataQuery : JSON.stringify(dataQuery, null, 2)}
+=====================================
+DATA_DEMAND ends.
+          `,
         },
       ],
     },
   ];
 
-  const parseResult = await callAI<AISectionParseResponse<T>>(msgs);
-  return {
-    parseResult,
-    elementById,
-  };
+  if (useOpenAIModel(useModel)) {
+    const parseResult = await callAI<AISectionParseResponse<T>>(msgs);
+    return {
+      parseResult,
+      elementById,
+    };
+  }
+
+  if (useCozeModel(useModel)) {
+    const cozeMsg = transfromOpenAiArgsToCoze(msgs[1]);
+    const parseResult = await callCozeAi({
+      ...cozeMsg,
+      botId: EXTRACT_INFO_BOT_ID,
+    });
+    return {
+      parseResult,
+      elementById,
+    };
+  }
+
+  throw Error('Does not contain coze and openai environment variables');
 }
 
 export async function AiAssert<

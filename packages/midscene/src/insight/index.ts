@@ -178,45 +178,19 @@ export default class Insight<
   async extract<T extends object>(input: Record<keyof T, string>): Promise<T>;
 
   async extract<T>(dataDemand: InsightExtractParam): Promise<any> {
-    let dataQuery: Record<string, string> | string = {};
-    const sectionQueryMap: Record<string, string> = {};
     assert(
       typeof dataDemand === 'object' || typeof dataDemand === 'string',
       `dataDemand should be object or string, but get ${typeof dataDemand}`,
     );
     const dumpSubscriber = this.onceDumpUpdatedFn;
     this.onceDumpUpdatedFn = undefined;
-    if (typeof dataDemand === 'string') {
-      dataQuery = dataDemand;
-    } else {
-      // filter all sectionQuery
-      for (const key in dataDemand) {
-        const query = dataDemand[key];
-        const sectionQuery = extractSectionQuery(query);
-        if (sectionQuery) {
-          sectionQueryMap[key] = sectionQuery;
-        } else {
-          dataQuery[key] = query;
-        }
-      }
-      dataQuery = dataDemand;
-    }
-
-    const sectionConstraints = Object.keys(sectionQueryMap).map((name) => {
-      const sectionQueryPrompt = sectionQueryMap[name];
-      return {
-        name,
-        description: sectionQueryPrompt || '',
-      };
-    });
 
     const context = await this.contextRetrieverFn();
 
     const startTime = Date.now();
     const { parseResult, elementById } = await AiExtractElementInfo<T>({
       context,
-      dataQuery,
-      sectionConstraints,
+      dataQuery: dataDemand,
       callAI: this.aiVendorFn,
     });
 

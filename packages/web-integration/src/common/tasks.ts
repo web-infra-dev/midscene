@@ -107,14 +107,15 @@ export class PageTaskExecutor {
                 param.prompt,
               );
               let locateResult: AIElementParseResponse | undefined;
-              const callAI = this.insight.aiVendorFn<AIElementParseResponse>;
+              const callAI = this.insight.aiVendorFn;
               const element = await this.insight.locate(param.prompt, {
-                callAI: async (message: ChatCompletionMessageParam[]) => {
+                callAI: async (...message: any) => {
                   if (locateCache) {
                     locateResult = locateCache;
                     return Promise.resolve(locateCache);
                   }
-                  locateResult = await callAI(message);
+                  locateResult = await callAI(...message);
+                  assert(locateResult);
                   return locateResult;
                 },
               });
