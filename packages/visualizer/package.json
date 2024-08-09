@@ -1,11 +1,14 @@
 {
   "name": "@midscene/visualizer",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "types": "./dist/types/index.d.ts",
   "jsnext:source": "./src/index.ts",
   "main": "./dist/lib/index.js",
   "module": "./dist/es/index.js",
-  "files": ["dist", "README.md"],
+  "files": [
+    "dist",
+    "README.md"
+  ],
   "scripts": {
     "dev": "modern dev",
     "build": "modern build",
@@ -36,7 +39,12 @@
     "rimraf": "~3.0.2",
     "typescript": "~5.0.4"
   },
-  "sideEffects": ["**/*.css", "**/*.less", "**/*.sass", "**/*.scss"],
+  "sideEffects": [
+    "**/*.css",
+    "**/*.less",
+    "**/*.sass",
+    "**/*.scss"
+  ],
   "publishConfig": {
     "access": "public"
   }

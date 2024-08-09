@@ -10,12 +10,38 @@ import { PackageManagerTabs } from '@theme';
 
 ## 准备工作
 
-配置 API Key
+配置 OpenAI API Key，或 [自定义模型服务](../usage//model-vendor.html)
 
 ```bash
 # 更新为你自己的 Key
 export OPENAI_API_KEY="sk-abcdefghijklmnopqrstuvwxyz"
 ```
+
+## 使用命令行版本体验
+
+你可以快速使用命令行版本的 Midscene 来体验它的基础能力。
+
+请确保你已安装 [Node.js](https://nodejs.org/)。
+
+```bash
+# headless mode to visit bing.com and search for 'weather today'
+npx @midscene/cli --url https://wwww.bing.com --action "type 'weather today', hit enter"
+
+# headed mode (i.e. visible browser) to visit bing.com and search for 'weather today'
+npx @midscene/cli --headed --url https://wwww.bing.com --action "type 'weather today', hit enter"
+
+# visit github status page and save the status to ./status.json
+npx @midscene/cli \
+  --url https://www.githubstatus.com/ \
+  --query-output status.json \
+  --query '{name: string, status: string}[], service status of github page'
+```
+
+如果你想更深入地了解 Midscene，我们建议使用 SDK 版本，并将其与 Playwright 或 Puppeteer 集成。
+
+### 查看运行报告
+
+运行 Midscene 之后，系统会生成一个日志文件，默认存放在 `./midscene_run/report/latest.web-dump.json`。然后，你可以把这个文件导入 [可视化工具](/visualization/)，这样你就能更清楚地了解整个过程。
 
 ## 集成到 Playwright
 

@@ -15,17 +15,20 @@ describe('automation - planning', () => {
     const { context } = await getPageDataOfTestName('todo');
 
     const { plans } = await plan(
-      'type "Why is the earth a sphere?", hit Enter',
+      'type "Why is the earth a sphere?", wait 3.5s, hit Enter',
       {
         context,
       },
       userModel,
     );
-    expect(plans.length).toBe(3);
+    expect(plans.length).toBe(4);
     expect(plans[0].thought).toBeTruthy();
     expect(plans[0].type).toBe('Locate');
     expect(plans[1].type).toBe('Input');
-    expect(plans[2].type).toBe('KeyboardPress');
+    expect(plans[2].type).toBe('Sleep');
+    expect(plans[2].param).toMatchSnapshot();
+    expect(plans[3].type).toBe('KeyboardPress');
+    expect(plans[3].param).toMatchSnapshot();
   });
 
   it('should raise an error when prompt is irrelevant with page', async () => {

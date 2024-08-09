@@ -3,7 +3,7 @@ const semver = require('semver');
 const dayjs = require('dayjs');
 const args = require('minimist')(process.argv.slice(2));
 const bumpPrompt = require('@jsdevtools/version-bump-prompt');
-const execa = require('execa');
+const { execa } = require('@esm2cjs/execa');
 const chalk = require('chalk');
 
 const step = (msg) => {

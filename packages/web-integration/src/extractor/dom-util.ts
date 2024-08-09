@@ -1,5 +1,9 @@
 export function isInputElement(node: Node): node is HTMLInputElement {
-  return node instanceof HTMLElement && node.tagName.toLowerCase() === 'input';
+  return (
+    node instanceof HTMLElement &&
+    (node.tagName.toLowerCase() === 'input' ||
+      node.tagName.toLowerCase() === 'textarea')
+  );
 }
 
 export function isButtonElement(node: Node): node is HTMLButtonElement {

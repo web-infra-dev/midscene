@@ -176,7 +176,8 @@ export interface PlanningAction<ParamType = any> {
     | 'KeyboardPress'
     | 'Scroll'
     | 'Error'
-    | 'Assert';
+    | 'Assert'
+    | 'Sleep';
   param: ParamType;
 }
 
@@ -201,6 +202,10 @@ export interface PlanningActionParamScroll {
 
 export interface PlanningActionParamAssert {
   assertion: string;
+}
+
+export interface PlanningActionParamSleep {
+  timeMs: number;
 }
 
 /**

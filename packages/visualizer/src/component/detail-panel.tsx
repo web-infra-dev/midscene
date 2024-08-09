@@ -111,7 +111,7 @@ const DetailPanel = (): JSX.Element => {
   ];
   if (blackboardViewAvailable) {
     options.unshift({
-      label: 'Visualization',
+      label: 'Insight',
       value: VIEW_TYPE_BLACKBOARD,
       icon: <ScheduleOutlined />,
     });
