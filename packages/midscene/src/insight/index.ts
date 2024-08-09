@@ -4,7 +4,7 @@ import {
   AiInspectElement,
   callToGetJSONObject as callAI,
 } from '@/ai-model/index';
-import { AiAssert, type callAiFn } from '@/ai-model/inspect';
+import { AiAssert, callAiFn } from '@/ai-model/inspect';
 import type {
   AIElementParseResponse,
   BaseElement,
@@ -53,7 +53,7 @@ export default class Insight<
 > {
   contextRetrieverFn: () => Promise<ContextType> | ContextType;
 
-  aiVendorFn: (...args: Array<any>) => Promise<any> = callAI;
+  aiVendorFn: (...args: Array<any>) => Promise<any> = callAiFn;
 
   onceDumpUpdatedFn?: DumpSubscriber;
 
