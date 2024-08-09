@@ -1,1 +1,1 @@
-export { extractTextWithPositionDFS } from './extractor';
+export { extractTextWithPosition } from './extractor';

@@ -19,10 +19,6 @@ export class Executor {
   // status of executor
   status: 'init' | 'pending' | 'running' | 'completed' | 'error';
 
-  errorMsg?: string;
-
-  dumpFileName?: string;
-
   constructor(
     name: string,
     description?: string,
@@ -78,7 +74,6 @@ export class Executor {
     this.status = 'running';
     let taskIndex = nextPendingIndex;
     let successfullyCompleted = true;
-    let errorMsg = '';
 
     let previousFindOutput: ExecutionTaskInsightLocateOutput | undefined;
 
@@ -136,12 +131,12 @@ export class Executor {
         taskIndex++;
       } catch (e: any) {
         successfullyCompleted = false;
+        task.error = e?.message || 'error-without-message';
+        task.errorStack = e.stack;
+
         task.status = 'fail';
-        errorMsg = `${e?.message}\n${e?.stack}`;
-        task.error = errorMsg;
         task.timing.end = Date.now();
         task.timing.cost = task.timing.end - task.timing.start;
-        this.errorMsg = errorMsg;
         break;
       }
     }
@@ -159,8 +154,24 @@ export class Executor {
       }
     } else {
       this.status = 'error';
-      throw new Error(`executor failed: ${errorMsg}`);
     }
+  }
+
+  isInErrorState(): boolean {
+    return this.status === 'error';
+  }
+
+  latestErrorTask(): ExecutionTask | null {
+    if (this.status !== 'error') {
+      return null;
+    }
+    const errorTaskIndex = this.tasks.findIndex(
+      (task) => task.status === 'fail',
+    );
+    if (errorTaskIndex >= 0) {
+      return this.tasks[errorTaskIndex];
+    }
+    return null;
   }
 
   dump(): ExecutionDump {

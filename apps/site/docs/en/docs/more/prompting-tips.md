@@ -12,9 +12,13 @@ Detailed descriptions and examples are always welcome.
 
 For example: 
 
+Bad ❌: "Search 'headphone'"
+
 Good ✅: "Find the search box (it should be along with a region switch, such as 'domestic' or 'international'), type 'headphone', and hit Enter."
 
-Bad ❌: "Search 'headphone'"
+Bad ❌: "Assert: food delivery service is in normal state"
+
+Good ✅: "Assert: There is a 'food delivery service' on page, and is in normal state"
 
 ### LLMs can NOT tell the exact number like coords or hex-style color, give it some choices
 

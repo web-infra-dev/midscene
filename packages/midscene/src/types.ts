@@ -290,6 +290,7 @@ export type ExecutionTask<
   > & {
     status: 'pending' | 'running' | 'success' | 'fail' | 'cancelled';
     error?: string;
+    errorStack?: string;
     timing?: {
       start: number;
       end?: number;

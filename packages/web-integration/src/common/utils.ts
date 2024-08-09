@@ -49,20 +49,27 @@ export async function getElementInfosFromPage(page: WebPage) {
   assert(pathDir, `can't find pathDir, with ${__dirname}`);
   const scriptPath = path.join(pathDir, './dist/script/htmlElement.js');
   const elementInfosScriptContent = readFileSync(scriptPath, 'utf-8');
-  const extraReturnLogic = `${elementInfosScriptContent}midscene_element_inspector.extractTextWithPositionDFS()`;
+  const extraReturnLogic = `${elementInfosScriptContent}midscene_element_inspector.extractTextWithPosition()`;
 
   const captureElementSnapshot = await (page as any).evaluate(extraReturnLogic);
   return captureElementSnapshot;
 }
 
+const sizeThreshold = 3;
 async function alignElements(
   screenshotBuffer: Buffer,
   elements: WebElementInfoType[],
   page: WebPage,
 ): Promise<WebElementInfo[]> {
   const textsAligned: WebElementInfo[] = [];
-  for (const item of elements) {
+  const validElements = elements.filter((item) => {
+    return (
+      item.rect.height >= sizeThreshold && item.rect.width >= sizeThreshold
+    );
+  });
+  for (const item of validElements) {
     const { rect } = item;
+
     const aligned = await alignCoordByTrim(screenshotBuffer, rect);
     item.rect = aligned;
     item.center = [

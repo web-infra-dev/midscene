@@ -1,3 +1,4 @@
 #!/usr/bin/env node
 
+require('../dist/lib/help.js');
 require('../dist/lib/index.js');

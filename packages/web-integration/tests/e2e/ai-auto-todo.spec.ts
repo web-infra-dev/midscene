@@ -9,6 +9,7 @@ test('ai todo', async ({ ai, aiQuery }) => {
   await ai(
     'Enter "Learn JS today" in the task box, then press Enter to create',
   );
+
   await ai(
     'Enter "Learn Rust tomorrow" in the task box, then press Enter to create',
   );

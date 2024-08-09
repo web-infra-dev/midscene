@@ -156,30 +156,93 @@ describe('executor', () => {
     // same dumpPath to append
     const dumpContent2 = initExecutor.dump();
     expect(dumpContent2.tasks.length).toBe(4);
+
+    expect(initExecutor.latestErrorTask()).toBeFalsy();
   });
 
-  // it('insight - run with error', async () => {
-  //   const executor = new Executor('test', 'test-description',[insightFindTask(true), insightFindTask()]);
-  //   const r = await executor.flush();
-  //   const tasks = executor.tasks as ExecutionTaskInsightLocate[];
+  it('insight - run with error', async () => {
+    const executor = new Executor('test', 'test-description', [
+      insightFindTask(true),
+      insightFindTask(),
+    ]);
+    const r = await executor.flush();
+    const tasks = executor.tasks as ExecutionTaskInsightLocate[];
 
-  //   expect(tasks.length).toBe(2);
-  //   expect(tasks[0].status).toBe('fail');
-  //   expect(tasks[0].error).toBeTruthy();
-  //   expect(tasks[0].timing!.end).toBeTruthy();
-  //   expect(tasks[1].status).toBe('cancelled');
-  //   expect(executor.status).toBe('error');
-  //   expect(r).toBeFalsy();
+    expect(tasks.length).toBe(2);
+    expect(tasks[0].status).toBe('fail');
+    expect(tasks[0].error).toBeTruthy();
+    expect(tasks[0].timing!.end).toBeTruthy();
+    expect(tasks[1].status).toBe('cancelled');
+    expect(executor.status).toBe('error');
+    expect(executor.latestErrorTask()).toBeTruthy();
+    expect(r).toBeFalsy();
 
-  //   // expect to throw an error
-  //   expect(async () => {
-  //     await executor.flush();
-  //   }).rejects.toThrowError();
+    // expect to throw an error
+    expect(async () => {
+      await executor.flush();
+    }).rejects.toThrowError();
 
-  //   expect(async () => {
-  //     await executor.append(insightExtractTask());
-  //   }).rejects.toThrowError();
-  // }, {
-  //   timeout: 9999999,
-  // });
+    expect(async () => {
+      await executor.append(insightFindTask());
+    }).rejects.toThrowError();
+  });
+
+  it.skip('insight - return error instead of throwing', async () => {
+    const executor = new Executor('test', 'test-description', [
+      {
+        type: 'Insight',
+        subType: 'Locate',
+        param: {
+          prompt: 'test',
+        },
+        async executor(param) {
+          return {
+            output: {
+              element: 'abc',
+            },
+            log: {
+              dump: {},
+            },
+          };
+        },
+      },
+      {
+        type: 'Insight',
+        subType: 'Locate',
+        param: {
+          prompt: 'test',
+        },
+        async executor(param) {
+          return {
+            output: {
+              element: 'abc',
+            },
+            log: {
+              dump: {},
+            },
+          };
+        },
+      },
+    ]);
+    const r = await executor.flush();
+    const tasks = executor.tasks as ExecutionTaskInsightLocate[];
+
+    expect(tasks.length).toBe(2);
+    expect(tasks[0].status).toBe('fail');
+    expect(tasks[0].error).toBeTruthy();
+    expect(tasks[0].timing!.end).toBeTruthy();
+    expect(tasks[1].status).toBe('cancelled');
+    expect(executor.status).toBe('error');
+    expect(executor.latestErrorTask()).toBeTruthy();
+    expect(r).toBeFalsy();
+
+    // expect to throw an error
+    expect(async () => {
+      await executor.flush();
+    }).rejects.toThrowError();
+
+    expect(async () => {
+      await executor.append(insightFindTask());
+    }).rejects.toThrowError();
+  });
 });
