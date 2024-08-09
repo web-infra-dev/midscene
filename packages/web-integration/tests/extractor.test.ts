@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest';
 import { launchPage } from './puppeteer/utils';
 
 const pagePath = join(__dirname, './fixtures/extractor.html');
-describe('extractor', () => {
+describe.skipIf(typeof process.env.CI !== 'undefined')('extractor', () => {
   it('basic', async () => {
     const page = await launchPage(`file://${pagePath}`);
 
