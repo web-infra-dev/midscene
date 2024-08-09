@@ -12,22 +12,31 @@ import type {
   ChatCompletionUserMessageParam,
 } from 'openai/resources';
 import {
-  CozeAiAssert,
-  CozeAiInspectElement,
+  AI_ASSERT_BOT_ID,
   EXTRACT_INFO_BOT_ID,
+  INSPECT_ELEMENT_BOT_ID,
 } from './coze';
 import {
   callCozeAi,
   transfromOpenAiArgsToCoze,
   useCozeModel,
 } from './coze/base';
-import { OpenAiAssert, OpenAiInspectElement } from './openai';
+import type { OpenAiInspectElement } from './openai';
 import { callToGetJSONObject, useOpenAIModel } from './openai/base';
+import {
+  multiDescription,
+  systemPromptToFindElement,
+} from './prompt/element_inspector';
 import {
   describeUserPage,
   systemPromptToAssert,
   systemPromptToExtract,
 } from './prompt/util';
+
+export type AIArgs = [
+  ChatCompletionSystemMessageParam,
+  ChatCompletionUserMessageParam,
+];
 
 export async function AiInspectElement<
   ElementType extends BaseElement = BaseElement,
@@ -57,33 +66,52 @@ export async function AiInspectElement<
     };
   }
 
-  if (useOpenAIModel(useModel)) {
-    const parseResult = await OpenAiInspectElement({
-      findElementDescription,
-      screenshotBase64,
-      pageDescription: description,
-      multi,
-    });
-    return {
-      parseResult,
-      elementById,
-    };
-  }
+  const systemPrompt = systemPromptToFindElement();
 
-  if (useCozeModel(useModel)) {
-    const parseResult = await CozeAiInspectElement({
-      findElementDescription,
-      screenshotBase64,
-      pageDescription: description,
-      multi,
-    });
-    return {
-      parseResult,
-      elementById,
-    };
-  }
+  const msgs: AIArgs = [
+    { role: 'system', content: systemPrompt },
+    {
+      role: 'user',
+      content: [
+        {
+          type: 'image_url',
+          image_url: {
+            url: screenshotBase64,
+            detail: 'high',
+          },
+        },
+        {
+          type: 'text',
+          text: `
+            pageDescription: \n
+            ${description}
+          `,
+        },
+        {
+          type: 'text',
+          text: `
+          Here is the description of the findElement. Just go ahead:
+          =====================================
+          ${JSON.stringify({
+            description: findElementDescription,
+            multi: multiDescription(multi),
+          })}
+          =====================================
+          `,
+        },
+      ],
+    },
+  ];
+  const inspectElement = await callAiFn<AIElementParseResponse>({
+    msgs,
+    botId: INSPECT_ELEMENT_BOT_ID,
+    useModel,
+  });
 
-  throw Error(`can't get OpenAi and Coze model args`);
+  return {
+    parseResult: inspectElement,
+    elementById,
+  };
 }
 
 export async function AiExtractElementInfo<
@@ -93,23 +121,14 @@ export async function AiExtractElementInfo<
   dataQuery: string | Record<string, string>;
   context: UIContext<ElementType>;
   useModel?: 'coze' | 'openAI';
-  callAI?: typeof callToGetJSONObject;
 }) {
-  const {
-    dataQuery,
-    context,
-    callAI = callToGetJSONObject,
-    useModel,
-  } = options;
+  const { dataQuery, context, useModel } = options;
   const systemPrompt = systemPromptToExtract();
 
   const { screenshotBase64 } = context;
   const { description, elementById } = await describeUserPage(context);
 
-  const msgs: [
-    ChatCompletionSystemMessageParam,
-    ChatCompletionUserMessageParam,
-  ] = [
+  const msgs: AIArgs = [
     { role: 'system', content: systemPrompt },
     {
       role: 'user',
@@ -142,27 +161,15 @@ DATA_DEMAND ends.
     },
   ];
 
-  if (useOpenAIModel(useModel)) {
-    const parseResult = await callAI<AISectionParseResponse<T>>(msgs);
-    return {
-      parseResult,
-      elementById,
-    };
-  }
-
-  if (useCozeModel(useModel)) {
-    const cozeMsg = transfromOpenAiArgsToCoze(msgs[1]);
-    const parseResult = await callCozeAi({
-      ...cozeMsg,
-      botId: EXTRACT_INFO_BOT_ID,
-    });
-    return {
-      parseResult,
-      elementById,
-    };
-  }
-
-  throw Error('Does not contain coze and openai environment variables');
+  const parseResult = await callAiFn<AISectionParseResponse<T>>({
+    msgs,
+    useModel,
+    botId: EXTRACT_INFO_BOT_ID,
+  });
+  return {
+    parseResult,
+    elementById,
+  };
 }
 
 export async function AiAssert<
@@ -170,42 +177,74 @@ export async function AiAssert<
 >(options: {
   assertion: string;
   context: UIContext<ElementType>;
-  callAI?: typeof OpenAiAssert;
   useModel?: 'coze' | 'openAI';
 }) {
-  const { assertion, context, callAI, useModel } = options;
+  const { assertion, context, useModel } = options;
 
   assert(assertion, 'assertion should be a string');
 
   const { screenshotBase64 } = context;
   const { description, elementById } = await describeUserPage(context);
+  const systemPrompt = systemPromptToAssert();
 
-  if (callAI) {
-    const assertResult = await callAI({
-      screenshotBase64,
-      pageDescription: description,
-      assertion,
-    });
-    return assertResult;
-  }
+  const msgs: AIArgs = [
+    { role: 'system', content: systemPrompt },
+    {
+      role: 'user',
+      content: [
+        {
+          type: 'image_url',
+          image_url: {
+            url: screenshotBase64,
+          },
+        },
+        {
+          type: 'text',
+          text: `
+            pageDescription: \n
+            ${description}
+          `,
+        },
+        {
+          type: 'text',
+          text: `
+            Here is the description of the assertion. Just go ahead:
+            =====================================
+            ${assertion}
+            =====================================
+          `,
+        },
+      ],
+    },
+  ];
 
+  const assertResult = await callAiFn<AIAssertionResponse>({
+    msgs,
+    botId: AI_ASSERT_BOT_ID,
+    useModel,
+  });
+  return assertResult;
+}
+
+export async function callAiFn<T>(options: {
+  msgs: AIArgs;
+  botId: string;
+  useModel?: 'openAI' | 'coze';
+}) {
+  const { useModel, msgs, botId } = options;
   if (useOpenAIModel(useModel)) {
-    const assertResult = await OpenAiAssert({
-      screenshotBase64,
-      pageDescription: description,
-      assertion,
-    });
-    return assertResult;
+    const parseResult = await callToGetJSONObject<T>(msgs);
+    return parseResult;
   }
 
   if (useCozeModel(useModel)) {
-    const assertResult = await CozeAiAssert({
-      screenshotBase64,
-      pageDescription: description,
-      assertion,
+    const cozeMsg = transfromOpenAiArgsToCoze(msgs[1]);
+    const parseResult = await callCozeAi<T>({
+      ...cozeMsg,
+      botId,
     });
-    return assertResult;
+    return parseResult;
   }
 
-  throw Error(`can't get OpenAi and Coze model args`);
+  throw Error('Does not contain coze and openai environment variables');
 }

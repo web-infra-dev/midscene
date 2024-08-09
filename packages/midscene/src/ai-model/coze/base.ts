@@ -40,7 +40,7 @@ export async function callCozeAi<T>(options: {
     }),
   });
   if (!completion.ok) {
-    console.error('CozeAiInspectElement reponse error', completion);
+    console.error('CozeAI reponse error', completion);
     throw new Error('Network response was not ok');
   }
 

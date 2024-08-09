@@ -191,7 +191,6 @@ export default class Insight<
     const { parseResult, elementById } = await AiExtractElementInfo<T>({
       context,
       dataQuery: dataDemand,
-      callAI: this.aiVendorFn,
     });
 
     const timeCost = Date.now() - startTime;
@@ -301,7 +300,6 @@ export default class Insight<
     const startTime = Date.now();
     const assertResult = await AiAssert({
       assertion,
-      callAI: this.aiVendorFn,
       context,
     });
 

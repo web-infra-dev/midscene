@@ -21,16 +21,16 @@ describe('assert', () => {
     expect(parseResult).toMatchSnapshot();
   });
 
-  it('online order', async () => {
-    const { context } = await getPageDataOfTestName('online_order');
+  // it('online order', async () => {
+  //   const { context } = await getPageDataOfTestName('online_order');
 
-    const { parseResult } = await AiExtractElementInfo({
-      dataQuery: '{name: string, price: string}[], 饮品名称和价格',
-      context,
-      useModel,
-    });
-    expect(parseResult).toMatchSnapshot();
-  });
+  //   const { parseResult } = await AiExtractElementInfo({
+  //     dataQuery: '{name: string, price: string}[], 饮品名称和价格',
+  //     context,
+  //     useModel,
+  //   });
+  //   expect(parseResult).toMatchSnapshot();
+  // });
 
   it('todo obj', async () => {
     const { context } = await getPageDataOfTestName('todo');

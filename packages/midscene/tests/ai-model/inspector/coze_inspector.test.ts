@@ -1,7 +1,5 @@
 import path from 'node:path';
 import { AiInspectElement } from '@/ai-model';
-import { CozeAiInspectElement } from '@/ai-model/coze';
-import { AiAssert } from '@/ai-model/inspect';
 import { expect, it } from 'vitest';
 import {
   getPageTestData,

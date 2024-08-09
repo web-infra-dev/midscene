@@ -1,10 +1,12 @@
 import assert from 'node:assert';
 import type { PlanningAIResponse, PlanningAction, UIContext } from '@/types';
-import { CozeAiActionPlan } from '../coze';
+import { AI_ACTION_BOT_ID } from '../coze';
 import { useCozeModel } from '../coze/base';
-import { OpenAiActionPlan } from '../openai';
+import { type AIArgs, callAiFn } from '../inspect';
+import type { OpenAiActionPlan } from '../openai';
 import { useOpenAIModel } from '../openai/base';
 import { describeUserPage } from '../prompt/util';
+import { systemPromptToTaskPlanning } from './planning';
 
 export async function plan(
   userPrompt: string,
@@ -16,25 +18,52 @@ export async function plan(
 ): Promise<{ plans: PlanningAction[] }> {
   const { callAI, context } = opts || {};
   const { screenshotBase64 } = context;
-  const { description } = await describeUserPage(context);
+  const { description: pageDescription } = await describeUserPage(context);
   let planFromAI: PlanningAIResponse | undefined;
+
+  const systemPrompt = systemPromptToTaskPlanning();
+  const msgs: AIArgs = [
+    { role: 'system', content: systemPrompt },
+    {
+      role: 'user',
+      content: [
+        {
+          type: 'image_url',
+          image_url: {
+            url: screenshotBase64,
+            detail: 'high',
+          },
+        },
+        {
+          type: 'text',
+          text: `
+            pageDescription: ${pageDescription}
+          `,
+        },
+        {
+          type: 'text',
+          text: `
+                Here is the description of the task. Just go ahead:
+                =====================================
+                ${userPrompt}
+                =====================================
+            `,
+        },
+      ],
+    },
+  ];
+
   if (callAI) {
     planFromAI = await callAI({
-      pageDescription: description,
+      pageDescription: pageDescription,
       actionDescription: userPrompt,
       screenshotBase64,
     });
-  } else if (useOpenAIModel(useModel)) {
-    planFromAI = await OpenAiActionPlan({
-      pageDescription: description,
-      actionDescription: userPrompt,
-      screenshotBase64,
-    });
-  } else if (useCozeModel(useModel)) {
-    planFromAI = await CozeAiActionPlan({
-      pageDescription: description,
-      actionDescription: userPrompt,
-      screenshotBase64,
+  } else {
+    planFromAI = await callAiFn({
+      msgs,
+      botId: AI_ACTION_BOT_ID,
+      useModel,
     });
   }
 
