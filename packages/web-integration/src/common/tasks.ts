@@ -3,7 +3,6 @@ import type { WebPage } from '@/common/page';
 import Insight, {
   type AIElementParseResponse,
   type DumpSubscriber,
-  type ExecutionDump,
   type ExecutionRecorderItem,
   type ExecutionTaskActionApply,
   type ExecutionTaskApply,
