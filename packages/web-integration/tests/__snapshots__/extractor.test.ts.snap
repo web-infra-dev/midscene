@@ -1,0 +1,485 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`extractor > basic 1`] = `
+[
+  {
+    "attributes": {
+      "nodeType": "TEXT Node",
+    },
+    "content": "Data Record
+  1970-01-01 19:25:01
+  User Name: Stella
+  
+    
+      
+        ID
+        Field 2
+        Field 3
+        Field 4
+        Field 5
+      
+    
+    
+      
+        30S
+        Kace Cervantes
+        Aylin Sawyer
+        Jefferson Kirby
+        Skyla Jefferson
+      
+      
+        70U
+        Florence Davenport
+        Dariel Acevedo
+        Ashlynn Delacruz
+        Memphis Leal
+      
+      
+        3AY
+        Crystal Newman
+        Anderson Brown
+        Charlotte Griffith
+        Franklin Everett
+      
+      
+        YPG
+        Kori Payne
+        Edward Blevins
+        Aila Gill
+        Matthias Reed
+      
+      
+        ZEN
+        Magnolia Duke
+        Kalel Glover
+        Alessia Barton
+        Cassius Peck
+      
+    
+  
+  
+    Form
+    Name:
+    
+    Click Me
+    Shape
+    
+    
+    
+
+
+    
+  
+  
+    var input = document.getElementById('J_input');
+    var keyRecord = document.getElementById('J_keyRecord');
+    input.addEventListener('keyup', function (e) {
+      keyRecord.innerHTML += '\\n' + e.key;
+    });",
+  },
+  {
+    "attributes": {
+      "nodeType": "TEXT Node",
+    },
+    "content": "Data Record",
+  },
+  {
+    "attributes": {
+      "nodeType": "TEXT Node",
+    },
+    "content": "1970-01-01 19:25:01",
+  },
+  {
+    "attributes": {
+      "nodeType": "TEXT Node",
+    },
+    "content": "User Name: Stella",
+  },
+  {
+    "attributes": {
+      "nodeType": "TEXT Node",
+    },
+    "content": "ID
+        Field 2
+        Field 3
+        Field 4
+        Field 5
+      
+    
+    
+      
+        30S
+        Kace Cervantes
+        Aylin Sawyer
+        Jefferson Kirby
+        Skyla Jefferson
+      
+      
+        70U
+        Florence Davenport
+        Dariel Acevedo
+        Ashlynn Delacruz
+        Memphis Leal
+      
+      
+        3AY
+        Crystal Newman
+        Anderson Brown
+        Charlotte Griffith
+        Franklin Everett
+      
+      
+        YPG
+        Kori Payne
+        Edward Blevins
+        Aila Gill
+        Matthias Reed
+      
+      
+        ZEN
+        Magnolia Duke
+        Kalel Glover
+        Alessia Barton
+        Cassius Peck",
+  },
+  {
+    "attributes": {
+      "nodeType": "TEXT Node",
+    },
+    "content": "ID
+        Field 2
+        Field 3
+        Field 4
+        Field 5",
+  },
+  {
+    "attributes": {
+      "nodeType": "TEXT Node",
+    },
+    "content": "ID
+        Field 2
+        Field 3
+        Field 4
+        Field 5",
+  },
+  {
+    "attributes": {
+      "nodeType": "TEXT Node",
+    },
+    "content": "ID",
+  },
+  {
+    "attributes": {
+      "nodeType": "TEXT Node",
+    },
+    "content": "Field 2",
+  },
+  {
+    "attributes": {
+      "nodeType": "TEXT Node",
+    },
+    "content": "Field 3",
+  },
+  {
+    "attributes": {
+      "nodeType": "TEXT Node",
+    },
+    "content": "Field 4",
+  },
+  {
+    "attributes": {
+      "nodeType": "TEXT Node",
+    },
+    "content": "Field 5",
+  },
+  {
+    "attributes": {
+      "nodeType": "TEXT Node",
+    },
+    "content": "30S
+        Kace Cervantes
+        Aylin Sawyer
+        Jefferson Kirby
+        Skyla Jefferson
+      
+      
+        70U
+        Florence Davenport
+        Dariel Acevedo
+        Ashlynn Delacruz
+        Memphis Leal
+      
+      
+        3AY
+        Crystal Newman
+        Anderson Brown
+        Charlotte Griffith
+        Franklin Everett
+      
+      
+        YPG
+        Kori Payne
+        Edward Blevins
+        Aila Gill
+        Matthias Reed
+      
+      
+        ZEN
+        Magnolia Duke
+        Kalel Glover
+        Alessia Barton
+        Cassius Peck",
+  },
+  {
+    "attributes": {
+      "nodeType": "TEXT Node",
+    },
+    "content": "30S
+        Kace Cervantes
+        Aylin Sawyer
+        Jefferson Kirby
+        Skyla Jefferson",
+  },
+  {
+    "attributes": {
+      "nodeType": "TEXT Node",
+    },
+    "content": "30S",
+  },
+  {
+    "attributes": {
+      "nodeType": "TEXT Node",
+    },
+    "content": "Kace Cervantes",
+  },
+  {
+    "attributes": {
+      "nodeType": "TEXT Node",
+    },
+    "content": "Aylin Sawyer",
+  },
+  {
+    "attributes": {
+      "nodeType": "TEXT Node",
+    },
+    "content": "Jefferson Kirby",
+  },
+  {
+    "attributes": {
+      "nodeType": "TEXT Node",
+    },
+    "content": "Skyla Jefferson",
+  },
+  {
+    "attributes": {
+      "nodeType": "TEXT Node",
+    },
+    "content": "70U
+        Florence Davenport
+        Dariel Acevedo
+        Ashlynn Delacruz
+        Memphis Leal",
+  },
+  {
+    "attributes": {
+      "nodeType": "TEXT Node",
+    },
+    "content": "70U",
+  },
+  {
+    "attributes": {
+      "nodeType": "TEXT Node",
+    },
+    "content": "Florence Davenport",
+  },
+  {
+    "attributes": {
+      "nodeType": "TEXT Node",
+    },
+    "content": "Dariel Acevedo",
+  },
+  {
+    "attributes": {
+      "nodeType": "TEXT Node",
+    },
+    "content": "Ashlynn Delacruz",
+  },
+  {
+    "attributes": {
+      "nodeType": "TEXT Node",
+    },
+    "content": "Memphis Leal",
+  },
+  {
+    "attributes": {
+      "nodeType": "TEXT Node",
+    },
+    "content": "3AY
+        Crystal Newman
+        Anderson Brown
+        Charlotte Griffith
+        Franklin Everett",
+  },
+  {
+    "attributes": {
+      "nodeType": "TEXT Node",
+    },
+    "content": "3AY",
+  },
+  {
+    "attributes": {
+      "nodeType": "TEXT Node",
+    },
+    "content": "Crystal Newman",
+  },
+  {
+    "attributes": {
+      "nodeType": "TEXT Node",
+    },
+    "content": "Anderson Brown",
+  },
+  {
+    "attributes": {
+      "nodeType": "TEXT Node",
+    },
+    "content": "Charlotte Griffith",
+  },
+  {
+    "attributes": {
+      "nodeType": "TEXT Node",
+    },
+    "content": "Franklin Everett",
+  },
+  {
+    "attributes": {
+      "nodeType": "TEXT Node",
+    },
+    "content": "YPG
+        Kori Payne
+        Edward Blevins
+        Aila Gill
+        Matthias Reed",
+  },
+  {
+    "attributes": {
+      "nodeType": "TEXT Node",
+    },
+    "content": "YPG",
+  },
+  {
+    "attributes": {
+      "nodeType": "TEXT Node",
+    },
+    "content": "Kori Payne",
+  },
+  {
+    "attributes": {
+      "nodeType": "TEXT Node",
+    },
+    "content": "Edward Blevins",
+  },
+  {
+    "attributes": {
+      "nodeType": "TEXT Node",
+    },
+    "content": "Aila Gill",
+  },
+  {
+    "attributes": {
+      "nodeType": "TEXT Node",
+    },
+    "content": "Matthias Reed",
+  },
+  {
+    "attributes": {
+      "nodeType": "TEXT Node",
+    },
+    "content": "ZEN
+        Magnolia Duke
+        Kalel Glover
+        Alessia Barton
+        Cassius Peck",
+  },
+  {
+    "attributes": {
+      "nodeType": "TEXT Node",
+    },
+    "content": "ZEN",
+  },
+  {
+    "attributes": {
+      "nodeType": "TEXT Node",
+    },
+    "content": "Magnolia Duke",
+  },
+  {
+    "attributes": {
+      "nodeType": "TEXT Node",
+    },
+    "content": "Kalel Glover",
+  },
+  {
+    "attributes": {
+      "nodeType": "TEXT Node",
+    },
+    "content": "Alessia Barton",
+  },
+  {
+    "attributes": {
+      "nodeType": "TEXT Node",
+    },
+    "content": "Cassius Peck",
+  },
+  {
+    "attributes": {
+      "nodeType": "TEXT Node",
+    },
+    "content": "Form
+    Name:
+    
+    Click Me
+    Shape",
+  },
+  {
+    "attributes": {
+      "nodeType": "TEXT Node",
+    },
+    "content": "Form",
+  },
+  {
+    "attributes": {
+      "for": "name",
+      "nodeType": "TEXT Node",
+    },
+    "content": "Name:",
+  },
+  {
+    "attributes": {
+      "id": "J_input",
+      "nodeType": "INPUT Node",
+      "placeholder": "Hello World This is Placeholder",
+    },
+    "content": "Hello World This is Placeholder",
+  },
+  {
+    "attributes": {
+      "nodeType": "BUTTON Node",
+    },
+    "content": "Click Me",
+  },
+  {
+    "attributes": {
+      "nodeType": "TEXT Node",
+    },
+    "content": "Shape",
+  },
+  {
+    "attributes": {
+      "nodeType": "INPUT Node",
+      "placeholder": "You shouldn't see this placeholder.",
+      "value": "Rectangle",
+    },
+    "content": "You shouldn't see this placeholder.",
+  },
+]
+`;

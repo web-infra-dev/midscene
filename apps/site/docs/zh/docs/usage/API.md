@@ -80,8 +80,23 @@ const dataC = await mid.aiQuery('{name: string, age: string}[], 表格中的数�
 `.aiAssert` 的功能类似于一般的断言（assert）方法，但可以用自然语言编写条件参数 `assertion`。Midscene 会调用 AI 来判断条件是否为真。若条件不满足，SDK 会抛出一个错误并在 `errorMsg` 后附上 AI 生成的错误原因。
 
 ```typescript
-await mid.aiAssert('界面中应该有个搜索框');
+await mid.aiAssert('"Sauce Labs Onesie" 的价格是 7.99');
 ```
+
+:::tip
+断言在测试脚本中往往很重要。为了防止 AI 幻觉造成的错误断言（尤其是漏判了错误），你也可以用 `.aiQuery` + 普通 JS 断言的形式来替代 `.aiAssert`。
+
+例如你可以这么替代上一个断言代码：
+
+```typescript
+const items = await mid.aiQuery(
+  '"{name: string, price: number}[], 返回商品名称和价格列表)',
+);
+const onesieItem = items.find(item => item.name === 'Sauce Labs Onesie');
+expect(onesieItem).toBeTruthy();
+expect(onesieItem.price).toBe(7.99);
+```
+:::
 
 ## 使用 LangSmith （可选）
 

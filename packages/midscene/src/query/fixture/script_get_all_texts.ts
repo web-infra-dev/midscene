@@ -135,7 +135,7 @@ const script = `
     return false;
   }
 
-  function extractTextWithPositionDFS(initNode) {
+  function extractTextWithPosition(initNode) {
     const textInfoArray = [];
     window[taskIdKey] = window[taskIdKey] ? window[taskIdKey] + 1 : 1;
     window[nodeIndexKey] = 0;
@@ -189,11 +189,11 @@ const script = `
     return textInfoArray;
   }
 
-  window.extractTextWithPositionDFS = extractTextWithPositionDFS;
+  window.extractTextWithPosition = extractTextWithPosition;
   window.ifNodeIsValid = validTextNodeContent;
   const container =
     typeof window.get_all_text_container === 'undefined' ? document.body : window.get_all_text_container;
-  return extractTextWithPositionDFS(container);
+  return extractTextWithPosition(container);
 })();
 `;
 

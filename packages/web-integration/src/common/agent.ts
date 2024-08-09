@@ -43,61 +43,43 @@ export class PageAgent {
 
   writeOutActionDumps() {
     this.dumpFile = writeDumpFile({
-      fileName: `playwright-${this.testId}`,
+      fileName: `run-${this.testId}`,
       fileExt: groupedActionDumpFileExt,
       fileContent: stringifyDumpData(this.dumps),
     });
   }
 
   async aiAction(taskPrompt: string) {
-    let error: Error | undefined;
-    try {
-      await this.taskExecutor.action(taskPrompt);
-    } catch (e: any) {
-      error = e;
-    }
-    // console.log('cache logic', taskExecutor.taskCache.generateTaskCache());
-    if (this.taskExecutor.executionDump) {
-      this.appendDump(this.taskExecutor.executionDump);
-      // this.appendDump(dumpGroupName, taskExecutor.executionDump);
-      this.writeOutActionDumps();
-    }
-    if (error) {
-      // playwright cli won't print error cause, so we print it here
-      console.error(error);
-      throw new Error(error.message, { cause: error });
+    const { executor } = await this.taskExecutor.action(taskPrompt);
+    this.appendDump(executor.dump());
+    this.writeOutActionDumps();
+
+    if (executor.isInErrorState()) {
+      const errorTask = executor.latestErrorTask();
+      throw new Error(`${errorTask?.error}\n${errorTask?.errorStack}`);
     }
   }
 
   async aiQuery(demand: any) {
-    let error: Error | undefined;
-    let result: any;
-    try {
-      result = await this.taskExecutor.query(demand);
-    } catch (e: any) {
-      error = e;
+    const { output, executor } = await this.taskExecutor.query(demand);
+    this.appendDump(executor.dump());
+    this.writeOutActionDumps();
+
+    if (executor.isInErrorState()) {
+      const errorTask = executor.latestErrorTask();
+      throw new Error(`${errorTask?.error}\n${errorTask?.errorStack}`);
     }
-    if (this.taskExecutor.executionDump) {
-      this.appendDump(this.taskExecutor.executionDump);
-      this.writeOutActionDumps();
-    }
-    if (error) {
-      // playwright cli won't print error cause, so we print it here
-      console.error(error);
-      throw new Error(error.message, { cause: error });
-    }
-    return result;
+    return output;
   }
 
   async aiAssert(assertion: string, msg?: string) {
-    const assertionResult = await this.taskExecutor.assert(assertion);
-    if (this.taskExecutor.executionDump) {
-      this.appendDump(this.taskExecutor.executionDump);
-      this.writeOutActionDumps();
-    }
-    if (!assertionResult.pass) {
+    const { output, executor } = await this.taskExecutor.assert(assertion);
+    this.appendDump(executor.dump());
+    this.writeOutActionDumps();
+
+    if (!output?.pass) {
       const errMsg = msg || `Assertion failed: ${assertion}`;
-      const reasonMsg = `Reason: ${assertionResult.thought}`;
+      const reasonMsg = `Reason: ${output?.thought} || (no_reason)`;
       throw new Error(`${errMsg}\n${reasonMsg}`);
     }
   }

@@ -7,6 +7,7 @@ export default defineConfig({
     platform: 'node',
     input: {
       index: 'src/index.ts',
+      help: 'src/help.ts',
     },
     // input: ['src/utils.ts', 'src/index.ts', 'src/image/index.ts'],
     externals: ['node:buffer'],

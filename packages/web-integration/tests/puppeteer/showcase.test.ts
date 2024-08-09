@@ -1,5 +1,4 @@
 import { PuppeteerAgent } from '@/puppeteer';
-import { sleep } from '@midscene/core/utils';
 import { describe, expect, it, vi } from 'vitest';
 import { launchPage } from './utils';
 
@@ -7,22 +6,27 @@ vi.setConfig({
   testTimeout: 90 * 1000,
 });
 
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
 describe('puppeteer integration', () => {
-  it('search headphones on ebay', async () => {
-    const page = await launchPage('https://www.ebay.com');
+  it('Sauce Demo by Swag Lab', async () => {
+    const page = await launchPage('https://www.saucedemo.com/');
     const mid = new PuppeteerAgent(page);
 
-    // perform a search
-    await mid.aiAction('type "Headphones" in search box, hit Enter, wait 5s');
+    await mid.aiAction(
+      'type "standard_user" in user name input, type "secret_sauce" in password, click "Login"',
+    );
+
+    await sleep(2000);
 
     // find the items
     const items = await mid.aiQuery(
-      '{itemTitle: string, price: Number}[], find item in list and corresponding price',
+      '"{name: string, price: number, actionBtnName: string}[], return item name, price and the action button name on the lower right corner of each item (like "Remove")',
     );
-    console.log('headphones in stock', items);
+    console.log('item list', items);
     expect(items.length).toBeGreaterThanOrEqual(2);
 
-    await mid.aiAssert('There is a category filter on the left');
+    await mid.aiAssert('The price of "Sauce Labs Onesie" is 7.99');
   });
 
   it('extract the Github service status', async () => {
@@ -34,6 +38,11 @@ describe('puppeteer integration', () => {
     );
     console.log('Github service status', result);
 
-    await mid.aiAssert('food delivery service is in normal state');
+    expect(async () => {
+      //   // there is no food delivery service on Github
+      await mid.aiAssert(
+        'there is a "food delivery" service on page and is in normal state',
+      );
+    }).rejects.toThrowError();
   });
 });

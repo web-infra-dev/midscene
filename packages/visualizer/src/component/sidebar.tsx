@@ -3,10 +3,11 @@ import { useAllCurrentTasks, useExecutionDump } from '@/component/store';
 import { typeStr } from '@/utils';
 import {
   ArrowRightOutlined,
-  CheckOutlined,
-  ClockCircleOutlined,
-  CloseOutlined,
+  CheckCircleFilled,
+  ClockCircleFilled,
+  CloseCircleFilled,
   LogoutOutlined,
+  MessageOutlined,
   MinusOutlined,
 } from '@ant-design/icons';
 import type { ExecutionTask, ExecutionTaskInsightQuery } from '@midscene/core';
@@ -27,11 +28,11 @@ const SideItem = (props: {
   const selectedClass = selected ? 'selected' : '';
   let statusIcon = <MinusOutlined />;
   if (task.status === 'success') {
-    statusIcon = <CheckOutlined />;
+    statusIcon = <CheckCircleFilled />;
   } else if (task.status === 'fail') {
-    statusIcon = <CloseOutlined />;
+    statusIcon = <CloseCircleFilled />;
   } else if (task.status === 'pending') {
-    statusIcon = <ClockCircleOutlined />;
+    statusIcon = <ClockCircleFilled />;
   } else if (task.status === 'cancelled') {
     statusIcon = <LogoutOutlined />;
   } else if (task.status === 'running') {
@@ -43,21 +44,6 @@ const SideItem = (props: {
     statusText = timeCostStrElement(task.timing.cost);
   }
 
-  let contentRow: JSX.Element | undefined;
-  if (task.type === 'Planning') {
-    contentRow = (
-      <div className="side-item-content">{task.param?.userPrompt}</div>
-    );
-  } else if (task.type === 'Insight' && task.subType === 'Query') {
-    // debugger;
-    const demand = (task as ExecutionTaskInsightQuery).param?.dataDemand;
-    const contentToShow =
-      typeof demand === 'string' ? demand : JSON.stringify(demand);
-    contentRow = <div className="side-item-content">{contentToShow}</div>;
-  } else {
-    // debugger;
-  }
-  // add hover listener
   return (
     <div
       className={`side-item ${selectedClass}`}
@@ -81,7 +67,7 @@ const SideItem = (props: {
         <div className="title">{typeStr(task)}</div>
         <div className="status-text">{statusText}</div>
       </div>
-      {contentRow}
+      {/* {contentRow} */}
     </div>
   );
 };
@@ -181,7 +167,12 @@ const Sidebar = (props: {
         return (
           <div key={indexOfExecution}>
             {seperator}
-            <div className="side-sub-title">{execution.name}</div>
+            <div className="side-sub-title">
+              <span className="name-status">
+                <MessageOutlined />
+              </span>
+              {execution.name}
+            </div>
             {taskList}
           </div>
         );
