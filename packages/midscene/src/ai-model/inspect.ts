@@ -15,14 +15,11 @@ import {
   AI_ASSERT_BOT_ID,
   EXTRACT_INFO_BOT_ID,
   INSPECT_ELEMENT_BOT_ID,
-} from './coze';
-import {
   callCozeAi,
   transfromOpenAiArgsToCoze,
   useCozeModel,
-} from './coze/base';
-import type { OpenAiInspectElement } from './openai';
-import { callToGetJSONObject, useOpenAIModel } from './openai/base';
+} from './coze';
+import { callToGetJSONObject, useOpenAIModel } from './openai';
 import {
   multiDescription,
   systemPromptToFindElement,
@@ -44,27 +41,12 @@ export async function AiInspectElement<
   context: UIContext<ElementType>;
   multi: boolean;
   findElementDescription: string;
-  callAI?: (
-    options: Parameters<typeof OpenAiInspectElement>[0],
-  ) => Promise<AIElementParseResponse>;
+  callAI?: typeof callAiFn<AIElementParseResponse>;
   useModel?: 'coze' | 'openAI';
 }) {
   const { context, multi, findElementDescription, callAI, useModel } = options;
   const { screenshotBase64 } = context;
   const { description, elementById } = await describeUserPage(context);
-
-  if (callAI) {
-    const parseResult = await callAI({
-      findElementDescription,
-      screenshotBase64,
-      pageDescription: description,
-      multi,
-    });
-    return {
-      parseResult,
-      elementById,
-    };
-  }
 
   const systemPrompt = systemPromptToFindElement();
 
@@ -102,6 +84,18 @@ export async function AiInspectElement<
       ],
     },
   ];
+
+  if (callAI) {
+    const parseResult = await callAI({
+      msgs,
+      botId: INSPECT_ELEMENT_BOT_ID,
+      useModel,
+    });
+    return {
+      parseResult,
+      elementById,
+    };
+  }
   const inspectElement = await callAiFn<AIElementParseResponse>({
     msgs,
     botId: INSPECT_ELEMENT_BOT_ID,

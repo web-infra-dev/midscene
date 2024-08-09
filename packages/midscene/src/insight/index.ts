@@ -4,8 +4,7 @@ import {
   AiInspectElement,
   callToGetJSONObject as callAI,
 } from '@/ai-model/index';
-import { AiAssert } from '@/ai-model/inspect';
-import type { OpenAiInspectElement } from '@/ai-model/openai';
+import { AiAssert, type callAiFn } from '@/ai-model/inspect';
 import type {
   AIElementParseResponse,
   BaseElement,
@@ -39,7 +38,7 @@ const sortByOrder = (a: UISection, b: UISection) => {
 
 export interface LocateOpts {
   multi?: boolean;
-  callAI?: typeof OpenAiInspectElement;
+  callAI?: typeof callAiFn<AIElementParseResponse>;
 }
 
 // export type UnwrapDataShape<T> = T extends EnhancedQuery<infer DataShape> ? DataShape : {};
@@ -81,7 +80,7 @@ export default class Insight<
 
   async locate(
     queryPrompt: string,
-    opt?: { callAI: typeof OpenAiInspectElement },
+    opt?: { callAI?: typeof callAiFn<AIElementParseResponse> },
   ): Promise<ElementType | null>;
   async locate(
     queryPrompt: string,

@@ -1,96 +1,73 @@
-import type {
-  AIAssertionResponse,
-  AIElementParseResponse,
-  PlanningAIResponse,
-} from '@/types';
+import assert from 'node:assert';
+import { type AIElementParseResponse, AIResponseFormat } from '@/types';
+import { wrapOpenAI } from 'langsmith/wrappers';
+import OpenAI, { type ClientOptions } from 'openai';
 import type { ChatCompletionMessageParam } from 'openai/resources';
-import { systemPromptToTaskPlanning } from '../automation/planning';
 import {
   multiDescription,
   systemPromptToFindElement,
 } from '../prompt/element_inspector';
-import { systemPromptToAssert } from '../prompt/util';
-import { callToGetJSONObject } from './base';
 
-export async function OpenAiInspectElement(options: {
-  findElementDescription: string;
-  screenshotBase64: string;
-  pageDescription: string;
-  multi?: boolean;
-}) {
-  const {
-    multi = false,
-    findElementDescription,
-    pageDescription,
-    screenshotBase64,
-  } = options;
-  const systemPrompt = systemPromptToFindElement();
+export const MIDSCENE_OPENAI_INIT_CONFIG_JSON =
+  'MIDSCENE_OPENAI_INIT_CONFIG_JSON';
+export const MIDSCENE_MODEL_NAME = 'MIDSCENE_MODEL_NAME';
+export const MIDSCENE_LANGSMITH_DEBUG = 'MIDSCENE_LANGSMITH_DEBUG';
+export const OPENAI_API_KEY = 'OPENAI_API_KEY';
 
-  const msgs: ChatCompletionMessageParam[] = [
-    { role: 'system', content: systemPrompt },
-    {
-      role: 'user',
-      content: [
-        {
-          type: 'image_url',
-          image_url: {
-            url: screenshotBase64,
-            detail: 'high',
-          },
-        },
-        {
-          type: 'text',
-          text: pageDescription,
-        },
-        {
-          type: 'text',
-          text: JSON.stringify({
-            description: findElementDescription,
-            multi: multiDescription(multi),
-          }),
-        },
-      ],
-    },
-  ];
-  const parseResult = await callToGetJSONObject<AIElementParseResponse>(msgs);
-  return parseResult;
+export function useOpenAIModel(useModel?: 'coze' | 'openAI') {
+  if (useModel && useModel !== 'openAI') return false;
+  if (process.env[OPENAI_API_KEY]) return true;
+
+  return Boolean(process.env[MIDSCENE_OPENAI_INIT_CONFIG_JSON]);
 }
 
-export async function OpenAiActionPlan(options: {
-  actionDescription: string;
-  screenshotBase64: string;
-  pageDescription: string;
-}) {
-  const { screenshotBase64, actionDescription, pageDescription } = options;
-  const systemPrompt = systemPromptToTaskPlanning();
-  const msgs: ChatCompletionMessageParam[] = [
-    { role: 'system', content: systemPrompt },
-    {
-      role: 'user',
-      content: [
-        {
-          type: 'image_url',
-          image_url: {
-            url: screenshotBase64,
-            detail: 'high',
-          },
-        },
-        {
-          type: 'text',
-          text: pageDescription,
-        },
-        {
-          type: 'text',
-          text: `
-                Here is the description of the task. Just go ahead:
-                =====================================
-                ${actionDescription}
-                =====================================
-            `,
-        },
-      ],
-    },
-  ];
-  const planFromAI = await callToGetJSONObject<PlanningAIResponse>(msgs);
-  return planFromAI;
+let extraConfig: ClientOptions = {};
+if (
+  typeof process.env[MIDSCENE_OPENAI_INIT_CONFIG_JSON] === 'string' &&
+  process.env[MIDSCENE_OPENAI_INIT_CONFIG_JSON]
+) {
+  console.log('config for openai loaded');
+  extraConfig = JSON.parse(process.env[MIDSCENE_OPENAI_INIT_CONFIG_JSON]);
+}
+
+let model = 'gpt-4o';
+if (typeof process.env[MIDSCENE_MODEL_NAME] === 'string') {
+  console.log(`model: ${process.env[MIDSCENE_MODEL_NAME]}`);
+  model = process.env[MIDSCENE_MODEL_NAME];
+}
+
+async function createOpenAI() {
+  const openai = new OpenAI(extraConfig);
+
+  if (process.env[MIDSCENE_LANGSMITH_DEBUG]) {
+    console.log('DEBUGGING MODE: langsmith wrapper enabled');
+    const openai = wrapOpenAI(new OpenAI());
+    return openai;
+  }
+
+  return openai;
+}
+
+export async function call(
+  messages: ChatCompletionMessageParam[],
+  responseFormat?: AIResponseFormat,
+): Promise<string> {
+  const openai = await createOpenAI();
+  const completion = await openai.chat.completions.create({
+    model,
+    messages,
+    response_format: { type: responseFormat },
+  });
+
+  const { content } = completion.choices[0].message;
+  assert(content, 'empty content');
+  return content;
+}
+
+export async function callToGetJSONObject<T>(
+  messages: ChatCompletionMessageParam[],
+): Promise<T> {
+  const response = await call(messages, AIResponseFormat.JSON);
+  assert(response, 'empty response');
+  return JSON.parse(response);
 }

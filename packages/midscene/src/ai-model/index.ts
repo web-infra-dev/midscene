@@ -1,4 +1,4 @@
-export { callToGetJSONObject } from './openai/base';
+export { callToGetJSONObject } from './openai';
 export { systemPromptToFindElement } from './prompt/element_inspector';
 export { describeUserPage } from './prompt/util';
 

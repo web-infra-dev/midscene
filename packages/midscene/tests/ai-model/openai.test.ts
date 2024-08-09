@@ -1,4 +1,4 @@
-import { call, callToGetJSONObject } from '@/ai-model/openai/base';
+import { call, callToGetJSONObject } from '@/ai-model/openai';
 import { AIResponseFormat } from '@/types';
 import { describe, expect, it, vi } from 'vitest';
 

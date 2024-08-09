@@ -1,10 +1,7 @@
 import assert from 'node:assert';
 import type { PlanningAIResponse, PlanningAction, UIContext } from '@/types';
 import { AI_ACTION_BOT_ID } from '../coze';
-import { useCozeModel } from '../coze/base';
 import { type AIArgs, callAiFn } from '../inspect';
-import type { OpenAiActionPlan } from '../openai';
-import { useOpenAIModel } from '../openai/base';
 import { describeUserPage } from '../prompt/util';
 import { systemPromptToTaskPlanning } from './planning';
 
@@ -12,7 +9,7 @@ export async function plan(
   userPrompt: string,
   opts: {
     context: UIContext;
-    callAI?: typeof OpenAiActionPlan;
+    callAI?: typeof callAiFn<PlanningAIResponse>;
   },
   useModel?: 'coze' | 'openAI',
 ): Promise<{ plans: PlanningAction[] }> {
@@ -55,9 +52,9 @@ export async function plan(
 
   if (callAI) {
     planFromAI = await callAI({
-      pageDescription: pageDescription,
-      actionDescription: userPrompt,
-      screenshotBase64,
+      msgs,
+      botId: AI_ACTION_BOT_ID,
+      useModel,
     });
   } else {
     planFromAI = await callAiFn({
