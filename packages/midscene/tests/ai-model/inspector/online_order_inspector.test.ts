@@ -31,7 +31,7 @@ const testCases = [
   },
   {
     description: 'Bottom right Customer service button',
-    multi: true,
+    multi: false,
   },
 ];
 

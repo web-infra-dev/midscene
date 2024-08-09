@@ -7,19 +7,10 @@ import type {
   UIContext,
 } from '@/types';
 import type {
-  ChatCompletionMessageParam,
   ChatCompletionSystemMessageParam,
   ChatCompletionUserMessageParam,
 } from 'openai/resources';
-import {
-  AI_ASSERT_BOT_ID,
-  EXTRACT_INFO_BOT_ID,
-  INSPECT_ELEMENT_BOT_ID,
-  callCozeAi,
-  transfromOpenAiArgsToCoze,
-  useCozeModel,
-} from './coze';
-import { callToGetJSONObject, useOpenAIModel } from './openai';
+import { AIActionType, callAiFn } from './common';
 import {
   multiDescription,
   systemPromptToFindElement,
@@ -88,7 +79,7 @@ export async function AiInspectElement<
   if (callAI) {
     const parseResult = await callAI({
       msgs,
-      botId: INSPECT_ELEMENT_BOT_ID,
+      AIActionType: AIActionType.INSPECT_ELEMENT,
       useModel,
     });
     return {
@@ -98,7 +89,7 @@ export async function AiInspectElement<
   }
   const inspectElement = await callAiFn<AIElementParseResponse>({
     msgs,
-    botId: INSPECT_ELEMENT_BOT_ID,
+    AIActionType: AIActionType.INSPECT_ELEMENT,
     useModel,
   });
 
@@ -158,7 +149,7 @@ DATA_DEMAND ends.
   const parseResult = await callAiFn<AISectionParseResponse<T>>({
     msgs,
     useModel,
-    botId: EXTRACT_INFO_BOT_ID,
+    AIActionType: AIActionType.EXTRACT_DATA,
   });
   return {
     parseResult,
@@ -214,31 +205,10 @@ export async function AiAssert<
 
   const assertResult = await callAiFn<AIAssertionResponse>({
     msgs,
-    botId: AI_ASSERT_BOT_ID,
+    AIActionType: AIActionType.ASSERT,
     useModel,
   });
   return assertResult;
 }
+export { callAiFn };
 
-export async function callAiFn<T>(options: {
-  msgs: AIArgs;
-  botId: string;
-  useModel?: 'openAI' | 'coze';
-}) {
-  const { useModel, msgs, botId } = options;
-  if (useOpenAIModel(useModel)) {
-    const parseResult = await callToGetJSONObject<T>(msgs);
-    return parseResult;
-  }
-
-  if (useCozeModel(useModel)) {
-    const cozeMsg = transfromOpenAiArgsToCoze(msgs[1]);
-    const parseResult = await callCozeAi<T>({
-      ...cozeMsg,
-      botId,
-    });
-    return parseResult;
-  }
-
-  throw Error('Does not contain coze and openai environment variables');
-}

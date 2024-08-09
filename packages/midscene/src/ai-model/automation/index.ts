@@ -1,7 +1,6 @@
 import assert from 'node:assert';
 import type { PlanningAIResponse, PlanningAction, UIContext } from '@/types';
-import { AI_ACTION_BOT_ID } from '../coze';
-import { type AIArgs, callAiFn } from '../inspect';
+import { AIActionType, type AIArgs, callAiFn } from '../common';
 import { describeUserPage } from '../prompt/util';
 import { systemPromptToTaskPlanning } from './planning';
 
@@ -53,13 +52,13 @@ export async function plan(
   if (callAI) {
     planFromAI = await callAI({
       msgs,
-      botId: AI_ACTION_BOT_ID,
+      AIActionType: AIActionType.PLAN,
       useModel,
     });
   } else {
     planFromAI = await callAiFn({
       msgs,
-      botId: AI_ACTION_BOT_ID,
+      AIActionType: AIActionType.PLAN,
       useModel,
     });
   }

@@ -1,12 +1,8 @@
 import assert from 'node:assert';
-import { type AIElementParseResponse, AIResponseFormat } from '@/types';
+import { AIResponseFormat } from '@/types';
 import { wrapOpenAI } from 'langsmith/wrappers';
 import OpenAI, { type ClientOptions } from 'openai';
 import type { ChatCompletionMessageParam } from 'openai/resources';
-import {
-  multiDescription,
-  systemPromptToFindElement,
-} from '../prompt/element_inspector';
 
 export const MIDSCENE_OPENAI_INIT_CONFIG_JSON =
   'MIDSCENE_OPENAI_INIT_CONFIG_JSON';

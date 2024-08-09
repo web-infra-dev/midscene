@@ -8,6 +8,8 @@ vi.setConfig({
   hookTimeout: 30 * 1000,
 });
 
+const userModel = undefined;
+
 describe('automation - planning', () => {
   it('basic run', async () => {
     const { context } = await getPageDataOfTestName('todo');
@@ -17,7 +19,7 @@ describe('automation - planning', () => {
       {
         context,
       },
-      'openAI',
+      userModel,
     );
     expect(plans.length).toBe(3);
     expect(plans[0].thought).toBeTruthy();
@@ -35,7 +37,7 @@ describe('automation - planning', () => {
         {
           context,
         },
-        'openAI',
+        userModel,
       );
     }).rejects.toThrowError();
   });
@@ -49,7 +51,7 @@ describe('automation - planning', () => {
         {
           context,
         },
-        'openAI',
+        userModel,
       );
     } catch (e: any) {
       error = e;

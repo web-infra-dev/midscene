@@ -8,6 +8,8 @@ vi.setConfig({
   hookTimeout: 30 * 1000,
 });
 
+const userModel = 'coze';
+
 describe('automation - planning', () => {
   it('basic run', async () => {
     const { context } = await getPageDataOfTestName('todo');
@@ -17,7 +19,7 @@ describe('automation - planning', () => {
       {
         context,
       },
-      'coze',
+      userModel,
     );
     expect(plans.length).toBe(3);
     expect(plans[0].thought).toBeTruthy();
@@ -35,7 +37,7 @@ describe('automation - planning', () => {
         {
           context,
         },
-        'coze',
+        userModel,
       );
     }).rejects.toThrowError();
   });
@@ -49,7 +51,7 @@ describe('automation - planning', () => {
         {
           context,
         },
-        'coze',
+        userModel,
       );
     } catch (e: any) {
       error = e;
@@ -71,7 +73,7 @@ describe('automation - planning', () => {
     ];
 
     for (const instruction of instructions) {
-      const { plans } = await plan(instruction, { context }, 'coze');
+      const { plans } = await plan(instruction, { context }, userModel);
       expect(plans).toBeTruthy();
       // console.log(`instruction: ${instruction}\nplans: ${JSON.stringify(plans, undefined, 2)}`);
     }

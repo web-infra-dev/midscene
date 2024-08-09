@@ -2,16 +2,24 @@ import assert from 'node:assert';
 import fetch from 'node-fetch';
 import type { ChatCompletionUserMessageParam } from 'openai/resources';
 
-export const INSPECT_ELEMENT_BOT_ID = '7390985487806775304';
-export const AI_ACTION_BOT_ID = '7400540491193958417';
-export const AI_ASSERT_BOT_ID = '7400712103818264594';
-export const EXTRACT_INFO_BOT_ID = '7400757951536840722';
+export const COZE_INSPECT_ELEMENT_BOT_ID =
+  process.env.COZE_INSPECT_ELEMENT_BOT_ID || '';
+export const COZE_AI_ACTION_BOT_ID = process.env.COZE_AI_ACTION_BOT_ID || '';
+export const COZE_AI_ASSERT_BOT_ID = process.env.COZE_AI_ASSERT_BOT_ID || '';
+export const COZE_EXTRACT_INFO_BOT_ID =
+  process.env.COZE_EXTRACT_INFO_BOT_ID || '';
 
 export const COZE_BOT_TOKEN = 'COZE_BOT_TOKEN';
 
 export function useCozeModel(useModel?: 'coze' | 'openAI') {
   if (useModel && useModel !== 'coze') return false;
-  return Boolean(process.env[COZE_BOT_TOKEN]);
+  return (
+    process.env[COZE_BOT_TOKEN] &&
+    process.env.COZE_INSPECT_ELEMENT_BOT_ID &&
+    process.env.COZE_AI_ACTION_BOT_ID &&
+    process.env.COZE_AI_ASSERT_BOT_ID &&
+    process.env.COZE_EXTRACT_INFO_BOT_ID
+  );
 }
 
 export async function callCozeAi<T>(options: {
@@ -51,8 +59,8 @@ export async function callCozeAi<T>(options: {
 
   const aiResponse = await completion.json();
   if (aiResponse.code !== 0) {
-    console.error('error response', aiResponse);
-    throw new Error('error response', aiResponse);
+    console.error('CozeAI error response', aiResponse);
+    throw new Error('CozeAI error response', aiResponse);
   }
 
   if (!aiResponse?.messages || !aiResponse?.messages[0]?.content) {
