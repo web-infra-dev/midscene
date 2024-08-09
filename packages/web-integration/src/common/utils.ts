@@ -55,14 +55,21 @@ export async function getElementInfosFromPage(page: WebPage) {
   return captureElementSnapshot;
 }
 
+const sizeThreshold = 3;
 async function alignElements(
   screenshotBuffer: Buffer,
   elements: WebElementInfoType[],
   page: WebPage,
 ): Promise<WebElementInfo[]> {
   const textsAligned: WebElementInfo[] = [];
-  for (const item of elements) {
+  const validElements = elements.filter((item) => {
+    return (
+      item.rect.height >= sizeThreshold && item.rect.width >= sizeThreshold
+    );
+  });
+  for (const item of validElements) {
     const { rect } = item;
+
     const aligned = await alignCoordByTrim(screenshotBuffer, rect);
     item.rect = aligned;
     item.center = [
