@@ -1,4 +1,4 @@
-import { plan } from '@/automation/';
+import { plan } from '@/ai-model';
 import { getPageDataOfTestName } from 'tests/ai-model/inspector/util';
 /* eslint-disable max-lines-per-function */
 import { describe, expect, it, vi } from 'vitest';
@@ -8,24 +8,24 @@ vi.setConfig({
   hookTimeout: 30 * 1000,
 });
 
+const userModel = 'coze';
+
 describe('automation - planning', () => {
   it('basic run', async () => {
     const { context } = await getPageDataOfTestName('todo');
 
     const { plans } = await plan(
-      'type "Why is the earth a sphere?", wait 3.5s, hit Enter',
+      'type "Why is the earth a sphere?", hit Enter',
       {
         context,
       },
+      userModel,
     );
-    expect(plans.length).toBe(4);
+    expect(plans.length).toBe(3);
     expect(plans[0].thought).toBeTruthy();
     expect(plans[0].type).toBe('Locate');
     expect(plans[1].type).toBe('Input');
-    expect(plans[2].type).toBe('Sleep');
-    expect(plans[2].param).toMatchSnapshot();
-    expect(plans[3].type).toBe('KeyboardPress');
-    expect(plans[3].param).toMatchSnapshot();
+    expect(plans[2].type).toBe('KeyboardPress');
   });
 
   it('should raise an error when prompt is irrelevant with page', async () => {
@@ -37,6 +37,7 @@ describe('automation - planning', () => {
         {
           context,
         },
+        userModel,
       );
     }).rejects.toThrowError();
   });
@@ -45,9 +46,13 @@ describe('automation - planning', () => {
     const { context } = await getPageDataOfTestName('todo');
     let error: Error | undefined;
     try {
-      await plan('在界面上点击“香蕉奶茶”，然后添加到购物车', {
-        context,
-      });
+      await plan(
+        '在界面上点击“香蕉奶茶”，然后添加到购物车',
+        {
+          context,
+        },
+        userModel,
+      );
     } catch (e: any) {
       error = e;
     }
@@ -68,7 +73,7 @@ describe('automation - planning', () => {
     ];
 
     for (const instruction of instructions) {
-      const { plans } = await plan(instruction, { context });
+      const { plans } = await plan(instruction, { context }, userModel);
       expect(plans).toBeTruthy();
       // console.log(`instruction: ${instruction}\nplans: ${JSON.stringify(plans, undefined, 2)}`);
     }

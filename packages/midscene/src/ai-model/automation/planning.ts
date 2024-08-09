@@ -1,14 +1,6 @@
-import { describeUserPage } from '@/ai-model';
-import { callToGetJSONObject } from '@/ai-model/openai';
-import type { PlanningAIResponse, PlanningAction, UIContext } from '@/types';
-import type { ChatCompletionMessageParam } from 'openai/resources';
-
-const characteristic =
-  'You are a versatile professional in software UI design and testing. Your outstanding contributions will impact the user experience of billions of users.';
-
-export function systemPromptToTaskPlanning(query: string) {
+export function systemPromptToTaskPlanning() {
   return `
-  ${characteristic}
+  You are a versatile professional in software UI design and testing. Your outstanding contributions will impact the user experience of billions of users.
   
   Based on the page context information (screenshot and description) you get, decompose the task user asked into a series of actions.
   Actions are executed in the order listed in the list. After executing the actions, the task should be completed.
@@ -40,7 +32,7 @@ export function systemPromptToTaskPlanning(query: string) {
   1. The actions you composed MUST be based on the page context information you get. Instead of making up actions that are not related to the page context.
   2. In most cases, you should Locate one element first, then do other actions on it. For example, alway Find one element, then hover on it. But if you think it's necessary to do other actions first (like global scroll, global key press), you can do that.
 
-  If any error occurs during the task planning (like the page content and task are irrelevant, or the element mentioned does not exist at all), please return the error message with explanation in the errors field. The thoughts、prompts、error messages should all in the same language as the user query.
+  If the planned tasks are sequential and tasks may appear only after the execution of previous tasks, this is considered normal. If any errors occur during task planning (such as the page content being irrelevant to the task or the mentioned element not existing), please return the error message with an explanation in the errors field. Thoughts, prompts, and error messages should all be in the same language as the user query.
   
   Return in the following JSON format:
   {
@@ -55,57 +47,5 @@ export function systemPromptToTaskPlanning(query: string) {
     ],
     error?: string, // Overall error messages. If there is any error occurs during the task planning (i.e. error in previous 'actions' array), conclude the errors again, put error messages here
   }
-
-  Here is the description of the task. Just go ahead:
-  =====================================
-  ${query}
-  =====================================
   `;
-}
-
-export async function plan(
-  userPrompt: string,
-  opts: {
-    context: UIContext;
-    callAI?: typeof callToGetJSONObject<PlanningAIResponse>;
-  },
-): Promise<{ plans: PlanningAction[] }> {
-  const { callAI = callToGetJSONObject<PlanningAIResponse>, context } =
-    opts || {};
-  const { screenshotBase64 } = context;
-  const { description } = await describeUserPage(context);
-  const systemPrompt = systemPromptToTaskPlanning(userPrompt);
-  const msgs: ChatCompletionMessageParam[] = [
-    { role: 'system', content: systemPrompt },
-    {
-      role: 'user',
-      content: [
-        {
-          type: 'image_url',
-          image_url: {
-            url: screenshotBase64,
-            detail: 'high',
-          },
-        },
-        {
-          type: 'text',
-          text: description,
-        },
-      ],
-    },
-  ];
-
-  const planFromAI = await callAI(msgs);
-  if (planFromAI.error) {
-    throw new Error(planFromAI.error);
-  }
-
-  const { actions } = planFromAI;
-  actions.forEach((task) => {
-    if (task.type === 'Error') {
-      throw new Error(task.thought);
-    }
-  });
-
-  return { plans: actions };
 }

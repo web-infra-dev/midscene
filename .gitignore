@@ -98,7 +98,7 @@ playwright/.cache/
 
 # Midscene.js dump files
 __ai_responses__/
-midscene_run
+midscene_run/
 
 .nx/cache
 .nx/workspace-data

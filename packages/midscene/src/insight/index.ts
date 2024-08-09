@@ -4,7 +4,7 @@ import {
   AiInspectElement,
   callToGetJSONObject as callAI,
 } from '@/ai-model/index';
-import { AiAssert } from '@/ai-model/inspect';
+import { AiAssert, callAiFn } from '@/ai-model/inspect';
 import type {
   AIElementParseResponse,
   BaseElement,
@@ -38,7 +38,7 @@ const sortByOrder = (a: UISection, b: UISection) => {
 
 export interface LocateOpts {
   multi?: boolean;
-  callAI?: typeof callAI<AIElementParseResponse>;
+  callAI?: typeof callAiFn<AIElementParseResponse>;
 }
 
 // export type UnwrapDataShape<T> = T extends EnhancedQuery<infer DataShape> ? DataShape : {};
@@ -53,7 +53,7 @@ export default class Insight<
 > {
   contextRetrieverFn: () => Promise<ContextType> | ContextType;
 
-  aiVendorFn: typeof callAI = callAI;
+  aiVendorFn: (...args: Array<any>) => Promise<any> = callAiFn;
 
   onceDumpUpdatedFn?: DumpSubscriber;
 
@@ -80,14 +80,14 @@ export default class Insight<
 
   async locate(
     queryPrompt: string,
-    opt?: { callAI: LocateOpts['callAI'] },
+    opt?: { callAI?: typeof callAiFn<AIElementParseResponse> },
   ): Promise<ElementType | null>;
   async locate(
     queryPrompt: string,
     opt: { multi: true },
   ): Promise<ElementType[]>;
   async locate(queryPrompt: string, opt?: LocateOpts) {
-    const { callAI = this.aiVendorFn, multi = false } = opt || {};
+    const { callAI, multi = false } = opt || {};
     assert(queryPrompt, 'query is required for located');
     const dumpSubscriber = this.onceDumpUpdatedFn;
     this.onceDumpUpdatedFn = undefined;
@@ -177,46 +177,19 @@ export default class Insight<
   async extract<T extends object>(input: Record<keyof T, string>): Promise<T>;
 
   async extract<T>(dataDemand: InsightExtractParam): Promise<any> {
-    let dataQuery: Record<string, string> | string = {};
-    const sectionQueryMap: Record<string, string> = {};
     assert(
       typeof dataDemand === 'object' || typeof dataDemand === 'string',
       `dataDemand should be object or string, but get ${typeof dataDemand}`,
     );
     const dumpSubscriber = this.onceDumpUpdatedFn;
     this.onceDumpUpdatedFn = undefined;
-    if (typeof dataDemand === 'string') {
-      dataQuery = dataDemand;
-    } else {
-      // filter all sectionQuery
-      for (const key in dataDemand) {
-        const query = dataDemand[key];
-        const sectionQuery = extractSectionQuery(query);
-        if (sectionQuery) {
-          sectionQueryMap[key] = sectionQuery;
-        } else {
-          dataQuery[key] = query;
-        }
-      }
-      dataQuery = dataDemand;
-    }
-
-    const sectionConstraints = Object.keys(sectionQueryMap).map((name) => {
-      const sectionQueryPrompt = sectionQueryMap[name];
-      return {
-        name,
-        description: sectionQueryPrompt || '',
-      };
-    });
 
     const context = await this.contextRetrieverFn();
 
     const startTime = Date.now();
     const { parseResult, elementById } = await AiExtractElementInfo<T>({
       context,
-      dataQuery,
-      sectionConstraints,
-      callAI: this.aiVendorFn,
+      dataQuery: dataDemand,
     });
 
     const timeCost = Date.now() - startTime;
@@ -326,7 +299,6 @@ export default class Insight<
     const startTime = Date.now();
     const assertResult = await AiAssert({
       assertion,
-      callAI: this.aiVendorFn,
       context,
     });
 
