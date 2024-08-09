@@ -7,6 +7,7 @@
       "**/midscene_run",
       ".nx",
       "**/dist",
+      "dist",
       "**/doc_build",
       "*-dump.json",
       "script_get_all_texts.tmp.js",

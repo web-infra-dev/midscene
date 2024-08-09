@@ -4,29 +4,38 @@ import { wrapOpenAI } from 'langsmith/wrappers';
 import OpenAI, { type ClientOptions } from 'openai';
 import type { ChatCompletionMessageParam } from 'openai/resources';
 
-const envConfigKey = 'MIDSCENE_OPENAI_INIT_CONFIG_JSON';
-const envModelKey = 'MIDSCENE_MODEL_NAME';
-const envSmithDebug = 'MIDSCENE_LANGSMITH_DEBUG';
+export const MIDSCENE_OPENAI_INIT_CONFIG_JSON =
+  'MIDSCENE_OPENAI_INIT_CONFIG_JSON';
+export const MIDSCENE_MODEL_NAME = 'MIDSCENE_MODEL_NAME';
+export const MIDSCENE_LANGSMITH_DEBUG = 'MIDSCENE_LANGSMITH_DEBUG';
+export const OPENAI_API_KEY = 'OPENAI_API_KEY';
+
+export function useOpenAIModel(useModel?: 'coze' | 'openAI') {
+  if (useModel && useModel !== 'openAI') return false;
+  if (process.env[OPENAI_API_KEY]) return true;
+
+  return Boolean(process.env[MIDSCENE_OPENAI_INIT_CONFIG_JSON]);
+}
 
 let extraConfig: ClientOptions = {};
 if (
-  typeof process.env[envConfigKey] === 'string' &&
-  process.env[envConfigKey]
+  typeof process.env[MIDSCENE_OPENAI_INIT_CONFIG_JSON] === 'string' &&
+  process.env[MIDSCENE_OPENAI_INIT_CONFIG_JSON]
 ) {
   console.log('config for openai loaded');
-  extraConfig = JSON.parse(process.env[envConfigKey]);
+  extraConfig = JSON.parse(process.env[MIDSCENE_OPENAI_INIT_CONFIG_JSON]);
 }
 
 let model = 'gpt-4o';
-if (typeof process.env[envModelKey] === 'string') {
-  console.log(`model: ${process.env[envModelKey]}`);
-  model = process.env[envModelKey];
+if (typeof process.env[MIDSCENE_MODEL_NAME] === 'string') {
+  console.log(`model: ${process.env[MIDSCENE_MODEL_NAME]}`);
+  model = process.env[MIDSCENE_MODEL_NAME];
 }
 
 async function createOpenAI() {
   const openai = new OpenAI(extraConfig);
 
-  if (process.env[envSmithDebug]) {
+  if (process.env[MIDSCENE_LANGSMITH_DEBUG]) {
     console.log('DEBUGGING MODE: langsmith wrapper enabled');
     const openai = wrapOpenAI(new OpenAI());
     return openai;

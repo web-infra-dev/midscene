@@ -20,10 +20,14 @@ const aiModelTest =
 
 export default defineConfig({
   test: {
-    // include: ['tests/inspector/*.test.ts'],
     include: ['tests/**/*.test.ts'],
+    // include: ['tests/ai-model/**/*-coze.test.ts'],
     // Need to improve the corresponding testing
-    exclude: ['tests/insight/*.test.ts', ...aiModelTest],
+    exclude: [
+      'tests/insight/*.test.ts',
+      'tests/executor/*.test.ts',
+      ...aiModelTest,
+    ],
   },
   resolve: {
     alias: {

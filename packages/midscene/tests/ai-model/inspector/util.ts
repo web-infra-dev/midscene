@@ -22,16 +22,19 @@ export interface TextAiElementResponse extends AiElementsResponse {
   prompt: string;
   error?: string;
   spendTime: string;
+  elementsSnapshot: Array<any>;
 }
 
 export async function runTestCases(
   testCases: Array<TestCase>,
+  context: any,
   getAiResponse: (options: {
     description: string;
     multi: boolean;
   }) => Promise<AiElementsResponse>,
 ) {
   let aiResponse: Array<TextAiElementResponse> = [];
+  const { content: elementSnapshot } = context;
 
   const aiReq = testCases.map(async (testCase, caseIndex) => {
     const startTime = Date.now();
@@ -44,6 +47,14 @@ export async function runTestCases(
         prompt: testCase.description,
         caseIndex,
         spendTime: `${spendTime}s`,
+        elementsSnapshot: msg.elements.map((element) => {
+          const index = elementSnapshot.findIndex((item: any) => {
+            if (item.nodeHashId === element.id) {
+              return true;
+            }
+          });
+          return elementSnapshot[index];
+        }),
       });
     } else {
       aiResponse.push({
@@ -66,11 +77,12 @@ export async function runTestCases(
   });
 
   const filterUnstableResult = aiResponse.map((aiInfo) => {
-    const { elements = [], prompt, error = [] } = aiInfo;
+    const { elements = [], prompt, error = [], elementsSnapshot } = aiInfo;
     return {
-      elements: elements.map((element) => {
+      elements: elements.map((element, index) => {
         return {
           id: element.id.toString(),
+          indexId: elementsSnapshot[index].indexId,
         };
       }),
       prompt,
@@ -114,11 +126,12 @@ export async function getPageTestData(targetDir: string) {
   const resizeOutputImgP = path.join(targetDir, 'input.png');
   const snapshotJsonPath = path.join(targetDir, 'element-snapshot.json');
   const snapshotJson = readFileSync(snapshotJsonPath, { encoding: 'utf-8' });
+  const elementSnapshot = JSON.parse(snapshotJson);
   const screenshotBase64 = base64Encoded(resizeOutputImgP);
   const size = await imageInfoOfBase64(screenshotBase64);
   const baseContext = {
     size,
-    content: JSON.parse(snapshotJson),
+    content: elementSnapshot,
     screenshotBase64: base64Encoded(resizeOutputImgP),
   };
 

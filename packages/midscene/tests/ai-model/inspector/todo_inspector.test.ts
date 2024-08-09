@@ -42,6 +42,7 @@ repeat(2, (repeatIndex) => {
 
       const { aiResponse, filterUnstableResult } = await runTestCases(
         testTodoCases,
+        context,
         async (testCase) => {
           const { parseResult } = await AiInspectElement({
             context,

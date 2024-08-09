@@ -95,54 +95,40 @@ export function promptsOfSectionQuery(
   return `${instruction}\n${constraints.map(singleSection).join('\n')}`;
 }
 
-export function systemPromptToExtract(
-  dataQuery: Record<string, string> | string,
-  sections?: BasicSectionQuery[],
-) {
-  const allSectionNames: string[] =
-    sections?.filter((c) => c.name).map((c) => c.name || '') || [];
-  const sectionFindingPrompt = promptsOfSectionQuery(sections || []);
-  const sectionReturnFormat = allSectionNames.length
-    ? '  sections: [], // detailed information of each section from segment_a_web_page skill'
-    : '';
-
+export function systemPromptToExtract() {
   return `
-${characteristic}
-${contextFormatIntro}
+You are a versatile professional in software UI design and testing. Your outstanding contributions will impact the user experience of billions of users.
+The user will give you a screenshot and the texts on it. There may be some none-English characters (like Chinese) on it, indicating it's an non-English app.
 
 You have the following skills:
-${allSectionNames.length ? skillSegment : ''}
-${skillExtractData}
 
-Now, do the following jobs:
-${sectionFindingPrompt}
-Use your extract_data_from_UI skill to find the following data, placing it in the \`data\` field
-DATA_DEMAND start:
-${
-  typeof dataQuery === 'object'
-    ? `return in key-value style object, keys are ${Object.keys(dataQuery).join(',')}`
-    : ''
-};
-${typeof dataQuery === 'string' ? dataQuery : JSON.stringify(dataQuery, null, 2)}
-DATA_DEMAND ends.
+skill name: extract_data_from_UI
+related input: DATA_DEMAND
+skill content: 
+* User will give you some data requirements in DATA_DEMAND. Consider the UI context, follow the user's instructions, and provide comprehensive data accordingly.
+* There may be some special commands in DATA_DEMAND, please pay extra attention
+  - LOCATE_ONE_ELEMENT and LOCATE_ONE_OR_MORE_ELEMENTS: if you see a description that mentions the keyword LOCATE_ONE_ELEMENT
+  - LOCATE_ONE_OR_MORE_ELEMENTS(e.g. follow LOCATE_ONE_ELEMENT : i want to find ...), it means user wants to locate a specific element meets the description. 
+
+Return in this way: prefix + the id / comma-separated ids, for example: LOCATE_ONE_ELEMENT/1 , LOCATE_ONE_OR_MORE_ELEMENTS/1,2,3 . If not found, keep the prefix and leave the suffix empty, like LOCATE_ONE_ELEMENT/ .
+
+
 
 Return in the following JSON format:
 {
   language: "en", // "en" or "zh", the language of the page. Use the same language to describe section name, description, and similar fields.
-  ${sectionReturnFormat}
   data: any, // the extracted data from extract_data_from_UI skill. Make sure both the value and scheme meet the DATA_DEMAND.
-  errors?: [], // string[], error message if any
+  errors: [], // string[], error message if any
 }
 `;
 }
 
-export function systemPromptToAssert(assertion: string) {
+export function systemPromptToAssert() {
   return `
 ${characteristic}
 ${contextFormatIntro}
 
-Based on the information you get, assert the following:
-${assertion}
+Based on the information you get, Return assertion judgment:
 
 Return in the following JSON format:
 {
