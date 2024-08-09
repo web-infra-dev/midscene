@@ -1,3 +1,3 @@
-import { extractTextWithPositionDFS } from '.';
+import { extractTextWithPosition } from '.';
 
-console.log(extractTextWithPositionDFS());
+console.log(extractTextWithPosition());

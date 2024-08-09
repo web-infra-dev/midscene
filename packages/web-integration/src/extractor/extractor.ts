@@ -40,7 +40,7 @@ function generateId(numberId: number) {
   return `${numberId}`;
 }
 
-export function extractTextWithPositionDFS(
+export function extractTextWithPosition(
   initNode: Node = container,
 ): ElementInfo[] {
   const elementInfoArray: ElementInfo[] = [];

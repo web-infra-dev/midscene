@@ -31,12 +31,15 @@ import type { WebElementInfo } from '../web-element';
 import { type AiTaskCache, TaskCache } from './task-cache';
 import { type WebUIContext, parseContextFromWebPage } from './utils';
 
+interface ExecutionResult<OutputType = any> {
+  output: OutputType;
+  executor: Executor;
+}
+
 export class PageTaskExecutor {
   page: WebPage;
 
   insight: Insight<WebElementInfo, WebUIContext>;
-
-  executionDump?: ExecutionDump;
 
   taskCache: TaskCache;
 
@@ -153,7 +156,8 @@ export class PageTaskExecutor {
             type: 'Insight',
             subType: 'Assert',
             param: assertPlan.param,
-            executor: async () => {
+            executor: async (param, taskContext) => {
+              const { task } = taskContext;
               let insightDump: InsightDump | undefined;
               const dumpCollector: DumpSubscriber = (dump) => {
                 insightDump = dump;
@@ -162,6 +166,16 @@ export class PageTaskExecutor {
               const assertion = await this.insight.assert(
                 assertPlan.param.assertion,
               );
+
+              if (!assertion.pass) {
+                task.output = assertion;
+                task.log = {
+                  dump: insightDump,
+                };
+                throw new Error(
+                  assertion.thought || 'Assertion failed without reason',
+                );
+              }
 
               return {
                 output: assertion,
@@ -298,7 +312,7 @@ export class PageTaskExecutor {
 
   async action(
     userPrompt: string /* , actionInfo?: { actionType?: EventActions[number]['action'] } */,
-  ) {
+  ): Promise<ExecutionResult> {
     const taskExecutor = new Executor(userPrompt);
     taskExecutor.description = userPrompt;
 
@@ -346,37 +360,33 @@ export class PageTaskExecutor {
       },
     };
 
-    try {
-      // plan
-      await taskExecutor.append(this.wrapExecutorWithScreenshot(planningTask));
-      await taskExecutor.flush();
-      this.executionDump = taskExecutor.dump();
-
-      // append tasks
-      const executables = await this.convertPlanToExecutable(plans);
-      await taskExecutor.append(executables);
-
-      // flush actions
-      await taskExecutor.flush();
-      this.executionDump = taskExecutor.dump();
-
-      assert(
-        taskExecutor.status !== 'error',
-        `failed to execute tasks: ${taskExecutor.status}, msg: ${taskExecutor.errorMsg || ''}`,
-      );
-    } catch (e: any) {
-      // keep the dump before throwing
-      this.executionDump = taskExecutor.dump();
-      const err = new Error(e.message, { cause: e });
-      throw err;
+    // plan
+    await taskExecutor.append(this.wrapExecutorWithScreenshot(planningTask));
+    let output = await taskExecutor.flush();
+    if (taskExecutor.isInErrorState()) {
+      return {
+        output,
+        executor: taskExecutor,
+      };
     }
+
+    // append tasks
+    const executables = await this.convertPlanToExecutable(plans);
+    await taskExecutor.append(executables);
+
+    // flush actions
+    output = await taskExecutor.flush();
+    return {
+      output,
+      executor: taskExecutor,
+    };
   }
 
-  async query(demand: InsightExtractParam) {
-    const description = JSON.stringify(demand);
+  async query(demand: InsightExtractParam): Promise<ExecutionResult> {
+    const description =
+      typeof demand === 'string' ? demand : JSON.stringify(demand);
     const taskExecutor = new Executor(description);
     taskExecutor.description = description;
-    let data: any;
     const queryTask: ExecutionTaskInsightQueryApply = {
       type: 'Insight',
       subType: 'Query',
@@ -389,27 +399,25 @@ export class PageTaskExecutor {
           insightDump = dump;
         };
         this.insight.onceDumpUpdatedFn = dumpCollector;
-        data = await this.insight.extract<any>(param.dataDemand);
+        const data = await this.insight.extract<any>(param.dataDemand);
         return {
           output: data,
           log: { dump: insightDump },
         };
       },
     };
-    try {
-      await taskExecutor.append(this.wrapExecutorWithScreenshot(queryTask));
-      await taskExecutor.flush();
-      this.executionDump = taskExecutor.dump();
-    } catch (e: any) {
-      // keep the dump before throwing
-      this.executionDump = taskExecutor.dump();
-      const err = new Error(e.message, { cause: e });
-      throw err;
-    }
-    return data;
+
+    await taskExecutor.append(this.wrapExecutorWithScreenshot(queryTask));
+    const output = await taskExecutor.flush();
+    return {
+      output,
+      executor: taskExecutor,
+    };
   }
 
-  async assert(assertion: string): Promise<InsightAssertionResponse> {
+  async assert(
+    assertion: string,
+  ): Promise<ExecutionResult<InsightAssertionResponse>> {
     const description = assertion;
     const taskExecutor = new Executor(description);
     taskExecutor.description = description;
@@ -422,10 +430,11 @@ export class PageTaskExecutor {
     const assertTask = await this.convertPlanToExecutable([assertionPlan]);
 
     await taskExecutor.append(this.wrapExecutorWithScreenshot(assertTask[0]));
-    const assertionResult: InsightAssertionResponse =
-      await taskExecutor.flush();
-    this.executionDump = taskExecutor.dump();
+    const output: InsightAssertionResponse = await taskExecutor.flush();
 
-    return assertionResult;
+    return {
+      output,
+      executor: taskExecutor,
+    };
   }
 }
