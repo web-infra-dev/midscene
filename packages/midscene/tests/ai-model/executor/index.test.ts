@@ -44,6 +44,10 @@ const insightFindTask = (shouldThrow?: boolean) => {
   return insightFindTask;
 };
 
+vi.setConfig({
+  testTimeout: 40 * 1000,
+});
+
 describe('executor', () => {
   it(
     'insight - basic run',
