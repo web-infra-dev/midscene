@@ -27,6 +27,7 @@ const BlackBoard = (): JSX.Element => {
     (store) => store.highlightSectionNames,
   );
   const highlightElements = useInsightDump((store) => store.highlightElements);
+  const highlightIds = highlightElements.map((e) => e.id);
 
   const { context, matchedSection: sections, matchedElement: elements } = dump!;
   const { size, screenshotBase64 } = context;
@@ -188,8 +189,8 @@ const BlackBoard = (): JSX.Element => {
 
     // element mark
     context.content.forEach((element) => {
-      const { rect, content } = element;
-      const ifHighlight = highlightElements.includes(element);
+      const { rect, content, id } = element;
+      const ifHighlight = highlightIds.includes(id);
       const [graphics, texts] = rectMarkForItem(
         rect,
         content,
