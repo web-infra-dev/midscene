@@ -30,10 +30,18 @@
   },
   "typesVersions": {
     "*": {
-      ".": ["./dist/types/index.d.ts"],
-      "playwright-report": ["./dist/types/playwright-report.d.ts"],
-      "constants": ["./dist/types/constants.d.ts"],
-      "html-element": ["./dist/types/html-element/index.d.ts"]
+      ".": [
+        "./dist/types/index.d.ts"
+      ],
+      "playwright-report": [
+        "./dist/types/playwright-report.d.ts"
+      ],
+      "constants": [
+        "./dist/types/constants.d.ts"
+      ],
+      "html-element": [
+        "./dist/types/html-element/index.d.ts"
+      ]
     }
   },
   "scripts": {
@@ -52,7 +60,10 @@
     "e2e:ui": "playwright test --config=playwright.config.ts --ui",
     "e2e:ui-cache": "MIDSCENE_CACHE=true playwright test --config=playwright.config.ts  --ui"
   },
-  "files": ["dist", "README.md"],
+  "files": [
+    "dist",
+    "README.md"
+  ],
   "dependencies": {
     "openai": "4.47.1",
     "sharp": "0.33.3",
