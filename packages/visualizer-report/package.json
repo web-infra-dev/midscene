@@ -11,10 +11,7 @@
     "lint": "modern lint",
     "upgrade": "modern upgrade"
   },
-  "files": [
-    "dist",
-    "README.md"
-  ],
+  "files": ["dist", "README.md"],
   "engines": {
     "node": ">=16.18.1"
   },
@@ -23,10 +20,7 @@
       "node --max_old_space_size=8192 ./node_modules/eslint/bin/eslint.js --fix --color --cache --quiet"
     ]
   },
-  "eslintIgnore": [
-    "node_modules/",
-    "dist/"
-  ],
+  "eslintIgnore": ["node_modules/", "dist/"],
   "dependencies": {
     "@modern-js/runtime": "^2.56.2",
     "@midscene/visualizer": "workspace:*",

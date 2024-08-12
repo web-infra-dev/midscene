@@ -37,6 +37,10 @@ async function main() {
   step('\nBuilding all packages...');
   await build();
 
+  // lint all packages with types
+  step('\nlint all packages...');
+  await lint();
+
   const { stdout } = await run('git', ['diff'], { stdio: 'pipe' });
   if (stdout) {
     if (process.env.CI) {
@@ -86,6 +90,10 @@ async function main() {
 
 async function build() {
   await run('pnpm', ['run', 'build:pkg']);
+}
+
+async function lint() {
+  await run('pnpm', ['run', 'lint']);
 }
 
 async function test() {
