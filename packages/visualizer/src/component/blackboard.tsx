@@ -187,7 +187,7 @@ const BlackBoard = (): JSX.Element => {
     });
 
     // element mark
-    elements.forEach((element) => {
+    context.content.forEach((element) => {
       const { rect, content } = element;
       const ifHighlight = highlightElements.includes(element);
       const [graphics, texts] = rectMarkForItem(
@@ -249,6 +249,7 @@ const BlackBoard = (): JSX.Element => {
     sections,
     highlightSectionNames,
     highlightElements,
+    context.content,
     // bgVisible,
     // textsVisible,
   ]);
@@ -316,7 +317,7 @@ const BlackBoard = (): JSX.Element => {
             Screenshot
           </Checkbox>
           <Checkbox checked={textsVisible} onChange={onSetTextsVisible}>
-            Text Mark
+            Elements
           </Checkbox>
         </div>
       </div>
