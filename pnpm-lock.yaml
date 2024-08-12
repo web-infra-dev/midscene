@@ -39,8 +39,8 @@ importers:
         specifier: 1.11.11
         version: 1.11.11
       minimist:
-        specifier: 1.2.5
-        version: 1.2.5
+        specifier: 1.2.6
+        version: 1.2.6
       nano-staged:
         specifier: ^0.8.0
         version: 0.8.0
