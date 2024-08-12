@@ -481,5 +481,12 @@ exports[`extractor > basic 1`] = `
     },
     "content": "You shouldn't see this placeholder.",
   },
+  {
+    "attributes": {
+      "nodeType": "INPUT Node",
+      "placeholder": "this_is_a_textarea",
+    },
+    "content": "this_is_a_textarea",
+  },
 ]
 `;
