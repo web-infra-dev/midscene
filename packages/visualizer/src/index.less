@@ -6,7 +6,11 @@ html,
 body {
   padding: 0;
   margin: 0;
+  font-size: 3.3rem;
+  line-height: 1;
 }
+
+
 
 .rspress-nav {
   transition: .2s;
@@ -42,6 +46,11 @@ footer.mt-8{
 // ----------
 
 .page-container {
+
+  blockquote, dl, dd, h1, h2, h3, h4, h5, h6, hr, figure, p, pre {
+    margin: 0;
+  }
+
   display: flex;
   flex-direction: column;
   height: 100%;
@@ -50,6 +59,21 @@ footer.mt-8{
   font-size: 14px;
   border-top: 1px solid @border-color;
   border-bottom: 1px solid @border-color;
+  font-synthesis: style;
+  text-rendering: optimizelegibility;
+  -webkit-font-smoothing: antialiased;
+  line-height: 1.7;
+}
+
+.page-nav {
+  height: 20px;
+  padding: 10px;
+  border-bottom: 1px solid @border-color;
+
+  .logo img {
+    height: 20px;
+    line-height: 20px;
+  }
 }
 
 .ant-layout {

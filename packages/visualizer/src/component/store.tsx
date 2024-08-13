@@ -1,4 +1,5 @@
-import { create } from 'zustand';
+import * as Z from 'zustand';
+// import { createStore } from 'zustand/vanilla';
 import type {
   BaseElement,
   ExecutionTask,
@@ -7,6 +8,7 @@ import type {
   InsightDump,
 } from '../../../midscene/dist/types';
 
+const { create } = Z;
 export const useBlackboardPreference = create<{
   bgVisible: boolean;
   textsVisible: boolean;

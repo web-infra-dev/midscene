@@ -13,7 +13,7 @@ import {
 import type { ExecutionTask, ExecutionTaskInsightQuery } from '@midscene/core';
 import { Button } from 'antd';
 import { useEffect } from 'react';
-import Logo from './assets/logo-plain2.svg';
+// import Logo from './assets/logo-plain2.svg';
 import { timeCostStrElement } from './misc';
 import PanelTitle from './panel-title';
 
@@ -72,10 +72,7 @@ const SideItem = (props: {
   );
 };
 
-const Sidebar = (props: {
-  hideLogo?: boolean;
-  logoAction?: () => void;
-}): JSX.Element => {
+const Sidebar = (props: { logoAction?: () => void }): JSX.Element => {
   const groupedDumps = useExecutionDump((store) => store.dump);
   const setActiveTask = useExecutionDump((store) => store.setActiveTask);
   const activeTask = useExecutionDump((store) => store.activeTask);
@@ -191,22 +188,6 @@ const Sidebar = (props: {
   return (
     <div className="side-bar">
       <div className="top-controls">
-        <div
-          className="brand"
-          onClick={reset}
-          style={{ display: props?.hideLogo ? 'none' : 'flex' }}
-        >
-          <Logo
-            style={{ width: 70, height: 70, margin: 'auto' }}
-            onClick={() => {
-              if (props.logoAction) {
-                props.logoAction();
-              } else {
-                location.reload();
-              }
-            }}
-          />
-        </div>
         <div className="task-list">{sideList}</div>
         <div className="side-seperator side-seperator-line side-seperator-space-up" />
         <div className="task-meta-section">

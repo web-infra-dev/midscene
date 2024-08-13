@@ -4,21 +4,21 @@ import Sidebar from '@/component/sidebar';
 import { useExecutionDump } from '@/component/store';
 import type { GroupedActionDump } from '@midscene/core';
 import { Helmet } from '@modern-js/runtime/head';
-import { Button, ConfigProvider, Upload, message } from 'antd';
+import { ConfigProvider, Upload, message } from 'antd';
 import type { UploadProps } from 'antd';
-import { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
+import ReactDOM from 'react-dom/client';
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
 import Logo from './component/assets/logo-plain.svg';
 import DetailPanel from './component/detail-panel';
 import GlobalHoverPreview from './component/global-hover-preview';
 import Timeline from './component/timeline';
-import demoDump from './demo-dump.json';
 
 const { Dragger } = Upload;
 
 let globalRenderCount = 1;
 
-export function Visualizer(props: {
+function Visualizer(props: {
   hideLogo?: boolean;
   logoAction?: () => void;
   dump?: GroupedActionDump[];
@@ -91,9 +91,9 @@ export function Visualizer(props: {
     },
   };
 
-  const loadDemoDump = () => {
-    setGroupedDump(demoDump as any);
-  };
+  // const loadDemoDump = () => {
+  //   setGroupedDump(demoDump as any);
+  // };
 
   let mainContent: JSX.Element;
   if (!executionDump) {
@@ -125,11 +125,11 @@ export function Visualizer(props: {
             sent to the server.
           </p>
         </Dragger>
-        <div className="demo-loader">
+        {/* <div className="demo-loader">
           <Button type="link" onClick={loadDemoDump}>
             Load Demo
           </Button>
-        </div>
+        </div> */}
       </div>
     );
 
@@ -146,7 +146,7 @@ export function Visualizer(props: {
         }}
       >
         <Panel maxSize={95} defaultSize={20}>
-          <Sidebar hideLogo={props?.hideLogo} logoAction={props?.logoAction} />
+          <Sidebar logoAction={props?.logoAction} />
         </Panel>
         <PanelResizeHandle
           onDragging={(isChanging) => {
@@ -232,13 +232,22 @@ export function Visualizer(props: {
       }}
     >
       <Helmet>
-        <title>Midscene.js - Visualization Tool</title>
+        <title>Visualization - Midscene.js</title>
       </Helmet>
       <div
         className="page-container"
         key={`render-${globalRenderCount}`}
         style={{ height: containerHeight }}
       >
+        <div className="page-nav">
+          <div className="logo">
+            <img
+              alt="Midscene_logo"
+              src="https://lf3-static.bytednsdoc.com/obj/eden-cn/vhaeh7vhabf/logo-light-with-text.png"
+            />
+          </div>
+          {/* <div className="title">Midscene.js</div> */}
+        </div>
         {mainContent}
       </div>
       <GlobalHoverPreview />
@@ -246,4 +255,29 @@ export function Visualizer(props: {
   );
 }
 
-export default Visualizer;
+function mount(id: string) {
+  const element = document.getElementById(id);
+  if (!element) {
+    throw new Error(`failed to get element for id: ${id}`);
+  }
+  const root = ReactDOM.createRoot(element);
+
+  const dumpElements = document.querySelectorAll(
+    'script[type="midscene_web_dump"]',
+  );
+  const dumpData = Array.from(dumpElements).map((el) => {
+    const content = el.textContent;
+    if (!content) {
+      return null;
+    }
+    return JSON.parse(content);
+  });
+
+  //
+  root.render(<Visualizer dump={dumpData[0]} />);
+}
+
+export default {
+  mount,
+};
+

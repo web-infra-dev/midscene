@@ -181,22 +181,40 @@ importers:
         version: 5.0.4
 
   packages/visualizer:
-    dependencies:
+    devDependencies:
       '@ant-design/icons':
         specifier: 5.3.7
         version: 5.3.7(react-dom@18.2.0(react@18.2.0))(react@18.2.0)
       '@midscene/core':
         specifier: workspace:*
         version: link:../midscene
+      '@modern-js/module-tools':
+        specifier: ^2.56.1
+        version: 2.56.1(eslint@8.57.0)(typescript@5.0.4)
+      '@modern-js/plugin-module-doc':
+        specifier: ^2.33.1
+        version: 2.33.1(@modern-js/core@2.56.2)(@modern-js/doc-tools@2.32.1(@types/express@4.17.21)(react-dom@18.2.0(react@18.2.0))(react@18.2.0)(ts-node@10.9.2(@types/node@18.19.41)(typescript@5.0.4))(tsconfig-paths@4.2.0)(type-fest@3.13.1)(typescript@5.0.4)(webpack@5.93.0))(@modern-js/module-tools@2.56.1(eslint@8.57.0)(typescript@5.0.4))(@types/express@4.17.21)(@types/react@18.3.3)(react-dom@18.2.0(react@18.2.0))(react-router-dom@6.25.1(react-dom@18.2.0(react@18.2.0))(react@18.2.0))(react@18.2.0)(ts-node@10.9.2(@types/node@18.19.41)(typescript@5.0.4))(tsconfig-paths@4.2.0)(type-fest@3.13.1)(typescript@5.0.4)(webpack@5.93.0)
       '@modern-js/runtime':
         specifier: ^2.56.2
         version: 2.56.2(@types/react-dom@18.3.0)(@types/react@18.3.3)(react-dom@18.2.0(react@18.2.0))(react@18.2.0)
+      '@types/node':
+        specifier: ^18.0.0
+        version: 18.19.41
+      '@types/react':
+        specifier: 18.3.3
+        version: 18.3.3
+      '@types/react-dom':
+        specifier: 18.3.0
+        version: 18.3.0
       antd:
         specifier: 5.19.3
         version: 5.19.3(react-dom@18.2.0(react@18.2.0))(react@18.2.0)
       dayjs:
         specifier: 1.11.11
         version: 1.11.11
+      npm-watch:
+        specifier: 0.13.0
+        version: 0.13.0
       pixi.js:
         specifier: 8.1.1
         version: 8.1.1
@@ -209,31 +227,15 @@ importers:
       react-resizable-panels:
         specifier: 2.0.22
         version: 2.0.22(react-dom@18.2.0(react@18.2.0))(react@18.2.0)
-      zustand:
-        specifier: 4.5.2
-        version: 4.5.2(@types/react@18.3.3)(immer@9.0.21)(react@18.2.0)
-    devDependencies:
-      '@modern-js/module-tools':
-        specifier: ^2.56.1
-        version: 2.56.1(eslint@8.57.0)(typescript@5.0.4)
-      '@modern-js/plugin-module-doc':
-        specifier: ^2.33.1
-        version: 2.33.1(@modern-js/core@2.56.2)(@modern-js/doc-tools@2.32.1(@types/express@4.17.21)(react-dom@18.2.0(react@18.2.0))(react@18.2.0)(ts-node@10.9.2(@types/node@18.19.41)(typescript@5.0.4))(tsconfig-paths@4.2.0)(type-fest@3.13.1)(typescript@5.0.4)(webpack@5.93.0))(@modern-js/module-tools@2.56.1(eslint@8.57.0)(typescript@5.0.4))(@types/express@4.17.21)(@types/react@18.3.3)(react-dom@18.2.0(react@18.2.0))(react-router-dom@6.25.1(react-dom@18.2.0(react@18.2.0))(react@18.2.0))(react@18.2.0)(ts-node@10.9.2(@types/node@18.19.41)(typescript@5.0.4))(tsconfig-paths@4.2.0)(type-fest@3.13.1)(typescript@5.0.4)(webpack@5.93.0)
-      '@types/node':
-        specifier: ^18.0.0
-        version: 18.19.41
-      '@types/react':
-        specifier: 18.3.3
-        version: 18.3.3
-      '@types/react-dom':
-        specifier: 18.3.0
-        version: 18.3.0
       rimraf:
         specifier: ~3.0.2
         version: 3.0.2
       typescript:
         specifier: ~5.0.4
         version: 5.0.4
+      zustand:
+        specifier: 4.5.2
+        version: 4.5.2(@types/react@18.3.3)(immer@9.0.21)(react@18.2.0)
 
   packages/visualizer-report:
     dependencies:
@@ -6582,6 +6584,9 @@ packages:
   ieee754@1.2.1:
     resolution: {integrity: sha512-dcyqhDvX1C46lXZcVqCpK+FtMRQVdIMN6/Df5js2zouUsqG7I6sFxitIC+7KYK29KdXOLHdu9zL4sFnoVQnqaA==}
 
+  ignore-by-default@1.0.1:
+    resolution: {integrity: sha512-Ius2VYcGNk7T90CppJqcIkS5ooHUZyIQK+ClZfMfMNFEF9VSE73Fq+906u/CWu92x4gzZMWOwfFYckPObzdEbA==}
+
   ignore-styles@5.0.1:
     resolution: {integrity: sha512-gQQmIznCETPLEzfg1UH4Cs2oRq+HBPl8quroEUNXT8oybEG7/0lqI3dGgDSRry6B9HcCXw3PVkFFS0FF3CMddg==}
 
@@ -7940,6 +7945,11 @@ packages:
   node-releases@2.0.18:
     resolution: {integrity: sha512-d9VeXT4SJ7ZeOqGX6R5EM022wpL+eWPooLI+5UpWn2jCT1aosUQEhQP214x33Wkwx3JQMvIm+tIoVOdodFS40g==}
 
+  nodemon@3.1.4:
+    resolution: {integrity: sha512-wjPBbFhtpJwmIeY2yP7QF+UKzPfltVGtfce1g/bB15/8vCGZj8uxD62b/b9M9/WVgme0NZudpownKN+c0plXlQ==}
+    engines: {node: '>=10'}
+    hasBin: true
+
   nopt@5.0.0:
     resolution: {integrity: sha512-Tbj67rffqceeLpcRXrT7vKAN8CwfPeIBgM7E6iBkmKLV7bEMwpGgYLGv0jACUsECaa/vuxP0IjEont6umdMgtQ==}
     engines: {node: '>=6'}
@@ -7967,6 +7977,10 @@ packages:
   npm-run-path@5.3.0:
     resolution: {integrity: sha512-ppwTtiJZq0O/ai0z7yfudtBpWIoxM8yE6nHi1X47eFR2EWORqfbu6CnPlNsjeN683eT0qG6H/Pyf9fCcvjnnnQ==}
     engines: {node: ^12.20.0 || ^14.13.1 || >=16.0.0}
+
+  npm-watch@0.13.0:
+    resolution: {integrity: sha512-MYcgocqCzYA44feZhFoYj69FfSaO0EeRE1gcRcmPaXIpNhUMAhNJ1pwic2C4Hn0OPOQmZKSl90CPgmwvOsVhTg==}
+    hasBin: true
 
   npmlog@5.0.1:
     resolution: {integrity: sha512-AqZtDUWOMKs1G/8lwylVjrdYgqA4d9nu8hc+0gzRxlDb1I10+FHBGMXs6aiQHFdCUUlqH99MUMuLfzWDNDtfxw==}
@@ -8734,6 +8748,9 @@ packages:
 
   psl@1.9.0:
     resolution: {integrity: sha512-E/ZsdU4HLs/68gYzgGTkMicWTLPdAftJLfJFlLUAAKZGkStNU72sZjT66SnMDVOfOWY/YAoiD7Jxa9iHvngcag==}
+
+  pstree.remy@1.1.8:
+    resolution: {integrity: sha512-77DZwxQmxKnu3aR542U+X8FypNzbfJ+C5XQDk3uWjWxn6151aIMGthWYRXTqT1E5oJvg+ljaa2OJi+VfvCOQ8w==}
 
   public-encrypt@4.0.3:
     resolution: {integrity: sha512-zVpa8oKZSz5bTMTFClc1fQOnyyEzpl5ozpi1B5YcvBrdohMjH2rfsBtyXcuNuwjsDIXmBYlF2N5FlJYhR29t8Q==}
@@ -9736,6 +9753,10 @@ packages:
   simple-swizzle@0.2.2:
     resolution: {integrity: sha512-JA//kQgZtbuY83m+xT+tXJkmJncGMTFT+C+g2h2R9uxkYIrE2yy9sgmcLhCnw57/WSD+Eh3J97FPEDFnbXnDUg==}
 
+  simple-update-notifier@2.0.0:
+    resolution: {integrity: sha512-a2B9Y0KlNXl9u/vsW6sTIu9vGEpfKu2wRV6l1H3XEas/0gUIzGzBoP/IouTcUQbm9JWZLH3COxyn03TYlFax6w==}
+    engines: {node: '>=10'}
+
   sirv@2.0.4:
     resolution: {integrity: sha512-94Bdh3cC2PKrbgSOUqTiGPWVZeSiXfKOVZNJniWoqrWrRkB1CJzBU3NEbiTsPcYy1lDsANA/THzS+9WBiy5nfQ==}
     engines: {node: '>= 10'}
@@ -10187,6 +10208,10 @@ packages:
     resolution: {integrity: sha512-sf4i37nQ2LBx4m3wB74y+ubopq6W/dIzXg0FDGjsYnZHVa1Da8FH853wlL2gtUhg+xJXjfk3kUZS3BRoQeoQBQ==}
     engines: {node: '>=6'}
 
+  touch@3.1.1:
+    resolution: {integrity: sha512-r0eojU4bI8MnHr8c5bNo7lJDdI2qXlWWJk6a9EAFG7vbhTjElYhBVS3/miuE0uOuoLdb8Mc/rVfsmm6eo5o9GA==}
+    hasBin: true
+
   tough-cookie@4.1.4:
     resolution: {integrity: sha512-Loo5UUvLD9ScZ6jh8beX1T6sO1w2/MpCRpEP7V280GKMVUQ0Jzar2U3UJPsrdbziLEMMhu3Ujnq//rhiFuIeag==}
     engines: {node: '>=6'}
@@ -10384,6 +10409,9 @@ packages:
   unc-path-regex@0.1.2:
     resolution: {integrity: sha512-eXL4nmJT7oCpkZsHZUOJo8hcX3GbsiDOa0Qu9F646fi8dT3XuSVopVqAcEiVzSKKH7UoDti23wNX3qGFxcW5Qg==}
     engines: {node: '>=0.10.0'}
+
+  undefsafe@2.0.5:
+    resolution: {integrity: sha512-WxONCrssBM8TSPRqN5EmsjVrsv4A8X12J4ArBiiayv3DyyG3ZlIg6yysuuSYdZsVz3TKcTg2fd//Ujd4CHV1iA==}
 
   undici-types@5.26.5:
     resolution: {integrity: sha512-JlCMO+ehdEIKqlFxk6IfVoAUVmgz7cU7zD/h9XZ0qzeosSHmUJVOzSQvvYSYWXkFXC+IfLKSIffhv0sVZup6pA==}
@@ -19697,6 +19725,8 @@ snapshots:
 
   ieee754@1.2.1: {}
 
+  ignore-by-default@1.0.1: {}
+
   ignore-styles@5.0.1: {}
 
   ignore@5.3.1: {}
@@ -21468,6 +21498,19 @@ snapshots:
 
   node-releases@2.0.18: {}
 
+  nodemon@3.1.4:
+    dependencies:
+      chokidar: 3.6.0
+      debug: 4.3.5(supports-color@5.5.0)
+      ignore-by-default: 1.0.1
+      minimatch: 3.1.2
+      pstree.remy: 1.1.8
+      semver: 7.6.3
+      simple-update-notifier: 2.0.0
+      supports-color: 5.5.0
+      touch: 3.1.1
+      undefsafe: 2.0.5
+
   nopt@5.0.0:
     dependencies:
       abbrev: 1.1.1
@@ -21483,7 +21526,7 @@ snapshots:
     dependencies:
       hosted-git-info: 4.1.0
       is-core-module: 2.15.0
-      semver: 7.5.2
+      semver: 7.3.7
       validate-npm-package-license: 3.0.4
 
   normalize-path@3.0.0: {}
@@ -21497,6 +21540,11 @@ snapshots:
   npm-run-path@5.3.0:
     dependencies:
       path-key: 4.0.0
+
+  npm-watch@0.13.0:
+    dependencies:
+      nodemon: 3.1.4
+      through2: 4.0.2
 
   npmlog@5.0.1:
     dependencies:
@@ -22491,6 +22539,8 @@ snapshots:
   pseudomap@1.0.2: {}
 
   psl@1.9.0: {}
+
+  pstree.remy@1.1.8: {}
 
   public-encrypt@4.0.3:
     dependencies:
@@ -23756,6 +23806,10 @@ snapshots:
     dependencies:
       is-arrayish: 0.3.2
 
+  simple-update-notifier@2.0.0:
+    dependencies:
+      semver: 7.6.3
+
   sirv@2.0.4:
     dependencies:
       '@polka/url': 1.0.0-next.25
@@ -24289,6 +24343,8 @@ snapshots:
 
   totalist@3.0.1: {}
 
+  touch@3.1.1: {}
+
   tough-cookie@4.1.4:
     dependencies:
       psl: 1.9.0
@@ -24499,6 +24555,8 @@ snapshots:
       through: 2.3.8
 
   unc-path-regex@0.1.2: {}
+
+  undefsafe@2.0.5: {}
 
   undici-types@5.26.5: {}
 

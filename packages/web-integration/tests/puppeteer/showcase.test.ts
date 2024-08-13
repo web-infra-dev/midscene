@@ -39,7 +39,7 @@ describe('puppeteer integration', () => {
     console.log('Github service status', result);
 
     expect(async () => {
-      //   // there is no food delivery service on Github
+      // there is no food delivery service on Github
       await mid.aiAssert(
         'there is a "food delivery" service on page and is in normal state',
       );
