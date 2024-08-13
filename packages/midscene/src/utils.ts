@@ -14,6 +14,7 @@ import type { Rect } from './types';
 interface PkgInfo {
   name: string;
   version: string;
+  dir: string;
 }
 
 let pkg: PkgInfo | undefined;
@@ -23,20 +24,27 @@ export function getPkgInfo(): PkgInfo {
   }
 
   let pkgJsonFile = '';
+  let pkgDir = '';
   if (existsSync(join(__dirname, '../package.json'))) {
     pkgJsonFile = join(__dirname, '../package.json');
+    pkgDir = join(__dirname, '../');
+  } else if (existsSync(join(__dirname, '../../package.json'))) {
+    pkgJsonFile = join(__dirname, '../../package.json');
+    pkgDir = join(__dirname, '../../');
   } else if (existsSync(join(__dirname, '../../../package.json'))) {
     pkgJsonFile = join(__dirname, '../../../package.json');
+    pkgDir = join(__dirname, '../../../');
   }
 
   if (pkgJsonFile) {
     const { name, version } = JSON.parse(readFileSync(pkgJsonFile, 'utf-8'));
-    pkg = { name, version };
+    pkg = { name, version, dir: pkgDir };
     return pkg;
   }
   return {
     name: 'midscene-unknown-page-name',
     version: '0.0.0',
+    dir: pkgDir,
   };
 }
 
@@ -45,29 +53,46 @@ let logEnvReady = false;
 export const insightDumpFileExt = 'insight-dump.json';
 export const groupedActionDumpFileExt = 'web-dump.json';
 
-export function getDumpDir() {
+export function getLogDir() {
   return logDir;
 }
 
-export function setDumpDir(dir: string) {
+export function setLogDir(dir: string) {
   logDir = dir;
 }
 
-export function getDumpDirPath(type: 'dump' | 'cache') {
-  return join(getDumpDir(), type);
+export function getLogDirByType(type: 'dump' | 'cache' | 'report') {
+  const dir = join(getLogDir(), type);
+  if (!existsSync(dir)) {
+    mkdirSync(dir, { recursive: true });
+  }
+  return dir;
 }
 
-export function writeDumpFile(opts: {
+export function writeDumpReport(fileName: string, data: string) {
+  const { dir } = getPkgInfo();
+  const reportTplPath = join(dir, './report/index.html');
+  existsSync(reportTplPath) ||
+    assert(false, `report template not found: ${reportTplPath}`);
+  const reportPath = join(getLogDirByType('report'), `${fileName}.html`);
+  const reportContent = readFileSync(reportTplPath, 'utf-8').replace(
+    '{{dump}}',
+    `<script type="midscene_web_dump" type="application/json">${data}</script>`,
+  );
+  writeFileSync(reportPath, reportContent);
+
+  return reportPath;
+}
+
+export function writeLogFile(opts: {
   fileName: string;
   fileExt: string;
   fileContent: string;
-  type?: 'dump' | 'cache';
+  type: 'dump' | 'cache' | 'report';
+  generateReport?: boolean;
 }) {
   const { fileName, fileExt, fileContent, type = 'dump' } = opts;
-  const targetDir = getDumpDirPath(type);
-  if (!existsSync(targetDir)) {
-    mkdirSync(targetDir, { recursive: true });
-  }
+  const targetDir = getLogDirByType(type);
   // Ensure directory exists
   if (!logEnvReady) {
     assert(targetDir, 'logDir should be set before writing dump file');
@@ -94,8 +119,8 @@ export function writeDumpFile(opts: {
   const filePath = join(targetDir, `${fileName}.${fileExt}`);
   writeFileSync(filePath, fileContent);
 
-  if (type === 'dump') {
-    copyFileSync(filePath, join(targetDir, `latest.${fileExt}`));
+  if (opts?.generateReport) {
+    return writeDumpReport(fileName, fileContent);
   }
 
   return filePath;

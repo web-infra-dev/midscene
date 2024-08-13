@@ -16,11 +16,11 @@ import type {
   UISection,
 } from '@/types';
 import {
-  getDumpDir,
+  getLogDir,
   getPkgInfo,
   insightDumpFileExt,
   stringifyDumpData,
-  writeDumpFile,
+  writeLogFile,
 } from '@/utils';
 
 let logFileName = '';
@@ -34,7 +34,7 @@ export function writeInsightDump(
   logId?: string,
   dumpSubscriber?: DumpSubscriber,
 ): string {
-  const logDir = getDumpDir();
+  const logDir = getLogDir();
   assert(logDir, 'logDir should be set before writing dump file');
 
   const id = logId || randomUUID();
@@ -64,10 +64,11 @@ export function writeInsightDump(
     const length = logContent.push(dataString);
     logIdIndexMap[id] = length - 1;
   }
-  writeDumpFile({
+  writeLogFile({
     fileName: logFileName,
     fileExt: logFileExt,
     fileContent: `[\n${logContent.join(',\n')}\n]`,
+    type: 'dump',
   });
 
   return id;

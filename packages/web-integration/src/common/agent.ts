@@ -3,8 +3,9 @@ import type { ExecutionDump, GroupedActionDump } from '@midscene/core';
 import {
   groupedActionDumpFileExt,
   stringifyDumpData,
-  writeDumpFile,
+  writeLogFile,
 } from '@midscene/core/utils';
+import dayjs from 'dayjs';
 import { PageTaskExecutor } from '../common/tasks';
 import type { AiTaskCache } from './task-cache';
 
@@ -15,7 +16,9 @@ export class PageAgent {
 
   testId: string;
 
-  dumpFile?: string;
+  reportFile?: string;
+
+  reportFileName?: string;
 
   taskExecutor: PageTaskExecutor;
 
@@ -34,6 +37,11 @@ export class PageAgent {
     this.taskExecutor = new PageTaskExecutor(this.page, {
       cache: opts?.cache || { aiTasks: [] },
     });
+    const dateTimeInFileName = dayjs().format('YYYY-MM-DD_HH-MM-ss-SSS');
+    if (this.testId) {
+      this.reportFileName = `${this.testId}-web-${dateTimeInFileName}`;
+    }
+    this.reportFileName = `web-${dateTimeInFileName}`;
   }
 
   appendDump(execution: ExecutionDump) {
@@ -42,11 +50,15 @@ export class PageAgent {
   }
 
   writeOutActionDumps() {
-    this.dumpFile = writeDumpFile({
-      fileName: `run-${this.testId}`,
+    this.reportFile = writeLogFile({
+      fileName: this.reportFileName!,
       fileExt: groupedActionDumpFileExt,
       fileContent: stringifyDumpData(this.dumps),
+      type: 'dump',
+      generateReport: true,
     });
+
+    console.log('Midscene - report file updated:', this.reportFile);
   }
 
   async aiAction(taskPrompt: string) {

@@ -3,9 +3,9 @@ import path, { join } from 'node:path';
 import type { AiTaskCache } from '@/common/task-cache';
 import { findNearestPackageJson } from '@/common/utils';
 import {
-  getDumpDirPath,
+  getLogDirByType,
   stringifyDumpData,
-  writeDumpFile,
+  writeLogFile,
 } from '@midscene/core/utils';
 
 export function writeTestCache(
@@ -14,7 +14,7 @@ export function writeTestCache(
   taskCacheJson: AiTaskCache,
 ) {
   const packageJson = getPkgInfo();
-  writeDumpFile({
+  writeLogFile({
     fileName: `${taskFile}(${taskTitle})`,
     fileExt: 'json',
     fileContent: stringifyDumpData(
@@ -33,7 +33,7 @@ export function writeTestCache(
 
 export function readTestCache(taskFile: string, taskTitle: string) {
   const cacheFile = join(
-    getDumpDirPath('cache'),
+    getLogDirByType('cache'),
     `${taskFile}(${taskTitle}).json`,
   );
   const pkgInfo = getPkgInfo();

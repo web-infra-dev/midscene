@@ -9,18 +9,26 @@ Step:
 */
 
 import { strict as assert } from 'node:assert';
-import { readFileSync, writeFileSync } from 'node:fs';
+import { copyFileSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 const htmlPath = join(__dirname, '../html/tpl.html');
 const cssPath = join(__dirname, '../dist/index.css');
 const jsPath = join(__dirname, '../dist/index.js');
 const demoPath = join(__dirname, './fixture/demo-dump.json');
+const outputHTML = join(__dirname, '../dist/index.html');
+const outputDemoHTML = join(__dirname, '../dist/demo.html');
 
 function tplReplacer(tpl: string, obj: Record<string, string>) {
   return tpl.replace(/{{\s*(\w+)\s*}}/g, (_, key) => {
     return obj[key] || `{{${key}}}`; // keep the placeholder if not found
   });
+}
+
+function copyToCore() {
+  const corePath = join(__dirname, '../../midscene/report');
+  copyFileSync(outputHTML, join(corePath, 'index.html'));
+  console.log(`HTML file copied to core successfully: ${corePath}`);
 }
 
 function build() {
@@ -34,9 +42,8 @@ function build() {
   });
 
   assert(result.length >= 1000);
-  const output = join(__dirname, '../dist/index.html');
-  writeFileSync(output, result);
-  console.log(`HTML file generated successfully: ${output}`);
+  writeFileSync(outputHTML, result);
+  console.log(`HTML file generated successfully: ${outputHTML}`);
 
   const demoData = readFileSync(demoPath, 'utf-8');
   const resultWithDemo = tplReplacer(html, {
@@ -44,9 +51,9 @@ function build() {
     js: `<script>\n${js}\n</script>`,
     dump: `<script type="midscene_web_dump" type="application/json">${demoData}</script>`,
   });
-  const outputWithDemo = join(__dirname, '../dist/demo.html');
-  writeFileSync(outputWithDemo, resultWithDemo);
-  console.log(`HTML file generated successfully: ${outputWithDemo}`);
+  writeFileSync(outputDemoHTML, resultWithDemo);
+  console.log(`HTML file generated successfully: ${outputDemoHTML}`);
+  copyToCore();
 }
 
 build();

@@ -1,10 +1,13 @@
+import { randomUUID } from 'node:crypto';
+import { readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import {
-  getDumpDir,
+  getLogDir,
   getTmpDir,
   getTmpFile,
   overlapped,
-  setDumpDir,
+  setLogDir,
+  writeDumpReport,
 } from '@/utils';
 import { describe, expect, it } from 'vitest';
 
@@ -17,13 +20,21 @@ describe('utils', () => {
     expect(testFile.endsWith('.txt')).toBe(true);
   });
 
-  it('dump dir', () => {
-    const dumpDir = getDumpDir();
+  it('log dir', () => {
+    const dumpDir = getLogDir();
     expect(dumpDir).toBeTruthy();
 
-    setDumpDir(tmpdir());
-    const dumpDir2 = getDumpDir();
+    setLogDir(tmpdir());
+    const dumpDir2 = getLogDir();
     expect(dumpDir2).toBe(tmpdir());
+  });
+
+  it('write report file', () => {
+    const content = randomUUID();
+    const reportPath = writeDumpReport('test', content);
+    expect(reportPath).toBeTruthy();
+    const reportContent = readFileSync(reportPath, 'utf-8');
+    expect(reportContent).contains(content);
   });
 
   it('overlapped', () => {
