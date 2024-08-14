@@ -106,7 +106,15 @@ pnpm run build:pkg
 
 ---
 
-## Testing
+### Testing
+
+To change the AI-related code of this repository, you need to create a '.env 'file in the root directory, which reads as follows:
+
+```
+OPENAI_API_KEY="you_token"
+MIDSCENE_MODEL_NAME="gpt-4o-2024-08-06"
+```
+
 
 ### Add New Tests
 
@@ -120,12 +128,16 @@ Before submitting a pull request, it's important to make sure that the changes h
 
 ```sh
 pnpm run test
+# Test with AI-related features, it will need to create a .env file
+pnpm run test:all
 ```
 
 You can also run the unit tests of single package:
 
 ```sh
 npx nx test @midscene/web
+# Test with AI-related features, it will need to create a .env file
+npx nx test:all @midscene/web
 ```
 
 ### Run E2E Tests

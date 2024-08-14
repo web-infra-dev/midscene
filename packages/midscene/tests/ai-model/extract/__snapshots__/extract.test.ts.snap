@@ -1,0 +1,51 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`assert openAI > online order 1`] = `
+{
+  "data": [
+    {
+      "name": "多肉大橘（首创）",
+      "price": "6.82",
+    },
+    {
+      "name": "轻芒芒甘露",
+      "price": "6.54",
+    },
+  ],
+  "errors": [],
+  "language": "zh",
+}
+`;
+
+exports[`assert openAI > todo 1`] = `
+{
+  "data": [
+    "Learn Python",
+    "Learn Rust",
+    "Learn AI",
+  ],
+  "errors": [],
+  "language": "en",
+}
+`;
+
+exports[`assert openAI > todo obj 1`] = `
+{
+  "data": [
+    {
+      "checked": false,
+      "text": "Learn Python",
+    },
+    {
+      "checked": false,
+      "text": "Learn Rust",
+    },
+    {
+      "checked": false,
+      "text": "Learn AI",
+    },
+  ],
+  "errors": [],
+  "language": "en",
+}
+`;

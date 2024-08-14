@@ -1,5 +1,6 @@
 import path from 'node:path';
 import { AiInspectElement } from '@/ai-model';
+import { useCozeModel } from '@/ai-model/coze';
 import { AiAssert } from '@/ai-model/inspect';
 import { expect, it } from 'vitest';
 import {
@@ -32,70 +33,81 @@ const testTodoCases = [
   },
 ];
 
-repeat(2, (repeatIndex) => {
-  it(
-    'todo: inspect element',
-    async () => {
-      const { context } = await getPageTestData(
-        path.join(__dirname, './test-data/todo'),
-      );
+const modelList: Array<'openAI' | 'coze'> = ['openAI'];
 
-      const { aiResponse, filterUnstableResult } = await runTestCases(
-        testTodoCases,
-        context,
-        async (testCase) => {
-          const { parseResult } = await AiInspectElement({
-            context,
-            multi: testCase.multi,
-            findElementDescription: testCase.description,
-          });
-          return parseResult;
-        },
-      );
-      writeFileSyncWithDir(
-        path.join(
-          __dirname,
-          `__ai_responses__/todo-inspector-element-${repeatIndex}.json`,
-        ),
-        JSON.stringify(aiResponse, null, 2),
-        { encoding: 'utf-8' },
-      );
-      expect(filterUnstableResult).toMatchFileSnapshot(
-        './__snapshots__/todo_inspector.test.ts.snap',
-      );
-    },
-    {
-      timeout: 90 * 1000,
-    },
-  );
-});
+if (useCozeModel('coze')) {
+  modelList.push('coze');
+}
 
-repeat(2, () => {
-  it(
-    'todo: assert',
-    async () => {
-      const { context } = await getPageTestData(
-        path.join(__dirname, './test-data/todo'),
-      );
+modelList.forEach((model) => {
+  repeat(2, (repeatIndex) => {
+    it(
+      `todo: inspect element ${model}`,
+      async () => {
+        const { context } = await getPageTestData(
+          path.join(__dirname, './test-data/todo'),
+        );
 
-      const { pass, thought } = await AiAssert({
-        context,
-        assertion: 'There are three tasks in the list',
-      });
+        const { aiResponse, filterUnstableResult } = await runTestCases(
+          testTodoCases,
+          context,
+          async (testCase) => {
+            const { parseResult } = await AiInspectElement({
+              context,
+              multi: testCase.multi,
+              findElementDescription: testCase.description,
+              useModel: model,
+            });
+            return parseResult;
+          },
+        );
+        writeFileSyncWithDir(
+          path.join(
+            __dirname,
+            `__ai_responses__/todo-inspector-element-${repeatIndex}.json`,
+          ),
+          JSON.stringify(aiResponse, null, 2),
+          { encoding: 'utf-8' },
+        );
+        expect(filterUnstableResult).toMatchFileSnapshot(
+          './__snapshots__/todo_inspector.test.ts.snap',
+        );
+      },
+      {
+        timeout: 90 * 1000,
+      },
+    );
+  });
 
-      expect(pass).toBeTruthy();
-      expect(thought).toBeTruthy();
+  repeat(2, () => {
+    it(
+      `todo: assert ${model}`,
+      async () => {
+        const { context } = await getPageTestData(
+          path.join(__dirname, './test-data/todo'),
+        );
 
-      const { pass: pass2, thought: thought2 } = await AiAssert({
-        context,
-        assertion: 'There is an button to sort the list in a time order',
-      });
+        const { pass, thought } = await AiAssert({
+          context,
+          assertion: 'There are three tasks in the list',
+          useModel: model,
+        });
 
-      expect(pass2).toBeFalsy();
-      expect(thought2).toBeTruthy();
-    },
-    {
-      timeout: 90 * 1000,
-    },
-  );
+        expect(pass).toBeTruthy();
+        expect(thought).toBeTruthy();
+
+        const { pass: pass2, thought: thought2 } = await AiAssert({
+          context,
+          assertion: 'There is an button to sort the list in a time order',
+          useModel: model,
+        });
+
+        expect(pass2).toBeFalsy();
+        expect(thought2).toBeTruthy();
+      },
+      {
+        timeout: 90 * 1000,
+      },
+    );
+  });
 });

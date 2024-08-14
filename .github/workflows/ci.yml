@@ -16,8 +16,9 @@ jobs:
         node-version: [18.19.0]
 
     env:
-      MIDSCENE_OPENAI_INIT_CONFIG_JSON: ${{ secrets.MIDSCENE_OPENAI_INIT_CONFIG_JSON }}
-      MIDSCENE_OPENAI_MODEL: ${{ secrets.MIDSCENE_OPENAI_MODEL }}
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      OPENAI_BASE_URL: ${{ secrets.OPENAI_BASE_URL }}
+      MIDSCENE_MODEL_NAME: ${{ secrets.MIDSCENE_MODEL_NAME }}
 
     steps:
     - uses: actions/checkout@v4
@@ -42,4 +43,4 @@ jobs:
       run: pnpm run build:pkg
 
     - name: Run tests
-      run: pnpm run test
+      run: pnpm run test:all
