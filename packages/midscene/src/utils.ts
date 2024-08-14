@@ -9,7 +9,7 @@ import {
 } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { basename, join } from 'node:path';
-import type { Rect } from './types';
+import type { Rect, ReportDumpWithAttributes } from './types';
 
 interface PkgInfo {
   name: string;
@@ -69,16 +69,31 @@ export function getLogDirByType(type: 'dump' | 'cache' | 'report') {
   return dir;
 }
 
-export function writeDumpReport(fileName: string, data: string) {
+export function writeDumpReport(
+  fileName: string,
+  dumpData: string | ReportDumpWithAttributes[],
+) {
   const { dir } = getPkgInfo();
   const reportTplPath = join(dir, './report/index.html');
   existsSync(reportTplPath) ||
     assert(false, `report template not found: ${reportTplPath}`);
   const reportPath = join(getLogDirByType('report'), `${fileName}.html`);
-  const reportContent = readFileSync(reportTplPath, 'utf-8').replace(
-    '{{dump}}',
-    `<script type="midscene_web_dump" type="application/json">${data}</script>`,
-  );
+  const tpl = readFileSync(reportTplPath, 'utf-8');
+  let reportContent: string;
+  if (typeof dumpData === 'string') {
+    reportContent = tpl.replace(
+      '{{dump}}',
+      `<script type="midscene_web_dump" type="application/json">${dumpData}</script>`,
+    );
+  } else {
+    const dumps = dumpData.map(({ dumpString, attributes }) => {
+      const attributesArr = Object.keys(attributes || {}).map((key) => {
+        return `${key}="${encodeURIComponent(attributes![key])}"`;
+      });
+      return `<script type="midscene_web_dump" type="application/json" ${attributesArr.join(' ')}>${dumpString}</script>`;
+    });
+    reportContent = tpl.replace('{{dump}}', dumps.join('\n'));
+  }
   writeFileSync(reportPath, reportContent);
 
   return reportPath;

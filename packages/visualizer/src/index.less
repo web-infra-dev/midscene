@@ -62,18 +62,32 @@ footer.mt-8{
   font-synthesis: style;
   text-rendering: optimizelegibility;
   -webkit-font-smoothing: antialiased;
-  line-height: 1.7;
+  line-height: 1.5;
 }
 
 .page-nav {
-  height: 20px;
+  height: 30px;
   padding: 10px;
   border-bottom: 1px solid @border-color;
+  display: flex;
+  flex-direction: row;
 
   .logo img {
     height: 20px;
-    line-height: 20px;
+    line-height: 30px;
+    vertical-align: baseline;
+    vertical-align: -webkit-baseline-middle;
   }
+
+  .playwright-case-selector {
+    margin-left: 20px;
+    line-height: 30px;
+    width: 320px;
+  }
+}
+
+.cost-str {
+  color: @weak-text;
 }
 
 .ant-layout {

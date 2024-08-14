@@ -16,8 +16,10 @@ const htmlPath = join(__dirname, '../html/tpl.html');
 const cssPath = join(__dirname, '../dist/index.css');
 const jsPath = join(__dirname, '../dist/index.js');
 const demoPath = join(__dirname, './fixture/demo-dump.json');
+const multiEntrySegment = join(__dirname, './fixture/multi-entries.html');
 const outputHTML = join(__dirname, '../dist/index.html');
 const outputDemoHTML = join(__dirname, '../dist/demo.html');
+const outputMultiEntriesHTML = join(__dirname, '../dist/multi.html');
 
 function tplReplacer(tpl: string, obj: Record<string, string>) {
   return tpl.replace(/{{\s*(\w+)\s*}}/g, (_, key) => {
@@ -53,6 +55,16 @@ function build() {
   });
   writeFileSync(outputDemoHTML, resultWithDemo);
   console.log(`HTML file generated successfully: ${outputDemoHTML}`);
+
+  const multiEntriesData = readFileSync(multiEntrySegment, 'utf-8');
+  const resultWithMultiEntries = tplReplacer(html, {
+    css: `<style>\n${css}\n</style>\n`,
+    js: `<script>\n${js}\n</script>`,
+    dump: multiEntriesData,
+  });
+  writeFileSync(outputMultiEntriesHTML, resultWithMultiEntries);
+  console.log(`HTML file generated successfully: ${outputMultiEntriesHTML}`);
+
   copyToCore();
 }
 

@@ -37,6 +37,24 @@ describe('utils', () => {
     expect(reportContent).contains(content);
   });
 
+  it('write report file with attributes', () => {
+    const content = randomUUID();
+    const reportPath = writeDumpReport('test', [
+      {
+        dumpString: content,
+        attributes: {
+          foo: 'bar',
+          hello: 'world',
+        },
+      },
+    ]);
+    expect(reportPath).toBeTruthy();
+    const reportContent = readFileSync(reportPath, 'utf-8');
+    expect(reportContent).contains(content);
+    expect(reportContent).contains('foo="bar"');
+    expect(reportContent).contains('hello="world"');
+  });
+
   it('overlapped', () => {
     const container = { left: 100, top: 100, width: 100, height: 100 };
     const target = { left: 150, top: 150, width: 100, height: 100 };

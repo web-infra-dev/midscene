@@ -26,8 +26,8 @@ export const useBlackboardPreference = create<{
 }));
 
 export const useExecutionDump = create<{
-  dump: GroupedActionDump[] | null;
-  setGroupedDump: (dump: GroupedActionDump[]) => void;
+  dump: GroupedActionDump | null;
+  setGroupedDump: (dump: GroupedActionDump) => void;
   activeTask: ExecutionTask | null;
   setActiveTask: (task: ExecutionTask) => void;
   hoverTask: ExecutionTask | null;
@@ -57,18 +57,17 @@ export const useExecutionDump = create<{
 
   return {
     ...initData,
-    setGroupedDump: (dump: GroupedActionDump[]) => {
+    setGroupedDump: (dump: GroupedActionDump) => {
       console.log('will set ExecutionDump', dump);
       set({
+        ...initData,
         dump,
       });
+      resetInsightDump();
 
-      // set the first one as selected
-      for (const item of dump) {
-        if (item.executions.length > 0 && item.executions[0].tasks.length > 0) {
-          get().setActiveTask(item.executions[0].tasks[0]);
-          break;
-        }
+      // set the first task as selected
+      if (dump.executions.length > 0 && dump.executions[0].tasks.length > 0) {
+        get().setActiveTask(dump.executions[0].tasks[0]);
       }
     },
     setActiveTask(task: ExecutionTask) {
@@ -103,19 +102,15 @@ export const useExecutionDump = create<{
 });
 
 export const useAllCurrentTasks = (): ExecutionTask[] => {
-  const groupedDumps = useExecutionDump((store) => store.dump);
+  const groupedDump = useExecutionDump((store) => store.dump);
+  if (!groupedDump) return [];
 
-  const allTasks =
-    groupedDumps?.reduce<ExecutionTask[]>((acc, group) => {
-      const tasksInside = group.executions.reduce<ExecutionTask[]>(
-        (acc2, execution) => acc2.concat(execution.tasks),
-        [],
-      );
+  const tasksInside = groupedDump.executions.reduce<ExecutionTask[]>(
+    (acc2, execution) => acc2.concat(execution.tasks),
+    [],
+  );
 
-      return acc.concat(tasksInside);
-    }, []) || [];
-
-  return allTasks;
+  return tasksInside;
 };
 
 export const useInsightDump = create<{
