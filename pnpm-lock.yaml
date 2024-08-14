@@ -118,9 +118,6 @@ importers:
 
   packages/midscene:
     dependencies:
-      '@midscene/visualizer':
-        specifier: workspace:*
-        version: link:../visualizer
       node-fetch:
         specifier: 2.6.7
         version: 2.6.7
@@ -303,9 +300,6 @@ importers:
       '@midscene/visualizer-report':
         specifier: workspace:*
         version: link:../visualizer-report
-      dayjs:
-        specifier: 1.11.11
-        version: 1.11.11
       inquirer:
         specifier: 10.1.5
         version: 10.1.5

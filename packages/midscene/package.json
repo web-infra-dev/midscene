@@ -62,7 +62,6 @@
     "prepublishOnly": "npm run build"
   },
   "dependencies": {
-    "@midscene/visualizer": "workspace:*",
     "openai": "4.47.1",
     "sharp": "0.33.3",
     "node-fetch": "2.6.7"

@@ -383,4 +383,5 @@ function mount(id: string) {
 
 export default {
   mount,
+  Visualizer,
 };
