@@ -6,6 +6,88 @@ exports[`extractor > basic 1`] = `
     "attributes": {
       "nodeType": "TEXT Node",
     },
+    "content": "Data Record
+  1970-01-01 19:25:01
+  User Name: Stella
+  
+    
+      
+        ID
+        Field 2
+        Field 3
+        Field 4
+        Field 5
+      
+    
+    
+      
+        30S
+        Kace Cervantes
+        Aylin Sawyer
+        Jefferson Kirby
+        Skyla Jefferson
+      
+      
+        70U
+        Florence Davenport
+        Dariel Acevedo
+        Ashlynn Delacruz
+        Memphis Leal
+      
+      
+        3AY
+        Crystal Newman
+        Anderson Brown
+        Charlotte Griffith
+        Franklin Everett
+      
+      
+        YPG
+        Kori Payne
+        Edward Blevins
+        Aila Gill
+        Matthias Reed
+      
+      
+        ZEN
+        Magnolia Duke
+        Kalel Glover
+        Alessia Barton
+        Cassius Peck
+      
+    
+  
+  
+    Form
+    Name:
+    
+    Click Me
+    Shape
+    
+    
+    
+
+
+    
+  
+  
+  输入搜索关键词
+     if (document.getElementById('gh-ac').value.length !== 0) { document.getElementById('gh-ac-box').classList.add('gh-ac-box-focus'); document.getElementById('gh').classList.add('gh-sch-focus'); } 
+    
+      
+    
+  
+  
+    var input = document.getElementById('J_input');
+        var keyRecord = document.getElementById('J_keyRecord');
+    input.addEventListener('keyup', function (e) {
+      keyRecord.innerHTML += '\\n' + e.key;
+    });",
+  },
+  {
+    "attributes": {
+      "nodeType": "TEXT Node",
+    },
     "content": "Data Record",
   },
   {
@@ -412,6 +494,15 @@ exports[`extractor > basic 1`] = `
       "placeholder": "this_is_a_textarea",
     },
     "content": "this_is_a_textarea",
+  },
+  {
+    "attributes": {
+      "_midscene_retrieve_task_id": "7de6fc64a5",
+      "id": "gh-ac-box2",
+      "nodeType": "TEXT Node",
+    },
+    "content": "输入搜索关键词
+     if (document.getElementById('gh-ac').value.length !== 0) { document.getElementById('gh-ac-box').classList.add('gh-ac-box-focus'); document.getElementById('gh').classList.add('gh-sch-focus'); }",
   },
   {
     "attributes": {
