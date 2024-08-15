@@ -1,7 +1,7 @@
 {
   "name": "midscene-playwright-demo",
   "private": true,
-  "version": "0.2.2",
+  "version": "0.3.0",
   "types": "./dist/types/index.d.ts",
   "jsnext:source": "./src/index.ts",
   "main": "./dist/lib/index.js",
