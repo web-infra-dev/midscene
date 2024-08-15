@@ -21,6 +21,8 @@ let filename: string;
 function updateReport() {
   const reportPath = writeDumpReport(filename, testDataList);
   printReportMsg(reportPath);
+  const latestPath = writeDumpReport('latest-playwright-report', testDataList);
+  printReportMsg(latestPath);
 }
 
 class MidsceneReporter implements Reporter {
