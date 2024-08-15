@@ -413,8 +413,6 @@ exports[`extractor > basic 1`] = `
     },
     "content": "this_is_a_textarea",
   },
-<<<<<<< HEAD
-=======
   {
     "attributes": {
       "class": ".gh-ar-hdn",
@@ -447,6 +445,5 @@ exports[`extractor > basic 1`] = `
     },
     "content": "搜索任何物品",
   },
->>>>>>> main
 ]
 `;
