@@ -138,16 +138,19 @@ export function validTextNodeContent(node: Node): string | false {
   if (!node) {
     return false;
   }
-  console.log('node', node);
-  if (node.nodeType === Node.COMMENT_NODE) {
+  if (node.nodeType !== Node.ELEMENT_NODE && node.nodeType !== Node.TEXT_NODE) {
     return false;
   }
 
-  const everyChildNodeIsText = Array.from(node.childNodes).findIndex(
-    (child) => child.nodeType === Node.TEXT_NODE,
-  );
+  const everyChildNodeIsText = Array.from(node.childNodes).every((child) => {
+    const tagName = ((child as HTMLElement).tagName || '').toLowerCase();
+    if (tagName === 'script' || tagName === 'style' || tagName === 'link') {
+      return false;
+    }
+    return true;
+  });
 
-  if (everyChildNodeIsText === -1) {
+  if (!everyChildNodeIsText) {
     return false;
   }
 

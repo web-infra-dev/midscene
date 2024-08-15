@@ -11,17 +11,17 @@ import type {
 const { create } = Z;
 export const useBlackboardPreference = create<{
   bgVisible: boolean;
-  textsVisible: boolean;
+  elementsVisible: boolean;
   setBgVisible: (visible: boolean) => void;
   setTextsVisible: (visible: boolean) => void;
 }>((set) => ({
-  bgVisible: false,
-  textsVisible: true,
+  bgVisible: true,
+  elementsVisible: false,
   setBgVisible: (visible: boolean) => {
     set({ bgVisible: visible });
   },
   setTextsVisible: (visible: boolean) => {
-    set({ textsVisible: visible });
+    set({ elementsVisible: visible });
   },
 }));
 
