@@ -17,9 +17,6 @@ const noop = () => {
 
 const BlackBoard = (): JSX.Element => {
   const dump = useInsightDump((store) => store.data);
-  const setHighlightSectionNames = useInsightDump(
-    (store) => store.setHighlightSectionNames,
-  );
   const setHighlightElements = useInsightDump(
     (store) => store.setHighlightElements,
   );
@@ -27,8 +24,9 @@ const BlackBoard = (): JSX.Element => {
     (store) => store.highlightSectionNames,
   );
   const highlightElements = useInsightDump((store) => store.highlightElements);
+  const highlightIds = highlightElements.map((e) => e.id);
 
-  const { context, matchedSection: sections, matchedElement: elements } = dump!;
+  const { context } = dump!;
   const { size, screenshotBase64 } = context;
 
   const screenWidth = size.width;
@@ -38,12 +36,12 @@ const BlackBoard = (): JSX.Element => {
   const app = useMemo<PIXI.Application>(() => new PIXI.Application(), []);
   const [appInitialed, setAppInitialed] = useState(false);
 
-  const itemMarkContainer = useMemo(() => new PIXI.Container(), []);
-  const textContainer = useMemo(() => new PIXI.Container(), []);
+  const highlightContainer = useMemo(() => new PIXI.Container(), []);
+  const elementMarkContainer = useMemo(() => new PIXI.Container(), []);
 
   // key overlays
   const pixiBgRef = useRef<PIXI.Sprite>();
-  const { bgVisible, setBgVisible, textsVisible, setTextsVisible } =
+  const { bgVisible, setBgVisible, elementsVisible, setTextsVisible } =
     useBlackboardPreference();
 
   useEffect(() => {
@@ -68,8 +66,8 @@ const BlackBoard = (): JSX.Element => {
           canvasEl.style.height = `${Math.floor(screenHeight * ratio)}px`;
         }
 
-        app.stage.addChild(itemMarkContainer);
-        app.stage.addChild(textContainer);
+        app.stage.addChild(highlightContainer);
+        app.stage.addChild(elementMarkContainer);
 
         setAppInitialed(true);
       })(),
@@ -136,61 +134,31 @@ const BlackBoard = (): JSX.Element => {
     return [graphics, texts];
   };
 
-  const { highlightSectionRects, highlightElementRects } = useMemo(() => {
-    const highlightSectionRects: Rect[] = [];
+  const { highlightElementRects } = useMemo(() => {
     const highlightElementRects: Rect[] = [];
 
-    itemMarkContainer.removeChildren();
-    textContainer.removeChildren();
-
-    sections.forEach((section) => {
-      // draw a section overlay
-      const ifHighlight = highlightSectionNames.includes(section.name);
-      if (ifHighlight) {
-        highlightSectionRects.push(section.rect);
-      }
-      const [graphics, texts] = rectMarkForItem(
-        section.rect,
-        section.name,
-        ifHighlight
-          ? highlightColorForType('section')
-          : colorForName('section', section.name),
-        ifHighlight ? 1 : itemFillAlpha,
-        () => {
-          setHighlightSectionNames([section.name]);
-        },
-        () => {
-          setHighlightSectionNames([]);
-        },
-      );
-      itemMarkContainer.addChild(graphics);
-      textContainer.addChild(texts);
-    });
-
-    // some are tmp highlights, draw them separately
-    highlightElements.forEach((element) => {
-      const { rect } = element;
-      highlightElementRects.push(rect);
-      if (elements.includes(element)) {
-        return;
-      }
-      const [graphics, texts] = rectMarkForItem(
-        rect,
-        '',
-        highlightColorForType('element'),
-        1,
-        noop,
-        noop,
-      );
-      itemMarkContainer.addChild(graphics);
-      textContainer.addChild(texts);
-    });
+    highlightContainer.removeChildren();
+    elementMarkContainer.removeChildren();
 
     // element mark
-    elements.forEach((element) => {
-      const { rect, content } = element;
-      const ifHighlight = highlightElements.includes(element);
-      const [graphics, texts] = rectMarkForItem(
+    context.content.forEach((element) => {
+      const { rect, content, id } = element;
+      const ifHighlight = highlightIds.includes(id);
+      if (ifHighlight) {
+        const [graphics] = rectMarkForItem(
+          rect,
+          content,
+          ifHighlight
+            ? highlightColorForType('element')
+            : colorForName('element', content),
+          ifHighlight ? 1 : itemFillAlpha,
+          noop,
+          noop,
+        );
+        highlightContainer.addChild(graphics);
+      }
+
+      const [graphics] = rectMarkForItem(
         rect,
         content,
         ifHighlight
@@ -204,53 +172,20 @@ const BlackBoard = (): JSX.Element => {
           setHighlightElements([]);
         },
       );
-      itemMarkContainer.addChild(graphics);
-      textContainer.addChild(texts);
+      elementMarkContainer.addChild(graphics);
     });
 
-    sections.forEach((section) => {
-      const { content } = section;
-      const ifHighlight = highlightSectionNames.includes(section.name);
-
-      const sectionTheme = ifHighlight
-        ? '#FFFFFF'
-        : colorForName('section', section.name);
-
-      content.forEach((text) => {
-        const { content, rect } = text;
-        const { left, top } = rect;
-        const style = new PIXI.TextStyle({
-          wordWrap: true,
-          wordWrapWidth: rect.width,
-          fontSize: 18,
-          fill: sectionTheme,
-        });
-        const textElement = new PIXI.Text(content, style);
-        textElement.x = left;
-        textElement.y = top;
-        textContainer.addChild(textElement);
-
-        const textBorder = new PIXI.Graphics();
-        textBorder.beginFill(0xaaaaaa, 0.2);
-        textBorder.lineStyle(1, 0x0, 1);
-        textBorder.drawRect(left, top, rect.width, rect.height);
-        textBorder.endFill();
-        textContainer.addChild(textBorder);
-      });
-    });
-    textContainer.visible = textsVisible;
+    elementMarkContainer.visible = elementsVisible;
     return {
-      highlightSectionRects,
       highlightElementRects,
     };
   }, [
     app,
     appInitialed,
-    sections,
-    highlightSectionNames,
     highlightElements,
+    context.content,
     // bgVisible,
-    // textsVisible,
+    // elementsVisible,
   ]);
 
   const onSetBg: CheckboxProps['onChange'] = (e) => {
@@ -260,9 +195,9 @@ const BlackBoard = (): JSX.Element => {
     }
   };
 
-  const onSetTextsVisible: CheckboxProps['onChange'] = (e) => {
+  const onSetElementsVisible: CheckboxProps['onChange'] = (e) => {
     setTextsVisible(e.target.checked);
-    textContainer.visible = e.target.checked;
+    elementMarkContainer.visible = e.target.checked;
   };
 
   let bottomTipA: ReactElement | null = null;
@@ -284,25 +219,6 @@ const BlackBoard = (): JSX.Element => {
     );
   }
 
-  let bottomTipB: ReactElement | null = null;
-  if (highlightSectionRects.length === 1) {
-    bottomTipB = (
-      <div className="bottom-tip">
-        <div className="bottom-tip-item">
-          Section: {JSON.stringify(highlightSectionRects[0])}
-        </div>
-      </div>
-    );
-  } else if (highlightSectionRects.length > 1) {
-    bottomTipB = (
-      <div className="bottom-tip">
-        <div className="bottom-tip-item">
-          Sections: {JSON.stringify(highlightSectionRects)}
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="blackboard">
       <div
@@ -315,15 +231,12 @@ const BlackBoard = (): JSX.Element => {
           <Checkbox checked={bgVisible} onChange={onSetBg}>
             Screenshot
           </Checkbox>
-          <Checkbox checked={textsVisible} onChange={onSetTextsVisible}>
-            Text Mark
+          <Checkbox checked={elementsVisible} onChange={onSetElementsVisible}>
+            Elements
           </Checkbox>
         </div>
       </div>
-      <div className="bottom-tip">
-        {bottomTipA}
-        {bottomTipB}
-      </div>
+      <div className="bottom-tip">{bottomTipA}</div>
 
       {/* {footer} */}
     </div>
