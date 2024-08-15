@@ -9,8 +9,14 @@ Step:
 */
 
 import { strict as assert } from 'node:assert';
-import { copyFileSync, readFileSync, writeFileSync } from 'node:fs';
-import { join } from 'node:path';
+import {
+  copyFileSync,
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  writeFileSync,
+} from 'node:fs';
+import { dirname, join } from 'node:path';
 
 const htmlPath = join(__dirname, '../html/tpl.html');
 const cssPath = join(__dirname, '../dist/report/index.css');
@@ -21,6 +27,17 @@ const outputHTML = join(__dirname, '../dist/report/index.html');
 const outputDemoHTML = join(__dirname, '../dist/report/demo.html');
 const outputMultiEntriesHTML = join(__dirname, '../dist/report/multi.html');
 
+function ensureDirectoryExistence(filePath: string) {
+  const directoryPath = dirname(filePath);
+
+  if (existsSync(directoryPath)) {
+    return true;
+  }
+
+  mkdirSync(directoryPath, { recursive: true });
+  return true;
+}
+
 function tplReplacer(tpl: string, obj: Record<string, string>) {
   return tpl.replace(/{{\s*(\w+)\s*}}/g, (_, key) => {
     return obj[key] || `{{${key}}}`; // keep the placeholder if not found
@@ -28,8 +45,9 @@ function tplReplacer(tpl: string, obj: Record<string, string>) {
 }
 
 function copyToCore() {
-  const corePath = join(__dirname, '../../midscene/report');
-  copyFileSync(outputHTML, join(corePath, 'index.html'));
+  const corePath = join(__dirname, '../../midscene/dist/report/index.html');
+  ensureDirectoryExistence(corePath);
+  copyFileSync(outputHTML, corePath);
   console.log(`HTML file copied to core successfully: ${corePath}`);
 }
 
