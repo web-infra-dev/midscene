@@ -1,10 +1,13 @@
 @import './common.less';
 
-.task-list-name {
-  padding: 2px @side-horizontal-padding;
-  font-weight: bold;
+
+.panel-title {
   background: @title-bg;
   border-top: 1px solid @border-color;
   border-bottom: 1px solid @border-color;
   margin-top: -1px;
+  padding: 2px @side-horizontal-padding;
+  .task-list-name {
+    font-weight: bold;
+  }
 }

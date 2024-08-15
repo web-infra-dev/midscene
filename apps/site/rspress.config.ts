@@ -50,5 +50,14 @@ export default defineConfig({
       description: 'Midscene.js',
     },
   ],
+  builderConfig: {
+    tools: {
+      rspack: {
+        watchOptions: {
+          ignored: /node_modules/,
+        },
+      },
+    },
+  },
   lang: 'en',
 });

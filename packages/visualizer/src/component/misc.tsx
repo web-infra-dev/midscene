@@ -1,3 +1,12 @@
+import {
+  ArrowRightOutlined,
+  CheckCircleFilled,
+  ClockCircleFilled,
+  CloseCircleFilled,
+  LogoutOutlined,
+  MinusOutlined,
+} from '@ant-design/icons';
+
 export function timeCostStrElement(timeCost?: number) {
   let str: string;
   if (typeof timeCost !== 'number') {
@@ -18,3 +27,34 @@ export function timeCostStrElement(timeCost?: number) {
     </span>
   );
 }
+
+// playwright status: 'passed' | 'failed' | 'timedOut' | 'skipped' | 'interrupted';
+
+export const iconForStatus = (status: string): JSX.Element => {
+  switch (status) {
+    case 'success':
+    case 'passed':
+      return (
+        <span style={{ color: '#2B8243' }}>
+          <CheckCircleFilled />
+        </span>
+      );
+    case 'failed':
+    case 'timedOut':
+    case 'interrupted':
+      return (
+        <span style={{ color: '#FF0A0A' }}>
+          <CloseCircleFilled />
+        </span>
+      );
+    case 'pending':
+      return <ClockCircleFilled />;
+    case 'cancelled':
+    case 'skipped':
+      return <LogoutOutlined />;
+    case 'running':
+      return <ArrowRightOutlined />;
+    default:
+      return <MinusOutlined />;
+  }
+};

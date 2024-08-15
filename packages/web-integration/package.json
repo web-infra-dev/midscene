@@ -38,7 +38,7 @@
   },
   "scripts": {
     "dev": "modern dev",
-    "build": "npm run build:pkg && npm run build:script && node ./report-script.mjs",
+    "build": "npm run build:pkg && npm run build:script",
     "build:pkg": "modern build -c ./modern.config.ts",
     "build:script": "modern build -c ./modern.inspect.config.ts",
     "build:watch": "modern build -w -c ./modern.config.ts & modern build -w -c ./modern.inspect.config.ts",
@@ -57,8 +57,7 @@
     "openai": "4.47.1",
     "sharp": "0.33.3",
     "inquirer": "10.1.5",
-    "@midscene/core": "workspace:*",
-    "@midscene/visualizer-report": "workspace:*"
+    "@midscene/core": "workspace:*"
   },
   "devDependencies": {
     "@modern-js/module-tools": "^2.56.1",

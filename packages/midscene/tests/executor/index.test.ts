@@ -169,7 +169,7 @@ describe('executor', () => {
     const tasks = executor.tasks as ExecutionTaskInsightLocate[];
 
     expect(tasks.length).toBe(2);
-    expect(tasks[0].status).toBe('fail');
+    expect(tasks[0].status).toBe('failed');
     expect(tasks[0].error).toBeTruthy();
     expect(tasks[0].timing!.end).toBeTruthy();
     expect(tasks[1].status).toBe('cancelled');
@@ -228,7 +228,7 @@ describe('executor', () => {
     const tasks = executor.tasks as ExecutionTaskInsightLocate[];
 
     expect(tasks.length).toBe(2);
-    expect(tasks[0].status).toBe('fail');
+    expect(tasks[0].status).toBe('failed');
     expect(tasks[0].error).toBeTruthy();
     expect(tasks[0].timing!.end).toBeTruthy();
     expect(tasks[1].status).toBe('cancelled');

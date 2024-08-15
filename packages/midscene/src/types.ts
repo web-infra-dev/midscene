@@ -123,6 +123,11 @@ export interface DumpMeta {
   logTime: number;
 }
 
+export interface ReportDumpWithAttributes {
+  dumpString: string;
+  attributes?: Record<string, any>;
+}
+
 export interface InsightDump extends DumpMeta {
   type: 'locate' | 'extract' | 'assert';
   logId: string;
@@ -288,7 +293,7 @@ export type ExecutionTask<
       ? TaskLog
       : unknown
   > & {
-    status: 'pending' | 'running' | 'success' | 'fail' | 'cancelled';
+    status: 'pending' | 'running' | 'success' | 'failed' | 'cancelled';
     error?: string;
     errorStack?: string;
     timing?: {
@@ -396,5 +401,6 @@ Grouped dump
 */
 export interface GroupedActionDump {
   groupName: string;
+  groupDescription?: string;
   executions: ExecutionDump[];
 }

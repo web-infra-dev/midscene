@@ -8,12 +8,13 @@ import {
   writeFileSync,
 } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { basename, join } from 'node:path';
-import type { Rect } from './types';
+import path, { basename, join } from 'node:path';
+import type { Rect, ReportDumpWithAttributes } from './types';
 
 interface PkgInfo {
   name: string;
   version: string;
+  dir: string;
 }
 
 let pkg: PkgInfo | undefined;
@@ -22,21 +23,19 @@ export function getPkgInfo(): PkgInfo {
     return pkg;
   }
 
-  let pkgJsonFile = '';
-  if (existsSync(join(__dirname, '../package.json'))) {
-    pkgJsonFile = join(__dirname, '../package.json');
-  } else if (existsSync(join(__dirname, '../../../package.json'))) {
-    pkgJsonFile = join(__dirname, '../../../package.json');
-  }
+  const pkgDir = findNearestPackageJson(__dirname);
+  assert(pkgDir, 'package.json not found');
+  const pkgJsonFile = join(pkgDir, 'package.json');
 
   if (pkgJsonFile) {
     const { name, version } = JSON.parse(readFileSync(pkgJsonFile, 'utf-8'));
-    pkg = { name, version };
+    pkg = { name, version, dir: pkgDir };
     return pkg;
   }
   return {
     name: 'midscene-unknown-page-name',
     version: '0.0.0',
+    dir: pkgDir,
   };
 }
 
@@ -45,29 +44,61 @@ let logEnvReady = false;
 export const insightDumpFileExt = 'insight-dump.json';
 export const groupedActionDumpFileExt = 'web-dump.json';
 
-export function getDumpDir() {
+export function getLogDir() {
   return logDir;
 }
 
-export function setDumpDir(dir: string) {
+export function setLogDir(dir: string) {
   logDir = dir;
 }
 
-export function getDumpDirPath(type: 'dump' | 'cache') {
-  return join(getDumpDir(), type);
+export function getLogDirByType(type: 'dump' | 'cache' | 'report') {
+  const dir = join(getLogDir(), type);
+  if (!existsSync(dir)) {
+    mkdirSync(dir, { recursive: true });
+  }
+  return dir;
 }
 
-export function writeDumpFile(opts: {
+export function writeDumpReport(
+  fileName: string,
+  dumpData: string | ReportDumpWithAttributes[],
+) {
+  const { dir } = getPkgInfo();
+  const reportTplPath = join(dir, './report/index.html');
+  existsSync(reportTplPath) ||
+    assert(false, `report template not found: ${reportTplPath}`);
+  const reportPath = join(getLogDirByType('report'), `${fileName}.html`);
+  const tpl = readFileSync(reportTplPath, 'utf-8');
+  let reportContent: string;
+  if (typeof dumpData === 'string') {
+    reportContent = tpl.replace(
+      '{{dump}}',
+      `<script type="midscene_web_dump" type="application/json">${dumpData}</script>`,
+    );
+  } else {
+    const dumps = dumpData.map(({ dumpString, attributes }) => {
+      const attributesArr = Object.keys(attributes || {}).map((key) => {
+        return `${key}="${encodeURIComponent(attributes![key])}"`;
+      });
+      return `<script type="midscene_web_dump" type="application/json" ${attributesArr.join(' ')}>${dumpString}</script>`;
+    });
+    reportContent = tpl.replace('{{dump}}', dumps.join('\n'));
+  }
+  writeFileSync(reportPath, reportContent);
+
+  return reportPath;
+}
+
+export function writeLogFile(opts: {
   fileName: string;
   fileExt: string;
   fileContent: string;
-  type?: 'dump' | 'cache';
+  type: 'dump' | 'cache' | 'report';
+  generateReport?: boolean;
 }) {
   const { fileName, fileExt, fileContent, type = 'dump' } = opts;
-  const targetDir = getDumpDirPath(type);
-  if (!existsSync(targetDir)) {
-    mkdirSync(targetDir, { recursive: true });
-  }
+  const targetDir = getLogDirByType(type);
   // Ensure directory exists
   if (!logEnvReady) {
     assert(targetDir, 'logDir should be set before writing dump file');
@@ -94,8 +125,8 @@ export function writeDumpFile(opts: {
   const filePath = join(targetDir, `${fileName}.${fileExt}`);
   writeFileSync(filePath, fileContent);
 
-  if (type === 'dump') {
-    copyFileSync(filePath, join(targetDir, `latest.${fileExt}`));
+  if (opts?.generateReport) {
+    return writeDumpReport(fileName, fileContent);
   }
 
   return filePath;
@@ -140,4 +171,26 @@ export function replacerForPageObject(key: string, value: any) {
 
 export function stringifyDumpData(data: any, indents?: number) {
   return JSON.stringify(data, replacerForPageObject, indents);
+}
+
+/**
+ * Find the nearest package.json file recursively
+ * @param {string} dir - Home directory
+ * @returns {string|null} - The most recent package.json file path or null
+ */
+export function findNearestPackageJson(dir: string): string | null {
+  const packageJsonPath = path.join(dir, 'package.json');
+
+  if (existsSync(packageJsonPath)) {
+    return dir;
+  }
+
+  const parentDir = path.dirname(dir);
+
+  // Return null if the root directory has been reached
+  if (parentDir === dir) {
+    return null;
+  }
+
+  return findNearestPackageJson(parentDir);
 }

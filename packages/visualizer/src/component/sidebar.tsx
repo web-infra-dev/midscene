@@ -1,20 +1,12 @@
 import './sidebar.less';
 import { useAllCurrentTasks, useExecutionDump } from '@/component/store';
 import { typeStr } from '@/utils';
-import {
-  ArrowRightOutlined,
-  CheckCircleFilled,
-  ClockCircleFilled,
-  CloseCircleFilled,
-  LogoutOutlined,
-  MessageOutlined,
-  MinusOutlined,
-} from '@ant-design/icons';
-import type { ExecutionTask, ExecutionTaskInsightQuery } from '@midscene/core';
+import { MessageOutlined } from '@ant-design/icons';
+import type { ExecutionTask } from '@midscene/core';
 import { Button } from 'antd';
 import { useEffect } from 'react';
-import Logo from './assets/logo-plain2.svg';
-import { timeCostStrElement } from './misc';
+// import Logo from './assets/logo-plain2.svg';
+import { iconForStatus, timeCostStrElement } from './misc';
 import PanelTitle from './panel-title';
 
 const SideItem = (props: {
@@ -26,19 +18,6 @@ const SideItem = (props: {
   const { task, onClick, selected } = props;
 
   const selectedClass = selected ? 'selected' : '';
-  let statusIcon = <MinusOutlined />;
-  if (task.status === 'success') {
-    statusIcon = <CheckCircleFilled />;
-  } else if (task.status === 'fail') {
-    statusIcon = <CloseCircleFilled />;
-  } else if (task.status === 'pending') {
-    statusIcon = <ClockCircleFilled />;
-  } else if (task.status === 'cancelled') {
-    statusIcon = <LogoutOutlined />;
-  } else if (task.status === 'running') {
-    statusIcon = <ArrowRightOutlined />;
-  }
-
   let statusText: JSX.Element | string = task.status;
   if (task.timing?.cost) {
     statusText = timeCostStrElement(task.timing.cost);
@@ -61,9 +40,7 @@ const SideItem = (props: {
     >
       {' '}
       <div className={'side-item-name'}>
-        <span className={`status-icon status-icon-${task.status}`}>
-          {statusIcon}
-        </span>
+        <span className="status-icon">{iconForStatus(task.status)}</span>
         <div className="title">{typeStr(task)}</div>
         <div className="status-text">{statusText}</div>
       </div>
@@ -72,11 +49,8 @@ const SideItem = (props: {
   );
 };
 
-const Sidebar = (props: {
-  hideLogo?: boolean;
-  logoAction?: () => void;
-}): JSX.Element => {
-  const groupedDumps = useExecutionDump((store) => store.dump);
+const Sidebar = (props: { logoAction?: () => void }): JSX.Element => {
+  const groupedDump = useExecutionDump((store) => store.dump);
   const setActiveTask = useExecutionDump((store) => store.setActiveTask);
   const activeTask = useExecutionDump((store) => store.activeTask);
   const setHoverTask = useExecutionDump((store) => store.setHoverTask);
@@ -123,8 +97,8 @@ const Sidebar = (props: {
     };
   }, [currentSelectedIndex, allTasks, setActiveTask]);
 
-  const sideList = groupedDumps?.length ? (
-    groupedDumps.map((group, groupIndex) => {
+  const sideList = groupedDump ? (
+    [groupedDump].map((group, groupIndex) => {
       const executions = group.executions.map((execution, indexOfExecution) => {
         const { tasks } = execution;
         const taskList = tasks.map((task, index) => {
@@ -191,22 +165,6 @@ const Sidebar = (props: {
   return (
     <div className="side-bar">
       <div className="top-controls">
-        <div
-          className="brand"
-          onClick={reset}
-          style={{ display: props?.hideLogo ? 'none' : 'flex' }}
-        >
-          <Logo
-            style={{ width: 70, height: 70, margin: 'auto' }}
-            onClick={() => {
-              if (props.logoAction) {
-                props.logoAction();
-              } else {
-                location.reload();
-              }
-            }}
-          />
-        </div>
         <div className="task-list">{sideList}</div>
         <div className="side-seperator side-seperator-line side-seperator-space-up" />
         <div className="task-meta-section">

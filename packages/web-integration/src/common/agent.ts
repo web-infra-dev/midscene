@@ -3,55 +3,86 @@ import type { ExecutionDump, GroupedActionDump } from '@midscene/core';
 import {
   groupedActionDumpFileExt,
   stringifyDumpData,
-  writeDumpFile,
+  writeLogFile,
 } from '@midscene/core/utils';
+import dayjs from 'dayjs';
 import { PageTaskExecutor } from '../common/tasks';
 import type { AiTaskCache } from './task-cache';
+import { printReportMsg, reportFileName } from './utils';
+
+export interface PageAgentOpt {
+  testId?: string;
+  groupName?: string;
+  groupDescription?: string;
+  cache?: AiTaskCache;
+  /* if auto generate report, default true */
+  generateReport?: boolean;
+}
 
 export class PageAgent {
   page: WebPage;
 
-  dumps: GroupedActionDump[];
+  dump: GroupedActionDump;
 
-  testId: string;
+  reportFile?: string;
 
-  dumpFile?: string;
+  reportFileName?: string;
 
   taskExecutor: PageTaskExecutor;
 
-  constructor(
-    page: WebPage,
-    opts?: { testId?: string; taskFile?: string; cache?: AiTaskCache },
-  ) {
+  opts: PageAgentOpt;
+
+  constructor(page: WebPage, opts?: PageAgentOpt) {
     this.page = page;
-    this.dumps = [
+    this.opts = Object.assign(
       {
-        groupName: opts?.taskFile || 'unnamed',
-        executions: [],
+        generateReport: true,
+        groupName: 'Midscene Report',
+        groupDescription: '',
       },
-    ];
-    this.testId = opts?.testId || String(process.pid);
+      opts || {},
+    );
+    this.dump = {
+      groupName: this.opts.groupName!,
+      groupDescription: this.opts.groupDescription,
+      executions: [],
+    };
     this.taskExecutor = new PageTaskExecutor(this.page, {
       cache: opts?.cache || { aiTasks: [] },
     });
+    this.reportFileName = reportFileName(opts?.testId || 'web');
   }
 
-  appendDump(execution: ExecutionDump) {
-    const currentDump = this.dumps[0];
+  appendExecutionDump(execution: ExecutionDump) {
+    const currentDump = this.dump;
     currentDump.executions.push(execution);
   }
 
+  dumpDataString() {
+    // update dump info
+    this.dump.groupName = this.opts.groupName!;
+    this.dump.groupDescription = this.opts.groupDescription;
+    return stringifyDumpData(this.dump);
+  }
+
   writeOutActionDumps() {
-    this.dumpFile = writeDumpFile({
-      fileName: `run-${this.testId}`,
+    const generateReport = this.opts.generateReport;
+    this.reportFile = writeLogFile({
+      fileName: this.reportFileName!,
       fileExt: groupedActionDumpFileExt,
-      fileContent: stringifyDumpData(this.dumps),
+      fileContent: this.dumpDataString(),
+      type: 'dump',
+      generateReport,
     });
+
+    if (generateReport) {
+      printReportMsg(this.reportFile);
+    }
   }
 
   async aiAction(taskPrompt: string) {
     const { executor } = await this.taskExecutor.action(taskPrompt);
-    this.appendDump(executor.dump());
+    this.appendExecutionDump(executor.dump());
     this.writeOutActionDumps();
 
     if (executor.isInErrorState()) {
@@ -62,7 +93,7 @@ export class PageAgent {
 
   async aiQuery(demand: any) {
     const { output, executor } = await this.taskExecutor.query(demand);
-    this.appendDump(executor.dump());
+    this.appendExecutionDump(executor.dump());
     this.writeOutActionDumps();
 
     if (executor.isInErrorState()) {
@@ -74,7 +105,7 @@ export class PageAgent {
 
   async aiAssert(assertion: string, msg?: string) {
     const { output, executor } = await this.taskExecutor.assert(assertion);
-    this.appendDump(executor.dump());
+    this.appendExecutionDump(executor.dump());
     this.writeOutActionDumps();
 
     if (!output?.pass) {

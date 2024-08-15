@@ -4,5 +4,4 @@ packages:
   - packages/midscene
   - packages/playwright-demo
   - packages/visualizer
-  - packages/visualizer-report
   - packages/web-integration
