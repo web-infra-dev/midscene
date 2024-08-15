@@ -9,6 +9,7 @@ import {
   imageInfoOfBase64,
 } from '@midscene/core/image';
 import { getTmpFile } from '@midscene/core/utils';
+import dayjs from 'dayjs';
 import { WebElementInfo, type WebElementInfoType } from '../web-element';
 import type { WebPage } from './page';
 
@@ -106,4 +107,13 @@ export function findNearestPackageJson(dir: string): string | null {
   }
 
   return findNearestPackageJson(parentDir);
+}
+
+export function reportFileName(tag = 'web') {
+  const dateTimeInFileName = dayjs().format('YYYY-MM-DD_HH-mm-ss-SSS');
+  return `${tag}-${dateTimeInFileName}`;
+}
+
+export function printReportMsg(filepath: string) {
+  console.log('Midscene - report file updated:', filepath);
 }

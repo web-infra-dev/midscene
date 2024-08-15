@@ -41,6 +41,33 @@ describe(
       console.log('Github service status', result);
 
       expect(async () => {
+        // there is no food delivery service on Github
+        await mid.aiAssert(
+          'there is a "food delivery" service on page and is in normal state',
+        );
+
+        await sleep(2000);
+
+        // find the items
+        const items = await mid.aiQuery(
+          '"{name: string, price: number, actionBtnName: string}[], return item name, price and the action button name on the lower right corner of each item (like "Remove")',
+        );
+        console.log('item list', items);
+        expect(items.length).toBeGreaterThanOrEqual(2);
+
+        await mid.aiAssert('The price of "Sauce Labs Onesie" is 7.99');
+      });
+    });
+    it('extract the Github service status', async () => {
+      const page = await launchPage('https://www.githubstatus.com/');
+      const mid = new PuppeteerAgent(page);
+
+      const result = await mid.aiQuery(
+        'this is a service status page. Extract all status data with this scheme: {[serviceName]: [statusText]}',
+      );
+      console.log('Github service status', result);
+
+      expect(async () => {
         //   // there is no food delivery service on Github
         await mid.aiAssert(
           'there is a "food delivery" service on page and is in normal state',

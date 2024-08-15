@@ -1,7 +1,7 @@
 {
   "name": "@midscene/cli",
   "description": "Cli for Midscene.js",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "jsnext:source": "./src/index.ts",
   "main": "./dist/lib/index.js",
   "bin": {
@@ -21,7 +21,7 @@
   "dependencies": {
     "@midscene/web": "workspace:*",
     "ora-classic": "5.4.2",
-    "puppeteer": "^22.8.0",
+    "puppeteer": "23.0.2",
     "yargs": "17.7.2"
   },
   "devDependencies": {

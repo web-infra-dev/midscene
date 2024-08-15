@@ -16,9 +16,8 @@ test('ai todo', async ({ ai, aiQuery }) => {
   await ai(
     'Enter "Learning AI the day after tomorrow" in the task box, then press Enter to create',
   );
-  await ai(
-    'Move your mouse over the second item in the task list and click the Delete button to the right of the second task',
-  );
+  await ai('Move your mouse over the second item in the task list');
+  await ai('Click the delete button to the right of the second task');
   await ai('Click the check button to the left of the second task');
   await ai('Click the completed Status button below the task list');
 

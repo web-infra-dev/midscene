@@ -2,28 +2,33 @@ import './index.less';
 import DetailSide from '@/component/detail-side';
 import Sidebar from '@/component/sidebar';
 import { useExecutionDump } from '@/component/store';
+import { DownOutlined } from '@ant-design/icons';
 import type { GroupedActionDump } from '@midscene/core';
 import { Helmet } from '@modern-js/runtime/head';
-import { Button, ConfigProvider, Upload, message } from 'antd';
-import type { UploadProps } from 'antd';
-import { useEffect, useRef, useState } from 'react';
+import { ConfigProvider, Dropdown, Select, Upload, message } from 'antd';
+import type { MenuProps, UploadProps } from 'antd';
+import React, { useEffect, useRef, useState } from 'react';
+import ReactDOM from 'react-dom/client';
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
-import Logo from './component/assets/logo-plain.svg';
+import logo from './component/assets/logo-plain.png';
 import DetailPanel from './component/detail-panel';
 import GlobalHoverPreview from './component/global-hover-preview';
+import { iconForStatus, timeCostStrElement } from './component/misc';
 import Timeline from './component/timeline';
-import demoDump from './demo-dump.json';
 
 const { Dragger } = Upload;
-
 let globalRenderCount = 1;
 
+interface ExecutionDumpWithPlaywrightAttributes extends GroupedActionDump {
+  attributes: Record<string, any>;
+}
+
 export function Visualizer(props: {
-  hideLogo?: boolean;
   logoAction?: () => void;
-  dump?: GroupedActionDump[];
+  hideLogo?: boolean;
+  dumps?: ExecutionDumpWithPlaywrightAttributes[];
 }): JSX.Element {
-  const { dump } = props;
+  const { dumps, hideLogo = false } = props;
 
   const executionDump = useExecutionDump((store) => store.dump);
   const setGroupedDump = useExecutionDump((store) => store.setGroupedDump);
@@ -32,8 +37,8 @@ export function Visualizer(props: {
   const mainLayoutChangedRef = useRef(false);
 
   useEffect(() => {
-    if (dump) {
-      setGroupedDump(dump);
+    if (dumps) {
+      setGroupedDump(dumps[0]);
     }
     return () => {
       reset();
@@ -60,8 +65,6 @@ export function Visualizer(props: {
     },
     beforeUpload(file) {
       const ifValidFile = file.name.endsWith('web-dump.json'); // || file.name.endsWith('.insight.json');
-      // const ifActionFile =
-      //   file.name.endsWith('.actions.json') || /_force_regard_as_action_file/.test(location.href);
       if (!ifValidFile) {
         message.error('invalid file extension');
         return false;
@@ -73,12 +76,7 @@ export function Visualizer(props: {
         if (typeof result === 'string') {
           try {
             const data = JSON.parse(result);
-            // setMainLayoutChangeFlag((prev) => prev + 1);
-            setGroupedDump(data);
-            // if (ifActionFile) {
-            // } else {
-            //   loadInsightDump(data);
-            // }
+            setGroupedDump(data[0]);
           } catch (e: any) {
             console.error(e);
             message.error('failed to parse dump data', e.message);
@@ -91,17 +89,17 @@ export function Visualizer(props: {
     },
   };
 
-  const loadDemoDump = () => {
-    setGroupedDump(demoDump as any);
-  };
-
   let mainContent: JSX.Element;
   if (!executionDump) {
     mainContent = (
       <div className="main-right uploader-wrapper">
         <Dragger className="uploader" {...uploadProps}>
           <p className="ant-upload-drag-icon">
-            <Logo style={{ width: 100, height: 100, margin: 'auto' }} />
+            <img
+              alt="Midscene_logo"
+              style={{ width: 80, margin: 'auto' }}
+              src={logo}
+            />
           </p>
           <p className="ant-upload-text">
             Click or drag the{' '}
@@ -125,11 +123,11 @@ export function Visualizer(props: {
             sent to the server.
           </p>
         </Dragger>
-        <div className="demo-loader">
+        {/* <div className="demo-loader">
           <Button type="link" onClick={loadDemoDump}>
             Load Demo
           </Button>
-        </div>
+        </div> */}
       </div>
     );
 
@@ -146,7 +144,7 @@ export function Visualizer(props: {
         }}
       >
         <Panel maxSize={95} defaultSize={20}>
-          <Sidebar hideLogo={props?.hideLogo} logoAction={props?.logoAction} />
+          <Sidebar logoAction={props?.logoAction} />
         </Panel>
         <PanelResizeHandle
           onDragging={(isChanging) => {
@@ -218,6 +216,28 @@ export function Visualizer(props: {
     };
   }, []);
 
+  const selectOptions = dumps?.map((dump, index) => ({
+    value: index,
+    label: `${dump.groupName} - ${dump.groupDescription}`,
+    groupName: dump.groupName,
+    groupDescription: dump.groupDescription,
+  }));
+
+  const selectWidget =
+    selectOptions && selectOptions.length > 1 ? (
+      <Select
+        options={selectOptions}
+        defaultValue={0}
+        // labelRender={labelRender}
+        onChange={(value) => {
+          const dump = dumps![value];
+          setGroupedDump(dump);
+        }}
+        defaultOpen
+        style={{ width: '100%' }}
+      />
+    ) : null;
+
   return (
     <ConfigProvider
       theme={{
@@ -232,13 +252,32 @@ export function Visualizer(props: {
       }}
     >
       <Helmet>
-        <title>Midscene.js - Visualization Tool</title>
+        <title>Visualization - Midscene.js</title>
       </Helmet>
       <div
         className="page-container"
         key={`render-${globalRenderCount}`}
         style={{ height: containerHeight }}
       >
+        {hideLogo ? null : (
+          <div className="page-nav">
+            <div className="logo">
+              <img
+                alt="Midscene_logo"
+                src="https://lf3-static.bytednsdoc.com/obj/eden-cn/vhaeh7vhabf/logo-light-with-text.png"
+              />
+            </div>
+            {/* <div className="dump-selector">{selectWidget}</div> */}
+            <PlaywrightCaseSelector
+              dumps={props.dumps}
+              selected={executionDump}
+              onSelect={(dump) => {
+                setGroupedDump(dump);
+              }}
+            />
+            {/* <div className="title">Midscene.js</div> */}
+          </div>
+        )}
         {mainContent}
       </div>
       <GlobalHoverPreview />
@@ -246,4 +285,110 @@ export function Visualizer(props: {
   );
 }
 
-export default Visualizer;
+function PlaywrightCaseSelector(props: {
+  dumps?: ExecutionDumpWithPlaywrightAttributes[];
+  selected?: GroupedActionDump | null;
+  onSelect?: (dump: GroupedActionDump) => void;
+}) {
+  if (!props.dumps || props.dumps.length <= 1) return null;
+
+  const nameForDump = (dump: GroupedActionDump) =>
+    `${dump.groupName} - ${dump.groupDescription}`;
+  const items = (props.dumps || []).map((dump, index) => {
+    const status = iconForStatus(dump.attributes?.playwright_test_status);
+    const costStr = dump.attributes?.playwright_test_duration;
+    const cost = costStr ? (
+      <span key={index} className="cost-str">
+        {' '}
+        ({timeCostStrElement(Number.parseInt(costStr, 10))})
+      </span>
+    ) : null;
+    return {
+      key: index,
+      label: (
+        <a
+          // biome-ignore lint/a11y/useValidAnchor: <explanation>
+          onClick={(e) => {
+            e.preventDefault();
+            if (props.onSelect) {
+              props.onSelect(dump);
+            }
+          }}
+        >
+          <div>
+            {status}
+            {'  '}
+            {nameForDump(dump)}
+            {cost}
+          </div>
+        </a>
+      ),
+    };
+  });
+
+  const btnName = props.selected
+    ? nameForDump(props.selected)
+    : 'Select a case';
+
+  return (
+    <div className="playwright-case-selector">
+      <Dropdown menu={{ items }}>
+        {/* biome-ignore lint/a11y/useValidAnchor: <explanation> */}
+        <a onClick={(e) => e.preventDefault()}>
+          {btnName}&nbsp;
+          <DownOutlined />
+        </a>
+      </Dropdown>
+    </div>
+  );
+}
+
+function mount(id: string) {
+  const element = document.getElementById(id);
+  if (!element) {
+    throw new Error(`failed to get element for id: ${id}`);
+  }
+  const root = ReactDOM.createRoot(element);
+
+  const dumpElements = document.querySelectorAll(
+    'script[type="midscene_web_dump"]',
+  );
+  const reportDump: ExecutionDumpWithPlaywrightAttributes[] = [];
+  Array.from(dumpElements)
+    .filter((el) => {
+      const textContent = el.textContent;
+      if (!textContent) {
+        console.warn('empty content in script tag', el);
+      }
+      return !!textContent;
+    })
+    .forEach((el) => {
+      const attributes: Record<string, any> = {};
+      Array.from(el.attributes).forEach((attr) => {
+        const { name, value } = attr;
+        const valueDecoded = decodeURIComponent(value);
+        if (name.startsWith('playwright_')) {
+          attributes[attr.name] = valueDecoded;
+        }
+      });
+
+      const content = el.textContent;
+      let jsonContent: ExecutionDumpWithPlaywrightAttributes;
+      try {
+        jsonContent = JSON.parse(content!);
+        jsonContent.attributes = attributes;
+        reportDump.push(jsonContent);
+      } catch (e) {
+        console.error(el);
+        console.error('failed to parse json content', e);
+      }
+    });
+
+  // console.log('reportDump', reportDump);
+  root.render(<Visualizer dumps={reportDump} />);
+}
+
+export default {
+  mount,
+  Visualizer,
+};

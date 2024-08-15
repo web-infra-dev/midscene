@@ -6,7 +6,11 @@ html,
 body {
   padding: 0;
   margin: 0;
+  // font-size: 3.3rem;
+  line-height: 1;
 }
+
+
 
 .rspress-nav {
   transition: .2s;
@@ -42,6 +46,11 @@ footer.mt-8{
 // ----------
 
 .page-container {
+
+  blockquote, dl, dd, h1, h2, h3, h4, h5, h6, hr, figure, p, pre {
+    margin: 0;
+  }
+
   display: flex;
   flex-direction: column;
   height: 100%;
@@ -50,6 +59,35 @@ footer.mt-8{
   font-size: 14px;
   border-top: 1px solid @border-color;
   border-bottom: 1px solid @border-color;
+  font-synthesis: style;
+  text-rendering: optimizelegibility;
+  -webkit-font-smoothing: antialiased;
+  line-height: 1.5;
+}
+
+.page-nav {
+  height: 30px;
+  padding: 10px;
+  border-bottom: 1px solid @border-color;
+  display: flex;
+  flex-direction: row;
+
+  .logo img {
+    height: 20px;
+    line-height: 30px;
+    vertical-align: baseline;
+    vertical-align: -webkit-baseline-middle;
+  }
+
+  .playwright-case-selector {
+    margin-left: 20px;
+    line-height: 30px;
+    // width: 320px;
+  }
+}
+
+.cost-str {
+  color: @weak-text;
 }
 
 .ant-layout {
@@ -102,14 +140,8 @@ footer.mt-8{
     
   .main-side {
     box-sizing: border-box;
-    // margin-left: @layout-space;
-    // margin: calc(@layout-space/2);
-    // padding-left: @layout-padding;
     overflow-y: scroll;
-
-    // flex-basis: 380px; /* Set the fixed width */
-    // flex-grow: 0;     /* Prevent it from growing */
-    // flex-shrink: 0;   /* Prevent it from shrinking */
+    height: 100%;
   }
 
   .json-content {

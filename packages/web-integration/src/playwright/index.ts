@@ -27,26 +27,46 @@ const groupAndCaseForTest = (testInfo: TestInfo) => {
 };
 
 const midsceneAgentKeyId = '_midsceneAgentId';
+export const midsceneDumpAnnotationId = 'MIDSCENE_DUMP_ANNOTATION';
 export const PlaywrightAiFixture = () => {
   const pageAgentMap: Record<string, PageAgent> = {};
   const agentForPage = (
     page: WebPage,
-    opts: { testId: string; taskFile: string; taskTitle: string },
+    testInfo: TestInfo, // { testId: string; taskFile: string; taskTitle: string },
   ) => {
     let idForPage = (page as any)[midsceneAgentKeyId];
     if (!idForPage) {
       idForPage = randomUUID();
       (page as any)[midsceneAgentKeyId] = idForPage;
-      const testCase = readTestCache(opts.taskFile, opts.taskTitle) || {
+      const { testId } = testInfo;
+      const { taskFile, taskTitle } = groupAndCaseForTest(testInfo);
+      const testCase = readTestCache(taskFile, taskTitle) || {
         aiTasks: [],
       };
+
       pageAgentMap[idForPage] = new PageAgent(page, {
-        testId: `${opts.testId}-${idForPage}`,
-        taskFile: opts.taskFile,
+        testId: `playwright-${testId}-${idForPage}`,
+        groupName: taskTitle,
+        groupDescription: taskFile,
         cache: testCase,
+        generateReport: false, // we will generate it in the reporter
       });
     }
     return pageAgentMap[idForPage];
+  };
+
+  const updateDumpAnnotation = (test: TestInfo, dump: string) => {
+    const currentAnnotation = test.annotations.find((item) => {
+      return item.type === midsceneDumpAnnotationId;
+    });
+    if (currentAnnotation) {
+      currentAnnotation.description = dump;
+    } else {
+      test.annotations.push({
+        type: midsceneDumpAnnotationId,
+        description: dump,
+      });
+    }
   };
 
   return {
@@ -56,11 +76,7 @@ export const PlaywrightAiFixture = () => {
       testInfo: TestInfo,
     ) => {
       const { taskFile, taskTitle } = groupAndCaseForTest(testInfo);
-      const agent = agentForPage(page, {
-        testId: testInfo.testId,
-        taskFile,
-        taskTitle,
-      });
+      const agent = agentForPage(page, testInfo);
       await use(
         async (taskPrompt: string, opts?: { type?: 'action' | 'query' }) => {
           await page.waitForLoadState('networkidle');
@@ -71,15 +87,7 @@ export const PlaywrightAiFixture = () => {
       );
       const taskCacheJson = agent.taskExecutor.taskCache.generateTaskCache();
       writeTestCache(taskFile, taskTitle, taskCacheJson);
-      if (agent.dumpFile) {
-        testInfo.annotations.push({
-          type: 'MIDSCENE_AI_ACTION',
-          description: JSON.stringify({
-            testId: testInfo.testId,
-            dumpPath: agent.dumpFile,
-          }),
-        });
-      }
+      updateDumpAnnotation(testInfo, agent.dumpDataString());
     },
     aiAction: async (
       { page }: { page: PlaywrightPage },
@@ -87,75 +95,38 @@ export const PlaywrightAiFixture = () => {
       testInfo: TestInfo,
     ) => {
       const { taskFile, taskTitle } = groupAndCaseForTest(testInfo);
-      const agent = agentForPage(page, {
-        testId: testInfo.testId,
-        taskFile,
-        taskTitle,
-      });
+      const agent = agentForPage(page, testInfo);
       await use(async (taskPrompt: string) => {
         await page.waitForLoadState('networkidle');
         await agent.aiAction(taskPrompt);
       });
-      if (agent.dumpFile) {
-        testInfo.annotations.push({
-          type: 'MIDSCENE_AI_ACTION',
-          description: JSON.stringify({
-            testId: testInfo.testId,
-            dumpPath: agent.dumpFile,
-          }),
-        });
-      }
+      // Why there's no cache here ?
+      updateDumpAnnotation(testInfo, agent.dumpDataString());
     },
     aiQuery: async (
       { page }: { page: PlaywrightPage },
       use: any,
       testInfo: TestInfo,
     ) => {
-      const { taskFile, taskTitle } = groupAndCaseForTest(testInfo);
-      const agent = agentForPage(page, {
-        testId: testInfo.testId,
-        taskFile,
-        taskTitle,
-      });
+      const agent = agentForPage(page, testInfo);
       await use(async (demand: any) => {
         await page.waitForLoadState('networkidle');
         const result = await agent.aiQuery(demand);
         return result;
       });
-      if (agent.dumpFile) {
-        testInfo.annotations.push({
-          type: 'MIDSCENE_AI_ACTION',
-          description: JSON.stringify({
-            testId: testInfo.testId,
-            dumpPath: agent.dumpFile,
-          }),
-        });
-      }
+      updateDumpAnnotation(testInfo, agent.dumpDataString());
     },
     aiAssert: async (
       { page }: { page: PlaywrightPage },
       use: any,
       testInfo: TestInfo,
     ) => {
-      const { taskFile, taskTitle } = groupAndCaseForTest(testInfo);
-      const agent = agentForPage(page, {
-        testId: testInfo.testId,
-        taskFile,
-        taskTitle,
-      });
+      const agent = agentForPage(page, testInfo);
       await use(async (assertion: string, errorMsg?: string) => {
         await page.waitForLoadState('networkidle');
         await agent.aiAssert(assertion, errorMsg);
       });
-      if (agent.dumpFile) {
-        testInfo.annotations.push({
-          type: 'MIDSCENE_AI_ACTION',
-          description: JSON.stringify({
-            testId: testInfo.testId,
-            dumpPath: agent.dumpFile,
-          }),
-        });
-      }
+      updateDumpAnnotation(testInfo, agent.dumpDataString());
     },
   };
 };

@@ -6,81 +6,6 @@ exports[`extractor > basic 1`] = `
     "attributes": {
       "nodeType": "TEXT Node",
     },
-    "content": "Data Record
-  1970-01-01 19:25:01
-  User Name: Stella
-  
-    
-      
-        ID
-        Field 2
-        Field 3
-        Field 4
-        Field 5
-      
-    
-    
-      
-        30S
-        Kace Cervantes
-        Aylin Sawyer
-        Jefferson Kirby
-        Skyla Jefferson
-      
-      
-        70U
-        Florence Davenport
-        Dariel Acevedo
-        Ashlynn Delacruz
-        Memphis Leal
-      
-      
-        3AY
-        Crystal Newman
-        Anderson Brown
-        Charlotte Griffith
-        Franklin Everett
-      
-      
-        YPG
-        Kori Payne
-        Edward Blevins
-        Aila Gill
-        Matthias Reed
-      
-      
-        ZEN
-        Magnolia Duke
-        Kalel Glover
-        Alessia Barton
-        Cassius Peck
-      
-    
-  
-  
-    Form
-    Name:
-    
-    Click Me
-    Shape
-    
-    
-    
-
-
-    
-  
-  
-    var input = document.getElementById('J_input');
-    var keyRecord = document.getElementById('J_keyRecord');
-    input.addEventListener('keyup', function (e) {
-      keyRecord.innerHTML += '\\n' + e.key;
-    });",
-  },
-  {
-    "attributes": {
-      "nodeType": "TEXT Node",
-    },
     "content": "Data Record",
   },
   {
@@ -487,6 +412,38 @@ exports[`extractor > basic 1`] = `
       "placeholder": "this_is_a_textarea",
     },
     "content": "this_is_a_textarea",
+  },
+  {
+    "attributes": {
+      "class": ".gh-ar-hdn",
+      "for": "gh-ac",
+      "nodeType": "TEXT Node",
+    },
+    "content": "输入搜索关键词",
+  },
+  {
+    "attributes": {
+      "_midscene_retrieve_task_id": "36bc72f23a",
+      "aria-autocomplete": "list",
+      "aria-expanded": "false",
+      "aria-haspopup": "true",
+      "aria-label": "搜索任何物品",
+      "aria-owns": "ui-id-1",
+      "autocapitalize": "off",
+      "autocomplete": "off",
+      "autocorrect": "off",
+      "class": ".gh-tb.ui-autocomplete-input",
+      "id": "gh-ac",
+      "maxlength": "300",
+      "name": "_nkw",
+      "nodeType": "INPUT Node",
+      "placeholder": "搜索任何物品",
+      "role": "combobox",
+      "size": "50",
+      "spellcheck": "false",
+      "type": "text",
+    },
+    "content": "搜索任何物品",
   },
 ]
 `;

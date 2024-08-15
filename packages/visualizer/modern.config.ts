@@ -1,20 +1,39 @@
 import { defineConfig, moduleTools } from '@modern-js/module-tools';
-import { modulePluginDoc } from '@modern-js/plugin-module-doc';
 
 export default defineConfig({
-  buildConfig: {
-    asset: {
-      svgr: true,
-    },
-  },
-  plugins: [
-    moduleTools(),
-    modulePluginDoc({
-      doc: {
-        sidebar: false,
-        hideNavbar: true,
+  buildConfig: [
+    {
+      asset: {
+        svgr: true,
       },
-    }),
+      format: 'umd',
+      umdModuleName: 'midSceneVisualizer',
+      autoExternal: false,
+      externals: [],
+      dts: false,
+      platform: 'browser',
+      outDir: 'dist/report',
+      minify: {
+        compress: true,
+      },
+    },
+    {
+      asset: {
+        svgr: true,
+      },
+      format: 'esm',
+      input: {
+        index: 'src/index.tsx',
+      },
+      autoExternal: false,
+      externals: [],
+      dts: false,
+      platform: 'browser',
+      minify: {
+        compress: false,
+      },
+    },
   ],
+  plugins: [moduleTools()],
   buildPreset: 'npm-component',
 });

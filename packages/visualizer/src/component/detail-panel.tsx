@@ -56,7 +56,7 @@ const DetailPanel = (): JSX.Element => {
   } else if (viewType === VIEW_TYPE_SCREENSHOT) {
     if (activeTask.recorder?.length) {
       content = (
-        <div>
+        <div className="screenshot-item-wrapper">
           {activeTask.recorder
             .filter((item) => item.screenshot)
             .map((item, index) => {

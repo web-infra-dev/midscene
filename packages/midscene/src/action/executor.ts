@@ -134,7 +134,7 @@ export class Executor {
         task.error = e?.message || 'error-without-message';
         task.errorStack = e.stack;
 
-        task.status = 'fail';
+        task.status = 'failed';
         task.timing.end = Date.now();
         task.timing.cost = task.timing.end - task.timing.start;
         break;
@@ -166,7 +166,7 @@ export class Executor {
       return null;
     }
     const errorTaskIndex = this.tasks.findIndex(
-      (task) => task.status === 'fail',
+      (task) => task.status === 'failed',
     );
     if (errorTaskIndex >= 0) {
       return this.tasks[errorTaskIndex];
