@@ -6,11 +6,7 @@
   "main": "./dist/lib/index.js",
   "module": "./dist/es/index.js",
   "types": "./dist/types/index.d.ts",
-  "files": [
-    "dist",
-    "report",
-    "README.md"
-  ],
+  "files": ["dist", "report", "README.md"],
   "exports": {
     ".": {
       "types": "./dist/types/index.d.ts",

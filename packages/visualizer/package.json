@@ -5,16 +5,10 @@
   "jsnext:source": "./src/index.ts",
   "main": "./dist/lib/index.js",
   "module": "./dist/es/index.js",
-  "files": [
-    "dist",
-    "html",
-    "README.md"
-  ],
+  "files": ["dist", "html", "README.md"],
   "watch": {
     "build": {
-      "patterns": [
-        "src"
-      ],
+      "patterns": ["src"],
       "extensions": "tsx,less,scss,css,js,jsx,ts",
       "quiet": false
     }
@@ -27,8 +21,7 @@
     "new": "modern new",
     "upgrade": "modern upgrade"
   },
-  "dependencies": {
-  },
+  "dependencies": {},
   "devDependencies": {
     "npm-watch": "0.13.0",
     "@ant-design/icons": "5.3.7",
