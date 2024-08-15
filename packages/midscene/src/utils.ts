@@ -75,7 +75,6 @@ export function writeDumpReport(
 ) {
   const { dir } = getPkgInfo();
   const reportTplPath = join(dir, './report/index.html');
-  console.log('reportTplPath', reportTplPath);
   existsSync(reportTplPath) ||
     assert(false, `report template not found: ${reportTplPath}`);
   const reportPath = join(getLogDirByType('report'), `${fileName}.html`);
