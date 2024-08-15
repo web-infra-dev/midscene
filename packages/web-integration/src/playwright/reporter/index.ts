@@ -20,9 +20,8 @@ const testDataList: Array<ReportDumpWithAttributes> = [];
 let filename: string;
 function updateReport() {
   const reportPath = writeDumpReport(filename, testDataList);
+  writeDumpReport('latest-playwright-report', testDataList);
   printReportMsg(reportPath);
-  const latestPath = writeDumpReport('latest-playwright-report', testDataList);
-  printReportMsg(latestPath);
 }
 
 class MidsceneReporter implements Reporter {
