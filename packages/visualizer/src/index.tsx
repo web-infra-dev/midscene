@@ -23,7 +23,7 @@ interface ExecutionDumpWithPlaywrightAttributes extends GroupedActionDump {
   attributes: Record<string, any>;
 }
 
-function Visualizer(props: {
+export function Visualizer(props: {
   logoAction?: () => void;
   dumps?: ExecutionDumpWithPlaywrightAttributes[];
 }): JSX.Element {

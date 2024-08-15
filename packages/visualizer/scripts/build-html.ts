@@ -13,13 +13,13 @@ import { copyFileSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 const htmlPath = join(__dirname, '../html/tpl.html');
-const cssPath = join(__dirname, '../dist/index.css');
-const jsPath = join(__dirname, '../dist/index.js');
+const cssPath = join(__dirname, '../dist/report/index.css');
+const jsPath = join(__dirname, '../dist/report/index.js');
 const demoPath = join(__dirname, './fixture/demo-dump.json');
 const multiEntrySegment = join(__dirname, './fixture/multi-entries.html');
-const outputHTML = join(__dirname, '../dist/index.html');
-const outputDemoHTML = join(__dirname, '../dist/demo.html');
-const outputMultiEntriesHTML = join(__dirname, '../dist/multi.html');
+const outputHTML = join(__dirname, '../dist/report/index.html');
+const outputDemoHTML = join(__dirname, '../dist/report/demo.html');
+const outputMultiEntriesHTML = join(__dirname, '../dist/report/multi.html');
 
 function tplReplacer(tpl: string, obj: Record<string, string>) {
   return tpl.replace(/{{\s*(\w+)\s*}}/g, (_, key) => {

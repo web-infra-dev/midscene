@@ -2,7 +2,6 @@
   "name": "@midscene/visualizer",
   "version": "0.2.2",
   "types": "./dist/types/index.d.ts",
-  "jsnext:source": "./src/index.ts",
   "main": "./dist/lib/index.js",
   "module": "./dist/es/index.js",
   "files": ["dist", "html", "README.md"],
