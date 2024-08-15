@@ -10,7 +10,7 @@ import type { MenuProps, UploadProps } from 'antd';
 import React, { useEffect, useRef, useState } from 'react';
 import ReactDOM from 'react-dom/client';
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
-import Logo from './component/assets/logo-plain.svg';
+import logo from './component/assets/logo-plain.png';
 import DetailPanel from './component/detail-panel';
 import GlobalHoverPreview from './component/global-hover-preview';
 import { iconForStatus, timeCostStrElement } from './component/misc';
@@ -25,9 +25,10 @@ interface ExecutionDumpWithPlaywrightAttributes extends GroupedActionDump {
 
 export function Visualizer(props: {
   logoAction?: () => void;
+  hideLogo?: boolean;
   dumps?: ExecutionDumpWithPlaywrightAttributes[];
 }): JSX.Element {
-  const { dumps } = props;
+  const { dumps, hideLogo = false } = props;
 
   const executionDump = useExecutionDump((store) => store.dump);
   const setGroupedDump = useExecutionDump((store) => store.setGroupedDump);
@@ -75,7 +76,7 @@ export function Visualizer(props: {
         if (typeof result === 'string') {
           try {
             const data = JSON.parse(result);
-            setGroupedDump(data);
+            setGroupedDump(data[0]);
           } catch (e: any) {
             console.error(e);
             message.error('failed to parse dump data', e.message);
@@ -94,7 +95,11 @@ export function Visualizer(props: {
       <div className="main-right uploader-wrapper">
         <Dragger className="uploader" {...uploadProps}>
           <p className="ant-upload-drag-icon">
-            <Logo style={{ width: 100, height: 100, margin: 'auto' }} />
+            <img
+              alt="Midscene_logo"
+              style={{ width: 80, margin: 'auto' }}
+              src={logo}
+            />
           </p>
           <p className="ant-upload-text">
             Click or drag the{' '}
@@ -254,23 +259,25 @@ export function Visualizer(props: {
         key={`render-${globalRenderCount}`}
         style={{ height: containerHeight }}
       >
-        <div className="page-nav">
-          <div className="logo">
-            <img
-              alt="Midscene_logo"
-              src="https://lf3-static.bytednsdoc.com/obj/eden-cn/vhaeh7vhabf/logo-light-with-text.png"
+        {hideLogo ? null : (
+          <div className="page-nav">
+            <div className="logo">
+              <img
+                alt="Midscene_logo"
+                src="https://lf3-static.bytednsdoc.com/obj/eden-cn/vhaeh7vhabf/logo-light-with-text.png"
+              />
+            </div>
+            {/* <div className="dump-selector">{selectWidget}</div> */}
+            <PlaywrightCaseSelector
+              dumps={props.dumps}
+              selected={executionDump}
+              onSelect={(dump) => {
+                setGroupedDump(dump);
+              }}
             />
+            {/* <div className="title">Midscene.js</div> */}
           </div>
-          {/* <div className="dump-selector">{selectWidget}</div> */}
-          <PlaywrightCaseSelector
-            dumps={props.dumps}
-            selected={executionDump}
-            onSelect={(dump) => {
-              setGroupedDump(dump);
-            }}
-          />
-          {/* <div className="title">Midscene.js</div> */}
-        </div>
+        )}
         {mainContent}
       </div>
       <GlobalHoverPreview />
