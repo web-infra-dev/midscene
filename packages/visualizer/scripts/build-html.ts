@@ -45,7 +45,7 @@ function tplReplacer(tpl: string, obj: Record<string, string>) {
 }
 
 function copyToCore() {
-  const corePath = join(__dirname, '../../midscene/dist/report/index.html');
+  const corePath = join(__dirname, '../../midscene/report/index.html');
   ensureDirectoryExistence(corePath);
   copyFileSync(outputHTML, corePath);
   console.log(`HTML file copied to core successfully: ${corePath}`);
