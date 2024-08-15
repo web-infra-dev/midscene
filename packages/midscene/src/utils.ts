@@ -8,7 +8,7 @@ import {
   writeFileSync,
 } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { basename, join } from 'node:path';
+import path, { basename, join } from 'node:path';
 import type { Rect, ReportDumpWithAttributes } from './types';
 
 interface PkgInfo {
@@ -23,18 +23,9 @@ export function getPkgInfo(): PkgInfo {
     return pkg;
   }
 
-  let pkgJsonFile = '';
-  let pkgDir = '';
-  if (existsSync(join(__dirname, '../package.json'))) {
-    pkgJsonFile = join(__dirname, '../package.json');
-    pkgDir = join(__dirname, '../');
-  } else if (existsSync(join(__dirname, '../../package.json'))) {
-    pkgJsonFile = join(__dirname, '../../package.json');
-    pkgDir = join(__dirname, '../../');
-  } else if (existsSync(join(__dirname, '../../../package.json'))) {
-    pkgJsonFile = join(__dirname, '../../../package.json');
-    pkgDir = join(__dirname, '../../../');
-  }
+  const pkgDir = findNearestPackageJson(__dirname);
+  assert(pkgDir, 'package.json not found');
+  const pkgJsonFile = join(pkgDir, 'package.json');
 
   if (pkgJsonFile) {
     const { name, version } = JSON.parse(readFileSync(pkgJsonFile, 'utf-8'));
@@ -180,4 +171,26 @@ export function replacerForPageObject(key: string, value: any) {
 
 export function stringifyDumpData(data: any, indents?: number) {
   return JSON.stringify(data, replacerForPageObject, indents);
+}
+
+/**
+ * Find the nearest package.json file recursively
+ * @param {string} dir - Home directory
+ * @returns {string|null} - The most recent package.json file path or null
+ */
+export function findNearestPackageJson(dir: string): string | null {
+  const packageJsonPath = path.join(dir, 'package.json');
+
+  if (existsSync(packageJsonPath)) {
+    return dir;
+  }
+
+  const parentDir = path.dirname(dir);
+
+  // Return null if the root directory has been reached
+  if (parentDir === dir) {
+    return null;
+  }
+
+  return findNearestPackageJson(parentDir);
 }
