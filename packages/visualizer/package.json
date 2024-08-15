@@ -5,16 +5,10 @@
   "jsnext:source": "./src/index.ts",
   "main": "./dist/lib/index.js",
   "module": "./dist/es/index.js",
-  "files": [
-    "dist",
-    "html",
-    "README.md"
-  ],
+  "files": ["dist", "html", "README.md"],
   "watch": {
     "build": {
-      "patterns": [
-        "src"
-      ],
+      "patterns": ["src"],
       "extensions": "tsx,less,scss,css,js,jsx,ts",
       "quiet": false
     }
@@ -49,12 +43,7 @@
     "rimraf": "~3.0.2",
     "typescript": "~5.0.4"
   },
-  "sideEffects": [
-    "**/*.css",
-    "**/*.less",
-    "**/*.sass",
-    "**/*.scss"
-  ],
+  "sideEffects": ["**/*.css", "**/*.less", "**/*.sass", "**/*.scss"],
   "publishConfig": {
     "access": "public"
   }

@@ -18,10 +18,9 @@
     "pre-commit": "npx nano-staged"
   },
   "nano-staged": {
-    "*.{md,mdx,json,css,less,scss}": "prettier --write",
+    "*.{md,mdx,json,css,less,scss}": "npx biome check . --diagnostic-level=warn --no-errors-on-unmatched --fix",
     "*.{js,jsx,ts,tsx,mjs,cjs}": [
-      "biome check --changed --write --formatter-enabled=false --linter-enabled=false --no-errors-on-unmatched",
-      "prettier --write"
+      "npx biome check . --diagnostic-level=warn --no-errors-on-unmatched --fix"
     ],
     "package.json": "pnpm run check-dependency-version"
   },
