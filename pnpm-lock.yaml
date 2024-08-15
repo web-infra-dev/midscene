@@ -230,6 +230,9 @@ importers:
       rimraf:
         specifier: ~3.0.2
         version: 3.0.2
+      ts-node:
+        specifier: 10.9.2
+        version: 10.9.2(@types/node@18.19.41)(typescript@5.0.4)
       typescript:
         specifier: ~5.0.4
         version: 5.0.4

@@ -5,10 +5,16 @@
   "jsnext:source": "./src/index.ts",
   "main": "./dist/lib/index.js",
   "module": "./dist/es/index.js",
-  "files": ["dist", "html", "README.md"],
+  "files": [
+    "dist",
+    "html",
+    "README.md"
+  ],
   "watch": {
     "build": {
-      "patterns": ["src"],
+      "patterns": [
+        "src"
+      ],
       "extensions": "tsx,less,scss,css,js,jsx,ts",
       "quiet": false
     }
@@ -24,6 +30,7 @@
   "dependencies": {},
   "devDependencies": {
     "npm-watch": "0.13.0",
+    "ts-node": "10.9.2",
     "@ant-design/icons": "5.3.7",
     "@midscene/core": "workspace:*",
     "@modern-js/runtime": "^2.56.2",
@@ -42,7 +49,12 @@
     "rimraf": "~3.0.2",
     "typescript": "~5.0.4"
   },
-  "sideEffects": ["**/*.css", "**/*.less", "**/*.sass", "**/*.scss"],
+  "sideEffects": [
+    "**/*.css",
+    "**/*.less",
+    "**/*.sass",
+    "**/*.scss"
+  ],
   "publishConfig": {
     "access": "public"
   }
