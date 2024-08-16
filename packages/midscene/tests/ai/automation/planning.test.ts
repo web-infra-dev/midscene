@@ -27,6 +27,7 @@ modelList.forEach((model) => {
         },
         model,
       );
+      console.log('automation - planning plans:', plans);
       expect(plans.length).toBe(4);
       expect(plans[0].thought).toBeTruthy();
       expect(plans[0].type).toBe('Locate');
