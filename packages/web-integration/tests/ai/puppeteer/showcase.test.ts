@@ -58,6 +58,7 @@ describe(
         await mid.aiAssert('The price of "Sauce Labs Onesie" is 7.99');
       });
     });
+
     it('extract the Github service status', async () => {
       const page = await launchPage('https://www.githubstatus.com/');
       const mid = new PuppeteerAgent(page);

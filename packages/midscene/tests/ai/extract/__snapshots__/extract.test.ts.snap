@@ -1,5 +1,38 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
+exports[`assert coze > todo 1`] = `
+{
+  "data": [
+    "Learn Python",
+    "Learn Rust",
+    "Learn AI",
+  ],
+  "errors": [],
+  "language": "en",
+}
+`;
+
+exports[`assert coze > todo obj 1`] = `
+{
+  "data": [
+    {
+      "checked": false,
+      "text": "Learn Python",
+    },
+    {
+      "checked": false,
+      "text": "Learn Rust",
+    },
+    {
+      "checked": false,
+      "text": "Learn AI",
+    },
+  ],
+  "errors": [],
+  "language": "en",
+}
+`;
+
 exports[`assert openAI > online order 1`] = `
 {
   "data": [
