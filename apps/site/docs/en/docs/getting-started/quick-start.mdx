@@ -113,12 +113,8 @@ npx playwright test ./e2e/ebay-search.spec.ts
 
 ### Step 5. view test report after running
 
-Follow the instructions in the command line to server the report. 
+After the above command executes successfully, it will output in the console: `Midscene - report file updated: xxx/midscene_run/report/xxx.html`. Open this file in a browser to view the report.
 
-```bash
-# sample command
-npx http-server ./midscene_run/report -p 9888 -o -s
-```
 
 ## Integrate with Puppeteer
 
@@ -206,6 +202,14 @@ npx ts-node demo.ts
 #   }
 # ]
 ```
+
+
+### Step 4: View the Run Report
+
+After the above command executes successfully, the console will output: `Midscene - report file updated: xxx/midscene_run/report/xxx.html`. You can open this file in a browser to view the report.
+
+Alternatively, you can import the `./midscene_run/report/latest.web-dump.json` file into the [Visualization Tool](/visualization/) to view it.
+
 
 ### View test report after running
 
