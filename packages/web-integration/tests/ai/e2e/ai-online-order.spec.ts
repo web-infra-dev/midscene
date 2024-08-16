@@ -31,6 +31,8 @@ test('ai online order', async ({ ai, aiQuery }) => {
   //   productPrice: "商品价格",
   //   productDescription: "商品描述（饮品的各种参数，吸管、冰沙等），在价格下面",
   // }));
+  expect(cardDetail.productName).toContain('多肉葡萄');
+  expect(cardDetail.productDescription).toContain('绿妍');
 
   console.log('商品订单详情：', {
     productName: cardDetail.productName,

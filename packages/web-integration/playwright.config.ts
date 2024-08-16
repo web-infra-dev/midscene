@@ -15,8 +15,8 @@ dotenv.config({
  * See https://playwright.dev/docs/test-configuration.
  */
 export default defineConfig({
-  testDir: './tests/e2e',
-  testIgnore: 'generate-test-data.spec.ts',
+  testDir: './tests/ai/e2e',
+  // testIgnore: 'generate-test-data.spec.ts',
   timeout: 900 * 1000,
   /* Run tests in files in parallel */
   fullyParallel: true,

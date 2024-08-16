@@ -53,6 +53,7 @@ export async function call(
     model,
     messages,
     response_format: { type: responseFormat },
+    temperature: 0.2,
   });
 
   const { content } = completion.choices[0].message;
