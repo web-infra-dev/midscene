@@ -1,7 +1,62 @@
 [
   {
-    "id": "ab22d01377",
+    "id": "ea40edd387",
     "indexId": "1",
+    "nodeHashId": "ea40edd387",
+    "attributes": {
+      "nodeType": "TEXT Node"
+    },
+    "locator": "[_midscene_retrieve_task_id='ea40edd387']",
+    "center": [640, 333],
+    "content": "todosNew Todo InputToggle All InputLearn PythonLearn RustLearn AI3 items left!AllActiveCompletedClear completedDouble-click to edit a todoCreated by the TodoMVC TeamPart of TodoMVC",
+    "rect": {
+      "left": 365,
+      "top": 130,
+      "width": 550,
+      "height": 405
+    }
+  },
+  {
+    "id": "9852da9d9d",
+    "indexId": "2",
+    "nodeHashId": "9852da9d9d",
+    "attributes": {
+      "class": ".todoapp",
+      "id": "root",
+      "nodeType": "TEXT Node"
+    },
+    "locator": "[_midscene_retrieve_task_id='9852da9d9d']",
+    "center": [640, 273],
+    "content": "todosNew Todo InputToggle All InputLearn PythonLearn RustLearn AI3 items left!AllActiveCompletedClear completed",
+    "rect": {
+      "left": 365,
+      "top": 130,
+      "width": 550,
+      "height": 285
+    }
+  },
+  {
+    "id": "4fb6353da5",
+    "indexId": "3",
+    "nodeHashId": "4fb6353da5",
+    "attributes": {
+      "class": ".header",
+      "data-testid": "header",
+      "nodeType": "TEXT Node"
+    },
+    "locator": "[_midscene_retrieve_task_id='4fb6353da5']",
+    "center": [640, 163],
+    "content": "todosNew Todo Input",
+    "rect": {
+      "left": 365,
+      "top": 130,
+      "width": 550,
+      "height": 65
+    }
+  },
+  {
+    "id": "ab22d01377",
+    "indexId": "4",
     "nodeHashId": "ab22d01377",
     "attributes": {
       "nodeType": "TEXT Node"
@@ -17,8 +72,26 @@
     }
   },
   {
+    "id": "8017b79ddf",
+    "indexId": "5",
+    "nodeHashId": "8017b79ddf",
+    "attributes": {
+      "class": ".input-container",
+      "nodeType": "TEXT Node"
+    },
+    "locator": "[_midscene_retrieve_task_id='8017b79ddf']",
+    "center": [640, 163],
+    "content": "New Todo Input",
+    "rect": {
+      "left": 365,
+      "top": 130,
+      "width": 550,
+      "height": 65
+    }
+  },
+  {
     "id": "3530a9c1eb",
-    "indexId": "2",
+    "indexId": "6",
     "nodeHashId": "3530a9c1eb",
     "locator": "[_midscene_retrieve_task_id='3530a9c1eb']",
     "attributes": {
@@ -39,8 +112,27 @@
     "center": [640, 163]
   },
   {
+    "id": "69f35e9901",
+    "indexId": "7",
+    "nodeHashId": "69f35e9901",
+    "attributes": {
+      "class": ".main",
+      "data-testid": "main",
+      "nodeType": "TEXT Node"
+    },
+    "locator": "[_midscene_retrieve_task_id='69f35e9901']",
+    "center": [640, 285],
+    "content": "Toggle All InputLearn PythonLearn RustLearn AI",
+    "rect": {
+      "left": 365,
+      "top": 195,
+      "width": 550,
+      "height": 179
+    }
+  },
+  {
     "id": "eb02ad0e19",
-    "indexId": "3",
+    "indexId": "8",
     "nodeHashId": "eb02ad0e19",
     "locator": "[_midscene_retrieve_task_id='eb02ad0e19']",
     "attributes": {
@@ -60,7 +152,7 @@
   },
   {
     "id": "22625b5e51",
-    "indexId": "4",
+    "indexId": "9",
     "nodeHashId": "22625b5e51",
     "attributes": {
       "class": ".toggle-all-label",
@@ -78,8 +170,64 @@
     }
   },
   {
+    "id": "e4ef824007",
+    "indexId": "10",
+    "nodeHashId": "e4ef824007",
+    "attributes": {
+      "class": ".todo-list",
+      "data-testid": "todo-list",
+      "nodeType": "TEXT Node"
+    },
+    "locator": "[_midscene_retrieve_task_id='e4ef824007']",
+    "center": [640, 285],
+    "content": "Learn PythonLearn RustLearn AI",
+    "rect": {
+      "left": 365,
+      "top": 196,
+      "width": 550,
+      "height": 178
+    }
+  },
+  {
+    "id": "4f56e8b8e4",
+    "indexId": "11",
+    "nodeHashId": "4f56e8b8e4",
+    "attributes": {
+      "class": ".",
+      "data-testid": "todo-item",
+      "nodeType": "TEXT Node"
+    },
+    "locator": "[_midscene_retrieve_task_id='4f56e8b8e4']",
+    "center": [640, 226],
+    "content": "Learn Python",
+    "rect": {
+      "left": 365,
+      "top": 196,
+      "width": 550,
+      "height": 60
+    }
+  },
+  {
+    "id": "46449cb0ef",
+    "indexId": "12",
+    "nodeHashId": "46449cb0ef",
+    "attributes": {
+      "class": ".view",
+      "nodeType": "TEXT Node"
+    },
+    "locator": "[_midscene_retrieve_task_id='46449cb0ef']",
+    "center": [640, 226],
+    "content": "Learn Python",
+    "rect": {
+      "left": 365,
+      "top": 196,
+      "width": 550,
+      "height": 59
+    }
+  },
+  {
     "id": "e0a509c9a3",
-    "indexId": "5",
+    "indexId": "13",
     "nodeHashId": "e0a509c9a3",
     "locator": "[_midscene_retrieve_task_id='e0a509c9a3']",
     "attributes": {
@@ -99,7 +247,7 @@
   },
   {
     "id": "46449cb0ef",
-    "indexId": "6",
+    "indexId": "14",
     "nodeHashId": "46449cb0ef",
     "attributes": {
       "data-testid": "todo-item-label",
@@ -116,8 +264,45 @@
     }
   },
   {
+    "id": "a8143d1217",
+    "indexId": "15",
+    "nodeHashId": "a8143d1217",
+    "attributes": {
+      "class": ".",
+      "data-testid": "todo-item",
+      "nodeType": "TEXT Node"
+    },
+    "locator": "[_midscene_retrieve_task_id='a8143d1217']",
+    "center": [640, 286],
+    "content": "Learn Rust",
+    "rect": {
+      "left": 365,
+      "top": 256,
+      "width": 550,
+      "height": 60
+    }
+  },
+  {
+    "id": "b5bacc879a",
+    "indexId": "16",
+    "nodeHashId": "b5bacc879a",
+    "attributes": {
+      "class": ".view",
+      "nodeType": "TEXT Node"
+    },
+    "locator": "[_midscene_retrieve_task_id='b5bacc879a']",
+    "center": [640, 286],
+    "content": "Learn Rust",
+    "rect": {
+      "left": 365,
+      "top": 256,
+      "width": 550,
+      "height": 59
+    }
+  },
+  {
     "id": "c0751f3b26",
-    "indexId": "7",
+    "indexId": "17",
     "nodeHashId": "c0751f3b26",
     "locator": "[_midscene_retrieve_task_id='c0751f3b26']",
     "attributes": {
@@ -137,7 +322,7 @@
   },
   {
     "id": "b5bacc879a",
-    "indexId": "8",
+    "indexId": "18",
     "nodeHashId": "b5bacc879a",
     "attributes": {
       "data-testid": "todo-item-label",
@@ -155,7 +340,7 @@
   },
   {
     "id": "7ccd467339",
-    "indexId": "9",
+    "indexId": "19",
     "nodeHashId": "7ccd467339",
     "locator": "[_midscene_retrieve_task_id='7ccd467339']",
     "attributes": {
@@ -173,8 +358,45 @@
     "center": [885, 285]
   },
   {
+    "id": "6c30e37d29",
+    "indexId": "20",
+    "nodeHashId": "6c30e37d29",
+    "attributes": {
+      "class": ".",
+      "data-testid": "todo-item",
+      "nodeType": "TEXT Node"
+    },
+    "locator": "[_midscene_retrieve_task_id='6c30e37d29']",
+    "center": [640, 346],
+    "content": "Learn AI",
+    "rect": {
+      "left": 365,
+      "top": 316,
+      "width": 550,
+      "height": 59
+    }
+  },
+  {
+    "id": "6c30e37d29",
+    "indexId": "21",
+    "nodeHashId": "6c30e37d29",
+    "attributes": {
+      "class": ".view",
+      "nodeType": "TEXT Node"
+    },
+    "locator": "[_midscene_retrieve_task_id='6c30e37d29']",
+    "center": [640, 346],
+    "content": "Learn AI",
+    "rect": {
+      "left": 365,
+      "top": 316,
+      "width": 550,
+      "height": 59
+    }
+  },
+  {
     "id": "eb987bf616",
-    "indexId": "10",
+    "indexId": "22",
     "nodeHashId": "eb987bf616",
     "locator": "[_midscene_retrieve_task_id='eb987bf616']",
     "attributes": {
@@ -194,7 +416,7 @@
   },
   {
     "id": "6c30e37d29",
-    "indexId": "11",
+    "indexId": "23",
     "nodeHashId": "6c30e37d29",
     "attributes": {
       "data-testid": "todo-item-label",
@@ -211,8 +433,27 @@
     }
   },
   {
+    "id": "e11f6c5a9b",
+    "indexId": "24",
+    "nodeHashId": "e11f6c5a9b",
+    "attributes": {
+      "class": ".footer",
+      "data-testid": "footer",
+      "nodeType": "TEXT Node"
+    },
+    "locator": "[_midscene_retrieve_task_id='e11f6c5a9b']",
+    "center": [640, 395],
+    "content": "3 items left!AllActiveCompletedClear completed",
+    "rect": {
+      "left": 365,
+      "top": 374,
+      "width": 550,
+      "height": 41
+    }
+  },
+  {
     "id": "12fb207e82",
-    "indexId": "12",
+    "indexId": "25",
     "nodeHashId": "12fb207e82",
     "attributes": {
       "class": ".todo-count",
@@ -229,8 +470,44 @@
     }
   },
   {
+    "id": "264f4823c9",
+    "indexId": "26",
+    "nodeHashId": "264f4823c9",
+    "attributes": {
+      "class": ".filters",
+      "data-testid": "footer-navigation",
+      "nodeType": "TEXT Node"
+    },
+    "locator": "[_midscene_retrieve_task_id='264f4823c9']",
+    "center": [640, 395],
+    "content": "AllActiveCompleted",
+    "rect": {
+      "left": 365,
+      "top": 385,
+      "width": 550,
+      "height": 20
+    }
+  },
+  {
+    "id": "1a93d63ded",
+    "indexId": "27",
+    "nodeHashId": "1a93d63ded",
+    "attributes": {
+      "nodeType": "TEXT Node"
+    },
+    "locator": "[_midscene_retrieve_task_id='1a93d63ded']",
+    "center": [565, 395],
+    "content": "All",
+    "rect": {
+      "left": 547,
+      "top": 386,
+      "width": 36,
+      "height": 18
+    }
+  },
+  {
     "id": "944c1fae15",
-    "indexId": "13",
+    "indexId": "28",
     "nodeHashId": "944c1fae15",
     "attributes": {
       "class": ".selected",
@@ -248,8 +525,25 @@
     }
   },
   {
+    "id": "02fc5f5f2a",
+    "indexId": "29",
+    "nodeHashId": "02fc5f5f2a",
+    "attributes": {
+      "nodeType": "TEXT Node"
+    },
+    "locator": "[_midscene_retrieve_task_id='02fc5f5f2a']",
+    "center": [613, 395],
+    "content": "Active",
+    "rect": {
+      "left": 583,
+      "top": 386,
+      "width": 60,
+      "height": 18
+    }
+  },
+  {
     "id": "fc1a3e34a0",
-    "indexId": "14",
+    "indexId": "30",
     "nodeHashId": "fc1a3e34a0",
     "attributes": {
       "class": ".",
@@ -267,8 +561,25 @@
     }
   },
   {
+    "id": "22220fe185",
+    "indexId": "31",
+    "nodeHashId": "22220fe185",
+    "attributes": {
+      "nodeType": "TEXT Node"
+    },
+    "locator": "[_midscene_retrieve_task_id='22220fe185']",
+    "center": [688, 395],
+    "content": "Completed",
+    "rect": {
+      "left": 642,
+      "top": 386,
+      "width": 91,
+      "height": 18
+    }
+  },
+  {
     "id": "0f8f471e06",
-    "indexId": "15",
+    "indexId": "32",
     "nodeHashId": "0f8f471e06",
     "attributes": {
       "class": ".",
@@ -287,7 +598,7 @@
   },
   {
     "id": "84b6988e83",
-    "indexId": "16",
+    "indexId": "33",
     "nodeHashId": "84b6988e83",
     "locator": "[_midscene_retrieve_task_id='84b6988e83']",
     "attributes": {
@@ -304,8 +615,26 @@
     "center": [849, 395]
   },
   {
+    "id": "05ca0fe580",
+    "indexId": "34",
+    "nodeHashId": "05ca0fe580",
+    "attributes": {
+      "class": ".info",
+      "nodeType": "TEXT Node"
+    },
+    "locator": "[_midscene_retrieve_task_id='05ca0fe580']",
+    "center": [640, 508],
+    "content": "Double-click to edit a todoCreated by the TodoMVC TeamPart of TodoMVC",
+    "rect": {
+      "left": 365,
+      "top": 480,
+      "width": 550,
+      "height": 55
+    }
+  },
+  {
     "id": "586415981c",
-    "indexId": "17",
+    "indexId": "35",
     "nodeHashId": "586415981c",
     "attributes": {
       "nodeType": "TEXT Node"
@@ -322,7 +651,7 @@
   },
   {
     "id": "d501ec8b0c",
-    "indexId": "18",
+    "indexId": "36",
     "nodeHashId": "d501ec8b0c",
     "attributes": {
       "nodeType": "TEXT Node"
@@ -339,7 +668,7 @@
   },
   {
     "id": "332bc0052f",
-    "indexId": "19",
+    "indexId": "37",
     "nodeHashId": "332bc0052f",
     "attributes": {
       "nodeType": "TEXT Node"
@@ -356,7 +685,7 @@
   },
   {
     "id": "70ba39c5c6",
-    "indexId": "20",
+    "indexId": "38",
     "nodeHashId": "70ba39c5c6",
     "attributes": {
       "href": "http://todomvc.com",

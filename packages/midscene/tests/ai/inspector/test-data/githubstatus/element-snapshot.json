@@ -1,25 +1,7 @@
 [
   {
-    "id": "af212c0aa4",
-    "indexId": "1",
-    "nodeHashId": "af212c0aa4",
-    "attributes": {
-      "class": ".custom-header-container",
-      "nodeType": "TEXT Node"
-    },
-    "locator": "[_midscene_retrieve_task_id='af212c0aa4']",
-    "center": [960, 248],
-    "content": "GitHub Octicon logo\n  \n  \n    Help\n    Community\n    Status\n  \n  \n  \n    GitHub.com\n    Twitter\n    \n      \n    \n\n    \n\n\n    \n      \n          \n            \n          \n          \n            \n          \n          \n            \n          \n          \n            \n          \n          \n            \n          \n          \n            \n          \n          \n            \n          \n        \n          x\n        \n      \n      \n          \n            \n              Get email notifications whenever GitHub creates,  updates or resolves an incident.\n            \n            \n              \n                \n                Email address:\n                \n                \n                \n                  Enter OTP:\n                  \n                  Resend OTP in:  seconds \n                  \n                    Didn't receive the OTP?\n                    Resend OTP \n                  \n                \n                  \n                  \n                  By subscribing you agree to our Privacy Policy. This site is protected by reCAPTCHA and the Google Privacy Policy and Terms of Service apply.\n          \n\n          \n            \n                Get text message notifications whenever GitHub creates or resolves an incident.\n            \n            \n              \n              \n              \n                \n                  \n                  Country code:\n                  \n                      Afghanistan (+93)\nAlbania (+355)\nAlgeria (+213)\nAmerican Samoa (+1)\nAndorra (+376)\nAngola (+244)\nAnguilla (+1)\nAntigua and Barbuda (+1)\nArgentina (+54)\nArmenia (+374)\nAruba (+297)\nAustralia/Cocos/Christmas Island (+61)\nAustria (+43)\nAzerbaijan (+994)\nBahamas (+1)\nBahrain (+973)\nBangladesh (+880)\nBarbados (+1)\nBelarus (+375)\nBelgium (+32)\nBelize (+501)\nBenin (+229)\nBermuda (+1)\nBolivia (+591)\nBosnia and Herzegovina (+387)\nBotswana (+267)\nBrazil (+55)\nBrunei (+673)\nBulgaria (+359)\nBurkina Faso (+226)\nBurundi (+257)\nCambodia (+855)\nCameroon (+237)\nCanada (+1)\nCape Verde (+238)\nCayman Islands (+1)\nCentral Africa (+236)\nChad (+235)\nChile (+56)\nChina (+86)\nColombia (+57)\nComoros (+269)\nCongo (+242)\nCongo, Dem Rep (+243)\nCosta Rica (+506)\nCroatia (+385)\nCyprus (+357)\nCzech Republic (+420)\nDenmark (+45)\nDjibouti (+253)\nDominica (+1)\nDominican Republic (+1)\nEgypt (+20)\nEl Salvador (+503)\nEquatorial Guinea (+240)\nEstonia (+372)\nEthiopia (+251)\nFaroe Islands (+298)\nFiji (+679)\nFinland/Aland Islands (+358)\nFrance (+33)\nFrench Guiana (+594)\nFrench Polynesia (+689)\nGabon (+241)\nGambia (+220)\nGeorgia (+995)\nGermany (+49)\nGhana (+233)\nGibraltar (+350)\nGreece (+30)\nGreenland (+299)\nGrenada (+1)\nGuadeloupe (+590)\nGuam (+1)\nGuatemala (+502)\nGuinea (+224)\nGuyana (+592)\nHaiti (+509)\nHonduras (+504)\nHong Kong (+852)\nHungary (+36)\nIceland (+354)\nIndia (+91)\nIndonesia (+62)\nIraq (+964)\nIreland (+353)\nIsrael (+972)\nItaly (+39)\nJamaica (+1)\nJapan (+81)\nJordan (+962)\nKenya (+254)\nKorea, Republic of (+82)\nKosovo (+383)\nKuwait (+965)\nKyrgyzstan (+996)\nLaos (+856)\nLatvia (+371)\nLebanon (+961)\nLesotho (+266)\nLiberia (+231)\nLibya (+218)\nLiechtenstein (+423)\nLithuania (+370)\nLuxembourg (+352)\nMacao (+853)\nMacedonia (+389)\nMadagascar (+261)\nMalawi (+265)\nMalaysia (+60)\nMaldives (+960)\nMali (+223)\nMalta (+356)\nMartinique (+596)\nMauritania (+222)\nMauritius (+230)\nMexico (+52)\nMonaco (+377)\nMongolia (+976)\nMontenegro (+382)\nMontserrat (+1)\nMorocco/Western Sahara (+212)\nMozambique (+258)\nNamibia (+264)\nNepal (+977)\nNetherlands (+31)\nNew Zealand (+64)\nNicaragua (+505)\nNiger (+227)\nNigeria (+234)\nNorway (+47)\nOman (+968)\nPakistan (+92)\nPalestinian Territory (+970)\nPanama (+507)\nParaguay (+595)\nPeru (+51)\nPhilippines (+63)\nPoland (+48)\nPortugal (+351)\nPuerto Rico (+1)\nQatar (+974)\nReunion/Mayotte (+262)\nRomania (+40)\nRussia/Kazakhstan (+7)\nRwanda (+250)\nSamoa (+685)\nSan Marino (+378)\nSaudi Arabia (+966)\nSenegal (+221)\nSerbia (+381)\nSeychelles (+248)\nSierra Leone (+232)\nSingapore (+65)\nSlovakia (+421)\nSlovenia (+386)\nSouth Africa (+27)\nSpain (+34)\nSri Lanka (+94)\nSt Kitts and Nevis (+1)\nSt Lucia (+1)\nSt Vincent Grenadines (+1)\nSudan (+249)\nSuriname (+597)\nSwaziland (+268)\nSweden (+46)\nSwitzerland (+41)\nTaiwan (+886)\nTajikistan (+992)\nTanzania (+255)\nThailand (+66)\nTogo (+228)\nTonga (+676)\nTrinidad and Tobago (+1)\nTunisia (+216)\nTurkey (+90)\nTurks and Caicos Islands (+1)\nUganda (+256)\nUkraine (+380)\nUnited Arab Emirates (+971)\nUnited Kingdom (+44)\nUnited States (+1)\nUruguay (+598)\nUzbekistan (+998)\nVenezuela (+58)\nVietnam (+84)\nVirgin Islands, British (+1)\nVirgin Islands, U.S. (+1)\nYemen (+967)\nZambia (+260)\nZimbabwe (+263)\n                  \n                  Phone number:\n                  \n                  \n                  \n                  \n                    Change number\n                    Enter OTP:\n                    \n                    Resend OTP in: 30 seconds \n                    \n                      Didn't receive the OTP?\n                      Resend OTP \n                    \n                    \n                \n              \n\n                \n                \n              Message and data rates may apply. By subscribing you agree to our Privacy Policy, the Atlassian Terms of Service, and the Atlassian Privacy Policy. This site is protected by reCAPTCHA and the Google Privacy Policy and Terms of Service apply.\n          \n\n          \n            \n              Get incident updates and maintenance status messages in Slack.\n            \n            Subscribe via Slack\n            By subscribing you acknowledge our Privacy Policy. In addition, you agree to the Atlassian Cloud Terms of Service and acknowledge Atlassian's Privacy Policy.\n          \n\n\n          \n            \n              Get webhook notifications whenever GitHub creates an incident, updates an incident, resolves an incident or changes a component status.\n            \n            \n              \n                \n                  Webhook URL:\n                  \n                  The URL we should send the webhooks to\n                \n              \n\n              \n                \n                  Email address:\n                  \n                  We'll send you email if your endpoint fails\n                \n              \n\n                \n                \n                By subscribing you agree to our Privacy Policy. This site is protected by reCAPTCHA and the Google Privacy Policy and Terms of Service apply.\n\n          \n\n          \n            \n            or \n            view our profile.\n            \n              .twitter-follow-button {\n                margin-bottom: -6px;\n              }\n            \n\n              !function(d,s,id){var js,fjs=d.getElementsByTagName(s)[0],p=/^http:/.test(d.location)?'http':'https';if(!d.getElementById(id)){js=d.createElement(s);js.id=id;js.src=p+'://platform.twitter.com/widgets.js';fjs.parentNode.insertBefore(js,fjs);}}(document, 'script', 'twitter-wjs');\n          \n\n          \n            Visit our support site.\n          \n\n          \n            Get the Atom Feed or RSS Feed.\n          \n      \n    \n  \n    \n    \n\n\n\n\n\n      \n  \n\n\n  $(function () {\n    const phoneNumberInput = $('#phone-number');\n    const errorDiv = $('#sms-atl-error')\n    if(errorDiv.length){\n      function checkSelectedCountry() {\n        const selectedCountry = $('#phone-country').val();\n        const isOtpEnabled = $('#phone-number-country-code').attr('data-otp-enabled') === 'true';\n        const form = document.getElementById('subscribe-form-sms');\n        form.action = '/subscriptions/new-sms';\n        const isOtpFlow = document.getElementById('otp_verify_flow');\n        document.getElementById('otp-container').style.display = \"none\";\n        if(false && selectedCountry === 'sg') { // Replace 'SG' with the actual value representing Singapore in your select tag\n          phoneNumberInput.prop('disabled', true);\n          errorDiv.html(`Due to new Singapore government regulations, we're currently not supporting text subscriptions in Singapore.<a href=\"https://community.atlassian.com/t5/Statuspage-articles/Attention-SMS-notifications-will-be-disabled-on-August-1st-2023/ba-p/2424398\" target=\"_blank\"> Learn more.</a> <br> Select another method to subscribe.`);\n        } else {\n          phoneNumberInput.prop('readonly', false);\n          errorDiv.html('');\n          if(false){\n            if(isOtpEnabled){\n              document.getElementById('subscribe-btn-sms').value = \"Send OTP\";\n            }\n            else {\n              isOtpFlow.value = false;\n              document.getElementById('subscribe-btn-sms').value = \"Subscribe via Text Message\";\n            }\n          }\n        }\n      }\n\n      $('#phone-country').on('change', checkSelectedCountry);\n      checkSelectedCountry();\n    }\n  });\n\n  document.addEventListener('DOMContentLoaded', function() {\n    const dropdown = document.querySelector('#phone-number-country-code .phone-country');\n    if (dropdown){\n      const wrapperDiv = document.getElementById('phone-number-country-code');\n      const selectedOption = dropdown.options[dropdown.selectedIndex];\n      const otpEnabled = selectedOption.getAttribute('data-otp-enabled');\n\n      wrapperDiv.setAttribute('data-otp-enabled', otpEnabled);\n\n      dropdown.addEventListener('change', function() {\n        const selectedOption = dropdown.options[dropdown.selectedIndex];\n        const otpEnabled = selectedOption.getAttribute('data-otp-enabled');\n\n        wrapperDiv.setAttribute('data-otp-enabled', otpEnabled);\n      });\n    }\n  });\n\n  var countdownTimer;\n  var resendBtn = document.getElementById('resend');\n  var timer = document.getElementById('timer');\n  var form = document.getElementById('subscribe-form-sms');\n  var RESEND_TIMER = 30;\n  $(function() {\n    $('#subscribe-form-sms').on('ajax:success', function(e, data, status, xhr){\n      const form = this;\n      const action = form.getAttribute('action');\n      if (data.type === 'success' && data.otp_flow === true) {\n        document.getElementById('subscriber_code').value = data.subscriber_code\n        document.getElementById('otp-container').style.display = \"block\";\n        $('#phone-number').prop('readonly', true);\n        var display = document.getElementById('countdown');\n        disableResend();\n        startTimer(RESEND_TIMER, display)\n        document.getElementById('subscribe-btn-sms').value = \"Verify OTP and Subscribe\";\n        document.getElementById('otp_verify_flow').value = true;\n        form.action = '/subscriptions/verify-otp';\n      } else if (data.type === 'success' && action.includes('verify')){\n        document.getElementById('otp-container').style.display = \"none\";\n        $('#phone-number').val('').prop('readonly', false);\n        $('#otp').val('');\n        document.getElementById('subscribe-btn-sms').value = \"Send OTP\";\n        document.getElementById('otp_verify_flow').value = false;\n        form.action = '/subscriptions/new-sms';\n        SP.currentPage.updatesDropdown.hide();\n      }\n    });\n    $(\"#btn-subcriber-change-number\").on('click', () => {\n      document.getElementById('otp-container').style.display = \"none\";\n      $('#phone-number').prop('readonly', false);\n      document.getElementById('subscribe-btn-sms').value = \"Send OTP\";\n      form.action = '/subscriptions/new-sms';\n      return false\n    })\n    $('#resend-otp-btn').on('click', function(e) {\n      e.preventDefault();\n      let phoneNumber = $('#phone-number').val();\n      let countryCode = $('.phone-country').val();\n      $.ajax({\n        type: 'POST',\n        url: \"/subscriptions/new-sms\",\n        data: {\n          phone_number: phoneNumber,\n          phone_country: countryCode,\n          type: 'resend'\n        },\n      }).done(function(data) {\n        var messageOptions = (data.type !== undefined && data.type !== null) ? { cssClass: data.type } : {};\n        HRB.utils.notify(data.text, messageOptions);\n        var display = document.getElementById('countdown');\n        disableResend();\n        timer.style.display = \"none\"\n        if (data.type === 'success') {\n          startTimer(RESEND_TIMER, display);\n        }\n      })\n    });\n  })\n\n  function startTimer(duration, display){\n    var timer = duration, seconds;\n    clearInterval(countdownTimer);\n    countdownTimer = setInterval(function () {\n      seconds = parseInt(timer % 60, 10);\n      display.textContent = seconds;\n      if(--timer < 0){\n        enableResend();\n        clearInterval(countdownTimer);\n      }\n    }, 1000);\n    disableResend();\n  }\n  function enableResend(){\n    resendBtn.style.display = \"block\";\n    timer.style.display = \"none\"\n  }\n  function disableResend(){\n    resendBtn.style.display = \"none\";\n    timer.style.display = \"block\"\n  }\n\n  $(function() {\n    $('#subscribe-form-email').on('submit', function() {\n      var tokenField = document.getElementById('email-otp-token-field');\n      let page_code = \"kctbh9vrtdwd\"\n      let key = keyForEmailOtpToken($('#email').val(), page_code);\n      tokenField.value = localStorage.getItem(key);\n    });\n  });\n\n  var emailOtpCountdownTimer;\n  var emailOtpResendBtn = document.getElementById('resend-email-otp');\n  var emailOtpTimer = document.getElementById('email-otp-timer');\n  var emailOtpForm = document.getElementById('subscribe-form-email');\n  var EMAIL_OTP_RESEND_TIMER = 600;\n  $(function() {\n    $('#subscribe-form-email').on('ajax:success', function(e, data, status, xhr){\n      const form = this;\n      const action = form.getAttribute('action');\n      if (data.type === 'success' && data.email_otp_verify_flow === true) {\n        document.getElementById('email-otp-container').style.display = \"block\";\n        var display = document.getElementById('email-otp-countdown');\n        display.textContent = EMAIL_OTP_RESEND_TIMER;\n        disableEmailOtpResend();\n        startEmailOtpTimer(EMAIL_OTP_RESEND_TIMER, display)\n        document.getElementById('subscribe-btn-email').value = \"Verify OTP and Subscribe\";\n        document.getElementById('email_otp_verify_flow').value = true;\n        form.action = '/subscriptions/verify-email-otp';\n      } else if (data.type === 'success' && action.includes('verify')){\n        let email =  $('#email')\n        let page_code = \"kctbh9vrtdwd\"\n        let key = keyForEmailOtpToken(email.val(), page_code);\n        localStorage.setItem(key, data.email_otp_auth_token);\n\n        document.getElementById('email-otp-container').style.display = \"none\";\n        email.val('').prop('readonly', false);\n        $('#email-otp').val('');\n        document.getElementById('subscribe-btn-email').value = \"Send OTP\";\n        document.getElementById('email_otp_verify_flow').value = false;\n        form.action = '/subscriptions/new-email';\n        SP.currentPage.updatesDropdown.hide();\n      }\n    });\n    $('#resend-email-otp-btn').on('click', function(e) {\n      e.preventDefault();\n      let email = $('#email').val();\n      $.ajax({\n        type: 'POST',\n        url: \"/subscriptions/new-email\",\n        data: {\n          email: email\n        },\n      }).done(function(data) {\n        var messageOptions = (data.type !== undefined && data.type !== null) ? { cssClass: data.type } : {};\n        HRB.utils.notify(data.text, messageOptions);\n        if (data.type === 'success') {\n          var display = document.getElementById('email-otp-countdown');\n          display.textContent = EMAIL_OTP_RESEND_TIMER;\n          disableEmailOtpResend();\n          emailOtpTimer.style.display = \"none\"\n          startEmailOtpTimer(EMAIL_OTP_RESEND_TIMER, display);\n        }\n      })\n    });\n  })\n\n  function startEmailOtpTimer(duration, display){\n    var timer = duration, seconds;\n    clearInterval(emailOtpCountdownTimer);\n    emailOtpCountdownTimer = setInterval(function () {\n      seconds = parseInt(timer, 10);\n      display.textContent = seconds;\n      if(--timer < 0){\n        enableEmailOtpResend();\n        clearInterval(emailOtpCountdownTimer);\n      }\n    }, 1000);\n    disableEmailOtpResend();\n  }\n\n  function enableEmailOtpResend(){\n    emailOtpResendBtn.style.display = \"block\";\n    emailOtpTimer.style.display = \"none\"\n  }\n  function disableEmailOtpResend(){\n    emailOtpResendBtn.style.display = \"none\";\n    emailOtpTimer.style.display = \"block\"\n  }\n  function keyForEmailOtpToken(email, pageCode) {\n    return email + '|' + pageCode+ '|SUBSCRIBE_VIA_EMAIL';\n  }",
-    "rect": {
-      "left": 0,
-      "top": 0,
-      "width": 1920,
-      "height": 495
-    }
-  },
-  {
     "id": "2e61aa0fa8",
-    "indexId": "2",
+    "indexId": "1",
     "nodeHashId": "2e61aa0fa8",
     "attributes": {
       "class": ".header.d-md-flex.flex-md-justify-between.flex-md-items-center.px-4.py-3.text-center.text-md-left.bg-white.box-shadow-large",
@@ -33,6 +15,26 @@
       "top": 0,
       "width": 1920,
       "height": 73
+    }
+  },
+  {
+    "id": "dea73b0ace",
+    "indexId": "2",
+    "nodeHashId": "dea73b0ace",
+    "attributes": {
+      "href": "/",
+      "class": ".text-gray-dark",
+      "aria-label": "GitHub Octicon logo",
+      "nodeType": "TEXT Node"
+    },
+    "locator": "[_midscene_retrieve_task_id='dea73b0ace']",
+    "center": [960, 36],
+    "content": "GitHub Octicon logo",
+    "rect": {
+      "left": 944,
+      "top": 20,
+      "width": 32,
+      "height": 32
     }
   },
   {
@@ -262,16 +264,16 @@
     }
   },
   {
-    "id": "9cfcb84f47",
+    "id": "a1fed341ef",
     "indexId": "15",
-    "nodeHashId": "9cfcb84f47",
+    "nodeHashId": "a1fed341ef",
     "attributes": {
       "class": ".components-section.font-regular",
       "nodeType": "TEXT Node"
     },
-    "locator": "[_midscene_retrieve_task_id='9cfcb84f47']",
+    "locator": "[_midscene_retrieve_task_id='a1fed341ef']",
     "center": [960, 756],
-    "content": "Git Operations\n   \n\n    ?\n\n  \n\n  \n\nNormal\n\n          \n          \n            \n\n\n   \n      API Requests\n   \n\n    ?\n\n  \n\n  \n\nNormal\n\n          \n          \n            \n\n\n   \n      Webhooks\n   \n\n    ?\n\n  \n\n  \n\nNormal\n\n          \n          \n            \n\n\n   \n      Visit www.githubstatus.com for more information\n   \n\n\n  \n\n  \n\nNormal\n\n          \n          \n            \n\n\n   \n      Issues\n   \n\n    ?\n\n  \n\n  \n\nNormal\n\n          \n          \n            \n\n\n   \n      Pull Requests\n   \n\n    ?\n\n  \n\n  \n\nNormal\n\n          \n          \n            \n\n\n   \n      Actions\n   \n\n    ?\n\n  \n\n  \n\nNormal\n\n          \n          \n            \n\n\n   \n      Packages\n   \n\n    ?\n\n  \n\n  \n\nNormal\n\n          \n          \n            \n\n\n   \n      Pages\n   \n\n    ?\n\n  \n\n  \n\nNormal\n\n          \n          \n            \n\n\n   \n      Codespaces\n   \n\n    ?\n\n  \n\n  \n\nNormal\n\n          \n          \n            \n\n\n   \n      Copilot\n   \n\n\n  \n\n  \n\nNormal",
+    "content": "Git Operations\n   \n\n    ?\n\n  \n\n  \n\nNormal\n\n          \n          \n            \n\n\n   \n      Webhooks\n   \n\n    ?\n\n  \n\n  \n\nNormal\n\n          \n          \n            \n\n\n   \n      Visit www.githubstatus.com for more information\n   \n\n\n  \n\n  \n\nNormal\n\n          \n          \n            \n\n\n   \n      API Requests\n   \n\n    ?\n\n  \n\n  \n\nNormal\n\n          \n          \n            \n\n\n   \n      Issues\n   \n\n    ?\n\n  \n\n  \n\nNormal\n\n          \n          \n            \n\n\n   \n      Pull Requests\n   \n\n    ?\n\n  \n\n  \n\nNormal\n\n          \n          \n            \n\n\n   \n      Actions\n   \n\n    ?\n\n  \n\n  \n\nNormal\n\n          \n          \n            \n\n\n   \n      Packages\n   \n\n    ?\n\n  \n\n  \n\nNormal\n\n          \n          \n            \n\n\n   \n      Pages\n   \n\n    ?\n\n  \n\n  \n\nNormal\n\n          \n          \n            \n\n\n   \n      Codespaces\n   \n\n    ?\n\n  \n\n  \n\nNormal\n\n          \n          \n            \n\n\n   \n      Copilot\n   \n\n\n  \n\n  \n\nNormal",
     "rect": {
       "left": 470,
       "top": 503,
@@ -280,16 +282,16 @@
     }
   },
   {
-    "id": "1d2f8b067e",
+    "id": "4a6c8aa387",
     "indexId": "16",
-    "nodeHashId": "1d2f8b067e",
+    "nodeHashId": "4a6c8aa387",
     "attributes": {
       "class": ".components-container.two-columns",
       "nodeType": "TEXT Node"
     },
-    "locator": "[_midscene_retrieve_task_id='1d2f8b067e']",
+    "locator": "[_midscene_retrieve_task_id='4a6c8aa387']",
     "center": [960, 783],
-    "content": "Git Operations\n   \n\n    ?\n\n  \n\n  \n\nNormal\n\n          \n          \n            \n\n\n   \n      API Requests\n   \n\n    ?\n\n  \n\n  \n\nNormal\n\n          \n          \n            \n\n\n   \n      Webhooks\n   \n\n    ?\n\n  \n\n  \n\nNormal\n\n          \n          \n            \n\n\n   \n      Visit www.githubstatus.com for more information\n   \n\n\n  \n\n  \n\nNormal\n\n          \n          \n            \n\n\n   \n      Issues\n   \n\n    ?\n\n  \n\n  \n\nNormal\n\n          \n          \n            \n\n\n   \n      Pull Requests\n   \n\n    ?\n\n  \n\n  \n\nNormal\n\n          \n          \n            \n\n\n   \n      Actions\n   \n\n    ?\n\n  \n\n  \n\nNormal\n\n          \n          \n            \n\n\n   \n      Packages\n   \n\n    ?\n\n  \n\n  \n\nNormal\n\n          \n          \n            \n\n\n   \n      Pages\n   \n\n    ?\n\n  \n\n  \n\nNormal\n\n          \n          \n            \n\n\n   \n      Codespaces\n   \n\n    ?\n\n  \n\n  \n\nNormal\n\n          \n          \n            \n\n\n   \n      Copilot\n   \n\n\n  \n\n  \n\nNormal",
+    "content": "Git Operations\n   \n\n    ?\n\n  \n\n  \n\nNormal\n\n          \n          \n            \n\n\n   \n      Webhooks\n   \n\n    ?\n\n  \n\n  \n\nNormal\n\n          \n          \n            \n\n\n   \n      Visit www.githubstatus.com for more information\n   \n\n\n  \n\n  \n\nNormal\n\n          \n          \n            \n\n\n   \n      API Requests\n   \n\n    ?\n\n  \n\n  \n\nNormal\n\n          \n          \n            \n\n\n   \n      Issues\n   \n\n    ?\n\n  \n\n  \n\nNormal\n\n          \n          \n            \n\n\n   \n      Pull Requests\n   \n\n    ?\n\n  \n\n  \n\nNormal\n\n          \n          \n            \n\n\n   \n      Actions\n   \n\n    ?\n\n  \n\n  \n\nNormal\n\n          \n          \n            \n\n\n   \n      Packages\n   \n\n    ?\n\n  \n\n  \n\nNormal\n\n          \n          \n            \n\n\n   \n      Pages\n   \n\n    ?\n\n  \n\n  \n\nNormal\n\n          \n          \n            \n\n\n   \n      Codespaces\n   \n\n    ?\n\n  \n\n  \n\nNormal\n\n          \n          \n            \n\n\n   \n      Copilot\n   \n\n\n  \n\n  \n\nNormal",
     "rect": {
       "left": 470,
       "top": 558,
@@ -390,16 +392,16 @@
     }
   },
   {
-    "id": "cac86a3a9a",
+    "id": "500e0a173b",
     "indexId": "22",
-    "nodeHashId": "cac86a3a9a",
+    "nodeHashId": "500e0a173b",
     "attributes": {
       "class": ".component-container.border-color",
       "nodeType": "TEXT Node"
     },
-    "locator": "[_midscene_retrieve_task_id='cac86a3a9a']",
+    "locator": "[_midscene_retrieve_task_id='500e0a173b']",
     "center": [1206, 605],
-    "content": "API Requests\n   \n\n    ?\n\n  \n\n  \n\nNormal",
+    "content": "Webhooks\n   \n\n    ?\n\n  \n\n  \n\nNormal",
     "rect": {
       "left": 961,
       "top": 561,
@@ -408,18 +410,18 @@
     }
   },
   {
-    "id": "bfd2275c7b",
+    "id": "abf6dd5e4f",
     "indexId": "23",
-    "nodeHashId": "bfd2275c7b",
+    "nodeHashId": "abf6dd5e4f",
     "attributes": {
-      "data-component-id": "brv1bkgrwx7q",
+      "data-component-id": "4230lsnqdsld",
       "class": ".component-inner-container.status-green.",
       "data-component-status": "operational",
       "nodeType": "TEXT Node"
     },
-    "locator": "[_midscene_retrieve_task_id='bfd2275c7b']",
+    "locator": "[_midscene_retrieve_task_id='abf6dd5e4f']",
     "center": [1205, 606],
-    "content": "API Requests\n   \n\n    ?\n\n  \n\n  \n\nNormal",
+    "content": "Webhooks\n   \n\n    ?\n\n  \n\n  \n\nNormal",
     "rect": {
       "left": 981,
       "top": 579,
@@ -428,36 +430,36 @@
     }
   },
   {
-    "id": "244ab8c4c3",
+    "id": "ede595307e",
     "indexId": "24",
-    "nodeHashId": "244ab8c4c3",
+    "nodeHashId": "ede595307e",
     "attributes": {
       "class": ".name",
       "nodeType": "TEXT Node"
     },
-    "locator": "[_midscene_retrieve_task_id='244ab8c4c3']",
-    "center": [1030, 593],
-    "content": "API Requests",
+    "locator": "[_midscene_retrieve_task_id='ede595307e']",
+    "center": [1020, 593],
+    "content": "Webhooks",
     "rect": {
       "left": 981,
       "top": 581,
-      "width": 98,
+      "width": 78,
       "height": 24
     }
   },
   {
-    "id": "b0bdb14a2c",
+    "id": "bde0cd332f",
     "indexId": "25",
-    "nodeHashId": "b0bdb14a2c",
+    "nodeHashId": "bde0cd332f",
     "attributes": {
       "class": ".tooltip-base.tool.tooltipstered",
       "nodeType": "TEXT Node"
     },
-    "locator": "[_midscene_retrieve_task_id='b0bdb14a2c']",
-    "center": [1097, 591],
+    "locator": "[_midscene_retrieve_task_id='bde0cd332f']",
+    "center": [1077, 591],
     "content": "?",
     "rect": {
-      "left": 1088,
+      "left": 1068,
       "top": 582,
       "width": 18,
       "height": 18
@@ -482,16 +484,16 @@
     }
   },
   {
-    "id": "6ec8080ca6",
+    "id": "f43e0ec645",
     "indexId": "27",
-    "nodeHashId": "6ec8080ca6",
+    "nodeHashId": "f43e0ec645",
     "attributes": {
       "class": ".component-container.border-color",
       "nodeType": "TEXT Node"
     },
-    "locator": "[_midscene_retrieve_task_id='6ec8080ca6']",
+    "locator": "[_midscene_retrieve_task_id='f43e0ec645']",
     "center": [717, 695],
-    "content": "Webhooks\n   \n\n    ?\n\n  \n\n  \n\nNormal",
+    "content": "API Requests\n   \n\n    ?\n\n  \n\n  \n\nNormal",
     "rect": {
       "left": 472,
       "top": 651,
@@ -500,18 +502,18 @@
     }
   },
   {
-    "id": "5d616d114f",
+    "id": "5a9de69abf",
     "indexId": "28",
-    "nodeHashId": "5d616d114f",
+    "nodeHashId": "5a9de69abf",
     "attributes": {
-      "data-component-id": "4230lsnqdsld",
+      "data-component-id": "brv1bkgrwx7q",
       "class": ".component-inner-container.status-green.",
       "data-component-status": "operational",
       "nodeType": "TEXT Node"
     },
-    "locator": "[_midscene_retrieve_task_id='5d616d114f']",
+    "locator": "[_midscene_retrieve_task_id='5a9de69abf']",
     "center": [716, 695],
-    "content": "Webhooks\n   \n\n    ?\n\n  \n\n  \n\nNormal",
+    "content": "API Requests\n   \n\n    ?\n\n  \n\n  \n\nNormal",
     "rect": {
       "left": 492,
       "top": 668,
@@ -520,36 +522,36 @@
     }
   },
   {
-    "id": "675456f129",
+    "id": "a40953194a",
     "indexId": "29",
-    "nodeHashId": "675456f129",
+    "nodeHashId": "a40953194a",
     "attributes": {
       "class": ".name",
       "nodeType": "TEXT Node"
     },
-    "locator": "[_midscene_retrieve_task_id='675456f129']",
-    "center": [531, 682],
-    "content": "Webhooks",
+    "locator": "[_midscene_retrieve_task_id='a40953194a']",
+    "center": [541, 682],
+    "content": "API Requests",
     "rect": {
       "left": 492,
       "top": 670,
-      "width": 78,
+      "width": 98,
       "height": 24
     }
   },
   {
-    "id": "cd6731b4d0",
+    "id": "768003aa2d",
     "indexId": "30",
-    "nodeHashId": "cd6731b4d0",
+    "nodeHashId": "768003aa2d",
     "attributes": {
       "class": ".tooltip-base.tool.tooltipstered",
       "nodeType": "TEXT Node"
     },
-    "locator": "[_midscene_retrieve_task_id='cd6731b4d0']",
-    "center": [588, 681],
+    "locator": "[_midscene_retrieve_task_id='768003aa2d']",
+    "center": [608, 681],
     "content": "?",
     "rect": {
-      "left": 579,
+      "left": 599,
       "top": 672,
       "width": 18,
       "height": 18
