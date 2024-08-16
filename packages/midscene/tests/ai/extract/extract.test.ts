@@ -1,6 +1,6 @@
 import { AiExtractElementInfo } from '@/ai-model';
 import { useCozeModel } from '@/ai-model/coze';
-import { getPageDataOfTestName } from 'tests/ai-model/inspector/util';
+import { getPageDataOfTestName } from 'tests/ai/inspector/util';
 import { describe, expect, it, vi } from 'vitest';
 
 vi.setConfig({

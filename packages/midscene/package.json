@@ -54,7 +54,7 @@
     "new": "modern new",
     "upgrade": "modern upgrade",
     "test": "vitest --run",
-    "test:all": "AITEST=true vitest --run",
+    "test:ai": "AITEST=true npm run test",
     "prepublishOnly": "npm run build"
   },
   "dependencies": {

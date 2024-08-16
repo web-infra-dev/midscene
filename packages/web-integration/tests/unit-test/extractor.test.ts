@@ -1,7 +1,7 @@
 import { join } from 'node:path';
 import { parseContextFromWebPage } from '@/common/utils';
 import { describe, expect, it } from 'vitest';
-import { launchPage } from './puppeteer/utils';
+import { launchPage } from '../ai/puppeteer/utils';
 
 const pagePath = join(__dirname, './fixtures/extractor.html');
 describe.skipIf(typeof process.env.CI !== 'undefined')(

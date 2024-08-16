@@ -1,6 +1,6 @@
 import { plan } from '@/ai-model';
 import { useCozeModel } from '@/ai-model/coze';
-import { getPageDataOfTestName } from 'tests/ai-model/inspector/util';
+import { getPageDataOfTestName } from 'tests/ai/inspector/util';
 /* eslint-disable max-lines-per-function */
 import { describe, expect, it, vi } from 'vitest';
 

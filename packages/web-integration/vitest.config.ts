@@ -11,12 +11,7 @@ dotenv.config({
   path: path.join(__dirname, '../../.env'),
 });
 
-const enableTest = process.env.AITEST;
-
-const aiModelTest =
-  enableTest !== 'true'
-    ? ['tests/puppeteer/bing.test.ts', 'tests/puppeteer/showcase.test.ts']
-    : [];
+const enableAiTest = Boolean(process.env.AITEST);
 
 export default defineConfig({
   resolve: {
@@ -25,7 +20,8 @@ export default defineConfig({
     },
   },
   test: {
-    include: ['./tests/**/*.test.ts'],
-    exclude: [...aiModelTest],
+    include: enableAiTest
+      ? ['tests/ai/**/*.test.ts']
+      : ['tests/unit-test/*.test.ts'],
   },
 });
