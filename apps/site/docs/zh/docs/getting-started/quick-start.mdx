@@ -116,12 +116,8 @@ npx playwright test ./e2e/ebay-search.spec.ts
 
 ### Step 5. 查看测试报告
 
-根据命令行输出，执行命令，可以以此打开可视化报告
+当上面的命令执行成功后，会在控制台输出：`Midscene - report file updated: xxx/midscene_run/report/xxx.html` 通过浏览器打开该文件即可看到报告。
 
-```bash
-# 样例
-npx http-server ./midscene_run/report -p 9888 -o -s
-```
 
 ## 集成到 Puppeteer
 
@@ -217,10 +213,21 @@ npx ts-node demo.ts
 
 ### 第四步：查看运行报告
 
-运行 Midscene 之后，系统会生成一个日志文件，默认存放在 `./midscene_run/report/latest.web-dump.json`。然后，你可以把这个文件导入 [可视化工具](/visualization/)，这样你就能更清楚地了解整个过程。
+当上面的命令执行成功后，会在控制台输出：`Midscene - report file updated: xxx/midscene_run/report/xxx.html` 通过浏览器打开该文件即可看到报告。
+
+也可以将 `./midscene_run/report/latest.web-dump.json` 文件导入 [可视化工具](/visualization/) 查看。
+
 
 ## 访问示例报告
 
 在 [可视化工具](/visualization/) 中，点击 `Load Demo` 按钮，你将能够看到上方代码的运行结果以及其他的一些示例。
 
 ![](/view-demo-visualization.gif)
+
+
+## 查看示例报告
+
+在[可视化工具](/visualization/)中点击"加载演示"按钮，你将能够看到之前代码的运行结果以及其他一些示例。
+
+![](/view-demo-visualization.gif)
+
