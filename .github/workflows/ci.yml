@@ -43,4 +43,4 @@ jobs:
       run: pnpm run build:pkg
 
     - name: Run tests
-      run: pnpm run test:ai
+      run: pnpm run test
