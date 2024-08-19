@@ -11,23 +11,13 @@ dotenv.config({
   path: path.join(__dirname, '../../.env'),
 });
 
-const enableTest = process.env.AITEST;
-
-const aiModelTest =
-  enableTest === 'true' || enableTest === '1'
-    ? []
-    : ['tests/ai-model/**/*.test.ts', 'tests/automation/planning.test.ts'];
+const enableAiTest = Boolean(process.env.AITEST);
 
 export default defineConfig({
   test: {
-    include: ['tests/**/*.test.ts'],
-    // include: ['tests/ai-model/**/*-coze.test.ts'],
-    // Need to improve the corresponding testing
-    exclude: [
-      'tests/insight/*.test.ts',
-      'tests/executor/*.test.ts',
-      ...aiModelTest,
-    ],
+    include: enableAiTest
+      ? ['tests/ai/**/*.test.ts']
+      : ['tests/unit-test/*.test.ts'],
   },
   resolve: {
     alias: {

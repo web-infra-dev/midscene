@@ -54,22 +54,23 @@
     "new": "modern new",
     "upgrade": "modern upgrade",
     "test": "vitest --run",
-    "test:all": "AITEST=true vitest --run",
+    "test:ai": "AITEST=true npm run test",
     "prepublishOnly": "npm run build"
   },
   "dependencies": {
+    "node-fetch": "2.6.7",
     "openai": "4.47.1",
-    "sharp": "0.33.3",
-    "node-fetch": "2.6.7"
+    "optional": "0.1.4",
+    "sharp": "0.33.3"
   },
   "devDependencies": {
-    "@types/node-fetch": "2.6.11",
     "@modern-js/module-tools": "^2.56.1",
     "@types/node": "^18.0.0",
+    "@types/node-fetch": "2.6.11",
+    "dotenv": "16.4.5",
     "langsmith": "0.1.36",
     "typescript": "~5.0.4",
-    "vitest": "^1.6.0",
-    "dotenv": "16.4.5"
+    "vitest": "^1.6.0"
   },
   "engines": {
     "node": ">=16.0.0"

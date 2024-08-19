@@ -1,0 +1,37 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`automation - planning > basic run 1`] = `
+{
+  "timeMs": 3500,
+}
+`;
+
+exports[`automation - planning > basic run 2`] = `
+{
+  "value": "Enter",
+}
+`;
+
+exports[`automation - planning coze > basic run 1`] = `
+{
+  "timeMs": 3500,
+}
+`;
+
+exports[`automation - planning coze > basic run 2`] = `
+{
+  "value": "Enter",
+}
+`;
+
+exports[`automation - planning openAI > basic run 1`] = `
+{
+  "timeMs": 3500,
+}
+`;
+
+exports[`automation - planning openAI > basic run 2`] = `
+{
+  "value": "Enter",
+}
+`;

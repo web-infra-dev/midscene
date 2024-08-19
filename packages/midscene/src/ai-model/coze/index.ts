@@ -59,8 +59,8 @@ export async function callCozeAi<T>(options: {
 
   const aiResponse = await completion.json();
   if (aiResponse.code !== 0) {
-    console.error('CozeAI error response', aiResponse);
-    throw new Error('CozeAI error response', aiResponse);
+    console.error('CozeAI error response', aiResponse.msg);
+    throw new Error(`CozeAI error response ${aiResponse.msg}`);
   }
 
   if (!aiResponse?.messages || !aiResponse?.messages[0]?.content) {
