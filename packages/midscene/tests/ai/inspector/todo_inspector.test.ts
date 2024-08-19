@@ -39,8 +39,10 @@ if (useCozeModel('coze')) {
   modelList.push('coze');
 }
 
+const repeatTime = process.env.GITHUB_ACTIONS ? 1 : 2;
+
 modelList.forEach((model) => {
-  repeat(2, (repeatIndex) => {
+  repeat(repeatTime, (repeatIndex) => {
     it(
       `todo: inspect element ${model}`,
       async () => {

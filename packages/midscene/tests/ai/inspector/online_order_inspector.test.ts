@@ -35,7 +35,9 @@ const testCases = [
   },
 ];
 
-repeat(5, (repeatIndex) => {
+const repeatTime = process.env.GITHUB_ACTIONS ? 1 : 5;
+
+repeat(repeatTime, (repeatIndex) => {
   test(
     'xicha: inspect element',
     async () => {

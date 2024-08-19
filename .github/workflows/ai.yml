@@ -42,5 +42,5 @@ jobs:
     - name: Build project
       run: pnpm run build:pkg
 
-    # - name: Run tests
-    #   run: pnpm run test
+    - name: Run tests
+      run: pnpm run test
