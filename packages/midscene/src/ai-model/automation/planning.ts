@@ -22,7 +22,7 @@ export function systemPromptToTaskPlanning() {
     * param: { timeMs: number }, wait for timeMs milliseconds 
   
   Here is an example of how to decompose a task.
-  When a user says 'Input "Weather in Shanghai" into the search bar, wait 1 second, hit enter', by viewing the page screenshot and description, you my decompose this task into something like this:
+  When a user says 'Input "Weather in Shanghai" into the search bar, wait 1 second, hit enter', by viewing the page screenshot and description, you may decompose this task into something like this:
   * Find: 'The search bar'
   * Input: 'Weather in Shanghai'
   * Sleep: 1000
