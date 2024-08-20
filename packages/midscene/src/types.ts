@@ -192,8 +192,7 @@ export interface PlanningAction<ParamType = any> {
     | 'Error'
     | 'Assert'
     | 'AssertWithoutThrow'
-    | 'Sleep'
-    | 'WaitFor';
+    | 'Sleep';
   param: ParamType;
 }
 

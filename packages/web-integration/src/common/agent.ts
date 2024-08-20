@@ -120,7 +120,7 @@ export class PageAgent {
 
   async aiWaitFor(assertion: string, opt?: AgentWaitForOpt) {
     const { executor } = await this.taskExecutor.waitFor(assertion, {
-      timeoutMs: opt?.timeoutMs || 30 * 1000,
+      timeoutMs: opt?.timeoutMs || 15 * 1000,
       checkIntervalMs: opt?.checkIntervalMs || 3 * 1000,
       assertion,
     });
