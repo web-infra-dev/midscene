@@ -5,10 +5,12 @@ test.beforeEach(async ({ page }) => {
   await page.goto('https://todomvc.com/examples/react/dist/');
 });
 
-test('ai todo', async ({ ai, aiQuery }) => {
+test('ai todo', async ({ ai, aiQuery, aiWaitFor }) => {
   await ai(
     'Enter "Learn JS today" in the task box, then press Enter to create',
   );
+
+  await aiWaitFor('the input box for task title is empty now');
 
   await ai(
     'Enter "Learn Rust tomorrow" in the task box, then press Enter to create',

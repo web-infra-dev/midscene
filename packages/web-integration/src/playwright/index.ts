@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { PageAgent } from '@/common/agent';
 import type { WebPage } from '@/common/page';
+import type { AgentWaitForOpt } from '@midscene/core/.';
 import type { TestInfo, TestType } from '@playwright/test';
 import type { Page as PlaywrightPage } from 'playwright';
 import type { PageTaskExecutor } from '../common/tasks';
@@ -128,6 +129,17 @@ export const PlaywrightAiFixture = () => {
       });
       updateDumpAnnotation(testInfo, agent.dumpDataString());
     },
+    aiWaitFor: async (
+      { page }: { page: PlaywrightPage },
+      use: any,
+      testInfo: TestInfo,
+    ) => {
+      const agent = agentForPage(page, testInfo);
+      await use(async (assertion: string, opt?: AgentWaitForOpt) => {
+        await agent.aiWaitFor(assertion, opt);
+      });
+      updateDumpAnnotation(testInfo, agent.dumpDataString());
+    },
   };
 };
 
@@ -139,4 +151,5 @@ export type PlayWrightAiFixtureType = {
   aiAction: (taskPrompt: string) => ReturnType<PageTaskExecutor['action']>;
   aiQuery: <T = any>(demand: any) => Promise<T>;
   aiAssert: (assertion: string, errorMsg?: string) => Promise<void>;
+  aiWaitFor: (assertion: string, opt?: AgentWaitForOpt) => Promise<void>;
 };
