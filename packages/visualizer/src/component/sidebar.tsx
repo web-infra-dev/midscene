@@ -23,6 +23,11 @@ const SideItem = (props: {
     statusText = timeCostStrElement(task.timing.cost);
   }
 
+  const statusIcon =
+    task.status === 'finished' && task.error
+      ? iconForStatus('finishedWithWarning')
+      : iconForStatus(task.status);
+
   return (
     <div
       className={`side-item ${selectedClass}`}
@@ -40,7 +45,7 @@ const SideItem = (props: {
     >
       {' '}
       <div className={'side-item-name'}>
-        <span className="status-icon">{iconForStatus(task.status)}</span>
+        <span className="status-icon">{statusIcon}</span>
         <div className="title">{typeStr(task)}</div>
         <div className="status-text">{statusText}</div>
       </div>

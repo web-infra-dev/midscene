@@ -311,7 +311,7 @@ export type ExecutionTask<
       ? TaskLog
       : unknown
   > & {
-    status: 'pending' | 'running' | 'success' | 'failed' | 'cancelled';
+    status: 'pending' | 'running' | 'finished' | 'failed' | 'cancelled';
     error?: string;
     errorStack?: string;
     timing?: {

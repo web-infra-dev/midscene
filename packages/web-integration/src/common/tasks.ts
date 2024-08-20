@@ -168,14 +168,18 @@ export class PageTaskExecutor {
                 assertPlan.param.assertion,
               );
 
-              if (!assertion.pass && plan.type === 'Assert') {
-                task.output = assertion;
-                task.log = {
-                  dump: insightDump,
-                };
-                throw new Error(
-                  assertion.thought || 'Assertion failed without reason',
-                );
+              if (!assertion.pass) {
+                if (plan.type === 'Assert') {
+                  task.output = assertion;
+                  task.log = {
+                    dump: insightDump,
+                  };
+                  throw new Error(
+                    assertion.thought || 'Assertion failed without reason',
+                  );
+                }
+
+                task.error = assertion.thought;
               }
 
               return {
@@ -476,7 +480,6 @@ export class PageTaskExecutor {
       const assertTask = await this.convertPlanToExecutable([assertPlan]);
       await taskExecutor.append(this.wrapExecutorWithScreenshot(assertTask[0]));
       const output: InsightAssertionResponse = await taskExecutor.flush();
-      console.log(output);
 
       if (output.pass) {
         return {

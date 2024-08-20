@@ -5,6 +5,7 @@ import {
   CloseCircleFilled,
   LogoutOutlined,
   MinusOutlined,
+  WarningFilled,
 } from '@ant-design/icons';
 
 export function timeCostStrElement(timeCost?: number) {
@@ -32,11 +33,18 @@ export function timeCostStrElement(timeCost?: number) {
 
 export const iconForStatus = (status: string): JSX.Element => {
   switch (status) {
-    case 'success':
+    case 'finished':
     case 'passed':
       return (
         <span style={{ color: '#2B8243' }}>
           <CheckCircleFilled />
+        </span>
+      );
+
+    case 'finishedWithWarning':
+      return (
+        <span style={{ color: '#f7bb05' }}>
+          <WarningFilled />
         </span>
       );
     case 'failed':

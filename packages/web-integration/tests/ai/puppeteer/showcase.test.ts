@@ -72,8 +72,8 @@ describe(
       );
       console.log('Github service status', result);
 
+      // obviously there is no food delivery service on Github
       expect(async () => {
-        //   // there is no food delivery service on Github
         await mid.aiAssert(
           'there is a "food delivery" service on page and is in normal state',
         );
