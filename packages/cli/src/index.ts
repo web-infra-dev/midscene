@@ -52,6 +52,7 @@ const actionArgs = {
   queryOutput: 'query-output',
   query: 'query',
   sleep: 'sleep',
+  waitFor: 'wait-for',
 };
 
 const defaultUA =
@@ -113,21 +114,23 @@ Promise.resolve(
 
     const page = await browser.newPage();
     await page.setUserAgent(ua);
-
     await page.setViewport(viewportConfig);
-
-    updateSpin(stepString('launch', url));
-    await page.goto(url);
-    updateSpin(stepString('waitForNetworkIdle', url));
-    await page.waitForNetworkIdle();
-    printStep('launched', url);
-
-    const agent = new PuppeteerAgent(page);
 
     let errorWhenRunning: Error | undefined;
     let argName: string;
     let argValue: ArgumentValueType;
+    let agent: PuppeteerAgent | undefined;
     try {
+      updateSpin(stepString('launch', url));
+      await page.goto(url);
+      updateSpin(stepString('waitForNetworkIdle', url));
+      await page.waitForNetworkIdle();
+      printStep('launched', url);
+
+      agent = new PuppeteerAgent(page, {
+        autoPrintReportMsg: false,
+      });
+
       let index = 0;
       let outputPath: string | undefined;
       let actionStarted = false;
@@ -197,11 +200,23 @@ Promise.resolve(
             printStep(argName, String(argValue));
             break;
           }
+          case actionArgs.waitFor: {
+            const param = arg.value;
+            assert(param, 'missing assertion for waitFor');
+            assert(typeof param === 'string', 'assertion must be a string');
+            await agent.aiWaitFor(param);
+            printStep(argName, String(argValue));
+            break;
+          }
         }
         index += 1;
       }
+      printStep('Done', `report: ${agent.reportFile}`);
     } catch (e: any) {
       printStep(`${argName!} - Failed`, String(argValue!));
+      if (agent?.reportFile) {
+        printStep('Report', agent.reportFile);
+      }
       printStep('Error', e.message);
       errorWhenRunning = e;
     }
@@ -210,5 +225,3 @@ Promise.resolve(
     process.exit(errorWhenRunning ? 1 : 0);
   })(),
 );
-
-// TODO: print report after running

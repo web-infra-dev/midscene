@@ -245,7 +245,6 @@ export class PageTaskExecutor {
               type: 'Action',
               subType: 'Hover',
               executor: async (param, { element }) => {
-                // console.log('executor args', param, element);
                 assert(element, 'Element not found, cannot hover');
                 await this.page.mouse.move(
                   element.center[0],

@@ -61,6 +61,7 @@ Actions (参数顺序很重要，可以支持多次使用):
   --assert <assert>           Perform an assert, optional
   --query-output <path>       Save the result of the query to a file, this must be put before --query, optional
   --query <query>             Perform a query, optional
+  --wait-for <assertion>      Wait for a condition to be met. The timeout is set to 15 seconds. optional
   --sleep <ms>                Sleep for a number of milliseconds, optional`
 ```
 
@@ -68,4 +69,4 @@ Actions (参数顺序很重要，可以支持多次使用):
 
 1. Options 参数（任务信息）应始终放在 Actions 参数之前。
 2. Actions 参数的顺序很重要。例如，`--action "某操作" --query "某数据"` 表示先执行操作，然后再查询。
-3. 如果有更复杂的需求，比如循环操作，使用 SDK 版本（而不是这个命令行工具）会更容易实现。
+3. 如果有更复杂的需求，比如循环操作，使用 SDK 版本（而不是这个命令行工具）会更合适。

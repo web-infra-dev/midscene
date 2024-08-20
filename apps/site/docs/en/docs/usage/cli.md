@@ -57,12 +57,13 @@ Options:
   --help                      Display this help message
   --version                   Display the version
 
-Actions (order matters, can be used multiple times):
+Actions (the order matters, can be used multiple times):
   --action <action>           Perform an action, optional
   --assert <assert>           Perform an assert, optional
   --query-output <path>       Save the result of the query to a file, this must be put before --query, optional
   --query <query>             Perform a query, optional
-  --sleep <ms>                Sleep for a number of milliseconds, optional`
+  --wait-for <assertion>      Wait for a condition to be met. The timeout is set to 15 seconds. optional
+  --sleep <ms>                Sleep for a number of milliseconds, optional
 ```
 
 
