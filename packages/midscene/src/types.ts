@@ -167,6 +167,15 @@ export type ElementById = (id: string) => BaseElement | null;
 export type InsightAssertionResponse = AIAssertionResponse;
 
 /**
+ * agent
+ */
+
+export interface AgentWaitForOpt {
+  checkIntervalMs?: number;
+  timeoutMs?: number;
+}
+
+/**
  * planning
  *
  */
@@ -182,7 +191,9 @@ export interface PlanningAction<ParamType = any> {
     | 'Scroll'
     | 'Error'
     | 'Assert'
-    | 'Sleep';
+    | 'AssertWithoutThrow'
+    | 'Sleep'
+    | 'WaitFor';
   param: ParamType;
 }
 
@@ -213,6 +224,13 @@ export interface PlanningActionParamSleep {
   timeMs: number;
 }
 
+export interface PlanningActionParamError {
+  thought: string;
+}
+
+export type PlanningActionParamWaitFor = AgentWaitForOpt & {
+  assertion: string;
+};
 /**
  * misc
  */

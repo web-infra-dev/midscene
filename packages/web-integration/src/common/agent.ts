@@ -1,11 +1,14 @@
 import type { WebPage } from '@/common/page';
-import type { ExecutionDump, GroupedActionDump } from '@midscene/core';
+import type {
+  AgentWaitForOpt,
+  ExecutionDump,
+  GroupedActionDump,
+} from '@midscene/core';
 import {
   groupedActionDumpFileExt,
   stringifyDumpData,
   writeLogFile,
 } from '@midscene/core/utils';
-import dayjs from 'dayjs';
 import { PageTaskExecutor } from '../common/tasks';
 import type { AiTaskCache } from './task-cache';
 import { printReportMsg, reportFileName } from './utils';
@@ -112,6 +115,21 @@ export class PageAgent {
       const errMsg = msg || `Assertion failed: ${assertion}`;
       const reasonMsg = `Reason: ${output?.thought} || (no_reason)`;
       throw new Error(`${errMsg}\n${reasonMsg}`);
+    }
+  }
+
+  async aiWaitFor(assertion: string, opt?: AgentWaitForOpt) {
+    const { executor } = await this.taskExecutor.waitFor(assertion, {
+      timeoutMs: opt?.timeoutMs || 30 * 1000,
+      checkIntervalMs: opt?.checkIntervalMs || 3 * 1000,
+      assertion,
+    });
+    this.appendExecutionDump(executor.dump());
+    this.writeOutActionDumps();
+
+    if (executor.isInErrorState()) {
+      const errorTask = executor.latestErrorTask();
+      throw new Error(`${errorTask?.error}\n${errorTask?.errorStack}`);
     }
   }
 
