@@ -5,10 +5,11 @@ export async function launchPage(
   url: string,
   opt?: {
     viewport?: Viewport;
+    headless?: boolean;
   },
 ) {
   const browser = await puppeteer.launch({
-    // headless: false,
+    headless: opt?.headless,
   });
 
   const page = await browser.newPage();

@@ -12,6 +12,7 @@ dotenv.config({
 });
 
 const enableAiTest = Boolean(process.env.AITEST);
+const baseTests = ['tests/unit-test/*.test.ts'];
 
 export default defineConfig({
   resolve: {
@@ -20,8 +21,6 @@ export default defineConfig({
     },
   },
   test: {
-    include: enableAiTest
-      ? ['tests/ai/**/*.test.ts']
-      : ['tests/unit-test/*.test.ts'],
+    include: enableAiTest ? ['tests/ai/**/*.test.ts', ...baseTests] : baseTests,
   },
 });
