@@ -34,5 +34,10 @@ export async function launchPage(
     })(),
   ]);
 
-  return page;
+  return {
+    page,
+    reset: async () => {
+      await browser.close();
+    },
+  };
 }

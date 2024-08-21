@@ -1,14 +1,21 @@
 import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
+import type { WebPage } from '@/common/page';
 import { processImageElementInfo } from '@/img/img';
 import { getElementInfos } from '@/img/util';
 import { resizeImg, saveBase64Image } from '@midscene/core/image';
-import type { Page as PlaywrightPage } from '@playwright/test';
 
 export async function generateTestData(
-  page: PlaywrightPage,
+  page: WebPage,
   targetDir: string,
   inputImgBase64: string,
+  saveImgType?: {
+    disableInputImage: boolean;
+    disableOutputImage: boolean;
+    disableOutputWithoutTextImg: boolean;
+    disableResizeOutputImg: boolean;
+    disableSnapshot: boolean;
+  },
 ) {
   const {
     elementsPositionInfo,
@@ -36,26 +43,36 @@ export async function generateTestData(
 
   const resizeImgBase64 = await resizeImg(inputImgBase64);
 
-  writeFileSyncWithDir(
-    snapshotJsonPath,
-    JSON.stringify(captureElementSnapshot, null, 2),
-  );
-  await saveBase64Image({
-    base64Data: inputImgBase64,
-    outputPath: inputImagePath,
-  });
-  await saveBase64Image({
-    base64Data: compositeElementInfoImgBase64,
-    outputPath: outputImagePath,
-  });
-  await saveBase64Image({
-    base64Data: compositeElementInfoImgWithoutTextBase64,
-    outputPath: outputWithoutTextImgPath,
-  });
-  await saveBase64Image({
-    base64Data: resizeImgBase64,
-    outputPath: resizeOutputImgPath,
-  });
+  if (!saveImgType?.disableSnapshot) {
+    writeFileSyncWithDir(
+      snapshotJsonPath,
+      JSON.stringify(captureElementSnapshot, null, 2),
+    );
+  }
+  if (!saveImgType?.disableInputImage) {
+    await saveBase64Image({
+      base64Data: inputImgBase64,
+      outputPath: inputImagePath,
+    });
+  }
+  if (!saveImgType?.disableOutputImage) {
+    await saveBase64Image({
+      base64Data: compositeElementInfoImgBase64,
+      outputPath: outputImagePath,
+    });
+  }
+  if (!saveImgType?.disableOutputWithoutTextImg) {
+    await saveBase64Image({
+      base64Data: compositeElementInfoImgWithoutTextBase64,
+      outputPath: outputWithoutTextImgPath,
+    });
+  }
+  if (!saveImgType?.disableResizeOutputImg) {
+    await saveBase64Image({
+      base64Data: resizeImgBase64,
+      outputPath: resizeOutputImgPath,
+    });
+  }
 }
 
 export function generateTestDataPath(testDataName: string) {

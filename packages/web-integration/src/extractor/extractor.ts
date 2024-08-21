@@ -165,7 +165,10 @@ export function extractTextWithPosition(
     }
 
     if (isTextElement(node)) {
-      const text = node.textContent?.trim().replace(/\n+/g, ' ') || '';
+      const text = node.textContent?.trim().replace(/\n+/g, ' ');
+      if (!text) {
+        return;
+      }
       const attributes = getNodeAttributes(node);
       const nodeHashId = generateHash(text, rect);
       const selector = setDataForNode(node, nodeHashId);
