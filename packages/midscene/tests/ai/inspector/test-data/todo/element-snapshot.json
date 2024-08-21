@@ -1,99 +1,29 @@
 [
   {
-    "id": "ea40edd387",
+    "id": "7bd167db0a",
     "indexId": "1",
-    "nodeHashId": "ea40edd387",
+    "nodeHashId": "7bd167db0a",
+    "nodeType": "TEXT Node",
+    "locator": "",
     "attributes": {
       "nodeType": "TEXT Node"
     },
-    "locator": "[_midscene_retrieve_task_id='ea40edd387']",
-    "center": [640, 333],
-    "content": "todosNew Todo InputToggle All InputLearn PythonLearn RustLearn AI3 items left!AllActiveCompletedClear completedDouble-click to edit a todoCreated by the TodoMVC TeamPart of TodoMVC",
-    "rect": {
-      "left": 365,
-      "top": 130,
-      "width": 550,
-      "height": 405
-    }
-  },
-  {
-    "id": "9852da9d9d",
-    "indexId": "2",
-    "nodeHashId": "9852da9d9d",
-    "attributes": {
-      "class": ".todoapp",
-      "id": "root",
-      "nodeType": "TEXT Node"
-    },
-    "locator": "[_midscene_retrieve_task_id='9852da9d9d']",
-    "center": [640, 273],
-    "content": "todosNew Todo InputToggle All InputLearn PythonLearn RustLearn AI3 items left!AllActiveCompletedClear completed",
-    "rect": {
-      "left": 365,
-      "top": 130,
-      "width": 550,
-      "height": 285
-    }
-  },
-  {
-    "id": "4fb6353da5",
-    "indexId": "3",
-    "nodeHashId": "4fb6353da5",
-    "attributes": {
-      "class": ".header",
-      "data-testid": "header",
-      "nodeType": "TEXT Node"
-    },
-    "locator": "[_midscene_retrieve_task_id='4fb6353da5']",
-    "center": [640, 163],
-    "content": "todosNew Todo Input",
-    "rect": {
-      "left": 365,
-      "top": 130,
-      "width": 550,
-      "height": 65
-    }
-  },
-  {
-    "id": "ab22d01377",
-    "indexId": "4",
-    "nodeHashId": "ab22d01377",
-    "attributes": {
-      "nodeType": "TEXT Node"
-    },
-    "locator": "[_midscene_retrieve_task_id='ab22d01377']",
-    "center": [640, 66],
+    "center": [640, 67],
     "content": "todos",
     "rect": {
-      "left": 365,
-      "top": 56,
-      "width": 550,
-      "height": 20
-    }
-  },
-  {
-    "id": "8017b79ddf",
-    "indexId": "5",
-    "nodeHashId": "8017b79ddf",
-    "attributes": {
-      "class": ".input-container",
-      "nodeType": "TEXT Node"
+      "left": 546,
+      "top": 19,
+      "width": 188,
+      "height": 95
     },
-    "locator": "[_midscene_retrieve_task_id='8017b79ddf']",
-    "center": [640, 163],
-    "content": "New Todo Input",
-    "rect": {
-      "left": 365,
-      "top": 130,
-      "width": 550,
-      "height": 65
-    }
+    "htmlNode": null
   },
   {
     "id": "3530a9c1eb",
-    "indexId": "6",
+    "indexId": "2",
     "nodeHashId": "3530a9c1eb",
     "locator": "[_midscene_retrieve_task_id='3530a9c1eb']",
+    "nodeType": "INPUT Node",
     "attributes": {
       "class": ".new-todo",
       "id": "todo-input",
@@ -109,32 +39,34 @@
       "width": 550,
       "height": 65
     },
-    "center": [640, 163]
+    "center": [640, 163],
+    "htmlNode": null
   },
   {
-    "id": "69f35e9901",
-    "indexId": "7",
-    "nodeHashId": "69f35e9901",
+    "id": "074c5bdb3b",
+    "indexId": "3",
+    "nodeHashId": "074c5bdb3b",
+    "nodeType": "TEXT Node",
+    "locator": "",
     "attributes": {
-      "class": ".main",
-      "data-testid": "main",
       "nodeType": "TEXT Node"
     },
-    "locator": "[_midscene_retrieve_task_id='69f35e9901']",
-    "center": [640, 285],
-    "content": "Toggle All InputLearn PythonLearn RustLearn AI",
+    "center": [960, 140],
+    "content": "New Todo Input",
     "rect": {
-      "left": 365,
-      "top": 195,
-      "width": 550,
-      "height": 179
-    }
+      "left": 914,
+      "top": 131,
+      "width": 91,
+      "height": 17
+    },
+    "htmlNode": null
   },
   {
     "id": "eb02ad0e19",
-    "indexId": "8",
+    "indexId": "4",
     "nodeHashId": "eb02ad0e19",
     "locator": "[_midscene_retrieve_task_id='eb02ad0e19']",
+    "nodeType": "INPUT Node",
     "attributes": {
       "class": ".toggle-all",
       "type": "checkbox",
@@ -148,88 +80,15 @@
       "width": 40,
       "height": 60
     },
-    "center": [389, 163]
-  },
-  {
-    "id": "22625b5e51",
-    "indexId": "9",
-    "nodeHashId": "22625b5e51",
-    "attributes": {
-      "class": ".toggle-all-label",
-      "for": "toggle-all",
-      "nodeType": "TEXT Node"
-    },
-    "locator": "[_midscene_retrieve_task_id='22625b5e51']",
-    "center": [388, 164],
-    "content": "Toggle All Input",
-    "rect": {
-      "left": 365,
-      "top": 131,
-      "width": 45,
-      "height": 65
-    }
-  },
-  {
-    "id": "e4ef824007",
-    "indexId": "10",
-    "nodeHashId": "e4ef824007",
-    "attributes": {
-      "class": ".todo-list",
-      "data-testid": "todo-list",
-      "nodeType": "TEXT Node"
-    },
-    "locator": "[_midscene_retrieve_task_id='e4ef824007']",
-    "center": [640, 285],
-    "content": "Learn PythonLearn RustLearn AI",
-    "rect": {
-      "left": 365,
-      "top": 196,
-      "width": 550,
-      "height": 178
-    }
-  },
-  {
-    "id": "4f56e8b8e4",
-    "indexId": "11",
-    "nodeHashId": "4f56e8b8e4",
-    "attributes": {
-      "class": ".",
-      "data-testid": "todo-item",
-      "nodeType": "TEXT Node"
-    },
-    "locator": "[_midscene_retrieve_task_id='4f56e8b8e4']",
-    "center": [640, 226],
-    "content": "Learn Python",
-    "rect": {
-      "left": 365,
-      "top": 196,
-      "width": 550,
-      "height": 60
-    }
-  },
-  {
-    "id": "46449cb0ef",
-    "indexId": "12",
-    "nodeHashId": "46449cb0ef",
-    "attributes": {
-      "class": ".view",
-      "nodeType": "TEXT Node"
-    },
-    "locator": "[_midscene_retrieve_task_id='46449cb0ef']",
-    "center": [640, 226],
-    "content": "Learn Python",
-    "rect": {
-      "left": 365,
-      "top": 196,
-      "width": 550,
-      "height": 59
-    }
+    "center": [389, 163],
+    "htmlNode": null
   },
   {
     "id": "e0a509c9a3",
-    "indexId": "13",
+    "indexId": "5",
     "nodeHashId": "e0a509c9a3",
     "locator": "[_midscene_retrieve_task_id='e0a509c9a3']",
+    "nodeType": "INPUT Node",
     "attributes": {
       "class": ".toggle",
       "type": "checkbox",
@@ -243,68 +102,34 @@
       "width": 40,
       "height": 40
     },
-    "center": [385, 225]
+    "center": [385, 225],
+    "htmlNode": null
   },
   {
-    "id": "46449cb0ef",
-    "indexId": "14",
-    "nodeHashId": "46449cb0ef",
+    "id": "e6200904d4",
+    "indexId": "6",
+    "nodeHashId": "e6200904d4",
+    "nodeType": "TEXT Node",
+    "locator": "",
     "attributes": {
-      "data-testid": "todo-item-label",
       "nodeType": "TEXT Node"
     },
-    "locator": "[_midscene_retrieve_task_id='46449cb0ef']",
-    "center": [640, 226],
+    "center": [497, 225],
     "content": "Learn Python",
     "rect": {
-      "left": 365,
-      "top": 196,
-      "width": 550,
-      "height": 59
-    }
-  },
-  {
-    "id": "a8143d1217",
-    "indexId": "15",
-    "nodeHashId": "a8143d1217",
-    "attributes": {
-      "class": ".",
-      "data-testid": "todo-item",
-      "nodeType": "TEXT Node"
+      "left": 425,
+      "top": 211,
+      "width": 143,
+      "height": 28
     },
-    "locator": "[_midscene_retrieve_task_id='a8143d1217']",
-    "center": [640, 286],
-    "content": "Learn Rust",
-    "rect": {
-      "left": 365,
-      "top": 256,
-      "width": 550,
-      "height": 60
-    }
-  },
-  {
-    "id": "b5bacc879a",
-    "indexId": "16",
-    "nodeHashId": "b5bacc879a",
-    "attributes": {
-      "class": ".view",
-      "nodeType": "TEXT Node"
-    },
-    "locator": "[_midscene_retrieve_task_id='b5bacc879a']",
-    "center": [640, 286],
-    "content": "Learn Rust",
-    "rect": {
-      "left": 365,
-      "top": 256,
-      "width": 550,
-      "height": 59
-    }
+    "htmlNode": null
   },
   {
     "id": "c0751f3b26",
-    "indexId": "17",
+    "indexId": "7",
     "nodeHashId": "c0751f3b26",
     "locator": "[_midscene_retrieve_task_id='c0751f3b26']",
+    "nodeType": "INPUT Node",
     "attributes": {
       "class": ".toggle",
       "type": "checkbox",
@@ -318,30 +143,33 @@
       "width": 40,
       "height": 40
     },
-    "center": [385, 285]
+    "center": [385, 285],
+    "htmlNode": null
   },
   {
-    "id": "b5bacc879a",
-    "indexId": "18",
-    "nodeHashId": "b5bacc879a",
+    "id": "e477ad490a",
+    "indexId": "8",
+    "nodeHashId": "e477ad490a",
+    "nodeType": "TEXT Node",
+    "locator": "",
     "attributes": {
-      "data-testid": "todo-item-label",
       "nodeType": "TEXT Node"
     },
-    "locator": "[_midscene_retrieve_task_id='b5bacc879a']",
-    "center": [640, 286],
+    "center": [484, 285],
     "content": "Learn Rust",
     "rect": {
-      "left": 365,
-      "top": 256,
-      "width": 550,
-      "height": 59
-    }
+      "left": 425,
+      "top": 271,
+      "width": 117,
+      "height": 28
+    },
+    "htmlNode": null
   },
   {
     "id": "7ccd467339",
-    "indexId": "19",
+    "indexId": "9",
     "nodeHashId": "7ccd467339",
+    "nodeType": "BUTTON Node",
     "locator": "[_midscene_retrieve_task_id='7ccd467339']",
     "attributes": {
       "class": ".destroy",
@@ -355,50 +183,15 @@
       "width": 40,
       "height": 40
     },
-    "center": [885, 285]
-  },
-  {
-    "id": "6c30e37d29",
-    "indexId": "20",
-    "nodeHashId": "6c30e37d29",
-    "attributes": {
-      "class": ".",
-      "data-testid": "todo-item",
-      "nodeType": "TEXT Node"
-    },
-    "locator": "[_midscene_retrieve_task_id='6c30e37d29']",
-    "center": [640, 346],
-    "content": "Learn AI",
-    "rect": {
-      "left": 365,
-      "top": 316,
-      "width": 550,
-      "height": 59
-    }
-  },
-  {
-    "id": "6c30e37d29",
-    "indexId": "21",
-    "nodeHashId": "6c30e37d29",
-    "attributes": {
-      "class": ".view",
-      "nodeType": "TEXT Node"
-    },
-    "locator": "[_midscene_retrieve_task_id='6c30e37d29']",
-    "center": [640, 346],
-    "content": "Learn AI",
-    "rect": {
-      "left": 365,
-      "top": 316,
-      "width": 550,
-      "height": 59
-    }
+    "center": [885, 285],
+    "htmlNode": null
   },
   {
     "id": "eb987bf616",
-    "indexId": "22",
+    "indexId": "10",
     "nodeHashId": "eb987bf616",
     "locator": "[_midscene_retrieve_task_id='eb987bf616']",
+    "nodeType": "INPUT Node",
     "attributes": {
       "class": ".toggle",
       "type": "checkbox",
@@ -412,194 +205,109 @@
       "width": 40,
       "height": 40
     },
-    "center": [385, 345]
+    "center": [385, 345],
+    "htmlNode": null
   },
   {
-    "id": "6c30e37d29",
-    "indexId": "23",
-    "nodeHashId": "6c30e37d29",
+    "id": "00528631df",
+    "indexId": "11",
+    "nodeHashId": "00528631df",
+    "nodeType": "TEXT Node",
+    "locator": "",
     "attributes": {
-      "data-testid": "todo-item-label",
       "nodeType": "TEXT Node"
     },
-    "locator": "[_midscene_retrieve_task_id='6c30e37d29']",
-    "center": [640, 346],
+    "center": [470, 345],
     "content": "Learn AI",
     "rect": {
-      "left": 365,
-      "top": 316,
-      "width": 550,
-      "height": 59
-    }
+      "left": 425,
+      "top": 331,
+      "width": 89,
+      "height": 28
+    },
+    "htmlNode": null
   },
   {
-    "id": "e11f6c5a9b",
-    "indexId": "24",
-    "nodeHashId": "e11f6c5a9b",
+    "id": "7a0f49a164",
+    "indexId": "12",
+    "nodeHashId": "7a0f49a164",
+    "nodeType": "TEXT Node",
+    "locator": "",
     "attributes": {
-      "class": ".footer",
-      "data-testid": "footer",
       "nodeType": "TEXT Node"
     },
-    "locator": "[_midscene_retrieve_task_id='e11f6c5a9b']",
-    "center": [640, 395],
-    "content": "3 items left!AllActiveCompletedClear completed",
-    "rect": {
-      "left": 365,
-      "top": 374,
-      "width": 550,
-      "height": 41
-    }
-  },
-  {
-    "id": "12fb207e82",
-    "indexId": "25",
-    "nodeHashId": "12fb207e82",
-    "attributes": {
-      "class": ".todo-count",
-      "nodeType": "TEXT Node"
-    },
-    "locator": "[_midscene_retrieve_task_id='12fb207e82']",
     "center": [416, 395],
     "content": "3 items left!",
     "rect": {
       "left": 380,
-      "top": 385,
+      "top": 386,
       "width": 72,
-      "height": 20
-    }
-  },
-  {
-    "id": "264f4823c9",
-    "indexId": "26",
-    "nodeHashId": "264f4823c9",
-    "attributes": {
-      "class": ".filters",
-      "data-testid": "footer-navigation",
-      "nodeType": "TEXT Node"
+      "height": 18
     },
-    "locator": "[_midscene_retrieve_task_id='264f4823c9']",
-    "center": [640, 395],
-    "content": "AllActiveCompleted",
-    "rect": {
-      "left": 365,
-      "top": 385,
-      "width": 550,
-      "height": 20
-    }
+    "htmlNode": null
   },
   {
-    "id": "1a93d63ded",
-    "indexId": "27",
-    "nodeHashId": "1a93d63ded",
+    "id": "7f7c26491c",
+    "indexId": "13",
+    "nodeHashId": "7f7c26491c",
+    "nodeType": "TEXT Node",
+    "locator": "",
     "attributes": {
       "nodeType": "TEXT Node"
     },
-    "locator": "[_midscene_retrieve_task_id='1a93d63ded']",
     "center": [565, 395],
     "content": "All",
     "rect": {
-      "left": 547,
+      "left": 558,
       "top": 386,
-      "width": 36,
+      "width": 14,
       "height": 18
-    }
-  },
-  {
-    "id": "944c1fae15",
-    "indexId": "28",
-    "nodeHashId": "944c1fae15",
-    "attributes": {
-      "class": ".selected",
-      "href": "#/",
-      "nodeType": "TEXT Node"
     },
-    "locator": "[_midscene_retrieve_task_id='944c1fae15']",
-    "center": [565, 395],
-    "content": "All",
-    "rect": {
-      "left": 550,
-      "top": 382,
-      "width": 30,
-      "height": 26
-    }
+    "htmlNode": null
   },
   {
-    "id": "02fc5f5f2a",
-    "indexId": "29",
-    "nodeHashId": "02fc5f5f2a",
+    "id": "fe18355b5a",
+    "indexId": "14",
+    "nodeHashId": "fe18355b5a",
+    "nodeType": "TEXT Node",
+    "locator": "",
     "attributes": {
       "nodeType": "TEXT Node"
     },
-    "locator": "[_midscene_retrieve_task_id='02fc5f5f2a']",
     "center": [613, 395],
     "content": "Active",
     "rect": {
-      "left": 583,
+      "left": 594,
       "top": 386,
-      "width": 60,
+      "width": 38,
       "height": 18
-    }
-  },
-  {
-    "id": "fc1a3e34a0",
-    "indexId": "30",
-    "nodeHashId": "fc1a3e34a0",
-    "attributes": {
-      "class": ".",
-      "href": "#/active",
-      "nodeType": "TEXT Node"
     },
-    "locator": "[_midscene_retrieve_task_id='fc1a3e34a0']",
-    "center": [613, 395],
-    "content": "Active",
-    "rect": {
-      "left": 586,
-      "top": 382,
-      "width": 54,
-      "height": 26
-    }
+    "htmlNode": null
   },
   {
-    "id": "22220fe185",
-    "indexId": "31",
-    "nodeHashId": "22220fe185",
+    "id": "284ba7f2b3",
+    "indexId": "15",
+    "nodeHashId": "284ba7f2b3",
+    "nodeType": "TEXT Node",
+    "locator": "",
     "attributes": {
       "nodeType": "TEXT Node"
     },
-    "locator": "[_midscene_retrieve_task_id='22220fe185']",
     "center": [688, 395],
     "content": "Completed",
     "rect": {
-      "left": 642,
+      "left": 653,
       "top": 386,
-      "width": 91,
+      "width": 69,
       "height": 18
-    }
-  },
-  {
-    "id": "0f8f471e06",
-    "indexId": "32",
-    "nodeHashId": "0f8f471e06",
-    "attributes": {
-      "class": ".",
-      "href": "#/completed",
-      "nodeType": "TEXT Node"
     },
-    "locator": "[_midscene_retrieve_task_id='0f8f471e06']",
-    "center": [688, 395],
-    "content": "Completed",
-    "rect": {
-      "left": 645,
-      "top": 382,
-      "width": 85,
-      "height": 26
-    }
+    "htmlNode": null
   },
   {
     "id": "84b6988e83",
-    "indexId": "33",
+    "indexId": "16",
     "nodeHashId": "84b6988e83",
+    "nodeType": "BUTTON Node",
     "locator": "[_midscene_retrieve_task_id='84b6988e83']",
     "attributes": {
       "class": ".clear-completed",
@@ -612,86 +320,75 @@
       "width": 103,
       "height": 19
     },
-    "center": [849, 395]
+    "center": [849, 395],
+    "htmlNode": null
   },
   {
-    "id": "05ca0fe580",
-    "indexId": "34",
-    "nodeHashId": "05ca0fe580",
-    "attributes": {
-      "class": ".info",
-      "nodeType": "TEXT Node"
-    },
-    "locator": "[_midscene_retrieve_task_id='05ca0fe580']",
-    "center": [640, 508],
-    "content": "Double-click to edit a todoCreated by the TodoMVC TeamPart of TodoMVC",
-    "rect": {
-      "left": 365,
-      "top": 480,
-      "width": 550,
-      "height": 55
-    }
-  },
-  {
-    "id": "586415981c",
-    "indexId": "35",
-    "nodeHashId": "586415981c",
+    "id": "95a02ed28f",
+    "indexId": "17",
+    "nodeHashId": "95a02ed28f",
+    "nodeType": "TEXT Node",
+    "locator": "",
     "attributes": {
       "nodeType": "TEXT Node"
     },
-    "locator": "[_midscene_retrieve_task_id='586415981c']",
     "center": [640, 486],
     "content": "Double-click to edit a todo",
     "rect": {
-      "left": 365,
-      "top": 480,
-      "width": 550,
-      "height": 11
-    }
+      "left": 580,
+      "top": 479,
+      "width": 120,
+      "height": 13
+    },
+    "htmlNode": null
   },
   {
-    "id": "d501ec8b0c",
-    "indexId": "36",
-    "nodeHashId": "d501ec8b0c",
+    "id": "b36169ba80",
+    "indexId": "18",
+    "nodeHashId": "b36169ba80",
+    "nodeType": "TEXT Node",
+    "locator": "",
     "attributes": {
       "nodeType": "TEXT Node"
     },
-    "locator": "[_midscene_retrieve_task_id='d501ec8b0c']",
     "center": [640, 508],
     "content": "Created by the TodoMVC Team",
     "rect": {
-      "left": 365,
-      "top": 502,
-      "width": 550,
-      "height": 11
-    }
+      "left": 568,
+      "top": 501,
+      "width": 144,
+      "height": 13
+    },
+    "htmlNode": null
   },
   {
-    "id": "332bc0052f",
-    "indexId": "37",
-    "nodeHashId": "332bc0052f",
+    "id": "7d170b5a0c",
+    "indexId": "19",
+    "nodeHashId": "7d170b5a0c",
+    "nodeType": "TEXT Node",
+    "locator": "",
     "attributes": {
       "nodeType": "TEXT Node"
     },
-    "locator": "[_midscene_retrieve_task_id='332bc0052f']",
-    "center": [640, 530],
-    "content": "Part of TodoMVC",
+    "center": [616, 530],
+    "content": "Part of",
     "rect": {
-      "left": 365,
-      "top": 524,
-      "width": 550,
-      "height": 11
-    }
+      "left": 599,
+      "top": 523,
+      "width": 33,
+      "height": 13
+    },
+    "htmlNode": null
   },
   {
     "id": "70ba39c5c6",
-    "indexId": "38",
+    "indexId": "20",
     "nodeHashId": "70ba39c5c6",
+    "nodeType": "TEXT Node",
+    "locator": "",
     "attributes": {
-      "href": "http://todomvc.com",
       "nodeType": "TEXT Node"
     },
-    "locator": "[_midscene_retrieve_task_id='70ba39c5c6']",
     "center": [656, 530],
     "content": "TodoMVC",
     "rect": {
@@ -699,6 +396,7 @@
       "top": 523,
       "width": 48,
       "height": 13
-    }
+    },
+    "htmlNode": null
   }
 ]
