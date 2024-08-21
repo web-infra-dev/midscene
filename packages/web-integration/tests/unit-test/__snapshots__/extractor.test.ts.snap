@@ -214,23 +214,11 @@ exports[`extractor > basic 1`] = `
   },
   {
     "attributes": {
-      "nodeType": "TEXT Node",
-    },
-    "content": "",
-  },
-  {
-    "attributes": {
       "id": "J_input",
       "nodeType": "INPUT Node",
       "placeholder": "Hello World This is Placeholder",
     },
     "content": "Hello World This is Placeholder",
-  },
-  {
-    "attributes": {
-      "nodeType": "TEXT Node",
-    },
-    "content": "",
   },
   {
     "attributes": {
@@ -242,19 +230,7 @@ exports[`extractor > basic 1`] = `
     "attributes": {
       "nodeType": "TEXT Node",
     },
-    "content": "",
-  },
-  {
-    "attributes": {
-      "nodeType": "TEXT Node",
-    },
     "content": "Shape",
-  },
-  {
-    "attributes": {
-      "nodeType": "TEXT Node",
-    },
-    "content": "",
   },
   {
     "attributes": {
@@ -270,12 +246,6 @@ exports[`extractor > basic 1`] = `
       "placeholder": "this_is_a_textarea",
     },
     "content": "this_is_a_textarea",
-  },
-  {
-    "attributes": {
-      "nodeType": "TEXT Node",
-    },
-    "content": "",
   },
   {
     "attributes": {
@@ -306,12 +276,6 @@ exports[`extractor > basic 1`] = `
       "type": "text",
     },
     "content": "搜索任何物品",
-  },
-  {
-    "attributes": {
-      "nodeType": "TEXT Node",
-    },
-    "content": "",
   },
 ]
 `;
