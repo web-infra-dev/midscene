@@ -24,73 +24,6 @@ exports[`extractor > basic 1`] = `
     "attributes": {
       "nodeType": "TEXT Node",
     },
-    "content": "ID
-        Field 2
-        Field 3
-        Field 4
-        Field 5
-      
-    
-    
-      
-        30S
-        Kace Cervantes
-        Aylin Sawyer
-        Jefferson Kirby
-        Skyla Jefferson
-      
-      
-        70U
-        Florence Davenport
-        Dariel Acevedo
-        Ashlynn Delacruz
-        Memphis Leal
-      
-      
-        3AY
-        Crystal Newman
-        Anderson Brown
-        Charlotte Griffith
-        Franklin Everett
-      
-      
-        YPG
-        Kori Payne
-        Edward Blevins
-        Aila Gill
-        Matthias Reed
-      
-      
-        ZEN
-        Magnolia Duke
-        Kalel Glover
-        Alessia Barton
-        Cassius Peck",
-  },
-  {
-    "attributes": {
-      "nodeType": "TEXT Node",
-    },
-    "content": "ID
-        Field 2
-        Field 3
-        Field 4
-        Field 5",
-  },
-  {
-    "attributes": {
-      "nodeType": "TEXT Node",
-    },
-    "content": "ID
-        Field 2
-        Field 3
-        Field 4
-        Field 5",
-  },
-  {
-    "attributes": {
-      "nodeType": "TEXT Node",
-    },
     "content": "ID",
   },
   {
@@ -116,54 +49,6 @@ exports[`extractor > basic 1`] = `
       "nodeType": "TEXT Node",
     },
     "content": "Field 5",
-  },
-  {
-    "attributes": {
-      "nodeType": "TEXT Node",
-    },
-    "content": "30S
-        Kace Cervantes
-        Aylin Sawyer
-        Jefferson Kirby
-        Skyla Jefferson
-      
-      
-        70U
-        Florence Davenport
-        Dariel Acevedo
-        Ashlynn Delacruz
-        Memphis Leal
-      
-      
-        3AY
-        Crystal Newman
-        Anderson Brown
-        Charlotte Griffith
-        Franklin Everett
-      
-      
-        YPG
-        Kori Payne
-        Edward Blevins
-        Aila Gill
-        Matthias Reed
-      
-      
-        ZEN
-        Magnolia Duke
-        Kalel Glover
-        Alessia Barton
-        Cassius Peck",
-  },
-  {
-    "attributes": {
-      "nodeType": "TEXT Node",
-    },
-    "content": "30S
-        Kace Cervantes
-        Aylin Sawyer
-        Jefferson Kirby
-        Skyla Jefferson",
   },
   {
     "attributes": {
@@ -199,16 +84,6 @@ exports[`extractor > basic 1`] = `
     "attributes": {
       "nodeType": "TEXT Node",
     },
-    "content": "70U
-        Florence Davenport
-        Dariel Acevedo
-        Ashlynn Delacruz
-        Memphis Leal",
-  },
-  {
-    "attributes": {
-      "nodeType": "TEXT Node",
-    },
     "content": "70U",
   },
   {
@@ -234,16 +109,6 @@ exports[`extractor > basic 1`] = `
       "nodeType": "TEXT Node",
     },
     "content": "Memphis Leal",
-  },
-  {
-    "attributes": {
-      "nodeType": "TEXT Node",
-    },
-    "content": "3AY
-        Crystal Newman
-        Anderson Brown
-        Charlotte Griffith
-        Franklin Everett",
   },
   {
     "attributes": {
@@ -279,16 +144,6 @@ exports[`extractor > basic 1`] = `
     "attributes": {
       "nodeType": "TEXT Node",
     },
-    "content": "YPG
-        Kori Payne
-        Edward Blevins
-        Aila Gill
-        Matthias Reed",
-  },
-  {
-    "attributes": {
-      "nodeType": "TEXT Node",
-    },
     "content": "YPG",
   },
   {
@@ -314,16 +169,6 @@ exports[`extractor > basic 1`] = `
       "nodeType": "TEXT Node",
     },
     "content": "Matthias Reed",
-  },
-  {
-    "attributes": {
-      "nodeType": "TEXT Node",
-    },
-    "content": "ZEN
-        Magnolia Duke
-        Kalel Glover
-        Alessia Barton
-        Cassius Peck",
   },
   {
     "attributes": {
@@ -359,24 +204,19 @@ exports[`extractor > basic 1`] = `
     "attributes": {
       "nodeType": "TEXT Node",
     },
-    "content": "Form
-    Name:
-    
-    Click Me
-    Shape",
-  },
-  {
-    "attributes": {
-      "nodeType": "TEXT Node",
-    },
     "content": "Form",
   },
   {
     "attributes": {
-      "for": "name",
       "nodeType": "TEXT Node",
     },
     "content": "Name:",
+  },
+  {
+    "attributes": {
+      "nodeType": "TEXT Node",
+    },
+    "content": "",
   },
   {
     "attributes": {
@@ -388,6 +228,12 @@ exports[`extractor > basic 1`] = `
   },
   {
     "attributes": {
+      "nodeType": "TEXT Node",
+    },
+    "content": "",
+  },
+  {
+    "attributes": {
       "nodeType": "BUTTON Node",
     },
     "content": "Click Me",
@@ -396,7 +242,19 @@ exports[`extractor > basic 1`] = `
     "attributes": {
       "nodeType": "TEXT Node",
     },
+    "content": "",
+  },
+  {
+    "attributes": {
+      "nodeType": "TEXT Node",
+    },
     "content": "Shape",
+  },
+  {
+    "attributes": {
+      "nodeType": "TEXT Node",
+    },
+    "content": "",
   },
   {
     "attributes": {
@@ -415,8 +273,12 @@ exports[`extractor > basic 1`] = `
   },
   {
     "attributes": {
-      "class": ".gh-ar-hdn",
-      "for": "gh-ac",
+      "nodeType": "TEXT Node",
+    },
+    "content": "",
+  },
+  {
+    "attributes": {
       "nodeType": "TEXT Node",
     },
     "content": "输入搜索关键词",
@@ -444,6 +306,12 @@ exports[`extractor > basic 1`] = `
       "type": "text",
     },
     "content": "搜索任何物品",
+  },
+  {
+    "attributes": {
+      "nodeType": "TEXT Node",
+    },
+    "content": "",
   },
 ]
 `;
