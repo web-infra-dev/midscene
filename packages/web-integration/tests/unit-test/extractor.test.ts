@@ -4,20 +4,20 @@ import { generateTestData } from 'tests/ai/e2e/tool';
 import { describe, expect, it } from 'vitest';
 import { launchPage } from '../ai/puppeteer/utils';
 
-const pagePath = join(__dirname, './fixtures/extractor.html');
+const pagePath = join(__dirname, './fixtures/extractor/index.html');
 describe(
   'extractor',
   () => {
     it('basic', async () => {
-      const page = await launchPage(`file://${pagePath}`);
+      const { page, reset } = await launchPage(`file://${pagePath}`);
 
       const { content, screenshotBase64 } = await parseContextFromWebPage(page);
       await generateTestData(
         page,
-        path.join(__dirname, 'extractor'),
+        path.join(__dirname, 'fixtures/extractor'),
         screenshotBase64,
         {
-          disableInputImage: true,
+          disableInputImage: false,
           disableOutputImage: false,
           disableOutputWithoutTextImg: true,
           disableResizeOutputImg: true,
@@ -32,6 +32,7 @@ describe(
         };
       });
       expect(list).toMatchSnapshot();
+      await reset();
     });
   },
   {
