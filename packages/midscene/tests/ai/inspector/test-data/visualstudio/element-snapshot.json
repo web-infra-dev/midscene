@@ -358,8 +358,27 @@
     "htmlNode": null
   },
   {
-    "id": "34a6664272",
+    "id": "bbe7c09679",
     "indexId": "19",
+    "nodeHashId": "bbe7c09679",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node"
+    },
+    "center": [113, 552],
+    "content": ",",
+    "rect": {
+      "left": 109,
+      "top": 543,
+      "width": 8,
+      "height": 17
+    },
+    "htmlNode": null
+  },
+  {
+    "id": "34a6664272",
+    "indexId": "20",
     "nodeHashId": "34a6664272",
     "nodeType": "TEXT Node",
     "locator": "",
@@ -378,7 +397,7 @@
   },
   {
     "id": "6a9e874040",
-    "indexId": "20",
+    "indexId": "21",
     "nodeHashId": "6a9e874040",
     "nodeType": "TEXT Node",
     "locator": "",
@@ -397,7 +416,7 @@
   },
   {
     "id": "1ef8370ece",
-    "indexId": "21",
+    "indexId": "22",
     "nodeHashId": "1ef8370ece",
     "nodeType": "TEXT Node",
     "locator": "",
@@ -416,7 +435,7 @@
   },
   {
     "id": "f0d0e9c4f1",
-    "indexId": "22",
+    "indexId": "23",
     "nodeHashId": "f0d0e9c4f1",
     "nodeType": "TEXT Node",
     "locator": "",
@@ -435,7 +454,7 @@
   },
   {
     "id": "deba00f856",
-    "indexId": "23",
+    "indexId": "24",
     "nodeHashId": "deba00f856",
     "nodeType": "TEXT Node",
     "locator": "",
@@ -454,7 +473,7 @@
   },
   {
     "id": "491790f90f",
-    "indexId": "24",
+    "indexId": "25",
     "nodeHashId": "491790f90f",
     "nodeType": "TEXT Node",
     "locator": "",
@@ -473,7 +492,7 @@
   },
   {
     "id": "324717c5ff",
-    "indexId": "25",
+    "indexId": "26",
     "nodeHashId": "324717c5ff",
     "nodeType": "TEXT Node",
     "locator": "",
@@ -491,8 +510,27 @@
     "htmlNode": null
   },
   {
+    "id": "3f353e2096",
+    "indexId": "27",
+    "nodeHashId": "3f353e2096",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node"
+    },
+    "center": [239, 604],
+    "content": ".",
+    "rect": {
+      "left": 237,
+      "top": 597,
+      "width": 3,
+      "height": 13
+    },
+    "htmlNode": null
+  },
+  {
     "id": "7eb7a9b4da",
-    "indexId": "26",
+    "indexId": "28",
     "nodeHashId": "7eb7a9b4da",
     "locator": "[_midscene_retrieve_task_id='7eb7a9b4da']",
     "attributes": {
