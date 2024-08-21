@@ -107,7 +107,7 @@ export function extractTextWithPosition(
           Math.round(rect.left + rect.width / 2),
           Math.round(rect.top + rect.height / 2),
         ],
-        htmlNode: debugModel ? node : null,
+        htmlNode: debugMode ? node : null,
       });
       return;
     }
@@ -134,7 +134,7 @@ export function extractTextWithPosition(
           Math.round(rect.left + rect.width / 2),
           Math.round(rect.top + rect.height / 2),
         ],
-        htmlNode: debugModel ? node : null,
+        htmlNode: debugMode ? node : null,
       });
       return;
     }
@@ -159,7 +159,7 @@ export function extractTextWithPosition(
           Math.round(rect.left + rect.width / 2),
           Math.round(rect.top + rect.height / 2),
         ],
-        htmlNode: debugModel ? node : null,
+        htmlNode: debugMode ? node : null,
       });
       return;
     }
@@ -186,7 +186,7 @@ export function extractTextWithPosition(
         // attributes,
         content: text,
         rect,
-        htmlNode: debugModel ? node : null,
+        htmlNode: debugMode ? node : null,
       });
       return;
     }
