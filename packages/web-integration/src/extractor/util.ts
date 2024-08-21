@@ -1,14 +1,14 @@
 // import { TEXT_MAX_SIZE } from './constants';
 import SHA256 from 'js-sha256';
 
-let debugModel = false;
+let debugMode = false;
 
-export function setDebugModel(model: boolean) {
-  debugModel = model;
+export function setDebugMode(mode: boolean) {
+  debugMode = mode;
 }
 
 export function logger(..._msg: any[]): void {
-  if (!debugModel) {
+  if (!debugMode) {
     return;
   }
   console.log(..._msg);

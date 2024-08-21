@@ -11,7 +11,7 @@ import {
   getPseudoElementContent,
   logger,
   setDataForNode,
-  setDebugModel,
+  setDebugMode,
   validTextNodeContent,
   visibleRect,
 } from './util';
@@ -50,9 +50,9 @@ function generateId(numberId: number) {
 
 export function extractTextWithPosition(
   initNode: Node = container,
-  debugModel = false,
+  debugMode = false,
 ): ElementInfo[] {
-  setDebugModel(debugModel);
+  setDebugMode(debugMode);
   const elementInfoArray: ElementInfo[] = [];
   const nodeMapTree: NodeDescriptor = { node: initNode, children: [] };
   let nodeIndex = 1;
