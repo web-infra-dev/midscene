@@ -9,6 +9,7 @@ export default defineConfig({
     format: 'iife',
     input: {
       htmlElement: 'src/extractor/index.ts',
+      htmlElementDebug: 'src/extractor/debug.ts',
     },
     outDir: 'dist/script',
     esbuildOptions: (options) => {

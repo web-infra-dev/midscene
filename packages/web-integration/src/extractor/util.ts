@@ -1,8 +1,17 @@
 // import { TEXT_MAX_SIZE } from './constants';
 import SHA256 from 'js-sha256';
 
+let debugModel = false;
+
+export function setDebugModel(model: boolean) {
+  debugModel = model;
+}
+
 export function logger(..._msg: any[]): void {
-  // console.log(...msg);
+  if (!debugModel) {
+    return;
+  }
+  console.log(..._msg);
 }
 
 // const nodeIndexCounter = 0;
@@ -61,6 +70,24 @@ export function hasOverflowY(element: HTMLElement): boolean {
   );
 }
 
+function getRect(el: HTMLElement | Node): {
+  bottom: number;
+  height: number;
+  left: number;
+  right: number;
+  top: number;
+  width: number;
+  x: number;
+  y: number;
+} {
+  if (!(el instanceof HTMLElement)) {
+    const range = document.createRange();
+    range.selectNodeContents(el);
+    return range.getBoundingClientRect();
+  }
+  return el.getBoundingClientRect();
+}
+
 export function visibleRect(
   el: HTMLElement | Node | null,
 ): { left: number; top: number; width: number; height: number } | false {
@@ -69,22 +96,25 @@ export function visibleRect(
     return false;
   }
 
-  if (!(el instanceof HTMLElement)) {
+  if (!(el instanceof HTMLElement) && el.nodeType !== Node.TEXT_NODE) {
     logger('Element is not in the DOM hierarchy');
     return false;
   }
 
-  const style = window.getComputedStyle(el);
-  if (
-    style.display === 'none' ||
-    style.visibility === 'hidden' ||
-    (style.opacity === '0' && el.tagName !== 'INPUT')
-  ) {
-    logger('Element is hidden');
-    return false;
+  if (el instanceof HTMLElement) {
+    const style = window.getComputedStyle(el);
+    if (
+      style.display === 'none' ||
+      style.visibility === 'hidden' ||
+      (style.opacity === '0' && el.tagName !== 'INPUT')
+    ) {
+      logger('Element is hidden');
+      return false;
+    }
   }
 
-  const rect = el.getBoundingClientRect();
+  const rect = getRect(el);
+
   if (rect.width === 0 && rect.height === 0) {
     logger('Element has no size');
     return false;
@@ -92,31 +122,37 @@ export function visibleRect(
 
   const scrollLeft = window.pageXOffset || document.documentElement.scrollLeft;
   const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
-  const isInViewport =
-    rect.top >= 0 + scrollTop &&
-    rect.left >= 0 + scrollLeft &&
-    rect.bottom <=
-      (window.innerHeight || document.documentElement.clientHeight) +
-        scrollTop &&
-    rect.right <=
-      (window.innerWidth || document.documentElement.clientWidth) + scrollLeft;
+  const viewportWidth =
+    window.innerWidth || document.documentElement.clientWidth;
+  const viewportHeight =
+    window.innerHeight || document.documentElement.clientHeight;
 
-  if (!isInViewport) {
-    logger('Element is not in the viewport');
-    logger(rect, window.innerHeight, window.innerWidth, scrollTop, scrollLeft);
+  const isPartiallyInViewport =
+    rect.right > 0 &&
+    rect.bottom > 0 &&
+    rect.left < viewportWidth &&
+    rect.top < viewportHeight;
+
+  if (!isPartiallyInViewport) {
+    logger('Element is completely outside the viewport');
+    logger(rect, viewportHeight, viewportWidth, scrollTop, scrollLeft);
     return false;
   }
 
-  let parent: HTMLElement | null = el;
+  let parent: HTMLElement | Node | null = el;
   while (parent && parent !== document.body) {
+    if (!(parent instanceof HTMLElement)) {
+      parent = parent.parentElement;
+      continue;
+    }
     const parentStyle = window.getComputedStyle(parent);
     if (parentStyle.overflow === 'hidden') {
       const parentRect = parent.getBoundingClientRect();
       const tolerance = 10;
       if (
-        rect.top < parentRect.top - tolerance ||
-        rect.left < parentRect.left - tolerance ||
-        rect.bottom > parentRect.bottom + tolerance ||
+        rect.top < parentRect.top - tolerance &&
+        rect.left < parentRect.left - tolerance &&
+        rect.bottom > parentRect.bottom + tolerance &&
         rect.right > parentRect.right + tolerance
       ) {
         logger('Element is clipped by an ancestor', parent, rect, parentRect);
@@ -138,21 +174,30 @@ export function validTextNodeContent(node: Node): string | false {
   if (!node) {
     return false;
   }
-  if (node.nodeType !== Node.ELEMENT_NODE && node.nodeType !== Node.TEXT_NODE) {
+  if (
+    node.nodeType !== Node.ELEMENT_NODE &&
+    node.nodeType !== Node.TEXT_NODE &&
+    (node as any).nodeName !== '#text'
+  ) {
     return false;
   }
 
-  const everyChildNodeIsText = Array.from(node.childNodes).every((child) => {
-    const tagName = ((child as HTMLElement).tagName || '').toLowerCase();
-    if (tagName === 'script' || tagName === 'style' || tagName === 'link') {
-      return false;
-    }
-    return true;
-  });
+  // const everyChildNodeIsText = Array.from(node.childNodes).every((child) => {
+  //   const tagName = ((child as HTMLElement).tagName || '').toLowerCase();
+  //   if (
+  //     tagName === 'script' ||
+  //     tagName === 'style' ||
+  //     tagName === 'link' ||
+  //     tagName !== '#text'
+  //   ) {
+  //     return false;
+  //   }
+  //   return true;
+  // });
 
-  if (!everyChildNodeIsText) {
-    return false;
-  }
+  // if (!everyChildNodeIsText) {
+  //   return false;
+  // }
 
   const content = node.textContent || (node as HTMLElement).innerText;
   if (content && !/^\s*$/.test(content)) {

@@ -1,1204 +1,749 @@
 [
   {
-    "id": "2e61aa0fa8",
+    "id": "6483913e70",
     "indexId": "1",
-    "nodeHashId": "2e61aa0fa8",
+    "nodeHashId": "6483913e70",
+    "nodeType": "TEXT Node",
+    "locator": "",
     "attributes": {
-      "class": ".header.d-md-flex.flex-md-justify-between.flex-md-items-center.px-4.py-3.text-center.text-md-left.bg-white.box-shadow-large",
       "nodeType": "TEXT Node"
     },
-    "locator": "[_midscene_retrieve_task_id='2e61aa0fa8']",
-    "center": [960, 37],
-    "content": "GitHub Octicon logo\n  \n  \n    Help\n    Community\n    Status\n  \n  \n  \n    GitHub.com\n    Twitter\n    \n      \n    \n\n    \n\n\n    \n      \n          \n            \n          \n          \n            \n          \n          \n            \n          \n          \n            \n          \n          \n            \n          \n          \n            \n          \n          \n            \n          \n        \n          x\n        \n      \n      \n          \n            \n              Get email notifications whenever GitHub creates,  updates or resolves an incident.\n            \n            \n              \n                \n                Email address:\n                \n                \n                \n                  Enter OTP:\n                  \n                  Resend OTP in:  seconds \n                  \n                    Didn't receive the OTP?\n                    Resend OTP \n                  \n                \n                  \n                  \n                  By subscribing you agree to our Privacy Policy. This site is protected by reCAPTCHA and the Google Privacy Policy and Terms of Service apply.\n          \n\n          \n            \n                Get text message notifications whenever GitHub creates or resolves an incident.\n            \n            \n              \n              \n              \n                \n                  \n                  Country code:\n                  \n                      Afghanistan (+93)\nAlbania (+355)\nAlgeria (+213)\nAmerican Samoa (+1)\nAndorra (+376)\nAngola (+244)\nAnguilla (+1)\nAntigua and Barbuda (+1)\nArgentina (+54)\nArmenia (+374)\nAruba (+297)\nAustralia/Cocos/Christmas Island (+61)\nAustria (+43)\nAzerbaijan (+994)\nBahamas (+1)\nBahrain (+973)\nBangladesh (+880)\nBarbados (+1)\nBelarus (+375)\nBelgium (+32)\nBelize (+501)\nBenin (+229)\nBermuda (+1)\nBolivia (+591)\nBosnia and Herzegovina (+387)\nBotswana (+267)\nBrazil (+55)\nBrunei (+673)\nBulgaria (+359)\nBurkina Faso (+226)\nBurundi (+257)\nCambodia (+855)\nCameroon (+237)\nCanada (+1)\nCape Verde (+238)\nCayman Islands (+1)\nCentral Africa (+236)\nChad (+235)\nChile (+56)\nChina (+86)\nColombia (+57)\nComoros (+269)\nCongo (+242)\nCongo, Dem Rep (+243)\nCosta Rica (+506)\nCroatia (+385)\nCyprus (+357)\nCzech Republic (+420)\nDenmark (+45)\nDjibouti (+253)\nDominica (+1)\nDominican Republic (+1)\nEgypt (+20)\nEl Salvador (+503)\nEquatorial Guinea (+240)\nEstonia (+372)\nEthiopia (+251)\nFaroe Islands (+298)\nFiji (+679)\nFinland/Aland Islands (+358)\nFrance (+33)\nFrench Guiana (+594)\nFrench Polynesia (+689)\nGabon (+241)\nGambia (+220)\nGeorgia (+995)\nGermany (+49)\nGhana (+233)\nGibraltar (+350)\nGreece (+30)\nGreenland (+299)\nGrenada (+1)\nGuadeloupe (+590)\nGuam (+1)\nGuatemala (+502)\nGuinea (+224)\nGuyana (+592)\nHaiti (+509)\nHonduras (+504)\nHong Kong (+852)\nHungary (+36)\nIceland (+354)\nIndia (+91)\nIndonesia (+62)\nIraq (+964)\nIreland (+353)\nIsrael (+972)\nItaly (+39)\nJamaica (+1)\nJapan (+81)\nJordan (+962)\nKenya (+254)\nKorea, Republic of (+82)\nKosovo (+383)\nKuwait (+965)\nKyrgyzstan (+996)\nLaos (+856)\nLatvia (+371)\nLebanon (+961)\nLesotho (+266)\nLiberia (+231)\nLibya (+218)\nLiechtenstein (+423)\nLithuania (+370)\nLuxembourg (+352)\nMacao (+853)\nMacedonia (+389)\nMadagascar (+261)\nMalawi (+265)\nMalaysia (+60)\nMaldives (+960)\nMali (+223)\nMalta (+356)\nMartinique (+596)\nMauritania (+222)\nMauritius (+230)\nMexico (+52)\nMonaco (+377)\nMongolia (+976)\nMontenegro (+382)\nMontserrat (+1)\nMorocco/Western Sahara (+212)\nMozambique (+258)\nNamibia (+264)\nNepal (+977)\nNetherlands (+31)\nNew Zealand (+64)\nNicaragua (+505)\nNiger (+227)\nNigeria (+234)\nNorway (+47)\nOman (+968)\nPakistan (+92)\nPalestinian Territory (+970)\nPanama (+507)\nParaguay (+595)\nPeru (+51)\nPhilippines (+63)\nPoland (+48)\nPortugal (+351)\nPuerto Rico (+1)\nQatar (+974)\nReunion/Mayotte (+262)\nRomania (+40)\nRussia/Kazakhstan (+7)\nRwanda (+250)\nSamoa (+685)\nSan Marino (+378)\nSaudi Arabia (+966)\nSenegal (+221)\nSerbia (+381)\nSeychelles (+248)\nSierra Leone (+232)\nSingapore (+65)\nSlovakia (+421)\nSlovenia (+386)\nSouth Africa (+27)\nSpain (+34)\nSri Lanka (+94)\nSt Kitts and Nevis (+1)\nSt Lucia (+1)\nSt Vincent Grenadines (+1)\nSudan (+249)\nSuriname (+597)\nSwaziland (+268)\nSweden (+46)\nSwitzerland (+41)\nTaiwan (+886)\nTajikistan (+992)\nTanzania (+255)\nThailand (+66)\nTogo (+228)\nTonga (+676)\nTrinidad and Tobago (+1)\nTunisia (+216)\nTurkey (+90)\nTurks and Caicos Islands (+1)\nUganda (+256)\nUkraine (+380)\nUnited Arab Emirates (+971)\nUnited Kingdom (+44)\nUnited States (+1)\nUruguay (+598)\nUzbekistan (+998)\nVenezuela (+58)\nVietnam (+84)\nVirgin Islands, British (+1)\nVirgin Islands, U.S. (+1)\nYemen (+967)\nZambia (+260)\nZimbabwe (+263)\n                  \n                  Phone number:\n                  \n                  \n                  \n                  \n                    Change number\n                    Enter OTP:\n                    \n                    Resend OTP in: 30 seconds \n                    \n                      Didn't receive the OTP?\n                      Resend OTP \n                    \n                    \n                \n              \n\n                \n                \n              Message and data rates may apply. By subscribing you agree to our Privacy Policy, the Atlassian Terms of Service, and the Atlassian Privacy Policy. This site is protected by reCAPTCHA and the Google Privacy Policy and Terms of Service apply.\n          \n\n          \n            \n              Get incident updates and maintenance status messages in Slack.\n            \n            Subscribe via Slack\n            By subscribing you acknowledge our Privacy Policy. In addition, you agree to the Atlassian Cloud Terms of Service and acknowledge Atlassian's Privacy Policy.\n          \n\n\n          \n            \n              Get webhook notifications whenever GitHub creates an incident, updates an incident, resolves an incident or changes a component status.\n            \n            \n              \n                \n                  Webhook URL:\n                  \n                  The URL we should send the webhooks to\n                \n              \n\n              \n                \n                  Email address:\n                  \n                  We'll send you email if your endpoint fails\n                \n              \n\n                \n                \n                By subscribing you agree to our Privacy Policy. This site is protected by reCAPTCHA and the Google Privacy Policy and Terms of Service apply.\n\n          \n\n          \n            \n            or \n            view our profile.\n            \n              .twitter-follow-button {\n                margin-bottom: -6px;\n              }\n            \n\n              !function(d,s,id){var js,fjs=d.getElementsByTagName(s)[0],p=/^http:/.test(d.location)?'http':'https';if(!d.getElementById(id)){js=d.createElement(s);js.id=id;js.src=p+'://platform.twitter.com/widgets.js';fjs.parentNode.insertBefore(js,fjs);}}(document, 'script', 'twitter-wjs');\n          \n\n          \n            Visit our support site.\n          \n\n          \n            Get the Atom Feed or RSS Feed.",
-    "rect": {
-      "left": 0,
-      "top": 0,
-      "width": 1920,
-      "height": 73
-    }
-  },
-  {
-    "id": "dea73b0ace",
-    "indexId": "2",
-    "nodeHashId": "dea73b0ace",
-    "attributes": {
-      "href": "/",
-      "class": ".text-gray-dark",
-      "aria-label": "GitHub Octicon logo",
-      "nodeType": "TEXT Node"
-    },
-    "locator": "[_midscene_retrieve_task_id='dea73b0ace']",
-    "center": [960, 36],
-    "content": "GitHub Octicon logo",
-    "rect": {
-      "left": 944,
-      "top": 20,
-      "width": 32,
-      "height": 32
-    }
-  },
-  {
-    "id": "5c2d0fc07e",
-    "indexId": "3",
-    "nodeHashId": "5c2d0fc07e",
-    "attributes": {
-      "class": ".f4.list-style-none.py-2.mt-2.mt-md-0",
-      "nodeType": "TEXT Node"
-    },
-    "locator": "[_midscene_retrieve_task_id='5c2d0fc07e']",
-    "center": [399, 36],
-    "content": "Help\n    Community\n    Status",
-    "rect": {
-      "left": 24,
-      "top": 16,
-      "width": 749,
-      "height": 40
-    }
-  },
-  {
-    "id": "7480b80cb3",
-    "indexId": "4",
-    "nodeHashId": "7480b80cb3",
-    "attributes": {
-      "class": ".mr-3.mr-lg-4.py-2",
-      "href": "https://help.github.com",
-      "nodeType": "TEXT Node"
-    },
-    "locator": "[_midscene_retrieve_task_id='7480b80cb3']",
-    "center": [41, 37],
+    "center": [17, 52],
     "content": "Help",
     "rect": {
-      "left": 24,
-      "top": 19,
-      "width": 34,
-      "height": 35
-    }
+      "left": 0,
+      "top": 44,
+      "width": 33,
+      "height": 16
+    },
+    "htmlNode": null
   },
   {
-    "id": "f3a0bad871",
-    "indexId": "5",
-    "nodeHashId": "f3a0bad871",
+    "id": "217fae8f94",
+    "indexId": "2",
+    "nodeHashId": "217fae8f94",
+    "nodeType": "TEXT Node",
+    "locator": "",
     "attributes": {
-      "class": ".mr-3.mr-lg-4.py-2",
-      "href": "https://github.community",
       "nodeType": "TEXT Node"
     },
-    "locator": "[_midscene_retrieve_task_id='f3a0bad871']",
-    "center": [128, 37],
+    "center": [77, 52],
     "content": "Community",
     "rect": {
-      "left": 86,
-      "top": 19,
-      "width": 83,
-      "height": 35
-    }
+      "left": 37,
+      "top": 44,
+      "width": 80,
+      "height": 16
+    },
+    "htmlNode": null
   },
   {
-    "id": "2b27b9d4f4",
-    "indexId": "6",
-    "nodeHashId": "2b27b9d4f4",
+    "id": "7beaf70d6b",
+    "indexId": "3",
+    "nodeHashId": "7beaf70d6b",
+    "nodeType": "TEXT Node",
+    "locator": "",
     "attributes": {
-      "class": ".py-2.text-gray",
-      "href": "/",
       "nodeType": "TEXT Node"
     },
-    "locator": "[_midscene_retrieve_task_id='2b27b9d4f4']",
-    "center": [220, 37],
+    "center": [143, 52],
     "content": "Status",
     "rect": {
-      "left": 197,
-      "top": 19,
-      "width": 46,
-      "height": 35
-    }
+      "left": 121,
+      "top": 44,
+      "width": 43,
+      "height": 16
+    },
+    "htmlNode": null
   },
   {
-    "id": "40bf454063",
-    "indexId": "7",
-    "nodeHashId": "40bf454063",
+    "id": "7b3c5e2431",
+    "indexId": "4",
+    "nodeHashId": "7b3c5e2431",
+    "nodeType": "TEXT Node",
+    "locator": "",
     "attributes": {
-      "class": ".f4.list-style-none.py-2.text-md-right",
       "nodeType": "TEXT Node"
     },
-    "locator": "[_midscene_retrieve_task_id='40bf454063']",
-    "center": [1522, 36],
-    "content": "GitHub.com\n    Twitter\n    \n      \n    \n\n    \n\n\n    \n      \n          \n            \n          \n          \n            \n          \n          \n            \n          \n          \n            \n          \n          \n            \n          \n          \n            \n          \n          \n            \n          \n        \n          x\n        \n      \n      \n          \n            \n              Get email notifications whenever GitHub creates,  updates or resolves an incident.\n            \n            \n              \n                \n                Email address:\n                \n                \n                \n                  Enter OTP:\n                  \n                  Resend OTP in:  seconds \n                  \n                    Didn't receive the OTP?\n                    Resend OTP \n                  \n                \n                  \n                  \n                  By subscribing you agree to our Privacy Policy. This site is protected by reCAPTCHA and the Google Privacy Policy and Terms of Service apply.\n          \n\n          \n            \n                Get text message notifications whenever GitHub creates or resolves an incident.\n            \n            \n              \n              \n              \n                \n                  \n                  Country code:\n                  \n                      Afghanistan (+93)\nAlbania (+355)\nAlgeria (+213)\nAmerican Samoa (+1)\nAndorra (+376)\nAngola (+244)\nAnguilla (+1)\nAntigua and Barbuda (+1)\nArgentina (+54)\nArmenia (+374)\nAruba (+297)\nAustralia/Cocos/Christmas Island (+61)\nAustria (+43)\nAzerbaijan (+994)\nBahamas (+1)\nBahrain (+973)\nBangladesh (+880)\nBarbados (+1)\nBelarus (+375)\nBelgium (+32)\nBelize (+501)\nBenin (+229)\nBermuda (+1)\nBolivia (+591)\nBosnia and Herzegovina (+387)\nBotswana (+267)\nBrazil (+55)\nBrunei (+673)\nBulgaria (+359)\nBurkina Faso (+226)\nBurundi (+257)\nCambodia (+855)\nCameroon (+237)\nCanada (+1)\nCape Verde (+238)\nCayman Islands (+1)\nCentral Africa (+236)\nChad (+235)\nChile (+56)\nChina (+86)\nColombia (+57)\nComoros (+269)\nCongo (+242)\nCongo, Dem Rep (+243)\nCosta Rica (+506)\nCroatia (+385)\nCyprus (+357)\nCzech Republic (+420)\nDenmark (+45)\nDjibouti (+253)\nDominica (+1)\nDominican Republic (+1)\nEgypt (+20)\nEl Salvador (+503)\nEquatorial Guinea (+240)\nEstonia (+372)\nEthiopia (+251)\nFaroe Islands (+298)\nFiji (+679)\nFinland/Aland Islands (+358)\nFrance (+33)\nFrench Guiana (+594)\nFrench Polynesia (+689)\nGabon (+241)\nGambia (+220)\nGeorgia (+995)\nGermany (+49)\nGhana (+233)\nGibraltar (+350)\nGreece (+30)\nGreenland (+299)\nGrenada (+1)\nGuadeloupe (+590)\nGuam (+1)\nGuatemala (+502)\nGuinea (+224)\nGuyana (+592)\nHaiti (+509)\nHonduras (+504)\nHong Kong (+852)\nHungary (+36)\nIceland (+354)\nIndia (+91)\nIndonesia (+62)\nIraq (+964)\nIreland (+353)\nIsrael (+972)\nItaly (+39)\nJamaica (+1)\nJapan (+81)\nJordan (+962)\nKenya (+254)\nKorea, Republic of (+82)\nKosovo (+383)\nKuwait (+965)\nKyrgyzstan (+996)\nLaos (+856)\nLatvia (+371)\nLebanon (+961)\nLesotho (+266)\nLiberia (+231)\nLibya (+218)\nLiechtenstein (+423)\nLithuania (+370)\nLuxembourg (+352)\nMacao (+853)\nMacedonia (+389)\nMadagascar (+261)\nMalawi (+265)\nMalaysia (+60)\nMaldives (+960)\nMali (+223)\nMalta (+356)\nMartinique (+596)\nMauritania (+222)\nMauritius (+230)\nMexico (+52)\nMonaco (+377)\nMongolia (+976)\nMontenegro (+382)\nMontserrat (+1)\nMorocco/Western Sahara (+212)\nMozambique (+258)\nNamibia (+264)\nNepal (+977)\nNetherlands (+31)\nNew Zealand (+64)\nNicaragua (+505)\nNiger (+227)\nNigeria (+234)\nNorway (+47)\nOman (+968)\nPakistan (+92)\nPalestinian Territory (+970)\nPanama (+507)\nParaguay (+595)\nPeru (+51)\nPhilippines (+63)\nPoland (+48)\nPortugal (+351)\nPuerto Rico (+1)\nQatar (+974)\nReunion/Mayotte (+262)\nRomania (+40)\nRussia/Kazakhstan (+7)\nRwanda (+250)\nSamoa (+685)\nSan Marino (+378)\nSaudi Arabia (+966)\nSenegal (+221)\nSerbia (+381)\nSeychelles (+248)\nSierra Leone (+232)\nSingapore (+65)\nSlovakia (+421)\nSlovenia (+386)\nSouth Africa (+27)\nSpain (+34)\nSri Lanka (+94)\nSt Kitts and Nevis (+1)\nSt Lucia (+1)\nSt Vincent Grenadines (+1)\nSudan (+249)\nSuriname (+597)\nSwaziland (+268)\nSweden (+46)\nSwitzerland (+41)\nTaiwan (+886)\nTajikistan (+992)\nTanzania (+255)\nThailand (+66)\nTogo (+228)\nTonga (+676)\nTrinidad and Tobago (+1)\nTunisia (+216)\nTurkey (+90)\nTurks and Caicos Islands (+1)\nUganda (+256)\nUkraine (+380)\nUnited Arab Emirates (+971)\nUnited Kingdom (+44)\nUnited States (+1)\nUruguay (+598)\nUzbekistan (+998)\nVenezuela (+58)\nVietnam (+84)\nVirgin Islands, British (+1)\nVirgin Islands, U.S. (+1)\nYemen (+967)\nZambia (+260)\nZimbabwe (+263)\n                  \n                  Phone number:\n                  \n                  \n                  \n                  \n                    Change number\n                    Enter OTP:\n                    \n                    Resend OTP in: 30 seconds \n                    \n                      Didn't receive the OTP?\n                      Resend OTP \n                    \n                    \n                \n              \n\n                \n                \n              Message and data rates may apply. By subscribing you agree to our Privacy Policy, the Atlassian Terms of Service, and the Atlassian Privacy Policy. This site is protected by reCAPTCHA and the Google Privacy Policy and Terms of Service apply.\n          \n\n          \n            \n              Get incident updates and maintenance status messages in Slack.\n            \n            Subscribe via Slack\n            By subscribing you acknowledge our Privacy Policy. In addition, you agree to the Atlassian Cloud Terms of Service and acknowledge Atlassian's Privacy Policy.\n          \n\n\n          \n            \n              Get webhook notifications whenever GitHub creates an incident, updates an incident, resolves an incident or changes a component status.\n            \n            \n              \n                \n                  Webhook URL:\n                  \n                  The URL we should send the webhooks to\n                \n              \n\n              \n                \n                  Email address:\n                  \n                  We'll send you email if your endpoint fails\n                \n              \n\n                \n                \n                By subscribing you agree to our Privacy Policy. This site is protected by reCAPTCHA and the Google Privacy Policy and Terms of Service apply.\n\n          \n\n          \n            \n            or \n            view our profile.\n            \n              .twitter-follow-button {\n                margin-bottom: -6px;\n              }\n            \n\n              !function(d,s,id){var js,fjs=d.getElementsByTagName(s)[0],p=/^http:/.test(d.location)?'http':'https';if(!d.getElementById(id)){js=d.createElement(s);js.id=id;js.src=p+'://platform.twitter.com/widgets.js';fjs.parentNode.insertBefore(js,fjs);}}(document, 'script', 'twitter-wjs');\n          \n\n          \n            Visit our support site.\n          \n\n          \n            Get the Atom Feed or RSS Feed.",
-    "rect": {
-      "left": 1147,
-      "top": 16,
-      "width": 749,
-      "height": 40
-    }
-  },
-  {
-    "id": "44c2ed902a",
-    "indexId": "8",
-    "nodeHashId": "44c2ed902a",
-    "attributes": {
-      "class": ".py-2",
-      "href": "https://github.com",
-      "nodeType": "TEXT Node"
-    },
-    "locator": "[_midscene_retrieve_task_id='44c2ed902a']",
-    "center": [1586, 37],
+    "center": [42, 76],
     "content": "GitHub.com",
     "rect": {
-      "left": 1543,
-      "top": 19,
-      "width": 86,
-      "height": 35
-    }
+      "left": 0,
+      "top": 68,
+      "width": 83,
+      "height": 16
+    },
+    "htmlNode": null
   },
   {
-    "id": "7d552ded8a",
-    "indexId": "9",
-    "nodeHashId": "7d552ded8a",
+    "id": "45f86739d9",
+    "indexId": "5",
+    "nodeHashId": "45f86739d9",
+    "nodeType": "TEXT Node",
+    "locator": "",
     "attributes": {
-      "class": ".py-2.ml-3.ml-lg-4",
-      "href": "https://twitter.com/githubstatus",
       "nodeType": "TEXT Node"
     },
-    "locator": "[_midscene_retrieve_task_id='7d552ded8a']",
-    "center": [1683, 37],
+    "center": [111, 76],
     "content": "Twitter",
     "rect": {
-      "left": 1658,
-      "top": 19,
-      "width": 50,
-      "height": 35
-    }
-  },
-  {
-    "id": "c6687feb44",
-    "indexId": "10",
-    "nodeHashId": "c6687feb44",
-    "attributes": {
-      "class": ".d-inline.py-2.ml-3.ml-lg-4",
-      "nodeType": "TEXT Node"
+      "left": 87,
+      "top": 68,
+      "width": 47,
+      "height": 16
     },
-    "locator": "[_midscene_retrieve_task_id='c6687feb44']",
-    "center": [1816, 37],
-    "content": "x\n        \n      \n      \n          \n            \n              Get email notifications whenever GitHub creates,  updates or resolves an incident.\n            \n            \n              \n                \n                Email address:\n                \n                \n                \n                  Enter OTP:\n                  \n                  Resend OTP in:  seconds \n                  \n                    Didn't receive the OTP?\n                    Resend OTP \n                  \n                \n                  \n                  \n                  By subscribing you agree to our Privacy Policy. This site is protected by reCAPTCHA and the Google Privacy Policy and Terms of Service apply.\n          \n\n          \n            \n                Get text message notifications whenever GitHub creates or resolves an incident.\n            \n            \n              \n              \n              \n                \n                  \n                  Country code:\n                  \n                      Afghanistan (+93)\nAlbania (+355)\nAlgeria (+213)\nAmerican Samoa (+1)\nAndorra (+376)\nAngola (+244)\nAnguilla (+1)\nAntigua and Barbuda (+1)\nArgentina (+54)\nArmenia (+374)\nAruba (+297)\nAustralia/Cocos/Christmas Island (+61)\nAustria (+43)\nAzerbaijan (+994)\nBahamas (+1)\nBahrain (+973)\nBangladesh (+880)\nBarbados (+1)\nBelarus (+375)\nBelgium (+32)\nBelize (+501)\nBenin (+229)\nBermuda (+1)\nBolivia (+591)\nBosnia and Herzegovina (+387)\nBotswana (+267)\nBrazil (+55)\nBrunei (+673)\nBulgaria (+359)\nBurkina Faso (+226)\nBurundi (+257)\nCambodia (+855)\nCameroon (+237)\nCanada (+1)\nCape Verde (+238)\nCayman Islands (+1)\nCentral Africa (+236)\nChad (+235)\nChile (+56)\nChina (+86)\nColombia (+57)\nComoros (+269)\nCongo (+242)\nCongo, Dem Rep (+243)\nCosta Rica (+506)\nCroatia (+385)\nCyprus (+357)\nCzech Republic (+420)\nDenmark (+45)\nDjibouti (+253)\nDominica (+1)\nDominican Republic (+1)\nEgypt (+20)\nEl Salvador (+503)\nEquatorial Guinea (+240)\nEstonia (+372)\nEthiopia (+251)\nFaroe Islands (+298)\nFiji (+679)\nFinland/Aland Islands (+358)\nFrance (+33)\nFrench Guiana (+594)\nFrench Polynesia (+689)\nGabon (+241)\nGambia (+220)\nGeorgia (+995)\nGermany (+49)\nGhana (+233)\nGibraltar (+350)\nGreece (+30)\nGreenland (+299)\nGrenada (+1)\nGuadeloupe (+590)\nGuam (+1)\nGuatemala (+502)\nGuinea (+224)\nGuyana (+592)\nHaiti (+509)\nHonduras (+504)\nHong Kong (+852)\nHungary (+36)\nIceland (+354)\nIndia (+91)\nIndonesia (+62)\nIraq (+964)\nIreland (+353)\nIsrael (+972)\nItaly (+39)\nJamaica (+1)\nJapan (+81)\nJordan (+962)\nKenya (+254)\nKorea, Republic of (+82)\nKosovo (+383)\nKuwait (+965)\nKyrgyzstan (+996)\nLaos (+856)\nLatvia (+371)\nLebanon (+961)\nLesotho (+266)\nLiberia (+231)\nLibya (+218)\nLiechtenstein (+423)\nLithuania (+370)\nLuxembourg (+352)\nMacao (+853)\nMacedonia (+389)\nMadagascar (+261)\nMalawi (+265)\nMalaysia (+60)\nMaldives (+960)\nMali (+223)\nMalta (+356)\nMartinique (+596)\nMauritania (+222)\nMauritius (+230)\nMexico (+52)\nMonaco (+377)\nMongolia (+976)\nMontenegro (+382)\nMontserrat (+1)\nMorocco/Western Sahara (+212)\nMozambique (+258)\nNamibia (+264)\nNepal (+977)\nNetherlands (+31)\nNew Zealand (+64)\nNicaragua (+505)\nNiger (+227)\nNigeria (+234)\nNorway (+47)\nOman (+968)\nPakistan (+92)\nPalestinian Territory (+970)\nPanama (+507)\nParaguay (+595)\nPeru (+51)\nPhilippines (+63)\nPoland (+48)\nPortugal (+351)\nPuerto Rico (+1)\nQatar (+974)\nReunion/Mayotte (+262)\nRomania (+40)\nRussia/Kazakhstan (+7)\nRwanda (+250)\nSamoa (+685)\nSan Marino (+378)\nSaudi Arabia (+966)\nSenegal (+221)\nSerbia (+381)\nSeychelles (+248)\nSierra Leone (+232)\nSingapore (+65)\nSlovakia (+421)\nSlovenia (+386)\nSouth Africa (+27)\nSpain (+34)\nSri Lanka (+94)\nSt Kitts and Nevis (+1)\nSt Lucia (+1)\nSt Vincent Grenadines (+1)\nSudan (+249)\nSuriname (+597)\nSwaziland (+268)\nSweden (+46)\nSwitzerland (+41)\nTaiwan (+886)\nTajikistan (+992)\nTanzania (+255)\nThailand (+66)\nTogo (+228)\nTonga (+676)\nTrinidad and Tobago (+1)\nTunisia (+216)\nTurkey (+90)\nTurks and Caicos Islands (+1)\nUganda (+256)\nUkraine (+380)\nUnited Arab Emirates (+971)\nUnited Kingdom (+44)\nUnited States (+1)\nUruguay (+598)\nUzbekistan (+998)\nVenezuela (+58)\nVietnam (+84)\nVirgin Islands, British (+1)\nVirgin Islands, U.S. (+1)\nYemen (+967)\nZambia (+260)\nZimbabwe (+263)\n                  \n                  Phone number:\n                  \n                  \n                  \n                  \n                    Change number\n                    Enter OTP:\n                    \n                    Resend OTP in: 30 seconds \n                    \n                      Didn't receive the OTP?\n                      Resend OTP \n                    \n                    \n                \n              \n\n                \n                \n              Message and data rates may apply. By subscribing you agree to our Privacy Policy, the Atlassian Terms of Service, and the Atlassian Privacy Policy. This site is protected by reCAPTCHA and the Google Privacy Policy and Terms of Service apply.\n          \n\n          \n            \n              Get incident updates and maintenance status messages in Slack.\n            \n            Subscribe via Slack\n            By subscribing you acknowledge our Privacy Policy. In addition, you agree to the Atlassian Cloud Terms of Service and acknowledge Atlassian's Privacy Policy.\n          \n\n\n          \n            \n              Get webhook notifications whenever GitHub creates an incident, updates an incident, resolves an incident or changes a component status.\n            \n            \n              \n                \n                  Webhook URL:\n                  \n                  The URL we should send the webhooks to\n                \n              \n\n              \n                \n                  Email address:\n                  \n                  We'll send you email if your endpoint fails\n                \n              \n\n                \n                \n                By subscribing you agree to our Privacy Policy. This site is protected by reCAPTCHA and the Google Privacy Policy and Terms of Service apply.\n\n          \n\n          \n            \n            or \n            view our profile.\n            \n              .twitter-follow-button {\n                margin-bottom: -6px;\n              }\n            \n\n              !function(d,s,id){var js,fjs=d.getElementsByTagName(s)[0],p=/^http:/.test(d.location)?'http':'https';if(!d.getElementById(id)){js=d.createElement(s);js.id=id;js.src=p+'://platform.twitter.com/widgets.js';fjs.parentNode.insertBefore(js,fjs);}}(document, 'script', 'twitter-wjs');\n          \n\n          \n            Visit our support site.\n          \n\n          \n            Get the Atom Feed or RSS Feed.",
-    "rect": {
-      "left": 1736,
-      "top": 19,
-      "width": 160,
-      "height": 35
-    }
+    "htmlNode": null
   },
   {
-    "id": "9bf8cb5fec",
-    "indexId": "11",
-    "nodeHashId": "9bf8cb5fec",
+    "id": "19c6cc1688",
+    "indexId": "6",
+    "nodeHashId": "19c6cc1688",
+    "locator": "[_midscene_retrieve_task_id='19c6cc1688']",
     "attributes": {
-      "class": ".updates-dropdown-container",
-      "data-js-hook": "updates-dropdown-container",
-      "style": "display: inline-block;",
-      "nodeType": "TEXT Node"
-    },
-    "locator": "[_midscene_retrieve_task_id='9bf8cb5fec']",
-    "center": [1816, 36],
-    "content": "x\n        \n      \n      \n          \n            \n              Get email notifications whenever GitHub creates,  updates or resolves an incident.\n            \n            \n              \n                \n                Email address:\n                \n                \n                \n                  Enter OTP:\n                  \n                  Resend OTP in:  seconds \n                  \n                    Didn't receive the OTP?\n                    Resend OTP \n                  \n                \n                  \n                  \n                  By subscribing you agree to our Privacy Policy. This site is protected by reCAPTCHA and the Google Privacy Policy and Terms of Service apply.\n          \n\n          \n            \n                Get text message notifications whenever GitHub creates or resolves an incident.\n            \n            \n              \n              \n              \n                \n                  \n                  Country code:\n                  \n                      Afghanistan (+93)\nAlbania (+355)\nAlgeria (+213)\nAmerican Samoa (+1)\nAndorra (+376)\nAngola (+244)\nAnguilla (+1)\nAntigua and Barbuda (+1)\nArgentina (+54)\nArmenia (+374)\nAruba (+297)\nAustralia/Cocos/Christmas Island (+61)\nAustria (+43)\nAzerbaijan (+994)\nBahamas (+1)\nBahrain (+973)\nBangladesh (+880)\nBarbados (+1)\nBelarus (+375)\nBelgium (+32)\nBelize (+501)\nBenin (+229)\nBermuda (+1)\nBolivia (+591)\nBosnia and Herzegovina (+387)\nBotswana (+267)\nBrazil (+55)\nBrunei (+673)\nBulgaria (+359)\nBurkina Faso (+226)\nBurundi (+257)\nCambodia (+855)\nCameroon (+237)\nCanada (+1)\nCape Verde (+238)\nCayman Islands (+1)\nCentral Africa (+236)\nChad (+235)\nChile (+56)\nChina (+86)\nColombia (+57)\nComoros (+269)\nCongo (+242)\nCongo, Dem Rep (+243)\nCosta Rica (+506)\nCroatia (+385)\nCyprus (+357)\nCzech Republic (+420)\nDenmark (+45)\nDjibouti (+253)\nDominica (+1)\nDominican Republic (+1)\nEgypt (+20)\nEl Salvador (+503)\nEquatorial Guinea (+240)\nEstonia (+372)\nEthiopia (+251)\nFaroe Islands (+298)\nFiji (+679)\nFinland/Aland Islands (+358)\nFrance (+33)\nFrench Guiana (+594)\nFrench Polynesia (+689)\nGabon (+241)\nGambia (+220)\nGeorgia (+995)\nGermany (+49)\nGhana (+233)\nGibraltar (+350)\nGreece (+30)\nGreenland (+299)\nGrenada (+1)\nGuadeloupe (+590)\nGuam (+1)\nGuatemala (+502)\nGuinea (+224)\nGuyana (+592)\nHaiti (+509)\nHonduras (+504)\nHong Kong (+852)\nHungary (+36)\nIceland (+354)\nIndia (+91)\nIndonesia (+62)\nIraq (+964)\nIreland (+353)\nIsrael (+972)\nItaly (+39)\nJamaica (+1)\nJapan (+81)\nJordan (+962)\nKenya (+254)\nKorea, Republic of (+82)\nKosovo (+383)\nKuwait (+965)\nKyrgyzstan (+996)\nLaos (+856)\nLatvia (+371)\nLebanon (+961)\nLesotho (+266)\nLiberia (+231)\nLibya (+218)\nLiechtenstein (+423)\nLithuania (+370)\nLuxembourg (+352)\nMacao (+853)\nMacedonia (+389)\nMadagascar (+261)\nMalawi (+265)\nMalaysia (+60)\nMaldives (+960)\nMali (+223)\nMalta (+356)\nMartinique (+596)\nMauritania (+222)\nMauritius (+230)\nMexico (+52)\nMonaco (+377)\nMongolia (+976)\nMontenegro (+382)\nMontserrat (+1)\nMorocco/Western Sahara (+212)\nMozambique (+258)\nNamibia (+264)\nNepal (+977)\nNetherlands (+31)\nNew Zealand (+64)\nNicaragua (+505)\nNiger (+227)\nNigeria (+234)\nNorway (+47)\nOman (+968)\nPakistan (+92)\nPalestinian Territory (+970)\nPanama (+507)\nParaguay (+595)\nPeru (+51)\nPhilippines (+63)\nPoland (+48)\nPortugal (+351)\nPuerto Rico (+1)\nQatar (+974)\nReunion/Mayotte (+262)\nRomania (+40)\nRussia/Kazakhstan (+7)\nRwanda (+250)\nSamoa (+685)\nSan Marino (+378)\nSaudi Arabia (+966)\nSenegal (+221)\nSerbia (+381)\nSeychelles (+248)\nSierra Leone (+232)\nSingapore (+65)\nSlovakia (+421)\nSlovenia (+386)\nSouth Africa (+27)\nSpain (+34)\nSri Lanka (+94)\nSt Kitts and Nevis (+1)\nSt Lucia (+1)\nSt Vincent Grenadines (+1)\nSudan (+249)\nSuriname (+597)\nSwaziland (+268)\nSweden (+46)\nSwitzerland (+41)\nTaiwan (+886)\nTajikistan (+992)\nTanzania (+255)\nThailand (+66)\nTogo (+228)\nTonga (+676)\nTrinidad and Tobago (+1)\nTunisia (+216)\nTurkey (+90)\nTurks and Caicos Islands (+1)\nUganda (+256)\nUkraine (+380)\nUnited Arab Emirates (+971)\nUnited Kingdom (+44)\nUnited States (+1)\nUruguay (+598)\nUzbekistan (+998)\nVenezuela (+58)\nVietnam (+84)\nVirgin Islands, British (+1)\nVirgin Islands, U.S. (+1)\nYemen (+967)\nZambia (+260)\nZimbabwe (+263)\n                  \n                  Phone number:\n                  \n                  \n                  \n                  \n                    Change number\n                    Enter OTP:\n                    \n                    Resend OTP in: 30 seconds \n                    \n                      Didn't receive the OTP?\n                      Resend OTP \n                    \n                    \n                \n              \n\n                \n                \n              Message and data rates may apply. By subscribing you agree to our Privacy Policy, the Atlassian Terms of Service, and the Atlassian Privacy Policy. This site is protected by reCAPTCHA and the Google Privacy Policy and Terms of Service apply.\n          \n\n          \n            \n              Get incident updates and maintenance status messages in Slack.\n            \n            Subscribe via Slack\n            By subscribing you acknowledge our Privacy Policy. In addition, you agree to the Atlassian Cloud Terms of Service and acknowledge Atlassian's Privacy Policy.\n          \n\n\n          \n            \n              Get webhook notifications whenever GitHub creates an incident, updates an incident, resolves an incident or changes a component status.\n            \n            \n              \n                \n                  Webhook URL:\n                  \n                  The URL we should send the webhooks to\n                \n              \n\n              \n                \n                  Email address:\n                  \n                  We'll send you email if your endpoint fails\n                \n              \n\n                \n                \n                By subscribing you agree to our Privacy Policy. This site is protected by reCAPTCHA and the Google Privacy Policy and Terms of Service apply.\n\n          \n\n          \n            \n            or \n            view our profile.\n            \n              .twitter-follow-button {\n                margin-bottom: -6px;\n              }\n            \n\n              !function(d,s,id){var js,fjs=d.getElementsByTagName(s)[0],p=/^http:/.test(d.location)?'http':'https';if(!d.getElementById(id)){js=d.createElement(s);js.id=id;js.src=p+'://platform.twitter.com/widgets.js';fjs.parentNode.insertBefore(js,fjs);}}(document, 'script', 'twitter-wjs');\n          \n\n          \n            Visit our support site.\n          \n\n          \n            Get the Atom Feed or RSS Feed.",
-    "rect": {
-      "left": 1736,
-      "top": 24,
-      "width": 160,
-      "height": 24
-    }
-  },
-  {
-    "id": "4e12022b70",
-    "indexId": "12",
-    "nodeHashId": "4e12022b70",
-    "locator": "[_midscene_retrieve_task_id='4e12022b70']",
-    "attributes": {
-      "src": "https://user-images.githubusercontent.com/19292210/60553863-044dd200-9cea-11e9-987e-7db84449f215.png",
-      "class": ".illo-desktop-header",
-      "style": "display: none;",
+      "src": "https://user-images.githubusercontent.com/19292210/60553865-044dd200-9cea-11e9-859c-d6f266e2f01f.png",
+      "class": ".illo-mobile-header",
       "alt": "GitHub header",
       "nodeType": "IMG Node"
     },
+    "nodeType": "IMG Node",
     "content": "",
     "rect": {
       "left": 0,
-      "top": 73,
-      "width": 1920,
-      "height": 422
-    },
-    "center": [960, 284]
-  },
-  {
-    "id": "33bccce59f",
-    "indexId": "13",
-    "nodeHashId": "33bccce59f",
-    "attributes": {
-      "class": ".page-status.status-none",
-      "nodeType": "TEXT Node"
-    },
-    "locator": "[_midscene_retrieve_task_id='33bccce59f']",
-    "center": [960, 428],
-    "content": "All Systems Operational",
-    "rect": {
-      "left": 470,
-      "top": 400,
-      "width": 980,
-      "height": 55
-    }
-  },
-  {
-    "id": "221b0092a0",
-    "indexId": "14",
-    "nodeHashId": "221b0092a0",
-    "attributes": {
-      "class": ".status.font-large",
-      "nodeType": "TEXT Node"
-    },
-    "locator": "[_midscene_retrieve_task_id='221b0092a0']",
-    "center": [632, 427],
-    "content": "All Systems Operational",
-    "rect": {
-      "left": 522,
-      "top": 415,
-      "width": 219,
+      "top": 88,
+      "width": 119,
       "height": 24
-    }
+    },
+    "center": [60, 100],
+    "htmlNode": null
   },
   {
-    "id": "a1fed341ef",
-    "indexId": "15",
-    "nodeHashId": "a1fed341ef",
+    "id": "0697dcaea4",
+    "indexId": "7",
+    "nodeHashId": "0697dcaea4",
+    "nodeType": "TEXT Node",
+    "locator": "",
     "attributes": {
-      "class": ".components-section.font-regular",
       "nodeType": "TEXT Node"
     },
-    "locator": "[_midscene_retrieve_task_id='a1fed341ef']",
-    "center": [960, 756],
-    "content": "Git Operations\n   \n\n    ?\n\n  \n\n  \n\nNormal\n\n          \n          \n            \n\n\n   \n      Webhooks\n   \n\n    ?\n\n  \n\n  \n\nNormal\n\n          \n          \n            \n\n\n   \n      Visit www.githubstatus.com for more information\n   \n\n\n  \n\n  \n\nNormal\n\n          \n          \n            \n\n\n   \n      API Requests\n   \n\n    ?\n\n  \n\n  \n\nNormal\n\n          \n          \n            \n\n\n   \n      Issues\n   \n\n    ?\n\n  \n\n  \n\nNormal\n\n          \n          \n            \n\n\n   \n      Pull Requests\n   \n\n    ?\n\n  \n\n  \n\nNormal\n\n          \n          \n            \n\n\n   \n      Actions\n   \n\n    ?\n\n  \n\n  \n\nNormal\n\n          \n          \n            \n\n\n   \n      Packages\n   \n\n    ?\n\n  \n\n  \n\nNormal\n\n          \n          \n            \n\n\n   \n      Pages\n   \n\n    ?\n\n  \n\n  \n\nNormal\n\n          \n          \n            \n\n\n   \n      Codespaces\n   \n\n    ?\n\n  \n\n  \n\nNormal\n\n          \n          \n            \n\n\n   \n      Copilot\n   \n\n\n  \n\n  \n\nNormal",
+    "center": [663, 212],
+    "content": "All Systems Operational",
     "rect": {
-      "left": 470,
-      "top": 503,
-      "width": 980,
-      "height": 505
-    }
+      "left": 556,
+      "top": 202,
+      "width": 213,
+      "height": 20
+    },
+    "htmlNode": null
   },
   {
-    "id": "4a6c8aa387",
-    "indexId": "16",
-    "nodeHashId": "4a6c8aa387",
+    "id": "49a8d7bf85",
+    "indexId": "8",
+    "nodeHashId": "49a8d7bf85",
+    "nodeType": "TEXT Node",
+    "locator": "",
     "attributes": {
-      "class": ".components-container.two-columns",
       "nodeType": "TEXT Node"
     },
-    "locator": "[_midscene_retrieve_task_id='4a6c8aa387']",
-    "center": [960, 783],
-    "content": "Git Operations\n   \n\n    ?\n\n  \n\n  \n\nNormal\n\n          \n          \n            \n\n\n   \n      Webhooks\n   \n\n    ?\n\n  \n\n  \n\nNormal\n\n          \n          \n            \n\n\n   \n      Visit www.githubstatus.com for more information\n   \n\n\n  \n\n  \n\nNormal\n\n          \n          \n            \n\n\n   \n      API Requests\n   \n\n    ?\n\n  \n\n  \n\nNormal\n\n          \n          \n            \n\n\n   \n      Issues\n   \n\n    ?\n\n  \n\n  \n\nNormal\n\n          \n          \n            \n\n\n   \n      Pull Requests\n   \n\n    ?\n\n  \n\n  \n\nNormal\n\n          \n          \n            \n\n\n   \n      Actions\n   \n\n    ?\n\n  \n\n  \n\nNormal\n\n          \n          \n            \n\n\n   \n      Packages\n   \n\n    ?\n\n  \n\n  \n\nNormal\n\n          \n          \n            \n\n\n   \n      Pages\n   \n\n    ?\n\n  \n\n  \n\nNormal\n\n          \n          \n            \n\n\n   \n      Codespaces\n   \n\n    ?\n\n  \n\n  \n\nNormal\n\n          \n          \n            \n\n\n   \n      Copilot\n   \n\n\n  \n\n  \n\nNormal",
-    "rect": {
-      "left": 470,
-      "top": 558,
-      "width": 980,
-      "height": 449
-    }
-  },
-  {
-    "id": "1775a8e5ac",
-    "indexId": "17",
-    "nodeHashId": "1775a8e5ac",
-    "attributes": {
-      "class": ".component-container.border-color",
-      "nodeType": "TEXT Node"
-    },
-    "locator": "[_midscene_retrieve_task_id='1775a8e5ac']",
-    "center": [717, 605],
-    "content": "Git Operations\n   \n\n    ?\n\n  \n\n  \n\nNormal",
-    "rect": {
-      "left": 472,
-      "top": 561,
-      "width": 489,
-      "height": 88
-    }
-  },
-  {
-    "id": "9b8133c565",
-    "indexId": "18",
-    "nodeHashId": "9b8133c565",
-    "attributes": {
-      "data-component-id": "8l4ygp009s5s",
-      "class": ".component-inner-container.status-green.",
-      "data-component-status": "operational",
-      "nodeType": "TEXT Node"
-    },
-    "locator": "[_midscene_retrieve_task_id='9b8133c565']",
-    "center": [716, 606],
-    "content": "Git Operations\n   \n\n    ?\n\n  \n\n  \n\nNormal",
-    "rect": {
-      "left": 492,
-      "top": 579,
-      "width": 448,
-      "height": 54
-    }
-  },
-  {
-    "id": "786dafff55",
-    "indexId": "19",
-    "nodeHashId": "786dafff55",
-    "attributes": {
-      "class": ".name",
-      "nodeType": "TEXT Node"
-    },
-    "locator": "[_midscene_retrieve_task_id='786dafff55']",
-    "center": [546, 593],
+    "center": [608, 338],
     "content": "Git Operations",
     "rect": {
-      "left": 492,
-      "top": 581,
-      "width": 107,
-      "height": 24
-    }
+      "left": 556,
+      "top": 330,
+      "width": 104,
+      "height": 16
+    },
+    "htmlNode": null
   },
   {
-    "id": "9fd504c355",
-    "indexId": "20",
-    "nodeHashId": "9fd504c355",
+    "id": "feca65c433",
+    "indexId": "9",
+    "nodeHashId": "feca65c433",
+    "nodeType": "TEXT Node",
+    "locator": "",
     "attributes": {
-      "class": ".tooltip-base.tool.tooltipstered",
       "nodeType": "TEXT Node"
     },
-    "locator": "[_midscene_retrieve_task_id='9fd504c355']",
-    "center": [618, 591],
-    "content": "?",
-    "rect": {
-      "left": 609,
-      "top": 582,
-      "width": 18,
-      "height": 18
-    }
-  },
-  {
-    "id": "15865efd31",
-    "indexId": "21",
-    "nodeHashId": "15865efd31",
-    "attributes": {
-      "class": ".status-msg",
-      "nodeType": "TEXT Node"
-    },
-    "locator": "[_midscene_retrieve_task_id='15865efd31']",
-    "center": [716, 619],
+    "center": [717, 338],
     "content": "Normal",
     "rect": {
-      "left": 492,
-      "top": 605,
-      "width": 448,
-      "height": 28
-    }
+      "left": 691,
+      "top": 330,
+      "width": 51,
+      "height": 16
+    },
+    "htmlNode": null
   },
   {
-    "id": "500e0a173b",
-    "indexId": "22",
-    "nodeHashId": "500e0a173b",
+    "id": "a20ea70bc1",
+    "indexId": "10",
+    "nodeHashId": "a20ea70bc1",
+    "nodeType": "TEXT Node",
+    "locator": "",
     "attributes": {
-      "class": ".component-container.border-color",
       "nodeType": "TEXT Node"
     },
-    "locator": "[_midscene_retrieve_task_id='500e0a173b']",
-    "center": [1206, 605],
-    "content": "Webhooks\n   \n\n    ?\n\n  \n\n  \n\nNormal",
-    "rect": {
-      "left": 961,
-      "top": 561,
-      "width": 489,
-      "height": 88
-    }
-  },
-  {
-    "id": "abf6dd5e4f",
-    "indexId": "23",
-    "nodeHashId": "abf6dd5e4f",
-    "attributes": {
-      "data-component-id": "4230lsnqdsld",
-      "class": ".component-inner-container.status-green.",
-      "data-component-status": "operational",
-      "nodeType": "TEXT Node"
-    },
-    "locator": "[_midscene_retrieve_task_id='abf6dd5e4f']",
-    "center": [1205, 606],
-    "content": "Webhooks\n   \n\n    ?\n\n  \n\n  \n\nNormal",
-    "rect": {
-      "left": 981,
-      "top": 579,
-      "width": 448,
-      "height": 54
-    }
-  },
-  {
-    "id": "ede595307e",
-    "indexId": "24",
-    "nodeHashId": "ede595307e",
-    "attributes": {
-      "class": ".name",
-      "nodeType": "TEXT Node"
-    },
-    "locator": "[_midscene_retrieve_task_id='ede595307e']",
-    "center": [1020, 593],
+    "center": [1018, 338],
     "content": "Webhooks",
     "rect": {
-      "left": 981,
-      "top": 581,
-      "width": 78,
-      "height": 24
-    }
+      "left": 980,
+      "top": 330,
+      "width": 75,
+      "height": 16
+    },
+    "htmlNode": null
   },
   {
-    "id": "bde0cd332f",
-    "indexId": "25",
-    "nodeHashId": "bde0cd332f",
+    "id": "41635d4fc7",
+    "indexId": "11",
+    "nodeHashId": "41635d4fc7",
+    "nodeType": "TEXT Node",
+    "locator": "",
     "attributes": {
-      "class": ".tooltip-base.tool.tooltipstered",
       "nodeType": "TEXT Node"
     },
-    "locator": "[_midscene_retrieve_task_id='bde0cd332f']",
-    "center": [1077, 591],
-    "content": "?",
-    "rect": {
-      "left": 1068,
-      "top": 582,
-      "width": 18,
-      "height": 18
-    }
-  },
-  {
-    "id": "e4932f3f94",
-    "indexId": "26",
-    "nodeHashId": "e4932f3f94",
-    "attributes": {
-      "class": ".status-msg",
-      "nodeType": "TEXT Node"
-    },
-    "locator": "[_midscene_retrieve_task_id='e4932f3f94']",
-    "center": [1205, 619],
+    "center": [1113, 338],
     "content": "Normal",
     "rect": {
-      "left": 981,
-      "top": 605,
-      "width": 448,
-      "height": 28
-    }
+      "left": 1087,
+      "top": 330,
+      "width": 51,
+      "height": 16
+    },
+    "htmlNode": null
   },
   {
-    "id": "f43e0ec645",
-    "indexId": "27",
-    "nodeHashId": "f43e0ec645",
+    "id": "e768ca192b",
+    "indexId": "12",
+    "nodeHashId": "e768ca192b",
+    "nodeType": "TEXT Node",
+    "locator": "",
     "attributes": {
-      "class": ".component-container.border-color",
       "nodeType": "TEXT Node"
     },
-    "locator": "[_midscene_retrieve_task_id='f43e0ec645']",
-    "center": [717, 695],
-    "content": "API Requests\n   \n\n    ?\n\n  \n\n  \n\nNormal",
-    "rect": {
-      "left": 472,
-      "top": 651,
-      "width": 489,
-      "height": 88
-    }
-  },
-  {
-    "id": "5a9de69abf",
-    "indexId": "28",
-    "nodeHashId": "5a9de69abf",
-    "attributes": {
-      "data-component-id": "brv1bkgrwx7q",
-      "class": ".component-inner-container.status-green.",
-      "data-component-status": "operational",
-      "nodeType": "TEXT Node"
-    },
-    "locator": "[_midscene_retrieve_task_id='5a9de69abf']",
-    "center": [716, 695],
-    "content": "API Requests\n   \n\n    ?\n\n  \n\n  \n\nNormal",
-    "rect": {
-      "left": 492,
-      "top": 668,
-      "width": 448,
-      "height": 54
-    }
-  },
-  {
-    "id": "a40953194a",
-    "indexId": "29",
-    "nodeHashId": "a40953194a",
-    "attributes": {
-      "class": ".name",
-      "nodeType": "TEXT Node"
-    },
-    "locator": "[_midscene_retrieve_task_id='a40953194a']",
-    "center": [541, 682],
+    "center": [603, 398],
     "content": "API Requests",
     "rect": {
-      "left": 492,
-      "top": 670,
-      "width": 98,
-      "height": 24
-    }
+      "left": 555,
+      "top": 390,
+      "width": 95,
+      "height": 16
+    },
+    "htmlNode": null
   },
   {
-    "id": "768003aa2d",
-    "indexId": "30",
-    "nodeHashId": "768003aa2d",
+    "id": "3c597fc8b7",
+    "indexId": "13",
+    "nodeHashId": "3c597fc8b7",
+    "nodeType": "TEXT Node",
+    "locator": "",
     "attributes": {
-      "class": ".tooltip-base.tool.tooltipstered",
       "nodeType": "TEXT Node"
     },
-    "locator": "[_midscene_retrieve_task_id='768003aa2d']",
-    "center": [608, 681],
-    "content": "?",
-    "rect": {
-      "left": 599,
-      "top": 672,
-      "width": 18,
-      "height": 18
-    }
-  },
-  {
-    "id": "4abfbbde8a",
-    "indexId": "31",
-    "nodeHashId": "4abfbbde8a",
-    "attributes": {
-      "class": ".status-msg",
-      "nodeType": "TEXT Node"
-    },
-    "locator": "[_midscene_retrieve_task_id='4abfbbde8a']",
-    "center": [716, 708],
+    "center": [707, 397],
     "content": "Normal",
     "rect": {
-      "left": 492,
-      "top": 694,
-      "width": 448,
-      "height": 28
-    }
+      "left": 681,
+      "top": 389,
+      "width": 51,
+      "height": 16
+    },
+    "htmlNode": null
   },
   {
-    "id": "646e1d48fb",
-    "indexId": "32",
-    "nodeHashId": "646e1d48fb",
+    "id": "42de39b1b9",
+    "indexId": "14",
+    "nodeHashId": "42de39b1b9",
+    "nodeType": "TEXT Node",
+    "locator": "",
     "attributes": {
-      "class": ".component-container.border-color",
       "nodeType": "TEXT Node"
     },
-    "locator": "[_midscene_retrieve_task_id='646e1d48fb']",
-    "center": [1206, 695],
-    "content": "Issues\n   \n\n    ?\n\n  \n\n  \n\nNormal",
-    "rect": {
-      "left": 961,
-      "top": 651,
-      "width": 489,
-      "height": 88
-    }
-  },
-  {
-    "id": "8b54cbe825",
-    "indexId": "33",
-    "nodeHashId": "8b54cbe825",
-    "attributes": {
-      "data-component-id": "kr09ddfgbfsf",
-      "class": ".component-inner-container.status-green.",
-      "data-component-status": "operational",
-      "nodeType": "TEXT Node"
-    },
-    "locator": "[_midscene_retrieve_task_id='8b54cbe825']",
-    "center": [1205, 695],
-    "content": "Issues\n   \n\n    ?\n\n  \n\n  \n\nNormal",
-    "rect": {
-      "left": 981,
-      "top": 668,
-      "width": 448,
-      "height": 54
-    }
-  },
-  {
-    "id": "49b1a5e3e1",
-    "indexId": "34",
-    "nodeHashId": "49b1a5e3e1",
-    "attributes": {
-      "class": ".name",
-      "nodeType": "TEXT Node"
-    },
-    "locator": "[_midscene_retrieve_task_id='49b1a5e3e1']",
-    "center": [1005, 682],
+    "center": [1004, 398],
     "content": "Issues",
     "rect": {
       "left": 981,
-      "top": 670,
-      "width": 47,
-      "height": 24
-    }
+      "top": 390,
+      "width": 45,
+      "height": 16
+    },
+    "htmlNode": null
   },
   {
-    "id": "ce72a7bb29",
-    "indexId": "35",
-    "nodeHashId": "ce72a7bb29",
+    "id": "765620e0b3",
+    "indexId": "15",
+    "nodeHashId": "765620e0b3",
+    "nodeType": "TEXT Node",
+    "locator": "",
     "attributes": {
-      "class": ".tooltip-base.tool.tooltipstered",
       "nodeType": "TEXT Node"
     },
-    "locator": "[_midscene_retrieve_task_id='ce72a7bb29']",
-    "center": [1046, 681],
-    "content": "?",
-    "rect": {
-      "left": 1037,
-      "top": 672,
-      "width": 18,
-      "height": 18
-    }
-  },
-  {
-    "id": "44c6cea361",
-    "indexId": "36",
-    "nodeHashId": "44c6cea361",
-    "attributes": {
-      "class": ".status-msg",
-      "nodeType": "TEXT Node"
-    },
-    "locator": "[_midscene_retrieve_task_id='44c6cea361']",
-    "center": [1205, 708],
+    "center": [1083, 397],
     "content": "Normal",
     "rect": {
-      "left": 981,
-      "top": 694,
-      "width": 448,
-      "height": 28
-    }
+      "left": 1057,
+      "top": 389,
+      "width": 51,
+      "height": 16
+    },
+    "htmlNode": null
   },
   {
-    "id": "1a7bbd910b",
-    "indexId": "37",
-    "nodeHashId": "1a7bbd910b",
+    "id": "6e4442a90f",
+    "indexId": "16",
+    "nodeHashId": "6e4442a90f",
+    "nodeType": "TEXT Node",
+    "locator": "",
     "attributes": {
-      "class": ".component-container.border-color",
       "nodeType": "TEXT Node"
     },
-    "locator": "[_midscene_retrieve_task_id='1a7bbd910b']",
-    "center": [717, 784],
-    "content": "Pull Requests\n   \n\n    ?\n\n  \n\n  \n\nNormal",
-    "rect": {
-      "left": 472,
-      "top": 740,
-      "width": 489,
-      "height": 88
-    }
-  },
-  {
-    "id": "d04547b004",
-    "indexId": "38",
-    "nodeHashId": "d04547b004",
-    "attributes": {
-      "data-component-id": "hhtssxt0f5v2",
-      "class": ".component-inner-container.status-green.",
-      "data-component-status": "operational",
-      "nodeType": "TEXT Node"
-    },
-    "locator": "[_midscene_retrieve_task_id='d04547b004']",
-    "center": [716, 785],
-    "content": "Pull Requests\n   \n\n    ?\n\n  \n\n  \n\nNormal",
-    "rect": {
-      "left": 492,
-      "top": 758,
-      "width": 448,
-      "height": 54
-    }
-  },
-  {
-    "id": "0ef54614d8",
-    "indexId": "39",
-    "nodeHashId": "0ef54614d8",
-    "attributes": {
-      "class": ".name",
-      "nodeType": "TEXT Node"
-    },
-    "locator": "[_midscene_retrieve_task_id='0ef54614d8']",
-    "center": [542, 772],
+    "center": [604, 457],
     "content": "Pull Requests",
     "rect": {
-      "left": 492,
-      "top": 760,
-      "width": 100,
-      "height": 24
-    }
+      "left": 555,
+      "top": 449,
+      "width": 97,
+      "height": 16
+    },
+    "htmlNode": null
   },
   {
-    "id": "00228c1c08",
-    "indexId": "40",
-    "nodeHashId": "00228c1c08",
+    "id": "303c834ec1",
+    "indexId": "17",
+    "nodeHashId": "303c834ec1",
+    "nodeType": "TEXT Node",
+    "locator": "",
     "attributes": {
-      "class": ".tooltip-base.tool.tooltipstered",
       "nodeType": "TEXT Node"
     },
-    "locator": "[_midscene_retrieve_task_id='00228c1c08']",
-    "center": [611, 770],
-    "content": "?",
-    "rect": {
-      "left": 602,
-      "top": 761,
-      "width": 18,
-      "height": 18
-    }
-  },
-  {
-    "id": "206fe45dc0",
-    "indexId": "41",
-    "nodeHashId": "206fe45dc0",
-    "attributes": {
-      "class": ".status-msg",
-      "nodeType": "TEXT Node"
-    },
-    "locator": "[_midscene_retrieve_task_id='206fe45dc0']",
-    "center": [716, 798],
+    "center": [709, 456],
     "content": "Normal",
     "rect": {
-      "left": 492,
-      "top": 784,
-      "width": 448,
-      "height": 28
-    }
+      "left": 683,
+      "top": 448,
+      "width": 51,
+      "height": 16
+    },
+    "htmlNode": null
   },
   {
-    "id": "075070b70a",
-    "indexId": "42",
-    "nodeHashId": "075070b70a",
+    "id": "6d912cb9e8",
+    "indexId": "18",
+    "nodeHashId": "6d912cb9e8",
+    "nodeType": "TEXT Node",
+    "locator": "",
     "attributes": {
-      "class": ".component-container.border-color",
       "nodeType": "TEXT Node"
     },
-    "locator": "[_midscene_retrieve_task_id='075070b70a']",
-    "center": [1206, 784],
-    "content": "Actions\n   \n\n    ?\n\n  \n\n  \n\nNormal",
-    "rect": {
-      "left": 961,
-      "top": 740,
-      "width": 489,
-      "height": 88
-    }
-  },
-  {
-    "id": "ebbf5e2217",
-    "indexId": "43",
-    "nodeHashId": "ebbf5e2217",
-    "attributes": {
-      "data-component-id": "br0l2tvcx85d",
-      "class": ".component-inner-container.status-green.",
-      "data-component-status": "operational",
-      "nodeType": "TEXT Node"
-    },
-    "locator": "[_midscene_retrieve_task_id='ebbf5e2217']",
-    "center": [1205, 785],
-    "content": "Actions\n   \n\n    ?\n\n  \n\n  \n\nNormal",
-    "rect": {
-      "left": 981,
-      "top": 758,
-      "width": 448,
-      "height": 54
-    }
-  },
-  {
-    "id": "89c422b218",
-    "indexId": "44",
-    "nodeHashId": "89c422b218",
-    "attributes": {
-      "class": ".name",
-      "nodeType": "TEXT Node"
-    },
-    "locator": "[_midscene_retrieve_task_id='89c422b218']",
-    "center": [1009, 772],
+    "center": [1008, 457],
     "content": "Actions",
     "rect": {
       "left": 981,
-      "top": 760,
-      "width": 56,
-      "height": 24
-    }
+      "top": 449,
+      "width": 53,
+      "height": 16
+    },
+    "htmlNode": null
   },
   {
-    "id": "e923998486",
-    "indexId": "45",
-    "nodeHashId": "e923998486",
+    "id": "1207b56ca0",
+    "indexId": "19",
+    "nodeHashId": "1207b56ca0",
+    "nodeType": "TEXT Node",
+    "locator": "",
     "attributes": {
-      "class": ".tooltip-base.tool.tooltipstered",
       "nodeType": "TEXT Node"
     },
-    "locator": "[_midscene_retrieve_task_id='e923998486']",
-    "center": [1055, 770],
-    "content": "?",
-    "rect": {
-      "left": 1046,
-      "top": 761,
-      "width": 18,
-      "height": 18
-    }
-  },
-  {
-    "id": "967447a1c6",
-    "indexId": "46",
-    "nodeHashId": "967447a1c6",
-    "attributes": {
-      "class": ".status-msg",
-      "nodeType": "TEXT Node"
-    },
-    "locator": "[_midscene_retrieve_task_id='967447a1c6']",
-    "center": [1205, 798],
+    "center": [1092, 456],
     "content": "Normal",
     "rect": {
-      "left": 981,
-      "top": 784,
-      "width": 448,
-      "height": 28
-    }
+      "left": 1066,
+      "top": 448,
+      "width": 51,
+      "height": 16
+    },
+    "htmlNode": null
   },
   {
-    "id": "11a7c1ed98",
-    "indexId": "47",
-    "nodeHashId": "11a7c1ed98",
+    "id": "42dcbd8e88",
+    "indexId": "20",
+    "nodeHashId": "42dcbd8e88",
+    "nodeType": "TEXT Node",
+    "locator": "",
     "attributes": {
-      "class": ".component-container.border-color",
       "nodeType": "TEXT Node"
     },
-    "locator": "[_midscene_retrieve_task_id='11a7c1ed98']",
-    "center": [717, 874],
-    "content": "Packages\n   \n\n    ?\n\n  \n\n  \n\nNormal",
-    "rect": {
-      "left": 472,
-      "top": 830,
-      "width": 489,
-      "height": 88
-    }
-  },
-  {
-    "id": "1c9544f01a",
-    "indexId": "48",
-    "nodeHashId": "1c9544f01a",
-    "attributes": {
-      "data-component-id": "st3j38cctv9l",
-      "class": ".component-inner-container.status-green.",
-      "data-component-status": "operational",
-      "nodeType": "TEXT Node"
-    },
-    "locator": "[_midscene_retrieve_task_id='1c9544f01a']",
-    "center": [716, 874],
-    "content": "Packages\n   \n\n    ?\n\n  \n\n  \n\nNormal",
-    "rect": {
-      "left": 492,
-      "top": 847,
-      "width": 448,
-      "height": 54
-    }
-  },
-  {
-    "id": "41a6c2ed19",
-    "indexId": "49",
-    "nodeHashId": "41a6c2ed19",
-    "attributes": {
-      "class": ".name",
-      "nodeType": "TEXT Node"
-    },
-    "locator": "[_midscene_retrieve_task_id='41a6c2ed19']",
-    "center": [528, 861],
+    "center": [590, 516],
     "content": "Packages",
     "rect": {
-      "left": 492,
-      "top": 849,
-      "width": 71,
-      "height": 24
-    }
+      "left": 555,
+      "top": 508,
+      "width": 69,
+      "height": 16
+    },
+    "htmlNode": null
   },
   {
-    "id": "b8f8f86b4c",
-    "indexId": "50",
-    "nodeHashId": "b8f8f86b4c",
+    "id": "b6610e40ae",
+    "indexId": "21",
+    "nodeHashId": "b6610e40ae",
+    "nodeType": "TEXT Node",
+    "locator": "",
     "attributes": {
-      "class": ".tooltip-base.tool.tooltipstered",
       "nodeType": "TEXT Node"
     },
-    "locator": "[_midscene_retrieve_task_id='b8f8f86b4c']",
-    "center": [581, 860],
-    "content": "?",
-    "rect": {
-      "left": 572,
-      "top": 851,
-      "width": 18,
-      "height": 18
-    }
-  },
-  {
-    "id": "4d10b3b116",
-    "indexId": "51",
-    "nodeHashId": "4d10b3b116",
-    "attributes": {
-      "class": ".status-msg",
-      "nodeType": "TEXT Node"
-    },
-    "locator": "[_midscene_retrieve_task_id='4d10b3b116']",
-    "center": [716, 887],
+    "center": [681, 515],
     "content": "Normal",
     "rect": {
-      "left": 492,
-      "top": 873,
-      "width": 448,
-      "height": 28
-    }
+      "left": 655,
+      "top": 507,
+      "width": 51,
+      "height": 16
+    },
+    "htmlNode": null
   },
   {
-    "id": "7d79505914",
-    "indexId": "52",
-    "nodeHashId": "7d79505914",
+    "id": "62379abcbd",
+    "indexId": "22",
+    "nodeHashId": "62379abcbd",
+    "nodeType": "TEXT Node",
+    "locator": "",
     "attributes": {
-      "class": ".component-container.border-color",
       "nodeType": "TEXT Node"
     },
-    "locator": "[_midscene_retrieve_task_id='7d79505914']",
-    "center": [1206, 874],
-    "content": "Pages\n   \n\n    ?\n\n  \n\n  \n\nNormal",
-    "rect": {
-      "left": 961,
-      "top": 830,
-      "width": 489,
-      "height": 88
-    }
-  },
-  {
-    "id": "e502c0d9c5",
-    "indexId": "53",
-    "nodeHashId": "e502c0d9c5",
-    "attributes": {
-      "data-component-id": "vg70hn9s2tyj",
-      "class": ".component-inner-container.status-green.",
-      "data-component-status": "operational",
-      "nodeType": "TEXT Node"
-    },
-    "locator": "[_midscene_retrieve_task_id='e502c0d9c5']",
-    "center": [1205, 874],
-    "content": "Pages\n   \n\n    ?\n\n  \n\n  \n\nNormal",
-    "rect": {
-      "left": 981,
-      "top": 847,
-      "width": 448,
-      "height": 54
-    }
-  },
-  {
-    "id": "cae85d0269",
-    "indexId": "54",
-    "nodeHashId": "cae85d0269",
-    "attributes": {
-      "class": ".name",
-      "nodeType": "TEXT Node"
-    },
-    "locator": "[_midscene_retrieve_task_id='cae85d0269']",
-    "center": [1004, 861],
+    "center": [1003, 516],
     "content": "Pages",
     "rect": {
       "left": 981,
-      "top": 849,
-      "width": 45,
-      "height": 24
-    }
+      "top": 508,
+      "width": 44,
+      "height": 16
+    },
+    "htmlNode": null
   },
   {
-    "id": "85a6924c98",
-    "indexId": "55",
-    "nodeHashId": "85a6924c98",
+    "id": "a0f7f3f414",
+    "indexId": "23",
+    "nodeHashId": "a0f7f3f414",
+    "nodeType": "TEXT Node",
+    "locator": "",
     "attributes": {
-      "class": ".tooltip-base.tool.tooltipstered",
       "nodeType": "TEXT Node"
     },
-    "locator": "[_midscene_retrieve_task_id='85a6924c98']",
-    "center": [1045, 860],
-    "content": "?",
-    "rect": {
-      "left": 1036,
-      "top": 851,
-      "width": 18,
-      "height": 18
-    }
-  },
-  {
-    "id": "352bb8a0c7",
-    "indexId": "56",
-    "nodeHashId": "352bb8a0c7",
-    "attributes": {
-      "class": ".status-msg",
-      "nodeType": "TEXT Node"
-    },
-    "locator": "[_midscene_retrieve_task_id='352bb8a0c7']",
-    "center": [1205, 887],
+    "center": [1082, 515],
     "content": "Normal",
     "rect": {
-      "left": 981,
-      "top": 873,
-      "width": 448,
-      "height": 28
-    }
+      "left": 1056,
+      "top": 507,
+      "width": 51,
+      "height": 16
+    },
+    "htmlNode": null
   },
   {
-    "id": "7ebaccd865",
-    "indexId": "57",
-    "nodeHashId": "7ebaccd865",
+    "id": "67d698a724",
+    "indexId": "24",
+    "nodeHashId": "67d698a724",
+    "nodeType": "TEXT Node",
+    "locator": "",
     "attributes": {
-      "class": ".component-container.border-color",
       "nodeType": "TEXT Node"
     },
-    "locator": "[_midscene_retrieve_task_id='7ebaccd865']",
-    "center": [717, 963],
-    "content": "Codespaces\n   \n\n    ?\n\n  \n\n  \n\nNormal",
-    "rect": {
-      "left": 472,
-      "top": 919,
-      "width": 489,
-      "height": 88
-    }
-  },
-  {
-    "id": "318eb23523",
-    "indexId": "58",
-    "nodeHashId": "318eb23523",
-    "attributes": {
-      "data-component-id": "h2ftsgbw7kmk",
-      "class": ".component-inner-container.status-green.",
-      "data-component-status": "operational",
-      "nodeType": "TEXT Node"
-    },
-    "locator": "[_midscene_retrieve_task_id='318eb23523']",
-    "center": [716, 963],
-    "content": "Codespaces\n   \n\n    ?\n\n  \n\n  \n\nNormal",
-    "rect": {
-      "left": 492,
-      "top": 936,
-      "width": 448,
-      "height": 54
-    }
-  },
-  {
-    "id": "f397787172",
-    "indexId": "59",
-    "nodeHashId": "f397787172",
-    "attributes": {
-      "class": ".name",
-      "nodeType": "TEXT Node"
-    },
-    "locator": "[_midscene_retrieve_task_id='f397787172']",
-    "center": [538, 950],
+    "center": [599, 575],
     "content": "Codespaces",
     "rect": {
-      "left": 492,
-      "top": 938,
-      "width": 92,
-      "height": 24
-    }
+      "left": 555,
+      "top": 567,
+      "width": 88,
+      "height": 16
+    },
+    "htmlNode": null
   },
   {
-    "id": "d7f5fbb4d0",
-    "indexId": "60",
-    "nodeHashId": "d7f5fbb4d0",
+    "id": "d53ddd6da1",
+    "indexId": "25",
+    "nodeHashId": "d53ddd6da1",
+    "nodeType": "TEXT Node",
+    "locator": "",
     "attributes": {
-      "class": ".tooltip-base.tool.tooltipstered",
       "nodeType": "TEXT Node"
     },
-    "locator": "[_midscene_retrieve_task_id='d7f5fbb4d0']",
-    "center": [602, 949],
-    "content": "?",
-    "rect": {
-      "left": 593,
-      "top": 940,
-      "width": 18,
-      "height": 18
-    }
-  },
-  {
-    "id": "aafa155f98",
-    "indexId": "61",
-    "nodeHashId": "aafa155f98",
-    "attributes": {
-      "class": ".status-msg",
-      "nodeType": "TEXT Node"
-    },
-    "locator": "[_midscene_retrieve_task_id='aafa155f98']",
-    "center": [716, 976],
+    "center": [700, 575],
     "content": "Normal",
     "rect": {
-      "left": 492,
-      "top": 962,
-      "width": 448,
-      "height": 28
-    }
+      "left": 674,
+      "top": 567,
+      "width": 51,
+      "height": 16
+    },
+    "htmlNode": null
   },
   {
-    "id": "aa396a5b1d",
-    "indexId": "62",
-    "nodeHashId": "aa396a5b1d",
+    "id": "6083639a5c",
+    "indexId": "26",
+    "nodeHashId": "6083639a5c",
+    "nodeType": "TEXT Node",
+    "locator": "",
     "attributes": {
-      "class": ".component-container.border-color",
       "nodeType": "TEXT Node"
     },
-    "locator": "[_midscene_retrieve_task_id='aa396a5b1d']",
-    "center": [1206, 963],
-    "content": "Copilot\n   \n\n\n  \n\n  \n\nNormal",
-    "rect": {
-      "left": 961,
-      "top": 919,
-      "width": 489,
-      "height": 88
-    }
-  },
-  {
-    "id": "ecfafeca6d",
-    "indexId": "63",
-    "nodeHashId": "ecfafeca6d",
-    "attributes": {
-      "data-component-id": "pjmpxvq2cmr2",
-      "class": ".component-inner-container.status-green.",
-      "data-component-status": "operational",
-      "nodeType": "TEXT Node"
-    },
-    "locator": "[_midscene_retrieve_task_id='ecfafeca6d']",
-    "center": [1205, 963],
-    "content": "Copilot\n   \n\n\n  \n\n  \n\nNormal",
-    "rect": {
-      "left": 981,
-      "top": 936,
-      "width": 448,
-      "height": 54
-    }
-  },
-  {
-    "id": "18dce47ff0",
-    "indexId": "64",
-    "nodeHashId": "18dce47ff0",
-    "attributes": {
-      "class": ".name",
-      "nodeType": "TEXT Node"
-    },
-    "locator": "[_midscene_retrieve_task_id='18dce47ff0']",
-    "center": [1008, 950],
+    "center": [1007, 575],
     "content": "Copilot",
     "rect": {
       "left": 981,
-      "top": 938,
-      "width": 53,
-      "height": 24
-    }
+      "top": 567,
+      "width": 51,
+      "height": 16
+    },
+    "htmlNode": null
   },
   {
-    "id": "3ac8478628",
-    "indexId": "65",
-    "nodeHashId": "3ac8478628",
+    "id": "a2df284792",
+    "indexId": "27",
+    "nodeHashId": "a2df284792",
+    "nodeType": "TEXT Node",
+    "locator": "",
     "attributes": {
-      "class": ".status-msg",
       "nodeType": "TEXT Node"
     },
-    "locator": "[_midscene_retrieve_task_id='3ac8478628']",
-    "center": [1205, 976],
+    "center": [1062, 575],
     "content": "Normal",
     "rect": {
-      "left": 981,
-      "top": 962,
-      "width": 448,
-      "height": 28
-    }
+      "left": 1036,
+      "top": 567,
+      "width": 51,
+      "height": 16
+    },
+    "htmlNode": null
+  },
+  {
+    "id": "3b8405dca6",
+    "indexId": "28",
+    "nodeHashId": "3b8405dca6",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node"
+    },
+    "center": [542, 698],
+    "content": "←",
+    "rect": {
+      "left": 535,
+      "top": 690,
+      "width": 14,
+      "height": 16
+    },
+    "htmlNode": null
+  },
+  {
+    "id": "3cbf8b6e3c",
+    "indexId": "29",
+    "nodeHashId": "3cbf8b6e3c",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node"
+    },
+    "center": [599, 698],
+    "content": "Incident History",
+    "rect": {
+      "left": 549,
+      "top": 691,
+      "width": 99,
+      "height": 14
+    },
+    "htmlNode": null
+  },
+  {
+    "id": "dc540d02f5",
+    "indexId": "30",
+    "nodeHashId": "dc540d02f5",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node"
+    },
+    "center": [1283, 698],
+    "content": "Powered by Atlassian Statuspage",
+    "rect": {
+      "left": 1180,
+      "top": 691,
+      "width": 205,
+      "height": 14
+    },
+    "htmlNode": null
+  },
+  {
+    "id": "2a23580a96",
+    "indexId": "31",
+    "nodeHashId": "2a23580a96",
+    "locator": "[_midscene_retrieve_task_id='2a23580a96']",
+    "attributes": {
+      "src": "https://user-images.githubusercontent.com/19292210/60553864-044dd200-9cea-11e9-996a-a7a316ec3a35.png",
+      "class": ".illo-mobile-footer",
+      "alt": "GitHub footer",
+      "nodeType": "IMG Node"
+    },
+    "nodeType": "IMG Node",
+    "content": "",
+    "rect": {
+      "left": 0,
+      "top": 780,
+      "width": 111,
+      "height": 24
+    },
+    "center": [56, 792],
+    "htmlNode": null
+  },
+  {
+    "id": "1026524e23",
+    "indexId": "32",
+    "nodeHashId": "1026524e23",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node"
+    },
+    "center": [51, 863],
+    "content": "Product",
+    "rect": {
+      "left": 0,
+      "top": 848,
+      "width": 101,
+      "height": 29
+    },
+    "htmlNode": null
+  },
+  {
+    "id": "cd29c66035",
+    "indexId": "33",
+    "nodeHashId": "cd29c66035",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node"
+    },
+    "center": [31, 902],
+    "content": "Features",
+    "rect": {
+      "left": 0,
+      "top": 894,
+      "width": 61,
+      "height": 16
+    },
+    "htmlNode": null
+  },
+  {
+    "id": "9cbf25869a",
+    "indexId": "34",
+    "nodeHashId": "9cbf25869a",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node"
+    },
+    "center": [29, 926],
+    "content": "Security",
+    "rect": {
+      "left": 0,
+      "top": 918,
+      "width": 57,
+      "height": 16
+    },
+    "htmlNode": null
+  },
+  {
+    "id": "a516646e80",
+    "indexId": "35",
+    "nodeHashId": "a516646e80",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node"
+    },
+    "center": [32, 950],
+    "content": "Business",
+    "rect": {
+      "left": 0,
+      "top": 942,
+      "width": 63,
+      "height": 16
+    },
+    "htmlNode": null
+  },
+  {
+    "id": "7e315f5a2c",
+    "indexId": "36",
+    "nodeHashId": "7e315f5a2c",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node"
+    },
+    "center": [45, 974],
+    "content": "Case studies",
+    "rect": {
+      "left": 0,
+      "top": 966,
+      "width": 90,
+      "height": 16
+    },
+    "htmlNode": null
+  },
+  {
+    "id": "d243c3a848",
+    "indexId": "37",
+    "nodeHashId": "d243c3a848",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node"
+    },
+    "center": [24, 998],
+    "content": "Pricing",
+    "rect": {
+      "left": 0,
+      "top": 990,
+      "width": 48,
+      "height": 16
+    },
+    "htmlNode": null
+  },
+  {
+    "id": "00abcf5ec6",
+    "indexId": "38",
+    "nodeHashId": "00abcf5ec6",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node"
+    },
+    "center": [37, 1022],
+    "content": "Resources",
+    "rect": {
+      "left": 0,
+      "top": 1014,
+      "width": 73,
+      "height": 16
+    },
+    "htmlNode": null
+  },
+  {
+    "id": "0a7cf2ca74",
+    "indexId": "39",
+    "nodeHashId": "0a7cf2ca74",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node"
+    },
+    "center": [54, 1053],
+    "content": "Platform",
+    "rect": {
+      "left": 0,
+      "top": 1038,
+      "width": 108,
+      "height": 29
+    },
+    "htmlNode": null
   }
 ]
