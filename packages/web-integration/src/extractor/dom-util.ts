@@ -13,3 +13,7 @@ export function isButtonElement(node: Node): node is HTMLButtonElement {
 export function isImgElement(node: Node): node is HTMLImageElement {
   return node instanceof HTMLElement && node.tagName.toLowerCase() === 'img';
 }
+
+export function isTextElement(node: Node): node is HTMLTextAreaElement {
+  return node.nodeName.toLowerCase() === '#text';
+}

@@ -1,6 +1,14 @@
 import { test } from '@playwright/test';
 import { generateTestData, generateTestDataPath } from './tool';
 
+function sleep(time: number) {
+  return new Promise((resolve) => {
+    setTimeout(() => {
+      resolve(0);
+    }, time);
+  });
+}
+
 test('generate todo test data', async ({ page }) => {
   await page.goto('https://todomvc.com/examples/react/dist/');
   // Add data
@@ -37,6 +45,7 @@ test('generate githubstatus test data', async ({ page }) => {
   await page.setViewportSize({ width: 1920, height: 1080 });
   await page.goto('https://www.githubstatus.com/');
   await page.waitForLoadState('networkidle');
+  await sleep(3000);
 
   const midsceneTestDataPath = generateTestDataPath('githubstatus');
   const buffer = await page.screenshot();

@@ -2,6 +2,7 @@ import assert from 'node:assert';
 import type { Buffer } from 'node:buffer';
 import fs, { readFileSync } from 'node:fs';
 import path from 'node:path';
+import type { ElementInfo } from '@/extractor/extractor';
 import type { PlaywrightParserOpt, UIContext } from '@midscene/core';
 import {
   alignCoordByTrim,
@@ -53,13 +54,13 @@ export async function getElementInfosFromPage(page: WebPage) {
   const extraReturnLogic = `${elementInfosScriptContent}midscene_element_inspector.extractTextWithPosition()`;
 
   const captureElementSnapshot = await (page as any).evaluate(extraReturnLogic);
-  return captureElementSnapshot;
+  return captureElementSnapshot as Array<ElementInfo>;
 }
 
 const sizeThreshold = 3;
 async function alignElements(
   screenshotBuffer: Buffer,
-  elements: WebElementInfoType[],
+  elements: ElementInfo[],
   page: WebPage,
 ): Promise<WebElementInfo[]> {
   const textsAligned: WebElementInfo[] = [];
@@ -69,7 +70,7 @@ async function alignElements(
     );
   });
   for (const item of validElements) {
-    const { rect } = item;
+    const { rect, id, content, attributes, locator } = item;
 
     const aligned = await alignCoordByTrim(screenshotBuffer, rect);
     item.rect = aligned;
@@ -79,7 +80,11 @@ async function alignElements(
     ];
     textsAligned.push(
       new WebElementInfo({
-        ...item,
+        rect,
+        locator,
+        id,
+        content,
+        attributes,
         page,
       }),
     );

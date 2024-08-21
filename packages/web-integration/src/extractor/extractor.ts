@@ -1,11 +1,17 @@
 import { NodeType, TEXT_SIZE_THRESHOLD } from './constants';
-import { isButtonElement, isImgElement, isInputElement } from './dom-util';
+import {
+  isButtonElement,
+  isImgElement,
+  isInputElement,
+  isTextElement,
+} from './dom-util';
 import {
   generateHash,
   getNodeAttributes,
   getPseudoElementContent,
   logger,
   setDataForNode,
+  setDebugMode,
   validTextNodeContent,
   visibleRect,
 } from './util';
@@ -19,11 +25,13 @@ export interface ElementInfo {
   id: string;
   indexId: string;
   nodeHashId: string;
-  locator: string | undefined;
+  locator: string;
   attributes: {
     nodeType: NodeType;
     [key: string]: string;
   };
+  nodeType: NodeType;
+  htmlNode: Node | null;
   content: string;
   rect: { left: number; top: number; width: number; height: number };
   center: [number, number];
@@ -42,7 +50,9 @@ function generateId(numberId: number) {
 
 export function extractTextWithPosition(
   initNode: Node = container,
+  debugMode = false,
 ): ElementInfo[] {
+  setDebugMode(debugMode);
   const elementInfoArray: ElementInfo[] = [];
   const nodeMapTree: NodeDescriptor = { node: initNode, children: [] };
   let nodeIndex = 1;
@@ -57,7 +67,10 @@ export function extractTextWithPosition(
       parentNode.children.push(currentNodeDes);
     }
 
-    collectElementInfo(node);
+    const shouldContinue = collectElementInfo(node);
+    if (!shouldContinue) {
+      return;
+    }
 
     // eslint-disable-next-line @typescript-eslint/prefer-for-of
     for (let i = 0; i < node.childNodes.length; i++) {
@@ -68,6 +81,7 @@ export function extractTextWithPosition(
 
   function collectElementInfo(node: Node) {
     const rect = visibleRect(node);
+    logger('collectElementInfo', node, node.nodeName, rect);
     if (!rect) {
       logger('Element is not visible', node);
       return;
@@ -82,6 +96,7 @@ export function extractTextWithPosition(
         indexId: generateId(nodeIndex++),
         nodeHashId,
         locator: selector,
+        nodeType: NodeType.INPUT,
         attributes: {
           ...attributes,
           nodeType: NodeType.INPUT,
@@ -92,6 +107,7 @@ export function extractTextWithPosition(
           Math.round(rect.left + rect.width / 2),
           Math.round(rect.top + rect.height / 2),
         ],
+        htmlNode: debugMode ? node : null,
       });
       return;
     }
@@ -106,6 +122,7 @@ export function extractTextWithPosition(
         id: nodeHashId,
         indexId: generateId(nodeIndex++),
         nodeHashId,
+        nodeType: NodeType.BUTTON,
         locator: selector,
         attributes: {
           ...attributes,
@@ -117,6 +134,7 @@ export function extractTextWithPosition(
           Math.round(rect.left + rect.width / 2),
           Math.round(rect.top + rect.height / 2),
         ],
+        htmlNode: debugMode ? node : null,
       });
       return;
     }
@@ -134,45 +152,20 @@ export function extractTextWithPosition(
           ...attributes,
           nodeType: NodeType.IMG,
         },
+        nodeType: NodeType.IMG,
         content: '',
         rect,
         center: [
           Math.round(rect.left + rect.width / 2),
           Math.round(rect.top + rect.height / 2),
         ],
+        htmlNode: debugMode ? node : null,
       });
       return;
     }
 
-    //   if (node instanceof HTMLElement && hasOverflowY(node)) {
-    //       const rect = visibleRect(node);
-    //       if (!rect || rect.height < 100) {
-    //           logger('Element is not visible', node);
-    //       } else {
-    //           const attributes = getNodeAttributes(node);
-    //           const selector = setDataForNode(node, nodeIndex);
-    //           elementInfoArray.push({
-    //               id: nodeIndex++,
-    //               nodeType: 'ScrollContainer Node',
-    //               locator: selector!,
-    //               parentIndex,
-    //               attributes,
-    //               content: "",
-    //               rect,
-    //               center: [Math.round(rect.left + rect.width / 2), Math.round(rect.top + rect.height / 2)],
-    //           });
-    //       }
-    //   }
-
-    const text = validTextNodeContent(node);
-    if (text) {
-      if (
-        rect.width < TEXT_SIZE_THRESHOLD ||
-        rect.height < TEXT_SIZE_THRESHOLD
-      ) {
-        logger('Element is too small', text);
-        return;
-      }
+    if (isTextElement(node)) {
+      const text = node.textContent?.trim().replace(/\n+/g, ' ') || '';
       const attributes = getNodeAttributes(node);
       const nodeHashId = generateHash(text, rect);
       const selector = setDataForNode(node, nodeHashId);
@@ -180,11 +173,12 @@ export function extractTextWithPosition(
         id: nodeHashId,
         indexId: generateId(nodeIndex++),
         nodeHashId,
+        nodeType: NodeType.TEXT,
+        locator: selector,
         attributes: {
           ...attributes,
           nodeType: NodeType.TEXT,
         },
-        locator: selector,
         center: [
           Math.round(rect.left + rect.width / 2),
           Math.round(rect.top + rect.height / 2),
@@ -192,8 +186,12 @@ export function extractTextWithPosition(
         // attributes,
         content: text,
         rect,
+        htmlNode: debugMode ? node : null,
       });
+      return;
     }
+
+    return true;
   }
 
   dfs(initNode, nodeMapTree);
