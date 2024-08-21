@@ -113,8 +113,7 @@ npx playwright test ./e2e/ebay-search.spec.ts
 
 ### Step 5. view test report after running
 
-After the above command executes successfully, it will output in the console: `Midscene - report file updated: xxx/midscene_run/report/xxx.html`. Open this file in a browser to view the report.
-
+After the above command executes successfully, the console will output: `Midscene - report file updated: ./current_cwd/midscene_run/report/some_id.html`. You can open this file in a browser to view the report.
 
 ## Integrate with Puppeteer
 
@@ -203,17 +202,11 @@ npx ts-node demo.ts
 # ]
 ```
 
-
 ### Step 4: View the Run Report
 
-After the above command executes successfully, the console will output: `Midscene - report file updated: xxx/midscene_run/report/xxx.html`. You can open this file in a browser to view the report.
+After the above command executes successfully, the console will output: `Midscene - report file updated: ./current_cwd/midscene_run/report/some_id.html`. You can open this file in a browser to view the report.
 
 Alternatively, you can import the `./midscene_run/report/latest.web-dump.json` file into the [Visualization Tool](/visualization/) to view it.
-
-
-### View test report after running
-
-After running, Midscene will generate a log dump, which is placed in `./midscene_run/report/latest.web-dump.json` by default. Then put this file into [Visualization Tool](/visualization/), and you will have a clearer understanding of the process.
 
 ## View demo report
 

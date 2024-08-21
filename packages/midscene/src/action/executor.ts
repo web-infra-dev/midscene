@@ -124,8 +124,7 @@ export class Executor {
         }
 
         Object.assign(task, returnValue);
-
-        task.status = 'success';
+        task.status = 'finished';
         task.timing.end = Date.now();
         task.timing.cost = task.timing.end - task.timing.start;
         taskIndex++;

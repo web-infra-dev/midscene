@@ -10,10 +10,10 @@ import Insight, {
   type ExecutionTaskInsightQueryApply,
   type ExecutionTaskPlanningApply,
   Executor,
+  plan,
   type InsightAssertionResponse,
   type InsightDump,
   type InsightExtractParam,
-  plan,
   type PlanningAction,
   type PlanningActionParamAssert,
   type PlanningActionParamHover,
@@ -21,10 +21,11 @@ import Insight, {
   type PlanningActionParamScroll,
   type PlanningActionParamSleep,
   type PlanningActionParamTap,
+  type PlanningActionParamWaitFor,
+  type PlanningActionParamError,
 } from '@midscene/core';
 import { base64Encoded } from '@midscene/core/image';
 import { commonScreenshotParam, getTmpFile, sleep } from '@midscene/core/utils';
-import type { ChatCompletionMessageParam } from 'openai/resources';
 import type { KeyInput, Page as PuppeteerPage } from 'puppeteer';
 import type { WebElementInfo } from '../web-element';
 import { type AiTaskCache, TaskCache } from './task-cache';
@@ -150,7 +151,7 @@ export class PageTaskExecutor {
           };
           return taskFind;
         }
-        if (plan.type === 'Assert') {
+        if (plan.type === 'Assert' || plan.type === 'AssertWithoutThrow') {
           const assertPlan = plan as PlanningAction<PlanningActionParamAssert>;
           const taskAssert: ExecutionTaskApply = {
             type: 'Insight',
@@ -168,13 +169,17 @@ export class PageTaskExecutor {
               );
 
               if (!assertion.pass) {
-                task.output = assertion;
-                task.log = {
-                  dump: insightDump,
-                };
-                throw new Error(
-                  assertion.thought || 'Assertion failed without reason',
-                );
+                if (plan.type === 'Assert') {
+                  task.output = assertion;
+                  task.log = {
+                    dump: insightDump,
+                  };
+                  throw new Error(
+                    assertion.thought || 'Assertion failed without reason',
+                  );
+                }
+
+                task.error = assertion.thought;
               }
 
               return {
@@ -240,7 +245,6 @@ export class PageTaskExecutor {
               type: 'Action',
               subType: 'Hover',
               executor: async (param, { element }) => {
-                // console.log('executor args', param, element);
                 assert(element, 'Element not found, cannot hover');
                 await this.page.mouse.move(
                   element.center[0],
@@ -299,8 +303,22 @@ export class PageTaskExecutor {
           return taskActionSleep;
         }
         if (plan.type === 'Error') {
-          throw new Error(`Got a task plan with type Error: ${plan.thought}`);
+          const taskActionError: ExecutionTaskActionApply<PlanningActionParamError> =
+            {
+              type: 'Action',
+              subType: 'Error',
+              param: plan.param,
+              executor: async (taskParam) => {
+                assert(
+                  taskParam.thought,
+                  'An error occurred, but no thought provided',
+                );
+                throw new Error(taskParam.thought);
+              },
+            };
+          return taskActionError;
         }
+
         throw new Error(`Unknown or Unsupported task type: ${plan.type}`);
       })
       .map((task: ExecutionTaskApply) => {
@@ -314,7 +332,6 @@ export class PageTaskExecutor {
     userPrompt: string /* , actionInfo?: { actionType?: EventActions[number]['action'] } */,
   ): Promise<ExecutionResult> {
     const taskExecutor = new Executor(userPrompt);
-    taskExecutor.description = userPrompt;
 
     let plans: PlanningAction[] = [];
     const planningTask: ExecutionTaskPlanningApply = {
@@ -386,7 +403,6 @@ export class PageTaskExecutor {
     const description =
       typeof demand === 'string' ? demand : JSON.stringify(demand);
     const taskExecutor = new Executor(description);
-    taskExecutor.description = description;
     const queryTask: ExecutionTaskInsightQueryApply = {
       type: 'Insight',
       subType: 'Query',
@@ -418,9 +434,8 @@ export class PageTaskExecutor {
   async assert(
     assertion: string,
   ): Promise<ExecutionResult<InsightAssertionResponse>> {
-    const description = assertion;
+    const description = `assert: ${assertion}`;
     const taskExecutor = new Executor(description);
-    taskExecutor.description = description;
     const assertionPlan: PlanningAction<PlanningActionParamAssert> = {
       type: 'Assert',
       param: {
@@ -434,6 +449,74 @@ export class PageTaskExecutor {
 
     return {
       output,
+      executor: taskExecutor,
+    };
+  }
+
+  async waitFor(
+    assertion: string,
+    opt: PlanningActionParamWaitFor,
+  ): Promise<ExecutionResult<void>> {
+    const description = `waitFor: ${assertion}`;
+    const taskExecutor = new Executor(description);
+    const { timeoutMs, checkIntervalMs } = opt;
+
+    assert(assertion, 'No assertion for waitFor');
+    assert(timeoutMs, 'No timeoutMs for waitFor');
+    assert(checkIntervalMs, 'No checkIntervalMs for waitFor');
+
+    const overallStartTime = Date.now();
+    let startTime = Date.now();
+    let errorThought = '';
+    while (Date.now() - overallStartTime < timeoutMs) {
+      startTime = Date.now();
+      const assertPlan: PlanningAction<PlanningActionParamAssert> = {
+        type: 'AssertWithoutThrow',
+        param: {
+          assertion,
+        },
+      };
+      const assertTask = await this.convertPlanToExecutable([assertPlan]);
+      await taskExecutor.append(this.wrapExecutorWithScreenshot(assertTask[0]));
+      const output: InsightAssertionResponse = await taskExecutor.flush();
+
+      if (output.pass) {
+        return {
+          output: undefined,
+          executor: taskExecutor,
+        };
+      }
+
+      errorThought = output.thought;
+      const now = Date.now();
+      if (now - startTime < checkIntervalMs) {
+        const timeRemaining = checkIntervalMs - (now - startTime);
+        const sleepPlan: PlanningAction<PlanningActionParamSleep> = {
+          type: 'Sleep',
+          param: {
+            timeMs: timeRemaining,
+          },
+        };
+        const sleepTask = await this.convertPlanToExecutable([sleepPlan]);
+        await taskExecutor.append(
+          this.wrapExecutorWithScreenshot(sleepTask[0]),
+        );
+        await taskExecutor.flush();
+      }
+    }
+
+    // throw an error using taskExecutor
+    const errorPlan: PlanningAction<PlanningActionParamError> = {
+      type: 'Error',
+      param: {
+        thought: `waitFor timeout: ${errorThought}`,
+      },
+    };
+    const errorTask = await this.convertPlanToExecutable([errorPlan]);
+    await taskExecutor.append(errorTask[0]);
+    await taskExecutor.flush();
+    return {
+      output: undefined,
       executor: taskExecutor,
     };
   }

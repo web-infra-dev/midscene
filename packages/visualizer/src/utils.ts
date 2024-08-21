@@ -16,7 +16,7 @@ export function insightDumpToExecutionDump(
     const task: ExecutionTaskInsightLocate = {
       type: 'Insight',
       subType: insightDump.type === 'locate' ? 'Locate' : 'Query',
-      status: insightDump.error ? 'failed' : 'success',
+      status: insightDump.error ? 'failed' : 'finished',
       param: {
         ...(insightDump.userQuery.element
           ? { query: insightDump.userQuery }

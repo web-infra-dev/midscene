@@ -87,7 +87,7 @@ describe('executor', () => {
       expect(element).toBeTruthy();
 
       expect(tasks.length).toBe(inputTasks.length);
-      expect(tasks[0].status).toBe('success');
+      expect(tasks[0].status).toBe('finished');
       expect(tasks[0].output).toMatchSnapshot();
       expect(tasks[0].log?.dump).toBeTruthy();
       expect(tasks[0].timing?.end).toBeTruthy();
@@ -151,7 +151,7 @@ describe('executor', () => {
 
     expect(initExecutor.status).toBe('completed');
     expect(initExecutor.tasks.length).toBe(3);
-    expect(initExecutor.tasks[2].status).toBe('success');
+    expect(initExecutor.tasks[2].status).toBe('finished');
 
     // append while completed
     initExecutor.append(actionTask);

@@ -98,10 +98,15 @@ expect(onesieItem.price).toBe(7.99);
 ```
 :::
 
+### `.aiWaitFor(assertion: string, {timeoutMs?: number, checkIntervalMs?: number })` - 等待断言执行成功
+
+`.aiWaitFor` 帮助你检查你的断言是否满足，或是是否发生了超时错误。考虑到 AI 服务的成本，检查间隔不会超过 `checkIntervalMs` 毫秒。默认配置将 `timeoutMs` 设为 15 秒，`checkIntervalMs` 设为 3 秒：也就是说，如果所有断言都失败，并且 AI 服务总是立即响应，则最多检查 5 次。
+
+考虑到 AI 服务的时间消耗，`.aiWaitFor` 并不是一个特别高效的方法。使用一个普通的 `sleep` 可能是替代 `waitFor` 的另一种方式。
+
 ## 使用 LangSmith （可选）
 
 LangSmith 是一个用于调试大语言模型的平台。想要集成 LangSmith，请按以下步骤操作：
-
 
 ```bash
 # 设置环境变量

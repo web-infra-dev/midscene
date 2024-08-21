@@ -1,11 +1,15 @@
+import { assert } from 'node:console';
 import type { WebPage } from '@/common/page';
-import type { ExecutionDump, GroupedActionDump } from '@midscene/core';
+import type {
+  AgentWaitForOpt,
+  ExecutionDump,
+  GroupedActionDump,
+} from '@midscene/core';
 import {
   groupedActionDumpFileExt,
   stringifyDumpData,
   writeLogFile,
 } from '@midscene/core/utils';
-import dayjs from 'dayjs';
 import { PageTaskExecutor } from '../common/tasks';
 import type { AiTaskCache } from './task-cache';
 import { printReportMsg, reportFileName } from './utils';
@@ -17,6 +21,8 @@ export interface PageAgentOpt {
   cache?: AiTaskCache;
   /* if auto generate report, default true */
   generateReport?: boolean;
+  /* if auto print report msg, default true */
+  autoPrintReportMsg?: boolean;
 }
 
 export class PageAgent {
@@ -37,6 +43,7 @@ export class PageAgent {
     this.opts = Object.assign(
       {
         generateReport: true,
+        autoPrintReportMsg: true,
         groupName: 'Midscene Report',
         groupDescription: '',
       },
@@ -66,7 +73,7 @@ export class PageAgent {
   }
 
   writeOutActionDumps() {
-    const generateReport = this.opts.generateReport;
+    const { generateReport, autoPrintReportMsg } = this.opts;
     this.reportFile = writeLogFile({
       fileName: this.reportFileName!,
       fileExt: groupedActionDumpFileExt,
@@ -75,7 +82,7 @@ export class PageAgent {
       generateReport,
     });
 
-    if (generateReport) {
+    if (generateReport && autoPrintReportMsg) {
       printReportMsg(this.reportFile);
     }
   }
@@ -112,6 +119,21 @@ export class PageAgent {
       const errMsg = msg || `Assertion failed: ${assertion}`;
       const reasonMsg = `Reason: ${output?.thought} || (no_reason)`;
       throw new Error(`${errMsg}\n${reasonMsg}`);
+    }
+  }
+
+  async aiWaitFor(assertion: string, opt?: AgentWaitForOpt) {
+    const { executor } = await this.taskExecutor.waitFor(assertion, {
+      timeoutMs: opt?.timeoutMs || 15 * 1000,
+      checkIntervalMs: opt?.checkIntervalMs || 3 * 1000,
+      assertion,
+    });
+    this.appendExecutionDump(executor.dump());
+    this.writeOutActionDumps();
+
+    if (executor.isInErrorState()) {
+      const errorTask = executor.latestErrorTask();
+      throw new Error(`${errorTask?.error}\n${errorTask?.errorStack}`);
     }
   }
 
