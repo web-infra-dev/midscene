@@ -5,7 +5,6 @@ import { describe, expect, it } from 'vitest';
 import { launchPage } from '../ai/puppeteer/utils';
 
 const pagePath = join(__dirname, './fixtures/extractor.html');
-
 describe(
   'extractor',
   () => {
