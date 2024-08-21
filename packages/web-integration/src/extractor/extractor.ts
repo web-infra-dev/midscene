@@ -1,8 +1,8 @@
 import { NodeType, TEXT_SIZE_THRESHOLD } from './constants';
 import {
   isButtonElement,
+  isFormElement,
   isImgElement,
-  isInputElement,
   isTextElement,
 } from './dom-util';
 import {
@@ -69,6 +69,7 @@ export function extractTextWithPosition(
 
     const shouldContinue = collectElementInfo(node);
     if (!shouldContinue) {
+      logger('should NOT continue for node', node);
       return;
     }
 
@@ -87,21 +88,34 @@ export function extractTextWithPosition(
       return;
     }
 
-    if (isInputElement(node)) {
+    if (isFormElement(node)) {
       const attributes = getNodeAttributes(node);
       const nodeHashId = generateHash(attributes.placeholder, rect);
       const selector = setDataForNode(node, nodeHashId);
+      let valueContent =
+        attributes.value || attributes.placeholder || node.textContent || '';
+      const tagName = (node as HTMLElement).tagName.toLowerCase();
+      if ((node as HTMLElement).tagName.toLowerCase() === 'select') {
+        // Get the selected option using the selectedIndex property
+        const selectedOption = (node as HTMLSelectElement).options[
+          (node as HTMLSelectElement).selectedIndex
+        ];
+
+        // Retrieve the text content of the selected option
+        valueContent = selectedOption.textContent || '';
+      }
       elementInfoArray.push({
         id: nodeHashId,
         indexId: generateId(nodeIndex++),
         nodeHashId,
         locator: selector,
-        nodeType: NodeType.INPUT,
+        nodeType: NodeType.FORM_ITEM,
         attributes: {
           ...attributes,
-          nodeType: NodeType.INPUT,
+          htmlTagName: `<${tagName}>`,
+          nodeType: NodeType.FORM_ITEM,
         },
-        content: attributes.placeholder || '',
+        content: valueContent.trim(),
         rect,
         center: [
           Math.round(rect.left + rect.width / 2),
@@ -109,6 +123,7 @@ export function extractTextWithPosition(
         ],
         htmlNode: debugMode ? node : null,
       });
+      if (tagName === 'label') return true;
       return;
     }
 
@@ -167,6 +182,10 @@ export function extractTextWithPosition(
     if (isTextElement(node)) {
       const text = node.textContent?.trim().replace(/\n+/g, ' ') || '';
       const attributes = getNodeAttributes(node);
+      const attributeKeys = Object.keys(attributes);
+      if (!text.trim() && attributeKeys.length === 0) {
+        return;
+      }
       const nodeHashId = generateHash(text, rect);
       const selector = setDataForNode(node, nodeHashId);
       elementInfoArray.push({

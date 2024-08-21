@@ -65,4 +65,26 @@ describe('image utils', () => {
     });
     expect(rect).toMatchSnapshot();
   });
+
+  it('illegal center rect, refuse to align', async () => {
+    const file = getFixture('long-text.png'); // 2862x250
+    const rect = await alignCoordByTrim(file, {
+      left: 3000,
+      top: 3000,
+      width: 200,
+      height: 200,
+    });
+    expect(rect).toMatchSnapshot();
+  });
+
+  it('align an oversized sub-image', async () => {
+    const file = getFixture('long-text.png'); // 2862x250
+    const rect = await alignCoordByTrim(file, {
+      left: 2860,
+      top: 200,
+      width: 200,
+      height: 200,
+    });
+    expect(rect).toMatchSnapshot();
+  });
 });

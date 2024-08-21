@@ -73,6 +73,7 @@ async function alignElements(
     const { rect, id, content, attributes, locator } = item;
 
     const aligned = await alignCoordByTrim(screenshotBuffer, rect);
+    if (aligned.width < 0) continue; // failed to align
     item.rect = aligned;
     item.center = [
       Math.round(aligned.left + aligned.width / 2),

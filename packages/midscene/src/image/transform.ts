@@ -183,6 +183,7 @@ export async function alignCoordByTrim(
   centerRect: Rect,
 ): Promise<Rect> {
   const imgInfo = await Sharp(image).metadata();
+
   if (
     !imgInfo?.width ||
     !imgInfo.height ||
@@ -191,21 +192,39 @@ export async function alignCoordByTrim(
   ) {
     return centerRect;
   }
+
+  const zeroSize: Rect = {
+    left: 0,
+    top: 0,
+    width: -1,
+    height: -1,
+  };
+  const finalCenterRect: Rect = { ...centerRect };
+  if (centerRect.left > imgInfo.width || centerRect.top > imgInfo.height) {
+    return zeroSize;
+  }
+  if (centerRect.left + centerRect.width > imgInfo.width) {
+    finalCenterRect.width = imgInfo.width - centerRect.left;
+  }
+  if (centerRect.top + centerRect.height > imgInfo.height) {
+    finalCenterRect.height = imgInfo.height - centerRect.top;
+  }
+
   try {
-    const img = await Sharp(image).extract(centerRect).toBuffer();
+    const img = await Sharp(image).extract(finalCenterRect).toBuffer();
     const trimInfo = await trimImage(img);
     if (!trimInfo) {
-      return centerRect;
+      return finalCenterRect;
     }
 
     return {
-      left: centerRect.left - trimInfo.trimOffsetLeft,
-      top: centerRect.top - trimInfo.trimOffsetTop,
+      left: finalCenterRect.left - trimInfo.trimOffsetLeft,
+      top: finalCenterRect.top - trimInfo.trimOffsetTop,
       width: trimInfo.width,
       height: trimInfo.height,
     };
   } catch (e) {
-    console.log(imgInfo);
+    console.warn(imgInfo, finalCenterRect);
     throw e;
   }
 }
