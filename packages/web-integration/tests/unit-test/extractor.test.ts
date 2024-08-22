@@ -26,12 +26,21 @@ describe(
         },
       );
 
-      const list = content.map((item) => {
-        return {
-          content: item.content,
-          attributes: item.attributes,
-        };
-      });
+      const list = content
+        .sort((a, b) => {
+          return (
+            a.center[0] * 100000 +
+            a.center[1] -
+            (b.center[0] * 100000 + b.center[1])
+          );
+        })
+        .map((item) => {
+          return {
+            content: item.content,
+            attributes: item.attributes,
+          };
+        });
+
       expect(list).toMatchSnapshot();
       await reset();
     });
