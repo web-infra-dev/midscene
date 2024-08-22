@@ -18,6 +18,24 @@ exports[`image utils > align a sub-image with negative coord 1`] = `
 }
 `;
 
+exports[`image utils > align a table style sub-image 1`] = `
+{
+  "height": 57,
+  "left": 140,
+  "top": 73,
+  "width": 200,
+}
+`;
+
+exports[`image utils > align a tiny sub-image 1`] = `
+{
+  "height": 80,
+  "left": 140,
+  "top": 50,
+  "width": 200,
+}
+`;
+
 exports[`image utils > align an oversized sub-image 1`] = `
 {
   "height": 50,

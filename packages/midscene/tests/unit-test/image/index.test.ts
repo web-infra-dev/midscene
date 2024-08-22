@@ -3,7 +3,6 @@ import {
   base64Encoded,
   imageInfo,
   imageInfoOfBase64,
-  trimImage,
 } from '@/image';
 import { getFixture } from 'tests/utils';
 import { describe, expect, it } from 'vitest';
@@ -37,26 +36,30 @@ describe('image utils', () => {
     expect(info).toMatchSnapshot();
   });
 
-  it('trim image', async () => {
-    const file = getFixture('long-text.png');
-    const info = await trimImage(file);
-    expect(info).toMatchSnapshot();
-
-    // dark bg
-    const d = await trimImage(getFixture('table.png'));
-    expect(d).toMatchSnapshot();
-
-    // colorful
-    const c = await trimImage(getFixture('colorful.png'));
-    expect(c).toMatchSnapshot();
-
-    // 2x2
-    const small = await trimImage(getFixture('2x2.jpeg'));
-    expect(small).toBeNull();
-  });
-
   it('align a sub-image', async () => {
     const file = getFixture('long-text.png');
+    const rect = await alignCoordByTrim(file, {
+      left: 140,
+      top: 50,
+      width: 200,
+      height: 80,
+    });
+    expect(rect).toMatchSnapshot();
+  });
+
+  it('align a tiny sub-image', async () => {
+    const file = getFixture('2x2.jpeg');
+    const rect = await alignCoordByTrim(file, {
+      left: 140,
+      top: 50,
+      width: 200,
+      height: 80,
+    });
+    expect(rect).toMatchSnapshot();
+  });
+
+  it('align a table style sub-image', async () => {
+    const file = getFixture('table.png');
     const rect = await alignCoordByTrim(file, {
       left: 140,
       top: 50,
@@ -98,4 +101,23 @@ describe('image utils', () => {
     });
     expect(rect).toMatchSnapshot();
   });
+
+  it(
+    'profile',
+    async () => {
+      let count = 100;
+      console.time('alignCoordByTrim');
+      while (count--) {
+        const file = getFixture('long-text.png');
+        await alignCoordByTrim(file, {
+          left: 440,
+          top: 50,
+          width: 200,
+          height: 150,
+        });
+      }
+      console.timeEnd('alignCoordByTrim');
+    },
+    10 * 1000,
+  );
 });

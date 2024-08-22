@@ -11,7 +11,7 @@ import {
 } from '@midscene/core/image';
 import { getTmpFile } from '@midscene/core/utils';
 import dayjs from 'dayjs';
-import { WebElementInfo, type WebElementInfoType } from '../web-element';
+import { WebElementInfo } from '../web-element';
 import type { WebPage } from './page';
 
 export type WebUIContext = UIContext<WebElementInfo> & {
@@ -30,12 +30,14 @@ export async function parseContextFromWebPage(
   const screenshotBuffer = readFileSync(file);
   const screenshotBase64 = base64Encoded(file);
   const captureElementSnapshot = await getElementInfosFromPage(page);
+
   // align element
   const elementsInfo = await alignElements(
     screenshotBuffer,
     captureElementSnapshot,
     page,
   );
+
   const size = await imageInfoOfBase64(screenshotBase64);
 
   return {
@@ -69,27 +71,32 @@ async function alignElements(
       item.rect.height >= sizeThreshold && item.rect.width >= sizeThreshold
     );
   });
-  for (const item of validElements) {
-    const { rect, id, content, attributes, locator } = item;
 
-    const aligned = await alignCoordByTrim(screenshotBuffer, rect);
-    if (aligned.width < 0) continue; // failed to align
-    item.rect = aligned;
-    item.center = [
-      Math.round(aligned.left + aligned.width / 2),
-      Math.round(aligned.top + aligned.height / 2),
-    ];
-    textsAligned.push(
-      new WebElementInfo({
-        rect,
-        locator,
-        id,
-        content,
-        attributes,
-        page,
-      }),
-    );
-  }
+  const tasks = validElements.map((item) => {
+    return (async () => {
+      const { rect, id, content, attributes, locator } = item;
+
+      const aligned = await alignCoordByTrim(screenshotBuffer, rect);
+      if (aligned.width < 0) return; // failed to align
+      item.rect = aligned;
+      item.center = [
+        Math.round(aligned.left + aligned.width / 2),
+        Math.round(aligned.top + aligned.height / 2),
+      ];
+      textsAligned.push(
+        new WebElementInfo({
+          rect,
+          locator,
+          id,
+          content,
+          attributes,
+          page,
+        }),
+      );
+    })();
+  });
+  await Promise.all(tasks);
+
   return textsAligned;
 }
 

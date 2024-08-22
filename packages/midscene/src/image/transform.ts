@@ -120,49 +120,6 @@ export function calculateNewDimensions(
 }
 
 /**
- * Trims an image and returns the trimming information, including the offset from the left and top edges, and the trimmed width and height
- *
- * @param image - The image to be trimmed. This can be a file path or a Buffer object containing the image data
- * @returns A Promise that resolves to an object containing the trimming information. If the image does not need to be trimmed, this object will be null
- */
-export async function trimImage(image: string | Buffer): Promise<{
-  trimOffsetLeft: number; // attention: trimOffsetLeft is a negative number
-  trimOffsetTop: number; // so as trimOffsetTop
-  width: number;
-  height: number;
-} | null> {
-  const imgInstance = Sharp(image);
-  const instanceInfo = await imgInstance.metadata();
-
-  if (
-    !instanceInfo.width ||
-    instanceInfo.width <= 3 ||
-    !instanceInfo.height ||
-    instanceInfo.height <= 3
-  ) {
-    return null;
-  }
-
-  const { info } = await imgInstance.trim().toBuffer({
-    resolveWithObject: true,
-  });
-
-  if (
-    typeof info.trimOffsetLeft === 'undefined' ||
-    typeof info.trimOffsetTop === 'undefined'
-  ) {
-    return null;
-  }
-
-  return {
-    trimOffsetLeft: info.trimOffsetLeft,
-    trimOffsetTop: info.trimOffsetTop,
-    width: info.width,
-    height: info.height,
-  };
-}
-
-/**
  * Aligns an image's coordinate system based on trimming information
  *
  * This function takes an image and a center rectangle as input. It first extracts the center
@@ -179,10 +136,15 @@ export async function trimImage(image: string | Buffer): Promise<{
  * @throws Error if there is an error during image processing
  */
 export async function alignCoordByTrim(
-  image: string | Buffer,
+  image: string | Buffer | Sharp.Sharp,
   centerRect: Rect,
 ): Promise<Rect> {
-  const imgInfo = await Sharp(image).metadata();
+  // const img = await Sharp(image); // .webp();
+  const img: Sharp.Sharp =
+    typeof image === 'string' || Buffer.isBuffer(image)
+      ? Sharp(image)
+      : image.clone();
+  const imgInfo = await img.metadata();
 
   if (
     !imgInfo?.width ||
@@ -221,13 +183,27 @@ export async function alignCoordByTrim(
     finalCenterRect.height = imgInfo.height - finalCenterRect.top;
   }
 
+  if (finalCenterRect.width <= 3 || finalCenterRect.height <= 3) {
+    return finalCenterRect;
+  }
+
   try {
-    const img = await Sharp(image).extract(finalCenterRect).toBuffer();
-    const trimInfo = await trimImage(img);
-    if (!trimInfo) {
+    const croppedImg = await img
+      .extract(finalCenterRect)
+      .jpeg({
+        quality: 75,
+      })
+      .toBuffer();
+    const { info: trimInfo } = await Sharp(croppedImg).trim().toBuffer({
+      resolveWithObject: true,
+    });
+    if (
+      !trimInfo ||
+      typeof trimInfo.trimOffsetLeft === 'undefined' ||
+      typeof trimInfo.trimOffsetTop === 'undefined'
+    ) {
       return finalCenterRect;
     }
-
     return {
       left: finalCenterRect.left - trimInfo.trimOffsetLeft,
       top: finalCenterRect.top - trimInfo.trimOffsetTop,

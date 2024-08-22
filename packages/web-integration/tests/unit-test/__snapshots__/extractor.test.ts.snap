@@ -36,12 +36,6 @@ exports[`extractor > basic 1`] = `
     "attributes": {
       "nodeType": "TEXT Node",
     },
-    "content": "Field 3",
-  },
-  {
-    "attributes": {
-      "nodeType": "TEXT Node",
-    },
     "content": "Field 4",
   },
   {
@@ -54,13 +48,7 @@ exports[`extractor > basic 1`] = `
     "attributes": {
       "nodeType": "TEXT Node",
     },
-    "content": "30S",
-  },
-  {
-    "attributes": {
-      "nodeType": "TEXT Node",
-    },
-    "content": "Kace Cervantes",
+    "content": "Field 3",
   },
   {
     "attributes": {
@@ -78,13 +66,19 @@ exports[`extractor > basic 1`] = `
     "attributes": {
       "nodeType": "TEXT Node",
     },
-    "content": "Skyla Jefferson",
+    "content": "30S",
   },
   {
     "attributes": {
       "nodeType": "TEXT Node",
     },
-    "content": "70U",
+    "content": "Kace Cervantes",
+  },
+  {
+    "attributes": {
+      "nodeType": "TEXT Node",
+    },
+    "content": "Skyla Jefferson",
   },
   {
     "attributes": {
@@ -97,6 +91,12 @@ exports[`extractor > basic 1`] = `
       "nodeType": "TEXT Node",
     },
     "content": "Dariel Acevedo",
+  },
+  {
+    "attributes": {
+      "nodeType": "TEXT Node",
+    },
+    "content": "70U",
   },
   {
     "attributes": {
@@ -138,25 +138,7 @@ exports[`extractor > basic 1`] = `
     "attributes": {
       "nodeType": "TEXT Node",
     },
-    "content": "Franklin Everett",
-  },
-  {
-    "attributes": {
-      "nodeType": "TEXT Node",
-    },
     "content": "YPG",
-  },
-  {
-    "attributes": {
-      "nodeType": "TEXT Node",
-    },
-    "content": "Kori Payne",
-  },
-  {
-    "attributes": {
-      "nodeType": "TEXT Node",
-    },
-    "content": "Edward Blevins",
   },
   {
     "attributes": {
@@ -168,13 +150,31 @@ exports[`extractor > basic 1`] = `
     "attributes": {
       "nodeType": "TEXT Node",
     },
-    "content": "Matthias Reed",
+    "content": "Franklin Everett",
   },
   {
     "attributes": {
       "nodeType": "TEXT Node",
     },
     "content": "ZEN",
+  },
+  {
+    "attributes": {
+      "nodeType": "TEXT Node",
+    },
+    "content": "Edward Blevins",
+  },
+  {
+    "attributes": {
+      "nodeType": "TEXT Node",
+    },
+    "content": "Matthias Reed",
+  },
+  {
+    "attributes": {
+      "nodeType": "TEXT Node",
+    },
+    "content": "Kori Payne",
   },
   {
     "attributes": {
@@ -202,12 +202,6 @@ exports[`extractor > basic 1`] = `
   },
   {
     "attributes": {
-      "nodeType": "TEXT Node",
-    },
-    "content": "Form",
-  },
-  {
-    "attributes": {
       "for": "name",
       "htmlTagName": "<label>",
       "nodeType": "FORM_ITEM Node",
@@ -219,6 +213,19 @@ exports[`extractor > basic 1`] = `
       "nodeType": "TEXT Node",
     },
     "content": "Name:",
+  },
+  {
+    "attributes": {
+      "nodeType": "TEXT Node",
+    },
+    "content": "Form",
+  },
+  {
+    "attributes": {
+      "htmlTagName": "<label>",
+      "nodeType": "FORM_ITEM Node",
+    },
+    "content": "Shape",
   },
   {
     "attributes": {
@@ -237,13 +244,6 @@ exports[`extractor > basic 1`] = `
   },
   {
     "attributes": {
-      "htmlTagName": "<label>",
-      "nodeType": "FORM_ITEM Node",
-    },
-    "content": "Shape",
-  },
-  {
-    "attributes": {
       "nodeType": "TEXT Node",
     },
     "content": "Shape",
@@ -256,6 +256,12 @@ exports[`extractor > basic 1`] = `
       "value": "Rectangle",
     },
     "content": "Rectangle",
+  },
+  {
+    "attributes": {
+      "nodeType": "TEXT Node",
+    },
+    "content": "输入搜索关键词",
   },
   {
     "attributes": {
@@ -278,7 +284,7 @@ exports[`extractor > basic 1`] = `
     "attributes": {
       "nodeType": "TEXT Node",
     },
-    "content": "输入搜索关键词",
+    "content": "Choose an option:",
   },
   {
     "attributes": {
@@ -307,26 +313,20 @@ exports[`extractor > basic 1`] = `
   },
   {
     "attributes": {
-      "for": "options",
-      "htmlTagName": "<label>",
-      "nodeType": "FORM_ITEM Node",
-    },
-    "content": "Choose an option:",
-  },
-  {
-    "attributes": {
-      "nodeType": "TEXT Node",
-    },
-    "content": "Choose an option:",
-  },
-  {
-    "attributes": {
       "htmlTagName": "<select>",
       "id": "options",
       "name": "options",
       "nodeType": "FORM_ITEM Node",
     },
     "content": "Option 1",
+  },
+  {
+    "attributes": {
+      "for": "options",
+      "htmlTagName": "<label>",
+      "nodeType": "FORM_ITEM Node",
+    },
+    "content": "Choose an option:",
   },
   {
     "attributes": {
