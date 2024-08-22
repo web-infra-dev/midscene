@@ -42,8 +42,9 @@ jobs:
     - name: Build project
       run: pnpm run build:pkg
 
+    - name: Run e2e tests
+      run: pnpm run e2e
+
     - name: Run tests
       run: pnpm run test:ai
 
-    - name: Run e2e tests
-      run: pnpm run e2e
