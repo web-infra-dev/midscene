@@ -1,5 +1,9 @@
+import path from 'node:path';
+import { generateExtractData } from '@/debug';
 import { expect } from 'playwright/test';
 import { test } from './fixture';
+
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 test.beforeEach(async ({ page }) => {
   page.setViewportSize({ width: 400, height: 905 });
@@ -7,8 +11,10 @@ test.beforeEach(async ({ page }) => {
   await page.waitForLoadState('networkidle');
 });
 
-test('ai online order', async ({ ai, aiQuery }) => {
+test('ai online order', async ({ ai, page, aiQuery }) => {
   await ai('点击左上角语言切换按钮(英文、中文)，在弹出的下拉列表中点击中文');
+  await sleep(1000);
+  await generateExtractData(page, path.join(__dirname, 'test-data'));
   await ai('向下滚动一屏');
   await ai('直接点击多肉葡萄的规格按钮');
   await ai('点击不使用吸管、点击冰沙推荐、点击正常冰推荐');

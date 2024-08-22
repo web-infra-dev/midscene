@@ -71,13 +71,12 @@ async function alignElements(
   });
   for (const item of validElements) {
     const { rect, id, content, attributes, locator } = item;
-
-    const aligned = await alignCoordByTrim(screenshotBuffer, rect);
-    item.rect = aligned;
-    item.center = [
-      Math.round(aligned.left + aligned.width / 2),
-      Math.round(aligned.top + aligned.height / 2),
-    ];
+    // const aligned = await alignCoordByTrim(screenshotBuffer, rect);
+    // item.rect = aligned;
+    // item.center = [
+    //   Math.round(aligned.left + aligned.width / 2),
+    //   Math.round(aligned.top + aligned.height / 2),
+    // ];
     textsAligned.push(
       new WebElementInfo({
         rect,

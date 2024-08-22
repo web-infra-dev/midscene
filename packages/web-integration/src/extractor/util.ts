@@ -92,12 +92,12 @@ export function visibleRect(
   el: HTMLElement | Node | null,
 ): { left: number; top: number; width: number; height: number } | false {
   if (!el) {
-    logger('Element is not in the DOM hierarchy');
+    logger(el, 'Element is not in the DOM hierarchy');
     return false;
   }
 
   if (!(el instanceof HTMLElement) && el.nodeType !== Node.TEXT_NODE) {
-    logger('Element is not in the DOM hierarchy');
+    logger(el, 'Element is not in the DOM hierarchy');
     return false;
   }
 
@@ -108,7 +108,7 @@ export function visibleRect(
       style.visibility === 'hidden' ||
       (style.opacity === '0' && el.tagName !== 'INPUT')
     ) {
-      logger('Element is hidden');
+      logger(el, 'Element is hidden');
       return false;
     }
   }
@@ -116,7 +116,7 @@ export function visibleRect(
   const rect = getRect(el);
 
   if (rect.width === 0 && rect.height === 0) {
-    logger('Element has no size');
+    logger(el, 'Element has no size');
     return false;
   }
 
@@ -134,8 +134,13 @@ export function visibleRect(
     rect.top < viewportHeight;
 
   if (!isPartiallyInViewport) {
-    logger('Element is completely outside the viewport');
-    logger(rect, viewportHeight, viewportWidth, scrollTop, scrollLeft);
+    logger(el, 'Element is completely outside the viewport', {
+      rect,
+      viewportHeight,
+      viewportWidth,
+      scrollTop,
+      scrollLeft,
+    });
     return false;
   }
 

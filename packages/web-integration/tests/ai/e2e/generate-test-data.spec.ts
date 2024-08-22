@@ -1,5 +1,5 @@
+import { generateExtractData, generateTestDataPath } from '@/debug';
 import { test } from '@playwright/test';
-import { generateTestData, generateTestDataPath } from './tool';
 
 function sleep(time: number) {
   return new Promise((resolve) => {
@@ -23,22 +23,14 @@ test('generate todo test data', async ({ page }) => {
   await page.keyboard.press('Enter');
   await page.getByText('Learn Rust').hover();
 
-  const midsceneTestDataPath = generateTestDataPath('todo');
-  const buffer = await page.screenshot();
-
-  const base64String = buffer.toString('base64');
-  await generateTestData(page, midsceneTestDataPath, base64String);
+  await generateExtractData(page, generateTestDataPath('todo'));
 });
 
 test('generate visualstudio test data', async ({ page }) => {
   await page.goto('https://code.visualstudio.com/');
   await page.waitForLoadState('networkidle');
 
-  const midsceneTestDataPath = generateTestDataPath('visualstudio');
-  const buffer = await page.screenshot();
-
-  const base64String = buffer.toString('base64');
-  await generateTestData(page, midsceneTestDataPath, base64String);
+  await generateExtractData(page, generateTestDataPath('visualstudio'));
 });
 
 test('generate githubstatus test data', async ({ page }) => {
@@ -47,11 +39,7 @@ test('generate githubstatus test data', async ({ page }) => {
   await page.waitForLoadState('networkidle');
   await sleep(3000);
 
-  const midsceneTestDataPath = generateTestDataPath('githubstatus');
-  const buffer = await page.screenshot();
-
-  const base64String = buffer.toString('base64');
-  await generateTestData(page, midsceneTestDataPath, base64String);
+  await generateExtractData(page, generateTestDataPath('githubstatus'));
 });
 
 test('generate online order test data', async ({ page }) => {
@@ -60,10 +48,7 @@ test('generate online order test data', async ({ page }) => {
   await page.evaluate('window.localStorage.setItem("LOCALE", "zh-CN")');
   await page.goto('https://heyteavivocity.meuu.online/home');
   await page.waitForLoadState('networkidle');
+  await page.getByText('English').nth(2).click();
 
-  const midsceneTestDataPath = generateTestDataPath('online_order');
-  const buffer = await page.screenshot();
-
-  const base64String = buffer.toString('base64');
-  await generateTestData(page, midsceneTestDataPath, base64String);
+  await generateExtractData(page, generateTestDataPath('online_order'));
 });

@@ -51,7 +51,7 @@
     "e2e": "playwright test --config=playwright.config.ts",
     "e2e:cache": "MIDSCENE_CACHE=true playwright test --config=playwright.config.ts",
     "e2e:ui": "playwright test --config=playwright.config.ts --ui",
-    "e2e:ui-cache": "MIDSCENE_CACHE=true playwright test --config=playwright.config.ts  --ui"
+    "e2e:ui:cache": "MIDSCENE_CACHE=true playwright test --config=playwright.config.ts  --ui"
   },
   "files": ["dist", "README.md"],
   "dependencies": {

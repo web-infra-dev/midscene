@@ -84,7 +84,7 @@ export function extractTextWithPosition(
     logger('collectElementInfo', node, node.nodeName, rect);
     if (!rect) {
       logger('Element is not visible', node);
-      return;
+      return true;
     }
 
     if (isInputElement(node)) {
