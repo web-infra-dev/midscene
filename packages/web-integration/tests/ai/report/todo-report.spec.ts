@@ -4,6 +4,7 @@ import { test } from '../e2e/fixture';
 import { getLastModifiedReportHTMLFile } from '../e2e/util';
 
 test('ai report', async ({ page, ai, aiAssert }, testInfo) => {
+  testInfo.snapshotSuffix = '';
   await new Promise((resolve) => setTimeout(resolve, 3000));
   const htmlFile = getLastModifiedReportHTMLFile(
     path.join(__dirname, '../../../midscene_run/report'),
@@ -14,7 +15,7 @@ test('ai report', async ({ page, ai, aiAssert }, testInfo) => {
     'Move your mouse over the top task list (next to the logo) and click Select ai todo from the drop-down list',
   );
   const actionsList = await ai(
-    'Sidebar task list: Array<{title: string, actions: Array<string(Excluding time)>}>',
+    'Array<{title: string(task name), actions: Array<string(task action name,Excluding time)>}>',
     {
       type: 'query',
     },
