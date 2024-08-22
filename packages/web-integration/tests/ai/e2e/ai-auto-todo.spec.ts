@@ -5,7 +5,13 @@ test.beforeEach(async ({ page }) => {
   await page.goto('https://todomvc.com/examples/react/dist/');
 });
 
+const MIDSCENE_CACHE = Boolean(process.env.MIDSCENE_CACHE);
+
 test('ai todo', async ({ ai, aiQuery, aiWaitFor }) => {
+  if (MIDSCENE_CACHE) {
+    test.setTimeout(1000 * 30);
+  }
+
   await ai(
     'Enter "Learn JS today" in the task box, then press Enter to create',
   );
