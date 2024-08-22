@@ -1,0 +1,89 @@
+{
+  "pkgName": "@midscene/web",
+  "pkgVersion": "0.3.0",
+  "taskFile": "tests/ai/report/todo-report.spec.ts",
+  "taskTitle": "ai report",
+  "aiTasks": [
+    {
+      "type": "plan",
+      "pageContext": {
+        "url": "file:///Users/bytedance/github/midscene/packages/web-integration/midscene_run/report/playwright-merged-2024-08-22_19-12-30-688.html",
+        "size": {
+          "width": 1280,
+          "height": 720
+        }
+      },
+      "prompt": "Move your mouse over the top task list (next to the logo) and click Select ai todo from the drop-down list",
+      "response": {
+        "plans": [
+          {
+            "thought": "Locate the top task list next to the logo to find the drop-down list.",
+            "type": "Locate",
+            "param": {
+              "prompt": "The top task list next to the logo"
+            }
+          },
+          {
+            "thought": "Hover over the top task list to reveal the drop-down options.",
+            "type": "Hover",
+            "param": null
+          },
+          {
+            "thought": "Select 'ai todo' from the drop-down list.",
+            "type": "Locate",
+            "param": {
+              "prompt": "The 'ai todo' option in the drop-down list"
+            }
+          },
+          {
+            "thought": "Click on the 'ai todo' option to select it.",
+            "type": "Tap",
+            "param": null
+          }
+        ]
+      }
+    },
+    {
+      "type": "locate",
+      "pageContext": {
+        "url": "file:///Users/bytedance/github/midscene/packages/web-integration/midscene_run/report/playwright-merged-2024-08-22_19-12-30-688.html",
+        "size": {
+          "width": 1280,
+          "height": 720
+        }
+      },
+      "prompt": "The top task list next to the logo",
+      "response": {
+        "elements": [
+          {
+            "reason": "The element closest to the description 'The top task list next to the logo' is the one with the content 'ai todo - tests/ai/e2e/ai-auto-todo.spec.ts' as it is located near the logo in the top left corner.",
+            "text": "ai todo - tests/ai/e2e/ai-auto-todo.spec.ts",
+            "id": "0a0cec785d"
+          }
+        ],
+        "errors": []
+      }
+    },
+    {
+      "type": "locate",
+      "pageContext": {
+        "url": "file:///Users/bytedance/github/midscene/packages/web-integration/midscene_run/report/playwright-merged-2024-08-22_19-12-30-688.html",
+        "size": {
+          "width": 1280,
+          "height": 720
+        }
+      },
+      "prompt": "The 'ai todo' option in the drop-down list",
+      "response": {
+        "elements": [
+          {
+            "reason": "The element with ID '47e124e101' has the text 'ai todo' and is located in the drop-down list, matching the description provided.",
+            "text": "ai todo",
+            "id": "47e124e101"
+          }
+        ],
+        "errors": []
+      }
+    }
+  ]
+}

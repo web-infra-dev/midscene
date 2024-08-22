@@ -7,6 +7,7 @@
     "test": "nx run-many --target=test --projects=@midscene/core,@midscene/visualizer,@midscene/web --verbose",
     "test:ai": "nx run-many --target=test:ai --projects=@midscene/core,@midscene/visualizer,@midscene/web --verbose",
     "e2e": "nx run-many --target=e2e --projects=@midscene/core,@midscene/visualizer,@midscene/web --verbose",
+    "e2e:cache": "nx run-many --target=e2e:cache --projects=@midscene/web --verbose",
     "e2e:report": "nx run-many --target=e2e:report --projects=@midscene/web --verbose",
     "prepare": "pnpm run build:pkg && simple-git-hooks",
     "check-dependency-version": "check-dependency-version-consistency .",
