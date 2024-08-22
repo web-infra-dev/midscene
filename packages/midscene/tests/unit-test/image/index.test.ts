@@ -77,6 +77,17 @@ describe('image utils', () => {
     expect(rect).toMatchSnapshot();
   });
 
+  it('align a sub-image with negative coord', async () => {
+    const file = getFixture('long-text.png'); // 2862x250
+    const rect = await alignCoordByTrim(file, {
+      left: -100,
+      top: -100,
+      width: 200,
+      height: 200,
+    });
+    expect(rect).toMatchSnapshot();
+  });
+
   it('align an oversized sub-image', async () => {
     const file = getFixture('long-text.png'); // 2862x250
     const rect = await alignCoordByTrim(file, {

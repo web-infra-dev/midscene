@@ -9,6 +9,15 @@ exports[`image utils > align a sub-image 1`] = `
 }
 `;
 
+exports[`image utils > align a sub-image with negative coord 1`] = `
+{
+  "height": 100,
+  "left": 0,
+  "top": 0,
+  "width": 100,
+}
+`;
+
 exports[`image utils > align an oversized sub-image 1`] = `
 {
   "height": 50,

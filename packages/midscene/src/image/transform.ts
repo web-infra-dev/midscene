@@ -203,11 +203,22 @@ export async function alignCoordByTrim(
   if (centerRect.left > imgInfo.width || centerRect.top > imgInfo.height) {
     return zeroSize;
   }
-  if (centerRect.left + centerRect.width > imgInfo.width) {
-    finalCenterRect.width = imgInfo.width - centerRect.left;
+
+  if (finalCenterRect.left < 0) {
+    finalCenterRect.width += finalCenterRect.left;
+    finalCenterRect.left = 0;
   }
-  if (centerRect.top + centerRect.height > imgInfo.height) {
-    finalCenterRect.height = imgInfo.height - centerRect.top;
+
+  if (finalCenterRect.top < 0) {
+    finalCenterRect.height += finalCenterRect.top;
+    finalCenterRect.top = 0;
+  }
+
+  if (finalCenterRect.left + finalCenterRect.width > imgInfo.width) {
+    finalCenterRect.width = imgInfo.width - finalCenterRect.left;
+  }
+  if (finalCenterRect.top + finalCenterRect.height > imgInfo.height) {
+    finalCenterRect.height = imgInfo.height - finalCenterRect.top;
   }
 
   try {
