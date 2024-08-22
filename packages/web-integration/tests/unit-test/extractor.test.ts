@@ -28,18 +28,7 @@ describe(
 
       const list = content
         .sort((a, b) => {
-
-          const oneValue = (x, y) => {
-            return x * 100000 + y;
-          };
-
-          let returnValue =
-            oneValue(a.rect.left, a.rect.top) -
-            oneValue(b.rect.left, b.rect.top);
-          if (returnValue === 0) {
-            returnValue = JSON.stringify(a) > JSON.stringify(b) ? 1 : -1;
-          }
-          console.log('sort return is', returnValue);
+          const returnValue = JSON.stringify(a) > JSON.stringify(b) ? 1 : -1;
           return returnValue;
         })
         .map((item) => {

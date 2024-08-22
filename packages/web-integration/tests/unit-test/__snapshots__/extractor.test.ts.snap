@@ -4,9 +4,19 @@ exports[`extractor > basic 1`] = `
 [
   {
     "attributes": {
-      "nodeType": "TEXT Node",
+      "class": ".life-core-checkbox.life-core-checkbox-md.src-pages-Login-components-LoginCard-index-module__checkbox--Npo2V--212e2",
+      "htmlTagName": "<label>",
+      "nodeType": "FORM_ITEM Node",
     },
-    "content": "Data Record",
+    "content": "",
+  },
+  {
+    "attributes": {
+      "class": ".life-core-input-inner__wrapper.life-core-input-inner__wrapper-border.life-core-input-inner__wrapper-size-md.life-core-input-inner__wrapper-add-suffix",
+      "htmlTagName": "<label>",
+      "nodeType": "FORM_ITEM Node",
+    },
+    "content": "",
   },
   {
     "attributes": {
@@ -18,50 +28,61 @@ exports[`extractor > basic 1`] = `
     "attributes": {
       "nodeType": "TEXT Node",
     },
-    "content": "User Name: Stella",
+    "content": "30S",
   },
   {
     "attributes": {
       "nodeType": "TEXT Node",
     },
-    "content": "Form",
+    "content": "3AY",
   },
   {
     "attributes": {
       "nodeType": "TEXT Node",
     },
-    "content": "Name:",
-  },
-  {
-    "attributes": {
-      "for": "name",
-      "htmlTagName": "<label>",
-      "nodeType": "FORM_ITEM Node",
-    },
-    "content": "Name:",
-  },
-  {
-    "attributes": {
-      "htmlTagName": "<textarea>",
-      "nodeType": "FORM_ITEM Node",
-      "placeholder": "this_is_a_textarea",
-    },
-    "content": "this_is_a_textarea",
+    "content": "70U",
   },
   {
     "attributes": {
       "nodeType": "TEXT Node",
     },
-    "content": "输入搜索关键词",
+    "content": "Aila Gill",
   },
   {
     "attributes": {
-      "class": ".gh-ar-hdn",
-      "for": "gh-ac",
-      "htmlTagName": "<label>",
-      "nodeType": "FORM_ITEM Node",
+      "nodeType": "TEXT Node",
     },
-    "content": "输入搜索关键词",
+    "content": "Alessia Barton",
+  },
+  {
+    "attributes": {
+      "nodeType": "TEXT Node",
+    },
+    "content": "Anderson Brown",
+  },
+  {
+    "attributes": {
+      "nodeType": "TEXT Node",
+    },
+    "content": "Ashlynn Delacruz",
+  },
+  {
+    "attributes": {
+      "nodeType": "TEXT Node",
+    },
+    "content": "Aylin Sawyer",
+  },
+  {
+    "attributes": {
+      "nodeType": "TEXT Node",
+    },
+    "content": "Cassius Peck",
+  },
+  {
+    "attributes": {
+      "nodeType": "TEXT Node",
+    },
+    "content": "Charlotte Griffith",
   },
   {
     "attributes": {
@@ -79,22 +100,189 @@ exports[`extractor > basic 1`] = `
   },
   {
     "attributes": {
-      "class": ".life-core-input.life-core-input-size-md",
-      "htmlTagName": "<input>",
-      "nodeType": "FORM_ITEM Node",
-      "placeholder": "验证码",
-      "tabindex": "0",
-      "type": "text",
+      "nodeType": "BUTTON Node",
     },
-    "content": "验证码",
+    "content": "Click Me",
   },
   {
     "attributes": {
-      "class": ".life-core-input-inner__wrapper.life-core-input-inner__wrapper-border.life-core-input-inner__wrapper-size-md.life-core-input-inner__wrapper-add-suffix",
+      "nodeType": "TEXT Node",
+    },
+    "content": "Crystal Newman",
+  },
+  {
+    "attributes": {
+      "nodeType": "TEXT Node",
+    },
+    "content": "Dariel Acevedo",
+  },
+  {
+    "attributes": {
+      "nodeType": "TEXT Node",
+    },
+    "content": "Data Record",
+  },
+  {
+    "attributes": {
+      "nodeType": "TEXT Node",
+    },
+    "content": "Edward Blevins",
+  },
+  {
+    "attributes": {
+      "nodeType": "TEXT Node",
+    },
+    "content": "Field 2",
+  },
+  {
+    "attributes": {
+      "nodeType": "TEXT Node",
+    },
+    "content": "Field 3",
+  },
+  {
+    "attributes": {
+      "nodeType": "TEXT Node",
+    },
+    "content": "Field 4",
+  },
+  {
+    "attributes": {
+      "nodeType": "TEXT Node",
+    },
+    "content": "Field 5",
+  },
+  {
+    "attributes": {
+      "nodeType": "TEXT Node",
+    },
+    "content": "Florence Davenport",
+  },
+  {
+    "attributes": {
+      "nodeType": "TEXT Node",
+    },
+    "content": "Form",
+  },
+  {
+    "attributes": {
+      "nodeType": "TEXT Node",
+    },
+    "content": "Franklin Everett",
+  },
+  {
+    "attributes": {
+      "htmlTagName": "<input>",
+      "id": "J_input",
+      "nodeType": "FORM_ITEM Node",
+      "placeholder": "Hello World This is Placeholder",
+    },
+    "content": "Hello World This is Placeholder",
+  },
+  {
+    "attributes": {
+      "nodeType": "TEXT Node",
+    },
+    "content": "ID",
+  },
+  {
+    "attributes": {
+      "nodeType": "TEXT Node",
+    },
+    "content": "Jefferson Kirby",
+  },
+  {
+    "attributes": {
+      "nodeType": "TEXT Node",
+    },
+    "content": "Kace Cervantes",
+  },
+  {
+    "attributes": {
+      "nodeType": "TEXT Node",
+    },
+    "content": "Kalel Glover",
+  },
+  {
+    "attributes": {
+      "nodeType": "TEXT Node",
+    },
+    "content": "Kori Payne",
+  },
+  {
+    "attributes": {
+      "nodeType": "TEXT Node",
+    },
+    "content": "Magnolia Duke",
+  },
+  {
+    "attributes": {
+      "nodeType": "TEXT Node",
+    },
+    "content": "Matthias Reed",
+  },
+  {
+    "attributes": {
+      "nodeType": "TEXT Node",
+    },
+    "content": "Memphis Leal",
+  },
+  {
+    "attributes": {
+      "nodeType": "TEXT Node",
+    },
+    "content": "Name:",
+  },
+  {
+    "attributes": {
+      "for": "name",
       "htmlTagName": "<label>",
       "nodeType": "FORM_ITEM Node",
     },
-    "content": "",
+    "content": "Name:",
+  },
+  {
+    "attributes": {
+      "htmlTagName": "<select>",
+      "id": "options",
+      "name": "options",
+      "nodeType": "FORM_ITEM Node",
+    },
+    "content": "Option 1",
+  },
+  {
+    "attributes": {
+      "htmlTagName": "<input>",
+      "nodeType": "FORM_ITEM Node",
+      "placeholder": "You shouldn't see this placeholder.",
+      "value": "Rectangle",
+    },
+    "content": "Rectangle",
+  },
+  {
+    "attributes": {
+      "nodeType": "TEXT Node",
+    },
+    "content": "Shape",
+  },
+  {
+    "attributes": {
+      "htmlTagName": "<label>",
+      "nodeType": "FORM_ITEM Node",
+    },
+    "content": "Shape",
+  },
+  {
+    "attributes": {
+      "nodeType": "TEXT Node",
+    },
+    "content": "Skyla Jefferson",
+  },
+  {
+    "attributes": {
+      "nodeType": "TEXT Node",
+    },
+    "content": "User Name: Stella",
   },
   {
     "attributes": {
@@ -110,36 +298,11 @@ exports[`extractor > basic 1`] = `
   },
   {
     "attributes": {
-      "nodeType": "TEXT Node",
-    },
-    "content": "30S",
-  },
-  {
-    "attributes": {
-      "nodeType": "TEXT Node",
-    },
-    "content": "70U",
-  },
-  {
-    "attributes": {
-      "nodeType": "TEXT Node",
-    },
-    "content": "3AY",
-  },
-  {
-    "attributes": {
-      "nodeType": "TEXT Node",
-    },
-    "content": "ID",
-  },
-  {
-    "attributes": {
-      "htmlTagName": "<input>",
-      "id": "J_input",
+      "htmlTagName": "<textarea>",
       "nodeType": "FORM_ITEM Node",
-      "placeholder": "Hello World This is Placeholder",
+      "placeholder": "this_is_a_textarea",
     },
-    "content": "Hello World This is Placeholder",
+    "content": "this_is_a_textarea",
   },
   {
     "attributes": {
@@ -170,190 +333,27 @@ exports[`extractor > basic 1`] = `
     "attributes": {
       "nodeType": "TEXT Node",
     },
-    "content": "Florence Davenport",
+    "content": "输入搜索关键词",
   },
   {
     "attributes": {
-      "htmlTagName": "<select>",
-      "id": "options",
-      "name": "options",
-      "nodeType": "FORM_ITEM Node",
-    },
-    "content": "Option 1",
-  },
-  {
-    "attributes": {
-      "nodeType": "TEXT Node",
-    },
-    "content": "Crystal Newman",
-  },
-  {
-    "attributes": {
-      "nodeType": "TEXT Node",
-    },
-    "content": "Kace Cervantes",
-  },
-  {
-    "attributes": {
-      "nodeType": "TEXT Node",
-    },
-    "content": "Magnolia Duke",
-  },
-  {
-    "attributes": {
-      "class": ".life-core-checkbox.life-core-checkbox-md.src-pages-Login-components-LoginCard-index-module__checkbox--Npo2V--212e2",
+      "class": ".gh-ar-hdn",
+      "for": "gh-ac",
       "htmlTagName": "<label>",
       "nodeType": "FORM_ITEM Node",
     },
-    "content": "",
+    "content": "输入搜索关键词",
   },
   {
     "attributes": {
-      "nodeType": "TEXT Node",
-    },
-    "content": "Kori Payne",
-  },
-  {
-    "attributes": {
-      "nodeType": "TEXT Node",
-    },
-    "content": "Field 2",
-  },
-  {
-    "attributes": {
-      "nodeType": "BUTTON Node",
-    },
-    "content": "Click Me",
-  },
-  {
-    "attributes": {
-      "nodeType": "TEXT Node",
-    },
-    "content": "Shape",
-  },
-  {
-    "attributes": {
-      "htmlTagName": "<label>",
-      "nodeType": "FORM_ITEM Node",
-    },
-    "content": "Shape",
-  },
-  {
-    "attributes": {
+      "class": ".life-core-input.life-core-input-size-md",
       "htmlTagName": "<input>",
       "nodeType": "FORM_ITEM Node",
-      "placeholder": "You shouldn't see this placeholder.",
-      "value": "Rectangle",
+      "placeholder": "验证码",
+      "tabindex": "0",
+      "type": "text",
     },
-    "content": "Rectangle",
-  },
-  {
-    "attributes": {
-      "nodeType": "TEXT Node",
-    },
-    "content": "Anderson Brown",
-  },
-  {
-    "attributes": {
-      "nodeType": "TEXT Node",
-    },
-    "content": "Edward Blevins",
-  },
-  {
-    "attributes": {
-      "nodeType": "TEXT Node",
-    },
-    "content": "Dariel Acevedo",
-  },
-  {
-    "attributes": {
-      "nodeType": "TEXT Node",
-    },
-    "content": "Aylin Sawyer",
-  },
-  {
-    "attributes": {
-      "nodeType": "TEXT Node",
-    },
-    "content": "Kalel Glover",
-  },
-  {
-    "attributes": {
-      "nodeType": "TEXT Node",
-    },
-    "content": "Field 3",
-  },
-  {
-    "attributes": {
-      "nodeType": "TEXT Node",
-    },
-    "content": "Ashlynn Delacruz",
-  },
-  {
-    "attributes": {
-      "nodeType": "TEXT Node",
-    },
-    "content": "Charlotte Griffith",
-  },
-  {
-    "attributes": {
-      "nodeType": "TEXT Node",
-    },
-    "content": "Jefferson Kirby",
-  },
-  {
-    "attributes": {
-      "nodeType": "TEXT Node",
-    },
-    "content": "Alessia Barton",
-  },
-  {
-    "attributes": {
-      "nodeType": "TEXT Node",
-    },
-    "content": "Aila Gill",
-  },
-  {
-    "attributes": {
-      "nodeType": "TEXT Node",
-    },
-    "content": "Field 4",
-  },
-  {
-    "attributes": {
-      "nodeType": "TEXT Node",
-    },
-    "content": "Franklin Everett",
-  },
-  {
-    "attributes": {
-      "nodeType": "TEXT Node",
-    },
-    "content": "Skyla Jefferson",
-  },
-  {
-    "attributes": {
-      "nodeType": "TEXT Node",
-    },
-    "content": "Matthias Reed",
-  },
-  {
-    "attributes": {
-      "nodeType": "TEXT Node",
-    },
-    "content": "Memphis Leal",
-  },
-  {
-    "attributes": {
-      "nodeType": "TEXT Node",
-    },
-    "content": "Cassius Peck",
-  },
-  {
-    "attributes": {
-      "nodeType": "TEXT Node",
-    },
-    "content": "Field 5",
+    "content": "验证码",
   },
 ]
 `;
