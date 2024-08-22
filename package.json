@@ -4,9 +4,9 @@
   "version": "0.3.0",
   "scripts": {
     "build:pkg": "nx run-many --target=build --projects=@midscene/core,@midscene/visualizer,@midscene/web --verbose",
-    "test": "nx run-many --target=test --projects=@midscene/core,@midscene/visualizer,@midscene/web --verbose --skip-nx-cache",
+    "test": "nx run-many --target=test --projects=@midscene/core,@midscene/visualizer,@midscene/web --verbose",
     "test:ai": "nx run-many --target=test:ai --projects=@midscene/core,@midscene/visualizer,@midscene/web --verbose",
-    "e2e": "nx run-many --target=e2e --projects=@midscene/core,@midscene/visualizer,@midscene/web --verbose --skip-nx-cache",
+    "e2e": "nx run-many --target=e2e --projects=@midscene/core,@midscene/visualizer,@midscene/web --verbose",
     "prepare": "pnpm run build:pkg && simple-git-hooks",
     "check-dependency-version": "check-dependency-version-consistency .",
     "lint": "npx biome check . --diagnostic-level=warn --no-errors-on-unmatched --fix",
