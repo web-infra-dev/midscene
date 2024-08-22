@@ -6,13 +6,13 @@ exports[`extractor > basic 1`] = `
     "attributes": {
       "nodeType": "TEXT Node",
     },
-    "content": "Data Record",
+    "content": "1970-01-01 19:25:01",
   },
   {
     "attributes": {
       "nodeType": "TEXT Node",
     },
-    "content": "1970-01-01 19:25:01",
+    "content": "Data Record",
   },
   {
     "attributes": {
@@ -30,7 +30,7 @@ exports[`extractor > basic 1`] = `
     "attributes": {
       "nodeType": "TEXT Node",
     },
-    "content": "Field 2",
+    "content": "Field 3",
   },
   {
     "attributes": {
@@ -48,19 +48,13 @@ exports[`extractor > basic 1`] = `
     "attributes": {
       "nodeType": "TEXT Node",
     },
-    "content": "Field 3",
+    "content": "Field 2",
   },
   {
     "attributes": {
       "nodeType": "TEXT Node",
     },
-    "content": "Aylin Sawyer",
-  },
-  {
-    "attributes": {
-      "nodeType": "TEXT Node",
-    },
-    "content": "Jefferson Kirby",
+    "content": "Kace Cervantes",
   },
   {
     "attributes": {
@@ -72,7 +66,19 @@ exports[`extractor > basic 1`] = `
     "attributes": {
       "nodeType": "TEXT Node",
     },
-    "content": "Kace Cervantes",
+    "content": "Jefferson Kirby",
+  },
+  {
+    "attributes": {
+      "nodeType": "TEXT Node",
+    },
+    "content": "Aylin Sawyer",
+  },
+  {
+    "attributes": {
+      "nodeType": "TEXT Node",
+    },
+    "content": "70U",
   },
   {
     "attributes": {
@@ -91,12 +97,6 @@ exports[`extractor > basic 1`] = `
       "nodeType": "TEXT Node",
     },
     "content": "Dariel Acevedo",
-  },
-  {
-    "attributes": {
-      "nodeType": "TEXT Node",
-    },
-    "content": "70U",
   },
   {
     "attributes": {
@@ -126,12 +126,6 @@ exports[`extractor > basic 1`] = `
     "attributes": {
       "nodeType": "TEXT Node",
     },
-    "content": "Anderson Brown",
-  },
-  {
-    "attributes": {
-      "nodeType": "TEXT Node",
-    },
     "content": "Charlotte Griffith",
   },
   {
@@ -144,7 +138,7 @@ exports[`extractor > basic 1`] = `
     "attributes": {
       "nodeType": "TEXT Node",
     },
-    "content": "Aila Gill",
+    "content": "Anderson Brown",
   },
   {
     "attributes": {
@@ -156,7 +150,7 @@ exports[`extractor > basic 1`] = `
     "attributes": {
       "nodeType": "TEXT Node",
     },
-    "content": "ZEN",
+    "content": "Kori Payne",
   },
   {
     "attributes": {
@@ -168,13 +162,19 @@ exports[`extractor > basic 1`] = `
     "attributes": {
       "nodeType": "TEXT Node",
     },
-    "content": "Matthias Reed",
+    "content": "Aila Gill",
   },
   {
     "attributes": {
       "nodeType": "TEXT Node",
     },
-    "content": "Kori Payne",
+    "content": "ZEN",
+  },
+  {
+    "attributes": {
+      "nodeType": "TEXT Node",
+    },
+    "content": "Matthias Reed",
   },
   {
     "attributes": {
@@ -186,19 +186,31 @@ exports[`extractor > basic 1`] = `
     "attributes": {
       "nodeType": "TEXT Node",
     },
-    "content": "Kalel Glover",
-  },
-  {
-    "attributes": {
-      "nodeType": "TEXT Node",
-    },
     "content": "Alessia Barton",
   },
   {
     "attributes": {
       "nodeType": "TEXT Node",
     },
+    "content": "Kalel Glover",
+  },
+  {
+    "attributes": {
+      "nodeType": "TEXT Node",
+    },
+    "content": "Form",
+  },
+  {
+    "attributes": {
+      "nodeType": "TEXT Node",
+    },
     "content": "Cassius Peck",
+  },
+  {
+    "attributes": {
+      "nodeType": "TEXT Node",
+    },
+    "content": "Name:",
   },
   {
     "attributes": {
@@ -210,22 +222,9 @@ exports[`extractor > basic 1`] = `
   },
   {
     "attributes": {
-      "nodeType": "TEXT Node",
+      "nodeType": "BUTTON Node",
     },
-    "content": "Name:",
-  },
-  {
-    "attributes": {
-      "nodeType": "TEXT Node",
-    },
-    "content": "Form",
-  },
-  {
-    "attributes": {
-      "htmlTagName": "<label>",
-      "nodeType": "FORM_ITEM Node",
-    },
-    "content": "Shape",
+    "content": "Click Me",
   },
   {
     "attributes": {
@@ -238,13 +237,8 @@ exports[`extractor > basic 1`] = `
   },
   {
     "attributes": {
-      "nodeType": "BUTTON Node",
-    },
-    "content": "Click Me",
-  },
-  {
-    "attributes": {
-      "nodeType": "TEXT Node",
+      "htmlTagName": "<label>",
+      "nodeType": "FORM_ITEM Node",
     },
     "content": "Shape",
   },
@@ -261,7 +255,7 @@ exports[`extractor > basic 1`] = `
     "attributes": {
       "nodeType": "TEXT Node",
     },
-    "content": "输入搜索关键词",
+    "content": "Shape",
   },
   {
     "attributes": {
@@ -270,6 +264,12 @@ exports[`extractor > basic 1`] = `
       "placeholder": "this_is_a_textarea",
     },
     "content": "this_is_a_textarea",
+  },
+  {
+    "attributes": {
+      "nodeType": "TEXT Node",
+    },
+    "content": "输入搜索关键词",
   },
   {
     "attributes": {
@@ -282,7 +282,9 @@ exports[`extractor > basic 1`] = `
   },
   {
     "attributes": {
-      "nodeType": "TEXT Node",
+      "for": "options",
+      "htmlTagName": "<label>",
+      "nodeType": "FORM_ITEM Node",
     },
     "content": "Choose an option:",
   },
@@ -322,22 +324,6 @@ exports[`extractor > basic 1`] = `
   },
   {
     "attributes": {
-      "for": "options",
-      "htmlTagName": "<label>",
-      "nodeType": "FORM_ITEM Node",
-    },
-    "content": "Choose an option:",
-  },
-  {
-    "attributes": {
-      "class": ".life-core-input-inner__wrapper.life-core-input-inner__wrapper-border.life-core-input-inner__wrapper-size-md.life-core-input-inner__wrapper-add-suffix",
-      "htmlTagName": "<label>",
-      "nodeType": "FORM_ITEM Node",
-    },
-    "content": "",
-  },
-  {
-    "attributes": {
       "class": ".life-core-input.life-core-input-size-md",
       "htmlTagName": "<input>",
       "nodeType": "FORM_ITEM Node",
@@ -349,7 +335,21 @@ exports[`extractor > basic 1`] = `
   },
   {
     "attributes": {
+      "nodeType": "TEXT Node",
+    },
+    "content": "Choose an option:",
+  },
+  {
+    "attributes": {
       "class": ".life-core-checkbox.life-core-checkbox-md.src-pages-Login-components-LoginCard-index-module__checkbox--Npo2V--212e2",
+      "htmlTagName": "<label>",
+      "nodeType": "FORM_ITEM Node",
+    },
+    "content": "",
+  },
+  {
+    "attributes": {
+      "class": ".life-core-input-inner__wrapper.life-core-input-inner__wrapper-border.life-core-input-inner__wrapper-size-md.life-core-input-inner__wrapper-add-suffix",
       "htmlTagName": "<label>",
       "nodeType": "FORM_ITEM Node",
     },

@@ -12,7 +12,7 @@ describe(
   'puppeteer integration',
   () => {
     it('Sauce Demo by Swag Lab', async () => {
-      const page = await launchPage('https://www.saucedemo.com/');
+      const { page } = await launchPage('https://www.saucedemo.com/');
       const mid = new PuppeteerAgent(page);
 
       await mid.aiAction(
@@ -36,7 +36,7 @@ describe(
     });
 
     it('extract the Github service status', async () => {
-      const page = await launchPage('https://www.githubstatus.com/');
+      const { page } = await launchPage('https://www.githubstatus.com/');
       const mid = new PuppeteerAgent(page);
 
       const result = await mid.aiQuery(
@@ -64,7 +64,7 @@ describe(
     });
 
     it('extract the Github service status', async () => {
-      const page = await launchPage('https://www.githubstatus.com/');
+      const { page } = await launchPage('https://www.githubstatus.com/');
       const mid = new PuppeteerAgent(page);
 
       const result = await mid.aiQuery(
