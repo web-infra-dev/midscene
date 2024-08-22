@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
-export function getLastModifiedHTMLFile(dirPath: string) {
+export function getLastModifiedReportHTMLFile(dirPath: string) {
   let latestFile = null;
   let latestMtime = 0;
 
@@ -16,11 +16,22 @@ export function getLastModifiedHTMLFile(dirPath: string) {
         traverse(filePath);
       } else if (
         stats.isFile() &&
-        path.extname(file).toLowerCase() === '.html'
+        path.extname(file).toLowerCase() === '.html' &&
+        !file.toLowerCase().startsWith('latest')
       ) {
-        if (stats.mtimeMs > latestMtime) {
-          latestMtime = stats.mtimeMs;
-          latestFile = filePath;
+        // Read the file content
+        const content = fs.readFileSync(filePath, 'utf8');
+        // Check if the content includes 'todo report'
+        if (
+          content.includes(
+            '"groupDescription":"tests/ai/e2e/ai-auto-todo.spec.ts"',
+          )
+        ) {
+          if (stats.mtimeMs > latestMtime) {
+            latestMtime = stats.mtimeMs;
+            latestFile = filePath;
+            console.log('filePath', filePath);
+          }
         }
       }
     });
