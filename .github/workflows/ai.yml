@@ -42,14 +42,14 @@ jobs:
     - name: Build project
       run: pnpm run build:pkg
 
-    - name: Run e2e tests
-      run: pnpm run e2e
-
     - name: Run e2e tests cache
       run: pnpm run e2e:cache
 
     - name: Run e2e tests report
       run: pnpm run e2e:report
+
+    - name: Run e2e tests
+      run: pnpm run e2e
 
     - name: Run tests
       run: pnpm run test:ai
