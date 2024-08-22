@@ -6,6 +6,24 @@ exports[`extractor > basic 1`] = `
     "attributes": {
       "nodeType": "TEXT Node",
     },
+    "content": "Data Record",
+  },
+  {
+    "attributes": {
+      "nodeType": "TEXT Node",
+    },
+    "content": "1970-01-01 19:25:01",
+  },
+  {
+    "attributes": {
+      "nodeType": "TEXT Node",
+    },
+    "content": "User Name: Stella",
+  },
+  {
+    "attributes": {
+      "nodeType": "TEXT Node",
+    },
     "content": "Form",
   },
   {
@@ -24,39 +42,17 @@ exports[`extractor > basic 1`] = `
   },
   {
     "attributes": {
-      "nodeType": "TEXT Node",
+      "htmlTagName": "<textarea>",
+      "nodeType": "FORM_ITEM Node",
+      "placeholder": "this_is_a_textarea",
     },
-    "content": "ID",
+    "content": "this_is_a_textarea",
   },
   {
     "attributes": {
       "nodeType": "TEXT Node",
     },
-    "content": "30S",
-  },
-  {
-    "attributes": {
-      "nodeType": "TEXT Node",
-    },
-    "content": "70U",
-  },
-  {
-    "attributes": {
-      "nodeType": "TEXT Node",
-    },
-    "content": "3AY",
-  },
-  {
-    "attributes": {
-      "nodeType": "TEXT Node",
-    },
-    "content": "YPG",
-  },
-  {
-    "attributes": {
-      "nodeType": "TEXT Node",
-    },
-    "content": "ZEN",
+    "content": "输入搜索关键词",
   },
   {
     "attributes": {
@@ -64,12 +60,6 @@ exports[`extractor > basic 1`] = `
       "for": "gh-ac",
       "htmlTagName": "<label>",
       "nodeType": "FORM_ITEM Node",
-    },
-    "content": "输入搜索关键词",
-  },
-  {
-    "attributes": {
-      "nodeType": "TEXT Node",
     },
     "content": "输入搜索关键词",
   },
@@ -108,29 +98,39 @@ exports[`extractor > basic 1`] = `
   },
   {
     "attributes": {
-      "htmlTagName": "<textarea>",
-      "nodeType": "FORM_ITEM Node",
-      "placeholder": "this_is_a_textarea",
+      "nodeType": "TEXT Node",
     },
-    "content": "this_is_a_textarea",
+    "content": "YPG",
   },
   {
     "attributes": {
       "nodeType": "TEXT Node",
     },
-    "content": "Data Record",
+    "content": "ZEN",
   },
   {
     "attributes": {
       "nodeType": "TEXT Node",
     },
-    "content": "User Name: Stella",
+    "content": "30S",
   },
   {
     "attributes": {
       "nodeType": "TEXT Node",
     },
-    "content": "1970-01-01 19:25:01",
+    "content": "70U",
+  },
+  {
+    "attributes": {
+      "nodeType": "TEXT Node",
+    },
+    "content": "3AY",
+  },
+  {
+    "attributes": {
+      "nodeType": "TEXT Node",
+    },
+    "content": "ID",
   },
   {
     "attributes": {
@@ -140,65 +140,6 @@ exports[`extractor > basic 1`] = `
       "placeholder": "Hello World This is Placeholder",
     },
     "content": "Hello World This is Placeholder",
-  },
-  {
-    "attributes": {
-      "class": ".life-core-checkbox.life-core-checkbox-md.src-pages-Login-components-LoginCard-index-module__checkbox--Npo2V--212e2",
-      "htmlTagName": "<label>",
-      "nodeType": "FORM_ITEM Node",
-    },
-    "content": "",
-  },
-  {
-    "attributes": {
-      "htmlTagName": "<select>",
-      "id": "options",
-      "name": "options",
-      "nodeType": "FORM_ITEM Node",
-    },
-    "content": "Option 1",
-  },
-  {
-    "attributes": {
-      "nodeType": "TEXT Node",
-    },
-    "content": "Field 2",
-  },
-  {
-    "attributes": {
-      "nodeType": "TEXT Node",
-    },
-    "content": "Florence Davenport",
-  },
-  {
-    "attributes": {
-      "nodeType": "TEXT Node",
-    },
-    "content": "Crystal Newman",
-  },
-  {
-    "attributes": {
-      "nodeType": "TEXT Node",
-    },
-    "content": "Kori Payne",
-  },
-  {
-    "attributes": {
-      "nodeType": "TEXT Node",
-    },
-    "content": "Magnolia Duke",
-  },
-  {
-    "attributes": {
-      "nodeType": "TEXT Node",
-    },
-    "content": "Kace Cervantes",
-  },
-  {
-    "attributes": {
-      "nodeType": "BUTTON Node",
-    },
-    "content": "Click Me",
   },
   {
     "attributes": {
@@ -229,6 +170,65 @@ exports[`extractor > basic 1`] = `
     "attributes": {
       "nodeType": "TEXT Node",
     },
+    "content": "Florence Davenport",
+  },
+  {
+    "attributes": {
+      "htmlTagName": "<select>",
+      "id": "options",
+      "name": "options",
+      "nodeType": "FORM_ITEM Node",
+    },
+    "content": "Option 1",
+  },
+  {
+    "attributes": {
+      "nodeType": "TEXT Node",
+    },
+    "content": "Crystal Newman",
+  },
+  {
+    "attributes": {
+      "nodeType": "TEXT Node",
+    },
+    "content": "Kace Cervantes",
+  },
+  {
+    "attributes": {
+      "nodeType": "TEXT Node",
+    },
+    "content": "Magnolia Duke",
+  },
+  {
+    "attributes": {
+      "class": ".life-core-checkbox.life-core-checkbox-md.src-pages-Login-components-LoginCard-index-module__checkbox--Npo2V--212e2",
+      "htmlTagName": "<label>",
+      "nodeType": "FORM_ITEM Node",
+    },
+    "content": "",
+  },
+  {
+    "attributes": {
+      "nodeType": "TEXT Node",
+    },
+    "content": "Kori Payne",
+  },
+  {
+    "attributes": {
+      "nodeType": "TEXT Node",
+    },
+    "content": "Field 2",
+  },
+  {
+    "attributes": {
+      "nodeType": "BUTTON Node",
+    },
+    "content": "Click Me",
+  },
+  {
+    "attributes": {
+      "nodeType": "TEXT Node",
+    },
     "content": "Shape",
   },
   {
@@ -251,18 +251,6 @@ exports[`extractor > basic 1`] = `
     "attributes": {
       "nodeType": "TEXT Node",
     },
-    "content": "Field 3",
-  },
-  {
-    "attributes": {
-      "nodeType": "TEXT Node",
-    },
-    "content": "Aylin Sawyer",
-  },
-  {
-    "attributes": {
-      "nodeType": "TEXT Node",
-    },
     "content": "Anderson Brown",
   },
   {
@@ -275,31 +263,25 @@ exports[`extractor > basic 1`] = `
     "attributes": {
       "nodeType": "TEXT Node",
     },
-    "content": "Kalel Glover",
-  },
-  {
-    "attributes": {
-      "nodeType": "TEXT Node",
-    },
     "content": "Dariel Acevedo",
   },
   {
     "attributes": {
       "nodeType": "TEXT Node",
     },
-    "content": "Alessia Barton",
+    "content": "Aylin Sawyer",
   },
   {
     "attributes": {
       "nodeType": "TEXT Node",
     },
-    "content": "Field 4",
+    "content": "Kalel Glover",
   },
   {
     "attributes": {
       "nodeType": "TEXT Node",
     },
-    "content": "Jefferson Kirby",
+    "content": "Field 3",
   },
   {
     "attributes": {
@@ -317,7 +299,31 @@ exports[`extractor > basic 1`] = `
     "attributes": {
       "nodeType": "TEXT Node",
     },
+    "content": "Jefferson Kirby",
+  },
+  {
+    "attributes": {
+      "nodeType": "TEXT Node",
+    },
+    "content": "Alessia Barton",
+  },
+  {
+    "attributes": {
+      "nodeType": "TEXT Node",
+    },
     "content": "Aila Gill",
+  },
+  {
+    "attributes": {
+      "nodeType": "TEXT Node",
+    },
+    "content": "Field 4",
+  },
+  {
+    "attributes": {
+      "nodeType": "TEXT Node",
+    },
+    "content": "Franklin Everett",
   },
   {
     "attributes": {
@@ -335,6 +341,12 @@ exports[`extractor > basic 1`] = `
     "attributes": {
       "nodeType": "TEXT Node",
     },
+    "content": "Memphis Leal",
+  },
+  {
+    "attributes": {
+      "nodeType": "TEXT Node",
+    },
     "content": "Cassius Peck",
   },
   {
@@ -342,18 +354,6 @@ exports[`extractor > basic 1`] = `
       "nodeType": "TEXT Node",
     },
     "content": "Field 5",
-  },
-  {
-    "attributes": {
-      "nodeType": "TEXT Node",
-    },
-    "content": "Memphis Leal",
-  },
-  {
-    "attributes": {
-      "nodeType": "TEXT Node",
-    },
-    "content": "Franklin Everett",
   },
 ]
 `;

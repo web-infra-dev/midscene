@@ -28,11 +28,21 @@ describe(
 
       const list = content
         .sort((a, b) => {
-          return (
-            a.center[0] * 100000 +
-            a.center[1] -
-            (b.center[0] * 100000 + b.center[1])
-          );
+
+          const oneValue = (x, y) => {
+            return x * 100000 + y;
+          };
+
+          let returnValue =
+            oneValue(a.rect.left, a.rect.top) -
+            oneValue(b.rect.left, b.rect.top);
+          if (returnValue === 0) {
+            returnValue = JSON.stringify(a) > JSON.stringify(b) ? 1 : -1;
+            // oneValue(a.center[0], a.center[1]) -
+            // oneValue(b.center[0], b.center[1]);
+          }
+          console.log('sort return is', returnValue);
+          return returnValue;
         })
         .map((item) => {
           return {
