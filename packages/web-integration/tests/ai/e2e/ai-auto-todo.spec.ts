@@ -1,4 +1,5 @@
 import path from 'node:path';
+import { generateExtractData } from '@/debug';
 import { expect } from 'playwright/test';
 import { test } from './fixture';
 
@@ -8,7 +9,7 @@ test.beforeEach(async ({ page }) => {
 
 test.afterEach(async ({ page, ai, aiAssert }) => {
   await page.goto(
-    `file://${path.join(__dirname, '../../../midscene_run/report/latest-playwright-report.html')}`,
+    `file:${path.join(__dirname, '../../../midscene_run/report/latest-playwright-report.html')}`,
   );
   const actionsList = await ai(
     'Sidebar task list Array<{title: string, actions: Array<string>}>',
