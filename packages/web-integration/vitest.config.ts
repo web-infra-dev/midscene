@@ -11,7 +11,7 @@ dotenv.config({
   path: path.join(__dirname, '../../.env'),
 });
 
-const enableAiTest = false && Boolean(process.env.AITEST);
+const enableAiTest = Boolean(process.env.AITEST);
 const baseTests = ['tests/unit-test/*.test.ts'];
 
 export default defineConfig({

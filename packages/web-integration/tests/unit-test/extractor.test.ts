@@ -38,8 +38,6 @@ describe(
             oneValue(b.rect.left, b.rect.top);
           if (returnValue === 0) {
             returnValue = JSON.stringify(a) > JSON.stringify(b) ? 1 : -1;
-            // oneValue(a.center[0], a.center[1]) -
-            // oneValue(b.center[0], b.center[1]);
           }
           console.log('sort return is', returnValue);
           return returnValue;
