@@ -5,10 +5,9 @@ import { processImageElementInfo } from '@/img/img';
 import { getElementInfos } from '@/img/util';
 import { resizeImg, saveBase64Image } from '@midscene/core/image';
 
-export async function generateTestData(
+export async function generateExtractData(
   page: WebPage,
   targetDir: string,
-  inputImgBase64: string,
   saveImgType?: {
     disableInputImage: boolean;
     disableOutputImage: boolean;
@@ -17,6 +16,11 @@ export async function generateTestData(
     disableSnapshot: boolean;
   },
 ) {
+  const buffer = await page.screenshot({
+    encoding: 'base64',
+  });
+  const inputImgBase64 = buffer.toString('base64');
+
   const {
     elementsPositionInfo,
     captureElementSnapshot,

@@ -1,4 +1,4 @@
-name: CI
+name: AI test
 
 on:
   push:
@@ -38,9 +38,13 @@ jobs:
 
     - name: Install dependencies
       run: pnpm install --frozen-lockfile
-
+    
     - name: Build project
       run: pnpm run build:pkg
 
+    - name: Run e2e tests
+      run: pnpm run e2e
+
     - name: Run tests
-      run: pnpm run test
+      run: pnpm run test:ai
+

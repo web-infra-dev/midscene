@@ -12,7 +12,7 @@ describe(
   'puppeteer integration',
   () => {
     it('Sauce Demo by Swag Lab', async () => {
-      const page = await launchPage('https://www.saucedemo.com/');
+      const { page, reset } = await launchPage('https://www.saucedemo.com/');
       const mid = new PuppeteerAgent(page);
 
       await mid.aiAction(
@@ -33,10 +33,11 @@ describe(
       expect(items.length).toBeGreaterThanOrEqual(2);
 
       await mid.aiAssert('The price of "Sauce Labs Onesie" is 7.99');
+      await reset();
     });
 
     it('extract the Github service status', async () => {
-      const page = await launchPage('https://www.githubstatus.com/');
+      const { page, reset } = await launchPage('https://www.githubstatus.com/');
       const mid = new PuppeteerAgent(page);
 
       const result = await mid.aiQuery(
@@ -60,11 +61,13 @@ describe(
         expect(items.length).toBeGreaterThanOrEqual(2);
 
         await mid.aiAssert('The price of "Sauce Labs Onesie" is 7.99');
+
+        await reset();
       });
     });
 
     it('extract the Github service status', async () => {
-      const page = await launchPage('https://www.githubstatus.com/');
+      const { page, reset } = await launchPage('https://www.githubstatus.com/');
       const mid = new PuppeteerAgent(page);
 
       const result = await mid.aiQuery(
@@ -78,6 +81,7 @@ describe(
           'there is a "food delivery" service on page and is in normal state',
         );
       }).rejects.toThrowError();
+      await reset();
     });
   },
   {

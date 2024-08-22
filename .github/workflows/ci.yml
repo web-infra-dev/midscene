@@ -1,4 +1,4 @@
-name: AI test
+name: CI
 
 on:
   push:

@@ -1,6 +1,6 @@
 import path, { join } from 'node:path';
 import { parseContextFromWebPage } from '@/common/utils';
-import { generateTestData } from 'tests/ai/e2e/tool';
+import { generateExtractData } from '@/debug';
 import { describe, expect, it } from 'vitest';
 import { launchPage } from '../ai/puppeteer/utils';
 
@@ -11,11 +11,10 @@ describe(
     it('basic', async () => {
       const { page, reset } = await launchPage(`file://${pagePath}`);
 
-      const { content, screenshotBase64 } = await parseContextFromWebPage(page);
-      await generateTestData(
+      const { content } = await parseContextFromWebPage(page);
+      await generateExtractData(
         page,
         path.join(__dirname, 'fixtures/extractor'),
-        screenshotBase64,
         {
           disableInputImage: false,
           disableOutputImage: false,
