@@ -1,8 +1,26 @@
+import path from 'node:path';
 import { expect } from 'playwright/test';
 import { test } from './fixture';
 
 test.beforeEach(async ({ page }) => {
   await page.goto('https://todomvc.com/examples/react/dist/');
+});
+
+test.afterEach(async ({ page, ai, aiAssert }) => {
+  await page.goto(
+    `file://${path.join(__dirname, '../../../midscene_run/report/latest-playwright-report.html')}`,
+  );
+  const actionsList = await ai(
+    'Sidebar task list Array<{title: string, actions: Array<string>}>',
+    {
+      type: 'query',
+    },
+  );
+  const parseList = JSON.stringify(actionsList, null, 4);
+  expect(parseList).toMatchSnapshot();
+  await aiAssert(
+    'On the left taskbar, check whether the specific execution content of the right task is normal',
+  );
 });
 
 test('ai todo', async ({ ai, aiQuery, aiWaitFor }) => {
