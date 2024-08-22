@@ -16,7 +16,9 @@ export async function generateExtractData(
     disableSnapshot: boolean;
   },
 ) {
-  const buffer = await page.screenshot();
+  const buffer = await page.screenshot({
+    encoding: 'base64',
+  });
   const inputImgBase64 = buffer.toString('base64');
 
   const {

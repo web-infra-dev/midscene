@@ -96,21 +96,44 @@
     <img src="https://lf3-static.bytednsdoc.com/obj/eden-cn/vhaeh7vhabf/midscene.png" width="2" height="2"
       alt="small_img" />
   </div>
+
+  <!-- Global popup to test invisible -->
+  <div style="position: absolute; top: 0px; left: 500px; width: 100%;">
+    <div>
+      <div style="left: 59px; top: 46px;">
+        <ul >
+          <li><span>English</span></li>
+          <li><span>中文</span></li>
+          <li><span>Tiếng Việt</span>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+
   <!-- from ebay -->
-  <div id="gh-ac-box2" _midscene_retrieve_task_id="7de6fc64a5"><label for="gh-ac" class="gh-ar-hdn">输入搜索关键词</label><input
-      type="text" class="gh-tb ui-autocomplete-input" aria-autocomplete="list" aria-expanded="false" size="50"
-      maxlength="300" aria-label="搜索任何物品" placeholder="搜索任何物品" id="gh-ac" name="_nkw" autocapitalize="off"
-      autocorrect="off" spellcheck="false" autocomplete="off" aria-haspopup="true" role="combobox" aria-owns="ui-id-1"
-      _midscene_retrieve_task_id="36bc72f23a"><span role="status" aria-live="polite"
+  <div id="gh-ac-box2" _midscene_retrieve_task_id="7de6fc64a5"><label for="gh-ac"
+      class="gh-ar-hdn">输入搜索关键词</label><input type="text" class="gh-tb ui-autocomplete-input" aria-autocomplete="list"
+      aria-expanded="false" size="50" maxlength="300" aria-label="搜索任何物品" placeholder="搜索任何物品" id="gh-ac" name="_nkw"
+      autocapitalize="off" autocorrect="off" spellcheck="false" autocomplete="off" aria-haspopup="true" role="combobox"
+      aria-owns="ui-id-1" _midscene_retrieve_task_id="36bc72f23a"><span role="status" aria-live="polite"
       class="ui-helper-hidden-accessible"></span><input style="display:none">
-    <script> if (document.getElementById('gh-ac').value.length !== 0) { document.getElementById('gh-ac-box').classList.add('gh-ac-box-focus'); document.getElementById('gh').classList.add('gh-sch-focus'); } </script>
+    <script>
+      if (document.getElementById('gh-ac').value.length !== 0) {
+        document.getElementById('gh-ac-box').classList.add('gh-ac-box-focus');
+        document.getElementById('gh').classList.add('gh-sch-focus');
+      }
+    </script>
     <svg aria-hidden="true" class="icon icon--search gh-search__icon" focusable="false" height="16" width="16">
       <use xlink:href="#gh-icon-search-evo"></use>
     </svg>
   </div>
+
+
   <script>
     var input = document.getElementById('J_input');
-        var keyRecord = document.getElementById('J_keyRecord');
+    var keyRecord = document.getElementById('J_keyRecord');
     input.addEventListener('keyup', function (e) {
       keyRecord.innerHTML += '\n' + e.key;
     });

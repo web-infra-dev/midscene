@@ -251,6 +251,24 @@ exports[`extractor > basic 1`] = `
     "attributes": {
       "nodeType": "TEXT Node",
     },
+    "content": "English",
+  },
+  {
+    "attributes": {
+      "nodeType": "TEXT Node",
+    },
+    "content": "中文",
+  },
+  {
+    "attributes": {
+      "nodeType": "TEXT Node",
+    },
+    "content": "Tiếng Việt",
+  },
+  {
+    "attributes": {
+      "nodeType": "TEXT Node",
+    },
     "content": "输入搜索关键词",
   },
   {
