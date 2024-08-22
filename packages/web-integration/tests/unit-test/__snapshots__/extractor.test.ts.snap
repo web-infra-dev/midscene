@@ -10,15 +10,15 @@ exports[`extractor > basic 1`] = `
   },
   {
     "attributes": {
-      "for": "name",
-      "htmlTagName": "<label>",
-      "nodeType": "FORM_ITEM Node",
+      "nodeType": "TEXT Node",
     },
     "content": "Name:",
   },
   {
     "attributes": {
-      "nodeType": "TEXT Node",
+      "for": "name",
+      "htmlTagName": "<label>",
+      "nodeType": "FORM_ITEM Node",
     },
     "content": "Name:",
   },
@@ -75,15 +75,15 @@ exports[`extractor > basic 1`] = `
   },
   {
     "attributes": {
-      "for": "options",
-      "htmlTagName": "<label>",
-      "nodeType": "FORM_ITEM Node",
+      "nodeType": "TEXT Node",
     },
     "content": "Choose an option:",
   },
   {
     "attributes": {
-      "nodeType": "TEXT Node",
+      "for": "options",
+      "htmlTagName": "<label>",
+      "nodeType": "FORM_ITEM Node",
     },
     "content": "Choose an option:",
   },
@@ -227,14 +227,14 @@ exports[`extractor > basic 1`] = `
   },
   {
     "attributes": {
-      "htmlTagName": "<label>",
-      "nodeType": "FORM_ITEM Node",
+      "nodeType": "TEXT Node",
     },
     "content": "Shape",
   },
   {
     "attributes": {
-      "nodeType": "TEXT Node",
+      "htmlTagName": "<label>",
+      "nodeType": "FORM_ITEM Node",
     },
     "content": "Shape",
   },
