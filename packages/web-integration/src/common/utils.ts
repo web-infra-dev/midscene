@@ -65,7 +65,6 @@ async function alignElements(
   elements: ElementInfo[],
   page: WebPage,
 ): Promise<WebElementInfo[]> {
-  const textsAligned: WebElementInfo[] = [];
   const validElements = elements.filter((item) => {
     return (
       item.rect.height >= sizeThreshold && item.rect.width >= sizeThreshold
@@ -77,25 +76,27 @@ async function alignElements(
       const { rect, id, content, attributes, locator } = item;
 
       const aligned = await alignCoordByTrim(screenshotBuffer, rect);
-      if (aligned.width < 0) return; // failed to align
+      if (aligned.width < 0) return null; // failed to align
       item.rect = aligned;
       item.center = [
         Math.round(aligned.left + aligned.width / 2),
         Math.round(aligned.top + aligned.height / 2),
       ];
-      textsAligned.push(
-        new WebElementInfo({
-          rect,
-          locator,
-          id,
-          content,
-          attributes,
-          page,
-        }),
-      );
+      return new WebElementInfo({
+        rect,
+        locator,
+        id,
+        content,
+        attributes,
+        page,
+      });
     })();
   });
-  await Promise.all(tasks);
+  const textsAligned = (await Promise.all(tasks)).filter(
+    (item): item is WebElementInfo => {
+      return !!item;
+    },
+  );
 
   return textsAligned;
 }
