@@ -38,6 +38,9 @@ jobs:
 
     - name: Install dependencies
       run: pnpm install --frozen-lockfile
+    
+    - name: Install Playwright Browsers
+      run: npx playwright install --with-deps  # 安装 Playwright 和浏览器
 
     - name: Build project
       run: pnpm run build:pkg
