@@ -35,6 +35,15 @@ jobs:
       with:
         node-version: '18'
         cache: 'pnpm'
+    
+    - name: Cache Playwright dependencies
+      uses: actions/cache@v3
+      id: cache-playwright
+      with:
+        path: ~/.cache/ms-playwright
+        key: ${{ runner.os }}-playwright-${{ hashFiles('pnpm-lock.yaml') }}
+        restore-keys: |
+          ${{ runner.os }}-playwright-
 
     - name: Install dependencies
       run: pnpm install --frozen-lockfile
