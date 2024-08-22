@@ -49,6 +49,7 @@
     "upgrade": "modern upgrade",
     "prepublishOnly": "npm run build",
     "e2e": "playwright test --config=playwright.config.ts",
+    "e2e:report": "MIDSCENE_REPORT=true playwright test --config=playwright.config.ts",
     "e2e:cache": "MIDSCENE_CACHE=true playwright test --config=playwright.config.ts",
     "e2e:ui": "playwright test --config=playwright.config.ts --ui",
     "e2e:ui:cache": "MIDSCENE_CACHE=true playwright test --config=playwright.config.ts  --ui",
