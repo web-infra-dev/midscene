@@ -49,6 +49,7 @@ describe(
           'there is a "food delivery" service on page and is in normal state',
         );
       });
+
       await reset();
     });
   },
