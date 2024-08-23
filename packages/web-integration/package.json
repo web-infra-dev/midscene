@@ -47,13 +47,9 @@
     "*": {
       ".": ["./dist/types/index.d.ts"],
       "puppeteer": ["./dist/types/puppeteer.d.ts"],
-      "playwright": [
-        "./dist/types/playwright.d.ts"
-      ],
+      "playwright": ["./dist/types/playwright.d.ts"],
       "playwright-report": ["./dist/types/playwright-report.d.ts"],
-      "debug": [
-        "./dist/types/debug.d.ts"
-      ],
+      "debug": ["./dist/types/debug.d.ts"],
       "constants": ["./dist/types/constants.d.ts"],
       "html-element": ["./dist/types/html-element/index.d.ts"]
     }
