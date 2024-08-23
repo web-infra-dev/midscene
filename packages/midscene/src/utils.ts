@@ -8,7 +8,7 @@ import {
   writeFileSync,
 } from 'node:fs';
 import { tmpdir } from 'node:os';
-import path, { basename, join } from 'node:path';
+import path, { basename, dirname, join } from 'node:path';
 import type { Rect, ReportDumpWithAttributes } from './types';
 
 interface PkgInfo {
@@ -123,6 +123,12 @@ export function writeLogFile(opts: {
   }
 
   const filePath = join(targetDir, `${fileName}.${fileExt}`);
+
+  const outputResourceDir = dirname(filePath);
+  if (!existsSync(outputResourceDir)) {
+    mkdirSync(outputResourceDir, { recursive: true });
+  }
+
   writeFileSync(filePath, fileContent);
 
   if (opts?.generateReport) {

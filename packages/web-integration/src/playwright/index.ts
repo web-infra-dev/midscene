@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { PageAgent } from '@/common/agent';
 import type { WebPage } from '@/common/page';
 import type { AgentWaitForOpt } from '@midscene/core/.';
-import type { TestInfo, TestType } from '@playwright/test';
+import { type TestInfo, type TestType, test } from '@playwright/test';
 import type { Page as PlaywrightPage } from 'playwright';
 import type { PageTaskExecutor } from '../common/tasks';
 import { readTestCache, writeTestCache } from './cache';
@@ -80,10 +80,14 @@ export const PlaywrightAiFixture = () => {
       const agent = agentForPage(page, testInfo);
       await use(
         async (taskPrompt: string, opts?: { type?: 'action' | 'query' }) => {
-          await page.waitForLoadState('networkidle');
-          const actionType = opts?.type || 'action';
-          const result = await agent.ai(taskPrompt, actionType);
-          return result;
+          return new Promise((resolve, reject) => {
+            test.step(`ai - ${taskPrompt}`, async () => {
+              await page.waitForLoadState('networkidle');
+              const actionType = opts?.type || 'action';
+              const result = await agent.ai(taskPrompt, actionType);
+              resolve(result);
+            });
+          });
         },
       );
       const taskCacheJson = agent.taskExecutor.taskCache.generateTaskCache();
@@ -98,8 +102,10 @@ export const PlaywrightAiFixture = () => {
       const { taskFile, taskTitle } = groupAndCaseForTest(testInfo);
       const agent = agentForPage(page, testInfo);
       await use(async (taskPrompt: string) => {
-        await page.waitForLoadState('networkidle');
-        await agent.aiAction(taskPrompt);
+        test.step(`aiAction - ${taskPrompt}`, async () => {
+          await page.waitForLoadState('networkidle');
+          await agent.aiAction(taskPrompt);
+        });
       });
       // Why there's no cache here ?
       updateDumpAnnotation(testInfo, agent.dumpDataString());
@@ -111,9 +117,13 @@ export const PlaywrightAiFixture = () => {
     ) => {
       const agent = agentForPage(page, testInfo);
       await use(async (demand: any) => {
-        await page.waitForLoadState('networkidle');
-        const result = await agent.aiQuery(demand);
-        return result;
+        return new Promise((resolve, reject) => {
+          test.step(`aiQuery - ${JSON.stringify(demand)}`, async () => {
+            await page.waitForLoadState('networkidle');
+            const result = await agent.aiQuery(demand);
+            resolve(result);
+          });
+        });
       });
       updateDumpAnnotation(testInfo, agent.dumpDataString());
     },
@@ -124,8 +134,13 @@ export const PlaywrightAiFixture = () => {
     ) => {
       const agent = agentForPage(page, testInfo);
       await use(async (assertion: string, errorMsg?: string) => {
-        await page.waitForLoadState('networkidle');
-        await agent.aiAssert(assertion, errorMsg);
+        return new Promise((resolve, reject) => {
+          test.step(`aiAssert - ${assertion}`, async () => {
+            await page.waitForLoadState('networkidle');
+            await agent.aiAssert(assertion, errorMsg);
+            resolve(null);
+          });
+        });
       });
       updateDumpAnnotation(testInfo, agent.dumpDataString());
     },
@@ -136,7 +151,12 @@ export const PlaywrightAiFixture = () => {
     ) => {
       const agent = agentForPage(page, testInfo);
       await use(async (assertion: string, opt?: AgentWaitForOpt) => {
-        await agent.aiWaitFor(assertion, opt);
+        return new Promise((resolve, reject) => {
+          test.step(`aiWaitFor - ${assertion}`, async () => {
+            await agent.aiWaitFor(assertion, opt);
+            resolve(null);
+          });
+        });
       });
       updateDumpAnnotation(testInfo, agent.dumpDataString());
     },

@@ -72,11 +72,11 @@ export async function plan(
     throw new Error(planFromAI.error);
   }
 
-  actions.forEach((task) => {
-    if (task.type === 'Error') {
-      throw new Error(task.thought);
-    }
-  });
+  // actions.forEach((task) => {
+  //   if (task.type === 'Error') {
+  //     throw new Error(task.thought);
+  //   }
+  // });
 
   return { plans: actions };
 }

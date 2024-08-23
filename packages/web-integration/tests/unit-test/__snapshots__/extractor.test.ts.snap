@@ -132,6 +132,12 @@ exports[`extractor > basic 1`] = `
     "attributes": {
       "nodeType": "TEXT Node",
     },
+    "content": "English",
+  },
+  {
+    "attributes": {
+      "nodeType": "TEXT Node",
+    },
     "content": "Field 2",
   },
   {
@@ -282,6 +288,12 @@ exports[`extractor > basic 1`] = `
     "attributes": {
       "nodeType": "TEXT Node",
     },
+    "content": "Tiếng Việt",
+  },
+  {
+    "attributes": {
+      "nodeType": "TEXT Node",
+    },
     "content": "User Name: Stella",
   },
   {
@@ -303,6 +315,12 @@ exports[`extractor > basic 1`] = `
       "placeholder": "this_is_a_textarea",
     },
     "content": "this_is_a_textarea",
+  },
+  {
+    "attributes": {
+      "nodeType": "TEXT Node",
+    },
+    "content": "中文",
   },
   {
     "attributes": {

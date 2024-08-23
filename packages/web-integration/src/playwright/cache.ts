@@ -1,5 +1,5 @@
 import fs from 'node:fs';
-import path, { join } from 'node:path';
+import path, { dirname, join } from 'node:path';
 import type { AiTaskCache } from '@/common/task-cache';
 import { findNearestPackageJson } from '@/common/utils';
 import {

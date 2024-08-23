@@ -3,6 +3,8 @@ import { defineConfig, devices } from '@playwright/test';
 //@ts-ignore
 import dotenv from 'dotenv';
 
+const MIDSCENE_REPORT = process.env.MIDSCENE_REPORT;
+
 /**
  * Read environment variables from file.
  * https://github.com/motdotla/dotenv
@@ -15,7 +17,7 @@ dotenv.config({
  * See https://playwright.dev/docs/test-configuration.
  */
 export default defineConfig({
-  testDir: './tests/ai/e2e',
+  // testDir: './tests/ai/e2e',
   testIgnore: 'generate-test-data.spec.ts',
   timeout: 900 * 1000,
   /* Run tests in files in parallel */
@@ -39,10 +41,17 @@ export default defineConfig({
 
   /* Configure projects for major browsers */
   projects: [
-    {
-      name: 'chromium',
-      use: { ...devices['Desktop Chrome'] },
-    },
+    MIDSCENE_REPORT
+      ? {
+          name: 'report',
+          testDir: './tests/ai/report',
+          use: { ...devices['Desktop Chrome'] },
+        }
+      : {
+          name: 'e2e',
+          testDir: './tests/ai/e2e',
+          use: { ...devices['Desktop Chrome'] },
+        },
   ],
   reporter: [['list'], ['./src/playwright/reporter/index.ts']],
 });

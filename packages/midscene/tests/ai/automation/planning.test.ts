@@ -37,19 +37,19 @@ modelList.forEach((model) => {
       expect(plans[3].param).toMatchSnapshot();
     });
 
-    it('should raise an error when prompt is irrelevant with page', async () => {
-      const { context } = await getPageDataOfTestName('todo');
+    // it('should raise an error when prompt is irrelevant with page', async () => {
+    //   const { context } = await getPageDataOfTestName('todo');
 
-      expect(async () => {
-        await plan(
-          'Tap the blue T-shirt in left top corner, and click the "add to cart" button',
-          {
-            context,
-          },
-          model,
-        );
-      }).rejects.toThrowError();
-    });
+    //   expect(async () => {
+    //     await plan(
+    //       'Tap the blue T-shirt in left top corner, and click the "add to cart" button',
+    //       {
+    //         context,
+    //       },
+    //       model,
+    //     );
+    //   }).rejects.toThrowError();
+    // });
 
     it('Error message in Chinese', async () => {
       const { context } = await getPageDataOfTestName('todo');

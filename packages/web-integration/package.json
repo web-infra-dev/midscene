@@ -1,7 +1,7 @@
 {
   "name": "@midscene/web",
   "description": "Web integration for Midscene.js",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "jsnext:source": "./src/index.ts",
   "main": "./dist/lib/index.js",
   "module": "./dist/es/index.js",
@@ -49,9 +49,10 @@
     "upgrade": "modern upgrade",
     "prepublishOnly": "npm run build",
     "e2e": "playwright test --config=playwright.config.ts",
+    "e2e:report": "MIDSCENE_REPORT=true playwright test --config=playwright.config.ts",
     "e2e:cache": "MIDSCENE_CACHE=true playwright test --config=playwright.config.ts",
     "e2e:ui": "playwright test --config=playwright.config.ts --ui",
-    "e2e:ui-cache": "MIDSCENE_CACHE=true playwright test --config=playwright.config.ts  --ui"
+    "e2e:ui:cache": "MIDSCENE_CACHE=true playwright test --config=playwright.config.ts  --ui"
   },
   "files": ["dist", "README.md"],
   "dependencies": {

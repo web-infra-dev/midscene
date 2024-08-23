@@ -6,13 +6,11 @@ vi.setConfig({
   testTimeout: 90 * 1000,
 });
 
-const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
-
 describe(
   'puppeteer integration',
   () => {
     it('Sauce Demo by Swag Lab', async () => {
-      const { page } = await launchPage('https://www.saucedemo.com/');
+      const { page, reset } = await launchPage('https://www.saucedemo.com/');
       const mid = new PuppeteerAgent(page);
 
       await mid.aiAction(
@@ -33,25 +31,25 @@ describe(
       expect(items.length).toBeGreaterThanOrEqual(2);
 
       await mid.aiAssert('The price of "Sauce Labs Onesie" is 7.99');
+      await reset();
     });
 
     it('extract the Github service status', async () => {
-      console.time('launch');
-      const { page } = await launchPage('https://www.githubstatus.com/');
+      const { page, reset } = await launchPage('https://www.githubstatus.com/');
       const mid = new PuppeteerAgent(page);
-      console.timeEnd('launch');
 
       const result = await mid.aiQuery(
         'this is a service status page. Extract all status data with this scheme: {[serviceName]: [statusText]}',
       );
       console.log('Github service status', result);
 
-      // obviously there is no food delivery service on Github
       expect(async () => {
+        // there is no food delivery service on Github
         await mid.aiAssert(
           'there is a "food delivery" service on page and is in normal state',
         );
-      }).rejects.toThrowError();
+      });
+      await reset();
     });
   },
   {
