@@ -7,6 +7,7 @@ export default defineConfig({
     platform: 'node',
     input: {
       index: 'src/index.ts',
+      puppeteer: 'src/puppeteer/index.ts',
       'playwright-report': './src/playwright/reporter/index.ts',
     },
     target: 'es2017',

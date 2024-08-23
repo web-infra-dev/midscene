@@ -12,6 +12,11 @@
       "import": "./dist/es/index.js",
       "require": "./dist/lib/index.js"
     },
+    "./puppeteer": {
+      "types": "./dist/types/puppeteer.d.ts",
+      "import": "./dist/es/puppeteer.js",
+      "require": "./dist/lib/puppeteer.js"
+    },
     "./playwright-report": {
       "types": "./dist/types/playwright-report.d.ts",
       "import": "./dist/es/playwright-report.js",
@@ -31,6 +36,9 @@
   "typesVersions": {
     "*": {
       ".": ["./dist/types/index.d.ts"],
+      "puppeteer": [
+        "./dist/types/puppeteer.d.ts"
+      ],
       "playwright-report": ["./dist/types/playwright-report.d.ts"],
       "constants": ["./dist/types/constants.d.ts"],
       "html-element": ["./dist/types/html-element/index.d.ts"]
