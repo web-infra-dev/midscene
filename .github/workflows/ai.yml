@@ -47,7 +47,16 @@ jobs:
 
     - name: Install dependencies
       run: pnpm install --frozen-lockfile
-    
+
+    - name: Install Playwright dependencies
+      run: |
+        cd packages/web-integration
+        if [ "${{ steps.cache-playwright.outputs.cache-hit }}" != "true" ]; then
+          npx playwright install --with-deps
+        else
+          npx playwright install-deps && npx playwright install
+        fi
+
     - name: Build project
       run: pnpm run build:pkg
 
