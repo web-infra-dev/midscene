@@ -25,17 +25,12 @@ describe(
         },
       );
 
-      const list = content
-        .sort((a, b) => {
-          const returnValue = JSON.stringify(a) > JSON.stringify(b) ? 1 : -1;
-          return returnValue;
-        })
-        .map((item) => {
-          return {
-            content: item.content,
-            attributes: item.attributes,
-          };
-        });
+      const list = content.map((item) => {
+        return {
+          content: item.content,
+          attributes: item.attributes,
+        };
+      });
 
       expect(list).toMatchSnapshot();
       await reset();

@@ -4,19 +4,9 @@ exports[`extractor > basic 1`] = `
 [
   {
     "attributes": {
-      "class": ".life-core-checkbox.life-core-checkbox-md.src-pages-Login-components-LoginCard-index-module__checkbox--Npo2V--212e2",
-      "htmlTagName": "<label>",
-      "nodeType": "FORM_ITEM Node",
+      "nodeType": "TEXT Node",
     },
-    "content": "",
-  },
-  {
-    "attributes": {
-      "class": ".life-core-input-inner__wrapper.life-core-input-inner__wrapper-border.life-core-input-inner__wrapper-size-md.life-core-input-inner__wrapper-add-suffix",
-      "htmlTagName": "<label>",
-      "nodeType": "FORM_ITEM Node",
-    },
-    "content": "",
+    "content": "Data Record",
   },
   {
     "attributes": {
@@ -28,111 +18,13 @@ exports[`extractor > basic 1`] = `
     "attributes": {
       "nodeType": "TEXT Node",
     },
-    "content": "30S",
+    "content": "User Name: Stella",
   },
   {
     "attributes": {
       "nodeType": "TEXT Node",
     },
-    "content": "3AY",
-  },
-  {
-    "attributes": {
-      "nodeType": "TEXT Node",
-    },
-    "content": "70U",
-  },
-  {
-    "attributes": {
-      "nodeType": "TEXT Node",
-    },
-    "content": "Aila Gill",
-  },
-  {
-    "attributes": {
-      "nodeType": "TEXT Node",
-    },
-    "content": "Alessia Barton",
-  },
-  {
-    "attributes": {
-      "nodeType": "TEXT Node",
-    },
-    "content": "Anderson Brown",
-  },
-  {
-    "attributes": {
-      "nodeType": "TEXT Node",
-    },
-    "content": "Ashlynn Delacruz",
-  },
-  {
-    "attributes": {
-      "nodeType": "TEXT Node",
-    },
-    "content": "Aylin Sawyer",
-  },
-  {
-    "attributes": {
-      "nodeType": "TEXT Node",
-    },
-    "content": "Cassius Peck",
-  },
-  {
-    "attributes": {
-      "nodeType": "TEXT Node",
-    },
-    "content": "Charlotte Griffith",
-  },
-  {
-    "attributes": {
-      "nodeType": "TEXT Node",
-    },
-    "content": "Choose an option:",
-  },
-  {
-    "attributes": {
-      "for": "options",
-      "htmlTagName": "<label>",
-      "nodeType": "FORM_ITEM Node",
-    },
-    "content": "Choose an option:",
-  },
-  {
-    "attributes": {
-      "nodeType": "BUTTON Node",
-    },
-    "content": "Click Me",
-  },
-  {
-    "attributes": {
-      "nodeType": "TEXT Node",
-    },
-    "content": "Crystal Newman",
-  },
-  {
-    "attributes": {
-      "nodeType": "TEXT Node",
-    },
-    "content": "Dariel Acevedo",
-  },
-  {
-    "attributes": {
-      "nodeType": "TEXT Node",
-    },
-    "content": "Data Record",
-  },
-  {
-    "attributes": {
-      "nodeType": "TEXT Node",
-    },
-    "content": "Edward Blevins",
-  },
-  {
-    "attributes": {
-      "nodeType": "TEXT Node",
-    },
-    "content": "English",
+    "content": "ID",
   },
   {
     "attributes": {
@@ -162,7 +54,151 @@ exports[`extractor > basic 1`] = `
     "attributes": {
       "nodeType": "TEXT Node",
     },
+    "content": "30S",
+  },
+  {
+    "attributes": {
+      "nodeType": "TEXT Node",
+    },
+    "content": "Kace Cervantes",
+  },
+  {
+    "attributes": {
+      "nodeType": "TEXT Node",
+    },
+    "content": "Aylin Sawyer",
+  },
+  {
+    "attributes": {
+      "nodeType": "TEXT Node",
+    },
+    "content": "Jefferson Kirby",
+  },
+  {
+    "attributes": {
+      "nodeType": "TEXT Node",
+    },
+    "content": "Skyla Jefferson",
+  },
+  {
+    "attributes": {
+      "nodeType": "TEXT Node",
+    },
+    "content": "70U",
+  },
+  {
+    "attributes": {
+      "nodeType": "TEXT Node",
+    },
     "content": "Florence Davenport",
+  },
+  {
+    "attributes": {
+      "nodeType": "TEXT Node",
+    },
+    "content": "Dariel Acevedo",
+  },
+  {
+    "attributes": {
+      "nodeType": "TEXT Node",
+    },
+    "content": "Ashlynn Delacruz",
+  },
+  {
+    "attributes": {
+      "nodeType": "TEXT Node",
+    },
+    "content": "Memphis Leal",
+  },
+  {
+    "attributes": {
+      "nodeType": "TEXT Node",
+    },
+    "content": "3AY",
+  },
+  {
+    "attributes": {
+      "nodeType": "TEXT Node",
+    },
+    "content": "Crystal Newman",
+  },
+  {
+    "attributes": {
+      "nodeType": "TEXT Node",
+    },
+    "content": "Anderson Brown",
+  },
+  {
+    "attributes": {
+      "nodeType": "TEXT Node",
+    },
+    "content": "Charlotte Griffith",
+  },
+  {
+    "attributes": {
+      "nodeType": "TEXT Node",
+    },
+    "content": "Franklin Everett",
+  },
+  {
+    "attributes": {
+      "nodeType": "TEXT Node",
+    },
+    "content": "YPG",
+  },
+  {
+    "attributes": {
+      "nodeType": "TEXT Node",
+    },
+    "content": "Kori Payne",
+  },
+  {
+    "attributes": {
+      "nodeType": "TEXT Node",
+    },
+    "content": "Edward Blevins",
+  },
+  {
+    "attributes": {
+      "nodeType": "TEXT Node",
+    },
+    "content": "Aila Gill",
+  },
+  {
+    "attributes": {
+      "nodeType": "TEXT Node",
+    },
+    "content": "Matthias Reed",
+  },
+  {
+    "attributes": {
+      "nodeType": "TEXT Node",
+    },
+    "content": "ZEN",
+  },
+  {
+    "attributes": {
+      "nodeType": "TEXT Node",
+    },
+    "content": "Magnolia Duke",
+  },
+  {
+    "attributes": {
+      "nodeType": "TEXT Node",
+    },
+    "content": "Kalel Glover",
+  },
+  {
+    "attributes": {
+      "nodeType": "TEXT Node",
+    },
+    "content": "Alessia Barton",
+  },
+  {
+    "attributes": {
+      "nodeType": "TEXT Node",
+    },
+    "content": "Cassius Peck",
   },
   {
     "attributes": {
@@ -172,9 +208,17 @@ exports[`extractor > basic 1`] = `
   },
   {
     "attributes": {
+      "for": "name",
+      "htmlTagName": "<label>",
+      "nodeType": "FORM_ITEM Node",
+    },
+    "content": "Name:",
+  },
+  {
+    "attributes": {
       "nodeType": "TEXT Node",
     },
-    "content": "Franklin Everett",
+    "content": "Name:",
   },
   {
     "attributes": {
@@ -187,74 +231,22 @@ exports[`extractor > basic 1`] = `
   },
   {
     "attributes": {
-      "nodeType": "TEXT Node",
+      "nodeType": "BUTTON Node",
     },
-    "content": "ID",
+    "content": "Click Me",
   },
   {
     "attributes": {
-      "nodeType": "TEXT Node",
-    },
-    "content": "Jefferson Kirby",
-  },
-  {
-    "attributes": {
-      "nodeType": "TEXT Node",
-    },
-    "content": "Kace Cervantes",
-  },
-  {
-    "attributes": {
-      "nodeType": "TEXT Node",
-    },
-    "content": "Kalel Glover",
-  },
-  {
-    "attributes": {
-      "nodeType": "TEXT Node",
-    },
-    "content": "Kori Payne",
-  },
-  {
-    "attributes": {
-      "nodeType": "TEXT Node",
-    },
-    "content": "Magnolia Duke",
-  },
-  {
-    "attributes": {
-      "nodeType": "TEXT Node",
-    },
-    "content": "Matthias Reed",
-  },
-  {
-    "attributes": {
-      "nodeType": "TEXT Node",
-    },
-    "content": "Memphis Leal",
-  },
-  {
-    "attributes": {
-      "nodeType": "TEXT Node",
-    },
-    "content": "Name:",
-  },
-  {
-    "attributes": {
-      "for": "name",
       "htmlTagName": "<label>",
       "nodeType": "FORM_ITEM Node",
     },
-    "content": "Name:",
+    "content": "Shape",
   },
   {
     "attributes": {
-      "htmlTagName": "<select>",
-      "id": "options",
-      "name": "options",
-      "nodeType": "FORM_ITEM Node",
+      "nodeType": "TEXT Node",
     },
-    "content": "Option 1",
+    "content": "Shape",
   },
   {
     "attributes": {
@@ -264,49 +256,6 @@ exports[`extractor > basic 1`] = `
       "value": "Rectangle",
     },
     "content": "Rectangle",
-  },
-  {
-    "attributes": {
-      "nodeType": "TEXT Node",
-    },
-    "content": "Shape",
-  },
-  {
-    "attributes": {
-      "htmlTagName": "<label>",
-      "nodeType": "FORM_ITEM Node",
-    },
-    "content": "Shape",
-  },
-  {
-    "attributes": {
-      "nodeType": "TEXT Node",
-    },
-    "content": "Skyla Jefferson",
-  },
-  {
-    "attributes": {
-      "nodeType": "TEXT Node",
-    },
-    "content": "Tiếng Việt",
-  },
-  {
-    "attributes": {
-      "nodeType": "TEXT Node",
-    },
-    "content": "User Name: Stella",
-  },
-  {
-    "attributes": {
-      "nodeType": "TEXT Node",
-    },
-    "content": "YPG",
-  },
-  {
-    "attributes": {
-      "nodeType": "TEXT Node",
-    },
-    "content": "ZEN",
   },
   {
     "attributes": {
@@ -320,7 +269,34 @@ exports[`extractor > basic 1`] = `
     "attributes": {
       "nodeType": "TEXT Node",
     },
+    "content": "English",
+  },
+  {
+    "attributes": {
+      "nodeType": "TEXT Node",
+    },
     "content": "中文",
+  },
+  {
+    "attributes": {
+      "nodeType": "TEXT Node",
+    },
+    "content": "Tiếng Việt",
+  },
+  {
+    "attributes": {
+      "class": ".gh-ar-hdn",
+      "for": "gh-ac",
+      "htmlTagName": "<label>",
+      "nodeType": "FORM_ITEM Node",
+    },
+    "content": "输入搜索关键词",
+  },
+  {
+    "attributes": {
+      "nodeType": "TEXT Node",
+    },
+    "content": "输入搜索关键词",
   },
   {
     "attributes": {
@@ -349,18 +325,34 @@ exports[`extractor > basic 1`] = `
   },
   {
     "attributes": {
-      "nodeType": "TEXT Node",
-    },
-    "content": "输入搜索关键词",
-  },
-  {
-    "attributes": {
-      "class": ".gh-ar-hdn",
-      "for": "gh-ac",
+      "for": "options",
       "htmlTagName": "<label>",
       "nodeType": "FORM_ITEM Node",
     },
-    "content": "输入搜索关键词",
+    "content": "Choose an option:",
+  },
+  {
+    "attributes": {
+      "nodeType": "TEXT Node",
+    },
+    "content": "Choose an option:",
+  },
+  {
+    "attributes": {
+      "htmlTagName": "<select>",
+      "id": "options",
+      "name": "options",
+      "nodeType": "FORM_ITEM Node",
+    },
+    "content": "Option 1",
+  },
+  {
+    "attributes": {
+      "class": ".life-core-input-inner__wrapper.life-core-input-inner__wrapper-border.life-core-input-inner__wrapper-size-md.life-core-input-inner__wrapper-add-suffix",
+      "htmlTagName": "<label>",
+      "nodeType": "FORM_ITEM Node",
+    },
+    "content": "",
   },
   {
     "attributes": {
@@ -372,6 +364,14 @@ exports[`extractor > basic 1`] = `
       "type": "text",
     },
     "content": "验证码",
+  },
+  {
+    "attributes": {
+      "class": ".life-core-checkbox.life-core-checkbox-md.src-pages-Login-components-LoginCard-index-module__checkbox--Npo2V--212e2",
+      "htmlTagName": "<label>",
+      "nodeType": "FORM_ITEM Node",
+    },
+    "content": "",
   },
 ]
 `;
