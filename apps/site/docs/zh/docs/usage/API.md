@@ -104,7 +104,17 @@ expect(onesieItem.price).toBe(7.99);
 
 考虑到 AI 服务的时间消耗，`.aiWaitFor` 并不是一个特别高效的方法。使用一个普通的 `sleep` 可能是替代 `waitFor` 的另一种方式。
 
-## 使用 LangSmith （可选）
+## 调试配置（可选）
+
+### 打印 AI 性能信息
+
+设置 `MIDSCENE_DEBUG_AI_PROFILE` 变量，你可以看到每次调用 AI 的时间和 token 数量。
+
+```shell
+export MIDSCENE_DEBUG_AI_PROFILE=1
+```
+
+### 使用 LangSmith
 
 LangSmith 是一个用于调试大语言模型的平台。想要集成 LangSmith，请按以下步骤操作：
 
