@@ -300,7 +300,6 @@ exports[`extractor > basic 1`] = `
   },
   {
     "attributes": {
-      "_midscene_retrieve_task_id": "36bc72f23a",
       "aria-autocomplete": "list",
       "aria-expanded": "false",
       "aria-haspopup": "true",
