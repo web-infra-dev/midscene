@@ -1,6 +1,6 @@
 {
   "name": "@midscene/visualizer",
-  "version": "0.3.3",
+  "version": "0.3.4",
   "types": "./dist/types/index.d.ts",
   "main": "./dist/lib/index.js",
   "module": "./dist/es/index.js",
