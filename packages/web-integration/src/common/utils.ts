@@ -87,9 +87,9 @@ async function alignElements(
         content,
         attributes,
         page,
-      })
+      }),
     );
-  };
+  }
 
   return textsAligned;
 }
