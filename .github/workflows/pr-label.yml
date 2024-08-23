@@ -10,7 +10,7 @@ jobs:
   change-labeling:
     name: Labeling for changes
     runs-on: ubuntu-latest
-    if: github.repository == 'web-infra-dev/rsbuild'
+    if: github.repository == 'web-infra-dev/midscene'
     steps:
       - uses: github/issue-labeler@v3.4
         with:
