@@ -77,7 +77,7 @@
   "peerDependencies": {
     "@playwright/test": "^1.44.1",
     "playwright": "^1.44.1",
-    "puppeteer": "^23.0.2"
+    "puppeteer": ">=20.0.0"
   },
   "peerDependenciesMeta": {
     "@playwright/test": {
