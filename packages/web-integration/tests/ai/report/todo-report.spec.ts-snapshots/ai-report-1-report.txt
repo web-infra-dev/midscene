@@ -11,6 +11,8 @@
     {
         "title": "waitFor: the input box for task title is empty now",
         "actions": [
+            "Insight / Assert",
+            "Action / Sleep",
             "Insight / Assert"
         ]
     },
