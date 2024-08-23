@@ -108,7 +108,7 @@ When considering the time required for the AI service, `.aiWaitFor` may not be v
 
 ## Debug Config (Optional)
 
-### Print AI profile
+### Print the AI profiling
 
 By setting `MIDSCENE_DEBUG_AI_PROFILE`, you can take a look at the time and token consumption of AI calls.
 
