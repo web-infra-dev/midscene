@@ -23,8 +23,10 @@ const insightFindTask = (shouldThrow?: boolean) => {
     param: {
       prompt: 'test',
     },
-    async executor(param) {
+    async executor(param, taskContext) {
       if (shouldThrow) {
+        const { task } = taskContext;
+        task.output = 'error-output';
         await new Promise((resolve) => setTimeout(resolve, 100));
         throw new Error('test-error');
       }
@@ -179,66 +181,8 @@ describe('executor', () => {
     expect(tasks[1].status).toBe('cancelled');
     expect(executor.status).toBe('error');
     expect(executor.latestErrorTask()).toBeTruthy();
-    expect(r).toBeFalsy();
-
-    // expect to throw an error
-    expect(async () => {
-      await executor.flush();
-    }).rejects.toThrowError();
-
-    expect(async () => {
-      await executor.append(insightFindTask());
-    }).rejects.toThrowError();
-  });
-
-  it.skip('insight - return error instead of throwing', async () => {
-    const executor = new Executor('test', 'test-description', [
-      {
-        type: 'Insight',
-        subType: 'Locate',
-        param: {
-          prompt: 'test',
-        },
-        async executor(param) {
-          return {
-            output: {
-              element: 'abc',
-            },
-            log: {
-              dump: {},
-            },
-          };
-        },
-      },
-      {
-        type: 'Insight',
-        subType: 'Locate',
-        param: {
-          prompt: 'test',
-        },
-        async executor(param) {
-          return {
-            output: {
-              element: 'abc',
-            },
-            log: {
-              dump: {},
-            },
-          };
-        },
-      },
-    ]);
-    const r = await executor.flush();
-    const tasks = executor.tasks as ExecutionTaskInsightLocate[];
-
-    expect(tasks.length).toBe(2);
-    expect(tasks[0].status).toBe('failed');
-    expect(tasks[0].error).toBeTruthy();
-    expect(tasks[0].timing!.end).toBeTruthy();
-    expect(tasks[1].status).toBe('cancelled');
-    expect(executor.status).toBe('error');
-    expect(executor.latestErrorTask()).toBeTruthy();
-    expect(r).toBeFalsy();
+    expect(executor.isInErrorState()).toBeTruthy();
+    expect(r).toEqual('error-output');
 
     // expect to throw an error
     expect(async () => {

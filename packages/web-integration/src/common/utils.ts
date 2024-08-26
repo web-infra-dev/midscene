@@ -11,7 +11,7 @@ import {
 } from '@midscene/core/image';
 import { getTmpFile } from '@midscene/core/utils';
 import dayjs from 'dayjs';
-import { WebElementInfo, type WebElementInfoType } from '../web-element';
+import { WebElementInfo } from '../web-element';
 import type { WebPage } from './page';
 
 export type WebUIContext = UIContext<WebElementInfo> & {
@@ -30,12 +30,14 @@ export async function parseContextFromWebPage(
   const screenshotBuffer = readFileSync(file);
   const screenshotBase64 = base64Encoded(file);
   const captureElementSnapshot = await getElementInfosFromPage(page);
+
   // align element
   const elementsInfo = await alignElements(
     screenshotBuffer,
     captureElementSnapshot,
     page,
   );
+
   const size = await imageInfoOfBase64(screenshotBase64);
 
   return {
@@ -63,12 +65,12 @@ async function alignElements(
   elements: ElementInfo[],
   page: WebPage,
 ): Promise<WebElementInfo[]> {
-  const textsAligned: WebElementInfo[] = [];
   const validElements = elements.filter((item) => {
     return (
       item.rect.height >= sizeThreshold && item.rect.width >= sizeThreshold
     );
   });
+  const textsAligned: WebElementInfo[] = [];
   for (const item of validElements) {
     const { rect, id, content, attributes, locator } = item;
     // const aligned = await alignCoordByTrim(screenshotBuffer, rect);
@@ -88,6 +90,7 @@ async function alignElements(
       }),
     );
   }
+
   return textsAligned;
 }
 
