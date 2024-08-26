@@ -1,12 +1,12 @@
 name: AI test
-
 on:
-  push:
-    branches:
-      - main
-  pull_request:
-    branches:
-      - main
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: 'AI test branch'
+        required: true
+        default: 'main'
+
 
 jobs:
   main:
@@ -23,7 +23,7 @@ jobs:
     steps:
     - uses: actions/checkout@v4
       with:
-        fetch-depth: 0
+        ref: ${{ github.event.inputs.branch }}
 
     - name: Setup pnpm
       uses: pnpm/action-setup@v2
