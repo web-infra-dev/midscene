@@ -111,24 +111,6 @@
     </div>
   </div>
 
-  <!-- a bad case from ebay -->
-  <div id="gh-ac-box2" _midscene_retrieve_task_id="7de6fc64a5">
-    <label for="gh-ac" class="gh-ar-hdn">输入搜索关键词</label>
-    <input
-      type="text" class="gh-tb ui-autocomplete-input" aria-autocomplete="list" aria-expanded="false" size="50"
-      maxlength="300" aria-label="搜索任何物品" placeholder="搜索任何物品" id="gh-ac" name="_nkw" autocapitalize="off"
-      autocorrect="off" spellcheck="false" autocomplete="off" aria-haspopup="true" role="combobox" aria-owns="ui-id-1">
-      <span role="status" aria-live="polite"
-      class="ui-helper-hidden-accessible">
-    </span>
-    <input style="display:none">
-  
-    <svg aria-hidden="true" class="icon icon--search gh-search__icon" focusable="false" height="16" width="16">
-      <use xlink:href="#gh-icon-search-evo">
-      </use>
-    </svg>
-  </div>
-
   <!-- form -->
   <form action="/submit-form" method="post">
     <label for="options">Choose an option:</label>
@@ -137,7 +119,17 @@
       <option value="option2-value">Option 2</option>
     </select>
   </form>
-    
+
+  <!-- a label with sibiling input -->
+  <div id="gh-ac-box2">
+    <label for="gh-ac" class="gh-ar-hdn">输入搜索关键词</label>
+    <input type="text" class="gh-tb ui-autocomplete-input" aria-autocomplete="list" aria-expanded="false" size="50"
+      maxlength="300" aria-label="搜索任何物品" placeholder="搜索任何物品" id="gh-ac" name="_nkw" autocapitalize="off"
+      autocorrect="off" spellcheck="false" autocomplete="off" aria-haspopup="true" role="combobox" aria-owns="ui-id-1">
+    <input style="display:none">
+  </div>
+  
+  <!-- a label with nested input -->
   <label
     class="life-core-input-inner__wrapper life-core-input-inner__wrapper-border life-core-input-inner__wrapper-size-md life-core-input-inner__wrapper-add-suffix">
     <input placeholder="验证码" tabindex="0" type="text" class="life-core-input life-core-input-size-md" value="">

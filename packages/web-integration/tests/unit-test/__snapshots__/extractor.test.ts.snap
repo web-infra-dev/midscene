@@ -285,6 +285,29 @@ exports[`extractor > basic 1`] = `
   },
   {
     "attributes": {
+      "for": "options",
+      "htmlTagName": "<label>",
+      "nodeType": "FORM_ITEM Node",
+    },
+    "content": "Choose an option:",
+  },
+  {
+    "attributes": {
+      "nodeType": "TEXT Node",
+    },
+    "content": "Choose an option:",
+  },
+  {
+    "attributes": {
+      "htmlTagName": "<select>",
+      "id": "options",
+      "name": "options",
+      "nodeType": "FORM_ITEM Node",
+    },
+    "content": "Option 1",
+  },
+  {
+    "attributes": {
       "class": ".gh-ar-hdn",
       "for": "gh-ac",
       "htmlTagName": "<label>",
@@ -321,29 +344,6 @@ exports[`extractor > basic 1`] = `
       "type": "text",
     },
     "content": "搜索任何物品",
-  },
-  {
-    "attributes": {
-      "for": "options",
-      "htmlTagName": "<label>",
-      "nodeType": "FORM_ITEM Node",
-    },
-    "content": "Choose an option:",
-  },
-  {
-    "attributes": {
-      "nodeType": "TEXT Node",
-    },
-    "content": "Choose an option:",
-  },
-  {
-    "attributes": {
-      "htmlTagName": "<select>",
-      "id": "options",
-      "name": "options",
-      "nodeType": "FORM_ITEM Node",
-    },
-    "content": "Option 1",
   },
   {
     "attributes": {
