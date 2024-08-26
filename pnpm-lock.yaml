@@ -201,6 +201,9 @@ importers:
       typescript:
         specifier: ~5.0.4
         version: 5.0.4
+      vitest:
+        specifier: ^1.6.0
+        version: 1.6.0(@types/node@18.19.41)(jsdom@20.0.3)(terser@5.31.3)
 
   packages/visualizer:
     devDependencies:

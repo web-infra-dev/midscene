@@ -36,6 +36,15 @@ exports[`image utils > align a tiny sub-image 1`] = `
 }
 `;
 
+exports[`image utils > align a tiny sub-image 2`] = `
+{
+  "height": 80,
+  "left": 140,
+  "top": 50,
+  "width": 200,
+}
+`;
+
 exports[`image utils > align an oversized sub-image 1`] = `
 {
   "height": 50,

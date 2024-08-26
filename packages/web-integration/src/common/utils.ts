@@ -4,12 +4,12 @@ import fs, { readFileSync } from 'node:fs';
 import path from 'node:path';
 import type { ElementInfo } from '@/extractor/extractor';
 import type { PlaywrightParserOpt, UIContext } from '@midscene/core';
+import { getTmpFile } from '@midscene/core/utils';
 import {
   alignCoordByTrim,
   base64Encoded,
   imageInfoOfBase64,
-} from '@midscene/core/image';
-import { getTmpFile } from '@midscene/core/utils';
+} from '@midscene/shared/img';
 import dayjs from 'dayjs';
 import { WebElementInfo } from '../web-element';
 import type { WebPage } from './page';
