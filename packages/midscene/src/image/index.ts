@@ -4,7 +4,6 @@ export {
   base64Encoded,
 } from '@midscene/shared/img';
 export {
-  alignCoordByTrim,
   calculateNewDimensions,
   resizeImg,
   transformImgPathToBase64,

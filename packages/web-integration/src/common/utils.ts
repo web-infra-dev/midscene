@@ -5,11 +5,7 @@ import path from 'node:path';
 import type { ElementInfo } from '@/extractor/extractor';
 import type { PlaywrightParserOpt, UIContext } from '@midscene/core';
 import { getTmpFile } from '@midscene/core/utils';
-import {
-  alignCoordByTrim,
-  base64Encoded,
-  imageInfoOfBase64,
-} from '@midscene/shared/img';
+import { base64Encoded, imageInfoOfBase64 } from '@midscene/shared/img';
 import dayjs from 'dayjs';
 import { WebElementInfo } from '../web-element';
 import type { WebPage } from './page';
@@ -73,12 +69,6 @@ async function alignElements(
   const textsAligned: WebElementInfo[] = [];
   for (const item of validElements) {
     const { rect, id, content, attributes, locator } = item;
-    // const aligned = await alignCoordByTrim(screenshotBuffer, rect);
-    // item.rect = aligned;
-    // item.center = [
-    //   Math.round(aligned.left + aligned.width / 2),
-    //   Math.round(aligned.top + aligned.height / 2),
-    // ];
     textsAligned.push(
       new WebElementInfo({
         rect,

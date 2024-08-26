@@ -1,9 +1,4 @@
-import {
-  alignCoordByTrim,
-  base64Encoded,
-  imageInfo,
-  imageInfoOfBase64,
-} from '@/img';
+import { base64Encoded, imageInfo, imageInfoOfBase64 } from '@/img';
 import { getFixture } from 'tests/utils';
 import { describe, expect, it } from 'vitest';
 
