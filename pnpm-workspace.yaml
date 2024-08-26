@@ -1,6 +1,7 @@
 packages:
   - apps/site
   - packages/cli
+  - packages/shared
   - packages/midscene
   - packages/playwright-demo
   - packages/visualizer

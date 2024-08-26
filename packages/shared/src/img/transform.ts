@@ -1,6 +1,6 @@
 import { Buffer } from 'node:buffer';
-import type { Rect } from '@/types';
 import Jimp from 'jimp';
+import type { Rect } from '../types';
 
 /**
  * Saves a Base64-encoded image to a file

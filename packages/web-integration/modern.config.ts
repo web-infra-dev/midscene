@@ -10,6 +10,5 @@ export default defineConfig({
       'playwright-report': './src/playwright/reporter/index.ts',
     },
     target: 'es2017',
-    externals: ['sharp'],
   },
 });

@@ -6,13 +6,10 @@ export default defineConfig({
   buildConfig: {
     platform: 'node',
     input: {
-      index: 'src/index.ts',
-      utils: 'src/utils.ts',
-      image: 'src/image/index.ts',
-      'ai-model': 'src/ai-model/index.ts',
+      index: './src/index.ts',
+      img: './src/img/index.ts',
+      constant: './src/constant/index.ts',
     },
-    // input: ['src/utils.ts', 'src/index.ts', 'src/image/index.ts'],
-    externals: ['node:buffer'],
     target: 'es2017',
   },
 });

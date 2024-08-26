@@ -1,4 +1,8 @@
-export { imageInfo, imageInfoOfBase64, base64Encoded } from './info';
+export {
+  imageInfo,
+  imageInfoOfBase64,
+  base64Encoded,
+} from '@midscene/shared/img';
 export {
   alignCoordByTrim,
   trimImage,
@@ -6,5 +10,4 @@ export {
   resizeImg,
   transformImgPathToBase64,
   saveBase64Image,
-} from './transform';
-export { composeSectionDiagram } from './visualization';
+} from '@midscene/shared/img';

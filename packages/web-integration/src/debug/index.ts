@@ -1,9 +1,11 @@
 import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import type { WebPage } from '@/common/page';
-import { resizeImg, saveBase64Image } from '@midscene/core/image';
-import { processImageElementInfo } from './img';
-import { getElementInfos } from './img/util';
+import { NodeType } from '@/extractor/constants';
+import type { ElementInfo } from '@/extractor/extractor';
+import { resizeImg, saveBase64Image } from '@midscene/shared/img';
+import { processImageElementInfo } from '@midscene/shared/img';
+import { getElementInfosFromPage } from '../common/utils';
 
 export async function generateExtractData(
   page: WebPage,
@@ -116,4 +118,32 @@ export function writeFileSyncWithDir(
 ) {
   ensureDirectoryExistence(filePath);
   writeFileSync(filePath, content, options);
+}
+
+export async function getElementInfos(page: any) {
+  const captureElementSnapshot: Array<ElementInfo> =
+    await getElementInfosFromPage(page);
+  const elementsPositionInfo = captureElementSnapshot.map((elementInfo) => {
+    return {
+      label: elementInfo.indexId.toString(),
+      x: elementInfo.rect.left,
+      y: elementInfo.rect.top,
+      width: elementInfo.rect.width,
+      height: elementInfo.rect.height,
+      attributes: elementInfo.attributes,
+    };
+  });
+  const elementsPositionInfoWithoutText = elementsPositionInfo.filter(
+    (elementInfo) => {
+      if (elementInfo.attributes.nodeType === NodeType.TEXT) {
+        return false;
+      }
+      return true;
+    },
+  );
+  return {
+    elementsPositionInfo,
+    captureElementSnapshot,
+    elementsPositionInfoWithoutText,
+  };
 }

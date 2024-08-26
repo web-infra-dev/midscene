@@ -2,7 +2,12 @@ import assert from 'node:assert';
 import { Buffer } from 'node:buffer';
 import { readFileSync } from 'node:fs';
 import Jimp from 'jimp';
-import type { Size } from '..';
+
+export interface Size {
+  width: number;
+  height: number;
+}
+
 /**
  * Retrieves the dimensions of an image asynchronously
  *

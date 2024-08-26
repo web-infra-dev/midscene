@@ -59,7 +59,8 @@
     "openai": "4.47.1",
     "jimp": "0.22.12",
     "inquirer": "10.1.5",
-    "@midscene/core": "workspace:*"
+    "@midscene/core": "workspace:*",
+    "@midscene/shared": "workspace:*"
   },
   "devDependencies": {
     "@modern-js/module-tools": "^2.56.1",

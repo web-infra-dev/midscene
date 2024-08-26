@@ -61,7 +61,8 @@
     "node-fetch": "2.6.7",
     "openai": "4.47.1",
     "optional": "0.1.4",
-    "jimp": "0.22.12"
+    "jimp": "0.22.12",
+    "@midscene/shared": "workspace:*"
   },
   "devDependencies": {
     "@modern-js/module-tools": "^2.56.1",
