@@ -1,6 +1,6 @@
 import assert from 'node:assert';
 import { writeFileSync } from 'node:fs';
-import { PuppeteerAgent } from '@midscene/web';
+import { PuppeteerAgent } from '@midscene/web/puppeteer';
 import ora from 'ora-classic';
 import puppeteer from 'puppeteer';
 import { type ArgumentValueType, findOnlyItemInArgs, parse } from './args';

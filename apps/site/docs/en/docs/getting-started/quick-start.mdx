@@ -67,8 +67,8 @@ Save the following code as `./fixture.ts`;
 
 ```typescript
 import { test as base } from '@playwright/test';
-import type { PlayWrightAiFixtureType } from '@midscene/web';
-import { PlaywrightAiFixture } from '@midscene/web';
+import type { PlayWrightAiFixtureType } from '@midscene/web/playwright';
+import { PlaywrightAiFixture } from '@midscene/web/playwright';
 
 export const test = base.extend<PlayWrightAiFixtureType>(PlaywrightAiFixture());
 ```
@@ -129,7 +129,7 @@ Write and save the following code as `./demo.ts`.
 
 ```typescript title="./demo.ts"
 import puppeteer from "puppeteer";
-import { PuppeteerAgent } from "@midscene/web";
+import { PuppeteerAgent } from "@midscene/web/puppeteer";
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 Promise.resolve(

@@ -1,6 +1,6 @@
 import { NodeType } from '@/extractor/constants';
 import type { ElementInfo } from '@/extractor/extractor';
-import { getElementInfosFromPage } from '../common/utils';
+import { getElementInfosFromPage } from '../../common/utils';
 
 export async function getElementInfos(page: any) {
   const captureElementSnapshot: Array<ElementInfo> =
