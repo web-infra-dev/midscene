@@ -75,12 +75,12 @@
   "files": ["dist", "README.md"],
   "dependencies": {
     "openai": "4.47.1",
-    "sharp": "0.33.3",
     "inquirer": "10.1.5",
-    "@midscene/core": "workspace:*"
+    "@midscene/core": "workspace:*",
+    "@midscene/shared": "workspace:*"
   },
   "devDependencies": {
-    "@modern-js/module-tools": "^2.56.1",
+    "@modern-js/module-tools": "2.58.2",
     "js-sha256": "0.11.0",
     "@types/node": "^18.0.0",
     "typescript": "~5.0.4",

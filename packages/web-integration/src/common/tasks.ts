@@ -24,8 +24,8 @@ import Insight, {
   type PlanningActionParamWaitFor,
   type PlanningActionParamError,
 } from '@midscene/core';
-import { base64Encoded } from '@midscene/core/image';
 import { commonScreenshotParam, getTmpFile, sleep } from '@midscene/core/utils';
+import { base64Encoded } from '@midscene/shared/img';
 import type { KeyInput, Page as PuppeteerPage } from 'puppeteer';
 import type { WebElementInfo } from '../web-element';
 import { type AiTaskCache, TaskCache } from './task-cache';

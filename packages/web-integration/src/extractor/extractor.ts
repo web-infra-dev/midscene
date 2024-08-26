@@ -1,4 +1,4 @@
-import { NodeType, TEXT_SIZE_THRESHOLD } from './constants';
+import { NodeType, TEXT_SIZE_THRESHOLD } from '@midscene/shared/constants';
 import {
   isButtonElement,
   isFormElement,

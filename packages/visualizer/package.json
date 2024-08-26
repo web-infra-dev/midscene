@@ -32,7 +32,7 @@
     "pixi.js": "8.1.1",
     "react-resizable-panels": "2.0.22",
     "zustand": "4.5.2",
-    "@modern-js/module-tools": "^2.56.1",
+    "@modern-js/module-tools": "2.58.2",
     "@modern-js/plugin-module-doc": "^2.33.1",
     "@types/react": "18.3.3",
     "@types/react-dom": "18.3.0",

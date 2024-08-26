@@ -61,10 +61,10 @@
     "node-fetch": "2.6.7",
     "openai": "4.47.1",
     "optional": "0.1.4",
-    "sharp": "0.33.3"
+    "@midscene/shared": "workspace:*"
   },
   "devDependencies": {
-    "@modern-js/module-tools": "^2.56.1",
+    "@modern-js/module-tools": "2.58.2",
     "@types/node": "^18.0.0",
     "@types/node-fetch": "2.6.11",
     "dotenv": "16.4.5",

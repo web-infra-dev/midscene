@@ -1,9 +1,14 @@
 import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import type { WebPage } from '@/common/page';
-import { resizeImg, saveBase64Image } from '@midscene/core/image';
-import { processImageElementInfo } from './img';
-import { getElementInfos } from './img/util';
+import { NodeType } from '@/extractor/constants';
+import type { ElementInfo } from '@/extractor/extractor';
+import {
+  processImageElementInfo,
+  resizeImg,
+  saveBase64Image,
+} from '@midscene/shared/img';
+import { getElementInfosFromPage } from '../common/utils';
 
 export async function generateExtractData(
   page: WebPage,
@@ -36,6 +41,8 @@ export async function generateExtractData(
   const resizeOutputImgPath = path.join(targetDir, 'resize-output.png');
   const snapshotJsonPath = path.join(targetDir, 'element-snapshot.json');
 
+  const startTime = Date.now();
+
   const {
     compositeElementInfoImgBase64,
     compositeElementInfoImgWithoutTextBase64,
@@ -44,6 +51,10 @@ export async function generateExtractData(
     elementsPositionInfoWithoutText,
     inputImgBase64,
   });
+
+  const endTime = Date.now();
+  const executionTime = (endTime - startTime) / 1000; // Convert to seconds
+  console.log(`Execution time: ${executionTime.toFixed(2)}s`);
 
   const resizeImgBase64 = await resizeImg(inputImgBase64);
 
@@ -110,4 +121,32 @@ export function writeFileSyncWithDir(
 ) {
   ensureDirectoryExistence(filePath);
   writeFileSync(filePath, content, options);
+}
+
+export async function getElementInfos(page: any) {
+  const captureElementSnapshot: Array<ElementInfo> =
+    await getElementInfosFromPage(page);
+  const elementsPositionInfo = captureElementSnapshot.map((elementInfo) => {
+    return {
+      label: elementInfo.indexId.toString(),
+      x: elementInfo.rect.left,
+      y: elementInfo.rect.top,
+      width: elementInfo.rect.width,
+      height: elementInfo.rect.height,
+      attributes: elementInfo.attributes,
+    };
+  });
+  const elementsPositionInfoWithoutText = elementsPositionInfo.filter(
+    (elementInfo) => {
+      if (elementInfo.attributes.nodeType === NodeType.TEXT) {
+        return false;
+      }
+      return true;
+    },
+  );
+  return {
+    elementsPositionInfo,
+    captureElementSnapshot,
+    elementsPositionInfoWithoutText,
+  };
 }
