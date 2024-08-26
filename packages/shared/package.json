@@ -10,10 +10,10 @@
       "import": "./dist/es/index.js",
       "require": "./dist/lib/index.js"
     },
-    "./constants": {
-      "types": "./src/constants.ts",
-      "import": "./dist/es/constants.js",
-      "require": "./dist/lib/constants.js"
+    "./constantss": {
+      "types": "./src/constants/index.ts",
+      "import": "./dist/es/constantss.js",
+      "require": "./dist/lib/constantss.js"
     },
     "./img": {
       "types": "./src/img/index.ts",
@@ -24,7 +24,7 @@
   "typesVersions": {
     "*": {
       ".": ["./src/index.ts"],
-      "constants": ["./src/constants.ts"],
+      "constants": ["./src/constants/index.ts"],
       "img": ["./src/img/index.ts"]
     }
   },

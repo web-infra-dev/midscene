@@ -75,7 +75,6 @@
   "files": ["dist", "README.md"],
   "dependencies": {
     "openai": "4.47.1",
-    "jimp": "0.22.12",
     "inquirer": "10.1.5",
     "@midscene/core": "workspace:*",
     "@midscene/shared": "workspace:*"

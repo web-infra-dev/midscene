@@ -1,7 +1,7 @@
 import assert from 'node:assert';
 import { Buffer } from 'node:buffer';
 import Jimp from 'jimp';
-import type { NodeType } from '../constant';
+import type { NodeType } from '../constants';
 
 // Define picture path
 type ElementType = {

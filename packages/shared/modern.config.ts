@@ -8,7 +8,7 @@ export default defineConfig({
     input: {
       index: './src/index.ts',
       img: './src/img/index.ts',
-      constant: './src/constant/index.ts',
+      constants: './src/constants/index.ts',
     },
     target: 'es2017',
   },

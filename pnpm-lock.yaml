@@ -121,9 +121,6 @@ importers:
       '@midscene/shared':
         specifier: workspace:*
         version: link:../shared
-      jimp:
-        specifier: 0.22.12
-        version: 0.22.12
       node-fetch:
         specifier: 2.6.7
         version: 2.6.7
@@ -276,9 +273,6 @@ importers:
       inquirer:
         specifier: 10.1.5
         version: 10.1.5
-      jimp:
-        specifier: 0.22.12
-        version: 0.22.12
       openai:
         specifier: 4.47.1
         version: 4.47.1
