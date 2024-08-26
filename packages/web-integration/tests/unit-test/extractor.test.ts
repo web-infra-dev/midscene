@@ -1,6 +1,7 @@
 import path, { join } from 'node:path';
 import { parseContextFromWebPage } from '@/common/utils';
 import { generateExtractData } from '@/debug';
+import { sleep } from '@midscene/core/utils';
 import { describe, expect, it } from 'vitest';
 import { launchPage } from '../ai/puppeteer/utils';
 
@@ -30,8 +31,17 @@ describe(
           attributes: item.attributes,
         };
       });
+
       expect(list).toMatchSnapshot();
       await reset();
+    });
+
+    it('profile ', async () => {
+      const { page, reset } = await launchPage('https://webinfra.org/about');
+      await sleep(1000);
+      console.time('total - parseContextFromWebPage');
+      const { content } = await parseContextFromWebPage(page);
+      console.timeEnd('total - parseContextFromWebPage');
     });
   },
   {

@@ -177,6 +177,38 @@ export async function alignCoordByTrim(
   if (width <= 3 || height <= 3) {
     return centerRect;
   }
+  const zeroSize: Rect = {
+    left: 0,
+    top: 0,
+    width: -1,
+    height: -1,
+  };
+  const finalCenterRect: Rect = { ...centerRect };
+  if (centerRect.left > width || centerRect.top > height) {
+    return zeroSize;
+  }
+
+  if (finalCenterRect.left < 0) {
+    finalCenterRect.width += finalCenterRect.left;
+    finalCenterRect.left = 0;
+  }
+
+  if (finalCenterRect.top < 0) {
+    finalCenterRect.height += finalCenterRect.top;
+    finalCenterRect.top = 0;
+  }
+
+  if (finalCenterRect.left + finalCenterRect.width > width) {
+    finalCenterRect.width = width - finalCenterRect.left;
+  }
+  if (finalCenterRect.top + finalCenterRect.height > height) {
+    finalCenterRect.height = height - finalCenterRect.top;
+  }
+
+  if (finalCenterRect.width <= 3 || finalCenterRect.height <= 3) {
+    return finalCenterRect;
+  }
+
   try {
     const croppedImage = jimpImage.crop(
       centerRect.left,

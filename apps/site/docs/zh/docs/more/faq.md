@@ -50,3 +50,13 @@ Midscene 需要一个能够理解用户界面的多模态大型语言模型。�
 尽管运行时间较长，Midscene 在实际应用中依然表现出色。它独特的开发体验会让代码库易于维护。我们相信，集成了 Midscene 的自动化脚本能够显著提升项目迭代效率，覆盖更多场景，提高整体生产力。
 
 简而言之，虽然偏慢，但这些投入一定都是值得的。
+
+### 浏览器界面持续闪动
+
+一般是 viewport `deviceScaleFactor` 参数与系统环境不匹配造成的。如果你在 Mac 系统下运行，可以把它设成 2 来解决。
+
+```typescript
+await page.setViewport({
+  deviceScaleFactor: 2,
+});
+```

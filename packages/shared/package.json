@@ -50,13 +50,9 @@
   "peerDependencies": {},
   "devDependencies": {
     "@modern-js/module-tools": "2.58.2",
-    "@modern-js/eslint-config": "2.58.2",
     "typescript": "~5.0.4",
-    "@types/node": "~16.11.7",
-    "rimraf": "~3.0.2",
-    "lint-staged": "~13.1.0",
-    "prettier": "~2.8.1",
-    "husky": "~8.0.1"
+    "@types/node": "^18.0.0",
+    "rimraf": "~3.0.2"
   },
   "sideEffects": [],
   "publishConfig": {

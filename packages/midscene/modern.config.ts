@@ -12,7 +12,7 @@ export default defineConfig({
       'ai-model': 'src/ai-model/index.ts',
     },
     // input: ['src/utils.ts', 'src/index.ts', 'src/image/index.ts'],
-    externals: ['node:buffer'],
+    externals: ['node:buffer', 'sharp'],
     target: 'es2017',
   },
 });

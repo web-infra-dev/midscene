@@ -5,7 +5,6 @@ export {
 } from '@midscene/shared/img';
 export {
   alignCoordByTrim,
-  trimImage,
   calculateNewDimensions,
   resizeImg,
   transformImgPathToBase64,

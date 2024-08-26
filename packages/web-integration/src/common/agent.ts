@@ -117,7 +117,7 @@ export class PageAgent {
 
     if (!output?.pass) {
       const errMsg = msg || `Assertion failed: ${assertion}`;
-      const reasonMsg = `Reason: ${output?.thought} || (no_reason)`;
+      const reasonMsg = `Reason: ${output?.thought || '(no_reason)'}`;
       throw new Error(`${errMsg}\n${reasonMsg}`);
     }
   }

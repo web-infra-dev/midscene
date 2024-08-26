@@ -208,14 +208,23 @@ exports[`extractor > basic 1`] = `
   },
   {
     "attributes": {
+      "for": "name",
+      "htmlTagName": "<label>",
+      "nodeType": "FORM_ITEM Node",
+    },
+    "content": "Name:",
+  },
+  {
+    "attributes": {
       "nodeType": "TEXT Node",
     },
     "content": "Name:",
   },
   {
     "attributes": {
+      "htmlTagName": "<input>",
       "id": "J_input",
-      "nodeType": "INPUT Node",
+      "nodeType": "FORM_ITEM Node",
       "placeholder": "Hello World This is Placeholder",
     },
     "content": "Hello World This is Placeholder",
@@ -228,21 +237,30 @@ exports[`extractor > basic 1`] = `
   },
   {
     "attributes": {
+      "htmlTagName": "<label>",
+      "nodeType": "FORM_ITEM Node",
+    },
+    "content": "Shape",
+  },
+  {
+    "attributes": {
       "nodeType": "TEXT Node",
     },
     "content": "Shape",
   },
   {
     "attributes": {
-      "nodeType": "INPUT Node",
+      "htmlTagName": "<input>",
+      "nodeType": "FORM_ITEM Node",
       "placeholder": "You shouldn't see this placeholder.",
       "value": "Rectangle",
     },
-    "content": "You shouldn't see this placeholder.",
+    "content": "Rectangle",
   },
   {
     "attributes": {
-      "nodeType": "INPUT Node",
+      "htmlTagName": "<textarea>",
+      "nodeType": "FORM_ITEM Node",
       "placeholder": "this_is_a_textarea",
     },
     "content": "this_is_a_textarea",
@@ -267,13 +285,44 @@ exports[`extractor > basic 1`] = `
   },
   {
     "attributes": {
+      "for": "options",
+      "htmlTagName": "<label>",
+      "nodeType": "FORM_ITEM Node",
+    },
+    "content": "Choose an option:",
+  },
+  {
+    "attributes": {
+      "nodeType": "TEXT Node",
+    },
+    "content": "Choose an option:",
+  },
+  {
+    "attributes": {
+      "htmlTagName": "<select>",
+      "id": "options",
+      "name": "options",
+      "nodeType": "FORM_ITEM Node",
+    },
+    "content": "Option 1",
+  },
+  {
+    "attributes": {
+      "class": ".gh-ar-hdn",
+      "for": "gh-ac",
+      "htmlTagName": "<label>",
+      "nodeType": "FORM_ITEM Node",
+    },
+    "content": "输入搜索关键词",
+  },
+  {
+    "attributes": {
       "nodeType": "TEXT Node",
     },
     "content": "输入搜索关键词",
   },
   {
     "attributes": {
-      "_midscene_retrieve_task_id": "36bc72f23a",
       "aria-autocomplete": "list",
       "aria-expanded": "false",
       "aria-haspopup": "true",
@@ -283,10 +332,11 @@ exports[`extractor > basic 1`] = `
       "autocomplete": "off",
       "autocorrect": "off",
       "class": ".gh-tb.ui-autocomplete-input",
+      "htmlTagName": "<input>",
       "id": "gh-ac",
       "maxlength": "300",
       "name": "_nkw",
-      "nodeType": "INPUT Node",
+      "nodeType": "FORM_ITEM Node",
       "placeholder": "搜索任何物品",
       "role": "combobox",
       "size": "50",
@@ -294,6 +344,33 @@ exports[`extractor > basic 1`] = `
       "type": "text",
     },
     "content": "搜索任何物品",
+  },
+  {
+    "attributes": {
+      "class": ".life-core-input-inner__wrapper.life-core-input-inner__wrapper-border.life-core-input-inner__wrapper-size-md.life-core-input-inner__wrapper-add-suffix",
+      "htmlTagName": "<label>",
+      "nodeType": "FORM_ITEM Node",
+    },
+    "content": "",
+  },
+  {
+    "attributes": {
+      "class": ".life-core-input.life-core-input-size-md",
+      "htmlTagName": "<input>",
+      "nodeType": "FORM_ITEM Node",
+      "placeholder": "验证码",
+      "tabindex": "0",
+      "type": "text",
+    },
+    "content": "验证码",
+  },
+  {
+    "attributes": {
+      "class": ".life-core-checkbox.life-core-checkbox-md.src-pages-Login-components-LoginCard-index-module__checkbox--Npo2V--212e2",
+      "htmlTagName": "<label>",
+      "nodeType": "FORM_ITEM Node",
+    },
+    "content": "",
   },
 ]
 `;

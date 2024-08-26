@@ -1,6 +1,6 @@
 import assert from 'node:assert';
 import { writeFileSync } from 'node:fs';
-import { PuppeteerAgent } from '@midscene/web';
+import { PuppeteerAgent } from '@midscene/web/puppeteer';
 import ora from 'ora-classic';
 import puppeteer from 'puppeteer';
 import { type ArgumentValueType, findOnlyItemInArgs, parse } from './args';
@@ -86,10 +86,12 @@ const userExpectHeight = findOnlyItemInArgs(
   preferenceArgs.viewportHeight,
 );
 const userExpectDpr = findOnlyItemInArgs(args, preferenceArgs.viewportScale);
+const defaultDpr = process.platform === 'darwin' ? 2 : 1;
 const viewportConfig = {
   width: typeof userExpectWidth === 'number' ? userExpectWidth : 1280,
   height: typeof userExpectHeight === 'number' ? userExpectHeight : 1280,
-  deviceScaleFactor: typeof userExpectDpr === 'number' ? userExpectDpr : 1,
+  deviceScaleFactor:
+    typeof userExpectDpr === 'number' ? userExpectDpr : defaultDpr,
 };
 const url = findOnlyItemInArgs(args, preferenceArgs.url);
 assert(url, 'URL is required');
