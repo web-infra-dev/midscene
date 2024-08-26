@@ -2,8 +2,6 @@ export {
   imageInfo,
   imageInfoOfBase64,
   base64Encoded,
-} from '@midscene/shared/img';
-export {
   calculateNewDimensions,
   resizeImg,
   transformImgPathToBase64,

@@ -3,8 +3,11 @@ import path from 'node:path';
 import type { WebPage } from '@/common/page';
 import { NodeType } from '@/extractor/constants';
 import type { ElementInfo } from '@/extractor/extractor';
-import { resizeImg, saveBase64Image } from '@midscene/shared/img';
-import { processImageElementInfo } from '@midscene/shared/img';
+import {
+  processImageElementInfo,
+  resizeImg,
+  saveBase64Image,
+} from '@midscene/shared/img';
 import { getElementInfosFromPage } from '../common/utils';
 
 export async function generateExtractData(
