@@ -50,3 +50,13 @@ Since Midscene.js invokes AI for each planning and querying operation, the runni
 Despite the increased time and cost, Midscene stands out in practical applications due to its unique development experience and easy-to-maintain codebase. We are confident that incorporating automation scripts powered by Midscene will significantly enhance your project’s efficiency, cover many more situations, and boost overall productivity.
 
 In short, it is worth the time and cost.
+
+### The webpage continues to flash when running in headed mode
+
+It's common when the viewport `deviceScaleFactor` does not match your system settings. Setting it to 2 in OSX will solve the issue.
+
+```typescript
+await page.setViewport({
+  deviceScaleFactor: 2,
+});
+```

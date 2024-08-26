@@ -12,7 +12,6 @@ import {
   logger,
   setDataForNode,
   setDebugMode,
-  validTextNodeContent,
   visibleRect,
 } from './util';
 
