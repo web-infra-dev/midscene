@@ -61,7 +61,7 @@
     "node-fetch": "2.6.7",
     "openai": "4.47.1",
     "optional": "0.1.4",
-    "sharp": "0.33.3"
+    "jimp": "0.22.12"
   },
   "devDependencies": {
     "@modern-js/module-tools": "^2.56.1",

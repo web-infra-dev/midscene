@@ -1,6 +1,6 @@
 import { Buffer } from 'node:buffer';
 import { getTmpFile } from '@/utils';
-import Sharp from 'sharp';
+import Jimp from 'jimp';
 import type { Color, UIContext, UISection } from '..';
 import { imageInfo } from './info';
 
@@ -87,45 +87,36 @@ export async function composeSectionDiagram(
 }> {
   const { width, height } = await imageInfo(context.screenshotBase64);
   const ratio = Math.min(sizeLimit / width, sizeLimit / height, 1);
-  const canvasWidth = width * ratio;
-  const canvasHeight = height * ratio;
+  const canvasWidth = Math.floor(width * ratio);
+  const canvasHeight = Math.floor(height * ratio);
 
   const sectionNameColorMap: Record<string, Color> = {};
-  const rects = sections.map((section, index) => {
-    const { left, top, width, height } = section.rect;
-    const color = colors[index % colors.length];
-    sectionNameColorMap[section.name] = color;
-    return `
-            <rect x="${left * ratio}" y="${top * ratio}" width="${width * ratio}" height="${
-              height * ratio
-            }" fill="${color.hex}" />
-            <text x="${left * ratio}" y="${
-              top * ratio + textFontSize
-            }" font-family="Arial" font-size="${textFontSize}" fill="black">
-                ${section.name}
-            </text>
-        `;
-  });
+  const image = new Jimp(canvasWidth, canvasHeight, 0xffffffff);
 
-  const rectangles = `
-        <svg width="${canvasWidth}" height="${canvasHeight}">
-        ${rects.join('\n')}
-        </svg>
-    `;
-  const svgBuffer = Buffer.from(rectangles);
+  for (let i = 0; i < sections.length; i++) {
+    const section = sections[i];
+    const { left, top, width, height } = section.rect;
+    const color = colors[i % colors.length];
+    sectionNameColorMap[section.name] = color;
+
+    const rectLeft = Math.floor(left * ratio);
+    const rectTop = Math.floor(top * ratio);
+    const rectWidth = Math.floor(width * ratio);
+    const rectHeight = Math.floor(height * ratio);
+
+    image.scan(rectLeft, rectTop, rectWidth, rectHeight, function (x, y, idx) {
+      this.bitmap.data[idx + 0] = Number.parseInt(color.hex.slice(1, 3), 16);
+      this.bitmap.data[idx + 1] = Number.parseInt(color.hex.slice(3, 5), 16);
+      this.bitmap.data[idx + 2] = Number.parseInt(color.hex.slice(5, 7), 16);
+      this.bitmap.data[idx + 3] = 255;
+    });
+
+    const font = await Jimp.loadFont(Jimp.FONT_SANS_12_BLACK);
+    image.print(font, rectLeft, rectTop, section.name);
+  }
 
   const file = getTmpFile('png');
-  await Sharp({
-    create: {
-      width: canvasWidth,
-      height: canvasHeight,
-      channels: 4,
-      background: { r: 255, g: 255, b: 255, alpha: 1 },
-    },
-  })
-    .composite([{ input: svgBuffer }])
-    .png()
-    .toFile(file);
+  await image.writeAsync(file);
 
   return {
     file,

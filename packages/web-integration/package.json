@@ -57,7 +57,7 @@
   "files": ["dist", "README.md"],
   "dependencies": {
     "openai": "4.47.1",
-    "sharp": "0.33.3",
+    "jimp": "0.22.12",
     "inquirer": "10.1.5",
     "@midscene/core": "workspace:*"
   },

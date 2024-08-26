@@ -1,7 +1,7 @@
 import assert from 'node:assert';
 import { Buffer } from 'node:buffer';
 import type { NodeType } from '@/extractor/constants';
-import sharp from 'sharp';
+import Jimp from 'jimp';
 
 // Define picture path
 type ElementType = {
@@ -21,65 +21,85 @@ const createSvgOverlay = (
   imageWidth: number,
   imageHeight: number,
 ) => {
-  let svgContent = `<svg width="${imageWidth}" height="${imageHeight}" xmlns="http://www.w3.org/2000/svg">`;
+  const createPngOverlay = async (
+    elements: Array<ElementType>,
+    imageWidth: number,
+    imageHeight: number,
+  ) => {
+    const image = new Jimp(imageWidth, imageHeight, 0x00000000);
 
-  // Define color array
-  const colors = [
-    { rect: 'blue', text: 'white' },
-    { rect: 'green', text: 'white' },
-  ];
+    // Define color array
+    const colors = [
+      { rect: 0x0000ffff, text: 0xffffffff }, // blue, white
+      { rect: 0x8b4513ff, text: 0xffffffff }, // brown, white
+    ];
 
-  // Define clipping path
-  svgContent += '<defs>';
-  elements.forEach((element, index) => {
-    svgContent += `
-      <clipPath id="clip${index}">
-        <rect x="${element.x}" y="${element.y}" width="${element.width}" height="${element.height}" />
-      </clipPath>
-    `;
-  });
-  svgContent += '</defs>';
+    for (let index = 0; index < elements.length; index++) {
+      const element = elements[index];
+      const color = colors[index % colors.length];
 
-  elements.forEach((element, index) => {
-    // Calculate the width and height of the text
-    const textWidth = element.label.length * 8; // Assume that each character is 8px wide
-    const textHeight = 12; // Assume that the text height is 20px
+      // Draw rectangle
+      image.scan(
+        element.x,
+        element.y,
+        element.width,
+        element.height,
+        function (x, y, idx) {
+          if (
+            x === element.x ||
+            x === element.x + element.width - 1 ||
+            y === element.y ||
+            y === element.y + element.height - 1
+          ) {
+            this.bitmap.data[idx + 0] = (color.rect >> 24) & 0xff; // R
+            this.bitmap.data[idx + 1] = (color.rect >> 16) & 0xff; // G
+            this.bitmap.data[idx + 2] = (color.rect >> 8) & 0xff; // B
+            this.bitmap.data[idx + 3] = color.rect & 0xff; // A
+          }
+        },
+      );
 
-    // Calculates the position of the initial color block so that it wraps and centers the text
-    const rectWidth = textWidth + 5;
-    const rectHeight = textHeight + 4;
-    let rectX = element.x - rectWidth;
-    let rectY = element.y + element.height / 2 - textHeight / 2 - 2;
+      // Calculate text position
+      const textWidth = element.label.length * 8;
+      const textHeight = 12;
+      const rectWidth = textWidth + 5;
+      const rectHeight = textHeight + 4;
+      let rectX = element.x - rectWidth;
+      let rectY = element.y + element.height / 2 - textHeight / 2 - 2;
 
-    // Initial text position
-    let textX = rectX + rectWidth / 2;
-    let textY = rectY + rectHeight / 2 + 6;
+      // Check if obscured by the left
+      if (rectX < 0) {
+        rectX = element.x;
+        rectY = element.y - rectHeight;
+      }
 
-    // Check to see if it's obscured by the left
-    if (rectX < 0) {
-      rectX = element.x;
-      rectY = element.y - rectHeight;
-      textX = rectX + rectWidth / 2;
-      textY = rectY + rectHeight / 2 + 6;
+      // Draw text background
+      image.scan(rectX, rectY, rectWidth, rectHeight, function (x, y, idx) {
+        this.bitmap.data[idx + 0] = (color.rect >> 24) & 0xff; // R
+        this.bitmap.data[idx + 1] = (color.rect >> 16) & 0xff; // G
+        this.bitmap.data[idx + 2] = (color.rect >> 8) & 0xff; // B
+        this.bitmap.data[idx + 3] = color.rect & 0xff; // A
+      });
+      // Draw text (simplified, as Jimp doesn't have built-in text drawing)
+      const font = await Jimp.loadFont(Jimp.FONT_SANS_16_WHITE);
+      image.print(
+        font,
+        rectX,
+        rectY,
+        {
+          text: element.label,
+          alignmentX: Jimp.HORIZONTAL_ALIGN_CENTER,
+          alignmentY: Jimp.VERTICAL_ALIGN_MIDDLE,
+        },
+        rectWidth,
+        rectHeight,
+      );
     }
 
-    // Choose color
-    const color = colors[index % colors.length];
+    return image.getBufferAsync(Jimp.MIME_PNG);
+  };
 
-    // Draw boxes and text
-    svgContent += `
-      <rect x="${element.x}" y="${element.y}" width="${element.width}" height="${element.height}" 
-            style="fill:none;stroke:${color.rect};stroke-width:4" clip-path="url(#clip${index})" />
-      <rect x="${rectX}" y="${rectY}" width="${rectWidth}" height="${rectHeight}" style="fill:${color.rect};" />
-      <text x="${textX}" y="${textY}" 
-            text-anchor="middle" dominant-baseline="middle" style="fill:${color.text};font-size:12px;font-weight:bold;">
-        ${element.label}
-      </text>
-    `;
-  });
-
-  svgContent += '</svg>';
-  return Buffer.from(svgContent);
+  return createPngOverlay(elements, imageWidth, imageHeight);
 };
 
 export const processImageElementInfo = async (options: {
@@ -92,46 +112,62 @@ export const processImageElementInfo = async (options: {
   assert(base64Image, 'base64Image is undefined');
 
   const imageBuffer = Buffer.from(base64Image, 'base64');
-  const metadata = await sharp(imageBuffer).metadata();
-  const { width, height } = metadata;
+  const image = await Jimp.read(imageBuffer);
+  const { width, height } = image.bitmap;
 
   if (width && height) {
     // Create svg overlay
-    const svgOverlay = createSvgOverlay(
+    const svgOverlay = await createSvgOverlay(
       options.elementsPositionInfo,
       width,
       height,
     );
-    const svgOverlayWithoutText = createSvgOverlay(
+    const svgOverlayWithoutText = await createSvgOverlay(
       options.elementsPositionInfoWithoutText,
       width,
       height,
     );
 
     // Composite picture
-    const compositeElementInfoImgBase64 = await sharp(imageBuffer)
-      // .resize(newDimensions.width, newDimensions.height)
-      .composite([{ input: svgOverlay, blend: 'over' }])
-      .toBuffer()
-      .then((data) => {
-        // Convert image data to base64 encoding
-        return data.toString('base64');
+    const compositeElementInfoImgBase64 = await Jimp.read(imageBuffer)
+      .then(async (image: Jimp) => {
+        const svgImage = await Jimp.read(svgOverlay);
+        return image.composite(svgImage, 0, 0, {
+          mode: Jimp.BLEND_SOURCE_OVER,
+          opacitySource: 1,
+          opacityDest: 1,
+        });
       })
-      .catch((err) => {
-        throw err;
+      .then((compositeImage: Jimp) => {
+        return compositeImage.getBufferAsync(Jimp.MIME_PNG);
+      })
+      .then((buffer: Buffer) => {
+        return buffer.toString('base64');
+      })
+      .catch((error: unknown) => {
+        throw error;
       });
 
     // Composite picture withoutText
-    const compositeElementInfoImgWithoutTextBase64 = await sharp(imageBuffer)
-      // .resize(newDimensions.width, newDimensions.height)
-      .composite([{ input: svgOverlayWithoutText, blend: 'over' }])
-      .toBuffer()
-      .then((data) => {
-        // Convert image data to base64 encoding
-        return data.toString('base64');
+    const compositeElementInfoImgWithoutTextBase64 = await Jimp.read(
+      imageBuffer,
+    )
+      .then(async (image: Jimp) => {
+        const svgImage = await Jimp.read(svgOverlayWithoutText);
+        return image.composite(svgImage, 0, 0, {
+          mode: Jimp.BLEND_SOURCE_OVER,
+          opacitySource: 1,
+          opacityDest: 1,
+        });
       })
-      .catch((err) => {
-        throw err;
+      .then((compositeImage: Jimp) => {
+        return compositeImage.getBufferAsync(Jimp.MIME_PNG);
+      })
+      .then((buffer: Buffer) => {
+        return buffer.toString('base64');
+      })
+      .catch((error: unknown) => {
+        throw error;
       });
 
     return {
