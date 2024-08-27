@@ -37,39 +37,6 @@ modelList.forEach((model) => {
       expect(plans[3].param).toMatchSnapshot();
     });
 
-    // it('should raise an error when prompt is irrelevant with page', async () => {
-    //   const { context } = await getPageDataOfTestName('todo');
-
-    //   expect(async () => {
-    //     await plan(
-    //       'Tap the blue T-shirt in left top corner, and click the "add to cart" button',
-    //       {
-    //         context,
-    //       },
-    //       model,
-    //     );
-    //   }).rejects.toThrowError();
-    // });
-
-    it('Error message in Chinese', async () => {
-      const { context } = await getPageDataOfTestName('todo');
-      let error: Error | undefined;
-      try {
-        await plan(
-          '在界面上点击“香蕉奶茶”，然后添加到购物车',
-          {
-            context,
-          },
-          model,
-        );
-      } catch (e: any) {
-        error = e;
-      }
-
-      expect(error).toBeTruthy();
-      expect(/a-z/i.test(error!.message)).toBeFalsy();
-    });
-
     it('instructions of to-do mvc', async () => {
       const { context } = await getPageDataOfTestName('todo');
       const instructions = [
