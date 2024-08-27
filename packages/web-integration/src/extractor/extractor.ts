@@ -1,9 +1,10 @@
-import { NodeType, TEXT_SIZE_THRESHOLD } from '@midscene/shared/constants';
+import { NodeType } from '@midscene/shared/constants';
 import {
   isButtonElement,
   isFormElement,
   isImgElement,
   isTextElement,
+  isWidgetElement,
 } from './dom-util';
 import {
   generateHash,
@@ -210,6 +211,31 @@ export function extractTextWithPosition(
         htmlNode: debugMode ? node : null,
       });
       return;
+    }
+
+    if (isWidgetElement(node)) {
+      const attributes = getNodeAttributes(node);
+      const nodeHashId = generateHash('', rect);
+      const selector = setDataForNode(node, nodeHashId);
+      elementInfoArray.push({
+        id: nodeHashId,
+        indexId: generateId(nodeIndex++),
+        nodeHashId,
+        nodeType: NodeType.FORM_ITEM,
+        locator: selector,
+        attributes: {
+          ...attributes,
+          nodeType: NodeType.FORM_ITEM,
+        },
+        content: '',
+        rect,
+        center: [
+          Math.round(rect.left + rect.width / 2),
+          Math.round(rect.top + rect.height / 2),
+        ],
+        htmlNode: debugMode ? node : null,
+      });
+      return true;
     }
 
     return true;
