@@ -37,7 +37,7 @@ export interface ElementInfo {
   center: [number, number];
 }
 
-const container: HTMLElement = document.body;
+const container: HTMLElement = document.body || document;
 
 function generateId(numberId: number) {
   //   const letters = 'ABCDEFGHIJKLMNPRSTUVXYZ';
