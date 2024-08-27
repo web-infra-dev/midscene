@@ -1,8 +1,11 @@
-export function isInputElement(node: Node): node is HTMLInputElement {
+export function isFormElement(node: Node) {
   return (
     node instanceof HTMLElement &&
     (node.tagName.toLowerCase() === 'input' ||
-      node.tagName.toLowerCase() === 'textarea')
+      node.tagName.toLowerCase() === 'textarea' ||
+      node.tagName.toLowerCase() === 'label' ||
+      node.tagName.toLowerCase() === 'select' ||
+      node.tagName.toLowerCase() === 'option')
   );
 }
 

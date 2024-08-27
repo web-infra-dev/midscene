@@ -1,7 +1,7 @@
 {
   "name": "@midscene/cli",
   "description": "Cli for Midscene.js",
-  "version": "0.3.4",
+  "version": "0.4.0",
   "jsnext:source": "./src/index.ts",
   "main": "./dist/lib/index.js",
   "bin": {
@@ -25,7 +25,7 @@
     "yargs": "17.7.2"
   },
   "devDependencies": {
-    "@modern-js/module-tools": "^2.56.1",
+    "@modern-js/module-tools": "2.58.2",
     "@types/node": "^18.0.0",
     "@types/yargs": "17.0.32",
     "execa": "9.3.0",

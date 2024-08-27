@@ -1,8 +1,13 @@
 import assert from 'node:assert';
 import { Buffer } from 'node:buffer';
 import { readFileSync } from 'node:fs';
-import Sharp from 'sharp';
-import type { Size } from '..';
+import Jimp from 'jimp';
+
+export interface Size {
+  width: number;
+  height: number;
+}
+
 /**
  * Retrieves the dimensions of an image asynchronously
  *
@@ -11,8 +16,19 @@ import type { Size } from '..';
  * @throws Error if the image data is invalid
  */
 export async function imageInfo(image: string | Buffer): Promise<Size> {
-  const { width, height } = await Sharp(image).metadata();
-  assert(width && height, `invalid image: ${image}`);
+  let jimpImage: Jimp;
+  if (typeof image === 'string') {
+    jimpImage = await Jimp.read(image);
+  } else if (Buffer.isBuffer(image)) {
+    jimpImage = await Jimp.read(image);
+  } else {
+    throw new Error('Invalid image input: must be a string path or a Buffer');
+  }
+  const { width, height } = jimpImage.bitmap;
+  assert(
+    width && height,
+    `Invalid image: ${typeof image === 'string' ? image : 'Buffer'}`,
+  );
   return { width, height };
 }
 

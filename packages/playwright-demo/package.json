@@ -1,7 +1,7 @@
 {
   "name": "midscene-playwright-demo",
   "private": true,
-  "version": "0.3.4",
+  "version": "0.4.0",
   "types": "./dist/types/index.d.ts",
   "jsnext:source": "./src/index.ts",
   "main": "./dist/lib/index.js",
@@ -17,7 +17,7 @@
     "e2e:ui": "playwright test --config=playwright.config.ts --ui"
   },
   "devDependencies": {
-    "@modern-js/module-tools": "^2.56.1",
+    "@modern-js/module-tools": "2.58.2",
     "@modern-js/plugin-testing": "2.56.1",
     "@playwright/test": "1.44.1",
     "@types/jest": "~29.2.4",

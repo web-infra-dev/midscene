@@ -1,6 +1,6 @@
 import { Buffer } from 'node:buffer';
-import type { Rect } from '@/types';
-import Sharp from 'sharp';
+import Jimp from 'jimp';
+import type { Rect } from '../types';
 
 /**
  * Saves a Base64-encoded image to a file
@@ -21,8 +21,9 @@ export async function saveBase64Image(options: {
   // Converts base64 data to buffer
   const imageBuffer = Buffer.from(base64Image, 'base64');
 
-  // Use sharp to process the image and save it to the specified location
-  await Sharp(imageBuffer).toFile(outputPath);
+  // Use Jimp to process the image and save it to the specified location
+  const image = await Jimp.read(imageBuffer);
+  await image.writeAsync(outputPath);
 
   console.log('Image successfully written to file.');
 }
@@ -33,14 +34,10 @@ export async function saveBase64Image(options: {
  * @returns A Promise that resolves to a base64-encoded string representing the image file
  */
 export async function transformImgPathToBase64(inputPath: string) {
-  // Use sharp to process images and generate base64 data
-  return await Sharp(inputPath)
-    .toBuffer()
-    .then((data) => {
-      // Convert image data to base64 encoding
-      const base64Data = data.toString('base64');
-      return base64Data;
-    });
+  // Use Jimp to process images and generate base64 data
+  const image = await Jimp.read(inputPath);
+  const buffer = await image.getBufferAsync(Jimp.MIME_PNG);
+  return buffer.toString('base64');
 }
 
 /**
@@ -57,22 +54,17 @@ export async function resizeImg(base64Data: string) {
   // Converts base64 data to buffer
   const imageBuffer = Buffer.from(base64Image, 'base64');
 
-  const metadata = await Sharp(imageBuffer).metadata();
-  const { width, height } = metadata;
+  const image = await Jimp.read(imageBuffer);
+  const { width, height } = image.bitmap;
   if (!width || !height) {
     throw Error('undefined width or height with url');
   }
 
   const newSize = calculateNewDimensions(width, height);
 
-  return await Sharp(imageBuffer)
-    .resize(newSize.width, newSize.height) // Zoom to under 512x512 pixels
-    .toBuffer()
-    .then((data) => {
-      // Convert image data to base64 encoding
-      const base64Data = data.toString('base64');
-      return base64Data;
-    });
+  image.resize(newSize.width, newSize.height);
+  const buffer = await image.getBufferAsync(Jimp.MIME_PNG);
+  return buffer.toString('base64');
 }
 
 /**
@@ -131,34 +123,30 @@ export async function trimImage(image: string | Buffer): Promise<{
   width: number;
   height: number;
 } | null> {
-  const imgInstance = Sharp(image);
-  const instanceInfo = await imgInstance.metadata();
+  const jimpImage = await Jimp.read(
+    Buffer.isBuffer(image) ? image : Buffer.from(image),
+  );
+  const { width, height } = jimpImage.bitmap;
 
-  if (
-    !instanceInfo.width ||
-    instanceInfo.width <= 3 ||
-    !instanceInfo.height ||
-    instanceInfo.height <= 3
-  ) {
+  if (width <= 3 || height <= 3) {
     return null;
   }
 
-  const { info } = await imgInstance.trim().toBuffer({
-    resolveWithObject: true,
-  });
+  const trimmedImage = jimpImage.autocrop();
+  const { width: trimmedWidth, height: trimmedHeight } = trimmedImage.bitmap;
 
-  if (
-    typeof info.trimOffsetLeft === 'undefined' ||
-    typeof info.trimOffsetTop === 'undefined'
-  ) {
+  const trimOffsetLeft = (width - trimmedWidth) / 2;
+  const trimOffsetTop = (height - trimmedHeight) / 2;
+
+  if (trimOffsetLeft === 0 && trimOffsetTop === 0) {
     return null;
   }
 
   return {
-    trimOffsetLeft: info.trimOffsetLeft,
-    trimOffsetTop: info.trimOffsetTop,
-    width: info.width,
-    height: info.height,
+    trimOffsetLeft: -trimOffsetLeft,
+    trimOffsetTop: -trimOffsetTop,
+    width: trimmedWidth,
+    height: trimmedHeight,
   };
 }
 
@@ -166,7 +154,7 @@ export async function trimImage(image: string | Buffer): Promise<{
  * Aligns an image's coordinate system based on trimming information
  *
  * This function takes an image and a center rectangle as input. It first extracts the center
- * rectangle from the image using the Sharp library and converts it to a buffer. Then, it calls
+ * rectangle from the image using Jimp and converts it to a buffer. Then, it calls
  * the trimImage function to obtain the trimming information of the buffer image. If there is no
  * trimming information, the original center rectangle is returned. If there is trimming information,
  * a new rectangle is created based on the trimming information, with its top-left corner
@@ -178,34 +166,75 @@ export async function trimImage(image: string | Buffer): Promise<{
  * @returns A Promise that resolves to a rectangle object representing the aligned coordinates
  * @throws Error if there is an error during image processing
  */
-export async function alignCoordByTrim(
-  image: string | Buffer,
-  centerRect: Rect,
-): Promise<Rect> {
-  const imgInfo = await Sharp(image).metadata();
-  if (
-    !imgInfo?.width ||
-    !imgInfo.height ||
-    imgInfo.width <= 3 ||
-    imgInfo.height <= 3
-  ) {
-    return centerRect;
-  }
-  try {
-    const img = await Sharp(image).extract(centerRect).toBuffer();
-    const trimInfo = await trimImage(img);
-    if (!trimInfo) {
-      return centerRect;
-    }
+// export async function alignCoordByTrim(
+//   image: string | Buffer,
+//   centerRect: Rect,
+// ): Promise<Rect> {
+//   const isBuffer = Buffer.isBuffer(image);
+//   let jimpImage;
+//   if (isBuffer) {
+//     jimpImage = await Jimp.read(image);
+//   } else {
+//     jimpImage = await Jimp.read(image);
+//   }
 
-    return {
-      left: centerRect.left - trimInfo.trimOffsetLeft,
-      top: centerRect.top - trimInfo.trimOffsetTop,
-      width: trimInfo.width,
-      height: trimInfo.height,
-    };
-  } catch (e) {
-    console.log(imgInfo);
-    throw e;
-  }
-}
+//   const { width, height } = jimpImage.bitmap;
+//   if (width <= 3 || height <= 3) {
+//     return centerRect;
+//   }
+//   const zeroSize: Rect = {
+//     left: 0,
+//     top: 0,
+//     width: -1,
+//     height: -1,
+//   };
+//   const finalCenterRect: Rect = { ...centerRect };
+//   if (centerRect.left > width || centerRect.top > height) {
+//     return zeroSize;
+//   }
+
+//   if (finalCenterRect.left < 0) {
+//     finalCenterRect.width += finalCenterRect.left;
+//     finalCenterRect.left = 0;
+//   }
+
+//   if (finalCenterRect.top < 0) {
+//     finalCenterRect.height += finalCenterRect.top;
+//     finalCenterRect.top = 0;
+//   }
+
+//   if (finalCenterRect.left + finalCenterRect.width > width) {
+//     finalCenterRect.width = width - finalCenterRect.left;
+//   }
+//   if (finalCenterRect.top + finalCenterRect.height > height) {
+//     finalCenterRect.height = height - finalCenterRect.top;
+//   }
+
+//   if (finalCenterRect.width <= 3 || finalCenterRect.height <= 3) {
+//     return finalCenterRect;
+//   }
+
+//   try {
+//     const croppedImage = jimpImage.crop(
+//       centerRect.left,
+//       centerRect.top,
+//       centerRect.width,
+//       centerRect.height,
+//     );
+//     const buffer = await croppedImage.getBufferAsync(Jimp.MIME_PNG);
+//     const trimInfo = await trimImage(buffer);
+//     if (!trimInfo) {
+//       return centerRect;
+//     }
+
+//     return {
+//       left: centerRect.left - trimInfo.trimOffsetLeft,
+//       top: centerRect.top - trimInfo.trimOffsetTop,
+//       width: trimInfo.width,
+//       height: trimInfo.height,
+//     };
+//   } catch (e) {
+//     console.log(jimpImage.bitmap);
+//     throw e;
+//   }
+// }

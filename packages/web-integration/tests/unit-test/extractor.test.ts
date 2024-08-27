@@ -30,7 +30,17 @@ describe(
           attributes: item.attributes,
         };
       });
+
       expect(list).toMatchSnapshot();
+      await reset();
+    });
+
+    it('profile ', async () => {
+      const { page, reset } = await launchPage('https://webinfra.org/about');
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+      console.time('total - parseContextFromWebPage');
+      const { content } = await parseContextFromWebPage(page);
+      console.timeEnd('total - parseContextFromWebPage');
       await reset();
     });
   },

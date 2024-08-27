@@ -4,14 +4,10 @@ import fs, { readFileSync } from 'node:fs';
 import path from 'node:path';
 import type { ElementInfo } from '@/extractor/extractor';
 import type { PlaywrightParserOpt, UIContext } from '@midscene/core';
-import {
-  alignCoordByTrim,
-  base64Encoded,
-  imageInfoOfBase64,
-} from '@midscene/core/image';
 import { getTmpFile } from '@midscene/core/utils';
+import { base64Encoded, imageInfoOfBase64 } from '@midscene/shared/img';
 import dayjs from 'dayjs';
-import { WebElementInfo, type WebElementInfoType } from '../web-element';
+import { WebElementInfo } from '../web-element';
 import type { WebPage } from './page';
 
 export type WebUIContext = UIContext<WebElementInfo> & {
@@ -30,12 +26,14 @@ export async function parseContextFromWebPage(
   const screenshotBuffer = readFileSync(file);
   const screenshotBase64 = base64Encoded(file);
   const captureElementSnapshot = await getElementInfosFromPage(page);
+
   // align element
   const elementsInfo = await alignElements(
     screenshotBuffer,
     captureElementSnapshot,
     page,
   );
+
   const size = await imageInfoOfBase64(screenshotBase64);
 
   return {
@@ -63,20 +61,14 @@ async function alignElements(
   elements: ElementInfo[],
   page: WebPage,
 ): Promise<WebElementInfo[]> {
-  const textsAligned: WebElementInfo[] = [];
   const validElements = elements.filter((item) => {
     return (
       item.rect.height >= sizeThreshold && item.rect.width >= sizeThreshold
     );
   });
+  const textsAligned: WebElementInfo[] = [];
   for (const item of validElements) {
     const { rect, id, content, attributes, locator } = item;
-    // const aligned = await alignCoordByTrim(screenshotBuffer, rect);
-    // item.rect = aligned;
-    // item.center = [
-    //   Math.round(aligned.left + aligned.width / 2),
-    //   Math.round(aligned.top + aligned.height / 2),
-    // ];
     textsAligned.push(
       new WebElementInfo({
         rect,
@@ -88,6 +80,7 @@ async function alignElements(
       }),
     );
   }
+
   return textsAligned;
 }
 
