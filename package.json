@@ -1,7 +1,7 @@
 {
   "name": "midscene",
   "private": true,
-  "version": "0.3.4",
+  "version": "0.4.0",
   "scripts": {
     "build:pkg": "nx run-many --target=build --projects=@midscene/core,@midscene/shared,@midscene/visualizer,@midscene/web --verbose",
     "test": "nx run-many --target=test --projects=@midscene/core,--projects=@midscene/shared,@midscene/visualizer,@midscene/web --verbose",
