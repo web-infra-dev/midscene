@@ -29,7 +29,11 @@ import { base64Encoded } from '@midscene/shared/img';
 import type { KeyInput, Page as PuppeteerPage } from 'puppeteer';
 import type { WebElementInfo } from '../web-element';
 import { type AiTaskCache, TaskCache } from './task-cache';
-import { type WebUIContext, parseContextFromWebPage } from './utils';
+import {
+  type WebUIContext,
+  parseContextFromWebPage,
+  setPageWidthToBody,
+} from './utils';
 
 interface ExecutionResult<OutputType = any> {
   output: OutputType;
@@ -52,7 +56,8 @@ export class PageTaskExecutor {
   }
 
   private async recordScreenshot(timing: ExecutionRecorderItem['timing']) {
-    const file = getTmpFile('jpeg');
+    const file = getTmpFile('png');
+    await setPageWidthToBody(this.page);
     await this.page.screenshot({
       ...commonScreenshotParam,
       path: file,

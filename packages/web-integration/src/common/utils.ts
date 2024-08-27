@@ -14,6 +14,15 @@ export type WebUIContext = UIContext<WebElementInfo> & {
   url: string;
 };
 
+export async function setPageWidthToBody(page: WebPage) {
+  await page.evaluate(() => {
+    const bodyWidth = window?.getComputedStyle(document.body).width;
+    if (bodyWidth && document?.body) {
+      document.body.style.width = bodyWidth;
+    }
+  });
+}
+
 export async function parseContextFromWebPage(
   page: WebPage,
   _opt?: PlaywrightParserOpt,
@@ -22,6 +31,8 @@ export async function parseContextFromWebPage(
 
   const url = page.url();
   const file = getTmpFile('jpeg');
+
+  await setPageWidthToBody(page);
   await page.screenshot({ path: file, type: 'jpeg', quality: 75 });
   const screenshotBuffer = readFileSync(file);
   const screenshotBase64 = base64Encoded(file);
@@ -51,7 +62,7 @@ export async function getElementInfosFromPage(page: WebPage) {
   const elementInfosScriptContent = readFileSync(scriptPath, 'utf-8');
   const extraReturnLogic = `${elementInfosScriptContent}midscene_element_inspector.extractTextWithPosition()`;
 
-  const captureElementSnapshot = await (page as any).evaluate(extraReturnLogic);
+  const captureElementSnapshot = await page.evaluate(extraReturnLogic);
   return captureElementSnapshot as Array<ElementInfo>;
 }
 

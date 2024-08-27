@@ -37,6 +37,7 @@ export default defineConfig({
 
     /* Collect trace when retrying the failed test. See https://playwright.dev/docs/trace-viewer */
     trace: 'on-first-retry',
+    deviceScaleFactor: 2, // 设置设备缩放因子为2
   },
 
   /* Configure projects for major browsers */
