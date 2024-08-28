@@ -82,8 +82,68 @@
     "htmlNode": null
   },
   {
-    "id": "300ea47164",
+    "id": "b4c8ebcc38",
     "indexId": "5",
+    "nodeHashId": "b4c8ebcc38",
+    "locator": "[_midscene_retrieve_task_id='b4c8ebcc38']",
+    "attributes": {
+      "src": "https://dec-pub-img.obs.ap-southeast-3.myhuaweicloud.com/rfkle/16509415998546650.jpg",
+      "alt": "shop logo",
+      "class": ".img",
+      "nodeType": "IMG Node"
+    },
+    "nodeType": "IMG Node",
+    "content": "",
+    "rect": {
+      "left": 13,
+      "top": 10,
+      "width": 47,
+      "height": 47
+    },
+    "center": [37, 34],
+    "htmlNode": null
+  },
+  {
+    "id": "ce3c9b7561",
+    "indexId": "6",
+    "nodeHashId": "ce3c9b7561",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node"
+    },
+    "center": [58, 117],
+    "content": "喜茶 HEYTEA (Vivocity)",
+    "rect": {
+      "left": 13,
+      "top": 73,
+      "width": 89,
+      "height": 88
+    },
+    "htmlNode": null
+  },
+  {
+    "id": "f8259ecff0",
+    "indexId": "7",
+    "nodeHashId": "f8259ecff0",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node"
+    },
+    "center": [31, 194],
+    "content": "登录/注册",
+    "rect": {
+      "left": 13,
+      "top": 173,
+      "width": 35,
+      "height": 41
+    },
+    "htmlNode": null
+  },
+  {
+    "id": "300ea47164",
+    "indexId": "8",
     "nodeHashId": "300ea47164",
     "nodeType": "TEXT Node",
     "locator": "",
@@ -102,7 +162,7 @@
   },
   {
     "id": "01094ce3ba",
-    "indexId": "6",
+    "indexId": "9",
     "nodeHashId": "01094ce3ba",
     "nodeType": "TEXT Node",
     "locator": "",
@@ -121,7 +181,7 @@
   },
   {
     "id": "e6d131525a",
-    "indexId": "7",
+    "indexId": "10",
     "nodeHashId": "e6d131525a",
     "nodeType": "TEXT Node",
     "locator": "",
@@ -140,7 +200,7 @@
   },
   {
     "id": "49118bbc89",
-    "indexId": "8",
+    "indexId": "11",
     "nodeHashId": "49118bbc89",
     "locator": "[_midscene_retrieve_task_id='49118bbc89']",
     "attributes": {
@@ -160,7 +220,7 @@
   },
   {
     "id": "cd2af441fc",
-    "indexId": "9",
+    "indexId": "12",
     "nodeHashId": "cd2af441fc",
     "nodeType": "TEXT Node",
     "locator": "",
@@ -179,7 +239,7 @@
   },
   {
     "id": "904db22ba6",
-    "indexId": "10",
+    "indexId": "13",
     "nodeHashId": "904db22ba6",
     "nodeType": "TEXT Node",
     "locator": "",
@@ -198,7 +258,7 @@
   },
   {
     "id": "4840be5f9e",
-    "indexId": "11",
+    "indexId": "14",
     "nodeHashId": "4840be5f9e",
     "nodeType": "TEXT Node",
     "locator": "",
@@ -217,7 +277,7 @@
   },
   {
     "id": "cf1e3e2d69",
-    "indexId": "12",
+    "indexId": "15",
     "nodeHashId": "cf1e3e2d69",
     "nodeType": "TEXT Node",
     "locator": "",
@@ -236,7 +296,7 @@
   },
   {
     "id": "4cc3cbe871",
-    "indexId": "13",
+    "indexId": "16",
     "nodeHashId": "4cc3cbe871",
     "nodeType": "TEXT Node",
     "locator": "",
@@ -255,7 +315,7 @@
   },
   {
     "id": "0f5c641a0b",
-    "indexId": "14",
+    "indexId": "17",
     "nodeHashId": "0f5c641a0b",
     "nodeType": "TEXT Node",
     "locator": "",
@@ -274,7 +334,7 @@
   },
   {
     "id": "b37f775c20",
-    "indexId": "15",
+    "indexId": "18",
     "nodeHashId": "b37f775c20",
     "nodeType": "TEXT Node",
     "locator": "",
@@ -293,7 +353,7 @@
   },
   {
     "id": "8d316ca893",
-    "indexId": "16",
+    "indexId": "19",
     "nodeHashId": "8d316ca893",
     "nodeType": "TEXT Node",
     "locator": "",
@@ -312,7 +372,7 @@
   },
   {
     "id": "ccea1668f3",
-    "indexId": "17",
+    "indexId": "20",
     "nodeHashId": "ccea1668f3",
     "nodeType": "TEXT Node",
     "locator": "",
@@ -331,7 +391,7 @@
   },
   {
     "id": "ce812d5bc7",
-    "indexId": "18",
+    "indexId": "21",
     "nodeHashId": "ce812d5bc7",
     "nodeType": "TEXT Node",
     "locator": "",
@@ -350,7 +410,7 @@
   },
   {
     "id": "02bf1e20e5",
-    "indexId": "19",
+    "indexId": "22",
     "nodeHashId": "02bf1e20e5",
     "locator": "[_midscene_retrieve_task_id='02bf1e20e5']",
     "attributes": {
@@ -371,7 +431,7 @@
   },
   {
     "id": "868b85b299",
-    "indexId": "20",
+    "indexId": "23",
     "nodeHashId": "868b85b299",
     "nodeType": "TEXT Node",
     "locator": "",
@@ -390,7 +450,7 @@
   },
   {
     "id": "ce55df24db",
-    "indexId": "21",
+    "indexId": "24",
     "nodeHashId": "ce55df24db",
     "nodeType": "TEXT Node",
     "locator": "",
@@ -409,7 +469,7 @@
   },
   {
     "id": "14103376fb",
-    "indexId": "22",
+    "indexId": "25",
     "nodeHashId": "14103376fb",
     "nodeType": "TEXT Node",
     "locator": "",
@@ -428,7 +488,7 @@
   },
   {
     "id": "fadfa10182",
-    "indexId": "23",
+    "indexId": "26",
     "nodeHashId": "fadfa10182",
     "nodeType": "TEXT Node",
     "locator": "",
@@ -447,7 +507,7 @@
   },
   {
     "id": "a626e598e4",
-    "indexId": "24",
+    "indexId": "27",
     "nodeHashId": "a626e598e4",
     "nodeType": "TEXT Node",
     "locator": "",
@@ -466,7 +526,7 @@
   },
   {
     "id": "eb294263b8",
-    "indexId": "25",
+    "indexId": "28",
     "nodeHashId": "eb294263b8",
     "locator": "[_midscene_retrieve_task_id='eb294263b8']",
     "attributes": {
@@ -487,7 +547,7 @@
   },
   {
     "id": "a7029d417e",
-    "indexId": "26",
+    "indexId": "29",
     "nodeHashId": "a7029d417e",
     "nodeType": "TEXT Node",
     "locator": "",
@@ -506,7 +566,7 @@
   },
   {
     "id": "5c923fbd67",
-    "indexId": "27",
+    "indexId": "30",
     "nodeHashId": "5c923fbd67",
     "nodeType": "TEXT Node",
     "locator": "",
@@ -525,7 +585,7 @@
   },
   {
     "id": "0250e12e67",
-    "indexId": "28",
+    "indexId": "31",
     "nodeHashId": "0250e12e67",
     "nodeType": "TEXT Node",
     "locator": "",
@@ -544,7 +604,7 @@
   },
   {
     "id": "001617dbf8",
-    "indexId": "29",
+    "indexId": "32",
     "nodeHashId": "001617dbf8",
     "nodeType": "TEXT Node",
     "locator": "",
@@ -563,7 +623,7 @@
   },
   {
     "id": "cad3004a2d",
-    "indexId": "30",
+    "indexId": "33",
     "nodeHashId": "cad3004a2d",
     "locator": "[_midscene_retrieve_task_id='cad3004a2d']",
     "attributes": {

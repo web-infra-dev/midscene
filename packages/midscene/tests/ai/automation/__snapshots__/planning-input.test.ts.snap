@@ -1,0 +1,118 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`automation - planning input - openAI > input value 1`] = `
+[
+  {
+    "param": {
+      "prompt": "",
+    },
+    "thought": undefined,
+    "type": "Locate",
+  },
+  {
+    "param": null,
+    "thought": undefined,
+    "type": "Tap",
+  },
+  {
+    "param": {
+      "value": "learning english",
+    },
+    "thought": undefined,
+    "type": "Input",
+  },
+]
+`;
+
+exports[`automation - planning input - openAI > input value 2`] = `
+[
+  {
+    "param": {
+      "prompt": "",
+    },
+    "thought": undefined,
+    "type": "Locate",
+  },
+  {
+    "param": {
+      "value": "learning english",
+    },
+    "thought": undefined,
+    "type": "Input",
+  },
+  {
+    "param": {
+      "value": "Enter",
+    },
+    "thought": undefined,
+    "type": "KeyboardPress",
+  },
+]
+`;
+
+exports[`automation - planning input - openAI > input value Add, delete, correct and check 1`] = `
+[
+  {
+    "param": {
+      "prompt": "",
+    },
+    "thought": undefined,
+    "type": "Locate",
+  },
+  {
+    "param": null,
+    "thought": undefined,
+    "type": "Tap",
+  },
+  {
+    "param": {
+      "value": "Learn English tomorrow",
+    },
+    "thought": undefined,
+    "type": "Input",
+  },
+]
+`;
+
+exports[`automation - planning input - openAI > input value Add, delete, correct and check 2`] = `
+[
+  {
+    "param": {
+      "prompt": "",
+    },
+    "thought": undefined,
+    "type": "Locate",
+  },
+  {
+    "param": {
+      "value": "Learn skiing",
+    },
+    "thought": undefined,
+    "type": "Input",
+  },
+]
+`;
+
+exports[`automation - planning input - openAI > input value Add, delete, correct and check 3`] = `
+[
+  {
+    "param": {
+      "prompt": "",
+    },
+    "thought": undefined,
+    "type": "Locate",
+  },
+  {
+    "param": null,
+    "thought": undefined,
+    "type": "Tap",
+  },
+  {
+    "param": {
+      "value": "Learn ",
+    },
+    "thought": undefined,
+    "type": "Input",
+  },
+]
+`;

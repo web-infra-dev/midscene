@@ -24,6 +24,11 @@ test('generate todo test data', async ({ page }) => {
   await page.getByText('Learn Rust').hover();
 
   await generateExtractData(page, generateTestDataPath('todo'));
+  await page.keyboard.type('Learn English');
+  await generateExtractData(
+    page,
+    generateTestDataPath('todo-input-with-value'),
+  );
 });
 
 test('generate visualstudio test data', async ({ page }) => {
@@ -48,7 +53,7 @@ test('generate online order test data', async ({ page }) => {
   await page.evaluate('window.localStorage.setItem("LOCALE", "zh-CN")');
   await page.goto('https://heyteavivocity.meuu.online/home');
   await page.waitForLoadState('networkidle');
-  await page.getByText('English').nth(2).click();
+  // await page.getByText('English').nth(2).click();
 
   await generateExtractData(page, generateTestDataPath('online_order'));
 });

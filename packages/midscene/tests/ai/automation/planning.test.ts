@@ -1,19 +1,13 @@
 import { plan } from '@/ai-model';
-import { useCozeModel } from '@/ai-model/coze';
 import { getPageDataOfTestName } from 'tests/ai/inspector/util';
 /* eslint-disable max-lines-per-function */
 import { describe, expect, it, vi } from 'vitest';
+import { modelList } from '../util';
 
 vi.setConfig({
   testTimeout: 180 * 1000,
   hookTimeout: 30 * 1000,
 });
-
-const modelList: Array<'openAI' | 'coze'> = ['openAI'];
-
-if (useCozeModel('coze')) {
-  modelList.push('coze');
-}
 
 modelList.forEach((model) => {
   describe(`automation - planning ${model}`, () => {
