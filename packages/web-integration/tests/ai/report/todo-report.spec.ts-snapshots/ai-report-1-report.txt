@@ -1,9 +1,19 @@
 [
     {
-        "title": "Enter \"Learn JS today\" in the task box, then press Enter to create",
+        "title": "Enter \"Learn\" in the task box",
         "actions": [
             "Planning",
             "Insight / Locate",
+            "Action / Tap",
+            "Action / Input"
+        ]
+    },
+    {
+        "title": "Add \"JS today\" to the existing content of the task box and press enter",
+        "actions": [
+            "Planning",
+            "Insight / Locate",
+            "Action / Tap",
             "Action / Input",
             "Action / KeyboardPress"
         ]
@@ -11,6 +21,9 @@
     {
         "title": "waitFor: the input box for task title is empty now",
         "actions": [
+            "Insight / Assert",
+            "Insight / Assert",
+            "Action / Sleep",
             "Insight / Assert"
         ]
     },
@@ -18,18 +31,7 @@
         "title": "Enter \"Learn Rust tomorrow\" in the task box, then press Enter to create",
         "actions": [
             "Planning",
-            "Insight / Locate",
-            "Action / Input",
-            "Action / KeyboardPress"
-        ]
-    },
-    {
-        "title": "Enter \"Learning AI the day after tomorrow\" in the task box, then press Enter to create",
-        "actions": [
-            "Planning",
-            "Insight / Locate",
-            "Action / Input",
-            "Action / KeyboardPress"
+            "Insight / Locate"
         ]
     }
 ]
