@@ -303,8 +303,7 @@ export class PageTaskExecutor {
               subType: 'Sleep',
               param: plan.param,
               executor: async (taskParam) => {
-                assert(taskParam.timeMs, 'No time to sleep');
-                await sleep(taskParam.timeMs);
+                await sleep(taskParam.timeMs || 3000);
               },
             };
           return taskActionSleep;
