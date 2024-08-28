@@ -52,7 +52,7 @@ export class PageTaskExecutor {
   }
 
   private async recordScreenshot(timing: ExecutionRecorderItem['timing']) {
-    const file = getTmpFile('jpeg');
+    const file = getTmpFile('png');
     await this.page.screenshot({
       ...commonScreenshotParam,
       path: file,

@@ -3,20 +3,6 @@
     "source.organizeImports.biome": "explicit"
   },
   "editor.defaultFormatter": "biomejs.biome",
-  "eslint.validate": [
-    "javascript",
-    "javascriptreact",
-    "typescript",
-    "typescriptreact",
-    "vue",
-    "html"
-  ],
-  "eslint.nodePath": "node_modules",
-  "eslint.trace.server": "verbose",
-  "eslint.workingDirectories": [
-    {
-      "mode": "auto"
-    }
-  ],
+  "editor.formatOnSave": true,
   "editor.formatOnSaveMode": "modifications"
 }

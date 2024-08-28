@@ -22,6 +22,7 @@ export async function parseContextFromWebPage(
 
   const url = page.url();
   const file = getTmpFile('jpeg');
+
   await page.screenshot({ path: file, type: 'jpeg', quality: 75 });
   const screenshotBuffer = readFileSync(file);
   const screenshotBase64 = base64Encoded(file);
@@ -51,7 +52,7 @@ export async function getElementInfosFromPage(page: WebPage) {
   const elementInfosScriptContent = readFileSync(scriptPath, 'utf-8');
   const extraReturnLogic = `${elementInfosScriptContent}midscene_element_inspector.extractTextWithPosition()`;
 
-  const captureElementSnapshot = await (page as any).evaluate(extraReturnLogic);
+  const captureElementSnapshot = await page.evaluate(extraReturnLogic);
   return captureElementSnapshot as Array<ElementInfo>;
 }
 
