@@ -204,6 +204,20 @@ export class PageTaskExecutor {
                     element.center[0],
                     element.center[1],
                   );
+                  // clear the input field
+                  // Select all content in the input field
+                  //TODO: This needs to be abstracted to meet the mobile scene
+                  const isMac = process.platform === 'darwin';
+                  if (isMac) {
+                    await this.page.keyboard.down('Meta');
+                    await this.page.keyboard.press('a');
+                    await this.page.keyboard.up('Meta');
+                  } else {
+                    await this.page.keyboard.down('Control');
+                    await this.page.keyboard.press('a');
+                    await this.page.keyboard.up('Control');
+                  }
+                  await this.page.keyboard.press('Backspace');
                 }
                 assert(taskParam.value, 'No value to input');
                 await this.page.keyboard.type(taskParam.value);

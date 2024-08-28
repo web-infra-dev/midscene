@@ -159,14 +159,15 @@
     "indexId": "9",
     "nodeHashId": "0c513c2cab",
     "locator": "[_midscene_retrieve_task_id='0c513c2cab']",
-    "nodeType": "INPUT Node",
+    "nodeType": "FORM_ITEM Node",
     "attributes": {
       "type": "text",
       "name": "q",
       "class": ".search-box.form-control",
       "placeholder": "Search Docs",
       "aria-label": "Search text",
-      "nodeType": "INPUT Node"
+      "htmlTagName": "<input>",
+      "nodeType": "FORM_ITEM Node"
     },
     "content": "Search Docs",
     "rect": {
@@ -259,21 +260,21 @@
     "htmlNode": null
   },
   {
-    "id": "1a848585ed",
+    "id": "decdf0f78d",
     "indexId": "14",
-    "nodeHashId": "1a848585ed",
+    "nodeHashId": "decdf0f78d",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
       "nodeType": "TEXT Node"
     },
-    "center": [1276, 119],
+    "center": [1273, 115],
     "content": "Dismiss this update",
     "rect": {
       "left": 1248,
       "top": 85,
-      "width": 56,
-      "height": 67
+      "width": 50,
+      "height": 59
     },
     "htmlNode": null
   },

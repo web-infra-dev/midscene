@@ -30,6 +30,7 @@
       "type": "text",
       "data-testid": "text-input",
       "placeholder": "What needs to be done?",
+      "_midscene_retrieve_task_id": "3530a9c1eb",
       "htmlTagName": "<input>",
       "nodeType": "FORM_ITEM Node"
     },
@@ -52,6 +53,7 @@
     "attributes": {
       "class": ".visually-hidden",
       "for": "todo-input",
+      "_midscene_retrieve_task_id": "1c47105a69",
       "htmlTagName": "<label>",
       "nodeType": "FORM_ITEM Node"
     },
@@ -94,6 +96,7 @@
       "class": ".toggle-all",
       "type": "checkbox",
       "data-testid": "toggle-all",
+      "_midscene_retrieve_task_id": "eb02ad0e19",
       "htmlTagName": "<input>",
       "nodeType": "FORM_ITEM Node"
     },
@@ -116,6 +119,7 @@
     "attributes": {
       "class": ".toggle-all-label",
       "for": "toggle-all",
+      "_midscene_retrieve_task_id": "5758d52bc9",
       "htmlTagName": "<label>",
       "nodeType": "FORM_ITEM Node"
     },
@@ -139,6 +143,7 @@
       "class": ".toggle",
       "type": "checkbox",
       "data-testid": "todo-item-toggle",
+      "_midscene_retrieve_task_id": "e0a509c9a3",
       "htmlTagName": "<input>",
       "nodeType": "FORM_ITEM Node"
     },
@@ -160,6 +165,7 @@
     "nodeType": "FORM_ITEM Node",
     "attributes": {
       "data-testid": "todo-item-label",
+      "_midscene_retrieve_task_id": "ac884dadf3",
       "htmlTagName": "<label>",
       "nodeType": "FORM_ITEM Node"
     },
@@ -202,6 +208,7 @@
       "class": ".toggle",
       "type": "checkbox",
       "data-testid": "todo-item-toggle",
+      "_midscene_retrieve_task_id": "c0751f3b26",
       "htmlTagName": "<input>",
       "nodeType": "FORM_ITEM Node"
     },
@@ -223,6 +230,7 @@
     "nodeType": "FORM_ITEM Node",
     "attributes": {
       "data-testid": "todo-item-label",
+      "_midscene_retrieve_task_id": "7b0f4c3c94",
       "htmlTagName": "<label>",
       "nodeType": "FORM_ITEM Node"
     },
@@ -264,6 +272,7 @@
     "attributes": {
       "class": ".destroy",
       "data-testid": "todo-item-button",
+      "_midscene_retrieve_task_id": "7ccd467339",
       "nodeType": "BUTTON Node"
     },
     "content": "×",
@@ -286,6 +295,7 @@
       "class": ".toggle",
       "type": "checkbox",
       "data-testid": "todo-item-toggle",
+      "_midscene_retrieve_task_id": "eb987bf616",
       "htmlTagName": "<input>",
       "nodeType": "FORM_ITEM Node"
     },
@@ -307,6 +317,7 @@
     "nodeType": "FORM_ITEM Node",
     "attributes": {
       "data-testid": "todo-item-label",
+      "_midscene_retrieve_task_id": "42badd1ca7",
       "htmlTagName": "<label>",
       "nodeType": "FORM_ITEM Node"
     },
@@ -423,6 +434,7 @@
     "locator": "[_midscene_retrieve_task_id='84b6988e83']",
     "attributes": {
       "class": ".clear-completed",
+      "_midscene_retrieve_task_id": "84b6988e83",
       "nodeType": "BUTTON Node"
     },
     "content": "Clear completed",

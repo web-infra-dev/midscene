@@ -13,8 +13,9 @@ test('ai todo', async ({ ai, aiQuery, aiWaitFor }) => {
     test.setTimeout(1000 * 30);
   }
 
+  await ai('Enter "Learn" in the task box');
   await ai(
-    'Enter "Learn JS today" in the task box, then press Enter to create',
+    'Add "JS today" to the existing content of the task box and press enter',
   );
 
   await aiWaitFor('the input box for task title is empty now');
@@ -25,6 +26,13 @@ test('ai todo', async ({ ai, aiQuery, aiWaitFor }) => {
   await ai(
     'Enter "Learning AI the day after tomorrow" in the task box, then press Enter to create',
   );
+
+  const allTaskList = await aiQuery<string[]>('string[], tasks in the list');
+  expect(allTaskList.length).toBe(3);
+  expect(allTaskList).toContain('Learn JS today');
+  expect(allTaskList).toContain('Learn Rust tomorrow');
+  expect(allTaskList).toContain('Learning AI the day after tomorrow');
+
   await ai('Move your mouse over the second item in the task list');
   await ai('Click the delete button to the right of the second task');
   await ai('Click the check button to the left of the second task');

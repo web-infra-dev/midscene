@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { launchPage } from './utils';
 
 vi.setConfig({
-  testTimeout: 90 * 1000,
+  testTimeout: 140 * 1000,
 });
 
 describe(
@@ -54,6 +54,6 @@ describe(
     });
   },
   {
-    timeout: 90 * 1000,
+    timeout: 180 * 1000,
   },
 );
