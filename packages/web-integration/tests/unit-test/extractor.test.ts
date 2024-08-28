@@ -58,7 +58,7 @@ describe(
         },
       );
     });
-  
+
     it('profile ', async () => {
       const { page, reset } = await launchPage('https://webinfra.org/about');
       await new Promise((resolve) => setTimeout(resolve, 1000));
