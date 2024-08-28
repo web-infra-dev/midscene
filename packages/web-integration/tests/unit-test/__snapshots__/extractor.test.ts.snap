@@ -374,6 +374,12 @@ exports[`extractor > basic 1`] = `
   },
   {
     "attributes": {
+      "nodeType": "TEXT Node",
+    },
+    "content": "content AAA",
+  },
+  {
+    "attributes": {
       "aria-label": "Click me",
       "class": ".widget",
       "nodeType": "FORM_ITEM Node",

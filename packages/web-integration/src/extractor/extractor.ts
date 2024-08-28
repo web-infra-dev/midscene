@@ -7,10 +7,10 @@ import {
   isWidgetElement,
 } from './dom-util';
 import {
-  generateHash,
   getNodeAttributes,
   getPseudoElementContent,
   logger,
+  midsceneGenerateHash,
   setDataForNode,
   setDebugMode,
   visibleRect,
@@ -90,7 +90,7 @@ export function extractTextWithPosition(
 
     if (isFormElement(node)) {
       const attributes = getNodeAttributes(node);
-      const nodeHashId = generateHash(attributes.placeholder, rect);
+      const nodeHashId = midsceneGenerateHash(attributes.placeholder, rect);
       const selector = setDataForNode(node, nodeHashId);
       let valueContent =
         attributes.value || attributes.placeholder || node.textContent || '';
@@ -131,7 +131,7 @@ export function extractTextWithPosition(
       const attributes = getNodeAttributes(node);
       const pseudo = getPseudoElementContent(node);
       const content = node.innerText || pseudo.before || pseudo.after || '';
-      const nodeHashId = generateHash(content, rect);
+      const nodeHashId = midsceneGenerateHash(content, rect);
       const selector = setDataForNode(node, nodeHashId);
       elementInfoArray.push({
         id: nodeHashId,
@@ -156,7 +156,7 @@ export function extractTextWithPosition(
 
     if (isImgElement(node)) {
       const attributes = getNodeAttributes(node);
-      const nodeHashId = generateHash('', rect);
+      const nodeHashId = midsceneGenerateHash('', rect);
       const selector = setDataForNode(node, nodeHashId);
       elementInfoArray.push({
         id: nodeHashId,
@@ -189,7 +189,7 @@ export function extractTextWithPosition(
       if (!text.trim() && attributeKeys.length === 0) {
         return;
       }
-      const nodeHashId = generateHash(text, rect);
+      const nodeHashId = midsceneGenerateHash(text, rect);
       const selector = setDataForNode(node, nodeHashId);
       elementInfoArray.push({
         id: nodeHashId,
@@ -215,7 +215,7 @@ export function extractTextWithPosition(
 
     if (isWidgetElement(node)) {
       const attributes = getNodeAttributes(node);
-      const nodeHashId = generateHash('', rect);
+      const nodeHashId = midsceneGenerateHash('', rect);
       const selector = setDataForNode(node, nodeHashId);
       elementInfoArray.push({
         id: nodeHashId,
