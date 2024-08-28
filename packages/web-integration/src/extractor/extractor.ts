@@ -1,15 +1,16 @@
-import { NodeType, TEXT_SIZE_THRESHOLD } from '@midscene/shared/constants';
+import { NodeType } from '@midscene/shared/constants';
 import {
   isButtonElement,
   isFormElement,
   isImgElement,
   isTextElement,
+  isWidgetElement,
 } from './dom-util';
 import {
-  generateHash,
   getNodeAttributes,
   getPseudoElementContent,
   logger,
+  midsceneGenerateHash,
   setDataForNode,
   setDebugMode,
   visibleRect,
@@ -36,7 +37,7 @@ export interface ElementInfo {
   center: [number, number];
 }
 
-const container: HTMLElement = document.body;
+const container: HTMLElement = document.body || document;
 
 function generateId(numberId: number) {
   //   const letters = 'ABCDEFGHIJKLMNPRSTUVXYZ';
@@ -89,7 +90,7 @@ export function extractTextWithPosition(
 
     if (isFormElement(node)) {
       const attributes = getNodeAttributes(node);
-      const nodeHashId = generateHash(attributes.placeholder, rect);
+      const nodeHashId = midsceneGenerateHash(attributes.placeholder, rect);
       const selector = setDataForNode(node, nodeHashId);
       let valueContent =
         attributes.value || attributes.placeholder || node.textContent || '';
@@ -130,7 +131,7 @@ export function extractTextWithPosition(
       const attributes = getNodeAttributes(node);
       const pseudo = getPseudoElementContent(node);
       const content = node.innerText || pseudo.before || pseudo.after || '';
-      const nodeHashId = generateHash(content, rect);
+      const nodeHashId = midsceneGenerateHash(content, rect);
       const selector = setDataForNode(node, nodeHashId);
       elementInfoArray.push({
         id: nodeHashId,
@@ -155,7 +156,7 @@ export function extractTextWithPosition(
 
     if (isImgElement(node)) {
       const attributes = getNodeAttributes(node);
-      const nodeHashId = generateHash('', rect);
+      const nodeHashId = midsceneGenerateHash('', rect);
       const selector = setDataForNode(node, nodeHashId);
       elementInfoArray.push({
         id: nodeHashId,
@@ -188,7 +189,7 @@ export function extractTextWithPosition(
       if (!text.trim() && attributeKeys.length === 0) {
         return;
       }
-      const nodeHashId = generateHash(text, rect);
+      const nodeHashId = midsceneGenerateHash(text, rect);
       const selector = setDataForNode(node, nodeHashId);
       elementInfoArray.push({
         id: nodeHashId,
@@ -210,6 +211,31 @@ export function extractTextWithPosition(
         htmlNode: debugMode ? node : null,
       });
       return;
+    }
+
+    if (isWidgetElement(node)) {
+      const attributes = getNodeAttributes(node);
+      const nodeHashId = midsceneGenerateHash('', rect);
+      const selector = setDataForNode(node, nodeHashId);
+      elementInfoArray.push({
+        id: nodeHashId,
+        indexId: generateId(nodeIndex++),
+        nodeHashId,
+        nodeType: NodeType.FORM_ITEM,
+        locator: selector,
+        attributes: {
+          ...attributes,
+          nodeType: NodeType.FORM_ITEM,
+        },
+        content: '',
+        rect,
+        center: [
+          Math.round(rect.left + rect.width / 2),
+          Math.round(rect.top + rect.height / 2),
+        ],
+        htmlNode: debugMode ? node : null,
+      });
+      return true;
     }
 
     return true;

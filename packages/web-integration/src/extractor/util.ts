@@ -154,13 +154,17 @@ export function visibleRect(
     if (parentStyle.overflow === 'hidden') {
       const parentRect = parent.getBoundingClientRect();
       const tolerance = 10;
+
       if (
-        rect.top < parentRect.top - tolerance &&
-        rect.left < parentRect.left - tolerance &&
-        rect.bottom > parentRect.bottom + tolerance &&
-        rect.right > parentRect.right + tolerance
+        rect.right < parentRect.left - tolerance ||
+        rect.left > parentRect.right + tolerance ||
+        rect.bottom < parentRect.top - tolerance ||
+        rect.top > parentRect.bottom + tolerance
       ) {
-        logger('Element is clipped by an ancestor', parent, rect, parentRect);
+        logger(el, 'element is partially or totally hidden by an ancestor', {
+          rect,
+          parentRect,
+        });
         return false;
       }
     }
@@ -168,8 +172,8 @@ export function visibleRect(
   }
 
   return {
-    left: Math.round(rect.left - scrollLeft),
-    top: Math.round(rect.top - scrollTop),
+    left: rect.left,
+    top: rect.top,
     width: Math.round(rect.width),
     height: Math.round(rect.height),
   };
@@ -232,7 +236,7 @@ export function getNodeAttributes(
   return Object.fromEntries(attributesList);
 }
 
-export function generateHash(content: string, rect: any): string {
+export function midsceneGenerateHash(content: string, rect: any): string {
   // Combine the input into a string
   const combined = JSON.stringify({ content, rect });
   // Generates the ha-256 hash value
@@ -242,4 +246,5 @@ export function generateHash(content: string, rect: any): string {
   return hashHex.slice(0, 10);
 }
 
-(window as any).generateHash = generateHash;
+(window as any).midsceneGenerateHash = midsceneGenerateHash;
+(window as any).midsceneVisibleRect = visibleRect;

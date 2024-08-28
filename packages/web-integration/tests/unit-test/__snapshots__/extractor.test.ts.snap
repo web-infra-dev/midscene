@@ -372,5 +372,42 @@ exports[`extractor > basic 1`] = `
     },
     "content": "",
   },
+  {
+    "attributes": {
+      "nodeType": "TEXT Node",
+    },
+    "content": "content AAA",
+  },
+  {
+    "attributes": {
+      "aria-label": "Click me",
+      "class": ".widget",
+      "nodeType": "FORM_ITEM Node",
+      "role": "button",
+    },
+    "content": "",
+  },
+  {
+    "attributes": {
+      "nodeType": "TEXT Node",
+    },
+    "content": "Click me",
+  },
+  {
+    "attributes": {
+      "aria-controls": "semi-select-5yxiyng",
+      "class": ".widget",
+      "nodeType": "FORM_ITEM Node",
+    },
+    "content": "",
+  },
+  {
+    "attributes": {
+      "aria-labelledby": "eval_object.object_type-label",
+      "class": ".widget",
+      "nodeType": "FORM_ITEM Node",
+    },
+    "content": "",
+  },
 ]
 `;

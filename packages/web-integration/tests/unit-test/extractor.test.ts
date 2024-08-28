@@ -35,6 +35,30 @@ describe(
       await reset();
     });
 
+    it('scroll', async () => {
+      const { page, reset } = await launchPage(`file://${pagePath}`, {
+        viewport: {
+          width: 1080,
+          height: 200,
+        },
+      });
+      await page.evaluate(() => {
+        window.scrollTo(0, 400);
+      });
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+      await generateExtractData(
+        page,
+        path.join(__dirname, 'fixtures/extractor/scroll'),
+        {
+          disableInputImage: false,
+          disableOutputImage: false,
+          disableOutputWithoutTextImg: true,
+          disableResizeOutputImg: true,
+          disableSnapshot: true,
+        },
+      );
+    });
+
     it('profile ', async () => {
       const { page, reset } = await launchPage('https://webinfra.org/about');
       await new Promise((resolve) => setTimeout(resolve, 1000));
