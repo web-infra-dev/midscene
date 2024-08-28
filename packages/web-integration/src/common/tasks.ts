@@ -98,7 +98,8 @@ export class PageTaskExecutor {
             type: 'Insight',
             subType: 'Locate',
             param: plan.param,
-            executor: async (param) => {
+            executor: async (param, taskContext) => {
+              const { task } = taskContext;
               let insightDump: InsightDump | undefined;
               const dumpCollector: DumpSubscriber = (dump) => {
                 insightDump = dump;
@@ -124,7 +125,6 @@ export class PageTaskExecutor {
                 },
               });
 
-              assert(element, `Element not found: ${param.prompt}`);
               if (locateResult) {
                 this.taskCache.saveCache({
                   type: 'locate',
@@ -136,6 +136,13 @@ export class PageTaskExecutor {
                   response: locateResult,
                 });
               }
+              if (!element) {
+                task.log = {
+                  dump: insightDump,
+                };
+                throw new Error(`Element not found: ${param.prompt}`);
+              }
+
               return {
                 output: {
                   element,
@@ -310,8 +317,7 @@ export class PageTaskExecutor {
               subType: 'Sleep',
               param: plan.param,
               executor: async (taskParam) => {
-                assert(taskParam.timeMs, 'No time to sleep');
-                await sleep(taskParam.timeMs);
+                await sleep(taskParam.timeMs || 3000);
               },
             };
           return taskActionSleep;
