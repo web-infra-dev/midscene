@@ -15,6 +15,7 @@ export interface Size {
 export type Rect = Point & Size;
 
 enum NodeType {
+  CONTAINER = 'CONTAINER Node',
   FORM_ITEM = 'FORM_ITEM Node',
   BUTTON = 'BUTTON Node',
   IMG = 'IMG Node',
