@@ -4,7 +4,6 @@
         "actions": [
             "Planning",
             "Insight / Locate",
-            "Action / Tap",
             "Action / Input"
         ]
     },
@@ -13,7 +12,6 @@
         "actions": [
             "Planning",
             "Insight / Locate",
-            "Action / Tap",
             "Action / Input",
             "Action / KeyboardPress"
         ]
