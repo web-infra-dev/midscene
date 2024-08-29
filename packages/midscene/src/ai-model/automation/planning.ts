@@ -17,7 +17,7 @@ export function systemPromptToTaskPlanning() {
   * type: 'KeyboardPress',  press a key
     * param: { value: string },  the value to input or the key to press. Use （Enter, Shift, Control, Alt, Meta, ShiftLeft, ControlOrMeta, ControlOrMeta） to represent the key.
   * type: 'Scroll'
-    * param: { scrollType: 'ScrollUntilBottom', 'ScrollUntilTop', 'ScrollDown', 'ScrollUp' }
+    * param: { scrollType: 'scrollDownOneScreen', 'scrollUpOneScreen', 'scrollUntilBottom', 'scrollUntilTop' }
   * type: 'Error'
     * param: { message: string }, the error message
   * type: 'Sleep'

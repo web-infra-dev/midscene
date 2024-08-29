@@ -1,6 +1,5 @@
 import { Buffer } from 'node:buffer';
 import Jimp from 'jimp';
-import type { Rect } from '../types';
 
 /**
  * Saves a Base64-encoded image to a file
@@ -45,24 +44,27 @@ export async function transformImgPathToBase64(inputPath: string) {
  * @returns A Promise that resolves to a base64-encoded string representing the resized image
  * @throws An error if the width or height cannot be determined from the metadata
  */
-export async function resizeImg(base64Data: string) {
-  // Remove the base64 data prefix (if any)
-  const base64Image = base64Data.split(';base64,').pop() || base64Data;
-
-  // Converts base64 data to buffer
-  const imageBuffer = Buffer.from(base64Image, 'base64');
+export async function resizeImg(
+  inputData: string | Buffer,
+): Promise<string | Buffer> {
+  const isBase64 = typeof inputData === 'string';
+  const imageBuffer = isBase64
+    ? Buffer.from(inputData.split(';base64,').pop() || inputData, 'base64')
+    : inputData;
 
   const image = await Jimp.read(imageBuffer);
   const { width, height } = image.bitmap;
+
   if (!width || !height) {
-    throw Error('undefined width or height with url');
+    throw Error('Undefined width or height from the input image.');
   }
 
   const newSize = calculateNewDimensions(width, height);
 
   image.resize(newSize.width, newSize.height);
-  const buffer = await image.getBufferAsync(Jimp.MIME_PNG);
-  return buffer.toString('base64');
+  const resizedBuffer = await image.getBufferAsync(Jimp.MIME_PNG);
+
+  return isBase64 ? resizedBuffer.toString('base64') : resizedBuffer;
 }
 
 /**

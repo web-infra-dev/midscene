@@ -1,13 +1,9 @@
 import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import type { WebPage } from '@/common/page';
-import { NodeType } from '@/extractor/constants';
-import type { ElementInfo } from '@/extractor/extractor';
-import {
-  processImageElementInfo,
-  resizeImg,
-  saveBase64Image,
-} from '@midscene/shared/img';
+import { resizeImg, saveBase64Image } from '@midscene/core/image';
+import { processImageElementInfo } from '@midscene/shared/img';
+import { getElementInfos } from '../../../src/debug';
 
 export async function generateExtractData(
   page: WebPage,
@@ -49,7 +45,7 @@ export async function generateExtractData(
     inputImgBase64,
   });
 
-  const resizeImgBase64 = (await resizeImg(inputImgBase64)) as string;
+  const resizeImgBase64 = await resizeImg(inputImgBase64);
 
   if (!saveImgType?.disableSnapshot) {
     writeFileSyncWithDir(
@@ -114,35 +110,4 @@ export function writeFileSyncWithDir(
 ) {
   ensureDirectoryExistence(filePath);
   writeFileSync(filePath, content, options);
-}
-
-export async function getElementInfos(page: WebPage) {
-  const captureElementSnapshot: Array<ElementInfo> =
-    await page.getElementInfos();
-
-  const elementsPositionInfo = captureElementSnapshot.map(
-    (elementInfo, index) => {
-      return {
-        label: elementInfo.indexId?.toString() || index.toString(),
-        x: elementInfo.rect.left,
-        y: elementInfo.rect.top,
-        width: elementInfo.rect.width,
-        height: elementInfo.rect.height,
-        attributes: elementInfo.attributes,
-      };
-    },
-  );
-  const elementsPositionInfoWithoutText = elementsPositionInfo.filter(
-    (elementInfo) => {
-      if (elementInfo.attributes.nodeType === NodeType.TEXT) {
-        return false;
-      }
-      return true;
-    },
-  );
-  return {
-    elementsPositionInfo,
-    captureElementSnapshot,
-    elementsPositionInfoWithoutText,
-  };
 }

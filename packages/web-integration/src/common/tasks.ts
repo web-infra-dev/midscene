@@ -27,6 +27,7 @@ import Insight, {
 import { commonScreenshotParam, getTmpFile, sleep } from '@midscene/core/utils';
 import { base64Encoded } from '@midscene/shared/img';
 import type { KeyInput, Page as PuppeteerPage } from 'puppeteer';
+import type { AppiumPage } from '../appium';
 import type { WebElementInfo } from '../web-element';
 import { type AiTaskCache, TaskCache } from './task-cache';
 import { type WebUIContext, parseContextFromWebPage } from './utils';
@@ -213,17 +214,7 @@ export class PageTaskExecutor {
                   );
                   // clear the input field
                   // Select all content in the input field
-                  //TODO: This needs to be abstracted to meet the mobile scene
-                  const isMac = process.platform === 'darwin';
-                  if (isMac) {
-                    await this.page.keyboard.down('Meta');
-                    await this.page.keyboard.press('a');
-                    await this.page.keyboard.up('Meta');
-                  } else {
-                    await this.page.keyboard.down('Control');
-                    await this.page.keyboard.press('a');
-                    await this.page.keyboard.up('Control');
-                  }
+                  await this.page.selectAll();
                   await this.page.keyboard.press('Backspace');
                 }
                 assert(taskParam.value, 'No value to input');
@@ -283,22 +274,19 @@ export class PageTaskExecutor {
               param: plan.param,
               executor: async (taskParam) => {
                 const scrollToEventName = taskParam.scrollType;
-                const innerHeight = await (this.page as PuppeteerPage).evaluate(
-                  () => window.innerHeight,
-                );
 
                 switch (scrollToEventName) {
-                  case 'ScrollUntilTop':
-                    await this.page.mouse.wheel(0, -9999999);
+                  case 'scrollUntilTop':
+                    await this.page.scrollUntilTop();
                     break;
-                  case 'ScrollUntilBottom':
-                    await this.page.mouse.wheel(0, 9999999);
+                  case 'scrollUntilBottom':
+                    await this.page.scrollUntilBottom();
                     break;
-                  case 'ScrollUp':
-                    await this.page.mouse.wheel(0, -innerHeight);
+                  case 'scrollUpOneScreen':
+                    await this.page.scrollUpOneScreen();
                     break;
-                  case 'ScrollDown':
-                    await this.page.mouse.wheel(0, innerHeight);
+                  case 'scrollDownOneScreen':
+                    await this.page.scrollDownOneScreen();
                     break;
                   default:
                     console.error(

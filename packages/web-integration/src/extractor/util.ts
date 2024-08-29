@@ -1,4 +1,5 @@
 import SHA256 from 'js-sha256';
+import { extractTextWithPosition } from './extractor';
 
 // import { TEXT_MAX_SIZE } from './constants';
 let debugMode = false;
@@ -272,5 +273,29 @@ export function midsceneGenerateHash(content: string, rect: any): string {
   return hashHex.slice(0, 10);
 }
 
-(window as any).midsceneGenerateHash = midsceneGenerateHash;
-(window as any).midsceneVisibleRect = visibleRect;
+export function generateId(numberId: number) {
+  //   const letters = 'ABCDEFGHIJKLMNPRSTUVXYZ';
+  //   const numbers = '0123456789';
+  //   const randomLetter = letters.charAt(Math.floor(Math.random() * letters.length)).toUpperCase();
+  // const randomNumber = numbers.charAt(Math.floor(Math.random() * numbers.length));
+  // return randomLetter + numberId;
+  return `${numberId}`;
+}
+
+export function setGenerateHashOnWindow() {
+  if (typeof window !== 'undefined') {
+    (window as any).midsceneGenerateHash = midsceneGenerateHash;
+  }
+}
+
+export function setMidsceneVisibleRectOnWindow() {
+  if (typeof window !== 'undefined') {
+    (window as any).midsceneVisibleRect = visibleRect;
+  }
+}
+
+export function setExtractTextWithPositionOnWindow() {
+  if (typeof window !== 'undefined') {
+    (window as any).extractTextWithPosition = extractTextWithPosition;
+  }
+}

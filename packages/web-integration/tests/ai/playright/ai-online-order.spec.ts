@@ -1,5 +1,3 @@
-import path from 'node:path';
-import { generateExtractData } from '@/debug';
 import { expect } from 'playwright/test';
 import { test } from './fixture';
 

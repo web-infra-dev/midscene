@@ -37,7 +37,7 @@ export interface ElementInfo {
   center: [number, number];
 }
 
-const container: HTMLElement = document.body || document;
+let container: HTMLElement;
 
 function collectElementInfo(node: Node, nodePath: string): ElementInfo | null {
   const rect = visibleRect(node);

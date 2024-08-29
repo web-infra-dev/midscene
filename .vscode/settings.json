@@ -4,5 +4,8 @@
   },
   "editor.defaultFormatter": "biomejs.biome",
   "editor.formatOnSave": true,
-  "editor.formatOnSaveMode": "modifications"
+  "editor.formatOnSaveMode": "modifications",
+  "[plaintext]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  }
 }
