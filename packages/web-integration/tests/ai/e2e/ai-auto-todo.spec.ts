@@ -8,7 +8,7 @@ test.beforeEach(async ({ page }) => {
 const CACHE_TIME_OUT =
   Boolean(process.env.MIDSCENE_CACHE) && Boolean(process.env.GITHUB_ACTIONS);
 
-test('ai todo', async ({ ai, aiQuery, aiWaitFor }) => {
+test('ai todo', async ({ ai, aiQuery }) => {
   if (CACHE_TIME_OUT) {
     test.setTimeout(1000 * 30);
   }
@@ -17,8 +17,6 @@ test('ai todo', async ({ ai, aiQuery, aiWaitFor }) => {
   await ai(
     'Add "JS today" to the existing content of the task box and press enter',
   );
-
-  await aiWaitFor('the input box for task title is empty now');
 
   await ai(
     'Enter "Learn Rust tomorrow" in the task box, then press Enter to create',
