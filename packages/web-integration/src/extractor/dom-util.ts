@@ -21,11 +21,11 @@ export function isTextElement(node: Node): node is HTMLTextAreaElement {
   return node.nodeName.toLowerCase() === '#text';
 }
 
-export function isWidgetElement(node: Node): node is HTMLElement {
-  return (
-    node instanceof HTMLElement &&
-    (node.hasAttribute('aria-label') ||
-      node.hasAttribute('aria-controls') ||
-      node.hasAttribute('aria-labelledby'))
-  );
-}
+// export function isWidgetElement(node: Node): node is HTMLElement {
+//   return (
+//     node instanceof HTMLElement &&
+//     (node.hasAttribute('aria-label') ||
+//       node.hasAttribute('aria-controls') ||
+//       node.hasAttribute('aria-labelledby'))
+//   );
+// }

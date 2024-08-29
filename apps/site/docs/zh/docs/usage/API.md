@@ -104,6 +104,11 @@ expect(onesieItem.price).toBe(7.99);
 
 考虑到 AI 服务的时间消耗，`.aiWaitFor` 并不是一个特别高效的方法。使用一个普通的 `sleep` 可能是替代 `waitFor` 的另一种方式。
 
+```typescript
+await mid.aiWaitFor("界面上至少有一个耳机的信息");
+```
+
+
 ## 调试配置（可选）
 
 ### 打印 AI 性能信息

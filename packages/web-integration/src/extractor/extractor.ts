@@ -4,9 +4,9 @@ import {
   isFormElement,
   isImgElement,
   isTextElement,
-  isWidgetElement,
 } from './dom-util';
 import {
+  getDebugMode,
   getNodeAttributes,
   getPseudoElementContent,
   logger,
@@ -38,6 +38,7 @@ export interface ElementInfo {
 }
 
 const container: HTMLElement = document.body || document;
+let nodeIndex = 1;
 
 function generateId(numberId: number) {
   //   const letters = 'ABCDEFGHIJKLMNPRSTUVXYZ';
@@ -48,199 +49,223 @@ function generateId(numberId: number) {
   return `${numberId}`;
 }
 
+function collectElementInfo(node: Node): ElementInfo | null {
+  const rect = visibleRect(node);
+  logger('collectElementInfo', node, node.nodeName, rect);
+  if (!rect) {
+    logger('Element is not visible', node);
+    return null;
+  }
+
+  const debugMode = getDebugMode();
+  if (isFormElement(node)) {
+    const attributes = getNodeAttributes(node);
+    const nodeHashId = midsceneGenerateHash(attributes.placeholder, rect);
+    const selector = setDataForNode(node, nodeHashId);
+    let valueContent =
+      attributes.value || attributes.placeholder || node.textContent || '';
+    const tagName = (node as HTMLElement).tagName.toLowerCase();
+    if ((node as HTMLElement).tagName.toLowerCase() === 'select') {
+      // Get the selected option using the selectedIndex property
+      const selectedOption = (node as HTMLSelectElement).options[
+        (node as HTMLSelectElement).selectedIndex
+      ];
+
+      // Retrieve the text content of the selected option
+      valueContent = selectedOption.textContent || '';
+    }
+    const elementInfo: ElementInfo = {
+      id: nodeHashId,
+      indexId: generateId(nodeIndex++),
+      nodeHashId,
+      locator: selector,
+      nodeType: NodeType.FORM_ITEM,
+      attributes: {
+        ...attributes,
+        htmlTagName: `<${tagName}>`,
+        nodeType: NodeType.FORM_ITEM,
+      },
+      content: valueContent.trim(),
+      rect,
+      center: [
+        Math.round(rect.left + rect.width / 2),
+        Math.round(rect.top + rect.height / 2),
+      ],
+      htmlNode: debugMode ? node : null,
+    };
+    return elementInfo;
+  }
+
+  if (isButtonElement(node)) {
+    const attributes = getNodeAttributes(node);
+    const pseudo = getPseudoElementContent(node);
+    const content = node.innerText || pseudo.before || pseudo.after || '';
+    const nodeHashId = midsceneGenerateHash(content, rect);
+    const selector = setDataForNode(node, nodeHashId);
+    const elementInfo: ElementInfo = {
+      id: nodeHashId,
+      indexId: generateId(nodeIndex++),
+      nodeHashId,
+      nodeType: NodeType.BUTTON,
+      locator: selector,
+      attributes: {
+        ...attributes,
+        nodeType: NodeType.BUTTON,
+      },
+      content,
+      rect,
+      center: [
+        Math.round(rect.left + rect.width / 2),
+        Math.round(rect.top + rect.height / 2),
+      ],
+      htmlNode: debugMode ? node : null,
+    };
+    return elementInfo;
+  }
+
+  if (isImgElement(node)) {
+    const attributes = getNodeAttributes(node);
+    const nodeHashId = midsceneGenerateHash('', rect);
+    const selector = setDataForNode(node, nodeHashId);
+    const elementInfo: ElementInfo = {
+      id: nodeHashId,
+      indexId: generateId(nodeIndex++),
+      nodeHashId,
+      locator: selector,
+      attributes: {
+        ...attributes,
+        nodeType: NodeType.IMG,
+      },
+      nodeType: NodeType.IMG,
+      content: '',
+      rect,
+      center: [
+        Math.round(rect.left + rect.width / 2),
+        Math.round(rect.top + rect.height / 2),
+      ],
+      htmlNode: debugMode ? node : null,
+    };
+    return elementInfo;
+  }
+
+  if (isTextElement(node)) {
+    const text = node.textContent?.trim().replace(/\n+/g, ' ');
+    if (!text) {
+      return null;
+    }
+    const attributes = getNodeAttributes(node);
+    const attributeKeys = Object.keys(attributes);
+    if (!text.trim() && attributeKeys.length === 0) {
+      return null;
+    }
+    const nodeHashId = midsceneGenerateHash(text, rect);
+    const selector = setDataForNode(node, nodeHashId);
+    const elementInfo: ElementInfo = {
+      id: nodeHashId,
+      indexId: generateId(nodeIndex++),
+      nodeHashId,
+      nodeType: NodeType.TEXT,
+      locator: selector,
+      attributes: {
+        ...attributes,
+        nodeType: NodeType.TEXT,
+      },
+      center: [
+        Math.round(rect.left + rect.width / 2),
+        Math.round(rect.top + rect.height / 2),
+      ],
+      // attributes,
+      content: text,
+      rect,
+      htmlNode: debugMode ? node : null,
+    };
+    return elementInfo;
+  }
+
+  // else, consider as a container
+  const attributes = getNodeAttributes(node);
+  const nodeHashId = midsceneGenerateHash('', rect);
+  const selector = setDataForNode(node, nodeHashId);
+  const elementInfo: ElementInfo = {
+    id: nodeHashId,
+    indexId: generateId(nodeIndex++),
+    nodeHashId,
+    nodeType: NodeType.CONTAINER,
+    locator: selector,
+    attributes: {
+      ...attributes,
+      nodeType: NodeType.CONTAINER,
+    },
+    content: '',
+    rect,
+    center: [
+      Math.round(rect.left + rect.width / 2),
+      Math.round(rect.top + rect.height / 2),
+    ],
+    htmlNode: debugMode ? node : null,
+  };
+  return elementInfo;
+}
+
 export function extractTextWithPosition(
   initNode: Node = container,
   debugMode = false,
 ): ElementInfo[] {
   setDebugMode(debugMode);
   const elementInfoArray: ElementInfo[] = [];
-  const nodeMapTree: NodeDescriptor = { node: initNode, children: [] };
-  let nodeIndex = 1;
-
-  function dfs(node: Node, parentNode: NodeDescriptor | null = null): void {
+  nodeIndex = 1;
+  function dfs(node: Node): ElementInfo | null {
     if (!node) {
-      return;
-    }
-
-    const currentNodeDes: NodeDescriptor = { node, children: [] };
-    if (parentNode?.children) {
-      parentNode.children.push(currentNodeDes);
-    }
-
-    const shouldContinue = collectElementInfo(node);
-    if (!shouldContinue) {
-      logger('should NOT continue for node', node);
-      return;
+      return null;
     }
 
     // eslint-disable-next-line @typescript-eslint/prefer-for-of
+    /*
+      If all of the children of a node are containers, then we call it a **pure container**.
+      Otherwise, it is not a pure container.
+
+      If a node is a pure container, and some of its siblings are not pure containers, then we should put this pure container into the elementInfoArray.
+    */
+    let hasNonContainerChildren = false;
+    const childrenPureContainers: ElementInfo[] = [];
     for (let i = 0; i < node.childNodes.length; i++) {
       logger('will dfs', node.childNodes[i]);
-      dfs(node.childNodes[i], currentNodeDes);
+      const resultLengthBeforeDfs = elementInfoArray.length;
+      const result = dfs(node.childNodes[i]);
+
+      if (!result) continue;
+
+      if (
+        result?.nodeType === NodeType.CONTAINER &&
+        elementInfoArray.length > resultLengthBeforeDfs
+      ) {
+        hasNonContainerChildren = true;
+        continue;
+      }
+
+      if (result?.nodeType === NodeType.CONTAINER) {
+        childrenPureContainers.push(result);
+      } else {
+        hasNonContainerChildren = true;
+        elementInfoArray.push(result);
+      }
     }
+
+    if (hasNonContainerChildren) {
+      elementInfoArray.push(...childrenPureContainers);
+    }
+
+    const elementInfo = collectElementInfo(node);
+    if (!elementInfo) {
+      logger('should NOT continue for node', node);
+      return null;
+    }
+    return elementInfo;
   }
 
-  function collectElementInfo(node: Node) {
-    const rect = visibleRect(node);
-    logger('collectElementInfo', node, node.nodeName, rect);
-    if (!rect) {
-      logger('Element is not visible', node);
-      return true;
-    }
-
-    if (isFormElement(node)) {
-      const attributes = getNodeAttributes(node);
-      const nodeHashId = midsceneGenerateHash(attributes.placeholder, rect);
-      const selector = setDataForNode(node, nodeHashId);
-      let valueContent =
-        attributes.value || attributes.placeholder || node.textContent || '';
-      const tagName = (node as HTMLElement).tagName.toLowerCase();
-      if ((node as HTMLElement).tagName.toLowerCase() === 'select') {
-        // Get the selected option using the selectedIndex property
-        const selectedOption = (node as HTMLSelectElement).options[
-          (node as HTMLSelectElement).selectedIndex
-        ];
-
-        // Retrieve the text content of the selected option
-        valueContent = selectedOption.textContent || '';
-      }
-      elementInfoArray.push({
-        id: nodeHashId,
-        indexId: generateId(nodeIndex++),
-        nodeHashId,
-        locator: selector,
-        nodeType: NodeType.FORM_ITEM,
-        attributes: {
-          ...attributes,
-          htmlTagName: `<${tagName}>`,
-          nodeType: NodeType.FORM_ITEM,
-        },
-        content: valueContent.trim(),
-        rect,
-        center: [
-          Math.round(rect.left + rect.width / 2),
-          Math.round(rect.top + rect.height / 2),
-        ],
-        htmlNode: debugMode ? node : null,
-      });
-      if (tagName === 'label') return true;
-      return;
-    }
-
-    if (isButtonElement(node)) {
-      const attributes = getNodeAttributes(node);
-      const pseudo = getPseudoElementContent(node);
-      const content = node.innerText || pseudo.before || pseudo.after || '';
-      const nodeHashId = midsceneGenerateHash(content, rect);
-      const selector = setDataForNode(node, nodeHashId);
-      elementInfoArray.push({
-        id: nodeHashId,
-        indexId: generateId(nodeIndex++),
-        nodeHashId,
-        nodeType: NodeType.BUTTON,
-        locator: selector,
-        attributes: {
-          ...attributes,
-          nodeType: NodeType.BUTTON,
-        },
-        content,
-        rect,
-        center: [
-          Math.round(rect.left + rect.width / 2),
-          Math.round(rect.top + rect.height / 2),
-        ],
-        htmlNode: debugMode ? node : null,
-      });
-      return;
-    }
-
-    if (isImgElement(node)) {
-      const attributes = getNodeAttributes(node);
-      const nodeHashId = midsceneGenerateHash('', rect);
-      const selector = setDataForNode(node, nodeHashId);
-      elementInfoArray.push({
-        id: nodeHashId,
-        indexId: generateId(nodeIndex++),
-        nodeHashId,
-        locator: selector,
-        attributes: {
-          ...attributes,
-          nodeType: NodeType.IMG,
-        },
-        nodeType: NodeType.IMG,
-        content: '',
-        rect,
-        center: [
-          Math.round(rect.left + rect.width / 2),
-          Math.round(rect.top + rect.height / 2),
-        ],
-        htmlNode: debugMode ? node : null,
-      });
-      return;
-    }
-
-    if (isTextElement(node)) {
-      const text = node.textContent?.trim().replace(/\n+/g, ' ');
-      if (!text) {
-        return;
-      }
-      const attributes = getNodeAttributes(node);
-      const attributeKeys = Object.keys(attributes);
-      if (!text.trim() && attributeKeys.length === 0) {
-        return;
-      }
-      const nodeHashId = midsceneGenerateHash(text, rect);
-      const selector = setDataForNode(node, nodeHashId);
-      elementInfoArray.push({
-        id: nodeHashId,
-        indexId: generateId(nodeIndex++),
-        nodeHashId,
-        nodeType: NodeType.TEXT,
-        locator: selector,
-        attributes: {
-          ...attributes,
-          nodeType: NodeType.TEXT,
-        },
-        center: [
-          Math.round(rect.left + rect.width / 2),
-          Math.round(rect.top + rect.height / 2),
-        ],
-        // attributes,
-        content: text,
-        rect,
-        htmlNode: debugMode ? node : null,
-      });
-      return;
-    }
-
-    if (isWidgetElement(node)) {
-      const attributes = getNodeAttributes(node);
-      const nodeHashId = midsceneGenerateHash('', rect);
-      const selector = setDataForNode(node, nodeHashId);
-      elementInfoArray.push({
-        id: nodeHashId,
-        indexId: generateId(nodeIndex++),
-        nodeHashId,
-        nodeType: NodeType.FORM_ITEM,
-        locator: selector,
-        attributes: {
-          ...attributes,
-          nodeType: NodeType.FORM_ITEM,
-        },
-        content: '',
-        rect,
-        center: [
-          Math.round(rect.left + rect.width / 2),
-          Math.round(rect.top + rect.height / 2),
-        ],
-        htmlNode: debugMode ? node : null,
-      });
-      return true;
-    }
-
-    return true;
+  const outerMostElementInfo = dfs(initNode);
+  if (outerMostElementInfo && !elementInfoArray.length) {
+    elementInfoArray.push(outerMostElementInfo);
   }
-
-  dfs(initNode, nodeMapTree);
   return elementInfoArray;
 }

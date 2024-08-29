@@ -7,6 +7,10 @@ export function setDebugMode(mode: boolean) {
   debugMode = mode;
 }
 
+export function getDebugMode(): boolean {
+  return debugMode;
+}
+
 export function logger(..._msg: any[]): void {
   if (!debugMode) {
     return;
@@ -38,7 +42,9 @@ export function setDataForNode(
   }
 
   const selector = selectorForValue(nodeHash);
-  node.setAttribute(taskIdKey, nodeHash.toString());
+  if (getDebugMode()) {
+    node.setAttribute(taskIdKey, nodeHash.toString());
+  }
   return selector;
 }
 

@@ -208,15 +208,15 @@ exports[`extractor > basic 1`] = `
   },
   {
     "attributes": {
-      "for": "name",
-      "htmlTagName": "<label>",
-      "nodeType": "FORM_ITEM Node",
+      "nodeType": "TEXT Node",
     },
     "content": "Name:",
   },
   {
     "attributes": {
-      "nodeType": "TEXT Node",
+      "for": "name",
+      "htmlTagName": "<label>",
+      "nodeType": "FORM_ITEM",
     },
     "content": "Name:",
   },
@@ -224,10 +224,26 @@ exports[`extractor > basic 1`] = `
     "attributes": {
       "htmlTagName": "<input>",
       "id": "J_input",
-      "nodeType": "FORM_ITEM Node",
+      "nodeType": "FORM_ITEM",
       "placeholder": "Hello World This is Placeholder",
     },
     "content": "Hello World This is Placeholder",
+  },
+  {
+    "attributes": {
+      "htmlTagName": "<input>",
+      "id": "J_input",
+      "nodeType": "FORM_ITEM",
+      "placeholder": "Hello World This is Placeholder",
+      "value": "Now I am a value, instead of placeholder",
+    },
+    "content": "Now I am a value, instead of placeholder",
+  },
+  {
+    "attributes": {
+      "nodeType": "TEXT Node",
+    },
+    "content": "Click Me",
   },
   {
     "attributes": {
@@ -237,21 +253,21 @@ exports[`extractor > basic 1`] = `
   },
   {
     "attributes": {
-      "htmlTagName": "<label>",
-      "nodeType": "FORM_ITEM Node",
-    },
-    "content": "Shape",
-  },
-  {
-    "attributes": {
       "nodeType": "TEXT Node",
     },
     "content": "Shape",
   },
   {
     "attributes": {
+      "htmlTagName": "<label>",
+      "nodeType": "FORM_ITEM",
+    },
+    "content": "Shape",
+  },
+  {
+    "attributes": {
       "htmlTagName": "<input>",
-      "nodeType": "FORM_ITEM Node",
+      "nodeType": "FORM_ITEM",
       "placeholder": "You shouldn't see this placeholder.",
       "value": "Rectangle",
     },
@@ -260,7 +276,7 @@ exports[`extractor > basic 1`] = `
   {
     "attributes": {
       "htmlTagName": "<textarea>",
-      "nodeType": "FORM_ITEM Node",
+      "nodeType": "FORM_ITEM",
       "placeholder": "this_is_a_textarea",
     },
     "content": "this_is_a_textarea",
@@ -285,15 +301,15 @@ exports[`extractor > basic 1`] = `
   },
   {
     "attributes": {
-      "for": "options",
-      "htmlTagName": "<label>",
-      "nodeType": "FORM_ITEM Node",
+      "nodeType": "TEXT Node",
     },
     "content": "Choose an option:",
   },
   {
     "attributes": {
-      "nodeType": "TEXT Node",
+      "for": "options",
+      "htmlTagName": "<label>",
+      "nodeType": "FORM_ITEM",
     },
     "content": "Choose an option:",
   },
@@ -302,22 +318,22 @@ exports[`extractor > basic 1`] = `
       "htmlTagName": "<select>",
       "id": "options",
       "name": "options",
-      "nodeType": "FORM_ITEM Node",
+      "nodeType": "FORM_ITEM",
     },
     "content": "Option 1",
+  },
+  {
+    "attributes": {
+      "nodeType": "TEXT Node",
+    },
+    "content": "输入搜索关键词",
   },
   {
     "attributes": {
       "class": ".gh-ar-hdn",
       "for": "gh-ac",
       "htmlTagName": "<label>",
-      "nodeType": "FORM_ITEM Node",
-    },
-    "content": "输入搜索关键词",
-  },
-  {
-    "attributes": {
-      "nodeType": "TEXT Node",
+      "nodeType": "FORM_ITEM",
     },
     "content": "输入搜索关键词",
   },
@@ -336,7 +352,7 @@ exports[`extractor > basic 1`] = `
       "id": "gh-ac",
       "maxlength": "300",
       "name": "_nkw",
-      "nodeType": "FORM_ITEM Node",
+      "nodeType": "FORM_ITEM",
       "placeholder": "搜索任何物品",
       "role": "combobox",
       "size": "50",
@@ -347,17 +363,9 @@ exports[`extractor > basic 1`] = `
   },
   {
     "attributes": {
-      "class": ".life-core-input-inner__wrapper.life-core-input-inner__wrapper-border.life-core-input-inner__wrapper-size-md.life-core-input-inner__wrapper-add-suffix",
-      "htmlTagName": "<label>",
-      "nodeType": "FORM_ITEM Node",
-    },
-    "content": "",
-  },
-  {
-    "attributes": {
       "class": ".life-core-input.life-core-input-size-md",
       "htmlTagName": "<input>",
-      "nodeType": "FORM_ITEM Node",
+      "nodeType": "FORM_ITEM",
       "placeholder": "验证码",
       "tabindex": "0",
       "type": "text",
@@ -366,9 +374,17 @@ exports[`extractor > basic 1`] = `
   },
   {
     "attributes": {
+      "class": ".life-core-input-inner__wrapper.life-core-input-inner__wrapper-border.life-core-input-inner__wrapper-size-md.life-core-input-inner__wrapper-add-suffix",
+      "htmlTagName": "<label>",
+      "nodeType": "FORM_ITEM",
+    },
+    "content": "",
+  },
+  {
+    "attributes": {
       "class": ".life-core-checkbox.life-core-checkbox-md.src-pages-Login-components-LoginCard-index-module__checkbox--Npo2V--212e2",
       "htmlTagName": "<label>",
-      "nodeType": "FORM_ITEM Node",
+      "nodeType": "FORM_ITEM",
     },
     "content": "",
   },
@@ -380,10 +396,27 @@ exports[`extractor > basic 1`] = `
   },
   {
     "attributes": {
-      "aria-label": "Click me",
-      "class": ".widget",
-      "nodeType": "FORM_ITEM Node",
-      "role": "button",
+      "nodeType": "TEXT Node",
+    },
+    "content": "Click me",
+  },
+  {
+    "attributes": {
+      "nodeType": "TEXT Node",
+    },
+    "content": "Content 1",
+  },
+  {
+    "attributes": {
+      "nodeType": "TEXT Node",
+    },
+    "content": "Content 2",
+  },
+  {
+    "attributes": {
+      "class": ".child-container-without-content-2-1",
+      "nodeType": "CONTAINER",
+      "style": "width: 100px; height: 100px; background-color: #ccc;",
     },
     "content": "",
   },
@@ -391,13 +424,21 @@ exports[`extractor > basic 1`] = `
     "attributes": {
       "nodeType": "TEXT Node",
     },
-    "content": "Click me",
+    "content": "Nested Content 3",
+  },
+  {
+    "attributes": {
+      "class": ".child-container-4",
+      "nodeType": "CONTAINER",
+      "style": "width: 100px; height: 100px; background-color: #ccc;",
+    },
+    "content": "",
   },
   {
     "attributes": {
       "aria-controls": "semi-select-5yxiyng",
       "class": ".widget",
-      "nodeType": "FORM_ITEM Node",
+      "nodeType": "CONTAINER",
     },
     "content": "",
   },
@@ -405,7 +446,7 @@ exports[`extractor > basic 1`] = `
     "attributes": {
       "aria-labelledby": "eval_object.object_type-label",
       "class": ".widget",
-      "nodeType": "FORM_ITEM Node",
+      "nodeType": "CONTAINER",
     },
     "content": "",
   },
