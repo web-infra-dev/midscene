@@ -18,4 +18,22 @@
             "Action / KeyboardPress"
         ]
     },
+    {
+        "title": "Enter \"Learn Rust tomorrow\" in the task box, then press Enter to create",
+        "actions": [
+            "Planning",
+            "Insight / Locate",
+            "Action / Input",
+            "Action / KeyboardPress"
+        ]
+    },
+    {
+        "title": "Enter \"Learning AI the day after tomorrow\" in the task box, then press Enter to create",
+        "actions": [
+            "Planning",
+            "Insight / Locate",
+            "Action / Input",
+            "Action / KeyboardPress"
+        ]
+    }
 ]
