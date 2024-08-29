@@ -41,8 +41,6 @@ export async function generateExtractData(
   const resizeOutputImgPath = path.join(targetDir, 'resize-output.png');
   const snapshotJsonPath = path.join(targetDir, 'element-snapshot.json');
 
-  const startTime = Date.now();
-
   const {
     compositeElementInfoImgBase64,
     compositeElementInfoImgWithoutTextBase64,
@@ -51,10 +49,6 @@ export async function generateExtractData(
     elementsPositionInfoWithoutText,
     inputImgBase64,
   });
-
-  const endTime = Date.now();
-  const executionTime = (endTime - startTime) / 1000; // Convert to seconds
-  console.log(`Execution time: ${executionTime.toFixed(2)}s`);
 
   const resizeImgBase64 = await resizeImg(inputImgBase64);
 
