@@ -178,8 +178,8 @@ export function visibleRect(
   }
 
   return {
-    left: rect.left,
-    top: rect.top,
+    left: Math.round(rect.left),
+    top: Math.round(rect.top),
     width: Math.round(rect.width),
     height: Math.round(rect.height),
   };

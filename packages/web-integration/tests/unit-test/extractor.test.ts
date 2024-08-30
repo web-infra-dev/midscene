@@ -31,6 +31,7 @@ describe(
 
       const list = content.map((item) => {
         return {
+          id: item.id,
           content: item.content,
           attributes: item.attributes,
         };

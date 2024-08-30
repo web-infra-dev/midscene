@@ -77,12 +77,11 @@ export async function runTestCases(
   });
 
   const filterUnstableResult = aiResponse.map((aiInfo) => {
-    const { elements = [], prompt, error = [], elementsSnapshot } = aiInfo;
+    const { elements = [], prompt, error = [] } = aiInfo;
     return {
       elements: elements.map((element, index) => {
         return {
           id: element.id.toString(),
-          indexId: elementsSnapshot[index].indexId,
         };
       }),
       prompt,

@@ -23,7 +23,6 @@ interface NodeDescriptor {
 
 export interface ElementInfo {
   id: string;
-  indexId: string;
   nodeHashId: string;
   locator: string;
   attributes: {
@@ -49,7 +48,7 @@ function generateId(numberId: number) {
   return `${numberId}`;
 }
 
-function collectElementInfo(node: Node): ElementInfo | null {
+function collectElementInfo(node: Node, nodePath: string): ElementInfo | null {
   const rect = visibleRect(node);
   logger('collectElementInfo', node, node.nodeName, rect);
   if (!rect) {
@@ -75,8 +74,7 @@ function collectElementInfo(node: Node): ElementInfo | null {
       valueContent = selectedOption.textContent || '';
     }
     const elementInfo: ElementInfo = {
-      id: nodeHashId,
-      indexId: generateId(nodeIndex++),
+      id: nodePath,
       nodeHashId,
       locator: selector,
       nodeType: NodeType.FORM_ITEM,
@@ -103,8 +101,7 @@ function collectElementInfo(node: Node): ElementInfo | null {
     const nodeHashId = midsceneGenerateHash(content, rect);
     const selector = setDataForNode(node, nodeHashId);
     const elementInfo: ElementInfo = {
-      id: nodeHashId,
-      indexId: generateId(nodeIndex++),
+      id: nodePath,
       nodeHashId,
       nodeType: NodeType.BUTTON,
       locator: selector,
@@ -128,8 +125,7 @@ function collectElementInfo(node: Node): ElementInfo | null {
     const nodeHashId = midsceneGenerateHash('', rect);
     const selector = setDataForNode(node, nodeHashId);
     const elementInfo: ElementInfo = {
-      id: nodeHashId,
-      indexId: generateId(nodeIndex++),
+      id: nodePath,
       nodeHashId,
       locator: selector,
       attributes: {
@@ -161,8 +157,7 @@ function collectElementInfo(node: Node): ElementInfo | null {
     const nodeHashId = midsceneGenerateHash(text, rect);
     const selector = setDataForNode(node, nodeHashId);
     const elementInfo: ElementInfo = {
-      id: nodeHashId,
-      indexId: generateId(nodeIndex++),
+      id: nodePath,
       nodeHashId,
       nodeType: NodeType.TEXT,
       locator: selector,
@@ -187,8 +182,7 @@ function collectElementInfo(node: Node): ElementInfo | null {
   const nodeHashId = midsceneGenerateHash('', rect);
   const selector = setDataForNode(node, nodeHashId);
   const elementInfo: ElementInfo = {
-    id: nodeHashId,
-    indexId: generateId(nodeIndex++),
+    id: nodePath,
     nodeHashId,
     nodeType: NodeType.CONTAINER,
     locator: selector,
@@ -214,11 +208,16 @@ export function extractTextWithPosition(
   setDebugMode(debugMode);
   const elementInfoArray: ElementInfo[] = [];
   nodeIndex = 1;
-  function dfs(node: Node): ElementInfo | null {
+  function dfs(node: Node, nodePath: string): ElementInfo | null {
     if (!node) {
       return null;
     }
 
+    const elementInfo = collectElementInfo(node, nodePath);
+    // stop collecting if the node is a Button
+    if (elementInfo?.nodeType === NodeType.BUTTON) {
+      return elementInfo;
+    }
     // eslint-disable-next-line @typescript-eslint/prefer-for-of
     /*
       If all of the children of a node are containers, then we call it a **pure container**.
@@ -231,7 +230,7 @@ export function extractTextWithPosition(
     for (let i = 0; i < node.childNodes.length; i++) {
       logger('will dfs', node.childNodes[i]);
       const resultLengthBeforeDfs = elementInfoArray.length;
-      const result = dfs(node.childNodes[i]);
+      const result = dfs(node.childNodes[i], `${nodePath}-${i}`);
 
       if (!result) continue;
 
@@ -255,7 +254,6 @@ export function extractTextWithPosition(
       elementInfoArray.push(...childrenPureContainers);
     }
 
-    const elementInfo = collectElementInfo(node);
     if (!elementInfo) {
       logger('should NOT continue for node', node);
       return null;
@@ -263,7 +261,7 @@ export function extractTextWithPosition(
     return elementInfo;
   }
 
-  const outerMostElementInfo = dfs(initNode);
+  const outerMostElementInfo = dfs(initNode, '0');
   if (outerMostElementInfo && !elementInfoArray.length) {
     elementInfoArray.push(outerMostElementInfo);
   }

@@ -92,9 +92,8 @@
         <input placeholder="You shouldn't see this placeholder." value="Rectangle" />
         <pre id="J_keyRecord"></pre>
         <textarea placeholder="this_is_a_textarea"></textarea>
-        <img src="https://lf3-static.bytednsdoc.com/obj/eden-cn/vhaeh7vhabf/midscene.png" width="2" height="2"
-            alt="small_img" />
-        </div>
+        <img src="https://lf3-static.bytednsdoc.com/obj/eden-cn/vhaeh7vhabf/midscene.png" width="2" height="2" alt="small_img" />
+    </div>
 
     <!-- Global popup to test invisible -->
     <div style="position: absolute; top: 0px; left: 500px; width: 100%;">
@@ -122,15 +121,13 @@
     <!-- a label with sibiling input -->
     <div id="gh-ac-box2">
         <label for="gh-ac" class="gh-ar-hdn">输入搜索关键词</label>
-        <input type="text" class="gh-tb ui-autocomplete-input" aria-autocomplete="list" aria-expanded="false" size="50"
-            maxlength="300" aria-label="搜索任何物品" placeholder="搜索任何物品" id="gh-ac" name="_nkw" autocapitalize="off"
-            autocorrect="off" spellcheck="false" autocomplete="off" aria-haspopup="true" role="combobox" aria-owns="ui-id-1">
+        <input type="text" class="gh-tb ui-autocomplete-input" aria-autocomplete="list" aria-expanded="false" size="50" maxlength="300" aria-label="搜索任何物品" placeholder="搜索任何物品" id="gh-ac" name="_nkw" autocapitalize="off" autocorrect="off" spellcheck="false" autocomplete="off"
+            aria-haspopup="true" role="combobox" aria-owns="ui-id-1">
         <input style="display:none">
     </div>
 
     <!-- a label with nested input -->
-    <label
-        class="life-core-input-inner__wrapper life-core-input-inner__wrapper-border life-core-input-inner__wrapper-size-md life-core-input-inner__wrapper-add-suffix">
+    <label class="life-core-input-inner__wrapper life-core-input-inner__wrapper-border life-core-input-inner__wrapper-size-md life-core-input-inner__wrapper-add-suffix">
     <input placeholder="验证码" tabindex="0" type="text" class="life-core-input life-core-input-size-md" value="">
   </label>
 
@@ -157,6 +154,12 @@
       </span>
     </label>
     </span>
+
+    <!-- a button with children -->
+    <button tabindex="0" class="btn" type="submit" aria-label="Search">
+        <img class="search-icon-dark" src="/assets/icons/search-dark.svg" alt="Search">
+        <img class="search-icon-light" src="/assets/icons/search.svg" alt="Search">
+    </button>
 
     <!-- item hidden by css overflow: hidden  -->
     <style>
@@ -215,7 +218,7 @@
                 <div foo="bar2"></div>
                 <div foo="bar3"></div>
             </div>
-            </div>
+        </div>
     </div>
 </body>
 

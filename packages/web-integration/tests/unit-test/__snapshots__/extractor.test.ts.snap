@@ -7,210 +7,245 @@ exports[`extractor > basic 1`] = `
       "nodeType": "TEXT Node",
     },
     "content": "Data Record",
+    "id": "0-1-0",
   },
   {
     "attributes": {
       "nodeType": "TEXT Node",
     },
     "content": "1970-01-01 19:25:01",
+    "id": "0-3-0",
   },
   {
     "attributes": {
       "nodeType": "TEXT Node",
     },
     "content": "User Name: Stella",
+    "id": "0-5-0",
   },
   {
     "attributes": {
       "nodeType": "TEXT Node",
     },
     "content": "ID",
+    "id": "0-7-1-1-1-0",
   },
   {
     "attributes": {
       "nodeType": "TEXT Node",
     },
     "content": "Field 2",
+    "id": "0-7-1-1-3-0",
   },
   {
     "attributes": {
       "nodeType": "TEXT Node",
     },
     "content": "Field 3",
+    "id": "0-7-1-1-5-0",
   },
   {
     "attributes": {
       "nodeType": "TEXT Node",
     },
     "content": "Field 4",
+    "id": "0-7-1-1-7-0",
   },
   {
     "attributes": {
       "nodeType": "TEXT Node",
     },
     "content": "Field 5",
+    "id": "0-7-1-1-9-0",
   },
   {
     "attributes": {
       "nodeType": "TEXT Node",
     },
     "content": "30S",
+    "id": "0-7-3-1-1-0",
   },
   {
     "attributes": {
       "nodeType": "TEXT Node",
     },
     "content": "Kace Cervantes",
+    "id": "0-7-3-1-3-0",
   },
   {
     "attributes": {
       "nodeType": "TEXT Node",
     },
     "content": "Aylin Sawyer",
+    "id": "0-7-3-1-5-0",
   },
   {
     "attributes": {
       "nodeType": "TEXT Node",
     },
     "content": "Jefferson Kirby",
+    "id": "0-7-3-1-7-0",
   },
   {
     "attributes": {
       "nodeType": "TEXT Node",
     },
     "content": "Skyla Jefferson",
+    "id": "0-7-3-1-9-0",
   },
   {
     "attributes": {
       "nodeType": "TEXT Node",
     },
     "content": "70U",
+    "id": "0-7-3-3-1-0",
   },
   {
     "attributes": {
       "nodeType": "TEXT Node",
     },
     "content": "Florence Davenport",
+    "id": "0-7-3-3-3-0",
   },
   {
     "attributes": {
       "nodeType": "TEXT Node",
     },
     "content": "Dariel Acevedo",
+    "id": "0-7-3-3-5-0",
   },
   {
     "attributes": {
       "nodeType": "TEXT Node",
     },
     "content": "Ashlynn Delacruz",
+    "id": "0-7-3-3-7-0",
   },
   {
     "attributes": {
       "nodeType": "TEXT Node",
     },
     "content": "Memphis Leal",
+    "id": "0-7-3-3-9-0",
   },
   {
     "attributes": {
       "nodeType": "TEXT Node",
     },
     "content": "3AY",
+    "id": "0-7-3-5-1-0",
   },
   {
     "attributes": {
       "nodeType": "TEXT Node",
     },
     "content": "Crystal Newman",
+    "id": "0-7-3-5-3-0",
   },
   {
     "attributes": {
       "nodeType": "TEXT Node",
     },
     "content": "Anderson Brown",
+    "id": "0-7-3-5-5-0",
   },
   {
     "attributes": {
       "nodeType": "TEXT Node",
     },
     "content": "Charlotte Griffith",
+    "id": "0-7-3-5-7-0",
   },
   {
     "attributes": {
       "nodeType": "TEXT Node",
     },
     "content": "Franklin Everett",
+    "id": "0-7-3-5-9-0",
   },
   {
     "attributes": {
       "nodeType": "TEXT Node",
     },
     "content": "YPG",
+    "id": "0-7-3-7-1-0",
   },
   {
     "attributes": {
       "nodeType": "TEXT Node",
     },
     "content": "Kori Payne",
+    "id": "0-7-3-7-3-0",
   },
   {
     "attributes": {
       "nodeType": "TEXT Node",
     },
     "content": "Edward Blevins",
+    "id": "0-7-3-7-5-0",
   },
   {
     "attributes": {
       "nodeType": "TEXT Node",
     },
     "content": "Aila Gill",
+    "id": "0-7-3-7-7-0",
   },
   {
     "attributes": {
       "nodeType": "TEXT Node",
     },
     "content": "Matthias Reed",
+    "id": "0-7-3-7-9-0",
   },
   {
     "attributes": {
       "nodeType": "TEXT Node",
     },
     "content": "ZEN",
+    "id": "0-7-3-9-1-0",
   },
   {
     "attributes": {
       "nodeType": "TEXT Node",
     },
     "content": "Magnolia Duke",
+    "id": "0-7-3-9-3-0",
   },
   {
     "attributes": {
       "nodeType": "TEXT Node",
     },
     "content": "Kalel Glover",
+    "id": "0-7-3-9-5-0",
   },
   {
     "attributes": {
       "nodeType": "TEXT Node",
     },
     "content": "Alessia Barton",
+    "id": "0-7-3-9-7-0",
   },
   {
     "attributes": {
       "nodeType": "TEXT Node",
     },
     "content": "Cassius Peck",
+    "id": "0-7-3-9-9-0",
   },
   {
     "attributes": {
       "nodeType": "TEXT Node",
     },
     "content": "Form",
+    "id": "0-9-1-0",
   },
   {
     "attributes": {
       "nodeType": "TEXT Node",
     },
     "content": "Name:",
+    "id": "0-9-3-0",
   },
   {
     "attributes": {
@@ -219,6 +254,7 @@ exports[`extractor > basic 1`] = `
       "nodeType": "FORM_ITEM",
     },
     "content": "Name:",
+    "id": "0-9-3",
   },
   {
     "attributes": {
@@ -228,6 +264,7 @@ exports[`extractor > basic 1`] = `
       "placeholder": "Hello World This is Placeholder",
     },
     "content": "Hello World This is Placeholder",
+    "id": "0-9-5",
   },
   {
     "attributes": {
@@ -238,24 +275,21 @@ exports[`extractor > basic 1`] = `
       "value": "Now I am a value, instead of placeholder",
     },
     "content": "Now I am a value, instead of placeholder",
-  },
-  {
-    "attributes": {
-      "nodeType": "TEXT Node",
-    },
-    "content": "Click Me",
+    "id": "0-9-7",
   },
   {
     "attributes": {
       "nodeType": "BUTTON Node",
     },
     "content": "Click Me",
+    "id": "0-9-9",
   },
   {
     "attributes": {
       "nodeType": "TEXT Node",
     },
     "content": "Shape",
+    "id": "0-9-11-0",
   },
   {
     "attributes": {
@@ -263,6 +297,7 @@ exports[`extractor > basic 1`] = `
       "nodeType": "FORM_ITEM",
     },
     "content": "Shape",
+    "id": "0-9-11",
   },
   {
     "attributes": {
@@ -272,6 +307,7 @@ exports[`extractor > basic 1`] = `
       "value": "Rectangle",
     },
     "content": "Rectangle",
+    "id": "0-9-13",
   },
   {
     "attributes": {
@@ -280,30 +316,35 @@ exports[`extractor > basic 1`] = `
       "placeholder": "this_is_a_textarea",
     },
     "content": "this_is_a_textarea",
+    "id": "0-9-17",
   },
   {
     "attributes": {
       "nodeType": "TEXT Node",
     },
     "content": "English",
+    "id": "0-13-1-1-1-1-0-0",
   },
   {
     "attributes": {
       "nodeType": "TEXT Node",
     },
     "content": "中文",
+    "id": "0-13-1-1-1-3-0-0",
   },
   {
     "attributes": {
       "nodeType": "TEXT Node",
     },
     "content": "Tiếng Việt",
+    "id": "0-13-1-1-1-5-0-0",
   },
   {
     "attributes": {
       "nodeType": "TEXT Node",
     },
     "content": "Choose an option:",
+    "id": "0-17-1-0",
   },
   {
     "attributes": {
@@ -312,6 +353,7 @@ exports[`extractor > basic 1`] = `
       "nodeType": "FORM_ITEM",
     },
     "content": "Choose an option:",
+    "id": "0-17-1",
   },
   {
     "attributes": {
@@ -321,12 +363,14 @@ exports[`extractor > basic 1`] = `
       "nodeType": "FORM_ITEM",
     },
     "content": "Option 1",
+    "id": "0-17-3",
   },
   {
     "attributes": {
       "nodeType": "TEXT Node",
     },
     "content": "输入搜索关键词",
+    "id": "0-21-1-0",
   },
   {
     "attributes": {
@@ -336,6 +380,7 @@ exports[`extractor > basic 1`] = `
       "nodeType": "FORM_ITEM",
     },
     "content": "输入搜索关键词",
+    "id": "0-21-1",
   },
   {
     "attributes": {
@@ -360,6 +405,7 @@ exports[`extractor > basic 1`] = `
       "type": "text",
     },
     "content": "搜索任何物品",
+    "id": "0-21-3",
   },
   {
     "attributes": {
@@ -371,6 +417,7 @@ exports[`extractor > basic 1`] = `
       "type": "text",
     },
     "content": "验证码",
+    "id": "0-25-1",
   },
   {
     "attributes": {
@@ -379,6 +426,7 @@ exports[`extractor > basic 1`] = `
       "nodeType": "FORM_ITEM",
     },
     "content": "",
+    "id": "0-25",
   },
   {
     "attributes": {
@@ -387,30 +435,46 @@ exports[`extractor > basic 1`] = `
       "nodeType": "FORM_ITEM",
     },
     "content": "",
+    "id": "0-31-1",
+  },
+  {
+    "attributes": {
+      "aria-label": "Search",
+      "class": ".btn",
+      "nodeType": "BUTTON Node",
+      "tabindex": "0",
+      "type": "submit",
+    },
+    "content": " ",
+    "id": "0-35",
   },
   {
     "attributes": {
       "nodeType": "TEXT Node",
     },
     "content": "content AAA",
+    "id": "0-41-1-0",
   },
   {
     "attributes": {
       "nodeType": "TEXT Node",
     },
     "content": "Click me",
+    "id": "0-47-0",
   },
   {
     "attributes": {
       "nodeType": "TEXT Node",
     },
     "content": "Content 1",
+    "id": "0-57-1-0",
   },
   {
     "attributes": {
       "nodeType": "TEXT Node",
     },
     "content": "Content 2",
+    "id": "0-57-3-3-1-1-0",
   },
   {
     "attributes": {
@@ -419,12 +483,14 @@ exports[`extractor > basic 1`] = `
       "style": "width: 100px; height: 100px; background-color: #ccc;",
     },
     "content": "",
+    "id": "0-57-3-1",
   },
   {
     "attributes": {
       "nodeType": "TEXT Node",
     },
     "content": "Nested Content 3",
+    "id": "0-57-5-1-1-1-0",
   },
   {
     "attributes": {
@@ -433,6 +499,7 @@ exports[`extractor > basic 1`] = `
       "style": "width: 100px; height: 100px; background-color: #ccc;",
     },
     "content": "",
+    "id": "0-57-7",
   },
   {
     "attributes": {
@@ -441,6 +508,7 @@ exports[`extractor > basic 1`] = `
       "nodeType": "CONTAINER",
     },
     "content": "",
+    "id": "0-49",
   },
   {
     "attributes": {
@@ -449,6 +517,7 @@ exports[`extractor > basic 1`] = `
       "nodeType": "CONTAINER",
     },
     "content": "",
+    "id": "0-51",
   },
 ]
 `;
