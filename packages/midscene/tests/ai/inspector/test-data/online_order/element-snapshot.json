@@ -17,10 +17,7 @@
       "width": 22,
       "height": 22
     },
-    "center": [
-      26,
-      28
-    ],
+    "center": [26, 28],
     "htmlNode": null,
     "indexId": "1"
   },
@@ -33,10 +30,7 @@
     "attributes": {
       "nodeType": "TEXT Node"
     },
-    "center": [
-      81,
-      29
-    ],
+    "center": [81, 29],
     "content": "中文",
     "rect": {
       "left": 65,
@@ -65,10 +59,7 @@
       "width": 8,
       "height": 4
     },
-    "center": [
-      117,
-      28
-    ],
+    "center": [117, 28],
     "htmlNode": null,
     "indexId": "3"
   },
@@ -90,10 +81,7 @@
       "width": 44,
       "height": 44
     },
-    "center": [
-      225,
-      30
-    ],
+    "center": [225, 30],
     "htmlNode": null,
     "indexId": "4"
   },
@@ -115,10 +103,7 @@
       "width": 25,
       "height": 25
     },
-    "center": [
-      363,
-      29
-    ],
+    "center": [363, 29],
     "htmlNode": null,
     "indexId": "5"
   },
@@ -131,10 +116,7 @@
     "attributes": {
       "nodeType": "TEXT Node"
     },
-    "center": [
-      166,
-      79
-    ],
+    "center": [166, 79],
     "content": "商家暂未开通外卖和自取业务",
     "rect": {
       "left": 75,
@@ -154,10 +136,7 @@
     "attributes": {
       "nodeType": "TEXT Node"
     },
-    "center": [
-      153,
-      98
-    ],
+    "center": [153, 98],
     "content": "喜茶 HEYTEA (Vivocity)",
     "rect": {
       "left": 22,
@@ -177,10 +156,7 @@
     "attributes": {
       "nodeType": "TEXT Node"
     },
-    "center": [
-      97,
-      133
-    ],
+    "center": [97, 133],
     "content": "全岛派送，起送价 S$ 11",
     "rect": {
       "left": 22,
@@ -208,10 +184,7 @@
       "width": 368,
       "height": 180
     },
-    "center": [
-      200,
-      350
-    ],
+    "center": [200, 350],
     "htmlNode": null,
     "indexId": "9"
   },
@@ -224,10 +197,7 @@
     "attributes": {
       "nodeType": "TEXT Node"
     },
-    "center": [
-      152,
-      482
-    ],
+    "center": [152, 482],
     "content": "喜茶为芝士现泡茶的原创者。自创立以来，喜茶专注于呈现来自世界各地的优质茶香， 让茶饮这一古老文化焕发出新的生命力。",
     "rect": {
       "left": 16,
@@ -247,10 +217,7 @@
     "attributes": {
       "nodeType": "TEXT Node"
     },
-    "center": [
-      128,
-      569
-    ],
+    "center": [128, 569],
     "content": "菜单",
     "rect": {
       "left": 112,
@@ -277,10 +244,7 @@
       "width": 32,
       "height": 4
     },
-    "center": [
-      128,
-      591
-    ],
+    "center": [128, 591],
     "htmlNode": null,
     "indexId": "12"
   },
@@ -293,10 +257,7 @@
     "attributes": {
       "nodeType": "TEXT Node"
     },
-    "center": [
-      200,
-      569
-    ],
+    "center": [200, 569],
     "content": "评价",
     "rect": {
       "left": 184,
@@ -316,10 +277,7 @@
     "attributes": {
       "nodeType": "TEXT Node"
     },
-    "center": [
-      272,
-      569
-    ],
+    "center": [272, 569],
     "content": "商家",
     "rect": {
       "left": 256,
@@ -339,10 +297,7 @@
     "attributes": {
       "nodeType": "TEXT Node"
     },
-    "center": [
-      29,
-      624
-    ],
+    "center": [29, 624],
     "content": "时令鲜果",
     "rect": {
       "left": 5,
@@ -362,10 +317,7 @@
     "attributes": {
       "nodeType": "TEXT Node"
     },
-    "center": [
-      35,
-      684
-    ],
+    "center": [35, 684],
     "content": "清爽不喝腻",
     "rect": {
       "left": 5,
@@ -385,10 +337,7 @@
     "attributes": {
       "nodeType": "TEXT Node"
     },
-    "center": [
-      35,
-      744
-    ],
+    "center": [35, 744],
     "content": "经典不踩雷",
     "rect": {
       "left": 5,
@@ -408,10 +357,7 @@
     "attributes": {
       "nodeType": "TEXT Node"
     },
-    "center": [
-      23,
-      804
-    ],
+    "center": [23, 804],
     "content": "要浓郁",
     "rect": {
       "left": 5,
@@ -431,10 +377,7 @@
     "attributes": {
       "nodeType": "TEXT Node"
     },
-    "center": [
-      23,
-      864
-    ],
+    "center": [23, 864],
     "content": "要简单",
     "rect": {
       "left": 5,
@@ -462,10 +405,7 @@
       "width": 75,
       "height": 60
     },
-    "center": [
-      38,
-      923
-    ],
+    "center": [38, 923],
     "htmlNode": null,
     "indexId": "20"
   },
@@ -478,10 +418,7 @@
     "attributes": {
       "nodeType": "TEXT Node"
     },
-    "center": [
-      126,
-      633
-    ],
+    "center": [126, 633],
     "content": "时令鲜果 (1)",
     "rect": {
       "left": 88,
@@ -508,10 +445,7 @@
       "width": 213,
       "height": 1
     },
-    "center": [
-      281,
-      639
-    ],
+    "center": [281, 639],
     "htmlNode": null,
     "indexId": "22"
   },
@@ -533,10 +467,7 @@
       "width": 90,
       "height": 90
     },
-    "center": [
-      133,
-      704
-    ],
+    "center": [133, 704],
     "htmlNode": null,
     "indexId": "23"
   },
@@ -549,10 +480,7 @@
     "attributes": {
       "nodeType": "TEXT Node"
     },
-    "center": [
-      244,
-      670
-    ],
+    "center": [244, 670],
     "content": "多肉大橘（首创）",
     "rect": {
       "left": 188,
@@ -572,10 +500,7 @@
     "attributes": {
       "nodeType": "TEXT Node"
     },
-    "center": [
-      719,
-      691
-    ],
+    "center": [719, 691],
     "content": "果肉丰盈，粒粒饱满多汁；精心调配果汁与绿妍茶底的比例打制成冰沙；搭配清甜的无香精桂花冻与Q谈脆波波，再用香水柠檬片作点缀，口感丰富，香气有层次。默认标准杯500ml，可根据个人喜好选择加大杯650ml。",
     "rect": {
       "left": 188,
@@ -595,10 +520,7 @@
     "attributes": {
       "nodeType": "TEXT Node"
     },
-    "center": [
-      211,
-      736
-    ],
+    "center": [211, 736],
     "content": "6.82",
     "rect": {
       "left": 192,
@@ -626,10 +548,7 @@
       "width": 0,
       "height": 14
     },
-    "center": [
-      188,
-      739
-    ],
+    "center": [188, 739],
     "htmlNode": null,
     "indexId": "27"
   },
@@ -642,10 +561,7 @@
     "attributes": {
       "nodeType": "TEXT Node"
     },
-    "center": [
-      355,
-      732
-    ],
+    "center": [355, 732],
     "content": "选规格",
     "rect": {
       "left": 337,
@@ -665,10 +581,7 @@
     "attributes": {
       "nodeType": "TEXT Node"
     },
-    "center": [
-      134,
-      776
-    ],
+    "center": [134, 776],
     "content": "清爽不喝腻 (5)",
     "rect": {
       "left": 88,
@@ -695,10 +608,7 @@
       "width": 197,
       "height": 1
     },
-    "center": [
-      289,
-      782
-    ],
+    "center": [289, 782],
     "htmlNode": null,
     "indexId": "30"
   },
@@ -720,10 +630,7 @@
       "width": 90,
       "height": 90
     },
-    "center": [
-      133,
-      847
-    ],
+    "center": [133, 847],
     "htmlNode": null,
     "indexId": "31"
   },
@@ -736,10 +643,7 @@
     "attributes": {
       "nodeType": "TEXT Node"
     },
-    "center": [
-      223,
-      813
-    ],
+    "center": [223, 813],
     "content": "轻芒芒甘露",
     "rect": {
       "left": 188,
@@ -759,10 +663,7 @@
     "attributes": {
       "nodeType": "TEXT Node"
     },
-    "center": [
-      610,
-      834
-    ],
+    "center": [610, 834],
     "content": "更清爽的芒芒甘露，芒着清爽，芒着解腻。当季芒果，新鲜手切，香甜浓郁；加入红柚果粒与Q弹的脆波波，轻盈不轻量。清爽的芒果绿妍冰沙平衡椰浆的比例，清爽不简单。",
     "rect": {
       "left": 188,
@@ -782,10 +683,7 @@
     "attributes": {
       "nodeType": "TEXT Node"
     },
-    "center": [
-      211,
-      879
-    ],
+    "center": [211, 879],
     "content": "6.54",
     "rect": {
       "left": 192,
@@ -813,10 +711,7 @@
       "width": 0,
       "height": 14
     },
-    "center": [
-      188,
-      882
-    ],
+    "center": [188, 882],
     "htmlNode": null,
     "indexId": "35"
   },
@@ -829,10 +724,7 @@
     "attributes": {
       "nodeType": "TEXT Node"
     },
-    "center": [
-      355,
-      875
-    ],
+    "center": [355, 875],
     "content": "选规格",
     "rect": {
       "left": 337,
@@ -860,10 +752,7 @@
       "width": 42,
       "height": 42
     },
-    "center": [
-      379,
-      834
-    ],
+    "center": [379, 834],
     "htmlNode": null,
     "indexId": "37"
   }

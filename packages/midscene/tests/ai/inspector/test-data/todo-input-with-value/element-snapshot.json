@@ -8,10 +8,7 @@
     "attributes": {
       "nodeType": "TEXT Node"
     },
-    "center": [
-      640,
-      67
-    ],
+    "center": [640, 67],
     "content": "todos",
     "rect": {
       "left": 546,
@@ -44,10 +41,7 @@
       "width": 550,
       "height": 65
     },
-    "center": [
-      640,
-      163
-    ],
+    "center": [640, 163],
     "htmlNode": null,
     "indexId": "2"
   },
@@ -60,10 +54,7 @@
     "attributes": {
       "nodeType": "TEXT Node"
     },
-    "center": [
-      960,
-      140
-    ],
+    "center": [960, 140],
     "content": "New Todo Input",
     "rect": {
       "left": 914,
@@ -93,10 +84,7 @@
       "width": 1,
       "height": 1
     },
-    "center": [
-      915,
-      130
-    ],
+    "center": [915, 130],
     "htmlNode": null,
     "indexId": "4"
   },
@@ -120,10 +108,7 @@
       "width": 40,
       "height": 60
     },
-    "center": [
-      389,
-      163
-    ],
+    "center": [389, 163],
     "htmlNode": null,
     "indexId": "5"
   },
@@ -146,10 +131,7 @@
       "width": 45,
       "height": 65
     },
-    "center": [
-      388,
-      164
-    ],
+    "center": [388, 164],
     "htmlNode": null,
     "indexId": "6"
   },
@@ -173,10 +155,7 @@
       "width": 40,
       "height": 40
     },
-    "center": [
-      385,
-      225
-    ],
+    "center": [385, 225],
     "htmlNode": null,
     "indexId": "7"
   },
@@ -189,10 +168,7 @@
     "attributes": {
       "nodeType": "TEXT Node"
     },
-    "center": [
-      497,
-      225
-    ],
+    "center": [497, 225],
     "content": "Learn Python",
     "rect": {
       "left": 425,
@@ -221,10 +197,7 @@
       "width": 550,
       "height": 59
     },
-    "center": [
-      640,
-      226
-    ],
+    "center": [640, 226],
     "htmlNode": null,
     "indexId": "9"
   },
@@ -248,10 +221,7 @@
       "width": 40,
       "height": 40
     },
-    "center": [
-      385,
-      285
-    ],
+    "center": [385, 285],
     "htmlNode": null,
     "indexId": "10"
   },
@@ -264,10 +234,7 @@
     "attributes": {
       "nodeType": "TEXT Node"
     },
-    "center": [
-      484,
-      285
-    ],
+    "center": [484, 285],
     "content": "Learn Rust",
     "rect": {
       "left": 425,
@@ -296,10 +263,7 @@
       "width": 550,
       "height": 59
     },
-    "center": [
-      640,
-      286
-    ],
+    "center": [640, 286],
     "htmlNode": null,
     "indexId": "12"
   },
@@ -321,10 +285,7 @@
       "width": 40,
       "height": 40
     },
-    "center": [
-      885,
-      285
-    ],
+    "center": [885, 285],
     "htmlNode": null,
     "indexId": "13"
   },
@@ -348,10 +309,7 @@
       "width": 40,
       "height": 40
     },
-    "center": [
-      385,
-      345
-    ],
+    "center": [385, 345],
     "htmlNode": null,
     "indexId": "14"
   },
@@ -364,10 +322,7 @@
     "attributes": {
       "nodeType": "TEXT Node"
     },
-    "center": [
-      470,
-      345
-    ],
+    "center": [470, 345],
     "content": "Learn AI",
     "rect": {
       "left": 425,
@@ -396,10 +351,7 @@
       "width": 550,
       "height": 59
     },
-    "center": [
-      640,
-      346
-    ],
+    "center": [640, 346],
     "htmlNode": null,
     "indexId": "16"
   },
@@ -412,10 +364,7 @@
     "attributes": {
       "nodeType": "TEXT Node"
     },
-    "center": [
-      416,
-      395
-    ],
+    "center": [416, 395],
     "content": "3 items left!",
     "rect": {
       "left": 380,
@@ -435,10 +384,7 @@
     "attributes": {
       "nodeType": "TEXT Node"
     },
-    "center": [
-      565,
-      395
-    ],
+    "center": [565, 395],
     "content": "All",
     "rect": {
       "left": 558,
@@ -458,10 +404,7 @@
     "attributes": {
       "nodeType": "TEXT Node"
     },
-    "center": [
-      613,
-      395
-    ],
+    "center": [613, 395],
     "content": "Active",
     "rect": {
       "left": 594,
@@ -481,10 +424,7 @@
     "attributes": {
       "nodeType": "TEXT Node"
     },
-    "center": [
-      688,
-      395
-    ],
+    "center": [688, 395],
     "content": "Completed",
     "rect": {
       "left": 653,
@@ -512,10 +452,7 @@
       "width": 103,
       "height": 19
     },
-    "center": [
-      849,
-      395
-    ],
+    "center": [849, 395],
     "htmlNode": null,
     "indexId": "21"
   },
@@ -528,10 +465,7 @@
     "attributes": {
       "nodeType": "TEXT Node"
     },
-    "center": [
-      640,
-      486
-    ],
+    "center": [640, 486],
     "content": "Double-click to edit a todo",
     "rect": {
       "left": 580,
@@ -551,10 +485,7 @@
     "attributes": {
       "nodeType": "TEXT Node"
     },
-    "center": [
-      640,
-      508
-    ],
+    "center": [640, 508],
     "content": "Created by the TodoMVC Team",
     "rect": {
       "left": 568,
@@ -574,10 +505,7 @@
     "attributes": {
       "nodeType": "TEXT Node"
     },
-    "center": [
-      616,
-      530
-    ],
+    "center": [616, 530],
     "content": "Part of",
     "rect": {
       "left": 599,
@@ -597,10 +525,7 @@
     "attributes": {
       "nodeType": "TEXT Node"
     },
-    "center": [
-      656,
-      530
-    ],
+    "center": [656, 530],
     "content": "TodoMVC",
     "rect": {
       "left": 632,
