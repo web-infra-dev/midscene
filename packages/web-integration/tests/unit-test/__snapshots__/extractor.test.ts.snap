@@ -396,7 +396,20 @@ exports[`extractor > basic 1`] = `
     "attributes": {
       "nodeType": "TEXT Node",
     },
+    "content": "content 000",
+  },
+  {
+    "attributes": {
+      "nodeType": "TEXT Node",
+    },
     "content": "content AAA",
+  },
+  {
+    "attributes": {
+      "nodeType": "CONTAINER Node",
+      "style": "height: 30px;width: 100px;",
+    },
+    "content": "",
   },
   {
     "attributes": {
