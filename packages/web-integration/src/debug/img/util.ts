@@ -8,7 +8,7 @@ export async function getElementInfos(page: any) {
   const elementsPositionInfo = captureElementSnapshot.map(
     (elementInfo, index) => {
       return {
-        label: index.toString(),
+        label: elementInfo.indexId,
         x: elementInfo.rect.left,
         y: elementInfo.rect.top,
         width: elementInfo.rect.width,

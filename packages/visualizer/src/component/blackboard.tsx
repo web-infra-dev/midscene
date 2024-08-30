@@ -94,6 +94,7 @@ const BlackBoard = (): JSX.Element => {
     const img = new Image();
     img.src = screenshotBase64;
     img.onload = () => {
+      if (!app.stage) return;
       const screenshotTexture = PIXI.Texture.from(img);
       const screenshotSprite = new PIXI.Sprite(screenshotTexture);
       screenshotSprite.x = 0;

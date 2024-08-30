@@ -1,13 +1,17 @@
 [
   {
-    "id": "0-0-0-0-0",
+    "id": "7bd167db0a",
+    "nodePath": "0-0-0-0-0",
     "nodeHashId": "7bd167db0a",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
       "nodeType": "TEXT Node"
     },
-    "center": [640, 67],
+    "center": [
+      640,
+      67
+    ],
     "content": "todos",
     "rect": {
       "left": 546,
@@ -15,13 +19,15 @@
       "width": 188,
       "height": 95
     },
-    "htmlNode": null
+    "htmlNode": null,
+    "indexId": "1"
   },
   {
-    "id": "0-0-0-1-0",
+    "id": "3530a9c1eb",
+    "nodePath": "0-0-0-1-0",
     "nodeHashId": "3530a9c1eb",
     "locator": "[_midscene_retrieve_task_id='3530a9c1eb']",
-    "nodeType": "FORM_ITEM",
+    "nodeType": "FORM_ITEM Node",
     "attributes": {
       "class": ".new-todo",
       "id": "todo-input",
@@ -29,7 +35,7 @@
       "data-testid": "text-input",
       "placeholder": "What needs to be done?",
       "htmlTagName": "<input>",
-      "nodeType": "FORM_ITEM"
+      "nodeType": "FORM_ITEM Node"
     },
     "content": "What needs to be done?",
     "rect": {
@@ -38,18 +44,26 @@
       "width": 550,
       "height": 65
     },
-    "center": [640, 163],
-    "htmlNode": null
+    "center": [
+      640,
+      163
+    ],
+    "htmlNode": null,
+    "indexId": "2"
   },
   {
-    "id": "0-0-0-1-1-0",
+    "id": "074c5bdb3b",
+    "nodePath": "0-0-0-1-1-0",
     "nodeHashId": "074c5bdb3b",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
       "nodeType": "TEXT Node"
     },
-    "center": [960, 140],
+    "center": [
+      960,
+      140
+    ],
     "content": "New Todo Input",
     "rect": {
       "left": 914,
@@ -57,18 +71,20 @@
       "width": 91,
       "height": 17
     },
-    "htmlNode": null
+    "htmlNode": null,
+    "indexId": "3"
   },
   {
-    "id": "0-0-0-1-1",
+    "id": "1c47105a69",
+    "nodePath": "0-0-0-1-1",
     "nodeHashId": "1c47105a69",
     "locator": "[_midscene_retrieve_task_id='1c47105a69']",
-    "nodeType": "FORM_ITEM",
+    "nodeType": "FORM_ITEM Node",
     "attributes": {
       "class": ".visually-hidden",
       "for": "todo-input",
       "htmlTagName": "<label>",
-      "nodeType": "FORM_ITEM"
+      "nodeType": "FORM_ITEM Node"
     },
     "content": "New Todo Input",
     "rect": {
@@ -77,20 +93,25 @@
       "width": 1,
       "height": 1
     },
-    "center": [915, 130],
-    "htmlNode": null
+    "center": [
+      915,
+      130
+    ],
+    "htmlNode": null,
+    "indexId": "4"
   },
   {
-    "id": "0-0-1-0-0",
+    "id": "eb02ad0e19",
+    "nodePath": "0-0-1-0-0",
     "nodeHashId": "eb02ad0e19",
     "locator": "[_midscene_retrieve_task_id='eb02ad0e19']",
-    "nodeType": "FORM_ITEM",
+    "nodeType": "FORM_ITEM Node",
     "attributes": {
       "class": ".toggle-all",
       "type": "checkbox",
       "data-testid": "toggle-all",
       "htmlTagName": "<input>",
-      "nodeType": "FORM_ITEM"
+      "nodeType": "FORM_ITEM Node"
     },
     "content": "",
     "rect": {
@@ -99,19 +120,24 @@
       "width": 40,
       "height": 60
     },
-    "center": [389, 163],
-    "htmlNode": null
+    "center": [
+      389,
+      163
+    ],
+    "htmlNode": null,
+    "indexId": "5"
   },
   {
-    "id": "0-0-1-0-1",
+    "id": "5758d52bc9",
+    "nodePath": "0-0-1-0-1",
     "nodeHashId": "5758d52bc9",
     "locator": "[_midscene_retrieve_task_id='5758d52bc9']",
-    "nodeType": "FORM_ITEM",
+    "nodeType": "FORM_ITEM Node",
     "attributes": {
       "class": ".toggle-all-label",
       "for": "toggle-all",
       "htmlTagName": "<label>",
-      "nodeType": "FORM_ITEM"
+      "nodeType": "FORM_ITEM Node"
     },
     "content": "Toggle All Input",
     "rect": {
@@ -120,20 +146,25 @@
       "width": 45,
       "height": 65
     },
-    "center": [388, 164],
-    "htmlNode": null
+    "center": [
+      388,
+      164
+    ],
+    "htmlNode": null,
+    "indexId": "6"
   },
   {
-    "id": "0-0-1-1-0-0-0",
+    "id": "e0a509c9a3",
+    "nodePath": "0-0-1-1-0-0-0",
     "nodeHashId": "e0a509c9a3",
     "locator": "[_midscene_retrieve_task_id='e0a509c9a3']",
-    "nodeType": "FORM_ITEM",
+    "nodeType": "FORM_ITEM Node",
     "attributes": {
       "class": ".toggle",
       "type": "checkbox",
       "data-testid": "todo-item-toggle",
       "htmlTagName": "<input>",
-      "nodeType": "FORM_ITEM"
+      "nodeType": "FORM_ITEM Node"
     },
     "content": "",
     "rect": {
@@ -142,18 +173,26 @@
       "width": 40,
       "height": 40
     },
-    "center": [385, 225],
-    "htmlNode": null
+    "center": [
+      385,
+      225
+    ],
+    "htmlNode": null,
+    "indexId": "7"
   },
   {
-    "id": "0-0-1-1-0-0-1-0",
+    "id": "e6200904d4",
+    "nodePath": "0-0-1-1-0-0-1-0",
     "nodeHashId": "e6200904d4",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
       "nodeType": "TEXT Node"
     },
-    "center": [497, 225],
+    "center": [
+      497,
+      225
+    ],
     "content": "Learn Python",
     "rect": {
       "left": 425,
@@ -161,17 +200,19 @@
       "width": 143,
       "height": 28
     },
-    "htmlNode": null
+    "htmlNode": null,
+    "indexId": "8"
   },
   {
-    "id": "0-0-1-1-0-0-1",
+    "id": "ac884dadf3",
+    "nodePath": "0-0-1-1-0-0-1",
     "nodeHashId": "ac884dadf3",
     "locator": "[_midscene_retrieve_task_id='ac884dadf3']",
-    "nodeType": "FORM_ITEM",
+    "nodeType": "FORM_ITEM Node",
     "attributes": {
       "data-testid": "todo-item-label",
       "htmlTagName": "<label>",
-      "nodeType": "FORM_ITEM"
+      "nodeType": "FORM_ITEM Node"
     },
     "content": "Learn Python",
     "rect": {
@@ -180,20 +221,25 @@
       "width": 550,
       "height": 59
     },
-    "center": [640, 226],
-    "htmlNode": null
+    "center": [
+      640,
+      226
+    ],
+    "htmlNode": null,
+    "indexId": "9"
   },
   {
-    "id": "0-0-1-1-1-0-0",
+    "id": "c0751f3b26",
+    "nodePath": "0-0-1-1-1-0-0",
     "nodeHashId": "c0751f3b26",
     "locator": "[_midscene_retrieve_task_id='c0751f3b26']",
-    "nodeType": "FORM_ITEM",
+    "nodeType": "FORM_ITEM Node",
     "attributes": {
       "class": ".toggle",
       "type": "checkbox",
       "data-testid": "todo-item-toggle",
       "htmlTagName": "<input>",
-      "nodeType": "FORM_ITEM"
+      "nodeType": "FORM_ITEM Node"
     },
     "content": "",
     "rect": {
@@ -202,18 +248,26 @@
       "width": 40,
       "height": 40
     },
-    "center": [385, 285],
-    "htmlNode": null
+    "center": [
+      385,
+      285
+    ],
+    "htmlNode": null,
+    "indexId": "10"
   },
   {
-    "id": "0-0-1-1-1-0-1-0",
+    "id": "e477ad490a",
+    "nodePath": "0-0-1-1-1-0-1-0",
     "nodeHashId": "e477ad490a",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
       "nodeType": "TEXT Node"
     },
-    "center": [484, 285],
+    "center": [
+      484,
+      285
+    ],
     "content": "Learn Rust",
     "rect": {
       "left": 425,
@@ -221,17 +275,19 @@
       "width": 117,
       "height": 28
     },
-    "htmlNode": null
+    "htmlNode": null,
+    "indexId": "11"
   },
   {
-    "id": "0-0-1-1-1-0-1",
+    "id": "7b0f4c3c94",
+    "nodePath": "0-0-1-1-1-0-1",
     "nodeHashId": "7b0f4c3c94",
     "locator": "[_midscene_retrieve_task_id='7b0f4c3c94']",
-    "nodeType": "FORM_ITEM",
+    "nodeType": "FORM_ITEM Node",
     "attributes": {
       "data-testid": "todo-item-label",
       "htmlTagName": "<label>",
-      "nodeType": "FORM_ITEM"
+      "nodeType": "FORM_ITEM Node"
     },
     "content": "Learn Rust",
     "rect": {
@@ -240,11 +296,16 @@
       "width": 550,
       "height": 59
     },
-    "center": [640, 286],
-    "htmlNode": null
+    "center": [
+      640,
+      286
+    ],
+    "htmlNode": null,
+    "indexId": "12"
   },
   {
-    "id": "0-0-1-1-1-0-2",
+    "id": "7ccd467339",
+    "nodePath": "0-0-1-1-1-0-2",
     "nodeHashId": "7ccd467339",
     "nodeType": "BUTTON Node",
     "locator": "[_midscene_retrieve_task_id='7ccd467339']",
@@ -260,20 +321,25 @@
       "width": 40,
       "height": 40
     },
-    "center": [885, 285],
-    "htmlNode": null
+    "center": [
+      885,
+      285
+    ],
+    "htmlNode": null,
+    "indexId": "13"
   },
   {
-    "id": "0-0-1-1-2-0-0",
+    "id": "eb987bf616",
+    "nodePath": "0-0-1-1-2-0-0",
     "nodeHashId": "eb987bf616",
     "locator": "[_midscene_retrieve_task_id='eb987bf616']",
-    "nodeType": "FORM_ITEM",
+    "nodeType": "FORM_ITEM Node",
     "attributes": {
       "class": ".toggle",
       "type": "checkbox",
       "data-testid": "todo-item-toggle",
       "htmlTagName": "<input>",
-      "nodeType": "FORM_ITEM"
+      "nodeType": "FORM_ITEM Node"
     },
     "content": "",
     "rect": {
@@ -282,18 +348,26 @@
       "width": 40,
       "height": 40
     },
-    "center": [385, 345],
-    "htmlNode": null
+    "center": [
+      385,
+      345
+    ],
+    "htmlNode": null,
+    "indexId": "14"
   },
   {
-    "id": "0-0-1-1-2-0-1-0",
+    "id": "00528631df",
+    "nodePath": "0-0-1-1-2-0-1-0",
     "nodeHashId": "00528631df",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
       "nodeType": "TEXT Node"
     },
-    "center": [470, 345],
+    "center": [
+      470,
+      345
+    ],
     "content": "Learn AI",
     "rect": {
       "left": 425,
@@ -301,17 +375,19 @@
       "width": 89,
       "height": 28
     },
-    "htmlNode": null
+    "htmlNode": null,
+    "indexId": "15"
   },
   {
-    "id": "0-0-1-1-2-0-1",
+    "id": "42badd1ca7",
+    "nodePath": "0-0-1-1-2-0-1",
     "nodeHashId": "42badd1ca7",
     "locator": "[_midscene_retrieve_task_id='42badd1ca7']",
-    "nodeType": "FORM_ITEM",
+    "nodeType": "FORM_ITEM Node",
     "attributes": {
       "data-testid": "todo-item-label",
       "htmlTagName": "<label>",
-      "nodeType": "FORM_ITEM"
+      "nodeType": "FORM_ITEM Node"
     },
     "content": "Learn AI",
     "rect": {
@@ -320,18 +396,26 @@
       "width": 550,
       "height": 59
     },
-    "center": [640, 346],
-    "htmlNode": null
+    "center": [
+      640,
+      346
+    ],
+    "htmlNode": null,
+    "indexId": "16"
   },
   {
-    "id": "0-0-2-0-0",
+    "id": "7a0f49a164",
+    "nodePath": "0-0-2-0-0",
     "nodeHashId": "7a0f49a164",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
       "nodeType": "TEXT Node"
     },
-    "center": [416, 395],
+    "center": [
+      416,
+      395
+    ],
     "content": "3 items left!",
     "rect": {
       "left": 380,
@@ -339,17 +423,22 @@
       "width": 72,
       "height": 18
     },
-    "htmlNode": null
+    "htmlNode": null,
+    "indexId": "17"
   },
   {
-    "id": "0-0-2-1-0-0-0",
+    "id": "7f7c26491c",
+    "nodePath": "0-0-2-1-0-0-0",
     "nodeHashId": "7f7c26491c",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
       "nodeType": "TEXT Node"
     },
-    "center": [565, 395],
+    "center": [
+      565,
+      395
+    ],
     "content": "All",
     "rect": {
       "left": 558,
@@ -357,17 +446,22 @@
       "width": 14,
       "height": 18
     },
-    "htmlNode": null
+    "htmlNode": null,
+    "indexId": "18"
   },
   {
-    "id": "0-0-2-1-1-0-0",
+    "id": "fe18355b5a",
+    "nodePath": "0-0-2-1-1-0-0",
     "nodeHashId": "fe18355b5a",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
       "nodeType": "TEXT Node"
     },
-    "center": [613, 395],
+    "center": [
+      613,
+      395
+    ],
     "content": "Active",
     "rect": {
       "left": 594,
@@ -375,17 +469,22 @@
       "width": 38,
       "height": 18
     },
-    "htmlNode": null
+    "htmlNode": null,
+    "indexId": "19"
   },
   {
-    "id": "0-0-2-1-2-0-0",
+    "id": "284ba7f2b3",
+    "nodePath": "0-0-2-1-2-0-0",
     "nodeHashId": "284ba7f2b3",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
       "nodeType": "TEXT Node"
     },
-    "center": [688, 395],
+    "center": [
+      688,
+      395
+    ],
     "content": "Completed",
     "rect": {
       "left": 653,
@@ -393,10 +492,12 @@
       "width": 69,
       "height": 18
     },
-    "htmlNode": null
+    "htmlNode": null,
+    "indexId": "20"
   },
   {
-    "id": "0-0-2-2",
+    "id": "84b6988e83",
+    "nodePath": "0-0-2-2",
     "nodeHashId": "84b6988e83",
     "nodeType": "BUTTON Node",
     "locator": "[_midscene_retrieve_task_id='84b6988e83']",
@@ -411,18 +512,26 @@
       "width": 103,
       "height": 19
     },
-    "center": [849, 395],
-    "htmlNode": null
+    "center": [
+      849,
+      395
+    ],
+    "htmlNode": null,
+    "indexId": "21"
   },
   {
-    "id": "0-1-0-0",
+    "id": "95a02ed28f",
+    "nodePath": "0-1-0-0",
     "nodeHashId": "95a02ed28f",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
       "nodeType": "TEXT Node"
     },
-    "center": [640, 486],
+    "center": [
+      640,
+      486
+    ],
     "content": "Double-click to edit a todo",
     "rect": {
       "left": 580,
@@ -430,17 +539,22 @@
       "width": 120,
       "height": 13
     },
-    "htmlNode": null
+    "htmlNode": null,
+    "indexId": "22"
   },
   {
-    "id": "0-1-1-0",
+    "id": "b36169ba80",
+    "nodePath": "0-1-1-0",
     "nodeHashId": "b36169ba80",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
       "nodeType": "TEXT Node"
     },
-    "center": [640, 508],
+    "center": [
+      640,
+      508
+    ],
     "content": "Created by the TodoMVC Team",
     "rect": {
       "left": 568,
@@ -448,17 +562,22 @@
       "width": 144,
       "height": 13
     },
-    "htmlNode": null
+    "htmlNode": null,
+    "indexId": "23"
   },
   {
-    "id": "0-1-2-0",
+    "id": "7d170b5a0c",
+    "nodePath": "0-1-2-0",
     "nodeHashId": "7d170b5a0c",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
       "nodeType": "TEXT Node"
     },
-    "center": [616, 530],
+    "center": [
+      616,
+      530
+    ],
     "content": "Part of",
     "rect": {
       "left": 599,
@@ -466,17 +585,22 @@
       "width": 33,
       "height": 13
     },
-    "htmlNode": null
+    "htmlNode": null,
+    "indexId": "24"
   },
   {
-    "id": "0-1-2-1-0",
+    "id": "70ba39c5c6",
+    "nodePath": "0-1-2-1-0",
     "nodeHashId": "70ba39c5c6",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
       "nodeType": "TEXT Node"
     },
-    "center": [656, 530],
+    "center": [
+      656,
+      530
+    ],
     "content": "TodoMVC",
     "rect": {
       "left": 632,
@@ -484,6 +608,7 @@
       "width": 48,
       "height": 13
     },
-    "htmlNode": null
+    "htmlNode": null,
+    "indexId": "25"
   }
 ]
