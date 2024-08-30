@@ -66,29 +66,6 @@
     "indexId": "3"
   },
   {
-    "id": "1c47105a69",
-    "nodePath": "0-0-0-1-1",
-    "nodeHashId": "1c47105a69",
-    "locator": "[_midscene_retrieve_task_id='1c47105a69']",
-    "nodeType": "FORM_ITEM Node",
-    "attributes": {
-      "class": ".visually-hidden",
-      "for": "todo-input",
-      "htmlTagName": "<label>",
-      "nodeType": "FORM_ITEM Node"
-    },
-    "content": "New Todo Input",
-    "rect": {
-      "left": 914,
-      "top": 129,
-      "width": 1,
-      "height": 1
-    },
-    "center": [915, 130],
-    "htmlNode": null,
-    "indexId": "4"
-  },
-  {
     "id": "eb02ad0e19",
     "nodePath": "0-0-1-0-0",
     "nodeHashId": "eb02ad0e19",
@@ -110,7 +87,7 @@
     },
     "center": [389, 163],
     "htmlNode": null,
-    "indexId": "5"
+    "indexId": "4"
   },
   {
     "id": "5758d52bc9",
@@ -133,7 +110,7 @@
     },
     "center": [388, 164],
     "htmlNode": null,
-    "indexId": "6"
+    "indexId": "5"
   },
   {
     "id": "e0a509c9a3",
@@ -157,7 +134,7 @@
     },
     "center": [385, 225],
     "htmlNode": null,
-    "indexId": "7"
+    "indexId": "6"
   },
   {
     "id": "e6200904d4",
@@ -177,7 +154,7 @@
       "height": 28
     },
     "htmlNode": null,
-    "indexId": "8"
+    "indexId": "7"
   },
   {
     "id": "ac884dadf3",
@@ -199,7 +176,7 @@
     },
     "center": [640, 226],
     "htmlNode": null,
-    "indexId": "9"
+    "indexId": "8"
   },
   {
     "id": "c0751f3b26",
@@ -223,7 +200,7 @@
     },
     "center": [385, 285],
     "htmlNode": null,
-    "indexId": "10"
+    "indexId": "9"
   },
   {
     "id": "e477ad490a",
@@ -243,7 +220,7 @@
       "height": 28
     },
     "htmlNode": null,
-    "indexId": "11"
+    "indexId": "10"
   },
   {
     "id": "7b0f4c3c94",
@@ -265,7 +242,7 @@
     },
     "center": [640, 286],
     "htmlNode": null,
-    "indexId": "12"
+    "indexId": "11"
   },
   {
     "id": "7ccd467339",
@@ -287,7 +264,7 @@
     },
     "center": [885, 285],
     "htmlNode": null,
-    "indexId": "13"
+    "indexId": "12"
   },
   {
     "id": "eb987bf616",
@@ -311,7 +288,7 @@
     },
     "center": [385, 345],
     "htmlNode": null,
-    "indexId": "14"
+    "indexId": "13"
   },
   {
     "id": "00528631df",
@@ -331,7 +308,7 @@
       "height": 28
     },
     "htmlNode": null,
-    "indexId": "15"
+    "indexId": "14"
   },
   {
     "id": "42badd1ca7",
@@ -353,7 +330,7 @@
     },
     "center": [640, 346],
     "htmlNode": null,
-    "indexId": "16"
+    "indexId": "15"
   },
   {
     "id": "7a0f49a164",
@@ -373,7 +350,7 @@
       "height": 18
     },
     "htmlNode": null,
-    "indexId": "17"
+    "indexId": "16"
   },
   {
     "id": "7f7c26491c",
@@ -393,7 +370,7 @@
       "height": 18
     },
     "htmlNode": null,
-    "indexId": "18"
+    "indexId": "17"
   },
   {
     "id": "fe18355b5a",
@@ -413,7 +390,7 @@
       "height": 18
     },
     "htmlNode": null,
-    "indexId": "19"
+    "indexId": "18"
   },
   {
     "id": "284ba7f2b3",
@@ -433,7 +410,7 @@
       "height": 18
     },
     "htmlNode": null,
-    "indexId": "20"
+    "indexId": "19"
   },
   {
     "id": "84b6988e83",
@@ -454,7 +431,7 @@
     },
     "center": [849, 395],
     "htmlNode": null,
-    "indexId": "21"
+    "indexId": "20"
   },
   {
     "id": "95a02ed28f",
@@ -474,7 +451,7 @@
       "height": 13
     },
     "htmlNode": null,
-    "indexId": "22"
+    "indexId": "21"
   },
   {
     "id": "b36169ba80",
@@ -494,7 +471,7 @@
       "height": 13
     },
     "htmlNode": null,
-    "indexId": "23"
+    "indexId": "22"
   },
   {
     "id": "7d170b5a0c",
@@ -514,7 +491,7 @@
       "height": 13
     },
     "htmlNode": null,
-    "indexId": "24"
+    "indexId": "23"
   },
   {
     "id": "70ba39c5c6",
@@ -534,6 +511,6 @@
       "height": 13
     },
     "htmlNode": null,
-    "indexId": "25"
+    "indexId": "24"
   }
 ]

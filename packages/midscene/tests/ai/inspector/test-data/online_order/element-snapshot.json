@@ -389,27 +389,6 @@
     "indexId": "19"
   },
   {
-    "id": "5103aab026",
-    "nodePath": "0-3-1-2-0-1-0-1-0-6-1-0-0-6",
-    "nodeHashId": "5103aab026",
-    "nodeType": "CONTAINER Node",
-    "locator": "[_midscene_retrieve_task_id='5103aab026']",
-    "attributes": {
-      "class": ".side-bar-item",
-      "nodeType": "CONTAINER Node"
-    },
-    "content": "",
-    "rect": {
-      "left": 0,
-      "top": 893,
-      "width": 75,
-      "height": 60
-    },
-    "center": [38, 923],
-    "htmlNode": null,
-    "indexId": "20"
-  },
-  {
     "id": "ce812d5bc7",
     "nodePath": "0-3-1-2-0-1-0-1-0-6-1-1-1-0-0-0",
     "nodeHashId": "ce812d5bc7",
@@ -427,27 +406,7 @@
       "height": 20
     },
     "htmlNode": null,
-    "indexId": "21"
-  },
-  {
-    "id": "04268c7765",
-    "nodePath": "0-3-1-2-0-1-0-1-0-6-1-1-1-0-1",
-    "nodeHashId": "04268c7765",
-    "nodeType": "CONTAINER Node",
-    "locator": "[_midscene_retrieve_task_id='04268c7765']",
-    "attributes": {
-      "nodeType": "CONTAINER Node"
-    },
-    "content": "",
-    "rect": {
-      "left": 174,
-      "top": 638,
-      "width": 213,
-      "height": 1
-    },
-    "center": [281, 639],
-    "htmlNode": null,
-    "indexId": "22"
+    "indexId": "20"
   },
   {
     "id": "02bf1e20e5",
@@ -469,7 +428,7 @@
     },
     "center": [133, 704],
     "htmlNode": null,
-    "indexId": "23"
+    "indexId": "21"
   },
   {
     "id": "868b85b299",
@@ -489,27 +448,28 @@
       "height": 20
     },
     "htmlNode": null,
-    "indexId": "24"
+    "indexId": "22"
   },
   {
-    "id": "ce55df24db",
-    "nodePath": "0-3-1-2-0-1-0-1-0-6-1-1-1-1-0-1-0-1-0",
-    "nodeHashId": "ce55df24db",
-    "nodeType": "TEXT Node",
-    "locator": "",
+    "id": "9ec72b9095",
+    "nodePath": "0-3-1-2-0-1-0-1-0-6-1-1-1-1-0-1-0-1",
+    "nodeHashId": "9ec72b9095",
+    "nodeType": "CONTAINER Node",
+    "locator": "[_midscene_retrieve_task_id='9ec72b9095']",
     "attributes": {
-      "nodeType": "TEXT Node"
+      "class": ".van-ellipsis",
+      "nodeType": "CONTAINER Node"
     },
-    "center": [719, 691],
-    "content": "果肉丰盈，粒粒饱满多汁；精心调配果汁与绿妍茶底的比例打制成冰沙；搭配清甜的无香精桂花冻与Q谈脆波波，再用香水柠檬片作点缀，口感丰富，香气有层次。默认标准杯500ml，可根据个人喜好选择加大杯650ml。",
+    "content": "",
     "rect": {
       "left": 188,
-      "top": 683,
-      "width": 1062,
-      "height": 15
+      "top": 684,
+      "width": 199,
+      "height": 13
     },
+    "center": [288, 691],
     "htmlNode": null,
-    "indexId": "25"
+    "indexId": "23"
   },
   {
     "id": "14103376fb",
@@ -529,28 +489,7 @@
       "height": 25
     },
     "htmlNode": null,
-    "indexId": "26"
-  },
-  {
-    "id": "511c811176",
-    "nodePath": "0-3-1-2-0-1-0-1-0-6-1-1-1-1-0-1-1-0-0",
-    "nodeHashId": "511c811176",
-    "nodeType": "CONTAINER Node",
-    "locator": "[_midscene_retrieve_task_id='511c811176']",
-    "attributes": {
-      "class": ".currency",
-      "nodeType": "CONTAINER Node"
-    },
-    "content": "",
-    "rect": {
-      "left": 188,
-      "top": 732,
-      "width": 0,
-      "height": 14
-    },
-    "center": [188, 739],
-    "htmlNode": null,
-    "indexId": "27"
+    "indexId": "24"
   },
   {
     "id": "fadfa10182",
@@ -570,7 +509,7 @@
       "height": 17
     },
     "htmlNode": null,
-    "indexId": "28"
+    "indexId": "25"
   },
   {
     "id": "a626e598e4",
@@ -590,27 +529,7 @@
       "height": 20
     },
     "htmlNode": null,
-    "indexId": "29"
-  },
-  {
-    "id": "cccd9cf117",
-    "nodePath": "0-3-1-2-0-1-0-1-0-6-1-1-2-0-1",
-    "nodeHashId": "cccd9cf117",
-    "nodeType": "CONTAINER Node",
-    "locator": "[_midscene_retrieve_task_id='cccd9cf117']",
-    "attributes": {
-      "nodeType": "CONTAINER Node"
-    },
-    "content": "",
-    "rect": {
-      "left": 190,
-      "top": 781,
-      "width": 197,
-      "height": 1
-    },
-    "center": [289, 782],
-    "htmlNode": null,
-    "indexId": "30"
+    "indexId": "26"
   },
   {
     "id": "eb294263b8",
@@ -632,7 +551,7 @@
     },
     "center": [133, 847],
     "htmlNode": null,
-    "indexId": "31"
+    "indexId": "27"
   },
   {
     "id": "a7029d417e",
@@ -652,27 +571,28 @@
       "height": 20
     },
     "htmlNode": null,
-    "indexId": "32"
+    "indexId": "28"
   },
   {
-    "id": "5c923fbd67",
-    "nodePath": "0-3-1-2-0-1-0-1-0-6-1-1-2-1-0-1-0-1-0",
-    "nodeHashId": "5c923fbd67",
-    "nodeType": "TEXT Node",
-    "locator": "",
+    "id": "bb74ca9861",
+    "nodePath": "0-3-1-2-0-1-0-1-0-6-1-1-2-1-0-1-0-1",
+    "nodeHashId": "bb74ca9861",
+    "nodeType": "CONTAINER Node",
+    "locator": "[_midscene_retrieve_task_id='bb74ca9861']",
     "attributes": {
-      "nodeType": "TEXT Node"
+      "class": ".van-ellipsis",
+      "nodeType": "CONTAINER Node"
     },
-    "center": [610, 834],
-    "content": "更清爽的芒芒甘露，芒着清爽，芒着解腻。当季芒果，新鲜手切，香甜浓郁；加入红柚果粒与Q弹的脆波波，轻盈不轻量。清爽的芒果绿妍冰沙平衡椰浆的比例，清爽不简单。",
+    "content": "",
     "rect": {
       "left": 188,
-      "top": 826,
-      "width": 844,
-      "height": 15
+      "top": 827,
+      "width": 199,
+      "height": 13
     },
+    "center": [288, 834],
     "htmlNode": null,
-    "indexId": "33"
+    "indexId": "29"
   },
   {
     "id": "0250e12e67",
@@ -692,28 +612,7 @@
       "height": 25
     },
     "htmlNode": null,
-    "indexId": "34"
-  },
-  {
-    "id": "6b38971c0e",
-    "nodePath": "0-3-1-2-0-1-0-1-0-6-1-1-2-1-0-1-1-0-0",
-    "nodeHashId": "6b38971c0e",
-    "nodeType": "CONTAINER Node",
-    "locator": "[_midscene_retrieve_task_id='6b38971c0e']",
-    "attributes": {
-      "class": ".currency",
-      "nodeType": "CONTAINER Node"
-    },
-    "content": "",
-    "rect": {
-      "left": 188,
-      "top": 875,
-      "width": 0,
-      "height": 14
-    },
-    "center": [188, 882],
-    "htmlNode": null,
-    "indexId": "35"
+    "indexId": "30"
   },
   {
     "id": "001617dbf8",
@@ -733,7 +632,7 @@
       "height": 17
     },
     "htmlNode": null,
-    "indexId": "36"
+    "indexId": "31"
   },
   {
     "id": "cad3004a2d",
@@ -754,6 +653,6 @@
     },
     "center": [379, 834],
     "htmlNode": null,
-    "indexId": "37"
+    "indexId": "32"
   }
 ]

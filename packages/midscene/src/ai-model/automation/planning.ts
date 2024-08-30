@@ -12,8 +12,10 @@ export function systemPromptToTaskPlanning() {
     * param: null
   * type: 'Hover', hover the previous element found
     * param: null
-  * type: 'Input', 'KeyboardPress', input something or press a key
-    * param: { value: string }, Based on the value of the existing input, give the required value of the final input (may add or subtract content from the original),Typing in the input box usually requires clicking input first. the value to input or the key to press. Use （Enter, Shift, Control, Alt, Meta, ShiftLeft, ControlOrMeta, ControlOrMeta） to represent the key.
+  * type: 'Input', input something
+    * param: { value: string }, Based on the value of the existing input, give the required value of the final input (may add or subtract content from the original).
+  * type: 'KeyboardPress',  press a key
+    * param: { value: string },  the value to input or the key to press. Use （Enter, Shift, Control, Alt, Meta, ShiftLeft, ControlOrMeta, ControlOrMeta） to represent the key.
   * type: 'Scroll'
     * param: { scrollType: 'ScrollUntilBottom', 'ScrollUntilTop', 'ScrollDown', 'ScrollUp' }
   * type: 'Error'

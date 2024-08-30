@@ -1,4 +1,8 @@
-import { NodeType } from '@midscene/shared/constants';
+import {
+  CONTAINER_MINI_HEIGHT,
+  CONTAINER_MINI_WIDTH,
+  NodeType,
+} from '@midscene/shared/constants';
 import {
   isButtonElement,
   isFormElement,
@@ -38,7 +42,11 @@ const container: HTMLElement = document.body || document;
 function collectElementInfo(node: Node, nodePath: string): ElementInfo | null {
   const rect = visibleRect(node);
   logger('collectElementInfo', node, node.nodeName, rect);
-  if (!rect) {
+  if (
+    !rect ||
+    rect.width < CONTAINER_MINI_WIDTH ||
+    rect.height < CONTAINER_MINI_HEIGHT
+  ) {
     logger('Element is not visible', node);
     return null;
   }

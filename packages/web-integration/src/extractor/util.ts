@@ -1,6 +1,6 @@
-// import { TEXT_MAX_SIZE } from './constants';
 import SHA256 from 'js-sha256';
 
+// import { TEXT_MAX_SIZE } from './constants';
 let debugMode = false;
 
 export function setDebugMode(mode: boolean) {
@@ -46,6 +46,30 @@ export function setDataForNode(
     node.setAttribute(taskIdKey, nodeHash.toString());
   }
   return selector;
+}
+
+function isElementPartiallyInViewport(rect: ReturnType<typeof getRect>) {
+  const elementHeight = rect.height;
+  const elementWidth = rect.width;
+
+  const viewportHeight =
+    window.innerHeight || document.documentElement.clientHeight;
+  const viewportWidth =
+    window.innerWidth || document.documentElement.clientWidth;
+
+  const visibleHeight = Math.max(
+    0,
+    Math.min(rect.bottom, viewportHeight) - Math.max(rect.top, 0),
+  );
+  const visibleWidth = Math.max(
+    0,
+    Math.min(rect.right, viewportWidth) - Math.max(rect.left, 0),
+  );
+
+  const visibleArea = visibleHeight * visibleWidth;
+  const totalArea = elementHeight * elementWidth;
+
+  return visibleArea / totalArea >= 2 / 3;
 }
 
 export function getPseudoElementContent(element: Node): {
@@ -133,11 +157,7 @@ export function visibleRect(
   const viewportHeight =
     window.innerHeight || document.documentElement.clientHeight;
 
-  const isPartiallyInViewport =
-    rect.right > 0 &&
-    rect.bottom > 0 &&
-    rect.left < viewportWidth &&
-    rect.top < viewportHeight;
+  const isPartiallyInViewport = isElementPartiallyInViewport(rect);
 
   if (!isPartiallyInViewport) {
     logger(el, 'Element is completely outside the viewport', {

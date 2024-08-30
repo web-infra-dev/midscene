@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { AiInspectElement } from '@/ai-model';
 import { expect, test } from 'vitest';
@@ -65,9 +66,15 @@ repeat(repeatTime, (repeatIndex) => {
         JSON.stringify(aiResponse, null, 2),
         { encoding: 'utf-8' },
       );
-      expect(filterUnstableResult).toMatchFileSnapshot(
-        './__snapshots__/online_order_inspector.test.ts.snap',
+      const jsonData = readFileSync(
+        path.join(
+          __dirname,
+          './__snapshots__/online_order_inspector.test.ts.snap',
+        ),
+        'utf-8',
       );
+      const snapshot = JSON.parse(jsonData);
+      expect(filterUnstableResult).toEqual(snapshot);
     },
     {
       timeout: 90 * 1000,

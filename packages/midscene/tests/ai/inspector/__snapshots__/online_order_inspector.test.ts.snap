@@ -1,0 +1,70 @@
+[
+  {
+    "elements": [
+      {
+        "id": "6ad26dfdca",
+        "indexId": "1"
+      }
+    ],
+    "error": [],
+    "prompt": "Top left menu bar icon"
+  },
+  {
+    "elements": [
+      {
+        "id": "e666c51ff8",
+        "indexId": "2"
+      }
+    ],
+    "error": [],
+    "prompt": "Toggle language text button(Could be：中文、english text)"
+  },
+  {
+    "elements": [
+      {
+        "id": "f775c69cb4",
+        "indexId": "5"
+      }
+    ],
+    "error": [],
+    "prompt": "Top right shopping cart"
+  },
+  {
+    "elements": [
+      {
+        "id": "14103376fb",
+        "indexId": "24"
+      },
+      {
+        "id": "0250e12e67",
+        "indexId": "30"
+      }
+    ],
+    "error": [],
+    "prompt": "The price number on the right of the drink picture"
+  },
+  {
+    "elements": [
+      {
+        "id": "fadfa10182",
+        "indexId": "25"
+      },
+      {
+        "id": "001617dbf8",
+        "indexId": "31"
+      }
+    ],
+    "error": [],
+    "prompt": "选择规格按钮"
+  },
+  {
+    "elements": [
+      {
+        "id": "cad3004a2d",
+        "indexId": "32"
+      }
+    ],
+    "error": [],
+    "prompt": "Bottom right Customer service button"
+  }
+]
