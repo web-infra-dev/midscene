@@ -66,7 +66,11 @@ export const useExecutionDump = create<{
       resetInsightDump();
 
       // set the first task as selected
-      if (dump.executions.length > 0 && dump.executions[0].tasks.length > 0) {
+      if (
+        dump &&
+        dump.executions.length > 0 &&
+        dump.executions[0].tasks.length > 0
+      ) {
         get().setActiveTask(dump.executions[0].tasks[0]);
       }
     },

@@ -5,7 +5,7 @@ import { useExecutionDump } from '@/component/store';
 import { DownOutlined } from '@ant-design/icons';
 import type { GroupedActionDump } from '@midscene/core';
 import { Helmet } from '@modern-js/runtime/head';
-import { ConfigProvider, Dropdown, Select, Upload, message } from 'antd';
+import { Alert, ConfigProvider, Dropdown, Select, Upload, message } from 'antd';
 import type { MenuProps, UploadProps } from 'antd';
 import React, { useEffect, useRef, useState } from 'react';
 import ReactDOM from 'react-dom/client';
@@ -353,6 +353,27 @@ function mount(id: string) {
   const dumpElements = document.querySelectorAll(
     'script[type="midscene_web_dump"]',
   );
+  if (dumpElements.length === 1 && dumpElements[0].textContent?.trim() === '') {
+    const errorPanel = (
+      <div
+        style={{
+          width: '100%',
+          height: '100%',
+          padding: '100px',
+          boxSizing: 'border-box',
+        }}
+      >
+        <Alert
+          message="Midscene.js - Error"
+          description="There is no dump data to display."
+          type="error"
+          showIcon
+        />
+      </div>
+    );
+    return root.render(errorPanel);
+  }
+
   const reportDump: ExecutionDumpWithPlaywrightAttributes[] = [];
   Array.from(dumpElements)
     .filter((el) => {
@@ -384,7 +405,6 @@ function mount(id: string) {
       }
     });
 
-  // console.log('reportDump', reportDump);
   root.render(<Visualizer dumps={reportDump} />);
 }
 
