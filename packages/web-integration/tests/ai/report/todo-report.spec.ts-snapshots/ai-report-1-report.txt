@@ -17,12 +17,6 @@
         ]
     },
     {
-        "title": "waitFor: the input box for task title is empty now",
-        "actions": [
-            "Insight / Assert"
-        ]
-    },
-    {
         "title": "Enter \"Learn Rust tomorrow\" in the task box, then press Enter to create",
         "actions": [
             "Planning",
