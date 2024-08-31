@@ -23,7 +23,31 @@ export async function parseContextFromWebPage(
   const url = page.url();
   const file = getTmpFile('jpeg');
 
-  await page.screenshot({ path: file, type: 'jpeg', quality: 75 });
+  // get viewport size from page
+  const viewportSize: {
+    width: number;
+    height: number;
+    deviceScaleFactor: number;
+  } = await page.evaluate(() => {
+    return {
+      width: document.documentElement.clientWidth,
+      height: document.documentElement.clientHeight,
+      deviceScaleFactor: window.devicePixelRatio,
+    };
+  });
+
+  await page.screenshot({
+    path: file,
+    type: 'jpeg',
+    quality: 75,
+    clip: {
+      x: 0,
+      y: 0,
+      width: viewportSize.width,
+      height: viewportSize.height,
+      scale: 1 / viewportSize.deviceScaleFactor,
+    },
+  });
   const screenshotBuffer = readFileSync(file);
   const screenshotBase64 = base64Encoded(file);
   const captureElementSnapshot = await getElementInfosFromPage(page);
@@ -54,6 +78,31 @@ export async function getElementInfosFromPage(page: WebPage) {
 
   const captureElementSnapshot = await page.evaluate(extraReturnLogic);
   return captureElementSnapshot as Array<ElementInfo>;
+
+  // TODO: handle iframes
+  // const frames = await page.frames();
+  // const captureElementSnapshot = await Promise.all(
+  //   frames.map((frame, index) => {
+  //     const bounding = frame.boundingBox();
+  //     return Promise.resolve().then(async () => {
+  //       const framePosition = await frame.evaluate(() => {
+  //         if (window === window.top || !window.frameElement)
+  //           return { left: 0, top: 0 };
+  //         const rect = window.frameElement.getBoundingClientRect();
+  //         return { left: rect.left, top: rect.top };
+  //       });
+
+  //       console.log('framePosition', framePosition);
+
+  //       return frame.evaluate(`${extraReturnLogic}(undefined, 0, {
+  //         frameId: ${index},
+  //         left: ${framePosition.left},
+  //         top: ${framePosition.top},
+  //       })`);
+  //     });
+  //   }),
+  // );
+  // return captureElementSnapshot.flat() as Array<ElementInfo>;
 }
 
 const sizeThreshold = 3;

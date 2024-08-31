@@ -5,7 +5,7 @@
     "nodeHashId": "6ad26dfdca",
     "locator": "[_midscene_retrieve_task_id='6ad26dfdca']",
     "attributes": {
-      "src": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACwAAAAsBAMAAADsqkcyAAAABGdBTUEAALGPC/xhBQAAAAFzUkdCAK7OHOkAAAAhUExURUxpcfOtAPOtAPSuAPSuAPStAPOvAPKsAO+vAO+vAPSuADVGh/QAAAAKdFJOUwA/gN/FmG9QECBSnvm3AAAAUElEQVQoz2NgGDSAURALEGCIWoUFLGVYhRUweGETXcIwTQkLyGAYZqDYGAtwZ7DCHlRYRRczlGAzxHy4BVUbtgSRiSv54EhsOJImjoQ8aAAAnI6GWHtsGtQAAAAASUVORK5CYII=",
+      "src": "data:image/png;...",
       "class": ".icon",
       "nodeType": "IMG Node"
     },
@@ -78,7 +78,7 @@
     "nodeHashId": "f05ef98d09",
     "locator": "[_midscene_retrieve_task_id='f05ef98d09']",
     "attributes": {
-      "src": "https://dec-pub-img.obs.ap-southeast-3.myhuaweicloud.com/rfkle/16509415998546650.jpg",
+      "src": "https://dec-pub-img.obs.ap-southeast-3.myhuaweiclo...",
       "class": ".img",
       "nodeType": "IMG Node"
     },
@@ -103,7 +103,7 @@
     "nodeHashId": "f775c69cb4",
     "locator": "[_midscene_retrieve_task_id='f775c69cb4']",
     "attributes": {
-      "src": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADIAAAAyCAYAAAAeP4ixAAAACXBIWXMAABYlAAAWJQFJUiTwAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAPeSURBVHgB7VlNTttAFH7PSauqqCqV+rPE7FCSSrlBHS5QeoLCCQonIJyA9ASkN+AE4GV3BDWQqBvCupUadqhK5vXN2E6m4BnbUWtbbT6JxMTjsb95733zzRhgiSWW+C+AaRtubHguVMGFHDHs+37atolEJIFKFY8IwIO8QTACxO5l/+QgqWklqcHLV+tnTLcJRQBhlT+95y/cm+/fRp9tTau2k7Wat82dufKYI/KRgI4hLwhwEXEfMfjmXzq25lYi4MwiMR70T3chZ9Tr3ioBHvLhqkzx4dAfmdo6to6IVGhlOMZQAMhJf18rES60teCLi64ACNLum6CYdiIFYyrmEXEEPLW1tRLBqNCJRlAAKuK31Hpma2snEtYIId5AAXj0aE6EMKxXA6yqxZKrLkage0XHivKeQ9ZhQRgLoPbwwv8EGaFPtiyxnYsvJ3v6+V7PH9caLXWMCUSMEWk2vdmFFKNaLIttRZTTz+GHgAXgVGE3cgycvrsbDc+71ygSGoI1a1+mE7e38xHAGCL6CFFB8qzDXCOa3AnnvvxOBc3SAJEyp5XqF2DuFIi6cSaRQgnm1HMtXS0uv8NLvxuFHQHfwAJgSXWjY4FgGAxU0Z5Nzqa+jCdQm4AmhgmRgkjIPI/Nbwtcl2sw8FBq1I2WnUSkmIsRQWG/UOJhFTq8DlAj5hAeqTVLSqw8cfbnhpTapnZci0H9Lapaum6bzJqUR0F0EN7IdSp4mkRGRqL+evNQqpS6D5CfIN2RkCxGRLvQqkiDC5+lVyNTxataffOIlwDNuwQaDe/D4xU8m5HglKIJ7Nj6B83n2QbJOCHK4kK5fkwhrZd9v11rePKu+8HNidcxuF1vtMYUpQaBK4IHC/8ln6awY7PmWWCOSEbnK8mICa1z4fvRb2rCZALqb44xR2Rv0PdbaUikdcD2hVVGhA/WUingsO1gg8ADoVwrR6bHxM6zbChISAfshMNtc8BGIsr5krIOmQ1jSKgLfwDKAc/zxuiAzfI7n4B+QIHQ08/mgM3yG6kWwjWUBJiVSJLzzR0pHHAskSTnW0bEp1aC880baRxwqTcfZiC6Dr4y1ojufKeiVKmVjYjufCslIDJzF1lVK43zzROa4GSeR1I537ygb52aHHB8RAre870LSjGg8REJnS+UJSL6gBoccNKWaTkUS9szMDlgA5Fw5wIKelN1B2zjveiYJ+hYNx5r4xHEOX9u8eFqrd66Yko+FAie0bd4UNUMf/sAerFt4n6UpvHnBE+hJBGJMJnSu68D/zjunPGtbkAG5CbBWx6SxK2hvwn5WoMjcpB1dbnEEkv8g/gF7BF6kDDXbdkAAAAASUVORK5CYII=",
+      "src": "data:image/png;...",
       "class": ".icon",
       "nodeType": "IMG Node"
     },
@@ -197,7 +197,7 @@
     "nodeHashId": "49118bbc89",
     "locator": "[_midscene_retrieve_task_id='49118bbc89']",
     "attributes": {
-      "src": "https://dec-pub-img.obs.ap-southeast-3.myhuaweicloud.com/rfkle/16558697767831080.jpeg",
+      "src": "https://dec-pub-img.obs.ap-southeast-3.myhuaweiclo...",
       "nodeType": "IMG Node"
     },
     "nodeType": "IMG Node",
@@ -474,7 +474,7 @@
     "nodeHashId": "02bf1e20e5",
     "locator": "[_midscene_retrieve_task_id='02bf1e20e5']",
     "attributes": {
-      "src": "https://dec-pub-img.obs.ap-southeast-3.myhuaweicloud.com/djlxq/16509428649460869.jpeg",
+      "src": "https://dec-pub-img.obs.ap-southeast-3.myhuaweiclo...",
       "class": ".img",
       "nodeType": "IMG Node"
     },
@@ -615,7 +615,7 @@
     "nodeHashId": "eb294263b8",
     "locator": "[_midscene_retrieve_task_id='eb294263b8']",
     "attributes": {
-      "src": "https://dec-pub-img.obs.ap-southeast-3.myhuaweicloud.com/djlxq/16509428062990437.jpeg",
+      "src": "https://dec-pub-img.obs.ap-southeast-3.myhuaweiclo...",
       "class": ".img",
       "nodeType": "IMG Node"
     },

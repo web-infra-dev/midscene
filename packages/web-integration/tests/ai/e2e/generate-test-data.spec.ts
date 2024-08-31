@@ -47,6 +47,27 @@ test('generate githubstatus test data', async ({ page }) => {
   await generateExtractData(page, generateTestDataPath('githubstatus'));
 });
 
+test('antd widget pagination', async ({ page }) => {
+  await page.setViewportSize({ width: 1920, height: 1080 });
+  await page.goto('https://ant.design/components/pagination-cn');
+  await page.waitForLoadState('networkidle');
+  await generateExtractData(page, generateTestDataPath('antd-pagination'));
+});
+
+test('antd widget - tooltip', async ({ page }) => {
+  await page.setViewportSize({ width: 1920, height: 1080 });
+  await page.goto('https://ant.design/components/tooltip-cn');
+  await page.waitForLoadState('networkidle');
+  await generateExtractData(page, generateTestDataPath('antd-tooltip'));
+});
+
+test('antd widget - carousel', async ({ page }) => {
+  await page.setViewportSize({ width: 1920, height: 1080 });
+  await page.goto('https://ant.design/components/carousel-cn');
+  await page.waitForLoadState('networkidle');
+  await generateExtractData(page, generateTestDataPath('antd-carousel'));
+});
+
 test('generate online order test data', async ({ page }) => {
   page.setViewportSize({ width: 400, height: 905 });
   await page.goto('https://heyteavivocity.meuu.online/home');

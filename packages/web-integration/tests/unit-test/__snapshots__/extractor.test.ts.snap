@@ -467,6 +467,13 @@ exports[`extractor > basic 1`] = `
   },
   {
     "attributes": {
+      "nodeType": "IMG Node",
+      "svgContent": "true",
+    },
+    "content": "",
+  },
+  {
+    "attributes": {
       "aria-controls": "semi-select-5yxiyng",
       "class": ".widget",
       "nodeType": "CONTAINER Node",

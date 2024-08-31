@@ -2,6 +2,7 @@ import SHA256 from 'js-sha256';
 
 // import { TEXT_MAX_SIZE } from './constants';
 let debugMode = false;
+let frameId = 0;
 
 export function setDebugMode(mode: boolean) {
   debugMode = mode;
@@ -9,6 +10,14 @@ export function setDebugMode(mode: boolean) {
 
 export function getDebugMode(): boolean {
   return debugMode;
+}
+
+export function getFrameId(): number {
+  return frameId;
+}
+
+export function setFrameId(id: number) {
+  frameId = id;
 }
 
 export function logger(..._msg: any[]): void {
@@ -126,7 +135,11 @@ export function visibleRect(
     return false;
   }
 
-  if (!(el instanceof HTMLElement) && el.nodeType !== Node.TEXT_NODE) {
+  if (
+    !(el instanceof HTMLElement) &&
+    el.nodeType !== Node.TEXT_NODE &&
+    el.nodeName.toLowerCase() !== 'svg'
+  ) {
     logger(el, 'Element is not in the DOM hierarchy');
     return false;
   }
@@ -274,7 +287,11 @@ export function getNodeAttributes(
 
 export function midsceneGenerateHash(content: string, rect: any): string {
   // Combine the input into a string
-  const combined = JSON.stringify({ content, rect });
+  const combined = JSON.stringify({
+    content,
+    rect,
+    _midscene_frame_id: getFrameId(),
+  });
   // Generates the ha-256 hash value
   // @ts-expect-error
   const hashHex = SHA256(combined);

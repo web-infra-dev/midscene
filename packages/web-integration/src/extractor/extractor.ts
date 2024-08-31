@@ -17,6 +17,7 @@ import {
   midsceneGenerateHash,
   setDataForNode,
   setDebugMode,
+  setFrameId,
   visibleRect,
 } from './util';
 
@@ -128,6 +129,11 @@ function collectElementInfo(node: Node, nodePath: string): ElementInfo | null {
       locator: selector,
       attributes: {
         ...attributes,
+        ...(node.nodeName.toLowerCase() === 'svg'
+          ? {
+              svgContent: 'true',
+            }
+          : {}),
         nodeType: NodeType.IMG,
       },
       nodeType: NodeType.IMG,
@@ -204,8 +210,10 @@ function collectElementInfo(node: Node, nodePath: string): ElementInfo | null {
 export function extractTextWithPosition(
   initNode: Node = container,
   debugMode = false,
+  currentFrame = { id: 0, left: 0, top: 0 },
 ): ElementInfo[] {
   setDebugMode(debugMode);
+  setFrameId(currentFrame.id);
   const elementInfoArray: ElementInfo[] = [];
   function dfs(node: Node, nodePath: string): ElementInfo | null {
     if (!node) {
@@ -213,8 +221,11 @@ export function extractTextWithPosition(
     }
 
     const elementInfo = collectElementInfo(node, nodePath);
-    // stop collecting if the node is a Button
-    if (elementInfo?.nodeType === NodeType.BUTTON) {
+    // stop collecting if the node is a Button or Image
+    if (
+      elementInfo?.nodeType === NodeType.BUTTON ||
+      elementInfo?.nodeType === NodeType.IMG
+    ) {
       return elementInfo;
     }
 
@@ -268,6 +279,17 @@ export function extractTextWithPosition(
   // update all the ids
   for (let i = 0; i < elementInfoArray.length; i++) {
     elementInfoArray[i].indexId = (i + 1).toString();
+  }
+
+  if (currentFrame.left !== 0 || currentFrame.top !== 0) {
+    for (let i = 0; i < elementInfoArray.length; i++) {
+      elementInfoArray[i].rect.left += currentFrame.left;
+      elementInfoArray[i].rect.top += currentFrame.top;
+      elementInfoArray[i].center[0] += currentFrame.left;
+      elementInfoArray[i].center[1] += currentFrame.top;
+      elementInfoArray[i].nodePath =
+        `frame${currentFrame.id}-${elementInfoArray[i].nodePath}`;
+    }
   }
   return elementInfoArray;
 }
