@@ -256,7 +256,17 @@ export function getNodeAttributes(
     if (!attr.value) {
       return [];
     }
-    return [attr.name, attr.value];
+
+    let value = attr.value;
+    if (value.startsWith('data:image')) {
+      value = `${value.split('base64,')[0]}...`;
+    }
+
+    const maxLength = 50;
+    if (value.length > maxLength) {
+      value = `${value.slice(0, maxLength)}...`;
+    }
+    return [attr.name, value];
   });
 
   return Object.fromEntries(attributesList);

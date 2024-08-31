@@ -413,6 +413,20 @@ exports[`extractor > basic 1`] = `
   },
   {
     "attributes": {
+      "nodeType": "IMG Node",
+      "src": "data:image/svg+xml;...",
+    },
+    "content": "",
+  },
+  {
+    "attributes": {
+      "nodeType": "BUTTON Node",
+      "very-long-attr": "width: 100px; height: 100px; background-color: #cc...",
+    },
+    "content": "long-style-content",
+  },
+  {
+    "attributes": {
       "nodeType": "TEXT Node",
     },
     "content": "Click me",
@@ -433,7 +447,7 @@ exports[`extractor > basic 1`] = `
     "attributes": {
       "class": ".child-container-without-content-2-1",
       "nodeType": "CONTAINER Node",
-      "style": "width: 100px; height: 100px; background-color: #ccc;",
+      "style": "width: 100px; height: 100px; background-color: #cc...",
     },
     "content": "",
   },
@@ -447,7 +461,7 @@ exports[`extractor > basic 1`] = `
     "attributes": {
       "class": ".child-container-4",
       "nodeType": "CONTAINER Node",
-      "style": "width: 100px; height: 100px; background-color: #ccc;",
+      "style": "width: 100px; height: 100px; background-color: #cc...",
     },
     "content": "",
   },
@@ -464,6 +478,16 @@ exports[`extractor > basic 1`] = `
       "aria-labelledby": "eval_object.object_type-label",
       "class": ".widget",
       "nodeType": "CONTAINER Node",
+    },
+    "content": "",
+  },
+  {
+    "attributes": {
+      "frameborder": "0",
+      "height": "400px",
+      "nodeType": "CONTAINER Node",
+      "src": "child.html",
+      "width": "400px",
     },
     "content": "",
   },
