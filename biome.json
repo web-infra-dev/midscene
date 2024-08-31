@@ -7,7 +7,7 @@
       "**/midscene_run",
       ".nx",
       "**/dist",
-      "**/test-data",
+      "**/test-data/**",
       "dist",
       "**/doc_build",
       "*-dump.json",

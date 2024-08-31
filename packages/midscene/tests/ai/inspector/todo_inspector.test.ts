@@ -72,12 +72,10 @@ modelList.forEach((model) => {
           JSON.stringify(aiResponse, null, 2),
           { encoding: 'utf-8' },
         );
-        const jsonData = readFileSync(
-          path.join(__dirname, './__snapshots__/todo_inspector.test.ts.snap'),
-          'utf-8',
+
+        expect(filterUnstableResult).toMatchFileSnapshot(
+          './__snapshots__/todo_inspector.test.ts.snap',
         );
-        const snapshot = JSON.parse(jsonData);
-        expect(filterUnstableResult).toEqual(snapshot);
       },
       {
         timeout: 90 * 1000,
