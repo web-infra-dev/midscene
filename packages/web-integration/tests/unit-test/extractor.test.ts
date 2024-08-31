@@ -9,7 +9,12 @@ describe(
   'extractor',
   () => {
     it('basic', async () => {
-      const { page, reset } = await launchPage(`file://${pagePath}`);
+      const { page, reset } = await launchPage(`file://${pagePath}`, {
+        viewport: {
+          width: 1080,
+          height: 2000,
+        },
+      });
 
       const { content } = await parseContextFromWebPage(page);
       await generateExtractData(

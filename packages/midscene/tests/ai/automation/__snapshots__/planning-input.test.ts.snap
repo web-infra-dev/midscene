@@ -10,11 +10,6 @@ exports[`automation - planning input - openAI > input value 1`] = `
     "type": "Locate",
   },
   {
-    "param": null,
-    "thought": undefined,
-    "type": "Tap",
-  },
-  {
     "param": {
       "value": "learning english",
     },
@@ -84,6 +79,18 @@ exports[`automation - planning input - openAI > input value Add, delete, correct
     "type": "Locate",
   },
   {
+    "param": null,
+    "thought": undefined,
+    "type": "Tap",
+  },
+  {
+    "param": {
+      "value": "",
+    },
+    "thought": undefined,
+    "type": "Input",
+  },
+  {
     "param": {
       "value": "Learn skiing",
     },
@@ -101,11 +108,6 @@ exports[`automation - planning input - openAI > input value Add, delete, correct
     },
     "thought": undefined,
     "type": "Locate",
-  },
-  {
-    "param": null,
-    "thought": undefined,
-    "type": "Tap",
   },
   {
     "param": {

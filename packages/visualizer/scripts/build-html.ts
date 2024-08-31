@@ -26,6 +26,7 @@ const multiEntrySegment = join(__dirname, './fixture/multi-entries.html');
 const outputHTML = join(__dirname, '../dist/report/index.html');
 const outputDemoHTML = join(__dirname, '../dist/report/demo.html');
 const outputMultiEntriesHTML = join(__dirname, '../dist/report/multi.html');
+const outputEmptyDumpHTML = join(__dirname, '../dist/report/empty-error.html');
 
 function ensureDirectoryExistence(filePath: string) {
   const directoryPath = dirname(filePath);
@@ -82,6 +83,15 @@ function build() {
   });
   writeFileSync(outputMultiEntriesHTML, resultWithMultiEntries);
   console.log(`HTML file generated successfully: ${outputMultiEntriesHTML}`);
+
+  // dump data with empty array
+  const resultWithEmptyDump = tplReplacer(html, {
+    css: `<style>\n${css}\n</style>\n`,
+    js: `<script>\n${js}\n</script>`,
+    dump: '<script type="midscene_web_dump" type="application/json"></script>',
+  });
+  writeFileSync(outputEmptyDumpHTML, resultWithEmptyDump);
+  console.log(`HTML file generated successfully: ${outputEmptyDumpHTML}`);
 
   copyToCore();
 }

@@ -71,7 +71,15 @@ export function writeDumpReport(
   const reportPath = join(getLogDirByType('report'), `${fileName}.html`);
   const tpl = readFileSync(reportTplPath, 'utf-8');
   let reportContent: string;
-  if (typeof dumpData === 'string') {
+  if (
+    (Array.isArray(dumpData) && dumpData.length === 0) ||
+    typeof dumpData === 'undefined'
+  ) {
+    reportContent = tpl.replace(
+      '{{dump}}',
+      '<script type="midscene_web_dump" type="application/json"></script>',
+    );
+  } else if (typeof dumpData === 'string') {
     reportContent = tpl.replace(
       '{{dump}}',
       `<script type="midscene_web_dump" type="application/json">${dumpData}</script>`,

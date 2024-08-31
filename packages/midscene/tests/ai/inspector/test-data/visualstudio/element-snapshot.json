@@ -1,14 +1,17 @@
 [
   {
     "id": "a482926fdd",
-    "indexId": "1",
+    "nodePath": "0-5-1-1-3-1-1-1-0-0",
     "nodeHashId": "a482926fdd",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
       "nodeType": "TEXT Node"
     },
-    "center": [201, 29],
+    "center": [
+      201,
+      29
+    ],
     "content": "Visual Studio Code",
     "rect": {
       "left": 116,
@@ -16,18 +19,22 @@
       "width": 170,
       "height": 24
     },
-    "htmlNode": null
+    "htmlNode": null,
+    "indexId": "1"
   },
   {
     "id": "ff169ae064",
-    "indexId": "2",
+    "nodePath": "0-5-1-1-3-1-3-1-1-0-0",
     "nodeHashId": "ff169ae064",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
       "nodeType": "TEXT Node"
     },
-    "center": [332, 30],
+    "center": [
+      332,
+      30
+    ],
     "content": "Docs",
     "rect": {
       "left": 313,
@@ -35,18 +42,22 @@
       "width": 38,
       "height": 19
     },
-    "htmlNode": null
+    "htmlNode": null,
+    "indexId": "2"
   },
   {
     "id": "19398efb1d",
-    "indexId": "3",
+    "nodePath": "0-5-1-1-3-1-3-1-3-0-0",
     "nodeHashId": "19398efb1d",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
       "nodeType": "TEXT Node"
     },
-    "center": [407, 30],
+    "center": [
+      407,
+      30
+    ],
     "content": "Updates",
     "rect": {
       "left": 375,
@@ -54,18 +65,22 @@
       "width": 63,
       "height": 19
     },
-    "htmlNode": null
+    "htmlNode": null,
+    "indexId": "3"
   },
   {
     "id": "ed75508a8d",
-    "indexId": "4",
+    "nodePath": "0-5-1-1-3-1-3-1-5-0-0",
     "nodeHashId": "ed75508a8d",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
       "nodeType": "TEXT Node"
     },
-    "center": [478, 30],
+    "center": [
+      478,
+      30
+    ],
     "content": "Blog",
     "rect": {
       "left": 461,
@@ -73,18 +88,22 @@
       "width": 33,
       "height": 19
     },
-    "htmlNode": null
+    "htmlNode": null,
+    "indexId": "4"
   },
   {
     "id": "1778bf15b9",
-    "indexId": "5",
+    "nodePath": "0-5-1-1-3-1-3-1-7-0-0",
     "nodeHashId": "1778bf15b9",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
       "nodeType": "TEXT Node"
     },
-    "center": [532, 30],
+    "center": [
+      532,
+      30
+    ],
     "content": "API",
     "rect": {
       "left": 519,
@@ -92,18 +111,22 @@
       "width": 25,
       "height": 19
     },
-    "htmlNode": null
+    "htmlNode": null,
+    "indexId": "5"
   },
   {
     "id": "3109f9163c",
-    "indexId": "6",
+    "nodePath": "0-5-1-1-3-1-3-1-9-0-0",
     "nodeHashId": "3109f9163c",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
       "nodeType": "TEXT Node"
     },
-    "center": [609, 30],
+    "center": [
+      609,
+      30
+    ],
     "content": "Extensions",
     "rect": {
       "left": 568,
@@ -111,18 +134,22 @@
       "width": 81,
       "height": 19
     },
-    "htmlNode": null
+    "htmlNode": null,
+    "indexId": "6"
   },
   {
     "id": "948617cc34",
-    "indexId": "7",
+    "nodePath": "0-5-1-1-3-1-3-1-11-0-0",
     "nodeHashId": "948617cc34",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
       "nodeType": "TEXT Node"
     },
-    "center": [688, 30],
+    "center": [
+      688,
+      30
+    ],
     "content": "FAQ",
     "rect": {
       "left": 672,
@@ -130,11 +157,12 @@
       "width": 31,
       "height": 19
     },
-    "htmlNode": null
+    "htmlNode": null,
+    "indexId": "7"
   },
   {
     "id": "e72ee416b2",
-    "indexId": "8",
+    "nodePath": "0-5-1-1-3-1-3-3-1-1",
     "nodeHashId": "e72ee416b2",
     "nodeType": "BUTTON Node",
     "locator": "[_midscene_retrieve_task_id='e72ee416b2']",
@@ -151,12 +179,16 @@
       "width": 32,
       "height": 32
     },
-    "center": [865, 29],
-    "htmlNode": null
+    "center": [
+      865,
+      29
+    ],
+    "htmlNode": null,
+    "indexId": "8"
   },
   {
     "id": "0c513c2cab",
-    "indexId": "9",
+    "nodePath": "0-5-1-1-3-1-3-3-5-1-1-1",
     "nodeHashId": "0c513c2cab",
     "locator": "[_midscene_retrieve_task_id='0c513c2cab']",
     "nodeType": "FORM_ITEM Node",
@@ -176,12 +208,16 @@
       "width": 200,
       "height": 32
     },
-    "center": [985, 29],
-    "htmlNode": null
+    "center": [
+      985,
+      29
+    ],
+    "htmlNode": null,
+    "indexId": "9"
   },
   {
     "id": "d76390b753",
-    "indexId": "10",
+    "nodePath": "0-5-1-1-3-1-3-3-5-1-1-3-1",
     "nodeHashId": "d76390b753",
     "nodeType": "BUTTON Node",
     "locator": "[_midscene_retrieve_task_id='d76390b753']",
@@ -199,19 +235,26 @@
       "width": 28,
       "height": 20
     },
-    "center": [906, 29],
-    "htmlNode": null
+    "center": [
+      906,
+      29
+    ],
+    "htmlNode": null,
+    "indexId": "10"
   },
   {
     "id": "7a1a2d8f0e",
-    "indexId": "11",
+    "nodePath": "0-5-1-1-3-1-3-3-9-0-1-0",
     "nodeHashId": "7a1a2d8f0e",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
       "nodeType": "TEXT Node"
     },
-    "center": [1147, 30],
+    "center": [
+      1147,
+      30
+    ],
     "content": "Download",
     "rect": {
       "left": 1109,
@@ -219,18 +262,22 @@
       "width": 75,
       "height": 19
     },
-    "htmlNode": null
+    "htmlNode": null,
+    "indexId": "11"
   },
   {
     "id": "6a500751d6",
-    "indexId": "12",
+    "nodePath": "0-5-3-1-1-0-0",
     "nodeHashId": "6a500751d6",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
       "nodeType": "TEXT Node"
     },
-    "center": [406, 86],
+    "center": [
+      406,
+      86
+    ],
     "content": "Version 1.92",
     "rect": {
       "left": 366,
@@ -238,18 +285,22 @@
       "width": 80,
       "height": 17
     },
-    "htmlNode": null
+    "htmlNode": null,
+    "indexId": "12"
   },
   {
     "id": "526f9ea4de",
-    "indexId": "13",
+    "nodePath": "0-5-3-1-1-1",
     "nodeHashId": "526f9ea4de",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
       "nodeType": "TEXT Node"
     },
-    "center": [664, 86],
+    "center": [
+      664,
+      86
+    ],
     "content": "is now available! Read about the new features and fixes from July.",
     "rect": {
       "left": 446,
@@ -257,37 +308,50 @@
       "width": 436,
       "height": 17
     },
-    "htmlNode": null
+    "htmlNode": null,
+    "indexId": "13"
   },
   {
-    "id": "decdf0f78d",
-    "indexId": "14",
-    "nodeHashId": "decdf0f78d",
-    "nodeType": "TEXT Node",
-    "locator": "",
+    "id": "741454fc07",
+    "nodePath": "0-5-3-3",
+    "nodeHashId": "741454fc07",
+    "nodeType": "CONTAINER Node",
+    "locator": "[_midscene_retrieve_task_id='741454fc07']",
     "attributes": {
-      "nodeType": "TEXT Node"
+      "tabindex": "0",
+      "role": "button",
+      "title": "Dismiss this update",
+      "class": ".dismiss-btn",
+      "id": "banner-dismiss-btn",
+      "nodeType": "CONTAINER Node"
     },
-    "center": [1273, 115],
-    "content": "Dismiss this update",
+    "content": "",
     "rect": {
-      "left": 1248,
-      "top": 85,
-      "width": 50,
-      "height": 59
+      "left": 1232,
+      "top": 69,
+      "width": 32,
+      "height": 32
     },
-    "htmlNode": null
+    "center": [
+      1248,
+      85
+    ],
+    "htmlNode": null,
+    "indexId": "14"
   },
   {
     "id": "ec5c08a439",
-    "indexId": "15",
+    "nodePath": "0-5-5-1-1-1-1-0",
     "nodeHashId": "ec5c08a439",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
       "nodeType": "TEXT Node"
     },
-    "center": [246, 196],
+    "center": [
+      246,
+      196
+    ],
     "content": "Free. Built on open source. Runs everywhere.",
     "rect": {
       "left": 93,
@@ -295,18 +359,22 @@
       "width": 305,
       "height": 17
     },
-    "htmlNode": null
+    "htmlNode": null,
+    "indexId": "15"
   },
   {
     "id": "f8ca0be4ed",
-    "indexId": "16",
+    "nodePath": "0-5-5-1-1-1-3-0",
     "nodeHashId": "f8ca0be4ed",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
       "nodeType": "TEXT Node"
     },
-    "center": [213, 337],
+    "center": [
+      213,
+      337
+    ],
     "content": "Code Editing. Redefined.",
     "rect": {
       "left": 80,
@@ -314,11 +382,12 @@
       "width": 266,
       "height": 206
     },
-    "htmlNode": null
+    "htmlNode": null,
+    "indexId": "16"
   },
   {
     "id": "a115c043a2",
-    "indexId": "17",
+    "nodePath": "0-5-5-1-1-1-5-1-3-3",
     "nodeHashId": "a115c043a2",
     "nodeType": "BUTTON Node",
     "locator": "[_midscene_retrieve_task_id='a115c043a2']",
@@ -336,19 +405,26 @@
       "width": 241,
       "height": 50
     },
-    "center": [201, 499],
-    "htmlNode": null
+    "center": [
+      201,
+      499
+    ],
+    "htmlNode": null,
+    "indexId": "17"
   },
   {
     "id": "ea2585add6",
-    "indexId": "18",
+    "nodePath": "0-5-5-1-1-1-5-3-0-0",
     "nodeHashId": "ea2585add6",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
       "nodeType": "TEXT Node"
     },
-    "center": [95, 552],
+    "center": [
+      95,
+      552
+    ],
     "content": "Web",
     "rect": {
       "left": 80,
@@ -356,18 +432,22 @@
       "width": 29,
       "height": 17
     },
-    "htmlNode": null
+    "htmlNode": null,
+    "indexId": "18"
   },
   {
     "id": "bbe7c09679",
-    "indexId": "19",
+    "nodePath": "0-5-5-1-1-1-5-3-1",
     "nodeHashId": "bbe7c09679",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
       "nodeType": "TEXT Node"
     },
-    "center": [113, 552],
+    "center": [
+      113,
+      552
+    ],
     "content": ",",
     "rect": {
       "left": 109,
@@ -375,18 +455,22 @@
       "width": 8,
       "height": 17
     },
-    "htmlNode": null
+    "htmlNode": null,
+    "indexId": "19"
   },
   {
     "id": "34a6664272",
-    "indexId": "20",
+    "nodePath": "0-5-5-1-1-1-5-3-2-0",
     "nodeHashId": "34a6664272",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
       "nodeType": "TEXT Node"
     },
-    "center": [168, 552],
+    "center": [
+      168,
+      552
+    ],
     "content": "Insiders edition",
     "rect": {
       "left": 117,
@@ -394,18 +478,22 @@
       "width": 101,
       "height": 17
     },
-    "htmlNode": null
+    "htmlNode": null,
+    "indexId": "20"
   },
   {
     "id": "6a9e874040",
-    "indexId": "21",
+    "nodePath": "0-5-5-1-1-1-5-3-3",
     "nodeHashId": "6a9e874040",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
       "nodeType": "TEXT Node"
     },
-    "center": [231, 552],
+    "center": [
+      231,
+      552
+    ],
     "content": ", or",
     "rect": {
       "left": 218,
@@ -413,18 +501,22 @@
       "width": 25,
       "height": 17
     },
-    "htmlNode": null
+    "htmlNode": null,
+    "indexId": "21"
   },
   {
     "id": "1ef8370ece",
-    "indexId": "22",
+    "nodePath": "0-5-5-1-1-1-5-3-4-0",
     "nodeHashId": "1ef8370ece",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
       "nodeType": "TEXT Node"
     },
-    "center": [295, 552],
+    "center": [
+      295,
+      552
+    ],
     "content": "other platforms",
     "rect": {
       "left": 244,
@@ -432,18 +524,22 @@
       "width": 102,
       "height": 17
     },
-    "htmlNode": null
+    "htmlNode": null,
+    "indexId": "22"
   },
   {
     "id": "f0d0e9c4f1",
-    "indexId": "23",
+    "nodePath": "0-5-5-1-1-1-5-5-0",
     "nodeHashId": "f0d0e9c4f1",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
       "nodeType": "TEXT Node"
     },
-    "center": [171, 587],
+    "center": [
+      171,
+      587
+    ],
     "content": "By using VS Code, you agree to its",
     "rect": {
       "left": 80,
@@ -451,18 +547,22 @@
       "width": 181,
       "height": 13
     },
-    "htmlNode": null
+    "htmlNode": null,
+    "indexId": "23"
   },
   {
     "id": "deba00f856",
-    "indexId": "24",
+    "nodePath": "0-5-5-1-1-1-5-5-1-0-0",
     "nodeHashId": "deba00f856",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
       "nodeType": "TEXT Node"
     },
-    "center": [99, 604],
+    "center": [
+      99,
+      604
+    ],
     "content": "license",
     "rect": {
       "left": 80,
@@ -470,18 +570,22 @@
       "width": 37,
       "height": 13
     },
-    "htmlNode": null
+    "htmlNode": null,
+    "indexId": "24"
   },
   {
     "id": "491790f90f",
-    "indexId": "25",
+    "nodePath": "0-5-5-1-1-1-5-5-1-1",
     "nodeHashId": "491790f90f",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
       "nodeType": "TEXT Node"
     },
-    "center": [130, 604],
+    "center": [
+      130,
+      604
+    ],
     "content": "and",
     "rect": {
       "left": 117,
@@ -489,18 +593,22 @@
       "width": 26,
       "height": 13
     },
-    "htmlNode": null
+    "htmlNode": null,
+    "indexId": "25"
   },
   {
     "id": "324717c5ff",
-    "indexId": "26",
+    "nodePath": "0-5-5-1-1-1-5-5-1-2-0",
     "nodeHashId": "324717c5ff",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
       "nodeType": "TEXT Node"
     },
-    "center": [190, 604],
+    "center": [
+      190,
+      604
+    ],
     "content": "privacy statement",
     "rect": {
       "left": 143,
@@ -508,30 +616,12 @@
       "width": 94,
       "height": 13
     },
-    "htmlNode": null
-  },
-  {
-    "id": "3f353e2096",
-    "indexId": "27",
-    "nodeHashId": "3f353e2096",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node"
-    },
-    "center": [239, 604],
-    "content": ".",
-    "rect": {
-      "left": 237,
-      "top": 597,
-      "width": 3,
-      "height": 13
-    },
-    "htmlNode": null
+    "htmlNode": null,
+    "indexId": "26"
   },
   {
     "id": "7eb7a9b4da",
-    "indexId": "28",
+    "nodePath": "0-5-5-1-1-3-3",
     "nodeHashId": "7eb7a9b4da",
     "locator": "[_midscene_retrieve_task_id='7eb7a9b4da']",
     "attributes": {
@@ -548,7 +638,11 @@
       "width": 720,
       "height": 457
     },
-    "center": [840, 395],
-    "htmlNode": null
+    "center": [
+      840,
+      395
+    ],
+    "htmlNode": null,
+    "indexId": "27"
   }
 ]

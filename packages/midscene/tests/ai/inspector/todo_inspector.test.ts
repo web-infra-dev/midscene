@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { AiInspectElement } from '@/ai-model';
 import { useCozeModel } from '@/ai-model/coze';
@@ -71,6 +72,7 @@ modelList.forEach((model) => {
           JSON.stringify(aiResponse, null, 2),
           { encoding: 'utf-8' },
         );
+
         expect(filterUnstableResult).toMatchFileSnapshot(
           './__snapshots__/todo_inspector.test.ts.snap',
         );

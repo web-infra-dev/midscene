@@ -85,8 +85,8 @@ export async function runTestCases(
           indexId: elementsSnapshot[index].indexId,
         };
       }),
-      prompt,
       error,
+      prompt,
     };
   });
 

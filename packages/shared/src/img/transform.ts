@@ -24,8 +24,6 @@ export async function saveBase64Image(options: {
   // Use Jimp to process the image and save it to the specified location
   const image = await Jimp.read(imageBuffer);
   await image.writeAsync(outputPath);
-
-  console.log('Image successfully written to file.');
 }
 
 /**

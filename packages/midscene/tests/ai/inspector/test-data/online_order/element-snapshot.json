@@ -1,7 +1,7 @@
 [
   {
     "id": "6ad26dfdca",
-    "indexId": "1",
+    "nodePath": "0-3-1-1-0-0-0-0-0-1-0-0-0",
     "nodeHashId": "6ad26dfdca",
     "locator": "[_midscene_retrieve_task_id='6ad26dfdca']",
     "attributes": {
@@ -17,19 +17,26 @@
       "width": 22,
       "height": 22
     },
-    "center": [26, 28],
-    "htmlNode": null
+    "center": [
+      26,
+      28
+    ],
+    "htmlNode": null,
+    "indexId": "1"
   },
   {
     "id": "e666c51ff8",
-    "indexId": "2",
+    "nodePath": "0-3-1-1-0-0-0-0-0-1-0-1-0-0-0",
     "nodeHashId": "e666c51ff8",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
       "nodeType": "TEXT Node"
     },
-    "center": [81, 29],
+    "center": [
+      81,
+      29
+    ],
     "content": "中文",
     "rect": {
       "left": 65,
@@ -37,11 +44,37 @@
       "width": 32,
       "height": 23
     },
-    "htmlNode": null
+    "htmlNode": null,
+    "indexId": "2"
+  },
+  {
+    "id": "952678535a",
+    "nodePath": "0-3-1-1-0-0-0-0-0-1-0-1-0-1",
+    "nodeHashId": "952678535a",
+    "nodeType": "CONTAINER Node",
+    "locator": "[_midscene_retrieve_task_id='952678535a']",
+    "attributes": {
+      "aria-label": "图标: down",
+      "class": ".anticon.anticon-down",
+      "nodeType": "CONTAINER Node"
+    },
+    "content": "",
+    "rect": {
+      "left": 113,
+      "top": 26,
+      "width": 8,
+      "height": 4
+    },
+    "center": [
+      117,
+      28
+    ],
+    "htmlNode": null,
+    "indexId": "3"
   },
   {
     "id": "f05ef98d09",
-    "indexId": "3",
+    "nodePath": "0-3-1-1-0-0-0-1-0-0-0",
     "nodeHashId": "f05ef98d09",
     "locator": "[_midscene_retrieve_task_id='f05ef98d09']",
     "attributes": {
@@ -57,12 +90,16 @@
       "width": 44,
       "height": 44
     },
-    "center": [225, 30],
-    "htmlNode": null
+    "center": [
+      225,
+      30
+    ],
+    "htmlNode": null,
+    "indexId": "4"
   },
   {
     "id": "f775c69cb4",
-    "indexId": "4",
+    "nodePath": "0-3-1-1-0-0-0-2-0-1-0-0-0-0-0-0",
     "nodeHashId": "f775c69cb4",
     "locator": "[_midscene_retrieve_task_id='f775c69cb4']",
     "attributes": {
@@ -78,79 +115,26 @@
       "width": 25,
       "height": 25
     },
-    "center": [363, 29],
-    "htmlNode": null
-  },
-  {
-    "id": "b4c8ebcc38",
-    "indexId": "5",
-    "nodeHashId": "b4c8ebcc38",
-    "locator": "[_midscene_retrieve_task_id='b4c8ebcc38']",
-    "attributes": {
-      "src": "https://dec-pub-img.obs.ap-southeast-3.myhuaweicloud.com/rfkle/16509415998546650.jpg",
-      "alt": "shop logo",
-      "class": ".img",
-      "nodeType": "IMG Node"
-    },
-    "nodeType": "IMG Node",
-    "content": "",
-    "rect": {
-      "left": 13,
-      "top": 10,
-      "width": 47,
-      "height": 47
-    },
-    "center": [37, 34],
-    "htmlNode": null
-  },
-  {
-    "id": "ce3c9b7561",
-    "indexId": "6",
-    "nodeHashId": "ce3c9b7561",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node"
-    },
-    "center": [58, 117],
-    "content": "喜茶 HEYTEA (Vivocity)",
-    "rect": {
-      "left": 13,
-      "top": 73,
-      "width": 89,
-      "height": 88
-    },
-    "htmlNode": null
-  },
-  {
-    "id": "f8259ecff0",
-    "indexId": "7",
-    "nodeHashId": "f8259ecff0",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node"
-    },
-    "center": [31, 194],
-    "content": "登录/注册",
-    "rect": {
-      "left": 13,
-      "top": 173,
-      "width": 35,
-      "height": 41
-    },
-    "htmlNode": null
+    "center": [
+      363,
+      29
+    ],
+    "htmlNode": null,
+    "indexId": "5"
   },
   {
     "id": "300ea47164",
-    "indexId": "8",
+    "nodePath": "0-3-1-2-0-1-0-1-0-0-0-0-0-0",
     "nodeHashId": "300ea47164",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
       "nodeType": "TEXT Node"
     },
-    "center": [166, 79],
+    "center": [
+      166,
+      79
+    ],
     "content": "商家暂未开通外卖和自取业务",
     "rect": {
       "left": 75,
@@ -158,18 +142,22 @@
       "width": 182,
       "height": 20
     },
-    "htmlNode": null
+    "htmlNode": null,
+    "indexId": "6"
   },
   {
     "id": "01094ce3ba",
-    "indexId": "9",
+    "nodePath": "0-3-1-2-0-1-0-1-0-0-0-1-0-0",
     "nodeHashId": "01094ce3ba",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
       "nodeType": "TEXT Node"
     },
-    "center": [153, 98],
+    "center": [
+      153,
+      98
+    ],
     "content": "喜茶 HEYTEA (Vivocity)",
     "rect": {
       "left": 22,
@@ -177,18 +165,22 @@
       "width": 261,
       "height": 34
     },
-    "htmlNode": null
+    "htmlNode": null,
+    "indexId": "7"
   },
   {
     "id": "e6d131525a",
-    "indexId": "10",
+    "nodePath": "0-3-1-2-0-1-0-1-0-0-0-1-2-0",
     "nodeHashId": "e6d131525a",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
       "nodeType": "TEXT Node"
     },
-    "center": [97, 133],
+    "center": [
+      97,
+      133
+    ],
     "content": "全岛派送，起送价 S$ 11",
     "rect": {
       "left": 22,
@@ -196,11 +188,12 @@
       "width": 150,
       "height": 20
     },
-    "htmlNode": null
+    "htmlNode": null,
+    "indexId": "8"
   },
   {
     "id": "49118bbc89",
-    "indexId": "11",
+    "nodePath": "0-3-1-2-0-1-0-1-0-3-0",
     "nodeHashId": "49118bbc89",
     "locator": "[_midscene_retrieve_task_id='49118bbc89']",
     "attributes": {
@@ -215,19 +208,26 @@
       "width": 368,
       "height": 180
     },
-    "center": [200, 350],
-    "htmlNode": null
+    "center": [
+      200,
+      350
+    ],
+    "htmlNode": null,
+    "indexId": "9"
   },
   {
     "id": "cd2af441fc",
-    "indexId": "12",
+    "nodePath": "0-3-1-2-0-1-0-1-0-3-2-0",
     "nodeHashId": "cd2af441fc",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
       "nodeType": "TEXT Node"
     },
-    "center": [152, 482],
+    "center": [
+      152,
+      482
+    ],
     "content": "喜茶为芝士现泡茶的原创者。自创立以来，喜茶专注于呈现来自世界各地的优质茶香， 让茶饮这一古老文化焕发出新的生命力。",
     "rect": {
       "left": 16,
@@ -235,18 +235,22 @@
       "width": 271,
       "height": 62
     },
-    "htmlNode": null
+    "htmlNode": null,
+    "indexId": "10"
   },
   {
     "id": "904db22ba6",
-    "indexId": "13",
+    "nodePath": "0-3-1-2-0-1-0-1-0-6-0-0-0-0-0",
     "nodeHashId": "904db22ba6",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
       "nodeType": "TEXT Node"
     },
-    "center": [128, 569],
+    "center": [
+      128,
+      569
+    ],
     "content": "菜单",
     "rect": {
       "left": 112,
@@ -254,18 +258,45 @@
       "width": 32,
       "height": 23
     },
-    "htmlNode": null
+    "htmlNode": null,
+    "indexId": "11"
+  },
+  {
+    "id": "f87ea69e39",
+    "nodePath": "0-3-1-2-0-1-0-1-0-6-0-0-0-1",
+    "nodeHashId": "f87ea69e39",
+    "nodeType": "CONTAINER Node",
+    "locator": "[_midscene_retrieve_task_id='f87ea69e39']",
+    "attributes": {
+      "nodeType": "CONTAINER Node"
+    },
+    "content": "",
+    "rect": {
+      "left": 112,
+      "top": 589,
+      "width": 32,
+      "height": 4
+    },
+    "center": [
+      128,
+      591
+    ],
+    "htmlNode": null,
+    "indexId": "12"
   },
   {
     "id": "4840be5f9e",
-    "indexId": "14",
+    "nodePath": "0-3-1-2-0-1-0-1-0-6-0-0-1-0-0",
     "nodeHashId": "4840be5f9e",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
       "nodeType": "TEXT Node"
     },
-    "center": [200, 569],
+    "center": [
+      200,
+      569
+    ],
     "content": "评价",
     "rect": {
       "left": 184,
@@ -273,18 +304,22 @@
       "width": 32,
       "height": 23
     },
-    "htmlNode": null
+    "htmlNode": null,
+    "indexId": "13"
   },
   {
     "id": "cf1e3e2d69",
-    "indexId": "15",
+    "nodePath": "0-3-1-2-0-1-0-1-0-6-0-0-2-0-0",
     "nodeHashId": "cf1e3e2d69",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
       "nodeType": "TEXT Node"
     },
-    "center": [272, 569],
+    "center": [
+      272,
+      569
+    ],
     "content": "商家",
     "rect": {
       "left": 256,
@@ -292,18 +327,22 @@
       "width": 32,
       "height": 23
     },
-    "htmlNode": null
+    "htmlNode": null,
+    "indexId": "14"
   },
   {
     "id": "4cc3cbe871",
-    "indexId": "16",
+    "nodePath": "0-3-1-2-0-1-0-1-0-6-1-0-0-1-0-0",
     "nodeHashId": "4cc3cbe871",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
       "nodeType": "TEXT Node"
     },
-    "center": [29, 624],
+    "center": [
+      29,
+      624
+    ],
     "content": "时令鲜果",
     "rect": {
       "left": 5,
@@ -311,18 +350,22 @@
       "width": 48,
       "height": 17
     },
-    "htmlNode": null
+    "htmlNode": null,
+    "indexId": "15"
   },
   {
     "id": "0f5c641a0b",
-    "indexId": "17",
+    "nodePath": "0-3-1-2-0-1-0-1-0-6-1-0-0-2-0-0",
     "nodeHashId": "0f5c641a0b",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
       "nodeType": "TEXT Node"
     },
-    "center": [35, 684],
+    "center": [
+      35,
+      684
+    ],
     "content": "清爽不喝腻",
     "rect": {
       "left": 5,
@@ -330,18 +373,22 @@
       "width": 60,
       "height": 17
     },
-    "htmlNode": null
+    "htmlNode": null,
+    "indexId": "16"
   },
   {
     "id": "b37f775c20",
-    "indexId": "18",
+    "nodePath": "0-3-1-2-0-1-0-1-0-6-1-0-0-3-0-0",
     "nodeHashId": "b37f775c20",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
       "nodeType": "TEXT Node"
     },
-    "center": [35, 744],
+    "center": [
+      35,
+      744
+    ],
     "content": "经典不踩雷",
     "rect": {
       "left": 5,
@@ -349,18 +396,22 @@
       "width": 60,
       "height": 17
     },
-    "htmlNode": null
+    "htmlNode": null,
+    "indexId": "17"
   },
   {
     "id": "8d316ca893",
-    "indexId": "19",
+    "nodePath": "0-3-1-2-0-1-0-1-0-6-1-0-0-4-0-0",
     "nodeHashId": "8d316ca893",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
       "nodeType": "TEXT Node"
     },
-    "center": [23, 804],
+    "center": [
+      23,
+      804
+    ],
     "content": "要浓郁",
     "rect": {
       "left": 5,
@@ -368,18 +419,22 @@
       "width": 36,
       "height": 17
     },
-    "htmlNode": null
+    "htmlNode": null,
+    "indexId": "18"
   },
   {
     "id": "ccea1668f3",
-    "indexId": "20",
+    "nodePath": "0-3-1-2-0-1-0-1-0-6-1-0-0-5-0-0",
     "nodeHashId": "ccea1668f3",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
       "nodeType": "TEXT Node"
     },
-    "center": [23, 864],
+    "center": [
+      23,
+      864
+    ],
     "content": "要简单",
     "rect": {
       "left": 5,
@@ -387,18 +442,22 @@
       "width": 36,
       "height": 17
     },
-    "htmlNode": null
+    "htmlNode": null,
+    "indexId": "19"
   },
   {
     "id": "ce812d5bc7",
-    "indexId": "21",
+    "nodePath": "0-3-1-2-0-1-0-1-0-6-1-1-1-0-0-0",
     "nodeHashId": "ce812d5bc7",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
       "nodeType": "TEXT Node"
     },
-    "center": [126, 633],
+    "center": [
+      126,
+      633
+    ],
     "content": "时令鲜果 (1)",
     "rect": {
       "left": 88,
@@ -406,11 +465,12 @@
       "width": 76,
       "height": 20
     },
-    "htmlNode": null
+    "htmlNode": null,
+    "indexId": "20"
   },
   {
     "id": "02bf1e20e5",
-    "indexId": "22",
+    "nodePath": "0-3-1-2-0-1-0-1-0-6-1-1-1-1-0-0",
     "nodeHashId": "02bf1e20e5",
     "locator": "[_midscene_retrieve_task_id='02bf1e20e5']",
     "attributes": {
@@ -426,19 +486,26 @@
       "width": 90,
       "height": 90
     },
-    "center": [133, 704],
-    "htmlNode": null
+    "center": [
+      133,
+      704
+    ],
+    "htmlNode": null,
+    "indexId": "21"
   },
   {
     "id": "868b85b299",
-    "indexId": "23",
+    "nodePath": "0-3-1-2-0-1-0-1-0-6-1-1-1-1-0-1-0-0-1",
     "nodeHashId": "868b85b299",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
       "nodeType": "TEXT Node"
     },
-    "center": [244, 670],
+    "center": [
+      244,
+      670
+    ],
     "content": "多肉大橘（首创）",
     "rect": {
       "left": 188,
@@ -446,37 +513,46 @@
       "width": 112,
       "height": 20
     },
-    "htmlNode": null
+    "htmlNode": null,
+    "indexId": "22"
   },
   {
-    "id": "ce55df24db",
-    "indexId": "24",
-    "nodeHashId": "ce55df24db",
-    "nodeType": "TEXT Node",
-    "locator": "",
+    "id": "9ec72b9095",
+    "nodePath": "0-3-1-2-0-1-0-1-0-6-1-1-1-1-0-1-0-1",
+    "nodeHashId": "9ec72b9095",
+    "nodeType": "CONTAINER Node",
+    "locator": "[_midscene_retrieve_task_id='9ec72b9095']",
     "attributes": {
-      "nodeType": "TEXT Node"
+      "class": ".van-ellipsis",
+      "nodeType": "CONTAINER Node"
     },
-    "center": [719, 691],
-    "content": "果肉丰盈，粒粒饱满多汁；精心调配果汁与绿妍茶底的比例打制成冰沙；搭配清甜的无香精桂花冻与Q谈脆波波，再用香水柠檬片作点缀，口感丰富，香气有层次。默认标准杯500ml，可根据个人喜好选择加大杯650ml。",
+    "content": "",
     "rect": {
       "left": 188,
-      "top": 683,
-      "width": 1062,
-      "height": 15
+      "top": 684,
+      "width": 199,
+      "height": 13
     },
-    "htmlNode": null
+    "center": [
+      288,
+      691
+    ],
+    "htmlNode": null,
+    "indexId": "23"
   },
   {
     "id": "14103376fb",
-    "indexId": "25",
+    "nodePath": "0-3-1-2-0-1-0-1-0-6-1-1-1-1-0-1-1-0-1-0",
     "nodeHashId": "14103376fb",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
       "nodeType": "TEXT Node"
     },
-    "center": [211, 736],
+    "center": [
+      211,
+      736
+    ],
     "content": "6.82",
     "rect": {
       "left": 192,
@@ -484,18 +560,22 @@
       "width": 37,
       "height": 25
     },
-    "htmlNode": null
+    "htmlNode": null,
+    "indexId": "24"
   },
   {
     "id": "fadfa10182",
-    "indexId": "26",
+    "nodePath": "0-3-1-2-0-1-0-1-0-6-1-1-1-1-0-1-1-1-0-0",
     "nodeHashId": "fadfa10182",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
       "nodeType": "TEXT Node"
     },
-    "center": [355, 732],
+    "center": [
+      355,
+      732
+    ],
     "content": "选规格",
     "rect": {
       "left": 337,
@@ -503,18 +583,22 @@
       "width": 36,
       "height": 17
     },
-    "htmlNode": null
+    "htmlNode": null,
+    "indexId": "25"
   },
   {
     "id": "a626e598e4",
-    "indexId": "27",
+    "nodePath": "0-3-1-2-0-1-0-1-0-6-1-1-2-0-0-0",
     "nodeHashId": "a626e598e4",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
       "nodeType": "TEXT Node"
     },
-    "center": [134, 776],
+    "center": [
+      134,
+      776
+    ],
     "content": "清爽不喝腻 (5)",
     "rect": {
       "left": 88,
@@ -522,11 +606,12 @@
       "width": 92,
       "height": 20
     },
-    "htmlNode": null
+    "htmlNode": null,
+    "indexId": "26"
   },
   {
     "id": "eb294263b8",
-    "indexId": "28",
+    "nodePath": "0-3-1-2-0-1-0-1-0-6-1-1-2-1-0-0",
     "nodeHashId": "eb294263b8",
     "locator": "[_midscene_retrieve_task_id='eb294263b8']",
     "attributes": {
@@ -542,19 +627,26 @@
       "width": 90,
       "height": 90
     },
-    "center": [133, 847],
-    "htmlNode": null
+    "center": [
+      133,
+      847
+    ],
+    "htmlNode": null,
+    "indexId": "27"
   },
   {
     "id": "a7029d417e",
-    "indexId": "29",
+    "nodePath": "0-3-1-2-0-1-0-1-0-6-1-1-2-1-0-1-0-0-1",
     "nodeHashId": "a7029d417e",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
       "nodeType": "TEXT Node"
     },
-    "center": [223, 813],
+    "center": [
+      223,
+      813
+    ],
     "content": "轻芒芒甘露",
     "rect": {
       "left": 188,
@@ -562,37 +654,46 @@
       "width": 70,
       "height": 20
     },
-    "htmlNode": null
+    "htmlNode": null,
+    "indexId": "28"
   },
   {
-    "id": "5c923fbd67",
-    "indexId": "30",
-    "nodeHashId": "5c923fbd67",
-    "nodeType": "TEXT Node",
-    "locator": "",
+    "id": "bb74ca9861",
+    "nodePath": "0-3-1-2-0-1-0-1-0-6-1-1-2-1-0-1-0-1",
+    "nodeHashId": "bb74ca9861",
+    "nodeType": "CONTAINER Node",
+    "locator": "[_midscene_retrieve_task_id='bb74ca9861']",
     "attributes": {
-      "nodeType": "TEXT Node"
+      "class": ".van-ellipsis",
+      "nodeType": "CONTAINER Node"
     },
-    "center": [610, 834],
-    "content": "更清爽的芒芒甘露，芒着清爽，芒着解腻。当季芒果，新鲜手切，香甜浓郁；加入红柚果粒与Q弹的脆波波，轻盈不轻量。清爽的芒果绿妍冰沙平衡椰浆的比例，清爽不简单。",
+    "content": "",
     "rect": {
       "left": 188,
-      "top": 826,
-      "width": 844,
-      "height": 15
+      "top": 827,
+      "width": 199,
+      "height": 13
     },
-    "htmlNode": null
+    "center": [
+      288,
+      834
+    ],
+    "htmlNode": null,
+    "indexId": "29"
   },
   {
     "id": "0250e12e67",
-    "indexId": "31",
+    "nodePath": "0-3-1-2-0-1-0-1-0-6-1-1-2-1-0-1-1-0-1-0",
     "nodeHashId": "0250e12e67",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
       "nodeType": "TEXT Node"
     },
-    "center": [211, 879],
+    "center": [
+      211,
+      879
+    ],
     "content": "6.54",
     "rect": {
       "left": 192,
@@ -600,18 +701,22 @@
       "width": 37,
       "height": 25
     },
-    "htmlNode": null
+    "htmlNode": null,
+    "indexId": "30"
   },
   {
     "id": "001617dbf8",
-    "indexId": "32",
+    "nodePath": "0-3-1-2-0-1-0-1-0-6-1-1-2-1-0-1-1-1-0-0",
     "nodeHashId": "001617dbf8",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
       "nodeType": "TEXT Node"
     },
-    "center": [355, 875],
+    "center": [
+      355,
+      875
+    ],
     "content": "选规格",
     "rect": {
       "left": 337,
@@ -619,11 +724,12 @@
       "width": 36,
       "height": 17
     },
-    "htmlNode": null
+    "htmlNode": null,
+    "indexId": "31"
   },
   {
     "id": "cad3004a2d",
-    "indexId": "33",
+    "nodePath": "0-3-1-2-3-0",
     "nodeHashId": "cad3004a2d",
     "locator": "[_midscene_retrieve_task_id='cad3004a2d']",
     "attributes": {
@@ -638,7 +744,11 @@
       "width": 42,
       "height": 42
     },
-    "center": [379, 834],
-    "htmlNode": null
+    "center": [
+      379,
+      834
+    ],
+    "htmlNode": null,
+    "indexId": "32"
   }
 ]

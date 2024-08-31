@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { AiInspectElement } from '@/ai-model';
 import { expect, test } from 'vitest';

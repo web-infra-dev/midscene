@@ -37,6 +37,13 @@ describe('utils', () => {
     expect(reportContent).contains(content);
   });
 
+  it('write report file with empty dump', () => {
+    const reportPath = writeDumpReport('test', []);
+    expect(reportPath).toBeTruthy();
+    const reportContent = readFileSync(reportPath, 'utf-8');
+    expect(reportContent).contains('type="midscene_web_dump"');
+  });
+
   it('write report file with attributes', () => {
     const content = randomUUID();
     const reportPath = writeDumpReport('test', [
