@@ -4,7 +4,6 @@
         "actions": [
             "Planning",
             "Insight / Locate",
-            "Action / Tap",
             "Action / Input"
         ]
     },
@@ -13,7 +12,6 @@
         "actions": [
             "Planning",
             "Insight / Locate",
-            "Action / Tap",
             "Action / Input",
             "Action / KeyboardPress"
         ]
@@ -21,9 +19,6 @@
     {
         "title": "waitFor: the input box for task title is empty now",
         "actions": [
-            "Insight / Assert",
-            "Insight / Assert",
-            "Action / Sleep",
             "Insight / Assert"
         ]
     },
@@ -31,7 +26,18 @@
         "title": "Enter \"Learn Rust tomorrow\" in the task box, then press Enter to create",
         "actions": [
             "Planning",
-            "Insight / Locate"
+            "Insight / Locate",
+            "Action / Input",
+            "Action / KeyboardPress"
+        ]
+    },
+    {
+        "title": "Enter \"Learning AI the day after tomorrow\" in the task box, then press Enter to create",
+        "actions": [
+            "Planning",
+            "Insight / Locate",
+            "Action / Input",
+            "Action / KeyboardPress"
         ]
     }
 ]
