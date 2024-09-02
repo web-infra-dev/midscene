@@ -77,6 +77,20 @@ export async function callCozeAi<T>(options: {
   }
 }
 
+// todo bai: create coze bot
+
+// todo bai: update coze bot
+
+// todo bai: publish coze bot as api
+
+// todo bai: start coze chat
+
+// todo bai: get coze chat status
+
+// todo bai: get coze chat result
+
+// todo bai: upload image to coze
+
 export function transfromOpenAiArgsToCoze(msg: ChatCompletionUserMessageParam) {
   if (msg.role !== 'user') throw Error(`can't transfrom ${msg} to coze args`);
   // const query = '';

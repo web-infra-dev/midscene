@@ -36,6 +36,7 @@ export async function callAiFn<T>(options: {
     return parseResult;
   }
 
+  // todo bai: change coze ai use
   if (useCozeModel(useModel)) {
     let botId = '';
     switch (AIActionTypeValue) {
