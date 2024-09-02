@@ -11,6 +11,7 @@ import {
 } from './dom-util';
 import {
   getDebugMode,
+  getDocument,
   getNodeAttributes,
   getPseudoElementContent,
   logger,
@@ -36,8 +37,6 @@ export interface ElementInfo {
   rect: { left: number; top: number; width: number; height: number };
   center: [number, number];
 }
-
-let container: HTMLElement;
 
 function collectElementInfo(node: Node, nodePath: string): ElementInfo | null {
   const rect = visibleRect(node);
@@ -202,7 +201,7 @@ function collectElementInfo(node: Node, nodePath: string): ElementInfo | null {
 }
 
 export function extractTextWithPosition(
-  initNode: Node = container,
+  initNode: Node,
   debugMode = false,
 ): ElementInfo[] {
   setDebugMode(debugMode);
@@ -260,7 +259,7 @@ export function extractTextWithPosition(
     return elementInfo;
   }
 
-  const outerMostElementInfo = dfs(initNode, '0');
+  const outerMostElementInfo = dfs(initNode || getDocument(), '0');
   if (outerMostElementInfo && !elementInfoArray.length) {
     elementInfoArray.push(outerMostElementInfo);
   }

@@ -2,13 +2,11 @@ import assert from 'node:assert';
 import type { Buffer } from 'node:buffer';
 import fs, { readFileSync } from 'node:fs';
 import path from 'node:path';
-import { parsePageSource } from '@/extractor/appium-exactor';
 import type { ElementInfo } from '@/extractor/extractor';
 import type { PlaywrightParserOpt, UIContext } from '@midscene/core';
 import { getTmpFile } from '@midscene/core/utils';
 import { base64Encoded, imageInfoOfBase64 } from '@midscene/shared/img';
 import dayjs from 'dayjs';
-import { AppiumPage } from '../appium';
 import { WebElementInfo } from '../web-element';
 import type { WebPage } from './page';
 

@@ -299,3 +299,8 @@ export function setExtractTextWithPositionOnWindow() {
     (window as any).extractTextWithPosition = extractTextWithPosition;
   }
 }
+
+export function getDocument(): HTMLElement {
+  const container: HTMLElement = document.body || document;
+  return container;
+}

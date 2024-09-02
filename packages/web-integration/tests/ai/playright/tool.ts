@@ -73,7 +73,7 @@ export async function generateExtractData(
   }
   if (!saveImgType?.disableResizeOutputImg) {
     await saveBase64Image({
-      base64Data: resizeImgBase64,
+      base64Data: resizeImgBase64 as string,
       outputPath: resizeOutputImgPath,
     });
   }
