@@ -12,7 +12,8 @@
       "**/doc_build",
       "*-dump.json",
       "script_get_all_texts.tmp.js",
-      "**/playwright-report/**"
+      "**/playwright-report/**",
+      "**/todo-report.spec.ts-snapshots/**"
     ]
   },
   "javascript": {
