@@ -7,6 +7,7 @@ import type { ElementInfo } from '../extractor/extractor';
 
 export class Page implements AbstractPage {
   private browser: Browser;
+  pageType = 'puppeteer';
 
   constructor(browser: Browser) {
     this.browser = browser;
@@ -22,7 +23,7 @@ export class Page implements AbstractPage {
   screenshot(options: screenshotOptions): Promise<Uint8Array> {
     const { path } = options;
 
-    return this.browser.screenshot({ path, type: 'jpeg' });
+    return this.browser.screenshot({ path, type: 'png' });
   }
 
   url(): string {

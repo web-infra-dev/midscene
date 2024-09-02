@@ -1,8 +1,9 @@
-import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import type { WebPage } from '@/common/page';
 import { NodeType } from '@/extractor/constants';
 import type { ElementInfo } from '@/extractor/extractor';
+import { getTmpFile } from '@midscene/core/utils';
 import {
   processImageElementInfo,
   resizeImg,
@@ -20,10 +21,11 @@ export async function generateExtractData(
     disableSnapshot: boolean;
   },
 ) {
-  const buffer = await page.screenshot({
-    encoding: 'base64',
-  });
-  const inputImgBase64 = buffer.toString('base64');
+  const file = getTmpFile('png');
+  await page.screenshot({ path: file });
+  const screenshotBuffer = readFileSync(file);
+
+  const inputImgBase64 = screenshotBuffer.toString('base64');
 
   const {
     elementsPositionInfo,

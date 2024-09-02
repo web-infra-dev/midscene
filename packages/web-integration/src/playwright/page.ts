@@ -7,6 +7,7 @@ import type { ElementInfo } from '../extractor/extractor';
 
 export class Page implements AbstractPage {
   private browser: Browser;
+  pageType = 'playwright';
 
   constructor(browser: Browser) {
     this.browser = browser;
@@ -19,12 +20,12 @@ export class Page implements AbstractPage {
     return captureElementSnapshot as ElementInfo[];
   }
 
-  screenshot(options: screenshotOptions): Promise<Uint8Array> {
+  async screenshot(options: screenshotOptions = {}): Promise<Buffer> {
     const { path } = options;
 
     return this.browser.screenshot({
       path,
-      type: 'jpeg',
+      type: 'png',
       quality: 75,
     });
   }

@@ -13,6 +13,7 @@ function buttonToNumber(button: MouseButton): number {
 
 export class Page implements AbstractPage {
   private browser: Browser;
+  pageType = 'appium';
 
   constructor(browser: Browser) {
     this.browser = browser;

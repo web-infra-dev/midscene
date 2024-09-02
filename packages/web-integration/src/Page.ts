@@ -13,7 +13,10 @@ export type screenshotOptions = {
 export type MouseButton = 'left' | 'right' | 'middle';
 
 export abstract class AbstractPage {
-  abstract screenshot(options: screenshotOptions): Promise<Uint8Array>;
+  abstract pageType: string;
+  abstract screenshot(
+    options?: screenshotOptions,
+  ): Promise<Buffer | Uint8Array>;
   abstract getElementInfos(): Promise<ElementInfo[]>;
   abstract url(): string;
 
