@@ -295,10 +295,10 @@ export class PageTaskExecutor {
                     await this.page.mouse.wheel(0, 9999999);
                     break;
                   case 'ScrollUp':
-                    await this.page.mouse.wheel(0, -innerHeight);
+                    await this.page.mouse.wheel(0, -innerHeight * 0.75);
                     break;
                   case 'ScrollDown':
-                    await this.page.mouse.wheel(0, innerHeight);
+                    await this.page.mouse.wheel(0, innerHeight * 0.75);
                     break;
                   default:
                     console.error(
