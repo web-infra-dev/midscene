@@ -320,6 +320,18 @@ exports[`extractor > basic 1`] = `
     "attributes": {
       "nodeType": "TEXT Node",
     },
+    "content": "This is zoomed content",
+  },
+  {
+    "attributes": {
+      "nodeType": "TEXT Node",
+    },
+    "content": "Something Else",
+  },
+  {
+    "attributes": {
+      "nodeType": "TEXT Node",
+    },
     "content": "输入搜索关键词",
   },
   {

@@ -36,12 +36,17 @@ export interface ElementInfo {
   content: string;
   rect: { left: number; top: number; width: number; height: number };
   center: [number, number];
+  zoom: number;
 }
 
 const container: HTMLElement = document.body || document;
 
-function collectElementInfo(node: Node, nodePath: string): ElementInfo | null {
-  const rect = visibleRect(node);
+function collectElementInfo(
+  node: Node,
+  nodePath: string,
+  baseZoom = 1,
+): ElementInfo | null {
+  const rect = visibleRect(node, baseZoom);
   logger('collectElementInfo', node, node.nodeName, rect);
   if (
     !rect ||
@@ -87,6 +92,7 @@ function collectElementInfo(node: Node, nodePath: string): ElementInfo | null {
         Math.round(rect.top + rect.height / 2),
       ],
       htmlNode: debugMode ? node : null,
+      zoom: rect.zoom,
     };
     return elementInfo;
   }
@@ -114,6 +120,7 @@ function collectElementInfo(node: Node, nodePath: string): ElementInfo | null {
         Math.round(rect.top + rect.height / 2),
       ],
       htmlNode: debugMode ? node : null,
+      zoom: rect.zoom,
     };
     return elementInfo;
   }
@@ -144,6 +151,7 @@ function collectElementInfo(node: Node, nodePath: string): ElementInfo | null {
         Math.round(rect.top + rect.height / 2),
       ],
       htmlNode: debugMode ? node : null,
+      zoom: rect.zoom,
     };
     return elementInfo;
   }
@@ -178,6 +186,7 @@ function collectElementInfo(node: Node, nodePath: string): ElementInfo | null {
       content: text,
       rect,
       htmlNode: debugMode ? node : null,
+      zoom: rect.zoom,
     };
     return elementInfo;
   }
@@ -203,6 +212,7 @@ function collectElementInfo(node: Node, nodePath: string): ElementInfo | null {
       Math.round(rect.top + rect.height / 2),
     ],
     htmlNode: debugMode ? node : null,
+    zoom: rect.zoom,
   };
   return elementInfo;
 }
@@ -215,12 +225,12 @@ export function extractTextWithPosition(
   setDebugMode(debugMode);
   setFrameId(currentFrame.id);
   const elementInfoArray: ElementInfo[] = [];
-  function dfs(node: Node, nodePath: string): ElementInfo | null {
+  function dfs(node: Node, nodePath: string, baseZoom = 1): ElementInfo | null {
     if (!node) {
       return null;
     }
 
-    const elementInfo = collectElementInfo(node, nodePath);
+    const elementInfo = collectElementInfo(node, nodePath, baseZoom);
     // stop collecting if the node is a Button or Image
     if (
       elementInfo?.nodeType === NodeType.BUTTON ||
@@ -240,7 +250,11 @@ export function extractTextWithPosition(
     for (let i = 0; i < node.childNodes.length; i++) {
       logger('will dfs', node.childNodes[i]);
       const resultLengthBeforeDfs = elementInfoArray.length;
-      const result = dfs(node.childNodes[i], `${nodePath}-${i}`);
+      const result = dfs(
+        node.childNodes[i],
+        `${nodePath}-${i}`,
+        elementInfo?.zoom,
+      );
 
       if (!result) continue;
 

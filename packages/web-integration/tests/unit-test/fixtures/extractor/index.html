@@ -118,6 +118,17 @@
     </select>
     </form>
 
+    <!-- div with css zoom -->
+    <!-- From chrome v128, the API would return differently https://docs.google.com/document/d/1AcnDShjT-kEuRaMchZPm5uaIgNZ4OiYtM4JI9qiV8Po/edit -->
+    <div style="zoom: 1.2;width: 200px;height: 40px;">
+        <div style="width: 160px;height: 40px;background-color: #ccc;zoom: 1.5;">
+            This is zoomed content
+        </div>
+        Something Else
+    </div>
+    
+    <div style="width:1px;height:120px"></div>
+
     <!-- a label with sibiling input -->
     <div id="gh-ac-box2">
         <label for="gh-ac" class="gh-ar-hdn">输入搜索关键词</label>
