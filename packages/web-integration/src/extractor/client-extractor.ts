@@ -120,7 +120,9 @@ export function extractTextWithPosition(initNode: Document): ElementInfo[] {
       parentNode.children.push(currentNodeDes);
     }
 
-    collectElementInfo(node);
+    if (node.childNodes && node.childNodes.length === 0) {
+      collectElementInfo(node);
+    }
 
     if (node.childNodes && node.childNodes.length > 0) {
       for (let i = 0; i < node.childNodes.length; i++) {
@@ -135,7 +137,7 @@ export function extractTextWithPosition(initNode: Document): ElementInfo[] {
     const nodeHashId = midsceneGenerateHash(attributes.placeholder, rect);
     const text = validTextNodeContent(node);
 
-    let nodeType = NodeType.FORM_ITEM;
+    let nodeType;
 
     switch (node.nodeName.toUpperCase()) {
       case 'TEXT':
@@ -147,6 +149,8 @@ export function extractTextWithPosition(initNode: Document): ElementInfo[] {
       case 'BUTTON':
         nodeType = NodeType.BUTTON;
         break;
+      default:
+        nodeType = NodeType.CONTAINER;
     }
 
     const xpath = getXPathForElement(node);
