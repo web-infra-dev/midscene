@@ -27,10 +27,10 @@ import Insight, {
 import { commonScreenshotParam, getTmpFile, sleep } from '@midscene/core/utils';
 import { base64Encoded } from '@midscene/shared/img';
 import type { KeyInput } from 'puppeteer';
+import type { ElementInfo } from '../extractor';
 import type { WebElementInfo } from '../web-element';
 import { type AiTaskCache, TaskCache } from './task-cache';
 import { type WebUIContext, parseContextFromWebPage } from './utils';
-import type { ElementInfo } from '../extractor';
 
 interface ExecutionResult<OutputType = any> {
   output: OutputType;
@@ -208,10 +208,16 @@ export class PageTaskExecutor {
               param: plan.param,
               executor: async (taskParam, { element }) => {
                 if (element) {
-                  await this.page.clearInput(element as ElementInfo);
+                  if (taskParam.value === '') {
+                    await this.page.clearInput(element as ElementInfo);
+                  } else {
+                    await this.page.mouse.click(
+                      element.center[0],
+                      element.center[1],
+                    );
+                    await this.page.keyboard.type(taskParam.value);
+                  }
                 }
-
-                await this.page.keyboard.type(taskParam.value);
               },
             };
           return taskActionInput;

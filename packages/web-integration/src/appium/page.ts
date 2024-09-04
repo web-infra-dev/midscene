@@ -3,7 +3,7 @@ import { resizeImg } from '@midscene/shared/img';
 import { DOMParser } from '@xmldom/xmldom';
 import type { KeyInput as PuppeteerKeyInput } from 'puppeteer';
 import type { Browser } from 'webdriverio';
-import { clientExtractTextWithPosition, type ElementInfo } from '../extractor';
+import { type ElementInfo, clientExtractTextWithPosition } from '../extractor';
 import type { AbstractPage, MouseButton, screenshotOptions } from '../page';
 
 type WebKeyInput = PuppeteerKeyInput;
@@ -136,6 +136,10 @@ export class Page implements AbstractPage {
     for (const char of text) {
       actions.push({ type: 'keyDown', value: char });
       actions.push({ type: 'keyUp', value: char });
+    }
+
+    if (!actions.length) {
+      return;
     }
 
     await this.browser.performActions([

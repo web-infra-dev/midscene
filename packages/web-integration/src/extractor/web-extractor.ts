@@ -254,4 +254,3 @@ export function extractTextWithPosition(
   }
   return elementInfoArray;
 }
-

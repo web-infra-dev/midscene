@@ -69,10 +69,14 @@ function getXPathForElement(element: Node): string {
     return count;
   };
 
-  const buildAttributePart = (elem: Element, attributes: string[]): string => {
+  const buildAttributePart = (elem: Element): string => {
+    const attributes = ['id', 'resource-id', 'content-desc', 'text', 'class'];
     for (const attr of attributes) {
       if (elem.hasAttribute(attr)) {
-        return `[@${attr}="${elem.getAttribute(attr)}"]`;
+        const value = elem.getAttribute(attr);
+        if (value && value.trim() !== '') {
+          return `[@${attr}="${value}"]`;
+        }
       }
     }
     return '';
@@ -86,15 +90,20 @@ function getXPathForElement(element: Node): string {
     if (node.nodeType === 1) {
       const elem = node as Element;
       const tagName = elem.nodeName.toLowerCase();
-      const index = getIndex(node, node.nodeName);
-      let part = `/${tagName}${index > 1 ? `[${index}]` : ''}`;
+      let part = `/${tagName}`;
 
-      const attributes = ['id', 'resource-id', 'content-desc', 'text', 'class'];
+      const attributePart = buildAttributePart(elem);
 
-      const attributePart = buildAttributePart(elem, attributes);
-
-      // 如果找到有意义的属性，则替代掉index部分
-      part = attributePart ? `/${tagName}${attributePart}` : part;
+      // 如果找到有意义的属性，则添加属性部分
+      if (attributePart) {
+        part += attributePart;
+      } else {
+        // 如果没有有意义的属性，则添加索引
+        const index = getIndex(node, node.nodeName);
+        if (index > 1) {
+          part += `[${index}]`;
+        }
+      }
 
       path += part;
     }
@@ -120,9 +129,7 @@ export function extractTextWithPosition(initNode: Document): ElementInfo[] {
       parentNode.children.push(currentNodeDes);
     }
 
-    if (node.childNodes && node.childNodes.length === 0) {
-      collectElementInfo(node);
-    }
+    collectElementInfo(node);
 
     if (node.childNodes && node.childNodes.length > 0) {
       for (let i = 0; i < node.childNodes.length; i++) {
@@ -149,8 +156,25 @@ export function extractTextWithPosition(initNode: Document): ElementInfo[] {
       case 'BUTTON':
         nodeType = NodeType.BUTTON;
         break;
-      default:
+      case 'SEARCHINPUT':
+      case 'INPUT':
+        nodeType = NodeType.FORM_ITEM;
+        break;
+      case 'NAV':
+      case 'LIST':
+      case 'CELL':
         nodeType = NodeType.CONTAINER;
+        break;
+      default:
+        if (
+          attributes.id === 'android:id/input' ||
+          attributes.id === 'android:id/inputArea'
+        ) {
+          nodeType = NodeType.FORM_ITEM;
+        } else {
+          nodeType = NodeType.CONTAINER;
+        }
+        break;
     }
 
     const xpath = getXPathForElement(node);
@@ -174,7 +198,9 @@ export function extractTextWithPosition(initNode: Document): ElementInfo[] {
       nodePath: '',
     };
 
-    elementInfoArray.push(elementInfo);
+    if (elementInfo.nodeType !== NodeType.CONTAINER) {
+      elementInfoArray.push(elementInfo);
+    }
   }
 
   const rootNode = initNode;
