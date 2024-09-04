@@ -39,7 +39,7 @@ export abstract class AbstractPage {
     };
   }
 
-  async selectAll(): Promise<void> {}
+  async clearInput(element: ElementInfo): Promise<void> {}
 
   abstract scrollUntilTop(): Promise<void>;
   abstract scrollUntilBottom(): Promise<void>;

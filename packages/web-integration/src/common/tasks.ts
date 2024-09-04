@@ -26,11 +26,11 @@ import Insight, {
 } from '@midscene/core';
 import { commonScreenshotParam, getTmpFile, sleep } from '@midscene/core/utils';
 import { base64Encoded } from '@midscene/shared/img';
-import type { KeyInput, Page as PuppeteerPage } from 'puppeteer';
-import type { AppiumPage } from '../appium';
+import type { KeyInput } from 'puppeteer';
 import type { WebElementInfo } from '../web-element';
 import { type AiTaskCache, TaskCache } from './task-cache';
 import { type WebUIContext, parseContextFromWebPage } from './utils';
+import type { ElementInfo } from '../extractor';
 
 interface ExecutionResult<OutputType = any> {
   output: OutputType;
@@ -208,16 +208,9 @@ export class PageTaskExecutor {
               param: plan.param,
               executor: async (taskParam, { element }) => {
                 if (element) {
-                  await this.page.mouse.click(
-                    element.center[0],
-                    element.center[1],
-                  );
-                  // clear the input field
-                  // Select all content in the input field
-                  await this.page.selectAll();
-                  await this.page.keyboard.press('Backspace');
+                  await this.page.clearInput(element as ElementInfo);
                 }
-                assert(taskParam.value, 'No value to input');
+
                 await this.page.keyboard.type(taskParam.value);
               },
             };

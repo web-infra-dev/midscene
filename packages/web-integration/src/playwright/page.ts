@@ -51,7 +51,13 @@ export class Page implements AbstractPage {
     };
   }
 
-  async selectAll(): Promise<void> {
+  async clearInput(element: ElementInfo): Promise<void> {
+    if (!element) {
+      return;
+    }
+
+    await this.mouse.click(element.center[0], element.center[1]);
+
     const isMac = process.platform === 'darwin';
     if (isMac) {
       await this.browser.keyboard.down('Meta');
@@ -62,6 +68,7 @@ export class Page implements AbstractPage {
       await this.browser.keyboard.press('a');
       await this.browser.keyboard.up('Control');
     }
+    await this.keyboard.press('Backspace');
   }
 
   scrollUntilTop(): Promise<void> {

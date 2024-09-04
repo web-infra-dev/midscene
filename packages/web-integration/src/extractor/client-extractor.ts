@@ -69,15 +69,34 @@ function getXPathForElement(element: Node): string {
     return count;
   };
 
+  const buildAttributePart = (elem: Element, attributes: string[]): string => {
+    for (const attr of attributes) {
+      if (elem.hasAttribute(attr)) {
+        return `[@${attr}="${elem.getAttribute(attr)}"]`;
+      }
+    }
+    return '';
+  };
+
   const getPath = (node: Node, path = ''): string => {
     if (node.parentNode) {
       path = getPath(node.parentNode, path);
     }
 
     if (node.nodeType === 1) {
+      const elem = node as Element;
+      const tagName = elem.nodeName.toLowerCase();
       const index = getIndex(node, node.nodeName);
-      const tagName = node.nodeName.toLowerCase();
-      path += `/${tagName}[${index}]`;
+      let part = `/${tagName}${index > 1 ? `[${index}]` : ''}`;
+
+      const attributes = ['id', 'resource-id', 'content-desc', 'text', 'class'];
+
+      const attributePart = buildAttributePart(elem, attributes);
+
+      // 如果找到有意义的属性，则替代掉index部分
+      part = attributePart ? `/${tagName}${attributePart}` : part;
+
+      path += part;
     }
 
     return path;

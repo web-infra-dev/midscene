@@ -3,7 +3,7 @@ import { resizeImg } from '@midscene/shared/img';
 import { DOMParser } from '@xmldom/xmldom';
 import type { KeyInput as PuppeteerKeyInput } from 'puppeteer';
 import type { Browser } from 'webdriverio';
-import { clientExtractTextWithPosition } from '../extractor';
+import { clientExtractTextWithPosition, type ElementInfo } from '../extractor';
 import type { AbstractPage, MouseButton, screenshotOptions } from '../page';
 
 type WebKeyInput = PuppeteerKeyInput;
@@ -74,8 +74,14 @@ export class Page implements AbstractPage {
     };
   }
 
-  async selectAll(): Promise<void> {
-    // TODO: Implement selectAll
+  async clearInput(element: ElementInfo): Promise<void> {
+    if (!element) {
+      return;
+    }
+
+    const ele = await this.browser.$(element.locator);
+    await ele.click();
+    await ele.clearValue();
   }
 
   url(): string {
