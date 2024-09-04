@@ -45,7 +45,7 @@ export type AiTaskCache = {
 };
 
 export class TaskCache {
-  cache: AiTaskCache | undefined;
+  cache: AiTaskCache;
 
   cacheId: string;
 
@@ -56,7 +56,9 @@ export class TaskCache {
   constructor(opts?: { fileName?: string }) {
     this.midscenePkgInfo = getMidscenePkgInfo(__dirname);
     this.cacheId = generateCacheId(opts?.fileName);
-    this.cache = this.readCacheFromFile();
+    this.cache = this.readCacheFromFile() || {
+      aiTasks: [],
+    };
     this.newCache = {
       aiTasks: [],
     };

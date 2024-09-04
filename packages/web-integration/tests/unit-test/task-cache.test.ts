@@ -33,21 +33,19 @@ describe('TaskCache', () => {
   });
 
   it('should return false if the prompt does not match', async () => {
-    if (taskCache.cache) {
-      taskCache.cache.aiTasks = [
-        {
-          prompt: 'different prompt',
-          tasks: [
-            {
-              type: 'plan',
-              prompt: 'different prompt',
-              pageContext,
-              response: { plans: [] },
-            },
-          ],
-        },
-      ];
-    }
+    taskCache.cache.aiTasks = [
+      {
+        prompt: 'different prompt',
+        tasks: [
+          {
+            type: 'plan',
+            prompt: 'different prompt',
+            pageContext,
+            response: { plans: [] },
+          },
+        ],
+      },
+    ];
     const cacheGroup = taskCache.getCacheGroupByPrompt('test prompt');
     const result = cacheGroup.readCache(
       formalPageContext,
