@@ -15,6 +15,11 @@
       "import": "./dist/es/constants.js",
       "require": "./dist/lib/constants.js"
     },
+    "./fs": {
+      "types": "./src/fs/index.ts",
+      "import": "./dist/es/fs.js",
+      "require": "./dist/lib/fs.js"
+    },
     "./img": {
       "types": "./src/img/index.ts",
       "import": "./dist/es/img.js",
@@ -25,7 +30,8 @@
     "*": {
       ".": ["./src/index.ts"],
       "constants": ["./src/constants/index.ts"],
-      "img": ["./src/img/index.ts"]
+      "img": ["./src/img/index.ts"],
+      "fs": ["./src/fs/index.ts"]
     }
   },
   "files": ["dist", "src", "README.md"],
@@ -77,13 +83,19 @@
         "types": "./dist/types/img.d.ts",
         "import": "./dist/es/img.js",
         "require": "./dist/lib/img.js"
+      },
+      "./fs": {
+        "types": "./dist/types/fs.d.ts",
+        "import": "./dist/es/fs.js",
+        "require": "./dist/lib/fs.js"
       }
     },
     "typesVersions": {
       "*": {
         ".": ["./dist/types/index.d.ts"],
         "constants": ["./dist/types/constants.d.ts"],
-        "img": ["./dist/types/img.d.ts"]
+        "img": ["./dist/types/img.d.ts"],
+        "fs": ["./dist/types/fs.d.ts"]
       }
     }
   }

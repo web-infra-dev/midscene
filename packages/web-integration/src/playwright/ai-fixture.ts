@@ -5,7 +5,6 @@ import type { AgentWaitForOpt } from '@midscene/core/.';
 import { type TestInfo, type TestType, test } from '@playwright/test';
 import type { Page as PlaywrightPage } from 'playwright';
 import type { PageTaskExecutor } from '../common/tasks';
-import { readTestCache, writeTestCache } from './cache';
 
 export type APITestType = Pick<TestType<any, any>, 'step'>;
 
@@ -41,15 +40,12 @@ export const PlaywrightAiFixture = () => {
       (page as any)[midsceneAgentKeyId] = idForPage;
       const { testId } = testInfo;
       const { taskFile, taskTitle } = groupAndCaseForTest(testInfo);
-      const testCase = readTestCache(taskFile, taskTitle) || {
-        aiTasks: [],
-      };
 
       pageAgentMap[idForPage] = new PageAgent(page, {
         testId: `playwright-${testId}-${idForPage}`,
+        testFilePath: taskFile,
         groupName: taskTitle,
         groupDescription: taskFile,
-        cache: testCase,
         generateReport: false, // we will generate it in the reporter
       });
     }
@@ -76,7 +72,6 @@ export const PlaywrightAiFixture = () => {
       use: any,
       testInfo: TestInfo,
     ) => {
-      const { taskFile, taskTitle } = groupAndCaseForTest(testInfo);
       const agent = agentForPage(page, testInfo);
       await use(
         async (taskPrompt: string, opts?: { type?: 'action' | 'query' }) => {
@@ -90,8 +85,6 @@ export const PlaywrightAiFixture = () => {
           });
         },
       );
-      const taskCacheJson = agent.taskExecutor.taskCache.generateTaskCache();
-      writeTestCache(taskFile, taskTitle, taskCacheJson);
       updateDumpAnnotation(testInfo, agent.dumpDataString());
     },
     aiAction: async (
@@ -99,7 +92,6 @@ export const PlaywrightAiFixture = () => {
       use: any,
       testInfo: TestInfo,
     ) => {
-      const { taskFile, taskTitle } = groupAndCaseForTest(testInfo);
       const agent = agentForPage(page, testInfo);
       await use(async (taskPrompt: string) => {
         test.step(`aiAction - ${taskPrompt}`, async () => {
@@ -107,7 +99,6 @@ export const PlaywrightAiFixture = () => {
           await agent.aiAction(taskPrompt);
         });
       });
-      // Why there's no cache here ?
       updateDumpAnnotation(testInfo, agent.dumpDataString());
     },
     aiQuery: async (

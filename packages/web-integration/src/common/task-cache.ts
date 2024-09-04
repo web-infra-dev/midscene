@@ -1,5 +1,13 @@
+import { existsSync, readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import type { AIElementParseResponse, PlanningAction } from '@midscene/core';
-import type { WebUIContext } from './utils';
+import {
+  getLogDirByType,
+  stringifyDumpData,
+  writeLogFile,
+} from '@midscene/core/utils';
+import { getMidscenePkgInfo } from '@midscene/shared/fs';
+import { type WebUIContext, generateCacheId } from './utils';
 
 export type PlanTask = {
   type: 'plan';
@@ -30,18 +38,66 @@ export type LocateTask = {
 export type AiTasks = Array<PlanTask | LocateTask>;
 
 export type AiTaskCache = {
-  aiTasks: AiTasks;
+  aiTasks: Array<{
+    prompt: string;
+    tasks: AiTasks;
+  }>;
 };
 
 export class TaskCache {
   cache: AiTaskCache | undefined;
 
+  cacheId: string;
+
   newCache: AiTaskCache;
 
-  constructor(opts?: { cache: AiTaskCache }) {
-    this.cache = opts?.cache;
+  midscenePkgInfo: ReturnType<typeof getMidscenePkgInfo>;
+
+  constructor(opts?: { fileName?: string }) {
+    this.midscenePkgInfo = getMidscenePkgInfo(__dirname);
+    this.cacheId = generateCacheId(opts?.fileName);
+    this.cache = this.readCacheFromFile();
     this.newCache = {
       aiTasks: [],
+    };
+  }
+
+  getCacheGroupByPrompt(aiActionPrompt: string) {
+    const { aiTasks = [] } = this.cache || { aiTasks: [] };
+    const index = aiTasks.findIndex((item) => item.prompt === aiActionPrompt);
+    const newCacheGroup: AiTasks = [];
+    this.newCache.aiTasks.push({
+      prompt: aiActionPrompt,
+      tasks: newCacheGroup,
+    });
+    return {
+      readCache: <T extends 'plan' | 'locate'>(
+        pageContext: WebUIContext,
+        type: T,
+        actionPrompt: string,
+      ) => {
+        if (index === -1) {
+          return false;
+        }
+        if (type === 'plan') {
+          return this.readCache(
+            pageContext,
+            type,
+            actionPrompt,
+            aiTasks[index].tasks,
+          ) as T extends 'plan' ? PlanTask['response'] : LocateTask['response'];
+        }
+        return this.readCache(
+          pageContext,
+          type,
+          actionPrompt,
+          aiTasks[index].tasks,
+        ) as T extends 'plan' ? PlanTask['response'] : LocateTask['response'];
+      },
+      saveCache: (cache: PlanTask | LocateTask) => {
+        newCacheGroup.push(cache);
+        this.writeCacheToFile();
+      },
     };
   }
 
@@ -65,26 +121,28 @@ export class TaskCache {
     pageContext: WebUIContext,
     type: 'plan',
     userPrompt: string,
+    cacheGroup: AiTasks,
   ): PlanTask['response'];
   readCache(
     pageContext: WebUIContext,
     type: 'locate',
     userPrompt: string,
+    cacheGroup: AiTasks,
   ): LocateTask['response'];
   readCache(
     pageContext: WebUIContext,
     type: 'plan' | 'locate',
     userPrompt: string,
+    cacheGroup: AiTasks,
   ): PlanTask['response'] | LocateTask['response'] | false {
-    if (this.cache) {
-      const { aiTasks } = this.cache;
-      const index = aiTasks.findIndex((item) => item.prompt === userPrompt);
+    if (cacheGroup.length > 0) {
+      const index = cacheGroup.findIndex((item) => item.prompt === userPrompt);
 
       if (index === -1) {
         return false;
       }
 
-      const taskRes = aiTasks.splice(index, 1)[0];
+      const taskRes = cacheGroup.splice(index, 1)[0];
 
       // The corresponding element cannot be found in the new context
       if (
@@ -113,12 +171,6 @@ export class TaskCache {
     return false;
   }
 
-  saveCache(cache: PlanTask | LocateTask) {
-    if (cache) {
-      this.newCache?.aiTasks.push(cache);
-    }
-  }
-
   pageContextEqual(
     taskPageContext: LocateTask['pageContext'],
     pageContext: WebUIContext,
@@ -138,5 +190,43 @@ export class TaskCache {
    */
   generateTaskCache() {
     return this.newCache;
+  }
+
+  readCacheFromFile() {
+    const cacheFile = join(getLogDirByType('cache'), `${this.cacheId}.json`);
+    if (process.env.MIDSCENE_CACHE === 'true' && existsSync(cacheFile)) {
+      try {
+        const data = readFileSync(cacheFile, 'utf8');
+        const jsonData = JSON.parse(data);
+        if (
+          jsonData.pkgName !== this.midscenePkgInfo.name ||
+          jsonData.pkgVersion !== this.midscenePkgInfo.version
+        ) {
+          return undefined;
+        }
+        return jsonData as AiTaskCache;
+      } catch (err) {
+        return undefined;
+      }
+    }
+    return undefined;
+  }
+
+  writeCacheToFile() {
+    const midscenePkgInfo = getMidscenePkgInfo(__dirname);
+    writeLogFile({
+      fileName: `${this.cacheId}`,
+      fileExt: 'json',
+      fileContent: stringifyDumpData(
+        {
+          pkgName: midscenePkgInfo.name,
+          pkgVersion: midscenePkgInfo.version,
+          cacheId: this.cacheId,
+          ...this.newCache,
+        },
+        2,
+      ),
+      type: 'cache',
+    });
   }
 }

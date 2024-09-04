@@ -28,7 +28,7 @@ import { commonScreenshotParam, getTmpFile, sleep } from '@midscene/core/utils';
 import { base64Encoded } from '@midscene/shared/img';
 import type { KeyInput, Page as PuppeteerPage } from 'puppeteer';
 import type { WebElementInfo } from '../web-element';
-import { type AiTaskCache, TaskCache } from './task-cache';
+import { TaskCache } from './task-cache';
 import { type WebUIContext, parseContextFromWebPage } from './utils';
 
 interface ExecutionResult<OutputType = any> {
@@ -43,12 +43,15 @@ export class PageTaskExecutor {
 
   taskCache: TaskCache;
 
-  constructor(page: WebPage, opts: { cache: AiTaskCache }) {
+  constructor(page: WebPage, opts: { testFilePath: string | undefined }) {
     this.page = page;
     this.insight = new Insight<WebElementInfo, WebUIContext>(async () => {
       return await parseContextFromWebPage(page);
     });
-    this.taskCache = new TaskCache(opts);
+
+    this.taskCache = new TaskCache({
+      fileName: opts?.testFilePath,
+    });
   }
 
   private async recordScreenshot(timing: ExecutionRecorderItem['timing']) {
@@ -90,7 +93,10 @@ export class PageTaskExecutor {
     return taskWithScreenshot;
   }
 
-  private async convertPlanToExecutable(plans: PlanningAction[]) {
+  private async convertPlanToExecutable(
+    plans: PlanningAction[],
+    cacheGroup?: ReturnType<TaskCache['getCacheGroupByPrompt']>,
+  ) {
     const tasks: ExecutionTaskApply[] = plans
       .map((plan) => {
         if (plan.type === 'Locate') {
@@ -106,7 +112,7 @@ export class PageTaskExecutor {
               };
               this.insight.onceDumpUpdatedFn = dumpCollector;
               const pageContext = await this.insight.contextRetrieverFn();
-              const locateCache = this.taskCache.readCache(
+              const locateCache = cacheGroup?.readCache(
                 pageContext,
                 'locate',
                 param.prompt,
@@ -126,7 +132,7 @@ export class PageTaskExecutor {
               });
 
               if (locateResult) {
-                this.taskCache.saveCache({
+                cacheGroup?.saveCache({
                   type: 'locate',
                   pageContext: {
                     url: pageContext.url,
@@ -352,7 +358,7 @@ export class PageTaskExecutor {
     userPrompt: string /* , actionInfo?: { actionType?: EventActions[number]['action'] } */,
   ): Promise<ExecutionResult> {
     const taskExecutor = new Executor(userPrompt);
-
+    const cacheGroup = this.taskCache.getCacheGroupByPrompt(userPrompt);
     let plans: PlanningAction[] = [];
     const planningTask: ExecutionTaskPlanningApply = {
       type: 'Planning',
@@ -362,11 +368,7 @@ export class PageTaskExecutor {
       executor: async (param) => {
         const pageContext = await this.insight.contextRetrieverFn();
         let planResult: { plans: PlanningAction[] };
-        const planCache = this.taskCache.readCache(
-          pageContext,
-          'plan',
-          userPrompt,
-        );
+        const planCache = cacheGroup.readCache(pageContext, 'plan', userPrompt);
         if (planCache) {
           planResult = planCache;
         } else {
@@ -379,7 +381,7 @@ export class PageTaskExecutor {
         // eslint-disable-next-line prefer-destructuring
         plans = planResult.plans;
 
-        this.taskCache.saveCache({
+        cacheGroup.saveCache({
           type: 'plan',
           pageContext: {
             url: pageContext.url,
@@ -408,7 +410,7 @@ export class PageTaskExecutor {
     }
 
     // append tasks
-    const executables = await this.convertPlanToExecutable(plans);
+    const executables = await this.convertPlanToExecutable(plans, cacheGroup);
     await taskExecutor.append(executables);
 
     // flush actions

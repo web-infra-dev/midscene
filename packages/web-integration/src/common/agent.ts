@@ -16,6 +16,7 @@ import { printReportMsg, reportFileName } from './utils';
 
 export interface PageAgentOpt {
   testId?: string;
+  testFilePath?: string;
   groupName?: string;
   groupDescription?: string;
   cache?: AiTaskCache;
@@ -55,7 +56,7 @@ export class PageAgent {
       executions: [],
     };
     this.taskExecutor = new PageTaskExecutor(this.page, {
-      cache: opts?.cache || { aiTasks: [] },
+      testFilePath: opts?.testFilePath,
     });
     this.reportFileName = reportFileName(opts?.testId || 'web');
   }
