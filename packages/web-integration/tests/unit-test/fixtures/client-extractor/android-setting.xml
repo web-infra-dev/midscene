@@ -1,0 +1,149 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<UI width="1080" height="2356">
+  <View text="" x="0" y="0" width="1080" height="2400" visible="true">
+    <View text="" x="0" y="0" width="1080" height="2400" visible="true">
+      <View text="" x="0" y="0" width="1080" height="2400" visible="true">
+        <View text="" x="0" y="0" width="1080" height="2400" id="action_bar_overlay_layout" visible="true">
+          <View text="" x="0" y="0" width="1080" height="2400" id="android:id/content" visible="true">
+            <View text="" x="0" y="0" width="1080" height="2400" id="main_content" visible="true">
+              <View text="" x="0" y="0" width="1080" height="2400" id="action_bar_overlay_layout" visible="true">
+                <View text="" x="0" y="0" width="1080" height="253" id="action_bar_container" visible="true">
+                  <View text="" x="0" y="0" width="1080" height="253" visible="true"></View>
+                  <View text="" x="0" y="96" width="1080" height="157" id="action_bar" visible="true">
+                    <View text="" x="484" y="96" width="112" height="157" id="action_bar_collapse_container" visible="true">
+                      <View text="" x="484" y="96" width="112" height="157" visible="true">
+                        <Text text="设置" x="484" y="137" width="112" height="75" id="action_bar_title" visible="true"></Text>
+                      </View>
+                    </View>
+                  </View>
+                </View>
+                <View text="" x="0" y="253" width="1080" height="2147" id="android:id/content" visible="true">
+                  <View text="" x="0" y="253" width="1080" height="2147" id="nestedheaderlayout" visible="true">
+                    <View text="" x="0" y="253" width="1080" height="2147" id="springbacklayout" visible="true">
+                      <androidx.recyclerview.widget.RecyclerView text="" x="0" y="253" width="1080" height="2147" id="scroll_headers" visible="true">
+                        <View text="" x="0" y="253" width="1080" height="38" visible="true"></View>
+                        <View text="" x="0" y="1245" width="1080" height="135" visible="true"></View>
+                        <View text="" x="0" y="1857" width="1080" height="135" visible="true"></View>
+                        <View text="" x="0" y="291" width="1080" height="159" visible="true">
+                          <View text="" x="79" y="328" width="123" height="84" visible="true">
+                            <Image text="" x="79" y="328" width="123" height="84" id="android:id/icon" visible="true"></Image>
+                          </View>
+                          <View text="" x="920" y="340" width="31" height="60" id="android:id/widget_frame" visible="true"></View>
+                          <View text="" x="202" y="291" width="718" height="159" visible="true">
+                            <Text text="指纹、人脸与密码" x="202" y="336" width="408" height="69" id="android:id/title" visible="true"></Text>
+                          </View>
+                          <Image text="" x="973" y="348" width="28" height="45" id="arrow_right" visible="true"></Image>
+                        </View>
+                        <View text="" x="0" y="450" width="1080" height="159" visible="true">
+                          <View text="" x="79" y="487" width="123" height="84" visible="true">
+                            <Image text="" x="79" y="487" width="123" height="84" id="android:id/icon" visible="true"></Image>
+                          </View>
+                          <View text="" x="920" y="499" width="31" height="60" id="android:id/widget_frame" visible="true"></View>
+                          <View text="" x="202" y="450" width="718" height="159" visible="true">
+                            <Text text="安全" x="202" y="495" width="102" height="69" id="android:id/title" visible="true"></Text>
+                          </View>
+                          <Image text="" x="973" y="507" width="28" height="45" id="arrow_right" visible="true"></Image>
+                        </View>
+                        <View text="" x="0" y="609" width="1080" height="159" visible="true">
+                          <View text="" x="79" y="646" width="123" height="84" visible="true">
+                            <Image text="" x="79" y="646" width="123" height="84" id="android:id/icon" visible="true"></Image>
+                          </View>
+                          <View text="" x="920" y="658" width="31" height="60" id="android:id/widget_frame" visible="true"></View>
+                          <View text="" x="202" y="609" width="718" height="159" visible="true">
+                            <Text text="隐私保护" x="202" y="654" width="204" height="69" id="android:id/title" visible="true"></Text>
+                          </View>
+                          <Image text="" x="973" y="666" width="28" height="45" id="arrow_right" visible="true"></Image>
+                        </View>
+                        <View text="" x="0" y="768" width="1080" height="159" visible="true">
+                          <View text="" x="79" y="805" width="123" height="84" visible="true">
+                            <Image text="" x="79" y="805" width="123" height="84" id="android:id/icon" visible="true"></Image>
+                          </View>
+                          <View text="" x="920" y="817" width="31" height="60" id="android:id/widget_frame" visible="true"></View>
+                          <View text="" x="202" y="768" width="718" height="159" visible="true">
+                            <Text text="省电与电池" x="202" y="813" width="255" height="69" id="android:id/title" visible="true"></Text>
+                          </View>
+                          <Image text="" x="973" y="825" width="28" height="45" id="arrow_right" visible="true"></Image>
+                        </View>
+                        <View text="" x="0" y="927" width="1080" height="159" visible="true">
+                          <View text="" x="79" y="964" width="123" height="84" visible="true">
+                            <Image text="" x="79" y="964" width="123" height="84" id="android:id/icon" visible="true"></Image>
+                          </View>
+                          <View text="" x="920" y="976" width="31" height="60" id="android:id/widget_frame" visible="true"></View>
+                          <View text="" x="202" y="927" width="718" height="159" visible="true">
+                            <Text text="应用设置" x="202" y="972" width="204" height="69" id="android:id/title" visible="true"></Text>
+                          </View>
+                          <Image text="" x="973" y="984" width="28" height="45" id="arrow_right" visible="true"></Image>
+                        </View>
+                        <View text="" x="0" y="1086" width="1080" height="159" visible="true">
+                          <View text="" x="79" y="1123" width="123" height="84" visible="true">
+                            <Image text="" x="79" y="1123" width="123" height="84" id="android:id/icon" visible="true"></Image>
+                          </View>
+                          <View text="" x="920" y="1135" width="31" height="60" id="android:id/widget_frame" visible="true"></View>
+                          <View text="" x="202" y="1086" width="718" height="159" visible="true">
+                            <Text text="更多设置" x="202" y="1131" width="204" height="69" id="android:id/title" visible="true"></Text>
+                          </View>
+                          <Image text="" x="973" y="1143" width="28" height="45" id="arrow_right" visible="true"></Image>
+                        </View>
+                        <View text="" x="0" y="1380" width="1080" height="159" visible="true">
+                          <View text="" x="79" y="1417" width="123" height="84" visible="true">
+                            <Image text="" x="79" y="1417" width="123" height="84" id="android:id/icon" visible="true"></Image>
+                          </View>
+                          <View text="" x="920" y="1429" width="31" height="60" id="android:id/widget_frame" visible="true"></View>
+                          <View text="" x="202" y="1380" width="718" height="159" visible="true">
+                            <Text text="小爱同学" x="202" y="1425" width="204" height="69" id="android:id/title" visible="true"></Text>
+                          </View>
+                          <Image text="" x="973" y="1437" width="28" height="45" id="arrow_right" visible="true"></Image>
+                        </View>
+                        <View text="" x="0" y="1539" width="1080" height="159" visible="true">
+                          <View text="" x="79" y="1576" width="123" height="84" visible="true">
+                            <Image text="" x="79" y="1576" width="123" height="84" id="android:id/icon" visible="true"></Image>
+                          </View>
+                          <View text="" x="920" y="1588" width="31" height="60" id="android:id/widget_frame" visible="true"></View>
+                          <View text="" x="202" y="1539" width="718" height="159" visible="true">
+                            <Text text="卡包" x="202" y="1584" width="102" height="69" id="android:id/title" visible="true"></Text>
+                          </View>
+                          <Image text="" x="973" y="1596" width="28" height="45" id="arrow_right" visible="true"></Image>
+                        </View>
+                        <View text="" x="0" y="1698" width="1080" height="159" visible="true">
+                          <View text="" x="79" y="1735" width="123" height="84" visible="true">
+                            <Image text="" x="79" y="1735" width="123" height="84" id="android:id/icon" visible="true"></Image>
+                          </View>
+                          <View text="" x="920" y="1747" width="31" height="60" id="android:id/widget_frame" visible="true"></View>
+                          <View text="" x="202" y="1698" width="718" height="159" visible="true">
+                            <Text text="屏幕时间管理" x="202" y="1743" width="306" height="69" id="android:id/title" visible="true"></Text>
+                          </View>
+                          <Image text="" x="973" y="1755" width="28" height="45" id="arrow_right" visible="true"></Image>
+                        </View>
+                        <View text="" x="0" y="1992" width="1080" height="159" visible="true">
+                          <View text="" x="79" y="2029" width="123" height="84" visible="true">
+                            <Image text="" x="79" y="2029" width="123" height="84" id="android:id/icon" visible="true"></Image>
+                          </View>
+                          <View text="" x="920" y="2041" width="31" height="60" id="android:id/widget_frame" visible="true"></View>
+                          <View text="" x="202" y="1992" width="718" height="159" visible="true">
+                            <Text text="帐号与同步" x="202" y="2037" width="255" height="69" id="android:id/title" visible="true"></Text>
+                          </View>
+                          <Image text="" x="973" y="2049" width="28" height="45" id="arrow_right" visible="true"></Image>
+                        </View>
+                        <View text="" x="0" y="2151" width="1080" height="159" visible="true">
+                          <View text="" x="79" y="2188" width="123" height="84" visible="true">
+                            <Image text="" x="79" y="2188" width="123" height="84" id="android:id/icon" visible="true"></Image>
+                          </View>
+                          <View text="" x="920" y="2200" width="31" height="60" id="android:id/widget_frame" visible="true"></View>
+                          <View text="" x="202" y="2151" width="718" height="159" visible="true">
+                            <Text text="服务与反馈" x="202" y="2196" width="255" height="69" id="android:id/title" visible="true"></Text>
+                          </View>
+                          <Image text="" x="973" y="2208" width="28" height="45" id="arrow_right" visible="true"></Image>
+                        </View>
+                      </androidx.recyclerview.widget.RecyclerView>
+                    </View>
+                    <View text="" x="0" y="253" width="1080" height="2147" id="search_result_ll" visible="true"></View>
+                  </View>
+                </View>
+              </View>
+            </View>
+          </View>
+        </View>
+      </View>
+    </View>
+  </View>
+</UI>
