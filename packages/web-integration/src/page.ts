@@ -1,8 +1,8 @@
 import type { WebKeyInput } from './common/page';
-import type { ElementInfo } from './extractor/extractor';
+import type { ElementInfo } from './extractor';
 
-type encodingType = 'base64' | 'binary';
 type imageType = 'jpeg' | 'png';
+type encodingType = 'base64' | 'binary';
 
 export type screenshotOptions = {
   path?: string;

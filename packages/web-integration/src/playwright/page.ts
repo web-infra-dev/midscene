@@ -1,9 +1,9 @@
 import type { Page as Browser } from 'playwright';
-import type { AbstractPage, screenshotOptions } from '../Page';
-import type { MouseButton } from '../Page';
 import type { WebKeyInput } from '../common/page';
 import { getExtraReturnLogic } from '../common/utils';
-import type { ElementInfo } from '../extractor/extractor';
+import type { ElementInfo } from '../extractor';
+import type { AbstractPage, screenshotOptions } from '../page';
+import type { MouseButton } from '../page';
 
 export class Page implements AbstractPage {
   private browser: Browser;

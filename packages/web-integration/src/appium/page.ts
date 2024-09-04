@@ -1,9 +1,10 @@
 import fs from 'node:fs';
 import { resizeImg } from '@midscene/shared/img';
+import { DOMParser } from '@xmldom/xmldom';
 import type { KeyInput as PuppeteerKeyInput } from 'puppeteer';
 import type { Browser } from 'webdriverio';
-import type { AbstractPage, MouseButton, screenshotOptions } from '../Page';
-import { parsePageSource } from '../extractor/appium-exactor';
+import { clientExtractTextWithPosition } from '../extractor';
+import type { AbstractPage, MouseButton, screenshotOptions } from '../page';
 
 type WebKeyInput = PuppeteerKeyInput;
 
@@ -21,7 +22,19 @@ export class Page implements AbstractPage {
 
   async getElementInfos() {
     const pageSource = await this.browser.getPageSource();
-    return parsePageSource(pageSource);
+    const { width, height } = await this.browser.getWindowSize();
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(pageSource, 'text/xml');
+    const infos = clientExtractTextWithPosition(doc).filter(
+      (element) =>
+        element.rect.height !== height &&
+        element.rect.width !== width &&
+        element.rect.left !== 0 &&
+        element.rect.top !== 0 &&
+        element.attributes.visible === 'true',
+    );
+
+    return infos;
   }
 
   async screenshot(options: screenshotOptions): Promise<Buffer> {
@@ -29,8 +42,12 @@ export class Page implements AbstractPage {
       return Buffer.from('');
     }
 
+    const { width, height } = await this.browser.getWindowSize();
     const screenshotBuffer = await this.browser.saveScreenshot(options.path);
-    const resizedScreenshotBuffer = await resizeImg(screenshotBuffer);
+    const resizedScreenshotBuffer = await resizeImg(screenshotBuffer, {
+      width,
+      height,
+    });
 
     if (options.path) {
       fs.writeFileSync(options.path, resizedScreenshotBuffer);

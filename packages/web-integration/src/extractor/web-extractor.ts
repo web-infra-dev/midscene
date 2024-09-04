@@ -3,6 +3,7 @@ import {
   CONTAINER_MINI_WIDTH,
   NodeType,
 } from '@midscene/shared/constants';
+import type { ElementInfo } from '.';
 import {
   isButtonElement,
   isFormElement,
@@ -20,23 +21,6 @@ import {
   setDebugMode,
   visibleRect,
 } from './util';
-
-export interface ElementInfo {
-  id: string;
-  indexId?: string; // for debug use
-  nodePath: string;
-  nodeHashId: string;
-  locator: string;
-  attributes: {
-    nodeType: NodeType;
-    [key: string]: string;
-  };
-  nodeType: NodeType;
-  htmlNode: Node | null;
-  content: string;
-  rect: { left: number; top: number; width: number; height: number };
-  center: [number, number];
-}
 
 function collectElementInfo(node: Node, nodePath: string): ElementInfo | null {
   const rect = visibleRect(node);

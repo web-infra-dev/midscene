@@ -1,6 +1,5 @@
-import { DOMParser } from '@xmldom/xmldom';
+import type { ElementInfo } from './';
 import { NodeType } from './constants';
-import type { ElementInfo } from './extractor';
 import { generateId, midsceneGenerateHash } from './util';
 
 // https://github.com/appium/appium/tree/master/packages/universal-xml-plugin
@@ -55,11 +54,36 @@ function validTextNodeContent(node: Node): string {
   return '';
 }
 
-// New parsePageSource function to extract from Appium's pageSource
-export function parsePageSource(pageSource: string) {
-  const parser = new DOMParser();
-  const doc = parser.parseFromString(pageSource, 'text/xml');
-  return extractTextWithPosition(doc);
+function getXPathForElement(element: Node): string {
+  if (element.nodeType !== 1) {
+    return '';
+  }
+
+  const getIndex = (sib: Node, name: string) => {
+    let count = 1;
+    for (let cur = sib.previousSibling; cur; cur = cur.previousSibling) {
+      if (cur.nodeType === 1 && cur.nodeName === name) {
+        count++;
+      }
+    }
+    return count;
+  };
+
+  const getPath = (node: Node, path = ''): string => {
+    if (node.parentNode) {
+      path = getPath(node.parentNode, path);
+    }
+
+    if (node.nodeType === 1) {
+      const index = getIndex(node, node.nodeName);
+      const tagName = node.nodeName.toLowerCase();
+      path += `/${tagName}[${index}]`;
+    }
+
+    return path;
+  };
+
+  return getPath(element);
 }
 
 // Perform DFS traversal and collect element information
@@ -107,7 +131,6 @@ export function extractTextWithPosition(initNode: Document): ElementInfo[] {
     }
 
     const xpath = getXPathForElement(node);
-
     const elementInfo: ElementInfo = {
       id: nodeHashId,
       indexId: generateId(nodeIndex++),
@@ -125,6 +148,7 @@ export function extractTextWithPosition(initNode: Document): ElementInfo[] {
       ],
       nodeType,
       htmlNode: null,
+      nodePath: '',
     };
 
     elementInfoArray.push(elementInfo);
@@ -135,36 +159,4 @@ export function extractTextWithPosition(initNode: Document): ElementInfo[] {
   dfs(rootNode, rootDescriptor);
 
   return elementInfoArray;
-}
-
-function getXPathForElement(element: Node): string {
-  if (element.nodeType !== 1) {
-    return '';
-  }
-
-  const getIndex = (sib: Node, name: string) => {
-    let count = 1;
-    for (let cur = sib.previousSibling; cur; cur = cur.previousSibling) {
-      if (cur.nodeType === 1 && cur.nodeName === name) {
-        count++;
-      }
-    }
-    return count;
-  };
-
-  const getPath = (node: Node, path = ''): string => {
-    if (node.parentNode) {
-      path = getPath(node.parentNode, path);
-    }
-
-    if (node.nodeType === 1) {
-      const index = getIndex(node, node.nodeName);
-      const tagName = node.nodeName.toLowerCase();
-      path += `/${tagName}[${index}]`;
-    }
-
-    return path;
-  };
-
-  return getPath(element);
 }

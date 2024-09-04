@@ -1,5 +1,5 @@
+import type { ElementInfo } from '@/extractor';
 import { NodeType } from '@/extractor/constants';
-import type { ElementInfo } from '@/extractor/extractor';
 import type { WebPage } from '../../common/page';
 
 export async function getElementInfos(page: WebPage) {

@@ -1,8 +1,8 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import type { WebPage } from '@/common/page';
+import type { ElementInfo } from '@/extractor';
 import { NodeType } from '@/extractor/constants';
-import type { ElementInfo } from '@/extractor/extractor';
 import { getTmpFile } from '@midscene/core/utils';
 import {
   processImageElementInfo,

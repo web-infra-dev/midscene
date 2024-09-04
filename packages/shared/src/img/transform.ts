@@ -46,6 +46,10 @@ export async function transformImgPathToBase64(inputPath: string) {
  */
 export async function resizeImg(
   inputData: string | Buffer,
+  newSize?: {
+    width: number;
+    height: number;
+  },
 ): Promise<string | Buffer> {
   const isBase64 = typeof inputData === 'string';
   const imageBuffer = isBase64
@@ -59,9 +63,9 @@ export async function resizeImg(
     throw Error('Undefined width or height from the input image.');
   }
 
-  const newSize = calculateNewDimensions(width, height);
+  const finalNewSize = newSize || calculateNewDimensions(width, height);
 
-  image.resize(newSize.width, newSize.height);
+  image.resize(finalNewSize.width, finalNewSize.height);
   const resizedBuffer = await image.getBufferAsync(Jimp.MIME_PNG);
 
   return isBase64 ? resizedBuffer.toString('base64') : resizedBuffer;

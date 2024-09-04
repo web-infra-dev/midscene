@@ -1,5 +1,5 @@
 import SHA256 from 'js-sha256';
-import { extractTextWithPosition } from './extractor';
+import { extractTextWithPosition } from './web-extractor';
 
 // import { TEXT_MAX_SIZE } from './constants';
 let debugMode = false;
