@@ -1,3 +1,5 @@
+import type { ResponseFormatJSONSchema } from 'openai/resources';
+
 export function systemPromptToTaskPlanning() {
   return `
   You are a versatile professional in software UI design and testing. Your outstanding contributions will impact the user experience of billions of users.
@@ -51,3 +53,51 @@ export function systemPromptToTaskPlanning() {
   }
   `;
 }
+
+export const planSchema: ResponseFormatJSONSchema = {
+  type: 'json_schema',
+  json_schema: {
+    name: 'action_items',
+    strict: true,
+    schema: {
+      type: 'object',
+      properties: {
+        queryLanguage: {
+          type: 'string',
+          description: 'Language of the description of the task',
+        },
+        actions: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              thought: {
+                type: 'string',
+                description:
+                  'Reasons for generating this task, and why this task is feasible on this page',
+              },
+              type: {
+                type: 'string',
+                description: 'Type of action, like "Tap", "Hover", etc.',
+              },
+              param: {
+                type: ['object', 'null'],
+                description: 'Parameter towards the task type, can be null',
+              },
+            },
+            required: ['thought', 'type', 'param'],
+            additionalProperties: false,
+          },
+          description: 'List of actions to be performed',
+        },
+        error: {
+          type: ['string', 'null'],
+          description:
+            'Overall error messages. If there is any error occurs during the task planning, conclude the errors again and put error messages here',
+        },
+      },
+      required: ['queryLanguage', 'actions', 'error'],
+      additionalProperties: false,
+    },
+  },
+};
