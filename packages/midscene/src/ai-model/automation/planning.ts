@@ -81,8 +81,8 @@ export const planSchema: ResponseFormatJSONSchema = {
                 description: 'Type of action, like "Tap", "Hover", etc.',
               },
               param: {
-                type: 'object',
-                description: 'Parameter towards the task type',
+                type: ['object', 'null'],
+                description: 'Parameter towards the task type, can be null',
               },
             },
             required: ['thought', 'type', 'param'],
@@ -91,12 +91,12 @@ export const planSchema: ResponseFormatJSONSchema = {
           description: 'List of actions to be performed',
         },
         error: {
-          type: 'string',
+          type: ['string', 'null'],
           description:
             'Overall error messages. If there is any error occurs during the task planning, conclude the errors again and put error messages here',
         },
       },
-      required: ['queryLanguage', 'actions'],
+      required: ['queryLanguage', 'actions', 'error'],
       additionalProperties: false,
     },
   },
