@@ -80,7 +80,8 @@ export class Page implements AbstractPage {
     }
 
     const ele = await this.browser.$(element.locator);
-    await ele.click();
+    const blank = ' ';
+    await this.keyboardType(blank);
     await ele.clearValue();
   }
 

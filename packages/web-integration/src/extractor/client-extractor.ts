@@ -70,7 +70,7 @@ function getXPathForElement(element: Node): string {
   };
 
   const buildAttributePart = (elem: Element): string => {
-    const attributes = ['id', 'resource-id', 'content-desc', 'text', 'class'];
+    const attributes = ['id', 'resource-id', 'content-desc', 'class'];
     for (const attr of attributes) {
       if (elem.hasAttribute(attr)) {
         const value = elem.getAttribute(attr);

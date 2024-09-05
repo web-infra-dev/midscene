@@ -37,7 +37,7 @@ describe(
   'appium integration',
   () => {
     it('懂车帝查找小米 SU7', async () => {
-      const page = await launchPage(IOS_OPTIONS);
+      const page = await launchPage(ANDROID_OPTIONS);
       const mid = new AppiumAgent(page);
 
       await mid.aiAction('点击同意按钮');

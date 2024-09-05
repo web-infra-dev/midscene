@@ -208,15 +208,13 @@ export class PageTaskExecutor {
               param: plan.param,
               executor: async (taskParam, { element }) => {
                 if (element) {
+                  await this.page.clearInput(element as ElementInfo);
+
                   if (taskParam.value === '') {
-                    await this.page.clearInput(element as ElementInfo);
-                  } else {
-                    await this.page.mouse.click(
-                      element.center[0],
-                      element.center[1],
-                    );
-                    await this.page.keyboard.type(taskParam.value);
+                    return;
                   }
+
+                  await this.page.keyboard.type(taskParam.value);
                 }
               },
             };
