@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { AiInspectElement } from '@/ai-model';
 import { expect, test } from 'vitest';
+import { repeatTime } from '../util';
 import {
   getPageTestData,
   repeat,
@@ -35,8 +36,6 @@ const testCases = [
     multi: false,
   },
 ];
-
-const repeatTime = process.env.GITHUB_ACTIONS ? 1 : 5;
 
 repeat(repeatTime, (repeatIndex) => {
   test(

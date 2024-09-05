@@ -620,6 +620,29 @@
     "indexId": "26"
   },
   {
+    "id": "3f353e2096",
+    "nodePath": "0-5-5-1-1-1-5-5-1-3",
+    "nodeHashId": "3f353e2096",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node"
+    },
+    "center": [
+      239,
+      604
+    ],
+    "content": ".",
+    "rect": {
+      "left": 237,
+      "top": 597,
+      "width": 3,
+      "height": 13
+    },
+    "htmlNode": null,
+    "indexId": "27"
+  },
+  {
     "id": "7eb7a9b4da",
     "nodePath": "0-5-5-1-1-3-3",
     "nodeHashId": "7eb7a9b4da",
@@ -643,6 +666,6 @@
       395
     ],
     "htmlNode": null,
-    "indexId": "27"
+    "indexId": "28"
   }
 ]

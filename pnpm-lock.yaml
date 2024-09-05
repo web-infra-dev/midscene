@@ -125,8 +125,8 @@ importers:
         specifier: 2.6.7
         version: 2.6.7
       openai:
-        specifier: 4.47.1
-        version: 4.47.1
+        specifier: 4.57.1
+        version: 4.57.1(zod@3.23.8)
       optional:
         specifier: 0.1.4
         version: 0.1.4
@@ -145,7 +145,7 @@ importers:
         version: 16.4.5
       langsmith:
         specifier: 0.1.36
-        version: 0.1.36(openai@4.47.1)
+        version: 0.1.36(openai@4.57.1(zod@3.23.8))
       typescript:
         specifier: ~5.0.4
         version: 5.0.4
@@ -7341,6 +7341,15 @@ packages:
   openai@4.47.1:
     resolution: {integrity: sha512-WWSxhC/69ZhYWxH/OBsLEirIjUcfpQ5+ihkXKp06hmeYXgBBIUCa9IptMzYx6NdkiOCsSGYCnTIsxaic3AjRCQ==}
     hasBin: true
+
+  openai@4.57.1:
+    resolution: {integrity: sha512-7q+4U9A/klaAT40bqL6sPFhIKb4jsUJ8udddCzaf8mdwICYeBG7grps/zDcrOUfkwCxCzR6fxfDDah3WqHoVUA==}
+    hasBin: true
+    peerDependencies:
+      zod: ^3.23.8
+    peerDependenciesMeta:
+      zod:
+        optional: true
 
   opener@1.5.2:
     resolution: {integrity: sha512-ur5UIdyw5Y7yEj9wLzhqXiy6GZ3Mwx0yGI+5sMn2r0N0v3cKJvUmFH5yPP+WXh9e0xfyzyJX95D8l088DNFj7A==}
@@ -19435,7 +19444,7 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  langsmith@0.1.36(openai@4.47.1):
+  langsmith@0.1.36(openai@4.57.1(zod@3.23.8)):
     dependencies:
       '@types/uuid': 9.0.8
       commander: 10.0.1
@@ -19443,7 +19452,7 @@ snapshots:
       p-retry: 4.6.2
       uuid: 9.0.1
     optionalDependencies:
-      openai: 4.47.1
+      openai: 4.57.1(zod@3.23.8)
 
   lazy-cache@0.2.7: {}
 
@@ -20435,6 +20444,22 @@ snapshots:
       formdata-node: 4.4.1
       node-fetch: 2.6.7
       web-streams-polyfill: 3.3.3
+    transitivePeerDependencies:
+      - encoding
+
+  openai@4.57.1(zod@3.23.8):
+    dependencies:
+      '@types/node': 18.19.41
+      '@types/node-fetch': 2.6.11
+      '@types/qs': 6.9.15
+      abort-controller: 3.0.0
+      agentkeepalive: 4.5.0
+      form-data-encoder: 1.7.2
+      formdata-node: 4.4.1
+      node-fetch: 2.6.7
+      qs: 6.12.3
+    optionalDependencies:
+      zod: 3.23.8
     transitivePeerDependencies:
       - encoding
 

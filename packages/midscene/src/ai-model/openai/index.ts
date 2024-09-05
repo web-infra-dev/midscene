@@ -48,7 +48,9 @@ async function createOpenAI() {
 
 export async function call(
   messages: ChatCompletionMessageParam[],
-  responseFormat?: AIResponseFormat,
+  responseFormat?:
+    | OpenAI.ChatCompletionCreateParams['response_format']
+    | OpenAI.ResponseFormatJSONObject,
 ): Promise<string> {
   const openai = await createOpenAI();
 
@@ -58,12 +60,11 @@ export async function call(
   const completion = await openai.chat.completions.create({
     model,
     messages,
-    response_format: { type: responseFormat },
+    response_format: responseFormat,
     temperature: 0.2,
   });
   shouldPrintTiming && console.timeEnd('Midscene - AI call');
   shouldPrintTiming && console.log('Midscene - AI usage', completion.usage);
-
   const { content } = completion.choices[0].message;
   assert(content, 'empty content');
   return content;
@@ -71,8 +72,16 @@ export async function call(
 
 export async function callToGetJSONObject<T>(
   messages: ChatCompletionMessageParam[],
+  responseFormat?: OpenAI.ChatCompletionCreateParams['response_format'],
 ): Promise<T> {
-  const response = await call(messages, AIResponseFormat.JSON);
+  // gpt-4o-2024-05-13 only support json_object response format
+  const targetResponseFormat =
+    model === 'gpt-4o-2024-05-13'
+      ? {
+          type: AIResponseFormat.JSON,
+        }
+      : responseFormat;
+  const response = await call(messages, targetResponseFormat);
   assert(response, 'empty response');
   return JSON.parse(response);
 }

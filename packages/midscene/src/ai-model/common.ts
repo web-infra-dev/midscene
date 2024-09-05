@@ -1,7 +1,9 @@
+import type OpenAI from 'openai';
 import type {
   ChatCompletionSystemMessageParam,
   ChatCompletionUserMessageParam,
 } from 'openai/resources';
+import { planSchema } from './automation/planning';
 import {
   COZE_AI_ACTION_BOT_ID,
   COZE_AI_ASSERT_BOT_ID,
@@ -12,6 +14,8 @@ import {
   useCozeModel,
 } from './coze';
 import { callToGetJSONObject, useOpenAIModel } from './openai';
+import { findElementSchema } from './prompt/element_inspector';
+import { assertSchema, extractDataSchema } from './prompt/util';
 
 export type AIArgs = [
   ChatCompletionSystemMessageParam,
@@ -32,7 +36,27 @@ export async function callAiFn<T>(options: {
 }) {
   const { useModel, msgs, AIActionType: AIActionTypeValue } = options;
   if (useOpenAIModel(useModel)) {
-    const parseResult = await callToGetJSONObject<T>(msgs);
+    let responseFormat:
+      | OpenAI.ChatCompletionCreateParams['response_format']
+      | undefined;
+
+    switch (AIActionTypeValue) {
+      case AIActionType.ASSERT:
+        responseFormat = assertSchema;
+        break;
+      case AIActionType.INSPECT_ELEMENT:
+        responseFormat = findElementSchema;
+        break;
+      case AIActionType.EXTRACT_DATA:
+        responseFormat = extractDataSchema;
+        break;
+      case AIActionType.PLAN:
+        responseFormat = planSchema;
+        break;
+      default:
+        responseFormat = undefined;
+    }
+    const parseResult = await callToGetJSONObject<T>(msgs, responseFormat);
     return parseResult;
   }
 
