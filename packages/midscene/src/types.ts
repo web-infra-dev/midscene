@@ -210,10 +210,10 @@ export interface PlanningActionParamInputOrKeyPress {
 }
 export interface PlanningActionParamScroll {
   scrollType:
-    | 'ScrollUntilBottom'
-    | 'ScrollUntilTop'
-    | 'ScrollDown'
-    | 'ScrollUp';
+    | 'scrollUntilTop'
+    | 'scrollUntilBottom'
+    | 'scrollUpOneScreen'
+    | 'scrollDownOneScreen';
 }
 
 export interface PlanningActionParamAssert {

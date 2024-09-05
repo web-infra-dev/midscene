@@ -3,6 +3,7 @@ import {
   CONTAINER_MINI_WIDTH,
   NodeType,
 } from '@midscene/shared/constants';
+import type { ElementInfo } from '.';
 import {
   isButtonElement,
   isFormElement,
@@ -11,6 +12,7 @@ import {
 } from './dom-util';
 import {
   getDebugMode,
+  getDocument,
   getNodeAttributes,
   getPseudoElementContent,
   logger,
@@ -19,25 +21,6 @@ import {
   setDebugMode,
   visibleRect,
 } from './util';
-
-export interface ElementInfo {
-  id: string;
-  indexId?: string; // for debug use
-  nodePath: string;
-  nodeHashId: string;
-  locator: string;
-  attributes: {
-    nodeType: NodeType;
-    [key: string]: string;
-  };
-  nodeType: NodeType;
-  htmlNode: Node | null;
-  content: string;
-  rect: { left: number; top: number; width: number; height: number };
-  center: [number, number];
-}
-
-const container: HTMLElement = document.body || document;
 
 function collectElementInfo(node: Node, nodePath: string): ElementInfo | null {
   const rect = visibleRect(node);
@@ -202,7 +185,7 @@ function collectElementInfo(node: Node, nodePath: string): ElementInfo | null {
 }
 
 export function extractTextWithPosition(
-  initNode: Node = container,
+  initNode: Node,
   debugMode = false,
 ): ElementInfo[] {
   setDebugMode(debugMode);
@@ -260,7 +243,7 @@ export function extractTextWithPosition(
     return elementInfo;
   }
 
-  const outerMostElementInfo = dfs(initNode, '0');
+  const outerMostElementInfo = dfs(initNode || getDocument(), '0');
   if (outerMostElementInfo && !elementInfoArray.length) {
     elementInfoArray.push(outerMostElementInfo);
   }

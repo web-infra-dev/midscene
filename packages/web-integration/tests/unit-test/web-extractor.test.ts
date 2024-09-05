@@ -4,7 +4,7 @@ import { generateExtractData } from '@/debug';
 import { describe, expect, it } from 'vitest';
 import { launchPage } from '../ai/puppeteer/utils';
 
-const pagePath = join(__dirname, './fixtures/extractor/index.html');
+const pagePath = join(__dirname, './fixtures/web-extractor/index.html');
 describe(
   'extractor',
   () => {
@@ -19,7 +19,7 @@ describe(
       const { content } = await parseContextFromWebPage(page);
       await generateExtractData(
         page,
-        path.join(__dirname, 'fixtures/extractor'),
+        path.join(__dirname, 'fixtures/web-extractor'),
         {
           disableInputImage: false,
           disableOutputImage: false,
@@ -47,13 +47,11 @@ describe(
           height: 200,
         },
       });
-      await page.evaluate(() => {
-        window.scrollTo(0, 400);
-      });
+      await page.scrollDownOneScreen();
       await new Promise((resolve) => setTimeout(resolve, 1000));
       await generateExtractData(
         page,
-        path.join(__dirname, 'fixtures/extractor/scroll'),
+        path.join(__dirname, 'fixtures/web-extractor/scroll'),
         {
           disableInputImage: false,
           disableOutputImage: false,

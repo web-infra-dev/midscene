@@ -2,7 +2,7 @@ import assert from 'node:assert';
 import type { Buffer } from 'node:buffer';
 import fs, { readFileSync } from 'node:fs';
 import path from 'node:path';
-import type { ElementInfo } from '@/extractor/extractor';
+import type { ElementInfo } from '@/extractor';
 import type { PlaywrightParserOpt, UIContext } from '@midscene/core';
 import { getTmpFile } from '@midscene/core/utils';
 import { base64Encoded, imageInfoOfBase64 } from '@midscene/shared/img';
@@ -21,12 +21,11 @@ export async function parseContextFromWebPage(
   assert(page, 'page is required');
 
   const url = page.url();
-  const file = getTmpFile('jpeg');
-
-  await page.screenshot({ path: file, type: 'jpeg', quality: 75 });
+  const file = getTmpFile('png');
+  await page.screenshot({ path: file });
   const screenshotBuffer = readFileSync(file);
   const screenshotBase64 = base64Encoded(file);
-  const captureElementSnapshot = await getElementInfosFromPage(page);
+  const captureElementSnapshot = await page.getElementInfos();
 
   // align element
   const elementsInfo = await alignElements(
@@ -45,15 +44,12 @@ export async function parseContextFromWebPage(
   };
 }
 
-export async function getElementInfosFromPage(page: WebPage) {
+export async function getExtraReturnLogic() {
   const pathDir = findNearestPackageJson(__dirname);
   assert(pathDir, `can't find pathDir, with ${__dirname}`);
   const scriptPath = path.join(pathDir, './dist/script/htmlElement.js');
   const elementInfosScriptContent = readFileSync(scriptPath, 'utf-8');
-  const extraReturnLogic = `${elementInfosScriptContent}midscene_element_inspector.extractTextWithPosition()`;
-
-  const captureElementSnapshot = await page.evaluate(extraReturnLogic);
-  return captureElementSnapshot as Array<ElementInfo>;
+  return `${elementInfosScriptContent}midscene_element_inspector.webExtractTextWithPosition()`;
 }
 
 const sizeThreshold = 3;

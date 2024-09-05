@@ -1,12 +1,6 @@
 import assert from 'node:assert';
 import { randomUUID } from 'node:crypto';
-import {
-  copyFileSync,
-  existsSync,
-  mkdirSync,
-  readFileSync,
-  writeFileSync,
-} from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path, { basename, dirname, join } from 'node:path';
 import type { Rect, ReportDumpWithAttributes } from './types';
