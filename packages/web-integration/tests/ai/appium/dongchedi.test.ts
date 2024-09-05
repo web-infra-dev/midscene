@@ -17,6 +17,7 @@ const IOS_OPTIONS = {
     'appium:platformVersion': '18.0',
     'appium:bundleId': 'com.ss.ios.InHouse.AutoMobile',
     'appium:udid': 'B8517A53-6C4C-41D8-9B1E-825A0D75FA47',
+    'appium:newCommandTimeout': 600,
   },
 };
 
@@ -28,6 +29,7 @@ const ANDROID_OPTIONS = {
     'appium:deviceName': 'Android',
     'appium:appPackage': 'com.ss.android.auto',
     'appium:appActivity': '.policy.AutoPrivacyActivity',
+    'appium:newCommandTimeout': 600,
   },
 };
 

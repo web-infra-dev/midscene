@@ -14,6 +14,7 @@ const ANDROID_DEFAULT_OPTIONS = {
     'appium:deviceName': 'Android',
     'appium:appPackage': 'com.android.settings',
     'appium:appActivity': '.MainSettings',
+    'appium:newCommandTimeout': 600,
   },
 };
 

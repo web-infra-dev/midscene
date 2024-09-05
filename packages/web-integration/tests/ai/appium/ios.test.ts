@@ -15,6 +15,7 @@ const IOS_DEFAULT_OPTIONS = {
     'appium:platformVersion': '18.0',
     'appium:bundleId': 'com.apple.Preferences',
     'appium:udid': 'B8517A53-6C4C-41D8-9B1E-825A0D75FA47',
+    'appium:newCommandTimeout': 600,
   },
 };
 
