@@ -1,6 +1,6 @@
 import { generateExtractData, generateTestDataPath } from '@/debug';
+import { PlaywrightPage } from '@/playwright';
 import { test } from '@playwright/test';
-import { PlaywrightPage } from '../../../src/playwright';
 
 function sleep(time: number) {
   return new Promise((resolve) => {

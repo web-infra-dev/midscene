@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
-import { AppiumPage } from '../../src/appium';
+import { AppiumPage } from '@/appium';
 
 const iosXmlPath = join(
   __dirname,

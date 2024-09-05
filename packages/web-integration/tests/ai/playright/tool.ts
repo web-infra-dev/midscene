@@ -1,9 +1,9 @@
 import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import type { WebPage } from '@/common/page';
+import { getElementInfos } from '@/debug';
 import { resizeImg, saveBase64Image } from '@midscene/core/image';
 import { processImageElementInfo } from '@midscene/shared/img';
-import { getElementInfos } from '../../../src/debug';
 
 export async function generateExtractData(
   page: WebPage,

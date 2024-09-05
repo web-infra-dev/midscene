@@ -19,14 +19,25 @@ const ANDROID_DEFAULT_OPTIONS = {
 
 describe(
   'appium integration',
-  () => {
-    it('Android settings page demo', async () => {
+  async () => {
+    await it('Android settings page demo for input', async () => {
       const page = await launchPage(ANDROID_DEFAULT_OPTIONS);
       const mid = new AppiumAgent(page);
 
       await mid.aiAction('输入框中输入“123”');
       await mid.aiAction('输入框中输入“456”');
       await mid.aiAction('输入框中输入“789”');
+    });
+    await it('Android settings page demo for scroll', async () => {
+      const page = await launchPage(ANDROID_DEFAULT_OPTIONS);
+      const mid = new AppiumAgent(page);
+
+      await mid.aiAction('滑动列表到底部');
+      await mid.aiAction('打开"更多设置"');
+      await mid.aiAction('滑动列表到底部');
+      await mid.aiAction('滑动列表到顶部');
+      await mid.aiAction('向下滑动一屏');
+      await mid.aiAction('向上滑动一屏');
     });
   },
   {
