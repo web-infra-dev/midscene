@@ -10,6 +10,7 @@ export default defineConfig({
       debug: 'src/debug/index.ts',
       puppeteer: 'src/puppeteer/index.ts',
       playwright: 'src/playwright/index.ts',
+      appium: 'src/appium/index.ts',
       'playwright-report': './src/playwright/reporter/index.ts',
     },
     target: 'es2017',

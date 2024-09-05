@@ -45,7 +45,7 @@ exports[`automation - planning input - openAI > input value 2`] = `
 ]
 `;
 
-exports[`automation - planning input - openAI > input value Add, delete, correct and check 1`] = `
+exports[`automation - planning input - openAI > input value 3`] = `
 [
   {
     "param": {
@@ -55,9 +55,184 @@ exports[`automation - planning input - openAI > input value Add, delete, correct
     "type": "Locate",
   },
   {
-    "param": null,
+    "param": {
+      "value": "learning english",
+    },
     "thought": undefined,
-    "type": "Tap",
+    "type": "Input",
+  },
+]
+`;
+
+exports[`automation - planning input - openAI > input value 4`] = `
+[
+  {
+    "param": {
+      "prompt": "",
+    },
+    "thought": undefined,
+    "type": "Locate",
+  },
+  {
+    "param": {
+      "value": "learning english",
+    },
+    "thought": undefined,
+    "type": "Input",
+  },
+  {
+    "param": {
+      "value": "Enter",
+    },
+    "thought": undefined,
+    "type": "KeyboardPress",
+  },
+]
+`;
+
+exports[`automation - planning input - openAI > input value 5`] = `
+[
+  {
+    "param": {
+      "prompt": "",
+    },
+    "thought": undefined,
+    "type": "Locate",
+  },
+  {
+    "param": {
+      "value": "learning english",
+    },
+    "thought": undefined,
+    "type": "Input",
+  },
+]
+`;
+
+exports[`automation - planning input - openAI > input value 6`] = `
+[
+  {
+    "param": {
+      "prompt": "",
+    },
+    "thought": undefined,
+    "type": "Locate",
+  },
+  {
+    "param": {
+      "value": "learning english",
+    },
+    "thought": undefined,
+    "type": "Input",
+  },
+  {
+    "param": {
+      "value": "Enter",
+    },
+    "thought": undefined,
+    "type": "KeyboardPress",
+  },
+]
+`;
+
+exports[`automation - planning input - openAI > input value 7`] = `
+[
+  {
+    "param": {
+      "prompt": "",
+    },
+    "thought": undefined,
+    "type": "Locate",
+  },
+  {
+    "param": {
+      "value": "learning english",
+    },
+    "thought": undefined,
+    "type": "Input",
+  },
+]
+`;
+
+exports[`automation - planning input - openAI > input value 8`] = `
+[
+  {
+    "param": {
+      "prompt": "",
+    },
+    "thought": undefined,
+    "type": "Locate",
+  },
+  {
+    "param": {
+      "value": "learning english",
+    },
+    "thought": undefined,
+    "type": "Input",
+  },
+  {
+    "param": {
+      "value": "Enter",
+    },
+    "thought": undefined,
+    "type": "KeyboardPress",
+  },
+]
+`;
+
+exports[`automation - planning input - openAI > input value 9`] = `
+[
+  {
+    "param": {
+      "prompt": "",
+    },
+    "thought": undefined,
+    "type": "Locate",
+  },
+  {
+    "param": {
+      "value": "learning english",
+    },
+    "thought": undefined,
+    "type": "Input",
+  },
+]
+`;
+
+exports[`automation - planning input - openAI > input value 10`] = `
+[
+  {
+    "param": {
+      "prompt": "",
+    },
+    "thought": undefined,
+    "type": "Locate",
+  },
+  {
+    "param": {
+      "value": "learning english",
+    },
+    "thought": undefined,
+    "type": "Input",
+  },
+  {
+    "param": {
+      "value": "Enter",
+    },
+    "thought": undefined,
+    "type": "KeyboardPress",
+  },
+]
+`;
+
+exports[`automation - planning input - openAI > input value Add, delete, correct and check 1`] = `
+[
+  {
+    "param": {
+      "prompt": "",
+    },
+    "thought": undefined,
+    "type": "Locate",
   },
   {
     "param": {
@@ -79,20 +254,8 @@ exports[`automation - planning input - openAI > input value Add, delete, correct
     "type": "Locate",
   },
   {
-    "param": null,
-    "thought": undefined,
-    "type": "Tap",
-  },
-  {
     "param": {
-      "value": "",
-    },
-    "thought": undefined,
-    "type": "Input",
-  },
-  {
-    "param": {
-      "value": "Learn skiing",
+      "value": "Learn Skiing",
     },
     "thought": undefined,
     "type": "Input",
@@ -111,7 +274,235 @@ exports[`automation - planning input - openAI > input value Add, delete, correct
   },
   {
     "param": {
-      "value": "Learn ",
+      "value": "Learn",
+    },
+    "thought": undefined,
+    "type": "Input",
+  },
+]
+`;
+
+exports[`automation - planning input - openAI > input value Add, delete, correct and check 4`] = `
+[
+  {
+    "param": {
+      "prompt": "",
+    },
+    "thought": undefined,
+    "type": "Locate",
+  },
+  {
+    "param": {
+      "value": "Learn English tomorrow",
+    },
+    "thought": undefined,
+    "type": "Input",
+  },
+]
+`;
+
+exports[`automation - planning input - openAI > input value Add, delete, correct and check 5`] = `
+[
+  {
+    "param": {
+      "prompt": "",
+    },
+    "thought": undefined,
+    "type": "Locate",
+  },
+  {
+    "param": {
+      "value": "Learn Skiing",
+    },
+    "thought": undefined,
+    "type": "Input",
+  },
+]
+`;
+
+exports[`automation - planning input - openAI > input value Add, delete, correct and check 6`] = `
+[
+  {
+    "param": {
+      "prompt": "",
+    },
+    "thought": undefined,
+    "type": "Locate",
+  },
+  {
+    "param": {
+      "value": "Learn",
+    },
+    "thought": undefined,
+    "type": "Input",
+  },
+]
+`;
+
+exports[`automation - planning input - openAI > input value Add, delete, correct and check 7`] = `
+[
+  {
+    "param": {
+      "prompt": "",
+    },
+    "thought": undefined,
+    "type": "Locate",
+  },
+  {
+    "param": {
+      "value": "Learn English tomorrow",
+    },
+    "thought": undefined,
+    "type": "Input",
+  },
+]
+`;
+
+exports[`automation - planning input - openAI > input value Add, delete, correct and check 8`] = `
+[
+  {
+    "param": {
+      "prompt": "",
+    },
+    "thought": undefined,
+    "type": "Locate",
+  },
+  {
+    "param": {
+      "value": "Learn Skiing",
+    },
+    "thought": undefined,
+    "type": "Input",
+  },
+]
+`;
+
+exports[`automation - planning input - openAI > input value Add, delete, correct and check 9`] = `
+[
+  {
+    "param": {
+      "prompt": "",
+    },
+    "thought": undefined,
+    "type": "Locate",
+  },
+  {
+    "param": {
+      "value": "Learn",
+    },
+    "thought": undefined,
+    "type": "Input",
+  },
+]
+`;
+
+exports[`automation - planning input - openAI > input value Add, delete, correct and check 10`] = `
+[
+  {
+    "param": {
+      "prompt": "",
+    },
+    "thought": undefined,
+    "type": "Locate",
+  },
+  {
+    "param": {
+      "value": "Learn English tomorrow",
+    },
+    "thought": undefined,
+    "type": "Input",
+  },
+]
+`;
+
+exports[`automation - planning input - openAI > input value Add, delete, correct and check 11`] = `
+[
+  {
+    "param": {
+      "prompt": "",
+    },
+    "thought": undefined,
+    "type": "Locate",
+  },
+  {
+    "param": {
+      "value": "Learn Skiing",
+    },
+    "thought": undefined,
+    "type": "Input",
+  },
+]
+`;
+
+exports[`automation - planning input - openAI > input value Add, delete, correct and check 12`] = `
+[
+  {
+    "param": {
+      "prompt": "",
+    },
+    "thought": undefined,
+    "type": "Locate",
+  },
+  {
+    "param": {
+      "value": "Learn",
+    },
+    "thought": undefined,
+    "type": "Input",
+  },
+]
+`;
+
+exports[`automation - planning input - openAI > input value Add, delete, correct and check 13`] = `
+[
+  {
+    "param": {
+      "prompt": "",
+    },
+    "thought": undefined,
+    "type": "Locate",
+  },
+  {
+    "param": {
+      "value": "Learn English tomorrow",
+    },
+    "thought": undefined,
+    "type": "Input",
+  },
+]
+`;
+
+exports[`automation - planning input - openAI > input value Add, delete, correct and check 14`] = `
+[
+  {
+    "param": {
+      "prompt": "",
+    },
+    "thought": undefined,
+    "type": "Locate",
+  },
+  {
+    "param": {
+      "value": "Learn Skiing",
+    },
+    "thought": undefined,
+    "type": "Input",
+  },
+]
+`;
+
+exports[`automation - planning input - openAI > input value Add, delete, correct and check 15`] = `
+[
+  {
+    "param": {
+      "prompt": "",
+    },
+    "thought": undefined,
+    "type": "Locate",
+  },
+  {
+    "param": {
+      "value": "Learn",
     },
     "thought": undefined,
     "type": "Input",

@@ -1,9 +1,9 @@
-import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { AiInspectElement } from '@/ai-model';
 import { useCozeModel } from '@/ai-model/coze';
 import { AiAssert } from '@/ai-model/inspect';
 import { expect, it } from 'vitest';
+import { repeatTime } from '../util';
 import {
   getPageTestData,
   repeat,
@@ -39,8 +39,6 @@ const modelList: Array<'openAI' | 'coze'> = ['openAI'];
 if (useCozeModel('coze')) {
   modelList.push('coze');
 }
-
-const repeatTime = process.env.GITHUB_ACTIONS ? 1 : 2;
 
 modelList.forEach((model) => {
   repeat(repeatTime, (repeatIndex) => {
@@ -83,7 +81,7 @@ modelList.forEach((model) => {
     );
   });
 
-  repeat(2, () => {
+  repeat(repeatTime, () => {
     it(
       `todo: assert ${model}`,
       async () => {

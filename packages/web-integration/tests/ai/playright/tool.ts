@@ -1,14 +1,9 @@
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import type { WebPage } from '@/common/page';
-import type { ElementInfo } from '@/extractor';
-import { NodeType } from '@/extractor/constants';
-import { getTmpFile } from '@midscene/core/utils';
-import {
-  processImageElementInfo,
-  resizeImg,
-  saveBase64Image,
-} from '@midscene/shared/img';
+import { getElementInfos } from '@/debug';
+import { resizeImg, saveBase64Image } from '@midscene/core/image';
+import { processImageElementInfo } from '@midscene/shared/img';
 
 export async function generateExtractData(
   page: WebPage,
@@ -21,11 +16,10 @@ export async function generateExtractData(
     disableSnapshot: boolean;
   },
 ) {
-  const file = getTmpFile('png');
-  await page.screenshot({ path: file });
-  const screenshotBuffer = readFileSync(file);
-
-  const inputImgBase64 = screenshotBuffer.toString('base64');
+  const buffer = await page.screenshot({
+    encoding: 'base64',
+  });
+  const inputImgBase64 = buffer.toString('base64');
 
   const {
     elementsPositionInfo,
@@ -51,7 +45,7 @@ export async function generateExtractData(
     inputImgBase64,
   });
 
-  const resizeImgBase64 = (await resizeImg(inputImgBase64)) as string;
+  const resizeImgBase64 = await resizeImg(inputImgBase64);
 
   if (!saveImgType?.disableSnapshot) {
     writeFileSyncWithDir(
@@ -79,7 +73,7 @@ export async function generateExtractData(
   }
   if (!saveImgType?.disableResizeOutputImg) {
     await saveBase64Image({
-      base64Data: resizeImgBase64,
+      base64Data: resizeImgBase64 as string,
       outputPath: resizeOutputImgPath,
     });
   }
@@ -116,35 +110,4 @@ export function writeFileSyncWithDir(
 ) {
   ensureDirectoryExistence(filePath);
   writeFileSync(filePath, content, options);
-}
-
-export async function getElementInfos(page: WebPage) {
-  const captureElementSnapshot: Array<ElementInfo> =
-    await page.getElementInfos();
-
-  const elementsPositionInfo = captureElementSnapshot.map(
-    (elementInfo, index) => {
-      return {
-        label: elementInfo.indexId?.toString() || index.toString(),
-        x: elementInfo.rect.left,
-        y: elementInfo.rect.top,
-        width: elementInfo.rect.width,
-        height: elementInfo.rect.height,
-        attributes: elementInfo.attributes,
-      };
-    },
-  );
-  const elementsPositionInfoWithoutText = elementsPositionInfo.filter(
-    (elementInfo) => {
-      if (elementInfo.attributes.nodeType === NodeType.TEXT) {
-        return false;
-      }
-      return true;
-    },
-  );
-  return {
-    elementsPositionInfo,
-    captureElementSnapshot,
-    elementsPositionInfoWithoutText,
-  };
 }

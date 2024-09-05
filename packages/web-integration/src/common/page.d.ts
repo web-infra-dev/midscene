@@ -1,7 +1,7 @@
-import type { Page as PlaywrightPage } from 'playwright';
-import type { KeyInput, Page as PuppeteerPage } from 'puppeteer';
+import type { KeyInput } from 'puppeteer';
+import type { AppiumPage } from '../appium';
+import type { PlaywrightPage } from '../playwright';
+import type { PuppeteerPage } from '../puppeteer';
 
-export type WebPage = (PlaywrightPage | PuppeteerPage) & {
-  evaluate<R, Arg>(pageFunction: PageFunction<Arg, R>, arg?: Arg): Promise<R>;
-};
+export type WebPage = PlaywrightPage | PuppeteerPage | AppiumPage;
 export type WebKeyInput = KeyInput;

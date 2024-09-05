@@ -26,7 +26,8 @@ import Insight, {
 } from '@midscene/core';
 import { commonScreenshotParam, getTmpFile, sleep } from '@midscene/core/utils';
 import { base64Encoded } from '@midscene/shared/img';
-import type { KeyInput, Page as PuppeteerPage } from 'puppeteer';
+import type { KeyInput } from 'puppeteer';
+import type { ElementInfo } from '../extractor';
 import type { WebElementInfo } from '../web-element';
 import { TaskCache } from './task-cache';
 import { type WebUIContext, parseContextFromWebPage } from './utils';
@@ -213,27 +214,14 @@ export class PageTaskExecutor {
               param: plan.param,
               executor: async (taskParam, { element }) => {
                 if (element) {
-                  await this.page.mouse.click(
-                    element.center[0],
-                    element.center[1],
-                  );
-                  // clear the input field
-                  // Select all content in the input field
-                  //TODO: This needs to be abstracted to meet the mobile scene
-                  const isMac = process.platform === 'darwin';
-                  if (isMac) {
-                    await this.page.keyboard.down('Meta');
-                    await this.page.keyboard.press('a');
-                    await this.page.keyboard.up('Meta');
-                  } else {
-                    await this.page.keyboard.down('Control');
-                    await this.page.keyboard.press('a');
-                    await this.page.keyboard.up('Control');
+                  await this.page.clearInput(element as ElementInfo);
+
+                  if (taskParam.value === '') {
+                    return;
                   }
-                  await this.page.keyboard.press('Backspace');
+
+                  await this.page.keyboard.type(taskParam.value);
                 }
-                assert(taskParam.value, 'No value to input');
-                await this.page.keyboard.type(taskParam.value);
               },
             };
           return taskActionInput;
@@ -289,22 +277,19 @@ export class PageTaskExecutor {
               param: plan.param,
               executor: async (taskParam) => {
                 const scrollToEventName = taskParam.scrollType;
-                const innerHeight = await (this.page as PuppeteerPage).evaluate(
-                  () => window.innerHeight,
-                );
 
                 switch (scrollToEventName) {
-                  case 'ScrollUntilTop':
-                    await this.page.mouse.wheel(0, -9999999);
+                  case 'scrollUntilTop':
+                    await this.page.scrollUntilTop();
                     break;
-                  case 'ScrollUntilBottom':
-                    await this.page.mouse.wheel(0, 9999999);
+                  case 'scrollUntilBottom':
+                    await this.page.scrollUntilBottom();
                     break;
-                  case 'ScrollUp':
-                    await this.page.mouse.wheel(0, -innerHeight);
+                  case 'scrollUpOneScreen':
+                    await this.page.scrollUpOneScreen();
                     break;
-                  case 'ScrollDown':
-                    await this.page.mouse.wheel(0, innerHeight);
+                  case 'scrollDownOneScreen':
+                    await this.page.scrollDownOneScreen();
                     break;
                   default:
                     console.error(

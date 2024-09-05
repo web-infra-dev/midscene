@@ -1,9 +1,9 @@
 import { randomUUID } from 'node:crypto';
 import { PageAgent } from '@/common/agent';
-import type { WebPage } from '@/common/page';
+import { PlaywrightPage } from '@/playwright';
 import type { AgentWaitForOpt } from '@midscene/core/.';
 import { type TestInfo, type TestType, test } from '@playwright/test';
-import type { Page as PlaywrightPage } from 'playwright';
+import type { Page as OriginPlaywrightPage } from 'playwright';
 import type { PageTaskExecutor } from '../common/tasks';
 
 export type APITestType = Pick<TestType<any, any>, 'step'>;
@@ -31,7 +31,7 @@ export const midsceneDumpAnnotationId = 'MIDSCENE_DUMP_ANNOTATION';
 export const PlaywrightAiFixture = () => {
   const pageAgentMap: Record<string, PageAgent> = {};
   const agentForPage = (
-    page: WebPage,
+    page: OriginPlaywrightPage,
     testInfo: TestInfo, // { testId: string; taskFile: string; taskTitle: string },
   ) => {
     let idForPage = (page as any)[midsceneAgentKeyId];
@@ -41,7 +41,7 @@ export const PlaywrightAiFixture = () => {
       const { testId } = testInfo;
       const { taskFile, taskTitle } = groupAndCaseForTest(testInfo);
 
-      pageAgentMap[idForPage] = new PageAgent(page, {
+      pageAgentMap[idForPage] = new PageAgent(new PlaywrightPage(page), {
         testId: `playwright-${testId}-${idForPage}`,
         testFilePath: taskFile,
         groupName: taskTitle,
@@ -68,7 +68,7 @@ export const PlaywrightAiFixture = () => {
 
   return {
     ai: async (
-      { page }: { page: PlaywrightPage },
+      { page }: { page: OriginPlaywrightPage },
       use: any,
       testInfo: TestInfo,
     ) => {
@@ -88,7 +88,7 @@ export const PlaywrightAiFixture = () => {
       updateDumpAnnotation(testInfo, agent.dumpDataString());
     },
     aiAction: async (
-      { page }: { page: PlaywrightPage },
+      { page }: { page: OriginPlaywrightPage },
       use: any,
       testInfo: TestInfo,
     ) => {
@@ -102,7 +102,7 @@ export const PlaywrightAiFixture = () => {
       updateDumpAnnotation(testInfo, agent.dumpDataString());
     },
     aiQuery: async (
-      { page }: { page: PlaywrightPage },
+      { page }: { page: OriginPlaywrightPage },
       use: any,
       testInfo: TestInfo,
     ) => {
@@ -119,7 +119,7 @@ export const PlaywrightAiFixture = () => {
       updateDumpAnnotation(testInfo, agent.dumpDataString());
     },
     aiAssert: async (
-      { page }: { page: PlaywrightPage },
+      { page }: { page: OriginPlaywrightPage },
       use: any,
       testInfo: TestInfo,
     ) => {
@@ -136,7 +136,7 @@ export const PlaywrightAiFixture = () => {
       updateDumpAnnotation(testInfo, agent.dumpDataString());
     },
     aiWaitFor: async (
-      { page }: { page: PlaywrightPage },
+      { page }: { page: OriginPlaywrightPage },
       use: any,
       testInfo: TestInfo,
     ) => {

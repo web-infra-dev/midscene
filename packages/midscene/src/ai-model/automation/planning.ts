@@ -1,3 +1,5 @@
+import type { ResponseFormatJSONSchema } from 'openai/resources';
+
 export function systemPromptToTaskPlanning() {
   return `
   You are a versatile professional in software UI design and testing. Your outstanding contributions will impact the user experience of billions of users.
@@ -12,12 +14,12 @@ export function systemPromptToTaskPlanning() {
     * param: null
   * type: 'Hover', hover the previous element found
     * param: null
-  * type: 'Input', input something
-    * param: { value: string }, Based on the value of the existing input, give the required value of the final input (may add or subtract content from the original).
+  * type: 'Input', replace the value in the input field
+    * param: { value: string }, The input value must not be an empty string. Provide a meaningful final required input value based on the existing input. No matter what modifications are required, just provide the final value to replace the existing input value. After locating the input field, do not use 'Tap' action, proceed directly to 'Input' action.
   * type: 'KeyboardPress',  press a key
     * param: { value: string },  the value to input or the key to press. Use （Enter, Shift, Control, Alt, Meta, ShiftLeft, ControlOrMeta, ControlOrMeta） to represent the key.
   * type: 'Scroll'
-    * param: { scrollType: 'ScrollUntilBottom', 'ScrollUntilTop', 'ScrollDown', 'ScrollUp' }
+    * param: { scrollType: 'scrollDownOneScreen', 'scrollUpOneScreen', 'scrollUntilBottom', 'scrollUntilTop' }
   * type: 'Error'
     * param: { message: string }, the error message
   * type: 'Sleep'
@@ -51,3 +53,51 @@ export function systemPromptToTaskPlanning() {
   }
   `;
 }
+
+export const planSchema: ResponseFormatJSONSchema = {
+  type: 'json_schema',
+  json_schema: {
+    name: 'action_items',
+    strict: true,
+    schema: {
+      type: 'object',
+      properties: {
+        queryLanguage: {
+          type: 'string',
+          description: 'Language of the description of the task',
+        },
+        actions: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              thought: {
+                type: 'string',
+                description:
+                  'Reasons for generating this task, and why this task is feasible on this page',
+              },
+              type: {
+                type: 'string',
+                description: 'Type of action, like "Tap", "Hover", etc.',
+              },
+              param: {
+                type: ['object', 'null'],
+                description: 'Parameter towards the task type, can be null',
+              },
+            },
+            required: ['thought', 'type', 'param'],
+            additionalProperties: false,
+          },
+          description: 'List of actions to be performed',
+        },
+        error: {
+          type: ['string', 'null'],
+          description:
+            'Overall error messages. If there is any error occurs during the task planning, conclude the errors again and put error messages here',
+        },
+      },
+      required: ['queryLanguage', 'actions', 'error'],
+      additionalProperties: false,
+    },
+  },
+};
