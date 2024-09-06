@@ -2,7 +2,7 @@ import path, { join } from 'node:path';
 import { parseContextFromWebPage } from '@/common/utils';
 import { generateExtractData } from '@/debug';
 import { describe, expect, it } from 'vitest';
-import { launchPage } from '../ai/puppeteer/utils';
+import { launchPage } from '../ai/web/puppeteer/utils';
 
 const pagePath = join(__dirname, './fixtures/web-extractor/index.html');
 describe(

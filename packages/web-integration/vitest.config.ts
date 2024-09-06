@@ -11,9 +11,21 @@ dotenv.config({
   path: path.join(__dirname, '../../.env'),
 });
 
-const enableAiTest = Boolean(process.env.AITEST);
+const aiTestType = process.env.AI_TEST_TYPE;
 const unitTests = ['tests/unit-test/*.test.ts'];
-const aiTests = ['tests/ai/**/*.test.ts'];
+const aiWebTests = ['tests/ai/web/**/*.test.ts'];
+const aiNativeTests = ['tests/ai/native/**/*.test.ts'];
+
+const testFiles = (() => {
+  switch (aiTestType) {
+    case 'web':
+      return [...unitTests, ...aiWebTests];
+    case 'native':
+      return [...unitTests, ...aiNativeTests];
+    default:
+      return unitTests;
+  }
+})();
 
 export default defineConfig({
   resolve: {
@@ -22,6 +34,6 @@ export default defineConfig({
     },
   },
   test: {
-    include: enableAiTest ? [...aiTests, ...unitTests] : unitTests,
+    include: testFiles,
   },
 });

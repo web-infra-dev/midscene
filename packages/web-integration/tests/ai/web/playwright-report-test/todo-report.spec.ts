@@ -1,7 +1,7 @@
 import path from 'node:path';
 import { expect } from 'playwright/test';
-import { test } from '../playright/fixture';
-import { getLastModifiedReportHTMLFile } from '../playright/util';
+import { test } from '../playwright/fixture';
+import { getLastModifiedReportHTMLFile } from '../playwright/util';
 
 test('ai report', async ({ page, ai, aiAssert }, testInfo) => {
   testInfo.snapshotSuffix = '';
