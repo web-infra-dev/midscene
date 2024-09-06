@@ -44,14 +44,14 @@ export class PageTaskExecutor {
 
   taskCache: TaskCache;
 
-  constructor(page: WebPage, opts: { testFilePath: string | undefined }) {
+  constructor(page: WebPage, opts: { cacheId: string | undefined }) {
     this.page = page;
     this.insight = new Insight<WebElementInfo, WebUIContext>(async () => {
       return await parseContextFromWebPage(page);
     });
 
     this.taskCache = new TaskCache({
-      fileName: opts?.testFilePath,
+      fileName: opts?.cacheId,
     });
   }
 

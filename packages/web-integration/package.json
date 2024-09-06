@@ -65,7 +65,7 @@
     "test:ai": "AI_TEST_TYPE=web npm run test",
     "test:ai:cache": "MIDSCENE_CACHE=true AI_TEST_TYPE=web npm run test",
     "test:ai:all": "npm run test:ai:web && npm run test:ai:native",
-    "test:ai:native": "AI_TEST_TYPE=native npm run test",
+    "test:ai:native": "MIDSCENE_CACHE=true AI_TEST_TYPE=native npm run test",
     "new": "modern new",
     "upgrade": "modern upgrade",
     "prepublishOnly": "npm run build",

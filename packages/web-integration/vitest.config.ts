@@ -15,13 +15,13 @@ const aiTestType = process.env.AI_TEST_TYPE;
 const unitTests = ['tests/unit-test/*.test.ts'];
 const aiWebTests = ['tests/ai/web/**/*.test.ts'];
 const aiNativeTests = ['tests/ai/native/**/*.test.ts'];
-
+// const aiNativeTests = ['tests/ai/native/appium/dongchedi.test.ts'];
 const testFiles = (() => {
   switch (aiTestType) {
     case 'web':
       return [...unitTests, ...aiWebTests];
     case 'native':
-      return [...unitTests, ...aiNativeTests];
+      return [...aiNativeTests];
     default:
       return unitTests;
   }

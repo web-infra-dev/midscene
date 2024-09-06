@@ -102,7 +102,12 @@ export function getCurrentExecutionFile(): string {
   if (stackTrace) {
     const stackLines = stackTrace.split('\n');
     for (const line of stackLines) {
-      if (line.includes('.spec.') || line.includes('.test.')) {
+      if (
+        line.includes('.spec.') ||
+        line.includes('.test.') ||
+        line.includes('.ts') ||
+        line.includes('.js')
+      ) {
         const match = line.match(/(?:at\s+)?(.*?\.(?:spec|test)\.[jt]s)/);
         if (match?.[1]) {
           const targetFileName = match[1]
