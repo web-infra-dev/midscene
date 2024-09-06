@@ -98,7 +98,7 @@ export function printReportMsg(filepath: string) {
 export function getCurrentExecutionFile(): string {
   const error = new Error();
   const stackTrace = error.stack;
-  const pkgDir = findNearestPackageJson(__dirname) || '';
+  const pkgDir = process.cwd() || '';
   if (stackTrace) {
     const stackLines = stackTrace.split('\n');
     for (const line of stackLines) {
