@@ -45,7 +45,7 @@ export default defineConfig({
     MIDSCENE_REPORT
       ? {
           name: 'report',
-          testDir: './tests/ai/web/playwright-report',
+          testDir: './tests/ai/web/playwright-report-test',
           use: { ...devices['Desktop Chrome'] },
         }
       : {
