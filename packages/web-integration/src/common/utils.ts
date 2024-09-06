@@ -5,6 +5,7 @@ import path from 'node:path';
 import type { ElementInfo } from '@/extractor';
 import type { PlaywrightParserOpt, UIContext } from '@midscene/core';
 import { getTmpFile } from '@midscene/core/utils';
+import { findNearestPackageJson } from '@midscene/shared/fs';
 import { base64Encoded, imageInfoOfBase64 } from '@midscene/shared/img';
 import dayjs from 'dayjs';
 import { WebElementInfo } from '../web-element';
@@ -81,28 +82,6 @@ async function alignElements(
   return textsAligned;
 }
 
-/**
- * Find the nearest package.json file recursively
- * @param {string} dir - Home directory
- * @returns {string|null} - The most recent package.json file path or null
- */
-export function findNearestPackageJson(dir: string): string | null {
-  const packageJsonPath = path.join(dir, 'package.json');
-
-  if (fs.existsSync(packageJsonPath)) {
-    return dir;
-  }
-
-  const parentDir = path.dirname(dir);
-
-  // Return null if the root directory has been reached
-  if (parentDir === dir) {
-    return null;
-  }
-
-  return findNearestPackageJson(parentDir);
-}
-
 export function reportFileName(tag = 'web') {
   const dateTimeInFileName = dayjs().format('YYYY-MM-DD_HH-mm-ss-SSS');
   return `${tag}-${dateTimeInFileName}`;
@@ -110,4 +89,74 @@ export function reportFileName(tag = 'web') {
 
 export function printReportMsg(filepath: string) {
   console.log('Midscene - report file updated:', filepath);
+}
+
+/**
+ * Get the current execution file name
+ * @returns The name of the current execution file
+ */
+export function getCurrentExecutionFile(): string {
+  const error = new Error();
+  const stackTrace = error.stack;
+  const pkgDir = process.cwd() || '';
+  if (stackTrace) {
+    const stackLines = stackTrace.split('\n');
+    for (const line of stackLines) {
+      if (
+        line.includes('.spec.') ||
+        line.includes('.test.') ||
+        line.includes('.ts') ||
+        line.includes('.js')
+      ) {
+        const match = line.match(/(?:at\s+)?(.*?\.(?:spec|test)\.[jt]s)/);
+        if (match?.[1]) {
+          const targetFileName = match[1]
+            .replace(pkgDir, '')
+            .trim()
+            .replace('at ', '');
+          return targetFileName;
+        }
+      }
+    }
+  }
+  throw new Error(
+    `Can not find current execution file: \n __dirname: ${__dirname}, \n stackTrace: ${stackTrace}`,
+  );
+}
+
+/**
+ * Generates a unique cache ID based on the current execution file and a counter.
+ *
+ * This function creates a cache ID by combining the name of the current execution file
+ * (typically a test or spec file) with an incrementing index. This ensures that each
+ * cache ID is unique within the context of a specific test file across multiple executions.
+ *
+ * The function uses a Map to keep track of the index for each unique file, incrementing
+ * it with each call for the same file.
+ *
+ * @returns {string} A unique cache ID in the format "filename-index"
+ *
+ * @example
+ * // First call for "example.spec.ts"
+ * generateCacheId(); // Returns "example.spec.ts-1"
+ *
+ * // Second call for "example.spec.ts"
+ * generateCacheId(); // Returns "example.spec.ts-2"
+ *
+ * // First call for "another.test.ts"
+ * generateCacheId(); // Returns "another.test.ts-1"
+ */
+
+const testFileIndex = new Map<string, number>();
+export function generateCacheId(fileName?: string): string {
+  const taskFile = fileName || getCurrentExecutionFile();
+  if (testFileIndex.has(taskFile)) {
+    const currentIndex = testFileIndex.get(taskFile);
+    if (currentIndex !== undefined) {
+      testFileIndex.set(taskFile, currentIndex + 1);
+    }
+  } else {
+    testFileIndex.set(taskFile, 1);
+  }
+  return `${taskFile}-${testFileIndex.get(taskFile)}`;
 }

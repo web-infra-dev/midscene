@@ -7,7 +7,7 @@ import type {
   ExecutionTaskReturn,
   ExecutorContext,
 } from '@/types';
-import { getPkgInfo } from '@/utils';
+import { getMidscenePkgInfo } from '@midscene/shared/fs';
 
 export class Executor {
   name: string;
@@ -176,7 +176,7 @@ export class Executor {
 
   dump(): ExecutionDump {
     const dumpData: ExecutionDump = {
-      sdkVersion: getPkgInfo().version,
+      sdkVersion: getMidscenePkgInfo(__dirname).version,
       logTime: Date.now(),
       name: this.name,
       description: this.description,

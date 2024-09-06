@@ -17,11 +17,11 @@ import type {
 } from '@/types';
 import {
   getLogDir,
-  getPkgInfo,
   insightDumpFileExt,
   stringifyDumpData,
   writeLogFile,
 } from '@/utils';
+import { getMidscenePkgInfo } from '@midscene/shared/fs';
 
 let logFileName = '';
 const logContent: string[] = [];
@@ -39,7 +39,7 @@ export function writeInsightDump(
 
   const id = logId || randomUUID();
   const baseData: DumpMeta = {
-    sdkVersion: getPkgInfo().version,
+    sdkVersion: getMidscenePkgInfo(__dirname).version,
     logTime: Date.now(),
   };
   const finalData: InsightDump = {

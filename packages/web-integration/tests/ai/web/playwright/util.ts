@@ -30,7 +30,7 @@ export function getLastModifiedReportHTMLFile(dirPath: string) {
           if (stats.mtimeMs > latestMtime) {
             latestMtime = stats.mtimeMs;
             latestFile = filePath;
-            console.log('filePath', filePath);
+            // console.log('filePath', filePath);
           }
         }
       }

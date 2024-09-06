@@ -2,10 +2,6 @@ import { PuppeteerAgent } from '@/puppeteer';
 import { describe, expect, it, vi } from 'vitest';
 import { launchPage } from './utils';
 
-vi.setConfig({
-  testTimeout: 140 * 1000,
-});
-
 describe(
   'puppeteer integration',
   () => {

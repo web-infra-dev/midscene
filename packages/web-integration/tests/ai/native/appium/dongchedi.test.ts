@@ -1,3 +1,4 @@
+import path from 'node:path';
 import { AppiumAgent } from '@/appium';
 import { describe, expect, it, vi } from 'vitest';
 import { launchPage } from './utils';
@@ -13,12 +14,13 @@ const IOS_OPTIONS = {
   capabilities: {
     platformName: 'iOS',
     'appium:automationName': 'XCUITest',
-    'appium:deviceName': 'iPhone 15 Plus Simulator (18.0)',
-    'appium:platformVersion': '18.0',
+    'appium:deviceName': 'iPhone 15 Pro Simulator (17.5)',
+    'appium:platformVersion': '17.5',
     'appium:bundleId': 'com.ss.ios.InHouse.AutoMobile',
-    'appium:udid': 'B8517A53-6C4C-41D8-9B1E-825A0D75FA47',
+    'appium:udid': '9ADCE031-36DF-4025-8C62-073FC7FAB901',
     'appium:newCommandTimeout': 600,
   },
+  outputDir: path.join(__dirname, 'tmp'),
 };
 
 const ANDROID_OPTIONS = {
@@ -37,15 +39,13 @@ describe(
   'appium integration',
   () => {
     it('懂车帝查找小米 SU7', async () => {
-      const page = await launchPage(ANDROID_OPTIONS);
+      const page = await launchPage(IOS_OPTIONS);
       const mid = new AppiumAgent(page);
-
       await mid.aiAction('点击同意按钮');
-      await sleep(3000);
-      await mid.aiAction('点击顶部搜索框');
-      await sleep(3000);
-      await mid.aiAction('在搜索框里输入"SU7"，并点击搜索');
-      await sleep(3000);
+      await mid.aiAction('点击顶部输入框');
+      // await generateExtractData(page, './tmp');
+      await mid.aiAction('在输入框里输入"小米SU7"，并点击搜索');
+      // await sleep(3000);
       const items = await mid.aiQuery(
         '"{carName: string, price: number }[], return item name, price',
       );

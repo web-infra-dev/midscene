@@ -23,7 +23,8 @@ describe('TaskCache', () => {
   });
 
   it('should return false if no cache is available', async () => {
-    const result = taskCache.readCache(
+    const cacheGroup = taskCache.getCacheGroupByPrompt('test prompt');
+    const result = cacheGroup.readCache(
       formalPageContext,
       'plan',
       'test prompt',
@@ -32,17 +33,21 @@ describe('TaskCache', () => {
   });
 
   it('should return false if the prompt does not match', async () => {
-    taskCache.cache = {
-      aiTasks: [
-        {
-          type: 'plan',
-          prompt: 'different prompt',
-          pageContext,
-          response: { plans: [] },
-        },
-      ],
-    };
-    const result = taskCache.readCache(
+    taskCache.cache.aiTasks = [
+      {
+        prompt: 'different prompt',
+        tasks: [
+          {
+            type: 'plan',
+            prompt: 'different prompt',
+            pageContext,
+            response: { plans: [] },
+          },
+        ],
+      },
+    ];
+    const cacheGroup = taskCache.getCacheGroupByPrompt('test prompt');
+    const result = cacheGroup.readCache(
       formalPageContext,
       'plan',
       'test prompt',
@@ -54,16 +59,22 @@ describe('TaskCache', () => {
     taskCache.cache = {
       aiTasks: [
         {
-          type: 'locate',
           prompt: 'test prompt',
-          pageContext,
-          response: {
-            elements: [{ id: 'element3' }],
-          } as AIElementParseResponse,
+          tasks: [
+            {
+              type: 'locate',
+              prompt: 'test prompt',
+              pageContext,
+              response: {
+                elements: [{ id: 'element3' }],
+              } as AIElementParseResponse,
+            },
+          ],
         },
       ],
     };
-    const result = taskCache.readCache(
+    const cacheGroup = taskCache.getCacheGroupByPrompt('test prompt');
+    const result = cacheGroup.readCache(
       formalPageContext,
       'locate',
       'test prompt',
@@ -78,14 +89,21 @@ describe('TaskCache', () => {
     taskCache.cache = {
       aiTasks: [
         {
-          type: 'plan',
           prompt: 'test prompt',
-          pageContext,
-          response: cachedResponse,
+          tasks: [
+            {
+              type: 'plan',
+              prompt: 'test prompt',
+              pageContext,
+              response: cachedResponse,
+            },
+          ],
         },
       ],
     };
-    const result = taskCache.readCache(
+
+    const cacheGroup = taskCache.getCacheGroupByPrompt('test prompt');
+    const result = cacheGroup.readCache(
       formalPageContext,
       'plan',
       'test prompt',
@@ -94,14 +112,15 @@ describe('TaskCache', () => {
   });
 
   it('should save cache correctly', () => {
+    const cacheGroup = taskCache.getCacheGroupByPrompt('test prompt');
     const newCache: PlanTask = {
       type: 'plan',
       prompt: 'new prompt',
       pageContext,
       response: { plans: [{ type: 'Locate', thought: '', param: {} }] },
     };
-    taskCache.saveCache(newCache);
-    expect(taskCache.newCache.aiTasks).toContain(newCache);
+    cacheGroup.saveCache(newCache);
+    expect(taskCache.newCache.aiTasks[0].tasks).toContain(newCache);
   });
 
   it('should check page context equality correctly', () => {

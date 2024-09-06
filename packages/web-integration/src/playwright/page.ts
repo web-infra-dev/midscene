@@ -26,7 +26,6 @@ export class Page implements AbstractPage {
     return this.browser.screenshot({
       path,
       type: 'png',
-      quality: 75,
     });
   }
 

@@ -1,10 +1,10 @@
 # Cache
 
-Midscene.js provides AI caching capabilities to enhance the stability and speed of the entire AI execution process. The cache here mainly refers to caching the elements recognized by AI on the page. When the page elements have not changed, the AI's query results will be cached.
+Midscene.js provides AI caching capabilities to improve the stability and speed of the entire AI execution process. The cache here mainly refers to caching AI's recognition of page elements. When the page elements have not changed, the AI query results will be cached.
 
 ## Instructions
 
-Currently, the caching capability is only supported on `Playwright`, and Midscene can support caching at the test suite level.
+Currently, the caching capability is supported in all scenarios, and Midscene can support file-level caching.
 
 **Usage**
 
@@ -18,41 +18,39 @@ Currently, the caching capability is only supported on `Playwright`, and Midscen
 * **before**
 
 ![](/cache/no-cache-time.png)
-  
 
 * **after**
 
 ![](/cache/use-cache-time.png)
 
-  
 
 ## Cache Content
 
-Currently, Midscene's caching strategy on Playwright is mainly based on test suites, and AI behaviors within each test suite will be cached. The cache content mainly includes two types:
+Currently, Midscene's caching strategy in all scenarios is mainly based on the test file unit. AI behavior in each test file will be cached. The cached content is mainly divided into two categories:
 
-* AI task planning (planning is the result of ai and ai action methods)
-* AI element recognition
+* AI's planning for tasks (Planning, i.e., the results of ai and aiAction methods)
+* AI's recognition of elements
 
-The content of `aiQuery` will not be cached, so `aiQuery` can be used to verify whether the previous AI tasks meet expectations.
+The content of `aiQuery` will not be cached, so you can use `aiQuery` to confirm whether the previous AI tasks meet expectations.
 
 **Task Planning**
 
 ```js
-await ai("Move the mouse to the second task, then click the delete button on the right of the task");
+await ai("Move the mouse to the second task and click the delete button on the right side of the task");
 ```
 
-The above task planning will be broken down into:
+The above task planning will be decomposed into:
 
 ```js
 Hover: Move the mouse to the second task "Learn JS today"
-Click: Click the delete button on the right of the task "Learn JS today"
+Click: Click the delete button on the right side of the task "Learn JS today"
 ```
 
-When the page URL and dimensions have not changed, the results of the above tasks will be directly cached when caching is enabled.
+When the URL address and page width and height have not changed, enabling the cache will directly cache the results of the above tasks.
 
 **Element Recognition**
 
-After AI has planned the tasks based on the user's instructions, it needs to operate on specific elements, which requires AI's ability to recognize page elements. For example, the following task:
+After the AI has planned the user's instructions into tasks, it needs to operate on specific elements, so the AI's element recognition capability is needed. For example, the following task:
 
 ```js
 Hover: Move the mouse to the second task "Learn JS today"
@@ -68,9 +66,9 @@ Width: 100
 Height: 30
 ```
 
-## Caching Strategy
+## Cache Strategy
 
-When using the `MIDSCENE_CACHE=true` environment variable, caching will automatically be performed according to the test suites in `Playwright`:
+When using the `MIDSCENE_CACHE=true` environment variable, caching will be automatically performed according to Playwright's test groups:
 
 ```ts
 // todo-mvc.spec.ts
@@ -82,127 +80,128 @@ test.beforeEach(async ({ page }) => {
 });
 
 test('ai todo', async ({ page, ai, aiQuery }) => {
-  await ai("Enter 'Learn JS today' in the task box, then press Enter");
+  await ai("Enter \"Learn JS today\" in the task box, then press Enter to create");
 });
 
 test('ai todo2', async ({ page, ai, aiQuery }) => {
-  await ai("Enter 'Learn JS today' in the task box, then press Enter");
+  await ai("Enter \"Learn JS today\" in the task box, then press Enter to create");
 });
 ```
 
-The above `test` will generate caches according to the dimensions of `ai todo` and `ai todo2`, and cache files `todo-mvc.spec:10(ai todo).json` and `todo-mvc.spec:13(ai todo2).json` will be generated in the `midscene/midscene_run/cache` directory at the root of the project.
+The above `test` will generate caches along the dimensions of `ai todo` and `ai todo2`, and `todo-mvc.spec.ts-1.json` and `todo-mvc.spec.ts-2.json` cache files will be generated in the `midscene/midscene_run/cache` directory in the project root.
 
-**Cache File Description**
+**Cache File Introduction**
 
 ```json
 {
   "pkgName": "@midscene/web",
-  // Current midscene version
+  // The midscene version currently in use
   "pkgVersion": "0.1.2",
-  // Test file address and line number
-  "taskFile": "todo-mvc.spec.ts:10",
-  // Test task title
-  "taskTitle": "ai todo",
+  // Test file address and index
+  "cacheId": "tests/ai/e2e/ai-auto-todo.spec.ts-1",
   "aiTasks": [
     {
-      // Task type, currently only plan and locate
-      // plan is determined by AI based on user's task
-      "type": "plan",
-      "pageContext": {
-        // URL when AI executes the task
-        "url": "https://todomvc.com/examples/react/dist/",
-        // Page dimensions
-        "size": {
-          "width": 1280,
-          "height": 720
-        }
-      },
       // User's prompt instruction
-      "prompt": "Enter 'Learn JS today' in the task box, then press Enter to create",
-      "response": {
-        // AI's tasks
-        "plans": [
-          {
-            "thought": "The user wants to input a new task in the todo list input box and then press enter to create it. The input field is identified by its placeholder text 'What needs to be done?'.",
-            "type": "Locate",
-            "param": {
-              "prompt": "The input box with the placeholder text 'What needs to be done?'."
+      "prompt": "Enter \"Learn JS today\" in the task box, then press Enter to create",
+      "tasks": [
+        {
+          // Task type, currently only plan and locate
+          // plan is determined by AI based on user's task
+          "type": "plan",
+          "pageContext": {
+            // Address when AI executes tasks
+            "url": "https://todomvc.com/examples/react/dist/",
+            // Page width and height
+            "size": {
+              "width": 1280,
+              "height": 720
             }
           },
-          {
-            "thought": "Once the input box is located, we need to enter the task description.",
-            "type": "Input",
-            "param": {
-              "value": "Learn JS today"
+          // User's prompt instruction
+          "prompt": "Enter \"Learn JS today\" in the task box, then press Enter to create",
+          "response": {
+            // AI's tasks
+            "plans": [
+              {
+                "thought": "The user wants to input a new task in the todo list input box and then press enter to create it. The input field is identified by its placeholder text 'What needs to be done?'.",
+                "type": "Locate",
+                "param": {
+                  "prompt": "The input box with the placeholder text 'What needs to be done?'."
+                }
+              },
+              {
+                "thought": "Once the input box is located, we need to enter the task description.",
+                "type": "Input",
+                "param": {
+                  "value": "Learn JS today"
+                }
+              },
+              {
+                "thought": "After entering the task, we need to commit it by pressing 'Enter'.",
+                "type": "KeyboardPress",
+                "param": {
+                  "value": "Enter"
+                }
+              }
+            ]
+          }
+        },
+        {
+          // locate is to find a specific element
+          "type": "locate",
+          "pageContext": {
+            // Address when AI executes tasks
+            "url": "https://todomvc.com/examples/react/dist/",
+            // Page width and height
+            "size": {
+              "width": 1280,
+              "height": 720
             }
           },
-          {
-            "thought": "After entering the task, we need to commit it by pressing 'Enter'.",
-            "type": "KeyboardPress",
-            "param": {
-              "value": "Enter"
-            }
+          // User's prompt instruction
+          "prompt": "The input box with the placeholder text 'What needs to be done?'.",
+          "response": {
+            // Returned element content
+            "elements": [
+              {
+                // Why AI found this element
+                "reason": "The element with ID '3530a9c1eb' is an INPUT Node. Its placeholder text is 'What needs to be done?', which matches the user's description.",
+                // Element text
+                "text": "What needs to be done?",
+                // Unique ID generated based on the element (generated based on position and size)
+                "id": "3530a9c1eb"
+              }
+            ],
+            "errors": []
           }
-        ]
-      }
-    },
-    {
-      // locate is for finding specific elements
-      "type": "locate",
-      "pageContext": {
-        // URL when AI executes the task
-        "url": "https://todomvc.com/examples/react/dist/",
-        // Page dimensions
-        "size": {
-          "width": 1280,
-          "height": 720
         }
-      },
-      // User's prompt instruction
-      "prompt": "The input box with the placeholder text 'What needs to be done?'.",
-      "response": {
-        // Returned element content
-        "elements": [
-          {
-            // Why AI found this element
-            "reason": "The element with ID '3530a9c1eb' is an INPUT Node. Its placeholder text is 'What needs to be done?', which matches the user's description.",
-            // Element text
-            "text": "What needs to be done?",
-            // Unique ID generated based on the element (based on position and size)
-            "id": "3530a9c1eb"
-          }
-        ],
-        "errors": []
-      }
-    }
+      ]
   ]
   //...
 }
 ```
 
-When the `MIDSCENE_CACHE=true` environment variable is used and there are cache files, the corresponding AI results will be read from the above cache files. The conditions for cache hits are as follows:
+When the `MIDSCENE_CACHE=true` environment variable is used and there are cache files, the AI's corresponding results will be read through the above cache file. The following are the conditions for cache hit:
 
 1. The same test file and test title
-2. The same Midscene package name, version, and previous tasks
-3. The same page URL and dimensions when executing the task
-4. The current page contains the exact same elements as last time (only required for element locating tasks)
+2. Midscene package name, version, and last task are consistent
+3. The page address and page width and height where the corresponding task is executed are consistent
+4. The current page has exactly the same elements as last time (only required for locate element tasks)
 
-## Frequently Asked Questions
+## Common Issues
 
-### Why provide caching capabilities?
+### Why provide caching capability?
 
-Caching capabilities mainly solve the following problems:
+The caching capability mainly solves the following problems:
 
-1. High AI response latency: A task can take several seconds. When there are dozens or even hundreds of tasks, it can be very time-consuming.
-2. AI response stability: Through tuning and experimentation, we found that GPT-4 has over 90% accuracy in page element recognition tasks, but it still cannot reach 100% accuracy. Caching capabilities can effectively reduce online stability issues.
+1. High AI response latency, a task will take several seconds, and when there are dozens or even hundreds of tasks, there will be a higher latency
+2. AI response stability, through training and experiments, we found that GPT-4 has an accuracy rate of over 95% in page element recognition tasks, but it cannot reach 100% accuracy yet. The caching capability can effectively reduce online stability issues
 
 ### What happens if the cache is not hit?
 
-For AI behaviors that do not hit the cache, AI will re-execute the task, and the cache will be updated after the entire test suite execution is completed. You can check the cache files to determine which tasks have been updated.
+For AI behaviors that do not hit the cache, they will be re-executed by AI, and the cache will be updated after the entire test group is executed. You can check the cache file to determine which tasks have been updated.
 
 ### How to manually remove the cache?
 
-* Deleting the corresponding cache files will automatically invalidate the entire test suite's cache.
-* Deleting specific tasks in the cache file will automatically invalidate the corresponding tasks. After the task is successfully executed, the task will be updated. Deleting previous tasks will not affect subsequent tasks.
-
-
+* When deleting the corresponding cache file, the cache of the entire test group will automatically become invalid
+* When deleting specific tasks in the cache file, the corresponding tasks will automatically become invalid. Deleting the tasks before will not affect the tasks after. The tasks will be updated after successful execution

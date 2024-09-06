@@ -45,12 +45,12 @@ export default defineConfig({
     MIDSCENE_REPORT
       ? {
           name: 'report',
-          testDir: './tests/ai/playright-report',
+          testDir: './tests/ai/web/playwright-report-test',
           use: { ...devices['Desktop Chrome'] },
         }
       : {
           name: 'e2e',
-          testDir: './tests/ai/playright',
+          testDir: './tests/ai/web/playwright',
           use: { ...devices['Desktop Chrome'] },
         },
   ],
