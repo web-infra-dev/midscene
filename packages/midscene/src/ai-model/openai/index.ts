@@ -27,7 +27,7 @@ if (
   typeof process.env[MIDSCENE_OPENAI_INIT_CONFIG_JSON] === 'string' &&
   process.env[MIDSCENE_OPENAI_INIT_CONFIG_JSON]
 ) {
-  console.log('config for openai loaded');
+  console.log('config for OpenAI loaded');
   extraConfig = JSON.parse(process.env[MIDSCENE_OPENAI_INIT_CONFIG_JSON]);
 }
 
