@@ -11,7 +11,11 @@ const step = (msg) => {
 };
 
 const run = async (bin, args, opts = {}) => {
-  return await execa(bin, args, { stdio: 'inherit', ...opts });
+  const returnValue = await execa(bin, args, { stdio: 'inherit', ...opts });
+  if (returnValue.failed) {
+    throw new Error(`Failed to run ${bin} ${args.join(' ')}`);
+  }
+  return returnValue;
 };
 
 const currentVersion = require('../package.json').version;
