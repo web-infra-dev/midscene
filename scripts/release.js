@@ -11,7 +11,11 @@ const step = (msg) => {
 };
 
 const run = async (bin, args, opts = {}) => {
-  return await execa(bin, args, { stdio: 'inherit', ...opts });
+  const returnValue = await execa(bin, args, { stdio: 'inherit', ...opts });
+  if (returnValue.failed) {
+    throw new Error(`Failed to run ${bin} ${args.join(' ')}`);
+  }
+  return returnValue;
 };
 
 const currentVersion = require('../package.json').version;
@@ -29,13 +33,13 @@ async function main() {
     );
   }
 
-  // run tests before release
-  step('\nRunning tests...');
-  await test();
-
   // build all packages with types
   step('\nBuilding all packages...');
   await build();
+
+  // run tests before release
+  step('\nRunning tests...');
+  await test();
 
   // lint all packages with types
   step('\nlint all packages...');

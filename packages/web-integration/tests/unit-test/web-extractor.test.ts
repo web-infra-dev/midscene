@@ -1,6 +1,8 @@
 import path, { join } from 'node:path';
 import { parseContextFromWebPage } from '@/common/utils';
 import { generateExtractData } from '@/debug';
+import { getTmpFile } from '@midscene/core/utils';
+import { imageInfo } from '@midscene/shared/img';
 import { describe, expect, it } from 'vitest';
 import { launchPage } from '../ai/web/puppeteer/utils';
 
@@ -37,6 +39,42 @@ describe(
       });
 
       expect(list).toMatchSnapshot();
+      await reset();
+    });
+
+    it('check screenshot size - 1x', async () => {
+      const { page, reset } = await launchPage(`file://${pagePath}`, {
+        viewport: {
+          width: 1080,
+          height: 2000,
+          deviceScaleFactor: 1,
+        },
+      });
+
+      const shotpath = getTmpFile('jpeg');
+      await page.screenshot({ path: shotpath });
+
+      const info = await imageInfo(shotpath);
+      expect(info.width).toBe(1080);
+      expect(info.height).toBe(2000);
+      await reset();
+    });
+
+    it('check screenshot size - 2x', async () => {
+      const { page, reset } = await launchPage(`file://${pagePath}`, {
+        viewport: {
+          width: 1080,
+          height: 2000,
+          deviceScaleFactor: 2,
+        },
+      });
+
+      const shotpath = getTmpFile('jpeg');
+      await page.screenshot({ path: shotpath });
+
+      const info = await imageInfo(shotpath);
+      expect(info.width).toBe(1080); // always 1x for screenshot
+      expect(info.height).toBe(2000);
       await reset();
     });
 

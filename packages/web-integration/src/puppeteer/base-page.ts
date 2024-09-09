@@ -1,3 +1,5 @@
+import { readFileSync, writeFileSync } from 'node:fs';
+import { resizeImg } from '@midscene/shared/img';
 import type { Page as PlaywrightPage } from 'playwright';
 import type { Page as PuppeteerPage } from 'puppeteer';
 import type { WebKeyInput } from '../common/page';
@@ -35,9 +37,53 @@ export class Page<
     return captureElementSnapshot as ElementInfo[];
   }
 
-  screenshot(options: screenshotOptions): Promise<Uint8Array> {
+  async screenshot(options: screenshotOptions): Promise<void> {
     const { path } = options;
-    return this.page.screenshot({ path, type: 'png' });
+    if (!path) {
+      throw new Error('path is required for screenshot');
+    }
+
+    // get viewport size from page
+    const viewportSize: {
+      width: number;
+      height: number;
+      deviceScaleFactor: number;
+    } = await this.evaluate(() => {
+      return {
+        width: document.documentElement.clientWidth,
+        height: document.documentElement.clientHeight,
+        deviceScaleFactor: window.devicePixelRatio,
+      };
+    });
+
+    await this.page.screenshot({
+      path,
+      type: 'jpeg',
+      quality: 75,
+    });
+
+    let buf: Buffer;
+    console.log(viewportSize);
+    if (viewportSize.deviceScaleFactor > 1) {
+      buf = (await resizeImg(readFileSync(path), {
+        width: viewportSize.width,
+        height: viewportSize.height,
+      })) as Buffer;
+      writeFileSync(path, buf);
+    }
+
+    // return await this.page.screenshot({
+    //   path,
+    //   type: 'jpeg',
+    //   quality: 75,
+    //   clip: {
+    //     x: 0,
+    //     y: 0,
+    //     width: viewportSize.width,
+    //     height: viewportSize.height,
+    //     scale: 1 / viewportSize.deviceScaleFactor,
+    //   },
+    // });
   }
 
   url(): string {

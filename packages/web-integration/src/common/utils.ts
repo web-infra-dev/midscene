@@ -1,6 +1,6 @@
 import assert from 'node:assert';
 import type { Buffer } from 'node:buffer';
-import fs, { readFileSync } from 'node:fs';
+import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import type { ElementInfo } from '@/extractor';
 import type { PlaywrightParserOpt, UIContext } from '@midscene/core';
@@ -22,8 +22,9 @@ export async function parseContextFromWebPage(
   assert(page, 'page is required');
 
   const url = page.url();
-  const file = getTmpFile('png');
+  const file = getTmpFile('jpeg');
   await page.screenshot({ path: file });
+
   const screenshotBuffer = readFileSync(file);
   const screenshotBase64 = base64Encoded(file);
   const captureElementSnapshot = await page.getElementInfos();

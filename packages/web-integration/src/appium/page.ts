@@ -37,9 +37,9 @@ export class Page implements AbstractPage {
     return infos;
   }
 
-  async screenshot(options: screenshotOptions): Promise<Buffer> {
+  async screenshot(options: screenshotOptions): Promise<void> {
     if (!options.path) {
-      return Buffer.from('');
+      throw new Error('path is required for screenshot');
     }
 
     const { width, height } = await this.browser.getWindowSize();
@@ -52,8 +52,6 @@ export class Page implements AbstractPage {
     if (options.path) {
       fs.writeFileSync(options.path, resizedScreenshotBuffer);
     }
-
-    return resizedScreenshotBuffer as Buffer;
   }
 
   get mouse() {

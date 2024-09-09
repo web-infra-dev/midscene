@@ -14,7 +14,10 @@ export function isButtonElement(node: Node): node is HTMLButtonElement {
 }
 
 export function isImgElement(node: Node): node is HTMLImageElement {
-  return node instanceof HTMLElement && node.tagName.toLowerCase() === 'img';
+  return (
+    (node instanceof HTMLElement && node.tagName.toLowerCase() === 'img') ||
+    (node instanceof SVGElement && node.tagName.toLowerCase() === 'svg')
+  );
 }
 
 export function isTextElement(node: Node): node is HTMLTextAreaElement {

@@ -3,6 +3,7 @@ import { extractTextWithPosition } from './web-extractor';
 
 // import { TEXT_MAX_SIZE } from './constants';
 let debugMode = false;
+let frameId = 0;
 
 export function setDebugMode(mode: boolean) {
   debugMode = mode;
@@ -10,6 +11,14 @@ export function setDebugMode(mode: boolean) {
 
 export function getDebugMode(): boolean {
   return debugMode;
+}
+
+export function getFrameId(): number {
+  return frameId;
+}
+
+export function setFrameId(id: number) {
+  frameId = id;
 }
 
 export function logger(..._msg: any[]): void {
@@ -101,33 +110,64 @@ export function hasOverflowY(element: HTMLElement): boolean {
   );
 }
 
-function getRect(el: HTMLElement | Node): {
-  bottom: number;
+export interface ExtractedRect {
+  width: number;
   height: number;
   left: number;
-  right: number;
   top: number;
-  width: number;
+  right: number;
+  bottom: number;
   x: number;
   y: number;
-} {
+  zoom: number;
+}
+
+function getRect(el: HTMLElement | Node, baseZoom = 1): ExtractedRect {
+  let originalRect: DOMRect;
+  let newZoom = 1;
   if (!(el instanceof HTMLElement)) {
     const range = document.createRange();
     range.selectNodeContents(el);
-    return range.getBoundingClientRect();
+    originalRect = range.getBoundingClientRect();
+  } else {
+    originalRect = el.getBoundingClientRect();
+    // from Chrome v128, the API would return differently https://docs.google.com/document/d/1AcnDShjT-kEuRaMchZPm5uaIgNZ4OiYtM4JI9qiV8Po/edit
+    if (!('currentCSSZoom' in el)) {
+      newZoom = Number.parseFloat(window.getComputedStyle(el).zoom) || 1;
+    }
   }
-  return el.getBoundingClientRect();
+
+  const zoom = newZoom * baseZoom;
+
+  return {
+    width: originalRect.width * zoom,
+    height: originalRect.height * zoom,
+    left: originalRect.left * zoom,
+    top: originalRect.top * zoom,
+    right: originalRect.right * zoom,
+    bottom: originalRect.bottom * zoom,
+    x: originalRect.x * zoom,
+    y: originalRect.y * zoom,
+    zoom,
+  };
 }
 
 export function visibleRect(
   el: HTMLElement | Node | null,
-): { left: number; top: number; width: number; height: number } | false {
+  baseZoom = 1,
+):
+  | { left: number; top: number; width: number; height: number; zoom: number }
+  | false {
   if (!el) {
     logger(el, 'Element is not in the DOM hierarchy');
     return false;
   }
 
-  if (!(el instanceof HTMLElement) && el.nodeType !== Node.TEXT_NODE) {
+  if (
+    !(el instanceof HTMLElement) &&
+    el.nodeType !== Node.TEXT_NODE &&
+    el.nodeName.toLowerCase() !== 'svg'
+  ) {
     logger(el, 'Element is not in the DOM hierarchy');
     return false;
   }
@@ -144,7 +184,7 @@ export function visibleRect(
     }
   }
 
-  const rect = getRect(el);
+  const rect = getRect(el, baseZoom);
 
   if (rect.width === 0 && rect.height === 0) {
     logger(el, 'Element has no size');
@@ -179,7 +219,7 @@ export function visibleRect(
     }
     const parentStyle = window.getComputedStyle(parent);
     if (parentStyle.overflow === 'hidden') {
-      const parentRect = parent.getBoundingClientRect();
+      const parentRect = getRect(parent, 1);
       const tolerance = 10;
 
       if (
@@ -203,6 +243,7 @@ export function visibleRect(
     top: Math.round(rect.top),
     width: Math.round(rect.width),
     height: Math.round(rect.height),
+    zoom: rect.zoom,
   };
 }
 
@@ -257,7 +298,17 @@ export function getNodeAttributes(
     if (!attr.value) {
       return [];
     }
-    return [attr.name, attr.value];
+
+    let value = attr.value;
+    if (value.startsWith('data:image')) {
+      value = `${value.split('base64,')[0]}...`;
+    }
+
+    const maxLength = 50;
+    if (value.length > maxLength) {
+      value = `${value.slice(0, maxLength)}...`;
+    }
+    return [attr.name, value];
   });
 
   return Object.fromEntries(attributesList);
@@ -265,7 +316,11 @@ export function getNodeAttributes(
 
 export function midsceneGenerateHash(content: string, rect: any): string {
   // Combine the input into a string
-  const combined = JSON.stringify({ content, rect });
+  const combined = JSON.stringify({
+    content,
+    rect,
+    _midscene_frame_id: getFrameId(),
+  });
   // Generates the ha-256 hash value
   // @ts-expect-error
   const hashHex = SHA256(combined);

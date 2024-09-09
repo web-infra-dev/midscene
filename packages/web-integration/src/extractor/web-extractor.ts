@@ -19,11 +19,20 @@ import {
   midsceneGenerateHash,
   setDataForNode,
   setDebugMode,
+  setFrameId,
   visibleRect,
 } from './util';
 
-function collectElementInfo(node: Node, nodePath: string): ElementInfo | null {
-  const rect = visibleRect(node);
+interface WebElementInfo extends ElementInfo {
+  zoom: number;
+}
+
+function collectElementInfo(
+  node: Node,
+  nodePath: string,
+  baseZoom = 1,
+): WebElementInfo | null {
+  const rect = visibleRect(node, baseZoom);
   logger('collectElementInfo', node, node.nodeName, rect);
   if (
     !rect ||
@@ -51,7 +60,7 @@ function collectElementInfo(node: Node, nodePath: string): ElementInfo | null {
       // Retrieve the text content of the selected option
       valueContent = selectedOption.textContent || '';
     }
-    const elementInfo: ElementInfo = {
+    const elementInfo: WebElementInfo = {
       id: nodeHashId,
       nodePath,
       nodeHashId,
@@ -69,6 +78,7 @@ function collectElementInfo(node: Node, nodePath: string): ElementInfo | null {
         Math.round(rect.top + rect.height / 2),
       ],
       htmlNode: debugMode ? node : null,
+      zoom: rect.zoom,
     };
     return elementInfo;
   }
@@ -79,7 +89,7 @@ function collectElementInfo(node: Node, nodePath: string): ElementInfo | null {
     const content = node.innerText || pseudo.before || pseudo.after || '';
     const nodeHashId = midsceneGenerateHash(content, rect);
     const selector = setDataForNode(node, nodeHashId);
-    const elementInfo: ElementInfo = {
+    const elementInfo: WebElementInfo = {
       id: nodeHashId,
       nodePath,
       nodeHashId,
@@ -96,6 +106,7 @@ function collectElementInfo(node: Node, nodePath: string): ElementInfo | null {
         Math.round(rect.top + rect.height / 2),
       ],
       htmlNode: debugMode ? node : null,
+      zoom: rect.zoom,
     };
     return elementInfo;
   }
@@ -104,13 +115,18 @@ function collectElementInfo(node: Node, nodePath: string): ElementInfo | null {
     const attributes = getNodeAttributes(node);
     const nodeHashId = midsceneGenerateHash('', rect);
     const selector = setDataForNode(node, nodeHashId);
-    const elementInfo: ElementInfo = {
+    const elementInfo: WebElementInfo = {
       id: nodeHashId,
       nodePath,
       nodeHashId,
       locator: selector,
       attributes: {
         ...attributes,
+        ...(node.nodeName.toLowerCase() === 'svg'
+          ? {
+              svgContent: 'true',
+            }
+          : {}),
         nodeType: NodeType.IMG,
       },
       nodeType: NodeType.IMG,
@@ -121,6 +137,7 @@ function collectElementInfo(node: Node, nodePath: string): ElementInfo | null {
         Math.round(rect.top + rect.height / 2),
       ],
       htmlNode: debugMode ? node : null,
+      zoom: rect.zoom,
     };
     return elementInfo;
   }
@@ -137,7 +154,7 @@ function collectElementInfo(node: Node, nodePath: string): ElementInfo | null {
     }
     const nodeHashId = midsceneGenerateHash(text, rect);
     const selector = setDataForNode(node, nodeHashId);
-    const elementInfo: ElementInfo = {
+    const elementInfo: WebElementInfo = {
       id: nodeHashId,
       nodePath,
       nodeHashId,
@@ -155,6 +172,7 @@ function collectElementInfo(node: Node, nodePath: string): ElementInfo | null {
       content: text,
       rect,
       htmlNode: debugMode ? node : null,
+      zoom: rect.zoom,
     };
     return elementInfo;
   }
@@ -163,7 +181,7 @@ function collectElementInfo(node: Node, nodePath: string): ElementInfo | null {
   const attributes = getNodeAttributes(node);
   const nodeHashId = midsceneGenerateHash('', rect);
   const selector = setDataForNode(node, nodeHashId);
-  const elementInfo: ElementInfo = {
+  const elementInfo: WebElementInfo = {
     id: nodeHashId,
     nodePath,
     nodeHashId,
@@ -180,6 +198,7 @@ function collectElementInfo(node: Node, nodePath: string): ElementInfo | null {
       Math.round(rect.top + rect.height / 2),
     ],
     htmlNode: debugMode ? node : null,
+    zoom: rect.zoom,
   };
   return elementInfo;
 }
@@ -187,17 +206,26 @@ function collectElementInfo(node: Node, nodePath: string): ElementInfo | null {
 export function extractTextWithPosition(
   initNode: Node,
   debugMode = false,
-): ElementInfo[] {
+  currentFrame = { id: 0, left: 0, top: 0 },
+): WebElementInfo[] {
   setDebugMode(debugMode);
-  const elementInfoArray: ElementInfo[] = [];
-  function dfs(node: Node, nodePath: string): ElementInfo | null {
+  setFrameId(currentFrame.id);
+  const elementInfoArray: WebElementInfo[] = [];
+  function dfs(
+    node: Node,
+    nodePath: string,
+    baseZoom = 1,
+  ): WebElementInfo | null {
     if (!node) {
       return null;
     }
 
-    const elementInfo = collectElementInfo(node, nodePath);
-    // stop collecting if the node is a Button
-    if (elementInfo?.nodeType === NodeType.BUTTON) {
+    const elementInfo = collectElementInfo(node, nodePath, baseZoom);
+    // stop collecting if the node is a Button or Image
+    if (
+      elementInfo?.nodeType === NodeType.BUTTON ||
+      elementInfo?.nodeType === NodeType.IMG
+    ) {
       return elementInfo;
     }
 
@@ -208,11 +236,15 @@ export function extractTextWithPosition(
       If a node is a pure container, and some of its siblings are not pure containers, then we should put this pure container into the elementInfoArray.
     */
     let hasNonContainerChildren = false;
-    const childrenPureContainers: ElementInfo[] = [];
+    const childrenPureContainers: WebElementInfo[] = [];
     for (let i = 0; i < node.childNodes.length; i++) {
       logger('will dfs', node.childNodes[i]);
       const resultLengthBeforeDfs = elementInfoArray.length;
-      const result = dfs(node.childNodes[i], `${nodePath}-${i}`);
+      const result = dfs(
+        node.childNodes[i],
+        `${nodePath}-${i}`,
+        elementInfo?.zoom,
+      );
 
       if (!result) continue;
 
@@ -251,6 +283,17 @@ export function extractTextWithPosition(
   // update all the ids
   for (let i = 0; i < elementInfoArray.length; i++) {
     elementInfoArray[i].indexId = (i + 1).toString();
+  }
+
+  if (currentFrame.left !== 0 || currentFrame.top !== 0) {
+    for (let i = 0; i < elementInfoArray.length; i++) {
+      elementInfoArray[i].rect.left += currentFrame.left;
+      elementInfoArray[i].rect.top += currentFrame.top;
+      elementInfoArray[i].center[0] += currentFrame.left;
+      elementInfoArray[i].center[1] += currentFrame.top;
+      elementInfoArray[i].nodePath =
+        `frame${currentFrame.id}-${elementInfoArray[i].nodePath}`;
+    }
   }
   return elementInfoArray;
 }

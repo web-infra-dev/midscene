@@ -14,9 +14,7 @@ export type MouseButton = 'left' | 'right' | 'middle';
 
 export abstract class AbstractPage {
   abstract pageType: string;
-  abstract screenshot(
-    options?: screenshotOptions,
-  ): Promise<Buffer | Uint8Array>;
+  abstract screenshot(options?: screenshotOptions): Promise<void>;
   abstract getElementInfos(): Promise<ElementInfo[]>;
   abstract url(): string;
 
