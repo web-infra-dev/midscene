@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { PageAgent } from '@/common/agent';
-import { PlaywrightPage } from '@/playwright';
+import { PlaywrightWebPage } from '@/playwright';
 import type { AgentWaitForOpt } from '@midscene/core/.';
 import { type TestInfo, type TestType, test } from '@playwright/test';
 import type { Page as OriginPlaywrightPage } from 'playwright';
@@ -41,7 +41,7 @@ export const PlaywrightAiFixture = () => {
       const { testId } = testInfo;
       const { taskFile, taskTitle } = groupAndCaseForTest(testInfo);
 
-      pageAgentMap[idForPage] = new PageAgent(new PlaywrightPage(page), {
+      pageAgentMap[idForPage] = new PageAgent(new PlaywrightWebPage(page), {
         testId: `playwright-${testId}-${idForPage}`,
         cacheId: taskFile,
         groupName: taskTitle,
