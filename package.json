@@ -1,58 +1,58 @@
 {
-  "name": "midscene",
-  "private": true,
-  "version": "0.4.0",
-  "scripts": {
-    "build:pkg": "nx run-many --target=build --projects=@midscene/core,@midscene/shared,@midscene/visualizer,@midscene/web --verbose",
-    "test": "nx run-many --target=test --projects=@midscene/core,--projects=@midscene/shared,@midscene/visualizer,@midscene/web --verbose",
-    "test:ai": "nx run-many --target=test:ai --projects=@midscene/core,@midscene/web --verbose",
-    "e2e": "nx run @midscene/web:e2e --verbose",
-    "e2e:cache": "nx run @midscene/web:e2e:cache --verbose",
-    "e2e:report": "nx run @midscene/web:e2e:report --verbose",
-    "test:ai:all": "npm run e2e && npm run e2e:cache && npm run e2e:report && npm run test:ai",
-    "prepare": "pnpm run build:pkg && simple-git-hooks",
-    "check-dependency-version": "check-dependency-version-consistency .",
-    "lint": "npx biome check . --diagnostic-level=warn --no-errors-on-unmatched --fix",
-    "format:ci": "pretty-quick --since HEAD~1",
-    "format": "pretty-quick --staged",
-    "commit": "cz",
-    "check-spell": "npx cspell"
-  },
-  "simple-git-hooks": {
-    "pre-commit": "npx nano-staged"
-  },
-  "nano-staged": {
-    "*.{md,mdx,json,css,less,scss}": "npx biome check . --diagnostic-level=warn --no-errors-on-unmatched --fix",
-    "*.{js,jsx,ts,tsx,mjs,cjs}": [
-      "npx biome check . --diagnostic-level=warn --no-errors-on-unmatched --fix"
-    ],
-    "package.json": "pnpm run check-dependency-version"
-  },
-  "keywords": [],
-  "author": "",
-  "license": "MIT",
-  "engines": {
-    "pnpm": ">=9.3.0",
-    "node": ">=18.19.0"
-  },
-  "packageManager": "pnpm@9.3.0",
-  "devDependencies": {
-    "@biomejs/biome": "1.8.3",
-    "@changesets/cli": "2.24.1",
-    "@commitlint/cli": "^17.0.3",
-    "@esm2cjs/execa": "6.1.1-cjs.1",
-    "@jsdevtools/version-bump-prompt": "6.1.0",
-    "chalk": "4.1.2",
-    "check-dependency-version-consistency": "^4.1.0",
-    "commitizen": "4.2.5",
-    "cspell-ban-words": "^0.0.3",
-    "dayjs": "1.11.11",
-    "minimist": "1.2.5",
-    "nano-staged": "^0.8.0",
-    "nx": "^19.5.4",
-    "prettier": "^3.3.3",
-    "pretty-quick": "3.1.3",
-    "semver": "7.3.7",
-    "simple-git-hooks": "^2.11.1"
-  }
+    "name": "midscene",
+    "private": true,
+    "version": "0.4.0",
+    "scripts": {
+        "build:pkg": "nx run-many --target=build --projects=@midscene/core,@midscene/shared,@midscene/visualizer,@midscene/web,@midscene/cli --verbose",
+        "test": "nx run-many --target=test --projects=@midscene/core,--projects=@midscene/shared,@midscene/visualizer,@midscene/web,@midscene/cli --verbose",
+        "test:ai": "nx run-many --target=test:ai --projects=@midscene/core,@midscene/web --verbose",
+        "e2e": "nx run @midscene/web:e2e --verbose",
+        "e2e:cache": "nx run @midscene/web:e2e:cache --verbose",
+        "e2e:report": "nx run @midscene/web:e2e:report --verbose",
+        "test:ai:all": "npm run e2e && npm run e2e:cache && npm run e2e:report && npm run test:ai",
+        "prepare": "pnpm run build:pkg && simple-git-hooks",
+        "check-dependency-version": "check-dependency-version-consistency .",
+        "lint": "npx biome check . --diagnostic-level=warn --no-errors-on-unmatched --fix",
+        "format:ci": "pretty-quick --since HEAD~1",
+        "format": "pretty-quick --staged",
+        "commit": "cz",
+        "check-spell": "npx cspell"
+      },
+      "simple-git-hooks": {
+        "pre-commit": "npx nano-staged"
+      },
+      "nano-staged": {
+        "*.{md,mdx,json,css,less,scss}": "npx biome check . --diagnostic-level=warn --no-errors-on-unmatched --fix",
+        "*.{js,jsx,ts,tsx,mjs,cjs}": [
+          "npx biome check . --diagnostic-level=warn --no-errors-on-unmatched --fix"
+        ],
+        "package.json": "pnpm run check-dependency-version"
+      },
+      "keywords": [],
+      "author": "",
+      "license": "MIT",
+      "engines": {
+        "pnpm": ">=9.3.0",
+        "node": ">=18.19.0"
+      },
+      "packageManager": "pnpm@9.3.0",
+      "devDependencies": {
+        "@biomejs/biome": "1.8.3",
+        "@changesets/cli": "2.24.1",
+        "@commitlint/cli": "^17.0.3",
+        "@esm2cjs/execa": "6.1.1-cjs.1",
+        "@jsdevtools/version-bump-prompt": "6.1.0",
+        "chalk": "4.1.2",
+        "check-dependency-version-consistency": "^4.1.0",
+        "commitizen": "4.2.5",
+        "cspell-ban-words": "^0.0.3",
+        "dayjs": "1.11.11",
+        "minimist": "1.2.5",
+        "nano-staged": "^0.8.0",
+        "nx": "^19.5.4",
+        "prettier": "^3.3.3",
+        "pretty-quick": "3.1.3",
+        "semver": "7.3.7",
+        "simple-git-hooks": "^2.11.1"
+      }
 }
