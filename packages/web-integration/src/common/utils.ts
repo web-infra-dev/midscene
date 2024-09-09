@@ -3,7 +3,6 @@ import type { Buffer } from 'node:buffer';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import type { ElementInfo } from '@/extractor';
-import type { Page as PuppeteerPage } from '@/puppeteer/page';
 import type { PlaywrightParserOpt, UIContext } from '@midscene/core';
 import { getTmpFile } from '@midscene/core/utils';
 import { findNearestPackageJson } from '@midscene/shared/fs';

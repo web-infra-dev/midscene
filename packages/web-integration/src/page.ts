@@ -9,13 +9,6 @@ export type screenshotOptions = {
   encoding?: encodingType;
   type?: imageType;
   quality?: number;
-  clip?: {
-    x: number;
-    y: number;
-    width: number;
-    height: number;
-    scale?: number;
-  };
 };
 export type MouseButton = 'left' | 'right' | 'middle';
 
@@ -26,7 +19,6 @@ export abstract class AbstractPage {
   ): Promise<Buffer | Uint8Array>;
   abstract getElementInfos(): Promise<ElementInfo[]>;
   abstract url(): string;
-  abstract evaluate?<T>(fn: (...args: any[]) => T): Promise<T>;
 
   get mouse() {
     return {
