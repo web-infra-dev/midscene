@@ -211,7 +211,11 @@ export function extractTextWithPosition(
   setDebugMode(debugMode);
   setFrameId(currentFrame.id);
   const elementInfoArray: WebElementInfo[] = [];
-  function dfs(node: Node, nodePath: string, baseZoom = 1): WebElementInfo | null {
+  function dfs(
+    node: Node,
+    nodePath: string,
+    baseZoom = 1,
+  ): WebElementInfo | null {
     if (!node) {
       return null;
     }
