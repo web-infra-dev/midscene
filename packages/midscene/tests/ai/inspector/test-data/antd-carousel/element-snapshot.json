@@ -345,23 +345,23 @@
     "indexId": "13"
   },
   {
-    "id": "3ac3d5bb90",
+    "id": "bb5656dc0a",
     "nodePath": "0-1-2-1-0-1-0-3-0-1-0",
-    "nodeHashId": "3ac3d5bb90",
+    "nodeHashId": "bb5656dc0a",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
       "nodeType": "TEXT Node"
     },
     "center": [
-      1711,
+      1710,
       32
     ],
-    "content": "5.20.4",
+    "content": "5.20.5",
     "rect": {
       "left": 1690,
       "top": 23,
-      "width": 41,
+      "width": 40,
       "height": 17,
       "zoom": 1
     },
