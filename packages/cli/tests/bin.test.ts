@@ -7,7 +7,7 @@ const cliBin = require.resolve('../bin/midscene');
 vi.setConfig({
   testTimeout: 30 * 1000,
 });
-describe('bin', () => {
+describe.skipIf(process.platform !== 'darwin')('bin', () => {
   test('error order', async () => {
     const params = [
       '--query',

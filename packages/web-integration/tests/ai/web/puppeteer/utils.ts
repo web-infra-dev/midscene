@@ -1,5 +1,5 @@
 import assert from 'node:assert';
-import { PuppeteerPage } from '@/puppeteer';
+import { PuppeteerWebPage } from '@/puppeteer';
 import puppeteer, { type Viewport } from 'puppeteer';
 
 export async function launchPage(
@@ -13,7 +13,7 @@ export async function launchPage(
     headless: typeof opt?.headless === 'boolean' ? opt.headless : true,
   });
   const originPage = (await browser.pages())[0];
-  const page = new PuppeteerPage(originPage);
+  const page = new PuppeteerWebPage(originPage);
   const viewportConfig = {
     width: opt?.viewport?.width || 1920,
     height: opt?.viewport?.height || 1080,

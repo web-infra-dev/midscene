@@ -61,7 +61,7 @@ describe(
         'find all inputs in the page, return the field name in string[]',
       );
 
-      console.log('widgets', widgets);
+      await reset();
     });
   },
   {

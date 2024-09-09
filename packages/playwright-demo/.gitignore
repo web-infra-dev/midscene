@@ -1,8 +1,0 @@
-node_modules/
-/test-results/
-/playwright-report/
-/blob-report/
-/playwright/.cache/
-
-# Midscene.js dump files
-midscene_run/
