@@ -7,7 +7,7 @@ if (process.argv.indexOf('--help') !== -1) {
     --user-agent <ua>           The user agent to use, optional
     --viewport-width <width>    The width of the viewport, optional
     --viewport-height <height>  The height of the viewport, optional
-    --viewport-scale <scale>    The device scale factor, optional
+    --viewport-scale <scale>    The device scale factor (dpr), optional
     --headed                    Run in headed mode, default false
     --help                      Display this help message
     --version                   Display the version

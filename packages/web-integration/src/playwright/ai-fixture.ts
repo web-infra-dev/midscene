@@ -1,11 +1,10 @@
 import { randomUUID } from 'node:crypto';
 import { PageAgent } from '@/common/agent';
-import type { WebPage } from '@/common/page';
+import { PlaywrightPage } from '@/playwright';
 import type { AgentWaitForOpt } from '@midscene/core/.';
 import { type TestInfo, type TestType, test } from '@playwright/test';
-import type { Page as PlaywrightPage } from 'playwright';
+import type { Page as OriginPlaywrightPage } from 'playwright';
 import type { PageTaskExecutor } from '../common/tasks';
-import { readTestCache, writeTestCache } from './cache';
 
 export type APITestType = Pick<TestType<any, any>, 'step'>;
 
@@ -32,7 +31,7 @@ export const midsceneDumpAnnotationId = 'MIDSCENE_DUMP_ANNOTATION';
 export const PlaywrightAiFixture = () => {
   const pageAgentMap: Record<string, PageAgent> = {};
   const agentForPage = (
-    page: WebPage,
+    page: OriginPlaywrightPage,
     testInfo: TestInfo, // { testId: string; taskFile: string; taskTitle: string },
   ) => {
     let idForPage = (page as any)[midsceneAgentKeyId];
@@ -41,15 +40,12 @@ export const PlaywrightAiFixture = () => {
       (page as any)[midsceneAgentKeyId] = idForPage;
       const { testId } = testInfo;
       const { taskFile, taskTitle } = groupAndCaseForTest(testInfo);
-      const testCase = readTestCache(taskFile, taskTitle) || {
-        aiTasks: [],
-      };
 
-      pageAgentMap[idForPage] = new PageAgent(page, {
+      pageAgentMap[idForPage] = new PageAgent(new PlaywrightPage(page), {
         testId: `playwright-${testId}-${idForPage}`,
+        cacheId: taskFile,
         groupName: taskTitle,
         groupDescription: taskFile,
-        cache: testCase,
         generateReport: false, // we will generate it in the reporter
       });
     }
@@ -72,11 +68,10 @@ export const PlaywrightAiFixture = () => {
 
   return {
     ai: async (
-      { page }: { page: PlaywrightPage },
+      { page }: { page: OriginPlaywrightPage },
       use: any,
       testInfo: TestInfo,
     ) => {
-      const { taskFile, taskTitle } = groupAndCaseForTest(testInfo);
       const agent = agentForPage(page, testInfo);
       await use(
         async (taskPrompt: string, opts?: { type?: 'action' | 'query' }) => {
@@ -90,16 +85,13 @@ export const PlaywrightAiFixture = () => {
           });
         },
       );
-      const taskCacheJson = agent.taskExecutor.taskCache.generateTaskCache();
-      writeTestCache(taskFile, taskTitle, taskCacheJson);
       updateDumpAnnotation(testInfo, agent.dumpDataString());
     },
     aiAction: async (
-      { page }: { page: PlaywrightPage },
+      { page }: { page: OriginPlaywrightPage },
       use: any,
       testInfo: TestInfo,
     ) => {
-      const { taskFile, taskTitle } = groupAndCaseForTest(testInfo);
       const agent = agentForPage(page, testInfo);
       await use(async (taskPrompt: string) => {
         test.step(`aiAction - ${taskPrompt}`, async () => {
@@ -107,11 +99,10 @@ export const PlaywrightAiFixture = () => {
           await agent.aiAction(taskPrompt);
         });
       });
-      // Why there's no cache here ?
       updateDumpAnnotation(testInfo, agent.dumpDataString());
     },
     aiQuery: async (
-      { page }: { page: PlaywrightPage },
+      { page }: { page: OriginPlaywrightPage },
       use: any,
       testInfo: TestInfo,
     ) => {
@@ -128,7 +119,7 @@ export const PlaywrightAiFixture = () => {
       updateDumpAnnotation(testInfo, agent.dumpDataString());
     },
     aiAssert: async (
-      { page }: { page: PlaywrightPage },
+      { page }: { page: OriginPlaywrightPage },
       use: any,
       testInfo: TestInfo,
     ) => {
@@ -145,7 +136,7 @@ export const PlaywrightAiFixture = () => {
       updateDumpAnnotation(testInfo, agent.dumpDataString());
     },
     aiWaitFor: async (
-      { page }: { page: PlaywrightPage },
+      { page }: { page: OriginPlaywrightPage },
       use: any,
       testInfo: TestInfo,
     ) => {

@@ -3,6 +3,7 @@ import {
   CONTAINER_MINI_WIDTH,
   NodeType,
 } from '@midscene/shared/constants';
+import type { ElementInfo } from '.';
 import {
   isButtonElement,
   isFormElement,
@@ -11,6 +12,7 @@ import {
 } from './dom-util';
 import {
   getDebugMode,
+  getDocument,
   getNodeAttributes,
   getPseudoElementContent,
   logger,
@@ -21,31 +23,15 @@ import {
   visibleRect,
 } from './util';
 
-export interface ElementInfo {
-  id: string;
-  indexId?: string; // for debug use
-  nodePath: string;
-  nodeHashId: string;
-  locator: string;
-  attributes: {
-    nodeType: NodeType;
-    [key: string]: string;
-  };
-  nodeType: NodeType;
-  htmlNode: Node | null;
-  content: string;
-  rect: { left: number; top: number; width: number; height: number };
-  center: [number, number];
+interface WebElementInfo extends ElementInfo {
   zoom: number;
 }
-
-const container: HTMLElement = document.body || document;
 
 function collectElementInfo(
   node: Node,
   nodePath: string,
   baseZoom = 1,
-): ElementInfo | null {
+): WebElementInfo | null {
   const rect = visibleRect(node, baseZoom);
   logger('collectElementInfo', node, node.nodeName, rect);
   if (
@@ -74,7 +60,7 @@ function collectElementInfo(
       // Retrieve the text content of the selected option
       valueContent = selectedOption.textContent || '';
     }
-    const elementInfo: ElementInfo = {
+    const elementInfo: WebElementInfo = {
       id: nodeHashId,
       nodePath,
       nodeHashId,
@@ -103,7 +89,7 @@ function collectElementInfo(
     const content = node.innerText || pseudo.before || pseudo.after || '';
     const nodeHashId = midsceneGenerateHash(content, rect);
     const selector = setDataForNode(node, nodeHashId);
-    const elementInfo: ElementInfo = {
+    const elementInfo: WebElementInfo = {
       id: nodeHashId,
       nodePath,
       nodeHashId,
@@ -129,7 +115,7 @@ function collectElementInfo(
     const attributes = getNodeAttributes(node);
     const nodeHashId = midsceneGenerateHash('', rect);
     const selector = setDataForNode(node, nodeHashId);
-    const elementInfo: ElementInfo = {
+    const elementInfo: WebElementInfo = {
       id: nodeHashId,
       nodePath,
       nodeHashId,
@@ -168,7 +154,7 @@ function collectElementInfo(
     }
     const nodeHashId = midsceneGenerateHash(text, rect);
     const selector = setDataForNode(node, nodeHashId);
-    const elementInfo: ElementInfo = {
+    const elementInfo: WebElementInfo = {
       id: nodeHashId,
       nodePath,
       nodeHashId,
@@ -195,7 +181,7 @@ function collectElementInfo(
   const attributes = getNodeAttributes(node);
   const nodeHashId = midsceneGenerateHash('', rect);
   const selector = setDataForNode(node, nodeHashId);
-  const elementInfo: ElementInfo = {
+  const elementInfo: WebElementInfo = {
     id: nodeHashId,
     nodePath,
     nodeHashId,
@@ -218,14 +204,14 @@ function collectElementInfo(
 }
 
 export function extractTextWithPosition(
-  initNode: Node = container,
+  initNode: Node,
   debugMode = false,
   currentFrame = { id: 0, left: 0, top: 0 },
-): ElementInfo[] {
+): WebElementInfo[] {
   setDebugMode(debugMode);
   setFrameId(currentFrame.id);
-  const elementInfoArray: ElementInfo[] = [];
-  function dfs(node: Node, nodePath: string, baseZoom = 1): ElementInfo | null {
+  const elementInfoArray: WebElementInfo[] = [];
+  function dfs(node: Node, nodePath: string, baseZoom = 1): WebElementInfo | null {
     if (!node) {
       return null;
     }
@@ -246,7 +232,7 @@ export function extractTextWithPosition(
       If a node is a pure container, and some of its siblings are not pure containers, then we should put this pure container into the elementInfoArray.
     */
     let hasNonContainerChildren = false;
-    const childrenPureContainers: ElementInfo[] = [];
+    const childrenPureContainers: WebElementInfo[] = [];
     for (let i = 0; i < node.childNodes.length; i++) {
       logger('will dfs', node.childNodes[i]);
       const resultLengthBeforeDfs = elementInfoArray.length;
@@ -285,7 +271,7 @@ export function extractTextWithPosition(
     return elementInfo;
   }
 
-  const outerMostElementInfo = dfs(initNode, '0');
+  const outerMostElementInfo = dfs(initNode || getDocument(), '0');
   if (outerMostElementInfo && !elementInfoArray.length) {
     elementInfoArray.push(outerMostElementInfo);
   }

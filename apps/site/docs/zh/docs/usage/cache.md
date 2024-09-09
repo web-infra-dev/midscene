@@ -4,7 +4,7 @@ Midscene.js 提供了 AI 缓存能力，用于提升整个 AI 执行过程的稳
 
 ## 使用说明
 
-目前缓存的能力仅在 `Playwright` 上进行了支持，Midscene 能够支持测试组级别的缓存。
+目前缓存的能力在所有场景下都进行了支持，Midscene 能够支持文件级别的缓存。
 
 **使用方式**
 
@@ -26,7 +26,7 @@ Midscene.js 提供了 AI 缓存能力，用于提升整个 AI 执行过程的稳
 
 ## 缓存内容
 
-目前 Midscene 在 Playwright 上的缓存策略主要是以测试组为单位，在每个测试组里的 AI 行为将发生缓存。目前缓存的内容主要有两类：
+目前 Midscene 在所有场景下的缓存策略主要是以测试文件为单位，在每个测试文件里的 AI 行为将发生缓存。目前缓存的内容主要有两类：
 
 * AI 对于任务的规划（Planning, 即 ai 和 aiAction 方法的结果）
 * AI 对于元素的识别
@@ -88,7 +88,7 @@ test('ai todo2', async ({ page, ai, aiQuery }) => {
 });
 ```
 
-上面的 `test` 将按照 `ai todo` 和 `ai todo2` 这两个维度产生缓存，分别会在项目的根目录中的 `midscene/midscene_run/cache` 中生成 `todo-mvc.spec:10(ai todo).json` 和 `todo-mvc.spec:13(ai todo2).json` 缓存文件。
+上面的 `test` 将按照 `ai todo` 和 `ai todo2` 这两个维度产生缓存，分别会在项目的根目录中的 `midscene/midscene_run/cache` 中生成 `todo-mvc.spec.ts-1.json` 和 `todo-mvc.spec.ts-2.json` 缓存文件。
 
 **缓存文件介绍**
 
@@ -97,82 +97,85 @@ test('ai todo2', async ({ page, ai, aiQuery }) => {
   "pkgName": "@midscene/web",
   // 当前使用的 midscene 版本
   "pkgVersion": "0.1.2",
-  // 测试文件地址和行数
-  "taskFile": "todo-mvc.spec.ts:10",
-  // 测试任务标题
-  "taskTitle": "ai todo",
+  // 测试文件地址和下标
+  "cacheId": "tests/ai/e2e/ai-auto-todo.spec.ts-1",
   "aiTasks": [
     {
-      // 任务类型，目前只有 plan 和 locate
-      // plan 为 AI 通过用户的任务决定
-      "type": "plan",
-      "pageContext": {
-        // AI 执行任务时的地址
-        "url": "https://todomvc.com/examples/react/dist/",
-        // 页面宽高
-        "size": {
-          "width": 1280,
-          "height": 720
-        }
-      },
       // 用户的 prompt 指令
       "prompt": "Enter \"Learn JS today\" in the task box, then press Enter to create",
-      "response": {
-        // AI 的任务
-        "plans": [
-          {
-            "thought": "The user wants to input a new task in the todo list input box and then press enter to create it. The input field is identified by its placeholder text 'What needs to be done?'.",
-            "type": "Locate",
-            "param": {
-              "prompt": "The input box with the placeholder text 'What needs to be done?'."
+      "tasks": [
+        {
+          // 任务类型，目前只有 plan 和 locate
+          // plan 为 AI 通过用户的任务决定
+          "type": "plan",
+          "pageContext": {
+            // AI 执行任务时的地址
+            "url": "https://todomvc.com/examples/react/dist/",
+            // 页面宽高
+            "size": {
+              "width": 1280,
+              "height": 720
             }
           },
-          {
-            "thought": "Once the input box is located, we need to enter the task description.",
-            "type": "Input",
-            "param": {
-              "value": "Learn JS today"
-            }
-          },
-          {
-            "thought": "After entering the task, we need to commit it by pressing 'Enter'.",
-            "type": "KeyboardPress",
-            "param": {
-              "value": "Enter"
-            }
+          // 用户的 prompt 指令
+          "prompt": "Enter \"Learn JS today\" in the task box, then press Enter to create",
+          "response": {
+            // AI 的任务
+            "plans": [
+              {
+                "thought": "The user wants to input a new task in the todo list input box and then press enter to create it. The input field is identified by its placeholder text 'What needs to be done?'.",
+                "type": "Locate",
+                "param": {
+                  "prompt": "The input box with the placeholder text 'What needs to be done?'."
+                }
+              },
+              {
+                "thought": "Once the input box is located, we need to enter the task description.",
+                "type": "Input",
+                "param": {
+                  "value": "Learn JS today"
+                }
+              },
+              {
+                "thought": "After entering the task, we need to commit it by pressing 'Enter'.",
+                "type": "KeyboardPress",
+                "param": {
+                  "value": "Enter"
+                }
+              }
+            ]
           }
-        ]
-      }
-    },
-    {
-      // locate 为需要查找特定元素
-      "type": "locate",
-      "pageContext": {
-        // AI 执行任务时的地址
-        "url": "https://todomvc.com/examples/react/dist/",
-        // 页面的宽高
-        "size": {
-          "width": 1280,
-          "height": 720
+        },
+        {
+          // locate 为需要查找特定元素
+          "type": "locate",
+          "pageContext": {
+            // AI 执行任务时的地址
+            "url": "https://todomvc.com/examples/react/dist/",
+            // 页面的宽高
+            "size": {
+              "width": 1280,
+              "height": 720
+            }
+          },
+          // 用户的 prompt 指令
+          "prompt": "The input box with the placeholder text 'What needs to be done?'.",
+          "response": {
+            // 返回的元素内容
+            "elements": [
+              {
+                // AI 为什么找到了这个元素
+                "reason": "The element with ID '3530a9c1eb' is an INPUT Node. Its placeholder text is 'What needs to be done?', which matches the user's description.",
+                // 元素的文本
+                "text": "What needs to be done?",
+                // 基于元素生成的唯一 ID（基于位置和大小生成）
+                "id": "3530a9c1eb"
+              }
+            ],
+            "errors": []
+          }
         }
-      },
-      // 用户的 prompt 指令
-      "prompt": "The input box with the placeholder text 'What needs to be done?'.",
-      "response": {
-        // 返回的元素内容
-        "elements": [
-          {
-            // AI 为什么找到了这个元素
-            "reason": "The element with ID '3530a9c1eb' is an INPUT Node. Its placeholder text is 'What needs to be done?', which matches the user's description.",
-            // 元素的文本
-            "text": "What needs to be done?",
-            // 基于元素生成的唯一 ID（基于位置和大小生成）
-            "id": "3530a9c1eb"
-          }
-        ],
-        "errors": []
-      }
-    }
+      ]
   ]
   //...
 }
@@ -192,7 +195,7 @@ test('ai todo2', async ({ page, ai, aiQuery }) => {
 缓存能力主要解决了以下问题：
 
 1. AI 响应延迟高，一个任务将会耗费几秒钟，当有几十条甚至几百条任务时将会有较高的耗时
-2. AI 响应稳定性，通过调教和实验中我们发现 GPT-4 在页面元素识别的任务上有 90%+ 的准确率，但尚无法达到 100% 的准确率，通过缓存能力能够有效降低线上稳定性问题
+2. AI 响应稳定性，通过调教和实验中我们发现 GPT-4 在页面元素识别的任务上有 95%+ 的准确率，但尚无法达到 100% 的准确率，通过缓存能力能够有效降低线上稳定性问题
 
 ### 未命中缓存会发生什么？
 

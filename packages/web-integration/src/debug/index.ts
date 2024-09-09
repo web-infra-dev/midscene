@@ -1,14 +1,14 @@
-import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import type { WebPage } from '@/common/page';
+import type { ElementInfo } from '@/extractor';
 import { NodeType } from '@/extractor/constants';
-import type { ElementInfo } from '@/extractor/extractor';
+import { getTmpFile } from '@midscene/core/utils';
 import {
   processImageElementInfo,
   resizeImg,
   saveBase64Image,
 } from '@midscene/shared/img';
-import { getElementInfosFromPage } from '../common/utils';
 
 export async function generateExtractData(
   page: WebPage,
@@ -21,10 +21,11 @@ export async function generateExtractData(
     disableSnapshot: boolean;
   },
 ) {
-  const buffer = await page.screenshot({
-    encoding: 'base64',
-  });
-  const inputImgBase64 = buffer.toString('base64');
+  const file = getTmpFile('png');
+  await page.screenshot({ path: file });
+  const screenshotBuffer = readFileSync(file);
+
+  const inputImgBase64 = screenshotBuffer.toString('base64');
 
   const {
     elementsPositionInfo,
@@ -50,7 +51,7 @@ export async function generateExtractData(
     inputImgBase64,
   });
 
-  const resizeImgBase64 = await resizeImg(inputImgBase64);
+  const resizeImgBase64 = (await resizeImg(inputImgBase64)) as string;
 
   if (!saveImgType?.disableSnapshot) {
     writeFileSyncWithDir(
@@ -117,9 +118,9 @@ export function writeFileSyncWithDir(
   writeFileSync(filePath, content, options);
 }
 
-export async function getElementInfos(page: any) {
+export async function getElementInfos(page: WebPage) {
   const captureElementSnapshot: Array<ElementInfo> =
-    await getElementInfosFromPage(page);
+    await page.getElementInfos();
 
   const elementsPositionInfo = captureElementSnapshot.map(
     (elementInfo, index) => {

@@ -7,6 +7,7 @@ import type {
   UIContext,
   UISection,
 } from '@/types';
+import type { ResponseFormatJSONSchema } from 'openai/resources';
 
 const characteristic =
   'You are a versatile professional in software UI design and testing. Your outstanding contributions will impact the user experience of billions of users.';
@@ -123,6 +124,37 @@ Return in the following JSON format:
 `;
 }
 
+export const extractDataSchema: ResponseFormatJSONSchema = {
+  type: 'json_schema',
+  json_schema: {
+    name: 'extract_data',
+    strict: true,
+    schema: {
+      type: 'object',
+      properties: {
+        language: {
+          type: 'string',
+          enum: ['en', 'zh'],
+          description: 'The language of the page',
+        },
+        data: {
+          type: 'object',
+          description: 'The extracted data from extract_data_from_UI skill',
+        },
+        errors: {
+          type: 'array',
+          items: {
+            type: 'string',
+          },
+          description: 'Error messages, if any',
+        },
+      },
+      required: ['language', 'data', 'errors'],
+      additionalProperties: false,
+    },
+  },
+};
+
 export function systemPromptToAssert() {
   return `
 ${characteristic}
@@ -137,6 +169,29 @@ Return in the following JSON format:
 }
 `;
 }
+
+export const assertSchema: ResponseFormatJSONSchema = {
+  type: 'json_schema',
+  json_schema: {
+    name: 'assert',
+    strict: true,
+    schema: {
+      type: 'object',
+      properties: {
+        thought: {
+          type: 'string',
+          description: 'The thought process behind the assertion',
+        },
+        pass: {
+          type: 'boolean',
+          description: 'Whether the assertion passed or failed',
+        },
+      },
+      required: ['thought', 'pass'],
+      additionalProperties: false,
+    },
+  },
+};
 
 /*
 To modify the response format:

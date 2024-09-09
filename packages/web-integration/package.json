@@ -62,7 +62,10 @@
     "build:watch": "modern build -w -c ./modern.config.ts & modern build -w -c ./modern.inspect.config.ts",
     "test": "vitest --run",
     "test:u": "vitest --run -u",
-    "test:ai": "AITEST=true npm run test",
+    "test:ai": "AI_TEST_TYPE=web npm run test",
+    "test:ai:cache": "MIDSCENE_CACHE=true AI_TEST_TYPE=web npm run test",
+    "test:ai:all": "npm run test:ai:web && npm run test:ai:native",
+    "test:ai:native": "MIDSCENE_CACHE=true AI_TEST_TYPE=native npm run test",
     "new": "modern new",
     "upgrade": "modern upgrade",
     "prepublishOnly": "npm run build",
@@ -74,34 +77,41 @@
   },
   "files": ["dist", "README.md"],
   "dependencies": {
-    "openai": "4.47.1",
+    "openai": "4.57.1",
     "inquirer": "10.1.5",
     "@midscene/core": "workspace:*",
-    "@midscene/shared": "workspace:*"
+    "@midscene/shared": "workspace:*",
+    "@xmldom/xmldom": "0.8.10"
   },
   "devDependencies": {
     "@modern-js/module-tools": "2.58.2",
-    "js-sha256": "0.11.0",
+    "@playwright/test": "1.44.1",
+    "@types/fs-extra": "11.0.4",
     "@types/node": "^18.0.0",
-    "typescript": "~5.0.4",
-    "vitest": "^1.6.0",
+    "@wdio/types": "9.0.4",
+    "dotenv": "16.4.5",
+    "fs-extra": "11.2.0",
+    "js-sha256": "0.11.0",
     "playwright": "1.44.1",
     "puppeteer": "23.0.2",
-    "@playwright/test": "1.44.1",
-    "fs-extra": "11.2.0",
-    "@types/fs-extra": "11.0.4",
-    "dotenv": "16.4.5"
+    "typescript": "~5.0.4",
+    "vitest": "^1.6.0",
+    "webdriverio": "9.0.6"
   },
   "peerDependencies": {
     "@playwright/test": "^1.44.1",
     "playwright": "^1.44.1",
-    "puppeteer": ">=20.0.0"
+    "puppeteer": ">=20.0.0",
+    "webdriverio": ">=9.0.6"
   },
   "peerDependenciesMeta": {
     "@playwright/test": {
       "optional": true
     },
     "puppeteer": {
+      "optional": true
+    },
+    "webdriverio": {
       "optional": true
     }
   },

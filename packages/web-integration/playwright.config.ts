@@ -18,7 +18,7 @@ dotenv.config({
  */
 export default defineConfig({
   // testDir: './tests/ai/e2e',
-  // testIgnore: 'generate-test-data.spec.ts',
+  testIgnore: 'generate-test-data.spec.ts',
   timeout: 900 * 1000,
   /* Run tests in files in parallel */
   fullyParallel: true,
@@ -45,12 +45,12 @@ export default defineConfig({
     MIDSCENE_REPORT
       ? {
           name: 'report',
-          testDir: './tests/ai/report',
+          testDir: './tests/ai/web/playwright-report-test',
           use: { ...devices['Desktop Chrome'] },
         }
       : {
           name: 'e2e',
-          testDir: './tests/ai/e2e',
+          testDir: './tests/ai/web/playwright',
           use: { ...devices['Desktop Chrome'] },
         },
   ],

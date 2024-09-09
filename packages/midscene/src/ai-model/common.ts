@@ -1,3 +1,4 @@
+import type OpenAI from 'openai';
 import type {
   ChatCompletionSystemMessageParam,
   ChatCompletionUserMessageParam,
@@ -32,7 +33,7 @@ export async function callAiFn<T>(options: {
 }) {
   const { useModel, msgs, AIActionType: AIActionTypeValue } = options;
   if (useOpenAIModel(useModel)) {
-    const parseResult = await callToGetJSONObject<T>(msgs);
+    const parseResult = await callToGetJSONObject<T>(msgs, AIActionTypeValue);
     return parseResult;
   }
 

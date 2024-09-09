@@ -1,5 +1,6 @@
-import { extractTextWithPosition } from '.';
+import { webExtractTextWithPosition } from '.';
+import { setExtractTextWithPositionOnWindow } from './util';
 
-console.log(extractTextWithPosition(document.body, true));
-console.log(JSON.stringify(extractTextWithPosition(document.body, false)));
-(window as any).extractTextWithPosition = extractTextWithPosition;
+console.log(webExtractTextWithPosition(document.body, true));
+console.log(JSON.stringify(webExtractTextWithPosition(document.body, false)));
+setExtractTextWithPositionOnWindow();

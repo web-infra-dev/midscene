@@ -5,8 +5,7 @@ test.beforeEach(async ({ page }) => {
   await page.goto('https://todomvc.com/examples/react/dist/');
 });
 
-const CACHE_TIME_OUT =
-  Boolean(process.env.MIDSCENE_CACHE) && Boolean(process.env.GITHUB_ACTIONS);
+const CACHE_TIME_OUT = process.env.MIDSCENE_CACHE;
 
 test('ai todo', async ({ ai, aiQuery }) => {
   if (CACHE_TIME_OUT) {
