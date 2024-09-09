@@ -24,32 +24,8 @@ export async function parseContextFromWebPage(
 
   const url = page.url();
   const file = getTmpFile('jpeg');
+  await page.screenshot({ path: file });
 
-  // get viewport size from page
-  const viewportSize: {
-    width: number;
-    height: number;
-    deviceScaleFactor: number;
-  } = await (page as PuppeteerPage).evaluate(() => {
-    return {
-      width: document.documentElement.clientWidth,
-      height: document.documentElement.clientHeight,
-      deviceScaleFactor: window.devicePixelRatio,
-    };
-  });
-
-  await page.screenshot({
-    path: file,
-    type: 'jpeg',
-    quality: 75,
-    clip: {
-      x: 0,
-      y: 0,
-      width: viewportSize.width,
-      height: viewportSize.height,
-      scale: 1 / viewportSize.deviceScaleFactor,
-    },
-  });
   const screenshotBuffer = readFileSync(file);
   const screenshotBase64 = base64Encoded(file);
   const captureElementSnapshot = await page.getElementInfos();

@@ -288,9 +288,15 @@
     "indexId": "11"
   },
   {
+<<<<<<< HEAD
     "id": "0c617de29d",
     "nodePath": "0-5-3-1-1-0-0",
     "nodeHashId": "0c617de29d",
+=======
+    "id": "237fb543b4",
+    "nodePath": "0-5-3-1-1-0-0",
+    "nodeHashId": "237fb543b4",
+>>>>>>> @{-1}
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
@@ -305,17 +311,27 @@
       "left": 355,
       "top": 77,
       "width": 81,
+<<<<<<< HEAD
       "height": 17,
       "zoom": 1
+=======
+      "height": 17
+>>>>>>> @{-1}
     },
     "htmlNode": null,
     "zoom": 1,
     "indexId": "12"
   },
   {
+<<<<<<< HEAD
     "id": "552e9677b9",
     "nodePath": "0-5-3-1-1-1",
     "nodeHashId": "552e9677b9",
+=======
+    "id": "2ba1908c18",
+    "nodePath": "0-5-3-1-1-1",
+    "nodeHashId": "2ba1908c18",
+>>>>>>> @{-1}
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
@@ -330,8 +346,12 @@
       "left": 436,
       "top": 77,
       "width": 456,
+<<<<<<< HEAD
       "height": 17,
       "zoom": 1
+=======
+      "height": 17
+>>>>>>> @{-1}
     },
     "htmlNode": null,
     "zoom": 1,
