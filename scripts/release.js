@@ -33,13 +33,13 @@ async function main() {
     );
   }
 
-  // run tests before release
-  step('\nRunning tests...');
-  await test();
-
   // build all packages with types
   step('\nBuilding all packages...');
   await build();
+
+  // run tests before release
+  step('\nRunning tests...');
+  await test();
 
   // lint all packages with types
   step('\nlint all packages...');
