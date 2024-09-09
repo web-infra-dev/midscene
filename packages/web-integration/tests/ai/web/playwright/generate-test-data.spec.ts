@@ -59,6 +59,42 @@ test('generate githubstatus test data', async ({ page }) => {
   );
 });
 
+test('antd widget pagination', async ({ page }) => {
+  const playwrightPage = new PlaywrightPage(page);
+
+  await page.setViewportSize({ width: 1920, height: 1080 });
+  await page.goto('https://ant.design/components/pagination-cn');
+  await page.waitForLoadState('networkidle');
+  await generateExtractData(
+    playwrightPage,
+    generateTestDataPath('antd-pagination'),
+  );
+});
+
+test('antd widget - tooltip', async ({ page }) => {
+  const playwrightPage = new PlaywrightPage(page);
+
+  await page.setViewportSize({ width: 1920, height: 1080 });
+  await page.goto('https://ant.design/components/tooltip-cn');
+  await page.waitForLoadState('networkidle');
+  await generateExtractData(
+    playwrightPage,
+    generateTestDataPath('antd-tooltip'),
+  );
+});
+
+test('antd widget - carousel', async ({ page }) => {
+  const playwrightPage = new PlaywrightPage(page);
+
+  await page.setViewportSize({ width: 1920, height: 1080 });
+  await page.goto('https://ant.design/components/carousel-cn');
+  await page.waitForLoadState('networkidle');
+  await generateExtractData(
+    playwrightPage,
+    generateTestDataPath('antd-carousel'),
+  );
+});
+
 test('generate online order test data', async ({ page }) => {
   const playwrightPage = new PlaywrightPage(page);
 

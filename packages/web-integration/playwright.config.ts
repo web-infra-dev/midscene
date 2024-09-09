@@ -18,10 +18,10 @@ dotenv.config({
  */
 export default defineConfig({
   // testDir: './tests/ai/e2e',
-  testIgnore: 'generate-test-data.spec.ts',
+  // testIgnore: 'generate-test-data.spec.ts',
   timeout: 900 * 1000,
   /* Run tests in files in parallel */
-  fullyParallel: true,
+  fullyParallel: false,
   /* Fail the build on CI if you accidentally left test.only in the source code. */
   forbidOnly: Boolean(process.env.CI),
   /* Retry on CI only */
