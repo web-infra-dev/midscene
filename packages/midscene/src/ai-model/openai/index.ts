@@ -78,7 +78,7 @@ export async function callToGetJSONObject<T>(
   messages: ChatCompletionMessageParam[],
   AIActionTypeValue: AIActionType,
 ): Promise<T> {
-  // gpt-4o-2024-05-13 only support json_object response format
+  // gpt-4o-2024-05-13 only supports json_object response format
   let responseFormat:
     | OpenAI.ChatCompletionCreateParams['response_format']
     | OpenAI.ResponseFormatJSONObject = {
