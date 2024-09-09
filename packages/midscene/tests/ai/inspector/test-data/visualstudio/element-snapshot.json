@@ -266,32 +266,32 @@
     "indexId": "11"
   },
   {
-    "id": "6a500751d6",
+    "id": "237fb543b4",
     "nodePath": "0-5-3-1-1-0-0",
-    "nodeHashId": "6a500751d6",
+    "nodeHashId": "237fb543b4",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
       "nodeType": "TEXT Node"
     },
     "center": [
-      406,
+      396,
       86
     ],
-    "content": "Version 1.92",
+    "content": "Version 1.93",
     "rect": {
-      "left": 366,
+      "left": 355,
       "top": 77,
-      "width": 80,
+      "width": 81,
       "height": 17
     },
     "htmlNode": null,
     "indexId": "12"
   },
   {
-    "id": "526f9ea4de",
+    "id": "2ba1908c18",
     "nodePath": "0-5-3-1-1-1",
-    "nodeHashId": "526f9ea4de",
+    "nodeHashId": "2ba1908c18",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
@@ -301,11 +301,11 @@
       664,
       86
     ],
-    "content": "is now available! Read about the new features and fixes from July.",
+    "content": "is now available! Read about the new features and fixes from August.",
     "rect": {
-      "left": 446,
+      "left": 436,
       "top": 77,
-      "width": 436,
+      "width": 456,
       "height": 17
     },
     "htmlNode": null,

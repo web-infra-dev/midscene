@@ -48,6 +48,21 @@ describe(
 
       await reset();
     });
+
+    it('find widgets in antd', async () => {
+      const { page, reset } = await launchPage(
+        'https://ant.design/components/form-cn/',
+      );
+      const mid = new PuppeteerAgent(page);
+
+      await mid.aiAction('scroll down two screen');
+
+      const widgets = await mid.aiQuery(
+        'find all inputs in the page, return the field name in string[]',
+      );
+
+      console.log('widgets', widgets);
+    });
   },
   {
     timeout: 180 * 1000,
