@@ -1,4 +1,4 @@
-import { readFileSync, writeFileSync } from 'fs';
+import { readFileSync, writeFileSync } from 'node:fs';
 import { resizeImg } from '@midscene/shared/img';
 import type { Page as PlaywrightPage } from 'playwright';
 import type { Page as PuppeteerPage } from 'puppeteer';
