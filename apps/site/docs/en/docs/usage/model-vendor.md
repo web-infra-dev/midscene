@@ -17,6 +17,9 @@ Optional:
 # optional, if you want to use a customized endpoint
 export OPENAI_BASE_URL="https://..."
 
+# optional, if you want to use Azure OpenAI Service
+export OPENAI_USE_AZURE="true"
+
 # optional, if you want to specify a model name other than gpt-4o
 export MIDSCENE_MODEL_NAME='claude-3-opus-20240229';
 

@@ -17,6 +17,9 @@ export OPENAI_API_KEY="sk-abcdefghijklmnopqrstuvwxyz"
 # 可选, 如果你想更换 base URL
 export OPENAI_BASE_URL="https://..."
 
+# 可选, 如果你想使用 Azure OpenAI 服务
+export OPENAI_USE_AZURE="true"
+
 # 可选, 如果你想指定模型名称
 export MIDSCENE_MODEL_NAME='claude-3-opus-20240229';
 
