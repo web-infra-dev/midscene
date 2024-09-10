@@ -21,17 +21,16 @@ export function getLastModifiedReportHTMLFile(dirPath: string) {
       ) {
         // Read the file content
         const content = fs.readFileSync(filePath, 'utf8');
-        // Check if the content includes 'todo report'
         if (
+          stats.mtimeMs > latestMtime &&
           content.includes(
-            '"groupDescription":"tests/ai/e2e/ai-auto-todo.spec.ts"',
+            '"groupDescription":"tests/ai/web/playwright/ai-auto-todo.spec.ts"',
           )
         ) {
-          if (stats.mtimeMs > latestMtime) {
-            latestMtime = stats.mtimeMs;
-            latestFile = filePath;
-            // console.log('filePath', filePath);
-          }
+          // Check if the content includes 'todo report'
+          latestMtime = stats.mtimeMs;
+          latestFile = filePath;
+          // console.log('filePath', filePath);
         }
       }
     });
