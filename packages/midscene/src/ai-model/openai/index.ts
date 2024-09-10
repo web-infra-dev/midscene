@@ -1,7 +1,7 @@
 import assert from 'node:assert';
 import { AIResponseFormat } from '@/types';
 import { wrapOpenAI } from 'langsmith/wrappers';
-import OpenAI, { type ClientOptions } from 'openai';
+import OpenAI, { type ClientOptions, AzureOpenAI } from 'openai';
 import type { ChatCompletionMessageParam } from 'openai/resources';
 import { planSchema } from '../automation/planning';
 import { AIActionType } from '../common';
@@ -14,6 +14,8 @@ export const MIDSCENE_MODEL_NAME = 'MIDSCENE_MODEL_NAME';
 export const MIDSCENE_LANGSMITH_DEBUG = 'MIDSCENE_LANGSMITH_DEBUG';
 export const MIDSCENE_DEBUG_AI_PROFILE = 'MIDSCENE_DEBUG_AI_PROFILE';
 export const OPENAI_API_KEY = 'OPENAI_API_KEY';
+
+const OPENAI_USE_AZURE = 'OPENAI_USE_AZURE';
 
 export function useOpenAIModel(useModel?: 'coze' | 'openAI') {
   if (useModel && useModel !== 'openAI') return false;
@@ -39,7 +41,13 @@ if (typeof process.env[MIDSCENE_MODEL_NAME] === 'string') {
 }
 
 async function createOpenAI() {
-  const openai = new OpenAI(extraConfig);
+  let openai: OpenAI | AzureOpenAI;
+  if (process.env[OPENAI_USE_AZURE]) {
+    console.log('Using Azure OpenAI');
+    openai = new AzureOpenAI(extraConfig);
+  } else {
+    openai = new OpenAI(extraConfig);
+  }
 
   if (process.env[MIDSCENE_LANGSMITH_DEBUG]) {
     console.log('DEBUGGING MODE: langsmith wrapper enabled');
@@ -105,5 +113,5 @@ export async function callToGetJSONObject<T>(
 
   const response = await call(messages, responseFormat);
   assert(response, 'empty response');
-  return JSON.parse(response);
+  return JSON.parse(response.replace(/^```json\n|\n```$/g, ''));
 }

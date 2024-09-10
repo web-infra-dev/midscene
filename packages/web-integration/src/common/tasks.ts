@@ -158,7 +158,7 @@ export class PageTaskExecutor {
                   dump: insightDump,
                 },
                 cache: {
-                  hit: Boolean(locateResult),
+                  hit: Boolean(locateCache),
                 },
               };
             },
