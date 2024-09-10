@@ -6,3 +6,4 @@ There are different folders with different type of project:
 
 * [Playwright-demo](https://github.com/web-infra-dev/midscene-example/blob/main/playwright-demo)
 * [Puppeteer-demo](https://github.com/web-infra-dev/midscene-example/blob/main/puppeteer-demo)
+* [Use as command line tool](https://github.com/web-infra-dev/midscene-example/blob/main/command-line)
