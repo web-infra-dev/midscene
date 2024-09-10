@@ -345,9 +345,9 @@
     "indexId": "13"
   },
   {
-    "id": "bb5656dc0a",
+    "id": "60bbed8d18",
     "nodePath": "0-1-2-1-0-1-0-3-0-1-0",
-    "nodeHashId": "bb5656dc0a",
+    "nodeHashId": "60bbed8d18",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
@@ -357,7 +357,7 @@
       1710,
       32
     ],
-    "content": "5.20.5",
+    "content": "5.20.6",
     "rect": {
       "left": 1690,
       "top": 23,

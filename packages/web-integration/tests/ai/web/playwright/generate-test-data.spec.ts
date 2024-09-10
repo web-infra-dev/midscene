@@ -1,5 +1,5 @@
 import { generateExtractData, generateTestDataPath } from '@/debug';
-import { PlaywrightPage } from '@/playwright';
+import { PlaywrightWebPage } from '@/playwright';
 import { test } from '@playwright/test';
 
 function sleep(time: number) {
@@ -11,7 +11,7 @@ function sleep(time: number) {
 }
 
 test('generate todo test data', async ({ page }) => {
-  const playwrightPage = new PlaywrightPage(page);
+  const playwrightPage = new PlaywrightWebPage(page);
   await page.goto('https://todomvc.com/examples/react/dist/');
   // Add data
   await page.getByTestId('text-input').click();
@@ -34,7 +34,7 @@ test('generate todo test data', async ({ page }) => {
 });
 
 test('generate visualstudio test data', async ({ page }) => {
-  const playwrightPage = new PlaywrightPage(page);
+  const playwrightPage = new PlaywrightWebPage(page);
 
   await page.goto('https://code.visualstudio.com/');
   await page.waitForLoadState('networkidle');
@@ -46,7 +46,7 @@ test('generate visualstudio test data', async ({ page }) => {
 });
 
 test('generate githubstatus test data', async ({ page }) => {
-  const playwrightPage = new PlaywrightPage(page);
+  const playwrightPage = new PlaywrightWebPage(page);
 
   await page.setViewportSize({ width: 1920, height: 1080 });
   await page.goto('https://www.githubstatus.com/');
@@ -60,7 +60,7 @@ test('generate githubstatus test data', async ({ page }) => {
 });
 
 test('antd widget pagination', async ({ page }) => {
-  const playwrightPage = new PlaywrightPage(page);
+  const playwrightPage = new PlaywrightWebPage(page);
 
   await page.setViewportSize({ width: 1920, height: 1080 });
   await page.goto('https://ant.design/components/pagination-cn');
@@ -72,7 +72,7 @@ test('antd widget pagination', async ({ page }) => {
 });
 
 test('antd widget - tooltip', async ({ page }) => {
-  const playwrightPage = new PlaywrightPage(page);
+  const playwrightPage = new PlaywrightWebPage(page);
 
   await page.setViewportSize({ width: 1920, height: 1080 });
   await page.goto('https://ant.design/components/tooltip-cn');
@@ -84,7 +84,7 @@ test('antd widget - tooltip', async ({ page }) => {
 });
 
 test('antd widget - carousel', async ({ page }) => {
-  const playwrightPage = new PlaywrightPage(page);
+  const playwrightPage = new PlaywrightWebPage(page);
 
   await page.setViewportSize({ width: 1920, height: 1080 });
   await page.goto('https://ant.design/components/carousel-cn');
@@ -96,7 +96,7 @@ test('antd widget - carousel', async ({ page }) => {
 });
 
 test('generate online order test data', async ({ page }) => {
-  const playwrightPage = new PlaywrightPage(page);
+  const playwrightPage = new PlaywrightWebPage(page);
 
   page.setViewportSize({ width: 400, height: 905 });
   await page.goto('https://heyteavivocity.meuu.online/home');
