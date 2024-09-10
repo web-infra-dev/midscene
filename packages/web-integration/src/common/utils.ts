@@ -97,9 +97,9 @@ export function printReportMsg(filepath: string) {
  * Get the current execution file name
  * @returns The name of the current execution file
  */
-export function getCurrentExecutionFile(): string | false {
+export function getCurrentExecutionFile(trace?: string): string | false {
   const error = new Error();
-  const stackTrace = error.stack;
+  const stackTrace = trace || error.stack;
   const pkgDir = process.cwd() || '';
   if (stackTrace) {
     const stackLines = stackTrace.split('\n');
