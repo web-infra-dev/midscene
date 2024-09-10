@@ -18,6 +18,11 @@ export type AIArgs = [
   ChatCompletionUserMessageParam,
 ];
 
+export enum RequestType {
+  GET = 'GET',
+  POST = 'POST',
+}
+
 export enum AIActionType {
   ASSERT = 0,
   INSPECT_ELEMENT = 1,
@@ -53,6 +58,7 @@ export async function callAiFn<T>(options: {
         botId = COZE_AI_ACTION_BOT_ID;
     }
     const cozeMsg = transfromOpenAiArgsToCoze(msgs[1]);
+    // awati setupCoze()
     const parseResult = await callCozeAi<T>({
       ...cozeMsg,
       botId,

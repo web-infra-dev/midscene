@@ -208,3 +208,22 @@ export function findNearestPackageJson(dir: string): string | null {
 
   return findNearestPackageJson(parentDir);
 }
+
+export enum MidsceneLogType {
+  cozeRequestFailure = 'fetch coze failure',
+  cozeHostNotSet = 'coze hoset env variable not set',
+  cozeTokenNotSet = 'coze token not set',
+}
+
+export function midsceneLog(
+  logType: MidsceneLogType,
+  options?: {
+    error?: Error | unknown;
+    msg?: string;
+  },
+) {
+  // todo bai: handle log according to different log type,
+  console.log('------');
+  console.log(`${logType}:`, options ? JSON.stringify(options) : '');
+  throw new Error(logType);
+}
