@@ -15,6 +15,8 @@ export const MIDSCENE_LANGSMITH_DEBUG = 'MIDSCENE_LANGSMITH_DEBUG';
 export const MIDSCENE_DEBUG_AI_PROFILE = 'MIDSCENE_DEBUG_AI_PROFILE';
 export const OPENAI_API_KEY = 'OPENAI_API_KEY';
 
+const OPENAI_USE_AZURE = 'OPENAI_USE_AZURE';
+
 export function useOpenAIModel(useModel?: 'coze' | 'openAI') {
   if (useModel && useModel !== 'openAI') return false;
   if (process.env[OPENAI_API_KEY]) return true;
@@ -40,11 +42,11 @@ if (typeof process.env[MIDSCENE_MODEL_NAME] === 'string') {
 
 async function createOpenAI() {
   let openai: OpenAI | AzureOpenAI;
-  if (model.startsWith('gpt')) {
-    openai = new OpenAI(extraConfig);
-  } else {
+  if (process.env[OPENAI_USE_AZURE]) {
+    console.log('Using Azure OpenAI');
     openai = new AzureOpenAI(extraConfig);
-    return openai;
+  } else {
+    openai = new OpenAI(extraConfig);
   }
 
   if (process.env[MIDSCENE_LANGSMITH_DEBUG]) {
