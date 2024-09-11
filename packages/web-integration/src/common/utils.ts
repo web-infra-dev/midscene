@@ -1,5 +1,6 @@
 import assert from 'node:assert';
 import type { Buffer } from 'node:buffer';
+import { randomUUID } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import type { ElementInfo } from '@/extractor';
@@ -96,9 +97,9 @@ export function printReportMsg(filepath: string) {
  * Get the current execution file name
  * @returns The name of the current execution file
  */
-export function getCurrentExecutionFile(): string {
+export function getCurrentExecutionFile(trace?: string): string | false {
   const error = new Error();
-  const stackTrace = error.stack;
+  const stackTrace = trace || error.stack;
   const pkgDir = process.cwd() || '';
   if (stackTrace) {
     const stackLines = stackTrace.split('\n');
@@ -120,9 +121,7 @@ export function getCurrentExecutionFile(): string {
       }
     }
   }
-  throw new Error(
-    `Can not find current execution file: \n __dirname: ${__dirname}, \n stackTrace: ${stackTrace}`,
-  );
+  return false;
 }
 
 /**
@@ -150,7 +149,14 @@ export function getCurrentExecutionFile(): string {
 
 const testFileIndex = new Map<string, number>();
 export function generateCacheId(fileName?: string): string {
-  const taskFile = fileName || getCurrentExecutionFile();
+  let taskFile = fileName || getCurrentExecutionFile();
+  if (!taskFile) {
+    taskFile = randomUUID();
+    console.warn(
+      'Midscene - using random UUID for cache id. Cache may be invalid.',
+    );
+  }
+
   if (testFileIndex.has(taskFile)) {
     const currentIndex = testFileIndex.get(taskFile);
     if (currentIndex !== undefined) {
