@@ -63,7 +63,6 @@ export class Page<
     });
 
     let buf: Buffer;
-    console.log(viewportSize);
     if (viewportSize.deviceScaleFactor > 1) {
       buf = (await resizeImg(readFileSync(path), {
         width: viewportSize.width,

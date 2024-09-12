@@ -12,9 +12,10 @@ test('ai todo', async ({ ai, aiQuery }) => {
     test.setTimeout(1000 * 30);
   }
 
-  await ai('Enter "Learn" in the task box');
+  await ai('Enter "Learn" in the task box, don\'t press enter');
+
   await ai(
-    'Add "JS today" to the existing content of the task box and press enter',
+    'Add "JS today" to base on the existing content(important) of the task box, then press enter',
   );
 
   await ai(
@@ -33,7 +34,7 @@ test('ai todo', async ({ ai, aiQuery }) => {
   await ai('Move your mouse over the second item in the task list');
   await ai('Click the delete button to the right of the second task');
   await ai('Click the check button to the left of the second task');
-  await ai('Click the completed Status button below the task list');
+  await ai('Click the "completed" Status button below the task list');
 
   const taskList = await aiQuery<string[]>('string[], tasks in the list');
   expect(taskList.length).toBe(1);

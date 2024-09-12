@@ -60,6 +60,14 @@ function collectElementInfo(
       // Retrieve the text content of the selected option
       valueContent = selectedOption.textContent || '';
     }
+
+    if (
+      (node as HTMLElement).tagName.toLowerCase() === 'input' ||
+      (node as HTMLElement).tagName.toLowerCase() === 'textarea'
+    ) {
+      valueContent = (node as HTMLInputElement).value;
+    }
+
     const elementInfo: WebElementInfo = {
       id: nodeHashId,
       nodePath,
