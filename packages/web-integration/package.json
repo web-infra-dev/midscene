@@ -1,7 +1,7 @@
 {
   "name": "@midscene/web",
   "description": "Web integration for Midscene.js",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "jsnext:source": "./src/index.ts",
   "main": "./dist/lib/index.js",
   "module": "./dist/es/index.js",
