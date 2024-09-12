@@ -1,6 +1,6 @@
 [
     {
-        "title": "Enter \"Learn\" in the task box",
+        "title": "Enter \"Learn\" in the task box, don't press enter",
         "actions": [
             "Planning",
             "Insight / Locate",
@@ -8,7 +8,7 @@
         ]
     },
     {
-        "title": "Add \"JS today\" to the existing content of the task box and press enter",
+        "title": "Add \"JS today\" to base on the existing content(important) of the task box, then press enter",
         "actions": [
             "Planning",
             "Insight / Locate",
@@ -28,10 +28,7 @@
     {
         "title": "Enter \"Learning AI the day after tomorrow\" in the task box, then press Enter to create",
         "actions": [
-            "Planning",
-            "Insight / Locate",
-            "Action / Input",
-            "Action / KeyboardPress"
+            "Planning"
         ]
     }
 ]
