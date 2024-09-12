@@ -62,8 +62,9 @@ function collectElementInfo(
     }
 
     if (
-      (node as HTMLElement).tagName.toLowerCase() === 'input' ||
-      (node as HTMLElement).tagName.toLowerCase() === 'textarea'
+      ((node as HTMLElement).tagName.toLowerCase() === 'input' ||
+        (node as HTMLElement).tagName.toLowerCase() === 'textarea') &&
+      (node as HTMLInputElement).value
     ) {
       valueContent = (node as HTMLInputElement).value;
     }
