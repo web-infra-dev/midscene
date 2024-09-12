@@ -21,7 +21,7 @@ export interface TextAiElementResponse extends AiElementsResponse {
   caseIndex?: number;
   prompt: string;
   error?: string;
-  spendTime: string;
+  spendTime: number;
   elementsSnapshot: Array<any>;
 }
 
@@ -40,13 +40,13 @@ export async function runTestCases(
     const startTime = Date.now();
     const msg = await getAiResponse(testCase);
     const endTime = Date.now();
-    const spendTime = (endTime - startTime) / 1000;
+    const spendTime = endTime - startTime;
     if (msg.elements) {
       aiResponse.push({
         ...msg,
         prompt: testCase.description,
         caseIndex,
-        spendTime: `${spendTime}s`,
+        spendTime,
         elementsSnapshot: msg.elements.map((element) => {
           const index = elementSnapshot.findIndex((item: any) => {
             if (item.nodeHashId === element.id) {

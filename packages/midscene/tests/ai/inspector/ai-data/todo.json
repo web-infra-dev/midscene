@@ -1,0 +1,50 @@
+{
+  "testDataPath": "test-data/todo",
+  "testCases": [
+    {
+      "elementDescription": "任务输入框",
+      "multi": false,
+      "elements": [
+        {
+          "id": "3530a9c1eb"
+        }
+      ]
+    },
+    {
+      "elementDescription": "任务列表中的第二项",
+      "multi": false,
+      "elements": [
+        {
+          "id": "e477ad490a"
+        }
+      ]
+    },
+    {
+      "elementDescription": "第二项任务右边的删除按钮",
+      "multi": false,
+      "elements": [
+        {
+          "id": "7ccd467339"
+        }
+      ]
+    },
+    {
+      "elementDescription": "任务列表中第三项左边的勾选按钮",
+      "multi": false,
+      "elements": [
+        {
+          "id": "eb987bf616"
+        }
+      ]
+    },
+    {
+      "elementDescription": "任务列表下面的 Completed 状态按钮",
+      "multi": false,
+      "elements": [
+        {
+          "id": "284ba7f2b3"
+        }
+      ]
+    }
+  ]
+}
