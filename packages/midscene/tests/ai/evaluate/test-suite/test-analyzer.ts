@@ -11,8 +11,8 @@ export class TestResultAnalyzer {
   private updateAiData = Boolean(process.env.UPDATE_AI_DATA);
   private successResults: {
     index: number;
-    elements: any[];
-    description: string;
+    response: any[];
+    prompt: string;
   }[] = [];
   private failResults: {
     index: number;
@@ -75,8 +75,8 @@ export class TestResultAnalyzer {
     this.successCount++;
     this.successResults.push({
       index,
-      elements: result.elements,
-      description: testCase.description,
+      response: result.elements,
+      prompt: testCase.prompt,
     });
   }
 

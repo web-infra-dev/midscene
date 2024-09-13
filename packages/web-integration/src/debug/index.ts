@@ -92,7 +92,7 @@ export function generateTestDataPath(testDataName: string) {
     .replace('dist/lib/index.js', '');
   const midsceneTestDataPath = path.join(
     modulePath,
-    `tests/ai/inspector/test-data/${testDataName}`,
+    `tests/ai/evaluate/test-data/${testDataName}`,
   );
 
   return midsceneTestDataPath;
