@@ -4,8 +4,14 @@ import { describeUserPage } from '@/ai-model';
 import { base64Encoded, imageInfoOfBase64 } from '@/image';
 
 type TestCase = {
-  description: string;
+  prompt: string;
   multi: boolean;
+  response: Array<{ id: string }>;
+};
+
+export type InspectAiTestCase = {
+  testDataPath: string;
+  testCases: Array<TestCase>;
 };
 
 export interface AiElementsResponse {
@@ -38,13 +44,16 @@ export async function runTestCases(
 
   const aiReq = testCases.map(async (testCase, caseIndex) => {
     const startTime = Date.now();
-    const msg = await getAiResponse(testCase);
+    const msg = await getAiResponse({
+      description: testCase.prompt,
+      multi: testCase.multi,
+    });
     const endTime = Date.now();
     const spendTime = endTime - startTime;
     if (msg.elements) {
       aiResponse.push({
         ...msg,
-        prompt: testCase.description,
+        prompt: testCase.prompt,
         caseIndex,
         spendTime,
         elementsSnapshot: msg.elements.map((element) => {
@@ -58,7 +67,7 @@ export async function runTestCases(
       });
     } else {
       aiResponse.push({
-        error: `can't find element with description: ${testCase.description}`,
+        error: `can't find element with description: ${testCase.prompt}`,
       } as any);
     }
   });

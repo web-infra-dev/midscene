@@ -18,7 +18,7 @@ export class TestResultAnalyzer {
     index: number;
     expected: any[];
     actual: any[];
-    elementDescription: string;
+    prompt: string;
   }[] = [];
   private totalTime = 0;
 
@@ -64,7 +64,7 @@ export class TestResultAnalyzer {
     const resultElements = result.elements.map((element: any) => ({
       id: element.id,
     }));
-    if (JSON.stringify(resultElements) === JSON.stringify(testCase.elements)) {
+    if (JSON.stringify(resultElements) === JSON.stringify(testCase.response)) {
       this.handleSuccess(result, testCase, index);
     } else {
       this.handleFailure(result, testCase, index);
@@ -86,7 +86,7 @@ export class TestResultAnalyzer {
       index,
       expected: testCase.elements,
       actual: result.elements.map((element: any) => ({ id: element.id })),
-      elementDescription: result.prompt,
+      prompt: result.prompt,
     });
 
     if (this.updateAiData) {

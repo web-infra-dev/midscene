@@ -2,45 +2,45 @@
   "testDataPath": "test-data/todo",
   "testCases": [
     {
-      "elementDescription": "任务输入框",
+      "prompt": "任务输入框",
       "multi": false,
-      "elements": [
+      "response": [
         {
           "id": "fbc2d0029b"
         }
       ]
     },
     {
-      "elementDescription": "任务列表中的第二项",
+      "prompt": "任务列表中的第二项",
       "multi": false,
-      "elements": [
+      "response": [
         {
           "id": "14b20d0963"
         }
       ]
     },
     {
-      "elementDescription": "第二项任务右边的删除按钮",
+      "prompt": "第二项任务右边的删除按钮",
       "multi": false,
-      "elements": [
+      "response": [
         {
           "id": "1b33e5dd50"
         }
       ]
     },
     {
-      "elementDescription": "任务列表中第三项左边的勾选按钮",
+      "prompt": "任务列表中第三项左边的勾选按钮",
       "multi": false,
-      "elements": [
+      "response": [
         {
           "id": "5070d9f1ff"
         }
       ]
     },
     {
-      "elementDescription": "任务列表下面的 Completed 状态按钮",
+      "prompt": "任务列表下面的 Completed 状态按钮",
       "multi": false,
-      "elements": [
+      "response": [
         {
           "id": "8dfa7ce553"
         }
