@@ -3,7 +3,6 @@ export function isFormElement(node: Node) {
     node instanceof HTMLElement &&
     (node.tagName.toLowerCase() === 'input' ||
       node.tagName.toLowerCase() === 'textarea' ||
-      node.tagName.toLowerCase() === 'label' ||
       node.tagName.toLowerCase() === 'select' ||
       node.tagName.toLowerCase() === 'option')
   );

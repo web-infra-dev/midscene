@@ -224,7 +224,9 @@ export function extractTextWithPosition(
     // stop collecting if the node is a Button or Image
     if (
       elementInfo?.nodeType === NodeType.BUTTON ||
-      elementInfo?.nodeType === NodeType.IMG
+      elementInfo?.nodeType === NodeType.IMG ||
+      elementInfo?.nodeType === NodeType.TEXT ||
+      elementInfo?.nodeType === NodeType.FORM_ITEM
     ) {
       return elementInfo;
     }

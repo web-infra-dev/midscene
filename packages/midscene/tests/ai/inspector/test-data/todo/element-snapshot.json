@@ -110,18 +110,17 @@
     "indexId": "4"
   },
   {
-    "id": "cde0b9e399",
+    "id": "ca3fbe7981",
     "nodePath": "0-0-1-0-1",
-    "nodeHashId": "cde0b9e399",
-    "locator": "[_midscene_retrieve_task_id='cde0b9e399']",
-    "nodeType": "FORM_ITEM Node",
+    "nodeHashId": "ca3fbe7981",
+    "nodeType": "CONTAINER Node",
+    "locator": "[_midscene_retrieve_task_id='ca3fbe7981']",
     "attributes": {
       "class": ".toggle-all-label",
       "for": "toggle-all",
-      "htmlTagName": "<label>",
-      "nodeType": "FORM_ITEM Node"
+      "nodeType": "CONTAINER Node"
     },
-    "content": "Toggle All Input",
+    "content": "",
     "rect": {
       "left": 365,
       "top": 131,
@@ -192,33 +191,6 @@
     "indexId": "7"
   },
   {
-    "id": "c4c068cd4e",
-    "nodePath": "0-0-1-1-0-0-1",
-    "nodeHashId": "c4c068cd4e",
-    "locator": "[_midscene_retrieve_task_id='c4c068cd4e']",
-    "nodeType": "FORM_ITEM Node",
-    "attributes": {
-      "data-testid": "todo-item-label",
-      "htmlTagName": "<label>",
-      "nodeType": "FORM_ITEM Node"
-    },
-    "content": "Learn Python",
-    "rect": {
-      "left": 365,
-      "top": 196,
-      "width": 550,
-      "height": 59,
-      "zoom": 1
-    },
-    "center": [
-      640,
-      226
-    ],
-    "htmlNode": null,
-    "zoom": 1,
-    "indexId": "8"
-  },
-  {
     "id": "910617669a",
     "nodePath": "0-0-1-1-1-0-0",
     "nodeHashId": "910617669a",
@@ -245,7 +217,7 @@
     ],
     "htmlNode": null,
     "zoom": 1,
-    "indexId": "9"
+    "indexId": "8"
   },
   {
     "id": "14b20d0963",
@@ -270,34 +242,7 @@
     },
     "htmlNode": null,
     "zoom": 1,
-    "indexId": "10"
-  },
-  {
-    "id": "1d35c16eb3",
-    "nodePath": "0-0-1-1-1-0-1",
-    "nodeHashId": "1d35c16eb3",
-    "locator": "[_midscene_retrieve_task_id='1d35c16eb3']",
-    "nodeType": "FORM_ITEM Node",
-    "attributes": {
-      "data-testid": "todo-item-label",
-      "htmlTagName": "<label>",
-      "nodeType": "FORM_ITEM Node"
-    },
-    "content": "Learn Rust",
-    "rect": {
-      "left": 365,
-      "top": 256,
-      "width": 550,
-      "height": 59,
-      "zoom": 1
-    },
-    "center": [
-      640,
-      286
-    ],
-    "htmlNode": null,
-    "zoom": 1,
-    "indexId": "11"
+    "indexId": "9"
   },
   {
     "id": "1b33e5dd50",
@@ -324,7 +269,7 @@
     ],
     "htmlNode": null,
     "zoom": 1,
-    "indexId": "12"
+    "indexId": "10"
   },
   {
     "id": "5070d9f1ff",
@@ -353,7 +298,7 @@
     ],
     "htmlNode": null,
     "zoom": 1,
-    "indexId": "13"
+    "indexId": "11"
   },
   {
     "id": "3277d35f7c",
@@ -378,34 +323,7 @@
     },
     "htmlNode": null,
     "zoom": 1,
-    "indexId": "14"
-  },
-  {
-    "id": "4ac58cd1b3",
-    "nodePath": "0-0-1-1-2-0-1",
-    "nodeHashId": "4ac58cd1b3",
-    "locator": "[_midscene_retrieve_task_id='4ac58cd1b3']",
-    "nodeType": "FORM_ITEM Node",
-    "attributes": {
-      "data-testid": "todo-item-label",
-      "htmlTagName": "<label>",
-      "nodeType": "FORM_ITEM Node"
-    },
-    "content": "Learn AI",
-    "rect": {
-      "left": 365,
-      "top": 316,
-      "width": 550,
-      "height": 59,
-      "zoom": 1
-    },
-    "center": [
-      640,
-      346
-    ],
-    "htmlNode": null,
-    "zoom": 1,
-    "indexId": "15"
+    "indexId": "12"
   },
   {
     "id": "0dcdbf7e2f",
@@ -430,7 +348,7 @@
     },
     "htmlNode": null,
     "zoom": 1,
-    "indexId": "16"
+    "indexId": "13"
   },
   {
     "id": "3bbb210c65",
@@ -455,7 +373,7 @@
     },
     "htmlNode": null,
     "zoom": 1,
-    "indexId": "17"
+    "indexId": "14"
   },
   {
     "id": "e5eeb9be7c",
@@ -480,7 +398,7 @@
     },
     "htmlNode": null,
     "zoom": 1,
-    "indexId": "18"
+    "indexId": "15"
   },
   {
     "id": "8dfa7ce553",
@@ -505,7 +423,7 @@
     },
     "htmlNode": null,
     "zoom": 1,
-    "indexId": "19"
+    "indexId": "16"
   },
   {
     "id": "69e78b5a71",
@@ -531,7 +449,7 @@
     ],
     "htmlNode": null,
     "zoom": 1,
-    "indexId": "20"
+    "indexId": "17"
   },
   {
     "id": "9cfdb53c27",
@@ -556,7 +474,7 @@
     },
     "htmlNode": null,
     "zoom": 1,
-    "indexId": "21"
+    "indexId": "18"
   },
   {
     "id": "36d8d21151",
@@ -581,7 +499,7 @@
     },
     "htmlNode": null,
     "zoom": 1,
-    "indexId": "22"
+    "indexId": "19"
   },
   {
     "id": "071998ac23",
@@ -606,7 +524,7 @@
     },
     "htmlNode": null,
     "zoom": 1,
-    "indexId": "23"
+    "indexId": "20"
   },
   {
     "id": "bf9f443c29",
@@ -631,6 +549,6 @@
     },
     "htmlNode": null,
     "zoom": 1,
-    "indexId": "24"
+    "indexId": "21"
   }
 ]

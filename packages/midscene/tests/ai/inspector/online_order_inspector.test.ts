@@ -8,7 +8,7 @@ import {
   repeat,
   runTestCases,
   writeFileSyncWithDir,
-} from './util';
+} from './test-suite/util';
 
 const testCases = [
   {
