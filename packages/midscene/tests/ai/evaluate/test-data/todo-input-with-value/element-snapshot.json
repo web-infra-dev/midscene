@@ -22,6 +22,8 @@
     },
     "htmlNode": null,
     "zoom": 1,
+    "screenWidth": 1280,
+    "screenHeight": 720,
     "indexId": "1"
   },
   {
@@ -53,6 +55,8 @@
     ],
     "htmlNode": null,
     "zoom": 1,
+    "screenWidth": 1280,
+    "screenHeight": 720,
     "indexId": "2"
   },
   {
@@ -78,6 +82,8 @@
     },
     "htmlNode": null,
     "zoom": 1,
+    "screenWidth": 1280,
+    "screenHeight": 720,
     "indexId": "3"
   },
   {
@@ -107,6 +113,8 @@
     ],
     "htmlNode": null,
     "zoom": 1,
+    "screenWidth": 1280,
+    "screenHeight": 720,
     "indexId": "4"
   },
   {
@@ -134,6 +142,8 @@
     ],
     "htmlNode": null,
     "zoom": 1,
+    "screenWidth": 1280,
+    "screenHeight": 720,
     "indexId": "5"
   },
   {
@@ -163,6 +173,8 @@
     ],
     "htmlNode": null,
     "zoom": 1,
+    "screenWidth": 1280,
+    "screenHeight": 720,
     "indexId": "6"
   },
   {
@@ -188,6 +200,8 @@
     },
     "htmlNode": null,
     "zoom": 1,
+    "screenWidth": 1280,
+    "screenHeight": 720,
     "indexId": "7"
   },
   {
@@ -217,6 +231,8 @@
     ],
     "htmlNode": null,
     "zoom": 1,
+    "screenWidth": 1280,
+    "screenHeight": 720,
     "indexId": "8"
   },
   {
@@ -242,6 +258,8 @@
     },
     "htmlNode": null,
     "zoom": 1,
+    "screenWidth": 1280,
+    "screenHeight": 720,
     "indexId": "9"
   },
   {
@@ -269,6 +287,8 @@
     ],
     "htmlNode": null,
     "zoom": 1,
+    "screenWidth": 1280,
+    "screenHeight": 720,
     "indexId": "10"
   },
   {
@@ -298,6 +318,8 @@
     ],
     "htmlNode": null,
     "zoom": 1,
+    "screenWidth": 1280,
+    "screenHeight": 720,
     "indexId": "11"
   },
   {
@@ -323,6 +345,8 @@
     },
     "htmlNode": null,
     "zoom": 1,
+    "screenWidth": 1280,
+    "screenHeight": 720,
     "indexId": "12"
   },
   {
@@ -348,6 +372,8 @@
     },
     "htmlNode": null,
     "zoom": 1,
+    "screenWidth": 1280,
+    "screenHeight": 720,
     "indexId": "13"
   },
   {
@@ -373,6 +399,8 @@
     },
     "htmlNode": null,
     "zoom": 1,
+    "screenWidth": 1280,
+    "screenHeight": 720,
     "indexId": "14"
   },
   {
@@ -398,6 +426,8 @@
     },
     "htmlNode": null,
     "zoom": 1,
+    "screenWidth": 1280,
+    "screenHeight": 720,
     "indexId": "15"
   },
   {
@@ -423,6 +453,8 @@
     },
     "htmlNode": null,
     "zoom": 1,
+    "screenWidth": 1280,
+    "screenHeight": 720,
     "indexId": "16"
   },
   {
@@ -449,6 +481,8 @@
     ],
     "htmlNode": null,
     "zoom": 1,
+    "screenWidth": 1280,
+    "screenHeight": 720,
     "indexId": "17"
   },
   {
@@ -474,6 +508,8 @@
     },
     "htmlNode": null,
     "zoom": 1,
+    "screenWidth": 1280,
+    "screenHeight": 720,
     "indexId": "18"
   },
   {
@@ -499,6 +535,8 @@
     },
     "htmlNode": null,
     "zoom": 1,
+    "screenWidth": 1280,
+    "screenHeight": 720,
     "indexId": "19"
   },
   {
@@ -524,6 +562,8 @@
     },
     "htmlNode": null,
     "zoom": 1,
+    "screenWidth": 1280,
+    "screenHeight": 720,
     "indexId": "20"
   },
   {
@@ -549,6 +589,8 @@
     },
     "htmlNode": null,
     "zoom": 1,
+    "screenWidth": 1280,
+    "screenHeight": 720,
     "indexId": "21"
   }
 ]

@@ -2,7 +2,7 @@
   "testDataPath": "test-data/online_order_list",
   "testCases": [
     {
-      "prompt": "清爽不喝腻，前两个商品的名称",
+      "prompt": "清爽不喝腻类目，下面最前面两个商品的名称",
       "multi": true,
       "response": [
         {
