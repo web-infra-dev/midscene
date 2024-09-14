@@ -58,12 +58,10 @@ export class Page<
 
     await this.page.screenshot({
       path,
-      type: 'jpeg',
-      quality: 75,
+      type: 'png',
     });
 
     let buf: Buffer;
-    console.log(viewportSize);
     if (viewportSize.deviceScaleFactor > 1) {
       buf = (await resizeImg(readFileSync(path), {
         width: viewportSize.width,
@@ -71,19 +69,6 @@ export class Page<
       })) as Buffer;
       writeFileSync(path, buf);
     }
-
-    // return await this.page.screenshot({
-    //   path,
-    //   type: 'jpeg',
-    //   quality: 75,
-    //   clip: {
-    //     x: 0,
-    //     y: 0,
-    //     width: viewportSize.width,
-    //     height: viewportSize.height,
-    //     scale: 1 / viewportSize.deviceScaleFactor,
-    //   },
-    // });
   }
 
   url(): string {

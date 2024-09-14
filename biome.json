@@ -9,6 +9,7 @@
       "**/dist",
       "**/test-data/**",
       "dist",
+      "__ai_responses__",
       "**/doc_build",
       "*-dump.json",
       "script_get_all_texts.tmp.js",

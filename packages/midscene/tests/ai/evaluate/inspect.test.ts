@@ -15,7 +15,7 @@ import {
   runTestCases,
 } from './test-suite/util';
 
-const testSources = ['todo', 'online_order'];
+const testSources = ['todo', 'online_order', 'online_order_list'];
 
 describe('ai inspect element', () => {
   const testResult: {
@@ -79,12 +79,6 @@ describe('ai inspect element', () => {
               failCount: resultData.failCount,
             },
           });
-          // console.log(`${source}-${repeatIndex}: inspect element -- result:`, {
-          //   score: resultData.score,
-          //   averageTime: resultData.averageTime,
-          //   successCount: resultData.successCount,
-          //   failCount: resultData.failCount,
-          // });
 
           expect(resultData.score).toBeGreaterThan(95);
         },

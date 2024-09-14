@@ -43,7 +43,6 @@ if (typeof process.env[MIDSCENE_MODEL_NAME] === 'string') {
 async function createOpenAI() {
   let openai: OpenAI | AzureOpenAI;
   if (process.env[OPENAI_USE_AZURE]) {
-    console.log('Using Azure OpenAI');
     openai = new AzureOpenAI(extraConfig);
   } else {
     openai = new OpenAI(extraConfig);
@@ -109,6 +108,10 @@ export async function callToGetJSONObject<T>(
         responseFormat = planSchema;
         break;
     }
+  }
+
+  if (model.startsWith('gemini')) {
+    responseFormat = { type: AIResponseFormat.TEXT };
   }
 
   const response = await call(messages, responseFormat);

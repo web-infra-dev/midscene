@@ -25,6 +25,8 @@ import {
 
 interface WebElementInfo extends ElementInfo {
   zoom: number;
+  screenWidth?: number;
+  screenHeight?: number;
 }
 
 function collectElementInfo(
@@ -79,6 +81,8 @@ function collectElementInfo(
       ],
       htmlNode: debugMode ? node : null,
       zoom: rect.zoom,
+      screenWidth: window.innerWidth,
+      screenHeight: window.innerHeight,
     };
     return elementInfo;
   }
@@ -107,6 +111,8 @@ function collectElementInfo(
       ],
       htmlNode: debugMode ? node : null,
       zoom: rect.zoom,
+      screenWidth: window.innerWidth,
+      screenHeight: window.innerHeight,
     };
     return elementInfo;
   }
@@ -138,6 +144,8 @@ function collectElementInfo(
       ],
       htmlNode: debugMode ? node : null,
       zoom: rect.zoom,
+      screenWidth: window.innerWidth,
+      screenHeight: window.innerHeight,
     };
     return elementInfo;
   }
@@ -173,6 +181,8 @@ function collectElementInfo(
       rect,
       htmlNode: debugMode ? node : null,
       zoom: rect.zoom,
+      screenWidth: window.innerWidth,
+      screenHeight: window.innerHeight,
     };
     return elementInfo;
   }
@@ -199,6 +209,8 @@ function collectElementInfo(
     ],
     htmlNode: debugMode ? node : null,
     zoom: rect.zoom,
+    screenWidth: window.innerWidth,
+    screenHeight: window.innerHeight,
   };
   return elementInfo;
 }

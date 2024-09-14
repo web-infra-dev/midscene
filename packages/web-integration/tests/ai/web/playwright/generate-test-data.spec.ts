@@ -1,6 +1,6 @@
 import { generateExtractData, generateTestDataPath } from '@/debug';
 import { PlaywrightWebPage } from '@/playwright';
-import { test } from '@playwright/test';
+import { test } from './fixture';
 
 function sleep(time: number) {
   return new Promise((resolve) => {
@@ -95,7 +95,7 @@ test('antd widget - carousel', async ({ page }) => {
   );
 });
 
-test('generate online order test data', async ({ page }) => {
+test('generate online order test data', async ({ page, ai }) => {
   const playwrightPage = new PlaywrightWebPage(page);
 
   page.setViewportSize({ width: 400, height: 905 });
@@ -108,5 +108,13 @@ test('generate online order test data', async ({ page }) => {
   await generateExtractData(
     playwrightPage,
     generateTestDataPath('online_order'),
+  );
+
+  await ai('点击菜单文字');
+  await ai('向下滚动一屏幕');
+
+  await generateExtractData(
+    playwrightPage,
+    generateTestDataPath('online_order_list'),
   );
 });

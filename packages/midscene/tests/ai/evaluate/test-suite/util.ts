@@ -23,6 +23,10 @@ export interface AiElementsResponse {
 }
 
 export interface TextAiElementResponse extends AiElementsResponse {
+  multi: boolean;
+  response: Array<{
+    id: string;
+  }>;
   // for test
   caseIndex?: number;
   prompt: string;
@@ -54,6 +58,8 @@ export async function runTestCases(
       aiResponse.push({
         ...msg,
         prompt: testCase.prompt,
+        response: msg.elements,
+        multi: testCase.multi,
         caseIndex,
         spendTime,
         elementsSnapshot: msg.elements.map((element) => {

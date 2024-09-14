@@ -61,7 +61,7 @@ export class TestResultAnalyzer {
   }
 
   private compareResult(testCase: any, result: any, index: number) {
-    const resultElements = result.elements.map((element: any) => ({
+    const resultElements = result.response.map((element: any) => ({
       id: element.id,
     }));
     if (JSON.stringify(resultElements) === JSON.stringify(testCase.response)) {
@@ -84,13 +84,13 @@ export class TestResultAnalyzer {
     this.failCount++;
     this.failResults.push({
       index,
-      expected: testCase.elements,
-      actual: result.elements.map((element: any) => ({ id: element.id })),
+      expected: testCase.reponse,
+      actual: result.response.map((element: any) => ({ id: element.id })),
       prompt: result.prompt,
     });
 
     if (this.updateAiData) {
-      testCase.elements = result.elements.map((element: any) => ({
+      testCase.response = result.response.map((element: any) => ({
         id: element.id,
       }));
     }
