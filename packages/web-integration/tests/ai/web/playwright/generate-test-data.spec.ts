@@ -118,3 +118,12 @@ test('generate online order test data', async ({ page, ai }) => {
     generateTestDataPath('online_order_list'),
   );
 });
+
+test('generate taobao test data', async ({ page, ai }) => {
+  const playwrightPage = new PlaywrightWebPage(page);
+
+  page.setViewportSize({ width: 1920, height: 1080 });
+  await page.goto('https://www.taobao.com/');
+
+  await generateExtractData(playwrightPage, generateTestDataPath('taobao'));
+});
