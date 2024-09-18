@@ -1,0 +1,68 @@
+{
+  "testDataPath": "test-data/taobao",
+  "testCases": [
+    {
+      "prompt": "商品搜索框",
+      "multi": false,
+      "response": [
+        {
+          "id": "5a7af17815"
+        }
+      ]
+    },
+    {
+      "prompt": "搜索按钮",
+      "multi": false,
+      "response": [
+        {
+          "id": "ff3008bf7b"
+        }
+      ]
+    },
+    {
+      "prompt": "右侧客服按钮",
+      "multi": false,
+      "response": [
+        {
+          "id": "c55a67fb9d"
+        }
+      ]
+    },
+    {
+      "prompt": "洗脸巾商品价格",
+      "multi": false,
+      "response": [
+        {
+          "id": "084b61390c"
+        }
+      ]
+    },
+    {
+      "prompt": "产品分类里面的：男鞋",
+      "multi": false,
+      "response": [
+        {
+          "id": "b505e241c9"
+        }
+      ]
+    },
+    {
+      "prompt": "收藏的店铺，图标按钮",
+      "multi": false,
+      "response": [
+        {
+          "id": "a5088b1954"
+        }
+      ]
+    },
+    {
+      "prompt": "iphone 免息宣传图（图片）",
+      "multi": false,
+      "response": [
+        {
+          "id": "bb7a687131"
+        }
+      ]
+    }
+  ]
+}
