@@ -6,8 +6,10 @@ describe(
   'puppeteer integration',
   () => {
     it('Sauce Demo by Swag Lab', async () => {
-      const { page, reset } = await launchPage('https://www.saucedemo.com/');
-      const mid = new PuppeteerAgent(page);
+      const { originPage, reset } = await launchPage(
+        'https://www.saucedemo.com/',
+      );
+      const mid = new PuppeteerAgent(originPage);
 
       await mid.aiAction(
         'type "standard_user" in user name input, type "secret_sauce" in password, click "Login"',
@@ -31,8 +33,10 @@ describe(
     });
 
     it('extract the Github service status', async () => {
-      const { page, reset } = await launchPage('https://www.githubstatus.com/');
-      const mid = new PuppeteerAgent(page);
+      const { originPage, reset } = await launchPage(
+        'https://www.githubstatus.com/',
+      );
+      const mid = new PuppeteerAgent(originPage);
 
       const result = await mid.aiQuery(
         'this is a service status page. Extract all status data with this scheme: {[serviceName]: [statusText]}',
@@ -50,10 +54,10 @@ describe(
     });
 
     it('find widgets in antd', async () => {
-      const { page, reset } = await launchPage(
+      const { originPage, reset } = await launchPage(
         'https://ant.design/components/form-cn/',
       );
-      const mid = new PuppeteerAgent(page);
+      const mid = new PuppeteerAgent(originPage);
 
       await mid.aiAction('scroll down two screen');
 
