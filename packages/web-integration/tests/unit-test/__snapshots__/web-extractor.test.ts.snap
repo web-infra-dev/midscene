@@ -214,14 +214,6 @@ exports[`extractor > basic 1`] = `
   },
   {
     "attributes": {
-      "for": "name",
-      "htmlTagName": "<label>",
-      "nodeType": "FORM_ITEM Node",
-    },
-    "content": "Name:",
-  },
-  {
-    "attributes": {
       "htmlTagName": "<input>",
       "id": "J_input",
       "nodeType": "FORM_ITEM Node",
@@ -248,13 +240,6 @@ exports[`extractor > basic 1`] = `
   {
     "attributes": {
       "nodeType": "TEXT Node",
-    },
-    "content": "Shape",
-  },
-  {
-    "attributes": {
-      "htmlTagName": "<label>",
-      "nodeType": "FORM_ITEM Node",
     },
     "content": "Shape",
   },
@@ -301,14 +286,6 @@ exports[`extractor > basic 1`] = `
   },
   {
     "attributes": {
-      "for": "options",
-      "htmlTagName": "<label>",
-      "nodeType": "FORM_ITEM Node",
-    },
-    "content": "Choose an option:",
-  },
-  {
-    "attributes": {
       "htmlTagName": "<select>",
       "id": "options",
       "name": "options",
@@ -331,15 +308,6 @@ exports[`extractor > basic 1`] = `
   {
     "attributes": {
       "nodeType": "TEXT Node",
-    },
-    "content": "输入搜索关键词",
-  },
-  {
-    "attributes": {
-      "class": ".gh-ar-hdn",
-      "for": "gh-ac",
-      "htmlTagName": "<label>",
-      "nodeType": "FORM_ITEM Node",
     },
     "content": "输入搜索关键词",
   },
@@ -380,17 +348,8 @@ exports[`extractor > basic 1`] = `
   },
   {
     "attributes": {
-      "class": ".life-core-input-inner__wrapper.life-core-input-inner__wrapper-border.life-core-input-inner__wrapper-size-md.life-core-input-inner__wrapper-add-suffix",
-      "htmlTagName": "<label>",
-      "nodeType": "FORM_ITEM Node",
-    },
-    "content": "",
-  },
-  {
-    "attributes": {
-      "class": ".life-core-checkbox.life-core-checkbox-md.src-pages-Login-components-LoginCard-index-module__checkbox--Npo2V--212e2",
-      "htmlTagName": "<label>",
-      "nodeType": "FORM_ITEM Node",
+      "class": ".life-core-checkbox-icon",
+      "nodeType": "CONTAINER Node",
     },
     "content": "",
   },
@@ -412,16 +371,16 @@ exports[`extractor > basic 1`] = `
   },
   {
     "attributes": {
-      "nodeType": "TEXT Node",
-    },
-    "content": "content AAA",
-  },
-  {
-    "attributes": {
       "nodeType": "CONTAINER Node",
       "style": "height: 30px;width: 100px;",
     },
     "content": "",
+  },
+  {
+    "attributes": {
+      "nodeType": "TEXT Node",
+    },
+    "content": "content AAA",
   },
   {
     "attributes": {
@@ -445,15 +404,25 @@ exports[`extractor > basic 1`] = `
   },
   {
     "attributes": {
-      "nodeType": "TEXT Node",
+      "aria-controls": "semi-select-5yxiyng",
+      "class": ".widget",
+      "nodeType": "CONTAINER Node",
     },
-    "content": "Content 1",
+    "content": "",
+  },
+  {
+    "attributes": {
+      "aria-labelledby": "eval_object.object_type-label",
+      "class": ".widget",
+      "nodeType": "CONTAINER Node",
+    },
+    "content": "",
   },
   {
     "attributes": {
       "nodeType": "TEXT Node",
     },
-    "content": "Content 2",
+    "content": "Content 1",
   },
   {
     "attributes": {
@@ -462,6 +431,12 @@ exports[`extractor > basic 1`] = `
       "style": "width: 100px; height: 100px; background-color: #cc...",
     },
     "content": "",
+  },
+  {
+    "attributes": {
+      "nodeType": "TEXT Node",
+    },
+    "content": "Content 2",
   },
   {
     "attributes": {
@@ -481,22 +456,6 @@ exports[`extractor > basic 1`] = `
     "attributes": {
       "nodeType": "IMG Node",
       "svgContent": "true",
-    },
-    "content": "",
-  },
-  {
-    "attributes": {
-      "aria-controls": "semi-select-5yxiyng",
-      "class": ".widget",
-      "nodeType": "CONTAINER Node",
-    },
-    "content": "",
-  },
-  {
-    "attributes": {
-      "aria-labelledby": "eval_object.object_type-label",
-      "class": ".widget",
-      "nodeType": "CONTAINER Node",
     },
     "content": "",
   },

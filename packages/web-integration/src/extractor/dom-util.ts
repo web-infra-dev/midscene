@@ -13,6 +13,15 @@ export function isButtonElement(node: Node): node is HTMLButtonElement {
 }
 
 export function isImgElement(node: Node): node is HTMLImageElement {
+  // check if the node is an image element
+  if (node instanceof Element) {
+    const computedStyle = window.getComputedStyle(node);
+    const backgroundImage = computedStyle.getPropertyValue('background-image');
+    if (backgroundImage !== 'none') {
+      return true;
+    }
+  }
+
   return (
     (node instanceof HTMLElement && node.tagName.toLowerCase() === 'img') ||
     (node instanceof SVGElement && node.tagName.toLowerCase() === 'svg')
@@ -21,4 +30,38 @@ export function isImgElement(node: Node): node is HTMLImageElement {
 
 export function isTextElement(node: Node): node is HTMLTextAreaElement {
   return node.nodeName.toLowerCase() === '#text';
+}
+
+export function isContainerElement(node: Node): node is HTMLElement {
+  if (!(node instanceof HTMLElement)) return false;
+
+  // include text
+  if (node.innerText) {
+    return false;
+  }
+
+  const includeList = [
+    'svg',
+    'button',
+    'input',
+    'textarea',
+    'select',
+    'option',
+    'img',
+  ];
+
+  for (const tagName of includeList) {
+    const element = node.querySelectorAll(tagName);
+    if (element.length > 0) {
+      return false;
+    }
+  }
+
+  const computedStyle = window.getComputedStyle(node);
+  const backgroundColor = computedStyle.getPropertyValue('background-color');
+  if (backgroundColor) {
+    return true;
+  }
+
+  return true;
 }

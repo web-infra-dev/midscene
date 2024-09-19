@@ -16,6 +16,7 @@ import {
 } from './test-suite/util';
 
 const testSources = ['todo', 'online_order', 'online_order_list', 'taobao'];
+// const testSources = ['taobao'];
 
 describe('ai inspect element', () => {
   const testResult: {

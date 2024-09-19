@@ -1,3 +1,4 @@
+import { writeFileSync } from 'node:fs';
 import path, { join } from 'node:path';
 import { parseContextFromWebPage } from '@/common/utils';
 import { generateExtractData } from '@/debug';

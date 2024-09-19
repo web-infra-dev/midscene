@@ -6,6 +6,7 @@ import {
 import type { ElementInfo } from '.';
 import {
   isButtonElement,
+  isContainerElement,
   isFormElement,
   isImgElement,
   isTextElement,
@@ -188,31 +189,34 @@ function collectElementInfo(
   }
 
   // else, consider as a container
-  const attributes = getNodeAttributes(node);
-  const nodeHashId = midsceneGenerateHash('', rect);
-  const selector = setDataForNode(node, nodeHashId);
-  const elementInfo: WebElementInfo = {
-    id: nodeHashId,
-    nodePath,
-    nodeHashId,
-    nodeType: NodeType.CONTAINER,
-    locator: selector,
-    attributes: {
-      ...attributes,
+  if (isContainerElement(node)) {
+    const attributes = getNodeAttributes(node);
+    const nodeHashId = midsceneGenerateHash('', rect);
+    const selector = setDataForNode(node, nodeHashId);
+    const elementInfo: WebElementInfo = {
+      id: nodeHashId,
+      nodePath,
+      nodeHashId,
       nodeType: NodeType.CONTAINER,
-    },
-    content: '',
-    rect,
-    center: [
-      Math.round(rect.left + rect.width / 2),
-      Math.round(rect.top + rect.height / 2),
-    ],
-    htmlNode: debugMode ? node : null,
-    zoom: rect.zoom,
-    screenWidth: window.innerWidth,
-    screenHeight: window.innerHeight,
-  };
-  return elementInfo;
+      locator: selector,
+      attributes: {
+        ...attributes,
+        nodeType: NodeType.CONTAINER,
+      },
+      content: '',
+      rect,
+      center: [
+        Math.round(rect.left + rect.width / 2),
+        Math.round(rect.top + rect.height / 2),
+      ],
+      htmlNode: debugMode ? node : null,
+      zoom: rect.zoom,
+      screenWidth: window.innerWidth,
+      screenHeight: window.innerHeight,
+    };
+    return elementInfo;
+  }
+  return null;
 }
 
 export function extractTextWithPosition(
@@ -238,48 +242,16 @@ export function extractTextWithPosition(
       elementInfo?.nodeType === NodeType.BUTTON ||
       elementInfo?.nodeType === NodeType.IMG ||
       elementInfo?.nodeType === NodeType.TEXT ||
-      elementInfo?.nodeType === NodeType.FORM_ITEM
+      elementInfo?.nodeType === NodeType.FORM_ITEM ||
+      elementInfo?.nodeType === NodeType.CONTAINER
     ) {
+      elementInfoArray.push(elementInfo);
       return elementInfo;
     }
 
-    /*
-      If all of the children of a node are containers, then we call it a **pure container**.
-      Otherwise, it is not a pure container.
-
-      If a node is a pure container, and some of its siblings are not pure containers, then we should put this pure container into the elementInfoArray.
-    */
-    let hasNonContainerChildren = false;
-    const childrenPureContainers: WebElementInfo[] = [];
     for (let i = 0; i < node.childNodes.length; i++) {
       logger('will dfs', node.childNodes[i]);
-      const resultLengthBeforeDfs = elementInfoArray.length;
-      const result = dfs(
-        node.childNodes[i],
-        `${nodePath}-${i}`,
-        elementInfo?.zoom,
-      );
-
-      if (!result) continue;
-
-      if (
-        result?.nodeType === NodeType.CONTAINER &&
-        elementInfoArray.length > resultLengthBeforeDfs
-      ) {
-        hasNonContainerChildren = true;
-        continue;
-      }
-
-      if (result?.nodeType === NodeType.CONTAINER) {
-        childrenPureContainers.push(result);
-      } else {
-        hasNonContainerChildren = true;
-        elementInfoArray.push(result);
-      }
-    }
-
-    if (hasNonContainerChildren) {
-      elementInfoArray.push(...childrenPureContainers);
+      dfs(node.childNodes[i], `${nodePath}-${i}`, elementInfo?.zoom);
     }
 
     if (!elementInfo) {
@@ -289,10 +261,7 @@ export function extractTextWithPosition(
     return elementInfo;
   }
 
-  const outerMostElementInfo = dfs(initNode || getDocument(), '0');
-  if (outerMostElementInfo && !elementInfoArray.length) {
-    elementInfoArray.push(outerMostElementInfo);
-  }
+  dfs(initNode || getDocument(), '0');
 
   // update all the ids
   for (let i = 0; i < elementInfoArray.length; i++) {
