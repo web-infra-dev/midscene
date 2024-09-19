@@ -25,6 +25,9 @@ const IOS_OPTIONS = {
 
 const ANDROID_OPTIONS = {
   port: 4723,
+  waitforTimeout: 10000,
+  connectionRetryTimeout: 120000,
+  connectionRetryCount: 3,
   capabilities: {
     platformName: 'Android',
     'appium:automationName': 'UiAutomator2',
@@ -42,10 +45,13 @@ describe(
       const page = await launchPage(IOS_OPTIONS);
       const mid = new AppiumAgent(page);
       await mid.aiAction('点击同意按钮');
+      await sleep(3000);
+      await mid.aiAction('点击允许获取应用位置信息');
+      await sleep(3000);
       await mid.aiAction('点击顶部输入框');
-      // await generateExtractData(page, './tmp');
-      await mid.aiAction('在输入框里输入"小米SU7"，并点击搜索');
-      // await sleep(3000);
+      await sleep(3000);
+      await mid.aiAction('在输入框里输入"SU7"，并点击搜索');
+      await sleep(3000);
       const items = await mid.aiQuery(
         '"{carName: string, price: number }[], return item name, price',
       );
