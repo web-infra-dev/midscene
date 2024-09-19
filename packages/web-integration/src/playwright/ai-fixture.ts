@@ -77,7 +77,7 @@ export const PlaywrightAiFixture = () => {
         async (taskPrompt: string, opts?: { type?: 'action' | 'query' }) => {
           return new Promise((resolve, reject) => {
             test.step(`ai - ${taskPrompt}`, async () => {
-              await page.waitForLoadState('networkidle');
+              await waitForNetworkIdle(page);
               const actionType = opts?.type || 'action';
               const result = await agent.ai(taskPrompt, actionType);
               resolve(result);
@@ -95,7 +95,7 @@ export const PlaywrightAiFixture = () => {
       const agent = agentForPage(page, testInfo);
       await use(async (taskPrompt: string) => {
         test.step(`aiAction - ${taskPrompt}`, async () => {
-          await page.waitForLoadState('networkidle');
+          await waitForNetworkIdle(page);
           await agent.aiAction(taskPrompt);
         });
       });
@@ -110,7 +110,7 @@ export const PlaywrightAiFixture = () => {
       await use(async (demand: any) => {
         return new Promise((resolve, reject) => {
           test.step(`aiQuery - ${JSON.stringify(demand)}`, async () => {
-            await page.waitForLoadState('networkidle');
+            await waitForNetworkIdle(page);
             const result = await agent.aiQuery(demand);
             resolve(result);
           });
@@ -127,7 +127,7 @@ export const PlaywrightAiFixture = () => {
       await use(async (assertion: string, errorMsg?: string) => {
         return new Promise((resolve, reject) => {
           test.step(`aiAssert - ${assertion}`, async () => {
-            await page.waitForLoadState('networkidle');
+            await waitForNetworkIdle(page);
             await agent.aiAssert(assertion, errorMsg);
             resolve(null);
           });
@@ -164,3 +164,11 @@ export type PlayWrightAiFixtureType = {
   aiAssert: (assertion: string, errorMsg?: string) => Promise<void>;
   aiWaitFor: (assertion: string, opt?: AgentWaitForOpt) => Promise<void>;
 };
+
+function waitForNetworkIdle(page: OriginPlaywrightPage) {
+  const timeout = 20 * 1000;
+  return Promise.race([
+    page.waitForLoadState('networkidle'),
+    new Promise((resolve) => setTimeout(resolve, timeout)),
+  ]);
+}

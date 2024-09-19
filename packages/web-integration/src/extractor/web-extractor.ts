@@ -46,7 +46,6 @@ function collectElementInfo(
     return null;
   }
 
-  const debugMode = getDebugMode();
   if (isFormElement(node)) {
     const attributes = getNodeAttributes(node);
     const nodeHashId = midsceneGenerateHash(attributes.placeholder, rect);
@@ -80,7 +79,6 @@ function collectElementInfo(
         Math.round(rect.left + rect.width / 2),
         Math.round(rect.top + rect.height / 2),
       ],
-      htmlNode: debugMode ? node : null,
       zoom: rect.zoom,
       screenWidth: window.innerWidth,
       screenHeight: window.innerHeight,
@@ -110,7 +108,6 @@ function collectElementInfo(
         Math.round(rect.left + rect.width / 2),
         Math.round(rect.top + rect.height / 2),
       ],
-      htmlNode: debugMode ? node : null,
       zoom: rect.zoom,
       screenWidth: window.innerWidth,
       screenHeight: window.innerHeight,
@@ -143,7 +140,6 @@ function collectElementInfo(
         Math.round(rect.left + rect.width / 2),
         Math.round(rect.top + rect.height / 2),
       ],
-      htmlNode: debugMode ? node : null,
       zoom: rect.zoom,
       screenWidth: window.innerWidth,
       screenHeight: window.innerHeight,
@@ -162,7 +158,7 @@ function collectElementInfo(
       return null;
     }
     const nodeHashId = midsceneGenerateHash(text, rect);
-    const selector = setDataForNode(node, nodeHashId);
+    const selector = setDataForNode(node, nodeHashId, true);
     const elementInfo: WebElementInfo = {
       id: nodeHashId,
       nodePath,
@@ -180,7 +176,6 @@ function collectElementInfo(
       // attributes,
       content: text,
       rect,
-      htmlNode: debugMode ? node : null,
       zoom: rect.zoom,
       screenWidth: window.innerWidth,
       screenHeight: window.innerHeight,
@@ -209,7 +204,6 @@ function collectElementInfo(
         Math.round(rect.left + rect.width / 2),
         Math.round(rect.top + rect.height / 2),
       ],
-      htmlNode: debugMode ? node : null,
       zoom: rect.zoom,
       screenWidth: window.innerWidth,
       screenHeight: window.innerHeight,

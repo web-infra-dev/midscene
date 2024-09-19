@@ -1,0 +1,1002 @@
+[
+  {
+    "id": "718b7c5b0a",
+    "nodePath": "0-2-1-3-4-0-1",
+    "nodeHashId": "718b7c5b0a",
+    "locator": "",
+    "attributes": {
+      "svgContent": "true",
+      "nodeType": "IMG Node"
+    },
+    "nodeType": "IMG Node",
+    "content": "",
+    "rect": {
+      "left": 58,
+      "top": 58,
+      "width": 18,
+      "height": 18,
+      "zoom": 1
+    },
+    "center": [
+      67,
+      67
+    ],
+    "zoom": 1,
+    "screenWidth": 1920,
+    "screenHeight": 1080,
+    "indexId": "1"
+  },
+  {
+    "id": "0fd5c7c2a3",
+    "nodePath": "0-2-1-3-4-1-0-0-0-1",
+    "nodeHashId": "0fd5c7c2a3",
+    "locator": "[_midscene_retrieve_task_id='0fd5c7c2a3']",
+    "nodeType": "FORM_ITEM Node",
+    "attributes": {
+      "class": ".YEhxqQNi.jUqDCyab",
+      "data-e2e": "searchbar-input",
+      "maxlength": "100",
+      "type": "text",
+      "htmlTagName": "<input>",
+      "nodeType": "FORM_ITEM Node"
+    },
+    "content": "",
+    "rect": {
+      "left": 136,
+      "top": 49,
+      "width": 207,
+      "height": 36,
+      "zoom": 1
+    },
+    "center": [
+      240,
+      67
+    ],
+    "zoom": 1,
+    "screenWidth": 1920,
+    "screenHeight": 1080,
+    "indexId": "2"
+  },
+  {
+    "id": "0c8ccb3882",
+    "nodePath": "0-2-1-3-4-1-0-0-1",
+    "nodeHashId": "0c8ccb3882",
+    "nodeType": "BUTTON Node",
+    "locator": "[_midscene_retrieve_task_id='0c8ccb3882']",
+    "attributes": {
+      "class": ".YQK6ciuU",
+      "data-e2e": "searchbar-button",
+      "type": "button",
+      "nodeType": "BUTTON Node"
+    },
+    "content": "搜索",
+    "rect": {
+      "left": 343,
+      "top": 49,
+      "width": 69,
+      "height": 36,
+      "zoom": 1
+    },
+    "center": [
+      378,
+      67
+    ],
+    "zoom": 1,
+    "screenWidth": 1920,
+    "screenHeight": 1080,
+    "indexId": "3"
+  },
+  {
+    "id": "2a0c41d714",
+    "nodePath": "0-2-1-3-4-3-0-0-0-0-0-0-0-0-0-1-1-1-1-2-0",
+    "nodeHashId": "2a0c41d714",
+    "locator": "",
+    "attributes": {
+      "svgContent": "true",
+      "nodeType": "IMG Node"
+    },
+    "nodeType": "IMG Node",
+    "content": "",
+    "rect": {
+      "left": 17,
+      "top": 1049,
+      "width": 14,
+      "height": 16,
+      "zoom": 1
+    },
+    "center": [
+      24,
+      1057
+    ],
+    "zoom": 1,
+    "screenWidth": 1920,
+    "screenHeight": 1080,
+    "indexId": "4"
+  },
+  {
+    "id": "d9b173dde2",
+    "nodePath": "0-2-1-3-4-3-0-0-0-0-0-0-0-0-0-1-1-2-1-0",
+    "nodeHashId": "d9b173dde2",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node"
+    },
+    "center": [
+      64,
+      1057
+    ],
+    "content": "00:00",
+    "rect": {
+      "left": 44,
+      "top": 1046,
+      "width": 40,
+      "height": 21,
+      "zoom": 1
+    },
+    "zoom": 1,
+    "screenWidth": 1920,
+    "screenHeight": 1080,
+    "indexId": "5"
+  },
+  {
+    "id": "3bbdc2f293",
+    "nodePath": "0-2-1-3-4-3-0-0-0-0-0-0-0-0-0-1-1-2-3-0",
+    "nodeHashId": "3bbdc2f293",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node"
+    },
+    "center": [
+      93,
+      1057
+    ],
+    "content": "/",
+    "rect": {
+      "left": 89,
+      "top": 1046,
+      "width": 8,
+      "height": 21,
+      "zoom": 1
+    },
+    "zoom": 1,
+    "screenWidth": 1920,
+    "screenHeight": 1080,
+    "indexId": "6"
+  },
+  {
+    "id": "45e81bd755",
+    "nodePath": "0-2-1-3-4-3-0-0-0-0-0-0-0-0-0-1-1-2-5-0",
+    "nodeHashId": "45e81bd755",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node"
+    },
+    "center": [
+      121,
+      1057
+    ],
+    "content": "00:00",
+    "rect": {
+      "left": 101,
+      "top": 1046,
+      "width": 40,
+      "height": 21,
+      "zoom": 1
+    },
+    "zoom": 1,
+    "screenWidth": 1920,
+    "screenHeight": 1080,
+    "indexId": "7"
+  },
+  {
+    "id": "407d8a4e7f",
+    "nodePath": "0-2-1-3-4-3-0-0-0-0-0-0-0-0-0-1-3",
+    "nodeHashId": "407d8a4e7f",
+    "nodeType": "CONTAINER Node",
+    "locator": "[_midscene_retrieve_task_id='407d8a4e7f']",
+    "attributes": {
+      "class": ".xg-center-grid",
+      "nodeType": "CONTAINER Node"
+    },
+    "content": "",
+    "rect": {
+      "left": 0,
+      "top": 1022,
+      "width": 1920,
+      "height": 22,
+      "zoom": 1
+    },
+    "center": [
+      960,
+      1033
+    ],
+    "zoom": 1,
+    "screenWidth": 1920,
+    "screenHeight": 1080,
+    "indexId": "8"
+  },
+  {
+    "id": "d7c40128f6",
+    "nodePath": "0-2-1-3-4-3-0-0-0-0-0-0-0-0-0-1-5-1-1-1-0",
+    "nodeHashId": "d7c40128f6",
+    "locator": "",
+    "attributes": {
+      "svgContent": "true",
+      "nodeType": "IMG Node"
+    },
+    "nodeType": "IMG Node",
+    "content": "",
+    "rect": {
+      "left": 1880,
+      "top": 1049,
+      "width": 17,
+      "height": 16,
+      "zoom": 1
+    },
+    "center": [
+      1889,
+      1057
+    ],
+    "zoom": 1,
+    "screenWidth": 1920,
+    "screenHeight": 1080,
+    "indexId": "9"
+  },
+  {
+    "id": "da7cdddf0b",
+    "nodePath": "0-2-1-3-4-3-0-0-0-0-0-0-0-0-0-1-5-6-1-2-0",
+    "nodeHashId": "da7cdddf0b",
+    "locator": "",
+    "attributes": {
+      "svgContent": "true",
+      "nodeType": "IMG Node"
+    },
+    "nodeType": "IMG Node",
+    "content": "",
+    "rect": {
+      "left": 1843,
+      "top": 1049,
+      "width": 18,
+      "height": 16,
+      "zoom": 1
+    },
+    "center": [
+      1852,
+      1057
+    ],
+    "zoom": 1,
+    "screenWidth": 1920,
+    "screenHeight": 1080,
+    "indexId": "10"
+  },
+  {
+    "id": "696c2a33fb",
+    "nodePath": "0-2-1-3-4-3-0-0-0-0-0-0-0-0-0-1-5-11-0-0",
+    "nodeHashId": "696c2a33fb",
+    "locator": "",
+    "attributes": {
+      "svgContent": "true",
+      "nodeType": "IMG Node"
+    },
+    "nodeType": "IMG Node",
+    "content": "",
+    "rect": {
+      "left": 1807,
+      "top": 1050,
+      "width": 19,
+      "height": 16,
+      "zoom": 1
+    },
+    "center": [
+      1817,
+      1058
+    ],
+    "zoom": 1,
+    "screenWidth": 1920,
+    "screenHeight": 1080,
+    "indexId": "11"
+  },
+  {
+    "id": "2eafe2fbe1",
+    "nodePath": "0-2-1-3-4-3-0-0-0-0-0-0-0-0-0-1-5-13-0-0",
+    "nodeHashId": "2eafe2fbe1",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node"
+    },
+    "center": [
+      1776,
+      1057
+    ],
+    "content": "倍速",
+    "rect": {
+      "left": 1762,
+      "top": 1047,
+      "width": 28,
+      "height": 20,
+      "zoom": 1
+    },
+    "zoom": 1,
+    "screenWidth": 1920,
+    "screenHeight": 1080,
+    "indexId": "12"
+  },
+  {
+    "id": "78bbcbc0d9",
+    "nodePath": "0-2-1-3-4-3-0-0-0-0-0-0-0-0-0-1-5-14-0-1-0",
+    "nodeHashId": "78bbcbc0d9",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node"
+    },
+    "center": [
+      1731,
+      1057
+    ],
+    "content": "智能",
+    "rect": {
+      "left": 1717,
+      "top": 1047,
+      "width": 28,
+      "height": 20,
+      "zoom": 1
+    },
+    "zoom": 1,
+    "screenWidth": 1920,
+    "screenHeight": 1080,
+    "indexId": "13"
+  },
+  {
+    "id": "7d4afb890f",
+    "nodePath": "0-2-1-3-4-3-0-0-0-0-0-0-0-0-0-1-5-15-0-0-0",
+    "nodeHashId": "7d4afb890f",
+    "nodeType": "BUTTON Node",
+    "locator": "[_midscene_retrieve_task_id='7d4afb890f']",
+    "attributes": {
+      "aria-checked": "true",
+      "class": ".xg-switch",
+      "aria-labelledby": "xg-switch-pip",
+      "type": "button",
+      "nodeType": "BUTTON Node"
+    },
+    "content": " ",
+    "rect": {
+      "left": 1645,
+      "top": 1050,
+      "width": 24,
+      "height": 14,
+      "zoom": 1
+    },
+    "center": [
+      1657,
+      1057
+    ],
+    "zoom": 1,
+    "screenWidth": 1920,
+    "screenHeight": 1080,
+    "indexId": "14"
+  },
+  {
+    "id": "28be69ba3f",
+    "nodePath": "0-2-1-3-4-3-0-0-0-0-0-0-0-0-0-1-5-15-0-0-1-0",
+    "nodeHashId": "28be69ba3f",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node"
+    },
+    "center": [
+      1687,
+      1057
+    ],
+    "content": "清屏",
+    "rect": {
+      "left": 1673,
+      "top": 1047,
+      "width": 28,
+      "height": 20,
+      "zoom": 1
+    },
+    "zoom": 1,
+    "screenWidth": 1920,
+    "screenHeight": 1080,
+    "indexId": "15"
+  },
+  {
+    "id": "a9bdeb5a9d",
+    "nodePath": "0-2-1-3-4-3-0-0-0-0-0-0-0-0-0-1-5-16-0-0-0",
+    "nodeHashId": "a9bdeb5a9d",
+    "nodeType": "BUTTON Node",
+    "locator": "[_midscene_retrieve_task_id='a9bdeb5a9d']",
+    "attributes": {
+      "aria-checked": "true",
+      "class": ".xg-switch.xg-switch-checked",
+      "aria-labelledby": "xg-switch-pip",
+      "type": "button",
+      "nodeType": "BUTTON Node"
+    },
+    "content": " ",
+    "rect": {
+      "left": 1573,
+      "top": 1050,
+      "width": 24,
+      "height": 14,
+      "zoom": 1
+    },
+    "center": [
+      1585,
+      1057
+    ],
+    "zoom": 1,
+    "screenWidth": 1920,
+    "screenHeight": 1080,
+    "indexId": "16"
+  },
+  {
+    "id": "302c3d9b09",
+    "nodePath": "0-2-1-3-4-3-0-0-0-0-0-0-0-0-0-1-5-16-0-0-1-0",
+    "nodeHashId": "302c3d9b09",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node"
+    },
+    "center": [
+      1615,
+      1057
+    ],
+    "content": "连播",
+    "rect": {
+      "left": 1601,
+      "top": 1047,
+      "width": 28,
+      "height": 20,
+      "zoom": 1
+    },
+    "zoom": 1,
+    "screenWidth": 1920,
+    "screenHeight": 1080,
+    "indexId": "17"
+  },
+  {
+    "id": "b26f3c4b62",
+    "nodePath": "0-2-1-3-4-3-0-0-0-0-0-0-0-0-1-0-0-0-0-0",
+    "nodeHashId": "b26f3c4b62",
+    "locator": "",
+    "attributes": {
+      "svgContent": "true",
+      "nodeType": "IMG Node"
+    },
+    "nodeType": "IMG Node",
+    "content": "",
+    "rect": {
+      "left": 1845,
+      "top": 323,
+      "width": 16,
+      "height": 10,
+      "zoom": 1
+    },
+    "center": [
+      1853,
+      328
+    ],
+    "zoom": 1,
+    "screenWidth": 1920,
+    "screenHeight": 1080,
+    "indexId": "18"
+  },
+  {
+    "id": "ba6a978385",
+    "nodePath": "0-2-1-3-4-3-0-0-0-0-0-0-0-0-1-0-0-0-1-0",
+    "nodeHashId": "ba6a978385",
+    "locator": "",
+    "attributes": {
+      "svgContent": "true",
+      "nodeType": "IMG Node"
+    },
+    "nodeType": "IMG Node",
+    "content": "",
+    "rect": {
+      "left": 1845,
+      "top": 373,
+      "width": 16,
+      "height": 10,
+      "zoom": 1
+    },
+    "center": [
+      1853,
+      378
+    ],
+    "zoom": 1,
+    "screenWidth": 1920,
+    "screenHeight": 1080,
+    "indexId": "19"
+  },
+  {
+    "id": "901de23951",
+    "nodePath": "0-2-1-3-4-3-0-0-0-0-0-0-0-0-1-1-0-0-0-0-0-0",
+    "nodeHashId": "901de23951",
+    "locator": "[_midscene_retrieve_task_id='901de23951']",
+    "attributes": {
+      "src": "//p3-pc.douyinpic.com/aweme/100x100/aweme-avatar/t...",
+      "class": ".fiWP27dC",
+      "nodeType": "IMG Node"
+    },
+    "nodeType": "IMG Node",
+    "content": "",
+    "rect": {
+      "left": 1826,
+      "top": 437,
+      "width": 51,
+      "height": 51,
+      "zoom": 1
+    },
+    "center": [
+      1852,
+      463
+    ],
+    "zoom": 1,
+    "screenWidth": 1920,
+    "screenHeight": 1080,
+    "indexId": "20"
+  },
+  {
+    "id": "c01bf367fa",
+    "nodePath": "0-2-1-3-4-3-0-0-0-0-0-0-0-0-1-1-0-0-1-0-0-0",
+    "nodeHashId": "c01bf367fa",
+    "locator": "",
+    "attributes": {
+      "svgContent": "true",
+      "nodeType": "IMG Node"
+    },
+    "nodeType": "IMG Node",
+    "content": "",
+    "rect": {
+      "left": 1840,
+      "top": 477,
+      "width": 24,
+      "height": 24,
+      "zoom": 1
+    },
+    "center": [
+      1852,
+      489
+    ],
+    "zoom": 1,
+    "screenWidth": 1920,
+    "screenHeight": 1080,
+    "indexId": "21"
+  },
+  {
+    "id": "20722950c4",
+    "nodePath": "0-2-1-3-4-3-0-0-0-0-0-0-0-0-1-1-1-0-0-0-0",
+    "nodeHashId": "20722950c4",
+    "locator": "",
+    "attributes": {
+      "svgContent": "true",
+      "nodeType": "IMG Node"
+    },
+    "nodeType": "IMG Node",
+    "content": "",
+    "rect": {
+      "left": 1838,
+      "top": 538,
+      "width": 28,
+      "height": 26,
+      "zoom": 1
+    },
+    "center": [
+      1852,
+      551
+    ],
+    "zoom": 1,
+    "screenWidth": 1920,
+    "screenHeight": 1080,
+    "indexId": "22"
+  },
+  {
+    "id": "27147b3b58",
+    "nodePath": "0-2-1-3-4-3-0-0-0-0-0-0-0-0-1-1-1-0-1-0",
+    "nodeHashId": "27147b3b58",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node"
+    },
+    "center": [
+      1852,
+      591
+    ],
+    "content": "6.2万",
+    "rect": {
+      "left": 1828,
+      "top": 577,
+      "width": 47,
+      "height": 27,
+      "zoom": 1
+    },
+    "zoom": 1,
+    "screenWidth": 1920,
+    "screenHeight": 1080,
+    "indexId": "23"
+  },
+  {
+    "id": "2bcfcfa863",
+    "nodePath": "0-2-1-3-4-3-0-0-0-0-0-0-0-0-1-1-2-0-0-0-0",
+    "nodeHashId": "2bcfcfa863",
+    "locator": "",
+    "attributes": {
+      "svgContent": "true",
+      "nodeType": "IMG Node"
+    },
+    "nodeType": "IMG Node",
+    "content": "",
+    "rect": {
+      "left": 1838,
+      "top": 629,
+      "width": 27,
+      "height": 27,
+      "zoom": 1
+    },
+    "center": [
+      1852,
+      643
+    ],
+    "zoom": 1,
+    "screenWidth": 1920,
+    "screenHeight": 1080,
+    "indexId": "24"
+  },
+  {
+    "id": "ce52d6f825",
+    "nodePath": "0-2-1-3-4-3-0-0-0-0-0-0-0-0-1-1-2-0-1-0",
+    "nodeHashId": "ce52d6f825",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node"
+    },
+    "center": [
+      1852,
+      685
+    ],
+    "content": "1973",
+    "rect": {
+      "left": 1831,
+      "top": 671,
+      "width": 41,
+      "height": 27,
+      "zoom": 1
+    },
+    "zoom": 1,
+    "screenWidth": 1920,
+    "screenHeight": 1080,
+    "indexId": "25"
+  },
+  {
+    "id": "5118ec51c3",
+    "nodePath": "0-2-1-3-4-3-0-0-0-0-0-0-0-0-1-1-3-0-0-0",
+    "nodeHashId": "5118ec51c3",
+    "locator": "",
+    "attributes": {
+      "svgContent": "true",
+      "nodeType": "IMG Node"
+    },
+    "nodeType": "IMG Node",
+    "content": "",
+    "rect": {
+      "left": 1838,
+      "top": 724,
+      "width": 30,
+      "height": 28,
+      "zoom": 1
+    },
+    "center": [
+      1853,
+      738
+    ],
+    "zoom": 1,
+    "screenWidth": 1920,
+    "screenHeight": 1080,
+    "indexId": "26"
+  },
+  {
+    "id": "a307ab826f",
+    "nodePath": "0-2-1-3-4-3-0-0-0-0-0-0-0-0-1-1-3-1-0",
+    "nodeHashId": "a307ab826f",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node"
+    },
+    "center": [
+      1852,
+      779
+    ],
+    "content": "9565",
+    "rect": {
+      "left": 1829,
+      "top": 765,
+      "width": 46,
+      "height": 27,
+      "zoom": 1
+    },
+    "zoom": 1,
+    "screenWidth": 1920,
+    "screenHeight": 1080,
+    "indexId": "27"
+  },
+  {
+    "id": "0886cfabcb",
+    "nodePath": "0-2-1-3-4-3-0-0-0-0-0-0-0-0-1-1-4-0-0-0-1-0",
+    "nodeHashId": "0886cfabcb",
+    "locator": "",
+    "attributes": {
+      "svgContent": "true",
+      "nodeType": "IMG Node"
+    },
+    "nodeType": "IMG Node",
+    "content": "",
+    "rect": {
+      "left": 1836,
+      "top": 819,
+      "width": 30,
+      "height": 24,
+      "zoom": 1
+    },
+    "center": [
+      1851,
+      831
+    ],
+    "zoom": 1,
+    "screenWidth": 1920,
+    "screenHeight": 1080,
+    "indexId": "28"
+  },
+  {
+    "id": "147d66da33",
+    "nodePath": "0-2-1-3-4-3-0-0-0-0-0-0-0-0-1-1-4-0-1-0",
+    "nodeHashId": "147d66da33",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node"
+    },
+    "center": [
+      1852,
+      873
+    ],
+    "content": "8690",
+    "rect": {
+      "left": 1829,
+      "top": 859,
+      "width": 46,
+      "height": 27,
+      "zoom": 1
+    },
+    "zoom": 1,
+    "screenWidth": 1920,
+    "screenHeight": 1080,
+    "indexId": "29"
+  },
+  {
+    "id": "a7bbbba287",
+    "nodePath": "0-2-1-3-4-3-0-0-0-0-0-0-0-0-1-1-5-0-0-0",
+    "nodeHashId": "a7bbbba287",
+    "locator": "",
+    "attributes": {
+      "svgContent": "true",
+      "nodeType": "IMG Node"
+    },
+    "nodeType": "IMG Node",
+    "content": "",
+    "rect": {
+      "left": 1838,
+      "top": 910,
+      "width": 28,
+      "height": 24,
+      "zoom": 1
+    },
+    "center": [
+      1852,
+      922
+    ],
+    "zoom": 1,
+    "screenWidth": 1920,
+    "screenHeight": 1080,
+    "indexId": "30"
+  },
+  {
+    "id": "c385dcd1d6",
+    "nodePath": "0-2-1-3-4-3-0-0-0-0-0-0-0-0-1-1-5-0-1-0",
+    "nodeHashId": "c385dcd1d6",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node"
+    },
+    "center": [
+      1852,
+      957
+    ],
+    "content": "看相关",
+    "rect": {
+      "left": 1823,
+      "top": 943,
+      "width": 57,
+      "height": 27,
+      "zoom": 1
+    },
+    "zoom": 1,
+    "screenWidth": 1920,
+    "screenHeight": 1080,
+    "indexId": "31"
+  },
+  {
+    "id": "b2c0b840dc",
+    "nodePath": "0-2-1-3-4-3-0-0-0-0-0-0-0-0-1-1-6-0",
+    "nodeHashId": "b2c0b840dc",
+    "locator": "",
+    "attributes": {
+      "svgContent": "true",
+      "nodeType": "IMG Node"
+    },
+    "nodeType": "IMG Node",
+    "content": "",
+    "rect": {
+      "left": 1842,
+      "top": 998,
+      "width": 20,
+      "height": 5,
+      "zoom": 1
+    },
+    "center": [
+      1852,
+      1001
+    ],
+    "zoom": 1,
+    "screenWidth": 1920,
+    "screenHeight": 1080,
+    "indexId": "32"
+  },
+  {
+    "id": "aec31cf55a",
+    "nodePath": "0-2-1-3-4-3-0-0-0-0-0-0-0-0-4-4-1-1-0",
+    "nodeHashId": "aec31cf55a",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node"
+    },
+    "center": [
+      960,
+      499
+    ],
+    "content": "不支持的音频/视频格式 或 设备无网络",
+    "rect": {
+      "left": 840,
+      "top": 489,
+      "width": 240,
+      "height": 20,
+      "zoom": 1
+    },
+    "zoom": 1,
+    "screenWidth": 1920,
+    "screenHeight": 1080,
+    "indexId": "33"
+  },
+  {
+    "id": "89510906bb",
+    "nodePath": "0-2-1-3-4-3-0-0-0-0-0-0-0-0-4-4-1-3-0",
+    "nodeHashId": "89510906bb",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node"
+    },
+    "center": [
+      943,
+      535
+    ],
+    "content": "请试试",
+    "rect": {
+      "left": 922,
+      "top": 525,
+      "width": 42,
+      "height": 20,
+      "zoom": 1
+    },
+    "zoom": 1,
+    "screenWidth": 1920,
+    "screenHeight": 1080,
+    "indexId": "34"
+  },
+  {
+    "id": "1414cfd5d9",
+    "nodePath": "0-2-1-3-4-3-0-0-0-0-0-0-0-0-4-4-1-3-1-0",
+    "nodeHashId": "1414cfd5d9",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node"
+    },
+    "center": [
+      981,
+      535
+    ],
+    "content": "刷新",
+    "rect": {
+      "left": 967,
+      "top": 525,
+      "width": 28,
+      "height": 20,
+      "zoom": 1
+    },
+    "zoom": 1,
+    "screenWidth": 1920,
+    "screenHeight": 1080,
+    "indexId": "35"
+  },
+  {
+    "id": "f66b97f105",
+    "nodePath": "0-2-1-3-4-3-0-0-0-0-0-0-1-0",
+    "nodeHashId": "f66b97f105",
+    "nodeType": "BUTTON Node",
+    "locator": "[_midscene_retrieve_task_id='f66b97f105']",
+    "attributes": {
+      "class": ".zNBuJls_",
+      "type": "button",
+      "nodeType": "BUTTON Node"
+    },
+    "content": "",
+    "rect": {
+      "left": 1888,
+      "top": 515,
+      "width": 32,
+      "height": 50,
+      "zoom": 1
+    },
+    "center": [
+      1904,
+      540
+    ],
+    "zoom": 1,
+    "screenWidth": 1920,
+    "screenHeight": 1080,
+    "indexId": "36"
+  },
+  {
+    "id": "a1e4494928",
+    "nodePath": "0-98-0",
+    "nodeHashId": "a1e4494928",
+    "locator": "[_midscene_retrieve_task_id='a1e4494928']",
+    "attributes": {
+      "src": "https://p3-feelgood-sign.byteimg.com/feelgood/fg-c...",
+      "alt": "fg-entry",
+      "class": ".fg-img-entry__inner",
+      "nodeType": "IMG Node"
+    },
+    "nodeType": "IMG Node",
+    "content": "",
+    "rect": {
+      "left": 1856,
+      "top": 1000,
+      "width": 40,
+      "height": 40,
+      "zoom": 1
+    },
+    "center": [
+      1876,
+      1020
+    ],
+    "zoom": 1,
+    "screenWidth": 1920,
+    "screenHeight": 1080,
+    "indexId": "37"
+  }
+]

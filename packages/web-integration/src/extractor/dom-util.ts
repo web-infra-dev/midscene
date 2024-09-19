@@ -14,7 +14,7 @@ export function isButtonElement(node: Node): node is HTMLButtonElement {
 
 export function isImgElement(node: Node): node is HTMLImageElement {
   // check if the node is an image element
-  if (node instanceof Element) {
+  if (!includeBaseElement(node) && node instanceof Element) {
     const computedStyle = window.getComputedStyle(node);
     const backgroundImage = computedStyle.getPropertyValue('background-image');
     if (backgroundImage !== 'none') {
@@ -35,9 +35,26 @@ export function isTextElement(node: Node): node is HTMLTextAreaElement {
 export function isContainerElement(node: Node): node is HTMLElement {
   if (!(node instanceof HTMLElement)) return false;
 
+  // include other base elements
+  if (includeBaseElement(node)) {
+    return false;
+  }
+
+  const computedStyle = window.getComputedStyle(node);
+  const backgroundColor = computedStyle.getPropertyValue('background-color');
+  if (backgroundColor) {
+    return true;
+  }
+
+  return false;
+}
+
+function includeBaseElement(node: Node) {
+  if (!(node instanceof HTMLElement)) return false;
+
   // include text
   if (node.innerText) {
-    return false;
+    return true;
   }
 
   const includeList = [
@@ -53,15 +70,9 @@ export function isContainerElement(node: Node): node is HTMLElement {
   for (const tagName of includeList) {
     const element = node.querySelectorAll(tagName);
     if (element.length > 0) {
-      return false;
+      return true;
     }
   }
 
-  const computedStyle = window.getComputedStyle(node);
-  const backgroundColor = computedStyle.getPropertyValue('background-color');
-  if (backgroundColor) {
-    return true;
-  }
-
-  return true;
+  return false;
 }

@@ -1,0 +1,424 @@
+[
+  {
+    "id": "a403444caa",
+    "nodePath": "0-93-0-0-0-0-0-0-0",
+    "nodeHashId": "a403444caa",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node"
+    },
+    "center": [
+      960,
+      280
+    ],
+    "content": "登录后免费畅享高清视频",
+    "rect": {
+      "left": 828,
+      "top": 263,
+      "width": 264,
+      "height": 34,
+      "zoom": 1
+    },
+    "zoom": 1,
+    "screenWidth": 1920,
+    "screenHeight": 1080,
+    "indexId": "1"
+  },
+  {
+    "id": "015f330cfc",
+    "nodePath": "0-93-0-0-0-0-0-1-0-0-0",
+    "nodeHashId": "015f330cfc",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node"
+    },
+    "center": [
+      832,
+      320
+    ],
+    "content": "点赞评论随心发",
+    "rect": {
+      "left": 783,
+      "top": 310,
+      "width": 98,
+      "height": 20,
+      "zoom": 1
+    },
+    "zoom": 1,
+    "screenWidth": 1920,
+    "screenHeight": 1080,
+    "indexId": "2"
+  },
+  {
+    "id": "23d48eae6e",
+    "nodePath": "0-93-0-0-0-0-0-1-0-1-0",
+    "nodeHashId": "23d48eae6e",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node"
+    },
+    "center": [
+      968,
+      320
+    ],
+    "content": "直播间畅聊打赏",
+    "rect": {
+      "left": 919,
+      "top": 310,
+      "width": 98,
+      "height": 20,
+      "zoom": 1
+    },
+    "zoom": 1,
+    "screenWidth": 1920,
+    "screenHeight": 1080,
+    "indexId": "3"
+  },
+  {
+    "id": "9f1e333891",
+    "nodePath": "0-93-0-0-0-0-0-1-0-2-0",
+    "nodeHashId": "9f1e333891",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node"
+    },
+    "center": [
+      1104,
+      320
+    ],
+    "content": "朋友视频一键览",
+    "rect": {
+      "left": 1055,
+      "top": 310,
+      "width": 98,
+      "height": 20,
+      "zoom": 1
+    },
+    "zoom": 1,
+    "screenWidth": 1920,
+    "screenHeight": 1080,
+    "indexId": "4"
+  },
+  {
+    "id": "b2dbd95712",
+    "nodePath": "0-93-0-0-0-0-1",
+    "nodeHashId": "b2dbd95712",
+    "locator": "[_midscene_retrieve_task_id='b2dbd95712']",
+    "attributes": {
+      "class": ".douyin-login__close.dy-account-close",
+      "nodeType": "IMG Node"
+    },
+    "nodeType": "IMG Node",
+    "content": "",
+    "rect": {
+      "left": 1154,
+      "top": 249,
+      "width": 36,
+      "height": 36,
+      "zoom": 1
+    },
+    "center": [
+      1172,
+      267
+    ],
+    "zoom": 1,
+    "screenWidth": 1920,
+    "screenHeight": 1080,
+    "indexId": "5"
+  },
+  {
+    "id": "050e3907b1",
+    "nodePath": "0-93-0-0-0-0-2-0-0-0-0-0-0-0",
+    "nodeHashId": "050e3907b1",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node"
+    },
+    "center": [
+      842,
+      394
+    ],
+    "content": "扫码登录",
+    "rect": {
+      "left": 806,
+      "top": 381,
+      "width": 72,
+      "height": 25,
+      "zoom": 1
+    },
+    "zoom": 1,
+    "screenWidth": 1920,
+    "screenHeight": 1080,
+    "indexId": "6"
+  },
+  {
+    "id": "8c7002c3f2",
+    "nodePath": "0-93-0-0-0-0-2-0-0-0-0-0-1-0",
+    "nodeHashId": "8c7002c3f2",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node"
+    },
+    "center": [
+      960,
+      394
+    ],
+    "content": "验证码登录",
+    "rect": {
+      "left": 915,
+      "top": 381,
+      "width": 90,
+      "height": 25,
+      "zoom": 1
+    },
+    "zoom": 1,
+    "screenWidth": 1920,
+    "screenHeight": 1080,
+    "indexId": "7"
+  },
+  {
+    "id": "fb9ff44603",
+    "nodePath": "0-93-0-0-0-0-2-0-0-0-0-0-2-0",
+    "nodeHashId": "fb9ff44603",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node"
+    },
+    "center": [
+      1078,
+      394
+    ],
+    "content": "密码登录",
+    "rect": {
+      "left": 1042,
+      "top": 381,
+      "width": 72,
+      "height": 25,
+      "zoom": 1
+    },
+    "zoom": 1,
+    "screenWidth": 1920,
+    "screenHeight": 1080,
+    "indexId": "8"
+  },
+  {
+    "id": "4c1bc69be7",
+    "nodePath": "0-93-0-0-0-0-2-0-0-0-1-0-0-0-0",
+    "nodeHashId": "4c1bc69be7",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node"
+    },
+    "center": [
+      952,
+      747
+    ],
+    "content": "如何扫码",
+    "rect": {
+      "left": 926,
+      "top": 737,
+      "width": 52,
+      "height": 19,
+      "zoom": 1
+    },
+    "zoom": 1,
+    "screenWidth": 1920,
+    "screenHeight": 1080,
+    "indexId": "9"
+  },
+  {
+    "id": "9e6d0f3156",
+    "nodePath": "0-93-0-0-0-0-2-0-0-0-1-0-0-0-1",
+    "nodeHashId": "9e6d0f3156",
+    "locator": "",
+    "attributes": {
+      "svgContent": "true",
+      "nodeType": "IMG Node"
+    },
+    "nodeType": "IMG Node",
+    "content": "",
+    "rect": {
+      "left": 983,
+      "top": 740,
+      "width": 8,
+      "height": 11,
+      "zoom": 1
+    },
+    "center": [
+      987,
+      746
+    ],
+    "zoom": 1,
+    "screenWidth": 1920,
+    "screenHeight": 1080,
+    "indexId": "10"
+  },
+  {
+    "id": "3c4d1a6aff",
+    "nodePath": "0-93-0-0-0-0-2-0-0-0-1-0-0-1-0",
+    "nodeHashId": "3c4d1a6aff",
+    "locator": "[_midscene_retrieve_task_id='3c4d1a6aff']",
+    "attributes": {
+      "src": "data:image/jpeg;...",
+      "class": ".web-login-scan-code__content__qrcode-wrapper__qrcode",
+      "tabindex": "0",
+      "aria-label": "二维码",
+      "nodeType": "IMG Node"
+    },
+    "nodeType": "IMG Node",
+    "content": "",
+    "rect": {
+      "left": 874,
+      "top": 483,
+      "width": 179,
+      "height": 179,
+      "zoom": 1
+    },
+    "center": [
+      964,
+      573
+    ],
+    "zoom": 1,
+    "screenWidth": 1920,
+    "screenHeight": 1080,
+    "indexId": "11"
+  },
+  {
+    "id": "ccde847cd1",
+    "nodePath": "0-93-0-0-0-0-2-0-0-0-1-0-1-0-0",
+    "nodeHashId": "ccde847cd1",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node"
+    },
+    "center": [
+      836,
+      698
+    ],
+    "content": "打开",
+    "rect": {
+      "left": 822,
+      "top": 688,
+      "width": 27,
+      "height": 19,
+      "zoom": 1
+    },
+    "zoom": 1,
+    "screenWidth": 1920,
+    "screenHeight": 1080,
+    "indexId": "12"
+  },
+  {
+    "id": "4f411ee332",
+    "nodePath": "0-93-0-0-0-0-2-0-0-0-1-0-1-0-1-0",
+    "nodeHashId": "4f411ee332",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node"
+    },
+    "center": [
+      877,
+      698
+    ],
+    "content": "抖音APP",
+    "rect": {
+      "left": 850,
+      "top": 688,
+      "width": 54,
+      "height": 19,
+      "zoom": 1
+    },
+    "zoom": 1,
+    "screenWidth": 1920,
+    "screenHeight": 1080,
+    "indexId": "13"
+  },
+  {
+    "id": "a9cdbde95e",
+    "nodePath": "0-93-0-0-0-0-2-0-0-0-1-0-1-0-2",
+    "nodeHashId": "a9cdbde95e",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node"
+    },
+    "center": [
+      1001,
+      698
+    ],
+    "content": "-点击左上角侧边栏-点击扫一扫",
+    "rect": {
+      "left": 904,
+      "top": 688,
+      "width": 194,
+      "height": 19,
+      "zoom": 1
+    },
+    "zoom": 1,
+    "screenWidth": 1920,
+    "screenHeight": 1080,
+    "indexId": "14"
+  },
+  {
+    "id": "f5d768835b",
+    "nodePath": "0-93-0-0-0-0-2-0-0-0-1-1-0-0",
+    "nodeHashId": "f5d768835b",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node"
+    },
+    "center": [
+      942,
+      780
+    ],
+    "content": "登录/注册遇到问题？",
+    "rect": {
+      "left": 885,
+      "top": 771,
+      "width": 114,
+      "height": 17,
+      "zoom": 1
+    },
+    "zoom": 1,
+    "screenWidth": 1920,
+    "screenHeight": 1080,
+    "indexId": "15"
+  },
+  {
+    "id": "e179508d82",
+    "nodePath": "0-93-0-0-0-0-2-0-0-0-1-1-1-0",
+    "nodeHashId": "e179508d82",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node"
+    },
+    "center": [
+      1017,
+      780
+    ],
+    "content": "去反馈",
+    "rect": {
+      "left": 999,
+      "top": 771,
+      "width": 36,
+      "height": 17,
+      "zoom": 1
+    },
+    "zoom": 1,
+    "screenWidth": 1920,
+    "screenHeight": 1080,
+    "indexId": "16"
+  }
+]

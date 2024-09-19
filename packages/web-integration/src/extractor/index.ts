@@ -11,7 +11,6 @@ export interface ElementInfo {
     [key: string]: string;
   };
   nodeType: NodeType;
-  htmlNode: Node | null;
   content: string;
   rect: { left: number; top: number; width: number; height: number };
   center: [number, number];
