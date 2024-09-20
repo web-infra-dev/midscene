@@ -1,20 +1,11 @@
 import type { WebKeyInput } from './common/page';
 import type { ElementInfo } from './extractor';
 
-type imageType = 'jpeg' | 'png';
-type encodingType = 'base64' | 'binary';
-
-export type screenshotOptions = {
-  path?: string;
-  encoding?: encodingType;
-  type?: imageType;
-  quality?: number;
-};
 export type MouseButton = 'left' | 'right' | 'middle';
 
 export abstract class AbstractPage {
   abstract pageType: string;
-  abstract screenshot(options?: screenshotOptions): Promise<void>;
+  abstract screenshot(): Promise<string>;
   abstract getElementInfos(): Promise<ElementInfo[]>;
   abstract url(): string;
 
