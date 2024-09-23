@@ -27,6 +27,11 @@
       "import": "./dist/es/playwright-report.js",
       "require": "./dist/lib/playwright-report.js"
     },
+    "./appium": {
+      "types": "./dist/types/appium.d.ts",
+      "import": "./dist/es/appium.js",
+      "require": "./dist/lib/appium.js"
+    },
     "./debug": {
       "types": "./dist/types/debug.d.ts",
       "import": "./dist/es/debug.js",

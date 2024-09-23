@@ -1,11 +1,12 @@
 import { readFileSync, writeFileSync } from 'node:fs';
+import { getTmpFile } from '@midscene/core/utils';
 import { resizeImg } from '@midscene/shared/img';
 import type { Page as PlaywrightPage } from 'playwright';
 import type { Page as PuppeteerPage } from 'puppeteer';
 import type { WebKeyInput } from '../common/page';
 import { getExtraReturnLogic } from '../common/utils';
 import type { ElementInfo } from '../extractor';
-import type { AbstractPage, screenshotOptions } from '../page';
+import type { AbstractPage } from '../page';
 import type { MouseButton } from '../page';
 
 export class Page<
@@ -37,12 +38,7 @@ export class Page<
     return captureElementSnapshot as ElementInfo[];
   }
 
-  async screenshot(options: screenshotOptions): Promise<void> {
-    const { path } = options;
-    if (!path) {
-      throw new Error('path is required for screenshot');
-    }
-
+  async screenshot(): Promise<string> {
     // get viewport size from page
     const viewportSize: {
       width: number;
@@ -55,6 +51,8 @@ export class Page<
         deviceScaleFactor: window.devicePixelRatio,
       };
     });
+
+    const path = getTmpFile('jpeg');
 
     await this.page.screenshot({
       path,
@@ -71,18 +69,7 @@ export class Page<
       writeFileSync(path, buf);
     }
 
-    // return await this.page.screenshot({
-    //   path,
-    //   type: 'jpeg',
-    //   quality: 75,
-    //   clip: {
-    //     x: 0,
-    //     y: 0,
-    //     width: viewportSize.width,
-    //     height: viewportSize.height,
-    //     scale: 1 / viewportSize.deviceScaleFactor,
-    //   },
-    // });
+    return path;
   }
 
   url(): string {

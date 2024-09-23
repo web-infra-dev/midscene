@@ -17,7 +17,7 @@ then execute the command to start appium server:
 appium --use-plugins=universal-xml
 ```
 
-now you can use run tests for the iOS/Android device:
+now you can use run tests for iOS/Android devices:
 
 ```bash
 npm run test:ai -- appium

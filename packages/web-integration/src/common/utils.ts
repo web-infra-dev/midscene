@@ -23,9 +23,7 @@ export async function parseContextFromWebPage(
   assert(page, 'page is required');
 
   const url = page.url();
-  const file = getTmpFile('jpeg');
-  await page.screenshot({ path: file });
-
+  const file = await page.screenshot();
   const screenshotBuffer = readFileSync(file);
   const screenshotBase64 = base64Encoded(file);
   const captureElementSnapshot = await page.getElementInfos();

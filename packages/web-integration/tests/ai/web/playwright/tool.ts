@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import type { WebPage } from '@/common/page';
 import { getElementInfos } from '@/debug';
@@ -16,10 +16,8 @@ export async function generateExtractData(
     disableSnapshot: boolean;
   },
 ) {
-  const buffer = await page.screenshot({
-    encoding: 'base64',
-  });
-  const inputImgBase64 = buffer.toString('base64');
+  const filePath = await page.screenshot();
+  const inputImgBase64 = readFileSync(filePath).toString('base64');
 
   const {
     elementsPositionInfo,
