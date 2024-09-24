@@ -6,6 +6,7 @@ const size = 400; // @max-size
 const GlobalHoverPreview = () => {
   const wrapperRef = useRef<HTMLDivElement>(null);
   const hoverTask = useExecutionDump((store) => store.hoverTask);
+  const activeTask = useExecutionDump((store) => store.activeTask);
   const hoverTimestamp = useExecutionDump((store) => store.hoverTimestamp);
   const hoverPreviewConfig = useExecutionDump(
     (store) => store.hoverPreviewConfig,
@@ -28,7 +29,10 @@ const GlobalHoverPreview = () => {
   let top = 0;
 
   const shouldShow =
-    images?.length && typeof x !== 'undefined' && typeof y !== 'undefined';
+    hoverTask !== activeTask &&
+    images?.length &&
+    typeof x !== 'undefined' &&
+    typeof y !== 'undefined';
   if (shouldShow) {
     const { clientWidth, clientHeight } = document.body;
     const widthInPractice = imageW >= imageH ? size : size * (imageW / imageH);

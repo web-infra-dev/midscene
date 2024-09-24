@@ -6,10 +6,12 @@ import {
   CameraOutlined,
   FileTextOutlined,
   ScheduleOutlined,
+  VideoCameraOutlined,
 } from '@ant-design/icons';
 import { ConfigProvider, Segmented } from 'antd';
 import { useEffect, useState } from 'react';
 import BlackBoard from './blackboard';
+import Player from './player';
 
 const ScreenshotItem = (props: { time: string; img: string }) => {
   return (
@@ -22,6 +24,7 @@ const ScreenshotItem = (props: { time: string; img: string }) => {
   );
 };
 
+const VIEW_TYPE_REPLAY = 'replay';
 const VIEW_TYPE_BLACKBOARD = 'blackboard';
 const VIEW_TYPE_SCREENSHOT = 'screenshot';
 const VIEW_TYPE_JSON = 'json';
@@ -30,16 +33,37 @@ const DetailPanel = (): JSX.Element => {
   const dumpContext = useInsightDump((store) => store.data);
   const dumpId = useInsightDump((store) => store._loadId);
   const blackboardViewAvailable = Boolean(dumpContext);
+  const activeExecution = useExecutionDump((store) => store.activeExecution);
+  const activeExecutionId = useExecutionDump(
+    (store) => store._executionDumpLoadId,
+  );
   const activeTask = useExecutionDump((store) => store.activeTask);
-  const [preferredViewType, setViewType] = useState(VIEW_TYPE_BLACKBOARD);
+  const [preferredViewType, setViewType] = useState(VIEW_TYPE_REPLAY);
+  const animationScripts = useExecutionDump(
+    (store) => store.activeExecutionAnimation,
+  );
+
+  let availableViewTypes = [VIEW_TYPE_SCREENSHOT, VIEW_TYPE_JSON];
+  if (blackboardViewAvailable) {
+    availableViewTypes = [
+      VIEW_TYPE_BLACKBOARD,
+      VIEW_TYPE_SCREENSHOT,
+      VIEW_TYPE_JSON,
+    ];
+  }
+  if (animationScripts && animationScripts.length > 0) {
+    availableViewTypes.unshift(VIEW_TYPE_REPLAY);
+  }
 
   const viewType =
-    preferredViewType === VIEW_TYPE_BLACKBOARD && !blackboardViewAvailable
-      ? VIEW_TYPE_SCREENSHOT
-      : preferredViewType;
+    availableViewTypes.indexOf(preferredViewType) >= 0
+      ? preferredViewType
+      : availableViewTypes[0];
 
   let content;
-  if (!activeTask) {
+  if (activeExecution && viewType === VIEW_TYPE_REPLAY) {
+    content = <Player key={`${activeExecutionId}`} />;
+  } else if (!activeTask) {
     content = <div>please select a task</div>;
   } else if (viewType === VIEW_TYPE_JSON) {
     content = (
@@ -79,21 +103,12 @@ const DetailPanel = (): JSX.Element => {
     // hit `Tab` to toggle viewType
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Tab') {
-        if (viewType === VIEW_TYPE_BLACKBOARD) {
-          setViewType(VIEW_TYPE_SCREENSHOT);
-        } else if (viewType === VIEW_TYPE_SCREENSHOT) {
-          setViewType(VIEW_TYPE_JSON);
-        } else {
-          setViewType(
-            blackboardViewAvailable
-              ? VIEW_TYPE_BLACKBOARD
-              : VIEW_TYPE_SCREENSHOT,
-          );
-        }
+        const index = availableViewTypes.indexOf(viewType);
+        const nextIndex = (index + 1) % availableViewTypes.length;
+        setViewType(availableViewTypes[nextIndex]);
         e.preventDefault();
       }
     };
-
     document.addEventListener('keydown', handleKeyDown);
 
     return () => {
@@ -101,21 +116,42 @@ const DetailPanel = (): JSX.Element => {
     };
   });
 
-  const options = [
-    {
-      label: 'Screenshots',
-      value: VIEW_TYPE_SCREENSHOT,
-      icon: <CameraOutlined />,
-    },
-    { label: 'JSON View', value: VIEW_TYPE_JSON, icon: <FileTextOutlined /> },
-  ];
-  if (blackboardViewAvailable) {
-    options.unshift({
-      label: 'Insight',
-      value: VIEW_TYPE_BLACKBOARD,
-      icon: <ScheduleOutlined />,
-    });
-  }
+  const options = availableViewTypes.map((type) => {
+    if (type === VIEW_TYPE_REPLAY) {
+      return {
+        label: 'Task Replay',
+        value: type,
+        icon: <VideoCameraOutlined />,
+      };
+    }
+    if (type === VIEW_TYPE_BLACKBOARD) {
+      return {
+        label: 'Insight',
+        value: type,
+        icon: <ScheduleOutlined />,
+      };
+    }
+    if (type === VIEW_TYPE_SCREENSHOT) {
+      return {
+        label: 'Screenshots',
+        value: type,
+        icon: <CameraOutlined />,
+      };
+    }
+    if (type === VIEW_TYPE_JSON) {
+      return {
+        label: 'JSON View',
+        value: type,
+        icon: <FileTextOutlined />,
+      };
+    }
+
+    return {
+      label: 'unknown',
+      value: type,
+    };
+  });
+
   return (
     <div className="detail-panel">
       <div className="view-switcher">

@@ -139,7 +139,7 @@ const Sidebar = (props: { logoAction?: () => void }): JSX.Element => {
           //   break;
           default:
             seperator = (
-              <div className="side-seperator side-seperator-line side-seperator-space-up side-seperator-space-down" />
+              <div className="side-seperator side-seperator-space-up side-seperator-space-down" />
             );
             break;
         }

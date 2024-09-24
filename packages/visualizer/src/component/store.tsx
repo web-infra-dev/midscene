@@ -2,11 +2,14 @@ import * as Z from 'zustand';
 // import { createStore } from 'zustand/vanilla';
 import type {
   BaseElement,
+  ExecutionDump,
   ExecutionTask,
   ExecutionTaskInsightLocate,
   GroupedActionDump,
   InsightDump,
 } from '../../../midscene/dist/types';
+import type { AnimationScript } from './player-scripts';
+import { generateAnimationScripts } from './player-scripts';
 
 const { create } = Z;
 export const useBlackboardPreference = create<{
@@ -28,6 +31,11 @@ export const useBlackboardPreference = create<{
 export const useExecutionDump = create<{
   dump: GroupedActionDump | null;
   setGroupedDump: (dump: GroupedActionDump) => void;
+  _executionDumpLoadId: number;
+  activeExecution: ExecutionDump | null;
+  activeExecutionAnimation: AnimationScript[] | null;
+  activeExecutionScreenshotWidth: number;
+  activeExecutionScreenshotHeight: number;
   activeTask: ExecutionTask | null;
   setActiveTask: (task: ExecutionTask) => void;
   hoverTask: ExecutionTask | null;
@@ -37,9 +45,15 @@ export const useExecutionDump = create<{
   setHoverPreviewConfig: (config: { x: number; y: number } | null) => void;
   reset: () => void;
 }>((set, get) => {
+  let _executionDumpLoadId = 0;
   const initData = {
     dump: null,
     activeTask: null,
+    activeExecution: null,
+    activeExecutionAnimation: null,
+    // TODO: get from dump
+    activeExecutionScreenshotWidth: 0,
+    activeExecutionScreenshotHeight: 0,
     hoverTask: null,
     hoverTimestamp: null,
     hoverPreviewConfig: null,
@@ -57,6 +71,7 @@ export const useExecutionDump = create<{
 
   return {
     ...initData,
+    _executionDumpLoadId,
     setGroupedDump: (dump: GroupedActionDump) => {
       console.log('will set ExecutionDump', dump);
       set({
@@ -75,8 +90,39 @@ export const useExecutionDump = create<{
       }
     },
     setActiveTask(task: ExecutionTask) {
-      set({ activeTask: task });
-      console.log('task set', task);
+      let parentExecution: ExecutionDump | undefined;
+      const dump = get().dump;
+      if (dump) {
+        parentExecution = dump.executions.find((execution) =>
+          execution.tasks.includes(task),
+        );
+      }
+      if (!parentExecution) {
+        throw new Error('parentExecution not found');
+      }
+
+      let width = 0;
+      let height = 0;
+      parentExecution.tasks.forEach((t) => {
+        if (t.type === 'Insight') {
+          const insightTask = t as ExecutionTaskInsightLocate;
+          width = insightTask.log?.dump?.context?.size?.width || 1920;
+          height = insightTask.log?.dump?.context?.size?.height || 1080;
+        }
+      });
+      set({
+        activeTask: task,
+        activeExecution: parentExecution,
+        _executionDumpLoadId: ++_executionDumpLoadId,
+        activeExecutionAnimation: generateAnimationScripts(
+          parentExecution,
+          width,
+          height,
+        ),
+        activeExecutionScreenshotWidth: width,
+        activeExecutionScreenshotHeight: height,
+      });
+      console.log('will set task', task);
       if (task.type === 'Insight') {
         syncToInsightDump((task as ExecutionTaskInsightLocate).log?.dump!);
       } else {

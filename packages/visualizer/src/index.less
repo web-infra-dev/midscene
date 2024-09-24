@@ -65,12 +65,18 @@ footer.mt-8{
   line-height: 1.5;
 }
 
+.page-side {
+  border-right: 1px solid @border-color;
+  height: 100%;
+}
+
 .page-nav {
   height: 30px;
   padding: 10px;
   border-bottom: 1px solid @border-color;
   display: flex;
   flex-direction: row;
+  background: @side-bg;
 
   .logo img {
     height: 20px;
@@ -135,7 +141,7 @@ footer.mt-8{
     background: #ffffff;
     overflow-x: hidden;
     overflow-y: scroll;
-    border-left: 1px solid @border-color;
+    border-right: 1px solid @border-color;
   }
     
   .main-side {

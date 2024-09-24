@@ -60,5 +60,7 @@ export async function callAiFn<T>(options: {
     return parseResult;
   }
 
-  throw Error('Does not contain coze and openai environment variables');
+  throw Error(
+    'Cannot find Coze or OpenAI config. You should set at least one of them.',
+  );
 }
