@@ -34,12 +34,11 @@ export function timeCostStrElement(timeCost?: number) {
   );
 }
 
-// playwright status: 'passed' | 'failed' | 'timedOut' | 'skipped' | 'interrupted';
-
 export const iconForStatus = (status: string): JSX.Element => {
   switch (status) {
     case 'finished':
     case 'passed':
+    case 'success':
       return (
         <span style={{ color: '#2B8243' }}>
           <CheckOutlined />

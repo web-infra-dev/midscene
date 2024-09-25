@@ -1,7 +1,7 @@
 import './sidebar.less';
 import { useAllCurrentTasks, useExecutionDump } from '@/component/store';
 import { typeStr } from '@/utils';
-import { MessageOutlined } from '@ant-design/icons';
+import { MessageOutlined, VideoCameraOutlined } from '@ant-design/icons';
 import type { ExecutionTask } from '@midscene/core';
 import { Button } from 'antd';
 import { useEffect } from 'react';
@@ -28,6 +28,14 @@ const SideItem = (props: {
       ? iconForStatus('finishedWithWarning')
       : iconForStatus(task.status);
 
+  const titleTextIcon =
+    task.type === 'Planning' ? (
+      <span>
+        &nbsp;
+        <VideoCameraOutlined />
+      </span>
+    ) : null;
+
   return (
     <div
       className={`side-item ${selectedClass}`}
@@ -46,7 +54,9 @@ const SideItem = (props: {
       {' '}
       <div className={'side-item-name'}>
         <span className="status-icon">{statusIcon}</span>
-        <div className="title">{typeStr(task)}</div>
+        <div className="title">
+          {typeStr(task)} {titleTextIcon}
+        </div>
         <div className="status-text">{statusText}</div>
       </div>
       {/* {contentRow} */}

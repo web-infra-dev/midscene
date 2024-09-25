@@ -6,8 +6,14 @@
   display: flex;
   flex-direction: column;
   height: 100%;
+  box-sizing: border-box;
   padding: @layout-space;
   background: #FFF;
+
+  .scrollable {
+    height: 100%;
+    overflow: auto;
+  }
 
   .ant-segmented{
     padding: 0;
@@ -24,6 +30,8 @@
     flex-direction: column;
     display: flex;
     flex-grow: 1;
+    height: 100%;
+    overflow: hidden;
   }
 
   .blackboard {
@@ -48,6 +56,8 @@
     img {
       border: 1px solid @heavy-border-color;
       max-width: 100%;
+      max-height: 720px;
+      box-sizing: border-box;
     }
   }
 

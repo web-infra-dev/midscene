@@ -46,12 +46,16 @@ const DetailPanel = (): JSX.Element => {
   let availableViewTypes = [VIEW_TYPE_SCREENSHOT, VIEW_TYPE_JSON];
   if (blackboardViewAvailable) {
     availableViewTypes = [
-      VIEW_TYPE_BLACKBOARD,
       VIEW_TYPE_SCREENSHOT,
+      VIEW_TYPE_BLACKBOARD,
       VIEW_TYPE_JSON,
     ];
   }
-  if (animationScripts && animationScripts.length > 0) {
+  if (
+    activeTask?.type === 'Planning' &&
+    animationScripts &&
+    animationScripts.length > 0
+  ) {
     availableViewTypes.unshift(VIEW_TYPE_REPLAY);
   }
 
@@ -67,7 +71,7 @@ const DetailPanel = (): JSX.Element => {
     content = <div>please select a task</div>;
   } else if (viewType === VIEW_TYPE_JSON) {
     content = (
-      <div className="json-content">
+      <div className="json-content scrollable">
         {filterBase64Value(JSON.stringify(activeTask, undefined, 2))}
       </div>
     );
@@ -80,7 +84,7 @@ const DetailPanel = (): JSX.Element => {
   } else if (viewType === VIEW_TYPE_SCREENSHOT) {
     if (activeTask.recorder?.length) {
       content = (
-        <div className="screenshot-item-wrapper">
+        <div className="screenshot-item-wrapper scrollable">
           {activeTask.recorder
             .filter((item) => item.screenshot)
             .map((item, index) => {
@@ -161,8 +165,6 @@ const DetailPanel = (): JSX.Element => {
               Segmented: {
                 itemSelectedBg: '#bfc4da50',
                 itemSelectedColor: '#000000',
-                // itemHoverColor: '#ffffff',
-                // itemHoverBg: '#A3D6D2',
               },
             },
           }}
