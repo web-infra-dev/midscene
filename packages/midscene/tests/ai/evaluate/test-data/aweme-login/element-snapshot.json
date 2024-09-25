@@ -1,7 +1,7 @@
 [
   {
     "id": "a403444caa",
-    "nodePath": "0-93-0-0-0-0-0-0-0",
+    "nodePath": "0-97-0-0-0-0-0-0-0",
     "nodeHashId": "a403444caa",
     "nodeType": "TEXT Node",
     "locator": "",
@@ -27,7 +27,7 @@
   },
   {
     "id": "015f330cfc",
-    "nodePath": "0-93-0-0-0-0-0-1-0-0-0",
+    "nodePath": "0-97-0-0-0-0-0-1-0-0-0",
     "nodeHashId": "015f330cfc",
     "nodeType": "TEXT Node",
     "locator": "",
@@ -53,7 +53,7 @@
   },
   {
     "id": "23d48eae6e",
-    "nodePath": "0-93-0-0-0-0-0-1-0-1-0",
+    "nodePath": "0-97-0-0-0-0-0-1-0-1-0",
     "nodeHashId": "23d48eae6e",
     "nodeType": "TEXT Node",
     "locator": "",
@@ -79,7 +79,7 @@
   },
   {
     "id": "9f1e333891",
-    "nodePath": "0-93-0-0-0-0-0-1-0-2-0",
+    "nodePath": "0-97-0-0-0-0-0-1-0-2-0",
     "nodeHashId": "9f1e333891",
     "nodeType": "TEXT Node",
     "locator": "",
@@ -105,7 +105,7 @@
   },
   {
     "id": "b2dbd95712",
-    "nodePath": "0-93-0-0-0-0-1",
+    "nodePath": "0-97-0-0-0-0-1",
     "nodeHashId": "b2dbd95712",
     "locator": "[_midscene_retrieve_task_id='b2dbd95712']",
     "attributes": {
@@ -132,7 +132,7 @@
   },
   {
     "id": "050e3907b1",
-    "nodePath": "0-93-0-0-0-0-2-0-0-0-0-0-0-0",
+    "nodePath": "0-97-0-0-0-0-2-0-0-0-0-0-0-0",
     "nodeHashId": "050e3907b1",
     "nodeType": "TEXT Node",
     "locator": "",
@@ -158,7 +158,7 @@
   },
   {
     "id": "8c7002c3f2",
-    "nodePath": "0-93-0-0-0-0-2-0-0-0-0-0-1-0",
+    "nodePath": "0-97-0-0-0-0-2-0-0-0-0-0-1-0",
     "nodeHashId": "8c7002c3f2",
     "nodeType": "TEXT Node",
     "locator": "",
@@ -184,7 +184,7 @@
   },
   {
     "id": "fb9ff44603",
-    "nodePath": "0-93-0-0-0-0-2-0-0-0-0-0-2-0",
+    "nodePath": "0-97-0-0-0-0-2-0-0-0-0-0-2-0",
     "nodeHashId": "fb9ff44603",
     "nodeType": "TEXT Node",
     "locator": "",
@@ -210,7 +210,7 @@
   },
   {
     "id": "4c1bc69be7",
-    "nodePath": "0-93-0-0-0-0-2-0-0-0-1-0-0-0-0",
+    "nodePath": "0-97-0-0-0-0-2-0-0-0-1-0-0-0-0",
     "nodeHashId": "4c1bc69be7",
     "nodeType": "TEXT Node",
     "locator": "",
@@ -236,7 +236,7 @@
   },
   {
     "id": "9e6d0f3156",
-    "nodePath": "0-93-0-0-0-0-2-0-0-0-1-0-0-0-1",
+    "nodePath": "0-97-0-0-0-0-2-0-0-0-1-0-0-0-1",
     "nodeHashId": "9e6d0f3156",
     "locator": "",
     "attributes": {
@@ -263,7 +263,7 @@
   },
   {
     "id": "3c4d1a6aff",
-    "nodePath": "0-93-0-0-0-0-2-0-0-0-1-0-0-1-0",
+    "nodePath": "0-97-0-0-0-0-2-0-0-0-1-0-0-1-0",
     "nodeHashId": "3c4d1a6aff",
     "locator": "[_midscene_retrieve_task_id='3c4d1a6aff']",
     "attributes": {
@@ -293,7 +293,7 @@
   },
   {
     "id": "ccde847cd1",
-    "nodePath": "0-93-0-0-0-0-2-0-0-0-1-0-1-0-0",
+    "nodePath": "0-97-0-0-0-0-2-0-0-0-1-0-1-0-0",
     "nodeHashId": "ccde847cd1",
     "nodeType": "TEXT Node",
     "locator": "",
@@ -319,7 +319,7 @@
   },
   {
     "id": "4f411ee332",
-    "nodePath": "0-93-0-0-0-0-2-0-0-0-1-0-1-0-1-0",
+    "nodePath": "0-97-0-0-0-0-2-0-0-0-1-0-1-0-1-0",
     "nodeHashId": "4f411ee332",
     "nodeType": "TEXT Node",
     "locator": "",
@@ -345,7 +345,7 @@
   },
   {
     "id": "a9cdbde95e",
-    "nodePath": "0-93-0-0-0-0-2-0-0-0-1-0-1-0-2",
+    "nodePath": "0-97-0-0-0-0-2-0-0-0-1-0-1-0-2",
     "nodeHashId": "a9cdbde95e",
     "nodeType": "TEXT Node",
     "locator": "",
@@ -368,57 +368,5 @@
     "screenWidth": 1920,
     "screenHeight": 1080,
     "indexId": "14"
-  },
-  {
-    "id": "f5d768835b",
-    "nodePath": "0-93-0-0-0-0-2-0-0-0-1-1-0-0",
-    "nodeHashId": "f5d768835b",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node"
-    },
-    "center": [
-      942,
-      780
-    ],
-    "content": "登录/注册遇到问题？",
-    "rect": {
-      "left": 885,
-      "top": 771,
-      "width": 114,
-      "height": 17,
-      "zoom": 1
-    },
-    "zoom": 1,
-    "screenWidth": 1920,
-    "screenHeight": 1080,
-    "indexId": "15"
-  },
-  {
-    "id": "e179508d82",
-    "nodePath": "0-93-0-0-0-0-2-0-0-0-1-1-1-0",
-    "nodeHashId": "e179508d82",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node"
-    },
-    "center": [
-      1017,
-      780
-    ],
-    "content": "去反馈",
-    "rect": {
-      "left": 999,
-      "top": 771,
-      "width": 36,
-      "height": 17,
-      "zoom": 1
-    },
-    "zoom": 1,
-    "screenWidth": 1920,
-    "screenHeight": 1080,
-    "indexId": "16"
   }
 ]

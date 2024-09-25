@@ -87,9 +87,9 @@
     "indexId": "3"
   },
   {
-    "id": "2a0c41d714",
-    "nodePath": "0-2-1-3-4-3-0-0-0-0-0-0-0-0-0-1-1-1-1-2-0",
-    "nodeHashId": "2a0c41d714",
+    "id": "9ca3440e5b",
+    "nodePath": "0-2-1-3-4-3-0-0-0-1-0-0-0-0-0-1-1-1-1-1-0",
+    "nodeHashId": "9ca3440e5b",
     "locator": "",
     "attributes": {
       "svgContent": "true",
@@ -98,15 +98,15 @@
     "nodeType": "IMG Node",
     "content": "",
     "rect": {
-      "left": 17,
-      "top": 1049,
-      "width": 14,
-      "height": 16,
+      "left": 19,
+      "top": 1050,
+      "width": 13,
+      "height": 15,
       "zoom": 1
     },
     "center": [
-      24,
-      1057
+      26,
+      1058
     ],
     "zoom": 1,
     "screenWidth": 1920,
@@ -115,7 +115,7 @@
   },
   {
     "id": "d9b173dde2",
-    "nodePath": "0-2-1-3-4-3-0-0-0-0-0-0-0-0-0-1-1-2-1-0",
+    "nodePath": "0-2-1-3-4-3-0-0-0-1-0-0-0-0-0-1-1-2-1-0",
     "nodeHashId": "d9b173dde2",
     "nodeType": "TEXT Node",
     "locator": "",
@@ -141,7 +141,7 @@
   },
   {
     "id": "3bbdc2f293",
-    "nodePath": "0-2-1-3-4-3-0-0-0-0-0-0-0-0-0-1-1-2-3-0",
+    "nodePath": "0-2-1-3-4-3-0-0-0-1-0-0-0-0-0-1-1-2-3-0",
     "nodeHashId": "3bbdc2f293",
     "nodeType": "TEXT Node",
     "locator": "",
@@ -167,7 +167,7 @@
   },
   {
     "id": "45e81bd755",
-    "nodePath": "0-2-1-3-4-3-0-0-0-0-0-0-0-0-0-1-1-2-5-0",
+    "nodePath": "0-2-1-3-4-3-0-0-0-1-0-0-0-0-0-1-1-2-5-0",
     "nodeHashId": "45e81bd755",
     "nodeType": "TEXT Node",
     "locator": "",
@@ -193,7 +193,7 @@
   },
   {
     "id": "407d8a4e7f",
-    "nodePath": "0-2-1-3-4-3-0-0-0-0-0-0-0-0-0-1-3",
+    "nodePath": "0-2-1-3-4-3-0-0-0-1-0-0-0-0-0-1-3",
     "nodeHashId": "407d8a4e7f",
     "nodeType": "CONTAINER Node",
     "locator": "[_midscene_retrieve_task_id='407d8a4e7f']",
@@ -220,7 +220,7 @@
   },
   {
     "id": "d7c40128f6",
-    "nodePath": "0-2-1-3-4-3-0-0-0-0-0-0-0-0-0-1-5-1-1-1-0",
+    "nodePath": "0-2-1-3-4-3-0-0-0-1-0-0-0-0-0-1-5-1-1-1-0",
     "nodeHashId": "d7c40128f6",
     "locator": "",
     "attributes": {
@@ -247,7 +247,7 @@
   },
   {
     "id": "da7cdddf0b",
-    "nodePath": "0-2-1-3-4-3-0-0-0-0-0-0-0-0-0-1-5-6-1-2-0",
+    "nodePath": "0-2-1-3-4-3-0-0-0-1-0-0-0-0-0-1-5-7-1-2-0",
     "nodeHashId": "da7cdddf0b",
     "locator": "",
     "attributes": {
@@ -274,7 +274,7 @@
   },
   {
     "id": "696c2a33fb",
-    "nodePath": "0-2-1-3-4-3-0-0-0-0-0-0-0-0-0-1-5-11-0-0",
+    "nodePath": "0-2-1-3-4-3-0-0-0-1-0-0-0-0-0-1-5-10-0-0",
     "nodeHashId": "696c2a33fb",
     "locator": "",
     "attributes": {
@@ -301,7 +301,7 @@
   },
   {
     "id": "2eafe2fbe1",
-    "nodePath": "0-2-1-3-4-3-0-0-0-0-0-0-0-0-0-1-5-13-0-0",
+    "nodePath": "0-2-1-3-4-3-0-0-0-1-0-0-0-0-0-1-5-12-0-0",
     "nodeHashId": "2eafe2fbe1",
     "nodeType": "TEXT Node",
     "locator": "",
@@ -327,7 +327,7 @@
   },
   {
     "id": "78bbcbc0d9",
-    "nodePath": "0-2-1-3-4-3-0-0-0-0-0-0-0-0-0-1-5-14-0-1-0",
+    "nodePath": "0-2-1-3-4-3-0-0-0-1-0-0-0-0-0-1-5-13-0-1-0",
     "nodeHashId": "78bbcbc0d9",
     "nodeType": "TEXT Node",
     "locator": "",
@@ -353,7 +353,7 @@
   },
   {
     "id": "7d4afb890f",
-    "nodePath": "0-2-1-3-4-3-0-0-0-0-0-0-0-0-0-1-5-15-0-0-0",
+    "nodePath": "0-2-1-3-4-3-0-0-0-1-0-0-0-0-0-1-5-16-0-0-0",
     "nodeHashId": "7d4afb890f",
     "nodeType": "BUTTON Node",
     "locator": "[_midscene_retrieve_task_id='7d4afb890f']",
@@ -383,7 +383,7 @@
   },
   {
     "id": "28be69ba3f",
-    "nodePath": "0-2-1-3-4-3-0-0-0-0-0-0-0-0-0-1-5-15-0-0-1-0",
+    "nodePath": "0-2-1-3-4-3-0-0-0-1-0-0-0-0-0-1-5-16-0-0-1-0",
     "nodeHashId": "28be69ba3f",
     "nodeType": "TEXT Node",
     "locator": "",
@@ -409,7 +409,7 @@
   },
   {
     "id": "a9bdeb5a9d",
-    "nodePath": "0-2-1-3-4-3-0-0-0-0-0-0-0-0-0-1-5-16-0-0-0",
+    "nodePath": "0-2-1-3-4-3-0-0-0-1-0-0-0-0-0-1-5-17-0-0-0",
     "nodeHashId": "a9bdeb5a9d",
     "nodeType": "BUTTON Node",
     "locator": "[_midscene_retrieve_task_id='a9bdeb5a9d']",
@@ -439,7 +439,7 @@
   },
   {
     "id": "302c3d9b09",
-    "nodePath": "0-2-1-3-4-3-0-0-0-0-0-0-0-0-0-1-5-16-0-0-1-0",
+    "nodePath": "0-2-1-3-4-3-0-0-0-1-0-0-0-0-0-1-5-17-0-0-1-0",
     "nodeHashId": "302c3d9b09",
     "nodeType": "TEXT Node",
     "locator": "",
@@ -465,7 +465,7 @@
   },
   {
     "id": "b26f3c4b62",
-    "nodePath": "0-2-1-3-4-3-0-0-0-0-0-0-0-0-1-0-0-0-0-0",
+    "nodePath": "0-2-1-3-4-3-0-0-0-1-0-0-0-0-1-0-0-0-0-0",
     "nodeHashId": "b26f3c4b62",
     "locator": "",
     "attributes": {
@@ -492,7 +492,7 @@
   },
   {
     "id": "ba6a978385",
-    "nodePath": "0-2-1-3-4-3-0-0-0-0-0-0-0-0-1-0-0-0-1-0",
+    "nodePath": "0-2-1-3-4-3-0-0-0-1-0-0-0-0-1-0-0-0-1-0",
     "nodeHashId": "ba6a978385",
     "locator": "",
     "attributes": {
@@ -519,7 +519,7 @@
   },
   {
     "id": "901de23951",
-    "nodePath": "0-2-1-3-4-3-0-0-0-0-0-0-0-0-1-1-0-0-0-0-0-0",
+    "nodePath": "0-2-1-3-4-3-0-0-0-1-0-0-0-0-1-1-0-0-0-0-0-0",
     "nodeHashId": "901de23951",
     "locator": "[_midscene_retrieve_task_id='901de23951']",
     "attributes": {
@@ -547,7 +547,7 @@
   },
   {
     "id": "c01bf367fa",
-    "nodePath": "0-2-1-3-4-3-0-0-0-0-0-0-0-0-1-1-0-0-1-0-0-0",
+    "nodePath": "0-2-1-3-4-3-0-0-0-1-0-0-0-0-1-1-0-0-1-0-0-0",
     "nodeHashId": "c01bf367fa",
     "locator": "",
     "attributes": {
@@ -574,7 +574,7 @@
   },
   {
     "id": "20722950c4",
-    "nodePath": "0-2-1-3-4-3-0-0-0-0-0-0-0-0-1-1-1-0-0-0-0",
+    "nodePath": "0-2-1-3-4-3-0-0-0-1-0-0-0-0-1-1-1-0-0-0-0",
     "nodeHashId": "20722950c4",
     "locator": "",
     "attributes": {
@@ -600,9 +600,9 @@
     "indexId": "22"
   },
   {
-    "id": "27147b3b58",
-    "nodePath": "0-2-1-3-4-3-0-0-0-0-0-0-0-0-1-1-1-0-1-0",
-    "nodeHashId": "27147b3b58",
+    "id": "7f21c87fc0",
+    "nodePath": "0-2-1-3-4-3-0-0-0-1-0-0-0-0-1-1-1-0-1-0",
+    "nodeHashId": "7f21c87fc0",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
@@ -612,11 +612,11 @@
       1852,
       591
     ],
-    "content": "6.2万",
+    "content": "25.4万",
     "rect": {
-      "left": 1828,
+      "left": 1823,
       "top": 577,
-      "width": 47,
+      "width": 58,
       "height": 27,
       "zoom": 1
     },
@@ -627,7 +627,7 @@
   },
   {
     "id": "2bcfcfa863",
-    "nodePath": "0-2-1-3-4-3-0-0-0-0-0-0-0-0-1-1-2-0-0-0-0",
+    "nodePath": "0-2-1-3-4-3-0-0-0-1-0-0-0-0-1-1-2-0-0-0-0",
     "nodeHashId": "2bcfcfa863",
     "locator": "",
     "attributes": {
@@ -653,9 +653,9 @@
     "indexId": "24"
   },
   {
-    "id": "ce52d6f825",
-    "nodePath": "0-2-1-3-4-3-0-0-0-0-0-0-0-0-1-1-2-0-1-0",
-    "nodeHashId": "ce52d6f825",
+    "id": "c71525c16f",
+    "nodePath": "0-2-1-3-4-3-0-0-0-1-0-0-0-0-1-1-2-0-1-0",
+    "nodeHashId": "c71525c16f",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
@@ -665,11 +665,11 @@
       1852,
       685
     ],
-    "content": "1973",
+    "content": "5278",
     "rect": {
-      "left": 1831,
+      "left": 1829,
       "top": 671,
-      "width": 41,
+      "width": 45,
       "height": 27,
       "zoom": 1
     },
@@ -680,7 +680,7 @@
   },
   {
     "id": "5118ec51c3",
-    "nodePath": "0-2-1-3-4-3-0-0-0-0-0-0-0-0-1-1-3-0-0-0",
+    "nodePath": "0-2-1-3-4-3-0-0-0-1-0-0-0-0-1-1-3-0-0-0",
     "nodeHashId": "5118ec51c3",
     "locator": "",
     "attributes": {
@@ -706,9 +706,9 @@
     "indexId": "26"
   },
   {
-    "id": "a307ab826f",
-    "nodePath": "0-2-1-3-4-3-0-0-0-0-0-0-0-0-1-1-3-1-0",
-    "nodeHashId": "a307ab826f",
+    "id": "f0ccbaaf2c",
+    "nodePath": "0-2-1-3-4-3-0-0-0-1-0-0-0-0-1-1-3-1-0",
+    "nodeHashId": "f0ccbaaf2c",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
@@ -718,11 +718,11 @@
       1852,
       779
     ],
-    "content": "9565",
+    "content": "3.1万",
     "rect": {
-      "left": 1829,
+      "left": 1830,
       "top": 765,
-      "width": 46,
+      "width": 43,
       "height": 27,
       "zoom": 1
     },
@@ -733,7 +733,7 @@
   },
   {
     "id": "0886cfabcb",
-    "nodePath": "0-2-1-3-4-3-0-0-0-0-0-0-0-0-1-1-4-0-0-0-1-0",
+    "nodePath": "0-2-1-3-4-3-0-0-0-1-0-0-0-0-1-1-4-0-0-0-1-0",
     "nodeHashId": "0886cfabcb",
     "locator": "",
     "attributes": {
@@ -759,9 +759,9 @@
     "indexId": "28"
   },
   {
-    "id": "147d66da33",
-    "nodePath": "0-2-1-3-4-3-0-0-0-0-0-0-0-0-1-1-4-0-1-0",
-    "nodeHashId": "147d66da33",
+    "id": "cac6cda346",
+    "nodePath": "0-2-1-3-4-3-0-0-0-1-0-0-0-0-1-1-4-0-1-0",
+    "nodeHashId": "cac6cda346",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
@@ -771,11 +771,11 @@
       1852,
       873
     ],
-    "content": "8690",
+    "content": "1.6万",
     "rect": {
-      "left": 1829,
+      "left": 1830,
       "top": 859,
-      "width": 46,
+      "width": 43,
       "height": 27,
       "zoom": 1
     },
@@ -786,7 +786,7 @@
   },
   {
     "id": "a7bbbba287",
-    "nodePath": "0-2-1-3-4-3-0-0-0-0-0-0-0-0-1-1-5-0-0-0",
+    "nodePath": "0-2-1-3-4-3-0-0-0-1-0-0-0-0-1-1-5-0-0-0",
     "nodeHashId": "a7bbbba287",
     "locator": "",
     "attributes": {
@@ -813,7 +813,7 @@
   },
   {
     "id": "c385dcd1d6",
-    "nodePath": "0-2-1-3-4-3-0-0-0-0-0-0-0-0-1-1-5-0-1-0",
+    "nodePath": "0-2-1-3-4-3-0-0-0-1-0-0-0-0-1-1-5-0-1-0",
     "nodeHashId": "c385dcd1d6",
     "nodeType": "TEXT Node",
     "locator": "",
@@ -839,7 +839,7 @@
   },
   {
     "id": "b2c0b840dc",
-    "nodePath": "0-2-1-3-4-3-0-0-0-0-0-0-0-0-1-1-6-0",
+    "nodePath": "0-2-1-3-4-3-0-0-0-1-0-0-0-0-1-1-6-0",
     "nodeHashId": "b2c0b840dc",
     "locator": "",
     "attributes": {
@@ -866,7 +866,7 @@
   },
   {
     "id": "aec31cf55a",
-    "nodePath": "0-2-1-3-4-3-0-0-0-0-0-0-0-0-4-4-1-1-0",
+    "nodePath": "0-2-1-3-4-3-0-0-0-1-0-0-0-0-4-4-1-1-0",
     "nodeHashId": "aec31cf55a",
     "nodeType": "TEXT Node",
     "locator": "",
@@ -892,7 +892,7 @@
   },
   {
     "id": "89510906bb",
-    "nodePath": "0-2-1-3-4-3-0-0-0-0-0-0-0-0-4-4-1-3-0",
+    "nodePath": "0-2-1-3-4-3-0-0-0-1-0-0-0-0-4-4-1-3-0",
     "nodeHashId": "89510906bb",
     "nodeType": "TEXT Node",
     "locator": "",
@@ -918,7 +918,7 @@
   },
   {
     "id": "1414cfd5d9",
-    "nodePath": "0-2-1-3-4-3-0-0-0-0-0-0-0-0-4-4-1-3-1-0",
+    "nodePath": "0-2-1-3-4-3-0-0-0-1-0-0-0-0-4-4-1-3-1-0",
     "nodeHashId": "1414cfd5d9",
     "nodeType": "TEXT Node",
     "locator": "",
@@ -944,7 +944,7 @@
   },
   {
     "id": "f66b97f105",
-    "nodePath": "0-2-1-3-4-3-0-0-0-0-0-0-1-0",
+    "nodePath": "0-2-1-3-4-3-0-0-0-1-0-0-1-0",
     "nodeHashId": "f66b97f105",
     "nodeType": "BUTTON Node",
     "locator": "[_midscene_retrieve_task_id='f66b97f105']",
@@ -972,7 +972,7 @@
   },
   {
     "id": "a1e4494928",
-    "nodePath": "0-98-0",
+    "nodePath": "0-101-0",
     "nodeHashId": "a1e4494928",
     "locator": "[_midscene_retrieve_task_id='a1e4494928']",
     "attributes": {

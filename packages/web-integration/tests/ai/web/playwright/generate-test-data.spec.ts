@@ -135,9 +135,13 @@ test('generate douyin test data', async ({ page, ai }) => {
   await page.goto(
     'https://www.douyin.com/user/MS4wLjABAAAAGBQf_qNRUBcWNSRCZ1o8vP_qGUC58Gsbcy1Bc1AZvfc?from_tab_name=main&modal_id=7409244439434022195&vid=7409244439434022195',
   );
-  await generateExtractData(playwrightPage, generateTestDataPath('douyin1'));
+  await generateExtractData(
+    playwrightPage,
+    generateTestDataPath('aweme-login'),
+  );
   await ai('点击弹窗的关闭按钮');
+  await page.keyboard.press('ArrowDown');
   await ai('点击我知道了');
   await sleep(20000);
-  await generateExtractData(playwrightPage, generateTestDataPath('douyin2'));
+  await generateExtractData(playwrightPage, generateTestDataPath('aweme-play'));
 });
