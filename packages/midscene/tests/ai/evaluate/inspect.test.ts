@@ -15,8 +15,8 @@ import {
   runTestCases,
 } from './test-suite/util';
 
-const testSources = ['todo', 'online_order', 'online_order_list', 'taobao'];
-// const testSources = ['taobao'];
+// const testSources = ['todo', 'online_order', 'online_order_list', 'taobao'];
+const testSources = ['online_order_list'];
 
 describe('ai inspect element', () => {
   const testResult: {

@@ -14,6 +14,7 @@ export const MIDSCENE_MODEL_NAME = 'MIDSCENE_MODEL_NAME';
 export const MIDSCENE_LANGSMITH_DEBUG = 'MIDSCENE_LANGSMITH_DEBUG';
 export const MIDSCENE_DEBUG_AI_PROFILE = 'MIDSCENE_DEBUG_AI_PROFILE';
 export const OPENAI_API_KEY = 'OPENAI_API_KEY';
+export const MIDSCENE_MODEL_TEXT_ONLY = 'MIDSCENE_MODEL_TEXT_ONLY';
 
 const OPENAI_USE_AZURE = 'OPENAI_USE_AZURE';
 
@@ -73,6 +74,7 @@ export async function call(
     messages,
     response_format: responseFormat,
     temperature: 0.2,
+    stream: false,
   });
   shouldPrintTiming && console.timeEnd('Midscene - AI call');
   shouldPrintTiming && console.log('Midscene - AI usage', completion.usage);
