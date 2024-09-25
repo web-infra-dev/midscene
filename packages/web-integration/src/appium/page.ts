@@ -1,10 +1,11 @@
 import fs from 'node:fs';
+import { getTmpFile } from '@midscene/core/utils';
 import { resizeImg } from '@midscene/shared/img';
 import { DOMParser } from '@xmldom/xmldom';
 import type { KeyInput as PuppeteerKeyInput } from 'puppeteer';
 import type { Browser } from 'webdriverio';
 import { type ElementInfo, clientExtractTextWithPosition } from '../extractor';
-import type { AbstractPage, MouseButton, screenshotOptions } from '../page';
+import type { AbstractPage, MouseButton } from '../page';
 
 type WebKeyInput = PuppeteerKeyInput;
 
@@ -37,21 +38,17 @@ export class Page implements AbstractPage {
     return infos;
   }
 
-  async screenshot(options: screenshotOptions): Promise<void> {
-    if (!options.path) {
-      throw new Error('path is required for screenshot');
-    }
-
+  async screenshot(): Promise<string> {
     const { width, height } = await this.browser.getWindowSize();
-    const screenshotBuffer = await this.browser.saveScreenshot(options.path);
+    const path = getTmpFile('png');
+    const screenshotBuffer = await this.browser.saveScreenshot(path);
     const resizedScreenshotBuffer = await resizeImg(screenshotBuffer, {
       width,
       height,
     });
+    fs.writeFileSync(path, resizedScreenshotBuffer);
 
-    if (options.path) {
-      fs.writeFileSync(options.path, resizedScreenshotBuffer);
-    }
+    return path;
   }
 
   get mouse() {

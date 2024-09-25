@@ -145,8 +145,6 @@ export async function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-export const commonScreenshotParam = { type: 'jpeg', quality: 75 } as any;
-
 export function replacerForPageObject(key: string, value: any) {
   if (value && value.constructor?.name === 'Page') {
     return '[Page object]';

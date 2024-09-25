@@ -1,7 +1,7 @@
 {
   "name": "@midscene/web",
   "description": "Web integration for Midscene.js",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "jsnext:source": "./src/index.ts",
   "main": "./dist/lib/index.js",
   "module": "./dist/es/index.js",
@@ -26,6 +26,11 @@
       "types": "./dist/types/playwright-report.d.ts",
       "import": "./dist/es/playwright-report.js",
       "require": "./dist/lib/playwright-report.js"
+    },
+    "./appium": {
+      "types": "./dist/types/appium.d.ts",
+      "import": "./dist/es/appium.js",
+      "require": "./dist/lib/appium.js"
     },
     "./debug": {
       "types": "./dist/types/debug.d.ts",

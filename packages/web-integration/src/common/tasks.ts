@@ -24,7 +24,7 @@ import Insight, {
   type PlanningActionParamWaitFor,
   type PlanningActionParamError,
 } from '@midscene/core';
-import { commonScreenshotParam, getTmpFile, sleep } from '@midscene/core/utils';
+import { sleep } from '@midscene/core/utils';
 import { base64Encoded } from '@midscene/shared/img';
 import type { KeyInput } from 'puppeteer';
 import type { ElementInfo } from '../extractor';
@@ -56,15 +56,11 @@ export class PageTaskExecutor {
   }
 
   private async recordScreenshot(timing: ExecutionRecorderItem['timing']) {
-    const file = getTmpFile('png');
-    await this.page.screenshot({
-      ...commonScreenshotParam,
-      path: file,
-    });
+    const file = await this.page.screenshot();
     const item: ExecutionRecorderItem = {
       type: 'screenshot',
       ts: Date.now(),
-      screenshot: base64Encoded(file),
+      screenshot: base64Encoded(file as string),
       timing,
     };
     return item;
