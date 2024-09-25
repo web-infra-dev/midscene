@@ -137,7 +137,7 @@ export const generateAnimationScripts = (
           subTitle: paramStr(task),
         });
       }
-    } else if (task.type === 'Insight' && task.subType === 'Locate') {
+    } else if (task.type === 'Insight') {
       const insightTask = task as ExecutionTaskInsightLocate;
       const resultElement = insightTask.output?.element;
       const title = typeStr(task);

@@ -538,7 +538,7 @@ const Player = (): JSX.Element => {
 
   return (
     <div className="player-container">
-      <div ref={divContainerRef} />
+      <div className="canvas-container" ref={divContainerRef} />
       <div className="player-controls" style={{ opacity: showControl ? 1 : 0 }}>
         <div className="title">{titleText}</div>
         <div className="subtitle">{subTitleText}</div>
