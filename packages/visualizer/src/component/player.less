@@ -1,8 +1,35 @@
 .player-container {
   width: 100%;
+  position: relative;
 
   canvas {
     border: 1px solid blue;
     width: 100%;
+  }
+
+  .player-controls {
+    position: absolute;
+    bottom: 20px;
+    left: 2%;
+    width: 96%;
+    background: rgba(0, 0, 0, 0.7);
+    border-radius: 8px;
+    padding: 20px 15px;
+    color: #FFF;
+    font-size: 18px;
+    line-height: 1.2;
+    transition: .2s;
+    box-sizing: border-box;
+    
+    .title {
+      font-weight: bold;
+    }
+
+    .subtitle {
+      white-space: nowrap;
+      text-overflow: ellipsis;
+      overflow: hidden;
+      width: 100%;
+    }
   }
 }

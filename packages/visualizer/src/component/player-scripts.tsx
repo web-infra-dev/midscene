@@ -1,6 +1,6 @@
 'use client';
 import './player.less';
-import { mousePointer, typeStr } from '@/utils';
+import { mousePointer, paramStr, typeStr } from '@/utils';
 import type {
   ExecutionDump,
   ExecutionTaskInsightLocate,
@@ -104,11 +104,17 @@ export const generateAnimationScripts = (
     imageHeight,
   );
 
-  const pointerScript = (img: string): AnimationScript => {
+  const pointerScript = (
+    img: string,
+    title: string,
+    subTitle: string,
+  ): AnimationScript => {
     return {
       type: 'pointer',
       img,
       duration: 0,
+      title,
+      subTitle,
     };
   };
 
@@ -126,14 +132,16 @@ export const generateAnimationScripts = (
         scripts.push({
           type: 'img',
           img: planningTask.recorder?.[0]?.screenshot,
-          duration: 500,
+          duration: stillDuration,
           title: typeStr(task),
-          subTitle: planningTask.param?.userPrompt,
+          subTitle: paramStr(task),
         });
       }
     } else if (task.type === 'Insight' && task.subType === 'Locate') {
       const insightTask = task as ExecutionTaskInsightLocate;
       const resultElement = insightTask.output?.element;
+      const title = typeStr(task);
+      const subTitle = paramStr(task);
       if (resultElement?.rect) {
         insightCameraState = {
           ...cameraStateForRect(resultElement.rect, imageWidth, imageHeight),
@@ -153,34 +161,41 @@ export const generateAnimationScripts = (
           type: 'insight',
           img: insightDump.context.screenshotBase64,
           insightDump: insightDump,
+          camera: fullPageCameraState,
           duration:
             insightContentLength > 20 ? locateDuration : locateDuration * 0.5,
-          title: typeStr(task),
-          subTitle: insightTask.param?.prompt,
+          title,
+          subTitle,
         });
 
         scripts.push({
           type: 'sleep',
           duration: 800,
+          title,
+          subTitle,
         });
         insightOnTop = true;
       }
     } else if (task.type === 'Action') {
-      scripts.push(pointerScript(mousePointer));
+      const title = typeStr(task);
+      const subTitle = paramStr(task);
+      scripts.push(pointerScript(mousePointer, title, subTitle));
 
       scripts.push({
         type: 'img',
         img: task.recorder?.[0]?.screenshot,
         duration: actionDuration,
         camera: insightCameraState,
-        title: typeStr(task),
-        subTitle: task.param?.value || '', // input value
+        title,
+        subTitle,
       });
 
       if (insightOnTop) {
         scripts.push({
           type: 'clear-insight',
           duration: clearInsightDuration,
+          title,
+          subTitle,
         });
         insightOnTop = false;
       }
@@ -189,21 +204,25 @@ export const generateAnimationScripts = (
         scripts.push({
           type: 'spinning-pointer',
           duration: stillDuration,
+          title,
+          subTitle,
         });
 
-        scripts.push(pointerScript(mousePointer));
+        scripts.push(pointerScript(mousePointer, title, subTitle));
         scripts.push({
           type: 'img',
           img: task.recorder?.[1]?.screenshot,
           duration: stillDuration,
           // camera: fullPageCameraState,
-          title: typeStr(task),
-          subTitle: task.param?.value || '', // input value
+          title,
+          subTitle,
         });
       } else {
         scripts.push({
           type: 'sleep',
           duration: stillDuration,
+          title,
+          subTitle,
         });
       }
     }

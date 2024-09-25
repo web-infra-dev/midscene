@@ -1,11 +1,10 @@
 'use client';
 import * as PIXI from 'pixi.js';
-import { useEffect, useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import './player.less';
 import { mouseLoading, mousePointer } from '@/utils';
 import type { BaseElement } from '@midscene/core/.';
 import { rectMarkForItem } from './blackboard';
-import { cameraStateForRect, generateAnimationScripts } from './player-scripts';
 import type { CameraState, TargetCameraState } from './player-scripts';
 import { useExecutionDump } from './store';
 
@@ -62,6 +61,8 @@ const LAYER_ORDER_POINTER = 2;
 const LAYER_ORDER_SPINNING_POINTER = 3;
 
 const Player = (): JSX.Element => {
+  const [titleText, setTitleText] = useState('');
+  const [subTitleText, setSubTitleText] = useState('');
   const scripts = useExecutionDump((store) => store.activeExecutionAnimation);
   const imageWidth = useExecutionDump(
     (store) => store.activeExecutionScreenshotWidth,
@@ -237,7 +238,6 @@ const Player = (): JSX.Element => {
     pointerSprite.current.x = targetX;
     pointerSprite.current.y = targetY;
     pointerSprite.current.label = 'pointer';
-    pointerSprite.current.scale.set(0.5);
     pointerSprite.current.zIndex = LAYER_ORDER_POINTER;
     windowContentContainer.addChild(pointerSprite.current);
   };
@@ -472,6 +472,8 @@ const Player = (): JSX.Element => {
 
         // play animation
         for (const item of scripts) {
+          setTitleText(item.title || '');
+          setSubTitleText(item.subTitle || '');
           if (item.type === 'sleep') {
             await sleep(item.duration);
           } else if (item.type === 'insight') {
@@ -530,9 +532,19 @@ const Player = (): JSX.Element => {
         console.warn('destroy failed', e);
       }
     };
-  }, [imageWidth, imageHeight]);
+  }, []);
 
-  return <div className="player-container" ref={divContainerRef} />;
+  const showControl = !!titleText;
+
+  return (
+    <div className="player-container">
+      <div ref={divContainerRef} />
+      <div className="player-controls" style={{ opacity: showControl ? 1 : 0 }}>
+        <div className="title">{titleText}</div>
+        <div className="subtitle">{subTitleText}</div>
+      </div>
+    </div>
+  );
 };
 
 export default Player;

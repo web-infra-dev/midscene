@@ -1,7 +1,11 @@
 import type {
   ExecutionDump,
   ExecutionTask,
+  ExecutionTaskAction,
+  ExecutionTaskInsightAssertion,
   ExecutionTaskInsightLocate,
+  ExecutionTaskInsightQuery,
+  ExecutionTaskPlanning,
   InsightDump,
 } from '@midscene/core';
 /* eslint-disable @typescript-eslint/no-empty-function */
@@ -63,6 +67,31 @@ export function timeStr(timestamp?: number) {
 
 export function typeStr(task: ExecutionTask) {
   return task.subType ? `${task.type} / ${task.subType || ''}` : task.type;
+}
+
+export function paramStr(task: ExecutionTask) {
+  let value: string | undefined | object;
+  if (task.type === 'Planning') {
+    value = (task as ExecutionTaskPlanning)?.param?.userPrompt;
+  }
+
+  if (task.type === 'Insight') {
+    value =
+      (task as ExecutionTaskInsightLocate)?.param?.prompt ||
+      (task as ExecutionTaskInsightQuery)?.param?.dataDemand ||
+      (task as ExecutionTaskInsightAssertion)?.param?.assertion;
+  }
+
+  if (task.type === 'Action') {
+    value =
+      (task as ExecutionTaskAction)?.param?.value ||
+      (task as ExecutionTaskAction)?.param?.scrollType;
+  }
+
+  if (typeof value === 'undefined') return '';
+  return typeof value === 'string'
+    ? value
+    : JSON.stringify(value, undefined, 2);
 }
 
 export function filterBase64Value(input: string) {

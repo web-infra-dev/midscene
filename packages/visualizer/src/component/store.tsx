@@ -19,7 +19,7 @@ export const useBlackboardPreference = create<{
   setTextsVisible: (visible: boolean) => void;
 }>((set) => ({
   bgVisible: true,
-  elementsVisible: false,
+  elementsVisible: true,
   setBgVisible: (visible: boolean) => {
     set({ bgVisible: visible });
   },
