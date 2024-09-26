@@ -46,8 +46,8 @@ const DetailPanel = (): JSX.Element => {
   let availableViewTypes = [VIEW_TYPE_SCREENSHOT, VIEW_TYPE_JSON];
   if (blackboardViewAvailable) {
     availableViewTypes = [
-      VIEW_TYPE_SCREENSHOT,
       VIEW_TYPE_BLACKBOARD,
+      VIEW_TYPE_SCREENSHOT,
       VIEW_TYPE_JSON,
     ];
   }
