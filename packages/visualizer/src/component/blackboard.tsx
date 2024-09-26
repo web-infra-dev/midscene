@@ -8,11 +8,45 @@ import { colorForName, highlightColorForType } from './color';
 import './blackboard.less';
 import { useBlackboardPreference, useInsightDump } from './store';
 
-const itemFillAlpha = 0.3;
+const itemFillAlpha = 0.4;
+const highlightAlpha = 0.7;
 const bgOnAlpha = 0.8;
 const bgOffAlpha = 0.3;
 const noop = () => {
   // noop
+};
+
+export const rectMarkForItem = (
+  rect: Rect,
+  name: string,
+  ifHighlight: boolean,
+  onPointOver?: () => void,
+  onPointerOut?: () => void,
+) => {
+  const { left, top, width, height } = rect;
+  const themeColor = ifHighlight
+    ? highlightColorForType('element')
+    : colorForName(name);
+  const alpha = ifHighlight ? highlightAlpha : itemFillAlpha;
+  const graphics = new PIXI.Graphics();
+  graphics.beginFill(themeColor, alpha);
+  graphics.lineStyle(1, themeColor, 1);
+  graphics.drawRect(left, top, width, height);
+  graphics.endFill();
+  if (onPointOver && onPointerOut) {
+    graphics.interactive = true;
+    graphics.on('pointerover', onPointOver);
+    graphics.on('pointerout', onPointerOut);
+  }
+
+  const nameFontSize = 18;
+  const texts = new PIXI.Text(name, {
+    fontSize: nameFontSize,
+    fill: 0x0,
+  });
+  texts.x = left;
+  texts.y = Math.max(top - (nameFontSize + 4), 0);
+  return [graphics, texts];
 };
 
 const BlackBoard = (): JSX.Element => {
@@ -20,9 +54,7 @@ const BlackBoard = (): JSX.Element => {
   const setHighlightElements = useInsightDump(
     (store) => store.setHighlightElements,
   );
-  const highlightSectionNames = useInsightDump(
-    (store) => store.highlightSectionNames,
-  );
+
   const highlightElements = useInsightDump((store) => store.highlightElements);
   const highlightIds = highlightElements.map((e) => e.id);
 
@@ -107,34 +139,6 @@ const BlackBoard = (): JSX.Element => {
     };
   }, [app.stage, appInitialed]);
 
-  const rectMarkForItem = (
-    rect: Rect,
-    name: string,
-    themeColor: string,
-    alpha: number,
-    onPointOver: () => void,
-    onPointerOut: () => void,
-  ) => {
-    const { left, top, width, height } = rect;
-    const graphics = new PIXI.Graphics();
-    graphics.beginFill(themeColor, alpha);
-    graphics.lineStyle(1, themeColor, 1);
-    graphics.drawRect(left, top, width, height);
-    graphics.endFill();
-    graphics.interactive = true;
-    graphics.on('pointerover', onPointOver);
-    graphics.on('pointerout', onPointerOut);
-
-    const nameFontSize = 18;
-    const texts = new PIXI.Text(name, {
-      fontSize: nameFontSize,
-      fill: 0x0,
-    });
-    texts.x = left;
-    texts.y = Math.max(top - (nameFontSize + 4), 0);
-    return [graphics, texts];
-  };
-
   const { highlightElementRects } = useMemo(() => {
     const highlightElementRects: Rect[] = [];
 
@@ -149,10 +153,7 @@ const BlackBoard = (): JSX.Element => {
         const [graphics] = rectMarkForItem(
           rect,
           content,
-          ifHighlight
-            ? highlightColorForType('element')
-            : colorForName('element', content),
-          ifHighlight ? 1 : itemFillAlpha,
+          ifHighlight,
           noop,
           noop,
         );
@@ -162,10 +163,7 @@ const BlackBoard = (): JSX.Element => {
       const [graphics] = rectMarkForItem(
         rect,
         content,
-        ifHighlight
-          ? highlightColorForType('element')
-          : colorForName('element', content),
-        ifHighlight ? 1 : itemFillAlpha,
+        ifHighlight,
         () => {
           setHighlightElements([element]);
         },

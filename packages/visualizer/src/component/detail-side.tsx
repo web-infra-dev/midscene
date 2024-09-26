@@ -1,7 +1,7 @@
 /* eslint-disable max-lines */
 'use client';
 import './detail-side.less';
-import { timeStr, typeStr } from '@/utils';
+import { paramStr, timeStr, typeStr } from '@/utils';
 import { RadiusSettingOutlined } from '@ant-design/icons';
 import type {
   BaseElement,
@@ -263,7 +263,7 @@ const DetailSide = (): JSX.Element => {
         { key: 'type', content: (task && typeStr(task)) || '' },
         {
           key: 'param',
-          content: (task as ExecutionTaskPlanning)?.param?.userPrompt,
+          content: paramStr(task) || '',
         },
       ],
     });
@@ -273,11 +273,7 @@ const DetailSide = (): JSX.Element => {
         { key: 'type', content: (task && typeStr(task)) || '' },
         {
           key: 'param',
-          content: JSON.stringify(
-            (task as ExecutionTaskInsightLocate)?.param?.prompt ||
-              (task as ExecutionTaskInsightQuery)?.param?.dataDemand ||
-              (task as ExecutionTaskInsightAssertion)?.param?.assertion,
-          ),
+          content: paramStr(task) || '',
         },
       ],
     });
@@ -287,11 +283,7 @@ const DetailSide = (): JSX.Element => {
         { key: 'type', content: (task && typeStr(task)) || '' },
         {
           key: 'value',
-          content: JSON.stringify(
-            (task as ExecutionTaskAction)?.param?.value,
-            undefined,
-            2,
-          ),
+          content: paramStr(task) || '',
         },
       ],
     });
