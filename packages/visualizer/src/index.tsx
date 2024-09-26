@@ -145,21 +145,6 @@ export function Visualizer(props: {
       >
         <Panel maxSize={95} defaultSize={20}>
           <div className="page-side">
-            <div className="page-nav">
-              <div className="logo">
-                <img
-                  alt="Midscene_logo"
-                  src="https://lf3-static.bytednsdoc.com/obj/eden-cn/vhaeh7vhabf/logo-light-with-text.png"
-                />
-              </div>
-              <PlaywrightCaseSelector
-                dumps={props.dumps}
-                selected={executionDump}
-                onSelect={(dump) => {
-                  setGroupedDump(dump);
-                }}
-              />
-            </div>
             <Sidebar logoAction={props?.logoAction} />
           </div>
         </Panel>
@@ -275,6 +260,21 @@ export function Visualizer(props: {
         key={`render-${globalRenderCount}`}
         style={{ height: containerHeight }}
       >
+        <div className="page-nav">
+          <div className="logo">
+            <img
+              alt="Midscene_logo"
+              src="https://lf3-static.bytednsdoc.com/obj/eden-cn/vhaeh7vhabf/logo-light-with-text.png"
+            />
+          </div>
+          <PlaywrightCaseSelector
+            dumps={props.dumps}
+            selected={executionDump}
+            onSelect={(dump) => {
+              setGroupedDump(dump);
+            }}
+          />
+        </div>
         {mainContent}
       </div>
       <GlobalHoverPreview />
