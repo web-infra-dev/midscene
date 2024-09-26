@@ -2,6 +2,7 @@ import { readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { beforeEach, describe } from 'node:test';
 import { AiInspectElement } from '@/ai-model';
+import { sleep } from '@/utils';
 import { afterAll, expect, test } from 'vitest';
 import { repeatTime } from '../util';
 import {
@@ -15,8 +16,14 @@ import {
   runTestCases,
 } from './test-suite/util';
 
-// const testSources = ['todo', 'online_order', 'online_order_list', 'taobao'];
-const testSources = ['online_order_list'];
+const testSources = [
+  'todo',
+  'online_order',
+  'online_order_list',
+  'taobao',
+  'aweme_login',
+  'aweme_play',
+];
 
 describe('ai inspect element', () => {
   const testResult: {

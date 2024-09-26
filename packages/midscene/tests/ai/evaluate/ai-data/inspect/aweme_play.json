@@ -1,12 +1,12 @@
 {
-  "testDataPath": "test-data/taobao",
+  "testDataPath": "test-data/aweme-play",
   "testCases": [
     {
-      "prompt": "商品搜索框",
+      "prompt": "搜索框",
       "multi": false,
       "response": [
         {
-          "id": "5a7af17815"
+          "id": "0fd5c7c2a3"
         }
       ]
     },
@@ -15,43 +15,43 @@
       "multi": false,
       "response": [
         {
-          "id": "ff3008bf7b"
+          "id": "0c8ccb3882"
         }
       ]
     },
     {
-      "prompt": "右侧客服按钮，图标按钮",
+      "prompt": "左下角播放按钮",
       "multi": false,
       "response": [
         {
-          "id": "c55a67fb9d"
+          "id": "718b7c5b0a"
         }
       ]
     },
     {
-      "prompt": "第二件商品价格",
+      "prompt": "点赞按钮",
       "multi": false,
       "response": [
         {
-          "id": "8e3d49aba9"
+          "id": "7f21c87fc0"
         }
       ]
     },
     {
-      "prompt": "产品分类里面的：男鞋",
+      "prompt": "评论按钮",
       "multi": false,
       "response": [
         {
-          "id": "b505e241c9"
+          "id": "2bcfcfa863"
         }
       ]
     },
     {
-      "prompt": "收藏的店铺，图标按钮",
+      "prompt": "收藏按钮",
       "multi": false,
       "response": [
         {
-          "id": "97d6889398"
+          "id": "5118ec51c3"
         }
       ]
     }

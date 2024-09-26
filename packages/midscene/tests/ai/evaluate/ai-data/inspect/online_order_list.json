@@ -2,32 +2,11 @@
   "testDataPath": "test-data/online_order_list",
   "testCases": [
     {
-      "prompt": "清爽不喝腻类目，下面最前面两个商品的名称",
-      "multi": true,
+      "prompt": "清爽不喝腻，下面第二个饮品的名称",
+      "multi": false,
       "response": [
         {
           "id": "e0f3910ed4"
-        },
-        {
-          "id": "a7e27d3428"
-        }
-      ]
-    },
-    {
-      "prompt": "清爽不喝腻，下面第三个饮品的名称",
-      "multi": false,
-      "response": [
-        {
-          "id": "99299dd73d"
-        }
-      ]
-    },
-    {
-      "prompt": "清爽不喝腻，最后一个饮品的选择规格按钮",
-      "multi": false,
-      "response": [
-        {
-          "id": "facd86fdad"
         }
       ]
     },

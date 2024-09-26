@@ -97,7 +97,7 @@ export async function runTestCases(
       elements: elements.map((element, index) => {
         return {
           id: element.id.toString(),
-          indexId: elementsSnapshot[index].indexId,
+          indexId: elementsSnapshot[index]?.indexId,
         };
       }),
       error,

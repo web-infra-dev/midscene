@@ -1,0 +1,32 @@
+{
+  "testDataPath": "test-data/aweme-login",
+  "testCases": [
+    {
+      "prompt": "密码登录",
+      "multi": false,
+      "response": [
+        {
+          "id": "fb9ff44603"
+        }
+      ]
+    },
+    {
+      "prompt": "如何扫码",
+      "multi": false,
+      "response": [
+        {
+          "id": "4c1bc69be7"
+        }
+      ]
+    },
+    {
+      "prompt": "关闭弹窗按钮",
+      "multi": false,
+      "response": [
+        {
+          "id": "b2dbd95712"
+        }
+      ]
+    }
+  ]
+}
