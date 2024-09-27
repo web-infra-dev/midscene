@@ -20,7 +20,25 @@
       ]
     },
     {
-      "prompt": "右侧客服按钮，图标按钮",
+      "prompt": "产品分类里面的：男鞋",
+      "multi": false,
+      "response": [
+        {
+          "id": "b505e241c9"
+        }
+      ]
+    },
+    {
+      "prompt": "收藏的店铺",
+      "multi": false,
+      "response": [
+        {
+          "id": "97d6889398"
+        }
+      ]
+    },
+    {
+      "prompt": "右侧客服按钮",
       "multi": false,
       "response": [
         {
@@ -34,24 +52,6 @@
       "response": [
         {
           "id": "8e3d49aba9"
-        }
-      ]
-    },
-    {
-      "prompt": "产品分类里面的：男鞋",
-      "multi": false,
-      "response": [
-        {
-          "id": "b505e241c9"
-        }
-      ]
-    },
-    {
-      "prompt": "收藏的店铺，图标按钮",
-      "multi": false,
-      "response": [
-        {
-          "id": "97d6889398"
         }
       ]
     }

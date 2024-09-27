@@ -44,7 +44,7 @@ export function setDataForNode(
   setToParentNode = false,
 ): string {
   const taskId = taskIdKey;
-  if (!(node instanceof HTMLElement)) {
+  if (!(node instanceof Element)) {
     return '';
   }
   if (!taskId) {

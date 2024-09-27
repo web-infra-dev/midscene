@@ -122,7 +122,7 @@ test('generate online order test data', async ({ page, ai }) => {
 test('generate taobao test data', async ({ page, ai }) => {
   const playwrightPage = new PlaywrightWebPage(page);
 
-  page.setViewportSize({ width: 1920, height: 1080 });
+  page.setViewportSize({ width: 1024, height: 768 });
   await page.goto('https://www.taobao.com/');
 
   await generateExtractData(playwrightPage, generateTestDataPath('taobao'));
@@ -131,7 +131,7 @@ test('generate taobao test data', async ({ page, ai }) => {
 test('generate douyin test data', async ({ page, ai }) => {
   const playwrightPage = new PlaywrightWebPage(page);
 
-  page.setViewportSize({ width: 1920, height: 1080 });
+  page.setViewportSize({ width: 1024, height: 768 });
   await page.goto(
     'https://www.douyin.com/user/MS4wLjABAAAAGBQf_qNRUBcWNSRCZ1o8vP_qGUC58Gsbcy1Bc1AZvfc?from_tab_name=main&modal_id=7409244439434022195&vid=7409244439434022195',
   );
