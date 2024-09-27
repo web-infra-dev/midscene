@@ -7,6 +7,7 @@ import {
 import { AiAssert, callAiFn } from '@/ai-model/inspect';
 import type {
   AIElementParseResponse,
+  AISingleElementResponse,
   BaseElement,
   DumpSubscriber,
   InsightAssertionResponse,
@@ -39,6 +40,7 @@ const sortByOrder = (a: UISection, b: UISection) => {
 export interface LocateOpts {
   multi?: boolean;
   callAI?: typeof callAiFn<AIElementParseResponse>;
+  quickAnswer?: AISingleElementResponse;
 }
 
 // export type UnwrapDataShape<T> = T extends EnhancedQuery<infer DataShape> ? DataShape : {};
@@ -80,7 +82,10 @@ export default class Insight<
 
   async locate(
     queryPrompt: string,
-    opt?: { callAI?: typeof callAiFn<AIElementParseResponse> },
+    opt?: {
+      callAI?: typeof callAiFn<AIElementParseResponse>;
+      quickAnswer?: AISingleElementResponse | null;
+    },
   ): Promise<ElementType | null>;
   async locate(
     queryPrompt: string,
@@ -99,6 +104,7 @@ export default class Insight<
       context,
       multi: Boolean(multi),
       findElementDescription: queryPrompt,
+      quickAnswer: opt?.quickAnswer,
     });
     // const parseResult = await this.aiVendorFn<AIElementParseResponse>(msgs);
     const timeCost = Date.now() - startTime;

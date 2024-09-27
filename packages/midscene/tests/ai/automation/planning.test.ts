@@ -14,7 +14,7 @@ modelList.forEach((model) => {
     it('basic run', async () => {
       const { context } = await getPageDataOfTestName('todo');
 
-      const { plans, firstActionAnswer } = await plan(
+      const { plans } = await plan(
         'type "Why is the earth a sphere?", wait 3.5s, hit Enter',
         {
           context,
@@ -24,13 +24,13 @@ modelList.forEach((model) => {
       expect(plans.length).toBe(4);
       expect(plans[0].thought).toBeTruthy();
       expect(plans[0].type).toBe('Locate');
+      expect(plans[0].quickAnswer).toBeTruthy();
       expect(plans[1].type).toBe('Input');
       expect(plans[2].type).toBe('Sleep');
       expect(plans[2].param).toMatchSnapshot();
       expect(plans[3].type).toBe('KeyboardPress');
       expect(plans[3].param).toMatchSnapshot();
-
-      expect(firstActionAnswer?.text).toMatchSnapshot();
+      expect(plans[3].quickAnswer).toBeFalsy();
     });
 
     it('instructions of to-do mvc', async () => {
@@ -45,14 +45,9 @@ modelList.forEach((model) => {
       ];
 
       for (const instruction of instructions) {
-        const { plans, firstActionAnswer } = await plan(
-          instruction,
-          { context },
-          model,
-        );
+        const { plans } = await plan(instruction, { context }, model);
         expect(plans).toBeTruthy();
-        expect(firstActionAnswer?.id).toBeTruthy();
-        // console.log(`instruction: ${instruction}\nplans: ${JSON.stringify(plans, undefined, 2)}`);
+        expect(plans[0].quickAnswer).toBeTruthy();
       }
     });
   });

@@ -13,7 +13,6 @@ export async function plan(
   useModel?: 'coze' | 'openAI',
 ): Promise<{
   plans: PlanningAction[];
-  firstActionAnswer: PlanningAIResponse['firstActionAnswer'];
 }> {
   const { callAI, context } = opts || {};
   const { screenshotBase64 } = context;
@@ -52,19 +51,12 @@ export async function plan(
     },
   ];
 
-  if (callAI) {
-    planFromAI = await callAI({
-      msgs,
-      AIActionType: AIActionType.PLAN,
-      useModel,
-    });
-  } else {
-    planFromAI = await callAiFn({
-      msgs,
-      AIActionType: AIActionType.PLAN,
-      useModel,
-    });
-  }
+  const call = callAI || callAiFn;
+  planFromAI = await call({
+    msgs,
+    AIActionType: AIActionType.PLAN,
+    useModel,
+  });
 
   const actions = planFromAI?.actions || [];
 
@@ -75,11 +67,5 @@ export async function plan(
     throw new Error(planFromAI.error);
   }
 
-  // actions.forEach((task) => {
-  //   if (task.type === 'Error') {
-  //     throw new Error(task.thought);
-  //   }
-  // });
-
-  return { plans: actions, firstActionAnswer: planFromAI.firstActionAnswer };
+  return { plans: actions };
 }

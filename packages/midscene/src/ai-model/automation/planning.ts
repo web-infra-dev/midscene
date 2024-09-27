@@ -3,9 +3,11 @@ import type { ResponseFormatJSONSchema } from 'openai/resources';
 export function systemPromptToTaskPlanning() {
   return `
 ## Role:
+
 You are a versatile professional in software UI design and testing. Your outstanding contributions will impact the user experience of billions of users.
 
 ## Objective 1 (main objective): Decompose the task user asked into a series of actions:
+
 - Based on the page context information (screenshot and description) you get, decompose the task user asked into a series of actions.
 - Actions are executed in the order listed in the list. After executing the actions, the task should be completed.
 
@@ -44,9 +46,10 @@ If the planned tasks are sequential and tasks may appear only after the executio
 
 Review the action you just planned. If the first action is 'Locate', then give a quick answer: which element meets the description in the prompt.
 
-The answer should be in the following format, as the \`firstActionAnswer\` field in the output JSON:
+The answer should be in the following format, as the \`quickAnswer\` field in the output JSON:
 {
   "reason": "Reason for finding element 4: It is located in the upper right corner, is an image type, and according to the screenshot, it is a shopping cart icon button",
+  "text": "PLACEHOLDER", // Replace PLACEHOLDER with the text of elementInfo, if none, leave empty
   "id": "4" // ID of this element, replace with actual value in practice
 }
 
@@ -59,18 +62,25 @@ Return in the following JSON format:
   queryLanguage: '', // language of the description of the task
   actions: [ // always return in Array
     {
+      "thought": "find out the search bar",
+      "type": "Locate", // Type of action, like 'Tap' 'Hover' ...
+      "param": {
+        "prompt": "The search bar"
+      },
+      "quickAnswer": { // since the first action is Locate, so we need to give a quick answer
+        "reason": "Reason for finding element 4: It is located in the upper right corner, is an input type, and according to the screenshot, it is a search bar",
+        "text": "PLACEHOLDER", // Replace PLACEHOLDER with the text of elementInfo, if none, leave empty
+        "id": "4" // ID of this element, replace with actual value in practice
+      } | null,
+    },
+    {
       "thought": "Reasons for generating this task, and why this task is feasible on this page",
       "type": "Tap", // Type of action, like 'Tap' 'Hover' ...
       "param": any, // Parameter towards the task type
     },
     // ... more actions
   ],
-  error?: string, // Overall error messages. If there is any error occurs during the task planning (i.e. error in previous 'actions' array), conclude the errors again, put error messages here
-  firstActionAnswer: {
-    reason: "Reason for finding element 4: It is located in the upper right corner, is an image type, and according to the screenshot, it is a shopping cart icon button",
-    "text": "PLACEHOLDER", // Replace PLACEHOLDER with the text of elementInfo, if none, leave empty
-    id: "4" // ID of this element, replace with actual value in practice
-  } | null,
+  error?: string, // Overall error messages. If there is any error occurs during the task planning (i.e. error in previous 'actions' array), conclude the errors again, put error messages here,
 }
 `;
 }
@@ -105,8 +115,28 @@ export const planSchema: ResponseFormatJSONSchema = {
                 type: ['object', 'null'],
                 description: 'Parameter towards the task type, can be null',
               },
+              quickAnswer: {
+                type: ['object', 'null'],
+                nullable: true,
+                properties: {
+                  reason: {
+                    type: 'string',
+                    description: 'Reason for finding element 4',
+                  },
+                  text: {
+                    type: 'string',
+                    description: 'Text of elementInfo, if none, leave empty',
+                  },
+                  id: {
+                    type: 'string',
+                    description: 'ID of this element',
+                  },
+                },
+                required: ['reason', 'text', 'id'],
+                additionalProperties: false,
+              },
             },
-            required: ['thought', 'type', 'param'],
+            required: ['thought', 'type', 'param', 'quickAnswer'],
             additionalProperties: false,
           },
           description: 'List of actions to be performed',
@@ -116,28 +146,8 @@ export const planSchema: ResponseFormatJSONSchema = {
           description:
             'Overall error messages. If there is any error occurs during the task planning, conclude the errors again and put error messages here',
         },
-        firstActionAnswer: {
-          type: 'object',
-          nullable: true,
-          properties: {
-            reason: {
-              type: 'string',
-              description: 'Reason for finding element 4',
-            },
-            text: {
-              type: 'string',
-              description: 'Text of elementInfo, if none, leave empty',
-            },
-            id: {
-              type: 'string',
-              description: 'ID of this element',
-            },
-          },
-          required: ['reason', 'text', 'id'],
-          additionalProperties: false,
-        },
       },
-      required: ['queryLanguage', 'actions', 'error', 'firstActionAnswer'],
+      required: ['queryLanguage', 'actions', 'error'],
       additionalProperties: false,
     },
   },

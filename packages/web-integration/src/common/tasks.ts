@@ -117,6 +117,7 @@ export class PageTaskExecutor {
               let locateResult: AIElementParseResponse | undefined;
               const callAI = this.insight.aiVendorFn;
               const element = await this.insight.locate(param.prompt, {
+                quickAnswer: plan.quickAnswer,
                 callAI: async (...message: any) => {
                   if (locateCache) {
                     locateResult = locateCache;

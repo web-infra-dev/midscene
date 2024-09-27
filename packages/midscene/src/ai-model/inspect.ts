@@ -3,6 +3,7 @@ import type {
   AIAssertionResponse,
   AIElementParseResponse,
   AISectionParseResponse,
+  AISingleElementResponse,
   BaseElement,
   UIContext,
 } from '@/types';
@@ -34,13 +35,23 @@ export async function AiInspectElement<
   findElementDescription: string;
   callAI?: typeof callAiFn<AIElementParseResponse>;
   useModel?: 'coze' | 'openAI';
+  quickAnswer?: AISingleElementResponse;
 }) {
   const { context, multi, findElementDescription, callAI, useModel } = options;
   const { screenshotBase64 } = context;
   const { description, elementById } = await describeUserPage(context);
 
-  const systemPrompt = systemPromptToFindElement();
+  // meet quick answer
+  if (options.quickAnswer?.id && elementById(options.quickAnswer.id)) {
+    return {
+      parseResult: {
+        elements: [options.quickAnswer],
+      },
+      elementById,
+    };
+  }
 
+  const systemPrompt = systemPromptToFindElement();
   const msgs: AIArgs = [
     { role: 'system', content: systemPrompt },
     {

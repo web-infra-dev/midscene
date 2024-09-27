@@ -52,12 +52,14 @@ export enum AIResponseFormat {
   TEXT = 'text',
 }
 
+export interface AISingleElementResponse {
+  id: string;
+  reason: string;
+  text: string;
+}
+
 export interface AIElementParseResponse {
-  elements: {
-    id: string;
-    reason: string;
-    text: string;
-  }[];
+  elements: AISingleElementResponse[];
   errors?: string[];
 }
 
@@ -195,16 +197,12 @@ export interface PlanningAction<ParamType = any> {
     | 'AssertWithoutThrow'
     | 'Sleep';
   param: ParamType;
+  quickAnswer?: AISingleElementResponse | null;
 }
 
 export interface PlanningAIResponse {
   queryLanguage: string;
   actions: PlanningAction[];
-  firstActionAnswer: {
-    reason: string;
-    text: string;
-    id: string;
-  } | null;
   error?: string;
 }
 
@@ -289,7 +287,7 @@ export interface ExecutionTaskApply<
     param: TaskParam,
     context: ExecutorContext,
   ) => // biome-ignore lint/suspicious/noConfusingVoidType: <explanation>
-    | Promise<ExecutionTaskReturn<TaskOutput, TaskLog> | undefined | void>
+  | Promise<ExecutionTaskReturn<TaskOutput, TaskLog> | undefined | void>
     | undefined
     | void;
 }
@@ -337,6 +335,7 @@ task - insight-locate
 */
 export interface ExecutionTaskInsightLocateParam {
   prompt: string;
+  quickAnswer?: AISingleElementResponse | null;
 }
 
 export interface ExecutionTaskInsightLocateOutput {

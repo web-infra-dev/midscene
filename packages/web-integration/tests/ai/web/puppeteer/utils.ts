@@ -13,7 +13,6 @@ export async function launchPage(
     headless: typeof opt?.headless === 'boolean' ? opt.headless : true,
   });
   const originPage = (await browser.pages())[0];
-  const page = new PuppeteerWebPage(originPage);
   const viewportConfig = {
     width: opt?.viewport?.width || 1920,
     height: opt?.viewport?.height || 1080,
@@ -37,7 +36,7 @@ export async function launchPage(
   ]);
 
   return {
-    page,
+    page: originPage,
     reset: async () => {
       await browser.close();
     },
