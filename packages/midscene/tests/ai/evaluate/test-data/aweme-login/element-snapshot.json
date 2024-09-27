@@ -1,113 +1,113 @@
 [
   {
-    "id": "a403444caa",
-    "nodePath": "0-97-0-0-0-0-0-0-0",
-    "nodeHashId": "a403444caa",
+    "id": "7dbfb378fd",
+    "nodePath": "0-95-0-0-0-0-0-0-0",
+    "nodeHashId": "7dbfb378fd",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
       "nodeType": "TEXT Node"
     },
     "center": [
-      960,
-      280
+      614,
+      180
     ],
     "content": "登录后免费畅享高清视频",
     "rect": {
-      "left": 828,
-      "top": 263,
+      "left": 482,
+      "top": 163,
       "width": 264,
       "height": 34,
       "zoom": 1
     },
     "zoom": 1,
-    "screenWidth": 1920,
-    "screenHeight": 1080,
+    "screenWidth": 1228,
+    "screenHeight": 768,
     "indexId": "1"
   },
   {
-    "id": "015f330cfc",
-    "nodePath": "0-97-0-0-0-0-0-1-0-0-0",
-    "nodeHashId": "015f330cfc",
+    "id": "fbd5144da1",
+    "nodePath": "0-95-0-0-0-0-0-1-0-0-0",
+    "nodeHashId": "fbd5144da1",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
       "nodeType": "TEXT Node"
     },
     "center": [
-      832,
-      320
+      486,
+      208
     ],
     "content": "点赞评论随心发",
     "rect": {
-      "left": 783,
-      "top": 310,
+      "left": 437,
+      "top": 198,
       "width": 98,
       "height": 20,
       "zoom": 1
     },
     "zoom": 1,
-    "screenWidth": 1920,
-    "screenHeight": 1080,
+    "screenWidth": 1228,
+    "screenHeight": 768,
     "indexId": "2"
   },
   {
-    "id": "23d48eae6e",
-    "nodePath": "0-97-0-0-0-0-0-1-0-1-0",
-    "nodeHashId": "23d48eae6e",
+    "id": "200649e51a",
+    "nodePath": "0-95-0-0-0-0-0-1-0-1-0",
+    "nodeHashId": "200649e51a",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
       "nodeType": "TEXT Node"
     },
     "center": [
-      968,
-      320
+      622,
+      208
     ],
     "content": "直播间畅聊打赏",
     "rect": {
-      "left": 919,
-      "top": 310,
+      "left": 573,
+      "top": 198,
       "width": 98,
       "height": 20,
       "zoom": 1
     },
     "zoom": 1,
-    "screenWidth": 1920,
-    "screenHeight": 1080,
+    "screenWidth": 1228,
+    "screenHeight": 768,
     "indexId": "3"
   },
   {
-    "id": "9f1e333891",
-    "nodePath": "0-97-0-0-0-0-0-1-0-2-0",
-    "nodeHashId": "9f1e333891",
+    "id": "05c21b5b9e",
+    "nodePath": "0-95-0-0-0-0-0-1-0-2-0",
+    "nodeHashId": "05c21b5b9e",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
       "nodeType": "TEXT Node"
     },
     "center": [
-      1104,
-      320
+      758,
+      208
     ],
     "content": "朋友视频一键览",
     "rect": {
-      "left": 1055,
-      "top": 310,
+      "left": 709,
+      "top": 198,
       "width": 98,
       "height": 20,
       "zoom": 1
     },
     "zoom": 1,
-    "screenWidth": 1920,
-    "screenHeight": 1080,
+    "screenWidth": 1228,
+    "screenHeight": 768,
     "indexId": "4"
   },
   {
-    "id": "b2dbd95712",
-    "nodePath": "0-97-0-0-0-0-1",
-    "nodeHashId": "b2dbd95712",
-    "locator": "[_midscene_retrieve_task_id='b2dbd95712']",
+    "id": "177663d21a",
+    "nodePath": "0-95-0-0-0-0-1",
+    "nodeHashId": "177663d21a",
+    "locator": "[_midscene_retrieve_task_id='177663d21a']",
     "attributes": {
       "class": ".douyin-login__close.dy-account-close",
       "nodeType": "IMG Node"
@@ -115,130 +115,130 @@
     "nodeType": "IMG Node",
     "content": "",
     "rect": {
-      "left": 1154,
-      "top": 249,
+      "left": 808,
+      "top": 149,
       "width": 36,
       "height": 36,
       "zoom": 1
     },
     "center": [
-      1172,
-      267
+      826,
+      167
     ],
     "zoom": 1,
-    "screenWidth": 1920,
-    "screenHeight": 1080,
+    "screenWidth": 1228,
+    "screenHeight": 768,
     "indexId": "5"
   },
   {
-    "id": "050e3907b1",
-    "nodePath": "0-97-0-0-0-0-2-0-0-0-0-0-0-0",
-    "nodeHashId": "050e3907b1",
+    "id": "c90a7c0b7e",
+    "nodePath": "0-95-0-0-0-0-2-0-0-0-0-0-0-0",
+    "nodeHashId": "c90a7c0b7e",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
       "nodeType": "TEXT Node"
     },
     "center": [
-      842,
-      394
+      496,
+      260
     ],
     "content": "扫码登录",
     "rect": {
-      "left": 806,
-      "top": 381,
+      "left": 460,
+      "top": 247,
       "width": 72,
       "height": 25,
       "zoom": 1
     },
     "zoom": 1,
-    "screenWidth": 1920,
-    "screenHeight": 1080,
+    "screenWidth": 1228,
+    "screenHeight": 768,
     "indexId": "6"
   },
   {
-    "id": "8c7002c3f2",
-    "nodePath": "0-97-0-0-0-0-2-0-0-0-0-0-1-0",
-    "nodeHashId": "8c7002c3f2",
+    "id": "3737d4f1a9",
+    "nodePath": "0-95-0-0-0-0-2-0-0-0-0-0-1-0",
+    "nodeHashId": "3737d4f1a9",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
       "nodeType": "TEXT Node"
     },
     "center": [
-      960,
-      394
+      614,
+      260
     ],
     "content": "验证码登录",
     "rect": {
-      "left": 915,
-      "top": 381,
+      "left": 569,
+      "top": 247,
       "width": 90,
       "height": 25,
       "zoom": 1
     },
     "zoom": 1,
-    "screenWidth": 1920,
-    "screenHeight": 1080,
+    "screenWidth": 1228,
+    "screenHeight": 768,
     "indexId": "7"
   },
   {
-    "id": "fb9ff44603",
-    "nodePath": "0-97-0-0-0-0-2-0-0-0-0-0-2-0",
-    "nodeHashId": "fb9ff44603",
+    "id": "d1643df124",
+    "nodePath": "0-95-0-0-0-0-2-0-0-0-0-0-2-0",
+    "nodeHashId": "d1643df124",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
       "nodeType": "TEXT Node"
     },
     "center": [
-      1078,
-      394
+      732,
+      260
     ],
     "content": "密码登录",
     "rect": {
-      "left": 1042,
-      "top": 381,
+      "left": 696,
+      "top": 247,
       "width": 72,
       "height": 25,
       "zoom": 1
     },
     "zoom": 1,
-    "screenWidth": 1920,
-    "screenHeight": 1080,
+    "screenWidth": 1228,
+    "screenHeight": 768,
     "indexId": "8"
   },
   {
-    "id": "4c1bc69be7",
-    "nodePath": "0-97-0-0-0-0-2-0-0-0-1-0-0-0-0",
-    "nodeHashId": "4c1bc69be7",
+    "id": "d9d5a57f8c",
+    "nodePath": "0-95-0-0-0-0-2-0-0-0-1-0-0-0-0",
+    "nodeHashId": "d9d5a57f8c",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
       "nodeType": "TEXT Node"
     },
     "center": [
-      952,
-      747
+      606,
+      539
     ],
     "content": "如何扫码",
     "rect": {
-      "left": 926,
-      "top": 737,
+      "left": 580,
+      "top": 529,
       "width": 52,
       "height": 19,
       "zoom": 1
     },
     "zoom": 1,
-    "screenWidth": 1920,
-    "screenHeight": 1080,
+    "screenWidth": 1228,
+    "screenHeight": 768,
     "indexId": "9"
   },
   {
-    "id": "9e6d0f3156",
-    "nodePath": "0-97-0-0-0-0-2-0-0-0-1-0-0-0-1",
-    "nodeHashId": "9e6d0f3156",
-    "locator": "",
+    "id": "0b4af4bc50",
+    "nodePath": "0-95-0-0-0-0-2-0-0-0-1-0-0-0-1",
+    "nodeHashId": "0b4af4bc50",
+    "locator": "[_midscene_retrieve_task_id='0b4af4bc50']",
     "attributes": {
       "svgContent": "true",
       "nodeType": "IMG Node"
@@ -246,26 +246,26 @@
     "nodeType": "IMG Node",
     "content": "",
     "rect": {
-      "left": 983,
-      "top": 740,
+      "left": 637,
+      "top": 532,
       "width": 8,
       "height": 11,
       "zoom": 1
     },
     "center": [
-      987,
-      746
+      641,
+      538
     ],
     "zoom": 1,
-    "screenWidth": 1920,
-    "screenHeight": 1080,
+    "screenWidth": 1228,
+    "screenHeight": 768,
     "indexId": "10"
   },
   {
-    "id": "3c4d1a6aff",
-    "nodePath": "0-97-0-0-0-0-2-0-0-0-1-0-0-1-0",
-    "nodeHashId": "3c4d1a6aff",
-    "locator": "[_midscene_retrieve_task_id='3c4d1a6aff']",
+    "id": "cb64ed4aa8",
+    "nodePath": "0-95-0-0-0-0-2-0-0-0-1-0-0-1-0",
+    "nodeHashId": "cb64ed4aa8",
+    "locator": "[_midscene_retrieve_task_id='cb64ed4aa8']",
     "attributes": {
       "src": "data:image/jpeg;...",
       "class": ".web-login-scan-code__content__qrcode-wrapper__qrcode",
@@ -276,97 +276,45 @@
     "nodeType": "IMG Node",
     "content": "",
     "rect": {
-      "left": 874,
-      "top": 483,
-      "width": 179,
-      "height": 179,
+      "left": 537,
+      "top": 315,
+      "width": 160,
+      "height": 160,
       "zoom": 1
     },
     "center": [
-      964,
-      573
+      617,
+      395
     ],
     "zoom": 1,
-    "screenWidth": 1920,
-    "screenHeight": 1080,
+    "screenWidth": 1228,
+    "screenHeight": 768,
     "indexId": "11"
   },
   {
-    "id": "ccde847cd1",
-    "nodePath": "0-97-0-0-0-0-2-0-0-0-1-0-1-0-0",
-    "nodeHashId": "ccde847cd1",
+    "id": "d25018d40b",
+    "nodePath": "0-95-0-0-0-0-2-0-0-0-1-0-1-0-2",
+    "nodeHashId": "d25018d40b",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
       "nodeType": "TEXT Node"
     },
     "center": [
-      836,
-      698
-    ],
-    "content": "打开",
-    "rect": {
-      "left": 822,
-      "top": 688,
-      "width": 27,
-      "height": 19,
-      "zoom": 1
-    },
-    "zoom": 1,
-    "screenWidth": 1920,
-    "screenHeight": 1080,
-    "indexId": "12"
-  },
-  {
-    "id": "4f411ee332",
-    "nodePath": "0-97-0-0-0-0-2-0-0-0-1-0-1-0-1-0",
-    "nodeHashId": "4f411ee332",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node"
-    },
-    "center": [
-      877,
-      698
-    ],
-    "content": "抖音APP",
-    "rect": {
-      "left": 850,
-      "top": 688,
-      "width": 54,
-      "height": 19,
-      "zoom": 1
-    },
-    "zoom": 1,
-    "screenWidth": 1920,
-    "screenHeight": 1080,
-    "indexId": "13"
-  },
-  {
-    "id": "a9cdbde95e",
-    "nodePath": "0-97-0-0-0-0-2-0-0-0-1-0-1-0-2",
-    "nodeHashId": "a9cdbde95e",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node"
-    },
-    "center": [
-      1001,
-      698
+      655,
+      502
     ],
     "content": "-点击左上角侧边栏-点击扫一扫",
     "rect": {
-      "left": 904,
-      "top": 688,
+      "left": 558,
+      "top": 492,
       "width": 194,
       "height": 19,
       "zoom": 1
     },
     "zoom": 1,
-    "screenWidth": 1920,
-    "screenHeight": 1080,
-    "indexId": "14"
+    "screenWidth": 1228,
+    "screenHeight": 768,
+    "indexId": "12"
   }
 ]

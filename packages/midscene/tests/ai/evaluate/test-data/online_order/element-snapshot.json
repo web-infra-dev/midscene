@@ -22,7 +22,6 @@
       26,
       28
     ],
-    "htmlNode": null,
     "zoom": 1,
     "screenWidth": 400,
     "screenHeight": 905,
@@ -49,40 +48,10 @@
       "height": 23,
       "zoom": 1
     },
-    "htmlNode": null,
     "zoom": 1,
     "screenWidth": 400,
     "screenHeight": 905,
     "indexId": "2"
-  },
-  {
-    "id": "302f4410c6",
-    "nodePath": "0-3-1-1-0-0-0-0-0-1-0-1-0-1",
-    "nodeHashId": "302f4410c6",
-    "nodeType": "CONTAINER Node",
-    "locator": "[_midscene_retrieve_task_id='302f4410c6']",
-    "attributes": {
-      "aria-label": "图标: down",
-      "class": ".anticon.anticon-down",
-      "nodeType": "CONTAINER Node"
-    },
-    "content": "",
-    "rect": {
-      "left": 113,
-      "top": 26,
-      "width": 8,
-      "height": 4,
-      "zoom": 1
-    },
-    "center": [
-      117,
-      28
-    ],
-    "htmlNode": null,
-    "zoom": 1,
-    "screenWidth": 400,
-    "screenHeight": 905,
-    "indexId": "3"
   },
   {
     "id": "c0fb608a18",
@@ -107,11 +76,10 @@
       225,
       30
     ],
-    "htmlNode": null,
     "zoom": 1,
     "screenWidth": 400,
     "screenHeight": 905,
-    "indexId": "4"
+    "indexId": "3"
   },
   {
     "id": "5ead026c3c",
@@ -136,11 +104,10 @@
       363,
       29
     ],
-    "htmlNode": null,
     "zoom": 1,
     "screenWidth": 400,
     "screenHeight": 905,
-    "indexId": "5"
+    "indexId": "4"
   },
   {
     "id": "46a02084a9",
@@ -163,38 +130,10 @@
       "height": 20,
       "zoom": 1
     },
-    "htmlNode": null,
     "zoom": 1,
     "screenWidth": 400,
     "screenHeight": 905,
-    "indexId": "6"
-  },
-  {
-    "id": "a2ccdbb647",
-    "nodePath": "0-3-1-2-0-1-0-1-0-0-0-1-0-0",
-    "nodeHashId": "a2ccdbb647",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node"
-    },
-    "center": [
-      153,
-      98
-    ],
-    "content": "喜茶 HEYTEA (Vivocity)",
-    "rect": {
-      "left": 22,
-      "top": 81,
-      "width": 261,
-      "height": 34,
-      "zoom": 1
-    },
-    "htmlNode": null,
-    "zoom": 1,
-    "screenWidth": 400,
-    "screenHeight": 905,
-    "indexId": "7"
+    "indexId": "5"
   },
   {
     "id": "0f3ef6d5af",
@@ -217,11 +156,10 @@
       "height": 20,
       "zoom": 1
     },
-    "htmlNode": null,
     "zoom": 1,
     "screenWidth": 400,
     "screenHeight": 905,
-    "indexId": "8"
+    "indexId": "6"
   },
   {
     "id": "21aec2e4e3",
@@ -245,11 +183,10 @@
       200,
       350
     ],
-    "htmlNode": null,
     "zoom": 1,
     "screenWidth": 400,
     "screenHeight": 905,
-    "indexId": "9"
+    "indexId": "7"
   },
   {
     "id": "9885b955c6",
@@ -272,11 +209,10 @@
       "height": 62,
       "zoom": 1
     },
-    "htmlNode": null,
     "zoom": 1,
     "screenWidth": 400,
     "screenHeight": 905,
-    "indexId": "10"
+    "indexId": "8"
   },
   {
     "id": "bf999c5b40",
@@ -299,11 +235,10 @@
       "height": 23,
       "zoom": 1
     },
-    "htmlNode": null,
     "zoom": 1,
     "screenWidth": 400,
     "screenHeight": 905,
-    "indexId": "11"
+    "indexId": "9"
   },
   {
     "id": "a3fb45c4c5",
@@ -326,11 +261,10 @@
       128,
       591
     ],
-    "htmlNode": null,
     "zoom": 1,
     "screenWidth": 400,
     "screenHeight": 905,
-    "indexId": "12"
+    "indexId": "10"
   },
   {
     "id": "c32ddf3185",
@@ -353,11 +287,10 @@
       "height": 23,
       "zoom": 1
     },
-    "htmlNode": null,
     "zoom": 1,
     "screenWidth": 400,
     "screenHeight": 905,
-    "indexId": "13"
+    "indexId": "11"
   },
   {
     "id": "fc12c17891",
@@ -380,11 +313,10 @@
       "height": 23,
       "zoom": 1
     },
-    "htmlNode": null,
     "zoom": 1,
     "screenWidth": 400,
     "screenHeight": 905,
-    "indexId": "14"
+    "indexId": "12"
   },
   {
     "id": "73658dec47",
@@ -407,11 +339,10 @@
       "height": 17,
       "zoom": 1
     },
-    "htmlNode": null,
     "zoom": 1,
     "screenWidth": 400,
     "screenHeight": 905,
-    "indexId": "15"
+    "indexId": "13"
   },
   {
     "id": "6d14cb9550",
@@ -434,11 +365,10 @@
       "height": 17,
       "zoom": 1
     },
-    "htmlNode": null,
     "zoom": 1,
     "screenWidth": 400,
     "screenHeight": 905,
-    "indexId": "16"
+    "indexId": "14"
   },
   {
     "id": "90cd1b1550",
@@ -461,11 +391,10 @@
       "height": 17,
       "zoom": 1
     },
-    "htmlNode": null,
     "zoom": 1,
     "screenWidth": 400,
     "screenHeight": 905,
-    "indexId": "17"
+    "indexId": "15"
   },
   {
     "id": "53059976ed",
@@ -488,11 +417,10 @@
       "height": 17,
       "zoom": 1
     },
-    "htmlNode": null,
     "zoom": 1,
     "screenWidth": 400,
     "screenHeight": 905,
-    "indexId": "18"
+    "indexId": "16"
   },
   {
     "id": "be311fe884",
@@ -515,11 +443,10 @@
       "height": 17,
       "zoom": 1
     },
-    "htmlNode": null,
     "zoom": 1,
     "screenWidth": 400,
     "screenHeight": 905,
-    "indexId": "19"
+    "indexId": "17"
   },
   {
     "id": "173e85dbcb",
@@ -542,11 +469,10 @@
       "height": 20,
       "zoom": 1
     },
-    "htmlNode": null,
     "zoom": 1,
     "screenWidth": 400,
     "screenHeight": 905,
-    "indexId": "20"
+    "indexId": "18"
   },
   {
     "id": "6e7c2409d0",
@@ -571,11 +497,10 @@
       133,
       704
     ],
-    "htmlNode": null,
     "zoom": 1,
     "screenWidth": 400,
     "screenHeight": 905,
-    "indexId": "21"
+    "indexId": "19"
   },
   {
     "id": "be66e2a28d",
@@ -598,93 +523,36 @@
       "height": 20,
       "zoom": 1
     },
-    "htmlNode": null,
     "zoom": 1,
     "screenWidth": 400,
     "screenHeight": 905,
-    "indexId": "22"
+    "indexId": "20"
   },
   {
-    "id": "0e528541f7",
-    "nodePath": "0-3-1-2-0-1-0-1-0-6-1-1-1-1-0-1-0-1",
-    "nodeHashId": "0e528541f7",
-    "nodeType": "CONTAINER Node",
-    "locator": "[_midscene_retrieve_task_id='0e528541f7']",
-    "attributes": {
-      "class": ".van-ellipsis",
-      "nodeType": "CONTAINER Node"
-    },
-    "content": "",
-    "rect": {
-      "left": 188,
-      "top": 684,
-      "width": 199,
-      "height": 13,
-      "zoom": 1
-    },
-    "center": [
-      288,
-      691
-    ],
-    "htmlNode": null,
-    "zoom": 1,
-    "screenWidth": 400,
-    "screenHeight": 905,
-    "indexId": "23"
-  },
-  {
-    "id": "ca759d640f",
-    "nodePath": "0-3-1-2-0-1-0-1-0-6-1-1-1-1-0-1-1-0-0-0",
-    "nodeHashId": "ca759d640f",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node"
-    },
-    "center": [
-      194,
-      739
-    ],
-    "content": "S$",
-    "rect": {
-      "left": 188,
-      "top": 732,
-      "width": 12,
-      "height": 14,
-      "zoom": 1
-    },
-    "htmlNode": null,
-    "zoom": 1,
-    "screenWidth": 400,
-    "screenHeight": 905,
-    "indexId": "24"
-  },
-  {
-    "id": "eadd459434",
+    "id": "32058c4733",
     "nodePath": "0-3-1-2-0-1-0-1-0-6-1-1-1-1-0-1-1-0-1-0",
-    "nodeHashId": "eadd459434",
+    "nodeHashId": "32058c4733",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
       "nodeType": "TEXT Node"
     },
     "center": [
-      223,
+      211,
       736
     ],
     "content": "6.82",
     "rect": {
-      "left": 204,
+      "left": 192,
       "top": 723,
       "width": 37,
       "height": 25,
       "zoom": 1
     },
-    "htmlNode": null,
     "zoom": 1,
     "screenWidth": 400,
     "screenHeight": 905,
-    "indexId": "25"
+    "indexId": "21"
   },
   {
     "id": "9e5b85f0fe",
@@ -707,11 +575,10 @@
       "height": 17,
       "zoom": 1
     },
-    "htmlNode": null,
     "zoom": 1,
     "screenWidth": 400,
     "screenHeight": 905,
-    "indexId": "26"
+    "indexId": "22"
   },
   {
     "id": "6a94f89494",
@@ -734,11 +601,10 @@
       "height": 20,
       "zoom": 1
     },
-    "htmlNode": null,
     "zoom": 1,
     "screenWidth": 400,
     "screenHeight": 905,
-    "indexId": "27"
+    "indexId": "23"
   },
   {
     "id": "73b0f24029",
@@ -763,11 +629,10 @@
       133,
       847
     ],
-    "htmlNode": null,
     "zoom": 1,
     "screenWidth": 400,
     "screenHeight": 905,
-    "indexId": "28"
+    "indexId": "24"
   },
   {
     "id": "e1e47a9074",
@@ -790,93 +655,36 @@
       "height": 20,
       "zoom": 1
     },
-    "htmlNode": null,
     "zoom": 1,
     "screenWidth": 400,
     "screenHeight": 905,
-    "indexId": "29"
+    "indexId": "25"
   },
   {
-    "id": "44b7f32005",
-    "nodePath": "0-3-1-2-0-1-0-1-0-6-1-1-2-1-0-1-0-1",
-    "nodeHashId": "44b7f32005",
-    "nodeType": "CONTAINER Node",
-    "locator": "[_midscene_retrieve_task_id='44b7f32005']",
-    "attributes": {
-      "class": ".van-ellipsis",
-      "nodeType": "CONTAINER Node"
-    },
-    "content": "",
-    "rect": {
-      "left": 188,
-      "top": 827,
-      "width": 199,
-      "height": 13,
-      "zoom": 1
-    },
-    "center": [
-      288,
-      834
-    ],
-    "htmlNode": null,
-    "zoom": 1,
-    "screenWidth": 400,
-    "screenHeight": 905,
-    "indexId": "30"
-  },
-  {
-    "id": "2de9aae12b",
-    "nodePath": "0-3-1-2-0-1-0-1-0-6-1-1-2-1-0-1-1-0-0-0",
-    "nodeHashId": "2de9aae12b",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node"
-    },
-    "center": [
-      194,
-      882
-    ],
-    "content": "S$",
-    "rect": {
-      "left": 188,
-      "top": 875,
-      "width": 12,
-      "height": 14,
-      "zoom": 1
-    },
-    "htmlNode": null,
-    "zoom": 1,
-    "screenWidth": 400,
-    "screenHeight": 905,
-    "indexId": "31"
-  },
-  {
-    "id": "8f3f618529",
+    "id": "c1cf767317",
     "nodePath": "0-3-1-2-0-1-0-1-0-6-1-1-2-1-0-1-1-0-1-0",
-    "nodeHashId": "8f3f618529",
+    "nodeHashId": "c1cf767317",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
       "nodeType": "TEXT Node"
     },
     "center": [
-      223,
+      211,
       879
     ],
     "content": "6.54",
     "rect": {
-      "left": 204,
+      "left": 192,
       "top": 866,
       "width": 37,
       "height": 25,
       "zoom": 1
     },
-    "htmlNode": null,
     "zoom": 1,
     "screenWidth": 400,
     "screenHeight": 905,
-    "indexId": "32"
+    "indexId": "26"
   },
   {
     "id": "ee2e067ccc",
@@ -899,11 +707,10 @@
       "height": 17,
       "zoom": 1
     },
-    "htmlNode": null,
     "zoom": 1,
     "screenWidth": 400,
     "screenHeight": 905,
-    "indexId": "33"
+    "indexId": "27"
   },
   {
     "id": "b82bdf3ac4",
@@ -927,10 +734,9 @@
       379,
       834
     ],
-    "htmlNode": null,
     "zoom": 1,
     "screenWidth": 400,
     "screenHeight": 905,
-    "indexId": "34"
+    "indexId": "28"
   }
 ]
