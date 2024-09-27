@@ -11,7 +11,10 @@ export async function plan(
     callAI?: typeof callAiFn<PlanningAIResponse>;
   },
   useModel?: 'coze' | 'openAI',
-): Promise<{ plans: PlanningAction[] }> {
+): Promise<{
+  plans: PlanningAction[];
+  firstActionAnswer: PlanningAIResponse['firstActionAnswer'];
+}> {
   const { callAI, context } = opts || {};
   const { screenshotBase64 } = context;
   const { description: pageDescription } = await describeUserPage(context);
@@ -78,5 +81,5 @@ export async function plan(
   //   }
   // });
 
-  return { plans: actions };
+  return { plans: actions, firstActionAnswer: planFromAI.firstActionAnswer };
 }

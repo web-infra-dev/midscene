@@ -14,7 +14,7 @@ modelList.forEach((model) => {
     it('basic run', async () => {
       const { context } = await getPageDataOfTestName('todo');
 
-      const { plans } = await plan(
+      const { plans, firstActionAnswer } = await plan(
         'type "Why is the earth a sphere?", wait 3.5s, hit Enter',
         {
           context,
@@ -29,6 +29,8 @@ modelList.forEach((model) => {
       expect(plans[2].param).toMatchSnapshot();
       expect(plans[3].type).toBe('KeyboardPress');
       expect(plans[3].param).toMatchSnapshot();
+
+      expect(firstActionAnswer?.text).toMatchSnapshot();
     });
 
     it('instructions of to-do mvc', async () => {
@@ -43,8 +45,13 @@ modelList.forEach((model) => {
       ];
 
       for (const instruction of instructions) {
-        const { plans } = await plan(instruction, { context }, model);
+        const { plans, firstActionAnswer } = await plan(
+          instruction,
+          { context },
+          model,
+        );
         expect(plans).toBeTruthy();
+        expect(firstActionAnswer?.id).toBeTruthy();
         // console.log(`instruction: ${instruction}\nplans: ${JSON.stringify(plans, undefined, 2)}`);
       }
     });

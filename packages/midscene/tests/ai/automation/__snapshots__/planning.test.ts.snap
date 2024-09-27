@@ -11,3 +11,5 @@ exports[`automation - planning openAI > basic run 2`] = `
   "value": "Enter",
 }
 `;
+
+exports[`automation - planning openAI > basic run 3`] = `"What needs to be done?"`;

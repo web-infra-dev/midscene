@@ -200,6 +200,11 @@ export interface PlanningAction<ParamType = any> {
 export interface PlanningAIResponse {
   queryLanguage: string;
   actions: PlanningAction[];
+  firstActionAnswer: {
+    reason: string;
+    text: string;
+    id: string;
+  } | null;
   error?: string;
 }
 
