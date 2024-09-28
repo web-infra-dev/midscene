@@ -63,7 +63,7 @@ describe(
       await reset();
     });
 
-    it.only('Search', async () => {
+    it('Search', async () => {
       const { page, reset } = await launchPage('https://www.baidu.com/');
       const mid = new PuppeteerAgent(page);
       await mid.aiAction(
