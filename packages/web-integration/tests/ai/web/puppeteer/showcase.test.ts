@@ -63,10 +63,12 @@ describe(
       await reset();
     });
 
-    it('Search', async () => {
+    it.only('Search', async () => {
       const { page, reset } = await launchPage('https://www.baidu.com/');
       const mid = new PuppeteerAgent(page);
-      await mid.aiAction('type "Weather in Shanghai" in search box, hit Enter');
+      await mid.aiAction(
+        'type "Weather in Shanghai" in search box, hit Enter, wait 2s, click the "Image" button below the search box`',
+      );
 
       await mid.aiWaitFor('there is weather info in Shanghai');
 

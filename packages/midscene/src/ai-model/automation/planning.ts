@@ -42,18 +42,16 @@ Remember:
 
 If the planned tasks are sequential and tasks may appear only after the execution of previous tasks, this is considered normal. Thoughts, prompts, and error messages should all be in the same language as the user query.
 
-## Objective 2 (sub objective): Give a quick answer to the first action you just planned
+## Objective 2 (sub objective): Give a quick answer to the action with type "Locate" you just planned
 
-Review the action you just planned. If the first action is 'Locate', then give a quick answer: which element meets the description in the prompt.
-
-The answer should be in the following format, as the \`quickAnswer\` field in the output JSON:
+Review the action you just planned. If the action type is 'Locate', provide a quick answer: Does any element meet the description in the prompt? If so, answer with the following format, as the \`quickAnswer\` field in the output JSON:
 {
   "reason": "Reason for finding element 4: It is located in the upper right corner, is an image type, and according to the screenshot, it is a shopping cart icon button",
   "text": "PLACEHOLDER", // Replace PLACEHOLDER with the text of elementInfo, if none, leave empty
   "id": "4" // ID of this element, replace with actual value in practice
 }
 
-If the first action is not 'Locate', or you don't have any idea about the first action, the answer should be null.
+If the action type is not 'Locate', or there is no element meets the description in the prompt (usually because it will show up after some interaction), the answer should be null.
 
 ## Output JSON Format:
 
