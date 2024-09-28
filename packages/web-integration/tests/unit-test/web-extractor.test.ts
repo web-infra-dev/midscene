@@ -10,16 +10,16 @@ describe(
   'extractor',
   () => {
     it('basic', async () => {
-      const { page, reset } = await launchPage(`file://${pagePath}`, {
+      const { webPage, reset } = await launchPage(`file://${pagePath}`, {
         viewport: {
           width: 1080,
           height: 2000,
         },
       });
 
-      const { content } = await parseContextFromWebPage(page);
+      const { content } = await parseContextFromWebPage(webPage);
       await generateExtractData(
-        page,
+        webPage,
         path.join(__dirname, 'fixtures/web-extractor'),
         {
           disableInputImage: false,
@@ -42,7 +42,7 @@ describe(
     });
 
     it('check screenshot size - 1x', async () => {
-      const { page, reset } = await launchPage(`file://${pagePath}`, {
+      const { webPage, reset } = await launchPage(`file://${pagePath}`, {
         viewport: {
           width: 1080,
           height: 2000,
@@ -50,7 +50,7 @@ describe(
         },
       });
 
-      const shotpath = await page.screenshot();
+      const shotpath = await webPage.screenshot();
 
       const info = await imageInfo(shotpath);
       expect(info.width).toBe(1080);
@@ -59,7 +59,7 @@ describe(
     });
 
     it('check screenshot size - 2x', async () => {
-      const { page, reset } = await launchPage(`file://${pagePath}`, {
+      const { webPage, reset } = await launchPage(`file://${pagePath}`, {
         viewport: {
           width: 1080,
           height: 2000,
@@ -67,7 +67,7 @@ describe(
         },
       });
 
-      const shotpath = await page.screenshot();
+      const shotpath = await webPage.screenshot();
 
       const info = await imageInfo(shotpath);
       expect(info.width).toBe(1080); // always 1x for screenshot
@@ -76,16 +76,16 @@ describe(
     });
 
     it('scroll', async () => {
-      const { page, reset } = await launchPage(`file://${pagePath}`, {
+      const { webPage, reset } = await launchPage(`file://${pagePath}`, {
         viewport: {
           width: 1080,
           height: 200,
         },
       });
-      await page.scrollDownOneScreen();
+      await webPage.scrollDownOneScreen();
       await new Promise((resolve) => setTimeout(resolve, 1000));
       await generateExtractData(
-        page,
+        webPage,
         path.join(__dirname, 'fixtures/web-extractor/scroll'),
         {
           disableInputImage: false,
@@ -98,10 +98,10 @@ describe(
     });
 
     it('profile ', async () => {
-      const { page, reset } = await launchPage('https://webinfra.org/about');
+      const { webPage, reset } = await launchPage('https://webinfra.org/about');
       await new Promise((resolve) => setTimeout(resolve, 1000));
       console.time('total - parseContextFromWebPage');
-      const { content } = await parseContextFromWebPage(page);
+      const { content } = await parseContextFromWebPage(webPage);
       console.timeEnd('total - parseContextFromWebPage');
       await reset();
     });
