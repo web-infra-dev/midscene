@@ -135,6 +135,7 @@ test('generate douyin test data', async ({ page, ai }) => {
   await page.goto(
     'https://www.douyin.com/user/MS4wLjABAAAAGBQf_qNRUBcWNSRCZ1o8vP_qGUC58Gsbcy1Bc1AZvfc?from_tab_name=main&modal_id=7409244439434022195&vid=7409244439434022195',
   );
+  await page.locator('.web-login-tab-list__item').nth(1).click();
   await generateExtractData(
     playwrightPage,
     generateTestDataPath('aweme-login'),

@@ -20,20 +20,20 @@
       ]
     },
     {
-      "prompt": "左下角播放按钮（图标类型）",
+      "prompt": "左下角播放或暂停按钮（图标类型）",
       "multi": false,
       "response": [
         {
-          "id": "d9b173dde2"
+          "id": "5f3820a7d2"
         }
       ]
     },
     {
-      "prompt": "爱心按钮（图标类型）",
+      "prompt": "点赞按钮（图标类型）",
       "multi": false,
       "response": [
         {
-          "id": "20722950c4"
+          "id": "5c54925862"
         }
       ]
     },
@@ -42,7 +42,7 @@
       "multi": false,
       "response": [
         {
-          "id": "2bcfcfa863"
+          "id": "656e04572b"
         }
       ]
     },
@@ -51,7 +51,7 @@
       "multi": false,
       "response": [
         {
-          "id": "5118ec51c3"
+          "id": "6abc963d73"
         }
       ]
     },
@@ -60,7 +60,7 @@
       "multi": false,
       "response": [
         {
-          "id": "d7c40128f6"
+          "id": "9392ab543f"
         }
       ]
     }

@@ -6,7 +6,7 @@
       "multi": false,
       "response": [
         {
-          "id": "5a7af17815"
+          "id": "1ee3f118db"
         }
       ]
     },
@@ -15,7 +15,7 @@
       "multi": false,
       "response": [
         {
-          "id": "ff3008bf7b"
+          "id": "e787b33568"
         }
       ]
     },
@@ -24,7 +24,7 @@
       "multi": false,
       "response": [
         {
-          "id": "b505e241c9"
+          "id": "a1e5859346"
         }
       ]
     },
@@ -33,7 +33,7 @@
       "multi": false,
       "response": [
         {
-          "id": "97d6889398"
+          "id": "428f0f34ad"
         }
       ]
     },
@@ -42,16 +42,7 @@
       "multi": false,
       "response": [
         {
-          "id": "c55a67fb9d"
-        }
-      ]
-    },
-    {
-      "prompt": "第二件商品价格",
-      "multi": false,
-      "response": [
-        {
-          "id": "8e3d49aba9"
+          "id": "d7b1890a2a"
         }
       ]
     }
