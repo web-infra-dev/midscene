@@ -269,8 +269,8 @@ const Player = (): JSX.Element => {
     const currentState = { ...cameraState.current };
     const startLeft = currentState.left;
     const startTop = currentState.top;
-    const startWidth = currentState.width;
     const startPointer = { ...currentState.pointer };
+    const startScale = currentState.width / imageWidth;
 
     const startTime = performance.now();
     const shouldMovePointer =
@@ -310,16 +310,29 @@ const Player = (): JSX.Element => {
             1,
           );
           const cameraProgress = cubicImage(rawCameraProgress);
-          nextState.left =
+
+          // get the target scale
+          const targetScale = targetState.width / imageWidth;
+          const progressScale =
+            startScale + (targetScale - startScale) * cameraProgress;
+          const progressWidth = imageWidth * progressScale;
+          const progressHeight = imageHeight * progressScale;
+          nextState.width = progressWidth;
+
+          const progressLeft =
             startLeft + (targetState.left - startLeft) * cameraProgress;
-          nextState.top =
+          const progressTop =
             startTop + (targetState.top - startTop) * cameraProgress;
-          const expectWidth =
-            startWidth + (targetState.width - startWidth) * cameraProgress;
-          nextState.width =
-            nextState.left + expectWidth > imageWidth
-              ? imageWidth - nextState.left
-              : expectWidth;
+
+          const horizontalExceed = progressLeft + progressWidth - imageWidth;
+          const verticalExceed = progressTop + progressHeight - imageHeight;
+
+          nextState.left =
+            horizontalExceed > 0
+              ? progressLeft + horizontalExceed
+              : progressLeft;
+          nextState.top =
+            verticalExceed > 0 ? progressTop + verticalExceed : progressTop;
         }
 
         updateCamera(nextState);

@@ -61,7 +61,10 @@ export const cameraStateForRect = (
   }
 
   const cameraPaddingRatio = rectWidthOnPage < 50 ? 0.3 : 0.2;
-  const cameraWidth = rectWidthOnPage + imageWidth * cameraPaddingRatio * 2;
+  const cameraWidth = Math.min(
+    imageWidth,
+    rectWidthOnPage + imageWidth * cameraPaddingRatio * 2,
+  );
   const cameraHeight = cameraWidth * (imageHeight / imageWidth);
 
   let left = Math.min(
@@ -257,7 +260,7 @@ export const generateAnimationScripts = (
   // end, back to full page
   scripts.push({
     type: 'img',
-    duration: stillDuration,
+    duration: stillDuration * 0.5,
     camera: fullPageCameraState,
   });
 
@@ -265,5 +268,6 @@ export const generateAnimationScripts = (
     type: 'sleep',
     duration: stillDuration,
   });
+
   return scripts;
 };
