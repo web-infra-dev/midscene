@@ -56,8 +56,7 @@ export class Page<
 
     await this.page.screenshot({
       path,
-      type: 'jpeg',
-      quality: 75,
+      type: 'png',
     });
     let buf: Buffer;
     if (viewportSize.deviceScaleFactor > 1) {

@@ -17,11 +17,7 @@ const basicTest = ['tests/unit-test/**/*.test.ts'];
 export default defineConfig({
   test: {
     include: enableAiTest
-      ? [
-          'tests/ai/inspector/todo_inspector.test.ts',
-          'tests/ai/automation/planning.test.ts',
-          ...basicTest,
-        ]
+      ? ['tests/ai/**/**.test.ts', ...basicTest]
       : basicTest,
   },
   resolve: {

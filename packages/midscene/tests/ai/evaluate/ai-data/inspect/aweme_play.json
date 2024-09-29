@@ -1,0 +1,68 @@
+{
+  "testDataPath": "test-data/aweme-play",
+  "testCases": [
+    {
+      "prompt": "搜索框",
+      "multi": false,
+      "response": [
+        {
+          "id": "0fd5c7c2a3"
+        }
+      ]
+    },
+    {
+      "prompt": "搜索按钮",
+      "multi": false,
+      "response": [
+        {
+          "id": "0c8ccb3882"
+        }
+      ]
+    },
+    {
+      "prompt": "左下角播放或暂停按钮（图标类型）",
+      "multi": false,
+      "response": [
+        {
+          "id": "5f3820a7d2"
+        }
+      ]
+    },
+    {
+      "prompt": "点赞按钮（图标类型）",
+      "multi": false,
+      "response": [
+        {
+          "id": "5c54925862"
+        }
+      ]
+    },
+    {
+      "prompt": "评论按钮（图标类型）",
+      "multi": false,
+      "response": [
+        {
+          "id": "656e04572b"
+        }
+      ]
+    },
+    {
+      "prompt": "收藏按钮（图标类型）",
+      "multi": false,
+      "response": [
+        {
+          "id": "6abc963d73"
+        }
+      ]
+    },
+    {
+      "prompt": "右下角声音按钮（图标类型）",
+      "multi": false,
+      "response": [
+        {
+          "id": "9392ab543f"
+        }
+      ]
+    }
+  ]
+}

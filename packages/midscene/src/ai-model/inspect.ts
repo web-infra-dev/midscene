@@ -11,7 +11,7 @@ import type {
   ChatCompletionSystemMessageParam,
   ChatCompletionUserMessageParam,
 } from 'openai/resources';
-import { AIActionType, callAiFn } from './common';
+import { AIActionType, callAiFn, transformUserMessages } from './common';
 import {
   multiDescription,
   systemPromptToFindElement,
@@ -56,34 +56,29 @@ export async function AiInspectElement<
     { role: 'system', content: systemPrompt },
     {
       role: 'user',
-      content: [
+      content: transformUserMessages([
         {
           type: 'image_url',
           image_url: {
             url: screenshotBase64,
-            detail: 'high',
           },
         },
         {
           type: 'text',
           text: `
-            pageDescription: \n
-            ${description}
-          `,
+    pageDescription: \n
+    ${description}
+
+    Here is the description of the findElement. Just go ahead:
+    =====================================
+    ${JSON.stringify({
+      description: findElementDescription,
+      multi: multiDescription(multi),
+    })}
+    =====================================
+  `,
         },
-        {
-          type: 'text',
-          text: `
-          Here is the description of the findElement. Just go ahead:
-          =====================================
-          ${JSON.stringify({
-            description: findElementDescription,
-            multi: multiDescription(multi),
-          })}
-          =====================================
-          `,
-        },
-      ],
+      ]),
     },
   ];
 
@@ -128,7 +123,7 @@ export async function AiExtractElementInfo<
     { role: 'system', content: systemPrompt },
     {
       role: 'user',
-      content: [
+      content: transformUserMessages([
         {
           type: 'image_url',
           image_url: {
@@ -153,7 +148,7 @@ ${typeof dataQuery === 'string' ? dataQuery : JSON.stringify(dataQuery, null, 2)
 DATA_DEMAND ends.
           `,
         },
-      ],
+      ]),
     },
   ];
 
@@ -187,7 +182,7 @@ export async function AiAssert<
     { role: 'system', content: systemPrompt },
     {
       role: 'user',
-      content: [
+      content: transformUserMessages([
         {
           type: 'image_url',
           image_url: {
@@ -197,20 +192,15 @@ export async function AiAssert<
         {
           type: 'text',
           text: `
-            pageDescription: \n
-            ${description}
-          `,
+    pageDescription: \n
+    ${description}
+    Here is the description of the assertion. Just go ahead:
+    =====================================
+    ${assertion}
+    =====================================
+  `,
         },
-        {
-          type: 'text',
-          text: `
-            Here is the description of the assertion. Just go ahead:
-            =====================================
-            ${assertion}
-            =====================================
-          `,
-        },
-      ],
+      ]),
     },
   ];
 

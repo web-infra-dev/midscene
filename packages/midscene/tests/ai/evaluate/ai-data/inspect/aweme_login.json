@@ -1,0 +1,68 @@
+{
+  "testDataPath": "test-data/aweme-login",
+  "testCases": [
+    {
+      "prompt": "密码登录",
+      "multi": false,
+      "response": [
+        {
+          "id": "d1643df124"
+        }
+      ]
+    },
+    {
+      "prompt": "扫码登录",
+      "multi": false,
+      "response": [
+        {
+          "id": "c90a7c0b7e"
+        }
+      ]
+    },
+    {
+      "prompt": "手机号输入框",
+      "multi": false,
+      "response": [
+        {
+          "id": "8b0d3b1a49"
+        }
+      ]
+    },
+    {
+      "prompt": "验证码输入框",
+      "multi": false,
+      "response": [
+        {
+          "id": "dfcb85f78c"
+        }
+      ]
+    },
+    {
+      "prompt": "发送验证码按钮",
+      "multi": false,
+      "response": [
+        {
+          "id": "54be0bf349"
+        }
+      ]
+    },
+    {
+      "prompt": "登录按钮",
+      "multi": false,
+      "response": [
+        {
+          "id": "c2d292c2a3"
+        }
+      ]
+    },
+    {
+      "prompt": "关闭弹窗按钮",
+      "multi": false,
+      "response": [
+        {
+          "id": "177663d21a"
+        }
+      ]
+    }
+  ]
+}

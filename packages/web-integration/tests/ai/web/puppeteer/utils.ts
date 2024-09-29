@@ -40,6 +40,8 @@ export async function launchPage(
     page,
     originPage,
     reset: async () => {
+      const pages = await browser.pages();
+      await Promise.all(pages.map((page) => page.close()));
       await browser.close();
     },
   };

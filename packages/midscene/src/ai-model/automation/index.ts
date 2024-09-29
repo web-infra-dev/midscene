@@ -1,6 +1,11 @@
 import assert from 'node:assert';
 import type { PlanningAIResponse, PlanningAction, UIContext } from '@/types';
-import { AIActionType, type AIArgs, callAiFn } from '../common';
+import {
+  AIActionType,
+  type AIArgs,
+  callAiFn,
+  transformUserMessages,
+} from '../common';
 import { describeUserPage } from '../prompt/util';
 import { systemPromptToTaskPlanning } from './planning';
 
@@ -24,7 +29,7 @@ export async function plan(
     { role: 'system', content: systemPrompt },
     {
       role: 'user',
-      content: [
+      content: transformUserMessages([
         {
           type: 'image_url',
           image_url: {
@@ -35,19 +40,16 @@ export async function plan(
         {
           type: 'text',
           text: `
-            pageDescription: ${pageDescription}
+            pageDescription:\n 
+            ${pageDescription}
+            \n
+            Here is the description of the task. Just go ahead:
+            =====================================
+            ${userPrompt}
+            =====================================
           `,
         },
-        {
-          type: 'text',
-          text: `
-                Here is the description of the task. Just go ahead:
-                =====================================
-                ${userPrompt}
-                =====================================
-            `,
-        },
-      ],
+      ]),
     },
   ];
 

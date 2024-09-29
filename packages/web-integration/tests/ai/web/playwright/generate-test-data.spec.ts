@@ -1,6 +1,6 @@
 import { generateExtractData, generateTestDataPath } from '@/debug';
 import { PlaywrightWebPage } from '@/playwright';
-import { test } from '@playwright/test';
+import { test } from './fixture';
 
 function sleep(time: number) {
   return new Promise((resolve) => {
@@ -95,7 +95,7 @@ test('antd widget - carousel', async ({ page }) => {
   );
 });
 
-test('generate online order test data', async ({ page }) => {
+test('generate online order test data', async ({ page, ai }) => {
   const playwrightPage = new PlaywrightWebPage(page);
 
   page.setViewportSize({ width: 400, height: 905 });
@@ -109,4 +109,39 @@ test('generate online order test data', async ({ page }) => {
     playwrightPage,
     generateTestDataPath('online_order'),
   );
+
+  await ai('点击菜单文字');
+  await ai('向下滚动一屏幕');
+
+  await generateExtractData(
+    playwrightPage,
+    generateTestDataPath('online_order_list'),
+  );
+});
+
+test('generate taobao test data', async ({ page, ai }) => {
+  const playwrightPage = new PlaywrightWebPage(page);
+
+  page.setViewportSize({ width: 1228, height: 768 });
+  await page.goto('https://www.taobao.com/');
+
+  await generateExtractData(playwrightPage, generateTestDataPath('taobao'));
+});
+
+test('generate douyin test data', async ({ page, ai }) => {
+  const playwrightPage = new PlaywrightWebPage(page);
+
+  page.setViewportSize({ width: 1228, height: 768 });
+  await page.goto(
+    'https://www.douyin.com/user/MS4wLjABAAAAGBQf_qNRUBcWNSRCZ1o8vP_qGUC58Gsbcy1Bc1AZvfc?from_tab_name=main&modal_id=7409244439434022195&vid=7409244439434022195',
+  );
+  await page.locator('.web-login-tab-list__item').nth(1).click();
+  await generateExtractData(
+    playwrightPage,
+    generateTestDataPath('aweme-login'),
+  );
+  await page.locator('.douyin-login__close').click();
+  await page.keyboard.press('ArrowDown');
+  await page.waitForTimeout(2000);
+  await generateExtractData(playwrightPage, generateTestDataPath('aweme-play'));
 });

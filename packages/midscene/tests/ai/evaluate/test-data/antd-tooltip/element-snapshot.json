@@ -1,0 +1,3785 @@
+[
+  {
+    "id": "a52b25a1ff",
+    "nodePath": "0-1-2-1-0-0-0-0-0",
+    "nodeHashId": "a52b25a1ff",
+    "locator": "[_midscene_retrieve_task_id='a52b25a1ff']",
+    "attributes": {
+      "src": "https://gw.alipayobjects.com/zos/rmsportal/KDpgvgu...",
+      "draggable": "false",
+      "alt": "logo",
+      "nodeType": "IMG Node"
+    },
+    "nodeType": "IMG Node",
+    "content": "",
+    "rect": {
+      "left": 40,
+      "top": 16,
+      "width": 32,
+      "height": 32,
+      "zoom": 1
+    },
+    "center": [
+      56,
+      32
+    ],
+    "zoom": 1,
+    "screenWidth": 1920,
+    "screenHeight": 1080,
+    "indexId": "1"
+  },
+  {
+    "id": "5013600adf",
+    "nodePath": "0-1-2-1-0-0-0-0-1-0",
+    "nodeHashId": "5013600adf",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node"
+    },
+    "center": [
+      131,
+      32
+    ],
+    "content": "Ant Design",
+    "rect": {
+      "left": 84,
+      "top": 19,
+      "width": 93,
+      "height": 26,
+      "zoom": 1
+    },
+    "zoom": 1,
+    "screenWidth": 1920,
+    "screenHeight": 1080,
+    "indexId": "2"
+  },
+  {
+    "id": "be6c944836",
+    "nodePath": "0-1-2-1-0-1-0-0-0",
+    "nodeHashId": "be6c944836",
+    "locator": "[_midscene_retrieve_task_id='be6c944836']",
+    "attributes": {
+      "svgContent": "true",
+      "nodeType": "IMG Node"
+    },
+    "nodeType": "IMG Node",
+    "content": "",
+    "rect": {
+      "left": 338,
+      "top": 26,
+      "width": 13,
+      "height": 13,
+      "zoom": 1
+    },
+    "center": [
+      345,
+      33
+    ],
+    "zoom": 1,
+    "screenWidth": 1920,
+    "screenHeight": 1080,
+    "indexId": "3"
+  },
+  {
+    "id": "6b7da1bbe5",
+    "nodePath": "0-1-2-1-0-1-0-0-1",
+    "nodeHashId": "6b7da1bbe5",
+    "locator": "[_midscene_retrieve_task_id='6b7da1bbe5']",
+    "nodeType": "FORM_ITEM Node",
+    "attributes": {
+      "class": ".dumi-default-search-bar-input",
+      "placeholder": "输入关键字搜索...",
+      "htmlTagName": "<input>",
+      "nodeType": "FORM_ITEM Node"
+    },
+    "content": "输入关键字搜索...",
+    "rect": {
+      "left": 321,
+      "top": 21,
+      "width": 280,
+      "height": 22,
+      "zoom": 1
+    },
+    "center": [
+      461,
+      32
+    ],
+    "zoom": 1,
+    "screenWidth": 1920,
+    "screenHeight": 1080,
+    "indexId": "4"
+  },
+  {
+    "id": "47305845a2",
+    "nodePath": "0-1-2-1-0-1-0-0-2-0",
+    "nodeHashId": "47305845a2",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node"
+    },
+    "center": [
+      616,
+      32
+    ],
+    "content": "⌘",
+    "rect": {
+      "left": 610,
+      "top": 25,
+      "width": 11,
+      "height": 14,
+      "zoom": 1
+    },
+    "zoom": 1,
+    "screenWidth": 1920,
+    "screenHeight": 1080,
+    "indexId": "5"
+  },
+  {
+    "id": "34a206d1c0",
+    "nodePath": "0-1-2-1-0-1-0-0-2-2",
+    "nodeHashId": "34a206d1c0",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node"
+    },
+    "center": [
+      627,
+      32
+    ],
+    "content": "K",
+    "rect": {
+      "left": 621,
+      "top": 25,
+      "width": 11,
+      "height": 14,
+      "zoom": 1
+    },
+    "zoom": 1,
+    "screenWidth": 1920,
+    "screenHeight": 1080,
+    "indexId": "6"
+  },
+  {
+    "id": "2db165955f",
+    "nodePath": "0-1-2-1-0-1-0-1-0-0-0-0",
+    "nodeHashId": "2db165955f",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node"
+    },
+    "center": [
+      1302,
+      33
+    ],
+    "content": "设计",
+    "rect": {
+      "left": 1288,
+      "top": 23,
+      "width": 28,
+      "height": 19,
+      "zoom": 1
+    },
+    "zoom": 1,
+    "screenWidth": 1920,
+    "screenHeight": 1080,
+    "indexId": "7"
+  },
+  {
+    "id": "163da381fe",
+    "nodePath": "0-1-2-1-0-1-0-1-1-0-0-0",
+    "nodeHashId": "163da381fe",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node"
+    },
+    "center": [
+      1366,
+      33
+    ],
+    "content": "研发",
+    "rect": {
+      "left": 1352,
+      "top": 23,
+      "width": 28,
+      "height": 19,
+      "zoom": 1
+    },
+    "zoom": 1,
+    "screenWidth": 1920,
+    "screenHeight": 1080,
+    "indexId": "8"
+  },
+  {
+    "id": "909119bbb8",
+    "nodePath": "0-1-2-1-0-1-0-1-2-0-0-0",
+    "nodeHashId": "909119bbb8",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node"
+    },
+    "center": [
+      1430,
+      33
+    ],
+    "content": "组件",
+    "rect": {
+      "left": 1416,
+      "top": 23,
+      "width": 28,
+      "height": 19,
+      "zoom": 1
+    },
+    "zoom": 1,
+    "screenWidth": 1920,
+    "screenHeight": 1080,
+    "indexId": "9"
+  },
+  {
+    "id": "b74a7e3c99",
+    "nodePath": "0-1-2-1-0-1-0-1-3-0-0-0",
+    "nodeHashId": "b74a7e3c99",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node"
+    },
+    "center": [
+      1494,
+      33
+    ],
+    "content": "博客",
+    "rect": {
+      "left": 1480,
+      "top": 23,
+      "width": 28,
+      "height": 19,
+      "zoom": 1
+    },
+    "zoom": 1,
+    "screenWidth": 1920,
+    "screenHeight": 1080,
+    "indexId": "10"
+  },
+  {
+    "id": "e6b6776659",
+    "nodePath": "0-1-2-1-0-1-0-1-4-0-0-0",
+    "nodeHashId": "e6b6776659",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node"
+    },
+    "center": [
+      1558,
+      33
+    ],
+    "content": "资源",
+    "rect": {
+      "left": 1544,
+      "top": 23,
+      "width": 28,
+      "height": 19,
+      "zoom": 1
+    },
+    "zoom": 1,
+    "screenWidth": 1920,
+    "screenHeight": 1080,
+    "indexId": "11"
+  },
+  {
+    "id": "14c7eb3baf",
+    "nodePath": "0-1-2-1-0-1-0-1-5-0-0-0",
+    "nodeHashId": "14c7eb3baf",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node"
+    },
+    "center": [
+      1630,
+      33
+    ],
+    "content": "国内镜像",
+    "rect": {
+      "left": 1602,
+      "top": 23,
+      "width": 56,
+      "height": 19,
+      "zoom": 1
+    },
+    "zoom": 1,
+    "screenWidth": 1920,
+    "screenHeight": 1080,
+    "indexId": "12"
+  },
+  {
+    "id": "eeb11b7fbc",
+    "nodePath": "0-1-2-1-0-1-0-3-0-1-0",
+    "nodeHashId": "eeb11b7fbc",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node"
+    },
+    "center": [
+      1708,
+      32
+    ],
+    "content": "5.21.1",
+    "rect": {
+      "left": 1690,
+      "top": 23,
+      "width": 36,
+      "height": 17,
+      "zoom": 1
+    },
+    "zoom": 1,
+    "screenWidth": 1920,
+    "screenHeight": 1080,
+    "indexId": "13"
+  },
+  {
+    "id": "e672113e48",
+    "nodePath": "0-1-2-1-0-1-0-4",
+    "nodeHashId": "e672113e48",
+    "nodeType": "BUTTON Node",
+    "locator": "[_midscene_retrieve_task_id='e672113e48']",
+    "attributes": {
+      "type": "button",
+      "class": ".acss-yk1wp5",
+      "nodeType": "BUTTON Node"
+    },
+    "content": "中\nEn",
+    "rect": {
+      "left": 1784,
+      "top": 16,
+      "width": 32,
+      "height": 32,
+      "zoom": 1
+    },
+    "center": [
+      1800,
+      32
+    ],
+    "zoom": 1,
+    "screenWidth": 1920,
+    "screenHeight": 1080,
+    "indexId": "14"
+  },
+  {
+    "id": "b394bf1859",
+    "nodePath": "0-1-2-1-0-1-0-5",
+    "nodeHashId": "b394bf1859",
+    "nodeType": "BUTTON Node",
+    "locator": "[_midscene_retrieve_task_id='b394bf1859']",
+    "attributes": {
+      "type": "button",
+      "class": ".acss-yk1wp5",
+      "aria-label": "RTL Switch Button",
+      "nodeType": "BUTTON Node"
+    },
+    "content": "",
+    "rect": {
+      "left": 1828,
+      "top": 16,
+      "width": 32,
+      "height": 32,
+      "zoom": 1
+    },
+    "center": [
+      1844,
+      32
+    ],
+    "zoom": 1,
+    "screenWidth": 1920,
+    "screenHeight": 1080,
+    "indexId": "15"
+  },
+  {
+    "id": "9f888a4e85",
+    "nodePath": "0-1-2-1-0-1-0-6-0",
+    "nodeHashId": "9f888a4e85",
+    "nodeType": "BUTTON Node",
+    "locator": "[_midscene_retrieve_task_id='9f888a4e85']",
+    "attributes": {
+      "type": "button",
+      "class": ".acss-yk1wp5",
+      "nodeType": "BUTTON Node"
+    },
+    "content": "",
+    "rect": {
+      "left": 1872,
+      "top": 16,
+      "width": 32,
+      "height": 32,
+      "zoom": 1
+    },
+    "center": [
+      1888,
+      32
+    ],
+    "zoom": 1,
+    "screenWidth": 1920,
+    "screenHeight": 1080,
+    "indexId": "16"
+  },
+  {
+    "id": "dc34c2a051",
+    "nodePath": "0-1-2-2-0-0-0-0-0-0-0-0-0",
+    "nodeHashId": "dc34c2a051",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node"
+    },
+    "center": [
+      72,
+      129
+    ],
+    "content": "组件总览",
+    "rect": {
+      "left": 44,
+      "top": 119,
+      "width": 56,
+      "height": 19,
+      "zoom": 1
+    },
+    "zoom": 1,
+    "screenWidth": 1920,
+    "screenHeight": 1080,
+    "indexId": "17"
+  },
+  {
+    "id": "fe3c757bc3",
+    "nodePath": "0-1-2-2-0-0-1-0-0",
+    "nodeHashId": "fe3c757bc3",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node"
+    },
+    "center": [
+      58,
+      184
+    ],
+    "content": "通用",
+    "rect": {
+      "left": 44,
+      "top": 174,
+      "width": 28,
+      "height": 19,
+      "zoom": 1
+    },
+    "zoom": 1,
+    "screenWidth": 1920,
+    "screenHeight": 1080,
+    "indexId": "18"
+  },
+  {
+    "id": "597e4ca3c7",
+    "nodePath": "0-1-2-2-0-0-1-1-0-0-0-0-0-0-0",
+    "nodeHashId": "597e4ca3c7",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node"
+    },
+    "center": [
+      65,
+      240
+    ],
+    "content": "Button",
+    "rect": {
+      "left": 44,
+      "top": 230,
+      "width": 42,
+      "height": 19,
+      "zoom": 1
+    },
+    "zoom": 1,
+    "screenWidth": 1920,
+    "screenHeight": 1080,
+    "indexId": "19"
+  },
+  {
+    "id": "6349ee6171",
+    "nodePath": "0-1-2-2-0-0-1-1-0-0-0-0-1-0-0",
+    "nodeHashId": "6349ee6171",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node"
+    },
+    "center": [
+      106,
+      240
+    ],
+    "content": "按钮",
+    "rect": {
+      "left": 94,
+      "top": 231,
+      "width": 24,
+      "height": 17,
+      "zoom": 1
+    },
+    "zoom": 1,
+    "screenWidth": 1920,
+    "screenHeight": 1080,
+    "indexId": "20"
+  },
+  {
+    "id": "cdd81124ac",
+    "nodePath": "0-1-2-2-0-0-1-1-1-0-0-0-0-0-0",
+    "nodeHashId": "cdd81124ac",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node"
+    },
+    "center": [
+      81,
+      284
+    ],
+    "content": "FloatButton",
+    "rect": {
+      "left": 44,
+      "top": 274,
+      "width": 73,
+      "height": 19,
+      "zoom": 1
+    },
+    "zoom": 1,
+    "screenWidth": 1920,
+    "screenHeight": 1080,
+    "indexId": "21"
+  },
+  {
+    "id": "0899c7faf9",
+    "nodePath": "0-1-2-2-0-0-1-1-1-0-0-0-1-0-0",
+    "nodeHashId": "0899c7faf9",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node"
+    },
+    "center": [
+      149,
+      284
+    ],
+    "content": "悬浮按钮",
+    "rect": {
+      "left": 125,
+      "top": 275,
+      "width": 48,
+      "height": 17,
+      "zoom": 1
+    },
+    "zoom": 1,
+    "screenWidth": 1920,
+    "screenHeight": 1080,
+    "indexId": "22"
+  },
+  {
+    "id": "c245677f4b",
+    "nodePath": "0-1-2-2-0-0-1-1-1-0-0-1-0",
+    "nodeHashId": "c245677f4b",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node"
+    },
+    "center": [
+      277,
+      283
+    ],
+    "content": "5.0.0",
+    "rect": {
+      "left": 263,
+      "top": 276,
+      "width": 28,
+      "height": 14,
+      "zoom": 1
+    },
+    "zoom": 1,
+    "screenWidth": 1920,
+    "screenHeight": 1080,
+    "indexId": "23"
+  },
+  {
+    "id": "92899059d4",
+    "nodePath": "0-1-2-2-0-0-1-1-2-0-0-0-0-0-0",
+    "nodeHashId": "92899059d4",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node"
+    },
+    "center": [
+      58,
+      328
+    ],
+    "content": "Icon",
+    "rect": {
+      "left": 44,
+      "top": 318,
+      "width": 27,
+      "height": 19,
+      "zoom": 1
+    },
+    "zoom": 1,
+    "screenWidth": 1920,
+    "screenHeight": 1080,
+    "indexId": "24"
+  },
+  {
+    "id": "730fc62f55",
+    "nodePath": "0-1-2-2-0-0-1-1-2-0-0-0-1-0-0",
+    "nodeHashId": "730fc62f55",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node"
+    },
+    "center": [
+      91,
+      328
+    ],
+    "content": "图标",
+    "rect": {
+      "left": 79,
+      "top": 319,
+      "width": 24,
+      "height": 17,
+      "zoom": 1
+    },
+    "zoom": 1,
+    "screenWidth": 1920,
+    "screenHeight": 1080,
+    "indexId": "25"
+  },
+  {
+    "id": "d9393d589f",
+    "nodePath": "0-1-2-2-0-0-1-1-3-0-0-0-0-0-0",
+    "nodeHashId": "d9393d589f",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node"
+    },
+    "center": [
+      81,
+      372
+    ],
+    "content": "Typography",
+    "rect": {
+      "left": 44,
+      "top": 362,
+      "width": 74,
+      "height": 19,
+      "zoom": 1
+    },
+    "zoom": 1,
+    "screenWidth": 1920,
+    "screenHeight": 1080,
+    "indexId": "26"
+  },
+  {
+    "id": "025ffa3e24",
+    "nodePath": "0-1-2-2-0-0-1-1-3-0-0-0-1-0-0",
+    "nodeHashId": "025ffa3e24",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node"
+    },
+    "center": [
+      138,
+      372
+    ],
+    "content": "排版",
+    "rect": {
+      "left": 126,
+      "top": 363,
+      "width": 24,
+      "height": 17,
+      "zoom": 1
+    },
+    "zoom": 1,
+    "screenWidth": 1920,
+    "screenHeight": 1080,
+    "indexId": "27"
+  },
+  {
+    "id": "bea4c618e3",
+    "nodePath": "0-1-2-2-0-0-2-0-0",
+    "nodeHashId": "bea4c618e3",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node"
+    },
+    "center": [
+      58,
+      427
+    ],
+    "content": "布局",
+    "rect": {
+      "left": 44,
+      "top": 417,
+      "width": 28,
+      "height": 19,
+      "zoom": 1
+    },
+    "zoom": 1,
+    "screenWidth": 1920,
+    "screenHeight": 1080,
+    "indexId": "28"
+  },
+  {
+    "id": "c9b7281071",
+    "nodePath": "0-1-2-2-0-0-2-1-0-0-0-0-0-0-0",
+    "nodeHashId": "c9b7281071",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node"
+    },
+    "center": [
+      67,
+      483
+    ],
+    "content": "Divider",
+    "rect": {
+      "left": 44,
+      "top": 473,
+      "width": 45,
+      "height": 19,
+      "zoom": 1
+    },
+    "zoom": 1,
+    "screenWidth": 1920,
+    "screenHeight": 1080,
+    "indexId": "29"
+  },
+  {
+    "id": "037852fb1f",
+    "nodePath": "0-1-2-2-0-0-2-1-0-0-0-0-1-0-0",
+    "nodeHashId": "037852fb1f",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node"
+    },
+    "center": [
+      115,
+      483
+    ],
+    "content": "分割线",
+    "rect": {
+      "left": 97,
+      "top": 474,
+      "width": 36,
+      "height": 17,
+      "zoom": 1
+    },
+    "zoom": 1,
+    "screenWidth": 1920,
+    "screenHeight": 1080,
+    "indexId": "30"
+  },
+  {
+    "id": "5b5b2fee11",
+    "nodePath": "0-1-2-2-0-0-2-1-1-0-0-0-0-0-0",
+    "nodeHashId": "5b5b2fee11",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node"
+    },
+    "center": [
+      57,
+      527
+    ],
+    "content": "Flex",
+    "rect": {
+      "left": 44,
+      "top": 517,
+      "width": 26,
+      "height": 19,
+      "zoom": 1
+    },
+    "zoom": 1,
+    "screenWidth": 1920,
+    "screenHeight": 1080,
+    "indexId": "31"
+  },
+  {
+    "id": "3ec0cd3081",
+    "nodePath": "0-1-2-2-0-0-2-1-1-0-0-0-1-0-0",
+    "nodeHashId": "3ec0cd3081",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node"
+    },
+    "center": [
+      102,
+      527
+    ],
+    "content": "弹性布局",
+    "rect": {
+      "left": 78,
+      "top": 518,
+      "width": 48,
+      "height": 17,
+      "zoom": 1
+    },
+    "zoom": 1,
+    "screenWidth": 1920,
+    "screenHeight": 1080,
+    "indexId": "32"
+  },
+  {
+    "id": "e9fc5118ea",
+    "nodePath": "0-1-2-2-0-0-2-1-1-0-0-1-0",
+    "nodeHashId": "e9fc5118ea",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node"
+    },
+    "center": [
+      274,
+      526
+    ],
+    "content": "5.10.0",
+    "rect": {
+      "left": 257,
+      "top": 519,
+      "width": 34,
+      "height": 14,
+      "zoom": 1
+    },
+    "zoom": 1,
+    "screenWidth": 1920,
+    "screenHeight": 1080,
+    "indexId": "33"
+  },
+  {
+    "id": "2ac84c41a3",
+    "nodePath": "0-1-2-2-0-0-2-1-2-0-0-0-0-0-0",
+    "nodeHashId": "2ac84c41a3",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node"
+    },
+    "center": [
+      58,
+      571
+    ],
+    "content": "Grid",
+    "rect": {
+      "left": 44,
+      "top": 561,
+      "width": 27,
+      "height": 19,
+      "zoom": 1
+    },
+    "zoom": 1,
+    "screenWidth": 1920,
+    "screenHeight": 1080,
+    "indexId": "34"
+  },
+  {
+    "id": "c044ca142e",
+    "nodePath": "0-1-2-2-0-0-2-1-2-0-0-0-1-0-0",
+    "nodeHashId": "c044ca142e",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node"
+    },
+    "center": [
+      91,
+      571
+    ],
+    "content": "栅格",
+    "rect": {
+      "left": 79,
+      "top": 562,
+      "width": 24,
+      "height": 17,
+      "zoom": 1
+    },
+    "zoom": 1,
+    "screenWidth": 1920,
+    "screenHeight": 1080,
+    "indexId": "35"
+  },
+  {
+    "id": "14f8d2164a",
+    "nodePath": "0-1-2-2-0-0-2-1-3-0-0-0-0-0-0",
+    "nodeHashId": "14f8d2164a",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node"
+    },
+    "center": [
+      65,
+      615
+    ],
+    "content": "Layout",
+    "rect": {
+      "left": 44,
+      "top": 605,
+      "width": 42,
+      "height": 19,
+      "zoom": 1
+    },
+    "zoom": 1,
+    "screenWidth": 1920,
+    "screenHeight": 1080,
+    "indexId": "36"
+  },
+  {
+    "id": "365d2d11ec",
+    "nodePath": "0-1-2-2-0-0-2-1-3-0-0-0-1-0-0",
+    "nodeHashId": "365d2d11ec",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node"
+    },
+    "center": [
+      106,
+      615
+    ],
+    "content": "布局",
+    "rect": {
+      "left": 94,
+      "top": 606,
+      "width": 24,
+      "height": 17,
+      "zoom": 1
+    },
+    "zoom": 1,
+    "screenWidth": 1920,
+    "screenHeight": 1080,
+    "indexId": "37"
+  },
+  {
+    "id": "996aba2a5c",
+    "nodePath": "0-1-2-2-0-0-2-1-4-0-0-0-0-0-0",
+    "nodeHashId": "996aba2a5c",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node"
+    },
+    "center": [
+      63,
+      659
+    ],
+    "content": "Space",
+    "rect": {
+      "left": 44,
+      "top": 649,
+      "width": 38,
+      "height": 19,
+      "zoom": 1
+    },
+    "zoom": 1,
+    "screenWidth": 1920,
+    "screenHeight": 1080,
+    "indexId": "38"
+  },
+  {
+    "id": "2103fc6d9d",
+    "nodePath": "0-1-2-2-0-0-2-1-4-0-0-0-1-0-0",
+    "nodeHashId": "2103fc6d9d",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node"
+    },
+    "center": [
+      102,
+      659
+    ],
+    "content": "间距",
+    "rect": {
+      "left": 90,
+      "top": 650,
+      "width": 24,
+      "height": 17,
+      "zoom": 1
+    },
+    "zoom": 1,
+    "screenWidth": 1920,
+    "screenHeight": 1080,
+    "indexId": "39"
+  },
+  {
+    "id": "d7a335ad19",
+    "nodePath": "0-1-2-2-0-0-2-1-5-0-0-0-0-0-0",
+    "nodeHashId": "d7a335ad19",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node"
+    },
+    "center": [
+      67,
+      703
+    ],
+    "content": "Splitter",
+    "rect": {
+      "left": 44,
+      "top": 693,
+      "width": 45,
+      "height": 19,
+      "zoom": 1
+    },
+    "zoom": 1,
+    "screenWidth": 1920,
+    "screenHeight": 1080,
+    "indexId": "40"
+  },
+  {
+    "id": "8d61e8996a",
+    "nodePath": "0-1-2-2-0-0-2-1-5-0-0-0-1-0-0",
+    "nodeHashId": "8d61e8996a",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node"
+    },
+    "center": [
+      121,
+      703
+    ],
+    "content": "分隔面板",
+    "rect": {
+      "left": 97,
+      "top": 694,
+      "width": 48,
+      "height": 17,
+      "zoom": 1
+    },
+    "zoom": 1,
+    "screenWidth": 1920,
+    "screenHeight": 1080,
+    "indexId": "41"
+  },
+  {
+    "id": "4d8115f8a6",
+    "nodePath": "0-1-2-2-0-0-2-1-5-0-0-1-0",
+    "nodeHashId": "4d8115f8a6",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node"
+    },
+    "center": [
+      274,
+      702
+    ],
+    "content": "5.21.0",
+    "rect": {
+      "left": 257,
+      "top": 695,
+      "width": 34,
+      "height": 14,
+      "zoom": 1
+    },
+    "zoom": 1,
+    "screenWidth": 1920,
+    "screenHeight": 1080,
+    "indexId": "42"
+  },
+  {
+    "id": "ab85cae37d",
+    "nodePath": "0-1-2-2-0-0-3-0-0",
+    "nodeHashId": "ab85cae37d",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node"
+    },
+    "center": [
+      58,
+      758
+    ],
+    "content": "导航",
+    "rect": {
+      "left": 44,
+      "top": 748,
+      "width": 28,
+      "height": 19,
+      "zoom": 1
+    },
+    "zoom": 1,
+    "screenWidth": 1920,
+    "screenHeight": 1080,
+    "indexId": "43"
+  },
+  {
+    "id": "38cb482411",
+    "nodePath": "0-1-2-2-0-0-3-1-0-0-0-0-0-0-0",
+    "nodeHashId": "38cb482411",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node"
+    },
+    "center": [
+      67,
+      814
+    ],
+    "content": "Anchor",
+    "rect": {
+      "left": 44,
+      "top": 804,
+      "width": 45,
+      "height": 19,
+      "zoom": 1
+    },
+    "zoom": 1,
+    "screenWidth": 1920,
+    "screenHeight": 1080,
+    "indexId": "44"
+  },
+  {
+    "id": "f2c90c928c",
+    "nodePath": "0-1-2-2-0-0-3-1-0-0-0-0-1-0-0",
+    "nodeHashId": "f2c90c928c",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node"
+    },
+    "center": [
+      109,
+      814
+    ],
+    "content": "锚点",
+    "rect": {
+      "left": 97,
+      "top": 805,
+      "width": 24,
+      "height": 17,
+      "zoom": 1
+    },
+    "zoom": 1,
+    "screenWidth": 1920,
+    "screenHeight": 1080,
+    "indexId": "45"
+  },
+  {
+    "id": "fe403dbb72",
+    "nodePath": "0-1-2-2-0-0-3-1-1-0-0-0-0-0-0",
+    "nodeHashId": "fe403dbb72",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node"
+    },
+    "center": [
+      82,
+      858
+    ],
+    "content": "Breadcrumb",
+    "rect": {
+      "left": 44,
+      "top": 848,
+      "width": 76,
+      "height": 19,
+      "zoom": 1
+    },
+    "zoom": 1,
+    "screenWidth": 1920,
+    "screenHeight": 1080,
+    "indexId": "46"
+  },
+  {
+    "id": "d1cda59c2f",
+    "nodePath": "0-1-2-2-0-0-3-1-1-0-0-0-1-0-0",
+    "nodeHashId": "d1cda59c2f",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node"
+    },
+    "center": [
+      146,
+      858
+    ],
+    "content": "面包屑",
+    "rect": {
+      "left": 128,
+      "top": 849,
+      "width": 36,
+      "height": 17,
+      "zoom": 1
+    },
+    "zoom": 1,
+    "screenWidth": 1920,
+    "screenHeight": 1080,
+    "indexId": "47"
+  },
+  {
+    "id": "87cb54d489",
+    "nodePath": "0-1-2-2-0-0-3-1-2-0-0-0-0-0-0",
+    "nodeHashId": "87cb54d489",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node"
+    },
+    "center": [
+      77,
+      902
+    ],
+    "content": "Dropdown",
+    "rect": {
+      "left": 44,
+      "top": 892,
+      "width": 66,
+      "height": 19,
+      "zoom": 1
+    },
+    "zoom": 1,
+    "screenWidth": 1920,
+    "screenHeight": 1080,
+    "indexId": "48"
+  },
+  {
+    "id": "66342a7440",
+    "nodePath": "0-1-2-2-0-0-3-1-2-0-0-0-1-0-0",
+    "nodeHashId": "66342a7440",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node"
+    },
+    "center": [
+      142,
+      902
+    ],
+    "content": "下拉菜单",
+    "rect": {
+      "left": 118,
+      "top": 893,
+      "width": 48,
+      "height": 17,
+      "zoom": 1
+    },
+    "zoom": 1,
+    "screenWidth": 1920,
+    "screenHeight": 1080,
+    "indexId": "49"
+  },
+  {
+    "id": "91a7a92ddc",
+    "nodePath": "0-1-2-2-0-0-3-1-3-0-0-0-0-0-0",
+    "nodeHashId": "91a7a92ddc",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node"
+    },
+    "center": [
+      62,
+      946
+    ],
+    "content": "Menu",
+    "rect": {
+      "left": 44,
+      "top": 936,
+      "width": 36,
+      "height": 19,
+      "zoom": 1
+    },
+    "zoom": 1,
+    "screenWidth": 1920,
+    "screenHeight": 1080,
+    "indexId": "50"
+  },
+  {
+    "id": "ab87fc1f7d",
+    "nodePath": "0-1-2-2-0-0-3-1-3-0-0-0-1-0-0",
+    "nodeHashId": "ab87fc1f7d",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node"
+    },
+    "center": [
+      112,
+      946
+    ],
+    "content": "导航菜单",
+    "rect": {
+      "left": 88,
+      "top": 937,
+      "width": 48,
+      "height": 17,
+      "zoom": 1
+    },
+    "zoom": 1,
+    "screenWidth": 1920,
+    "screenHeight": 1080,
+    "indexId": "51"
+  },
+  {
+    "id": "583d47e5c6",
+    "nodePath": "0-1-2-2-0-0-3-1-4-0-0-0-0-0-0",
+    "nodeHashId": "583d47e5c6",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node"
+    },
+    "center": [
+      77,
+      990
+    ],
+    "content": "Pagination",
+    "rect": {
+      "left": 44,
+      "top": 980,
+      "width": 66,
+      "height": 19,
+      "zoom": 1
+    },
+    "zoom": 1,
+    "screenWidth": 1920,
+    "screenHeight": 1080,
+    "indexId": "52"
+  },
+  {
+    "id": "700b2ff8b2",
+    "nodePath": "0-1-2-2-0-0-3-1-4-0-0-0-1-0-0",
+    "nodeHashId": "700b2ff8b2",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node"
+    },
+    "center": [
+      130,
+      990
+    ],
+    "content": "分页",
+    "rect": {
+      "left": 118,
+      "top": 981,
+      "width": 24,
+      "height": 17,
+      "zoom": 1
+    },
+    "zoom": 1,
+    "screenWidth": 1920,
+    "screenHeight": 1080,
+    "indexId": "53"
+  },
+  {
+    "id": "8c77d3b04c",
+    "nodePath": "0-1-2-2-0-0-3-1-5-0-0-0-0-0-0",
+    "nodeHashId": "8c77d3b04c",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node"
+    },
+    "center": [
+      62,
+      1034
+    ],
+    "content": "Steps",
+    "rect": {
+      "left": 44,
+      "top": 1024,
+      "width": 35,
+      "height": 19,
+      "zoom": 1
+    },
+    "zoom": 1,
+    "screenWidth": 1920,
+    "screenHeight": 1080,
+    "indexId": "54"
+  },
+  {
+    "id": "9badf81eb6",
+    "nodePath": "0-1-2-2-0-0-3-1-5-0-0-0-1-0-0",
+    "nodeHashId": "9badf81eb6",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node"
+    },
+    "center": [
+      105,
+      1034
+    ],
+    "content": "步骤条",
+    "rect": {
+      "left": 87,
+      "top": 1025,
+      "width": 36,
+      "height": 17,
+      "zoom": 1
+    },
+    "zoom": 1,
+    "screenWidth": 1920,
+    "screenHeight": 1080,
+    "indexId": "55"
+  },
+  {
+    "id": "528161c4c7",
+    "nodePath": "0-1-2-2-1-0-2-0-0-1-0-0",
+    "nodeHashId": "528161c4c7",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node"
+    },
+    "center": [
+      1810,
+      117
+    ],
+    "content": "何时使用",
+    "rect": {
+      "left": 1786,
+      "top": 110,
+      "width": 48,
+      "height": 14,
+      "zoom": 1
+    },
+    "zoom": 1,
+    "screenWidth": 1920,
+    "screenHeight": 1080,
+    "indexId": "56"
+  },
+  {
+    "id": "273a60be06",
+    "nodePath": "0-1-2-2-1-0-2-0-0-2-0-0",
+    "nodeHashId": "273a60be06",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node"
+    },
+    "center": [
+      1810,
+      144
+    ],
+    "content": "代码演示",
+    "rect": {
+      "left": 1786,
+      "top": 137,
+      "width": 48,
+      "height": 14,
+      "zoom": 1
+    },
+    "zoom": 1,
+    "screenWidth": 1920,
+    "screenHeight": 1080,
+    "indexId": "57"
+  },
+  {
+    "id": "8086e14961",
+    "nodePath": "0-1-2-2-1-0-2-0-0-2-1-0-0-0",
+    "nodeHashId": "8086e14961",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node"
+    },
+    "center": [
+      1814,
+      168
+    ],
+    "content": "基本",
+    "rect": {
+      "left": 1802,
+      "top": 161,
+      "width": 24,
+      "height": 14,
+      "zoom": 1
+    },
+    "zoom": 1,
+    "screenWidth": 1920,
+    "screenHeight": 1080,
+    "indexId": "58"
+  },
+  {
+    "id": "9b179adf71",
+    "nodePath": "0-1-2-2-1-0-2-0-0-2-2-0-0-0",
+    "nodeHashId": "9b179adf71",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node"
+    },
+    "center": [
+      1814,
+      191
+    ],
+    "content": "位置",
+    "rect": {
+      "left": 1802,
+      "top": 184,
+      "width": 24,
+      "height": 14,
+      "zoom": 1
+    },
+    "zoom": 1,
+    "screenWidth": 1920,
+    "screenHeight": 1080,
+    "indexId": "59"
+  },
+  {
+    "id": "d6b6522e83",
+    "nodePath": "0-1-2-2-1-0-2-0-0-2-3-0-0-0",
+    "nodeHashId": "d6b6522e83",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node"
+    },
+    "center": [
+      1826,
+      213
+    ],
+    "content": "箭头展示",
+    "rect": {
+      "left": 1802,
+      "top": 206,
+      "width": 48,
+      "height": 14,
+      "zoom": 1
+    },
+    "zoom": 1,
+    "screenWidth": 1920,
+    "screenHeight": 1080,
+    "indexId": "60"
+  },
+  {
+    "id": "47956ebd9c",
+    "nodePath": "0-1-2-2-1-0-2-0-0-2-4-0-0-0",
+    "nodeHashId": "47956ebd9c",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node"
+    },
+    "center": [
+      1826,
+      236
+    ],
+    "content": "贴边偏移",
+    "rect": {
+      "left": 1802,
+      "top": 229,
+      "width": 48,
+      "height": 14,
+      "zoom": 1
+    },
+    "zoom": 1,
+    "screenWidth": 1920,
+    "screenHeight": 1080,
+    "indexId": "61"
+  },
+  {
+    "id": "359e576d52",
+    "nodePath": "0-1-2-2-1-0-2-0-0-2-5-0-0-0",
+    "nodeHashId": "359e576d52",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node"
+    },
+    "center": [
+      1838,
+      259
+    ],
+    "content": "多彩文字提示",
+    "rect": {
+      "left": 1802,
+      "top": 252,
+      "width": 72,
+      "height": 14,
+      "zoom": 1
+    },
+    "zoom": 1,
+    "screenWidth": 1920,
+    "screenHeight": 1080,
+    "indexId": "62"
+  },
+  {
+    "id": "4881ae1a83",
+    "nodePath": "0-1-2-2-1-0-2-0-0-2-6-0-0-0",
+    "nodeHashId": "4881ae1a83",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node"
+    },
+    "center": [
+      1814,
+      282
+    ],
+    "content": "禁用",
+    "rect": {
+      "left": 1802,
+      "top": 275,
+      "width": 24,
+      "height": 14,
+      "zoom": 1
+    },
+    "zoom": 1,
+    "screenWidth": 1920,
+    "screenHeight": 1080,
+    "indexId": "63"
+  },
+  {
+    "id": "8f245af0d5",
+    "nodePath": "0-1-2-2-1-0-2-0-0-3-0-0",
+    "nodeHashId": "8f245af0d5",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node"
+    },
+    "center": [
+      1796,
+      311
+    ],
+    "content": "API",
+    "rect": {
+      "left": 1786,
+      "top": 304,
+      "width": 19,
+      "height": 14,
+      "zoom": 1
+    },
+    "zoom": 1,
+    "screenWidth": 1920,
+    "screenHeight": 1080,
+    "indexId": "64"
+  },
+  {
+    "id": "fac827c582",
+    "nodePath": "0-1-2-2-1-0-2-0-0-3-1-0-0-0",
+    "nodeHashId": "fac827c582",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node"
+    },
+    "center": [
+      1831,
+      335
+    ],
+    "content": "共同的 API",
+    "rect": {
+      "left": 1802,
+      "top": 328,
+      "width": 58,
+      "height": 14,
+      "zoom": 1
+    },
+    "zoom": 1,
+    "screenWidth": 1920,
+    "screenHeight": 1080,
+    "indexId": "65"
+  },
+  {
+    "id": "55ee26f971",
+    "nodePath": "0-1-2-2-1-0-2-0-0-4-0-0",
+    "nodeHashId": "55ee26f971",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node"
+    },
+    "center": [
+      1860,
+      364
+    ],
+    "content": "主题变量（Design Token）",
+    "rect": {
+      "left": 1786,
+      "top": 357,
+      "width": 148,
+      "height": 14,
+      "zoom": 1
+    },
+    "zoom": 1,
+    "screenWidth": 1920,
+    "screenHeight": 1080,
+    "indexId": "66"
+  },
+  {
+    "id": "1e39fc3d87",
+    "nodePath": "0-1-2-2-1-0-2-0-0-5-0-0",
+    "nodeHashId": "1e39fc3d87",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node"
+    },
+    "center": [
+      1798,
+      390
+    ],
+    "content": "FAQ",
+    "rect": {
+      "left": 1786,
+      "top": 383,
+      "width": 23,
+      "height": 14,
+      "zoom": 1
+    },
+    "zoom": 1,
+    "screenWidth": 1920,
+    "screenHeight": 1080,
+    "indexId": "67"
+  },
+  {
+    "id": "747e35bb17",
+    "nodePath": "0-1-2-2-1-0-2-0-0-5-3-0-0-0",
+    "nodeHashId": "747e35bb17",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node"
+    },
+    "center": [
+      1888,
+      460
+    ],
+    "content": "placement 的行为逻辑是什么？",
+    "rect": {
+      "left": 1802,
+      "top": 453,
+      "width": 171,
+      "height": 14,
+      "zoom": 1
+    },
+    "zoom": 1,
+    "screenWidth": 1920,
+    "screenHeight": 1080,
+    "indexId": "68"
+  },
+  {
+    "id": "551183f8ad",
+    "nodePath": "0-1-2-2-1-1-0-0-0-0-0-0",
+    "nodeHashId": "551183f8ad",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node"
+    },
+    "center": [
+      417,
+      123
+    ],
+    "content": "Tooltip",
+    "rect": {
+      "left": 368,
+      "top": 104,
+      "width": 98,
+      "height": 38,
+      "zoom": 1
+    },
+    "zoom": 1,
+    "screenWidth": 1920,
+    "screenHeight": 1080,
+    "indexId": "69"
+  },
+  {
+    "id": "1352e599ff",
+    "nodePath": "0-1-2-2-1-1-0-0-0-1-0-0",
+    "nodeHashId": "1352e599ff",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node"
+    },
+    "center": [
+      538,
+      123
+    ],
+    "content": "文字提示",
+    "rect": {
+      "left": 474,
+      "top": 104,
+      "width": 128,
+      "height": 38,
+      "zoom": 1
+    },
+    "zoom": 1,
+    "screenWidth": 1920,
+    "screenHeight": 1080,
+    "indexId": "70"
+  },
+  {
+    "id": "1b2585f027",
+    "nodePath": "0-1-2-2-1-1-0-0-0-2-0-2-0-0",
+    "nodeHashId": "1b2585f027",
+    "locator": "[_midscene_retrieve_task_id='1b2585f027']",
+    "attributes": {
+      "svgContent": "true",
+      "nodeType": "IMG Node"
+    },
+    "nodeType": "IMG Node",
+    "content": "",
+    "rect": {
+      "left": 619,
+      "top": 118,
+      "width": 14,
+      "height": 14,
+      "zoom": 1
+    },
+    "center": [
+      626,
+      125
+    ],
+    "zoom": 1,
+    "screenWidth": 1920,
+    "screenHeight": 1080,
+    "indexId": "71"
+  },
+  {
+    "id": "9ecbb238e2",
+    "nodePath": "0-1-2-2-1-1-0-1-2",
+    "nodeHashId": "9ecbb238e2",
+    "nodeType": "BUTTON Node",
+    "locator": "[_midscene_retrieve_task_id='9ecbb238e2']",
+    "attributes": {
+      "type": "button",
+      "class": ".ant-btn.css-var-R2a.ant-btn-default.ant-btn-color-default.ant-btn-variant-outlined",
+      "nodeType": "BUTTON Node"
+    },
+    "content": "更新日志",
+    "rect": {
+      "left": 1646,
+      "top": 104,
+      "width": 110,
+      "height": 32,
+      "zoom": 1
+    },
+    "center": [
+      1701,
+      120
+    ],
+    "zoom": 1,
+    "screenWidth": 1920,
+    "screenHeight": 1080,
+    "indexId": "72"
+  },
+  {
+    "id": "a57b764c29",
+    "nodePath": "0-1-2-2-1-1-2",
+    "nodeHashId": "a57b764c29",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node"
+    },
+    "center": [
+      445,
+      170
+    ],
+    "content": "简单的文字提示气泡框。",
+    "rect": {
+      "left": 368,
+      "top": 161,
+      "width": 154,
+      "height": 17,
+      "zoom": 1
+    },
+    "zoom": 1,
+    "screenWidth": 1920,
+    "screenHeight": 1080,
+    "indexId": "73"
+  },
+  {
+    "id": "a612e497c3",
+    "nodePath": "0-1-2-2-1-1-3-0-0-0-0-0-0-0-0",
+    "nodeHashId": "a612e497c3",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node"
+    },
+    "center": [
+      382,
+      208
+    ],
+    "content": "使用",
+    "rect": {
+      "left": 368,
+      "top": 199,
+      "width": 28,
+      "height": 17,
+      "zoom": 1
+    },
+    "zoom": 1,
+    "screenWidth": 1920,
+    "screenHeight": 1080,
+    "indexId": "74"
+  },
+  {
+    "id": "28885631db",
+    "nodePath": "0-1-2-2-1-1-3-0-0-0-0-0-0-1-0-0-0",
+    "nodeHashId": "28885631db",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node"
+    },
+    "center": [
+      454,
+      208
+    ],
+    "content": "import",
+    "rect": {
+      "left": 428,
+      "top": 199,
+      "width": 51,
+      "height": 17,
+      "zoom": 1
+    },
+    "zoom": 1,
+    "screenWidth": 1920,
+    "screenHeight": 1080,
+    "indexId": "75"
+  },
+  {
+    "id": "b46c02d73e",
+    "nodePath": "0-1-2-2-1-1-3-0-0-0-0-0-0-1-0-1-0",
+    "nodeHashId": "b46c02d73e",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node"
+    },
+    "center": [
+      530,
+      208
+    ],
+    "content": "{ Tooltip }",
+    "rect": {
+      "left": 483,
+      "top": 199,
+      "width": 93,
+      "height": 17,
+      "zoom": 1
+    },
+    "zoom": 1,
+    "screenWidth": 1920,
+    "screenHeight": 1080,
+    "indexId": "76"
+  },
+  {
+    "id": "8d60b54370",
+    "nodePath": "0-1-2-2-1-1-3-0-0-0-0-0-0-1-0-2-0",
+    "nodeHashId": "8d60b54370",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node"
+    },
+    "center": [
+      596,
+      208
+    ],
+    "content": "from",
+    "rect": {
+      "left": 579,
+      "top": 199,
+      "width": 34,
+      "height": 17,
+      "zoom": 1
+    },
+    "zoom": 1,
+    "screenWidth": 1920,
+    "screenHeight": 1080,
+    "indexId": "77"
+  },
+  {
+    "id": "9480d0e95b",
+    "nodePath": "0-1-2-2-1-1-3-0-0-0-0-0-0-1-0-3-0",
+    "nodeHashId": "9480d0e95b",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node"
+    },
+    "center": [
+      650,
+      208
+    ],
+    "content": "\"antd\"",
+    "rect": {
+      "left": 624,
+      "top": 199,
+      "width": 51,
+      "height": 17,
+      "zoom": 1
+    },
+    "zoom": 1,
+    "screenWidth": 1920,
+    "screenHeight": 1080,
+    "indexId": "78"
+  },
+  {
+    "id": "adc17366cf",
+    "nodePath": "0-1-2-2-1-1-3-0-0-0-0-0-0-1-0-4-0",
+    "nodeHashId": "adc17366cf",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node"
+    },
+    "center": [
+      683,
+      208
+    ],
+    "content": ";",
+    "rect": {
+      "left": 679,
+      "top": 199,
+      "width": 8,
+      "height": 17,
+      "zoom": 1
+    },
+    "zoom": 1,
+    "screenWidth": 1920,
+    "screenHeight": 1080,
+    "indexId": "79"
+  },
+  {
+    "id": "bcc8f45b38",
+    "nodePath": "0-1-2-2-1-1-3-0-0-0-1-0-0-0-0",
+    "nodeHashId": "bcc8f45b38",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node"
+    },
+    "center": [
+      382,
+      238
+    ],
+    "content": "源码",
+    "rect": {
+      "left": 368,
+      "top": 229,
+      "width": 28,
+      "height": 17,
+      "zoom": 1
+    },
+    "zoom": 1,
+    "screenWidth": 1920,
+    "screenHeight": 1080,
+    "indexId": "80"
+  },
+  {
+    "id": "68af6a4e77",
+    "nodePath": "0-1-2-2-1-1-3-0-0-0-1-0-0-1-0-0-0",
+    "nodeHashId": "68af6a4e77",
+    "locator": "[_midscene_retrieve_task_id='68af6a4e77']",
+    "attributes": {
+      "svgContent": "true",
+      "nodeType": "IMG Node"
+    },
+    "nodeType": "IMG Node",
+    "content": "",
+    "rect": {
+      "left": 428,
+      "top": 231,
+      "width": 14,
+      "height": 14,
+      "zoom": 1
+    },
+    "center": [
+      435,
+      238
+    ],
+    "zoom": 1,
+    "screenWidth": 1920,
+    "screenHeight": 1080,
+    "indexId": "81"
+  },
+  {
+    "id": "0f6239ee8f",
+    "nodePath": "0-1-2-2-1-1-3-0-0-0-1-0-0-1-0-1-0",
+    "nodeHashId": "0f6239ee8f",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node"
+    },
+    "center": [
+      526,
+      238
+    ],
+    "content": "components/tooltip",
+    "rect": {
+      "left": 450,
+      "top": 229,
+      "width": 152,
+      "height": 17,
+      "zoom": 1
+    },
+    "zoom": 1,
+    "screenWidth": 1920,
+    "screenHeight": 1080,
+    "indexId": "82"
+  },
+  {
+    "id": "abc4fbe1b4",
+    "nodePath": "0-1-2-2-1-1-3-0-0-0-2-0-0-0-0",
+    "nodeHashId": "abc4fbe1b4",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node"
+    },
+    "center": [
+      382,
+      268
+    ],
+    "content": "文档",
+    "rect": {
+      "left": 368,
+      "top": 259,
+      "width": 28,
+      "height": 17,
+      "zoom": 1
+    },
+    "zoom": 1,
+    "screenWidth": 1920,
+    "screenHeight": 1080,
+    "indexId": "83"
+  },
+  {
+    "id": "32ea824421",
+    "nodePath": "0-1-2-2-1-1-3-0-0-0-2-0-0-1-0-0-0",
+    "nodeHashId": "32ea824421",
+    "locator": "[_midscene_retrieve_task_id='32ea824421']",
+    "attributes": {
+      "svgContent": "true",
+      "nodeType": "IMG Node"
+    },
+    "nodeType": "IMG Node",
+    "content": "",
+    "rect": {
+      "left": 429,
+      "top": 261,
+      "width": 13,
+      "height": 13,
+      "zoom": 1
+    },
+    "center": [
+      436,
+      268
+    ],
+    "zoom": 1,
+    "screenWidth": 1920,
+    "screenHeight": 1080,
+    "indexId": "84"
+  },
+  {
+    "id": "0de56676ec",
+    "nodePath": "0-1-2-2-1-1-3-0-0-0-2-0-0-1-0-1-0",
+    "nodeHashId": "0de56676ec",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node"
+    },
+    "center": [
+      478,
+      268
+    ],
+    "content": "编辑此页",
+    "rect": {
+      "left": 450,
+      "top": 259,
+      "width": 56,
+      "height": 17,
+      "zoom": 1
+    },
+    "zoom": 1,
+    "screenWidth": 1920,
+    "screenHeight": 1080,
+    "indexId": "85"
+  },
+  {
+    "id": "6eab793091",
+    "nodePath": "0-1-2-2-1-1-4-2-0-0",
+    "nodeHashId": "6eab793091",
+    "nodeType": "CONTAINER Node",
+    "locator": "[_midscene_retrieve_task_id='6eab793091']",
+    "attributes": {
+      "aria-hidden": "true",
+      "tabindex": "-1",
+      "href": "#何时使用",
+      "nodeType": "CONTAINER Node"
+    },
+    "content": "",
+    "rect": {
+      "left": 344,
+      "top": 317,
+      "width": 24,
+      "height": 38,
+      "zoom": 1
+    },
+    "center": [
+      356,
+      336
+    ],
+    "zoom": 1,
+    "screenWidth": 1920,
+    "screenHeight": 1080,
+    "indexId": "86"
+  },
+  {
+    "id": "055208f4dd",
+    "nodePath": "0-1-2-2-1-1-4-2-0-1",
+    "nodeHashId": "055208f4dd",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node"
+    },
+    "center": [
+      416,
+      334
+    ],
+    "content": "何时使用",
+    "rect": {
+      "left": 368,
+      "top": 317,
+      "width": 96,
+      "height": 33,
+      "zoom": 1
+    },
+    "zoom": 1,
+    "screenWidth": 1920,
+    "screenHeight": 1080,
+    "indexId": "87"
+  },
+  {
+    "id": "464425d7b0",
+    "nodePath": "0-1-2-2-1-1-4-2-1-0",
+    "nodeHashId": "464425d7b0",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node"
+    },
+    "center": [
+      578,
+      378
+    ],
+    "content": "鼠标移入则显示提示，移出消失，气泡浮层不承载复杂文本和操作。",
+    "rect": {
+      "left": 368,
+      "top": 369,
+      "width": 420,
+      "height": 17,
+      "zoom": 1
+    },
+    "zoom": 1,
+    "screenWidth": 1920,
+    "screenHeight": 1080,
+    "indexId": "88"
+  },
+  {
+    "id": "de97c6b4b5",
+    "nodePath": "0-1-2-2-1-1-4-2-2-0",
+    "nodeHashId": "de97c6b4b5",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node"
+    },
+    "center": [
+      440,
+      420
+    ],
+    "content": "可用来代替系统默认的",
+    "rect": {
+      "left": 368,
+      "top": 411,
+      "width": 144,
+      "height": 17,
+      "zoom": 1
+    },
+    "zoom": 1,
+    "screenWidth": 1920,
+    "screenHeight": 1080,
+    "indexId": "89"
+  },
+  {
+    "id": "7e4a85a306",
+    "nodePath": "0-1-2-2-1-1-4-2-2-1-0",
+    "nodeHashId": "7e4a85a306",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node"
+    },
+    "center": [
+      538,
+      421
+    ],
+    "content": "title",
+    "rect": {
+      "left": 519,
+      "top": 413,
+      "width": 38,
+      "height": 15,
+      "zoom": 1
+    },
+    "zoom": 1,
+    "screenWidth": 1920,
+    "screenHeight": 1080,
+    "indexId": "90"
+  },
+  {
+    "id": "c5a192505c",
+    "nodePath": "0-1-2-2-1-1-4-2-2-2",
+    "nodeHashId": "c5a192505c",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node"
+    },
+    "center": [
+      617,
+      420
+    ],
+    "content": "提示，提供一个",
+    "rect": {
+      "left": 564,
+      "top": 411,
+      "width": 106,
+      "height": 17,
+      "zoom": 1
+    },
+    "zoom": 1,
+    "screenWidth": 1920,
+    "screenHeight": 1080,
+    "indexId": "91"
+  },
+  {
+    "id": "e972ef2076",
+    "nodePath": "0-1-2-2-1-1-4-2-2-3-0",
+    "nodeHashId": "e972ef2076",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node"
+    },
+    "center": [
+      722,
+      421
+    ],
+    "content": "按钮/文字/操作",
+    "rect": {
+      "left": 676,
+      "top": 413,
+      "width": 91,
+      "height": 15,
+      "zoom": 1
+    },
+    "zoom": 1,
+    "screenWidth": 1920,
+    "screenHeight": 1080,
+    "indexId": "92"
+  },
+  {
+    "id": "8e2b66068b",
+    "nodePath": "0-1-2-2-1-1-4-2-2-4",
+    "nodeHashId": "8e2b66068b",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node"
+    },
+    "center": [
+      818,
+      420
+    ],
+    "content": "的文案解释。",
+    "rect": {
+      "left": 774,
+      "top": 411,
+      "width": 88,
+      "height": 17,
+      "zoom": 1
+    },
+    "zoom": 1,
+    "screenWidth": 1920,
+    "screenHeight": 1080,
+    "indexId": "93"
+  },
+  {
+    "id": "6a346b79ca",
+    "nodePath": "0-1-2-2-1-1-4-2-3-0",
+    "nodeHashId": "6a346b79ca",
+    "nodeType": "CONTAINER Node",
+    "locator": "[_midscene_retrieve_task_id='6a346b79ca']",
+    "attributes": {
+      "aria-hidden": "true",
+      "tabindex": "-1",
+      "href": "#代码演示",
+      "nodeType": "CONTAINER Node"
+    },
+    "content": "",
+    "rect": {
+      "left": 344,
+      "top": 472,
+      "width": 24,
+      "height": 38,
+      "zoom": 1
+    },
+    "center": [
+      356,
+      491
+    ],
+    "zoom": 1,
+    "screenWidth": 1920,
+    "screenHeight": 1080,
+    "indexId": "94"
+  },
+  {
+    "id": "7718d60e2b",
+    "nodePath": "0-1-2-2-1-1-4-2-3-1",
+    "nodeHashId": "7718d60e2b",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node"
+    },
+    "center": [
+      416,
+      488
+    ],
+    "content": "代码演示",
+    "rect": {
+      "left": 368,
+      "top": 471,
+      "width": 96,
+      "height": 33,
+      "zoom": 1
+    },
+    "zoom": 1,
+    "screenWidth": 1920,
+    "screenHeight": 1080,
+    "indexId": "95"
+  },
+  {
+    "id": "cc52b7f43a",
+    "nodePath": "0-1-2-2-1-1-4-3-0-0-0",
+    "nodeHashId": "cc52b7f43a",
+    "locator": "[_midscene_retrieve_task_id='cc52b7f43a']",
+    "attributes": {
+      "svgContent": "true",
+      "nodeType": "IMG Node"
+    },
+    "nodeType": "IMG Node",
+    "content": "",
+    "rect": {
+      "left": 1673,
+      "top": 479,
+      "width": 18,
+      "height": 18,
+      "zoom": 1
+    },
+    "center": [
+      1682,
+      488
+    ],
+    "zoom": 1,
+    "screenWidth": 1920,
+    "screenHeight": 1080,
+    "indexId": "96"
+  },
+  {
+    "id": "208c7b8ee6",
+    "nodePath": "0-1-2-2-1-1-4-3-0-1-0",
+    "nodeHashId": "208c7b8ee6",
+    "locator": "[_midscene_retrieve_task_id='208c7b8ee6']",
+    "attributes": {
+      "svgContent": "true",
+      "nodeType": "IMG Node"
+    },
+    "nodeType": "IMG Node",
+    "content": "",
+    "rect": {
+      "left": 1704,
+      "top": 478,
+      "width": 19,
+      "height": 20,
+      "zoom": 1
+    },
+    "center": [
+      1714,
+      488
+    ],
+    "zoom": 1,
+    "screenWidth": 1920,
+    "screenHeight": 1080,
+    "indexId": "97"
+  },
+  {
+    "id": "bf9e7ed8de",
+    "nodePath": "0-1-2-2-1-1-4-3-0-2-0",
+    "nodeHashId": "bf9e7ed8de",
+    "locator": "[_midscene_retrieve_task_id='bf9e7ed8de']",
+    "attributes": {
+      "svgContent": "true",
+      "nodeType": "IMG Node"
+    },
+    "nodeType": "IMG Node",
+    "content": "",
+    "rect": {
+      "left": 1738,
+      "top": 479,
+      "width": 17,
+      "height": 18,
+      "zoom": 1
+    },
+    "center": [
+      1747,
+      488
+    ],
+    "zoom": 1,
+    "screenWidth": 1920,
+    "screenHeight": 1080,
+    "indexId": "98"
+  },
+  {
+    "id": "8aa2a9b80a",
+    "nodePath": "0-1-2-2-1-1-4-3-1-0-1-0-0-0",
+    "nodeHashId": "8aa2a9b80a",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node"
+    },
+    "center": [
+      500,
+      573
+    ],
+    "content": "Tooltip will show on mouse enter.",
+    "rect": {
+      "left": 393,
+      "top": 564,
+      "width": 213,
+      "height": 17,
+      "zoom": 1
+    },
+    "zoom": 1,
+    "screenWidth": 1920,
+    "screenHeight": 1080,
+    "indexId": "99"
+  },
+  {
+    "id": "2a3f52d06e",
+    "nodePath": "0-1-2-2-1-1-4-3-1-0-1-1-0-0-0",
+    "nodeHashId": "2a3f52d06e",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node"
+    },
+    "center": [
+      407,
+      636
+    ],
+    "content": "基本",
+    "rect": {
+      "left": 393,
+      "top": 627,
+      "width": 28,
+      "height": 17,
+      "zoom": 1
+    },
+    "zoom": 1,
+    "screenWidth": 1920,
+    "screenHeight": 1080,
+    "indexId": "100"
+  },
+  {
+    "id": "4fba9e09b3",
+    "nodePath": "0-1-2-2-1-1-4-3-1-0-1-1-0-1-0-0",
+    "nodeHashId": "4fba9e09b3",
+    "locator": "[_midscene_retrieve_task_id='4fba9e09b3']",
+    "attributes": {
+      "svgContent": "true",
+      "nodeType": "IMG Node"
+    },
+    "nodeType": "IMG Node",
+    "content": "",
+    "rect": {
+      "left": 430,
+      "top": 627,
+      "width": 14,
+      "height": 14,
+      "zoom": 1
+    },
+    "center": [
+      437,
+      634
+    ],
+    "zoom": 1,
+    "screenWidth": 1920,
+    "screenHeight": 1080,
+    "indexId": "101"
+  },
+  {
+    "id": "4dd8e7bf65",
+    "nodePath": "0-1-2-2-1-1-4-3-1-0-1-1-1-0-0",
+    "nodeHashId": "4dd8e7bf65",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node"
+    },
+    "center": [
+      442,
+      667
+    ],
+    "content": "最简单的用法。",
+    "rect": {
+      "left": 393,
+      "top": 658,
+      "width": 98,
+      "height": 17,
+      "zoom": 1
+    },
+    "zoom": 1,
+    "screenWidth": 1920,
+    "screenHeight": 1080,
+    "indexId": "102"
+  },
+  {
+    "id": "e07004ef55",
+    "nodePath": "0-1-2-2-1-1-4-3-1-0-1-1-2-0-0-0",
+    "nodeHashId": "e07004ef55",
+    "locator": "[_midscene_retrieve_task_id='e07004ef55']",
+    "attributes": {
+      "svgContent": "true",
+      "nodeType": "IMG Node"
+    },
+    "nodeType": "IMG Node",
+    "content": "",
+    "rect": {
+      "left": 656,
+      "top": 706,
+      "width": 13,
+      "height": 16,
+      "zoom": 1
+    },
+    "center": [
+      663,
+      714
+    ],
+    "zoom": 1,
+    "screenWidth": 1920,
+    "screenHeight": 1080,
+    "indexId": "103"
+  },
+  {
+    "id": "5ccf762bca",
+    "nodePath": "0-1-2-2-1-1-4-3-1-0-1-1-2-1-1-0",
+    "nodeHashId": "5ccf762bca",
+    "locator": "[_midscene_retrieve_task_id='5ccf762bca']",
+    "attributes": {
+      "svgContent": "true",
+      "nodeType": "IMG Node"
+    },
+    "nodeType": "IMG Node",
+    "content": "",
+    "rect": {
+      "left": 687,
+      "top": 706,
+      "width": 14,
+      "height": 14,
+      "zoom": 1
+    },
+    "center": [
+      694,
+      713
+    ],
+    "zoom": 1,
+    "screenWidth": 1920,
+    "screenHeight": 1080,
+    "indexId": "104"
+  },
+  {
+    "id": "cec48bf3b8",
+    "nodePath": "0-1-2-2-1-1-4-3-1-0-1-1-2-2-0-0",
+    "nodeHashId": "cec48bf3b8",
+    "locator": "[_midscene_retrieve_task_id='cec48bf3b8']",
+    "attributes": {
+      "svgContent": "true",
+      "nodeType": "IMG Node"
+    },
+    "nodeType": "IMG Node",
+    "content": "",
+    "rect": {
+      "left": 721,
+      "top": 708,
+      "width": 11,
+      "height": 11,
+      "zoom": 1
+    },
+    "center": [
+      727,
+      714
+    ],
+    "zoom": 1,
+    "screenWidth": 1920,
+    "screenHeight": 1080,
+    "indexId": "105"
+  },
+  {
+    "id": "55976156e2",
+    "nodePath": "0-1-2-2-1-1-4-3-1-0-1-1-2-3-0",
+    "nodeHashId": "55976156e2",
+    "locator": "[_midscene_retrieve_task_id='55976156e2']",
+    "attributes": {
+      "alt": "expand code",
+      "src": "https://gw.alipayobjects.com/zos/antfincdn/Z5c7kzv...",
+      "class": ".code-expand-icon-show",
+      "nodeType": "IMG Node"
+    },
+    "nodeType": "IMG Node",
+    "content": "",
+    "rect": {
+      "left": 751,
+      "top": 705,
+      "width": 16,
+      "height": 16,
+      "zoom": 1
+    },
+    "center": [
+      759,
+      713
+    ],
+    "zoom": 1,
+    "screenWidth": 1920,
+    "screenHeight": 1080,
+    "indexId": "106"
+  },
+  {
+    "id": "a7b3795b84",
+    "nodePath": "0-1-2-2-1-1-4-3-1-0-4-0-0-0-0-1-0",
+    "nodeHashId": "a7b3795b84",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node"
+    },
+    "center": [
+      424,
+      810
+    ],
+    "content": "Show",
+    "rect": {
+      "left": 406,
+      "top": 801,
+      "width": 35,
+      "height": 17,
+      "zoom": 1
+    },
+    "zoom": 1,
+    "screenWidth": 1920,
+    "screenHeight": 1080,
+    "indexId": "107"
+  },
+  {
+    "id": "534f5ae555",
+    "nodePath": "0-1-2-2-1-1-4-3-1-0-4-0-0-0-1-1-0",
+    "nodeHashId": "534f5ae555",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node"
+    },
+    "center": [
+      478,
+      810
+    ],
+    "content": "Hide",
+    "rect": {
+      "left": 463,
+      "top": 801,
+      "width": 30,
+      "height": 17,
+      "zoom": 1
+    },
+    "zoom": 1,
+    "screenWidth": 1920,
+    "screenHeight": 1080,
+    "indexId": "108"
+  },
+  {
+    "id": "d289b06844",
+    "nodePath": "0-1-2-2-1-1-4-3-1-0-4-0-0-0-2-1-0",
+    "nodeHashId": "d289b06844",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node"
+    },
+    "center": [
+      537,
+      810
+    ],
+    "content": "Center",
+    "rect": {
+      "left": 515,
+      "top": 801,
+      "width": 44,
+      "height": 17,
+      "zoom": 1
+    },
+    "zoom": 1,
+    "screenWidth": 1920,
+    "screenHeight": 1080,
+    "indexId": "109"
+  },
+  {
+    "id": "07fc356d2d",
+    "nodePath": "0-1-2-2-1-1-4-3-1-0-4-0-1-0-0",
+    "nodeHashId": "07fc356d2d",
+    "nodeType": "BUTTON Node",
+    "locator": "[_midscene_retrieve_task_id='07fc356d2d']",
+    "attributes": {
+      "type": "button",
+      "class": ".ant-btn.css-var-R2albtj5cma.ant-btn-default.ant-btn-color-default.ant-btn-variant-outlined",
+      "style": "width:80px;margin:4px",
+      "nodeType": "BUTTON Node"
+    },
+    "content": "TL",
+    "rect": {
+      "left": 583,
+      "top": 853,
+      "width": 80,
+      "height": 32,
+      "zoom": 1
+    },
+    "center": [
+      623,
+      869
+    ],
+    "zoom": 1,
+    "screenWidth": 1920,
+    "screenHeight": 1080,
+    "indexId": "110"
+  },
+  {
+    "id": "4cfa4ff69f",
+    "nodePath": "0-1-2-2-1-1-4-3-1-0-4-0-1-0-1",
+    "nodeHashId": "4cfa4ff69f",
+    "nodeType": "BUTTON Node",
+    "locator": "[_midscene_retrieve_task_id='4cfa4ff69f']",
+    "attributes": {
+      "type": "button",
+      "class": ".ant-btn.css-var-R2albtj5cma.ant-btn-default.ant-btn-color-default.ant-btn-variant-outlined",
+      "style": "width:80px;margin:4px",
+      "nodeType": "BUTTON Node"
+    },
+    "content": "Top",
+    "rect": {
+      "left": 671,
+      "top": 853,
+      "width": 80,
+      "height": 32,
+      "zoom": 1
+    },
+    "center": [
+      711,
+      869
+    ],
+    "zoom": 1,
+    "screenWidth": 1920,
+    "screenHeight": 1080,
+    "indexId": "111"
+  },
+  {
+    "id": "1bd00b15e5",
+    "nodePath": "0-1-2-2-1-1-4-3-1-0-4-0-1-0-2",
+    "nodeHashId": "1bd00b15e5",
+    "nodeType": "BUTTON Node",
+    "locator": "[_midscene_retrieve_task_id='1bd00b15e5']",
+    "attributes": {
+      "type": "button",
+      "class": ".ant-btn.css-var-R2albtj5cma.ant-btn-default.ant-btn-color-default.ant-btn-variant-outlined",
+      "style": "width:80px;margin:4px",
+      "nodeType": "BUTTON Node"
+    },
+    "content": "TR",
+    "rect": {
+      "left": 759,
+      "top": 853,
+      "width": 80,
+      "height": 32,
+      "zoom": 1
+    },
+    "center": [
+      799,
+      869
+    ],
+    "zoom": 1,
+    "screenWidth": 1920,
+    "screenHeight": 1080,
+    "indexId": "112"
+  },
+  {
+    "id": "8a40de64c9",
+    "nodePath": "0-1-2-2-1-1-4-3-1-0-4-0-1-1-0-0",
+    "nodeHashId": "8a40de64c9",
+    "nodeType": "BUTTON Node",
+    "locator": "[_midscene_retrieve_task_id='8a40de64c9']",
+    "attributes": {
+      "type": "button",
+      "class": ".ant-btn.css-var-R2albtj5cma.ant-btn-default.ant-btn-color-default.ant-btn-variant-outlined",
+      "style": "width:80px;margin:4px",
+      "nodeType": "BUTTON Node"
+    },
+    "content": "LT",
+    "rect": {
+      "left": 499,
+      "top": 893,
+      "width": 80,
+      "height": 32,
+      "zoom": 1
+    },
+    "center": [
+      539,
+      909
+    ],
+    "zoom": 1,
+    "screenWidth": 1920,
+    "screenHeight": 1080,
+    "indexId": "113"
+  },
+  {
+    "id": "4bedfe3d75",
+    "nodePath": "0-1-2-2-1-1-4-3-1-0-4-0-1-1-0-1",
+    "nodeHashId": "4bedfe3d75",
+    "nodeType": "BUTTON Node",
+    "locator": "[_midscene_retrieve_task_id='4bedfe3d75']",
+    "attributes": {
+      "type": "button",
+      "class": ".ant-btn.css-var-R2albtj5cma.ant-btn-default.ant-btn-color-default.ant-btn-variant-outlined",
+      "style": "width:80px;margin:4px",
+      "nodeType": "BUTTON Node"
+    },
+    "content": "Left",
+    "rect": {
+      "left": 499,
+      "top": 933,
+      "width": 80,
+      "height": 32,
+      "zoom": 1
+    },
+    "center": [
+      539,
+      949
+    ],
+    "zoom": 1,
+    "screenWidth": 1920,
+    "screenHeight": 1080,
+    "indexId": "114"
+  },
+  {
+    "id": "c4d3699578",
+    "nodePath": "0-1-2-2-1-1-4-3-1-0-4-0-1-1-0-2",
+    "nodeHashId": "c4d3699578",
+    "nodeType": "BUTTON Node",
+    "locator": "[_midscene_retrieve_task_id='c4d3699578']",
+    "attributes": {
+      "type": "button",
+      "class": ".ant-btn.css-var-R2albtj5cma.ant-btn-default.ant-btn-color-default.ant-btn-variant-outlined",
+      "style": "width:80px;margin:4px",
+      "nodeType": "BUTTON Node"
+    },
+    "content": "LB",
+    "rect": {
+      "left": 499,
+      "top": 973,
+      "width": 80,
+      "height": 32,
+      "zoom": 1
+    },
+    "center": [
+      539,
+      989
+    ],
+    "zoom": 1,
+    "screenWidth": 1920,
+    "screenHeight": 1080,
+    "indexId": "115"
+  },
+  {
+    "id": "690ac59666",
+    "nodePath": "0-1-2-2-1-1-4-3-1-0-4-0-1-1-1-0",
+    "nodeHashId": "690ac59666",
+    "nodeType": "BUTTON Node",
+    "locator": "[_midscene_retrieve_task_id='690ac59666']",
+    "attributes": {
+      "type": "button",
+      "class": ".ant-btn.css-var-R2albtj5cma.ant-btn-default.ant-btn-color-default.ant-btn-variant-outlined",
+      "style": "width:80px;margin:4px",
+      "nodeType": "BUTTON Node"
+    },
+    "content": "RT",
+    "rect": {
+      "left": 843,
+      "top": 893,
+      "width": 80,
+      "height": 32,
+      "zoom": 1
+    },
+    "center": [
+      883,
+      909
+    ],
+    "zoom": 1,
+    "screenWidth": 1920,
+    "screenHeight": 1080,
+    "indexId": "116"
+  },
+  {
+    "id": "3952d0179d",
+    "nodePath": "0-1-2-2-1-1-4-3-1-0-4-0-1-1-1-1",
+    "nodeHashId": "3952d0179d",
+    "nodeType": "BUTTON Node",
+    "locator": "[_midscene_retrieve_task_id='3952d0179d']",
+    "attributes": {
+      "type": "button",
+      "class": ".ant-btn.css-var-R2albtj5cma.ant-btn-default.ant-btn-color-default.ant-btn-variant-outlined",
+      "style": "width:80px;margin:4px",
+      "nodeType": "BUTTON Node"
+    },
+    "content": "Right",
+    "rect": {
+      "left": 843,
+      "top": 933,
+      "width": 80,
+      "height": 32,
+      "zoom": 1
+    },
+    "center": [
+      883,
+      949
+    ],
+    "zoom": 1,
+    "screenWidth": 1920,
+    "screenHeight": 1080,
+    "indexId": "117"
+  },
+  {
+    "id": "b246c4f06c",
+    "nodePath": "0-1-2-2-1-1-4-3-1-0-4-0-1-1-1-2",
+    "nodeHashId": "b246c4f06c",
+    "nodeType": "BUTTON Node",
+    "locator": "[_midscene_retrieve_task_id='b246c4f06c']",
+    "attributes": {
+      "type": "button",
+      "class": ".ant-btn.css-var-R2albtj5cma.ant-btn-default.ant-btn-color-default.ant-btn-variant-outlined",
+      "style": "width:80px;margin:4px",
+      "nodeType": "BUTTON Node"
+    },
+    "content": "RB",
+    "rect": {
+      "left": 843,
+      "top": 973,
+      "width": 80,
+      "height": 32,
+      "zoom": 1
+    },
+    "center": [
+      883,
+      989
+    ],
+    "zoom": 1,
+    "screenWidth": 1920,
+    "screenHeight": 1080,
+    "indexId": "118"
+  },
+  {
+    "id": "733cf7dff5",
+    "nodePath": "0-1-2-2-1-1-4-3-1-0-4-0-1-2-0",
+    "nodeHashId": "733cf7dff5",
+    "nodeType": "BUTTON Node",
+    "locator": "[_midscene_retrieve_task_id='733cf7dff5']",
+    "attributes": {
+      "type": "button",
+      "class": ".ant-btn.css-var-R2albtj5cma.ant-btn-default.ant-btn-color-default.ant-btn-variant-outlined",
+      "style": "width:80px;margin:4px",
+      "nodeType": "BUTTON Node"
+    },
+    "content": "BL",
+    "rect": {
+      "left": 583,
+      "top": 1013,
+      "width": 80,
+      "height": 32,
+      "zoom": 1
+    },
+    "center": [
+      623,
+      1029
+    ],
+    "zoom": 1,
+    "screenWidth": 1920,
+    "screenHeight": 1080,
+    "indexId": "119"
+  },
+  {
+    "id": "7ff2601960",
+    "nodePath": "0-1-2-2-1-1-4-3-1-0-4-0-1-2-1",
+    "nodeHashId": "7ff2601960",
+    "nodeType": "BUTTON Node",
+    "locator": "[_midscene_retrieve_task_id='7ff2601960']",
+    "attributes": {
+      "type": "button",
+      "class": ".ant-btn.css-var-R2albtj5cma.ant-btn-default.ant-btn-color-default.ant-btn-variant-outlined",
+      "style": "width:80px;margin:4px",
+      "nodeType": "BUTTON Node"
+    },
+    "content": "Bottom",
+    "rect": {
+      "left": 671,
+      "top": 1013,
+      "width": 80,
+      "height": 32,
+      "zoom": 1
+    },
+    "center": [
+      711,
+      1029
+    ],
+    "zoom": 1,
+    "screenWidth": 1920,
+    "screenHeight": 1080,
+    "indexId": "120"
+  },
+  {
+    "id": "8cfa0fd855",
+    "nodePath": "0-1-2-2-1-1-4-3-1-0-4-0-1-2-2",
+    "nodeHashId": "8cfa0fd855",
+    "nodeType": "BUTTON Node",
+    "locator": "[_midscene_retrieve_task_id='8cfa0fd855']",
+    "attributes": {
+      "type": "button",
+      "class": ".ant-btn.css-var-R2albtj5cma.ant-btn-default.ant-btn-color-default.ant-btn-variant-outlined",
+      "style": "width:80px;margin:4px",
+      "nodeType": "BUTTON Node"
+    },
+    "content": "BR",
+    "rect": {
+      "left": 759,
+      "top": 1013,
+      "width": 80,
+      "height": 32,
+      "zoom": 1
+    },
+    "center": [
+      799,
+      1029
+    ],
+    "zoom": 1,
+    "screenWidth": 1920,
+    "screenHeight": 1080,
+    "indexId": "121"
+  },
+  {
+    "id": "fc9cbf9047",
+    "nodePath": "0-1-2-2-1-1-4-3-1-1-1-0-0-0-0",
+    "nodeHashId": "fc9cbf9047",
+    "nodeType": "BUTTON Node",
+    "locator": "[_midscene_retrieve_task_id='fc9cbf9047']",
+    "attributes": {
+      "type": "button",
+      "class": ".ant-btn.css-var-R2albtj5cma.ant-btn-default.ant-btn-color-default.ant-btn-variant-outlined",
+      "style": "width:80px;margin:4px",
+      "nodeType": "BUTTON Node"
+    },
+    "content": "TL",
+    "rect": {
+      "left": 1285,
+      "top": 565,
+      "width": 80,
+      "height": 32,
+      "zoom": 1
+    },
+    "center": [
+      1325,
+      581
+    ],
+    "zoom": 1,
+    "screenWidth": 1920,
+    "screenHeight": 1080,
+    "indexId": "122"
+  },
+  {
+    "id": "5256dbc40e",
+    "nodePath": "0-1-2-2-1-1-4-3-1-1-1-0-0-0-1",
+    "nodeHashId": "5256dbc40e",
+    "nodeType": "BUTTON Node",
+    "locator": "[_midscene_retrieve_task_id='5256dbc40e']",
+    "attributes": {
+      "type": "button",
+      "class": ".ant-btn.css-var-R2albtj5cma.ant-btn-default.ant-btn-color-default.ant-btn-variant-outlined",
+      "style": "width:80px;margin:4px",
+      "nodeType": "BUTTON Node"
+    },
+    "content": "Top",
+    "rect": {
+      "left": 1373,
+      "top": 565,
+      "width": 80,
+      "height": 32,
+      "zoom": 1
+    },
+    "center": [
+      1413,
+      581
+    ],
+    "zoom": 1,
+    "screenWidth": 1920,
+    "screenHeight": 1080,
+    "indexId": "123"
+  },
+  {
+    "id": "c4caae88a7",
+    "nodePath": "0-1-2-2-1-1-4-3-1-1-1-0-0-0-2",
+    "nodeHashId": "c4caae88a7",
+    "nodeType": "BUTTON Node",
+    "locator": "[_midscene_retrieve_task_id='c4caae88a7']",
+    "attributes": {
+      "type": "button",
+      "class": ".ant-btn.css-var-R2albtj5cma.ant-btn-default.ant-btn-color-default.ant-btn-variant-outlined",
+      "style": "width:80px;margin:4px",
+      "nodeType": "BUTTON Node"
+    },
+    "content": "TR",
+    "rect": {
+      "left": 1461,
+      "top": 565,
+      "width": 80,
+      "height": 32,
+      "zoom": 1
+    },
+    "center": [
+      1501,
+      581
+    ],
+    "zoom": 1,
+    "screenWidth": 1920,
+    "screenHeight": 1080,
+    "indexId": "124"
+  },
+  {
+    "id": "b173e5bf47",
+    "nodePath": "0-1-2-2-1-1-4-3-1-1-1-0-0-1-0-0",
+    "nodeHashId": "b173e5bf47",
+    "nodeType": "BUTTON Node",
+    "locator": "[_midscene_retrieve_task_id='b173e5bf47']",
+    "attributes": {
+      "type": "button",
+      "class": ".ant-btn.css-var-R2albtj5cma.ant-btn-default.ant-btn-color-default.ant-btn-variant-outlined",
+      "style": "width:80px;margin:4px",
+      "nodeType": "BUTTON Node"
+    },
+    "content": "LT",
+    "rect": {
+      "left": 1201,
+      "top": 605,
+      "width": 80,
+      "height": 32,
+      "zoom": 1
+    },
+    "center": [
+      1241,
+      621
+    ],
+    "zoom": 1,
+    "screenWidth": 1920,
+    "screenHeight": 1080,
+    "indexId": "125"
+  },
+  {
+    "id": "0a80de3a1a",
+    "nodePath": "0-1-2-2-1-1-4-3-1-1-1-0-0-1-0-1",
+    "nodeHashId": "0a80de3a1a",
+    "nodeType": "BUTTON Node",
+    "locator": "[_midscene_retrieve_task_id='0a80de3a1a']",
+    "attributes": {
+      "type": "button",
+      "class": ".ant-btn.css-var-R2albtj5cma.ant-btn-default.ant-btn-color-default.ant-btn-variant-outlined",
+      "style": "width:80px;margin:4px",
+      "nodeType": "BUTTON Node"
+    },
+    "content": "Left",
+    "rect": {
+      "left": 1201,
+      "top": 645,
+      "width": 80,
+      "height": 32,
+      "zoom": 1
+    },
+    "center": [
+      1241,
+      661
+    ],
+    "zoom": 1,
+    "screenWidth": 1920,
+    "screenHeight": 1080,
+    "indexId": "126"
+  },
+  {
+    "id": "68cc886039",
+    "nodePath": "0-1-2-2-1-1-4-3-1-1-1-0-0-1-0-2",
+    "nodeHashId": "68cc886039",
+    "nodeType": "BUTTON Node",
+    "locator": "[_midscene_retrieve_task_id='68cc886039']",
+    "attributes": {
+      "type": "button",
+      "class": ".ant-btn.css-var-R2albtj5cma.ant-btn-default.ant-btn-color-default.ant-btn-variant-outlined",
+      "style": "width:80px;margin:4px",
+      "nodeType": "BUTTON Node"
+    },
+    "content": "LB",
+    "rect": {
+      "left": 1201,
+      "top": 685,
+      "width": 80,
+      "height": 32,
+      "zoom": 1
+    },
+    "center": [
+      1241,
+      701
+    ],
+    "zoom": 1,
+    "screenWidth": 1920,
+    "screenHeight": 1080,
+    "indexId": "127"
+  },
+  {
+    "id": "e7ca991b82",
+    "nodePath": "0-1-2-2-1-1-4-3-1-1-1-0-0-1-1-0",
+    "nodeHashId": "e7ca991b82",
+    "nodeType": "BUTTON Node",
+    "locator": "[_midscene_retrieve_task_id='e7ca991b82']",
+    "attributes": {
+      "type": "button",
+      "class": ".ant-btn.css-var-R2albtj5cma.ant-btn-default.ant-btn-color-default.ant-btn-variant-outlined",
+      "style": "width:80px;margin:4px",
+      "nodeType": "BUTTON Node"
+    },
+    "content": "RT",
+    "rect": {
+      "left": 1545,
+      "top": 605,
+      "width": 80,
+      "height": 32,
+      "zoom": 1
+    },
+    "center": [
+      1585,
+      621
+    ],
+    "zoom": 1,
+    "screenWidth": 1920,
+    "screenHeight": 1080,
+    "indexId": "128"
+  },
+  {
+    "id": "0e2bfc1816",
+    "nodePath": "0-1-2-2-1-1-4-3-1-1-1-0-0-1-1-1",
+    "nodeHashId": "0e2bfc1816",
+    "nodeType": "BUTTON Node",
+    "locator": "[_midscene_retrieve_task_id='0e2bfc1816']",
+    "attributes": {
+      "type": "button",
+      "class": ".ant-btn.css-var-R2albtj5cma.ant-btn-default.ant-btn-color-default.ant-btn-variant-outlined",
+      "style": "width:80px;margin:4px",
+      "nodeType": "BUTTON Node"
+    },
+    "content": "Right",
+    "rect": {
+      "left": 1545,
+      "top": 645,
+      "width": 80,
+      "height": 32,
+      "zoom": 1
+    },
+    "center": [
+      1585,
+      661
+    ],
+    "zoom": 1,
+    "screenWidth": 1920,
+    "screenHeight": 1080,
+    "indexId": "129"
+  },
+  {
+    "id": "d66623584a",
+    "nodePath": "0-1-2-2-1-1-4-3-1-1-1-0-0-1-1-2",
+    "nodeHashId": "d66623584a",
+    "nodeType": "BUTTON Node",
+    "locator": "[_midscene_retrieve_task_id='d66623584a']",
+    "attributes": {
+      "type": "button",
+      "class": ".ant-btn.css-var-R2albtj5cma.ant-btn-default.ant-btn-color-default.ant-btn-variant-outlined",
+      "style": "width:80px;margin:4px",
+      "nodeType": "BUTTON Node"
+    },
+    "content": "RB",
+    "rect": {
+      "left": 1545,
+      "top": 685,
+      "width": 80,
+      "height": 32,
+      "zoom": 1
+    },
+    "center": [
+      1585,
+      701
+    ],
+    "zoom": 1,
+    "screenWidth": 1920,
+    "screenHeight": 1080,
+    "indexId": "130"
+  },
+  {
+    "id": "e857d3c5f3",
+    "nodePath": "0-1-2-2-1-1-4-3-1-1-1-0-0-2-0",
+    "nodeHashId": "e857d3c5f3",
+    "nodeType": "BUTTON Node",
+    "locator": "[_midscene_retrieve_task_id='e857d3c5f3']",
+    "attributes": {
+      "type": "button",
+      "class": ".ant-btn.css-var-R2albtj5cma.ant-btn-default.ant-btn-color-default.ant-btn-variant-outlined",
+      "style": "width:80px;margin:4px",
+      "nodeType": "BUTTON Node"
+    },
+    "content": "BL",
+    "rect": {
+      "left": 1285,
+      "top": 725,
+      "width": 80,
+      "height": 32,
+      "zoom": 1
+    },
+    "center": [
+      1325,
+      741
+    ],
+    "zoom": 1,
+    "screenWidth": 1920,
+    "screenHeight": 1080,
+    "indexId": "131"
+  },
+  {
+    "id": "9cdf2eaf2f",
+    "nodePath": "0-1-2-2-1-1-4-3-1-1-1-0-0-2-1",
+    "nodeHashId": "9cdf2eaf2f",
+    "nodeType": "BUTTON Node",
+    "locator": "[_midscene_retrieve_task_id='9cdf2eaf2f']",
+    "attributes": {
+      "type": "button",
+      "class": ".ant-btn.css-var-R2albtj5cma.ant-btn-default.ant-btn-color-default.ant-btn-variant-outlined",
+      "style": "width:80px;margin:4px",
+      "nodeType": "BUTTON Node"
+    },
+    "content": "Bottom",
+    "rect": {
+      "left": 1373,
+      "top": 725,
+      "width": 80,
+      "height": 32,
+      "zoom": 1
+    },
+    "center": [
+      1413,
+      741
+    ],
+    "zoom": 1,
+    "screenWidth": 1920,
+    "screenHeight": 1080,
+    "indexId": "132"
+  },
+  {
+    "id": "189b023bcd",
+    "nodePath": "0-1-2-2-1-1-4-3-1-1-1-0-0-2-2",
+    "nodeHashId": "189b023bcd",
+    "nodeType": "BUTTON Node",
+    "locator": "[_midscene_retrieve_task_id='189b023bcd']",
+    "attributes": {
+      "type": "button",
+      "class": ".ant-btn.css-var-R2albtj5cma.ant-btn-default.ant-btn-color-default.ant-btn-variant-outlined",
+      "style": "width:80px;margin:4px",
+      "nodeType": "BUTTON Node"
+    },
+    "content": "BR",
+    "rect": {
+      "left": 1461,
+      "top": 725,
+      "width": 80,
+      "height": 32,
+      "zoom": 1
+    },
+    "center": [
+      1501,
+      741
+    ],
+    "zoom": 1,
+    "screenWidth": 1920,
+    "screenHeight": 1080,
+    "indexId": "133"
+  },
+  {
+    "id": "aa2a6578cf",
+    "nodePath": "0-1-2-2-1-1-4-3-1-1-1-1-0-0-0",
+    "nodeHashId": "aa2a6578cf",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node"
+    },
+    "center": [
+      1109,
+      814
+    ],
+    "content": "位置",
+    "rect": {
+      "left": 1095,
+      "top": 805,
+      "width": 28,
+      "height": 17,
+      "zoom": 1
+    },
+    "zoom": 1,
+    "screenWidth": 1920,
+    "screenHeight": 1080,
+    "indexId": "134"
+  },
+  {
+    "id": "c70fb1d473",
+    "nodePath": "0-1-2-2-1-1-4-3-1-1-1-1-0-1-0-0",
+    "nodeHashId": "c70fb1d473",
+    "locator": "[_midscene_retrieve_task_id='c70fb1d473']",
+    "attributes": {
+      "svgContent": "true",
+      "nodeType": "IMG Node"
+    },
+    "nodeType": "IMG Node",
+    "content": "",
+    "rect": {
+      "left": 1132,
+      "top": 805,
+      "width": 14,
+      "height": 14,
+      "zoom": 1
+    },
+    "center": [
+      1139,
+      812
+    ],
+    "zoom": 1,
+    "screenWidth": 1920,
+    "screenHeight": 1080,
+    "indexId": "135"
+  },
+  {
+    "id": "dbc287c6da",
+    "nodePath": "0-1-2-2-1-1-4-3-1-1-1-1-1-0-0",
+    "nodeHashId": "dbc287c6da",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node"
+    },
+    "center": [
+      1155,
+      845
+    ],
+    "content": "位置有 12 个方向。",
+    "rect": {
+      "left": 1095,
+      "top": 836,
+      "width": 120,
+      "height": 17,
+      "zoom": 1
+    },
+    "zoom": 1,
+    "screenWidth": 1920,
+    "screenHeight": 1080,
+    "indexId": "136"
+  },
+  {
+    "id": "e42bce3c62",
+    "nodePath": "0-1-2-2-1-1-4-3-1-1-1-1-2-0-0-0",
+    "nodeHashId": "e42bce3c62",
+    "locator": "[_midscene_retrieve_task_id='e42bce3c62']",
+    "attributes": {
+      "svgContent": "true",
+      "nodeType": "IMG Node"
+    },
+    "nodeType": "IMG Node",
+    "content": "",
+    "rect": {
+      "left": 1358,
+      "top": 884,
+      "width": 13,
+      "height": 16,
+      "zoom": 1
+    },
+    "center": [
+      1365,
+      892
+    ],
+    "zoom": 1,
+    "screenWidth": 1920,
+    "screenHeight": 1080,
+    "indexId": "137"
+  },
+  {
+    "id": "49dd9c3d25",
+    "nodePath": "0-1-2-2-1-1-4-3-1-1-1-1-2-1-1-0",
+    "nodeHashId": "49dd9c3d25",
+    "locator": "[_midscene_retrieve_task_id='49dd9c3d25']",
+    "attributes": {
+      "svgContent": "true",
+      "nodeType": "IMG Node"
+    },
+    "nodeType": "IMG Node",
+    "content": "",
+    "rect": {
+      "left": 1389,
+      "top": 884,
+      "width": 14,
+      "height": 14,
+      "zoom": 1
+    },
+    "center": [
+      1396,
+      891
+    ],
+    "zoom": 1,
+    "screenWidth": 1920,
+    "screenHeight": 1080,
+    "indexId": "138"
+  },
+  {
+    "id": "ca3822eb4f",
+    "nodePath": "0-1-2-2-1-1-4-3-1-1-1-1-2-2-0-0",
+    "nodeHashId": "ca3822eb4f",
+    "locator": "[_midscene_retrieve_task_id='ca3822eb4f']",
+    "attributes": {
+      "svgContent": "true",
+      "nodeType": "IMG Node"
+    },
+    "nodeType": "IMG Node",
+    "content": "",
+    "rect": {
+      "left": 1423,
+      "top": 886,
+      "width": 11,
+      "height": 11,
+      "zoom": 1
+    },
+    "center": [
+      1429,
+      892
+    ],
+    "zoom": 1,
+    "screenWidth": 1920,
+    "screenHeight": 1080,
+    "indexId": "139"
+  },
+  {
+    "id": "d5cfc4ab0f",
+    "nodePath": "0-1-2-2-1-1-4-3-1-1-1-1-2-3-0",
+    "nodeHashId": "d5cfc4ab0f",
+    "locator": "[_midscene_retrieve_task_id='d5cfc4ab0f']",
+    "attributes": {
+      "alt": "expand code",
+      "src": "https://gw.alipayobjects.com/zos/antfincdn/Z5c7kzv...",
+      "class": ".code-expand-icon-show",
+      "nodeType": "IMG Node"
+    },
+    "nodeType": "IMG Node",
+    "content": "",
+    "rect": {
+      "left": 1453,
+      "top": 883,
+      "width": 16,
+      "height": 16,
+      "zoom": 1
+    },
+    "center": [
+      1461,
+      891
+    ],
+    "zoom": 1,
+    "screenWidth": 1920,
+    "screenHeight": 1080,
+    "indexId": "140"
+  },
+  {
+    "id": "fe59a3599e",
+    "nodePath": "0-1-2-5-0",
+    "nodeHashId": "fe59a3599e",
+    "nodeType": "BUTTON Node",
+    "locator": "[_midscene_retrieve_task_id='fe59a3599e']",
+    "attributes": {
+      "aria-label": "Theme Switcher",
+      "class": ".css-var-R2a.ant-float-btn-css-var.ant-float-btn.ant-float-btn-group-trigger.ant-float-btn-default.ant-float-btn-circle",
+      "type": "button",
+      "nodeType": "BUTTON Node"
+    },
+    "content": "",
+    "rect": {
+      "left": 1856,
+      "top": 992,
+      "width": 40,
+      "height": 40,
+      "zoom": 1
+    },
+    "center": [
+      1876,
+      1012
+    ],
+    "zoom": 1,
+    "screenWidth": 1920,
+    "screenHeight": 1080,
+    "indexId": "141"
+  }
+]
