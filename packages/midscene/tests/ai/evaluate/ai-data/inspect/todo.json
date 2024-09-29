@@ -1,0 +1,50 @@
+{
+  "testDataPath": "test-data/todo",
+  "testCases": [
+    {
+      "prompt": "任务输入框",
+      "multi": false,
+      "response": [
+        {
+          "id": "fbc2d0029b"
+        }
+      ]
+    },
+    {
+      "prompt": "任务列表中的第二项",
+      "multi": false,
+      "response": [
+        {
+          "id": "14b20d0963"
+        }
+      ]
+    },
+    {
+      "prompt": "第二项任务右边的删除按钮",
+      "multi": false,
+      "response": [
+        {
+          "id": "1b33e5dd50"
+        }
+      ]
+    },
+    {
+      "prompt": "任务列表中第三项左边的勾选按钮",
+      "multi": false,
+      "response": [
+        {
+          "id": "5070d9f1ff"
+        }
+      ]
+    },
+    {
+      "prompt": "任务列表下面的 Completed 状态按钮",
+      "multi": false,
+      "response": [
+        {
+          "id": "8dfa7ce553"
+        }
+      ]
+    }
+  ]
+}

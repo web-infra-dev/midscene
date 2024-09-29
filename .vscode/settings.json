@@ -3,6 +3,5 @@
     "source.organizeImports.biome": "explicit"
   },
   "editor.defaultFormatter": "biomejs.biome",
-  "editor.formatOnSave": true,
-  "editor.formatOnSaveMode": "modifications"
+  "editor.formatOnSave": true
 }

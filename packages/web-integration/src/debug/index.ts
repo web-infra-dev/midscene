@@ -51,6 +51,18 @@ export async function generateExtractData(
 
   const resizeImgBase64 = (await resizeImg(inputImgBase64)) as string;
 
+  const existingSnapshot = existsSync(snapshotJsonPath)
+    ? JSON.parse(readFileSync(snapshotJsonPath, 'utf-8'))
+    : null;
+
+  if (
+    existingSnapshot &&
+    JSON.stringify(existingSnapshot) === JSON.stringify(captureElementSnapshot)
+  ) {
+    console.log('skip save snapshot for ', targetDir);
+    return;
+  }
+
   if (!saveImgType?.disableSnapshot) {
     writeFileSyncWithDir(
       snapshotJsonPath,
@@ -90,7 +102,7 @@ export function generateTestDataPath(testDataName: string) {
     .replace('dist/lib/index.js', '');
   const midsceneTestDataPath = path.join(
     modulePath,
-    `tests/ai/inspector/test-data/${testDataName}`,
+    `tests/ai/evaluate/test-data/${testDataName}`,
   );
 
   return midsceneTestDataPath;

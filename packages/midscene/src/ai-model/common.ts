@@ -1,5 +1,6 @@
 import type OpenAI from 'openai';
 import type {
+  ChatCompletionContentPart,
   ChatCompletionSystemMessageParam,
   ChatCompletionUserMessageParam,
 } from 'openai/resources';
@@ -12,7 +13,11 @@ import {
   transfromOpenAiArgsToCoze,
   useCozeModel,
 } from './coze';
-import { callToGetJSONObject, useOpenAIModel } from './openai';
+import {
+  MIDSCENE_MODEL_TEXT_ONLY,
+  callToGetJSONObject,
+  useOpenAIModel,
+} from './openai';
 
 export type AIArgs = [
   ChatCompletionSystemMessageParam,
@@ -63,4 +68,16 @@ export async function callAiFn<T>(options: {
   throw Error(
     'Cannot find Coze or OpenAI config. You should set at least one of them.',
   );
+}
+
+export function transformUserMessages(msgs: ChatCompletionContentPart[]) {
+  const textOnly = Boolean(process.env[MIDSCENE_MODEL_TEXT_ONLY]);
+  if (!textOnly) return msgs;
+
+  return msgs.reduce((res, msg) => {
+    if (msg.type === 'text') {
+      res += msg.text;
+    }
+    return res;
+  }, '');
 }

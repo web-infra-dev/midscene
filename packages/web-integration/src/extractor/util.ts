@@ -41,9 +41,10 @@ function selectorForValue(val: number | string): string {
 export function setDataForNode(
   node: HTMLElement | Node,
   nodeHash: string,
+  setToParentNode = false,
 ): string {
   const taskId = taskIdKey;
-  if (!(node instanceof HTMLElement)) {
+  if (!(node instanceof Element)) {
     return '';
   }
   if (!taskId) {
@@ -53,7 +54,13 @@ export function setDataForNode(
 
   const selector = selectorForValue(nodeHash);
   if (getDebugMode()) {
-    node.setAttribute(taskIdKey, nodeHash.toString());
+    if (setToParentNode) {
+      if (node.parentNode instanceof HTMLElement) {
+        node.parentNode.setAttribute(taskIdKey, nodeHash.toString());
+      }
+    } else {
+      node.setAttribute(taskIdKey, nodeHash.toString());
+    }
   }
   return selector;
 }
@@ -122,7 +129,7 @@ export interface ExtractedRect {
   zoom: number;
 }
 
-function getRect(el: HTMLElement | Node, baseZoom = 1): ExtractedRect {
+export function getRect(el: HTMLElement | Node, baseZoom = 1): ExtractedRect {
   let originalRect: DOMRect;
   let newZoom = 1;
   if (!(el instanceof HTMLElement)) {
@@ -151,6 +158,36 @@ function getRect(el: HTMLElement | Node, baseZoom = 1): ExtractedRect {
     zoom,
   };
 }
+
+const isElementCovered = (el: HTMLElement | Node, rect: ExtractedRect) => {
+  // Gets the center coordinates of the element
+  const x = rect.left + rect.width / 2;
+  const y = rect.top + rect.height / 2;
+
+  // Gets the element above that point
+  const topElement = document.elementFromPoint(x, y);
+  if (topElement === el) {
+    return false;
+  }
+  if (el?.contains(topElement)) {
+    return false;
+  }
+  if ((topElement as HTMLElement)?.contains(el)) {
+    return false;
+  }
+
+  logger(el, 'Element is covered by another element', {
+    topElement,
+    el,
+    rect,
+    x,
+    y,
+  });
+  return true;
+  // Determines if the returned element is the target element itself
+  // return el.contains(topElement) || (topElement as HTMLElement).contains(el);
+  // return topElement !== el && !el.contains(topElement);
+};
 
 export function visibleRect(
   el: HTMLElement | Node | null,
@@ -188,6 +225,12 @@ export function visibleRect(
 
   if (rect.width === 0 && rect.height === 0) {
     logger(el, 'Element has no size');
+    return false;
+  }
+
+  // check if the element is covered by another element
+  // if the element is zoomed, the coverage check should be done with the original zoom
+  if (baseZoom === 1 && isElementCovered(el, rect)) {
     return false;
   }
 

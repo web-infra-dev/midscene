@@ -89,8 +89,8 @@ export function calculateNewDimensions(
 ) {
   // In low mode, the image is scaled to 512x512 pixels and 85 tokens are used to represent the image.
   // In high mode, the model looks at low-resolution images and then creates detailed crop images, using 170 tokens for each 512x512 pixel tile. In practical applications, it is recommended to control the image size within 2048x768 pixels
-  const maxWidth = 768; // Maximum width
-  const maxHeight = 2048; // Maximum height
+  const maxWidth = 2048; // Maximum width
+  const maxHeight = 768; // Maximum height
   let newWidth = originalWidth;
   let newHeight = originalHeight;
 

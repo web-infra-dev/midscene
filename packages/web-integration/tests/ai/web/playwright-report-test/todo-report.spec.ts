@@ -10,6 +10,7 @@ test('ai report', async ({ page, ai, aiAssert }, testInfo) => {
     path.join(__dirname, '../../../../midscene_run/report'),
   );
   console.log('report html path:', htmlFile);
+  await page.setViewportSize({ width: 1920, height: 1080 });
   await page.goto(`file:${htmlFile}`);
   await ai(
     'Move your mouse over the top task list (next to the logo) and click ai todo from the drop-down list',

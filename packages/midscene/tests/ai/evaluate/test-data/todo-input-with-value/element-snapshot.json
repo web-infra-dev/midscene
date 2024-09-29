@@ -1,0 +1,521 @@
+[
+  {
+    "id": "cdfaac34ad",
+    "nodePath": "0-0-0-0-0",
+    "nodeHashId": "cdfaac34ad",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node"
+    },
+    "center": [
+      640,
+      67
+    ],
+    "content": "todos",
+    "rect": {
+      "left": 546,
+      "top": 19,
+      "width": 188,
+      "height": 95,
+      "zoom": 1
+    },
+    "zoom": 1,
+    "screenWidth": 1280,
+    "screenHeight": 720,
+    "indexId": "1"
+  },
+  {
+    "id": "fbc2d0029b",
+    "nodePath": "0-0-0-1-0",
+    "nodeHashId": "fbc2d0029b",
+    "locator": "[_midscene_retrieve_task_id='fbc2d0029b']",
+    "nodeType": "FORM_ITEM Node",
+    "attributes": {
+      "class": ".new-todo",
+      "id": "todo-input",
+      "type": "text",
+      "data-testid": "text-input",
+      "placeholder": "What needs to be done?",
+      "htmlTagName": "<input>",
+      "nodeType": "FORM_ITEM Node"
+    },
+    "content": "What needs to be done?",
+    "rect": {
+      "left": 365,
+      "top": 130,
+      "width": 550,
+      "height": 65,
+      "zoom": 1
+    },
+    "center": [
+      640,
+      163
+    ],
+    "zoom": 1,
+    "screenWidth": 1280,
+    "screenHeight": 720,
+    "indexId": "2"
+  },
+  {
+    "id": "70941b968f",
+    "nodePath": "0-0-0-1-1-0",
+    "nodeHashId": "70941b968f",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node"
+    },
+    "center": [
+      960,
+      140
+    ],
+    "content": "New Todo Input",
+    "rect": {
+      "left": 914,
+      "top": 131,
+      "width": 91,
+      "height": 17,
+      "zoom": 1
+    },
+    "zoom": 1,
+    "screenWidth": 1280,
+    "screenHeight": 720,
+    "indexId": "3"
+  },
+  {
+    "id": "2468fa0562",
+    "nodePath": "0-0-1-0-0",
+    "nodeHashId": "2468fa0562",
+    "locator": "[_midscene_retrieve_task_id='2468fa0562']",
+    "nodeType": "FORM_ITEM Node",
+    "attributes": {
+      "class": ".toggle-all",
+      "type": "checkbox",
+      "data-testid": "toggle-all",
+      "htmlTagName": "<input>",
+      "nodeType": "FORM_ITEM Node"
+    },
+    "content": "",
+    "rect": {
+      "left": 369,
+      "top": 133,
+      "width": 40,
+      "height": 60,
+      "zoom": 1
+    },
+    "center": [
+      389,
+      163
+    ],
+    "zoom": 1,
+    "screenWidth": 1280,
+    "screenHeight": 720,
+    "indexId": "4"
+  },
+  {
+    "id": "cafc7dfe14",
+    "nodePath": "0-0-1-1-0-0-0",
+    "nodeHashId": "cafc7dfe14",
+    "locator": "[_midscene_retrieve_task_id='cafc7dfe14']",
+    "nodeType": "FORM_ITEM Node",
+    "attributes": {
+      "class": ".toggle",
+      "type": "checkbox",
+      "data-testid": "todo-item-toggle",
+      "htmlTagName": "<input>",
+      "nodeType": "FORM_ITEM Node"
+    },
+    "content": "",
+    "rect": {
+      "left": 365,
+      "top": 205,
+      "width": 40,
+      "height": 40,
+      "zoom": 1
+    },
+    "center": [
+      385,
+      225
+    ],
+    "zoom": 1,
+    "screenWidth": 1280,
+    "screenHeight": 720,
+    "indexId": "5"
+  },
+  {
+    "id": "c1fb39ce9a",
+    "nodePath": "0-0-1-1-0-0-1-0",
+    "nodeHashId": "c1fb39ce9a",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node"
+    },
+    "center": [
+      497,
+      225
+    ],
+    "content": "Learn Python",
+    "rect": {
+      "left": 425,
+      "top": 211,
+      "width": 143,
+      "height": 28,
+      "zoom": 1
+    },
+    "zoom": 1,
+    "screenWidth": 1280,
+    "screenHeight": 720,
+    "indexId": "6"
+  },
+  {
+    "id": "910617669a",
+    "nodePath": "0-0-1-1-1-0-0",
+    "nodeHashId": "910617669a",
+    "locator": "[_midscene_retrieve_task_id='910617669a']",
+    "nodeType": "FORM_ITEM Node",
+    "attributes": {
+      "class": ".toggle",
+      "type": "checkbox",
+      "data-testid": "todo-item-toggle",
+      "htmlTagName": "<input>",
+      "nodeType": "FORM_ITEM Node"
+    },
+    "content": "",
+    "rect": {
+      "left": 365,
+      "top": 265,
+      "width": 40,
+      "height": 40,
+      "zoom": 1
+    },
+    "center": [
+      385,
+      285
+    ],
+    "zoom": 1,
+    "screenWidth": 1280,
+    "screenHeight": 720,
+    "indexId": "7"
+  },
+  {
+    "id": "14b20d0963",
+    "nodePath": "0-0-1-1-1-0-1-0",
+    "nodeHashId": "14b20d0963",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node"
+    },
+    "center": [
+      484,
+      285
+    ],
+    "content": "Learn Rust",
+    "rect": {
+      "left": 425,
+      "top": 271,
+      "width": 117,
+      "height": 28,
+      "zoom": 1
+    },
+    "zoom": 1,
+    "screenWidth": 1280,
+    "screenHeight": 720,
+    "indexId": "8"
+  },
+  {
+    "id": "1b33e5dd50",
+    "nodePath": "0-0-1-1-1-0-2",
+    "nodeHashId": "1b33e5dd50",
+    "nodeType": "BUTTON Node",
+    "locator": "[_midscene_retrieve_task_id='1b33e5dd50']",
+    "attributes": {
+      "class": ".destroy",
+      "data-testid": "todo-item-button",
+      "nodeType": "BUTTON Node"
+    },
+    "content": "×",
+    "rect": {
+      "left": 865,
+      "top": 265,
+      "width": 40,
+      "height": 40,
+      "zoom": 1
+    },
+    "center": [
+      885,
+      285
+    ],
+    "zoom": 1,
+    "screenWidth": 1280,
+    "screenHeight": 720,
+    "indexId": "9"
+  },
+  {
+    "id": "5070d9f1ff",
+    "nodePath": "0-0-1-1-2-0-0",
+    "nodeHashId": "5070d9f1ff",
+    "locator": "[_midscene_retrieve_task_id='5070d9f1ff']",
+    "nodeType": "FORM_ITEM Node",
+    "attributes": {
+      "class": ".toggle",
+      "type": "checkbox",
+      "data-testid": "todo-item-toggle",
+      "htmlTagName": "<input>",
+      "nodeType": "FORM_ITEM Node"
+    },
+    "content": "",
+    "rect": {
+      "left": 365,
+      "top": 325,
+      "width": 40,
+      "height": 40,
+      "zoom": 1
+    },
+    "center": [
+      385,
+      345
+    ],
+    "zoom": 1,
+    "screenWidth": 1280,
+    "screenHeight": 720,
+    "indexId": "10"
+  },
+  {
+    "id": "3277d35f7c",
+    "nodePath": "0-0-1-1-2-0-1-0",
+    "nodeHashId": "3277d35f7c",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node"
+    },
+    "center": [
+      470,
+      345
+    ],
+    "content": "Learn AI",
+    "rect": {
+      "left": 425,
+      "top": 331,
+      "width": 89,
+      "height": 28,
+      "zoom": 1
+    },
+    "zoom": 1,
+    "screenWidth": 1280,
+    "screenHeight": 720,
+    "indexId": "11"
+  },
+  {
+    "id": "3bbb210c65",
+    "nodePath": "0-0-2-1-0-0-0",
+    "nodeHashId": "3bbb210c65",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node"
+    },
+    "center": [
+      565,
+      395
+    ],
+    "content": "All",
+    "rect": {
+      "left": 558,
+      "top": 386,
+      "width": 14,
+      "height": 18,
+      "zoom": 1
+    },
+    "zoom": 1,
+    "screenWidth": 1280,
+    "screenHeight": 720,
+    "indexId": "12"
+  },
+  {
+    "id": "e5eeb9be7c",
+    "nodePath": "0-0-2-1-1-0-0",
+    "nodeHashId": "e5eeb9be7c",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node"
+    },
+    "center": [
+      613,
+      395
+    ],
+    "content": "Active",
+    "rect": {
+      "left": 594,
+      "top": 386,
+      "width": 38,
+      "height": 18,
+      "zoom": 1
+    },
+    "zoom": 1,
+    "screenWidth": 1280,
+    "screenHeight": 720,
+    "indexId": "13"
+  },
+  {
+    "id": "8dfa7ce553",
+    "nodePath": "0-0-2-1-2-0-0",
+    "nodeHashId": "8dfa7ce553",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node"
+    },
+    "center": [
+      688,
+      395
+    ],
+    "content": "Completed",
+    "rect": {
+      "left": 653,
+      "top": 386,
+      "width": 69,
+      "height": 18,
+      "zoom": 1
+    },
+    "zoom": 1,
+    "screenWidth": 1280,
+    "screenHeight": 720,
+    "indexId": "14"
+  },
+  {
+    "id": "69e78b5a71",
+    "nodePath": "0-0-2-2",
+    "nodeHashId": "69e78b5a71",
+    "nodeType": "BUTTON Node",
+    "locator": "[_midscene_retrieve_task_id='69e78b5a71']",
+    "attributes": {
+      "class": ".clear-completed",
+      "nodeType": "BUTTON Node"
+    },
+    "content": "Clear completed",
+    "rect": {
+      "left": 797,
+      "top": 385,
+      "width": 103,
+      "height": 19,
+      "zoom": 1
+    },
+    "center": [
+      849,
+      395
+    ],
+    "zoom": 1,
+    "screenWidth": 1280,
+    "screenHeight": 720,
+    "indexId": "15"
+  },
+  {
+    "id": "9cfdb53c27",
+    "nodePath": "0-1-0-0",
+    "nodeHashId": "9cfdb53c27",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node"
+    },
+    "center": [
+      640,
+      486
+    ],
+    "content": "Double-click to edit a todo",
+    "rect": {
+      "left": 580,
+      "top": 479,
+      "width": 120,
+      "height": 13,
+      "zoom": 1
+    },
+    "zoom": 1,
+    "screenWidth": 1280,
+    "screenHeight": 720,
+    "indexId": "16"
+  },
+  {
+    "id": "36d8d21151",
+    "nodePath": "0-1-1-0",
+    "nodeHashId": "36d8d21151",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node"
+    },
+    "center": [
+      640,
+      508
+    ],
+    "content": "Created by the TodoMVC Team",
+    "rect": {
+      "left": 568,
+      "top": 501,
+      "width": 144,
+      "height": 13,
+      "zoom": 1
+    },
+    "zoom": 1,
+    "screenWidth": 1280,
+    "screenHeight": 720,
+    "indexId": "17"
+  },
+  {
+    "id": "071998ac23",
+    "nodePath": "0-1-2-0",
+    "nodeHashId": "071998ac23",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node"
+    },
+    "center": [
+      616,
+      530
+    ],
+    "content": "Part of",
+    "rect": {
+      "left": 599,
+      "top": 523,
+      "width": 33,
+      "height": 13,
+      "zoom": 1
+    },
+    "zoom": 1,
+    "screenWidth": 1280,
+    "screenHeight": 720,
+    "indexId": "18"
+  },
+  {
+    "id": "bf9f443c29",
+    "nodePath": "0-1-2-1-0",
+    "nodeHashId": "bf9f443c29",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node"
+    },
+    "center": [
+      656,
+      530
+    ],
+    "content": "TodoMVC",
+    "rect": {
+      "left": 632,
+      "top": 523,
+      "width": 48,
+      "height": 13,
+      "zoom": 1
+    },
+    "zoom": 1,
+    "screenWidth": 1280,
+    "screenHeight": 720,
+    "indexId": "19"
+  }
+]

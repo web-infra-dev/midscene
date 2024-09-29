@@ -28,6 +28,9 @@ You are an expert in software page image (2D) and page element text analysis.
 - The returned data must conform to the specified JSON format.
 
 ## Output Format:
+
+Please return the result in JSON format as follows:
+
 \`\`\`json
 {
   "elements": [

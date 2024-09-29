@@ -37,8 +37,8 @@ export function systemPromptToTaskPlanning() {
   2. In most cases, you should Locate one element first, then do other actions on it. For example, alway Find one element, then hover on it. But if you think it's necessary to do other actions first (like global scroll, global key press), you can do that.
 
   If the planned tasks are sequential and tasks may appear only after the execution of previous tasks, this is considered normal. Thoughts, prompts, and error messages should all be in the same language as the user query.
-  
-  Return in the following JSON format:
+
+  Please return the result in JSON format as follows:
   {
     queryLanguage: '', // language of the description of the task
     actions: [ // always return in Array

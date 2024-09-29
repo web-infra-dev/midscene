@@ -14,6 +14,7 @@ export const MIDSCENE_MODEL_NAME = 'MIDSCENE_MODEL_NAME';
 export const MIDSCENE_LANGSMITH_DEBUG = 'MIDSCENE_LANGSMITH_DEBUG';
 export const MIDSCENE_DEBUG_AI_PROFILE = 'MIDSCENE_DEBUG_AI_PROFILE';
 export const OPENAI_API_KEY = 'OPENAI_API_KEY';
+export const MIDSCENE_MODEL_TEXT_ONLY = 'MIDSCENE_MODEL_TEXT_ONLY';
 
 const OPENAI_USE_AZURE = 'OPENAI_USE_AZURE';
 
@@ -73,6 +74,7 @@ export async function call(
     messages,
     response_format: responseFormat,
     temperature: 0.2,
+    stream: false,
   });
   shouldPrintTiming && console.timeEnd('Midscene - AI call');
   shouldPrintTiming && console.log('Midscene - AI usage', completion.usage);
@@ -110,7 +112,35 @@ export async function callToGetJSONObject<T>(
     }
   }
 
+  if (model.startsWith('gemini')) {
+    responseFormat = { type: AIResponseFormat.TEXT };
+  }
+
   const response = await call(messages, responseFormat);
   assert(response, 'empty response');
-  return JSON.parse(response.replace(/^```json\n|\n```$/g, ''));
+  const jsonContent = extractJSONFromCodeBlock(response);
+  return JSON.parse(jsonContent);
+}
+
+export function extractJSONFromCodeBlock(response: string) {
+  // First, try to match a JSON object directly in the response
+  const jsonMatch = response.match(/^\s*(\{[\s\S]*\})\s*$/);
+  if (jsonMatch) {
+    return jsonMatch[1];
+  }
+
+  // If no direct JSON object is found, try to extract JSON from a code block
+  const codeBlockMatch = response.match(/```(?:json)?\s*(\{[\s\S]*?\})\s*```/);
+  if (codeBlockMatch) {
+    return codeBlockMatch[1];
+  }
+
+  // If no code block is found, try to find a JSON-like structure in the text
+  const jsonLikeMatch = response.match(/\{[\s\S]*\}/);
+  if (jsonLikeMatch) {
+    return jsonLikeMatch[0];
+  }
+
+  // If no JSON-like structure is found, return the original response
+  return response;
 }
