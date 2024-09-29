@@ -19,7 +19,6 @@ export async function launchPage(
     deviceScaleFactor: opt?.viewport?.deviceScaleFactor || 1,
   };
   await originPage.setViewport(viewportConfig);
-  const webPage = new PuppeteerWebPage(originPage);
   await Promise.all([
     originPage.waitForNavigation({
       timeout: 20 * 1000,
@@ -35,10 +34,11 @@ export async function launchPage(
       }
     })(),
   ]);
+  const page = new PuppeteerWebPage(originPage);
 
   return {
-    page: originPage,
-    webPage,
+    page,
+    originPage,
     reset: async () => {
       await browser.close();
     },
