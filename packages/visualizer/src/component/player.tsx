@@ -28,10 +28,8 @@ const cubicBezier = (
 };
 
 const cubicImage = (t: number): number => {
-  // return cubicBezier(t, 0, 0.69, 0.43, 1);
-  // using ease-in-out
-  // return cubicBezier(t, 0, 0.6, 0.6, 1);
-  return linear(t); //, 0, 0.6, 0.6, 1);
+  return cubicBezier(t, 0, 0.69, 0.43, 1);
+  // return linear(t); //, 0, 0.6, 0.6, 1);
 };
 
 const cubicInsightElement = (t: number): number => {

@@ -33,6 +33,7 @@
     "dayjs": "1.11.11",
     "http-server": "14.1.1",
     "npm-watch": "0.13.0",
+    "pixi-filters": "6.0.5",
     "pixi.js": "8.1.1",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",

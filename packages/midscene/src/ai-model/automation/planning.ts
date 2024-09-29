@@ -55,7 +55,7 @@ If the action type is not 'Locate', or there is no element meets the description
 
 ## Output JSON Format:
 
-Return in the following JSON format:
+Please return the result in JSON format as follows:
 {
   queryLanguage: '', // language of the description of the task
   actions: [ // always return in Array
