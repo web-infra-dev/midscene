@@ -228,7 +228,9 @@ export function visibleRect(
     return false;
   }
 
-  if (isElementCovered(el, rect)) {
+  // check if the element is covered by another element
+  // zoom can cause the element to be covered by another element
+  if (baseZoom !== 1 && isElementCovered(el, rect)) {
     return false;
   }
 

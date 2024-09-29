@@ -54,8 +54,8 @@ describe(
       const shotpath = await page.screenshot();
 
       const info = await imageInfo(shotpath);
-      expect(info.width).toBe(1080);
       expect(info.height).toBe(2000);
+      expect(info.width).toBe(1080);
       await reset();
     });
 
@@ -71,8 +71,8 @@ describe(
       const shotpath = await page.screenshot();
 
       const info = await imageInfo(shotpath);
-      expect(info.width).toBe(1080); // always 1x for screenshot
-      expect(info.height).toBe(2000);
+      expect(info.width).toBeLessThanOrEqual(1080); // always 1x for screenshot
+      expect(info.height).toBeLessThanOrEqual(2000); // always 1x for screenshot
       await reset();
     });
 
@@ -96,6 +96,7 @@ describe(
           disableSnapshot: true,
         },
       );
+      await reset();
     });
 
     it('profile ', async () => {

@@ -10,7 +10,7 @@ export async function launchPage(
   },
 ) {
   const browser = await puppeteer.launch({
-    headless: typeof opt?.headless === 'boolean' ? opt.headless : true,
+    headless: typeof opt?.headless === 'boolean' ? opt.headless : false,
   });
   const originPage = (await browser.pages())[0];
   const viewportConfig = {
@@ -40,6 +40,8 @@ export async function launchPage(
     page,
     originPage,
     reset: async () => {
+      const pages = await browser.pages();
+      await Promise.all(pages.map((page) => page.close()));
       await browser.close();
     },
   };
