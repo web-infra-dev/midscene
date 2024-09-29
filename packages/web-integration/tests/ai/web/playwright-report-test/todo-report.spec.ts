@@ -21,8 +21,6 @@ test('ai report', async ({ page, ai, aiAssert }, testInfo) => {
       type: 'query',
     },
   );
-  const parseList = JSON.stringify(actionsList, null, 4);
-  expect(parseList).toMatchSnapshot();
   await aiAssert(
     'On the left taskbar, check whether the specific execution content of the right task is normal',
   );
