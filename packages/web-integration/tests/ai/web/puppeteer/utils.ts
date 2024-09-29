@@ -10,7 +10,7 @@ export async function launchPage(
   },
 ) {
   const browser = await puppeteer.launch({
-    headless: typeof opt?.headless === 'boolean' ? opt.headless : false,
+    headless: typeof opt?.headless === 'boolean' ? opt.headless : true,
   });
   const originPage = (await browser.pages())[0];
   const viewportConfig = {
