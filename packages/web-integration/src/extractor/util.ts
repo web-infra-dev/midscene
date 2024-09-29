@@ -129,7 +129,7 @@ export interface ExtractedRect {
   zoom: number;
 }
 
-function getRect(el: HTMLElement | Node, baseZoom = 1): ExtractedRect {
+export function getRect(el: HTMLElement | Node, baseZoom = 1): ExtractedRect {
   let originalRect: DOMRect;
   let newZoom = 1;
   if (!(el instanceof HTMLElement)) {
@@ -229,8 +229,8 @@ export function visibleRect(
   }
 
   // check if the element is covered by another element
-  // zoom can cause the element to be covered by another element
-  if (baseZoom !== 1 && isElementCovered(el, rect)) {
+  // if the element is zoomed, the coverage check should be done with the original zoom
+  if (baseZoom === 1 && isElementCovered(el, rect)) {
     return false;
   }
 

@@ -16,6 +16,7 @@ import {
   getDocument,
   getNodeAttributes,
   getPseudoElementContent,
+  getRect,
   logger,
   midsceneGenerateHash,
   setDataForNode,
@@ -252,9 +253,10 @@ export function extractTextWithPosition(
       return elementInfo;
     }
 
+    const rect = getRect(node, baseZoom);
     for (let i = 0; i < node.childNodes.length; i++) {
       logger('will dfs', node.childNodes[i]);
-      dfs(node.childNodes[i], `${nodePath}-${i}`, elementInfo?.zoom);
+      dfs(node.childNodes[i], `${nodePath}-${i}`, rect.zoom);
     }
 
     if (!elementInfo) {
