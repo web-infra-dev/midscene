@@ -3,7 +3,6 @@ import path from 'node:path';
 import type { WebPage } from '@/common/page';
 import type { ElementInfo } from '@/extractor';
 import { NodeType } from '@/extractor/constants';
-import { getTmpFile } from '@midscene/core/utils';
 import {
   processImageElementInfo,
   resizeImg,
@@ -21,8 +20,7 @@ export async function generateExtractData(
     disableSnapshot: boolean;
   },
 ) {
-  const file = getTmpFile('png');
-  await page.screenshot({ path: file });
+  const file = await page.screenshot();
   const screenshotBuffer = readFileSync(file);
 
   const inputImgBase64 = screenshotBuffer.toString('base64');

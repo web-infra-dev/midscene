@@ -22,9 +22,11 @@ const htmlPath = join(__dirname, '../html/tpl.html');
 const cssPath = join(__dirname, '../dist/report/index.css');
 const jsPath = join(__dirname, '../dist/report/index.js');
 const demoPath = join(__dirname, './fixture/demo-dump.json');
+const demoMobilePath = join(__dirname, './fixture/demo-mobile-dump.json');
 const multiEntrySegment = join(__dirname, './fixture/multi-entries.html');
 const outputHTML = join(__dirname, '../dist/report/index.html');
 const outputDemoHTML = join(__dirname, '../dist/report/demo.html');
+const outputDemoMobileHTML = join(__dirname, '../dist/report/demo-mobile.html');
 const outputMultiEntriesHTML = join(__dirname, '../dist/report/multi.html');
 const outputEmptyDumpHTML = join(__dirname, '../dist/report/empty-error.html');
 
@@ -74,6 +76,15 @@ function build() {
   });
   writeFileSync(outputDemoHTML, resultWithDemo);
   console.log(`HTML file generated successfully: ${outputDemoHTML}`);
+
+  const demoMobileData = readFileSync(demoMobilePath, 'utf-8');
+  const resultWithDemoMobile = tplReplacer(html, {
+    css: `<style>\n${css}\n</style>\n`,
+    js: `<script>\n${js}\n</script>`,
+    dump: `<script type="midscene_web_dump" type="application/json">${demoMobileData}</script>`,
+  });
+  writeFileSync(outputDemoMobileHTML, resultWithDemoMobile);
+  console.log(`HTML file generated successfully: ${outputDemoMobileHTML}`);
 
   const multiEntriesData = readFileSync(multiEntrySegment, 'utf-8');
   const resultWithMultiEntries = tplReplacer(html, {

@@ -1,7 +1,7 @@
 {
   "name": "@midscene/cli",
   "description": "Cli for Midscene.js",
-  "version": "0.4.0",
+  "version": "0.5.1",
   "jsnext:source": "./src/index.ts",
   "main": "./dist/lib/index.js",
   "bin": {

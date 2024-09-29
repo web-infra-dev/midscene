@@ -1,11 +1,16 @@
 import {
   ArrowRightOutlined,
   CheckCircleFilled,
+  CheckCircleOutlined,
+  CheckOutlined,
   ClockCircleFilled,
+  ClockCircleOutlined,
   CloseCircleFilled,
+  CloseOutlined,
   LogoutOutlined,
   MinusOutlined,
   WarningFilled,
+  WarningOutlined,
 } from '@ant-design/icons';
 
 export function timeCostStrElement(timeCost?: number) {
@@ -29,22 +34,21 @@ export function timeCostStrElement(timeCost?: number) {
   );
 }
 
-// playwright status: 'passed' | 'failed' | 'timedOut' | 'skipped' | 'interrupted';
-
 export const iconForStatus = (status: string): JSX.Element => {
   switch (status) {
     case 'finished':
     case 'passed':
+    case 'success':
       return (
         <span style={{ color: '#2B8243' }}>
-          <CheckCircleFilled />
+          <CheckOutlined />
         </span>
       );
 
     case 'finishedWithWarning':
       return (
         <span style={{ color: '#f7bb05' }}>
-          <WarningFilled />
+          <WarningOutlined />
         </span>
       );
     case 'failed':
@@ -52,11 +56,11 @@ export const iconForStatus = (status: string): JSX.Element => {
     case 'interrupted':
       return (
         <span style={{ color: '#FF0A0A' }}>
-          <CloseCircleFilled />
+          <CloseOutlined />
         </span>
       );
     case 'pending':
-      return <ClockCircleFilled />;
+      return <ClockCircleOutlined />;
     case 'cancelled':
     case 'skipped':
       return <LogoutOutlined />;

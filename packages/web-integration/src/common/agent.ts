@@ -1,4 +1,3 @@
-import { assert } from 'node:console';
 import type { WebPage } from '@/common/page';
 import type {
   AgentWaitForOpt,

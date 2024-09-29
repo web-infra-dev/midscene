@@ -34,7 +34,19 @@ Bad ❌: "[number, number], the [x, y] coords of the main button"
 
 Use the visualization tool to debug and understand each step of Midscene. Just upload the log, and view the AI's parse results. You can find [the tool](/visualization/) on the navigation bar on this site. 
 
-### Remember to cross-check the result by assertion
+### Infer or assert from the interface, not the DOM properties or browser status
+
+All the data sent to the LLM is in the form of screenshots and element coordinates. The DOM and the browser instance are almost invisible to the LLM. Therefore, ensure everything you expect is visible in the on the screen.
+
+Good ✅: The title is blue
+
+Bad ❌: The title has a `test-id-size` property
+
+Bad ❌: The browser has two active tabs
+
+Bad ❌: The request has finished.
+
+### Cross-check the result using assertion
 
 LLM could behave incorrectly. A better practice is to check its result after running.
 
@@ -49,13 +61,7 @@ expect(taskList.length).toBe(1);
 expect(taskList[0]).toBe('Learning AI the day after tomorrow');
 ```
 
-### Infer from the UI, not the DOM properties
-
-All the data sent to the LLM are the screenshots and element coordinates. The DOM is almost invisible to the LLM. So do not expect the LLM infer any information from the DOM (such as `test-id-*` properties).
-
-Ensure everything you expect from the LLM is visible in the screenshot.
-
-### non-English prompting is acceptable
+### Non-English prompting is acceptable
 
 Since most AI models can understand many languages, feel free to write the prompt in any language you prefer. It usually works even if the prompt is in a language different from the page's language.
 

@@ -2,7 +2,6 @@ import { writeFileSync } from 'node:fs';
 import path, { join } from 'node:path';
 import { parseContextFromWebPage } from '@/common/utils';
 import { generateExtractData } from '@/debug';
-import { getTmpFile } from '@midscene/core/utils';
 import { imageInfo } from '@midscene/shared/img';
 import { describe, expect, it } from 'vitest';
 import { launchPage } from '../ai/web/puppeteer/utils';
@@ -52,8 +51,7 @@ describe(
         },
       });
 
-      const shotpath = getTmpFile('jpeg');
-      await page.screenshot({ path: shotpath });
+      const shotpath = await page.screenshot();
 
       const info = await imageInfo(shotpath);
       expect(info.width).toBe(1080);
@@ -70,8 +68,7 @@ describe(
         },
       });
 
-      const shotpath = getTmpFile('jpeg');
-      await page.screenshot({ path: shotpath });
+      const shotpath = await page.screenshot();
 
       const info = await imageInfo(shotpath);
       expect(info.width).toBe(1080); // always 1x for screenshot
