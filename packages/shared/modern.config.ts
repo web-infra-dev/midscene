@@ -4,6 +4,7 @@ export default defineConfig({
   plugins: [moduleTools()],
   buildPreset: 'npm-library',
   buildConfig: {
+    shims: true,
     platform: 'node',
     input: {
       index: './src/index.ts',
