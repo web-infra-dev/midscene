@@ -1,6 +1,6 @@
 {
   "name": "@midscene/web",
-  "description": "Web integration for Midscene.js",
+  "description": "An AI-powered automation SDK can control the page, perform assertions, and extract data in JSON format using natural language. See https://midscenejs.com/ for details.",
   "version": "0.5.1",
   "jsnext:source": "./src/index.ts",
   "main": "./dist/lib/index.js",
