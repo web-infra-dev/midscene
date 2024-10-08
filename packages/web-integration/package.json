@@ -6,38 +6,13 @@
   "main": "./dist/lib/index.js",
   "types": "./dist/types/index.d.ts",
   "exports": {
-    ".": {
-      "types": "./dist/types/index.d.ts",
-      "require": "./dist/lib/index.js"
-    },
-    "./puppeteer": {
-      "types": "./dist/types/puppeteer.d.ts",
-      "require": "./dist/lib/puppeteer.js"
-    },
-    "./playwright": {
-      "types": "./dist/types/playwright.d.ts",
-      "require": "./dist/lib/playwright.js"
-    },
-    "./playwright-report": {
-      "types": "./dist/types/playwright-report.d.ts",
-      "require": "./dist/lib/playwright-report.js"
-    },
-    "./appium": {
-      "types": "./dist/types/appium.d.ts",
-      "require": "./dist/lib/appium.js"
-    },
-    "./debug": {
-      "types": "./dist/types/debug.d.ts",
-      "require": "./dist/lib/debug.js"
-    },
-    "./constants": {
-      "types": "./dist/types/constants.d.ts",
-      "require": "./dist/lib/constants.js"
-    },
-    "./html-element": {
-      "types": "./dist/types/html-element/index.d.ts",
-      "require": "./dist/lib/html-element/index.js"
-    }
+    ".": "./dist/lib/index.js",
+    "./puppeteer": "./dist/lib/puppeteer.js",
+    "./playwright": "./dist/lib/playwright.js",
+    "./playwright-report": "./dist/lib/playwright-report.js",
+    "./debug": "./dist/lib/debug.js",
+    "./constants": "./dist/lib/constants.js",
+    "./html-element": "./dist/lib/html-element/index.js"
   },
   "typesVersions": {
     "*": {

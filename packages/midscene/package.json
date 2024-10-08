@@ -3,34 +3,16 @@
   "description": "An AI-powered automation SDK can control the page, perform assertions, and extract data in JSON format using natural language. See https://midscenejs.com/ for details.",
   "version": "0.5.1",
   "jsnext:source": "./src/index.ts",
+  "type": "commonjs",
   "main": "./dist/lib/index.js",
   "types": "./dist/types/index.d.ts",
   "files": ["dist", "report", "README.md"],
   "exports": {
-    ".": {
-      "types": "./dist/types/index.d.ts",
-      "require": "./dist/lib/index.js"
-    },
-    "./query": {
-      "types": "./dist/types/query/index.d.ts",
-      "require": "./dist/lib/query/index.js"
-    },
-    "./demo_data": {
-      "types": "./demo_data/index.d.ts",
-      "require": "./demo_data/index.js"
-    },
-    "./utils": {
-      "types": "./dist/types/utils.d.ts",
-      "require": "./dist/lib/utils.js"
-    },
-    "./ai-model": {
-      "types": "./dist/types/ai-model.d.ts",
-      "require": "./dist/lib/ai-model.js"
-    },
-    "./image": {
-      "types": "./dist/types/image.d.ts",
-      "require": "./dist/lib/image.js"
-    }
+    ".": "./dist/lib/index.js",
+    "./query": "./dist/types/query/index.d.ts",
+    "./utils": "./dist/lib/utils.js",
+    "./ai-model": "./dist/lib/ai-model.js",
+    "./image": "./dist/lib/image.js"
   },
   "typesVersions": {
     "*": {
