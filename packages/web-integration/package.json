@@ -4,49 +4,15 @@
   "version": "0.5.1",
   "jsnext:source": "./src/index.ts",
   "main": "./dist/lib/index.js",
-  "module": "./dist/es/index.js",
   "types": "./dist/types/index.d.ts",
   "exports": {
-    ".": {
-      "types": "./dist/types/index.d.ts",
-      "import": "./dist/es/index.js",
-      "require": "./dist/lib/index.js"
-    },
-    "./puppeteer": {
-      "types": "./dist/types/puppeteer.d.ts",
-      "import": "./dist/es/puppeteer.js",
-      "require": "./dist/lib/puppeteer.js"
-    },
-    "./playwright": {
-      "types": "./dist/types/playwright.d.ts",
-      "import": "./dist/es/playwright.js",
-      "require": "./dist/lib/playwright.js"
-    },
-    "./playwright-report": {
-      "types": "./dist/types/playwright-report.d.ts",
-      "import": "./dist/es/playwright-report.js",
-      "require": "./dist/lib/playwright-report.js"
-    },
-    "./appium": {
-      "types": "./dist/types/appium.d.ts",
-      "import": "./dist/es/appium.js",
-      "require": "./dist/lib/appium.js"
-    },
-    "./debug": {
-      "types": "./dist/types/debug.d.ts",
-      "import": "./dist/es/debug.js",
-      "require": "./dist/lib/debug.js"
-    },
-    "./constants": {
-      "types": "./dist/types/constants.d.ts",
-      "import": "./dist/es/constants.js",
-      "require": "./dist/lib/constants.js"
-    },
-    "./html-element": {
-      "types": "./dist/types/html-element/index.d.ts",
-      "import": "./dist/es/html-element/index.js",
-      "require": "./dist/lib/html-element/index.js"
-    }
+    ".": "./dist/lib/index.js",
+    "./puppeteer": "./dist/lib/puppeteer.js",
+    "./playwright": "./dist/lib/playwright.js",
+    "./playwright-report": "./dist/lib/playwright-report.js",
+    "./debug": "./dist/lib/debug.js",
+    "./constants": "./dist/lib/constants.js",
+    "./html-element": "./dist/lib/html-element/index.js"
   },
   "typesVersions": {
     "*": {
