@@ -4,38 +4,31 @@
   "version": "0.5.1",
   "jsnext:source": "./src/index.ts",
   "main": "./dist/lib/index.js",
-  "module": "./dist/es/index.js",
   "types": "./dist/types/index.d.ts",
   "files": ["dist", "report", "README.md"],
   "exports": {
     ".": {
       "types": "./dist/types/index.d.ts",
-      "import": "./dist/es/index.js",
       "require": "./dist/lib/index.js"
     },
     "./query": {
       "types": "./dist/types/query/index.d.ts",
-      "import": "./dist/es/query/index.js",
       "require": "./dist/lib/query/index.js"
     },
     "./demo_data": {
       "types": "./demo_data/index.d.ts",
-      "import": "./demo_data/index.js",
       "require": "./demo_data/index.js"
     },
     "./utils": {
       "types": "./dist/types/utils.d.ts",
-      "import": "./dist/es/utils.js",
       "require": "./dist/lib/utils.js"
     },
     "./ai-model": {
       "types": "./dist/types/ai-model.d.ts",
-      "import": "./dist/es/ai-model.js",
       "require": "./dist/lib/ai-model.js"
     },
     "./image": {
       "types": "./dist/types/image.d.ts",
-      "import": "./dist/es/image.js",
       "require": "./dist/lib/image.js"
     }
   },
