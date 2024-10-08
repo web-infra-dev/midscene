@@ -5,7 +5,6 @@ export default defineConfig({
   buildPreset: 'npm-library',
   buildConfig: {
     platform: 'node',
-    shims: true,
     input: {
       index: 'src/index.ts',
       utils: 'src/utils.ts',
