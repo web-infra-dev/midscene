@@ -5,7 +5,7 @@
 <h1 align="center">Midscene.js</h1>
 <div align="center">
 
-[English](./README.md) | 简体中文
+[English](./README.md) | 简体中文 | [日本語](./README.ja.md)
 
 </div>
 
@@ -20,7 +20,7 @@
 </p>
 
 
-Midscene.js 是一个由 AI 驱动的自动化 SDK，能够使用自然语言对网页进行操作、验证，并提取 JSON 格式的数据。
+Midscene.js 是一个由 AI �动的自动化 SDK，能够使用自然语言对网页进行操作、验证，并提取 JSON 格式的数据。
 
 <p align="center">
   <video src="https://github.com/user-attachments/assets/995486bf-0905-43a0-ae33-234b1307dcf1" controls/>

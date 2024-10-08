@@ -6,7 +6,7 @@
 <h1 align="center">Midscene.js</h1>
 <div align="center">
 
-English | [简体中文](./README.zh.md)
+English | [简体中文](./README.zh.md) | [日本語](./README.ja.md)
 
 </div>
 
@@ -27,7 +27,7 @@ Midscene.js is an AI-powered automation SDK can control the page, perform assert
 </p>
 
 
-## Features ✨
+## Features �
 
 - **Natural Language Interaction 👆**: Describe the steps and let Midscene plan and control the user interface for you
 - **Understand UI, Answer in JSON 🔍**: Provide prompts regarding the desired data format, and then receive the expected response in JSON format.
