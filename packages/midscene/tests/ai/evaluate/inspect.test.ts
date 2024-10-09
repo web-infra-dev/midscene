@@ -69,6 +69,7 @@ describe('ai inspect element', () => {
           );
 
           const analyzer = new TestResultAnalyzer(
+            context,
             aiDataPath,
             aiData,
             aiResponse,

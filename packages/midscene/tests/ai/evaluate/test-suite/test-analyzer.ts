@@ -1,7 +1,7 @@
 import { readFileSync, unlinkSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { MIDSCENE_MODEL_NAME } from '@/ai-model/openai';
-import { writeFileSyncWithDir } from './util';
+import { type getPageTestData, writeFileSyncWithDir } from './util';
 
 export class TestResultAnalyzer {
   private successCount = 0;
@@ -11,23 +11,27 @@ export class TestResultAnalyzer {
   private updateAiData = Boolean(process.env.UPDATE_AI_DATA);
   private successResults: {
     index: number;
+    imgLists: any[];
     response: any[];
     prompt: string;
   }[] = [];
   private failResults: {
     index: number;
     expected: any[];
+    imgLists: any[];
     actual: any[];
     prompt: string;
   }[] = [];
   private totalTime = 0;
 
   constructor(
+    private context: Awaited<ReturnType<typeof getPageTestData>>['context'],
     private aiDataPath: string,
     private aiData: any,
     private aiResponse: any[],
     repeatIndex: number,
   ) {
+    this.context = context;
     this.repeatIndex = repeatIndex;
   }
 
@@ -75,28 +79,33 @@ export class TestResultAnalyzer {
 
     if (this.updateAiData) {
       testCase.response = result.response.map((element: any) => {
-        const elementInfo = result.elementsSnapshot.find(
-          (e: any) => e.id === element.id,
-        );
         return {
           id: element.id,
-          indexId: elementInfo?.indexId,
+          indexId: this.getElementIndexId(result, element),
         };
       });
     }
+  }
+
+  private getElementIndexId(result: any, id: string) {
+    const elementInfo = this.context.content.find((e: any) => e.id === id);
+    return elementInfo?.indexId;
   }
 
   private handleSuccess(result: any, testCase: any, index: number) {
     this.successCount++;
     this.successResults.push({
       index,
+      imgLists: result.imgLists.map((img: any) => {
+        return {
+          ...img,
+          indexId: this.getElementIndexId(result, img.id),
+        };
+      }),
       response: result.elements.map((element: any) => {
-        const elementInfo = result.elementsSnapshot.find(
-          (e: any) => e.id === element.id,
-        );
         return {
           ...element,
-          indexId: elementInfo?.indexId,
+          indexId: this.getElementIndexId(result, element.id),
         };
       }),
       prompt: testCase.prompt,
@@ -107,14 +116,17 @@ export class TestResultAnalyzer {
     this.failCount++;
     this.failResults.push({
       index,
+      imgLists: result.imgLists.map((img: any) => {
+        return {
+          ...img,
+          indexId: this.getElementIndexId(result, img.id),
+        };
+      }),
       expected: testCase.reponse,
       actual: result.response.map((element: any) => {
-        const elementInfo = result.elementsSnapshot.find(
-          (e: any) => e?.id === element?.id,
-        );
         return {
           id: element.id,
-          indexId: elementInfo?.indexId,
+          indexId: this.getElementIndexId(result, element.id),
         };
       }),
       prompt: result.prompt,

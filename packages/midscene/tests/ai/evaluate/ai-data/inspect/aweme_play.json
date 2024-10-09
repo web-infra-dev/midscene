@@ -2,38 +2,20 @@
   "testDataPath": "test-data/aweme-play",
   "testCases": [
     {
-      "prompt": "搜索框",
+      "prompt": "左下角播放或暂停按钮（图标类型）",
       "response": [
         {
-          "id": "0fd5c7c2a3",
+          "id": "d2f421f2ff",
           "indexId": 1
         }
       ]
     },
     {
-      "prompt": "搜索按钮",
+      "prompt": "点赞按钮",
       "response": [
         {
-          "id": "0c8ccb3882",
-          "indexId": 2
-        }
-      ]
-    },
-    {
-      "prompt": "左下角播放或暂停按钮（图标类型）",
-      "response": [
-        {
-          "id": "b2228dc076",
-          "indexId": 3
-        }
-      ]
-    },
-    {
-      "prompt": "爱心图标",
-      "response": [
-        {
-          "id": "c78640e6a7",
-          "indexId": 21
+          "id": "62816ec4f7",
+          "indexId": 13
         }
       ]
     },
@@ -41,26 +23,17 @@
       "prompt": "评论按钮",
       "response": [
         {
-          "id": "51cb93625e",
-          "indexId": 23
+          "id": "257b9c04eb",
+          "indexId": 15
         }
       ]
     },
     {
-      "prompt": "收藏按钮",
+      "prompt": "右下区域声音按钮",
       "response": [
         {
-          "id": "c99ce255fe",
-          "indexId": 25
-        }
-      ]
-    },
-    {
-      "prompt": "右下角声音按钮",
-      "response": [
-        {
-          "id": "9392ab543f",
-          "indexId": 9
+          "id": "4175413093",
+          "indexId": 7
         }
       ]
     }
