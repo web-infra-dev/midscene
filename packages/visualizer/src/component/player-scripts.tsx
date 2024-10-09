@@ -34,6 +34,7 @@ export interface AnimationScript {
   camera?: TargetCameraState;
   insightDump?: InsightDump;
   duration: number;
+  insightCameraDuration?: number;
   title?: string;
   subTitle?: string;
 }
@@ -190,6 +191,7 @@ export const generateAnimationScripts = (
               : mergeTwoCameraState(currentCameraState, insightCameraState),
           duration:
             insightContentLength > 20 ? locateDuration : locateDuration * 0.5,
+          insightCameraDuration: locateDuration,
           title,
           subTitle,
         });

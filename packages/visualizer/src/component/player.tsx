@@ -3,7 +3,9 @@ import * as PIXI from 'pixi.js';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import './player.less';
 import { mouseLoading, mousePointer } from '@/utils';
+import { CheckCircleOutlined, LoadingOutlined } from '@ant-design/icons';
 import type { BaseElement } from '@midscene/core/.';
+import { ConfigProvider, Spin } from 'antd';
 import { rectMarkForItem } from './blackboard';
 import type { CameraState, TargetCameraState } from './player-scripts';
 import { useExecutionDump } from './store';
@@ -28,20 +30,16 @@ const cubicBezier = (
 };
 
 const cubicImage = (t: number): number => {
-  return cubicBezier(t, 0, 0.69, 0.43, 1);
-  // return linear(t); //, 0, 0.6, 0.6, 1);
+  // return cubicBezier(t, 0, 0.69, 0.43, 1);
+  return linear(t);
 };
 
 const cubicInsightElement = (t: number): number => {
-  // return cubicBezier(t, 0, 0.69, 0.43, 1);
-  // using ease-in-out
   return cubicBezier(t, 0, 0.5, 0.5, 1);
 };
 
 const cubicMouse = (t: number): number => {
   return linear(t);
-  // return cubicBezier(t, 0, 0.99, 0.03, 1);
-  // return cubicBezier(t, 0, 0.99, 0.03, 1);
 };
 
 const linear = (t: number): number => {
@@ -99,6 +97,8 @@ const Player = (): JSX.Element => {
     },
   };
 
+  // -1: not started, 0: running, 1: finished
+  const [animationProgress, setAnimationProgress] = useState(-1);
   const cancelFlag = useRef(false);
 
   useEffect(() => {
@@ -151,9 +151,7 @@ const Player = (): JSX.Element => {
     windowContentContainer.addChild(sprite);
   };
 
-  const spinningPointer = async (): Promise<() => void> => {
-    // use center of the sprite to rotate
-    // await updatePointer(mouseLoading);
+  const spinningPointer = (): (() => void) => {
     if (!spinningPointerSprite.current) {
       spinningPointerSprite.current = PIXI.Sprite.from(mouseLoading);
       spinningPointerSprite.current.zIndex = LAYER_ORDER_SPINNING_POINTER;
@@ -447,18 +445,35 @@ const Player = (): JSX.Element => {
     });
   };
 
-  useEffect(() => {
+  const init = async (): Promise<void> => {
+    if (!divContainerRef.current || !scripts) return;
+
+    await app.init({
+      width: canvasWidth,
+      height: canvasHeight,
+      background: 0xf4f4f4,
+    });
+    divContainerRef.current.appendChild(app.canvas); // Ensure app.view is appended
+
+    windowContentContainer.x = 0;
+    windowContentContainer.y = 0;
+    app.stage.addChild(windowContentContainer);
+
+    insightMarkContainer.x = 0;
+    insightMarkContainer.y = 0;
+    windowContentContainer.addChild(insightMarkContainer);
+  };
+
+  const play = async (): Promise<() => void> => {
     let cancelFn: () => void;
     Promise.resolve(
       (async () => {
-        if (!divContainerRef.current || !scripts || !app) return;
-
-        await app.init({
-          width: canvasWidth,
-          height: canvasHeight,
-          background: 0xf4f4f4,
-        });
-        divContainerRef.current.appendChild(app.canvas); // Ensure app.view is appended
+        if (!app) {
+          throw new Error('app is not initialized');
+        }
+        if (!scripts) {
+          throw new Error('scripts is required');
+        }
 
         const allImages: string[] = scripts
           .filter((item) => !!item.img)
@@ -467,22 +482,29 @@ const Player = (): JSX.Element => {
         // Load and display the image
         await Promise.all([...allImages, mouseLoading].map(preloadImage));
 
-        windowContentContainer.x = 0;
-        windowContentContainer.y = 0;
-        app.stage.addChild(windowContentContainer);
-
-        insightMarkContainer.x = 0;
-        insightMarkContainer.y = 0;
-        windowContentContainer.addChild(insightMarkContainer);
-
         // pointer on top
         await updatePointer(mousePointer, imageWidth / 2, imageHeight / 2);
         // let lastImg: string = scripts[0].img!;
         await repaintImage();
         await updateCamera(cameraState.current);
 
+        const totalDuration = scripts.reduce((acc, item) => {
+          return acc + item.duration + (item.insightCameraDuration || 0);
+        }, 0);
+
+        const startTime = performance.now();
+        setAnimationProgress(0);
+        setInterval(() => {
+          const progress = Math.min(
+            (performance.now() - startTime) / totalDuration,
+            1,
+          );
+          setAnimationProgress(progress);
+        }, 300);
+
         // play animation
-        for (const item of scripts) {
+        for (const index in scripts) {
+          const item = scripts[index];
           setTitleText(item.title || '');
           setSubTitleText(item.subTitle || '');
           if (item.type === 'sleep') {
@@ -502,7 +524,10 @@ const Player = (): JSX.Element => {
               item.duration,
             );
             if (item.camera) {
-              await cameraAnimation(item.camera, item.duration);
+              if (!item.insightCameraDuration) {
+                throw new Error('insightCameraDuration is required');
+              }
+              await cameraAnimation(item.camera, item.insightCameraDuration);
             }
             // const insightMark = insightMarkForItem(item);
             // insightMarkContainer.addChild(insightMark);
@@ -526,9 +551,9 @@ const Player = (): JSX.Element => {
             }
             await updatePointer(item.img);
           } else if (item.type === 'spinning-pointer') {
-            const cancelFn = await spinningPointer();
+            const stop = spinningPointer();
             await sleep(item.duration);
-            cancelFn();
+            stop();
           }
         }
       })(),
@@ -538,6 +563,22 @@ const Player = (): JSX.Element => {
     return () => {
       try {
         cancelFn?.();
+      } catch (e) {
+        console.warn('destroy failed', e);
+      }
+    };
+  };
+
+  useEffect(() => {
+    Promise.resolve(
+      (async () => {
+        await init();
+        await play();
+      })(),
+    );
+
+    return () => {
+      try {
         app.destroy(true, { children: true, texture: true });
       } catch (e) {
         console.warn('destroy failed', e);
@@ -545,15 +586,42 @@ const Player = (): JSX.Element => {
     };
   }, []);
 
-  const showControl = !!titleText;
+  const progressString = Math.round(animationProgress * 100);
+  const statusIcon =
+    animationProgress === 1 ? (
+      <CheckCircleOutlined />
+    ) : (
+      <LoadingOutlined spin />
+    );
 
   return (
     <div className="player-container">
-      <div className="player-top-placeholder">&nbsp;</div>
       <div className="canvas-container" ref={divContainerRef} />
-      <div className="player-controls" style={{ opacity: showControl ? 1 : 0 }}>
-        <div className="title">{titleText}</div>
-        <div className="subtitle">{subTitleText}</div>
+      <div className="player-timeline">
+        <div
+          className="player-timeline-progress"
+          style={{ width: `${progressString}%` }}
+        />
+      </div>
+      <div className="player-controls">
+        <div className="status-icon">
+          <ConfigProvider
+            theme={{
+              components: {
+                Spin: {
+                  dotSize: 24,
+                  colorPrimary: 'rgb(6,177,171)',
+                },
+              },
+            }}
+          >
+            <Spin indicator={statusIcon} size="default" />
+          </ConfigProvider>
+        </div>
+        <div className="status-text">
+          <div className="title">{titleText}</div>
+          <div className="subtitle">{subTitleText}</div>
+        </div>
       </div>
     </div>
   );
