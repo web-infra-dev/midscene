@@ -64,10 +64,25 @@ export class TestResultAnalyzer {
     const resultElements = result.response.map((element: any) => ({
       id: element.id,
     }));
-    if (JSON.stringify(resultElements) === JSON.stringify(testCase.response)) {
+    const testCaseElements = testCase.response.map((element: any) => ({
+      id: element.id,
+    }));
+    if (JSON.stringify(resultElements) === JSON.stringify(testCaseElements)) {
       this.handleSuccess(result, testCase, index);
     } else {
       this.handleFailure(result, testCase, index);
+    }
+
+    if (this.updateAiData) {
+      testCase.response = result.response.map((element: any) => {
+        const elementInfo = result.elementsSnapshot.find(
+          (e: any) => e.id === element.id,
+        );
+        return {
+          id: element.id,
+          indexId: elementInfo?.indexId,
+        };
+      });
     }
   }
 
@@ -75,7 +90,15 @@ export class TestResultAnalyzer {
     this.successCount++;
     this.successResults.push({
       index,
-      response: result.elements,
+      response: result.elements.map((element: any) => {
+        const elementInfo = result.elementsSnapshot.find(
+          (e: any) => e.id === element.id,
+        );
+        return {
+          ...element,
+          indexId: elementInfo?.indexId,
+        };
+      }),
       prompt: testCase.prompt,
     });
   }
@@ -85,15 +108,17 @@ export class TestResultAnalyzer {
     this.failResults.push({
       index,
       expected: testCase.reponse,
-      actual: result.response.map((element: any) => ({ id: element.id })),
+      actual: result.response.map((element: any) => {
+        const elementInfo = result.elementsSnapshot.find(
+          (e: any) => e?.id === element?.id,
+        );
+        return {
+          id: element.id,
+          indexId: elementInfo?.indexId,
+        };
+      }),
       prompt: result.prompt,
     });
-
-    if (this.updateAiData) {
-      testCase.response = result.response.map((element: any) => ({
-        id: element.id,
-      }));
-    }
   }
 
   private generateResultData() {
@@ -107,8 +132,8 @@ export class TestResultAnalyzer {
       averageTime: `${(averageTime / 1000).toFixed(2)}s`,
       successCount: this.successCount,
       failCount: this.failCount,
-      successResults: this.successResults,
       failResults: this.failResults,
+      successResults: this.successResults,
       aiResponse: this.aiResponse,
     };
   }

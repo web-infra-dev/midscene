@@ -73,7 +73,8 @@ export async function call(
     model,
     messages,
     response_format: responseFormat,
-    temperature: 0.2,
+    temperature: 0,
+    top_p: 1,
     stream: false,
   });
   shouldPrintTiming && console.timeEnd('Midscene - AI call');

@@ -3,64 +3,64 @@
   "testCases": [
     {
       "prompt": "搜索框",
-      "multi": false,
       "response": [
         {
-          "id": "0fd5c7c2a3"
+          "id": "0fd5c7c2a3",
+          "indexId": 1
         }
       ]
     },
     {
       "prompt": "搜索按钮",
-      "multi": false,
       "response": [
         {
-          "id": "0c8ccb3882"
+          "id": "0c8ccb3882",
+          "indexId": 2
         }
       ]
     },
     {
       "prompt": "左下角播放或暂停按钮（图标类型）",
-      "multi": false,
       "response": [
         {
-          "id": "5f3820a7d2"
+          "id": "b2228dc076",
+          "indexId": 3
         }
       ]
     },
     {
-      "prompt": "点赞按钮（图标类型）",
-      "multi": false,
+      "prompt": "爱心图标",
       "response": [
         {
-          "id": "5c54925862"
+          "id": "c78640e6a7",
+          "indexId": 21
         }
       ]
     },
     {
-      "prompt": "评论按钮（图标类型）",
-      "multi": false,
+      "prompt": "评论按钮",
       "response": [
         {
-          "id": "656e04572b"
+          "id": "51cb93625e",
+          "indexId": 23
         }
       ]
     },
     {
-      "prompt": "收藏按钮（图标类型）",
-      "multi": false,
+      "prompt": "收藏按钮",
       "response": [
         {
-          "id": "6abc963d73"
+          "id": "c99ce255fe",
+          "indexId": 25
         }
       ]
     },
     {
-      "prompt": "右下角声音按钮（图标类型）",
-      "multi": false,
+      "prompt": "右下角声音按钮",
       "response": [
         {
-          "id": "9392ab543f"
+          "id": "9392ab543f",
+          "indexId": 9
         }
       ]
     }

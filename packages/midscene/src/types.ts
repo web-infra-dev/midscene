@@ -54,6 +54,7 @@ export enum AIResponseFormat {
 
 export interface AISingleElementResponse {
   id: string;
+  nodeHashId: string;
   reason: string;
   text: string;
 }
