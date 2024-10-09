@@ -149,6 +149,7 @@ export const generateAnimationScripts = (
   let currentCameraState: TargetCameraState = fullPageCameraState;
   let insightOnTop = false;
   const taskCount = execution.tasks.length;
+  let initSubTitle = '';
   execution.tasks.forEach((task, index) => {
     if (task.type === 'Planning') {
       const planningTask = task as ExecutionTaskPlanning;
@@ -161,6 +162,7 @@ export const generateAnimationScripts = (
           title: typeStr(task),
           subTitle: paramStr(task),
         });
+        initSubTitle = paramStr(task);
       }
     } else if (task.type === 'Insight') {
       const insightTask = task as ExecutionTaskInsightLocate;
@@ -262,15 +264,19 @@ export const generateAnimationScripts = (
 
   // end, back to full page
   scripts.push({
+    title: 'Done',
+    subTitle: initSubTitle,
     type: 'img',
     duration: stillDuration * 0.5,
     camera: fullPageCameraState,
   });
 
-  scripts.push({
-    type: 'sleep',
-    duration: stillDuration,
-  });
+  // scripts.push({
+  //   title: 'Done',
+  //   subTitle: initSubTitle,
+  //   type: 'sleep',
+  //   duration: 0,
+  // });
 
   return scripts;
 };

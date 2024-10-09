@@ -3,7 +3,11 @@ import * as PIXI from 'pixi.js';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import './player.less';
 import { mouseLoading, mousePointer } from '@/utils';
-import { CheckCircleOutlined, LoadingOutlined } from '@ant-design/icons';
+import {
+  CheckCircleOutlined,
+  LoadingOutlined,
+  ReloadOutlined,
+} from '@ant-design/icons';
 import type { BaseElement } from '@midscene/core/.';
 import { Button, ConfigProvider, Spin } from 'antd';
 import { rectMarkForItem } from './blackboard';
@@ -633,12 +637,25 @@ const Player = (): JSX.Element => {
 
   const progressString = Math.round(animationProgress * 100);
   const transitionStyle = animationProgress === 0 ? 'none' : '0.3s';
-  const statusIcon =
-    animationProgress === 1 ? (
-      <CheckCircleOutlined />
-    ) : (
-      <LoadingOutlined spin />
+
+  const [mouseOverStatusIcon, setMouseOverStatusIcon] = useState(false);
+  let statusIconElement;
+  const statusStyle: React.CSSProperties = {};
+  let statusOnClick: () => void = () => {};
+  if (animationProgress < 1) {
+    statusIconElement = (
+      <Spin indicator={<LoadingOutlined spin />} size="default" />
     );
+  } else if (mouseOverStatusIcon) {
+    statusIconElement = <Spin indicator={<ReloadOutlined />} size="default" />;
+    statusStyle.cursor = 'pointer';
+    statusStyle.background = '#888';
+    statusOnClick = () => setReplayMark(Date.now());
+  } else {
+    statusIconElement = (
+      <Spin indicator={<CheckCircleOutlined />} size="default" />
+    );
+  }
 
   return (
     <div className="player-container">
@@ -653,7 +670,13 @@ const Player = (): JSX.Element => {
         />
       </div>
       <div className="player-controls">
-        <div className="status-icon">
+        <div
+          className="status-icon"
+          onMouseEnter={() => setMouseOverStatusIcon(true)}
+          onMouseLeave={() => setMouseOverStatusIcon(false)}
+          style={statusStyle}
+          onClick={statusOnClick}
+        >
           <ConfigProvider
             theme={{
               components: {
@@ -664,14 +687,13 @@ const Player = (): JSX.Element => {
               },
             }}
           >
-            <Spin indicator={statusIcon} size="default" />
+            {statusIconElement}
           </ConfigProvider>
         </div>
         <div className="status-text">
           <div className="title">{titleText}</div>
           <div className="subtitle">{subTitleText}</div>
         </div>
-        <Button onClick={() => setReplayMark(Date.now())}>Replay</Button>
       </div>
     </div>
   );
