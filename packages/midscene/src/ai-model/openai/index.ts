@@ -72,7 +72,7 @@ export async function call(
   const completion = await openai.chat.completions.create({
     model,
     messages,
-    response_format: responseFormat,
+    // response_format: responseFormat,
     temperature: 0.1,
     stream: false,
   });
