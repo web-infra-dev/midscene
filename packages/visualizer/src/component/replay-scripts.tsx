@@ -34,6 +34,7 @@ export interface AnimationScript {
   camera?: TargetCameraState;
   insightDump?: InsightDump;
   duration: number;
+  insightCameraDuration?: number;
   title?: string;
   subTitle?: string;
 }
@@ -60,8 +61,12 @@ export const cameraStateForRect = (
     rectWidthOnPage = (rect.height / imageHeight) * imageWidth;
   }
 
-  const cameraPaddingRatio = 0.16;
-  const cameraWidth = rectWidthOnPage + imageWidth * cameraPaddingRatio * 2;
+  const cameraPaddingRatio =
+    rectWidthOnPage > 400 ? 0.1 : rectWidthOnPage > 50 ? 0.2 : 0.3;
+  const cameraWidth = Math.min(
+    imageWidth,
+    rectWidthOnPage + imageWidth * cameraPaddingRatio * 2,
+  );
   const cameraHeight = cameraWidth * (imageHeight / imageWidth);
 
   let left = Math.min(
@@ -80,6 +85,24 @@ export const cameraStateForRect = (
     left,
     top,
     width: cameraWidth,
+  };
+};
+
+export const mergeTwoCameraState = (
+  cameraState1: TargetCameraState,
+  cameraState2: TargetCameraState,
+): TargetCameraState => {
+  const newLeft = Math.min(cameraState1.left, cameraState2.left);
+  const newTop = Math.min(cameraState1.top, cameraState2.top);
+  const newRight = Math.max(
+    cameraState1.left + cameraState1.width,
+    cameraState2.left + cameraState2.width,
+  );
+  const newWidth = newRight - newLeft;
+  return {
+    left: newLeft,
+    top: newTop,
+    width: newWidth,
   };
 };
 
@@ -124,18 +147,23 @@ export const generateAnimationScripts = (
   }
   const scripts: AnimationScript[] = [];
   let insightCameraState: TargetCameraState | undefined = undefined;
+  let currentCameraState: TargetCameraState = fullPageCameraState;
   let insightOnTop = false;
-  execution.tasks.forEach((task) => {
+  const taskCount = execution.tasks.length;
+  let initSubTitle = '';
+  execution.tasks.forEach((task, index) => {
     if (task.type === 'Planning') {
       const planningTask = task as ExecutionTaskPlanning;
       if (planningTask.recorder && planningTask.recorder.length > 0) {
         scripts.push({
           type: 'img',
           img: planningTask.recorder?.[0]?.screenshot,
+          camera: fullPageCameraState,
           duration: stillDuration,
           title: typeStr(task),
           subTitle: paramStr(task),
         });
+        initSubTitle = paramStr(task);
       }
     } else if (task.type === 'Insight') {
       const insightTask = task as ExecutionTaskInsightLocate;
@@ -161,9 +189,13 @@ export const generateAnimationScripts = (
           type: 'insight',
           img: insightDump.context.screenshotBase64,
           insightDump: insightDump,
-          camera: fullPageCameraState,
+          camera:
+            currentCameraState === fullPageCameraState || !insightCameraState
+              ? undefined
+              : mergeTwoCameraState(currentCameraState, insightCameraState),
           duration:
             insightContentLength > 20 ? locateDuration : locateDuration * 0.5,
+          insightCameraDuration: locateDuration,
           title,
           subTitle,
         });
@@ -181,6 +213,7 @@ export const generateAnimationScripts = (
       const subTitle = paramStr(task);
       scripts.push(pointerScript(mousePointer, title, subTitle));
 
+      currentCameraState = insightCameraState ?? fullPageCameraState;
       scripts.push({
         type: 'img',
         img: task.recorder?.[0]?.screenshot,
@@ -200,6 +233,9 @@ export const generateAnimationScripts = (
         insightOnTop = false;
       }
 
+      // if this is the last task, we don't need to wait
+      const imgStillDuration = index < taskCount - 1 ? stillDuration : 0;
+
       if (task.recorder?.[1]?.screenshot) {
         scripts.push({
           type: 'spinning-pointer',
@@ -212,15 +248,14 @@ export const generateAnimationScripts = (
         scripts.push({
           type: 'img',
           img: task.recorder?.[1]?.screenshot,
-          duration: stillDuration,
-          // camera: fullPageCameraState,
+          duration: imgStillDuration,
           title,
           subTitle,
         });
       } else {
         scripts.push({
           type: 'sleep',
-          duration: stillDuration,
+          duration: imgStillDuration,
           title,
           subTitle,
         });
@@ -230,14 +265,12 @@ export const generateAnimationScripts = (
 
   // end, back to full page
   scripts.push({
+    title: 'Done',
+    subTitle: initSubTitle,
     type: 'img',
-    duration: stillDuration,
+    duration: stillDuration * 0.5,
     camera: fullPageCameraState,
   });
 
-  scripts.push({
-    type: 'sleep',
-    duration: stillDuration,
-  });
   return scripts;
 };

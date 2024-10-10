@@ -58,7 +58,6 @@ export class Page<
       path,
       type: 'png',
     });
-
     let buf: Buffer;
     if (viewportSize.deviceScaleFactor > 1) {
       buf = (await resizeImg(readFileSync(path), {

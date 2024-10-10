@@ -97,3 +97,25 @@ describe('ai inspect element', () => {
     });
   });
 });
+
+test('inspect with quick answer', async () => {
+  const { context } = await getPageTestData(
+    path.join(__dirname, './test-data/todo'),
+  );
+
+  const startTime = Date.now();
+  const { parseResult } = await AiInspectElement({
+    context,
+    multi: false,
+    findElementDescription: 'never mind',
+    quickAnswer: {
+      id: 'fbc2d0029b',
+      reason: 'never mind',
+      text: 'never mind',
+    },
+  });
+  const endTime = Date.now();
+  const cost = endTime - startTime;
+  expect(parseResult.elements.length).toBe(1);
+  expect(cost).toBeLessThan(100);
+});

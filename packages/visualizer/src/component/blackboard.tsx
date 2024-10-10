@@ -6,11 +6,12 @@ import { type ReactElement, useEffect, useMemo, useRef, useState } from 'react';
 import type { Rect } from '../../../midscene/dist/types';
 import { colorForName, highlightColorForType } from './color';
 import './blackboard.less';
+import { DropShadowFilter } from 'pixi-filters';
 import { useBlackboardPreference, useInsightDump } from './store';
 
 const itemFillAlpha = 0.4;
-const highlightAlpha = 0.7;
-const bgOnAlpha = 0.8;
+const highlightAlpha = 0.4;
+const bgOnAlpha = 1;
 const bgOffAlpha = 0.3;
 const noop = () => {
   // noop
@@ -38,6 +39,16 @@ export const rectMarkForItem = (
     graphics.on('pointerover', onPointOver);
     graphics.on('pointerout', onPointerOut);
   }
+
+  const dropShadowFilter = new DropShadowFilter({
+    blur: 2,
+    quality: 3,
+    alpha: 0.4,
+    offset: { x: 4, y: 4 },
+    color: 0x333333,
+  });
+
+  graphics.filters = [dropShadowFilter];
 
   const nameFontSize = 18;
   const texts = new PIXI.Text(name, {

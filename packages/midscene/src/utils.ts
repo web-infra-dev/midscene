@@ -6,12 +6,6 @@ import { basename, dirname, join } from 'node:path';
 import { getMidscenePkgInfo } from '@midscene/shared/fs';
 import type { Rect, ReportDumpWithAttributes } from './types';
 
-interface PkgInfo {
-  name: string;
-  version: string;
-  dir: string;
-}
-
 const midscenePkgInfo = getMidscenePkgInfo(__dirname);
 let logDir = join(process.cwd(), './midscene_run/');
 let logEnvReady = false;

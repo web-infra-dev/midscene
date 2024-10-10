@@ -117,6 +117,7 @@ export class PageTaskExecutor {
               let locateResult: AIElementParseResponse | undefined;
               const callAI = this.insight.aiVendorFn;
               const element = await this.insight.locate(param.prompt, {
+                quickAnswer: plan.quickAnswer,
                 callAI: async (...message: any) => {
                   if (locateCache) {
                     locateResult = locateCache;
@@ -483,14 +484,14 @@ export class PageTaskExecutor {
       await taskExecutor.append(this.wrapExecutorWithScreenshot(assertTask[0]));
       const output: InsightAssertionResponse = await taskExecutor.flush();
 
-      if (output.pass) {
+      if (output?.pass) {
         return {
           output: undefined,
           executor: taskExecutor,
         };
       }
 
-      errorThought = output.thought;
+      errorThought = output?.thought || 'unknown error';
       const now = Date.now();
       if (now - startTime < checkIntervalMs) {
         const timeRemaining = checkIntervalMs - (now - startTime);

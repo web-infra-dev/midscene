@@ -166,7 +166,7 @@ export function Visualizer(props: {
                 direction="horizontal"
               >
                 <Panel defaultSize={75} maxSize={95}>
-                  <div className="main-canvas-container">
+                  <div className="main-content-container">
                     <DetailPanel />
                   </div>
                 </Panel>

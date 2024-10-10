@@ -52,12 +52,14 @@ export enum AIResponseFormat {
   TEXT = 'text',
 }
 
+export interface AISingleElementResponse {
+  id: string;
+  reason: string;
+  text: string;
+}
+
 export interface AIElementParseResponse {
-  elements: {
-    id: string;
-    reason: string;
-    text: string;
-  }[];
+  elements: AISingleElementResponse[];
   errors?: string[];
 }
 
@@ -195,6 +197,7 @@ export interface PlanningAction<ParamType = any> {
     | 'AssertWithoutThrow'
     | 'Sleep';
   param: ParamType;
+  quickAnswer?: AISingleElementResponse | null;
 }
 
 export interface PlanningAIResponse {
@@ -332,6 +335,7 @@ task - insight-locate
 */
 export interface ExecutionTaskInsightLocateParam {
   prompt: string;
+  quickAnswer?: AISingleElementResponse | null;
 }
 
 export interface ExecutionTaskInsightLocateOutput {

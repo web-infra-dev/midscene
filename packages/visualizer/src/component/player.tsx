@@ -3,9 +3,15 @@ import * as PIXI from 'pixi.js';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import './player.less';
 import { mouseLoading, mousePointer } from '@/utils';
+import {
+  // CheckCircleOutlined,
+  LoadingOutlined,
+  PlayCircleOutlined,
+} from '@ant-design/icons';
 import type { BaseElement } from '@midscene/core/.';
+import { ConfigProvider, Spin } from 'antd';
 import { rectMarkForItem } from './blackboard';
-import type { CameraState, TargetCameraState } from './player-scripts';
+import type { CameraState, TargetCameraState } from './replay-scripts';
 import { useExecutionDump } from './store';
 
 const canvasPaddingLeft = 0;
@@ -29,21 +35,15 @@ const cubicBezier = (
 
 const cubicImage = (t: number): number => {
   // return cubicBezier(t, 0, 0.69, 0.43, 1);
-  // using ease-in-out
-  // return cubicBezier(t, 0, 0.6, 0.6, 1);
-  return linear(t); //, 0, 0.6, 0.6, 1);
+  return linear(t);
 };
 
 const cubicInsightElement = (t: number): number => {
-  // return cubicBezier(t, 0, 0.69, 0.43, 1);
-  // using ease-in-out
   return cubicBezier(t, 0, 0.5, 0.5, 1);
 };
 
 const cubicMouse = (t: number): number => {
   return linear(t);
-  // return cubicBezier(t, 0, 0.99, 0.03, 1);
-  // return cubicBezier(t, 0, 0.99, 0.03, 1);
 };
 
 const linear = (t: number): number => {
@@ -52,6 +52,46 @@ const linear = (t: number): number => {
 
 const sleep = (ms: number): Promise<void> => {
   return new Promise((resolve) => setTimeout(resolve, ms));
+};
+
+type FrameFn = (callback: (current: number) => void) => void;
+
+const ERROR_FRAME_CANCEL = 'frame cancel';
+const frameKit = (): {
+  frame: FrameFn;
+  cancel: () => void;
+  timeout: (callback: () => void, ms: number) => void;
+} => {
+  let cancelFlag = false;
+
+  return {
+    frame: (callback: (current: number) => void) => {
+      if (cancelFlag) {
+        throw new Error(ERROR_FRAME_CANCEL);
+      }
+      requestAnimationFrame(() => {
+        if (cancelFlag) {
+          throw new Error(ERROR_FRAME_CANCEL);
+        }
+        callback(performance.now());
+      });
+    },
+    timeout: (callback: () => void, ms: number) => {
+      if (cancelFlag) {
+        throw new Error(ERROR_FRAME_CANCEL);
+      }
+      setTimeout(() => {
+        if (cancelFlag) {
+          throw new Error(ERROR_FRAME_CANCEL);
+        }
+        callback();
+      }, ms);
+    },
+    cancel: () => {
+      console.log('set frame cancel');
+      cancelFlag = true;
+    },
+  };
 };
 
 const singleElementFadeInDuration = 80;
@@ -81,6 +121,8 @@ const Player = (): JSX.Element => {
   const pointerSprite = useRef<PIXI.Sprite | null>(null);
   const spinningPointerSprite = useRef<PIXI.Sprite | null>(null);
 
+  const [replayMark, setReplayMark] = useState(0);
+
   const windowContentContainer = useMemo(() => {
     const container = new PIXI.Container();
     return container;
@@ -101,6 +143,8 @@ const Player = (): JSX.Element => {
     },
   };
 
+  // -1: not started, 0: running, 1: finished
+  const [animationProgress, setAnimationProgress] = useState(-1);
   const cancelFlag = useRef(false);
 
   useEffect(() => {
@@ -109,15 +153,6 @@ const Player = (): JSX.Element => {
       cancelFlag.current = true;
     };
   }, []);
-
-  const frame = (callback: (current: number) => void) => {
-    requestAnimationFrame(() => {
-      if (cancelFlag.current) {
-        return;
-      }
-      callback(performance.now());
-    });
-  };
 
   const cameraState = useRef<CameraState>({ ...basicCameraState });
 
@@ -153,9 +188,7 @@ const Player = (): JSX.Element => {
     windowContentContainer.addChild(sprite);
   };
 
-  const spinningPointer = async (): Promise<() => void> => {
-    // use center of the sprite to rotate
-    // await updatePointer(mouseLoading);
+  const spinningPointer = (frame: FrameFn): (() => void) => {
     if (!spinningPointerSprite.current) {
       spinningPointerSprite.current = PIXI.Sprite.from(mouseLoading);
       spinningPointerSprite.current.zIndex = LAYER_ORDER_SPINNING_POINTER;
@@ -265,12 +298,13 @@ const Player = (): JSX.Element => {
   const cameraAnimation = async (
     targetState: TargetCameraState,
     duration: number,
+    frame: FrameFn,
   ): Promise<void> => {
     const currentState = { ...cameraState.current };
     const startLeft = currentState.left;
     const startTop = currentState.top;
-    const startWidth = currentState.width;
     const startPointer = { ...currentState.pointer };
+    const startScale = currentState.width / imageWidth;
 
     const startTime = performance.now();
     const shouldMovePointer =
@@ -310,16 +344,29 @@ const Player = (): JSX.Element => {
             1,
           );
           const cameraProgress = cubicImage(rawCameraProgress);
-          nextState.left =
+
+          // get the target scale
+          const targetScale = targetState.width / imageWidth;
+          const progressScale =
+            startScale + (targetScale - startScale) * cameraProgress;
+          const progressWidth = imageWidth * progressScale;
+          const progressHeight = imageHeight * progressScale;
+          nextState.width = progressWidth;
+
+          const progressLeft =
             startLeft + (targetState.left - startLeft) * cameraProgress;
-          nextState.top =
+          const progressTop =
             startTop + (targetState.top - startTop) * cameraProgress;
-          const expectWidth =
-            startWidth + (targetState.width - startWidth) * cameraProgress;
-          nextState.width =
-            nextState.left + expectWidth > imageWidth
-              ? imageWidth - nextState.left
-              : expectWidth;
+
+          const horizontalExceed = progressLeft + progressWidth - imageWidth;
+          const verticalExceed = progressTop + progressHeight - imageHeight;
+
+          nextState.left =
+            horizontalExceed > 0
+              ? progressLeft + horizontalExceed
+              : progressLeft;
+          nextState.top =
+            verticalExceed > 0 ? progressTop + verticalExceed : progressTop;
         }
 
         updateCamera(nextState);
@@ -338,6 +385,7 @@ const Player = (): JSX.Element => {
   const fadeInGraphics = (
     graphics: PIXI.Container | PIXI.Graphics | PIXI.Text,
     duration: number,
+    frame: FrameFn,
     targetAlpha = 1,
   ): Promise<void> => {
     return new Promise<void>((resolve) => {
@@ -361,19 +409,22 @@ const Player = (): JSX.Element => {
   const fadeOutItem = async (
     graphics: PIXI.Container | PIXI.Graphics | PIXI.Text,
     duration: number,
+    frame: FrameFn,
   ): Promise<void> => {
-    return fadeInGraphics(graphics, duration, 0);
+    return fadeInGraphics(graphics, duration, frame, 0);
   };
 
   const insightElementsAnimation = async (
     elements: BaseElement[],
     highlightElements: BaseElement[],
     duration: number,
+    frame: FrameFn,
   ): Promise<void> => {
     insightMarkContainer.removeChildren();
 
     const elementsToAdd = [...elements];
     const totalLength = elementsToAdd.length;
+    let childrenCount = 0;
 
     await new Promise<void>((resolve) => {
       const startTime = performance.now();
@@ -385,7 +436,7 @@ const Player = (): JSX.Element => {
 
         const elementsToAddNow = Math.floor(progress * totalLength);
 
-        while (insightMarkContainer.children.length < elementsToAddNow) {
+        while (childrenCount < elementsToAddNow) {
           const randomIndex = Math.floor(Math.random() * elementsToAdd.length);
           const element = elementsToAdd.splice(randomIndex, 1)[0];
           if (element) {
@@ -396,8 +447,12 @@ const Player = (): JSX.Element => {
             );
             insightMarkGraphic.alpha = 0;
             insightMarkContainer.addChild(insightMarkGraphic);
-
-            fadeInGraphics(insightMarkGraphic, singleElementFadeInDuration);
+            childrenCount++;
+            fadeInGraphics(
+              insightMarkGraphic,
+              singleElementFadeInDuration,
+              frame,
+            );
           }
         }
 
@@ -436,18 +491,39 @@ const Player = (): JSX.Element => {
     });
   };
 
-  useEffect(() => {
+  const init = async (): Promise<void> => {
+    if (!divContainerRef.current || !scripts) return;
+
+    await app.init({
+      width: canvasWidth,
+      height: canvasHeight,
+      background: 0xf4f4f4,
+    });
+    divContainerRef.current.appendChild(app.canvas); // Ensure app.view is appended
+
+    windowContentContainer.x = 0;
+    windowContentContainer.y = 0;
+    app.stage.addChild(windowContentContainer);
+
+    insightMarkContainer.x = 0;
+    insightMarkContainer.y = 0;
+    windowContentContainer.addChild(insightMarkContainer);
+  };
+
+  const play = (): (() => void) => {
     let cancelFn: () => void;
     Promise.resolve(
       (async () => {
-        if (!divContainerRef.current || !scripts || !app) return;
+        if (!app) {
+          throw new Error('app is not initialized');
+        }
+        if (!scripts) {
+          throw new Error('scripts is required');
+        }
 
-        await app.init({
-          width: canvasWidth,
-          height: canvasHeight,
-          background: 0xf4f4f4,
-        });
-        divContainerRef.current.appendChild(app.canvas); // Ensure app.view is appended
+        const { frame, cancel, timeout } = frameKit();
+
+        cancelFn = cancel;
 
         const allImages: string[] = scripts
           .filter((item) => !!item.img)
@@ -456,22 +532,32 @@ const Player = (): JSX.Element => {
         // Load and display the image
         await Promise.all([...allImages, mouseLoading].map(preloadImage));
 
-        windowContentContainer.x = 0;
-        windowContentContainer.y = 0;
-        app.stage.addChild(windowContentContainer);
-
-        insightMarkContainer.x = 0;
-        insightMarkContainer.y = 0;
-        windowContentContainer.addChild(insightMarkContainer);
-
         // pointer on top
+        insightMarkContainer.removeChildren();
         await updatePointer(mousePointer, imageWidth / 2, imageHeight / 2);
-        // let lastImg: string = scripts[0].img!;
         await repaintImage();
-        await updateCamera(cameraState.current);
+        await updateCamera({ ...basicCameraState });
+
+        const totalDuration = scripts.reduce((acc, item) => {
+          return acc + item.duration + (item.insightCameraDuration || 0);
+        }, 0);
+
+        const progressUpdateInterval = 300;
+        const startTime = performance.now();
+        setAnimationProgress(0);
+        const updateProgress = () => {
+          const progress = Math.min(
+            (performance.now() - startTime) / totalDuration,
+            1,
+          );
+          setAnimationProgress(progress);
+          return timeout(updateProgress, progressUpdateInterval);
+        };
+        frame(updateProgress);
 
         // play animation
-        for (const item of scripts) {
+        for (const index in scripts) {
+          const item = scripts[index];
           setTitleText(item.title || '');
           setSubTitleText(item.subTitle || '');
           if (item.type === 'sleep') {
@@ -489,14 +575,22 @@ const Player = (): JSX.Element => {
               elements,
               highlightElements,
               item.duration,
+              frame,
             );
             if (item.camera) {
-              await cameraAnimation(item.camera, item.duration);
+              if (!item.insightCameraDuration) {
+                throw new Error('insightCameraDuration is required');
+              }
+              await cameraAnimation(
+                item.camera,
+                item.insightCameraDuration,
+                frame,
+              );
             }
             // const insightMark = insightMarkForItem(item);
             // insightMarkContainer.addChild(insightMark);
           } else if (item.type === 'clear-insight') {
-            await fadeOutItem(insightMarkContainer, item.duration);
+            await fadeOutItem(insightMarkContainer, item.duration, frame);
             insightMarkContainer.removeChildren();
             insightMarkContainer.alpha = 1;
           } else if (item.type === 'img') {
@@ -505,7 +599,7 @@ const Player = (): JSX.Element => {
               await repaintImage();
             }
             if (item.camera) {
-              await cameraAnimation(item.camera, item.duration);
+              await cameraAnimation(item.camera, item.duration, frame);
             } else {
               await sleep(item.duration);
             }
@@ -515,18 +609,32 @@ const Player = (): JSX.Element => {
             }
             await updatePointer(item.img);
           } else if (item.type === 'spinning-pointer') {
-            const cancelFn = await spinningPointer();
+            const stop = spinningPointer(frame);
             await sleep(item.duration);
-            cancelFn();
+            stop();
           }
         }
-      })(),
+      })().catch((e) => {
+        console.error('player error', e);
+      }),
     );
 
     // Cleanup function
     return () => {
+      cancelFn?.();
+    };
+  };
+
+  useEffect(() => {
+    Promise.resolve(
+      (async () => {
+        await init();
+        setReplayMark(Date.now());
+      })(),
+    );
+
+    return () => {
       try {
-        cancelFn?.();
         app.destroy(true, { children: true, texture: true });
       } catch (e) {
         console.warn('destroy failed', e);
@@ -534,15 +642,74 @@ const Player = (): JSX.Element => {
     };
   }, []);
 
-  const showControl = !!titleText;
+  useEffect(() => {
+    if (replayMark) {
+      return play();
+    }
+  }, [replayMark]);
+
+  const progressString = Math.round(animationProgress * 100);
+  const transitionStyle = animationProgress === 0 ? 'none' : '0.3s';
+
+  const [mouseOverStatusIcon, setMouseOverStatusIcon] = useState(false);
+  let statusIconElement;
+  const statusStyle: React.CSSProperties = {};
+  let statusOnClick: () => void = () => {};
+  if (animationProgress < 1) {
+    statusIconElement = (
+      <Spin indicator={<LoadingOutlined spin />} size="default" />
+    );
+  } else if (mouseOverStatusIcon) {
+    statusIconElement = (
+      <Spin indicator={<PlayCircleOutlined />} size="default" />
+    );
+    statusStyle.cursor = 'pointer';
+    statusStyle.background = '#888';
+    statusOnClick = () => setReplayMark(Date.now());
+  } else {
+    statusIconElement = (
+      // <Spin indicator={<CheckCircleOutlined />} size="default" />
+      <Spin indicator={<PlayCircleOutlined />} size="default" />
+    );
+  }
 
   return (
     <div className="player-container">
-      <div className="player-top-placeholder">&nbsp;</div>
       <div className="canvas-container" ref={divContainerRef} />
-      <div className="player-controls" style={{ opacity: showControl ? 1 : 0 }}>
-        <div className="title">{titleText}</div>
-        <div className="subtitle">{subTitleText}</div>
+      <div className="player-timeline">
+        <div
+          className="player-timeline-progress"
+          style={{
+            width: `${progressString}%`,
+            transition: transitionStyle,
+          }}
+        />
+      </div>
+      <div className="player-controls">
+        <div
+          className="status-icon"
+          onMouseEnter={() => setMouseOverStatusIcon(true)}
+          onMouseLeave={() => setMouseOverStatusIcon(false)}
+          style={statusStyle}
+          onClick={statusOnClick}
+        >
+          <ConfigProvider
+            theme={{
+              components: {
+                Spin: {
+                  dotSize: 24,
+                  colorPrimary: 'rgb(6,177,171)',
+                },
+              },
+            }}
+          >
+            {statusIconElement}
+          </ConfigProvider>
+        </div>
+        <div className="status-text">
+          <div className="title">{titleText}</div>
+          <div className="subtitle">{subTitleText}</div>
+        </div>
       </div>
     </div>
   );
