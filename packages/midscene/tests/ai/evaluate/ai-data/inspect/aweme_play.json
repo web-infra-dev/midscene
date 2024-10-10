@@ -2,7 +2,7 @@
   "testDataPath": "test-data/aweme-play",
   "testCases": [
     {
-      "prompt": "左下角播放或暂停按钮（图标类型）",
+      "prompt": "左下角播放或暂停按钮",
       "response": [
         {
           "id": "d2f421f2ff",
@@ -25,6 +25,24 @@
         {
           "id": "257b9c04eb",
           "indexId": 15
+        }
+      ]
+    },
+    {
+      "prompt": "书签按钮",
+      "response": [
+        {
+          "id": "91c259f3e5",
+          "indexId": 17
+        }
+      ]
+    },
+    {
+      "prompt": "分享按钮",
+      "response": [
+        {
+          "id": "2f71efd820",
+          "indexId": 20
         }
       ]
     },

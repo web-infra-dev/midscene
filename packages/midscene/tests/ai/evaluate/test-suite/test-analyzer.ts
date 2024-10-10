@@ -76,18 +76,9 @@ export class TestResultAnalyzer {
     } else {
       this.handleFailure(result, testCase, index);
     }
-
-    if (this.updateAiData) {
-      testCase.response = result.response.map((element: any) => {
-        return {
-          id: element.id,
-          indexId: this.getElementIndexId(result, element),
-        };
-      });
-    }
   }
 
-  private getElementIndexId(result: any, id: string) {
+  private getElementIndexId(id: string) {
     const elementInfo = this.context.content.find((e: any) => e.id === id);
     return elementInfo?.indexId;
   }
@@ -96,37 +87,46 @@ export class TestResultAnalyzer {
     this.successCount++;
     this.successResults.push({
       index,
-      imgLists: result.imgLists.map((img: any) => {
+      imgLists: result?.imgLists?.map((img: any) => {
         return {
           ...img,
-          indexId: this.getElementIndexId(result, img.id),
+          indexId: this.getElementIndexId(img.id),
         };
       }),
       response: result.elements.map((element: any) => {
         return {
           ...element,
-          indexId: this.getElementIndexId(result, element.id),
+          indexId: this.getElementIndexId(element.id),
         };
       }),
       prompt: testCase.prompt,
     });
+
+    if (this.updateAiData) {
+      testCase.response = result.response.map((element: any) => {
+        return {
+          id: element.id,
+          indexId: this.getElementIndexId(element.id),
+        };
+      });
+    }
   }
 
   private handleFailure(result: any, testCase: any, index: number) {
     this.failCount++;
     this.failResults.push({
       index,
-      imgLists: result.imgLists.map((img: any) => {
+      imgLists: result?.imgLists?.map((img: any) => {
         return {
           ...img,
-          indexId: this.getElementIndexId(result, img.id),
+          indexId: this.getElementIndexId(img.id),
         };
       }),
       expected: testCase.reponse,
       actual: result.response.map((element: any) => {
         return {
           id: element.id,
-          indexId: this.getElementIndexId(result, element.id),
+          indexId: this.getElementIndexId(element.id),
         };
       }),
       prompt: result.prompt,
