@@ -1,6 +1,6 @@
 # Midscene Contribution Guide
 
-Thanks for that you are interested in contributing to Midscene. Before starting your contribution, please take a moment to read the following guidelines.
+Thanks for showing interest in contributing to Midscene. Before starting your contribution, please take a moment to read the following guidelines.
 
 ---
 
@@ -58,7 +58,7 @@ What this will do:
 
 Please make sure you have your email set up in `<https://github.com/settings/emails>`. This will be needed later when you want to submit a pull request.
 
-Check that your git client is already configured the email:
+Check that your git client is already configured with the email:
 
 ```sh
 git config --list | grep email
@@ -132,7 +132,7 @@ pnpm run test
 pnpm run test:all
 ```
 
-You can also run the unit tests of single package:
+You can also run the unit tests of a single package:
 
 ```sh
 npx nx test @midscene/web

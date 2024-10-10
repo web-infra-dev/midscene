@@ -6,7 +6,7 @@ The natural language parameter passed to Midscene will be part of the prompt sen
 
 Since AI has the nature of heuristic, the purpose of prompt tuning should be to obtain stable responses from the AI model across runs. In most cases, to expect a consistent response from LLM by using a good prompt is entirely feasible.
 
-### Detailed description and samples are welcome
+### Detailed descriptions and samples are welcome
 
 Detailed descriptions and examples are always welcome.
 
@@ -36,7 +36,7 @@ Use the visualization tool to debug and understand each step of Midscene. Just u
 
 ### Infer or assert from the interface, not the DOM properties or browser status
 
-All the data sent to the LLM is in the form of screenshots and element coordinates. The DOM and the browser instance are almost invisible to the LLM. Therefore, ensure everything you expect is visible in the on the screen.
+All the data sent to the LLM is in the form of screenshots and element coordinates. The DOM and the browser instance are almost invisible to the LLM. Therefore, ensure everything you expect is visible on the screen.
 
 Good ✅: The title is blue
 

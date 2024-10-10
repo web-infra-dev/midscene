@@ -102,7 +102,7 @@ expect(onesieItem.price).toBe(7.99);
 
 ### `.aiWaitFor(assertion: string, {timeoutMs?: number, checkIntervalMs?: number })` - wait until the assertion is met
 
-`.aiWaitFor` will help you check if your assertion has been met or an timeout error occurred. Considering the AI service cost, the check interval will not exceed `checkIntervalMs` milliseconds. The default config sets `timeoutMs` to 15 seconds and `checkIntervalMs` to 3 seconds: i.e. check at most 5 times if all assertions fail and the AI service always responds immediately.
+`.aiWaitFor` will help you check if your assertion has been met or a timeout error occurred. Considering the AI service cost, the check interval will not exceed `checkIntervalMs` milliseconds. The default config sets `timeoutMs` to 15 seconds and `checkIntervalMs` to 3 seconds: i.e. check at most 5 times if all assertions fail and the AI service always responds immediately.
 
 When considering the time required for the AI service, `.aiWaitFor` may not be very efficient. Using a simple `sleep` method might be a useful alternative to `waitFor`.
 
