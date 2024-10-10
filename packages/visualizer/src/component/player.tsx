@@ -60,6 +60,7 @@ const ERROR_FRAME_CANCEL = 'frame cancel';
 const frameKit = (): {
   frame: FrameFn;
   cancel: () => void;
+  timeout: (callback: () => void, ms: number) => void;
 } => {
   let cancelFlag = false;
 
@@ -74,6 +75,17 @@ const frameKit = (): {
         }
         callback(performance.now());
       });
+    },
+    timeout: (callback: () => void, ms: number) => {
+      if (cancelFlag) {
+        throw new Error(ERROR_FRAME_CANCEL);
+      }
+      setTimeout(() => {
+        if (cancelFlag) {
+          throw new Error(ERROR_FRAME_CANCEL);
+        }
+        callback();
+      }, ms);
     },
     cancel: () => {
       console.log('set frame cancel');
@@ -509,7 +521,7 @@ const Player = (): JSX.Element => {
           throw new Error('scripts is required');
         }
 
-        const { frame, cancel } = frameKit();
+        const { frame, cancel, timeout } = frameKit();
 
         cancelFn = cancel;
 
@@ -530,6 +542,7 @@ const Player = (): JSX.Element => {
           return acc + item.duration + (item.insightCameraDuration || 0);
         }, 0);
 
+        const progressUpdateInterval = 300;
         const startTime = performance.now();
         setAnimationProgress(0);
         const updateProgress = () => {
@@ -538,7 +551,7 @@ const Player = (): JSX.Element => {
             1,
           );
           setAnimationProgress(progress);
-          return frame(updateProgress);
+          return timeout(updateProgress, progressUpdateInterval);
         };
         frame(updateProgress);
 
@@ -616,7 +629,7 @@ const Player = (): JSX.Element => {
     Promise.resolve(
       (async () => {
         await init();
-        await play();
+        setReplayMark(Date.now());
       })(),
     );
 

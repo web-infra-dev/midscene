@@ -484,14 +484,14 @@ export class PageTaskExecutor {
       await taskExecutor.append(this.wrapExecutorWithScreenshot(assertTask[0]));
       const output: InsightAssertionResponse = await taskExecutor.flush();
 
-      if (output.pass) {
+      if (output?.pass) {
         return {
           output: undefined,
           executor: taskExecutor,
         };
       }
 
-      errorThought = output.thought;
+      errorThought = output?.thought || 'unknown error';
       const now = Date.now();
       if (now - startTime < checkIntervalMs) {
         const timeRemaining = checkIntervalMs - (now - startTime);
