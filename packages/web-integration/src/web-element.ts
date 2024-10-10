@@ -24,6 +24,8 @@ export class WebElementInfo implements BaseElement {
 
   id: string;
 
+  indexId: number;
+
   attributes: {
     nodeType: NodeType;
     [key: string]: string;
@@ -36,6 +38,7 @@ export class WebElementInfo implements BaseElement {
     locator,
     id,
     attributes,
+    indexId,
   }: {
     content: string;
     rect: Rect;
@@ -46,6 +49,7 @@ export class WebElementInfo implements BaseElement {
       nodeType: NodeType;
       [key: string]: string;
     };
+    indexId: number;
   }) {
     this.content = content;
     this.rect = rect;
@@ -57,5 +61,6 @@ export class WebElementInfo implements BaseElement {
     this.locator = locator;
     this.id = id;
     this.attributes = attributes;
+    this.indexId = indexId;
   }
 }

@@ -1,7 +1,7 @@
 import { readFileSync, unlinkSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { MIDSCENE_MODEL_NAME } from '@/ai-model/openai';
-import { writeFileSyncWithDir } from './util';
+import { type getPageTestData, writeFileSyncWithDir } from './util';
 
 export class TestResultAnalyzer {
   private successCount = 0;
@@ -11,23 +11,27 @@ export class TestResultAnalyzer {
   private updateAiData = Boolean(process.env.UPDATE_AI_DATA);
   private successResults: {
     index: number;
+    imgLists: any[];
     response: any[];
     prompt: string;
   }[] = [];
   private failResults: {
     index: number;
     expected: any[];
+    imgLists: any[];
     actual: any[];
     prompt: string;
   }[] = [];
   private totalTime = 0;
 
   constructor(
+    private context: Awaited<ReturnType<typeof getPageTestData>>['context'],
     private aiDataPath: string,
     private aiData: any,
     private aiResponse: any[],
     repeatIndex: number,
   ) {
+    this.context = context;
     this.repeatIndex = repeatIndex;
   }
 
@@ -64,36 +68,69 @@ export class TestResultAnalyzer {
     const resultElements = result.response.map((element: any) => ({
       id: element.id,
     }));
-    if (JSON.stringify(resultElements) === JSON.stringify(testCase.response)) {
+    const testCaseElements = testCase.response.map((element: any) => ({
+      id: element.id,
+    }));
+    if (JSON.stringify(resultElements) === JSON.stringify(testCaseElements)) {
       this.handleSuccess(result, testCase, index);
     } else {
       this.handleFailure(result, testCase, index);
     }
   }
 
+  private getElementIndexId(id: string) {
+    const elementInfo = this.context.content.find((e: any) => e.id === id);
+    return elementInfo?.indexId;
+  }
+
   private handleSuccess(result: any, testCase: any, index: number) {
     this.successCount++;
     this.successResults.push({
       index,
-      response: result.elements,
+      imgLists: result?.imgLists?.map((img: any) => {
+        return {
+          ...img,
+          indexId: this.getElementIndexId(img.id),
+        };
+      }),
+      response: result.elements.map((element: any) => {
+        return {
+          ...element,
+          indexId: this.getElementIndexId(element.id),
+        };
+      }),
       prompt: testCase.prompt,
     });
+
+    if (this.updateAiData) {
+      testCase.response = result.response.map((element: any) => {
+        return {
+          id: element.id,
+          indexId: this.getElementIndexId(element.id),
+        };
+      });
+    }
   }
 
   private handleFailure(result: any, testCase: any, index: number) {
     this.failCount++;
     this.failResults.push({
       index,
+      imgLists: result?.imgLists?.map((img: any) => {
+        return {
+          ...img,
+          indexId: this.getElementIndexId(img.id),
+        };
+      }),
       expected: testCase.reponse,
-      actual: result.response.map((element: any) => ({ id: element.id })),
+      actual: result.response.map((element: any) => {
+        return {
+          id: element.id,
+          indexId: this.getElementIndexId(element.id),
+        };
+      }),
       prompt: result.prompt,
     });
-
-    if (this.updateAiData) {
-      testCase.response = result.response.map((element: any) => ({
-        id: element.id,
-      }));
-    }
   }
 
   private generateResultData() {
@@ -107,8 +144,8 @@ export class TestResultAnalyzer {
       averageTime: `${(averageTime / 1000).toFixed(2)}s`,
       successCount: this.successCount,
       failCount: this.failCount,
-      successResults: this.successResults,
       failResults: this.failResults,
+      successResults: this.successResults,
       aiResponse: this.aiResponse,
     };
   }

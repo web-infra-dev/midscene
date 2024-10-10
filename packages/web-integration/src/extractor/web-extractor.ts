@@ -31,6 +31,8 @@ interface WebElementInfo extends ElementInfo {
   screenHeight?: number;
 }
 
+let indexId = 0;
+
 function collectElementInfo(
   node: Node,
   nodePath: string,
@@ -78,6 +80,7 @@ function collectElementInfo(
       nodeHashId,
       locator: selector,
       nodeType: NodeType.FORM_ITEM,
+      indexId: indexId++,
       attributes: {
         ...attributes,
         htmlTagName: `<${tagName}>`,
@@ -104,6 +107,7 @@ function collectElementInfo(
     const selector = setDataForNode(node, nodeHashId);
     const elementInfo: WebElementInfo = {
       id: nodeHashId,
+      indexId: indexId++,
       nodePath,
       nodeHashId,
       nodeType: NodeType.BUTTON,
@@ -131,6 +135,7 @@ function collectElementInfo(
     const selector = setDataForNode(node, nodeHashId);
     const elementInfo: WebElementInfo = {
       id: nodeHashId,
+      indexId: indexId++,
       nodePath,
       nodeHashId,
       locator: selector,
@@ -171,6 +176,7 @@ function collectElementInfo(
     const selector = setDataForNode(node, nodeHashId, true);
     const elementInfo: WebElementInfo = {
       id: nodeHashId,
+      indexId: indexId++,
       nodePath,
       nodeHashId,
       nodeType: NodeType.TEXT,
@@ -202,6 +208,7 @@ function collectElementInfo(
       id: nodeHashId,
       nodePath,
       nodeHashId,
+      indexId: indexId++,
       nodeType: NodeType.CONTAINER,
       locator: selector,
       attributes: {
@@ -267,11 +274,6 @@ export function extractTextWithPosition(
   }
 
   dfs(initNode || getDocument(), '0');
-
-  // update all the ids
-  for (let i = 0; i < elementInfoArray.length; i++) {
-    elementInfoArray[i].indexId = (i + 1).toString();
-  }
 
   if (currentFrame.left !== 0 || currentFrame.top !== 0) {
     for (let i = 0; i < elementInfoArray.length; i++) {

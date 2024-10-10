@@ -5,9 +5,10 @@ import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import type { ElementInfo } from '@/extractor';
 import type { PlaywrightParserOpt, UIContext } from '@midscene/core';
-import { getTmpFile } from '@midscene/core/utils';
+import { NodeType } from '@midscene/shared/constants';
 import { findNearestPackageJson } from '@midscene/shared/fs';
 import { base64Encoded, imageInfoOfBase64 } from '@midscene/shared/img';
+import { compositeElementInfoImg } from '@midscene/shared/img';
 import dayjs from 'dayjs';
 import { WebElementInfo } from '../web-element';
 import type { WebPage } from './page';
@@ -35,7 +36,19 @@ export async function parseContextFromWebPage(
     page,
   );
 
+  const elementsPositionInfoWithoutText = elementsInfo.filter((elementInfo) => {
+    if (elementInfo.attributes.nodeType === NodeType.TEXT) {
+      return false;
+    }
+    return true;
+  });
+
   const size = await imageInfoOfBase64(screenshotBase64);
+
+  const xx = await compositeElementInfoImg({
+    inputImgBase64: screenshotBase64,
+    elementsPositionInfo: elementsPositionInfoWithoutText,
+  });
 
   return {
     content: elementsInfo,
@@ -66,7 +79,7 @@ async function alignElements(
   });
   const textsAligned: WebElementInfo[] = [];
   for (const item of validElements) {
-    const { rect, id, content, attributes, locator } = item;
+    const { rect, id, content, attributes, locator, indexId } = item;
     textsAligned.push(
       new WebElementInfo({
         rect,
@@ -75,6 +88,7 @@ async function alignElements(
         content,
         attributes,
         page,
+        indexId,
       }),
     );
   }

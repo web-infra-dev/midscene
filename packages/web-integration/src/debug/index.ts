@@ -132,19 +132,7 @@ export async function getElementInfos(page: WebPage) {
   const captureElementSnapshot: Array<ElementInfo> =
     await page.getElementInfos();
 
-  const elementsPositionInfo = captureElementSnapshot.map(
-    (elementInfo, index) => {
-      return {
-        label: elementInfo.indexId?.toString() || index.toString(),
-        x: elementInfo.rect.left,
-        y: elementInfo.rect.top,
-        width: elementInfo.rect.width,
-        height: elementInfo.rect.height,
-        attributes: elementInfo.attributes,
-      };
-    },
-  );
-  const elementsPositionInfoWithoutText = elementsPositionInfo.filter(
+  const elementsPositionInfoWithoutText = captureElementSnapshot.filter(
     (elementInfo) => {
       if (elementInfo.attributes.nodeType === NodeType.TEXT) {
         return false;
@@ -153,7 +141,7 @@ export async function getElementInfos(page: WebPage) {
     },
   );
   return {
-    elementsPositionInfo,
+    elementsPositionInfo: captureElementSnapshot,
     captureElementSnapshot,
     elementsPositionInfoWithoutText,
   };

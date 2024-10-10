@@ -6,4 +6,4 @@ export {
   transformImgPathToBase64,
   saveBase64Image,
 } from './transform';
-export { processImageElementInfo } from './box-select';
+export { processImageElementInfo, compositeElementInfoImg } from './box-select';
