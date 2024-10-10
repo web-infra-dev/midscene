@@ -8,6 +8,7 @@
 .player-container {
   width: fit-content;
   max-width: 100%;
+  max-height: 100%;
   padding: @player-spacing;
   padding-bottom: 0;
   background: #434443DD;
@@ -16,15 +17,23 @@
   border-radius: @radius;
   line-height: 100%;
   margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 
   .canvas-container {
-    width: 100%;
-    text-align: center;
+    flex-grow: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
 
     canvas {
       max-width: 100%;
       max-height: 100%;
       box-sizing: border-box;
+      display: block;
+      margin: 0 auto;
     }  
   }
 
@@ -55,6 +64,7 @@
     box-sizing: border-box;
     display: flex;
     flex-direction: row;
+    flex-shrink: 0;
     
     .status-icon {
       transition: .2s;

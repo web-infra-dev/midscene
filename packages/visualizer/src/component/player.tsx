@@ -4,12 +4,12 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import './player.less';
 import { mouseLoading, mousePointer } from '@/utils';
 import {
-  CheckCircleOutlined,
+  // CheckCircleOutlined,
   LoadingOutlined,
-  ReloadOutlined,
+  PlayCircleOutlined,
 } from '@ant-design/icons';
 import type { BaseElement } from '@midscene/core/.';
-import { Button, ConfigProvider, Spin } from 'antd';
+import { ConfigProvider, Spin } from 'antd';
 import { rectMarkForItem } from './blackboard';
 import type { CameraState, TargetCameraState } from './replay-scripts';
 import { useExecutionDump } from './store';
@@ -647,13 +647,16 @@ const Player = (): JSX.Element => {
       <Spin indicator={<LoadingOutlined spin />} size="default" />
     );
   } else if (mouseOverStatusIcon) {
-    statusIconElement = <Spin indicator={<ReloadOutlined />} size="default" />;
+    statusIconElement = (
+      <Spin indicator={<PlayCircleOutlined />} size="default" />
+    );
     statusStyle.cursor = 'pointer';
     statusStyle.background = '#888';
     statusOnClick = () => setReplayMark(Date.now());
   } else {
     statusIconElement = (
-      <Spin indicator={<CheckCircleOutlined />} size="default" />
+      // <Spin indicator={<CheckCircleOutlined />} size="default" />
+      <Spin indicator={<PlayCircleOutlined />} size="default" />
     );
   }
 
