@@ -1,59 +1,103 @@
 @import './common.less';
 
+@player-spacing: 12px;
+@border-color: #979797;
+@radius: 6px;
+@player-primary-color: #06b1ab;
+@player-control-bg: #666;
 .player-container {
-  width: 100%;
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  position: relative;
-
-  .player-top-placeholder {
-    width: 100%;
-    height: 1px;
-  }
+  width: fit-content;
+  max-width: 100%;
+  padding: @player-spacing;
+  padding-bottom: 0;
+  background: #434443DD;
+  box-sizing: border-box;
+  border: 1px solid @border-color;
+  border-radius: @radius;
+  line-height: 100%;
+  margin: 0 auto;
 
   .canvas-container {
     width: 100%;
-    height: 90%;
     text-align: center;
-    position: relative;
+
+    canvas {
+      max-width: 100%;
+      max-height: 100%;
+      box-sizing: border-box;
+    }  
   }
 
-  canvas {
-    border: 1px solid #06B1AB;
-    max-width: 100%;
-    max-height: 100%;
-    box-sizing: border-box;
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
+  .player-timeline {
+    width: 100%;
+    height: 4px;
+    background: @player-control-bg;
+    position: relative;
+    margin-top: -2px;
+    
+    .player-timeline-progress {
+      transition-timing-function: linear;
+      position: absolute;
+      top: 0;
+      left: 0;
+      height: 4px;
+      background: @player-primary-color;
+    }
   }
 
   .player-controls {
-    position: absolute;
-    bottom: 20px;
-    left: 0;
-    width: 100%;
-    background: rgba(0, 0, 0, 0.7);
-    border-radius: 8px;
-    padding: 20px 15px;
+    margin-top: calc(@player-spacing * 1.2);
+    margin-bottom: calc(@player-spacing * 1.2);
+    max-width: 100%;
+    overflow: hidden;
     color: #FFF;
-    font-size: 18px;
-    line-height: 1.2;
-    transition: .2s;
+    font-size: 16px;
     box-sizing: border-box;
+    display: flex;
+    flex-direction: row;
     
+    .status-icon {
+      transition: .2s;
+      width: 40px;
+      height: 40px;
+      margin-right: @player-spacing;
+      background: @player-control-bg;
+      border-radius: @radius;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .status-text {
+      flex-grow: 1;
+      overflow: hidden;
+      position: relative;
+    }
+
     .title {
       font-weight: bold;
+      height: 20px;
+      line-height: 20px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
     }
 
     .subtitle {
-      white-space: nowrap;
-      text-overflow: ellipsis;
-      overflow: hidden;
+      height: 20px;
+      line-height: 20px;
       width: 100%;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      position: absolute;
+      top: 18px;
+      left: 0;
     }
   }
 }

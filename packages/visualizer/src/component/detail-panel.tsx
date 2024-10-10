@@ -126,7 +126,7 @@ const DetailPanel = (): JSX.Element => {
   const options = availableViewTypes.map((type) => {
     if (type === VIEW_TYPE_REPLAY) {
       return {
-        label: 'Task Replay',
+        label: 'Replay',
         value: type,
         icon: <VideoCameraOutlined />,
       };
