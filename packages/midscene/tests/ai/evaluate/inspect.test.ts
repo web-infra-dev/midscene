@@ -36,7 +36,14 @@ describe('ai inspect element', () => {
     };
   }[] = [];
   afterAll(() => {
-    console.log('testResult', testResult);
+    console.table(
+      testResult.map((r) => {
+        return {
+          path: r.path,
+          ...r.result,
+        };
+      }),
+    );
   });
   repeat(repeatTime, (repeatIndex) => {
     testSources.forEach((source) => {
@@ -62,7 +69,7 @@ describe('ai inspect element', () => {
               const { parseResult } = await AiInspectElement({
                 context,
                 multi: testCase.multi,
-                findElementDescription: testCase.description,
+                targetElementDescription: testCase.description,
               });
               return parseResult;
             },
@@ -108,7 +115,7 @@ describe('ai inspect element', () => {
 //   const { parseResult } = await AiInspectElement({
 //     context,
 //     multi: false,
-//     findElementDescription: 'never mind',
+//     targetElementDescription: 'never mind',
 //     quickAnswer: {
 //       id: 'fbc2d0029b',
 //       nodeHashId: 'fbc2d0029b',
