@@ -65,7 +65,7 @@ export class TestResultAnalyzer {
   }
 
   private compareResult(testCase: any, result: any, index: number) {
-    const resultElements = result.response.map((element: any) => ({
+    const resultElements = result.response?.map((element: any) => ({
       id: element.id,
     }));
     const testCaseElements = testCase.response.map((element: any) => ({
