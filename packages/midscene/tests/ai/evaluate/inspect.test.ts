@@ -131,7 +131,6 @@ test('inspect with quick answer', async () => {
     targetElementDescription: 'never mind',
     quickAnswer: {
       id: 'fbc2d0029b',
-      nodeHashId: 'fbc2d0029b',
       reason: 'never mind',
       text: 'never mind',
     },

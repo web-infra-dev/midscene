@@ -7,7 +7,11 @@ import type { ElementInfo } from '@/extractor';
 import type { PlaywrightParserOpt, UIContext } from '@midscene/core';
 import { NodeType } from '@midscene/shared/constants';
 import { findNearestPackageJson } from '@midscene/shared/fs';
-import { base64Encoded, imageInfoOfBase64 } from '@midscene/shared/img';
+import {
+  base64Encoded,
+  base64ToPngFormat,
+  imageInfoOfBase64,
+} from '@midscene/shared/img';
 import { compositeElementInfoImg } from '@midscene/shared/img';
 import dayjs from 'dayjs';
 import { WebElementInfo } from '../web-element';
@@ -22,7 +26,7 @@ export async function parseContextFromWebPage(
   _opt?: PlaywrightParserOpt,
 ): Promise<WebUIContext> {
   assert(page, 'page is required');
-
+  console.time('parseContextFromWebPage');
   const url = page.url();
   const file = await page.screenshot();
   const screenshotBuffer = readFileSync(file);
@@ -30,11 +34,7 @@ export async function parseContextFromWebPage(
   const captureElementSnapshot = await page.getElementInfos();
 
   // align element
-  const elementsInfo = await alignElements(
-    screenshotBuffer,
-    captureElementSnapshot,
-    page,
-  );
+  const elementsInfo = await alignElements(captureElementSnapshot, page);
 
   const elementsPositionInfoWithoutText = elementsInfo.filter((elementInfo) => {
     if (elementInfo.attributes.nodeType === NodeType.TEXT) {
@@ -45,15 +45,17 @@ export async function parseContextFromWebPage(
 
   const size = await imageInfoOfBase64(screenshotBase64);
 
-  const xx = await compositeElementInfoImg({
-    inputImgBase64: screenshotBase64,
+  // composite element infos to screenshot
+  const screenshotBase64WithElementInfos = await compositeElementInfoImg({
+    inputImgBase64: screenshotBase64.split(';base64,').pop() as string,
     elementsPositionInfo: elementsPositionInfoWithoutText,
   });
+  console.timeEnd('parseContextFromWebPage');
 
   return {
     content: elementsInfo,
     size,
-    screenshotBase64,
+    screenshotBase64: `data:image/png;base64,${screenshotBase64WithElementInfos}`,
     url,
   };
 }
@@ -68,7 +70,6 @@ export async function getExtraReturnLogic() {
 
 const sizeThreshold = 3;
 async function alignElements(
-  screenshotBuffer: Buffer,
   elements: ElementInfo[],
   page: WebPage,
 ): Promise<WebElementInfo[]> {
