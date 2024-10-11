@@ -21,8 +21,8 @@ const testSources = [
   // 'online_order',
   // 'online_order_list',
   // 'taobao',
-  // 'aweme_login',
-  'aweme_play',
+  'aweme_login',
+  // 'aweme_play',
 ];
 
 describe('ai inspect element', () => {
