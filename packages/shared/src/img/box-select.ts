@@ -36,26 +36,42 @@ const createSvgOverlay = (
 
     // Define color array
     const colors = [
-      { rect: 0x0000ffff, text: 0xffffffff }, // blue, white
-      { rect: 0x8b4513ff, text: 0xffffffff }, // brown, white
+      { rect: 0xff0000ff, text: 0xffffffff }, // red, white
+      // { rect: 0x0000ffff, text: 0xffffffff }, // blue, white
+      // { rect: 0x8b4513ff, text: 0xffffffff }, // brown, white
     ];
 
+    const boxPadding = 5;
     for (let index = 0; index < elements.length; index++) {
       const element = elements[index];
       const color = colors[index % colors.length];
 
+      // Add 5px padding to the rect
+      const paddedRect = {
+        left: Math.max(0, element.rect.left - boxPadding),
+        top: Math.max(0, element.rect.top - boxPadding),
+        width: Math.min(
+          imageWidth - element.rect.left,
+          element.rect.width + boxPadding * 2,
+        ),
+        height: Math.min(
+          imageHeight - element.rect.top,
+          element.rect.height + boxPadding * 2,
+        ),
+      };
+
       // Draw rectangle
       image.scan(
-        element.rect.left,
-        element.rect.top,
-        element.rect.width,
-        element.rect.height,
+        paddedRect.left,
+        paddedRect.top,
+        paddedRect.width,
+        paddedRect.height,
         function (x, y, idx) {
           if (
-            x === element.rect.left ||
-            x === element.rect.left + element.rect.width - 1 ||
-            y === element.rect.top ||
-            y === element.rect.top + element.rect.height - 1
+            x === paddedRect.left ||
+            x === paddedRect.left + paddedRect.width - 1 ||
+            y === paddedRect.top ||
+            y === paddedRect.top + paddedRect.height - 1
           ) {
             this.bitmap.data[idx + 0] = (color.rect >> 24) & 0xff; // R
             this.bitmap.data[idx + 1] = (color.rect >> 16) & 0xff; // G
@@ -70,14 +86,13 @@ const createSvgOverlay = (
       const textHeight = 12;
       const rectWidth = textWidth + 5;
       const rectHeight = textHeight + 4;
-      let rectX = element.rect.left - rectWidth;
-      let rectY =
-        element.rect.top + element.rect.height / 2 - textHeight / 2 - 2;
+      let rectX = paddedRect.left - rectWidth;
+      let rectY = paddedRect.top + paddedRect.height / 2 - textHeight / 2 - 2;
 
       // Check if obscured by the left
       if (rectX < 0) {
-        rectX = element.rect.left;
-        rectY = element.rect.top - rectHeight;
+        rectX = paddedRect.left;
+        rectY = paddedRect.top - rectHeight;
       }
 
       // Draw text background

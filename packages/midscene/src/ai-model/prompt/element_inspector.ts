@@ -36,14 +36,6 @@ Please return the result in JSON format as follows:
 
 \`\`\`json
 {
-  // The list of **all elements** in the image, Output all image type content
-  "imgLists": [
-    {
-      "id": "PLACEHOLDER", // Replace PLACEHOLDER with the ID of elementInfo
-      "indexId": "PLACEHOLDER", // Replace PLACEHOLDER with the indexId of elementInfo
-      "description": "PLACEHOLDER" // Replace PLACEHOLDER with the description of element (please describe what this element looks like, eg: shopping cart icon)
-    }
-  ],
   "elements": [
     // If no matching elements are found, return an empty array []
     {
@@ -130,13 +122,6 @@ Input Example:
 Output Example:
 \`\`\`json
 {
-  "imgLists": [
-    {
-      "id": "wefew2222few2",
-      "indexId": "1" // indexId of the element
-      "description": "This element looks like a shopping cart button"
-    }
-  ],
   "elements": [
     {
       // Describe the reason for finding this element, replace with actual value in practice
@@ -190,30 +175,6 @@ export const findElementSchema: ResponseFormatJSONSchema = {
           },
           description: 'List of found elements',
         },
-        imgLists: {
-          type: 'array',
-          items: {
-            type: 'object',
-            properties: {
-              id: {
-                type: 'string',
-                description: 'ID of the element',
-              },
-              indexId: {
-                type: 'string',
-                description: 'indexId of the element',
-              },
-              description: {
-                type: 'string',
-                description:
-                  'Describe what this element looks like, eg: shopping cart icon',
-              },
-            },
-            required: ['id', 'description', 'indexId'],
-            additionalProperties: false,
-          },
-          description: 'List of all elements in the image',
-        },
         errors: {
           type: 'array',
           items: {
@@ -222,7 +183,7 @@ export const findElementSchema: ResponseFormatJSONSchema = {
           description: 'List of error messages, if any',
         },
       },
-      required: ['elements', 'imgLists', 'errors'],
+      required: ['elements', 'errors'],
       additionalProperties: false,
     },
   },
