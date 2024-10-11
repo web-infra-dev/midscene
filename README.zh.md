@@ -44,4 +44,4 @@ Midscene.js 是一个由 AI 驱动的自动化 SDK，能够使用自然语言对
 
 ## 授权许可
 
-Midscene.js 遵循 [MIT 许可协议](https://github.com/web-infra-dev/midscene/blob/main/LICENSE)。
+Midscene.js 遵循 [MIT 许可协议](LICENSE)。
