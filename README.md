@@ -45,4 +45,4 @@ Midscene.js is an AI-powered automation SDK can control the page, perform assert
 
 ## License
 
-Midscene.js is [MIT licensed](https://github.com/web-infra-dev/midscene/blob/main/LICENSE).
+Midscene.js is [MIT licensed](LICENSE).
