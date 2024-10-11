@@ -5,8 +5,8 @@
       "prompt": "左下角播放或暂停按钮",
       "response": [
         {
-          "id": "d2f421f2ff",
-          "indexId": 1
+          "id": "a1ebe41885",
+          "indexId": 3
         }
       ]
     },
@@ -14,8 +14,8 @@
       "prompt": "点赞按钮",
       "response": [
         {
-          "id": "62816ec4f7",
-          "indexId": 13
+          "id": "f2979c1372",
+          "indexId": 21
         }
       ]
     },
@@ -23,8 +23,8 @@
       "prompt": "评论按钮",
       "response": [
         {
-          "id": "257b9c04eb",
-          "indexId": 15
+          "id": "e43c740d6f",
+          "indexId": 23
         }
       ]
     },
@@ -32,8 +32,8 @@
       "prompt": "书签按钮",
       "response": [
         {
-          "id": "91c259f3e5",
-          "indexId": 17
+          "id": "9f661e98ec",
+          "indexId": 25
         }
       ]
     },
@@ -41,8 +41,8 @@
       "prompt": "分享按钮",
       "response": [
         {
-          "id": "2f71efd820",
-          "indexId": 20
+          "id": "8cbe008b54",
+          "indexId": 27
         }
       ]
     },
@@ -50,8 +50,8 @@
       "prompt": "右下区域声音按钮",
       "response": [
         {
-          "id": "4175413093",
-          "indexId": 7
+          "id": "9fce501fc9",
+          "indexId": 13
         }
       ]
     }

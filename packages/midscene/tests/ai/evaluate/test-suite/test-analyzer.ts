@@ -76,6 +76,14 @@ export class TestResultAnalyzer {
     } else {
       this.handleFailure(result, testCase, index);
     }
+    if (this.updateAiData) {
+      testCase.response = result.response.map((element: any) => {
+        return {
+          id: element.id,
+          indexId: this.getElementIndexId(element.id),
+        };
+      });
+    }
   }
 
   private getElementIndexId(id: string) {
@@ -101,15 +109,6 @@ export class TestResultAnalyzer {
       }),
       prompt: testCase.prompt,
     });
-
-    if (this.updateAiData) {
-      testCase.response = result.response.map((element: any) => {
-        return {
-          id: element.id,
-          indexId: this.getElementIndexId(element.id),
-        };
-      });
-    }
   }
 
   private handleFailure(result: any, testCase: any, index: number) {
