@@ -32,12 +32,13 @@ export async function AiInspectElement<
 >(options: {
   context: UIContext<ElementType>;
   multi: boolean;
-  findElementDescription: string;
+  targetElementDescription: string;
   callAI?: typeof callAiFn<AIElementParseResponse>;
   useModel?: 'coze' | 'openAI';
   quickAnswer?: AISingleElementResponse;
 }) {
-  const { context, multi, findElementDescription, callAI, useModel } = options;
+  const { context, multi, targetElementDescription, callAI, useModel } =
+    options;
   const { screenshotBase64 } = context;
   const { description, elementById } = await describeUserPage(context);
 
@@ -69,10 +70,10 @@ export async function AiInspectElement<
     pageDescription: \n
     ${description}
 
-    Here is the description of the findElement. Just go ahead:
+    Here is the item user want to find. Just go ahead:
     =====================================
     ${JSON.stringify({
-      description: findElementDescription,
+      description: targetElementDescription,
       multi: multiDescription(multi),
     })}
     =====================================

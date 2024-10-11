@@ -103,7 +103,7 @@ export default class Insight<
       callAI,
       context,
       multi: Boolean(multi),
-      findElementDescription: queryPrompt,
+      targetElementDescription: queryPrompt,
       quickAnswer: opt?.quickAnswer,
     });
     // const parseResult = await this.aiVendorFn<AIElementParseResponse>(msgs);

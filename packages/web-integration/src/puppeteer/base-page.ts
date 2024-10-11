@@ -52,7 +52,7 @@ export class Page<
       };
     });
 
-    const path = getTmpFile('jpeg');
+    const path = getTmpFile('png');
 
     await this.page.screenshot({
       path,

@@ -180,7 +180,7 @@ export function extractTextWithPosition(initNode: Document): ElementInfo[] {
     const xpath = getXPathForElement(node);
     const elementInfo: ElementInfo = {
       id: nodeHashId,
-      indexId: generateId(nodeIndex++),
+      indexId: nodeIndex++,
       nodeHashId,
       locator: xpath,
       attributes: {

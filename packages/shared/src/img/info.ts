@@ -69,3 +69,7 @@ export function base64Encoded(image: string, withHeader = true) {
   }
   throw new Error('unsupported image type');
 }
+
+export function base64ToPngFormat(base64: string) {
+  return `data:image/png;base64,${base64}`;
+}

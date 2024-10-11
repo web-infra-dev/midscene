@@ -43,33 +43,6 @@ Return in the following JSON format:
 `;
 }
 
-const skillSegment = `skill name: segment_a_web_page 
-skill content:
-Based on the functions and content of various elements on the page, segment the screenshot into different sections like navigation bar, product list, news area, etc. 
-Some general rules for segmentation:
-* Each section should NOT overlap with each other.
-* Each text should only belong to one section.
-* [IMPORTANT] Whether the content visually appears to belong to different sections is a significant factor in segmenting the page.
-* Analyze the page in a top-to-bottom and left-to-right order.
-* The evidence indicates a separate section, for example 
-  - The background color of certain parts of the page changes.
-  - A section of a page includes a title.
-* Provide the following data for each of the UI section you found.
-  {
-    "name": "name of the section",
-    "description": "briefly summarize the key content or usage of this section.",
-    "sectionCharacteristics": "In view of the need to distinguish this section from the surrounding sections, explain the characteristics and how to define boundaries and what precautions to take.",
-    "textIds": ["5", "6", "7"], // ids of all text elements in this section
-  }
-`;
-
-const skillExtractData = `skill name: extract_data_from_UI
-related input: DATA_DEMAND
-skill content: 
-* User will give you some data requirements in DATA_DEMAND. Consider the UI context, follow the user's instructions, and provide comprehensive data accordingly.
-* There may be some special commands in DATA_DEMAND, please pay extra attention
-  - ${ONE_ELEMENT_LOCATOR_PREFIX} and ${ELEMENTS_LOCATOR_PREFIX}: if you see a description that mentions the keyword ${ONE_ELEMENT_LOCATOR_PREFIX} or ${ELEMENTS_LOCATOR_PREFIX}(e.g. follow ${ONE_ELEMENT_LOCATOR_PREFIX} : i want to find ...), it means user wants to locate a specific element meets the description. Return in this way: prefix + the id / comma-separated ids, for example: ${ONE_ELEMENT_LOCATOR_PREFIX}/1 , ${ELEMENTS_LOCATOR_PREFIX}/1,2,3 . If not found, keep the prefix and leave the suffix empty, like ${ONE_ELEMENT_LOCATOR_PREFIX}/ .`;
-
 export function promptsOfSectionQuery(
   constraints: BasicSectionQuery[],
 ): string {
@@ -99,7 +72,7 @@ export function promptsOfSectionQuery(
 export function systemPromptToExtract() {
   return `
 You are a versatile professional in software UI design and testing. Your outstanding contributions will impact the user experience of billions of users.
-The user will give you a screenshot and the texts on it. There may be some none-English characters (like Chinese) on it, indicating it's an non-English app.
+The user will give you a screenshot and the contents of it. There may be some none-English characters (like Chinese) on it, indicating it's an non-English app.
 
 You have the following skills:
 
@@ -296,13 +269,13 @@ export async function describeUserPage<
 
   return {
     description: `
-    {
-      // The size of the page
-      "pageSize": ${describeSize({ width, height })},\n
+{
+  // The size of the page
+  "pageSize": ${describeSize({ width, height })},\n
+  // json description of the element
+  "content": ${JSON.stringify(elementInfosDescription)}
       
-      // json description of the element
-      "elementInfos": ${JSON.stringify(elementInfosDescription)}
-    }`,
+}`, // // json description of the element
     elementById(id: string) {
       assert(typeof id !== 'undefined', 'id is required for query');
       const item = idElementMap[`${id}`];
@@ -327,6 +300,7 @@ function cropFieldInformation(elementsInfo: BaseElement[]) {
 
       return {
         id,
+        markerId: (item as any).indexId,
         attributes: tailorAttributes,
         rect,
         content: tailorContent,
