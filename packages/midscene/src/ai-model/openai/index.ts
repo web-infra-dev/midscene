@@ -3,9 +3,9 @@ import { AIResponseFormat } from '@/types';
 import { wrapOpenAI } from 'langsmith/wrappers';
 import OpenAI, { type ClientOptions, AzureOpenAI } from 'openai';
 import type { ChatCompletionMessageParam } from 'openai/resources';
-import { planSchema } from '../automation/planning';
 import { AIActionType } from '../common';
 import { findElementSchema } from '../prompt/element_inspector';
+import { planSchema } from '../prompt/planning';
 import { assertSchema } from '../prompt/util';
 
 export const MIDSCENE_OPENAI_INIT_CONFIG_JSON =

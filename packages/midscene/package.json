@@ -56,6 +56,7 @@
     "test": "vitest --run",
     "test:ai": "AITEST=true npm run test",
     "evaluate": "npm run test:ai -- tests/ai/evaluate/inspect.test.ts",
+    "evaluate:plan": "PLAN_INSPECT=true npm run test:ai -- tests/ai/evaluate/inspect.test.ts",
     "prepublishOnly": "npm run build"
   },
   "dependencies": {

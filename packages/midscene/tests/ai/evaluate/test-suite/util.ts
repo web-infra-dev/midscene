@@ -17,7 +17,6 @@ export type InspectAiTestCase = {
 export interface AiElementsResponse {
   elements: Array<{
     id: string;
-    nodeHashId: string;
     reason: string;
     text: string;
   }>;

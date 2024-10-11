@@ -11,14 +11,12 @@ export class TestResultAnalyzer {
   private updateAiData = Boolean(process.env.UPDATE_AI_DATA);
   private successResults: {
     index: number;
-    imgLists: any[];
     response: any[];
     prompt: string;
   }[] = [];
   private failResults: {
     index: number;
     expected: any[];
-    imgLists: any[];
     actual: any[];
     prompt: string;
   }[] = [];
@@ -95,12 +93,6 @@ export class TestResultAnalyzer {
     this.successCount++;
     this.successResults.push({
       index,
-      imgLists: result?.imgLists?.map((img: any) => {
-        return {
-          ...img,
-          indexId: this.getElementIndexId(img.id),
-        };
-      }),
       response: result.elements.map((element: any) => {
         return {
           ...element,
@@ -115,12 +107,6 @@ export class TestResultAnalyzer {
     this.failCount++;
     this.failResults.push({
       index,
-      imgLists: result?.imgLists?.map((img: any) => {
-        return {
-          ...img,
-          indexId: this.getElementIndexId(img.id),
-        };
-      }),
       expected: testCase.reponse,
       actual: result.response.map((element: any) => {
         return {

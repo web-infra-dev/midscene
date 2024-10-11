@@ -1,7 +1,7 @@
 import { readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { beforeEach, describe } from 'node:test';
-import { AiInspectElement } from '@/ai-model';
+import { AiInspectElement, plan } from '@/ai-model';
 import { sleep } from '@/utils';
 import { afterAll, expect, test } from 'vitest';
 import { repeatTime } from '../util';
@@ -17,11 +17,11 @@ import {
 } from './test-suite/util';
 
 const testSources = [
-  // 'todo',
-  // 'online_order',
-  // 'online_order_list',
-  // 'taobao',
-  // 'aweme_login',
+  'todo',
+  'online_order',
+  'online_order_list',
+  'taobao',
+  'aweme_login',
   'aweme_play',
 ];
 
@@ -66,6 +66,19 @@ describe('ai inspect element', () => {
             aiData.testCases,
             context,
             async (testCase) => {
+              if (process.env.PLAN_INSPECT) {
+                // use planning to get quick answer to test element inspector
+                const res = await plan(testCase.description, {
+                  context,
+                });
+
+                return {
+                  elements: res.plans[0].quickAnswer
+                    ? [res.plans[0].quickAnswer]
+                    : [],
+                };
+              }
+
               const { parseResult } = await AiInspectElement({
                 context,
                 multi: testCase.multi,
