@@ -43,4 +43,4 @@ Midscene.jsは、自然言語を使用してページを制御し、アサーシ
 
 ## ライセンス
 
-Midscene.jsは[MITライセンス](https://github.com/web-infra-dev/midscene/blob/main/LICENSE)の下で提供されています。
+Midscene.jsは[MITライセンス](LICENSE)の下で提供されています。
