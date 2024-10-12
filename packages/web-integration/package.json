@@ -1,7 +1,7 @@
 {
   "name": "@midscene/web",
   "description": "An AI-powered automation SDK can control the page, perform assertions, and extract data in JSON format using natural language. See https://midscenejs.com/ for details.",
-  "version": "0.5.1",
+  "version": "0.5.2",
   "jsnext:source": "./src/index.ts",
   "main": "./dist/lib/index.js",
   "types": "./dist/types/index.d.ts",
