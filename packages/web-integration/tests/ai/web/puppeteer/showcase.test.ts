@@ -10,7 +10,6 @@ describe(
         'https://www.saucedemo.com/',
       );
       const mid = new PuppeteerAgent(originPage);
-
       await mid.aiAction(
         'type "standard_user" in user name input, type "secret_sauce" in password, click "Login"',
       );
@@ -64,6 +63,18 @@ describe(
       const widgets = await mid.aiQuery(
         'find all inputs in the page, return the field name in string[]',
       );
+
+      await reset();
+    });
+
+    it('Search', async () => {
+      const { originPage, reset } = await launchPage('https://www.baidu.com/');
+      const mid = new PuppeteerAgent(originPage);
+      await mid.aiAction(
+        'type "Weather in Shanghai" in search box, hit Enter, wait 2s, click the "Image" button below the search box`',
+      );
+
+      await mid.aiWaitFor('there is weather info in Shanghai');
 
       await reset();
     });

@@ -62,7 +62,8 @@ Input Example:
       },
       "elementInfos": [
         {
-          "id": "3", // ID of the element
+          "id": "we23xsfwe", // ID of the element
+          "indexId": "0", // Index of the element，The image is labeled to the left of the element
           "attributes": { // Attributes of the element
             "nodeType": "IMG Node", // Type of element, types include: TEXT Node, IMG Node, BUTTON Node, INPUT Node
             "src": "https://ap-southeast-3.m",
@@ -77,7 +78,8 @@ Input Example:
           }
         },
         {
-          "id": "4", // ID of the element
+          "id": "wefew2222few2", // ID of the element
+          "indexId": "1", // Index of the element，The image is labeled to the left of the element
           "attributes": { // Attributes of the element
             "nodeType": "IMG Node", // Type of element, types include: TEXT Node, IMG Node, BUTTON Node, INPUT Node
             "src": "data:image/png;base64,iVBORw0KGgoAAAANSU...",
@@ -93,7 +95,8 @@ Input Example:
         },
         ...
         {
-          "id": "27",
+          "id": "kwekfj2323",
+          "indexId": "2", // Index of the element，The image is labeled to the left of the element
           "attributes": {
             "nodeType": "TEXT Node",
             "class": ".product-name"
@@ -125,7 +128,7 @@ Output Example:
       "reason": "Reason for finding element 4: It is located in the upper right corner, is an image type, and according to the screenshot, it is a shopping cart icon button",
       "text": "",
       // ID of this element, replace with actual value in practice
-      "id": "4"
+      "id": "wefew2222few2"
     }
   ],
   "errors": []

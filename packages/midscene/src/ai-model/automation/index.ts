@@ -6,8 +6,8 @@ import {
   callAiFn,
   transformUserMessages,
 } from '../common';
+import { systemPromptToTaskPlanning } from '../prompt/planning';
 import { describeUserPage } from '../prompt/util';
-import { systemPromptToTaskPlanning } from './planning';
 
 export async function plan(
   userPrompt: string,
@@ -16,7 +16,9 @@ export async function plan(
     callAI?: typeof callAiFn<PlanningAIResponse>;
   },
   useModel?: 'coze' | 'openAI',
-): Promise<{ plans: PlanningAction[] }> {
+): Promise<{
+  plans: PlanningAction[];
+}> {
   const { callAI, context } = opts || {};
   const { screenshotBase64 } = context;
   const { description: pageDescription } = await describeUserPage(context);
@@ -51,19 +53,12 @@ export async function plan(
     },
   ];
 
-  if (callAI) {
-    planFromAI = await callAI({
-      msgs,
-      AIActionType: AIActionType.PLAN,
-      useModel,
-    });
-  } else {
-    planFromAI = await callAiFn({
-      msgs,
-      AIActionType: AIActionType.PLAN,
-      useModel,
-    });
-  }
+  const call = callAI || callAiFn;
+  planFromAI = await call({
+    msgs,
+    AIActionType: AIActionType.PLAN,
+    useModel,
+  });
 
   const actions = planFromAI?.actions || [];
 
@@ -73,12 +68,6 @@ export async function plan(
   if (planFromAI.error) {
     throw new Error(planFromAI.error);
   }
-
-  // actions.forEach((task) => {
-  //   if (task.type === 'Error') {
-  //     throw new Error(task.thought);
-  //   }
-  // });
 
   return { plans: actions };
 }

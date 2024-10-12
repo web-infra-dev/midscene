@@ -213,6 +213,9 @@ importers:
       npm-watch:
         specifier: 0.13.0
         version: 0.13.0
+      pixi-filters:
+        specifier: 6.0.5
+        version: 6.0.5(pixi.js@8.1.1)
       pixi.js:
         specifier: 8.1.1
         version: 8.1.1
@@ -3456,6 +3459,9 @@ packages:
 
   '@types/fs-extra@11.0.4':
     resolution: {integrity: sha512-yTbItCNreRooED33qjunPthRcSjERP1r4MqCZc7wv0u2sUkzTFp45tgUfS5+r7FrZPdmCCNflLhVSP/o+SemsQ==}
+
+  '@types/gradient-parser@0.1.5':
+    resolution: {integrity: sha512-r7K3NkJz3A95WkVVmjs0NcchhHstC2C/VIYNX4JC6tieviUNo774FFeOHjThr3Vw/WCeMP9kAT77MKbIRlO/4w==}
 
   '@types/hast@2.3.10':
     resolution: {integrity: sha512-McWspRw8xx8J9HurkVBfYj0xKoE25tOFlHGdx4MJ5xORQrMGZNqJhVQWaIbm6Oyla5kYOXtDiopzKRJzEOkwJw==}
@@ -7278,6 +7284,11 @@ packages:
   pixelmatch@4.0.2:
     resolution: {integrity: sha512-J8B6xqiO37sU/gkcMglv6h5Jbd9xNER7aHzpfRdNmV4IbQBzBpe4l9XmbG+xPF/znacgu2jfEw+wHffaq/YkXA==}
     hasBin: true
+
+  pixi-filters@6.0.5:
+    resolution: {integrity: sha512-M7F+Xu4Ysp2iy7bNZxt6U4hxO+X8c3msVKOQAq/tf3sLt99XOiY54iH2Ixj5VRIesmjdLWA5CaUQ+TUfyBVe2g==}
+    peerDependencies:
+      pixi.js: '>=8.0.0-0'
 
   pixi.js@8.1.1:
     resolution: {integrity: sha512-/4D1HokubR2TlA/3JdeAb/EsGlkSRt5SmmMiPnsw9QB1PHDdzR7Td1m401fGIjTRq5edl5Zrz29hYXPuVwzdIw==}
@@ -14256,6 +14267,8 @@ snapshots:
       '@types/jsonfile': 6.1.4
       '@types/node': 18.19.41
 
+  '@types/gradient-parser@0.1.5': {}
+
   '@types/hast@2.3.10':
     dependencies:
       '@types/unist': 2.0.10
@@ -19025,6 +19038,11 @@ snapshots:
   pixelmatch@4.0.2:
     dependencies:
       pngjs: 3.4.0
+
+  pixi-filters@6.0.5(pixi.js@8.1.1):
+    dependencies:
+      '@types/gradient-parser': 0.1.5
+      pixi.js: 8.1.1
 
   pixi.js@8.1.1:
     dependencies:

@@ -107,8 +107,11 @@ const DetailPanel = (): JSX.Element => {
     // hit `Tab` to toggle viewType
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Tab') {
+        const ifShift = e.shiftKey;
         const index = availableViewTypes.indexOf(viewType);
-        const nextIndex = (index + 1) % availableViewTypes.length;
+        const nextIndex = ifShift
+          ? (index - 1 + availableViewTypes.length) % availableViewTypes.length
+          : (index + 1) % availableViewTypes.length;
         setViewType(availableViewTypes[nextIndex]);
         e.preventDefault();
       }
@@ -123,7 +126,7 @@ const DetailPanel = (): JSX.Element => {
   const options = availableViewTypes.map((type) => {
     if (type === VIEW_TYPE_REPLAY) {
       return {
-        label: 'Task Replay',
+        label: 'Replay',
         value: type,
         icon: <VideoCameraOutlined />,
       };

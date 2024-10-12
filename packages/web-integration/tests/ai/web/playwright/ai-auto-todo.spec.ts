@@ -9,7 +9,7 @@ const CACHE_TIME_OUT = process.env.MIDSCENE_CACHE;
 
 test('ai todo', async ({ ai, aiQuery }) => {
   if (CACHE_TIME_OUT) {
-    test.setTimeout(1000 * 30);
+    test.setTimeout(1000 * 50);
   }
 
   await ai('Enter "Learn" in the task box, don\'t press enter');

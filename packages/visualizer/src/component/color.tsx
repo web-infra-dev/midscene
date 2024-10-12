@@ -3,7 +3,7 @@ const sectionColor = ['#028391'];
 // const elementColor = ['#fb6107'];
 const elementColor = ['#01204E'];
 const highlightColorForSection = '#01204E';
-const highlightColorForElement = '#F56824'; // @main-orange
+const highlightColorForElement = '#fd5907'; // @main-orange
 
 function djb2Hash(str?: string): number {
   if (!str) {

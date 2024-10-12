@@ -2,7 +2,7 @@ import type { NodeType } from '@midscene/shared/constants';
 
 export interface ElementInfo {
   id: string;
-  indexId?: string; // for debug use
+  indexId: number;
   nodePath: string;
   nodeHashId: string;
   locator: string;

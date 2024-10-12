@@ -1,6 +1,7 @@
 [
   {
     "id": "cdfaac34ad",
+    "indexId": 0,
     "nodePath": "0-0-0-0-0",
     "nodeHashId": "cdfaac34ad",
     "nodeType": "TEXT Node",
@@ -22,8 +23,7 @@
     },
     "zoom": 1,
     "screenWidth": 1280,
-    "screenHeight": 720,
-    "indexId": "1"
+    "screenHeight": 720
   },
   {
     "id": "fbc2d0029b",
@@ -31,6 +31,7 @@
     "nodeHashId": "fbc2d0029b",
     "locator": "[_midscene_retrieve_task_id='fbc2d0029b']",
     "nodeType": "FORM_ITEM Node",
+    "indexId": 1,
     "attributes": {
       "class": ".new-todo",
       "id": "todo-input",
@@ -54,11 +55,11 @@
     ],
     "zoom": 1,
     "screenWidth": 1280,
-    "screenHeight": 720,
-    "indexId": "2"
+    "screenHeight": 720
   },
   {
     "id": "70941b968f",
+    "indexId": 2,
     "nodePath": "0-0-0-1-1-0",
     "nodeHashId": "70941b968f",
     "nodeType": "TEXT Node",
@@ -80,8 +81,7 @@
     },
     "zoom": 1,
     "screenWidth": 1280,
-    "screenHeight": 720,
-    "indexId": "3"
+    "screenHeight": 720
   },
   {
     "id": "2468fa0562",
@@ -89,6 +89,7 @@
     "nodeHashId": "2468fa0562",
     "locator": "[_midscene_retrieve_task_id='2468fa0562']",
     "nodeType": "FORM_ITEM Node",
+    "indexId": 3,
     "attributes": {
       "class": ".toggle-all",
       "type": "checkbox",
@@ -96,7 +97,7 @@
       "htmlTagName": "<input>",
       "nodeType": "FORM_ITEM Node"
     },
-    "content": "",
+    "content": "on",
     "rect": {
       "left": 369,
       "top": 133,
@@ -110,8 +111,7 @@
     ],
     "zoom": 1,
     "screenWidth": 1280,
-    "screenHeight": 720,
-    "indexId": "4"
+    "screenHeight": 720
   },
   {
     "id": "cafc7dfe14",
@@ -119,6 +119,7 @@
     "nodeHashId": "cafc7dfe14",
     "locator": "[_midscene_retrieve_task_id='cafc7dfe14']",
     "nodeType": "FORM_ITEM Node",
+    "indexId": 4,
     "attributes": {
       "class": ".toggle",
       "type": "checkbox",
@@ -126,7 +127,7 @@
       "htmlTagName": "<input>",
       "nodeType": "FORM_ITEM Node"
     },
-    "content": "",
+    "content": "on",
     "rect": {
       "left": 365,
       "top": 205,
@@ -140,11 +141,11 @@
     ],
     "zoom": 1,
     "screenWidth": 1280,
-    "screenHeight": 720,
-    "indexId": "5"
+    "screenHeight": 720
   },
   {
     "id": "c1fb39ce9a",
+    "indexId": 5,
     "nodePath": "0-0-1-1-0-0-1-0",
     "nodeHashId": "c1fb39ce9a",
     "nodeType": "TEXT Node",
@@ -166,8 +167,7 @@
     },
     "zoom": 1,
     "screenWidth": 1280,
-    "screenHeight": 720,
-    "indexId": "6"
+    "screenHeight": 720
   },
   {
     "id": "910617669a",
@@ -175,6 +175,7 @@
     "nodeHashId": "910617669a",
     "locator": "[_midscene_retrieve_task_id='910617669a']",
     "nodeType": "FORM_ITEM Node",
+    "indexId": 6,
     "attributes": {
       "class": ".toggle",
       "type": "checkbox",
@@ -182,7 +183,7 @@
       "htmlTagName": "<input>",
       "nodeType": "FORM_ITEM Node"
     },
-    "content": "",
+    "content": "on",
     "rect": {
       "left": 365,
       "top": 265,
@@ -196,11 +197,11 @@
     ],
     "zoom": 1,
     "screenWidth": 1280,
-    "screenHeight": 720,
-    "indexId": "7"
+    "screenHeight": 720
   },
   {
     "id": "14b20d0963",
+    "indexId": 7,
     "nodePath": "0-0-1-1-1-0-1-0",
     "nodeHashId": "14b20d0963",
     "nodeType": "TEXT Node",
@@ -222,11 +223,11 @@
     },
     "zoom": 1,
     "screenWidth": 1280,
-    "screenHeight": 720,
-    "indexId": "8"
+    "screenHeight": 720
   },
   {
     "id": "1b33e5dd50",
+    "indexId": 8,
     "nodePath": "0-0-1-1-1-0-2",
     "nodeHashId": "1b33e5dd50",
     "nodeType": "BUTTON Node",
@@ -250,8 +251,7 @@
     ],
     "zoom": 1,
     "screenWidth": 1280,
-    "screenHeight": 720,
-    "indexId": "9"
+    "screenHeight": 720
   },
   {
     "id": "5070d9f1ff",
@@ -259,6 +259,7 @@
     "nodeHashId": "5070d9f1ff",
     "locator": "[_midscene_retrieve_task_id='5070d9f1ff']",
     "nodeType": "FORM_ITEM Node",
+    "indexId": 9,
     "attributes": {
       "class": ".toggle",
       "type": "checkbox",
@@ -266,7 +267,7 @@
       "htmlTagName": "<input>",
       "nodeType": "FORM_ITEM Node"
     },
-    "content": "",
+    "content": "on",
     "rect": {
       "left": 365,
       "top": 325,
@@ -280,11 +281,11 @@
     ],
     "zoom": 1,
     "screenWidth": 1280,
-    "screenHeight": 720,
-    "indexId": "10"
+    "screenHeight": 720
   },
   {
     "id": "3277d35f7c",
+    "indexId": 10,
     "nodePath": "0-0-1-1-2-0-1-0",
     "nodeHashId": "3277d35f7c",
     "nodeType": "TEXT Node",
@@ -306,11 +307,11 @@
     },
     "zoom": 1,
     "screenWidth": 1280,
-    "screenHeight": 720,
-    "indexId": "11"
+    "screenHeight": 720
   },
   {
     "id": "3bbb210c65",
+    "indexId": 11,
     "nodePath": "0-0-2-1-0-0-0",
     "nodeHashId": "3bbb210c65",
     "nodeType": "TEXT Node",
@@ -332,11 +333,11 @@
     },
     "zoom": 1,
     "screenWidth": 1280,
-    "screenHeight": 720,
-    "indexId": "12"
+    "screenHeight": 720
   },
   {
     "id": "e5eeb9be7c",
+    "indexId": 12,
     "nodePath": "0-0-2-1-1-0-0",
     "nodeHashId": "e5eeb9be7c",
     "nodeType": "TEXT Node",
@@ -358,11 +359,11 @@
     },
     "zoom": 1,
     "screenWidth": 1280,
-    "screenHeight": 720,
-    "indexId": "13"
+    "screenHeight": 720
   },
   {
     "id": "8dfa7ce553",
+    "indexId": 13,
     "nodePath": "0-0-2-1-2-0-0",
     "nodeHashId": "8dfa7ce553",
     "nodeType": "TEXT Node",
@@ -384,11 +385,11 @@
     },
     "zoom": 1,
     "screenWidth": 1280,
-    "screenHeight": 720,
-    "indexId": "14"
+    "screenHeight": 720
   },
   {
     "id": "69e78b5a71",
+    "indexId": 14,
     "nodePath": "0-0-2-2",
     "nodeHashId": "69e78b5a71",
     "nodeType": "BUTTON Node",
@@ -411,11 +412,11 @@
     ],
     "zoom": 1,
     "screenWidth": 1280,
-    "screenHeight": 720,
-    "indexId": "15"
+    "screenHeight": 720
   },
   {
     "id": "9cfdb53c27",
+    "indexId": 15,
     "nodePath": "0-1-0-0",
     "nodeHashId": "9cfdb53c27",
     "nodeType": "TEXT Node",
@@ -437,11 +438,11 @@
     },
     "zoom": 1,
     "screenWidth": 1280,
-    "screenHeight": 720,
-    "indexId": "16"
+    "screenHeight": 720
   },
   {
     "id": "36d8d21151",
+    "indexId": 16,
     "nodePath": "0-1-1-0",
     "nodeHashId": "36d8d21151",
     "nodeType": "TEXT Node",
@@ -463,11 +464,11 @@
     },
     "zoom": 1,
     "screenWidth": 1280,
-    "screenHeight": 720,
-    "indexId": "17"
+    "screenHeight": 720
   },
   {
     "id": "071998ac23",
+    "indexId": 17,
     "nodePath": "0-1-2-0",
     "nodeHashId": "071998ac23",
     "nodeType": "TEXT Node",
@@ -489,11 +490,11 @@
     },
     "zoom": 1,
     "screenWidth": 1280,
-    "screenHeight": 720,
-    "indexId": "18"
+    "screenHeight": 720
   },
   {
     "id": "bf9f443c29",
+    "indexId": 18,
     "nodePath": "0-1-2-1-0",
     "nodeHashId": "bf9f443c29",
     "nodeType": "TEXT Node",
@@ -515,7 +516,6 @@
     },
     "zoom": 1,
     "screenWidth": 1280,
-    "screenHeight": 720,
-    "indexId": "19"
+    "screenHeight": 720
   }
 ]
