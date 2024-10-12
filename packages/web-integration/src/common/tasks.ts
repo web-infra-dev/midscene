@@ -1,6 +1,6 @@
 import assert from 'node:assert';
 import type { WebPage } from '@/common/page';
-import Insight, {
+import {
   type AIElementParseResponse,
   type DumpSubscriber,
   type ExecutionRecorderItem,
@@ -10,19 +10,20 @@ import Insight, {
   type ExecutionTaskInsightQueryApply,
   type ExecutionTaskPlanningApply,
   Executor,
-  plan,
+  Insight,
   type InsightAssertionResponse,
   type InsightDump,
   type InsightExtractParam,
   type PlanningAction,
   type PlanningActionParamAssert,
+  type PlanningActionParamError,
   type PlanningActionParamHover,
   type PlanningActionParamInputOrKeyPress,
   type PlanningActionParamScroll,
   type PlanningActionParamSleep,
   type PlanningActionParamTap,
   type PlanningActionParamWaitFor,
-  type PlanningActionParamError,
+  plan,
 } from '@midscene/core';
 import { sleep } from '@midscene/core/utils';
 import { base64Encoded } from '@midscene/shared/img';

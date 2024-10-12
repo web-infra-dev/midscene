@@ -22,7 +22,7 @@ export async function launchPage(
   await originPage.setViewport(viewportConfig);
   await Promise.all([
     originPage.waitForNavigation({
-      timeout: 20 * 1000,
+      timeout: 40 * 1000,
       waitUntil: 'networkidle0',
     }),
     (async () => {
