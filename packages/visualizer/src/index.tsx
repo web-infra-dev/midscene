@@ -37,6 +37,9 @@ export function Visualizer(props: {
   const { dumps, hideLogo = false } = props;
 
   const executionDump = useExecutionDump((store) => store.dump);
+  const executionDumpLoadId = useExecutionDump(
+    (store) => store._executionDumpLoadId,
+  );
   const replayAllMode = useExecutionDump((store) => store.replayAllMode);
   const setReplayAllMode = useExecutionDump((store) => store.setReplayAllMode);
   const replayAllScripts = useExecutionDump(
@@ -141,7 +144,7 @@ export function Visualizer(props: {
   } else {
     const content = replayAllMode ? (
       <div className="replay-all-mode-wrapper">
-        <Player />
+        <Player key={executionDumpLoadId} />
       </div>
     ) : (
       <PanelGroup autoSaveId="page-detail-layout-v2" direction="horizontal">

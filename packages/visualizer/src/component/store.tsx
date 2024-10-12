@@ -148,6 +148,7 @@ export const useExecutionDump = create<{
         });
         set({
           allExecutionAnimation: allScripts,
+          _executionDumpLoadId: ++_executionDumpLoadId,
           replayAllMode: true,
           insightWidth: width,
           insightHeight: height,
