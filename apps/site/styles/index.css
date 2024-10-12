@@ -8,10 +8,80 @@
   --rp-c-text-code:#2d4956;
   --rp-home-feature-bg: #F1F1f1;
 }
+.footer {
+  background-color: #f2f2f2;
+  color: #333;
+  padding: 20px;
+  text-align: center;
+}
 
-@media (min-width: 768px) {
+.footer-content {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 15px;
+}
+
+.footer-logo {
+  width: 40px;
+}
+
+.footer-text {
+  margin: 0;
+  font-size: 14px;
+  white-space: nowrap;
+  color: #333;
+}
+
+.footer-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.footer-links a {
+  color: #555;
+  text-decoration: none;
+  margin: 0 5px;
+  transition: color 0.3s;
+}
+
+.footer-links a:hover {
+  color: #000;
+}
+
+.footer-links span {
+  color: #999;
+}
+
+@media (max-width: 768px) {
   .md\:text-6xl {
-      font-size: 3.3rem;
-      line-height: 1;
+    font-size: 3.3rem;
+    line-height: 1;
+}
+  .footer-content {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+  }
+
+  .footer-links {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-bottom: 10px;
+  }
+
+  .footer-links a {
+    margin: 5px 0;
+  }
+  
+  .footer-logo {
+    margin-bottom: 10px;
+  }
+  
+  .footer-bottom {
+    text-align: center;
   }
 }
