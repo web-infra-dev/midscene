@@ -96,7 +96,7 @@ async function main() {
 
 async function build() {
   try {
-    await run('pnpm', ['run', 'build:pkg']);
+    await run('pnpm', ['run', 'build']);
   } catch (error) {
     console.error(chalk.red('Error building packages'));
     throw error;
