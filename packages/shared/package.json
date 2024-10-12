@@ -1,6 +1,6 @@
 {
   "name": "@midscene/shared",
-  "version": "0.5.2",
+  "version": "0.6.0",
   "types": "./src/index.ts",
   "main": "./dist/lib/index.js",
   "module": "./dist/es/index.js",
