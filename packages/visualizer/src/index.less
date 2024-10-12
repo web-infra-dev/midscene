@@ -77,6 +77,21 @@ footer.mt-8{
   display: flex;
   flex-direction: row;
   background: @side-bg;
+  justify-content: space-between;
+
+  .page-nav-left {
+    display: flex;
+    flex-direction: row;
+    // align-items: center;
+  }
+
+  .page-nav-toolbar {
+    margin-left: 20px;
+
+    .ant-btn {
+      background: @toolbar-btn-bg;
+    }
+  }
 
   .logo img {
     height: 20px;
@@ -108,6 +123,16 @@ footer.mt-8{
   height: 100%;
   box-sizing: border-box;
   // padding: @layout-space;
+
+  .replay-all-mode-wrapper {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: @layout-space;
+    box-sizing: border-box;
+    margin: 0 auto;
+  }
 
   .main-content{
     display: flex;
