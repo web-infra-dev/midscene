@@ -164,6 +164,6 @@ export async function getPageTestData(targetDir: string) {
 }
 
 export async function getPageDataOfTestName(testName: string) {
-  const targetDir = path.join(__dirname, `test-data/${testName}`);
+  const targetDir = path.join(__dirname, `../test-data/${testName}`);
   return await getPageTestData(targetDir);
 }

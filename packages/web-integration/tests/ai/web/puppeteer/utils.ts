@@ -11,6 +11,7 @@ export async function launchPage(
 ) {
   const browser = await puppeteer.launch({
     headless: typeof opt?.headless === 'boolean' ? opt.headless : true,
+    args: ['--no-sandbox'],
   });
   const originPage = (await browser.pages())[0];
   const viewportConfig = {

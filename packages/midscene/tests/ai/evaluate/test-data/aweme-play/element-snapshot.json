@@ -354,7 +354,7 @@
   {
     "id": "9fce501fc9",
     "indexId": 13,
-    "nodePath": "0-2-1-3-4-3-0-0-0-0-0-0-0-0-0-1-5-15-0-0-0",
+    "nodePath": "0-2-1-3-4-3-0-0-0-0-0-0-0-0-0-1-5-16-0-0-0",
     "nodeHashId": "9fce501fc9",
     "nodeType": "BUTTON Node",
     "locator": "[_midscene_retrieve_task_id='9fce501fc9']",
@@ -384,7 +384,7 @@
   {
     "id": "cc67319c58",
     "indexId": 14,
-    "nodePath": "0-2-1-3-4-3-0-0-0-0-0-0-0-0-0-1-5-15-0-0-1-0",
+    "nodePath": "0-2-1-3-4-3-0-0-0-0-0-0-0-0-0-1-5-16-0-0-1-0",
     "nodeHashId": "cc67319c58",
     "nodeType": "TEXT Node",
     "locator": "",
@@ -410,7 +410,7 @@
   {
     "id": "4ad9e0245b",
     "indexId": 15,
-    "nodePath": "0-2-1-3-4-3-0-0-0-0-0-0-0-0-0-1-5-16-0-0-0",
+    "nodePath": "0-2-1-3-4-3-0-0-0-0-0-0-0-0-0-1-5-17-0-0-0",
     "nodeHashId": "4ad9e0245b",
     "nodeType": "BUTTON Node",
     "locator": "[_midscene_retrieve_task_id='4ad9e0245b']",
@@ -440,7 +440,7 @@
   {
     "id": "7199acca97",
     "indexId": 16,
-    "nodePath": "0-2-1-3-4-3-0-0-0-0-0-0-0-0-0-1-5-16-0-0-1-0",
+    "nodePath": "0-2-1-3-4-3-0-0-0-0-0-0-0-0-0-1-5-17-0-0-1-0",
     "nodeHashId": "7199acca97",
     "nodeType": "TEXT Node",
     "locator": "",
@@ -706,10 +706,10 @@
     "screenHeight": 800
   },
   {
-    "id": "35d4526e02",
+    "id": "b6c7058d3c",
     "indexId": 26,
     "nodePath": "0-2-1-3-4-3-0-0-0-0-0-0-0-0-1-1-3-1-0",
-    "nodeHashId": "35d4526e02",
+    "nodeHashId": "b6c7058d3c",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
@@ -719,7 +719,7 @@
       1217,
       552
     ],
-    "content": "9844",
+    "content": "9833",
     "rect": {
       "left": 1199,
       "top": 541,
@@ -759,10 +759,10 @@
     "screenHeight": 800
   },
   {
-    "id": "12b1ac31a8",
+    "id": "1e4d5f9dd3",
     "indexId": 28,
     "nodePath": "0-2-1-3-4-3-0-0-0-0-0-0-0-0-1-1-4-0-1-0",
-    "nodeHashId": "12b1ac31a8",
+    "nodeHashId": "1e4d5f9dd3",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
@@ -772,11 +772,11 @@
       1217,
       626
     ],
-    "content": "9257",
+    "content": "9263",
     "rect": {
       "left": 1199,
       "top": 615,
-      "width": 35,
+      "width": 36,
       "height": 21,
       "zoom": 1
     },
@@ -838,25 +838,25 @@
     "screenHeight": 800
   },
   {
-    "id": "cf13438e94",
+    "id": "8e611cc6cd",
     "indexId": 31,
-    "nodePath": "0-2-1-3-4-3-0-0-0-0-0-0-0-0-4-4-1-1-0",
-    "nodeHashId": "cf13438e94",
+    "nodePath": "0-2-1-3-4-3-0-0-0-0-0-0-0-0-3-0-0-0-0-0-0-0-0-0-0-0-0",
+    "nodeHashId": "8e611cc6cd",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
       "nodeType": "TEXT Node"
     },
     "center": [
-      640,
-      359
+      60,
+      654
     ],
-    "content": "不支持的音频/视频格式 或 设备无网络",
+    "content": "@王洛同学",
     "rect": {
-      "left": 520,
-      "top": 349,
-      "width": 240,
-      "height": 20,
+      "left": 16,
+      "top": 641,
+      "width": 88,
+      "height": 25,
       "zoom": 1
     },
     "zoom": 1,
@@ -864,24 +864,50 @@
     "screenHeight": 800
   },
   {
-    "id": "0f0142a591",
+    "id": "8d4ee75a94",
     "indexId": 32,
-    "nodePath": "0-2-1-3-4-3-0-0-0-0-0-0-0-0-4-4-1-3-0",
-    "nodeHashId": "0f0142a591",
+    "nodePath": "0-2-1-3-4-3-0-0-0-0-0-0-0-0-3-0-0-0-1-0-0",
+    "nodeHashId": "8d4ee75a94",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
       "nodeType": "TEXT Node"
     },
     "center": [
-      623,
-      395
+      136,
+      654
     ],
-    "content": "请试试",
+    "content": "· 8月31日",
     "rect": {
-      "left": 602,
-      "top": 385,
-      "width": 42,
+      "left": 109,
+      "top": 645,
+      "width": 53,
+      "height": 17,
+      "zoom": 1
+    },
+    "zoom": 1,
+    "screenWidth": 1280,
+    "screenHeight": 800
+  },
+  {
+    "id": "5ec6e68723",
+    "indexId": 33,
+    "nodePath": "0-2-1-3-4-3-0-0-0-0-0-0-0-0-3-0-0-1-0-0-1-0-0-0",
+    "nodeHashId": "5ec6e68723",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node"
+    },
+    "center": [
+      23,
+      681
+    ],
+    "content": "第",
+    "rect": {
+      "left": 16,
+      "top": 671,
+      "width": 14,
       "height": 20,
       "zoom": 1
     },
@@ -890,23 +916,49 @@
     "screenHeight": 800
   },
   {
-    "id": "83450fccba",
-    "indexId": 33,
-    "nodePath": "0-2-1-3-4-3-0-0-0-0-0-0-0-0-4-4-1-3-1-0",
-    "nodeHashId": "83450fccba",
+    "id": "a737e9d2df",
+    "indexId": 34,
+    "nodePath": "0-2-1-3-4-3-0-0-0-0-0-0-0-0-3-0-0-1-0-0-1-0-0-1",
+    "nodeHashId": "a737e9d2df",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
       "nodeType": "TEXT Node"
     },
     "center": [
-      661,
-      395
+      34,
+      681
     ],
-    "content": "刷新",
+    "content": "4",
     "rect": {
-      "left": 647,
-      "top": 385,
+      "left": 30,
+      "top": 671,
+      "width": 8,
+      "height": 20,
+      "zoom": 1
+    },
+    "zoom": 1,
+    "screenWidth": 1280,
+    "screenHeight": 800
+  },
+  {
+    "id": "b9bc70f2c1",
+    "indexId": 35,
+    "nodePath": "0-2-1-3-4-3-0-0-0-0-0-0-0-0-3-0-0-1-0-0-1-0-0-2",
+    "nodeHashId": "b9bc70f2c1",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node"
+    },
+    "center": [
+      52,
+      681
+    ],
+    "content": "集：",
+    "rect": {
+      "left": 38,
+      "top": 671,
       "width": 28,
       "height": 20,
       "zoom": 1
@@ -916,8 +968,220 @@
     "screenHeight": 800
   },
   {
+    "id": "f35d6dbb44",
+    "indexId": 36,
+    "nodePath": "0-2-1-3-4-3-0-0-0-0-0-0-0-0-3-0-0-1-0-0-1-0-1-0-0-0-0",
+    "nodeHashId": "f35d6dbb44",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node"
+    },
+    "center": [
+      258,
+      681
+    ],
+    "content": "究竟是谁控制了盘丝洞？《黑神话：悟空》第四回的剧情故事",
+    "rect": {
+      "left": 66,
+      "top": 671,
+      "width": 383,
+      "height": 20,
+      "zoom": 1
+    },
+    "zoom": 1,
+    "screenWidth": 1280,
+    "screenHeight": 800
+  },
+  {
+    "id": "313b33d2af",
+    "indexId": 37,
+    "nodePath": "0-2-1-3-4-3-0-0-0-0-0-0-0-0-3-0-0-1-0-0-1-0-2-0-0-0",
+    "nodeHashId": "313b33d2af",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node"
+    },
+    "center": [
+      490,
+      681
+    ],
+    "content": "#黑神话悟空",
+    "rect": {
+      "left": 451,
+      "top": 671,
+      "width": 78,
+      "height": 20,
+      "zoom": 1
+    },
+    "zoom": 1,
+    "screenWidth": 1280,
+    "screenHeight": 800
+  },
+  {
+    "id": "dd3e28b793",
+    "indexId": 38,
+    "nodePath": "0-2-1-3-4-3-0-0-0-0-0-0-0-0-3-0-0-1-0-0-1-0-4-0-0-0",
+    "nodeHashId": "dd3e28b793",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node"
+    },
+    "center": [
+      570,
+      681
+    ],
+    "content": "#单机游戏",
+    "rect": {
+      "left": 538,
+      "top": 671,
+      "width": 64,
+      "height": 20,
+      "zoom": 1
+    },
+    "zoom": 1,
+    "screenWidth": 1280,
+    "screenHeight": 800
+  },
+  {
+    "id": "ce8f0a920a",
+    "indexId": 39,
+    "nodePath": "0-2-1-3-4-3-0-0-0-0-0-0-0-0-3-0-0-1-0-0-1-0-6-0-0-0",
+    "nodeHashId": "ce8f0a920a",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node"
+    },
+    "center": [
+      649,
+      681
+    ],
+    "content": "#steam游戏",
+    "rect": {
+      "left": 611,
+      "top": 671,
+      "width": 76,
+      "height": 20,
+      "zoom": 1
+    },
+    "zoom": 1,
+    "screenWidth": 1280,
+    "screenHeight": 800
+  },
+  {
+    "id": "9721ed73af",
+    "indexId": 40,
+    "nodePath": "0-2-1-3-4-3-0-0-0-0-0-0-0-0-3-0-0-2-0-0-0-1-0",
+    "nodeHashId": "9721ed73af",
+    "locator": "[_midscene_retrieve_task_id='9721ed73af']",
+    "attributes": {
+      "svgContent": "true",
+      "nodeType": "IMG Node"
+    },
+    "nodeType": "IMG Node",
+    "content": "",
+    "rect": {
+      "left": 24,
+      "top": 711,
+      "width": 13,
+      "height": 13,
+      "zoom": 1
+    },
+    "center": [
+      31,
+      718
+    ],
+    "zoom": 1,
+    "screenWidth": 1280,
+    "screenHeight": 800
+  },
+  {
+    "id": "d645f8f77a",
+    "indexId": 41,
+    "nodePath": "0-2-1-3-4-3-0-0-0-0-0-0-0-0-3-0-0-2-0-0-0-2-0",
+    "nodeHashId": "d645f8f77a",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node"
+    },
+    "center": [
+      116,
+      718
+    ],
+    "content": "合集：《黑神话：悟空》",
+    "rect": {
+      "left": 42,
+      "top": 708,
+      "width": 147,
+      "height": 20,
+      "zoom": 1
+    },
+    "zoom": 1,
+    "screenWidth": 1280,
+    "screenHeight": 800
+  },
+  {
+    "id": "8585417e0f",
+    "indexId": 42,
+    "nodePath": "0-2-1-3-4-3-0-0-0-0-0-0-0-0-3-0-0-2-0-0-0-3-1-0",
+    "nodeHashId": "8585417e0f",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node"
+    },
+    "center": [
+      240,
+      719
+    ],
+    "content": "更新至第8集",
+    "rect": {
+      "left": 206,
+      "top": 710,
+      "width": 67,
+      "height": 17,
+      "zoom": 1
+    },
+    "zoom": 1,
+    "screenWidth": 1280,
+    "screenHeight": 800
+  },
+  {
+    "id": "356d458847",
+    "nodePath": "0-2-1-3-4-3-0-0-0-0-0-0-0-0-4-5",
+    "nodeHashId": "356d458847",
+    "indexId": 43,
+    "nodeType": "CONTAINER Node",
+    "locator": "[_midscene_retrieve_task_id='356d458847']",
+    "attributes": {
+      "class": ".xgplayer-enter",
+      "data-index": "0",
+      "style": "visibility: unset;",
+      "nodeType": "CONTAINER Node"
+    },
+    "content": "",
+    "rect": {
+      "left": 0,
+      "top": 0,
+      "width": 1280,
+      "height": 752,
+      "zoom": 1
+    },
+    "center": [
+      640,
+      376
+    ],
+    "zoom": 1,
+    "screenWidth": 1280,
+    "screenHeight": 800
+  },
+  {
     "id": "465e1acc81",
-    "indexId": 34,
+    "indexId": 44,
     "nodePath": "0-2-1-3-4-3-0-0-0-0-0-0-1-0",
     "nodeHashId": "465e1acc81",
     "nodeType": "BUTTON Node",
@@ -945,7 +1209,7 @@
   },
   {
     "id": "7b93080371",
-    "indexId": 35,
+    "indexId": 45,
     "nodePath": "0-97-0",
     "nodeHashId": "7b93080371",
     "locator": "[_midscene_retrieve_task_id='7b93080371']",
