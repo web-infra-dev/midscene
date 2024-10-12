@@ -20,6 +20,27 @@ export default defineConfig({
         content: 'https://github.com/web-infra-dev/midscene',
       },
     ],
+    footer: {
+      message: `
+        <footer class="footer">
+  <div class="footer-content">
+    <img src="/midscene-icon.png" alt="Midscene.js Logo" class="footer-logo" />
+    <p class="footer-text">&copy; 2024 Midscene.js. All Rights Reserved.</p>
+    <nav class="footer-links">
+      <a href="/privacy-policy">Privacy Policy</a>
+      <span>|</span>
+      <a href="/security">Security</a>
+      <span>|</span>
+      <a href="/accessibility">Website Accessibility</a>
+      <span>|</span>
+      <a href="/manage-cookies">Manage Cookies</a>
+    </nav>
+  </div>
+</footer>
+
+
+      `,
+    },
     locales: [
       {
         lang: 'en',
