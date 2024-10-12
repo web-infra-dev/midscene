@@ -32,10 +32,13 @@ export const useExecutionDump = create<{
   dump: GroupedActionDump | null;
   setGroupedDump: (dump: GroupedActionDump) => void;
   _executionDumpLoadId: number;
+  replayAllMode: boolean;
+  setReplayAllMode: (replayAllMode: boolean) => void;
+  allExecutionAnimation: AnimationScript[] | null;
+  insightWidth: number | null;
+  insightHeight: number | null;
   activeExecution: ExecutionDump | null;
   activeExecutionAnimation: AnimationScript[] | null;
-  activeExecutionScreenshotWidth: number;
-  activeExecutionScreenshotHeight: number;
   activeTask: ExecutionTask | null;
   setActiveTask: (task: ExecutionTask) => void;
   hoverTask: ExecutionTask | null;
@@ -49,11 +52,13 @@ export const useExecutionDump = create<{
   const initData = {
     dump: null,
     activeTask: null,
+    replayAllMode: false,
+    allExecutionAnimation: null,
+    insightWidth: null,
+    insightHeight: null,
     activeExecution: null,
     activeExecutionAnimation: null,
     // TODO: get from dump
-    activeExecutionScreenshotWidth: 0,
-    activeExecutionScreenshotHeight: 0,
     hoverTask: null,
     hoverTimestamp: null,
     hoverPreviewConfig: null,
@@ -69,9 +74,32 @@ export const useExecutionDump = create<{
     reset();
   };
 
+  const resetActiveExecution = () => {
+    set({
+      activeExecution: null,
+      activeExecutionAnimation: null,
+      _executionDumpLoadId: ++_executionDumpLoadId,
+    });
+
+    resetInsightDump();
+  };
+
   return {
     ...initData,
     _executionDumpLoadId,
+    setReplayAllMode: (replayAllMode: boolean) => {
+      const state = get();
+      if (state.allExecutionAnimation) {
+        set({ replayAllMode });
+        if (replayAllMode) {
+          resetActiveExecution();
+        }
+      } else {
+        console.error(
+          'allExecutionAnimation not found, failed to set replayAllMode',
+        );
+      }
+    },
     setGroupedDump: (dump: GroupedActionDump) => {
       console.log('will set ExecutionDump', dump);
       set({
@@ -81,17 +109,55 @@ export const useExecutionDump = create<{
       resetInsightDump();
 
       // set the first task as selected
-      if (
-        dump &&
-        dump.executions.length > 0 &&
-        dump.executions[0].tasks.length > 0
-      ) {
-        get().setActiveTask(dump.executions[0].tasks[0]);
+      // if (
+      //   dump &&
+      //   dump.executions.length > 0 &&
+      //   dump.executions[0].tasks.length > 0
+      // ) {
+      //   get().setActiveTask(dump.executions[0].tasks[0]);
+      // }
+
+      if (dump && dump.executions.length > 0) {
+        // find out the width and height of the screenshot
+        let width = 0;
+        let height = 0;
+
+        dump.executions.forEach((execution) => {
+          execution.tasks.forEach((task) => {
+            if (task.type === 'Insight') {
+              const insightTask = task as ExecutionTaskInsightLocate;
+              width = insightTask.log?.dump?.context?.size?.width || 1920;
+              height = insightTask.log?.dump?.context?.size?.height || 1080;
+            }
+          });
+        });
+
+        if (!width || !height) {
+          console.warn(
+            'width or height not found, failed to generate animation',
+          );
+          return;
+        }
+
+        const allScripts: AnimationScript[] = [];
+        dump.executions.forEach((execution) => {
+          const scripts = generateAnimationScripts(execution, width, height);
+          if (scripts) {
+            allScripts.push(...scripts);
+          }
+        });
+        set({
+          allExecutionAnimation: allScripts,
+          replayAllMode: true,
+          insightWidth: width,
+          insightHeight: height,
+        });
       }
     },
     setActiveTask(task: ExecutionTask) {
       let parentExecution: ExecutionDump | undefined;
-      const dump = get().dump;
+      const state = get();
+      const dump = state.dump;
       if (dump) {
         parentExecution = dump.executions.find((execution) =>
           execution.tasks.includes(task),
@@ -101,26 +167,18 @@ export const useExecutionDump = create<{
         throw new Error('parentExecution not found');
       }
 
-      let width = 0;
-      let height = 0;
-      parentExecution.tasks.forEach((t) => {
-        if (t.type === 'Insight') {
-          const insightTask = t as ExecutionTaskInsightLocate;
-          width = insightTask.log?.dump?.context?.size?.width || 1920;
-          height = insightTask.log?.dump?.context?.size?.height || 1080;
-        }
-      });
+      const width = state.insightWidth;
+      const height = state.insightHeight;
+
       set({
+        replayAllMode: false,
         activeTask: task,
         activeExecution: parentExecution,
         _executionDumpLoadId: ++_executionDumpLoadId,
-        activeExecutionAnimation: generateAnimationScripts(
-          parentExecution,
-          width,
-          height,
-        ),
-        activeExecutionScreenshotWidth: width,
-        activeExecutionScreenshotHeight: height,
+        activeExecutionAnimation:
+          width && height
+            ? generateAnimationScripts(parentExecution, width, height)
+            : null,
       });
       console.log('will set task', task);
       if (task.type === 'Insight') {

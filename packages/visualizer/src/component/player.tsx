@@ -3,11 +3,7 @@ import * as PIXI from 'pixi.js';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import './player.less';
 import { mouseLoading, mousePointer } from '@/utils';
-import {
-  // CheckCircleOutlined,
-  LoadingOutlined,
-  PlayCircleOutlined,
-} from '@ant-design/icons';
+import { CaretRightOutlined, LoadingOutlined } from '@ant-design/icons';
 import type { BaseElement } from '@midscene/core/.';
 import { ConfigProvider, Spin } from 'antd';
 import { rectMarkForItem } from './blackboard';
@@ -56,7 +52,7 @@ const sleep = (ms: number): Promise<void> => {
 
 type FrameFn = (callback: (current: number) => void) => void;
 
-const ERROR_FRAME_CANCEL = 'frame cancel';
+const ERROR_FRAME_CANCEL = 'frame cancel (this is an error on purpose)';
 const frameKit = (): {
   frame: FrameFn;
   cancel: () => void;
@@ -88,7 +84,7 @@ const frameKit = (): {
       }, ms);
     },
     cancel: () => {
-      console.log('set frame cancel');
+      // console.log('set frame cancel (this is an error on purpose)');
       cancelFlag = true;
     },
   };
@@ -103,13 +99,16 @@ const LAYER_ORDER_SPINNING_POINTER = 3;
 const Player = (): JSX.Element => {
   const [titleText, setTitleText] = useState('');
   const [subTitleText, setSubTitleText] = useState('');
-  const scripts = useExecutionDump((store) => store.activeExecutionAnimation);
-  const imageWidth = useExecutionDump(
-    (store) => store.activeExecutionScreenshotWidth,
+  const taskScripts = useExecutionDump(
+    (store) => store.activeExecutionAnimation,
   );
-  const imageHeight = useExecutionDump(
-    (store) => store.activeExecutionScreenshotHeight,
+  const replayAllMode = useExecutionDump((store) => store.replayAllMode);
+  const replayAllScripts = useExecutionDump(
+    (store) => store.allExecutionAnimation,
   );
+  const scripts = replayAllMode ? replayAllScripts : taskScripts;
+  const imageWidth = useExecutionDump((store) => store.insightWidth) || 1920;
+  const imageHeight = useExecutionDump((store) => store.insightHeight) || 1080;
   const canvasWidth = imageWidth + canvasPaddingLeft * 2;
   const canvasHeight = imageHeight + canvasPaddingTop * 2;
   const currentImg = useRef<string | null>(scripts?.[0]?.img || null);
@@ -138,8 +137,8 @@ const Player = (): JSX.Element => {
     top: 0,
     width: imageWidth,
     pointer: {
-      left: imageWidth / 2,
-      top: imageHeight / 2,
+      left: Math.round(imageWidth / 2),
+      top: Math.round(imageHeight / 2),
     },
   };
 
@@ -322,18 +321,22 @@ const Player = (): JSX.Element => {
         const elapsedTime = currentTime - startTime;
 
         // Mouse movement animation
-        if (shouldMovePointer && elapsedTime < pointerMoveDuration) {
-          const rawMouseProgress = Math.min(
-            elapsedTime / pointerMoveDuration,
-            1,
-          );
-          const mouseProgress = cubicMouse(rawMouseProgress);
-          nextState.pointer.left =
-            startPointer.left +
-            (targetState.pointer!.left - startPointer.left) * mouseProgress;
-          nextState.pointer.top =
-            startPointer.top +
-            (targetState.pointer!.top - startPointer.top) * mouseProgress;
+        if (shouldMovePointer) {
+          if (elapsedTime <= pointerMoveDuration) {
+            const rawMouseProgress = Math.min(
+              elapsedTime / pointerMoveDuration,
+              1,
+            );
+            const mouseProgress = cubicMouse(rawMouseProgress);
+            nextState.pointer.left =
+              startPointer.left +
+              (targetState.pointer!.left - startPointer.left) * mouseProgress;
+            nextState.pointer.top =
+              startPointer.top +
+              (targetState.pointer!.top - startPointer.top) * mouseProgress;
+          } else {
+            nextState.pointer = targetState.pointer!;
+          }
         }
 
         // Camera movement animation (starts 500ms after mouse movement begins)
@@ -661,7 +664,7 @@ const Player = (): JSX.Element => {
     );
   } else if (mouseOverStatusIcon) {
     statusIconElement = (
-      <Spin indicator={<PlayCircleOutlined />} size="default" />
+      <Spin indicator={<CaretRightOutlined />} size="default" />
     );
     statusStyle.cursor = 'pointer';
     statusStyle.background = '#888';
@@ -669,7 +672,7 @@ const Player = (): JSX.Element => {
   } else {
     statusIconElement = (
       // <Spin indicator={<CheckCircleOutlined />} size="default" />
-      <Spin indicator={<PlayCircleOutlined />} size="default" />
+      <Spin indicator={<CaretRightOutlined />} size="default" />
     );
   }
 

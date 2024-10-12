@@ -2,10 +2,23 @@ import './index.less';
 import DetailSide from '@/component/detail-side';
 import Sidebar from '@/component/sidebar';
 import { useExecutionDump } from '@/component/store';
-import { DownOutlined } from '@ant-design/icons';
+import {
+  CaretRightOutlined,
+  DownOutlined,
+  PlayCircleOutlined,
+  PlaySquareOutlined,
+} from '@ant-design/icons';
 import type { GroupedActionDump } from '@midscene/core';
 import { Helmet } from '@modern-js/runtime/head';
-import { Alert, ConfigProvider, Dropdown, Select, Upload, message } from 'antd';
+import {
+  Alert,
+  Button,
+  ConfigProvider,
+  Dropdown,
+  Select,
+  Upload,
+  message,
+} from 'antd';
 import type { UploadProps } from 'antd';
 import React, { useEffect, useRef, useState } from 'react';
 import ReactDOM from 'react-dom/client';
@@ -14,6 +27,7 @@ import logo from './component/assets/logo-plain.png';
 import DetailPanel from './component/detail-panel';
 import GlobalHoverPreview from './component/global-hover-preview';
 import { iconForStatus, timeCostStrElement } from './component/misc';
+import Player from './component/player';
 import Timeline from './component/timeline';
 
 const { Dragger } = Upload;
@@ -31,6 +45,11 @@ export function Visualizer(props: {
   const { dumps, hideLogo = false } = props;
 
   const executionDump = useExecutionDump((store) => store.dump);
+  const replayAllMode = useExecutionDump((store) => store.replayAllMode);
+  const setReplayAllMode = useExecutionDump((store) => store.setReplayAllMode);
+  const replayAllScripts = useExecutionDump(
+    (store) => store.allExecutionAnimation,
+  );
   const setGroupedDump = useExecutionDump((store) => store.setGroupedDump);
   const reset = useExecutionDump((store) => store.reset);
   const [mainLayoutChangeFlag, setMainLayoutChangeFlag] = useState(0);
@@ -123,16 +142,31 @@ export function Visualizer(props: {
             sent to the server.
           </p>
         </Dragger>
-        {/* <div className="demo-loader">
-          <Button type="link" onClick={loadDemoDump}>
-            Load Demo
-          </Button>
-        </div> */}
       </div>
     );
 
     // dump
   } else {
+    const content = replayAllMode ? (
+      <div className="replay-all-mode-wrapper">
+        <Player />
+      </div>
+    ) : (
+      <PanelGroup autoSaveId="page-detail-layout-v2" direction="horizontal">
+        <Panel defaultSize={75} maxSize={95}>
+          <div className="main-content-container">
+            <DetailPanel />
+          </div>
+        </Panel>
+        <PanelResizeHandle />
+        <Panel maxSize={95}>
+          <div className="main-side">
+            <DetailSide />
+          </div>
+        </Panel>
+      </PanelGroup>
+    );
+
     mainContent = (
       <PanelGroup
         autoSaveId="main-page-layout"
@@ -160,24 +194,7 @@ export function Visualizer(props: {
         <Panel defaultSize={80} maxSize={95}>
           <div className="main-right">
             <Timeline key={mainLayoutChangeFlag} />
-            <div className="main-content">
-              <PanelGroup
-                autoSaveId="page-detail-layout-v2"
-                direction="horizontal"
-              >
-                <Panel defaultSize={75} maxSize={95}>
-                  <div className="main-content-container">
-                    <DetailPanel />
-                  </div>
-                </Panel>
-                <PanelResizeHandle />
-                <Panel maxSize={95}>
-                  <div className="main-side">
-                    <DetailSide />
-                  </div>
-                </Panel>
-              </PanelGroup>
-            </div>
+            <div className="main-content">{content}</div>
           </div>
         </Panel>
       </PanelGroup>
@@ -217,28 +234,6 @@ export function Visualizer(props: {
     };
   }, []);
 
-  const selectOptions = dumps?.map((dump, index) => ({
-    value: index,
-    label: `${dump.groupName} - ${dump.groupDescription}`,
-    groupName: dump.groupName,
-    groupDescription: dump.groupDescription,
-  }));
-
-  const selectWidget =
-    selectOptions && selectOptions.length > 1 ? (
-      <Select
-        options={selectOptions}
-        defaultValue={0}
-        // labelRender={labelRender}
-        onChange={(value) => {
-          const dump = dumps![value];
-          setGroupedDump(dump);
-        }}
-        defaultOpen
-        style={{ width: '100%' }}
-      />
-    ) : null;
-
   return (
     <ConfigProvider
       theme={{
@@ -261,11 +256,36 @@ export function Visualizer(props: {
         style={{ height: containerHeight }}
       >
         <div className="page-nav">
-          <div className="logo">
-            <img
-              alt="Midscene_logo"
-              src="https://lf3-static.bytednsdoc.com/obj/eden-cn/vhaeh7vhabf/logo-light-with-text.png"
-            />
+          <div className="page-nav-left">
+            <div className="logo">
+              <img
+                alt="Midscene_logo"
+                src="https://lf3-static.bytednsdoc.com/obj/eden-cn/vhaeh7vhabf/logo-light-with-text.png"
+              />
+            </div>
+            <div className="page-nav-toolbar">
+              <ConfigProvider
+                theme={{
+                  components: {
+                    Button: { textHoverBg: '#bfc4da80' },
+                  },
+                }}
+              >
+                <Button
+                  type="text"
+                  icon={<CaretRightOutlined />}
+                  disabled={!replayAllScripts || replayAllScripts.length === 0}
+                  style={{
+                    background: replayAllMode ? '#bfc4da80' : undefined,
+                  }}
+                  onClick={() => {
+                    setReplayAllMode(true);
+                  }}
+                >
+                  Replay All
+                </Button>
+              </ConfigProvider>
+            </div>
           </div>
           <PlaywrightCaseSelector
             dumps={props.dumps}
