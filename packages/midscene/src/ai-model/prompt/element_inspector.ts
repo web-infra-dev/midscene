@@ -38,7 +38,7 @@ Please return the result in JSON format as follows:
     {
       "reason": "PLACEHOLDER", // The thought process for finding the element, replace PLACEHOLDER with your thought process
       "text": "PLACEHOLDER", // Replace PLACEHOLDER with the text of elementInfo, if none, leave empty
-      "id": "PLACEHOLDER" // Replace PLACEHOLDER with the ID of elementInfo, **use id not indexId**
+      "id": "PLACEHOLDER" // Replace PLACEHOLDER with the ID (important: **use id not indexId, id is hash content**) of elementInfo
     }
     // More elements...
   ],
