@@ -166,7 +166,13 @@ async function publish(version) {
       releaseTag = 'rc';
     }
 
-    let publishArgs = ['-r', 'publish', '--access', 'public', '--no-git-checks'];
+    let publishArgs = [
+      '-r',
+      'publish',
+      '--access',
+      'public',
+      '--no-git-checks',
+    ];
     if (version) {
       publishArgs = publishArgs.concat(['--tag', releaseTag]);
     }
