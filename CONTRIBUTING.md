@@ -101,7 +101,7 @@ npx nx build @midscene/web
 Build all packages:
 
 ```sh
-pnpm run build:pkg
+pnpm run build
 ```
 
 ---

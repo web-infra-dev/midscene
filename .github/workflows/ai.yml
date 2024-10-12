@@ -55,7 +55,7 @@ jobs:
         fi
 
     - name: Build project
-      run: pnpm run build:pkg
+      run: pnpm run build
 
     - name: Run e2e tests
       run: pnpm run e2e
