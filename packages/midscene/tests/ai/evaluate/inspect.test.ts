@@ -1,7 +1,7 @@
 import { readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { beforeEach, describe } from 'node:test';
-import { AiInspectElement } from '@/ai-model';
+import { AiInspectElement, plan } from '@/ai-model';
 import { sleep } from '@/utils';
 import { afterAll, expect, test } from 'vitest';
 import { repeatTime } from '../util';
@@ -36,7 +36,14 @@ describe('ai inspect element', () => {
     };
   }[] = [];
   afterAll(() => {
-    console.log('testResult', testResult);
+    console.table(
+      testResult.map((r) => {
+        return {
+          path: r.path,
+          ...r.result,
+        };
+      }),
+    );
   });
   repeat(repeatTime, (repeatIndex) => {
     testSources.forEach((source) => {
@@ -59,16 +66,30 @@ describe('ai inspect element', () => {
             aiData.testCases,
             context,
             async (testCase) => {
+              if (process.env.PLAN_INSPECT) {
+                // use planning to get quick answer to test element inspector
+                const res = await plan(testCase.description, {
+                  context,
+                });
+
+                return {
+                  elements: res.plans[0].quickAnswer
+                    ? [res.plans[0].quickAnswer]
+                    : [],
+                };
+              }
+
               const { parseResult } = await AiInspectElement({
                 context,
                 multi: testCase.multi,
-                findElementDescription: testCase.description,
+                targetElementDescription: testCase.description,
               });
               return parseResult;
             },
           );
 
           const analyzer = new TestResultAnalyzer(
+            context,
             aiDataPath,
             aiData,
             aiResponse,
@@ -96,4 +117,26 @@ describe('ai inspect element', () => {
       );
     });
   });
+});
+
+test('inspect with quick answer', async () => {
+  const { context } = await getPageTestData(
+    path.join(__dirname, './test-data/todo'),
+  );
+
+  const startTime = Date.now();
+  const { parseResult } = await AiInspectElement({
+    context,
+    multi: false,
+    targetElementDescription: 'never mind',
+    quickAnswer: {
+      id: 'fbc2d0029b',
+      reason: 'never mind',
+      text: 'never mind',
+    },
+  });
+  const endTime = Date.now();
+  const cost = endTime - startTime;
+  expect(parseResult.elements.length).toBe(1);
+  expect(cost).toBeLessThan(100);
 });

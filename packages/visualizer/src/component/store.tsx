@@ -8,8 +8,8 @@ import type {
   GroupedActionDump,
   InsightDump,
 } from '../../../midscene/dist/types';
-import type { AnimationScript } from './player-scripts';
-import { generateAnimationScripts } from './player-scripts';
+import type { AnimationScript } from './replay-scripts';
+import { generateAnimationScripts } from './replay-scripts';
 
 const { create } = Z;
 export const useBlackboardPreference = create<{

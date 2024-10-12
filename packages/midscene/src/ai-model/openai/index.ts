@@ -3,9 +3,9 @@ import { AIResponseFormat } from '@/types';
 import { wrapOpenAI } from 'langsmith/wrappers';
 import OpenAI, { type ClientOptions, AzureOpenAI } from 'openai';
 import type { ChatCompletionMessageParam } from 'openai/resources';
-import { planSchema } from '../automation/planning';
 import { AIActionType } from '../common';
 import { findElementSchema } from '../prompt/element_inspector';
+import { planSchema } from '../prompt/planning';
 import { assertSchema } from '../prompt/util';
 
 export const MIDSCENE_OPENAI_INIT_CONFIG_JSON =
@@ -51,7 +51,7 @@ async function createOpenAI() {
 
   if (process.env[MIDSCENE_LANGSMITH_DEBUG]) {
     console.log('DEBUGGING MODE: langsmith wrapper enabled');
-    const openai = wrapOpenAI(new OpenAI());
+    const openai = wrapOpenAI(new OpenAI(extraConfig));
     return openai;
   }
 
@@ -73,7 +73,7 @@ export async function call(
     model,
     messages,
     response_format: responseFormat,
-    temperature: 0.2,
+    temperature: 0.1,
     stream: false,
   });
   shouldPrintTiming && console.timeEnd('Midscene - AI call');

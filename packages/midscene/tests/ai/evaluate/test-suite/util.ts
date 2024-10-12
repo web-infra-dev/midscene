@@ -5,7 +5,7 @@ import { base64Encoded, imageInfoOfBase64 } from '@/image';
 
 type TestCase = {
   prompt: string;
-  multi: boolean;
+  multi?: boolean;
   response: Array<{ id: string }>;
 };
 
@@ -50,7 +50,7 @@ export async function runTestCases(
     const startTime = Date.now();
     const msg = await getAiResponse({
       description: testCase.prompt,
-      multi: testCase.multi,
+      multi: Boolean(testCase.multi),
     });
     const endTime = Date.now();
     const spendTime = endTime - startTime;
@@ -59,7 +59,7 @@ export async function runTestCases(
         ...msg,
         prompt: testCase.prompt,
         response: msg.elements,
-        multi: testCase.multi,
+        multi: Boolean(testCase.multi),
         caseIndex,
         spendTime,
         elementsSnapshot: msg.elements.map((element) => {
@@ -138,7 +138,8 @@ export function writeFileSyncWithDir(
 }
 
 export async function getPageTestData(targetDir: string) {
-  const resizeOutputImgP = path.join(targetDir, 'input.png');
+  // Note: this is the magic
+  const resizeOutputImgP = path.join(targetDir, 'output_without_text.png');
   const snapshotJsonPath = path.join(targetDir, 'element-snapshot.json');
   const snapshotJson = readFileSync(snapshotJsonPath, { encoding: 'utf-8' });
   const elementSnapshot = JSON.parse(snapshotJson);
@@ -147,7 +148,7 @@ export async function getPageTestData(targetDir: string) {
   const baseContext = {
     size,
     content: elementSnapshot,
-    screenshotBase64: base64Encoded(resizeOutputImgP),
+    screenshotBase64,
   };
 
   return {
@@ -158,7 +159,7 @@ export async function getPageTestData(targetDir: string) {
       },
     },
     snapshotJson,
-    screenshotBase64: base64Encoded(resizeOutputImgP),
+    screenshotBase64,
   };
 }
 

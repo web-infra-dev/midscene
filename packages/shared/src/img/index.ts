@@ -1,4 +1,9 @@
-export { imageInfo, imageInfoOfBase64, base64Encoded } from './info';
+export {
+  imageInfo,
+  imageInfoOfBase64,
+  base64Encoded,
+  base64ToPngFormat,
+} from './info';
 export {
   trimImage,
   calculateNewDimensions,
@@ -6,4 +11,4 @@ export {
   transformImgPathToBase64,
   saveBase64Image,
 } from './transform';
-export { processImageElementInfo } from './box-select';
+export { processImageElementInfo, compositeElementInfoImg } from './box-select';

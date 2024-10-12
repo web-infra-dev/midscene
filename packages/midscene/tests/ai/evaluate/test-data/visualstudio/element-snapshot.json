@@ -1,6 +1,7 @@
 [
   {
     "id": "5f45cbb86c",
+    "indexId": 0,
     "nodePath": "0-5-1-1-3-1-1-1-0-0",
     "nodeHashId": "5f45cbb86c",
     "nodeType": "TEXT Node",
@@ -22,11 +23,11 @@
     },
     "zoom": 1,
     "screenWidth": 1280,
-    "screenHeight": 720,
-    "indexId": "1"
+    "screenHeight": 720
   },
   {
     "id": "eaa8c4add3",
+    "indexId": 1,
     "nodePath": "0-5-1-1-3-1-3-1-1-0-0",
     "nodeHashId": "eaa8c4add3",
     "nodeType": "TEXT Node",
@@ -48,11 +49,11 @@
     },
     "zoom": 1,
     "screenWidth": 1280,
-    "screenHeight": 720,
-    "indexId": "2"
+    "screenHeight": 720
   },
   {
     "id": "566356a5e1",
+    "indexId": 2,
     "nodePath": "0-5-1-1-3-1-3-1-3-0-0",
     "nodeHashId": "566356a5e1",
     "nodeType": "TEXT Node",
@@ -74,11 +75,11 @@
     },
     "zoom": 1,
     "screenWidth": 1280,
-    "screenHeight": 720,
-    "indexId": "3"
+    "screenHeight": 720
   },
   {
     "id": "c9cd9e6771",
+    "indexId": 3,
     "nodePath": "0-5-1-1-3-1-3-1-5-0-0",
     "nodeHashId": "c9cd9e6771",
     "nodeType": "TEXT Node",
@@ -100,11 +101,11 @@
     },
     "zoom": 1,
     "screenWidth": 1280,
-    "screenHeight": 720,
-    "indexId": "4"
+    "screenHeight": 720
   },
   {
     "id": "68276690a5",
+    "indexId": 4,
     "nodePath": "0-5-1-1-3-1-3-1-7-0-0",
     "nodeHashId": "68276690a5",
     "nodeType": "TEXT Node",
@@ -126,11 +127,11 @@
     },
     "zoom": 1,
     "screenWidth": 1280,
-    "screenHeight": 720,
-    "indexId": "5"
+    "screenHeight": 720
   },
   {
     "id": "9f5951aab3",
+    "indexId": 5,
     "nodePath": "0-5-1-1-3-1-3-1-9-0-0",
     "nodeHashId": "9f5951aab3",
     "nodeType": "TEXT Node",
@@ -152,11 +153,11 @@
     },
     "zoom": 1,
     "screenWidth": 1280,
-    "screenHeight": 720,
-    "indexId": "6"
+    "screenHeight": 720
   },
   {
     "id": "eb32e5f461",
+    "indexId": 6,
     "nodePath": "0-5-1-1-3-1-3-1-11-0-0",
     "nodeHashId": "eb32e5f461",
     "nodeType": "TEXT Node",
@@ -178,11 +179,37 @@
     },
     "zoom": 1,
     "screenWidth": 1280,
-    "screenHeight": 720,
-    "indexId": "7"
+    "screenHeight": 720
+  },
+  {
+    "id": "340414e432",
+    "indexId": 7,
+    "nodePath": "0-5-1-1-3-1-3-1-15-0-0",
+    "nodeHashId": "340414e432",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node"
+    },
+    "center": [
+      782,
+      30
+    ],
+    "content": "GitHub Copilot",
+    "rect": {
+      "left": 727,
+      "top": 20,
+      "width": 109,
+      "height": 19,
+      "zoom": 1
+    },
+    "zoom": 1,
+    "screenWidth": 1280,
+    "screenHeight": 720
   },
   {
     "id": "0c5792e2fe",
+    "indexId": 8,
     "nodePath": "0-5-1-1-3-1-3-3-1-1",
     "nodeHashId": "0c5792e2fe",
     "nodeType": "BUTTON Node",
@@ -207,8 +234,7 @@
     ],
     "zoom": 1,
     "screenWidth": 1280,
-    "screenHeight": 720,
-    "indexId": "8"
+    "screenHeight": 720
   },
   {
     "id": "2fc15722b2",
@@ -216,6 +242,7 @@
     "nodeHashId": "2fc15722b2",
     "locator": "[_midscene_retrieve_task_id='2fc15722b2']",
     "nodeType": "FORM_ITEM Node",
+    "indexId": 9,
     "attributes": {
       "type": "text",
       "name": "q",
@@ -239,11 +266,11 @@
     ],
     "zoom": 1,
     "screenWidth": 1280,
-    "screenHeight": 720,
-    "indexId": "9"
+    "screenHeight": 720
   },
   {
     "id": "9ce0284219",
+    "indexId": 10,
     "nodePath": "0-5-1-1-3-1-3-3-5-1-1-3-1",
     "nodeHashId": "9ce0284219",
     "nodeType": "BUTTON Node",
@@ -269,11 +296,11 @@
     ],
     "zoom": 1,
     "screenWidth": 1280,
-    "screenHeight": 720,
-    "indexId": "10"
+    "screenHeight": 720
   },
   {
     "id": "fec3bea6e1",
+    "indexId": 11,
     "nodePath": "0-5-1-1-3-1-3-3-9-0-1-0",
     "nodeHashId": "fec3bea6e1",
     "nodeType": "TEXT Node",
@@ -295,25 +322,25 @@
     },
     "zoom": 1,
     "screenWidth": 1280,
-    "screenHeight": 720,
-    "indexId": "11"
+    "screenHeight": 720
   },
   {
-    "id": "0c617de29d",
+    "id": "e1cc230b93",
+    "indexId": 12,
     "nodePath": "0-5-3-1-1-0-0",
-    "nodeHashId": "0c617de29d",
+    "nodeHashId": "e1cc230b93",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
       "nodeType": "TEXT Node"
     },
     "center": [
-      396,
+      384,
       86
     ],
-    "content": "Version 1.93",
+    "content": "Version 1.94",
     "rect": {
-      "left": 355,
+      "left": 343,
       "top": 77,
       "width": 81,
       "height": 17,
@@ -321,39 +348,39 @@
     },
     "zoom": 1,
     "screenWidth": 1280,
-    "screenHeight": 720,
-    "indexId": "12"
+    "screenHeight": 720
   },
   {
-    "id": "552e9677b9",
+    "id": "41b48d0bcb",
+    "indexId": 13,
     "nodePath": "0-5-3-1-1-1",
-    "nodeHashId": "552e9677b9",
+    "nodeHashId": "41b48d0bcb",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
       "nodeType": "TEXT Node"
     },
     "center": [
-      664,
+      665,
       86
     ],
-    "content": "is now available! Read about the new features and fixes from August.",
+    "content": "is now available! Read about the new features and fixes from September.",
     "rect": {
-      "left": 436,
+      "left": 424,
       "top": 77,
-      "width": 456,
+      "width": 482,
       "height": 17,
       "zoom": 1
     },
     "zoom": 1,
     "screenWidth": 1280,
-    "screenHeight": 720,
-    "indexId": "13"
+    "screenHeight": 720
   },
   {
     "id": "ee3138af37",
     "nodePath": "0-5-3-3-1",
     "nodeHashId": "ee3138af37",
+    "indexId": 14,
     "nodeType": "CONTAINER Node",
     "locator": "[_midscene_retrieve_task_id='ee3138af37']",
     "attributes": {
@@ -375,67 +402,67 @@
     ],
     "zoom": 1,
     "screenWidth": 1280,
-    "screenHeight": 720,
-    "indexId": "14"
+    "screenHeight": 720
   },
   {
-    "id": "b09b963882",
+    "id": "52221b3ac9",
+    "indexId": 15,
     "nodePath": "0-5-9-1-1-1-1-0",
-    "nodeHashId": "b09b963882",
+    "nodeHashId": "52221b3ac9",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
       "nodeType": "TEXT Node"
     },
     "center": [
-      246,
-      196
+      640,
+      182
     ],
-    "content": "Free. Built on open source. Runs everywhere.",
+    "content": "Code faster with AI",
     "rect": {
-      "left": 93,
-      "top": 187,
-      "width": 305,
-      "height": 17,
+      "left": 336,
+      "top": 139,
+      "width": 608,
+      "height": 85,
       "zoom": 1
     },
     "zoom": 1,
     "screenWidth": 1280,
-    "screenHeight": 720,
-    "indexId": "15"
+    "screenHeight": 720
   },
   {
-    "id": "a245466768",
+    "id": "404e55812a",
+    "indexId": 16,
     "nodePath": "0-5-9-1-1-1-3-0",
-    "nodeHashId": "a245466768",
+    "nodeHashId": "404e55812a",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
       "nodeType": "TEXT Node"
     },
     "center": [
-      213,
-      337
+      641,
+      274
     ],
-    "content": "Code Editing. Redefined.",
+    "content": "Visual Studio Code with GitHub Copilot supercharges your code with AI-powered suggestions, right in your editor.",
     "rect": {
-      "left": 80,
-      "top": 234,
-      "width": 266,
-      "height": 206,
+      "left": 284,
+      "top": 239,
+      "width": 713,
+      "height": 70,
       "zoom": 1
     },
     "zoom": 1,
     "screenWidth": 1280,
-    "screenHeight": 720,
-    "indexId": "16"
+    "screenHeight": 720
   },
   {
-    "id": "963f8c8584",
+    "id": "611c3bf4a0",
+    "indexId": 17,
     "nodePath": "0-5-9-1-1-1-5-1-3-3",
-    "nodeHashId": "963f8c8584",
+    "nodeHashId": "611c3bf4a0",
     "nodeType": "BUTTON Node",
-    "locator": "[_midscene_retrieve_task_id='963f8c8584']",
+    "locator": "[_midscene_retrieve_task_id='611c3bf4a0']",
     "attributes": {
       "type": "button",
       "class": ".link-button.dlink",
@@ -445,308 +472,174 @@
     },
     "content": "Download for Windows",
     "rect": {
-      "left": 80,
-      "top": 474,
-      "width": 241,
-      "height": 50,
+      "left": 420,
+      "top": 345,
+      "width": 235,
+      "height": 48,
       "zoom": 1
     },
     "center": [
-      201,
-      499
+      538,
+      369
     ],
     "zoom": 1,
     "screenWidth": 1280,
-    "screenHeight": 720,
-    "indexId": "17"
+    "screenHeight": 720
   },
   {
-    "id": "1bbe0906db",
-    "nodePath": "0-5-9-1-1-1-5-3-0-0",
-    "nodeHashId": "1bbe0906db",
+    "id": "d47c243bec",
+    "indexId": 18,
+    "nodePath": "0-5-9-1-1-1-5-1-3-9-0",
+    "nodeHashId": "d47c243bec",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
       "nodeType": "TEXT Node"
     },
     "center": [
-      95,
-      552
+      763,
+      369
     ],
-    "content": "Web",
+    "content": "Try GitHub Copilot",
     "rect": {
-      "left": 80,
-      "top": 543,
-      "width": 29,
-      "height": 17,
+      "left": 687,
+      "top": 358,
+      "width": 152,
+      "height": 22,
       "zoom": 1
     },
     "zoom": 1,
     "screenWidth": 1280,
-    "screenHeight": 720,
-    "indexId": "18"
+    "screenHeight": 720
   },
   {
-    "id": "cd52273b82",
-    "nodePath": "0-5-9-1-1-1-5-3-1",
-    "nodeHashId": "cd52273b82",
+    "id": "3dcf65c08e",
+    "indexId": 19,
+    "nodePath": "0-5-9-1-1-1-5-3-0",
+    "nodeHashId": "3dcf65c08e",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
       "nodeType": "TEXT Node"
     },
     "center": [
-      113,
-      552
-    ],
-    "content": ",",
-    "rect": {
-      "left": 109,
-      "top": 543,
-      "width": 8,
-      "height": 17,
-      "zoom": 1
-    },
-    "zoom": 1,
-    "screenWidth": 1280,
-    "screenHeight": 720,
-    "indexId": "19"
-  },
-  {
-    "id": "31e2b307f8",
-    "nodePath": "0-5-9-1-1-1-5-3-2-0",
-    "nodeHashId": "31e2b307f8",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node"
-    },
-    "center": [
-      168,
-      552
-    ],
-    "content": "Insiders edition",
-    "rect": {
-      "left": 117,
-      "top": 543,
-      "width": 101,
-      "height": 17,
-      "zoom": 1
-    },
-    "zoom": 1,
-    "screenWidth": 1280,
-    "screenHeight": 720,
-    "indexId": "20"
-  },
-  {
-    "id": "3373511884",
-    "nodePath": "0-5-9-1-1-1-5-3-3",
-    "nodeHashId": "3373511884",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node"
-    },
-    "center": [
-      231,
-      552
-    ],
-    "content": ", or",
-    "rect": {
-      "left": 218,
-      "top": 543,
-      "width": 25,
-      "height": 17,
-      "zoom": 1
-    },
-    "zoom": 1,
-    "screenWidth": 1280,
-    "screenHeight": 720,
-    "indexId": "21"
-  },
-  {
-    "id": "792d431787",
-    "nodePath": "0-5-9-1-1-1-5-3-4-0",
-    "nodeHashId": "792d431787",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node"
-    },
-    "center": [
-      295,
-      552
-    ],
-    "content": "other platforms",
-    "rect": {
-      "left": 244,
-      "top": 543,
-      "width": 102,
-      "height": 17,
-      "zoom": 1
-    },
-    "zoom": 1,
-    "screenWidth": 1280,
-    "screenHeight": 720,
-    "indexId": "22"
-  },
-  {
-    "id": "46242d1727",
-    "nodePath": "0-5-9-1-1-1-5-5-0",
-    "nodeHashId": "46242d1727",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node"
-    },
-    "center": [
-      171,
-      587
+      558,
+      410
     ],
     "content": "By using VS Code, you agree to its",
     "rect": {
-      "left": 80,
-      "top": 580,
-      "width": 181,
+      "left": 466,
+      "top": 403,
+      "width": 184,
       "height": 13,
       "zoom": 1
     },
     "zoom": 1,
     "screenWidth": 1280,
-    "screenHeight": 720,
-    "indexId": "23"
+    "screenHeight": 720
   },
   {
-    "id": "6d781ee9ea",
-    "nodePath": "0-5-9-1-1-1-5-5-1-0-0",
-    "nodeHashId": "6d781ee9ea",
+    "id": "171804ee36",
+    "indexId": 20,
+    "nodePath": "0-5-9-1-1-1-5-3-1-0-0",
+    "nodeHashId": "171804ee36",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
       "nodeType": "TEXT Node"
     },
     "center": [
-      99,
-      604
+      669,
+      410
     ],
     "content": "license",
     "rect": {
-      "left": 80,
-      "top": 597,
-      "width": 37,
+      "left": 650,
+      "top": 403,
+      "width": 38,
       "height": 13,
       "zoom": 1
     },
     "zoom": 1,
     "screenWidth": 1280,
-    "screenHeight": 720,
-    "indexId": "24"
+    "screenHeight": 720
   },
   {
-    "id": "8f067c803c",
-    "nodePath": "0-5-9-1-1-1-5-5-1-1",
-    "nodeHashId": "8f067c803c",
+    "id": "448c4ca09a",
+    "indexId": 21,
+    "nodePath": "0-5-9-1-1-1-5-3-1-1",
+    "nodeHashId": "448c4ca09a",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
       "nodeType": "TEXT Node"
     },
     "center": [
-      130,
-      604
+      701,
+      410
     ],
     "content": "and",
     "rect": {
-      "left": 117,
-      "top": 597,
+      "left": 688,
+      "top": 403,
       "width": 26,
       "height": 13,
       "zoom": 1
     },
     "zoom": 1,
     "screenWidth": 1280,
-    "screenHeight": 720,
-    "indexId": "25"
+    "screenHeight": 720
   },
   {
-    "id": "de8bfb058d",
-    "nodePath": "0-5-9-1-1-1-5-5-1-2-0",
-    "nodeHashId": "de8bfb058d",
+    "id": "fda496da9e",
+    "indexId": 22,
+    "nodePath": "0-5-9-1-1-1-5-3-1-2-0",
+    "nodeHashId": "fda496da9e",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
       "nodeType": "TEXT Node"
     },
     "center": [
-      190,
-      604
+      762,
+      410
     ],
     "content": "privacy statement",
     "rect": {
-      "left": 143,
-      "top": 597,
-      "width": 94,
+      "left": 714,
+      "top": 403,
+      "width": 96,
       "height": 13,
       "zoom": 1
     },
     "zoom": 1,
     "screenWidth": 1280,
-    "screenHeight": 720,
-    "indexId": "26"
+    "screenHeight": 720
   },
   {
-    "id": "54adccd34e",
-    "nodePath": "0-5-9-1-1-1-5-5-1-3",
-    "nodeHashId": "54adccd34e",
+    "id": "26a0c51027",
+    "indexId": 23,
+    "nodePath": "0-5-9-1-1-1-5-3-1-3",
+    "nodeHashId": "26a0c51027",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
       "nodeType": "TEXT Node"
     },
     "center": [
-      239,
-      604
+      812,
+      410
     ],
     "content": ".",
     "rect": {
-      "left": 237,
-      "top": 597,
+      "left": 810,
+      "top": 403,
       "width": 3,
       "height": 13,
       "zoom": 1
     },
     "zoom": 1,
     "screenWidth": 1280,
-    "screenHeight": 720,
-    "indexId": "27"
-  },
-  {
-    "id": "de4e864fab",
-    "nodePath": "0-5-9-1-1-3-3",
-    "nodeHashId": "de4e864fab",
-    "locator": "[_midscene_retrieve_task_id='de4e864fab']",
-    "attributes": {
-      "src": "/assets/home/home-screenshot-mac-2x-v2-light.png",
-      "alt": "Visual Studio Code in action with AI-powered sugge...",
-      "class": ".hero-image.light",
-      "nodeType": "IMG Node"
-    },
-    "nodeType": "IMG Node",
-    "content": "",
-    "rect": {
-      "left": 480,
-      "top": 166,
-      "width": 720,
-      "height": 457,
-      "zoom": 1
-    },
-    "center": [
-      840,
-      395
-    ],
-    "zoom": 1,
-    "screenWidth": 1280,
-    "screenHeight": 720,
-    "indexId": "28"
+    "screenHeight": 720
   }
 ]

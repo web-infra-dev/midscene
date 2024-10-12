@@ -1,18 +1,24 @@
 import assert from 'node:assert';
 import { Buffer } from 'node:buffer';
+import type { Rect } from '@/types';
 import Jimp from 'jimp';
 import type { NodeType } from '../constants';
 
 // Define picture path
 type ElementType = {
-  x: number;
-  y: number;
-  width: number;
-  height: number;
-  label: string;
+  locator: string;
+
+  rect: Rect;
+
+  center: [number, number];
+
+  id: string;
+
+  indexId: number;
+
   attributes: {
-    [key: string]: string;
     nodeType: NodeType;
+    [key: string]: string;
   };
 };
 
@@ -30,26 +36,42 @@ const createSvgOverlay = (
 
     // Define color array
     const colors = [
-      { rect: 0x0000ffff, text: 0xffffffff }, // blue, white
-      { rect: 0x8b4513ff, text: 0xffffffff }, // brown, white
+      { rect: 0xff0000ff, text: 0xffffffff }, // red, white
+      // { rect: 0x0000ffff, text: 0xffffffff }, // blue, white
+      // { rect: 0x8b4513ff, text: 0xffffffff }, // brown, white
     ];
 
+    const boxPadding = 5;
     for (let index = 0; index < elements.length; index++) {
       const element = elements[index];
       const color = colors[index % colors.length];
 
+      // Add 5px padding to the rect
+      const paddedRect = {
+        left: Math.max(0, element.rect.left - boxPadding),
+        top: Math.max(0, element.rect.top - boxPadding),
+        width: Math.min(
+          imageWidth - element.rect.left,
+          element.rect.width + boxPadding * 2,
+        ),
+        height: Math.min(
+          imageHeight - element.rect.top,
+          element.rect.height + boxPadding * 2,
+        ),
+      };
+
       // Draw rectangle
       image.scan(
-        element.x,
-        element.y,
-        element.width,
-        element.height,
+        paddedRect.left,
+        paddedRect.top,
+        paddedRect.width,
+        paddedRect.height,
         function (x, y, idx) {
           if (
-            x === element.x ||
-            x === element.x + element.width - 1 ||
-            y === element.y ||
-            y === element.y + element.height - 1
+            x === paddedRect.left ||
+            x === paddedRect.left + paddedRect.width - 1 ||
+            y === paddedRect.top ||
+            y === paddedRect.top + paddedRect.height - 1
           ) {
             this.bitmap.data[idx + 0] = (color.rect >> 24) & 0xff; // R
             this.bitmap.data[idx + 1] = (color.rect >> 16) & 0xff; // G
@@ -60,17 +82,17 @@ const createSvgOverlay = (
       );
 
       // Calculate text position
-      const textWidth = element.label.length * 8;
+      const textWidth = element.indexId.toString().length * 8;
       const textHeight = 12;
       const rectWidth = textWidth + 5;
       const rectHeight = textHeight + 4;
-      let rectX = element.x - rectWidth;
-      let rectY = element.y + element.height / 2 - textHeight / 2 - 2;
+      let rectX = paddedRect.left - rectWidth;
+      let rectY = paddedRect.top + paddedRect.height / 2 - textHeight / 2 - 2;
 
       // Check if obscured by the left
       if (rectX < 0) {
-        rectX = element.x;
-        rectY = element.y - rectHeight;
+        rectX = paddedRect.left;
+        rectY = paddedRect.top - rectHeight;
       }
 
       // Draw text background
@@ -87,7 +109,7 @@ const createSvgOverlay = (
         rectX,
         rectY,
         {
-          text: element.label,
+          text: element.indexId.toString(),
           alignmentX: Jimp.HORIZONTAL_ALIGN_CENTER,
           alignmentY: Jimp.VERTICAL_ALIGN_MIDDLE,
         },
@@ -102,6 +124,46 @@ const createSvgOverlay = (
   return createPngOverlay(elements, imageWidth, imageHeight);
 };
 
+export const compositeElementInfoImg = async (options: {
+  inputImgBase64: string;
+  elementsPositionInfo: Array<ElementType>;
+}) => {
+  const { inputImgBase64, elementsPositionInfo } = options;
+  const imageBuffer = Buffer.from(inputImgBase64, 'base64');
+  const image = await Jimp.read(imageBuffer);
+  const { width, height } = image.bitmap;
+
+  if (!width || !height) {
+    throw Error('Image processing failed because width or height is undefined');
+  }
+
+  // Create svg overlay
+  const svgOverlay = await createSvgOverlay(
+    elementsPositionInfo,
+    width,
+    height,
+  );
+
+  return await Jimp.read(imageBuffer)
+    .then(async (image: Jimp) => {
+      const svgImage = await Jimp.read(svgOverlay);
+      return image.composite(svgImage, 0, 0, {
+        mode: Jimp.BLEND_SOURCE_OVER,
+        opacitySource: 1,
+        opacityDest: 1,
+      });
+    })
+    .then((compositeImage: Jimp) => {
+      return compositeImage.getBufferAsync(Jimp.MIME_PNG);
+    })
+    .then((buffer: Buffer) => {
+      return buffer.toString('base64');
+    })
+    .catch((error: unknown) => {
+      throw error;
+    });
+};
+
 export const processImageElementInfo = async (options: {
   inputImgBase64: string;
   elementsPositionInfo: Array<ElementType>;
@@ -111,69 +173,22 @@ export const processImageElementInfo = async (options: {
   const base64Image = options.inputImgBase64.split(';base64,').pop();
   assert(base64Image, 'base64Image is undefined');
 
-  const imageBuffer = Buffer.from(base64Image, 'base64');
-  const image = await Jimp.read(imageBuffer);
-  const { width, height } = image.bitmap;
+  const [
+    compositeElementInfoImgBase64,
+    compositeElementInfoImgWithoutTextBase64,
+  ] = await Promise.all([
+    compositeElementInfoImg({
+      inputImgBase64: options.inputImgBase64,
+      elementsPositionInfo: options.elementsPositionInfo,
+    }),
+    compositeElementInfoImg({
+      inputImgBase64: options.inputImgBase64,
+      elementsPositionInfo: options.elementsPositionInfoWithoutText,
+    }),
+  ]);
 
-  if (width && height) {
-    // Create svg overlay
-    const svgOverlay = await createSvgOverlay(
-      options.elementsPositionInfo,
-      width,
-      height,
-    );
-    const svgOverlayWithoutText = await createSvgOverlay(
-      options.elementsPositionInfoWithoutText,
-      width,
-      height,
-    );
-
-    // Composite picture
-    const compositeElementInfoImgBase64 = await Jimp.read(imageBuffer)
-      .then(async (image: Jimp) => {
-        const svgImage = await Jimp.read(svgOverlay);
-        return image.composite(svgImage, 0, 0, {
-          mode: Jimp.BLEND_SOURCE_OVER,
-          opacitySource: 1,
-          opacityDest: 1,
-        });
-      })
-      .then((compositeImage: Jimp) => {
-        return compositeImage.getBufferAsync(Jimp.MIME_PNG);
-      })
-      .then((buffer: Buffer) => {
-        return buffer.toString('base64');
-      })
-      .catch((error: unknown) => {
-        throw error;
-      });
-
-    // Composite picture withoutText
-    const compositeElementInfoImgWithoutTextBase64 = await Jimp.read(
-      imageBuffer,
-    )
-      .then(async (image: Jimp) => {
-        const svgImage = await Jimp.read(svgOverlayWithoutText);
-        return image.composite(svgImage, 0, 0, {
-          mode: Jimp.BLEND_SOURCE_OVER,
-          opacitySource: 1,
-          opacityDest: 1,
-        });
-      })
-      .then((compositeImage: Jimp) => {
-        return compositeImage.getBufferAsync(Jimp.MIME_PNG);
-      })
-      .then((buffer: Buffer) => {
-        return buffer.toString('base64');
-      })
-      .catch((error: unknown) => {
-        throw error;
-      });
-
-    return {
-      compositeElementInfoImgBase64,
-      compositeElementInfoImgWithoutTextBase64,
-    };
-  }
-  throw Error('Image processing failed because width or height is undefined');
+  return {
+    compositeElementInfoImgBase64,
+    compositeElementInfoImgWithoutTextBase64,
+  };
 };
