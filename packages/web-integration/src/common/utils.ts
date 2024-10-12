@@ -26,10 +26,8 @@ export async function parseContextFromWebPage(
   _opt?: PlaywrightParserOpt,
 ): Promise<WebUIContext> {
   assert(page, 'page is required');
-  console.time('parseContextFromWebPage');
   const url = page.url();
   const file = await page.screenshot();
-  const screenshotBuffer = readFileSync(file);
   const screenshotBase64 = base64Encoded(file);
   const captureElementSnapshot = await page.getElementInfos();
 
@@ -50,7 +48,6 @@ export async function parseContextFromWebPage(
     inputImgBase64: screenshotBase64.split(';base64,').pop() as string,
     elementsPositionInfo: elementsPositionInfoWithoutText,
   });
-  console.timeEnd('parseContextFromWebPage');
 
   return {
     content: elementsInfo,

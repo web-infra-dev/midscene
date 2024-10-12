@@ -354,7 +354,7 @@
   {
     "id": "9fce501fc9",
     "indexId": 13,
-    "nodePath": "0-2-1-3-4-3-0-0-0-0-0-0-0-0-0-1-5-15-0-0-0",
+    "nodePath": "0-2-1-3-4-3-0-0-0-0-0-0-0-0-0-1-5-16-0-0-0",
     "nodeHashId": "9fce501fc9",
     "nodeType": "BUTTON Node",
     "locator": "[_midscene_retrieve_task_id='9fce501fc9']",
@@ -384,7 +384,7 @@
   {
     "id": "cc67319c58",
     "indexId": 14,
-    "nodePath": "0-2-1-3-4-3-0-0-0-0-0-0-0-0-0-1-5-15-0-0-1-0",
+    "nodePath": "0-2-1-3-4-3-0-0-0-0-0-0-0-0-0-1-5-16-0-0-1-0",
     "nodeHashId": "cc67319c58",
     "nodeType": "TEXT Node",
     "locator": "",
@@ -410,7 +410,7 @@
   {
     "id": "4ad9e0245b",
     "indexId": 15,
-    "nodePath": "0-2-1-3-4-3-0-0-0-0-0-0-0-0-0-1-5-16-0-0-0",
+    "nodePath": "0-2-1-3-4-3-0-0-0-0-0-0-0-0-0-1-5-17-0-0-0",
     "nodeHashId": "4ad9e0245b",
     "nodeType": "BUTTON Node",
     "locator": "[_midscene_retrieve_task_id='4ad9e0245b']",
@@ -440,7 +440,7 @@
   {
     "id": "7199acca97",
     "indexId": 16,
-    "nodePath": "0-2-1-3-4-3-0-0-0-0-0-0-0-0-0-1-5-16-0-0-1-0",
+    "nodePath": "0-2-1-3-4-3-0-0-0-0-0-0-0-0-0-1-5-17-0-0-1-0",
     "nodeHashId": "7199acca97",
     "nodeType": "TEXT Node",
     "locator": "",
@@ -706,10 +706,10 @@
     "screenHeight": 800
   },
   {
-    "id": "35d4526e02",
+    "id": "b6c7058d3c",
     "indexId": 26,
     "nodePath": "0-2-1-3-4-3-0-0-0-0-0-0-0-0-1-1-3-1-0",
-    "nodeHashId": "35d4526e02",
+    "nodeHashId": "b6c7058d3c",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
@@ -719,7 +719,7 @@
       1217,
       552
     ],
-    "content": "9844",
+    "content": "9833",
     "rect": {
       "left": 1199,
       "top": 541,
@@ -759,10 +759,10 @@
     "screenHeight": 800
   },
   {
-    "id": "12b1ac31a8",
+    "id": "1e4d5f9dd3",
     "indexId": 28,
     "nodePath": "0-2-1-3-4-3-0-0-0-0-0-0-0-0-1-1-4-0-1-0",
-    "nodeHashId": "12b1ac31a8",
+    "nodeHashId": "1e4d5f9dd3",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
@@ -772,11 +772,11 @@
       1217,
       626
     ],
-    "content": "9257",
+    "content": "9263",
     "rect": {
       "left": 1199,
       "top": 615,
-      "width": 35,
+      "width": 36,
       "height": 21,
       "zoom": 1
     },

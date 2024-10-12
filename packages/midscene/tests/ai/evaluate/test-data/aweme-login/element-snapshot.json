@@ -2,7 +2,7 @@
   {
     "id": "6f297a61e4",
     "indexId": 0,
-    "nodePath": "0-92-0-0-0-0-0-0-0",
+    "nodePath": "0-96-0-0-0-0-0-0-0",
     "nodeHashId": "6f297a61e4",
     "nodeType": "TEXT Node",
     "locator": "",
@@ -28,7 +28,7 @@
   {
     "id": "5ac27f17ac",
     "indexId": 1,
-    "nodePath": "0-92-0-0-0-0-0-1-0-0-0",
+    "nodePath": "0-96-0-0-0-0-0-1-0-0-0",
     "nodeHashId": "5ac27f17ac",
     "nodeType": "TEXT Node",
     "locator": "",
@@ -54,7 +54,7 @@
   {
     "id": "b4f52c9c58",
     "indexId": 2,
-    "nodePath": "0-92-0-0-0-0-0-1-0-1-0",
+    "nodePath": "0-96-0-0-0-0-0-1-0-1-0",
     "nodeHashId": "b4f52c9c58",
     "nodeType": "TEXT Node",
     "locator": "",
@@ -80,7 +80,7 @@
   {
     "id": "b91943f39c",
     "indexId": 3,
-    "nodePath": "0-92-0-0-0-0-0-1-0-2-0",
+    "nodePath": "0-96-0-0-0-0-0-1-0-2-0",
     "nodeHashId": "b91943f39c",
     "nodeType": "TEXT Node",
     "locator": "",
@@ -106,7 +106,7 @@
   {
     "id": "7e03c4a932",
     "indexId": 4,
-    "nodePath": "0-92-0-0-0-0-1",
+    "nodePath": "0-96-0-0-0-0-1",
     "nodeHashId": "7e03c4a932",
     "locator": "[_midscene_retrieve_task_id='7e03c4a932']",
     "attributes": {
@@ -133,7 +133,7 @@
   {
     "id": "e6f7d2a20d",
     "indexId": 5,
-    "nodePath": "0-92-0-0-0-0-2-0-0-0-0-0-0-0",
+    "nodePath": "0-96-0-0-0-0-2-0-0-0-0-0-0-0",
     "nodeHashId": "e6f7d2a20d",
     "nodeType": "TEXT Node",
     "locator": "",
@@ -159,7 +159,7 @@
   {
     "id": "7e987c8e4c",
     "indexId": 6,
-    "nodePath": "0-92-0-0-0-0-2-0-0-0-0-0-1-0",
+    "nodePath": "0-96-0-0-0-0-2-0-0-0-0-0-1-0",
     "nodeHashId": "7e987c8e4c",
     "nodeType": "TEXT Node",
     "locator": "",
@@ -185,7 +185,7 @@
   {
     "id": "b635484c02",
     "indexId": 7,
-    "nodePath": "0-92-0-0-0-0-2-0-0-0-0-0-2-0",
+    "nodePath": "0-96-0-0-0-0-2-0-0-0-0-0-2-0",
     "nodeHashId": "b635484c02",
     "nodeType": "TEXT Node",
     "locator": "",
@@ -210,7 +210,7 @@
   },
   {
     "id": "0da3dff031",
-    "nodePath": "0-92-0-0-0-0-2-0-0-0-1-0-0-0-0-0",
+    "nodePath": "0-96-0-0-0-0-2-0-0-0-1-0-0-0-0-0",
     "nodeHashId": "0da3dff031",
     "locator": "[_midscene_retrieve_task_id='0da3dff031']",
     "nodeType": "FORM_ITEM Node",
@@ -249,7 +249,7 @@
   {
     "id": "62fb2606fc",
     "indexId": 9,
-    "nodePath": "0-92-0-0-0-0-2-0-0-0-1-0-0-0-0-1",
+    "nodePath": "0-96-0-0-0-0-2-0-0-0-1-0-0-0-0-1",
     "nodeHashId": "62fb2606fc",
     "locator": "[_midscene_retrieve_task_id='62fb2606fc']",
     "attributes": {
@@ -275,7 +275,7 @@
   },
   {
     "id": "39debc1260",
-    "nodePath": "0-92-0-0-0-0-2-0-0-0-1-0-0-1",
+    "nodePath": "0-96-0-0-0-0-2-0-0-0-1-0-0-1",
     "nodeHashId": "39debc1260",
     "locator": "[_midscene_retrieve_task_id='39debc1260']",
     "nodeType": "FORM_ITEM Node",
@@ -311,7 +311,7 @@
   {
     "id": "8ef267a725",
     "indexId": 11,
-    "nodePath": "0-92-0-0-0-0-2-0-0-0-1-1-0-0-0",
+    "nodePath": "0-96-0-0-0-0-2-0-0-0-1-1-0-0-0",
     "nodeHashId": "8ef267a725",
     "nodeType": "TEXT Node",
     "locator": "",
@@ -336,7 +336,7 @@
   },
   {
     "id": "0b044c257e",
-    "nodePath": "0-92-0-0-0-0-2-0-0-0-1-1-0-1-0",
+    "nodePath": "0-96-0-0-0-0-2-0-0-0-1-1-0-1-0",
     "nodeHashId": "0b044c257e",
     "locator": "[_midscene_retrieve_task_id='0b044c257e']",
     "nodeType": "FORM_ITEM Node",
@@ -371,7 +371,7 @@
   },
   {
     "id": "0a3e3cedfb",
-    "nodePath": "0-92-0-0-0-0-2-0-0-0-1-2",
+    "nodePath": "0-96-0-0-0-0-2-0-0-0-1-2",
     "nodeHashId": "0a3e3cedfb",
     "indexId": 13,
     "nodeType": "CONTAINER Node",
@@ -405,7 +405,7 @@
   {
     "id": "c00d9462d0",
     "indexId": 14,
-    "nodePath": "0-92-0-0-0-0-2-0-0-0-1-3-0-0",
+    "nodePath": "0-96-0-0-0-0-2-0-0-0-1-3-0-0",
     "nodeHashId": "c00d9462d0",
     "nodeType": "TEXT Node",
     "locator": "",
@@ -431,7 +431,7 @@
   {
     "id": "cde751aba8",
     "indexId": 15,
-    "nodePath": "0-92-0-0-0-0-2-0-0-0-1-3-1-0",
+    "nodePath": "0-96-0-0-0-0-2-0-0-0-1-3-1-0",
     "nodeHashId": "cde751aba8",
     "nodeType": "TEXT Node",
     "locator": "",
@@ -457,7 +457,7 @@
   {
     "id": "2d5b10208f",
     "indexId": 16,
-    "nodePath": "0-92-0-0-0-0-2-0-0-0-1-3-2-0",
+    "nodePath": "0-96-0-0-0-0-2-0-0-0-1-3-2-0",
     "nodeHashId": "2d5b10208f",
     "nodeType": "TEXT Node",
     "locator": "",
@@ -483,7 +483,7 @@
   {
     "id": "31293304a7",
     "indexId": 17,
-    "nodePath": "0-92-0-0-0-0-2-0-0-0-1-3-3-0",
+    "nodePath": "0-96-0-0-0-0-2-0-0-0-1-3-3-0",
     "nodeHashId": "31293304a7",
     "nodeType": "TEXT Node",
     "locator": "",
@@ -509,7 +509,7 @@
   {
     "id": "90aec21024",
     "indexId": 18,
-    "nodePath": "0-92-0-0-0-0-2-0-0-0-1-4-0",
+    "nodePath": "0-96-0-0-0-0-2-0-0-0-1-4-0",
     "nodeHashId": "90aec21024",
     "nodeType": "BUTTON Node",
     "locator": "[_midscene_retrieve_task_id='90aec21024']",
@@ -530,58 +530,6 @@
       640,
       581
     ],
-    "zoom": 1,
-    "screenWidth": 1280,
-    "screenHeight": 800
-  },
-  {
-    "id": "c81c0fc6cb",
-    "indexId": 19,
-    "nodePath": "0-92-0-0-0-0-2-0-0-0-1-5-0-0",
-    "nodeHashId": "c81c0fc6cb",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node"
-    },
-    "center": [
-      622,
-      640
-    ],
-    "content": "登录/注册遇到问题？",
-    "rect": {
-      "left": 565,
-      "top": 631,
-      "width": 114,
-      "height": 17,
-      "zoom": 1
-    },
-    "zoom": 1,
-    "screenWidth": 1280,
-    "screenHeight": 800
-  },
-  {
-    "id": "367cfc860b",
-    "indexId": 20,
-    "nodePath": "0-92-0-0-0-0-2-0-0-0-1-5-1-0",
-    "nodeHashId": "367cfc860b",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node"
-    },
-    "center": [
-      697,
-      640
-    ],
-    "content": "去反馈",
-    "rect": {
-      "left": 679,
-      "top": 631,
-      "width": 36,
-      "height": 17,
-      "zoom": 1
-    },
     "zoom": 1,
     "screenWidth": 1280,
     "screenHeight": 800
