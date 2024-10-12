@@ -38,7 +38,7 @@ Please return the result in JSON format as follows:
     {
       "reason": "PLACEHOLDER", // The thought process for finding the element, replace PLACEHOLDER with your thought process
       "text": "PLACEHOLDER", // Replace PLACEHOLDER with the text of elementInfo, if none, leave empty
-      "id": "PLACEHOLDER" // Replace PLACEHOLDER with the ID of elementInfo, important: use id not indexId
+      "id": "PLACEHOLDER" // Replace PLACEHOLDER with the ID of elementInfo, **use id not indexId**
     }
     // More elements...
   ],
@@ -127,7 +127,7 @@ Output Example:
       // Describe the reason for finding this element, replace with actual value in practice
       "reason": "Reason for finding element 4: It is located in the upper right corner, is an image type, and according to the screenshot, it is a shopping cart icon button",
       "text": "",
-      // ID(hashID) of this element, replace with actual value in practice, important: use id not indexId
+      // ID(**use id not indexId**) of this element, replace with actual value in practice, **use id not indexId**
       "id": "wefew2222few2"
     }
   ],
