@@ -5,7 +5,6 @@ import { MessageOutlined, VideoCameraOutlined } from '@ant-design/icons';
 import type { ExecutionTask } from '@midscene/core';
 import { Button } from 'antd';
 import { useEffect } from 'react';
-// import Logo from './assets/logo-plain2.svg';
 import { iconForStatus, timeCostStrElement } from './misc';
 import PanelTitle from './panel-title';
 
