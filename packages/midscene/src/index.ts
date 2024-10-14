@@ -7,4 +7,4 @@ export { plan } from './ai-model';
 
 export * from './types';
 export default Insight;
-export { getElement, getSection, Executor, setLogDir };
+export { getElement, getSection, Executor, setLogDir, Insight };

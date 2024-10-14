@@ -8,6 +8,10 @@ export function makePlanResultStable(plans: PlanningAction[]) {
     if (plan.param?.prompt) {
       plan.param.prompt = '';
     }
+    if (plan.quickAnswer) {
+      plan.quickAnswer.reason = '';
+      plan.quickAnswer.text = '';
+    }
     return plan;
   });
 }
@@ -16,4 +20,4 @@ export const modelList: Array<'openAI' | 'coze'> = useCozeModel('coze')
   ? ['openAI', 'coze']
   : ['openAI'];
 
-export const repeatTime = process.env.GITHUB_ACTIONS ? 2 : 1;
+export const repeatTime = process.env.GITHUB_ACTIONS ? 2 : 4;

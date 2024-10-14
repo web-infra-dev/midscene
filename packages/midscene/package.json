@@ -1,7 +1,7 @@
 {
   "name": "@midscene/core",
   "description": "An AI-powered automation SDK can control the page, perform assertions, and extract data in JSON format using natural language. See https://midscenejs.com/ for details.",
-  "version": "0.5.2",
+  "version": "0.6.1",
   "jsnext:source": "./src/index.ts",
   "type": "commonjs",
   "main": "./dist/lib/index.js",
@@ -31,6 +31,7 @@
     "test": "vitest --run",
     "test:ai": "AITEST=true npm run test",
     "evaluate": "npm run test:ai -- tests/ai/evaluate/inspect.test.ts",
+    "evaluate:update": "UPDATE_AI_DATA=true npm run test:ai -- tests/ai/evaluate/inspect.test.ts",
     "evaluate:plan": "PLAN_INSPECT=true npm run test:ai -- tests/ai/evaluate/inspect.test.ts",
     "prepublishOnly": "npm run build"
   },

@@ -38,7 +38,7 @@ Please return the result in JSON format as follows:
     {
       "reason": "PLACEHOLDER", // The thought process for finding the element, replace PLACEHOLDER with your thought process
       "text": "PLACEHOLDER", // Replace PLACEHOLDER with the text of elementInfo, if none, leave empty
-      "id": "PLACEHOLDER" // Replace PLACEHOLDER with the ID of elementInfo
+      "id": "PLACEHOLDER" // Replace PLACEHOLDER with the ID of elementInfo, **use id not indexId**
     }
     // More elements...
   ],
@@ -79,7 +79,7 @@ Input Example:
         },
         {
           "id": "wefew2222few2", // ID of the element
-          "indexId": "1", // Index of the element，The image is labeled to the left of the element
+          "indexId": "1", // Index of the element,The image is labeled to the left of the element
           "attributes": { // Attributes of the element
             "nodeType": "IMG Node", // Type of element, types include: TEXT Node, IMG Node, BUTTON Node, INPUT Node
             "src": "data:image/png;base64,iVBORw0KGgoAAAANSU...",
@@ -127,7 +127,7 @@ Output Example:
       // Describe the reason for finding this element, replace with actual value in practice
       "reason": "Reason for finding element 4: It is located in the upper right corner, is an image type, and according to the screenshot, it is a shopping cart icon button",
       "text": "",
-      // ID of this element, replace with actual value in practice
+      // ID(**use id not indexId**) of this element, replace with actual value in practice, **use id not indexId**
       "id": "wefew2222few2"
     }
   ],
