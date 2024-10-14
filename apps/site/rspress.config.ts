@@ -12,7 +12,7 @@ export default defineConfig({
     dark: '/midscene_with_text_dark.png',
   },
   themeConfig: {
-    darkMode: false,
+    darkMode: true,
     socialLinks: [
       {
         icon: 'github',
@@ -23,22 +23,20 @@ export default defineConfig({
     footer: {
       message: `
         <footer class="footer">
-  <div class="footer-content">
-    <img src="/midscene-icon.png" alt="Midscene.js Logo" class="footer-logo" />
-    <p class="footer-text">&copy; 2024 Midscene.js. All Rights Reserved.</p>
-    <nav class="footer-links">
-      <a href="/privacy-policy">Privacy Policy</a>
-      <span>|</span>
-      <a href="/security">Security</a>
-      <span>|</span>
-      <a href="/accessibility">Website Accessibility</a>
-      <span>|</span>
-      <a href="/manage-cookies">Manage Cookies</a>
-    </nav>
-  </div>
-</footer>
-
-
+          <div class="footer-content">
+            <img src="/midscene-icon.png" alt="Midscene.js Logo" class="footer-logo" />
+            <p class="footer-text">&copy; 2024 Midscene.js. All Rights Reserved.</p>
+            <nav class="footer-links">
+              <a href="/privacy-policy">Privacy Policy</a>
+              <span>|</span>
+              <a href="/security">Security</a>
+              <span>|</span>
+              <a href="/accessibility">Website Accessibility</a>
+              <span>|</span>
+              <a href="/manage-cookies">Manage Cookies</a>
+            </nav>
+          </div>
+        </footer>
       `,
     },
     locales: [
