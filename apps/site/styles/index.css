@@ -5,15 +5,23 @@
 :root {
   --rp-c-text-1: #000;
   --rp-code-block-bg: #efefef;
-  --rp-c-text-code:#2d4956;
+  --rp-c-text-code: #2d4956;
   --rp-home-feature-bg: #F1F1f1;
 }
+
 .footer {
-  background-color: #f2f2f2;
+  background-color: transparent;
   color: #333;
-  padding: 20px;
   text-align: center;
+
 }
+
+.footer::before,
+.footer::after {
+  content: none;
+  border: none; 
+}
+
 
 .footer-content {
   display: flex;
@@ -21,10 +29,12 @@
   align-items: center;
   flex-wrap: wrap;
   gap: 15px;
+  border: none; 
 }
 
 .footer-logo {
   width: 40px;
+  border: none;
 }
 
 .footer-text {
@@ -32,6 +42,7 @@
   font-size: 14px;
   white-space: nowrap;
   color: #333;
+  border: none; 
 }
 
 .footer-links {
@@ -45,6 +56,7 @@
   text-decoration: none;
   margin: 0 5px;
   transition: color 0.3s;
+  border: none;
 }
 
 .footer-links a:hover {
@@ -53,13 +65,15 @@
 
 .footer-links span {
   color: #999;
+  border: none; 
 }
 
 @media (max-width: 768px) {
   .md\:text-6xl {
     font-size: 3.3rem;
     line-height: 1;
-}
+  }
+
   .footer-content {
     flex-direction: column;
     align-items: center;
@@ -76,11 +90,11 @@
   .footer-links a {
     margin: 5px 0;
   }
-  
+
   .footer-logo {
     margin-bottom: 10px;
   }
-  
+
   .footer-bottom {
     text-align: center;
   }
