@@ -15,12 +15,13 @@ const script = `
 
   function setDataForNode(node) {
     const taskId = window[taskIdKey];
+    if (!taskId) {
+      console.error('Error: Task ID not found.');
+      return null;
+    }
+
     const dataValue = window[nodeIndexKey];
     window[nodeIndexKey] += 1;
-    if (!taskId) {
-      console.error('No task id found');
-      return;
-    }
 
     const selector = selectorForValue(dataValue);
     node.setAttribute(dataKey(), dataValue);
@@ -28,36 +29,31 @@ const script = `
   }
 
   function visibleRect(el) {
-    // Check if the element is in the DOM hierarchy
     if (!el) {
-      console.log('Element is not in the DOM hierarchy');
+      console.warn('Warning: Element not found in DOM hierarchy.');
       return false;
     }
 
-    // If 'el' is not an instance of Element, find the nearest parent Element
     if (!(el instanceof Element)) {
       el = el.parentElement;
       if (!el) {
-        console.log('Element is not in the DOM hierarchy');
+        console.warn('Warning: Parent element not found.');
         return false;
       }
     }
 
-    // Check if the computed display property is "none"
     const style = window.getComputedStyle(el);
-    if (style.display === 'none' || style.visibility === 'hidden' || style.opacity === '0') {
-      console.log('Element is hidden');
+    if (['none', 'hidden'].includes(style.display) || style.visibility === 'hidden' || style.opacity === '0') {
+      console.warn('Warning: Element is hidden.');
       return false;
     }
 
-    // It seems that the value might be wrong if an external monitor is connected ?
     const rect = el.getBoundingClientRect();
     if (rect.width === 0 && rect.height === 0) {
-      console.log('Element has no size');
+      console.warn('Warning: Element has no size.');
       return false;
     }
 
-    // Check if the element is hidden via clipping or scrolling.
     const scrollLeft = window.pageXOffset || document.documentElement.scrollLeft;
     const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
 
@@ -68,12 +64,10 @@ const script = `
       rect.right <= (window.innerWidth || document.documentElement.clientWidth) + scrollLeft;
 
     if (!isInViewport) {
-      console.log('Element is not in the viewport');
-      console.log(rect, window.innerHeight, window.innerWidth, scrollTop, scrollLeft);
+      console.warn('Warning: Element is not in the viewport.');
       return false;
     }
 
-    // Check for overflow:hidden on the element's ancestors
     let parent = el;
     while (parent && parent !== document.body) {
       const parentStyle = window.getComputedStyle(parent);
@@ -86,14 +80,13 @@ const script = `
           rect.bottom > parentRect.bottom + tolerance ||
           rect.right > parentRect.right + tolerance
         ) {
-          console.log('Element is clipped by an ancestor', parent, rect, parentRect);
+          console.warn('Warning: Element is clipped by an ancestor.', parent);
           return false;
         }
       }
       parent = parent.parentElement;
     }
 
-    // Return the rect object if the element is visible
     return {
       rect: {
         left: Math.round(rect.left - scrollLeft),
@@ -114,25 +107,17 @@ const script = `
       return false;
     }
 
-    // if this is an <input />
     if (node.tagName === 'INPUT') {
-      // return its value or placeholder
-      return node.value || node.placeholder;
+      return node.value || node.placeholder || false;
     }
 
-    const everyChildNodeIsText = Array.from(node.childNodes).every(
-      (child) => child.nodeType === Node.TEXT_NODE,
-    );
-    if (!everyChildNodeIsText) {
+    const everyChildIsText = Array.from(node.childNodes).every((child) => child.nodeType === Node.TEXT_NODE);
+    if (!everyChildIsText) {
       return false;
     }
 
     const content = node.textContent || node.innerText;
-    if (content && !/^\\s*$/.test(content)) {
-      return content.trim();
-    }
-
-    return false;
+    return content && !/^\\s*$/.test(content) ? content.trim() : false;
   }
 
   function extractTextWithPosition(initNode) {
@@ -141,48 +126,41 @@ const script = `
     window[nodeIndexKey] = 0;
 
     function dfs(node) {
-      if (!node) {
-        return;
-      }
+      if (!node) return;
 
       const text = validTextNodeContent(node);
       if (text) {
         const answerRect = visibleRect(node);
-  
-        // console.log('id is', id);
-        // check if the text is visible
         if (!answerRect) {
-          console.log('Element is not visible', node);
+          console.warn('Warning: Element is not visible', node);
           return;
         }
-        const rect = answerRect.rect;
 
+        const { rect } = answerRect;
         if (rect.width < TEXT_SIZE_THRESHOLD || rect.height < TEXT_SIZE_THRESHOLD) {
-          console.log('Element is too small', text);
+          console.warn('Warning: Element is too small.', text);
           return;
         }
 
         const actualNode = answerRect.node;
         const selector = setDataForNode(actualNode);
 
-        // console.log('will push', text, rect);
         textInfoArray.push({
           locator: selector,
           content: text,
           rect,
-          center: [Math.round(rect.left + rect.width / 2), Math.round(rect.top + rect.height / 2)],
+          center: [
+            Math.round(rect.left + rect.width / 2),
+            Math.round(rect.top + rect.height / 2),
+          ],
         });
 
-        // should stop searching if the text is found
         return;
       }
 
       for (let i = 0; i < node.childNodes.length; i++) {
-        console.log('will dfs', node.childNodes[i]);
         dfs(node.childNodes[i]);
       }
-
-      return false;
     }
 
     dfs(initNode);
@@ -191,9 +169,17 @@ const script = `
 
   window.extractTextWithPosition = extractTextWithPosition;
   window.ifNodeIsValid = validTextNodeContent;
+
   const container =
-    typeof window.get_all_text_container === 'undefined' ? document.body : window.get_all_text_container;
-  return extractTextWithPosition(container);
+    typeof window.get_all_text_container === 'undefined'
+      ? document.body
+      : window.get_all_text_container;
+
+  try {
+    return extractTextWithPosition(container);
+  } catch (error) {
+    console.error('Error extracting text:', error);
+  }
 })();
 `;
 
