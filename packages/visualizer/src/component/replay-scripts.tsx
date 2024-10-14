@@ -82,9 +82,9 @@ export const cameraStateForRect = (
   top = Math.max(top, 0);
 
   return {
-    left,
-    top,
-    width: cameraWidth,
+    left: Math.round(left),
+    top: Math.round(top),
+    width: Math.round(cameraWidth),
   };
 };
 
@@ -268,7 +268,7 @@ export const generateAnimationScripts = (
     title: 'Done',
     subTitle: initSubTitle,
     type: 'img',
-    duration: stillDuration * 0.5,
+    duration: stillDuration,
     camera: fullPageCameraState,
   });
 
