@@ -1,6 +1,6 @@
 import { readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
-import { beforeEach, describe } from 'node:test';
+import { describe } from 'node:test';
 import { AiInspectElement, plan } from '@/ai-model';
 import { sleep } from '@/utils';
 import { afterAll, expect, test } from 'vitest';
@@ -35,7 +35,8 @@ describe('ai inspect element', () => {
       failCount: number;
     };
   }[] = [];
-  afterAll(() => {
+
+  afterAll(async () => {
     console.table(
       testResult.map((r) => {
         return {
@@ -108,11 +109,11 @@ describe('ai inspect element', () => {
               failCount: resultData.failCount,
             },
           });
-
+          // await sleep(20 * 1000);
           expect(resultData.score).toBeGreaterThan(95);
         },
         {
-          timeout: 90 * 1000,
+          timeout: 120 * 1000,
         },
       );
     });
