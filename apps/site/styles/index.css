@@ -1,3 +1,4 @@
+
 .dark {
   --rp-c-text-1: rgba(255, 255, 255, 1);
 }
@@ -9,6 +10,7 @@
   --rp-home-feature-bg: #F1F1f1;
 }
 
+/* Footer styles */
 .footer {
   background-color: transparent;
   color: #333;
@@ -19,9 +21,8 @@
 .footer::before,
 .footer::after {
   content: none;
-  border: none; 
+  border: none;
 }
-
 
 .footer-content {
   display: flex;
@@ -29,7 +30,7 @@
   align-items: center;
   flex-wrap: wrap;
   gap: 15px;
-  border: none; 
+  border: none;
 }
 
 .footer-logo {
@@ -40,32 +41,9 @@
 .footer-text {
   margin: 0;
   font-size: 14px;
-  white-space: nowrap;
   color: #333;
-  border: none; 
-}
-
-.footer-links {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-}
-
-.footer-links a {
-  color: #555;
-  text-decoration: none;
-  margin: 0 5px;
-  transition: color 0.3s;
   border: none;
-}
-
-.footer-links a:hover {
-  color: #000;
-}
-
-.footer-links span {
-  color: #999;
-  border: none; 
+  white-space: nowrap; 
 }
 
 @media (max-width: 768px) {
@@ -78,17 +56,6 @@
     flex-direction: column;
     align-items: center;
     text-align: center;
-  }
-
-  .footer-links {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    margin-bottom: 10px;
-  }
-
-  .footer-links a {
-    margin: 5px 0;
   }
 
   .footer-logo {
