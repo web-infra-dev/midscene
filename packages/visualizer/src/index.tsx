@@ -2,12 +2,7 @@ import './index.less';
 import DetailSide from '@/component/detail-side';
 import Sidebar from '@/component/sidebar';
 import { useExecutionDump } from '@/component/store';
-import {
-  CaretRightOutlined,
-  DownOutlined,
-  PlayCircleOutlined,
-  PlaySquareOutlined,
-} from '@ant-design/icons';
+import { CaretRightOutlined, DownOutlined } from '@ant-design/icons';
 import type { GroupedActionDump } from '@midscene/core';
 import { Helmet } from '@modern-js/runtime/head';
 import { Alert, Button, ConfigProvider, Dropdown, Upload, message } from 'antd';
@@ -232,6 +227,9 @@ export function Visualizer(props: {
   return (
     <ConfigProvider
       theme={{
+        token: {
+          colorPrimary: '#06b1ab',
+        },
         components: {
           Layout: {
             headerHeight: 60,

@@ -1,17 +1,20 @@
 'use client';
 import './detail-panel.less';
-import { useExecutionDump, useInsightDump } from '@/component/store';
+import { useExecutionDump } from '@/component/store';
+import Playground from '@/playground';
 import { filterBase64Value, timeStr } from '@/utils';
 import {
   CameraOutlined,
+  ExperimentFilled,
   FileTextOutlined,
   ScheduleOutlined,
   VideoCameraOutlined,
 } from '@ant-design/icons';
-import { ConfigProvider, Segmented } from 'antd';
+import { Button, ConfigProvider, Segmented, message } from 'antd';
 import { useEffect, useState } from 'react';
-import BlackBoard from './blackboard';
+import Blackboard from './blackboard';
 import Player from './player';
+import { usePlayground } from './store';
 
 const ScreenshotItem = (props: { time: string; img: string }) => {
   return (
@@ -30,9 +33,10 @@ const VIEW_TYPE_SCREENSHOT = 'screenshot';
 const VIEW_TYPE_JSON = 'json';
 
 const DetailPanel = (): JSX.Element => {
-  const dumpContext = useInsightDump((store) => store.data);
-  const dumpId = useInsightDump((store) => store._loadId);
-  const blackboardViewAvailable = Boolean(dumpContext);
+  const { setOpen } = usePlayground();
+  const insightDump = useExecutionDump((store) => store.insightDump);
+  const dumpId = useExecutionDump((store) => store._insightDumpLoadId);
+  const blackboardViewAvailable = Boolean(insightDump);
   const activeExecution = useExecutionDump((store) => store.activeExecution);
   const activeExecutionId = useExecutionDump(
     (store) => store._executionDumpLoadId,
@@ -77,7 +81,13 @@ const DetailPanel = (): JSX.Element => {
     );
   } else if (viewType === VIEW_TYPE_BLACKBOARD) {
     if (blackboardViewAvailable) {
-      content = <BlackBoard key={`${dumpId}`} />;
+      content = (
+        <Blackboard
+          uiContext={insightDump!.context}
+          highlightElements={insightDump!.matchedElement}
+          key={`${dumpId}`}
+        />
+      );
     } else {
       content = <div>invalid view</div>;
     }
@@ -159,6 +169,20 @@ const DetailPanel = (): JSX.Element => {
     };
   });
 
+  const ifPlaygroundValid = Boolean(insightDump?.context);
+  let playgroundEl = null;
+  if (ifPlaygroundValid) {
+    console.log('playgroundEl set');
+    playgroundEl = <Playground uiContext={insightDump!.context} />;
+  }
+  const launchPlayground = () => {
+    if (ifPlaygroundValid) {
+      setOpen(true);
+    } else {
+      message.error('No context available');
+    }
+  };
+
   return (
     <div className="detail-panel">
       <div className="view-switcher">
@@ -179,9 +203,18 @@ const DetailPanel = (): JSX.Element => {
               setViewType(value);
             }}
           />
+
+          <Button
+            disabled={!ifPlaygroundValid}
+            onClick={launchPlayground}
+            icon={<ExperimentFilled />}
+          >
+            Playground
+          </Button>
         </ConfigProvider>
       </div>
       <div className="detail-content">{content}</div>
+      {playgroundEl}
     </div>
   );
 };
