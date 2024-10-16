@@ -26,15 +26,6 @@ export default defineConfig({
           <div class="footer-content">
             <img src="/midscene-icon.png" alt="Midscene.js Logo" class="footer-logo" />
             <p class="footer-text">&copy; 2024 Midscene.js. All Rights Reserved.</p>
-            <nav class="footer-links">
-              <a href="/privacy-policy">Privacy Policy</a>
-              <span>|</span>
-              <a href="/security">Security</a>
-              <span>|</span>
-              <a href="/accessibility">Website Accessibility</a>
-              <span>|</span>
-              <a href="/manage-cookies">Manage Cookies</a>
-            </nav>
           </div>
         </footer>
       `,
@@ -56,14 +47,12 @@ export default defineConfig({
   locales: [
     {
       lang: 'en',
-      // The label in nav bar to switch language
       label: 'English',
       title: 'Midscene.js',
       description: 'Midscene.js',
     },
     {
       lang: 'zh',
-      // The label in nav bar to switch language
       label: '简体中文',
       title: 'Midscene.js',
       description: 'Midscene.js',
