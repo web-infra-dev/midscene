@@ -178,6 +178,10 @@ export interface AgentWaitForOpt {
   timeoutMs?: number;
 }
 
+export interface AgentAssertOpt {
+  keepRawResponse?: boolean;
+}
+
 /**
  * planning
  *

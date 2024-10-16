@@ -1,6 +1,11 @@
+const versionFromPkgJson = require('../package.json').version;
+
 if (process.argv.indexOf('--help') !== -1) {
   console.log(`
-  Usage: midscene [options] [actions]
+  @midscene/cli version ${versionFromPkgJson}, Docs: https://midscenejs.com/
+  
+  To automate browser actions, assertions, and data extraction, the usage is:
+  midscene [options] [actions]
 
   Options:
     --url <url>                 The URL to visit, required
@@ -37,10 +42,13 @@ if (process.argv.indexOf('--help') !== -1) {
     midscene --url "https://www.githubstatus.com/" \\
       --query-output status.json \\
       --query '{serviceName: string, status: string}[], github 页面的服务状态，返回服务名称'
+
+
+  To launch a playground server, the usage is:
+  midscene playground
   `);
   process.exit(0);
 } else if (process.argv.indexOf('--version') !== -1) {
-  const versionFromPkgJson = require('../package.json').version;
   console.log(`@midscene/cli version ${versionFromPkgJson}`);
   process.exit(0);
 }

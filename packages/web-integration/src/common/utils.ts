@@ -26,6 +26,9 @@ export async function parseContextFromWebPage(
   _opt?: PlaywrightParserOpt,
 ): Promise<WebUIContext> {
   assert(page, 'page is required');
+  if (Object.prototype.hasOwnProperty.call(page, '_forceUsePageContext')) {
+    return await (page as any)._forceUsePageContext();
+  }
   const url = page.url();
   const file = await page.screenshot();
   const screenshotBase64 = base64Encoded(file);

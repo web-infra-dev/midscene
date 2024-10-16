@@ -12,6 +12,7 @@
     "./puppeteer": "./dist/lib/puppeteer.js",
     "./playwright": "./dist/lib/playwright.js",
     "./playwright-report": "./dist/lib/playwright-report.js",
+    "./playground": "./dist/lib/playground.js",
     "./debug": "./dist/lib/debug.js",
     "./constants": "./dist/lib/constants.js",
     "./html-element": "./dist/lib/html-element/index.js"
@@ -22,6 +23,7 @@
       "puppeteer": ["./dist/types/puppeteer.d.ts"],
       "playwright": ["./dist/types/playwright.d.ts"],
       "playwright-report": ["./dist/types/playwright-report.d.ts"],
+      "playground": ["./dist/types/playground.d.ts"],
       "debug": ["./dist/types/debug.d.ts"],
       "constants": ["./dist/types/constants.d.ts"],
       "html-element": ["./dist/types/html-element/index.d.ts"]
@@ -50,8 +52,10 @@
   },
   "files": ["dist", "README.md"],
   "dependencies": {
+    "express": "4.21.1",
     "openai": "4.57.1",
     "inquirer": "10.1.5",
+    "cors": "2.8.5",
     "@midscene/core": "workspace:*",
     "@midscene/shared": "workspace:*",
     "@xmldom/xmldom": "0.8.10"
@@ -59,8 +63,10 @@
   "devDependencies": {
     "@modern-js/module-tools": "2.58.2",
     "@playwright/test": "1.44.1",
+    "@types/cors": "2.8.12",
     "@types/fs-extra": "11.0.4",
     "@types/node": "^18.0.0",
+    "@types/express": "4.17.14",
     "@wdio/types": "9.0.4",
     "dotenv": "16.4.5",
     "fs-extra": "11.2.0",
