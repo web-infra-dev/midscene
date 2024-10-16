@@ -117,15 +117,18 @@ export const useExecutionDump = create<{
       });
 
       // set the first task as selected
-      // if (
-      //   dump &&
-      //   dump.executions.length > 0 &&
-      //   dump.executions[0].tasks.length > 0
-      // ) {
-      //   get().setActiveTask(dump.executions[0].tasks[0]);
-      // }
 
       if (dump && dump.executions.length > 0) {
+        const setDefaultActiveTask = () => {
+          if (
+            dump &&
+            dump.executions.length > 0 &&
+            dump.executions[0].tasks.length > 0
+          ) {
+            get().setActiveTask(dump.executions[0].tasks[0]);
+          }
+        };
+
         // find out the width and height of the screenshot
         let width = 0;
         let height = 0;
@@ -144,7 +147,7 @@ export const useExecutionDump = create<{
           console.warn(
             'width or height not found, failed to generate animation',
           );
-          return;
+          return setDefaultActiveTask();
         }
 
         const allScripts: AnimationScript[] = [];
@@ -154,6 +157,10 @@ export const useExecutionDump = create<{
             allScripts.push(...scripts);
           }
         });
+
+        if (!allScripts.length) {
+          return setDefaultActiveTask();
+        }
         set({
           allExecutionAnimation: allScripts,
           _executionDumpLoadId: ++_executionDumpLoadId,

@@ -60,6 +60,7 @@ export default class PlaygroundServer {
           response.error = `Unknown type: ${type}`;
         }
         response.dump = agent.dumpDataString();
+        agent.writeOutActionDumps();
       } catch (error: any) {
         response.error = error.message;
       }

@@ -187,6 +187,10 @@ export default function Playground(props: { uiContext: UIContext }) {
                   <Blackboard uiContext={props.uiContext} hideController />
                 </div>
                 <div className="form-part">
+                  <h3>Server</h3>
+                  <div>{serverTip}</div>
+                </div>
+                <div className="form-part">
                   <h3>Type</h3>
                   <Form.Item name="type">
                     <Radio.Group buttonStyle="solid">
@@ -216,10 +220,6 @@ export default function Playground(props: { uiContext: UIContext }) {
             </Panel>
             <PanelResizeHandle className="panel-resize-handle" />
             <Panel maxSize={75}>
-              <div className="form-part">
-                <h3>Server</h3>
-                <div>{serverTip}</div>
-              </div>
               <div className="main-side form-part">
                 <h3>Result</h3>
                 <Spin
