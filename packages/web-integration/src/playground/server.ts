@@ -18,6 +18,13 @@ export default class PlaygroundServer {
   async launch() {
     this.app.use(cors());
     this.app.use(express.json());
+
+    this.app.get('/playground/status', async (req, res) => {
+      res.send({
+        status: 'ok',
+      });
+    });
+
     this.app.post('/playground/execute', async (req, res) => {
       const { context, type, prompt } = req.body;
       assert(context, 'context is required');

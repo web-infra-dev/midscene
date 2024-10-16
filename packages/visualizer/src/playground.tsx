@@ -1,4 +1,4 @@
-import { Button, Modal, Spin, message } from 'antd';
+import { Alert, Button, Modal, Spin, message } from 'antd';
 import React, { useEffect, useState } from 'react';
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
 import { usePlayground } from './component/store';
@@ -8,13 +8,15 @@ import { Form, Input } from 'antd';
 import { Radio } from 'antd';
 import type { UIContext } from '../../midscene/dist/types';
 import Blackboard from './component/blackboard';
+import { iconForStatus } from './component/misc';
 
+const serverBase = 'http://localhost:5800';
 const requestPlaygroundServer = async (
   context: UIContext,
   type: string,
   prompt: string,
 ) => {
-  const res = await fetch('http://localhost:5800/playground/execute', {
+  const res = await fetch(`${serverBase}/playground/execute`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -24,19 +26,28 @@ const requestPlaygroundServer = async (
   return res.json();
 };
 
-const cacheKeyForType = (type: string) => `playground-user-prompt-${type}`;
-
-const cachePromptWithType = (prompt: string, type: string) => {
-  localStorage.setItem(cacheKeyForType(type), prompt);
-  localStorage.setItem('playground-user-type', type);
+const checkServerStatus = async () => {
+  try {
+    const res = await fetch(`${serverBase}/playground/status`);
+    return res.status === 200;
+  } catch (e) {
+    return false;
+  }
 };
 
-const getCachedPromptWithType = (type: string) => {
-  return localStorage.getItem(cacheKeyForType(type));
+const cacheKeyForPrompt = 'playground-user-prompt';
+const cacheKeyForType = 'playground-user-type';
+const setCache = (prompt: string, type: string) => {
+  localStorage.setItem(cacheKeyForPrompt, prompt);
+  localStorage.setItem(cacheKeyForType, type);
+};
+
+const getCachedPrompt = () => {
+  return localStorage.getItem(cacheKeyForPrompt);
 };
 
 const getCachedType = () => {
-  return localStorage.getItem('playground-user-type');
+  return localStorage.getItem(cacheKeyForType);
 };
 
 const { TextArea } = Input;
@@ -48,6 +59,34 @@ export default function Playground(props: { uiContext: UIContext }) {
     error: string | null;
   } | null>(null);
   const [form] = Form.useForm();
+
+  const [serverStatus, setServerStatus] = useState<
+    'connected' | 'pending' | 'failed'
+  >('pending');
+
+  console.log('current status', serverStatus);
+
+  useEffect(() => {
+    let interruptFlag = false;
+    Promise.resolve(
+      (async () => {
+        while (!interruptFlag) {
+          const status = await checkServerStatus();
+          if (status) {
+            setServerStatus('connected');
+          } else {
+            setServerStatus('failed');
+          }
+          // sleep 1s
+          await new Promise((resolve) => setTimeout(resolve, 1000));
+        }
+      })(),
+    );
+
+    return () => {
+      interruptFlag = true;
+    };
+  }, []);
 
   useEffect(() => {
     if (!props.uiContext) {
@@ -62,7 +101,8 @@ export default function Playground(props: { uiContext: UIContext }) {
       return;
     }
 
-    cachePromptWithType(value.prompt, value.type);
+    setCache(value.prompt, value.type);
+
     setLoading(true);
     const res = await requestPlaygroundServer(
       props.uiContext,
@@ -74,12 +114,15 @@ export default function Playground(props: { uiContext: UIContext }) {
   };
 
   let placeholder = 'What do you want to do?';
-  const selectedType = form.getFieldValue('type');
+  const selectedType = Form.useWatch('type', form);
+
   if (selectedType === 'aiQuery') {
     placeholder = 'What do you want to query?';
   } else if (selectedType === 'aiAssert') {
     placeholder = 'What do you want to assert?';
   }
+
+  const runButtonDisabled = loading || serverStatus !== 'connected';
 
   // use cmd + enter to run
   useEffect(() => {
@@ -100,7 +143,18 @@ export default function Playground(props: { uiContext: UIContext }) {
       ? result?.result
       : JSON.stringify(result?.result, null, 2);
 
-  const initType = getCachedType() || 'aiAction';
+  const serverTip =
+    serverStatus === 'failed' ? (
+      <>
+        {iconForStatus(serverStatus)} Failed to connect to server. Please launch
+        the local server first.
+      </>
+    ) : (
+      <>
+        {iconForStatus(serverStatus)} {serverStatus}
+      </>
+    );
+
   return (
     <>
       <Modal
@@ -124,8 +178,8 @@ export default function Playground(props: { uiContext: UIContext }) {
                 form={form}
                 onFinish={handleRun}
                 initialValues={{
-                  type: initType,
-                  prompt: getCachedPromptWithType(initType) || '',
+                  type: getCachedType() || 'aiAction',
+                  prompt: getCachedPrompt() || '',
                 }}
               >
                 <div className="form-part context-panel">
@@ -134,14 +188,8 @@ export default function Playground(props: { uiContext: UIContext }) {
                 </div>
                 <div className="form-part">
                   <h3>Type</h3>
-                  <Form.Item noStyle name="type">
-                    <Radio.Group
-                      value={form.getFieldValue('type')}
-                      onChange={(e) => {
-                        form.setFieldValue('type', e.target.value);
-                      }}
-                      buttonStyle="solid"
-                    >
+                  <Form.Item name="type">
+                    <Radio.Group buttonStyle="solid">
                       <Radio.Button value="aiAction">Action</Radio.Button>
                       <Radio.Button value="aiQuery">Query</Radio.Button>
                       <Radio.Button value="aiAssert">Assert</Radio.Button>
@@ -158,7 +206,7 @@ export default function Playground(props: { uiContext: UIContext }) {
                       type="primary"
                       icon={<SendOutlined />}
                       onClick={handleRun}
-                      disabled={loading}
+                      disabled={runButtonDisabled}
                     >
                       Run
                     </Button>
@@ -168,6 +216,10 @@ export default function Playground(props: { uiContext: UIContext }) {
             </Panel>
             <PanelResizeHandle className="panel-resize-handle" />
             <Panel maxSize={75}>
+              <div className="form-part">
+                <h3>Server</h3>
+                <div>{serverTip}</div>
+              </div>
               <div className="main-side form-part">
                 <h3>Result</h3>
                 <Spin

@@ -39,6 +39,7 @@ export const iconForStatus = (status: string): JSX.Element => {
     case 'finished':
     case 'passed':
     case 'success':
+    case 'connected':
       return (
         <span style={{ color: '#2B8243' }}>
           <CheckOutlined />
