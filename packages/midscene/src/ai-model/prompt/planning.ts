@@ -42,16 +42,16 @@ Remember:
 
 If the planned tasks are sequential and tasks may appear only after the execution of previous tasks, this is considered normal. Thoughts, prompts, and error messages should all be in the same language as the user query.
 
-## Objective 2 (sub objective): Give a quick answer to the action with type "Locate" you just planned
+## Objective 2 (sub objective, only for action with type "Locate"): Give a quick answer to the action with type "Locate" you just planned, append a \`quickAnswer\` field after the \`param\` field
 
-Review the action you just planned. If the action type is 'Locate', provide a quick answer: Does any element meet the description in the prompt? If so, answer with the following format, as the \`quickAnswer\` field in the output JSON:
+If the action type is 'Locate', provide a quick answer: Does any element meet the description in the prompt? If so, answer with the following format, as the \`quickAnswer\` field in the output JSON:
 {
   "reason": "Reason for finding element 4: It is located in the upper right corner, is an image type, and according to the screenshot, it is a shopping cart icon button",
   "text": "PLACEHOLDER", // Replace PLACEHOLDER with the text of elementInfo, if none, leave empty
   "id": "wefew2222few2" // id of this element, replace with actual value in practice
 }
 
-If the action type is not 'Locate', or there is no element meets the description in the prompt (usually because it will show up after some interaction), the answer should be null.
+If there is no element meets the description in the prompt (usually because it will show up later after some interaction), the \`quickAnswer\` field should be null.
 
 ## Output JSON Format:
 
@@ -65,7 +65,7 @@ Please return the result in JSON format as follows:
       "param": {
         "prompt": "The search bar"
       },
-      "quickAnswer": { // since the first action is Locate, so we need to give a quick answer
+      "quickAnswer": { // since this action type is 'Locate', and we can find the element, so we need to give a quick answer
         "reason": "Reason for finding element 4: It is located in the upper right corner, is an input type, and according to the screenshot, it is a search bar",
         "text": "PLACEHOLDER", // Replace PLACEHOLDER with the text of elementInfo, if none, leave empty
         "id": "wefew2222few2" // ID of this element, replace with actual value in practice
@@ -75,6 +75,14 @@ Please return the result in JSON format as follows:
       "thought": "Reasons for generating this task, and why this task is feasible on this page",
       "type": "Tap", // Type of action, like 'Tap' 'Hover' ...
       "param": any, // Parameter towards the task type
+    },
+    {
+      "thought": "Reasons for generating this task, and why this task is feasible on this page",
+      "type": "Locate", // Type of action, like 'Tap' 'Hover' ...
+      "param": {
+        "prompt": "The search bar"
+      },
+      "quickAnswer": null,
     },
     // ... more actions
   ],
@@ -111,7 +119,8 @@ export const planSchema: ResponseFormatJSONSchema = {
               },
               param: {
                 type: ['object', 'null'],
-                description: 'Parameter towards the task type, can be null',
+                description:
+                  'Parameter towards the task type, can be null only when the type field is Tap or Hover',
               },
               quickAnswer: {
                 type: ['object', 'null'],

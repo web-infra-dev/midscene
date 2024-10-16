@@ -126,8 +126,10 @@ export const useExecutionDump = create<{
           execution.tasks.forEach((task) => {
             if (task.type === 'Insight') {
               const insightTask = task as ExecutionTaskInsightLocate;
-              width = insightTask.log?.dump?.context?.size?.width || 1920;
-              height = insightTask.log?.dump?.context?.size?.height || 1080;
+              if (insightTask.log?.dump?.context?.size?.width) {
+                width = insightTask.log?.dump?.context?.size?.width;
+                height = insightTask.log?.dump?.context?.size?.height;
+              }
             }
           });
         });
