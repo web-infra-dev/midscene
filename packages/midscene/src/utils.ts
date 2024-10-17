@@ -57,7 +57,7 @@ export function writeDumpReport(
       const attributesArr = Object.keys(attributes || {}).map((key) => {
         return `${key}="${encodeURIComponent(attributes![key])}"`;
       });
-      return `<script type="midscene_web_dump" type="application/json" ${attributesArr.join(' ')}>${dumpString}</script>`;
+      return `<script type="midscene_web_dump" type="application/json" ${attributesArr.join(' ')}>\n${dumpString}\n</script>`;
     });
     reportContent = tpl.replace('{{dump}}', dumps.join('\n'));
   }

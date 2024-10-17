@@ -44,7 +44,7 @@ export async function parseContextFromWebPage(
   const size = await imageInfoOfBase64(screenshotBase64);
 
   // composite element infos to screenshot
-  const screenshotBase64WithElementInfos = await compositeElementInfoImg({
+  const screenshotBase64WithElementMarker = await compositeElementInfoImg({
     inputImgBase64: screenshotBase64.split(';base64,').pop() as string,
     elementsPositionInfo: elementsPositionInfoWithoutText,
   });
@@ -52,7 +52,8 @@ export async function parseContextFromWebPage(
   return {
     content: elementsInfo,
     size,
-    screenshotBase64: `data:image/png;base64,${screenshotBase64WithElementInfos}`,
+    screenshotBase64,
+    screenshotBase64WithElementMarker: `data:image/png;base64,${screenshotBase64WithElementMarker}`,
     url,
   };
 }

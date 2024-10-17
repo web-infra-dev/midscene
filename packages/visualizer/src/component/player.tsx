@@ -545,7 +545,8 @@ const Player = (): JSX.Element => {
           return acc + item.duration + (item.insightCameraDuration || 0);
         }, 0);
 
-        const progressUpdateInterval = 300;
+        // progress bar
+        const progressUpdateInterval = 200;
         const startTime = performance.now();
         setAnimationProgress(0);
         const updateProgress = () => {
@@ -553,8 +554,11 @@ const Player = (): JSX.Element => {
             (performance.now() - startTime) / totalDuration,
             1,
           );
+
           setAnimationProgress(progress);
-          return timeout(updateProgress, progressUpdateInterval);
+          if (progress < 1) {
+            return timeout(updateProgress, progressUpdateInterval);
+          }
         };
         frame(updateProgress);
 
