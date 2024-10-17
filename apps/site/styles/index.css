@@ -1,3 +1,4 @@
+
 .dark {
   --rp-c-text-1: rgba(255, 255, 255, 1);
 }
@@ -5,13 +6,63 @@
 :root {
   --rp-c-text-1: #000;
   --rp-code-block-bg: #efefef;
-  --rp-c-text-code:#2d4956;
+  --rp-c-text-code: #2d4956;
   --rp-home-feature-bg: #F1F1f1;
 }
 
-@media (min-width: 768px) {
+/* Footer styles */
+.footer {
+  background-color: transparent;
+  color: #333;
+  text-align: center;
+
+}
+
+.footer::before,
+.footer::after {
+  content: none;
+  border: none;
+}
+
+.footer-content {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 15px;
+  border: none;
+}
+
+.footer-logo {
+  width: 40px;
+  border: none;
+}
+
+.footer-text {
+  margin: 0;
+  font-size: 14px;
+  color: #333;
+  border: none;
+  white-space: nowrap; 
+}
+
+@media (max-width: 768px) {
   .md\:text-6xl {
-      font-size: 3.3rem;
-      line-height: 1;
+    font-size: 3.3rem;
+    line-height: 1;
+  }
+
+  .footer-content {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+  }
+
+  .footer-logo {
+    margin-bottom: 10px;
+  }
+
+  .footer-bottom {
+    text-align: center;
   }
 }
