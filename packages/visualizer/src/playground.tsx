@@ -138,10 +138,15 @@ export default function Playground(props: { uiContext: UIContext }) {
     };
   }, []);
 
-  const resultDataToShow =
-    typeof result?.result === 'string'
-      ? result?.result
-      : JSON.stringify(result?.result, null, 2);
+  let resultDataToShow = '';
+  if (result?.result) {
+    resultDataToShow =
+      typeof result?.result === 'string'
+        ? result?.result
+        : JSON.stringify(result?.result, null, 2);
+  } else if (result?.error) {
+    resultDataToShow = result?.error;
+  }
 
   const serverTip =
     serverStatus === 'failed' ? (
