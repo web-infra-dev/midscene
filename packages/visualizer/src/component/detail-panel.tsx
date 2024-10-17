@@ -172,7 +172,6 @@ const DetailPanel = (): JSX.Element => {
   const ifPlaygroundValid = Boolean(insightDump?.context);
   let playgroundEl = null;
   if (ifPlaygroundValid) {
-    console.log('playgroundEl set');
     playgroundEl = <Playground uiContext={insightDump!.context} />;
   }
   const launchPlayground = () => {

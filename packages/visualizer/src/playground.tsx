@@ -6,9 +6,12 @@ import './playground.less';
 import { LoadingOutlined, SendOutlined } from '@ant-design/icons';
 import { Form, Input } from 'antd';
 import { Radio } from 'antd';
-import type { UIContext } from '../../midscene/dist/types';
+import type { GroupedActionDump, UIContext } from '../../midscene/dist/types';
 import Blackboard from './component/blackboard';
 import { iconForStatus } from './component/misc';
+import Player from './component/player';
+import type { ReplayScriptsInfo } from './component/replay-scripts';
+import { allScriptsFromDump } from './component/replay-scripts';
 
 const serverBase = 'http://localhost:5800';
 const requestPlaygroundServer = async (
@@ -56,15 +59,17 @@ export default function Playground(props: { uiContext: UIContext }) {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<{
     result: any;
+    dump: GroupedActionDump | null;
     error: string | null;
   } | null>(null);
   const [form] = Form.useForm();
+  const [replayScriptsInfo, setReplayScriptsInfo] =
+    useState<ReplayScriptsInfo | null>(null);
+  const [replayCounter, setReplayCounter] = useState(0);
 
   const [serverStatus, setServerStatus] = useState<
     'connected' | 'pending' | 'failed'
   >('pending');
-
-  console.log('current status', serverStatus);
 
   useEffect(() => {
     let interruptFlag = false;
@@ -102,8 +107,9 @@ export default function Playground(props: { uiContext: UIContext }) {
     }
 
     setCache(value.prompt, value.type);
-
     setLoading(true);
+
+    setResult(null);
     const res = await requestPlaygroundServer(
       props.uiContext,
       value.type,
@@ -111,6 +117,14 @@ export default function Playground(props: { uiContext: UIContext }) {
     );
     setLoading(false);
     setResult(res);
+
+    if (value.type === 'aiAction' && res?.dump) {
+      const info = allScriptsFromDump(res.dump);
+      setReplayScriptsInfo(info);
+      setReplayCounter((c) => c + 1);
+    } else {
+      setReplayScriptsInfo(null);
+    }
   };
 
   let placeholder = 'What do you want to do?';
@@ -127,7 +141,7 @@ export default function Playground(props: { uiContext: UIContext }) {
   // use cmd + enter to run
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.metaKey && e.key === 'Enter') {
+      if (e.key === 'Enter') {
         handleRun();
       }
     };
@@ -138,8 +152,17 @@ export default function Playground(props: { uiContext: UIContext }) {
     };
   }, []);
 
-  let resultDataToShow = '';
-  if (result?.result) {
+  let resultDataToShow: any = '';
+  if (replayScriptsInfo) {
+    resultDataToShow = (
+      <Player
+        key={replayCounter}
+        replayScripts={replayScriptsInfo.scripts}
+        imageWidth={replayScriptsInfo.width}
+        imageHeight={replayScriptsInfo.height}
+      />
+    );
+  } else if (result?.result) {
     resultDataToShow =
       typeof result?.result === 'string'
         ? result?.result
@@ -193,7 +216,13 @@ export default function Playground(props: { uiContext: UIContext }) {
                 </div>
                 <div className="form-part context-panel">
                   <h3>UI Context</h3>
-                  <Blackboard uiContext={props.uiContext} hideController />
+                  {open && (
+                    <Blackboard
+                      uiContext={props.uiContext}
+                      hideController
+                      disableInteraction
+                    />
+                  )}
                 </div>
                 <div className="form-part">
                   <h3>Type</h3>

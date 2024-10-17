@@ -10,7 +10,7 @@ import type {
   UIContext,
 } from '../../../midscene/dist/types';
 import type { AnimationScript } from './replay-scripts';
-import { generateAnimationScripts } from './replay-scripts';
+import { allScriptsFromDump, generateAnimationScripts } from './replay-scripts';
 
 const { create } = Z;
 export const useBlackboardPreference = create<{
@@ -129,40 +129,14 @@ export const useExecutionDump = create<{
           }
         };
 
-        // find out the width and height of the screenshot
-        let width = 0;
-        let height = 0;
+        const allScriptsInfo = allScriptsFromDump(dump);
 
-        dump.executions.forEach((execution) => {
-          execution.tasks.forEach((task) => {
-            if (task.type === 'Insight') {
-              const insightTask = task as ExecutionTaskInsightLocate;
-              if (insightTask.log?.dump?.context?.size?.width) {
-                width = insightTask.log?.dump?.context?.size?.width;
-                height = insightTask.log?.dump?.context?.size?.height;
-              }
-            }
-          });
-        });
-
-        if (!width || !height) {
-          console.warn(
-            'width or height not found, failed to generate animation',
-          );
+        if (!allScriptsInfo) {
           return setDefaultActiveTask();
         }
 
-        const allScripts: AnimationScript[] = [];
-        dump.executions.forEach((execution) => {
-          const scripts = generateAnimationScripts(execution, width, height);
-          if (scripts) {
-            allScripts.push(...scripts);
-          }
-        });
+        const { scripts: allScripts, width, height } = allScriptsInfo;
 
-        if (!allScripts.length) {
-          return setDefaultActiveTask();
-        }
         set({
           allExecutionAnimation: allScripts,
           _executionDumpLoadId: ++_executionDumpLoadId,

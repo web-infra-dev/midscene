@@ -1,5 +1,6 @@
 import assert from 'node:assert';
 import type { Server } from 'node:http';
+import { ERROR_CODE_NOT_IMPLEMENTED_AS_DESIGNED } from '@/common/utils';
 import cors from 'cors';
 import express from 'express';
 import { StaticPageAgent } from './agent';
@@ -17,7 +18,7 @@ export default class PlaygroundServer {
 
   async launch() {
     this.app.use(cors());
-    this.app.use(express.json());
+    this.app.use(express.json({ limit: '30mb' }));
 
     this.app.get('/playground/status', async (req, res) => {
       res.send({
@@ -59,10 +60,16 @@ export default class PlaygroundServer {
         } else {
           response.error = `Unknown type: ${type}`;
         }
-        response.dump = agent.dumpDataString();
+      } catch (error: any) {
+        if (!error.message.includes(ERROR_CODE_NOT_IMPLEMENTED_AS_DESIGNED)) {
+          response.error = error.message;
+        }
+      }
+      try {
+        response.dump = JSON.parse(agent.dumpDataString());
         agent.writeOutActionDumps();
       } catch (error: any) {
-        response.error = error.message;
+        console.error(`write out dump failed: #${requestId}, ${error.message}`);
       }
 
       res.send(response);

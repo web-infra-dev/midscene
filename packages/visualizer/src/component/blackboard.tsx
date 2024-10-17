@@ -66,6 +66,7 @@ const Blackboard = (props: {
   uiContext: UIContext;
   highlightElements?: BaseElement[];
   hideController?: boolean;
+  disableInteraction?: boolean;
 }): JSX.Element => {
   const highlightElements: BaseElement[] = props.highlightElements || [];
   const highlightIds = highlightElements.map((e) => e.id);
@@ -197,10 +198,12 @@ const Blackboard = (props: {
         rect,
         content,
         ifHighlight,
-        () => {
-          setHoverElement(element);
-        },
-        removeHover,
+        props?.disableInteraction
+          ? undefined
+          : () => {
+              setHoverElement(element);
+            },
+        props?.disableInteraction ? undefined : removeHover,
       );
       elementMarkContainer.addChild(graphics);
     });

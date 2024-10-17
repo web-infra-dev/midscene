@@ -40,6 +40,8 @@ export function Visualizer(props: {
   const replayAllScripts = useExecutionDump(
     (store) => store.allExecutionAnimation,
   );
+  const insightWidth = useExecutionDump((store) => store.insightWidth);
+  const insightHeight = useExecutionDump((store) => store.insightHeight);
   const setGroupedDump = useExecutionDump((store) => store.setGroupedDump);
   const reset = useExecutionDump((store) => store.reset);
   const [mainLayoutChangeFlag, setMainLayoutChangeFlag] = useState(0);
@@ -139,7 +141,12 @@ export function Visualizer(props: {
   } else {
     const content = replayAllMode ? (
       <div className="replay-all-mode-wrapper">
-        <Player key={executionDumpLoadId} />
+        <Player
+          key={`${executionDumpLoadId}`}
+          replayScripts={replayAllScripts!}
+          imageWidth={insightWidth!}
+          imageHeight={insightHeight!}
+        />
       </div>
     ) : (
       <PanelGroup autoSaveId="page-detail-layout-v2" direction="horizontal">

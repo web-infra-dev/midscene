@@ -20,7 +20,7 @@
     h3 {
       margin-top: 0;
       margin-bottom: 8px;
-      font-size: 14px;
+      font-size: 16px;
     }
   }
 
@@ -45,7 +45,15 @@
 
   .main-side {
     box-sizing: border-box;
-    // height: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+
+    .ant-spin-nested-loading{
+      flex-grow: 1;
+      display: flex;
+      justify-content: center;
+    }
 
     .main-side-result {
       flex-grow: 1;

@@ -1,11 +1,16 @@
 import { writeFileSync } from 'node:fs';
-import type { WebUIContext } from '@/common/utils';
+import {
+  ERROR_CODE_NOT_IMPLEMENTED_AS_DESIGNED,
+  type WebUIContext,
+} from '@/common/utils';
 import type { AbstractPage } from '@/page';
 import { getTmpFile } from '@midscene/core/utils';
 import { saveBase64Image } from '@midscene/shared/img';
 
-const ThrowNotImplemented: any = () => {
-  throw new Error('This method is not implemented in static page');
+const ThrowNotImplemented: any = (methodName: string) => {
+  throw new Error(
+    `The method "${methodName}" is not implemented as designed since this is a static UI context. (${ERROR_CODE_NOT_IMPLEMENTED_AS_DESIGNED})`,
+  );
 };
 
 export default class StaticPage implements AbstractPage {
@@ -18,7 +23,7 @@ export default class StaticPage implements AbstractPage {
   }
 
   async getElementInfos() {
-    return [];
+    return ThrowNotImplemented('getElementInfos');
   }
 
   async screenshot() {
@@ -36,38 +41,37 @@ export default class StaticPage implements AbstractPage {
   }
 
   async scrollUntilTop() {
-    return ThrowNotImplemented;
+    return ThrowNotImplemented('scrollUntilTop');
   }
 
   async scrollUntilBottom() {
-    return ThrowNotImplemented;
+    return ThrowNotImplemented('scrollUntilBottom');
   }
 
   async scrollUpOneScreen() {
-    return ThrowNotImplemented;
+    return ThrowNotImplemented('scrollUpOneScreen');
   }
 
   async scrollDownOneScreen() {
-    return ThrowNotImplemented;
+    return ThrowNotImplemented('scrollDownOneScreen');
   }
 
   async clearInput() {
-    return ThrowNotImplemented;
+    return ThrowNotImplemented('clearInput');
   }
 
   mouse = {
-    click: ThrowNotImplemented,
-    wheel: ThrowNotImplemented,
-    move: ThrowNotImplemented,
+    click: ThrowNotImplemented.bind(null, 'mouse.click'),
+    wheel: ThrowNotImplemented.bind(null, 'mouse.wheel'),
+    move: ThrowNotImplemented.bind(null, 'mouse.move'),
   };
 
   keyboard = {
-    type: ThrowNotImplemented,
-    press: ThrowNotImplemented,
+    type: ThrowNotImplemented.bind(null, 'keyboard.type'),
+    press: ThrowNotImplemented.bind(null, 'keyboard.press'),
   };
 
   async _forceUsePageContext() {
-    // console.warn('static page _forceUsePageContext is called', this.uiContext);
     return this.uiContext;
   }
 }

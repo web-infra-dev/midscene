@@ -68,7 +68,7 @@ export async function call(
 
   const shouldPrintTiming =
     typeof process.env[MIDSCENE_DEBUG_AI_PROFILE] === 'string';
-  const startTime = performance.now();
+  const startTime = Date.now();
   const completion = await openai.chat.completions.create({
     model,
     messages,
@@ -80,7 +80,7 @@ export async function call(
     console.log(
       'Midscene - AI call',
       completion.usage,
-      `${performance.now() - startTime}ms`,
+      `${Date.now() - startTime}ms`,
     );
   const { content } = completion.choices[0].message;
   assert(content, 'empty content');
