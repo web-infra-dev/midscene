@@ -7,9 +7,10 @@ import type {
   ExecutionTaskInsightLocate,
   GroupedActionDump,
   InsightDump,
+  UIContext,
 } from '../../../midscene/dist/types';
 import type { AnimationScript } from './replay-scripts';
-import { generateAnimationScripts } from './replay-scripts';
+import { allScriptsFromDump, generateAnimationScripts } from './replay-scripts';
 
 const { create } = Z;
 export const useBlackboardPreference = create<{
@@ -28,6 +29,22 @@ export const useBlackboardPreference = create<{
   },
 }));
 
+export const usePlayground = create<{
+  open: boolean;
+  setOpen: (open: boolean) => void;
+}>((set) => {
+  const initData = {
+    open: false,
+  };
+
+  return {
+    ...initData,
+    setOpen: (open: boolean) => {
+      set({ open });
+    },
+  };
+});
+
 export const useExecutionDump = create<{
   dump: GroupedActionDump | null;
   setGroupedDump: (dump: GroupedActionDump) => void;
@@ -41,6 +58,8 @@ export const useExecutionDump = create<{
   activeExecutionAnimation: AnimationScript[] | null;
   activeTask: ExecutionTask | null;
   setActiveTask: (task: ExecutionTask) => void;
+  insightDump: InsightDump | null;
+  _insightDumpLoadId: number;
   hoverTask: ExecutionTask | null;
   hoverTimestamp: number | null;
   setHoverTask: (task: ExecutionTask | null, timestamp?: number | null) => void;
@@ -58,20 +77,11 @@ export const useExecutionDump = create<{
     insightHeight: null,
     activeExecution: null,
     activeExecutionAnimation: null,
-    // TODO: get from dump
+    insightDump: null,
+    _insightDumpLoadId: 0,
     hoverTask: null,
     hoverTimestamp: null,
     hoverPreviewConfig: null,
-  };
-
-  const syncToInsightDump = (dump: InsightDump) => {
-    const { loadData } = useInsightDump.getState();
-    loadData(dump);
-  };
-
-  const resetInsightDump = () => {
-    const { reset } = useInsightDump.getState();
-    reset();
   };
 
   const resetActiveExecution = () => {
@@ -79,9 +89,8 @@ export const useExecutionDump = create<{
       activeExecution: null,
       activeExecutionAnimation: null,
       _executionDumpLoadId: ++_executionDumpLoadId,
+      insightDump: null,
     });
-
-    resetInsightDump();
   };
 
   return {
@@ -106,48 +115,28 @@ export const useExecutionDump = create<{
         ...initData,
         dump,
       });
-      resetInsightDump();
 
       // set the first task as selected
-      // if (
-      //   dump &&
-      //   dump.executions.length > 0 &&
-      //   dump.executions[0].tasks.length > 0
-      // ) {
-      //   get().setActiveTask(dump.executions[0].tasks[0]);
-      // }
 
       if (dump && dump.executions.length > 0) {
-        // find out the width and height of the screenshot
-        let width = 0;
-        let height = 0;
+        const setDefaultActiveTask = () => {
+          if (
+            dump &&
+            dump.executions.length > 0 &&
+            dump.executions[0].tasks.length > 0
+          ) {
+            get().setActiveTask(dump.executions[0].tasks[0]);
+          }
+        };
 
-        dump.executions.forEach((execution) => {
-          execution.tasks.forEach((task) => {
-            if (task.type === 'Insight') {
-              const insightTask = task as ExecutionTaskInsightLocate;
-              if (insightTask.log?.dump?.context?.size?.width) {
-                width = insightTask.log?.dump?.context?.size?.width;
-                height = insightTask.log?.dump?.context?.size?.height;
-              }
-            }
-          });
-        });
+        const allScriptsInfo = allScriptsFromDump(dump);
 
-        if (!width || !height) {
-          console.warn(
-            'width or height not found, failed to generate animation',
-          );
-          return;
+        if (!allScriptsInfo) {
+          return setDefaultActiveTask();
         }
 
-        const allScripts: AnimationScript[] = [];
-        dump.executions.forEach((execution) => {
-          const scripts = generateAnimationScripts(execution, width, height);
-          if (scripts) {
-            allScripts.push(...scripts);
-          }
-        });
+        const { scripts: allScripts, width, height } = allScriptsInfo;
+
         set({
           allExecutionAnimation: allScripts,
           _executionDumpLoadId: ++_executionDumpLoadId,
@@ -185,9 +174,13 @@ export const useExecutionDump = create<{
       });
       console.log('will set task', task);
       if (task.type === 'Insight') {
-        syncToInsightDump((task as ExecutionTaskInsightLocate).log?.dump!);
+        const dump = (task as ExecutionTaskInsightLocate).log?.dump!;
+        set({
+          insightDump: dump,
+          _insightDumpLoadId: ++state._insightDumpLoadId,
+        });
       } else {
-        resetInsightDump();
+        set({ insightDump: null });
       }
     },
     setHoverTask(task: ExecutionTask | null, timestamp?: number | null) {
@@ -207,7 +200,6 @@ export const useExecutionDump = create<{
     },
     reset: () => {
       set(initData);
-      resetInsightDump();
     },
   };
 });
@@ -223,45 +215,3 @@ export const useAllCurrentTasks = (): ExecutionTask[] => {
 
   return tasksInside;
 };
-
-export const useInsightDump = create<{
-  _loadId: number;
-  data: InsightDump | null;
-  highlightSectionNames: string[];
-  setHighlightSectionNames: (sections: string[]) => void;
-  highlightElements: BaseElement[];
-  setHighlightElements: (elements: BaseElement[]) => void;
-  loadData: (data: InsightDump) => void;
-  reset: () => void;
-}>((set) => {
-  let loadId = 0;
-  const initData = {
-    _loadId: 0,
-    highlightSectionNames: [],
-    highlightElements: [],
-    data: null,
-  };
-
-  return {
-    ...initData,
-    loadData: (data: InsightDump) => {
-      // console.log('will load dump data');
-      // console.log(data);
-      set({
-        _loadId: ++loadId,
-        data,
-        highlightSectionNames: [],
-        highlightElements: [],
-      });
-    },
-    setHighlightSectionNames: (sections: string[]) => {
-      set({ highlightSectionNames: sections });
-    },
-    setHighlightElements: (elements: BaseElement[]) => {
-      set({ highlightElements: elements });
-    },
-    reset: () => {
-      set(initData);
-    },
-  };
-});

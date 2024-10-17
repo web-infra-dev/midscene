@@ -1,4 +1,5 @@
 import type { WebKeyInput } from './common/page';
+import type { WebUIContext } from './common/utils';
 import type { ElementInfo } from './extractor';
 
 export type MouseButton = 'left' | 'right' | 'middle';
@@ -34,4 +35,6 @@ export abstract class AbstractPage {
   abstract scrollUntilBottom(): Promise<void>;
   abstract scrollUpOneScreen(): Promise<void>;
   abstract scrollDownOneScreen(): Promise<void>;
+
+  abstract _forceUsePageContext?(): Promise<WebUIContext>;
 }

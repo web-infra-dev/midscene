@@ -1,0 +1,74 @@
+@import './component/common.less';
+
+.playground-container {
+  margin-top: @layout-space;
+  .context-panel {
+    box-sizing: border-box;
+    // padding-top: @layout-space;
+  }
+
+  .panel-resize-handle {
+    width: 1px;
+    background-color: @border-color;
+    margin-left: 24px;
+    margin-right: 24px;
+  }
+
+  .form-part {
+    margin-bottom: @layout-space;
+
+    h3 {
+      margin-top: 0;
+      margin-bottom: 8px;
+      font-size: 16px;
+    }
+  }
+
+  .input-wrapper {
+    box-sizing: border-box;
+
+    .main-side-console-input {
+      position: relative;
+      margin-top: 4px;
+    }
+
+    .ant-input {
+      padding-bottom: 40px;
+    }
+
+    .ant-btn {
+      position: absolute;
+      bottom: 8px;
+      right: 8px;
+    }
+  }
+
+  .main-side {
+    box-sizing: border-box;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+
+    .ant-spin-nested-loading{
+      flex-grow: 1;
+      display: flex;
+      justify-content: center;
+    }
+
+    .main-side-result {
+      flex-grow: 1;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+
+      pre {
+        display: block;
+        word-wrap: break-word;
+        white-space: pre-wrap;    
+      }
+    }
+
+  }
+}

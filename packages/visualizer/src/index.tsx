@@ -2,12 +2,7 @@ import './index.less';
 import DetailSide from '@/component/detail-side';
 import Sidebar from '@/component/sidebar';
 import { useExecutionDump } from '@/component/store';
-import {
-  CaretRightOutlined,
-  DownOutlined,
-  PlayCircleOutlined,
-  PlaySquareOutlined,
-} from '@ant-design/icons';
+import { CaretRightOutlined, DownOutlined } from '@ant-design/icons';
 import type { GroupedActionDump } from '@midscene/core';
 import { Helmet } from '@modern-js/runtime/head';
 import { Alert, Button, ConfigProvider, Dropdown, Upload, message } from 'antd';
@@ -45,6 +40,8 @@ export function Visualizer(props: {
   const replayAllScripts = useExecutionDump(
     (store) => store.allExecutionAnimation,
   );
+  const insightWidth = useExecutionDump((store) => store.insightWidth);
+  const insightHeight = useExecutionDump((store) => store.insightHeight);
   const setGroupedDump = useExecutionDump((store) => store.setGroupedDump);
   const reset = useExecutionDump((store) => store.reset);
   const [mainLayoutChangeFlag, setMainLayoutChangeFlag] = useState(0);
@@ -144,7 +141,12 @@ export function Visualizer(props: {
   } else {
     const content = replayAllMode ? (
       <div className="replay-all-mode-wrapper">
-        <Player key={executionDumpLoadId} />
+        <Player
+          key={`${executionDumpLoadId}`}
+          replayScripts={replayAllScripts!}
+          imageWidth={insightWidth!}
+          imageHeight={insightHeight!}
+        />
       </div>
     ) : (
       <PanelGroup autoSaveId="page-detail-layout-v2" direction="horizontal">
@@ -232,6 +234,9 @@ export function Visualizer(props: {
   return (
     <ConfigProvider
       theme={{
+        token: {
+          colorPrimary: '#06b1ab',
+        },
         components: {
           Layout: {
             headerHeight: 60,

@@ -15,7 +15,7 @@
     }
   },
   "scripts": {
-    "dev": "npm run build && npm-watch",
+    "dev": "npm run build && npx npm-watch",
     "build": "modern build && npx ts-node scripts/build-html.ts",
     "build:watch": "modern build -w",
     "serve": "http-server ./dist/report -p 3000",
