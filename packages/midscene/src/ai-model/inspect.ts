@@ -39,7 +39,7 @@ export async function AiInspectElement<
 }) {
   const { context, multi, targetElementDescription, callAI, useModel } =
     options;
-  const { screenshotBase64 } = context;
+  const { screenshotBase64, screenshotBase64WithElementMarker } = context;
   const { description, elementById } = await describeUserPage(context);
 
   // meet quick answer
@@ -61,7 +61,7 @@ export async function AiInspectElement<
         {
           type: 'image_url',
           image_url: {
-            url: screenshotBase64,
+            url: screenshotBase64WithElementMarker || screenshotBase64,
           },
         },
         {

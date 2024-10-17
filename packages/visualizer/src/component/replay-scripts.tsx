@@ -40,6 +40,7 @@ export interface AnimationScript {
 }
 
 const stillDuration = 1200;
+const stillAfterInsightDuration = 300;
 const locateDuration = 800;
 const actionDuration = 1000;
 const clearInsightDuration = 200;
@@ -185,9 +186,23 @@ export const generateAnimationScripts = (
           throw new Error('insight dump is required');
         }
         const insightContentLength = insightDump.context.content.length;
+
+        if (insightDump.context.screenshotBase64WithElementMarker) {
+          // show the original screenshot first
+          scripts.push({
+            type: 'img',
+            img: insightDump.context.screenshotBase64,
+            duration: stillAfterInsightDuration,
+            title,
+            subTitle,
+          });
+        }
+
         scripts.push({
           type: 'insight',
-          img: insightDump.context.screenshotBase64,
+          img:
+            insightDump.context.screenshotBase64WithElementMarker ||
+            insightDump.context.screenshotBase64,
           insightDump: insightDump,
           camera:
             currentCameraState === fullPageCameraState || !insightCameraState
@@ -202,7 +217,7 @@ export const generateAnimationScripts = (
 
         scripts.push({
           type: 'sleep',
-          duration: 800,
+          duration: stillAfterInsightDuration,
           title,
           subTitle,
         });
