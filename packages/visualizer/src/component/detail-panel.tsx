@@ -1,7 +1,7 @@
 'use client';
 import './detail-panel.less';
 import { useExecutionDump } from '@/component/store';
-import Playground from '@/playground';
+// import Playground from '@/playground';
 import { filterBase64Value, timeStr } from '@/utils';
 import {
   CameraOutlined,
@@ -14,7 +14,6 @@ import { Button, ConfigProvider, Segmented, message } from 'antd';
 import { useEffect, useState } from 'react';
 import Blackboard from './blackboard';
 import Player from './player';
-import { usePlayground } from './store';
 
 const ScreenshotItem = (props: { time: string; img: string }) => {
   return (
@@ -33,7 +32,6 @@ const VIEW_TYPE_SCREENSHOT = 'screenshot';
 const VIEW_TYPE_JSON = 'json';
 
 const DetailPanel = (): JSX.Element => {
-  const { setOpen } = usePlayground();
   const insightDump = useExecutionDump((store) => store.insightDump);
   const dumpId = useExecutionDump((store) => store._insightDumpLoadId);
   const blackboardViewAvailable = Boolean(insightDump);
@@ -172,11 +170,13 @@ const DetailPanel = (): JSX.Element => {
   const ifPlaygroundValid = Boolean(insightDump?.context);
   let playgroundEl = null;
   if (ifPlaygroundValid) {
-    playgroundEl = <Playground uiContext={insightDump!.context} />;
+    // playgroundEl = <Playground uiContext={insightDump!.context} />;
+    playgroundEl = <Button>Send to Playground</Button>;
   }
   const launchPlayground = () => {
     if (ifPlaygroundValid) {
-      setOpen(true);
+      // TODO
+      // setOpen(true);
     } else {
       message.error('No context available');
     }

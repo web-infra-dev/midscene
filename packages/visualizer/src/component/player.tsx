@@ -70,7 +70,6 @@ const frameKit = (): {
         throw new Error(ERROR_FRAME_CANCEL);
       }
       requestAnimationFrame(() => {
-        console.log('trigger in frame');
         if (cancelFlag) {
           throw new Error(ERROR_FRAME_CANCEL);
         }

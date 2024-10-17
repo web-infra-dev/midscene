@@ -10,9 +10,10 @@ import type { UploadProps } from 'antd';
 import React, { useEffect, useRef, useState } from 'react';
 import ReactDOM from 'react-dom/client';
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
-import logo from './component/assets/logo-plain.png';
+import logoImg from './component/assets/logo-plain.png';
 import DetailPanel from './component/detail-panel';
 import GlobalHoverPreview from './component/global-hover-preview';
+import Logo from './component/logo';
 import { iconForStatus, timeCostStrElement } from './component/misc';
 import Player from './component/player';
 import Timeline from './component/timeline';
@@ -26,10 +27,9 @@ interface ExecutionDumpWithPlaywrightAttributes extends GroupedActionDump {
 
 export function Visualizer(props: {
   logoAction?: () => void;
-  hideLogo?: boolean;
   dumps?: ExecutionDumpWithPlaywrightAttributes[];
 }): JSX.Element {
-  const { dumps, hideLogo = false } = props;
+  const { dumps } = props;
 
   const executionDump = useExecutionDump((store) => store.dump);
   const executionDumpLoadId = useExecutionDump(
@@ -109,7 +109,7 @@ export function Visualizer(props: {
             <img
               alt="Midscene_logo"
               style={{ width: 80, margin: 'auto' }}
-              src={logo}
+              src={logoImg}
             />
           </p>
           <p className="ant-upload-text">
@@ -176,7 +176,7 @@ export function Visualizer(props: {
       >
         <Panel maxSize={95} defaultSize={20}>
           <div className="page-side">
-            <Sidebar logoAction={props?.logoAction} />
+            <Sidebar />
           </div>
         </Panel>
         <PanelResizeHandle
@@ -257,12 +257,7 @@ export function Visualizer(props: {
       >
         <div className="page-nav">
           <div className="page-nav-left">
-            <div className="logo">
-              <img
-                alt="Midscene_logo"
-                src="https://lf3-static.bytednsdoc.com/obj/eden-cn/vhaeh7vhabf/logo-light-with-text.png"
-              />
-            </div>
+            <Logo />
             <div className="page-nav-toolbar">
               <ConfigProvider
                 theme={{

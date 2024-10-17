@@ -1,26 +1,49 @@
 @import './component/common.less';
 
+body {
+  margin: 0;
+}
+
+@layout-space-horizontal: 20px;
+@layout-space-vertical: 30px;
 .playground-container {
-  margin-top: @layout-space;
-  .context-panel {
-    box-sizing: border-box;
-    // padding-top: @layout-space;
+  width: 100%;
+  height: 100%;
+  background-color: @side-bg;
+
+  .ant-form {
+    height: 100%;
   }
 
-  .panel-resize-handle {
-    width: 1px;
-    background-color: @border-color;
-    margin-left: 24px;
-    margin-right: 24px;
+  .playground-header {
+    padding: 10px 10px 30px;
+  }
+
+  .playground-left-panel {
+    width: 100%;
+    height: 100%;
+    background-color: #FFF;
+
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+
+    .ant-form {
+      flex-grow: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
   }
 
   .form-part {
-    margin-bottom: @layout-space;
+    margin-bottom: @layout-space-vertical;
+    padding: 0 @layout-space-horizontal;
 
     h3 {
       margin-top: 0;
-      margin-bottom: 8px;
-      font-size: 16px;
+      margin-bottom: 12px;
+      font-size: 18px;
     }
   }
 
@@ -42,33 +65,20 @@
       right: 8px;
     }
   }
-
-  .main-side {
-    box-sizing: border-box;
+  
+  .main-side-result {
+    width: 100%;
     height: 100%;
     display: flex;
     flex-direction: column;
+    justify-content: center;
+    box-sizing: border-box;
+    padding: @layout-space-vertical @layout-space-horizontal;
 
-    .ant-spin-nested-loading{
-      flex-grow: 1;
-      display: flex;
-      justify-content: center;
+    pre {
+      display: block;
+      word-wrap: break-word;
+      white-space: pre-wrap;    
     }
-
-    .main-side-result {
-      flex-grow: 1;
-      width: 100%;
-      height: 100%;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-
-      pre {
-        display: block;
-        word-wrap: break-word;
-        white-space: pre-wrap;    
-      }
-    }
-
   }
 }

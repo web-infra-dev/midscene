@@ -1,6 +1,6 @@
 /* this is a builder for HTML files
 Step: 
-* Read the HTML tpl from './html/tpl.html'
+* Read the HTML tpl from './html/report.html'
 * Replace the placeholders with the actual values
 * {{css}} --> {{./dist/index.css}}
 * {{js}} --> {{./dist/index.js}}
@@ -18,9 +18,12 @@ import {
 } from 'node:fs';
 import { dirname, join } from 'node:path';
 
-const htmlPath = join(__dirname, '../html/tpl.html');
-const cssPath = join(__dirname, '../dist/report/index.css');
-const jsPath = join(__dirname, '../dist/report/index.js');
+const reportHTMLPath = join(__dirname, '../html/report.html');
+const reportCSSPath = join(__dirname, '../dist/report/index.css');
+const reportJSPath = join(__dirname, '../dist/report/index.js');
+const playgroundHTMLPath = join(__dirname, '../html/playground.html');
+const playgroundCSSPath = join(__dirname, '../dist/playground/index.css');
+const playgroundJSPath = join(__dirname, '../dist/playground/index.js');
 const demoPath = join(__dirname, './fixture/demo-dump.json');
 const demoMobilePath = join(__dirname, './fixture/demo-mobile-dump.json');
 const multiEntrySegment = join(__dirname, './fixture/multi-entries.html');
@@ -29,7 +32,7 @@ const outputDemoHTML = join(__dirname, '../dist/report/demo.html');
 const outputDemoMobileHTML = join(__dirname, '../dist/report/demo-mobile.html');
 const outputMultiEntriesHTML = join(__dirname, '../dist/report/multi.html');
 const outputEmptyDumpHTML = join(__dirname, '../dist/report/empty-error.html');
-
+const outputPlaygroundHTML = join(__dirname, '../dist/playground/index.html');
 function ensureDirectoryExistence(filePath: string) {
   const directoryPath = dirname(filePath);
 
@@ -54,10 +57,24 @@ function copyToCore() {
   console.log(`HTML file copied to core successfully: ${corePath}`);
 }
 
-function build() {
-  const html = readFileSync(htmlPath, 'utf-8');
-  const css = readFileSync(cssPath, 'utf-8');
-  const js = readFileSync(jsPath, 'utf-8');
+function buildPlayground() {
+  const html = readFileSync(playgroundHTMLPath, 'utf-8');
+  const css = readFileSync(playgroundCSSPath, 'utf-8');
+  const js = readFileSync(playgroundJSPath, 'utf-8');
+
+  const result = tplReplacer(html, {
+    css: `<style>\n${css}\n</style>\n`,
+    js: `<script>\n${js}\n</script>`,
+  });
+
+  writeFileSync(outputPlaygroundHTML, result);
+  console.log(`HTML file generated successfully: ${outputPlaygroundHTML}`);
+}
+
+function buildReport() {
+  const html = readFileSync(reportHTMLPath, 'utf-8');
+  const css = readFileSync(reportCSSPath, 'utf-8');
+  const js = readFileSync(reportJSPath, 'utf-8');
 
   const result = tplReplacer(html, {
     css: `<style>\n${css}\n</style>\n`,
@@ -107,4 +124,5 @@ function build() {
   copyToCore();
 }
 
-build();
+buildPlayground();
+buildReport();

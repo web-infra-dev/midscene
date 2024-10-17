@@ -1,17 +1,21 @@
-import { Alert, Button, Modal, Spin, message } from 'antd';
-import React, { useEffect, useState } from 'react';
-import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
-import { usePlayground } from './component/store';
-import './playground.less';
 import { LoadingOutlined, SendOutlined } from '@ant-design/icons';
+import { Helmet } from '@modern-js/runtime/head';
+import { Button, Spin, message } from 'antd';
 import { Form, Input } from 'antd';
 import { Radio } from 'antd';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import ReactDOM from 'react-dom/client';
+import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
 import type { GroupedActionDump, UIContext } from '../../midscene/dist/types';
 import Blackboard from './component/blackboard';
 import { iconForStatus } from './component/misc';
 import Player from './component/player';
+import DemoData from './component/playground-demo-ui-context.json';
 import type { ReplayScriptsInfo } from './component/replay-scripts';
 import { allScriptsFromDump } from './component/replay-scripts';
+
+import './playground.less';
+import Logo from './component/logo';
 
 const serverBase = 'http://localhost:5800';
 const requestPlaygroundServer = async (
@@ -54,8 +58,8 @@ const getCachedType = () => {
 };
 
 const { TextArea } = Input;
-export default function Playground(props: { uiContext: UIContext }) {
-  const { open, setOpen } = usePlayground();
+function Playground() {
+  const [uiContext, setUiContext] = useState<UIContext | null>(null);
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<{
     result: any;
@@ -63,6 +67,7 @@ export default function Playground(props: { uiContext: UIContext }) {
     error: string | null;
   } | null>(null);
   const [form] = Form.useForm();
+
   const [replayScriptsInfo, setReplayScriptsInfo] =
     useState<ReplayScriptsInfo | null>(null);
   const [replayCounter, setReplayCounter] = useState(0);
@@ -93,13 +98,7 @@ export default function Playground(props: { uiContext: UIContext }) {
     };
   }, []);
 
-  useEffect(() => {
-    if (!props.uiContext) {
-      message.error('Context is missing, the playground is not ready');
-    }
-  }, [props.uiContext]);
-
-  const handleRun = async () => {
+  const handleRun = useCallback(async () => {
     const value = form.getFieldsValue();
     if (!value.prompt) {
       message.error('Prompt is required');
@@ -111,7 +110,7 @@ export default function Playground(props: { uiContext: UIContext }) {
 
     setResult(null);
     const res = await requestPlaygroundServer(
-      props.uiContext,
+      uiContext!,
       value.type,
       value.prompt,
     );
@@ -125,7 +124,7 @@ export default function Playground(props: { uiContext: UIContext }) {
     } else {
       setReplayScriptsInfo(null);
     }
-  };
+  }, [form, uiContext]);
 
   let placeholder = 'What do you want to do?';
   const selectedType = Form.useWatch('type', form);
@@ -136,7 +135,8 @@ export default function Playground(props: { uiContext: UIContext }) {
     placeholder = 'What do you want to assert?';
   }
 
-  const runButtonDisabled = loading || serverStatus !== 'connected';
+  const runButtonDisabled =
+    !uiContext || loading || serverStatus !== 'connected';
 
   // use cmd + enter to run
   useEffect(() => {
@@ -150,10 +150,17 @@ export default function Playground(props: { uiContext: UIContext }) {
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
     };
-  }, []);
+  }, [handleRun]);
 
   let resultDataToShow: any = '';
-  if (replayScriptsInfo) {
+  if (loading) {
+    resultDataToShow = (
+      <Spin
+        spinning={loading}
+        indicator={<LoadingOutlined style={{ fontSize: 48 }} spin />}
+      />
+    );
+  } else if (replayScriptsInfo) {
     resultDataToShow = (
       <Player
         key={replayCounter}
@@ -164,11 +171,13 @@ export default function Playground(props: { uiContext: UIContext }) {
     );
   } else if (result?.result) {
     resultDataToShow =
-      typeof result?.result === 'string'
-        ? result?.result
-        : JSON.stringify(result?.result, null, 2);
+      typeof result?.result === 'string' ? (
+        <pre>{result?.result}</pre>
+      ) : (
+        <pre>{JSON.stringify(result?.result, null, 2)}</pre>
+      );
   } else if (result?.error) {
-    resultDataToShow = result?.error;
+    resultDataToShow = <pre>{result?.error}</pre>;
   }
 
   const serverTip =
@@ -184,91 +193,101 @@ export default function Playground(props: { uiContext: UIContext }) {
     );
 
   return (
-    <>
-      <Modal
-        title="Playground"
-        centered
-        open={open}
-        width="88%"
-        height="80%"
-        destroyOnClose
-        onCancel={() => {
-          setOpen(false);
-          return true;
-        }}
-        footer={null}
-        forceRender
-      >
-        <div className="playground-container">
-          <PanelGroup autoSaveId="playground-layout" direction="horizontal">
-            <Panel defaultSize={50} maxSize={75}>
-              <Form
-                form={form}
-                onFinish={handleRun}
-                initialValues={{
-                  type: getCachedType() || 'aiAction',
-                  prompt: getCachedPrompt() || '',
-                }}
-              >
-                <div className="form-part">
-                  <h3>Server</h3>
-                  <div>{serverTip}</div>
-                </div>
-                <div className="form-part context-panel">
-                  <h3>UI Context</h3>
-                  {open && (
-                    <Blackboard
-                      uiContext={props.uiContext}
-                      hideController
-                      disableInteraction
-                    />
-                  )}
-                </div>
-                <div className="form-part">
-                  <h3>Type</h3>
-                  <Form.Item name="type">
-                    <Radio.Group buttonStyle="solid">
-                      <Radio.Button value="aiAction">Action</Radio.Button>
-                      <Radio.Button value="aiQuery">Query</Radio.Button>
-                      <Radio.Button value="aiAssert">Assert</Radio.Button>
-                    </Radio.Group>
-                  </Form.Item>
-                </div>
-                <div className="form-part input-wrapper">
-                  <h3>Prompt</h3>
-                  <div className="main-side-console-input">
-                    <Form.Item name="prompt">
-                      <TextArea rows={2} placeholder={placeholder} />
-                    </Form.Item>
+    <div className="playground-container">
+      <Helmet>
+        <title>Playground - Midscene.js</title>
+      </Helmet>
+      <PanelGroup autoSaveId="playground-layout" direction="horizontal">
+        <Panel
+          defaultSize={32}
+          maxSize={60}
+          minSize={20}
+          className="playground-left-panel"
+        >
+          <div className="playground-header">
+            <Logo />
+          </div>
+
+          <Form
+            form={form}
+            onFinish={handleRun}
+            initialValues={{
+              type: getCachedType() || 'aiAction',
+              prompt: getCachedPrompt() || '',
+            }}
+          >
+            <div className="playground-form-container">
+              <div className="form-part">
+                <h3>Playground Server</h3>
+                <div>{serverTip}</div>
+              </div>
+              <div className="form-part context-panel">
+                <h3>UI Context</h3>
+                {uiContext ? (
+                  <Blackboard
+                    uiContext={uiContext}
+                    hideController
+                    disableInteraction
+                  />
+                ) : (
+                  <div>
+                    {iconForStatus('failed')} No UI Context{' '}
                     <Button
-                      type="primary"
-                      icon={<SendOutlined />}
-                      onClick={handleRun}
-                      disabled={runButtonDisabled}
+                      type="link"
+                      onClick={() => setUiContext(DemoData as any)}
                     >
-                      Run
+                      Load Demo
                     </Button>
                   </div>
-                </div>
-              </Form>
-            </Panel>
-            <PanelResizeHandle className="panel-resize-handle" />
-            <Panel maxSize={75}>
-              <div className="main-side form-part">
-                <h3>Result</h3>
-                <Spin
-                  spinning={loading}
-                  indicator={<LoadingOutlined style={{ fontSize: 48 }} spin />}
-                >
-                  <div className="main-side-result">
-                    <pre>{resultDataToShow}</pre>
-                  </div>
-                </Spin>
+                )}
               </div>
-            </Panel>
-          </PanelGroup>
-        </div>
-      </Modal>
-    </>
+              <div className="form-part">
+                <h3>Type</h3>
+                <Form.Item name="type">
+                  <Radio.Group buttonStyle="solid">
+                    <Radio.Button value="aiAction">Action</Radio.Button>
+                    <Radio.Button value="aiQuery">Query</Radio.Button>
+                    <Radio.Button value="aiAssert">Assert</Radio.Button>
+                  </Radio.Group>
+                </Form.Item>
+              </div>
+
+              <div className="form-part input-wrapper">
+                <h3>Prompt</h3>
+                <div className="main-side-console-input">
+                  <Form.Item name="prompt">
+                    <TextArea rows={2} placeholder={placeholder} />
+                  </Form.Item>
+                  <Button
+                    type="primary"
+                    icon={<SendOutlined />}
+                    onClick={handleRun}
+                    disabled={runButtonDisabled}
+                  >
+                    Run
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </Form>
+        </Panel>
+        <PanelResizeHandle className="panel-resize-handle" />
+        <Panel>
+          <div className="main-side-result">{resultDataToShow}</div>
+        </Panel>
+      </PanelGroup>
+    </div>
   );
 }
+
+function mount(id: string) {
+  const element = document.getElementById(id);
+  const root = ReactDOM.createRoot(element!);
+
+  root.render(<Playground />);
+}
+
+export default {
+  mount,
+  Playground,
+};

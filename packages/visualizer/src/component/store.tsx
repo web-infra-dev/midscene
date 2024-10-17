@@ -29,22 +29,6 @@ export const useBlackboardPreference = create<{
   },
 }));
 
-export const usePlayground = create<{
-  open: boolean;
-  setOpen: (open: boolean) => void;
-}>((set) => {
-  const initData = {
-    open: false,
-  };
-
-  return {
-    ...initData,
-    setOpen: (open: boolean) => {
-      set({ open });
-    },
-  };
-});
-
 export const useExecutionDump = create<{
   dump: GroupedActionDump | null;
   setGroupedDump: (dump: GroupedActionDump) => void;
