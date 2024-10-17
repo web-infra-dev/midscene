@@ -182,13 +182,13 @@ export default function Playground(props: { uiContext: UIContext }) {
                   prompt: getCachedPrompt() || '',
                 }}
               >
-                <div className="form-part context-panel">
-                  <h3>UI Context</h3>
-                  <Blackboard uiContext={props.uiContext} hideController />
-                </div>
                 <div className="form-part">
                   <h3>Server</h3>
                   <div>{serverTip}</div>
+                </div>
+                <div className="form-part context-panel">
+                  <h3>UI Context</h3>
+                  <Blackboard uiContext={props.uiContext} hideController />
                 </div>
                 <div className="form-part">
                   <h3>Type</h3>
