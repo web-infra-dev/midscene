@@ -157,6 +157,7 @@ export function extractTextWithPosition(initNode: Document): ElementInfo[] {
         nodeType = NodeType.BUTTON;
         break;
       case 'SEARCHINPUT':
+      case 'TEXTINPUT':
       case 'INPUT':
         nodeType = NodeType.FORM_ITEM;
         break;

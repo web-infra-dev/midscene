@@ -55,13 +55,13 @@ async function main() {
           'config',
           '--global',
           'user.name',
-          'github-actions[bot]',
+          process.env.GIT_USER_NAME || 'github-actions[bot]',
         ]);
         await run('git', [
           'config',
           '--global',
           'user.email',
-          'github-actions[bot]@users.noreply.github.com',
+          process.env.GIT_USER_EMAIL || 'github-actions[bot]@users.noreply.github.com',
         ]);
       }
       step('\nCommitting changes...');
@@ -90,8 +90,11 @@ async function main() {
     }
   } catch (error) {
     console.error(chalk.red(`Error during release process: ${error.message}`));
+    await cleanup();
     process.exit(1); // Exit with failure
   }
+
+  await cleanup(); // Ensure cleanup after successful execution
 }
 
 async function build() {
@@ -204,6 +207,16 @@ async function writeNpmrc() {
       console.error(chalk.red('Error setting .npmrc'));
       throw error;
     }
+  }
+}
+
+async function cleanup() {
+  try {
+    step('\nCleaning up...');
+    await run('rm', ['-rf', 'dist']); 
+  } catch (error) {
+    console.error(chalk.red('Error during cleanup'));
+    throw error;
   }
 }
 

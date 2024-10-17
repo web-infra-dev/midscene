@@ -12,7 +12,7 @@ export default defineConfig({
     dark: '/midscene_with_text_dark.png',
   },
   themeConfig: {
-    darkMode: false,
+    darkMode: true,
     socialLinks: [
       {
         icon: 'github',
@@ -20,6 +20,16 @@ export default defineConfig({
         content: 'https://github.com/web-infra-dev/midscene',
       },
     ],
+    footer: {
+      message: `
+        <footer class="footer">
+          <div class="footer-content">
+            <img src="/midscene-icon.png" alt="Midscene.js Logo" class="footer-logo" />
+            <p class="footer-text">&copy; 2024 Midscene.js. All Rights Reserved.</p>
+          </div>
+        </footer>
+      `,
+    },
     locales: [
       {
         lang: 'en',
@@ -37,14 +47,12 @@ export default defineConfig({
   locales: [
     {
       lang: 'en',
-      // The label in nav bar to switch language
       label: 'English',
       title: 'Midscene.js',
       description: 'Midscene.js',
     },
     {
       lang: 'zh',
-      // The label in nav bar to switch language
       label: '简体中文',
       title: 'Midscene.js',
       description: 'Midscene.js',

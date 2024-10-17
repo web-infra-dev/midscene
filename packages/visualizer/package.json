@@ -1,6 +1,8 @@
 {
   "name": "@midscene/visualizer",
-  "version": "0.6.1",
+  "version": "0.6.2",
+  "repository": "https://github.com/web-infra-dev/midscene",
+  "homepage": "https://midscenejs.com/",
   "types": "./dist/types/index.d.ts",
   "main": "./dist/lib/index.js",
   "module": "./dist/es/index.js",

@@ -68,8 +68,28 @@ export class TestResultAnalyzer {
     }));
     const testCaseElements = testCase.response.map((element: any) => ({
       id: element.id,
+      ids: element.ids,
     }));
-    if (JSON.stringify(resultElements) === JSON.stringify(testCaseElements)) {
+
+    let isEqual = true;
+    if (resultElements.length !== testCaseElements.length) {
+      isEqual = false;
+    } else {
+      for (let i = 0; i < resultElements.length; i++) {
+        // There are multiple successful outcomes
+        if (testCaseElements[i].ids) {
+          if (!testCaseElements[i].ids.includes(resultElements[i].id)) {
+            isEqual = false;
+            break;
+          }
+        } else if (resultElements[i].id !== testCaseElements[i].id) {
+          isEqual = false;
+          break;
+        }
+      }
+    }
+
+    if (isEqual) {
       this.handleSuccess(result, testCase, index);
     } else {
       this.handleFailure(result, testCase, index);
