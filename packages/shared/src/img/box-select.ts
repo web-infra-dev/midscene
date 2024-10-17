@@ -89,11 +89,75 @@ const createSvgOverlay = (
       let rectX = paddedRect.left - rectWidth;
       let rectY = paddedRect.top + paddedRect.height / 2 - textHeight / 2 - 2;
 
-      // Check if obscured by the left
-      if (rectX < 0) {
-        rectX = paddedRect.left;
-        rectY = paddedRect.top - rectHeight;
+      // Check if this new position overlaps with any existing boxes
+      // Function to check if a given position overlaps with any existing boxes
+      const checkOverlap = (x: number, y: number) => {
+        // Check against all previously processed elements
+        return elements.slice(0, index).some((otherElement) => {
+          // Check if the rectangles overlap
+          return (
+            x < otherElement.rect.left + otherElement.rect.width &&
+            x + rectWidth > otherElement.rect.left &&
+            y < otherElement.rect.top + otherElement.rect.height &&
+            y + rectHeight > otherElement.rect.top
+          );
+        });
+      };
+
+      // Function to check if a given position is within the image bounds
+      const isWithinBounds = (x: number, y: number) => {
+        return (
+          x >= 0 &&
+          x + rectWidth <= imageWidth &&
+          y >= 0 &&
+          y + rectHeight <= imageHeight
+        );
+      };
+
+      // Check left side (original position)
+      if (checkOverlap(rectX, rectY) || !isWithinBounds(rectX, rectY)) {
+        // If the original position overlaps or is out of bounds, try alternative positions
+
+        // Check top position
+        if (
+          !checkOverlap(paddedRect.left, paddedRect.top - rectHeight - 2) &&
+          isWithinBounds(paddedRect.left, paddedRect.top - rectHeight - 2)
+        ) {
+          rectX = paddedRect.left;
+          rectY = paddedRect.top - rectHeight - 2;
+        }
+        // Check bottom position
+        else if (
+          !checkOverlap(
+            paddedRect.left,
+            paddedRect.top + paddedRect.height + 2,
+          ) &&
+          isWithinBounds(
+            paddedRect.left,
+            paddedRect.top + paddedRect.height + 2,
+          )
+        ) {
+          rectX = paddedRect.left;
+          rectY = paddedRect.top + paddedRect.height + 2;
+        }
+        // Check right position
+        else if (
+          !checkOverlap(
+            paddedRect.left + paddedRect.width + 2,
+            paddedRect.top,
+          ) &&
+          isWithinBounds(paddedRect.left + paddedRect.width + 2, paddedRect.top)
+        ) {
+          rectX = paddedRect.left + paddedRect.width + 2;
+          rectY = paddedRect.top;
+        }
+        // If all sides are overlapped or out of bounds, place it inside the box at the top
+        else {
+          rectX = paddedRect.left;
+          rectY = paddedRect.top + 2;
+        }
       }
+      // Note: If the original left position doesn't overlap and is within bounds, we keep it as is
 
       // Draw text background
       image.scan(rectX, rectY, rectWidth, rectHeight, function (x, y, idx) {
