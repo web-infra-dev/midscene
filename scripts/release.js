@@ -61,7 +61,8 @@ async function main() {
           'config',
           '--global',
           'user.email',
-          process.env.GIT_USER_EMAIL || 'github-actions[bot]@users.noreply.github.com',
+          process.env.GIT_USER_EMAIL ||
+            'github-actions[bot]@users.noreply.github.com',
         ]);
       }
       step('\nCommitting changes...');
@@ -213,7 +214,7 @@ async function writeNpmrc() {
 async function cleanup() {
   try {
     step('\nCleaning up...');
-    await run('rm', ['-rf', 'dist']); 
+    await run('rm', ['-rf', 'dist']);
   } catch (error) {
     console.error(chalk.red('Error during cleanup'));
     throw error;
