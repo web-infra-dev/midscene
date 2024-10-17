@@ -15,8 +15,6 @@ import { useBlackboardPreference } from './store';
 
 const itemFillAlpha = 0.4;
 const highlightAlpha = 0.4;
-const bgOnAlpha = 1;
-const bgOffAlpha = 0.3;
 const noop = () => {
   // noop
 };
@@ -73,7 +71,7 @@ const Blackboard = (props: {
   const highlightIds = highlightElements.map((e) => e.id);
 
   const context = props.uiContext!;
-  const { size, screenshotBase64 } = context;
+  const { size, screenshotBase64, screenshotBase64WithElementMarker } = context;
 
   const screenWidth = size.width;
   const screenHeight = size.height;
@@ -89,8 +87,10 @@ const Blackboard = (props: {
 
   // key overlays
   const pixiBgRef = useRef<PIXI.Sprite>();
-  const { bgVisible, setBgVisible, elementsVisible, setTextsVisible } =
+  const { markerVisible, setMarkerVisible, elementsVisible, setTextsVisible } =
     useBlackboardPreference();
+
+  const ifMarkerAvailable = !!screenshotBase64WithElementMarker;
 
   useEffect(() => {
     Promise.resolve(
@@ -144,14 +144,28 @@ const Blackboard = (props: {
     img.onload = () => {
       if (!app.stage) return;
       const screenshotTexture = PIXI.Texture.from(img);
-      const screenshotSprite = new PIXI.Sprite(screenshotTexture);
-      screenshotSprite.x = 0;
-      screenshotSprite.y = 0;
-      screenshotSprite.width = screenWidth;
-      screenshotSprite.height = screenHeight;
-      app.stage.addChildAt(screenshotSprite, 0);
-      pixiBgRef.current = screenshotSprite;
-      screenshotSprite.alpha = bgVisible ? bgOnAlpha : bgOffAlpha;
+      const backgroundSprite = new PIXI.Sprite(screenshotTexture);
+      backgroundSprite.x = 0;
+      backgroundSprite.y = 0;
+      backgroundSprite.width = screenWidth;
+      backgroundSprite.height = screenHeight;
+      app.stage.addChildAt(backgroundSprite, 0);
+
+      if (ifMarkerAvailable) {
+        const markerImg = new Image();
+        markerImg.src = screenshotBase64WithElementMarker;
+        markerImg.onload = () => {
+          const markerTexture = PIXI.Texture.from(markerImg);
+          const markerSprite = new PIXI.Sprite(markerTexture);
+          markerSprite.x = 0;
+          markerSprite.y = 0;
+          markerSprite.width = screenWidth;
+          markerSprite.height = screenHeight;
+          app.stage.addChildAt(markerSprite, 1);
+          pixiBgRef.current = markerSprite;
+          markerSprite.visible = markerVisible;
+        };
+      }
     };
   }, [app.stage, appInitialed]);
 
@@ -161,7 +175,7 @@ const Blackboard = (props: {
     highlightContainer.removeChildren();
     elementMarkContainer.removeChildren();
 
-    // element mark
+    // element rects
     context.content.forEach((element) => {
       const { rect, content, id } = element;
       const ifHighlight = highlightIds.includes(id) || hoverElement?.id === id;
@@ -205,10 +219,10 @@ const Blackboard = (props: {
     // elementsVisible,
   ]);
 
-  const onSetBg: CheckboxProps['onChange'] = (e) => {
-    setBgVisible(e.target.checked);
+  const onSetMarkerVisible: CheckboxProps['onChange'] = (e) => {
+    setMarkerVisible(e.target.checked);
     if (pixiBgRef.current) {
-      pixiBgRef.current.alpha = e.target.checked ? bgOnAlpha : bgOffAlpha;
+      pixiBgRef.current.visible = e.target.checked;
     }
   };
 
@@ -248,8 +262,12 @@ const Blackboard = (props: {
         style={{ display: props.hideController ? 'none' : 'block' }}
       >
         <div className="overlay-control">
-          <Checkbox checked={bgVisible} onChange={onSetBg}>
-            Screenshot
+          <Checkbox
+            checked={markerVisible}
+            onChange={onSetMarkerVisible}
+            disabled={!ifMarkerAvailable}
+          >
+            Marker
           </Checkbox>
           <Checkbox checked={elementsVisible} onChange={onSetElementsVisible}>
             Elements

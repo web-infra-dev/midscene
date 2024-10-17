@@ -72,7 +72,7 @@ function build() {
   const resultWithDemo = tplReplacer(html, {
     css: `<style>\n${css}\n</style>\n`,
     js: `<script>\n${js}\n</script>`,
-    dump: `<script type="midscene_web_dump" type="application/json">${demoData}</script>`,
+    dump: `<script type="midscene_web_dump" type="application/json">\n${demoData}\n</script>`,
   });
   writeFileSync(outputDemoHTML, resultWithDemo);
   console.log(`HTML file generated successfully: ${outputDemoHTML}`);

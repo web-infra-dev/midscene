@@ -81,6 +81,8 @@ export interface AIAssertionResponse {
 export abstract class UIContext<ElementType extends BaseElement = BaseElement> {
   abstract screenshotBase64: string;
 
+  abstract screenshotBase64WithElementMarker?: string;
+
   abstract content: ElementType[];
 
   abstract size: Size;

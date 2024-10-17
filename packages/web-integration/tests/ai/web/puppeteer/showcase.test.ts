@@ -58,9 +58,11 @@ describe(
       );
       const mid = new PuppeteerAgent(originPage);
 
+      await mid.aiAction('Click the password input on page');
+
       await mid.aiAction('scroll down two screen');
 
-      const widgets = await mid.aiQuery(
+      await mid.aiQuery(
         'find all inputs in the page, return the field name in string[]',
       );
 

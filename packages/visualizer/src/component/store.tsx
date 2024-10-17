@@ -14,15 +14,15 @@ import { generateAnimationScripts } from './replay-scripts';
 
 const { create } = Z;
 export const useBlackboardPreference = create<{
-  bgVisible: boolean;
+  markerVisible: boolean;
   elementsVisible: boolean;
-  setBgVisible: (visible: boolean) => void;
+  setMarkerVisible: (visible: boolean) => void;
   setTextsVisible: (visible: boolean) => void;
 }>((set) => ({
-  bgVisible: true,
+  markerVisible: true,
   elementsVisible: true,
-  setBgVisible: (visible: boolean) => {
-    set({ bgVisible: visible });
+  setMarkerVisible: (visible: boolean) => {
+    set({ markerVisible: visible });
   },
   setTextsVisible: (visible: boolean) => {
     set({ elementsVisible: visible });
@@ -137,8 +137,10 @@ export const useExecutionDump = create<{
           execution.tasks.forEach((task) => {
             if (task.type === 'Insight') {
               const insightTask = task as ExecutionTaskInsightLocate;
-              width = insightTask.log?.dump?.context?.size?.width || 1920;
-              height = insightTask.log?.dump?.context?.size?.height || 1080;
+              if (insightTask.log?.dump?.context?.size?.width) {
+                width = insightTask.log?.dump?.context?.size?.width;
+                height = insightTask.log?.dump?.context?.size?.height;
+              }
             }
           });
         });
