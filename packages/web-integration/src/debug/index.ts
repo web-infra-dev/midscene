@@ -55,13 +55,13 @@ export async function generateExtractData(
     ? JSON.parse(readFileSync(snapshotJsonPath, 'utf-8'))
     : null;
 
-  // if (
-  //   existingSnapshot &&
-  //   JSON.stringify(existingSnapshot) === JSON.stringify(captureElementSnapshot)
-  // ) {
-  //   console.log('skip save snapshot for ', targetDir);
-  //   return;
-  // }
+  if (
+    existingSnapshot &&
+    JSON.stringify(existingSnapshot) === JSON.stringify(captureElementSnapshot)
+  ) {
+    console.log('skip save snapshot for ', targetDir);
+    return;
+  }
 
   if (!saveImgType?.disableSnapshot) {
     writeFileSyncWithDir(
