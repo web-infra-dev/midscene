@@ -54,11 +54,11 @@ export const useExecutionDump = create<{
   let _executionDumpLoadId = 0;
   const initData = {
     dump: null,
-    activeTask: null,
     replayAllMode: false,
     allExecutionAnimation: null,
     insightWidth: null,
     insightHeight: null,
+    activeTask: null,
     activeExecution: null,
     activeExecutionAnimation: null,
     insightDump: null,
@@ -70,6 +70,7 @@ export const useExecutionDump = create<{
 
   const resetActiveExecution = () => {
     set({
+      activeTask: null,
       activeExecution: null,
       activeExecutionAnimation: null,
       _executionDumpLoadId: ++_executionDumpLoadId,

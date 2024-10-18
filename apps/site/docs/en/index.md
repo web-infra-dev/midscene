@@ -30,8 +30,8 @@ features:
   - title: Immediate Integration
     details: Quickly integrate GPT-4o and web automation tools like Playwright or Puppeteer into your project with our SDK. Instant setup and seamless integration.
     icon: 🪓
-  - title: Visualization
-    details: With our visualization tool, you can easily understand and debug the whole process.
+  - title: Visualized Report
+    details: With our visualized report file, you can easily understand and debug the whole process.
     icon: 🎞️
   - title: Brand New Experience !
     details: Experience a whole new world of automation development. Enjoy !
