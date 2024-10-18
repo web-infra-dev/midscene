@@ -16,8 +16,8 @@ import { allScriptsFromDump } from './component/replay-scripts';
 
 import './playground.less';
 import Logo from './component/logo';
+import { serverBase, useServerValid } from './component/send-to-playground';
 
-const serverBase = 'http://localhost:5800';
 const requestPlaygroundServer = async (
   context: UIContext,
   type: string,
@@ -31,15 +31,6 @@ const requestPlaygroundServer = async (
     body: JSON.stringify({ context, type, prompt }),
   });
   return res.json();
-};
-
-const checkServerStatus = async () => {
-  try {
-    const res = await fetch(`${serverBase}/playground/status`);
-    return res.status === 200;
-  } catch (e) {
-    return false;
-  }
 };
 
 const cacheKeyForPrompt = 'playground-user-prompt';
@@ -57,8 +48,15 @@ const getCachedType = () => {
   return localStorage.getItem(cacheKeyForType);
 };
 
+const useContextId = () => {
+  const path = window.location.pathname;
+  const match = path.match(/^\/playground\/([a-zA-Z0-9-]+)$/);
+  return match ? match[1] : null;
+};
+
 const { TextArea } = Input;
 function Playground() {
+  const contextId = useContextId();
   const [uiContext, setUiContext] = useState<UIContext | null>(null);
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<{
@@ -72,31 +70,18 @@ function Playground() {
     useState<ReplayScriptsInfo | null>(null);
   const [replayCounter, setReplayCounter] = useState(0);
 
-  const [serverStatus, setServerStatus] = useState<
-    'connected' | 'pending' | 'failed'
-  >('pending');
+  const serverValid = useServerValid();
 
   useEffect(() => {
-    let interruptFlag = false;
-    Promise.resolve(
-      (async () => {
-        while (!interruptFlag) {
-          const status = await checkServerStatus();
-          if (status) {
-            setServerStatus('connected');
-          } else {
-            setServerStatus('failed');
-          }
-          // sleep 1s
-          await new Promise((resolve) => setTimeout(resolve, 1000));
-        }
-      })(),
-    );
-
-    return () => {
-      interruptFlag = true;
-    };
-  }, []);
+    if (contextId) {
+      fetch(`${serverBase}/context/${contextId}`)
+        .then((res) => res.json())
+        .then((data) => {
+          const contextObj = JSON.parse(data.context);
+          setUiContext(contextObj);
+        });
+    }
+  }, [contextId]);
 
   const handleRun = useCallback(async () => {
     const value = form.getFieldsValue();
@@ -135,8 +120,7 @@ function Playground() {
     placeholder = 'What do you want to assert?';
   }
 
-  const runButtonDisabled =
-    !uiContext || loading || serverStatus !== 'connected';
+  const runButtonDisabled = !uiContext || loading || !serverValid;
 
   // use cmd + enter to run
   useEffect(() => {
@@ -180,17 +164,14 @@ function Playground() {
     resultDataToShow = <pre>{result?.error}</pre>;
   }
 
-  const serverTip =
-    serverStatus === 'failed' ? (
-      <>
-        {iconForStatus(serverStatus)} Failed to connect to server. Please launch
-        the local server first.
-      </>
-    ) : (
-      <>
-        {iconForStatus(serverStatus)} {serverStatus}
-      </>
-    );
+  const serverTip = !serverValid ? (
+    <>
+      {iconForStatus('failed')} Failed to connect to server. Please launch the
+      local server first.
+    </>
+  ) : (
+    <>{iconForStatus('connected')} Connected to server</>
+  );
 
   return (
     <div className="playground-container">

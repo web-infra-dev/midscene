@@ -248,7 +248,7 @@ export function Visualizer(props: {
       }}
     >
       <Helmet>
-        <title>Visualization - Midscene.js</title>
+        <title>Report - Midscene.js</title>
       </Helmet>
       <div
         className="page-container"

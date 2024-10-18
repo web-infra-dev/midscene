@@ -43,25 +43,33 @@ export default class PlaygroundServer {
 
   async launch() {
     this.app.use(errorHandler);
-    // Serve static files from the staticPath
-    this.app.use(express.static(staticPath));
+
+    this.app.use(
+      cors({
+        origin: '*',
+        credentials: true,
+      }),
+    );
+
+    this.app.get('/status', cors(), async (req, res) => {
+      res.send({
+        status: 'ok',
+      });
+    });
 
     // Serve index.html for the root route
     this.app.get('/', (req, res) => {
       res.sendFile(join(staticPath, 'index.html'));
     });
 
-    this.app.get('/playground/status', cors(), async (req, res) => {
-      res.send({
-        status: 'ok',
-      });
+    this.app.get('/playground/:uuid', async (req, res) => {
+      res.sendFile(join(staticPath, 'index.html'));
     });
 
     this.app.get('/context/:uuid', async (req, res) => {
       const { uuid } = req.params;
       const contextFile = this.filePathForUuid(uuid);
       assert(existsSync(contextFile), 'Context not found');
-
       const context = readFileSync(contextFile, 'utf8');
       res.json({
         context,
@@ -72,20 +80,21 @@ export default class PlaygroundServer {
     // actions from report file
     this.app.post(
       '/playground-with-context',
-      cors(),
-      express.urlencoded({ extended: false }),
+      express.json({ limit: '50mb' }),
       async (req, res) => {
         const context = req.body.context;
         assert(context, 'context is required');
         const uuid = randomUUID();
         this.saveContextFile(uuid, context);
-        return res.redirect(`/context/${uuid}`);
+        return res.json({
+          location: `/playground/${uuid}`,
+          uuid,
+        });
       },
     );
 
     this.app.post(
       '/execute',
-      cors(),
       express.json({ limit: '30mb' }),
       async (req, res) => {
         const { context, type, prompt } = req.body;

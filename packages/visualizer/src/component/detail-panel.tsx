@@ -1,19 +1,18 @@
 'use client';
 import './detail-panel.less';
 import { useExecutionDump } from '@/component/store';
-// import Playground from '@/playground';
 import { filterBase64Value, timeStr } from '@/utils';
 import {
   CameraOutlined,
-  ExperimentFilled,
   FileTextOutlined,
   ScheduleOutlined,
   VideoCameraOutlined,
 } from '@ant-design/icons';
-import { Button, ConfigProvider, Segmented, message } from 'antd';
+import { ConfigProvider, Segmented } from 'antd';
 import { useEffect, useState } from 'react';
 import Blackboard from './blackboard';
 import Player from './player';
+import SendToPlayground from './send-to-playground';
 
 const ScreenshotItem = (props: { time: string; img: string }) => {
   return (
@@ -167,21 +166,6 @@ const DetailPanel = (): JSX.Element => {
     };
   });
 
-  const ifPlaygroundValid = Boolean(insightDump?.context);
-  let playgroundEl = null;
-  if (ifPlaygroundValid) {
-    // playgroundEl = <Playground uiContext={insightDump!.context} />;
-    playgroundEl = <Button>Send to Playground</Button>;
-  }
-  const launchPlayground = () => {
-    if (ifPlaygroundValid) {
-      // TODO
-      // setOpen(true);
-    } else {
-      message.error('No context available');
-    }
-  };
-
   return (
     <div className="detail-panel">
       <div className="view-switcher">
@@ -203,17 +187,10 @@ const DetailPanel = (): JSX.Element => {
             }}
           />
 
-          <Button
-            disabled={!ifPlaygroundValid}
-            onClick={launchPlayground}
-            icon={<ExperimentFilled />}
-          >
-            Playground
-          </Button>
+          <SendToPlayground context={insightDump?.context} />
         </ConfigProvider>
       </div>
       <div className="detail-content">{content}</div>
-      {playgroundEl}
     </div>
   );
 };
