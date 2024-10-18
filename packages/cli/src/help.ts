@@ -43,6 +43,9 @@ if (process.argv.indexOf('--help') !== -1) {
       --query-output status.json \\
       --query '{serviceName: string, status: string}[], github 页面的服务状态，返回服务名称'
 
+
+    To launch a playground server, run the following command:
+    midscene playground
   `);
   process.exit(0);
 } else if (process.argv.indexOf('--version') !== -1) {

@@ -25,6 +25,7 @@
   "devDependencies": {
     "@ant-design/icons": "5.3.7",
     "@midscene/core": "workspace:*",
+    "@midscene/web": "workspace:*",
     "@modern-js/module-tools": "2.58.2",
     "@modern-js/plugin-module-doc": "^2.33.1",
     "@modern-js/runtime": "^2.56.2",

@@ -5,13 +5,10 @@ import { useEffect, useState } from 'react';
 
 export const serverBase = 'http://localhost:5800';
 
-const errorMessageServerNotReady = `
-Cannot connect to local playground server.
+const errorMessageServerNotReady = `Cannot connect to local playground server.
 
-If you haven't launched the playground server, please run:
-
-npm i @midscene/web
-npx midscene-playground
+Please setup the environment and run:
+npx @midscene/cli playground
 `;
 
 const errorMessageNoContext = `

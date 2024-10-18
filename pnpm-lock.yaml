@@ -183,6 +183,9 @@ importers:
       '@midscene/core':
         specifier: workspace:*
         version: link:../midscene
+      '@midscene/web':
+        specifier: workspace:*
+        version: link:../web-integration
       '@modern-js/module-tools':
         specifier: 2.58.2
         version: 2.58.2(eslint@8.57.0)(typescript@5.0.4)

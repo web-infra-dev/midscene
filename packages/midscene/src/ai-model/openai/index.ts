@@ -49,7 +49,6 @@ function getExtraConfig() {
   return extraConfig;
 }
 
-
 async function createOpenAI() {
   let openai: OpenAI | AzureOpenAI;
   const extraConfig = getExtraConfig();

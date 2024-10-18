@@ -3,7 +3,7 @@ import { Helmet } from '@modern-js/runtime/head';
 import { Button, Empty, Spin, message } from 'antd';
 import { Form, Input } from 'antd';
 import { Radio } from 'antd';
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import ReactDOM from 'react-dom/client';
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
 import type { GroupedActionDump, UIContext } from '../../midscene/dist/types';
@@ -94,14 +94,21 @@ function Playground() {
     setLoading(true);
 
     setResult(null);
-    const res = await requestPlaygroundServer(
-      uiContext!,
-      value.type,
-      value.prompt,
-    );
-    setLoading(false);
-    setResult(res);
+    let res: any = null;
+    try {
+      res = await requestPlaygroundServer(uiContext!, value.type, value.prompt);
+      setResult(res);
+    } catch (e) {
+      console.error(e);
+      setResult({
+        error:
+          'Failed to run the prompt, please check the server console for more details',
+        result: null,
+        dump: null,
+      });
+    }
 
+    setLoading(false);
     if (value.type === 'aiAction' && res?.dump) {
       const info = allScriptsFromDump(res.dump);
       setReplayScriptsInfo(info);
@@ -176,10 +183,7 @@ function Playground() {
   }
 
   const serverTip = !serverValid ? (
-    <>
-      {iconForStatus('failed')} Failed to connect to server. Please launch the
-      local server first.
-    </>
+    <>{iconForStatus('failed')} Connection failed</>
   ) : (
     <>{iconForStatus('connected')} Connected</>
   );

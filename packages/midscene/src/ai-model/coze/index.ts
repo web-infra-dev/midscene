@@ -1,5 +1,4 @@
 import assert from 'node:assert';
-import fetch from 'node-fetch';
 import type { ChatCompletionUserMessageParam } from 'openai/resources';
 
 export const COZE_INSPECT_ELEMENT_BOT_ID =
@@ -95,11 +94,14 @@ export function transformOpenAiArgsToCoze(msg: ChatCompletionUserMessageParam) {
       }
       return res;
     }, ''),
-    imgs: msg.content.reduce((res, next) => {
-      if (next.type === 'image_url') {
-        res.push(next.image_url.url);
-      }
-      return res;
-    }, [] as Array<string>),
+    imgs: msg.content.reduce(
+      (res, next) => {
+        if (next.type === 'image_url') {
+          res.push(next.image_url.url);
+        }
+        return res;
+      },
+      [] as Array<string>,
+    ),
   };
 }
