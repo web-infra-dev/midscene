@@ -77,8 +77,8 @@ export async function callCozeAi<T>(options: {
   }
 }
 
-export function transfromOpenAiArgsToCoze(msg: ChatCompletionUserMessageParam) {
-  if (msg.role !== 'user') throw Error(`can't transfrom ${msg} to coze args`);
+export function transformOpenAiArgsToCoze(msg: ChatCompletionUserMessageParam) {
+  if (msg.role !== 'user') throw Error(`can't transform ${msg} to coze args`);
   // const query = '';
   // const imgs = msg.content
   if (typeof msg.content === 'string') {
@@ -95,14 +95,11 @@ export function transfromOpenAiArgsToCoze(msg: ChatCompletionUserMessageParam) {
       }
       return res;
     }, ''),
-    imgs: msg.content.reduce(
-      (res, next) => {
-        if (next.type === 'image_url') {
-          res.push(next.image_url.url);
-        }
-        return res;
-      },
-      [] as Array<string>,
-    ),
+    imgs: msg.content.reduce((res, next) => {
+      if (next.type === 'image_url') {
+        res.push(next.image_url.url);
+      }
+      return res;
+    }, [] as Array<string>),
   };
 }

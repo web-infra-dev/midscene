@@ -1,9 +1,23 @@
 import { SendOutlined } from '@ant-design/icons';
 import type { UIContext } from '@midscene/core/.';
-import { Button } from 'antd';
+import { Button, Tooltip } from 'antd';
 import { useEffect, useState } from 'react';
 
 export const serverBase = 'http://localhost:5800';
+
+const errorMessageServerNotReady = `
+Cannot connect to local playground server.
+
+If you haven't launched the playground server, please run:
+
+npm i @midscene/web
+npx midscene-playground
+`;
+
+const errorMessageNoContext = `
+No context info found. 
+Try to select another task.
+`;
 
 const checkServerStatus = async () => {
   try {
@@ -46,13 +60,13 @@ export default function SendToPlayground(props?: { context?: UIContext }) {
   const serverValid = useServerValid();
 
   let ifPlaygroundValid = true;
-  let invalidReason = '';
-  if (!props?.context) {
+  let invalidReason: React.ReactNode = '';
+  if (!serverValid) {
     ifPlaygroundValid = false;
-    invalidReason = 'No context';
-  } else if (!serverValid) {
+    invalidReason = errorMessageServerNotReady;
+  } else if (!props?.context) {
     ifPlaygroundValid = false;
-    invalidReason = 'Cannot connect to playground server';
+    invalidReason = errorMessageNoContext;
   }
 
   const launchPlayground = async () => {
@@ -72,12 +86,32 @@ export default function SendToPlayground(props?: { context?: UIContext }) {
     const location = data.location;
     window.open(`${serverBase}${location}`, '_blank');
   };
+
+  if (!ifPlaygroundValid) {
+    return (
+      <Tooltip
+        title={
+          <pre
+            style={{
+              whiteSpace: 'pre-wrap',
+              wordWrap: 'break-word',
+              margin: 0,
+              padding: 0,
+            }}
+          >
+            {invalidReason}
+          </pre>
+        }
+        overlayInnerStyle={{ width: '380px' }}
+      >
+        <Button disabled icon={<SendOutlined />}>
+          Send to Playground
+        </Button>
+      </Tooltip>
+    );
+  }
   return (
-    <Button
-      disabled={!ifPlaygroundValid}
-      onClick={launchPlayground}
-      icon={<SendOutlined />}
-    >
+    <Button onClick={launchPlayground} icon={<SendOutlined />}>
       Send to Playground
     </Button>
   );

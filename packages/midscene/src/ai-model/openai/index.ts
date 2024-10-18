@@ -25,24 +25,34 @@ export function useOpenAIModel(useModel?: 'coze' | 'openAI') {
   return Boolean(process.env[MIDSCENE_OPENAI_INIT_CONFIG_JSON]);
 }
 
-let extraConfig: ClientOptions = {};
-if (
-  typeof process.env[MIDSCENE_OPENAI_INIT_CONFIG_JSON] === 'string' &&
-  process.env[MIDSCENE_OPENAI_INIT_CONFIG_JSON]
-) {
-  console.log('config for OpenAI loaded');
-  extraConfig = JSON.parse(process.env[MIDSCENE_OPENAI_INIT_CONFIG_JSON]);
+// default model
+const defaultModel = 'gpt-4o';
+export function getModelName() {
+  let model = defaultModel;
+  if (typeof process.env[MIDSCENE_MODEL_NAME] === 'string') {
+    console.log(`model: ${process.env[MIDSCENE_MODEL_NAME]}`);
+    model = process.env[MIDSCENE_MODEL_NAME];
+  }
+  return model;
 }
 
-// default model
-let model = 'gpt-4o';
-if (typeof process.env[MIDSCENE_MODEL_NAME] === 'string') {
-  console.log(`model: ${process.env[MIDSCENE_MODEL_NAME]}`);
-  model = process.env[MIDSCENE_MODEL_NAME];
+const defaultExtraConfig: ClientOptions = {};
+function getExtraConfig() {
+  let extraConfig = defaultExtraConfig;
+  if (
+    typeof process.env[MIDSCENE_OPENAI_INIT_CONFIG_JSON] === 'string' &&
+    process.env[MIDSCENE_OPENAI_INIT_CONFIG_JSON]
+  ) {
+    console.log('config for OpenAI loaded');
+    extraConfig = JSON.parse(process.env[MIDSCENE_OPENAI_INIT_CONFIG_JSON]);
+  }
+  return extraConfig;
 }
+
 
 async function createOpenAI() {
   let openai: OpenAI | AzureOpenAI;
+  const extraConfig = getExtraConfig();
   if (process.env[OPENAI_USE_AZURE]) {
     openai = new AzureOpenAI(extraConfig);
   } else {
@@ -70,7 +80,7 @@ export async function call(
     typeof process.env[MIDSCENE_DEBUG_AI_PROFILE] === 'string';
   const startTime = Date.now();
   const completion = await openai.chat.completions.create({
-    model,
+    model: getModelName(),
     messages,
     response_format: responseFormat,
     temperature: 0.1,
@@ -97,6 +107,8 @@ export async function callToGetJSONObject<T>(
     | OpenAI.ResponseFormatJSONObject = {
     type: AIResponseFormat.JSON,
   };
+
+  const model = getModelName();
 
   if (model === 'gpt-4o-2024-08-06') {
     switch (AIActionTypeValue) {

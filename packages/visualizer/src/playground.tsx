@@ -1,6 +1,6 @@
 import { LoadingOutlined, SendOutlined } from '@ant-design/icons';
 import { Helmet } from '@modern-js/runtime/head';
-import { Button, Spin, message } from 'antd';
+import { Button, Empty, Spin, message } from 'antd';
 import { Form, Input } from 'antd';
 import { Radio } from 'antd';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
@@ -136,7 +136,18 @@ function Playground() {
     };
   }, [handleRun]);
 
-  let resultDataToShow: any = '';
+  let resultDataToShow: any = (
+    <Empty
+      image={null}
+      description={
+        <>
+          Welcome to Midscene.js Playground
+          <br />
+          {!runButtonDisabled && 'You can run something now'}
+        </>
+      }
+    />
+  );
   if (loading) {
     resultDataToShow = (
       <Spin
@@ -170,7 +181,7 @@ function Playground() {
       local server first.
     </>
   ) : (
-    <>{iconForStatus('connected')} Connected to server</>
+    <>{iconForStatus('connected')} Connected</>
   );
 
   return (
@@ -219,6 +230,11 @@ function Playground() {
                     >
                       Load Demo
                     </Button>
+                    <p>
+                      To load the UI context, you can either use the demo data
+                      above, or click the 'Send to Playground' in the report
+                      page.
+                    </p>
                   </div>
                 )}
               </div>

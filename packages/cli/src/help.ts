@@ -4,8 +4,8 @@ if (process.argv.indexOf('--help') !== -1) {
   console.log(`
   @midscene/cli version ${versionFromPkgJson}, Docs: https://midscenejs.com/
   
-  To automate browser actions, assertions, and data extraction, the usage is:
-  midscene [options] [actions]
+  Midscene.js helps you automate browser actions, assertions, and data extraction by AI.
+  Usage: midscene [options] [actions]
 
   Options:
     --url <url>                 The URL to visit, required

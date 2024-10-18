@@ -6,6 +6,7 @@ import { join } from 'node:path';
 import { ERROR_CODE_NOT_IMPLEMENTED_AS_DESIGNED } from '@/common/utils';
 import { getTmpDir } from '@midscene/core/utils';
 import cors from 'cors';
+import dotenv from 'dotenv';
 import express from 'express';
 import { StaticPageAgent } from './agent';
 import StaticPage from './static-page';
@@ -21,6 +22,10 @@ const errorHandler = (err: any, req: any, res: any, next: any) => {
   });
 };
 
+const setup = () => {
+  dotenv.config();
+};
+
 export default class PlaygroundServer {
   app: express.Application;
   tmpDir: string;
@@ -29,6 +34,7 @@ export default class PlaygroundServer {
   constructor() {
     this.app = express();
     this.tmpDir = getTmpDir();
+    setup();
   }
 
   filePathForUuid(uuid: string) {
@@ -37,6 +43,7 @@ export default class PlaygroundServer {
 
   saveContextFile(uuid: string, context: string) {
     const tmpFile = this.filePathForUuid(uuid);
+    console.log(`save context file: ${tmpFile}`);
     writeFileSync(tmpFile, context);
     return tmpFile;
   }
@@ -52,6 +59,7 @@ export default class PlaygroundServer {
     );
 
     this.app.get('/status', cors(), async (req, res) => {
+      // const modelName = g
       res.send({
         status: 'ok',
       });
