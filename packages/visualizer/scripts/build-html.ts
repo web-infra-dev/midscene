@@ -57,6 +57,18 @@ function copyToCore() {
   console.log(`HTML file copied to core successfully: ${corePath}`);
 }
 
+function copyToWebIntegration() {
+  const staticIndexPath = join(
+    __dirname,
+    '../../web-integration/static/index.html',
+  );
+  ensureDirectoryExistence(staticIndexPath);
+  copyFileSync(outputPlaygroundHTML, staticIndexPath);
+  console.log(
+    `HTML file copied to web-integration successfully: ${staticIndexPath}`,
+  );
+}
+
 function buildPlayground() {
   const html = readFileSync(playgroundHTMLPath, 'utf-8');
   const css = readFileSync(playgroundCSSPath, 'utf-8');
@@ -69,6 +81,7 @@ function buildPlayground() {
 
   writeFileSync(outputPlaygroundHTML, result);
   console.log(`HTML file generated successfully: ${outputPlaygroundHTML}`);
+  copyToWebIntegration();
 }
 
 function buildReport() {

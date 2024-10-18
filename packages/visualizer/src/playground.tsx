@@ -23,7 +23,7 @@ const requestPlaygroundServer = async (
   type: string,
   prompt: string,
 ) => {
-  const res = await fetch(`${serverBase}/playground/execute`, {
+  const res = await fetch(`${serverBase}/execute`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
