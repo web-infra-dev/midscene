@@ -1,5 +1,4 @@
 import assert from 'node:assert';
-import fetch from 'node-fetch';
 import type { ChatCompletionUserMessageParam } from 'openai/resources';
 
 export const COZE_INSPECT_ELEMENT_BOT_ID =
@@ -77,8 +76,8 @@ export async function callCozeAi<T>(options: {
   }
 }
 
-export function transfromOpenAiArgsToCoze(msg: ChatCompletionUserMessageParam) {
-  if (msg.role !== 'user') throw Error(`can't transfrom ${msg} to coze args`);
+export function transformOpenAiArgsToCoze(msg: ChatCompletionUserMessageParam) {
+  if (msg.role !== 'user') throw Error(`can't transform ${msg} to coze args`);
   // const query = '';
   // const imgs = msg.content
   if (typeof msg.content === 'string') {

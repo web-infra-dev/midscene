@@ -31,7 +31,7 @@ Midscene.jsは、自然言語を使用してページを制御し、アサーシ
 - **UIを理解し、JSONで回答 🔍**: データ形式に関するプロンプトを提供し、期待される応答をJSON形式で受け取ります。
 - **直感的なアサーション 🤔**: 自然言語でアサーションを行います。すべてAIの理解に基づいています。
 - **すぐに使えるLLM 🪓**: GPT-4oのような公開のマルチモーダルLLMを使用できます。カスタムトレーニングは不要です。
-- **可視化 🎞️**: 可視化ツールを使用して、プロセス全体を簡単に理解し、デバッグできます。
+- **可視化レポート 🎞️**：私たちのテストレポートとPlaygroundを通じて、全体のプロセスを簡単に理解し、デバッグすることができます。
 - **全く新しい体験! 🔥**: 自動化開発の全く新しい世界を体験してください。楽しんでください！
 
 ## リソース 📄
@@ -39,7 +39,6 @@ Midscene.jsは、自然言語を使用してページを制御し、アサーシ
 * [ホームページ: https://midscenejs.com](https://midscenejs.com/)
 * [クイックスタート](https://midscenejs.com/docs/getting-started/quick-start.html)
 * [APIリファレンス](https://midscenejs.com/docs/usage/API.html)
-* [可視化ツール](https://midscenejs.com/visualization/index.html)
 
 ## ライセンス
 

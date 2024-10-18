@@ -3,10 +3,5 @@
     "text": "Docs",
     "link": "/docs/getting-started/introduction",
     "activeMatch": "/docs"
-  },
-  {
-    "text": "Visualization Tool",
-    "link": "/visualization/",
-    "activeMatch": "/visualization/"
   }
 ]

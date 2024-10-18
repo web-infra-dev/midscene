@@ -3,11 +3,15 @@ import { Checkbox } from 'antd';
 import type { CheckboxProps } from 'antd';
 import * as PIXI from 'pixi.js';
 import { type ReactElement, useEffect, useMemo, useRef, useState } from 'react';
-import type { Rect } from '../../../midscene/dist/types';
+import type {
+  BaseElement,
+  Rect,
+  UIContext,
+} from '../../../midscene/dist/types';
 import { colorForName, highlightColorForType } from './color';
 import './blackboard.less';
 import { DropShadowFilter } from 'pixi-filters';
-import { useBlackboardPreference, useInsightDump } from './store';
+import { useBlackboardPreference } from './store';
 
 const itemFillAlpha = 0.4;
 const highlightAlpha = 0.4;
@@ -58,16 +62,16 @@ export const rectMarkForItem = (
   return [graphics, texts];
 };
 
-const BlackBoard = (): JSX.Element => {
-  const dump = useInsightDump((store) => store.data);
-  const setHighlightElements = useInsightDump(
-    (store) => store.setHighlightElements,
-  );
-
-  const highlightElements = useInsightDump((store) => store.highlightElements);
+const Blackboard = (props: {
+  uiContext: UIContext;
+  highlightElements?: BaseElement[];
+  hideController?: boolean;
+  disableInteraction?: boolean;
+}): JSX.Element => {
+  const highlightElements: BaseElement[] = props.highlightElements || [];
   const highlightIds = highlightElements.map((e) => e.id);
 
-  const { context } = dump!;
+  const context = props.uiContext!;
   const { size, screenshotBase64, screenshotBase64WithElementMarker } = context;
 
   const screenWidth = size.width;
@@ -79,6 +83,8 @@ const BlackBoard = (): JSX.Element => {
 
   const highlightContainer = useMemo(() => new PIXI.Container(), []);
   const elementMarkContainer = useMemo(() => new PIXI.Container(), []);
+
+  const [hoverElement, setHoverElement] = useState<BaseElement | null>(null);
 
   // key overlays
   const pixiBgRef = useRef<PIXI.Sprite>();
@@ -173,7 +179,7 @@ const BlackBoard = (): JSX.Element => {
     // element rects
     context.content.forEach((element) => {
       const { rect, content, id } = element;
-      const ifHighlight = highlightIds.includes(id);
+      const ifHighlight = highlightIds.includes(id) || hoverElement?.id === id;
       if (ifHighlight) {
         const [graphics] = rectMarkForItem(
           rect,
@@ -185,16 +191,19 @@ const BlackBoard = (): JSX.Element => {
         highlightContainer.addChild(graphics);
       }
 
+      const removeHover = () => {
+        setHoverElement(null);
+      };
       const [graphics] = rectMarkForItem(
         rect,
         content,
         ifHighlight,
-        () => {
-          setHighlightElements([element]);
-        },
-        () => {
-          setHighlightElements([]);
-        },
+        props?.disableInteraction
+          ? undefined
+          : () => {
+              setHoverElement(element);
+            },
+        props?.disableInteraction ? undefined : removeHover,
       );
       elementMarkContainer.addChild(graphics);
     });
@@ -208,6 +217,7 @@ const BlackBoard = (): JSX.Element => {
     appInitialed,
     highlightElements,
     context.content,
+    hoverElement,
     // bgVisible,
     // elementsVisible,
   ]);
@@ -250,7 +260,10 @@ const BlackBoard = (): JSX.Element => {
         style={{ width: '100%' }}
         ref={domRef}
       />
-      <div className="blackboard-filter">
+      <div
+        className="blackboard-filter"
+        style={{ display: props.hideController ? 'none' : 'block' }}
+      >
         <div className="overlay-control">
           <Checkbox
             checked={markerVisible}
@@ -264,11 +277,16 @@ const BlackBoard = (): JSX.Element => {
           </Checkbox>
         </div>
       </div>
-      <div className="bottom-tip">{bottomTipA}</div>
+      <div
+        className="bottom-tip"
+        style={{ display: props.hideController ? 'none' : 'block' }}
+      >
+        {bottomTipA}
+      </div>
 
       {/* {footer} */}
     </div>
   );
 };
 
-export default BlackBoard;
+export default Blackboard;

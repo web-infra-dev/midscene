@@ -29,8 +29,8 @@ features:
   - title: 立即集成
     details: 你可以使用 GPT-4o、Playwright 和 Puppeteer 等熟悉的工具，立即开始集成
     icon: 🪓
-  - title: 可视化
-    details: 通过我们的可视化工具，你可以轻松理解和调试整个过程
+  - title: 可视化报告
+    details: 通过我们的可视化报告，你可以轻松理解和调试整个过程
     icon: 🎞️
   - title: 全新体验
     details: 体验全新的自动化开发模式，尽情享受吧！

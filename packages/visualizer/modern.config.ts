@@ -7,7 +7,7 @@ export default defineConfig({
         svgr: true,
       },
       format: 'umd',
-      umdModuleName: 'midSceneVisualizer',
+      umdModuleName: 'midsceneVisualizer',
       autoExternal: false,
       externals: [],
       dts: false,
@@ -21,18 +21,36 @@ export default defineConfig({
       asset: {
         svgr: true,
       },
-      format: 'esm',
+      format: 'umd',
       input: {
-        index: 'src/index.tsx',
+        index: 'src/playground.tsx',
       },
+      umdModuleName: 'midscenePlayground',
       autoExternal: false,
       externals: [],
       dts: false,
       platform: 'browser',
+      outDir: 'dist/playground',
       minify: {
-        compress: false,
+        compress: true,
       },
     },
+    // {
+    //   asset: {
+    //     svgr: true,
+    //   },
+    //   format: 'esm',
+    //   input: {
+    //     index: 'src/index.tsx',
+    //   },
+    //   autoExternal: false,
+    //   externals: [],
+    //   dts: false,
+    //   platform: 'browser',
+    //   minify: {
+    //     compress: false,
+    //   },
+    // },
   ],
   plugins: [moduleTools()],
   buildPreset: 'npm-component',

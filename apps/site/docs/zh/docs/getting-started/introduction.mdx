@@ -1,6 +1,8 @@
 # 介绍
 
-UI 自动化太难写了。自动化脚本里到处都是选择器，比如 `#ids`、`data-test`、`.selectors`。在页面重构的时候，维护自动化脚本更将会是一场灾难。
+UI 自动化太难维护了。
+
+UI 自动化脚本里到处都是选择器，比如 `#ids`、`data-test`、`.selectors`。在页面重构的时候，维护自动化脚本更将会是一场灾难。
 
 我们在这里推出 Midscene.js，助你重拾编码的乐趣。
 
@@ -33,15 +35,17 @@ const items = await aiQuery(
 console.log("headphones in stock", items);
 ```
 
-### 可视化工具
+### 可视化报告
 
-我们提供的可视化工具，可以非常方便地调试提示和 AI 的响应。所有的中间数据，例如查询（Query）、计划（Planning）和动作（Actions），都可以被可视化。
+运行结束后，Midscene 会提供可视化报告和调试 Playground，可以非常方便地调试提示和 AI 的响应。所有的中间数据，例如查询（Query）、计划（Planning）和动作（Actions），都可以被可视化。
 
-你可以打开 [可视化工具](/visualization/index.html) 来查看示例。
+![](/report.gif)
 
-![](/visualizer.jpg)
+你还可以在本地 Midscene Playground 中变更 prompt，调试报告中的内容。
 
-## 流程图
+![](/playground.png)
+
+## Midscene 是如何运行的？
 
 下图展示了 Midscene 的核心流程。
 

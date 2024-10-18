@@ -1,4 +1,9 @@
 #!/usr/bin/env node
 
 require('../dist/lib/help.js');
-require('../dist/lib/index.js');
+
+if (process.argv.indexOf('playground') !== -1) {
+  require('../dist/lib/playground.js');
+} else {
+  require('../dist/lib/index.js');
+}

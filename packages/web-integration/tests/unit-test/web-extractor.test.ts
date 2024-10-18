@@ -2,6 +2,7 @@ import { writeFileSync } from 'node:fs';
 import path, { join } from 'node:path';
 import { parseContextFromWebPage } from '@/common/utils';
 import { generateExtractData } from '@/debug';
+import StaticPage from '@/playground/static-page';
 import { imageInfo } from '@midscene/shared/img';
 import { describe, expect, it } from 'vitest';
 import { launchPage } from '../ai/web/puppeteer/utils';
@@ -103,9 +104,19 @@ describe(
       const { page, reset } = await launchPage('https://webinfra.org/about');
       await new Promise((resolve) => setTimeout(resolve, 1000));
       console.time('total - parseContextFromWebPage');
-      const { content } = await parseContextFromWebPage(page);
+      await parseContextFromWebPage(page);
       console.timeEnd('total - parseContextFromWebPage');
       await reset();
+    });
+
+    it('static page with fixed context', async () => {
+      const fakeContext = {
+        foo: 'bar',
+      };
+      const page = new StaticPage(fakeContext as any);
+
+      const context = await parseContextFromWebPage(page);
+      expect(context).toBe(fakeContext);
     });
   },
   {

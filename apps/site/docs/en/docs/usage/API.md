@@ -40,7 +40,7 @@ Steps should always be clearly and thoroughly described. A very brief prompt lik
 
 Under the hood, Midscene will plan the detailed steps by sending your page context and a screenshot to the AI. After that, Midscene will execute the steps one by one. If Midscene deems it impossible to execute, an error will be thrown. 
 
-The main capabilities of Midscene are as follows, and your task will be split into these types. You can see them in the visualization tools:
+The main capabilities of Midscene are as follows, and your task will be split into these types. You can see them in the visualized report:
 
 1. **Locator**: Identify the target element using a natural language description
 2. **Action**: Tap, scroll, keyboard input, hover

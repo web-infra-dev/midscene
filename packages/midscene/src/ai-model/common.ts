@@ -10,7 +10,7 @@ import {
   COZE_EXTRACT_INFO_BOT_ID,
   COZE_INSPECT_ELEMENT_BOT_ID,
   callCozeAi,
-  transfromOpenAiArgsToCoze,
+  transformOpenAiArgsToCoze,
   useCozeModel,
 } from './coze';
 import {
@@ -57,7 +57,7 @@ export async function callAiFn<T>(options: {
       default:
         botId = COZE_AI_ACTION_BOT_ID;
     }
-    const cozeMsg = transfromOpenAiArgsToCoze(msgs[1]);
+    const cozeMsg = transformOpenAiArgsToCoze(msgs[1]);
     const parseResult = await callCozeAi<T>({
       ...cozeMsg,
       botId,

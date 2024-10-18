@@ -1,5 +1,6 @@
 import type { WebPage } from '@/common/page';
 import type {
+  AgentAssertOpt,
   AgentWaitForOpt,
   ExecutionDump,
   GroupedActionDump,
@@ -110,10 +111,14 @@ export class PageAgent {
     return output;
   }
 
-  async aiAssert(assertion: string, msg?: string) {
+  async aiAssert(assertion: string, msg?: string, opt?: AgentAssertOpt) {
     const { output, executor } = await this.taskExecutor.assert(assertion);
     this.appendExecutionDump(executor.dump());
     this.writeOutActionDumps();
+
+    if (opt?.keepRawResponse) {
+      return output;
+    }
 
     if (!output?.pass) {
       const errMsg = msg || `Assertion failed: ${assertion}`;

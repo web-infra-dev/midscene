@@ -7,7 +7,11 @@ import { CaretRightOutlined, LoadingOutlined } from '@ant-design/icons';
 import type { BaseElement } from '@midscene/core/.';
 import { ConfigProvider, Spin } from 'antd';
 import { rectMarkForItem } from './blackboard';
-import type { CameraState, TargetCameraState } from './replay-scripts';
+import type {
+  AnimationScript,
+  CameraState,
+  TargetCameraState,
+} from './replay-scripts';
 import { useExecutionDump } from './store';
 
 const canvasPaddingLeft = 0;
@@ -96,19 +100,27 @@ const LAYER_ORDER_INSIGHT = 1;
 const LAYER_ORDER_POINTER = 2;
 const LAYER_ORDER_SPINNING_POINTER = 3;
 
-const Player = (): JSX.Element => {
+const Player = (props?: {
+  replayScripts?: AnimationScript[];
+  imageWidth?: number;
+  imageHeight?: number;
+  key?: string | number;
+}): JSX.Element => {
   const [titleText, setTitleText] = useState('');
   const [subTitleText, setSubTitleText] = useState('');
   const taskScripts = useExecutionDump(
     (store) => store.activeExecutionAnimation,
   );
-  const replayAllMode = useExecutionDump((store) => store.replayAllMode);
-  const replayAllScripts = useExecutionDump(
-    (store) => store.allExecutionAnimation,
-  );
-  const scripts = replayAllMode ? replayAllScripts : taskScripts;
-  const imageWidth = useExecutionDump((store) => store.insightWidth) || 1920;
-  const imageHeight = useExecutionDump((store) => store.insightHeight) || 1080;
+
+  const scripts = props?.replayScripts ? props.replayScripts : taskScripts;
+  const imageWidth =
+    props?.imageWidth ||
+    useExecutionDump((store) => store.insightWidth) ||
+    1920;
+  const imageHeight =
+    props?.imageHeight ||
+    useExecutionDump((store) => store.insightHeight) ||
+    1080;
   const canvasWidth = imageWidth + canvasPaddingLeft * 2;
   const canvasHeight = imageHeight + canvasPaddingTop * 2;
   const currentImg = useRef<string | null>(scripts?.[0]?.img || null);

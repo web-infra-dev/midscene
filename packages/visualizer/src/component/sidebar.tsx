@@ -63,7 +63,7 @@ const SideItem = (props: {
   );
 };
 
-const Sidebar = (props: { logoAction?: () => void }): JSX.Element => {
+const Sidebar = (): JSX.Element => {
   const groupedDump = useExecutionDump((store) => store.dump);
   const setActiveTask = useExecutionDump((store) => store.setActiveTask);
   const activeTask = useExecutionDump((store) => store.activeTask);
