@@ -1,4 +1,5 @@
 import { defineConfig, moduleTools } from '@modern-js/module-tools';
+import { version } from './package.json';
 
 export default defineConfig({
   buildConfig: [
@@ -15,6 +16,9 @@ export default defineConfig({
       outDir: 'dist/report',
       minify: {
         compress: true,
+      },
+      define: {
+        __VERSION__: JSON.stringify(version),
       },
     },
     {
@@ -33,6 +37,9 @@ export default defineConfig({
       outDir: 'dist/playground',
       minify: {
         compress: true,
+      },
+      define: {
+        __VERSION__: JSON.stringify(version),
       },
     },
     // {
