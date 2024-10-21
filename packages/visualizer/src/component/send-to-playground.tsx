@@ -10,7 +10,7 @@ export const serverBase = 'http://localhost:5800';
 const errorMessageServerNotReady = `To debug the prompt together with this UI context, please follow the steps below:
 
 1. Start the local playground server:
-npx @midscene/cli@${__VERSION__} playground
+npx --yes --package=@midscene/web@${__VERSION__} midscene-playground
 
 2. Click this button again.
 `;

@@ -7,6 +7,9 @@
   "jsnext:source": "./src/index.ts",
   "main": "./dist/lib/index.js",
   "types": "./dist/types/index.d.ts",
+  "bin": {
+    "midscene-playground": "./bin/midscene-playground"
+  },
   "exports": {
     ".": "./dist/lib/index.js",
     "./puppeteer": "./dist/lib/puppeteer.js",

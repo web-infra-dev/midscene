@@ -18,7 +18,7 @@ export default defineConfig({
         compress: true,
       },
       define: {
-        __VERSION__: JSON.stringify(version),
+        __VERSION__: version,
       },
     },
     {
