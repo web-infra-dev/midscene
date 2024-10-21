@@ -3,12 +3,14 @@ import type { UIContext } from '@midscene/core/.';
 import { Button, Tooltip } from 'antd';
 import { useEffect, useState } from 'react';
 
+declare const __VERSION__: string;
+
 export const serverBase = 'http://localhost:5800';
 
 const errorMessageServerNotReady = `To debug the prompt together with this UI context, please follow the steps below:
 
 1. Start the local playground server:
-npx @midscene/cli playground
+npx @midscene/cli@${__VERSION__} playground
 
 2. Click this button again.
 `;

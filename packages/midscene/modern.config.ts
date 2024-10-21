@@ -1,4 +1,5 @@
 import { defineConfig, moduleTools } from '@modern-js/module-tools';
+import { version } from './package.json';
 
 export default defineConfig({
   plugins: [moduleTools()],
@@ -14,5 +15,8 @@ export default defineConfig({
     // input: ['src/utils.ts', 'src/index.ts', 'src/image/index.ts'],
     externals: ['node:buffer'],
     target: 'es2017',
+    define: {
+      __VERSION__: JSON.stringify(version),
+    },
   },
 });
