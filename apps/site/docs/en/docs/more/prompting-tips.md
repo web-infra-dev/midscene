@@ -36,7 +36,7 @@ Open the report file, you will see the detailed information about the steps. If 
 
 To launch the local Playground server:
 ```
-npx --yes --package=@midscene/web midscene-playground
+npx --yes @midscene/web
 ```
 
 ### Infer or assert from the interface, not the DOM properties or browser status

@@ -35,7 +35,7 @@
 
 启动本地 Playground Server:
 ```
-npx --yes --package=@midscene/web midscene-playground
+npx --yes @midscene/web
 ```
 
 ### 从界面做推断，而不是 DOM 属性或者浏览器状态
