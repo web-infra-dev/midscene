@@ -5,6 +5,7 @@ import type {
   ExecutionDump,
   ExecutionTaskInsightLocate,
   ExecutionTaskPlanning,
+  GroupedActionDump,
   InsightDump,
   Rect,
 } from '@midscene/core/.';
@@ -107,6 +108,48 @@ export const mergeTwoCameraState = (
   };
 };
 
+export interface ReplayScriptsInfo {
+  scripts: AnimationScript[];
+  width: number;
+  height: number;
+}
+
+export const allScriptsFromDump = (
+  dump: GroupedActionDump,
+): ReplayScriptsInfo | null => {
+  // find out the width and height of the screenshot
+  let width = 0;
+  let height = 0;
+
+  dump.executions.forEach((execution) => {
+    execution.tasks.forEach((task) => {
+      const insightTask = task as ExecutionTaskInsightLocate;
+      if (insightTask.log?.dump?.context?.size?.width) {
+        width = insightTask.log?.dump?.context?.size?.width;
+        height = insightTask.log?.dump?.context?.size?.height;
+      }
+    });
+  });
+
+  if (!width || !height) {
+    return null;
+  }
+
+  const allScripts: AnimationScript[] = [];
+  dump.executions.forEach((execution) => {
+    const scripts = generateAnimationScripts(execution, width, height);
+    if (scripts) {
+      allScripts.push(...scripts);
+    }
+  });
+
+  return {
+    scripts: allScripts,
+    width,
+    height,
+  };
+};
+
 export const generateAnimationScripts = (
   execution: ExecutionDump | null,
   imageWidth: number,
@@ -152,7 +195,10 @@ export const generateAnimationScripts = (
   let insightOnTop = false;
   const taskCount = execution.tasks.length;
   let initSubTitle = '';
+  let errorStateFlag = false;
   execution.tasks.forEach((task, index) => {
+    if (errorStateFlag) return;
+
     if (task.type === 'Planning') {
       const planningTask = task as ExecutionTaskPlanning;
       if (planningTask.recorder && planningTask.recorder.length > 0) {
@@ -275,17 +321,38 @@ export const generateAnimationScripts = (
           subTitle,
         });
       }
+
+      if (task.status !== 'finished') {
+        errorStateFlag = true;
+        const errorTitle = typeStr(task);
+        const errorMsg = task.error || 'unknown error';
+        const errorSubTitle =
+          errorMsg.indexOf('NOT_IMPLEMENTED_AS_DESIGNED') > 0
+            ? 'Further actions cannot be performed in the current environment'
+            : errorMsg;
+        scripts.push({
+          type: 'img',
+          img: task.recorder?.[0]?.screenshot,
+          camera: fullPageCameraState,
+          duration: stillDuration,
+          title: errorTitle,
+          subTitle: errorSubTitle,
+        });
+        return;
+      }
     }
   });
 
   // end, back to full page
-  scripts.push({
-    title: 'Done',
-    subTitle: initSubTitle,
-    type: 'img',
-    duration: stillDuration,
-    camera: fullPageCameraState,
-  });
+  if (!errorStateFlag) {
+    scripts.push({
+      title: 'Done',
+      subTitle: initSubTitle,
+      type: 'img',
+      duration: stillDuration,
+      camera: fullPageCameraState,
+    });
+  }
 
   return scripts;
 };

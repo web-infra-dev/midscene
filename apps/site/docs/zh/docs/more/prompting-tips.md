@@ -29,9 +29,14 @@
 
 错误示例 ❌：[number, number]，主按钮的 [x, y] 坐标
 
-### 使用可视化工具调试
+### 使用可视化报告和 Playground 进行调试
 
-使用可视化工具调试和理解 Midscene 的每个步骤。只需上传日志，就可以查看 AI 的解析结果。你可以在本站导航栏上找到 [可视化工具](/visualization/)。
+测试报告里有每个步骤的详细信息。如果你想结合报告里的 UI 状态重新运行 Prompt，你可以启动本地 Playground Server，然后点击“Send to Playground”.
+
+启动本地 Playground Server:
+```
+npx --yes @midscene/web
+```
 
 ### 从界面做推断，而不是 DOM 属性或者浏览器状态
 

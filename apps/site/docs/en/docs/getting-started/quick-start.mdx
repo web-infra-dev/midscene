@@ -37,9 +37,16 @@ npx @midscene/cli \
 
 If you want to dive deep into Midscene, we recommend using the SDK version and integrating it with Playwright or Puppeteer.
 
-### View test report after running
+### View test report
 
-After running, Midscene will generate a log dump, which is placed in `./midscene_run/report/latest.web-dump.json` by default. Then put this file into [Visualization Tool](/visualization/), and you will have a clearer understanding of the process.
+After running, Midscene will generate a visualized report file in HTML. Open it with browser and you will have a clearer understanding of the process.
+
+If you want to rerun a prompt together with UI context from the report file, just launch a Playground server and click the "Send to Playground" in the report.
+
+To launch the local Playground server:
+```
+npx --yes @midscene/web
+```
 
 ## Integrate with Playwright
 
@@ -202,14 +209,6 @@ npx ts-node demo.ts
 # ]
 ```
 
-### Step 4: View the Run Report
+### Step 4: view the report
 
-After the above command executes successfully, the console will output: `Midscene - report file updated: ./current_cwd/midscene_run/report/some_id.html`. You can open this file in a browser to view the report.
-
-Alternatively, you can import the `./midscene_run/report/latest.web-dump.json` file into the [Visualization Tool](/visualization/) to view it.
-
-## View demo report
-
-Click the 'Load Demo' button in the [Visualization Tool](/visualization/), you will be able to see the results of the previous code as well as some other samples.
-
-![](/view-demo-visualization.gif)
+After the above command executes successfully, the console will output: `Midscene - report file updated: /path/to/report/some_id.html`. You can open this file in a browser to view the report.
