@@ -114,9 +114,11 @@ export default function OpenPlayground(props?: { context?: UIContext }) {
         title={null}
         placement="right"
         onClose={handleClose}
-        visible={isDrawerVisible}
+        open={isDrawerVisible}
         width="90%"
-        headerStyle={{ display: 'none' }}
+        styles={{
+          header: { display: 'none' },
+        }}
       >
         <Playground
           propsContext={context}
