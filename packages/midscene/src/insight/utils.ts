@@ -17,17 +17,18 @@ import type {
 } from '@/types';
 import {
   getLogDir,
+  getVersion,
   insightDumpFileExt,
   stringifyDumpData,
+  uuid,
   writeLogFile,
 } from '@/utils';
-import { getMidscenePkgInfo } from '@midscene/shared/fs';
-
 let logFileName = '';
 const logContent: string[] = [];
 const logIdIndexMap: Record<string, number> = {};
 const { pid } = process;
 const logFileExt = insightDumpFileExt;
+const ifInBrowser = typeof window !== 'undefined';
 
 export function writeInsightDump(
   data: PartialInsightDumpFromSDK,
@@ -37,9 +38,9 @@ export function writeInsightDump(
   const logDir = getLogDir();
   assert(logDir, 'logDir should be set before writing dump file');
 
-  const id = logId || randomUUID();
+  const id = logId || uuid();
   const baseData: DumpMeta = {
-    sdkVersion: getMidscenePkgInfo(__dirname).version,
+    sdkVersion: getVersion(),
     logTime: Date.now(),
   };
   const finalData: InsightDump = {
@@ -50,12 +51,6 @@ export function writeInsightDump(
 
   dumpSubscriber?.(finalData);
 
-  if (!logFileName) {
-    logFileName = `pid_${pid}_${baseData.logTime}`;
-    while (existsSync(join(logDir, `${logFileName}.${logFileExt}`))) {
-      logFileName = `${pid}_${baseData.logTime}-${Math.random()}`;
-    }
-  }
   const dataString = stringifyDumpData(finalData, 2);
 
   if (typeof logIdIndexMap[id] === 'number') {
@@ -64,12 +59,22 @@ export function writeInsightDump(
     const length = logContent.push(dataString);
     logIdIndexMap[id] = length - 1;
   }
-  writeLogFile({
-    fileName: logFileName,
-    fileExt: logFileExt,
-    fileContent: `[\n${logContent.join(',\n')}\n]`,
-    type: 'dump',
-  });
+
+  if (!ifInBrowser) {
+    if (!logFileName) {
+      logFileName = `pid_${pid}_${baseData.logTime}`;
+      while (existsSync(join(logDir, `${logFileName}.${logFileExt}`))) {
+        logFileName = `${pid}_${baseData.logTime}-${Math.random()}`;
+      }
+    }
+
+    writeLogFile({
+      fileName: logFileName,
+      fileExt: logFileExt,
+      fileContent: `[\n${logContent.join(',\n')}\n]`,
+      type: 'dump',
+    });
+  }
 
   return id;
 }

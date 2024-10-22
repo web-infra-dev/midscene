@@ -1,12 +1,12 @@
 import assert from 'node:assert';
-import { randomUUID } from 'node:crypto';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { basename, dirname, join } from 'node:path';
-import { getMidscenePkgInfo } from '@midscene/shared/fs';
+import { ifInBrowser, uuid } from '@midscene/shared/.';
+import { getRunningPkgInfo } from '@midscene/shared/fs';
+import { version } from '../package.json';
 import type { Rect, ReportDumpWithAttributes } from './types';
 
-const midscenePkgInfo = getMidscenePkgInfo(__dirname);
 let logDir = join(process.cwd(), './midscene_run/');
 let logEnvReady = false;
 export const insightDumpFileExt = 'insight-dump.json';
@@ -31,8 +31,18 @@ export function getLogDirByType(type: 'dump' | 'cache' | 'report') {
 export function writeDumpReport(
   fileName: string,
   dumpData: string | ReportDumpWithAttributes[],
-) {
-  const { dir } = midscenePkgInfo;
+): string | null {
+  if (ifInBrowser) {
+    console.log('will not write report in browser');
+    return null;
+  }
+  const runningPkgInfo = getRunningPkgInfo();
+  if (!runningPkgInfo) {
+    console.warn('runningPkgInfo not found, will not write report');
+    return null;
+  }
+
+  const { dir } = runningPkgInfo;
   const reportTplPath = join(dir, './report/index.html');
   existsSync(reportTplPath) ||
     assert(false, `report template not found: ${reportTplPath}`);
@@ -73,6 +83,10 @@ export function writeLogFile(opts: {
   type: 'dump' | 'cache' | 'report';
   generateReport?: boolean;
 }) {
+  if (ifInBrowser) {
+    console.log('will not generate report in browser');
+    return '/mock/report.html';
+  }
   const { fileName, fileExt, fileContent, type = 'dump' } = opts;
   const targetDir = getLogDirByType(type);
   // Ensure directory exists
@@ -114,15 +128,27 @@ export function writeLogFile(opts: {
   return filePath;
 }
 
-export function getTmpDir() {
-  const path = join(tmpdir(), midscenePkgInfo.name);
+export function getTmpDir(): string | null {
+  if (ifInBrowser) {
+    return null;
+  }
+  const runningPkgInfo = getRunningPkgInfo();
+  if (!runningPkgInfo) {
+    return null;
+  }
+  const { name } = runningPkgInfo;
+  const path = join(tmpdir(), name);
   mkdirSync(path, { recursive: true });
   return path;
 }
 
-export function getTmpFile(fileExtWithoutDot: string) {
-  const filename = `${randomUUID()}.${fileExtWithoutDot}`;
-  return join(getTmpDir(), filename);
+export function getTmpFile(fileExtWithoutDot: string): string | null {
+  if (ifInBrowser) {
+    return null;
+  }
+  const tmpDir = getTmpDir();
+  const filename = `${uuid()}.${fileExtWithoutDot}`;
+  return join(tmpDir!, filename);
 }
 
 export function overlapped(container: Rect, target: Rect) {
@@ -151,4 +177,8 @@ export function replacerForPageObject(key: string, value: any) {
 
 export function stringifyDumpData(data: any, indents?: number) {
   return JSON.stringify(data, replacerForPageObject, indents);
+}
+
+export function getVersion() {
+  return version;
 }

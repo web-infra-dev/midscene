@@ -1,7 +1,7 @@
 import assert from 'node:assert';
 import { Buffer } from 'node:buffer';
 import { readFileSync } from 'node:fs';
-import Jimp from 'jimp';
+import getJimp from './get-jimp';
 
 export interface Size {
   width: number;
@@ -16,7 +16,8 @@ export interface Size {
  * @throws Error if the image data is invalid
  */
 export async function imageInfo(image: string | Buffer): Promise<Size> {
-  let jimpImage: Jimp;
+  const Jimp = await getJimp();
+  let jimpImage;
   if (typeof image === 'string') {
     jimpImage = await Jimp.read(image);
   } else if (Buffer.isBuffer(image)) {

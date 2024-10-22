@@ -10,8 +10,8 @@ export const COZE_EXTRACT_INFO_BOT_ID =
 
 export const COZE_BOT_TOKEN = 'COZE_BOT_TOKEN';
 
-export function useCozeModel(useModel?: 'coze' | 'openAI') {
-  if (useModel && useModel !== 'coze') return false;
+export function preferCozeModel(preferVendor?: 'coze' | 'openAI') {
+  if (preferVendor && preferVendor !== 'coze') return false;
   return (
     process.env[COZE_BOT_TOKEN] &&
     process.env.COZE_INSPECT_ELEMENT_BOT_ID &&

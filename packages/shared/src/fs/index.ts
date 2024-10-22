@@ -9,7 +9,11 @@ interface PkgInfo {
 }
 
 let pkg: PkgInfo | undefined;
-export function getMidscenePkgInfo(dir: string): PkgInfo {
+const ifInBrowser = typeof window !== 'undefined';
+export function getRunningPkgInfo(dir?: string): PkgInfo | null {
+  if (ifInBrowser) {
+    return null;
+  }
   if (pkg) {
     return pkg;
   }
@@ -24,7 +28,7 @@ export function getMidscenePkgInfo(dir: string): PkgInfo {
     return pkg;
   }
   return {
-    name: 'midscene-unknown-page-name',
+    name: 'midscene-unknown-package-name',
     version: '0.0.0',
     dir: pkgDir,
   };

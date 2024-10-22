@@ -1,6 +1,6 @@
 import { readFileSync, writeFileSync } from 'node:fs';
 import { getTmpFile } from '@midscene/core/utils';
-import { resizeImg } from '@midscene/shared/img';
+import { base64Encoded, resizeImg } from '@midscene/shared/img';
 import type { Page as PlaywrightPage } from 'playwright';
 import type { Page as PuppeteerPage } from 'puppeteer';
 import type { WebKeyInput } from '../common/page';
@@ -14,7 +14,7 @@ export class Page<
   PageType extends PuppeteerPage | PlaywrightPage,
 > implements AbstractPage
 {
-  private page: PageType;
+  private underlyingPage: PageType;
   pageType: AgentType;
 
   private evaluate<R>(
@@ -22,13 +22,13 @@ export class Page<
     arg?: any,
   ): Promise<R> {
     if (this.pageType === 'puppeteer') {
-      return (this.page as PuppeteerPage).evaluate(pageFunction, arg);
+      return (this.underlyingPage as PuppeteerPage).evaluate(pageFunction, arg);
     }
-    return (this.page as PlaywrightPage).evaluate(pageFunction, arg);
+    return (this.underlyingPage as PlaywrightPage).evaluate(pageFunction, arg);
   }
 
-  constructor(page: PageType, pageType: AgentType) {
-    this.page = page;
+  constructor(underlyingPage: PageType, pageType: AgentType) {
+    this.underlyingPage = underlyingPage;
     this.pageType = pageType;
   }
 
@@ -38,8 +38,8 @@ export class Page<
     return captureElementSnapshot as ElementInfo[];
   }
 
-  async screenshot(): Promise<string> {
-    // get viewport size from page
+  async screenshotBase64(): Promise<string> {
+    // get viewport size from underlyingPage
     const viewportSize: {
       width: number;
       height: number;
@@ -52,9 +52,9 @@ export class Page<
       };
     });
 
-    const path = getTmpFile('png');
+    const path = getTmpFile('png')!;
 
-    await this.page.screenshot({
+    await this.underlyingPage.screenshot({
       path,
       type: 'png',
     });
@@ -67,34 +67,44 @@ export class Page<
       writeFileSync(path, buf);
     }
 
-    return path;
+    return base64Encoded(path);
   }
 
   url(): string {
-    return this.page.url();
+    return this.underlyingPage.url();
   }
 
   get mouse() {
     return {
       click: async (x: number, y: number, options?: { button: MouseButton }) =>
-        this.page.mouse.click(x, y, { button: options?.button || 'left' }),
+        this.underlyingPage.mouse.click(x, y, {
+          button: options?.button || 'left',
+        }),
       wheel: async (deltaX: number, deltaY: number) => {
         if (this.pageType === 'puppeteer') {
-          await (this.page as PuppeteerPage).mouse.wheel({ deltaX, deltaY });
+          await (this.underlyingPage as PuppeteerPage).mouse.wheel({
+            deltaX,
+            deltaY,
+          });
         } else if (this.pageType === 'playwright') {
-          await (this.page as PlaywrightPage).mouse.wheel(deltaX, deltaY);
+          await (this.underlyingPage as PlaywrightPage).mouse.wheel(
+            deltaX,
+            deltaY,
+          );
         }
       },
-      move: async (x: number, y: number) => this.page.mouse.move(x, y),
+      move: async (x: number, y: number) =>
+        this.underlyingPage.mouse.move(x, y),
     };
   }
 
   get keyboard() {
     return {
-      type: async (text: string) => this.page.keyboard.type(text),
-      press: async (key: WebKeyInput) => this.page.keyboard.press(key),
-      down: async (key: WebKeyInput) => this.page.keyboard.down(key),
-      up: async (key: WebKeyInput) => this.page.keyboard.up(key),
+      type: async (text: string) => this.underlyingPage.keyboard.type(text),
+      press: async (key: WebKeyInput) =>
+        this.underlyingPage.keyboard.press(key),
+      down: async (key: WebKeyInput) => this.underlyingPage.keyboard.down(key),
+      up: async (key: WebKeyInput) => this.underlyingPage.keyboard.up(key),
     };
   }
 
@@ -107,13 +117,13 @@ export class Page<
 
     const isMac = process.platform === 'darwin';
     if (isMac) {
-      await this.page.keyboard.down('Meta');
-      await this.page.keyboard.press('a');
-      await this.page.keyboard.up('Meta');
+      await this.underlyingPage.keyboard.down('Meta');
+      await this.underlyingPage.keyboard.press('a');
+      await this.underlyingPage.keyboard.up('Meta');
     } else {
-      await this.page.keyboard.down('Control');
-      await this.page.keyboard.press('a');
-      await this.page.keyboard.up('Control');
+      await this.underlyingPage.keyboard.down('Control');
+      await this.underlyingPage.keyboard.press('a');
+      await this.underlyingPage.keyboard.up('Control');
     }
     await this.keyboard.press('Backspace');
   }

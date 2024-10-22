@@ -1,6 +1,7 @@
 import { Buffer } from 'node:buffer';
-import Jimp from 'jimp';
+import getJimp from './get-jimp';
 
+/**
 /**
  * Saves a Base64-encoded image to a file
  *
@@ -21,6 +22,7 @@ export async function saveBase64Image(options: {
   const imageBuffer = Buffer.from(base64Image, 'base64');
 
   // Use Jimp to process the image and save it to the specified location
+  const Jimp = await getJimp();
   const image = await Jimp.read(imageBuffer);
   await image.writeAsync(outputPath);
 }
@@ -32,6 +34,7 @@ export async function saveBase64Image(options: {
  */
 export async function transformImgPathToBase64(inputPath: string) {
   // Use Jimp to process images and generate base64 data
+  const Jimp = await getJimp();
   const image = await Jimp.read(inputPath);
   const buffer = await image.getBufferAsync(Jimp.MIME_PNG);
   return buffer.toString('base64');
@@ -56,6 +59,7 @@ export async function resizeImg(
     ? Buffer.from(inputData.split(';base64,').pop() || inputData, 'base64')
     : inputData;
 
+  const Jimp = await getJimp();
   const image = await Jimp.read(imageBuffer);
   const { width, height } = image.bitmap;
 
@@ -127,6 +131,7 @@ export async function trimImage(image: string | Buffer): Promise<{
   width: number;
   height: number;
 } | null> {
+  const Jimp = await getJimp();
   const jimpImage = await Jimp.read(
     Buffer.isBuffer(image) ? image : Buffer.from(image),
   );

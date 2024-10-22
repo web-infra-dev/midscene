@@ -5,8 +5,8 @@ import type { Server } from 'node:http';
 import { join } from 'node:path';
 import { ERROR_CODE_NOT_IMPLEMENTED_AS_DESIGNED } from '@/common/utils';
 import { getTmpDir } from '@midscene/core/utils';
+import { ifInBrowser } from '@midscene/shared/.';
 import cors from 'cors';
-import dotenv from 'dotenv';
 import express from 'express';
 import { StaticPageAgent } from './agent';
 import StaticPage from './static-page';
@@ -22,8 +22,11 @@ const errorHandler = (err: any, req: any, res: any, next: any) => {
   });
 };
 
-const setup = () => {
-  dotenv.config();
+const setup = async () => {
+  if (!ifInBrowser) {
+    const dotenv = await import('dotenv');
+    dotenv.config();
+  }
 };
 
 export default class PlaygroundServer {
@@ -33,7 +36,7 @@ export default class PlaygroundServer {
   port?: number | null;
   constructor() {
     this.app = express();
-    this.tmpDir = getTmpDir();
+    this.tmpDir = getTmpDir()!;
     setup();
   }
 
