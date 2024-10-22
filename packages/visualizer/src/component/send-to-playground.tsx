@@ -60,6 +60,7 @@ export const useServerValid = () => {
 
 export default function SendToPlayground(props?: { context?: UIContext }) {
   const serverValid = useServerValid();
+  const [context, setContext] = useState<UIContext | undefined>();
   const [isDrawerVisible, setIsDrawerVisible] = useState(false);
 
   let ifPlaygroundValid = true;
@@ -73,6 +74,7 @@ export default function SendToPlayground(props?: { context?: UIContext }) {
   }
 
   const showPlayground = () => {
+    setContext(props?.context || undefined);
     setIsDrawerVisible(true);
   };
 
@@ -116,7 +118,11 @@ export default function SendToPlayground(props?: { context?: UIContext }) {
         width="90%"
         headerStyle={{ display: 'none' }}
       >
-        <Playground propsContext={props?.context} hideLogo={true} />
+        <Playground
+          propsContext={context}
+          hideLogo={true}
+          key={Math.random().toString(36).substring(7)}
+        />
       </Drawer>
     </>
   );

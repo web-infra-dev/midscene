@@ -165,7 +165,6 @@ const DetailPanel = (): JSX.Element => {
       value: type,
     };
   });
-
   return (
     <div className="detail-panel">
       <div className="view-switcher">
