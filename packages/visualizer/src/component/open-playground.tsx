@@ -100,7 +100,7 @@ export default function OpenPlayground(props?: { context?: UIContext }) {
         overlayInnerStyle={{ width: '380px' }}
       >
         <Button disabled icon={<PlayCircleOutlined />}>
-          Open Playground
+          Open in Playground
         </Button>
       </Tooltip>
     );
@@ -108,7 +108,7 @@ export default function OpenPlayground(props?: { context?: UIContext }) {
   return (
     <>
       <Button onClick={showPlayground} icon={<PlayCircleOutlined />}>
-        Open Playground
+        Open in Playground
       </Button>
       <Drawer
         title={null}
