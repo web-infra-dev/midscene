@@ -16,7 +16,7 @@ import { allScriptsFromDump } from './component/replay-scripts';
 
 import './playground.less';
 import Logo from './component/logo';
-import { serverBase, useServerValid } from './component/send-to-playground';
+import { serverBase, useServerValid } from './component/open-playground';
 
 const requestPlaygroundServer = async (
   context: UIContext,

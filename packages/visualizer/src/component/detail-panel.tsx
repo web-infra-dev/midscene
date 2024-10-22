@@ -11,8 +11,8 @@ import {
 import { ConfigProvider, Segmented } from 'antd';
 import { useEffect, useState } from 'react';
 import Blackboard from './blackboard';
+import OpenPlayground from './open-playground';
 import Player from './player';
-import SendToPlayground from './send-to-playground';
 
 const ScreenshotItem = (props: { time: string; img: string }) => {
   return (
@@ -186,7 +186,7 @@ const DetailPanel = (): JSX.Element => {
             }}
           />
 
-          <SendToPlayground context={insightDump?.context} />
+          <OpenPlayground context={insightDump?.context} />
         </ConfigProvider>
       </div>
       <div className="detail-content">{content}</div>
