@@ -20,9 +20,9 @@ import {
   getVersion,
   insightDumpFileExt,
   stringifyDumpData,
-  uuid,
   writeLogFile,
 } from '@/utils';
+import { uuid } from '@midscene/shared/.';
 let logFileName = '';
 const logContent: string[] = [];
 const logIdIndexMap: Record<string, number> = {};
