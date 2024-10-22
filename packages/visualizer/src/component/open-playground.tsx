@@ -99,8 +99,8 @@ export default function OpenPlayground(props?: { context?: UIContext }) {
         }
         overlayInnerStyle={{ width: '380px' }}
       >
-        <Button disabled icon={<SendOutlined />}>
-          Send to Playground
+        <Button disabled icon={<PlayCircleOutlined />}>
+          Open Playground
         </Button>
       </Tooltip>
     );
