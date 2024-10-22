@@ -15,7 +15,7 @@ export default defineConfig({
       platform: 'browser',
       outDir: 'dist/report',
       minify: {
-        compress: true,
+        compress: !!process.env.CI,
       },
       define: {
         __VERSION__: version,
@@ -36,7 +36,7 @@ export default defineConfig({
       platform: 'browser',
       outDir: 'dist/playground',
       minify: {
-        compress: true,
+        compress: !!process.env.CI,
       },
       define: {
         __VERSION__: JSON.stringify(version),

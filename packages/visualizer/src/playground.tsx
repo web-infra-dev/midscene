@@ -16,7 +16,7 @@ import { allScriptsFromDump } from './component/replay-scripts';
 
 import './playground.less';
 import Logo from './component/logo';
-import { serverBase, useServerValid } from './component/send-to-playground';
+import { serverBase, useServerValid } from './component/open-playground';
 
 const requestPlaygroundServer = async (
   context: UIContext,
@@ -53,11 +53,16 @@ const useContextId = () => {
   const match = path.match(/^\/playground\/([a-zA-Z0-9-]+)$/);
   return match ? match[1] : null;
 };
-
 const { TextArea } = Input;
-function Playground() {
+
+export function Playground({
+  propsContext,
+  hideLogo,
+}: { propsContext?: UIContext; hideLogo?: boolean }) {
   const contextId = useContextId();
-  const [uiContext, setUiContext] = useState<UIContext | null>(null);
+  const [uiContext, setUiContext] = useState<UIContext | null>(
+    propsContext || null,
+  );
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<{
     result: any;
@@ -73,7 +78,7 @@ function Playground() {
   const serverValid = useServerValid();
 
   useEffect(() => {
-    if (contextId) {
+    if (!uiContext && contextId) {
       fetch(`${serverBase}/context/${contextId}`)
         .then((res) => res.json())
         .then((data) => {
@@ -200,9 +205,11 @@ function Playground() {
           minSize={20}
           className="playground-left-panel"
         >
-          <div className="playground-header">
-            <Logo />
-          </div>
+          {!hideLogo && (
+            <div className="playground-header">
+              <Logo />
+            </div>
+          )}
 
           <Form
             form={form}

@@ -1,7 +1,8 @@
-import { SendOutlined } from '@ant-design/icons';
+import { PlayCircleOutlined, SendOutlined } from '@ant-design/icons';
 import type { UIContext } from '@midscene/core/.';
-import { Button, Tooltip } from 'antd';
+import { Button, Drawer, Tooltip } from 'antd';
 import { useEffect, useState } from 'react';
+import { Playground } from '../playground';
 
 declare const __VERSION__: string;
 
@@ -10,8 +11,8 @@ export const serverBase = 'http://localhost:5800';
 const errorMessageServerNotReady = `To debug the prompt together with this UI context, please follow the steps below:
 
 1. Start the local playground server (Select one of the commands):
- a. npx --yes @midscene/web
- b. npx midscene-playground  (Under the midscene project directory)
+ a. npx midscene-playground  (Under the midscene project directory)
+ b. npx --yes @midscene/web
 2. Click this button again.
 `;
 
@@ -57,8 +58,10 @@ export const useServerValid = () => {
   return serverValid;
 };
 
-export default function SendToPlayground(props?: { context?: UIContext }) {
+export default function OpenPlayground(props?: { context?: UIContext }) {
   const serverValid = useServerValid();
+  const [context, setContext] = useState<UIContext | undefined>();
+  const [isDrawerVisible, setIsDrawerVisible] = useState(false);
 
   let ifPlaygroundValid = true;
   let invalidReason: React.ReactNode = '';
@@ -70,22 +73,13 @@ export default function SendToPlayground(props?: { context?: UIContext }) {
     invalidReason = errorMessageNoContext;
   }
 
-  const launchPlayground = async () => {
-    // post a form to server, use a new window to open the playground
+  const showPlayground = () => {
+    setContext(props?.context || undefined);
+    setIsDrawerVisible(true);
+  };
 
-    const res = await fetch(`${serverBase}/playground-with-context`, {
-      method: 'POST',
-      body: JSON.stringify({
-        context: JSON.stringify(props?.context),
-      }),
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      credentials: 'omit',
-    });
-    const data = await res.json();
-    const location = data.location;
-    window.open(`${serverBase}${location}`, '_blank');
+  const handleClose = () => {
+    setIsDrawerVisible(false);
   };
 
   if (!ifPlaygroundValid) {
@@ -105,15 +99,33 @@ export default function SendToPlayground(props?: { context?: UIContext }) {
         }
         overlayInnerStyle={{ width: '380px' }}
       >
-        <Button disabled icon={<SendOutlined />}>
-          Send to Playground
+        <Button disabled icon={<PlayCircleOutlined />}>
+          Open in Playground
         </Button>
       </Tooltip>
     );
   }
   return (
-    <Button onClick={launchPlayground} icon={<SendOutlined />}>
-      Send to Playground
-    </Button>
+    <>
+      <Button onClick={showPlayground} icon={<PlayCircleOutlined />}>
+        Open in Playground
+      </Button>
+      <Drawer
+        title={null}
+        placement="right"
+        onClose={handleClose}
+        open={isDrawerVisible}
+        width="90%"
+        styles={{
+          header: { display: 'none' },
+        }}
+      >
+        <Playground
+          propsContext={context}
+          hideLogo={true}
+          key={Math.random().toString(36).substring(7)}
+        />
+      </Drawer>
+    </>
   );
 }
