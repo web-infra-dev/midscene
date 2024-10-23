@@ -22,7 +22,7 @@ import {
   stringifyDumpData,
   writeLogFile,
 } from '@/utils';
-import { uuid } from '@midscene/shared/.';
+import { uuid } from '@midscene/shared/utils';
 let logFileName = '';
 const logContent: string[] = [];
 const logIdIndexMap: Record<string, number> = {};

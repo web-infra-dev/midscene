@@ -5,7 +5,7 @@ import type { Server } from 'node:http';
 import { join } from 'node:path';
 import { ERROR_CODE_NOT_IMPLEMENTED_AS_DESIGNED } from '@/common/utils';
 import { getTmpDir } from '@midscene/core/utils';
-import { ifInBrowser } from '@midscene/shared/.';
+import { ifInBrowser } from '@midscene/shared/utils';
 import cors from 'cors';
 import express from 'express';
 import { StaticPageAgent } from './agent';

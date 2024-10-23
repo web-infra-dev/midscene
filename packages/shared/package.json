@@ -26,6 +26,11 @@
       "types": "./src/img/index.ts",
       "import": "./dist/es/img.js",
       "require": "./dist/lib/img.js"
+    },
+    "./utils": {
+      "types": "./src/utils/index.ts",
+      "import": "./dist/es/utils.js",
+      "require": "./dist/lib/utils.js"
     }
   },
   "typesVersions": {
@@ -33,7 +38,8 @@
       ".": ["./src/index.ts"],
       "constants": ["./src/constants/index.ts"],
       "img": ["./src/img/index.ts"],
-      "fs": ["./src/fs/index.ts"]
+      "fs": ["./src/fs/index.ts"],
+      "utils": ["./src/utils.ts"]
     }
   },
   "files": ["dist", "src", "README.md"],

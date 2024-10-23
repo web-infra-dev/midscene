@@ -15,7 +15,8 @@
     "resolveJsonModule": true,
     "rootDir": ".",
     "skipLibCheck": true,
-    "strict": true
+    "strict": true,
+    "module": "ESNext"
   },
   "exclude": ["**/node_modules"],
   "include": ["src", "tests"]

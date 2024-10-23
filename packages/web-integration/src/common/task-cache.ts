@@ -7,7 +7,8 @@ import {
   writeLogFile,
 } from '@midscene/core/utils';
 import { getRunningPkgInfo } from '@midscene/shared/fs';
-import { type WebUIContext, generateCacheId, ifInBrowser } from './utils';
+import { ifInBrowser } from '@midscene/shared/utils';
+import { type WebUIContext, generateCacheId } from './utils';
 
 export type PlanTask = {
   type: 'plan';

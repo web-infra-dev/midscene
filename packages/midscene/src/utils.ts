@@ -2,8 +2,8 @@ import assert from 'node:assert';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { basename, dirname, join } from 'node:path';
-import { ifInBrowser, uuid } from '@midscene/shared/.';
 import { getRunningPkgInfo } from '@midscene/shared/fs';
+import { ifInBrowser, uuid } from '@midscene/shared/utils';
 import { version } from '../package.json';
 import type { Rect, ReportDumpWithAttributes } from './types';
 

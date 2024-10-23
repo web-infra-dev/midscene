@@ -1,6 +1,6 @@
 import assert from 'node:assert';
 import { AIResponseFormat } from '@/types';
-import { ifInBrowser } from '@midscene/shared/.';
+import { ifInBrowser } from '@midscene/shared/utils';
 import OpenAI, { type ClientOptions, AzureOpenAI } from 'openai';
 import type { ChatCompletionMessageParam } from 'openai/resources';
 import { AIActionType } from '../common';
