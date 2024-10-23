@@ -28,6 +28,7 @@
     "@midscene/shared": "workspace:*",
     "@midscene/web": "workspace:*",
     "@modern-js/module-tools": "2.58.2",
+    "@modern-js/plugin-module-node-polyfill": "2.58.2",
     "@modern-js/plugin-module-doc": "^2.33.1",
     "@modern-js/runtime": "^2.56.2",
     "@types/node": "^18.0.0",
