@@ -84,7 +84,8 @@ export async function call(
     response_format: responseFormat,
     temperature: 0.1,
     stream: false,
-  });
+    betas: ['computer-use-2024-10-22'],
+  } as any);
   shouldPrintTiming &&
     console.log(
       'Midscene - AI call',
@@ -134,7 +135,11 @@ export async function callToGetJSONObject<T>(
   const response = await call(messages, responseFormat);
   assert(response, 'empty response');
   const jsonContent = extractJSONFromCodeBlock(response);
-  return JSON.parse(jsonContent);
+  try {
+    return JSON.parse(jsonContent);
+  } catch {
+    return jsonContent as any;
+  }
 }
 
 export function extractJSONFromCodeBlock(response: string) {

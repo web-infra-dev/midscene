@@ -6,7 +6,7 @@ import { base64Encoded, imageInfoOfBase64 } from '@/image';
 type TestCase = {
   prompt: string;
   multi?: boolean;
-  response: Array<{ id: string }>;
+  response: Array<{ id: string; indexId: number }>;
 };
 
 export type InspectAiTestCase = {
