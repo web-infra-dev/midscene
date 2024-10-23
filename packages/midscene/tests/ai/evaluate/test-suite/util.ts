@@ -140,15 +140,18 @@ export function writeFileSyncWithDir(
 export async function getPageTestData(targetDir: string) {
   // Note: this is the magic
   const resizeOutputImgP = path.join(targetDir, 'output_without_text.png');
+  const originalInputputImgP = path.join(targetDir, 'input.png');
   const snapshotJsonPath = path.join(targetDir, 'element-snapshot.json');
   const snapshotJson = readFileSync(snapshotJsonPath, { encoding: 'utf-8' });
   const elementSnapshot = JSON.parse(snapshotJson);
   const screenshotBase64 = base64Encoded(resizeOutputImgP);
+  const originalScreenshotBase64 = base64Encoded(originalInputputImgP);
   const size = await imageInfoOfBase64(screenshotBase64);
   const baseContext = {
     size,
     content: elementSnapshot,
     screenshotBase64,
+    originalScreenshotBase64,
   };
 
   return {
@@ -160,6 +163,7 @@ export async function getPageTestData(targetDir: string) {
     },
     snapshotJson,
     screenshotBase64,
+    originalScreenshotBase64,
   };
 }
 

@@ -84,7 +84,7 @@ export async function call(
     response_format: responseFormat,
     temperature: 0.1,
     stream: false,
-    betas: ['computer-use-2024-10-22'],
+    // betas: ['computer-use-2024-10-22'],
   } as any);
   shouldPrintTiming &&
     console.log(

@@ -45,7 +45,7 @@ describe(
                   {
                     type: 'image_url',
                     image_url: {
-                      url: context.screenshotBase64,
+                      url: context.originalScreenshotBase64,
                     },
                   },
                   {
