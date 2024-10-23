@@ -16,7 +16,7 @@ import { allScriptsFromDump } from './component/replay-scripts';
 
 import './playground.less';
 import Logo from './component/logo';
-import { serverBase, useServerValid } from './component/open-playground';
+import { serverBase, useServerValid } from './component/open-in-playground';
 
 import { allAIConfig, overrideAIConfig } from '@midscene/core';
 import {

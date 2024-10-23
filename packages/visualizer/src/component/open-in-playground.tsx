@@ -58,7 +58,7 @@ export const useServerValid = () => {
   return serverValid;
 };
 
-export default function OpenPlayground(props?: { context?: UIContext }) {
+export default function OpenInPlayground(props?: { context?: UIContext }) {
   const serverValid = useServerValid();
   const [context, setContext] = useState<UIContext | undefined>();
   const [isDrawerVisible, setIsDrawerVisible] = useState(false);
