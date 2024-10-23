@@ -24,12 +24,11 @@ const reportJSPath = join(__dirname, '../dist/report.js');
 const playgroundHTMLPath = join(__dirname, '../html/playground.html');
 const playgroundCSSPath = join(__dirname, '../dist/playground.css');
 const playgroundJSPath = join(__dirname, '../dist/playground.js');
-const demoPath = join(__dirname, './fixture/demo-dump.json');
-const demoMobilePath = join(__dirname, './fixture/demo-mobile-dump.json');
+
+const demoData = ['demo', 'demo-mobile', 'zero-execution'];
+
 const multiEntrySegment = join(__dirname, './fixture/multi-entries.html');
 const outputHTML = join(__dirname, '../dist/report/index.html');
-const outputDemoHTML = join(__dirname, '../dist/report/demo.html');
-const outputDemoMobileHTML = join(__dirname, '../dist/report/demo-mobile.html');
 const outputMultiEntriesHTML = join(__dirname, '../dist/report/multi.html');
 const outputEmptyDumpHTML = join(__dirname, '../dist/report/empty-error.html');
 const outputPlaygroundHTML = join(__dirname, '../dist/playground/index.html');
@@ -100,23 +99,20 @@ function buildReport() {
   writeFileSync(outputHTML, result);
   console.log(`HTML file generated successfully: ${outputHTML}`);
 
-  const demoData = readFileSync(demoPath, 'utf-8');
-  const resultWithDemo = tplReplacer(html, {
-    css: `<style>\n${css}\n</style>\n`,
-    js: `<script>\n${js}\n</script>`,
-    dump: `<script type="midscene_web_dump" type="application/json">\n${demoData}\n</script>`,
-  });
-  writeFileSync(outputDemoHTML, resultWithDemo);
-  console.log(`HTML file generated successfully: ${outputDemoHTML}`);
-
-  const demoMobileData = readFileSync(demoMobilePath, 'utf-8');
-  const resultWithDemoMobile = tplReplacer(html, {
-    css: `<style>\n${css}\n</style>\n`,
-    js: `<script>\n${js}\n</script>`,
-    dump: `<script type="midscene_web_dump" type="application/json">\n${demoMobileData}\n</script>`,
-  });
-  writeFileSync(outputDemoMobileHTML, resultWithDemoMobile);
-  console.log(`HTML file generated successfully: ${outputDemoMobileHTML}`);
+  for (const demo of demoData) {
+    const demoData = readFileSync(
+      join(__dirname, `./fixture/${demo}.json`),
+      'utf-8',
+    );
+    const resultWithDemo = tplReplacer(html, {
+      css: `<style>\n${css}\n</style>\n`,
+      js: `<script>\n${js}\n</script>`,
+      dump: `<script type="midscene_web_dump" type="application/json">\n${demoData}\n</script>`,
+    });
+    const outputPath = join(__dirname, `../dist/report/${demo}.html`);
+    writeFileSync(outputPath, resultWithDemo);
+    console.log(`HTML file generated successfully: ${outputPath}`);
+  }
 
   const multiEntriesData = readFileSync(multiEntrySegment, 'utf-8');
   const resultWithMultiEntries = tplReplacer(html, {
