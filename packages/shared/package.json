@@ -46,33 +46,17 @@
   },
   "typesVersions": {
     "*": {
-      ".": [
-        "./src/index.ts"
-      ],
-      "constants": [
-        "./src/constants/index.ts"
-      ],
-      "img": [
-        "./src/img/index.ts"
-      ],
-      "fs": [
-        "./src/fs/index.ts"
-      ],
-      "utils": [
-        "./src/utils.ts"
-      ]
+      ".": ["./src/index.ts"],
+      "constants": ["./src/constants/index.ts"],
+      "img": ["./src/img/index.ts"],
+      "fs": ["./src/fs/index.ts"],
+      "utils": ["./src/utils.ts"]
     },
     "./browser": {
-      "*": [
-        "./dist/browser/*"
-      ]
+      "*": ["./dist/browser/*"]
     }
   },
-  "files": [
-    "dist",
-    "src",
-    "README.md"
-  ],
+  "files": ["dist", "src", "README.md"],
   "scripts": {
     "dev": "modern dev",
     "build": "modern build",
