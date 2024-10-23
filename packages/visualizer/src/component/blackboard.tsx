@@ -107,7 +107,7 @@ const Blackboard = (props: {
         const canvasEl = domRef.current;
         domRef.current.appendChild(app.canvas); // Ensure app.view is appended
         const { clientWidth } = domRef.current.parentElement!;
-        const targetHeight = window.innerHeight * 0.7;
+        const targetHeight = window.innerHeight * 0.5;
         const viewportRatio = clientWidth / targetHeight;
         if (screenWidth / screenHeight <= viewportRatio) {
           const ratio = targetHeight / screenHeight;

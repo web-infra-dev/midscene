@@ -4,21 +4,17 @@ import { modulePluginNodePolyfill } from '@modern-js/plugin-module-node-polyfill
 import { version } from './package.json';
 const externals = ['playwright', 'langsmith'];
 
-const aliasConfig = {
-  async_hooks: path.join(__dirname, './src/blank_polyfill.ts'),
-};
-
 export default defineConfig({
   buildConfig: [
     {
       asset: {
         svgr: true,
       },
-      alias: aliasConfig,
-      // alias: {
-      //   async_hooks: path.join(__dirname, './src/blank_polyfill.ts'),
-      // },
+      alias: {
+        async_hooks: path.join(__dirname, './src/blank_polyfill.ts'),
+      },
       format: 'umd',
+      dts: false,
       input: {
         report: 'src/index.tsx',
         playground: 'src/playground.tsx',
@@ -31,33 +27,16 @@ export default defineConfig({
       },
       autoExternal: false,
       externals: [...externals],
-      dts: false,
       platform: 'browser',
       outDir: 'dist',
       minify: {
-        compress: true,
+        compress: !!process.env.CI,
       },
       define: {
         __VERSION__: JSON.stringify(version),
         global: 'globalThis',
       },
     },
-    // {
-    //   asset: {
-    //     svgr: true,
-    //   },
-    //   format: 'esm',
-    //   input: {
-    //     index: 'src/index.tsx',
-    //   },
-    //   autoExternal: false,
-    //   externals: [],
-    //   dts: false,
-    //   platform: 'browser',
-    //   minify: {
-    //     compress: false,
-    //   },
-    // },
   ],
   plugins: [moduleTools(), modulePluginNodePolyfill()],
   buildPreset: 'npm-component',
