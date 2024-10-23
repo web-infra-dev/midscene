@@ -3,7 +3,7 @@ import { Helmet } from '@modern-js/runtime/head';
 import { Button, Empty, Spin, message } from 'antd';
 import { Form, Input } from 'antd';
 import { Radio } from 'antd';
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import ReactDOM from 'react-dom/client';
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
 import type { GroupedActionDump, UIContext } from '../../midscene/dist/types';
@@ -17,6 +17,13 @@ import { allScriptsFromDump } from './component/replay-scripts';
 import './playground.less';
 import Logo from './component/logo';
 import { serverBase, useServerValid } from './component/send-to-playground';
+
+import { allAIConfig, overrideAIConfig } from '@midscene/core';
+import {
+  ERROR_CODE_NOT_IMPLEMENTED_AS_DESIGNED,
+  StaticPage,
+  StaticPageAgent,
+} from '@midscene/web/browser/playground';
 
 const requestPlaygroundServer = async (
   context: UIContext,
@@ -32,6 +39,31 @@ const requestPlaygroundServer = async (
   });
   return res.json();
 };
+
+overrideAIConfig({
+  MIDSCENE_DEBUG_AI_PROFILE: '1',
+});
+
+const config = allAIConfig();
+console.log('config', config);
+
+console.log('StaticPageAgent', StaticPageAgent);
+console.log('StaticPage', StaticPage);
+console.log('DemoContext', DemoData);
+(window as any).StaticPageAgent = StaticPageAgent;
+(window as any).StaticPage = StaticPage;
+(window as any).DemoData = DemoData;
+
+const myPage = new StaticPage(DemoData as any);
+console.log('myPage', myPage);
+
+const myAgent = new StaticPageAgent(myPage);
+console.log('myAgent', myAgent);
+
+(window as any).myPage = myPage;
+(window as any).myAgent = myAgent;
+
+// (window as any).__dirname = '/polyfill/for_browser';
 
 const cacheKeyForPrompt = 'playground-user-prompt';
 const cacheKeyForType = 'playground-user-type';
@@ -55,16 +87,29 @@ const useContextId = () => {
 };
 
 const { TextArea } = Input;
+
+const useLocalAgent = (context: UIContext | null) => {
+  const agent = useMemo(() => {
+    if (!context) return null;
+    const page = new StaticPage(context as any);
+    return new StaticPageAgent(page);
+  }, [context]);
+  return agent;
+};
+
+interface PlaygroundResult {
+  result: any;
+  dump: GroupedActionDump | null;
+  error: string | null;
+}
+
 function Playground() {
   const contextId = useContextId();
   const [uiContext, setUiContext] = useState<UIContext | null>(null);
   const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState<{
-    result: any;
-    dump: GroupedActionDump | null;
-    error: string | null;
-  } | null>(null);
+  const [result, setResult] = useState<PlaygroundResult | null>(null);
   const [form] = Form.useForm();
+  const localAgent = useLocalAgent(uiContext);
 
   const [replayScriptsInfo, setReplayScriptsInfo] =
     useState<ReplayScriptsInfo | null>(null);
@@ -94,29 +139,48 @@ function Playground() {
     setLoading(true);
 
     setResult(null);
-    let res: any = null;
+    const result: PlaygroundResult = {
+      result: null,
+      dump: null,
+      error: null,
+    };
     try {
-      res = await requestPlaygroundServer(uiContext!, value.type, value.prompt);
-      setResult(res);
-    } catch (e) {
+      // res = await requestPlaygroundServer(uiContext!, value.type, value.prompt);
+      if (value.type === 'aiAction') {
+        result.result = await localAgent?.aiAction(value.prompt);
+      } else if (value.type === 'aiQuery') {
+        result.result = await localAgent?.aiQuery(value.prompt);
+      } else if (value.type === 'aiAssert') {
+        result.result = await localAgent?.aiAssert(value.prompt, undefined, {
+          keepRawResponse: true,
+        });
+      }
+    } catch (e: any) {
       console.error(e);
-      setResult({
-        error:
-          'Failed to run the prompt, please check the server console for more details',
-        result: null,
-        dump: null,
-      });
+      if (!e.message.includes(ERROR_CODE_NOT_IMPLEMENTED_AS_DESIGNED)) {
+        result.error = e.message;
+      }
     }
 
+    try {
+      result.dump = localAgent?.dumpDataString()
+        ? JSON.parse(localAgent.dumpDataString())
+        : null;
+    } catch (e) {
+      console.error(e);
+    }
+
+    setResult(result);
+
     setLoading(false);
-    if (value.type === 'aiAction' && res?.dump) {
-      const info = allScriptsFromDump(res.dump);
+    if (value.type === 'aiAction' && result?.dump) {
+      const info = allScriptsFromDump(result.dump);
       setReplayScriptsInfo(info);
       setReplayCounter((c) => c + 1);
     } else {
       setReplayScriptsInfo(null);
     }
-  }, [form, uiContext]);
+  }, [form, uiContext, localAgent]);
 
   let placeholder = 'What do you want to do?';
   const selectedType = Form.useWatch('type', form);
@@ -127,7 +191,7 @@ function Playground() {
     placeholder = 'What do you want to assert?';
   }
 
-  const runButtonDisabled = !uiContext || loading || !serverValid;
+  const runButtonDisabled = !uiContext || loading; // || ;
 
   // use cmd + enter to run
   useEffect(() => {
@@ -182,12 +246,6 @@ function Playground() {
     resultDataToShow = <pre>{result?.error}</pre>;
   }
 
-  const serverTip = !serverValid ? (
-    <>{iconForStatus('failed')} Connection failed</>
-  ) : (
-    <>{iconForStatus('connected')} Connected</>
-  );
-
   return (
     <div className="playground-container">
       <Helmet>
@@ -213,10 +271,6 @@ function Playground() {
             }}
           >
             <div className="playground-form-container">
-              <div className="form-part">
-                <h3>Playground Server</h3>
-                <div>{serverTip}</div>
-              </div>
               <div className="form-part context-panel">
                 <h3>UI Context</h3>
                 {uiContext ? (

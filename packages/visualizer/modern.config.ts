@@ -1,5 +1,12 @@
+import path from 'node:path';
 import { defineConfig, moduleTools } from '@modern-js/module-tools';
+import { modulePluginNodePolyfill } from '@modern-js/plugin-module-node-polyfill';
 import { version } from './package.json';
+const externals = ['playwright', 'langsmith'];
+
+const aliasConfig = {
+  async_hooks: path.join(__dirname, './src/blank_polyfill.ts'),
+};
 
 export default defineConfig({
   buildConfig: [
@@ -7,39 +14,32 @@ export default defineConfig({
       asset: {
         svgr: true,
       },
-      format: 'umd',
-      umdModuleName: 'midsceneVisualizer',
-      autoExternal: false,
-      externals: [],
-      dts: false,
-      platform: 'browser',
-      outDir: 'dist/report',
-      minify: {
-        compress: true,
-      },
-      define: {
-        __VERSION__: version,
-      },
-    },
-    {
-      asset: {
-        svgr: true,
-      },
+      alias: aliasConfig,
+      // alias: {
+      //   async_hooks: path.join(__dirname, './src/blank_polyfill.ts'),
+      // },
       format: 'umd',
       input: {
-        index: 'src/playground.tsx',
+        report: 'src/index.tsx',
+        playground: 'src/playground.tsx',
       },
-      umdModuleName: 'midscenePlayground',
+      umdModuleName: (path) => {
+        if (path.includes('playground')) {
+          return 'midscenePlayground';
+        }
+        return 'midsceneVisualizer';
+      },
       autoExternal: false,
-      externals: [],
+      externals: [...externals],
       dts: false,
       platform: 'browser',
-      outDir: 'dist/playground',
+      outDir: 'dist',
       minify: {
         compress: true,
       },
       define: {
         __VERSION__: JSON.stringify(version),
+        global: 'globalThis',
       },
     },
     // {
@@ -59,6 +59,6 @@ export default defineConfig({
     //   },
     // },
   ],
-  plugins: [moduleTools()],
+  plugins: [moduleTools(), modulePluginNodePolyfill()],
   buildPreset: 'npm-component',
 });

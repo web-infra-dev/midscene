@@ -19,11 +19,11 @@ import {
 import { dirname, join } from 'node:path';
 
 const reportHTMLPath = join(__dirname, '../html/report.html');
-const reportCSSPath = join(__dirname, '../dist/report/index.css');
-const reportJSPath = join(__dirname, '../dist/report/index.js');
+const reportCSSPath = join(__dirname, '../dist/report.css');
+const reportJSPath = join(__dirname, '../dist/report.js');
 const playgroundHTMLPath = join(__dirname, '../html/playground.html');
-const playgroundCSSPath = join(__dirname, '../dist/playground/index.css');
-const playgroundJSPath = join(__dirname, '../dist/playground/index.js');
+const playgroundCSSPath = join(__dirname, '../dist/playground.css');
+const playgroundJSPath = join(__dirname, '../dist/playground.js');
 const demoPath = join(__dirname, './fixture/demo-dump.json');
 const demoMobilePath = join(__dirname, './fixture/demo-mobile-dump.json');
 const multiEntrySegment = join(__dirname, './fixture/multi-entries.html');
@@ -79,6 +79,7 @@ function buildPlayground() {
     js: `<script>\n${js}\n</script>`,
   });
 
+  ensureDirectoryExistence(outputPlaygroundHTML);
   writeFileSync(outputPlaygroundHTML, result);
   console.log(`HTML file generated successfully: ${outputPlaygroundHTML}`);
   copyToWebIntegration();
@@ -95,6 +96,7 @@ function buildReport() {
   });
 
   assert(result.length >= 1000);
+  ensureDirectoryExistence(outputHTML);
   writeFileSync(outputHTML, result);
   console.log(`HTML file generated successfully: ${outputHTML}`);
 

@@ -4,6 +4,7 @@ import { defineConfig, moduleTools } from '@modern-js/module-tools';
 export default defineConfig({
   plugins: [moduleTools()],
   buildConfig: {
+    platform: 'browser',
     buildType: 'bundle',
     format: 'iife',
     dts: false,

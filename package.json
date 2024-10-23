@@ -37,7 +37,7 @@
   },
   "packageManager": "pnpm@9.3.0",
   "devDependencies": {
-    "@biomejs/biome": "1.8.3",
+    "@biomejs/biome": "1.9.4",
     "@changesets/cli": "2.24.1",
     "@commitlint/cli": "^17.8.1",
     "@esm2cjs/execa": "6.1.1-cjs.1",

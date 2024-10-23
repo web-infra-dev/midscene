@@ -10,7 +10,9 @@
     "lib": ["DOM", "ESNext"],
     "moduleResolution": "node",
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "@midscene/core/*": ["./node_modules/@midscene/core/browser/*"],
+      "@midscene/shared/*": ["./node_modules/@midscene/shared/browser/*"]
     },
     "resolveJsonModule": true,
     "rootDir": "src",
