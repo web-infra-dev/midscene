@@ -16,8 +16,16 @@ export default defineConfig({
   buildConfig: [
     {
       platform: 'node',
+      format: 'cjs',
       ...commonConfig,
       outDir: 'dist/lib',
+      target: 'es2017',
+    },
+    {
+      platform: 'node',
+      format: 'esm',
+      ...commonConfig,
+      outDir: 'dist/es',
       target: 'es2017',
     },
     {
