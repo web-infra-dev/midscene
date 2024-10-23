@@ -24,6 +24,8 @@ import {
   StaticPage,
   StaticPageAgent,
 } from '@midscene/web/browser/playground';
+import { EnvConfig } from './component/env-config';
+import { useEnvConfig } from './component/store';
 
 const requestPlaygroundServer = async (
   context: UIContext,
@@ -110,12 +112,16 @@ export function Playground({
   hideLogo?: boolean;
 }) {
   const contextId = useContextId();
+  const [serviceMode, setServiceMode] = useState<'server' | 'in-browser'>(
+    'server',
+  );
   const [uiContext, setUiContext] = useState<UIContext | null>(
     propsContext || null,
   );
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<PlaygroundResult | null>(null);
   const [form] = Form.useForm();
+
   const localAgent = useLocalAgent(uiContext);
 
   const [replayScriptsInfo, setReplayScriptsInfo] =
@@ -123,6 +129,7 @@ export function Playground({
   const [replayCounter, setReplayCounter] = useState(0);
 
   const serverValid = useServerValid();
+  const { config } = useEnvConfig();
 
   useEffect(() => {
     if (!uiContext && contextId) {
@@ -144,16 +151,20 @@ export function Playground({
 
     setCache(value.prompt, value.type);
     setLoading(true);
-
     setResult(null);
-    const result: PlaygroundResult = {
+    let result: PlaygroundResult = {
       result: null,
       dump: null,
       error: null,
     };
     try {
-      // res = await requestPlaygroundServer(uiContext!, value.type, value.prompt);
-      if (value.type === 'aiAction') {
+      if (serviceMode === 'server') {
+        result = await requestPlaygroundServer(
+          uiContext!,
+          value.type,
+          value.prompt,
+        );
+      } else if (value.type === 'aiAction') {
         result.result = await localAgent?.aiAction(value.prompt);
       } else if (value.type === 'aiQuery') {
         result.result = await localAgent?.aiQuery(value.prompt);
@@ -170,15 +181,16 @@ export function Playground({
     }
 
     try {
-      result.dump = localAgent?.dumpDataString()
-        ? JSON.parse(localAgent.dumpDataString())
-        : null;
+      if (serviceMode === 'in-browser') {
+        result.dump = localAgent?.dumpDataString()
+          ? JSON.parse(localAgent.dumpDataString())
+          : null;
+      }
     } catch (e) {
       console.error(e);
     }
 
     setResult(result);
-
     setLoading(false);
     if (value.type === 'aiAction' && result?.dump) {
       const info = allScriptsFromDump(result.dump);
@@ -253,6 +265,12 @@ export function Playground({
     resultDataToShow = <pre>{result?.error}</pre>;
   }
 
+  const serverTip = !serverValid ? (
+    <div>{iconForStatus('failed')} Connection failed</div>
+  ) : (
+    <div>{iconForStatus('connected')} Connected</div>
+  );
+
   return (
     <div className="playground-container">
       <Helmet>
@@ -280,6 +298,10 @@ export function Playground({
             }}
           >
             <div className="playground-form-container">
+              <div className="form-part">
+                <h3>Config</h3>
+                <EnvConfig />
+              </div>
               <div className="form-part context-panel">
                 <h3>UI Context</h3>
                 {uiContext ? (

@@ -1,6 +1,8 @@
 {
   "$schema": "https://biomejs.dev/schemas/1.8.3/schema.json",
-  "organizeImports": { "enabled": true },
+  "organizeImports": {
+    "enabled": true
+  },
   "files": {
     "ignore": [
       "node_modules/**",
@@ -28,10 +30,20 @@
     "enabled": true,
     "rules": {
       "recommended": true,
-      "a11y": { "useKeyWithClickEvents": "off" },
-      "style": { "noParameterAssign": "off", "noNonNullAssertion": "off" },
-      "correctness": { "useExhaustiveDependencies": "off" },
-      "complexity": { "noForEach": "off" },
+      "a11y": {
+        "useKeyWithClickEvents": "off",
+        "useValidAnchor": "off"
+      },
+      "style": {
+        "noParameterAssign": "off",
+        "noNonNullAssertion": "off"
+      },
+      "correctness": {
+        "useExhaustiveDependencies": "off"
+      },
+      "complexity": {
+        "noForEach": "off"
+      },
       "suspicious": {
         "noExplicitAny": "off",
         "noArrayIndexKey": "off",
@@ -41,9 +53,17 @@
   },
   "overrides": [
     {
-      "include": ["*.ts", "*.d.ts", "*.tsx"],
-      "ignore": [".nx"],
-      "linter": { "rules": {} }
+      "include": [
+        "*.ts",
+        "*.d.ts",
+        "*.tsx"
+      ],
+      "ignore": [
+        ".nx"
+      ],
+      "linter": {
+        "rules": {}
+      }
     }
   ],
   "vcs": {

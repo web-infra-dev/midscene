@@ -1,13 +1,11 @@
 import * as Z from 'zustand';
 // import { createStore } from 'zustand/vanilla';
 import type {
-  BaseElement,
   ExecutionDump,
   ExecutionTask,
   ExecutionTaskInsightLocate,
   GroupedActionDump,
   InsightDump,
-  UIContext,
 } from '../../../midscene/dist/types';
 import type { AnimationScript } from './replay-scripts';
 import { allScriptsFromDump, generateAnimationScripts } from './replay-scripts';
@@ -28,6 +26,45 @@ export const useBlackboardPreference = create<{
     set({ elementsVisible: visible });
   },
 }));
+
+const CONFIG_KEY = 'midscene-env-config';
+const getConfigStringFromLocalStorage = () => {
+  const configString = localStorage.getItem(CONFIG_KEY);
+  return configString || '';
+};
+export const useEnvConfig = create<{
+  config: Record<string, string>;
+  configString: string;
+  setConfig: (config: Record<string, string>) => void;
+  loadConfig: (configString: string) => void;
+}>((set) => {
+  const parseConfig = (configString: string) => {
+    const lines = configString.split('\n');
+    const config: Record<string, string> = {};
+    lines.forEach((line) => {
+      const trimmed = line.trim();
+      if (trimmed.startsWith('#')) return;
+
+      const cleanLine = trimmed.replace(/^export\s+/i, '');
+      const [key, value] = cleanLine.split('=');
+      config[key] = value;
+    });
+    return config;
+  };
+
+  const configString = getConfigStringFromLocalStorage();
+  const config = parseConfig(configString);
+  return {
+    config,
+    configString,
+    setConfig: (config) => set({ config }),
+    loadConfig: (configString: string) => {
+      const config = parseConfig(configString);
+      set({ config, configString });
+      localStorage.setItem(CONFIG_KEY, configString);
+    },
+  };
+});
 
 export const useExecutionDump = create<{
   dump: GroupedActionDump | null;
