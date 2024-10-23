@@ -67,7 +67,7 @@ export class Page<
       writeFileSync(path, buf);
     }
 
-    return base64Encoded(path);
+    return base64Encoded(path, true);
   }
 
   url(): string {
