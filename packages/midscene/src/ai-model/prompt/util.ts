@@ -276,6 +276,11 @@ export async function describeUserPage<
   "content": ${JSON.stringify(elementInfosDescription)}
       
 }`, // // json description of the element
+    descriptionSizeOnly: `
+    {
+      // The size of the page
+      "pageSize": ${describeSize({ width, height })},
+    }`,
     elementById(id: string) {
       assert(typeof id !== 'undefined', 'id is required for query');
       const item = idElementMap[`${id}`];

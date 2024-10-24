@@ -6,6 +6,7 @@ import {
   callAiFn,
   transformUserMessages,
 } from '../common';
+import { MIDSCENE_MODEL_TEXT_ONLY } from '../openai';
 import { systemPromptToTaskPlanning } from '../prompt/planning';
 import { describeUserPage } from '../prompt/util';
 
@@ -21,7 +22,8 @@ export async function plan(
 }> {
   const { callAI, context } = opts || {};
   const { screenshotBase64 } = context;
-  const { description: pageDescription } = await describeUserPage(context);
+  const { description: pageDescription, descriptionSizeOnly } =
+    await describeUserPage(context);
   let planFromAI: PlanningAIResponse | undefined;
 
   const systemPrompt = systemPromptToTaskPlanning();
@@ -41,7 +43,11 @@ export async function plan(
           type: 'text',
           text: `
             pageDescription:\n 
-            ${pageDescription}
+            ${
+              process.env[MIDSCENE_MODEL_TEXT_ONLY]
+                ? pageDescription
+                : descriptionSizeOnly
+            }
             \n
             Here is the description of the task. Just go ahead:
             =====================================
