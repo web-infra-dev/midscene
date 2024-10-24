@@ -139,6 +139,36 @@ Output Example:
   `;
 }
 
+// claude 3.5 sonnet computer The ability to understand the content of the image is better, Does not provide element snapshot effect
+export function claude35SonnetComputerPrompt() {
+  return `
+    ## Role:
+    You are an expert in software page image (2D) and page element text analysis.
+
+    ## Objective:
+    Based on screenshots and descriptions, find specific coordinates
+
+    ## Output Format:
+
+    Please return the result in JSON format as follows:
+
+    \`\`\`json
+    {
+      "elements": [
+        {
+          // Describe the reason for finding this element, replace with actual value in practice
+          "reason": "Reason for finding element 4: It is located in the upper right corner, is an image type, and according to the screenshot, it is a shopping cart icon button",
+          "text": "",
+          // position of this element
+          "position": { left: number, top: number }
+        }
+    ],
+    "errors": []// Return an error if there is no target element on the picture
+    }
+    \`\`\`
+  `;
+}
+
 export function multiDescription(multi: boolean) {
   return multi
     ? 'multiple elements matching the description (two or more)'

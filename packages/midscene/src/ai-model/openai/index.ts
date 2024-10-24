@@ -16,6 +16,9 @@ export const MIDSCENE_DEBUG_AI_PROFILE = 'MIDSCENE_DEBUG_AI_PROFILE';
 export const OPENAI_API_KEY = 'OPENAI_API_KEY';
 export const MIDSCENE_MODEL_TEXT_ONLY = 'MIDSCENE_MODEL_TEXT_ONLY';
 
+export const IS_CLAUDE_3_5_SONNET_COMPUTER_MODEL =
+  process.env[MIDSCENE_MODEL_NAME] === 'claude-3-5-sonnet-20241022';
+
 const OPENAI_USE_AZURE = 'OPENAI_USE_AZURE';
 
 export function useOpenAIModel(useModel?: 'coze' | 'openAI') {
@@ -27,10 +30,16 @@ export function useOpenAIModel(useModel?: 'coze' | 'openAI') {
 
 // default model
 const defaultModel = 'gpt-4o';
+let hasLoggedModel = false;
+let hasLoggedConfig = false;
+
 export function getModelName() {
   let model = defaultModel;
   if (typeof process.env[MIDSCENE_MODEL_NAME] === 'string') {
-    console.log(`model: ${process.env[MIDSCENE_MODEL_NAME]}`);
+    if (!hasLoggedModel) {
+      console.log(`model: ${process.env[MIDSCENE_MODEL_NAME]}`);
+      hasLoggedModel = true;
+    }
     model = process.env[MIDSCENE_MODEL_NAME];
   }
   return model;
@@ -43,7 +52,10 @@ function getExtraConfig() {
     typeof process.env[MIDSCENE_OPENAI_INIT_CONFIG_JSON] === 'string' &&
     process.env[MIDSCENE_OPENAI_INIT_CONFIG_JSON]
   ) {
-    console.log('config for OpenAI loaded');
+    if (!hasLoggedConfig) {
+      console.log('config for OpenAI loaded');
+      hasLoggedConfig = true;
+    }
     extraConfig = JSON.parse(process.env[MIDSCENE_OPENAI_INIT_CONFIG_JSON]);
   }
   return extraConfig;

@@ -3,6 +3,7 @@ import { imageInfoOfBase64 } from '@/image';
 import type {
   BaseElement,
   BasicSectionQuery,
+  Point,
   Size,
   UIContext,
   UISection,
@@ -244,6 +245,22 @@ export function truncateText(text: string) {
   return text;
 }
 
+export function elementByPosition(
+  elementsInfo: BaseElement[],
+  position: Point,
+) {
+  assert(typeof position !== 'undefined', 'position is required for query');
+  const item = elementsInfo.find((item) => {
+    return (
+      item.rect.left <= position.left &&
+      position.left <= item.rect.left + item.rect.width &&
+      item.rect.top <= position.top &&
+      position.top <= item.rect.top + item.rect.height
+    );
+  });
+  return item;
+}
+
 export async function describeUserPage<
   ElementType extends BaseElement = BaseElement,
 >(context: Omit<UIContext<ElementType>, 'describer'>) {
@@ -277,14 +294,17 @@ export async function describeUserPage<
       
 }`, // // json description of the element
     descriptionSizeOnly: `
-    {
-      // The size of the page
-      "pageSize": ${describeSize({ width, height })},
-    }`,
+{
+  // The size of the page
+  "pageSize": ${describeSize({ width, height })},
+}`,
     elementById(id: string) {
       assert(typeof id !== 'undefined', 'id is required for query');
       const item = idElementMap[`${id}`];
       return item;
+    },
+    elementByPosition(position: Point) {
+      return elementByPosition(elementsInfo, position);
     },
   };
 }

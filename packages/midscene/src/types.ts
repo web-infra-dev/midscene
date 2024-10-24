@@ -52,16 +52,37 @@ export enum AIResponseFormat {
   TEXT = 'text',
 }
 
-export interface AISingleElementResponse {
-  id: string;
-  reason: string;
-  text: string;
-}
+export type AISingleElementResponse =
+  | {
+      id: string;
+      reason: string;
+      text: string;
+    }
+  | {
+      position: Point;
+      reason: string;
+      text: string;
+    };
 
-export interface AIElementParseResponse {
-  elements: AISingleElementResponse[];
+export interface AIElementIdResponse {
+  elements: {
+    id: string;
+    reason: string;
+    text: string;
+  }[];
   errors?: string[];
 }
+
+export interface AIElementPositionResponse {
+  elements: {
+    position: Point;
+    reason: string;
+    text: string;
+  }[];
+  errors?: string[];
+}
+
+export type AIElementReponse = AIElementIdResponse | AIElementPositionResponse;
 
 export interface AISectionParseResponse<DataShape> {
   data: DataShape;
@@ -120,6 +141,7 @@ export type InsightExtractParam = string | Record<string, string>;
 
 export interface InsightTaskInfo {
   durationMs: number;
+  formatResponse?: string;
   rawResponse?: string;
 }
 

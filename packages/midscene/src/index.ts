@@ -3,7 +3,7 @@ import Insight from './insight';
 import { getElement, getSection } from './query';
 import { setLogDir } from './utils';
 
-export { plan } from './ai-model';
+export { plan, transformElementPositionToId } from './ai-model';
 
 export * from './types';
 export default Insight;
