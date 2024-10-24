@@ -18,7 +18,8 @@
       "test-results/**",
       "script_get_all_texts.tmp.js",
       "**/playwright-report/**",
-      "**/todo-report.spec.ts-snapshots/**"
+      "**/todo-report.spec.ts-snapshots/**",
+      "**/visualizer/scripts/fixture/*"
     ]
   },
   "javascript": {
@@ -53,14 +54,8 @@
   },
   "overrides": [
     {
-      "include": [
-        "*.ts",
-        "*.d.ts",
-        "*.tsx"
-      ],
-      "ignore": [
-        ".nx"
-      ],
+      "include": ["*.ts", "*.d.ts", "*.tsx"],
+      "ignore": [".nx"],
       "linter": {
         "rules": {}
       }

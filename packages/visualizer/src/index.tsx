@@ -337,7 +337,6 @@ function PlaywrightCaseSelector(props: {
       key: index,
       label: (
         <a
-          // biome-ignore lint/a11y/useValidAnchor: <explanation>
           onClick={(e) => {
             e.preventDefault();
             if (props.onSelect) {
@@ -363,7 +362,6 @@ function PlaywrightCaseSelector(props: {
   return (
     <div className="playwright-case-selector">
       <Dropdown menu={{ items }}>
-        {/* biome-ignore lint/a11y/useValidAnchor: <explanation> */}
         <a onClick={(e) => e.preventDefault()}>
           {btnName}&nbsp;
           <DownOutlined />
