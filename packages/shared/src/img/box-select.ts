@@ -170,19 +170,19 @@ const createSvgOverlay = (
         this.bitmap.data[idx + 3] = color.rect & 0xff; // A
       });
       // Draw text (simplified, as Jimp doesn't have built-in text drawing)
-      // const font = await Jimp.loadFont(Jimp.FONT_SANS_16_WHITE);
-      // image.print(
-      //   font,
-      //   rectX,
-      //   rectY,
-      //   {
-      //     text: element.indexId.toString(),
-      //     alignmentX: Jimp.HORIZONTAL_ALIGN_CENTER,
-      //     alignmentY: Jimp.VERTICAL_ALIGN_MIDDLE,
-      //   },
-      //   rectWidth,
-      //   rectHeight,
-      // );
+      const font = await Jimp.loadFont(Jimp.FONT_SANS_16_WHITE);
+      image.print(
+        font,
+        rectX,
+        rectY,
+        {
+          text: element.indexId.toString(),
+          alignmentX: Jimp.HORIZONTAL_ALIGN_CENTER,
+          alignmentY: Jimp.VERTICAL_ALIGN_MIDDLE,
+        },
+        rectWidth,
+        rectHeight,
+      );
     }
 
     return image.getBufferAsync(Jimp.MIME_PNG);
