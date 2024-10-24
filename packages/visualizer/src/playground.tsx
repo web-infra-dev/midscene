@@ -13,9 +13,6 @@ import Player from './component/player';
 import DemoData from './component/playground-demo-ui-context.json';
 import type { ReplayScriptsInfo } from './component/replay-scripts';
 import { allScriptsFromDump } from './component/replay-scripts';
-
-import fs from 'node:fs';
-
 import './playground.less';
 import Logo from './component/logo';
 import { serverBase, useServerValid } from './component/open-in-playground';
@@ -28,8 +25,6 @@ import {
 } from '@midscene/web/browser/playground';
 import { EnvConfig } from './component/env-config';
 import { useEnvConfig } from './component/store';
-
-console.log('fs', fs);
 
 const requestPlaygroundServer = async (
   context: UIContext,
