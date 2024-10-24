@@ -1,24 +1,24 @@
 {
-    "name": "doc",
-    "version": "1.0.0",
-    "private": true,
-    "scripts": {
-        "dev": "rspress dev",
-        "build": "rspress build",
-        "preview": "rspress preview"
-    },
-    "engines": {
-        "pnpm": ">=9.3.0",
-        "node": ">=18.19.0"
-    },
-    "packageManager": "pnpm@9.3.0",
-    "dependencies": {
-        "react": "^18.2.0",
-        "react-dom": "^18.2.0",
-        "querystring": "0.2.1",
-        "rspress": "1.34.1"
-    },
-    "devDependencies": {
-        "@types/node": "^18.0.0"
-    }
+  "name": "doc",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "rspress dev",
+    "build": "rspress build",
+    "preview": "rspress preview"
+  },
+  "engines": {
+    "pnpm": ">=9.3.0",
+    "node": ">=18.19.0"
+  },
+  "packageManager": "pnpm@9.3.0",
+  "dependencies": {
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "querystring": "0.2.1",
+    "rspress": "1.34.1"
+  },
+  "devDependencies": {
+    "@types/node": "^18.0.0"
+  }
 }
