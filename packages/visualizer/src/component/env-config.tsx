@@ -1,5 +1,6 @@
-import { Button, Input, Modal } from 'antd';
+import { Input, Modal } from 'antd';
 import { useState } from 'react';
+import { iconForStatus } from './misc';
 import { useEnvConfig } from './store';
 
 export function EnvConfig() {
@@ -21,18 +22,36 @@ export function EnvConfig() {
     setIsModalOpen(false);
   };
 
-  const configList = Object.entries(config).map(([key, value]) => (
-    <div key={key}>
-      <span>{key}: **</span>
-    </div>
-  ));
+  const configTip =
+    Object.keys(config).length === 0 ? (
+      <div>
+        {iconForStatus('failed')} No config, please{' '}
+        <a href="#" onClick={showModal}>
+          set up
+        </a>
+        .
+      </div>
+    ) : (
+      <div>
+        <div>
+          {Object.entries(config).map(([key, value]) => (
+            <div key={key}>
+              <span>
+                {iconForStatus('success')} {key}:{' '}
+                {key === 'MIDSCENE_MODEL_NAME' ? value : '***'}
+              </span>
+            </div>
+          ))}
+        </div>
+        <div>
+          <a onClick={showModal}>Edit</a>
+        </div>
+      </div>
+    );
 
   return (
     <div>
-      <div>{configList}</div>
-      <div>
-        <a onClick={showModal}>Edit</a>
-      </div>
+      {configTip}
       <Modal
         title="Env Config"
         open={isModalOpen}
