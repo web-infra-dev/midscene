@@ -3,6 +3,7 @@ import type { UIContext } from '@midscene/core/.';
 import { Button, Drawer, Tooltip } from 'antd';
 import { useEffect, useState } from 'react';
 import { Playground } from '../playground';
+import { useEnvConfig } from './store';
 
 declare const __VERSION__: string;
 
@@ -32,9 +33,11 @@ const checkServerStatus = async () => {
 
 export const useServerValid = () => {
   const [serverValid, setServerValid] = useState(false);
+  const { serviceMode } = useEnvConfig();
 
   useEffect(() => {
     let interruptFlag = false;
+    if (serviceMode !== 'Server') return;
     Promise.resolve(
       (async () => {
         while (!interruptFlag) {
@@ -53,7 +56,7 @@ export const useServerValid = () => {
     return () => {
       interruptFlag = true;
     };
-  }, []);
+  }, [serviceMode]);
 
   return serverValid;
 };
