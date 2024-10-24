@@ -1,9 +1,10 @@
 import assert from 'node:assert';
-import { Buffer } from 'node:buffer';
+import type { Buffer } from 'node:buffer';
 import type { Rect } from '@/types';
 import type Jimp from 'jimp';
 import type { NodeType } from '../constants';
 import getJimp from './get-jimp';
+import { bufferFromBase64, imageInfo } from './index';
 
 // Define picture path
 type ElementType = {
@@ -196,9 +197,8 @@ export const compositeElementInfoImg = async (options: {
 }) => {
   const Jimp = await getJimp();
   const { inputImgBase64, elementsPositionInfo } = options;
-  const imageBuffer = Buffer.from(inputImgBase64, 'base64');
-  const image = await Jimp.read(imageBuffer);
-  const { width, height } = image.bitmap;
+  const imageBuffer = await bufferFromBase64(inputImgBase64);
+  const { width, height } = await imageInfo(imageBuffer);
 
   if (!width || !height) {
     throw Error('Image processing failed because width or height is undefined');

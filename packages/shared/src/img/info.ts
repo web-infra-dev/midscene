@@ -41,9 +41,15 @@ export async function imageInfo(image: string | Buffer): Promise<Size> {
  * @throws Error if the image data is invalid
  */
 export async function imageInfoOfBase64(imageBase64: string): Promise<Size> {
-  const base64Data = imageBase64.replace(/^data:image\/\w+;base64,/, '');
+  // const base64Data = imageBase64.replace(/^data:image\/\w+;base64,/, '');
   // Call the imageInfo function to get the dimensions of the image
-  return imageInfo(Buffer.from(base64Data, 'base64'));
+  const buffer = await bufferFromBase64(imageBase64);
+  return imageInfo(buffer);
+}
+
+export async function bufferFromBase64(imageBase64: string): Promise<Buffer> {
+  const base64Data = imageBase64.replace(/^data:image\/\w+;base64,/, '');
+  return Buffer.from(base64Data, 'base64');
 }
 
 /**
