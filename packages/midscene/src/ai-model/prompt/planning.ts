@@ -49,7 +49,7 @@ If the action type is 'Locate', provide a quick answer: Does any element meet th
 {
   "reason": "Reason for finding element 4: It is located in the upper right corner, is an image type, and according to the screenshot, it is a shopping cart icon button",
   "text": "PLACEHOLDER", // Replace PLACEHOLDER with the text of elementInfo, if none, leave empty
-  ${IS_CLAUDE_3_5_SONNET_COMPUTER_MODEL ? 'position: { left: 100, top: 100, width: 100, height: 100 } // position of this element, replace with actual value in practice' : '"id": "wefew2222few2" // id of this element, replace with actual value in practice'}
+  ${IS_CLAUDE_3_5_SONNET_COMPUTER_MODEL ? 'position: { left: 100, top: 100 } // position of this element, replace with actual value in practice' : '"id": "wefew2222few2" // id of this element, replace with actual value in practice'}
 }
 
 If there is no element meets the description in the prompt (usually because it will show up later after some interaction), the \`quickAnswer\` field should be null.
