@@ -8,24 +8,25 @@ interface PkgInfo {
   dir: string;
 }
 
-let pkg: PkgInfo | undefined;
+const pkgCacheMap: Record<string, PkgInfo> = {};
 const ifInBrowser = typeof window !== 'undefined';
 export function getRunningPkgInfo(dir?: string): PkgInfo | null {
   if (ifInBrowser) {
     return null;
   }
-  if (pkg) {
-    return pkg;
+  const dirToCheck = dir || process.cwd();
+  if (pkgCacheMap[dirToCheck]) {
+    return pkgCacheMap[dirToCheck];
   }
 
-  const pkgDir = findNearestPackageJson(dir || process.cwd());
+  const pkgDir = findNearestPackageJson(dirToCheck);
   assert(pkgDir, 'package.json not found');
   const pkgJsonFile = join(pkgDir, 'package.json');
 
   if (pkgJsonFile) {
     const { name, version } = JSON.parse(readFileSync(pkgJsonFile, 'utf-8'));
-    pkg = { name, version, dir: pkgDir };
-    return pkg;
+    pkgCacheMap[dirToCheck] = { name, version, dir: pkgDir };
+    return pkgCacheMap[dirToCheck];
   }
   return {
     name: 'midscene-unknown-package-name',

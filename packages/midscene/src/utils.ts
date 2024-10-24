@@ -36,13 +36,14 @@ export function writeDumpReport(
     console.log('will not write report in browser');
     return null;
   }
-  const runningPkgInfo = getRunningPkgInfo();
-  if (!runningPkgInfo) {
-    console.warn('runningPkgInfo not found, will not write report');
+
+  const midscenePkgInfo = getRunningPkgInfo(__dirname);
+  if (!midscenePkgInfo) {
+    console.warn('midscenePkgInfo not found, will not write report');
     return null;
   }
 
-  const { dir } = runningPkgInfo;
+  const { dir } = midscenePkgInfo;
   const reportTplPath = join(dir, './report/index.html');
   existsSync(reportTplPath) ||
     assert(false, `report template not found: ${reportTplPath}`);
@@ -54,12 +55,12 @@ export function writeDumpReport(
     typeof dumpData === 'undefined'
   ) {
     reportContent = tpl.replace(
-      '{{dump}}',
+      /\s+{{dump}}\s+/,
       '<script type="midscene_web_dump" type="application/json"></script>',
     );
   } else if (typeof dumpData === 'string') {
     reportContent = tpl.replace(
-      '{{dump}}',
+      /\s+{{dump}}\s+/,
       `<script type="midscene_web_dump" type="application/json">${dumpData}</script>`,
     );
   } else {
@@ -69,7 +70,7 @@ export function writeDumpReport(
       });
       return `<script type="midscene_web_dump" type="application/json" ${attributesArr.join(' ')}>\n${dumpString}\n</script>`;
     });
-    reportContent = tpl.replace('{{dump}}', dumps.join('\n'));
+    reportContent = tpl.replace(/\s+{{dump}}\s+/, dumps.join('\n'));
   }
   writeFileSync(reportPath, reportContent);
 

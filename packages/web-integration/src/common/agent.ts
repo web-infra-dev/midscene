@@ -116,7 +116,7 @@ export class PageAgent {
     this.appendExecutionDump(executor.dump());
     this.writeOutActionDumps();
 
-    if (opt?.keepRawResponse) {
+    if (output && opt?.keepRawResponse) {
       return output;
     }
 

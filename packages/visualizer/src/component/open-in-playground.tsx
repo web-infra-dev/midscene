@@ -4,6 +4,7 @@ import { Button, Drawer, Tooltip } from 'antd';
 import { useEffect, useState } from 'react';
 import { Playground } from '../playground';
 import { useEnvConfig } from './store';
+import './open-in-playground.less';
 
 declare const __VERSION__: string;
 
@@ -122,6 +123,7 @@ export default function OpenInPlayground(props?: { context?: UIContext }) {
         styles={{
           header: { display: 'none' },
         }}
+        className="playground-drawer"
       >
         <Playground
           propsContext={context}
