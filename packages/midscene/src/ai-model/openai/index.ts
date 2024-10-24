@@ -21,13 +21,18 @@ export const OPENAI_USE_AZURE = 'OPENAI_USE_AZURE';
 export const MIDSCENE_CACHE = 'MIDSCENE_CACHE';
 
 let config: Record<string, string | undefined> = {
-  [OPENAI_API_KEY]: process.env[OPENAI_API_KEY] || undefined,
   [MIDSCENE_OPENAI_INIT_CONFIG_JSON]:
     process.env[MIDSCENE_OPENAI_INIT_CONFIG_JSON] || undefined,
+  [MIDSCENE_MODEL_NAME]: process.env[MIDSCENE_MODEL_NAME] || undefined,
+  [MIDSCENE_LANGSMITH_DEBUG]:
+    process.env[MIDSCENE_LANGSMITH_DEBUG] || undefined,
+  [MIDSCENE_DEBUG_AI_PROFILE]:
+    process.env[MIDSCENE_DEBUG_AI_PROFILE] || undefined,
+  [OPENAI_API_KEY]: process.env[OPENAI_API_KEY] || undefined,
   [OPENAI_BASE_URL]: process.env[OPENAI_BASE_URL] || undefined,
-  [OPENAI_USE_AZURE]: process.env[OPENAI_USE_AZURE] || undefined,
   [MIDSCENE_MODEL_TEXT_ONLY]:
     process.env[MIDSCENE_MODEL_TEXT_ONLY] || undefined,
+  [OPENAI_USE_AZURE]: process.env[OPENAI_USE_AZURE] || undefined,
   [MIDSCENE_CACHE]: process.env[MIDSCENE_CACHE] || undefined,
 };
 
