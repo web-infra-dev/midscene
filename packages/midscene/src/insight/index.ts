@@ -6,7 +6,7 @@ import {
 } from '@/ai-model/index';
 import { AiAssert, callAiFn } from '@/ai-model/inspect';
 import type {
-  AIElementParseResponse,
+  AIElementReponse,
   AISingleElementResponse,
   BaseElement,
   DumpSubscriber,
@@ -39,7 +39,7 @@ const sortByOrder = (a: UISection, b: UISection) => {
 
 export interface LocateOpts {
   multi?: boolean;
-  callAI?: typeof callAiFn<AIElementParseResponse>;
+  callAI?: typeof callAiFn<AIElementReponse>;
   quickAnswer?: AISingleElementResponse;
 }
 
@@ -83,7 +83,7 @@ export default class Insight<
   async locate(
     queryPrompt: string,
     opt?: {
-      callAI?: typeof callAiFn<AIElementParseResponse>;
+      callAI?: typeof callAiFn<AIElementReponse>;
       quickAnswer?: AISingleElementResponse | null;
     },
   ): Promise<ElementType | null>;
@@ -99,7 +99,7 @@ export default class Insight<
     const context = await this.contextRetrieverFn();
 
     const startTime = Date.now();
-    const { parseResult, elementById } = await AiInspectElement({
+    const { parseResult, elementById, rawResponse } = await AiInspectElement({
       callAI,
       context,
       multi: Boolean(multi),
@@ -111,7 +111,8 @@ export default class Insight<
     const taskInfo: InsightTaskInfo = {
       ...(this.taskInfo ? this.taskInfo : {}),
       durationMs: timeCost,
-      rawResponse: JSON.stringify(parseResult),
+      rawResponse: JSON.stringify(rawResponse),
+      formatResponse: JSON.stringify(parseResult),
     };
 
     let errorLog: string | undefined;
@@ -141,15 +142,17 @@ export default class Insight<
 
     const elements: BaseElement[] = [];
     parseResult.elements.forEach((item) => {
-      const element = elementById(item.id);
+      if (item.id) {
+        const element = elementById(item.id);
 
-      if (!element) {
-        console.warn(
-          `locate: cannot find element id=${item.id}. Maybe an unstable response from AI model`,
-        );
-        return;
+        if (!element) {
+          console.warn(
+            `locate: cannot find element id=${item.id}. Maybe an unstable response from AI model`,
+          );
+          return;
+        }
+        elements.push(element);
       }
-      elements.push(element);
     });
 
     writeInsightDump(

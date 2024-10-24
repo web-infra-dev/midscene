@@ -1,6 +1,6 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import type { AIElementParseResponse, PlanningAction } from '@midscene/core';
+import type { AIElementIdResponse, PlanningAction } from '@midscene/core';
 import {
   getLogDirByType,
   stringifyDumpData,
@@ -32,7 +32,7 @@ export type LocateTask = {
       height: number;
     };
   };
-  response: AIElementParseResponse;
+  response: AIElementIdResponse;
 };
 
 export type AiTasks = Array<PlanTask | LocateTask>;

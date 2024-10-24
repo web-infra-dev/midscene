@@ -1,7 +1,8 @@
 import assert from 'node:assert';
 import type { WebPage } from '@/common/page';
 import {
-  type AIElementParseResponse,
+  type AIElementIdResponse,
+  type AIElementReponse,
   type DumpSubscriber,
   type ExecutionRecorderItem,
   type ExecutionTaskActionApply,
@@ -24,6 +25,7 @@ import {
   type PlanningActionParamTap,
   type PlanningActionParamWaitFor,
   plan,
+  transformElementPositionToId,
 } from '@midscene/core';
 import { sleep } from '@midscene/core/utils';
 import { base64Encoded } from '@midscene/shared/img';
@@ -115,7 +117,7 @@ export class PageTaskExecutor {
                 'locate',
                 param.prompt,
               );
-              let locateResult: AIElementParseResponse | undefined;
+              let locateResult: AIElementIdResponse | undefined;
               const callAI = this.insight.aiVendorFn;
               const element = await this.insight.locate(param.prompt, {
                 quickAnswer: plan.quickAnswer,
@@ -124,7 +126,11 @@ export class PageTaskExecutor {
                     locateResult = locateCache;
                     return Promise.resolve(locateCache);
                   }
-                  locateResult = await callAI(...message);
+                  const aiResult: AIElementReponse = await callAI(...message);
+                  locateResult = transformElementPositionToId(
+                    aiResult,
+                    pageContext.content,
+                  );
                   assert(locateResult);
                   return locateResult;
                 },

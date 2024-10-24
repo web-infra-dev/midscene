@@ -6,6 +6,12 @@ import {
   callAiFn,
   transformUserMessages,
 } from '../common';
+import {
+  IS_CLAUDE_3_5_SONNET_COMPUTER_MODEL,
+  MIDSCENE_MODEL_TEXT_ONLY,
+} from '../openai';
+import { MIDSCENE_MODEL_NAME } from '../openai/index';
+import { claude35SonnetComputerPrompt } from '../prompt/element_inspector';
 import { systemPromptToTaskPlanning } from '../prompt/planning';
 import { describeUserPage } from '../prompt/util';
 
@@ -21,10 +27,12 @@ export async function plan(
 }> {
   const { callAI, context } = opts || {};
   const { screenshotBase64 } = context;
-  const { description: pageDescription } = await describeUserPage(context);
+  const { description: pageDescription, descriptionSizeOnly } =
+    await describeUserPage(context);
   let planFromAI: PlanningAIResponse | undefined;
 
   const systemPrompt = systemPromptToTaskPlanning();
+
   const msgs: AIArgs = [
     { role: 'system', content: systemPrompt },
     {
@@ -41,7 +49,11 @@ export async function plan(
           type: 'text',
           text: `
             pageDescription:\n 
-            ${pageDescription}
+            ${
+              IS_CLAUDE_3_5_SONNET_COMPUTER_MODEL
+                ? descriptionSizeOnly
+                : pageDescription
+            }
             \n
             Here is the description of the task. Just go ahead:
             =====================================
