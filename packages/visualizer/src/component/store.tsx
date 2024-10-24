@@ -1,13 +1,11 @@
 import * as Z from 'zustand';
 // import { createStore } from 'zustand/vanilla';
 import type {
-  BaseElement,
   ExecutionDump,
   ExecutionTask,
   ExecutionTaskInsightLocate,
   GroupedActionDump,
   InsightDump,
-  UIContext,
 } from '../../../midscene/dist/types';
 import type { AnimationScript } from './replay-scripts';
 import { allScriptsFromDump, generateAnimationScripts } from './replay-scripts';
@@ -28,6 +26,74 @@ export const useBlackboardPreference = create<{
     set({ elementsVisible: visible });
   },
 }));
+
+const CONFIG_KEY = 'midscene-env-config';
+const SERVICE_MODE_KEY = 'midscene-service-mode';
+const getConfigStringFromLocalStorage = () => {
+  const configString = localStorage.getItem(CONFIG_KEY);
+  return configString || '';
+};
+const parseConfig = (configString: string) => {
+  const lines = configString.split('\n');
+  const config: Record<string, string> = {};
+  lines.forEach((line) => {
+    const trimmed = line.trim();
+    if (trimmed.startsWith('#')) return;
+
+    const cleanLine = trimmed
+      .replace(/^export\s+/i, '')
+      .replace(/;$/, '')
+      .trim();
+    const match = cleanLine.match(/^(\w+)=(.*)$/);
+    if (match) {
+      const [, key, value] = match;
+      let parsedValue = value.trim();
+
+      // Remove surrounding quotes if present
+      if (
+        (parsedValue.startsWith("'") && parsedValue.endsWith("'")) ||
+        (parsedValue.startsWith('"') && parsedValue.endsWith('"'))
+      ) {
+        parsedValue = parsedValue.slice(1, -1);
+      }
+
+      config[key] = parsedValue;
+    }
+  });
+  console.log('parsed config', config);
+  return config;
+};
+
+export type ServiceModeType = 'Server' | 'In-Browser';
+export const useEnvConfig = create<{
+  serviceMode: ServiceModeType;
+  setServiceMode: (serviceMode: ServiceModeType) => void;
+  config: Record<string, string>;
+  configString: string;
+  setConfig: (config: Record<string, string>) => void;
+  loadConfig: (configString: string) => void;
+}>((set) => {
+  const configString = getConfigStringFromLocalStorage();
+  const config = parseConfig(configString);
+  const savedServiceMode = localStorage.getItem(
+    SERVICE_MODE_KEY,
+  ) as ServiceModeType | null;
+  return {
+    serviceMode: savedServiceMode || 'In-Browser',
+    setServiceMode: (serviceMode: ServiceModeType) => {
+      set({ serviceMode });
+      localStorage.setItem(SERVICE_MODE_KEY, serviceMode);
+    },
+    config,
+    configString,
+    setConfig: (config) => set({ config }),
+    loadConfig: (configString: string) => {
+      const config = parseConfig(configString);
+      set({ config, configString });
+      localStorage.setItem(CONFIG_KEY, configString);
+    },
+  };
+});
 
 export const useExecutionDump = create<{
   dump: GroupedActionDump | null;

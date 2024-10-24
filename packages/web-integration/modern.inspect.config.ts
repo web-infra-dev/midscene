@@ -4,6 +4,7 @@ import { defineConfig, moduleTools } from '@modern-js/module-tools';
 export default defineConfig({
   plugins: [moduleTools()],
   buildConfig: {
+    platform: 'browser',
     buildType: 'bundle',
     format: 'iife',
     dts: false,
@@ -17,6 +18,6 @@ export default defineConfig({
       options.globalName = 'midscene_element_inspector';
       return options;
     },
-    target: 'es2017',
+    target: 'es6',
   },
 });

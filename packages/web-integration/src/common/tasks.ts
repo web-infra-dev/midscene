@@ -26,7 +26,6 @@ import {
   plan,
 } from '@midscene/core';
 import { sleep } from '@midscene/core/utils';
-import { base64Encoded } from '@midscene/shared/img';
 import type { KeyInput } from 'puppeteer';
 import type { ElementInfo } from '../extractor';
 import type { WebElementInfo } from '../web-element';
@@ -57,11 +56,11 @@ export class PageTaskExecutor {
   }
 
   private async recordScreenshot(timing: ExecutionRecorderItem['timing']) {
-    const file = await this.page.screenshot();
+    const base64 = await this.page.screenshotBase64();
     const item: ExecutionRecorderItem = {
       type: 'screenshot',
       ts: Date.now(),
-      screenshot: base64Encoded(file as string),
+      screenshot: base64,
       timing,
     };
     return item;

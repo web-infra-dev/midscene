@@ -6,7 +6,7 @@ export type MouseButton = 'left' | 'right' | 'middle';
 
 export abstract class AbstractPage {
   abstract pageType: string;
-  abstract screenshot(): Promise<string>;
+  abstract screenshotBase64?(): Promise<string>;
   abstract getElementInfos(): Promise<ElementInfo[]>;
   abstract url(): string;
 

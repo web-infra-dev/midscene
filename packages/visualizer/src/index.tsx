@@ -5,7 +5,15 @@ import { useExecutionDump } from '@/component/store';
 import { CaretRightOutlined, DownOutlined } from '@ant-design/icons';
 import type { GroupedActionDump } from '@midscene/core';
 import { Helmet } from '@modern-js/runtime/head';
-import { Alert, Button, ConfigProvider, Dropdown, Upload, message } from 'antd';
+import {
+  Alert,
+  Button,
+  ConfigProvider,
+  Dropdown,
+  Empty,
+  Upload,
+  message,
+} from 'antd';
 import type { UploadProps } from 'antd';
 import React, { useEffect, useRef, useState } from 'react';
 import ReactDOM from 'react-dom/client';
@@ -46,6 +54,7 @@ export function Visualizer(props: {
   const reset = useExecutionDump((store) => store.reset);
   const [mainLayoutChangeFlag, setMainLayoutChangeFlag] = useState(0);
   const mainLayoutChangedRef = useRef(false);
+  const dump = useExecutionDump((store) => store.dump);
 
   useEffect(() => {
     if (dumps) {
@@ -101,7 +110,16 @@ export function Visualizer(props: {
   };
 
   let mainContent: JSX.Element;
-  if (!executionDump) {
+  if (dump && dump.executions.length === 0) {
+    mainContent = (
+      <div className="main-right">
+        <Empty
+          image={Empty.PRESENTED_IMAGE_SIMPLE}
+          description="There is no task info in this dump file."
+        />
+      </div>
+    );
+  } else if (!executionDump) {
     mainContent = (
       <div className="main-right uploader-wrapper">
         <Dragger className="uploader" {...uploadProps}>
@@ -319,7 +337,6 @@ function PlaywrightCaseSelector(props: {
       key: index,
       label: (
         <a
-          // biome-ignore lint/a11y/useValidAnchor: <explanation>
           onClick={(e) => {
             e.preventDefault();
             if (props.onSelect) {
@@ -345,7 +362,6 @@ function PlaywrightCaseSelector(props: {
   return (
     <div className="playwright-case-selector">
       <Dropdown menu={{ items }}>
-        {/* biome-ignore lint/a11y/useValidAnchor: <explanation> */}
         <a onClick={(e) => e.preventDefault()}>
           {btnName}&nbsp;
           <DownOutlined />

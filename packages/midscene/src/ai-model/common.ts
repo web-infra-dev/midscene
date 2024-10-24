@@ -1,4 +1,3 @@
-import type OpenAI from 'openai';
 import type {
   ChatCompletionContentPart,
   ChatCompletionSystemMessageParam,
@@ -10,13 +9,14 @@ import {
   COZE_EXTRACT_INFO_BOT_ID,
   COZE_INSPECT_ELEMENT_BOT_ID,
   callCozeAi,
+  preferCozeModel,
   transformOpenAiArgsToCoze,
-  useCozeModel,
 } from './coze';
 import {
   MIDSCENE_MODEL_TEXT_ONLY,
   callToGetJSONObject,
-  useOpenAIModel,
+  getAIConfig,
+  preferOpenAIModel,
 } from './openai';
 
 export type AIArgs = [
@@ -37,12 +37,12 @@ export async function callAiFn<T>(options: {
   useModel?: 'openAI' | 'coze';
 }) {
   const { useModel, msgs, AIActionType: AIActionTypeValue } = options;
-  if (useOpenAIModel(useModel)) {
+  if (preferOpenAIModel(useModel)) {
     const parseResult = await callToGetJSONObject<T>(msgs, AIActionTypeValue);
     return parseResult;
   }
 
-  if (useCozeModel(useModel)) {
+  if (preferCozeModel(useModel)) {
     let botId = '';
     switch (AIActionTypeValue) {
       case AIActionType.ASSERT:
@@ -71,7 +71,7 @@ export async function callAiFn<T>(options: {
 }
 
 export function transformUserMessages(msgs: ChatCompletionContentPart[]) {
-  const textOnly = Boolean(process.env[MIDSCENE_MODEL_TEXT_ONLY]);
+  const textOnly = Boolean(getAIConfig(MIDSCENE_MODEL_TEXT_ONLY));
   if (!textOnly) return msgs;
 
   return msgs.reduce((res, msg) => {

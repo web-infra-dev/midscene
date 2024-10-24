@@ -2,7 +2,7 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import type { WebPage } from '@/common/page';
 import { getElementInfos } from '@/debug';
-import { resizeImg, saveBase64Image } from '@midscene/core/image';
+import { resizeImg, saveBase64Image } from '@midscene/shared/img';
 import { processImageElementInfo } from '@midscene/shared/img';
 
 export async function generateExtractData(
@@ -16,8 +16,7 @@ export async function generateExtractData(
     disableSnapshot: boolean;
   },
 ) {
-  const filePath = await page.screenshot();
-  const inputImgBase64 = readFileSync(filePath).toString('base64');
+  const inputImgBase64 = await page.screenshotBase64();
 
   const {
     elementsPositionInfo,

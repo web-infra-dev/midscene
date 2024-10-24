@@ -31,7 +31,7 @@ export class PageAgent {
 
   dump: GroupedActionDump;
 
-  reportFile?: string;
+  reportFile?: string | null;
 
   reportFileName?: string;
 
@@ -83,7 +83,7 @@ export class PageAgent {
       generateReport,
     });
 
-    if (generateReport && autoPrintReportMsg) {
+    if (generateReport && autoPrintReportMsg && this.reportFile) {
       printReportMsg(this.reportFile);
     }
   }
@@ -116,13 +116,15 @@ export class PageAgent {
     this.appendExecutionDump(executor.dump());
     this.writeOutActionDumps();
 
-    if (opt?.keepRawResponse) {
+    if (output && opt?.keepRawResponse) {
       return output;
     }
 
     if (!output?.pass) {
       const errMsg = msg || `Assertion failed: ${assertion}`;
-      const reasonMsg = `Reason: ${output?.thought || '(no_reason)'}`;
+      const reasonMsg = `Reason: ${
+        output?.thought || executor.latestErrorTask()?.error || '(no_reason)'
+      }`;
       throw new Error(`${errMsg}\n${reasonMsg}`);
     }
   }

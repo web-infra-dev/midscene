@@ -26,14 +26,12 @@ export default class StaticPage implements AbstractPage {
     return ThrowNotImplemented('getElementInfos');
   }
 
-  async screenshot() {
+  async screenshotBase64() {
     const base64 = this.uiContext.screenshotBase64;
     if (!base64) {
       throw new Error('screenshot base64 is empty');
     }
-    const tmpFilePath = getTmpFile('png');
-    await saveBase64Image({ base64Data: base64, outputPath: tmpFilePath });
-    return tmpFilePath;
+    return base64;
   }
 
   url() {

@@ -20,10 +20,7 @@ export async function generateExtractData(
     disableSnapshot: boolean;
   },
 ) {
-  const file = await page.screenshot();
-  const screenshotBuffer = readFileSync(file);
-
-  const inputImgBase64 = screenshotBuffer.toString('base64');
+  const inputImgBase64 = await page.screenshotBase64();
 
   const {
     elementsPositionInfo,

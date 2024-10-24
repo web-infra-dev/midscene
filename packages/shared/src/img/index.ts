@@ -1,6 +1,7 @@
 export {
   imageInfo,
   imageInfoOfBase64,
+  bufferFromBase64,
   base64Encoded,
   base64ToPngFormat,
 } from './info';

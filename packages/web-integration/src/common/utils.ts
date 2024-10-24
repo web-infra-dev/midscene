@@ -1,18 +1,13 @@
 import assert from 'node:assert';
-import type { Buffer } from 'node:buffer';
-import { randomUUID } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import type { ElementInfo } from '@/extractor';
 import type { PlaywrightParserOpt, UIContext } from '@midscene/core';
 import { NodeType } from '@midscene/shared/constants';
 import { findNearestPackageJson } from '@midscene/shared/fs';
-import {
-  base64Encoded,
-  base64ToPngFormat,
-  imageInfoOfBase64,
-} from '@midscene/shared/img';
+import { imageInfoOfBase64 } from '@midscene/shared/img';
 import { compositeElementInfoImg } from '@midscene/shared/img';
+import { uuid } from '@midscene/shared/utils';
 import dayjs from 'dayjs';
 import { WebElementInfo } from '../web-element';
 import type { WebPage } from './page';
@@ -30,8 +25,8 @@ export async function parseContextFromWebPage(
     return await (page as any)._forceUsePageContext();
   }
   const url = page.url();
-  const file = await page.screenshot();
-  const screenshotBase64 = base64Encoded(file);
+
+  const screenshotBase64 = await page.screenshotBase64();
   const captureElementSnapshot = await page.getElementInfos();
 
   // align element
@@ -48,7 +43,7 @@ export async function parseContextFromWebPage(
 
   // composite element infos to screenshot
   const screenshotBase64WithElementMarker = await compositeElementInfoImg({
-    inputImgBase64: screenshotBase64.split(';base64,').pop() as string,
+    inputImgBase64: screenshotBase64,
     elementsPositionInfo: elementsPositionInfoWithoutText,
   });
 
@@ -162,10 +157,11 @@ export function getCurrentExecutionFile(trace?: string): string | false {
  */
 
 const testFileIndex = new Map<string, number>();
+
 export function generateCacheId(fileName?: string): string {
   let taskFile = fileName || getCurrentExecutionFile();
   if (!taskFile) {
-    taskFile = randomUUID();
+    taskFile = uuid();
     console.warn(
       'Midscene - using random UUID for cache id. Cache may be invalid.',
     );
