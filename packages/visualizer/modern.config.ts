@@ -36,6 +36,7 @@ export default defineConfig({
         __VERSION__: JSON.stringify(version),
         global: 'globalThis',
       },
+      target: 'es2017',
     },
   ],
   plugins: [moduleTools(), modulePluginNodePolyfill()],
