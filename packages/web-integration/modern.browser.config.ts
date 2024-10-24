@@ -19,7 +19,7 @@ export default defineConfig({
       playground: 'src/playground/index.ts',
     },
     outDir: 'dist/browser',
-    target: 'es2017',
+    target: 'es6',
     externals: ['@midscene/core', '@midscene/shared'],
   },
 });

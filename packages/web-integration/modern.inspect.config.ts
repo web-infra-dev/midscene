@@ -18,6 +18,6 @@ export default defineConfig({
       options.globalName = 'midscene_element_inspector';
       return options;
     },
-    target: 'es2017',
+    target: 'es6',
   },
 });

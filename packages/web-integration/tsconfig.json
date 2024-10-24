@@ -12,7 +12,7 @@
     "paths": {
       "@/*": ["./src/*"]
     },
-    "target": "ES2017",
+    "target": "es6",
     "resolveJsonModule": true,
     "rootDir": "./",
     "skipLibCheck": true,

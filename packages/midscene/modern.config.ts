@@ -13,7 +13,7 @@ export default defineConfig({
       },
       outDir: 'dist/lib',
       externals: ['langsmith'],
-      target: 'es2017',
+      target: 'es6',
     },
     {
       platform: 'browser',
@@ -24,7 +24,7 @@ export default defineConfig({
       },
       outDir: 'dist/browser',
       externals: ['langsmith'],
-      target: 'es2017',
+      target: 'es6',
     },
   ],
 });

@@ -19,20 +19,20 @@ export default defineConfig({
       format: 'cjs',
       ...commonConfig,
       outDir: 'dist/lib',
-      target: 'es2017',
+      target: 'es6',
     },
     {
       platform: 'node',
       format: 'esm',
       ...commonConfig,
       outDir: 'dist/es',
-      target: 'es2017',
+      target: 'es6',
     },
     {
       platform: 'browser',
       ...commonConfig,
       outDir: 'dist/browser',
-      target: 'es2017',
+      target: 'es6',
     },
   ],
 });

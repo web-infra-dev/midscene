@@ -15,7 +15,7 @@ export default defineConfig({
       appium: 'src/appium/index.ts',
       'playwright-report': './src/playwright/reporter/index.ts',
     },
-    target: 'es2017',
+    target: 'es6',
     externals: ['@midscene/core', '@midscene/shared'],
   },
 });
