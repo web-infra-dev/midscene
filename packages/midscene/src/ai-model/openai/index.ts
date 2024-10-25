@@ -65,7 +65,6 @@ export function getModelName() {
   let modelName = defaultModel;
   const nameInConfig = getAIConfig(MIDSCENE_MODEL_NAME);
   if (nameInConfig) {
-    console.log(`model: ${nameInConfig}`);
     modelName = nameInConfig;
   }
   return modelName;
@@ -76,7 +75,6 @@ function getExtraConfig() {
   let extraConfig = defaultExtraConfig;
   const configInEnv = getAIConfig(MIDSCENE_OPENAI_INIT_CONFIG_JSON);
   if (configInEnv) {
-    console.log('config for OpenAI loaded');
     extraConfig = JSON.parse(configInEnv);
   }
   return extraConfig;
@@ -124,8 +122,9 @@ export async function call(
   const shouldPrintTiming =
     typeof getAIConfig(MIDSCENE_DEBUG_AI_PROFILE) === 'string';
   const startTime = Date.now();
+  const model = getModelName();
   const completion = await openai.chat.completions.create({
-    model: getModelName(),
+    model,
     messages,
     response_format: responseFormat,
     temperature: 0.1,
@@ -134,6 +133,7 @@ export async function call(
   shouldPrintTiming &&
     console.log(
       'Midscene - AI call',
+      model,
       completion.usage,
       `${Date.now() - startTime}ms`,
     );
