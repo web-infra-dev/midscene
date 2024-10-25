@@ -12,14 +12,11 @@ import type {
   ChatCompletionUserMessageParam,
 } from 'openai/resources';
 import { AIActionType, callAiFn, transformUserMessages } from './common';
+import { MATCH_BY_POSITION } from './openai';
 import {
-  IS_CLAUDE_3_5_SONNET_COMPUTER_MODEL,
-  MIDSCENE_MODEL_NAME,
-} from './openai';
-import {
-  claude35SonnetComputerPrompt,
   multiDescription,
   systemPromptToFindElement,
+  systemPromptToFindElementPosition,
 } from './prompt/element_inspector';
 import {
   describeUserPage,
@@ -103,8 +100,8 @@ export async function AiInspectElement<
     }
   }
 
-  const systemPrompt = IS_CLAUDE_3_5_SONNET_COMPUTER_MODEL
-    ? claude35SonnetComputerPrompt()
+  const systemPrompt = MATCH_BY_POSITION
+    ? systemPromptToFindElementPosition()
     : systemPromptToFindElement();
   const msgs: AIArgs = [
     { role: 'system', content: systemPrompt },

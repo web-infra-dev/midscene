@@ -6,12 +6,7 @@ import {
   callAiFn,
   transformUserMessages,
 } from '../common';
-import {
-  IS_CLAUDE_3_5_SONNET_COMPUTER_MODEL,
-  MIDSCENE_MODEL_TEXT_ONLY,
-} from '../openai';
-import { MIDSCENE_MODEL_NAME } from '../openai/index';
-import { claude35SonnetComputerPrompt } from '../prompt/element_inspector';
+import { MATCH_BY_POSITION } from '../openai';
 import { systemPromptToTaskPlanning } from '../prompt/planning';
 import { describeUserPage } from '../prompt/util';
 
@@ -49,11 +44,7 @@ export async function plan(
           type: 'text',
           text: `
             pageDescription:\n 
-            ${
-              IS_CLAUDE_3_5_SONNET_COMPUTER_MODEL
-                ? descriptionSizeOnly
-                : pageDescription
-            }
+            ${MATCH_BY_POSITION ? descriptionSizeOnly : pageDescription}
             \n
             Here is the description of the task. Just go ahead:
             =====================================

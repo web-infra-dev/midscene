@@ -1,5 +1,5 @@
 import type { ResponseFormatJSONSchema } from 'openai/resources';
-import { IS_CLAUDE_3_5_SONNET_COMPUTER_MODEL } from '../openai';
+import { MATCH_BY_POSITION } from '../openai';
 
 export function systemPromptToTaskPlanning() {
   return `
@@ -49,7 +49,11 @@ If the action type is 'Locate', provide a quick answer: Does any element meet th
 {
   "reason": "Reason for finding element 4: It is located in the upper right corner, is an image type, and according to the screenshot, it is a shopping cart icon button",
   "text": "PLACEHOLDER", // Replace PLACEHOLDER with the text of elementInfo, if none, leave empty
-  ${IS_CLAUDE_3_5_SONNET_COMPUTER_MODEL ? 'position: { left: 100, top: 100 } // position of this element, replace with actual value in practice' : '"id": "wefew2222few2" // id of this element, replace with actual value in practice'}
+  ${
+    MATCH_BY_POSITION
+      ? '"position": { left: number, top: number, width: number, height: number } // Represents the position of the element; replace with actual values in practice (ensure it reflects the element\'s position)'
+      : '"id": "wefew2222few2" // Represents the ID of the element; replace with actual values in practice'
+  }
 }
 
 If there is no element meets the description in the prompt (usually because it will show up later after some interaction), the \`quickAnswer\` field should be null.
@@ -69,7 +73,11 @@ Please return the result in JSON format as follows:
       "quickAnswer": { // since this action type is 'Locate', and we can find the element, so we need to give a quick answer
         "reason": "Reason for finding element 4: It is located in the upper right corner, is an input type, and according to the screenshot, it is a search bar",
         "text": "PLACEHOLDER", // Replace PLACEHOLDER with the text of elementInfo, if none, leave empty
-        ${IS_CLAUDE_3_5_SONNET_COMPUTER_MODEL ? 'position: { left: 100, top: 100, width: 100, height: 100 } // position of this element, replace with actual value in practice' : '"id": "wefew2222few2" // id of this element, replace with actual value in practice'}
+        ${
+          MATCH_BY_POSITION
+            ? '"position": { left: number, top: number, width: number, height: number } // Represents the position of the element; replace with actual values in practice (ensure it reflects the element\'s position)'
+            : '"id": "wefew2222few2" // Represents the ID of the element; replace with actual values in practice'
+        }
       } | null,
     },
     {

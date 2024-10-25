@@ -140,7 +140,7 @@ Output Example:
 }
 
 // claude 3.5 sonnet computer The ability to understand the content of the image is better, Does not provide element snapshot effect
-export function claude35SonnetComputerPrompt() {
+export function systemPromptToFindElementPosition() {
   return `
     ## Role:
     You are an expert in software page image (2D) and page element text analysis.
