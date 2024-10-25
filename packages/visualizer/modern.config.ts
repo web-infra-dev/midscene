@@ -12,14 +12,6 @@ export default defineConfig({
       },
       alias: {
         async_hooks: path.join(__dirname, './src/blank_polyfill.ts'),
-        '@midscene/core': path.join(
-          __dirname,
-          './node_modules/@midscene/core/dist/browser',
-        ),
-        '@midscene/shared': path.join(
-          __dirname,
-          './node_modules/@midscene/shared/dist/browser',
-        ),
       },
       format: 'umd',
       dts: false,

@@ -1,11 +1,12 @@
 import { defineConfig, moduleTools } from '@modern-js/module-tools';
+import { version } from './package.json';
 
 export default defineConfig({
   plugins: [moduleTools()],
   buildPreset: 'npm-library',
   buildConfig: [
     {
-      platform: 'node',
+      format: 'umd',
       input: {
         index: 'src/index.ts',
         utils: 'src/utils.ts',
@@ -14,17 +15,9 @@ export default defineConfig({
       outDir: 'dist/lib',
       externals: ['langsmith'],
       target: 'es6',
-    },
-    {
-      platform: 'browser',
-      input: {
-        index: 'src/index.ts',
-        utils: 'src/utils.ts',
-        'ai-model': 'src/ai-model/index.ts',
+      define: {
+        __VERSION__: version,
       },
-      outDir: 'dist/browser',
-      externals: ['langsmith'],
-      target: 'es6',
     },
   ],
 });

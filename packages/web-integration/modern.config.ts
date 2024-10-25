@@ -4,7 +4,7 @@ export default defineConfig({
   plugins: [moduleTools()],
   buildPreset: 'npm-library',
   buildConfig: {
-    platform: 'node',
+    format: 'umd',
     input: {
       index: 'src/index.ts',
       debug: 'src/debug/index.ts',
