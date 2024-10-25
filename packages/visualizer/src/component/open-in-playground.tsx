@@ -38,7 +38,7 @@ export const useServerValid = () => {
 
   useEffect(() => {
     let interruptFlag = false;
-    if (serviceMode !== 'Server') return;
+    // if (serviceMode !== 'Server') return;
     Promise.resolve(
       (async () => {
         while (!interruptFlag) {

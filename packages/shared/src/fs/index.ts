@@ -20,10 +20,9 @@ export function getRunningPkgInfo(dir?: string): PkgInfo | null {
   }
 
   const pkgDir = findNearestPackageJson(dirToCheck);
-  assert(pkgDir, 'package.json not found');
-  const pkgJsonFile = join(pkgDir, 'package.json');
+  const pkgJsonFile = pkgDir ? join(pkgDir, 'package.json') : null;
 
-  if (pkgJsonFile) {
+  if (pkgDir && pkgJsonFile) {
     const { name, version } = JSON.parse(readFileSync(pkgJsonFile, 'utf-8'));
     pkgCacheMap[dirToCheck] = { name, version, dir: pkgDir };
     return pkgCacheMap[dirToCheck];
@@ -31,7 +30,7 @@ export function getRunningPkgInfo(dir?: string): PkgInfo | null {
   return {
     name: 'midscene-unknown-package-name',
     version: '0.0.0',
-    dir: pkgDir,
+    dir: dirToCheck,
   };
 }
 
