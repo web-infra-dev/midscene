@@ -1,4 +1,5 @@
 'use client';
+import 'pixi.js/unsafe-eval';
 import * as PIXI from 'pixi.js';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import './player.less';
