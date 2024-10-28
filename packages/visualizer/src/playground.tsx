@@ -3,7 +3,7 @@ import { Helmet } from '@modern-js/runtime/head';
 import { Button, Empty, Spin, message } from 'antd';
 import { Form, Input } from 'antd';
 import { Radio } from 'antd';
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import ReactDOM from 'react-dom/client';
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
 import type { GroupedActionDump, UIContext } from '../../midscene/dist/types';
@@ -13,10 +13,18 @@ import Player from './component/player';
 import DemoData from './component/playground-demo-ui-context.json';
 import type { ReplayScriptsInfo } from './component/replay-scripts';
 import { allScriptsFromDump } from './component/replay-scripts';
-
 import './playground.less';
 import Logo from './component/logo';
-import { serverBase, useServerValid } from './component/open-playground';
+import { serverBase, useServerValid } from './component/open-in-playground';
+
+import { allAIConfig, overrideAIConfig } from '@midscene/core';
+import {
+  ERROR_CODE_NOT_IMPLEMENTED_AS_DESIGNED,
+  StaticPage,
+  StaticPageAgent,
+} from '@midscene/web/playground';
+import { EnvConfig } from './component/env-config';
+import { useEnvConfig } from './component/store';
 
 const requestPlaygroundServer = async (
   context: UIContext,
@@ -32,6 +40,30 @@ const requestPlaygroundServer = async (
   });
   return res.json();
 };
+
+overrideAIConfig({
+  MIDSCENE_DEBUG_AI_PROFILE: '1',
+});
+
+const config = allAIConfig();
+
+console.log('StaticPageAgent', StaticPageAgent);
+console.log('StaticPage', StaticPage);
+console.log('DemoContext', DemoData);
+(window as any).StaticPageAgent = StaticPageAgent;
+(window as any).StaticPage = StaticPage;
+(window as any).DemoData = DemoData;
+
+const myPage = new StaticPage(DemoData as any);
+console.log('myPage', myPage);
+
+const myAgent = new StaticPageAgent(myPage);
+console.log('myAgent', myAgent);
+
+(window as any).myPage = myPage;
+(window as any).myAgent = myAgent;
+
+// (window as any).__dirname = '/polyfill/for_browser';
 
 const cacheKeyForPrompt = 'playground-user-prompt';
 const cacheKeyForType = 'playground-user-type';
@@ -55,21 +87,42 @@ const useContextId = () => {
 };
 const { TextArea } = Input;
 
+const useLocalAgent = (
+  context: UIContext | null,
+  config: Record<string, string>,
+) => {
+  const agent = useMemo(() => {
+    if (!context || !config) return null;
+    overrideAIConfig(config);
+    const page = new StaticPage(context as any);
+    return new StaticPageAgent(page);
+  }, [context, config]);
+  return agent;
+};
+
+interface PlaygroundResult {
+  result: any;
+  dump: GroupedActionDump | null;
+  error: string | null;
+}
+
 export function Playground({
   propsContext,
   hideLogo,
-}: { propsContext?: UIContext; hideLogo?: boolean }) {
+}: {
+  propsContext?: UIContext;
+  hideLogo?: boolean;
+}) {
   const contextId = useContextId();
   const [uiContext, setUiContext] = useState<UIContext | null>(
     propsContext || null,
   );
   const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState<{
-    result: any;
-    dump: GroupedActionDump | null;
-    error: string | null;
-  } | null>(null);
+  const [result, setResult] = useState<PlaygroundResult | null>(null);
   const [form] = Form.useForm();
+  const { config, serviceMode, setServiceMode } = useEnvConfig();
+
+  const localAgent = useLocalAgent(uiContext, config);
 
   const [replayScriptsInfo, setReplayScriptsInfo] =
     useState<ReplayScriptsInfo | null>(null);
@@ -97,31 +150,55 @@ export function Playground({
 
     setCache(value.prompt, value.type);
     setLoading(true);
-
     setResult(null);
-    let res: any = null;
+    let result: PlaygroundResult = {
+      result: null,
+      dump: null,
+      error: null,
+    };
     try {
-      res = await requestPlaygroundServer(uiContext!, value.type, value.prompt);
-      setResult(res);
-    } catch (e) {
+      if (serviceMode === 'Server') {
+        result = await requestPlaygroundServer(
+          uiContext!,
+          value.type,
+          value.prompt,
+        );
+      } else if (value.type === 'aiAction') {
+        result.result = await localAgent?.aiAction(value.prompt);
+      } else if (value.type === 'aiQuery') {
+        result.result = await localAgent?.aiQuery(value.prompt);
+      } else if (value.type === 'aiAssert') {
+        result.result = await localAgent?.aiAssert(value.prompt, undefined, {
+          keepRawResponse: true,
+        });
+      }
+    } catch (e: any) {
       console.error(e);
-      setResult({
-        error:
-          'Failed to run the prompt, please check the server console for more details',
-        result: null,
-        dump: null,
-      });
+      if (!e.message.includes(ERROR_CODE_NOT_IMPLEMENTED_AS_DESIGNED)) {
+        result.error = e.message;
+      }
     }
 
+    try {
+      if (serviceMode === 'In-Browser') {
+        result.dump = localAgent?.dumpDataString()
+          ? JSON.parse(localAgent.dumpDataString())
+          : null;
+      }
+    } catch (e) {
+      console.error(e);
+    }
+
+    setResult(result);
     setLoading(false);
-    if (value.type === 'aiAction' && res?.dump) {
-      const info = allScriptsFromDump(res.dump);
+    if (value.type === 'aiAction' && result?.dump) {
+      const info = allScriptsFromDump(result.dump);
       setReplayScriptsInfo(info);
       setReplayCounter((c) => c + 1);
     } else {
       setReplayScriptsInfo(null);
     }
-  }, [form, uiContext]);
+  }, [form, uiContext, localAgent]);
 
   let placeholder = 'What do you want to do?';
   const selectedType = Form.useWatch('type', form);
@@ -132,7 +209,9 @@ export function Playground({
     placeholder = 'What do you want to assert?';
   }
 
-  const runButtonDisabled = !uiContext || loading || !serverValid;
+  const runButtonEnabled =
+    (serviceMode === 'In-Browser' && uiContext) ||
+    (serviceMode === 'Server' && serverValid);
 
   // use cmd + enter to run
   useEffect(() => {
@@ -155,7 +234,7 @@ export function Playground({
         <>
           Welcome to Midscene.js Playground
           <br />
-          {!runButtonDisabled && 'You can run something now'}
+          {runButtonEnabled && 'You can run something now'}
         </>
       }
     />
@@ -188,10 +267,25 @@ export function Playground({
   }
 
   const serverTip = !serverValid ? (
-    <>{iconForStatus('failed')} Connection failed</>
+    <div>{iconForStatus('failed')} Connection failed</div>
   ) : (
-    <>{iconForStatus('connected')} Connected</>
+    <div>{iconForStatus('connected')} Connected</div>
   );
+
+  const switchBtn = (
+    <a
+      onClick={(e) => {
+        e.preventDefault();
+        setServiceMode(serviceMode === 'Server' ? 'In-Browser' : 'Server');
+      }}
+    >
+      {serviceMode === 'Server'
+        ? 'Switch to In-Browser Mode'
+        : 'Switch to Server Mode'}
+    </a>
+  );
+
+  const statusContent = serviceMode === 'Server' ? serverTip : <EnvConfig />;
 
   return (
     <div className="playground-container">
@@ -221,8 +315,13 @@ export function Playground({
           >
             <div className="playground-form-container">
               <div className="form-part">
-                <h3>Playground Server</h3>
-                <div>{serverTip}</div>
+                <h3>
+                  {serviceMode === 'Server'
+                    ? 'Server Status'
+                    : 'In-Browser Request Config'}
+                </h3>
+                {statusContent}
+                <div>{switchBtn}</div>
               </div>
               <div className="form-part context-panel">
                 <h3>UI Context</h3>
@@ -234,18 +333,20 @@ export function Playground({
                   />
                 ) : (
                   <div>
-                    {iconForStatus('failed')} No UI Context{' '}
-                    <Button
-                      type="link"
-                      onClick={() => setUiContext(DemoData as any)}
+                    {iconForStatus('failed')} No UI Context &nbsp;
+                    <a
+                      onClick={(e) => {
+                        e.preventDefault();
+                        setUiContext(DemoData as any);
+                      }}
                     >
                       Load Demo
-                    </Button>
-                    <p>
+                    </a>
+                    <div>
                       To load the UI context, you can either use the demo data
                       above, or click the 'Send to Playground' in the report
                       page.
-                    </p>
+                    </div>
                   </div>
                 )}
               </div>
@@ -270,7 +371,7 @@ export function Playground({
                     type="primary"
                     icon={<SendOutlined />}
                     onClick={handleRun}
-                    disabled={runButtonDisabled}
+                    disabled={!runButtonEnabled}
                   >
                     Run
                   </Button>
@@ -297,5 +398,4 @@ function mount(id: string) {
 
 export default {
   mount,
-  Playground,
 };

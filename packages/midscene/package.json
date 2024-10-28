@@ -11,17 +11,14 @@
   "files": ["dist", "report", "README.md"],
   "exports": {
     ".": "./dist/lib/index.js",
-    "./query": "./dist/types/query/index.d.ts",
     "./utils": "./dist/lib/utils.js",
-    "./ai-model": "./dist/lib/ai-model.js",
-    "./image": "./dist/lib/image.js"
+    "./ai-model": "./dist/lib/ai-model.js"
   },
   "typesVersions": {
     "*": {
       ".": ["./dist/types/index.d.ts"],
-      "utils": ["./dist/types/utils.d.ts"],
-      "ai-model": ["./dist/types/ai-model.d.ts"],
-      "image": ["./dist/types/image.d.ts"]
+      "utils": ["./dist/lib/utils.d.ts"],
+      "ai-model": ["./dist/lib/ai-model.d.ts"]
     }
   },
   "scripts": {
@@ -38,7 +35,6 @@
     "prepublishOnly": "npm run build"
   },
   "dependencies": {
-    "node-fetch": "2.6.7",
     "openai": "4.57.1",
     "optional": "0.1.4",
     "@midscene/shared": "workspace:*"

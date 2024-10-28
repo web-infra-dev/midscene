@@ -18,7 +18,7 @@ describe('utils', () => {
     expect(typeof testDir).toBe('string');
 
     const testFile = getTmpFile('txt');
-    expect(testFile.endsWith('.txt')).toBe(true);
+    expect(testFile!.endsWith('.txt')).toBe(true);
   });
 
   it('log dir', () => {

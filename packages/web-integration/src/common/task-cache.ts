@@ -6,7 +6,8 @@ import {
   stringifyDumpData,
   writeLogFile,
 } from '@midscene/core/utils';
-import { getMidscenePkgInfo } from '@midscene/shared/fs';
+import { getRunningPkgInfo } from '@midscene/shared/fs';
+import { ifInBrowser } from '@midscene/shared/utils';
 import { type WebUIContext, generateCacheId } from './utils';
 
 export type PlanTask = {
@@ -51,10 +52,10 @@ export class TaskCache {
 
   newCache: AiTaskCache;
 
-  midscenePkgInfo: ReturnType<typeof getMidscenePkgInfo>;
+  midscenePkgInfo: ReturnType<typeof getRunningPkgInfo> | null;
 
   constructor(opts?: { fileName?: string }) {
-    this.midscenePkgInfo = getMidscenePkgInfo(__dirname);
+    this.midscenePkgInfo = getRunningPkgInfo();
     this.cacheId = generateCacheId(opts?.fileName);
     this.cache = this.readCacheFromFile() || {
       aiTasks: [],
@@ -195,11 +196,17 @@ export class TaskCache {
   }
 
   readCacheFromFile() {
+    if (ifInBrowser) {
+      return undefined;
+    }
     const cacheFile = join(getLogDirByType('cache'), `${this.cacheId}.json`);
     if (process.env.MIDSCENE_CACHE === 'true' && existsSync(cacheFile)) {
       try {
         const data = readFileSync(cacheFile, 'utf8');
         const jsonData = JSON.parse(data);
+        if (!this.midscenePkgInfo) {
+          return undefined;
+        }
         if (
           jsonData.pkgName !== this.midscenePkgInfo.name ||
           jsonData.pkgVersion !== this.midscenePkgInfo.version
@@ -215,7 +222,10 @@ export class TaskCache {
   }
 
   writeCacheToFile() {
-    const midscenePkgInfo = getMidscenePkgInfo(__dirname);
+    const midscenePkgInfo = getRunningPkgInfo();
+    if (!midscenePkgInfo) {
+      return;
+    }
     writeLogFile({
       fileName: `${this.cacheId}`,
       fileExt: 'json',

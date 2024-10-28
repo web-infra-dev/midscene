@@ -176,7 +176,7 @@ export async function AiAssert<
   assert(assertion, 'assertion should be a string');
 
   const { screenshotBase64 } = context;
-  const { description, elementById } = await describeUserPage(context);
+  const { description } = await describeUserPage(context);
   const systemPrompt = systemPromptToAssert();
 
   const msgs: AIArgs = [
