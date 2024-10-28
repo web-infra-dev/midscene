@@ -16,8 +16,7 @@
   },
   "scripts": {
     "dev": "npm run build && npx npm-watch",
-    "build": "modern build && npx ts-node scripts/build-html.ts && npm run build:extension",
-    "build:extension": "modern build -c modern.extension.config.ts && ./build-extension.sh",
+    "build": "modern build && npx ts-node scripts/build-html.ts && ./build-extension.sh",
     "build:watch": "modern build -w",
     "serve": "http-server ./dist/ -p 3000",
     "new": "modern new",
