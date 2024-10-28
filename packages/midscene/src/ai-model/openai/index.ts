@@ -36,6 +36,9 @@ let config: Record<string, string | undefined> = {
   [MIDSCENE_CACHE]: process.env[MIDSCENE_CACHE] || undefined,
 };
 
+export const MATCH_BY_POSITION =
+  config[MIDSCENE_MODEL_NAME] === 'claude-3-5-sonnet-20241022';
+
 export const getAIConfig = (
   configKey: keyof typeof config,
 ): string | undefined => {

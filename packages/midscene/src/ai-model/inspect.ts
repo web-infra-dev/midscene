@@ -12,7 +12,7 @@ import type {
   ChatCompletionUserMessageParam,
 } from 'openai/resources';
 import { AIActionType, callAiFn, transformUserMessages } from './common';
-import { MATCH_BY_POSITION } from './openai';
+import { MATCH_BY_POSITION } from './openai/index';
 import {
   multiDescription,
   systemPromptToFindElement,
