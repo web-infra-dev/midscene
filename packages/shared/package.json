@@ -11,38 +11,28 @@
     ".": {
       "types": "./dist/lib/index.d.ts",
       "require": "./dist/lib/index.js",
-      "import": "./dist/es/index.js",
-      "browser": "./dist/browser/index.js"
+      "import": "./dist/es/index.js"
     },
     "./constants": {
       "types": "./dist/lib/constants.d.ts",
       "require": "./dist/lib/constants.js",
-      "import": "./dist/es/constants.js",
-      "browser": "./dist/browser/constants.js"
+      "import": "./dist/es/constants.js"
     },
     "./fs": {
       "types": "./dist/lib/fs.d.ts",
       "require": "./dist/lib/fs.js",
-      "import": "./dist/es/fs.js",
-      "browser": "./dist/browser/fs.js"
+      "import": "./dist/es/fs.js"
     },
     "./img": {
       "types": "./dist/lib/img.d.ts",
       "require": "./dist/lib/img.js",
-      "import": "./dist/es/img.js",
-      "browser": "./dist/browser/img.js"
+      "import": "./dist/es/img.js"
     },
     "./utils": {
       "types": "./dist/lib/utils.d.ts",
       "require": "./dist/lib/utils.js",
-      "import": "./dist/es/utils.js",
-      "browser": "./dist/browser/utils.js"
-    },
-    "./browser": "./dist/browser/index.js",
-    "./browser/constants": "./dist/browser/constants.js",
-    "./browser/fs": "./dist/browser/fs.js",
-    "./browser/img": "./dist/browser/img.js",
-    "./browser/utils": "./dist/browser/utils.js"
+      "import": "./dist/es/utils.js"
+    }
   },
   "typesVersions": {
     "*": {
@@ -51,9 +41,6 @@
       "img": ["./src/img/index.ts"],
       "fs": ["./src/fs/index.ts"],
       "utils": ["./src/utils.ts"]
-    },
-    "./browser": {
-      "*": ["./dist/browser/*"]
     }
   },
   "files": ["dist", "src", "README.md"],

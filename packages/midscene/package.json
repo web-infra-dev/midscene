@@ -12,19 +12,13 @@
   "exports": {
     ".": "./dist/lib/index.js",
     "./utils": "./dist/lib/utils.js",
-    "./ai-model": "./dist/lib/ai-model.js",
-    "./browser": "./dist/browser/index.js",
-    "./browser/utils": "./dist/browser/utils.js",
-    "./browser/ai-model": "./dist/browser/ai-model.js"
+    "./ai-model": "./dist/lib/ai-model.js"
   },
   "typesVersions": {
     "*": {
       ".": ["./dist/types/index.d.ts"],
       "utils": ["./dist/lib/utils.d.ts"],
-      "ai-model": ["./dist/lib/ai-model.d.ts"],
-      "browser": ["./dist/browser/index.d.ts"],
-      "browser/utils": ["./dist/browser/utils.d.ts"],
-      "browser/ai-model": ["./dist/browser/ai-model.d.ts"]
+      "ai-model": ["./dist/lib/ai-model.d.ts"]
     }
   },
   "scripts": {

@@ -180,6 +180,8 @@ export function stringifyDumpData(data: any, indents?: number) {
   return JSON.stringify(data, replacerForPageObject, indents);
 }
 
+declare const __VERSION__: string;
+
 export function getVersion() {
-  return version;
+  return __VERSION__;
 }

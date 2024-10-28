@@ -22,7 +22,7 @@ import {
   ERROR_CODE_NOT_IMPLEMENTED_AS_DESIGNED,
   StaticPage,
   StaticPageAgent,
-} from '@midscene/web/browser/playground';
+} from '@midscene/web/playground';
 import { EnvConfig } from './component/env-config';
 import { useEnvConfig } from './component/store';
 
