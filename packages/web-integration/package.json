@@ -18,8 +18,7 @@
     "./playground": "./dist/lib/playground.js",
     "./debug": "./dist/lib/debug.js",
     "./constants": "./dist/lib/constants.js",
-    "./html-element": "./dist/lib/html-element/index.js",
-    "./browser/playground": "./dist/browser/playground.js"
+    "./html-element": "./dist/lib/html-element/index.js"
   },
   "typesVersions": {
     "*": {
@@ -30,15 +29,13 @@
       "playground": ["./dist/types/playground.d.ts"],
       "debug": ["./dist/types/debug.d.ts"],
       "constants": ["./dist/types/constants.d.ts"],
-      "html-element": ["./dist/types/html-element/index.d.ts"],
-      "browser/playground": ["./dist/browser/types/playground.d.ts"]
+      "html-element": ["./dist/types/html-element/index.d.ts"]
     }
   },
   "scripts": {
     "dev": "modern dev",
     "dev:server": "npm run build && ./bin/midscene-playground",
-    "build": "npm run build:pkg && npm run build:script && npm run build:browser",
-    "build:browser": "modern build -c ./modern.browser.config.ts",
+    "build": "npm run build:pkg && npm run build:script",
     "build:pkg": "modern build -c ./modern.config.ts",
     "build:script": "modern build -c ./modern.inspect.config.ts",
     "build:watch": "modern build -w -c ./modern.config.ts & modern build -w -c ./modern.inspect.config.ts",
