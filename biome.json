@@ -19,7 +19,8 @@
       "script_get_all_texts.tmp.js",
       "**/playwright-report/**",
       "**/todo-report.spec.ts-snapshots/**",
-      "**/visualizer/scripts/fixture/*"
+      "**/visualizer/scripts/fixture/*",
+      "**/unpacked-extension/*"
     ]
   },
   "javascript": {

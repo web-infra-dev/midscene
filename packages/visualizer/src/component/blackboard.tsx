@@ -1,4 +1,5 @@
 'use client';
+import 'pixi.js/unsafe-eval';
 import { Checkbox } from 'antd';
 import type { CheckboxProps } from 'antd';
 import * as PIXI from 'pixi.js';

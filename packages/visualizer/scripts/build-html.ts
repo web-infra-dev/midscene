@@ -32,6 +32,11 @@ const outputHTML = join(__dirname, '../dist/report/index.html');
 const outputMultiEntriesHTML = join(__dirname, '../dist/report/multi.html');
 const outputEmptyDumpHTML = join(__dirname, '../dist/report/empty-error.html');
 const outputPlaygroundHTML = join(__dirname, '../dist/playground/index.html');
+const outputPlaygroundWithOutsourceJS = join(
+  __dirname,
+  '../dist/playground/index-with-outsource.html',
+);
+
 function ensureDirectoryExistence(filePath: string) {
   const directoryPath = dirname(filePath);
 
@@ -72,15 +77,27 @@ function buildPlayground() {
   const html = readFileSync(playgroundHTMLPath, 'utf-8');
   const css = readFileSync(playgroundCSSPath, 'utf-8');
   const js = readFileSync(playgroundJSPath, 'utf-8');
+  ensureDirectoryExistence(outputPlaygroundHTML);
 
   const result = tplReplacer(html, {
     css: `<style>\n${css}\n</style>\n`,
     js: `<script>\n${js}\n</script>`,
+    bootstrap: `<script> midscenePlayground.default.mount('app'); </script>`,
   });
-
-  ensureDirectoryExistence(outputPlaygroundHTML);
   writeFileSync(outputPlaygroundHTML, result);
   console.log(`HTML file generated successfully: ${outputPlaygroundHTML}`);
+
+  // add the outsource js
+  const resultWithOutsource = tplReplacer(html, {
+    css: `<style>\n${css}\n</style>\n`,
+    js: `<script src="/lib/playground-entry.js"></script>`,
+    bootstrap: '<!-- leave it empty -->', // leave it to the extension to inject
+  });
+  writeFileSync(outputPlaygroundWithOutsourceJS, resultWithOutsource);
+  console.log(
+    `HTML file generated successfully: ${outputPlaygroundWithOutsourceJS}`,
+  );
+
   copyToWebIntegration();
 }
 
