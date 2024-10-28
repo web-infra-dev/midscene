@@ -132,6 +132,7 @@ export const allScriptsFromDump = (
   });
 
   if (!width || !height) {
+    console.error('width or height is missing in dump file');
     return null;
   }
 

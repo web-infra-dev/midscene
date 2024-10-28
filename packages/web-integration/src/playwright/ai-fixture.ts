@@ -79,8 +79,12 @@ export const PlaywrightAiFixture = () => {
             test.step(`ai - ${taskPrompt}`, async () => {
               await waitForNetworkIdle(page);
               const actionType = opts?.type || 'action';
-              const result = await agent.ai(taskPrompt, actionType);
-              resolve(result);
+              try {
+                const result = await agent.ai(taskPrompt, actionType);
+                resolve(result);
+              } catch (error) {
+                reject(error);
+              }
             });
           });
         },
@@ -94,9 +98,16 @@ export const PlaywrightAiFixture = () => {
     ) => {
       const agent = agentForPage(page, testInfo);
       await use(async (taskPrompt: string) => {
-        test.step(`aiAction - ${taskPrompt}`, async () => {
-          await waitForNetworkIdle(page);
-          await agent.aiAction(taskPrompt);
+        return new Promise((resolve, reject) => {
+          test.step(`aiAction - ${taskPrompt}`, async () => {
+            await waitForNetworkIdle(page);
+            try {
+              const result = await agent.aiAction(taskPrompt);
+              resolve(result);
+            } catch (error) {
+              reject(error);
+            }
+          });
         });
       });
       updateDumpAnnotation(testInfo, agent.dumpDataString());
@@ -111,8 +122,12 @@ export const PlaywrightAiFixture = () => {
         return new Promise((resolve, reject) => {
           test.step(`aiQuery - ${JSON.stringify(demand)}`, async () => {
             await waitForNetworkIdle(page);
-            const result = await agent.aiQuery(demand);
-            resolve(result);
+            try {
+              const result = await agent.aiQuery(demand);
+              resolve(result);
+            } catch (error) {
+              reject(error);
+            }
           });
         });
       });
@@ -128,8 +143,12 @@ export const PlaywrightAiFixture = () => {
         return new Promise((resolve, reject) => {
           test.step(`aiAssert - ${assertion}`, async () => {
             await waitForNetworkIdle(page);
-            await agent.aiAssert(assertion, errorMsg);
-            resolve(null);
+            try {
+              await agent.aiAssert(assertion, errorMsg);
+              resolve(null);
+            } catch (error) {
+              reject(error);
+            }
           });
         });
       });
@@ -144,8 +163,13 @@ export const PlaywrightAiFixture = () => {
       await use(async (assertion: string, opt?: AgentWaitForOpt) => {
         return new Promise((resolve, reject) => {
           test.step(`aiWaitFor - ${assertion}`, async () => {
-            await agent.aiWaitFor(assertion, opt);
-            resolve(null);
+            await waitForNetworkIdle(page);
+            try {
+              await agent.aiWaitFor(assertion, opt);
+              resolve(null);
+            } catch (error) {
+              reject(error);
+            }
           });
         });
       });

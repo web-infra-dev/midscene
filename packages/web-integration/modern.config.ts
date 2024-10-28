@@ -4,7 +4,7 @@ export default defineConfig({
   plugins: [moduleTools()],
   buildPreset: 'npm-library',
   buildConfig: {
-    platform: 'node',
+    format: 'umd',
     input: {
       index: 'src/index.ts',
       debug: 'src/debug/index.ts',
@@ -15,7 +15,7 @@ export default defineConfig({
       appium: 'src/appium/index.ts',
       'playwright-report': './src/playwright/reporter/index.ts',
     },
-    target: 'es2017',
-    externals: ['@midscene/core', 'node:fs'],
+    target: 'es6',
+    externals: ['@midscene/core', '@midscene/shared'],
   },
 });

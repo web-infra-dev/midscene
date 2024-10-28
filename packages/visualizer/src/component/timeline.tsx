@@ -67,7 +67,10 @@ const TimelineWidget = (props: {
   const indicatorContainer = useMemo(() => new PIXI.Container(), []);
 
   const allScreenshots = props.screenshots || [];
-  const maxTime = allScreenshots[allScreenshots.length - 1].timeOffset;
+  const maxTime =
+    allScreenshots.length > 0
+      ? allScreenshots[allScreenshots.length - 1].timeOffset
+      : 0;
 
   const sizeRatio = 2;
 

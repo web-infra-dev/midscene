@@ -1,6 +1,6 @@
 {
   "name": "@midscene/visualizer",
-  "version": "0.7.1",
+  "version": "0.7.2",
   "repository": "https://github.com/web-infra-dev/midscene",
   "homepage": "https://midscenejs.com/",
   "types": "./dist/types/index.d.ts",
@@ -16,7 +16,7 @@
   },
   "scripts": {
     "dev": "npm run build && npx npm-watch",
-    "build": "modern build && npx ts-node scripts/build-html.ts",
+    "build": "modern build && npx ts-node scripts/build-html.ts && ./build-extension.sh",
     "build:watch": "modern build -w",
     "serve": "http-server ./dist/ -p 3000",
     "new": "modern new",
@@ -25,10 +25,14 @@
   "devDependencies": {
     "@ant-design/icons": "5.3.7",
     "@midscene/core": "workspace:*",
+    "@midscene/shared": "workspace:*",
     "@midscene/web": "workspace:*",
     "@modern-js/module-tools": "2.58.2",
     "@modern-js/plugin-module-doc": "^2.33.1",
+    "@modern-js/plugin-module-node-polyfill": "2.58.2",
     "@modern-js/runtime": "^2.56.2",
+    "@pixi/unsafe-eval": "7.4.2",
+    "@types/chrome": "0.0.279",
     "@types/node": "^18.0.0",
     "@types/react": "18.3.3",
     "@types/react-dom": "18.3.0",

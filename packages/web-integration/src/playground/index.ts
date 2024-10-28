@@ -1,5 +1,5 @@
+import { ERROR_CODE_NOT_IMPLEMENTED_AS_DESIGNED } from '../common/utils';
 import { StaticPageAgent } from './agent';
-import PlaygroundServer from './server';
 import StaticPage from './static-page';
 
-export { StaticPageAgent, StaticPage, PlaygroundServer };
+export { StaticPageAgent, StaticPage, ERROR_CODE_NOT_IMPLEMENTED_AS_DESIGNED };

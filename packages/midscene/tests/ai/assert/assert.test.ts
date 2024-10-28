@@ -1,8 +1,8 @@
 import { AiAssert } from '@/ai-model';
-import { useCozeModel } from '@/ai-model/coze';
-import { getPageDataOfTestName } from 'tests/ai/inspector/util';
+import { preferCozeModel } from '@/ai-model/coze';
 /* eslint-disable max-lines-per-function */
 import { describe, expect, it, vi } from 'vitest';
+import { getPageDataOfTestName } from '../evaluate/test-suite/util';
 
 vi.setConfig({
   testTimeout: 180 * 1000,
@@ -11,7 +11,7 @@ vi.setConfig({
 
 const modelList: Array<'openAI' | 'coze'> = ['openAI'];
 
-if (useCozeModel('coze')) {
+if (preferCozeModel('coze')) {
   modelList.push('coze');
 }
 

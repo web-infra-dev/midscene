@@ -1,6 +1,8 @@
 {
   "$schema": "https://biomejs.dev/schemas/1.8.3/schema.json",
-  "organizeImports": { "enabled": true },
+  "organizeImports": {
+    "enabled": true
+  },
   "files": {
     "ignore": [
       "node_modules/**",
@@ -16,7 +18,9 @@
       "test-results/**",
       "script_get_all_texts.tmp.js",
       "**/playwright-report/**",
-      "**/todo-report.spec.ts-snapshots/**"
+      "**/todo-report.spec.ts-snapshots/**",
+      "**/visualizer/scripts/fixture/*",
+      "**/unpacked-extension/*"
     ]
   },
   "javascript": {
@@ -28,10 +32,20 @@
     "enabled": true,
     "rules": {
       "recommended": true,
-      "a11y": { "useKeyWithClickEvents": "off" },
-      "style": { "noParameterAssign": "off", "noNonNullAssertion": "off" },
-      "correctness": { "useExhaustiveDependencies": "off" },
-      "complexity": { "noForEach": "off" },
+      "a11y": {
+        "useKeyWithClickEvents": "off",
+        "useValidAnchor": "off"
+      },
+      "style": {
+        "noParameterAssign": "off",
+        "noNonNullAssertion": "off"
+      },
+      "correctness": {
+        "useExhaustiveDependencies": "off"
+      },
+      "complexity": {
+        "noForEach": "off"
+      },
       "suspicious": {
         "noExplicitAny": "off",
         "noArrayIndexKey": "off",
@@ -43,7 +57,9 @@
     {
       "include": ["*.ts", "*.d.ts", "*.tsx"],
       "ignore": [".nx"],
-      "linter": { "rules": {} }
+      "linter": {
+        "rules": {}
+      }
     }
   ],
   "vcs": {
