@@ -1,7 +1,9 @@
 /// <reference types="chrome" />
 
+import type { WebKeyInput } from '@/common/page';
 import type { ElementInfo } from '@/extractor';
 import type { AbstractPage } from '@/page';
+import { resizeImgBase64 } from '@midscene/shared/browser/img';
 
 const ThrowNotImplemented: any = (methodName: string) => {
   throw new Error(
@@ -65,6 +67,39 @@ async function getActivePageContent(tabId: number): Promise<{
   return returnValue[0].result;
 }
 
+async function getScreenshotBase64(windowId: number) {
+  // check if this window is active
+  const activeWindow = await chrome.windows.getAll({ populate: true });
+  if (activeWindow.find((w) => w.id === windowId) === undefined) {
+    throw new Error(`Window with id ${windowId} is not active`);
+  }
+
+  const base64 = await chrome.tabs.captureVisibleTab(windowId, {
+    format: 'jpeg',
+    quality: 70,
+  });
+  return base64;
+}
+
+async function getScreenInfoOfTab(tabId: number): Promise<{
+  dpr: number;
+  width: number;
+  height: number;
+}> {
+  const returnValue = await chrome.scripting.executeScript({
+    target: { tabId, allFrames: false },
+    func: () => {
+      return {
+        dpr: window.devicePixelRatio,
+        width: document.documentElement.clientWidth,
+        height: document.documentElement.clientHeight,
+      };
+    },
+  });
+  console.log('returnValue of getScreenInfoOfTab', returnValue);
+  return returnValue[0].result!;
+}
+
 export default class ChromeExtensionProxyPage implements AbstractPage {
   pageType = 'chrome-extension-proxy';
 
@@ -95,10 +130,14 @@ export default class ChromeExtensionProxyPage implements AbstractPage {
   }
 
   async screenshotBase64() {
-    const base64 = await getScreenshotBase64FromCache(
-      this.tabId,
-      this.windowId,
-    );
+    const base64 = await getScreenshotBase64(this.windowId);
+    const screenInfo = await getScreenInfoOfTab(this.tabId);
+    if (screenInfo.dpr > 1) {
+      return (await resizeImgBase64(base64, {
+        width: screenInfo.width,
+        height: screenInfo.height,
+      })) as string;
+    }
     return base64;
   }
 
@@ -110,33 +149,120 @@ export default class ChromeExtensionProxyPage implements AbstractPage {
   }
 
   async scrollUntilTop() {
-    return ThrowNotImplemented('scrollUntilTop');
+    await chrome.scripting.executeScript({
+      target: { tabId: this.tabId, allFrames: true },
+      func: () => {
+        window.scrollTo(0, 0);
+      },
+    });
   }
 
   async scrollUntilBottom() {
-    return ThrowNotImplemented('scrollUntilBottom');
+    await chrome.scripting.executeScript({
+      target: { tabId: this.tabId, allFrames: true },
+      func: () => {
+        window.scrollTo(0, document.body.scrollHeight);
+      },
+    });
   }
 
   async scrollUpOneScreen() {
-    return ThrowNotImplemented('scrollUpOneScreen');
+    await chrome.scripting.executeScript({
+      target: { tabId: this.tabId, allFrames: true },
+      func: () => {
+        window.scrollBy(0, -window.innerHeight * 0.7);
+      },
+    });
   }
 
   async scrollDownOneScreen() {
-    return ThrowNotImplemented('scrollDownOneScreen');
+    await chrome.scripting.executeScript({
+      target: { tabId: this.tabId, allFrames: true },
+      func: () => {
+        window.scrollBy(0, window.innerHeight * 0.7);
+      },
+    });
   }
 
   async clearInput() {
-    return ThrowNotImplemented('clearInput');
+    await chrome.scripting.executeScript({
+      target: { tabId: this.tabId, allFrames: true },
+      func: () => {
+        const activeElement = window.document.activeElement;
+        if (activeElement && 'value' in activeElement) {
+          (activeElement as HTMLInputElement).value = '';
+        }
+      },
+    });
   }
 
   mouse = {
-    click: ThrowNotImplemented.bind(null, 'mouse.click'),
-    wheel: ThrowNotImplemented.bind(null, 'mouse.wheel'),
-    move: ThrowNotImplemented.bind(null, 'mouse.move'),
+    click: async (x: number, y: number) => {
+      chrome.scripting.executeScript({
+        target: { tabId: this.tabId, allFrames: true },
+        func: () => {
+          const event = new MouseEvent('click', {
+            bubbles: true,
+            cancelable: true,
+            clientX: x,
+            clientY: y,
+          });
+          // find the element at (x, y)
+          const element = document.elementFromPoint(x, y);
+          if (element) {
+            element.dispatchEvent(event);
+          } else {
+            document.body.dispatchEvent(event);
+          }
+        },
+      });
+    },
+    wheel: async (deltaX: number, deltaY: number) => {
+      await chrome.scripting.executeScript({
+        target: { tabId: this.tabId, allFrames: true },
+        func: () => {
+          window.scrollBy(deltaX, deltaY);
+        },
+      });
+    },
+    move: async (x: number, y: number) => {
+      // hover on the element at (x, y)
+      throw new Error('mouse.move is not implemented in chrome extension');
+    },
   };
 
   keyboard = {
-    type: ThrowNotImplemented.bind(null, 'keyboard.type'),
-    press: ThrowNotImplemented.bind(null, 'keyboard.press'),
+    type: async (text: string) => {
+      await chrome.scripting.executeScript({
+        target: { tabId: this.tabId, allFrames: true },
+        func: () => {
+          const activeElement = window.document.activeElement;
+          if (activeElement && 'value' in activeElement) {
+            (activeElement as HTMLInputElement).value += text;
+          } else {
+            throw new Error('No active element found to type text');
+          }
+        },
+      });
+    },
+    press: async (key: WebKeyInput) => {
+      await chrome.scripting.executeScript({
+        target: { tabId: this.tabId, allFrames: true },
+        func: () => {
+          const activeElement = window.document.activeElement;
+          if (activeElement) {
+            activeElement.dispatchEvent(
+              new KeyboardEvent('keydown', {
+                bubbles: true,
+                cancelable: true,
+                key,
+              }),
+            );
+          } else {
+            throw new Error('No active element found to press key');
+          }
+        },
+      });
+    },
   };
 }

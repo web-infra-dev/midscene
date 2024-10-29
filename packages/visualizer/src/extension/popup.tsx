@@ -9,8 +9,8 @@ import {
   activeTabId,
   currentWindowId,
   getPlaygroundUrl,
-  getScreenInfoOfTab,
-  getScreenshotBase64,
+  // getScreenInfoOfTab,
+  // getScreenshotBase64,
   sendToWorker,
   workerMessageTypes,
 } from './utils';
@@ -26,24 +26,24 @@ import {
 import { useEffect, useState } from 'react';
 
 const shotAndOpenPlayground = async (tabId: number, windowId: number) => {
-  let screenshot = await getScreenshotBase64(windowId);
-  const screenInfo = await getScreenInfoOfTab(tabId);
+  // let screenshot = await getScreenshotBase64(windowId);
+  // const screenInfo = await getScreenInfoOfTab(tabId);
 
-  if (screenInfo.dpr > 1) {
-    screenshot = (await resizeImgBase64(screenshot, {
-      width: screenInfo.width,
-      height: screenInfo.height,
-    })) as string;
-  }
-  // cache screenshot when page is active
-  await sendToWorker<WorkerRequestSaveScreenshot, WorkerResponseSaveScreenshot>(
-    workerMessageTypes.SAVE_SCREENSHOT,
-    {
-      screenshot: { base64: screenshot, dpr: screenInfo.dpr },
-      tabId,
-      windowId,
-    },
-  );
+  // if (screenInfo.dpr > 1) {
+  //   screenshot = (await resizeImgBase64(screenshot, {
+  //     width: screenInfo.width,
+  //     height: screenInfo.height,
+  //   })) as string;
+  // }
+  // // cache screenshot when page is active
+  // await sendToWorker<WorkerRequestSaveScreenshot, WorkerResponseSaveScreenshot>(
+  //   workerMessageTypes.SAVE_SCREENSHOT,
+  //   {
+  //     screenshot: { base64: screenshot, dpr: screenInfo.dpr },
+  //     tabId,
+  //     windowId,
+  //   },
+  // );
   const url = getPlaygroundUrl(tabId, windowId);
   chrome.tabs.create({
     url,

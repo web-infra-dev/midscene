@@ -4,7 +4,13 @@ import { Helmet } from '@modern-js/runtime/head';
 import { Button, Empty, Spin, Tooltip, message } from 'antd';
 import { Form, Input } from 'antd';
 import { Radio } from 'antd';
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
 import Blackboard from './blackboard';
 import { iconForStatus } from './misc';
@@ -107,6 +113,7 @@ export function Playground({
   const [form] = Form.useForm();
   const { config, serviceMode, setServiceMode } = useEnvConfig();
   const configAlreadySet = Object.keys(config || {}).length >= 1;
+  const runHeaderRef = useRef<HTMLHeadingElement>(null);
 
   // override AI config
   useEffect(() => {
@@ -215,6 +222,10 @@ export function Playground({
     } else {
       setReplayScriptsInfo(null);
     }
+
+    // Scroll the Run header into view
+    runHeaderRef.current?.scrollIntoView({ behavior: 'smooth' });
+
     // TODO: reset agent dump
     // setResetAgentCounter((c) => c + 1);
   }, [form, agent, activeAgent]);
@@ -399,7 +410,7 @@ export function Playground({
           )}
         </div>
         <div className="form-part input-wrapper">
-          <h3>Run</h3>
+          <h3 ref={runHeaderRef}>Run</h3>
           <Form.Item name="type">
             <Radio.Group buttonStyle="solid" disabled={!runButtonEnabled}>
               <Radio.Button value="aiAction">Action</Radio.Button>
