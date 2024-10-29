@@ -1,7 +1,7 @@
 import assert from 'node:assert';
 import type { Buffer } from 'node:buffer';
 import type { Rect } from '@/types';
-import Jimp from 'jimp';
+import type Jimp from 'jimp';
 import type { NodeType } from '../constants';
 import getJimp from './get-jimp';
 import { bufferFromBase64, imageInfo, imageInfoOfBase64 } from './index';
