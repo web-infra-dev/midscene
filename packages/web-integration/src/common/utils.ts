@@ -48,11 +48,11 @@ export async function parseContextFromWebPage(
   });
 
   return {
-    content: elementsInfo,
+    url,
     size,
+    content: elementsInfo,
     screenshotBase64,
     screenshotBase64WithElementMarker: `data:image/png;base64,${screenshotBase64WithElementMarker}`,
-    url,
   };
 }
 

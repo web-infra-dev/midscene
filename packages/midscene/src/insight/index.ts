@@ -59,6 +59,8 @@ export default class Insight<
 
   onceDumpUpdatedFn?: DumpSubscriber;
 
+  generateElement: InsightOptions['generateElement'];
+
   taskInfo?: Omit<InsightTaskInfo, 'durationMs'>;
 
   constructor(
@@ -71,6 +73,8 @@ export default class Insight<
     } else {
       this.contextRetrieverFn = () => Promise.resolve(context);
     }
+
+    this.generateElement = opt?.generateElement;
 
     if (typeof opt?.aiVendorFn !== 'undefined') {
       this.aiVendorFn = opt.aiVendorFn;
@@ -142,7 +146,7 @@ export default class Insight<
 
     const elements: BaseElement[] = [];
     parseResult.elements.forEach((item) => {
-      if (item.id) {
+      if ('id' in item) {
         const element = elementById(item.id);
 
         if (!element) {
@@ -151,6 +155,17 @@ export default class Insight<
           );
           return;
         }
+        elements.push(element);
+      }
+
+      if ('position' in item) {
+        if (!this.generateElement) {
+          throw Error('use position model must provider ');
+        }
+        const element = this.generateElement({
+          rect: item.position,
+          content: item.text,
+        });
         elements.push(element);
       }
     });

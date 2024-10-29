@@ -59,7 +59,7 @@ export type AISingleElementResponse =
       text: string;
     }
   | {
-      position: Point;
+      position: Rect;
       reason: string;
       text: string;
     };
@@ -75,7 +75,7 @@ export interface AIElementIdResponse {
 
 export interface AIElementPositionResponse {
   elements: {
-    position: Point;
+    position: Rect;
     reason: string;
     text: string;
   }[];
@@ -120,6 +120,10 @@ export type CallAIFn = <T>(
 export interface InsightOptions {
   taskInfo?: Omit<InsightTaskInfo, 'durationMs'>;
   aiVendorFn?: CallAIFn;
+  generateElement?: (opts: {
+    content?: string;
+    rect: BaseElement['rect'];
+  }) => BaseElement;
 }
 
 export interface UISection {
@@ -148,6 +152,7 @@ export interface InsightTaskInfo {
 export interface DumpMeta {
   sdkVersion: string;
   logTime: number;
+  model_name: string;
 }
 
 export interface ReportDumpWithAttributes {
@@ -176,7 +181,7 @@ export interface InsightDump extends DumpMeta {
 
 export type PartialInsightDumpFromSDK = Omit<
   InsightDump,
-  'sdkVersion' | 'logTime' | 'logId'
+  'sdkVersion' | 'logTime' | 'logId' | 'model_name'
 >;
 
 export type DumpSubscriber = (dump: InsightDump) => Promise<void> | void;

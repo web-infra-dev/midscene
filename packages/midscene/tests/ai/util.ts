@@ -1,4 +1,4 @@
-import { useCozeModel } from '@/ai-model/coze';
+import { preferCozeModel } from '@/ai-model/coze';
 import type { PlanningAction } from '@/types';
 
 export function makePlanResultStable(plans: PlanningAction[]) {
@@ -16,7 +16,7 @@ export function makePlanResultStable(plans: PlanningAction[]) {
   });
 }
 
-export const modelList: Array<'openAI' | 'coze'> = useCozeModel('coze')
+export const modelList: Array<'openAI' | 'coze'> = preferCozeModel('coze')
   ? ['openAI', 'coze']
   : ['openAI'];
 

@@ -9,6 +9,7 @@ import type {
   UISection,
 } from '@/types';
 import type { ResponseFormatJSONSchema } from 'openai/resources';
+import { MATCH_BY_POSITION } from '../openai';
 
 const characteristic =
   'You are a versatile professional in software UI design and testing. Your outstanding contributions will impact the user experience of billions of users.';
@@ -286,18 +287,19 @@ export async function describeUserPage<
 
   return {
     description: `
-{
-  // The size of the page
-  "pageSize": ${describeSize({ width, height })},\n
-  // json description of the element
-  "content": ${JSON.stringify(elementInfosDescription)}
-      
-}`, // // json description of the element
-    descriptionSizeOnly: `
-{
-  // The size of the page
-  "pageSize": ${describeSize({ width, height })},
-}`,
+    {
+      // The size of the page
+      "pageSize": ${describeSize({ width, height })},\n
+      ${
+        // if match by id, use the description of the element
+        !MATCH_BY_POSITION
+          ? `
+          // json description of the element
+          "content": ${JSON.stringify(elementInfosDescription)}
+          `
+          : ''
+      }
+    }`,
     elementById(id: string) {
       assert(typeof id !== 'undefined', 'id is required for query');
       const item = idElementMap[`${id}`];

@@ -22,7 +22,7 @@ export async function plan(
 }> {
   const { callAI, context } = opts || {};
   const { screenshotBase64 } = context;
-  const { description: pageDescription, descriptionSizeOnly } =
+  const { description: pageDescription, elementByPosition } =
     await describeUserPage(context);
   let planFromAI: PlanningAIResponse | undefined;
 
@@ -44,7 +44,7 @@ export async function plan(
           type: 'text',
           text: `
             pageDescription:\n 
-            ${MATCH_BY_POSITION ? descriptionSizeOnly : pageDescription}
+            ${pageDescription}
             \n
             Here is the description of the task. Just go ahead:
             =====================================
@@ -66,7 +66,18 @@ export async function plan(
   const actions = planFromAI?.actions || [];
 
   assert(planFromAI, "can't get planFromAI");
-  assert(actions && actions.length > 0, 'no actions in ai plan');
+  assert(
+    actions && actions.length > 0,
+    `no actions in ai plan with context: ${JSON.stringify({ planFromAI })}`,
+  );
+
+  actions.forEach((action) => {
+    if (action.type === 'Locate' && action.param.quickAnswer) {
+      action.param.quickAnswer.id = elementByPosition(
+        action.param.quickAnswer.position,
+      )?.id;
+    }
+  });
 
   if (planFromAI.error) {
     throw new Error(planFromAI.error);

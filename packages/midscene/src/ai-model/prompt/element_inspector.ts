@@ -1,6 +1,10 @@
 import type { ResponseFormatJSONSchema } from 'openai/resources';
+import { MATCH_BY_POSITION } from '../openai';
 
 export function systemPromptToFindElement() {
+  if (MATCH_BY_POSITION) {
+    return systemPromptToFindElementPosition();
+  }
   return `
 ## Role:
 You are an expert in software page image (2D) and page element text analysis.

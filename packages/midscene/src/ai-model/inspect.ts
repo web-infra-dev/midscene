@@ -12,11 +12,9 @@ import type {
   ChatCompletionUserMessageParam,
 } from 'openai/resources';
 import { AIActionType, callAiFn, transformUserMessages } from './common';
-import { MATCH_BY_POSITION } from './openai/index';
 import {
   multiDescription,
   systemPromptToFindElement,
-  systemPromptToFindElementPosition,
 } from './prompt/element_inspector';
 import {
   describeUserPage,
@@ -44,7 +42,7 @@ export function transformElementPositionToId(
       const id = elementByPosition(elementsInfo, position)?.id;
       assert(
         id,
-        `inspect: no id found with position: ${JSON.stringify(position)}`,
+        `inspect: no id found with position: ${JSON.stringify({ position, elementsInfo })}`,
       );
       return {
         ...item,
@@ -89,7 +87,6 @@ export async function AiInspectElement<
         parseResult: {
           elements: [
             {
-              id: elementByPosition(options.quickAnswer.position)?.id,
               ...options.quickAnswer,
             },
           ],
@@ -100,9 +97,7 @@ export async function AiInspectElement<
     }
   }
 
-  const systemPrompt = MATCH_BY_POSITION
-    ? systemPromptToFindElementPosition()
-    : systemPromptToFindElement();
+  const systemPrompt = systemPromptToFindElement();
   const msgs: AIArgs = [
     { role: 'system', content: systemPrompt },
     {
@@ -140,7 +135,7 @@ export async function AiInspectElement<
       useModel,
     });
     return {
-      parseResult: transformElementPositionToId(parseResult, context.content),
+      parseResult,
       rawResponse: parseResult,
       elementById,
     };
@@ -153,7 +148,7 @@ export async function AiInspectElement<
   });
 
   return {
-    parseResult: transformElementPositionToId(inspectElement, context.content),
+    parseResult: inspectElement,
     rawResponse: inspectElement,
     elementById,
   };

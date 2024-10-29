@@ -28,9 +28,10 @@ import {
   transformElementPositionToId,
 } from '@midscene/core';
 import { sleep } from '@midscene/core/utils';
+import { NodeType } from '@midscene/shared/constants';
 import type { KeyInput } from 'puppeteer';
 import type { ElementInfo } from '../extractor';
-import type { WebElementInfo } from '../web-element';
+import { WebElementInfo } from '../web-element';
 import { TaskCache } from './task-cache';
 import { type WebUIContext, parseContextFromWebPage } from './utils';
 
@@ -48,9 +49,25 @@ export class PageTaskExecutor {
 
   constructor(page: WebPage, opts: { cacheId: string | undefined }) {
     this.page = page;
-    this.insight = new Insight<WebElementInfo, WebUIContext>(async () => {
-      return await parseContextFromWebPage(page);
-    });
+    this.insight = new Insight<WebElementInfo, WebUIContext>(
+      async () => {
+        const context = await parseContextFromWebPage(page);
+        return context;
+      },
+      {
+        generateElement: ({ content, rect }) =>
+          new WebElementInfo({
+            content: content || '',
+            rect,
+            page,
+            id: '',
+            attributes: {
+              nodeType: NodeType.CONTAINER,
+            },
+            indexId: 0,
+          }),
+      },
+    );
 
     this.taskCache = new TaskCache({
       fileName: opts?.cacheId,
@@ -380,6 +397,7 @@ export class PageTaskExecutor {
         });
         return {
           output: planResult,
+          pageContext,
           cache: {
             hit: Boolean(planCache),
           },

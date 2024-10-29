@@ -34,10 +34,10 @@ let config: Record<string, string | undefined> = {
     process.env[MIDSCENE_MODEL_TEXT_ONLY] || undefined,
   [OPENAI_USE_AZURE]: process.env[OPENAI_USE_AZURE] || undefined,
   [MIDSCENE_CACHE]: process.env[MIDSCENE_CACHE] || undefined,
+  MATCH_BY_POSITION: process.env.MATCH_BY_POSITION || undefined,
 };
 
-export const MATCH_BY_POSITION =
-  config[MIDSCENE_MODEL_NAME] === 'claude-3-5-sonnet-20241022';
+export const MATCH_BY_POSITION = config.MATCH_BY_POSITION;
 
 export const getAIConfig = (
   configKey: keyof typeof config,

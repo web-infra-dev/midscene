@@ -134,6 +134,7 @@ export class Page<
   scrollUntilBottom(): Promise<void> {
     return this.mouse.wheel(0, 9999999);
   }
+
   async scrollUpOneScreen(): Promise<void> {
     const innerHeight = await this.evaluate(() => window.innerHeight);
     const distance = innerHeight * 0.7;
