@@ -157,17 +157,6 @@ export default class Insight<
         }
         elements.push(element);
       }
-
-      if ('position' in item) {
-        if (!this.generateElement) {
-          throw Error('use position model must provider ');
-        }
-        const element = this.generateElement({
-          rect: item.position,
-          content: item.text,
-        });
-        elements.push(element);
-      }
     });
 
     writeInsightDump(

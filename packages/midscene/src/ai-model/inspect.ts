@@ -42,7 +42,7 @@ export function transformElementPositionToId(
       const id = elementByPosition(elementsInfo, position)?.id;
       assert(
         id,
-        `inspect: no id found with position: ${JSON.stringify({ position, elementsInfo })}`,
+        `inspect: no id found with position: ${JSON.stringify({ position })}`,
       );
       return {
         ...item,
@@ -84,14 +84,12 @@ export async function AiInspectElement<
       elementByPosition(options.quickAnswer.position)
     ) {
       return {
-        parseResult: {
-          elements: [
-            {
-              ...options.quickAnswer,
-            },
-          ],
-          errors: [],
-        },
+        parseResult: transformElementPositionToId(
+          {
+            elements: [options.quickAnswer],
+          },
+          context.content,
+        ),
         elementById,
       };
     }
@@ -136,7 +134,7 @@ export async function AiInspectElement<
     });
     return {
       parseResult,
-      rawResponse: parseResult,
+      rawResponse: transformElementPositionToId(parseResult, context.content),
       elementById,
     };
   }
@@ -148,7 +146,7 @@ export async function AiInspectElement<
   });
 
   return {
-    parseResult: inspectElement,
+    parseResult: transformElementPositionToId(inspectElement, context.content),
     rawResponse: inspectElement,
     elementById,
   };

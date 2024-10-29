@@ -51,7 +51,7 @@ If the action type is 'Locate', provide a quick answer: Does any element meet th
   "text": "PLACEHOLDER", // Replace PLACEHOLDER with the text of elementInfo, if none, leave empty
   ${
     MATCH_BY_POSITION
-      ? '"position": { left: number, top: number, width: number, height: number } // Represents the position of the element; replace with actual values in practice (ensure it reflects the element\'s position)'
+      ? '"position": { x: number; y: number } // Represents the position of the element; replace with actual values in practice (ensure it reflects the element\'s position)'
       : '"id": "wefew2222few2" // Represents the ID of the element; replace with actual values in practice'
   }
 }
@@ -75,7 +75,7 @@ Please return the result in JSON format as follows:
         "text": "PLACEHOLDER", // Replace PLACEHOLDER with the text of elementInfo, if none, leave empty
         ${
           MATCH_BY_POSITION
-            ? '"position": { left: number, top: number, width: number, height: number } // Represents the position of the element; replace with actual values in practice (ensure it reflects the element\'s position)'
+            ? '"position": { x: number; y: number } // Represents the position of the element; replace with actual values in practice (ensure it reflects the element\'s position)'
             : '"id": "wefew2222few2" // Represents the ID of the element; replace with actual values in practice'
         }
       } | null,

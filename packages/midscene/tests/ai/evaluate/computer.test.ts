@@ -7,11 +7,11 @@ import { type InspectAiTestCase, getPageTestData } from './test-suite/util';
 
 const testSources = [
   //   'todo',
-  //   'online_order',
+  'online_order',
   //   'online_order_list',
   //   'taobao',
   //   'aweme_login',
-  'aweme_play',
+  // 'aweme_play',
 ];
 describe(
   'automation - computer',

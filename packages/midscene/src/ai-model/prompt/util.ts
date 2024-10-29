@@ -248,15 +248,18 @@ export function truncateText(text: string) {
 
 export function elementByPosition(
   elementsInfo: BaseElement[],
-  position: Point,
+  position: {
+    x: number;
+    y: number;
+  },
 ) {
   assert(typeof position !== 'undefined', 'position is required for query');
   const item = elementsInfo.find((item) => {
     return (
-      item.rect.left <= position.left &&
-      position.left <= item.rect.left + item.rect.width &&
-      item.rect.top <= position.top &&
-      position.top <= item.rect.top + item.rect.height
+      item.rect.left <= position.x &&
+      position.x <= item.rect.left + item.rect.width &&
+      item.rect.top <= position.y &&
+      position.y <= item.rect.top + item.rect.height
     );
   });
   return item;
@@ -305,7 +308,7 @@ export async function describeUserPage<
       const item = idElementMap[`${id}`];
       return item;
     },
-    elementByPosition(position: Point) {
+    elementByPosition(position: { x: number; y: number }) {
       return elementByPosition(elementsInfo, position);
     },
   };

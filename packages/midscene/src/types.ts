@@ -59,7 +59,10 @@ export type AISingleElementResponse =
       text: string;
     }
   | {
-      position: Rect;
+      position: {
+        x: number;
+        y: number;
+      };
       reason: string;
       text: string;
     };
@@ -75,7 +78,10 @@ export interface AIElementIdResponse {
 
 export interface AIElementPositionResponse {
   elements: {
-    position: Rect;
+    position: {
+      x: number;
+      y: number;
+    };
     reason: string;
     text: string;
   }[];

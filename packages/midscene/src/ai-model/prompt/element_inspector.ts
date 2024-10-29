@@ -164,7 +164,7 @@ export function systemPromptToFindElementPosition() {
           "reason": "Reason for finding element 4: It is located in the upper right corner, is an image type, and according to the screenshot, it is a shopping cart icon button",
           "text": "",
           // position of this element
-          "position": { left: number, top: number }
+          "position": { x: number, y: number }
         }
     ],
     "errors": []// Return an error if there is no target element on the picture
