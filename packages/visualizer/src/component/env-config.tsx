@@ -51,7 +51,7 @@ export function EnvConfig() {
           ))}
         </div>
         <div>
-          <Button type="link" onClick={showModal}>
+          <Button type="text" onClick={showModal}>
             Edit
           </Button>
         </div>

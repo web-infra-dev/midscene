@@ -54,7 +54,7 @@ export default defineConfig({
       input: {
         popup: 'src/extension/popup.tsx',
         worker: 'src/extension/worker.ts',
-        'playground-entry': 'src/extension/playground-entry.ts',
+        'playground-entry': 'src/extension/playground-entry.tsx',
       },
       platform: 'browser',
       outDir: 'unpacked-extension/lib',

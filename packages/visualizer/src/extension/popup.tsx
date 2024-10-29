@@ -15,6 +15,7 @@ import {
 
 import { globalThemeConfig } from '@/component/color';
 import Logo from '@/component/logo';
+import { Playground } from '@/component/playground-component';
 import { resizeImgBase64 } from '@midscene/shared/browser/img';
 import { useState } from 'react';
 
@@ -83,7 +84,7 @@ const shotAndOpenPlayground = async () => {
 function PlaygroundPopup() {
   const [loading, setLoading] = useState(false);
 
-  const handleClick = async () => {
+  const handleSendToPlayground = async () => {
     setLoading(true);
     try {
       await shotAndOpenPlayground();
@@ -100,15 +101,25 @@ function PlaygroundPopup() {
           <Logo />
         </div>
         <p>
-          Using AI to automate browser actions, perform assertions, and extract
-          data in JSON format using natural language.{' '}
+          Midscene.js helps to automate browser actions, perform assertions, and
+          extract data in JSON format using natural language.{' '}
           <a href="https://midscenejs.com/" target="_blank" rel="noreferrer">
             Learn more
           </a>
         </p>
-        <Button onClick={handleClick} loading={loading} type="primary">
-          Send to Playground
-        </Button>
+        <p>This is a panel for experimenting with Midscene.js.</p>
+        <p>
+          To keep the current page context, you can also{' '}
+          <Button
+            onClick={handleSendToPlayground}
+            loading={loading}
+            type="text"
+          >
+            send to fullscreen playground
+          </Button>
+        </p>
+        <div className="hr" />
+        <Playground liteUI />
       </div>
     </ConfigProvider>
   );

@@ -2,7 +2,7 @@ import { PlayCircleOutlined, SendOutlined } from '@ant-design/icons';
 import type { UIContext } from '@midscene/core/.';
 import { Button, Drawer, Tooltip } from 'antd';
 import { useEffect, useState } from 'react';
-import { Playground } from '../playground';
+import { Playground } from './playground-component';
 import { useEnvConfig } from './store';
 import './open-in-playground.less';
 
@@ -65,6 +65,7 @@ export const useServerValid = (shouldRun = true) => {
 export default function OpenInPlayground(props?: { context?: UIContext }) {
   const serverValid = useServerValid();
   const [context, setContext] = useState<UIContext | undefined>();
+  const [contextLoadingCounter, setContextLoadingCounter] = useState(0);
   const [isDrawerVisible, setIsDrawerVisible] = useState(false);
 
   let ifPlaygroundValid = true;
@@ -78,6 +79,7 @@ export default function OpenInPlayground(props?: { context?: UIContext }) {
   }
 
   const showPlayground = () => {
+    setContextLoadingCounter((c) => c + 1);
     setContext(props?.context || undefined);
     setIsDrawerVisible(true);
   };
@@ -128,7 +130,7 @@ export default function OpenInPlayground(props?: { context?: UIContext }) {
         <Playground
           propsContext={context}
           hideLogo={true}
-          key={Math.random().toString(36).substring(7)}
+          key={contextLoadingCounter}
         />
       </Drawer>
     </>

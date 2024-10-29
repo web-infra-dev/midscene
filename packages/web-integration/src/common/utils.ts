@@ -15,13 +15,6 @@ export type WebUIContext = UIContext<WebElementInfo> & {
   url: string;
 };
 
-// screenshotBase64: 28.277099609375 ms
-// playground-entry.js:1 getElementInfos: 66.821044921875 ms
-// playground-entry.js:1 alignElements: 0.154052734375 ms
-// playground-entry.js:1 imageInfoOfBase64: 116.253173828125 ms
-// playground-entry.js:1 compositeElementInfoImg: 319.744140625 ms
-// playground-entry.js:1 parseContextFromWebPage: 531.552001953125 ms
-
 export async function parseContextFromWebPage(
   page: WebPage,
   _opt?: PlaywrightParserOpt,
