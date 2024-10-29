@@ -17,6 +17,7 @@ import Logo from './logo';
 import { serverBase, useServerValid } from './open-in-playground';
 
 import { overrideAIConfig } from '@midscene/core';
+import type { ChromeExtensionProxyPageAgent } from '@midscene/web/chrome-extension';
 // import { ChromeExtensionProxyPage } from '@midscene/web/chrome-extension';
 import {
   ERROR_CODE_NOT_IMPLEMENTED_AS_DESIGNED,
@@ -51,31 +52,6 @@ overrideAIConfig({
   MIDSCENE_DEBUG_AI_PROFILE: '1',
 });
 
-// const useExtensionProxyAgent = (
-//   tabId: string,
-//   windowId: string,
-//   setUiContext: (context: UIContext) => void,
-// ) => {
-//   const agent = useMemo(() => {
-//     if (!tabId || !windowId) return null;
-//     const tabIdNumber = Number.parseInt(tabId, 10);
-//     const windowIdNumber = Number.parseInt(windowId, 10);
-//     const page = new ChromeExtensionProxyPage(tabIdNumber, windowIdNumber);
-
-//     const agent = new ChromeExtensionProxyPageAgent(page);
-
-//     // set initial context
-//     getContextFromPage(page).then((context) => {
-//       // console.log('set initial context', context);
-//       setUiContext(context);
-//     });
-
-//     return agent;
-//   }, [tabId, windowId]);
-//   return agent;
-// };
-
-// cache
 const cacheKeyForPrompt = 'playground-user-prompt';
 const cacheKeyForType = 'playground-user-type';
 const setCache = (prompt: string, type: string) => {
@@ -99,39 +75,34 @@ const useContextId = () => {
 };
 const { TextArea } = Input;
 
-const useLocalAgent = (
+// TODO: reset agent dump
+export const useStaticPageAgent = (
   context: UIContext | undefined,
-  config: Record<string, string>,
-  resetAgentCounter: number,
-) => {
+): StaticPageAgent | null => {
   const agent = useMemo(() => {
-    if (!context || !config) return null;
+    if (!context) return null;
 
     const page = new StaticPage(context as any);
     return new StaticPageAgent(page);
-  }, [context, config, resetAgentCounter]);
+  }, [context]);
   return agent;
 };
 
 export function Playground({
-  propsContext,
+  agent,
   liteUI,
   hideLogo,
 }: {
-  propsContext?: UIContext;
+  agent: StaticPageAgent | ChromeExtensionProxyPageAgent | null;
   hideLogo?: boolean;
   liteUI?: boolean;
 }) {
-  const contextId = useContextId();
-  const [overrideContext, setOverrideContext] = useState<UIContext | undefined>(
-    undefined,
-  );
-  const uiContext = overrideContext || propsContext || undefined;
-  // const [uiContext, setUiContext] = useState<UIContext | null>(
-  //   propsContext || null,
-  // );
+  // const contextId = useContextId();
+  const [uiContextPreview, setUiContextPreview] = useState<
+    UIContext | undefined
+  >(undefined);
+
   const [loading, setLoading] = useState(false);
-  const [resetAgentCounter, setResetAgentCounter] = useState(0);
   const [result, setResult] = useState<PlaygroundResult | null>(null);
   const [form] = Form.useForm();
   const { config, serviceMode, setServiceMode } = useEnvConfig();
@@ -142,17 +113,9 @@ export function Playground({
     overrideAIConfig(config);
   }, [config]);
 
-  // local agent
-  const localAgent = useLocalAgent(uiContext, config, resetAgentCounter);
+  const shouldShowContext = !liteUI;
 
-  // const extensionProxyAgent = useExtensionProxyAgent(
-  //   targetTabId as string,
-  //   targetWindowId as string,
-  //   setUiContext,
-  // );
-
-  const activeAgent = localAgent;
-  // serviceMode === 'In-Browser-Extension' ? extensionProxyAgent : localAgent;
+  const activeAgent = agent;
 
   const [replayScriptsInfo, setReplayScriptsInfo] =
     useState<ReplayScriptsInfo | null>(null);
@@ -160,21 +123,32 @@ export function Playground({
 
   const serverValid = useServerValid(serviceMode === 'Server');
 
-  // setup context
+  // setup context preview
   useEffect(() => {
-    if (uiContext) return;
+    if (uiContextPreview) return;
+    if (!shouldShowContext) return;
+
+    agent
+      ?.getUIContext()
+      .then((context) => {
+        setUiContextPreview(context);
+      })
+      .catch((e) => {
+        message.error('Failed to get UI context');
+        console.error(e);
+      });
 
     // TODO: move this out of playground
-    if (serviceMode === 'Server') {
-      if (!contextId) throw new Error('contextId is required in server mode');
-      fetch(`${serverBase}/context/${contextId}`)
-        .then((res) => res.json())
-        .then((data) => {
-          const contextObj = JSON.parse(data.context);
-          setOverrideContext(contextObj);
-        });
-    }
-  }, [contextId, serviceMode]);
+    // if (serviceMode === 'Server') {
+    //   if (!contextId) throw new Error('contextId is required in server mode');
+    //   fetch(`${serverBase}/context/${contextId}`)
+    //     .then((res) => res.json())
+    //     .then((data) => {
+    //       const contextObj = JSON.parse(data.context);
+    //       setOverrideContext(contextObj);
+    //     });
+    // }
+  }, [uiContextPreview, shouldShowContext, agent]);
 
   const handleRun = useCallback(async () => {
     const value = form.getFieldsValue();
@@ -192,6 +166,7 @@ export function Playground({
       error: null,
     };
     try {
+      const uiContext = await agent?.getUIContext();
       if (serviceMode === 'Server') {
         result = await requestPlaygroundServer(
           uiContext!,
@@ -209,8 +184,12 @@ export function Playground({
       }
     } catch (e: any) {
       console.error(e);
-      if (!e.message.includes(ERROR_CODE_NOT_IMPLEMENTED_AS_DESIGNED)) {
+      if (typeof e === 'string') {
+        result.error = e;
+      } else if (!e.message?.includes(ERROR_CODE_NOT_IMPLEMENTED_AS_DESIGNED)) {
         result.error = e.message;
+      } else {
+        result.error = 'Unknown error';
       }
     }
 
@@ -236,8 +215,9 @@ export function Playground({
     } else {
       setReplayScriptsInfo(null);
     }
-    setResetAgentCounter((c) => c + 1);
-  }, [form, uiContext, activeAgent]);
+    // TODO: reset agent dump
+    // setResetAgentCounter((c) => c + 1);
+  }, [form, agent, activeAgent]);
 
   let placeholder = 'What do you want to do?';
   const selectedType = Form.useWatch('type', form);
@@ -249,9 +229,9 @@ export function Playground({
   }
 
   const runButtonEnabled =
-    (serviceMode === 'In-Browser' && uiContext && configAlreadySet) ||
+    (serviceMode === 'In-Browser' && agent && configAlreadySet) ||
     (serviceMode === 'Server' && serverValid) ||
-    (serviceMode === 'In-Browser-Extension' && uiContext && configAlreadySet);
+    (serviceMode === 'In-Browser-Extension' && agent && configAlreadySet);
 
   // use cmd + enter to run
   useEffect(() => {
@@ -275,7 +255,7 @@ export function Playground({
       image={null}
       description={
         <>
-          By dumping the UI Context, you can easily debug the prompt in the
+          By dumping the UI context, you can easily debug the prompt in the
           Midscene playground.
           <br />
           The UI context here is static, so we cannot take any action on it.
@@ -286,7 +266,6 @@ export function Playground({
     />
   );
   if (loading) {
-    resultFilled = true;
     resultDataToShow = (
       <Spin
         spinning={loading}
@@ -391,23 +370,23 @@ export function Playground({
         </div>
         <div
           className="form-part context-panel"
-          style={{ display: liteUI ? 'none' : 'block' }}
+          style={{ display: shouldShowContext ? 'block' : 'none' }}
         >
           <h3>UI Context</h3>
-          {uiContext ? (
+          {uiContextPreview ? (
             <Blackboard
-              uiContext={uiContext}
+              uiContext={uiContextPreview}
               hideController
               disableInteraction
             />
           ) : (
             <div>
-              {iconForStatus('failed')} No UI Context &nbsp;
+              {iconForStatus('failed')} No UI context &nbsp;
               <Button
                 type="link"
                 onClick={(e) => {
                   e.preventDefault();
-                  setOverrideContext(DemoData as any);
+                  setUiContextPreview(DemoData as any);
                 }}
               >
                 Load Demo
@@ -444,14 +423,16 @@ export function Playground({
     </Form>
   );
 
-  const resultSection = (
-    <div className="main-side-result">{resultDataToShow}</div>
-  );
-
   return liteUI ? (
     <div className="playground-container lite-ui">
       {formSection}
-      {resultFilled && resultSection}
+      {resultFilled && <div className="hr" />}
+      {resultFilled && (
+        <div className="form-part">
+          <h3>Result</h3>
+          <div className="lite-ui-result">{resultDataToShow}</div>
+        </div>
+      )}
     </div>
   ) : (
     <div className="playground-container">
@@ -472,7 +453,9 @@ export function Playground({
           {formSection}
         </Panel>
         <PanelResizeHandle className="panel-resize-handle" />
-        <Panel>{resultSection}</Panel>
+        <Panel>
+          <div className="main-side-result">{resultDataToShow}</div>
+        </Panel>
       </PanelGroup>
     </div>
   );

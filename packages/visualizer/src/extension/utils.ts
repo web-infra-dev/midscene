@@ -77,3 +77,27 @@ export function getPlaygroundUrl(tabId: number, windowId: number) {
     `./pages/playground.html?tab_id=${tabId}&window_id=${windowId}`,
   );
 }
+
+export async function activeTabId(): Promise<number> {
+  return new Promise((resolve, reject) => {
+    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+      if (tabs?.[0]?.id) {
+        resolve(tabs[0].id);
+      } else {
+        reject(new Error('No active tab found'));
+      }
+    });
+  });
+}
+
+export async function currentWindowId(): Promise<number> {
+  return new Promise((resolve, reject) => {
+    chrome.windows.getCurrent((window) => {
+      if (window?.id) {
+        resolve(window.id);
+      } else {
+        reject(new Error('No active window found'));
+      }
+    });
+  });
+}

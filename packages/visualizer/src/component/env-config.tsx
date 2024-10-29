@@ -22,6 +22,14 @@ export function EnvConfig() {
     setIsModalOpen(false);
   };
 
+  const editBtn = (
+    <Button type="link" size="small" onClick={showModal}>
+      Edit
+    </Button>
+  );
+
+  const [showEditButton, setShowEditButton] = useState(false);
+
   const configTip =
     Object.keys(config).length === 0 ? (
       <div>
@@ -39,22 +47,19 @@ export function EnvConfig() {
         </p>
       </div>
     ) : (
-      <div>
-        <div>
-          {Object.entries(config).map(([key, value]) => (
-            <div key={key}>
-              <span>
-                {iconForStatus('success')} {key}:{' '}
-                {key === 'MIDSCENE_MODEL_NAME' ? value : '***'}
-              </span>
-            </div>
-          ))}
-        </div>
-        <div>
-          <Button type="text" onClick={showModal}>
-            Edit
-          </Button>
-        </div>
+      <div
+        onMouseEnter={() => setShowEditButton(true)}
+        onMouseLeave={() => setShowEditButton(false)}
+      >
+        {Object.entries(config).map(([key, value]) => (
+          <div key={key} style={{ lineHeight: '1.8' }}>
+            <span>
+              {iconForStatus('success')} {key}:{' '}
+              {key === 'MIDSCENE_MODEL_NAME' ? value : '***'}{' '}
+              {showEditButton && editBtn}
+            </span>
+          </div>
+        ))}
       </div>
     );
 

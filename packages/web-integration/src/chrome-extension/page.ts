@@ -1,9 +1,5 @@
 /// <reference types="chrome" />
 
-import {
-  ERROR_CODE_NOT_IMPLEMENTED_AS_DESIGNED,
-  type WebUIContext,
-} from '@/common/utils';
 import type { ElementInfo } from '@/extractor';
 import type { AbstractPage } from '@/page';
 

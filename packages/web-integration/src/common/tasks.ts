@@ -10,7 +10,7 @@ import {
   type ExecutionTaskInsightQueryApply,
   type ExecutionTaskPlanningApply,
   Executor,
-  Insight,
+  type Insight,
   type InsightAssertionResponse,
   type InsightDump,
   type InsightExtractParam,
@@ -44,11 +44,13 @@ export class PageTaskExecutor {
 
   taskCache: TaskCache;
 
-  constructor(page: WebPage, opts: { cacheId: string | undefined }) {
+  constructor(
+    page: WebPage,
+    insight: Insight<WebElementInfo, WebUIContext>,
+    opts: { cacheId: string | undefined },
+  ) {
     this.page = page;
-    this.insight = new Insight<WebElementInfo, WebUIContext>(async () => {
-      return await parseContextFromWebPage(page);
-    });
+    this.insight = insight;
 
     this.taskCache = new TaskCache({
       fileName: opts?.cacheId,

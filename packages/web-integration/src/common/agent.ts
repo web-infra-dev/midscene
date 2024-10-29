@@ -1,9 +1,11 @@
 import type { WebPage } from '@/common/page';
-import type {
-  AgentAssertOpt,
-  AgentWaitForOpt,
-  ExecutionDump,
-  GroupedActionDump,
+import type { WebElementInfo } from '@/web-element';
+import {
+  type AgentAssertOpt,
+  type AgentWaitForOpt,
+  type ExecutionDump,
+  type GroupedActionDump,
+  Insight,
 } from '@midscene/core';
 import {
   groupedActionDumpFileExt,
@@ -13,6 +15,7 @@ import {
 import { PageTaskExecutor } from '../common/tasks';
 import type { AiTaskCache } from './task-cache';
 import { printReportMsg, reportFileName } from './utils';
+import { type WebUIContext, parseContextFromWebPage } from './utils';
 
 export interface PageAgentOpt {
   testId?: string;
@@ -28,6 +31,8 @@ export interface PageAgentOpt {
 
 export class PageAgent {
   page: WebPage;
+
+  insight: Insight<WebElementInfo, WebUIContext>;
 
   dump: GroupedActionDump;
 
@@ -55,10 +60,17 @@ export class PageAgent {
       groupDescription: this.opts.groupDescription,
       executions: [],
     };
-    this.taskExecutor = new PageTaskExecutor(this.page, {
+    this.insight = new Insight<WebElementInfo, WebUIContext>(async () => {
+      return this.getUIContext();
+    });
+    this.taskExecutor = new PageTaskExecutor(this.page, this.insight, {
       cacheId: opts?.cacheId,
     });
     this.reportFileName = reportFileName(opts?.testId || 'web');
+  }
+
+  async getUIContext(): Promise<WebUIContext> {
+    return await parseContextFromWebPage(this.page);
   }
 
   appendExecutionDump(execution: ExecutionDump) {

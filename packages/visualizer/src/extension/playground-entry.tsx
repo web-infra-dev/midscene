@@ -1,7 +1,7 @@
 import queryString from 'query-string';
 
-import type { UIContext } from '@midscene/core/.';
 import { ChromeExtensionProxyPage } from '@midscene/web/chrome-extension';
+import { StaticPage, StaticPageAgent } from '@midscene/web/playground';
 import { parseContextFromWebPage } from '@midscene/web/utils';
 import { ConfigProvider } from 'antd';
 import { useEffect, useMemo, useState } from 'react';
@@ -17,7 +17,7 @@ const PlaygroundEntry = () => {
   );
   const targetTabId = query.tab_id;
   const targetWindowId = query.window_id;
-  const [context, setContext] = useState<UIContext | undefined>(undefined);
+  const [agent, setAgent] = useState<StaticPageAgent | null>(null);
 
   useEffect(() => {
     if (!targetTabId || !targetWindowId) {
@@ -30,13 +30,13 @@ const PlaygroundEntry = () => {
 
     parseContextFromWebPage(page).then((context) => {
       console.log('got page context', context);
-      setContext(context);
+      setAgent(new StaticPageAgent(new StaticPage(context)));
     });
   }, [targetTabId, targetWindowId]);
 
   return (
     <ConfigProvider theme={globalThemeConfig()}>
-      <Playground propsContext={context} />
+      <Playground agent={agent} />
     </ConfigProvider>
   );
 };

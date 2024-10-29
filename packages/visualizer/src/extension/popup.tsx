@@ -6,6 +6,8 @@ import './popup.less';
 import {
   type WorkerRequestSaveScreenshot,
   type WorkerResponseSaveScreenshot,
+  activeTabId,
+  currentWindowId,
   getPlaygroundUrl,
   getScreenInfoOfTab,
   getScreenshotBase64,
@@ -17,53 +19,23 @@ import { globalThemeConfig } from '@/component/color';
 import Logo from '@/component/logo';
 import { Playground } from '@/component/playground-component';
 import { resizeImgBase64 } from '@midscene/shared/browser/img';
-import { useState } from 'react';
+import {
+  ChromeExtensionProxyPage,
+  ChromeExtensionProxyPageAgent,
+} from '@midscene/web/chrome-extension';
+import { useEffect, useState } from 'react';
 
-async function getTabId(): Promise<number> {
-  return new Promise((resolve, reject) => {
-    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-      if (tabs?.[0]?.id) {
-        resolve(tabs[0].id);
-      } else {
-        reject(new Error('No active tab found'));
-      }
-    });
-  });
-}
-
-async function getWindowId(): Promise<number> {
-  return new Promise((resolve, reject) => {
-    chrome.windows.getCurrent((window) => {
-      if (window?.id) {
-        resolve(window.id);
-      } else {
-        reject(new Error('No active window found'));
-      }
-    });
-  });
-}
-
-const shotAndOpenPlayground = async () => {
-  const tabId = await getTabId();
-  const windowId = await getWindowId();
-
-  console.time('shotAndOpenPlayground');
-
-  console.time('getScreenshotBase64');
+const shotAndOpenPlayground = async (tabId: number, windowId: number) => {
   let screenshot = await getScreenshotBase64(windowId);
-  console.timeEnd('getScreenshotBase64');
   const screenInfo = await getScreenInfoOfTab(tabId);
 
-  console.time('resizeImgBase64');
   if (screenInfo.dpr > 1) {
     screenshot = (await resizeImgBase64(screenshot, {
       width: screenInfo.width,
       height: screenInfo.height,
     })) as string;
   }
-  console.timeEnd('resizeImgBase64');
   // cache screenshot when page is active
-  console.time('sendToWorker');
   await sendToWorker<WorkerRequestSaveScreenshot, WorkerResponseSaveScreenshot>(
     workerMessageTypes.SAVE_SCREENSHOT,
     {
@@ -72,22 +44,42 @@ const shotAndOpenPlayground = async () => {
       windowId,
     },
   );
-  console.timeEnd('sendToWorker');
   const url = getPlaygroundUrl(tabId, windowId);
   chrome.tabs.create({
     url,
     active: true,
   });
-  console.timeEnd('shotAndOpenPlayground');
 };
 
 function PlaygroundPopup() {
   const [loading, setLoading] = useState(false);
+  const [agent, setAgent] = useState<ChromeExtensionProxyPageAgent | null>(
+    null,
+  );
+  const [tabId, setTabId] = useState<number | null>(null);
+  const [windowId, setWindowId] = useState<number | null>(null);
+
+  useEffect(() => {
+    console.log('useEffect in PlaygroundPopup');
+    const initAgent = async () => {
+      const tabId = await activeTabId();
+      const windowId = await currentWindowId();
+      setTabId(tabId);
+      setWindowId(windowId);
+      const page = new ChromeExtensionProxyPage(tabId, windowId);
+      setAgent(new ChromeExtensionProxyPageAgent(page));
+    };
+    initAgent();
+  }, []);
 
   const handleSendToPlayground = async () => {
+    if (!tabId || !windowId) {
+      message.error('No active tab or window found');
+      return;
+    }
     setLoading(true);
     try {
-      await shotAndOpenPlayground();
+      await shotAndOpenPlayground(tabId, windowId);
     } catch (e: any) {
       message.error(e.message || 'Failed to launch Playground');
     }
@@ -113,13 +105,14 @@ function PlaygroundPopup() {
           <Button
             onClick={handleSendToPlayground}
             loading={loading}
-            type="text"
+            type="link"
+            size="small"
           >
             send to fullscreen playground
           </Button>
         </p>
         <div className="hr" />
-        <Playground liteUI />
+        <Playground liteUI agent={agent} />
       </div>
     </ConfigProvider>
   );

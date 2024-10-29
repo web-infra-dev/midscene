@@ -2,7 +2,7 @@ import { PlayCircleOutlined, SendOutlined } from '@ant-design/icons';
 import type { UIContext } from '@midscene/core/.';
 import { Button, Drawer, Tooltip } from 'antd';
 import { useEffect, useState } from 'react';
-import { Playground } from './playground-component';
+import { Playground, useStaticPageAgent } from './playground-component';
 import { useEnvConfig } from './store';
 import './open-in-playground.less';
 
@@ -111,6 +111,9 @@ export default function OpenInPlayground(props?: { context?: UIContext }) {
       </Tooltip>
     );
   }
+
+  const agent = useStaticPageAgent(context);
+
   return (
     <>
       <Button onClick={showPlayground} icon={<PlayCircleOutlined />}>
@@ -127,11 +130,7 @@ export default function OpenInPlayground(props?: { context?: UIContext }) {
         }}
         className="playground-drawer"
       >
-        <Playground
-          propsContext={context}
-          hideLogo={true}
-          key={contextLoadingCounter}
-        />
+        <Playground agent={agent} hideLogo={true} key={contextLoadingCounter} />
       </Drawer>
     </>
   );
