@@ -1,27 +1,34 @@
 /// <reference types="chrome" />
 
-const scriptFileToRetrieve = './scripts/htmlElement.js';
+export interface ScreenshotInfo {
+  base64: string;
+  dpr: number;
+}
 
 export const workerMessageTypes = {
-  SAVE_CONTEXT: 'save-context',
-  GET_CONTEXT: 'get-context',
+  SAVE_SCREENSHOT: 'save-screenshot',
+  GET_SCREENSHOT: 'get-screenshot',
 };
 
-export interface WorkerRequestSaveContext {
-  context: object;
+// save screenshot
+export interface WorkerRequestSaveScreenshot {
+  screenshot: ScreenshotInfo;
+  tabId: number;
+  windowId: number;
 }
 
-export interface WorkerResponseSaveContext {
-  id: string;
+export interface WorkerResponseSaveScreenshot {
+  tabId: number;
+  windowId: number;
 }
 
-export interface WorkerRequestGetContext {
-  id: string;
+// get screenshot
+export interface WorkerRequestGetScreenshot {
+  tabId: number;
+  windowId: number;
 }
 
-export interface WorkerResponseGetContext {
-  context: object;
-}
+export type WorkerResponseGetScreenshot = ScreenshotInfo;
 
 export async function sendToWorker<Payload, Result = any>(
   type: string,
@@ -38,23 +45,35 @@ export async function sendToWorker<Payload, Result = any>(
   });
 }
 
-export async function getActivePageContext(tabId: number) {
-  const injectResult = await chrome.scripting.executeScript({
-    target: { tabId, allFrames: true },
-    files: [scriptFileToRetrieve],
-  });
-  console.log('injectResult', injectResult);
-
-  // call and retrieve the result
+export async function getScreenInfoOfTab(tabId: number): Promise<{
+  dpr: number;
+  width: number;
+  height: number;
+}> {
   const returnValue = await chrome.scripting.executeScript({
-    target: { tabId, allFrames: true },
-    func: () =>
-      (window as any).midscene_element_inspector.webExtractTextWithPosition(),
+    target: { tabId, allFrames: false },
+    func: () => {
+      return {
+        dpr: window.devicePixelRatio,
+        width: document.documentElement.clientWidth,
+        height: document.documentElement.clientHeight,
+      };
+    },
   });
-
-  return returnValue[0].result;
+  console.log('returnValue of getScreenInfoOfTab', returnValue);
+  return returnValue[0].result!;
 }
 
-export function getPlaygroundUrl(tabId: number) {
-  return chrome.runtime.getURL(`./pages/playground.html?tab_id=${tabId}`);
+export async function getScreenshotBase64(windowId: number) {
+  const base64 = await chrome.tabs.captureVisibleTab(windowId, {
+    format: 'jpeg',
+    quality: 70,
+  });
+  return base64;
+}
+
+export function getPlaygroundUrl(tabId: number, windowId: number) {
+  return chrome.runtime.getURL(
+    `./pages/playground.html?tab_id=${tabId}&window_id=${windowId}`,
+  );
 }

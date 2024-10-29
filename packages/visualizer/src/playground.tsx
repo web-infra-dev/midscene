@@ -1,6 +1,6 @@
 import { LoadingOutlined, SendOutlined } from '@ant-design/icons';
 import { Helmet } from '@modern-js/runtime/head';
-import { Button, Empty, Spin, message } from 'antd';
+import { Button, Empty, Spin, Tooltip, message } from 'antd';
 import { Form, Input } from 'antd';
 import { Radio } from 'antd';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
@@ -14,17 +14,29 @@ import DemoData from './component/playground-demo-ui-context.json';
 import type { ReplayScriptsInfo } from './component/replay-scripts';
 import { allScriptsFromDump } from './component/replay-scripts';
 import './playground.less';
+import queryString from 'query-string';
 import Logo from './component/logo';
 import { serverBase, useServerValid } from './component/open-in-playground';
 
-import { allAIConfig, overrideAIConfig } from '@midscene/core';
+import { overrideAIConfig } from '@midscene/core';
+import {
+  ChromeExtensionProxyPage,
+  ChromeExtensionProxyPageAgent,
+} from '@midscene/web/chrome-extension';
 import {
   ERROR_CODE_NOT_IMPLEMENTED_AS_DESIGNED,
   StaticPage,
   StaticPageAgent,
 } from '@midscene/web/playground';
+import { parseContextFromWebPage } from '@midscene/web/utils';
 import { EnvConfig } from './component/env-config';
 import { useEnvConfig } from './component/store';
+
+interface PlaygroundResult {
+  result: any;
+  dump: GroupedActionDump | null;
+  error: string | null;
+}
 
 const requestPlaygroundServer = async (
   context: UIContext,
@@ -45,26 +57,7 @@ overrideAIConfig({
   MIDSCENE_DEBUG_AI_PROFILE: '1',
 });
 
-const config = allAIConfig();
-
-console.log('StaticPageAgent', StaticPageAgent);
-console.log('StaticPage', StaticPage);
-console.log('DemoContext', DemoData);
-(window as any).StaticPageAgent = StaticPageAgent;
-(window as any).StaticPage = StaticPage;
-(window as any).DemoData = DemoData;
-
-const myPage = new StaticPage(DemoData as any);
-console.log('myPage', myPage);
-
-const myAgent = new StaticPageAgent(myPage);
-console.log('myAgent', myAgent);
-
-(window as any).myPage = myPage;
-(window as any).myAgent = myAgent;
-
-// (window as any).__dirname = '/polyfill/for_browser';
-
+// cache
 const cacheKeyForPrompt = 'playground-user-prompt';
 const cacheKeyForType = 'playground-user-type';
 const setCache = (prompt: string, type: string) => {
@@ -80,6 +73,7 @@ const getCachedType = () => {
   return localStorage.getItem(cacheKeyForType);
 };
 
+// context and agent
 const useContextId = () => {
   const path = window.location.pathname;
   const match = path.match(/^\/playground\/([a-zA-Z0-9-]+)$/);
@@ -93,18 +87,43 @@ const useLocalAgent = (
 ) => {
   const agent = useMemo(() => {
     if (!context || !config) return null;
-    overrideAIConfig(config);
+
     const page = new StaticPage(context as any);
     return new StaticPageAgent(page);
   }, [context, config]);
   return agent;
 };
 
-interface PlaygroundResult {
-  result: any;
-  dump: GroupedActionDump | null;
-  error: string | null;
-}
+const useExtensionProxyAgent = (
+  tabId: string,
+  windowId: string,
+  setUiContext: (context: UIContext) => void,
+) => {
+  const agent = useMemo(() => {
+    if (!tabId || !windowId) return null;
+    const tabIdNumber = Number.parseInt(tabId, 10);
+    const windowIdNumber = Number.parseInt(windowId, 10);
+    const page = new ChromeExtensionProxyPage(tabIdNumber, windowIdNumber);
+
+    const agent = new ChromeExtensionProxyPageAgent(page);
+
+    // set initial context
+    getContextFromPage(page).then((context) => {
+      // console.log('set initial context', context);
+      setUiContext(context);
+    });
+
+    return agent;
+  }, [tabId, windowId]);
+  return agent;
+};
+
+const getContextFromPage = async (page: ChromeExtensionProxyPage) => {
+  const context = await parseContextFromWebPage(page, {
+    ignoreMarker: true, // speed up
+  });
+  return context;
+};
 
 export function Playground({
   propsContext,
@@ -121,17 +140,41 @@ export function Playground({
   const [result, setResult] = useState<PlaygroundResult | null>(null);
   const [form] = Form.useForm();
   const { config, serviceMode, setServiceMode } = useEnvConfig();
+  const configAlreadySet = Object.keys(config || {}).length >= 1;
 
+  // override AI config
+  useEffect(() => {
+    overrideAIConfig(config);
+  }, [config]);
+
+  // local agent
   const localAgent = useLocalAgent(uiContext, config);
+
+  // extension proxy agent
+  const query = useMemo(
+    () => queryString.parse(window.location.search),
+    [window.location.search],
+  );
+  const extensionTabId = query.tab_id;
+  const extensionWindowId = query.window_id;
+  const extensionProxyAgent = useExtensionProxyAgent(
+    extensionTabId as string,
+    extensionWindowId as string,
+    setUiContext,
+  );
+
+  const activeAgent =
+    serviceMode === 'Extension' ? extensionProxyAgent : localAgent;
 
   const [replayScriptsInfo, setReplayScriptsInfo] =
     useState<ReplayScriptsInfo | null>(null);
   const [replayCounter, setReplayCounter] = useState(0);
 
-  const serverValid = useServerValid();
+  const serverValid = useServerValid(serviceMode === 'Server');
 
+  // setup context
   useEffect(() => {
-    if (!uiContext && contextId) {
+    if (!uiContext && contextId && serviceMode === 'Server') {
       fetch(`${serverBase}/context/${contextId}`)
         .then((res) => res.json())
         .then((data) => {
@@ -139,7 +182,7 @@ export function Playground({
           setUiContext(contextObj);
         });
     }
-  }, [contextId]);
+  }, [contextId, serviceMode]);
 
   const handleRun = useCallback(async () => {
     const value = form.getFieldsValue();
@@ -164,11 +207,11 @@ export function Playground({
           value.prompt,
         );
       } else if (value.type === 'aiAction') {
-        result.result = await localAgent?.aiAction(value.prompt);
+        result.result = await activeAgent?.aiAction(value.prompt);
       } else if (value.type === 'aiQuery') {
-        result.result = await localAgent?.aiQuery(value.prompt);
+        result.result = await activeAgent?.aiQuery(value.prompt);
       } else if (value.type === 'aiAssert') {
-        result.result = await localAgent?.aiAssert(value.prompt, undefined, {
+        result.result = await activeAgent?.aiAssert(value.prompt, undefined, {
           keepRawResponse: true,
         });
       }
@@ -180,9 +223,9 @@ export function Playground({
     }
 
     try {
-      if (serviceMode === 'In-Browser') {
-        result.dump = localAgent?.dumpDataString()
-          ? JSON.parse(localAgent.dumpDataString())
+      if (serviceMode === 'In-Browser' || serviceMode === 'Extension') {
+        result.dump = activeAgent?.dumpDataString()
+          ? JSON.parse(activeAgent.dumpDataString())
           : null;
       }
     } catch (e) {
@@ -198,7 +241,7 @@ export function Playground({
     } else {
       setReplayScriptsInfo(null);
     }
-  }, [form, uiContext, localAgent]);
+  }, [form, uiContext, activeAgent]);
 
   let placeholder = 'What do you want to do?';
   const selectedType = Form.useWatch('type', form);
@@ -210,14 +253,17 @@ export function Playground({
   }
 
   const runButtonEnabled =
-    (serviceMode === 'In-Browser' && uiContext) ||
-    (serviceMode === 'Server' && serverValid);
+    (serviceMode === 'In-Browser' && uiContext && configAlreadySet) ||
+    (serviceMode === 'Server' && serverValid) ||
+    (serviceMode === 'Extension' && extensionProxyAgent && configAlreadySet);
 
   // use cmd + enter to run
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Enter') {
         handleRun();
+        e.preventDefault();
+        e.stopPropagation();
       }
     };
     window.addEventListener('keydown', handleKeyDown);
@@ -272,20 +318,46 @@ export function Playground({
     <div>{iconForStatus('connected')} Connected</div>
   );
 
-  const switchBtn = (
-    <a
-      onClick={(e) => {
-        e.preventDefault();
-        setServiceMode(serviceMode === 'Server' ? 'In-Browser' : 'Server');
-      }}
-    >
-      {serviceMode === 'Server'
-        ? 'Switch to In-Browser Mode'
-        : 'Switch to Server Mode'}
-    </a>
-  );
+  const switchBtn =
+    serviceMode === 'Extension' ? null : (
+      <a
+        onClick={(e) => {
+          e.preventDefault();
+          setServiceMode(serviceMode === 'Server' ? 'In-Browser' : 'Server');
+        }}
+      >
+        {serviceMode === 'Server'
+          ? 'Switch to In-Browser Mode'
+          : 'Switch to Server Mode'}
+      </a>
+    );
 
   const statusContent = serviceMode === 'Server' ? serverTip : <EnvConfig />;
+
+  const actionBtn =
+    selectedType === 'aiAction' ? (
+      <Tooltip title="It will start executing until some interaction actions need to be performed. You can see the process of planning and locating.">
+        <Button
+          type="primary"
+          icon={<SendOutlined />}
+          onClick={handleRun}
+          disabled={!runButtonEnabled}
+          loading={loading}
+        >
+          Dry Run
+        </Button>
+      </Tooltip>
+    ) : (
+      <Button
+        type="primary"
+        icon={<SendOutlined />}
+        onClick={handleRun}
+        disabled={!runButtonEnabled}
+        loading={loading}
+      >
+        Run
+      </Button>
+    );
 
   return (
     <div className="playground-container">
@@ -353,7 +425,7 @@ export function Playground({
               <div className="form-part">
                 <h3>Type</h3>
                 <Form.Item name="type">
-                  <Radio.Group buttonStyle="solid">
+                  <Radio.Group buttonStyle="solid" disabled={!runButtonEnabled}>
                     <Radio.Button value="aiAction">Action</Radio.Button>
                     <Radio.Button value="aiQuery">Query</Radio.Button>
                     <Radio.Button value="aiAssert">Assert</Radio.Button>
@@ -365,16 +437,9 @@ export function Playground({
                 <h3>Prompt</h3>
                 <div className="main-side-console-input">
                   <Form.Item name="prompt">
-                    <TextArea rows={2} placeholder={placeholder} />
+                    <TextArea rows={2} placeholder={placeholder} autoFocus />
                   </Form.Item>
-                  <Button
-                    type="primary"
-                    icon={<SendOutlined />}
-                    onClick={handleRun}
-                    disabled={!runButtonEnabled}
-                  >
-                    Run
-                  </Button>
+                  {actionBtn}
                 </div>
               </div>
             </div>

@@ -250,7 +250,8 @@ export interface Color {
 }
 
 export interface BaseAgentParserOpt {
-  selector: string;
+  selector?: string;
+  ignoreMarker?: boolean;
 }
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface PuppeteerParserOpt extends BaseAgentParserOpt {}
@@ -293,7 +294,7 @@ export interface ExecutionTaskApply<
     param: TaskParam,
     context: ExecutorContext,
   ) => // biome-ignore lint/suspicious/noConfusingVoidType: <explanation>
-    | Promise<ExecutionTaskReturn<TaskOutput, TaskLog> | undefined | void>
+  | Promise<ExecutionTaskReturn<TaskOutput, TaskLog> | undefined | void>
     | undefined
     | void;
 }

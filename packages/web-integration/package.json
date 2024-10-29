@@ -12,24 +12,48 @@
   },
   "exports": {
     ".": "./dist/lib/index.js",
+    "./utils": "./dist/lib/utils.js",
     "./puppeteer": "./dist/lib/puppeteer.js",
     "./playwright": "./dist/lib/playwright.js",
     "./playwright-report": "./dist/lib/playwright-report.js",
     "./playground": "./dist/lib/playground.js",
     "./debug": "./dist/lib/debug.js",
     "./constants": "./dist/lib/constants.js",
-    "./html-element": "./dist/lib/html-element/index.js"
+    "./html-element": "./dist/lib/html-element/index.js",
+    "./chrome-extension": "./dist/lib/chrome-extension.js"
   },
   "typesVersions": {
     "*": {
-      ".": ["./dist/types/index.d.ts"],
-      "puppeteer": ["./dist/types/puppeteer.d.ts"],
-      "playwright": ["./dist/types/playwright.d.ts"],
-      "playwright-report": ["./dist/types/playwright-report.d.ts"],
-      "playground": ["./dist/types/playground.d.ts"],
-      "debug": ["./dist/types/debug.d.ts"],
-      "constants": ["./dist/types/constants.d.ts"],
-      "html-element": ["./dist/types/html-element/index.d.ts"]
+      ".": [
+        "./dist/types/index.d.ts"
+      ],
+      "utils": [
+        "./dist/types/utils.d.ts"
+      ],
+      "puppeteer": [
+        "./dist/types/puppeteer.d.ts"
+      ],
+      "playwright": [
+        "./dist/types/playwright.d.ts"
+      ],
+      "playwright-report": [
+        "./dist/types/playwright-report.d.ts"
+      ],
+      "playground": [
+        "./dist/types/playground.d.ts"
+      ],
+      "debug": [
+        "./dist/types/debug.d.ts"
+      ],
+      "constants": [
+        "./dist/types/constants.d.ts"
+      ],
+      "html-element": [
+        "./dist/types/html-element/index.d.ts"
+      ],
+      "chrome-extension": [
+        "./dist/types/chrome-extension.d.ts"
+      ]
     }
   },
   "scripts": {
@@ -54,7 +78,12 @@
     "e2e:ui": "playwright test --config=playwright.config.ts --ui",
     "e2e:ui:cache": "MIDSCENE_CACHE=true playwright test --config=playwright.config.ts  --ui"
   },
-  "files": ["static", "dist", "README.md", "bin"],
+  "files": [
+    "static",
+    "dist",
+    "README.md",
+    "bin"
+  ],
   "dependencies": {
     "express": "4.21.1",
     "openai": "4.57.1",
@@ -68,6 +97,7 @@
     "@modern-js/module-tools": "2.58.2",
     "@modern-js/plugin-module-node-polyfill": "2.58.2",
     "@playwright/test": "1.44.1",
+    "@types/chrome": "0.0.279",
     "@types/cors": "2.8.12",
     "@types/fs-extra": "11.0.4",
     "@types/node": "^18.0.0",

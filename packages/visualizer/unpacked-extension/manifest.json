@@ -3,10 +3,17 @@
   "description": "Midscene.js helps to automate browser actions, perform assertions, and extract data in JSON format using natural language. This is a playground for testing. For more information, see https://midscenejs.com/",
   "version": "0.1",
   "manifest_version": 3,
-  "permissions": ["scripting", "activeTab", "tabs"],
+  "permissions": [
+    "scripting",
+    "activeTab",
+    "tabs"
+  ],
   "background": {
     "service_worker": "./lib/worker.js"
   },
+  "host_permissions": [
+    "<all_urls>"
+  ],
   "action": {
     "default_popup": "popup.html",
     "default_icon": "icon.png"

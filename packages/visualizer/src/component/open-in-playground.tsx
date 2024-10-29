@@ -32,13 +32,13 @@ const checkServerStatus = async () => {
   }
 };
 
-export const useServerValid = () => {
+export const useServerValid = (shouldRun = true) => {
   const [serverValid, setServerValid] = useState(false);
   const { serviceMode } = useEnvConfig();
 
   useEffect(() => {
     let interruptFlag = false;
-    // if (serviceMode !== 'Server') return;
+    if (!shouldRun) return;
     Promise.resolve(
       (async () => {
         while (!interruptFlag) {
@@ -57,7 +57,7 @@ export const useServerValid = () => {
     return () => {
       interruptFlag = true;
     };
-  }, [serviceMode]);
+  }, [serviceMode, shouldRun]);
 
   return serverValid;
 };

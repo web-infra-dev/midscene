@@ -1,4 +1,4 @@
-import { Input, Modal } from 'antd';
+import { Button, Input, Modal } from 'antd';
 import { useState } from 'react';
 import { iconForStatus } from './misc';
 import { useEnvConfig } from './store';
@@ -25,11 +25,12 @@ export function EnvConfig() {
   const configTip =
     Object.keys(config).length === 0 ? (
       <div>
-        {iconForStatus('failed')} No config, please{' '}
-        <a href="#" onClick={showModal}>
-          set up
-        </a>
-        .
+        {iconForStatus('failed')} No config
+        <p>
+          <Button type="primary" onClick={showModal}>
+            Click to set up
+          </Button>
+        </p>
       </div>
     ) : (
       <div>
@@ -71,7 +72,9 @@ export function EnvConfig() {
         />
         <div>
           <p>The format is KEY=VALUE and separated by new lines.</p>
-          <p>These data will be saved locally in your browser.</p>
+          <p>
+            These data will be saved <strong>locally in your browser</strong>.
+          </p>
         </div>
       </Modal>
     </div>

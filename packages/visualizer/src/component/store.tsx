@@ -64,7 +64,7 @@ const parseConfig = (configString: string) => {
   return config;
 };
 
-export type ServiceModeType = 'Server' | 'In-Browser';
+export type ServiceModeType = 'Server' | 'In-Browser' | 'Extension';
 export const useEnvConfig = create<{
   serviceMode: ServiceModeType;
   setServiceMode: (serviceMode: ServiceModeType) => void;
@@ -75,12 +75,15 @@ export const useEnvConfig = create<{
 }>((set) => {
   const configString = getConfigStringFromLocalStorage();
   const config = parseConfig(configString);
+  const ifInExtension = window.location.href.startsWith('chrome-extension');
   const savedServiceMode = localStorage.getItem(
     SERVICE_MODE_KEY,
   ) as ServiceModeType | null;
   return {
-    serviceMode: savedServiceMode || 'In-Browser',
+    serviceMode: ifInExtension ? 'Extension' : savedServiceMode || 'In-Browser',
     setServiceMode: (serviceMode: ServiceModeType) => {
+      if (ifInExtension)
+        throw new Error('serviceMode cannot be set in extension');
       set({ serviceMode });
       localStorage.setItem(SERVICE_MODE_KEY, serviceMode);
     },

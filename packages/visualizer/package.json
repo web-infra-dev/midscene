@@ -6,10 +6,16 @@
   "types": "./dist/types/index.d.ts",
   "main": "./dist/lib/index.js",
   "module": "./dist/es/index.js",
-  "files": ["dist", "html", "README.md"],
+  "files": [
+    "dist",
+    "html",
+    "README.md"
+  ],
   "watch": {
     "build": {
-      "patterns": ["src"],
+      "patterns": [
+        "src"
+      ],
       "extensions": "tsx,less,scss,css,js,jsx,ts",
       "quiet": false
     }
@@ -42,6 +48,7 @@
     "npm-watch": "0.13.0",
     "pixi-filters": "6.0.5",
     "pixi.js": "8.1.1",
+    "query-string": "9.1.1",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-resizable-panels": "2.0.22",
@@ -50,7 +57,12 @@
     "typescript": "~5.0.4",
     "zustand": "4.5.2"
   },
-  "sideEffects": ["**/*.css", "**/*.less", "**/*.sass", "**/*.scss"],
+  "sideEffects": [
+    "**/*.css",
+    "**/*.less",
+    "**/*.sass",
+    "**/*.scss"
+  ],
   "publishConfig": {
     "access": "public"
   }

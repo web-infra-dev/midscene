@@ -5,7 +5,7 @@ import {
 } from '@/common/utils';
 import type { AbstractPage } from '@/page';
 import { getTmpFile } from '@midscene/core/utils';
-import { saveBase64Image } from '@midscene/shared/img';
+import { imageInfoOfBase64, saveBase64Image } from '@midscene/shared/img';
 
 const ThrowNotImplemented: any = (methodName: string) => {
   throw new Error(
@@ -24,6 +24,10 @@ export default class StaticPage implements AbstractPage {
 
   async getElementInfos() {
     return ThrowNotImplemented('getElementInfos');
+  }
+
+  async size() {
+    return this.uiContext.size;
   }
 
   async screenshotBase64() {

@@ -38,8 +38,12 @@ export class Page implements AbstractPage {
     return infos;
   }
 
+  async size(): Promise<{ width: number; height: number }> {
+    return this.browser.getWindowSize();
+  }
+
   async screenshotBase64(): Promise<string> {
-    const { width, height } = await this.browser.getWindowSize();
+    const { width, height } = await this.size();
     const path = getTmpFile('png')!;
     const screenshotBuffer = await this.browser.saveScreenshot(path);
     const resizedScreenshotBuffer = await resizeImg(screenshotBuffer, {

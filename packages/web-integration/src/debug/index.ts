@@ -5,7 +5,7 @@ import type { ElementInfo } from '@/extractor';
 import { NodeType } from '@/extractor/constants';
 import {
   processImageElementInfo,
-  resizeImg,
+  resizeImgBase64,
   saveBase64Image,
 } from '@midscene/shared/img';
 
@@ -46,7 +46,10 @@ export async function generateExtractData(
     inputImgBase64,
   });
 
-  const resizeImgBase64 = (await resizeImg(inputImgBase64)) as string;
+  const resizedImg = await resizeImgBase64(inputImgBase64, {
+    width: 100,
+    height: 100,
+  });
 
   const existingSnapshot = existsSync(snapshotJsonPath)
     ? JSON.parse(readFileSync(snapshotJsonPath, 'utf-8'))
@@ -86,7 +89,7 @@ export async function generateExtractData(
   }
   if (!saveImgType?.disableResizeOutputImg) {
     await saveBase64Image({
-      base64Data: resizeImgBase64,
+      base64Data: resizedImg,
       outputPath: resizeOutputImgPath,
     });
   }
