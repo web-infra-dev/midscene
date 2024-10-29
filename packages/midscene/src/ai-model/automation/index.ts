@@ -67,8 +67,8 @@ export async function plan(
 
   assert(planFromAI, "can't get planFromAI");
   assert(
-    actions && actions.length > 0,
-    `no actions in ai plan with context: ${JSON.stringify({ planFromAI })}`,
+    actions.length > 0,
+    `no actions in ai plan with context: ${planFromAI}`,
   );
 
   actions.forEach((action) => {

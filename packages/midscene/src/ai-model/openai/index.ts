@@ -185,11 +185,7 @@ export async function callToGetJSONObject<T>(
   const response = await call(messages, responseFormat);
   assert(response, 'empty response');
   const jsonContent = extractJSONFromCodeBlock(response);
-  try {
-    return JSON.parse(jsonContent);
-  } catch {
-    return jsonContent as any;
-  }
+  return JSON.parse(jsonContent);
 }
 
 export function extractJSONFromCodeBlock(response: string) {

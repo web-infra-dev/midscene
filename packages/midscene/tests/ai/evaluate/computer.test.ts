@@ -6,18 +6,22 @@ import { describe, expect, it } from 'vitest';
 import { type InspectAiTestCase, getPageTestData } from './test-suite/util';
 
 const testSources = [
-  //   'todo',
+  'todo',
   'online_order',
-  //   'online_order_list',
-  //   'taobao',
-  //   'aweme_login',
-  // 'aweme_play',
+  'online_order_list',
+  'taobao',
+  'aweme_login',
+  'aweme_play',
 ];
 describe(
   'automation - computer',
   () => {
     it('basic run', async () => {
-      const result: Array<{ expectation: any; reality: string }> = [];
+      const result: Array<{
+        expectation: any;
+        reality: string;
+        rectInBox: boolean;
+      }> = [];
       for (const source of testSources) {
         const aiDataPath = path.join(
           __dirname,
@@ -30,7 +34,7 @@ describe(
           const { context } = await getPageTestData(
             path.join(__dirname, aiData.testDataPath),
           );
-          const res = await callToGetJSONObject(
+          const res = await callToGetJSONObject<{ x: number; y: number }>(
             [
               {
                 role: 'system',
@@ -55,7 +59,12 @@ describe(
         
             Here is the item user want to find. Just go ahead:
             =====================================
-            找到${testCase.prompt}位置，x/y坐标
+            找到${testCase.prompt}位置，x/y坐标，并按照下面的格式返回：
+
+            {
+              "x": number, // 横向坐标位置
+              "y": number // 纵向坐标位置
+            }
             =====================================
             `,
                   },
@@ -64,20 +73,25 @@ describe(
             ],
             AIActionType.ASSERT,
           );
+          const rect: any = context.content.find(
+            (item: any) => testCase.response[0].indexId === item.indexId,
+          ).rect;
           result.push({
             expectation: {
               prompt: testCase.prompt,
-              rect: context.content.find(
-                (item: any) => testCase.response[0].indexId === item.indexId,
-              ).rect,
+              rect,
             },
-            reality: res as string,
+            reality: JSON.stringify(res),
+            rectInBox:
+              res &&
+              typeof res === 'object' &&
+              'x' in res &&
+              'y' in res &&
+              res.x >= rect.left &&
+              res.x <= rect.left + rect.width &&
+              res.y >= rect.top &&
+              res.y <= rect.top + rect.height,
           });
-          // console.log(
-          //   '要查找的坐标',
-          //   context.content.find((item: any) => item.indexId === 21).rect,
-          // );
-          // console.log('实际坐标信息：', res);
         });
         await Promise.all(res);
         // Write result to file

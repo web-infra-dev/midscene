@@ -73,17 +73,17 @@ const DetailPanel = (): JSX.Element => {
   } else if (viewType === VIEW_TYPE_JSON) {
     content = (
       <div className="json-content scrollable">
-        <button
+        {/* <button
           type="button"
           style={{ float: 'right' }}
           onClick={() => {
             navigator.clipboard.writeText(
-              filterBase64Value(JSON.stringify(activeTask, undefined, 2)),
+              JSON.stringify(activeTask, undefined, 2),
             );
           }}
         >
           Copy
-        </button>
+        </button> */}
         {filterBase64Value(JSON.stringify(activeTask, undefined, 2))}
       </div>
     );
