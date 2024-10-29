@@ -1,3 +1,5 @@
+import type { ThemeConfig } from 'antd';
+
 // https://coolors.co/palettes/popular/#01204e
 const sectionColor = ['#028391'];
 // const elementColor = ['#fb6107'];
@@ -25,4 +27,20 @@ export function colorForName(name: string): string {
 export function highlightColorForType(type: 'section' | 'element'): string {
   // return highlightColorForSection;
   return highlightColorForElement;
+}
+
+export function globalThemeConfig(): ThemeConfig {
+  return {
+    token: {
+      colorPrimary: '#06b1ab',
+    },
+    components: {
+      Layout: {
+        headerHeight: 60,
+        headerPadding: '0 30px',
+        headerBg: '#FFF',
+        bodyBg: '#FFF',
+      },
+    },
+  };
 }

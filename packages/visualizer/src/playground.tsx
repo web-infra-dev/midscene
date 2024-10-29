@@ -1,6 +1,6 @@
 import { LoadingOutlined, SendOutlined } from '@ant-design/icons';
 import { Helmet } from '@modern-js/runtime/head';
-import { Button, Empty, Spin, Tooltip, message } from 'antd';
+import { Button, ConfigProvider, Empty, Spin, Tooltip, message } from 'antd';
 import { Form, Input } from 'antd';
 import { Radio } from 'antd';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
@@ -29,6 +29,7 @@ import {
   StaticPageAgent,
 } from '@midscene/web/playground';
 import { parseContextFromWebPage } from '@midscene/web/utils';
+import { globalThemeConfig } from './component/color';
 import { EnvConfig } from './component/env-config';
 import { useEnvConfig } from './component/store';
 
@@ -84,13 +85,14 @@ const { TextArea } = Input;
 const useLocalAgent = (
   context: UIContext | null,
   config: Record<string, string>,
+  resetAgentCounter: number,
 ) => {
   const agent = useMemo(() => {
     if (!context || !config) return null;
 
     const page = new StaticPage(context as any);
     return new StaticPageAgent(page);
-  }, [context, config]);
+  }, [context, config, resetAgentCounter]);
   return agent;
 };
 
@@ -120,7 +122,7 @@ const useExtensionProxyAgent = (
 
 const getContextFromPage = async (page: ChromeExtensionProxyPage) => {
   const context = await parseContextFromWebPage(page, {
-    ignoreMarker: true, // speed up
+    // ignoreMarker: true, // speed up
   });
   return context;
 };
@@ -137,6 +139,7 @@ export function Playground({
     propsContext || null,
   );
   const [loading, setLoading] = useState(false);
+  const [resetAgentCounter, setResetAgentCounter] = useState(0);
   const [result, setResult] = useState<PlaygroundResult | null>(null);
   const [form] = Form.useForm();
   const { config, serviceMode, setServiceMode } = useEnvConfig();
@@ -148,23 +151,23 @@ export function Playground({
   }, [config]);
 
   // local agent
-  const localAgent = useLocalAgent(uiContext, config);
+  const localAgent = useLocalAgent(uiContext, config, resetAgentCounter);
 
   // extension proxy agent
   const query = useMemo(
     () => queryString.parse(window.location.search),
     [window.location.search],
   );
-  const extensionTabId = query.tab_id;
-  const extensionWindowId = query.window_id;
-  const extensionProxyAgent = useExtensionProxyAgent(
-    extensionTabId as string,
-    extensionWindowId as string,
-    setUiContext,
-  );
+  const targetTabId = query.tab_id;
+  const targetWindowId = query.window_id;
+  // const extensionProxyAgent = useExtensionProxyAgent(
+  //   targetTabId as string,
+  //   targetWindowId as string,
+  //   setUiContext,
+  // );
 
-  const activeAgent =
-    serviceMode === 'Extension' ? extensionProxyAgent : localAgent;
+  const activeAgent = localAgent;
+  // serviceMode === 'In-Browser-Extension' ? extensionProxyAgent : localAgent;
 
   const [replayScriptsInfo, setReplayScriptsInfo] =
     useState<ReplayScriptsInfo | null>(null);
@@ -174,15 +177,30 @@ export function Playground({
 
   // setup context
   useEffect(() => {
-    if (!uiContext && contextId && serviceMode === 'Server') {
+    if (uiContext) return;
+
+    if (serviceMode === 'Server') {
+      if (!contextId) throw new Error('contextId is required in server mode');
       fetch(`${serverBase}/context/${contextId}`)
         .then((res) => res.json())
         .then((data) => {
           const contextObj = JSON.parse(data.context);
           setUiContext(contextObj);
         });
+    } else if (serviceMode === 'In-Browser-Extension') {
+      if (!targetTabId || !targetWindowId)
+        throw new Error(
+          'targetTabId and targetWindowId are required in In-Browser-Extension mode',
+        );
+
+      const tabIdNumber = Number.parseInt(targetTabId as string, 10);
+      const windowIdNumber = Number.parseInt(targetWindowId as string, 10);
+      const page = new ChromeExtensionProxyPage(tabIdNumber, windowIdNumber);
+      getContextFromPage(page).then((context) => {
+        setUiContext(context);
+      });
     }
-  }, [contextId, serviceMode]);
+  }, [contextId, serviceMode, targetTabId, targetWindowId]);
 
   const handleRun = useCallback(async () => {
     const value = form.getFieldsValue();
@@ -223,7 +241,10 @@ export function Playground({
     }
 
     try {
-      if (serviceMode === 'In-Browser' || serviceMode === 'Extension') {
+      if (
+        serviceMode === 'In-Browser' ||
+        serviceMode === 'In-Browser-Extension'
+      ) {
         result.dump = activeAgent?.dumpDataString()
           ? JSON.parse(activeAgent.dumpDataString())
           : null;
@@ -241,6 +262,7 @@ export function Playground({
     } else {
       setReplayScriptsInfo(null);
     }
+    setResetAgentCounter((c) => c + 1);
   }, [form, uiContext, activeAgent]);
 
   let placeholder = 'What do you want to do?';
@@ -255,7 +277,7 @@ export function Playground({
   const runButtonEnabled =
     (serviceMode === 'In-Browser' && uiContext && configAlreadySet) ||
     (serviceMode === 'Server' && serverValid) ||
-    (serviceMode === 'Extension' && extensionProxyAgent && configAlreadySet);
+    (serviceMode === 'In-Browser-Extension' && uiContext && configAlreadySet);
 
   // use cmd + enter to run
   useEffect(() => {
@@ -319,8 +341,9 @@ export function Playground({
   );
 
   const switchBtn =
-    serviceMode === 'Extension' ? null : (
-      <a
+    serviceMode === 'In-Browser-Extension' ? null : (
+      <Button
+        type="link"
         onClick={(e) => {
           e.preventDefault();
           setServiceMode(serviceMode === 'Server' ? 'In-Browser' : 'Server');
@@ -329,14 +352,14 @@ export function Playground({
         {serviceMode === 'Server'
           ? 'Switch to In-Browser Mode'
           : 'Switch to Server Mode'}
-      </a>
+      </Button>
     );
 
   const statusContent = serviceMode === 'Server' ? serverTip : <EnvConfig />;
 
   const actionBtn =
     selectedType === 'aiAction' ? (
-      <Tooltip title="It will start executing until some interaction actions need to be performed. You can see the process of planning and locating.">
+      <Tooltip title="Start executing until some interaction actions need to be performed. You can see the process of planning and locating.">
         <Button
           type="primary"
           icon={<SendOutlined />}
@@ -406,14 +429,15 @@ export function Playground({
                 ) : (
                   <div>
                     {iconForStatus('failed')} No UI Context &nbsp;
-                    <a
+                    <Button
+                      type="link"
                       onClick={(e) => {
                         e.preventDefault();
                         setUiContext(DemoData as any);
                       }}
                     >
                       Load Demo
-                    </a>
+                    </Button>
                     <div>
                       To load the UI context, you can either use the demo data
                       above, or click the 'Send to Playground' in the report
@@ -458,7 +482,11 @@ function mount(id: string) {
   const element = document.getElementById(id);
   const root = ReactDOM.createRoot(element!);
 
-  root.render(<Playground />);
+  root.render(
+    <ConfigProvider theme={globalThemeConfig()}>
+      <Playground />
+    </ConfigProvider>,
+  );
 }
 
 export default {

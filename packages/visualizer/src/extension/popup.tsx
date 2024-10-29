@@ -1,5 +1,5 @@
 /// <reference types="chrome" />
-import { Button } from 'antd';
+import { Button, ConfigProvider, message } from 'antd';
 import ReactDOM from 'react-dom/client';
 import './popup.less';
 
@@ -13,6 +13,7 @@ import {
   workerMessageTypes,
 } from './utils';
 
+import { globalThemeConfig } from '@/component/color';
 import Logo from '@/component/logo';
 import { resizeImgBase64 } from '@midscene/shared/browser/img';
 import { useState } from 'react';
@@ -84,26 +85,32 @@ function PlaygroundPopup() {
 
   const handleClick = async () => {
     setLoading(true);
-    await shotAndOpenPlayground();
+    try {
+      await shotAndOpenPlayground();
+    } catch (e: any) {
+      message.error(e.message || 'Failed to launch Playground');
+    }
     setLoading(false);
   };
 
   return (
-    <div className="popup-wrapper">
-      <div>
-        <Logo />
+    <ConfigProvider theme={globalThemeConfig()}>
+      <div className="popup-wrapper">
+        <div>
+          <Logo />
+        </div>
+        <p>
+          Using AI to automate browser actions, perform assertions, and extract
+          data in JSON format using natural language.{' '}
+          <a href="https://midscenejs.com/" target="_blank" rel="noreferrer">
+            Learn more
+          </a>
+        </p>
+        <Button onClick={handleClick} loading={loading} type="primary">
+          Send to Playground
+        </Button>
       </div>
-      <p>
-        Using AI to automate browser actions, perform assertions, and extract
-        data in JSON format using natural language.{' '}
-        <a href="https://midscenejs.com/" target="_blank" rel="noreferrer">
-          Learn more
-        </a>
-      </p>
-      <Button onClick={handleClick} loading={loading} type="primary">
-        Send to Playground
-      </Button>
-    </div>
+    </ConfigProvider>
   );
 }
 

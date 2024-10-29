@@ -64,7 +64,14 @@ const parseConfig = (configString: string) => {
   return config;
 };
 
-export type ServiceModeType = 'Server' | 'In-Browser' | 'Extension';
+/**
+ * Service Mode
+ *
+ * - Server: use a node server to run the code
+ * - In-Browser: use browser's fetch API to run the code
+ * - In-Browser-Extension: use browser's fetch API to run the code, but the page is running in the extension context
+ */
+export type ServiceModeType = 'Server' | 'In-Browser' | 'In-Browser-Extension'; // | 'Extension';
 export const useEnvConfig = create<{
   serviceMode: ServiceModeType;
   setServiceMode: (serviceMode: ServiceModeType) => void;
@@ -80,7 +87,9 @@ export const useEnvConfig = create<{
     SERVICE_MODE_KEY,
   ) as ServiceModeType | null;
   return {
-    serviceMode: ifInExtension ? 'Extension' : savedServiceMode || 'In-Browser',
+    serviceMode: ifInExtension
+      ? 'In-Browser-Extension'
+      : savedServiceMode || 'In-Browser',
     setServiceMode: (serviceMode: ServiceModeType) => {
       if (ifInExtension)
         throw new Error('serviceMode cannot be set in extension');

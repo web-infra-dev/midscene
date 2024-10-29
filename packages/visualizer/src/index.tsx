@@ -19,6 +19,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import ReactDOM from 'react-dom/client';
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
 import logoImg from './component/assets/logo-plain.png';
+import { globalThemeConfig } from './component/color';
 import DetailPanel from './component/detail-panel';
 import GlobalHoverPreview from './component/global-hover-preview';
 import Logo from './component/logo';
@@ -250,21 +251,7 @@ export function Visualizer(props: {
   }, []);
 
   return (
-    <ConfigProvider
-      theme={{
-        token: {
-          colorPrimary: '#06b1ab',
-        },
-        components: {
-          Layout: {
-            headerHeight: 60,
-            headerPadding: '0 30px',
-            headerBg: '#FFF',
-            bodyBg: '#FFF',
-          },
-        },
-      }}
-    >
+    <ConfigProvider theme={globalThemeConfig()}>
       <Helmet>
         <title>Report - Midscene.js</title>
       </Helmet>

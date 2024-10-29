@@ -1,4 +1,4 @@
-import { Button, Input, Modal } from 'antd';
+import { Button, Input, Modal, Tooltip } from 'antd';
 import { useState } from 'react';
 import { iconForStatus } from './misc';
 import { useEnvConfig } from './store';
@@ -27,9 +27,15 @@ export function EnvConfig() {
       <div>
         {iconForStatus('failed')} No config
         <p>
-          <Button type="primary" onClick={showModal}>
-            Click to set up
-          </Button>
+          <Tooltip
+            title="Please set up your environment variables to use Midscene."
+            placement="right"
+            open
+          >
+            <Button type="primary" onClick={showModal}>
+              Click to set up
+            </Button>
+          </Tooltip>
         </p>
       </div>
     ) : (
@@ -45,7 +51,9 @@ export function EnvConfig() {
           ))}
         </div>
         <div>
-          <a onClick={showModal}>Edit</a>
+          <Button type="link" onClick={showModal}>
+            Edit
+          </Button>
         </div>
       </div>
     );
