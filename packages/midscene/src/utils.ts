@@ -5,6 +5,7 @@ import { basename, dirname, join } from 'node:path';
 import { getRunningPkgInfo } from '@midscene/shared/fs';
 import { ifInBrowser, uuid } from '@midscene/shared/utils';
 import { version } from '../package.json';
+import ReportTpl from '../report/index';
 import type { Rect, ReportDumpWithAttributes } from './types';
 
 let logDir = join(process.cwd(), './midscene_run/');
@@ -28,27 +29,10 @@ export function getLogDirByType(type: 'dump' | 'cache' | 'report') {
   return dir;
 }
 
-export function writeDumpReport(
-  fileName: string,
+export function reportHTMLContent(
   dumpData: string | ReportDumpWithAttributes[],
-): string | null {
-  if (ifInBrowser) {
-    console.log('will not write report in browser');
-    return null;
-  }
-
-  const midscenePkgInfo = getRunningPkgInfo(__dirname);
-  if (!midscenePkgInfo) {
-    console.warn('midscenePkgInfo not found, will not write report');
-    return null;
-  }
-
-  const { dir } = midscenePkgInfo;
-  const reportTplPath = join(dir, './report/index.html');
-  existsSync(reportTplPath) ||
-    assert(false, `report template not found: ${reportTplPath}`);
-  const reportPath = join(getLogDirByType('report'), `${fileName}.html`);
-  const tpl = readFileSync(reportTplPath, 'utf-8');
+): string {
+  const tpl = ReportTpl;
   let reportContent: string;
   if (
     (Array.isArray(dumpData) && dumpData.length === 0) ||
@@ -72,6 +56,26 @@ export function writeDumpReport(
     });
     reportContent = tpl.replace(/\s+{{dump}}\s+/, dumps.join('\n'));
   }
+  return reportContent;
+}
+
+export function writeDumpReport(
+  fileName: string,
+  dumpData: string | ReportDumpWithAttributes[],
+): string | null {
+  if (ifInBrowser) {
+    console.log('will not write report in browser');
+    return null;
+  }
+
+  const midscenePkgInfo = getRunningPkgInfo(__dirname);
+  if (!midscenePkgInfo) {
+    console.warn('midscenePkgInfo not found, will not write report');
+    return null;
+  }
+
+  const reportPath = join(getLogDirByType('report'), `${fileName}.html`);
+  const reportContent = reportHTMLContent(dumpData);
   writeFileSync(reportPath, reportContent);
 
   return reportPath;

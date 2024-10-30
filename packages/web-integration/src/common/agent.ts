@@ -9,6 +9,7 @@ import {
 } from '@midscene/core';
 import {
   groupedActionDumpFileExt,
+  reportHTMLContent,
   stringifyDumpData,
   writeLogFile,
 } from '@midscene/core/utils';
@@ -60,22 +61,29 @@ export class PageAgent {
       },
       opts || {},
     );
-    this.dump = {
-      groupName: this.opts.groupName!,
-      groupDescription: this.opts.groupDescription,
-      executions: [],
-    };
+
     this.insight = new Insight<WebElementInfo, WebUIContext>(async () => {
       return this.getUIContext();
     });
     this.taskExecutor = new PageTaskExecutor(this.page, this.insight, {
       cacheId: opts?.cacheId,
     });
+    this.dump = this.resetDump();
     this.reportFileName = reportFileName(opts?.testId || 'web');
   }
 
   async getUIContext(): Promise<WebUIContext> {
     return await parseContextFromWebPage(this.page);
+  }
+
+  resetDump() {
+    this.dump = {
+      groupName: this.opts.groupName!,
+      groupDescription: this.opts.groupDescription,
+      executions: [],
+    };
+
+    return this.dump;
   }
 
   appendExecutionDump(execution: ExecutionDump) {
@@ -88,6 +96,10 @@ export class PageAgent {
     this.dump.groupName = this.opts.groupName!;
     this.dump.groupDescription = this.opts.groupDescription;
     return stringifyDumpData(this.dump);
+  }
+
+  reportHTMLString() {
+    return reportHTMLContent(this.dumpDataString());
   }
 
   writeOutActionDumps() {

@@ -56,9 +56,16 @@ function tplReplacer(tpl: string, obj: Record<string, string>) {
 
 function copyToCore() {
   const corePath = join(__dirname, '../../midscene/report/index.html');
+  const corePathEsm = corePath.replace(/.html$/, '.ts');
   ensureDirectoryExistence(corePath);
   copyFileSync(outputHTML, corePath);
   console.log(`HTML file copied to core successfully: ${corePath}`);
+
+  // make a module for import
+  const htmlContent = readFileSync(corePath, 'utf-8');
+  const htmlAsEsm = `export default ${JSON.stringify(htmlContent)}`;
+  writeFileSync(corePathEsm, htmlAsEsm);
+  console.log(`HTML.esm file copied to core successfully: ${corePathEsm}`);
 }
 
 function copyToWebIntegration() {

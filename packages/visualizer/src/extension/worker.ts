@@ -7,6 +7,10 @@ import {
   workerMessageTypes,
 } from './utils';
 
+chrome.sidePanel
+  .setPanelBehavior({ openPanelOnActionClick: true })
+  .catch((error) => console.error(error));
+
 const randomUUID = () => {
   return Math.random().toString(36).substring(2, 15);
 };

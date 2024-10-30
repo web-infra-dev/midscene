@@ -179,6 +179,7 @@ export function Playground({
       error: null,
     };
     try {
+      agent?.resetDump();
       const uiContext = await agent?.getUIContext();
       if (serviceMode === 'Server') {
         result = await requestPlaygroundServer(
@@ -215,8 +216,7 @@ export function Playground({
           ? JSON.parse(activeAgent.dumpDataString())
           : null;
 
-        // TODO: get reportHTML
-        result.reportHTML = activeAgent?.dumpDataString() || null;
+        result.reportHTML = activeAgent?.reportHTMLString() || null;
       }
     } catch (e) {
       console.error(e);
@@ -233,10 +233,9 @@ export function Playground({
     }
 
     // Scroll the Run header into view
-    runResultRef.current?.scrollIntoView({ behavior: 'smooth' });
-
-    // TODO: reset agent dump
-    // setResetAgentCounter((c) => c + 1);
+    // setTimeout(() => {
+    //   runResultRef.current?.scrollIntoView({ behavior: 'smooth' });
+    // }, 50);
   }, [form, agent, activeAgent]);
 
   let placeholder = 'What do you want to do?';
@@ -402,7 +401,7 @@ export function Playground({
             />
           ) : (
             <div>
-              {iconForStatus('failed')} No UI context &nbsp;
+              {iconForStatus('failed')} No UI context
               <Button
                 type="link"
                 onClick={(e) => {
@@ -449,9 +448,10 @@ export function Playground({
       {formSection}
       {resultFilled && <div className="hr" />}
       {resultFilled && (
-        <div ref={runResultRef} className="form-part">
+        <div className="form-part">
           <h3>Result</h3>
           <div className="lite-ui-result">{resultDataToShow}</div>
+          <div ref={runResultRef} />
         </div>
       )}
     </div>

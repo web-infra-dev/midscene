@@ -9,8 +9,6 @@ import {
   activeTabId,
   currentWindowId,
   getPlaygroundUrl,
-  // getScreenInfoOfTab,
-  // getScreenshotBase64,
   sendToWorker,
   workerMessageTypes,
 } from './utils';
@@ -18,6 +16,7 @@ import {
 import { globalThemeConfig } from '@/component/color';
 import Logo from '@/component/logo';
 import { Playground } from '@/component/playground-component';
+import { SendOutlined } from '@ant-design/icons';
 import {
   ChromeExtensionProxyPage,
   ChromeExtensionProxyPageAgent,
@@ -100,6 +99,7 @@ function PlaygroundPopup() {
             loading={loading}
             type="link"
             size="small"
+            icon={<SendOutlined />}
           >
             send to fullscreen playground
           </Button>

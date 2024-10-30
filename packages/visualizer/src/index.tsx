@@ -350,8 +350,7 @@ function PlaywrightCaseSelector(props: {
     <div className="playwright-case-selector">
       <Dropdown menu={{ items }}>
         <a onClick={(e) => e.preventDefault()}>
-          {btnName}&nbsp;
-          <DownOutlined />
+          {btnName} <DownOutlined />
         </a>
       </Dropdown>
     </div>

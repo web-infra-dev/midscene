@@ -7,6 +7,7 @@ import {
   getTmpDir,
   getTmpFile,
   overlapped,
+  reportHTMLContent,
   setLogDir,
   writeDumpReport,
 } from '@/utils';
@@ -34,14 +35,14 @@ describe('utils', () => {
     const content = randomUUID();
     const reportPath = writeDumpReport('test', content);
     expect(reportPath).toBeTruthy();
-    const reportContent = readFileSync(reportPath, 'utf-8');
+    const reportContent = readFileSync(reportPath!, 'utf-8');
     expect(reportContent).contains(content);
   });
 
   it('write report file with empty dump', () => {
     const reportPath = writeDumpReport('test', []);
     expect(reportPath).toBeTruthy();
-    const reportContent = readFileSync(reportPath, 'utf-8');
+    const reportContent = readFileSync(reportPath!, 'utf-8');
     expect(reportContent).contains('type="midscene_web_dump"');
   });
 
@@ -57,7 +58,7 @@ describe('utils', () => {
       },
     ]);
     expect(reportPath).toBeTruthy();
-    const reportContent = readFileSync(reportPath, 'utf-8');
+    const reportContent = readFileSync(reportPath!, 'utf-8');
     expect(reportContent).contains(content);
     expect(reportContent).contains('foo="bar"');
     expect(reportContent).contains('hello="world"');
@@ -70,6 +71,19 @@ describe('utils', () => {
 
     const target2 = { left: 200, top: 200, width: 100, height: 100 };
     expect(overlapped(container, target2)).toBeFalsy();
+  });
+
+  it('reportHTMLContent', () => {
+    const reportA = reportHTMLContent([]);
+    expect(reportA).toContain(
+      '<script type="midscene_web_dump" type="application/json"></script>',
+    );
+
+    const content = randomUUID();
+    const reportB = reportHTMLContent(content);
+    expect(reportB).toContain(
+      `<script type="midscene_web_dump" type="application/json">${content}</script>`,
+    );
   });
 });
 

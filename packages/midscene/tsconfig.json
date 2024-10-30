@@ -19,5 +19,5 @@
     "module": "ESNext"
   },
   "exclude": ["**/node_modules"],
-  "include": ["src", "tests"]
+  "include": ["src", "tests", "report"]
 }

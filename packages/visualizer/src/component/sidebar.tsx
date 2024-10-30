@@ -30,7 +30,7 @@ const SideItem = (props: {
   const titleTextIcon =
     task.type === 'Planning' ? (
       <span>
-        &nbsp;
+        {' '}
         <VideoCameraOutlined />
       </span>
     ) : null;
@@ -58,7 +58,6 @@ const SideItem = (props: {
         </div>
         <div className="status-text">{statusText}</div>
       </div>
-      {/* {contentRow} */}
     </div>
   );
 };

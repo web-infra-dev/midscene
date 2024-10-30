@@ -173,7 +173,7 @@ const DetailSide = (): JSX.Element => {
 
       return (
         <pre className="description-content" key={key}>
-          {key}:&nbsp;{content}
+          {key} {content}
         </pre>
       );
     });
