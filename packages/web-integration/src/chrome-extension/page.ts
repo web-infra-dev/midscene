@@ -10,32 +10,11 @@ import type { ElementInfo } from '@/extractor';
 import type { AbstractPage } from '@/page';
 import { resizeImgBase64 } from '@midscene/shared/browser/img';
 
-const ThrowNotImplemented: any = (methodName: string) => {
-  throw new Error(
-    `The method "${methodName}" is not implemented in this context.`,
-  );
-};
-
-async function getScreenshotBase64FromCache(
-  tabId: number,
-  windowId: number,
-): Promise<string> {
-  return new Promise((resolve, reject) => {
-    chrome.runtime.sendMessage(
-      {
-        type: 'get-screenshot',
-        payload: { tabId, windowId },
-      },
-      (response) => {
-        if (!response || response.error) {
-          reject(response.error);
-        } else {
-          resolve((response as any).base64);
-        }
-      },
-    );
-  });
-}
+// const ThrowNotImplemented: any = (methodName: string) => {
+//   throw new Error(
+//     `The method "${methodName}" is not implemented in this context.`,
+//   );
+// };
 
 // remember to include this file into extension's package
 const scriptFileToRetrieve = './scripts/htmlElement.js';
@@ -72,6 +51,8 @@ async function getActivePageContent(tabId: number): Promise<{
   return returnValue[0].result;
 }
 
+const lastTwoCallTime = [0, 0];
+const callInterval = 1050;
 async function getScreenshotBase64(windowId: number) {
   // check if this window is active
   const activeWindow = await chrome.windows.getAll({ populate: true });
@@ -79,10 +60,21 @@ async function getScreenshotBase64(windowId: number) {
     throw new Error(`Window with id ${windowId} is not active`);
   }
 
+  // avoid MAX_CAPTURE_VISIBLE_TAB_CALLS_PER_SECOND
+  const now = Date.now();
+  if (now - lastTwoCallTime[0] < callInterval) {
+    const sleepTime = callInterval - (now - lastTwoCallTime[0]);
+    console.warn(
+      `Sleep for ${sleepTime}ms to avoid too frequent screenshot calls`,
+    );
+    await new Promise((resolve) => setTimeout(resolve, sleepTime));
+  }
   const base64 = await chrome.tabs.captureVisibleTab(windowId, {
     format: 'jpeg',
     quality: 70,
   });
+  lastTwoCallTime.shift();
+  lastTwoCallTime.push(Date.now());
   return base64;
 }
 
@@ -114,9 +106,50 @@ export default class ChromeExtensionProxyPage implements AbstractPage {
 
   private viewportSize?: { width: number; height: number; dpr: number };
 
+  private debuggerAttached = false;
+
   constructor(tabId: number, windowId: number) {
     this.tabId = tabId;
     this.windowId = windowId;
+
+    //     chrome.debugger.attach({ tabId: tab.id }, '1.2', function () {
+    //       chrome.debugger.sendCommand(
+    //         { tabId: tab.id },
+    //         'Network.enable',
+    //         {},
+    //         function () {
+    //           if (chrome.runtime.lastError) {
+    //             console.error(chrome.runtime.lastError);
+    //           }
+    //         }
+    //       );
+    //     });
+
+    // chrome.action.onClicked.addListener(function (tab) {
+    //   if (tab.url.startsWith('http')) {
+
+    //   } else {
+    //     console.log('Debugger can only be attached to HTTP/HTTPS pages.');
+    //   }
+    // });
+
+    // chrome.debugger.onEvent.addListener(function (source, method, params) {
+    //   if (method === 'Network.responseReceived') {
+    //     console.log('Response received:', params.response);
+    //     // Perform your desired action with the response data
+    //   }
+    // });
+  }
+
+  private async attachDebugger() {
+    if (this.debuggerAttached) return;
+    await chrome.debugger.attach({ tabId: this.tabId }, '1.3');
+    this.debuggerAttached = true;
+  }
+
+  private async sendCommandToDebugger(command: string, params: any) {
+    await this.attachDebugger();
+    await chrome.debugger.sendCommand({ tabId: this.tabId }, command, params);
   }
 
   async getElementInfos() {
@@ -135,6 +168,9 @@ export default class ChromeExtensionProxyPage implements AbstractPage {
   }
 
   async screenshotBase64() {
+    // console.log('will call screenshotBase64');
+    // const trace = new Error('i_am_here');
+    // console.error(trace.stack);
     const base64 = await getScreenshotBase64(this.windowId);
     const screenInfo = await getScreenInfoOfTab(this.tabId);
     if (screenInfo.dpr > 1) {
@@ -190,88 +226,94 @@ export default class ChromeExtensionProxyPage implements AbstractPage {
   }
 
   async clearInput() {
-    await chrome.scripting.executeScript({
-      target: { tabId: this.tabId, allFrames: true },
-      func: () => {
-        const activeElement = window.document.activeElement;
-        if (activeElement && 'value' in activeElement) {
-          (activeElement as HTMLInputElement).value = '';
-        }
-      },
+    // send cmd+a then backspace
+    const ifOSX = navigator.userAgent.includes('Macintosh');
+    const metaKeyModifier = ifOSX ? 4 : 2;
+    await this.sendCommandToDebugger('Input.dispatchKeyEvent', {
+      type: 'keyDown',
+      modifiers: metaKeyModifier,
+      key: 'a',
+      code: 'KeyA',
+    });
+
+    await this.sendCommandToDebugger('Input.dispatchKeyEvent', {
+      type: 'keyUp',
+      modifiers: metaKeyModifier,
+      key: 'a',
+      code: 'KeyA',
+    });
+
+    await this.sendCommandToDebugger('Input.dispatchKeyEvent', {
+      type: 'keyDown',
+      key: 'Backspace',
+      code: 'Backspace',
+    });
+
+    await this.sendCommandToDebugger('Input.dispatchKeyEvent', {
+      type: 'keyUp',
+      key: 'Backspace',
+      code: 'Backspace',
     });
   }
 
   mouse = {
     click: async (x: number, y: number) => {
-      chrome.scripting.executeScript({
-        target: { tabId: this.tabId, allFrames: true },
-        func: (x: number, y: number) => {
-          const event = new MouseEvent('click', {
-            bubbles: true,
-            cancelable: true,
-            clientX: x,
-            clientY: y,
-          });
-          // find the element at (x, y)
-          const element = document.elementFromPoint(x, y);
-          console.log('element', element);
-          if (element) {
-            element.dispatchEvent(event);
-          } else {
-            document.body.dispatchEvent(event);
-          }
-        },
-        args: [x, y],
+      await this.sendCommandToDebugger('Input.dispatchMouseEvent', {
+        type: 'mousePressed',
+        x,
+        y,
+        button: 'left',
+        clickCount: 1,
+      });
+      await this.sendCommandToDebugger('Input.dispatchMouseEvent', {
+        type: 'mouseReleased',
+        x,
+        y,
+        button: 'left',
+        clickCount: 1,
       });
     },
     wheel: async (deltaX: number, deltaY: number) => {
-      await chrome.scripting.executeScript({
-        target: { tabId: this.tabId, allFrames: true },
-        func: (deltaX: number, deltaY: number) => {
-          window.scrollBy(deltaX, deltaY);
-        },
-        args: [deltaX, deltaY],
+      await this.sendCommandToDebugger('Input.dispatchMouseEvent', {
+        type: 'mouseWheel',
+        deltaX,
+        deltaY,
       });
     },
     move: async (x: number, y: number) => {
-      // hover on the element at (x, y)
-      throw new Error('mouse.move is not implemented in chrome extension');
+      await this.sendCommandToDebugger('Input.dispatchMouseEvent', {
+        type: 'mouseMoved',
+        x,
+        y,
+      });
     },
   };
 
   keyboard = {
     type: async (text: string) => {
-      await chrome.scripting.executeScript({
-        target: { tabId: this.tabId, allFrames: true },
-        func: (text: string) => {
-          const activeElement = window.document.activeElement;
-          if (activeElement && 'value' in activeElement) {
-            (activeElement as HTMLInputElement).value += text;
-          } else {
-            throw new Error('No active element found to type text');
-          }
-        },
-        args: [text],
-      });
+      for (const char of text) {
+        // Send char event
+        await this.sendCommandToDebugger('Input.dispatchKeyEvent', {
+          type: 'char',
+          text: char,
+          key: char,
+          unmodifiedText: char,
+        });
+
+        // sleep 50ms
+        await new Promise((resolve) => setTimeout(resolve, 50));
+      }
     },
     press: async (key: WebKeyInput) => {
-      await chrome.scripting.executeScript({
-        target: { tabId: this.tabId, allFrames: true },
-        func: (key: string) => {
-          const activeElement = window.document.activeElement;
-          if (activeElement) {
-            activeElement.dispatchEvent(
-              new KeyboardEvent('keydown', {
-                bubbles: true,
-                cancelable: true,
-                key,
-              }),
-            );
-          } else {
-            throw new Error('No active element found to press key');
-          }
-        },
-        args: [key],
+      await this.sendCommandToDebugger('Input.dispatchKeyEvent', {
+        type: 'keyDown',
+        key: key,
+        code: `Key${key.toUpperCase()}`,
+      });
+      await this.sendCommandToDebugger('Input.dispatchKeyEvent', {
+        type: 'keyUp',
+        key: key,
+        code: `Key${key.toUpperCase()}`,
       });
     },
   };
