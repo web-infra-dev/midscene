@@ -1,6 +1,7 @@
 @import './common.less';
 
 @player-spacing: 12px;
+@player-vertical-spacing: 15px; // ~=12 * 1.2
 @border-color: #979797;
 @radius: 6px;
 @player-control-bg: #666;
@@ -53,9 +54,9 @@
     }
   }
 
-  .player-controls {
-    margin-top: calc(@player-spacing * 1.2);
-    margin-bottom: calc(@player-spacing * 1.2);
+  .player-tools {
+    margin-top: @player-vertical-spacing;
+    margin-bottom: @player-vertical-spacing;
     max-width: 100%;
     overflow: hidden;
     color: #FFF;
@@ -63,8 +64,15 @@
     box-sizing: border-box;
     display: flex;
     flex-direction: row;
-    flex-shrink: 0;
     padding: 0 @player-spacing;
+    justify-content: space-between;
+
+    .player-control {
+      flex-grow: 1;
+      display: flex;
+      flex-direction: row;
+      align-items: left;
+    }
     
     .status-icon {
       transition: .2s;
@@ -108,6 +116,17 @@
       position: absolute;
       top: 18px;
       left: 0;
+    }
+
+    .player-tools-item {
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+
+      .ant-btn-variant-link {
+        color: #FFF;
+      }
     }
   }
 }

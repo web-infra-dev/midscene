@@ -24,12 +24,12 @@ import { serverBase, useServerValid } from './open-in-playground';
 
 import { overrideAIConfig } from '@midscene/core';
 import type { ChromeExtensionProxyPageAgent } from '@midscene/web/chrome-extension';
-// import { ChromeExtensionProxyPage } from '@midscene/web/chrome-extension';
 import {
   ERROR_CODE_NOT_IMPLEMENTED_AS_DESIGNED,
   StaticPage,
   StaticPageAgent,
 } from '@midscene/web/playground';
+import type { WebUIContext } from '@midscene/web/utils';
 import { EnvConfig } from './env-config';
 import { useEnvConfig } from './store';
 
@@ -81,15 +81,19 @@ const useContextId = () => {
 };
 const { TextArea } = Input;
 
+export const staticAgentFromContext = (context: WebUIContext) => {
+  const page = new StaticPage(context);
+  return new StaticPageAgent(page);
+};
+
 // TODO: reset agent dump
 export const useStaticPageAgent = (
-  context: UIContext | undefined,
+  context: WebUIContext | undefined | null,
 ): StaticPageAgent | null => {
   const agent = useMemo(() => {
     if (!context) return null;
 
-    const page = new StaticPage(context as any);
-    return new StaticPageAgent(page);
+    return staticAgentFromContext(context);
   }, [context]);
   return agent;
 };
@@ -113,7 +117,7 @@ export function Playground({
   const [form] = Form.useForm();
   const { config, serviceMode, setServiceMode } = useEnvConfig();
   const configAlreadySet = Object.keys(config || {}).length >= 1;
-  const runHeaderRef = useRef<HTMLHeadingElement>(null);
+  const runResultRef = useRef<HTMLHeadingElement>(null);
 
   // override AI config
   useEffect(() => {
@@ -224,7 +228,7 @@ export function Playground({
     }
 
     // Scroll the Run header into view
-    runHeaderRef.current?.scrollIntoView({ behavior: 'smooth' });
+    runResultRef.current?.scrollIntoView({ behavior: 'smooth' });
 
     // TODO: reset agent dump
     // setResetAgentCounter((c) => c + 1);
@@ -410,7 +414,7 @@ export function Playground({
           )}
         </div>
         <div className="form-part input-wrapper">
-          <h3 ref={runHeaderRef}>Run</h3>
+          <h3>Run</h3>
           <Form.Item name="type">
             <Radio.Group buttonStyle="solid" disabled={!runButtonEnabled}>
               <Radio.Button value="aiAction">Action</Radio.Button>
@@ -439,7 +443,7 @@ export function Playground({
       {formSection}
       {resultFilled && <div className="hr" />}
       {resultFilled && (
-        <div className="form-part">
+        <div ref={runResultRef} className="form-part">
           <h3>Result</h3>
           <div className="lite-ui-result">{resultDataToShow}</div>
         </div>
@@ -470,4 +474,13 @@ export function Playground({
       </PanelGroup>
     </div>
   );
+}
+
+export function StaticPlayground({
+  context,
+}: {
+  context: WebUIContext | null;
+}) {
+  const agent = useStaticPageAgent(context);
+  return <Playground agent={agent} />;
 }

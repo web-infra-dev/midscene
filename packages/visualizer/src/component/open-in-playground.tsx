@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react';
 import { Playground, useStaticPageAgent } from './playground-component';
 import { useEnvConfig } from './store';
 import './open-in-playground.less';
+import type { WebUIContext } from '@midscene/web/utils';
 
 declare const __VERSION__: string;
 
@@ -112,7 +113,7 @@ export default function OpenInPlayground(props?: { context?: UIContext }) {
     );
   }
 
-  const agent = useStaticPageAgent(context);
+  const agent = useStaticPageAgent(context as WebUIContext);
 
   return (
     <>

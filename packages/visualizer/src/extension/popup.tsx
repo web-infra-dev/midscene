@@ -4,8 +4,8 @@ import ReactDOM from 'react-dom/client';
 import './popup.less';
 
 import {
-  type WorkerRequestSaveScreenshot,
-  type WorkerResponseSaveScreenshot,
+  type WorkerRequestSaveContext,
+  type WorkerResponseSaveContext,
   activeTabId,
   currentWindowId,
   getPlaygroundUrl,
@@ -18,7 +18,6 @@ import {
 import { globalThemeConfig } from '@/component/color';
 import Logo from '@/component/logo';
 import { Playground } from '@/component/playground-component';
-import { resizeImgBase64 } from '@midscene/shared/browser/img';
 import {
   ChromeExtensionProxyPage,
   ChromeExtensionProxyPageAgent,
@@ -26,25 +25,19 @@ import {
 import { useEffect, useState } from 'react';
 
 const shotAndOpenPlayground = async (tabId: number, windowId: number) => {
-  // let screenshot = await getScreenshotBase64(windowId);
-  // const screenInfo = await getScreenInfoOfTab(tabId);
+  const page = new ChromeExtensionProxyPage(tabId, windowId);
+  const agent = new ChromeExtensionProxyPageAgent(page);
+  const context = await agent.getUIContext();
+  console.log('will cache context', context);
 
-  // if (screenInfo.dpr > 1) {
-  //   screenshot = (await resizeImgBase64(screenshot, {
-  //     width: screenInfo.width,
-  //     height: screenInfo.height,
-  //   })) as string;
-  // }
   // // cache screenshot when page is active
-  // await sendToWorker<WorkerRequestSaveScreenshot, WorkerResponseSaveScreenshot>(
-  //   workerMessageTypes.SAVE_SCREENSHOT,
-  //   {
-  //     screenshot: { base64: screenshot, dpr: screenInfo.dpr },
-  //     tabId,
-  //     windowId,
-  //   },
-  // );
-  const url = getPlaygroundUrl(tabId, windowId);
+  const { id } = await sendToWorker<
+    WorkerRequestSaveContext,
+    WorkerResponseSaveContext
+  >(workerMessageTypes.SAVE_CONTEXT, {
+    context,
+  });
+  const url = getPlaygroundUrl(id);
   chrome.tabs.create({
     url,
     active: true,

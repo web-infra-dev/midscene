@@ -1,13 +1,15 @@
 import queryString from 'query-string';
 
-import { ChromeExtensionProxyPage } from '@midscene/web/chrome-extension';
-import { StaticPage, StaticPageAgent } from '@midscene/web/playground';
-import { parseContextFromWebPage } from '@midscene/web/utils';
+import type { WebUIContext } from '@midscene/web/utils';
 import { ConfigProvider } from 'antd';
 import { useEffect, useMemo, useState } from 'react';
 import ReactDOM from 'react-dom/client';
 import { globalThemeConfig } from '../component/color';
-import { Playground } from '../component/playground-component';
+import { StaticPlayground } from '../component/playground-component';
+import type { WorkerResponseGetContext } from './utils';
+import { sendToWorker } from './utils';
+import type { WorkerRequestGetContext } from './utils';
+import { workerMessageTypes } from './utils';
 
 const PlaygroundEntry = () => {
   // extension proxy agent
@@ -15,28 +17,35 @@ const PlaygroundEntry = () => {
     () => queryString.parse(window.location.search),
     [window.location.search],
   );
-  const targetTabId = query.tab_id;
-  const targetWindowId = query.window_id;
-  const [agent, setAgent] = useState<StaticPageAgent | null>(null);
+  const cacheContextId = query.cache_context_id;
+  const [context, setContext] = useState<WebUIContext | null>(null);
 
   useEffect(() => {
-    if (!targetTabId || !targetWindowId) {
-      throw new Error('targetTabId and targetWindowId are required');
+    if (!cacheContextId) {
+      throw new Error('cacheContextId is required');
     }
-    const page = new ChromeExtensionProxyPage(
-      Number(targetTabId),
-      Number(targetWindowId),
-    );
 
-    parseContextFromWebPage(page).then((context) => {
-      console.log('got page context', context);
-      setAgent(new StaticPageAgent(new StaticPage(context)));
+    if (typeof cacheContextId !== 'string') {
+      throw new Error('cacheContextId must be a string');
+    }
+
+    const retrieveContext = async () => {
+      const { context } = await sendToWorker<
+        WorkerRequestGetContext,
+        WorkerResponseGetContext
+      >(workerMessageTypes.GET_CONTEXT, {
+        id: cacheContextId,
+      });
+      setContext(context);
+    };
+    retrieveContext().catch((e) => {
+      console.error('Failed to init Playground agent', e);
     });
-  }, [targetTabId, targetWindowId]);
+  }, [cacheContextId]);
 
   return (
     <ConfigProvider theme={globalThemeConfig()}>
-      <Playground agent={agent} />
+      <StaticPlayground context={context} />
     </ConfigProvider>
   );
 };

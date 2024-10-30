@@ -36,7 +36,7 @@
     "@types/node": "^18.0.0",
     "@types/react": "18.3.3",
     "@types/react-dom": "18.3.0",
-    "antd": "5.19.3",
+    "antd": "5.21.6",
     "dayjs": "1.11.11",
     "http-server": "14.1.1",
     "npm-watch": "0.13.0",

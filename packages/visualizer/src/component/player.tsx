@@ -4,9 +4,13 @@ import * as PIXI from 'pixi.js';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import './player.less';
 import { mouseLoading, mousePointer } from '@/utils';
-import { CaretRightOutlined, LoadingOutlined } from '@ant-design/icons';
+import {
+  CaretRightOutlined,
+  DownloadOutlined,
+  LoadingOutlined,
+} from '@ant-design/icons';
 import type { BaseElement } from '@midscene/core/.';
-import { ConfigProvider, Spin } from 'antd';
+import { Button, ConfigProvider, Spin } from 'antd';
 import { rectMarkForItem } from './blackboard';
 import type {
   AnimationScript,
@@ -101,12 +105,22 @@ const LAYER_ORDER_INSIGHT = 1;
 const LAYER_ORDER_POINTER = 2;
 const LAYER_ORDER_SPINNING_POINTER = 3;
 
-const Player = (props?: {
+const downloadReport = (content: string): void => {
+  const blob = new Blob([content], { type: 'text/html' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'midscene_report.html';
+  a.click();
+};
+
+export default function Player(props?: {
   replayScripts?: AnimationScript[];
   imageWidth?: number;
   imageHeight?: number;
+  reportFileContent?: string;
   key?: string | number;
-}): JSX.Element => {
+}): JSX.Element {
   const [titleText, setTitleText] = useState('');
   const [subTitleText, setSubTitleText] = useState('');
   const taskScripts = useExecutionDump(
@@ -693,6 +707,22 @@ const Player = (props?: {
     );
   }
 
+  const playerTopToolbar = props?.reportFileContent ? (
+    <div className="player-tools-right">
+      <div className="player-tools-item">
+        <Button
+          color="primary"
+          variant="link"
+          size="small"
+          icon={<DownloadOutlined />}
+          onClick={() => downloadReport(props.reportFileContent!)}
+        >
+          Report File
+        </Button>
+      </div>
+    </div>
+  ) : null;
+
   return (
     <div className="player-container">
       <div className="canvas-container" ref={divContainerRef} />
@@ -705,34 +735,35 @@ const Player = (props?: {
           }}
         />
       </div>
-      <div className="player-controls">
-        <div
-          className="status-icon"
-          onMouseEnter={() => setMouseOverStatusIcon(true)}
-          onMouseLeave={() => setMouseOverStatusIcon(false)}
-          style={statusStyle}
-          onClick={statusOnClick}
-        >
-          <ConfigProvider
-            theme={{
-              components: {
-                Spin: {
-                  dotSize: 24,
-                  colorPrimary: 'rgb(6,177,171)',
-                },
-              },
-            }}
+      <div className="player-tools">
+        <div className="player-control">
+          <div
+            className="status-icon"
+            onMouseEnter={() => setMouseOverStatusIcon(true)}
+            onMouseLeave={() => setMouseOverStatusIcon(false)}
+            style={statusStyle}
+            onClick={statusOnClick}
           >
-            {statusIconElement}
-          </ConfigProvider>
+            <ConfigProvider
+              theme={{
+                components: {
+                  Spin: {
+                    dotSize: 24,
+                    colorPrimary: 'rgb(6,177,171)',
+                  },
+                },
+              }}
+            >
+              {statusIconElement}
+            </ConfigProvider>
+          </div>
+          <div className="status-text">
+            <div className="title">{titleText}</div>
+            <div className="subtitle">{subTitleText}</div>
+          </div>
         </div>
-        <div className="status-text">
-          <div className="title">{titleText}</div>
-          <div className="subtitle">{subTitleText}</div>
-        </div>
+        {playerTopToolbar}
       </div>
     </div>
   );
-};
-
-export default Player;
+}
