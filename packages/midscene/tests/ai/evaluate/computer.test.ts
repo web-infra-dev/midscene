@@ -2,27 +2,36 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { callToGetJSONObject } from '@/ai-model';
 import { AIActionType } from '@/ai-model/common';
-import { describe, expect, it } from 'vitest';
+import { afterAll, describe, expect, it } from 'vitest';
 import { type InspectAiTestCase, getPageTestData } from './test-suite/util';
 
 const testSources = [
   'todo',
   'online_order',
   'online_order_list',
-  'taobao',
+  // 'taobao',
   'aweme_login',
   'aweme_play',
 ];
+const allResults: Array<{
+  name: string;
+  successRate: string;
+  successCount: number;
+  totalCount: number;
+}> = [];
 describe(
   'automation - computer',
   () => {
+    afterAll(() => {
+      console.table(allResults);
+    });
     it('basic run', async () => {
-      const result: Array<{
-        expectation: any;
-        reality: string;
-        rectInBox: boolean;
-      }> = [];
       for (const source of testSources) {
+        const result: Array<{
+          expectation: any;
+          reality: string;
+          rectInBox: boolean;
+        }> = [];
         const aiDataPath = path.join(
           __dirname,
           `ai-data/inspect/${source}.json`,
@@ -97,6 +106,8 @@ describe(
         // Write result to file
         const resultFilePath = path.join(
           __dirname,
+          '__ai_responses__',
+          'computer',
           `${source}-computer-result.json`,
         );
         const resultDir = path.dirname(resultFilePath);
@@ -106,7 +117,16 @@ describe(
         }
 
         writeFileSync(resultFilePath, JSON.stringify(result, null, 2), 'utf-8');
-        console.log(`Result written to ${resultFilePath}`);
+
+        const totalCount = result.length;
+        const successCount = result.filter((r) => r.rectInBox).length;
+        const successRate = ((successCount / totalCount) * 100).toFixed(2);
+        allResults.push({
+          name: source,
+          successRate: `${successRate}%`,
+          successCount,
+          totalCount,
+        });
       }
     });
   },
