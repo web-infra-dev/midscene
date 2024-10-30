@@ -118,7 +118,7 @@ export default function Player(props?: {
   replayScripts?: AnimationScript[];
   imageWidth?: number;
   imageHeight?: number;
-  reportFileContent?: string;
+  reportFileContent?: string | null;
   key?: string | number;
 }): JSX.Element {
   const [titleText, setTitleText] = useState('');

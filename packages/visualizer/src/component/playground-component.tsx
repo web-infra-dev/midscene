@@ -36,6 +36,7 @@ import { useEnvConfig } from './store';
 interface PlaygroundResult {
   result: any;
   dump: GroupedActionDump | null;
+  reportHTML: string | null;
   error: string | null;
 }
 
@@ -174,6 +175,7 @@ export function Playground({
     let result: PlaygroundResult = {
       result: null,
       dump: null,
+      reportHTML: null,
       error: null,
     };
     try {
@@ -212,6 +214,9 @@ export function Playground({
         result.dump = activeAgent?.dumpDataString()
           ? JSON.parse(activeAgent.dumpDataString())
           : null;
+
+        // TODO: get reportHTML
+        result.reportHTML = activeAgent?.dumpDataString() || null;
       }
     } catch (e) {
       console.error(e);
@@ -295,6 +300,7 @@ export function Playground({
         replayScripts={replayScriptsInfo.scripts}
         imageWidth={replayScriptsInfo.width}
         imageHeight={replayScriptsInfo.height}
+        reportFileContent={result?.reportHTML}
       />
     );
   } else if (result?.result) {
