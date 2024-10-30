@@ -44,6 +44,11 @@ export class PageAgent {
 
   opts: PageAgentOpt;
 
+  /**
+   * If true, the agent will not perform any actions
+   */
+  dryMode = false;
+
   constructor(page: WebPage, opts?: PageAgentOpt) {
     this.page = page;
     this.opts = Object.assign(

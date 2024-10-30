@@ -1,5 +1,10 @@
 /// <reference types="chrome" />
 
+/*
+  It is used to interact with the page tab from the chrome extension.
+  The page must be active when interacting with it.
+*/
+
 import type { WebKeyInput } from '@/common/page';
 import type { ElementInfo } from '@/extractor';
 import type { AbstractPage } from '@/page';
@@ -200,7 +205,7 @@ export default class ChromeExtensionProxyPage implements AbstractPage {
     click: async (x: number, y: number) => {
       chrome.scripting.executeScript({
         target: { tabId: this.tabId, allFrames: true },
-        func: () => {
+        func: (x: number, y: number) => {
           const event = new MouseEvent('click', {
             bubbles: true,
             cancelable: true,
@@ -209,20 +214,23 @@ export default class ChromeExtensionProxyPage implements AbstractPage {
           });
           // find the element at (x, y)
           const element = document.elementFromPoint(x, y);
+          console.log('element', element);
           if (element) {
             element.dispatchEvent(event);
           } else {
             document.body.dispatchEvent(event);
           }
         },
+        args: [x, y],
       });
     },
     wheel: async (deltaX: number, deltaY: number) => {
       await chrome.scripting.executeScript({
         target: { tabId: this.tabId, allFrames: true },
-        func: () => {
+        func: (deltaX: number, deltaY: number) => {
           window.scrollBy(deltaX, deltaY);
         },
+        args: [deltaX, deltaY],
       });
     },
     move: async (x: number, y: number) => {
@@ -235,7 +243,7 @@ export default class ChromeExtensionProxyPage implements AbstractPage {
     type: async (text: string) => {
       await chrome.scripting.executeScript({
         target: { tabId: this.tabId, allFrames: true },
-        func: () => {
+        func: (text: string) => {
           const activeElement = window.document.activeElement;
           if (activeElement && 'value' in activeElement) {
             (activeElement as HTMLInputElement).value += text;
@@ -243,12 +251,13 @@ export default class ChromeExtensionProxyPage implements AbstractPage {
             throw new Error('No active element found to type text');
           }
         },
+        args: [text],
       });
     },
     press: async (key: WebKeyInput) => {
       await chrome.scripting.executeScript({
         target: { tabId: this.tabId, allFrames: true },
-        func: () => {
+        func: (key: string) => {
           const activeElement = window.document.activeElement;
           if (activeElement) {
             activeElement.dispatchEvent(
@@ -262,6 +271,7 @@ export default class ChromeExtensionProxyPage implements AbstractPage {
             throw new Error('No active element found to press key');
           }
         },
+        args: [key],
       });
     },
   };

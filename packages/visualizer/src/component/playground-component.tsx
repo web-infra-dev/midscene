@@ -329,20 +329,9 @@ export function Playground({
 
   const statusContent = serviceMode === 'Server' ? serverTip : <EnvConfig />;
 
-  const actionBtn =
-    selectedType === 'aiAction' ? (
-      <Tooltip title="Start executing until some interaction actions need to be performed. You can see the process of planning and locating.">
-        <Button
-          type="primary"
-          icon={<SendOutlined />}
-          onClick={handleRun}
-          disabled={!runButtonEnabled}
-          loading={loading}
-        >
-          Dry Run
-        </Button>
-      </Tooltip>
-    ) : (
+  const dryMode = agent?.dryMode;
+  const actionBtn = dryMode ? (
+    <Tooltip title="Start executing until some interaction actions need to be performed. You can see the process of planning and locating.">
       <Button
         type="primary"
         icon={<SendOutlined />}
@@ -350,9 +339,20 @@ export function Playground({
         disabled={!runButtonEnabled}
         loading={loading}
       >
-        Run
+        Dry Run
       </Button>
-    );
+    </Tooltip>
+  ) : (
+    <Button
+      type="primary"
+      icon={<SendOutlined />}
+      onClick={handleRun}
+      disabled={!runButtonEnabled}
+      loading={loading}
+    >
+      Run
+    </Button>
+  );
 
   const logo = !hideLogo && !liteUI && (
     <div className="playground-header">
