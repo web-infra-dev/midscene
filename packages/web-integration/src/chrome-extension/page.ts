@@ -10,12 +10,6 @@ import type { ElementInfo } from '@/extractor';
 import type { AbstractPage } from '@/page';
 import { resizeImgBase64 } from '@midscene/shared/browser/img';
 
-// const ThrowNotImplemented: any = (methodName: string) => {
-//   throw new Error(
-//     `The method "${methodName}" is not implemented in this context.`,
-//   );
-// };
-
 // remember to include this file into extension's package
 const scriptFileToRetrieve = './scripts/htmlElement.js';
 async function getActivePageContent(tabId: number): Promise<{
@@ -111,34 +105,6 @@ export default class ChromeExtensionProxyPage implements AbstractPage {
   constructor(tabId: number, windowId: number) {
     this.tabId = tabId;
     this.windowId = windowId;
-
-    //     chrome.debugger.attach({ tabId: tab.id }, '1.2', function () {
-    //       chrome.debugger.sendCommand(
-    //         { tabId: tab.id },
-    //         'Network.enable',
-    //         {},
-    //         function () {
-    //           if (chrome.runtime.lastError) {
-    //             console.error(chrome.runtime.lastError);
-    //           }
-    //         }
-    //       );
-    //     });
-
-    // chrome.action.onClicked.addListener(function (tab) {
-    //   if (tab.url.startsWith('http')) {
-
-    //   } else {
-    //     console.log('Debugger can only be attached to HTTP/HTTPS pages.');
-    //   }
-    // });
-
-    // chrome.debugger.onEvent.addListener(function (source, method, params) {
-    //   if (method === 'Network.responseReceived') {
-    //     console.log('Response received:', params.response);
-    //     // Perform your desired action with the response data
-    //   }
-    // });
   }
 
   private async attachDebugger() {
@@ -168,9 +134,6 @@ export default class ChromeExtensionProxyPage implements AbstractPage {
   }
 
   async screenshotBase64() {
-    // console.log('will call screenshotBase64');
-    // const trace = new Error('i_am_here');
-    // console.error(trace.stack);
     const base64 = await getScreenshotBase64(this.windowId);
     const screenInfo = await getScreenInfoOfTab(this.tabId);
     if (screenInfo.dpr > 1) {
@@ -190,21 +153,11 @@ export default class ChromeExtensionProxyPage implements AbstractPage {
   }
 
   async scrollUntilTop() {
-    await chrome.scripting.executeScript({
-      target: { tabId: this.tabId, allFrames: true },
-      func: () => {
-        window.scrollTo(0, 0);
-      },
-    });
+    return this.mouse.wheel(0, -9999999);
   }
 
   async scrollUntilBottom() {
-    await chrome.scripting.executeScript({
-      target: { tabId: this.tabId, allFrames: true },
-      func: () => {
-        window.scrollTo(0, document.body.scrollHeight);
-      },
-    });
+    return this.mouse.wheel(0, 9999999);
   }
 
   async scrollUpOneScreen() {
@@ -225,22 +178,17 @@ export default class ChromeExtensionProxyPage implements AbstractPage {
     });
   }
 
-  async clearInput() {
-    // send cmd+a then backspace
-    const ifOSX = navigator.userAgent.includes('Macintosh');
-    const metaKeyModifier = ifOSX ? 4 : 2;
-    await this.sendCommandToDebugger('Input.dispatchKeyEvent', {
-      type: 'keyDown',
-      modifiers: metaKeyModifier,
-      key: 'a',
-      code: 'KeyA',
-    });
+  async clearInput(element: ElementInfo) {
+    if (!element) {
+      console.warn('No element to clear input');
+      return;
+    }
+
+    await this.mouse.click(element.center[0], element.center[1]);
 
     await this.sendCommandToDebugger('Input.dispatchKeyEvent', {
-      type: 'keyUp',
-      modifiers: metaKeyModifier,
-      key: 'a',
-      code: 'KeyA',
+      type: 'keyDown',
+      commands: ['selectAll'],
     });
 
     await this.sendCommandToDebugger('Input.dispatchKeyEvent', {
@@ -276,6 +224,8 @@ export default class ChromeExtensionProxyPage implements AbstractPage {
     wheel: async (deltaX: number, deltaY: number) => {
       await this.sendCommandToDebugger('Input.dispatchMouseEvent', {
         type: 'mouseWheel',
+        x: 10,
+        y: 10,
         deltaX,
         deltaY,
       });
@@ -306,14 +256,23 @@ export default class ChromeExtensionProxyPage implements AbstractPage {
     },
     press: async (key: WebKeyInput) => {
       await this.sendCommandToDebugger('Input.dispatchKeyEvent', {
-        type: 'keyDown',
+        type: 'rawKeyDown',
+        code: key,
         key: key,
-        code: `Key${key.toUpperCase()}`,
       });
+
+      // Dispatch 'char' event
+      await this.sendCommandToDebugger('Input.dispatchKeyEvent', {
+        type: 'char',
+        code: key,
+        key: key,
+      });
+
+      // Dispatch 'keyUp' event
       await this.sendCommandToDebugger('Input.dispatchKeyEvent', {
         type: 'keyUp',
+        code: key,
         key: key,
-        code: `Key${key.toUpperCase()}`,
       });
     },
   };

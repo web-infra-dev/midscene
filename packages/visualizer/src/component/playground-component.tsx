@@ -1,4 +1,4 @@
-import { LoadingOutlined, SendOutlined } from '@ant-design/icons';
+import { DownOutlined, LoadingOutlined, SendOutlined } from '@ant-design/icons';
 import type { GroupedActionDump, UIContext } from '@midscene/core/.';
 import { Helmet } from '@modern-js/runtime/head';
 import { Button, Empty, Spin, Tooltip, message } from 'antd';
@@ -30,8 +30,10 @@ import {
   StaticPageAgent,
 } from '@midscene/web/playground';
 import type { WebUIContext } from '@midscene/web/utils';
+import type { MenuProps } from 'antd';
+import { Dropdown, Space } from 'antd';
 import { EnvConfig } from './env-config';
-import { useEnvConfig } from './store';
+import { type HistoryItem, useEnvConfig } from './store';
 
 interface PlaygroundResult {
   result: any;
@@ -59,19 +61,11 @@ overrideAIConfig({
   MIDSCENE_DEBUG_AI_PROFILE: '1',
 });
 
-const cacheKeyForPrompt = 'playground-user-prompt';
-const cacheKeyForType = 'playground-user-type';
-const setCache = (prompt: string, type: string) => {
-  localStorage.setItem(cacheKeyForPrompt, prompt);
-  localStorage.setItem(cacheKeyForType, type);
-};
-
-const getCachedPrompt = () => {
-  return localStorage.getItem(cacheKeyForPrompt);
-};
-
-const getCachedType = () => {
-  return localStorage.getItem(cacheKeyForType);
+const actionNameForType = (type: string) => {
+  if (type === 'aiAction') return 'Action';
+  if (type === 'aiQuery') return 'Query';
+  if (type === 'aiAssert') return 'Assert';
+  return type;
 };
 
 // context and agent
@@ -97,6 +91,44 @@ export const useStaticPageAgent = (
     return staticAgentFromContext(context);
   }, [context]);
   return agent;
+};
+
+const useHistorySelector = (onSelect: (history: HistoryItem) => void) => {
+  const history = useEnvConfig((state) => state.history);
+  const clearHistory = useEnvConfig((state) => state.clearHistory);
+
+  const items: MenuProps['items'] = history.map((item, index) => ({
+    label: (
+      <a onClick={() => onSelect(item)}>
+        {actionNameForType(item.type)} - {item.prompt.slice(0, 50)}
+        {item.prompt.length > 50 ? '...' : ''}
+      </a>
+    ),
+    key: String(index),
+  }));
+
+  items.push({
+    type: 'divider',
+  });
+
+  items.push({
+    label: (
+      <a onClick={() => clearHistory()}>
+        <Space>Clear History</Space>
+      </a>
+    ),
+    key: 'clear',
+  });
+
+  return history.length > 0 ? (
+    <div className="history-selector">
+      <Dropdown menu={{ items }}>
+        <Space>
+          history <DownOutlined />
+        </Space>
+      </Dropdown>
+    </div>
+  ) : null;
 };
 
 export function Playground({
@@ -162,6 +194,8 @@ export function Playground({
     // }
   }, [uiContextPreview, shouldShowContext, agent]);
 
+  const addHistory = useEnvConfig((state) => state.addHistory);
+
   const handleRun = useCallback(async () => {
     const value = form.getFieldsValue();
     if (!value.prompt) {
@@ -169,9 +203,13 @@ export function Playground({
       return;
     }
 
-    setCache(value.prompt, value.type);
     setLoading(true);
     setResult(null);
+    addHistory({
+      type: value.type,
+      prompt: value.prompt,
+      timestamp: Date.now(),
+    });
     let result: PlaygroundResult = {
       result: null,
       dump: null,
@@ -363,20 +401,33 @@ export function Playground({
     </Button>
   );
 
+  const historySelector = useHistorySelector((historyItem) => {
+    form.setFieldsValue({
+      prompt: historyItem.prompt,
+      type: historyItem.type,
+    });
+  });
+
   const logo = !hideLogo && !liteUI && (
     <div className="playground-header">
       <Logo />
     </div>
   );
 
+  const history = useEnvConfig((state) => state.history);
+  const lastHistory = history[0];
+  const historyInitialValues = useMemo(() => {
+    return {
+      type: lastHistory?.type || 'aiAction',
+      prompt: lastHistory?.prompt || '',
+    };
+  }, []);
+
   const formSection = (
     <Form
       form={form}
       onFinish={handleRun}
-      initialValues={{
-        type: getCachedType() || 'aiAction',
-        prompt: getCachedPrompt() || '',
-      }}
+      initialValues={{ ...historyInitialValues }}
     >
       <div className="playground-form-container">
         <div className="form-part">
@@ -422,9 +473,15 @@ export function Playground({
           <h3>Run</h3>
           <Form.Item name="type">
             <Radio.Group buttonStyle="solid" disabled={!runButtonEnabled}>
-              <Radio.Button value="aiAction">Action</Radio.Button>
-              <Radio.Button value="aiQuery">Query</Radio.Button>
-              <Radio.Button value="aiAssert">Assert</Radio.Button>
+              <Radio.Button value="aiAction">
+                {actionNameForType('aiAction')}
+              </Radio.Button>
+              <Radio.Button value="aiQuery">
+                {actionNameForType('aiQuery')}
+              </Radio.Button>
+              <Radio.Button value="aiAssert">
+                {actionNameForType('aiAssert')}
+              </Radio.Button>
             </Radio.Group>
           </Form.Item>
           <div className="main-side-console-input">
@@ -437,6 +494,7 @@ export function Playground({
               />
             </Form.Item>
             {actionBtn}
+            {historySelector}
           </div>
         </div>
       </div>

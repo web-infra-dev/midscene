@@ -89,7 +89,6 @@ export function writeLogFile(opts: {
   generateReport?: boolean;
 }) {
   if (ifInBrowser) {
-    console.log('will not generate report in browser');
     return '/mock/report.html';
   }
   const { fileName, fileExt, fileContent, type = 'dump' } = opts;

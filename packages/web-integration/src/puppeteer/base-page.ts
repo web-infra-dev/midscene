@@ -117,6 +117,7 @@ export class Page<
 
   async clearInput(element: ElementInfo): Promise<void> {
     if (!element) {
+      console.warn('No element to clear input');
       return;
     }
 

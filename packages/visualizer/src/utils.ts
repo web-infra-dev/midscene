@@ -83,9 +83,14 @@ export function paramStr(task: ExecutionTask) {
   }
 
   if (task.type === 'Action') {
-    value =
-      (task as ExecutionTaskAction)?.param?.value ||
-      (task as ExecutionTaskAction)?.param?.scrollType;
+    const sleepMs = (task as ExecutionTaskAction)?.param?.timeMs;
+    if (sleepMs) {
+      value = `${sleepMs}ms`;
+    } else {
+      value =
+        (task as ExecutionTaskAction)?.param?.value ||
+        (task as ExecutionTaskAction)?.param?.scrollType;
+    }
   }
 
   if (typeof value === 'undefined') return '';

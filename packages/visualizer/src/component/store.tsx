@@ -29,9 +29,14 @@ export const useBlackboardPreference = create<{
 
 const CONFIG_KEY = 'midscene-env-config';
 const SERVICE_MODE_KEY = 'midscene-service-mode';
+const HISTORY_KEY = 'midscene-prompt-history';
 const getConfigStringFromLocalStorage = () => {
   const configString = localStorage.getItem(CONFIG_KEY);
   return configString || '';
+};
+const getHistoryFromLocalStorage = () => {
+  const historyString = localStorage.getItem(HISTORY_KEY);
+  return historyString ? JSON.parse(historyString) : [];
 };
 const parseConfig = (configString: string) => {
   const lines = configString.split('\n');
@@ -64,6 +69,13 @@ const parseConfig = (configString: string) => {
   return config;
 };
 
+export interface HistoryItem {
+  type: 'aiAction' | 'aiQuery' | 'aiAssert';
+  prompt: string;
+  timestamp: number;
+}
+
+/**
 /**
  * Service Mode
  *
@@ -79,7 +91,10 @@ export const useEnvConfig = create<{
   configString: string;
   setConfig: (config: Record<string, string>) => void;
   loadConfig: (configString: string) => void;
-}>((set) => {
+  history: HistoryItem[];
+  clearHistory: () => void;
+  addHistory: (history: HistoryItem) => void;
+}>((set, get) => {
   const configString = getConfigStringFromLocalStorage();
   const config = parseConfig(configString);
   const ifInExtension = window.location.href.startsWith('chrome-extension');
@@ -103,6 +118,22 @@ export const useEnvConfig = create<{
       const config = parseConfig(configString);
       set({ config, configString });
       localStorage.setItem(CONFIG_KEY, configString);
+    },
+    history: getHistoryFromLocalStorage(),
+    clearHistory: () => {
+      set({ history: [] });
+      localStorage.removeItem(HISTORY_KEY);
+    },
+    addHistory: (history) => {
+      const newHistory = [
+        history,
+        ...get().history.filter((h) => h.prompt !== history.prompt),
+      ];
+      while (newHistory.length > 10) {
+        newHistory.pop();
+      }
+      set({ history: newHistory });
+      localStorage.setItem(HISTORY_KEY, JSON.stringify(newHistory));
     },
   };
 });
