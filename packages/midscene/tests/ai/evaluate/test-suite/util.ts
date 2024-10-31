@@ -15,18 +15,36 @@ export type InspectAiTestCase = {
 };
 
 export interface AiElementsResponse {
-  elements: Array<{
-    id: string;
-    reason: string;
-    text: string;
-  }>;
+  elements: Array<
+    | {
+        id: string;
+        reason: string;
+        text: string;
+      }
+    | {
+        position: {
+          x: number;
+          y: number;
+        };
+        reason: string;
+        text: string;
+      }
+  >;
 }
 
 export interface TextAiElementResponse extends AiElementsResponse {
   multi: boolean;
-  response: Array<{
-    id: string;
-  }>;
+  response: Array<
+    | {
+        id: string;
+      }
+    | {
+        position: {
+          x: number;
+          y: number;
+        };
+      }
+  >;
   // for test
   caseIndex?: number;
   prompt: string;
@@ -64,7 +82,7 @@ export async function runTestCases(
         spendTime,
         elementsSnapshot: msg.elements.map((element) => {
           const index = elementSnapshot.findIndex((item: any) => {
-            if (item.nodeHashId === element.id) {
+            if ('id' in element && item.nodeHashId === element.id) {
               return true;
             }
           });
@@ -96,7 +114,7 @@ export async function runTestCases(
     return {
       elements: elements.map((element, index) => {
         return {
-          id: element.id.toString(),
+          id: 'id' in element ? element.id.toString() : '',
           indexId: elementsSnapshot[index]?.indexId,
         };
       }),

@@ -2,6 +2,7 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { callToGetJSONObject } from '@/ai-model';
 import { AIActionType } from '@/ai-model/common';
+import { compositeElementInfoImg, saveBase64Image } from '@midscene/shared/img';
 import { afterAll, describe, expect, it } from 'vitest';
 import { type InspectAiTestCase, getPageTestData } from './test-suite/util';
 
@@ -9,10 +10,11 @@ const testSources = [
   'todo',
   'online_order',
   'online_order_list',
-  // 'taobao',
+  'taobao',
   'aweme_login',
   'aweme_play',
 ];
+
 const allResults: Array<{
   name: string;
   successRate: string;
@@ -28,6 +30,7 @@ describe(
     it('basic run', async () => {
       for (const source of testSources) {
         const result: Array<{
+          index: number;
           expectation: any;
           reality: string;
           rectInBox: boolean;
@@ -39,16 +42,17 @@ describe(
         const aiData = JSON.parse(
           readFileSync(aiDataPath, 'utf-8'),
         ) as InspectAiTestCase;
-        const res = aiData.testCases.map(async (testCase) => {
-          const { context } = await getPageTestData(
-            path.join(__dirname, aiData.testDataPath),
-          );
+        const { context } = await getPageTestData(
+          path.join(__dirname, aiData.testDataPath),
+        );
+        console.log('context.size', context.size);
+        const promises = aiData.testCases.map(async (testCase, index) => {
           const res = await callToGetJSONObject<{ x: number; y: number }>(
             [
               {
                 role: 'system',
                 content: `<SYSTEM_CAPABILITY>
-                    * 根据截图和描述，找到特定的坐标位置
+                take a screenshot and carefully evaluate the coordinates if you have achieved the right outcome. Explicitly show your thinking: "I have evaluated step X..." If not correct, try again. Only when you confirm a step was executed correctly should you move on to the next one.
                     </SYSTEM_CAPABILITY>
             `,
               },
@@ -68,11 +72,11 @@ describe(
         
             Here is the item user want to find. Just go ahead:
             =====================================
-            找到${testCase.prompt}位置，x/y坐标，并按照下面的格式返回：
+            找到${testCase.prompt}位置，x/y坐标（(x, y): The x (pixels from the x edge) and y (pixels from the y edge) coordinates），并按照下面的格式返回：
 
             {
-              "x": number, // 横向坐标位置
-              "y": number // 纵向坐标位置
+              "x": number,
+              "y": number
             }
             =====================================
             `,
@@ -84,8 +88,9 @@ describe(
           );
           const rect: any = context.content.find(
             (item: any) => testCase.response[0].indexId === item.indexId,
-          ).rect;
+          )?.rect;
           result.push({
+            index,
             expectation: {
               prompt: testCase.prompt,
               rect,
@@ -96,13 +101,13 @@ describe(
               typeof res === 'object' &&
               'x' in res &&
               'y' in res &&
-              res.x >= rect.left &&
-              res.x <= rect.left + rect.width &&
-              res.y >= rect.top &&
-              res.y <= rect.top + rect.height,
+              res.x >= rect?.left &&
+              res.x <= rect?.left + rect?.width &&
+              res.y >= rect?.top &&
+              res.y <= rect?.top + rect?.height,
           });
         });
-        await Promise.all(res);
+        await Promise.all(promises);
         // Write result to file
         const resultFilePath = path.join(
           __dirname,
@@ -110,12 +115,37 @@ describe(
           'computer',
           `${source}-computer-result.json`,
         );
+        const composeImgPath = path.join(
+          __dirname,
+          '__ai_responses__',
+          'computer',
+          `${source}-img.png`,
+        );
         const resultDir = path.dirname(resultFilePath);
 
         if (!existsSync(resultDir)) {
           mkdirSync(resultDir, { recursive: true });
         }
 
+        const newImg = await compositeElementInfoImg({
+          inputImgBase64: context.originalScreenshotBase64,
+          elementsPositionInfo: result.map((item) => {
+            const position = JSON.parse(item.reality);
+            return {
+              indexId: item.index,
+              rect: {
+                left: position.x - 10,
+                top: position.y - 10,
+                width: 20,
+                height: 20,
+              },
+            };
+          }),
+        });
+        await saveBase64Image({
+          base64Data: newImg,
+          outputPath: composeImgPath,
+        });
         writeFileSync(resultFilePath, JSON.stringify(result, null, 2), 'utf-8');
 
         const totalCount = result.length;

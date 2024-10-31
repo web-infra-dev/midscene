@@ -12,13 +12,13 @@ type ElementType = {
 
   rect: Rect;
 
-  center: [number, number];
+  center?: [number, number];
 
-  id: string;
+  id?: string;
 
   indexId: number;
 
-  attributes: {
+  attributes?: {
     nodeType: NodeType;
     [key: string]: string;
   };
