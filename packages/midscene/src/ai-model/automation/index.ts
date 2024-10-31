@@ -21,10 +21,12 @@ export async function plan(
 }> {
   const { callAI, context } = opts || {};
   const { screenshotBase64 } = context;
-  const { description: pageDescription } = await describeUserPage(context);
+  const { description: pageDescription, elementByPosition } =
+    await describeUserPage(context);
   let planFromAI: PlanningAIResponse | undefined;
 
   const systemPrompt = systemPromptToTaskPlanning();
+
   const msgs: AIArgs = [
     { role: 'system', content: systemPrompt },
     {
@@ -63,7 +65,18 @@ export async function plan(
   const actions = planFromAI?.actions || [];
 
   assert(planFromAI, "can't get planFromAI");
-  assert(actions && actions.length > 0, 'no actions in ai plan');
+  assert(
+    actions.length > 0,
+    `no actions in ai plan with context: ${planFromAI}`,
+  );
+
+  actions.forEach((action) => {
+    if (action.type === 'Locate' && action.param.quickAnswer) {
+      action.param.quickAnswer.id = elementByPosition(
+        action.param.quickAnswer.position,
+      )?.id;
+    }
+  });
 
   if (planFromAI.error) {
     throw new Error(planFromAI.error);

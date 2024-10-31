@@ -6,7 +6,7 @@ import { base64Encoded, imageInfoOfBase64 } from '@/image';
 type TestCase = {
   prompt: string;
   multi?: boolean;
-  response: Array<{ id: string }>;
+  response: Array<{ id: string; indexId: number }>;
 };
 
 export type InspectAiTestCase = {
@@ -15,18 +15,36 @@ export type InspectAiTestCase = {
 };
 
 export interface AiElementsResponse {
-  elements: Array<{
-    id: string;
-    reason: string;
-    text: string;
-  }>;
+  elements: Array<
+    | {
+        id: string;
+        reason: string;
+        text: string;
+      }
+    | {
+        position: {
+          x: number;
+          y: number;
+        };
+        reason: string;
+        text: string;
+      }
+  >;
 }
 
 export interface TextAiElementResponse extends AiElementsResponse {
   multi: boolean;
-  response: Array<{
-    id: string;
-  }>;
+  response: Array<
+    | {
+        id: string;
+      }
+    | {
+        position: {
+          x: number;
+          y: number;
+        };
+      }
+  >;
   // for test
   caseIndex?: number;
   prompt: string;
@@ -64,7 +82,7 @@ export async function runTestCases(
         spendTime,
         elementsSnapshot: msg.elements.map((element) => {
           const index = elementSnapshot.findIndex((item: any) => {
-            if (item.nodeHashId === element.id) {
+            if ('id' in element && item.nodeHashId === element.id) {
               return true;
             }
           });
@@ -96,7 +114,7 @@ export async function runTestCases(
     return {
       elements: elements.map((element, index) => {
         return {
-          id: element.id.toString(),
+          id: 'id' in element ? element.id.toString() : '',
           indexId: elementsSnapshot[index]?.indexId,
         };
       }),
@@ -140,15 +158,18 @@ export function writeFileSyncWithDir(
 export async function getPageTestData(targetDir: string) {
   // Note: this is the magic
   const resizeOutputImgP = path.join(targetDir, 'output_without_text.png');
+  const originalInputputImgP = path.join(targetDir, 'input.png');
   const snapshotJsonPath = path.join(targetDir, 'element-snapshot.json');
   const snapshotJson = readFileSync(snapshotJsonPath, { encoding: 'utf-8' });
   const elementSnapshot = JSON.parse(snapshotJson);
   const screenshotBase64 = base64Encoded(resizeOutputImgP);
+  const originalScreenshotBase64 = base64Encoded(originalInputputImgP);
   const size = await imageInfoOfBase64(screenshotBase64);
   const baseContext = {
     size,
     content: elementSnapshot,
     screenshotBase64,
+    originalScreenshotBase64,
   };
 
   return {
@@ -160,6 +181,7 @@ export async function getPageTestData(targetDir: string) {
     },
     snapshotJson,
     screenshotBase64,
+    originalScreenshotBase64,
   };
 }
 

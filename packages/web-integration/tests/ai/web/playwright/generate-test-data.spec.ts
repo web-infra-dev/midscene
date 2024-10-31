@@ -122,7 +122,7 @@ test('generate online order test data', async ({ page, ai }) => {
 test('generate taobao test data', async ({ page, ai }) => {
   const playwrightPage = new PlaywrightWebPage(page);
 
-  page.setViewportSize({ width: 1228, height: 768 });
+  page.setViewportSize({ width: 1280, height: 800 });
   await page.goto('https://www.taobao.com/');
 
   await generateExtractData(playwrightPage, generateTestDataPath('taobao'));

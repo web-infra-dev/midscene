@@ -62,7 +62,7 @@
       ]
     },
     {
-      "prompt": "关闭弹窗按钮",
+      "prompt": "X 关闭按钮",
       "multi": false,
       "response": [
         {

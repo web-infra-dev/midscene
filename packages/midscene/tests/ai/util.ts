@@ -1,4 +1,4 @@
-import { useCozeModel } from '@/ai-model/coze';
+import { preferCozeModel } from '@/ai-model/coze';
 import type { PlanningAction } from '@/types';
 
 export function makePlanResultStable(plans: PlanningAction[]) {
@@ -16,8 +16,8 @@ export function makePlanResultStable(plans: PlanningAction[]) {
   });
 }
 
-export const modelList: Array<'openAI' | 'coze'> = useCozeModel('coze')
+export const modelList: Array<'openAI' | 'coze'> = preferCozeModel('coze')
   ? ['openAI', 'coze']
   : ['openAI'];
 
-export const repeatTime = process.env.GITHUB_ACTIONS ? 2 : 4;
+export const repeatTime = process.env.GITHUB_ACTIONS ? 2 : 1;

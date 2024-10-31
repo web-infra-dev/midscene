@@ -52,16 +52,43 @@ export enum AIResponseFormat {
   TEXT = 'text',
 }
 
-export interface AISingleElementResponse {
-  id: string;
-  reason: string;
-  text: string;
-}
+export type AISingleElementResponse =
+  | {
+      id: string;
+      reason: string;
+      text: string;
+    }
+  | {
+      position: {
+        x: number;
+        y: number;
+      };
+      reason: string;
+      text: string;
+    };
 
-export interface AIElementParseResponse {
-  elements: AISingleElementResponse[];
+export interface AIElementIdResponse {
+  elements: {
+    id: string;
+    reason: string;
+    text: string;
+  }[];
   errors?: string[];
 }
+
+export interface AIElementPositionResponse {
+  elements: {
+    position: {
+      x: number;
+      y: number;
+    };
+    reason: string;
+    text: string;
+  }[];
+  errors?: string[];
+}
+
+export type AIElementReponse = AIElementIdResponse | AIElementPositionResponse;
 
 export interface AISectionParseResponse<DataShape> {
   data: DataShape;
@@ -99,6 +126,10 @@ export type CallAIFn = <T>(
 export interface InsightOptions {
   taskInfo?: Omit<InsightTaskInfo, 'durationMs'>;
   aiVendorFn?: CallAIFn;
+  generateElement?: (opts: {
+    content?: string;
+    rect: BaseElement['rect'];
+  }) => BaseElement;
 }
 
 export interface UISection {
@@ -120,12 +151,14 @@ export type InsightExtractParam = string | Record<string, string>;
 
 export interface InsightTaskInfo {
   durationMs: number;
+  formatResponse?: string;
   rawResponse?: string;
 }
 
 export interface DumpMeta {
   sdkVersion: string;
   logTime: number;
+  model_name: string;
 }
 
 export interface ReportDumpWithAttributes {
@@ -154,7 +187,7 @@ export interface InsightDump extends DumpMeta {
 
 export type PartialInsightDumpFromSDK = Omit<
   InsightDump,
-  'sdkVersion' | 'logTime' | 'logId'
+  'sdkVersion' | 'logTime' | 'logId' | 'model_name'
 >;
 
 export type DumpSubscriber = (dump: InsightDump) => Promise<void> | void;

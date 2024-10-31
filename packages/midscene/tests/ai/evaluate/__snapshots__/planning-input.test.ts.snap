@@ -18,7 +18,6 @@ exports[`automation - planning input - openAI > input value 1`] = `
     "param": {
       "value": "learning english",
     },
-    "quickAnswer": null,
     "thought": undefined,
     "type": "Input",
   },
@@ -43,7 +42,6 @@ exports[`automation - planning input - openAI > input value 2`] = `
     "param": {
       "value": "learning english",
     },
-    "quickAnswer": null,
     "thought": undefined,
     "type": "Input",
   },
@@ -51,7 +49,6 @@ exports[`automation - planning input - openAI > input value 2`] = `
     "param": {
       "value": "Enter",
     },
-    "quickAnswer": null,
     "thought": undefined,
     "type": "KeyboardPress",
   },
@@ -76,7 +73,6 @@ exports[`automation - planning input - openAI > input value 3`] = `
     "param": {
       "value": "learning english",
     },
-    "quickAnswer": null,
     "thought": undefined,
     "type": "Input",
   },
@@ -101,7 +97,6 @@ exports[`automation - planning input - openAI > input value 4`] = `
     "param": {
       "value": "learning english",
     },
-    "quickAnswer": null,
     "thought": undefined,
     "type": "Input",
   },
@@ -109,7 +104,6 @@ exports[`automation - planning input - openAI > input value 4`] = `
     "param": {
       "value": "Enter",
     },
-    "quickAnswer": null,
     "thought": undefined,
     "type": "KeyboardPress",
   },
@@ -134,7 +128,6 @@ exports[`automation - planning input - openAI > input value 5`] = `
     "param": {
       "value": "learning english",
     },
-    "quickAnswer": null,
     "thought": undefined,
     "type": "Input",
   },
@@ -159,7 +152,6 @@ exports[`automation - planning input - openAI > input value 6`] = `
     "param": {
       "value": "learning english",
     },
-    "quickAnswer": null,
     "thought": undefined,
     "type": "Input",
   },
@@ -167,7 +159,6 @@ exports[`automation - planning input - openAI > input value 6`] = `
     "param": {
       "value": "Enter",
     },
-    "quickAnswer": null,
     "thought": undefined,
     "type": "KeyboardPress",
   },
@@ -192,7 +183,6 @@ exports[`automation - planning input - openAI > input value 7`] = `
     "param": {
       "value": "learning english",
     },
-    "quickAnswer": null,
     "thought": undefined,
     "type": "Input",
   },
@@ -217,7 +207,6 @@ exports[`automation - planning input - openAI > input value 8`] = `
     "param": {
       "value": "learning english",
     },
-    "quickAnswer": null,
     "thought": undefined,
     "type": "Input",
   },
@@ -225,7 +214,6 @@ exports[`automation - planning input - openAI > input value 8`] = `
     "param": {
       "value": "Enter",
     },
-    "quickAnswer": null,
     "thought": undefined,
     "type": "KeyboardPress",
   },
@@ -250,7 +238,6 @@ exports[`automation - planning input - openAI > input value 9`] = `
     "param": {
       "value": "learning english",
     },
-    "quickAnswer": null,
     "thought": undefined,
     "type": "Input",
   },
@@ -275,7 +262,6 @@ exports[`automation - planning input - openAI > input value 10`] = `
     "param": {
       "value": "learning english",
     },
-    "quickAnswer": null,
     "thought": undefined,
     "type": "Input",
   },
@@ -283,7 +269,6 @@ exports[`automation - planning input - openAI > input value 10`] = `
     "param": {
       "value": "Enter",
     },
-    "quickAnswer": null,
     "thought": undefined,
     "type": "KeyboardPress",
   },
@@ -308,7 +293,6 @@ exports[`automation - planning input - openAI > input value Add, delete, correct
     "param": {
       "value": "Learn English tomorrow",
     },
-    "quickAnswer": null,
     "thought": undefined,
     "type": "Input",
   },
@@ -333,7 +317,6 @@ exports[`automation - planning input - openAI > input value Add, delete, correct
     "param": {
       "value": "Learn Skiing",
     },
-    "quickAnswer": null,
     "thought": undefined,
     "type": "Input",
   },
@@ -358,7 +341,6 @@ exports[`automation - planning input - openAI > input value Add, delete, correct
     "param": {
       "value": "Learn",
     },
-    "quickAnswer": null,
     "thought": undefined,
     "type": "Input",
   },
@@ -383,7 +365,6 @@ exports[`automation - planning input - openAI > input value Add, delete, correct
     "param": {
       "value": "Learn English tomorrow",
     },
-    "quickAnswer": null,
     "thought": undefined,
     "type": "Input",
   },
@@ -408,7 +389,6 @@ exports[`automation - planning input - openAI > input value Add, delete, correct
     "param": {
       "value": "Learn Skiing",
     },
-    "quickAnswer": null,
     "thought": undefined,
     "type": "Input",
   },
@@ -433,7 +413,6 @@ exports[`automation - planning input - openAI > input value Add, delete, correct
     "param": {
       "value": "Learn",
     },
-    "quickAnswer": null,
     "thought": undefined,
     "type": "Input",
   },
@@ -458,7 +437,6 @@ exports[`automation - planning input - openAI > input value Add, delete, correct
     "param": {
       "value": "Learn English tomorrow",
     },
-    "quickAnswer": null,
     "thought": undefined,
     "type": "Input",
   },
@@ -483,7 +461,6 @@ exports[`automation - planning input - openAI > input value Add, delete, correct
     "param": {
       "value": "Learn Skiing",
     },
-    "quickAnswer": null,
     "thought": undefined,
     "type": "Input",
   },
@@ -508,7 +485,6 @@ exports[`automation - planning input - openAI > input value Add, delete, correct
     "param": {
       "value": "Learn",
     },
-    "quickAnswer": null,
     "thought": undefined,
     "type": "Input",
   },
@@ -533,7 +509,6 @@ exports[`automation - planning input - openAI > input value Add, delete, correct
     "param": {
       "value": "Learn English tomorrow",
     },
-    "quickAnswer": null,
     "thought": undefined,
     "type": "Input",
   },
@@ -558,7 +533,6 @@ exports[`automation - planning input - openAI > input value Add, delete, correct
     "param": {
       "value": "Learn Skiing",
     },
-    "quickAnswer": null,
     "thought": undefined,
     "type": "Input",
   },
@@ -583,7 +557,6 @@ exports[`automation - planning input - openAI > input value Add, delete, correct
     "param": {
       "value": "Learn",
     },
-    "quickAnswer": null,
     "thought": undefined,
     "type": "Input",
   },
@@ -608,7 +581,6 @@ exports[`automation - planning input - openAI > input value Add, delete, correct
     "param": {
       "value": "Learn English tomorrow",
     },
-    "quickAnswer": null,
     "thought": undefined,
     "type": "Input",
   },
@@ -633,7 +605,6 @@ exports[`automation - planning input - openAI > input value Add, delete, correct
     "param": {
       "value": "Learn Skiing",
     },
-    "quickAnswer": null,
     "thought": undefined,
     "type": "Input",
   },
@@ -658,7 +629,6 @@ exports[`automation - planning input - openAI > input value Add, delete, correct
     "param": {
       "value": "Learn",
     },
-    "quickAnswer": null,
     "thought": undefined,
     "type": "Input",
   },

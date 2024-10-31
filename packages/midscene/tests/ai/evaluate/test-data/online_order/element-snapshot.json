@@ -529,48 +529,22 @@
     "screenHeight": 905
   },
   {
-    "id": "ca759d640f",
+    "id": "32058c4733",
     "indexId": 20,
-    "nodePath": "0-3-1-2-0-1-0-1-0-6-1-1-1-1-0-1-1-0-0-0",
-    "nodeHashId": "ca759d640f",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node"
-    },
-    "center": [
-      194,
-      739
-    ],
-    "content": "S$",
-    "rect": {
-      "left": 188,
-      "top": 732,
-      "width": 12,
-      "height": 14,
-      "zoom": 1
-    },
-    "zoom": 1,
-    "screenWidth": 400,
-    "screenHeight": 905
-  },
-  {
-    "id": "eadd459434",
-    "indexId": 21,
     "nodePath": "0-3-1-2-0-1-0-1-0-6-1-1-1-1-0-1-1-0-1-0",
-    "nodeHashId": "eadd459434",
+    "nodeHashId": "32058c4733",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
       "nodeType": "TEXT Node"
     },
     "center": [
-      223,
+      211,
       736
     ],
     "content": "6.82",
     "rect": {
-      "left": 204,
+      "left": 192,
       "top": 723,
       "width": 37,
       "height": 25,
@@ -582,7 +556,7 @@
   },
   {
     "id": "9e5b85f0fe",
-    "indexId": 22,
+    "indexId": 21,
     "nodePath": "0-3-1-2-0-1-0-1-0-6-1-1-1-1-0-1-1-1-0-0",
     "nodeHashId": "9e5b85f0fe",
     "nodeType": "TEXT Node",
@@ -608,7 +582,7 @@
   },
   {
     "id": "6a94f89494",
-    "indexId": 23,
+    "indexId": 22,
     "nodePath": "0-3-1-2-0-1-0-1-0-6-1-1-2-0-0-0",
     "nodeHashId": "6a94f89494",
     "nodeType": "TEXT Node",
@@ -634,7 +608,7 @@
   },
   {
     "id": "73b0f24029",
-    "indexId": 24,
+    "indexId": 23,
     "nodePath": "0-3-1-2-0-1-0-1-0-6-1-1-2-1-0-0",
     "nodeHashId": "73b0f24029",
     "locator": "[_midscene_retrieve_task_id='73b0f24029']",
@@ -662,7 +636,7 @@
   },
   {
     "id": "e1e47a9074",
-    "indexId": 25,
+    "indexId": 24,
     "nodePath": "0-3-1-2-0-1-0-1-0-6-1-1-2-1-0-1-0-0-1",
     "nodeHashId": "e1e47a9074",
     "nodeType": "TEXT Node",
@@ -687,48 +661,22 @@
     "screenHeight": 905
   },
   {
-    "id": "2de9aae12b",
-    "indexId": 26,
-    "nodePath": "0-3-1-2-0-1-0-1-0-6-1-1-2-1-0-1-1-0-0-0",
-    "nodeHashId": "2de9aae12b",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node"
-    },
-    "center": [
-      194,
-      882
-    ],
-    "content": "S$",
-    "rect": {
-      "left": 188,
-      "top": 875,
-      "width": 12,
-      "height": 14,
-      "zoom": 1
-    },
-    "zoom": 1,
-    "screenWidth": 400,
-    "screenHeight": 905
-  },
-  {
-    "id": "8f3f618529",
-    "indexId": 27,
+    "id": "c1cf767317",
+    "indexId": 25,
     "nodePath": "0-3-1-2-0-1-0-1-0-6-1-1-2-1-0-1-1-0-1-0",
-    "nodeHashId": "8f3f618529",
+    "nodeHashId": "c1cf767317",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
       "nodeType": "TEXT Node"
     },
     "center": [
-      223,
+      211,
       879
     ],
     "content": "6.54",
     "rect": {
-      "left": 204,
+      "left": 192,
       "top": 866,
       "width": 37,
       "height": 25,
@@ -740,7 +688,7 @@
   },
   {
     "id": "ee2e067ccc",
-    "indexId": 28,
+    "indexId": 26,
     "nodePath": "0-3-1-2-0-1-0-1-0-6-1-1-2-1-0-1-1-1-0-0",
     "nodeHashId": "ee2e067ccc",
     "nodeType": "TEXT Node",
@@ -766,7 +714,7 @@
   },
   {
     "id": "b82bdf3ac4",
-    "indexId": 29,
+    "indexId": 27,
     "nodePath": "0-3-1-2-3-0",
     "nodeHashId": "b82bdf3ac4",
     "locator": "[_midscene_retrieve_task_id='b82bdf3ac4']",

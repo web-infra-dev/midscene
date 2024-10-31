@@ -60,10 +60,10 @@ export class Page<
     });
     let buf: Buffer;
     if (viewportSize.deviceScaleFactor > 1) {
-      buf = (await resizeImg(readFileSync(path), {
+      buf = await resizeImg(readFileSync(path), {
         width: viewportSize.width,
         height: viewportSize.height,
-      })) as Buffer;
+      });
       writeFileSync(path, buf);
     }
 
@@ -134,6 +134,7 @@ export class Page<
   scrollUntilBottom(): Promise<void> {
     return this.mouse.wheel(0, 9999999);
   }
+
   async scrollUpOneScreen(): Promise<void> {
     const innerHeight = await this.evaluate(() => window.innerHeight);
     const distance = innerHeight * 0.7;
