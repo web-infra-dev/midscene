@@ -11,11 +11,9 @@ body {
 .playground-container {
   width: 100%;
   height: 100%;
-  background-color: @side-bg;
 
-  &.lite-ui {
+  &.vertical-mode {
     height: inherit;
-    background-color: transparent;
 
     .form-part {
       padding: 0;
@@ -25,10 +23,6 @@ body {
         font-size: 14px;
         line-height: 1.6;
       }
-    }
-
-    .lite-ui-result {
-      padding-bottom: @layout-space-vertical;
     }
   }
 
@@ -92,7 +86,7 @@ body {
     }
   }
   
-  .main-side-result {
+  .result-wrapper {
     width: 100%;
     height: 100%;
     display: flex;
@@ -100,6 +94,23 @@ body {
     justify-content: center;
     box-sizing: border-box;
     padding: @layout-space-vertical @layout-space-horizontal;
+    background-color: @side-bg;
+    border-radius: 4px;
+
+    &.result-wrapper-compact {
+      padding: 0;
+    }
+
+    &.vertical-mode-result {
+      height: inherit;
+      min-height: 300px;
+    }
+
+    .result-empty-tip {
+      text-align: center;
+      width: 100%;
+      color: @weak-text;
+    }
 
     pre {
       display: block;

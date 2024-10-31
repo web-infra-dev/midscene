@@ -133,12 +133,12 @@ const useHistorySelector = (onSelect: (history: HistoryItem) => void) => {
 
 export function Playground({
   agent,
-  liteUI,
   hideLogo,
+  showContextPreview = true,
 }: {
   agent: StaticPageAgent | ChromeExtensionProxyPageAgent | null;
   hideLogo?: boolean;
-  liteUI?: boolean;
+  showContextPreview?: boolean;
 }) {
   // const contextId = useContextId();
   const [uiContextPreview, setUiContextPreview] = useState<
@@ -152,12 +152,26 @@ export function Playground({
   const configAlreadySet = Object.keys(config || {}).length >= 1;
   const runResultRef = useRef<HTMLHeadingElement>(null);
 
+  const [verticalMode, setVerticalMode] = useState(false);
+
+  // if the screen is narrow, we use vertical mode
+  useEffect(() => {
+    const sizeThreshold = 750;
+    setVerticalMode(window.innerWidth < sizeThreshold);
+
+    const handleResize = () => {
+      setVerticalMode(window.innerWidth < sizeThreshold);
+    };
+    window.addEventListener('resize', handleResize);
+    return () => {
+      window.removeEventListener('resize', handleResize);
+    };
+  }, []);
+
   // override AI config
   useEffect(() => {
     overrideAIConfig(config);
   }, [config]);
-
-  const shouldShowContext = !liteUI;
 
   const activeAgent = agent;
 
@@ -170,7 +184,7 @@ export function Playground({
   // setup context preview
   useEffect(() => {
     if (uiContextPreview) return;
-    if (!shouldShowContext) return;
+    if (!showContextPreview) return;
 
     agent
       ?.getUIContext()
@@ -192,7 +206,7 @@ export function Playground({
     //       setOverrideContext(contextObj);
     //     });
     // }
-  }, [uiContextPreview, shouldShowContext, agent]);
+  }, [uiContextPreview, showContextPreview, agent]);
 
   const addHistory = useEnvConfig((state) => state.addHistory);
 
@@ -306,21 +320,10 @@ export function Playground({
     };
   }, [handleRun]);
 
-  let resultFilled = false;
   let resultDataToShow: any = (
-    <Empty
-      image={null}
-      description={
-        <>
-          By dumping the UI context, you can easily debug the prompt in the
-          Midscene playground.
-          <br />
-          The UI context here is static, so we cannot take any action on it.
-          <br />
-          {runButtonEnabled && 'You can run something now'}
-        </>
-      }
-    />
+    <div className="result-empty-tip">
+      <span>The result will be shown here</span>
+    </div>
   );
   if (loading) {
     resultDataToShow = (
@@ -330,7 +333,6 @@ export function Playground({
       />
     );
   } else if (replayScriptsInfo) {
-    resultFilled = true;
     resultDataToShow = (
       <Player
         key={replayCounter}
@@ -341,7 +343,6 @@ export function Playground({
       />
     );
   } else if (result?.result) {
-    resultFilled = true;
     resultDataToShow =
       typeof result?.result === 'string' ? (
         <pre>{result?.result}</pre>
@@ -349,7 +350,6 @@ export function Playground({
         <pre>{JSON.stringify(result?.result, null, 2)}</pre>
       );
   } else if (result?.error) {
-    resultFilled = true;
     resultDataToShow = <pre>{result?.error}</pre>;
   }
 
@@ -408,7 +408,7 @@ export function Playground({
     });
   });
 
-  const logo = !hideLogo && !liteUI && (
+  const logo = !hideLogo && (
     <div className="playground-header">
       <Logo />
     </div>
@@ -441,7 +441,7 @@ export function Playground({
         </div>
         <div
           className="form-part context-panel"
-          style={{ display: shouldShowContext ? 'block' : 'none' }}
+          style={{ display: showContextPreview ? 'block' : 'none' }}
         >
           <h3>UI Context</h3>
           {uiContextPreview ? (
@@ -501,27 +501,28 @@ export function Playground({
     </Form>
   );
 
-  return liteUI ? (
-    <div className="playground-container lite-ui">
+  let resultWrapperClassName = 'result-wrapper';
+  if (verticalMode) {
+    resultWrapperClassName += ' vertical-mode-result';
+  }
+  if (replayScriptsInfo) {
+    resultWrapperClassName += ' result-wrapper-compact';
+  }
+
+  return verticalMode ? (
+    <div className="playground-container vertical-mode">
       {formSection}
-      {resultFilled && <div className="hr" />}
-      {resultFilled && (
-        <div className="form-part">
-          <h3>Result</h3>
-          <div className="lite-ui-result">{resultDataToShow}</div>
-          <div ref={runResultRef} />
-        </div>
-      )}
+      <div className="form-part">
+        <div className={resultWrapperClassName}>{resultDataToShow}</div>
+        <div ref={runResultRef} />
+      </div>
     </div>
   ) : (
     <div className="playground-container">
       <Helmet>
         <title>Playground - Midscene.js</title>
       </Helmet>
-      <PanelGroup
-        autoSaveId="playground-layout"
-        direction={liteUI ? 'vertical' : 'horizontal'}
-      >
+      <PanelGroup autoSaveId="playground-layout" direction="horizontal">
         <Panel
           defaultSize={32}
           maxSize={60}
@@ -533,7 +534,7 @@ export function Playground({
         </Panel>
         <PanelResizeHandle className="panel-resize-handle" />
         <Panel>
-          <div className="main-side-result">{resultDataToShow}</div>
+          <div className={resultWrapperClassName}>{resultDataToShow}</div>
         </Panel>
       </PanelGroup>
     </div>

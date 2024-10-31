@@ -9,12 +9,20 @@ body {
 
 .popup-wrapper {
   width: 100%;
+  height: 100%;
   box-sizing: border-box;
   padding: 20px;
+  background: #FFF;
+  display: flex;
+  flex-direction: column;
 
   .hr {
     border-top: 1px solid @border-color;
     margin-bottom: 15px;
     width: 100%;
+  }
+
+  .popup-playground-container {
+    flex-grow: 1;
   }
 }

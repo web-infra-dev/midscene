@@ -105,7 +105,9 @@ function PlaygroundPopup() {
           </Button>
         </p>
         <div className="hr" />
-        <Playground liteUI agent={agent} />
+        <div className="popup-playground-container">
+          <Playground hideLogo agent={agent} showContextPreview={false} />
+        </div>
       </div>
     </ConfigProvider>
   );
