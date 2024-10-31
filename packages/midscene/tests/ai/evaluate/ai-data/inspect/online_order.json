@@ -26,22 +26,22 @@
       "multi": false,
       "response": [
         {
-          "id": "c5d921e346",
+          "id": "5ead026c3c",
           "indexId": 3
         }
       ]
     },
     {
-      "prompt": "The price number on the right of the drink picture(first one)",
+      "prompt": "The price number on the right of the drink picture",
       "multi": true,
       "response": [
         {
-          "id": "254a003493",
-          "indexId": 21
+          "id": "32058c4733",
+          "indexId": 20
         },
         {
-          "id": "ae66467089",
-          "indexId": 27
+          "id": "c1cf767317",
+          "indexId": 25
         }
       ]
     },
@@ -50,12 +50,12 @@
       "multi": true,
       "response": [
         {
-          "id": "a4ca2ba282",
-          "indexId": 22
+          "id": "9e5b85f0fe",
+          "indexId": 21
         },
         {
-          "id": "3021cc33e1",
-          "indexId": 28
+          "id": "ee2e067ccc",
+          "indexId": 26
         }
       ]
     },
@@ -64,8 +64,8 @@
       "multi": false,
       "response": [
         {
-          "id": "b9304b4811",
-          "indexId": 29
+          "id": "b82bdf3ac4",
+          "indexId": 27
         }
       ]
     }

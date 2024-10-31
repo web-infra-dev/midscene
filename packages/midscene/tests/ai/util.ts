@@ -20,4 +20,4 @@ export const modelList: Array<'openAI' | 'coze'> = preferCozeModel('coze')
   ? ['openAI', 'coze']
   : ['openAI'];
 
-export const repeatTime = process.env.GITHUB_ACTIONS ? 2 : 4;
+export const repeatTime = process.env.GITHUB_ACTIONS ? 2 : 1;

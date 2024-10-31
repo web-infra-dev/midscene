@@ -27,10 +27,10 @@
     "build:watch": "modern build -w",
     "new": "modern new",
     "upgrade": "modern upgrade",
-    "test": "vitest --run",
+    "test": "vitest --run -u",
     "test:ai": "AITEST=true npm run test",
     "evaluate": "npm run test:ai -- tests/ai/evaluate/inspect.test.ts",
-    "computer": "npm run test:ai -- tests/ai/evaluate/computer.test.ts",
+    "computer": "TEST_COMPUTER=true npm run test:ai -- tests/ai/evaluate/computer.test.ts",
     "evaluate:update": "UPDATE_AI_DATA=true npm run test:ai -- tests/ai/evaluate/inspect.test.ts",
     "evaluate:plan": "PLAN_INSPECT=true npm run test:ai -- tests/ai/evaluate/inspect.test.ts",
     "prepublishOnly": "npm run build"

@@ -17,12 +17,12 @@ import {
 } from './test-suite/util';
 
 const testSources = [
-  // 'todo',
+  'todo',
   'online_order',
-  // 'online_order_list',
-  // 'taobao',
-  // 'aweme_login',
-  // 'aweme_play',
+  'online_order_list',
+  'taobao',
+  'aweme_login',
+  'aweme_play',
 ];
 
 describe('ai inspect element', () => {
