@@ -68,11 +68,14 @@ describe(
                   {
                     type: 'text',
                     text: `
-            pageDescription: ${context.size} \n
+            pageDescription: {
+              display_width_px: ${context.size.width},
+              display_height_px: ${context.size.height},
+            } \n
         
             Here is the item user want to find. Just go ahead:
             =====================================
-            找到${testCase.prompt}位置，x/y坐标（(x, y): The x (pixels from the x edge) and y (pixels from the y edge) coordinates），并按照下面的格式返回：
+            找到（${testCase.prompt}位置），x/y坐标(x, y): The x (pixels from the left edge) and y (pixels from the top edge) coordinates，并按照下面的格式返回：
 
             {
               "x": number,
