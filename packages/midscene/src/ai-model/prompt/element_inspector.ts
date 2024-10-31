@@ -1,8 +1,8 @@
 import type { ResponseFormatJSONSchema } from 'openai/resources';
-import { MATCH_BY_POSITION } from '../openai';
+import { MATCH_BY_POSITION, getAIConfig } from '../openai';
 
 export function systemPromptToFindElement() {
-  if (MATCH_BY_POSITION) {
+  if (getAIConfig(MATCH_BY_POSITION)) {
     return systemPromptToFindElementPosition();
   }
   return `
@@ -162,6 +162,7 @@ export function systemPromptToFindElementPosition() {
         {
           // Describe the reason for finding this element, replace with actual value in practice
           "reason": "Reason for finding element 4: It is located in the upper right corner, is an image type, and according to the screenshot, it is a shopping cart icon button",
+          // If the target element includes text information, extract the text information; if it does not, do not extract it
           "text": "",
           // position of this element
           "position": { x: number, y: number }

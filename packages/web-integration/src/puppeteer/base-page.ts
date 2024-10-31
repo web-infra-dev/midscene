@@ -60,10 +60,10 @@ export class Page<
     });
     let buf: Buffer;
     if (viewportSize.deviceScaleFactor > 1) {
-      buf = (await resizeImg(readFileSync(path), {
+      buf = await resizeImg(readFileSync(path), {
         width: viewportSize.width,
         height: viewportSize.height,
-      })) as Buffer;
+      });
       writeFileSync(path, buf);
     }
 

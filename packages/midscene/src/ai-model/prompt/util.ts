@@ -9,7 +9,7 @@ import type {
   UISection,
 } from '@/types';
 import type { ResponseFormatJSONSchema } from 'openai/resources';
-import { MATCH_BY_POSITION } from '../openai';
+import { MATCH_BY_POSITION, getAIConfig } from '../openai';
 
 const characteristic =
   'You are a versatile professional in software UI design and testing. Your outstanding contributions will impact the user experience of billions of users.';
@@ -295,7 +295,7 @@ export async function describeUserPage<
       "pageSize": ${describeSize({ width, height })},\n
       ${
         // if match by id, use the description of the element
-        !MATCH_BY_POSITION
+        !getAIConfig(MATCH_BY_POSITION)
           ? `
           // json description of the element
           "content": ${JSON.stringify(elementInfosDescription)}

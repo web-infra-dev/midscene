@@ -3,7 +3,7 @@ import { randomUUID } from 'node:crypto';
 /* eslint-disable @typescript-eslint/ban-types */
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
-import { MIDSCENE_MODEL_NAME } from '@/ai-model/openai';
+import { MIDSCENE_MODEL_NAME, getAIConfig } from '@/ai-model/openai';
 import type {
   BaseElement,
   DumpMeta,
@@ -43,7 +43,7 @@ export function writeInsightDump(
   const baseData: DumpMeta = {
     sdkVersion: getVersion(),
     logTime: Date.now(),
-    model_name: process.env[MIDSCENE_MODEL_NAME] || '',
+    model_name: getAIConfig(MIDSCENE_MODEL_NAME) || '',
   };
   const finalData: InsightDump = {
     logId: id,

@@ -75,7 +75,7 @@ export async function resizeImg<T extends 'base64' | 'buffer' = 'buffer'>(
 
   // Otherwise maintain backward compatibility
   return (
-    isBase64 ? resizedBuffer.toString('base64') : resizedBuffer
+    outputFormat === 'base64' ? resizedBuffer.toString('base64') : resizedBuffer
   ) as T extends 'base64' ? string : Buffer;
 }
 

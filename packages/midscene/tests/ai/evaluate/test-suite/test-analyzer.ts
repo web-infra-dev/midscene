@@ -1,13 +1,13 @@
 import { readFileSync, unlinkSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
-import { MIDSCENE_MODEL_NAME } from '@/ai-model/openai';
+import { MIDSCENE_MODEL_NAME, getAIConfig } from '@/ai-model/openai';
 import { type getPageTestData, writeFileSyncWithDir } from './util';
 
 export class TestResultAnalyzer {
   private successCount = 0;
   private failCount = 0;
   private repeatIndex = 0;
-  private modelName = process.env[MIDSCENE_MODEL_NAME];
+  private modelName = getAIConfig(MIDSCENE_MODEL_NAME);
   private updateAiData = Boolean(process.env.UPDATE_AI_DATA);
   private successResults: {
     index: number;
@@ -158,7 +158,7 @@ export class TestResultAnalyzer {
 
 const aggregatedResultsPath = path.join(
   __dirname,
-  `__ai_responses__/${process.env[MIDSCENE_MODEL_NAME]}/aggregated-results.json`,
+  `__ai_responses__/${getAIConfig(MIDSCENE_MODEL_NAME)}/aggregated-results.json`,
 );
 
 // Function to delete the aggregated results file
@@ -186,7 +186,7 @@ export function updateAggregatedResults(source: string, resultData: any) {
   }
 
   // Update aggregated results
-  aggregatedResults.model = process.env[MIDSCENE_MODEL_NAME];
+  aggregatedResults.model = getAIConfig(MIDSCENE_MODEL_NAME);
   if (!aggregatedResults[source]) {
     aggregatedResults[source] = {
       totalScore: 0,

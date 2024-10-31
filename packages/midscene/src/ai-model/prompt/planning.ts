@@ -1,5 +1,5 @@
 import type { ResponseFormatJSONSchema } from 'openai/resources';
-import { MATCH_BY_POSITION } from '../openai';
+import { MATCH_BY_POSITION, getAIConfig } from '../openai';
 
 export function systemPromptToTaskPlanning() {
   return `
@@ -50,7 +50,7 @@ If the action type is 'Locate', provide a quick answer: Does any element meet th
   "reason": "Reason for finding element 4: It is located in the upper right corner, is an image type, and according to the screenshot, it is a shopping cart icon button",
   "text": "PLACEHOLDER", // Replace PLACEHOLDER with the text of elementInfo, if none, leave empty
   ${
-    MATCH_BY_POSITION
+    getAIConfig(MATCH_BY_POSITION)
       ? '"position": { x: number; y: number } // Represents the position of the element; replace with actual values in practice (ensure it reflects the element\'s position)'
       : '"id": "wefew2222few2" // Represents the ID of the element; replace with actual values in practice'
   }
@@ -74,7 +74,7 @@ Please return the result in JSON format as follows:
         "reason": "Reason for finding element 4: It is located in the upper right corner, is an input type, and according to the screenshot, it is a search bar",
         "text": "PLACEHOLDER", // Replace PLACEHOLDER with the text of elementInfo, if none, leave empty
         ${
-          MATCH_BY_POSITION
+          getAIConfig(MATCH_BY_POSITION)
             ? '"position": { x: number; y: number } // Represents the position of the element; replace with actual values in practice (ensure it reflects the element\'s position)'
             : '"id": "wefew2222few2" // Represents the ID of the element; replace with actual values in practice'
         }

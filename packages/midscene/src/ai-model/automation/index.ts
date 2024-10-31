@@ -6,7 +6,6 @@ import {
   callAiFn,
   transformUserMessages,
 } from '../common';
-import { MATCH_BY_POSITION } from '../openai';
 import { systemPromptToTaskPlanning } from '../prompt/planning';
 import { describeUserPage } from '../prompt/util';
 

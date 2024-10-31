@@ -1,5 +1,5 @@
 import assert from 'node:assert';
-import { MIDSCENE_MODEL_NAME } from '@/ai-model/openai';
+import { MIDSCENE_MODEL_NAME, getAIConfig } from '@/ai-model/openai';
 import type {
   ExecutionDump,
   ExecutionTask,
@@ -178,7 +178,7 @@ export class Executor {
   dump(): ExecutionDump {
     const dumpData: ExecutionDump = {
       sdkVersion: getVersion(),
-      model_name: process.env[MIDSCENE_MODEL_NAME] || '',
+      model_name: getAIConfig(MIDSCENE_MODEL_NAME) || '',
       logTime: Date.now(),
       name: this.name,
       description: this.description,
