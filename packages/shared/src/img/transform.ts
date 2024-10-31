@@ -47,13 +47,14 @@ export async function transformImgPathToBase64(inputPath: string) {
  * @returns A Promise that resolves to a base64-encoded string representing the resized image
  * @throws An error if the width or height cannot be determined from the metadata
  */
-export async function resizeImg(
+export async function resizeImg<T extends 'base64' | 'buffer' = 'buffer'>(
   inputData: string | Buffer,
   newSize?: {
     width: number;
     height: number;
   },
-): Promise<string | Buffer> {
+  outputFormat?: T,
+): Promise<T extends 'base64' ? string : Buffer> {
   const isBase64 = typeof inputData === 'string';
   const imageBuffer = isBase64
     ? Buffer.from(inputData.split(';base64,').pop() || inputData, 'base64')
@@ -72,7 +73,10 @@ export async function resizeImg(
   image.resize(finalNewSize.width, finalNewSize.height);
   const resizedBuffer = await image.getBufferAsync(Jimp.MIME_PNG);
 
-  return isBase64 ? resizedBuffer.toString('base64') : resizedBuffer;
+  // Otherwise maintain backward compatibility
+  return (
+    isBase64 ? resizedBuffer.toString('base64') : resizedBuffer
+  ) as T extends 'base64' ? string : Buffer;
 }
 
 /**

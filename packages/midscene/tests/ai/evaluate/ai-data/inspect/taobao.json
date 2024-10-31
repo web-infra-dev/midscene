@@ -22,7 +22,7 @@
       ]
     },
     {
-      "prompt": "产品分类里面的：男鞋",
+      "prompt": "产品分类里面的：男鞋（文字）",
       "multi": false,
       "response": [
         {

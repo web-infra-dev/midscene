@@ -32,7 +32,7 @@
       ]
     },
     {
-      "prompt": "The price number on the right of the drink picture",
+      "prompt": "The price number on the right of the drink picture(first one)",
       "multi": true,
       "response": [
         {
