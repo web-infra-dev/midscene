@@ -11,6 +11,10 @@ chrome.sidePanel
   .setPanelBehavior({ openPanelOnActionClick: true })
   .catch((error) => console.error(error));
 
+console.log('i am in worker');
+setInterval(() => {
+  console.log('i am in worker, keep_alive');
+}, 1000);
 const randomUUID = () => {
   return Math.random().toString(36).substring(2, 15);
 };

@@ -11,9 +11,11 @@ const commonConfig = {
   autoExternal: false,
   externals: [...externals],
   target: 'es6',
-  minify: {
-    compress: !!process.env.CI,
-  },
+  minify: process.env.CI
+    ? {
+        compress: true,
+      }
+    : undefined,
   define: {
     __VERSION__: JSON.stringify(version),
     global: 'globalThis',
