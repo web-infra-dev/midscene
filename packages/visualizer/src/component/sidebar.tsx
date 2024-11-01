@@ -29,8 +29,7 @@ const SideItem = (props: {
 
   const titleTextIcon =
     task.type === 'Planning' ? (
-      <span>
-        {' '}
+      <span style={{ display: 'inline-block', marginLeft: '4px' }}>
         <VideoCameraOutlined />
       </span>
     ) : null;

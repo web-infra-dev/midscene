@@ -11,7 +11,7 @@ import type { AbstractPage } from '@/page';
 import { resizeImgBase64 } from '@midscene/shared/browser/img';
 
 // remember to include this file into extension's package
-const scriptFileToRetrieve = './scripts/htmlElement.js';
+const scriptFileToRetrieve = './lib/htmlElement.js';
 async function getActivePageContent(tabId: number): Promise<{
   context: ElementInfo[];
   size: { width: number; height: number; dpr: number };

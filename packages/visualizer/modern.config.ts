@@ -31,12 +31,11 @@ export default defineConfig({
       dts: false,
       input: {
         report: 'src/index.tsx',
-        playground: 'src/playground.tsx',
       },
       umdModuleName: (path) => {
-        if (path.includes('playground')) {
-          return 'midscenePlayground';
-        }
+        // if (path.includes('playground')) {
+        //   return 'midscenePlayground';
+        // }
         return 'midsceneVisualizer';
       },
       platform: 'browser',
@@ -61,6 +60,11 @@ export default defineConfig({
       target: 'es6',
     },
   ],
-  plugins: [moduleTools(), modulePluginNodePolyfill()],
+  plugins: [
+    moduleTools(),
+    modulePluginNodePolyfill({
+      excludes: ['console'],
+    }),
+  ],
   buildPreset: 'npm-component',
 });

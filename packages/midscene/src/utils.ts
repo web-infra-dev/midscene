@@ -2,10 +2,9 @@ import assert from 'node:assert';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { basename, dirname, join } from 'node:path';
+import { report } from 'node:process';
 import { getRunningPkgInfo } from '@midscene/shared/fs';
 import { ifInBrowser, uuid } from '@midscene/shared/utils';
-import { version } from '../package.json';
-import ReportTpl from '../report/index';
 import type { Rect, ReportDumpWithAttributes } from './types';
 
 let logDir = join(process.cwd(), './midscene_run/');
@@ -29,10 +28,29 @@ export function getLogDirByType(type: 'dump' | 'cache' | 'report') {
   return dir;
 }
 
+let reportTpl: string | null = null;
+function getReportTpl() {
+  if (ifInBrowser) {
+    if (!reportTpl && (window as any).midscene_report_tpl) {
+      reportTpl = (window as any).midscene_report_tpl;
+    }
+    assert(
+      reportTpl,
+      'reportTpl should be set before writing report in browser',
+    );
+    return reportTpl;
+  }
+
+  if (!reportTpl) {
+    reportTpl = readFileSync(join(__dirname, '../report/index.html'), 'utf-8');
+  }
+  return reportTpl;
+}
+
 export function reportHTMLContent(
   dumpData: string | ReportDumpWithAttributes[],
 ): string {
-  const tpl = ReportTpl;
+  const tpl = getReportTpl();
   let reportContent: string;
   if (
     (Array.isArray(dumpData) && dumpData.length === 0) ||
@@ -40,7 +58,7 @@ export function reportHTMLContent(
   ) {
     reportContent = tpl.replace(
       /\s+{{dump}}\s+/,
-      '<script type="midscene_web_dump" type="application/json"></script>',
+      `<script type="midscene_web_dump" type="application/json"></script>`,
     );
   } else if (typeof dumpData === 'string') {
     reportContent = tpl.replace(
@@ -52,7 +70,9 @@ export function reportHTMLContent(
       const attributesArr = Object.keys(attributes || {}).map((key) => {
         return `${key}="${encodeURIComponent(attributes![key])}"`;
       });
-      return `<script type="midscene_web_dump" type="application/json" ${attributesArr.join(' ')}>\n${dumpString}\n</script>`;
+      return `<script type="midscene_web_dump" type="application/json" ${attributesArr.join(
+        ' ',
+      )}\n>${dumpString}\n</script>`;
     });
     reportContent = tpl.replace(/\s+{{dump}}\s+/, dumps.join('\n'));
   }
