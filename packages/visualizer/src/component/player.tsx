@@ -163,10 +163,8 @@ export default function Player(props?: {
     left: 0,
     top: 0,
     width: imageWidth,
-    pointer: {
-      left: Math.round(imageWidth / 2),
-      top: Math.round(imageHeight / 2),
-    },
+    pointerLeft: Math.round(imageWidth / 2),
+    pointerTop: Math.round(imageHeight / 2),
   };
 
   // -1: not started, 0: running, 1: finished
@@ -314,9 +312,13 @@ export default function Player(props?: {
     );
 
     const pointer = windowContentContainer.getChildByLabel('pointer');
-    if (pointer && state.pointer) {
-      pointer.x = state.pointer.left; // * newScale;
-      pointer.y = state.pointer.top; // * newScale;
+    if (
+      pointer &&
+      typeof state.pointerLeft === 'number' &&
+      typeof state.pointerTop === 'number'
+    ) {
+      pointer.x = state.pointerLeft;
+      pointer.y = state.pointerTop;
       pointer.scale.set(1 / newScale);
     }
   };
@@ -329,16 +331,18 @@ export default function Player(props?: {
     const currentState = { ...cameraState.current };
     const startLeft = currentState.left;
     const startTop = currentState.top;
-    const startPointer = { ...currentState.pointer };
+    const startPointerLeft = currentState.pointerLeft;
+    const startPointerTop = currentState.pointerTop;
     const startScale = currentState.width / imageWidth;
 
     const startTime = performance.now();
     const shouldMovePointer =
-      targetState.pointer &&
-      (targetState.pointer.left !== startPointer.left ||
-        targetState.pointer.top !== startPointer.top);
+      typeof targetState.pointerLeft === 'number' &&
+      typeof targetState.pointerTop === 'number' &&
+      (targetState.pointerLeft !== startPointerLeft ||
+        targetState.pointerTop !== startPointerTop);
 
-    // pointer move --> camera move
+    // move pointer first, then move camera
     const pointerMoveDuration = shouldMovePointer ? duration * 0.375 : 0;
     const cameraMoveStart = pointerMoveDuration;
     const cameraMoveDuration = duration - pointerMoveDuration;
@@ -355,14 +359,15 @@ export default function Player(props?: {
               1,
             );
             const mouseProgress = cubicMouse(rawMouseProgress);
-            nextState.pointer.left =
-              startPointer.left +
-              (targetState.pointer!.left - startPointer.left) * mouseProgress;
-            nextState.pointer.top =
-              startPointer.top +
-              (targetState.pointer!.top - startPointer.top) * mouseProgress;
+            nextState.pointerLeft =
+              startPointerLeft +
+              (targetState.pointerLeft! - startPointerLeft) * mouseProgress;
+            nextState.pointerTop =
+              startPointerTop +
+              (targetState.pointerTop! - startPointerTop) * mouseProgress;
           } else {
-            nextState.pointer = targetState.pointer!;
+            nextState.pointerLeft = targetState.pointerLeft!;
+            nextState.pointerTop = targetState.pointerTop!;
           }
         }
 
