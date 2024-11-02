@@ -42,4 +42,6 @@ export abstract class AbstractPage {
   abstract scrollDownOneScreen(): Promise<void>;
 
   abstract _forceUsePageContext?(): Promise<WebUIContext>;
+
+  abstract destroy(): Promise<void>;
 }

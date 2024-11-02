@@ -113,6 +113,12 @@ export default class ChromeExtensionProxyPage implements AbstractPage {
     this.debuggerAttached = true;
   }
 
+  private async detachDebugger() {
+    if (!this.debuggerAttached) return;
+    await chrome.debugger.detach({ tabId: this.tabId });
+    this.debuggerAttached = false;
+  }
+
   private async sendCommandToDebugger(command: string, params: any) {
     await this.attachDebugger();
     await chrome.debugger.sendCommand({ tabId: this.tabId }, command, params);
@@ -276,4 +282,8 @@ export default class ChromeExtensionProxyPage implements AbstractPage {
       });
     },
   };
+
+  async destroy(): Promise<void> {
+    await this.detachDebugger();
+  }
 }

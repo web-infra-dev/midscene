@@ -7,14 +7,14 @@ import {
   workerMessageTypes,
 } from './utils';
 
+// console-browserify won't work in worker, so we need to use globalThis.console
+const console = globalThis.console;
+
 chrome.sidePanel
   .setPanelBehavior({ openPanelOnActionClick: true })
   .catch((error) => console.error(error));
 
-console.log('i am in worker');
-setInterval(() => {
-  console.log('i am in worker, keep_alive');
-}, 1000);
+// cache data between sidepanel and fullscreen playground
 const randomUUID = () => {
   return Math.random().toString(36).substring(2, 15);
 };

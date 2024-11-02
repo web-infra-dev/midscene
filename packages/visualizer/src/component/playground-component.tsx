@@ -1,7 +1,7 @@
 import { DownOutlined, LoadingOutlined, SendOutlined } from '@ant-design/icons';
 import type { GroupedActionDump, UIContext } from '@midscene/core/.';
 import { Helmet } from '@modern-js/runtime/head';
-import { Button, Empty, Spin, Tooltip, message } from 'antd';
+import { Button, Spin, Tooltip, message } from 'antd';
 import { Form, Input } from 'antd';
 import { Radio } from 'antd';
 import React, {
@@ -81,7 +81,6 @@ export const staticAgentFromContext = (context: WebUIContext) => {
   return new StaticPageAgent(page);
 };
 
-// TODO: reset agent dump
 export const useStaticPageAgent = (
   context: WebUIContext | undefined | null,
 ): StaticPageAgent | null => {
@@ -505,7 +504,7 @@ export function Playground({
   if (verticalMode) {
     resultWrapperClassName += ' vertical-mode-result';
   }
-  if (replayScriptsInfo) {
+  if (replayScriptsInfo && verticalMode) {
     resultWrapperClassName += ' result-wrapper-compact';
   }
 

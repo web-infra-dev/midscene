@@ -243,4 +243,8 @@ export class Page implements AbstractPage {
       },
     ]);
   }
+
+  async destroy(): Promise<void> {
+    //
+  }
 }

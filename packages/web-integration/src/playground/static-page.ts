@@ -4,8 +4,6 @@ import {
   type WebUIContext,
 } from '@/common/utils';
 import type { AbstractPage } from '@/page';
-import { getTmpFile } from '@midscene/core/utils';
-import { imageInfoOfBase64, saveBase64Image } from '@midscene/shared/img';
 
 const ThrowNotImplemented: any = (methodName: string) => {
   throw new Error(
@@ -75,5 +73,9 @@ export default class StaticPage implements AbstractPage {
 
   async _forceUsePageContext() {
     return this.uiContext;
+  }
+
+  async destroy(): Promise<void> {
+    //
   }
 }

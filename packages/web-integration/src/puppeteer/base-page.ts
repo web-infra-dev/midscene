@@ -152,4 +152,8 @@ export class Page<
     const distance = innerHeight * 0.7;
     await this.mouse.wheel(0, distance);
   }
+
+  async destroy(): Promise<void> {
+    //
+  }
 }

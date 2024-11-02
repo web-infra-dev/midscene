@@ -21,7 +21,7 @@ import {
   ChromeExtensionProxyPage,
   ChromeExtensionProxyPageAgent,
 } from '@midscene/web/chrome-extension';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
 const shotAndOpenPlayground = async (tabId: number, windowId: number) => {
   const page = new ChromeExtensionProxyPage(tabId, windowId);
@@ -43,25 +43,50 @@ const shotAndOpenPlayground = async (tabId: number, windowId: number) => {
   });
 };
 
-function PlaygroundPopup() {
-  const [loading, setLoading] = useState(false);
+const useExtensionAgent = (tabId: number | null, windowId: number | null) => {
   const [agent, setAgent] = useState<ChromeExtensionProxyPageAgent | null>(
     null,
   );
-  const [tabId, setTabId] = useState<number | null>(null);
-  const [windowId, setWindowId] = useState<number | null>(null);
 
   useEffect(() => {
-    console.log('useEffect in PlaygroundPopup');
-    const initAgent = async () => {
+    if (!tabId || !windowId) {
+      return;
+    }
+    const page = new ChromeExtensionProxyPage(tabId, windowId);
+    const agent = new ChromeExtensionProxyPageAgent(page);
+    console.log('will set agent for TabId', tabId, 'WindowId', windowId, agent);
+    setAgent(agent);
+
+    return () => {
+      console.log('will destroy agent for TabId', tabId, 'WindowId', windowId);
+      agent.page.destroy();
+    };
+  }, [tabId, windowId]);
+
+  return agent;
+};
+
+console.log('Launching PlaygroundPopup');
+function PlaygroundPopup() {
+  const [loading, setLoading] = useState(false);
+  const [tabId, setTabId] = useState<number | null>(null);
+  const [windowId, setWindowId] = useState<number | null>(null);
+  const agent = useExtensionAgent(tabId, windowId);
+
+  useEffect(() => {
+    Promise.resolve().then(async () => {
       const tabId = await activeTabId();
       const windowId = await currentWindowId();
       setTabId(tabId);
       setWindowId(windowId);
-      const page = new ChromeExtensionProxyPage(tabId, windowId);
-      setAgent(new ChromeExtensionProxyPageAgent(page));
-    };
-    initAgent();
+
+      chrome.tabs.onActivated.addListener(async (activeInfo) => {
+        const tabId = activeInfo.tabId;
+        const windowId = await currentWindowId();
+        setTabId(tabId);
+        setWindowId(windowId);
+      });
+    });
   }, []);
 
   const handleSendToPlayground = async () => {
@@ -81,29 +106,30 @@ function PlaygroundPopup() {
   return (
     <ConfigProvider theme={globalThemeConfig()}>
       <div className="popup-wrapper">
-        <div>
+        <div className="popup-header">
           <Logo />
+          <p>
+            Midscene.js helps to automate browser actions, perform assertions,
+            and extract data in JSON format using natural language.{' '}
+            <a href="https://midscenejs.com/" target="_blank" rel="noreferrer">
+              Learn more
+            </a>
+          </p>
+          <p>This is a panel for experimenting with Midscene.js.</p>
+          <p>
+            To keep the current page context, you can also{' '}
+            <Button
+              onClick={handleSendToPlayground}
+              loading={loading}
+              type="link"
+              size="small"
+              icon={<SendOutlined />}
+            >
+              send to fullscreen playground
+            </Button>
+          </p>
         </div>
-        <p>
-          Midscene.js helps to automate browser actions, perform assertions, and
-          extract data in JSON format using natural language.{' '}
-          <a href="https://midscenejs.com/" target="_blank" rel="noreferrer">
-            Learn more
-          </a>
-        </p>
-        <p>This is a panel for experimenting with Midscene.js.</p>
-        <p>
-          To keep the current page context, you can also{' '}
-          <Button
-            onClick={handleSendToPlayground}
-            loading={loading}
-            type="link"
-            size="small"
-            icon={<SendOutlined />}
-          >
-            send to fullscreen playground
-          </Button>
-        </p>
+
         <div className="hr" />
         <div className="popup-playground-container">
           <Playground hideLogo agent={agent} showContextPreview={false} />

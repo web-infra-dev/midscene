@@ -6,8 +6,6 @@ body {
   font-size: 14px;
 }
 
-@layout-space-horizontal: 20px;
-@layout-space-vertical: 30px;
 .playground-container {
   width: 100%;
   height: 100%;
@@ -16,7 +14,6 @@ body {
     height: inherit;
 
     .form-part {
-      padding: 0;
       margin-bottom: 15px;
 
       h3 {
@@ -51,8 +48,8 @@ body {
   }
 
   .form-part {
-    margin-bottom: @layout-space-vertical;
-    padding: 0 @layout-space-horizontal;
+    margin-bottom: @layout-extension-space-vertical;
+    padding: 0 @layout-extension-space-horizontal;
 
     h3 {
       margin-top: 0;
@@ -93,7 +90,7 @@ body {
     flex-direction: column;
     justify-content: center;
     box-sizing: border-box;
-    padding: @layout-space-vertical @layout-space-horizontal;
+    padding: @layout-extension-space-vertical @layout-extension-space-horizontal;
     background-color: @side-bg;
     border-radius: 4px;
 

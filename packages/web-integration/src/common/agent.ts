@@ -189,4 +189,8 @@ export class PageAgent {
       `Unknown type: ${type}, only support 'action', 'query', 'assert'`,
     );
   }
+
+  async destroy() {
+    await this.page.destroy();
+  }
 }
