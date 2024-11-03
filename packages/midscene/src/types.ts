@@ -176,6 +176,7 @@ export interface InsightDump extends DumpMeta {
     sections?: Record<string, string>;
     assertion?: string;
   }; // ?
+  quickAnswer?: AISingleElementResponse | null;
   matchedSection: UISection[];
   matchedElement: BaseElement[];
   data: any;
@@ -323,6 +324,7 @@ export interface ExecutionTaskApply<
   type: Type;
   subType?: string;
   param?: TaskParam;
+  quickAnswer?: AISingleElementResponse | null;
   executor: (
     param: TaskParam,
     context: ExecutorContext,
@@ -375,7 +377,6 @@ task - insight-locate
 */
 export interface ExecutionTaskInsightLocateParam {
   prompt: string;
-  quickAnswer?: AISingleElementResponse | null;
 }
 
 export interface ExecutionTaskInsightLocateOutput {

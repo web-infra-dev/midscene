@@ -130,6 +130,7 @@ export default class Insight<
       userQuery: {
         element: queryPrompt,
       },
+      quickAnswer: opt?.quickAnswer,
       matchedSection: [],
       matchedElement: [],
       data: null,

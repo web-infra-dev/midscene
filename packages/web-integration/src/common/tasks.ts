@@ -105,6 +105,7 @@ export class PageTaskExecutor {
             type: 'Insight',
             subType: 'Locate',
             param: plan.param,
+            quickAnswer: plan.quickAnswer,
             executor: async (param, taskContext) => {
               const { task } = taskContext;
               let insightDump: InsightDump | undefined;
@@ -121,7 +122,7 @@ export class PageTaskExecutor {
               let locateResult: AIElementIdResponse | undefined;
               const callAI = this.insight.aiVendorFn;
               const element = await this.insight.locate(param.prompt, {
-                quickAnswer: plan.quickAnswer,
+                quickAnswer: task.quickAnswer,
                 callAI: async (...message: any) => {
                   if (locateCache) {
                     locateResult = locateCache;

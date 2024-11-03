@@ -216,6 +216,7 @@ const DetailSide = (): JSX.Element => {
       ],
     });
   } else if (task?.type === 'Insight') {
+    const quickAnswer = (task as ExecutionTaskInsightLocate)?.quickAnswer;
     taskParam = MetaKV({
       data: [
         { key: 'type', content: (task && typeStr(task)) || '' },
@@ -223,6 +224,16 @@ const DetailSide = (): JSX.Element => {
           key: 'param',
           content: paramStr(task) || '',
         },
+        ...(quickAnswer
+          ? [
+              {
+                key: 'quick answer',
+                content: quickAnswer
+                  ? JSON.stringify(quickAnswer, undefined, 2)
+                  : '',
+              },
+            ]
+          : []),
       ],
     });
   } else if (task?.type === 'Action') {
@@ -320,6 +331,15 @@ const DetailSide = (): JSX.Element => {
   if (plans) {
     timelineData = timelineData.concat(
       plans.map((item) => {
+        const paramToShow = item.param || {};
+        const paramStr = Object.keys(paramToShow).length
+          ? JSON.stringify(paramToShow, undefined, 2)
+          : null;
+
+        const quickAnswerStr = item.quickAnswer
+          ? JSON.stringify({ quickAnswer: item.quickAnswer }, undefined, 2)
+          : null;
+
         return {
           color: '#06B1AB',
           children: (
@@ -328,11 +348,8 @@ const DetailSide = (): JSX.Element => {
                 <b>{typeStr(item as any)}</b>
               </p>
               <p>{item.thought}</p>
-              <p>
-                {item.param
-                  ? JSON.stringify(item.param || {}, undefined, 2)
-                  : null}
-              </p>
+              <p>{paramStr}</p>
+              <p>{quickAnswerStr}</p>
             </>
           ),
         };
