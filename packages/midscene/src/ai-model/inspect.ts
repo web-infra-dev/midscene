@@ -1,7 +1,7 @@
 import assert from 'node:assert';
 import type {
   AIAssertionResponse,
-  AIElementParseResponse,
+  AIElementResponse,
   AISectionParseResponse,
   AISingleElementResponse,
   BaseElement,
@@ -18,6 +18,7 @@ import {
 } from './prompt/element_inspector';
 import {
   describeUserPage,
+  elementByPosition,
   systemPromptToAssert,
   systemPromptToExtract,
 } from './prompt/util';
@@ -27,29 +28,71 @@ export type AIArgs = [
   ChatCompletionUserMessageParam,
 ];
 
+export function transformElementPositionToId(
+  aiResult: AIElementResponse,
+  elementsInfo: BaseElement[],
+) {
+  return {
+    errors: aiResult.errors,
+    elements: aiResult.elements.map((item) => {
+      if ('id' in item) {
+        return item;
+      }
+      const { position } = item;
+      const id = elementByPosition(elementsInfo, position)?.id;
+      assert(
+        id,
+        `inspect: no id found with position: ${JSON.stringify({ position })}`,
+      );
+      return {
+        ...item,
+        id,
+      };
+    }),
+  };
+}
+
 export async function AiInspectElement<
   ElementType extends BaseElement = BaseElement,
 >(options: {
   context: UIContext<ElementType>;
   multi: boolean;
   targetElementDescription: string;
-  callAI?: typeof callAiFn<AIElementParseResponse>;
+  callAI?: typeof callAiFn<AIElementResponse>;
   useModel?: 'coze' | 'openAI';
   quickAnswer?: AISingleElementResponse;
 }) {
   const { context, multi, targetElementDescription, callAI, useModel } =
     options;
   const { screenshotBase64, screenshotBase64WithElementMarker } = context;
-  const { description, elementById } = await describeUserPage(context);
+  const { description, elementById, elementByPosition } =
+    await describeUserPage(context);
 
   // meet quick answer
-  if (options.quickAnswer?.id && elementById(options.quickAnswer.id)) {
-    return {
-      parseResult: {
-        elements: [options.quickAnswer],
-      },
-      elementById,
-    };
+  if (options.quickAnswer) {
+    if ('id' in options.quickAnswer && elementById(options.quickAnswer.id)) {
+      return {
+        parseResult: {
+          elements: [options.quickAnswer],
+          errors: [],
+        },
+        elementById,
+      };
+    }
+    if (
+      'position' in options.quickAnswer &&
+      elementByPosition(options.quickAnswer.position)
+    ) {
+      return {
+        parseResult: transformElementPositionToId(
+          {
+            elements: [options.quickAnswer],
+          },
+          context.content,
+        ),
+        elementById,
+      };
+    }
   }
 
   const systemPrompt = systemPromptToFindElement();
@@ -91,17 +134,20 @@ export async function AiInspectElement<
     });
     return {
       parseResult,
+      rawResponse: transformElementPositionToId(parseResult, context.content),
       elementById,
     };
   }
-  const inspectElement = await callAiFn<AIElementParseResponse>({
+
+  const inspectElement = await callAiFn<AIElementResponse>({
     msgs,
     AIActionType: AIActionType.INSPECT_ELEMENT,
     useModel,
   });
 
   return {
-    parseResult: inspectElement,
+    parseResult: transformElementPositionToId(inspectElement, context.content),
+    rawResponse: inspectElement,
     elementById,
   };
 }

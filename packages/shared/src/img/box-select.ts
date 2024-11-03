@@ -8,17 +8,17 @@ import { bufferFromBase64, imageInfo, imageInfoOfBase64 } from './index';
 
 // Define picture path
 type ElementType = {
-  locator: string;
+  locator?: string;
 
   rect: Rect;
 
-  center: [number, number];
+  center?: [number, number];
 
-  id: string;
+  id?: string;
 
   indexId: number;
 
-  attributes: {
+  attributes?: {
     nodeType: NodeType;
     [key: string]: string;
   };

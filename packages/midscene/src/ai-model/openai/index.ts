@@ -19,6 +19,7 @@ export const OPENAI_BASE_URL = 'OPENAI_BASE_URL';
 export const MIDSCENE_MODEL_TEXT_ONLY = 'MIDSCENE_MODEL_TEXT_ONLY';
 export const OPENAI_USE_AZURE = 'OPENAI_USE_AZURE';
 export const MIDSCENE_CACHE = 'MIDSCENE_CACHE';
+export const MATCH_BY_POSITION = 'MATCH_BY_POSITION';
 
 let config: Record<string, string | undefined> = {
   [MIDSCENE_OPENAI_INIT_CONFIG_JSON]:
@@ -34,6 +35,7 @@ let config: Record<string, string | undefined> = {
     process.env[MIDSCENE_MODEL_TEXT_ONLY] || undefined,
   [OPENAI_USE_AZURE]: process.env[OPENAI_USE_AZURE] || undefined,
   [MIDSCENE_CACHE]: process.env[MIDSCENE_CACHE] || undefined,
+  [MATCH_BY_POSITION]: process.env[MATCH_BY_POSITION] || undefined,
 };
 
 export const getAIConfig = (
@@ -61,6 +63,7 @@ export function preferOpenAIModel(preferVendor?: 'coze' | 'openAI') {
 
 // default model
 const defaultModel = 'gpt-4o';
+
 export function getModelName() {
   let modelName = defaultModel;
   const nameInConfig = getAIConfig(MIDSCENE_MODEL_NAME);
@@ -128,7 +131,8 @@ export async function call(
     response_format: responseFormat,
     temperature: 0.1,
     stream: false,
-  });
+    // betas: ['computer-use-2024-10-22'],
+  } as any);
   shouldPrintTiming &&
     console.log(
       'Midscene - AI call',
@@ -179,7 +183,11 @@ export async function callToGetJSONObject<T>(
   const response = await call(messages, responseFormat);
   assert(response, 'empty response');
   const jsonContent = extractJSONFromCodeBlock(response);
-  return JSON.parse(jsonContent);
+  try {
+    return JSON.parse(jsonContent);
+  } catch {
+    throw Error(`parse json error: ${jsonContent}`);
+  }
 }
 
 export function extractJSONFromCodeBlock(response: string) {

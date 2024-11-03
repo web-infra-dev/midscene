@@ -1,5 +1,4 @@
 import type { WebPage } from '@/common/page';
-import type { WebElementInfo } from '@/web-element';
 import {
   type AgentAssertOpt,
   type AgentWaitForOpt,
@@ -7,6 +6,8 @@ import {
   type GroupedActionDump,
   Insight,
 } from '@midscene/core';
+import { NodeType } from '@midscene/shared/constants';
+
 import {
   groupedActionDumpFileExt,
   reportHTMLContent,
@@ -14,6 +15,7 @@ import {
   writeLogFile,
 } from '@midscene/core/utils';
 import { PageTaskExecutor } from '../common/tasks';
+import { WebElementInfo } from '../web-element';
 import type { AiTaskCache } from './task-cache';
 import { printReportMsg, reportFileName } from './utils';
 import { type WebUIContext, parseContextFromWebPage } from './utils';
@@ -62,9 +64,25 @@ export class PageAgent {
       opts || {},
     );
 
-    this.insight = new Insight<WebElementInfo, WebUIContext>(async () => {
-      return this.getUIContext();
-    });
+    this.insight = new Insight<WebElementInfo, WebUIContext>(
+      async () => {
+        return this.getUIContext();
+      },
+      {
+        generateElement: ({ content, rect }) =>
+          new WebElementInfo({
+            content: content || '',
+            rect,
+            page,
+            id: '',
+            attributes: {
+              nodeType: NodeType.CONTAINER,
+            },
+            indexId: 0,
+          }),
+      },
+    );
+
     this.taskExecutor = new PageTaskExecutor(this.page, this.insight, {
       cacheId: opts?.cacheId,
     });

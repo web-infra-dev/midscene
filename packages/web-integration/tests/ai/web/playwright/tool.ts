@@ -42,7 +42,7 @@ export async function generateExtractData(
     inputImgBase64,
   });
 
-  const resizeImgBase64 = await resizeImg(inputImgBase64);
+  const resizeImgBase64 = await resizeImg(inputImgBase64, undefined, 'base64');
 
   if (!saveImgType?.disableSnapshot) {
     writeFileSyncWithDir(

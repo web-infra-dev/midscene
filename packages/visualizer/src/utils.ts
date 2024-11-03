@@ -47,6 +47,7 @@ export function insightDumpToExecutionDump(
     const result: ExecutionDump = {
       sdkVersion: insightDump.sdkVersion,
       logTime: insightDump.logTime,
+      model_name: insightDump.model_name,
       name: 'Insight',
       tasks: [insightToTask(insightDump)],
     };
@@ -55,6 +56,7 @@ export function insightDumpToExecutionDump(
   const result: ExecutionDump = {
     sdkVersion: insightDump[0].sdkVersion,
     logTime: insightDump[0].logTime,
+    model_name: insightDump[0].model_name,
     name: 'Insight',
     tasks: insightDump.map(insightToTask),
   };

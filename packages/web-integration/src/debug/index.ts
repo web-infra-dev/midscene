@@ -46,10 +46,7 @@ export async function generateExtractData(
     inputImgBase64,
   });
 
-  const resizedImg = await resizeImgBase64(inputImgBase64, {
-    width: 100,
-    height: 100,
-  });
+  const resizedImg = await resizeImgBase64(inputImgBase64, undefined);
 
   const existingSnapshot = existsSync(snapshotJsonPath)
     ? JSON.parse(readFileSync(snapshotJsonPath, 'utf-8'))

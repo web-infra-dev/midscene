@@ -6,8 +6,8 @@
       "multi": false,
       "response": [
         {
-          "id": "4a19cd13df",
-          "indexId": 27
+          "id": "853441c136",
+          "indexId": 32
         }
       ]
     },
@@ -16,28 +16,28 @@
       "multi": false,
       "response": [
         {
-          "id": "dbd7092d2f",
-          "indexId": 26
+          "id": "4c6cc5bd27",
+          "indexId": 29
         }
       ]
     },
     {
-      "prompt": "产品分类里面的：男鞋",
+      "prompt": "产品分类里面的：男鞋（文字）",
       "multi": false,
       "response": [
         {
-          "id": "0ead7ee1e2",
-          "indexId": 80
+          "id": "1740ea75e9",
+          "indexId": 98
         }
       ]
     },
     {
-      "prompt": "收藏的店铺",
+      "prompt": "收藏店铺 ICON",
       "multi": false,
       "response": [
         {
-          "id": "201f52f01f",
-          "indexId": 170
+          "id": "c51fc204e6",
+          "indexId": 209
         }
       ]
     },
@@ -46,8 +46,8 @@
       "multi": false,
       "response": [
         {
-          "ids": ["2a70b2783d", "d7b1890a2a"],
-          "indexId": 215
+          "id": "456c7931bf",
+          "indexId": 253
         }
       ]
     }
