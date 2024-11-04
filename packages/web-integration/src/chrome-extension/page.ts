@@ -159,11 +159,9 @@ export default class ChromeExtensionProxyPage implements AbstractPage {
     return base64;
   }
 
-  url() {
-    // TODO: get url from chrome extension
-    return 'url_in_chrome_extension';
-    // return this.uiContext.url;
-    //
+  async url() {
+    const url = await chrome.tabs.get(this.tabId).then((tab) => tab.url);
+    return url || '';
   }
 
   async scrollUntilTop() {

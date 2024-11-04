@@ -77,7 +77,7 @@ export class Page<
     return base64Encoded(path, true);
   }
 
-  url(): string {
+  async url(): Promise<string> {
     return this.underlyingPage.url();
   }
 

@@ -36,7 +36,7 @@ export default class StaticPage implements AbstractPage {
     return base64;
   }
 
-  url() {
+  async url() {
     return this.uiContext.url;
   }
 

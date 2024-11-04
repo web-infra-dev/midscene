@@ -23,7 +23,7 @@ export async function parseContextFromWebPage(
   if ((page as any)._forceUsePageContext) {
     return await (page as any)._forceUsePageContext();
   }
-  const url = page.url();
+  const url = await page.url();
 
   let screenshotBase64: string;
   let elementsInfo: WebElementInfo[];
