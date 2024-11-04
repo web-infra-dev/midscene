@@ -67,7 +67,11 @@ export async function resizeImg(
 
   const finalNewSize = newSize || calculateNewDimensions(width, height);
 
-  image.resize(finalNewSize.width, finalNewSize.height);
+  image.resize(
+    finalNewSize.width,
+    finalNewSize.height,
+    Jimp.RESIZE_NEAREST_NEIGHBOR,
+  );
   const resizedBuffer = await image.getBufferAsync(Jimp.MIME_PNG);
 
   return resizedBuffer;

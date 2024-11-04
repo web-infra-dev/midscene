@@ -65,7 +65,6 @@ const parseConfig = (configString: string) => {
       config[key] = parsedValue;
     }
   });
-  console.log('parsed config', config);
   return config;
 };
 

@@ -84,7 +84,7 @@ export class PageTaskExecutor {
         recorder.push(shot);
         const result = await taskApply.executor(param, context, ...args);
         if (taskApply.type === 'Action') {
-          await sleep(1000);
+          await sleep(800);
           const shot2 = await this.recordScreenshot('after Action');
           recorder.push(shot2);
         }
