@@ -87,7 +87,7 @@ async function getScreenInfoOfTab(tabId: number): Promise<{
       };
     },
   });
-  console.log('returnValue of getScreenInfoOfTab', returnValue);
+  // console.log('returnValue of getScreenInfoOfTab', returnValue);
   return returnValue[0].result!;
 }
 
@@ -111,6 +111,14 @@ export default class ChromeExtensionProxyPage implements AbstractPage {
     if (this.debuggerAttached) return;
     await chrome.debugger.attach({ tabId: this.tabId }, '1.3');
     this.debuggerAttached = true;
+
+    // listen to the debugger detach event
+    chrome.debugger.onEvent.addListener((source, method, params) => {
+      console.log('debugger event', source, method, params);
+      if (method === 'Debugger.detached') {
+        this.debuggerAttached = false;
+      }
+    });
   }
 
   private async detachDebugger() {

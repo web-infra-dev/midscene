@@ -16,7 +16,7 @@
   },
   "scripts": {
     "dev": "npm run build && npx npm-watch",
-    "build": "modern build && npx ts-node scripts/build-html.ts",
+    "build": "modern build && npx tsx scripts/build-html.ts",
     "build:watch": "modern build -w",
     "serve": "http-server ./dist/ -p 3000",
     "new": "modern new",
@@ -38,6 +38,7 @@
     "@types/react-dom": "18.3.0",
     "antd": "5.21.6",
     "dayjs": "1.11.11",
+    "execa": "9.3.0",
     "http-server": "14.1.1",
     "npm-watch": "0.13.0",
     "pixi-filters": "6.0.5",
@@ -47,7 +48,7 @@
     "react-dom": "^18.2.0",
     "react-resizable-panels": "2.0.22",
     "rimraf": "~3.0.2",
-    "ts-node": "10.9.2",
+    "tsx": "4.19.2",
     "typescript": "~5.0.4",
     "zustand": "4.5.2"
   },

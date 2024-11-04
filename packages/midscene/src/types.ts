@@ -52,20 +52,24 @@ export enum AIResponseFormat {
   TEXT = 'text',
 }
 
+export type AISingleElementResponseById = {
+  id: string;
+  reason: string;
+  text: string;
+};
+
+export type AISingleElementResponseByPosition = {
+  position: {
+    x: number;
+    y: number;
+  };
+  reason: string;
+  text: string;
+};
+
 export type AISingleElementResponse =
-  | {
-      id: string;
-      reason: string;
-      text: string;
-    }
-  | {
-      position: {
-        x: number;
-        y: number;
-      };
-      reason: string;
-      text: string;
-    };
+  | AISingleElementResponseById
+  | AISingleElementResponseByPosition;
 
 export interface AIElementIdResponse {
   elements: {

@@ -71,10 +71,17 @@ export async function plan(
   );
 
   actions.forEach((action) => {
-    if (action.type === 'Locate' && action.param.quickAnswer) {
-      action.param.quickAnswer.id = elementByPosition(
-        action.param.quickAnswer.position,
-      )?.id;
+    if (action.type === 'Locate' && action.quickAnswer) {
+      if ('id' in action.quickAnswer) {
+        return;
+      }
+
+      if ('position' in action.quickAnswer) {
+        action.quickAnswer = {
+          ...action.quickAnswer,
+          id: elementByPosition(action.quickAnswer.position)?.id!,
+        };
+      }
     }
   });
 

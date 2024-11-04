@@ -5,10 +5,8 @@ import { paramStr, timeStr, typeStr } from '@/utils';
 import { RadiusSettingOutlined } from '@ant-design/icons';
 import type {
   BaseElement,
-  ExecutionTaskAction,
   ExecutionTaskInsightAssertion,
   ExecutionTaskInsightLocate,
-  ExecutionTaskInsightQuery,
   ExecutionTaskPlanning,
   UISection,
 } from '@midscene/core';

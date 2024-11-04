@@ -1,6 +1,7 @@
 import { strict as assert } from 'node:assert';
 import { rmSync, writeFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
+import { execa } from 'execa';
 import {
   ensureDirectoryExistence,
   fileContentOfPath,
@@ -23,7 +24,9 @@ const extensionSidepanelTpl = fileContentOfPath(
 const outputReportHTML = join(__dirname, '../dist/report/index.html');
 const outputMultiEntriesHTML = join(__dirname, '../dist/report/multi.html');
 const outputEmptyDumpHTML = join(__dirname, '../dist/report/empty-error.html');
-const outputExtensionPageDir = join(__dirname, '../unpacked-extension/pages');
+const outputExtensionUnpackedBaseDir = join(__dirname, '../unpacked-extension');
+const outputExtensionZipDir = join(__dirname, '../dist/extension/');
+const outputExtensionPageDir = join(outputExtensionUnpackedBaseDir, 'pages');
 const outputExtensionPlayground = join(
   outputExtensionPageDir,
   'playground.html',
@@ -120,6 +123,25 @@ function buildExtension() {
   );
 }
 
+async function zipDir(src: string, dest: string) {
+  // console.log('cwd', dirname(src));
+  await execa('zip', ['-r', dest, '.'], {
+    cwd: src,
+  });
+}
+
+async function packExtension() {
+  const manifest = fileContentOfPath('../unpacked-extension/manifest.json');
+
+  const version = JSON.parse(manifest).version;
+  const zipName = `midscene-extension-${version}.zip`;
+  const distFile = join(outputExtensionZipDir, zipName);
+  ensureDirectoryExistence(distFile);
+
+  // zip the extension
+  await zipDir(outputExtensionUnpackedBaseDir, distFile);
+}
+
 /* build task: report and demo pages*/
 function buildReport() {
   const reportHTMLContent = reportHTMLWithDump();
@@ -156,3 +178,4 @@ function buildReport() {
 
 buildExtension();
 buildReport();
+packExtension();

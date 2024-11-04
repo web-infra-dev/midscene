@@ -216,6 +216,7 @@ export function Playground({
       return;
     }
 
+    const startTime = Date.now();
     setLoading(true);
     setResult(null);
     addHistory({
@@ -282,6 +283,7 @@ export function Playground({
     } else {
       setReplayScriptsInfo(null);
     }
+    console.log(`time taken: ${Date.now() - startTime}ms`);
 
     // Scroll the Run header into view
     // setTimeout(() => {
