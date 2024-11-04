@@ -8,7 +8,11 @@
   "type": "commonjs",
   "main": "./dist/lib/index.js",
   "types": "./dist/types/index.d.ts",
-  "files": ["dist", "report", "README.md"],
+  "files": [
+    "dist",
+    "report",
+    "README.md"
+  ],
   "exports": {
     ".": "./dist/lib/index.js",
     "./utils": "./dist/lib/utils.js",
@@ -16,9 +20,15 @@
   },
   "typesVersions": {
     "*": {
-      ".": ["./dist/types/index.d.ts"],
-      "utils": ["./dist/lib/utils.d.ts"],
-      "ai-model": ["./dist/lib/ai-model.d.ts"]
+      ".": [
+        "./dist/types/index.d.ts"
+      ],
+      "utils": [
+        "./dist/lib/utils.d.ts"
+      ],
+      "ai-model": [
+        "./dist/lib/ai-model.d.ts"
+      ]
     }
   },
   "scripts": {
@@ -41,7 +51,7 @@
     "@midscene/shared": "workspace:*"
   },
   "devDependencies": {
-    "@modern-js/module-tools": "2.60.2",
+    "@modern-js/module-tools": "2.60.6",
     "@types/node": "^18.0.0",
     "@types/node-fetch": "2.6.11",
     "dotenv": "16.4.5",
