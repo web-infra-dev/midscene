@@ -58,6 +58,8 @@ describe(
       );
       const mid = new PuppeteerAgent(originPage);
 
+      await mid.aiAction('If pop-ups are displayed click seven days out alert');
+
       await mid.aiAction('Click the password input on page');
 
       await mid.aiAction('scroll down two screen');
@@ -73,7 +75,7 @@ describe(
       const { originPage, reset } = await launchPage('https://www.baidu.com/');
       const mid = new PuppeteerAgent(originPage);
       await mid.aiAction(
-        'type "Weather in Shanghai" in search box, hit Enter, wait 2s, click the "Image" button below the search box`',
+        'type "Weather in Shanghai" in search box, hit Enter, wait 2s`',
       );
 
       await mid.aiWaitFor('there is weather info in Shanghai');
