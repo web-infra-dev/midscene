@@ -41,31 +41,15 @@
   },
   "typesVersions": {
     "*": {
-      ".": [
-        "./dist/lib/index.d.ts"
-      ],
-      "constants": [
-        "./dist/lib/constants.d.ts"
-      ],
-      "img": [
-        "./dist/lib/img.d.ts"
-      ],
-      "browser/img": [
-        "./dist/browser/img.d.ts"
-      ],
-      "fs": [
-        "./dist/lib/fs.d.ts"
-      ],
-      "utils": [
-        "./dist/lib/utils.d.ts"
-      ]
+      ".": ["./dist/lib/index.d.ts"],
+      "constants": ["./dist/lib/constants.d.ts"],
+      "img": ["./dist/lib/img.d.ts"],
+      "browser/img": ["./dist/browser/img.d.ts"],
+      "fs": ["./dist/lib/fs.d.ts"],
+      "utils": ["./dist/lib/utils.d.ts"]
     }
   },
-  "files": [
-    "dist",
-    "src",
-    "README.md"
-  ],
+  "files": ["dist", "src", "README.md"],
   "scripts": {
     "dev": "modern dev",
     "build": "modern build",
