@@ -10,6 +10,7 @@ import type { WorkerResponseGetContext } from './utils';
 import { sendToWorker } from './utils';
 import type { WorkerRequestGetContext } from './utils';
 import { workerMessageTypes } from './utils';
+import './playground-entry.less';
 
 const PlaygroundEntry = () => {
   // extension proxy agent

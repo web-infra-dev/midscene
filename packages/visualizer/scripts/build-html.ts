@@ -11,11 +11,15 @@ import {
 
 const demoData = ['demo', 'demo-mobile', 'zero-execution'];
 
+const outputExtensionUnpackedBaseDir = join(__dirname, '../unpacked-extension');
+
 const multiEntrySegment = fileContentOfPath('./fixture/multi-entries.html');
 const reportTpl = fileContentOfPath('../html/report.html');
 const reportCSS = fileContentOfPath('../dist/report.css');
 const reportJS = fileContentOfPath('../dist/report.js');
-const playgroundCSS = fileContentOfPath('../dist/playground.css');
+const playgroundCSS = fileContentOfPath(
+  '../unpacked-extension/lib/playground-entry.css',
+);
 const playgroundTpl = fileContentOfPath('../html/playground.html');
 const extensionSidepanelTpl = fileContentOfPath(
   '../html/extension-sidepanel.html',
@@ -24,7 +28,6 @@ const extensionSidepanelTpl = fileContentOfPath(
 const outputReportHTML = join(__dirname, '../dist/report/index.html');
 const outputMultiEntriesHTML = join(__dirname, '../dist/report/multi.html');
 const outputEmptyDumpHTML = join(__dirname, '../dist/report/empty-error.html');
-const outputExtensionUnpackedBaseDir = join(__dirname, '../unpacked-extension');
 const outputExtensionZipDir = join(__dirname, '../dist/extension/');
 const outputExtensionPageDir = join(outputExtensionUnpackedBaseDir, 'pages');
 const outputExtensionPlayground = join(
