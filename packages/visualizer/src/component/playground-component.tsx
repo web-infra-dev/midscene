@@ -232,8 +232,8 @@ export function Playground({
     };
     try {
       agent?.resetDump();
-      const uiContext = await agent?.getUIContext();
       if (serviceMode === 'Server') {
+        const uiContext = await agent?.getUIContext();
         result = await requestPlaygroundServer(
           uiContext!,
           value.type,
