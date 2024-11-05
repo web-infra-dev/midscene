@@ -71,8 +71,8 @@ describe(
       const shotBase64 = await page.screenshotBase64();
 
       const info = await imageInfoOfBase64(shotBase64);
-      expect(info.width).toBeLessThanOrEqual(1080); // always 1x for screenshot
-      expect(info.height).toBeLessThanOrEqual(2000); // always 1x for screenshot
+      expect(info.width).toBe(2160);
+      expect(info.height).toBe(4000);
       await reset();
     });
 
