@@ -2,7 +2,6 @@ import assert from 'node:assert';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { basename, dirname, join } from 'node:path';
-import { report } from 'node:process';
 import { getRunningPkgInfo } from '@midscene/shared/fs';
 import { ifInBrowser, uuid } from '@midscene/shared/utils';
 import type { Rect, ReportDumpWithAttributes } from './types';
@@ -42,7 +41,11 @@ function getReportTpl() {
   }
 
   if (!reportTpl) {
-    reportTpl = readFileSync(join(__dirname, '../report/index.html'), 'utf-8');
+    let reportPath = join(__dirname, '../../report/index.html');
+    if (!existsSync(reportPath)) {
+      reportPath = join(__dirname, '../report/index.html');
+    }
+    reportTpl = readFileSync(reportPath, 'utf-8');
   }
   return reportTpl;
 }
