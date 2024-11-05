@@ -5,7 +5,7 @@ export default defineConfig({
   root: path.join(__dirname, 'docs'),
   title: 'Midscene.js',
   description:
-    'An AI-powered automation SDK can control the page, perform assertions, and extract data in JSON format using natural language.',
+    'Transform UI automation into a joyful experience with Midscene.js, enabling seamless interaction, querying, and assertions through natural language',
   icon: '/midscene-icon.png',
   logo: {
     light: '/midscene_with_text_light.png',
