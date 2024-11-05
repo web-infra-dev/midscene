@@ -8,8 +8,9 @@ export interface Point {
 }
 
 export interface Size {
-  width: number;
+  width: number; // device independent window size
   height: number;
+  dpr?: number; // the scale factor of the screenshots
 }
 
 export type Rect = Point & Size;

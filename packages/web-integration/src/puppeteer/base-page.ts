@@ -1,4 +1,5 @@
 import { readFileSync, writeFileSync } from 'node:fs';
+import type { Size } from '@midscene/core/.';
 import { getTmpFile } from '@midscene/core/utils';
 import { base64Encoded, resizeImg } from '@midscene/shared/img';
 import type { Page as PlaywrightPage } from 'playwright';
@@ -15,7 +16,7 @@ export class Page<
 > implements AbstractPage
 {
   private underlyingPage: PageType;
-  private viewportSize?: { width: number; height: number; dpr: number };
+  private viewportSize?: Size;
   pageType: AgentType;
 
   private evaluate<R>(
@@ -39,13 +40,9 @@ export class Page<
     return captureElementSnapshot as ElementInfo[];
   }
 
-  async size(): Promise<{ width: number; height: number; dpr: number }> {
+  async size(): Promise<Size> {
     if (this.viewportSize) return this.viewportSize;
-    const sizeInfo: {
-      width: number;
-      height: number;
-      dpr: number;
-    } = await this.evaluate(() => {
+    const sizeInfo: Size = await this.evaluate(() => {
       return {
         width: document.documentElement.clientWidth,
         height: document.documentElement.clientHeight,
@@ -58,21 +55,21 @@ export class Page<
 
   async screenshotBase64(): Promise<string> {
     // get viewport size from underlyingPage
-    const viewportSize = await this.size();
+    // const viewportSize = await this.size();
     const path = getTmpFile('png')!;
 
     await this.underlyingPage.screenshot({
       path,
       type: 'png',
     });
-    let buf: Buffer;
-    if (viewportSize.dpr > 1) {
-      buf = await resizeImg(readFileSync(path), {
-        width: viewportSize.width,
-        height: viewportSize.height,
-      });
-      writeFileSync(path, buf);
-    }
+    // let buf: Buffer;
+    // if (viewportSize.dpr && viewportSize.dpr > 1) {
+    //   buf = await resizeImg(readFileSync(path), {
+    //     width: viewportSize.width,
+    //     height: viewportSize.height,
+    //   });
+    //   writeFileSync(path, buf);
+    // }
 
     return base64Encoded(path, true);
   }

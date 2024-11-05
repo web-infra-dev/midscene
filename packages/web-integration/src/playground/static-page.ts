@@ -1,4 +1,3 @@
-import { writeFileSync } from 'node:fs';
 import {
   ERROR_CODE_NOT_IMPLEMENTED_AS_DESIGNED,
   type WebUIContext,

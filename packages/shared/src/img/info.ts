@@ -7,6 +7,7 @@ import getJimp from './get-jimp';
 export interface Size {
   width: number;
   height: number;
+  dpr?: number;
 }
 
 export interface ImageInfo extends Size {
