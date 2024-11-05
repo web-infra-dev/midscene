@@ -208,6 +208,11 @@ export const compositeElementInfoImg = async (options: {
   } else {
     const imageBuffer = await bufferFromBase64(options.inputImgBase64);
     jimpImage = await Jimp.read(imageBuffer);
+    const imageBitmap = jimpImage.bitmap;
+    // Resize the image to the specified width and height if it's not already the same. It usually happens when dpr is not 1
+    if (imageBitmap.width !== width || imageBitmap.height !== height) {
+      jimpImage.resize(width, height, Jimp.RESIZE_NEAREST_NEIGHBOR);
+    }
   }
 
   if (!width || !height) {

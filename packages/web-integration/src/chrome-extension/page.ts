@@ -8,19 +8,18 @@
 import type { WebKeyInput } from '@/common/page';
 import type { ElementInfo } from '@/extractor';
 import type { AbstractPage } from '@/page';
-import { resizeImgBase64 } from '@midscene/shared/browser/img';
+import type { Size } from '@midscene/core/.';
 
 // remember to include this file into extension's package
 const scriptFileToRetrieve = './lib/htmlElement.js';
-async function getActivePageContent(tabId: number): Promise<{
+async function getPageContentOfTab(tabId: number): Promise<{
   context: ElementInfo[];
   size: { width: number; height: number; dpr: number };
 }> {
-  const injectResult = await chrome.scripting.executeScript({
+  await chrome.scripting.executeScript({
     target: { tabId, allFrames: true },
     files: [scriptFileToRetrieve],
   });
-  console.log('injectResult', injectResult);
 
   // call and retrieve the result
   const returnValue = await chrome.scripting.executeScript({
@@ -45,9 +44,28 @@ async function getActivePageContent(tabId: number): Promise<{
   return returnValue[0].result;
 }
 
+async function getSizeInfoOfTab(tabId: number): Promise<{
+  dpr: number;
+  width: number;
+  height: number;
+}> {
+  const returnValue = await chrome.scripting.executeScript({
+    target: { tabId, allFrames: false },
+    func: () => {
+      return {
+        dpr: window.devicePixelRatio,
+        width: document.documentElement.clientWidth,
+        height: document.documentElement.clientHeight,
+      };
+    },
+  });
+  // console.log('returnValue of getScreenInfoOfTab', returnValue);
+  return returnValue[0].result!;
+}
+
 const lastTwoCallTime = [0, 0];
 const callInterval = 1050;
-async function getScreenshotBase64(windowId: number) {
+async function getScreenshotBase64FromWindowId(windowId: number) {
   // check if this window is active
   const activeWindow = await chrome.windows.getAll({ populate: true });
   if (activeWindow.find((w) => w.id === windowId) === undefined) {
@@ -72,25 +90,6 @@ async function getScreenshotBase64(windowId: number) {
   return base64;
 }
 
-async function getScreenInfoOfTab(tabId: number): Promise<{
-  dpr: number;
-  width: number;
-  height: number;
-}> {
-  const returnValue = await chrome.scripting.executeScript({
-    target: { tabId, allFrames: false },
-    func: () => {
-      return {
-        dpr: window.devicePixelRatio,
-        width: document.documentElement.clientWidth,
-        height: document.documentElement.clientHeight,
-      };
-    },
-  });
-  // console.log('returnValue of getScreenInfoOfTab', returnValue);
-  return returnValue[0].result!;
-}
-
 export default class ChromeExtensionProxyPage implements AbstractPage {
   pageType = 'chrome-extension-proxy';
 
@@ -98,7 +97,7 @@ export default class ChromeExtensionProxyPage implements AbstractPage {
 
   private windowId: number;
 
-  private viewportSize?: { width: number; height: number; dpr: number };
+  private viewportSize?: Size;
 
   private debuggerAttached = false;
 
@@ -133,7 +132,7 @@ export default class ChromeExtensionProxyPage implements AbstractPage {
   }
 
   async getElementInfos() {
-    const content = await getActivePageContent(this.tabId);
+    const content = await getPageContentOfTab(this.tabId);
     if (content?.size) {
       this.viewportSize = content.size;
     }
@@ -143,19 +142,12 @@ export default class ChromeExtensionProxyPage implements AbstractPage {
   async size() {
     if (this.viewportSize) return this.viewportSize;
 
-    const content = await getActivePageContent(this.tabId);
+    const content = await getPageContentOfTab(this.tabId);
     return content.size;
   }
 
   async screenshotBase64() {
-    const base64 = await getScreenshotBase64(this.windowId);
-    const screenInfo = await getScreenInfoOfTab(this.tabId);
-    if (screenInfo.dpr > 1) {
-      return (await resizeImgBase64(base64, {
-        width: screenInfo.width,
-        height: screenInfo.height,
-      })) as string;
-    }
+    const base64 = await getScreenshotBase64FromWindowId(this.windowId);
     return base64;
   }
 

@@ -1,3 +1,4 @@
+import type { Size } from '@midscene/core/.';
 import type { WebKeyInput } from './common/page';
 import type { WebUIContext } from './common/utils';
 import type { ElementInfo } from './extractor';
@@ -9,11 +10,7 @@ export abstract class AbstractPage {
   abstract getElementInfos(): Promise<ElementInfo[]>;
   abstract url(): string | Promise<string>;
   abstract screenshotBase64?(): Promise<string>;
-  abstract size(): Promise<{
-    width: number; // viewport width
-    height: number; // viewport height
-    dpr?: number; // device pixel ratio
-  }>;
+  abstract size(): Promise<Size>;
 
   get mouse() {
     return {

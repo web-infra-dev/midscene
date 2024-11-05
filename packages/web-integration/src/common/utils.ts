@@ -2,6 +2,7 @@ import assert from 'node:assert';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import type { ElementInfo } from '@/extractor';
+import type { StaticPage } from '@/playground';
 import type { PlaywrightParserOpt, UIContext } from '@midscene/core';
 import { NodeType } from '@midscene/shared/constants';
 import { findNearestPackageJson } from '@midscene/shared/fs';
@@ -20,7 +21,7 @@ export async function parseContextFromWebPage(
   _opt?: PlaywrightParserOpt,
 ): Promise<WebUIContext> {
   assert(page, 'page is required');
-  if ((page as any)._forceUsePageContext) {
+  if ((page as StaticPage)._forceUsePageContext) {
     return await (page as any)._forceUsePageContext();
   }
   const url = await page.url();
@@ -48,20 +49,18 @@ export async function parseContextFromWebPage(
   );
 
   const size = await page.size();
-  const width = size.width;
-  const height = size.height;
 
   const screenshotBase64WithElementMarker = _opt?.ignoreMarker
     ? undefined
     : await compositeElementInfoImg({
         inputImgBase64: screenshotBase64,
         elementsPositionInfo: elementsPositionInfoWithoutText,
-        size: { width, height },
+        size,
       });
 
   return {
     content: elementsInfo!,
-    size: { width, height },
+    size,
     screenshotBase64: screenshotBase64!,
     screenshotBase64WithElementMarker,
     url,

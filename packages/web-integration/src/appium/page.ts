@@ -1,4 +1,5 @@
 import fs from 'node:fs';
+import type { Size } from '@midscene/core/.';
 import { getTmpFile } from '@midscene/core/utils';
 import { base64Encoded, resizeImg } from '@midscene/shared/img';
 import { DOMParser } from '@xmldom/xmldom';
@@ -38,7 +39,7 @@ export class Page implements AbstractPage {
     return infos;
   }
 
-  async size(): Promise<{ width: number; height: number }> {
+  async size(): Promise<Size> {
     return this.browser.getWindowSize();
   }
 

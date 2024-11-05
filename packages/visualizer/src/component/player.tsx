@@ -203,12 +203,15 @@ export default function Player(props?: {
       throw new Error('sprite not found');
     }
 
-    const child = windowContentContainer.getChildByLabel('main-img');
+    const mainImgLabel = 'main-img';
+    const child = windowContentContainer.getChildByLabel(mainImgLabel);
     if (child) {
       windowContentContainer.removeChild(child);
     }
-    sprite.label = 'main-img';
+    sprite.label = mainImgLabel;
     sprite.zIndex = LAYER_ORDER_IMG;
+    sprite.width = imageWidth;
+    sprite.height = imageHeight;
     windowContentContainer.addChild(sprite);
   };
 
