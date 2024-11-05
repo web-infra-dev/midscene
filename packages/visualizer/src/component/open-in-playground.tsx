@@ -2,9 +2,10 @@ import { PlayCircleOutlined, SendOutlined } from '@ant-design/icons';
 import type { UIContext } from '@midscene/core/.';
 import { Button, Drawer, Tooltip } from 'antd';
 import { useEffect, useState } from 'react';
-import { Playground } from '../playground';
+import { Playground, useStaticPageAgent } from './playground-component';
 import { useEnvConfig } from './store';
 import './open-in-playground.less';
+import type { WebUIContext } from '@midscene/web/utils';
 
 declare const __VERSION__: string;
 
@@ -32,13 +33,13 @@ const checkServerStatus = async () => {
   }
 };
 
-export const useServerValid = () => {
+export const useServerValid = (shouldRun = true) => {
   const [serverValid, setServerValid] = useState(false);
   const { serviceMode } = useEnvConfig();
 
   useEffect(() => {
     let interruptFlag = false;
-    // if (serviceMode !== 'Server') return;
+    if (!shouldRun) return;
     Promise.resolve(
       (async () => {
         while (!interruptFlag) {
@@ -57,7 +58,7 @@ export const useServerValid = () => {
     return () => {
       interruptFlag = true;
     };
-  }, [serviceMode]);
+  }, [serviceMode, shouldRun]);
 
   return serverValid;
 };
@@ -65,6 +66,7 @@ export const useServerValid = () => {
 export default function OpenInPlayground(props?: { context?: UIContext }) {
   const serverValid = useServerValid();
   const [context, setContext] = useState<UIContext | undefined>();
+  const [contextLoadingCounter, setContextLoadingCounter] = useState(0);
   const [isDrawerVisible, setIsDrawerVisible] = useState(false);
 
   let ifPlaygroundValid = true;
@@ -78,6 +80,7 @@ export default function OpenInPlayground(props?: { context?: UIContext }) {
   }
 
   const showPlayground = () => {
+    setContextLoadingCounter((c) => c + 1);
     setContext(props?.context || undefined);
     setIsDrawerVisible(true);
   };
@@ -109,6 +112,9 @@ export default function OpenInPlayground(props?: { context?: UIContext }) {
       </Tooltip>
     );
   }
+
+  const agent = useStaticPageAgent(context as WebUIContext);
+
   return (
     <>
       <Button onClick={showPlayground} icon={<PlayCircleOutlined />}>
@@ -125,11 +131,7 @@ export default function OpenInPlayground(props?: { context?: UIContext }) {
         }}
         className="playground-drawer"
       >
-        <Playground
-          propsContext={context}
-          hideLogo={true}
-          key={Math.random().toString(36).substring(7)}
-        />
+        <Playground agent={agent} hideLogo={true} key={contextLoadingCounter} />
       </Drawer>
     </>
   );

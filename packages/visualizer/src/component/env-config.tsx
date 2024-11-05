@@ -1,4 +1,4 @@
-import { Input, Modal } from 'antd';
+import { Button, Input, Modal, Tooltip } from 'antd';
 import { useState } from 'react';
 import { iconForStatus } from './misc';
 import { useEnvConfig } from './store';
@@ -22,30 +22,44 @@ export function EnvConfig() {
     setIsModalOpen(false);
   };
 
+  const editBtn = (
+    <Button type="link" size="small" onClick={showModal}>
+      Edit
+    </Button>
+  );
+
+  const [showEditButton, setShowEditButton] = useState(false);
+
   const configTip =
     Object.keys(config).length === 0 ? (
       <div>
-        {iconForStatus('failed')} No config, please{' '}
-        <a href="#" onClick={showModal}>
-          set up
-        </a>
-        .
+        {iconForStatus('failed')} No config
+        <p>
+          <Tooltip
+            title="Please set up your environment variables to use Midscene."
+            placement="right"
+            open
+          >
+            <Button type="primary" onClick={showModal}>
+              Click to set up
+            </Button>
+          </Tooltip>
+        </p>
       </div>
     ) : (
-      <div>
-        <div>
-          {Object.entries(config).map(([key, value]) => (
-            <div key={key}>
-              <span>
-                {iconForStatus('success')} {key}:{' '}
-                {key === 'MIDSCENE_MODEL_NAME' ? value : '***'}
-              </span>
-            </div>
-          ))}
-        </div>
-        <div>
-          <a onClick={showModal}>Edit</a>
-        </div>
+      <div
+        onMouseEnter={() => setShowEditButton(true)}
+        onMouseLeave={() => setShowEditButton(false)}
+      >
+        {Object.entries(config).map(([key, value]) => (
+          <div key={key} style={{ lineHeight: '1.8' }}>
+            <span>
+              {iconForStatus('success')} {key}:{' '}
+              {key === 'MIDSCENE_MODEL_NAME' ? value : '***'}{' '}
+              {showEditButton && editBtn}
+            </span>
+          </div>
+        ))}
       </div>
     );
 
@@ -71,7 +85,9 @@ export function EnvConfig() {
         />
         <div>
           <p>The format is KEY=VALUE and separated by new lines.</p>
-          <p>These data will be saved locally in your browser.</p>
+          <p>
+            These data will be saved <strong>locally in your browser</strong>.
+          </p>
         </div>
       </Modal>
     </div>

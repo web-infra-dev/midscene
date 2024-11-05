@@ -1,7 +1,7 @@
 import assert from 'node:assert';
 import type {
   AIAssertionResponse,
-  AIElementReponse,
+  AIElementResponse,
   AISectionParseResponse,
   AISingleElementResponse,
   BaseElement,
@@ -29,7 +29,7 @@ export type AIArgs = [
 ];
 
 export function transformElementPositionToId(
-  aiResult: AIElementReponse,
+  aiResult: AIElementResponse,
   elementsInfo: BaseElement[],
 ) {
   return {
@@ -58,7 +58,7 @@ export async function AiInspectElement<
   context: UIContext<ElementType>;
   multi: boolean;
   targetElementDescription: string;
-  callAI?: typeof callAiFn<AIElementReponse>;
+  callAI?: typeof callAiFn<AIElementResponse>;
   useModel?: 'coze' | 'openAI';
   quickAnswer?: AISingleElementResponse;
 }) {
@@ -139,7 +139,7 @@ export async function AiInspectElement<
     };
   }
 
-  const inspectElement = await callAiFn<AIElementReponse>({
+  const inspectElement = await callAiFn<AIElementResponse>({
     msgs,
     AIActionType: AIActionType.INSPECT_ELEMENT,
     useModel,

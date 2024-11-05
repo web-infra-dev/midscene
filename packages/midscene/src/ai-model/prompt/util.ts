@@ -139,7 +139,7 @@ Based on the information you get, Return assertion judgment:
 
 Return in the following JSON format:
 {
-  thought: string, // string, the thought of the assertion
+  thought: string, // string, the thought of the assertion. Should in the same language as the assertion.
   pass: true, // true or false, whether the assertion is passed
 }
 `;

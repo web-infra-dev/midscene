@@ -15,6 +15,7 @@ export class Page<
 > implements AbstractPage
 {
   private underlyingPage: PageType;
+  private viewportSize?: { width: number; height: number; dpr: number };
   pageType: AgentType;
 
   private evaluate<R>(
@@ -38,20 +39,26 @@ export class Page<
     return captureElementSnapshot as ElementInfo[];
   }
 
-  async screenshotBase64(): Promise<string> {
-    // get viewport size from underlyingPage
-    const viewportSize: {
+  async size(): Promise<{ width: number; height: number; dpr: number }> {
+    if (this.viewportSize) return this.viewportSize;
+    const sizeInfo: {
       width: number;
       height: number;
-      deviceScaleFactor: number;
+      dpr: number;
     } = await this.evaluate(() => {
       return {
         width: document.documentElement.clientWidth,
         height: document.documentElement.clientHeight,
-        deviceScaleFactor: window.devicePixelRatio,
+        dpr: window.devicePixelRatio,
       };
     });
+    this.viewportSize = sizeInfo;
+    return sizeInfo;
+  }
 
+  async screenshotBase64(): Promise<string> {
+    // get viewport size from underlyingPage
+    const viewportSize = await this.size();
     const path = getTmpFile('png')!;
 
     await this.underlyingPage.screenshot({
@@ -59,7 +66,7 @@ export class Page<
       type: 'png',
     });
     let buf: Buffer;
-    if (viewportSize.deviceScaleFactor > 1) {
+    if (viewportSize.dpr > 1) {
       buf = await resizeImg(readFileSync(path), {
         width: viewportSize.width,
         height: viewportSize.height,
@@ -70,7 +77,7 @@ export class Page<
     return base64Encoded(path, true);
   }
 
-  url(): string {
+  async url(): Promise<string> {
     return this.underlyingPage.url();
   }
 
@@ -110,6 +117,7 @@ export class Page<
 
   async clearInput(element: ElementInfo): Promise<void> {
     if (!element) {
+      console.warn('No element to clear input');
       return;
     }
 
@@ -144,5 +152,9 @@ export class Page<
     const innerHeight = await this.evaluate(() => window.innerHeight);
     const distance = innerHeight * 0.7;
     await this.mouse.wheel(0, distance);
+  }
+
+  async destroy(): Promise<void> {
+    //
   }
 }

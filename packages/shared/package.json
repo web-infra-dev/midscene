@@ -28,6 +28,11 @@
       "require": "./dist/lib/img.js",
       "import": "./dist/es/img.js"
     },
+    "./browser/img": {
+      "types": "./dist/browser/img.d.ts",
+      "require": "./dist/browser/img.js",
+      "import": "./dist/browser/img.js"
+    },
     "./utils": {
       "types": "./dist/lib/utils.d.ts",
       "require": "./dist/lib/utils.js",
@@ -36,11 +41,12 @@
   },
   "typesVersions": {
     "*": {
-      ".": ["./src/index.ts"],
-      "constants": ["./src/constants/index.ts"],
-      "img": ["./src/img/index.ts"],
-      "fs": ["./src/fs/index.ts"],
-      "utils": ["./src/utils.ts"]
+      ".": ["./dist/lib/index.d.ts"],
+      "constants": ["./dist/lib/constants.d.ts"],
+      "img": ["./dist/lib/img.d.ts"],
+      "browser/img": ["./dist/browser/img.d.ts"],
+      "fs": ["./dist/lib/fs.d.ts"],
+      "utils": ["./dist/lib/utils.d.ts"]
     }
   },
   "files": ["dist", "src", "README.md"],
@@ -66,7 +72,7 @@
   },
   "peerDependencies": {},
   "devDependencies": {
-    "@modern-js/module-tools": "2.58.2",
+    "@modern-js/module-tools": "2.60.6",
     "typescript": "~5.0.4",
     "@types/node": "^18.0.0",
     "rimraf": "~3.0.2",

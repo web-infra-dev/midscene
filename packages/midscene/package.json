@@ -41,7 +41,7 @@
     "@midscene/shared": "workspace:*"
   },
   "devDependencies": {
-    "@modern-js/module-tools": "2.58.2",
+    "@modern-js/module-tools": "2.60.6",
     "@types/node": "^18.0.0",
     "@types/node-fetch": "2.6.11",
     "dotenv": "16.4.5",

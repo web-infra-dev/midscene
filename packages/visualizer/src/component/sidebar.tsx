@@ -29,8 +29,7 @@ const SideItem = (props: {
 
   const titleTextIcon =
     task.type === 'Planning' ? (
-      <span>
-        &nbsp;
+      <span style={{ display: 'inline-block', marginLeft: '4px' }}>
         <VideoCameraOutlined />
       </span>
     ) : null;
@@ -58,7 +57,6 @@ const SideItem = (props: {
         </div>
         <div className="status-text">{statusText}</div>
       </div>
-      {/* {contentRow} */}
     </div>
   );
 };

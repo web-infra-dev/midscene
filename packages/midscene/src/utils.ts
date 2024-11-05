@@ -4,7 +4,6 @@ import { tmpdir } from 'node:os';
 import { basename, dirname, join } from 'node:path';
 import { getRunningPkgInfo } from '@midscene/shared/fs';
 import { ifInBrowser, uuid } from '@midscene/shared/utils';
-import { version } from '../package.json';
 import type { Rect, ReportDumpWithAttributes } from './types';
 
 let logDir = join(process.cwd(), './midscene_run/');
@@ -28,6 +27,61 @@ export function getLogDirByType(type: 'dump' | 'cache' | 'report') {
   return dir;
 }
 
+let reportTpl: string | null = null;
+function getReportTpl() {
+  if (ifInBrowser) {
+    if (!reportTpl && (window as any).midscene_report_tpl) {
+      reportTpl = (window as any).midscene_report_tpl;
+    }
+    assert(
+      reportTpl,
+      'reportTpl should be set before writing report in browser',
+    );
+    return reportTpl;
+  }
+
+  if (!reportTpl) {
+    let reportPath = join(__dirname, '../../report/index.html');
+    if (!existsSync(reportPath)) {
+      reportPath = join(__dirname, '../report/index.html');
+    }
+    reportTpl = readFileSync(reportPath, 'utf-8');
+  }
+  return reportTpl;
+}
+
+export function reportHTMLContent(
+  dumpData: string | ReportDumpWithAttributes[],
+): string {
+  const tpl = getReportTpl();
+  let reportContent: string;
+  if (
+    (Array.isArray(dumpData) && dumpData.length === 0) ||
+    typeof dumpData === 'undefined'
+  ) {
+    reportContent = tpl.replace(
+      /\s+{{dump}}\s+/,
+      `<script type="midscene_web_dump" type="application/json"></script>`,
+    );
+  } else if (typeof dumpData === 'string') {
+    reportContent = tpl.replace(
+      /\s+{{dump}}\s+/,
+      `<script type="midscene_web_dump" type="application/json">${dumpData}</script>`,
+    );
+  } else {
+    const dumps = dumpData.map(({ dumpString, attributes }) => {
+      const attributesArr = Object.keys(attributes || {}).map((key) => {
+        return `${key}="${encodeURIComponent(attributes![key])}"`;
+      });
+      return `<script type="midscene_web_dump" type="application/json" ${attributesArr.join(
+        ' ',
+      )}\n>${dumpString}\n</script>`;
+    });
+    reportContent = tpl.replace(/\s+{{dump}}\s+/, dumps.join('\n'));
+  }
+  return reportContent;
+}
+
 export function writeDumpReport(
   fileName: string,
   dumpData: string | ReportDumpWithAttributes[],
@@ -43,35 +97,8 @@ export function writeDumpReport(
     return null;
   }
 
-  const { dir } = midscenePkgInfo;
-  const reportTplPath = join(dir, './report/index.html');
-  existsSync(reportTplPath) ||
-    assert(false, `report template not found: ${reportTplPath}`);
   const reportPath = join(getLogDirByType('report'), `${fileName}.html`);
-  const tpl = readFileSync(reportTplPath, 'utf-8');
-  let reportContent: string;
-  if (
-    (Array.isArray(dumpData) && dumpData.length === 0) ||
-    typeof dumpData === 'undefined'
-  ) {
-    reportContent = tpl.replace(
-      /\s+{{dump}}\s+/,
-      '<script type="midscene_web_dump" type="application/json"></script>',
-    );
-  } else if (typeof dumpData === 'string') {
-    reportContent = tpl.replace(
-      /\s+{{dump}}\s+/,
-      `<script type="midscene_web_dump" type="application/json">${dumpData}</script>`,
-    );
-  } else {
-    const dumps = dumpData.map(({ dumpString, attributes }) => {
-      const attributesArr = Object.keys(attributes || {}).map((key) => {
-        return `${key}="${encodeURIComponent(attributes![key])}"`;
-      });
-      return `<script type="midscene_web_dump" type="application/json" ${attributesArr.join(' ')}>\n${dumpString}\n</script>`;
-    });
-    reportContent = tpl.replace(/\s+{{dump}}\s+/, dumps.join('\n'));
-  }
+  const reportContent = reportHTMLContent(dumpData);
   writeFileSync(reportPath, reportContent);
 
   return reportPath;
@@ -85,7 +112,6 @@ export function writeLogFile(opts: {
   generateReport?: boolean;
 }) {
   if (ifInBrowser) {
-    console.log('will not generate report in browser');
     return '/mock/report.html';
   }
   const { fileName, fileExt, fileContent, type = 'dump' } = opts;

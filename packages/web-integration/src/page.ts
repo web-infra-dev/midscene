@@ -6,9 +6,14 @@ export type MouseButton = 'left' | 'right' | 'middle';
 
 export abstract class AbstractPage {
   abstract pageType: string;
-  abstract screenshotBase64?(): Promise<string>;
   abstract getElementInfos(): Promise<ElementInfo[]>;
-  abstract url(): string;
+  abstract url(): string | Promise<string>;
+  abstract screenshotBase64?(): Promise<string>;
+  abstract size(): Promise<{
+    width: number; // viewport width
+    height: number; // viewport height
+    dpr?: number; // device pixel ratio
+  }>;
 
   get mouse() {
     return {
@@ -37,4 +42,6 @@ export abstract class AbstractPage {
   abstract scrollDownOneScreen(): Promise<void>;
 
   abstract _forceUsePageContext?(): Promise<WebUIContext>;
+
+  abstract destroy(): Promise<void>;
 }

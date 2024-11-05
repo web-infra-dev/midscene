@@ -4,8 +4,6 @@ import {
   type WebUIContext,
 } from '@/common/utils';
 import type { AbstractPage } from '@/page';
-import { getTmpFile } from '@midscene/core/utils';
-import { saveBase64Image } from '@midscene/shared/img';
 
 const ThrowNotImplemented: any = (methodName: string) => {
   throw new Error(
@@ -26,6 +24,10 @@ export default class StaticPage implements AbstractPage {
     return ThrowNotImplemented('getElementInfos');
   }
 
+  async size() {
+    return this.uiContext.size;
+  }
+
   async screenshotBase64() {
     const base64 = this.uiContext.screenshotBase64;
     if (!base64) {
@@ -34,7 +36,7 @@ export default class StaticPage implements AbstractPage {
     return base64;
   }
 
-  url() {
+  async url() {
     return this.uiContext.url;
   }
 
@@ -71,5 +73,9 @@ export default class StaticPage implements AbstractPage {
 
   async _forceUsePageContext() {
     return this.uiContext;
+  }
+
+  async destroy(): Promise<void> {
+    //
   }
 }

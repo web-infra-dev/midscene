@@ -5,7 +5,6 @@ import type { ElementInfo } from '@/extractor';
 import type { PlaywrightParserOpt, UIContext } from '@midscene/core';
 import { NodeType } from '@midscene/shared/constants';
 import { findNearestPackageJson } from '@midscene/shared/fs';
-import { imageInfoOfBase64 } from '@midscene/shared/img';
 import { compositeElementInfoImg } from '@midscene/shared/img';
 import { uuid } from '@midscene/shared/utils';
 import dayjs from 'dayjs';
@@ -24,35 +23,48 @@ export async function parseContextFromWebPage(
   if ((page as any)._forceUsePageContext) {
     return await (page as any)._forceUsePageContext();
   }
-  const url = page.url();
+  const url = await page.url();
 
-  const screenshotBase64 = await page.screenshotBase64();
-  const captureElementSnapshot = await page.getElementInfos();
+  let screenshotBase64: string;
+  let elementsInfo: WebElementInfo[];
 
-  // align element
-  const elementsInfo = await alignElements(captureElementSnapshot, page);
+  await Promise.all([
+    page.screenshotBase64().then((base64) => {
+      screenshotBase64 = base64;
+    }),
+    page.getElementInfos().then(async (snapshot) => {
+      elementsInfo = await alignElements(snapshot, page);
+    }),
+  ]);
+  assert(screenshotBase64!, 'screenshotBase64 is required');
 
-  const elementsPositionInfoWithoutText = elementsInfo.filter((elementInfo) => {
-    if (elementInfo.attributes.nodeType === NodeType.TEXT) {
-      return false;
-    }
-    return true;
-  });
+  const elementsPositionInfoWithoutText = elementsInfo!.filter(
+    (elementInfo) => {
+      if (elementInfo.attributes.nodeType === NodeType.TEXT) {
+        return false;
+      }
+      return true;
+    },
+  );
 
-  const size = await imageInfoOfBase64(screenshotBase64);
+  const size = await page.size();
+  const width = size.width;
+  const height = size.height;
 
-  // composite element infos to screenshot
-  const screenshotBase64WithElementMarker = await compositeElementInfoImg({
-    inputImgBase64: screenshotBase64,
-    elementsPositionInfo: elementsPositionInfoWithoutText,
-  });
+  const screenshotBase64WithElementMarker = _opt?.ignoreMarker
+    ? undefined
+    : await compositeElementInfoImg({
+        inputImgBase64: screenshotBase64,
+        elementsPositionInfo: elementsPositionInfoWithoutText,
+        size: { width, height },
+      });
 
   return {
+    content: elementsInfo!,
+    size: { width, height },
+    screenshotBase64: screenshotBase64!,
+    screenshotBase64WithElementMarker,
     url,
-    size,
-    content: elementsInfo,
-    screenshotBase64,
-    screenshotBase64WithElementMarker: `data:image/png;base64,${screenshotBase64WithElementMarker}`,
   };
 }
 
@@ -132,29 +144,6 @@ export function getCurrentExecutionFile(trace?: string): string | false {
   }
   return false;
 }
-
-/**
- * Generates a unique cache ID based on the current execution file and a counter.
- *
- * This function creates a cache ID by combining the name of the current execution file
- * (typically a test or spec file) with an incrementing index. This ensures that each
- * cache ID is unique within the context of a specific test file across multiple executions.
- *
- * The function uses a Map to keep track of the index for each unique file, incrementing
- * it with each call for the same file.
- *
- * @returns {string} A unique cache ID in the format "filename-index"
- *
- * @example
- * // First call for "example.spec.ts"
- * generateCacheId(); // Returns "example.spec.ts-1"
- *
- * // Second call for "example.spec.ts"
- * generateCacheId(); // Returns "example.spec.ts-2"
- *
- * // First call for "another.test.ts"
- * generateCacheId(); // Returns "another.test.ts-1"
- */
 
 const testFileIndex = new Map<string, number>();
 

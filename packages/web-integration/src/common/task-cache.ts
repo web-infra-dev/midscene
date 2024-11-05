@@ -226,19 +226,22 @@ export class TaskCache {
     if (!midscenePkgInfo) {
       return;
     }
-    writeLogFile({
-      fileName: `${this.cacheId}`,
-      fileExt: 'json',
-      fileContent: stringifyDumpData(
-        {
-          pkgName: midscenePkgInfo.name,
-          pkgVersion: midscenePkgInfo.version,
-          cacheId: this.cacheId,
-          ...this.newCache,
-        },
-        2,
-      ),
-      type: 'cache',
-    });
+
+    if (!ifInBrowser) {
+      writeLogFile({
+        fileName: `${this.cacheId}`,
+        fileExt: 'json',
+        fileContent: stringifyDumpData(
+          {
+            pkgName: midscenePkgInfo.name,
+            pkgVersion: midscenePkgInfo.version,
+            cacheId: this.cacheId,
+            ...this.newCache,
+          },
+          2,
+        ),
+        type: 'cache',
+      });
+    }
   }
 }

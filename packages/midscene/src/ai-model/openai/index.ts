@@ -121,7 +121,6 @@ export async function call(
     | OpenAI.ResponseFormatJSONObject,
 ): Promise<string> {
   const openai = await createOpenAI();
-
   const shouldPrintTiming =
     typeof getAIConfig(MIDSCENE_DEBUG_AI_PROFILE) === 'string';
   const startTime = Date.now();

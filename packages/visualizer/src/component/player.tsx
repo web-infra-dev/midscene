@@ -4,9 +4,13 @@ import * as PIXI from 'pixi.js';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import './player.less';
 import { mouseLoading, mousePointer } from '@/utils';
-import { CaretRightOutlined, LoadingOutlined } from '@ant-design/icons';
+import {
+  CaretRightOutlined,
+  DownloadOutlined,
+  LoadingOutlined,
+} from '@ant-design/icons';
 import type { BaseElement } from '@midscene/core/.';
-import { ConfigProvider, Spin } from 'antd';
+import { Button, ConfigProvider, Spin } from 'antd';
 import { rectMarkForItem } from './blackboard';
 import type {
   AnimationScript,
@@ -101,12 +105,22 @@ const LAYER_ORDER_INSIGHT = 1;
 const LAYER_ORDER_POINTER = 2;
 const LAYER_ORDER_SPINNING_POINTER = 3;
 
-const Player = (props?: {
+const downloadReport = (content: string): void => {
+  const blob = new Blob([content], { type: 'text/html' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'midscene_report.html';
+  a.click();
+};
+
+export default function Player(props?: {
   replayScripts?: AnimationScript[];
   imageWidth?: number;
   imageHeight?: number;
+  reportFileContent?: string | null;
   key?: string | number;
-}): JSX.Element => {
+}): JSX.Element {
   const [titleText, setTitleText] = useState('');
   const [subTitleText, setSubTitleText] = useState('');
   const taskScripts = useExecutionDump(
@@ -149,10 +163,8 @@ const Player = (props?: {
     left: 0,
     top: 0,
     width: imageWidth,
-    pointer: {
-      left: Math.round(imageWidth / 2),
-      top: Math.round(imageHeight / 2),
-    },
+    pointerLeft: Math.round(imageWidth / 2),
+    pointerTop: Math.round(imageHeight / 2),
   };
 
   // -1: not started, 0: running, 1: finished
@@ -300,9 +312,13 @@ const Player = (props?: {
     );
 
     const pointer = windowContentContainer.getChildByLabel('pointer');
-    if (pointer && state.pointer) {
-      pointer.x = state.pointer.left; // * newScale;
-      pointer.y = state.pointer.top; // * newScale;
+    if (
+      pointer &&
+      typeof state.pointerLeft === 'number' &&
+      typeof state.pointerTop === 'number'
+    ) {
+      pointer.x = state.pointerLeft;
+      pointer.y = state.pointerTop;
       pointer.scale.set(1 / newScale);
     }
   };
@@ -315,16 +331,18 @@ const Player = (props?: {
     const currentState = { ...cameraState.current };
     const startLeft = currentState.left;
     const startTop = currentState.top;
-    const startPointer = { ...currentState.pointer };
+    const startPointerLeft = currentState.pointerLeft;
+    const startPointerTop = currentState.pointerTop;
     const startScale = currentState.width / imageWidth;
 
     const startTime = performance.now();
     const shouldMovePointer =
-      targetState.pointer &&
-      (targetState.pointer.left !== startPointer.left ||
-        targetState.pointer.top !== startPointer.top);
+      typeof targetState.pointerLeft === 'number' &&
+      typeof targetState.pointerTop === 'number' &&
+      (targetState.pointerLeft !== startPointerLeft ||
+        targetState.pointerTop !== startPointerTop);
 
-    // pointer move --> camera move
+    // move pointer first, then move camera
     const pointerMoveDuration = shouldMovePointer ? duration * 0.375 : 0;
     const cameraMoveStart = pointerMoveDuration;
     const cameraMoveDuration = duration - pointerMoveDuration;
@@ -341,14 +359,15 @@ const Player = (props?: {
               1,
             );
             const mouseProgress = cubicMouse(rawMouseProgress);
-            nextState.pointer.left =
-              startPointer.left +
-              (targetState.pointer!.left - startPointer.left) * mouseProgress;
-            nextState.pointer.top =
-              startPointer.top +
-              (targetState.pointer!.top - startPointer.top) * mouseProgress;
+            nextState.pointerLeft =
+              startPointerLeft +
+              (targetState.pointerLeft! - startPointerLeft) * mouseProgress;
+            nextState.pointerTop =
+              startPointerTop +
+              (targetState.pointerTop! - startPointerTop) * mouseProgress;
           } else {
-            nextState.pointer = targetState.pointer!;
+            nextState.pointerLeft = targetState.pointerLeft!;
+            nextState.pointerTop = targetState.pointerTop!;
           }
         }
 
@@ -693,6 +712,22 @@ const Player = (props?: {
     );
   }
 
+  const playerTopToolbar = props?.reportFileContent ? (
+    <div className="player-tools-right">
+      <div className="player-tools-item">
+        <Button
+          color="primary"
+          variant="link"
+          size="small"
+          icon={<DownloadOutlined />}
+          onClick={() => downloadReport(props.reportFileContent!)}
+        >
+          Report File
+        </Button>
+      </div>
+    </div>
+  ) : null;
+
   return (
     <div className="player-container">
       <div className="canvas-container" ref={divContainerRef} />
@@ -705,34 +740,35 @@ const Player = (props?: {
           }}
         />
       </div>
-      <div className="player-controls">
-        <div
-          className="status-icon"
-          onMouseEnter={() => setMouseOverStatusIcon(true)}
-          onMouseLeave={() => setMouseOverStatusIcon(false)}
-          style={statusStyle}
-          onClick={statusOnClick}
-        >
-          <ConfigProvider
-            theme={{
-              components: {
-                Spin: {
-                  dotSize: 24,
-                  colorPrimary: 'rgb(6,177,171)',
-                },
-              },
-            }}
+      <div className="player-tools">
+        <div className="player-control">
+          <div
+            className="status-icon"
+            onMouseEnter={() => setMouseOverStatusIcon(true)}
+            onMouseLeave={() => setMouseOverStatusIcon(false)}
+            style={statusStyle}
+            onClick={statusOnClick}
           >
-            {statusIconElement}
-          </ConfigProvider>
+            <ConfigProvider
+              theme={{
+                components: {
+                  Spin: {
+                    dotSize: 24,
+                    colorPrimary: 'rgb(6,177,171)',
+                  },
+                },
+              }}
+            >
+              {statusIconElement}
+            </ConfigProvider>
+          </div>
+          <div className="status-text">
+            <div className="title">{titleText}</div>
+            <div className="subtitle">{subTitleText}</div>
+          </div>
         </div>
-        <div className="status-text">
-          <div className="title">{titleText}</div>
-          <div className="subtitle">{subTitleText}</div>
-        </div>
+        {playerTopToolbar}
       </div>
     </div>
   );
-};
-
-export default Player;
+}

@@ -142,7 +142,6 @@ const Blackboard = (props: {
 
     // draw the screenshot base64
     const img = new Image();
-    img.src = screenshotBase64;
     img.onload = () => {
       if (!app.stage) return;
       const screenshotTexture = PIXI.Texture.from(img);
@@ -155,7 +154,6 @@ const Blackboard = (props: {
 
       if (ifMarkerAvailable) {
         const markerImg = new Image();
-        markerImg.src = screenshotBase64WithElementMarker;
         markerImg.onload = () => {
           const markerTexture = PIXI.Texture.from(markerImg);
           const markerSprite = new PIXI.Sprite(markerTexture);
@@ -167,8 +165,16 @@ const Blackboard = (props: {
           pixiBgRef.current = markerSprite;
           markerSprite.visible = markerVisible;
         };
+        markerImg.onerror = (e) => {
+          console.error('load marker failed', e);
+        };
+        markerImg.src = screenshotBase64WithElementMarker;
       }
     };
+    img.onerror = (e) => {
+      console.error('load screenshot failed', e);
+    };
+    img.src = screenshotBase64;
   }, [app.stage, appInitialed]);
 
   const { highlightElementRects } = useMemo(() => {

@@ -4,12 +4,28 @@ import { modulePluginNodePolyfill } from '@modern-js/plugin-module-node-polyfill
 import { version } from './package.json';
 const externals = ['playwright', 'langsmith'];
 
+const commonConfig = {
+  asset: {
+    svgr: true,
+  },
+  autoExternal: false,
+  externals: [...externals],
+  target: 'es6',
+  minify: process.env.CI
+    ? {
+        compress: true,
+      }
+    : undefined,
+  define: {
+    __VERSION__: JSON.stringify(version),
+    global: 'globalThis',
+  },
+};
+
 export default defineConfig({
   buildConfig: [
     {
-      asset: {
-        svgr: true,
-      },
+      ...commonConfig,
       alias: {
         async_hooks: path.join(__dirname, './src/blank_polyfill.ts'),
       },
@@ -17,55 +33,40 @@ export default defineConfig({
       dts: false,
       input: {
         report: 'src/index.tsx',
-        playground: 'src/playground.tsx',
       },
       umdModuleName: (path) => {
-        if (path.includes('playground')) {
-          return 'midscenePlayground';
-        }
+        // if (path.includes('playground')) {
+        //   return 'midscenePlayground';
+        // }
         return 'midsceneVisualizer';
       },
-      autoExternal: false,
-      externals: [...externals],
       platform: 'browser',
       outDir: 'dist',
-      minify: {
-        compress: !!process.env.CI,
-      },
-      define: {
-        __VERSION__: JSON.stringify(version),
-        global: 'globalThis',
-      },
+
       target: 'es6',
     },
     {
-      asset: {
-        svgr: true,
-      },
+      ...commonConfig,
       alias: {
         async_hooks: path.join(__dirname, './src/blank_polyfill.ts'),
       },
       format: 'iife',
       dts: false,
       input: {
-        popup: 'src/extension/popup.ts',
+        popup: 'src/extension/popup.tsx',
         worker: 'src/extension/worker.ts',
-        'playground-entry': 'src/extension/playground-entry.ts',
+        'playground-entry': 'src/extension/playground-entry.tsx',
       },
-      autoExternal: false,
-      externals: [...externals],
       platform: 'browser',
       outDir: 'unpacked-extension/lib',
       target: 'es6',
-      define: {
-        __VERSION__: JSON.stringify(version),
-        global: 'globalThis',
-      },
-      minify: {
-        compress: !!process.env.CI,
-      },
     },
   ],
-  plugins: [moduleTools(), modulePluginNodePolyfill()],
+  plugins: [
+    moduleTools(),
+    modulePluginNodePolyfill({
+      excludes: ['console'],
+    }),
+  ],
   buildPreset: 'npm-component',
 });

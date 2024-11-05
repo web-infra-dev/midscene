@@ -14,14 +14,15 @@ export interface CameraState {
   left: number;
   top: number;
   width: number;
-  pointer: {
-    left: number;
-    top: number;
-  };
+  pointerLeft: number;
+  pointerTop: number;
 }
 
-export type TargetCameraState = Omit<CameraState, 'pointer'> &
-  Partial<Pick<CameraState, 'pointer'>>;
+export type TargetCameraState = Omit<
+  CameraState,
+  'pointerLeft' | 'pointerTop'
+> &
+  Partial<Pick<CameraState, 'pointerLeft' | 'pointerTop'>>;
 
 export interface AnimationScript {
   type:
@@ -187,7 +188,6 @@ export const generateAnimationScripts = (
   };
 
   if (execution.tasks.length === 1 && execution.tasks[0].subType === 'Query') {
-    console.log('query task', execution.tasks[0]);
     return [];
   }
   const scripts: AnimationScript[] = [];
@@ -221,10 +221,8 @@ export const generateAnimationScripts = (
       if (resultElement?.rect) {
         insightCameraState = {
           ...cameraStateForRect(resultElement.rect, imageWidth, imageHeight),
-          pointer: {
-            left: resultElement.center[0],
-            top: resultElement.center[1],
-          },
+          pointerLeft: resultElement.center[0],
+          pointerTop: resultElement.center[1],
         };
       }
       if (insightTask.log?.dump) {
@@ -245,16 +243,25 @@ export const generateAnimationScripts = (
           });
         }
 
+        let cameraState: TargetCameraState | undefined = undefined;
+        if (currentCameraState === fullPageCameraState) {
+          cameraState = undefined;
+        } else if (!insightCameraState) {
+          cameraState = undefined;
+        } else {
+          cameraState = mergeTwoCameraState(
+            currentCameraState,
+            insightCameraState,
+          );
+        }
+
         scripts.push({
           type: 'insight',
           img:
             insightDump.context.screenshotBase64WithElementMarker ||
             insightDump.context.screenshotBase64,
           insightDump: insightDump,
-          camera:
-            currentCameraState === fullPageCameraState || !insightCameraState
-              ? undefined
-              : mergeTwoCameraState(currentCameraState, insightCameraState),
+          camera: cameraState,
           duration:
             insightContentLength > 20 ? locateDuration : locateDuration * 0.5,
           insightCameraDuration: locateDuration,
@@ -322,25 +329,27 @@ export const generateAnimationScripts = (
           subTitle,
         });
       }
-
-      if (task.status !== 'finished') {
-        errorStateFlag = true;
-        const errorTitle = typeStr(task);
-        const errorMsg = task.error || 'unknown error';
-        const errorSubTitle =
-          errorMsg.indexOf('NOT_IMPLEMENTED_AS_DESIGNED') > 0
-            ? 'Further actions cannot be performed in the current environment'
-            : errorMsg;
-        scripts.push({
-          type: 'img',
-          img: task.recorder?.[0]?.screenshot,
-          camera: fullPageCameraState,
-          duration: stillDuration,
-          title: errorTitle,
-          subTitle: errorSubTitle,
-        });
-        return;
-      }
+    }
+    if (task.status !== 'finished') {
+      errorStateFlag = true;
+      const errorTitle = typeStr(task);
+      const errorMsg = task.error || 'unknown error';
+      const errorSubTitle =
+        errorMsg.indexOf('NOT_IMPLEMENTED_AS_DESIGNED') > 0
+          ? 'Further actions cannot be performed in the current environment'
+          : errorMsg;
+      scripts.push({
+        type: 'img',
+        img:
+          task.recorder && task.recorder.length > 0
+            ? task.recorder[task.recorder.length - 1].screenshot
+            : '',
+        camera: fullPageCameraState,
+        duration: stillDuration,
+        title: errorTitle,
+        subTitle: errorSubTitle,
+      });
+      return;
     }
   });
 

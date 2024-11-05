@@ -1,32 +1,48 @@
 /// <reference types="chrome" />
 
+import type { WebUIContext } from '@midscene/web/utils';
 import {
-  type WorkerResponseGetContext,
-  type WorkerResponseSaveContext,
+  type WorkerRequestGetContext,
+  type WorkerRequestSaveContext,
   workerMessageTypes,
 } from './utils';
 
-console.log('worker launched');
+// console-browserify won't work in worker, so we need to use globalThis.console
+const console = globalThis.console;
 
-let contextId = 0;
-const contextMap = new Map<string, object>();
+chrome.sidePanel
+  .setPanelBehavior({ openPanelOnActionClick: true })
+  .catch((error) => console.error(error));
+
+// cache data between sidepanel and fullscreen playground
+const randomUUID = () => {
+  return Math.random().toString(36).substring(2, 15);
+};
+const cacheMap = new Map<string, WebUIContext>();
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   console.log('Message received in service worker:', request);
 
   switch (request.type) {
     case workerMessageTypes.SAVE_CONTEXT: {
-      const id = `${contextId++}`;
-      contextMap.set(id, request.payload);
-      console.log('will send response');
-      sendResponse({ id } as WorkerResponseSaveContext);
+      const payload: WorkerRequestSaveContext = request.payload;
+      const { context } = payload;
+      const id = randomUUID();
+      cacheMap.set(id, context);
+      sendResponse({ id });
       break;
     }
-    case workerMessageTypes.GET_CONTEXT:
-      console.log('will send response');
-      sendResponse({
-        context: contextMap.get(request.payload) as WorkerResponseGetContext,
-      });
+    case workerMessageTypes.GET_CONTEXT: {
+      const payload: WorkerRequestGetContext = request.payload;
+      const { id } = payload;
+      const context = cacheMap.get(id) as WebUIContext;
+      if (!context) {
+        sendResponse({ error: 'Screenshot not found' });
+      } else {
+        sendResponse({ context });
+      }
+
       break;
+    }
     default:
       console.log('will send response');
       sendResponse({ error: 'Unknown message type' });

@@ -9,6 +9,7 @@ export {
   trimImage,
   calculateNewDimensions,
   resizeImg,
+  resizeImgBase64,
   transformImgPathToBase64,
   saveBase64Image,
 } from './transform';

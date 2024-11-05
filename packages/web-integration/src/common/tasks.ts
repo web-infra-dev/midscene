@@ -2,7 +2,7 @@ import assert from 'node:assert';
 import type { WebPage } from '@/common/page';
 import {
   type AIElementIdResponse,
-  type AIElementReponse,
+  type AIElementResponse,
   type DumpSubscriber,
   type ExecutionRecorderItem,
   type ExecutionTaskActionApply,
@@ -11,7 +11,7 @@ import {
   type ExecutionTaskInsightQueryApply,
   type ExecutionTaskPlanningApply,
   Executor,
-  Insight,
+  type Insight,
   type InsightAssertionResponse,
   type InsightDump,
   type InsightExtractParam,
@@ -28,12 +28,11 @@ import {
   transformElementPositionToId,
 } from '@midscene/core';
 import { sleep } from '@midscene/core/utils';
-import { NodeType } from '@midscene/shared/constants';
 import type { KeyInput } from 'puppeteer';
 import type { ElementInfo } from '../extractor';
-import { WebElementInfo } from '../web-element';
+import type { WebElementInfo } from '../web-element';
 import { TaskCache } from './task-cache';
-import { type WebUIContext, parseContextFromWebPage } from './utils';
+import type { WebUIContext } from './utils';
 
 interface ExecutionResult<OutputType = any> {
   output: OutputType;
@@ -47,27 +46,13 @@ export class PageTaskExecutor {
 
   taskCache: TaskCache;
 
-  constructor(page: WebPage, opts: { cacheId: string | undefined }) {
+  constructor(
+    page: WebPage,
+    insight: Insight<WebElementInfo, WebUIContext>,
+    opts: { cacheId: string | undefined },
+  ) {
     this.page = page;
-    this.insight = new Insight<WebElementInfo, WebUIContext>(
-      async () => {
-        const context = await parseContextFromWebPage(page);
-        return context;
-      },
-      {
-        generateElement: ({ content, rect }) =>
-          new WebElementInfo({
-            content: content || '',
-            rect,
-            page,
-            id: '',
-            attributes: {
-              nodeType: NodeType.CONTAINER,
-            },
-            indexId: 0,
-          }),
-      },
-    );
+    this.insight = insight;
 
     this.taskCache = new TaskCache({
       fileName: opts?.cacheId,
@@ -99,7 +84,7 @@ export class PageTaskExecutor {
         recorder.push(shot);
         const result = await taskApply.executor(param, context, ...args);
         if (taskApply.type === 'Action') {
-          await sleep(1000);
+          await sleep(800);
           const shot2 = await this.recordScreenshot('after Action');
           recorder.push(shot2);
         }
@@ -120,6 +105,7 @@ export class PageTaskExecutor {
             type: 'Insight',
             subType: 'Locate',
             param: plan.param,
+            quickAnswer: plan.quickAnswer,
             executor: async (param, taskContext) => {
               const { task } = taskContext;
               let insightDump: InsightDump | undefined;
@@ -136,13 +122,13 @@ export class PageTaskExecutor {
               let locateResult: AIElementIdResponse | undefined;
               const callAI = this.insight.aiVendorFn;
               const element = await this.insight.locate(param.prompt, {
-                quickAnswer: plan.quickAnswer,
+                quickAnswer: task.quickAnswer,
                 callAI: async (...message: any) => {
                   if (locateCache) {
                     locateResult = locateCache;
                     return Promise.resolve(locateCache);
                   }
-                  const aiResult: AIElementReponse = await callAI(...message);
+                  const aiResult: AIElementResponse = await callAI(...message);
                   locateResult = transformElementPositionToId(
                     aiResult,
                     pageContext.content,

@@ -12,7 +12,7 @@ import { StaticPageAgent } from './agent';
 import StaticPage from './static-page';
 
 const defaultPort = 5800;
-const staticPath = join(__dirname, '../../static');
+// const staticPath = join(__dirname, '../../static');
 let agentRequestCount = 1;
 
 const errorHandler = (err: any, req: any, res: any, next: any) => {
@@ -69,13 +69,13 @@ export default class PlaygroundServer {
     });
 
     // Serve index.html for the root route
-    this.app.get('/', (req, res) => {
-      res.sendFile(join(staticPath, 'index.html'));
-    });
+    // this.app.get('/', (req, res) => {
+    //   res.sendFile(join(staticPath, 'index.html'));
+    // });
 
-    this.app.get('/playground/:uuid', async (req, res) => {
-      res.sendFile(join(staticPath, 'index.html'));
-    });
+    // this.app.get('/playground/:uuid', async (req, res) => {
+    //   res.sendFile(join(staticPath, 'index.html'));
+    // });
 
     this.app.get('/context/:uuid', async (req, res) => {
       const { uuid } = req.params;

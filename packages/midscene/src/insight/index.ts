@@ -6,7 +6,7 @@ import {
 } from '@/ai-model/index';
 import { AiAssert, callAiFn } from '@/ai-model/inspect';
 import type {
-  AIElementReponse,
+  AIElementResponse,
   AISingleElementResponse,
   BaseElement,
   DumpSubscriber,
@@ -39,7 +39,7 @@ const sortByOrder = (a: UISection, b: UISection) => {
 
 export interface LocateOpts {
   multi?: boolean;
-  callAI?: typeof callAiFn<AIElementReponse>;
+  callAI?: typeof callAiFn<AIElementResponse>;
   quickAnswer?: AISingleElementResponse;
 }
 
@@ -87,7 +87,7 @@ export default class Insight<
   async locate(
     queryPrompt: string,
     opt?: {
-      callAI?: typeof callAiFn<AIElementReponse>;
+      callAI?: typeof callAiFn<AIElementResponse>;
       quickAnswer?: AISingleElementResponse | null;
     },
   ): Promise<ElementType | null>;
@@ -130,6 +130,7 @@ export default class Insight<
       userQuery: {
         element: queryPrompt,
       },
+      quickAnswer: opt?.quickAnswer,
       matchedSection: [],
       matchedElement: [],
       data: null,

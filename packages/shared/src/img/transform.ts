@@ -47,21 +47,18 @@ export async function transformImgPathToBase64(inputPath: string) {
  * @returns A Promise that resolves to a base64-encoded string representing the resized image
  * @throws An error if the width or height cannot be determined from the metadata
  */
-export async function resizeImg<T extends 'base64' | 'buffer' = 'buffer'>(
-  inputData: string | Buffer,
+export async function resizeImg(
+  inputData: Buffer,
   newSize?: {
     width: number;
     height: number;
   },
-  outputFormat?: T,
-): Promise<T extends 'base64' ? string : Buffer> {
-  const isBase64 = typeof inputData === 'string';
-  const imageBuffer = isBase64
-    ? Buffer.from(inputData.split(';base64,').pop() || inputData, 'base64')
-    : inputData;
+): Promise<Buffer> {
+  if (typeof inputData === 'string')
+    throw Error('inputData is base64, use resizeImgBase64 instead');
 
   const Jimp = await getJimp();
-  const image = await Jimp.read(imageBuffer);
+  const image = await Jimp.read(inputData);
   const { width, height } = image.bitmap;
 
   if (!width || !height) {
@@ -70,13 +67,33 @@ export async function resizeImg<T extends 'base64' | 'buffer' = 'buffer'>(
 
   const finalNewSize = newSize || calculateNewDimensions(width, height);
 
-  image.resize(finalNewSize.width, finalNewSize.height);
+  image.resize(
+    finalNewSize.width,
+    finalNewSize.height,
+    Jimp.RESIZE_NEAREST_NEIGHBOR,
+  );
   const resizedBuffer = await image.getBufferAsync(Jimp.MIME_PNG);
 
-  // Otherwise maintain backward compatibility
-  return (
-    outputFormat === 'base64' ? resizedBuffer.toString('base64') : resizedBuffer
-  ) as T extends 'base64' ? string : Buffer;
+  return resizedBuffer;
+}
+
+export async function resizeImgBase64(
+  inputData: string,
+  newSize?: {
+    width: number;
+    height: number;
+  },
+): Promise<string> {
+  const splitFlag = ';base64,';
+  const dataSplitted = inputData.split(splitFlag);
+  if (dataSplitted.length !== 2) {
+    throw Error('Invalid base64 data');
+  }
+
+  const imageBuffer = Buffer.from(dataSplitted[1], 'base64');
+  const buffer = await resizeImg(imageBuffer, newSize);
+  const content = buffer.toString('base64');
+  return `${dataSplitted[0]}${splitFlag}${content}`;
 }
 
 /**

@@ -52,20 +52,24 @@ export enum AIResponseFormat {
   TEXT = 'text',
 }
 
+export type AISingleElementResponseById = {
+  id: string;
+  reason: string;
+  text: string;
+};
+
+export type AISingleElementResponseByPosition = {
+  position: {
+    x: number;
+    y: number;
+  };
+  reason: string;
+  text: string;
+};
+
 export type AISingleElementResponse =
-  | {
-      id: string;
-      reason: string;
-      text: string;
-    }
-  | {
-      position: {
-        x: number;
-        y: number;
-      };
-      reason: string;
-      text: string;
-    };
+  | AISingleElementResponseById
+  | AISingleElementResponseByPosition;
 
 export interface AIElementIdResponse {
   elements: {
@@ -88,7 +92,7 @@ export interface AIElementPositionResponse {
   errors?: string[];
 }
 
-export type AIElementReponse = AIElementIdResponse | AIElementPositionResponse;
+export type AIElementResponse = AIElementIdResponse | AIElementPositionResponse;
 
 export interface AISectionParseResponse<DataShape> {
   data: DataShape;
@@ -176,6 +180,7 @@ export interface InsightDump extends DumpMeta {
     sections?: Record<string, string>;
     assertion?: string;
   }; // ?
+  quickAnswer?: AISingleElementResponse | null;
   matchedSection: UISection[];
   matchedElement: BaseElement[];
   data: any;
@@ -283,7 +288,8 @@ export interface Color {
 }
 
 export interface BaseAgentParserOpt {
-  selector: string;
+  selector?: string;
+  ignoreMarker?: boolean;
 }
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface PuppeteerParserOpt extends BaseAgentParserOpt {}
@@ -322,6 +328,7 @@ export interface ExecutionTaskApply<
   type: Type;
   subType?: string;
   param?: TaskParam;
+  quickAnswer?: AISingleElementResponse | null;
   executor: (
     param: TaskParam,
     context: ExecutorContext,
@@ -374,7 +381,6 @@ task - insight-locate
 */
 export interface ExecutionTaskInsightLocateParam {
   prompt: string;
-  quickAnswer?: AISingleElementResponse | null;
 }
 
 export interface ExecutionTaskInsightLocateOutput {

@@ -29,9 +29,14 @@ export const useBlackboardPreference = create<{
 
 const CONFIG_KEY = 'midscene-env-config';
 const SERVICE_MODE_KEY = 'midscene-service-mode';
+const HISTORY_KEY = 'midscene-prompt-history';
 const getConfigStringFromLocalStorage = () => {
   const configString = localStorage.getItem(CONFIG_KEY);
   return configString || '';
+};
+const getHistoryFromLocalStorage = () => {
+  const historyString = localStorage.getItem(HISTORY_KEY);
+  return historyString ? JSON.parse(historyString) : [];
 };
 const parseConfig = (configString: string) => {
   const lines = configString.split('\n');
@@ -60,11 +65,24 @@ const parseConfig = (configString: string) => {
       config[key] = parsedValue;
     }
   });
-  console.log('parsed config', config);
   return config;
 };
 
-export type ServiceModeType = 'Server' | 'In-Browser';
+export interface HistoryItem {
+  type: 'aiAction' | 'aiQuery' | 'aiAssert';
+  prompt: string;
+  timestamp: number;
+}
+
+/**
+/**
+ * Service Mode
+ *
+ * - Server: use a node server to run the code
+ * - In-Browser: use browser's fetch API to run the code
+ * - In-Browser-Extension: use browser's fetch API to run the code, but the page is running in the extension context
+ */
+export type ServiceModeType = 'Server' | 'In-Browser' | 'In-Browser-Extension'; // | 'Extension';
 export const useEnvConfig = create<{
   serviceMode: ServiceModeType;
   setServiceMode: (serviceMode: ServiceModeType) => void;
@@ -72,15 +90,23 @@ export const useEnvConfig = create<{
   configString: string;
   setConfig: (config: Record<string, string>) => void;
   loadConfig: (configString: string) => void;
-}>((set) => {
+  history: HistoryItem[];
+  clearHistory: () => void;
+  addHistory: (history: HistoryItem) => void;
+}>((set, get) => {
   const configString = getConfigStringFromLocalStorage();
   const config = parseConfig(configString);
+  const ifInExtension = window.location.href.startsWith('chrome-extension');
   const savedServiceMode = localStorage.getItem(
     SERVICE_MODE_KEY,
   ) as ServiceModeType | null;
   return {
-    serviceMode: savedServiceMode || 'In-Browser',
+    serviceMode: ifInExtension
+      ? 'In-Browser-Extension'
+      : savedServiceMode || 'In-Browser',
     setServiceMode: (serviceMode: ServiceModeType) => {
+      if (ifInExtension)
+        throw new Error('serviceMode cannot be set in extension');
       set({ serviceMode });
       localStorage.setItem(SERVICE_MODE_KEY, serviceMode);
     },
@@ -91,6 +117,22 @@ export const useEnvConfig = create<{
       const config = parseConfig(configString);
       set({ config, configString });
       localStorage.setItem(CONFIG_KEY, configString);
+    },
+    history: getHistoryFromLocalStorage(),
+    clearHistory: () => {
+      set({ history: [] });
+      localStorage.removeItem(HISTORY_KEY);
+    },
+    addHistory: (history) => {
+      const newHistory = [
+        history,
+        ...get().history.filter((h) => h.prompt !== history.prompt),
+      ];
+      while (newHistory.length > 10) {
+        newHistory.pop();
+      }
+      set({ history: newHistory });
+      localStorage.setItem(HISTORY_KEY, JSON.stringify(newHistory));
     },
   };
 });
