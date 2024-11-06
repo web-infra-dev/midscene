@@ -74,7 +74,6 @@ export function preferOpenAIModel(preferVendor?: 'coze' | 'openAI') {
 
 // default model
 const defaultModel = 'gpt-4o';
-
 export function getModelName() {
   let modelName = defaultModel;
   const nameInConfig = getAIConfig(MIDSCENE_MODEL_NAME);
@@ -84,19 +83,10 @@ export function getModelName() {
   return modelName;
 }
 
-const defaultExtraConfig: ClientOptions = {};
-function getExtraConfig() {
-  let extraConfig = defaultExtraConfig;
-  const configInEnv = getAIConfig(MIDSCENE_OPENAI_INIT_CONFIG_JSON);
-  if (configInEnv) {
-    extraConfig = JSON.parse(configInEnv);
-  }
-  return extraConfig;
-}
-
 async function createOpenAI() {
   let openai: OpenAI | AzureOpenAI;
-  const extraConfig = getExtraConfig();
+  const extraConfigString = getAIConfig(MIDSCENE_OPENAI_INIT_CONFIG_JSON);
+  const extraConfig = extraConfigString ? JSON.parse(extraConfigString) : {};
   if (getAIConfig(OPENAI_USE_AZURE)) {
     openai = new AzureOpenAI({
       baseURL: getAIConfig(OPENAI_BASE_URL),
