@@ -6,7 +6,7 @@ export default defineConfig({
   buildPreset: 'npm-library',
   buildConfig: [
     {
-      format: 'umd',
+      format: 'cjs',
       input: {
         index: 'src/index.ts',
         utils: 'src/utils.ts',
