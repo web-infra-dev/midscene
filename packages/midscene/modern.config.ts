@@ -14,7 +14,7 @@ export default defineConfig({
       },
       outDir: 'dist/lib',
       externals: ['langsmith'],
-      target: 'es6',
+      target: 'es2018',
       define: {
         __VERSION__: version,
       },

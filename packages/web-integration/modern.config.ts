@@ -17,7 +17,7 @@ export default defineConfig({
       'playwright-report': './src/playwright/reporter/index.ts',
       'chrome-extension': 'src/chrome-extension/index.ts',
     },
-    target: 'es6',
+    target: 'es2018',
     externals: ['@midscene/core', '@midscene/shared'],
   },
 });
