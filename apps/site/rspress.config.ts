@@ -12,7 +12,7 @@ export default defineConfig({
     dark: '/midscene_with_text_light.png',
   },
   themeConfig: {
-    darkMode: true,
+    darkMode: false,
     socialLinks: [
       {
         icon: 'github',
