@@ -246,12 +246,8 @@ export default class ChromeExtensionProxyPage implements AbstractPage {
   keyboard = {
     type: async (text: string) => {
       for (const char of text) {
-        // Send char event
-        await this.sendCommandToDebugger('Input.dispatchKeyEvent', {
-          type: 'char',
+        await this.sendCommandToDebugger('Input.insertText', {
           text: char,
-          key: char,
-          unmodifiedText: char,
         });
 
         // sleep 50ms

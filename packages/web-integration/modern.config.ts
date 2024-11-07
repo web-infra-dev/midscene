@@ -4,7 +4,7 @@ export default defineConfig({
   plugins: [moduleTools()],
   buildPreset: 'npm-library',
   buildConfig: {
-    format: 'umd',
+    format: 'cjs',
     input: {
       index: 'src/index.ts',
       utils: 'src/common/utils.ts',
@@ -17,7 +17,7 @@ export default defineConfig({
       'playwright-report': './src/playwright/reporter/index.ts',
       'chrome-extension': 'src/chrome-extension/index.ts',
     },
-    target: 'es6',
+    target: 'es2018',
     externals: ['@midscene/core', '@midscene/shared'],
   },
 });

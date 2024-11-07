@@ -10,7 +10,7 @@ const commonConfig = {
   },
   autoExternal: false,
   externals: [...externals],
-  target: 'es6',
+  target: 'es2018',
   minify: process.env.CI
     ? {
         compress: true,
@@ -42,8 +42,7 @@ export default defineConfig({
       },
       platform: 'browser',
       outDir: 'dist',
-
-      target: 'es6',
+      target: 'es2018',
     },
     {
       ...commonConfig,
@@ -59,7 +58,7 @@ export default defineConfig({
       },
       platform: 'browser',
       outDir: 'unpacked-extension/lib',
-      target: 'es6',
+      target: 'es2018',
     },
   ],
   plugins: [

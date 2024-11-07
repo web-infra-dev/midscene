@@ -7,7 +7,7 @@
   "jsnext:source": "./src/index.ts",
   "type": "commonjs",
   "main": "./dist/lib/index.js",
-  "types": "./dist/types/index.d.ts",
+  "types": "./dist/lib/types/index.d.ts",
   "files": ["dist", "report", "README.md"],
   "exports": {
     ".": "./dist/lib/index.js",
@@ -16,9 +16,9 @@
   },
   "typesVersions": {
     "*": {
-      ".": ["./dist/types/index.d.ts"],
-      "utils": ["./dist/lib/utils.d.ts"],
-      "ai-model": ["./dist/lib/ai-model.d.ts"]
+      ".": ["./dist/lib/types/index.d.ts"],
+      "utils": ["./dist/lib/types/utils.d.ts"],
+      "ai-model": ["./dist/lib/types/ai-model.d.ts"]
     }
   },
   "scripts": {
