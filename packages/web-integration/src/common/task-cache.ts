@@ -1,6 +1,10 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import type { AIElementIdResponse, PlanningAction } from '@midscene/core';
+import {
+  type AIElementIdResponse,
+  type PlanningAction,
+  getAIConfig,
+} from '@midscene/core';
 import {
   getLogDirByType,
   stringifyDumpData,
@@ -54,9 +58,9 @@ export class TaskCache {
 
   midscenePkgInfo: ReturnType<typeof getRunningPkgInfo> | null;
 
-  constructor(opts?: { fileName?: string }) {
+  constructor(opts?: { cacheId?: string }) {
     this.midscenePkgInfo = getRunningPkgInfo();
-    this.cacheId = generateCacheId(opts?.fileName);
+    this.cacheId = opts?.cacheId || '';
     this.cache = this.readCacheFromFile() || {
       aiTasks: [],
     };
@@ -196,11 +200,11 @@ export class TaskCache {
   }
 
   readCacheFromFile() {
-    if (ifInBrowser) {
+    if (ifInBrowser || !this.cacheId) {
       return undefined;
     }
     const cacheFile = join(getLogDirByType('cache'), `${this.cacheId}.json`);
-    if (process.env.MIDSCENE_CACHE === 'true' && existsSync(cacheFile)) {
+    if (getAIConfig('MIDSCENE_CACHE') === 'true' && existsSync(cacheFile)) {
       try {
         const data = readFileSync(cacheFile, 'utf8');
         const jsonData = JSON.parse(data);
@@ -223,7 +227,7 @@ export class TaskCache {
 
   writeCacheToFile() {
     const midscenePkgInfo = getRunningPkgInfo();
-    if (!midscenePkgInfo) {
+    if (!midscenePkgInfo || !this.cacheId) {
       return;
     }
 

@@ -43,7 +43,7 @@ export const PlaywrightAiFixture = () => {
 
       pageAgentMap[idForPage] = new PageAgent(new PlaywrightWebPage(page), {
         testId: `playwright-${testId}-${idForPage}`,
-        cacheId: taskFile,
+        cacheId: `${taskFile}(${taskTitle})`,
         groupName: taskTitle,
         groupDescription: taskFile,
         generateReport: false, // we will generate it in the reporter
