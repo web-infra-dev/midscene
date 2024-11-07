@@ -54,6 +54,11 @@ jobs:
           npx playwright install-deps && npx playwright install
         fi
 
+    - name: Install puppeteer dependencies
+      run: |
+        cd packages/web-integration
+        npx puppeteer browsers install chrome
+
     - name: Build project
       run: pnpm run build
 
