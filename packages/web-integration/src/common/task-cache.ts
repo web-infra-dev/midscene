@@ -1,6 +1,10 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import type { AIElementIdResponse, PlanningAction } from '@midscene/core';
+import {
+  type AIElementIdResponse,
+  type PlanningAction,
+  getAIConfig,
+} from '@midscene/core';
 import {
   getLogDirByType,
   stringifyDumpData,
@@ -200,7 +204,7 @@ export class TaskCache {
       return undefined;
     }
     const cacheFile = join(getLogDirByType('cache'), `${this.cacheId}.json`);
-    if (process.env.MIDSCENE_CACHE === 'true' && existsSync(cacheFile)) {
+    if (getAIConfig('MIDSCENE_CACHE') === 'true' && existsSync(cacheFile)) {
       try {
         const data = readFileSync(cacheFile, 'utf8');
         const jsonData = JSON.parse(data);
