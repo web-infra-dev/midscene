@@ -1,4 +1,4 @@
-# Command Line Tools
+# Command line tools
 
 `@midscene/cli` is the command line version of Midscene. It is suitable for executing very simple tasks or experiencing the basics of Midscene.
 
@@ -8,7 +8,7 @@
 
 ⁠Ensure that you have [Node.js](https://nodejs.org/) installed.
 
-* Config AI vendor
+* Config AI provider
 
 ```bash
 # replace by your own
@@ -16,7 +16,7 @@ export OPENAI_API_KEY="sk-abcdefghijklmnopqrstuvwxyz"
 ```
 
 Related Docs:
-* [Customize model vendor](./model-vendor.html)
+* [Customize model provider](./model-provider.html)
 
 ## Examples
 

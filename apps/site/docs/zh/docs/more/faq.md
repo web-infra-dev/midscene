@@ -21,7 +21,7 @@ Midscene 存在一些局限性，我们仍在努力改进。
 
 Midscene 需要一个能够理解用户界面的多模态大型语言模型。目前，我们发现 OpenAI 的 GPT-4o 表现最好，远超其它模型。
 
-你可以根据需要[自定义模型服务](../usage/model-vendor.html)。
+你可以根据需要[自定义模型服务](../usage/model-provider.html)。
 
 ### 关于 token 成本
 

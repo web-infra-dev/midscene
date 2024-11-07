@@ -1,4 +1,4 @@
-# Tips for Prompting
+# Tips for prompting
 
 The natural language parameter passed to Midscene will be part of the prompt sent to the LLM. There are certain techniques in prompt engineering that can help improve the understanding of user interfaces.
 

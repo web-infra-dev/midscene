@@ -50,11 +50,11 @@ Currently, Midscene can't plan steps that include conditions and loops.
 
 Related Docs:
 * [FAQ: Can Midscene smartly plan the actions according to my one-line goal? Like executing "Tweet 'hello world'](../more/faq.html)
-* [Tips for Prompting](../more/prompting-tips.html)
+* [Tips for prompting](../more/prompting-tips.html)
 
 ### `.aiQuery(dataDemand: any)` - extract any data from page
 
-You can extract customized data from the UI. Provided that the multi-modal AI can perform inference, it can return both data directly written on the page and any data based on "understanding". The return value can be any valid primitive type, like String, Number, JSON, Array, etc. Just describe it in the `dataDemand`.
+You can extract customized data from the UI. Provided that the multi-modal AI can perform inference, it can return both data directly written on the page and any data based on "understanding". The return value is in JSON format, so it should be valid primitive types, like String, Number, JSON, Array, etc. Just describe it in the `dataDemand`.
 
 For example, to parse detailed information from page:
 

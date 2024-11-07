@@ -16,7 +16,7 @@ export OPENAI_API_KEY="sk-abcdefghijklmnopqrstuvwxyz"
 ```
 
 相关文档：
-* [自定义模型服务](./model-vendor.html)
+* [自定义模型服务](./model-provider.html)
 
 ## 示例
 

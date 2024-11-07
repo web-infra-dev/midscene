@@ -7,7 +7,7 @@ Midscene is an automation assistance SDK with a key feature of action stability 
 If you require a 'goal-to-task' AI planning tool, you can develop one based on Midscene.
 
 Related Docs:
-* [Tips for Prompting](./prompting-tips.html)
+* [Tips for prompting](./prompting-tips.html)
 
 ### Limitations
 
@@ -21,7 +21,7 @@ There are some limitations with Midscene. We are still working on them.
 
 Midscene needs a multimodal Large Language Model (LLM) to understand the UI. Currently, we find that OpenAI's  GPT-4o performs much better than others.
 
-You can [customize model vendor](../usage/model-vendor.html) if needed.
+You can [customize model provider](../usage/model-provider.html) if needed.
 
 ### About the token cost
 
@@ -60,3 +60,9 @@ await page.setViewport({
   deviceScaleFactor: 2,
 });
 ```
+
+### How Midscene works
+
+It's mainly about the UI parsing and multimodal AI. Here is a flowchart that describes the core process of the interaction between Midscene and AI.
+
+![](/flow.png)

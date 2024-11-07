@@ -1,6 +1,41 @@
 import * as path from 'node:path';
 import { defineConfig } from 'rspress/config';
 
+// [{
+//   "type": "section-header",
+//   "label": "Getting Started"
+// },
+// {
+//   "type": "dir",
+//   "name": "getting-started",
+//   "label": "Getting Started"
+// },
+// "introduction",
+// "quick-start",
+// "demo",
+// "chrome-extension",
+// {
+//   "type": "divider"
+// },
+// {
+//   "type": "section-header",
+//   "label": "Usage"
+// },
+// "api",
+// "cli",
+// "cache",
+// "model-provider",
+// {
+//   "type": "divider"
+// },
+// {
+//   "type": "section-header",
+//   "label": "More"
+// },
+// "prompting-tips",
+// "faq"
+// ]
+
 export default defineConfig({
   root: path.join(__dirname, 'docs'),
   title: 'Midscene.js',
@@ -42,6 +77,66 @@ export default defineConfig({
         label: '大纲',
       },
     ],
+    sidebar: {
+      '/docs/': [
+        {
+          text: 'Getting Started',
+          items: [
+            // 填入一个对象
+            {
+              text: 'Introduction',
+              link: '/docs/introduction',
+            },
+            {
+              text: 'Quick Start',
+              link: '/docs/quick-start',
+            },
+            {
+              text: 'Demo',
+              link: '/docs/demo',
+            },
+            {
+              text: 'Chrome Extension',
+              link: '/docs/chrome-extension',
+            },
+          ],
+        },
+        {
+          text: 'Usage',
+          items: [
+            {
+              text: 'API',
+              link: '/docs/api',
+            },
+            {
+              text: 'CLI',
+              link: '/docs/cli',
+            },
+            {
+              text: 'Cache',
+              link: '/docs/cache',
+            },
+            {
+              text: 'Model Provider',
+              link: '/docs/model-provider',
+            },
+          ],
+        },
+        {
+          text: 'More',
+          items: [
+            {
+              text: 'Prompting Tips',
+              link: '/docs/prompting-tips',
+            },
+            {
+              text: 'FAQ',
+              link: '/docs/faq',
+            },
+          ],
+        },
+      ],
+    },
   },
   globalStyles: path.join(__dirname, 'styles/index.css'),
   locales: [

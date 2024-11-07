@@ -1,0 +1,34 @@
+[{
+        "type": "section-header",
+        "label": "Getting Started"
+    },
+    {
+        "type": "dir",
+        "name": "getting-started",
+        "label": "Getting Started"
+    },
+    "introduction",
+    "quick-start",
+    "demo",
+    "chrome-extension",
+    {
+        "type": "divider"
+    },
+    {
+        "type": "section-header",
+        "label": "Usage"
+    },
+    "api",
+    "cli",
+    "cache",
+    "model-provider",
+    {
+        "type": "divider"
+    },
+    {
+        "type": "section-header",
+        "label": "More"
+    },
+    "prompting-tips",
+    "faq"
+]
