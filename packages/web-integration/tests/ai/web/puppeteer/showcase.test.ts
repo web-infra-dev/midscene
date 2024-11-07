@@ -9,7 +9,10 @@ describe(
       const { originPage, reset } = await launchPage(
         'https://www.saucedemo.com/',
       );
-      const mid = new PuppeteerAgent(originPage);
+      const mid = new PuppeteerAgent(originPage, {
+        cacheId: 'puppeteer(Sauce Demo by Swag Lab)',
+      });
+
       await mid.aiAction(
         'type "standard_user" in user name input, type "secret_sauce" in password, click "Login"',
       );

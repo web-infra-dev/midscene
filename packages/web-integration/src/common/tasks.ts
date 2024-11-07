@@ -55,7 +55,7 @@ export class PageTaskExecutor {
     this.insight = insight;
 
     this.taskCache = new TaskCache({
-      fileName: opts?.cacheId,
+      cacheId: opts?.cacheId,
     });
   }
 

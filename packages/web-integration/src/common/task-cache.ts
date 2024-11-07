@@ -54,9 +54,9 @@ export class TaskCache {
 
   midscenePkgInfo: ReturnType<typeof getRunningPkgInfo> | null;
 
-  constructor(opts?: { fileName?: string }) {
+  constructor(opts?: { cacheId?: string }) {
     this.midscenePkgInfo = getRunningPkgInfo();
-    this.cacheId = generateCacheId(opts?.fileName);
+    this.cacheId = opts?.cacheId || '';
     this.cache = this.readCacheFromFile() || {
       aiTasks: [],
     };
@@ -196,7 +196,7 @@ export class TaskCache {
   }
 
   readCacheFromFile() {
-    if (ifInBrowser) {
+    if (ifInBrowser || !this.cacheId) {
       return undefined;
     }
     const cacheFile = join(getLogDirByType('cache'), `${this.cacheId}.json`);
@@ -223,7 +223,7 @@ export class TaskCache {
 
   writeCacheToFile() {
     const midscenePkgInfo = getRunningPkgInfo();
-    if (!midscenePkgInfo) {
+    if (!midscenePkgInfo || !this.cacheId) {
       return;
     }
 
