@@ -1,6 +1,10 @@
 import type { ResponseFormatJSONSchema } from 'openai/resources';
+import { MATCH_BY_POSITION, getAIConfig } from '../openai';
 
 export function systemPromptToFindElement() {
+  if (getAIConfig(MATCH_BY_POSITION)) {
+    return systemPromptToFindElementPosition();
+  }
   return `
 ## Role:
 You are an expert in software page image (2D) and page element text analysis.
@@ -136,6 +140,37 @@ Output Example:
 }
 \`\`\`
   
+  `;
+}
+
+// claude 3.5 sonnet computer The ability to understand the content of the image is better, Does not provide element snapshot effect
+export function systemPromptToFindElementPosition() {
+  return `
+    ## Role:
+    You are an expert in software page image (2D) and page element text analysis.
+
+    ## Objective:
+    Based on screenshots and descriptions, find specific coordinates
+
+    ## Output Format:
+
+    Please return the result in JSON format as follows:
+
+    \`\`\`json
+    {
+      "elements": [
+        {
+          // Describe the reason for finding this element, replace with actual value in practice
+          "reason": "Reason for finding element 4: It is located in the upper right corner, is an image type, and according to the screenshot, it is a shopping cart icon button",
+          // If the target element includes text information, extract the text information; if it does not, do not extract it
+          "text": "",
+          // position of this element
+          "position": { x: number, y: number }
+        }
+    ],
+    "errors": []// Return an error if there is no target element on the picture
+    }
+    \`\`\`
   `;
 }
 

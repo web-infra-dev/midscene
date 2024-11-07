@@ -1,32 +1,141 @@
 import * as Z from 'zustand';
 // import { createStore } from 'zustand/vanilla';
 import type {
-  BaseElement,
   ExecutionDump,
   ExecutionTask,
   ExecutionTaskInsightLocate,
   GroupedActionDump,
   InsightDump,
-} from '../../../midscene/dist/types';
+} from '../../../midscene';
 import type { AnimationScript } from './replay-scripts';
-import { generateAnimationScripts } from './replay-scripts';
+import { allScriptsFromDump, generateAnimationScripts } from './replay-scripts';
 
 const { create } = Z;
 export const useBlackboardPreference = create<{
-  bgVisible: boolean;
+  markerVisible: boolean;
   elementsVisible: boolean;
-  setBgVisible: (visible: boolean) => void;
+  setMarkerVisible: (visible: boolean) => void;
   setTextsVisible: (visible: boolean) => void;
 }>((set) => ({
-  bgVisible: true,
+  markerVisible: true,
   elementsVisible: true,
-  setBgVisible: (visible: boolean) => {
-    set({ bgVisible: visible });
+  setMarkerVisible: (visible: boolean) => {
+    set({ markerVisible: visible });
   },
   setTextsVisible: (visible: boolean) => {
     set({ elementsVisible: visible });
   },
 }));
+
+const CONFIG_KEY = 'midscene-env-config';
+const SERVICE_MODE_KEY = 'midscene-service-mode';
+const HISTORY_KEY = 'midscene-prompt-history';
+const getConfigStringFromLocalStorage = () => {
+  const configString = localStorage.getItem(CONFIG_KEY);
+  return configString || '';
+};
+const getHistoryFromLocalStorage = () => {
+  const historyString = localStorage.getItem(HISTORY_KEY);
+  return historyString ? JSON.parse(historyString) : [];
+};
+const parseConfig = (configString: string) => {
+  const lines = configString.split('\n');
+  const config: Record<string, string> = {};
+  lines.forEach((line) => {
+    const trimmed = line.trim();
+    if (trimmed.startsWith('#')) return;
+
+    const cleanLine = trimmed
+      .replace(/^export\s+/i, '')
+      .replace(/;$/, '')
+      .trim();
+    const match = cleanLine.match(/^(\w+)=(.*)$/);
+    if (match) {
+      const [, key, value] = match;
+      let parsedValue = value.trim();
+
+      // Remove surrounding quotes if present
+      if (
+        (parsedValue.startsWith("'") && parsedValue.endsWith("'")) ||
+        (parsedValue.startsWith('"') && parsedValue.endsWith('"'))
+      ) {
+        parsedValue = parsedValue.slice(1, -1);
+      }
+
+      config[key] = parsedValue;
+    }
+  });
+  return config;
+};
+
+export interface HistoryItem {
+  type: 'aiAction' | 'aiQuery' | 'aiAssert';
+  prompt: string;
+  timestamp: number;
+}
+
+/**
+/**
+ * Service Mode
+ *
+ * - Server: use a node server to run the code
+ * - In-Browser: use browser's fetch API to run the code
+ * - In-Browser-Extension: use browser's fetch API to run the code, but the page is running in the extension context
+ */
+export type ServiceModeType = 'Server' | 'In-Browser' | 'In-Browser-Extension'; // | 'Extension';
+export const useEnvConfig = create<{
+  serviceMode: ServiceModeType;
+  setServiceMode: (serviceMode: ServiceModeType) => void;
+  config: Record<string, string>;
+  configString: string;
+  setConfig: (config: Record<string, string>) => void;
+  loadConfig: (configString: string) => void;
+  history: HistoryItem[];
+  clearHistory: () => void;
+  addHistory: (history: HistoryItem) => void;
+}>((set, get) => {
+  const configString = getConfigStringFromLocalStorage();
+  const config = parseConfig(configString);
+  const ifInExtension = window.location.href.startsWith('chrome-extension');
+  const savedServiceMode = localStorage.getItem(
+    SERVICE_MODE_KEY,
+  ) as ServiceModeType | null;
+  return {
+    serviceMode: ifInExtension
+      ? 'In-Browser-Extension'
+      : savedServiceMode || 'In-Browser',
+    setServiceMode: (serviceMode: ServiceModeType) => {
+      if (ifInExtension)
+        throw new Error('serviceMode cannot be set in extension');
+      set({ serviceMode });
+      localStorage.setItem(SERVICE_MODE_KEY, serviceMode);
+    },
+    config,
+    configString,
+    setConfig: (config) => set({ config }),
+    loadConfig: (configString: string) => {
+      const config = parseConfig(configString);
+      set({ config, configString });
+      localStorage.setItem(CONFIG_KEY, configString);
+    },
+    history: getHistoryFromLocalStorage(),
+    clearHistory: () => {
+      set({ history: [] });
+      localStorage.removeItem(HISTORY_KEY);
+    },
+    addHistory: (history) => {
+      const newHistory = [
+        history,
+        ...get().history.filter((h) => h.prompt !== history.prompt),
+      ];
+      while (newHistory.length > 10) {
+        newHistory.pop();
+      }
+      set({ history: newHistory });
+      localStorage.setItem(HISTORY_KEY, JSON.stringify(newHistory));
+    },
+  };
+});
 
 export const useExecutionDump = create<{
   dump: GroupedActionDump | null;
@@ -41,6 +150,8 @@ export const useExecutionDump = create<{
   activeExecutionAnimation: AnimationScript[] | null;
   activeTask: ExecutionTask | null;
   setActiveTask: (task: ExecutionTask) => void;
+  insightDump: InsightDump | null;
+  _insightDumpLoadId: number;
   hoverTask: ExecutionTask | null;
   hoverTimestamp: number | null;
   setHoverTask: (task: ExecutionTask | null, timestamp?: number | null) => void;
@@ -51,37 +162,28 @@ export const useExecutionDump = create<{
   let _executionDumpLoadId = 0;
   const initData = {
     dump: null,
-    activeTask: null,
     replayAllMode: false,
     allExecutionAnimation: null,
     insightWidth: null,
     insightHeight: null,
+    activeTask: null,
     activeExecution: null,
     activeExecutionAnimation: null,
-    // TODO: get from dump
+    insightDump: null,
+    _insightDumpLoadId: 0,
     hoverTask: null,
     hoverTimestamp: null,
     hoverPreviewConfig: null,
   };
 
-  const syncToInsightDump = (dump: InsightDump) => {
-    const { loadData } = useInsightDump.getState();
-    loadData(dump);
-  };
-
-  const resetInsightDump = () => {
-    const { reset } = useInsightDump.getState();
-    reset();
-  };
-
   const resetActiveExecution = () => {
     set({
+      activeTask: null,
       activeExecution: null,
       activeExecutionAnimation: null,
       _executionDumpLoadId: ++_executionDumpLoadId,
+      insightDump: null,
     });
-
-    resetInsightDump();
   };
 
   return {
@@ -106,46 +208,28 @@ export const useExecutionDump = create<{
         ...initData,
         dump,
       });
-      resetInsightDump();
 
       // set the first task as selected
-      // if (
-      //   dump &&
-      //   dump.executions.length > 0 &&
-      //   dump.executions[0].tasks.length > 0
-      // ) {
-      //   get().setActiveTask(dump.executions[0].tasks[0]);
-      // }
 
       if (dump && dump.executions.length > 0) {
-        // find out the width and height of the screenshot
-        let width = 0;
-        let height = 0;
+        const setDefaultActiveTask = () => {
+          if (
+            dump &&
+            dump.executions.length > 0 &&
+            dump.executions[0].tasks.length > 0
+          ) {
+            get().setActiveTask(dump.executions[0].tasks[0]);
+          }
+        };
 
-        dump.executions.forEach((execution) => {
-          execution.tasks.forEach((task) => {
-            if (task.type === 'Insight') {
-              const insightTask = task as ExecutionTaskInsightLocate;
-              width = insightTask.log?.dump?.context?.size?.width || 1920;
-              height = insightTask.log?.dump?.context?.size?.height || 1080;
-            }
-          });
-        });
+        const allScriptsInfo = allScriptsFromDump(dump);
 
-        if (!width || !height) {
-          console.warn(
-            'width or height not found, failed to generate animation',
-          );
-          return;
+        if (!allScriptsInfo) {
+          return setDefaultActiveTask();
         }
 
-        const allScripts: AnimationScript[] = [];
-        dump.executions.forEach((execution) => {
-          const scripts = generateAnimationScripts(execution, width, height);
-          if (scripts) {
-            allScripts.push(...scripts);
-          }
-        });
+        const { scripts: allScripts, width, height } = allScriptsInfo;
+
         set({
           allExecutionAnimation: allScripts,
           _executionDumpLoadId: ++_executionDumpLoadId,
@@ -183,9 +267,13 @@ export const useExecutionDump = create<{
       });
       console.log('will set task', task);
       if (task.type === 'Insight') {
-        syncToInsightDump((task as ExecutionTaskInsightLocate).log?.dump!);
+        const dump = (task as ExecutionTaskInsightLocate).log?.dump!;
+        set({
+          insightDump: dump,
+          _insightDumpLoadId: ++state._insightDumpLoadId,
+        });
       } else {
-        resetInsightDump();
+        set({ insightDump: null });
       }
     },
     setHoverTask(task: ExecutionTask | null, timestamp?: number | null) {
@@ -205,7 +293,6 @@ export const useExecutionDump = create<{
     },
     reset: () => {
       set(initData);
-      resetInsightDump();
     },
   };
 });
@@ -221,45 +308,3 @@ export const useAllCurrentTasks = (): ExecutionTask[] => {
 
   return tasksInside;
 };
-
-export const useInsightDump = create<{
-  _loadId: number;
-  data: InsightDump | null;
-  highlightSectionNames: string[];
-  setHighlightSectionNames: (sections: string[]) => void;
-  highlightElements: BaseElement[];
-  setHighlightElements: (elements: BaseElement[]) => void;
-  loadData: (data: InsightDump) => void;
-  reset: () => void;
-}>((set) => {
-  let loadId = 0;
-  const initData = {
-    _loadId: 0,
-    highlightSectionNames: [],
-    highlightElements: [],
-    data: null,
-  };
-
-  return {
-    ...initData,
-    loadData: (data: InsightDump) => {
-      // console.log('will load dump data');
-      // console.log(data);
-      set({
-        _loadId: ++loadId,
-        data,
-        highlightSectionNames: [],
-        highlightElements: [],
-      });
-    },
-    setHighlightSectionNames: (sections: string[]) => {
-      set({ highlightSectionNames: sections });
-    },
-    setHighlightElements: (elements: BaseElement[]) => {
-      set({ highlightElements: elements });
-    },
-    reset: () => {
-      set(initData);
-    },
-  };
-});

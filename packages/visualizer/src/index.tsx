@@ -2,22 +2,27 @@ import './index.less';
 import DetailSide from '@/component/detail-side';
 import Sidebar from '@/component/sidebar';
 import { useExecutionDump } from '@/component/store';
-import {
-  CaretRightOutlined,
-  DownOutlined,
-  PlayCircleOutlined,
-  PlaySquareOutlined,
-} from '@ant-design/icons';
+import { CaretRightOutlined, DownOutlined } from '@ant-design/icons';
 import type { GroupedActionDump } from '@midscene/core';
 import { Helmet } from '@modern-js/runtime/head';
-import { Alert, Button, ConfigProvider, Dropdown, Upload, message } from 'antd';
+import {
+  Alert,
+  Button,
+  ConfigProvider,
+  Dropdown,
+  Empty,
+  Upload,
+  message,
+} from 'antd';
 import type { UploadProps } from 'antd';
 import React, { useEffect, useRef, useState } from 'react';
 import ReactDOM from 'react-dom/client';
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
-import logo from './component/assets/logo-plain.png';
+import logoImg from './component/assets/logo-plain.png';
+import { globalThemeConfig } from './component/color';
 import DetailPanel from './component/detail-panel';
 import GlobalHoverPreview from './component/global-hover-preview';
+import Logo from './component/logo';
 import { iconForStatus, timeCostStrElement } from './component/misc';
 import Player from './component/player';
 import Timeline from './component/timeline';
@@ -31,10 +36,9 @@ interface ExecutionDumpWithPlaywrightAttributes extends GroupedActionDump {
 
 export function Visualizer(props: {
   logoAction?: () => void;
-  hideLogo?: boolean;
   dumps?: ExecutionDumpWithPlaywrightAttributes[];
 }): JSX.Element {
-  const { dumps, hideLogo = false } = props;
+  const { dumps } = props;
 
   const executionDump = useExecutionDump((store) => store.dump);
   const executionDumpLoadId = useExecutionDump(
@@ -45,10 +49,13 @@ export function Visualizer(props: {
   const replayAllScripts = useExecutionDump(
     (store) => store.allExecutionAnimation,
   );
+  const insightWidth = useExecutionDump((store) => store.insightWidth);
+  const insightHeight = useExecutionDump((store) => store.insightHeight);
   const setGroupedDump = useExecutionDump((store) => store.setGroupedDump);
   const reset = useExecutionDump((store) => store.reset);
   const [mainLayoutChangeFlag, setMainLayoutChangeFlag] = useState(0);
   const mainLayoutChangedRef = useRef(false);
+  const dump = useExecutionDump((store) => store.dump);
 
   useEffect(() => {
     if (dumps) {
@@ -104,7 +111,16 @@ export function Visualizer(props: {
   };
 
   let mainContent: JSX.Element;
-  if (!executionDump) {
+  if (dump && dump.executions.length === 0) {
+    mainContent = (
+      <div className="main-right">
+        <Empty
+          image={Empty.PRESENTED_IMAGE_SIMPLE}
+          description="There is no task info in this dump file."
+        />
+      </div>
+    );
+  } else if (!executionDump) {
     mainContent = (
       <div className="main-right uploader-wrapper">
         <Dragger className="uploader" {...uploadProps}>
@@ -112,7 +128,7 @@ export function Visualizer(props: {
             <img
               alt="Midscene_logo"
               style={{ width: 80, margin: 'auto' }}
-              src={logo}
+              src={logoImg}
             />
           </p>
           <p className="ant-upload-text">
@@ -144,7 +160,12 @@ export function Visualizer(props: {
   } else {
     const content = replayAllMode ? (
       <div className="replay-all-mode-wrapper">
-        <Player key={executionDumpLoadId} />
+        <Player
+          key={`${executionDumpLoadId}`}
+          replayScripts={replayAllScripts!}
+          imageWidth={insightWidth!}
+          imageHeight={insightHeight!}
+        />
       </div>
     ) : (
       <PanelGroup autoSaveId="page-detail-layout-v2" direction="horizontal">
@@ -174,7 +195,7 @@ export function Visualizer(props: {
       >
         <Panel maxSize={95} defaultSize={20}>
           <div className="page-side">
-            <Sidebar logoAction={props?.logoAction} />
+            <Sidebar />
           </div>
         </Panel>
         <PanelResizeHandle
@@ -230,20 +251,9 @@ export function Visualizer(props: {
   }, []);
 
   return (
-    <ConfigProvider
-      theme={{
-        components: {
-          Layout: {
-            headerHeight: 60,
-            headerPadding: '0 30px',
-            headerBg: '#FFF',
-            bodyBg: '#FFF',
-          },
-        },
-      }}
-    >
+    <ConfigProvider theme={globalThemeConfig()}>
       <Helmet>
-        <title>Visualization - Midscene.js</title>
+        <title>Report - Midscene.js</title>
       </Helmet>
       <div
         className="page-container"
@@ -252,12 +262,7 @@ export function Visualizer(props: {
       >
         <div className="page-nav">
           <div className="page-nav-left">
-            <div className="logo">
-              <img
-                alt="Midscene_logo"
-                src="https://lf3-static.bytednsdoc.com/obj/eden-cn/vhaeh7vhabf/logo-light-with-text.png"
-              />
-            </div>
+            <Logo />
             <div className="page-nav-toolbar">
               <ConfigProvider
                 theme={{
@@ -319,7 +324,6 @@ function PlaywrightCaseSelector(props: {
       key: index,
       label: (
         <a
-          // biome-ignore lint/a11y/useValidAnchor: <explanation>
           onClick={(e) => {
             e.preventDefault();
             if (props.onSelect) {
@@ -345,10 +349,8 @@ function PlaywrightCaseSelector(props: {
   return (
     <div className="playwright-case-selector">
       <Dropdown menu={{ items }}>
-        {/* biome-ignore lint/a11y/useValidAnchor: <explanation> */}
         <a onClick={(e) => e.preventDefault()}>
-          {btnName}&nbsp;
-          <DownOutlined />
+          {btnName} <DownOutlined />
         </a>
       </Dropdown>
     </div>

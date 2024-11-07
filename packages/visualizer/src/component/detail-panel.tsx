@@ -1,6 +1,6 @@
 'use client';
 import './detail-panel.less';
-import { useExecutionDump, useInsightDump } from '@/component/store';
+import { useExecutionDump } from '@/component/store';
 import { filterBase64Value, timeStr } from '@/utils';
 import {
   CameraOutlined,
@@ -10,7 +10,8 @@ import {
 } from '@ant-design/icons';
 import { ConfigProvider, Segmented } from 'antd';
 import { useEffect, useState } from 'react';
-import BlackBoard from './blackboard';
+import Blackboard from './blackboard';
+import OpenInPlayground from './open-in-playground';
 import Player from './player';
 
 const ScreenshotItem = (props: { time: string; img: string }) => {
@@ -30,9 +31,9 @@ const VIEW_TYPE_SCREENSHOT = 'screenshot';
 const VIEW_TYPE_JSON = 'json';
 
 const DetailPanel = (): JSX.Element => {
-  const dumpContext = useInsightDump((store) => store.data);
-  const dumpId = useInsightDump((store) => store._loadId);
-  const blackboardViewAvailable = Boolean(dumpContext);
+  const insightDump = useExecutionDump((store) => store.insightDump);
+  const dumpId = useExecutionDump((store) => store._insightDumpLoadId);
+  const blackboardViewAvailable = Boolean(insightDump);
   const activeExecution = useExecutionDump((store) => store.activeExecution);
   const activeExecutionId = useExecutionDump(
     (store) => store._executionDumpLoadId,
@@ -72,12 +73,29 @@ const DetailPanel = (): JSX.Element => {
   } else if (viewType === VIEW_TYPE_JSON) {
     content = (
       <div className="json-content scrollable">
+        {/* <button
+          type="button"
+          style={{ float: 'right' }}
+          onClick={() => {
+            navigator.clipboard.writeText(
+              JSON.stringify(activeTask, undefined, 2),
+            );
+          }}
+        >
+          Copy
+        </button> */}
         {filterBase64Value(JSON.stringify(activeTask, undefined, 2))}
       </div>
     );
   } else if (viewType === VIEW_TYPE_BLACKBOARD) {
     if (blackboardViewAvailable) {
-      content = <BlackBoard key={`${dumpId}`} />;
+      content = (
+        <Blackboard
+          uiContext={insightDump!.context}
+          highlightElements={insightDump!.matchedElement}
+          key={`${dumpId}`}
+        />
+      );
     } else {
       content = <div>invalid view</div>;
     }
@@ -158,7 +176,6 @@ const DetailPanel = (): JSX.Element => {
       value: type,
     };
   });
-
   return (
     <div className="detail-panel">
       <div className="view-switcher">
@@ -179,6 +196,8 @@ const DetailPanel = (): JSX.Element => {
               setViewType(value);
             }}
           />
+
+          <OpenInPlayground context={insightDump?.context} />
         </ConfigProvider>
       </div>
       <div className="detail-content">{content}</div>

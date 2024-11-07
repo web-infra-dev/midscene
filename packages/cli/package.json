@@ -1,13 +1,15 @@
 {
   "name": "@midscene/cli",
   "description": "An AI-powered automation SDK can control the page, perform assertions, and extract data in JSON format using natural language. See https://midscenejs.com/ for details.",
-  "version": "0.6.1",
+  "version": "0.7.2",
+  "repository": "https://github.com/web-infra-dev/midscene",
+  "homepage": "https://midscenejs.com/",
   "jsnext:source": "./src/index.ts",
   "main": "./dist/lib/index.js",
   "bin": {
     "midscene": "./bin/midscene"
   },
-  "files": ["dist", "README.md"],
+  "files": ["dist", "README.md", "bin"],
   "scripts": {
     "dev": "modern dev",
     "build": "modern build",
@@ -25,7 +27,7 @@
     "yargs": "17.7.2"
   },
   "devDependencies": {
-    "@modern-js/module-tools": "2.58.2",
+    "@modern-js/module-tools": "2.60.6",
     "@types/node": "^18.0.0",
     "@types/yargs": "17.0.32",
     "execa": "9.3.0",

@@ -14,7 +14,7 @@ export interface WebElementInfoType extends BaseElement {
 export class WebElementInfo implements BaseElement {
   content: string;
 
-  locator: string;
+  locator?: string;
 
   rect: Rect;
 
@@ -43,7 +43,7 @@ export class WebElementInfo implements BaseElement {
     content: string;
     rect: Rect;
     page: WebPage;
-    locator: string;
+    locator?: string;
     id: string;
     attributes: {
       nodeType: NodeType;

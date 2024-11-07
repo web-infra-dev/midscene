@@ -16,8 +16,7 @@
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "querystring": "0.2.1",
-    "rspress": "1.26.2",
-    "@midscene/visualizer": "workspace:*"
+    "rspress": "1.34.1"
   },
   "devDependencies": {
     "@types/node": "^18.0.0"

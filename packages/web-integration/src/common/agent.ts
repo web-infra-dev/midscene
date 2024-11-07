@@ -1,17 +1,24 @@
 import type { WebPage } from '@/common/page';
-import type {
-  AgentWaitForOpt,
-  ExecutionDump,
-  GroupedActionDump,
+import {
+  type AgentAssertOpt,
+  type AgentWaitForOpt,
+  type ExecutionDump,
+  type GroupedActionDump,
+  Insight,
 } from '@midscene/core';
+import { NodeType } from '@midscene/shared/constants';
+
 import {
   groupedActionDumpFileExt,
+  reportHTMLContent,
   stringifyDumpData,
   writeLogFile,
 } from '@midscene/core/utils';
 import { PageTaskExecutor } from '../common/tasks';
+import { WebElementInfo } from '../web-element';
 import type { AiTaskCache } from './task-cache';
 import { printReportMsg, reportFileName } from './utils';
+import { type WebUIContext, parseContextFromWebPage } from './utils';
 
 export interface PageAgentOpt {
   testId?: string;
@@ -28,15 +35,22 @@ export interface PageAgentOpt {
 export class PageAgent {
   page: WebPage;
 
+  insight: Insight<WebElementInfo, WebUIContext>;
+
   dump: GroupedActionDump;
 
-  reportFile?: string;
+  reportFile?: string | null;
 
   reportFileName?: string;
 
   taskExecutor: PageTaskExecutor;
 
   opts: PageAgentOpt;
+
+  /**
+   * If true, the agent will not perform any actions
+   */
+  dryMode = false;
 
   constructor(page: WebPage, opts?: PageAgentOpt) {
     this.page = page;
@@ -49,15 +63,45 @@ export class PageAgent {
       },
       opts || {},
     );
+
+    this.insight = new Insight<WebElementInfo, WebUIContext>(
+      async () => {
+        return this.getUIContext();
+      },
+      {
+        generateElement: ({ content, rect }) =>
+          new WebElementInfo({
+            content: content || '',
+            rect,
+            page,
+            id: '',
+            attributes: {
+              nodeType: NodeType.CONTAINER,
+            },
+            indexId: 0,
+          }),
+      },
+    );
+
+    this.taskExecutor = new PageTaskExecutor(this.page, this.insight, {
+      cacheId: opts?.cacheId,
+    });
+    this.dump = this.resetDump();
+    this.reportFileName = reportFileName(opts?.testId || 'web');
+  }
+
+  async getUIContext(): Promise<WebUIContext> {
+    return await parseContextFromWebPage(this.page);
+  }
+
+  resetDump() {
     this.dump = {
       groupName: this.opts.groupName!,
       groupDescription: this.opts.groupDescription,
       executions: [],
     };
-    this.taskExecutor = new PageTaskExecutor(this.page, {
-      cacheId: opts?.cacheId,
-    });
-    this.reportFileName = reportFileName(opts?.testId || 'web');
+
+    return this.dump;
   }
 
   appendExecutionDump(execution: ExecutionDump) {
@@ -72,6 +116,10 @@ export class PageAgent {
     return stringifyDumpData(this.dump);
   }
 
+  reportHTMLString() {
+    return reportHTMLContent(this.dumpDataString());
+  }
+
   writeOutActionDumps() {
     const { generateReport, autoPrintReportMsg } = this.opts;
     this.reportFile = writeLogFile({
@@ -82,7 +130,7 @@ export class PageAgent {
       generateReport,
     });
 
-    if (generateReport && autoPrintReportMsg) {
+    if (generateReport && autoPrintReportMsg && this.reportFile) {
       printReportMsg(this.reportFile);
     }
   }
@@ -110,14 +158,20 @@ export class PageAgent {
     return output;
   }
 
-  async aiAssert(assertion: string, msg?: string) {
+  async aiAssert(assertion: string, msg?: string, opt?: AgentAssertOpt) {
     const { output, executor } = await this.taskExecutor.assert(assertion);
     this.appendExecutionDump(executor.dump());
     this.writeOutActionDumps();
 
+    if (output && opt?.keepRawResponse) {
+      return output;
+    }
+
     if (!output?.pass) {
       const errMsg = msg || `Assertion failed: ${assertion}`;
-      const reasonMsg = `Reason: ${output?.thought || '(no_reason)'}`;
+      const reasonMsg = `Reason: ${
+        output?.thought || executor.latestErrorTask()?.error || '(no_reason)'
+      }`;
       throw new Error(`${errMsg}\n${reasonMsg}`);
     }
   }
@@ -152,5 +206,9 @@ export class PageAgent {
     throw new Error(
       `Unknown type: ${type}, only support 'action', 'query', 'assert'`,
     );
+  }
+
+  async destroy() {
+    await this.page.destroy();
   }
 }

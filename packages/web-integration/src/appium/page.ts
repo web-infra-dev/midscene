@@ -1,6 +1,7 @@
 import fs from 'node:fs';
+import type { Size } from '@midscene/core/.';
 import { getTmpFile } from '@midscene/core/utils';
-import { resizeImg } from '@midscene/shared/img';
+import { base64Encoded, resizeImg } from '@midscene/shared/img';
 import { DOMParser } from '@xmldom/xmldom';
 import type { KeyInput as PuppeteerKeyInput } from 'puppeteer';
 import type { Browser } from 'webdriverio';
@@ -38,9 +39,13 @@ export class Page implements AbstractPage {
     return infos;
   }
 
-  async screenshot(): Promise<string> {
-    const { width, height } = await this.browser.getWindowSize();
-    const path = getTmpFile('png');
+  async size(): Promise<Size> {
+    return this.browser.getWindowSize();
+  }
+
+  async screenshotBase64(): Promise<string> {
+    const { width, height } = await this.size();
+    const path = getTmpFile('png')!;
     const screenshotBuffer = await this.browser.saveScreenshot(path);
     const resizedScreenshotBuffer = await resizeImg(screenshotBuffer, {
       width,
@@ -48,7 +53,7 @@ export class Page implements AbstractPage {
     });
     fs.writeFileSync(path, resizedScreenshotBuffer);
 
-    return path;
+    return base64Encoded(path);
   }
 
   get mouse() {
@@ -238,5 +243,9 @@ export class Page implements AbstractPage {
         ],
       },
     ]);
+  }
+
+  async destroy(): Promise<void> {
+    //
   }
 }

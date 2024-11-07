@@ -1,4 +1,12 @@
-import { base64Encoded, imageInfo, imageInfoOfBase64 } from '@/img';
+import { readFileSync } from 'node:fs';
+import {
+  base64Encoded,
+  imageInfo,
+  imageInfoOfBase64,
+  resizeImg,
+  resizeImgBase64,
+} from '@/img';
+import getJimp from '@/img/get-jimp';
 import { getFixture } from 'tests/utils';
 import { describe, expect, it } from 'vitest';
 
@@ -21,14 +29,45 @@ describe('image utils', () => {
     const image = getFixture('icon.png');
     const base64 = base64Encoded(image);
     const info = await imageInfoOfBase64(base64);
-    expect(info).toMatchSnapshot();
+    expect(info.width).toMatchSnapshot();
+    expect(info.height).toMatchSnapshot();
   });
 
   it('jpeg + base64 + imageInfo', async () => {
     const image = getFixture('heytea.jpeg');
     const base64 = base64Encoded(image);
     const info = await imageInfoOfBase64(base64);
-    expect(info).toMatchSnapshot();
+    expect(info.width).toMatchSnapshot();
+    expect(info.height).toMatchSnapshot();
+  });
+
+  it('jimp + imageInfo', async () => {
+    const image = getFixture('heytea.jpeg');
+    const jimp = await getJimp();
+    const jimpImage = await jimp.read(image);
+    const info = await imageInfo(jimpImage);
+    expect(info.width).toMatchSnapshot();
+    expect(info.height).toMatchSnapshot();
+  });
+
+  it('resizeImgBase64', async () => {
+    const image = getFixture('heytea.jpeg');
+
+    const base64 = base64Encoded(image);
+    const resizedBase64 = await resizeImgBase64(base64, {
+      width: 100,
+      height: 100,
+    });
+    expect(resizedBase64).toContain(';base64,');
+  });
+
+  it('resize image', async () => {
+    const image = getFixture('heytea.jpeg');
+    const buffer = await resizeImg(readFileSync(image), {
+      width: 100,
+      height: 100,
+    });
+    expect(buffer).toBeDefined();
   });
 
   // it(

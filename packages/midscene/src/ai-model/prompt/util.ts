@@ -3,11 +3,13 @@ import { imageInfoOfBase64 } from '@/image';
 import type {
   BaseElement,
   BasicSectionQuery,
+  Point,
   Size,
   UIContext,
   UISection,
 } from '@/types';
 import type { ResponseFormatJSONSchema } from 'openai/resources';
+import { MATCH_BY_POSITION, getAIConfig } from '../openai';
 
 const characteristic =
   'You are a versatile professional in software UI design and testing. Your outstanding contributions will impact the user experience of billions of users.';
@@ -137,7 +139,7 @@ Based on the information you get, Return assertion judgment:
 
 Return in the following JSON format:
 {
-  thought: string, // string, the thought of the assertion
+  thought: string, // string, the thought of the assertion. Should in the same language as the assertion.
   pass: true, // true or false, whether the assertion is passed
 }
 `;
@@ -244,6 +246,25 @@ export function truncateText(text: string) {
   return text;
 }
 
+export function elementByPosition(
+  elementsInfo: BaseElement[],
+  position: {
+    x: number;
+    y: number;
+  },
+) {
+  assert(typeof position !== 'undefined', 'position is required for query');
+  const item = elementsInfo.find((item) => {
+    return (
+      item.rect.left <= position.x &&
+      position.x <= item.rect.left + item.rect.width &&
+      item.rect.top <= position.y &&
+      position.y <= item.rect.top + item.rect.height
+    );
+  });
+  return item;
+}
+
 export async function describeUserPage<
   ElementType extends BaseElement = BaseElement,
 >(context: Omit<UIContext<ElementType>, 'describer'>) {
@@ -269,17 +290,26 @@ export async function describeUserPage<
 
   return {
     description: `
-{
-  // The size of the page
-  "pageSize": ${describeSize({ width, height })},\n
-  // json description of the element
-  "content": ${JSON.stringify(elementInfosDescription)}
-      
-}`, // // json description of the element
+    {
+      // The size of the page
+      "pageSize": ${describeSize({ width, height })},\n
+      ${
+        // if match by id, use the description of the element
+        !getAIConfig(MATCH_BY_POSITION)
+          ? `
+          // json description of the element
+          "content": ${JSON.stringify(elementInfosDescription)}
+          `
+          : ''
+      }
+    }`,
     elementById(id: string) {
       assert(typeof id !== 'undefined', 'id is required for query');
       const item = idElementMap[`${id}`];
       return item;
+    },
+    elementByPosition(position: { x: number; y: number }) {
+      return elementByPosition(elementsInfo, position);
     },
   };
 }

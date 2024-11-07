@@ -47,6 +47,7 @@ export function insightDumpToExecutionDump(
     const result: ExecutionDump = {
       sdkVersion: insightDump.sdkVersion,
       logTime: insightDump.logTime,
+      model_name: insightDump.model_name,
       name: 'Insight',
       tasks: [insightToTask(insightDump)],
     };
@@ -55,6 +56,7 @@ export function insightDumpToExecutionDump(
   const result: ExecutionDump = {
     sdkVersion: insightDump[0].sdkVersion,
     logTime: insightDump[0].logTime,
+    model_name: insightDump[0].model_name,
     name: 'Insight',
     tasks: insightDump.map(insightToTask),
   };
@@ -83,9 +85,14 @@ export function paramStr(task: ExecutionTask) {
   }
 
   if (task.type === 'Action') {
-    value =
-      (task as ExecutionTaskAction)?.param?.value ||
-      (task as ExecutionTaskAction)?.param?.scrollType;
+    const sleepMs = (task as ExecutionTaskAction)?.param?.timeMs;
+    if (sleepMs) {
+      value = `${sleepMs}ms`;
+    } else {
+      value =
+        (task as ExecutionTaskAction)?.param?.value ||
+        (task as ExecutionTaskAction)?.param?.scrollType;
+    }
   }
 
   if (typeof value === 'undefined') return '';

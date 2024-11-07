@@ -32,7 +32,7 @@ Midscene.js 是一个由 AI 驱动的自动化 SDK，能够使用自然语言对
 - **理解UI、JSON格式回答 🔍**：你可以提出关于数据格式的要求，然后得到 JSON 格式的预期回应。
 - **直观断言 🤔**：用自然语言表达你的断言，AI 会理解并处理。
 - **开箱即用的LLM 🪓**：使用公开的多模态大语言模型（ 如GPT-4o ），无需任何定制训练。
-- **可视化 🎞️**：通过我们的可视化工具，你可以轻松理解和调试整个过程。
+- **可视化报告 🎞️**：通过我们的测试报告和 Playground，你可以轻松理解和调试整个过程。
 - **全新体验 🔥**：体验全新的自动化开发世界，尽情享受吧！
 
 ## 资源 📄
@@ -40,7 +40,6 @@ Midscene.js 是一个由 AI 驱动的自动化 SDK，能够使用自然语言对
 * [官网首页: https://midscenejs.com](https://midscenejs.com/)
 * [快速入门](https://midscenejs.com/docs/getting-started/quick-start.html)
 * [API 文档](https://midscenejs.com/docs/usage/API.html)
-* [可视化工具](https://midscenejs.com/visualization/index.html)
 
 ## 授权许可
 

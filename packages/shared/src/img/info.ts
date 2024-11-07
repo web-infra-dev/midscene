@@ -1,11 +1,17 @@
 import assert from 'node:assert';
 import { Buffer } from 'node:buffer';
 import { readFileSync } from 'node:fs';
-import Jimp from 'jimp';
+import type Jimp from 'jimp';
+import getJimp from './get-jimp';
 
 export interface Size {
   width: number;
   height: number;
+  dpr?: number;
+}
+
+export interface ImageInfo extends Size {
+  jimpImage: Jimp;
 }
 
 /**
@@ -15,12 +21,17 @@ export interface Size {
  * @returns A Promise that resolves to an object containing the width and height of the image
  * @throws Error if the image data is invalid
  */
-export async function imageInfo(image: string | Buffer): Promise<Size> {
+export async function imageInfo(
+  image: string | Buffer | Jimp,
+): Promise<ImageInfo> {
+  const Jimp = await getJimp();
   let jimpImage: Jimp;
   if (typeof image === 'string') {
     jimpImage = await Jimp.read(image);
   } else if (Buffer.isBuffer(image)) {
     jimpImage = await Jimp.read(image);
+  } else if (image instanceof Jimp) {
+    jimpImage = image;
   } else {
     throw new Error('Invalid image input: must be a string path or a Buffer');
   }
@@ -29,7 +40,7 @@ export async function imageInfo(image: string | Buffer): Promise<Size> {
     width && height,
     `Invalid image: ${typeof image === 'string' ? image : 'Buffer'}`,
   );
-  return { width, height };
+  return { width, height, jimpImage };
 }
 
 /**
@@ -39,10 +50,18 @@ export async function imageInfo(image: string | Buffer): Promise<Size> {
  * @returns A Promise that resolves to an object containing the width and height of the image
  * @throws Error if the image data is invalid
  */
-export async function imageInfoOfBase64(imageBase64: string): Promise<Size> {
-  const base64Data = imageBase64.replace(/^data:image\/\w+;base64,/, '');
+export async function imageInfoOfBase64(
+  imageBase64: string,
+): Promise<ImageInfo> {
+  // const base64Data = imageBase64.replace(/^data:image\/\w+;base64,/, '');
   // Call the imageInfo function to get the dimensions of the image
-  return imageInfo(Buffer.from(base64Data, 'base64'));
+  const buffer = await bufferFromBase64(imageBase64);
+  return imageInfo(buffer);
+}
+
+export async function bufferFromBase64(imageBase64: string): Promise<Buffer> {
+  const base64Data = imageBase64.replace(/^data:image\/\w+;base64,/, '');
+  return Buffer.from(base64Data, 'base64');
 }
 
 /**

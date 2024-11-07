@@ -1,13 +1,16 @@
+import type { Size } from '@midscene/core/.';
 import type { WebKeyInput } from './common/page';
+import type { WebUIContext } from './common/utils';
 import type { ElementInfo } from './extractor';
 
 export type MouseButton = 'left' | 'right' | 'middle';
 
 export abstract class AbstractPage {
   abstract pageType: string;
-  abstract screenshot(): Promise<string>;
   abstract getElementInfos(): Promise<ElementInfo[]>;
-  abstract url(): string;
+  abstract url(): string | Promise<string>;
+  abstract screenshotBase64?(): Promise<string>;
+  abstract size(): Promise<Size>;
 
   get mouse() {
     return {
@@ -34,4 +37,8 @@ export abstract class AbstractPage {
   abstract scrollUntilBottom(): Promise<void>;
   abstract scrollUpOneScreen(): Promise<void>;
   abstract scrollDownOneScreen(): Promise<void>;
+
+  abstract _forceUsePageContext?(): Promise<WebUIContext>;
+
+  abstract destroy(): Promise<void>;
 }

@@ -8,9 +8,10 @@ export default defineConfig({
     input: {
       index: 'src/index.ts',
       help: 'src/help.ts',
+      playground: 'src/playground.ts',
     },
     // input: ['src/utils.ts', 'src/index.ts', 'src/image/index.ts'],
     externals: ['node:buffer'],
-    target: 'es2017',
+    target: 'es6',
   },
 });

@@ -1,18 +1,17 @@
 'use client';
+import 'pixi.js/unsafe-eval';
 import { Checkbox } from 'antd';
 import type { CheckboxProps } from 'antd';
 import * as PIXI from 'pixi.js';
 import { type ReactElement, useEffect, useMemo, useRef, useState } from 'react';
-import type { Rect } from '../../../midscene/dist/types';
+import type { BaseElement, Rect, UIContext } from '../../../midscene';
 import { colorForName, highlightColorForType } from './color';
 import './blackboard.less';
 import { DropShadowFilter } from 'pixi-filters';
-import { useBlackboardPreference, useInsightDump } from './store';
+import { useBlackboardPreference } from './store';
 
 const itemFillAlpha = 0.4;
 const highlightAlpha = 0.4;
-const bgOnAlpha = 1;
-const bgOffAlpha = 0.3;
 const noop = () => {
   // noop
 };
@@ -60,17 +59,17 @@ export const rectMarkForItem = (
   return [graphics, texts];
 };
 
-const BlackBoard = (): JSX.Element => {
-  const dump = useInsightDump((store) => store.data);
-  const setHighlightElements = useInsightDump(
-    (store) => store.setHighlightElements,
-  );
-
-  const highlightElements = useInsightDump((store) => store.highlightElements);
+const Blackboard = (props: {
+  uiContext: UIContext;
+  highlightElements?: BaseElement[];
+  hideController?: boolean;
+  disableInteraction?: boolean;
+}): JSX.Element => {
+  const highlightElements: BaseElement[] = props.highlightElements || [];
   const highlightIds = highlightElements.map((e) => e.id);
 
-  const { context } = dump!;
-  const { size, screenshotBase64 } = context;
+  const context = props.uiContext!;
+  const { size, screenshotBase64, screenshotBase64WithElementMarker } = context;
 
   const screenWidth = size.width;
   const screenHeight = size.height;
@@ -82,10 +81,14 @@ const BlackBoard = (): JSX.Element => {
   const highlightContainer = useMemo(() => new PIXI.Container(), []);
   const elementMarkContainer = useMemo(() => new PIXI.Container(), []);
 
+  const [hoverElement, setHoverElement] = useState<BaseElement | null>(null);
+
   // key overlays
   const pixiBgRef = useRef<PIXI.Sprite>();
-  const { bgVisible, setBgVisible, elementsVisible, setTextsVisible } =
+  const { markerVisible, setMarkerVisible, elementsVisible, setTextsVisible } =
     useBlackboardPreference();
+
+  const ifMarkerAvailable = !!screenshotBase64WithElementMarker;
 
   useEffect(() => {
     Promise.resolve(
@@ -101,7 +104,7 @@ const BlackBoard = (): JSX.Element => {
         const canvasEl = domRef.current;
         domRef.current.appendChild(app.canvas); // Ensure app.view is appended
         const { clientWidth } = domRef.current.parentElement!;
-        const targetHeight = window.innerHeight * 0.7;
+        const targetHeight = window.innerHeight * 0.5;
         const viewportRatio = clientWidth / targetHeight;
         if (screenWidth / screenHeight <= viewportRatio) {
           const ratio = targetHeight / screenHeight;
@@ -135,19 +138,39 @@ const BlackBoard = (): JSX.Element => {
 
     // draw the screenshot base64
     const img = new Image();
-    img.src = screenshotBase64;
     img.onload = () => {
       if (!app.stage) return;
       const screenshotTexture = PIXI.Texture.from(img);
-      const screenshotSprite = new PIXI.Sprite(screenshotTexture);
-      screenshotSprite.x = 0;
-      screenshotSprite.y = 0;
-      screenshotSprite.width = screenWidth;
-      screenshotSprite.height = screenHeight;
-      app.stage.addChildAt(screenshotSprite, 0);
-      pixiBgRef.current = screenshotSprite;
-      screenshotSprite.alpha = bgVisible ? bgOnAlpha : bgOffAlpha;
+      const backgroundSprite = new PIXI.Sprite(screenshotTexture);
+      backgroundSprite.x = 0;
+      backgroundSprite.y = 0;
+      backgroundSprite.width = screenWidth;
+      backgroundSprite.height = screenHeight;
+      app.stage.addChildAt(backgroundSprite, 0);
+
+      if (ifMarkerAvailable) {
+        const markerImg = new Image();
+        markerImg.onload = () => {
+          const markerTexture = PIXI.Texture.from(markerImg);
+          const markerSprite = new PIXI.Sprite(markerTexture);
+          markerSprite.x = 0;
+          markerSprite.y = 0;
+          markerSprite.width = screenWidth;
+          markerSprite.height = screenHeight;
+          app.stage.addChildAt(markerSprite, 1);
+          pixiBgRef.current = markerSprite;
+          markerSprite.visible = markerVisible;
+        };
+        markerImg.onerror = (e) => {
+          console.error('load marker failed', e);
+        };
+        markerImg.src = screenshotBase64WithElementMarker;
+      }
     };
+    img.onerror = (e) => {
+      console.error('load screenshot failed', e);
+    };
+    img.src = screenshotBase64;
   }, [app.stage, appInitialed]);
 
   const { highlightElementRects } = useMemo(() => {
@@ -156,10 +179,10 @@ const BlackBoard = (): JSX.Element => {
     highlightContainer.removeChildren();
     elementMarkContainer.removeChildren();
 
-    // element mark
+    // element rects
     context.content.forEach((element) => {
       const { rect, content, id } = element;
-      const ifHighlight = highlightIds.includes(id);
+      const ifHighlight = highlightIds.includes(id) || hoverElement?.id === id;
       if (ifHighlight) {
         const [graphics] = rectMarkForItem(
           rect,
@@ -171,16 +194,19 @@ const BlackBoard = (): JSX.Element => {
         highlightContainer.addChild(graphics);
       }
 
+      const removeHover = () => {
+        setHoverElement(null);
+      };
       const [graphics] = rectMarkForItem(
         rect,
         content,
         ifHighlight,
-        () => {
-          setHighlightElements([element]);
-        },
-        () => {
-          setHighlightElements([]);
-        },
+        props?.disableInteraction
+          ? undefined
+          : () => {
+              setHoverElement(element);
+            },
+        props?.disableInteraction ? undefined : removeHover,
       );
       elementMarkContainer.addChild(graphics);
     });
@@ -194,14 +220,15 @@ const BlackBoard = (): JSX.Element => {
     appInitialed,
     highlightElements,
     context.content,
+    hoverElement,
     // bgVisible,
     // elementsVisible,
   ]);
 
-  const onSetBg: CheckboxProps['onChange'] = (e) => {
-    setBgVisible(e.target.checked);
+  const onSetMarkerVisible: CheckboxProps['onChange'] = (e) => {
+    setMarkerVisible(e.target.checked);
     if (pixiBgRef.current) {
-      pixiBgRef.current.alpha = e.target.checked ? bgOnAlpha : bgOffAlpha;
+      pixiBgRef.current.visible = e.target.checked;
     }
   };
 
@@ -236,21 +263,33 @@ const BlackBoard = (): JSX.Element => {
         style={{ width: '100%' }}
         ref={domRef}
       />
-      <div className="blackboard-filter">
+      <div
+        className="blackboard-filter"
+        style={{ display: props.hideController ? 'none' : 'block' }}
+      >
         <div className="overlay-control">
-          <Checkbox checked={bgVisible} onChange={onSetBg}>
-            Screenshot
+          <Checkbox
+            checked={markerVisible}
+            onChange={onSetMarkerVisible}
+            disabled={!ifMarkerAvailable}
+          >
+            Marker
           </Checkbox>
           <Checkbox checked={elementsVisible} onChange={onSetElementsVisible}>
             Elements
           </Checkbox>
         </div>
       </div>
-      <div className="bottom-tip">{bottomTipA}</div>
+      <div
+        className="bottom-tip"
+        style={{ display: props.hideController ? 'none' : 'block' }}
+      >
+        {bottomTipA}
+      </div>
 
       {/* {footer} */}
     </div>
   );
 };
 
-export default BlackBoard;
+export default Blackboard;

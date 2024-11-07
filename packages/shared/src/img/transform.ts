@@ -1,6 +1,7 @@
 import { Buffer } from 'node:buffer';
-import Jimp from 'jimp';
+import getJimp from './get-jimp';
 
+/**
 /**
  * Saves a Base64-encoded image to a file
  *
@@ -21,6 +22,7 @@ export async function saveBase64Image(options: {
   const imageBuffer = Buffer.from(base64Image, 'base64');
 
   // Use Jimp to process the image and save it to the specified location
+  const Jimp = await getJimp();
   const image = await Jimp.read(imageBuffer);
   await image.writeAsync(outputPath);
 }
@@ -32,6 +34,7 @@ export async function saveBase64Image(options: {
  */
 export async function transformImgPathToBase64(inputPath: string) {
   // Use Jimp to process images and generate base64 data
+  const Jimp = await getJimp();
   const image = await Jimp.read(inputPath);
   const buffer = await image.getBufferAsync(Jimp.MIME_PNG);
   return buffer.toString('base64');
@@ -45,18 +48,17 @@ export async function transformImgPathToBase64(inputPath: string) {
  * @throws An error if the width or height cannot be determined from the metadata
  */
 export async function resizeImg(
-  inputData: string | Buffer,
+  inputData: Buffer,
   newSize?: {
     width: number;
     height: number;
   },
-): Promise<string | Buffer> {
-  const isBase64 = typeof inputData === 'string';
-  const imageBuffer = isBase64
-    ? Buffer.from(inputData.split(';base64,').pop() || inputData, 'base64')
-    : inputData;
+): Promise<Buffer> {
+  if (typeof inputData === 'string')
+    throw Error('inputData is base64, use resizeImgBase64 instead');
 
-  const image = await Jimp.read(imageBuffer);
+  const Jimp = await getJimp();
+  const image = await Jimp.read(inputData);
   const { width, height } = image.bitmap;
 
   if (!width || !height) {
@@ -65,10 +67,33 @@ export async function resizeImg(
 
   const finalNewSize = newSize || calculateNewDimensions(width, height);
 
-  image.resize(finalNewSize.width, finalNewSize.height);
+  image.resize(
+    finalNewSize.width,
+    finalNewSize.height,
+    Jimp.RESIZE_NEAREST_NEIGHBOR,
+  );
   const resizedBuffer = await image.getBufferAsync(Jimp.MIME_PNG);
 
-  return isBase64 ? resizedBuffer.toString('base64') : resizedBuffer;
+  return resizedBuffer;
+}
+
+export async function resizeImgBase64(
+  inputData: string,
+  newSize?: {
+    width: number;
+    height: number;
+  },
+): Promise<string> {
+  const splitFlag = ';base64,';
+  const dataSplitted = inputData.split(splitFlag);
+  if (dataSplitted.length !== 2) {
+    throw Error('Invalid base64 data');
+  }
+
+  const imageBuffer = Buffer.from(dataSplitted[1], 'base64');
+  const buffer = await resizeImg(imageBuffer, newSize);
+  const content = buffer.toString('base64');
+  return `${dataSplitted[0]}${splitFlag}${content}`;
 }
 
 /**
@@ -127,6 +152,7 @@ export async function trimImage(image: string | Buffer): Promise<{
   width: number;
   height: number;
 } | null> {
+  const Jimp = await getJimp();
   const jimpImage = await Jimp.read(
     Buffer.isBuffer(image) ? image : Buffer.from(image),
   );

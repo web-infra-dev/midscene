@@ -12,7 +12,7 @@
       ]
     },
     {
-      "prompt": "任务列表中的第二项",
+      "prompt": "任务列表中的第二项名称",
       "multi": false,
       "response": [
         {

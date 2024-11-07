@@ -1,12 +1,17 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import type { AIElementParseResponse, PlanningAction } from '@midscene/core';
+import {
+  type AIElementIdResponse,
+  type PlanningAction,
+  getAIConfig,
+} from '@midscene/core';
 import {
   getLogDirByType,
   stringifyDumpData,
   writeLogFile,
 } from '@midscene/core/utils';
-import { getMidscenePkgInfo } from '@midscene/shared/fs';
+import { getRunningPkgInfo } from '@midscene/shared/fs';
+import { ifInBrowser } from '@midscene/shared/utils';
 import { type WebUIContext, generateCacheId } from './utils';
 
 export type PlanTask = {
@@ -32,7 +37,7 @@ export type LocateTask = {
       height: number;
     };
   };
-  response: AIElementParseResponse;
+  response: AIElementIdResponse;
 };
 
 export type AiTasks = Array<PlanTask | LocateTask>;
@@ -51,11 +56,11 @@ export class TaskCache {
 
   newCache: AiTaskCache;
 
-  midscenePkgInfo: ReturnType<typeof getMidscenePkgInfo>;
+  midscenePkgInfo: ReturnType<typeof getRunningPkgInfo> | null;
 
-  constructor(opts?: { fileName?: string }) {
-    this.midscenePkgInfo = getMidscenePkgInfo(__dirname);
-    this.cacheId = generateCacheId(opts?.fileName);
+  constructor(opts?: { cacheId?: string }) {
+    this.midscenePkgInfo = getRunningPkgInfo();
+    this.cacheId = opts?.cacheId || '';
     this.cache = this.readCacheFromFile() || {
       aiTasks: [],
     };
@@ -195,11 +200,17 @@ export class TaskCache {
   }
 
   readCacheFromFile() {
+    if (ifInBrowser || !this.cacheId) {
+      return undefined;
+    }
     const cacheFile = join(getLogDirByType('cache'), `${this.cacheId}.json`);
-    if (process.env.MIDSCENE_CACHE === 'true' && existsSync(cacheFile)) {
+    if (getAIConfig('MIDSCENE_CACHE') === 'true' && existsSync(cacheFile)) {
       try {
         const data = readFileSync(cacheFile, 'utf8');
         const jsonData = JSON.parse(data);
+        if (!this.midscenePkgInfo) {
+          return undefined;
+        }
         if (
           jsonData.pkgName !== this.midscenePkgInfo.name ||
           jsonData.pkgVersion !== this.midscenePkgInfo.version
@@ -215,20 +226,26 @@ export class TaskCache {
   }
 
   writeCacheToFile() {
-    const midscenePkgInfo = getMidscenePkgInfo(__dirname);
-    writeLogFile({
-      fileName: `${this.cacheId}`,
-      fileExt: 'json',
-      fileContent: stringifyDumpData(
-        {
-          pkgName: midscenePkgInfo.name,
-          pkgVersion: midscenePkgInfo.version,
-          cacheId: this.cacheId,
-          ...this.newCache,
-        },
-        2,
-      ),
-      type: 'cache',
-    });
+    const midscenePkgInfo = getRunningPkgInfo();
+    if (!midscenePkgInfo || !this.cacheId) {
+      return;
+    }
+
+    if (!ifInBrowser) {
+      writeLogFile({
+        fileName: `${this.cacheId}`,
+        fileExt: 'json',
+        fileContent: stringifyDumpData(
+          {
+            pkgName: midscenePkgInfo.name,
+            pkgVersion: midscenePkgInfo.version,
+            cacheId: this.cacheId,
+            ...this.newCache,
+          },
+          2,
+        ),
+        type: 'cache',
+      });
+    }
   }
 }

@@ -9,7 +9,7 @@ Thanks for showing interest in contributing to Midscene. Before starting your co
 ### Fork the Repo
 
 [Fork](https://help.github.com/articles/fork-a-repo/) this repository to your
-own GitHub account and then [clone](https://help.github.com/articles/cloning-a-repository/) it to your local.
+own GitHub account and then [clone](https://help.github.com/articles/cloning-a-repository/) it to your local machine.
 
 ### Install Node.js
 
@@ -111,7 +111,7 @@ pnpm run build
 To change the AI-related code of this repository, you need to create a '.env 'file in the root directory, which reads as follows:
 
 ```
-OPENAI_API_KEY="you_token"
+OPENAI_API_KEY="your_token"
 MIDSCENE_MODEL_NAME="gpt-4o-2024-08-06"
 ```
 
@@ -172,7 +172,7 @@ cd packages/web-integration && pnpm run test:ai -- appium
 
 To help maintain consistency and readability of the codebase, we use [Biome](https://github.com/biomejs/biome) to lint the codes.
 
-You can run the linters by executing the following command:
+You can run the linter by executing the following command:
 
 ```sh
 pnpm run lint

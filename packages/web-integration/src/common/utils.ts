@@ -1,18 +1,13 @@
 import assert from 'node:assert';
-import type { Buffer } from 'node:buffer';
-import { randomUUID } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import type { ElementInfo } from '@/extractor';
+import type { StaticPage } from '@/playground';
 import type { PlaywrightParserOpt, UIContext } from '@midscene/core';
 import { NodeType } from '@midscene/shared/constants';
 import { findNearestPackageJson } from '@midscene/shared/fs';
-import {
-  base64Encoded,
-  base64ToPngFormat,
-  imageInfoOfBase64,
-} from '@midscene/shared/img';
 import { compositeElementInfoImg } from '@midscene/shared/img';
+import { uuid } from '@midscene/shared/utils';
 import dayjs from 'dayjs';
 import { WebElementInfo } from '../web-element';
 import type { WebPage } from './page';
@@ -26,33 +21,48 @@ export async function parseContextFromWebPage(
   _opt?: PlaywrightParserOpt,
 ): Promise<WebUIContext> {
   assert(page, 'page is required');
-  const url = page.url();
-  const file = await page.screenshot();
-  const screenshotBase64 = base64Encoded(file);
-  const captureElementSnapshot = await page.getElementInfos();
+  if ((page as StaticPage)._forceUsePageContext) {
+    return await (page as any)._forceUsePageContext();
+  }
+  const url = await page.url();
 
-  // align element
-  const elementsInfo = await alignElements(captureElementSnapshot, page);
+  let screenshotBase64: string;
+  let elementsInfo: WebElementInfo[];
 
-  const elementsPositionInfoWithoutText = elementsInfo.filter((elementInfo) => {
-    if (elementInfo.attributes.nodeType === NodeType.TEXT) {
-      return false;
-    }
-    return true;
-  });
+  await Promise.all([
+    page.screenshotBase64().then((base64) => {
+      screenshotBase64 = base64;
+    }),
+    page.getElementInfos().then(async (snapshot) => {
+      elementsInfo = await alignElements(snapshot, page);
+    }),
+  ]);
+  assert(screenshotBase64!, 'screenshotBase64 is required');
 
-  const size = await imageInfoOfBase64(screenshotBase64);
+  const elementsPositionInfoWithoutText = elementsInfo!.filter(
+    (elementInfo) => {
+      if (elementInfo.attributes.nodeType === NodeType.TEXT) {
+        return false;
+      }
+      return true;
+    },
+  );
 
-  // composite element infos to screenshot
-  const screenshotBase64WithElementInfos = await compositeElementInfoImg({
-    inputImgBase64: screenshotBase64.split(';base64,').pop() as string,
-    elementsPositionInfo: elementsPositionInfoWithoutText,
-  });
+  const size = await page.size();
+
+  const screenshotBase64WithElementMarker = _opt?.ignoreMarker
+    ? undefined
+    : await compositeElementInfoImg({
+        inputImgBase64: screenshotBase64,
+        elementsPositionInfo: elementsPositionInfoWithoutText,
+        size,
+      });
 
   return {
-    content: elementsInfo,
+    content: elementsInfo!,
     size,
-    screenshotBase64: `data:image/png;base64,${screenshotBase64WithElementInfos}`,
+    screenshotBase64: screenshotBase64!,
+    screenshotBase64WithElementMarker,
     url,
   };
 }
@@ -134,34 +144,12 @@ export function getCurrentExecutionFile(trace?: string): string | false {
   return false;
 }
 
-/**
- * Generates a unique cache ID based on the current execution file and a counter.
- *
- * This function creates a cache ID by combining the name of the current execution file
- * (typically a test or spec file) with an incrementing index. This ensures that each
- * cache ID is unique within the context of a specific test file across multiple executions.
- *
- * The function uses a Map to keep track of the index for each unique file, incrementing
- * it with each call for the same file.
- *
- * @returns {string} A unique cache ID in the format "filename-index"
- *
- * @example
- * // First call for "example.spec.ts"
- * generateCacheId(); // Returns "example.spec.ts-1"
- *
- * // Second call for "example.spec.ts"
- * generateCacheId(); // Returns "example.spec.ts-2"
- *
- * // First call for "another.test.ts"
- * generateCacheId(); // Returns "another.test.ts-1"
- */
-
 const testFileIndex = new Map<string, number>();
+
 export function generateCacheId(fileName?: string): string {
   let taskFile = fileName || getCurrentExecutionFile();
   if (!taskFile) {
-    taskFile = randomUUID();
+    taskFile = uuid();
     console.warn(
       'Midscene - using random UUID for cache id. Cache may be invalid.',
     );
@@ -177,3 +165,6 @@ export function generateCacheId(fileName?: string): string {
   }
   return `${taskFile}-${testFileIndex.get(taskFile)}`;
 }
+
+export const ERROR_CODE_NOT_IMPLEMENTED_AS_DESIGNED =
+  'NOT_IMPLEMENTED_AS_DESIGNED';

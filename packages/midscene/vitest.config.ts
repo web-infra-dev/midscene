@@ -2,6 +2,7 @@ import path from 'node:path';
 //@ts-ignore
 import dotenv from 'dotenv';
 import { defineConfig } from 'vitest/config';
+import { version } from './package.json';
 
 /**
  * Read environment variables from file.
@@ -19,6 +20,12 @@ export default defineConfig({
     include: enableAiTest
       ? ['tests/ai/**/**.test.ts', ...basicTest]
       : basicTest,
+    exclude: process.env.TEST_COMPUTER
+      ? []
+      : ['tests/ai/evaluate/computer.test.ts'],
+  },
+  define: {
+    __VERSION__: `'${version}'`,
   },
   resolve: {
     alias: {

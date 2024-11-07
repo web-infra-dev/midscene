@@ -5,6 +5,7 @@ import type {
   ExecutionDump,
   ExecutionTaskInsightLocate,
   ExecutionTaskPlanning,
+  GroupedActionDump,
   InsightDump,
   Rect,
 } from '@midscene/core/.';
@@ -13,14 +14,15 @@ export interface CameraState {
   left: number;
   top: number;
   width: number;
-  pointer: {
-    left: number;
-    top: number;
-  };
+  pointerLeft: number;
+  pointerTop: number;
 }
 
-export type TargetCameraState = Omit<CameraState, 'pointer'> &
-  Partial<Pick<CameraState, 'pointer'>>;
+export type TargetCameraState = Omit<
+  CameraState,
+  'pointerLeft' | 'pointerTop'
+> &
+  Partial<Pick<CameraState, 'pointerLeft' | 'pointerTop'>>;
 
 export interface AnimationScript {
   type:
@@ -40,6 +42,7 @@ export interface AnimationScript {
 }
 
 const stillDuration = 1200;
+const stillAfterInsightDuration = 300;
 const locateDuration = 800;
 const actionDuration = 1000;
 const clearInsightDuration = 200;
@@ -106,6 +109,49 @@ export const mergeTwoCameraState = (
   };
 };
 
+export interface ReplayScriptsInfo {
+  scripts: AnimationScript[];
+  width: number;
+  height: number;
+}
+
+export const allScriptsFromDump = (
+  dump: GroupedActionDump,
+): ReplayScriptsInfo | null => {
+  // find out the width and height of the screenshot
+  let width = 0;
+  let height = 0;
+
+  dump.executions.forEach((execution) => {
+    execution.tasks.forEach((task) => {
+      const insightTask = task as ExecutionTaskInsightLocate;
+      if (insightTask.log?.dump?.context?.size?.width) {
+        width = insightTask.log?.dump?.context?.size?.width;
+        height = insightTask.log?.dump?.context?.size?.height;
+      }
+    });
+  });
+
+  if (!width || !height) {
+    console.error('width or height is missing in dump file');
+    return null;
+  }
+
+  const allScripts: AnimationScript[] = [];
+  dump.executions.forEach((execution) => {
+    const scripts = generateAnimationScripts(execution, width, height);
+    if (scripts) {
+      allScripts.push(...scripts);
+    }
+  });
+
+  return {
+    scripts: allScripts,
+    width,
+    height,
+  };
+};
+
 export const generateAnimationScripts = (
   execution: ExecutionDump | null,
   imageWidth: number,
@@ -142,7 +188,6 @@ export const generateAnimationScripts = (
   };
 
   if (execution.tasks.length === 1 && execution.tasks[0].subType === 'Query') {
-    console.log('query task', execution.tasks[0]);
     return [];
   }
   const scripts: AnimationScript[] = [];
@@ -151,7 +196,10 @@ export const generateAnimationScripts = (
   let insightOnTop = false;
   const taskCount = execution.tasks.length;
   let initSubTitle = '';
+  let errorStateFlag = false;
   execution.tasks.forEach((task, index) => {
+    if (errorStateFlag) return;
+
     if (task.type === 'Planning') {
       const planningTask = task as ExecutionTaskPlanning;
       if (planningTask.recorder && planningTask.recorder.length > 0) {
@@ -173,10 +221,8 @@ export const generateAnimationScripts = (
       if (resultElement?.rect) {
         insightCameraState = {
           ...cameraStateForRect(resultElement.rect, imageWidth, imageHeight),
-          pointer: {
-            left: resultElement.center[0],
-            top: resultElement.center[1],
-          },
+          pointerLeft: resultElement.center[0],
+          pointerTop: resultElement.center[1],
         };
       }
       if (insightTask.log?.dump) {
@@ -185,14 +231,37 @@ export const generateAnimationScripts = (
           throw new Error('insight dump is required');
         }
         const insightContentLength = insightDump.context.content.length;
+
+        if (insightDump.context.screenshotBase64WithElementMarker) {
+          // show the original screenshot first
+          scripts.push({
+            type: 'img',
+            img: insightDump.context.screenshotBase64,
+            duration: stillAfterInsightDuration,
+            title,
+            subTitle,
+          });
+        }
+
+        let cameraState: TargetCameraState | undefined = undefined;
+        if (currentCameraState === fullPageCameraState) {
+          cameraState = undefined;
+        } else if (!insightCameraState) {
+          cameraState = undefined;
+        } else {
+          cameraState = mergeTwoCameraState(
+            currentCameraState,
+            insightCameraState,
+          );
+        }
+
         scripts.push({
           type: 'insight',
-          img: insightDump.context.screenshotBase64,
+          img:
+            insightDump.context.screenshotBase64WithElementMarker ||
+            insightDump.context.screenshotBase64,
           insightDump: insightDump,
-          camera:
-            currentCameraState === fullPageCameraState || !insightCameraState
-              ? undefined
-              : mergeTwoCameraState(currentCameraState, insightCameraState),
+          camera: cameraState,
           duration:
             insightContentLength > 20 ? locateDuration : locateDuration * 0.5,
           insightCameraDuration: locateDuration,
@@ -202,7 +271,7 @@ export const generateAnimationScripts = (
 
         scripts.push({
           type: 'sleep',
-          duration: 800,
+          duration: stillAfterInsightDuration,
           title,
           subTitle,
         });
@@ -261,16 +330,39 @@ export const generateAnimationScripts = (
         });
       }
     }
+    if (task.status !== 'finished') {
+      errorStateFlag = true;
+      const errorTitle = typeStr(task);
+      const errorMsg = task.error || 'unknown error';
+      const errorSubTitle =
+        errorMsg.indexOf('NOT_IMPLEMENTED_AS_DESIGNED') > 0
+          ? 'Further actions cannot be performed in the current environment'
+          : errorMsg;
+      scripts.push({
+        type: 'img',
+        img:
+          task.recorder && task.recorder.length > 0
+            ? task.recorder[task.recorder.length - 1].screenshot
+            : '',
+        camera: fullPageCameraState,
+        duration: stillDuration,
+        title: errorTitle,
+        subTitle: errorSubTitle,
+      });
+      return;
+    }
   });
 
   // end, back to full page
-  scripts.push({
-    title: 'Done',
-    subTitle: initSubTitle,
-    type: 'img',
-    duration: stillDuration,
-    camera: fullPageCameraState,
-  });
+  if (!errorStateFlag) {
+    scripts.push({
+      title: 'Done',
+      subTitle: initSubTitle,
+      type: 'img',
+      duration: stillDuration,
+      camera: fullPageCameraState,
+    });
+  }
 
   return scripts;
 };

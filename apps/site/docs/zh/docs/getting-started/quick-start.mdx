@@ -41,7 +41,14 @@ npx @midscene/cli \
 
 ### 查看运行报告
 
-运行 Midscene 之后，系统会生成一个日志文件，默认存放在 `./midscene_run/report/latest.web-dump.json`。然后，你可以把这个文件导入 [可视化工具](/visualization/)，这样你就能更清楚地了解整个过程。
+运行 Midscene 之后，系统会生成一个日志报告（HTML 文件）。使用浏览器打开它，你能更清楚地了解整个过程。
+
+如果你想结合报告里的 UI 状态重新调试 Prompt，你可以启动本地 Playground Server，然后点击“Send to Playground”.
+
+启动本地 Playground Server:
+```
+npx --yes @midscene/web
+```
 
 ## 集成到 Playwright
 
@@ -212,13 +219,4 @@ npx ts-node demo.ts
 
 ### 第四步：查看运行报告
 
-当上面的命令执行成功后，会在控制台输出：`Midscene - report file updated: ./current_cwd/midscene_run/report/some_id.html`， 通过浏览器打开该文件即可看到报告。
-
-你也可以将 `./midscene_run/report/latest.web-dump.json` 文件导入 [可视化工具](/visualization/) 查看。
-
-## 查看示例报告
-
-在[可视化工具](/visualization/)中点击"加载演示"按钮，你将能够看到之前代码的运行结果以及其他一些示例。
-
-![](/view-demo-visualization.gif)
-
+当上面的命令执行成功后，会在控制台输出：`Midscene - report file updated: /path/to/report/some_id.html`， 通过浏览器打开该文件即可看到报告。

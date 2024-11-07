@@ -2,9 +2,9 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import type { WebPage } from '@/common/page';
 import { getElementInfos } from '@/debug';
-import { resizeImg, saveBase64Image } from '@midscene/core/image';
+import { saveBase64Image } from '@midscene/shared/img';
 import { processImageElementInfo } from '@midscene/shared/img';
-
+import { resizeImgBase64 } from '@midscene/shared/img';
 export async function generateExtractData(
   page: WebPage,
   targetDir: string,
@@ -16,8 +16,7 @@ export async function generateExtractData(
     disableSnapshot: boolean;
   },
 ) {
-  const filePath = await page.screenshot();
-  const inputImgBase64 = readFileSync(filePath).toString('base64');
+  const inputImgBase64 = await page.screenshotBase64();
 
   const {
     elementsPositionInfo,
@@ -43,7 +42,7 @@ export async function generateExtractData(
     inputImgBase64,
   });
 
-  const resizeImgBase64 = await resizeImg(inputImgBase64);
+  const resizedImgBase64 = await resizeImgBase64(inputImgBase64, undefined);
 
   if (!saveImgType?.disableSnapshot) {
     writeFileSyncWithDir(
@@ -71,7 +70,7 @@ export async function generateExtractData(
   }
   if (!saveImgType?.disableResizeOutputImg) {
     await saveBase64Image({
-      base64Data: resizeImgBase64 as string,
+      base64Data: resizedImgBase64,
       outputPath: resizeOutputImgPath,
     });
   }

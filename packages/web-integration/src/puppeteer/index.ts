@@ -9,3 +9,5 @@ export class PuppeteerAgent extends PageAgent {
     super(webPage, opts);
   }
 }
+
+export { overrideAIConfig } from '@midscene/core';

@@ -80,7 +80,7 @@ export function generateUIContext(testDataPath: string) {
     const elementsInfo = JSON.parse(captureElementSnapshot) as BaseElement[];
 
     const baseContext = {
-      size,
+      size: { width: size.width, height: size.height },
       content: elementsInfo,
       screenshotBase64: `data:image/png;base64,${screenshotBase64}`,
     };

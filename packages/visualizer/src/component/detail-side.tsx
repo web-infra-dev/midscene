@@ -5,10 +5,8 @@ import { paramStr, timeStr, typeStr } from '@/utils';
 import { RadiusSettingOutlined } from '@ant-design/icons';
 import type {
   BaseElement,
-  ExecutionTaskAction,
   ExecutionTaskInsightAssertion,
   ExecutionTaskInsightLocate,
-  ExecutionTaskInsightQuery,
   ExecutionTaskPlanning,
   UISection,
 } from '@midscene/core';
@@ -16,7 +14,7 @@ import { Tag, Timeline, type TimelineItemProps, Tooltip } from 'antd';
 import { highlightColorForType } from './color';
 import { timeCostStrElement } from './misc';
 import PanelTitle from './panel-title';
-import { useExecutionDump, useInsightDump } from './store';
+import { useExecutionDump } from './store';
 
 const noop = () => {};
 const Card = (props: {
@@ -120,33 +118,8 @@ const objectWithoutKeys = (obj: Record<string, unknown>, keys: string[]) =>
 
 const DetailSide = (): JSX.Element => {
   const task = useExecutionDump((store) => store.activeTask);
-  const dump = useInsightDump((store) => store.data);
+  const dump = useExecutionDump((store) => store.insightDump);
   const { matchedSection: sections, matchedElement: elements } = dump || {};
-  const highlightSectionNames = useInsightDump(
-    (store) => store.highlightSectionNames,
-  );
-  const highlightElements = useInsightDump((store) => store.highlightElements);
-  const setHighlightSectionNames = useInsightDump(
-    (store) => store.setHighlightSectionNames,
-  );
-  const setHighlightElements = useInsightDump(
-    (store) => store.setHighlightElements,
-  );
-
-  const setHighlightSectionName = (name: string) => {
-    setHighlightSectionNames([name]);
-  };
-  const setHighlightElement = (element: BaseElement) => {
-    setHighlightElements([element]);
-  };
-
-  const unhighlightSection = () => {
-    setHighlightSectionNames([]);
-  };
-
-  const unhighlightElement = () => {
-    setHighlightElements([]);
-  };
 
   const kv = (data: Record<string, unknown>) => {
     const isElementItem = (value: unknown): value is BaseElement =>
@@ -162,27 +135,9 @@ const DetailSide = (): JSX.Element => {
       typeof (value as any)?.rect !== 'undefined';
 
     const elementEl = (value: BaseElement) => (
-      <span
-        onMouseEnter={() => {
-          setHighlightElement(value);
-        }}
-        onMouseLeave={unhighlightElement}
-      >
+      <span>
         <Tag bordered={false} color="orange" className="element-button">
           Element
-        </Tag>
-      </span>
-    );
-
-    const sectionEl = (value: UISection) => (
-      <span
-        onMouseEnter={() => {
-          setHighlightSectionName(value.name);
-        }}
-        onMouseLeave={unhighlightSection}
-      >
-        <Tag bordered={false} color="blue" className="section-button">
-          Section
         </Tag>
       </span>
     );
@@ -207,15 +162,6 @@ const DetailSide = (): JSX.Element => {
         content = value.map((item, index) => (
           <span key={index}>{elementEl(item)}</span>
         ));
-      } else if (typeof value === 'object' && isSectionItem(value)) {
-        content = sectionEl(value);
-      } else if (
-        Array.isArray(value) &&
-        value.some((item) => isSectionItem(item))
-      ) {
-        content = value.map((item, index) => (
-          <span key={index}>{sectionEl(item)}</span>
-        ));
       } else {
         content =
           typeof value === 'string'
@@ -225,7 +171,7 @@ const DetailSide = (): JSX.Element => {
 
       return (
         <pre className="description-content" key={key}>
-          {key}:&nbsp;{content}
+          {key} {content}
         </pre>
       );
     });
@@ -268,6 +214,7 @@ const DetailSide = (): JSX.Element => {
       ],
     });
   } else if (task?.type === 'Insight') {
+    const quickAnswer = (task as ExecutionTaskInsightLocate)?.quickAnswer;
     taskParam = MetaKV({
       data: [
         { key: 'type', content: (task && typeStr(task)) || '' },
@@ -275,6 +222,16 @@ const DetailSide = (): JSX.Element => {
           key: 'param',
           content: paramStr(task) || '',
         },
+        ...(quickAnswer
+          ? [
+              {
+                key: 'quick answer',
+                content: quickAnswer
+                  ? JSON.stringify(quickAnswer, undefined, 2)
+                  : '',
+              },
+            ]
+          : []),
       ],
     });
   } else if (task?.type === 'Action') {
@@ -289,41 +246,9 @@ const DetailSide = (): JSX.Element => {
     });
   }
 
-  const matchedSectionsEl = sections?.length
-    ? sections.map((section) => {
-        const { name } = section;
-        const ifHighlight = highlightSectionNames.includes(name);
-
-        const kvToShow = objectWithoutKeys(section as Record<string, any>, [
-          'name',
-          'description',
-          'texts',
-          'rect',
-          'sectionCharacteristics',
-        ]);
-        const sectionKV = Object.keys(kvToShow).length ? kv(kvToShow) : null;
-        const highlightColor = ifHighlight
-          ? highlightColorForType('section')
-          : undefined;
-
-        return (
-          <Card
-            title={section.name}
-            highlightWithColor={highlightColor}
-            subtitle={section.description}
-            characteristic={section.sectionCharacteristics}
-            onMouseEnter={setHighlightSectionName.bind(this, name)}
-            onMouseLeave={unhighlightSection}
-            content={sectionKV}
-            key={name}
-          />
-        );
-      })
-    : null;
-
   const matchedElementsEl = elements?.length
     ? elements.map((element, idx) => {
-        const ifHighlight = highlightElements.includes(element);
+        const ifHighlight = false; // highlightElements.includes(element);
         const highlightColor = ifHighlight
           ? highlightColorForType('element')
           : undefined;
@@ -346,8 +271,6 @@ const DetailSide = (): JSX.Element => {
             title={element.content}
             highlightWithColor={highlightColor}
             subtitle=""
-            onMouseEnter={setHighlightElement.bind(this, element)}
-            onMouseLeave={unhighlightElement}
             content={elementKV}
             key={idx}
           />
@@ -406,6 +329,15 @@ const DetailSide = (): JSX.Element => {
   if (plans) {
     timelineData = timelineData.concat(
       plans.map((item) => {
+        const paramToShow = item.param || {};
+        const paramStr = Object.keys(paramToShow).length
+          ? JSON.stringify(paramToShow, undefined, 2)
+          : null;
+
+        const quickAnswerStr = item.quickAnswer
+          ? JSON.stringify({ quickAnswer: item.quickAnswer }, undefined, 2)
+          : null;
+
         return {
           color: '#06B1AB',
           children: (
@@ -414,11 +346,8 @@ const DetailSide = (): JSX.Element => {
                 <b>{typeStr(item as any)}</b>
               </p>
               <p>{item.thought}</p>
-              <p>
-                {item.param
-                  ? JSON.stringify(item.param || {}, undefined, 2)
-                  : null}
-              </p>
+              <p>{paramStr}</p>
+              <p>{quickAnswerStr}</p>
             </>
           ),
         };
@@ -440,7 +369,6 @@ const DetailSide = (): JSX.Element => {
         {errorSection}
         {dataCard}
         {assertionCard}
-        {matchedSectionsEl}
         {matchedElementsEl}
         <Timeline items={timelineData} />
       </div>

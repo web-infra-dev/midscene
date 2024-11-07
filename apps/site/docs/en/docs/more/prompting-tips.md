@@ -30,9 +30,14 @@ Bad ❌: "string, hex value of text color"
 
 Bad ❌: "[number, number], the [x, y] coords of the main button"
 
-### Use visualization tool to debug
+### Use report file and playground tool to debug
 
-Use the visualization tool to debug and understand each step of Midscene. Just upload the log, and view the AI's parse results. You can find [the tool](/visualization/) on the navigation bar on this site. 
+Open the report file, you will see the detailed information about the steps. If you want to rerun a prompt together with UI context from the report file, just launch a Playground server and click "Send to Playground".
+
+To launch the local Playground server:
+```
+npx --yes @midscene/web
+```
 
 ### Infer or assert from the interface, not the DOM properties or browser status
 

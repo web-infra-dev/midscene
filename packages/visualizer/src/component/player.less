@@ -1,15 +1,15 @@
 @import './common.less';
 
 @player-spacing: 12px;
+@player-vertical-spacing: 15px; // ~=12 * 1.2
 @border-color: #979797;
 @radius: 6px;
-@player-primary-color: #06b1ab;
 @player-control-bg: #666;
 .player-container {
   width: fit-content;
   max-width: 100%;
   max-height: 100%;
-  padding: @player-spacing;
+  padding: @player-spacing 0;
   padding-bottom: 0;
   background: #434443DD;
   box-sizing: border-box;
@@ -27,7 +27,7 @@
     align-items: center;
     justify-content: center;
     overflow: hidden;
-
+    padding: 0 @player-spacing;
     canvas {
       max-width: 100%;
       max-height: 100%;
@@ -50,13 +50,13 @@
       top: 0;
       left: 0;
       height: 4px;
-      background: @player-primary-color;
+      background: @primary-color;
     }
   }
 
-  .player-controls {
-    margin-top: calc(@player-spacing * 1.2);
-    margin-bottom: calc(@player-spacing * 1.2);
+  .player-tools {
+    margin-top: @player-vertical-spacing;
+    margin-bottom: @player-vertical-spacing;
     max-width: 100%;
     overflow: hidden;
     color: #FFF;
@@ -64,7 +64,17 @@
     box-sizing: border-box;
     display: flex;
     flex-direction: row;
+    padding: 0 @player-spacing;
+    justify-content: space-between;
+    height: 40px;
     flex-shrink: 0;
+
+    .player-control {
+      flex-grow: 1;
+      display: flex;
+      flex-direction: row;
+      align-items: left;
+    }
     
     .status-icon {
       transition: .2s;
@@ -108,6 +118,17 @@
       position: absolute;
       top: 18px;
       left: 0;
+    }
+
+    .player-tools-item {
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+
+      .ant-btn-variant-link {
+        color: #FFF;
+      }
     }
   }
 }

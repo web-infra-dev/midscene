@@ -8,8 +8,9 @@ export interface Point {
 }
 
 export interface Size {
-  width: number;
+  width: number; // device independent window size
   height: number;
+  dpr?: number; // the scale factor of the screenshots
 }
 
 export type Rect = Point & Size;
@@ -52,16 +53,47 @@ export enum AIResponseFormat {
   TEXT = 'text',
 }
 
-export interface AISingleElementResponse {
+export type AISingleElementResponseById = {
   id: string;
   reason: string;
   text: string;
-}
+};
 
-export interface AIElementParseResponse {
-  elements: AISingleElementResponse[];
+export type AISingleElementResponseByPosition = {
+  position: {
+    x: number;
+    y: number;
+  };
+  reason: string;
+  text: string;
+};
+
+export type AISingleElementResponse =
+  | AISingleElementResponseById
+  | AISingleElementResponseByPosition;
+
+export interface AIElementIdResponse {
+  elements: {
+    id: string;
+    reason: string;
+    text: string;
+  }[];
   errors?: string[];
 }
+
+export interface AIElementPositionResponse {
+  elements: {
+    position: {
+      x: number;
+      y: number;
+    };
+    reason: string;
+    text: string;
+  }[];
+  errors?: string[];
+}
+
+export type AIElementResponse = AIElementIdResponse | AIElementPositionResponse;
 
 export interface AISectionParseResponse<DataShape> {
   data: DataShape;
@@ -81,6 +113,8 @@ export interface AIAssertionResponse {
 export abstract class UIContext<ElementType extends BaseElement = BaseElement> {
   abstract screenshotBase64: string;
 
+  abstract screenshotBase64WithElementMarker?: string;
+
   abstract content: ElementType[];
 
   abstract size: Size;
@@ -97,6 +131,10 @@ export type CallAIFn = <T>(
 export interface InsightOptions {
   taskInfo?: Omit<InsightTaskInfo, 'durationMs'>;
   aiVendorFn?: CallAIFn;
+  generateElement?: (opts: {
+    content?: string;
+    rect: BaseElement['rect'];
+  }) => BaseElement;
 }
 
 export interface UISection {
@@ -118,12 +156,14 @@ export type InsightExtractParam = string | Record<string, string>;
 
 export interface InsightTaskInfo {
   durationMs: number;
+  formatResponse?: string;
   rawResponse?: string;
 }
 
 export interface DumpMeta {
   sdkVersion: string;
   logTime: number;
+  model_name: string;
 }
 
 export interface ReportDumpWithAttributes {
@@ -141,6 +181,7 @@ export interface InsightDump extends DumpMeta {
     sections?: Record<string, string>;
     assertion?: string;
   }; // ?
+  quickAnswer?: AISingleElementResponse | null;
   matchedSection: UISection[];
   matchedElement: BaseElement[];
   data: any;
@@ -152,7 +193,7 @@ export interface InsightDump extends DumpMeta {
 
 export type PartialInsightDumpFromSDK = Omit<
   InsightDump,
-  'sdkVersion' | 'logTime' | 'logId'
+  'sdkVersion' | 'logTime' | 'logId' | 'model_name'
 >;
 
 export type DumpSubscriber = (dump: InsightDump) => Promise<void> | void;
@@ -176,6 +217,10 @@ export type InsightAssertionResponse = AIAssertionResponse;
 export interface AgentWaitForOpt {
   checkIntervalMs?: number;
   timeoutMs?: number;
+}
+
+export interface AgentAssertOpt {
+  keepRawResponse?: boolean;
 }
 
 /**
@@ -244,7 +289,8 @@ export interface Color {
 }
 
 export interface BaseAgentParserOpt {
-  selector: string;
+  selector?: string;
+  ignoreMarker?: boolean;
 }
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface PuppeteerParserOpt extends BaseAgentParserOpt {}
@@ -283,6 +329,7 @@ export interface ExecutionTaskApply<
   type: Type;
   subType?: string;
   param?: TaskParam;
+  quickAnswer?: AISingleElementResponse | null;
   executor: (
     param: TaskParam,
     context: ExecutorContext,
@@ -335,7 +382,6 @@ task - insight-locate
 */
 export interface ExecutionTaskInsightLocateParam {
   prompt: string;
-  quickAnswer?: AISingleElementResponse | null;
 }
 
 export interface ExecutionTaskInsightLocateOutput {

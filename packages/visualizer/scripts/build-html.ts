@@ -1,110 +1,184 @@
-/* this is a builder for HTML files
-Step: 
-* Read the HTML tpl from './html/tpl.html'
-* Replace the placeholders with the actual values
-* {{css}} --> {{./dist/index.css}}
-* {{js}} --> {{./dist/index.js}}
-* Write the result to './dist/index.html'
-* 
-*/
-
 import { strict as assert } from 'node:assert';
-import {
-  copyFileSync,
-  existsSync,
-  mkdirSync,
-  readFileSync,
-  writeFileSync,
-} from 'node:fs';
+import { rmSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
+import { execa } from 'execa';
+import {
+  ensureDirectoryExistence,
+  fileContentOfPath,
+  safeCopyFile,
+  tplReplacer,
+} from './building-utils';
 
-const htmlPath = join(__dirname, '../html/tpl.html');
-const cssPath = join(__dirname, '../dist/report/index.css');
-const jsPath = join(__dirname, '../dist/report/index.js');
-const demoPath = join(__dirname, './fixture/demo-dump.json');
-const demoMobilePath = join(__dirname, './fixture/demo-mobile-dump.json');
-const multiEntrySegment = join(__dirname, './fixture/multi-entries.html');
-const outputHTML = join(__dirname, '../dist/report/index.html');
-const outputDemoHTML = join(__dirname, '../dist/report/demo.html');
-const outputDemoMobileHTML = join(__dirname, '../dist/report/demo-mobile.html');
+const demoData = ['demo', 'demo-mobile', 'zero-execution'];
+
+const outputExtensionUnpackedBaseDir = join(__dirname, '../unpacked-extension');
+
+const multiEntrySegment = fileContentOfPath('./fixture/multi-entries.html');
+const reportTpl = fileContentOfPath('../html/report.html');
+const reportCSS = fileContentOfPath('../dist/report.css');
+const reportJS = fileContentOfPath('../dist/report.js');
+const playgroundCSS = fileContentOfPath(
+  '../unpacked-extension/lib/playground-entry.css',
+);
+const playgroundTpl = fileContentOfPath('../html/playground.html');
+const extensionSidepanelTpl = fileContentOfPath(
+  '../html/extension-sidepanel.html',
+);
+
+const outputReportHTML = join(__dirname, '../dist/report/index.html');
 const outputMultiEntriesHTML = join(__dirname, '../dist/report/multi.html');
 const outputEmptyDumpHTML = join(__dirname, '../dist/report/empty-error.html');
+const outputExtensionZipDir = join(__dirname, '../dist/extension/');
+const outputExtensionPageDir = join(outputExtensionUnpackedBaseDir, 'pages');
+const outputExtensionPlayground = join(
+  outputExtensionPageDir,
+  'playground.html',
+);
+const outputExtensionSidepanel = join(outputExtensionPageDir, 'sidepanel.html');
 
-function ensureDirectoryExistence(filePath: string) {
-  const directoryPath = dirname(filePath);
+/* report utils */
+function emptyDumpReportHTML() {
+  return tplReplacer(reportTpl, {
+    css: `<style>\n${reportCSS}\n</style>\n`,
+    js: `<script>\n${reportJS}\n</script>`,
+    dump: '',
+  });
+}
 
-  if (existsSync(directoryPath)) {
-    return true;
+function scriptsOfSettingReportTpl() {
+  const leftAngleMark = '__left_angle_mark_';
+  return `window.midscene_report_tpl = ${JSON.stringify(
+    emptyDumpReportHTML(),
+  ).replace(/</g, leftAngleMark)}.replace(/${leftAngleMark}/g, '<') ;`;
+}
+
+function putReportTplIntoHTML(html: string, outsourceMode = false) {
+  assert(html.indexOf('</body>') !== -1, 'HTML must contain </body>');
+  if (outsourceMode) {
+    return html.replace(
+      '</body>',
+      `<script src="/lib/set-report-tpl.js"></script>\n</body>`,
+    );
+  }
+  return html.replace(
+    '</body>',
+    `<script>\n${scriptsOfSettingReportTpl()}\n</script>\n</body>`,
+  );
+}
+
+function reportHTMLWithDump(
+  dumpJsonString?: string,
+  rawDumpString?: string,
+  filePath?: string,
+) {
+  let dumpContent = rawDumpString;
+  if (!dumpContent && dumpJsonString) {
+    dumpContent = `<script type="midscene_web_dump">\n${dumpJsonString}\n</script>`;
   }
 
-  mkdirSync(directoryPath, { recursive: true });
-  return true;
+  const reportHTML = tplReplacer(emptyDumpReportHTML(), {
+    dump: dumpContent,
+  });
+
+  const html = putReportTplIntoHTML(reportHTML);
+  if (filePath) {
+    writeFileSync(filePath, html);
+    console.log(`HTML file generated successfully: ${filePath}`);
+  }
+  return html;
 }
 
-function tplReplacer(tpl: string, obj: Record<string, string>) {
-  return tpl.replace(/{{\s*(\w+)\s*}}/g, (_, key) => {
-    return obj[key] || `{{${key}}}`; // keep the placeholder if not found
+/* build task: extension */
+function buildExtension() {
+  // clear everything in the extension page dir
+  rmSync(outputExtensionPageDir, { recursive: true, force: true });
+  ensureDirectoryExistence(outputExtensionSidepanel);
+
+  // write the set-report-tpl.js into the extension
+  writeFileSync(
+    join(__dirname, '../unpacked-extension/lib/set-report-tpl.js'),
+    scriptsOfSettingReportTpl(),
+  );
+
+  // playground.html
+  const resultWithOutsource = tplReplacer(playgroundTpl, {
+    css: `<style>\n${playgroundCSS}\n</style>\n`,
+    js: `<script src="/lib/playground-entry.js"></script>`,
+    bootstrap: '<!-- leave it empty -->', // the entry iife will mount by itself
+  });
+  writeFileSync(
+    outputExtensionPlayground,
+    putReportTplIntoHTML(resultWithOutsource, true),
+  );
+  console.log(`HTML file generated successfully: ${outputExtensionPlayground}`);
+
+  // sidepanel.html
+  writeFileSync(
+    outputExtensionSidepanel,
+    putReportTplIntoHTML(extensionSidepanelTpl, true), // TODO: remove the inline script
+  );
+  console.log(`HTML file generated successfully: ${outputExtensionSidepanel}`);
+
+  // put the htmlElement.js into the extension
+  safeCopyFile(
+    join(__dirname, '../../web-integration/dist/script/htmlElement.js'),
+    join(__dirname, '../unpacked-extension/lib/htmlElement.js'),
+  );
+}
+
+async function zipDir(src: string, dest: string) {
+  // console.log('cwd', dirname(src));
+  await execa('zip', ['-r', dest, '.'], {
+    cwd: src,
   });
 }
 
-function copyToCore() {
-  const corePath = join(__dirname, '../../midscene/report/index.html');
-  ensureDirectoryExistence(corePath);
-  copyFileSync(outputHTML, corePath);
-  console.log(`HTML file copied to core successfully: ${corePath}`);
+async function packExtension() {
+  const manifest = fileContentOfPath('../unpacked-extension/manifest.json');
+
+  const version = JSON.parse(manifest).version;
+  const zipName = `midscene-extension-${version}.zip`;
+  const distFile = join(outputExtensionZipDir, zipName);
+  ensureDirectoryExistence(distFile);
+
+  // zip the extension
+  await zipDir(outputExtensionUnpackedBaseDir, distFile);
 }
 
-function build() {
-  const html = readFileSync(htmlPath, 'utf-8');
-  const css = readFileSync(cssPath, 'utf-8');
-  const js = readFileSync(jsPath, 'utf-8');
+/* build task: report and demo pages*/
+function buildReport() {
+  const reportHTMLContent = reportHTMLWithDump();
+  assert(reportHTMLContent.length >= 1000);
+  ensureDirectoryExistence(outputReportHTML);
+  writeFileSync(outputReportHTML, reportHTMLContent);
+  console.log(`HTML file generated successfully: ${outputReportHTML}`);
 
-  const result = tplReplacer(html, {
-    css: `<style>\n${css}\n</style>\n`,
-    js: `<script>\n${js}\n</script>`,
-  });
+  // demo pages
+  for (const demo of demoData) {
+    reportHTMLWithDump(
+      fileContentOfPath(`./fixture/${demo}.json`),
+      undefined,
+      join(__dirname, `../dist/report/${demo}.html`),
+    );
+  }
 
-  assert(result.length >= 1000);
-  writeFileSync(outputHTML, result);
-  console.log(`HTML file generated successfully: ${outputHTML}`);
-
-  const demoData = readFileSync(demoPath, 'utf-8');
-  const resultWithDemo = tplReplacer(html, {
-    css: `<style>\n${css}\n</style>\n`,
-    js: `<script>\n${js}\n</script>`,
-    dump: `<script type="midscene_web_dump" type="application/json">${demoData}</script>`,
-  });
-  writeFileSync(outputDemoHTML, resultWithDemo);
-  console.log(`HTML file generated successfully: ${outputDemoHTML}`);
-
-  const demoMobileData = readFileSync(demoMobilePath, 'utf-8');
-  const resultWithDemoMobile = tplReplacer(html, {
-    css: `<style>\n${css}\n</style>\n`,
-    js: `<script>\n${js}\n</script>`,
-    dump: `<script type="midscene_web_dump" type="application/json">${demoMobileData}</script>`,
-  });
-  writeFileSync(outputDemoMobileHTML, resultWithDemoMobile);
-  console.log(`HTML file generated successfully: ${outputDemoMobileHTML}`);
-
-  const multiEntriesData = readFileSync(multiEntrySegment, 'utf-8');
-  const resultWithMultiEntries = tplReplacer(html, {
-    css: `<style>\n${css}\n</style>\n`,
-    js: `<script>\n${js}\n</script>`,
-    dump: multiEntriesData,
-  });
-  writeFileSync(outputMultiEntriesHTML, resultWithMultiEntries);
-  console.log(`HTML file generated successfully: ${outputMultiEntriesHTML}`);
+  // multi entries
+  reportHTMLWithDump(undefined, multiEntrySegment, outputMultiEntriesHTML);
 
   // dump data with empty array
-  const resultWithEmptyDump = tplReplacer(html, {
-    css: `<style>\n${css}\n</style>\n`,
-    js: `<script>\n${js}\n</script>`,
-    dump: '<script type="midscene_web_dump" type="application/json"></script>',
-  });
-  writeFileSync(outputEmptyDumpHTML, resultWithEmptyDump);
-  console.log(`HTML file generated successfully: ${outputEmptyDumpHTML}`);
+  reportHTMLWithDump(
+    undefined,
+    '<script type="midscene_web_dump"></script>',
+    outputEmptyDumpHTML,
+  );
 
-  copyToCore();
+  // copy to @midscene/core
+  safeCopyFile(
+    outputReportHTML,
+    join(__dirname, '../../midscene/report/index.html'),
+  );
 }
 
-build();
+buildExtension();
+buildReport();
+packExtension();

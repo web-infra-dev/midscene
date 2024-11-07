@@ -1,8 +1,8 @@
-import { writeFileSync } from 'node:fs';
 import path, { join } from 'node:path';
 import { parseContextFromWebPage } from '@/common/utils';
 import { generateExtractData } from '@/debug';
-import { imageInfo } from '@midscene/shared/img';
+import StaticPage from '@/playground/static-page';
+import { imageInfoOfBase64 } from '@midscene/shared/img';
 import { describe, expect, it } from 'vitest';
 import { launchPage } from '../ai/web/puppeteer/utils';
 
@@ -51,9 +51,9 @@ describe(
         },
       });
 
-      const shotpath = await page.screenshot();
+      const shotBase64 = await page.screenshotBase64();
 
-      const info = await imageInfo(shotpath);
+      const info = await imageInfoOfBase64(shotBase64);
       expect(info.height).toBe(2000);
       expect(info.width).toBe(1080);
       await reset();
@@ -68,11 +68,11 @@ describe(
         },
       });
 
-      const shotpath = await page.screenshot();
+      const shotBase64 = await page.screenshotBase64();
 
-      const info = await imageInfo(shotpath);
-      expect(info.width).toBeLessThanOrEqual(1080); // always 1x for screenshot
-      expect(info.height).toBeLessThanOrEqual(2000); // always 1x for screenshot
+      const info = await imageInfoOfBase64(shotBase64);
+      expect(info.width).toBe(2160);
+      expect(info.height).toBe(4000);
       await reset();
     });
 
@@ -103,9 +103,19 @@ describe(
       const { page, reset } = await launchPage('https://webinfra.org/about');
       await new Promise((resolve) => setTimeout(resolve, 1000));
       console.time('total - parseContextFromWebPage');
-      const { content } = await parseContextFromWebPage(page);
+      await parseContextFromWebPage(page);
       console.timeEnd('total - parseContextFromWebPage');
       await reset();
+    });
+
+    it('static page with fixed context', async () => {
+      const fakeContext = {
+        foo: 'bar',
+      };
+      const page = new StaticPage(fakeContext as any);
+
+      const context = await parseContextFromWebPage(page);
+      expect(context).toBe(fakeContext);
     });
   },
   {

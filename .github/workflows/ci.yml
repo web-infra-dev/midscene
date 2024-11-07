@@ -45,7 +45,12 @@ jobs:
           ${{ runner.os }}-puppeteer-
 
     - name: Install dependencies
-      run: pnpm install --frozen-lockfile
+      run: pnpm install --frozen-lockfile --ignore-scripts
+    
+    - name: Install puppeteer dependencies
+      run: |
+        cd packages/web-integration
+        npx puppeteer browsers install chrome
 
     - name: Build project
       run: pnpm run build

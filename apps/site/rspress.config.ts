@@ -5,14 +5,14 @@ export default defineConfig({
   root: path.join(__dirname, 'docs'),
   title: 'Midscene.js',
   description:
-    'An AI-powered automation SDK can control the page, perform assertions, and extract data in JSON format using natural language.',
+    'Transform UI automation into a joyful experience with Midscene.js, enabling seamless interaction, querying, and assertions through natural language',
   icon: '/midscene-icon.png',
   logo: {
     light: '/midscene_with_text_light.png',
-    dark: '/midscene_with_text_dark.png',
+    dark: '/midscene_with_text_light.png',
   },
   themeConfig: {
-    darkMode: false,
+    darkMode: true,
     socialLinks: [
       {
         icon: 'github',
@@ -20,6 +20,16 @@ export default defineConfig({
         content: 'https://github.com/web-infra-dev/midscene',
       },
     ],
+    footer: {
+      message: `
+        <footer class="footer">
+          <div class="footer-content">
+            <img src="/midscene-icon.png" alt="Midscene.js Logo" class="footer-logo" />
+            <p class="footer-text">&copy; 2024 Midscene.js. All Rights Reserved.</p>
+          </div>
+        </footer>
+      `,
+    },
     locales: [
       {
         lang: 'en',
@@ -37,14 +47,12 @@ export default defineConfig({
   locales: [
     {
       lang: 'en',
-      // The label in nav bar to switch language
       label: 'English',
       title: 'Midscene.js',
       description: 'Midscene.js',
     },
     {
       lang: 'zh',
-      // The label in nav bar to switch language
       label: '简体中文',
       title: 'Midscene.js',
       description: 'Midscene.js',

@@ -29,8 +29,7 @@ const SideItem = (props: {
 
   const titleTextIcon =
     task.type === 'Planning' ? (
-      <span>
-        &nbsp;
+      <span style={{ display: 'inline-block', marginLeft: '4px' }}>
         <VideoCameraOutlined />
       </span>
     ) : null;
@@ -58,12 +57,11 @@ const SideItem = (props: {
         </div>
         <div className="status-text">{statusText}</div>
       </div>
-      {/* {contentRow} */}
     </div>
   );
 };
 
-const Sidebar = (props: { logoAction?: () => void }): JSX.Element => {
+const Sidebar = (): JSX.Element => {
   const groupedDump = useExecutionDump((store) => store.dump);
   const setActiveTask = useExecutionDump((store) => store.setActiveTask);
   const activeTask = useExecutionDump((store) => store.activeTask);

@@ -2,6 +2,7 @@ import assert from 'node:assert';
 import { randomUUID } from 'node:crypto';
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
+import { MIDSCENE_MODEL_NAME, getAIConfig } from '@/ai-model/openai';
 import type {
   BaseElement,
   DumpMeta,
@@ -16,17 +17,18 @@ import type {
 } from '@/types';
 import {
   getLogDir,
+  getVersion,
   insightDumpFileExt,
   stringifyDumpData,
   writeLogFile,
 } from '@/utils';
-import { getMidscenePkgInfo } from '@midscene/shared/fs';
-
+import { uuid } from '@midscene/shared/utils';
 let logFileName = '';
 const logContent: string[] = [];
 const logIdIndexMap: Record<string, number> = {};
 const { pid } = process;
 const logFileExt = insightDumpFileExt;
+const ifInBrowser = typeof window !== 'undefined';
 
 /**
  * Writes an insight dump to a log file with error handling.
@@ -43,10 +45,11 @@ export function writeInsightDump(
   const logDir = getLogDir();
   if (!logDir) throw new Error('logDir should be set before writing dump file');
 
-  const id = logId || randomUUID();
+  const id = logId || uuid();
   const baseData: DumpMeta = {
-    sdkVersion: getMidscenePkgInfo(__dirname)?.version ?? 'unknown',
+    sdkVersion: getVersion(),
     logTime: Date.now(),
+    model_name: getAIConfig(MIDSCENE_MODEL_NAME) || '',
   };
   const finalData: InsightDump = {
     logId: id,
@@ -56,12 +59,7 @@ export function writeInsightDump(
 
   dumpSubscriber?.(finalData);
 
-  if (!logFileName) {
-    logFileName = `pid_${pid}_${baseData.logTime}`;
-    while (existsSync(join(logDir, `${logFileName}.${logFileExt}`))) {
-      logFileName = `${pid}_${baseData.logTime}-${Math.random()}`;
-    }
-  }
+  const dataString = stringifyDumpData(finalData, 2);
 
   try {
     const dataString = stringifyDumpData(finalData, 2);
@@ -80,6 +78,22 @@ export function writeInsightDump(
   } catch (error) {
     console.error(`Error writing log file: ${error.message}`, error);
     throw new Error('Failed to write log file');
+  }
+
+  if (!ifInBrowser) {
+    if (!logFileName) {
+      logFileName = `pid_${pid}_${baseData.logTime}`;
+      while (existsSync(join(logDir, `${logFileName}.${logFileExt}`))) {
+        logFileName = `${pid}_${baseData.logTime}-${Math.random()}`;
+      }
+    }
+
+    writeLogFile({
+      fileName: logFileName,
+      fileExt: logFileExt,
+      fileContent: `[\n${logContent.join(',\n')}\n]`,
+      type: 'dump',
+    });
   }
 
   return id;

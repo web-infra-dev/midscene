@@ -1,25 +1,24 @@
 {
   "name": "@midscene/core",
   "description": "An AI-powered automation SDK can control the page, perform assertions, and extract data in JSON format using natural language. See https://midscenejs.com/ for details.",
-  "version": "0.6.1",
+  "version": "0.7.2",
+  "repository": "https://github.com/web-infra-dev/midscene",
+  "homepage": "https://midscenejs.com/",
   "jsnext:source": "./src/index.ts",
   "type": "commonjs",
   "main": "./dist/lib/index.js",
-  "types": "./dist/types/index.d.ts",
+  "types": "./dist/lib/types/index.d.ts",
   "files": ["dist", "report", "README.md"],
   "exports": {
     ".": "./dist/lib/index.js",
-    "./query": "./dist/types/query/index.d.ts",
     "./utils": "./dist/lib/utils.js",
-    "./ai-model": "./dist/lib/ai-model.js",
-    "./image": "./dist/lib/image.js"
+    "./ai-model": "./dist/lib/ai-model.js"
   },
   "typesVersions": {
     "*": {
-      ".": ["./dist/types/index.d.ts"],
-      "utils": ["./dist/types/utils.d.ts"],
-      "ai-model": ["./dist/types/ai-model.d.ts"],
-      "image": ["./dist/types/image.d.ts"]
+      ".": ["./dist/lib/types/index.d.ts"],
+      "utils": ["./dist/lib/types/utils.d.ts"],
+      "ai-model": ["./dist/lib/types/ai-model.d.ts"]
     }
   },
   "scripts": {
@@ -28,21 +27,21 @@
     "build:watch": "modern build -w",
     "new": "modern new",
     "upgrade": "modern upgrade",
-    "test": "vitest --run",
+    "test": "vitest --run -u",
     "test:ai": "AITEST=true npm run test",
     "evaluate": "npm run test:ai -- tests/ai/evaluate/inspect.test.ts",
+    "computer": "TEST_COMPUTER=true npm run test:ai -- tests/ai/evaluate/computer.test.ts",
     "evaluate:update": "UPDATE_AI_DATA=true npm run test:ai -- tests/ai/evaluate/inspect.test.ts",
     "evaluate:plan": "PLAN_INSPECT=true npm run test:ai -- tests/ai/evaluate/inspect.test.ts",
     "prepublishOnly": "npm run build"
   },
   "dependencies": {
-    "node-fetch": "2.6.7",
     "openai": "4.57.1",
     "optional": "0.1.4",
     "@midscene/shared": "workspace:*"
   },
   "devDependencies": {
-    "@modern-js/module-tools": "2.58.2",
+    "@modern-js/module-tools": "2.60.6",
     "@types/node": "^18.0.0",
     "@types/node-fetch": "2.6.11",
     "dotenv": "16.4.5",
