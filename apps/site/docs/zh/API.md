@@ -1,32 +1,14 @@
-# API 接口
-
-## 与 Puppeteer 集成
-
-初始化方法：
-
-```typescript
-import { PuppeteerAgent } from '@midscene/web/puppeteer';
-
-const mid = new PuppeteerAgent(puppeteerPageInstance);
-```
-
-你可以在[快速开始](../getting-started/quick-start) 中找到完整的集成样例。
-
-## 与 Playwright 集成
-
-你可以在[快速开始](../getting-started/quick-start) 中找到完整的集成样例。
-
-## API
+# API 参考
 
 > 在以下文档中，你可能会看到带有 `mid.` 前缀的函数调用。如果你在 Playwright 中使用了解构赋值（object destructuring），如 `async ({ ai, aiQuery }) => { /* ... */}`，你可以不带这个前缀进行调用。这只是语法的区别。
 
-### `.aiAction(steps: string)` 或 `.ai(steps: string)` - 控制界面
+## `.aiAction(steps: string)` 或 `.ai(steps: string)` - 控制界面
 
 你可以使用 `.aiAction` 来执行一系列操作。它接受一个参数 `steps: string` 用于描述这些操作。在这个参数中，你应该清楚地描述每一个步骤，然后 Midscene 会自动为你分析并执行。
 
 `.ai` 是 `.aiAction` 的简写。
 
-以下是一些优质示例：
+以下是一些正确示例：
 
 ```typescript
 await mid.aiAction('在任务框中输入 "Learn JS today"，然后按回车键创建任务');
@@ -49,10 +31,10 @@ await mid.ai('点击任务列表下方的 "completed" 状态按钮');
 目前，Midscene 无法规划包含条件和循环的步骤。
 
 关联文档:
-* [FAQ: Midscene 能否根据一句话指令实现智能操作？比如执行 "发一条微博"'](../more/faq.html)
-* [编写提示词的技巧](../more/prompting-tips.html)
+* [FAQ: Midscene 能否根据一句话指令实现智能操作？比如执行 "发一条微博"'](./faq.html)
+* [编写提示词的技巧](./prompting-tips.html)
 
-### `.aiQuery(dataShape: any)` - 从页面提取数据
+## `.aiQuery(dataShape: any)` - 从页面提取数据
 
 这个方法可以从 UI 提取自定义数据。它不仅能返回页面上直接书写的数据，还能基于“理解”返回数据（前提是多模态 AI 能够推理）。返回值可以是任何合法的基本类型，比如字符串、数字、JSON、数组等。你只需在 `dataDemand` 中描述它，Midscene 就会给你满足格式的返回。
 
@@ -75,7 +57,7 @@ const dataB = await mid.aiQuery('string[]，列表中的任务名称');
 const dataC = await mid.aiQuery('{name: string, age: string}[], 表格中的数据记录');
 ```
 
-### `.aiAssert(assertion: string, errorMsg?: string)` - 进行断言
+## `.aiAssert(assertion: string, errorMsg?: string)` - 进行断言
 
 `.aiAssert` 的功能类似于一般的断言（assert）方法，但可以用自然语言编写条件参数 `assertion`。Midscene 会调用 AI 来判断条件是否为真。若条件不满足，SDK 会抛出一个错误并在 `errorMsg` 后附上 AI 生成的错误原因。
 
@@ -98,7 +80,7 @@ expect(onesieItem.price).toBe(7.99);
 ```
 :::
 
-### `.aiWaitFor(assertion: string, {timeoutMs?: number, checkIntervalMs?: number })` - 等待断言执行成功
+## `.aiWaitFor(assertion: string, {timeoutMs?: number, checkIntervalMs?: number })` - 等待断言执行成功
 
 `.aiWaitFor` 帮助你检查你的断言是否满足，或是是否发生了超时错误。考虑到 AI 服务的成本，检查间隔不会超过 `checkIntervalMs` 毫秒。默认配置将 `timeoutMs` 设为 15 秒，`checkIntervalMs` 设为 3 秒：也就是说，如果所有断言都失败，并且 AI 服务总是立即响应，则最多检查 5 次。
 

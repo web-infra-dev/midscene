@@ -1,41 +1,6 @@
 import * as path from 'node:path';
 import { defineConfig } from 'rspress/config';
 
-// [{
-//   "type": "section-header",
-//   "label": "Getting Started"
-// },
-// {
-//   "type": "dir",
-//   "name": "getting-started",
-//   "label": "Getting Started"
-// },
-// "introduction",
-// "quick-start",
-// "demo",
-// "chrome-extension",
-// {
-//   "type": "divider"
-// },
-// {
-//   "type": "section-header",
-//   "label": "Usage"
-// },
-// "api",
-// "cli",
-// "cache",
-// "model-provider",
-// {
-//   "type": "divider"
-// },
-// {
-//   "type": "section-header",
-//   "label": "More"
-// },
-// "prompting-tips",
-// "faq"
-// ]
-
 export default defineConfig({
   root: path.join(__dirname, 'docs'),
   title: 'Midscene.js',
@@ -82,7 +47,6 @@ export default defineConfig({
         {
           text: 'Getting Started',
           items: [
-            // 填入一个对象
             {
               text: 'Introduction',
               link: '/introduction',
@@ -97,10 +61,6 @@ export default defineConfig({
           text: 'Usage',
           items: [
             {
-              text: 'API',
-              link: '/api',
-            },
-            {
               text: 'Integrate with Playwright',
               link: '/integrate-with-playwright',
             },
@@ -111,6 +71,10 @@ export default defineConfig({
             {
               text: 'Command Line Tools',
               link: '/cli',
+            },
+            {
+              text: 'API Reference',
+              link: '/api',
             },
             {
               text: 'Cache',
@@ -132,6 +96,63 @@ export default defineConfig({
             {
               text: 'FAQ',
               link: '/faq',
+            },
+          ],
+        },
+      ],
+      '/zh/': [
+        {
+          text: '快速开始',
+          items: [
+            {
+              text: '介绍',
+              link: '/zh/introduction',
+            },
+            {
+              text: '快速体验',
+              link: '/zh/quick-experience',
+            },
+          ],
+        },
+        {
+          text: '使用指南',
+          items: [
+            {
+              text: '集成到 Playwright',
+              link: '/zh/integrate-with-playwright',
+            },
+            {
+              text: '集成到 Puppeteer',
+              link: '/zh/integrate-with-puppeteer',
+            },
+            {
+              text: '命令行工具',
+              link: '/zh/cli',
+            },
+            {
+              text: 'API 参考',
+              link: '/zh/api',
+            },
+            {
+              text: '缓存',
+              link: '/zh/cache',
+            },
+            {
+              text: '自定义模型服务',
+              link: '/zh/model-provider',
+            },
+          ],
+        },
+        {
+          text: '更多',
+          items: [
+            {
+              text: '提示词技巧',
+              link: '/zh/prompting-tips',
+            },
+            {
+              text: '常见问题',
+              link: '/zh/faq',
             },
           ],
         },

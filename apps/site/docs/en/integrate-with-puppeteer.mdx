@@ -11,7 +11,7 @@ you can check the demo project of Puppeteer here: [https://github.com/web-infra-
 
 ## Preparation
 
-Config the OpenAI API key, or [customize model provider](../usage/model-provider.html)
+Config the OpenAI API key, or [customize model provider](./model-provider.html)
 
 ```bash
 # replace with your own
@@ -68,17 +68,6 @@ Promise.resolve(
 );
 ```
 
-:::tip
-You may have noticed that the key lines of code for this only consist of three lines. They are all written in plain language.
-
-```typescript
-await mid.aiAction('type "Headphones" in search box, hit Enter');
-await mid.aiQuery(
-  '{itemTitle: string, price: Number}[], find item in list and corresponding price',
-);
-await mid.aiAssert("There is a category filter on the left");
-```
-:::
 
 ## Step 3. run
 

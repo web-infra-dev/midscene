@@ -1,0 +1,36 @@
+# 使用 Chrome 插件体验（即将上架）
+
+通过使用 Midscene.js Chrome 插件，你可以快速在任意网页上体验 Midscene 的主要功能，而无需编写任何代码。
+
+该扩展与 npm `@midscene/` 包共享了相同的代码，因此你可以将其视为 Midscene 的一个 Playground 或调试工具。
+
+## 准备工作
+
+请先准备好 OpenAI 的 API 密钥，我们稍后将用到。
+
+## 安装与配置
+
+前往 Chrome 扩展商店安装 Midscene 扩展：[Midscene](https://chromewebstore.google.com/detail/midscene/gbldofcpkknbggpkmbdaefngejllnief)
+
+启动扩展（可能默认是折叠的），通过粘贴 Key=Value 格式配置插件环境：
+
+```shell
+OPENAI_API_KEY="sk-replace-by-your-own"
+```
+
+## 开始体验
+
+配置完成后，你可以立即开始使用 Midscene。你可以通过 Action 与网页进行交互，利用 Query 提取 JSON 数据，或通过 Assert 进行断言。
+
+同时，你会发现插件会提供操作回放功能以及一份报告文件供查看。这份报告与你从自动化脚本所得的报告是相同的。
+
+快来试试吧！
+
+## 想将 Midscene 集成到代码？
+
+插件体验结束后，你可能想将 Midscene 集成到代码中。这里有几种不同集成形式的文档：
+
+* 使用[命令行工具](.cli)
+* [集成到 Puppeteer](./integrate-with-puppeteer)
+* [集成到 Playwright](./integrate-with-playwright)
+

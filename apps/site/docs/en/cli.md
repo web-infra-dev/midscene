@@ -12,7 +12,7 @@ you can check the demo project of command line tools here: [https://github.com/w
 
 ⁠Ensure that you have [Node.js](https://nodejs.org/) installed.
 
-* Config the OpenAI API key, or [customize model provider](../usage/model-provider.html)
+* Config the OpenAI API key, or [customize model provider](./model-provider.html)
 
 ```bash
 # replace with your own

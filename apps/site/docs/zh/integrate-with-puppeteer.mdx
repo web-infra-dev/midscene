@@ -1,0 +1,95 @@
+
+# 集成到 Puppeteer
+
+import { PackageManagerTabs } from '@theme';
+
+[Puppeteer](https://pptr.dev/) 是一个 Node.js 库，它通过 DevTools 协议或 WebDriver BiDi 提供控制 Chrome 或 Firefox 的高级 API。Puppeteer 默认在无界面模式（headless）下运行，但可以配置为在可见的浏览器模式（headed）中运行。
+
+:::info 样例项目
+你可以在这里看到向 Puppeteer 集成的样例项目：[https://github.com/web-infra-dev/midscene-example/blob/main/puppeteer-demo](https://github.com/web-infra-dev/midscene-example/blob/main/puppeteer-demo)
+:::
+
+## 准备工作
+
+配置 OpenAI API Key，或 [自定义模型服务](./model-provider.html)
+
+```bash
+# 更新为你自己的 Key
+export OPENAI_API_KEY="sk-abcdefghijklmnopqrstuvwxyz"
+```
+
+## 第一步：安装依赖
+
+<PackageManagerTabs command="install @midscene/web puppeteer ts-node --save-dev" />
+
+## 第二步：编写脚本
+
+编写下方代码，保存为 `./demo.ts`
+
+```typescript title="./demo.ts"
+import puppeteer from "puppeteer";
+import { PuppeteerAgent } from "@midscene/web/puppeteer";
+
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+Promise.resolve(
+  (async () => {
+    const browser = await puppeteer.launch({
+      headless: false, // here we use headed mode to help debug
+    });
+
+    const page = await browser.newPage();
+    await page.setViewport({
+      width: 1280,
+      height: 800,
+      deviceScaleFactor: 1,
+    });
+
+    await page.goto("https://www.ebay.com");
+    await sleep(5000);
+
+    // 👀 初始化 Midscene agent 
+    const mid = new PuppeteerAgent(page);
+
+    // 👀 执行搜索
+    // 注：尽管这是一个英文页面，你也可以用中文指令控制它
+    await mid.aiAction('在搜索框输入 "Headphones" ，敲回车');
+    await sleep(5000);
+
+    // 👀 理解页面，提取数据
+    const items = await mid.aiQuery(
+      '{itemTitle: string, price: Number}[], 找到列表里的商品标题和价格',
+    );
+    console.log("耳机商品信息", items);
+
+    // 👀 用 AI 断言
+    await mid.aiAssert("界面左侧有类目筛选功能");
+
+    await browser.close();
+  })()
+);
+```
+
+## 第三步：运行
+
+使用 `ts-node` 来运行，你会看到命令行打印出了耳机的商品信息：
+
+```bash
+# run
+npx ts-node demo.ts
+
+# 命令行应该有如下输出
+#  [
+#   {
+#     itemTitle: 'JBL Tour Pro 2 - True wireless Noise Cancelling earbuds with Smart Charging Case',
+#     price: 551.21
+#   },
+#   {
+#     itemTitle: 'Soundcore Space One无线耳机40H ANC播放时间2XStronger语音还原',
+#     price: 543.94
+#   }
+# ]
+```
+
+## 第四步：查看运行报告
+
+当上面的命令执行成功后，会在控制台输出：`Midscene - report file updated: /path/to/report/some_id.html`， 通过浏览器打开该文件即可看到报告。
