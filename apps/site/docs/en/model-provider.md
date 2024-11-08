@@ -1,4 +1,4 @@
-# Customize model provider
+# Customize Model Provider
 
 Midscene uses the OpenAI SDK as the default AI service. You can customize the configuration using environment variables.
 

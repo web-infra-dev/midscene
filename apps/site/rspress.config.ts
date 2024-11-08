@@ -78,26 +78,18 @@ export default defineConfig({
       },
     ],
     sidebar: {
-      '/docs/': [
+      '/': [
         {
           text: 'Getting Started',
           items: [
             // 填入一个对象
             {
               text: 'Introduction',
-              link: '/docs/introduction',
+              link: '/introduction',
             },
             {
-              text: 'Quick Start',
-              link: '/docs/quick-start',
-            },
-            {
-              text: 'Demo',
-              link: '/docs/demo',
-            },
-            {
-              text: 'Chrome Extension',
-              link: '/docs/chrome-extension',
+              text: 'Quick Experience',
+              link: '/quick-experience',
             },
           ],
         },
@@ -106,19 +98,27 @@ export default defineConfig({
           items: [
             {
               text: 'API',
-              link: '/docs/api',
+              link: '/api',
             },
             {
-              text: 'CLI',
-              link: '/docs/cli',
+              text: 'Integrate with Playwright',
+              link: '/integrate-with-playwright',
+            },
+            {
+              text: 'Integrate with Puppeteer',
+              link: '/integrate-with-puppeteer',
+            },
+            {
+              text: 'Command Line Tools',
+              link: '/cli',
             },
             {
               text: 'Cache',
-              link: '/docs/cache',
+              link: '/cache',
             },
             {
-              text: 'Model Provider',
-              link: '/docs/model-provider',
+              text: 'Customize Model Provider',
+              link: '/model-provider',
             },
           ],
         },
@@ -127,11 +127,11 @@ export default defineConfig({
           items: [
             {
               text: 'Prompting Tips',
-              link: '/docs/prompting-tips',
+              link: '/prompting-tips',
             },
             {
               text: 'FAQ',
-              link: '/docs/faq',
+              link: '/faq',
             },
           ],
         },

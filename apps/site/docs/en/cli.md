@@ -1,6 +1,10 @@
-# Command line tools
+# Command Line Tools
 
 `@midscene/cli` is the command line version of Midscene. It is suitable for executing very simple tasks or experiencing the basics of Midscene.
+
+:::info Demo Project
+you can check the demo project of command line tools here: [https://github.com/web-infra-dev/midscene-example/blob/main/command-line](https://github.com/web-infra-dev/midscene-example/blob/main/command-line)
+:::
 
 ## Preparation
 
@@ -8,23 +12,24 @@
 
 ⁠Ensure that you have [Node.js](https://nodejs.org/) installed.
 
-* Config AI provider
+* Config the OpenAI API key, or [customize model provider](../usage/model-provider.html)
 
 ```bash
-# replace by your own
+# replace with your own
 export OPENAI_API_KEY="sk-abcdefghijklmnopqrstuvwxyz"
 ```
 
-Related Docs:
-* [Customize model provider](./model-provider.html)
-
 ## Examples
 
-```bash
-# headed mode (i.e. visible browser) to visit bing.com and search for 'weather today'
-npx @midscene/cli --headed --url https://wwww.bing.com --action "type 'weather today', hit enter" --sleep 3000
+Use headed mode (i.e. visible browser) to visit bing.com and search for 'weather today'
 
-# visit github status page and save the status to ./status.json
+```bash
+npx @midscene/cli --headed --url https://wwww.bing.com --action "type 'weather today', hit enter" --sleep 3000
+```
+
+visit github status page and save the status to ./status.json
+
+```bash
 npx @midscene/cli --url https://www.githubstatus.com/ \
   --query-output status.json \
   --query '{name: string, status: string}[], service status of github page'
@@ -69,6 +74,6 @@ Actions (the order matters, can be used multiple times):
 
 ## Note
 
-1. Always put options before any action param
-2. The order of action param matters. For example, `--action "some action" --query "some data"` means taking some action first, then querying.
+1. Always put options before any action param.
+2. The order of action parameters matters. For example, `--action "some action" --query "some data"` means that the action is taken first, followed by a query.
 3. If you have some more complex requirements, such as loop operations, using the SDK version (instead of this cli) is an easier way to achieve them.

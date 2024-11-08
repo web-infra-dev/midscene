@@ -1,6 +1,4 @@
-# Introduction
-
-## Joyful Automation by AI
+# Midscene.js - Joyful Automation by AI
 
 UI automation testing is often difficult to maintain, which often involves a maze of *#ids*, *data-test* attributes, and *.selectors*. When it comes to refactoring, it can be a nightmare.
 
@@ -37,23 +35,23 @@ console.log("headphones in stock", items);
 await aiAssert("There is a category filter on the left");
 ```
 
-## Visualized Report
+## Multiple ways to integrate
 
-Midscene will provide a visual report after each run. With this report, you can review the replay and view the details of each step in the process.
+There are several ways to experience or integrate with Midscene:
+
+* [The Chrome Extension](./quick-experience): quickly experience the main features of Midscene on any webpage, without needing to set up a code project.
+* Use [Command Line Tools]('./cli')
+* [Integrate with Puppeteer]('./integrate-with-puppeteer')
+* [Integrate with Playwright]('./integrate-with-playwright')
+
+
+## Visualized report
+
+Midscene will provide a visual report after each run. With this report, you can review the animated replay and view the details of each step in the process. What's more, there is a playground in the report file for you to adjust your prompt without re-running all your scripts.
 
 ![](/report.gif)
 
-## Playground for debug
-
-Midscene provides a playground for debug. You can run and debug any prompt with the type `Action` `Query` `Assert` in it.
-
-Usually, you can launch a playground from your report file. You can also launch one using the Chrome extension to interact with any webpage.
-
 ![](/playground.png)
-
-## Compatible with existing tools
-
-You can integrate Midscene.js with projects like Playwright or Puppeteer. Just introduce innovative features into popular automation tools.
 
 ## Just you and model provider, no third-party services
 
