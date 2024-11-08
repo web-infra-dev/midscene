@@ -104,7 +104,8 @@ export class Page<
 
   get keyboard() {
     return {
-      type: async (text: string) => this.underlyingPage.keyboard.type(text),
+      type: async (text: string) =>
+        this.underlyingPage.keyboard.type(text, { delay: 80 }),
       press: async (key: WebKeyInput) =>
         this.underlyingPage.keyboard.press(key),
       down: async (key: WebKeyInput) => this.underlyingPage.keyboard.down(key),

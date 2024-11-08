@@ -305,22 +305,6 @@ export function Playground({
     (serviceMode === 'Server' && serverValid) ||
     (serviceMode === 'In-Browser-Extension' && agent && configAlreadySet);
 
-  // use cmd + enter to run
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Enter') {
-        handleRun();
-        e.preventDefault();
-        e.stopPropagation();
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-
-    return () => {
-      window.removeEventListener('keydown', handleKeyDown);
-    };
-  }, [handleRun]);
-
   let resultDataToShow: any = (
     <div className="result-empty-tip">
       <span>The result will be shown here</span>
@@ -492,6 +476,13 @@ export function Playground({
                 rows={2}
                 placeholder={placeholder}
                 autoFocus
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && e.metaKey) {
+                    handleRun();
+                    e.preventDefault();
+                    e.stopPropagation();
+                  }
+                }}
               />
             </Form.Item>
             {actionBtn}
