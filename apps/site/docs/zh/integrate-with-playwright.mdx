@@ -1,0 +1,92 @@
+# 集成到 Playwright
+
+import { PackageManagerTabs } from '@theme';
+
+[Playwright.js](https://playwright.com/) 是由微软开发的一个开源自动化库，主要用于对网络应用程序进行端到端测试（end-to-end test）和网页抓取。
+
+这里我们假设你已经拥有一个集成了 Playwright 的仓库。
+
+:::info 样例项目
+你可以在这里看到向 Playwright 集成的样例项目：[https://github.com/web-infra-dev/midscene-example/blob/main/playwright-demo](https://github.com/web-infra-dev/midscene-example/blob/main/playwright-demo)
+:::
+
+
+## 准备工作
+
+配置 OpenAI API Key，或 [自定义模型服务](./model-provider.html)
+
+```bash
+# 更新为你自己的 Key
+export OPENAI_API_KEY="sk-abcdefghijklmnopqrstuvwxyz"
+```
+
+## 第一步：新增依赖，更新配置文件
+
+新增依赖
+
+<PackageManagerTabs command="install @midscene/web --save-dev" />
+
+更新 playwright.config.ts
+
+```diff
+export default defineConfig({
+  testDir: './e2e',
++ timeout: 90 * 1000,
++ reporter: [["list"], ["@midscene/web/playwright-report"]],
+});
+```
+
+## 第二步：扩展 `test` 实例
+
+把下方代码保存为 `./fixture.ts`;
+
+```typescript
+import { test as base } from '@playwright/test';
+import type { PlayWrightAiFixtureType } from '@midscene/web/playwright';
+import { PlaywrightAiFixture } from '@midscene/web/playwright';
+
+export const test = base.extend<PlayWrightAiFixtureType>(PlaywrightAiFixture());
+```
+
+## 第三步：编写测试用例
+
+编写下方代码，保存为 `./e2e/ebay-search.spec.ts`
+
+```typescript title="./e2e/ebay-search.spec.ts"
+import { expect } from "@playwright/test";
+import { test } from "./fixture";
+
+test.beforeEach(async ({ page }) => {
+  page.setViewportSize({ width: 400, height: 905 });
+  await page.goto("https://www.ebay.com");
+  await page.waitForLoadState("networkidle");
+});
+
+test("search headphone on ebay", async ({ ai, aiQuery, aiAssert }) => {
+  // 👀 输入关键字，执行搜索
+  // 注：尽管这是一个英文页面，你也可以用中文指令控制它
+  await ai('在搜索框输入 "Headphones" ，敲回车');
+
+  // 👀 找到列表里耳机相关的信息
+  const items = await aiQuery(
+    '{itemTitle: string, price: Number}[], 找到列表里的商品标题和价格'
+  );
+
+  console.log("headphones in stock", items);
+  expect(items?.length).toBeGreaterThan(0);
+
+  // 👀 用 AI 断言
+  await aiAssert("界面左侧有类目筛选功能");
+});
+
+```
+
+## Step 4. 运行测试用例
+
+```bash
+npx playwright test ./e2e/ebay-search.spec.ts
+```
+
+## Step 5. 查看测试报告
+
+当上面的命令执行成功后，会在控制台输出：`Midscene - report file updated: ./current_cwd/midscene_run/report/some_id.html`，通过浏览器打开该文件即可看到报告。

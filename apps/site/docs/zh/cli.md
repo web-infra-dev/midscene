@@ -2,6 +2,11 @@
 
 `@midscene/cli` 是 Midscene 的命令行版本。它适合执行简单的任务或体验 Midscene 的基础功能。
 
+:::info 样例项目
+你可以在这里看到使用命令行工具的样例项目：[https://github.com/web-infra-dev/midscene-example/blob/main/command-line](https://github.com/web-infra-dev/midscene-example/blob/main/command-line)
+:::
+
+
 ## 准备工作
 
 * 安装 Node.js
@@ -16,7 +21,7 @@ export OPENAI_API_KEY="sk-abcdefghijklmnopqrstuvwxyz"
 ```
 
 相关文档：
-* [自定义模型服务](./model-vendor.html)
+* [自定义模型服务](./model-provider.html)
 
 ## 示例
 

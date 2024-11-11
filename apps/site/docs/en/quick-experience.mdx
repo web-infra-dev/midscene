@@ -1,0 +1,37 @@
+# Experience By Chrome Extension
+
+Midscene.js provides a Chrome extension. By using it, you can quickly experience the main features of Midscene on any webpage, without needing to set up a code project.
+
+⁠The extension shares the same code as the npm `@midscene/` packages, so you can think of it as a playground or a way to debug with Midscene.
+
+## Preparation
+
+Prepare an OpenAI API key, we will use it soon.
+
+## Install and config
+
+Install Midscene extension from chrome web store: [Midscene](https://chromewebstore.google.com/detail/midscene/gbldofcpkknbggpkmbdaefngejllnief)
+
+Start the extension (may be folded by default), setup the config by pasting the config in the K=V format:
+
+```shell
+OPENAI_API_KEY="sk-replace-by-your-own"
+```
+
+You can also paste the configuration as described in [customize model provider](./model-provider.html) here.
+
+## Start experiencing
+
+After the configuration, you can immediately experience Midscene. You can use actions to interact with the page, use queries to extract JSON data, or use assertions to validate. 
+
+You may notice that the extension will provide a playback of actions and a report file to review. This is the same report file you will receive from your automation scripts.
+
+Enjoy !
+
+## Want to write some code ?
+
+After experiencing, you may want to write some code to integrate Midscene. There are multiple ways to do that. Please refer to the documents below:
+
+* Use [Command Line Tools](./cli)
+* [Integrate with Puppeteer](./integrate-with-puppeteer)
+* [Integrate with Playwright](./integrate-with-playwright)

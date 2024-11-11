@@ -19,7 +19,7 @@ if (process.argv.indexOf('--help') !== -1) {
 
   Actions (the order matters, can be used multiple times):
     --action <action>           Perform an action, optional
-    --assert <assert>           Perform an assert, optional
+    --assert <assert>           Perform an assert, optional. The process will be terminated if the assertion is not met.
     --query-output <path>       Save the result of the query to a file, this must be put before --query, optional
     --query <query>             Perform a query, optional
     --wait-for <assertion>      Wait for a condition to be met. The timeout is set to 15 seconds. optional

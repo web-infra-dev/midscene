@@ -1,0 +1,57 @@
+# Midscene.js - AI 加持，带来愉悦的 UI 自动化体验
+
+UI 自动化太难维护了。UI 自动化脚本里往往到处都是选择器，比如 `#ids`、`data-test`、`.selectors`。在需要重构的时候，这可能会让人感到非常头疼，尽管在这种情况下，理论上UI自动化应该能够发挥作用。
+
+我们在这里推出 Midscene.js，助你重拾编码的乐趣。
+
+Midscene.js 采用了多模态大语言模型（LLM），能够直观地“理解”你的用户界面并执行必要的操作。你只需描述交互步骤或期望的数据格式，AI 就能为你完成任务。
+
+目前我们默认选择的是 OpenAI GPT-4o 作为模型，你也可以自定义为其他模型。
+
+<video src="/introduce/ai-todo.mp4" controls/>
+
+## 通过 AI 执行交互、提取数据和断言
+
+一共有三种关键方法：交互（`.ai`, `.aiAction`）, 提取 (`.aiQuery`), 断言 (`.aiAssert`)。
+
+* 用 `.ai`方法描述步骤并执行交互
+* 用 `.aiQuery` 从 UI 中“理解”并提取数据，返回值是 JSON 格式，你可以尽情描述想要的数据结构
+* 用 `.aiAssert` 来执行断言
+
+举例：
+
+```typescript
+// 👀 输入关键字，执行搜索
+// 注：尽管这是一个英文页面，你也可以用中文指令控制它
+await ai('在搜索框输入 "Headphones" ，敲回车');
+
+// 👀 找到列表里耳机相关的信息
+const items = await aiQuery(
+  '{itemTitle: string, price: Number}[], 找到列表里的商品标题和价格'
+);
+
+console.log("headphones in stock", items);
+```
+
+## 多种集成形式
+
+想要使用 Midscene 的核心能力，我们推荐从 [浏览器插件](./quick-experience) 开始快速体验。插件里可以用自然语言与任意网页联动，调用交互、提取、断言三种接口，无需搭建代码项目。
+
+此外，还有几种形式将 Midscene 集成到代码：
+* 使用[命令行工具](.cli)
+* [集成到 Puppeteer](./integrate-with-puppeteer)
+* [集成到 Playwright](./integrate-with-playwright)
+
+## 可视化报告
+
+运行结束后，Midscene 会提供可视化报告和调试 Playground，可以非常方便地调试提示和 AI 的响应。所有的中间数据，例如查询（Query）、计划（Planning）和动作（Actions），都可以被可视化。
+
+此外，Midscene 报告里还集成了一个 Playground，用以在报告中重新运行 Prompt 并调试。
+
+![](/report.gif)
+
+![](/playground.png)
+
+## 直连模型端，无需三方服务
+
+Midscene.js 是一个采用 MIT 许可证的开源项目 (GitHub: [Midscene](https://github.com/web-infra-dev/midscene/)) 。项目代码运行在用户的自有环境中，所有从页面收集的数据会依照用户的配置，直接传送到 OpenAI 或指定的自定义模型。因此，数据仅用户和指定的模型服务商可访问，任何第三方平台均无法获取这些数据。

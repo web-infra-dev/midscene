@@ -12,7 +12,7 @@ export default defineConfig({
     dark: '/midscene_with_text_light.png',
   },
   themeConfig: {
-    darkMode: true,
+    darkMode: false,
     socialLinks: [
       {
         icon: 'github',
@@ -42,6 +42,122 @@ export default defineConfig({
         label: '大纲',
       },
     ],
+    sidebar: {
+      '/': [
+        {
+          text: 'Getting Started',
+          items: [
+            {
+              text: 'Introduction',
+              link: '/',
+            },
+            {
+              text: 'Quick Experience',
+              link: '/quick-experience',
+            },
+          ],
+        },
+        {
+          text: 'Usage',
+          items: [
+            {
+              text: 'Integrate with Playwright',
+              link: '/integrate-with-playwright',
+            },
+            {
+              text: 'Integrate with Puppeteer',
+              link: '/integrate-with-puppeteer',
+            },
+            {
+              text: 'Command Line Tools',
+              link: '/cli',
+            },
+            {
+              text: 'API Reference',
+              link: '/api',
+            },
+            {
+              text: 'Cache',
+              link: '/cache',
+            },
+            {
+              text: 'Customize Model Provider',
+              link: '/model-provider',
+            },
+          ],
+        },
+        {
+          text: 'More',
+          items: [
+            {
+              text: 'Prompting Tips',
+              link: '/prompting-tips',
+            },
+            {
+              text: 'FAQ',
+              link: '/faq',
+            },
+          ],
+        },
+      ],
+      '/zh': [
+        {
+          text: '快速开始',
+          items: [
+            {
+              text: '介绍',
+              link: '/zh/index',
+            },
+            {
+              text: '快速体验',
+              link: '/zh/quick-experience',
+            },
+          ],
+        },
+        {
+          text: '使用指南',
+          items: [
+            {
+              text: '集成到 Playwright',
+              link: '/zh/integrate-with-playwright',
+            },
+            {
+              text: '集成到 Puppeteer',
+              link: '/zh/integrate-with-puppeteer',
+            },
+            {
+              text: '命令行工具',
+              link: '/zh/cli',
+            },
+            {
+              text: 'API 参考',
+              link: '/zh/api',
+            },
+            {
+              text: '缓存',
+              link: '/zh/cache',
+            },
+            {
+              text: '自定义模型服务',
+              link: '/zh/model-provider',
+            },
+          ],
+        },
+        {
+          text: '更多',
+          items: [
+            {
+              text: '提示词技巧',
+              link: '/zh/prompting-tips',
+            },
+            {
+              text: '常见问题',
+              link: '/zh/faq',
+            },
+          ],
+        },
+      ],
+    },
   },
   globalStyles: path.join(__dirname, 'styles/index.css'),
   locales: [
