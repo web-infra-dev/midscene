@@ -1,34 +1,16 @@
-import { findOnlyItemInArgs, parse } from '@/args';
+import { findOnlyItemInArgs, orderMattersParse } from '@/args';
 import { describe, expect, test } from 'vitest';
 
 describe('args', () => {
   test('should parse arguments', async () => {
-    const input = [
-      '--url',
-      'https://example.com',
-      '--width',
-      '500',
-      '--action',
-      'click',
-      '--assert',
-      'this is an assertion',
-      '--query-output',
-      'output.json',
-      '--query',
-      'title',
-      '--query',
-      'content',
-      '--prefer-cache',
-    ];
-
-    const result = parse(input);
-
-    expect(result).toMatchSnapshot();
-
-    expect(findOnlyItemInArgs(result, 'url')).toBe('https://example.com');
-    expect(findOnlyItemInArgs(result, 'prefer-cache')).toBe(true);
+    expect(
+      findOnlyItemInArgs({ url: 'https://example.com', _: [] }, 'url'),
+    ).toBe('https://example.com');
     expect(() => {
-      findOnlyItemInArgs(result, 'query');
+      findOnlyItemInArgs(
+        { url: 'https://example.com', _: [], query: [1, 2] },
+        'query',
+      );
     }).toThrowError('Multiple values found for query');
   });
 
@@ -39,9 +21,13 @@ describe('args', () => {
       '--url',
       'https://example.com',
       '--action',
+      '--sleep',
+      '20',
+      '--sleep',
+      '10',
     ];
 
-    const result = parse(input);
+    const result = orderMattersParse(input);
 
     expect(result).toEqual([
       {
@@ -51,6 +37,14 @@ describe('args', () => {
       {
         name: 'action',
         value: true,
+      },
+      {
+        name: 'sleep',
+        value: 20,
+      },
+      {
+        name: 'sleep',
+        value: 10,
       },
     ]);
   });

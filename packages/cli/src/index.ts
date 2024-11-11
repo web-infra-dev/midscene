@@ -1,9 +1,13 @@
 import assert from 'node:assert';
 import { writeFileSync } from 'node:fs';
+import type http from 'node:http';
+import { join, resolve } from 'node:path';
 import { PuppeteerAgent } from '@midscene/web/puppeteer';
+import { createServer } from 'http-server';
+import minimist from 'minimist';
 import ora from 'ora-classic';
 import puppeteer from 'puppeteer';
-import { type ArgumentValueType, findOnlyItemInArgs, parse } from './args';
+import { findOnlyItemInArgs, orderMattersParse } from './args';
 
 let spinner: ora.Ora | undefined;
 const stepString = (name: string, param?: any) => {
@@ -35,8 +39,23 @@ const updateSpin = (text: string) => {
   }
 };
 
+const launchServer = async (
+  dir: string,
+): Promise<ReturnType<typeof createServer>> => {
+  // https://github.com/http-party/http-server/blob/master/bin/http-server
+  return new Promise((resolve, reject) => {
+    const server = createServer({
+      root: dir,
+    });
+    server.listen(0, '127.0.0.1', () => {
+      resolve(server);
+    });
+  });
+};
+
 const preferenceArgs = {
   url: 'url',
+  serve: 'serve',
   headed: 'headed',
   viewportWidth: 'viewport-width',
   viewportHeight: 'viewport-height',
@@ -61,8 +80,7 @@ const defaultUA =
 const welcome = '\nWelcome to @midscene/cli\n';
 console.log(welcome);
 
-const args = parse(process.argv);
-
+const args = minimist(process.argv);
 if (findOnlyItemInArgs(args, 'version')) {
   const versionFromPkgJson = require('../package.json').version;
   console.log(`@midscene/cli version ${versionFromPkgJson}`);
@@ -70,45 +88,84 @@ if (findOnlyItemInArgs(args, 'version')) {
 }
 
 // check each arg is either in the preferenceArgs or actionArgs
-args.forEach((arg) => {
+Object.keys(args).forEach((arg) => {
+  if (arg === '_') return;
   assert(
-    Object.values(preferenceArgs).includes(arg.name) ||
-      Object.values(actionArgs).includes(arg.name),
-    `Unknown argument: ${arg.name}`,
+    Object.values(preferenceArgs).includes(arg) ||
+      Object.values(actionArgs).includes(arg),
+    `Unknown argument: ${arg}`,
   );
 });
 
-// prepare the viewport config
-const preferHeaded = findOnlyItemInArgs(args, preferenceArgs.headed);
-const userExpectWidth = findOnlyItemInArgs(args, preferenceArgs.viewportWidth);
-const userExpectHeight = findOnlyItemInArgs(
-  args,
-  preferenceArgs.viewportHeight,
-);
-const userExpectDpr = findOnlyItemInArgs(args, preferenceArgs.viewportScale);
-const defaultDpr = process.platform === 'darwin' ? 2 : 1;
-const viewportConfig = {
-  width: typeof userExpectWidth === 'number' ? userExpectWidth : 1280,
-  height: typeof userExpectHeight === 'number' ? userExpectHeight : 1280,
-  deviceScaleFactor:
-    typeof userExpectDpr === 'number' ? userExpectDpr : defaultDpr,
-};
-const url = findOnlyItemInArgs(args, preferenceArgs.url);
-assert(url, 'URL is required');
-assert(typeof url === 'string', 'URL must be a string');
-
-const preferredUA = findOnlyItemInArgs(args, preferenceArgs.useragent);
-const ua = typeof preferredUA === 'string' ? preferredUA : defaultUA;
-
-printStep(preferenceArgs.url, url);
-printStep(preferenceArgs.useragent, ua);
-printStep('viewport', JSON.stringify(viewportConfig));
-if (preferHeaded) {
-  printStep(preferenceArgs.headed, 'true');
-}
-
 Promise.resolve(
   (async () => {
+    // prepare the static server
+    const staticServerConfig = findOnlyItemInArgs(args, 'serve');
+    let staticServerUrl: string | undefined;
+    if (staticServerConfig) {
+      const serverDir =
+        typeof staticServerConfig === 'string'
+          ? staticServerConfig
+          : process.cwd();
+      const finalServerDir = resolve(process.cwd(), serverDir);
+
+      const staticServerResult = await launchServer(finalServerDir);
+      const server = staticServerResult.server;
+      const serverAddress = server.address();
+      staticServerUrl = `http://${serverAddress?.address}:${serverAddress?.port}`;
+      printStep('static server', `${finalServerDir} @ ${staticServerUrl}`);
+    }
+
+    // prepare the viewport config
+    const preferHeaded = findOnlyItemInArgs(args, preferenceArgs.headed);
+    const userExpectWidth = findOnlyItemInArgs(
+      args,
+      preferenceArgs.viewportWidth,
+    );
+    const userExpectHeight = findOnlyItemInArgs(
+      args,
+      preferenceArgs.viewportHeight,
+    );
+    const userExpectDpr = findOnlyItemInArgs(
+      args,
+      preferenceArgs.viewportScale,
+    );
+    const defaultDpr = process.platform === 'darwin' ? 2 : 1;
+    const viewportConfig = {
+      width: typeof userExpectWidth === 'number' ? userExpectWidth : 1280,
+      height: typeof userExpectHeight === 'number' ? userExpectHeight : 1280,
+      deviceScaleFactor:
+        typeof userExpectDpr === 'number' ? userExpectDpr : defaultDpr,
+    };
+    const url = findOnlyItemInArgs(args, preferenceArgs.url) as
+      | string
+      | undefined;
+    let urlToVisit: string | undefined;
+    if (staticServerUrl) {
+      if (typeof url !== 'undefined') {
+        if (url.startsWith('/')) {
+          urlToVisit = `${staticServerUrl}${url}`;
+        } else {
+          urlToVisit = `${staticServerUrl}/${url}`;
+        }
+      }
+    } else {
+      urlToVisit = url;
+    }
+    assert(urlToVisit, 'URL is required');
+    assert(typeof urlToVisit === 'string', 'URL must be a string');
+
+    const preferredUA = findOnlyItemInArgs(args, preferenceArgs.useragent);
+    const ua = typeof preferredUA === 'string' ? preferredUA : defaultUA;
+
+    printStep(preferenceArgs.url, urlToVisit);
+    printStep(preferenceArgs.useragent, ua);
+    printStep('viewport', JSON.stringify(viewportConfig));
+    if (preferHeaded) {
+      printStep(preferenceArgs.headed, 'true');
+    }
+
+    // launch the browser
     updateSpin(stepString('launch', 'puppeteer'));
     const browser = await puppeteer.launch({
       headless: !preferHeaded,
@@ -120,24 +177,27 @@ Promise.resolve(
 
     let errorWhenRunning: Error | undefined;
     let argName: string;
-    let argValue: ArgumentValueType;
+    let argValue: string | boolean | number | undefined;
     let agent: PuppeteerAgent | undefined;
     try {
-      updateSpin(stepString('launch', url));
-      await page.goto(url);
-      updateSpin(stepString('waitForNetworkIdle', url));
+      updateSpin(stepString('launch', urlToVisit));
+      await page.goto(urlToVisit);
+      updateSpin(stepString('waitForNetworkIdle', urlToVisit));
       await page.waitForNetworkIdle();
-      printStep('launched', url);
+      printStep('launched', urlToVisit);
 
       agent = new PuppeteerAgent(page, {
         autoPrintReportMsg: false,
       });
 
+      const orderedArgs = orderMattersParse(process.argv);
+
       let index = 0;
       let outputPath: string | undefined;
       let actionStarted = false;
-      while (index <= args.length - 1) {
-        const arg = args[index];
+
+      while (index <= orderedArgs.length - 1) {
+        const arg = orderedArgs[index];
         argName = arg.name;
         argValue = arg.value;
         updateSpin(stepString(argName, String(argValue)));

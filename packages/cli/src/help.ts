@@ -8,7 +8,8 @@ if (process.argv.indexOf('--help') !== -1) {
   Usage: midscene [options] [actions]
 
   Options:
-    --url <url>                 The URL to visit, required
+    --serve <root-directory>    Serve the local path as a static server, optional
+    --url <url>                 The URL to visit, required. If --serve is provided, provide the path to the file to visit
     --user-agent <ua>           The user agent to use, optional
     --viewport-width <width>    The width of the viewport, optional
     --viewport-height <height>  The height of the viewport, optional
@@ -34,6 +35,9 @@ if (process.argv.indexOf('--help') !== -1) {
       --query-output status.json \\
       --query '{name: string, status: string}[], service status of github page'
 
+    # serve the current directory and visit the index.html file
+    midscene --serve . --url "index.html" --assert "the content title is 'My App'"
+
   Examples with Chinese Prompts
     # headed 模式（即可见浏览器）访问 baidu.com 并搜索“天气”
     midscene --headed --url "https://www.baidu.com" --action "在搜索框输入 '天气', 敲回车" --wait-for 界面上出现了天气信息
@@ -42,10 +46,6 @@ if (process.argv.indexOf('--help') !== -1) {
     midscene --url "https://www.githubstatus.com/" \\
       --query-output status.json \\
       --query '{serviceName: string, status: string}[], github 页面的服务状态，返回服务名称'
-
-
-    To launch a playground server, run the following command:
-    midscene playground
   `);
   process.exit(0);
 } else if (process.argv.indexOf('--version') !== -1) {
