@@ -194,17 +194,6 @@ export function Playground({
         message.error('Failed to get UI context');
         console.error(e);
       });
-
-    // TODO: move this out of playground
-    // if (serviceMode === 'Server') {
-    //   if (!contextId) throw new Error('contextId is required in server mode');
-    //   fetch(`${serverBase}/context/${contextId}`)
-    //     .then((res) => res.json())
-    //     .then((data) => {
-    //       const contextObj = JSON.parse(data.context);
-    //       setOverrideContext(contextObj);
-    //     });
-    // }
   }, [uiContextPreview, showContextPreview, agent]);
 
   const addHistory = useEnvConfig((state) => state.addHistory);
@@ -289,7 +278,7 @@ export function Playground({
     // setTimeout(() => {
     //   runResultRef.current?.scrollIntoView({ behavior: 'smooth' });
     // }, 50);
-  }, [form, agent, activeAgent]);
+  }, [form, agent, activeAgent, serviceMode, serverValid]);
 
   let placeholder = 'What do you want to do?';
   const selectedType = Form.useWatch('type', form);
@@ -346,17 +335,27 @@ export function Playground({
 
   const switchBtn =
     serviceMode === 'In-Browser-Extension' ? null : (
-      <Button
-        type="link"
-        onClick={(e) => {
-          e.preventDefault();
-          setServiceMode(serviceMode === 'Server' ? 'In-Browser' : 'Server');
-        }}
+      <Tooltip
+        title={
+          <span>
+            Server Mode: send the request through the server <br />
+            In-Browser Mode: send the request through the browser fetch API (The
+            AI service should support CORS in this case)
+          </span>
+        }
       >
-        {serviceMode === 'Server'
-          ? 'Switch to In-Browser Mode'
-          : 'Switch to Server Mode'}
-      </Button>
+        <Button
+          type="link"
+          onClick={(e) => {
+            e.preventDefault();
+            setServiceMode(serviceMode === 'Server' ? 'In-Browser' : 'Server');
+          }}
+        >
+          {serviceMode === 'Server'
+            ? 'Switch to In-Browser Mode'
+            : 'Switch to Server Mode'}
+        </Button>
+      </Tooltip>
     );
 
   const statusContent = serviceMode === 'Server' ? serverTip : <EnvConfig />;

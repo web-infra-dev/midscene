@@ -103,7 +103,7 @@ export const useEnvConfig = create<{
   return {
     serviceMode: ifInExtension
       ? 'In-Browser-Extension'
-      : savedServiceMode || 'In-Browser',
+      : savedServiceMode || 'Server',
     setServiceMode: (serviceMode: ServiceModeType) => {
       if (ifInExtension)
         throw new Error('serviceMode cannot be set in extension');
