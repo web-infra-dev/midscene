@@ -88,6 +88,7 @@ export default function OpenInPlayground(props?: { context?: UIContext }) {
   const handleClose = () => {
     setIsDrawerVisible(false);
   };
+  const agent = useStaticPageAgent(context as WebUIContext);
 
   if (!ifPlaygroundValid) {
     return (
@@ -112,8 +113,6 @@ export default function OpenInPlayground(props?: { context?: UIContext }) {
       </Tooltip>
     );
   }
-
-  const agent = useStaticPageAgent(context as WebUIContext);
 
   return (
     <>
