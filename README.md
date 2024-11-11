@@ -39,8 +39,8 @@ Midscene.js is an AI-powered automation SDK can control the page, perform assert
 ## Resources 📄
 
 * [Home Page: https://midscenejs.com](https://midscenejs.com/)
-* [Quick Start](https://midscenejs.com/docs/getting-started/quick-start.html)
-* [API Reference](https://midscenejs.com/docs/usage/API.html)
+* [Quick Experience By Chrome Extension](https://midscenejs.com/quick-experience.html)
+* [API Reference](https://midscenejs.com/api.html)
 
 ## License
 

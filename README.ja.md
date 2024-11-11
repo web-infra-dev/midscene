@@ -37,8 +37,8 @@ Midscene.jsは、自然言語を使用してページを制御し、アサーシ
 ## リソース 📄
 
 * [ホームページ: https://midscenejs.com](https://midscenejs.com/)
-* [クイックスタート](https://midscenejs.com/docs/getting-started/quick-start.html)
-* [APIリファレンス](https://midscenejs.com/docs/usage/API.html)
+* [クイックスタート](https://midscenejs.com/quick-experience.html)
+* [APIリファレンス](https://midscenejs.com/api.html)
 
 ## ライセンス
 
