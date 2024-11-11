@@ -41,7 +41,8 @@ export interface AnimationScript {
   subTitle?: string;
 }
 
-const stillDuration = 1200;
+const stillDuration = 900;
+const actionSpinningPointerDuration = 300;
 const stillAfterInsightDuration = 300;
 const locateDuration = 800;
 const actionDuration = 1000;
@@ -145,8 +146,17 @@ export const allScriptsFromDump = (
     }
   });
 
+  const allScriptsWithoutIntermediateDoneFrame = allScripts.filter(
+    (script, index) => {
+      if (index !== allScripts.length - 1 && script.title === 'Done') {
+        return false;
+      }
+      return true;
+    },
+  );
+
   return {
-    scripts: allScripts,
+    scripts: allScriptsWithoutIntermediateDoneFrame,
     width,
     height,
   };
@@ -308,7 +318,7 @@ export const generateAnimationScripts = (
       if (task.recorder?.[1]?.screenshot) {
         scripts.push({
           type: 'spinning-pointer',
-          duration: stillDuration,
+          duration: actionSpinningPointerDuration,
           title,
           subTitle,
         });

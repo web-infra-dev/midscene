@@ -11,17 +11,8 @@ declare const __VERSION__: string;
 
 export const serverBase = 'http://localhost:5800';
 
-const errorMessageServerNotReady = `To debug the prompt together with this UI context, please follow the steps below:
-
-1. Start the local playground server (Select one of the commands):
- a. npx midscene-playground  (Under the midscene project directory)
- b. npx --yes @midscene/web
-2. Click this button again.
-`;
-
-const errorMessageNoContext = `
-No context info found. 
-Try to select another task.
+const errorMessageNoContext = `No context info found. 
+Try to select another task like 'Locate'
 `;
 
 const checkServerStatus = async () => {
@@ -64,17 +55,13 @@ export const useServerValid = (shouldRun = true) => {
 };
 
 export default function OpenInPlayground(props?: { context?: UIContext }) {
-  const serverValid = useServerValid();
   const [context, setContext] = useState<UIContext | undefined>();
   const [contextLoadingCounter, setContextLoadingCounter] = useState(0);
   const [isDrawerVisible, setIsDrawerVisible] = useState(false);
 
   let ifPlaygroundValid = true;
   let invalidReason: React.ReactNode = '';
-  if (!serverValid) {
-    ifPlaygroundValid = false;
-    invalidReason = errorMessageServerNotReady;
-  } else if (!props?.context) {
+  if (!props?.context) {
     ifPlaygroundValid = false;
     invalidReason = errorMessageNoContext;
   }
