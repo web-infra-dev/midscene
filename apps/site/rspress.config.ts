@@ -49,7 +49,7 @@ export default defineConfig({
           items: [
             {
               text: 'Introduction',
-              link: '/introduction',
+              link: '/',
             },
             {
               text: 'Quick Experience',
@@ -100,13 +100,13 @@ export default defineConfig({
           ],
         },
       ],
-      '/zh/': [
+      '/zh': [
         {
           text: '快速开始',
           items: [
             {
               text: '介绍',
-              link: '/zh/introduction',
+              link: '/zh/index',
             },
             {
               text: '快速体验',
