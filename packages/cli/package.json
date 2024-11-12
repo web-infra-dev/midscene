@@ -22,6 +22,7 @@
   },
   "dependencies": {
     "@midscene/web": "workspace:*",
+    "dotenv": "16.4.5",
     "http-server": "14.1.1",
     "minimist": "1.2.5",
     "ora-classic": "5.4.2",

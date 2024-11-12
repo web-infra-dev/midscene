@@ -1,32 +1,38 @@
 import assert from 'node:assert';
 import { writeFileSync } from 'node:fs';
-import type http from 'node:http';
-import { join, resolve } from 'node:path';
+import { resolve } from 'node:path';
 import { PuppeteerAgent } from '@midscene/web/puppeteer';
 import { createServer } from 'http-server';
 import minimist from 'minimist';
 import ora from 'ora-classic';
 import puppeteer from 'puppeteer';
 import { findOnlyItemInArgs, orderMattersParse } from './args';
+import 'dotenv/config';
 
 let spinner: ora.Ora | undefined;
-const stepString = (name: string, param?: any) => {
-  let paramStr;
-  if (typeof param === 'object') {
-    paramStr = JSON.stringify(param, null, 2);
-  } else if (name === 'sleep') {
-    paramStr = `${param}ms`;
-  } else {
-    paramStr = param;
+const stepString = (name: string, param?: any, line2?: string) => {
+  const paramToString = (data: any) => {
+    if (name === 'sleep') {
+      return `${data}ms`;
+    }
+    if (typeof data === 'object') {
+      return JSON.stringify(data, null, 2);
+    }
+    return String(data);
+  };
+
+  let paramStr = paramToString(param);
+  if (line2) {
+    paramStr = `${paramStr}\n  ${line2}`;
   }
   return `${name}\n  ${paramStr ? `${paramStr}` : ''}`;
 };
 
-const printStep = (name: string, param?: any) => {
+const printStep = (name: string, param?: any, line2?: string) => {
   if (spinner) {
     spinner.stop();
   }
-  console.log(`- ${stepString(name, param)}`);
+  console.log(`- ${stepString(name, param, line2)}`);
 };
 
 const updateSpin = (text: string) => {
@@ -113,7 +119,7 @@ Promise.resolve(
       const server = staticServerResult.server;
       const serverAddress = server.address();
       staticServerUrl = `http://${serverAddress?.address}:${serverAddress?.port}`;
-      printStep('static server', `${finalServerDir} @ ${staticServerUrl}`);
+      printStep('static server', finalServerDir, staticServerUrl);
     }
 
     // prepare the viewport config

@@ -84,6 +84,9 @@ importers:
       '@midscene/web':
         specifier: workspace:*
         version: link:../web-integration
+      dotenv:
+        specifier: 16.4.5
+        version: 16.4.5
       http-server:
         specifier: 14.1.1
         version: 14.1.1
@@ -103,9 +106,6 @@ importers:
       '@modern-js/module-tools':
         specifier: 2.60.6
         version: 2.60.6(typescript@5.0.4)
-      '@types/http-server':
-        specifier: 0.12.4
-        version: 0.12.4
       '@types/minimist':
         specifier: 1.2.5
         version: 1.2.5
@@ -3452,9 +3452,6 @@ packages:
 
   '@types/http-proxy@1.17.15':
     resolution: {integrity: sha512-25g5atgiVNTIv0LBDTg1H74Hvayx0ajtJPLLcYE3whFv75J0pWNtOBzaXJQgDTmrX1bx5U9YC2w/n65BN1HwRQ==}
-
-  '@types/http-server@0.12.4':
-    resolution: {integrity: sha512-vsn4pvP2oRFALLuM5Rca6qUmSPG7u0VNjOuqvL57l3bKldQRWdUZPeSiARhzagDxgfNCHn/o8WlWk4KinBauUg==}
 
   '@types/is-ci@3.0.4':
     resolution: {integrity: sha512-AkCYCmwlXeuH89DagDCzvCAyltI2v9lh3U3DqSg/GrBYoReAaWwxfXCqMx9UV5MajLZ4ZFwZzV4cABGIxk2XRw==}
@@ -14096,10 +14093,6 @@ snapshots:
   '@types/http-proxy@1.17.15':
     dependencies:
       '@types/node': 18.19.62
-
-  '@types/http-server@0.12.4':
-    dependencies:
-      '@types/connect': 3.4.38
 
   '@types/is-ci@3.0.4':
     dependencies:
