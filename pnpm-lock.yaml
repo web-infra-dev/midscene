@@ -84,6 +84,15 @@ importers:
       '@midscene/web':
         specifier: workspace:*
         version: link:../web-integration
+      dotenv:
+        specifier: 16.4.5
+        version: 16.4.5
+      http-server:
+        specifier: 14.1.1
+        version: 14.1.1
+      minimist:
+        specifier: 1.2.5
+        version: 1.2.5
       ora-classic:
         specifier: 5.4.2
         version: 5.4.2
@@ -97,6 +106,9 @@ importers:
       '@modern-js/module-tools':
         specifier: 2.60.6
         version: 2.60.6(typescript@5.0.4)
+      '@types/minimist':
+        specifier: 1.2.5
+        version: 1.2.5
       '@types/node':
         specifier: ^18.0.0
         version: 18.19.62
@@ -3497,9 +3509,6 @@ packages:
 
   '@types/node@22.8.5':
     resolution: {integrity: sha512-5iYk6AMPtsMbkZqCO1UGF9W5L38twq11S2pYWkybGHH2ogPUvXWNlQqJBzuEZWKj/WRH+QTeiv6ySWqJtvIEgA==}
-
-  '@types/node@22.9.0':
-    resolution: {integrity: sha512-vuyHg81vvWA1Z1ELfvLko2c8f34gyA0zaic0+Rllc5lbCnbSyuvb2Oxpm6TAUAC/2xZN3QGqxBNggD1nNR2AfQ==}
 
   '@types/normalize-package-data@2.4.4':
     resolution: {integrity: sha512-37i+OaWTh9qeK4LSHPsyRC7NahnGotNuZvjLSgcPzblpHB3rrCJxAOgI5gCdKm7coonsaX1Of0ILiTcnZjbfxA==}
@@ -13992,7 +14001,7 @@ snapshots:
 
   '@types/conventional-commits-parser@5.0.0':
     dependencies:
-      '@types/node': 22.9.0
+      '@types/node': 18.19.62
     optional: true
 
   '@types/cors@2.8.12': {}
@@ -14141,11 +14150,6 @@ snapshots:
   '@types/node@22.8.5':
     dependencies:
       undici-types: 6.19.8
-
-  '@types/node@22.9.0':
-    dependencies:
-      undici-types: 6.19.8
-    optional: true
 
   '@types/normalize-package-data@2.4.4': {}
 

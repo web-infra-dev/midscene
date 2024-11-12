@@ -20,7 +20,8 @@
     "build:watch": "modern build -w",
     "serve": "http-server ./dist/ -p 3000",
     "new": "modern new",
-    "upgrade": "modern upgrade"
+    "upgrade": "modern upgrade",
+    "e2e": "./scripts/check-html.sh"
   },
   "devDependencies": {
     "@ant-design/icons": "5.3.7",

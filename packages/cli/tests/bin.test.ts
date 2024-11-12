@@ -36,4 +36,17 @@ describe.skipIf(process.platform !== 'darwin')('bin', () => {
     expect(existsSync(randomFileName)).toBeTruthy();
     unlinkSync(randomFileName);
   });
+
+  test('serve', async () => {
+    const params = [
+      '--serve',
+      './tests/server_root',
+      '--url',
+      'index.html',
+      '--assert',
+      'the content title is "My App"',
+    ];
+    const { failed } = await execa(cliBin, params);
+    expect(failed).toBe(false);
+  });
 });

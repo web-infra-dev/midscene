@@ -1,12 +1,29 @@
-export type ArgumentValueType = string | boolean | number;
+import type minimist from 'minimist';
 
-export interface Argument {
+export type ArgumentValueType = string | boolean | number;
+export function findOnlyItemInArgs(
+  args: minimist.ParsedArgs,
+  name: string,
+): string | boolean | number | undefined {
+  const found = args[name];
+  if (found === undefined) {
+    return false;
+  }
+
+  if (Array.isArray(found) && found.length > 1) {
+    throw new Error(`Multiple values found for ${name}`);
+  }
+
+  return found;
+}
+
+export interface OrderedArgumentItem {
   name: string;
   value: ArgumentValueType;
 }
 
-export function parse(args: string[]): Argument[] {
-  const orderedArgs: Argument[] = [];
+export function orderMattersParse(args: string[]): OrderedArgumentItem[] {
+  const orderedArgs: OrderedArgumentItem[] = [];
   args.forEach((arg, index) => {
     if (arg.startsWith('--')) {
       const key = arg.substring(2);
@@ -23,20 +40,4 @@ export function parse(args: string[]): Argument[] {
   });
 
   return orderedArgs;
-}
-
-export function findOnlyItemInArgs(
-  args: Argument[],
-  name: string,
-): ArgumentValueType {
-  const found = args.filter((arg) => arg.name === name);
-  if (found.length === 0) {
-    return false;
-  }
-
-  if (found.length > 1) {
-    throw new Error(`Multiple values found for ${name}`);
-  }
-
-  return found[0].value;
 }

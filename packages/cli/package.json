@@ -22,12 +22,16 @@
   },
   "dependencies": {
     "@midscene/web": "workspace:*",
+    "dotenv": "16.4.5",
+    "http-server": "14.1.1",
+    "minimist": "1.2.5",
     "ora-classic": "5.4.2",
     "puppeteer": "23.0.2",
     "yargs": "17.7.2"
   },
   "devDependencies": {
     "@modern-js/module-tools": "2.60.6",
+    "@types/minimist": "1.2.5",
     "@types/node": "^18.0.0",
     "@types/yargs": "17.0.32",
     "execa": "9.3.0",
