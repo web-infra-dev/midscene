@@ -17,7 +17,6 @@ describe(
 
       const agent = new StaticPageAgent(page);
       const content = await agent.aiQuery('tell me the content of the page');
-      console.log('content', content);
       expect(content).toBeDefined();
 
       agent.writeOutActionDumps();
@@ -32,7 +31,7 @@ describe(
         throw new Error('port is not set');
       }
 
-      const res = await fetch(`http://localhost:${port}/playground/execute`, {
+      const res = await fetch(`http://localhost:${port}/execute`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -45,7 +44,6 @@ describe(
       });
 
       const data = await res.json();
-      console.log('data', data);
       expect(data.result).toBeDefined();
       expect(data.error).toBeFalsy();
       server.close();
