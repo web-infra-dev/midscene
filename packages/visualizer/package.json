@@ -1,71 +1,60 @@
 {
-    "name": "@midscene/visualizer",
-    "version": "0.8.0",
-    "repository": "https://github.com/web-infra-dev/midscene",
-    "homepage": "https://midscenejs.com/",
-    "types": "./dist/types/index.d.ts",
-    "main": "./dist/lib/index.js",
-    "module": "./dist/es/index.js",
-    "files": [
-        "dist",
-        "html",
-        "README.md"
-    ],
-    "watch": {
-        "build": {
-            "patterns": [
-                "src"
-            ],
-            "extensions": "tsx,less,scss,css,js,jsx,ts",
-            "quiet": false
-        }
-    },
-    "scripts": {
-        "dev": "npm run build && npx npm-watch",
-        "build": "modern build && npx tsx scripts/build-html.ts",
-        "build:watch": "modern build -w",
-        "serve": "http-server ./dist/ -p 3000",
-        "new": "modern new",
-        "upgrade": "modern upgrade",
-        "e2e": "./scripts/check-html.sh"
-    },
-    "devDependencies": {
-        "@ant-design/icons": "5.3.7",
-        "@midscene/core": "workspace:*",
-        "@midscene/shared": "workspace:*",
-        "@midscene/web": "workspace:*",
-        "@modern-js/module-tools": "2.60.6",
-        "@modern-js/plugin-module-doc": "^2.33.1",
-        "@modern-js/plugin-module-node-polyfill": "2.60.6",
-        "@modern-js/runtime": "2.60.6",
-        "@pixi/unsafe-eval": "7.4.2",
-        "@types/chrome": "0.0.279",
-        "@types/node": "^18.0.0",
-        "@types/react": "18.3.3",
-        "@types/react-dom": "18.3.0",
-        "antd": "5.21.6",
-        "dayjs": "1.11.11",
-        "execa": "9.3.0",
-        "http-server": "14.1.1",
-        "npm-watch": "0.13.0",
-        "pixi-filters": "6.0.5",
-        "pixi.js": "8.1.1",
-        "query-string": "9.1.1",
-        "react": "^18.2.0",
-        "react-dom": "^18.2.0",
-        "react-resizable-panels": "2.0.22",
-        "rimraf": "~3.0.2",
-        "tsx": "4.19.2",
-        "typescript": "~5.0.4",
-        "zustand": "4.5.2"
-    },
-    "sideEffects": [
-        "**/*.css",
-        "**/*.less",
-        "**/*.sass",
-        "**/*.scss"
-    ],
-    "publishConfig": {
-        "access": "public"
+  "name": "@midscene/visualizer",
+  "version": "0.8.0",
+  "repository": "https://github.com/web-infra-dev/midscene",
+  "homepage": "https://midscenejs.com/",
+  "types": "./dist/types/index.d.ts",
+  "main": "./dist/lib/index.js",
+  "module": "./dist/es/index.js",
+  "files": ["dist", "html", "README.md"],
+  "watch": {
+    "build": {
+      "patterns": ["src"],
+      "extensions": "tsx,less,scss,css,js,jsx,ts",
+      "quiet": false
     }
+  },
+  "scripts": {
+    "dev": "npm run build && npx npm-watch",
+    "build": "modern build && npx tsx scripts/build-html.ts",
+    "build:watch": "modern build -w",
+    "serve": "http-server ./dist/ -p 3000",
+    "new": "modern new",
+    "upgrade": "modern upgrade",
+    "e2e": "./scripts/check-html.sh"
+  },
+  "devDependencies": {
+    "@ant-design/icons": "5.3.7",
+    "@midscene/core": "workspace:*",
+    "@midscene/shared": "workspace:*",
+    "@midscene/web": "workspace:*",
+    "@modern-js/module-tools": "2.60.6",
+    "@modern-js/plugin-module-doc": "^2.33.1",
+    "@modern-js/plugin-module-node-polyfill": "2.60.6",
+    "@modern-js/runtime": "2.60.6",
+    "@pixi/unsafe-eval": "7.4.2",
+    "@types/chrome": "0.0.279",
+    "@types/node": "^18.0.0",
+    "@types/react": "18.3.3",
+    "@types/react-dom": "18.3.0",
+    "antd": "5.21.6",
+    "dayjs": "1.11.11",
+    "execa": "9.3.0",
+    "http-server": "14.1.1",
+    "npm-watch": "0.13.0",
+    "pixi-filters": "6.0.5",
+    "pixi.js": "8.1.1",
+    "query-string": "9.1.1",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-resizable-panels": "2.0.22",
+    "rimraf": "~3.0.2",
+    "tsx": "4.19.2",
+    "typescript": "~5.0.4",
+    "zustand": "4.5.2"
+  },
+  "sideEffects": ["**/*.css", "**/*.less", "**/*.sass", "**/*.scss"],
+  "publishConfig": {
+    "access": "public"
+  }
 }
