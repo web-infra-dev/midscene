@@ -57,6 +57,11 @@ class MidsceneReporter implements Reporter {
     updateReport();
 
     logger(`Finished the run: ${result.status}`);
+    if (result.status === 'passed') {
+      process.exit(0);
+    } else {
+      process.exit(1);
+    }
   }
 }
 
