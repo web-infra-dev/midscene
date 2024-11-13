@@ -1,7 +1,7 @@
 import { DownOutlined, LoadingOutlined, SendOutlined } from '@ant-design/icons';
 import type { GroupedActionDump, UIContext } from '@midscene/core/.';
 import { Helmet } from '@modern-js/runtime/head';
-import { Button, Spin, Tooltip, message } from 'antd';
+import { Alert, Button, Spin, Tooltip, message } from 'antd';
 import { Form, Input } from 'antd';
 import { Radio } from 'antd';
 import React, {
@@ -129,6 +129,28 @@ const useHistorySelector = (onSelect: (history: HistoryItem) => void) => {
     </div>
   ) : null;
 };
+
+const errorMessageServerNotReady = (
+  <span>
+    Don't worry, just one more step to launch the playground server.
+    <br />
+    Please run one of the commands under the midscene project directory:
+    <br />
+    a. <strong>npx midscene-playground</strong>
+    <br />
+    b. <strong>npx --yes @midscene/web</strong>
+  </span>
+);
+
+const serverLaunchTip = (
+  <div className="server-tip">
+    <Alert
+      message="Playground Server Not Ready"
+      description={errorMessageServerNotReady}
+      type="warning"
+    />
+  </div>
+);
 
 export function Playground({
   agent,
@@ -299,7 +321,9 @@ export function Playground({
       <span>The result will be shown here</span>
     </div>
   );
-  if (loading) {
+  if (!serverValid && serviceMode === 'Server') {
+    resultDataToShow = serverLaunchTip;
+  } else if (loading) {
     resultDataToShow = (
       <Spin
         spinning={loading}
@@ -328,9 +352,11 @@ export function Playground({
   }
 
   const serverTip = !serverValid ? (
-    <div>{iconForStatus('failed')} Connection failed</div>
+    <div className="server-tip">
+      {iconForStatus('failed')} Connection failed
+    </div>
   ) : (
-    <div>{iconForStatus('connected')} Connected</div>
+    <div className="server-tip">{iconForStatus('connected')} Connected</div>
   );
 
   const switchBtn =
@@ -421,7 +447,7 @@ export function Playground({
               : 'In-Browser Request Config'}
           </h3>
           {statusContent}
-          <div>{switchBtn}</div>
+          <div className="switch-btn-wrapper">{switchBtn}</div>
         </div>
         <div
           className="form-part context-panel"
