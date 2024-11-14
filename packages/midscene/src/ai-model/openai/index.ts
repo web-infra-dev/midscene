@@ -61,7 +61,7 @@ export const allAIConfig = () => {
 
 export const overrideAIConfig = (
   newConfig: ReturnType<typeof allConfigFromEnv>,
-  extendMode = false,
+  extendMode?: boolean,
 ) => {
   userConfig = extendMode ? { ...userConfig, ...newConfig } : { ...newConfig };
 };

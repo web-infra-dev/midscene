@@ -187,7 +187,7 @@ export function Playground({
 
   // override AI config
   useEffect(() => {
-    overrideAIConfig(config);
+    overrideAIConfig(config as any);
   }, [config]);
 
   const activeAgent = agent;
