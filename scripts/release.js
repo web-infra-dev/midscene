@@ -1,4 +1,5 @@
 const fs = require('node:fs');
+const path = require('node:path');
 const semver = require('semver');
 const dayjs = require('dayjs');
 const args = require('minimist')(process.argv.slice(2));
