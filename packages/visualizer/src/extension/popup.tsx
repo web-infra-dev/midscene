@@ -21,15 +21,18 @@ import {
   ChromeExtensionProxyPage,
   ChromeExtensionProxyPageAgent,
 } from '@midscene/web/chrome-extension';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 
-const shotAndOpenPlayground = async (tabId: number, windowId: number) => {
-  const page = new ChromeExtensionProxyPage(tabId, windowId);
-  const agent = new ChromeExtensionProxyPageAgent(page);
+const shotAndOpenPlayground = async (
+  agent?: ChromeExtensionProxyPageAgent | null,
+) => {
+  if (!agent) {
+    message.error('No agent found');
+    return;
+  }
   const context = await agent.getUIContext();
-  console.log('will cache context', context);
 
-  // // cache screenshot when page is active
+  // cache screenshot when page is active
   const { id } = await sendToWorker<
     WorkerRequestSaveContext,
     WorkerResponseSaveContext
@@ -54,7 +57,6 @@ const useExtensionAgent = (tabId: number | null, windowId: number | null) => {
     }
     const page = new ChromeExtensionProxyPage(tabId, windowId);
     const agent = new ChromeExtensionProxyPageAgent(page);
-    console.log('will set agent for TabId', tabId, 'WindowId', windowId, agent);
     setAgent(agent);
 
     return () => {
@@ -66,7 +68,6 @@ const useExtensionAgent = (tabId: number | null, windowId: number | null) => {
   return agent;
 };
 
-console.log('Launching PlaygroundPopup');
 function PlaygroundPopup() {
   const [loading, setLoading] = useState(false);
   const [tabId, setTabId] = useState<number | null>(null);
@@ -96,7 +97,7 @@ function PlaygroundPopup() {
     }
     setLoading(true);
     try {
-      await shotAndOpenPlayground(tabId, windowId);
+      await shotAndOpenPlayground(agent);
     } catch (e: any) {
       message.error(e.message || 'Failed to launch Playground');
     }
