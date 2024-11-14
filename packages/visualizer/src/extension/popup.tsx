@@ -31,6 +31,7 @@ const shotAndOpenPlayground = async (
     return;
   }
   const context = await agent.getUIContext();
+  // console.log('context got', context);
 
   // cache screenshot when page is active
   const { id } = await sendToWorker<

@@ -38,6 +38,9 @@ async function main() {
       );
     }
 
+    step('\nBump extension version...');
+    await bumpExtensionVersion(selectVersion.newVersion);
+
     step('\nBuilding all packages...');
     await build();
 
@@ -123,6 +126,18 @@ async function test() {
     console.error(chalk.red('Error running tests'));
     throw error;
   }
+}
+
+async function bumpExtensionVersion(newNpmVersion) {
+  const manifestPath = path.join(
+    __dirname,
+    '../packages/visualizer/unpacked-extension/manifest.json',
+  );
+  const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
+  // convert a.b.c => a * 100 + b.c
+  const [a, b, c] = newNpmVersion.split('.').map(Number);
+  manifest.version = `${a * 100 + b}.${c || 0}`;
+  fs.writeFileSync(manifestPath, JSON.stringify(manifest, null, 2));
 }
 
 async function bumpVersion() {
