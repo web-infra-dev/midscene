@@ -57,10 +57,6 @@ const requestPlaygroundServer = async (
   return res.json();
 };
 
-overrideAIConfig({
-  MIDSCENE_DEBUG_AI_PROFILE: '1',
-});
-
 const actionNameForType = (type: string) => {
   if (type === 'aiAction') return 'Action';
   if (type === 'aiQuery') return 'Query';
