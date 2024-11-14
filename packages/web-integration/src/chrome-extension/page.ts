@@ -5,63 +5,26 @@
   The page must be active when interacting with it.
 */
 
+import fs from 'node:fs';
 import type { WebKeyInput } from '@/common/page';
 import type { ElementInfo } from '@/extractor';
 import type { AbstractPage } from '@/page';
-import type { Size } from '@midscene/core/.';
+import type { Rect, Size } from '@midscene/core/.';
+import { ifInBrowser } from '@midscene/shared/utils';
+import type { Protocol as CDPTypes } from 'devtools-protocol';
 
 // remember to include this file into extension's package
 const scriptFileToRetrieve = './lib/htmlElement.js';
-async function getPageContentOfTab(tabId: number): Promise<{
-  context: ElementInfo[];
-  size: { width: number; height: number; dpr: number };
-}> {
-  await chrome.scripting.executeScript({
-    target: { tabId, allFrames: true },
-    files: [scriptFileToRetrieve],
-  });
-
-  // call and retrieve the result
-  const returnValue = await chrome.scripting.executeScript({
-    target: { tabId, allFrames: true },
-    func: () => {
-      return {
-        context: (
-          window as any
-        ).midscene_element_inspector.webExtractTextWithPosition(),
-        size: {
-          width: document.documentElement.clientWidth,
-          height: document.documentElement.clientHeight,
-          dpr: window.devicePixelRatio,
-        },
-      };
-    },
-  });
-  if (!returnValue[0].result) {
-    throw new Error(`Failed to get active page content of tabId: ${tabId}`);
+let scriptFileContentCache: string | null = null;
+const scriptFileContent = async () => {
+  if (scriptFileContentCache) return scriptFileContentCache;
+  if (ifInBrowser) {
+    const script = await fetch('/lib/htmlElement.js');
+    scriptFileContentCache = await script.text();
+    return scriptFileContentCache;
   }
-
-  return returnValue[0].result;
-}
-
-async function getSizeInfoOfTab(tabId: number): Promise<{
-  dpr: number;
-  width: number;
-  height: number;
-}> {
-  const returnValue = await chrome.scripting.executeScript({
-    target: { tabId, allFrames: false },
-    func: () => {
-      return {
-        dpr: window.devicePixelRatio,
-        width: document.documentElement.clientWidth,
-        height: document.documentElement.clientHeight,
-      };
-    },
-  });
-  // console.log('returnValue of getScreenInfoOfTab', returnValue);
-  return returnValue[0].result!;
-}
+  return fs.readFileSync(scriptFileToRetrieve, 'utf8');
+};
 
 const lastTwoCallTime = [0, 0];
 const callInterval = 1050;
@@ -108,6 +71,7 @@ export default class ChromeExtensionProxyPage implements AbstractPage {
 
   private async attachDebugger() {
     if (this.debuggerAttached) return;
+
     await chrome.debugger.attach({ tabId: this.tabId }, '1.3');
     this.debuggerAttached = true;
 
@@ -126,23 +90,87 @@ export default class ChromeExtensionProxyPage implements AbstractPage {
     this.debuggerAttached = false;
   }
 
-  private async sendCommandToDebugger(command: string, params: any) {
+  private async sendCommandToDebugger<ResponseType = any, RequestType = any>(
+    command: string,
+    params: RequestType,
+  ): Promise<ResponseType> {
     await this.attachDebugger();
-    await chrome.debugger.sendCommand({ tabId: this.tabId }, command, params);
+    return (await chrome.debugger.sendCommand(
+      { tabId: this.tabId },
+      command,
+      params as any,
+    )) as ResponseType;
+  }
+
+  private async getPageContentByCDP() {
+    const script = await scriptFileContent();
+
+    // check tab url
+    const url = await chrome.tabs.get(this.tabId).then((tab) => tab.url);
+    await this.sendCommandToDebugger<
+      CDPTypes.Runtime.EvaluateResponse,
+      CDPTypes.Runtime.EvaluateRequest
+    >('Runtime.evaluate', {
+      expression: script,
+    });
+
+    const expression = () => {
+      return {
+        context: (
+          window as any
+        ).midscene_element_inspector.webExtractTextWithPosition(),
+        size: {
+          width: document.documentElement.clientWidth,
+          height: document.documentElement.clientHeight,
+          dpr: window.devicePixelRatio,
+        },
+      };
+    };
+    const returnValue = await this.sendCommandToDebugger<
+      CDPTypes.Runtime.EvaluateResponse,
+      CDPTypes.Runtime.EvaluateRequest
+    >('Runtime.evaluate', {
+      expression: `(${expression.toString()})()`,
+      returnByValue: true,
+    });
+
+    if (!returnValue.result.value) {
+      throw new Error('Failed to get page content from page');
+    }
+    return returnValue.result.value;
+  }
+
+  private async rectOfNodeId(nodeId: number): Promise<Rect | null> {
+    try {
+      const { model } =
+        await this.sendCommandToDebugger<CDPTypes.DOM.GetBoxModelResponse>(
+          'DOM.getBoxModel',
+          { nodeId },
+        );
+      return {
+        left: model.border[0],
+        top: model.border[1],
+        width: model.border[2] - model.border[0],
+        height: model.border[5] - model.border[1],
+      };
+    } catch (error) {
+      console.error('Error getting box model for nodeId', nodeId, error);
+      return null;
+    }
   }
 
   async getElementInfos() {
-    const content = await getPageContentOfTab(this.tabId);
+    const content = await this.getPageContentByCDP();
     if (content?.size) {
       this.viewportSize = content.size;
     }
+
     return content?.context || [];
   }
 
   async size() {
     if (this.viewportSize) return this.viewportSize;
-
-    const content = await getPageContentOfTab(this.tabId);
+    const content = await this.getPageContentByCDP();
     return content.size;
   }
 
@@ -281,3 +309,60 @@ export default class ChromeExtensionProxyPage implements AbstractPage {
     await this.detachDebugger();
   }
 }
+
+// backup: some implementation by chrome extension API instead of CDP
+// async function getPageContentOfTab(tabId: number): Promise<{
+//   context: ElementInfo[];
+//   size: { width: number; height: number; dpr: number };
+// }> {
+//   await chrome.scripting.executeScript({
+//     target: {
+//       tabId,
+//       allFrames: true,
+//     },
+//     files: [scriptFileToRetrieve],
+//   });
+
+//   // call and retrieve the result
+//   const returnValue = await chrome.scripting.executeScript({
+//     target: { tabId, allFrames: true },
+//     func: () => {
+//       return {
+//         context: (
+//           window as any
+//         ).midscene_element_inspector.webExtractTextWithPosition(),
+//         size: {
+//           width: document.documentElement.clientWidth,
+//           height: document.documentElement.clientHeight,
+//           dpr: window.devicePixelRatio,
+//         },
+//       };
+//     },
+//   });
+
+//   console.log('returnValue', returnValue);
+//   if (!returnValue[0].result) {
+//     throw new Error(`Failed to get active page content of tabId: ${tabId}`);
+//   }
+
+//   return returnValue[0].result;
+// }
+
+// async function getSizeInfoOfTab(tabId: number): Promise<{
+//   dpr: number;
+//   width: number;
+//   height: number;
+// }> {
+//   const returnValue = await chrome.scripting.executeScript({
+//     target: { tabId, allFrames: false },
+//     func: () => {
+//       return {
+//         dpr: window.devicePixelRatio,
+//         width: document.documentElement.clientWidth,
+//         height: document.documentElement.clientHeight,
+//       };
+//     },
+//   });
+//   // console.log('returnValue of getScreenInfoOfTab', returnValue);
+//   return returnValue[0].result!;
+// }

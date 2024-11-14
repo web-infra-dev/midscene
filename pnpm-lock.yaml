@@ -316,6 +316,9 @@ importers:
       '@wdio/types':
         specifier: 9.0.4
         version: 9.0.4
+      devtools-protocol:
+        specifier: 0.0.1380148
+        version: 0.0.1380148
       dotenv:
         specifier: 16.4.5
         version: 16.4.5
@@ -4841,6 +4844,9 @@ packages:
 
   devtools-protocol@0.0.1312386:
     resolution: {integrity: sha512-DPnhUXvmvKT2dFA/j7B+riVLUt9Q6RKJlcppojL5CoRywJJKLDYnRlw0gTFKfgDPHP5E04UoB71SxoJlVZy8FA==}
+
+  devtools-protocol@0.0.1380148:
+    resolution: {integrity: sha512-1CJABgqLxbYxVI+uJY/UDUHJtJ0KZTSjNYJYKqd9FRoXT33WDakDHNxRapMEgzeJ/C3rcs01+avshMnPmKQbvA==}
 
   didyoumean@1.2.2:
     resolution: {integrity: sha512-gxtyfqMg7GKyhQmb056K7M3xszy/myH8w+B4RT+QXBQsvAOdc3XymqDDPHx1BgPgsdAA5SIifona89YtRATDzw==}
@@ -15762,6 +15768,8 @@ snapshots:
       dequal: 2.0.3
 
   devtools-protocol@0.0.1312386: {}
+
+  devtools-protocol@0.0.1380148: {}
 
   didyoumean@1.2.2: {}
 

@@ -1,7 +1,6 @@
-import { readFileSync, writeFileSync } from 'node:fs';
 import type { Size } from '@midscene/core/.';
 import { getTmpFile } from '@midscene/core/utils';
-import { base64Encoded, resizeImg } from '@midscene/shared/img';
+import { base64Encoded } from '@midscene/shared/img';
 import type { Page as PlaywrightPage } from 'playwright';
 import type { Page as PuppeteerPage } from 'puppeteer';
 import type { WebKeyInput } from '../common/page';
@@ -19,7 +18,7 @@ export class Page<
   private viewportSize?: Size;
   pageType: AgentType;
 
-  private evaluate<R>(
+  private async evaluate<R>(
     pageFunction: string | ((...args: any[]) => R | Promise<R>),
     arg?: any,
   ): Promise<R> {

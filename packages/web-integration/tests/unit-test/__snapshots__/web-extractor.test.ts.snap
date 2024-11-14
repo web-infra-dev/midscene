@@ -462,7 +462,7 @@ exports[`extractor > basic 1`] = `
   {
     "attributes": {
       "frameborder": "0",
-      "height": "400px",
+      "height": "200px",
       "nodeType": "CONTAINER Node",
       "src": "child.html",
       "width": "400px",

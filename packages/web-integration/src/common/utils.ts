@@ -27,7 +27,7 @@ export async function parseContextFromWebPage(
   const url = await page.url();
 
   let screenshotBase64: string;
-  let elementsInfo: WebElementInfo[];
+  let elementsInfo: WebElementInfo[] = [];
 
   await Promise.all([
     page.screenshotBase64().then((base64) => {
