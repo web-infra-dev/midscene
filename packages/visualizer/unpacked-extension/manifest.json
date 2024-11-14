@@ -1,6 +1,6 @@
 {
     "name": "Midscene",
-    "description": "Transform UI automation into a joyful experience with Midscene, enabling seamless interaction through natural language.",
+    "description": "Interacting with, querying, and asserting web pages using AI through natural language.",
     "version": "0.1",
     "manifest_version": 3,
     "permissions": [
