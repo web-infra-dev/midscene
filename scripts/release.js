@@ -137,7 +137,11 @@ async function bumpExtensionVersion(newNpmVersion) {
   const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
   // convert a.b.c => a * 100 + b.c
   const [a, b, c] = newNpmVersion.split('.').map(Number);
-  manifest.version = `${a * 100 + b}.${c || 0}`;
+  const newVersion = `${a * 100 + b}.${c || 0}`;
+  console.log(
+    `newNpmVersion: ${newNpmVersion}, new extension version: ${newVersion}`,
+  );
+  manifest.version = newVersion;
   fs.writeFileSync(manifestPath, JSON.stringify(manifest, null, 2));
 }
 
