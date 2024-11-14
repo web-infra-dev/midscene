@@ -28,9 +28,6 @@ Midscene.js is an AI-powered automation SDK can control the page, perform assert
 
 
 
-
-
-
 ## Features ✨
 
 - **Natural Language Interaction 👆**: Describe the steps, and let Midscene plan and control the user interface for you
