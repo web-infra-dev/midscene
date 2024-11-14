@@ -1,4 +1,5 @@
 const fs = require('node:fs');
+const path = require('node:path');
 const semver = require('semver');
 const dayjs = require('dayjs');
 const args = require('minimist')(process.argv.slice(2));
@@ -37,6 +38,9 @@ async function main() {
         `\nbumpVersion ${selectVersion.oldVersion} => ${selectVersion.newVersion}...`,
       );
     }
+
+    step('\nBump extension version...');
+    await bumpExtensionVersion(selectVersion.newVersion);
 
     step('\nBuilding all packages...');
     await build();
@@ -123,6 +127,22 @@ async function test() {
     console.error(chalk.red('Error running tests'));
     throw error;
   }
+}
+
+async function bumpExtensionVersion(newNpmVersion) {
+  const manifestPath = path.join(
+    __dirname,
+    '../packages/visualizer/unpacked-extension/manifest.json',
+  );
+  const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
+  // convert a.b.c => a * 100 + b.c
+  const [a, b, c] = newNpmVersion.split('.').map(Number);
+  const newVersion = `${a * 100 + b}.${c || 0}`;
+  console.log(
+    `newNpmVersion: ${newNpmVersion}, new extension version: ${newVersion}`,
+  );
+  manifest.version = newVersion;
+  fs.writeFileSync(manifestPath, JSON.stringify(manifest, null, 2));
 }
 
 async function bumpVersion() {

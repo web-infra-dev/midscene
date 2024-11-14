@@ -106,7 +106,6 @@ export default class ChromeExtensionProxyPage implements AbstractPage {
     const script = await scriptFileContent();
 
     // check tab url
-    const url = await chrome.tabs.get(this.tabId).then((tab) => tab.url);
     await this.sendCommandToDebugger<
       CDPTypes.Runtime.EvaluateResponse,
       CDPTypes.Runtime.EvaluateRequest
@@ -137,6 +136,7 @@ export default class ChromeExtensionProxyPage implements AbstractPage {
     if (!returnValue.result.value) {
       throw new Error('Failed to get page content from page');
     }
+    // console.log('returnValue', returnValue.result.value);
     return returnValue.result.value;
   }
 

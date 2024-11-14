@@ -137,7 +137,7 @@ async function packExtension() {
   const manifest = fileContentOfPath('../unpacked-extension/manifest.json');
 
   const version = JSON.parse(manifest).version;
-  const zipName = `midscene-extension-${version}.zip`;
+  const zipName = `midscene-extension-v${version}.zip`;
   const distFile = join(outputExtensionZipDir, zipName);
   ensureDirectoryExistence(distFile);
 

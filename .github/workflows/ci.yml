@@ -55,13 +55,5 @@ jobs:
     - name: Build project
       run: pnpm run build
 
-    - name: Upload output
-      uses: actions/upload-artifact@v4
-      with:
-        if-no-files-found: error
-        name: chrome_extension
-        path: ${{ github.workspace }}/packages/visualizer/dist/extension
-
-
     - name: Run tests
       run: pnpm run test

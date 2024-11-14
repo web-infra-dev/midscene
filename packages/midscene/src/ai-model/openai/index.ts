@@ -60,9 +60,10 @@ export const allAIConfig = () => {
 };
 
 export const overrideAIConfig = (
-  newConfig: Record<string, string | undefined>,
+  newConfig: ReturnType<typeof allConfigFromEnv>,
+  extendMode?: boolean,
 ) => {
-  userConfig = { ...userConfig, ...newConfig };
+  userConfig = extendMode ? { ...userConfig, ...newConfig } : { ...newConfig };
 };
 
 export function preferOpenAIModel(preferVendor?: 'coze' | 'openAI') {
@@ -73,7 +74,7 @@ export function preferOpenAIModel(preferVendor?: 'coze' | 'openAI') {
 }
 
 // default model
-const defaultModel = 'gpt-4o';
+const defaultModel = 'gpt-4o-2024-08-06';
 export function getModelName() {
   let modelName = defaultModel;
   const nameInConfig = getAIConfig(MIDSCENE_MODEL_NAME);
