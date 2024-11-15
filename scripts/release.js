@@ -13,7 +13,10 @@ const step = (msg) => {
 
 const run = async (bin, args, opts = {}) => {
   try {
-    const returnValue = await execa(bin, args, { stdio: 'inherit', ...opts });
+    const returnValue = await execa(bin, args, {
+      stdio: 'inherit',
+      ...opts,
+    });
     if (returnValue.failed) {
       throw new Error(`Failed to run ${bin} ${args.join(' ')}`);
     }
@@ -51,7 +54,9 @@ async function main() {
     step('\nLinting all packages...');
     await lint();
 
-    const { stdout } = await run('git', ['diff'], { stdio: 'pipe' });
+    const { stdout } = await run('git', ['diff'], {
+      stdio: 'pipe',
+    });
     if (stdout) {
       if (process.env.CI) {
         step('\nSetting git info...');
@@ -135,9 +140,8 @@ async function bumpExtensionVersion(newNpmVersion) {
     '../packages/visualizer/unpacked-extension/manifest.json',
   );
   const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
-  // convert a.b.c => a * 100 + b.c
-  const [a, b, c] = newNpmVersion.split('.').map(Number);
-  const newVersion = `${a * 100 + b}.${c || 0}`;
+  const [a, b] = manifest.version.split('.').map(Number);
+  const newVersion = `${a}.${b + 1}`;
   console.log(
     `newNpmVersion: ${newNpmVersion}, new extension version: ${newVersion}`,
   );
