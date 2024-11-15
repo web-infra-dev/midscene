@@ -7,10 +7,11 @@ describe('prompt utils', () => {
     const context = await getPageDataOfTestName('taobao');
 
     const { description } = await describeUserPage(context.context);
-    console.log(description);
+    // console.log(description);
 
     const stringLengthOfEachItem =
       description.length / context.context.content.length;
+    // console.log(stringLengthOfEachItem);
     expect(description).toBeTruthy();
     expect(stringLengthOfEachItem).toBeLessThan(160);
   });

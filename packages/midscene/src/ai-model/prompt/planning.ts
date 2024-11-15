@@ -17,7 +17,7 @@ const quickAnswerFormat = () => {
 
   const sample = matchByPosition
     ? '{"position": { x: 100, y: 200 }}'
-    : '{"id": "wefew2222few2"}';
+    : '{"id": "14562"}';
 
   return {
     description,
