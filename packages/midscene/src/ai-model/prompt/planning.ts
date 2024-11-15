@@ -1,6 +1,31 @@
 import type { ResponseFormatJSONSchema } from 'openai/resources';
 import { MATCH_BY_POSITION, getAIConfig } from '../openai';
 
+const quickAnswerFormat = () => {
+  const matchByPosition = getAIConfig(MATCH_BY_POSITION);
+  const description = `
+  ${
+    matchByPosition
+      ? '"position": { x: number; y: number } // Represents the position of the element; replace with actual values in practice (ensure it reflects the element\'s position)'
+      : '"id": string // Represents the ID of the element; replace with actual values in practice'
+  }
+  `;
+
+  const format = matchByPosition
+    ? '"position": { x: number; y: number }'
+    : '"id": string';
+
+  const sample = matchByPosition
+    ? '{"position": { x: 100, y: 200 }}'
+    : '{"id": "wefew2222few2"}';
+
+  return {
+    description,
+    format,
+    sample,
+  };
+};
+
 export function systemPromptToTaskPlanning() {
   return `
 ## Role:
@@ -24,36 +49,24 @@ Each action has a type and corresponding param. To be detailed:
 * type: 'KeyboardPress',  press a key
   * param: { value: string },  the value to input or the key to press. Use （Enter, Shift, Control, Alt, Meta, ShiftLeft, ControlOrMeta, ControlOrMeta） to represent the key.
 * type: 'Scroll'
-  * param: { scrollType: 'scrollDownOneScreen', 'scrollUpOneScreen', 'scrollUntilBottom', 'scrollUntilTop' }
+  * param: { scrollType: 'scrollDownOneScreen' | 'scrollUpOneScreen' | 'scrollUntilBottom' | 'scrollUntilTop' }
 * type: 'Error'
   * param: { message: string }, the error message
 * type: 'Sleep'
   * param: { timeMs: number }, wait for timeMs milliseconds 
 
-Here is an example of how to decompose a task.
-When a user says 'Input "Weather in Shanghai" into the search bar, wait 1 second, hit enter', by viewing the page screenshot and description, you may decompose this task into something like this:
-* Locate: 'The search bar'
-* Input: 'Weather in Shanghai'
-* Sleep: 1000
-* KeyboardPress: 'Enter'
-
 Remember: 
 1. The actions you composed MUST be based on the page context information you get. Instead of making up actions that are not related to the page context.
-2. In most cases, you should Locate one element first, then do other actions on it. For example, alway Find one element, then hover on it. But if you think it's necessary to do other actions first (like global scroll, global key press), you can do that.
+2. In most cases, you should Locate one element first, then do other actions on it. For example, Locate one element, then hover on it. But if you think it's necessary to do other actions first (like global scroll, global key press), you can do that.
+3. If the planned actions are sequential and some actions may appear only after the execution of previous actions, this is considered normal. Thoughts, prompts, and error messages should all be in the same language as the user's description.
 
-If the planned tasks are sequential and tasks may appear only after the execution of previous tasks, this is considered normal. Thoughts, prompts, and error messages should all be in the same language as the user query.
+## Objective 2 (sub objective, only for action with type "Locate"): Give a quick answer to the action with type "Locate" you just planned, append a \`quickAnswer\` field as a sibling of the \`param\` field
 
-## Objective 2 (sub objective, only for action with type "Locate"): Give a quick answer to the action with type "Locate" you just planned, append a \`quickAnswer\` field after the \`param\` field
-
-If the action type is 'Locate', provide a quick answer: Does any element meet the description in the prompt? If so, answer with the following format, as the \`quickAnswer\` field in the output JSON:
+If the action type is 'Locate', think about this: does any element on screen meet the description in the prompt? If so, answer with the following format, as the \`quickAnswer\` field in the output JSON:
 {
-  "reason": "Reason for finding element 4: It is located in the upper right corner, is an image type, and according to the screenshot, it is a shopping cart icon button",
+  "reason": "It is located (somewhere), is an (node type). According to the screenshot, it is a shopping cart icon button (or it's text is 'Shopping Cart')",
   "text": "PLACEHOLDER", // Replace PLACEHOLDER with the text of elementInfo, if none, leave empty
-  ${
-    getAIConfig(MATCH_BY_POSITION)
-      ? '"position": { x: number; y: number } // Represents the position of the element; replace with actual values in practice (ensure it reflects the element\'s position)'
-      : '"id": "wefew2222few2" // Represents the ID of the element; replace with actual values in practice'
-  }
+  ${quickAnswerFormat().description}
 }
 
 If there is no element meets the description in the prompt (usually because it will show up later after some interaction), the \`quickAnswer\` field should be null.
@@ -66,37 +79,71 @@ Please return the result in JSON format as follows:
   actions: [ // always return in Array
     {
       "thought": "find out the search bar",
-      "type": "Locate", // Type of action, like 'Tap' 'Hover' ...
-      "param": {
+      "type": "Locate", // type of action according to Object 1, like 'Tap' 'Hover' ...
+      "param": { //
         "prompt": "The search bar"
       },
-      "quickAnswer": { // since this action type is 'Locate', and we can find the element, so we need to give a quick answer
-        "reason": "Reason for finding element 4: It is located in the upper right corner, is an input type, and according to the screenshot, it is a search bar",
-        "text": "PLACEHOLDER", // Replace PLACEHOLDER with the text of elementInfo, if none, leave empty
-        ${
-          getAIConfig(MATCH_BY_POSITION)
-            ? '"position": { x: number; y: number } // Represents the position of the element; replace with actual values in practice (ensure it reflects the element\'s position)'
-            : '"id": "wefew2222few2" // Represents the ID of the element; replace with actual values in practice'
-        }
+      "quickAnswer": {
+        "reason": "This is ...",
+        "text": string, // Replace PLACEHOLDER with the text of elementInfo, if none, leave empty
+        ${quickAnswerFormat().format}
       } | null,
     },
     {
       "thought": "Reasons for generating this task, and why this task is feasible on this page",
-      "type": "Tap", // Type of action, like 'Tap' 'Hover' ...
-      "param": any, // Parameter towards the task type
-    },
-    {
-      "thought": "Reasons for generating this task, and why this task is feasible on this page",
-      "type": "Locate", // Type of action, like 'Tap' 'Hover' ...
-      "param": {
-        "prompt": "The search bar"
-      },
-      "quickAnswer": null,
+      "type": "Tap",
+      "param": null,
     },
     // ... more actions
   ],
   error?: string, // Overall error messages. If there is any error occurs during the task planning (i.e. error in previous 'actions' array), conclude the errors again, put error messages here,
 }
+
+## Here is an example of how to decompose a task
+
+When a user says 'Click the language switch button, wait 1s, click "English"', by viewing the page screenshot and description, you should consider this:
+
+* The main steps are: Find the switch button, tap it, sleep, find the 'English' element, and tap on it.
+* Think and look in detail and fill all the fields in the JSON format.
+
+\`\`\`json
+{
+  queryLanguage: 'English', 
+  actions:[
+    {
+      thought: "Locate the language switch button with the text '中文'.",
+      type: 'Locate',
+      param: { prompt: "The language switch button with the text '中文'" },
+      quickAnswer: { // according to Objective 2,  this action type is 'Locate', and we can find the element, so we need to give a quick answer
+        reason: "It is located  near the top center, is an text node. According to the screenshot, it is a language switch button with the text '中文'.",
+        text: '中文',
+        ${quickAnswerFormat().sample}
+      },
+    },
+    {
+      thought: 'Click the language switch button to open the language options.',
+      type: 'Tap',
+      param: null,
+    },
+    {
+      thought: 'Wait for 1 second to ensure the language options are displayed.',
+      type: 'Sleep',
+      param: { timeMs: 1000 },
+    },
+    {
+      thought: "Locate the 'English' option in the language menu.", 
+      type: 'Locate',
+      param: { prompt: "The 'English' option in the language menu" },
+      quickAnswer: null, // we cannot find this item in the description (it will show only after the previous interactions), so the quick answer is null here
+    },
+    {
+      thought: "Click the 'English' option to switch the language.",
+      type: 'Tap',
+      param: null,
+    }
+  ],
+}
+\`\`\`
 `;
 }
 
@@ -137,7 +184,7 @@ export const planSchema: ResponseFormatJSONSchema = {
                 properties: {
                   reason: {
                     type: 'string',
-                    description: 'Reason for finding element 4',
+                    description: 'Reason for finding this element',
                   },
                   text: {
                     type: 'string',

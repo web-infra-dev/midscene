@@ -88,8 +88,6 @@ skill content:
 
 Return in this way: prefix + the id / comma-separated ids, for example: LOCATE_ONE_ELEMENT/1 , LOCATE_ONE_OR_MORE_ELEMENTS/1,2,3 . If not found, keep the prefix and leave the suffix empty, like LOCATE_ONE_ELEMENT/ .
 
-
-
 Return in the following JSON format:
 {
   language: "en", // "en" or "zh", the language of the page. Use the same language to describe section name, description, and similar fields.
