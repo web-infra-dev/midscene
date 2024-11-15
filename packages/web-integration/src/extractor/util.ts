@@ -344,7 +344,7 @@ export function getNodeAttributes(
 
     let value = attr.value;
     if (value.startsWith('data:image')) {
-      value = `${value.split('base64,')[0]}...`;
+      value = 'image';
     }
 
     const maxLength = 50;
@@ -357,6 +357,7 @@ export function getNodeAttributes(
   return Object.fromEntries(attributesList);
 }
 
+const hashMap: Record<string, string> = {}; // id - combined
 export function midsceneGenerateHash(content: string, rect: any): string {
   // Combine the input into a string
   const combined = JSON.stringify({
@@ -365,10 +366,23 @@ export function midsceneGenerateHash(content: string, rect: any): string {
     _midscene_frame_id: getFrameId(),
   });
   // Generates the ha-256 hash value
-  // @ts-expect-error
+  let sliceLength = 5;
+  let hashInDigits = '';
   const hashHex = SHA256(combined);
+  while (sliceLength < combined.length - 1) {
+    hashInDigits = Number.parseInt(
+      hashHex.slice(0, sliceLength),
+      16,
+    ).toString();
+    if (hashMap[hashInDigits] && hashMap[hashInDigits] !== combined) {
+      sliceLength++;
+      continue;
+    }
+    hashMap[hashInDigits] = combined;
+    break;
+  }
   // Returns the first 10 characters as a short hash
-  return hashHex.slice(0, 10);
+  return hashInDigits;
 }
 
 export function generateId(numberId: number) {

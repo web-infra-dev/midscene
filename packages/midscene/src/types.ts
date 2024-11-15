@@ -13,7 +13,7 @@ export interface Size {
   dpr?: number; // the scale factor of the screenshots
 }
 
-export type Rect = Point & Size;
+export type Rect = Point & Size & { zoom?: number };
 
 enum NodeType {
   CONTAINER = 'CONTAINER Node',
@@ -334,7 +334,7 @@ export interface ExecutionTaskApply<
     param: TaskParam,
     context: ExecutorContext,
   ) => // biome-ignore lint/suspicious/noConfusingVoidType: <explanation>
-    | Promise<ExecutionTaskReturn<TaskOutput, TaskLog> | undefined | void>
+  | Promise<ExecutionTaskReturn<TaskOutput, TaskLog> | undefined | void>
     | undefined
     | void;
 }

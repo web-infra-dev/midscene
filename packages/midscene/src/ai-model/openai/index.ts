@@ -136,7 +136,7 @@ export async function call(
     response_format: responseFormat,
     temperature: 0.1,
     stream: false,
-    max_tokens: 400,
+    max_tokens: 1000,
     // betas: ['computer-use-2024-10-22'],
   } as any);
   shouldPrintTiming &&
