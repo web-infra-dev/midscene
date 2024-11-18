@@ -506,8 +506,6 @@ const Timeline = () => {
     setHoverPreviewConfig(null);
   };
 
-  // overall left of wrapper
-
   const maskConfigForTask = (
     task?: ExecutionTask | null,
   ): HighlightMask | undefined => {
@@ -525,10 +523,11 @@ const Timeline = () => {
   const highlightMaskConfig = maskConfigForTask(activeTask);
   const hoverMaskConfig = maskConfigForTask(hoverTask);
 
+  const itemIdList = allScreenshots.map((item) => item.id).join(',');
   return (
     <div className="timeline-wrapper" ref={wrapper}>
       <TimelineWidget
-        // key={dimensions.width}
+        key={itemIdList}
         screenshots={allScreenshots}
         onTap={itemOnTap}
         onHighlight={onHighlightItem}
