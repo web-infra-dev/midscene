@@ -1,0 +1,18 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`yaml > basic load 1`] = `
+{
+  "flow": [
+    {
+      "action": "type 'hello' in search box, hit enter",
+    },
+  ],
+  "target": {
+    "a": 1,
+    "waitForNetworkIdle": {
+      "continueOnNetworkIdleError": true,
+      "timeout": 1000,
+    },
+  },
+}
+`;

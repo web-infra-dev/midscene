@@ -1,0 +1,5 @@
+target:
+  url: https://www.baidu.com
+flow:
+  - aiAssert: the content is a search engine
+  - ai: Order some sandwiches
