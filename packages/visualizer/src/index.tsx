@@ -67,8 +67,17 @@ export function Visualizer(props: {
   }, []);
 
   useEffect(() => {
+    let resizeThrottler = false;
     const onResize = () => {
-      setMainLayoutChangeFlag((prev) => prev + 1);
+      // throttle this call
+      if (resizeThrottler) {
+        return;
+      }
+      resizeThrottler = true;
+      setTimeout(() => {
+        resizeThrottler = false;
+        setMainLayoutChangeFlag((prev) => prev + 1);
+      }, 300);
     };
     window.addEventListener('resize', onResize);
 
@@ -311,15 +320,30 @@ function PlaywrightCaseSelector(props: {
 
   const nameForDump = (dump: GroupedActionDump) =>
     `${dump.groupName} - ${dump.groupDescription}`;
-  const items = (props.dumps || []).map((dump, index) => {
+
+  const contentForDump = (
+    dump: ExecutionDumpWithPlaywrightAttributes,
+    key: any,
+  ) => {
     const status = iconForStatus(dump.attributes?.playwright_test_status);
     const costStr = dump.attributes?.playwright_test_duration;
     const cost = costStr ? (
-      <span key={index} className="cost-str">
+      <span key={key} className="cost-str">
         {' '}
         ({timeCostStrElement(Number.parseInt(costStr, 10))})
       </span>
     ) : null;
+    const rowContent = (
+      <span key={key}>
+        {status}
+        {'  '}
+        {nameForDump(dump)}
+        {cost}
+      </span>
+    );
+    return rowContent;
+  };
+  const items = (props.dumps || []).map((dump, index) => {
     return {
       key: index,
       label: (
@@ -331,19 +355,17 @@ function PlaywrightCaseSelector(props: {
             }
           }}
         >
-          <div>
-            {status}
-            {'  '}
-            {nameForDump(dump)}
-            {cost}
-          </div>
+          <div>{contentForDump(dump, index)}</div>
         </a>
       ),
     };
   });
 
   const btnName = props.selected
-    ? nameForDump(props.selected)
+    ? contentForDump(
+        props.selected as ExecutionDumpWithPlaywrightAttributes,
+        'selector',
+      )
     : 'Select a case';
 
   return (
