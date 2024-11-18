@@ -19,7 +19,7 @@ export function setLogDir(dir: string) {
   logDir = dir;
 }
 
-export function getLogDirByType(type: 'dump' | 'cache' | 'report') {
+export function getLogDirByType(type: 'dump' | 'cache' | 'report' | 'tmp') {
   const dir = join(getLogDir(), type);
   if (!existsSync(dir)) {
     mkdirSync(dir, { recursive: true });
@@ -108,7 +108,7 @@ export function writeLogFile(opts: {
   fileName: string;
   fileExt: string;
   fileContent: string;
-  type: 'dump' | 'cache' | 'report';
+  type: 'dump' | 'cache' | 'report' | 'tmp';
   generateReport?: boolean;
 }) {
   if (ifInBrowser) {
@@ -132,7 +132,7 @@ export function writeLogFile(opts: {
     if (!gitIgnoreContent.includes(`${logDirName}/`)) {
       writeFileSync(
         gitIgnorePath,
-        `${gitIgnoreContent}\n# Midscene.js dump files\n${logDirName}/report\n${logDirName}/dump\n`,
+        `${gitIgnoreContent}\n# Midscene.js dump files\n${logDirName}/report\n${logDirName}/dump\n${logDirName}/tmp\n`,
         'utf-8',
       );
     }

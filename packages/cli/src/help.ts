@@ -19,33 +19,33 @@ if (process.argv.indexOf('--help') !== -1) {
     --version                   Display the version
 
   Actions (the order matters, can be used multiple times):
-    --action <action>           Perform an action, optional
-    --assert <assert>           Perform an assert, optional. The process will be terminated if the assertion is not met.
-    --query-output <path>       Save the result of the query to a file, this must be put before --query, optional
-    --query <query>             Perform a query, optional
-    --wait-for <assertion>      Wait for a condition to be met. The timeout is set to 15 seconds. optional
+    --aiAction <action>         Perform an action, optional
+    --aiAssert <assert>         Perform an assert, optional. The process will be terminated if the assertion is not met.
+    --aiQuery-output <path>     Save the result of the query to a file, this must be put before --aiQuery, optional
+    --aiQuery <query>           Perform a query, optional
+    --aiWaitFor <assertion>    Wait for a condition to be met. The timeout is set to 15 seconds. optional
     --sleep <ms>                Sleep for a number of milliseconds, optional
 
   Examples:
     # headed mode (i.e. visible browser) to visit bing.com and search for 'weather today'
-    midscene --headed --url "https://wwww.bing.com" --action "type 'weather today' in search box, hit enter" --wait-for "there is weather info in the page"
+    midscene --headed --url "https://wwww.bing.com" --aiAction "type 'weather today' in search box, hit enter" --aiWaitFor "there is weather info in the page"
 
     # visit github status page and save the status to ./status.json
     midscene --url "https://www.githubstatus.com/" \\
-      --query-output status.json \\
-      --query '{name: string, status: string}[], service status of github page'
+      --aiQuery-output status.json \\
+      --aiQuery '{name: string, status: string}[], service status of github page'
 
     # serve the current directory and visit the index.html file
-    midscene --serve . --url "index.html" --assert "the content title is 'My App'"
+    midscene --serve . --url "index.html" --aiAssert "the content title is 'My App'"
 
   Examples with Chinese Prompts
     # headed 模式（即可见浏览器）访问 baidu.com 并搜索“天气”
-    midscene --headed --url "https://www.baidu.com" --action "在搜索框输入 '天气', 敲回车" --wait-for 界面上出现了天气信息
+    midscene --headed --url "https://www.baidu.com" --aiAction "在搜索框输入 '天气', 敲回车" --aiWaitFor 界面上出现了天气信息
 
     # 访问 Github 状态页面并将状态保存到 ./status.json
     midscene --url "https://www.githubstatus.com/" \\
-      --query-output status.json \\
-      --query '{serviceName: string, status: string}[], github 页面的服务状态，返回服务名称'
+      --aiQuery-output status.json \\
+      --aiQuery '{serviceName: string, status: string}[], github 页面的服务状态，返回服务名称'
   `);
   process.exit(0);
 } else if (process.argv.indexOf('--version') !== -1) {
