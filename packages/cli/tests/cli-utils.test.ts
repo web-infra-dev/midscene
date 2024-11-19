@@ -1,4 +1,4 @@
-import { matchYamlFiles, parseArgsIntoScript } from '@/cli-utils';
+import { matchYamlFiles, parseArgsIntoYamlScript } from '@/cli-utils';
 import { describe, expect, test } from 'vitest';
 
 describe('cli utils', () => {
@@ -11,6 +11,11 @@ describe('cli utils', () => {
   test('match folder', async () => {
     files = await matchYamlFiles('./tests/midscene_scripts/');
     expect(files).toMatchSnapshot();
+  });
+
+  test('match folder 2', async () => {
+    const files2 = await matchYamlFiles('./tests/midscene_scripts');
+    expect(files2).toEqual(files);
   });
 
   test('match folder with star', async () => {
@@ -26,7 +31,7 @@ describe('cli utils', () => {
 
 describe('cli parse args', () => {
   test('basic', async () => {
-    const script = await parseArgsIntoScript([
+    const script = await parseArgsIntoYamlScript([
       'node',
       'bin.js',
       '--url',
@@ -37,7 +42,7 @@ describe('cli parse args', () => {
 
   test('error order', async () => {
     await expect(async () => {
-      await parseArgsIntoScript([
+      await parseArgsIntoYamlScript([
         'node',
         'bin.js',
         '--query',
@@ -49,18 +54,18 @@ describe('cli parse args', () => {
 
   test('error unknown arg', async () => {
     await expect(async () => {
-      await parseArgsIntoScript(['node', 'bin.js', '--unknown']);
+      await parseArgsIntoYamlScript(['node', 'bin.js', '--unknown']);
     }).rejects.toThrowError();
   });
 
   test('removed args', async () => {
     await expect(async () => {
-      await parseArgsIntoScript(['node', 'bin.js', '--action']);
+      await parseArgsIntoYamlScript(['node', 'bin.js', '--action']);
     }).rejects.toThrowError();
   });
 
   test('all args', async () => {
-    const script = await parseArgsIntoScript([
+    const script = await parseArgsIntoYamlScript([
       'node',
       'bin.js',
       '--url',

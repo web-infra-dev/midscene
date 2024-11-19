@@ -36,7 +36,7 @@ export function loadYamlScript(
   );
   assert(
     typeof obj.target.url === 'string',
-    `property "target.url" must be provided in yaml script${pathTip}`,
+    `property "target.url" must be provided in yaml script: ${pathTip}`,
   );
   assert(obj.flow, `property "flow" is required in yaml script${pathTip}`);
   assert(Array.isArray(obj.flow), `property "flow" must be an array${pathTip}`);

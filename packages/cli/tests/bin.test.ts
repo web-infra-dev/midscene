@@ -58,6 +58,22 @@ describe('bin', () => {
     await execa(cliBin, params);
   });
 
+  test('serve mode, exit with error', async () => {
+    const params = [
+      '--serve',
+      './tests/server_root',
+      '--url',
+      'index.html',
+      '--aiAssert',
+      'the content title is "Ebay"',
+    ];
+    console.log('start');
+    expect(async () => {
+      await execa(cliBin, params);
+      console.log('done');
+    }).rejects.toThrowError();
+  });
+
   test('serve mode--headed', async () => {
     const params = [
       '--serve',
@@ -72,7 +88,7 @@ describe('bin', () => {
   });
 });
 
-describe.only('run scripts', () => {
+describe('run scripts', () => {
   test('run scripts', async () => {
     const params = ['run', './tests/midscene_scripts'];
     await execa(cliBin, params);

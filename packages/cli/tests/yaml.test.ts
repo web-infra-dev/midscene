@@ -1,11 +1,12 @@
 import { join } from 'node:path';
 import { ScriptPlayer, launchServer, loadYamlScript } from '@/yaml-player';
-import { describe, expect, test, vi } from 'vitest';
+import { assert, describe, expect, test, vi } from 'vitest';
 
 const runYaml = async (yamlString: string) => {
   const script = loadYamlScript(yamlString);
   const player = new ScriptPlayer(script);
   await player.play();
+  assert(player.status === 'done', player.error?.message || 'unknown error');
 };
 
 const serverRoot = join(__dirname, 'server_root');
@@ -15,7 +16,7 @@ describe(
     test('basic load', () => {
       const script = loadYamlScript(`
       target:
-        a: 1
+        url: https://www.baidu.com
         waitForNetworkIdle:
           timeout: 1000
           continueOnNetworkIdleError: true

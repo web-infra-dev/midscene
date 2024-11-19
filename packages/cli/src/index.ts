@@ -1,4 +1,5 @@
 import 'dotenv/config';
+import assert from 'node:assert';
 import { writeFileSync } from 'node:fs';
 import { join, relative } from 'node:path';
 import { getLogDirByType } from '@midscene/core/utils';
@@ -18,6 +19,10 @@ Promise.resolve(
     if (verb === 'run') {
       const path = args._[3];
       files = await matchYamlFiles(path);
+      if (files.length === 0) {
+        console.error(`no yaml files found in ${path}`);
+        process.exit(1);
+      }
     } else {
       const script = await parseArgsIntoYamlScript();
       const logDir = getLogDirByType('tmp');

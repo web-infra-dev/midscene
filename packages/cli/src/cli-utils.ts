@@ -3,6 +3,9 @@ import { glob } from 'glob';
 import minimist from 'minimist';
 import { findOnlyItemInArgs, orderMattersParse } from './args';
 import 'dotenv/config';
+import { statSync } from 'node:fs';
+import { existsSync } from 'node:fs';
+import { join } from 'node:path';
 import { dump } from 'js-yaml';
 import type {
   MidsceneYamlFlowItemAIAction,
@@ -129,8 +132,8 @@ export const parseArgsIntoYamlScript = async (
 
 // match yml or yaml files
 export async function matchYamlFiles(fileGlob: string) {
-  if (fileGlob.endsWith('/')) {
-    fileGlob = `${fileGlob}/**/*.{yml,yaml}`;
+  if (existsSync(fileGlob) && statSync(fileGlob).isDirectory()) {
+    fileGlob = join(fileGlob, '**/*.{yml,yaml}');
   }
   const files = await glob(fileGlob, {
     nodir: true,
