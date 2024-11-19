@@ -9,6 +9,7 @@ exports[`cli parse args > all args 1`] = `
   viewportHeight: 768
   viewportScale: 2
   headed: false
+  output: ./midscene_run/cache/cli_result.json
 flow: []
 "
 `;
@@ -22,6 +23,7 @@ exports[`cli parse args > basic 1`] = `
   viewportHeight: false
   viewportScale: false
   headed: false
+  output: false
 flow: []
 "
 `;

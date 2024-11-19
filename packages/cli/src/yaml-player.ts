@@ -144,6 +144,8 @@ export class ScriptPlayer {
   public status: ScriptPlayerStatus = 'init';
   public reportFile?: string | null;
   public error?: Error;
+  public result: Record<string, any>;
+  private unnamedResultIndex = 0;
 
   constructor(
     private script: MidsceneYamlScript,
@@ -153,6 +155,7 @@ export class ScriptPlayer {
     },
   ) {
     this.totalSteps = script.flow.length;
+    this.result = {};
     if (this.totalSteps === 0) {
       throw new Error('no steps to play');
     }
@@ -328,16 +331,11 @@ export class ScriptPlayer {
               ? queryTask.aiQuery
               : queryTask.aiQuery!.prompt;
           const queryResult = await agent.aiQuery(prompt);
-          if (
-            typeof queryTask.aiQuery === 'object' &&
-            queryTask.aiQuery.output
-          ) {
-            writeFileSync(
-              queryTask.aiQuery.output,
-              JSON.stringify(queryResult, undefined, 2),
-            );
-          }
-          console.log('queryResult', queryResult);
+          const resultKey =
+            typeof queryTask.aiQuery === 'object' && queryTask.aiQuery.name
+              ? queryTask.aiQuery.name
+              : this.unnamedResultIndex++;
+          this.result[resultKey] = queryResult;
         } else if ((task as MidsceneYamlFlowItemAIWaitFor).aiWaitFor) {
           const waitForTask = task as MidsceneYamlFlowItemAIWaitFor;
           const prompt =
@@ -369,6 +367,10 @@ export class ScriptPlayer {
       this.setStatus('error', e);
       this.reportFile = agent.reportFile;
       return;
+    }
+
+    if (target.output) {
+      writeFileSync(target.output, JSON.stringify(this.result, undefined, 2));
     }
 
     let err: Error | undefined;

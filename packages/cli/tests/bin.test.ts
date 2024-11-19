@@ -20,18 +20,15 @@ describe('bin', () => {
     }).rejects.toThrowError();
   });
 
-  test.skip('query', async () => {
+  test('query', async () => {
     const randomFileName = `status-${randomUUID()}.json`;
-    const randomFileName2 = `status-${randomUUID()}.json`;
     const params = [
       '--url',
       'https://www.githubstatus.com/',
-      '--aiQuery-output',
+      '--output',
       randomFileName,
       '--aiQuery',
       '{name: string, status: string}[], service status of github page',
-      '--aiQuery-output',
-      randomFileName2,
       '--aiQuery',
       'the name of the service, string[]',
     ];
@@ -39,11 +36,12 @@ describe('bin', () => {
     expect(failed).toBe(false);
 
     expect(existsSync(randomFileName)).toBeTruthy();
-    unlinkSync(randomFileName);
 
-    const jsonContent = JSON.parse(readFileSync(randomFileName2, 'utf-8'));
-    expect(Array.isArray(jsonContent)).toBeTruthy();
-    unlinkSync(randomFileName2);
+    const jsonContent = JSON.parse(readFileSync(randomFileName, 'utf-8'));
+    expect(jsonContent[0][0].name).toBeTruthy();
+    expect(Array.isArray(jsonContent[1])).toBeTruthy();
+    // console.log(jsonContent);
+    unlinkSync(randomFileName);
   });
 
   test('serve mode', async () => {
@@ -67,7 +65,6 @@ describe('bin', () => {
       '--aiAssert',
       'the content title is "Ebay"',
     ];
-    console.log('start');
     expect(async () => {
       await execa(cliBin, params);
       console.log('done');

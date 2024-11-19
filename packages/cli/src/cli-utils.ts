@@ -24,6 +24,7 @@ const preferenceArgs = {
   viewportHeight: 'viewport-height',
   viewportScale: 'viewport-scale',
   useragent: 'user-agent',
+  output: 'output',
 };
 
 const removedArgs = {
@@ -37,7 +38,6 @@ const actionArgs = {
   ai: 'ai',
   aiAction: 'aiAction',
   aiAssert: 'aiAssert',
-  aiQueryOutput: 'aiQuery-output',
   aiQuery: 'aiQuery',
   aiWaitFor: 'aiWaitFor',
   sleep: 'sleep',
@@ -90,10 +90,10 @@ export const parseArgsIntoYamlScript = async (
     viewportHeight: findOnlyItemInArgs(args, preferenceArgs.viewportHeight),
     viewportScale: findOnlyItemInArgs(args, preferenceArgs.viewportScale),
     headed: findOnlyItemInArgs(args, preferenceArgs.headed),
+    output: findOnlyItemInArgs(args, preferenceArgs.output),
   });
 
   const orderedArgs = orderMattersParse(process.argv);
-  let queryOutput: string | undefined;
   for (const arg of orderedArgs) {
     const argName = arg.name;
     const argValue = arg.value;
@@ -109,12 +109,8 @@ export const parseArgsIntoYamlScript = async (
       script.flow.push({
         aiQuery: {
           prompt: argValue,
-          output: queryOutput,
         },
       } as MidsceneYamlFlowItemAIQuery);
-      queryOutput = undefined;
-    } else if (argName === actionArgs.aiQueryOutput) {
-      queryOutput = argValue as string;
     } else if (argName === actionArgs.aiWaitFor) {
       script.flow.push({
         aiWaitFor: argValue,
