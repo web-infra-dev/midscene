@@ -4,6 +4,7 @@ import path from 'node:path';
 import type { ElementInfo } from '@/extractor';
 import type { StaticPage } from '@/playground';
 import type { PlaywrightParserOpt, UIContext } from '@midscene/core';
+import { uploadTestInfoToServer } from '@midscene/core/utils';
 import { NodeType } from '@midscene/shared/constants';
 import { findNearestPackageJson } from '@midscene/shared/fs';
 import { compositeElementInfoImg } from '@midscene/shared/img';
@@ -25,6 +26,7 @@ export async function parseContextFromWebPage(
     return await (page as any)._forceUsePageContext();
   }
   const url = await page.url();
+  uploadTestInfoToServer({ testUrl: url });
 
   let screenshotBase64: string;
   let elementsInfo: WebElementInfo[] = [];
