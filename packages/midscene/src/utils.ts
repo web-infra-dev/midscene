@@ -1,9 +1,15 @@
 import assert from 'node:assert';
+import { execSync } from 'node:child_process';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { basename, dirname, join } from 'node:path';
 import { getRunningPkgInfo } from '@midscene/shared/fs';
 import { ifInBrowser, uuid } from '@midscene/shared/utils';
+import {
+  MIDSCENE_DEBUG_MODE,
+  MIDSCENE_OPENAI_INIT_CONFIG_JSON,
+  getAIConfig,
+} from './ai-model/openai';
 import type { Rect, ReportDumpWithAttributes } from './types';
 
 let logDir = join(process.cwd(), './midscene_run/');
@@ -210,4 +216,66 @@ declare const __VERSION__: string;
 
 export function getVersion() {
   return __VERSION__;
+}
+
+function debugLog(...message: any[]) {
+  const debugMode = getAIConfig(MIDSCENE_DEBUG_MODE);
+  if (debugMode) {
+    console.log('[Midscene]', ...message);
+  }
+}
+
+let lastReportedRepoUrl = '';
+
+export function uploadTestInfoToServer({
+  testUrl,
+}: {
+  testUrl: string;
+}) {
+  let repoUrl = '';
+
+  const extraConfigString = getAIConfig(MIDSCENE_OPENAI_INIT_CONFIG_JSON);
+  const extraConfig = extraConfigString ? JSON.parse(extraConfigString) : {};
+  const serverUrl = extraConfig?.REPORT_SERVER_URL;
+
+  try {
+    repoUrl = execSync('git config --get remote.origin.url').toString().trim();
+  } catch (error) {
+    debugLog('Failed to get git repo URL:', error);
+  }
+
+  // Only upload test info if:
+  // 1. Server URL is configured AND
+  // 2. Either:
+  //    - We have a repo URL that's different from last reported one (to avoid duplicate reports)
+  //    - OR we don't have a repo URL but have a test URL (for non-git environments)
+  if (
+    serverUrl &&
+    ((repoUrl && repoUrl !== lastReportedRepoUrl) || (!repoUrl && testUrl))
+  ) {
+    debugLog('Uploading test info to server', {
+      serverUrl,
+      repoUrl,
+      testUrl,
+    });
+
+    fetch(serverUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        repo_url: repoUrl,
+        test_url: testUrl,
+      }),
+    })
+      .then((response) => response.json())
+      .then((data) => {
+        debugLog('Successfully uploaded test info to server:', data);
+      })
+      .catch((error) =>
+        debugLog('Failed to upload test info to server:', error),
+      );
+    lastReportedRepoUrl = repoUrl;
+  }
 }
