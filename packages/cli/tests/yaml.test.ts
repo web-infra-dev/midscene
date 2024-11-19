@@ -99,6 +99,17 @@ describe(
       }).rejects.toThrow();
     });
 
+    test('player - cookie', async () => {
+      const yamlString = `
+      target:
+        url: http://httpbin.dev/cookies
+        cookie: ./tests/fixture/httpbin.dev_cookies.json
+      flow:
+        - aiAssert: the value of midscene_foo is "bar"
+    `;
+      await runYaml(yamlString);
+    });
+
     test('player - online server - lazy response', async () => {
       const yamlString = `
       target:

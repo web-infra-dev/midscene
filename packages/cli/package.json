@@ -27,12 +27,12 @@
   "dependencies": {
     "@midscene/web": "workspace:*",
     "@midscene/core": "workspace:*",
-    "dotenv": "16.4.5",
     "http-server": "14.1.1",
-    "minimist": "1.2.5",
     "puppeteer": "23.0.2"
   },
   "devDependencies": {
+    "dotenv": "16.4.5",
+    "minimist": "1.2.5",
     "@modern-js/module-tools": "2.60.6",
     "@types/js-yaml": "4.0.9",
     "@types/minimist": "1.2.5",

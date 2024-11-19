@@ -4,7 +4,7 @@ import puppeteer from 'puppeteer';
 
 import assert from 'node:assert';
 import { readFileSync, writeFileSync } from 'node:fs';
-import { basename, dirname, extname } from 'node:path';
+import { basename, dirname } from 'node:path';
 import { PuppeteerAgent } from '@midscene/web/puppeteer';
 import chalk from 'chalk';
 import type {
@@ -259,6 +259,11 @@ export class ScriptPlayer {
     const page = pages[0];
     await page.setUserAgent(ua);
     await page.setViewport(viewportConfig);
+
+    if (target.cookie) {
+      const cookieFileContent = readFileSync(target.cookie, 'utf-8');
+      await page.setCookie(...JSON.parse(cookieFileContent));
+    }
 
     await page.goto(urlToVisit);
     const waitForNetworkIdleTimeout =

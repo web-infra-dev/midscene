@@ -10,6 +10,7 @@ export interface MidsceneYamlScriptEnv {
     timeout?: number; // ms, 30000 for default, set to 0 to disable
     continueOnNetworkIdleError?: boolean; // should continue if failed to wait for network idle, true for default
   };
+  cookie?: string;
   output?: string;
 }
 

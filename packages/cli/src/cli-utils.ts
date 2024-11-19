@@ -25,6 +25,7 @@ const preferenceArgs = {
   viewportScale: 'viewport-scale',
   useragent: 'user-agent',
   output: 'output',
+  cookie: 'cookie',
 };
 
 const removedArgs = {
@@ -91,6 +92,7 @@ export const parseArgsIntoYamlScript = async (
     viewportScale: findOnlyItemInArgs(args, preferenceArgs.viewportScale),
     headed: findOnlyItemInArgs(args, preferenceArgs.headed),
     output: findOnlyItemInArgs(args, preferenceArgs.output),
+    cookie: findOnlyItemInArgs(args, preferenceArgs.cookie),
   });
 
   const orderedArgs = orderMattersParse(process.argv);

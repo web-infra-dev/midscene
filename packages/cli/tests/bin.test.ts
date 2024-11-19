@@ -5,7 +5,7 @@ import { describe, expect, test, vi } from 'vitest';
 
 const cliBin = require.resolve('../bin/midscene');
 vi.setConfig({
-  testTimeout: 30 * 1000,
+  testTimeout: 60 * 1000,
 });
 
 describe('bin', () => {
@@ -20,7 +20,7 @@ describe('bin', () => {
     }).rejects.toThrowError();
   });
 
-  test('query', async () => {
+  test('aiQuery', async () => {
     const randomFileName = `status-${randomUUID()}.json`;
     const params = [
       '--url',
@@ -42,6 +42,18 @@ describe('bin', () => {
     expect(Array.isArray(jsonContent[1])).toBeTruthy();
     // console.log(jsonContent);
     unlinkSync(randomFileName);
+  });
+
+  test('cookie', async () => {
+    const params = [
+      '--url',
+      'http://httpbin.dev/cookies',
+      '--cookie',
+      './tests/fixture/httpbin.dev_cookies.json',
+      '--aiAssert',
+      'the value of midscene_foo is "bar"',
+    ];
+    await execa(cliBin, params);
   });
 
   test('serve mode', async () => {
@@ -71,7 +83,7 @@ describe('bin', () => {
     }).rejects.toThrowError();
   });
 
-  test('serve mode--headed', async () => {
+  test('serve mode --headed', async () => {
     const params = [
       '--serve',
       './tests/server_root',
@@ -83,9 +95,7 @@ describe('bin', () => {
     ];
     await execa(cliBin, params);
   });
-});
 
-describe('run scripts', () => {
   test('run scripts', async () => {
     const params = ['run', './tests/midscene_scripts'];
     await execa(cliBin, params);
