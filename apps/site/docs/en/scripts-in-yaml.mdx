@@ -1,0 +1,109 @@
+# Scripts in YAML
+
+In most cases, developers write automation just to perform some smoke tests, like checking the appearance of some content, or verifying that the key user path is accessible. Maintaining a large test project is unnecessary in this situation.
+
+⁠Midscene offers a way to do this kind of automation with `.yaml` files, which helps you to focus on the script itself instead of the test infrastructure. 
+
+Here is an example of `.yaml` script, you may have already understood how it works by reading its content.
+
+```yaml
+target:
+  url: https://www.bing.com
+flow:
+  - ai: search for 'weather today'
+  - sleep: 3000
+  - aiAssert: the result shows the weather info
+```
+
+## Preparation
+
+Config the OpenAI API key, or [customize model provider](./model-provider.html)
+
+```bash
+# replace with your own
+export OPENAI_API_KEY="sk-abcdefghijklmnopqrstuvwxyz"
+```
+
+## Start
+
+Install `@midscene/cli` globally
+
+```bash
+npm i -g @midscene/cli
+# or if you prefer a project-wide installation
+npm i @midscene/cli --save-dev
+```
+
+Write a yaml file to `bing.yaml`
+
+```yaml
+target:
+  url: https://www.bing.com
+flow:
+  - ai: search for 'weather today'
+  - sleep: 3000
+  - aiAssert: the result shows the weather info
+```
+
+Run this script
+
+```bash
+midscene run ./bing.yaml
+# or if you installed midscene inside the project
+npx midscene run ./bing.yaml
+```
+
+You should see that the output shows the progress of the running process and the report file.
+
+## Usage in-depth
+
+### Run single `.yaml` file
+
+```bash
+midscene run /path/to/yaml
+```
+
+### Run all `.yaml` files under a folder
+
+```bash
+midscene run /dir/of/yaml/
+
+# glob is OK to use
+midscene run /dir/**/yaml/
+```
+
+### `.yaml` file content
+
+There are two parts in a `.yaml` file, the `target` and the `flow`.
+
+The `target` part defines the basic of a task
+
+```yaml
+target:
+  url: <url> # The URL to visit, required. If `serve` is provided, provide the path to the file to visit
+  serve: <root-directory> # Serve the local path as a static server, optional
+  userAgent: <ua> # The user agent to use, optional
+  viewportWidth: <width> # number, the viewport width, optional
+  viewportHeight: <height> # number, the viewport height, optional
+  deviceScaleFactor: <scale> # number, the device scale factor (dpr), optional
+  headed: <boolean> # boolean, run in headed mode, default is false
+  cookie: <path-to-cookie-file> # string, the path to the json format cookie file, optional
+  waitForNetworkIdle: # object, wait for network idle, optional
+    timeout: <ms> # number, the timeout in milliseconds, 30000 for default, optional
+    continueOnNetworkIdleError: <boolean> # boolean, continue on network idle error, true for default
+  output: <path-to-output-file> # string, the path to save the aiQuery result, optional
+```
+
+The `flow` part is an array indicates the actions to do. Remember to write a `-` before each item which means an array item.
+
+```yaml
+flow:
+  - ai: <prompt> # perform an action, this is the shortcut for aiAction
+  - aiAction: <prompt> # perform an action
+  - aiAssert: <prompt> # perform an assertion
+  - aiQuery: # perform a query, return a json object
+    prompt: <prompt> # the prompt to perform the query
+    name: <name> # the name of the result, will be used as the key in the output json
+  - aiWaitFor: <prompt> # wait for a condition to be met
+  - sleep: <ms> # sleep for a number of milliseconds
+```

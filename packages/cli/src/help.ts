@@ -8,8 +8,8 @@ if (process.argv.indexOf('--help') !== -1) {
   Usage: midscene [options] [actions]
 
   Options:
-    --serve <root-directory>    Serve the local path as a static server, optional
     --url <url>                 The URL to visit, required. If --serve is provided, provide the path to the file to visit
+    --serve <root-directory>    Serve the local path as a static server, optional
     --user-agent <ua>           The user agent to use, optional
     --viewport-width <width>    The width of the viewport, optional
     --viewport-height <height>  The height of the viewport, optional
@@ -21,7 +21,6 @@ if (process.argv.indexOf('--help') !== -1) {
   Actions (the order matters, can be used multiple times):
     --aiAction <action>         Perform an action, optional
     --aiAssert <assert>         Perform an assert, optional. The process will be terminated if the assertion is not met.
-    --aiQuery-output <path>     Save the result of the query to a file, this must be put before --aiQuery, optional
     --aiQuery <query>           Perform a query, optional
     --aiWaitFor <assertion>    Wait for a condition to be met. The timeout is set to 15 seconds. optional
     --sleep <ms>                Sleep for a number of milliseconds, optional
@@ -32,7 +31,7 @@ if (process.argv.indexOf('--help') !== -1) {
 
     # visit github status page and save the status to ./status.json
     midscene --url "https://www.githubstatus.com/" \\
-      --aiQuery-output status.json \\
+      --output status.json \\
       --aiQuery '{name: string, status: string}[], service status of github page'
 
     # serve the current directory and visit the index.html file
@@ -44,7 +43,7 @@ if (process.argv.indexOf('--help') !== -1) {
 
     # 访问 Github 状态页面并将状态保存到 ./status.json
     midscene --url "https://www.githubstatus.com/" \\
-      --aiQuery-output status.json \\
+      --output status.json \\
       --aiQuery '{serviceName: string, status: string}[], github 页面的服务状态，返回服务名称'
   `);
   process.exit(0);

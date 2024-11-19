@@ -61,16 +61,20 @@ export default defineConfig({
           text: 'Usage',
           items: [
             {
+              text: 'Scripts in YAML',
+              link: '/scripts-in-yaml',
+            },
+            {
+              text: 'Command Line Tools',
+              link: '/cli',
+            },
+            {
               text: 'Integrate with Playwright',
               link: '/integrate-with-playwright',
             },
             {
               text: 'Integrate with Puppeteer',
               link: '/integrate-with-puppeteer',
-            },
-            {
-              text: 'Command Line Tools',
-              link: '/cli',
             },
             {
               text: 'API Reference',

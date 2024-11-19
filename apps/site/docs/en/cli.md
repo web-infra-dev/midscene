@@ -1,6 +1,10 @@
 # Command Line Tools
 
-`@midscene/cli` is the command line version of Midscene. It is suitable for executing very simple tasks. For example, you can write a one-line npm script to check if the build result can launch normally, or extract some data from the web page and write the result into a JSON file.
+`@midscene/cli` is the command line version of Midscene. You can use it to run 
+
+
+
+It is suitable for executing very simple tasks. For example, you can write a one-line npm script to check if the build result can launch normally, or extract some data from the web page and write the result into a JSON file.
 
 :::info Demo Project
 you can check the demo project of command line tools here: [https://github.com/web-infra-dev/midscene-example/blob/main/command-line](https://github.com/web-infra-dev/midscene-example/blob/main/command-line)
