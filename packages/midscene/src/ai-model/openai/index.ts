@@ -30,7 +30,6 @@ const allConfigFromEnv = () => {
     [MIDSCENE_OPENAI_INIT_CONFIG_JSON]:
       process.env[MIDSCENE_OPENAI_INIT_CONFIG_JSON] || undefined,
     [MIDSCENE_MODEL_NAME]: process.env[MIDSCENE_MODEL_NAME] || undefined,
-    [MIDSCENE_SERVER_URL]: process.env[MIDSCENE_SERVER_URL] || undefined,
     [MIDSCENE_DEBUG_MODE]: process.env[MIDSCENE_DEBUG_MODE] || undefined,
     [MIDSCENE_LANGSMITH_DEBUG]:
       process.env[MIDSCENE_LANGSMITH_DEBUG] || undefined,

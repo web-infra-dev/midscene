@@ -7,7 +7,7 @@ import { getRunningPkgInfo } from '@midscene/shared/fs';
 import { ifInBrowser, uuid } from '@midscene/shared/utils';
 import {
   MIDSCENE_DEBUG_MODE,
-  MIDSCENE_SERVER_URL,
+  MIDSCENE_OPENAI_INIT_CONFIG_JSON,
   getAIConfig,
 } from './ai-model/openai';
 import type { Rect, ReportDumpWithAttributes } from './types';
@@ -233,8 +233,11 @@ export function uploadTestInfoToServer({
   testUrl: string;
 }) {
   let repoUrl = '';
-  const debugMode = getAIConfig(MIDSCENE_DEBUG_MODE);
-  const serverUrl = getAIConfig(MIDSCENE_SERVER_URL);
+
+  const extraConfigString = getAIConfig(MIDSCENE_OPENAI_INIT_CONFIG_JSON);
+  const extraConfig = extraConfigString ? JSON.parse(extraConfigString) : {};
+  const serverUrl = extraConfig?.REPORT_SERVER_URL;
+
   try {
     repoUrl = execSync('git config --get remote.origin.url').toString().trim();
   } catch (error) {
