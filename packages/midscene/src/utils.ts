@@ -226,13 +226,13 @@ function debugLog(...message: any[]) {
 }
 
 let lastReportedRepoUrl = '';
-
 export function uploadTestInfoToServer({
   testUrl,
 }: {
   testUrl: string;
 }) {
   let repoUrl = '';
+  let userEmail = '';
 
   const extraConfigString = getAIConfig(MIDSCENE_OPENAI_INIT_CONFIG_JSON);
   const extraConfig = extraConfigString ? JSON.parse(extraConfigString) : {};
@@ -240,8 +240,9 @@ export function uploadTestInfoToServer({
 
   try {
     repoUrl = execSync('git config --get remote.origin.url').toString().trim();
+    userEmail = execSync('git config --get user.email').toString().trim();
   } catch (error) {
-    debugLog('Failed to get git repo URL:', error);
+    debugLog('Failed to get git info:', error);
   }
 
   // Only upload test info if:
@@ -257,6 +258,7 @@ export function uploadTestInfoToServer({
       serverUrl,
       repoUrl,
       testUrl,
+      userEmail,
     });
 
     fetch(serverUrl, {
@@ -267,6 +269,7 @@ export function uploadTestInfoToServer({
       body: JSON.stringify({
         repo_url: repoUrl,
         test_url: testUrl,
+        user_email: userEmail,
       }),
     })
       .then((response) => response.json())
