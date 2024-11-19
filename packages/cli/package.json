@@ -9,11 +9,7 @@
   "bin": {
     "midscene": "./bin/midscene"
   },
-  "files": [
-    "dist",
-    "README.md",
-    "bin"
-  ],
+  "files": ["dist", "README.md", "bin"],
   "scripts": {
     "dev": "modern dev",
     "build": "modern build",
