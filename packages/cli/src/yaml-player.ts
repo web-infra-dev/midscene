@@ -347,7 +347,12 @@ export class ScriptPlayer {
             typeof waitForTask.aiWaitFor === 'string'
               ? waitForTask.aiWaitFor
               : waitForTask.aiWaitFor!.prompt;
-          await agent.aiWaitFor(prompt);
+          const timeout =
+            typeof waitForTask.aiWaitFor === 'object' &&
+            waitForTask.aiWaitFor.timeout
+              ? waitForTask.aiWaitFor.timeout
+              : undefined;
+          await agent.aiWaitFor(prompt, { timeoutMs: timeout });
         } else if ((task as MidsceneYamlFlowItemSleep).sleep) {
           const sleepTask = task as MidsceneYamlFlowItemSleep;
           const ms =

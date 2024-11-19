@@ -15,7 +15,7 @@ Promise.resolve(
     const args = minimist(process.argv);
     if (args.url) {
       console.error(
-        'the cli mode is no longer supported, please use yaml file instead. See https://midscenejs.com/scripts-in-yaml for more information. Sorry for the inconvenience.',
+        'the cli mode is no longer supported, please use yaml file instead. See https://midscenejs.com/automate-with-scripts-in-yaml for more information. Sorry for the inconvenience.',
       );
       process.exit(1);
     }

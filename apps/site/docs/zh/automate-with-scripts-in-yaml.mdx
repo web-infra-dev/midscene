@@ -102,7 +102,7 @@ target:
   waitForNetworkIdle: # 等待网络空闲的策略，可选
     timeout: <ms> # 等待超时时间，可选，默认 30000
     continueOnNetworkIdleError: <boolean> # 是否在等待超时后继续，可选，默认 true
-  output: <path-to-output-file> # 输出文件路径，可选
+  output: <path-to-output-file> # 输出 aiQuery 结果的 JSON 文件路径，可选
 ```
 
 `flow` 部分是一个数组，定义了脚本执行的步骤。记得在每个步骤前添加 `-` 符号。
@@ -113,8 +113,11 @@ flow:
   - aiAction: <prompt> # 执行一个交互
   - aiAssert: <prompt> # 执行一个断言
   - aiQuery: # 执行一个查询，返回一个 JSON 对象
-    prompt: <prompt> # 查询的提示词
-    name: <name> # 查询结果的名称，将在 JSON 输出中作为 key 使用
+      prompt: <prompt> # 查询的提示词
+      name: <name> # 查询结果的名称，将在 JSON 输出中作为 key 使用
   - aiWaitFor: <prompt> # 等待某个条件满足
+  - aiWaitFor: # 等待某个条件满足，并设置超时时间
+      prompt: <prompt> # 查询的提示词
+      timeout: <ms> # 超时时间，单位毫秒
   - sleep: <ms> # 等待一定时间
 ```

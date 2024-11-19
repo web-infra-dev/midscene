@@ -28,7 +28,7 @@ export interface MidsceneYamlFlowItemAIQuery {
 }
 
 export interface MidsceneYamlFlowItemAIWaitFor {
-  aiWaitFor: string | { prompt: string };
+  aiWaitFor: string | { prompt: string; timeout?: number };
 }
 
 export interface MidsceneYamlFlowItemSleep {
