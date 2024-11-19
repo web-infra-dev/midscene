@@ -84,15 +84,13 @@ export const parseArgsIntoYamlScript = async (
     flow: [],
   };
 
-  script.target = Object.assign(script.target, {
-    serve: findOnlyItemInArgs(args, preferenceArgs.serve),
-    userAgent: findOnlyItemInArgs(args, preferenceArgs.useragent),
-    viewportWidth: findOnlyItemInArgs(args, preferenceArgs.viewportWidth),
-    viewportHeight: findOnlyItemInArgs(args, preferenceArgs.viewportHeight),
-    viewportScale: findOnlyItemInArgs(args, preferenceArgs.viewportScale),
-    headed: findOnlyItemInArgs(args, preferenceArgs.headed),
-    output: findOnlyItemInArgs(args, preferenceArgs.output),
-    cookie: findOnlyItemInArgs(args, preferenceArgs.cookie),
+  Object.entries(preferenceArgs).forEach(([key, value]) => {
+    const argValue = findOnlyItemInArgs(args, value);
+    if (argValue) {
+      Object.assign(script.target, {
+        [key]: argValue,
+      });
+    }
   });
 
   const orderedArgs = orderMattersParse(process.argv);
