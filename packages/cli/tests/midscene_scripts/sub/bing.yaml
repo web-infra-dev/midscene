@@ -1,0 +1,6 @@
+target:
+  url: https://www.bing.com
+flow:
+  - ai: search for 'weather today'
+  - sleep: 3000
+  - aiAssert: the result shows the weather info

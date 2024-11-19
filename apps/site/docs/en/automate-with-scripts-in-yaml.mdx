@@ -1,8 +1,8 @@
-# Scripts in YAML
+# Automate with Scripts in YAML
 
 In most cases, developers write automation just to perform some smoke tests, like checking the appearance of some content, or verifying that the key user path is accessible. Maintaining a large test project is unnecessary in this situation.
 
-⁠Midscene offers a way to do this kind of automation with `.yaml` files, which helps you to focus on the script itself instead of the test infrastructure. 
+⁠Midscene offers a way to do this kind of automation with `.yaml` files, which helps you to focus on the script itself instead of the test infrastructure. Any team member can write an automation script without learning any API.
 
 Here is an example of `.yaml` script, you may have already understood how it works by reading its content.
 
@@ -34,7 +34,7 @@ npm i -g @midscene/cli
 npm i @midscene/cli --save-dev
 ```
 
-Write a yaml file to `bing.yaml`
+Write a yaml file to `bing-search.yaml`
 
 ```yaml
 target:
@@ -48,9 +48,9 @@ flow:
 Run this script
 
 ```bash
-midscene run ./bing.yaml
+midscene run ./bing-search.yaml
 # or if you installed midscene inside the project
-npx midscene run ./bing.yaml
+npx midscene run ./bing-search.yaml
 ```
 
 You should see that the output shows the progress of the running process and the report file.
@@ -60,19 +60,30 @@ You should see that the output shows the progress of the running process and the
 ### Run single `.yaml` file
 
 ```bash
-midscene run /path/to/yaml
+midscene /path/to/yaml
 ```
 
 ### Run all `.yaml` files under a folder
 
 ```bash
-midscene run /dir/of/yaml/
+midscene /dir/of/yaml/
 
-# glob is OK to use
-midscene run /dir/**/yaml/
+# glob is also supported
+midscene /dir/**/yaml/
 ```
 
-### `.yaml` file content
+### Run in headed mode
+
+You can use `export MIDSCENE_HEADED=1` to run in headed mode (the browser will be visible).
+
+This may cause some unexpected behavior on CI environment, so we recommend you to use it locally only when needed.
+
+```bash
+export MIDSCENE_HEADED=1
+midscene /path/to/yaml
+```
+
+### `.yaml` file schema
 
 There are two parts in a `.yaml` file, the `target` and the `flow`.
 
@@ -83,12 +94,12 @@ target:
   url: <url> # The URL to visit, required. If `serve` is provided, provide the path to the file to visit
   serve: <root-directory> # Serve the local path as a static server, optional
   userAgent: <ua> # The user agent to use, optional
-  viewportWidth: <width> # number, the viewport width, optional
-  viewportHeight: <height> # number, the viewport height, optional
-  deviceScaleFactor: <scale> # number, the device scale factor (dpr), optional
-  headed: <boolean> # boolean, run in headed mode, default is false
+  viewportWidth: <width> # number, the viewport width, default is 1280, optional
+  viewportHeight: <height> # number, the viewport height, default is 960, optional
+  deviceScaleFactor: <scale> # number, the device scale factor (dpr), default is 1, optional
+  headed: <boolean> # boolean, run in headed mode, default is false, optional
   cookie: <path-to-cookie-file> # string, the path to the json format cookie file, optional
-  waitForNetworkIdle: # object, wait for network idle, optional
+  waitForNetworkIdle: # object, the strategy to wait for network idle, optional
     timeout: <ms> # number, the timeout in milliseconds, 30000 for default, optional
     continueOnNetworkIdleError: <boolean> # boolean, continue on network idle error, true for default
   output: <path-to-output-file> # string, the path to save the aiQuery result, optional

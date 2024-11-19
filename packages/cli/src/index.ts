@@ -13,23 +13,18 @@ console.log(welcome);
 Promise.resolve(
   (async () => {
     const args = minimist(process.argv);
-    const verb = args._[2];
+    if (args.url) {
+      console.error(
+        'the cli mode is no longer supported, please use yaml file instead. See https://midscenejs.com/scripts-in-yaml for more information. Sorry for the inconvenience.',
+      );
+      process.exit(1);
+    }
 
-    let files: string[] = [];
-    if (verb === 'run') {
-      const path = args._[3];
-      files = await matchYamlFiles(path);
-      if (files.length === 0) {
-        console.error(`no yaml files found in ${path}`);
-        process.exit(1);
-      }
-    } else {
-      const script = await parseArgsIntoYamlScript();
-      const logDir = getLogDirByType('tmp');
-      const tmpYamlPath = join(logDir, `script-${Date.now()}.yaml`);
-      const relativeTmpYamlPath = relative(process.cwd(), tmpYamlPath);
-      writeFileSync(tmpYamlPath, script);
-      files.push(relativeTmpYamlPath);
+    const path = args._[2];
+    const files = await matchYamlFiles(path);
+    if (files.length === 0) {
+      console.error(`no yaml files found in ${path}`);
+      process.exit(1);
     }
 
     const success = await playYamlFiles(files);

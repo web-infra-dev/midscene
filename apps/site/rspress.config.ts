@@ -61,12 +61,8 @@ export default defineConfig({
           text: 'Usage',
           items: [
             {
-              text: 'Scripts in YAML',
-              link: '/scripts-in-yaml',
-            },
-            {
-              text: 'Command Line Tools',
-              link: '/cli',
+              text: 'Automate with Scripts in YAML',
+              link: '/automate-with-scripts-in-yaml',
             },
             {
               text: 'Integrate with Playwright',

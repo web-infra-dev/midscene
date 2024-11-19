@@ -88,7 +88,7 @@ const printAllTasks = (tasks: MidsceneFileTask[]) => {
     } else if (task.player.status === 'running') {
       const actionTipText =
         task.player.currentStep === 0
-          ? 'launching browser'
+          ? 'navigating'
           : `running action ${task.player.currentStep} / ${task.player.totalSteps}`;
       const actionIndicator = chalk.gray(`(${actionTipText})`);
       currentLine = `${currentSpinnerFrame} ${fileNameToPrint} ${actionIndicator}`;

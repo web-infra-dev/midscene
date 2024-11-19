@@ -1,0 +1,120 @@
+# 使用 YAML 格式的自动化脚本
+
+在大多数情况下，开发者编写自动化脚本只是为了执行一些冒烟测试，比如检查某些内容是否出现，或者验证某个关键用户路径是否可用。在这种情况下，维护一个大型测试项目会显得毫无必要。
+
+⁠Midscene 提供了一种基于 `.yaml` 文件的自动化测试方法，这有助于你专注于脚本本身，而不是测试框架。以此，任何团队内的成员都可以编写自动化脚本，而无需学习任何 API。
+
+这里是一个示例脚本，通过阅读它的内容，你应该已经理解了它的工作原理。
+
+```yaml
+target:
+  url: https://www.bing.com
+flow:
+  - ai: 搜索 "今日天气"
+  - sleep: 3000
+  - aiAssert: 结果显示天气信息
+```
+
+## 准备工作
+
+配置 OpenAI API Key，或 [自定义模型服务](./model-provider.html)
+
+```bash
+# 更新为你自己的 Key
+export OPENAI_API_KEY="sk-abcdefghijklmnopqrstuvwxyz"
+```
+
+## 开始
+
+全局安装 `@midscene/cli` 
+
+```bash
+npm i -g @midscene/cli
+# 或在项目中安装
+npm i @midscene/cli --save-dev
+```
+
+编写一个名为 `bing-search.yaml` 的文件
+
+```yaml
+target:
+  url: https://www.bing.com
+flow:
+  - ai: 搜索 "今日天气"
+  - sleep: 3000
+  - aiAssert: 结果显示天气信息
+```
+
+运行脚本
+
+```bash
+midscene run ./bing-search.yaml
+# 或者如果你在项目中安装了 midscene
+npx midscene run ./bing-search.yaml
+```
+
+你应该会看到脚本的执行进度和可视化运行报告文件。
+
+## 详细用法
+
+### 运行单个 `.yaml` 文件
+
+```bash
+midscene /path/to/yaml
+```
+
+### 运行一个文件夹下的所有 `.yaml` 文件
+
+```bash
+midscene /dir/of/yaml/
+
+# 支持 glob 语法
+midscene /dir/**/yaml/
+```
+
+### 运行在有界面(Headed)模式下
+
+你可以使用 `export MIDSCENE_HEADED=1` 来运行在有界面模式下（可以见到浏览器窗口）。
+
+这可能会在 CI 环境下导致一些意外报错，所以建议你仅在本地使用。
+
+```bash
+export MIDSCENE_HEADED=1
+midscene /path/to/yaml
+```
+
+### `.yaml` 文件结构
+
+在 `.yaml` 文件中，有两个部分：`target` 和 `flow`。
+
+`target` 部分定义了任务的基本信息
+
+```yaml
+target:
+  url: <url> # 访问的 URL，必填。如果提供了 `serve` 参数，则提供相对路径
+  serve: <root-directory> # 在本地路径下启动一个静态服务，可选
+  userAgent: <ua> # 浏览器 UA，可选
+  viewportWidth: <width> # 浏览器视口宽度，可选，默认 1280
+  viewportHeight: <height> # 浏览器视口高度，可选，默认 960
+  deviceScaleFactor: <scale> # 浏览器设备像素比，可选，默认 1
+  headed: <boolean> # 是否运行在有界面模式下，可选，默认 false
+  cookie: <path-to-cookie-file> # JSON 格式的浏览器 Cookie 文件路径，可选
+  waitForNetworkIdle: # 等待网络空闲的策略，可选
+    timeout: <ms> # 等待超时时间，可选，默认 30000
+    continueOnNetworkIdleError: <boolean> # 是否在等待超时后继续，可选，默认 true
+  output: <path-to-output-file> # 输出文件路径，可选
+```
+
+`flow` 部分是一个数组，定义了脚本执行的步骤。记得在每个步骤前添加 `-` 符号。
+
+```yaml
+flow:
+  - ai: <prompt> # 执行一个交互，`ai` 是 `aiAction` 的简写方式
+  - aiAction: <prompt> # 执行一个交互
+  - aiAssert: <prompt> # 执行一个断言
+  - aiQuery: # 执行一个查询，返回一个 JSON 对象
+    prompt: <prompt> # 查询的提示词
+    name: <name> # 查询结果的名称，将在 JSON 输出中作为 key 使用
+  - aiWaitFor: <prompt> # 等待某个条件满足
+  - sleep: <ms> # 等待一定时间
+```
