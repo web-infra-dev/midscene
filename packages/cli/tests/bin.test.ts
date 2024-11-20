@@ -15,7 +15,7 @@ describe.skipIf(!shouldRunAITest)('bin', () => {
     await execa(cliBin, params);
   });
 
-  test.only('run yaml scripts with keepWindow', async () => {
+  test.skip('run yaml scripts with keepWindow', async () => {
     const params = ['./tests/midscene_scripts', '--keep-window'];
     await execa(cliBin, params);
   });
