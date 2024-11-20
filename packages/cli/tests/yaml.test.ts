@@ -1,3 +1,5 @@
+import { randomUUID } from 'node:crypto';
+import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { ScriptPlayer, launchServer, loadYamlScript } from '@/yaml-player';
 import { assert, describe, expect, test, vi } from 'vitest';
@@ -86,6 +88,26 @@ describe.skipIf(!shouldRunAITest)(
     `;
 
       await runYaml(yamlString);
+    });
+
+    test('local server - flush output even if assertion failed', async () => {
+      const outputPath = `./midscene_run/output/${randomUUID()}.json`;
+      const yamlString = `
+      target:
+        serve: ${serverRoot}
+        url: index.html
+        output: ${outputPath}
+      flow:
+        - aiQuery: >
+            the background color of the page, { color: 'white' | 'black' | 'red' | 'green' | 'blue' | 'yellow' | 'purple' | 'orange' | 'pink' | 'brown' | 'gray' | 'black' 
+          name: color
+        - aiAssert: this is a search result page
+      `;
+      await expect(async () => {
+        await runYaml(yamlString);
+      }).rejects.toThrow();
+
+      expect(existsSync(outputPath)).toBe(true);
     });
 
     test('local server - assertion failed', async () => {

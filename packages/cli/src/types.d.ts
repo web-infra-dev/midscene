@@ -14,24 +14,26 @@ export interface MidsceneYamlScriptEnv {
 }
 
 export interface MidsceneYamlFlowItemAIAction {
-  ai?: string | { prompt: string }; // this is the shortcut for aiAction
-  aiAction?: string | { prompt: string };
+  ai?: string; // this is the shortcut for aiAction
+  aiAction?: string;
 }
 
 export interface MidsceneYamlFlowItemAIAssert {
-  aiAssert: string | { prompt: string };
+  aiAssert: string;
 }
 
 export interface MidsceneYamlFlowItemAIQuery {
-  aiQuery: string | { prompt: string; name?: string };
+  aiQuery: string;
+  name?: string;
 }
 
 export interface MidsceneYamlFlowItemAIWaitFor {
-  aiWaitFor: string | { prompt: string; timeout?: number };
+  aiWaitFor: string;
+  timeout?: number;
 }
 
 export interface MidsceneYamlFlowItemSleep {
-  sleep: string | { ms: number };
+  sleep: number;
 }
 
 export type MidsceneYamlFlowItem =

@@ -3,8 +3,8 @@ import yaml from 'js-yaml';
 import puppeteer from 'puppeteer';
 
 import assert from 'node:assert';
-import { readFileSync, writeFileSync } from 'node:fs';
-import { basename, dirname } from 'node:path';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { basename, dirname, join, relative } from 'node:path';
 import { PuppeteerAgent } from '@midscene/web/puppeteer';
 import chalk from 'chalk';
 import type {
@@ -85,26 +85,34 @@ const printAllTasks = (tasks: MidsceneFileTask[]) => {
     const fileDir = dirname(filePath);
     const fileNameToPrint = `${chalk.gray(`${fileDir}/`)}${fileName}`;
 
+    const outputFile = task.player.output;
+    const outputText = outputFile
+      ? `\n${indent}${chalk.gray(`output: ${outputFile}`)}`
+      : '';
+
+    const reportFile = task.player.reportFile;
+    const reportFileToShow = relative(process.cwd(), reportFile || '');
+    const reportText = reportFile
+      ? `\n${indent}${chalk.gray(`report: ${reportFileToShow}`)}`
+      : '';
+
+    const stepText = chalk.gray(
+      task.player.currentStep === 0
+        ? '(navigating)'
+        : `(step ${task.player.currentStep} / ${task.player.totalSteps})`,
+    );
+
     if (task.player.status === 'init') {
       suffixText.push(`${chalk.gray('◌')} ${fileNameToPrint}`);
     } else if (task.player.status === 'running') {
-      const actionTipText =
-        task.player.currentStep === 0
-          ? 'navigating'
-          : `running action ${task.player.currentStep} / ${task.player.totalSteps}`;
-      const actionIndicator = chalk.gray(`(${actionTipText})`);
-      currentLine = `${currentSpinnerFrame} ${fileNameToPrint} ${actionIndicator}`;
+      currentLine = `${currentSpinnerFrame} ${fileNameToPrint} ${stepText}`;
     } else if (task.player.status === 'done') {
       prefixLines.push(
-        `${chalk.green('✔︎')} ${fileNameToPrint}\n${indent}${chalk.gray(
-          `report: ${task.player.reportFile}`,
-        )}`,
+        `${chalk.green('✔︎')} ${fileNameToPrint}${reportText}${outputText}`,
       );
     } else if (task.player.status === 'error') {
       prefixLines.push(
-        `${chalk.red('✘')} ${fileNameToPrint}\n${indent}${chalk.gray(
-          'report:',
-        )} ${task.player.reportFile || ''}`,
+        `${chalk.red('✘')} ${fileNameToPrint} ${stepText}${reportText}${outputText}`,
       );
       prefixLines.push(
         `${indent}${chalk.gray('error:')}\n${indent}${indent}${task.player.error?.message}`,
@@ -150,6 +158,7 @@ export class ScriptPlayer {
   public error?: Error;
   public result: Record<string, any>;
   private unnamedResultIndex = 0;
+  public output?: string | null;
 
   constructor(
     private script: MidsceneYamlScript,
@@ -160,6 +169,7 @@ export class ScriptPlayer {
     if (this.totalSteps === 0) {
       throw new Error('no steps to play');
     }
+    this.output = script.target.output;
   }
 
   private setStatus(status: ScriptPlayerStatus, error?: Error) {
@@ -171,6 +181,29 @@ export class ScriptPlayer {
   private setStep(stepIndex: number) {
     this.currentStep = stepIndex + 1;
     this.options?.onStepChange?.(stepIndex, this.totalSteps);
+  }
+
+  private stepBriefText(
+    action:
+      | MidsceneYamlFlowItemAIAction
+      | MidsceneYamlFlowItemAIAssert
+      | MidsceneYamlFlowItemAIQuery
+      | MidsceneYamlFlowItemAIWaitFor,
+  ) {
+    // if (action.aiAction || action.ai) {
+    //   return `ai: ${action.aiAction || action.ai}`;
+  }
+
+  private flushResult() {
+    if (Object.keys(this.result).length && this.output) {
+      const output = join(process.cwd(), this.output);
+      // ensure the output directory exists
+      const outputDir = dirname(output);
+      if (!existsSync(outputDir)) {
+        mkdirSync(outputDir, { recursive: true });
+      }
+      writeFileSync(output, JSON.stringify(this.result, undefined, 2));
+    }
   }
 
   async play() {
@@ -320,51 +353,51 @@ export class ScriptPlayer {
           (task as MidsceneYamlFlowItemAIAction).ai
         ) {
           const actionTask = task as MidsceneYamlFlowItemAIAction;
-          const actionConfig = actionTask.aiAction || actionTask.ai;
-
-          const prompt =
-            typeof actionConfig === 'string'
-              ? actionConfig
-              : actionConfig!.prompt;
+          const prompt = actionTask.aiAction || actionTask.ai;
           assert(prompt, 'missing prompt for ai (aiAction)');
+          assert(
+            typeof prompt === 'string',
+            'prompt for aiAction must be a string',
+          );
           await agent.aiAction(prompt);
         } else if ((task as MidsceneYamlFlowItemAIAssert).aiAssert) {
           const assertTask = task as MidsceneYamlFlowItemAIAssert;
-          const prompt =
-            typeof assertTask.aiAssert === 'string'
-              ? assertTask.aiAssert
-              : assertTask.aiAssert!.prompt;
+          const prompt = assertTask.aiAssert;
+          assert(prompt, 'missing prompt for aiAssert');
+          assert(
+            typeof prompt === 'string',
+            'prompt for aiAssert must be a string',
+          );
           await agent.aiAssert(prompt);
         } else if ((task as MidsceneYamlFlowItemAIQuery).aiQuery) {
           const queryTask = task as MidsceneYamlFlowItemAIQuery;
-          const prompt =
-            typeof queryTask.aiQuery === 'string'
-              ? queryTask.aiQuery
-              : queryTask.aiQuery!.prompt;
+          const prompt = queryTask.aiQuery;
+          assert(prompt, 'missing prompt for aiQuery');
+          assert(
+            typeof prompt === 'string',
+            'prompt for aiQuery must be a string',
+          );
           const queryResult = await agent.aiQuery(prompt);
-          const resultKey =
-            typeof queryTask.aiQuery === 'object' && queryTask.aiQuery.name
-              ? queryTask.aiQuery.name
-              : this.unnamedResultIndex++;
+          const resultKey = queryTask.name || this.unnamedResultIndex++;
           this.result[resultKey] = queryResult;
+          this.flushResult();
         } else if ((task as MidsceneYamlFlowItemAIWaitFor).aiWaitFor) {
           const waitForTask = task as MidsceneYamlFlowItemAIWaitFor;
-          const prompt =
-            typeof waitForTask.aiWaitFor === 'string'
-              ? waitForTask.aiWaitFor
-              : waitForTask.aiWaitFor!.prompt;
-          const timeout =
-            typeof waitForTask.aiWaitFor === 'object' &&
-            waitForTask.aiWaitFor.timeout
-              ? waitForTask.aiWaitFor.timeout
-              : undefined;
+          const prompt = waitForTask.aiWaitFor;
+          assert(prompt, 'missing prompt for aiWaitFor');
+          assert(
+            typeof prompt === 'string',
+            'prompt for aiWaitFor must be a string',
+          );
+          const timeout = waitForTask.timeout;
           await agent.aiWaitFor(prompt, { timeoutMs: timeout });
         } else if ((task as MidsceneYamlFlowItemSleep).sleep) {
           const sleepTask = task as MidsceneYamlFlowItemSleep;
-          const ms =
-            typeof sleepTask.sleep === 'string'
-              ? Number.parseInt(sleepTask.sleep, 10)
-              : sleepTask.sleep!.ms;
+          const ms = sleepTask.sleep;
+          assert(
+            ms && ms > 0,
+            `ms for sleep must be greater than 0, but got ${ms}`,
+          );
           await new Promise((resolve) => setTimeout(resolve, ms));
         } else {
           throw new Error(`unknown task: ${JSON.stringify(task)}`);
@@ -372,7 +405,6 @@ export class ScriptPlayer {
         stepIndex++;
       }
       this.reportFile = agent.reportFile;
-      console.log('Done', `report: ${agent.reportFile}`);
     } catch (e: any) {
       freeFn.forEach((fn) => {
         try {
@@ -385,9 +417,7 @@ export class ScriptPlayer {
       return;
     }
 
-    if (target.output) {
-      writeFileSync(target.output, JSON.stringify(this.result, undefined, 2));
-    }
+    this.flushResult();
 
     let err: Error | undefined;
     freeFn.forEach((fn) => {
