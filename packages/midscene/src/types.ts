@@ -13,7 +13,7 @@ export interface Size {
   dpr?: number; // the scale factor of the screenshots
 }
 
-export type Rect = Point & Size;
+export type Rect = Point & Size & { zoom?: number };
 
 enum NodeType {
   CONTAINER = 'CONTAINER Node',
