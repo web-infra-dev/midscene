@@ -4,7 +4,7 @@ import puppeteer from 'puppeteer';
 
 import assert from 'node:assert';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
-import { basename, dirname, join, relative } from 'node:path';
+import { basename, dirname, extname, join, relative } from 'node:path';
 import { PuppeteerAgent } from '@midscene/web/puppeteer';
 import chalk from 'chalk';
 import type {
@@ -72,6 +72,47 @@ const currentSpinningFrame = () => {
   ];
 };
 
+const actionBriefText = (action?: MidsceneYamlFlowItem) => {
+  if (!action) {
+    return '';
+  }
+
+  const sliceText = (text?: string) => {
+    if (text && text.length > 12) {
+      return `${text.slice(0, 12)}...`;
+    }
+
+    return text || '';
+  };
+
+  if (
+    (action as MidsceneYamlFlowItemAIAction).aiAction ||
+    (action as MidsceneYamlFlowItemAIAction).ai
+  ) {
+    return `aiAction: ${sliceText(
+      (action as MidsceneYamlFlowItemAIAction).aiAction ||
+        (action as MidsceneYamlFlowItemAIAction).ai,
+    )}`;
+  }
+  if ((action as MidsceneYamlFlowItemAIAssert).aiAssert) {
+    return `aiAssert: ${sliceText(
+      (action as MidsceneYamlFlowItemAIAssert).aiAssert,
+    )}`;
+  }
+  if ((action as MidsceneYamlFlowItemAIQuery).aiQuery) {
+    return `aiQuery: ${sliceText((action as MidsceneYamlFlowItemAIQuery).aiQuery)}`;
+  }
+  if ((action as MidsceneYamlFlowItemAIWaitFor).aiWaitFor) {
+    return `aiWaitFor: ${sliceText(
+      (action as MidsceneYamlFlowItemAIWaitFor).aiWaitFor,
+    )}`;
+  }
+  if ((action as MidsceneYamlFlowItemSleep).sleep) {
+    return `sleep: ${(action as MidsceneYamlFlowItemSleep).sleep}`;
+  }
+  return '';
+};
+
 const printAllTasks = (tasks: MidsceneFileTask[]) => {
   const indent = '  ';
   const currentSpinnerFrame = currentSpinningFrame();
@@ -96,10 +137,13 @@ const printAllTasks = (tasks: MidsceneFileTask[]) => {
       ? `\n${indent}${chalk.gray(`report: ${reportFileToShow}`)}`
       : '';
 
+    const taskBrief = actionBriefText(task.player.currentTask);
+    const actionText = taskBrief ? `, ${taskBrief}` : '';
+
     const stepText = chalk.gray(
       task.player.currentStep === 0
         ? '(navigating)'
-        : `(step ${task.player.currentStep} / ${task.player.totalSteps})`,
+        : `(step ${task.player.currentStep}/${task.player.totalSteps}${actionText})`.trim(),
     );
 
     if (task.player.status === 'init') {
@@ -132,7 +176,11 @@ export async function playYamlFiles(
   const tasks: MidsceneFileTask[] = [];
   for (const file of files) {
     const script = loadYamlScript(readFileSync(file, 'utf-8'), file);
-    const player = new ScriptPlayer(script, options);
+    const fileName = basename(file, extname(file));
+    const player = new ScriptPlayer(script, {
+      ...options,
+      testId: fileName,
+    });
     tasks.push({ file, player });
   }
 
@@ -159,7 +207,7 @@ export class ScriptPlayer {
   public result: Record<string, any>;
   private unnamedResultIndex = 0;
   public output?: string | null;
-
+  public currentTask?: MidsceneYamlFlowItem;
   constructor(
     private script: MidsceneYamlScript,
     private options?: ScriptPlayerOptions,
@@ -181,17 +229,6 @@ export class ScriptPlayer {
   private setStep(stepIndex: number) {
     this.currentStep = stepIndex + 1;
     this.options?.onStepChange?.(stepIndex, this.totalSteps);
-  }
-
-  private stepBriefText(
-    action:
-      | MidsceneYamlFlowItemAIAction
-      | MidsceneYamlFlowItemAIAssert
-      | MidsceneYamlFlowItemAIQuery
-      | MidsceneYamlFlowItemAIWaitFor,
-  ) {
-    // if (action.aiAction || action.ai) {
-    //   return `ai: ${action.aiAction || action.ai}`;
   }
 
   private flushResult() {
@@ -335,6 +372,7 @@ export class ScriptPlayer {
     let currentTask: MidsceneYamlFlowItem | undefined;
     const agent = new PuppeteerAgent(page, {
       autoPrintReportMsg: false,
+      testId: this.options?.testId,
     });
     try {
       freeFn.push({
@@ -345,7 +383,7 @@ export class ScriptPlayer {
       let stepIndex = 0;
       while (stepIndex < this.totalSteps) {
         const task = flow[stepIndex];
-        currentTask = task;
+        this.currentTask = task;
         this.setStep(stepIndex);
 
         if (

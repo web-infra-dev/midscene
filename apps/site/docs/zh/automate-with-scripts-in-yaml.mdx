@@ -142,21 +142,15 @@ flow:
   - aiAssert: <prompt>
 
   # 执行一个查询，返回一个 JSON 对象
-  - aiQuery:
-      # 查询的提示词
-      prompt: <prompt>
-      # 查询结果的名称，将在 JSON 输出中作为 key 使用
-      name: <name>
+  - aiQuery: <prompt> # 记得在提示词中描述输出结果的格式
+    name: <name> # 查询结果在 JSON 输出中的 key
 
   # 等待某个条件满足
   - aiWaitFor: <prompt>
 
   # 等待某个条件满足，并设置超时时间
-  - aiWaitFor:
-      # 等待某个条件满足
-      prompt: <prompt>
-      # 超时时间，单位毫秒
-      timeout: <ms>
+  - aiWaitFor: <prompt>
+    timeout: <ms>
 
   # 等待一定时间
   - sleep: <ms>

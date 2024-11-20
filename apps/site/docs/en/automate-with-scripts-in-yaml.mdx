@@ -142,21 +142,15 @@ flow:
   - aiAssert: <prompt>
 
   # perform a query, return a json object
-  - aiQuery:
-      # the prompt to perform the query
-      prompt: <prompt>
-      # the name of the result, will be used as the key in the output json
-      name: <name>
+  - aiQuery: <prompt> # remember to describe the format of the result in the prompt
+    name: <name> # the name of the result, will be used as the key in the output json
 
   # wait for a condition to be met
   - aiWaitFor: <prompt>
 
   # wait for a condition to be met with a timeout
-  - aiWaitFor:
-      # the prompt to perform the query
-      prompt: <prompt>
-      # the timeout in milliseconds
-      timeout: <ms>
+  - aiWaitFor: <prompt>
+    timeout: <ms>
 
   # sleep for a number of milliseconds
   - sleep: <ms>

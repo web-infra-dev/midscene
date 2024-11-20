@@ -55,4 +55,5 @@ export interface ScriptPlayerOptions {
   onStepChange?: (step: number, totalSteps: number) => void;
   headed?: boolean;
   keepWindow?: boolean;
+  testId?: string;
 }
