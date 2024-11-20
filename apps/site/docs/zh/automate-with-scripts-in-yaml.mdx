@@ -4,7 +4,7 @@
 
 ⁠Midscene 提供了一种基于 `.yaml` 文件的自动化测试方法，这有助于你专注于脚本本身，而不是测试框架。以此，任何团队内的成员都可以编写自动化脚本，而无需学习任何 API。
 
-这里是一个示例脚本，通过阅读它的内容，你应该已经理解了它的工作原理。
+这里有一个示例，通过阅读它的内容，你应该已经理解了它的工作原理。
 
 ```yaml
 target:
@@ -15,14 +15,26 @@ flow:
   - aiAssert: 结果显示天气信息
 ```
 
+:::info 样例项目
+你可以在这里找到使用 YAML 脚本做自动化的样例项目 [https://github.com/web-infra-dev/midscene-example/tree/main/yaml-scripts-demo](https://github.com/web-infra-dev/midscene-example/tree/main/yaml-scripts-demo)
+:::
+
 ## 准备工作
 
-配置 OpenAI API Key，或 [自定义模型服务](./model-provider.html)
+配置 OpenAI API Key
 
 ```bash
 # 更新为你自己的 Key
 export OPENAI_API_KEY="sk-abcdefghijklmnopqrstuvwxyz"
 ```
+
+或使用 `.env` 文件存储配置
+
+```env filename=.env
+OPENAI_API_KEY="sk-abcdefghijklmnopqrstuvwxyz"
+```
+
+或 [自定义模型服务](./model-provider.html)
 
 ## 开始
 
@@ -155,3 +167,7 @@ flow:
   # 等待一定时间
   - sleep: <ms>
 ```
+
+## 更多
+
+你可能还想了解 [提示词技巧](./prompting-tips.html)

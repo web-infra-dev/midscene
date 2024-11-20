@@ -15,14 +15,26 @@ flow:
   - aiAssert: the result shows the weather info
 ```
 
+:::info Demo Project
+You can find the demo project with YAML scripts [https://github.com/web-infra-dev/midscene-example/tree/main/yaml-scripts-demo](https://github.com/web-infra-dev/midscene-example/tree/main/yaml-scripts-demo)
+:::
+
 ## Preparation
 
-Config the OpenAI API key, or [customize model provider](./model-provider.html)
+Config the OpenAI API key in the environment variable
 
 ```bash
 # replace with your own
 export OPENAI_API_KEY="sk-abcdefghijklmnopqrstuvwxyz"
 ```
+
+or you can use a `.env` file to store the configuration
+
+```env filename=.env
+OPENAI_API_KEY="sk-abcdefghijklmnopqrstuvwxyz"
+```
+
+or you may [customize model provider](./model-provider.html)
 
 ## Start
 
@@ -155,3 +167,7 @@ flow:
   # sleep for a number of milliseconds
   - sleep: <ms>
 ```
+
+## More
+
+You may also be interested in [Prompting Tips](./prompting-tips.html)
