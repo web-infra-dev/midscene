@@ -1,10 +1,6 @@
 import 'dotenv/config';
-import assert from 'node:assert';
-import { writeFileSync } from 'node:fs';
-import { join, relative } from 'node:path';
-import { getLogDirByType } from '@midscene/core/utils';
 import minimist from 'minimist';
-import { matchYamlFiles, parseArgsIntoYamlScript } from './cli-utils';
+import { matchYamlFiles } from './cli-utils';
 import { playYamlFiles } from './yaml-player';
 
 const welcome = '\nWelcome to @midscene/cli\n';
@@ -27,7 +23,10 @@ Promise.resolve(
       process.exit(1);
     }
 
-    const success = await playYamlFiles(files);
+    const success = await playYamlFiles(files, {
+      headed: !!args.headed,
+      keepWindow: !!args['keep-window'],
+    });
     if (!success) {
       process.exit(1);
     }

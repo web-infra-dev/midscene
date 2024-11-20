@@ -9,12 +9,13 @@ const runYaml = async (yamlString: string) => {
   assert(player.status === 'done', player.error?.message || 'unknown error');
 };
 
+const shouldRunAITest =
+  process.platform !== 'linux' || process.env.AITEST === 'true';
+
 const serverRoot = join(__dirname, 'server_root');
-describe(
-  'yaml',
-  () => {
-    test('basic load', () => {
-      const script = loadYamlScript(`
+describe('yaml', () => {
+  test('basic load', () => {
+    const script = loadYamlScript(`
       target:
         url: https://www.baidu.com
         waitForNetworkIdle:
@@ -24,52 +25,56 @@ describe(
         - action: type 'hello' in search box, hit enter
     `);
 
-      expect(script).toMatchSnapshot();
-    });
+    expect(script).toMatchSnapshot();
+  });
 
-    test('load error with filePath', () => {
-      expect(() => {
-        loadYamlScript(
-          `
+  test('load error with filePath', () => {
+    expect(() => {
+      loadYamlScript(
+        `
       target:
         a: 1
       `,
-          'some_error_path',
-        );
-      }).toThrow(/some_error_path/);
-    });
+        'some_error_path',
+      );
+    }).toThrow(/some_error_path/);
+  });
 
-    test('launch server', async () => {
-      const serverResult = await launchServer(serverRoot);
-      expect(serverResult).toBeDefined();
+  test('launch server', async () => {
+    const serverResult = await launchServer(serverRoot);
+    expect(serverResult).toBeDefined();
 
-      const serverAddress = serverResult.server.address();
-      const staticServerUrl = `http://${serverAddress?.address}:${serverAddress?.port}`;
+    const serverAddress = serverResult.server.address();
+    const staticServerUrl = `http://${serverAddress?.address}:${serverAddress?.port}`;
 
-      const contents = await fetch(`${staticServerUrl}/index.html`);
-      expect(contents.status).toBe(200);
+    const contents = await fetch(`${staticServerUrl}/index.html`);
+    expect(contents.status).toBe(200);
 
-      await serverResult.server.close();
-    });
+    await serverResult.server.close();
+  });
 
-    test('player - bad params', async () => {
-      expect(async () => {
-        await runYaml(`
+  test('player - bad params', async () => {
+    expect(async () => {
+      await runYaml(`
           target:
             serve: ${serverRoot}
         `);
-      }).rejects.toThrow();
+    }).rejects.toThrow();
 
-      expect(async () => {
-        await runYaml(`
+    expect(async () => {
+      await runYaml(`
           target:
             serve: ${serverRoot}
             viewportWidth: 0
         `);
-      }).rejects.toThrow();
-    });
+    }).rejects.toThrow();
+  });
+});
 
-    test('player - local server', async () => {
+describe.skipIf(!shouldRunAITest)(
+  'player - e2e',
+  () => {
+    test('local server', async () => {
       const yamlString = `
       target:
         serve: ${serverRoot}
@@ -83,7 +88,7 @@ describe(
       await runYaml(yamlString);
     });
 
-    test('player - local server - assertion failed', async () => {
+    test('local server - assertion failed', async () => {
       const yamlString = `
       target:
         serve: ${serverRoot}
@@ -99,7 +104,7 @@ describe(
       }).rejects.toThrow();
     });
 
-    test('player - cookie', async () => {
+    test('cookie', async () => {
       const yamlString = `
       target:
         url: http://httpbin.dev/cookies
@@ -110,7 +115,7 @@ describe(
       await runYaml(yamlString);
     });
 
-    test('player - online server - lazy response', async () => {
+    test('online server - lazy response', async () => {
       const yamlString = `
       target:
         url: https://httpbin.org/delay/60000

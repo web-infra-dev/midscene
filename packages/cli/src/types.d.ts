@@ -5,7 +5,6 @@ export interface MidsceneYamlScriptEnv {
   viewportHeight?: number;
   viewportScale?: number;
   serve?: string;
-  headed?: boolean;
   waitForNetworkIdle?: {
     timeout?: number; // ms, 30000 for default, set to 0 to disable
     continueOnNetworkIdleError?: boolean; // should continue if failed to wait for network idle, true for default
@@ -45,4 +44,13 @@ export type MidsceneYamlFlowItem =
 export interface MidsceneYamlScript {
   target: MidsceneYamlScriptEnv;
   flow: MidsceneYamlFlowItem[];
+}
+
+export type ScriptPlayerStatus = 'init' | 'running' | 'done' | 'error';
+
+export interface ScriptPlayerOptions {
+  onStatusChange?: (status: ScriptPlayerStatus) => void;
+  onStepChange?: (step: number, totalSteps: number) => void;
+  headed?: boolean;
+  keepWindow?: boolean;
 }

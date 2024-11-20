@@ -4,5 +4,5 @@
   },
   "editor.defaultFormatter": "biomejs.biome",
   "editor.formatOnSave": true,
-  "cSpell.words": ["httpbin"]
+  "cSpell.words": ["AITEST", "httpbin"]
 }

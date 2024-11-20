@@ -9,7 +9,11 @@
   "bin": {
     "midscene": "./bin/midscene"
   },
-  "files": ["dist", "README.md", "bin"],
+  "files": [
+    "dist",
+    "README.md",
+    "bin"
+  ],
   "scripts": {
     "dev": "modern dev",
     "build": "modern build",
@@ -17,7 +21,7 @@
     "new": "modern new",
     "upgrade": "modern upgrade",
     "test": "vitest --run",
-    "test:all": "AITEST=true vitest --run",
+    "test:ai": "AITEST=true vitest --run",
     "prepublishOnly": "npm run build"
   },
   "dependencies": {

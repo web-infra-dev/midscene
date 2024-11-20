@@ -15,6 +15,8 @@ import type {
   MidsceneYamlFlowItemAIWaitFor,
   MidsceneYamlFlowItemSleep,
   MidsceneYamlScript,
+  ScriptPlayerOptions,
+  ScriptPlayerStatus,
 } from './types';
 
 export const defaultUA =
@@ -115,11 +117,14 @@ const printAllTasks = (tasks: MidsceneFileTask[]) => {
   );
 };
 
-export async function playYamlFiles(files: string[]): Promise<boolean> {
+export async function playYamlFiles(
+  files: string[],
+  options?: ScriptPlayerOptions,
+): Promise<boolean> {
   const tasks: MidsceneFileTask[] = [];
   for (const file of files) {
     const script = loadYamlScript(readFileSync(file, 'utf-8'), file);
-    const player = new ScriptPlayer(script);
+    const player = new ScriptPlayer(script, options);
     tasks.push({ file, player });
   }
 
@@ -137,7 +142,6 @@ export async function playYamlFiles(files: string[]): Promise<boolean> {
   return !ifFail;
 }
 
-export type ScriptPlayerStatus = 'init' | 'running' | 'done' | 'error';
 export class ScriptPlayer {
   public currentStep = 0;
   public totalSteps: number;
@@ -149,10 +153,7 @@ export class ScriptPlayer {
 
   constructor(
     private script: MidsceneYamlScript,
-    private options?: {
-      onStepChange?: (step: number, totalSteps: number) => void;
-      onStatusChange?: (status: ScriptPlayerStatus) => void;
-    },
+    private options?: ScriptPlayerOptions,
   ) {
     this.totalSteps = script.flow.length;
     this.result = {};
@@ -241,18 +242,23 @@ export class ScriptPlayer {
       urlToVisit = target.url;
     }
 
+    const headed = this.options?.headed || this.options?.keepWindow;
     // launch the browser
-    if (target.headed && process.platform === 'linux') {
+    if (headed && process.env.CI === '1') {
       console.warn(
-        'you are running headed mode on linux, this will usually fail.\nTo temporarily open headed mode, you can set `export MIDSCENE_HEADED=1`',
+        'you are probably running headed mode in CI, this will usually fail.',
       );
     }
     const browser = await puppeteer.launch({
-      headless: !(target.headed || process.env.MIDSCENE_HEADED === '1'),
+      headless: !headed,
     });
     freeFn.push({
       name: 'puppeteer_browser',
-      fn: () => browser.close(),
+      fn: () => {
+        if (!this.options?.keepWindow) {
+          browser.close();
+        }
+      },
     });
 
     const pages = await browser.pages();

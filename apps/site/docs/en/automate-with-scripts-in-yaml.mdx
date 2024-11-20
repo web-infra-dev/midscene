@@ -72,15 +72,20 @@ midscene /dir/of/yaml/
 midscene /dir/**/yaml/
 ```
 
-### Run in headed mode
+### Debug in headed mode
 
-You can use `export MIDSCENE_HEADED=1` to run in headed mode (the browser will be visible).
+'headed mode' means the browser will be visible. The default behavior is to run in headless mode.
 
-This may cause some unexpected behavior on CI environment, so we recommend you to use it locally only when needed.
+To turn on headed mode, you can use `--headed` option. Besides, if you want to keep the browser window open after the script finishes, you can use `--keep-window` option. `--keep-window` implies `--headed`.
+
+When running in headed mode, it will consume more resources, so we recommend you to use it locally only when needed.
 
 ```bash
-export MIDSCENE_HEADED=1
-midscene /path/to/yaml
+# run in headed mode
+midscene /path/to/yaml --headed
+
+# run in headed mode and keep the browser window open after the script finishes
+midscene /path/to/yaml --keep-window
 ```
 
 ### `.yaml` file schema
@@ -91,33 +96,68 @@ The `target` part defines the basic of a task
 
 ```yaml
 target:
-  url: <url> # The URL to visit, required. If `serve` is provided, provide the path to the file to visit
-  serve: <root-directory> # Serve the local path as a static server, optional
-  userAgent: <ua> # The user agent to use, optional
-  viewportWidth: <width> # number, the viewport width, default is 1280, optional
-  viewportHeight: <height> # number, the viewport height, default is 960, optional
-  deviceScaleFactor: <scale> # number, the device scale factor (dpr), default is 1, optional
-  headed: <boolean> # boolean, run in headed mode, default is false, optional
-  cookie: <path-to-cookie-file> # string, the path to the json format cookie file, optional
-  waitForNetworkIdle: # object, the strategy to wait for network idle, optional
-    timeout: <ms> # number, the timeout in milliseconds, 30000 for default, optional
-    continueOnNetworkIdleError: <boolean> # boolean, continue on network idle error, true for default
-  output: <path-to-output-file> # string, the path to save the aiQuery result, optional
+  # The URL to visit, required. If `serve` is provided, provide the path to the file to visit
+  url: <url>
+
+  # Serve the local path as a static server, optional
+  serve: <root-directory>
+
+  # The user agent to use, optional
+  userAgent: <ua>
+
+  # number, the viewport width, default is 1280, optional
+  viewportWidth: <width>
+
+  # number, the viewport height, default is 960, optional
+  viewportHeight: <height>
+
+  # number, the device scale factor (dpr), default is 1, optional
+  deviceScaleFactor: <scale>
+
+  # string, the path to the json format cookie file, optional
+  cookie: <path-to-cookie-file>
+  
+  # object, the strategy to wait for network idle, optional
+  waitForNetworkIdle:
+    # number, the timeout in milliseconds, 30000 for default, optional
+    timeout: <ms>
+    # boolean, continue on network idle error, true for default
+    continueOnNetworkIdleError: <boolean>
+  
+  # string, the path to save the aiQuery result, optional
+  output: <path-to-output-file>
 ```
 
 The `flow` part is an array indicates the actions to do. Remember to write a `-` before each item which means an array item.
 
 ```yaml
 flow:
-  - ai: <prompt> # perform an action, this is the shortcut for aiAction
-  - aiAction: <prompt> # perform an action
-  - aiAssert: <prompt> # perform an assertion
-  - aiQuery: # perform a query, return a json object
-      prompt: <prompt> # the prompt to perform the query
-      name: <name> # the name of the result, will be used as the key in the output json
-  - aiWaitFor: <prompt> # wait for a condition to be met
-  - aiWaitFor: # wait for a condition to be met with a timeout
-      prompt: <prompt> # the prompt to perform the query
-      timeout: <ms> # the timeout in milliseconds
-  - sleep: <ms> # sleep for a number of milliseconds
+  # perform an action, this is the shortcut for aiAction
+  - ai: <prompt>
+
+  # perform an action
+  - aiAction: <prompt>
+
+  # perform an assertion
+  - aiAssert: <prompt>
+
+  # perform a query, return a json object
+  - aiQuery:
+      # the prompt to perform the query
+      prompt: <prompt>
+      # the name of the result, will be used as the key in the output json
+      name: <name>
+
+  # wait for a condition to be met
+  - aiWaitFor: <prompt>
+
+  # wait for a condition to be met with a timeout
+  - aiWaitFor:
+      # the prompt to perform the query
+      prompt: <prompt>
+      # the timeout in milliseconds
+      timeout: <ms>
+
+  # sleep for a number of milliseconds
+  - sleep: <ms>
 ```

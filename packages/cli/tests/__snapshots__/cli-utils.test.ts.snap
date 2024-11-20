@@ -1,24 +1,5 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
-exports[`cli parse args > all args 1`] = `
-"target:
-  url: https://www.baidu.com/
-  viewportWidth: 1024
-  viewportHeight: 768
-  viewportScale: 2
-  useragent: Cli
-  output: ./midscene_run/cache/cli_result.json
-flow: []
-"
-`;
-
-exports[`cli parse args > basic 1`] = `
-"target:
-  url: https://www.baidu.com/
-flow: []
-"
-`;
-
 exports[`cli utils > match exact file 1`] = `[]`;
 
 exports[`cli utils > match files 1`] = `
