@@ -64,6 +64,7 @@ interface MidsceneFileTask {
   player: ScriptPlayer;
 }
 
+const isTTY = process.stdout.isTTY;
 const spinnerInterval = 80;
 const spinnerFrames = ['◰', '◳', '◲', '◱']; // https://github.com/sindresorhus/cli-spinners/blob/main/spinners.json
 const currentSpinningFrame = () => {
@@ -113,63 +114,100 @@ const actionBriefText = (action?: MidsceneYamlFlowItem) => {
   return '';
 };
 
-const isTTY = process.stdout.isTTY;
-console.log('isTTY', isTTY);
+const indent = '  ';
 
-const printAllTasks = (tasks: MidsceneFileTask[]) => {
-  const indent = '  ';
-  const currentSpinnerFrame = currentSpinningFrame();
+const singleTaskInfo = (task: MidsceneFileTask) => {
+  const filePath = task.file;
+  const fileName = basename(filePath);
+  const fileDir = dirname(filePath);
+  const fileNameToPrint = `${chalk.gray(`${fileDir}/`)}${fileName}`;
 
-  const prefixLines: string[] = [];
-  let currentLine = '';
-  const suffixText: string[] = [];
-  for (const task of tasks) {
-    const filePath = task.file;
-    const fileName = basename(filePath);
-    const fileDir = dirname(filePath);
-    const fileNameToPrint = `${chalk.gray(`${fileDir}/`)}${fileName}`;
+  // output: ...
+  const outputFile = task.player.output;
+  const outputText = outputFile
+    ? `\n${indent}${chalk.gray(`output: ${outputFile}`)}`
+    : '';
 
-    const outputFile = task.player.output;
-    const outputText = outputFile
-      ? `\n${indent}${chalk.gray(`output: ${outputFile}`)}`
-      : '';
+  // report: ...
+  const reportFile = task.player.reportFile;
+  const reportFileToShow = relative(process.cwd(), reportFile || '');
+  const reportText = reportFile
+    ? `\n${indent}${chalk.gray(`report: ${reportFileToShow}`)}`
+    : '';
 
-    const reportFile = task.player.reportFile;
-    const reportFileToShow = relative(process.cwd(), reportFile || '');
-    const reportText = reportFile
-      ? `\n${indent}${chalk.gray(`report: ${reportFileToShow}`)}`
-      : '';
+  // status: init / running / done / error
+  let statusText = '';
+  if (task.player.status === 'init') {
+    statusText = chalk.gray('◌');
+  } else if (task.player.status === 'running') {
+    statusText = currentSpinningFrame();
+  } else if (task.player.status === 'done') {
+    statusText = chalk.green('✔︎');
+  } else if (task.player.status === 'error') {
+    statusText = chalk.red('✘');
+  }
 
-    const taskBrief = actionBriefText(task.player.currentTask);
-    const actionText = taskBrief ? `, ${taskBrief}` : '';
-
-    const stepText = chalk.gray(
+  // step: (navigating) / (step 1/10, aiAction: ...)
+  const taskBrief = actionBriefText(task.player.currentTask);
+  const actionText = taskBrief ? `, ${taskBrief}` : '';
+  let stepText = '';
+  if (task.player.status === 'init') {
+    stepText = '';
+  } else if (
+    task.player.status === 'running' ||
+    task.player.status === 'error'
+  ) {
+    stepText = chalk.gray(
       task.player.currentStep === 0
         ? '(navigating)'
         : `(step ${task.player.currentStep}/${task.player.totalSteps}${actionText})`.trim(),
     );
+  }
+
+  const errorText =
+    task.player.status === 'error'
+      ? `\n${indent}${chalk.gray('error:')}\n${indent}${indent}${task.player.error?.message}`
+      : '';
+
+  return {
+    fileNameToPrint,
+    outputText,
+    reportText,
+    statusText,
+    stepText,
+    errorText,
+  };
+};
+
+const printAllTasks = (tasks: MidsceneFileTask[]) => {
+  const prefixLines: string[] = [];
+  let currentLine = '';
+  const suffixText: string[] = [];
+  for (const task of tasks) {
+    const {
+      reportText,
+      outputText,
+      fileNameToPrint,
+      statusText,
+      stepText,
+      errorText,
+    } = singleTaskInfo(task);
+
+    const infoLine = `${statusText} ${fileNameToPrint} ${stepText}${reportText}${outputText}${errorText}`;
 
     if (task.player.status === 'init') {
-      suffixText.push(`${chalk.gray('◌')} ${fileNameToPrint}`);
+      suffixText.push(infoLine);
     } else if (task.player.status === 'running') {
-      currentLine = `${currentSpinnerFrame} ${fileNameToPrint} ${stepText}`;
+      currentLine = infoLine;
     } else if (task.player.status === 'done') {
-      prefixLines.push(
-        `${chalk.green('✔︎')} ${fileNameToPrint}${reportText}${outputText}`,
-      );
+      prefixLines.push(infoLine);
     } else if (task.player.status === 'error') {
-      prefixLines.push(
-        `${chalk.red('✘')} ${fileNameToPrint} ${stepText}${reportText}${outputText}`,
-      );
-      prefixLines.push(
-        `${indent}${chalk.gray('error:')}\n${indent}${indent}${task.player.error?.message}`,
-      );
+      prefixLines.push(infoLine);
     }
   }
-  // console.clear();
-  console.log(
-    `${prefixLines.join('\n')}\n${currentLine}\n${suffixText.join('\n')}`,
-  );
+  const prefix = prefixLines.length > 0 ? `${prefixLines.join('\n')}\n` : '';
+  const suffix = suffixText.length > 0 ? `\n${suffixText.join('\n')}` : '';
+  console.log(`${prefix}${currentLine}${suffix}`);
 };
 
 export async function playYamlFiles(
@@ -187,15 +225,25 @@ export async function playYamlFiles(
     tasks.push({ file, player });
   }
 
-  const interval = setInterval(() => {
-    printAllTasks(tasks);
-  }, spinnerInterval);
+  if (isTTY && tasks.length > 10000) {
+    const interval = setInterval(() => {
+      console.clear();
+      printAllTasks(tasks);
+    }, spinnerInterval);
 
-  for (const task of tasks) {
-    await task.player.play();
+    for (const task of tasks) {
+      await task.player.play();
+    }
+    clearInterval(interval);
+    console.clear();
+    printAllTasks(tasks);
+  } else {
+    for (const task of tasks) {
+      printAllTasks([task]);
+      await task.player.play();
+      printAllTasks([task]);
+    }
   }
-  clearInterval(interval);
-  printAllTasks(tasks);
 
   const ifFail = tasks.some((task) => task.player.status === 'error');
   return !ifFail;
