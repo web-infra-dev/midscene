@@ -15,8 +15,13 @@ describe.skipIf(!shouldRunAITest)('bin', () => {
     await execa(cliBin, params);
   });
 
-  test.skip('run yaml scripts with keepWindow', async () => {
+  test('run yaml scripts with keepWindow', async () => {
     const params = ['./tests/midscene_scripts', '--keep-window'];
+    await execa(cliBin, params);
+  });
+
+  test('run yaml scripts with headed, put options before path', async () => {
+    const params = ['--headed', './tests/midscene_scripts'];
     await execa(cliBin, params);
   });
 });

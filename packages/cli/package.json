@@ -9,7 +9,11 @@
   "bin": {
     "midscene": "./bin/midscene"
   },
-  "files": ["dist", "README.md", "bin"],
+  "files": [
+    "dist",
+    "README.md",
+    "bin"
+  ],
   "scripts": {
     "dev": "modern dev",
     "build": "modern build",
@@ -21,14 +25,12 @@
     "prepublishOnly": "npm run build"
   },
   "dependencies": {
-    "@midscene/web": "workspace:*",
     "@midscene/core": "workspace:*",
+    "@midscene/web": "workspace:*",
     "http-server": "14.1.1",
     "puppeteer": "23.0.2"
   },
   "devDependencies": {
-    "dotenv": "16.4.5",
-    "minimist": "1.2.5",
     "@modern-js/module-tools": "2.60.6",
     "@types/js-yaml": "4.0.9",
     "@types/minimist": "1.2.5",
@@ -36,11 +38,13 @@
     "@types/yargs": "17.0.32",
     "chalk": "4.1.2",
     "cli-spinners": "3.2.0",
+    "dotenv": "16.4.5",
     "execa": "9.3.0",
     "glob": "11.0.0",
     "js-yaml": "4.1.0",
     "typescript": "~5.0.4",
-    "vitest": "^1.6.0"
+    "vitest": "^1.6.0",
+    "yargs": "17.7.2"
   },
   "engines": {
     "node": ">=16.0.0"

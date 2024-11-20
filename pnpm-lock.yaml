@@ -136,6 +136,9 @@ importers:
       vitest:
         specifier: ^1.6.0
         version: 1.6.0(@types/node@18.19.62)(jsdom@24.1.1)(sass-embedded@1.80.5)(terser@5.36.0)
+      yargs:
+        specifier: 17.7.2
+        version: 17.7.2
 
   packages/midscene:
     dependencies:
