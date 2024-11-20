@@ -113,6 +113,9 @@ const actionBriefText = (action?: MidsceneYamlFlowItem) => {
   return '';
 };
 
+const isTTY = process.stdout.isTTY;
+console.log('isTTY', isTTY);
+
 const printAllTasks = (tasks: MidsceneFileTask[]) => {
   const indent = '  ';
   const currentSpinnerFrame = currentSpinningFrame();
@@ -163,7 +166,7 @@ const printAllTasks = (tasks: MidsceneFileTask[]) => {
       );
     }
   }
-  console.clear();
+  // console.clear();
   console.log(
     `${prefixLines.join('\n')}\n${currentLine}\n${suffixText.join('\n')}`,
   );
