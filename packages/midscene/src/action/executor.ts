@@ -41,9 +41,7 @@ export class Executor {
   async append(task: ExecutionTaskApply[] | ExecutionTaskApply): Promise<void> {
     assert(
       this.status !== 'error',
-      `executor is in error state, cannot append task\nerror = ${JSON.stringify(
-        this.latestErrorTask(),
-      )}`,
+      `executor is in error state, cannot append task\nerror=${this.latestErrorTask()?.error}\n${this.latestErrorTask()?.errorStack}`,
     );
     if (Array.isArray(task)) {
       this.tasks.push(...task.map((item) => this.markTaskAsPending(item)));

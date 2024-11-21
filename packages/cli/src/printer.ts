@@ -1,5 +1,4 @@
-import { readFileSync } from 'node:fs';
-import { basename, dirname, extname, relative } from 'node:path';
+import { basename, dirname, relative } from 'node:path';
 import chalk from 'chalk';
 import type {
   MidsceneYamlFileContext,
@@ -96,9 +95,10 @@ export const contextInfo = (context: MidsceneYamlFileContext) => {
 
   // output: ...
   const outputFile = context.player.output;
-  const outputText = outputFile
-    ? `\n${indent}${chalk.gray(`output: ${outputFile}`)}`
-    : '';
+  const outputText =
+    outputFile && Object.keys(context.player.result || {}).length > 0
+      ? `\n${indent}${chalk.gray(`output: ${outputFile}`)}`
+      : '';
 
   // report: ...
   const reportFile = context.player.reportFile;
