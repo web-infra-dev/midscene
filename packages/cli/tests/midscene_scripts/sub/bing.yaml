@@ -1,6 +1,11 @@
 target:
-  url: https://www.bing.com
-flow:
-  - ai: search for 'weather today'
-  - sleep: 3000
-  - aiAssert: the result shows the weather info
+  url: https://www.baidu.com
+tasks:
+  - name: search weather
+    flow:
+      - ai: input 'weather today' in input box, click search button
+      - sleep: 3000
+
+  - name: check result
+    flow:
+      - aiAssert: the result shows the weather info

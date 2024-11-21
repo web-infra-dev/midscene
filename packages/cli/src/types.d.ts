@@ -45,15 +45,31 @@ export type MidsceneYamlFlowItem =
 
 export interface MidsceneYamlScript {
   target: MidsceneYamlScriptEnv;
+  tasks: MidsceneYamlTask[];
+}
+
+export interface MidsceneYamlTask {
+  name: string;
   flow: MidsceneYamlFlowItem[];
 }
 
-export type ScriptPlayerStatus = 'init' | 'running' | 'done' | 'error';
+export interface ScriptPlayerTaskStatus extends MidsceneYamlTask {
+  status: ScriptPlayerStatusValue;
+  currentStep?: number;
+  totalSteps: number;
+  error?: Error;
+}
+
+export type ScriptPlayerStatusValue = 'init' | 'running' | 'done' | 'error';
 
 export interface ScriptPlayerOptions {
-  onStatusChange?: (status: ScriptPlayerStatus) => void;
-  onStepChange?: (step: number, totalSteps: number) => void;
   headed?: boolean;
   keepWindow?: boolean;
   testId?: string;
+  onTaskStatusChange?: (taskStatus: ScriptPlayerTaskStatus) => void;
+}
+
+export interface MidsceneYamlFileContext {
+  file: string;
+  player: ScriptPlayer;
 }

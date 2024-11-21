@@ -9,10 +9,16 @@
 ```yaml
 target:
   url: https://www.bing.com
-flow:
-  - ai: 搜索 "今日天气"
-  - sleep: 3000
-  - aiAssert: 结果显示天气信息
+
+tasks:
+  - name: 搜索天气
+    flow:
+      - ai: 搜索 "今日天气"
+      - sleep: 3000
+
+  - name: 检查结果
+    flow:
+      - aiAssert: 结果中展示了天气信息
 ```
 
 :::info 样例项目
@@ -102,7 +108,7 @@ midscene /path/to/yaml --keep-window
 
 ### `.yaml` 文件结构
 
-在 `.yaml` 文件中，有两个部分：`target` 和 `flow`。
+在 `.yaml` 文件中，有两个部分：`target` 和 `tasks`。
 
 `target` 部分定义了任务的基本信息
 
@@ -140,33 +146,42 @@ target:
   output: <path-to-output-file>
 ```
 
-`flow` 部分是一个数组，定义了脚本执行的步骤。记得在每个步骤前添加 `-` 符号。
+`tasks` 部分是一个数组，定义了脚本执行的步骤。记得在每个步骤前添加 `-` 符号。
 
 ```yaml
-flow:
-  # 执行一个交互，`ai` 是 `aiAction` 的简写方式
-  - ai: <prompt>
+tasks:
+  - name: <name>
+    flow:
+      # 执行一个交互，`ai` 是 `aiAction` 的简写方式
+      - ai: <prompt>
 
-  # 执行一个交互
-  - aiAction: <prompt>
+      # 执行一个交互
+      - aiAction: <prompt>
 
-  # 执行一个断言
-  - aiAssert: <prompt>
+      # 执行一个断言
+      - aiAssert: <prompt>
 
-  # 执行一个查询，返回一个 JSON 对象
-  - aiQuery: <prompt> # 记得在提示词中描述输出结果的格式
-    name: <name> # 查询结果在 JSON 输出中的 key
+      # 执行一个查询，返回一个 JSON 对象
+      - aiQuery: <prompt> # 记得在提示词中描述输出结果的格式
+        name: <name> # 查询结果在 JSON 输出中的 key
+        
+      # 等待某个条件满足，并设置超时时间(ms，可选，默认 30000)
+      - aiWaitFor: <prompt>
+        timeout: <ms>
 
-  # 等待某个条件满足
-  - aiWaitFor: <prompt>
+      # 等待一定时间
+      - sleep: <ms>
 
-  # 等待某个条件满足，并设置超时时间
-  - aiWaitFor: <prompt>
-    timeout: <ms>
-
-  # 等待一定时间
-  - sleep: <ms>
+  - name: <name>
+    flow:
+      # ...
 ```
+
+## FAQ
+
+**如何从 Chrome 中获取 JSON 格式的 Cookies？**
+
+你可以使用这个 [Chrome 扩展](https://chromewebstore.google.com/detail/get-cookiestxt-locally/cclelndahbckbenkjhflpdbgdldlbecc) 来导出 Cookies 为 JSON 格式。
 
 ## 更多
 

@@ -8,7 +8,10 @@ const runYaml = async (yamlString: string) => {
   const script = loadYamlScript(yamlString);
   const player = new ScriptPlayer(script);
   await player.play();
-  assert(player.status === 'done', player.error?.message || 'unknown error');
+  assert(
+    player.status === 'done',
+    player.errorInSetup?.message || 'unknown error',
+  );
 };
 
 const shouldRunAITest =
@@ -23,8 +26,10 @@ describe('yaml', () => {
         waitForNetworkIdle:
           timeout: 1000
           continueOnNetworkIdleError: true
-      flow:
-        - action: type 'hello' in search box, hit enter
+      tasks:
+        - name: search
+          flow:
+            - action: type 'hello' in search box, hit enter
     `);
 
     expect(script).toMatchSnapshot();
@@ -83,8 +88,10 @@ describe.skipIf(!shouldRunAITest)(
         url: index.html
         viewportWidth: 300
         viewportHeight: 500
-      flow:
-        - aiAssert: the content title is "My App"
+      tasks:
+        - name: local page
+          flow:
+            - aiAssert: the content title is "My App"
     `;
 
       await runYaml(yamlString);
@@ -97,11 +104,14 @@ describe.skipIf(!shouldRunAITest)(
         serve: ${serverRoot}
         url: index.html
         output: ${outputPath}
-      flow:
-        - aiQuery: >
-            the background color of the page, { color: 'white' | 'black' | 'red' | 'green' | 'blue' | 'yellow' | 'purple' | 'orange' | 'pink' | 'brown' | 'gray' | 'black' 
-          name: color
-        - aiAssert: this is a search result page
+      tasks:
+        - name: local page
+          flow:
+            - aiQuery: >
+                the background color of the page, { color: 'white' | 'black' | 'red' | 'green' | 'blue' | 'yellow' | 'purple' | 'orange' | 'pink' | 'brown' | 'gray' | 'black' 
+        - name: check content
+          flow:
+            - aiAssert: this is a search result page
       `;
       await expect(async () => {
         await runYaml(yamlString);
@@ -117,8 +127,10 @@ describe.skipIf(!shouldRunAITest)(
         url: index.html
         viewportWidth: 300
         viewportHeight: 500
-      flow:
-        - aiAssert: it shows the width is 888
+      tasks:
+        - name: check content
+          flow:
+            - aiAssert: it shows the width is 888
       `;
 
       expect(async () => {
@@ -131,8 +143,10 @@ describe.skipIf(!shouldRunAITest)(
       target:
         url: http://httpbin.dev/cookies
         cookie: ./tests/fixture/httpbin.dev_cookies.json
-      flow:
-        - aiAssert: the value of midscene_foo is "bar"
+      tasks:
+        - name: check cookie
+          flow:
+            - aiAssert: the value of midscene_foo is "bar"
     `;
       await runYaml(yamlString);
     });
@@ -144,8 +158,10 @@ describe.skipIf(!shouldRunAITest)(
         waitForNetworkIdle:
           timeout: 10
           continueOnNetworkIdleError: false
-      flow:
-        - aiAssert: the response is "Hello, world!"
+      tasks:
+        - name: check content
+          flow:
+            - aiAssert: the response is "Hello, world!"
     `;
 
       expect(async () => {

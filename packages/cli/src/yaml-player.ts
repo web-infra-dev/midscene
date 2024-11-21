@@ -1,14 +1,21 @@
 import { createServer } from 'http-server';
 import yaml from 'js-yaml';
 import puppeteer from 'puppeteer';
+import type { Browser, Page } from 'puppeteer';
 
 import assert from 'node:assert';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
-import { basename, dirname, extname, join, relative } from 'node:path';
+import { basename, dirname, extname, join } from 'node:path';
 import { PuppeteerAgent } from '@midscene/web/puppeteer';
-import chalk from 'chalk';
+import {
+  contextInfo,
+  isTTY,
+  printTaskList,
+  singleTaskInfo,
+  spinnerInterval,
+} from './printer';
 import type {
-  MidsceneYamlFlowItem,
+  MidsceneYamlFileContext,
   MidsceneYamlFlowItemAIAction,
   MidsceneYamlFlowItemAIAssert,
   MidsceneYamlFlowItemAIQuery,
@@ -16,7 +23,8 @@ import type {
   MidsceneYamlFlowItemSleep,
   MidsceneYamlScript,
   ScriptPlayerOptions,
-  ScriptPlayerStatus,
+  ScriptPlayerStatusValue,
+  ScriptPlayerTaskStatus,
 } from './types';
 
 export const defaultUA =
@@ -40,8 +48,11 @@ export function loadYamlScript(
     typeof obj.target.url === 'string',
     `property "target.url" must be provided in yaml script: ${pathTip}`,
   );
-  assert(obj.flow, `property "flow" is required in yaml script${pathTip}`);
-  assert(Array.isArray(obj.flow), `property "flow" must be an array${pathTip}`);
+  assert(obj.tasks, `property "tasks" is required in yaml script${pathTip}`);
+  assert(
+    Array.isArray(obj.tasks),
+    `property "tasks" must be an array${pathTip}`,
+  );
   return obj;
 }
 
@@ -59,227 +70,98 @@ export const launchServer = async (
   });
 };
 
-interface MidsceneFileTask {
-  file: string;
-  player: ScriptPlayer;
-}
-
-const isTTY = process.stdout.isTTY;
-const spinnerInterval = 80;
-const spinnerFrames = ['◰', '◳', '◲', '◱']; // https://github.com/sindresorhus/cli-spinners/blob/main/spinners.json
-const currentSpinningFrame = () => {
-  return spinnerFrames[
-    Math.floor(Date.now() / spinnerInterval) % spinnerFrames.length
-  ];
-};
-
-const actionBriefText = (action?: MidsceneYamlFlowItem) => {
-  if (!action) {
-    return '';
-  }
-
-  const sliceText = (text?: string) => {
-    if (text && text.length > 12) {
-      return `${text.slice(0, 12)}...`;
-    }
-
-    return text || '';
-  };
-
-  if (
-    (action as MidsceneYamlFlowItemAIAction).aiAction ||
-    (action as MidsceneYamlFlowItemAIAction).ai
-  ) {
-    return `aiAction: ${sliceText(
-      (action as MidsceneYamlFlowItemAIAction).aiAction ||
-        (action as MidsceneYamlFlowItemAIAction).ai,
-    )}`;
-  }
-  if ((action as MidsceneYamlFlowItemAIAssert).aiAssert) {
-    return `aiAssert: ${sliceText(
-      (action as MidsceneYamlFlowItemAIAssert).aiAssert,
-    )}`;
-  }
-  if ((action as MidsceneYamlFlowItemAIQuery).aiQuery) {
-    return `aiQuery: ${sliceText((action as MidsceneYamlFlowItemAIQuery).aiQuery)}`;
-  }
-  if ((action as MidsceneYamlFlowItemAIWaitFor).aiWaitFor) {
-    return `aiWaitFor: ${sliceText(
-      (action as MidsceneYamlFlowItemAIWaitFor).aiWaitFor,
-    )}`;
-  }
-  if ((action as MidsceneYamlFlowItemSleep).sleep) {
-    return `sleep: ${(action as MidsceneYamlFlowItemSleep).sleep}`;
-  }
-  return '';
-};
-
-const indent = '  ';
-
-const singleTaskInfo = (task: MidsceneFileTask) => {
-  const filePath = task.file;
-  const fileName = basename(filePath);
-  const fileDir = dirname(filePath);
-  const fileNameToPrint = `${chalk.gray(`${fileDir}/`)}${fileName}`;
-
-  // output: ...
-  const outputFile = task.player.output;
-  const outputText = outputFile
-    ? `\n${indent}${chalk.gray(`output: ${outputFile}`)}`
-    : '';
-
-  // report: ...
-  const reportFile = task.player.reportFile;
-  const reportFileToShow = relative(process.cwd(), reportFile || '');
-  const reportText = reportFile
-    ? `\n${indent}${chalk.gray(`report: ${reportFileToShow}`)}`
-    : '';
-
-  // status: init / running / done / error
-  let statusText = '';
-  if (task.player.status === 'init') {
-    statusText = chalk.gray('◌');
-  } else if (task.player.status === 'running') {
-    statusText = currentSpinningFrame();
-  } else if (task.player.status === 'done') {
-    statusText = chalk.green('✔︎');
-  } else if (task.player.status === 'error') {
-    statusText = chalk.red('✘');
-  }
-
-  // step: (navigating) / (step 1/10, aiAction: ...)
-  const taskBrief = actionBriefText(task.player.currentTask);
-  const actionText = taskBrief ? `, ${taskBrief}` : '';
-  let stepText = '';
-  if (task.player.status === 'init') {
-    stepText = '';
-  } else if (
-    task.player.status === 'running' ||
-    task.player.status === 'error'
-  ) {
-    stepText = chalk.gray(
-      task.player.currentStep === 0
-        ? '(navigating)'
-        : `(step ${task.player.currentStep}/${task.player.totalSteps}${actionText})`.trim(),
-    );
-  }
-
-  const errorText =
-    task.player.status === 'error'
-      ? `\n${indent}${chalk.gray('error:')}\n${indent}${indent}${task.player.error?.message}`
-      : '';
-
-  return {
-    fileNameToPrint,
-    outputText,
-    reportText,
-    statusText,
-    stepText,
-    errorText,
-  };
-};
-
-const printAllTasks = (tasks: MidsceneFileTask[]) => {
-  const prefixLines: string[] = [];
-  let currentLine = '';
-  const suffixText: string[] = [];
-  for (const task of tasks) {
-    const {
-      reportText,
-      outputText,
-      fileNameToPrint,
-      statusText,
-      stepText,
-      errorText,
-    } = singleTaskInfo(task);
-
-    const infoLine = `${statusText} ${fileNameToPrint} ${stepText}${reportText}${outputText}${errorText}`;
-
-    if (task.player.status === 'init') {
-      suffixText.push(infoLine);
-    } else if (task.player.status === 'running') {
-      currentLine = infoLine;
-    } else if (task.player.status === 'done') {
-      prefixLines.push(infoLine);
-    } else if (task.player.status === 'error') {
-      prefixLines.push(infoLine);
-    }
-  }
-  const prefix = prefixLines.length > 0 ? `${prefixLines.join('\n')}\n` : '';
-  const suffix = suffixText.length > 0 ? `\n${suffixText.join('\n')}` : '';
-  console.log(`${prefix}${currentLine}${suffix}`);
-};
-
 export async function playYamlFiles(
   files: string[],
   options?: ScriptPlayerOptions,
 ): Promise<boolean> {
-  const tasks: MidsceneFileTask[] = [];
+  const fileContextList: MidsceneYamlFileContext[] = [];
   for (const file of files) {
     const script = loadYamlScript(readFileSync(file, 'utf-8'), file);
     const fileName = basename(file, extname(file));
     const player = new ScriptPlayer(script, {
       ...options,
       testId: fileName,
+      onTaskStatusChange: (taskStatus) => {
+        if (!isTTY) {
+          const { nameText } = singleTaskInfo(taskStatus);
+          console.log(`${taskStatus.status} - ${nameText}`);
+        }
+      },
     });
-    tasks.push({ file, player });
+    fileContextList.push({ file, player });
   }
-
-  if (isTTY && tasks.length > 10000) {
-    const interval = setInterval(() => {
+  if (isTTY) {
+    const printAll = () => {
       console.clear();
-      printAllTasks(tasks);
-    }, spinnerInterval);
+      for (const context of fileContextList) {
+        printTaskList(context.player.taskStatus, context);
+      }
+    };
+    const interval = setInterval(printAll, spinnerInterval);
 
-    for (const task of tasks) {
-      await task.player.play();
+    for (const context of fileContextList) {
+      await context.player.play();
     }
     clearInterval(interval);
-    console.clear();
-    printAllTasks(tasks);
+    printAll();
   } else {
-    for (const task of tasks) {
-      printAllTasks([task]);
-      await task.player.play();
-      printAllTasks([task]);
+    for (const context of fileContextList) {
+      const { mergedText } = contextInfo(context);
+      console.log(mergedText);
+      await context.player.play();
+      printTaskList(context.player.taskStatus, context);
     }
   }
 
-  const ifFail = tasks.some((task) => task.player.status === 'error');
+  const ifFail = fileContextList.some((task) => task.player.status === 'error');
   return !ifFail;
 }
 
 export class ScriptPlayer {
-  public currentStep = 0;
-  public totalSteps: number;
-  public status: ScriptPlayerStatus = 'init';
+  public currentTaskIndex?: number;
+  public taskStatus: ScriptPlayerTaskStatus[] = [];
+  public status: ScriptPlayerStatusValue = 'init';
   public reportFile?: string | null;
-  public error?: Error;
   public result: Record<string, any>;
   private unnamedResultIndex = 0;
   public output?: string | null;
-  public currentTask?: MidsceneYamlFlowItem;
+  public errorInSetup?: Error;
   constructor(
     private script: MidsceneYamlScript,
     private options?: ScriptPlayerOptions,
   ) {
-    this.totalSteps = script.flow.length;
     this.result = {};
-    if (this.totalSteps === 0) {
-      throw new Error('no steps to play');
-    }
     this.output = script.target.output;
+    this.taskStatus = (script.tasks || []).map((task, taskIndex) => ({
+      ...task,
+      index: taskIndex,
+      status: 'init',
+      totalSteps: task.flow?.length || 0,
+    }));
   }
 
-  private setStatus(status: ScriptPlayerStatus, error?: Error) {
+  private setPlayerStatus(status: ScriptPlayerStatusValue, error?: Error) {
     this.status = status;
-    this.error = error;
-    this.options?.onStatusChange?.(status);
+    this.errorInSetup = error;
   }
 
-  private setStep(stepIndex: number) {
-    this.currentStep = stepIndex + 1;
-    this.options?.onStepChange?.(stepIndex, this.totalSteps);
+  private setTaskStatus(
+    index: number,
+    statusValue: ScriptPlayerStatusValue,
+    error?: Error,
+  ) {
+    this.taskStatus[index].status = statusValue;
+    if (error) {
+      this.taskStatus[index].error = error;
+    }
+
+    if (this.options?.onTaskStatusChange) {
+      this.options.onTaskStatusChange(this.taskStatus[index]);
+    }
+  }
+
+  private setTaskIndex(taskIndex: number) {
+    this.currentTaskIndex = taskIndex;
   }
 
   private flushResult() {
@@ -294,9 +176,91 @@ export class ScriptPlayer {
     }
   }
 
+  async playTask(
+    taskStatus: ScriptPlayerTaskStatus,
+    {
+      agent,
+      browser,
+      page,
+    }: {
+      agent: PuppeteerAgent;
+      browser: Browser;
+      page: Page;
+    },
+  ) {
+    const { flow } = taskStatus;
+    assert(flow, 'missing flow in task');
+
+    for (const flowItemIndex in flow) {
+      taskStatus.currentStep = Number.parseInt(flowItemIndex, 10);
+      const flowItem = flow[flowItemIndex];
+      if (
+        (flowItem as MidsceneYamlFlowItemAIAction).aiAction ||
+        (flowItem as MidsceneYamlFlowItemAIAction).ai
+      ) {
+        const actionTask = flowItem as MidsceneYamlFlowItemAIAction;
+        const prompt = actionTask.aiAction || actionTask.ai;
+        assert(prompt, 'missing prompt for ai (aiAction)');
+        assert(
+          typeof prompt === 'string',
+          'prompt for aiAction must be a string',
+        );
+        await agent.aiAction(prompt);
+      } else if ((flowItem as MidsceneYamlFlowItemAIAssert).aiAssert) {
+        const assertTask = flowItem as MidsceneYamlFlowItemAIAssert;
+        const prompt = assertTask.aiAssert;
+        assert(prompt, 'missing prompt for aiAssert');
+        assert(
+          typeof prompt === 'string',
+          'prompt for aiAssert must be a string',
+        );
+        await agent.aiAssert(prompt);
+      } else if ((flowItem as MidsceneYamlFlowItemAIQuery).aiQuery) {
+        const queryTask = flowItem as MidsceneYamlFlowItemAIQuery;
+        const prompt = queryTask.aiQuery;
+        assert(prompt, 'missing prompt for aiQuery');
+        assert(
+          typeof prompt === 'string',
+          'prompt for aiQuery must be a string',
+        );
+        const queryResult = await agent.aiQuery(prompt);
+        const resultKey = queryTask.name || this.unnamedResultIndex++;
+        if (this.result[resultKey]) {
+          console.warn(
+            `result key ${resultKey} already exists, will overwrite`,
+          );
+        }
+
+        this.result[resultKey] = queryResult;
+        this.flushResult();
+      } else if ((flowItem as MidsceneYamlFlowItemAIWaitFor).aiWaitFor) {
+        const waitForTask = flowItem as MidsceneYamlFlowItemAIWaitFor;
+        const prompt = waitForTask.aiWaitFor;
+        assert(prompt, 'missing prompt for aiWaitFor');
+        assert(
+          typeof prompt === 'string',
+          'prompt for aiWaitFor must be a string',
+        );
+        const timeout = waitForTask.timeout;
+        await agent.aiWaitFor(prompt, { timeoutMs: timeout });
+      } else if ((flowItem as MidsceneYamlFlowItemSleep).sleep) {
+        const sleepTask = flowItem as MidsceneYamlFlowItemSleep;
+        const ms = sleepTask.sleep;
+        assert(
+          ms && ms > 0,
+          `ms for sleep must be greater than 0, but got ${ms}`,
+        );
+        await new Promise((resolve) => setTimeout(resolve, ms));
+      } else {
+        throw new Error(`unknown flowItem: ${JSON.stringify(flowItem)}`);
+      }
+    }
+    this.reportFile = agent.reportFile;
+  }
+
   async play() {
-    const { target, flow } = this.script;
-    this.setStatus('running');
+    const { target, tasks } = this.script;
+    this.setPlayerStatus('running');
 
     // prepare the environment
     const ua = target.userAgent || defaultUA;
@@ -412,116 +376,62 @@ export class ScriptPlayer {
         const newError = new Error(`failed to wait for network idle: ${e}`, {
           cause: e,
         });
-        this.setStatus('error', newError);
+        this.setPlayerStatus('error', newError);
         return;
       }
       const newMessage = `failed to wait for network idle after ${waitForNetworkIdleTimeout}ms, but the script will continue.`;
       console.warn(newMessage);
     }
 
-    // play the scripts
-    let currentTask: MidsceneYamlFlowItem | undefined;
+    // prepare Midscene agent
     const agent = new PuppeteerAgent(page, {
       autoPrintReportMsg: false,
       testId: this.options?.testId,
     });
-    try {
-      freeFn.push({
-        name: 'midscene_puppeteer_agent',
-        fn: () => agent.destroy(),
-      });
 
-      let stepIndex = 0;
-      while (stepIndex < this.totalSteps) {
-        const task = flow[stepIndex];
-        this.currentTask = task;
-        this.setStep(stepIndex);
+    freeFn.push({
+      name: 'midscene_puppeteer_agent',
+      fn: () => agent.destroy(),
+    });
 
-        if (
-          (task as MidsceneYamlFlowItemAIAction).aiAction ||
-          (task as MidsceneYamlFlowItemAIAction).ai
-        ) {
-          const actionTask = task as MidsceneYamlFlowItemAIAction;
-          const prompt = actionTask.aiAction || actionTask.ai;
-          assert(prompt, 'missing prompt for ai (aiAction)');
-          assert(
-            typeof prompt === 'string',
-            'prompt for aiAction must be a string',
-          );
-          await agent.aiAction(prompt);
-        } else if ((task as MidsceneYamlFlowItemAIAssert).aiAssert) {
-          const assertTask = task as MidsceneYamlFlowItemAIAssert;
-          const prompt = assertTask.aiAssert;
-          assert(prompt, 'missing prompt for aiAssert');
-          assert(
-            typeof prompt === 'string',
-            'prompt for aiAssert must be a string',
-          );
-          await agent.aiAssert(prompt);
-        } else if ((task as MidsceneYamlFlowItemAIQuery).aiQuery) {
-          const queryTask = task as MidsceneYamlFlowItemAIQuery;
-          const prompt = queryTask.aiQuery;
-          assert(prompt, 'missing prompt for aiQuery');
-          assert(
-            typeof prompt === 'string',
-            'prompt for aiQuery must be a string',
-          );
-          const queryResult = await agent.aiQuery(prompt);
-          const resultKey = queryTask.name || this.unnamedResultIndex++;
-          this.result[resultKey] = queryResult;
-          this.flushResult();
-        } else if ((task as MidsceneYamlFlowItemAIWaitFor).aiWaitFor) {
-          const waitForTask = task as MidsceneYamlFlowItemAIWaitFor;
-          const prompt = waitForTask.aiWaitFor;
-          assert(prompt, 'missing prompt for aiWaitFor');
-          assert(
-            typeof prompt === 'string',
-            'prompt for aiWaitFor must be a string',
-          );
-          const timeout = waitForTask.timeout;
-          await agent.aiWaitFor(prompt, { timeoutMs: timeout });
-        } else if ((task as MidsceneYamlFlowItemSleep).sleep) {
-          const sleepTask = task as MidsceneYamlFlowItemSleep;
-          const ms = sleepTask.sleep;
-          assert(
-            ms && ms > 0,
-            `ms for sleep must be greater than 0, but got ${ms}`,
-          );
-          await new Promise((resolve) => setTimeout(resolve, ms));
-        } else {
-          throw new Error(`unknown task: ${JSON.stringify(task)}`);
-        }
-        stepIndex++;
+    let taskIndex = 0;
+    this.setPlayerStatus('running');
+    let errorFlag = false;
+    while (taskIndex < tasks.length) {
+      const task = tasks[taskIndex];
+      this.setTaskStatus(taskIndex, 'running' as any);
+      // const taskStatus = this.taskStatus[taskIndex];
+
+      try {
+        this.setTaskIndex(taskIndex);
+        await this.playTask(this.taskStatus[taskIndex], {
+          agent,
+          browser,
+          page,
+        });
+      } catch (e) {
+        this.setTaskStatus(taskIndex, 'error' as any, e as Error);
+        this.setPlayerStatus('error');
+        errorFlag = true;
+
+        this.reportFile = agent.reportFile;
+        taskIndex++;
+        continue;
       }
       this.reportFile = agent.reportFile;
-    } catch (e: any) {
-      freeFn.forEach((fn) => {
-        try {
-          fn.fn();
-        } catch (e) {}
-      });
-
-      this.setStatus('error', e);
-      this.reportFile = agent.reportFile;
-      return;
+      this.setTaskStatus(taskIndex, 'done' as any);
+      taskIndex++;
     }
 
-    this.flushResult();
+    if (!errorFlag) {
+      this.setPlayerStatus('done');
+    }
 
-    let err: Error | undefined;
+    // free the resources
     freeFn.forEach((fn) => {
       try {
         fn.fn();
-      } catch (e) {
-        console.error(`failed to free ${fn.name}:`, e);
-        err = new Error(`failed to free ${fn.name}`, { cause: e });
-      }
+      } catch (e) {}
     });
-    if (err) {
-      this.setStatus('error', err);
-      return;
-    }
-
-    this.setStatus('done');
   }
 }

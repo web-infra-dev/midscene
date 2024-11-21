@@ -2,11 +2,6 @@
 
 exports[`yaml > basic load 1`] = `
 {
-  "flow": [
-    {
-      "action": "type 'hello' in search box, hit enter",
-    },
-  ],
   "target": {
     "url": "https://www.baidu.com",
     "waitForNetworkIdle": {
@@ -14,5 +9,15 @@ exports[`yaml > basic load 1`] = `
       "timeout": 1000,
     },
   },
+  "tasks": [
+    {
+      "flow": [
+        {
+          "action": "type 'hello' in search box, hit enter",
+        },
+      ],
+      "name": "search",
+    },
+  ],
 }
 `;

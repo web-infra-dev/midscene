@@ -110,6 +110,7 @@ export class PageTaskExecutor {
           quickAnswer: plan.quickAnswer,
           executor: async (param, taskContext) => {
             const { task } = taskContext;
+            assert(param?.prompt, 'No prompt to locate');
             let insightDump: InsightDump | undefined;
             const dumpCollector: DumpSubscriber = (dump) => {
               insightDump = dump;
@@ -233,7 +234,7 @@ export class PageTaskExecutor {
               if (element) {
                 await this.page.clearInput(element as ElementInfo);
 
-                if (!taskParam || taskParam.value === '') {
+                if (!taskParam || !taskParam.value) {
                   return;
                 }
 
@@ -250,7 +251,7 @@ export class PageTaskExecutor {
             subType: 'KeyboardPress',
             param: plan.param,
             executor: async (taskParam) => {
-              assert(taskParam.value, 'No key to press');
+              assert(taskParam?.value, 'No key to press');
               await this.page.keyboard.press(taskParam.value as KeyInput);
             },
           };
@@ -319,7 +320,7 @@ export class PageTaskExecutor {
             subType: 'Sleep',
             param: plan.param,
             executor: async (taskParam) => {
-              await sleep(taskParam.timeMs || 3000);
+              await sleep(taskParam?.timeMs || 3000);
             },
           };
         return taskActionSleep;
@@ -332,10 +333,10 @@ export class PageTaskExecutor {
             param: plan.param,
             executor: async (taskParam) => {
               assert(
-                taskParam.thought,
+                taskParam?.thought,
                 'An error occurred, but no thought provided',
               );
-              throw new Error(taskParam.thought);
+              throw new Error(taskParam?.thought || 'error without thought');
             },
           };
         return taskActionError;
