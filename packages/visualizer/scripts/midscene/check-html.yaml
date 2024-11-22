@@ -1,0 +1,9 @@
+target:
+  serve: ./dist/report
+  url: demo.html
+tasks:
+  - name: check console html
+    flow:
+      - ai: Click the 'Insight / Locate' on Left
+      - sleep: 3000
+      - aiAssert: There is a 'Open in Playground' button on the page
