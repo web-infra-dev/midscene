@@ -9,11 +9,12 @@ import { basename, dirname, extname, join } from 'node:path';
 import { PuppeteerAgent } from '@midscene/web/puppeteer';
 import {
   contextInfo,
+  contextTaskListSummary,
   isTTY,
-  printTaskList,
   singleTaskInfo,
   spinnerInterval,
 } from './printer';
+import { TTYWindowRenderer } from './tty-renderer';
 import type {
   MidsceneYamlFileContext,
   MidsceneYamlFlowItemAIAction,
@@ -70,10 +71,12 @@ export const launchServer = async (
   });
 };
 
+let ttyRenderer: TTYWindowRenderer | undefined;
 export async function playYamlFiles(
   files: string[],
   options?: ScriptPlayerOptions,
 ): Promise<boolean> {
+  // prepare
   const fileContextList: MidsceneYamlFileContext[] = [];
   for (const file of files) {
     const script = loadYamlScript(readFileSync(file, 'utf-8'), file);
@@ -84,32 +87,43 @@ export async function playYamlFiles(
       onTaskStatusChange: (taskStatus) => {
         if (!isTTY) {
           const { nameText } = singleTaskInfo(taskStatus);
-          console.log(`${taskStatus.status} - ${nameText}`);
+          // console.log(`${taskStatus.status} - ${nameText}`);
         }
       },
     });
     fileContextList.push({ file, player });
   }
-  if (isTTY) {
-    const printAll = () => {
-      console.clear();
-      for (const context of fileContextList) {
-        printTaskList(context.player.taskStatus, context);
-      }
-    };
-    const interval = setInterval(printAll, spinnerInterval);
 
+  // play
+  if (isTTY) {
+    const summaryContents = () => {
+      const summary: string[] = [''];
+      for (const context of fileContextList) {
+        summary.push(
+          contextTaskListSummary(context.player.taskStatus, context),
+        );
+      }
+      summary.push('');
+      return summary;
+    };
+    ttyRenderer = new TTYWindowRenderer({
+      outputStream: process.stdout,
+      errorStream: process.stderr,
+      getWindow: summaryContents,
+      interval: spinnerInterval,
+    });
+
+    ttyRenderer.start();
     for (const context of fileContextList) {
       await context.player.play();
     }
-    clearInterval(interval);
-    printAll();
+    ttyRenderer.stop();
   } else {
     for (const context of fileContextList) {
       const { mergedText } = contextInfo(context);
       console.log(mergedText);
       await context.player.play();
-      printTaskList(context.player.taskStatus, context);
+      console.log(contextTaskListSummary(context.player.taskStatus, context));
     }
   }
 

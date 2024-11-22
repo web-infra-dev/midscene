@@ -9,7 +9,11 @@
   "bin": {
     "midscene": "./bin/midscene"
   },
-  "files": ["dist", "README.md", "bin"],
+  "files": [
+    "dist",
+    "README.md",
+    "bin"
+  ],
   "scripts": {
     "dev": "modern dev",
     "build": "modern build",
@@ -38,6 +42,7 @@
     "execa": "9.3.0",
     "glob": "11.0.0",
     "js-yaml": "4.1.0",
+    "restore-cursor": "5.1.0",
     "typescript": "~5.0.4",
     "vitest": "^1.6.0",
     "yargs": "17.7.2"

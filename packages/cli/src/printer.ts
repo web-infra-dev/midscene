@@ -155,13 +155,13 @@ export const singleTaskInfo = (task: ScriptPlayerTaskStatus) => {
   };
 };
 
-function indentLines(lines: string[]) {
+function paddingLines(lines: string[]) {
   return lines.map((line) => {
     return `${indent}${line}`;
   });
 }
 
-export const printTaskList = (
+export const contextTaskListSummary = (
   taskStatus: ScriptPlayerTaskStatus[],
   context: MidsceneYamlFileContext,
 ) => {
@@ -183,10 +183,10 @@ export const printTaskList = (
     }
   }
   const currentLineText =
-    currentLine.length > 0 ? `\n${indentLines(currentLine).join('\n')}` : '';
+    currentLine.length > 0 ? `\n${paddingLines(currentLine).join('\n')}` : '';
   const prefix =
-    prefixLines.length > 0 ? `\n${indentLines(prefixLines).join('\n')}` : '';
+    prefixLines.length > 0 ? `\n${paddingLines(prefixLines).join('\n')}` : '';
   const suffix =
-    suffixText.length > 0 ? `\n${indentLines(suffixText).join('\n')}` : '';
-  console.log(`${fileInfo}${prefix}${currentLineText}${suffix}`);
+    suffixText.length > 0 ? `\n${paddingLines(suffixText).join('\n')}` : '';
+  return `${fileInfo}${prefix}${currentLineText}${suffix}`;
 };

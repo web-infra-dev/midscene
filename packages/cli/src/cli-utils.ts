@@ -173,7 +173,7 @@ export async function matchYamlFiles(fileGlob: string) {
   const files = await glob(fileGlob, {
     nodir: true,
   });
-  return files.filter(
-    (file) => file.endsWith('.yml') || file.endsWith('.yaml'),
-  );
+  return files
+    .filter((file) => file.endsWith('.yml') || file.endsWith('.yaml'))
+    .sort();
 }
