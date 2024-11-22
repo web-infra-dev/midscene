@@ -88,8 +88,6 @@ skill content:
 
 Return in this way: prefix + the id / comma-separated ids, for example: LOCATE_ONE_ELEMENT/1 , LOCATE_ONE_OR_MORE_ELEMENTS/1,2,3 . If not found, keep the prefix and leave the suffix empty, like LOCATE_ONE_ELEMENT/ .
 
-
-
 Return in the following JSON format:
 {
   language: "en", // "en" or "zh", the language of the page. Use the same language to describe section name, description, and similar fields.
@@ -213,33 +211,7 @@ export function describeElement(
     .join('\n');
 }
 
-export function describeSectionInputFormat() {
-  return `
-The sections are formatted in the following way:
-  left, top, right, bottom, color-on-the-diagram, section-name
-`;
-}
-
-export function describeSections(
-  sections: UISection[],
-  colorOfSectionName: (name: string) => string,
-) {
-  return sections
-    .map((item) =>
-      [
-        item.rect.left,
-        item.rect.top,
-        item.rect.left + item.rect.width,
-        item.rect.top + item.rect.height,
-        colorOfSectionName(item.name),
-        item.name,
-      ].join(', '),
-    )
-    .join('\n');
-}
-
-export function truncateText(text: string) {
-  const maxLength = 50;
+export function truncateText(text: string, maxLength = 20) {
   if (text && text.length > maxLength) {
     return `${text.slice(0, maxLength)}...`;
   }
@@ -290,19 +262,18 @@ export async function describeUserPage<
 
   return {
     description: `
-    {
-      // The size of the page
-      "pageSize": ${describeSize({ width, height })},\n
-      ${
-        // if match by id, use the description of the element
-        !getAIConfig(MATCH_BY_POSITION)
-          ? `
-          // json description of the element
-          "content": ${JSON.stringify(elementInfosDescription)}
-          `
-          : ''
-      }
-    }`,
+{
+  // The size of the page
+  "pageSize": ${describeSize({ width, height })},\n
+  ${
+    // if match by id, use the description of the element
+    getAIConfig(MATCH_BY_POSITION)
+      ? ''
+      : `// json description of the element
+  "content": ${JSON.stringify(elementInfosDescription)}
+      `
+  }
+}`,
     elementById(id: string) {
       assert(typeof id !== 'undefined', 'id is required for query');
       const item = idElementMap[`${id}`];
@@ -322,7 +293,12 @@ function cropFieldInformation(elementsInfo: BaseElement[]) {
       const tailorAttributes = Object.keys(attributes).reduce(
         (res, currentKey: string) => {
           const attributeVal = (attributes as any)[currentKey];
-          res[currentKey] = truncateText(attributeVal);
+          if (currentKey === 'style' || currentKey === 'src') return res;
+          if (currentKey === 'nodeType') {
+            res[currentKey] = attributeVal.replace(/\sNode$/, '');
+          } else {
+            res[currentKey] = truncateText(attributeVal);
+          }
           return res;
         },
         {} as BaseElement['attributes'],
@@ -332,12 +308,18 @@ function cropFieldInformation(elementsInfo: BaseElement[]) {
         id,
         markerId: (item as any).indexId,
         attributes: tailorAttributes,
-        rect,
+        rect: {
+          left: rect.left,
+          top: rect.top,
+          width: rect.width,
+          height: rect.height,
+          // remove 'zoom' if it exists
+        },
         content: tailorContent,
       };
     },
   );
-  return JSON.stringify(elementInfosDescription);
+  return elementInfosDescription;
 }
 
 /**

@@ -67,7 +67,7 @@ Input Example:
       },
       "elementInfos": [
         {
-          "id": "we23xsfwe", // ID of the element
+          "id": "1231", // ID of the element
           "indexId": "0", // Index of the element，The image is labeled to the left of the element
           "attributes": { // Attributes of the element
             "nodeType": "IMG Node", // Type of element, types include: TEXT Node, IMG Node, BUTTON Node, INPUT Node
@@ -83,7 +83,7 @@ Input Example:
           }
         },
         {
-          "id": "wefew2222few2", // ID of the element
+          "id": "66551", // ID of the element
           "indexId": "1", // Index of the element,The image is labeled to the left of the element
           "attributes": { // Attributes of the element
             "nodeType": "IMG Node", // Type of element, types include: TEXT Node, IMG Node, BUTTON Node, INPUT Node
@@ -100,7 +100,7 @@ Input Example:
         },
         ...
         {
-          "id": "kwekfj2323",
+          "id": "12344",
           "indexId": "2", // Index of the element，The image is labeled to the left of the element
           "attributes": {
             "nodeType": "TEXT Node",
@@ -133,7 +133,7 @@ Output Example:
       "reason": "Reason for finding element 4: It is located in the upper right corner, is an image type, and according to the screenshot, it is a shopping cart icon button",
       "text": "",
       // ID(**use id not indexId**) of this element, replace with actual value in practice, **use id not indexId**
-      "id": "wefew2222few2"
+      "id": "1231"
     }
   ],
   "errors": []

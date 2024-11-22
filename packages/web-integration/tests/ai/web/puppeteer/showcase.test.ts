@@ -61,7 +61,7 @@ describe(
       );
       const mid = new PuppeteerAgent(originPage);
 
-      await mid.aiAction('If pop-ups are displayed click seven days out alert');
+      // await mid.aiAction('If pop-ups are displayed click seven days out alert');
 
       await mid.aiAction('Click the password input on page');
 

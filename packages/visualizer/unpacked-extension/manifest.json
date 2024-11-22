@@ -1,7 +1,7 @@
 {
   "name": "Midscene",
   "description": "Interacting with, querying, and asserting web pages using AI through natural language.",
-  "version": "0.4",
+  "version": "0.6",
   "manifest_version": 3,
   "permissions": [
     "scripting",

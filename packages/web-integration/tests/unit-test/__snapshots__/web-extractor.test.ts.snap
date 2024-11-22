@@ -385,7 +385,7 @@ exports[`extractor > basic 1`] = `
   {
     "attributes": {
       "nodeType": "IMG Node",
-      "src": "data:image/svg+xml;...",
+      "src": "image",
     },
     "content": "",
   },
