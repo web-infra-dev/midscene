@@ -1,5 +1,6 @@
 import assert from 'node:assert';
 import type { WebPage } from '@/common/page';
+import type { PuppeteerWebPage } from '@/puppeteer';
 import {
   type AIElementIdResponse,
   type AIElementResponse,
@@ -85,7 +86,15 @@ export class PageTaskExecutor {
         recorder.push(shot);
         const result = await taskApply.executor(param, context, ...args);
         if (taskApply.type === 'Action') {
-          await sleep(300);
+          await Promise.all([
+            (async () => {
+              await sleep(100);
+              if ((this.page as PuppeteerWebPage).waitUntilNetworkIdle) {
+                await (this.page as PuppeteerWebPage).waitUntilNetworkIdle();
+              }
+            })(),
+            sleep(300),
+          ]);
         }
         if (appendAfterExecution) {
           const shot2 = await this.recordScreenshot('after Action');
@@ -345,7 +354,7 @@ export class PageTaskExecutor {
       throw new Error(`Unknown or Unsupported task type: ${plan.type}`);
     });
 
-    const tasksWithScreenshot = tasks.map(
+    const wrappedTasks = tasks.map(
       (task: ExecutionTaskApply, index: number) => {
         if (task.type === 'Action') {
           return this.prependExecutorWithScreenshot(
@@ -357,7 +366,7 @@ export class PageTaskExecutor {
       },
     );
 
-    return tasksWithScreenshot;
+    return wrappedTasks;
   }
 
   async action(
