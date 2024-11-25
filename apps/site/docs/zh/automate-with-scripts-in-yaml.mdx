@@ -1,0 +1,188 @@
+# 使用 YAML 格式的自动化脚本
+
+在大多数情况下，开发者编写自动化脚本只是为了执行一些冒烟测试，比如检查某些内容是否出现，或者验证某个关键用户路径是否可用。在这种情况下，维护一个大型测试项目会显得毫无必要。
+
+⁠Midscene 提供了一种基于 `.yaml` 文件的自动化测试方法，这有助于你专注于脚本本身，而不是测试框架。以此，任何团队内的成员都可以编写自动化脚本，而无需学习任何 API。
+
+这里有一个示例，通过阅读它的内容，你应该已经理解了它的工作原理。
+
+```yaml
+target:
+  url: https://www.bing.com
+
+tasks:
+  - name: 搜索天气
+    flow:
+      - ai: 搜索 "今日天气"
+      - sleep: 3000
+
+  - name: 检查结果
+    flow:
+      - aiAssert: 结果中展示了天气信息
+```
+
+:::info 样例项目
+你可以在这里找到使用 YAML 脚本做自动化的样例项目 [https://github.com/web-infra-dev/midscene-example/tree/main/yaml-scripts-demo](https://github.com/web-infra-dev/midscene-example/tree/main/yaml-scripts-demo)
+:::
+
+## 准备工作
+
+配置 OpenAI API Key
+
+```bash
+# 更新为你自己的 Key
+export OPENAI_API_KEY="sk-abcdefghijklmnopqrstuvwxyz"
+```
+
+或使用 `.env` 文件存储配置
+
+```env filename=.env
+OPENAI_API_KEY="sk-abcdefghijklmnopqrstuvwxyz"
+```
+
+或 [自定义模型服务](./model-provider.html)
+
+## 开始
+
+全局安装 `@midscene/cli` 
+
+```bash
+npm i -g @midscene/cli
+# 或在项目中安装
+npm i @midscene/cli --save-dev
+```
+
+编写一个名为 `bing-search.yaml` 的文件
+
+```yaml
+target:
+  url: https://www.bing.com
+flow:
+  - ai: 搜索 "今日天气"
+  - sleep: 3000
+  - aiAssert: 结果显示天气信息
+```
+
+运行脚本
+
+```bash
+midscene ./bing-search.yaml
+# 或者如果你在项目中安装了 midscene
+npx midscene ./bing-search.yaml
+```
+
+你应该会看到脚本的执行进度和可视化运行报告文件。
+
+## 详细用法
+
+### 运行单个 `.yaml` 文件
+
+```bash
+midscene /path/to/yaml
+```
+
+### 运行一个文件夹下的所有 `.yaml` 文件
+
+```bash
+midscene /dir/of/yaml/
+
+# 支持 glob 语法
+midscene /dir/**/yaml/
+```
+
+### 运行在有界面(Headed)模式下
+
+'headed' 模式意味着浏览器窗口是可见的。默认情况下，脚本会在无界面模式下运行。
+
+如果你想运行在有界面模式下，你可以使用 `--headed` 选项。此外，如果你想在脚本运行结束后保持浏览器窗口打开，你可以使用 `--keep-window` 选项。`--keep-window` 选项会自动开启 `--headed` 模式。
+
+headed 模式会消耗更多资源，所以建议你仅在本地使用。
+
+```bash
+# 运行在有界面模式下
+midscene /path/to/yaml --headed
+
+# 运行在有界面模式下，并在结束后保持浏览器窗口打开
+midscene /path/to/yaml --keep-window
+```
+
+### `.yaml` 文件结构
+
+在 `.yaml` 文件中，有两个部分：`target` 和 `tasks`。
+
+`target` 部分定义了任务的基本信息
+
+```yaml
+target:
+  # 访问的 URL，必填。如果提供了 `serve` 参数，则提供相对路径
+  url: <url>
+
+  # 在本地路径下启动一个静态服务，可选
+  serve: <root-directory>
+
+  # 浏览器 UA，可选
+  userAgent: <ua>
+
+  # 浏览器视口宽度，可选，默认 1280
+  viewportWidth: <width>
+
+  # 浏览器视口高度，可选，默认 960
+  viewportHeight: <height>
+
+  # 浏览器设备像素比，可选，默认 1
+  deviceScaleFactor: <scale>
+
+  # JSON 格式的浏览器 Cookie 文件路径，可选
+  cookie: <path-to-cookie-file>
+
+  # 等待网络空闲的策略，可选
+  waitForNetworkIdle:
+    # 等待超时时间，可选，默认 30000
+    timeout: <ms>
+    # 是否在等待超时后继续，可选，默认 true
+    continueOnNetworkIdleError: <boolean>
+
+  # 输出 aiQuery 结果的 JSON 文件路径，可选
+  output: <path-to-output-file>
+```
+
+`tasks` 部分是一个数组，定义了脚本执行的步骤。记得在每个步骤前添加 `-` 符号。
+
+```yaml
+tasks:
+  - name: <name>
+    flow:
+      # 执行一个交互，`ai` 是 `aiAction` 的简写方式
+      - ai: <prompt>
+
+      # 执行一个交互
+      - aiAction: <prompt>
+
+      # 执行一个断言
+      - aiAssert: <prompt>
+
+      # 执行一个查询，返回一个 JSON 对象
+      - aiQuery: <prompt> # 记得在提示词中描述输出结果的格式
+        name: <name> # 查询结果在 JSON 输出中的 key
+        
+      # 等待某个条件满足，并设置超时时间(ms，可选，默认 30000)
+      - aiWaitFor: <prompt>
+        timeout: <ms>
+
+      # 等待一定时间
+      - sleep: <ms>
+
+  - name: <name>
+    flow:
+      # ...
+```
+
+## FAQ
+
+**如何从 Chrome 中获取 JSON 格式的 Cookies？**
+
+你可以使用这个 [Chrome 扩展](https://chromewebstore.google.com/detail/get-cookiestxt-locally/cclelndahbckbenkjhflpdbgdldlbecc) 来导出 Cookies 为 JSON 格式。
+
+## 更多
+
+你可能还想了解 [提示词技巧](./prompting-tips.html)

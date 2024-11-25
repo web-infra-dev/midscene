@@ -107,13 +107,13 @@ export default function OpenInPlayground(props?: { context?: UIContext }) {
         Open in Playground
       </Button>
       <Drawer
-        title={null}
+        title="Playground"
         placement="right"
         onClose={handleClose}
         open={isDrawerVisible}
         width="90%"
         styles={{
-          header: { display: 'none' },
+          header: { padding: '16px' },
         }}
         className="playground-drawer"
       >

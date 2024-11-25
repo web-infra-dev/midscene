@@ -1,5 +1,6 @@
 import assert from 'node:assert';
 import type { WebPage } from '@/common/page';
+import type { PuppeteerWebPage } from '@/puppeteer';
 import {
   type AIElementIdResponse,
   type AIElementResponse,
@@ -85,7 +86,15 @@ export class PageTaskExecutor {
         recorder.push(shot);
         const result = await taskApply.executor(param, context, ...args);
         if (taskApply.type === 'Action') {
-          await sleep(300);
+          await Promise.all([
+            (async () => {
+              await sleep(100);
+              if ((this.page as PuppeteerWebPage).waitUntilNetworkIdle) {
+                await (this.page as PuppeteerWebPage).waitUntilNetworkIdle();
+              }
+            })(),
+            sleep(300),
+          ]);
         }
         if (appendAfterExecution) {
           const shot2 = await this.recordScreenshot('after Action');
@@ -117,6 +126,7 @@ export class PageTaskExecutor {
           param: plan.param,
           executor: async (param, taskContext) => {
             const { task } = taskContext;
+            assert(param?.prompt, 'No prompt to locate');
             let insightDump: InsightDump | undefined;
             const dumpCollector: DumpSubscriber = (dump) => {
               insightDump = dump;
@@ -242,7 +252,7 @@ export class PageTaskExecutor {
               if (element) {
                 await this.page.clearInput(element as ElementInfo);
 
-                if (!taskParam || taskParam.value === '') {
+                if (!taskParam || !taskParam.value) {
                   return;
                 }
 
@@ -258,7 +268,7 @@ export class PageTaskExecutor {
             subType: 'KeyboardPress',
             param: plan.param,
             executor: async (taskParam) => {
-              assert(taskParam.value, 'No key to press');
+              assert(taskParam?.value, 'No key to press');
               await this.page.keyboard.press(taskParam.value as KeyInput);
             },
           };
@@ -323,7 +333,7 @@ export class PageTaskExecutor {
             subType: 'Sleep',
             param: plan.param,
             executor: async (taskParam) => {
-              await sleep(taskParam.timeMs || 3000);
+              await sleep(taskParam?.timeMs || 3000);
             },
           };
         tasks.push(taskActionSleep);
@@ -335,10 +345,10 @@ export class PageTaskExecutor {
             param: plan.param,
             executor: async (taskParam) => {
               assert(
-                taskParam.thought,
+                taskParam?.thought,
                 'An error occurred, but no thought provided',
               );
-              throw new Error(taskParam.thought);
+              throw new Error(taskParam?.thought || 'error without thought');
             },
           };
         tasks.push(taskActionError);
@@ -351,7 +361,7 @@ export class PageTaskExecutor {
       }
     });
 
-    const tasksWithScreenshot = tasks.map(
+    const wrappedTasks = tasks.map(
       (task: ExecutionTaskApply, index: number) => {
         if (task.type === 'Action') {
           return this.prependExecutorWithScreenshot(
@@ -364,7 +374,7 @@ export class PageTaskExecutor {
     );
 
     return {
-      tasks: tasksWithScreenshot,
+      tasks: wrappedTasks,
       followedByPlan,
     };
   }

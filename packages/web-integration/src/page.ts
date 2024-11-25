@@ -40,5 +40,10 @@ export abstract class AbstractPage {
 
   abstract _forceUsePageContext?(): Promise<WebUIContext>;
 
+  abstract waitUntilNetworkIdle?(options?: {
+    idleTime?: number;
+    concurrency?: number;
+  }): Promise<void>;
+
   abstract destroy(): Promise<void>;
 }

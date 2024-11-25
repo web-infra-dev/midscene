@@ -1,0 +1,188 @@
+# Automate with Scripts in YAML
+
+In most cases, developers write automation just to perform some smoke tests, like checking the appearance of some content, or verifying that the key user path is accessible. Maintaining a large test project is unnecessary in this situation.
+
+⁠Midscene offers a way to do this kind of automation with `.yaml` files, which helps you to focus on the script itself instead of the test infrastructure. Any team member can write an automation script without learning any API.
+
+Here is an example of `.yaml` script, you may have already understood how it works by reading its content.
+
+```yaml
+target:
+  url: https://www.bing.com
+
+tasks:
+  - name: search weather
+    flow:
+      - ai: search for 'weather today'
+      - sleep: 3000
+
+  - name: check result
+    flow:
+      - aiAssert: the result shows the weather info
+```
+
+:::info Demo Project
+You can find the demo project with YAML scripts [https://github.com/web-infra-dev/midscene-example/tree/main/yaml-scripts-demo](https://github.com/web-infra-dev/midscene-example/tree/main/yaml-scripts-demo)
+:::
+
+## Preparation
+
+Config the OpenAI API key in the environment variable
+
+```bash
+# replace with your own
+export OPENAI_API_KEY="sk-abcdefghijklmnopqrstuvwxyz"
+```
+
+or you can use a `.env` file to store the configuration
+
+```env filename=.env
+OPENAI_API_KEY="sk-abcdefghijklmnopqrstuvwxyz"
+```
+
+or you may [customize model provider](./model-provider.html)
+
+## Start
+
+Install `@midscene/cli` globally
+
+```bash
+npm i -g @midscene/cli
+# or if you prefer a project-wide installation
+npm i @midscene/cli --save-dev
+```
+
+Write a yaml file to `bing-search.yaml`
+
+```yaml
+target:
+  url: https://www.bing.com
+flow:
+  - ai: search for 'weather today'
+  - sleep: 3000
+  - aiAssert: the result shows the weather info
+```
+
+Run this script
+
+```bash
+midscene ./bing-search.yaml
+# or if you installed midscene inside the project
+npx midscene ./bing-search.yaml
+```
+
+You should see that the output shows the progress of the running process and the report file.
+
+## Usage in-depth
+
+### Run single `.yaml` file
+
+```bash
+midscene /path/to/yaml
+```
+
+### Run all `.yaml` files under a folder
+
+```bash
+midscene /dir/of/yaml/
+
+# glob is also supported
+midscene /dir/**/yaml/
+```
+
+### Debug in headed mode
+
+'headed mode' means the browser will be visible. The default behavior is to run in headless mode.
+
+To turn on headed mode, you can use `--headed` option. Besides, if you want to keep the browser window open after the script finishes, you can use `--keep-window` option. `--keep-window` implies `--headed`.
+
+When running in headed mode, it will consume more resources, so we recommend you to use it locally only when needed.
+
+```bash
+# run in headed mode
+midscene /path/to/yaml --headed
+
+# run in headed mode and keep the browser window open after the script finishes
+midscene /path/to/yaml --keep-window
+```
+
+### `.yaml` file schema
+
+There are two parts in a `.yaml` file, the `target` and the `tasks`.
+
+The `target` part defines the basic of a task
+
+```yaml
+target:
+  # The URL to visit, required. If `serve` is provided, provide the path to the file to visit
+  url: <url>
+
+  # Serve the local path as a static server, optional
+  serve: <root-directory>
+
+  # The user agent to use, optional
+  userAgent: <ua>
+
+  # number, the viewport width, default is 1280, optional
+  viewportWidth: <width>
+
+  # number, the viewport height, default is 960, optional
+  viewportHeight: <height>
+
+  # number, the device scale factor (dpr), default is 1, optional
+  deviceScaleFactor: <scale>
+
+  # string, the path to the json format cookie file, optional
+  cookie: <path-to-cookie-file>
+  
+  # object, the strategy to wait for network idle, optional
+  waitForNetworkIdle:
+    # number, the timeout in milliseconds, 30000 for default, optional
+    timeout: <ms>
+    # boolean, continue on network idle error, true for default
+    continueOnNetworkIdleError: <boolean>
+  
+  # string, the path to save the aiQuery result, optional
+  output: <path-to-output-file>
+```
+
+The `tasks` part is an array indicates the tasks to do. Remember to write a `-` before each item which means an array item.
+
+```yaml
+tasks:
+  - name: <name>
+    flow:
+      # perform an action, this is the shortcut for aiAction
+      - ai: <prompt>
+
+      # perform an action
+      - aiAction: <prompt>
+
+      # perform an assertion
+      - aiAssert: <prompt>
+
+      # perform a query, return a json object
+      - aiQuery: <prompt> # remember to describe the format of the result in the prompt
+        name: <name> # the name of the result, will be used as the key in the output json
+
+      # wait for a condition to be met with a timeout (ms, optional, default 30000)
+      - aiWaitFor: <prompt>
+        timeout: <ms>
+
+      # sleep for a number of milliseconds
+      - sleep: <ms>
+
+  - name: <name>
+    flow:
+      # ...
+```
+
+## FAQ
+
+**How to get cookies in JSON format from Chrome?**
+
+You can use this [chrome extension](https://chromewebstore.google.com/detail/get-cookiestxt-locally/cclelndahbckbenkjhflpdbgdldlbecc) to export cookies in JSON format.
+
+## More
+
+You may also be interested in [Prompting Tips](./prompting-tips.html)

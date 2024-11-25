@@ -129,7 +129,7 @@ Before submitting a pull request, it's important to make sure that the changes h
 ```sh
 pnpm run test
 # Test with AI-related features, it will need to create a .env file
-pnpm run test:all
+pnpm run test:ai
 ```
 
 You can also run the unit tests of a single package:
@@ -137,7 +137,7 @@ You can also run the unit tests of a single package:
 ```sh
 npx nx test @midscene/web
 # Test with AI-related features, it will need to create a .env file
-npx nx test:all @midscene/web
+npx nx test:ai @midscene/web
 ```
 
 ### Run E2E Tests

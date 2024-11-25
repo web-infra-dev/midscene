@@ -21,7 +21,7 @@
     "serve": "http-server ./dist/ -p 3000",
     "new": "modern new",
     "upgrade": "modern upgrade",
-    "e2e": "./scripts/check-html.sh"
+    "e2e": "node ../cli/bin/midscene ./scripts/midscene/"
   },
   "devDependencies": {
     "@ant-design/icons": "5.3.7",
