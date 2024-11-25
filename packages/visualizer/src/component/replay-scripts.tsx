@@ -3,6 +3,7 @@ import './player.less';
 import { mousePointer, paramStr, typeStr } from '@/utils';
 import type {
   ExecutionDump,
+  ExecutionTask,
   ExecutionTaskInsightLocate,
   ExecutionTaskPlanning,
   GroupedActionDump,
@@ -140,7 +141,7 @@ export const allScriptsFromDump = (
 
   const allScripts: AnimationScript[] = [];
   dump.executions.forEach((execution) => {
-    const scripts = generateAnimationScripts(execution, width, height);
+    const scripts = generateAnimationScripts(execution, -1, width, height);
     if (scripts) {
       allScripts.push(...scripts);
     }
@@ -164,11 +165,46 @@ export const allScriptsFromDump = (
 
 export const generateAnimationScripts = (
   execution: ExecutionDump | null,
+  task: ExecutionTask | number,
   imageWidth: number,
   imageHeight: number,
 ): AnimationScript[] | null => {
-  if (!execution) return null;
+  if (!execution || !execution.tasks.length) return null;
   if (imageWidth === 0 || imageHeight === 0) {
+    return null;
+  }
+
+  let tasksIncluded: ExecutionTask[] = [];
+  if (task === -1) {
+    tasksIncluded = execution.tasks;
+  } else {
+    // find all tasks before next planning task
+    const startIndex = execution.tasks.findIndex((t) => t === task);
+
+    if (startIndex === -1) {
+      console.error('task not found, cannot generate animation scripts');
+      return null;
+    }
+
+    if (startIndex === execution.tasks.length - 1) {
+      return null;
+    }
+
+    for (let i = startIndex + 1; i < execution.tasks.length; i++) {
+      if (execution.tasks[i].type === 'Planning') {
+        break;
+      }
+
+      tasksIncluded.push(execution.tasks[i]);
+    }
+  }
+
+  // remove assertion and query tasks
+  tasksIncluded = tasksIncluded.filter(
+    (task) => task.type !== 'Assertion' && task.type !== 'Query',
+  );
+
+  if (tasksIncluded.length === 0) {
     return null;
   }
 
@@ -197,17 +233,14 @@ export const generateAnimationScripts = (
     };
   };
 
-  if (execution.tasks.length === 1 && execution.tasks[0].subType === 'Query') {
-    return [];
-  }
   const scripts: AnimationScript[] = [];
   let insightCameraState: TargetCameraState | undefined = undefined;
   let currentCameraState: TargetCameraState = fullPageCameraState;
   let insightOnTop = false;
-  const taskCount = execution.tasks.length;
+  const taskCount = tasksIncluded.length;
   let initSubTitle = '';
   let errorStateFlag = false;
-  execution.tasks.forEach((task, index) => {
+  tasksIncluded.forEach((task, index) => {
     if (errorStateFlag) return;
 
     if (task.type === 'Planning') {

@@ -55,8 +55,8 @@ export enum AIResponseFormat {
 
 export type AISingleElementResponseById = {
   id: string;
-  reason: string;
-  text: string;
+  reason?: string;
+  text?: string;
 };
 
 export type AISingleElementResponseByPosition = {
@@ -231,6 +231,7 @@ export interface AgentAssertOpt {
 export interface PlanningAction<ParamType = any> {
   thought?: string;
   type:
+    | 'Plan'
     | 'Locate'
     | 'Tap'
     | 'Hover'
@@ -249,6 +250,10 @@ export interface PlanningAIResponse {
   queryLanguage: string;
   actions: PlanningAction[];
   error?: string;
+}
+
+export interface PlanningActionParamPlan {
+  whatToDo: string;
 }
 
 export type PlanningActionParamTap = null;
@@ -334,7 +339,7 @@ export interface ExecutionTaskApply<
     param: TaskParam,
     context: ExecutorContext,
   ) => // biome-ignore lint/suspicious/noConfusingVoidType: <explanation>
-    | Promise<ExecutionTaskReturn<TaskOutput, TaskLog> | undefined | void>
+  | Promise<ExecutionTaskReturn<TaskOutput, TaskLog> | undefined | void>
     | undefined
     | void;
 }
@@ -382,6 +387,7 @@ task - insight-locate
 */
 export interface ExecutionTaskInsightLocateParam {
   prompt: string;
+  id?: string;
 }
 
 export interface ExecutionTaskInsightLocateOutput {

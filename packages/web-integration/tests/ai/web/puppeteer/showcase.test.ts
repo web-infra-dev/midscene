@@ -5,7 +5,7 @@ import { launchPage } from './utils';
 describe(
   'puppeteer integration',
   () => {
-    it('Sauce Demo by Swag Lab', async () => {
+    it.only('Sauce Demo by Swag Lab', async () => {
       const { originPage, reset } = await launchPage(
         'https://www.saucedemo.com/',
       );
@@ -14,7 +14,7 @@ describe(
       });
 
       await mid.aiAction(
-        'type "standard_user" in user name input, type "secret_sauce" in password, click "Login"',
+        'type "standard_user" in user name input, type "secret_sauce" in password, click "Login", sleep 1s, click the shop cart button, sleep 1s, click the "Continue Shopping" button',
       );
 
       await expect(async () => {

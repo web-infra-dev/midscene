@@ -262,7 +262,7 @@ export const useExecutionDump = create<{
         _executionDumpLoadId: ++_executionDumpLoadId,
         activeExecutionAnimation:
           width && height
-            ? generateAnimationScripts(parentExecution, width, height)
+            ? generateAnimationScripts(parentExecution, task, width, height)
             : null,
       });
       console.log('will set task', task);
