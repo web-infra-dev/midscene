@@ -14,7 +14,7 @@ export class Page<
   PageType extends PuppeteerPage | PlaywrightPage,
 > implements AbstractPage
 {
-  private underlyingPage: PageType;
+  protected underlyingPage: PageType;
   private viewportSize?: Size;
   pageType: AgentType;
 

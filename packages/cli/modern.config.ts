@@ -7,9 +7,8 @@ export default defineConfig({
     platform: 'node',
     input: {
       index: 'src/index.ts',
-      help: 'src/help.ts',
     },
-    externals: ['node:buffer'],
+    externals: ['node:buffer', 'puppeteer'],
     target: 'es6',
   },
 });

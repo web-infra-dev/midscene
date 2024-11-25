@@ -1,52 +1,27 @@
-import { randomUUID } from 'node:crypto';
-import { existsSync, unlinkSync } from 'node:fs';
 import { execa } from 'execa';
-import { describe, expect, test, vi } from 'vitest';
+import { describe, test, vi } from 'vitest';
 
 const cliBin = require.resolve('../bin/midscene');
 vi.setConfig({
-  testTimeout: 30 * 1000,
+  testTimeout: 120 * 1000,
 });
-describe.skipIf(process.platform !== 'darwin')('bin', () => {
-  test('error order', async () => {
-    const params = [
-      '--query',
-      '{name: string, status: string}[], service status of github page',
-      '--url',
-      'https://www.baidu.com/',
-    ];
-    expect(async () => {
-      await execa(cliBin, params);
-    }).rejects.toThrowError();
+
+const shouldRunAITest =
+  process.platform !== 'linux' || process.env.AITEST === 'true';
+
+describe.skipIf(!shouldRunAITest)('bin', () => {
+  test('run yaml scripts', async () => {
+    const params = ['./tests/midscene_scripts'];
+    await execa(cliBin, params);
   });
 
-  test('basic action', async () => {
-    const randomFileName = `status-${randomUUID()}.json`;
-    const params = [
-      '--url',
-      'https://www.githubstatus.com/',
-      '--query-output',
-      randomFileName,
-      '--query',
-      '{name: string, status: string}[], service status of github page',
-    ];
-    const { failed } = await execa(cliBin, params);
-    expect(failed).toBe(false);
-
-    expect(existsSync(randomFileName)).toBeTruthy();
-    unlinkSync(randomFileName);
+  test('run yaml scripts with keepWindow', async () => {
+    const params = ['./tests/midscene_scripts', '--keep-window'];
+    await execa(cliBin, params);
   });
 
-  test('serve', async () => {
-    const params = [
-      '--serve',
-      './tests/server_root',
-      '--url',
-      'index.html',
-      '--assert',
-      'the content title is "My App"',
-    ];
-    const { failed } = await execa(cliBin, params);
-    expect(failed).toBe(false);
+  test('run yaml scripts with headed, put options before path', async () => {
+    const params = ['--headed', './tests/midscene_scripts'];
+    await execa(cliBin, params);
   });
 });

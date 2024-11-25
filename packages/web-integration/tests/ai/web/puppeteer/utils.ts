@@ -20,21 +20,11 @@ export async function launchPage(
     deviceScaleFactor: opt?.viewport?.deviceScaleFactor || 1,
   };
   await originPage.setViewport(viewportConfig);
-  await Promise.all([
-    originPage.waitForNavigation({
-      timeout: 40 * 1000,
-      waitUntil: 'networkidle0',
-    }),
-    (async () => {
-      const response = await originPage.goto(url);
-      if (response?.status) {
-        assert(
-          response.status() <= 399,
-          `Page load failed: ${response.status()}`,
-        );
-      }
-    })(),
-  ]);
+  const response = await originPage.goto(url);
+  await originPage.waitForNetworkIdle();
+  if (response?.status) {
+    assert(response.status() <= 399, `Page load failed: ${response.status()}`);
+  }
   const page = new PuppeteerWebPage(originPage);
 
   return {

@@ -1,0 +1,16 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`cli utils > match exact file 1`] = `[]`;
+
+exports[`cli utils > match files 1`] = `
+[
+  "tests/midscene_scripts/local/local.yml",
+]
+`;
+
+exports[`cli utils > match folder 1`] = `
+[
+  "tests/midscene_scripts/local/local.yml",
+  "tests/midscene_scripts/sub/bing.yaml",
+]
+`;
