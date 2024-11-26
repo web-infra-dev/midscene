@@ -338,7 +338,7 @@ function cropFieldInformation(
           height: rect.height,
           // remove 'zoom' if it exists
         },
-        content: tailorContent,
+        ...(tailorContent ? { content: tailorContent } : {}),
       };
     },
   );

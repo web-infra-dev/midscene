@@ -16,12 +16,12 @@ import {
   type InsightAssertionResponse,
   type InsightDump,
   type InsightExtractParam,
+  type PlanningAIResponse,
   type PlanningAction,
   type PlanningActionParamAssert,
   type PlanningActionParamError,
   type PlanningActionParamHover,
   type PlanningActionParamInputOrKeyPress,
-  type PlanningActionParamPlan,
   type PlanningActionParamScroll,
   type PlanningActionParamSleep,
   type PlanningActionParamTap,
@@ -111,11 +111,10 @@ export class PageTaskExecutor {
     plans: PlanningAction[],
     cacheGroup?: ReturnType<TaskCache['getCacheGroupByPrompt']>,
   ) {
-    let followedByPlan: PlanningActionParamPlan | null = null;
     const tasks: ExecutionTaskApply[] = [];
     plans.forEach((plan) => {
       if (plan.type === 'Locate') {
-        if (plan.param.id === null) {
+        if (!plan.param?.id) {
           // console.warn('Locate action with id is null, will be ignored');
           return;
         }
@@ -351,11 +350,6 @@ export class PageTaskExecutor {
             },
           };
         tasks.push(taskActionError);
-      } else if (plan.type === 'Plan') {
-        followedByPlan = {
-          whatToDo: plan.param.whatToDo,
-          whatHaveDone: plan.param.whatHaveDone,
-        };
       } else {
         throw new Error(`Unknown or unsupported task type: ${plan.type}`);
       }
@@ -375,7 +369,6 @@ export class PageTaskExecutor {
 
     return {
       tasks: wrappedTasks,
-      followedByPlan,
     };
   }
 
@@ -403,10 +396,10 @@ export class PageTaskExecutor {
         };
 
         const planCache = cacheGroup.readCache(pageContext, 'plan', userPrompt);
-        let planResult: { plans: PlanningAction[] };
+        let planResult: Awaited<ReturnType<typeof plan>>;
         if (planCache) {
           console.log('planCache', planCache);
-          planResult = planCache;
+          planResult = planCache as any; // TODO: fix this
         } else {
           planResult = await plan(param.userPrompt, {
             context: pageContext,
@@ -415,7 +408,7 @@ export class PageTaskExecutor {
           });
         }
 
-        assert(planResult.plans.length > 0, 'No plans found');
+        assert(planResult.actions.length > 0, 'No plans found');
 
         cacheGroup.saveCache({
           type: 'plan',
@@ -424,7 +417,7 @@ export class PageTaskExecutor {
             size: pageContext.size,
           },
           prompt: userPrompt,
-          response: planResult,
+          response: planResult as any, // TODO: fix this
         });
 
         return {
@@ -462,7 +455,7 @@ export class PageTaskExecutor {
 
       // plan
       await taskExecutor.append(planningTask);
-      const planResult = await taskExecutor.flush();
+      const planResult: PlanningAIResponse = await taskExecutor.flush();
       if (taskExecutor.isInErrorState()) {
         return {
           output: planResult,
@@ -470,11 +463,11 @@ export class PageTaskExecutor {
         };
       }
 
-      const plans = planResult.plans;
+      const plans = planResult.actions;
 
       // check if their is nothing but a locate will null task
       const validPlans = plans.filter((plan: PlanningAction) => {
-        if (plan.type === 'Locate' && plan.param.id === null) {
+        if (plan.type === 'Locate' && !plan.param?.id) {
           return false;
         }
         return plan.type !== 'Plan';
@@ -512,17 +505,11 @@ export class PageTaskExecutor {
           executor: taskExecutor,
         };
       }
-      if (
-        executables.followedByPlan &&
-        (executables.followedByPlan as unknown as PlanningActionParamPlan)
-          .whatToDo
-      ) {
+      if (planResult.furtherPlan?.whatToDo) {
         planningTask = this.planningTaskFromPrompt(
-          (executables.followedByPlan as unknown as PlanningActionParamPlan)
-            .whatToDo,
+          planResult.furtherPlan.whatToDo,
           cacheGroup,
-          (executables.followedByPlan as unknown as PlanningActionParamPlan)
-            .whatHaveDone,
+          planResult.furtherPlan.whatHaveDone,
           originalPrompt,
         );
         replanCount++;

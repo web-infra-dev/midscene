@@ -184,9 +184,9 @@ const Sidebar = (): JSX.Element => {
         </div>
       </div>
       <div className="bottom-controls">
-        <Button onClick={reset} type="text" className="unload_btn">
+        {/* <Button onClick={reset} type="text" className="unload_btn">
           Unload
-        </Button>
+        </Button> */}
       </div>
     </div>
   );

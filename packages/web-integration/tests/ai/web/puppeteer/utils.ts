@@ -11,7 +11,11 @@ export async function launchPage(
 ) {
   const browser = await puppeteer.launch({
     headless: typeof opt?.headless === 'boolean' ? opt.headless : true,
-    args: ['--no-sandbox'],
+    args: [
+      '--no-sandbox',
+      '--disable-features=PasswordLeakDetection',
+      '--disable-save-password-bubble',
+    ],
   });
   const originPage = (await browser.pages())[0];
   const viewportConfig = {

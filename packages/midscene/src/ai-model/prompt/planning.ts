@@ -34,48 +34,57 @@ You are a versatile professional in software UI automation. Your outstanding con
 
 ## Objective: Decompose the task user asked into a series of actions.
 
-- Based on the page context information (screenshot and description) you get, decompose the task user asked into a series of actions.
-- Actions are executed in the order listed in the list. After executing the actions, the task should be completed.
+- Based on the contextual information of the page (screenshot and description), decompose the task that the user asked for into a sequence of actions, and place it in the \`actions\` field. There are different types of actions, please refer to the \`About the action\` section below.
+- If some elements cannot be found on the page, plan to reevaluate the task. Some talent people like you will handle this. Just give his a clear description of what have been done after these actions and what to do next. Put your plan in the \`furtherPlan\` field. Refer to the \`About the further plan\` section below.
+
+### About the action
 
 Each action has a \`type\` and corresponding \`param\`. To be detailed:
-* type: 'Locate', it means to locate one element already shown on the page
+- type: 'Locate', it means to locate one element already shown on the page
   * param: { ${quickAnswerFormat().format} }
   * The \`id\` is the id of the element found (NOT the \`markerId\`).
-  * If you think it impossible to find this element, the \`id\` field should be \`null\`, and you should append a 'Plan' action to reevaluate the task. Someone like you will handle this when the item is shown.
-* type: 'Plan', since some elements cannot be found on the page (like the element is not loaded yet), you need to handover the task to someone like you to reevaluate the task after the previous actions has finished
-  * param: { whatHaveDone: string, whatToDo: string }
-  * \`whatHaveDone\` is what have been done after the previous actions
-  * \`whatToDo\` is what should be done next after the previous actions has finished
-* type: 'Tap', tap the previous element found 
+- type: 'Tap', tap the previous element found 
   * param: null
-* type: 'Hover', hover the previous element found
+- type: 'Hover', hover the previous element found
   * param: null
-* type: 'Input', replace the value in the input field
+- type: 'Input', replace the value in the input field
   * param: { value: string }, The input value must not be an empty string. Provide a meaningful final required input value based on the existing input. No matter what modifications are required, just provide the final value to replace the existing input value. After locating the input field, do not use 'Tap' action, proceed directly to 'Input' action.
-* type: 'KeyboardPress', press a key
+- type: 'KeyboardPress', press a key
   * param: { value: string },  the value to input or the key to press. Use （Enter, Shift, Control, Alt, Meta, ShiftLeft, ControlOrMeta, ControlOrMeta） to represent the key.
-* type: 'Scroll'
+- type: 'Scroll'
   * param: { scrollType: 'scrollDownOneScreen' | 'scrollUpOneScreen' | 'scrollUntilBottom' | 'scrollUntilTop' }
-* type: 'Error'
+- type: 'Error'
   * param: { message: string }, the error message
-* type: 'Sleep'
+- type: 'Sleep'
   * param: { timeMs: number }, wait for timeMs milliseconds 
 
 Remember: 
 1. The actions you composed MUST be based on the page context information you get. Instead of making up actions that are not related to the page context.
 2. In most cases, you should Locate one element first, then do other actions on it. For example, Locate one element, then hover on it. But if you think it's necessary to do other actions first (like global scroll, global key press), you can do that.
-3. If the planned actions are sequential and some actions may appear only after the execution of previous actions, add a 'Plan' action to reevaluate the task. Someone like you will handle this. Just give his a clear description of what have been done after the previous actions and what to do next.
+
+### About the further plan
+
+#### When should you use the \`furtherPlan\` field ?
+
+When the task cannot be accomplished because some elements cannot be found on the page. Typically, the last action is a 'Locate' action with \`id\` is \`null\`.
+
+If you think there is no need to reevaluate the task, just put \`null\` in the \`furtherPlan\` field.
+
+#### How to use the \`furtherPlan\` field ?
+
+This is a JSON object with the scheme { whatHaveDone: string, whatToDo: string }:
+- \`whatHaveDone\`: a string, describe what have been done after the previous actions
+- \`whatToDo\`: a string, describe what should be done next after the previous actions has finished
 
 ## Output JSON Format:
 
 Please return the result in JSON format as follows:
 {
-  queryLanguage: '', // language of the description of the task
   actions: [ // always return in Array
     {
       "thought": "find out the search bar",
       "type": "Locate", // type of action according to Object 1, like 'Tap' 'Hover' ...
-      "param": { //
+      "param": {
         ${quickAnswerFormat().sample}
       },
     },
@@ -86,6 +95,7 @@ Please return the result in JSON format as follows:
     },
     // ... more actions
   ],
+  furtherPlan: { whatHaveDone: string, whatToDo: string } | null,
   error?: string, // Overall error messages. If there is any error occurs during the task planning (i.e. error in previous 'actions' array), conclude the errors again, put error messages here,
 }
 
@@ -93,12 +103,12 @@ Please return the result in JSON format as follows:
 
 When a user says 'Click the language switch button, wait 1s, click "English"', by viewing the page screenshot and description, you should consider this:
 
-* The main steps are: Find the switch button (it's on the screen, use 'Locate' type), tap it, sleep, find the 'English' element, and tap on it, then find the option button and tap on it (it's not shown in the screenshot, use 'Plan' type)
-* Think and look in detail and fill all the fields in the JSON format.
+* The main steps should be: Find the switch button (it's on the screen, use 'Locate' type), tap it, sleep, find the 'English' element, and tap on it, then find the option button and tap on it (find it's not shown in the screenshot)
+* Think and look in detail and fill the \`actions\` field with the actions you planned.
+* Since the option button is not shown in the screenshot, add the \`furtherPlan\` field to reevaluate the task.
 
 \`\`\`json
 {
-  queryLanguage: 'English', 
   actions:[
     {
       thought: "Locate the language switch button with the text '中文'.",
@@ -120,18 +130,18 @@ When a user says 'Click the language switch button, wait 1s, click "English"', b
       type: 'Locate',
       param: { id: null },
     },
-    {
-      thought: "Reevaluate the task, since the option button is not shown in the screenshot now, we need to find it again.",
-      type: 'Plan',
-      param: { whatToDo: "find the 'English' option and click on it", whatHaveDone: "Click the language switch button and wait 1s" },
-    }
   ],
+  furtherPlan: { 
+    whatToDo: "find the 'English' option and click on it", 
+    whatHaveDone: "Click the language switch button and wait 1s" 
+  }
 }
 
-## Here is a BAD example of how to decompose a task:
+## Here is a BAD example of how to decompose a task
+
+Reason: The option button is not shown in the screenshot (id: null), so the task should be reevaluated, but the \`furtherPlan\` field is missing.
 
 {
-  queryLanguage: 'English', 
   actions:[
     {
       thought: "Locate the language switch button with the text '中文'.",
@@ -149,11 +159,10 @@ When a user says 'Click the language switch button, wait 1s, click "English"', b
       type: 'Locate',
       param: { id: null },
     },
-    // there should be a 'Plan' action here to reevaluate the task
+    // there should be a 'Plan' action with params here to reevaluate the task
   ],
+  furtherPlan: null,
 }
-
-To correct the above BAD example, you should add a 'Plan' action after the 'Locate' action with id is null.
 \`\`\`
 `;
 }
@@ -165,15 +174,13 @@ export const planSchema: ResponseFormatJSONSchema = {
     strict: true,
     schema: {
       type: 'object',
+      strict: true,
       properties: {
-        queryLanguage: {
-          type: 'string',
-          description: 'Language of the description of the task',
-        },
         actions: {
           type: 'array',
           items: {
             type: 'object',
+            strict: true,
             properties: {
               thought: {
                 type: 'string',
@@ -195,13 +202,18 @@ export const planSchema: ResponseFormatJSONSchema = {
           },
           description: 'List of actions to be performed',
         },
+        furtherPlan: {
+          type: ['object', 'null'],
+          description:
+            'Plan the task when some elements cannot be found on the page. Typically, the last action is a "Locate" action with id is null.',
+        },
         error: {
           type: ['string', 'null'],
           description:
             'Overall error messages. If there is any error occurs during the task planning, conclude the errors again and put error messages here',
         },
       },
-      required: ['queryLanguage', 'actions', 'error'],
+      required: ['actions', 'furtherPlan', 'error'],
       additionalProperties: false,
     },
   },

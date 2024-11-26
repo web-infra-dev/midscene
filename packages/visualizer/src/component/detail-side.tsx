@@ -129,11 +129,6 @@ const DetailSide = (): JSX.Element => {
       Boolean((value as any).center) &&
       Boolean((value as any).rect);
 
-    const isSectionItem = (value: unknown): value is UISection =>
-      Boolean(value) &&
-      typeof (value as any)?.sectionCharacteristics !== 'undefined' &&
-      typeof (value as any)?.rect !== 'undefined';
-
     const elementEl = (value: BaseElement) => (
       <span>
         <Tag bordered={false} color="orange" className="element-button">
@@ -341,7 +336,7 @@ const DetailSide = (): JSX.Element => {
     );
   }
 
-  const plans = (task as ExecutionTaskPlanning)?.output?.plans;
+  const plans = (task as ExecutionTaskPlanning)?.output?.actions;
   let timelineData: TimelineItemProps[] = [];
   if (plans) {
     timelineData = timelineData.concat(

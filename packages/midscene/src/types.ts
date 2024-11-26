@@ -249,15 +249,16 @@ export interface PlanningAction<ParamType = any> {
 }
 
 export interface PlanningAIResponse {
-  queryLanguage: string;
   actions: PlanningAction[];
+  furtherPlan: PlanningFurtherPlan | null;
   error?: string;
 }
 
-export interface PlanningActionParamPlan {
+export interface PlanningFurtherPlan {
   whatToDo: string;
-  whatHaveDone?: string;
+  whatHaveDone: string;
 }
+export type PlanningActionParamPlan = PlanningFurtherPlan;
 
 export type PlanningActionParamTap = null;
 export type PlanningActionParamHover = null;
@@ -472,7 +473,7 @@ export type ExecutionTaskPlanningApply = ExecutionTaskApply<
     whatHaveDone?: string;
     originalPrompt?: string;
   },
-  { plans: PlanningAction[] }
+  PlanningAIResponse
 >;
 
 export type ExecutionTaskPlanning = ExecutionTask<ExecutionTaskPlanningApply>;

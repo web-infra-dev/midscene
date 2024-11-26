@@ -115,17 +115,16 @@ export async function AiInspectElement<
         {
           type: 'text',
           text: `
-    pageDescription: \n
-    ${description}
+pageDescription: \n
+${description}
 
-    Here is the item user want to find. Just go ahead:
-    =====================================
-    ${JSON.stringify({
-      description: targetElementDescription,
-      multi: multiDescription(multi),
-    })}
-    =====================================
-  `,
+Here is the item user want to find. Just go ahead:
+=====================================
+${JSON.stringify({
+  description: targetElementDescription,
+  multi: multiDescription(multi),
+})}
+=====================================`,
         },
       ]),
     },
@@ -197,7 +196,7 @@ ${
   typeof dataQuery === 'object'
     ? `return in key-value style object, keys are ${Object.keys(dataQuery).join(',')}`
     : ''
-};
+}
 ${typeof dataQuery === 'string' ? dataQuery : JSON.stringify(dataQuery, null, 2)}
 =====================================
 DATA_DEMAND ends.

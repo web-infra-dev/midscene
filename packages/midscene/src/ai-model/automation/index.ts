@@ -1,5 +1,5 @@
 import assert from 'node:assert';
-import type { PlanningAIResponse, PlanningAction, UIContext } from '@/types';
+import type { PlanningAIResponse, UIContext } from '@/types';
 import {
   AIActionType,
   type AIArgs,
@@ -18,11 +18,9 @@ export async function plan(
     callAI?: typeof callAiFn<PlanningAIResponse>;
   },
   useModel?: 'coze' | 'openAI',
-): Promise<{
-  plans: PlanningAction[];
-}> {
+): Promise<PlanningAIResponse> {
   const { callAI, context } = opts || {};
-  const { screenshotBase64 } = context;
+  const { screenshotBase64, screenshotBase64WithElementMarker } = context;
   const { description: pageDescription, elementByPosition } =
     await describeUserPage(context);
   let planFromAI: PlanningAIResponse | undefined;
@@ -32,14 +30,14 @@ export async function plan(
   let taskBackgroundContext = '';
   if (opts.originalPrompt && opts.whatHaveDone) {
     taskBackgroundContext = `For your information, this is a task that some important person handed to you. Here is the original task description and what have been done after the previous actions:
-    =====================================
-    Original task description:
-    ${opts.originalPrompt}
-    =====================================
-    What have been done:
-    ${opts.whatHaveDone}
-    =====================================
-    `;
+=====================================
+Original task description:
+${opts.originalPrompt}
+=====================================
+What have been done:
+${opts.whatHaveDone}
+=====================================
+`;
   }
   const msgs: AIArgs = [
     { role: 'system', content: systemPrompt },
@@ -49,23 +47,23 @@ export async function plan(
         {
           type: 'image_url',
           image_url: {
-            url: screenshotBase64,
+            url: screenshotBase64WithElementMarker || screenshotBase64,
             detail: 'high',
           },
         },
         {
           type: 'text',
           text: `
-            pageDescription:\n 
-            ${pageDescription}
-            \n
-            Here is what you need to do now:
-            =====================================
-            ${userPrompt}
-            =====================================
+pageDescription:\n 
+${pageDescription}
+\n
+Here is what you need to do now:
+=====================================
+${userPrompt}
+=====================================
 
-            ${taskBackgroundContext}
-          `.trim(),
+${taskBackgroundContext}
+`.trim(),
         },
       ]),
     },
@@ -79,8 +77,7 @@ export async function plan(
   });
 
   const actions = planFromAI?.actions || [];
-
-  assert(planFromAI, "can't get planFromAI");
+  assert(planFromAI, "can't get plans from AI");
   assert(
     actions.length > 0,
     `no actions in ai plan with context: ${planFromAI}`,
@@ -105,5 +102,5 @@ export async function plan(
     throw new Error(planFromAI.error);
   }
 
-  return { plans: actions };
+  return planFromAI;
 }
