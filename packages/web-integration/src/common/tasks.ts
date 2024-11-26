@@ -394,7 +394,7 @@ export class PageTaskExecutor {
       },
       executor: async (param) => {
         const shotTime = Date.now();
-        const pageContext = await this.insight.contextRetrieverFn();
+        const pageContext = await this.insight.contextRetrieverFn('locate');
         const recordItem: ExecutionRecorderItem = {
           type: 'screenshot',
           ts: shotTime,
