@@ -20,15 +20,19 @@ export class Executor {
   // status of executor
   status: 'init' | 'pending' | 'running' | 'completed' | 'error';
 
+  onFlushUpdate?: () => void;
+
   constructor(
     name: string,
     description?: string,
     tasks?: ExecutionTaskApply[],
+    onFlushUpdate?: () => void,
   ) {
     this.status = tasks && tasks.length > 0 ? 'pending' : 'init';
     this.name = name;
     this.description = description;
     this.tasks = (tasks || []).map((item) => this.markTaskAsPending(item));
+    this.onFlushUpdate = onFlushUpdate;
   }
 
   private markTaskAsPending(task: ExecutionTaskApply): ExecutionTask {
@@ -80,6 +84,13 @@ export class Executor {
 
     while (taskIndex < this.tasks.length) {
       const task = this.tasks[taskIndex];
+      try {
+        if (this.onFlushUpdate) {
+          this.onFlushUpdate();
+        }
+      } catch (e) {
+        // console.error('error in onFlushUpdate', e);
+      }
       assert(
         task.status === 'pending',
         `task status should be pending, but got: ${task.status}`,
@@ -150,6 +161,9 @@ export class Executor {
       this.status = 'completed';
     } else {
       this.status = 'error';
+    }
+    if (this.onFlushUpdate) {
+      await this.onFlushUpdate();
     }
     if (this.tasks.length) {
       // return the last output

@@ -20,8 +20,8 @@ modelList.forEach((model) => {
         ];
 
         for (const instruction of instructions) {
-          const { plans } = await plan(instruction, { context }, model);
-          const res = makePlanResultStable(plans);
+          const { actions } = await plan(instruction, { context }, model);
+          const res = makePlanResultStable(actions);
           expect(res).toMatchSnapshot();
         }
       }),
@@ -39,8 +39,8 @@ modelList.forEach((model) => {
         ];
 
         for (const instruction of instructions) {
-          const { plans } = await plan(instruction, { context }, model);
-          const res = makePlanResultStable(plans);
+          const { actions } = await plan(instruction, { context }, model);
+          const res = makePlanResultStable(actions);
           expect(res).toMatchSnapshot();
         }
       }),

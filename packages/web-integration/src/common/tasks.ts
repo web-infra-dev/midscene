@@ -434,9 +434,7 @@ export class PageTaskExecutor {
     return task;
   }
 
-  async action(
-    userPrompt: string /* , actionInfo?: { actionType?: EventActions[number]['action'] } */,
-  ): Promise<ExecutionResult> {
+  async action(userPrompt: string): Promise<ExecutionResult> {
     const taskExecutor = new Executor(userPrompt);
 
     const cacheGroup = this.taskCache.getCacheGroupByPrompt(userPrompt);
