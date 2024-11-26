@@ -1,6 +1,6 @@
 import { readFileSync, unlinkSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
-import { MIDSCENE_MODEL_NAME, getAIConfig } from '@/ai-model/openai';
+import { MIDSCENE_MODEL_NAME, getAIConfig } from '@/env';
 import { type getPageTestData, writeFileSyncWithDir } from './util';
 
 export class TestResultAnalyzer {
