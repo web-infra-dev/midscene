@@ -9,7 +9,7 @@ import {
   MIDSCENE_DEBUG_MODE,
   MIDSCENE_OPENAI_INIT_CONFIG_JSON,
   getAIConfig,
-} from './ai-model/openai';
+} from './env';
 import type { Rect, ReportDumpWithAttributes } from './types';
 
 let logDir = join(process.cwd(), './midscene_run/');

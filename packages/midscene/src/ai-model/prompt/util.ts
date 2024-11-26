@@ -1,4 +1,5 @@
 import assert from 'node:assert';
+import { MATCH_BY_POSITION, getAIConfig } from '@/env';
 import { imageInfoOfBase64 } from '@/image';
 import type {
   BaseElement,
@@ -9,7 +10,6 @@ import type {
   UISection,
 } from '@/types';
 import type { ResponseFormatJSONSchema } from 'openai/resources';
-import { MATCH_BY_POSITION, getAIConfig } from '../openai';
 
 const characteristic =
   'You are a versatile professional in software UI design and testing. Your outstanding contributions will impact the user experience of billions of users.';

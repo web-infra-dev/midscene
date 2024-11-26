@@ -1,3 +1,4 @@
+import { MIDSCENE_MODEL_TEXT_ONLY, getAIConfig } from '@/env';
 import type {
   ChatCompletionContentPart,
   ChatCompletionSystemMessageParam,
@@ -12,12 +13,7 @@ import {
   preferCozeModel,
   transformOpenAiArgsToCoze,
 } from './coze';
-import {
-  MIDSCENE_MODEL_TEXT_ONLY,
-  callToGetJSONObject,
-  getAIConfig,
-  preferOpenAIModel,
-} from './openai';
+import { callToGetJSONObject, preferOpenAIModel } from './openai';
 
 export type AIArgs = [
   ChatCompletionSystemMessageParam,
