@@ -357,8 +357,26 @@ export function getNodeAttributes(
   return Object.fromEntries(attributesList);
 }
 
+(window as any).midsceneNodeHashCacheList =
+  (window as any).midsceneNodeHashCacheList || [];
+let nodeHashCacheList: { node: Node; id: string }[] = (window as any)
+  .midsceneNodeHashCacheList;
 const hashMap: Record<string, string> = {}; // id - combined
-export function midsceneGenerateHash(content: string, rect: any): string {
+
+// for each run, reset the cache list
+export function resetNodeHashCacheList() {
+  nodeHashCacheList = (window as any).midsceneNodeHashCacheList || [];
+  (window as any).midsceneNodeHashCacheList = [];
+}
+
+export function midsceneGenerateHash(
+  node: Node | null,
+  content: string,
+  rect: any,
+): string {
+  if (node && nodeHashCacheList.find((item) => item.node === node)) {
+    return nodeHashCacheList.find((item) => item.node === node)?.id || '';
+  }
   // Combine the input into a string
   const combined = JSON.stringify({
     content,
@@ -381,6 +399,10 @@ export function midsceneGenerateHash(content: string, rect: any): string {
     hashMap[hashInDigits] = combined;
     break;
   }
+  if (node) {
+    (window as any).midsceneNodeHashCacheList.push({ node, id: hashInDigits });
+  }
+
   // Returns the first 10 characters as a short hash
   return hashInDigits;
 }

@@ -141,7 +141,7 @@ export function extractTextWithPosition(initNode: Document): ElementInfo[] {
   function collectElementInfo(node: Node) {
     const attributes = getNodeAttributes(node);
     const rect = getRect(attributes);
-    const nodeHashId = midsceneGenerateHash(attributes.placeholder, rect);
+    const nodeHashId = midsceneGenerateHash(null, attributes.placeholder, rect);
     const text = validTextNodeContent(node);
 
     let nodeType;

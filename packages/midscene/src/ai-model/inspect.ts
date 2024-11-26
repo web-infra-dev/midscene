@@ -100,6 +100,10 @@ export async function AiInspectElement<
     }
   }
 
+  assert(
+    targetElementDescription,
+    'cannot find the target by id, and prompt is also missing',
+  );
   const systemPrompt = systemPromptToFindElement();
   const msgs: AIArgs = [
     { role: 'system', content: systemPrompt },

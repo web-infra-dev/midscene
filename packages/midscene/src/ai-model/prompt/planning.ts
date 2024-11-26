@@ -73,8 +73,8 @@ If you think there is no need to reevaluate the task, just put \`null\` in the \
 #### How to use the \`furtherPlan\` field ?
 
 This is a JSON object with the scheme { whatHaveDone: string, whatToDo: string }:
-- \`whatHaveDone\`: a string, describe what have been done after the previous actions
-- \`whatToDo\`: a string, describe what should be done next after the previous actions has finished
+- \`whatHaveDone\`: a string, describe what have been done after the previous actions.
+- \`whatToDo\`: a string, describe what should be done next after the previous actions has finished. It should be a concise and clear description of the actions to be performed. Make sure you don't lose any necessary steps user asked.
 
 ## Output JSON Format:
 

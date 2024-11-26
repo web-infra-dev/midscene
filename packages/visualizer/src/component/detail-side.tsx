@@ -365,6 +365,21 @@ const DetailSide = (): JSX.Element => {
         };
       }),
     );
+    if ((task as ExecutionTaskPlanning).output?.furtherPlan) {
+      timelineData.push({
+        color: '#06B1AB',
+        children: (
+          <>
+            <p>
+              <b>Further Plan</b>
+            </p>
+            <p>
+              {(task as ExecutionTaskPlanning).output?.furtherPlan?.whatToDo}
+            </p>
+          </>
+        ),
+      });
+    }
   }
 
   return (

@@ -12,13 +12,13 @@ import {
   isTextElement,
 } from './dom-util';
 import {
-  getDebugMode,
   getDocument,
   getNodeAttributes,
   getPseudoElementContent,
   getRect,
   logger,
   midsceneGenerateHash,
+  resetNodeHashCacheList,
   setDataForNode,
   setDebugMode,
   setFrameId,
@@ -51,7 +51,7 @@ function collectElementInfo(
 
   if (isFormElement(node)) {
     const attributes = getNodeAttributes(node);
-    const nodeHashId = midsceneGenerateHash(attributes.placeholder, rect);
+    const nodeHashId = midsceneGenerateHash(node, attributes.placeholder, rect);
     const selector = setDataForNode(node, nodeHashId);
     let valueContent =
       attributes.value || attributes.placeholder || node.textContent || '';
@@ -103,7 +103,7 @@ function collectElementInfo(
     const attributes = getNodeAttributes(node);
     const pseudo = getPseudoElementContent(node);
     const content = node.innerText || pseudo.before || pseudo.after || '';
-    const nodeHashId = midsceneGenerateHash(content, rect);
+    const nodeHashId = midsceneGenerateHash(node, content, rect);
     const selector = setDataForNode(node, nodeHashId);
     const elementInfo: WebElementInfo = {
       id: nodeHashId,
@@ -131,7 +131,7 @@ function collectElementInfo(
 
   if (isImgElement(node)) {
     const attributes = getNodeAttributes(node);
-    const nodeHashId = midsceneGenerateHash('', rect);
+    const nodeHashId = midsceneGenerateHash(node, '', rect);
     const selector = setDataForNode(node, nodeHashId);
     const elementInfo: WebElementInfo = {
       id: nodeHashId,
@@ -172,7 +172,7 @@ function collectElementInfo(
     if (!text.trim() && attributeKeys.length === 0) {
       return null;
     }
-    const nodeHashId = midsceneGenerateHash(text, rect);
+    const nodeHashId = midsceneGenerateHash(node, text, rect);
     const selector = setDataForNode(node, nodeHashId, true);
     const elementInfo: WebElementInfo = {
       id: nodeHashId,
@@ -202,7 +202,7 @@ function collectElementInfo(
   // else, consider as a container
   if (isContainerElement(node)) {
     const attributes = getNodeAttributes(node);
-    const nodeHashId = midsceneGenerateHash('', rect);
+    const nodeHashId = midsceneGenerateHash(node, '', rect);
     const selector = setDataForNode(node, nodeHashId);
     const elementInfo: WebElementInfo = {
       id: nodeHashId,
@@ -237,7 +237,9 @@ export function extractTextWithPosition(
 ): WebElementInfo[] {
   setDebugMode(debugMode);
   setFrameId(currentFrame.id);
+  resetNodeHashCacheList();
   const elementInfoArray: WebElementInfo[] = [];
+
   function dfs(
     node: Node,
     nodePath: string,
