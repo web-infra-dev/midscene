@@ -254,6 +254,7 @@ export interface PlanningAIResponse {
 
 export interface PlanningActionParamPlan {
   whatToDo: string;
+  whatHaveDone?: string;
 }
 
 export type PlanningActionParamTap = null;
@@ -339,7 +340,7 @@ export interface ExecutionTaskApply<
     param: TaskParam,
     context: ExecutorContext,
   ) => // biome-ignore lint/suspicious/noConfusingVoidType: <explanation>
-  | Promise<ExecutionTaskReturn<TaskOutput, TaskLog> | undefined | void>
+    | Promise<ExecutionTaskReturn<TaskOutput, TaskLog> | undefined | void>
     | undefined
     | void;
 }
@@ -464,7 +465,11 @@ task - planning
 
 export type ExecutionTaskPlanningApply = ExecutionTaskApply<
   'Planning',
-  { userPrompt: string },
+  {
+    userPrompt: string;
+    whatHaveDone?: string;
+    originalPrompt?: string;
+  },
   { plans: PlanningAction[] }
 >;
 

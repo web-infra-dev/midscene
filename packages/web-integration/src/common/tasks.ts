@@ -21,6 +21,7 @@ import {
   type PlanningActionParamError,
   type PlanningActionParamHover,
   type PlanningActionParamInputOrKeyPress,
+  type PlanningActionParamPlan,
   type PlanningActionParamScroll,
   type PlanningActionParamSleep,
   type PlanningActionParamTap,
@@ -110,9 +111,7 @@ export class PageTaskExecutor {
     plans: PlanningAction[],
     cacheGroup?: ReturnType<TaskCache['getCacheGroupByPrompt']>,
   ) {
-    let followedByPlan: {
-      whatToDo: string;
-    } | null = null;
+    let followedByPlan: PlanningActionParamPlan | null = null;
     const tasks: ExecutionTaskApply[] = [];
     plans.forEach((plan) => {
       if (plan.type === 'Locate') {
@@ -355,6 +354,7 @@ export class PageTaskExecutor {
       } else if (plan.type === 'Plan') {
         followedByPlan = {
           whatToDo: plan.param.whatToDo,
+          whatHaveDone: plan.param.whatHaveDone,
         };
       } else {
         throw new Error(`Unknown or unsupported task type: ${plan.type}`);
@@ -382,13 +382,17 @@ export class PageTaskExecutor {
   private planningTaskFromPrompt(
     userPrompt: string,
     cacheGroup: ReturnType<TaskCache['getCacheGroupByPrompt']>,
+    whatHaveDone?: string,
+    originalPrompt?: string,
   ) {
     const task: ExecutionTaskPlanningApply = {
       type: 'Planning',
       param: {
         userPrompt,
+        whatHaveDone,
+        originalPrompt,
       },
-      executor: async (param, context) => {
+      executor: async (param) => {
         const shotTime = Date.now();
         const pageContext = await this.insight.contextRetrieverFn();
         const recordItem: ExecutionRecorderItem = {
@@ -406,6 +410,8 @@ export class PageTaskExecutor {
         } else {
           planResult = await plan(param.userPrompt, {
             context: pageContext,
+            whatHaveDone: param.whatHaveDone,
+            originalPrompt: param.originalPrompt,
           });
         }
 
@@ -441,8 +447,9 @@ export class PageTaskExecutor {
     const taskExecutor = new Executor(userPrompt);
 
     const cacheGroup = this.taskCache.getCacheGroupByPrompt(userPrompt);
+    const originalPrompt = userPrompt;
     let planningTask: ExecutionTaskPlanningApply | null =
-      this.planningTaskFromPrompt(userPrompt, cacheGroup);
+      this.planningTaskFromPrompt(originalPrompt, cacheGroup);
     let result: any;
     let replanCount = 0;
     while (planningTask) {
@@ -485,8 +492,18 @@ export class PageTaskExecutor {
         );
       }
 
-      const executables = await this.convertPlanToExecutable(plans, cacheGroup);
-      taskExecutor.append(executables.tasks);
+      let executables: Awaited<ReturnType<typeof this.convertPlanToExecutable>>;
+      try {
+        executables = await this.convertPlanToExecutable(plans, cacheGroup);
+        taskExecutor.append(executables.tasks);
+      } catch (error) {
+        return this.appendErrorPlan(
+          taskExecutor,
+          `Error converting plans to executable tasks: ${error}, plans: ${JSON.stringify(
+            plans,
+          )}`,
+        );
+      }
 
       result = await taskExecutor.flush();
       if (taskExecutor.isInErrorState()) {
@@ -495,10 +512,18 @@ export class PageTaskExecutor {
           executor: taskExecutor,
         };
       }
-      if ((executables.followedByPlan as any)?.whatToDo) {
+      if (
+        executables.followedByPlan &&
+        (executables.followedByPlan as unknown as PlanningActionParamPlan)
+          .whatToDo
+      ) {
         planningTask = this.planningTaskFromPrompt(
-          (executables.followedByPlan as any).whatToDo,
+          (executables.followedByPlan as unknown as PlanningActionParamPlan)
+            .whatToDo,
           cacheGroup,
+          (executables.followedByPlan as unknown as PlanningActionParamPlan)
+            .whatHaveDone,
+          originalPrompt,
         );
         replanCount++;
       } else {

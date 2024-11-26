@@ -12,6 +12,8 @@ import { describeUserPage } from '../prompt/util';
 export async function plan(
   userPrompt: string,
   opts: {
+    whatHaveDone?: string;
+    originalPrompt?: string;
     context: UIContext;
     callAI?: typeof callAiFn<PlanningAIResponse>;
   },
@@ -27,6 +29,18 @@ export async function plan(
 
   const systemPrompt = systemPromptToTaskPlanning();
 
+  let taskBackgroundContext = '';
+  if (opts.originalPrompt && opts.whatHaveDone) {
+    taskBackgroundContext = `For your information, this is a task that some important person handed to you. Here is the original task description and what have been done after the previous actions:
+    =====================================
+    Original task description:
+    ${opts.originalPrompt}
+    =====================================
+    What have been done:
+    ${opts.whatHaveDone}
+    =====================================
+    `;
+  }
   const msgs: AIArgs = [
     { role: 'system', content: systemPrompt },
     {
@@ -45,11 +59,13 @@ export async function plan(
             pageDescription:\n 
             ${pageDescription}
             \n
-            Here is the description of the task. Just go ahead:
+            Here is what you need to do now:
             =====================================
             ${userPrompt}
             =====================================
-          `,
+
+            ${taskBackgroundContext}
+          `.trim(),
         },
       ]),
     },

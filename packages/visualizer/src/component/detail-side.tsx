@@ -204,15 +204,32 @@ const DetailSide = (): JSX.Element => {
 
   let taskParam: JSX.Element | null = null;
   if (task?.type === 'Planning') {
-    taskParam = MetaKV({
-      data: [
-        { key: 'type', content: (task && typeStr(task)) || '' },
-        {
-          key: 'param',
-          content: paramStr(task) || '',
-        },
-      ],
-    });
+    const planningTask = task as ExecutionTaskPlanning;
+    if (planningTask.param?.whatHaveDone) {
+      taskParam = MetaKV({
+        data: [
+          { key: 'type', content: (task && typeStr(task)) || '' },
+          {
+            key: 'whatHaveDone',
+            content: planningTask.param.whatHaveDone,
+          },
+          {
+            key: 'whatToDo',
+            content: planningTask.param.userPrompt,
+          },
+        ],
+      });
+    } else {
+      taskParam = MetaKV({
+        data: [
+          { key: 'type', content: (task && typeStr(task)) || '' },
+          {
+            key: 'userPrompt',
+            content: paramStr(task) || '',
+          },
+        ],
+      });
+    }
   } else if (task?.type === 'Insight') {
     const quickAnswer = (task as ExecutionTaskInsightLocate)?.quickAnswer;
     taskParam = MetaKV({

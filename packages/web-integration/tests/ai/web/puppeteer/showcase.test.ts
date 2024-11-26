@@ -5,7 +5,7 @@ import { launchPage } from './utils';
 describe(
   'puppeteer integration',
   () => {
-    it.only('Sauce Demo by Swag Lab', async () => {
+    it('Sauce Demo by Swag Lab', async () => {
       const { originPage, reset } = await launchPage(
         'https://www.saucedemo.com/',
       );
@@ -14,7 +14,7 @@ describe(
       });
 
       await mid.aiAction(
-        'type "standard_user" in user name input, type "secret_sauce" in password, click "Login", sleep 1s, click the shop cart button, sleep 1s, click the "Continue Shopping" button',
+        'type "standard_user" in user name input, type "secret_sauce" in password, click "Login", sleep 1s, click the shop cart button, sleep 3s, click the "Continue Shopping" button',
       );
 
       await expect(async () => {
@@ -78,10 +78,10 @@ describe(
       const { originPage, reset } = await launchPage('https://www.baidu.com/');
       const mid = new PuppeteerAgent(originPage);
       await mid.aiAction(
-        'type "Shanghai 天气" in search box, hit Enter, wait 2s`',
+        'type "AI 101" in search box, hit Enter, wait 2s, click the second result, wait 4s',
       );
 
-      await mid.aiWaitFor('there is weather info in Shanghai');
+      await mid.aiWaitFor('there are some search results');
 
       await reset();
     });

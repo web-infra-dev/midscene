@@ -330,7 +330,8 @@ export const generateAnimationScripts = (
         type: 'img',
         img: task.recorder?.[0]?.screenshot,
         duration: actionDuration,
-        camera: insightCameraState,
+        camera:
+          task.subType === 'Sleep' ? fullPageCameraState : insightCameraState,
         title,
         subTitle,
       });
