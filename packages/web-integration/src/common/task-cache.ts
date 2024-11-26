@@ -2,7 +2,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import {
   type AIElementIdResponse,
-  type PlanningAction,
+  type PlanningAIResponse,
   getAIConfig,
 } from '@midscene/core';
 import {
@@ -24,7 +24,7 @@ export type PlanTask = {
       height: number;
     };
   };
-  response: { plans: PlanningAction[] };
+  response: PlanningAIResponse;
 };
 
 export type LocateTask = {

@@ -399,7 +399,7 @@ export class PageTaskExecutor {
         let planResult: Awaited<ReturnType<typeof plan>>;
         if (planCache) {
           console.log('planCache', planCache);
-          planResult = planCache as any; // TODO: fix this
+          planResult = planCache;
         } else {
           planResult = await plan(param.userPrompt, {
             context: pageContext,
@@ -417,7 +417,7 @@ export class PageTaskExecutor {
             size: pageContext.size,
           },
           prompt: userPrompt,
-          response: planResult as any, // TODO: fix this
+          response: planResult,
         });
 
         return {
