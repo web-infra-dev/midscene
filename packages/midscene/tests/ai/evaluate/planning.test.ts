@@ -24,13 +24,12 @@ modelList.forEach((model) => {
       expect(actions.length).toBe(4);
       expect(actions[0].thought).toBeTruthy();
       expect(actions[0].type).toBe('Locate');
-      expect(actions[0].quickAnswer).toBeTruthy();
+      expect(actions[0].param?.id).toBeTruthy();
       expect(actions[1].type).toBe('Input');
       expect(actions[2].type).toBe('Sleep');
       expect(actions[2].param).toMatchSnapshot();
       expect(actions[3].type).toBe('KeyboardPress');
       expect(actions[3].param).toMatchSnapshot();
-      expect(actions[3].quickAnswer).toBeFalsy();
     });
 
     it('instructions of to-do mvc', async () => {
@@ -47,7 +46,7 @@ modelList.forEach((model) => {
       for (const instruction of instructions) {
         const { actions } = await plan(instruction, { context }, model);
         expect(actions).toBeTruthy();
-        expect(actions[0].quickAnswer).toBeTruthy();
+        expect(actions[0].param?.id).toBeTruthy();
       }
     });
   });
