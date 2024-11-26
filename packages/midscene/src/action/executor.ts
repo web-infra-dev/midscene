@@ -1,5 +1,5 @@
 import assert from 'node:assert';
-import { MIDSCENE_MODEL_NAME, getAIConfig } from '@/ai-model/openai';
+import { MIDSCENE_MODEL_NAME, getAIConfig } from '@/env';
 import type {
   ExecutionDump,
   ExecutionTask,

@@ -1,5 +1,5 @@
+import { MATCH_BY_POSITION, getAIConfig } from '@/env';
 import type { ResponseFormatJSONSchema } from 'openai/resources';
-import { MATCH_BY_POSITION, getAIConfig } from '../openai';
 
 export function systemPromptToFindElement() {
   if (getAIConfig(MATCH_BY_POSITION)) {

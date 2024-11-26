@@ -8,6 +8,7 @@ export default defineConfig({
     format: 'cjs',
     input: {
       index: 'src/index.ts',
+      env: 'src/env.ts',
       utils: 'src/utils.ts',
       'ai-model': 'src/ai-model/index.ts',
     },

@@ -1,5 +1,5 @@
+import { MATCH_BY_POSITION, getAIConfig } from '@/env';
 import type { ResponseFormatJSONSchema } from 'openai/resources';
-import { MATCH_BY_POSITION, getAIConfig } from '../openai';
 
 const quickAnswerFormat = () => {
   const matchByPosition = getAIConfig(MATCH_BY_POSITION);
