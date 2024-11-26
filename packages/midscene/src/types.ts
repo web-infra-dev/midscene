@@ -152,6 +152,8 @@ export interface BasicSectionQuery {
   description?: string;
 }
 
+export type InsightAction = 'locate' | 'extract' | 'assert';
+
 export type InsightExtractParam = string | Record<string, string>;
 
 export interface InsightTaskInfo {
@@ -340,7 +342,7 @@ export interface ExecutionTaskApply<
     param: TaskParam,
     context: ExecutorContext,
   ) => // biome-ignore lint/suspicious/noConfusingVoidType: <explanation>
-    | Promise<ExecutionTaskReturn<TaskOutput, TaskLog> | undefined | void>
+  | Promise<ExecutionTaskReturn<TaskOutput, TaskLog> | undefined | void>
     | undefined
     | void;
 }

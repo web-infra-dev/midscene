@@ -10,6 +10,7 @@ import type {
   AISingleElementResponse,
   BaseElement,
   DumpSubscriber,
+  InsightAction,
   InsightAssertionResponse,
   InsightExtractParam,
   InsightOptions,
@@ -53,7 +54,9 @@ export default class Insight<
   ElementType extends BaseElement = BaseElement,
   ContextType extends UIContext<ElementType> = UIContext<ElementType>,
 > {
-  contextRetrieverFn: () => Promise<ContextType> | ContextType;
+  contextRetrieverFn: (
+    action: InsightAction,
+  ) => Promise<ContextType> | ContextType;
 
   aiVendorFn: (...args: Array<any>) => Promise<any> = callAiFn;
 
@@ -64,7 +67,9 @@ export default class Insight<
   taskInfo?: Omit<InsightTaskInfo, 'durationMs'>;
 
   constructor(
-    context: ContextType | (() => Promise<ContextType> | ContextType),
+    context:
+      | ContextType
+      | ((action: InsightAction) => Promise<ContextType> | ContextType),
     opt?: InsightOptions,
   ) {
     assert(context, 'context is required for Insight');
@@ -97,10 +102,13 @@ export default class Insight<
   ): Promise<ElementType[]>;
   async locate(queryPrompt: string, opt?: LocateOpts) {
     const { callAI, multi = false } = opt || {};
-    assert(queryPrompt, 'query is required for located');
+    assert(
+      queryPrompt || opt?.quickAnswer,
+      'query or quickAnswer is required for locate',
+    );
     const dumpSubscriber = this.onceDumpUpdatedFn;
     this.onceDumpUpdatedFn = undefined;
-    const context = await this.contextRetrieverFn();
+    const context = await this.contextRetrieverFn('locate');
 
     const startTime = Date.now();
     const { parseResult, elementById, rawResponse } = await AiInspectElement({
@@ -198,7 +206,7 @@ export default class Insight<
     const dumpSubscriber = this.onceDumpUpdatedFn;
     this.onceDumpUpdatedFn = undefined;
 
-    const context = await this.contextRetrieverFn();
+    const context = await this.contextRetrieverFn('extract');
 
     const startTime = Date.now();
     const { parseResult, elementById } = await AiExtractElementInfo<T>({
@@ -309,7 +317,7 @@ export default class Insight<
     const dumpSubscriber = this.onceDumpUpdatedFn;
     this.onceDumpUpdatedFn = undefined;
 
-    const context = await this.contextRetrieverFn();
+    const context = await this.contextRetrieverFn('assert');
     const startTime = Date.now();
     const assertResult = await AiAssert({
       assertion,

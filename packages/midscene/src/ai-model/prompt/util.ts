@@ -215,7 +215,11 @@ export function truncateText(text: string, maxLength = 20) {
   if (text && text.length > maxLength) {
     return `${text.slice(0, maxLength)}...`;
   }
-  return text;
+
+  if (typeof text === 'string') {
+    return text.trim();
+  }
+  return '';
 }
 
 export function elementByPosition(
@@ -239,7 +243,13 @@ export function elementByPosition(
 
 export async function describeUserPage<
   ElementType extends BaseElement = BaseElement,
->(context: Omit<UIContext<ElementType>, 'describer'>) {
+>(
+  context: Omit<UIContext<ElementType>, 'describer'>,
+  opt?: {
+    truncateTextLength?: number;
+    filterEmptyContent?: boolean;
+  },
+) {
   const { screenshotBase64 } = context;
   let width: number;
   let height: number;
@@ -258,7 +268,11 @@ export async function describeUserPage<
     return { ...item };
   });
 
-  const elementInfosDescription = cropFieldInformation(elementsInfo);
+  const elementInfosDescription = cropFieldInformation(
+    elementsInfo,
+    opt?.truncateTextLength,
+    opt?.filterEmptyContent,
+  );
 
   return {
     description: `
@@ -285,17 +299,24 @@ export async function describeUserPage<
   };
 }
 
-function cropFieldInformation(elementsInfo: BaseElement[]) {
-  const elementInfosDescription: Array<PromptElementType> = elementsInfo.map(
+function cropFieldInformation(
+  elementsInfo: BaseElement[],
+  truncateTextLength = 20,
+  filterEmptyContent = false,
+) {
+  const elementInfosDescription: Array<Record<string, any>> = elementsInfo.map(
     (item) => {
       const { id, attributes = {}, rect, content } = item;
-      const tailorContent = truncateText(content);
+      const tailorContent = truncateText(content, truncateTextLength);
       const tailorAttributes = Object.keys(attributes).reduce(
         (res, currentKey: string) => {
           const attributeVal = (attributes as any)[currentKey];
           if (currentKey === 'style' || currentKey === 'src') return res;
           if (currentKey === 'nodeType') {
-            res[currentKey] = attributeVal.replace(/\sNode$/, '');
+            // when filterEmptyContent is true, we don't need to keep the nodeType since they are all TEXT
+            if (!filterEmptyContent) {
+              res[currentKey] = attributeVal.replace(/\sNode$/, '');
+            }
           } else {
             res[currentKey] = truncateText(attributeVal);
           }
@@ -306,8 +327,10 @@ function cropFieldInformation(elementsInfo: BaseElement[]) {
 
       return {
         id,
-        markerId: (item as any).indexId,
-        attributes: tailorAttributes,
+        ...(filterEmptyContent ? {} : { markerId: (item as any).indexId }),
+        ...(Object.keys(tailorAttributes).length
+          ? { attributes: tailorAttributes }
+          : {}),
         rect: {
           left: rect.left,
           top: rect.top,
@@ -319,6 +342,10 @@ function cropFieldInformation(elementsInfo: BaseElement[]) {
       };
     },
   );
+
+  if (filterEmptyContent) {
+    return elementInfosDescription.filter((item) => item.content);
+  }
   return elementInfosDescription;
 }
 

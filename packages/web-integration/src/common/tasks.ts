@@ -125,14 +125,14 @@ export class PageTaskExecutor {
           param: plan.param,
           executor: async (param, taskContext) => {
             const { task } = taskContext;
-            assert(param?.prompt, 'No prompt to locate');
+            assert(param?.prompt || param?.id, 'No prompt or id to locate');
             let insightDump: InsightDump | undefined;
             const dumpCollector: DumpSubscriber = (dump) => {
               insightDump = dump;
             };
             this.insight.onceDumpUpdatedFn = dumpCollector;
             const shotTime = Date.now();
-            const pageContext = await this.insight.contextRetrieverFn();
+            const pageContext = await this.insight.contextRetrieverFn('locate');
             const recordItem: ExecutionRecorderItem = {
               type: 'screenshot',
               ts: shotTime,

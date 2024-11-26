@@ -28,6 +28,11 @@ export type AIArgs = [
   ChatCompletionUserMessageParam,
 ];
 
+const liteContextConfig = {
+  filterEmptyContent: true,
+  truncateTextLength: 100,
+};
+
 export function transformElementPositionToId(
   aiResult: AIElementResponse,
   elementsInfo: BaseElement[],
@@ -164,7 +169,10 @@ export async function AiExtractElementInfo<
   const systemPrompt = systemPromptToExtract();
 
   const { screenshotBase64 } = context;
-  const { description, elementById } = await describeUserPage(context);
+  const { description, elementById } = await describeUserPage(
+    context,
+    liteContextConfig,
+  );
 
   const msgs: AIArgs = [
     { role: 'system', content: systemPrompt },
@@ -222,7 +230,7 @@ export async function AiAssert<
   assert(assertion, 'assertion should be a string');
 
   const { screenshotBase64 } = context;
-  const { description } = await describeUserPage(context);
+  const { description } = await describeUserPage(context, liteContextConfig);
   const systemPrompt = systemPromptToAssert();
 
   const msgs: AIArgs = [

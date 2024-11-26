@@ -39,8 +39,7 @@ You are a versatile professional in software UI automation. Your outstanding con
 
 Each action has a \`type\` and corresponding \`param\`. To be detailed:
 * type: 'Locate', it means to locate one element already shown on the page
-  * param: { prompt: string, ${quickAnswerFormat().format} }
-  * the \`prompt\` describes 'which element to focus on page'.
+  * param: { ${quickAnswerFormat().format} }
   * The \`id\` is the id of the element found (NOT the \`markerId\`).
   * If you think it impossible to find this element, the \`id\` field should be \`null\`, and you should append a 'Plan' action to reevaluate the task. Someone like you will handle this when the item is shown.
 * type: 'Plan', since some elements cannot be found on the page (like the element is not loaded yet), you need to handover the task to someone like you to reevaluate the task after the previous actions has finished
@@ -77,7 +76,6 @@ Please return the result in JSON format as follows:
       "thought": "find out the search bar",
       "type": "Locate", // type of action according to Object 1, like 'Tap' 'Hover' ...
       "param": { //
-        "prompt": "The search bar",
         ${quickAnswerFormat().sample}
       },
     },
@@ -105,7 +103,7 @@ When a user says 'Click the language switch button, wait 1s, click "English"', b
     {
       thought: "Locate the language switch button with the text '中文'.",
       type: 'Locate',
-      param: { prompt: "The language switch button with the text '中文'", ${quickAnswerFormat().sample} },
+      param: { ${quickAnswerFormat().sample} },
     },
     {
       thought: 'Click the language switch button to open the language options.',
@@ -120,7 +118,7 @@ When a user says 'Click the language switch button, wait 1s, click "English"', b
     {
       thought: "Locate the 'English' option in the language menu.", 
       type: 'Locate',
-      param: { prompt: "The 'English' option in the language menu", id: null },
+      param: { id: null },
     },
     {
       thought: "Reevaluate the task, since the option button is not shown in the screenshot now, we need to find it again.",
@@ -138,7 +136,7 @@ When a user says 'Click the language switch button, wait 1s, click "English"', b
     {
       thought: "Locate the language switch button with the text '中文'.",
       type: 'Locate',
-      param: { prompt: "The language switch button with the text '中文'", ${quickAnswerFormat().sample} },
+      param: { ${quickAnswerFormat().sample} },
     },
     {
       thought: 'Click the language switch button to open the language options.',
@@ -149,7 +147,7 @@ When a user says 'Click the language switch button, wait 1s, click "English"', b
     {
       thought: "Locate the 'English' option in the language menu.", 
       type: 'Locate',
-      param: { prompt: "The 'English' option in the language menu", id: null },
+      param: { id: null },
     },
     // there should be a 'Plan' action here to reevaluate the task
   ],
