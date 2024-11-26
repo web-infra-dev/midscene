@@ -14,23 +14,23 @@ modelList.forEach((model) => {
     it('basic run', async () => {
       const { context } = await getPageDataOfTestName('todo');
 
-      const { plans } = await plan(
+      const { actions } = await plan(
         'type "Why is the earth a sphere?", wait 3.5s, hit Enter',
         {
           context,
         },
         model,
       );
-      expect(plans.length).toBe(4);
-      expect(plans[0].thought).toBeTruthy();
-      expect(plans[0].type).toBe('Locate');
-      expect(plans[0].quickAnswer).toBeTruthy();
-      expect(plans[1].type).toBe('Input');
-      expect(plans[2].type).toBe('Sleep');
-      expect(plans[2].param).toMatchSnapshot();
-      expect(plans[3].type).toBe('KeyboardPress');
-      expect(plans[3].param).toMatchSnapshot();
-      expect(plans[3].quickAnswer).toBeFalsy();
+      expect(actions.length).toBe(4);
+      expect(actions[0].thought).toBeTruthy();
+      expect(actions[0].type).toBe('Locate');
+      expect(actions[0].quickAnswer).toBeTruthy();
+      expect(actions[1].type).toBe('Input');
+      expect(actions[2].type).toBe('Sleep');
+      expect(actions[2].param).toMatchSnapshot();
+      expect(actions[3].type).toBe('KeyboardPress');
+      expect(actions[3].param).toMatchSnapshot();
+      expect(actions[3].quickAnswer).toBeFalsy();
     });
 
     it('instructions of to-do mvc', async () => {
@@ -45,9 +45,9 @@ modelList.forEach((model) => {
       ];
 
       for (const instruction of instructions) {
-        const { plans } = await plan(instruction, { context }, model);
-        expect(plans).toBeTruthy();
-        expect(plans[0].quickAnswer).toBeTruthy();
+        const { actions } = await plan(instruction, { context }, model);
+        expect(actions).toBeTruthy();
+        expect(actions[0].quickAnswer).toBeTruthy();
       }
     });
   });
