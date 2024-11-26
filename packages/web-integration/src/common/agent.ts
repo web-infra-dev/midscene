@@ -91,8 +91,8 @@ export class PageAgent {
     this.reportFileName = reportFileName(opts?.testId || 'web');
   }
 
-  async getUIContext(action: InsightAction): Promise<WebUIContext> {
-    if (action !== 'locate') {
+  async getUIContext(action?: InsightAction): Promise<WebUIContext> {
+    if (action && (action === 'extract' || action === 'assert')) {
       return await parseContextFromWebPage(this.page, {
         ignoreMarker: true,
       });
