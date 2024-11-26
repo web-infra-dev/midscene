@@ -3,7 +3,7 @@ import { randomUUID } from 'node:crypto';
 /* eslint-disable @typescript-eslint/ban-types */
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
-import { MIDSCENE_MODEL_NAME, getAIConfig } from '@/ai-model/openai';
+import { MIDSCENE_MODEL_NAME, getAIConfig } from '@/env';
 import type {
   BaseElement,
   DumpMeta,

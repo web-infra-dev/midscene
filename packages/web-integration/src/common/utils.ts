@@ -4,6 +4,7 @@ import path from 'node:path';
 import type { ElementInfo } from '@/extractor';
 import type { StaticPage } from '@/playground';
 import type { PlaywrightParserOpt, UIContext } from '@midscene/core';
+import { MIDSCENE_REPORT_TAG_NAME, getAIConfig } from '@midscene/core/env';
 import { uploadTestInfoToServer } from '@midscene/core/utils';
 import { NodeType } from '@midscene/shared/constants';
 import { findNearestPackageJson } from '@midscene/shared/fs';
@@ -111,8 +112,9 @@ async function alignElements(
 }
 
 export function reportFileName(tag = 'web') {
+  const reportTagName = getAIConfig(MIDSCENE_REPORT_TAG_NAME);
   const dateTimeInFileName = dayjs().format('YYYY-MM-DD_HH-mm-ss-SSS');
-  return `${tag}-${dateTimeInFileName}`;
+  return `${reportTagName || tag}-${dateTimeInFileName}`;
 }
 
 export function printReportMsg(filepath: string) {
