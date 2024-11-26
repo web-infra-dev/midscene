@@ -92,6 +92,11 @@ export class PageAgent {
   }
 
   async getUIContext(action: InsightAction): Promise<WebUIContext> {
+    if (action !== 'locate') {
+      return await parseContextFromWebPage(this.page, {
+        ignoreMarker: true,
+      });
+    }
     return await parseContextFromWebPage(this.page);
   }
 
