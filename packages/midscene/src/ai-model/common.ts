@@ -38,31 +38,31 @@ export async function callAiFn<T>(options: {
     return parseResult;
   }
 
-  if (preferCozeModel(useModel)) {
-    let botId = '';
-    switch (AIActionTypeValue) {
-      case AIActionType.ASSERT:
-        botId = COZE_AI_ASSERT_BOT_ID;
-        break;
-      case AIActionType.EXTRACT_DATA:
-        botId = COZE_EXTRACT_INFO_BOT_ID;
-        break;
-      case AIActionType.INSPECT_ELEMENT:
-        botId = COZE_INSPECT_ELEMENT_BOT_ID;
-        break;
-      default:
-        botId = COZE_AI_ACTION_BOT_ID;
-    }
-    const cozeMsg = transformOpenAiArgsToCoze(msgs[1]);
-    const parseResult = await callCozeAi<T>({
-      ...cozeMsg,
-      botId,
-    });
-    return parseResult;
-  }
+  // if (preferCozeModel(useModel)) {
+  //   let botId = '';
+  //   switch (AIActionTypeValue) {
+  //     case AIActionType.ASSERT:
+  //       botId = COZE_AI_ASSERT_BOT_ID;
+  //       break;
+  //     case AIActionType.EXTRACT_DATA:
+  //       botId = COZE_EXTRACT_INFO_BOT_ID;
+  //       break;
+  //     case AIActionType.INSPECT_ELEMENT:
+  //       botId = COZE_INSPECT_ELEMENT_BOT_ID;
+  //       break;
+  //     default:
+  //       botId = COZE_AI_ACTION_BOT_ID;
+  //   }
+  //   const cozeMsg = transformOpenAiArgsToCoze(msgs[1]);
+  //   const parseResult = await callCozeAi<T>({
+  //     ...cozeMsg,
+  //     botId,
+  //   });
+  //   return parseResult;
+  // }
 
   throw Error(
-    'Cannot find Coze or OpenAI config. You should set at least one of them.',
+    'Cannot find OpenAI config. You should set it before using. https://midscenejs.com/model-provider.html',
   );
 }
 

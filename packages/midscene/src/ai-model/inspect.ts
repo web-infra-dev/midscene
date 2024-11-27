@@ -149,7 +149,7 @@ ${JSON.stringify({
   ];
 
   if (callAI) {
-    const parseResult = await callAI({
+    const { content: parseResult, usage } = await callAI({
       msgs,
       AIActionType: AIActionType.INSPECT_ELEMENT,
       useModel,
@@ -158,6 +158,7 @@ ${JSON.stringify({
       parseResult,
       rawResponse: transformElementPositionToId(parseResult, context.content),
       elementById,
+      usage,
     };
   }
 
@@ -168,9 +169,13 @@ ${JSON.stringify({
   });
 
   return {
-    parseResult: transformElementPositionToId(inspectElement, context.content),
+    parseResult: transformElementPositionToId(
+      inspectElement.content,
+      context.content,
+    ),
     rawResponse: inspectElement,
     elementById,
+    usage: inspectElement.usage,
   };
 }
 
@@ -224,14 +229,15 @@ DATA_DEMAND ends.
     },
   ];
 
-  const parseResult = await callAiFn<AISectionParseResponse<T>>({
+  const result = await callAiFn<AISectionParseResponse<T>>({
     msgs,
     useModel,
     AIActionType: AIActionType.EXTRACT_DATA,
   });
   return {
-    parseResult,
+    parseResult: result.content,
     elementById,
+    usage: result.usage,
   };
 }
 
@@ -276,11 +282,14 @@ export async function AiAssert<
     },
   ];
 
-  const assertResult = await callAiFn<AIAssertionResponse>({
+  const { content: assertResult, usage } = await callAiFn<AIAssertionResponse>({
     msgs,
     AIActionType: AIActionType.ASSERT,
     useModel,
   });
-  return assertResult;
+  return {
+    content: assertResult,
+    usage,
+  };
 }
 export { callAiFn };

@@ -1,5 +1,5 @@
 import assert from 'node:assert';
-import { AIResponseFormat } from '@/types';
+import { AIResponseFormat, type AIUsageInfo } from '@/types';
 import { ifInBrowser } from '@midscene/shared/utils';
 import OpenAI, { type ClientOptions, AzureOpenAI } from 'openai';
 import type { ChatCompletionMessageParam } from 'openai/resources';
@@ -75,7 +75,7 @@ export async function call(
   responseFormat?:
     | OpenAI.ChatCompletionCreateParams['response_format']
     | OpenAI.ResponseFormatJSONObject,
-): Promise<string> {
+): Promise<{ content: string; usage?: AIUsageInfo }> {
   const openai = await createOpenAI();
   const shouldPrintTiming =
     typeof getAIConfig(MIDSCENE_DEBUG_AI_PROFILE) === 'string';
@@ -101,13 +101,13 @@ export async function call(
     );
   const { content } = completion.choices[0].message;
   assert(content, 'empty content');
-  return content;
+  return { content, usage: completion.usage };
 }
 
 export async function callToGetJSONObject<T>(
   messages: ChatCompletionMessageParam[],
   AIActionTypeValue: AIActionType,
-): Promise<T> {
+): Promise<{ content: T; usage?: AIUsageInfo }> {
   // gpt-4o-2024-05-13 only supports json_object response format
   let responseFormat:
     | OpenAI.ChatCompletionCreateParams['response_format']
@@ -148,14 +148,14 @@ export async function callToGetJSONObject<T>(
   };
   const response = await call(messages, responseFormat);
   assert(response, 'empty response');
-  let jsonContent = safeJsonParse(response);
-  if (jsonContent) return jsonContent;
+  let jsonContent = safeJsonParse(response.content);
+  if (jsonContent) return { content: jsonContent, usage: response.usage };
 
-  jsonContent = extractJSONFromCodeBlock(response);
+  jsonContent = extractJSONFromCodeBlock(response.content);
   try {
-    return JSON.parse(jsonContent);
+    return { content: JSON.parse(jsonContent), usage: response.usage };
   } catch {
-    throw Error(`parse json error: ${response}`);
+    throw Error(`parse json error: ${response.content}`);
   }
 }
 

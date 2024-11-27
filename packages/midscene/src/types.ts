@@ -40,9 +40,7 @@ export abstract class BaseElement {
   abstract locator?: string;
 }
 
-// export type EnhancedTextElement<DataScheme extends object = {}> = TextElement & {
-//   [K in keyof DataScheme]: DataScheme[K];
-// };
+export type AIUsageInfo = Record<string, any>;
 
 /**
  * openai
@@ -155,6 +153,7 @@ export interface InsightTaskInfo {
   durationMs: number;
   formatResponse?: string;
   rawResponse?: string;
+  usage?: AIUsageInfo;
 }
 
 export interface DumpMeta {
@@ -339,7 +338,7 @@ export interface ExecutionTaskApply<
     param: TaskParam,
     context: ExecutorContext,
   ) => // biome-ignore lint/suspicious/noConfusingVoidType: <explanation>
-    | Promise<ExecutionTaskReturn<TaskOutput, TaskLog> | undefined | void>
+  | Promise<ExecutionTaskReturn<TaskOutput, TaskLog> | undefined | void>
     | undefined
     | void;
 }

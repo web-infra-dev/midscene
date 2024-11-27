@@ -1,9 +1,5 @@
 import assert from 'node:assert';
-import {
-  AiExtractElementInfo,
-  AiInspectElement,
-  callToGetJSONObject as callAI,
-} from '@/ai-model/index';
+import { AiExtractElementInfo, AiInspectElement } from '@/ai-model/index';
 import { AiAssert, callAiFn } from '@/ai-model/inspect';
 import type {
   AIElementResponse,
@@ -102,13 +98,14 @@ export default class Insight<
     const context = await this.contextRetrieverFn('locate');
 
     const startTime = Date.now();
-    const { parseResult, elementById, rawResponse } = await AiInspectElement({
-      callAI,
-      context,
-      multi: Boolean(multi),
-      targetElementDescription: queryPrompt,
-      quickAnswer: opt?.quickAnswer,
-    });
+    const { parseResult, elementById, rawResponse, usage } =
+      await AiInspectElement({
+        callAI,
+        context,
+        multi: Boolean(multi),
+        targetElementDescription: queryPrompt,
+        quickAnswer: opt?.quickAnswer,
+      });
     // const parseResult = await this.aiVendorFn<AIElementParseResponse>(msgs);
     const timeCost = Date.now() - startTime;
     const taskInfo: InsightTaskInfo = {
@@ -116,6 +113,7 @@ export default class Insight<
       durationMs: timeCost,
       rawResponse: JSON.stringify(rawResponse),
       formatResponse: JSON.stringify(parseResult),
+      usage,
     };
 
     let errorLog: string | undefined;
@@ -291,10 +289,11 @@ export default class Insight<
     const taskInfo: InsightTaskInfo = {
       ...(this.taskInfo ? this.taskInfo : {}),
       durationMs: timeCost,
-      rawResponse: JSON.stringify(assertResult),
+      rawResponse: JSON.stringify(assertResult.content),
+      usage: assertResult.usage,
     };
 
-    const { thought, pass } = assertResult;
+    const { thought, pass } = assertResult.content;
     const dumpData: PartialInsightDumpFromSDK = {
       type: 'assert',
       context,
