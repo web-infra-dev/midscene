@@ -38,7 +38,7 @@ export function EnvConfig() {
           <Tooltip
             title="Please set up your environment variables to use Midscene."
             placement="right"
-            open
+            open={!isModalOpen}
           >
             <Button type="primary" onClick={showModal}>
               Click to set up
