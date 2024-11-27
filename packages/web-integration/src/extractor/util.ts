@@ -357,16 +357,22 @@ export function getNodeAttributes(
   return Object.fromEntries(attributesList);
 }
 
-(window as any).midsceneNodeHashCacheList =
-  (window as any).midsceneNodeHashCacheList || [];
-let nodeHashCacheList: { node: Node; id: string }[] = (window as any)
-  .midsceneNodeHashCacheList;
+let nodeHashCacheList: { node: Node; id: string }[] = [];
+if (typeof window !== 'undefined') {
+  (window as any).midsceneNodeHashCacheList =
+    (window as any).midsceneNodeHashCacheList || [];
+  nodeHashCacheList = (window as any).midsceneNodeHashCacheList;
+}
 const hashMap: Record<string, string> = {}; // id - combined
 
 // for each run, reset the cache list
 export function resetNodeHashCacheList() {
-  nodeHashCacheList = (window as any).midsceneNodeHashCacheList || [];
-  (window as any).midsceneNodeHashCacheList = [];
+  if (typeof window !== 'undefined') {
+    nodeHashCacheList = (window as any).midsceneNodeHashCacheList || [];
+    (window as any).midsceneNodeHashCacheList = [];
+  } else {
+    nodeHashCacheList = [];
+  }
 }
 
 export function midsceneGenerateHash(
@@ -399,7 +405,7 @@ export function midsceneGenerateHash(
     hashMap[hashInDigits] = combined;
     break;
   }
-  if (node) {
+  if (node && typeof window !== 'undefined') {
     (window as any).midsceneNodeHashCacheList.push({ node, id: hashInDigits });
   }
 
