@@ -75,14 +75,28 @@ export async function AiInspectElement<
 
   // meet quick answer
   if (options.quickAnswer) {
-    if ('id' in options.quickAnswer && elementById(options.quickAnswer.id)) {
-      return {
-        parseResult: {
-          elements: [options.quickAnswer],
-          errors: [],
-        },
-        elementById,
-      };
+    if ('id' in options.quickAnswer) {
+      if (elementById(options.quickAnswer.id)) {
+        return {
+          parseResult: {
+            elements: [options.quickAnswer],
+            errors: [],
+          },
+          elementById,
+        };
+      }
+
+      if (!targetElementDescription) {
+        return {
+          parseResult: {
+            elements: [],
+            errors: [
+              `inspect: cannot find the target by id: ${options.quickAnswer.id}, and no target element description is provided`,
+            ],
+          },
+          elementById,
+        };
+      }
     }
     if (
       'position' in options.quickAnswer &&
@@ -102,7 +116,7 @@ export async function AiInspectElement<
 
   assert(
     targetElementDescription,
-    'cannot find the target by id, and prompt is also missing',
+    'cannot find the target element description',
   );
   const systemPrompt = systemPromptToFindElement();
   const msgs: AIArgs = [

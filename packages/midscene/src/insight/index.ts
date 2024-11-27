@@ -17,10 +17,8 @@ import type {
   InsightTaskInfo,
   PartialInsightDumpFromSDK,
   UIContext,
-  UISection,
 } from '@/types';
 import {
-  extractSectionQuery,
   ifElementTypeResponse,
   splitElementResponse,
 } from '../ai-model/prompt/util';
@@ -30,13 +28,6 @@ import {
   shallowExpandIds,
   writeInsightDump,
 } from './utils';
-
-const sortByOrder = (a: UISection, b: UISection) => {
-  if (a.rect.top - b.rect.top !== 0) {
-    return a.rect.top - b.rect.top;
-  }
-  return a.rect.left - b.rect.left;
-};
 
 export interface LocateOpts {
   multi?: boolean;
@@ -245,33 +236,6 @@ export default class Insight<
       throw new Error(errorLog);
     }
 
-    // expand all ids into original elements
-    const sectionsArr = (parseResult.sections || [])
-      .map((liteSection) => {
-        const section: UISection = expandLiteSection(liteSection, (id) =>
-          elementById(id),
-        );
-        return section;
-      })
-      .sort(sortByOrder);
-
-    // deal sections array into a map
-    const sectionMap = sectionsArr.reduce((acc: any, section) => {
-      const { name } = section;
-
-      if (acc[name]) {
-        let i = 1;
-        while (acc[`${name}_${i}`]) {
-          i++;
-        }
-        console.warn(`section name conflict: ${name}, rename to ${name}_${i}`);
-        acc[`${name}_${i}`] = section;
-      } else {
-        acc[name] = section;
-      }
-      return acc;
-    }, {});
-
     const { data } = parseResult;
     let mergedData = data;
 
@@ -290,14 +254,13 @@ export default class Insight<
 
       mergedData = {
         ...data,
-        ...sectionMap,
       };
     }
 
     writeInsightDump(
       {
         ...dumpData,
-        matchedSection: Object.values(sectionMap),
+        matchedSection: [],
         data: mergedData,
       },
       logId,

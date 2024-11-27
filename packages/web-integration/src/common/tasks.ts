@@ -114,7 +114,7 @@ export class PageTaskExecutor {
     const tasks: ExecutionTaskApply[] = [];
     plans.forEach((plan) => {
       if (plan.type === 'Locate') {
-        if (!plan.param?.id) {
+        if (plan.param?.id === null || plan.param.id === 'null') {
           // console.warn('Locate action with id is null, will be ignored');
           return;
         }
@@ -122,6 +122,7 @@ export class PageTaskExecutor {
           type: 'Insight',
           subType: 'Locate',
           param: plan.param,
+          thought: plan.thought,
           executor: async (param, taskContext) => {
             const { task } = taskContext;
             assert(param?.prompt || param?.id, 'No prompt or id to locate');
@@ -206,6 +207,7 @@ export class PageTaskExecutor {
           type: 'Insight',
           subType: 'Assert',
           param: assertPlan.param,
+          thought: assertPlan.thought,
           executor: async (param, taskContext) => {
             const { task } = taskContext;
             let insightDump: InsightDump | undefined;
@@ -246,6 +248,7 @@ export class PageTaskExecutor {
             type: 'Action',
             subType: 'Input',
             param: plan.param,
+            thought: plan.thought,
             executor: async (taskParam, { element }) => {
               if (element) {
                 await this.page.clearInput(element as ElementInfo);
@@ -265,6 +268,7 @@ export class PageTaskExecutor {
             type: 'Action',
             subType: 'KeyboardPress',
             param: plan.param,
+            thought: plan.thought,
             executor: async (taskParam) => {
               assert(taskParam?.value, 'No key to press');
               await this.page.keyboard.press(taskParam.value as KeyInput);
@@ -276,6 +280,7 @@ export class PageTaskExecutor {
           {
             type: 'Action',
             subType: 'Tap',
+            thought: plan.thought,
             executor: async (param, { element }) => {
               assert(element, 'Element not found, cannot tap');
               await this.page.mouse.click(element.center[0], element.center[1]);
@@ -287,6 +292,7 @@ export class PageTaskExecutor {
           {
             type: 'Action',
             subType: 'Hover',
+            thought: plan.thought,
             executor: async (param, { element }) => {
               assert(element, 'Element not found, cannot hover');
               await this.page.mouse.move(element.center[0], element.center[1]);
@@ -299,6 +305,7 @@ export class PageTaskExecutor {
             type: 'Action',
             subType: 'Scroll',
             param: plan.param,
+            thought: plan.thought,
             executor: async (taskParam) => {
               const scrollToEventName = taskParam.scrollType;
 
@@ -330,6 +337,7 @@ export class PageTaskExecutor {
             type: 'Action',
             subType: 'Sleep',
             param: plan.param,
+            thought: plan.thought,
             executor: async (taskParam) => {
               await sleep(taskParam?.timeMs || 3000);
             },
@@ -341,6 +349,7 @@ export class PageTaskExecutor {
             type: 'Action',
             subType: 'Error',
             param: plan.param,
+            thought: plan.thought,
             executor: async (taskParam) => {
               assert(
                 taskParam?.thought,

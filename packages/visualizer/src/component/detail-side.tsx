@@ -8,7 +8,6 @@ import type {
   ExecutionTaskInsightAssertion,
   ExecutionTaskInsightLocate,
   ExecutionTaskPlanning,
-  UISection,
 } from '@midscene/core';
 import { Tag, Timeline, type TimelineItemProps, Tooltip } from 'antd';
 import { highlightColorForType } from './color';
@@ -230,10 +229,22 @@ const DetailSide = (): JSX.Element => {
     taskParam = MetaKV({
       data: [
         { key: 'type', content: (task && typeStr(task)) || '' },
-        {
-          key: 'param',
-          content: paramStr(task) || '',
-        },
+        ...(paramStr(task)
+          ? [
+              {
+                key: 'param',
+                content: paramStr(task) || '',
+              },
+            ]
+          : []),
+        ...(task?.thought
+          ? [
+              {
+                key: 'thought',
+                content: task.thought,
+              },
+            ]
+          : []),
         ...(quickAnswer
           ? [
               {

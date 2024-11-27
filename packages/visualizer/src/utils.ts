@@ -78,10 +78,11 @@ export function paramStr(task: ExecutionTask) {
   }
 
   if (task.type === 'Insight') {
-    value =
-      (task as ExecutionTaskInsightLocate)?.param?.prompt ||
-      (task as ExecutionTaskInsightQuery)?.param?.dataDemand ||
-      (task as ExecutionTaskInsightAssertion)?.param?.assertion;
+    value = JSON.stringify((task as ExecutionTaskInsightLocate)?.param || null);
+    // (task as ExecutionTaskInsightLocate)?.param?.prompt ||
+    // (task as ExecutionTaskInsightLocate)?.param?.id ||
+    // (task as ExecutionTaskInsightQuery)?.param?.dataDemand ||
+    // (task as ExecutionTaskInsightAssertion)?.param?.assertion;
   }
 
   if (task.type === 'Action') {

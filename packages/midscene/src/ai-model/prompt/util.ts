@@ -1,14 +1,7 @@
 import assert from 'node:assert';
 import { MATCH_BY_POSITION, getAIConfig } from '@/env';
 import { imageInfoOfBase64 } from '@/image';
-import type {
-  BaseElement,
-  BasicSectionQuery,
-  Point,
-  Size,
-  UIContext,
-  UISection,
-} from '@/types';
+import type { BaseElement, Size, UIContext } from '@/types';
 import type { ResponseFormatJSONSchema } from 'openai/resources';
 
 const characteristic =
@@ -43,32 +36,6 @@ Return in the following JSON format:
   errors?: [], // string[], error message if any
 }
 `;
-}
-
-export function promptsOfSectionQuery(
-  constraints: BasicSectionQuery[],
-): string {
-  if (!constraints.length) {
-    return '';
-  }
-  const instruction =
-    'Use your segment_a_web_page skill to find the following section(s)';
-  const singleSection = (c: BasicSectionQuery) => {
-    assert(
-      c.name || c.description,
-      'either `name` or `description` is required to define a section constraint',
-    );
-
-    const number = 'One section';
-    const name = c.name ? `named \`${c.name}\`` : '';
-    const description = c.description
-      ? `, usage or criteria : ${c.description}`
-      : '';
-    const basic = `* ${number} ${name}${description}`;
-
-    return basic;
-  };
-  return `${instruction}\n${constraints.map(singleSection).join('\n')}`;
 }
 
 export function systemPromptToExtract() {
@@ -265,6 +232,10 @@ export async function describeUserPage<
   const idElementMap: Record<string, ElementType> = {};
   elementsInfo.forEach((item) => {
     idElementMap[item.id] = item;
+    // sometimes GPT will mess up the indexId and id, we use indexId as a backup
+    if ((item as any).indexId) {
+      idElementMap[(item as any).indexId] = item;
+    }
     return { ...item };
   });
 
@@ -402,11 +373,4 @@ export function splitElementResponse(
 
 export function retrieveSection(prompt: string): string {
   return `${SECTION_MATCHER_FLAG}${prompt}`;
-}
-
-export function extractSectionQuery(input: string): string | false {
-  if (typeof input === 'string' && input.startsWith(SECTION_MATCHER_FLAG)) {
-    return input.slice(SECTION_MATCHER_FLAG.length);
-  }
-  return false;
 }

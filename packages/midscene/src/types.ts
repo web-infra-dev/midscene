@@ -137,20 +137,15 @@ export interface InsightOptions {
   }) => BaseElement;
 }
 
-export interface UISection {
-  name: string;
-  description: string;
-  sectionCharacteristics: string;
-  rect: Rect;
-  content: BaseElement[];
-}
+// export interface UISection {
+//   name: string;
+//   description: string;
+//   sectionCharacteristics: string;
+//   rect: Rect;
+//   content: BaseElement[];
+// }
 
 export type EnsureObject<T> = { [K in keyof T]: any };
-
-export interface BasicSectionQuery {
-  name?: string;
-  description?: string;
-}
 
 export type InsightAction = 'locate' | 'extract' | 'assert';
 
@@ -184,7 +179,7 @@ export interface InsightDump extends DumpMeta {
     assertion?: string;
   }; // ?
   quickAnswer?: AISingleElementResponse | null;
-  matchedSection: UISection[];
+  matchedSection: [];
   matchedElement: BaseElement[];
   data: any;
   assertionPass?: boolean;
@@ -338,12 +333,13 @@ export interface ExecutionTaskApply<
   type: Type;
   subType?: string;
   param?: TaskParam;
+  thought?: string;
   quickAnswer?: AISingleElementResponse | null;
   executor: (
     param: TaskParam,
     context: ExecutorContext,
   ) => // biome-ignore lint/suspicious/noConfusingVoidType: <explanation>
-    | Promise<ExecutionTaskReturn<TaskOutput, TaskLog> | undefined | void>
+  | Promise<ExecutionTaskReturn<TaskOutput, TaskLog> | undefined | void>
     | undefined
     | void;
 }
