@@ -47,7 +47,7 @@ Each action has a \`type\` and corresponding \`param\`. To be detailed:
   * \`prompt\` is the description of the element to find. It can only be omitted when \`id\` is null.
 - type: 'Tap', tap the previous element found 
   * param: null
-- type: 'Hover', hover the previous element found
+- type: 'Hover', move mouse over to the previous element found
   * param: null
 - type: 'Input', replace the value in the input field
   * param: { value: string }
@@ -181,7 +181,7 @@ Reason:
 
 ## BAD case #2
 
-Reason: A \`Locate\` action is missing before the \`Input\` action.
+Reason: A \`Locate\` action is missing before the \`Input\` action. The action type \`Hover\` and \`Tap\` also need a \`Locate\` action before them.
 
 {
   actions:[

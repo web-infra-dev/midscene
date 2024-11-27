@@ -79,25 +79,39 @@ jobs:
       id: e2e-tests-cache
       continue-on-error: true
 
+    - name: Upload e2e cache output
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: e2e-cache-output
+        path: ${{ github.workspace }}/packages/web-integration/midscene_run/cache
+        if-no-files-found: ignore
+
     - name: Run e2e tests report
       run: pnpm run e2e:report
       id: e2e-tests-report
       continue-on-error: true
+
+    - name: Upload e2e report output
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: e2e-report-output
+        path: ${{ github.workspace }}/packages/web-integration/midscene_run/report
+        if-no-files-found: ignore
 
     - name: Run tests
       run: pnpm run test:ai
       id: test-ai
       continue-on-error: true
 
-    - name: List directory contents
-      run: ls -R ${{ github.workspace }}
-
-    - name: Upload output folder
+    - name: Upload test-ai output
+      if: always()
       uses: actions/upload-artifact@v4
       with:
-        if-no-files-found: error
-        name: Midscene Report 
+        name: test-ai-output
         path: ${{ github.workspace }}/packages/web-integration/midscene_run/report
+        if-no-files-found: ignore
 
     - name: Check if script failed
       if: steps.test-ai.outcome == 'failure' || steps.e2e-tests.outcome == 'failure' || steps.e2e-tests-cache.outcome == 'failure' || steps.e2e-tests-report.outcome == 'failure'
