@@ -1,4 +1,5 @@
 import { MIDSCENE_MODEL_TEXT_ONLY, getAIConfig } from '@/env';
+import type { AIUsageInfo } from '@/types';
 import type {
   ChatCompletionContentPart,
   ChatCompletionSystemMessageParam,
@@ -31,11 +32,14 @@ export async function callAiFn<T>(options: {
   msgs: AIArgs;
   AIActionType: AIActionType;
   useModel?: 'openAI' | 'coze';
-}) {
+}): Promise<{ content: T; usage?: AIUsageInfo }> {
   const { useModel, msgs, AIActionType: AIActionTypeValue } = options;
   if (preferOpenAIModel(useModel)) {
-    const parseResult = await callToGetJSONObject<T>(msgs, AIActionTypeValue);
-    return parseResult;
+    const { content, usage } = await callToGetJSONObject<T>(
+      msgs,
+      AIActionTypeValue,
+    );
+    return { content, usage };
   }
 
   // if (preferCozeModel(useModel)) {
