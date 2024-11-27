@@ -74,7 +74,7 @@ When the task cannot be accomplished because some elements cannot be found on th
 
 If you think there is no need to reevaluate the task, just put \`null\` in the \`furtherPlan\` field.
 
-#### How to use the \`furtherPlan\` field ?
+#### How to compose the \`furtherPlan\` field ?
 
 This is a JSON object with the scheme { whatHaveDone: string, whatToDo: string }:
 - \`whatHaveDone\`: a string, describe what have been done after the previous actions.
@@ -181,8 +181,7 @@ Reason:
 
 ## BAD case #2
 
-Reason: A \`Locate\` action is missing before the \`Input\` action. The action type \`Hover\` and \`Tap\` also need a \`Locate\` action before them.
-
+Wrong output:
 {
   actions:[
     {
@@ -191,7 +190,34 @@ Reason: A \`Locate\` action is missing before the \`Input\` action. The action t
       param: { value: 'text content' },
     },
   ],
+  ...
 }
+
+Reason: A \`Locate\` action is missing before the \`Input\` action. The action type \`Hover\` and \`Tap\` also need a \`Locate\` action before them.
+
+## Base case 3
+
+The user asked to click the check button to the left of the second task
+
+Wrong output:
+{
+"actions": [
+    {
+      "thought": "Locate the checkbox for the second task 'Learning AI the day after tomorrow'.",
+      "type": "Locate",
+      "param": {
+        "id": "594017",
+        "prompt": "the checkbox for the second task 'Learning AI the day after tomorrow'"
+      }
+    }
+  ],
+  "furtherPlan": {
+    "whatHaveDone": "Located the checkbox for the second task.",
+    "whatToDo": "Tap the checkbox to mark the second task as completed."
+  },
+}
+
+Reason: The element has already shown and located, the \`furtherPlan\` field is not needed. You should append a \`Tap\` action for the located element.
 \`\`\`
 `;
 }

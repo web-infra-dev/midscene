@@ -10,6 +10,7 @@ import {
   type ExecutionTaskApply,
   type ExecutionTaskInsightLocateApply,
   type ExecutionTaskInsightQueryApply,
+  ExecutionTaskPlanning,
   type ExecutionTaskPlanningApply,
   Executor,
   type Insight,
@@ -394,7 +395,7 @@ export class PageTaskExecutor {
         whatHaveDone,
         originalPrompt,
       },
-      executor: async (param) => {
+      executor: async (param, executorContext) => {
         const shotTime = Date.now();
         const pageContext = await this.insight.contextRetrieverFn('locate');
         const recordItem: ExecutionRecorderItem = {
@@ -404,10 +405,13 @@ export class PageTaskExecutor {
           timing: 'before planning',
         };
 
+        executorContext.task.recorder = [recordItem];
+        (executorContext.task as any).pageContext = pageContext;
+
         const planCache = cacheGroup.readCache(pageContext, 'plan', userPrompt);
         let planResult: Awaited<ReturnType<typeof plan>>;
         if (planCache) {
-          console.log('planCache', planCache);
+          // console.log('planCache', planCache);
           planResult = planCache;
         } else {
           planResult = await plan(param.userPrompt, {
@@ -431,10 +435,10 @@ export class PageTaskExecutor {
 
         return {
           output: planResult,
-          pageContext,
           cache: {
             hit: Boolean(planCache),
           },
+          pageContext, // ?
           recorder: [recordItem],
         };
       },
