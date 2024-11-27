@@ -1,5 +1,5 @@
 import assert from 'node:assert';
-import type { PlanningAIResponse, UIContext } from '@/types';
+import type { AIUsageInfo, PlanningAIResponse, UIContext } from '@/types';
 import {
   AIActionType,
   type AIArgs,
@@ -70,11 +70,13 @@ ${taskBackgroundContext}
   ];
 
   const call = callAI || callAiFn;
-  planFromAI = await call({
+  const { content, usage } = await call({
     msgs,
     AIActionType: AIActionType.PLAN,
     useModel,
   });
+
+  planFromAI = content;
 
   const actions = planFromAI?.actions || [];
   assert(planFromAI, "can't get plans from AI");

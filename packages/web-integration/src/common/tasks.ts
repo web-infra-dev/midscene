@@ -10,7 +10,6 @@ import {
   type ExecutionTaskApply,
   type ExecutionTaskInsightLocateApply,
   type ExecutionTaskInsightQueryApply,
-  ExecutionTaskPlanning,
   type ExecutionTaskPlanningApply,
   Executor,
   type Insight,
@@ -157,15 +156,15 @@ export class PageTaskExecutor {
               callAI: async (...message: any) => {
                 if (locateCache) {
                   locateResult = locateCache;
-                  return Promise.resolve(locateCache);
+                  return Promise.resolve({ content: locateCache });
                 }
-                const aiResult: AIElementResponse = await callAI(...message);
+                const { content: aiResult, usage } = await callAI(...message);
                 locateResult = transformElementPositionToId(
                   aiResult,
                   pageContext.content,
                 );
                 assert(locateResult);
-                return locateResult;
+                return { content: locateResult, usage };
               },
             });
 

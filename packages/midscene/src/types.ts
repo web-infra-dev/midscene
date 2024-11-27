@@ -40,9 +40,7 @@ export abstract class BaseElement {
   abstract locator?: string;
 }
 
-// export type EnhancedTextElement<DataScheme extends object = {}> = TextElement & {
-//   [K in keyof DataScheme]: DataScheme[K];
-// };
+export type AIUsageInfo = Record<string, any>;
 
 /**
  * openai
@@ -155,6 +153,7 @@ export interface InsightTaskInfo {
   durationMs: number;
   formatResponse?: string;
   rawResponse?: string;
+  usage?: AIUsageInfo;
 }
 
 export interface DumpMeta {

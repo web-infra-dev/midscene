@@ -171,6 +171,13 @@ const DetailSide = (): JSX.Element => {
     });
   };
 
+  const usageInfo = (task as ExecutionTaskInsightLocate)?.log?.dump?.taskInfo
+    ?.usage
+    ? JSON.stringify(
+        (task as ExecutionTaskInsightLocate).log!.dump!.taskInfo!.usage,
+      )
+    : 'unknown';
+
   const metaKVElement = MetaKV({
     data: [
       {
@@ -193,6 +200,7 @@ const DetailSide = (): JSX.Element => {
         key: 'cache',
         content: task?.cache ? JSON.stringify(task?.cache) : 'false',
       },
+      ...(usageInfo ? [{ key: 'usage', content: usageInfo }] : []),
     ],
   });
 
