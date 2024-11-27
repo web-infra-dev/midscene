@@ -133,13 +133,6 @@ export const assertSchema: ResponseFormatJSONSchema = {
   },
 };
 
-/*
-To modify the response format:
-  1. update the function `describeSectionResponseFormat` here
-  2. update `expandLiteSection` in insight/utils.ts
-  3. update `UISection` and `LiteUISection` in types.ts
-*/
-
 export function describeSize(size: Size) {
   return `${size.width} x ${size.height}`;
 }

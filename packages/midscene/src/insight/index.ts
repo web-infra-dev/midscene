@@ -1,6 +1,7 @@
 import assert from 'node:assert';
+import { callAiFn } from '@/ai-model/common';
 import { AiExtractElementInfo, AiInspectElement } from '@/ai-model/index';
-import { AiAssert, callAiFn } from '@/ai-model/inspect';
+import { AiAssert } from '@/ai-model/inspect';
 import type {
   AIElementResponse,
   AISingleElementResponse,
@@ -18,12 +19,7 @@ import {
   ifElementTypeResponse,
   splitElementResponse,
 } from '../ai-model/prompt/util';
-import {
-  expandLiteSection,
-  idsIntoElements,
-  shallowExpandIds,
-  writeInsightDump,
-} from './utils';
+import { idsIntoElements, shallowExpandIds, writeInsightDump } from './utils';
 
 export interface LocateOpts {
   multi?: boolean;

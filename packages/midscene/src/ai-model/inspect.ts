@@ -287,6 +287,8 @@ export async function AiAssert<
     AIActionType: AIActionType.ASSERT,
     useModel,
   });
-  return assertResult;
+  return {
+    content: assertResult,
+    usage,
+  };
 }
-export { callAiFn };

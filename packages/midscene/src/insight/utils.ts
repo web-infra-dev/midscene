@@ -119,41 +119,6 @@ export function shallowExpandIds<DataScheme extends object = {}>(
   return data;
 }
 
-export function expandLiteSection(
-  liteSection: LiteUISection,
-  elementById: ElementById,
-): UISection {
-  const { textIds, ...remainingFields } = liteSection;
-
-  const texts: BaseElement[] = idsIntoElements(textIds, elementById);
-
-  let leftMost = -1;
-  let topMost = -1;
-  let rightMost = -1;
-  let bottomMost = -1;
-  texts.forEach((text) => {
-    leftMost =
-      leftMost === -1 ? text.rect.left : Math.min(leftMost, text.rect.left);
-    topMost = topMost === -1 ? text.rect.top : Math.min(topMost, text.rect.top);
-    rightMost = Math.max(rightMost, text.rect.left + text.rect.width);
-    bottomMost = Math.max(bottomMost, text.rect.top + text.rect.height);
-  });
-  const sectionRect: Rect = {
-    left: leftMost,
-    top: topMost,
-    width: rightMost - leftMost,
-    height: bottomMost - topMost,
-  };
-
-  const section: UISection = {
-    ...remainingFields,
-    content: texts,
-    rect: sectionRect,
-  };
-
-  return section;
-}
-
 /**
  * a fake parser that collects all text into a single section
  * It's useful for debugging and testing

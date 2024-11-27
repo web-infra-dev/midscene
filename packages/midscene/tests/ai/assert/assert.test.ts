@@ -20,7 +20,9 @@ modelList.forEach((model) => {
     it('todo pass', async () => {
       const { context } = await getPageDataOfTestName('todo');
 
-      const { pass } = await AiAssert({
+      const {
+        content: { pass },
+      } = await AiAssert({
         assertion: 'Three tasks have been added',
         context,
         useModel: model,
@@ -31,7 +33,9 @@ modelList.forEach((model) => {
     it('todo error', async () => {
       const { context } = await getPageDataOfTestName('todo');
 
-      const { pass, thought } = await AiAssert({
+      const {
+        content: { pass, thought },
+      } = await AiAssert({
         assertion: 'There are four tasks in the task list',
         context,
         useModel: model,
