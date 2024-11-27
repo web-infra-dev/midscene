@@ -18,7 +18,7 @@ describe('openai', () => {
       },
     ]);
 
-    expect(result.length).toBeGreaterThan(1);
+    expect(result.content.length).toBeGreaterThan(1);
   });
 
   it('call to get json result', async () => {
@@ -35,6 +35,6 @@ describe('openai', () => {
       ],
       AIActionType.EXTRACT_DATA,
     );
-    expect(result.answer).toBe(15);
+    expect(result.content.answer).toBe(15);
   });
 });

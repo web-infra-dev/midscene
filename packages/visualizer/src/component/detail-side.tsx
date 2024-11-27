@@ -176,7 +176,7 @@ const DetailSide = (): JSX.Element => {
     ? JSON.stringify(
         (task as ExecutionTaskInsightLocate).log!.dump!.taskInfo!.usage,
       )
-    : 'unknown';
+    : '';
 
   const metaKVElement = MetaKV({
     data: [

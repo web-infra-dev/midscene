@@ -4,12 +4,8 @@ exports[`automation - planning input - openAI > input value 1`] = `
 [
   {
     "param": {
-      "prompt": "",
-    },
-    "quickAnswer": {
       "id": "fbc2d0029b",
-      "reason": "",
-      "text": "",
+      "prompt": "",
     },
     "thought": undefined,
     "type": "Locate",
@@ -28,12 +24,8 @@ exports[`automation - planning input - openAI > input value 2`] = `
 [
   {
     "param": {
-      "prompt": "",
-    },
-    "quickAnswer": {
       "id": "fbc2d0029b",
-      "reason": "",
-      "text": "",
+      "prompt": "",
     },
     "thought": undefined,
     "type": "Locate",
@@ -59,12 +51,8 @@ exports[`automation - planning input - openAI > input value 3`] = `
 [
   {
     "param": {
-      "prompt": "",
-    },
-    "quickAnswer": {
       "id": "fbc2d0029b",
-      "reason": "",
-      "text": "",
+      "prompt": "",
     },
     "thought": undefined,
     "type": "Locate",
@@ -83,12 +71,8 @@ exports[`automation - planning input - openAI > input value 4`] = `
 [
   {
     "param": {
-      "prompt": "",
-    },
-    "quickAnswer": {
       "id": "fbc2d0029b",
-      "reason": "",
-      "text": "",
+      "prompt": "",
     },
     "thought": undefined,
     "type": "Locate",
@@ -114,12 +98,8 @@ exports[`automation - planning input - openAI > input value 5`] = `
 [
   {
     "param": {
-      "prompt": "",
-    },
-    "quickAnswer": {
       "id": "fbc2d0029b",
-      "reason": "",
-      "text": "",
+      "prompt": "",
     },
     "thought": undefined,
     "type": "Locate",
@@ -138,12 +118,8 @@ exports[`automation - planning input - openAI > input value 6`] = `
 [
   {
     "param": {
-      "prompt": "",
-    },
-    "quickAnswer": {
       "id": "fbc2d0029b",
-      "reason": "",
-      "text": "",
+      "prompt": "",
     },
     "thought": undefined,
     "type": "Locate",
@@ -169,12 +145,8 @@ exports[`automation - planning input - openAI > input value 7`] = `
 [
   {
     "param": {
-      "prompt": "",
-    },
-    "quickAnswer": {
       "id": "fbc2d0029b",
-      "reason": "",
-      "text": "",
+      "prompt": "",
     },
     "thought": undefined,
     "type": "Locate",
@@ -193,12 +165,8 @@ exports[`automation - planning input - openAI > input value 8`] = `
 [
   {
     "param": {
-      "prompt": "",
-    },
-    "quickAnswer": {
       "id": "fbc2d0029b",
-      "reason": "",
-      "text": "",
+      "prompt": "",
     },
     "thought": undefined,
     "type": "Locate",
@@ -224,12 +192,8 @@ exports[`automation - planning input - openAI > input value 9`] = `
 [
   {
     "param": {
-      "prompt": "",
-    },
-    "quickAnswer": {
       "id": "fbc2d0029b",
-      "reason": "",
-      "text": "",
+      "prompt": "",
     },
     "thought": undefined,
     "type": "Locate",
@@ -248,12 +212,8 @@ exports[`automation - planning input - openAI > input value 10`] = `
 [
   {
     "param": {
-      "prompt": "",
-    },
-    "quickAnswer": {
       "id": "fbc2d0029b",
-      "reason": "",
-      "text": "",
+      "prompt": "",
     },
     "thought": undefined,
     "type": "Locate",
@@ -279,19 +239,15 @@ exports[`automation - planning input - openAI > input value Add, delete, correct
 [
   {
     "param": {
-      "prompt": "",
-    },
-    "quickAnswer": {
       "id": "fbc2d0029b",
-      "reason": "",
-      "text": "",
+      "prompt": "",
     },
     "thought": undefined,
     "type": "Locate",
   },
   {
     "param": {
-      "value": "Learn English tomorrow",
+      "value": "Learn Englishtomorrow",
     },
     "thought": undefined,
     "type": "Input",
@@ -303,12 +259,8 @@ exports[`automation - planning input - openAI > input value Add, delete, correct
 [
   {
     "param": {
-      "prompt": "",
-    },
-    "quickAnswer": {
       "id": "fbc2d0029b",
-      "reason": "",
-      "text": "",
+      "prompt": "",
     },
     "thought": undefined,
     "type": "Locate",
@@ -327,12 +279,8 @@ exports[`automation - planning input - openAI > input value Add, delete, correct
 [
   {
     "param": {
-      "prompt": "",
-    },
-    "quickAnswer": {
       "id": "fbc2d0029b",
-      "reason": "",
-      "text": "",
+      "prompt": "",
     },
     "thought": undefined,
     "type": "Locate",
@@ -351,19 +299,15 @@ exports[`automation - planning input - openAI > input value Add, delete, correct
 [
   {
     "param": {
-      "prompt": "",
-    },
-    "quickAnswer": {
       "id": "fbc2d0029b",
-      "reason": "",
-      "text": "",
+      "prompt": "",
     },
     "thought": undefined,
     "type": "Locate",
   },
   {
     "param": {
-      "value": "Learn English tomorrow",
+      "value": "Learn Englishtomorrow",
     },
     "thought": undefined,
     "type": "Input",
@@ -375,12 +319,8 @@ exports[`automation - planning input - openAI > input value Add, delete, correct
 [
   {
     "param": {
-      "prompt": "",
-    },
-    "quickAnswer": {
       "id": "fbc2d0029b",
-      "reason": "",
-      "text": "",
+      "prompt": "",
     },
     "thought": undefined,
     "type": "Locate",
@@ -399,12 +339,8 @@ exports[`automation - planning input - openAI > input value Add, delete, correct
 [
   {
     "param": {
-      "prompt": "",
-    },
-    "quickAnswer": {
       "id": "fbc2d0029b",
-      "reason": "",
-      "text": "",
+      "prompt": "",
     },
     "thought": undefined,
     "type": "Locate",
@@ -423,19 +359,15 @@ exports[`automation - planning input - openAI > input value Add, delete, correct
 [
   {
     "param": {
-      "prompt": "",
-    },
-    "quickAnswer": {
       "id": "fbc2d0029b",
-      "reason": "",
-      "text": "",
+      "prompt": "",
     },
     "thought": undefined,
     "type": "Locate",
   },
   {
     "param": {
-      "value": "Learn English tomorrow",
+      "value": "Learn Englishtomorrow",
     },
     "thought": undefined,
     "type": "Input",
@@ -447,12 +379,8 @@ exports[`automation - planning input - openAI > input value Add, delete, correct
 [
   {
     "param": {
-      "prompt": "",
-    },
-    "quickAnswer": {
       "id": "fbc2d0029b",
-      "reason": "",
-      "text": "",
+      "prompt": "",
     },
     "thought": undefined,
     "type": "Locate",
@@ -471,12 +399,8 @@ exports[`automation - planning input - openAI > input value Add, delete, correct
 [
   {
     "param": {
-      "prompt": "",
-    },
-    "quickAnswer": {
       "id": "fbc2d0029b",
-      "reason": "",
-      "text": "",
+      "prompt": "",
     },
     "thought": undefined,
     "type": "Locate",
@@ -495,19 +419,15 @@ exports[`automation - planning input - openAI > input value Add, delete, correct
 [
   {
     "param": {
-      "prompt": "",
-    },
-    "quickAnswer": {
       "id": "fbc2d0029b",
-      "reason": "",
-      "text": "",
+      "prompt": "",
     },
     "thought": undefined,
     "type": "Locate",
   },
   {
     "param": {
-      "value": "Learn English tomorrow",
+      "value": "Learn Englishtomorrow",
     },
     "thought": undefined,
     "type": "Input",
@@ -519,12 +439,8 @@ exports[`automation - planning input - openAI > input value Add, delete, correct
 [
   {
     "param": {
-      "prompt": "",
-    },
-    "quickAnswer": {
       "id": "fbc2d0029b",
-      "reason": "",
-      "text": "",
+      "prompt": "",
     },
     "thought": undefined,
     "type": "Locate",
@@ -543,12 +459,8 @@ exports[`automation - planning input - openAI > input value Add, delete, correct
 [
   {
     "param": {
-      "prompt": "",
-    },
-    "quickAnswer": {
       "id": "fbc2d0029b",
-      "reason": "",
-      "text": "",
+      "prompt": "",
     },
     "thought": undefined,
     "type": "Locate",
@@ -567,19 +479,15 @@ exports[`automation - planning input - openAI > input value Add, delete, correct
 [
   {
     "param": {
-      "prompt": "",
-    },
-    "quickAnswer": {
       "id": "fbc2d0029b",
-      "reason": "",
-      "text": "",
+      "prompt": "",
     },
     "thought": undefined,
     "type": "Locate",
   },
   {
     "param": {
-      "value": "Learn English tomorrow",
+      "value": "Learn Englishtomorrow",
     },
     "thought": undefined,
     "type": "Input",
@@ -591,12 +499,8 @@ exports[`automation - planning input - openAI > input value Add, delete, correct
 [
   {
     "param": {
-      "prompt": "",
-    },
-    "quickAnswer": {
       "id": "fbc2d0029b",
-      "reason": "",
-      "text": "",
+      "prompt": "",
     },
     "thought": undefined,
     "type": "Locate",
@@ -615,12 +519,8 @@ exports[`automation - planning input - openAI > input value Add, delete, correct
 [
   {
     "param": {
-      "prompt": "",
-    },
-    "quickAnswer": {
       "id": "fbc2d0029b",
-      "reason": "",
-      "text": "",
+      "prompt": "",
     },
     "thought": undefined,
     "type": "Locate",

@@ -22,6 +22,7 @@ jobs:
       OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
       OPENAI_BASE_URL: ${{ secrets.OPENAI_BASE_URL }}
       MIDSCENE_MODEL_NAME: ${{ secrets.MIDSCENE_MODEL_NAME }}
+      MIDSCENE_DEBUG_AI_PROFILE: 1
 
     steps:
     - uses: actions/checkout@v4
@@ -85,6 +86,14 @@ jobs:
       with:
         name: e2e-cache-output
         path: ${{ github.workspace }}/packages/web-integration/midscene_run/cache
+        if-no-files-found: ignore
+
+    - name: Upload e2e output
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: e2e-output
+        path: ${{ github.workspace }}/packages/web-integration/midscene_run
         if-no-files-found: ignore
 
     - name: Run e2e tests report
