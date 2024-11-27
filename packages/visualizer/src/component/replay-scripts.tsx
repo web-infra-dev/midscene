@@ -190,8 +190,8 @@ export const generateAnimationScripts = (
       return null;
     }
 
-    for (let i = startIndex + 1; i < execution.tasks.length; i++) {
-      if (execution.tasks[i].type === 'Planning') {
+    for (let i = startIndex; i < execution.tasks.length; i++) {
+      if (i > startIndex && execution.tasks[i].type === 'Planning') {
         break;
       }
 
@@ -408,8 +408,8 @@ export const generateAnimationScripts = (
     });
   }
 
-  console.log('replayscripts');
-  console.log(scripts);
+  // console.log('replayscripts');
+  // console.log(scripts, tasksIncluded);
 
   return scripts;
 };

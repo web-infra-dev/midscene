@@ -16,11 +16,9 @@ import {
 export function timeCostStrElement(timeCost?: number) {
   let str: string;
   if (typeof timeCost !== 'number') {
-    str = '- ms';
-  } else if (timeCost > 1000) {
-    str = `${(timeCost / 1000).toFixed(2)}s`;
+    str = '-';
   } else {
-    str = `${timeCost}ms`;
+    str = `${(timeCost / 1000).toFixed(2)}s`;
   }
   return (
     <span
