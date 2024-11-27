@@ -180,7 +180,6 @@ Reason:
   * Should not plan the last 'Tap' action after the 'Locate' action
   * The task should be reevaluated, but the \`furtherPlan\` field is missing.
 
-
 ## BAD case #2 : A \`Locate\` action is missing before the \`Input\` action
 
 Wrong output:
@@ -211,7 +210,8 @@ Wrong output:
         "id": "594017",
         "prompt": "the checkbox for the second task 'Learning AI the day after tomorrow'"
       }
-    }
+    },
+    // WRONG: should append a 'Tap' action here
   ],
   "furtherPlan": {
     "whatHaveDone": "Located the checkbox for the second task.",

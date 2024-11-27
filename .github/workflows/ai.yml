@@ -73,26 +73,26 @@ jobs:
       run: pnpm run e2e
       id: e2e-tests
       continue-on-error: true
+
+    - name: Upload e2e report
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: e2e-report
+        path: ${{ github.workspace }}/packages/web-integration/midscene_run/report
+        if-no-files-found: ignore
       
     - name: Run e2e tests cache
       run: pnpm run e2e:cache
       id: e2e-tests-cache
       continue-on-error: true
 
-    - name: Upload e2e cache output
+    - name: Upload e2e cache report
       if: always()
       uses: actions/upload-artifact@v4
       with:
-        name: e2e-cache-output
-        path: ${{ github.workspace }}/packages/web-integration/midscene_run/cache
-        if-no-files-found: ignore
-
-    - name: Upload e2e output
-      if: always()
-      uses: actions/upload-artifact@v4
-      with:
-        name: e2e-output
-        path: ${{ github.workspace }}/packages/web-integration/midscene_run
+        name: e2e-cache-report
+        path: ${{ github.workspace }}/packages/web-integration/midscene_run/report
         if-no-files-found: ignore
 
     - name: Run e2e tests report
