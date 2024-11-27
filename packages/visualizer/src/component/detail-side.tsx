@@ -237,6 +237,14 @@ const DetailSide = (): JSX.Element => {
               },
             ]
           : []),
+        ...(task?.param?.id
+          ? [
+              {
+                key: 'id',
+                content: task.param.id,
+              },
+            ]
+          : []),
         ...(task?.thought
           ? [
               {

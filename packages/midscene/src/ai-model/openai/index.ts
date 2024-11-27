@@ -139,13 +139,23 @@ export async function callToGetJSONObject<T>(
     responseFormat = { type: AIResponseFormat.TEXT };
   }
 
+  const safeJsonParse = (input: string) => {
+    try {
+      return JSON.parse(input);
+    } catch {
+      return null;
+    }
+  };
   const response = await call(messages, responseFormat);
   assert(response, 'empty response');
-  const jsonContent = extractJSONFromCodeBlock(response);
+  let jsonContent = safeJsonParse(response);
+  if (jsonContent) return jsonContent;
+
+  jsonContent = extractJSONFromCodeBlock(response);
   try {
     return JSON.parse(jsonContent);
   } catch {
-    throw Error(`parse json error: ${jsonContent}`);
+    throw Error(`parse json error: ${response}`);
   }
 }
 

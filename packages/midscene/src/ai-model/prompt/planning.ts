@@ -142,14 +142,9 @@ When a user says 'Click the language switch button, wait 1s, click "English"', b
   }
 }
 
-## BAD case #1
+## BAD case #1 : Missing \`prompt\` in the 'Locate' action; Scenario about when to use the \`furtherPlan\` field
 
-Reason: 
-* The \`prompt\` is missing in the first 'Locate' action
-* Since the option button is not shown in the screenshot (with param {id: null}):
-  * Should not plan the last 'Tap' action after the 'Locate' action
-  * The task should be reevaluated, but the \`furtherPlan\` field is missing.
-
+Wrong output:
 {
   actions:[
     {
@@ -174,12 +169,19 @@ Reason:
       type: 'Tap',
       param: null,
     }
-    ],
+  ],
   // WRONG: should not be null, since the task should be reevaluated
   furtherPlan: null,
 }
 
-## BAD case #2
+Reason: 
+* The \`prompt\` is missing in the first 'Locate' action
+* Since the option button is not shown in the screenshot (with param {id: null}):
+  * Should not plan the last 'Tap' action after the 'Locate' action
+  * The task should be reevaluated, but the \`furtherPlan\` field is missing.
+
+
+## BAD case #2 : A \`Locate\` action is missing before the \`Input\` action
 
 Wrong output:
 {
@@ -195,7 +197,7 @@ Wrong output:
 
 Reason: A \`Locate\` action is missing before the \`Input\` action. The action type \`Hover\` and \`Tap\` also need a \`Locate\` action before them.
 
-## Base case 3
+## Base case 3 : The element has already shown and located, append an action instead of using the \`furtherPlan\` field
 
 The user asked to click the check button to the left of the second task
 
@@ -217,7 +219,7 @@ Wrong output:
   },
 }
 
-Reason: The element has already shown and located, the \`furtherPlan\` field is not needed. You should append a \`Tap\` action for the located element.
+Reason: The element has already shown and been located. You should append a \`Tap\` action for the located element instead of using the \`furtherPlan\` field.
 \`\`\`
 `;
 }

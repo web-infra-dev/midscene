@@ -408,5 +408,8 @@ export const generateAnimationScripts = (
     });
   }
 
+  console.log('replayscripts');
+  console.log(scripts);
+
   return scripts;
 };
