@@ -238,20 +238,24 @@ export async function describeUserPage<
     opt?.filterEmptyContent,
   );
 
+  const contentList = elementInfosDescription
+    .map((item) => {
+      const { id, ...rest } = item;
+      return `id=${id}: ${JSON.stringify(rest)}`;
+    })
+    .join(',\n');
+
   return {
     description: `
-{
-  // The size of the page
-  "pageSize": ${describeSize({ width, height })},\n
-  ${
-    // if match by id, use the description of the element
-    getAIConfig(MATCH_BY_POSITION)
-      ? ''
-      : `// json description of the element
-  "content": ${JSON.stringify(elementInfosDescription)}
-      `
-  }
-}`,
+The size of the page: ${describeSize({ width, height })}
+
+${
+  // if match by id, use the description of the element
+  getAIConfig(MATCH_BY_POSITION)
+    ? ''
+    : `Json description of the page elements:\n${contentList}`
+}
+`,
     elementById(id: string) {
       assert(typeof id !== 'undefined', 'id is required for query');
       const item = idElementMap[`${id}`];
