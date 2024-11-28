@@ -118,16 +118,16 @@ export default defineConfig({
           text: '使用指南',
           items: [
             {
+              text: '使用 YAML 格式的自动化脚本',
+              link: '/zh/automate-with-scripts-in-yaml',
+            },
+            {
               text: '集成到 Playwright',
               link: '/zh/integrate-with-playwright',
             },
             {
               text: '集成到 Puppeteer',
               link: '/zh/integrate-with-puppeteer',
-            },
-            {
-              text: '命令行工具',
-              link: '/zh/cli',
             },
             {
               text: 'API 参考',
