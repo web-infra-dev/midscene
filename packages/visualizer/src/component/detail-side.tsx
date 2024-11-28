@@ -175,6 +175,8 @@ const DetailSide = (): JSX.Element => {
     ?.usage
     ? JSON.stringify(
         (task as ExecutionTaskInsightLocate).log!.dump!.taskInfo!.usage,
+        undefined,
+        2,
       )
     : '';
 

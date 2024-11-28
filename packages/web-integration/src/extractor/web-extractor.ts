@@ -51,10 +51,10 @@ function collectElementInfo(
 
   if (isFormElement(node)) {
     const attributes = getNodeAttributes(node);
-    const nodeHashId = midsceneGenerateHash(node, attributes.placeholder, rect);
-    const selector = setDataForNode(node, nodeHashId);
     let valueContent =
       attributes.value || attributes.placeholder || node.textContent || '';
+    const nodeHashId = midsceneGenerateHash(node, valueContent, rect);
+    const selector = setDataForNode(node, nodeHashId);
     const tagName = (node as HTMLElement).tagName.toLowerCase();
     if ((node as HTMLElement).tagName.toLowerCase() === 'select') {
       // Get the selected option using the selectedIndex property
@@ -238,6 +238,7 @@ export function extractTextWithPosition(
   setDebugMode(debugMode);
   setFrameId(currentFrame.id);
   resetNodeHashCacheList();
+  indexId = 0;
   const elementInfoArray: WebElementInfo[] = [];
 
   function dfs(

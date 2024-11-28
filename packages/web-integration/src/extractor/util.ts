@@ -1,4 +1,4 @@
-import SHA256 from 'js-sha256';
+import { sha256 } from 'js-sha256';
 import { extractTextWithPosition } from './web-extractor';
 
 // import { TEXT_MAX_SIZE } from './constants';
@@ -392,8 +392,8 @@ export function midsceneGenerateHash(
   // Generates the ha-256 hash value
   let sliceLength = 5;
   let hashInDigits = '';
-  const hashHex = SHA256(combined);
-  while (sliceLength < combined.length - 1) {
+  const hashHex = sha256.create().update(combined).hex();
+  while (sliceLength < hashHex.length - 1) {
     hashInDigits = Number.parseInt(
       hashHex.slice(0, sliceLength),
       16,
