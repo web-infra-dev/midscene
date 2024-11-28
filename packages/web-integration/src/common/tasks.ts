@@ -430,7 +430,7 @@ export class PageTaskExecutor {
         }
 
         const { actions, furtherPlan, taskWillBeAccomplished } = planResult;
-        console.log('actions', taskWillBeAccomplished, actions, furtherPlan);
+        // console.log('actions', taskWillBeAccomplished, actions, furtherPlan);
 
         let stopCollecting = false;
         const finalActions = actions.reduce<PlanningAction[]>(
