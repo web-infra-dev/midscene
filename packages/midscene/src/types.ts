@@ -224,10 +224,18 @@ export interface AgentAssertOpt {
  *
  */
 
+export interface PlanningLocateParam {
+  id?: string;
+  position?: {
+    x: number;
+    y: number;
+  };
+  prompt: string;
+}
+
 export interface PlanningAction<ParamType = any> {
   thought?: string;
   type:
-    | 'Plan'
     | 'Locate'
     | 'Tap'
     | 'Hover'
@@ -239,17 +247,18 @@ export interface PlanningAction<ParamType = any> {
     | 'AssertWithoutThrow'
     | 'Sleep';
   param: ParamType;
-  quickAnswer?: AISingleElementResponse | null;
+  locate: PlanningLocateParam | null;
 }
 
 export interface PlanningAIResponse {
   actions: PlanningAction[];
+  taskWillBeAccomplished: boolean;
   furtherPlan: PlanningFurtherPlan | null;
   error?: string;
 }
 
 export interface PlanningFurtherPlan {
-  whatToDo: string;
+  whatToDoNext: string;
   whatHaveDone: string;
 }
 export type PlanningActionParamPlan = PlanningFurtherPlan;
@@ -333,12 +342,13 @@ export interface ExecutionTaskApply<
   subType?: string;
   param?: TaskParam;
   thought?: string;
+  locate: PlanningLocateParam | null;
   quickAnswer?: AISingleElementResponse | null;
   executor: (
     param: TaskParam,
     context: ExecutorContext,
   ) => // biome-ignore lint/suspicious/noConfusingVoidType: <explanation>
-    | Promise<ExecutionTaskReturn<TaskOutput, TaskLog> | undefined | void>
+  | Promise<ExecutionTaskReturn<TaskOutput, TaskLog> | undefined | void>
     | undefined
     | void;
 }
@@ -384,10 +394,7 @@ export interface ExecutionDump extends DumpMeta {
 /*
 task - insight-locate
 */
-export interface ExecutionTaskInsightLocateParam {
-  prompt: string;
-  id?: string;
-}
+export type ExecutionTaskInsightLocateParam = PlanningLocateParam;
 
 export interface ExecutionTaskInsightLocateOutput {
   element: BaseElement | null;

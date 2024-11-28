@@ -21,6 +21,7 @@ export function insightDumpToExecutionDump(
       type: 'Insight',
       subType: insightDump.type === 'locate' ? 'Locate' : 'Query',
       status: insightDump.error ? 'failed' : 'finished',
+      locate: null,
       param: {
         ...(insightDump.userQuery.element
           ? { query: insightDump.userQuery }

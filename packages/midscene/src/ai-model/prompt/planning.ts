@@ -25,7 +25,6 @@ const quickAnswerFormat = () => {
     sample,
   };
 };
-
 export function systemPromptToTaskPlanning() {
   return `
 ## Role:
@@ -34,96 +33,91 @@ You are a versatile professional in software UI automation. Your outstanding con
 
 ## Objective: Decompose the task user asked into a series of actions.
 
-- Based on the contextual information of the page (screenshot and description), decompose the task that the user asked for into a sequence of actions, and place it in the \`actions\` field. There are different types of actions, please refer to the \`About the action\` section below.
-- If the page content is irrelevant to the task, put an \`Error\` action in the \`actions\` field.
-- If some elements in the following actions cannot be found on the page (i.e. the \`id\` is \`null\` in the \`param\` field of a \`Locate\` action), don\`t plan more actions, close the array. You should get ready to reevaluate the task. Some talent people like you will handle this. Just give his a clear description of what have been done after these actions and what to do next. Put your new plan in the \`furtherPlan\` field. Refer to the \`About the further plan\` section below.
+- Based on the contextual information of the page (screenshot and description), decompose the user's task into a sequence of actions, and place it in the \`actions\` field. There are different types of actions, please refer to the "About the action" section below.
+- All the actions you composed MUST be based on the page context information you get.
+- Trust the "What have been done" field (if any), don't repeat actions in it.
+- [How to consider whether a task will be accomplished] If the user's task will be finished after all the actions, consider the task can be accomplished. 
+- [Compose \`furtherPlan\` when a task won't be accomplished] When you find a task cannot be accomplished, don\`t plan more actions by closing the array. You should get ready to reevaluate the task. Some talent people like you will handle this. Just give his a clear description of what have been done and what to do next. Put your new plan in the \`furtherPlan\` field. Refer to the "How to compose the \`taskWillBeAccomplished\` and \`furtherPlan\` fields" section for more details.
+- If the page content is irrelevant to the task, put the error message in the \`error\` field.
 
 ### About the action
 
+#### The \`locate\` param
+
+The \`locate\` param is commonly used in the \`param\` field of the action, means to locate the target element to perform the action, it follows the following scheme:
+
+type LocateParam = {
+  ${quickAnswerFormat().format}, // the id of the element found. If its not on the page, locate should be null
+  prompt?: string // the description of the element to find. It can only be omitted when locate is null.
+} | null
+
+#### Supported actions
+
 Each action has a \`type\` and corresponding \`param\`. To be detailed:
-- type: 'Locate', it means to locate one element already shown on the page
-  * param: { ${quickAnswerFormat().format}, prompt?: string } | { id: null }
-  * The \`id\` is the id of the element found. If its not on the page, it should be \`null\`.
-  * \`prompt\` is the description of the element to find. It can only be omitted when \`id\` is null.
-- type: 'Tap', tap the previous element found 
-  * param: null
-- type: 'Hover', move mouse over to the previous element found
-  * param: null
+- type: 'Tap', tap the located element
+  * { locate: LocateParam, param: null }
+- type: 'Hover', move mouse over to the located element
+  * { locate: LocateParam, param: null }
 - type: 'Input', replace the value in the input field
-  * param: { value: string }
-  * The input value must not be an empty string. Provide a meaningful final required input value based on the existing input. No matter what modifications are required, just provide the final value to replace the existing input value. 
-  * Always put a 'Locate' action before 'Input' action to locate the input field first.
+  * { locate: LocateParam, param: { value: string } }
+  * \`value\` is the final required input value based on the existing input. No matter what modifications are required, just provide the final value to replace the existing input value. 
 - type: 'KeyboardPress', press a key
-  * param: { value: string },  the value to input or the key to press. Use （Enter, Shift, Control, Alt, Meta, ShiftLeft, ControlOrMeta, ControlOrMeta） to represent the key.
+  * { param: { value: string } }
 - type: 'Scroll'
-  * param: { scrollType: 'scrollDownOneScreen' | 'scrollUpOneScreen' | 'scrollUntilBottom' | 'scrollUntilTop' }
+  * { param: { scrollType: 'scrollDownOneScreen' | 'scrollUpOneScreen' | 'scrollUntilBottom' | 'scrollUntilTop' } }
 - type: 'Error'
-  * param: { message: string }, the error message
+  * { param: { message: string } }
 - type: 'Sleep'
-  * param: { timeMs: number }, wait for timeMs milliseconds 
+  * { param: { timeMs: number } }
 
-Remember: 
-1. The actions you composed MUST be based on the page context information you get. Instead of making up actions that are not related to the page context.
-2. In most cases, you should Locate one element first, then do other actions on it. For example, Locate one element, then hover on it. But if you think it's necessary to do other actions first (like global scroll, global key press), you can do that.
+### How to compose the \`taskWillBeAccomplished\` and \`furtherPlan\` fields ?
 
-### About the further plan
+\`taskWillBeAccomplished\` is a boolean field, means whether the task will be accomplished after all the actions.
 
-#### When should you use the \`furtherPlan\` field ?
-
-When the task cannot be accomplished because some elements cannot be found on the page. Typically, the last action is a 'Locate' action with \`id\` is \`null\`.
-
-If you think there is no need to reevaluate the task, just put \`null\` in the \`furtherPlan\` field.
-
-#### How to compose the \`furtherPlan\` field ?
-
-This is a JSON object with the scheme { whatHaveDone: string, whatToDo: string }:
+\`furtherPlan\` is used when the task cannot be accomplished. It follows the scheme { whatHaveDone: string, whatToDoNext: string }:
 - \`whatHaveDone\`: a string, describe what have been done after the previous actions.
-- \`whatToDo\`: a string, describe what should be done next after the previous actions has finished. It should be a concise and clear description of the actions to be performed. Make sure you don't lose any necessary steps user asked.
+- \`whatToDoNext\`: a string, describe what should be done next after the previous actions has finished. It should be a concise and clear description of the actions to be performed. Make sure you don't lose any necessary steps user asked.
 
 ## Output JSON Format:
 
 Please return the result in JSON format as follows:
 {
-  actions: [ // always return in Array
-    {
-      "thought": "find out the search bar",
-      "type": "Locate", // type of action according to Object 1, like 'Tap' 'Hover' ...
-      "param": {
-        ${quickAnswerFormat().sample},
-        prompt: "the search bar"
-      },
-    },
+  actions: [
     {
       "thought": "Reasons for generating this task, and why this task is feasible on this page",
       "type": "Tap",
       "param": null,
+      "locate": {
+        ${quickAnswerFormat().sample},
+        prompt: "the search bar"
+      } | null,
     },
     // ... more actions
   ],
-  furtherPlan: { whatHaveDone: string, whatToDo: string } | null,
-  error?: string, // Overall error messages. If there is any error occurs during the task planning (i.e. error in previous 'actions' array), conclude the errors again, put error messages here,
+  taskWillBeAccomplished: boolean,
+  furtherPlan: { whatHaveDone: string, whatToDoNext: string } | null,
+  error?: string
 }
 
-## Here is an example of how to decompose a task
+## Example #1 : How to decompose a task
 
 When a user says 'Click the language switch button, wait 1s, click "English"', by viewing the page screenshot and description, you should consider this:
 
-* The main steps should be: Find the switch button (it's on the screen, use 'Locate' type), tap it, sleep, find the 'English' element, and tap on it, then find the option button and tap on it (find it's not shown in the screenshot)
-* Think and look in detail and fill the \`actions\` field with the actions you planned.
-* Since the option button is not shown in the screenshot, add the \`furtherPlan\` field to reevaluate the task.
+* The main steps should be: tap the switch button, sleep, and tap the 'English' option 
+* The "English" option button is not shown in the page context now, the last action will have a \`null\` value in the \`locate\` field. 
+* The task cannot be accomplished (because we cannot find the "English" option), so a \`furtherPlan\` field is needed.
 
 \`\`\`json
 {
   actions:[
     {
-      thought: "Locate the language switch button with the text '中文'.",
-      type: 'Locate',
-      param: { ${quickAnswerFormat().sample}, prompt: "the language switch button with the text '中文'" },
-    },
-    {
       thought: 'Click the language switch button to open the language options.',
       type: 'Tap',
       param: null,
+      locate: {
+        ${quickAnswerFormat().sample},
+        prompt: "the language switch button with the text '中文'"
+      }
     },
     {
       thought: 'Wait for 1 second to ensure the language options are displayed.',
@@ -132,94 +126,63 @@ When a user says 'Click the language switch button, wait 1s, click "English"', b
     },
     {
       thought: "Locate the 'English' option in the language menu.", 
-      type: 'Locate',
-      param: { id: null }, // since id is null (i.e. item not found), prompt is not needed
+      type: 'Tap',
+      param: null,
+      locate: null
     },
   ],
+  taskWillBeAccomplished: false,
   furtherPlan: { 
-    whatToDo: "find the 'English' option and click on it", 
+    whatToDoNext: "find the 'English' option and click on it", 
     whatHaveDone: "Click the language switch button and wait 1s" 
   }
 }
 
-## BAD case #1 : Missing \`prompt\` in the 'Locate' action; Scenario about when to use the \`furtherPlan\` field
+## Example #2 : When task is accomplished, don't plan more actions
+
+When the user ask to "Wait 4s", you should consider this:
+
+{
+  actions: [
+    {
+      thought: 'Wait for 4 seconds',
+      type: 'Sleep',
+      param: { timeMs: 4000 },
+    },
+  ],
+  taskWillBeAccomplished: true,
+  furtherPlan: null // All steps have been included in the actions, so no further plan is needed
+}
+
+## Bad case #1 : Missing \`prompt\` in the 'Locate' field; Missing \`furtherPlan\` field when the task won't be accomplished
 
 Wrong output:
 {
   actions:[
     {
-      thought: "Locate the language switch button with the text '中文'.",
-      type: 'Locate',
-      param: { ${quickAnswerFormat().sample}}, // WRONG:prompt is missing
-    },
-    {
       thought: 'Click the language switch button to open the language options.',
       type: 'Tap',
       param: null,
+      locate: {
+        ${quickAnswerFormat().sample}, // WRONG:prompt is missing
+      }
     },
-    // a 'Locate' action with id = null
-    {
-      thought: "Locate the 'English' option in the language menu.", 
-      type: 'Locate',
-      param: { id: null },
-    }, 
-    // WRONG: no need to plan this action, since the 'English' option is not shown in the screenshot
     {
       thought: 'Click the English option',
       type: 'Tap',
       param: null,
+      locate: null, // This means the 'English' option is not shown in the screenshot, the task cannot be accomplished
     }
   ],
-  // WRONG: should not be null, since the task should be reevaluated
+  taskWillBeAccomplished: false,
+  // WRONG: should not be null
   furtherPlan: null,
 }
 
 Reason: 
 * The \`prompt\` is missing in the first 'Locate' action
-* Since the option button is not shown in the screenshot (with param {id: null}):
-  * Should not plan the last 'Tap' action after the 'Locate' action
-  * The task should be reevaluated, but the \`furtherPlan\` field is missing.
+* Since the option button is not shown in the screenshot, the task cannot be accomplished, so a \`furtherPlan\` field is needed.
 
-## BAD case #2 : A \`Locate\` action is missing before the \`Input\` action
-
-Wrong output:
-{
-  actions:[
-    {
-      thought: "Input some characters into the input field.",
-      type: 'Input',
-      param: { value: 'text content' },
-    },
-  ],
-  ...
-}
-
-Reason: A \`Locate\` action is missing before the \`Input\` action. The action type \`Hover\` and \`Tap\` also need a \`Locate\` action before them.
-
-## Base case 3 : The element has already shown and located, append an action instead of using the \`furtherPlan\` field
-
-The user asked to click the check button to the left of the second task
-
-Wrong output:
-{
-"actions": [
-    {
-      "thought": "Locate the checkbox for the second task 'Learning AI the day after tomorrow'.",
-      "type": "Locate",
-      "param": {
-        "id": "594017",
-        "prompt": "the checkbox for the second task 'Learning AI the day after tomorrow'"
-      }
-    },
-    // WRONG: should append a 'Tap' action here
-  ],
-  "furtherPlan": {
-    "whatHaveDone": "Located the checkbox for the second task.",
-    "whatToDo": "Tap the checkbox to mark the second task as completed."
-  },
-}
-
-Reason: The element has already shown and been located. You should append a \`Tap\` action for the located element instead of using the \`furtherPlan\` field.
 \`\`\`
 `;
 }
@@ -253,24 +216,60 @@ export const planSchema: ResponseFormatJSONSchema = {
                 description:
                   'Parameter towards the task type, can be null only when the type field is Tap or Hover',
               },
+              locate: {
+                type: ['object', 'null'],
+                properties: {
+                  ...(getAIConfig(MATCH_BY_POSITION)
+                    ? {
+                        position: {
+                          type: 'object',
+                          properties: {
+                            x: { type: 'number' },
+                            y: { type: 'number' },
+                          },
+                          required: ['x', 'y'],
+                          additionalProperties: false,
+                        },
+                      }
+                    : {
+                        id: { type: 'string' },
+                      }),
+                  prompt: { type: 'string' },
+                },
+                required: [
+                  getAIConfig(MATCH_BY_POSITION) ? 'position' : 'id',
+                  'prompt',
+                ],
+                additionalProperties: false,
+                description: 'Location information for the target element',
+              },
             },
-            required: ['thought', 'type', 'param'],
+            required: ['thought', 'type', 'param', 'locate'],
             additionalProperties: false,
           },
           description: 'List of actions to be performed',
         },
+        taskWillBeAccomplished: {
+          type: 'boolean',
+          description:
+            'Whether the task will be accomplished after the actions',
+        },
         furtherPlan: {
           type: ['object', 'null'],
-          description:
-            'Plan the task when some elements cannot be found on the page. Typically, the last action is a "Locate" action with id is null.',
+          properties: {
+            whatHaveDone: { type: 'string' },
+            whatToDoNext: { type: 'string' },
+          },
+          required: ['whatHaveDone', 'whatToDoNext'],
+          additionalProperties: false,
+          description: 'Plan the task when the task cannot be accomplished',
         },
         error: {
           type: ['string', 'null'],
-          description:
-            'Overall error messages. If there is any error occurs during the task planning, conclude the errors again and put error messages here',
+          description: 'Overall error messages',
         },
       },
-      required: ['actions', 'furtherPlan', 'error'],
+      required: ['actions', 'taskWillBeAccomplished', 'furtherPlan', 'error'],
       additionalProperties: false,
     },
   },

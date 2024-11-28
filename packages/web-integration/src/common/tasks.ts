@@ -3,7 +3,6 @@ import type { WebPage } from '@/common/page';
 import type { PuppeteerWebPage } from '@/puppeteer';
 import {
   type AIElementIdResponse,
-  type AIElementResponse,
   type DumpSubscriber,
   type ExecutionRecorderItem,
   type ExecutionTaskActionApply,
@@ -114,15 +113,16 @@ export class PageTaskExecutor {
     const tasks: ExecutionTaskApply[] = [];
     plans.forEach((plan) => {
       if (plan.type === 'Locate') {
-        if (plan.param?.id === null || plan.param.id === 'null') {
+        if (plan.locate?.id === null || plan.locate?.id === 'null') {
           // console.warn('Locate action with id is null, will be ignored');
           return;
         }
         const taskFind: ExecutionTaskInsightLocateApply = {
           type: 'Insight',
           subType: 'Locate',
-          param: plan.param,
+          param: plan.locate || undefined,
           thought: plan.thought,
+          locate: plan.locate,
           executor: async (param, taskContext) => {
             const { task } = taskContext;
             assert(param?.prompt || param?.id, 'No prompt or id to locate');
@@ -208,6 +208,7 @@ export class PageTaskExecutor {
           subType: 'Assert',
           param: assertPlan.param,
           thought: assertPlan.thought,
+          locate: assertPlan.locate,
           executor: async (param, taskContext) => {
             const { task } = taskContext;
             let insightDump: InsightDump | undefined;
@@ -249,6 +250,7 @@ export class PageTaskExecutor {
             subType: 'Input',
             param: plan.param,
             thought: plan.thought,
+            locate: plan.locate,
             executor: async (taskParam, { element }) => {
               if (element) {
                 await this.page.clearInput(element as ElementInfo);
@@ -269,6 +271,7 @@ export class PageTaskExecutor {
             subType: 'KeyboardPress',
             param: plan.param,
             thought: plan.thought,
+            locate: plan.locate,
             executor: async (taskParam) => {
               assert(taskParam?.value, 'No key to press');
               await this.page.keyboard.press(taskParam.value as KeyInput);
@@ -281,6 +284,7 @@ export class PageTaskExecutor {
             type: 'Action',
             subType: 'Tap',
             thought: plan.thought,
+            locate: plan.locate,
             executor: async (param, { element }) => {
               assert(element, 'Element not found, cannot tap');
               await this.page.mouse.click(element.center[0], element.center[1]);
@@ -293,6 +297,7 @@ export class PageTaskExecutor {
             type: 'Action',
             subType: 'Hover',
             thought: plan.thought,
+            locate: plan.locate,
             executor: async (param, { element }) => {
               assert(element, 'Element not found, cannot hover');
               await this.page.mouse.move(element.center[0], element.center[1]);
@@ -306,6 +311,7 @@ export class PageTaskExecutor {
             subType: 'Scroll',
             param: plan.param,
             thought: plan.thought,
+            locate: plan.locate,
             executor: async (taskParam) => {
               const scrollToEventName = taskParam.scrollType;
 
@@ -338,6 +344,7 @@ export class PageTaskExecutor {
             subType: 'Sleep',
             param: plan.param,
             thought: plan.thought,
+            locate: plan.locate,
             executor: async (taskParam) => {
               await sleep(taskParam?.timeMs || 3000);
             },
@@ -350,6 +357,7 @@ export class PageTaskExecutor {
             subType: 'Error',
             param: plan.param,
             thought: plan.thought,
+            locate: plan.locate,
             executor: async (taskParam) => {
               assert(
                 taskParam?.thought,
@@ -389,6 +397,7 @@ export class PageTaskExecutor {
   ) {
     const task: ExecutionTaskPlanningApply = {
       type: 'Planning',
+      locate: null,
       param: {
         userPrompt,
         whatHaveDone,
@@ -420,7 +429,37 @@ export class PageTaskExecutor {
           });
         }
 
-        assert(planResult.actions.length > 0, 'No plans found');
+        const { actions, furtherPlan, taskWillBeAccomplished } = planResult;
+        console.log('actions', taskWillBeAccomplished, actions, furtherPlan);
+
+        let stopCollecting = false;
+        const finalActions = actions.reduce<PlanningAction[]>(
+          (acc, planningAction) => {
+            if (stopCollecting) {
+              return acc;
+            }
+
+            if (planningAction.locate) {
+              acc.push({
+                type: 'Locate',
+                locate: planningAction.locate,
+                param: null,
+                thought: planningAction.locate.prompt,
+              });
+            } else if (
+              ['Tap', 'Hover', 'Input'].includes(planningAction.type)
+            ) {
+              // should include locate but get null
+              stopCollecting = true;
+              return acc;
+            }
+            acc.push(planningAction);
+            return acc;
+          },
+          [],
+        );
+
+        assert(finalActions.length > 0, 'No plans found');
 
         cacheGroup.saveCache({
           type: 'plan',
@@ -433,7 +472,11 @@ export class PageTaskExecutor {
         });
 
         return {
-          output: planResult,
+          output: {
+            actions: finalActions,
+            taskWillBeAccomplished: false,
+            furtherPlan,
+          },
           cache: {
             hit: Boolean(planCache),
           },
@@ -476,24 +519,24 @@ export class PageTaskExecutor {
       const plans = planResult.actions;
 
       // check if their is nothing but a locate will null task
-      const validPlans = plans.filter((plan: PlanningAction) => {
-        if (plan.type === 'Locate' && !plan.param?.id) {
-          return false;
-        }
-        return plan.type !== 'Plan';
-      });
-      if (validPlans.length === 0) {
-        if (replanCount === 0) {
-          return this.appendErrorPlan(
-            taskExecutor,
-            `No valid plans found, cannot proceed: ${userPrompt}`,
-          );
-        }
-        return this.appendErrorPlan(
-          taskExecutor,
-          `Cannot proceed after several steps, please check the report: ${userPrompt}`,
-        );
-      }
+      // const validPlans = plans.filter((plan: PlanningAction) => {
+      //   if (plan.type === 'Locate' && !plan.param?.id) {
+      //     return false;
+      //   }
+      //   return plan.type !== 'Plan';
+      // });
+      // if (validPlans.length === 0) {
+      //   if (replanCount === 0) {
+      //     return this.appendErrorPlan(
+      //       taskExecutor,
+      //       `No valid plans found, cannot proceed: ${userPrompt}`,
+      //     );
+      //   }
+      //   return this.appendErrorPlan(
+      //     taskExecutor,
+      //     `Cannot proceed after several steps, please check the report: ${userPrompt}`,
+      //   );
+      // }
 
       let executables: Awaited<ReturnType<typeof this.convertPlanToExecutable>>;
       try {
@@ -515,9 +558,9 @@ export class PageTaskExecutor {
           executor: taskExecutor,
         };
       }
-      if (planResult.furtherPlan?.whatToDo) {
+      if (planResult.furtherPlan?.whatToDoNext) {
         planningTask = this.planningTaskFromPrompt(
-          planResult.furtherPlan.whatToDo,
+          planResult.furtherPlan.whatToDoNext,
           cacheGroup,
           planResult.furtherPlan.whatHaveDone,
           originalPrompt,
@@ -542,6 +585,7 @@ export class PageTaskExecutor {
     const queryTask: ExecutionTaskInsightQueryApply = {
       type: 'Insight',
       subType: 'Query',
+      locate: null,
       param: {
         dataDemand: demand,
       },
@@ -577,6 +621,7 @@ export class PageTaskExecutor {
       param: {
         assertion,
       },
+      locate: null,
     };
     const { tasks } = await this.convertPlanToExecutable([assertionPlan]);
 
@@ -595,6 +640,7 @@ export class PageTaskExecutor {
       param: {
         thought: errorMsg,
       },
+      locate: null,
     };
     const { tasks } = await this.convertPlanToExecutable([errorPlan]);
     await taskExecutor.append(this.prependExecutorWithScreenshot(tasks[0]));
@@ -628,6 +674,7 @@ export class PageTaskExecutor {
         param: {
           assertion,
         },
+        locate: null,
       };
       const { tasks: assertTasks } = await this.convertPlanToExecutable([
         assertPlan,
@@ -653,6 +700,7 @@ export class PageTaskExecutor {
           param: {
             timeMs: timeRemaining,
           },
+          locate: null,
         };
         const { tasks: sleepTasks } = await this.convertPlanToExecutable([
           sleepPlan,
