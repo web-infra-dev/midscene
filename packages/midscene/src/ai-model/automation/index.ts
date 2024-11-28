@@ -85,21 +85,6 @@ ${taskBackgroundContext}
     `no actions in ai plan with context: ${planFromAI}`,
   );
 
-  // actions.forEach((action) => {
-  //   if (action.type === 'Locate' && action.quickAnswer) {
-  //     if ('id' in action.quickAnswer) {
-  //       return;
-  //     }
-
-  //     if ('position' in action.quickAnswer) {
-  //       action.quickAnswer = {
-  //         ...action.quickAnswer,
-  //         id: elementByPosition(action.quickAnswer.position)?.id!,
-  //       };
-  //     }
-  //   }
-  // });
-
   if (planFromAI.error) {
     throw new Error(planFromAI.error);
   }
