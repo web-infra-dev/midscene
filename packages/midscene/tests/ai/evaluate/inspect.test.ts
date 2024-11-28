@@ -74,8 +74,8 @@ describe('ai inspect element', () => {
                 });
 
                 return {
-                  elements: res.actions[0].quickAnswer
-                    ? [res.actions[0].quickAnswer]
+                  elements: res.actions[0].locate?.id
+                    ? [res.actions[0].locate.id]
                     : [],
                 };
               }
