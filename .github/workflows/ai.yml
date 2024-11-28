@@ -21,7 +21,6 @@ jobs:
     env:
       OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
       OPENAI_BASE_URL: ${{ secrets.OPENAI_BASE_URL }}
-      MIDSCENE_DEBUG_AI_PROFILE: 1
 
     steps:
     - uses: actions/checkout@v4
