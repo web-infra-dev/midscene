@@ -24,6 +24,9 @@ export async function launchPage(
     deviceScaleFactor: opt?.viewport?.deviceScaleFactor || 1,
   };
   await originPage.setViewport(viewportConfig);
+  await originPage.setUserAgent(
+    'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
+  );
   const response = await originPage.goto(url);
   await originPage.waitForNetworkIdle();
   if (response?.status) {

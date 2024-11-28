@@ -292,6 +292,7 @@ function cropFieldInformation(
       return {
         id,
         ...(filterEmptyContent ? {} : { markerId: (item as any).indexId }),
+        ...(tailorContent ? { content: tailorContent } : {}),
         ...(Object.keys(tailorAttributes).length
           ? { attributes: tailorAttributes }
           : {}),
@@ -302,7 +303,6 @@ function cropFieldInformation(
           height: rect.height,
           // remove 'zoom' if it exists
         },
-        ...(tailorContent ? { content: tailorContent } : {}),
       };
     },
   );

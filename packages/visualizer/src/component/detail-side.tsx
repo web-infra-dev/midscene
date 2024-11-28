@@ -202,6 +202,14 @@ const DetailSide = (): JSX.Element => {
         key: 'cache',
         content: task?.cache ? JSON.stringify(task?.cache) : 'false',
       },
+      ...(task?.locate
+        ? [
+            {
+              key: 'locate',
+              content: JSON.stringify(task.locate),
+            },
+          ]
+        : []),
       ...(usageInfo ? [{ key: 'usage', content: usageInfo }] : []),
     ],
   });
@@ -218,7 +226,7 @@ const DetailSide = (): JSX.Element => {
             content: planningTask.param.whatHaveDone,
           },
           {
-            key: 'whatToDo',
+            key: 'whatToDoNext',
             content: planningTask.param.userPrompt,
           },
         ],
@@ -235,7 +243,6 @@ const DetailSide = (): JSX.Element => {
       });
     }
   } else if (task?.type === 'Insight') {
-    const quickAnswer = (task as ExecutionTaskInsightLocate)?.quickAnswer;
     taskParam = MetaKV({
       data: [
         { key: 'type', content: (task && typeStr(task)) || '' },
@@ -260,16 +267,6 @@ const DetailSide = (): JSX.Element => {
               {
                 key: 'thought',
                 content: task.thought,
-              },
-            ]
-          : []),
-        ...(quickAnswer
-          ? [
-              {
-                key: 'quick answer',
-                content: quickAnswer
-                  ? JSON.stringify(quickAnswer, undefined, 2)
-                  : '',
               },
             ]
           : []),
@@ -375,9 +372,7 @@ const DetailSide = (): JSX.Element => {
           ? JSON.stringify(paramToShow, undefined, 2)
           : null;
 
-        const quickAnswerStr = item.quickAnswer
-          ? JSON.stringify({ quickAnswer: item.quickAnswer }, undefined, 2)
-          : null;
+        const locateStr = item.locate ? JSON.stringify(item.locate) : null;
 
         return {
           color: '#06B1AB',
@@ -388,7 +383,7 @@ const DetailSide = (): JSX.Element => {
               </p>
               <p>{item.thought}</p>
               <p>{paramStr}</p>
-              <p>{quickAnswerStr}</p>
+              <p>{locateStr}</p>
             </>
           ),
         };
@@ -403,7 +398,10 @@ const DetailSide = (): JSX.Element => {
               <b>Further Plan</b>
             </p>
             <p>
-              {(task as ExecutionTaskPlanning).output?.furtherPlan?.whatToDo}
+              {
+                (task as ExecutionTaskPlanning).output?.furtherPlan
+                  ?.whatToDoNext
+              }
             </p>
           </>
         ),
