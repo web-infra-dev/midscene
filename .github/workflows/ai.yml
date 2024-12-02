@@ -121,8 +121,7 @@ jobs:
         if-no-files-found: ignore
 
     - name: Check if script failed
-      # if: steps.test-ai.outcome == 'failure' || steps.e2e-tests.outcome == 'failure' || steps.e2e-tests-cache.outcome == 'failure' || steps.e2e-tests-report.outcome == 'failure'
-      if: steps.e2e-tests.outcome == 'failure'
+      if: steps.test-ai.outcome == 'failure' || steps.e2e-tests.outcome == 'failure' || steps.e2e-tests-cache.outcome == 'failure' || steps.e2e-tests-report.outcome == 'failure'
       run: exit 1
 
 
