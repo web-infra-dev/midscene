@@ -47,7 +47,7 @@ describe('ai inspect element', () => {
   });
   repeat(repeatTime, (repeatIndex) => {
     testSources.forEach((source) => {
-      test.only(
+      test(
         `${source}-${repeatIndex}: inspect element`,
         async () => {
           const aiDataPath = path.join(
