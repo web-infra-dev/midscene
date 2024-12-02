@@ -19,7 +19,7 @@ test('ai online order', async ({ ai, page, aiQuery }) => {
   await ai('点击标准甜、点击绿妍（推荐）、点击标准口味');
   await ai('滚动到最下面');
   await ai('点击页面下边的“选好了”按钮');
-  await ai('点击右上角商品图标按钮(仅商品按钮)');
+  await ai('点击屏幕右上角购物袋按钮');
 
   const cardDetail = await aiQuery({
     productName: '商品名称，在价格上面',
