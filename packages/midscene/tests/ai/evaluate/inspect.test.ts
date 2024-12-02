@@ -109,7 +109,7 @@ describe('ai inspect element', () => {
             },
           });
           // await sleep(20 * 1000);
-          expect(resultData.score).toBeGreaterThan(80);
+          expect(resultData.failCount).toBeLessThanOrEqual(1);
         },
         {
           timeout: 120 * 1000,
