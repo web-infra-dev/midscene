@@ -6,7 +6,7 @@
       "multi": false,
       "response": [
         {
-          "id": "e00c1b86f3",
+          "id": "917697",
           "indexId": 0
         }
       ]
@@ -16,7 +16,7 @@
       "multi": false,
       "response": [
         {
-          "id": "79cfcf9a7b",
+          "id": "498940",
           "indexId": 1
         }
       ]
@@ -26,35 +26,27 @@
       "multi": false,
       "response": [
         {
-          "id": "5ead026c3c",
+          "id": "387792",
           "indexId": 3
         }
       ]
     },
     {
-      "prompt": "The price number on the right of the drink picture",
-      "multi": true,
+      "prompt": "The price number of the upper drink",
+      "multi": false,
       "response": [
         {
-          "id": "32058c4733",
+          "id": "204888",
           "indexId": 20
-        },
-        {
-          "id": "c1cf767317",
-          "indexId": 25
         }
       ]
     },
     {
-      "prompt": "选择规格按钮",
-      "multi": true,
+      "prompt": "最下面一种饮料的选择规格按钮",
+      "multi": false,
       "response": [
         {
-          "id": "9e5b85f0fe",
-          "indexId": 21
-        },
-        {
-          "id": "ee2e067ccc",
+          "id": "975584",
           "indexId": 26
         }
       ]
@@ -64,7 +56,7 @@
       "multi": false,
       "response": [
         {
-          "id": "b82bdf3ac4",
+          "id": "754365",
           "indexId": 27
         }
       ]

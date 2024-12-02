@@ -2,10 +2,10 @@
   "testDataPath": "test-data/aweme-play",
   "testCases": [
     {
-      "prompt": "左下角播放或暂停按钮",
+      "prompt": "左下角暂停按钮",
       "response": [
         {
-          "id": "85b28f3eb4",
+          "id": "663230",
           "indexId": 3
         }
       ]
@@ -14,7 +14,7 @@
       "prompt": "爱心按钮",
       "response": [
         {
-          "id": "f2979c1372",
+          "id": "964378",
           "indexId": 21
         }
       ]
@@ -23,7 +23,7 @@
       "prompt": "评论按钮",
       "response": [
         {
-          "id": "e43c740d6f",
+          "id": "56502",
           "indexId": 23
         }
       ]
@@ -32,7 +32,7 @@
       "prompt": "书签按钮",
       "response": [
         {
-          "id": "9f661e98ec",
+          "id": "783742",
           "indexId": 25
         }
       ]
@@ -41,7 +41,7 @@
       "prompt": "分享按钮",
       "response": [
         {
-          "id": "8cbe008b54",
+          "id": "956252",
           "indexId": 27
         }
       ]
@@ -50,8 +50,8 @@
       "prompt": "右下角区域声音按钮",
       "response": [
         {
-          "id": "7a5dd2653a",
-          "indexId": 9
+          "id": "838691",
+          "indexId": 10
         }
       ]
     }

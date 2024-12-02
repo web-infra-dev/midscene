@@ -58,7 +58,6 @@ Input Example:
 // Description: "Shopping cart icon in the upper right corner"
 {
   "description": "PLACEHOLDER", // Description of the target element
-  "multi": "PLACEHOLDER", //Find the number of elements
   "screenshot": "path/screenshot.png",
   "text": '{
       "pageSize": {

@@ -149,16 +149,16 @@ ${JSON.stringify({
   ];
 
   if (callAI) {
-    const { content: parseResult, usage } = await callAI({
+    const res = await callAI({
       msgs,
       AIActionType: AIActionType.INSPECT_ELEMENT,
       useModel,
     });
     return {
-      parseResult,
-      rawResponse: transformElementPositionToId(parseResult, context.content),
+      parseResult: transformElementPositionToId(res.content, context.content),
+      rawResponse: res,
       elementById,
-      usage,
+      usage: res.usage,
     };
   }
 

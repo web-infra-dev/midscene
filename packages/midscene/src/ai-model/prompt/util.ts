@@ -201,6 +201,25 @@ export function elementByPosition(
   return item;
 }
 
+export const samplePageDescription = `
+The size of the page: 1280 x 720
+
+JSON description of the elements in screenshot:
+id=1231: {
+  "markerId": 2, // The number indicated by the boxed label in the screenshot
+  "attributes":  // Attributes of the element
+    {"data-id":"@submit s0","class":".gh-search","aria-label":"搜索","nodeType":"IMG", "src": "image_url"},
+  "rect": { "left": 16, "top": 378, "width": 89, "height": 16 } // Position of the element in the page
+}
+
+id=459308: {
+  "content": "获取优惠券",
+  "attributes": { "nodeType": "TEXT" },
+  "rect": { "left": 32, "top": 332, "width": 70, "height": 18 }
+}
+
+...many more`;
+
 export async function describeUserPage<
   ElementType extends BaseElement = BaseElement,
 >(
@@ -243,7 +262,7 @@ export async function describeUserPage<
       const { id, ...rest } = item;
       return `id=${id}: ${JSON.stringify(rest)}`;
     })
-    .join(',\n');
+    .join(',\n\n');
 
   return {
     description: `

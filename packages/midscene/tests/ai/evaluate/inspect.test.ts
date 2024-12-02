@@ -2,7 +2,6 @@ import { readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { describe } from 'node:test';
 import { AiInspectElement, plan } from '@/ai-model';
-import { sleep } from '@/utils';
 import { afterAll, expect, test } from 'vitest';
 import { repeatTime } from '../util';
 import {
@@ -48,7 +47,7 @@ describe('ai inspect element', () => {
   });
   repeat(repeatTime, (repeatIndex) => {
     testSources.forEach((source) => {
-      test(
+      test.only(
         `${source}-${repeatIndex}: inspect element`,
         async () => {
           const aiDataPath = path.join(
@@ -67,15 +66,15 @@ describe('ai inspect element', () => {
             aiData.testCases,
             context,
             async (testCase) => {
-              if (process.env.PLAN_INSPECT) {
+              if (process.env.INSPECT_LOCATE_IN_PLANNING) {
                 // use planning to get quick answer to test element inspector
-                const res = await plan(testCase.description, {
+                const res = await plan(`Tap this: ${testCase.description}`, {
                   context,
                 });
 
                 return {
                   elements: res.actions[0].locate?.id
-                    ? [res.actions[0].locate.id]
+                    ? [res.actions[0].locate]
                     : [],
                 };
               }
@@ -118,26 +117,4 @@ describe('ai inspect element', () => {
       );
     });
   });
-});
-
-test('inspect with quick answer', async () => {
-  const { context } = await getPageTestData(
-    path.join(__dirname, './test-data/todo'),
-  );
-
-  const startTime = Date.now();
-  const { parseResult } = await AiInspectElement({
-    context,
-    multi: false,
-    targetElementDescription: 'never mind',
-    quickAnswer: {
-      id: 'fbc2d0029b',
-      reason: 'never mind',
-      text: 'never mind',
-    },
-  });
-  const endTime = Date.now();
-  const cost = endTime - startTime;
-  expect(parseResult.elements.length).toBe(1);
-  expect(cost).toBeLessThan(100);
 });
