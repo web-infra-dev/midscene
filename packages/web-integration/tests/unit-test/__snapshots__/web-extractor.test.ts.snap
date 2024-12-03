@@ -462,6 +462,13 @@ exports[`extractor > basic 1`] = `
   },
   {
     "attributes": {
+      "class": ".child-container-5",
+      "nodeType": "IMG Node",
+    },
+    "content": "",
+  },
+  {
+    "attributes": {
       "nodeType": "IMG Node",
       "svgContent": "true",
     },
