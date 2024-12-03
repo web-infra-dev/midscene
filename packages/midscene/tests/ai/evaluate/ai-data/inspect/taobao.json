@@ -27,25 +27,27 @@
       "response": [
         {
           "id": "294616",
-          "indexId": 94
+          "indexId": 96
         }
       ]
     },
     {
-      "prompt": "收藏店铺 ICON",
+      "prompt": "收藏的店ICON",
       "multi": false,
       "response": [
         {
-          "id": "201"
+          "id": "280588",
+          "indexId": 203
         }
       ]
     },
     {
-      "prompt": "右侧客服按钮",
+      "prompt": "右侧”官方客服“按钮文字",
       "multi": false,
       "response": [
         {
-          "id": "244"
+          "id": "284359",
+          "indexId": 247
         }
       ]
     }

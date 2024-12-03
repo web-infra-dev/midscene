@@ -21,6 +21,7 @@ jobs:
     env:
       OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
       OPENAI_BASE_URL: ${{ secrets.OPENAI_BASE_URL }}
+      MIDSCENE_MODEL_NAME: gpt-4o-2024-08-06
       MIDSCENE_DEBUG_AI_PROFILE: 1
 
     steps:

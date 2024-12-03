@@ -63,20 +63,27 @@ describe('ai inspect element', () => {
             path.join(__dirname, aiData.testDataPath),
           );
 
+          const { elementById } = await context.describer();
+
           const { aiResponse } = await runTestCases(
             aiData.testCases,
             context,
             async (testCase) => {
-              if (process.env.INSPECT_LOCATE_IN_PLANNING) {
+              if (runType === 'planning') {
                 // use planning to get quick answer to test element inspector
                 const res = await plan(`Tap this: ${testCase.description}`, {
                   context,
                 });
 
+                const matchedId = res.actions[0].locate?.id;
+                if (matchedId) {
+                  return {
+                    elements: [elementById(matchedId)],
+                  };
+                }
+
                 return {
-                  elements: res.actions[0].locate?.id
-                    ? [res.actions[0].locate]
-                    : [],
+                  elements: [],
                 };
               }
 

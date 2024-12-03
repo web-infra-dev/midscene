@@ -22,14 +22,28 @@ export function isImgElement(node: Node): node is HTMLImageElement {
     }
   }
 
+  if (isIconfont(node)) {
+    return true;
+  }
+
   return (
     (node instanceof HTMLElement && node.tagName.toLowerCase() === 'img') ||
     (node instanceof SVGElement && node.tagName.toLowerCase() === 'svg')
   );
 }
 
+function isIconfont(node: Node): boolean {
+  if (node instanceof Element) {
+    const computedStyle = window.getComputedStyle(node);
+    const fontFamilyValue = computedStyle.fontFamily || '';
+    return fontFamilyValue.toLowerCase().indexOf('iconfont') >= 0;
+  }
+
+  return false;
+}
+
 export function isTextElement(node: Node): node is HTMLTextAreaElement {
-  return node.nodeName.toLowerCase() === '#text';
+  return node.nodeName.toLowerCase() === '#text' && !isIconfont(node);
 }
 
 export function isContainerElement(node: Node): node is HTMLElement {

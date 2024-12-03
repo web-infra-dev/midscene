@@ -226,7 +226,7 @@ export async function describeUserPage<
   context: Omit<UIContext<ElementType>, 'describer'>,
   opt?: {
     truncateTextLength?: number;
-    filterEmptyContent?: boolean;
+    filterNonTextContent?: boolean;
   },
 ) {
   const { screenshotBase64 } = context;
@@ -254,7 +254,7 @@ export async function describeUserPage<
   const elementInfosDescription = cropFieldInformation(
     elementsInfo,
     opt?.truncateTextLength,
-    opt?.filterEmptyContent,
+    opt?.filterNonTextContent,
   );
 
   const contentList = elementInfosDescription
@@ -289,7 +289,7 @@ ${
 function cropFieldInformation(
   elementsInfo: BaseElement[],
   truncateTextLength = 20,
-  filterEmptyContent = false,
+  filterNonTextContent = false,
 ) {
   const elementInfosDescription: Array<Record<string, any>> = elementsInfo.map(
     (item) => {
@@ -300,8 +300,8 @@ function cropFieldInformation(
           const attributeVal = (attributes as any)[currentKey];
           if (currentKey === 'style' || currentKey === 'src') return res;
           if (currentKey === 'nodeType') {
-            // when filterEmptyContent is true, we don't need to keep the nodeType since they are all TEXT
-            if (!filterEmptyContent) {
+            // when filterNonTextContent is true, we don't need to keep the nodeType since they are all TEXT
+            if (!filterNonTextContent) {
               res[currentKey] = attributeVal.replace(/\sNode$/, '');
             }
           } else {
@@ -314,9 +314,11 @@ function cropFieldInformation(
 
       return {
         id,
-        ...(filterEmptyContent ? {} : { markerId: (item as any).indexId }),
+        ...(filterNonTextContent || tailorContent
+          ? {}
+          : { markerId: (item as any).indexId }),
         ...(tailorContent ? { content: tailorContent } : {}),
-        ...(Object.keys(tailorAttributes).length
+        ...(Object.keys(tailorAttributes).length && !tailorContent
           ? { attributes: tailorAttributes }
           : {}),
         rect: {
@@ -330,7 +332,7 @@ function cropFieldInformation(
     },
   );
 
-  if (filterEmptyContent) {
+  if (filterNonTextContent) {
     return elementInfosDescription.filter((item) => item.content);
   }
   return elementInfosDescription;

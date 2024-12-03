@@ -14,7 +14,6 @@ import type {
   PartialInsightDumpFromSDK,
   Rect,
   UIContext,
-  UISection,
 } from '@/types';
 import {
   getLogDir,
@@ -117,31 +116,4 @@ export function shallowExpandIds<DataScheme extends object = {}>(
   });
 
   return data;
-}
-
-/**
- * a fake parser that collects all text into a single section
- * It's useful for debugging and testing
- * @param context
- * @returns
- */
-export async function fakeParserCollectsTexts<P>(context: UIContext): Promise<{
-  [K in keyof P]: UISection;
-}> {
-  const { content } = context;
-  const section: UISection = {
-    name: 'all-texts',
-    description: 'all texts in the page',
-    sectionCharacteristics: 'all texts',
-    content,
-    rect: {
-      left: 0,
-      top: 0,
-      width: context.size.width,
-      height: context.size.height,
-    },
-  };
-  return {
-    'all-texts': section,
-  } as any;
 }

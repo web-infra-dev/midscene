@@ -29,7 +29,7 @@ export type AIArgs = [
 ];
 
 const liteContextConfig = {
-  filterEmptyContent: true,
+  filterNonTextContent: true,
   truncateTextLength: 100,
 };
 

@@ -15,12 +15,12 @@ describe('prompt utils', () => {
     expect(stringLengthOfEachItem).toBeLessThan(160);
   });
 
-  it('describe context, length = 100, filterEmptyContent = true', async () => {
+  it('describe context, length = 100, filterNonTextContent = true', async () => {
     const context = await getPageDataOfTestName('taobao');
 
     const { description } = await describeUserPage(context.context, {
       truncateTextLength: 100,
-      filterEmptyContent: true,
+      filterNonTextContent: true,
     });
 
     const stringLengthOfEachItem =
