@@ -46,9 +46,10 @@ describe('ai inspect element', () => {
     );
   });
   repeat(repeatTime, (repeatIndex) => {
+    const runType = repeatIndex <= repeatTime / 2 ? 'inspect' : 'planning';
     testSources.forEach((source) => {
       test(
-        `${source}-${repeatIndex}: inspect element`,
+        `${source}-${repeatIndex}-${runType}: locate element`,
         async () => {
           const aiDataPath = path.join(
             __dirname,
