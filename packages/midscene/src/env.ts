@@ -53,6 +53,20 @@ export const getAIConfig = (
   return allConfigFromEnv()[configKey];
 };
 
+export const getAIConfigInJson = (configKey: keyof typeof userConfig) => {
+  const config = getAIConfig(configKey);
+  try {
+    return config ? JSON.parse(config) : undefined;
+  } catch (error: any) {
+    throw new Error(
+      `Failed to parse json config: ${configKey}. ${error.message}`,
+      {
+        cause: error,
+      },
+    );
+  }
+};
+
 export const allAIConfig = () => {
   return { ...allConfigFromEnv(), ...userConfig };
 };

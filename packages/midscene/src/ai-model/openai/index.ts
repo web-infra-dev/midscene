@@ -16,6 +16,7 @@ import {
   OPENAI_USE_AZURE,
   allAIConfig,
   getAIConfig,
+  getAIConfigInJson,
 } from '../../env';
 import { AIActionType } from '../common';
 import { findElementSchema } from '../prompt/element_inspector';
@@ -42,12 +43,10 @@ export function getModelName() {
 
 async function createOpenAI() {
   let openai: OpenAI | AzureOpenAI;
-  const extraConfigString = getAIConfig(MIDSCENE_OPENAI_INIT_CONFIG_JSON);
-  const extraConfig = extraConfigString ? JSON.parse(extraConfigString) : {};
+  const extraConfig = getAIConfigInJson(MIDSCENE_OPENAI_INIT_CONFIG_JSON);
 
   const socksProxy = getAIConfig(MIDSCENE_OPENAI_SOCKS_PROXY);
   const socksAgent = socksProxy ? new SocksProxyAgent(socksProxy) : undefined;
-
   if (getAIConfig(OPENAI_USE_AZURE)) {
     openai = new AzureOpenAI({
       baseURL: getAIConfig(OPENAI_BASE_URL),
