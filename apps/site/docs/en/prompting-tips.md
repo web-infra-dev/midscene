@@ -6,7 +6,7 @@ The natural language parameter passed to Midscene will be part of the prompt sen
 
 Since AI has the nature of heuristic, the purpose of prompt tuning should be to obtain stable responses from the AI model across runs. In most cases, to expect a consistent response from LLM by using a good prompt is entirely feasible.
 
-## Detailed descriptions and samples are welcome
+## Use detailed descriptions and samples
 
 Detailed descriptions and examples are always welcome.
 
@@ -14,11 +14,23 @@ For example:
 
 Bad ❌: "Search 'headphone'"
 
-Good ✅: "Find the search box (it should be along with a region switch, such as 'domestic' or 'international'), type 'headphone', and hit Enter."
+Good ✅: "Click the search box (it should be along with a region switch, such as 'domestic' or 'international'), type 'headphone', and hit Enter."
 
 Bad ❌: "Assert: food delivery service is in normal state"
 
 Good ✅: "Assert: There is a 'food delivery service' on page, and is in normal state"
+
+## One prompt should only do one thing
+
+Use `.ai` each time to do one task. Although Midscene has an auto-replanning strategy, it's still preferable to keep the prompt concise. Otherwise the LLM output will likely be messy. The token cost between a long prompt and a short prompt is almost the same.
+
+Bad ❌: "Click Login button, then click Sign up button, fill the form with 'test@test.com' in the email field, 'test' in the password field, and click Sign up button"
+
+Good ✅: Split the task into three steps:
+
+"Click Login Button"
+"Click Sign up button"
+"Fill the form with 'test@test.com' in the email field, 'test' in the password field, and click Sign up button"
 
 ## LLMs can NOT tell the exact number like coords or hex-style color, give it some choices
 

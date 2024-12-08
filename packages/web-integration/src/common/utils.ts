@@ -54,7 +54,11 @@ export async function parseContextFromWebPage(
   const size = await page.size();
 
   const screenshotBase64WithElementMarker = _opt?.ignoreMarker
-    ? undefined
+    ? await compositeElementInfoImg({
+        inputImgBase64: screenshotBase64,
+        elementsPositionInfo: [],
+        size,
+      })
     : await compositeElementInfoImg({
         inputImgBase64: screenshotBase64,
         elementsPositionInfo: elementsPositionInfoWithoutText,

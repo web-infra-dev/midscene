@@ -6,8 +6,8 @@
       "multi": false,
       "response": [
         {
-          "id": "853441c136",
-          "indexId": 32
+          "id": "61922",
+          "indexId": 29
         }
       ]
     },
@@ -16,8 +16,8 @@
       "multi": false,
       "response": [
         {
-          "id": "4c6cc5bd27",
-          "indexId": 29
+          "id": "770077",
+          "indexId": 28
         }
       ]
     },
@@ -26,28 +26,28 @@
       "multi": false,
       "response": [
         {
-          "id": "1740ea75e9",
-          "indexId": 98
+          "id": "294616",
+          "indexId": 96
         }
       ]
     },
     {
-      "prompt": "收藏店铺 ICON",
+      "prompt": "收藏的店ICON",
       "multi": false,
       "response": [
         {
-          "id": "c51fc204e6",
-          "indexId": 209
+          "id": "280588",
+          "indexId": 203
         }
       ]
     },
     {
-      "prompt": "右侧客服按钮",
+      "prompt": "右侧”官方客服“按钮文字",
       "multi": false,
       "response": [
         {
-          "id": "456c7931bf",
-          "indexId": 253
+          "id": "284359",
+          "indexId": 247
         }
       ]
     }

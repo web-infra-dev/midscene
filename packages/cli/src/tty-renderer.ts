@@ -3,7 +3,7 @@ import type { Writable } from 'node:stream';
 import { stripVTControlCharacters } from 'node:util';
 import restoreCursor from 'restore-cursor';
 
-const DEFAULT_RENDER_INTERVAL = 16;
+const DEFAULT_RENDER_INTERVAL = 160;
 
 const ESC = '\x1B[';
 const CLEAR_LINE = `${ESC}K`;

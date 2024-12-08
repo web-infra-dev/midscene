@@ -33,6 +33,7 @@ export const defaultUA =
 export const defaultViewportWidth = 1280;
 export const defaultViewportHeight = 960;
 export const defaultViewportScale = process.platform === 'darwin' ? 2 : 1;
+export const defaultWaitForNetworkIdleTimeout = 10 * 1000;
 
 export function loadYamlScript(
   content: string,
@@ -374,7 +375,7 @@ export class ScriptPlayer {
     const waitForNetworkIdleTimeout =
       typeof target.waitForNetworkIdle?.timeout === 'number'
         ? target.waitForNetworkIdle.timeout
-        : 30 * 1000;
+        : defaultWaitForNetworkIdleTimeout;
     try {
       if (waitForNetworkIdleTimeout > 0) {
         await page.waitForNetworkIdle({

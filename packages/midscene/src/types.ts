@@ -40,9 +40,7 @@ export abstract class BaseElement {
   abstract locator?: string;
 }
 
-// export type EnhancedTextElement<DataScheme extends object = {}> = TextElement & {
-//   [K in keyof DataScheme]: DataScheme[K];
-// };
+export type AIUsageInfo = Record<string, any>;
 
 /**
  * openai
@@ -55,8 +53,8 @@ export enum AIResponseFormat {
 
 export type AISingleElementResponseById = {
   id: string;
-  reason: string;
-  text: string;
+  reason?: string;
+  text?: string;
 };
 
 export type AISingleElementResponseByPosition = {
@@ -137,20 +135,17 @@ export interface InsightOptions {
   }) => BaseElement;
 }
 
-export interface UISection {
-  name: string;
-  description: string;
-  sectionCharacteristics: string;
-  rect: Rect;
-  content: BaseElement[];
-}
+// export interface UISection {
+//   name: string;
+//   description: string;
+//   sectionCharacteristics: string;
+//   rect: Rect;
+//   content: BaseElement[];
+// }
 
 export type EnsureObject<T> = { [K in keyof T]: any };
 
-export interface BasicSectionQuery {
-  name?: string;
-  description?: string;
-}
+export type InsightAction = 'locate' | 'extract' | 'assert';
 
 export type InsightExtractParam = string | Record<string, string>;
 
@@ -158,6 +153,7 @@ export interface InsightTaskInfo {
   durationMs: number;
   formatResponse?: string;
   rawResponse?: string;
+  usage?: AIUsageInfo;
 }
 
 export interface DumpMeta {
@@ -182,7 +178,7 @@ export interface InsightDump extends DumpMeta {
     assertion?: string;
   }; // ?
   quickAnswer?: AISingleElementResponse | null;
-  matchedSection: UISection[];
+  matchedSection: [];
   matchedElement: BaseElement[];
   data: any;
   assertionPass?: boolean;
@@ -228,6 +224,15 @@ export interface AgentAssertOpt {
  *
  */
 
+export interface PlanningLocateParam {
+  id?: string;
+  position?: {
+    x: number;
+    y: number;
+  };
+  prompt: string;
+}
+
 export interface PlanningAction<ParamType = any> {
   thought?: string;
   type:
@@ -242,14 +247,21 @@ export interface PlanningAction<ParamType = any> {
     | 'AssertWithoutThrow'
     | 'Sleep';
   param: ParamType;
-  quickAnswer?: AISingleElementResponse | null;
+  locate: PlanningLocateParam | null;
 }
 
 export interface PlanningAIResponse {
-  queryLanguage: string;
   actions: PlanningAction[];
+  taskWillBeAccomplished: boolean;
+  furtherPlan: PlanningFurtherPlan | null;
   error?: string;
 }
+
+export interface PlanningFurtherPlan {
+  whatToDoNext: string;
+  whatHaveDone: string;
+}
+export type PlanningActionParamPlan = PlanningFurtherPlan;
 
 export type PlanningActionParamTap = null;
 export type PlanningActionParamHover = null;
@@ -329,6 +341,8 @@ export interface ExecutionTaskApply<
   type: Type;
   subType?: string;
   param?: TaskParam;
+  thought?: string;
+  locate: PlanningLocateParam | null;
   quickAnswer?: AISingleElementResponse | null;
   executor: (
     param: TaskParam,
@@ -380,9 +394,7 @@ export interface ExecutionDump extends DumpMeta {
 /*
 task - insight-locate
 */
-export interface ExecutionTaskInsightLocateParam {
-  prompt: string;
-}
+export type ExecutionTaskInsightLocateParam = PlanningLocateParam;
 
 export interface ExecutionTaskInsightLocateOutput {
   element: BaseElement | null;
@@ -458,8 +470,12 @@ task - planning
 
 export type ExecutionTaskPlanningApply = ExecutionTaskApply<
   'Planning',
-  { userPrompt: string },
-  { plans: PlanningAction[] }
+  {
+    userPrompt: string;
+    whatHaveDone?: string;
+    originalPrompt?: string;
+  },
+  PlanningAIResponse
 >;
 
 export type ExecutionTaskPlanning = ExecutionTask<ExecutionTaskPlanningApply>;

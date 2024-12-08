@@ -315,14 +315,16 @@ export default function Player(props?: {
     );
 
     const pointer = windowContentContainer.getChildByLabel('pointer');
-    if (
-      pointer &&
-      typeof state.pointerLeft === 'number' &&
-      typeof state.pointerTop === 'number'
-    ) {
-      pointer.x = state.pointerLeft;
-      pointer.y = state.pointerTop;
+    if (pointer) {
       pointer.scale.set(1 / newScale);
+
+      if (
+        typeof state.pointerLeft === 'number' &&
+        typeof state.pointerTop === 'number'
+      ) {
+        pointer.x = state.pointerLeft;
+        pointer.y = state.pointerTop;
+      }
     }
   };
 

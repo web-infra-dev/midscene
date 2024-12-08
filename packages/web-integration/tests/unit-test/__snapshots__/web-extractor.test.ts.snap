@@ -307,6 +307,14 @@ exports[`extractor > basic 1`] = `
   },
   {
     "attributes": {
+      "id": "J_resize",
+      "nodeType": "CONTAINER Node",
+      "style": "width:30px;height:30px;background: #AC0",
+    },
+    "content": "",
+  },
+  {
+    "attributes": {
       "nodeType": "TEXT Node",
     },
     "content": "输入搜索关键词",
@@ -449,6 +457,13 @@ exports[`extractor > basic 1`] = `
       "class": ".child-container-4",
       "nodeType": "CONTAINER Node",
       "style": "width: 100px; height: 100px; background-color: #cc...",
+    },
+    "content": "",
+  },
+  {
+    "attributes": {
+      "class": ".child-container-5",
+      "nodeType": "IMG Node",
     },
     "content": "",
   },

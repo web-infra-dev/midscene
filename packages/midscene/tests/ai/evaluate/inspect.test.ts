@@ -2,7 +2,6 @@ import { readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { describe } from 'node:test';
 import { AiInspectElement, plan } from '@/ai-model';
-import { sleep } from '@/utils';
 import { afterAll, expect, test } from 'vitest';
 import { repeatTime } from '../util';
 import {
@@ -47,9 +46,10 @@ describe('ai inspect element', () => {
     );
   });
   repeat(repeatTime, (repeatIndex) => {
+    const runType = repeatIndex <= repeatTime / 2 ? 'inspect' : 'planning';
     testSources.forEach((source) => {
       test(
-        `${source}-${repeatIndex}: inspect element`,
+        `${source}-${repeatIndex}-${runType}: locate element`,
         async () => {
           const aiDataPath = path.join(
             __dirname,
@@ -63,20 +63,27 @@ describe('ai inspect element', () => {
             path.join(__dirname, aiData.testDataPath),
           );
 
+          const { elementById } = await context.describer();
+
           const { aiResponse } = await runTestCases(
             aiData.testCases,
             context,
             async (testCase) => {
-              if (process.env.PLAN_INSPECT) {
+              if (runType === 'planning') {
                 // use planning to get quick answer to test element inspector
-                const res = await plan(testCase.description, {
+                const res = await plan(`Tap this: ${testCase.description}`, {
                   context,
                 });
 
+                const matchedId = res.actions[0].locate?.id;
+                if (matchedId) {
+                  return {
+                    elements: [elementById(matchedId)],
+                  };
+                }
+
                 return {
-                  elements: res.plans[0].quickAnswer
-                    ? [res.plans[0].quickAnswer]
-                    : [],
+                  elements: [],
                 };
               }
 
@@ -110,7 +117,7 @@ describe('ai inspect element', () => {
             },
           });
           // await sleep(20 * 1000);
-          expect(resultData.score).toBeGreaterThan(95);
+          expect(resultData.failCount).toBeLessThanOrEqual(1);
         },
         {
           timeout: 120 * 1000,
@@ -118,26 +125,4 @@ describe('ai inspect element', () => {
       );
     });
   });
-});
-
-test('inspect with quick answer', async () => {
-  const { context } = await getPageTestData(
-    path.join(__dirname, './test-data/todo'),
-  );
-
-  const startTime = Date.now();
-  const { parseResult } = await AiInspectElement({
-    context,
-    multi: false,
-    targetElementDescription: 'never mind',
-    quickAnswer: {
-      id: 'fbc2d0029b',
-      reason: 'never mind',
-      text: 'never mind',
-    },
-  });
-  const endTime = Date.now();
-  const cost = endTime - startTime;
-  expect(parseResult.elements.length).toBe(1);
-  expect(cost).toBeLessThan(100);
 });

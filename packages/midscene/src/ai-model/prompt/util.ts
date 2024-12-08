@@ -1,14 +1,7 @@
 import assert from 'node:assert';
 import { MATCH_BY_POSITION, getAIConfig } from '@/env';
 import { imageInfoOfBase64 } from '@/image';
-import type {
-  BaseElement,
-  BasicSectionQuery,
-  Point,
-  Size,
-  UIContext,
-  UISection,
-} from '@/types';
+import type { BaseElement, Size, UIContext } from '@/types';
 import type { ResponseFormatJSONSchema } from 'openai/resources';
 
 const characteristic =
@@ -43,32 +36,6 @@ Return in the following JSON format:
   errors?: [], // string[], error message if any
 }
 `;
-}
-
-export function promptsOfSectionQuery(
-  constraints: BasicSectionQuery[],
-): string {
-  if (!constraints.length) {
-    return '';
-  }
-  const instruction =
-    'Use your segment_a_web_page skill to find the following section(s)';
-  const singleSection = (c: BasicSectionQuery) => {
-    assert(
-      c.name || c.description,
-      'either `name` or `description` is required to define a section constraint',
-    );
-
-    const number = 'One section';
-    const name = c.name ? `named \`${c.name}\`` : '';
-    const description = c.description
-      ? `, usage or criteria : ${c.description}`
-      : '';
-    const basic = `* ${number} ${name}${description}`;
-
-    return basic;
-  };
-  return `${instruction}\n${constraints.map(singleSection).join('\n')}`;
 }
 
 export function systemPromptToExtract() {
@@ -166,13 +133,6 @@ export const assertSchema: ResponseFormatJSONSchema = {
   },
 };
 
-/*
-To modify the response format:
-  1. update the function `describeSectionResponseFormat` here
-  2. update `expandLiteSection` in insight/utils.ts
-  3. update `UISection` and `LiteUISection` in types.ts
-*/
-
 export function describeSize(size: Size) {
   return `${size.width} x ${size.height}`;
 }
@@ -215,7 +175,11 @@ export function truncateText(text: string, maxLength = 20) {
   if (text && text.length > maxLength) {
     return `${text.slice(0, maxLength)}...`;
   }
-  return text;
+
+  if (typeof text === 'string') {
+    return text.trim();
+  }
+  return '';
 }
 
 export function elementByPosition(
@@ -237,9 +201,34 @@ export function elementByPosition(
   return item;
 }
 
+export const samplePageDescription = `
+The size of the page: 1280 x 720
+
+JSON description of the elements in screenshot:
+id=1231: {
+  "markerId": 2, // The number indicated by the boxed label in the screenshot
+  "attributes":  // Attributes of the element
+    {"data-id":"@submit s0","class":".gh-search","aria-label":"搜索","nodeType":"IMG", "src": "image_url"},
+  "rect": { "left": 16, "top": 378, "width": 89, "height": 16 } // Position of the element in the page
+}
+
+id=459308: {
+  "content": "获取优惠券",
+  "attributes": { "nodeType": "TEXT" },
+  "rect": { "left": 32, "top": 332, "width": 70, "height": 18 }
+}
+
+...many more`;
+
 export async function describeUserPage<
   ElementType extends BaseElement = BaseElement,
->(context: Omit<UIContext<ElementType>, 'describer'>) {
+>(
+  context: Omit<UIContext<ElementType>, 'describer'>,
+  opt?: {
+    truncateTextLength?: number;
+    filterNonTextContent?: boolean;
+  },
+) {
   const { screenshotBase64 } = context;
   let width: number;
   let height: number;
@@ -255,25 +244,37 @@ export async function describeUserPage<
   const idElementMap: Record<string, ElementType> = {};
   elementsInfo.forEach((item) => {
     idElementMap[item.id] = item;
+    // sometimes GPT will mess up the indexId and id, we use indexId as a backup
+    if ((item as any).indexId) {
+      idElementMap[(item as any).indexId] = item;
+    }
     return { ...item };
   });
 
-  const elementInfosDescription = cropFieldInformation(elementsInfo);
+  const elementInfosDescription = cropFieldInformation(
+    elementsInfo,
+    opt?.truncateTextLength,
+    opt?.filterNonTextContent,
+  );
+
+  const contentList = elementInfosDescription
+    .map((item) => {
+      const { id, ...rest } = item;
+      return `id=${id}: ${JSON.stringify(rest)}`;
+    })
+    .join(',\n\n');
 
   return {
     description: `
-{
-  // The size of the page
-  "pageSize": ${describeSize({ width, height })},\n
-  ${
-    // if match by id, use the description of the element
-    getAIConfig(MATCH_BY_POSITION)
-      ? ''
-      : `// json description of the element
-  "content": ${JSON.stringify(elementInfosDescription)}
-      `
-  }
-}`,
+The size of the page: ${describeSize({ width, height })}
+
+${
+  // if match by id, use the description of the element
+  getAIConfig(MATCH_BY_POSITION)
+    ? ''
+    : `Json description of the page elements:\n${contentList}`
+}
+`,
     elementById(id: string) {
       assert(typeof id !== 'undefined', 'id is required for query');
       const item = idElementMap[`${id}`];
@@ -285,17 +286,24 @@ export async function describeUserPage<
   };
 }
 
-function cropFieldInformation(elementsInfo: BaseElement[]) {
-  const elementInfosDescription: Array<PromptElementType> = elementsInfo.map(
+function cropFieldInformation(
+  elementsInfo: BaseElement[],
+  truncateTextLength = 20,
+  filterNonTextContent = false,
+) {
+  const elementInfosDescription: Array<Record<string, any>> = elementsInfo.map(
     (item) => {
       const { id, attributes = {}, rect, content } = item;
-      const tailorContent = truncateText(content);
+      const tailorContent = truncateText(content, truncateTextLength);
       const tailorAttributes = Object.keys(attributes).reduce(
         (res, currentKey: string) => {
           const attributeVal = (attributes as any)[currentKey];
           if (currentKey === 'style' || currentKey === 'src') return res;
           if (currentKey === 'nodeType') {
-            res[currentKey] = attributeVal.replace(/\sNode$/, '');
+            // when filterNonTextContent is true, we don't need to keep the nodeType since they are all TEXT
+            if (!filterNonTextContent) {
+              res[currentKey] = attributeVal.replace(/\sNode$/, '');
+            }
           } else {
             res[currentKey] = truncateText(attributeVal);
           }
@@ -306,8 +314,13 @@ function cropFieldInformation(elementsInfo: BaseElement[]) {
 
       return {
         id,
-        markerId: (item as any).indexId,
-        attributes: tailorAttributes,
+        ...(filterNonTextContent || tailorContent
+          ? {}
+          : { markerId: (item as any).indexId }),
+        ...(tailorContent ? { content: tailorContent } : {}),
+        ...(Object.keys(tailorAttributes).length && !tailorContent
+          ? { attributes: tailorAttributes }
+          : {}),
         rect: {
           left: rect.left,
           top: rect.top,
@@ -315,10 +328,13 @@ function cropFieldInformation(elementsInfo: BaseElement[]) {
           height: rect.height,
           // remove 'zoom' if it exists
         },
-        content: tailorContent,
       };
     },
   );
+
+  if (filterNonTextContent) {
+    return elementInfosDescription.filter((item) => item.content);
+  }
   return elementInfosDescription;
 }
 
@@ -375,11 +391,4 @@ export function splitElementResponse(
 
 export function retrieveSection(prompt: string): string {
   return `${SECTION_MATCHER_FLAG}${prompt}`;
-}
-
-export function extractSectionQuery(input: string): string | false {
-  if (typeof input === 'string' && input.startsWith(SECTION_MATCHER_FLAG)) {
-    return input.slice(SECTION_MATCHER_FLAG.length);
-  }
-  return false;
 }

@@ -14,7 +14,7 @@ describe(
       });
 
       await mid.aiAction(
-        'type "standard_user" in user name input, type "secret_sauce" in password, click "Login"',
+        'type "standard_user" in user name input, type "secret_sauce" in password, click "Login", sleep 1s',
       );
 
       await expect(async () => {
@@ -63,14 +63,19 @@ describe(
 
       // await mid.aiAction('If pop-ups are displayed click seven days out alert');
 
-      await mid.aiAction('Click the password input on page');
-
-      await mid.aiAction('scroll down two screen');
-
-      await mid.aiQuery(
-        'find all inputs in the page, return the field name in string[]',
+      await mid.aiAction(
+        'Click the password input in the demo section on page, type "abc"',
       );
 
+      await mid.aiAction(
+        'click the "icon" on the categories on the left, sleep 5s, in the newly loaded page, type "pause" in the icon search box(it shows "search icon here")',
+      );
+
+      const names = await mid.aiQuery(
+        'find all component names in the page, return in string[]',
+      );
+
+      expect(names.length).toBeGreaterThan(5);
       await reset();
     });
 
@@ -78,10 +83,10 @@ describe(
       const { originPage, reset } = await launchPage('https://www.baidu.com/');
       const mid = new PuppeteerAgent(originPage);
       await mid.aiAction(
-        'type "Shanghai 天气" in search box, hit Enter, wait 2s`',
+        'type "AI 101" in search box, hit Enter, wait 2s, click the second result, wait 4s',
       );
 
-      await mid.aiWaitFor('there is weather info in Shanghai');
+      await mid.aiWaitFor('there are some search results');
 
       await reset();
     });

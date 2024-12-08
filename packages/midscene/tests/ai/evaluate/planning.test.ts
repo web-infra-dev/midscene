@@ -2,7 +2,7 @@ import { plan } from '@/ai-model';
 /* eslint-disable max-lines-per-function */
 import { describe, expect, it, vi } from 'vitest';
 import { modelList } from '../util';
-import { getPageDataOfTestName, repeat } from './test-suite/util';
+import { getPageDataOfTestName } from './test-suite/util';
 
 vi.setConfig({
   testTimeout: 180 * 1000,
@@ -14,23 +14,19 @@ modelList.forEach((model) => {
     it('basic run', async () => {
       const { context } = await getPageDataOfTestName('todo');
 
-      const { plans } = await plan(
+      const { actions } = await plan(
         'type "Why is the earth a sphere?", wait 3.5s, hit Enter',
         {
           context,
         },
         model,
       );
-      expect(plans.length).toBe(4);
-      expect(plans[0].thought).toBeTruthy();
-      expect(plans[0].type).toBe('Locate');
-      expect(plans[0].quickAnswer).toBeTruthy();
-      expect(plans[1].type).toBe('Input');
-      expect(plans[2].type).toBe('Sleep');
-      expect(plans[2].param).toMatchSnapshot();
-      expect(plans[3].type).toBe('KeyboardPress');
-      expect(plans[3].param).toMatchSnapshot();
-      expect(plans[3].quickAnswer).toBeFalsy();
+      expect(actions.length).toBe(3);
+      expect(actions[0].type).toBe('Input');
+      expect(actions[1].type).toBe('Sleep');
+      expect(actions[1].param).toMatchSnapshot();
+      expect(actions[2].type).toBe('KeyboardPress');
+      expect(actions[2].param).toMatchSnapshot();
     });
 
     it('instructions of to-do mvc', async () => {
@@ -45,9 +41,9 @@ modelList.forEach((model) => {
       ];
 
       for (const instruction of instructions) {
-        const { plans } = await plan(instruction, { context }, model);
-        expect(plans).toBeTruthy();
-        expect(plans[0].quickAnswer).toBeTruthy();
+        const { actions } = await plan(instruction, { context }, model);
+        expect(actions).toBeTruthy();
+        expect(actions[0].locate?.id).toBeTruthy();
       }
     });
   });

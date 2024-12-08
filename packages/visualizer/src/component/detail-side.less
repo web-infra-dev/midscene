@@ -16,6 +16,7 @@
 
   .meta-kv {
     padding: @side-vertical-spacing @side-horizontal-padding calc(@side-vertical-spacing + 4px);
+    overflow: hidden;
     .meta {
       box-sizing: border-box;
       padding: 2px 0;
@@ -28,6 +29,7 @@
         width:100px;
         text-align: right;
         padding-right: 16px;
+        flex-shrink: 0;
         // color: #999;
       }
       

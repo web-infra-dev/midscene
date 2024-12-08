@@ -28,6 +28,11 @@ export type AIArgs = [
   ChatCompletionUserMessageParam,
 ];
 
+const liteContextConfig = {
+  filterNonTextContent: true,
+  truncateTextLength: 100,
+};
+
 export function transformElementPositionToId(
   aiResult: AIElementResponse,
   elementsInfo: BaseElement[],
@@ -70,14 +75,28 @@ export async function AiInspectElement<
 
   // meet quick answer
   if (options.quickAnswer) {
-    if ('id' in options.quickAnswer && elementById(options.quickAnswer.id)) {
-      return {
-        parseResult: {
-          elements: [options.quickAnswer],
-          errors: [],
-        },
-        elementById,
-      };
+    if ('id' in options.quickAnswer) {
+      if (elementById(options.quickAnswer.id)) {
+        return {
+          parseResult: {
+            elements: [options.quickAnswer],
+            errors: [],
+          },
+          elementById,
+        };
+      }
+
+      if (!targetElementDescription) {
+        return {
+          parseResult: {
+            elements: [],
+            errors: [
+              `inspect: cannot find the target by id: ${options.quickAnswer.id}, and no target element description is provided`,
+            ],
+          },
+          elementById,
+        };
+      }
     }
     if (
       'position' in options.quickAnswer &&
@@ -95,6 +114,10 @@ export async function AiInspectElement<
     }
   }
 
+  assert(
+    targetElementDescription,
+    'cannot find the target element description',
+  );
   const systemPrompt = systemPromptToFindElement();
   const msgs: AIArgs = [
     { role: 'system', content: systemPrompt },
@@ -110,32 +133,32 @@ export async function AiInspectElement<
         {
           type: 'text',
           text: `
-    pageDescription: \n
-    ${description}
+pageDescription: \n
+${description}
 
-    Here is the item user want to find. Just go ahead:
-    =====================================
-    ${JSON.stringify({
-      description: targetElementDescription,
-      multi: multiDescription(multi),
-    })}
-    =====================================
-  `,
+Here is the item user want to find. Just go ahead:
+=====================================
+${JSON.stringify({
+  description: targetElementDescription,
+  multi: multiDescription(multi),
+})}
+=====================================`,
         },
       ]),
     },
   ];
 
   if (callAI) {
-    const parseResult = await callAI({
+    const res = await callAI({
       msgs,
       AIActionType: AIActionType.INSPECT_ELEMENT,
       useModel,
     });
     return {
-      parseResult,
-      rawResponse: transformElementPositionToId(parseResult, context.content),
+      parseResult: transformElementPositionToId(res.content, context.content),
+      rawResponse: res,
       elementById,
+      usage: res.usage,
     };
   }
 
@@ -146,9 +169,13 @@ export async function AiInspectElement<
   });
 
   return {
-    parseResult: transformElementPositionToId(inspectElement, context.content),
+    parseResult: transformElementPositionToId(
+      inspectElement.content,
+      context.content,
+    ),
     rawResponse: inspectElement,
     elementById,
+    usage: inspectElement.usage,
   };
 }
 
@@ -164,7 +191,10 @@ export async function AiExtractElementInfo<
   const systemPrompt = systemPromptToExtract();
 
   const { screenshotBase64 } = context;
-  const { description, elementById } = await describeUserPage(context);
+  const { description, elementById } = await describeUserPage(
+    context,
+    liteContextConfig,
+  );
 
   const msgs: AIArgs = [
     { role: 'system', content: systemPrompt },
@@ -189,7 +219,7 @@ ${
   typeof dataQuery === 'object'
     ? `return in key-value style object, keys are ${Object.keys(dataQuery).join(',')}`
     : ''
-};
+}
 ${typeof dataQuery === 'string' ? dataQuery : JSON.stringify(dataQuery, null, 2)}
 =====================================
 DATA_DEMAND ends.
@@ -199,14 +229,15 @@ DATA_DEMAND ends.
     },
   ];
 
-  const parseResult = await callAiFn<AISectionParseResponse<T>>({
+  const result = await callAiFn<AISectionParseResponse<T>>({
     msgs,
     useModel,
     AIActionType: AIActionType.EXTRACT_DATA,
   });
   return {
-    parseResult,
+    parseResult: result.content,
     elementById,
+    usage: result.usage,
   };
 }
 
@@ -222,7 +253,7 @@ export async function AiAssert<
   assert(assertion, 'assertion should be a string');
 
   const { screenshotBase64 } = context;
-  const { description } = await describeUserPage(context);
+  const { description } = await describeUserPage(context, liteContextConfig);
   const systemPrompt = systemPromptToAssert();
 
   const msgs: AIArgs = [
@@ -251,11 +282,13 @@ export async function AiAssert<
     },
   ];
 
-  const assertResult = await callAiFn<AIAssertionResponse>({
+  const { content: assertResult, usage } = await callAiFn<AIAssertionResponse>({
     msgs,
     AIActionType: AIActionType.ASSERT,
     useModel,
   });
-  return assertResult;
+  return {
+    content: assertResult,
+    usage,
+  };
 }
-export { callAiFn };

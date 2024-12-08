@@ -1,41 +1,25 @@
 import assert from 'node:assert';
-import {
-  AiExtractElementInfo,
-  AiInspectElement,
-  callToGetJSONObject as callAI,
-} from '@/ai-model/index';
-import { AiAssert, callAiFn } from '@/ai-model/inspect';
+import { callAiFn } from '@/ai-model/common';
+import { AiExtractElementInfo, AiInspectElement } from '@/ai-model/index';
+import { AiAssert } from '@/ai-model/inspect';
 import type {
   AIElementResponse,
   AISingleElementResponse,
   BaseElement,
   DumpSubscriber,
+  InsightAction,
   InsightAssertionResponse,
   InsightExtractParam,
   InsightOptions,
   InsightTaskInfo,
   PartialInsightDumpFromSDK,
   UIContext,
-  UISection,
 } from '@/types';
 import {
-  extractSectionQuery,
   ifElementTypeResponse,
   splitElementResponse,
 } from '../ai-model/prompt/util';
-import {
-  expandLiteSection,
-  idsIntoElements,
-  shallowExpandIds,
-  writeInsightDump,
-} from './utils';
-
-const sortByOrder = (a: UISection, b: UISection) => {
-  if (a.rect.top - b.rect.top !== 0) {
-    return a.rect.top - b.rect.top;
-  }
-  return a.rect.left - b.rect.left;
-};
+import { idsIntoElements, shallowExpandIds, writeInsightDump } from './utils';
 
 export interface LocateOpts {
   multi?: boolean;
@@ -53,7 +37,9 @@ export default class Insight<
   ElementType extends BaseElement = BaseElement,
   ContextType extends UIContext<ElementType> = UIContext<ElementType>,
 > {
-  contextRetrieverFn: () => Promise<ContextType> | ContextType;
+  contextRetrieverFn: (
+    action: InsightAction,
+  ) => Promise<ContextType> | ContextType;
 
   aiVendorFn: (...args: Array<any>) => Promise<any> = callAiFn;
 
@@ -64,7 +50,9 @@ export default class Insight<
   taskInfo?: Omit<InsightTaskInfo, 'durationMs'>;
 
   constructor(
-    context: ContextType | (() => Promise<ContextType> | ContextType),
+    context:
+      | ContextType
+      | ((action: InsightAction) => Promise<ContextType> | ContextType),
     opt?: InsightOptions,
   ) {
     assert(context, 'context is required for Insight');
@@ -97,19 +85,23 @@ export default class Insight<
   ): Promise<ElementType[]>;
   async locate(queryPrompt: string, opt?: LocateOpts) {
     const { callAI, multi = false } = opt || {};
-    assert(queryPrompt, 'query is required for located');
+    assert(
+      queryPrompt || opt?.quickAnswer,
+      'query or quickAnswer is required for locate',
+    );
     const dumpSubscriber = this.onceDumpUpdatedFn;
     this.onceDumpUpdatedFn = undefined;
-    const context = await this.contextRetrieverFn();
+    const context = await this.contextRetrieverFn('locate');
 
     const startTime = Date.now();
-    const { parseResult, elementById, rawResponse } = await AiInspectElement({
-      callAI,
-      context,
-      multi: Boolean(multi),
-      targetElementDescription: queryPrompt,
-      quickAnswer: opt?.quickAnswer,
-    });
+    const { parseResult, elementById, rawResponse, usage } =
+      await AiInspectElement({
+        callAI,
+        context,
+        multi: Boolean(multi),
+        targetElementDescription: queryPrompt,
+        quickAnswer: opt?.quickAnswer,
+      });
     // const parseResult = await this.aiVendorFn<AIElementParseResponse>(msgs);
     const timeCost = Date.now() - startTime;
     const taskInfo: InsightTaskInfo = {
@@ -117,6 +109,7 @@ export default class Insight<
       durationMs: timeCost,
       rawResponse: JSON.stringify(rawResponse),
       formatResponse: JSON.stringify(parseResult),
+      usage,
     };
 
     let errorLog: string | undefined;
@@ -198,7 +191,7 @@ export default class Insight<
     const dumpSubscriber = this.onceDumpUpdatedFn;
     this.onceDumpUpdatedFn = undefined;
 
-    const context = await this.contextRetrieverFn();
+    const context = await this.contextRetrieverFn('extract');
 
     const startTime = Date.now();
     const { parseResult, elementById } = await AiExtractElementInfo<T>({
@@ -237,33 +230,6 @@ export default class Insight<
       throw new Error(errorLog);
     }
 
-    // expand all ids into original elements
-    const sectionsArr = (parseResult.sections || [])
-      .map((liteSection) => {
-        const section: UISection = expandLiteSection(liteSection, (id) =>
-          elementById(id),
-        );
-        return section;
-      })
-      .sort(sortByOrder);
-
-    // deal sections array into a map
-    const sectionMap = sectionsArr.reduce((acc: any, section) => {
-      const { name } = section;
-
-      if (acc[name]) {
-        let i = 1;
-        while (acc[`${name}_${i}`]) {
-          i++;
-        }
-        console.warn(`section name conflict: ${name}, rename to ${name}_${i}`);
-        acc[`${name}_${i}`] = section;
-      } else {
-        acc[name] = section;
-      }
-      return acc;
-    }, {});
-
     const { data } = parseResult;
     let mergedData = data;
 
@@ -282,14 +248,13 @@ export default class Insight<
 
       mergedData = {
         ...data,
-        ...sectionMap,
       };
     }
 
     writeInsightDump(
       {
         ...dumpData,
-        matchedSection: Object.values(sectionMap),
+        matchedSection: [],
         data: mergedData,
       },
       logId,
@@ -309,7 +274,7 @@ export default class Insight<
     const dumpSubscriber = this.onceDumpUpdatedFn;
     this.onceDumpUpdatedFn = undefined;
 
-    const context = await this.contextRetrieverFn();
+    const context = await this.contextRetrieverFn('assert');
     const startTime = Date.now();
     const assertResult = await AiAssert({
       assertion,
@@ -320,10 +285,11 @@ export default class Insight<
     const taskInfo: InsightTaskInfo = {
       ...(this.taskInfo ? this.taskInfo : {}),
       durationMs: timeCost,
-      rawResponse: JSON.stringify(assertResult),
+      rawResponse: JSON.stringify(assertResult.content),
+      usage: assertResult.usage,
     };
 
-    const { thought, pass } = assertResult;
+    const { thought, pass } = assertResult.content;
     const dumpData: PartialInsightDumpFromSDK = {
       type: 'assert',
       context,

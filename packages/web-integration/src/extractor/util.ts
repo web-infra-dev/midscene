@@ -1,4 +1,4 @@
-import SHA256 from 'js-sha256';
+import { sha256 } from 'js-sha256';
 import { extractTextWithPosition } from './web-extractor';
 
 // import { TEXT_MAX_SIZE } from './constants';
@@ -357,8 +357,32 @@ export function getNodeAttributes(
   return Object.fromEntries(attributesList);
 }
 
+let nodeHashCacheList: { node: Node; id: string }[] = [];
+if (typeof window !== 'undefined') {
+  (window as any).midsceneNodeHashCacheList =
+    (window as any).midsceneNodeHashCacheList || [];
+  nodeHashCacheList = (window as any).midsceneNodeHashCacheList;
+}
 const hashMap: Record<string, string> = {}; // id - combined
-export function midsceneGenerateHash(content: string, rect: any): string {
+
+// for each run, reset the cache list
+export function resetNodeHashCacheList() {
+  if (typeof window !== 'undefined') {
+    nodeHashCacheList = (window as any).midsceneNodeHashCacheList || [];
+    (window as any).midsceneNodeHashCacheList = [];
+  } else {
+    nodeHashCacheList = [];
+  }
+}
+
+export function midsceneGenerateHash(
+  node: Node | null,
+  content: string,
+  rect: any,
+): string {
+  if (node && nodeHashCacheList.find((item) => item.node === node)) {
+    return nodeHashCacheList.find((item) => item.node === node)?.id || '';
+  }
   // Combine the input into a string
   const combined = JSON.stringify({
     content,
@@ -368,8 +392,8 @@ export function midsceneGenerateHash(content: string, rect: any): string {
   // Generates the ha-256 hash value
   let sliceLength = 5;
   let hashInDigits = '';
-  const hashHex = SHA256(combined);
-  while (sliceLength < combined.length - 1) {
+  const hashHex = sha256.create().update(combined).hex();
+  while (sliceLength < hashHex.length - 1) {
     hashInDigits = Number.parseInt(
       hashHex.slice(0, sliceLength),
       16,
@@ -381,6 +405,10 @@ export function midsceneGenerateHash(content: string, rect: any): string {
     hashMap[hashInDigits] = combined;
     break;
   }
+  if (node && typeof window !== 'undefined') {
+    (window as any).midsceneNodeHashCacheList.push({ node, id: hashInDigits });
+  }
+
   // Returns the first 10 characters as a short hash
   return hashInDigits;
 }

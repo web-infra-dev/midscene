@@ -2,11 +2,11 @@
   "testDataPath": "test-data/online_order_list",
   "testCases": [
     {
-      "prompt": "清爽不喝腻，下面第二个饮品的名称",
+      "prompt": "'清爽不喝腻'下面第二个饮品的名称",
       "multi": false,
       "response": [
         {
-          "id": "a7e27d3428",
+          "id": "687655",
           "indexId": 20
         }
       ]
@@ -16,7 +16,7 @@
       "multi": false,
       "response": [
         {
-          "id": "26a8c5a4bb",
+          "id": "158348",
           "indexId": 39
         }
       ]
@@ -26,8 +26,18 @@
       "multi": false,
       "response": [
         {
-          "id": "c188fcd358",
+          "id": "792719",
           "indexId": 38
+        }
+      ]
+    },
+    {
+      "prompt": "左侧导航栏’要雪糕‘",
+      "multi": false,
+      "response": [
+        {
+          "id": "537624",
+          "indexId": 9
         }
       ]
     }

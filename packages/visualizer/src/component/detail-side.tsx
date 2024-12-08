@@ -8,7 +8,6 @@ import type {
   ExecutionTaskInsightAssertion,
   ExecutionTaskInsightLocate,
   ExecutionTaskPlanning,
-  UISection,
 } from '@midscene/core';
 import { Tag, Timeline, type TimelineItemProps, Tooltip } from 'antd';
 import { highlightColorForType } from './color';
@@ -129,11 +128,6 @@ const DetailSide = (): JSX.Element => {
       Boolean((value as any).center) &&
       Boolean((value as any).rect);
 
-    const isSectionItem = (value: unknown): value is UISection =>
-      Boolean(value) &&
-      typeof (value as any)?.sectionCharacteristics !== 'undefined' &&
-      typeof (value as any)?.rect !== 'undefined';
-
     const elementEl = (value: BaseElement) => (
       <span>
         <Tag bordered={false} color="orange" className="element-button">
@@ -177,6 +171,15 @@ const DetailSide = (): JSX.Element => {
     });
   };
 
+  const usageInfo = (task as ExecutionTaskInsightLocate)?.log?.dump?.taskInfo
+    ?.usage
+    ? JSON.stringify(
+        (task as ExecutionTaskInsightLocate).log!.dump!.taskInfo!.usage,
+        undefined,
+        2,
+      )
+    : '';
+
   const metaKVElement = MetaKV({
     data: [
       {
@@ -199,36 +202,71 @@ const DetailSide = (): JSX.Element => {
         key: 'cache',
         content: task?.cache ? JSON.stringify(task?.cache) : 'false',
       },
+      ...(task?.locate
+        ? [
+            {
+              key: 'locate',
+              content: JSON.stringify(task.locate),
+            },
+          ]
+        : []),
+      ...(usageInfo ? [{ key: 'usage', content: usageInfo }] : []),
     ],
   });
 
   let taskParam: JSX.Element | null = null;
   if (task?.type === 'Planning') {
-    taskParam = MetaKV({
-      data: [
-        { key: 'type', content: (task && typeStr(task)) || '' },
-        {
-          key: 'param',
-          content: paramStr(task) || '',
-        },
-      ],
-    });
+    const planningTask = task as ExecutionTaskPlanning;
+    if (planningTask.param?.whatHaveDone) {
+      taskParam = MetaKV({
+        data: [
+          { key: 'type', content: (task && typeStr(task)) || '' },
+          {
+            key: 'whatHaveDone',
+            content: planningTask.param.whatHaveDone,
+          },
+          {
+            key: 'whatToDoNext',
+            content: planningTask.param.userPrompt,
+          },
+        ],
+      });
+    } else {
+      taskParam = MetaKV({
+        data: [
+          { key: 'type', content: (task && typeStr(task)) || '' },
+          {
+            key: 'userPrompt',
+            content: paramStr(task) || '',
+          },
+        ],
+      });
+    }
   } else if (task?.type === 'Insight') {
-    const quickAnswer = (task as ExecutionTaskInsightLocate)?.quickAnswer;
     taskParam = MetaKV({
       data: [
         { key: 'type', content: (task && typeStr(task)) || '' },
-        {
-          key: 'param',
-          content: paramStr(task) || '',
-        },
-        ...(quickAnswer
+        ...(paramStr(task)
           ? [
               {
-                key: 'quick answer',
-                content: quickAnswer
-                  ? JSON.stringify(quickAnswer, undefined, 2)
-                  : '',
+                key: 'param',
+                content: paramStr(task) || '',
+              },
+            ]
+          : []),
+        ...(task?.param?.id
+          ? [
+              {
+                key: 'id',
+                content: task.param.id,
+              },
+            ]
+          : []),
+        ...(task?.thought
+          ? [
+              {
+                key: 'thought',
+                content: task.thought,
               },
             ]
           : []),
@@ -324,7 +362,7 @@ const DetailSide = (): JSX.Element => {
     );
   }
 
-  const plans = (task as ExecutionTaskPlanning)?.output?.plans;
+  const plans = (task as ExecutionTaskPlanning)?.output?.actions;
   let timelineData: TimelineItemProps[] = [];
   if (plans) {
     timelineData = timelineData.concat(
@@ -334,9 +372,7 @@ const DetailSide = (): JSX.Element => {
           ? JSON.stringify(paramToShow, undefined, 2)
           : null;
 
-        const quickAnswerStr = item.quickAnswer
-          ? JSON.stringify({ quickAnswer: item.quickAnswer }, undefined, 2)
-          : null;
+        const locateStr = item.locate ? JSON.stringify(item.locate) : null;
 
         return {
           color: '#06B1AB',
@@ -347,12 +383,30 @@ const DetailSide = (): JSX.Element => {
               </p>
               <p>{item.thought}</p>
               <p>{paramStr}</p>
-              <p>{quickAnswerStr}</p>
+              <p>{locateStr}</p>
             </>
           ),
         };
       }),
     );
+    if ((task as ExecutionTaskPlanning).output?.furtherPlan) {
+      timelineData.push({
+        color: '#06B1AB',
+        children: (
+          <>
+            <p>
+              <b>Further Plan</b>
+            </p>
+            <p>
+              {
+                (task as ExecutionTaskPlanning).output?.furtherPlan
+                  ?.whatToDoNext
+              }
+            </p>
+          </>
+        ),
+      });
+    }
   }
 
   return (

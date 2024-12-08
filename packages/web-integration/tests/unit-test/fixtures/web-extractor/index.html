@@ -27,6 +27,10 @@
         th {
             background-color: #f2f2f2;
         }
+
+        .child-container-5 {
+            font-family: awesome-iconfont;
+        }
     </style>
 </head>
 
@@ -130,6 +134,16 @@
     </div>
 
     <div style="width:1px;height:120px"></div>
+
+    <div style="width:30px;height:30px;background: #AC0" id="J_resize"></div>
+    <script type="text/javascript">
+        if (location.href.indexOf('resize-after-3s') > 0) {
+            setTimeout(() => {
+                const element = document.getElementById('J_resize');
+                element.style.height = "50px";
+            }, 3000);
+        }
+    </script>
 
     <!-- a label with sibiling input -->
     <div id="gh-ac-box2">
@@ -248,6 +262,7 @@
             </div>
         </div>
     </div>
+    <span class="child-container-5">x</span>
     <!-- svg item -->
     <span role="img" aria-label="code" tabindex="-1" class="anticon anticon-code code-box-expand-trigger"><svg
             viewBox="64 64 896 896" focusable="false" data-icon="code" width="1em" height="1em" fill="currentColor"

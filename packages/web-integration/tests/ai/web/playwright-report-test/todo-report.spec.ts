@@ -7,7 +7,7 @@ test('ai report', async ({ page, ai, aiAssert }, testInfo) => {
   testInfo.snapshotSuffix = '';
   await new Promise((resolve) => setTimeout(resolve, 3000));
   const htmlFile = getLastModifiedReportHTMLFile(
-    path.join(__dirname, '../../../../midscene_run/report'),
+    path.join(process.cwd(), './midscene_run/report/'),
   );
   console.log('report html path:', htmlFile);
   await page.setViewportSize({ width: 1920, height: 1080 });

@@ -494,7 +494,7 @@ export function Playground({
             <Form.Item name="prompt">
               <TextArea
                 disabled={!runButtonEnabled}
-                rows={2}
+                rows={4}
                 placeholder={placeholder}
                 autoFocus
                 onKeyDown={(e) => {

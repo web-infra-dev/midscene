@@ -3,7 +3,6 @@ import { useAllCurrentTasks, useExecutionDump } from '@/component/store';
 import { typeStr } from '@/utils';
 import { MessageOutlined, VideoCameraOutlined } from '@ant-design/icons';
 import type { ExecutionTask } from '@midscene/core';
-import { Button } from 'antd';
 import { useEffect } from 'react';
 import { iconForStatus, timeCostStrElement } from './misc';
 import PanelTitle from './panel-title';
@@ -141,9 +140,6 @@ const Sidebar = (): JSX.Element => {
               <div className="side-seperator side-seperator-space-up" />
             );
             break;
-          // case group.executions.length - 1:
-          //   seperator = <div className="side-seperator side-seperator-space-down" />;
-          //   break;
           default:
             seperator = (
               <div className="side-seperator side-seperator-space-up side-seperator-space-down" />
@@ -184,9 +180,9 @@ const Sidebar = (): JSX.Element => {
         </div>
       </div>
       <div className="bottom-controls">
-        <Button onClick={reset} type="text" className="unload_btn">
+        {/* <Button onClick={reset} type="text" className="unload_btn">
           Unload
-        </Button>
+        </Button> */}
       </div>
     </div>
   );

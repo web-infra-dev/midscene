@@ -5,6 +5,7 @@ import {
   type ExecutionDump,
   type GroupedActionDump,
   Insight,
+  type InsightAction,
 } from '@midscene/core';
 import { NodeType } from '@midscene/shared/constants';
 
@@ -65,8 +66,8 @@ export class PageAgent {
     );
 
     this.insight = new Insight<WebElementInfo, WebUIContext>(
-      async () => {
-        return this.getUIContext();
+      async (action: InsightAction) => {
+        return this.getUIContext(action);
       },
       {
         generateElement: ({ content, rect }) =>
@@ -90,7 +91,12 @@ export class PageAgent {
     this.reportFileName = reportFileName(opts?.testId || 'web');
   }
 
-  async getUIContext(): Promise<WebUIContext> {
+  async getUIContext(action?: InsightAction): Promise<WebUIContext> {
+    if (action && (action === 'extract' || action === 'assert')) {
+      return await parseContextFromWebPage(this.page, {
+        ignoreMarker: true,
+      });
+    }
     return await parseContextFromWebPage(this.page);
   }
 
