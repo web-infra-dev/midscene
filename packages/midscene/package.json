@@ -37,9 +37,10 @@
     "prepublishOnly": "npm run build"
   },
   "dependencies": {
+    "@midscene/shared": "workspace:*",
     "openai": "4.57.1",
     "optional": "0.1.4",
-    "@midscene/shared": "workspace:*"
+    "socks-proxy-agent": "8.0.4"
   },
   "devDependencies": {
     "@modern-js/module-tools": "2.60.6",

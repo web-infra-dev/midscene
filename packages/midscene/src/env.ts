@@ -7,6 +7,7 @@ export const MIDSCENE_DEBUG_AI_PROFILE = 'MIDSCENE_DEBUG_AI_PROFILE';
 export const MIDSCENE_DANGEROUSLY_PRINT_ALL_CONFIG =
   'MIDSCENE_DANGEROUSLY_PRINT_ALL_CONFIG';
 export const MIDSCENE_DEBUG_MODE = 'MIDSCENE_DEBUG_MODE';
+export const MIDSCENE_OPENAI_SOCKS_PROXY = 'MIDSCENE_OPENAI_SOCKS_PROXY';
 export const OPENAI_API_KEY = 'OPENAI_API_KEY';
 export const OPENAI_BASE_URL = 'OPENAI_BASE_URL';
 export const MIDSCENE_MODEL_TEXT_ONLY = 'MIDSCENE_MODEL_TEXT_ONLY';
@@ -36,6 +37,8 @@ const allConfigFromEnv = () => {
     [MATCH_BY_POSITION]: process.env[MATCH_BY_POSITION] || undefined,
     [MIDSCENE_REPORT_TAG_NAME]:
       process.env[MIDSCENE_REPORT_TAG_NAME] || undefined,
+    [MIDSCENE_OPENAI_SOCKS_PROXY]:
+      process.env[MIDSCENE_OPENAI_SOCKS_PROXY] || undefined,
   };
 };
 
@@ -48,6 +51,20 @@ export const getAIConfig = (
     return userConfig[configKey];
   }
   return allConfigFromEnv()[configKey];
+};
+
+export const getAIConfigInJson = (configKey: keyof typeof userConfig) => {
+  const config = getAIConfig(configKey);
+  try {
+    return config ? JSON.parse(config) : undefined;
+  } catch (error: any) {
+    throw new Error(
+      `Failed to parse json config: ${configKey}. ${error.message}`,
+      {
+        cause: error,
+      },
+    );
+  }
 };
 
 export const allAIConfig = () => {
