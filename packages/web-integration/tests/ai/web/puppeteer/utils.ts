@@ -13,6 +13,7 @@ export async function launchPage(
     headless: typeof opt?.headless === 'boolean' ? opt.headless : true,
     args: [
       '--no-sandbox',
+      '--disable-setuid-sandbox',
       '--disable-features=PasswordLeakDetection',
       '--disable-save-password-bubble',
     ],
