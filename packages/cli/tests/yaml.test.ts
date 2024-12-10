@@ -7,7 +7,7 @@ import { assert, describe, expect, test, vi } from 'vitest';
 const runYaml = async (yamlString: string) => {
   const script = loadYamlScript(yamlString);
   const player = new ScriptPlayer(script);
-  await player.play();
+  await player.run();
   assert(
     player.status === 'done',
     player.errorInSetup?.message || 'unknown error',
