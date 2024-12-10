@@ -1,5 +1,6 @@
 import { readFileSync, writeFileSync } from 'node:fs';
 import path, { join } from 'node:path';
+import type { callAiFn } from '@/ai-model/common';
 import {
   base64Encoded,
   imageInfoOfBase64,
@@ -8,7 +9,6 @@ import {
 import Insight from '@/insight';
 import type { AIElementIdResponse, BaseElement, UIContext } from '@/types';
 import { vi } from 'vitest';
-import type { callAiFn } from '@/ai-model/common';
 
 export function getFixture(name: string) {
   return join(__dirname, 'fixtures', name);
