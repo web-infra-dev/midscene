@@ -5,6 +5,7 @@ import type {
   ExecutionTask,
   ExecutionTaskApply,
   ExecutionTaskInsightLocateOutput,
+  ExecutionTaskProgressOptions,
   ExecutionTaskReturn,
   ExecutorContext,
 } from '@/types';
@@ -20,19 +21,19 @@ export class Executor {
   // status of executor
   status: 'init' | 'pending' | 'running' | 'completed' | 'error';
 
-  onTaskStart?: (task: ExecutionTask) => void;
+  onTaskStart?: ExecutionTaskProgressOptions['onTaskStart'];
 
   constructor(
     name: string,
     description?: string,
     tasks?: ExecutionTaskApply[],
-    onTaskStart?: () => void,
+    options?: ExecutionTaskProgressOptions,
   ) {
     this.status = tasks && tasks.length > 0 ? 'pending' : 'init';
     this.name = name;
     this.description = description;
     this.tasks = (tasks || []).map((item) => this.markTaskAsPending(item));
-    this.onTaskStart = onTaskStart;
+    this.onTaskStart = options?.onTaskStart;
   }
 
   private markTaskAsPending(task: ExecutionTaskApply): ExecutionTask {
@@ -84,13 +85,6 @@ export class Executor {
 
     while (taskIndex < this.tasks.length) {
       const task = this.tasks[taskIndex];
-      try {
-        if (this.onTaskStart) {
-          this.onTaskStart(task);
-        }
-      } catch (e) {
-        // console.error('error in onTaskStart', e);
-      }
       assert(
         task.status === 'pending',
         `task status should be pending, but got: ${task.status}`,
@@ -100,6 +94,13 @@ export class Executor {
       };
       try {
         task.status = 'running';
+        try {
+          if (this.onTaskStart) {
+            await this.onTaskStart(task);
+          }
+        } catch (e) {
+          // console.error('error in onTaskStart', e);
+        }
         assert(
           ['Insight', 'Action', 'Planning'].indexOf(task.type) >= 0,
           `unsupported task type: ${task.type}`,

@@ -313,6 +313,9 @@ export interface PlaywrightParserOpt extends BaseAgentParserOpt {}
 /*
 action
 */
+export interface ExecutionTaskProgressOptions {
+  onTaskStart?: (task: ExecutionTask) => Promise<void> | void;
+}
 
 export interface ExecutionRecorderItem {
   type: 'screenshot';
@@ -348,7 +351,7 @@ export interface ExecutionTaskApply<
     param: TaskParam,
     context: ExecutorContext,
   ) => // biome-ignore lint/suspicious/noConfusingVoidType: <explanation>
-    | Promise<ExecutionTaskReturn<TaskOutput, TaskLog> | undefined | void>
+  | Promise<ExecutionTaskReturn<TaskOutput, TaskLog> | undefined | void>
     | undefined
     | void;
 }
