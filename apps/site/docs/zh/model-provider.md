@@ -25,4 +25,7 @@ export MIDSCENE_MODEL_NAME='claude-3-opus-20240229';
 
 # 可选, 如果你想变更 SDK 的初始化参数
 export MIDSCENE_OPENAI_INIT_CONFIG_JSON='{"baseURL":"....","defaultHeaders":{"key": "value"}}'
+
+# 可选, 如果你想使用代理。Midscene 使用 `socks-proxy-agent` 作为底层库。
+export MIDSCENE_OPENAI_SOCKS_PROXY="socks5://127.0.0.1:1080"
 ```

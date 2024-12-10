@@ -11,18 +11,21 @@ Required:
 export OPENAI_API_KEY="sk-abcdefghijklmnopqrstuvwxyz"
 ```
 
-Optional:
+Optional configs:
 
 ```bash
-# optional, if you want to use a customized endpoint
+# if you want to use a customized endpoint
 export OPENAI_BASE_URL="https://..."
 
-# optional, if you want to use Azure OpenAI Service
+# if you want to use Azure OpenAI Service
 export OPENAI_USE_AZURE="true"
 
-# optional, if you want to specify a model name other than gpt-4o
+# if you want to specify a model name other than gpt-4o
 export MIDSCENE_MODEL_NAME='claude-3-opus-20240229';
 
-# optional, if you want to pass customized JSON data to the `init` process of OpenAI SDK
+# if you want to pass customized JSON data to the `init` process of OpenAI SDK
 export MIDSCENE_OPENAI_INIT_CONFIG_JSON='{"baseURL":"....","defaultHeaders":{"key": "value"}}'
+
+# if you want to use proxy. Midscene uses `socks-proxy-agent` under the hood.
+export MIDSCENE_OPENAI_SOCKS_PROXY="socks5://127.0.0.1:1080"
 ```

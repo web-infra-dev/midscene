@@ -151,6 +151,9 @@ importers:
       optional:
         specifier: 0.1.4
         version: 0.1.4
+      socks-proxy-agent:
+        specifier: 8.0.4
+        version: 8.0.4
     devDependencies:
       '@modern-js/module-tools':
         specifier: 2.60.6
