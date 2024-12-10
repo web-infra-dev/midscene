@@ -20,19 +20,19 @@ export class Executor {
   // status of executor
   status: 'init' | 'pending' | 'running' | 'completed' | 'error';
 
-  onFlushUpdate?: () => void;
+  onTaskStart?: (task: ExecutionTask) => void;
 
   constructor(
     name: string,
     description?: string,
     tasks?: ExecutionTaskApply[],
-    onFlushUpdate?: () => void,
+    onTaskStart?: () => void,
   ) {
     this.status = tasks && tasks.length > 0 ? 'pending' : 'init';
     this.name = name;
     this.description = description;
     this.tasks = (tasks || []).map((item) => this.markTaskAsPending(item));
-    this.onFlushUpdate = onFlushUpdate;
+    this.onTaskStart = onTaskStart;
   }
 
   private markTaskAsPending(task: ExecutionTaskApply): ExecutionTask {
@@ -85,11 +85,11 @@ export class Executor {
     while (taskIndex < this.tasks.length) {
       const task = this.tasks[taskIndex];
       try {
-        if (this.onFlushUpdate) {
-          this.onFlushUpdate();
+        if (this.onTaskStart) {
+          this.onTaskStart(task);
         }
       } catch (e) {
-        // console.error('error in onFlushUpdate', e);
+        // console.error('error in onTaskStart', e);
       }
       assert(
         task.status === 'pending',
@@ -162,9 +162,7 @@ export class Executor {
     } else {
       this.status = 'error';
     }
-    if (this.onFlushUpdate) {
-      await this.onFlushUpdate();
-    }
+
     if (this.tasks.length) {
       // return the last output
       const outputIndex = Math.min(taskIndex, this.tasks.length - 1);
