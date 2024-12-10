@@ -22,6 +22,7 @@ import './playground-component.less';
 import Logo from './logo';
 import { serverBase, useServerValid } from './open-in-playground';
 
+import { paramStr, typeStr } from '@/utils';
 import { overrideAIConfig } from '@midscene/core';
 import type { ChromeExtensionProxyPageAgent } from '@midscene/web/chrome-extension';
 import {
@@ -163,6 +164,7 @@ export function Playground({
   >(undefined);
 
   const [loading, setLoading] = useState(false);
+  const [loadingProgressText, setLoadingProgressText] = useState('');
   const [result, setResult] = useState<PlaygroundResult | null>(null);
   const [form] = Form.useForm();
   const { config, serviceMode, setServiceMode } = useEnvConfig();
@@ -247,7 +249,13 @@ export function Playground({
           value.prompt,
         );
       } else if (value.type === 'aiAction') {
-        result.result = await activeAgent?.aiAction(value.prompt);
+        result.result = await activeAgent?.aiAction(value.prompt, {
+          onTaskStart: (task) => {
+            const type = typeStr(task);
+            const param = paramStr(task);
+            setLoadingProgressText(`${type}: ${param}`);
+          },
+        });
       } else if (value.type === 'aiQuery') {
         result.result = await activeAgent?.aiQuery(value.prompt);
       } else if (value.type === 'aiAssert') {
@@ -321,10 +329,10 @@ export function Playground({
     resultDataToShow = serverLaunchTip;
   } else if (loading) {
     resultDataToShow = (
-      <Spin
-        spinning={loading}
-        indicator={<LoadingOutlined style={{ fontSize: 48 }} spin />}
-      />
+      <div className="loading-container">
+        <Spin spinning={loading} indicator={<LoadingOutlined spin />} />
+        <div className="loading-progress-text">{loadingProgressText}</div>
+      </div>
     );
   } else if (replayScriptsInfo) {
     resultDataToShow = (

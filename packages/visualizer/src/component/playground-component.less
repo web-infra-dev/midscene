@@ -86,7 +86,24 @@ body {
       left: 12px;
     }
   }
-  
+
+
+  .loading-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    box-sizing: border-box;
+    padding: @layout-extension-space-vertical @layout-extension-space-horizontal;
+
+    .loading-progress-text {
+      text-align: center;
+      width: 100%;
+      color: @weak-text;
+      margin-top: 16px;
+      height: 60px;
+    }
+  }
+
   .result-wrapper {
     width: 100%;
     height: 100%;

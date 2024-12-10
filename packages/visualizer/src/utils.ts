@@ -95,6 +95,10 @@ export function paramStr(task: ExecutionTask) {
         (task as ExecutionTaskAction)?.param?.value ||
         (task as ExecutionTaskAction)?.param?.scrollType;
     }
+
+    if (!value) {
+      value = task.thought;
+    }
   }
 
   if (typeof value === 'undefined') return '';
