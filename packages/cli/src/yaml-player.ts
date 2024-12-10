@@ -351,6 +351,12 @@ export class ScriptPlayer {
     }
     const browser = await puppeteer.launch({
       headless: !headed,
+      args: [
+        '--no-sandbox',
+        '--disable-setuid-sandbox',
+        '--disable-features=PasswordLeakDetection',
+        '--disable-save-password-bubble',
+      ],
     });
     freeFn.push({
       name: 'puppeteer_browser',
