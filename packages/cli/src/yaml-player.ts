@@ -118,14 +118,14 @@ export async function playYamlFiles(
 
     ttyRenderer.start();
     for (const context of fileContextList) {
-      await context.player.play();
+      await context.player.run();
     }
     ttyRenderer.stop();
   } else {
     for (const context of fileContextList) {
       const { mergedText } = contextInfo(context);
       console.log(mergedText);
-      await context.player.play();
+      await context.player.run();
       console.log(contextTaskListSummary(context.player.taskStatus, context));
     }
   }
@@ -281,7 +281,7 @@ export class ScriptPlayer {
     this.reportFile = agent.reportFile;
   }
 
-  async play() {
+  async run() {
     const { target, tasks } = this.script;
     this.setPlayerStatus('running');
 

@@ -106,7 +106,7 @@ export const contextInfo = (context: MidsceneYamlFileContext) => {
   const reportFile = context.player.reportFile;
   const reportFileToShow = relative(process.cwd(), reportFile || '');
   const reportText = reportFile
-    ? `\n${indent}${chalk.gray(`report: ${reportFileToShow}`)}`
+    ? `\n${indent}${chalk.gray(`report: ./${reportFileToShow}`)}`
     : '';
 
   const mergedText =
