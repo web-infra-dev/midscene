@@ -22,7 +22,8 @@ import './playground-component.less';
 import Logo from './logo';
 import { serverBase, useServerValid } from './open-in-playground';
 
-import { paramStr, typeStr } from '@/utils';
+import { paramStr, typeStr } from '@midscene/web/ui-utils';
+
 import { overrideAIConfig } from '@midscene/core';
 import type { ChromeExtensionProxyPageAgent } from '@midscene/web/chrome-extension';
 import {

@@ -13,6 +13,7 @@
   "exports": {
     ".": "./dist/lib/index.js",
     "./utils": "./dist/lib/utils.js",
+    "./ui-utils": "./dist/lib/ui-utils.js",
     "./puppeteer": "./dist/lib/puppeteer.js",
     "./playwright": "./dist/lib/playwright.js",
     "./playwright-report": "./dist/lib/playwright-report.js",
@@ -24,16 +25,39 @@
   },
   "typesVersions": {
     "*": {
-      ".": ["./dist/types/index.d.ts"],
-      "utils": ["./dist/types/utils.d.ts"],
-      "puppeteer": ["./dist/types/puppeteer.d.ts"],
-      "playwright": ["./dist/types/playwright.d.ts"],
-      "playwright-report": ["./dist/types/playwright-report.d.ts"],
-      "playground": ["./dist/types/playground.d.ts"],
-      "debug": ["./dist/types/debug.d.ts"],
-      "constants": ["./dist/types/constants.d.ts"],
-      "html-element": ["./dist/types/html-element/index.d.ts"],
-      "chrome-extension": ["./dist/types/chrome-extension.d.ts"]
+      ".": [
+        "./dist/types/index.d.ts"
+      ],
+      "utils": [
+        "./dist/types/utils.d.ts"
+      ],
+      "ui-utils": [
+        "./dist/types/ui-utils.d.ts"
+      ],
+      "puppeteer": [
+        "./dist/types/puppeteer.d.ts"
+      ],
+      "playwright": [
+        "./dist/types/playwright.d.ts"
+      ],
+      "playwright-report": [
+        "./dist/types/playwright-report.d.ts"
+      ],
+      "playground": [
+        "./dist/types/playground.d.ts"
+      ],
+      "debug": [
+        "./dist/types/debug.d.ts"
+      ],
+      "constants": [
+        "./dist/types/constants.d.ts"
+      ],
+      "html-element": [
+        "./dist/types/html-element/index.d.ts"
+      ],
+      "chrome-extension": [
+        "./dist/types/chrome-extension.d.ts"
+      ]
     }
   },
   "scripts": {
@@ -58,7 +82,12 @@
     "e2e:ui:cache": "MIDSCENE_CACHE=true playwright test --config=playwright.config.ts  --ui",
     "e2e:generate-test-data": "GENERATE_TEST_DATA=true playwright test ./tests/ai/web/playwright/generate-test-data.spec.ts"
   },
-  "files": ["static", "dist", "README.md", "bin"],
+  "files": [
+    "static",
+    "dist",
+    "README.md",
+    "bin"
+  ],
   "dependencies": {
     "@midscene/core": "workspace:*",
     "@midscene/shared": "workspace:*",

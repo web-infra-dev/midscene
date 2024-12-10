@@ -7,6 +7,8 @@ import assert from 'node:assert';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { basename, dirname, extname, join } from 'node:path';
 import { PuppeteerAgent } from '@midscene/web/puppeteer';
+import { paramStr, typeStr } from '@midscene/web/ui-utils';
+
 import {
   contextInfo,
   contextTaskListSummary,
@@ -220,7 +222,13 @@ export class ScriptPlayer {
           typeof prompt === 'string',
           'prompt for aiAction must be a string',
         );
-        await agent.aiAction(prompt);
+        await agent.aiAction(prompt, {
+          onTaskStart(task) {
+            const tip = `${typeStr(task)} - ${paramStr(task)}`;
+            (flowItem as MidsceneYamlFlowItemAIAction).aiActionProgressTip =
+              tip;
+          },
+        });
       } else if ((flowItem as MidsceneYamlFlowItemAIAssert).aiAssert) {
         const assertTask = flowItem as MidsceneYamlFlowItemAIAssert;
         const prompt = assertTask.aiAssert;

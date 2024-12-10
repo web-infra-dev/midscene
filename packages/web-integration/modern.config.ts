@@ -8,6 +8,7 @@ export default defineConfig({
     input: {
       index: 'src/index.ts',
       utils: 'src/common/utils.ts',
+      'ui-utils': 'src/common/ui-utils.ts',
       debug: 'src/debug/index.ts',
       puppeteer: 'src/puppeteer/index.ts',
       playwright: 'src/playwright/index.ts',

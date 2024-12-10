@@ -30,8 +30,9 @@ export const flowItemBrief = (flowItem?: MidsceneYamlFlowItem) => {
   }
 
   const sliceText = (text?: string) => {
-    if (text && text.length > 12) {
-      return `${text.slice(0, 12)}...`;
+    const lengthLimit = 60;
+    if (text && text.length > lengthLimit) {
+      return `${text.slice(0, lengthLimit)}...`;
     }
 
     return text || '';
@@ -42,7 +43,8 @@ export const flowItemBrief = (flowItem?: MidsceneYamlFlowItem) => {
     (flowItem as MidsceneYamlFlowItemAIAction).ai
   ) {
     return `aiAction: ${sliceText(
-      (flowItem as MidsceneYamlFlowItemAIAction).aiAction ||
+      (flowItem as MidsceneYamlFlowItemAIAction).aiActionProgressTip ||
+        (flowItem as MidsceneYamlFlowItemAIAction).aiAction ||
         (flowItem as MidsceneYamlFlowItemAIAction).ai,
     )}`;
   }
