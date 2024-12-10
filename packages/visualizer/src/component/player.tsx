@@ -692,10 +692,26 @@ export default function Player(props?: {
     }
   }, [replayMark]);
 
+  const [mouseOverStatusIcon, setMouseOverStatusIcon] = useState(false);
   const progressString = Math.round(animationProgress * 100);
   const transitionStyle = animationProgress === 0 ? 'none' : '0.3s';
 
-  const [mouseOverStatusIcon, setMouseOverStatusIcon] = useState(false);
+  // if the animation can be replay now, listen to the ""
+  const canReplayNow = animationProgress === 1;
+  useEffect(() => {
+    if (canReplayNow) {
+      const listener = (event: KeyboardEvent) => {
+        if (event.key === ' ') {
+          setReplayMark(Date.now());
+        }
+      };
+      window.addEventListener('keydown', listener);
+      return () => {
+        window.removeEventListener('keydown', listener);
+      };
+    }
+  }, [canReplayNow]);
+
   let statusIconElement;
   const statusStyle: React.CSSProperties = {};
   let statusOnClick: () => void = () => {};

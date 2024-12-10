@@ -1,5 +1,5 @@
 target:
-  url: https://www.baidu.com
+  url: https://www.bing.com
 tasks:
   - name: search weather
     flow:

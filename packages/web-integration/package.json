@@ -13,6 +13,7 @@
   "exports": {
     ".": "./dist/lib/index.js",
     "./utils": "./dist/lib/utils.js",
+    "./ui-utils": "./dist/lib/ui-utils.js",
     "./puppeteer": "./dist/lib/puppeteer.js",
     "./playwright": "./dist/lib/playwright.js",
     "./playwright-report": "./dist/lib/playwright-report.js",
@@ -26,6 +27,7 @@
     "*": {
       ".": ["./dist/types/index.d.ts"],
       "utils": ["./dist/types/utils.d.ts"],
+      "ui-utils": ["./dist/types/ui-utils.d.ts"],
       "puppeteer": ["./dist/types/puppeteer.d.ts"],
       "playwright": ["./dist/types/playwright.d.ts"],
       "playwright-report": ["./dist/types/playwright-report.d.ts"],
