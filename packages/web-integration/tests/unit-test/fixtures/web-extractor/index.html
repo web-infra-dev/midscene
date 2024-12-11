@@ -272,6 +272,26 @@
             </path>
         </svg></span>
 
+
+    <!-- hidden label -->
+    <style>
+        .visually-hidden {
+            clip: rect(0 0 0 0);
+            border: 0;
+            clip-path: inset(50%);
+            height: 1px;
+            margin: -1px;
+            overflow: hidden;
+            padding: 0;
+            position: absolute;
+            white-space: nowrap;
+            width: 1px;
+        }
+    </style>
+    <label class="visually-hidden">
+        <span>hidden label</span>
+    </label>
+
     <!-- iframe -->
     <iframe src="child.html" frameborder="0" width="400px" height="200px"></iframe>
 </body>

@@ -69,24 +69,26 @@ function isElementPartiallyInViewport(rect: ReturnType<typeof getRect>) {
   const elementHeight = rect.height;
   const elementWidth = rect.width;
 
-  const viewportHeight =
-    window.innerHeight || document.documentElement.clientHeight;
-  const viewportWidth =
-    window.innerWidth || document.documentElement.clientWidth;
+  const viewportRect = {
+    left: 0,
+    top: 0,
+    width: window.innerWidth || document.documentElement.clientWidth,
+    height: window.innerHeight || document.documentElement.clientHeight,
+    right: window.innerWidth || document.documentElement.clientWidth,
+    bottom: window.innerHeight || document.documentElement.clientHeight,
+    x: 0,
+    y: 0,
+    zoom: 1,
+  };
 
-  const visibleHeight = Math.max(
-    0,
-    Math.min(rect.bottom, viewportHeight) - Math.max(rect.top, 0),
-  );
-  const visibleWidth = Math.max(
-    0,
-    Math.min(rect.right, viewportWidth) - Math.max(rect.left, 0),
-  );
+  const overlapRect = overlappedRect(rect, viewportRect);
+  if (!overlapRect) {
+    return false;
+  }
 
-  const visibleArea = visibleHeight * visibleWidth;
+  const visibleArea = overlapRect.width * overlapRect.height;
   const totalArea = elementHeight * elementWidth;
-
-  return visibleArea / totalArea >= 2 / 3;
+  return visibleArea > 30 * 30 || visibleArea / totalArea >= 2 / 3;
 }
 
 export function getPseudoElementContent(element: Node): {
@@ -129,6 +131,31 @@ export interface ExtractedRect {
   zoom: number;
 }
 
+// tell if two rects are overlapped, return the overlapped rect. If not, return null
+export function overlappedRect(
+  rect1: ExtractedRect,
+  rect2: ExtractedRect,
+): ExtractedRect | null {
+  const left = Math.max(rect1.left, rect2.left);
+  const top = Math.max(rect1.top, rect2.top);
+  const right = Math.min(rect1.right, rect2.right);
+  const bottom = Math.min(rect1.bottom, rect2.bottom);
+  if (left < right && top < bottom) {
+    return {
+      left,
+      top,
+      right,
+      bottom,
+      width: right - left,
+      height: bottom - top,
+      x: left,
+      y: top,
+      zoom: 1,
+    };
+  }
+  return null;
+}
+
 export function getRect(el: HTMLElement | Node, baseZoom = 1): ExtractedRect {
   let originalRect: DOMRect;
   let newZoom = 1;
@@ -166,13 +193,33 @@ const isElementCovered = (el: HTMLElement | Node, rect: ExtractedRect) => {
 
   // Gets the element above that point
   const topElement = document.elementFromPoint(x, y);
+  if (!topElement) {
+    return false; // usually because it's outside the screen
+  }
+
   if (topElement === el) {
     return false;
   }
   if (el?.contains(topElement)) {
     return false;
   }
+
   if ((topElement as HTMLElement)?.contains(el)) {
+    return false;
+  }
+
+  const rectOfTopElement = getRect(topElement as HTMLElement, 1);
+
+  // get the remaining area of the base element
+  const overlapRect = overlappedRect(rect, rectOfTopElement);
+  if (!overlapRect) {
+    return false;
+  }
+
+  const remainingArea =
+    rect.width * rect.height - overlapRect.width * overlapRect.height;
+
+  if (remainingArea > 100) {
     return false;
   }
 
