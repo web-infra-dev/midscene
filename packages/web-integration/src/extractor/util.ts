@@ -277,9 +277,9 @@ export function visibleRect(
 
   // check if the element is covered by another element
   // if the element is zoomed, the coverage check should be done with the original zoom
-  if (baseZoom === 1 && isElementCovered(el, rect)) {
-    return false;
-  }
+  // if (baseZoom === 1 && isElementCovered(el, rect)) {
+  //   return false;
+  // }
 
   const scrollLeft = window.pageXOffset || document.documentElement.scrollLeft;
   const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
