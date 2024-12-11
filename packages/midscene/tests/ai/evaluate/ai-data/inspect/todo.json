@@ -2,7 +2,7 @@
   "testDataPath": "test-data/todo",
   "testCases": [
     {
-      "prompt": "任务输入框",
+      "prompt": "input for todo item",
       "multi": false,
       "response": [
         {
