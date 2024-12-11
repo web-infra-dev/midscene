@@ -320,22 +320,48 @@
     "screenHeight": 905
   },
   {
-    "id": "204888",
+    "id": "829273",
     "indexId": 12,
-    "nodePath": "0-3-1-2-0-1-0-1-0-6-1-1-1-1-0-1-1-0-1-0",
-    "nodeHashId": "204888",
+    "nodePath": "0-3-1-2-0-1-0-1-0-6-1-1-1-1-0-1-1-0-0-0",
+    "nodeHashId": "829273",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
       "nodeType": "TEXT Node"
     },
     "center": [
-      211,
+      194,
+      105
+    ],
+    "content": "S$",
+    "rect": {
+      "left": 188,
+      "top": 98,
+      "width": 12,
+      "height": 14,
+      "zoom": 1
+    },
+    "zoom": 1,
+    "screenWidth": 400,
+    "screenHeight": 905
+  },
+  {
+    "id": "962004",
+    "indexId": 13,
+    "nodePath": "0-3-1-2-0-1-0-1-0-6-1-1-1-1-0-1-1-0-1-0",
+    "nodeHashId": "962004",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node"
+    },
+    "center": [
+      223,
       103
     ],
     "content": "6.82",
     "rect": {
-      "left": 192,
+      "left": 204,
       "top": 90,
       "width": 37,
       "height": 25,
@@ -347,7 +373,7 @@
   },
   {
     "id": "648632",
-    "indexId": 13,
+    "indexId": 14,
     "nodePath": "0-3-1-2-0-1-0-1-0-6-1-1-1-1-0-1-1-1-0-0",
     "nodeHashId": "648632",
     "nodeType": "TEXT Node",
@@ -373,7 +399,7 @@
   },
   {
     "id": "436559",
-    "indexId": 14,
+    "indexId": 15,
     "nodePath": "0-3-1-2-0-1-0-1-0-6-1-1-2-0-0-0",
     "nodeHashId": "436559",
     "nodeType": "TEXT Node",
@@ -399,7 +425,7 @@
   },
   {
     "id": "473871",
-    "indexId": 15,
+    "indexId": 16,
     "nodePath": "0-3-1-2-0-1-0-1-0-6-1-1-2-1-0-0",
     "nodeHashId": "473871",
     "locator": "[_midscene_retrieve_task_id='473871']",
@@ -427,7 +453,7 @@
   },
   {
     "id": "925255",
-    "indexId": 16,
+    "indexId": 17,
     "nodePath": "0-3-1-2-0-1-0-1-0-6-1-1-2-1-0-1-0-0-1",
     "nodeHashId": "925255",
     "nodeType": "TEXT Node",
@@ -452,22 +478,48 @@
     "screenHeight": 905
   },
   {
-    "id": "793847",
-    "indexId": 17,
-    "nodePath": "0-3-1-2-0-1-0-1-0-6-1-1-2-1-0-1-1-0-1-0",
-    "nodeHashId": "793847",
+    "id": "188058",
+    "indexId": 18,
+    "nodePath": "0-3-1-2-0-1-0-1-0-6-1-1-2-1-0-1-1-0-0-0",
+    "nodeHashId": "188058",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
       "nodeType": "TEXT Node"
     },
     "center": [
-      211,
+      194,
+      248
+    ],
+    "content": "S$",
+    "rect": {
+      "left": 188,
+      "top": 241,
+      "width": 12,
+      "height": 14,
+      "zoom": 1
+    },
+    "zoom": 1,
+    "screenWidth": 400,
+    "screenHeight": 905
+  },
+  {
+    "id": "586742",
+    "indexId": 19,
+    "nodePath": "0-3-1-2-0-1-0-1-0-6-1-1-2-1-0-1-1-0-1-0",
+    "nodeHashId": "586742",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node"
+    },
+    "center": [
+      223,
       246
     ],
     "content": "6.54",
     "rect": {
-      "left": 192,
+      "left": 204,
       "top": 233,
       "width": 37,
       "height": 25,
@@ -479,7 +531,7 @@
   },
   {
     "id": "975584",
-    "indexId": 18,
+    "indexId": 20,
     "nodePath": "0-3-1-2-0-1-0-1-0-6-1-1-2-1-0-1-1-1-0-0",
     "nodeHashId": "975584",
     "nodeType": "TEXT Node",
@@ -505,7 +557,7 @@
   },
   {
     "id": "625093",
-    "indexId": 19,
+    "indexId": 21,
     "nodePath": "0-3-1-2-0-1-0-1-0-6-1-1-2-1-1-0",
     "nodeHashId": "625093",
     "locator": "[_midscene_retrieve_task_id='625093']",
@@ -533,7 +585,7 @@
   },
   {
     "id": "687655",
-    "indexId": 20,
+    "indexId": 22,
     "nodePath": "0-3-1-2-0-1-0-1-0-6-1-1-2-1-1-1-0-0-1",
     "nodeHashId": "687655",
     "nodeType": "TEXT Node",
@@ -558,22 +610,48 @@
     "screenHeight": 905
   },
   {
-    "id": "416341",
-    "indexId": 21,
-    "nodePath": "0-3-1-2-0-1-0-1-0-6-1-1-2-1-1-1-1-0-1-0",
-    "nodeHashId": "416341",
+    "id": "217621",
+    "indexId": 23,
+    "nodePath": "0-3-1-2-0-1-0-1-0-6-1-1-2-1-1-1-1-0-0-0",
+    "nodeHashId": "217621",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
       "nodeType": "TEXT Node"
     },
     "center": [
-      211,
+      194,
+      354
+    ],
+    "content": "S$",
+    "rect": {
+      "left": 188,
+      "top": 347,
+      "width": 12,
+      "height": 14,
+      "zoom": 1
+    },
+    "zoom": 1,
+    "screenWidth": 400,
+    "screenHeight": 905
+  },
+  {
+    "id": "446441",
+    "indexId": 24,
+    "nodePath": "0-3-1-2-0-1-0-1-0-6-1-1-2-1-1-1-1-0-1-0",
+    "nodeHashId": "446441",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node"
+    },
+    "center": [
+      223,
       352
     ],
     "content": "7.98",
     "rect": {
-      "left": 192,
+      "left": 204,
       "top": 339,
       "width": 37,
       "height": 25,
@@ -585,7 +663,7 @@
   },
   {
     "id": "94140",
-    "indexId": 22,
+    "indexId": 25,
     "nodePath": "0-3-1-2-0-1-0-1-0-6-1-1-2-1-1-1-1-1-0-0",
     "nodeHashId": "94140",
     "nodeType": "TEXT Node",
@@ -611,7 +689,7 @@
   },
   {
     "id": "68722",
-    "indexId": 23,
+    "indexId": 26,
     "nodePath": "0-3-1-2-0-1-0-1-0-6-1-1-2-1-2-0",
     "nodeHashId": "68722",
     "locator": "[_midscene_retrieve_task_id='68722']",
@@ -639,7 +717,7 @@
   },
   {
     "id": "810157",
-    "indexId": 24,
+    "indexId": 27,
     "nodePath": "0-3-1-2-0-1-0-1-0-6-1-1-2-1-2-1-0-0-1",
     "nodeHashId": "810157",
     "nodeType": "TEXT Node",
@@ -664,22 +742,48 @@
     "screenHeight": 905
   },
   {
-    "id": "446422",
-    "indexId": 25,
-    "nodePath": "0-3-1-2-0-1-0-1-0-6-1-1-2-1-2-1-1-0-1-0",
-    "nodeHashId": "446422",
+    "id": "438561",
+    "indexId": 28,
+    "nodePath": "0-3-1-2-0-1-0-1-0-6-1-1-2-1-2-1-1-0-0-0",
+    "nodeHashId": "438561",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
       "nodeType": "TEXT Node"
     },
     "center": [
-      211,
+      194,
+      460
+    ],
+    "content": "S$",
+    "rect": {
+      "left": 188,
+      "top": 453,
+      "width": 12,
+      "height": 14,
+      "zoom": 1
+    },
+    "zoom": 1,
+    "screenWidth": 400,
+    "screenHeight": 905
+  },
+  {
+    "id": "537670",
+    "indexId": 29,
+    "nodePath": "0-3-1-2-0-1-0-1-0-6-1-1-2-1-2-1-1-0-1-0",
+    "nodeHashId": "537670",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node"
+    },
+    "center": [
+      223,
       458
     ],
     "content": "5.03",
     "rect": {
-      "left": 192,
+      "left": 204,
       "top": 445,
       "width": 37,
       "height": 25,
@@ -691,7 +795,7 @@
   },
   {
     "id": "380648",
-    "indexId": 26,
+    "indexId": 30,
     "nodePath": "0-3-1-2-0-1-0-1-0-6-1-1-2-1-2-1-1-1-0-0",
     "nodeHashId": "380648",
     "nodeType": "TEXT Node",
@@ -717,7 +821,7 @@
   },
   {
     "id": "26200",
-    "indexId": 27,
+    "indexId": 31,
     "nodePath": "0-3-1-2-0-1-0-1-0-6-1-1-2-1-3-0",
     "nodeHashId": "26200",
     "locator": "[_midscene_retrieve_task_id='26200']",
@@ -745,7 +849,7 @@
   },
   {
     "id": "627353",
-    "indexId": 28,
+    "indexId": 32,
     "nodePath": "0-3-1-2-0-1-0-1-0-6-1-1-2-1-3-1-0-0-1",
     "nodeHashId": "627353",
     "nodeType": "TEXT Node",
@@ -770,22 +874,48 @@
     "screenHeight": 905
   },
   {
-    "id": "1028693",
-    "indexId": 29,
-    "nodePath": "0-3-1-2-0-1-0-1-0-6-1-1-2-1-3-1-1-0-1-0",
-    "nodeHashId": "1028693",
+    "id": "811071",
+    "indexId": 33,
+    "nodePath": "0-3-1-2-0-1-0-1-0-6-1-1-2-1-3-1-1-0-0-0",
+    "nodeHashId": "811071",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
       "nodeType": "TEXT Node"
     },
     "center": [
-      211,
+      194,
+      566
+    ],
+    "content": "S$",
+    "rect": {
+      "left": 188,
+      "top": 559,
+      "width": 12,
+      "height": 14,
+      "zoom": 1
+    },
+    "zoom": 1,
+    "screenWidth": 400,
+    "screenHeight": 905
+  },
+  {
+    "id": "220579",
+    "indexId": 34,
+    "nodePath": "0-3-1-2-0-1-0-1-0-6-1-1-2-1-3-1-1-0-1-0",
+    "nodeHashId": "220579",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node"
+    },
+    "center": [
+      223,
       564
     ],
     "content": "7.89",
     "rect": {
-      "left": 192,
+      "left": 204,
       "top": 551,
       "width": 37,
       "height": 25,
@@ -797,7 +927,7 @@
   },
   {
     "id": "1027288",
-    "indexId": 30,
+    "indexId": 35,
     "nodePath": "0-3-1-2-0-1-0-1-0-6-1-1-2-1-3-1-1-1-0-0",
     "nodeHashId": "1027288",
     "nodeType": "TEXT Node",
@@ -823,7 +953,7 @@
   },
   {
     "id": "474730",
-    "indexId": 31,
+    "indexId": 36,
     "nodePath": "0-3-1-2-0-1-0-1-0-6-1-1-2-1-4-0",
     "nodeHashId": "474730",
     "locator": "[_midscene_retrieve_task_id='474730']",
@@ -851,7 +981,7 @@
   },
   {
     "id": "950292",
-    "indexId": 32,
+    "indexId": 37,
     "nodePath": "0-3-1-2-0-1-0-1-0-6-1-1-2-1-4-1-0-0-1",
     "nodeHashId": "950292",
     "nodeType": "TEXT Node",
@@ -876,22 +1006,48 @@
     "screenHeight": 905
   },
   {
-    "id": "286777",
-    "indexId": 33,
-    "nodePath": "0-3-1-2-0-1-0-1-0-6-1-1-2-1-4-1-1-0-1-0",
-    "nodeHashId": "286777",
+    "id": "80211",
+    "indexId": 38,
+    "nodePath": "0-3-1-2-0-1-0-1-0-6-1-1-2-1-4-1-1-0-0-0",
+    "nodeHashId": "80211",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
       "nodeType": "TEXT Node"
     },
     "center": [
-      208,
+      194,
+      672
+    ],
+    "content": "S$",
+    "rect": {
+      "left": 188,
+      "top": 665,
+      "width": 12,
+      "height": 14,
+      "zoom": 1
+    },
+    "zoom": 1,
+    "screenWidth": 400,
+    "screenHeight": 905
+  },
+  {
+    "id": "985242",
+    "indexId": 39,
+    "nodePath": "0-3-1-2-0-1-0-1-0-6-1-1-2-1-4-1-1-0-1-0",
+    "nodeHashId": "985242",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node"
+    },
+    "center": [
+      220,
       670
     ],
     "content": "7.71",
     "rect": {
-      "left": 192,
+      "left": 204,
       "top": 657,
       "width": 32,
       "height": 25,
@@ -903,7 +1059,7 @@
   },
   {
     "id": "981855",
-    "indexId": 34,
+    "indexId": 40,
     "nodePath": "0-3-1-2-0-1-0-1-0-6-1-1-2-1-4-1-1-1-0-0",
     "nodeHashId": "981855",
     "nodeType": "TEXT Node",
@@ -929,7 +1085,7 @@
   },
   {
     "id": "757079",
-    "indexId": 35,
+    "indexId": 41,
     "nodePath": "0-3-1-2-0-1-0-1-0-6-1-1-3-0-0-0",
     "nodeHashId": "757079",
     "nodeType": "TEXT Node",
@@ -955,7 +1111,7 @@
   },
   {
     "id": "1044757",
-    "indexId": 36,
+    "indexId": 42,
     "nodePath": "0-3-1-2-0-1-0-1-0-6-1-1-3-1-0-0",
     "nodeHashId": "1044757",
     "locator": "[_midscene_retrieve_task_id='1044757']",
@@ -983,7 +1139,7 @@
   },
   {
     "id": "1003627",
-    "indexId": 37,
+    "indexId": 43,
     "nodePath": "0-3-1-2-0-1-0-1-0-6-1-1-3-1-0-1-0-0-1",
     "nodeHashId": "1003627",
     "nodeType": "TEXT Node",
@@ -1008,22 +1164,48 @@
     "screenHeight": 905
   },
   {
-    "id": "792719",
-    "indexId": 38,
-    "nodePath": "0-3-1-2-0-1-0-1-0-6-1-1-3-1-0-1-1-0-1-0",
-    "nodeHashId": "792719",
+    "id": "254581",
+    "indexId": 44,
+    "nodePath": "0-3-1-2-0-1-0-1-0-6-1-1-3-1-0-1-1-0-0-0",
+    "nodeHashId": "254581",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
       "nodeType": "TEXT Node"
     },
     "center": [
-      211,
+      194,
+      815
+    ],
+    "content": "S$",
+    "rect": {
+      "left": 188,
+      "top": 808,
+      "width": 12,
+      "height": 14,
+      "zoom": 1
+    },
+    "zoom": 1,
+    "screenWidth": 400,
+    "screenHeight": 905
+  },
+  {
+    "id": "543874",
+    "indexId": 45,
+    "nodePath": "0-3-1-2-0-1-0-1-0-6-1-1-3-1-0-1-1-0-1-0",
+    "nodeHashId": "543874",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node"
+    },
+    "center": [
+      223,
       813
     ],
     "content": "9.32",
     "rect": {
-      "left": 192,
+      "left": 204,
       "top": 800,
       "width": 37,
       "height": 25,
@@ -1035,7 +1217,7 @@
   },
   {
     "id": "158348",
-    "indexId": 39,
+    "indexId": 46,
     "nodePath": "0-3-1-2-0-1-0-1-0-6-1-1-3-1-0-1-1-1-0-0",
     "nodeHashId": "158348",
     "nodeType": "TEXT Node",
@@ -1061,7 +1243,7 @@
   },
   {
     "id": "427168",
-    "indexId": 40,
+    "indexId": 47,
     "nodePath": "0-3-1-2-0-1-0-1-0-6-1-1-3-1-1-0",
     "nodeHashId": "427168",
     "locator": "[_midscene_retrieve_task_id='427168']",
@@ -1089,7 +1271,7 @@
   },
   {
     "id": "124828",
-    "indexId": 41,
+    "indexId": 48,
     "nodePath": "0-3-1-2-0-1-0-1-0-6-1-1-3-1-1-1-0-0-1",
     "nodeHashId": "124828",
     "nodeType": "TEXT Node",
@@ -1115,7 +1297,7 @@
   },
   {
     "id": "754365",
-    "indexId": 42,
+    "indexId": 49,
     "nodePath": "0-3-1-2-3-0",
     "nodeHashId": "754365",
     "locator": "[_midscene_retrieve_task_id='754365']",

@@ -1,5 +1,5 @@
 import assert from 'node:assert';
-import { MATCH_BY_POSITION, getAIConfig } from '@/env';
+import { MATCH_BY_POSITION, MATCH_BY_TAG_NUMBER, getAIConfig } from '@/env';
 import { imageInfoOfBase64 } from '@/image';
 import type { BaseElement, Size, UIContext } from '@/types';
 import type { ResponseFormatJSONSchema } from 'openai/resources';
@@ -263,6 +263,8 @@ export async function describeUserPage<
       return `id=${id}: ${JSON.stringify(rest)}`;
     })
     .join(',\n\n');
+  const matchBy =
+    getAIConfig(MATCH_BY_POSITION) || getAIConfig(MATCH_BY_TAG_NUMBER);
 
   return {
     description: `
@@ -270,9 +272,7 @@ The size of the page: ${describeSize({ width, height })}
 
 ${
   // if match by id, use the description of the element
-  getAIConfig(MATCH_BY_POSITION)
-    ? ''
-    : `Json description of the page elements:\n${contentList}`
+  matchBy ? '' : `Json description of the page elements:\n${contentList}`
 }
 `,
     elementById(id: string) {

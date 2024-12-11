@@ -100,6 +100,11 @@ test('generate online order test data', async ({ page, ai }) => {
 
   page.setViewportSize({ width: 400, height: 905 });
   await page.goto('https://heyteavivocity.meuu.online/home');
+  await page.waitForLoadState('networkidle');
+  await generateExtractData(
+    playwrightPage,
+    generateTestDataPath('online_order_en'),
+  );
   await page.evaluate('window.localStorage.setItem("LOCALE", "zh-CN")');
   await page.goto('https://heyteavivocity.meuu.online/home');
   await page.waitForLoadState('networkidle');
@@ -124,6 +129,8 @@ test('generate taobao test data', async ({ page, ai }) => {
   page.setViewportSize({ width: 1280, height: 800 });
 
   await page.goto('https://www.taobao.com/');
+  await page.waitForLoadState('networkidle');
+  await ai('点击关闭按钮');
 
   // for --headed
   // await sleep(5000);

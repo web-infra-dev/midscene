@@ -118,6 +118,7 @@ export async function AiInspectElement<
     targetElementDescription,
     'cannot find the target element description',
   );
+
   const systemPrompt = systemPromptToFindElement();
   const msgs: AIArgs = [
     { role: 'system', content: systemPrompt },

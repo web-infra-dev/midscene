@@ -10,56 +10,6 @@
           "indexId": 0
         }
       ]
-    },
-    {
-      "prompt": "Toggle language text button(Could be：中文、english text)",
-      "multi": false,
-      "response": [
-        {
-          "id": "498940",
-          "indexId": 1
-        }
-      ]
-    },
-    {
-      "prompt": "Top right shopping cart",
-      "multi": false,
-      "response": [
-        {
-          "id": "387792",
-          "indexId": 3
-        }
-      ]
-    },
-    {
-      "prompt": "The price number of the upper drink",
-      "multi": false,
-      "response": [
-        {
-          "id": "204888",
-          "indexId": 20
-        }
-      ]
-    },
-    {
-      "prompt": "最下面一种饮料的选择规格按钮",
-      "multi": false,
-      "response": [
-        {
-          "id": "975584",
-          "indexId": 26
-        }
-      ]
-    },
-    {
-      "prompt": "Bottom right Customer service button",
-      "multi": false,
-      "response": [
-        {
-          "id": "754365",
-          "indexId": 27
-        }
-      ]
     }
   ]
 }

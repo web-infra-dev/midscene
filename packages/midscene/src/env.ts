@@ -14,6 +14,8 @@ export const OPENAI_USE_AZURE = 'OPENAI_USE_AZURE';
 export const MIDSCENE_CACHE = 'MIDSCENE_CACHE';
 export const MATCH_BY_POSITION = 'MATCH_BY_POSITION';
 export const MIDSCENE_REPORT_TAG_NAME = 'MIDSCENE_REPORT_TAG_NAME';
+export const MATCH_BY_TAG_NUMBER = 'MATCH_BY_TAG_NUMBER';
+export const MIDSCENE_COOKIE = 'MIDSCENE_COOKIE';
 
 const allConfigFromEnv = () => {
   return {
@@ -36,6 +38,8 @@ const allConfigFromEnv = () => {
     [MATCH_BY_POSITION]: process.env[MATCH_BY_POSITION] || undefined,
     [MIDSCENE_REPORT_TAG_NAME]:
       process.env[MIDSCENE_REPORT_TAG_NAME] || undefined,
+    [MATCH_BY_TAG_NUMBER]: process.env[MATCH_BY_TAG_NUMBER] || undefined,
+    [MIDSCENE_COOKIE]: process.env[MIDSCENE_COOKIE] || undefined,
   };
 };
 

@@ -11,6 +11,7 @@ export default defineConfig({
       env: 'src/env.ts',
       utils: 'src/utils.ts',
       'ai-model': 'src/ai-model/index.ts',
+      'plan-prompt': 'src/ai-model/prompt/planning.ts',
     },
     outDir: 'dist/lib',
     externals: ['langsmith'],

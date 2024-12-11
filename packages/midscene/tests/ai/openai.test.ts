@@ -7,6 +7,7 @@ vi.setConfig({
 });
 describe('openai', () => {
   it('basic', async () => {
+    const startTime = Date.now();
     const result = await call([
       {
         role: 'system',
@@ -17,11 +18,14 @@ describe('openai', () => {
         content: '鲁迅认识周树人吗？回答我：1. 分析原因 2.回答：是/否/无效问题',
       },
     ]);
+    const duration = (Date.now() - startTime) / 1000;
+    console.log(`Request took ${duration}s`);
 
     expect(result.content.length).toBeGreaterThan(1);
   });
 
   it('call to get json result', async () => {
+    const startTime = Date.now();
     const result = await callToGetJSONObject<{ answer: number }>(
       [
         {
@@ -35,6 +39,8 @@ describe('openai', () => {
       ],
       AIActionType.EXTRACT_DATA,
     );
+    const duration = (Date.now() - startTime) / 1000;
+    console.log(`Request took ${duration}s`);
     expect(result.content.answer).toBe(15);
   });
 });

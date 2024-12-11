@@ -89,6 +89,7 @@ export async function call(
     messages,
     response_format: responseFormat,
     temperature: 0.1,
+    max_tokens: 1000,
     stream: false,
     // betas: ['computer-use-2024-10-22'],
   } as any);
@@ -106,7 +107,7 @@ export async function call(
 
 export async function callToGetJSONObject<T>(
   messages: ChatCompletionMessageParam[],
-  AIActionTypeValue: AIActionType,
+  AIActionTypeValue?: AIActionType,
 ): Promise<{ content: T; usage?: AIUsageInfo }> {
   // gpt-4o-2024-05-13 only supports json_object response format
   let responseFormat:

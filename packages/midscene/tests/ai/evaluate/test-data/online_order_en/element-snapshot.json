@@ -28,24 +28,24 @@
     "screenHeight": 905
   },
   {
-    "id": "498940",
+    "id": "877481",
     "indexId": 1,
     "nodePath": "0-3-1-1-0-0-0-0-0-1-0-1-0-0-0",
-    "nodeHashId": "498940",
+    "nodeHashId": "877481",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
       "nodeType": "TEXT Node"
     },
     "center": [
-      81,
+      92,
       29
     ],
-    "content": "中文",
+    "content": "English",
     "rect": {
       "left": 65,
       "top": 17,
-      "width": 32,
+      "width": 53,
       "height": 23,
       "zoom": 1
     },
@@ -110,24 +110,24 @@
     "screenHeight": 905
   },
   {
-    "id": "289282",
+    "id": "529327",
     "indexId": 4,
     "nodePath": "0-3-1-2-0-1-0-1-0-0-0-0-0-0",
-    "nodeHashId": "289282",
+    "nodeHashId": "529327",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
       "nodeType": "TEXT Node"
     },
     "center": [
-      166,
+      200,
       79
     ],
-    "content": "商家暂未开通外卖和自取业务",
+    "content": "Delivery and self pick-up not available",
     "rect": {
       "left": 75,
       "top": 69,
-      "width": 182,
+      "width": 250,
       "height": 20,
       "zoom": 1
     },
@@ -136,24 +136,24 @@
     "screenHeight": 905
   },
   {
-    "id": "62447",
+    "id": "450623",
     "indexId": 5,
     "nodePath": "0-3-1-2-0-1-0-1-0-0-0-1-2-0",
-    "nodeHashId": "62447",
+    "nodeHashId": "450623",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
       "nodeType": "TEXT Node"
     },
     "center": [
-      97,
+      178,
       133
     ],
-    "content": "全岛派送，起送价 S$ 11",
+    "content": "Islandwide Delivery, Minimum Spending of S$ 11",
     "rect": {
       "left": 22,
       "top": 123,
-      "width": 150,
+      "width": 312,
       "height": 20,
       "zoom": 1
     },
@@ -189,25 +189,25 @@
     "screenHeight": 905
   },
   {
-    "id": "624731",
+    "id": "191456",
     "indexId": 7,
     "nodePath": "0-3-1-2-0-1-0-1-0-3-2-0",
-    "nodeHashId": "624731",
+    "nodeHashId": "191456",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
       "nodeType": "TEXT Node"
     },
     "center": [
-      152,
-      482
+      181,
+      472
     ],
-    "content": "喜茶为芝士现泡茶的原创者。自创立以来，喜茶专注于呈现来自世界各地的优质茶香， 让茶饮这一古老文化焕发出新的生命力。",
+    "content": "HEYTEA Singapore. The original cheezo tea 2012, fostering joy & inspiration with every sip.",
     "rect": {
       "left": 16,
       "top": 451,
-      "width": 271,
-      "height": 62,
+      "width": 330,
+      "height": 41,
       "zoom": 1
     },
     "zoom": 1,
@@ -215,24 +215,24 @@
     "screenHeight": 905
   },
   {
-    "id": "784793",
+    "id": "367270",
     "indexId": 8,
     "nodePath": "0-3-1-2-0-1-0-1-0-6-0-0-0-0-0",
-    "nodeHashId": "784793",
+    "nodeHashId": "367270",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
       "nodeType": "TEXT Node"
     },
     "center": [
-      128,
-      569
+      95,
+      548
     ],
-    "content": "菜单",
+    "content": "Menu",
     "rect": {
-      "left": 112,
-      "top": 557,
-      "width": 32,
+      "left": 74,
+      "top": 536,
+      "width": 41,
       "height": 23,
       "zoom": 1
     },
@@ -241,50 +241,50 @@
     "screenHeight": 905
   },
   {
-    "id": "671668",
+    "id": "314848",
     "nodePath": "0-3-1-2-0-1-0-1-0-6-0-0-0-1",
-    "nodeHashId": "671668",
+    "nodeHashId": "314848",
     "indexId": 9,
     "nodeType": "CONTAINER Node",
-    "locator": "[_midscene_retrieve_task_id='671668']",
+    "locator": "[_midscene_retrieve_task_id='314848']",
     "attributes": {
       "nodeType": "CONTAINER Node"
     },
     "content": "",
     "rect": {
-      "left": 112,
-      "top": 589,
-      "width": 32,
+      "left": 74,
+      "top": 568,
+      "width": 41,
       "height": 4,
       "zoom": 1
     },
     "center": [
-      128,
-      591
+      95,
+      570
     ],
     "zoom": 1,
     "screenWidth": 400,
     "screenHeight": 905
   },
   {
-    "id": "799453",
+    "id": "777525",
     "indexId": 10,
     "nodePath": "0-3-1-2-0-1-0-1-0-6-0-0-1-0-0",
-    "nodeHashId": "799453",
+    "nodeHashId": "777525",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
       "nodeType": "TEXT Node"
     },
     "center": [
-      200,
-      569
+      186,
+      548
     ],
-    "content": "评价",
+    "content": "Reviews",
     "rect": {
-      "left": 184,
-      "top": 557,
-      "width": 32,
+      "left": 155,
+      "top": 536,
+      "width": 61,
       "height": 23,
       "zoom": 1
     },
@@ -293,24 +293,24 @@
     "screenHeight": 905
   },
   {
-    "id": "1032492",
+    "id": "781800",
     "indexId": 11,
     "nodePath": "0-3-1-2-0-1-0-1-0-6-0-0-2-0-0",
-    "nodeHashId": "1032492",
+    "nodeHashId": "781800",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
       "nodeType": "TEXT Node"
     },
     "center": [
-      272,
-      569
+      291,
+      548
     ],
-    "content": "商家",
+    "content": "Merchant",
     "rect": {
       "left": 256,
-      "top": 557,
-      "width": 32,
+      "top": 536,
+      "width": 70,
       "height": 23,
       "zoom": 1
     },
@@ -319,24 +319,24 @@
     "screenHeight": 905
   },
   {
-    "id": "472664",
+    "id": "171001",
     "indexId": 12,
     "nodePath": "0-3-1-2-0-1-0-1-0-6-1-0-0-1-0-0",
-    "nodeHashId": "472664",
+    "nodeHashId": "171001",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
       "nodeType": "TEXT Node"
     },
     "center": [
-      29,
-      624
+      37,
+      603
     ],
-    "content": "时令鲜果",
+    "content": "IN SEASON",
     "rect": {
       "left": 5,
-      "top": 615,
-      "width": 48,
+      "top": 594,
+      "width": 64,
       "height": 17,
       "zoom": 1
     },
@@ -345,25 +345,25 @@
     "screenHeight": 905
   },
   {
-    "id": "446796",
+    "id": "195149",
     "indexId": 13,
     "nodePath": "0-3-1-2-0-1-0-1-0-6-1-0-0-2-0-0",
-    "nodeHashId": "446796",
+    "nodeHashId": "195149",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
       "nodeType": "TEXT Node"
     },
     "center": [
-      35,
-      684
+      43,
+      663
     ],
-    "content": "清爽不喝腻",
+    "content": "REFRESHING DRINKS",
     "rect": {
       "left": 5,
-      "top": 675,
-      "width": 60,
-      "height": 17,
+      "top": 645,
+      "width": 75,
+      "height": 35,
       "zoom": 1
     },
     "zoom": 1,
@@ -371,10 +371,36 @@
     "screenHeight": 905
   },
   {
-    "id": "593105",
+    "id": "756959",
     "indexId": 14,
     "nodePath": "0-3-1-2-0-1-0-1-0-6-1-0-0-3-0-0",
-    "nodeHashId": "593105",
+    "nodeHashId": "756959",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node"
+    },
+    "center": [
+      39,
+      723
+    ],
+    "content": "SIGNATURE DRINKS",
+    "rect": {
+      "left": 5,
+      "top": 705,
+      "width": 68,
+      "height": 35,
+      "zoom": 1
+    },
+    "zoom": 1,
+    "screenWidth": 400,
+    "screenHeight": 905
+  },
+  {
+    "id": "689084",
+    "indexId": 15,
+    "nodePath": "0-3-1-2-0-1-0-1-0-6-1-0-0-4-0-0",
+    "nodeHashId": "689084",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
@@ -382,14 +408,14 @@
     },
     "center": [
       35,
-      744
+      783
     ],
-    "content": "经典不踩雷",
+    "content": "COMFORT DRINKS",
     "rect": {
       "left": 5,
-      "top": 735,
+      "top": 765,
       "width": 60,
-      "height": 17,
+      "height": 35,
       "zoom": 1
     },
     "zoom": 1,
@@ -397,51 +423,25 @@
     "screenHeight": 905
   },
   {
-    "id": "340057",
-    "indexId": 15,
-    "nodePath": "0-3-1-2-0-1-0-1-0-6-1-0-0-4-0-0",
-    "nodeHashId": "340057",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node"
-    },
-    "center": [
-      23,
-      804
-    ],
-    "content": "要浓郁",
-    "rect": {
-      "left": 5,
-      "top": 795,
-      "width": 36,
-      "height": 17,
-      "zoom": 1
-    },
-    "zoom": 1,
-    "screenWidth": 400,
-    "screenHeight": 905
-  },
-  {
-    "id": "779025",
+    "id": "172471",
     "indexId": 16,
     "nodePath": "0-3-1-2-0-1-0-1-0-6-1-0-0-5-0-0",
-    "nodeHashId": "779025",
+    "nodeHashId": "172471",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
       "nodeType": "TEXT Node"
     },
     "center": [
-      23,
-      864
+      34,
+      843
     ],
-    "content": "要简单",
+    "content": "SIMPLE CLASSICS",
     "rect": {
       "left": 5,
-      "top": 855,
-      "width": 36,
-      "height": 17,
+      "top": 825,
+      "width": 58,
+      "height": 35,
       "zoom": 1
     },
     "zoom": 1,
@@ -449,24 +449,24 @@
     "screenHeight": 905
   },
   {
-    "id": "95208",
+    "id": "666870",
     "indexId": 17,
     "nodePath": "0-3-1-2-0-1-0-1-0-6-1-1-1-0-0-0",
-    "nodeHashId": "95208",
+    "nodeHashId": "666870",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
       "nodeType": "TEXT Node"
     },
     "center": [
-      126,
-      633
+      136,
+      612
     ],
-    "content": "时令鲜果 (1)",
+    "content": "IN SEASON (1)",
     "rect": {
       "left": 88,
-      "top": 623,
-      "width": 76,
+      "top": 602,
+      "width": 96,
       "height": 20,
       "zoom": 1
     },
@@ -475,11 +475,11 @@
     "screenHeight": 905
   },
   {
-    "id": "452546",
+    "id": "108150",
     "indexId": 18,
     "nodePath": "0-3-1-2-0-1-0-1-0-6-1-1-1-1-0-0",
-    "nodeHashId": "452546",
-    "locator": "[_midscene_retrieve_task_id='452546']",
+    "nodeHashId": "108150",
+    "locator": "[_midscene_retrieve_task_id='108150']",
     "attributes": {
       "src": "https://dec-pub-img.obs.ap-southeast-3.myhuaweiclo...",
       "class": ".img",
@@ -489,39 +489,39 @@
     "content": "",
     "rect": {
       "left": 88,
-      "top": 659,
+      "top": 638,
       "width": 90,
       "height": 90,
       "zoom": 1
     },
     "center": [
       133,
-      704
+      683
     ],
     "zoom": 1,
     "screenWidth": 400,
     "screenHeight": 905
   },
   {
-    "id": "779886",
+    "id": "646655",
     "indexId": 19,
     "nodePath": "0-3-1-2-0-1-0-1-0-6-1-1-1-1-0-1-0-0-1",
-    "nodeHashId": "779886",
+    "nodeHashId": "646655",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
       "nodeType": "TEXT Node"
     },
     "center": [
-      244,
-      670
+      258,
+      660
     ],
-    "content": "多肉大橘（首创）",
+    "content": "Very Tangerine Blast (Original)",
     "rect": {
       "left": 188,
-      "top": 660,
-      "width": 112,
-      "height": 20,
+      "top": 639,
+      "width": 139,
+      "height": 41,
       "zoom": 1
     },
     "zoom": 1,
@@ -529,49 +529,23 @@
     "screenHeight": 905
   },
   {
-    "id": "829273",
+    "id": "301292",
     "indexId": 20,
-    "nodePath": "0-3-1-2-0-1-0-1-0-6-1-1-1-1-0-1-1-0-0-0",
-    "nodeHashId": "829273",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node"
-    },
-    "center": [
-      194,
-      739
-    ],
-    "content": "S$",
-    "rect": {
-      "left": 188,
-      "top": 732,
-      "width": 12,
-      "height": 14,
-      "zoom": 1
-    },
-    "zoom": 1,
-    "screenWidth": 400,
-    "screenHeight": 905
-  },
-  {
-    "id": "962004",
-    "indexId": 21,
     "nodePath": "0-3-1-2-0-1-0-1-0-6-1-1-1-1-0-1-1-0-1-0",
-    "nodeHashId": "962004",
+    "nodeHashId": "301292",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
       "nodeType": "TEXT Node"
     },
     "center": [
-      223,
-      736
+      211,
+      734
     ],
     "content": "6.82",
     "rect": {
-      "left": 204,
-      "top": 723,
+      "left": 192,
+      "top": 721,
       "width": 37,
       "height": 25,
       "zoom": 1
@@ -581,24 +555,24 @@
     "screenHeight": 905
   },
   {
-    "id": "648632",
-    "indexId": 22,
+    "id": "338211",
+    "indexId": 21,
     "nodePath": "0-3-1-2-0-1-0-1-0-6-1-1-1-1-0-1-1-1-0-0",
-    "nodeHashId": "648632",
+    "nodeHashId": "338211",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
       "nodeType": "TEXT Node"
     },
     "center": [
-      355,
-      732
+      344,
+      730
     ],
-    "content": "选规格",
+    "content": "Select Option",
     "rect": {
-      "left": 337,
-      "top": 723,
-      "width": 36,
+      "left": 306,
+      "top": 721,
+      "width": 76,
       "height": 17,
       "zoom": 1
     },
@@ -607,24 +581,24 @@
     "screenHeight": 905
   },
   {
-    "id": "436559",
-    "indexId": 23,
+    "id": "926495",
+    "indexId": 22,
     "nodePath": "0-3-1-2-0-1-0-1-0-6-1-1-2-0-0-0",
-    "nodeHashId": "436559",
+    "nodeHashId": "926495",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
       "nodeType": "TEXT Node"
     },
     "center": [
-      134,
-      776
+      173,
+      773
     ],
-    "content": "清爽不喝腻 (5)",
+    "content": "REFRESHING DRINKS (5)",
     "rect": {
       "left": 88,
-      "top": 766,
-      "width": 92,
+      "top": 763,
+      "width": 169,
       "height": 20,
       "zoom": 1
     },
@@ -633,11 +607,11 @@
     "screenHeight": 905
   },
   {
-    "id": "473871",
-    "indexId": 24,
+    "id": "246421",
+    "indexId": 23,
     "nodePath": "0-3-1-2-0-1-0-1-0-6-1-1-2-1-0-0",
-    "nodeHashId": "473871",
-    "locator": "[_midscene_retrieve_task_id='473871']",
+    "nodeHashId": "246421",
+    "locator": "[_midscene_retrieve_task_id='246421']",
     "attributes": {
       "src": "https://dec-pub-img.obs.ap-southeast-3.myhuaweiclo...",
       "class": ".img",
@@ -647,38 +621,38 @@
     "content": "",
     "rect": {
       "left": 88,
-      "top": 802,
+      "top": 800,
       "width": 90,
       "height": 90,
       "zoom": 1
     },
     "center": [
       133,
-      847
+      845
     ],
     "zoom": 1,
     "screenWidth": 400,
     "screenHeight": 905
   },
   {
-    "id": "925255",
-    "indexId": 25,
+    "id": "656092",
+    "indexId": 24,
     "nodePath": "0-3-1-2-0-1-0-1-0-6-1-1-2-1-0-1-0-0-1",
-    "nodeHashId": "925255",
+    "nodeHashId": "656092",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
       "nodeType": "TEXT Node"
     },
     "center": [
-      223,
-      813
+      266,
+      810
     ],
-    "content": "轻芒芒甘露",
+    "content": "Mango Grapefruit Pops",
     "rect": {
       "left": 188,
-      "top": 803,
-      "width": 70,
+      "top": 800,
+      "width": 156,
       "height": 20,
       "zoom": 1
     },
@@ -687,49 +661,23 @@
     "screenHeight": 905
   },
   {
-    "id": "188058",
-    "indexId": 26,
-    "nodePath": "0-3-1-2-0-1-0-1-0-6-1-1-2-1-0-1-1-0-0-0",
-    "nodeHashId": "188058",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node"
-    },
-    "center": [
-      194,
-      882
-    ],
-    "content": "S$",
-    "rect": {
-      "left": 188,
-      "top": 875,
-      "width": 12,
-      "height": 14,
-      "zoom": 1
-    },
-    "zoom": 1,
-    "screenWidth": 400,
-    "screenHeight": 905
-  },
-  {
-    "id": "586742",
-    "indexId": 27,
+    "id": "17019",
+    "indexId": 25,
     "nodePath": "0-3-1-2-0-1-0-1-0-6-1-1-2-1-0-1-1-0-1-0",
-    "nodeHashId": "586742",
+    "nodeHashId": "17019",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
       "nodeType": "TEXT Node"
     },
     "center": [
-      223,
-      879
+      211,
+      877
     ],
     "content": "6.54",
     "rect": {
-      "left": 204,
-      "top": 866,
+      "left": 192,
+      "top": 864,
       "width": 37,
       "height": 25,
       "zoom": 1
@@ -739,24 +687,24 @@
     "screenHeight": 905
   },
   {
-    "id": "975584",
-    "indexId": 28,
+    "id": "736786",
+    "indexId": 26,
     "nodePath": "0-3-1-2-0-1-0-1-0-6-1-1-2-1-0-1-1-1-0-0",
-    "nodeHashId": "975584",
+    "nodeHashId": "736786",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
       "nodeType": "TEXT Node"
     },
     "center": [
-      355,
-      875
+      344,
+      873
     ],
-    "content": "选规格",
+    "content": "Select Option",
     "rect": {
-      "left": 337,
-      "top": 866,
-      "width": 36,
+      "left": 306,
+      "top": 864,
+      "width": 76,
       "height": 17,
       "zoom": 1
     },
@@ -766,7 +714,7 @@
   },
   {
     "id": "754365",
-    "indexId": 29,
+    "indexId": 27,
     "nodePath": "0-3-1-2-3-0",
     "nodeHashId": "754365",
     "locator": "[_midscene_retrieve_task_id='754365']",

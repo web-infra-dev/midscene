@@ -39,6 +39,7 @@ ${opts.whatHaveDone}
 =====================================
 `;
   }
+
   const msgs: AIArgs = [
     { role: 'system', content: systemPrompt },
     {

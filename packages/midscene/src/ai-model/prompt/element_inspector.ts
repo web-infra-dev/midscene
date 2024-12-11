@@ -1,9 +1,12 @@
-import { MATCH_BY_POSITION, getAIConfig } from '@/env';
+import { MATCH_BY_POSITION, MATCH_BY_TAG_NUMBER, getAIConfig } from '@/env';
 import type { ResponseFormatJSONSchema } from 'openai/resources';
 
 export function systemPromptToFindElement() {
   if (getAIConfig(MATCH_BY_POSITION)) {
     return systemPromptToFindElementPosition();
+  }
+  if (getAIConfig(MATCH_BY_TAG_NUMBER)) {
+    return systemPromptToFindElementTagNumber();
   }
   return `
 ## Role:
@@ -140,6 +143,25 @@ Output Example:
 \`\`\`
   
   `;
+}
+
+export function systemPromptToFindElementTagNumber() {
+  return `
+你是一位专业的UI测试工程师（2D）。
+
+请仔细观察图片，根据问题找到对应的UI元素，并检查其标号。
+
+请以JSON格式返回结果，格式为:
+{
+  "number": "找到的数字",
+  "text": "找到的文本信息",
+  "reason": "解释为什么选择这个数字，包括元素的位置和特征"
+}
+
+请务必仔细检查每个元素的细节特征，确保标号的准确性。
+如果发现多个相似元素，请详细说明选择依据。
+如果不确定，请说明原因。
+`;
 }
 
 // claude 3.5 sonnet computer The ability to understand the content of the image is better, Does not provide element snapshot effect

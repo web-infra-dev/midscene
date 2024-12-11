@@ -319,24 +319,24 @@
     "screenHeight": 1080
   },
   {
-    "id": "935475",
+    "id": "702144",
     "indexId": 12,
     "nodePath": "0-1-2-1-0-1-0-3-0-0-1-0",
-    "nodeHashId": "935475",
+    "nodeHashId": "702144",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
       "nodeType": "TEXT Node"
     },
     "center": [
-      1710,
+      1711,
       32
     ],
-    "content": "5.22.2",
+    "content": "5.22.4",
     "rect": {
       "left": 1690,
       "top": 23,
-      "width": 40,
+      "width": 41,
       "height": 17,
       "zoom": 1
     },
@@ -2502,7 +2502,7 @@
   {
     "id": "323779",
     "indexId": 95,
-    "nodePath": "0-1-2-2-1-1-4-3-1-0-1-0-0-0-0-0-1-0-0-0-0",
+    "nodePath": "0-1-2-2-1-1-4-3-2-0-1-0-0-0-0-0-1-0-0-0-0",
     "nodeHashId": "323779",
     "nodeType": "TEXT Node",
     "locator": "",
@@ -2528,7 +2528,7 @@
   {
     "id": "129485",
     "indexId": 96,
-    "nodePath": "0-1-2-2-1-1-4-3-1-0-1-0-0-0-1-0-0",
+    "nodePath": "0-1-2-2-1-1-4-3-2-0-1-0-0-0-1-0-0",
     "nodeHashId": "129485",
     "nodeType": "BUTTON Node",
     "locator": "[_midscene_retrieve_task_id='129485']",
@@ -2554,7 +2554,7 @@
   {
     "id": "921794",
     "indexId": 97,
-    "nodePath": "0-1-2-2-1-1-4-3-1-0-1-0-0-0-1-1-0",
+    "nodePath": "0-1-2-2-1-1-4-3-2-0-1-0-0-0-1-1-0",
     "nodeHashId": "921794",
     "nodeType": "BUTTON Node",
     "locator": "[_midscene_retrieve_task_id='921794']",
@@ -2580,7 +2580,7 @@
   {
     "id": "608756",
     "indexId": 98,
-    "nodePath": "0-1-2-2-1-1-4-3-1-0-1-0-0-0-1-2-0",
+    "nodePath": "0-1-2-2-1-1-4-3-2-0-1-0-0-0-1-2-0",
     "nodeHashId": "608756",
     "nodeType": "BUTTON Node",
     "locator": "[_midscene_retrieve_task_id='608756']",
@@ -2606,7 +2606,7 @@
   {
     "id": "164197",
     "indexId": 99,
-    "nodePath": "0-1-2-2-1-1-4-3-1-0-1-0-0-0-1-3-0",
+    "nodePath": "0-1-2-2-1-1-4-3-2-0-1-0-0-0-1-3-0",
     "nodeHashId": "164197",
     "nodeType": "BUTTON Node",
     "locator": "[_midscene_retrieve_task_id='164197']",
@@ -2632,7 +2632,7 @@
   {
     "id": "1043187",
     "indexId": 100,
-    "nodePath": "0-1-2-2-1-1-4-3-1-0-1-1-0-0-0",
+    "nodePath": "0-1-2-2-1-1-4-3-2-0-1-1-0-0-0",
     "nodeHashId": "1043187",
     "nodeType": "TEXT Node",
     "locator": "",
@@ -2658,7 +2658,7 @@
   {
     "id": "322547",
     "indexId": 101,
-    "nodePath": "0-1-2-2-1-1-4-3-1-0-1-1-0-1-0-0",
+    "nodePath": "0-1-2-2-1-1-4-3-2-0-1-1-0-1-0-0",
     "nodeHashId": "322547",
     "locator": "[_midscene_retrieve_task_id='322547']",
     "attributes": {
@@ -2685,7 +2685,7 @@
   {
     "id": "426885",
     "indexId": 102,
-    "nodePath": "0-1-2-2-1-1-4-3-1-0-1-1-1-0-0",
+    "nodePath": "0-1-2-2-1-1-4-3-2-0-1-1-1-0-0",
     "nodeHashId": "426885",
     "nodeType": "TEXT Node",
     "locator": "",
@@ -2711,7 +2711,7 @@
   {
     "id": "845430",
     "indexId": 103,
-    "nodePath": "0-1-2-2-1-1-4-3-1-0-1-1-2-0-1-0",
+    "nodePath": "0-1-2-2-1-1-4-3-2-0-1-1-2-0-1-0",
     "nodeHashId": "845430",
     "locator": "[_midscene_retrieve_task_id='845430']",
     "attributes": {
@@ -2738,7 +2738,7 @@
   {
     "id": "510175",
     "indexId": 104,
-    "nodePath": "0-1-2-2-1-1-4-3-1-0-1-1-2-1-0-0",
+    "nodePath": "0-1-2-2-1-1-4-3-2-0-1-1-2-1-0-0",
     "nodeHashId": "510175",
     "locator": "[_midscene_retrieve_task_id='510175']",
     "attributes": {
@@ -2765,7 +2765,7 @@
   {
     "id": "1035160",
     "indexId": 105,
-    "nodePath": "0-1-2-2-1-1-4-3-1-0-1-1-2-2-1-0",
+    "nodePath": "0-1-2-2-1-1-4-3-2-0-1-1-2-2-1-0",
     "nodeHashId": "1035160",
     "locator": "[_midscene_retrieve_task_id='1035160']",
     "attributes": {
@@ -2792,7 +2792,7 @@
   {
     "id": "242768",
     "indexId": 106,
-    "nodePath": "0-1-2-2-1-1-4-3-1-0-1-1-2-3-0-0",
+    "nodePath": "0-1-2-2-1-1-4-3-2-0-1-1-2-3-0-0",
     "nodeHashId": "242768",
     "locator": "[_midscene_retrieve_task_id='242768']",
     "attributes": {
@@ -2819,7 +2819,7 @@
   {
     "id": "884686",
     "indexId": 107,
-    "nodePath": "0-1-2-2-1-1-4-3-1-0-1-1-2-4-0",
+    "nodePath": "0-1-2-2-1-1-4-3-2-0-1-1-2-4-0",
     "nodeHashId": "884686",
     "locator": "[_midscene_retrieve_task_id='884686']",
     "attributes": {
@@ -2848,7 +2848,7 @@
   {
     "id": "858250",
     "indexId": 108,
-    "nodePath": "0-1-2-2-1-1-4-3-1-0-4-0-0-0-0-0-1-0-0-0-0",
+    "nodePath": "0-1-2-2-1-1-4-3-2-0-4-0-0-0-0-0-1-0-0-0-0",
     "nodeHashId": "858250",
     "nodeType": "TEXT Node",
     "locator": "",
@@ -2874,7 +2874,7 @@
   {
     "id": "816596",
     "indexId": 109,
-    "nodePath": "0-1-2-2-1-1-4-3-1-1-1-0-0-0-1-0",
+    "nodePath": "0-1-2-2-1-1-4-3-2-1-1-0-0-0-1-0",
     "nodeHashId": "816596",
     "nodeType": "TEXT Node",
     "locator": "",
@@ -2900,7 +2900,7 @@
   {
     "id": "261916",
     "indexId": 110,
-    "nodePath": "0-1-2-2-1-1-4-3-1-1-1-0-0-1-1-0",
+    "nodePath": "0-1-2-2-1-1-4-3-2-1-1-0-0-1-1-0",
     "nodeHashId": "261916",
     "nodeType": "TEXT Node",
     "locator": "",
@@ -2926,7 +2926,7 @@
   {
     "id": "205036",
     "indexId": 111,
-    "nodePath": "0-1-2-2-1-1-4-3-1-1-1-0-0-2-1-0",
+    "nodePath": "0-1-2-2-1-1-4-3-2-1-1-0-0-2-1-0",
     "nodeHashId": "205036",
     "nodeType": "TEXT Node",
     "locator": "",
@@ -2952,7 +2952,7 @@
   {
     "id": "798842",
     "indexId": 112,
-    "nodePath": "0-1-2-2-1-1-4-3-1-1-1-0-0-3-1-0",
+    "nodePath": "0-1-2-2-1-1-4-3-2-1-1-0-0-3-1-0",
     "nodeHashId": "798842",
     "nodeType": "TEXT Node",
     "locator": "",
@@ -2978,7 +2978,7 @@
   {
     "id": "22000",
     "indexId": 113,
-    "nodePath": "0-1-2-2-1-1-4-3-1-1-1-0-1-0-0-0-1-0-0-0-0",
+    "nodePath": "0-1-2-2-1-1-4-3-2-1-1-0-1-0-0-0-1-0-0-0-0",
     "nodeHashId": "22000",
     "nodeType": "TEXT Node",
     "locator": "",
@@ -3004,7 +3004,7 @@
   {
     "id": "369685",
     "indexId": 114,
-    "nodePath": "0-1-2-2-1-1-4-3-1-1-1-0-1-0-1-0-0",
+    "nodePath": "0-1-2-2-1-1-4-3-2-1-1-0-1-0-1-0-0",
     "nodeHashId": "369685",
     "nodeType": "BUTTON Node",
     "locator": "[_midscene_retrieve_task_id='369685']",
@@ -3030,7 +3030,7 @@
   {
     "id": "465381",
     "indexId": 115,
-    "nodePath": "0-1-2-2-1-1-4-3-1-1-1-0-1-0-1-1-0",
+    "nodePath": "0-1-2-2-1-1-4-3-2-1-1-0-1-0-1-1-0",
     "nodeHashId": "465381",
     "nodeType": "BUTTON Node",
     "locator": "[_midscene_retrieve_task_id='465381']",
@@ -3056,7 +3056,7 @@
   {
     "id": "224030",
     "indexId": 116,
-    "nodePath": "0-1-2-2-1-1-4-3-1-1-1-0-1-0-1-2-0",
+    "nodePath": "0-1-2-2-1-1-4-3-2-1-1-0-1-0-1-2-0",
     "nodeHashId": "224030",
     "nodeType": "BUTTON Node",
     "locator": "[_midscene_retrieve_task_id='224030']",
@@ -3082,7 +3082,7 @@
   {
     "id": "260460",
     "indexId": 117,
-    "nodePath": "0-1-2-2-1-1-4-3-1-1-1-0-1-0-1-3-0",
+    "nodePath": "0-1-2-2-1-1-4-3-2-1-1-0-1-0-1-3-0",
     "nodeHashId": "260460",
     "nodeType": "BUTTON Node",
     "locator": "[_midscene_retrieve_task_id='260460']",
@@ -3108,7 +3108,7 @@
   {
     "id": "939008",
     "indexId": 118,
-    "nodePath": "0-1-2-2-1-1-4-3-1-1-1-1-0-0-0",
+    "nodePath": "0-1-2-2-1-1-4-3-2-1-1-1-0-0-0",
     "nodeHashId": "939008",
     "nodeType": "TEXT Node",
     "locator": "",
@@ -3134,7 +3134,7 @@
   {
     "id": "607790",
     "indexId": 119,
-    "nodePath": "0-1-2-2-1-1-4-3-1-1-1-1-0-1-0-0",
+    "nodePath": "0-1-2-2-1-1-4-3-2-1-1-1-0-1-0-0",
     "nodeHashId": "607790",
     "locator": "[_midscene_retrieve_task_id='607790']",
     "attributes": {
@@ -3161,7 +3161,7 @@
   {
     "id": "191676",
     "indexId": 120,
-    "nodePath": "0-1-2-2-1-1-4-3-1-1-1-1-1-0-0",
+    "nodePath": "0-1-2-2-1-1-4-3-2-1-1-1-1-0-0",
     "nodeHashId": "191676",
     "nodeType": "TEXT Node",
     "locator": "",
@@ -3187,7 +3187,7 @@
   {
     "id": "457701",
     "indexId": 121,
-    "nodePath": "0-1-2-2-1-1-4-3-1-1-1-1-2-0-1-0",
+    "nodePath": "0-1-2-2-1-1-4-3-2-1-1-1-2-0-1-0",
     "nodeHashId": "457701",
     "locator": "[_midscene_retrieve_task_id='457701']",
     "attributes": {
@@ -3214,7 +3214,7 @@
   {
     "id": "216916",
     "indexId": 122,
-    "nodePath": "0-1-2-2-1-1-4-3-1-1-1-1-2-1-0-0",
+    "nodePath": "0-1-2-2-1-1-4-3-2-1-1-1-2-1-0-0",
     "nodeHashId": "216916",
     "locator": "[_midscene_retrieve_task_id='216916']",
     "attributes": {
@@ -3241,7 +3241,7 @@
   {
     "id": "564452",
     "indexId": 123,
-    "nodePath": "0-1-2-2-1-1-4-3-1-1-1-1-2-2-1-0",
+    "nodePath": "0-1-2-2-1-1-4-3-2-1-1-1-2-2-1-0",
     "nodeHashId": "564452",
     "locator": "[_midscene_retrieve_task_id='564452']",
     "attributes": {
@@ -3268,7 +3268,7 @@
   {
     "id": "128793",
     "indexId": 124,
-    "nodePath": "0-1-2-2-1-1-4-3-1-1-1-1-2-3-0-0",
+    "nodePath": "0-1-2-2-1-1-4-3-2-1-1-1-2-3-0-0",
     "nodeHashId": "128793",
     "locator": "[_midscene_retrieve_task_id='128793']",
     "attributes": {
@@ -3295,7 +3295,7 @@
   {
     "id": "1007718",
     "indexId": 125,
-    "nodePath": "0-1-2-2-1-1-4-3-1-1-1-1-2-4-0",
+    "nodePath": "0-1-2-2-1-1-4-3-2-1-1-1-2-4-0",
     "nodeHashId": "1007718",
     "locator": "[_midscene_retrieve_task_id='1007718']",
     "attributes": {
@@ -3324,7 +3324,7 @@
   {
     "id": "713826",
     "indexId": 126,
-    "nodePath": "0-1-2-2-1-1-4-3-1-1-4-0-0-0-0-0-0-0-0-0-0",
+    "nodePath": "0-1-2-2-1-1-4-3-2-1-4-0-0-0-0-0-0-0-0-0-0",
     "nodeHashId": "713826",
     "nodeType": "TEXT Node",
     "locator": "",

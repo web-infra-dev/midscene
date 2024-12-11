@@ -1,24 +1,67 @@
-import { MATCH_BY_POSITION, getAIConfig } from '@/env';
+import { MATCH_BY_POSITION, MATCH_BY_TAG_NUMBER, getAIConfig } from '@/env';
 import type { ResponseFormatJSONSchema } from 'openai/resources';
-import { samplePageDescription } from './util';
+// import { samplePageDescription } from './util';
+
+export const samplePageDescription = `
+The size of the page: 1280 x 720
+
+JSON description of the elements in screenshot:
+id=1231: {
+  "markerId": 2, // The number indicated by the boxed label in the screenshot
+  "attributes":  // Attributes of the element
+    {"data-id":"@submit s0","class":".gh-search","aria-label":"搜索","nodeType":"IMG", "src": "image_url"},
+  "rect": { "left": 16, "top": 378, "width": 89, "height": 16 } // Position of the element in the page
+}
+
+id=459308: {
+  "content": "获取优惠券",
+  "attributes": { "nodeType": "TEXT" },
+  "rect": { "left": 32, "top": 332, "width": 70, "height": 18 }
+}
+
+...many more`;
 
 const quickAnswerFormat = () => {
   const matchByPosition = getAIConfig(MATCH_BY_POSITION);
-  const description = `
-  ${
-    matchByPosition
-      ? '"position": { x: number; y: number } // Represents the position of the element; replace with actual values in practice (ensure it reflects the element\'s position)'
-      : '"id": string // Represents the ID of the element; replace with actual values in practice'
+  const matchByTagNumber = getAIConfig(MATCH_BY_TAG_NUMBER);
+  let description =
+    '"id": number // Represents the tag number of the element; replace with actual values in practice';
+  if (matchByPosition) {
+    description =
+      '"position": { x: number; y: number } // Represents the position of the element; replace with actual values in practice (ensure it reflects the element\'s position)';
+  } else if (matchByTagNumber) {
+    description =
+      '"id": number // Represents the tag number of the element; replace with actual values in practice';
   }
-  `;
+  // const description = `
+  // ${
+  //   matchByPosition
+  //     ? '"position": { x: number; y: number } // Represents the position of the element; replace with actual values in practice (ensure it reflects the element\'s position)'
+  //     : '"id": string // Represents the ID of the element; replace with actual values in practice'
+  // }
+  // `;
 
-  const format = matchByPosition
-    ? '"position": { x: number; y: number }'
-    : '"id": string';
+  let format = '"id": number';
+  if (matchByPosition) {
+    format = '"position": { x: number; y: number }';
+  } else if (matchByTagNumber) {
+    format = '"id": number';
+  }
 
-  const sample = matchByPosition
-    ? '{"position": { x: 100, y: 200 }}'
-    : '{"id": "14562"}';
+  let sample = '{"id": "replace with actual values in practice"}';
+  if (matchByPosition) {
+    sample = '{"position": { x: 100, y: 200 }}';
+  } else if (matchByTagNumber) {
+    sample = '{"id": "replace with actual values in practice"}';
+  }
+
+  // const format = matchByPosition
+  //   ? '"position": { x: number; y: number }'
+  //   : '"id": string';
+
+  // const sample = matchByPosition
+  //   ? '{"position": { x: 100, y: 200 }}'
+  //   : '{"id": "14562"}';
 
   return {
     description,
@@ -26,6 +69,7 @@ const quickAnswerFormat = () => {
     sample,
   };
 };
+
 export function systemPromptToTaskPlanning() {
   return `
 ## Role
@@ -101,8 +145,8 @@ Please return the result in JSON format as follows:
       "type": "Tap",
       "param": null,
       "locate": {
-        {"id": "14562"},
-        prompt: "the search bar"
+        "id": "Replace with a specific id",
+        "prompt": "the search bar"
       } | null,
     },
     // ... more actions
@@ -206,7 +250,8 @@ Reason:
 `;
 }
 
-export const planSchema: ResponseFormatJSONSchema = {
+// export const planSchema: ResponseFormatJSONSchema = {
+export const planSchema: any = {
   type: 'json_schema',
   json_schema: {
     name: 'action_items',

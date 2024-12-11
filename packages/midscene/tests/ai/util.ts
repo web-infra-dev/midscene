@@ -20,4 +20,4 @@ export const modelList: Array<'openAI' | 'coze'> = preferCozeModel('coze')
   ? ['openAI', 'coze']
   : ['openAI'];
 
-export const repeatTime = 4;
+export const repeatTime = 1;
