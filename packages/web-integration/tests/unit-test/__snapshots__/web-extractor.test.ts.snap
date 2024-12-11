@@ -476,6 +476,24 @@ exports[`extractor > basic 1`] = `
   },
   {
     "attributes": {
+      "nodeType": "TEXT Node",
+    },
+    "content": "hidden label",
+  },
+  {
+    "attributes": {
+      "nodeType": "TEXT Node",
+    },
+    "content": "absolute child content",
+  },
+  {
+    "attributes": {
+      "nodeType": "TEXT Node",
+    },
+    "content": "content Right",
+  },
+  {
+    "attributes": {
       "frameborder": "0",
       "height": "200px",
       "nodeType": "CONTAINER Node",

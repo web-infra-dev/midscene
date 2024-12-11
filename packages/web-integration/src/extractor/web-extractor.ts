@@ -36,15 +36,16 @@ let indexId = 0;
 function collectElementInfo(
   node: Node,
   nodePath: string,
-  rect: {
-    left: number;
-    top: number;
-    width: number;
-    height: number;
-    zoom: number;
-  },
   baseZoom = 1,
 ): WebElementInfo | null {
+  const rect = visibleRect(node, baseZoom);
+  if (
+    !rect ||
+    rect.width < CONTAINER_MINI_WIDTH ||
+    rect.height < CONTAINER_MINI_HEIGHT
+  ) {
+    return null;
+  }
   if (isFormElement(node)) {
     const attributes = getNodeAttributes(node);
     let valueContent =
@@ -246,21 +247,7 @@ export function extractTextWithPosition(
       return null;
     }
 
-    const nodeVisibleRect = visibleRect(node, baseZoom);
-    if (
-      !nodeVisibleRect ||
-      nodeVisibleRect.width < CONTAINER_MINI_WIDTH ||
-      nodeVisibleRect.height < CONTAINER_MINI_HEIGHT
-    ) {
-      return null;
-    }
-
-    const elementInfo = collectElementInfo(
-      node,
-      nodePath,
-      nodeVisibleRect,
-      baseZoom,
-    );
+    const elementInfo = collectElementInfo(node, nodePath, baseZoom);
     // stop collecting if the node is a Button or Image
     if (
       elementInfo?.nodeType === NodeType.BUTTON ||
