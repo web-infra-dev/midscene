@@ -64,3 +64,9 @@ export const overrideAIConfig = (
 ) => {
   userConfig = extendMode ? { ...userConfig, ...newConfig } : { ...newConfig };
 };
+
+export const matchByPosition = getAIConfig(MATCH_BY_POSITION);
+export const matchByTagNumber = getAIConfig(MATCH_BY_TAG_NUMBER);
+export const matchByElementId = !(
+  getAIConfig(MATCH_BY_POSITION) || getAIConfig(MATCH_BY_TAG_NUMBER)
+);

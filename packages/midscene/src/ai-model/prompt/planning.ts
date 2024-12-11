@@ -1,8 +1,15 @@
-import { MATCH_BY_POSITION, MATCH_BY_TAG_NUMBER, getAIConfig } from '@/env';
+import {
+  MATCH_BY_POSITION,
+  MATCH_BY_TAG_NUMBER,
+  getAIConfig,
+  matchByElementId,
+  matchByPosition,
+  matchByTagNumber,
+} from '@/env';
 import type { ResponseFormatJSONSchema } from 'openai/resources';
-// import { samplePageDescription } from './util';
 
-export const samplePageDescription = `
+export const samplePageDescription = matchByElementId
+  ? `
 The size of the page: 1280 x 720
 
 JSON description of the elements in screenshot:
@@ -19,49 +26,30 @@ id=459308: {
   "rect": { "left": 32, "top": 332, "width": 70, "height": 18 }
 }
 
-...many more`;
+...many more`
+  : '';
 
-const quickAnswerFormat = () => {
-  const matchByPosition = getAIConfig(MATCH_BY_POSITION);
-  const matchByTagNumber = getAIConfig(MATCH_BY_TAG_NUMBER);
-  let description =
-    '"id": number // Represents the tag number of the element; replace with actual values in practice';
+const getLocateFormat = () => {
+  let description;
+  let format;
+  let sample;
+
   if (matchByPosition) {
     description =
-      '"position": { x: number; y: number } // Represents the position of the element; replace with actual values in practice (ensure it reflects the element\'s position)';
-  } else if (matchByTagNumber) {
-    description =
-      '"id": number // Represents the tag number of the element; replace with actual values in practice';
-  }
-  // const description = `
-  // ${
-  //   matchByPosition
-  //     ? '"position": { x: number; y: number } // Represents the position of the element; replace with actual values in practice (ensure it reflects the element\'s position)'
-  //     : '"id": string // Represents the ID of the element; replace with actual values in practice'
-  // }
-  // `;
-
-  let format = '"id": number';
-  if (matchByPosition) {
+      '"position": { x: number; y: number } // Represents the position of the element in the screenshot';
     format = '"position": { x: number; y: number }';
-  } else if (matchByTagNumber) {
-    format = '"id": number';
-  }
-
-  let sample = '{"id": "replace with actual values in practice"}';
-  if (matchByPosition) {
     sample = '{"position": { x: 100, y: 200 }}';
   } else if (matchByTagNumber) {
-    sample = '{"id": "replace with actual values in practice"}';
+    description =
+      '"boxTagNumber": number // Represents the tag number shown in the screenshot';
+    format = '"boxTagNumber": number';
+    sample = '{"boxTagNumber": 2}';
+  } else {
+    description =
+      '"id": string // Represents the element ID from the JSON description list';
+    format = '"id": string';
+    sample = '{"id": "1231"}';
   }
-
-  // const format = matchByPosition
-  //   ? '"position": { x: number; y: number }'
-  //   : '"id": string';
-
-  // const sample = matchByPosition
-  //   ? '{"position": { x: 100, y: 200 }}'
-  //   : '{"id": "14562"}';
 
   return {
     description,
@@ -104,8 +92,8 @@ You are a versatile professional in software UI automation. Your outstanding con
 The \`locate\` param is commonly used in the \`param\` field of the action, means to locate the target element to perform the action, it follows the following scheme:
 
 type LocateParam = {
-  "id": string, // the id of the element found. If its not on the page, locate should be null
-  prompt?: string // the description of the element to find. It can only be omitted when locate is null.
+  ${getLocateFormat().description},
+  prompt?: string // the description of the element to find. It can only be omitted when locate is null
 } | null
 
 ### Supported actions
@@ -145,7 +133,7 @@ Please return the result in JSON format as follows:
       "type": "Tap",
       "param": null,
       "locate": {
-        "id": "Replace with a specific id",
+        ${getLocateFormat().format},
         "prompt": "the search bar"
       } | null,
     },
@@ -178,7 +166,7 @@ By viewing the page screenshot and description, you should consider this and out
       "type": "Tap",
       "param": null,
       "locate": {
-        ${quickAnswerFormat().sample},
+        ${getLocateFormat().sample},
         "prompt": "the language switch button with the text '中文'"
       }
     },
@@ -227,7 +215,7 @@ Wrong output:
       "type": "Tap",
       "param": null,
       "locate": {
-        ${quickAnswerFormat().sample}, // WRONG:prompt is missing
+        ${getLocateFormat().sample}, // WRONG:prompt is missing
       }
     },
     {
@@ -250,8 +238,7 @@ Reason:
 `;
 }
 
-// export const planSchema: ResponseFormatJSONSchema = {
-export const planSchema: any = {
+export const planSchema: ResponseFormatJSONSchema = {
   type: 'json_schema',
   json_schema: {
     name: 'action_items',
@@ -295,13 +282,21 @@ export const planSchema: any = {
                           additionalProperties: false,
                         },
                       }
-                    : {
-                        id: { type: 'string' },
-                      }),
+                    : getAIConfig(MATCH_BY_TAG_NUMBER)
+                      ? {
+                          number: { type: 'number' },
+                        }
+                      : {
+                          id: { type: 'string' },
+                        }),
                   prompt: { type: 'string' },
                 },
                 required: [
-                  getAIConfig(MATCH_BY_POSITION) ? 'position' : 'id',
+                  getAIConfig(MATCH_BY_POSITION)
+                    ? 'position'
+                    : getAIConfig(MATCH_BY_TAG_NUMBER)
+                      ? 'number'
+                      : 'id',
                   'prompt',
                 ],
                 additionalProperties: false,

@@ -111,7 +111,7 @@ export interface AIAssertionResponse {
 export abstract class UIContext<ElementType extends BaseElement = BaseElement> {
   abstract screenshotBase64: string;
 
-  abstract screenshotBase64WithElementMarker?: string;
+  abstract screenshotBase64WithElementMarker: string;
 
   abstract content: ElementType[];
 
@@ -226,6 +226,7 @@ export interface AgentAssertOpt {
 
 export interface PlanningLocateParam {
   id?: string;
+  boxTagNumber?: number;
   position?: {
     x: number;
     y: number;

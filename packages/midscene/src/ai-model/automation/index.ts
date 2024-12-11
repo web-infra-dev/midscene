@@ -1,4 +1,5 @@
 import assert from 'node:assert';
+import { matchByTagNumber } from '@/env';
 import type { AIUsageInfo, PlanningAIResponse, UIContext } from '@/types';
 import {
   AIActionType,
@@ -39,7 +40,6 @@ ${opts.whatHaveDone}
 =====================================
 `;
   }
-
   const msgs: AIArgs = [
     { role: 'system', content: systemPrompt },
     {
@@ -48,7 +48,9 @@ ${opts.whatHaveDone}
         {
           type: 'image_url',
           image_url: {
-            url: screenshotBase64WithElementMarker || screenshotBase64,
+            url: matchByTagNumber
+              ? screenshotBase64WithElementMarker
+              : screenshotBase64,
             detail: 'high',
           },
         },
@@ -71,11 +73,15 @@ ${taskBackgroundContext}
   ];
 
   const call = callAI || callAiFn;
+
+  const startTime = Date.now();
   const { content, usage } = await call({
     msgs,
     AIActionType: AIActionType.PLAN,
     useModel,
   });
+  const endTime = Date.now();
+  console.log(`AI planning took ${endTime - startTime}ms`);
 
   planFromAI = content;
 

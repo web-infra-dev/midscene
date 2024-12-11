@@ -21,7 +21,7 @@ const testSources = [
   // 'onli`ne_order_list',
   // 'taobao',
   // 'aweme_login',
-  // 'aweme_play',`
+  // 'aweme_play`,
 ];
 
 describe('ai inspect element', () => {
@@ -72,9 +72,12 @@ describe('ai inspect element', () => {
             async (testCase) => {
               if (runType === 'planning') {
                 // use planning to get quick answer to test element inspector
-                const res = await plan(`Tap this: ${testCase.description}`, {
-                  context,
-                });
+                const res: any = await plan(
+                  `Tap this: ${testCase.description}`,
+                  {
+                    context,
+                  },
+                );
                 console.log('planning result:', JSON.stringify(res, null, 2));
 
                 const matchedId = res.actions[0].locate?.id;
@@ -94,7 +97,7 @@ describe('ai inspect element', () => {
                 multi: testCase.multi,
                 targetElementDescription: testCase.description,
               });
-              return parseResult;
+              return parseResult as any;
             },
           );
 

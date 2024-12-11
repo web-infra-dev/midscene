@@ -4,6 +4,7 @@ import { ifInBrowser } from '@midscene/shared/utils';
 import OpenAI, { type ClientOptions, AzureOpenAI } from 'openai';
 import type { ChatCompletionMessageParam } from 'openai/resources';
 import {
+  MIDSCENE_COOKIE,
   MIDSCENE_DANGEROUSLY_PRINT_ALL_CONFIG,
   MIDSCENE_DEBUG_AI_PROFILE,
   MIDSCENE_LANGSMITH_DEBUG,
@@ -84,15 +85,22 @@ export async function call(
   }
   const startTime = Date.now();
   const model = getModelName();
-  const completion = await openai.chat.completions.create({
-    model,
-    messages,
-    response_format: responseFormat,
-    temperature: 0.1,
-    max_tokens: 1000,
-    stream: false,
-    // betas: ['computer-use-2024-10-22'],
-  } as any);
+  const completion = await openai.chat.completions.create(
+    {
+      model,
+      messages,
+      response_format: responseFormat,
+      temperature: 0.1,
+      max_tokens: 2000,
+      stream: false,
+      // betas: ['computer-use-2024-10-22'],
+    } as any,
+    {
+      headers: {
+        Cookie: getAIConfig(MIDSCENE_COOKIE) || '',
+      },
+    },
+  );
   shouldPrintTiming &&
     console.log(
       'Midscene - AI call',

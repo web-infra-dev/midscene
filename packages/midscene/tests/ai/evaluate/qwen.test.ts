@@ -45,10 +45,10 @@ async function processQueries(queries: string[], imagePath: string) {
   }
   const { pageSize } = snapshot;
 
-  const url = 'https://midscene.bytedance.net/v1/chat/completions';
+  const url = `${getAIConfig(OPENAI_BASE_URL)}/chat/completions`;
   const headers = {
     'Content-Type': 'application/json',
-    // Cookie: getAIConfig(MIDSCENE_COOKIE) || '',
+    Cookie: getAIConfig(MIDSCENE_COOKIE) || '',
   };
 
   const data: any = {

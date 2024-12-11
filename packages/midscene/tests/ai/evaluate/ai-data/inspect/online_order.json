@@ -2,7 +2,7 @@
   "testDataPath": "test-data/online_order",
   "testCases": [
     {
-      "prompt": "Top left menu bar icon",
+      "prompt": "选择规格",
       "multi": false,
       "response": [
         {

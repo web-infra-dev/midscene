@@ -8,10 +8,10 @@ export function makePlanResultStable(plans: PlanningAction[]) {
     if (plan.param?.prompt) {
       plan.param.prompt = '';
     }
-    if (plan.quickAnswer) {
-      plan.quickAnswer.reason = '';
-      plan.quickAnswer.text = '';
-    }
+    // if (plan.locate) {
+    //   plan.locate.reason = '';
+    //   plan.locate.text = '';
+    // }
     return plan;
   });
 }
