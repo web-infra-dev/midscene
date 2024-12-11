@@ -1,5 +1,10 @@
 import assert from 'node:assert';
-import { matchByTagNumber } from '@/env';
+import {
+  MIDSCENE_MODEL_NAME,
+  OPENAI_BASE_URL,
+  getAIConfig,
+  matchByTagNumber,
+} from '@/env';
 import type { AIUsageInfo, PlanningAIResponse, UIContext } from '@/types';
 import {
   AIActionType,
@@ -7,6 +12,7 @@ import {
   callAiFn,
   transformUserMessages,
 } from '../common';
+import { extractJSONFromCodeBlock } from '../openai';
 import { systemPromptToTaskPlanning } from '../prompt/planning';
 import { describeUserPage } from '../prompt/util';
 
@@ -22,8 +28,11 @@ export async function plan(
 ): Promise<PlanningAIResponse> {
   const { callAI, context } = opts || {};
   const { screenshotBase64, screenshotBase64WithElementMarker } = context;
-  const { description: pageDescription, elementByPosition } =
-    await describeUserPage(context);
+  const {
+    description: pageDescription,
+    elementByPosition,
+    elementByIndexId,
+  } = await describeUserPage(context);
   let planFromAI: PlanningAIResponse | undefined;
 
   const systemPrompt = systemPromptToTaskPlanning();
@@ -72,6 +81,48 @@ ${taskBackgroundContext}
     },
   ];
 
+  if (matchByTagNumber) {
+    const response = await fetch(
+      `${getAIConfig(OPENAI_BASE_URL)}/chat/completions`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Cookie: process.env.MIDSCENE_COOKIE || '',
+        },
+        body: JSON.stringify({
+          model: getAIConfig(MIDSCENE_MODEL_NAME),
+          messages: msgs,
+          temperature: 0.1,
+          top_p: 0.1,
+        }),
+      },
+    );
+    const data = await response.json();
+
+    const message = data.choices[0].message.content;
+    const jsonData = parseNonStrictJSON(message);
+    const actions = jsonData.actions || [];
+
+    actions.forEach((action: any) => {
+      if (action.locate) {
+        if ('position' in action.locate) {
+          action.locate = {
+            ...action.locate,
+            id: elementByPosition(action.locate.position)?.id!,
+          };
+        }
+        if ('boxTagNumber' in action.locate) {
+          action.locate = {
+            ...action.locate,
+            id: elementByIndexId(action.locate.boxTagNumber)?.id!,
+          };
+        }
+      }
+    });
+    return jsonData;
+  }
+
   const call = callAI || callAiFn;
 
   const startTime = Date.now();
@@ -97,4 +148,15 @@ ${taskBackgroundContext}
   }
 
   return planFromAI;
+}
+
+function parseNonStrictJSON(source: string) {
+  let jsonObj = null;
+  source = extractJSONFromCodeBlock(source);
+  try {
+    jsonObj = JSON.parse(source);
+  } catch (e) {
+    jsonObj = new Function(`return ${source}`)();
+  }
+  return jsonObj;
 }

@@ -15,26 +15,24 @@ export type InspectAiTestCase = {
 };
 
 export interface AiElementsResponse {
-  elements: Array<
-    | {
-        id: string;
-        reason: string;
-        text: string;
-      }
-    | {
-        position: {
-          x: number;
-          y: number;
-        };
-        reason: string;
-        text: string;
-      }
-    | {
-        boxTagNumber: number;
-        reason: string;
-        text: string;
-      }
-  >;
+  elements: Array<{
+    id: string;
+    reason: string;
+    text: string;
+  }>;
+  // | {
+  //     position: {
+  //       x: number;
+  //       y: number;
+  //     };
+  //     reason: string;
+  //     text: string;
+  //   }
+  // | {
+  //     boxTagNumber: number;
+  //     reason: string;
+  //     text: string;
+  //   }
 }
 
 export interface TextAiElementResponse extends AiElementsResponse {

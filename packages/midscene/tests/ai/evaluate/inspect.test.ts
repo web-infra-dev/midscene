@@ -17,11 +17,11 @@ import {
 
 const testSources = [
   // 'todo',
-  'online_order',
-  // 'onli`ne_order_list',
+  // 'online_order',
+  'online_order_list',
   // 'taobao',
   // 'aweme_login',
-  // 'aweme_play`,
+  // 'aweme_play',
 ];
 
 describe('ai inspect element', () => {
@@ -78,7 +78,7 @@ describe('ai inspect element', () => {
                     context,
                   },
                 );
-                console.log('planning result:', JSON.stringify(res, null, 2));
+                // console.log('planning result:', JSON.stringify(res, null, 2));
 
                 const matchedId = res.actions[0].locate?.id;
                 if (matchedId) {

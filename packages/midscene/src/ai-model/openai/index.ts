@@ -91,6 +91,7 @@ export async function call(
       messages,
       response_format: responseFormat,
       temperature: 0.1,
+      // top_p: 0.1,
       max_tokens: 2000,
       stream: false,
       // betas: ['computer-use-2024-10-22'],

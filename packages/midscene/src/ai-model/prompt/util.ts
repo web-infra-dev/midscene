@@ -280,6 +280,14 @@ ${
       const item = idElementMap[`${id}`];
       return item;
     },
+    elementByIndexId(indexId: string) {
+      assert(typeof indexId !== 'undefined', 'indexId is required for query');
+      const item = elementsInfo.find(
+        (element) => (element as any).indexId === indexId,
+      );
+      assert(item, `element with indexId ${indexId} not found`);
+      return item;
+    },
     elementByPosition(position: { x: number; y: number }) {
       return elementByPosition(elementsInfo, position);
     },
