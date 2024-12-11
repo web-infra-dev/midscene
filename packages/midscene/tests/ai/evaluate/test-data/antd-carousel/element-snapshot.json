@@ -586,22 +586,22 @@
     "screenHeight": 1080
   },
   {
-    "id": "795734",
+    "id": "347107",
     "indexId": 22,
     "nodePath": "0-1-2-2-0-0-1-1-1-0-0-1-0",
-    "nodeHashId": "795734",
+    "nodeHashId": "347107",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
       "nodeType": "TEXT Node"
     },
     "center": [
-      277,
+      266,
       283
     ],
     "content": "5.0.0",
     "rect": {
-      "left": 263,
+      "left": 252,
       "top": 276,
       "width": 28,
       "height": 14,
@@ -846,22 +846,22 @@
     "screenHeight": 1080
   },
   {
-    "id": "958405",
+    "id": "669421",
     "indexId": 32,
     "nodePath": "0-1-2-2-0-0-2-1-1-0-0-1-0",
-    "nodeHashId": "958405",
+    "nodeHashId": "669421",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
       "nodeType": "TEXT Node"
     },
     "center": [
-      274,
+      263,
       526
     ],
     "content": "5.10.0",
     "rect": {
-      "left": 257,
+      "left": 246,
       "top": 519,
       "width": 34,
       "height": 14,
@@ -1080,22 +1080,22 @@
     "screenHeight": 1080
   },
   {
-    "id": "317457",
+    "id": "622999",
     "indexId": 41,
     "nodePath": "0-1-2-2-0-0-2-1-5-0-0-1-0",
-    "nodeHashId": "317457",
+    "nodeHashId": "622999",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
       "nodeType": "TEXT Node"
     },
     "center": [
-      274,
+      263,
       702
     ],
     "content": "5.21.0",
     "rect": {
-      "left": 257,
+      "left": 246,
       "top": 695,
       "width": 34,
       "height": 14,

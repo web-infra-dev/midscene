@@ -156,13 +156,16 @@ describe(
     async function runTest(dataDir: string, prompts: string[]) {
       const locator = new ElementLocator(dataDir);
 
-      const boxes = await Promise.all(
-        prompts.map(async (prompt, indexId) => ({
+      const boxes = [];
+      for (let indexId = 0; indexId < prompts.length; indexId++) {
+        const prompt = prompts[indexId];
+        const result = await locator.findElement(prompt);
+        boxes.push({
           prompt,
-          ...(await locator.findElement(prompt)),
+          ...result,
           indexId,
-        })),
-      );
+        });
+      }
 
       await locator.visualizeResults(
         boxes,
@@ -204,6 +207,28 @@ describe(
     //     '右下角音量调节按钮',
     //   ]);
     // });
+
+    // it('online order chinese new box', async () => {
+    //   await runTest(
+    //     path.resolve(__dirname, '../test-data/new-box/online_order'),
+    //     ['购物车图标', '选规格', '价格', '切换语言', '右下角客服按钮'],
+    //   );
+    // });
+
+    it('video player', async () => {
+      await runTest(
+        path.resolve(__dirname, '../test-data/new-box/aweme-play'),
+        [
+          '播放按钮',
+          '左下角暂停按钮',
+          '点赞按钮（爱心）',
+          '收藏按钮',
+          '关闭按钮',
+          '搜索框',
+          '右下角音量调节按钮',
+        ],
+      );
+    });
   },
   {
     timeout: 180 * 1000,

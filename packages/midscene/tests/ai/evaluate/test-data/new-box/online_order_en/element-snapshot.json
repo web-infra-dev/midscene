@@ -1,0 +1,742 @@
+[
+  {
+    "id": "917697",
+    "indexId": 0,
+    "nodePath": "0-3-1-1-0-0-0-0-0-1-0-0-0",
+    "nodeHashId": "917697",
+    "locator": "[_midscene_retrieve_task_id='917697']",
+    "attributes": {
+      "src": "image",
+      "class": ".icon",
+      "nodeType": "IMG Node"
+    },
+    "nodeType": "IMG Node",
+    "content": "",
+    "rect": {
+      "left": 15,
+      "top": 17,
+      "width": 22,
+      "height": 22,
+      "zoom": 1
+    },
+    "center": [
+      26,
+      28
+    ],
+    "zoom": 1,
+    "screenWidth": 400,
+    "screenHeight": 905
+  },
+  {
+    "id": "877481",
+    "indexId": 1,
+    "nodePath": "0-3-1-1-0-0-0-0-0-1-0-1-0-0-0",
+    "nodeHashId": "877481",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node"
+    },
+    "center": [
+      92,
+      29
+    ],
+    "content": "English",
+    "rect": {
+      "left": 65,
+      "top": 17,
+      "width": 53,
+      "height": 23,
+      "zoom": 1
+    },
+    "zoom": 1,
+    "screenWidth": 400,
+    "screenHeight": 905
+  },
+  {
+    "id": "790454",
+    "indexId": 2,
+    "nodePath": "0-3-1-1-0-0-0-1-0-0-0",
+    "nodeHashId": "790454",
+    "locator": "[_midscene_retrieve_task_id='790454']",
+    "attributes": {
+      "src": "https://dec-pub-img.obs.ap-southeast-3.myhuaweiclo...",
+      "class": ".img",
+      "nodeType": "IMG Node"
+    },
+    "nodeType": "IMG Node",
+    "content": "",
+    "rect": {
+      "left": 203,
+      "top": 8,
+      "width": 44,
+      "height": 44,
+      "zoom": 1
+    },
+    "center": [
+      225,
+      30
+    ],
+    "zoom": 1,
+    "screenWidth": 400,
+    "screenHeight": 905
+  },
+  {
+    "id": "387792",
+    "indexId": 3,
+    "nodePath": "0-3-1-1-0-0-0-2-0-1-0-0-0-0-0-0",
+    "nodeHashId": "387792",
+    "locator": "[_midscene_retrieve_task_id='387792']",
+    "attributes": {
+      "src": "image",
+      "class": ".icon",
+      "nodeType": "IMG Node"
+    },
+    "nodeType": "IMG Node",
+    "content": "",
+    "rect": {
+      "left": 350,
+      "top": 16,
+      "width": 25,
+      "height": 25,
+      "zoom": 1
+    },
+    "center": [
+      363,
+      29
+    ],
+    "zoom": 1,
+    "screenWidth": 400,
+    "screenHeight": 905
+  },
+  {
+    "id": "529327",
+    "indexId": 4,
+    "nodePath": "0-3-1-2-0-1-0-1-0-0-0-0-0-0",
+    "nodeHashId": "529327",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node"
+    },
+    "center": [
+      200,
+      79
+    ],
+    "content": "Delivery and self pick-up not available",
+    "rect": {
+      "left": 75,
+      "top": 69,
+      "width": 250,
+      "height": 20,
+      "zoom": 1
+    },
+    "zoom": 1,
+    "screenWidth": 400,
+    "screenHeight": 905
+  },
+  {
+    "id": "450623",
+    "indexId": 5,
+    "nodePath": "0-3-1-2-0-1-0-1-0-0-0-1-2-0",
+    "nodeHashId": "450623",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node"
+    },
+    "center": [
+      178,
+      133
+    ],
+    "content": "Islandwide Delivery, Minimum Spending of S$ 11",
+    "rect": {
+      "left": 22,
+      "top": 123,
+      "width": 312,
+      "height": 20,
+      "zoom": 1
+    },
+    "zoom": 1,
+    "screenWidth": 400,
+    "screenHeight": 905
+  },
+  {
+    "id": "137964",
+    "indexId": 6,
+    "nodePath": "0-3-1-2-0-1-0-1-0-3-0",
+    "nodeHashId": "137964",
+    "locator": "[_midscene_retrieve_task_id='137964']",
+    "attributes": {
+      "src": "https://dec-pub-img.obs.ap-southeast-3.myhuaweiclo...",
+      "nodeType": "IMG Node"
+    },
+    "nodeType": "IMG Node",
+    "content": "",
+    "rect": {
+      "left": 16,
+      "top": 260,
+      "width": 368,
+      "height": 180,
+      "zoom": 1
+    },
+    "center": [
+      200,
+      350
+    ],
+    "zoom": 1,
+    "screenWidth": 400,
+    "screenHeight": 905
+  },
+  {
+    "id": "191456",
+    "indexId": 7,
+    "nodePath": "0-3-1-2-0-1-0-1-0-3-2-0",
+    "nodeHashId": "191456",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node"
+    },
+    "center": [
+      181,
+      472
+    ],
+    "content": "HEYTEA Singapore. The original cheezo tea 2012, fostering joy & inspiration with every sip.",
+    "rect": {
+      "left": 16,
+      "top": 451,
+      "width": 330,
+      "height": 41,
+      "zoom": 1
+    },
+    "zoom": 1,
+    "screenWidth": 400,
+    "screenHeight": 905
+  },
+  {
+    "id": "367270",
+    "indexId": 8,
+    "nodePath": "0-3-1-2-0-1-0-1-0-6-0-0-0-0-0",
+    "nodeHashId": "367270",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node"
+    },
+    "center": [
+      95,
+      548
+    ],
+    "content": "Menu",
+    "rect": {
+      "left": 74,
+      "top": 536,
+      "width": 41,
+      "height": 23,
+      "zoom": 1
+    },
+    "zoom": 1,
+    "screenWidth": 400,
+    "screenHeight": 905
+  },
+  {
+    "id": "314848",
+    "nodePath": "0-3-1-2-0-1-0-1-0-6-0-0-0-1",
+    "nodeHashId": "314848",
+    "indexId": 9,
+    "nodeType": "CONTAINER Node",
+    "locator": "[_midscene_retrieve_task_id='314848']",
+    "attributes": {
+      "nodeType": "CONTAINER Node"
+    },
+    "content": "",
+    "rect": {
+      "left": 74,
+      "top": 568,
+      "width": 41,
+      "height": 4,
+      "zoom": 1
+    },
+    "center": [
+      95,
+      570
+    ],
+    "zoom": 1,
+    "screenWidth": 400,
+    "screenHeight": 905
+  },
+  {
+    "id": "777525",
+    "indexId": 10,
+    "nodePath": "0-3-1-2-0-1-0-1-0-6-0-0-1-0-0",
+    "nodeHashId": "777525",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node"
+    },
+    "center": [
+      186,
+      548
+    ],
+    "content": "Reviews",
+    "rect": {
+      "left": 155,
+      "top": 536,
+      "width": 61,
+      "height": 23,
+      "zoom": 1
+    },
+    "zoom": 1,
+    "screenWidth": 400,
+    "screenHeight": 905
+  },
+  {
+    "id": "781800",
+    "indexId": 11,
+    "nodePath": "0-3-1-2-0-1-0-1-0-6-0-0-2-0-0",
+    "nodeHashId": "781800",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node"
+    },
+    "center": [
+      291,
+      548
+    ],
+    "content": "Merchant",
+    "rect": {
+      "left": 256,
+      "top": 536,
+      "width": 70,
+      "height": 23,
+      "zoom": 1
+    },
+    "zoom": 1,
+    "screenWidth": 400,
+    "screenHeight": 905
+  },
+  {
+    "id": "171001",
+    "indexId": 12,
+    "nodePath": "0-3-1-2-0-1-0-1-0-6-1-0-0-1-0-0",
+    "nodeHashId": "171001",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node"
+    },
+    "center": [
+      37,
+      603
+    ],
+    "content": "IN SEASON",
+    "rect": {
+      "left": 5,
+      "top": 594,
+      "width": 64,
+      "height": 17,
+      "zoom": 1
+    },
+    "zoom": 1,
+    "screenWidth": 400,
+    "screenHeight": 905
+  },
+  {
+    "id": "195149",
+    "indexId": 13,
+    "nodePath": "0-3-1-2-0-1-0-1-0-6-1-0-0-2-0-0",
+    "nodeHashId": "195149",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node"
+    },
+    "center": [
+      43,
+      663
+    ],
+    "content": "REFRESHING DRINKS",
+    "rect": {
+      "left": 5,
+      "top": 645,
+      "width": 75,
+      "height": 35,
+      "zoom": 1
+    },
+    "zoom": 1,
+    "screenWidth": 400,
+    "screenHeight": 905
+  },
+  {
+    "id": "756959",
+    "indexId": 14,
+    "nodePath": "0-3-1-2-0-1-0-1-0-6-1-0-0-3-0-0",
+    "nodeHashId": "756959",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node"
+    },
+    "center": [
+      39,
+      723
+    ],
+    "content": "SIGNATURE DRINKS",
+    "rect": {
+      "left": 5,
+      "top": 705,
+      "width": 68,
+      "height": 35,
+      "zoom": 1
+    },
+    "zoom": 1,
+    "screenWidth": 400,
+    "screenHeight": 905
+  },
+  {
+    "id": "689084",
+    "indexId": 15,
+    "nodePath": "0-3-1-2-0-1-0-1-0-6-1-0-0-4-0-0",
+    "nodeHashId": "689084",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node"
+    },
+    "center": [
+      35,
+      783
+    ],
+    "content": "COMFORT DRINKS",
+    "rect": {
+      "left": 5,
+      "top": 765,
+      "width": 60,
+      "height": 35,
+      "zoom": 1
+    },
+    "zoom": 1,
+    "screenWidth": 400,
+    "screenHeight": 905
+  },
+  {
+    "id": "172471",
+    "indexId": 16,
+    "nodePath": "0-3-1-2-0-1-0-1-0-6-1-0-0-5-0-0",
+    "nodeHashId": "172471",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node"
+    },
+    "center": [
+      34,
+      843
+    ],
+    "content": "SIMPLE CLASSICS",
+    "rect": {
+      "left": 5,
+      "top": 825,
+      "width": 58,
+      "height": 35,
+      "zoom": 1
+    },
+    "zoom": 1,
+    "screenWidth": 400,
+    "screenHeight": 905
+  },
+  {
+    "id": "666870",
+    "indexId": 17,
+    "nodePath": "0-3-1-2-0-1-0-1-0-6-1-1-1-0-0-0",
+    "nodeHashId": "666870",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node"
+    },
+    "center": [
+      136,
+      612
+    ],
+    "content": "IN SEASON (1)",
+    "rect": {
+      "left": 88,
+      "top": 602,
+      "width": 96,
+      "height": 20,
+      "zoom": 1
+    },
+    "zoom": 1,
+    "screenWidth": 400,
+    "screenHeight": 905
+  },
+  {
+    "id": "108150",
+    "indexId": 18,
+    "nodePath": "0-3-1-2-0-1-0-1-0-6-1-1-1-1-0-0",
+    "nodeHashId": "108150",
+    "locator": "[_midscene_retrieve_task_id='108150']",
+    "attributes": {
+      "src": "https://dec-pub-img.obs.ap-southeast-3.myhuaweiclo...",
+      "class": ".img",
+      "nodeType": "IMG Node"
+    },
+    "nodeType": "IMG Node",
+    "content": "",
+    "rect": {
+      "left": 88,
+      "top": 638,
+      "width": 90,
+      "height": 90,
+      "zoom": 1
+    },
+    "center": [
+      133,
+      683
+    ],
+    "zoom": 1,
+    "screenWidth": 400,
+    "screenHeight": 905
+  },
+  {
+    "id": "646655",
+    "indexId": 19,
+    "nodePath": "0-3-1-2-0-1-0-1-0-6-1-1-1-1-0-1-0-0-1",
+    "nodeHashId": "646655",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node"
+    },
+    "center": [
+      258,
+      660
+    ],
+    "content": "Very Tangerine Blast (Original)",
+    "rect": {
+      "left": 188,
+      "top": 639,
+      "width": 139,
+      "height": 41,
+      "zoom": 1
+    },
+    "zoom": 1,
+    "screenWidth": 400,
+    "screenHeight": 905
+  },
+  {
+    "id": "301292",
+    "indexId": 20,
+    "nodePath": "0-3-1-2-0-1-0-1-0-6-1-1-1-1-0-1-1-0-1-0",
+    "nodeHashId": "301292",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node"
+    },
+    "center": [
+      211,
+      734
+    ],
+    "content": "6.82",
+    "rect": {
+      "left": 192,
+      "top": 721,
+      "width": 37,
+      "height": 25,
+      "zoom": 1
+    },
+    "zoom": 1,
+    "screenWidth": 400,
+    "screenHeight": 905
+  },
+  {
+    "id": "338211",
+    "indexId": 21,
+    "nodePath": "0-3-1-2-0-1-0-1-0-6-1-1-1-1-0-1-1-1-0-0",
+    "nodeHashId": "338211",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node"
+    },
+    "center": [
+      344,
+      730
+    ],
+    "content": "Select Option",
+    "rect": {
+      "left": 306,
+      "top": 721,
+      "width": 76,
+      "height": 17,
+      "zoom": 1
+    },
+    "zoom": 1,
+    "screenWidth": 400,
+    "screenHeight": 905
+  },
+  {
+    "id": "926495",
+    "indexId": 22,
+    "nodePath": "0-3-1-2-0-1-0-1-0-6-1-1-2-0-0-0",
+    "nodeHashId": "926495",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node"
+    },
+    "center": [
+      173,
+      773
+    ],
+    "content": "REFRESHING DRINKS (5)",
+    "rect": {
+      "left": 88,
+      "top": 763,
+      "width": 169,
+      "height": 20,
+      "zoom": 1
+    },
+    "zoom": 1,
+    "screenWidth": 400,
+    "screenHeight": 905
+  },
+  {
+    "id": "246421",
+    "indexId": 23,
+    "nodePath": "0-3-1-2-0-1-0-1-0-6-1-1-2-1-0-0",
+    "nodeHashId": "246421",
+    "locator": "[_midscene_retrieve_task_id='246421']",
+    "attributes": {
+      "src": "https://dec-pub-img.obs.ap-southeast-3.myhuaweiclo...",
+      "class": ".img",
+      "nodeType": "IMG Node"
+    },
+    "nodeType": "IMG Node",
+    "content": "",
+    "rect": {
+      "left": 88,
+      "top": 800,
+      "width": 90,
+      "height": 90,
+      "zoom": 1
+    },
+    "center": [
+      133,
+      845
+    ],
+    "zoom": 1,
+    "screenWidth": 400,
+    "screenHeight": 905
+  },
+  {
+    "id": "656092",
+    "indexId": 24,
+    "nodePath": "0-3-1-2-0-1-0-1-0-6-1-1-2-1-0-1-0-0-1",
+    "nodeHashId": "656092",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node"
+    },
+    "center": [
+      266,
+      810
+    ],
+    "content": "Mango Grapefruit Pops",
+    "rect": {
+      "left": 188,
+      "top": 800,
+      "width": 156,
+      "height": 20,
+      "zoom": 1
+    },
+    "zoom": 1,
+    "screenWidth": 400,
+    "screenHeight": 905
+  },
+  {
+    "id": "17019",
+    "indexId": 25,
+    "nodePath": "0-3-1-2-0-1-0-1-0-6-1-1-2-1-0-1-1-0-1-0",
+    "nodeHashId": "17019",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node"
+    },
+    "center": [
+      211,
+      877
+    ],
+    "content": "6.54",
+    "rect": {
+      "left": 192,
+      "top": 864,
+      "width": 37,
+      "height": 25,
+      "zoom": 1
+    },
+    "zoom": 1,
+    "screenWidth": 400,
+    "screenHeight": 905
+  },
+  {
+    "id": "736786",
+    "indexId": 26,
+    "nodePath": "0-3-1-2-0-1-0-1-0-6-1-1-2-1-0-1-1-1-0-0",
+    "nodeHashId": "736786",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node"
+    },
+    "center": [
+      344,
+      873
+    ],
+    "content": "Select Option",
+    "rect": {
+      "left": 306,
+      "top": 864,
+      "width": 76,
+      "height": 17,
+      "zoom": 1
+    },
+    "zoom": 1,
+    "screenWidth": 400,
+    "screenHeight": 905
+  },
+  {
+    "id": "754365",
+    "indexId": 27,
+    "nodePath": "0-3-1-2-3-0",
+    "nodeHashId": "754365",
+    "locator": "[_midscene_retrieve_task_id='754365']",
+    "attributes": {
+      "src": "/img/customer.8a8d9dc9.png",
+      "nodeType": "IMG Node"
+    },
+    "nodeType": "IMG Node",
+    "content": "",
+    "rect": {
+      "left": 358,
+      "top": 813,
+      "width": 42,
+      "height": 42,
+      "zoom": 1
+    },
+    "center": [
+      379,
+      834
+    ],
+    "zoom": 1,
+    "screenWidth": 400,
+    "screenHeight": 905
+  }
+]

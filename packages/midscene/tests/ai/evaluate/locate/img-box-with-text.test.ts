@@ -32,7 +32,7 @@ class ElementLocator {
       ),
     );
 
-    const imagePath = path.resolve(testDataDir, 'output_without_text.png');
+    const imagePath = path.resolve(testDataDir, 'input.png');
     const originImgPath = path.resolve(testDataDir, 'input.png');
     const image = fs.readFileSync(imagePath);
     const originImg = fs.readFileSync(originImgPath);
@@ -50,56 +50,50 @@ class ElementLocator {
   async findElement(prompt: string): Promise<ElementBox> {
     const startTime = Date.now();
 
-    // Filter element snapshot list to only include text elements with required fields
-    const filteredElements = this.elementSnapshotList
-      .filter((el) => el.nodeType === 'TEXT Node')
-      .map((el) => ({
-        indexId: el.indexId,
-        rect: el.rect,
-        content: el.content,
-      }));
+    // Get all elements with their text content and visual properties
+    const filteredElements = this.elementSnapshotList.map((el) => ({
+      nodeType: el.nodeType,
+      indexId: el.indexId,
+      rect: el.rect,
+      content: el.content,
+      attributes: el.attributes,
+      // isVisible: el.isVisible,
+      // isClickable: el.isClickable
+    }));
 
     const result = await call([
       {
         role: 'system',
         content: `
-          You are an expert in identifying numbered boxes and text elements in images. You will receive:
-          1. User's target element description (in any language)
-          2. Page screenshot with numbered boxes (only non-text elements like images and buttons are boxed)
-          3. JSON data of text elements with their positions and content
+          You are an expert in analyzing web page elements by combining visual and textual information. You will receive:
+          1. A user's target element description (in any language)
+          2. A screenshot showing numbered boxes around interactive elements
+          3. Detailed element data including:
+             - Text content
+             - Element positions and sizes
+             - Element attributes and properties
+             - Visual characteristics
           
-          Your task:
-          1. First analyze the image to find any numbered box matching the description
-             (Note: Only non-text elements have numbered boxes in the image)
-          2. If no matching box is found, analyze both the image and JSON data together:
-             - Look at the text content in the JSON data
-             - Consider the position information (rect) to understand spatial relationships
-             - Check if any text elements are near or related to visible numbered boxes
-             - Use this combined visual and textual context to find the target element
+          Your task is to find the most relevant element by:
+          1. Analyzing both visual and textual characteristics together
+          2. Considering:
+             - Text content matches
+             - Visual appearance and location
+             - Semantic relevance to the user's description
+             - Proximity to other relevant elements
+             - Element attributes and interactive properties
           
-          The JSON data format for text elements:
-          {
-            indexId: number,    // Element ID
-            rect: {             // Position and size
-              x: number,
-              y: number,
-              width: number,
-              height: number
-            },
-            content: string     // Text content
-          }
-
           Return format (strict JSON):
           {
-            "reason": "string", // Explanation of why this element was selected, including spatial relationships if relevant
-            "source": "string",  // "text" if found through text content, "image" if found through visual analysis
-            "number": number,  // The identified box number
+            "number": number,     // The identified element's number
+            "reason": "string",   // Detailed explanation combining visual and textual evidence
+            "confidence": number  // 0-1 score indicating match confidence
           }
           or
           {
             "number": null,
-            "reason": "string", // Explanation of why no match was found
-            "source": null
+            "reason": "string",   // Why no suitable match was found
+            "confidence": 0
           }
         `,
       },
@@ -109,10 +103,10 @@ class ElementLocator {
           {
             type: 'text',
             text: `
-            用户希望查找的目标元素描述: ${prompt} \n
-            页面尺寸: ${JSON.stringify(this.pageInfo.size)} \n
-            文本元素数据: ${JSON.stringify(filteredElements)} \n
-`,
+            Target element description: ${prompt}
+            Page dimensions: ${JSON.stringify(this.pageInfo.size)}
+            Element data: ${JSON.stringify(filteredElements)}
+            `,
           },
           {
             type: 'image_url',
@@ -184,13 +178,16 @@ describe(
     async function runTest(dataDir: string, prompts: string[]) {
       const locator = new ElementLocator(dataDir);
 
-      const boxes = await Promise.all(
-        prompts.map(async (prompt, indexId) => ({
+      const boxes = [];
+      for (let indexId = 0; indexId < prompts.length; indexId++) {
+        const prompt = prompts[indexId];
+        const result = await locator.findElement(prompt);
+        boxes.push({
           prompt,
-          ...(await locator.findElement(prompt)),
+          ...result,
           indexId,
-        })),
-      );
+        });
+      }
 
       await locator.visualizeResults(
         boxes,
@@ -215,22 +212,22 @@ describe(
       await runTest(path.resolve(__dirname, '../test-data/online_order'), [
         '购物车图标',
         '选规格按钮',
-        '价格',
+        '轻芒芒甘露价格',
         '切换语言',
-        '客服图标',
+        '右下角客服图标',
       ]);
     });
 
-    // it('video player', async () => {
-    //   await runTest(path.resolve(__dirname, '../test-data/aweme-play'), [
-    //     '播放按钮',
-    //     '点赞按钮',
-    //     '收藏按钮',
-    //     '关闭按钮',
-    //     '搜索框',
-    //     '音量调节按钮',
-    //   ]);
-    // });
+    it('video player', async () => {
+      await runTest(path.resolve(__dirname, '../test-data/aweme-play'), [
+        '播放按钮',
+        '点赞按钮',
+        '收藏按钮',
+        '关闭按钮',
+        '搜索框',
+        '音量调节按钮',
+      ]);
+    });
   },
   {
     timeout: 180 * 1000,

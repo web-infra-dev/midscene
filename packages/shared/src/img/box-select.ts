@@ -33,20 +33,24 @@ const createSvgOverlay = async (
 ): Promise<Jimp> => {
   const Jimp = await getJimp();
   const image = new Jimp(imageWidth, imageHeight, 0x00000000);
+  //@ts-ignore
+  // image.color([{ apply: 'xor', params: ['#00ff00'] }]);
 
   // Define color array
   const colors = [
-    { rect: 0xff0000ff, text: 0xffffffff }, // red, white
+    { rect: 0xffff00ff, text: 0xffffffff }, // yellow, white
     // { rect: 0x0000ffff, text: 0xffffffff }, // blue, white
     // { rect: 0x8b4513ff, text: 0xffffffff }, // brown, white
   ];
 
-  const boxPadding = 5;
+  //@ts-ignore
+  image.color([{ apply: 'xor', params: ['#ffffff'] }]);
+  const boxPadding = 2; // Reduced from 5 to 2
   for (let index = 0; index < elements.length; index++) {
     const element = elements[index];
     const color = colors[index % colors.length];
 
-    // Add 5px padding to the rect
+    // Add 2px padding to the rect
     const paddedRect = {
       left: Math.max(0, element.rect.left - boxPadding),
       top: Math.max(0, element.rect.top - boxPadding),
@@ -80,14 +84,13 @@ const createSvgOverlay = async (
         }
       },
     );
-
-    // Calculate text position
-    const textWidth = element.indexId.toString().length * 8;
-    const textHeight = 12;
-    const rectWidth = textWidth + 5;
-    const rectHeight = textHeight + 4;
+    // Calculate text position with smaller dimensions
+    const textWidth = element.indexId.toString().length * 7; // Adjusted from 6 to 7
+    const textHeight = 14; // Adjusted from 8 to 14
+    const rectWidth = textWidth + 4; // Reduced padding
+    const rectHeight = textHeight + 4; // Reduced padding
     let rectX = paddedRect.left - rectWidth;
-    let rectY = paddedRect.top + paddedRect.height / 2 - textHeight / 2 - 2;
+    let rectY = paddedRect.top + paddedRect.height / 2 - textHeight / 2 - 1;
 
     // Check if this new position overlaps with any existing boxes
     // Function to check if a given position overlaps with any existing boxes
@@ -120,49 +123,48 @@ const createSvgOverlay = async (
 
       // Check top position
       if (
-        !checkOverlap(paddedRect.left, paddedRect.top - rectHeight - 2) &&
-        isWithinBounds(paddedRect.left, paddedRect.top - rectHeight - 2)
+        !checkOverlap(paddedRect.left, paddedRect.top - rectHeight - 1) &&
+        isWithinBounds(paddedRect.left, paddedRect.top - rectHeight - 1)
       ) {
         rectX = paddedRect.left;
-        rectY = paddedRect.top - rectHeight - 2;
+        rectY = paddedRect.top - rectHeight - 1;
       }
       // Check bottom position
       else if (
         !checkOverlap(
           paddedRect.left,
-          paddedRect.top + paddedRect.height + 2,
+          paddedRect.top + paddedRect.height + 1,
         ) &&
-        isWithinBounds(paddedRect.left, paddedRect.top + paddedRect.height + 2)
+        isWithinBounds(paddedRect.left, paddedRect.top + paddedRect.height + 1)
       ) {
         rectX = paddedRect.left;
-        rectY = paddedRect.top + paddedRect.height + 2;
+        rectY = paddedRect.top + paddedRect.height + 1;
       }
       // Check right position
       else if (
-        !checkOverlap(paddedRect.left + paddedRect.width + 2, paddedRect.top) &&
-        isWithinBounds(paddedRect.left + paddedRect.width + 2, paddedRect.top)
+        !checkOverlap(paddedRect.left + paddedRect.width + 1, paddedRect.top) &&
+        isWithinBounds(paddedRect.left + paddedRect.width + 1, paddedRect.top)
       ) {
-        rectX = paddedRect.left + paddedRect.width + 2;
+        rectX = paddedRect.left + paddedRect.width + 1;
         rectY = paddedRect.top;
       }
       // If all sides are overlapped or out of bounds, place it inside the box at the top
       else {
         rectX = paddedRect.left;
-        rectY = paddedRect.top + 2;
+        rectY = paddedRect.top + 1;
       }
     }
     // Note: If the original left position doesn't overlap and is within bounds, we keep it as is
-
-    // Draw text background
+    // Draw text background with yellow color
     image.scan(rectX, rectY, rectWidth, rectHeight, function (x, y, idx) {
-      this.bitmap.data[idx + 0] = (color.rect >> 24) & 0xff; // R
-      this.bitmap.data[idx + 1] = (color.rect >> 16) & 0xff; // G
-      this.bitmap.data[idx + 2] = (color.rect >> 8) & 0xff; // B
-      this.bitmap.data[idx + 3] = color.rect & 0xff; // A
+      this.bitmap.data[idx + 0] = 255; // R
+      this.bitmap.data[idx + 1] = 255; // G
+      this.bitmap.data[idx + 2] = 0; // B
+      this.bitmap.data[idx + 3] = 255; // A
     });
     // Draw text (simplified, as Jimp doesn't have built-in text drawing)
     try {
-      cachedFont = cachedFont || (await Jimp.loadFont(Jimp.FONT_SANS_16_WHITE));
+      cachedFont = cachedFont || (await Jimp.loadFont(Jimp.FONT_SANS_14_BLACK)); // Changed from 12 to 14
     } catch (error) {
       console.error('Error loading font', error);
     }

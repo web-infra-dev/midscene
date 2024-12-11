@@ -319,24 +319,24 @@
     "screenHeight": 1080
   },
   {
-    "id": "935475",
+    "id": "702144",
     "indexId": 12,
     "nodePath": "0-1-2-1-0-1-0-3-0-0-1-0",
-    "nodeHashId": "935475",
+    "nodeHashId": "702144",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
       "nodeType": "TEXT Node"
     },
     "center": [
-      1710,
+      1711,
       32
     ],
-    "content": "5.22.2",
+    "content": "5.22.4",
     "rect": {
       "left": 1690,
       "top": 23,
-      "width": 40,
+      "width": 41,
       "height": 17,
       "zoom": 1
     },
@@ -586,22 +586,22 @@
     "screenHeight": 1080
   },
   {
-    "id": "795734",
+    "id": "347107",
     "indexId": 22,
     "nodePath": "0-1-2-2-0-0-1-1-1-0-0-1-0",
-    "nodeHashId": "795734",
+    "nodeHashId": "347107",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
       "nodeType": "TEXT Node"
     },
     "center": [
-      277,
+      266,
       283
     ],
     "content": "5.0.0",
     "rect": {
-      "left": 263,
+      "left": 252,
       "top": 276,
       "width": 28,
       "height": 14,
@@ -846,22 +846,22 @@
     "screenHeight": 1080
   },
   {
-    "id": "958405",
+    "id": "669421",
     "indexId": 32,
     "nodePath": "0-1-2-2-0-0-2-1-1-0-0-1-0",
-    "nodeHashId": "958405",
+    "nodeHashId": "669421",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
       "nodeType": "TEXT Node"
     },
     "center": [
-      274,
+      263,
       526
     ],
     "content": "5.10.0",
     "rect": {
-      "left": 257,
+      "left": 246,
       "top": 519,
       "width": 34,
       "height": 14,
@@ -1080,22 +1080,22 @@
     "screenHeight": 1080
   },
   {
-    "id": "317457",
+    "id": "622999",
     "indexId": 41,
     "nodePath": "0-1-2-2-0-0-2-1-5-0-0-1-0",
-    "nodeHashId": "317457",
+    "nodeHashId": "622999",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
       "nodeType": "TEXT Node"
     },
     "center": [
-      274,
+      263,
       702
     ],
     "content": "5.21.0",
     "rect": {
-      "left": 257,
+      "left": 246,
       "top": 695,
       "width": 34,
       "height": 14,
@@ -2660,7 +2660,7 @@
   {
     "id": "773641",
     "indexId": 101,
-    "nodePath": "0-1-2-2-1-1-4-4-1-0-1-0-0-0-0",
+    "nodePath": "0-1-2-2-1-1-4-4-2-0-1-0-0-0-0",
     "nodeHashId": "773641",
     "nodeType": "BUTTON Node",
     "locator": "[_midscene_retrieve_task_id='773641']",
@@ -2689,7 +2689,7 @@
   {
     "id": "211925",
     "indexId": 102,
-    "nodePath": "0-1-2-2-1-1-4-4-1-0-1-0-0-1-0-0",
+    "nodePath": "0-1-2-2-1-1-4-4-2-0-1-0-0-1-0-0",
     "nodeHashId": "211925",
     "nodeType": "TEXT Node",
     "locator": "",
@@ -2715,7 +2715,7 @@
   {
     "id": "301473",
     "indexId": 103,
-    "nodePath": "0-1-2-2-1-1-4-4-1-0-1-0-0-2-0-0",
+    "nodePath": "0-1-2-2-1-1-4-4-2-0-1-0-0-2-0-0",
     "nodeHashId": "301473",
     "nodeType": "TEXT Node",
     "locator": "",
@@ -2741,7 +2741,7 @@
   {
     "id": "595354",
     "indexId": 104,
-    "nodePath": "0-1-2-2-1-1-4-4-1-0-1-0-0-3-0-0",
+    "nodePath": "0-1-2-2-1-1-4-4-2-0-1-0-0-3-0-0",
     "nodeHashId": "595354",
     "nodeType": "TEXT Node",
     "locator": "",
@@ -2767,7 +2767,7 @@
   {
     "id": "381373",
     "indexId": 105,
-    "nodePath": "0-1-2-2-1-1-4-4-1-0-1-0-0-4-0-0",
+    "nodePath": "0-1-2-2-1-1-4-4-2-0-1-0-0-4-0-0",
     "nodeHashId": "381373",
     "nodeType": "TEXT Node",
     "locator": "",
@@ -2793,7 +2793,7 @@
   {
     "id": "1043238",
     "indexId": 106,
-    "nodePath": "0-1-2-2-1-1-4-4-1-0-1-0-0-5-0-0",
+    "nodePath": "0-1-2-2-1-1-4-4-2-0-1-0-0-5-0-0",
     "nodeHashId": "1043238",
     "nodeType": "TEXT Node",
     "locator": "",
@@ -2819,7 +2819,7 @@
   {
     "id": "694184",
     "indexId": 107,
-    "nodePath": "0-1-2-2-1-1-4-4-1-0-1-0-0-6-0",
+    "nodePath": "0-1-2-2-1-1-4-4-2-0-1-0-0-6-0",
     "nodeHashId": "694184",
     "nodeType": "BUTTON Node",
     "locator": "[_midscene_retrieve_task_id='694184']",
@@ -2848,7 +2848,7 @@
   {
     "id": "977457",
     "indexId": 108,
-    "nodePath": "0-1-2-2-1-1-4-4-1-0-1-1-0-0-0",
+    "nodePath": "0-1-2-2-1-1-4-4-2-0-1-1-0-0-0",
     "nodeHashId": "977457",
     "nodeType": "TEXT Node",
     "locator": "",
@@ -2874,7 +2874,7 @@
   {
     "id": "38496",
     "indexId": 109,
-    "nodePath": "0-1-2-2-1-1-4-4-1-0-1-1-0-1-0-0",
+    "nodePath": "0-1-2-2-1-1-4-4-2-0-1-1-0-1-0-0",
     "nodeHashId": "38496",
     "locator": "[_midscene_retrieve_task_id='38496']",
     "attributes": {
@@ -2901,7 +2901,7 @@
   {
     "id": "57426",
     "indexId": 110,
-    "nodePath": "0-1-2-2-1-1-4-4-1-0-1-1-1-0-0",
+    "nodePath": "0-1-2-2-1-1-4-4-2-0-1-1-1-0-0",
     "nodeHashId": "57426",
     "nodeType": "TEXT Node",
     "locator": "",
@@ -2927,7 +2927,7 @@
   {
     "id": "495263",
     "indexId": 111,
-    "nodePath": "0-1-2-2-1-1-4-4-1-0-1-1-2-0-1-0",
+    "nodePath": "0-1-2-2-1-1-4-4-2-0-1-1-2-0-1-0",
     "nodeHashId": "495263",
     "locator": "[_midscene_retrieve_task_id='495263']",
     "attributes": {
@@ -2954,7 +2954,7 @@
   {
     "id": "396325",
     "indexId": 112,
-    "nodePath": "0-1-2-2-1-1-4-4-1-0-1-1-2-1-0-0",
+    "nodePath": "0-1-2-2-1-1-4-4-2-0-1-1-2-1-0-0",
     "nodeHashId": "396325",
     "locator": "[_midscene_retrieve_task_id='396325']",
     "attributes": {
@@ -2981,7 +2981,7 @@
   {
     "id": "682745",
     "indexId": 113,
-    "nodePath": "0-1-2-2-1-1-4-4-1-0-1-1-2-2-1-0",
+    "nodePath": "0-1-2-2-1-1-4-4-2-0-1-1-2-2-1-0",
     "nodeHashId": "682745",
     "locator": "[_midscene_retrieve_task_id='682745']",
     "attributes": {
@@ -3008,7 +3008,7 @@
   {
     "id": "37156",
     "indexId": 114,
-    "nodePath": "0-1-2-2-1-1-4-4-1-0-1-1-2-3-0-0",
+    "nodePath": "0-1-2-2-1-1-4-4-2-0-1-1-2-3-0-0",
     "nodeHashId": "37156",
     "locator": "[_midscene_retrieve_task_id='37156']",
     "attributes": {
@@ -3035,7 +3035,7 @@
   {
     "id": "187712",
     "indexId": 115,
-    "nodePath": "0-1-2-2-1-1-4-4-1-0-1-1-2-4-0",
+    "nodePath": "0-1-2-2-1-1-4-4-2-0-1-1-2-4-0",
     "nodeHashId": "187712",
     "locator": "[_midscene_retrieve_task_id='187712']",
     "attributes": {
@@ -3064,7 +3064,7 @@
   {
     "id": "413140",
     "indexId": 116,
-    "nodePath": "0-1-2-2-1-1-4-4-1-0-4-0-0-0-0-0",
+    "nodePath": "0-1-2-2-1-1-4-4-2-0-4-0-0-0-0-0",
     "nodeHashId": "413140",
     "nodeType": "BUTTON Node",
     "locator": "[_midscene_retrieve_task_id='413140']",
@@ -3093,7 +3093,7 @@
   {
     "id": "76521",
     "indexId": 117,
-    "nodePath": "0-1-2-2-1-1-4-4-1-0-4-0-0-0-1-0-0",
+    "nodePath": "0-1-2-2-1-1-4-4-2-0-4-0-0-0-1-0-0",
     "nodeHashId": "76521",
     "nodeType": "TEXT Node",
     "locator": "",
@@ -3119,7 +3119,7 @@
   {
     "id": "675279",
     "indexId": 118,
-    "nodePath": "0-1-2-2-1-1-4-4-1-0-4-0-0-0-2-0-0",
+    "nodePath": "0-1-2-2-1-1-4-4-2-0-4-0-0-0-2-0-0",
     "nodeHashId": "675279",
     "nodeType": "TEXT Node",
     "locator": "",
@@ -3145,7 +3145,7 @@
   {
     "id": "285228",
     "indexId": 119,
-    "nodePath": "0-1-2-2-1-1-4-4-1-0-4-0-0-0-3-0-0",
+    "nodePath": "0-1-2-2-1-1-4-4-2-0-4-0-0-0-3-0-0",
     "nodeHashId": "285228",
     "nodeType": "TEXT Node",
     "locator": "",
@@ -3171,7 +3171,7 @@
   {
     "id": "883365",
     "indexId": 120,
-    "nodePath": "0-1-2-2-1-1-4-4-1-0-4-0-0-0-4-0-0",
+    "nodePath": "0-1-2-2-1-1-4-4-2-0-4-0-0-0-4-0-0",
     "nodeHashId": "883365",
     "nodeType": "TEXT Node",
     "locator": "",
@@ -3197,7 +3197,7 @@
   {
     "id": "954550",
     "indexId": 121,
-    "nodePath": "0-1-2-2-1-1-4-4-1-0-4-0-0-0-5-0-0",
+    "nodePath": "0-1-2-2-1-1-4-4-2-0-4-0-0-0-5-0-0",
     "nodeHashId": "954550",
     "nodeType": "TEXT Node",
     "locator": "",
@@ -3223,7 +3223,7 @@
   {
     "id": "911651",
     "indexId": 122,
-    "nodePath": "0-1-2-2-1-1-4-4-1-0-4-0-0-0-6-0",
+    "nodePath": "0-1-2-2-1-1-4-4-2-0-4-0-0-0-6-0",
     "nodeHashId": "911651",
     "nodeType": "BUTTON Node",
     "locator": "[_midscene_retrieve_task_id='911651']",
@@ -3252,7 +3252,7 @@
   {
     "id": "842933",
     "indexId": 123,
-    "nodePath": "0-1-2-2-1-1-4-4-1-0-4-0-0-2-0-0",
+    "nodePath": "0-1-2-2-1-1-4-4-2-0-4-0-0-2-0-0",
     "nodeHashId": "842933",
     "nodeType": "BUTTON Node",
     "locator": "[_midscene_retrieve_task_id='842933']",
@@ -3281,7 +3281,7 @@
   {
     "id": "416220",
     "indexId": 124,
-    "nodePath": "0-1-2-2-1-1-4-4-1-0-4-0-0-2-1-0-0",
+    "nodePath": "0-1-2-2-1-1-4-4-2-0-4-0-0-2-1-0-0",
     "nodeHashId": "416220",
     "nodeType": "TEXT Node",
     "locator": "",
@@ -3307,7 +3307,7 @@
   {
     "id": "28001",
     "indexId": 125,
-    "nodePath": "0-1-2-2-1-1-4-4-1-0-4-0-0-2-2-0-0",
+    "nodePath": "0-1-2-2-1-1-4-4-2-0-4-0-0-2-2-0-0",
     "nodeHashId": "28001",
     "nodeType": "TEXT Node",
     "locator": "",
@@ -3333,7 +3333,7 @@
   {
     "id": "1035247",
     "indexId": 126,
-    "nodePath": "0-1-2-2-1-1-4-4-1-0-4-0-0-2-3-0-0",
+    "nodePath": "0-1-2-2-1-1-4-4-2-0-4-0-0-2-3-0-0",
     "nodeHashId": "1035247",
     "nodeType": "TEXT Node",
     "locator": "",
@@ -3359,7 +3359,7 @@
   {
     "id": "153004",
     "indexId": 127,
-    "nodePath": "0-1-2-2-1-1-4-4-1-0-4-0-0-2-4-0-0",
+    "nodePath": "0-1-2-2-1-1-4-4-2-0-4-0-0-2-4-0-0",
     "nodeHashId": "153004",
     "nodeType": "TEXT Node",
     "locator": "",
@@ -3385,7 +3385,7 @@
   {
     "id": "404791",
     "indexId": 128,
-    "nodePath": "0-1-2-2-1-1-4-4-1-0-4-0-0-2-5-0-0",
+    "nodePath": "0-1-2-2-1-1-4-4-2-0-4-0-0-2-5-0-0",
     "nodeHashId": "404791",
     "nodeType": "TEXT Node",
     "locator": "",
@@ -3411,7 +3411,7 @@
   {
     "id": "1044834",
     "indexId": 129,
-    "nodePath": "0-1-2-2-1-1-4-4-1-0-4-0-0-2-6-0",
+    "nodePath": "0-1-2-2-1-1-4-4-2-0-4-0-0-2-6-0",
     "nodeHashId": "1044834",
     "nodeType": "BUTTON Node",
     "locator": "[_midscene_retrieve_task_id='1044834']",
@@ -3440,7 +3440,7 @@
   {
     "id": "708925",
     "indexId": 130,
-    "nodePath": "0-1-2-2-1-1-4-4-1-0-4-0-0-4-0-0",
+    "nodePath": "0-1-2-2-1-1-4-4-2-0-4-0-0-4-0-0",
     "nodeHashId": "708925",
     "nodeType": "BUTTON Node",
     "locator": "[_midscene_retrieve_task_id='708925']",
@@ -3469,7 +3469,7 @@
   {
     "id": "110028",
     "indexId": 131,
-    "nodePath": "0-1-2-2-1-1-4-4-1-0-4-0-0-4-1-0-0",
+    "nodePath": "0-1-2-2-1-1-4-4-2-0-4-0-0-4-1-0-0",
     "nodeHashId": "110028",
     "nodeType": "TEXT Node",
     "locator": "",
@@ -3495,7 +3495,7 @@
   {
     "id": "728739",
     "indexId": 132,
-    "nodePath": "0-1-2-2-1-1-4-4-1-0-4-0-0-4-2-0-0",
+    "nodePath": "0-1-2-2-1-1-4-4-2-0-4-0-0-4-2-0-0",
     "nodeHashId": "728739",
     "nodeType": "TEXT Node",
     "locator": "",
@@ -3521,7 +3521,7 @@
   {
     "id": "934263",
     "indexId": 133,
-    "nodePath": "0-1-2-2-1-1-4-4-1-0-4-0-0-4-3-0-0",
+    "nodePath": "0-1-2-2-1-1-4-4-2-0-4-0-0-4-3-0-0",
     "nodeHashId": "934263",
     "nodeType": "TEXT Node",
     "locator": "",
@@ -3547,7 +3547,7 @@
   {
     "id": "233634",
     "indexId": 134,
-    "nodePath": "0-1-2-2-1-1-4-4-1-0-4-0-0-4-4-0-0",
+    "nodePath": "0-1-2-2-1-1-4-4-2-0-4-0-0-4-4-0-0",
     "nodeHashId": "233634",
     "nodeType": "TEXT Node",
     "locator": "",
@@ -3573,7 +3573,7 @@
   {
     "id": "172429",
     "indexId": 135,
-    "nodePath": "0-1-2-2-1-1-4-4-1-0-4-0-0-4-5-0-0",
+    "nodePath": "0-1-2-2-1-1-4-4-2-0-4-0-0-4-5-0-0",
     "nodeHashId": "172429",
     "nodeType": "TEXT Node",
     "locator": "",
@@ -3599,7 +3599,7 @@
   {
     "id": "831960",
     "indexId": 136,
-    "nodePath": "0-1-2-2-1-1-4-4-1-0-4-0-0-4-6-0",
+    "nodePath": "0-1-2-2-1-1-4-4-2-0-4-0-0-4-6-0",
     "nodeHashId": "831960",
     "nodeType": "BUTTON Node",
     "locator": "[_midscene_retrieve_task_id='831960']",
@@ -3628,7 +3628,7 @@
   {
     "id": "588224",
     "indexId": 137,
-    "nodePath": "0-1-2-2-1-1-4-4-1-0-4-1-0-0",
+    "nodePath": "0-1-2-2-1-1-4-4-2-0-4-1-0-0",
     "nodeHashId": "588224",
     "nodeType": "TEXT Node",
     "locator": "",
@@ -3653,7 +3653,7 @@
   },
   {
     "id": "414929",
-    "nodePath": "0-1-2-2-1-1-4-4-1-0-4-1-1",
+    "nodePath": "0-1-2-2-1-1-4-4-2-0-4-1-1",
     "nodeHashId": "414929",
     "indexId": 138,
     "nodeType": "CONTAINER Node",
