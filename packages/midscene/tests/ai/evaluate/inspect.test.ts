@@ -3,7 +3,6 @@ import path from 'node:path';
 import { describe } from 'node:test';
 import { AiInspectElement, plan } from '@/ai-model';
 import { afterAll, expect, test } from 'vitest';
-import { repeatTime } from '../util';
 import {
   TestResultAnalyzer,
   updateAggregatedResults,
@@ -15,6 +14,7 @@ import {
   runTestCases,
 } from './test-suite/util';
 
+const repeatTime = 4;
 const testSources = [
   'todo',
   'online_order',
@@ -69,28 +69,37 @@ describe('ai inspect element', () => {
             aiData.testCases,
             context,
             async (testCase) => {
+              let prompt = testCase.description;
               if (runType === 'planning') {
                 // use planning to get quick answer to test element inspector
-                const res = await plan(`Tap this: ${testCase.description}`, {
-                  context,
-                });
+                const res = await plan(
+                  `follow the instruction (if any) or tap this element:${testCase.description}. Current time is ${new Date().toLocaleString()}.`,
+                  {
+                    context,
+                  },
+                );
 
-                const matchedId = res.actions[0].locate?.id;
-                if (matchedId) {
-                  return {
-                    elements: [elementById(matchedId)],
-                  };
-                }
+                prompt = res.actions[0].locate?.prompt as string;
+                // console.log('prompt from planning', prompt);
+                expect(prompt).toBeTruthy();
+                // console.log('planning res', res.actions[0].locate?.prompt);
 
-                return {
-                  elements: [],
-                };
+                // const matchedId = res.actions[0].locate?.id;
+                // if (matchedId) {
+                //   return {
+                //     elements: [elementById(matchedId)],
+                //   };
+                // }
+
+                // return {
+                //   elements: [],
+                // };
               }
 
               const { parseResult } = await AiInspectElement({
                 context,
                 multi: testCase.multi,
-                targetElementDescription: testCase.description,
+                targetElementDescription: prompt,
               });
               return parseResult;
             },
