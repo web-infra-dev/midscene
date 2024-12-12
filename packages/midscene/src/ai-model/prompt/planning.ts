@@ -494,6 +494,7 @@ You are a versatile professional in software UI automation. Your outstanding con
 - All the actions you composed MUST be based on the page context information you get.
 - Trust the "What have been done" field about the task (if any), don't repeat actions in it.
 - If the page content is irrelevant to the task, put the error message in the \`error\` field.
+- Keep element descriptions in locate.prompt precise and complete, include all key information from user's description to identify the element.
 
 ## About the \`actions\` field
 
@@ -503,7 +504,7 @@ The \`locate\` param is commonly used in the \`param\` field of the action, mean
 
 type LocateParam = {
   "boxTagNumber": number // Represents the tag number shown in the screenshot,
-  prompt?: string // the description of the element to find. It can only be omitted when locate is null
+  prompt?: string // Precise description of the element, including key information from user's description to identify it
 } | null
 
 ### Supported actions
@@ -544,7 +545,7 @@ Please return the result in JSON format as follows:
       "param": null,
       "locate": {
         "boxTagNumber": number,
-        "prompt": "the search bar"
+        "prompt": "The language switch button showing '中文' text" // Include key identifying information
       } | null,
     },
     // ... more actions
@@ -571,7 +572,7 @@ When a user says 'Click the language switch button, wait 1s, click "English"', y
       "param": null,
       "locate": {
         "boxTagNumber": 2,
-        "prompt": "the language switch button with the text '中文'"
+        "prompt": "The language switch button showing '中文' text in the top navigation" // Include key identifying information
       }
     },
     {
@@ -588,7 +589,7 @@ When a user says 'Click the language switch button, wait 1s, click "English"', y
   ],
   "taskWillBeAccomplished": false,
   "furtherPlan": {
-    "whatToDoNext": "find the 'English' option and click on it",
+    "whatToDoNext": "find the 'English' option in the language menu and click on it",
     "whatHaveDone": "Click the language switch button and wait 1s"
   }
 }
@@ -619,7 +620,7 @@ Wrong output:
       "type": "Tap",
       "param": null,
       "locate": {
-        "boxTagNumber": 2, // WRONG:prompt is missing
+        "boxTagNumber": 2, // WRONG: prompt is missing
       }
     },
     {

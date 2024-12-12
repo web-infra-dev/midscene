@@ -92,7 +92,6 @@ ${taskBackgroundContext}
           model: getAIConfig(MIDSCENE_MODEL_NAME),
           messages: msgs,
           temperature: 0.1,
-          top_p: 0.1,
         }),
       },
     );
