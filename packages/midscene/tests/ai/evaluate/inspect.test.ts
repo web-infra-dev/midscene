@@ -44,7 +44,6 @@ describe('ai inspect element', () => {
         };
       }),
     );
-    process.exit(0);
   });
 
   repeat(repeatTime, (repeatIndex) => {

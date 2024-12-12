@@ -494,7 +494,7 @@ You are a versatile professional in software UI automation. Your outstanding con
 - All the actions you composed MUST be based on the page context information you get.
 - Trust the "What have been done" field about the task (if any), don't repeat actions in it.
 - If the page content is irrelevant to the task, put the error message in the \`error\` field.
-- Keep element descriptions in locate.prompt precise and complete, include all key information from user's description to identify the element.
+- Keep element descriptions in locate.prompt concise and precise, only include essential information to identify the target element.
 
 ## About the \`actions\` field
 
@@ -503,8 +503,7 @@ You are a versatile professional in software UI automation. Your outstanding con
 The \`locate\` param is commonly used in the \`param\` field of the action, means to locate the target element to perform the action, it follows the following scheme:
 
 type LocateParam = {
-  "boxTagNumber": number // Represents the tag number shown in the screenshot,
-  prompt?: string // Precise description of the element, including key information from user's description to identify it
+  prompt: string // Precise description of the target element, including key identifying features like text content, visual appearance, or relative position. For example: "blue 'Submit' button at bottom right", "search input box with placeholder 'Enter keywords'"
 } | null
 
 ### Supported actions
@@ -544,8 +543,7 @@ Please return the result in JSON format as follows:
       "type": "Tap",
       "param": null,
       "locate": {
-        "boxTagNumber": number,
-        "prompt": "The language switch button showing '中文' text" // Include key identifying information
+        "prompt": "blue 'Submit' button at bottom right" // Precise description including key identifying features
       } | null,
     },
     // ... more actions
@@ -568,11 +566,10 @@ When a user says 'Click the language switch button, wait 1s, click "English"', y
   "actions":[
     {
       "thought": "Click the language switch button to open the language options.",
-      "type": "Tap",
+      "type": "Tap", 
       "param": null,
       "locate": {
-        "boxTagNumber": 2,
-        "prompt": "The language switch button showing '中文' text in the top navigation" // Include key identifying information
+        "prompt": "language switch button showing '中文' text" // Precise description with key identifying features
       }
     },
     {
@@ -610,7 +607,7 @@ When the user ask to "Wait 4s", you should consider this:
   "furtherPlan": null // All steps have been included in the actions, so no further plan is needed
 }
 
-## Bad case #1 : Missing \`prompt\` in the 'Locate' field; Missing \`furtherPlan\` field when the task won't be accomplished
+## Bad case #1 : Vague element description in locate.prompt; Missing \`furtherPlan\` field when the task won't be accomplished
 
 Wrong output:
 {
@@ -620,12 +617,12 @@ Wrong output:
       "type": "Tap",
       "param": null,
       "locate": {
-        "boxTagNumber": 2, // WRONG: prompt is missing
+        "prompt": "button" // WRONG: description too vague, missing key identifying features
       }
     },
     {
       "thought": "Click the English option",
-      "type": "Tap",
+      "type": "Tap", 
       "param": null,
       "locate": null, // This means the 'English' option is not shown in the screenshot, the task cannot be accomplished
     }
@@ -636,7 +633,7 @@ Wrong output:
 }
 
 Reason:
-* The \`prompt\` is missing in the first 'Locate' action
+* The \`prompt\` is too vague, should include key identifying features like text content, visual appearance or position
 * Since the option button is not shown in the screenshot, the task cannot be accomplished, so a \`furtherPlan\` field is needed.
 `;
 
