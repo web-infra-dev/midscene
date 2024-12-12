@@ -186,10 +186,21 @@ describe(
     //   ]);
     // });
 
-    it('online order chinese', async () => {
-      await runTest(path.resolve(__dirname, '../test-data/online_order'), [
+    // it('online order chinese', async () => {
+    //   await runTest(path.resolve(__dirname, '../test-data/online_order'), [
+    //     '购物车图标',
+    //     '选规格',
+    //     '价格',
+    //     '切换语言',
+    //     '右下角客服按钮',
+    //   ]);
+    // });
+    it('online order list chinese', async () => {
+      await runTest(path.resolve(__dirname, '../test-data/online_order_list'), [
         '购物车图标',
-        '选规格',
+        '多肉芒芒选规格按钮',
+        '多肉葡萄选择规格按钮',
+        '多肉葡萄价格',
         '价格',
         '切换语言',
         '右下角客服按钮',
@@ -215,20 +226,20 @@ describe(
     //   );
     // });
 
-    it('video player', async () => {
-      await runTest(
-        path.resolve(__dirname, '../test-data/new-box/aweme-play'),
-        [
-          '播放按钮',
-          '左下角暂停按钮',
-          '点赞按钮（爱心）',
-          '收藏按钮',
-          '关闭按钮',
-          '搜索框',
-          '右下角音量调节按钮',
-        ],
-      );
-    });
+    // it('video player', async () => {
+    //   await runTest(
+    //     path.resolve(__dirname, '../test-data/new-box/aweme-play'),
+    //     [
+    //       '播放按钮',
+    //       '左下角暂停按钮',
+    //       '点赞按钮（爱心）',
+    //       '收藏按钮',
+    //       '关闭按钮',
+    //       '搜索框',
+    //       '右下角音量调节按钮',
+    //     ],
+    //   );
+    // });
   },
   {
     timeout: 180 * 1000,

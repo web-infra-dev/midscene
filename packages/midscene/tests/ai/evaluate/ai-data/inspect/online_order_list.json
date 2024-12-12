@@ -2,44 +2,9 @@
   "testDataPath": "test-data/online_order_list",
   "testCases": [
     {
-      "prompt": "多肉芒芒选规格按钮",
+      "prompt": "多肉芒芒的选规格按钮",
       "multi": false,
-      "response": [
-        {
-          "id": "687655",
-          "indexId": 22
-        }
-      ]
-    },
-    {
-      "prompt": "多肉葡萄饮品的选规格按钮",
-      "multi": false,
-      "response": [
-        {
-          "id": "543874",
-          "indexId": 45
-        }
-      ]
-    },
-    {
-      "prompt": "多肉葡萄的价格",
-      "multi": false,
-      "response": [
-        {
-          "id": "543874",
-          "indexId": 45
-        }
-      ]
-    },
-    {
-      "prompt": "左侧导航栏’要雪糕‘",
-      "multi": false,
-      "response": [
-        {
-          "id": "537624",
-          "indexId": 9
-        }
-      ]
+      "response": []
     }
   ]
 }

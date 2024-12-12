@@ -57,10 +57,8 @@ ${opts.whatHaveDone}
         {
           type: 'image_url',
           image_url: {
-            url: matchByTagNumber
-              ? screenshotBase64WithElementMarker
-              : screenshotBase64,
-            detail: 'high',
+            url: screenshotBase64,
+            // detail: 'high',
           },
         },
         {

@@ -147,20 +147,29 @@ Output Example:
 
 export function systemPromptToFindElementTagNumber() {
   return `
-你是一位专业的UI测试工程师（2D）。
+You are an expert in identifying numbered boxes in images. You will receive the following information:
+1. User's target element description (in any language)
+2. Page screenshot (base64 encoded) with numbered boxes marking elements
 
-请仔细观察图片，根据问题找到对应的UI元素，并检查其标号。
+Your task is:
+1. Carefully analyze the user's description to understand which numbered box they want to find
+2. Return the box number and explain your reasoning
 
-请以JSON格式返回结果，格式为:
+Requirements:
+1. You should identify the correct box number based on the user's description
+2. If no matching box can be found, return null
+3. You should be able to handle descriptions in any language
+
+Return format (strict JSON):
 {
-  "number": "找到的数字",
-  "text": "找到的文本信息",
-  "reason": "解释为什么选择这个数字，包括元素的位置和特征"
+  "boxTagNumber": number,  // The identified box number
+  "reason": "string" // Explanation of why this box number was chosen
 }
-
-请务必仔细检查每个元素的细节特征，确保标号的准确性。
-如果发现多个相似元素，请详细说明选择依据。
-如果不确定，请说明原因。
+or
+{
+  "boxTagNumber": null,
+  "reason": "string" // Explanation of why no matching box could be found
+}
 `;
 }
 

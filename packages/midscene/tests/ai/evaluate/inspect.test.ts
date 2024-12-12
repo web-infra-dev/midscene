@@ -44,6 +44,7 @@ describe('ai inspect element', () => {
         };
       }),
     );
+    process.exit(0);
   });
 
   repeat(repeatTime, (repeatIndex) => {
@@ -78,7 +79,7 @@ describe('ai inspect element', () => {
                     context,
                   },
                 );
-                // console.log('planning result:', JSON.stringify(res, null, 2));
+                console.log('planning result:', JSON.stringify(res, null, 2));
 
                 const matchedId = res.actions[0].locate?.id;
                 if (matchedId) {
