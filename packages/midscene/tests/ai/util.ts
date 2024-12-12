@@ -19,5 +19,3 @@ export function makePlanResultStable(plans: PlanningAction[]) {
 export const modelList: Array<'openAI' | 'coze'> = preferCozeModel('coze')
   ? ['openAI', 'coze']
   : ['openAI'];
-
-export const repeatTime = 4;

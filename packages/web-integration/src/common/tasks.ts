@@ -10,6 +10,7 @@ import {
   type ExecutionTaskInsightLocateApply,
   type ExecutionTaskInsightQueryApply,
   type ExecutionTaskPlanningApply,
+  type ExecutionTaskProgressOptions,
   Executor,
   type Insight,
   type InsightAssertionResponse,
@@ -442,7 +443,10 @@ export class PageTaskExecutor {
             if (planningAction.locate) {
               acc.push({
                 type: 'Locate',
-                locate: planningAction.locate,
+                locate: {
+                  // remove id from planning, since the result is not accurate
+                  prompt: planningAction.locate.prompt,
+                },
                 param: null,
                 thought: planningAction.locate.prompt,
               });
@@ -489,8 +493,13 @@ export class PageTaskExecutor {
     return task;
   }
 
-  async action(userPrompt: string): Promise<ExecutionResult> {
-    const taskExecutor = new Executor(userPrompt);
+  async action(
+    userPrompt: string,
+    options?: ExecutionTaskProgressOptions,
+  ): Promise<ExecutionResult> {
+    const taskExecutor = new Executor(userPrompt, undefined, undefined, {
+      onTaskStart: options?.onTaskStart,
+    });
 
     const cacheGroup = this.taskCache.getCacheGroupByPrompt(userPrompt);
     const originalPrompt = userPrompt;

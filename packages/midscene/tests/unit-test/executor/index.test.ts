@@ -23,6 +23,7 @@ const insightFindTask = (shouldThrow?: boolean) => {
     param: {
       prompt: 'test',
     },
+    locate: null,
     async executor(param, taskContext) {
       if (shouldThrow) {
         const { task } = taskContext;
@@ -46,70 +47,58 @@ const insightFindTask = (shouldThrow?: boolean) => {
   return insightFindTask;
 };
 
-vi.setConfig({
-  testTimeout: 40 * 1000,
-});
-
 describe('executor', () => {
-  it(
-    'insight - basic run',
-    async () => {
-      const insightTask1 = insightFindTask();
-      const flushResultData = 'abcdef';
-      const taskParam = {
-        action: 'tap',
-        anything: 'acceptable',
-      };
-      const tapperFn = vi.fn();
-      const actionTask: ExecutionTaskActionApply = {
-        type: 'Action',
-        param: taskParam,
-        executor: tapperFn,
-      };
-      const actionTask2: ExecutionTaskActionApply = {
-        type: 'Action',
-        param: taskParam,
-        executor: async () => {
-          return {
-            output: flushResultData,
-          } as any;
-        },
-      };
+  it('insight - basic run', async () => {
+    const insightTask1 = insightFindTask();
+    const flushResultData = 'abcdef';
+    const taskParam = {
+      action: 'tap',
+      anything: 'acceptable',
+    };
+    const tapperFn = vi.fn();
+    const actionTask: ExecutionTaskActionApply = {
+      type: 'Action',
+      param: taskParam,
+      locate: null,
+      executor: tapperFn,
+    };
+    const actionTask2: ExecutionTaskActionApply = {
+      type: 'Action',
+      param: taskParam,
+      locate: null,
+      executor: async () => {
+        return {
+          output: flushResultData,
+        } as any;
+      },
+    };
 
-      const inputTasks = [insightTask1, actionTask, actionTask2];
+    const inputTasks = [insightTask1, actionTask, actionTask2];
 
-      const executor = new Executor(
-        'test',
-        'hello, this is a test',
-        inputTasks,
-      );
-      const flushResult = await executor.flush();
-      const tasks = executor.tasks as ExecutionTaskInsightLocate[];
-      const { element } = tasks[0].output || {};
-      expect(element).toBeTruthy();
+    const executor = new Executor('test', 'hello, this is a test', inputTasks);
+    const flushResult = await executor.flush();
+    const tasks = executor.tasks as ExecutionTaskInsightLocate[];
+    expect(executor.isInErrorState()).toBeFalsy();
+    const { element } = tasks[0].output || {};
+    expect(element).toBeTruthy();
 
-      expect(tasks.length).toBe(inputTasks.length);
-      expect(tasks[0].status).toBe('finished');
-      expect(tasks[0].output).toMatchSnapshot();
-      expect(tasks[0].log?.dump).toBeTruthy();
-      expect(tasks[0].timing?.end).toBeTruthy();
-      expect(tasks[0].cache).toBeTruthy();
-      expect(tasks[0].cache?.hit).toEqual(false);
+    expect(tasks.length).toBe(inputTasks.length);
+    expect(tasks[0].status).toBe('finished');
+    expect(tasks[0].output).toMatchSnapshot();
+    expect(tasks[0].log?.dump).toBeTruthy();
+    expect(tasks[0].timing?.end).toBeTruthy();
+    expect(tasks[0].cache).toBeTruthy();
+    expect(tasks[0].cache?.hit).toEqual(false);
 
-      expect(tapperFn).toBeCalledTimes(1);
-      expect(tapperFn.mock.calls[0][0]).toBe(taskParam);
-      expect(tapperFn.mock.calls[0][1].element).toBe(element);
-      expect(tapperFn.mock.calls[0][1].task).toBeTruthy();
+    expect(tapperFn).toBeCalledTimes(1);
+    expect(tapperFn.mock.calls[0][0]).toBe(taskParam);
+    expect(tapperFn.mock.calls[0][1].task).toBeTruthy();
 
-      const dump = executor.dump();
-      expect(dump.logTime).toBeTruthy();
+    const dump = executor.dump();
+    expect(dump.logTime).toBeTruthy();
 
-      expect(flushResult).toBe(flushResultData);
-    },
-    {
-      timeout: 999 * 1000,
-    },
-  );
+    expect(flushResult).toBe(flushResultData);
+  });
 
   it('insight - init and append', async () => {
     const initExecutor = new Executor('test');
@@ -123,6 +112,7 @@ describe('executor', () => {
         action: 'tap',
         element: 'previous',
       },
+      locate: null,
       executor: async () => {
         // delay 500
         await new Promise((resolve) => setTimeout(resolve, 500));

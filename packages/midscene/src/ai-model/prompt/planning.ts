@@ -123,6 +123,7 @@ ${samplePageDescription}
 By viewing the page screenshot and description, you should consider this and output the JSON:
 
 * The main steps should be: tap the switch button, sleep, and tap the 'English' option 
+* The language switch button is shown in the screenshot. By checking the page screenshot, you can locate its ID by the coordinates and context information.
 * The "English" option button is not shown in the page context now, the last action will have a \`null\` value in the \`locate\` field. 
 * The task cannot be accomplished (because we cannot find the "English" option), so a \`furtherPlan\` field is needed.
 
@@ -156,6 +157,7 @@ By viewing the page screenshot and description, you should consider this and out
     "whatHaveDone": "Click the language switch button and wait 1s" 
   }
 }
+\`\`\`
 
 ## Example #2 : When task is accomplished, don't plan more actions
 
@@ -201,8 +203,6 @@ Wrong output:
 Reason: 
 * The \`prompt\` is missing in the first 'Locate' action
 * Since the option button is not shown in the screenshot, the task cannot be accomplished, so a \`furtherPlan\` field is needed.
-
-\`\`\`
 `;
 }
 

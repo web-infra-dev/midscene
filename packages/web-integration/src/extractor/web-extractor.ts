@@ -39,16 +39,13 @@ function collectElementInfo(
   baseZoom = 1,
 ): WebElementInfo | null {
   const rect = visibleRect(node, baseZoom);
-  logger('collectElementInfo', node, node.nodeName, rect);
   if (
     !rect ||
     rect.width < CONTAINER_MINI_WIDTH ||
     rect.height < CONTAINER_MINI_HEIGHT
   ) {
-    logger('Element is not visible', node);
     return null;
   }
-
   if (isFormElement(node)) {
     const attributes = getNodeAttributes(node);
     let valueContent =

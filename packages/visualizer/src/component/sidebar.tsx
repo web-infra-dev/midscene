@@ -1,8 +1,8 @@
 import './sidebar.less';
 import { useAllCurrentTasks, useExecutionDump } from '@/component/store';
-import { typeStr } from '@/utils';
 import { MessageOutlined, VideoCameraOutlined } from '@ant-design/icons';
 import type { ExecutionTask } from '@midscene/core';
+import { typeStr } from '@midscene/web/ui-utils';
 import { useEffect } from 'react';
 import { iconForStatus, timeCostStrElement } from './misc';
 import PanelTitle from './panel-title';

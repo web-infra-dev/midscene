@@ -13,9 +13,14 @@ describe(
         cacheId: 'puppeteer(Sauce Demo by Swag Lab)',
       });
 
+      const onTaskStart = vi.fn();
+
       await mid.aiAction(
         'type "standard_user" in user name input, type "secret_sauce" in password, click "Login", sleep 1s',
+        { onTaskStart: onTaskStart as any },
       );
+
+      expect(onTaskStart.mock.calls.length).toBeGreaterThan(1);
 
       await expect(async () => {
         await mid.aiWaitFor('there is a cookie prompt in the UI', {

@@ -8,8 +8,6 @@ vi.setConfig({
   hookTimeout: 30 * 1000,
 });
 
-const useModel = undefined;
-
 const modelList: Array<'openAI' | 'coze'> = ['openAI'];
 
 if (preferCozeModel('coze')) {
