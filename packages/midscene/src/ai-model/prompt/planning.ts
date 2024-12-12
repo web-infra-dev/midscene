@@ -156,6 +156,7 @@ By viewing the page screenshot and description, you should consider this and out
     "whatHaveDone": "Click the language switch button and wait 1s" 
   }
 }
+\`\`\`
 
 ## Example #2 : When task is accomplished, don't plan more actions
 
@@ -201,8 +202,6 @@ Wrong output:
 Reason: 
 * The \`prompt\` is missing in the first 'Locate' action
 * Since the option button is not shown in the screenshot, the task cannot be accomplished, so a \`furtherPlan\` field is needed.
-
-\`\`\`
 `;
 }
 

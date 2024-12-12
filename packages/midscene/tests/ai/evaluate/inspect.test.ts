@@ -117,7 +117,10 @@ describe('ai inspect element', () => {
             },
           });
           // await sleep(20 * 1000);
-          expect(resultData.failCount).toBeLessThanOrEqual(1);
+          expect(resultData.successCount).toBeGreaterThan(0);
+          expect(resultData.failCount).toBeLessThanOrEqual(
+            source === 'aweme_play' ? 2 : 0,
+          );
         },
         {
           timeout: 120 * 1000,

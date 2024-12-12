@@ -1,9 +1,9 @@
 [
   {
-    "id": "843690",
+    "id": "cdfaac34",
     "indexId": 0,
     "nodePath": "0-0-0-0-0",
-    "nodeHashId": "843690",
+    "nodeHashId": "cdfaac34",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
@@ -26,10 +26,10 @@
     "screenHeight": 720
   },
   {
-    "id": "1031213",
+    "id": "fbc2d002",
     "nodePath": "0-0-0-1-0",
-    "nodeHashId": "1031213",
-    "locator": "[_midscene_retrieve_task_id='1031213']",
+    "nodeHashId": "fbc2d002",
+    "locator": "[_midscene_retrieve_task_id='fbc2d002']",
     "nodeType": "FORM_ITEM Node",
     "indexId": 1,
     "attributes": {
@@ -58,10 +58,10 @@
     "screenHeight": 720
   },
   {
-    "id": "461121",
+    "id": "70941b96",
     "indexId": 2,
     "nodePath": "0-0-0-1-1-0",
-    "nodeHashId": "461121",
+    "nodeHashId": "70941b96",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
@@ -84,10 +84,10 @@
     "screenHeight": 720
   },
   {
-    "id": "485510",
+    "id": "7688696b",
     "nodePath": "0-0-1-0-0",
-    "nodeHashId": "485510",
-    "locator": "[_midscene_retrieve_task_id='485510']",
+    "nodeHashId": "7688696b",
+    "locator": "[_midscene_retrieve_task_id='7688696b']",
     "nodeType": "FORM_ITEM Node",
     "indexId": 3,
     "attributes": {
@@ -114,10 +114,10 @@
     "screenHeight": 720
   },
   {
-    "id": "537758",
+    "id": "8349e4a7",
     "nodePath": "0-0-1-1-0-0-0",
-    "nodeHashId": "537758",
-    "locator": "[_midscene_retrieve_task_id='537758']",
+    "nodeHashId": "8349e4a7",
+    "locator": "[_midscene_retrieve_task_id='8349e4a7']",
     "nodeType": "FORM_ITEM Node",
     "indexId": 4,
     "attributes": {
@@ -144,10 +144,10 @@
     "screenHeight": 720
   },
   {
-    "id": "794547",
+    "id": "c1fb39ce",
     "indexId": 5,
     "nodePath": "0-0-1-1-0-0-1-0",
-    "nodeHashId": "794547",
+    "nodeHashId": "c1fb39ce",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
@@ -170,10 +170,10 @@
     "screenHeight": 720
   },
   {
-    "id": "666439",
+    "id": "a2b47f27",
     "nodePath": "0-0-1-1-1-0-0",
-    "nodeHashId": "666439",
-    "locator": "[_midscene_retrieve_task_id='666439']",
+    "nodeHashId": "a2b47f27",
+    "locator": "[_midscene_retrieve_task_id='a2b47f27']",
     "nodeType": "FORM_ITEM Node",
     "indexId": 6,
     "attributes": {
@@ -200,10 +200,10 @@
     "screenHeight": 720
   },
   {
-    "id": "84768",
+    "id": "14b20d09",
     "indexId": 7,
     "nodePath": "0-0-1-1-1-0-1-0",
-    "nodeHashId": "84768",
+    "nodeHashId": "14b20d09",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
@@ -226,12 +226,12 @@
     "screenHeight": 720
   },
   {
-    "id": "111422",
+    "id": "1b33e5dd",
     "indexId": 8,
     "nodePath": "0-0-1-1-1-0-2",
-    "nodeHashId": "111422",
+    "nodeHashId": "1b33e5dd",
     "nodeType": "BUTTON Node",
-    "locator": "[_midscene_retrieve_task_id='111422']",
+    "locator": "[_midscene_retrieve_task_id='1b33e5dd']",
     "attributes": {
       "class": ".destroy",
       "data-testid": "todo-item-button",
@@ -254,10 +254,10 @@
     "screenHeight": 720
   },
   {
-    "id": "863711",
+    "id": "d2ddfb14",
     "nodePath": "0-0-1-1-2-0-0",
-    "nodeHashId": "863711",
-    "locator": "[_midscene_retrieve_task_id='863711']",
+    "nodeHashId": "d2ddfb14",
+    "locator": "[_midscene_retrieve_task_id='d2ddfb14']",
     "nodeType": "FORM_ITEM Node",
     "indexId": 9,
     "attributes": {
@@ -284,10 +284,10 @@
     "screenHeight": 720
   },
   {
-    "id": "206717",
+    "id": "3277d35f",
     "indexId": 10,
     "nodePath": "0-0-1-1-2-0-1-0",
-    "nodeHashId": "206717",
+    "nodeHashId": "3277d35f",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
@@ -310,10 +310,10 @@
     "screenHeight": 720
   },
   {
-    "id": "244658",
+    "id": "3bbb210c",
     "indexId": 11,
     "nodePath": "0-0-2-1-0-0-0",
-    "nodeHashId": "244658",
+    "nodeHashId": "3bbb210c",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
@@ -336,10 +336,10 @@
     "screenHeight": 720
   },
   {
-    "id": "941803",
+    "id": "e5eeb9be",
     "indexId": 12,
     "nodePath": "0-0-2-1-1-0-0",
-    "nodeHashId": "941803",
+    "nodeHashId": "e5eeb9be",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
@@ -362,10 +362,10 @@
     "screenHeight": 720
   },
   {
-    "id": "581543",
+    "id": "8dfa7ce5",
     "indexId": 13,
     "nodePath": "0-0-2-1-2-0-0",
-    "nodeHashId": "581543",
+    "nodeHashId": "8dfa7ce5",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
@@ -388,12 +388,12 @@
     "screenHeight": 720
   },
   {
-    "id": "433784",
+    "id": "69e78b5a",
     "indexId": 14,
     "nodePath": "0-0-2-2",
-    "nodeHashId": "433784",
+    "nodeHashId": "69e78b5a",
     "nodeType": "BUTTON Node",
-    "locator": "[_midscene_retrieve_task_id='433784']",
+    "locator": "[_midscene_retrieve_task_id='69e78b5a']",
     "attributes": {
       "class": ".clear-completed",
       "nodeType": "BUTTON Node"
@@ -415,10 +415,10 @@
     "screenHeight": 720
   },
   {
-    "id": "643035",
+    "id": "9cfdb53c",
     "indexId": 15,
     "nodePath": "0-1-0-0",
-    "nodeHashId": "643035",
+    "nodeHashId": "9cfdb53c",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
@@ -441,10 +441,10 @@
     "screenHeight": 720
   },
   {
-    "id": "224653",
+    "id": "36d8d211",
     "indexId": 16,
     "nodePath": "0-1-1-0",
-    "nodeHashId": "224653",
+    "nodeHashId": "36d8d211",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
@@ -467,10 +467,10 @@
     "screenHeight": 720
   },
   {
-    "id": "29081",
+    "id": "071998ac",
     "indexId": 17,
     "nodePath": "0-1-2-0",
-    "nodeHashId": "29081",
+    "nodeHashId": "071998ac",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
@@ -493,10 +493,10 @@
     "screenHeight": 720
   },
   {
-    "id": "784884",
+    "id": "bf9f443c",
     "indexId": 18,
     "nodePath": "0-1-2-1-0",
-    "nodeHashId": "784884",
+    "nodeHashId": "bf9f443c",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {

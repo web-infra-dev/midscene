@@ -88,7 +88,8 @@ function isElementPartiallyInViewport(rect: ReturnType<typeof getRect>) {
 
   const visibleArea = overlapRect.width * overlapRect.height;
   const totalArea = elementHeight * elementWidth;
-  return visibleArea > 30 * 30 || visibleArea / totalArea >= 2 / 3;
+  // return visibleArea > 30 * 30 || visibleArea / totalArea >= 2 / 3;
+  return visibleArea / totalArea >= 2 / 3;
 }
 
 export function getPseudoElementContent(element: Node): {
@@ -216,12 +217,13 @@ const isElementCovered = (el: HTMLElement | Node, rect: ExtractedRect) => {
     return false;
   }
 
-  const remainingArea =
-    rect.width * rect.height - overlapRect.width * overlapRect.height;
+  // Todo: we should modify the 'box-select' as well to make the indicator more accurate
+  // const remainingArea =
+  //   rect.width * rect.height - overlapRect.width * overlapRect.height;
 
-  if (remainingArea > 100) {
-    return false;
-  }
+  // if (remainingArea > 100) {
+  //   return false;
+  // }
 
   logger(el, 'Element is covered by another element', {
     topElement,
@@ -436,28 +438,25 @@ export function midsceneGenerateHash(
     rect,
     _midscene_frame_id: getFrameId(),
   });
-  // Generates the ha-256 hash value
-  let sliceLength = 5;
-  let hashInDigits = '';
+  // Generates the sha-256 hash value
+  let sliceLength = 8;
+  let slicedHash = '';
   const hashHex = sha256.create().update(combined).hex();
   while (sliceLength < hashHex.length - 1) {
-    hashInDigits = Number.parseInt(
-      hashHex.slice(0, sliceLength),
-      16,
-    ).toString();
-    if (hashMap[hashInDigits] && hashMap[hashInDigits] !== combined) {
+    slicedHash = hashHex.slice(0, sliceLength);
+    if (hashMap[slicedHash] && hashMap[slicedHash] !== combined) {
       sliceLength++;
       continue;
     }
-    hashMap[hashInDigits] = combined;
+    hashMap[slicedHash] = combined;
     break;
   }
   if (node && typeof window !== 'undefined') {
-    (window as any).midsceneNodeHashCacheList.push({ node, id: hashInDigits });
+    (window as any).midsceneNodeHashCacheList.push({ node, id: slicedHash });
   }
 
   // Returns the first 10 characters as a short hash
-  return hashInDigits;
+  return slicedHash;
 }
 
 export function generateId(numberId: number) {

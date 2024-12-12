@@ -262,7 +262,7 @@ export async function describeUserPage<
       const { id, ...rest } = item;
       return `id=${id}: ${JSON.stringify(rest)}`;
     })
-    .join(',\n\n');
+    .join('\n\n');
 
   return {
     description: `
