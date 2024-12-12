@@ -38,6 +38,7 @@
     "test:ai:img-box-with-text": "AITEST=true npm run test -- tests/ai/evaluate/locate/img-box-with-text.test.ts",
     "computer": "TEST_COMPUTER=true npm run test:ai -- tests/ai/evaluate/computer.test.ts",
     "evaluate": "npm run test:ai -- tests/ai/evaluate/inspect.test.ts",
+    "evaluate:plan": "npm run test:ai -- tests/ai/evaluate/planning.test.ts",
     "evaluate:update": "UPDATE_AI_DATA=true npm run test:ai -- tests/ai/evaluate/inspect.test.ts",
     "prepublishOnly": "npm run build"
   },

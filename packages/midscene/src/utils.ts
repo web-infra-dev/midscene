@@ -5,6 +5,7 @@ import { tmpdir } from 'node:os';
 import { basename, dirname, join } from 'node:path';
 import { getRunningPkgInfo } from '@midscene/shared/fs';
 import { ifInBrowser, uuid } from '@midscene/shared/utils';
+import { extractJSONFromCodeBlock } from './ai-model/openai';
 import {
   MIDSCENE_DEBUG_MODE,
   MIDSCENE_OPENAI_INIT_CONFIG_JSON,
@@ -281,4 +282,85 @@ export function uploadTestInfoToServer({
       );
     lastReportedRepoUrl = repoUrl;
   }
+}
+
+export function parseNonStrictJSON(source: string) {
+  let jsonObj = null;
+  source = extractJSONFromCodeBlock(source);
+  source = fixNestedDoubleQuotes(source);
+  try {
+    jsonObj = JSON.parse(source);
+  } catch (e) {
+    try {
+      jsonObj = new Function(`return ${source}`)();
+    } catch (e) {
+      console.error('无法 parse 的 source:', source);
+    }
+  }
+  return jsonObj;
+}
+
+function fixNestedDoubleQuotes(jsonStr: string): string {
+  let result = '';
+  let inString = false; // 当前是否在字符串中
+  let escapeNext = false; // 下一个字符是否需要被转义处理
+  let i = 0;
+
+  while (i < jsonStr.length) {
+    const char = jsonStr[i];
+
+    if (inString) {
+      if (escapeNext) {
+        // 上一个字符是 \ ，本字符按字面加入
+        escapeNext = false;
+        result += char;
+      } else {
+        if (char === '\\') {
+          // 转义下一个字符
+          escapeNext = true;
+          result += char;
+        } else if (char === '"') {
+          // 可能是字符串结束或内部引号
+          // 查看后续非空白字符决定它是结束还是内部引号
+          let lookAhead = i + 1;
+          // 跳过后续空白
+          while (lookAhead < jsonStr.length && /\s/.test(jsonStr[lookAhead])) {
+            lookAhead++;
+          }
+          const nextChar = jsonStr[lookAhead];
+
+          // 如果后续字符是 , : } ] 或不存在(结尾)，则此引号为结束引号
+          if (
+            nextChar === ',' ||
+            nextChar === ':' ||
+            nextChar === '}' ||
+            nextChar === ']' ||
+            nextChar === undefined
+          ) {
+            // 结束引号
+            inString = false;
+            result += char;
+          } else {
+            // 内部引号，需转义
+            result += '\\"';
+          }
+        } else {
+          // 字符串内部正常字符
+          result += char;
+        }
+      }
+    } else {
+      // 不在字符串中
+      if (char === '"') {
+        // 进入字符串状态
+        inString = true;
+        result += char;
+      } else {
+        result += char;
+      }
+    }
+    i++;
+  }
+
+  return result;
 }

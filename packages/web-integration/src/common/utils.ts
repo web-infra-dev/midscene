@@ -42,14 +42,14 @@ export async function parseContextFromWebPage(
   ]);
   assert(screenshotBase64!, 'screenshotBase64 is required');
 
-  const elementsPositionInfoWithoutText = elementsInfo!.filter(
-    (elementInfo) => {
-      if (elementInfo.attributes.nodeType === NodeType.TEXT) {
-        return false;
-      }
-      return true;
-    },
-  );
+  // const elementsPositionInfoWithoutText = elementsInfo!.filter(
+  //   (elementInfo) => {
+  //     // if (elementInfo.attributes.nodeType === NodeType.TEXT) {
+  //     //   return false;
+  //     // }
+  //     return true;
+  //   },
+  // );
 
   const size = await page.size();
 
@@ -61,14 +61,14 @@ export async function parseContextFromWebPage(
       })
     : await compositeElementInfoImg({
         inputImgBase64: screenshotBase64,
-        elementsPositionInfo: elementsPositionInfoWithoutText,
+        elementsPositionInfo: elementsInfo,
         size,
       });
 
   return {
     content: elementsInfo!,
     size,
-    screenshotBase64: screenshotBase64!,
+    screenshotBase64: screenshotBase64WithElementMarker,
     screenshotBase64WithElementMarker,
     url,
   };

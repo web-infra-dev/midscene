@@ -153,19 +153,19 @@ export class PageTaskExecutor {
                     id: param.id,
                   }
                 : undefined,
-              callAI: async (...message: any) => {
-                if (locateCache) {
-                  locateResult = locateCache;
-                  return Promise.resolve({ content: locateCache });
-                }
-                const { content: aiResult, usage } = await callAI(...message);
-                locateResult = transformElementPositionToId(
-                  aiResult,
-                  pageContext.content,
-                );
-                assert(locateResult);
-                return { content: locateResult, usage };
-              },
+              // callAI: async (...message: any) => {
+              //   if (locateCache) {
+              //     locateResult = locateCache;
+              //     return Promise.resolve({ content: locateCache });
+              //   }
+              //   const { content: aiResult, usage } = await callAI(...message);
+              //   locateResult = transformElementPositionToId(
+              //     aiResult,
+              //     pageContext.content,
+              //   );
+              //   assert(locateResult);
+              //   return { content: locateResult, usage };
+              // },
             });
 
             if (locateResult) {

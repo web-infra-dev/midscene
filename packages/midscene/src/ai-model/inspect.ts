@@ -1,4 +1,11 @@
 import assert from 'node:assert';
+import {
+  MIDSCENE_COOKIE,
+  MIDSCENE_MODEL_NAME,
+  OPENAI_BASE_URL,
+  getAIConfig,
+  matchByTagNumber,
+} from '@/env';
 import type {
   AIAssertionResponse,
   AIElementResponse,
@@ -7,6 +14,7 @@ import type {
   BaseElement,
   UIContext,
 } from '@/types';
+import { parseNonStrictJSON } from '@/utils';
 import type {
   ChatCompletionSystemMessageParam,
   ChatCompletionUserMessageParam,
@@ -19,6 +27,7 @@ import {
 import {
   describeUserPage,
   elementByPosition,
+  elementByTagNumber,
   systemPromptToAssert,
   systemPromptToExtract,
 } from './prompt/util';
@@ -36,13 +45,47 @@ const liteContextConfig = {
 export function transformElementPositionToId(
   aiResult: AIElementResponse,
   elementsInfo: BaseElement[],
-) {
+): {
+  errors: string[] | undefined;
+  elements: {
+    id: string;
+    errors?: string[] | undefined;
+  }[];
+} {
+  if ('number' in (aiResult as any)) {
+    return {
+      errors: aiResult.errors,
+      elements: [
+        {
+          ...aiResult,
+          id: elementByTagNumber(elementsInfo, Number((aiResult as any).number))
+            ?.id as string,
+        },
+      ],
+    };
+  }
   return {
     errors: aiResult.errors,
     elements: aiResult.elements.map((item) => {
       if ('id' in item) {
         return item;
       }
+
+      if ('boxTagNumber' in item) {
+        const id = elementByTagNumber(
+          elementsInfo,
+          Number(item.boxTagNumber),
+        )?.id;
+        assert(
+          id,
+          `inspect: no id found with tag number: ${item.boxTagNumber}`,
+        );
+        return {
+          ...item,
+          id,
+        };
+      }
+
       const { position } = item;
       const id = elementByPosition(elementsInfo, position)?.id;
       assert(
@@ -74,45 +117,45 @@ export async function AiInspectElement<
     await describeUserPage(context);
 
   // meet quick answer
-  if (options.quickAnswer) {
-    if ('id' in options.quickAnswer) {
-      if (elementById(options.quickAnswer.id)) {
-        return {
-          parseResult: {
-            elements: [options.quickAnswer],
-            errors: [],
-          },
-          elementById,
-        };
-      }
+  // if (options.quickAnswer) {
+  //   if ('id' in options.quickAnswer) {
+  //     if (elementById(options.quickAnswer.id)) {
+  //       return {
+  //         parseResult: {
+  //           elements: [options.quickAnswer],
+  //           errors: [],
+  //         },
+  //         elementById,
+  //       };
+  //     }
 
-      if (!targetElementDescription) {
-        return {
-          parseResult: {
-            elements: [],
-            errors: [
-              `inspect: cannot find the target by id: ${options.quickAnswer.id}, and no target element description is provided`,
-            ],
-          },
-          elementById,
-        };
-      }
-    }
-    if (
-      'position' in options.quickAnswer &&
-      elementByPosition(options.quickAnswer.position)
-    ) {
-      return {
-        parseResult: transformElementPositionToId(
-          {
-            elements: [options.quickAnswer],
-          },
-          context.content,
-        ),
-        elementById,
-      };
-    }
-  }
+  //     if (!targetElementDescription) {
+  //       return {
+  //         parseResult: {
+  //           elements: [],
+  //           errors: [
+  //             `inspect: cannot find the target by id: ${options.quickAnswer.id}, and no target element description is provided`,
+  //           ],
+  //         },
+  //         elementById,
+  //       };
+  //     }
+  //   }
+  //   if (
+  //     'position' in options.quickAnswer &&
+  //     elementByPosition(options.quickAnswer.position)
+  //   ) {
+  //     return {
+  //       parseResult: transformElementPositionToId(
+  //         {
+  //           elements: [options.quickAnswer],
+  //         },
+  //         context.content,
+  //       ),
+  //       elementById,
+  //     };
+  //   }
+  // }
 
   assert(
     targetElementDescription,
@@ -128,7 +171,9 @@ export async function AiInspectElement<
         {
           type: 'image_url',
           image_url: {
-            url: screenshotBase64WithElementMarker || screenshotBase64,
+            url: matchByTagNumber
+              ? screenshotBase64WithElementMarker
+              : screenshotBase64,
           },
         },
         {
@@ -148,6 +193,34 @@ ${JSON.stringify({
       ]),
     },
   ];
+  if (matchByTagNumber) {
+    const response = await fetch(
+      `${getAIConfig(OPENAI_BASE_URL)}/chat/completions`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Cookie: getAIConfig(MIDSCENE_COOKIE) || '',
+        },
+        body: JSON.stringify({
+          model: getAIConfig(MIDSCENE_MODEL_NAME),
+          messages: msgs,
+          temperature: 0.1,
+        }),
+      },
+    );
+    const data = await response.json();
+
+    const message = data.choices[0].message.content;
+    const jsonData: any = parseNonStrictJSON(message);
+    console.log('AiInspectElement jsonData', jsonData);
+    return {
+      parseResult: transformElementPositionToId(jsonData, context.content),
+      rawResponse: jsonData,
+      elementById,
+      usage: data.usage,
+    };
+  }
 
   if (callAI) {
     const res = await callAI({

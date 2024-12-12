@@ -201,6 +201,13 @@ export function elementByPosition(
   return item;
 }
 
+export function elementByTagNumber(
+  elementsInfo: BaseElement[],
+  tagNumber: number,
+) {
+  return elementsInfo.find((item) => (item as any).indexId === tagNumber);
+}
+
 export const samplePageDescription = `
 The size of the page: 1280 x 720
 

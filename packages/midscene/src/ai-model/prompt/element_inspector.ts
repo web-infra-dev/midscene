@@ -162,12 +162,12 @@ Requirements:
 
 Return format (strict JSON):
 {
-  "boxTagNumber": number,  // The identified box number
+  "number": number,  // The identified box number
   "reason": "string" // Explanation of why this box number was chosen
 }
 or
 {
-  "boxTagNumber": null,
+  "number": null,
   "reason": "string" // Explanation of why no matching box could be found
 }
 `;

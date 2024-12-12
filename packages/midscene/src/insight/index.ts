@@ -141,7 +141,7 @@ export default class Insight<
     const elements: BaseElement[] = [];
     parseResult.elements.forEach((item) => {
       if ('id' in item) {
-        const element = elementById(item.id);
+        const element = elementById(item.id as string);
 
         if (!element) {
           console.warn(

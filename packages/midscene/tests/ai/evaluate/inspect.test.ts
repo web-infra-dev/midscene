@@ -16,12 +16,12 @@ import {
 } from './test-suite/util';
 
 const testSources = [
-  // 'todo',
-  // 'online_order',
+  'todo',
+  'online_order',
   'online_order_list',
   // 'taobao',
-  // 'aweme_login',
-  // 'aweme_play',
+  'aweme_login',
+  'aweme_play',
 ];
 
 describe('ai inspect element', () => {
@@ -47,7 +47,8 @@ describe('ai inspect element', () => {
   });
 
   repeat(repeatTime, (repeatIndex) => {
-    const runType = repeatIndex <= repeatTime / 2 ? 'inspect' : 'planning';
+    // const runType = repeatIndex <= repeatTime / 2 ? 'inspect' : 'planning';
+    const runType = 'inspect';
     testSources.forEach((source) => {
       test(
         `${source}-${repeatIndex}-${runType}: locate element`,
@@ -70,33 +71,34 @@ describe('ai inspect element', () => {
             aiData.testCases,
             context,
             async (testCase) => {
-              if (runType === 'planning') {
-                // use planning to get quick answer to test element inspector
-                const res: any = await plan(
-                  `Tap this: ${testCase.description}`,
-                  {
-                    context,
-                  },
-                );
-                console.log('planning result:', JSON.stringify(res, null, 2));
+              // if (runType === 'planning') {
+              //   // use planning to get quick answer to test element inspector
+              //   const res: any = await plan(
+              //     `Tap this: ${testCase.description}`,
+              //     {
+              //       context,
+              //     },
+              //   );
+              //   console.log('planning result:', JSON.stringify(res, null, 2));
 
-                const matchedId = res.actions[0].locate?.id;
-                if (matchedId) {
-                  return {
-                    elements: [elementById(matchedId)],
-                  };
-                }
+              //   const matchedId = res.actions[0].locate?.id;
+              //   if (matchedId) {
+              //     return {
+              //       elements: [elementById(matchedId)],
+              //     };
+              //   }
 
-                return {
-                  elements: [],
-                };
-              }
+              //   return {
+              //     elements: [],
+              //   };
+              // }
 
               const { parseResult } = await AiInspectElement({
                 context,
                 multi: testCase.multi,
                 targetElementDescription: testCase.description,
               });
+              console.log('parseResult:', JSON.stringify(parseResult, null, 2));
               return parseResult as any;
             },
           );

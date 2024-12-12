@@ -6,6 +6,7 @@ import {
   matchByTagNumber,
 } from '@/env';
 import type { AIUsageInfo, PlanningAIResponse, UIContext } from '@/types';
+import { parseNonStrictJSON } from '@/utils';
 import {
   AIActionType,
   type AIArgs,
@@ -99,6 +100,7 @@ ${taskBackgroundContext}
 
     const message = data.choices[0].message.content;
     const jsonData = parseNonStrictJSON(message);
+    console.log('AiPlan jsonData', JSON.stringify(jsonData, null, 2));
     const actions = jsonData.actions || [];
 
     actions.forEach((action: any) => {
@@ -145,15 +147,4 @@ ${taskBackgroundContext}
   }
 
   return planFromAI;
-}
-
-function parseNonStrictJSON(source: string) {
-  let jsonObj = null;
-  source = extractJSONFromCodeBlock(source);
-  try {
-    jsonObj = JSON.parse(source);
-  } catch (e) {
-    jsonObj = new Function(`return ${source}`)();
-  }
-  return jsonObj;
 }
