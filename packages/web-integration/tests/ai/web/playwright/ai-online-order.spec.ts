@@ -1,4 +1,6 @@
-import { generateTestDataPath } from '@/debug';
+import path from 'path';
+import { generateExtractData, generateTestDataPath } from '@/debug';
+import { PlaywrightWebPage } from '@/playwright';
 import { expect } from 'playwright/test';
 import { test } from './fixture';
 
@@ -11,10 +13,15 @@ test.beforeEach(async ({ page }) => {
 });
 
 test('ai online order', async ({ ai, page, aiQuery }) => {
+  const playwrightPage = new PlaywrightWebPage(page);
   await ai('点击语言切换按钮“english”');
   await ai('点击语言切换中的中文');
   await ai('向下滚动两屏');
-  await ai('点击多肉葡萄的规格按钮');
+  await generateExtractData(
+    playwrightPage,
+    path.join(__dirname, 'test-data', 'ai-online-order'),
+  );
+  await ai('点击多肉葡萄的选规格按钮');
   await ai('点击不使用吸管、点击冰沙推荐、点击正常冰推荐');
   await ai('向下滚动一屏');
   await ai('点击标准甜、点击绿妍（推荐）、点击标准口味');

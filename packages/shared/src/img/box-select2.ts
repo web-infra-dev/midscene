@@ -33,14 +33,18 @@
 // ): Promise<Jimp> => {
 //   const Jimp = await getJimp();
 //   const image = new Jimp(imageWidth, imageHeight, 0x00000000);
+//   //@ts-ignore
+//   // image.color([{ apply: 'xor', params: ['#00ff00'] }]);
 
 //   // Define color array
 //   const colors = [
-//     { rect: 0xff0000ff, text: 0xffffffff }, // red, white
+//     { rect: 0xffff00ff, text: 0xffffffff }, // yellow, white
 //     // { rect: 0x0000ffff, text: 0xffffffff }, // blue, white
 //     // { rect: 0x8b4513ff, text: 0xffffffff }, // brown, white
 //   ];
 
+//   //@ts-ignore
+//   image.color([{ apply: 'xor', params: ['#ffffff'] }]);
 //   const boxPadding = 2; // Reduced from 5 to 2
 //   for (let index = 0; index < elements.length; index++) {
 //     const element = elements[index];
@@ -80,10 +84,9 @@
 //         }
 //       },
 //     );
-
 //     // Calculate text position with smaller dimensions
-//     const textWidth = element.indexId.toString().length * 6; // Reduced from 8 to 6
-//     const textHeight = 8; // Reduced from 12 to 8
+//     const textWidth = element.indexId.toString().length * 7; // Adjusted from 6 to 7
+//     const textHeight = 14; // Adjusted from 8 to 14
 //     const rectWidth = textWidth + 4; // Reduced padding
 //     const rectHeight = textHeight + 4; // Reduced padding
 //     let rectX = paddedRect.left - rectWidth;
@@ -152,17 +155,16 @@
 //       }
 //     }
 //     // Note: If the original left position doesn't overlap and is within bounds, we keep it as is
-
-//     // Draw text background
+//     // Draw text background with yellow color
 //     image.scan(rectX, rectY, rectWidth, rectHeight, function (x, y, idx) {
-//       this.bitmap.data[idx + 0] = (color.rect >> 24) & 0xff; // R
-//       this.bitmap.data[idx + 1] = (color.rect >> 16) & 0xff; // G
-//       this.bitmap.data[idx + 2] = (color.rect >> 8) & 0xff; // B
-//       this.bitmap.data[idx + 3] = color.rect & 0xff; // A
+//       this.bitmap.data[idx + 0] = 255; // R
+//       this.bitmap.data[idx + 1] = 255; // G
+//       this.bitmap.data[idx + 2] = 0; // B
+//       this.bitmap.data[idx + 3] = 255; // A
 //     });
 //     // Draw text (simplified, as Jimp doesn't have built-in text drawing)
 //     try {
-//       cachedFont = cachedFont || (await Jimp.loadFont(Jimp.FONT_SANS_14_BLACK)); // Changed from 16 to 12
+//       cachedFont = cachedFont || (await Jimp.loadFont(Jimp.FONT_SANS_14_BLACK)); // Changed from 12 to 14
 //     } catch (error) {
 //       console.error('Error loading font', error);
 //     }

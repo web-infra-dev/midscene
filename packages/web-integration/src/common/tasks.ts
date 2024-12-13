@@ -147,6 +147,7 @@ export class PageTaskExecutor {
             );
             let locateResult: AIElementIdResponse | undefined;
             const callAI = this.insight.aiVendorFn;
+            const startTime = Date.now();
             const element = await this.insight.locate(param.prompt, {
               quickAnswer: param?.id
                 ? {
@@ -167,6 +168,10 @@ export class PageTaskExecutor {
               //   return { content: locateResult, usage };
               // },
             });
+            const endTime = Date.now();
+            console.log(
+              `Locate execution time（${param.prompt}）: ${endTime - startTime}ms`,
+            );
 
             if (locateResult) {
               cacheGroup?.saveCache({
@@ -422,23 +427,23 @@ export class PageTaskExecutor {
           // console.log('planCache', planCache);
           planResult = planCache;
         } else {
+          const startTime = Date.now();
           planResult = await plan(param.userPrompt, {
             context: pageContext,
-            whatHaveDone: param.whatHaveDone,
-            originalPrompt: param.originalPrompt,
+            // whatHaveDone: param.whatHaveDone,
+            // originalPrompt: param.originalPrompt,
           });
+          const endTime = Date.now();
+          console.log(
+            `Plan execution time（${param.userPrompt}）: ${endTime - startTime}ms`,
+          );
         }
 
         const { actions, furtherPlan, taskWillBeAccomplished } = planResult;
         // console.log('actions', taskWillBeAccomplished, actions, furtherPlan);
 
-        let stopCollecting = false;
         const finalActions = actions.reduce<PlanningAction[]>(
           (acc, planningAction) => {
-            if (stopCollecting) {
-              return acc;
-            }
-
             if (planningAction.locate) {
               acc.push({
                 type: 'Locate',
@@ -446,12 +451,6 @@ export class PageTaskExecutor {
                 param: null,
                 thought: planningAction.locate.prompt,
               });
-            } else if (
-              ['Tap', 'Hover', 'Input'].includes(planningAction.type)
-            ) {
-              // should include locate but get null
-              stopCollecting = true;
-              return acc;
             }
             acc.push(planningAction);
             return acc;
@@ -459,7 +458,7 @@ export class PageTaskExecutor {
           [],
         );
 
-        assert(finalActions.length > 0, 'No plans found');
+        // assert(finalActions.length > 0, 'No plans found');
 
         cacheGroup.saveCache({
           type: 'plan',
