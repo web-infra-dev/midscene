@@ -34,16 +34,17 @@ interface WebElementInfo extends ElementInfo {
 let indexId = 0;
 
 function tagNameOfNode(node: Node): string {
+  let tagName = '';
   if (node instanceof HTMLElement) {
-    return node.tagName.toLowerCase();
+    tagName = node.tagName.toLowerCase();
   }
 
   const parentElement = node.parentElement;
   if (parentElement && parentElement instanceof HTMLElement) {
-    return parentElement.tagName.toLowerCase();
+    tagName = parentElement.tagName.toLowerCase();
   }
 
-  return '';
+  return tagName ? `<${tagName}>` : '';
 }
 
 function collectElementInfo(

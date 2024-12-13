@@ -4,245 +4,245 @@ exports[`extractor > basic 1`] = `
 [
   {
     "attributes": {
-      "htmlTagName": "h1",
+      "htmlTagName": "<h1>",
       "nodeType": "TEXT Node",
     },
     "content": "Data Record",
   },
   {
     "attributes": {
-      "htmlTagName": "h2",
+      "htmlTagName": "<h2>",
       "nodeType": "TEXT Node",
     },
     "content": "1970-01-01 19:25:01",
   },
   {
     "attributes": {
-      "htmlTagName": "h2",
+      "htmlTagName": "<h2>",
       "nodeType": "TEXT Node",
     },
     "content": "User Name: Stella",
   },
   {
     "attributes": {
-      "htmlTagName": "th",
+      "htmlTagName": "<th>",
       "nodeType": "TEXT Node",
     },
     "content": "ID",
   },
   {
     "attributes": {
-      "htmlTagName": "th",
+      "htmlTagName": "<th>",
       "nodeType": "TEXT Node",
     },
     "content": "Field 2",
   },
   {
     "attributes": {
-      "htmlTagName": "th",
+      "htmlTagName": "<th>",
       "nodeType": "TEXT Node",
     },
     "content": "Field 3",
   },
   {
     "attributes": {
-      "htmlTagName": "th",
+      "htmlTagName": "<th>",
       "nodeType": "TEXT Node",
     },
     "content": "Field 4",
   },
   {
     "attributes": {
-      "htmlTagName": "th",
+      "htmlTagName": "<th>",
       "nodeType": "TEXT Node",
     },
     "content": "Field 5",
   },
   {
     "attributes": {
-      "htmlTagName": "td",
+      "htmlTagName": "<td>",
       "nodeType": "TEXT Node",
     },
     "content": "30S",
   },
   {
     "attributes": {
-      "htmlTagName": "td",
+      "htmlTagName": "<td>",
       "nodeType": "TEXT Node",
     },
     "content": "Kace Cervantes",
   },
   {
     "attributes": {
-      "htmlTagName": "td",
+      "htmlTagName": "<td>",
       "nodeType": "TEXT Node",
     },
     "content": "Aylin Sawyer",
   },
   {
     "attributes": {
-      "htmlTagName": "td",
+      "htmlTagName": "<td>",
       "nodeType": "TEXT Node",
     },
     "content": "Jefferson Kirby",
   },
   {
     "attributes": {
-      "htmlTagName": "td",
+      "htmlTagName": "<td>",
       "nodeType": "TEXT Node",
     },
     "content": "Skyla Jefferson",
   },
   {
     "attributes": {
-      "htmlTagName": "td",
+      "htmlTagName": "<td>",
       "nodeType": "TEXT Node",
     },
     "content": "70U",
   },
   {
     "attributes": {
-      "htmlTagName": "td",
+      "htmlTagName": "<td>",
       "nodeType": "TEXT Node",
     },
     "content": "Florence Davenport",
   },
   {
     "attributes": {
-      "htmlTagName": "td",
+      "htmlTagName": "<td>",
       "nodeType": "TEXT Node",
     },
     "content": "Dariel Acevedo",
   },
   {
     "attributes": {
-      "htmlTagName": "td",
+      "htmlTagName": "<td>",
       "nodeType": "TEXT Node",
     },
     "content": "Ashlynn Delacruz",
   },
   {
     "attributes": {
-      "htmlTagName": "td",
+      "htmlTagName": "<td>",
       "nodeType": "TEXT Node",
     },
     "content": "Memphis Leal",
   },
   {
     "attributes": {
-      "htmlTagName": "td",
+      "htmlTagName": "<td>",
       "nodeType": "TEXT Node",
     },
     "content": "3AY",
   },
   {
     "attributes": {
-      "htmlTagName": "td",
+      "htmlTagName": "<td>",
       "nodeType": "TEXT Node",
     },
     "content": "Crystal Newman",
   },
   {
     "attributes": {
-      "htmlTagName": "td",
+      "htmlTagName": "<td>",
       "nodeType": "TEXT Node",
     },
     "content": "Anderson Brown",
   },
   {
     "attributes": {
-      "htmlTagName": "td",
+      "htmlTagName": "<td>",
       "nodeType": "TEXT Node",
     },
     "content": "Charlotte Griffith",
   },
   {
     "attributes": {
-      "htmlTagName": "td",
+      "htmlTagName": "<td>",
       "nodeType": "TEXT Node",
     },
     "content": "Franklin Everett",
   },
   {
     "attributes": {
-      "htmlTagName": "td",
+      "htmlTagName": "<td>",
       "nodeType": "TEXT Node",
     },
     "content": "YPG",
   },
   {
     "attributes": {
-      "htmlTagName": "td",
+      "htmlTagName": "<td>",
       "nodeType": "TEXT Node",
     },
     "content": "Kori Payne",
   },
   {
     "attributes": {
-      "htmlTagName": "td",
+      "htmlTagName": "<td>",
       "nodeType": "TEXT Node",
     },
     "content": "Edward Blevins",
   },
   {
     "attributes": {
-      "htmlTagName": "td",
+      "htmlTagName": "<td>",
       "nodeType": "TEXT Node",
     },
     "content": "Aila Gill",
   },
   {
     "attributes": {
-      "htmlTagName": "td",
+      "htmlTagName": "<td>",
       "nodeType": "TEXT Node",
     },
     "content": "Matthias Reed",
   },
   {
     "attributes": {
-      "htmlTagName": "td",
+      "htmlTagName": "<td>",
       "nodeType": "TEXT Node",
     },
     "content": "ZEN",
   },
   {
     "attributes": {
-      "htmlTagName": "td",
+      "htmlTagName": "<td>",
       "nodeType": "TEXT Node",
     },
     "content": "Magnolia Duke",
   },
   {
     "attributes": {
-      "htmlTagName": "td",
+      "htmlTagName": "<td>",
       "nodeType": "TEXT Node",
     },
     "content": "Kalel Glover",
   },
   {
     "attributes": {
-      "htmlTagName": "td",
+      "htmlTagName": "<td>",
       "nodeType": "TEXT Node",
     },
     "content": "Alessia Barton",
   },
   {
     "attributes": {
-      "htmlTagName": "td",
+      "htmlTagName": "<td>",
       "nodeType": "TEXT Node",
     },
     "content": "Cassius Peck",
   },
   {
     "attributes": {
-      "htmlTagName": "h3",
+      "htmlTagName": "<h3>",
       "nodeType": "TEXT Node",
     },
     "content": "Form",
   },
   {
     "attributes": {
-      "htmlTagName": "label",
+      "htmlTagName": "<label>",
       "nodeType": "TEXT Node",
     },
     "content": "Name:",
@@ -268,14 +268,14 @@ exports[`extractor > basic 1`] = `
   },
   {
     "attributes": {
-      "htmlTagName": "button",
+      "htmlTagName": "<div>",
       "nodeType": "BUTTON Node",
     },
     "content": "Click Me",
   },
   {
     "attributes": {
-      "htmlTagName": "label",
+      "htmlTagName": "<label>",
       "nodeType": "TEXT Node",
     },
     "content": "Shape",
@@ -299,28 +299,28 @@ exports[`extractor > basic 1`] = `
   },
   {
     "attributes": {
-      "htmlTagName": "span",
+      "htmlTagName": "<span>",
       "nodeType": "TEXT Node",
     },
     "content": "English",
   },
   {
     "attributes": {
-      "htmlTagName": "span",
+      "htmlTagName": "<span>",
       "nodeType": "TEXT Node",
     },
     "content": "中文",
   },
   {
     "attributes": {
-      "htmlTagName": "span",
+      "htmlTagName": "<span>",
       "nodeType": "TEXT Node",
     },
     "content": "Tiếng Việt",
   },
   {
     "attributes": {
-      "htmlTagName": "label",
+      "htmlTagName": "<label>",
       "nodeType": "TEXT Node",
     },
     "content": "Choose an option:",
@@ -336,21 +336,21 @@ exports[`extractor > basic 1`] = `
   },
   {
     "attributes": {
-      "htmlTagName": "div",
+      "htmlTagName": "<div>",
       "nodeType": "TEXT Node",
     },
     "content": "This is zoomed content",
   },
   {
     "attributes": {
-      "htmlTagName": "div",
+      "htmlTagName": "<div>",
       "nodeType": "TEXT Node",
     },
     "content": "Something Else",
   },
   {
     "attributes": {
-      "htmlTagName": "div",
+      "htmlTagName": "<body>",
       "id": "J_resize",
       "nodeType": "CONTAINER Node",
       "style": "width:30px;height:30px;background: #AC0",
@@ -359,7 +359,7 @@ exports[`extractor > basic 1`] = `
   },
   {
     "attributes": {
-      "htmlTagName": "label",
+      "htmlTagName": "<label>",
       "nodeType": "TEXT Node",
     },
     "content": "输入搜索关键词",
@@ -402,7 +402,7 @@ exports[`extractor > basic 1`] = `
   {
     "attributes": {
       "class": ".life-core-checkbox-icon",
-      "htmlTagName": "span",
+      "htmlTagName": "<label>",
       "nodeType": "CONTAINER Node",
     },
     "content": "",
@@ -411,7 +411,7 @@ exports[`extractor > basic 1`] = `
     "attributes": {
       "aria-label": "Search",
       "class": ".btn",
-      "htmlTagName": "button",
+      "htmlTagName": "<body>",
       "nodeType": "BUTTON Node",
       "tabindex": "0",
       "type": "submit",
@@ -420,14 +420,14 @@ exports[`extractor > basic 1`] = `
   },
   {
     "attributes": {
-      "htmlTagName": "div",
+      "htmlTagName": "<div>",
       "nodeType": "TEXT Node",
     },
     "content": "content 000",
   },
   {
     "attributes": {
-      "htmlTagName": "div",
+      "htmlTagName": "<div>",
       "nodeType": "CONTAINER Node",
       "style": "height: 30px;width: 100px;",
     },
@@ -435,14 +435,14 @@ exports[`extractor > basic 1`] = `
   },
   {
     "attributes": {
-      "htmlTagName": "div",
+      "htmlTagName": "<div>",
       "nodeType": "TEXT Node",
     },
     "content": "content AAA",
   },
   {
     "attributes": {
-      "htmlTagName": "img",
+      "htmlTagName": "<div>",
       "nodeType": "IMG Node",
       "src": "image",
     },
@@ -450,7 +450,7 @@ exports[`extractor > basic 1`] = `
   },
   {
     "attributes": {
-      "htmlTagName": "button",
+      "htmlTagName": "<div>",
       "nodeType": "BUTTON Node",
       "very-long-attr": "width: 100px; height: 100px; background-color: #cc...",
     },
@@ -458,7 +458,7 @@ exports[`extractor > basic 1`] = `
   },
   {
     "attributes": {
-      "htmlTagName": "div",
+      "htmlTagName": "<div>",
       "nodeType": "TEXT Node",
     },
     "content": "Click me",
@@ -467,7 +467,7 @@ exports[`extractor > basic 1`] = `
     "attributes": {
       "aria-controls": "semi-select-5yxiyng",
       "class": ".widget",
-      "htmlTagName": "div",
+      "htmlTagName": "<body>",
       "nodeType": "CONTAINER Node",
     },
     "content": "",
@@ -476,14 +476,14 @@ exports[`extractor > basic 1`] = `
     "attributes": {
       "aria-labelledby": "eval_object.object_type-label",
       "class": ".widget",
-      "htmlTagName": "div",
+      "htmlTagName": "<body>",
       "nodeType": "CONTAINER Node",
     },
     "content": "",
   },
   {
     "attributes": {
-      "htmlTagName": "div",
+      "htmlTagName": "<div>",
       "nodeType": "TEXT Node",
     },
     "content": "Content 1",
@@ -491,7 +491,7 @@ exports[`extractor > basic 1`] = `
   {
     "attributes": {
       "class": ".child-container-without-content-2-1",
-      "htmlTagName": "div",
+      "htmlTagName": "<div>",
       "nodeType": "CONTAINER Node",
       "style": "width: 100px; height: 100px; background-color: #cc...",
     },
@@ -499,14 +499,14 @@ exports[`extractor > basic 1`] = `
   },
   {
     "attributes": {
-      "htmlTagName": "span",
+      "htmlTagName": "<span>",
       "nodeType": "TEXT Node",
     },
     "content": "Content 2",
   },
   {
     "attributes": {
-      "htmlTagName": "span",
+      "htmlTagName": "<span>",
       "nodeType": "TEXT Node",
     },
     "content": "Nested Content 3",
@@ -514,7 +514,7 @@ exports[`extractor > basic 1`] = `
   {
     "attributes": {
       "class": ".child-container-4",
-      "htmlTagName": "div",
+      "htmlTagName": "<div>",
       "nodeType": "CONTAINER Node",
       "style": "width: 100px; height: 100px; background-color: #cc...",
     },
@@ -523,14 +523,14 @@ exports[`extractor > basic 1`] = `
   {
     "attributes": {
       "class": ".child-container-5",
-      "htmlTagName": "span",
+      "htmlTagName": "<body>",
       "nodeType": "IMG Node",
     },
     "content": "",
   },
   {
     "attributes": {
-      "htmlTagName": "span",
+      "htmlTagName": "<span>",
       "nodeType": "IMG Node",
       "svgContent": "true",
     },
@@ -538,21 +538,21 @@ exports[`extractor > basic 1`] = `
   },
   {
     "attributes": {
-      "htmlTagName": "span",
+      "htmlTagName": "<span>",
       "nodeType": "TEXT Node",
     },
     "content": "hidden label",
   },
   {
     "attributes": {
-      "htmlTagName": "div",
+      "htmlTagName": "<div>",
       "nodeType": "TEXT Node",
     },
     "content": "absolute child content",
   },
   {
     "attributes": {
-      "htmlTagName": "div",
+      "htmlTagName": "<div>",
       "nodeType": "TEXT Node",
     },
     "content": "content Right",
@@ -561,7 +561,7 @@ exports[`extractor > basic 1`] = `
     "attributes": {
       "frameborder": "0",
       "height": "200px",
-      "htmlTagName": "iframe",
+      "htmlTagName": "<body>",
       "nodeType": "CONTAINER Node",
       "src": "child.html",
       "width": "400px",
