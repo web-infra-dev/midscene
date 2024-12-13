@@ -443,10 +443,11 @@ export class PageTaskExecutor {
             if (planningAction.locate) {
               acc.push({
                 type: 'Locate',
-                locate: {
-                  // remove id from planning, since the result is not accurate
-                  prompt: planningAction.locate.prompt,
-                },
+                locate: planningAction.locate,
+                // remove id from planning, since the result is not accurate
+                // locate: {
+                //   prompt: planningAction.locate.prompt,
+                // },
                 param: null,
                 thought: planningAction.locate.prompt,
               });

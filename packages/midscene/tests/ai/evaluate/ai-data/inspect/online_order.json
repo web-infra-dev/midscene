@@ -12,7 +12,7 @@
       ]
     },
     {
-      "prompt": "Toggle language text button(Could be：中文、english text)",
+      "prompt": "Click the Toggle language text button(could be：中文、english text), and then click the shopping cart, type 'Chinese Tea' in the search box, and then click the search button",
       "multi": false,
       "response": [
         {
