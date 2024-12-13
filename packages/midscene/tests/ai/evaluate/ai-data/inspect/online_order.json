@@ -6,17 +6,17 @@
       "multi": false,
       "response": [
         {
-          "id": "e00c1b86",
+          "id": "e00c1b86f3dcf87f",
           "indexId": 0
         }
       ]
     },
     {
-      "prompt": "Click the Toggle language text button(could be：中文、english text), and then click the shopping cart, type 'Chinese Tea' in the search box, and then click the search button",
+      "prompt": "点击左上角语言切换按钮(写着 English 或者 中文)，在弹出的下拉列表中点击中文",
       "multi": false,
       "response": [
         {
-          "id": "79cfcf9a",
+          "id": "d63a912281fb6435",
           "indexId": 1
         }
       ]
@@ -26,8 +26,8 @@
       "multi": false,
       "response": [
         {
-          "id": "5ead026c",
-          "indexId": 4
+          "id": "5ead026c3c299bea",
+          "indexId": 3
         }
       ]
     },
@@ -36,8 +36,8 @@
       "multi": false,
       "response": [
         {
-          "id": "eadd4594",
-          "indexId": 24
+          "id": "498ec7eda6cf360a",
+          "indexId": 20
         }
       ]
     },
@@ -46,8 +46,8 @@
       "multi": false,
       "response": [
         {
-          "id": "ee2e067c",
-          "indexId": 32
+          "id": "b3e12c94b31bb094",
+          "indexId": 26
         }
       ]
     },
@@ -56,8 +56,8 @@
       "multi": false,
       "response": [
         {
-          "id": "b82bdf3a",
-          "indexId": 33
+          "id": "b82bdf3ac4b0e2aa",
+          "indexId": 27
         }
       ]
     }

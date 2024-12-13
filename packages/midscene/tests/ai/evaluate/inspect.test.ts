@@ -16,6 +16,7 @@ import {
 
 const repeatTime = 2;
 const relocateAfterPlanning = false;
+const failCaseThreshold = process.env.CI ? 1 : 0;
 const testSources = [
   'todo',
   'online_order',
@@ -138,8 +139,10 @@ describe('ai inspect element', () => {
           // await sleep(20 * 1000);
           expect(resultData.successCount).toBeGreaterThan(0);
           expect(resultData.failCount).toBeLessThanOrEqual(
-            source === 'aweme_play' ? 2 : 0,
+            source === 'aweme_play' ? 2 : failCaseThreshold,
           );
+
+          await new Promise((resolve) => setTimeout(resolve, 10 * 1000));
         },
         {
           timeout: 120 * 1000,

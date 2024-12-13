@@ -1,14 +1,15 @@
 [
   {
-    "id": "e00c1b86",
+    "id": "e00c1b86f3dcf87f",
     "indexId": 0,
     "nodePath": "0-3-1-1-0-0-0-0-0-1-0-0-0",
-    "nodeHashId": "e00c1b86",
-    "locator": "[_midscene_retrieve_task_id='e00c1b86']",
+    "nodeHashId": "e00c1b86f3dcf87f",
+    "locator": "[_midscene_retrieve_task_id='e00c1b86f3dcf87f']",
     "attributes": {
       "src": "image",
       "class": ".icon",
-      "nodeType": "IMG Node"
+      "nodeType": "IMG Node",
+      "htmlTagName": "<div>"
     },
     "nodeType": "IMG Node",
     "content": "",
@@ -28,24 +29,25 @@
     "screenHeight": 905
   },
   {
-    "id": "79cfcf9a",
+    "id": "d63a912281fb6435",
     "indexId": 1,
     "nodePath": "0-3-1-1-0-0-0-0-0-1-0-1-0-0-0",
-    "nodeHashId": "79cfcf9a",
+    "nodeHashId": "d63a912281fb6435",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
-      "nodeType": "TEXT Node"
+      "nodeType": "TEXT Node",
+      "htmlTagName": "<span>"
     },
     "center": [
-      81,
+      92,
       29
     ],
-    "content": "中文",
+    "content": "English",
     "rect": {
       "left": 65,
       "top": 17,
-      "width": 32,
+      "width": 53,
       "height": 23,
       "zoom": 1
     },
@@ -54,42 +56,16 @@
     "screenHeight": 905
   },
   {
-    "id": "36dae159",
+    "id": "c0fb608a1840fbee",
     "indexId": 2,
-    "nodePath": "0-3-1-1-0-0-0-0-0-1-0-1-0-1-0",
-    "nodeHashId": "36dae159",
-    "locator": "[_midscene_retrieve_task_id='36dae159']",
-    "attributes": {
-      "svgContent": "true",
-      "nodeType": "IMG Node"
-    },
-    "nodeType": "IMG Node",
-    "content": "",
-    "rect": {
-      "left": 226,
-      "top": 239,
-      "width": 633,
-      "height": 427,
-      "zoom": 1
-    },
-    "center": [
-      543,
-      453
-    ],
-    "zoom": 1,
-    "screenWidth": 400,
-    "screenHeight": 905
-  },
-  {
-    "id": "c0fb608a",
-    "indexId": 3,
     "nodePath": "0-3-1-1-0-0-0-1-0-0-0",
-    "nodeHashId": "c0fb608a",
-    "locator": "[_midscene_retrieve_task_id='c0fb608a']",
+    "nodeHashId": "c0fb608a1840fbee",
+    "locator": "[_midscene_retrieve_task_id='c0fb608a1840fbee']",
     "attributes": {
       "src": "https://dec-pub-img.obs.ap-southeast-3.myhuaweiclo...",
       "class": ".img",
-      "nodeType": "IMG Node"
+      "nodeType": "IMG Node",
+      "htmlTagName": "<div>"
     },
     "nodeType": "IMG Node",
     "content": "",
@@ -109,15 +85,16 @@
     "screenHeight": 905
   },
   {
-    "id": "5ead026c",
-    "indexId": 4,
+    "id": "5ead026c3c299bea",
+    "indexId": 3,
     "nodePath": "0-3-1-1-0-0-0-2-0-1-0-0-0-0-0-0",
-    "nodeHashId": "5ead026c",
-    "locator": "[_midscene_retrieve_task_id='5ead026c']",
+    "nodeHashId": "5ead026c3c299bea",
+    "locator": "[_midscene_retrieve_task_id='5ead026c3c299bea']",
     "attributes": {
       "src": "image",
       "class": ".icon",
-      "nodeType": "IMG Node"
+      "nodeType": "IMG Node",
+      "htmlTagName": "<div>"
     },
     "nodeType": "IMG Node",
     "content": "",
@@ -137,24 +114,25 @@
     "screenHeight": 905
   },
   {
-    "id": "46a02084",
-    "indexId": 5,
+    "id": "813af406f15333a2",
+    "indexId": 4,
     "nodePath": "0-3-1-2-0-1-0-1-0-0-0-0-0-0",
-    "nodeHashId": "46a02084",
+    "nodeHashId": "813af406f15333a2",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
-      "nodeType": "TEXT Node"
+      "nodeType": "TEXT Node",
+      "htmlTagName": "<p>"
     },
     "center": [
-      166,
+      200,
       79
     ],
-    "content": "商家暂未开通外卖和自取业务",
+    "content": "Delivery and self pick-up not available",
     "rect": {
       "left": 75,
       "top": 69,
-      "width": 182,
+      "width": 250,
       "height": 20,
       "zoom": 1
     },
@@ -163,50 +141,25 @@
     "screenHeight": 905
   },
   {
-    "id": "a2ccdbb6",
-    "indexId": 6,
-    "nodePath": "0-3-1-2-0-1-0-1-0-0-0-1-0-0",
-    "nodeHashId": "a2ccdbb6",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node"
-    },
-    "center": [
-      153,
-      98
-    ],
-    "content": "喜茶 HEYTEA (Vivocity)",
-    "rect": {
-      "left": 22,
-      "top": 81,
-      "width": 261,
-      "height": 34,
-      "zoom": 1
-    },
-    "zoom": 1,
-    "screenWidth": 400,
-    "screenHeight": 905
-  },
-  {
-    "id": "0f3ef6d5",
-    "indexId": 7,
+    "id": "6e03f7bf27427c16",
+    "indexId": 5,
     "nodePath": "0-3-1-2-0-1-0-1-0-0-0-1-2-0",
-    "nodeHashId": "0f3ef6d5",
+    "nodeHashId": "6e03f7bf27427c16",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
-      "nodeType": "TEXT Node"
+      "nodeType": "TEXT Node",
+      "htmlTagName": "<span>"
     },
     "center": [
-      97,
+      178,
       133
     ],
-    "content": "全岛派送，起送价 S$ 11",
+    "content": "Islandwide Delivery, Minimum Spending of S$ 11",
     "rect": {
       "left": 22,
       "top": 123,
-      "width": 150,
+      "width": 312,
       "height": 20,
       "zoom": 1
     },
@@ -215,14 +168,15 @@
     "screenHeight": 905
   },
   {
-    "id": "21aec2e4",
-    "indexId": 8,
+    "id": "21aec2e4e31dbf97",
+    "indexId": 6,
     "nodePath": "0-3-1-2-0-1-0-1-0-3-0",
-    "nodeHashId": "21aec2e4",
-    "locator": "[_midscene_retrieve_task_id='21aec2e4']",
+    "nodeHashId": "21aec2e4e31dbf97",
+    "locator": "[_midscene_retrieve_task_id='21aec2e4e31dbf97']",
     "attributes": {
       "src": "https://dec-pub-img.obs.ap-southeast-3.myhuaweiclo...",
-      "nodeType": "IMG Node"
+      "nodeType": "IMG Node",
+      "htmlTagName": "<div>"
     },
     "nodeType": "IMG Node",
     "content": "",
@@ -242,25 +196,26 @@
     "screenHeight": 905
   },
   {
-    "id": "9885b955",
-    "indexId": 9,
+    "id": "2ebe0fdc21796f25",
+    "indexId": 7,
     "nodePath": "0-3-1-2-0-1-0-1-0-3-2-0",
-    "nodeHashId": "9885b955",
+    "nodeHashId": "2ebe0fdc21796f25",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
-      "nodeType": "TEXT Node"
+      "nodeType": "TEXT Node",
+      "htmlTagName": "<p>"
     },
     "center": [
-      152,
-      482
+      181,
+      472
     ],
-    "content": "喜茶为芝士现泡茶的原创者。自创立以来，喜茶专注于呈现来自世界各地的优质茶香， 让茶饮这一古老文化焕发出新的生命力。",
+    "content": "HEYTEA Singapore. The original cheezo tea 2012, fostering joy & inspiration with every sip.",
     "rect": {
       "left": 16,
       "top": 451,
-      "width": 271,
-      "height": 62,
+      "width": 330,
+      "height": 41,
       "zoom": 1
     },
     "zoom": 1,
@@ -268,24 +223,25 @@
     "screenHeight": 905
   },
   {
-    "id": "bf999c5b",
-    "indexId": 10,
+    "id": "59aa66133796f7bd",
+    "indexId": 8,
     "nodePath": "0-3-1-2-0-1-0-1-0-6-0-0-0-0-0",
-    "nodeHashId": "bf999c5b",
+    "nodeHashId": "59aa66133796f7bd",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
-      "nodeType": "TEXT Node"
+      "nodeType": "TEXT Node",
+      "htmlTagName": "<span>"
     },
     "center": [
-      128,
-      569
+      95,
+      548
     ],
-    "content": "菜单",
+    "content": "Menu",
     "rect": {
-      "left": 112,
-      "top": 557,
-      "width": 32,
+      "left": 74,
+      "top": 536,
+      "width": 41,
       "height": 23,
       "zoom": 1
     },
@@ -294,50 +250,52 @@
     "screenHeight": 905
   },
   {
-    "id": "a3fb45c4",
+    "id": "4cde047567f25f65",
     "nodePath": "0-3-1-2-0-1-0-1-0-6-0-0-0-1",
-    "nodeHashId": "a3fb45c4",
-    "indexId": 11,
+    "nodeHashId": "4cde047567f25f65",
+    "indexId": 9,
     "nodeType": "CONTAINER Node",
-    "locator": "[_midscene_retrieve_task_id='a3fb45c4']",
+    "locator": "[_midscene_retrieve_task_id='4cde047567f25f65']",
     "attributes": {
-      "nodeType": "CONTAINER Node"
+      "nodeType": "CONTAINER Node",
+      "htmlTagName": "<div>"
     },
     "content": "",
     "rect": {
-      "left": 112,
-      "top": 589,
-      "width": 32,
+      "left": 74,
+      "top": 568,
+      "width": 41,
       "height": 4,
       "zoom": 1
     },
     "center": [
-      128,
-      591
+      95,
+      570
     ],
     "zoom": 1,
     "screenWidth": 400,
     "screenHeight": 905
   },
   {
-    "id": "c32ddf31",
-    "indexId": 12,
+    "id": "bdd35ca4d7e40ff2",
+    "indexId": 10,
     "nodePath": "0-3-1-2-0-1-0-1-0-6-0-0-1-0-0",
-    "nodeHashId": "c32ddf31",
+    "nodeHashId": "bdd35ca4d7e40ff2",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
-      "nodeType": "TEXT Node"
+      "nodeType": "TEXT Node",
+      "htmlTagName": "<span>"
     },
     "center": [
-      200,
-      569
+      186,
+      548
     ],
-    "content": "评价",
+    "content": "Reviews",
     "rect": {
-      "left": 184,
-      "top": 557,
-      "width": 32,
+      "left": 155,
+      "top": 536,
+      "width": 61,
       "height": 23,
       "zoom": 1
     },
@@ -346,24 +304,25 @@
     "screenHeight": 905
   },
   {
-    "id": "fc12c178",
-    "indexId": 13,
+    "id": "bede832758500126",
+    "indexId": 11,
     "nodePath": "0-3-1-2-0-1-0-1-0-6-0-0-2-0-0",
-    "nodeHashId": "fc12c178",
+    "nodeHashId": "bede832758500126",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
-      "nodeType": "TEXT Node"
+      "nodeType": "TEXT Node",
+      "htmlTagName": "<span>"
     },
     "center": [
-      272,
-      569
+      291,
+      548
     ],
-    "content": "商家",
+    "content": "Merchant",
     "rect": {
       "left": 256,
-      "top": 557,
-      "width": 32,
+      "top": 536,
+      "width": 70,
       "height": 23,
       "zoom": 1
     },
@@ -372,24 +331,25 @@
     "screenHeight": 905
   },
   {
-    "id": "73658dec",
-    "indexId": 14,
+    "id": "29bf95db7e24be28",
+    "indexId": 12,
     "nodePath": "0-3-1-2-0-1-0-1-0-6-1-0-0-1-0-0",
-    "nodeHashId": "73658dec",
+    "nodeHashId": "29bf95db7e24be28",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
-      "nodeType": "TEXT Node"
+      "nodeType": "TEXT Node",
+      "htmlTagName": "<span>"
     },
     "center": [
-      29,
-      624
+      37,
+      603
     ],
-    "content": "时令鲜果",
+    "content": "IN SEASON",
     "rect": {
       "left": 5,
-      "top": 615,
-      "width": 48,
+      "top": 594,
+      "width": 64,
       "height": 17,
       "zoom": 1
     },
@@ -398,25 +358,26 @@
     "screenHeight": 905
   },
   {
-    "id": "6d14cb95",
-    "indexId": 15,
+    "id": "2fa4d66dd5e7b03a",
+    "indexId": 13,
     "nodePath": "0-3-1-2-0-1-0-1-0-6-1-0-0-2-0-0",
-    "nodeHashId": "6d14cb95",
+    "nodeHashId": "2fa4d66dd5e7b03a",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
-      "nodeType": "TEXT Node"
+      "nodeType": "TEXT Node",
+      "htmlTagName": "<span>"
     },
     "center": [
-      35,
-      684
+      43,
+      663
     ],
-    "content": "清爽不喝腻",
+    "content": "REFRESHING DRINKS",
     "rect": {
       "left": 5,
-      "top": 675,
-      "width": 60,
-      "height": 17,
+      "top": 645,
+      "width": 75,
+      "height": 35,
       "zoom": 1
     },
     "zoom": 1,
@@ -424,25 +385,53 @@
     "screenHeight": 905
   },
   {
-    "id": "90cd1b15",
-    "indexId": 16,
+    "id": "b8cdf2af3eca52e2",
+    "indexId": 14,
     "nodePath": "0-3-1-2-0-1-0-1-0-6-1-0-0-3-0-0",
-    "nodeHashId": "90cd1b15",
+    "nodeHashId": "b8cdf2af3eca52e2",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
-      "nodeType": "TEXT Node"
+      "nodeType": "TEXT Node",
+      "htmlTagName": "<span>"
+    },
+    "center": [
+      39,
+      723
+    ],
+    "content": "SIGNATURE DRINKS",
+    "rect": {
+      "left": 5,
+      "top": 705,
+      "width": 68,
+      "height": 35,
+      "zoom": 1
+    },
+    "zoom": 1,
+    "screenWidth": 400,
+    "screenHeight": 905
+  },
+  {
+    "id": "a83bc5f64e152389",
+    "indexId": 15,
+    "nodePath": "0-3-1-2-0-1-0-1-0-6-1-0-0-4-0-0",
+    "nodeHashId": "a83bc5f64e152389",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node",
+      "htmlTagName": "<span>"
     },
     "center": [
       35,
-      744
+      783
     ],
-    "content": "经典不踩雷",
+    "content": "COMFORT DRINKS",
     "rect": {
       "left": 5,
-      "top": 735,
+      "top": 765,
       "width": 60,
-      "height": 17,
+      "height": 35,
       "zoom": 1
     },
     "zoom": 1,
@@ -450,51 +439,26 @@
     "screenHeight": 905
   },
   {
-    "id": "53059976",
-    "indexId": 17,
-    "nodePath": "0-3-1-2-0-1-0-1-0-6-1-0-0-4-0-0",
-    "nodeHashId": "53059976",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node"
-    },
-    "center": [
-      23,
-      804
-    ],
-    "content": "要浓郁",
-    "rect": {
-      "left": 5,
-      "top": 795,
-      "width": 36,
-      "height": 17,
-      "zoom": 1
-    },
-    "zoom": 1,
-    "screenWidth": 400,
-    "screenHeight": 905
-  },
-  {
-    "id": "be311fe8",
-    "indexId": 18,
+    "id": "2a1b7820c0d29126",
+    "indexId": 16,
     "nodePath": "0-3-1-2-0-1-0-1-0-6-1-0-0-5-0-0",
-    "nodeHashId": "be311fe8",
+    "nodeHashId": "2a1b7820c0d29126",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
-      "nodeType": "TEXT Node"
+      "nodeType": "TEXT Node",
+      "htmlTagName": "<span>"
     },
     "center": [
-      23,
-      864
+      34,
+      843
     ],
-    "content": "要简单",
+    "content": "SIMPLE CLASSICS",
     "rect": {
       "left": 5,
-      "top": 855,
-      "width": 36,
-      "height": 17,
+      "top": 825,
+      "width": 58,
+      "height": 35,
       "zoom": 1
     },
     "zoom": 1,
@@ -502,24 +466,25 @@
     "screenHeight": 905
   },
   {
-    "id": "173e85db",
-    "indexId": 19,
+    "id": "a2cf65747f059ce1",
+    "indexId": 17,
     "nodePath": "0-3-1-2-0-1-0-1-0-6-1-1-1-0-0-0",
-    "nodeHashId": "173e85db",
+    "nodeHashId": "a2cf65747f059ce1",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
-      "nodeType": "TEXT Node"
+      "nodeType": "TEXT Node",
+      "htmlTagName": "<span>"
     },
     "center": [
-      126,
-      633
+      136,
+      612
     ],
-    "content": "时令鲜果 (1)",
+    "content": "IN SEASON (1)",
     "rect": {
       "left": 88,
-      "top": 623,
-      "width": 76,
+      "top": 602,
+      "width": 96,
       "height": 20,
       "zoom": 1
     },
@@ -528,53 +493,55 @@
     "screenHeight": 905
   },
   {
-    "id": "6e7c2409",
-    "indexId": 20,
+    "id": "1a676600eee0dc52",
+    "indexId": 18,
     "nodePath": "0-3-1-2-0-1-0-1-0-6-1-1-1-1-0-0",
-    "nodeHashId": "6e7c2409",
-    "locator": "[_midscene_retrieve_task_id='6e7c2409']",
+    "nodeHashId": "1a676600eee0dc52",
+    "locator": "[_midscene_retrieve_task_id='1a676600eee0dc52']",
     "attributes": {
       "src": "https://dec-pub-img.obs.ap-southeast-3.myhuaweiclo...",
       "class": ".img",
-      "nodeType": "IMG Node"
+      "nodeType": "IMG Node",
+      "htmlTagName": "<div>"
     },
     "nodeType": "IMG Node",
     "content": "",
     "rect": {
       "left": 88,
-      "top": 659,
+      "top": 638,
       "width": 90,
       "height": 90,
       "zoom": 1
     },
     "center": [
       133,
-      704
+      683
     ],
     "zoom": 1,
     "screenWidth": 400,
     "screenHeight": 905
   },
   {
-    "id": "be66e2a2",
-    "indexId": 21,
+    "id": "9ddff4599ab2f0ae",
+    "indexId": 19,
     "nodePath": "0-3-1-2-0-1-0-1-0-6-1-1-1-1-0-1-0-0-1",
-    "nodeHashId": "be66e2a2",
+    "nodeHashId": "9ddff4599ab2f0ae",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
-      "nodeType": "TEXT Node"
+      "nodeType": "TEXT Node",
+      "htmlTagName": "<h2>"
     },
     "center": [
-      244,
-      670
+      258,
+      660
     ],
-    "content": "多肉大橘（首创）",
+    "content": "Very Tangerine Blast (Original)",
     "rect": {
       "left": 188,
-      "top": 660,
-      "width": 112,
-      "height": 20,
+      "top": 639,
+      "width": 139,
+      "height": 41,
       "zoom": 1
     },
     "zoom": 1,
@@ -582,75 +549,24 @@
     "screenHeight": 905
   },
   {
-    "id": "6c8a4c8c",
-    "indexId": 22,
-    "nodePath": "0-3-1-2-0-1-0-1-0-6-1-1-1-1-0-1-0-1-0",
-    "nodeHashId": "6c8a4c8c",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node"
-    },
-    "center": [
-      719,
-      691
-    ],
-    "content": "果肉丰盈，粒粒饱满多汁；精心调配果汁与绿妍茶底的比例打制成冰沙；搭配清甜的无香精桂花冻与Q谈脆波波，再用香水柠檬片作点缀，口感丰富，香气有层次。默认标准杯500ml，可根据个人喜好选择加大杯650ml。",
-    "rect": {
-      "left": 188,
-      "top": 683,
-      "width": 1062,
-      "height": 15,
-      "zoom": 1
-    },
-    "zoom": 1,
-    "screenWidth": 400,
-    "screenHeight": 905
-  },
-  {
-    "id": "ca759d64",
-    "indexId": 23,
-    "nodePath": "0-3-1-2-0-1-0-1-0-6-1-1-1-1-0-1-1-0-0-0",
-    "nodeHashId": "ca759d64",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node"
-    },
-    "center": [
-      194,
-      739
-    ],
-    "content": "S$",
-    "rect": {
-      "left": 188,
-      "top": 732,
-      "width": 12,
-      "height": 14,
-      "zoom": 1
-    },
-    "zoom": 1,
-    "screenWidth": 400,
-    "screenHeight": 905
-  },
-  {
-    "id": "eadd4594",
-    "indexId": 24,
+    "id": "498ec7eda6cf360a",
+    "indexId": 20,
     "nodePath": "0-3-1-2-0-1-0-1-0-6-1-1-1-1-0-1-1-0-1-0",
-    "nodeHashId": "eadd4594",
+    "nodeHashId": "498ec7eda6cf360a",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
-      "nodeType": "TEXT Node"
+      "nodeType": "TEXT Node",
+      "htmlTagName": "<span>"
     },
     "center": [
-      223,
-      736
+      211,
+      734
     ],
     "content": "6.82",
     "rect": {
-      "left": 204,
-      "top": 723,
+      "left": 192,
+      "top": 721,
       "width": 37,
       "height": 25,
       "zoom": 1
@@ -660,24 +576,25 @@
     "screenHeight": 905
   },
   {
-    "id": "9e5b85f0",
-    "indexId": 25,
+    "id": "529233febf0a8c82",
+    "indexId": 21,
     "nodePath": "0-3-1-2-0-1-0-1-0-6-1-1-1-1-0-1-1-1-0-0",
-    "nodeHashId": "9e5b85f0",
+    "nodeHashId": "529233febf0a8c82",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
-      "nodeType": "TEXT Node"
+      "nodeType": "TEXT Node",
+      "htmlTagName": "<div>"
     },
     "center": [
-      355,
-      732
+      344,
+      730
     ],
-    "content": "选规格",
+    "content": "Select Option",
     "rect": {
-      "left": 337,
-      "top": 723,
-      "width": 36,
+      "left": 306,
+      "top": 721,
+      "width": 76,
       "height": 17,
       "zoom": 1
     },
@@ -686,24 +603,25 @@
     "screenHeight": 905
   },
   {
-    "id": "6a94f894",
-    "indexId": 26,
+    "id": "e231feac17403c26",
+    "indexId": 22,
     "nodePath": "0-3-1-2-0-1-0-1-0-6-1-1-2-0-0-0",
-    "nodeHashId": "6a94f894",
+    "nodeHashId": "e231feac17403c26",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
-      "nodeType": "TEXT Node"
+      "nodeType": "TEXT Node",
+      "htmlTagName": "<span>"
     },
     "center": [
-      134,
-      776
+      173,
+      773
     ],
-    "content": "清爽不喝腻 (5)",
+    "content": "REFRESHING DRINKS (5)",
     "rect": {
       "left": 88,
-      "top": 766,
-      "width": 92,
+      "top": 763,
+      "width": 169,
       "height": 20,
       "zoom": 1
     },
@@ -712,52 +630,54 @@
     "screenHeight": 905
   },
   {
-    "id": "73b0f240",
-    "indexId": 27,
+    "id": "3c295badf343cbb2",
+    "indexId": 23,
     "nodePath": "0-3-1-2-0-1-0-1-0-6-1-1-2-1-0-0",
-    "nodeHashId": "73b0f240",
-    "locator": "[_midscene_retrieve_task_id='73b0f240']",
+    "nodeHashId": "3c295badf343cbb2",
+    "locator": "[_midscene_retrieve_task_id='3c295badf343cbb2']",
     "attributes": {
       "src": "https://dec-pub-img.obs.ap-southeast-3.myhuaweiclo...",
       "class": ".img",
-      "nodeType": "IMG Node"
+      "nodeType": "IMG Node",
+      "htmlTagName": "<div>"
     },
     "nodeType": "IMG Node",
     "content": "",
     "rect": {
       "left": 88,
-      "top": 802,
+      "top": 800,
       "width": 90,
       "height": 90,
       "zoom": 1
     },
     "center": [
       133,
-      847
+      845
     ],
     "zoom": 1,
     "screenWidth": 400,
     "screenHeight": 905
   },
   {
-    "id": "e1e47a90",
-    "indexId": 28,
+    "id": "a02dc6ae7eb9ff39",
+    "indexId": 24,
     "nodePath": "0-3-1-2-0-1-0-1-0-6-1-1-2-1-0-1-0-0-1",
-    "nodeHashId": "e1e47a90",
+    "nodeHashId": "a02dc6ae7eb9ff39",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
-      "nodeType": "TEXT Node"
+      "nodeType": "TEXT Node",
+      "htmlTagName": "<h2>"
     },
     "center": [
-      223,
-      813
+      266,
+      810
     ],
-    "content": "轻芒芒甘露",
+    "content": "Mango Grapefruit Pops",
     "rect": {
       "left": 188,
-      "top": 803,
-      "width": 70,
+      "top": 800,
+      "width": 156,
       "height": 20,
       "zoom": 1
     },
@@ -766,75 +686,24 @@
     "screenHeight": 905
   },
   {
-    "id": "6fe1c918",
-    "indexId": 29,
-    "nodePath": "0-3-1-2-0-1-0-1-0-6-1-1-2-1-0-1-0-1-0",
-    "nodeHashId": "6fe1c918",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node"
-    },
-    "center": [
-      610,
-      834
-    ],
-    "content": "更清爽的芒芒甘露，芒着清爽，芒着解腻。当季芒果，新鲜手切，香甜浓郁；加入红柚果粒与Q弹的脆波波，轻盈不轻量。清爽的芒果绿妍冰沙平衡椰浆的比例，清爽不简单。",
-    "rect": {
-      "left": 188,
-      "top": 826,
-      "width": 844,
-      "height": 15,
-      "zoom": 1
-    },
-    "zoom": 1,
-    "screenWidth": 400,
-    "screenHeight": 905
-  },
-  {
-    "id": "2de9aae1",
-    "indexId": 30,
-    "nodePath": "0-3-1-2-0-1-0-1-0-6-1-1-2-1-0-1-1-0-0-0",
-    "nodeHashId": "2de9aae1",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node"
-    },
-    "center": [
-      194,
-      882
-    ],
-    "content": "S$",
-    "rect": {
-      "left": 188,
-      "top": 875,
-      "width": 12,
-      "height": 14,
-      "zoom": 1
-    },
-    "zoom": 1,
-    "screenWidth": 400,
-    "screenHeight": 905
-  },
-  {
-    "id": "8f3f6185",
-    "indexId": 31,
+    "id": "0427bd28219217d4",
+    "indexId": 25,
     "nodePath": "0-3-1-2-0-1-0-1-0-6-1-1-2-1-0-1-1-0-1-0",
-    "nodeHashId": "8f3f6185",
+    "nodeHashId": "0427bd28219217d4",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
-      "nodeType": "TEXT Node"
+      "nodeType": "TEXT Node",
+      "htmlTagName": "<span>"
     },
     "center": [
-      223,
-      879
+      211,
+      877
     ],
     "content": "6.54",
     "rect": {
-      "left": 204,
-      "top": 866,
+      "left": 192,
+      "top": 864,
       "width": 37,
       "height": 25,
       "zoom": 1
@@ -844,24 +713,25 @@
     "screenHeight": 905
   },
   {
-    "id": "ee2e067c",
-    "indexId": 32,
+    "id": "b3e12c94b31bb094",
+    "indexId": 26,
     "nodePath": "0-3-1-2-0-1-0-1-0-6-1-1-2-1-0-1-1-1-0-0",
-    "nodeHashId": "ee2e067c",
+    "nodeHashId": "b3e12c94b31bb094",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
-      "nodeType": "TEXT Node"
+      "nodeType": "TEXT Node",
+      "htmlTagName": "<div>"
     },
     "center": [
-      355,
-      875
+      344,
+      873
     ],
-    "content": "选规格",
+    "content": "Select Option",
     "rect": {
-      "left": 337,
-      "top": 866,
-      "width": 36,
+      "left": 306,
+      "top": 864,
+      "width": 76,
       "height": 17,
       "zoom": 1
     },
@@ -870,14 +740,15 @@
     "screenHeight": 905
   },
   {
-    "id": "b82bdf3a",
-    "indexId": 33,
+    "id": "b82bdf3ac4b0e2aa",
+    "indexId": 27,
     "nodePath": "0-3-1-2-3-0",
-    "nodeHashId": "b82bdf3a",
-    "locator": "[_midscene_retrieve_task_id='b82bdf3a']",
+    "nodeHashId": "b82bdf3ac4b0e2aa",
+    "locator": "[_midscene_retrieve_task_id='b82bdf3ac4b0e2aa']",
     "attributes": {
       "src": "/img/customer.8a8d9dc9.png",
-      "nodeType": "IMG Node"
+      "nodeType": "IMG Node",
+      "htmlTagName": "<div>"
     },
     "nodeType": "IMG Node",
     "content": "",
