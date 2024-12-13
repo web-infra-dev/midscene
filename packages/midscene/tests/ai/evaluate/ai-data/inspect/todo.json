@@ -12,11 +12,21 @@
       ]
     },
     {
+      "prompt": "Input 'Study Rust tomorrow' in the task box input and press the Enter key ",
+      "multi": false,
+      "response": [
+        {
+          "id": "fbc2d0029b7a9037",
+          "indexId": 1
+        }
+      ]
+    },
+    {
       "prompt": "任务列表中的第二项名称",
       "multi": false,
       "response": [
         {
-          "id": "14b20d09632977fb",
+          "id": "dd1b5a5792d39a54",
           "indexId": 7
         }
       ]

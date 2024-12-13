@@ -7,7 +7,8 @@
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
-      "nodeType": "TEXT Node"
+      "nodeType": "TEXT Node",
+      "htmlTagName": "h1"
     },
     "center": [
       640,
@@ -65,7 +66,8 @@
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
-      "nodeType": "TEXT Node"
+      "nodeType": "TEXT Node",
+      "htmlTagName": "label"
     },
     "center": [
       960,
@@ -144,27 +146,29 @@
     "screenHeight": 720
   },
   {
-    "id": "c1fb39ce9a84bef9",
+    "id": "6baafaffbd3eb3ec",
+    "nodePath": "0-0-1-1-0-0-1",
+    "nodeHashId": "6baafaffbd3eb3ec",
+    "locator": "[_midscene_retrieve_task_id='6baafaffbd3eb3ec']",
+    "nodeType": "FORM_ITEM Node",
     "indexId": 5,
-    "nodePath": "0-0-1-1-0-0-1-0",
-    "nodeHashId": "c1fb39ce9a84bef9",
-    "nodeType": "TEXT Node",
-    "locator": "",
     "attributes": {
-      "nodeType": "TEXT Node"
+      "data-testid": "todo-item-label",
+      "htmlTagName": "<label>",
+      "nodeType": "FORM_ITEM Node"
     },
-    "center": [
-      497,
-      225
-    ],
     "content": "Learn Python",
     "rect": {
-      "left": 425,
-      "top": 211,
-      "width": 143,
-      "height": 28,
+      "left": 365,
+      "top": 196,
+      "width": 550,
+      "height": 59,
       "zoom": 1
     },
+    "center": [
+      640,
+      226
+    ],
     "zoom": 1,
     "screenWidth": 1280,
     "screenHeight": 720
@@ -200,27 +204,29 @@
     "screenHeight": 720
   },
   {
-    "id": "14b20d09632977fb",
+    "id": "dd1b5a5792d39a54",
+    "nodePath": "0-0-1-1-1-0-1",
+    "nodeHashId": "dd1b5a5792d39a54",
+    "locator": "[_midscene_retrieve_task_id='dd1b5a5792d39a54']",
+    "nodeType": "FORM_ITEM Node",
     "indexId": 7,
-    "nodePath": "0-0-1-1-1-0-1-0",
-    "nodeHashId": "14b20d09632977fb",
-    "nodeType": "TEXT Node",
-    "locator": "",
     "attributes": {
-      "nodeType": "TEXT Node"
+      "data-testid": "todo-item-label",
+      "htmlTagName": "<label>",
+      "nodeType": "FORM_ITEM Node"
     },
-    "center": [
-      484,
-      285
-    ],
     "content": "Learn Rust",
     "rect": {
-      "left": 425,
-      "top": 271,
-      "width": 117,
-      "height": 28,
+      "left": 365,
+      "top": 256,
+      "width": 550,
+      "height": 59,
       "zoom": 1
     },
+    "center": [
+      640,
+      286
+    ],
     "zoom": 1,
     "screenWidth": 1280,
     "screenHeight": 720
@@ -235,6 +241,7 @@
     "attributes": {
       "class": ".destroy",
       "data-testid": "todo-item-button",
+      "htmlTagName": "button",
       "nodeType": "BUTTON Node"
     },
     "content": "×",
@@ -284,27 +291,29 @@
     "screenHeight": 720
   },
   {
-    "id": "3277d35f7c939507",
+    "id": "93a83d3ed5ab442d",
+    "nodePath": "0-0-1-1-2-0-1",
+    "nodeHashId": "93a83d3ed5ab442d",
+    "locator": "[_midscene_retrieve_task_id='93a83d3ed5ab442d']",
+    "nodeType": "FORM_ITEM Node",
     "indexId": 10,
-    "nodePath": "0-0-1-1-2-0-1-0",
-    "nodeHashId": "3277d35f7c939507",
-    "nodeType": "TEXT Node",
-    "locator": "",
     "attributes": {
-      "nodeType": "TEXT Node"
+      "data-testid": "todo-item-label",
+      "htmlTagName": "<label>",
+      "nodeType": "FORM_ITEM Node"
     },
-    "center": [
-      470,
-      345
-    ],
     "content": "Learn AI",
     "rect": {
-      "left": 425,
-      "top": 331,
-      "width": 89,
-      "height": 28,
+      "left": 365,
+      "top": 316,
+      "width": 550,
+      "height": 59,
       "zoom": 1
     },
+    "center": [
+      640,
+      346
+    ],
     "zoom": 1,
     "screenWidth": 1280,
     "screenHeight": 720
@@ -317,7 +326,8 @@
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
-      "nodeType": "TEXT Node"
+      "nodeType": "TEXT Node",
+      "htmlTagName": "a"
     },
     "center": [
       565,
@@ -343,7 +353,8 @@
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
-      "nodeType": "TEXT Node"
+      "nodeType": "TEXT Node",
+      "htmlTagName": "a"
     },
     "center": [
       613,
@@ -369,7 +380,8 @@
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
-      "nodeType": "TEXT Node"
+      "nodeType": "TEXT Node",
+      "htmlTagName": "a"
     },
     "center": [
       688,
@@ -396,6 +408,7 @@
     "locator": "[_midscene_retrieve_task_id='69e78b5a71b57768']",
     "attributes": {
       "class": ".clear-completed",
+      "htmlTagName": "button",
       "nodeType": "BUTTON Node"
     },
     "content": "Clear completed",
@@ -422,7 +435,8 @@
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
-      "nodeType": "TEXT Node"
+      "nodeType": "TEXT Node",
+      "htmlTagName": "p"
     },
     "center": [
       640,
@@ -448,7 +462,8 @@
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
-      "nodeType": "TEXT Node"
+      "nodeType": "TEXT Node",
+      "htmlTagName": "p"
     },
     "center": [
       640,
@@ -474,7 +489,8 @@
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
-      "nodeType": "TEXT Node"
+      "nodeType": "TEXT Node",
+      "htmlTagName": "p"
     },
     "center": [
       616,
@@ -500,7 +516,8 @@
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
-      "nodeType": "TEXT Node"
+      "nodeType": "TEXT Node",
+      "htmlTagName": "a"
     },
     "center": [
       656,

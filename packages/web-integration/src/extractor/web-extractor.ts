@@ -33,6 +33,19 @@ interface WebElementInfo extends ElementInfo {
 
 let indexId = 0;
 
+function tagNameOfNode(node: Node): string {
+  if (node instanceof HTMLElement) {
+    return node.tagName.toLowerCase();
+  }
+
+  const parentElement = node.parentElement;
+  if (parentElement && parentElement instanceof HTMLElement) {
+    return parentElement.tagName.toLowerCase();
+  }
+
+  return '';
+}
+
 function collectElementInfo(
   node: Node,
   nodePath: string,
@@ -111,6 +124,7 @@ function collectElementInfo(
       locator: selector,
       attributes: {
         ...attributes,
+        htmlTagName: tagNameOfNode(node),
         nodeType: NodeType.BUTTON,
       },
       content,
@@ -144,6 +158,7 @@ function collectElementInfo(
             }
           : {}),
         nodeType: NodeType.IMG,
+        htmlTagName: tagNameOfNode(node),
       },
       nodeType: NodeType.IMG,
       content: '',
@@ -181,6 +196,7 @@ function collectElementInfo(
       attributes: {
         ...attributes,
         nodeType: NodeType.TEXT,
+        htmlTagName: tagNameOfNode(node),
       },
       center: [
         Math.round(rect.left + rect.width / 2),
@@ -211,6 +227,7 @@ function collectElementInfo(
       attributes: {
         ...attributes,
         nodeType: NodeType.CONTAINER,
+        htmlTagName: tagNameOfNode(node),
       },
       content: '',
       rect,

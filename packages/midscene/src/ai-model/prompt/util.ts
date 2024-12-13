@@ -294,6 +294,7 @@ function cropFieldInformation(
   const elementInfosDescription: Array<Record<string, any>> = elementsInfo.map(
     (item) => {
       const { id, attributes = {}, rect, content } = item;
+      let htmlTagName = '';
       const tailorContent = truncateText(content, truncateTextLength);
       const tailorAttributes = Object.keys(attributes).reduce(
         (res, currentKey: string) => {
@@ -303,6 +304,10 @@ function cropFieldInformation(
             // when filterNonTextContent is true, we don't need to keep the nodeType since they are all TEXT
             if (!filterNonTextContent) {
               res[currentKey] = attributeVal.replace(/\sNode$/, '');
+            }
+          } else if (currentKey === 'htmlTagName') {
+            if (!['<span>', '<p>', '<div>'].includes(attributeVal)) {
+              htmlTagName = attributeVal;
             }
           } else {
             res[currentKey] = truncateText(attributeVal);
@@ -321,6 +326,7 @@ function cropFieldInformation(
         ...(Object.keys(tailorAttributes).length && !tailorContent
           ? { attributes: tailorAttributes }
           : {}),
+        ...(htmlTagName ? { htmlTagName } : {}),
         rect: {
           left: rect.left,
           top: rect.top,
