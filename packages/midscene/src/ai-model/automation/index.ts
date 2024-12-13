@@ -41,14 +41,14 @@ export async function plan(
   let taskBackgroundContext = '';
   if (opts.originalPrompt && opts.whatHaveDone) {
     taskBackgroundContext = `For your information, this is a task that some important person handed to you. Here is the original task description and what have been done after the previous actions:
-=====================================
-Original task description:
-${opts.originalPrompt}
-=====================================
-What have been done:
-${opts.whatHaveDone}
-=====================================
-`;
+  =====================================
+  Original task description:
+  ${opts.originalPrompt}
+  =====================================
+  What have been done:
+  ${opts.whatHaveDone}
+  =====================================
+  `;
   }
   const msgs: AIArgs = [
     { role: 'system', content: systemPrompt },

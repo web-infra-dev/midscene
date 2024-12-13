@@ -162,13 +162,15 @@ Requirements:
 
 Return format (strict JSON):
 {
+  "reason": "string", // Explanation of why this box number was chosen
+  "text": "string", // Place the target element in the text property if it is text, otherwise it is null
   "number": number,  // The identified box number
-  "reason": "string" // Explanation of why this box number was chosen
 }
 or
 {
+  "reason": "string", // Explanation of why no matching box could be found
+  "text": "string", // Place the target element in the text property if it is text, otherwise it is null
   "number": null,
-  "reason": "string" // Explanation of why no matching box could be found
 }
 `;
 }

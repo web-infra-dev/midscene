@@ -371,7 +371,7 @@ Reason:
 `;
 
 // const promptForMatchByTagNumber = `
-//                           ## Role:
+// ## Role:
 
 // You are a versatile professional in software UI design and testing. Your outstanding contributions will impact the user experience of billions of users.
 
@@ -379,6 +379,7 @@ Reason:
 
 // - Based on the page context information (screenshot and description) you get, decompose the task user asked into a series of actions.
 // - Actions are executed in the order listed in the list. After executing the actions, the task should be completed.
+// - Note that single and double quotation marks are not allowed in the json format(important)
 
 // Each action has a type and corresponding param. To be detailed:
 // * type: 'Locate', it means to locate one element
@@ -392,7 +393,7 @@ Reason:
 // * type: 'KeyboardPress',  press a key
 //   * param: { value: string },  the value to input or the key to press. Use （Enter, Shift, Control, Alt, Meta, ShiftLeft, ControlOrMeta, ControlOrMeta） to represent the key.
 // * type: 'Scroll'
-//   * param: { scrollType: 'scrollDownOneScreen' | 'scrollUpOneScreen' | 'scrollUntilBottom' | 'scrollUntilTop' }
+//   * param: { "scrollType": "scrollDownOneScreen" | "scrollUpOneScreen" | "scrollUntilBottom" | "scrollUntilTop" }
 // * type: 'Error'
 //   * param: { message: string }, the error message
 // * type: 'Sleep'
@@ -405,7 +406,9 @@ Reason:
 
 // ## Output JSON Format:
 
-// Be careful not to return comment content
+// Pay special attention to the use of single and double quotes to avoid json formatting errors
+
+// Do not use "wrap" in json string content, resulting in json parse
 
 // Please return the result in JSON format as follows:
 // {
@@ -413,7 +416,7 @@ Reason:
 //   "actions": [ // always return in Array
 //     {
 //       "thought": "find out the search bar",
-//       "type": "Locate", // type of action according to Object 1, like "Tap" 'Hover' ...
+//       "type": "Locate", // type of action according to Object 1, like 'tap' 'hover' ...
 //       "param": { //
 //         "prompt": "The search bar"
 //       }
@@ -440,9 +443,9 @@ Reason:
 //   "queryLanguage": "English",
 //   "actions":[
 //     {
-//       "thought": "Locate the language switch button with the text '中文'.",
+//       "thought": "Locate the language switch button with the text 中文.",
 //       "type": "Locate",
-//       "param": { "prompt": "The language switch button with the text '中文'" }
+//       "param": { "prompt": "The language switch button with the text 中文" }
 //     },
 //     {
 //       "thought": "Click the language switch button to open the language options.",
@@ -456,19 +459,23 @@ Reason:
 //     },
 //     {
 //       "thought": "Locate the 'English' option in the language menu.",
-//       "type": 'Locate',
+//       "type": "Locate",
 //       "param": { prompt: "The 'English' option in the language menu" }
 //     },
 //     {
 //       "thought": "Click the 'English' option to switch the language.",
 //       "type": "Tap",
 //       "param": null
+//     },
+//     {
+//       "thought": "scroll down one screen to view more options.",
+//       "type": "Scroll",
+//       "param": { "scrollType": "scrollDownOneScreen" }
 //     }
 //   ]
 // }
 // \`\`\`
-
-//                     `;
+// `;
 
 const promptForMatchByTagNumber = `
 ## 角色
@@ -479,16 +486,12 @@ const promptForMatchByTagNumber = `
 
 - 将用户要求的任务分解为一系列操作
 - 在需要时精确定位目标元素
-- 如果任务无法完成，给出进一步的计划
 
 ## 工作流程
 
 1. 接收用户的截图和指令
 2. 将用户的任务分解为一系列操作,并放在\`actions\`字段中。只能使用以下操作类型:Tap / Hover / Input / KeyboardPress / Scroll / Error / Sleep。请参考下面的"关于操作"部分。
 3. 在需要时精确定位目标元素,将定位信息放在\`locate\`字段中。
-4. 考虑所有操作完成后任务是否会完成
- - 如果是,将\`taskWillBeAccomplished\`设为true
- - 如果否,不要计划更多操作而是关闭数组。准备重新评估任务。一些有才能的人会处理这个。给他一个清晰的描述,说明已经完成了什么以及接下来要做什么。将你的新计划放在\`furtherPlan\`字段中。参考"如何组织\`taskWillBeAccomplished\`和\`furtherPlan\`字段"部分了解更多细节。
 
 ## 约束条件
 
@@ -504,20 +507,22 @@ const promptForMatchByTagNumber = `
 
 \`locate\`参数通常用在操作的\`param\`字段中,用于定位要执行操作的目标元素,它遵循以下方案:
 
-type LocateParam = {
-  prompt: string // 目标元素的精确描述,包括关键识别特征如文本内容、视觉外观或相对位置。例如:"右下角的蓝色'提交'按钮","带有'输入关键词'占位符的搜索输入框"
-} | null
-
 ### 支持的操作
 
 仅支持以下操作类型,不允许使用其他类型:
 
 - type: 'Tap', 点击定位的元素
-  * { locate: LocateParam, param: null }
+  * { locate: {
+    prompt: string // 目标元素的精确描述,包括关键识别特征如文本内容、视觉外观或相对位置。例如:"右下角的蓝色'提交'按钮","带有'输入关键词'占位符的搜索输入框"
+  }, param: null }
 - type: 'Hover', 将鼠标移到定位的元素上
-  * { locate: LocateParam, param: null }
+  * { locate: {
+    prompt: string // 目标元素的精确描述,包括关键识别特征如文本内容、视觉外观或相对位置。例如:"右下角的蓝色'提交'按钮","带有'输入关键词'占位符的搜索输入框"
+  }, param: null }
 - type: 'Input', 替换输入框中的值
-  * { locate: LocateParam, param: { value: string } }
+  * { locate: {
+    prompt: string // 目标元素的精确描述,包括关键识别特征如文本内容、视觉外观或相对位置。例如:"右下角的蓝色'提交'按钮","带有'输入关键词'占位符的搜索输入框"
+  }, param: { value: string } }
   * \`value\`是基于现有输入的最终所需输入值。无论需要什么修改,只需提供用于替换现有输入值的最终值。
 - type: 'KeyboardPress', 按下一个键
   * { param: { value: string } }
@@ -527,14 +532,6 @@ type LocateParam = {
   * { param: { message: string } }
 - type: 'Sleep'
   * { param: { timeMs: number } }
-
-## 如何组织\`taskWillBeAccomplished\`和\`furtherPlan\`字段?
-
-\`taskWillBeAccomplished\`是一个布尔字段,表示所有操作完成后任务是否会完成。
-
-\`furtherPlan\`在任务无法完成时使用。它遵循{ whatHaveDone: string, whatToDoNext: string }方案:
-- \`whatHaveDone\`: 一个字符串,描述在之前的操作后完成了什么。
-- \`whatToDoNext\`: 一个字符串,描述在之前的操作完成后接下来应该做什么。它应该是对要执行操作的简洁明了的描述。确保你不会遗漏用户要求的任何必要步骤。
 
 ## 输出JSON格式:
 
@@ -550,11 +547,6 @@ type LocateParam = {
       } | null
     }
   ],
-  "taskWillBeAccomplished": boolean,
-  "furtherPlan": {
-    "whatHaveDone": string,
-    "whatToDoNext": string
-  } | null,
   "error"?: string
 }
 
@@ -581,17 +573,14 @@ type LocateParam = {
       "thought": "定位语言菜单中的'English'选项。",
       "type": "Tap",
       "param": null,
-      "locate": null
+      "locate": {
+        "prompt": "语言菜单中的'English'选项"
+      }
     }
-  ],
-  "taskWillBeAccomplished": false,
-  "furtherPlan": {
-    "whatToDoNext": "在语言菜单中找到并点击'English'选项",
-    "whatHaveDone": "点击了语言切换按钮并等待1秒"
-  }
+  ]
 }
 
-## 示例 #2 : 当任务完成时,不要计划更多操作
+## 示例 #2 : 简单任务
 
 当用户要求"等待4秒"时,你应该输出:
 
@@ -602,12 +591,10 @@ type LocateParam = {
       "type": "Sleep",
       "param": { "timeMs": 4000 }
     }
-  ],
-  "taskWillBeAccomplished": true,
-  "furtherPlan": null
+  ]
 }
 
-## 错误案例 #1 : locate.prompt中的元素描述模糊; 当任务不会完成时缺少\`furtherPlan\`字段
+## 错误案例 #1 : locate.prompt中的元素描述模糊
 
 错误输出:
 {
@@ -624,16 +611,15 @@ type LocateParam = {
       "thought": "点击English选项",
       "type": "Tap",
       "param": null,
-      "locate": null
+      "locate": {
+        "prompt": "English"
+      }
     }
-  ],
-  "taskWillBeAccomplished": false,
-  "furtherPlan": null
+  ]
 }
 
 原因:
 * \`prompt\`太模糊,应该包含关键识别特征如文本内容、视觉外观或位置
-* 由于选项按钮在截图中没有显示,任务无法完成,所以需要一个\`furtherPlan\`字段。
 
 ## 错误案例 #2: 使用了不支持的操作类型
 
@@ -642,18 +628,18 @@ type LocateParam = {
   "actions":[
     {
       "thought": "双击登录按钮",
-      "type": "DoubleClick", 
+      "type": "DoubleClick",
       "param": null,
       "locate": {
         "prompt": "蓝色的登录按钮"
       }
     },
     {
-      "thought": "选择‘下单’选项",
-      "type": "SelectOption", 
+      "thought": "选择'下单'选项",
+      "type": "SelectOption",
       "param": null,
       "locate": {
-        "prompt": "‘下单’选项"
+        "prompt": "'下单'选项"
       }
     },
     {
@@ -667,8 +653,7 @@ type LocateParam = {
         "prompt": "验证滑块"
       }
     }
-  ],
-  "taskWillBeAccomplished": true
+  ]
 }
 
 原因:
