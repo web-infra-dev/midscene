@@ -14,7 +14,7 @@ test('inspect with quick answer', async () => {
     multi: false,
     targetElementDescription: 'never mind',
     quickAnswer: {
-      id: 'cdfaac34adc2088e',
+      id: context.content[0].id,
       reason: 'never mind',
       text: 'never mind',
     },
