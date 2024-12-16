@@ -2,6 +2,7 @@ import { sha256 } from 'js-sha256';
 import { extractTextWithPosition } from './web-extractor';
 
 // import { TEXT_MAX_SIZE } from './constants';
+const MAX_VALUE_LENGTH = 300;
 let debugMode = false;
 let frameId = 0;
 
@@ -396,9 +397,8 @@ export function getNodeAttributes(
       value = 'image';
     }
 
-    const maxLength = 50;
-    if (value.length > maxLength) {
-      value = `${value.slice(0, maxLength)}...`;
+    if (value.length > MAX_VALUE_LENGTH) {
+      value = `${value.slice(0, MAX_VALUE_LENGTH)}...`;
     }
     return [attr.name, value];
   });

@@ -16,7 +16,7 @@ describe(
       const { page, reset } = await launchPage(`file://${pagePath}`, {
         viewport: {
           width: 1080,
-          height: 2000,
+          height: 3000,
         },
       });
 

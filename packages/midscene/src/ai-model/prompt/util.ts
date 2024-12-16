@@ -171,7 +171,7 @@ export function describeElement(
     .join('\n');
 }
 
-export function truncateText(text: string, maxLength = 20) {
+export function truncateText(text: string, maxLength = 100) {
   if (text && text.length > maxLength) {
     return `${text.slice(0, maxLength)}...`;
   }
@@ -288,7 +288,7 @@ ${
 
 function cropFieldInformation(
   elementsInfo: BaseElement[],
-  truncateTextLength = 20,
+  truncateTextLength?: number,
   filterNonTextContent = false,
 ) {
   const elementInfosDescription: Array<Record<string, any>> = elementsInfo.map(

@@ -409,6 +409,22 @@ exports[`extractor > basic 1`] = `
   },
   {
     "attributes": {
+      "aria-label": "The phrase 'The quick brown fox jumps over the lazy dog' is a well-known English-language pangram, meaning it contains every letter of the alphabet at least once. This sentence has become a standard tool for various applications, particularly in typing practice, font display, and keyboard testing. T...",
+      "htmlTagName": "<body>",
+      "nodeType": "CONTAINER Node",
+      "style": "width: 100px; height: 100px; background-color: #ccc;",
+    },
+    "content": "",
+  },
+  {
+    "attributes": {
+      "htmlTagName": "<body>",
+      "nodeType": "TEXT Node",
+    },
+    "content": "phrase "The quick brown fox jumps over the lazy dog" is a well-known English-language pangram, meaning it contains every letter of the alphabet at least once. This sentence has become a standard tool for various applications, particularly     in typing practice, font display, and keyboard testing. The phrase has permeated popular culture and is referenced in various media, including literature and film. Its simplicity and utility have made it a staple in educational contexts and beyond.     For instance, it was famously used as the first message sent over the Moscow–Washington hotline in 19634.",
+  },
+  {
+    "attributes": {
       "aria-label": "Search",
       "class": ".btn",
       "htmlTagName": "<body>",
@@ -452,7 +468,7 @@ exports[`extractor > basic 1`] = `
     "attributes": {
       "htmlTagName": "<div>",
       "nodeType": "BUTTON Node",
-      "very-long-attr": "width: 100px; height: 100px; background-color: #cc...",
+      "very-long-attr": "width: 100px; height: 100px; background-color: #ccc;width: 100px; height: 100px; background-color: #ccc;width: 100px; height: 100px; background-color: #ccc;width: 100px; height: 100px; background-color: #ccc;",
     },
     "content": "long-style-content",
   },
@@ -493,7 +509,7 @@ exports[`extractor > basic 1`] = `
       "class": ".child-container-without-content-2-1",
       "htmlTagName": "<div>",
       "nodeType": "CONTAINER Node",
-      "style": "width: 100px; height: 100px; background-color: #cc...",
+      "style": "width: 100px; height: 100px; background-color: #ccc;",
     },
     "content": "",
   },
@@ -516,7 +532,7 @@ exports[`extractor > basic 1`] = `
       "class": ".child-container-4",
       "htmlTagName": "<div>",
       "nodeType": "CONTAINER Node",
-      "style": "width: 100px; height: 100px; background-color: #cc...",
+      "style": "width: 100px; height: 100px; background-color: #ccc;",
     },
     "content": "",
   },

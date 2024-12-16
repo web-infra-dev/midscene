@@ -30,7 +30,7 @@ export type AIArgs = [
 
 const liteContextConfig = {
   filterNonTextContent: true,
-  truncateTextLength: 100,
+  truncateTextLength: 200,
 };
 
 export function transformElementPositionToId(
