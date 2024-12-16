@@ -73,6 +73,8 @@ describe(
       const item2 = filterTargetElement(content2);
       expect(item2).toBeDefined();
       expect(item2?.id).toBe(item?.id);
+
+      await reset();
     });
 
     it('check screenshot size - 1x', async () => {
