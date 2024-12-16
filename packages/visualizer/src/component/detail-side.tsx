@@ -1,7 +1,9 @@
 /* eslint-disable max-lines */
 'use client';
 import './detail-side.less';
-import { paramStr, timeStr, typeStr } from '@/utils';
+import { timeStr } from '@/utils';
+import { paramStr, typeStr } from '@midscene/web/ui-utils';
+
 import { RadiusSettingOutlined } from '@ant-design/icons';
 import type {
   BaseElement,
@@ -372,7 +374,10 @@ const DetailSide = (): JSX.Element => {
           ? JSON.stringify(paramToShow, undefined, 2)
           : null;
 
-        const locateStr = item.locate ? JSON.stringify(item.locate) : null;
+        const locateStr =
+          item.type === 'Locate' && item.locate
+            ? JSON.stringify(item.locate)
+            : null;
 
         return {
           color: '#06B1AB',

@@ -18,7 +18,7 @@ const quickAnswerFormat = () => {
 
   const sample = matchByPosition
     ? '{"position": { x: 100, y: 200 }}'
-    : '{"id": "14562"}';
+    : '{"id": "c81c4e9a33"}';
 
   return {
     description,
@@ -35,23 +35,24 @@ You are a versatile professional in software UI automation. Your outstanding con
 ## Objective
 
 - Decompose the task user asked into a series of actions
-- Precisely locate the target element if needed
+- Locate the target element if possible
 - If the task cannot be accomplished, give a further plan.
 
 ## Workflow
 
 1. Receive the user's element description, screenshot, and instruction.
-2. Decompose the user's task into a sequence of actions, and place it in the \`actions\` field. There are different types of actions (Tap / Hover / Input / KeyboardPress / Scroll / Error / Sleep). Please refer to the "About the action" section below.
-3. Precisely locate the target element if needed, put the location info in the \`locate\` field.
-4. Consider whether a task will be accomplished after all the actions
+2. Decompose the user's task into a sequence of actions, and place it in the \`actions\` field. There are different types of actions (Tap / Hover / Input / KeyboardPress / Scroll / Error / Sleep). The "About the action" section below will give you more details.
+3. Precisely locate the target element if it's already shown in the screenshot, put the location info in the \`locate\` field of the action.
+4. If some target elements is not shown in the screenshot, consider the user's instruction is not feasible on this page. Follow the next steps.
+5. Consider whether the user's instruction will be accomplished after all the actions
  - If yes, set \`taskWillBeAccomplished\` to true
- - If no, don't plan more actions by closing the array. Get ready to reevaluate the task. Some talent people like you will handle this. Give him a clear description of what have been done and what to do next. Put your new plan in the \`furtherPlan\` field. Refer to the "How to compose the \`taskWillBeAccomplished\` and \`furtherPlan\` fields" section for more details.
+ - If no, don't plan more actions by closing the array. Get ready to reevaluate the task. Some talent people like you will handle this. Give him a clear description of what have been done and what to do next. Put your new plan in the \`furtherPlan\` field. The "How to compose the \`taskWillBeAccomplished\` and \`furtherPlan\` fields" section will give you more details.
 
 ## Constraints
 
 - All the actions you composed MUST be based on the page context information you get.
 - Trust the "What have been done" field about the task (if any), don't repeat actions in it.
-- If the page content is irrelevant to the task, put the error message in the \`error\` field.
+- If you cannot plan any actions at all, consider the page content is irrelevant to the task. Put the error message in the \`error\` field.
 
 ## About the \`actions\` field
 
@@ -60,9 +61,9 @@ You are a versatile professional in software UI automation. Your outstanding con
 The \`locate\` param is commonly used in the \`param\` field of the action, means to locate the target element to perform the action, it follows the following scheme:
 
 type LocateParam = {
-  "id": string, // the id of the element found. If its not on the page, locate should be null
+  "id": string, // the id of the element found. It should either be the id marked with a rectangle in the screenshot or the id described in the description.
   prompt?: string // the description of the element to find. It can only be omitted when locate is null.
-} | null
+} | null // If it's not on the page, the LocateParam should be null
 
 ### Supported actions
 
@@ -101,7 +102,7 @@ Please return the result in JSON format as follows:
       "type": "Tap",
       "param": null,
       "locate": {
-        {"id": "14562"},
+        {"id": "c81c4e9a33"},
         prompt: "the search bar"
       } | null,
     },
@@ -123,8 +124,9 @@ ${samplePageDescription}
 By viewing the page screenshot and description, you should consider this and output the JSON:
 
 * The main steps should be: tap the switch button, sleep, and tap the 'English' option 
-* The "English" option button is not shown in the page context now, the last action will have a \`null\` value in the \`locate\` field. 
-* The task cannot be accomplished (because we cannot find the "English" option), so a \`furtherPlan\` field is needed.
+* The language switch button is shown in the screenshot, but it's not marked with a rectangle. So we have to use the page description to find the element. By carefully checking the context information (coordinates, attributes, content, etc.), you can find the element.
+* The "English" option button is not shown in the screenshot now, it means it may only show after the previous actions are finished. So the last action will have a \`null\` value in the \`locate\` field. 
+* The task cannot be accomplished (because we cannot see the "English" option now), so a \`furtherPlan\` field is needed.
 
 \`\`\`json
 {
@@ -156,6 +158,7 @@ By viewing the page screenshot and description, you should consider this and out
     "whatHaveDone": "Click the language switch button and wait 1s" 
   }
 }
+\`\`\`
 
 ## Example #2 : When task is accomplished, don't plan more actions
 
@@ -201,8 +204,6 @@ Wrong output:
 Reason: 
 * The \`prompt\` is missing in the first 'Locate' action
 * Since the option button is not shown in the screenshot, the task cannot be accomplished, so a \`furtherPlan\` field is needed.
-
-\`\`\`
 `;
 }
 

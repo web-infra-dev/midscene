@@ -10,24 +10,24 @@
             font-family: Arial, sans-serif;
             margin: 20px;
         }
-
+        
         table {
             border-collapse: collapse;
             width: 50%;
             margin-top: 20px;
         }
-
+        
         th,
         td {
             border: 1px solid #000;
             padding: 8px;
             text-align: center;
         }
-
+        
         th {
             background-color: #f2f2f2;
         }
-
+        
         .child-container-5 {
             font-family: awesome-iconfont;
         }
@@ -90,15 +90,13 @@
         <h3>Form</h3>
         <label for="name">Name:</label>
         <input id="J_input" placeholder="Hello World This is Placeholder" />
-        <input id="J_input" placeholder="Hello World This is Placeholder"
-            value="Now I am a value, instead of placeholder" />
+        <input id="J_input" placeholder="Hello World This is Placeholder" value="Now I am a value, instead of placeholder" />
         <button>Click Me</button>
         <label>Shape</label>
         <input placeholder="You shouldn't see this placeholder." value="Rectangle" />
         <pre id="J_keyRecord"></pre>
         <textarea placeholder="this_is_a_textarea"></textarea>
-        <img src="https://lf3-static.bytednsdoc.com/obj/eden-cn/vhaeh7vhabf/midscene.png" width="2" height="2"
-            alt="small_img" />
+        <img src="https://lf3-static.bytednsdoc.com/obj/eden-cn/vhaeh7vhabf/midscene.png" width="2" height="2" alt="small_img" />
     </div>
 
     <!-- Global popup to test invisible -->
@@ -148,16 +146,13 @@
     <!-- a label with sibiling input -->
     <div id="gh-ac-box2">
         <label for="gh-ac" class="gh-ar-hdn">输入搜索关键词</label>
-        <input type="text" class="gh-tb ui-autocomplete-input" aria-autocomplete="list" aria-expanded="false" size="50"
-            maxlength="300" aria-label="搜索任何物品" placeholder="搜索任何物品" id="gh-ac" name="_nkw" autocapitalize="off"
-            autocorrect="off" spellcheck="false" autocomplete="off" aria-haspopup="true" role="combobox"
-            aria-owns="ui-id-1">
+        <input type="text" class="gh-tb ui-autocomplete-input" aria-autocomplete="list" aria-expanded="false" size="50" maxlength="300" aria-label="搜索任何物品" placeholder="搜索任何物品" id="gh-ac" name="_nkw" autocapitalize="off" autocorrect="off" spellcheck="false" autocomplete="off"
+            aria-haspopup="true" role="combobox" aria-owns="ui-id-1">
         <input style="display:none">
     </div>
 
     <!-- a label with nested input -->
-    <label
-        class="life-core-input-inner__wrapper life-core-input-inner__wrapper-border life-core-input-inner__wrapper-size-md life-core-input-inner__wrapper-add-suffix">
+    <label class="life-core-input-inner__wrapper life-core-input-inner__wrapper-border life-core-input-inner__wrapper-size-md life-core-input-inner__wrapper-add-suffix">
         <input placeholder="验证码" tabindex="0" type="text" class="life-core-input life-core-input-size-md" value="">
     </label>
 
@@ -166,7 +161,7 @@
         .life-core-check-wrapper {
             display: none;
         }
-
+        
         .life-core-checkbox-icon {
             display: inline-block;
             width: 16px;
@@ -180,9 +175,17 @@
             <input class="life-core-check-wrapper" type="checkbox">
             <span class="life-core-checkbox-icon">
             </span>
-            <span class="life-core-checkbox-label life-core-checkbox-label-no">
+    <span class="life-core-checkbox-label life-core-checkbox-label-no">
             </span>
-        </label>
+    </label>
+    </span>
+
+    <!-- some very long text -->
+    <div aria-label="The phrase 'The quick brown fox jumps over the lazy dog' is a well-known English-language pangram, meaning it contains every letter of the alphabet at least once. This sentence has become a standard tool for various applications, particularly in typing practice, font display, and keyboard testing. The phrase has permeated popular culture and is referenced in various media, including literature and film. Its simplicity and utility have made it a staple in educational contexts and beyond. For instance, it was famously used as the first message sent over the Moscow–Washington hotline in 19634."
+        style="width: 100px; height: 100px; background-color: #ccc;"></div>
+    <span></span> phrase "The quick brown fox jumps over the lazy dog" is a well-known English-language pangram, meaning it contains every letter of the alphabet at least once. This sentence has become a standard tool for various applications, particularly
+    in typing practice, font display, and keyboard testing. The phrase has permeated popular culture and is referenced in various media, including literature and film. Its simplicity and utility have made it a staple in educational contexts and beyond.
+    For instance, it was famously used as the first message sent over the Moscow–Washington hotline in 19634.
     </span>
 
     <!-- a button with children -->
@@ -208,10 +211,9 @@
 
     <!-- item with long attribute -->
     <div>
-        <img
-            src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAiIGhlaWdodD0iNyIgdmlld0JveD0iMCAwIDEwIDciIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxwYXRoIGZpbGwtcnVsZT0iZXZlbm9kZCIgY2xpcC1ydWxlPSJldmVub2RkIiBkPSJNMS42MjQ3IDYuNzc2NDhDMC45Njk5MzIgNy4zMDYyNSAwIDYuODM0NzcgMCA1Ljk4NjcyVjBMMTAgMS4wNjEwMWUtMDZMMS42MjQ3IDYuNzc2NDhaIiBmaWxsPSIjMjIyMjIyIiBmaWxsLW9wYWNpdHk9IjAuOTgiLz4KPC9zdmc+Cg==" />
-        <button
-            very-long-attr="width: 100px; height: 100px; background-color: #ccc;width: 100px; height: 100px; background-color: #ccc;width: 100px; height: 100px; background-color: #ccc;width: 100px; height: 100px; background-color: #ccc;">long-style-content</button>
+        <img src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAiIGhlaWdodD0iNyIgdmlld0JveD0iMCAwIDEwIDciIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxwYXRoIGZpbGwtcnVsZT0iZXZlbm9kZCIgY2xpcC1ydWxlPSJldmVub2RkIiBkPSJNMS42MjQ3IDYuNzc2NDhDMC45Njk5MzIgNy4zMDYyNSAwIDYuODM0NzcgMCA1Ljk4NjcyVjBMMTAgMS4wNjEwMWUtMDZMMS42MjQ3IDYuNzc2NDhaIiBmaWxsPSIjMjIyMjIyIiBmaWxsLW9wYWNpdHk9IjAuOTgiLz4KPC9zdmc+Cg=="
+        />
+        <button very-long-attr="width: 100px; height: 100px; background-color: #ccc;width: 100px; height: 100px; background-color: #ccc;width: 100px; height: 100px; background-color: #ccc;width: 100px; height: 100px; background-color: #ccc;">long-style-content</button>
 
     </div>
 
@@ -236,8 +238,7 @@
     <div class="parent-container">
         <div class="child-container">Content 1</div>
         <div class="child-container-2">
-            <div class="child-container-without-content-2-1"
-                style="width: 100px; height: 100px; background-color: #ccc;"></div>
+            <div class="child-container-without-content-2-1" style="width: 100px; height: 100px; background-color: #ccc;"></div>
             <div>
                 <div>
                     <span>Content 2</span>
@@ -272,6 +273,40 @@
             </path>
         </svg></span>
 
+
+    <!-- hidden label -->
+    <style>
+        .visually-hidden {
+            clip: rect(0 0 0 0);
+            border: 0;
+            clip-path: inset(50%);
+            height: 1px;
+            margin: -1px;
+            overflow: hidden;
+            padding: 0;
+            position: absolute;
+            white-space: nowrap;
+            width: 1px;
+        }
+    </style>
+    <label class="visually-hidden">
+        <span>hidden label</span>
+    </label>
+
+    <!-- absolute parent with width 0 -->
+    <div style="position: absolute; top: 0px; left: 0; width: 100%; height: 0;">
+        <div>absolute child content</div>
+    </div>
+
+    <!-- covered child -->
+    <div style="position: relative; width: 100%; height: 100px;">
+        <div style="position: absolute; top: 0px; left: 0; width: 30%;">
+            content Left
+        </div>
+        <div style="position: absolute; top: 0px; left: 0; width: 100%;text-align: right;">
+            content Right
+        </div>
+    </div>
     <!-- iframe -->
     <iframe src="child.html" frameborder="0" width="400px" height="200px"></iframe>
 </body>

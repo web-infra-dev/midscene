@@ -3,6 +3,7 @@ import {
   type AgentAssertOpt,
   type AgentWaitForOpt,
   type ExecutionDump,
+  type ExecutionTaskProgressOptions,
   type GroupedActionDump,
   Insight,
   type InsightAction,
@@ -141,8 +142,8 @@ export class PageAgent {
     }
   }
 
-  async aiAction(taskPrompt: string) {
-    const { executor } = await this.taskExecutor.action(taskPrompt);
+  async aiAction(taskPrompt: string, options?: ExecutionTaskProgressOptions) {
+    const { executor } = await this.taskExecutor.action(taskPrompt, options);
     this.appendExecutionDump(executor.dump());
     this.writeOutActionDumps();
 

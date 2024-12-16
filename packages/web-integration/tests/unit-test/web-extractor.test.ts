@@ -16,7 +16,7 @@ describe(
       const { page, reset } = await launchPage(`file://${pagePath}`, {
         viewport: {
           width: 1080,
-          height: 2000,
+          height: 3000,
         },
       });
 
@@ -73,6 +73,8 @@ describe(
       const item2 = filterTargetElement(content2);
       expect(item2).toBeDefined();
       expect(item2?.id).toBe(item?.id);
+
+      await reset();
     });
 
     it('check screenshot size - 1x', async () => {

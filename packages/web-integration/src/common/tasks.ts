@@ -10,6 +10,7 @@ import {
   type ExecutionTaskInsightLocateApply,
   type ExecutionTaskInsightQueryApply,
   type ExecutionTaskPlanningApply,
+  type ExecutionTaskProgressOptions,
   Executor,
   type Insight,
   type InsightAssertionResponse,
@@ -358,12 +359,8 @@ export class PageTaskExecutor {
             param: plan.param,
             thought: plan.thought,
             locate: plan.locate,
-            executor: async (taskParam) => {
-              assert(
-                taskParam?.thought,
-                'An error occurred, but no thought provided',
-              );
-              throw new Error(taskParam?.thought || 'error without thought');
+            executor: async () => {
+              throw new Error(plan?.thought || 'error without thought');
             },
           };
         tasks.push(taskActionError);
@@ -443,6 +440,10 @@ export class PageTaskExecutor {
               acc.push({
                 type: 'Locate',
                 locate: planningAction.locate,
+                // remove id from planning, since the result is not accurate
+                // locate: {
+                //   prompt: planningAction.locate.prompt,
+                // },
                 param: null,
                 thought: planningAction.locate.prompt,
               });
@@ -489,8 +490,13 @@ export class PageTaskExecutor {
     return task;
   }
 
-  async action(userPrompt: string): Promise<ExecutionResult> {
-    const taskExecutor = new Executor(userPrompt);
+  async action(
+    userPrompt: string,
+    options?: ExecutionTaskProgressOptions,
+  ): Promise<ExecutionResult> {
+    const taskExecutor = new Executor(userPrompt, undefined, undefined, {
+      onTaskStart: options?.onTaskStart,
+    });
 
     const cacheGroup = this.taskCache.getCacheGroupByPrompt(userPrompt);
     const originalPrompt = userPrompt;

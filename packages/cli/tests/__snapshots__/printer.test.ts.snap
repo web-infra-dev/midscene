@@ -1,7 +1,7 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
-exports[`printer > action brief text 1`] = `"aiAction: search for w..."`;
+exports[`printer > action brief text 1`] = `"aiAction: search for weather"`;
 
 exports[`printer > action brief text 2`] = `"sleep: 1000"`;
 
-exports[`printer > action brief text 3`] = `"aiWaitFor: wait for som..."`;
+exports[`printer > action brief text 3`] = `"aiWaitFor: wait for something"`;

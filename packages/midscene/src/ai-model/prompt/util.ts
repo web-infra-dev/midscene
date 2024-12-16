@@ -171,7 +171,7 @@ export function describeElement(
     .join('\n');
 }
 
-export function truncateText(text: string, maxLength = 20) {
+export function truncateText(text: string, maxLength = 100) {
   if (text && text.length > maxLength) {
     return `${text.slice(0, maxLength)}...`;
   }
@@ -203,16 +203,17 @@ export function elementByPosition(
 
 export const samplePageDescription = `
 The size of the page: 1280 x 720
+Some of the elements are marked with a rectangle in the screenshot, some are not.
 
-JSON description of the elements in screenshot:
-id=1231: {
-  "markerId": 2, // The number indicated by the boxed label in the screenshot
+JSON description of all the elements in screenshot:
+id=c81c4e9a33: {
+  "markerId": 2, // The number indicated by the rectangle label in the screenshot
   "attributes":  // Attributes of the element
     {"data-id":"@submit s0","class":".gh-search","aria-label":"搜索","nodeType":"IMG", "src": "image_url"},
   "rect": { "left": 16, "top": 378, "width": 89, "height": 16 } // Position of the element in the page
 }
 
-id=459308: {
+id=5a29bf6419bd: {
   "content": "获取优惠券",
   "attributes": { "nodeType": "TEXT" },
   "rect": { "left": 32, "top": 332, "width": 70, "height": 18 }
@@ -244,7 +245,7 @@ export async function describeUserPage<
   const idElementMap: Record<string, ElementType> = {};
   elementsInfo.forEach((item) => {
     idElementMap[item.id] = item;
-    // sometimes GPT will mess up the indexId and id, we use indexId as a backup
+    // accept indexId/markerId as a backup
     if ((item as any).indexId) {
       idElementMap[(item as any).indexId] = item;
     }
@@ -262,17 +263,18 @@ export async function describeUserPage<
       const { id, ...rest } = item;
       return `id=${id}: ${JSON.stringify(rest)}`;
     })
-    .join(',\n\n');
+    .join('\n\n');
 
   return {
     description: `
 The size of the page: ${describeSize({ width, height })}
+Some of the elements are marked with a rectangle in the screenshot, some are not.
 
 ${
   // if match by id, use the description of the element
   getAIConfig(MATCH_BY_POSITION)
     ? ''
-    : `Json description of the page elements:\n${contentList}`
+    : `Json description of all the page elements:\n${contentList}`
 }
 `,
     elementById(id: string) {
@@ -288,12 +290,13 @@ ${
 
 function cropFieldInformation(
   elementsInfo: BaseElement[],
-  truncateTextLength = 20,
+  truncateTextLength?: number,
   filterNonTextContent = false,
 ) {
   const elementInfosDescription: Array<Record<string, any>> = elementsInfo.map(
     (item) => {
       const { id, attributes = {}, rect, content } = item;
+      let htmlTagName = '';
       const tailorContent = truncateText(content, truncateTextLength);
       const tailorAttributes = Object.keys(attributes).reduce(
         (res, currentKey: string) => {
@@ -303,6 +306,10 @@ function cropFieldInformation(
             // when filterNonTextContent is true, we don't need to keep the nodeType since they are all TEXT
             if (!filterNonTextContent) {
               res[currentKey] = attributeVal.replace(/\sNode$/, '');
+            }
+          } else if (currentKey === 'htmlTagName') {
+            if (!['<span>', '<p>', '<div>'].includes(attributeVal)) {
+              htmlTagName = attributeVal;
             }
           } else {
             res[currentKey] = truncateText(attributeVal);
@@ -321,6 +328,7 @@ function cropFieldInformation(
         ...(Object.keys(tailorAttributes).length && !tailorContent
           ? { attributes: tailorAttributes }
           : {}),
+        ...(htmlTagName ? { htmlTagName } : {}),
         rect: {
           left: rect.left,
           top: rect.top,
