@@ -374,7 +374,10 @@ const DetailSide = (): JSX.Element => {
           ? JSON.stringify(paramToShow, undefined, 2)
           : null;
 
-        const locateStr = item.locate ? JSON.stringify(item.locate) : null;
+        const locateStr =
+          item.type === 'Locate' && item.locate
+            ? JSON.stringify(item.locate)
+            : null;
 
         return {
           color: '#06B1AB',

@@ -1,14 +1,14 @@
 [
   {
-    "id": "cdfaac34adc2088e",
+    "id": "cdfaac34",
     "indexId": 0,
     "nodePath": "0-0-0-0-0",
-    "nodeHashId": "cdfaac34adc2088e",
+    "nodeHashId": "cdfaac34",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
       "nodeType": "TEXT Node",
-      "htmlTagName": "h1"
+      "htmlTagName": "<h1>"
     },
     "center": [
       640,
@@ -27,10 +27,10 @@
     "screenHeight": 720
   },
   {
-    "id": "fbc2d0029b7a9037",
+    "id": "fbc2d002",
     "nodePath": "0-0-0-1-0",
-    "nodeHashId": "fbc2d0029b7a9037",
-    "locator": "[_midscene_retrieve_task_id='fbc2d0029b7a9037']",
+    "nodeHashId": "fbc2d002",
+    "locator": "[_midscene_retrieve_task_id='fbc2d002']",
     "nodeType": "FORM_ITEM Node",
     "indexId": 1,
     "attributes": {
@@ -59,15 +59,15 @@
     "screenHeight": 720
   },
   {
-    "id": "70941b968f2efe5b",
+    "id": "70941b96",
     "indexId": 2,
     "nodePath": "0-0-0-1-1-0",
-    "nodeHashId": "70941b968f2efe5b",
+    "nodeHashId": "70941b96",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
       "nodeType": "TEXT Node",
-      "htmlTagName": "label"
+      "htmlTagName": "<label>"
     },
     "center": [
       960,
@@ -86,10 +86,10 @@
     "screenHeight": 720
   },
   {
-    "id": "7688696bcb7e572e",
+    "id": "7688696b",
     "nodePath": "0-0-1-0-0",
-    "nodeHashId": "7688696bcb7e572e",
-    "locator": "[_midscene_retrieve_task_id='7688696bcb7e572e']",
+    "nodeHashId": "7688696b",
+    "locator": "[_midscene_retrieve_task_id='7688696b']",
     "nodeType": "FORM_ITEM Node",
     "indexId": 3,
     "attributes": {
@@ -116,10 +116,10 @@
     "screenHeight": 720
   },
   {
-    "id": "8349e4a77e21ffd1",
+    "id": "8349e4a7",
     "nodePath": "0-0-1-1-0-0-0",
-    "nodeHashId": "8349e4a77e21ffd1",
-    "locator": "[_midscene_retrieve_task_id='8349e4a77e21ffd1']",
+    "nodeHashId": "8349e4a7",
+    "locator": "[_midscene_retrieve_task_id='8349e4a7']",
     "nodeType": "FORM_ITEM Node",
     "indexId": 4,
     "attributes": {
@@ -146,38 +146,37 @@
     "screenHeight": 720
   },
   {
-    "id": "6baafaffbd3eb3ec",
-    "nodePath": "0-0-1-1-0-0-1",
-    "nodeHashId": "6baafaffbd3eb3ec",
-    "locator": "[_midscene_retrieve_task_id='6baafaffbd3eb3ec']",
-    "nodeType": "FORM_ITEM Node",
+    "id": "c1fb39ce",
     "indexId": 5,
+    "nodePath": "0-0-1-1-0-0-1-0",
+    "nodeHashId": "c1fb39ce",
+    "nodeType": "TEXT Node",
+    "locator": "",
     "attributes": {
-      "data-testid": "todo-item-label",
-      "htmlTagName": "<label>",
-      "nodeType": "FORM_ITEM Node"
-    },
-    "content": "Learn Python",
-    "rect": {
-      "left": 365,
-      "top": 196,
-      "width": 550,
-      "height": 59,
-      "zoom": 1
+      "nodeType": "TEXT Node",
+      "htmlTagName": "<label>"
     },
     "center": [
-      640,
-      226
+      497,
+      225
     ],
+    "content": "Learn Python",
+    "rect": {
+      "left": 425,
+      "top": 211,
+      "width": 143,
+      "height": 28,
+      "zoom": 1
+    },
     "zoom": 1,
     "screenWidth": 1280,
     "screenHeight": 720
   },
   {
-    "id": "a2b47f27a11023b2",
+    "id": "a2b47f27",
     "nodePath": "0-0-1-1-1-0-0",
-    "nodeHashId": "a2b47f27a11023b2",
-    "locator": "[_midscene_retrieve_task_id='a2b47f27a11023b2']",
+    "nodeHashId": "a2b47f27",
+    "locator": "[_midscene_retrieve_task_id='a2b47f27']",
     "nodeType": "FORM_ITEM Node",
     "indexId": 6,
     "attributes": {
@@ -204,44 +203,43 @@
     "screenHeight": 720
   },
   {
-    "id": "dd1b5a5792d39a54",
-    "nodePath": "0-0-1-1-1-0-1",
-    "nodeHashId": "dd1b5a5792d39a54",
-    "locator": "[_midscene_retrieve_task_id='dd1b5a5792d39a54']",
-    "nodeType": "FORM_ITEM Node",
+    "id": "14b20d09",
     "indexId": 7,
+    "nodePath": "0-0-1-1-1-0-1-0",
+    "nodeHashId": "14b20d09",
+    "nodeType": "TEXT Node",
+    "locator": "",
     "attributes": {
-      "data-testid": "todo-item-label",
-      "htmlTagName": "<label>",
-      "nodeType": "FORM_ITEM Node"
-    },
-    "content": "Learn Rust",
-    "rect": {
-      "left": 365,
-      "top": 256,
-      "width": 550,
-      "height": 59,
-      "zoom": 1
+      "nodeType": "TEXT Node",
+      "htmlTagName": "<label>"
     },
     "center": [
-      640,
-      286
+      484,
+      285
     ],
+    "content": "Learn Rust",
+    "rect": {
+      "left": 425,
+      "top": 271,
+      "width": 117,
+      "height": 28,
+      "zoom": 1
+    },
     "zoom": 1,
     "screenWidth": 1280,
     "screenHeight": 720
   },
   {
-    "id": "1b33e5dd50fb2677",
+    "id": "1b33e5dd",
     "indexId": 8,
     "nodePath": "0-0-1-1-1-0-2",
-    "nodeHashId": "1b33e5dd50fb2677",
+    "nodeHashId": "1b33e5dd",
     "nodeType": "BUTTON Node",
-    "locator": "[_midscene_retrieve_task_id='1b33e5dd50fb2677']",
+    "locator": "[_midscene_retrieve_task_id='1b33e5dd']",
     "attributes": {
       "class": ".destroy",
       "data-testid": "todo-item-button",
-      "htmlTagName": "button",
+      "htmlTagName": "<div>",
       "nodeType": "BUTTON Node"
     },
     "content": "×",
@@ -261,10 +259,10 @@
     "screenHeight": 720
   },
   {
-    "id": "d2ddfb1482519dfb",
+    "id": "d2ddfb14",
     "nodePath": "0-0-1-1-2-0-0",
-    "nodeHashId": "d2ddfb1482519dfb",
-    "locator": "[_midscene_retrieve_task_id='d2ddfb1482519dfb']",
+    "nodeHashId": "d2ddfb14",
+    "locator": "[_midscene_retrieve_task_id='d2ddfb14']",
     "nodeType": "FORM_ITEM Node",
     "indexId": 9,
     "attributes": {
@@ -291,43 +289,42 @@
     "screenHeight": 720
   },
   {
-    "id": "93a83d3ed5ab442d",
-    "nodePath": "0-0-1-1-2-0-1",
-    "nodeHashId": "93a83d3ed5ab442d",
-    "locator": "[_midscene_retrieve_task_id='93a83d3ed5ab442d']",
-    "nodeType": "FORM_ITEM Node",
+    "id": "3277d35f",
     "indexId": 10,
+    "nodePath": "0-0-1-1-2-0-1-0",
+    "nodeHashId": "3277d35f",
+    "nodeType": "TEXT Node",
+    "locator": "",
     "attributes": {
-      "data-testid": "todo-item-label",
-      "htmlTagName": "<label>",
-      "nodeType": "FORM_ITEM Node"
-    },
-    "content": "Learn AI",
-    "rect": {
-      "left": 365,
-      "top": 316,
-      "width": 550,
-      "height": 59,
-      "zoom": 1
+      "nodeType": "TEXT Node",
+      "htmlTagName": "<label>"
     },
     "center": [
-      640,
-      346
+      470,
+      345
     ],
+    "content": "Learn AI",
+    "rect": {
+      "left": 425,
+      "top": 331,
+      "width": 89,
+      "height": 28,
+      "zoom": 1
+    },
     "zoom": 1,
     "screenWidth": 1280,
     "screenHeight": 720
   },
   {
-    "id": "3bbb210c65fa291a",
+    "id": "3bbb210c",
     "indexId": 11,
     "nodePath": "0-0-2-1-0-0-0",
-    "nodeHashId": "3bbb210c65fa291a",
+    "nodeHashId": "3bbb210c",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
       "nodeType": "TEXT Node",
-      "htmlTagName": "a"
+      "htmlTagName": "<a>"
     },
     "center": [
       565,
@@ -346,15 +343,15 @@
     "screenHeight": 720
   },
   {
-    "id": "e5eeb9be7cc77f42",
+    "id": "e5eeb9be",
     "indexId": 12,
     "nodePath": "0-0-2-1-1-0-0",
-    "nodeHashId": "e5eeb9be7cc77f42",
+    "nodeHashId": "e5eeb9be",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
       "nodeType": "TEXT Node",
-      "htmlTagName": "a"
+      "htmlTagName": "<a>"
     },
     "center": [
       613,
@@ -373,15 +370,15 @@
     "screenHeight": 720
   },
   {
-    "id": "8dfa7ce553749a56",
+    "id": "8dfa7ce5",
     "indexId": 13,
     "nodePath": "0-0-2-1-2-0-0",
-    "nodeHashId": "8dfa7ce553749a56",
+    "nodeHashId": "8dfa7ce5",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
       "nodeType": "TEXT Node",
-      "htmlTagName": "a"
+      "htmlTagName": "<a>"
     },
     "center": [
       688,
@@ -400,15 +397,15 @@
     "screenHeight": 720
   },
   {
-    "id": "69e78b5a71b57768",
+    "id": "69e78b5a",
     "indexId": 14,
     "nodePath": "0-0-2-2",
-    "nodeHashId": "69e78b5a71b57768",
+    "nodeHashId": "69e78b5a",
     "nodeType": "BUTTON Node",
-    "locator": "[_midscene_retrieve_task_id='69e78b5a71b57768']",
+    "locator": "[_midscene_retrieve_task_id='69e78b5a']",
     "attributes": {
       "class": ".clear-completed",
-      "htmlTagName": "button",
+      "htmlTagName": "<footer>",
       "nodeType": "BUTTON Node"
     },
     "content": "Clear completed",
@@ -428,15 +425,15 @@
     "screenHeight": 720
   },
   {
-    "id": "9cfdb53c27d351bc",
+    "id": "9cfdb53c",
     "indexId": 15,
     "nodePath": "0-1-0-0",
-    "nodeHashId": "9cfdb53c27d351bc",
+    "nodeHashId": "9cfdb53c",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
       "nodeType": "TEXT Node",
-      "htmlTagName": "p"
+      "htmlTagName": "<p>"
     },
     "center": [
       640,
@@ -455,15 +452,15 @@
     "screenHeight": 720
   },
   {
-    "id": "36d8d211513a896a",
+    "id": "36d8d211",
     "indexId": 16,
     "nodePath": "0-1-1-0",
-    "nodeHashId": "36d8d211513a896a",
+    "nodeHashId": "36d8d211",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
       "nodeType": "TEXT Node",
-      "htmlTagName": "p"
+      "htmlTagName": "<p>"
     },
     "center": [
       640,
@@ -482,15 +479,15 @@
     "screenHeight": 720
   },
   {
-    "id": "071998ac23c27a8f",
+    "id": "071998ac",
     "indexId": 17,
     "nodePath": "0-1-2-0",
-    "nodeHashId": "071998ac23c27a8f",
+    "nodeHashId": "071998ac",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
       "nodeType": "TEXT Node",
-      "htmlTagName": "p"
+      "htmlTagName": "<p>"
     },
     "center": [
       616,
@@ -509,15 +506,15 @@
     "screenHeight": 720
   },
   {
-    "id": "bf9f443c29416e41",
+    "id": "bf9f443c",
     "indexId": 18,
     "nodePath": "0-1-2-1-0",
-    "nodeHashId": "bf9f443c29416e41",
+    "nodeHashId": "bf9f443c",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
       "nodeType": "TEXT Node",
-      "htmlTagName": "a"
+      "htmlTagName": "<a>"
     },
     "center": [
       656,

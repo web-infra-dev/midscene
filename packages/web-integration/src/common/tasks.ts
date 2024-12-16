@@ -359,12 +359,8 @@ export class PageTaskExecutor {
             param: plan.param,
             thought: plan.thought,
             locate: plan.locate,
-            executor: async (taskParam) => {
-              assert(
-                taskParam?.thought,
-                'An error occurred, but no thought provided',
-              );
-              throw new Error(taskParam?.thought || 'error without thought');
+            executor: async () => {
+              throw new Error(plan?.thought || 'error without thought');
             },
           };
         tasks.push(taskActionError);

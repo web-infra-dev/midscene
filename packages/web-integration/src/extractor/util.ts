@@ -439,7 +439,7 @@ export function midsceneGenerateHash(
     _midscene_frame_id: getFrameId(),
   });
   // Generates the sha-256 hash value
-  let sliceLength = 16;
+  let sliceLength = 8;
   let slicedHash = '';
   const hashHex = sha256.create().update(combined).hex();
   while (sliceLength < hashHex.length - 1) {
