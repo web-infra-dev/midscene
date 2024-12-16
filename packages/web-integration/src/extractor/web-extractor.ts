@@ -33,22 +33,33 @@ interface WebElementInfo extends ElementInfo {
 
 let indexId = 0;
 
+function tagNameOfNode(node: Node): string {
+  let tagName = '';
+  if (node instanceof HTMLElement) {
+    tagName = node.tagName.toLowerCase();
+  }
+
+  const parentElement = node.parentElement;
+  if (parentElement && parentElement instanceof HTMLElement) {
+    tagName = parentElement.tagName.toLowerCase();
+  }
+
+  return tagName ? `<${tagName}>` : '';
+}
+
 function collectElementInfo(
   node: Node,
   nodePath: string,
   baseZoom = 1,
 ): WebElementInfo | null {
   const rect = visibleRect(node, baseZoom);
-  logger('collectElementInfo', node, node.nodeName, rect);
   if (
     !rect ||
     rect.width < CONTAINER_MINI_WIDTH ||
     rect.height < CONTAINER_MINI_HEIGHT
   ) {
-    logger('Element is not visible', node);
     return null;
   }
-
   if (isFormElement(node)) {
     const attributes = getNodeAttributes(node);
     let valueContent =
@@ -114,6 +125,7 @@ function collectElementInfo(
       locator: selector,
       attributes: {
         ...attributes,
+        htmlTagName: tagNameOfNode(node),
         nodeType: NodeType.BUTTON,
       },
       content,
@@ -147,6 +159,7 @@ function collectElementInfo(
             }
           : {}),
         nodeType: NodeType.IMG,
+        htmlTagName: tagNameOfNode(node),
       },
       nodeType: NodeType.IMG,
       content: '',
@@ -184,6 +197,7 @@ function collectElementInfo(
       attributes: {
         ...attributes,
         nodeType: NodeType.TEXT,
+        htmlTagName: tagNameOfNode(node),
       },
       center: [
         Math.round(rect.left + rect.width / 2),
@@ -214,6 +228,7 @@ function collectElementInfo(
       attributes: {
         ...attributes,
         nodeType: NodeType.CONTAINER,
+        htmlTagName: tagNameOfNode(node),
       },
       content: '',
       rect,

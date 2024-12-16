@@ -6,17 +6,17 @@
       "multi": false,
       "response": [
         {
-          "id": "917697",
+          "id": "e00c1b86",
           "indexId": 0
         }
       ]
     },
     {
-      "prompt": "Toggle language text button(Could be：中文、english text)",
+      "prompt": "点击左上角语言切换按钮(写着 English 或者 中文)，在弹出的下拉列表中点击中文",
       "multi": false,
       "response": [
         {
-          "id": "498940",
+          "id": "d63a9122",
           "indexId": 1
         }
       ]
@@ -26,7 +26,7 @@
       "multi": false,
       "response": [
         {
-          "id": "387792",
+          "id": "5ead026c",
           "indexId": 3
         }
       ]
@@ -36,7 +36,7 @@
       "multi": false,
       "response": [
         {
-          "id": "204888",
+          "id": "498ec7ed",
           "indexId": 20
         }
       ]
@@ -46,7 +46,7 @@
       "multi": false,
       "response": [
         {
-          "id": "975584",
+          "id": "b3e12c94",
           "indexId": 26
         }
       ]
@@ -56,7 +56,7 @@
       "multi": false,
       "response": [
         {
-          "id": "754365",
+          "id": "b82bdf3a",
           "indexId": 27
         }
       ]
