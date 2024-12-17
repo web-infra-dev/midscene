@@ -364,6 +364,18 @@ export class PageTaskExecutor {
             },
           };
         tasks.push(taskActionError);
+      } else if (plan.type === 'FalsyIfStatement') {
+        const taskActionFalsyIfStatement: ExecutionTaskActionApply<null> = {
+          type: 'Action',
+          subType: 'FalsyIfStatement',
+          param: null,
+          thought: plan.thought,
+          locate: plan.locate,
+          executor: async () => {
+            // console.warn(`[warn]falsy condition: ${plan.thought}`);
+          },
+        };
+        tasks.push(taskActionFalsyIfStatement);
       } else {
         throw new Error(`Unknown or unsupported task type: ${plan.type}`);
       }
@@ -512,6 +524,11 @@ export class PageTaskExecutor {
         return this.appendErrorPlan(taskExecutor, errorMsg);
       }
 
+      if (replanCount > 0) {
+        // add a brief sleep to wait for the page to be ready
+        await sleep(300);
+      }
+
       // plan
       await taskExecutor.append(planningTask);
       const planResult: PlanningAIResponse = await taskExecutor.flush();
@@ -523,26 +540,6 @@ export class PageTaskExecutor {
       }
 
       const plans = planResult.actions;
-
-      // check if their is nothing but a locate will null task
-      // const validPlans = plans.filter((plan: PlanningAction) => {
-      //   if (plan.type === 'Locate' && !plan.param?.id) {
-      //     return false;
-      //   }
-      //   return plan.type !== 'Plan';
-      // });
-      // if (validPlans.length === 0) {
-      //   if (replanCount === 0) {
-      //     return this.appendErrorPlan(
-      //       taskExecutor,
-      //       `No valid plans found, cannot proceed: ${userPrompt}`,
-      //     );
-      //   }
-      //   return this.appendErrorPlan(
-      //     taskExecutor,
-      //     `Cannot proceed after several steps, please check the report: ${userPrompt}`,
-      //   );
-      // }
 
       let executables: Awaited<ReturnType<typeof this.convertPlanToExecutable>>;
       try {

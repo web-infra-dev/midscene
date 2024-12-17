@@ -46,5 +46,57 @@ modelList.forEach((model) => {
         expect(actions[0].locate?.id).toBeTruthy();
       }
     });
+
+    it('throw error when instruction is not feasible', async () => {
+      const { context } = await getPageDataOfTestName('todo');
+      await expect(async () => {
+        await plan(
+          'close Cookie Prompt',
+          {
+            context,
+          },
+          model,
+        );
+      }).rejects.toThrow();
+    });
+
+    it('should not throw in an "if" statement', async () => {
+      const { context } = await getPageDataOfTestName('todo');
+      const { actions, error } = await plan(
+        'If there is a cookie prompt, close it',
+        { context },
+        model,
+      );
+
+      expect(actions.length === 1).toBeTruthy();
+      expect(actions[0]!.type).toBe('FalsyIfStatement');
+    });
+
+    it('should give a further plan when something is not found', async () => {
+      const { context } = await getPageDataOfTestName('todo');
+      const res = await plan(
+        'click the input box, wait 300ms, click the close button of the cookie prompt',
+        { context },
+        model,
+      );
+      // console.log(res);
+      expect(res.furtherPlan).toBeTruthy();
+      expect(res.furtherPlan?.whatToDoNext).toBeTruthy();
+      expect(res.furtherPlan?.whatHaveDone).toBeTruthy();
+    });
+
+    // this may fail sometimes, consider it acceptable
+    it.skip('partial error', async () => {
+      const { context } = await getPageDataOfTestName('todo');
+      const res = await plan(
+        'click the input box, click the close button of the cookie prompt',
+        { context },
+        model,
+      );
+      console.log(res);
+      expect(res.furtherPlan).toBeTruthy();
+      expect(res.furtherPlan?.whatToDoNext).toBeTruthy();
+      expect(res.furtherPlan?.whatHaveDone).toBeTruthy();
+    });
   });
 });

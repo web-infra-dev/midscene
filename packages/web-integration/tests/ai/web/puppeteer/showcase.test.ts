@@ -95,6 +95,17 @@ describe(
 
       await reset();
     });
+
+    it.skip('Playground', async () => {
+      const { originPage, reset } = await launchPage('https://www.baidu.com/');
+      const mid = new PuppeteerAgent(originPage);
+      // await mid.aiAction('Close the cookie prompt');
+      await mid.aiAction(
+        'Type "AI 101" in search box, hit Enter, wait 2s. If there is a cookie prompt, close it',
+      );
+
+      await reset();
+    });
   },
   {
     timeout: 180 * 1000,

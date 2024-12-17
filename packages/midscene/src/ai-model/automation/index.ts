@@ -56,7 +56,7 @@ ${opts.whatHaveDone}
 pageDescription:\n 
 ${pageDescription}
 \n
-Here is what you need to do now:
+Here is the instruction:
 =====================================
 ${userPrompt}
 =====================================
