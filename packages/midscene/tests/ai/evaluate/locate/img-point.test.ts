@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { call } from '@/ai-model/openai/index';
 import {
-  compositeElementInfoImg,
+  compositePointInfoImg,
   imageInfo,
   saveBase64Image,
 } from '@midscene/shared/img';
@@ -143,20 +143,12 @@ class ElementLocator {
     const { width, height } = await sizeOf(this.pageInfo.inputImgPath);
     assert(width && height, 'Invalid image');
 
-    const composeImage = await compositeElementInfoImg({
+    const composeImage = await compositePointInfoImg({
       inputImgBase64: this.pageInfo.imageBase64,
-      elementsPositionInfo: points.map((point) => ({
-        rect: {
-          left: width * point.point[0] - 2,
-          top: height * point.point[1] - 2,
-          width: 4,
-          height: 4,
-        },
-        indexId: point.index,
-      })),
+      points,
       size: {
-        width: this.pageInfo.size.screenWidth,
-        height: this.pageInfo.size.screenHeight,
+        width,
+        height,
       },
     });
 

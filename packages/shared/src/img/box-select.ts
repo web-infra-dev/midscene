@@ -248,6 +248,90 @@ export const compositeElementInfoImg = async (options: {
   return result;
 };
 
+export const compositePointInfoImg = async (options: {
+  inputImgBase64: string;
+  points: Array<{ point: [number, number]; indexId?: number }>;
+  size?: { width: number; height: number };
+  radius?: number;
+}) => {
+  assert(options.inputImgBase64, 'inputImgBase64 is required');
+  let width = 0;
+  let height = 0;
+  let jimpImage: Jimp;
+
+  const Jimp = await getJimp();
+
+  if (options.size) {
+    width = options.size.width;
+    height = options.size.height;
+  }
+
+  if (!width || !height) {
+    const info = await imageInfoOfBase64(options.inputImgBase64);
+    width = info.width;
+    height = info.height;
+    jimpImage = info.jimpImage;
+  } else {
+    const imageBuffer = await bufferFromBase64(options.inputImgBase64);
+    jimpImage = await Jimp.read(imageBuffer);
+    const imageBitmap = jimpImage.bitmap;
+    // Resize the image to the specified width and height if it's not already the same. It usually happens when dpr is not 1
+    if (imageBitmap.width !== width || imageBitmap.height !== height) {
+      jimpImage.resize(width, height, Jimp.RESIZE_NEAREST_NEIGHBOR);
+    }
+  }
+
+  if (!width || !height) {
+    throw Error('Image processing failed because width or height is undefined');
+  }
+
+  const { points } = options;
+
+  const result = await Promise.resolve(jimpImage)
+    .then(async (image: Jimp) => {
+      // Draw points directly on image
+      for (const point of points) {
+        const centerX = point.point[0] * width;
+        const centerY = point.point[1] * height;
+        const radius = options.radius || 4;
+
+        // Draw a filled circle
+        for (let y = -radius; y <= radius; y++) {
+          for (let x = -radius; x <= radius; x++) {
+            if (x * x + y * y <= radius * radius) {
+              const posX = Math.floor(centerX + x);
+              const posY = Math.floor(centerY + y);
+
+              if (posX >= 0 && posX < width && posY >= 0 && posY < height) {
+                image.setPixelColor(0xff0000ff, posX, posY); // Red color with full opacity
+              }
+            }
+          }
+        }
+
+        // Draw index number if provided
+        // if (typeof point.indexId === 'number') {
+        //   const font = await Jimp.loadFont(Jimp.FONT_SANS_16_WHITE);
+        //   image.print(font, centerX + radius + 2, centerY - radius, {
+        //     text: point.indexId.toString(),
+        //     alignmentX: Jimp.HORIZONTAL_ALIGN_LEFT,
+        //     alignmentY: Jimp.VERTICAL_ALIGN_MIDDLE,
+        //   });
+        // }
+      }
+      return image;
+    })
+    .then(async (compositeImage: Jimp) => {
+      const base64 = await compositeImage.getBase64Async(Jimp.MIME_PNG);
+      return base64;
+    })
+    .catch((error: unknown) => {
+      throw error;
+    });
+
+  return result;
+};
+
 export const processImageElementInfo = async (options: {
   inputImgBase64: string;
   elementsPositionInfo: Array<ElementType>;
