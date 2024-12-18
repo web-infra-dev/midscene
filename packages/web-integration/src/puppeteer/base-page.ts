@@ -136,19 +136,38 @@ export class Page<
   scrollUntilTop(): Promise<void> {
     return this.mouse.wheel(0, -9999999);
   }
+
   scrollUntilBottom(): Promise<void> {
     return this.mouse.wheel(0, 9999999);
   }
 
-  async scrollUpOneScreen(): Promise<void> {
-    const innerHeight = await this.evaluate(() => window.innerHeight);
-    const distance = innerHeight * 0.7;
-    await this.mouse.wheel(0, -distance);
+  scrollUntilLeft(): Promise<void> {
+    return this.mouse.wheel(-9999999, 0);
   }
-  async scrollDownOneScreen(): Promise<void> {
+
+  scrollUntilRight(): Promise<void> {
+    return this.mouse.wheel(9999999, 0);
+  }
+
+  async scrollUp(distance?: number): Promise<void> {
     const innerHeight = await this.evaluate(() => window.innerHeight);
-    const distance = innerHeight * 0.7;
-    await this.mouse.wheel(0, distance);
+    const scrollDistance = distance || innerHeight * 0.7;
+    await this.mouse.wheel(0, -scrollDistance);
+  }
+  async scrollDown(distance?: number): Promise<void> {
+    const innerHeight = await this.evaluate(() => window.innerHeight);
+    const scrollDistance = distance || innerHeight * 0.7;
+    await this.mouse.wheel(0, scrollDistance);
+  }
+  async scrollLeft(distance?: number): Promise<void> {
+    const innerWidth = await this.evaluate(() => window.innerWidth);
+    const scrollDistance = distance || innerWidth * 0.7;
+    await this.mouse.wheel(-scrollDistance, 0);
+  }
+  async scrollRight(distance?: number): Promise<void> {
+    const innerWidth = await this.evaluate(() => window.innerWidth);
+    const scrollDistance = distance || innerWidth * 0.7;
+    await this.mouse.wheel(scrollDistance, 0);
   }
 
   async destroy(): Promise<void> {

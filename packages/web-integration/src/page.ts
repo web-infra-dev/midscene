@@ -35,8 +35,12 @@ export abstract class AbstractPage {
 
   abstract scrollUntilTop(): Promise<void>;
   abstract scrollUntilBottom(): Promise<void>;
-  abstract scrollUpOneScreen(): Promise<void>;
-  abstract scrollDownOneScreen(): Promise<void>;
+  abstract scrollUntilLeft(): Promise<void>;
+  abstract scrollUntilRight(): Promise<void>;
+  abstract scrollUp(distance?: number): Promise<void>;
+  abstract scrollDown(distance?: number): Promise<void>;
+  abstract scrollLeft(distance?: number): Promise<void>;
+  abstract scrollRight(distance?: number): Promise<void>;
 
   abstract _forceUsePageContext?(): Promise<WebUIContext>;
 

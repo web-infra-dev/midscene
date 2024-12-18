@@ -47,6 +47,31 @@ modelList.forEach((model) => {
       }
     });
 
+    it('scroll some element', async () => {
+      const { context } = await getPageDataOfTestName('todo');
+      const { actions } = await plan(
+        'Scroll left the status filters',
+        { context },
+        model,
+      );
+      expect(actions).toBeTruthy();
+      expect(actions[0].type).toBe('Scroll');
+      expect(actions[0].locate).toBeTruthy();
+    });
+
+    it('scroll page', async () => {
+      const { context } = await getPageDataOfTestName('todo');
+      const { actions } = await plan(
+        'Scroll down the page',
+        { context },
+        model,
+      );
+      console.log(actions);
+      expect(actions).toBeTruthy();
+      expect(actions[0].type).toBe('Scroll');
+      expect(actions[0].locate).toBeNull();
+    });
+
     it('throw error when instruction is not feasible', async () => {
       const { context } = await getPageDataOfTestName('todo');
       await expect(async () => {

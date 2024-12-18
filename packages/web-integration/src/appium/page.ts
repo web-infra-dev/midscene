@@ -104,31 +104,63 @@ export class Page implements AbstractPage {
   }
 
   // Scroll to top element
-  async scrollUntilTop(): Promise<void> {
+  async scrollUntilTop(distance?: number): Promise<void> {
     const { height } = await this.browser.getWindowSize();
+    const scrollDistance = distance || height * 0.7;
 
-    await this.mouseWheel(0, height, 100);
+    await this.mouseWheel(0, -scrollDistance, 100);
   }
 
   // Scroll to bottom element
-  async scrollUntilBottom(): Promise<void> {
+  async scrollUntilBottom(distance?: number): Promise<void> {
     const { height } = await this.browser.getWindowSize();
+    const scrollDistance = distance || height * 0.7;
 
-    await this.mouseWheel(0, -height, 100);
+    await this.mouseWheel(0, scrollDistance, 100);
+  }
+
+  async scrollUntilLeft(distance?: number): Promise<void> {
+    const { width } = await this.browser.getWindowSize();
+    const scrollDistance = distance || width * 0.7;
+
+    await this.mouseWheel(-scrollDistance, 0, 100);
+  }
+
+  async scrollUntilRight(distance?: number): Promise<void> {
+    const { width } = await this.browser.getWindowSize();
+    const scrollDistance = distance || width * 0.7;
+
+    await this.mouseWheel(scrollDistance, 0, 100);
   }
 
   // Scroll up one screen
-  async scrollUpOneScreen(): Promise<void> {
+  async scrollUp(distance?: number): Promise<void> {
     const { height } = await this.browser.getWindowSize();
+    const scrollDistance = distance || height * 0.7;
 
-    await this.mouseWheel(0, height, 1000);
+    await this.mouseWheel(0, -scrollDistance, 1000);
   }
 
   // Scroll down one screen
-  async scrollDownOneScreen(): Promise<void> {
+  async scrollDown(distance?: number): Promise<void> {
     const { height } = await this.browser.getWindowSize();
+    const scrollDistance = distance || height * 0.7;
 
-    await this.mouseWheel(0, -height, 1000);
+    await this.mouseWheel(0, scrollDistance, 1000);
+  }
+
+  async scrollLeft(distance?: number): Promise<void> {
+    const { width } = await this.browser.getWindowSize();
+    const scrollDistance = distance || width * 0.7;
+
+    await this.mouseWheel(-scrollDistance, 0, 1000);
+  }
+
+  async scrollRight(distance?: number): Promise<void> {
+    const { width } = await this.browser.getWindowSize();
+    const scrollDistance = distance || width * 0.7;
+
+    await this.mouseWheel(scrollDistance, 0, 1000);
   }
 
   private async keyboardType(text: string): Promise<void> {

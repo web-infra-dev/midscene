@@ -192,22 +192,36 @@ export default class ChromeExtensionProxyPage implements AbstractPage {
     return this.mouse.wheel(0, 9999999);
   }
 
-  async scrollUpOneScreen() {
-    await chrome.scripting.executeScript({
-      target: { tabId: this.tabId, allFrames: true },
-      func: () => {
-        window.scrollBy(0, -window.innerHeight * 0.7);
-      },
-    });
+  async scrollUntilLeft() {
+    return this.mouse.wheel(-9999999, 0);
   }
 
-  async scrollDownOneScreen() {
-    await chrome.scripting.executeScript({
-      target: { tabId: this.tabId, allFrames: true },
-      func: () => {
-        window.scrollBy(0, window.innerHeight * 0.7);
-      },
-    });
+  async scrollUntilRight() {
+    return this.mouse.wheel(9999999, 0);
+  }
+
+  async scrollUp(distance?: number) {
+    const { height } = await this.size();
+    const scrollDistance = distance || height * 0.7;
+    return this.mouse.wheel(0, -scrollDistance);
+  }
+
+  async scrollDown(distance?: number) {
+    const { height } = await this.size();
+    const scrollDistance = distance || height * 0.7;
+    return this.mouse.wheel(0, scrollDistance);
+  }
+
+  async scrollLeft(distance?: number) {
+    const { width } = await this.size();
+    const scrollDistance = distance || width * 0.7;
+    return this.mouse.wheel(-scrollDistance, 0);
+  }
+
+  async scrollRight(distance?: number) {
+    const { width } = await this.size();
+    const scrollDistance = distance || width * 0.7;
+    return this.mouse.wheel(scrollDistance, 0);
   }
 
   async clearInput(element: ElementInfo) {
@@ -309,60 +323,3 @@ export default class ChromeExtensionProxyPage implements AbstractPage {
     await this.detachDebugger();
   }
 }
-
-// backup: some implementation by chrome extension API instead of CDP
-// async function getPageContentOfTab(tabId: number): Promise<{
-//   context: ElementInfo[];
-//   size: { width: number; height: number; dpr: number };
-// }> {
-//   await chrome.scripting.executeScript({
-//     target: {
-//       tabId,
-//       allFrames: true,
-//     },
-//     files: [scriptFileToRetrieve],
-//   });
-
-//   // call and retrieve the result
-//   const returnValue = await chrome.scripting.executeScript({
-//     target: { tabId, allFrames: true },
-//     func: () => {
-//       return {
-//         context: (
-//           window as any
-//         ).midscene_element_inspector.webExtractTextWithPosition(),
-//         size: {
-//           width: document.documentElement.clientWidth,
-//           height: document.documentElement.clientHeight,
-//           dpr: window.devicePixelRatio,
-//         },
-//       };
-//     },
-//   });
-
-//   console.log('returnValue', returnValue);
-//   if (!returnValue[0].result) {
-//     throw new Error(`Failed to get active page content of tabId: ${tabId}`);
-//   }
-
-//   return returnValue[0].result;
-// }
-
-// async function getSizeInfoOfTab(tabId: number): Promise<{
-//   dpr: number;
-//   width: number;
-//   height: number;
-// }> {
-//   const returnValue = await chrome.scripting.executeScript({
-//     target: { tabId, allFrames: false },
-//     func: () => {
-//       return {
-//         dpr: window.devicePixelRatio,
-//         width: document.documentElement.clientWidth,
-//         height: document.documentElement.clientHeight,
-//       };
-//     },
-//   });
-//   // console.log('returnValue of getScreenInfoOfTab', returnValue);
-//   return returnValue[0].result!;
-// }

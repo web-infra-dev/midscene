@@ -270,11 +270,9 @@ export interface PlanningActionParamInputOrKeyPress {
   value: string;
 }
 export interface PlanningActionParamScroll {
-  scrollType:
-    | 'scrollUntilTop'
-    | 'scrollUntilBottom'
-    | 'scrollUpOneScreen'
-    | 'scrollDownOneScreen';
+  direction: 'down' | 'up' | 'right' | 'left';
+  scrollType: 'once' | 'untilBottom' | 'untilTop' | 'untilRight' | 'untilLeft';
+  distance: null | number;
 }
 
 export interface PlanningActionParamAssert {

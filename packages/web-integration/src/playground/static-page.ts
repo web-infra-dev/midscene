@@ -47,12 +47,28 @@ export default class StaticPage implements AbstractPage {
     return ThrowNotImplemented('scrollUntilBottom');
   }
 
-  async scrollUpOneScreen() {
-    return ThrowNotImplemented('scrollUpOneScreen');
+  async scrollUntilLeft() {
+    return ThrowNotImplemented('scrollUntilLeft');
   }
 
-  async scrollDownOneScreen() {
-    return ThrowNotImplemented('scrollDownOneScreen');
+  async scrollUntilRight() {
+    return ThrowNotImplemented('scrollUntilRight');
+  }
+
+  async scrollUp(distance?: number) {
+    return ThrowNotImplemented('scrollUp');
+  }
+
+  async scrollDown(distance?: number) {
+    return ThrowNotImplemented('scrollDown');
+  }
+
+  async scrollLeft(distance?: number) {
+    return ThrowNotImplemented('scrollLeft');
+  }
+
+  async scrollRight(distance?: number) {
+    return ThrowNotImplemented('scrollRight');
   }
 
   async clearInput() {

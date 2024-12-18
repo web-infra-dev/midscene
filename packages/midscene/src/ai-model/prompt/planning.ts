@@ -77,8 +77,17 @@ Each action has a \`type\` and corresponding \`param\`. To be detailed:
   * \`value\` is the final required input value based on the existing input. No matter what modifications are required, just provide the final value to replace the existing input value. 
 - type: 'KeyboardPress', press a key
   * { param: { value: string } }
-- type: 'Scroll'
-  * { param: { scrollType: 'scrollDownOneScreen' | 'scrollUpOneScreen' | 'scrollUntilBottom' | 'scrollUntilTop' } }
+- type: 'Scroll', scroll up or down.
+  * { 
+      locate: LocateParam | null, 
+      param: { 
+        direction: 'down'(default) | 'up' | 'right' | 'left', 
+        scrollType: 'once' (default) | 'untilBottom' | 'untilTop' | 'untilRight' | 'untilLeft', 
+        distance: null | number 
+      } 
+    }
+    * To scroll some specific element, put the element at the center of the region in the \`locate\` field. If it's a page scroll, put \`null\` in the \`locate\` field. 
+    * \`param\` is required in this action. If some fields are not specified, use direction \`down\`, \`once\` scroll type, and \`null\` distance.
 - type: 'FalsyIfStatement', when there is a falsy condition and the instruction is an "if" statement (means the user can tolerate this situation)
   * { param: null }
 - type: 'Sleep'
@@ -267,7 +276,7 @@ export const planSchema: ResponseFormatJSONSchema = {
               param: {
                 type: ['object', 'null'],
                 description:
-                  'Parameter towards the task type, can be null only when the type field is Tap or Hover',
+                  'Parameter of the action, can be null ONLY when the type field is Tap or Hover',
               },
               locate: {
                 type: ['object', 'null'],
