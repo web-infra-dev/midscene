@@ -118,7 +118,7 @@ describe(
           height: 200,
         },
       });
-      await page.scrollDownOneScreen();
+      await page.scrollDown();
       await new Promise((resolve) => setTimeout(resolve, 1000));
       await generateExtractData(
         page,
