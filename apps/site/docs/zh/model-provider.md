@@ -1,6 +1,6 @@
-# 自定义模型服务
+# 自定义模型和服务商
 
-Midscene 默认集成了 OpenAI SDK 调用 AI 服务，你也可以通过环境变量来自定义配置。
+Midscene 默认集成了 OpenAI SDK 调用 AI 服务，你可以通过环境变量来自定义配置。
 
 主要配置项如下，其中 `OPENAI_API_KEY` 是必选项：
 
@@ -29,3 +29,10 @@ export MIDSCENE_OPENAI_INIT_CONFIG_JSON='{"baseURL":"....","defaultHeaders":{"ke
 # 可选, 如果你想使用代理。Midscene 使用 `socks-proxy-agent` 作为底层库。
 export MIDSCENE_OPENAI_SOCKS_PROXY="socks5://127.0.0.1:1080"
 ```
+
+说明：
+
+- 务必选择一个支持视觉输入的模型。目前我们已知支持的模型有：
+  - OpenAI: `gpt-4o`
+  - 阿里云: `qwen-vl-max-latest`
+- 请遵守各项模型的使用条款

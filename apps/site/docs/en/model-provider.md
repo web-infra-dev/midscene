@@ -1,6 +1,6 @@
-# Customize Model Provider
+# Customize Model and Provider
 
-Midscene uses the OpenAI SDK as the default AI service. You can customize the configuration using environment variables.
+Midscene uses the OpenAI SDK to call AI services. You can customize the configuration using environment variables.
 
 There are the main configs, in which `OPENAI_API_KEY` is required.
 
@@ -29,3 +29,10 @@ export MIDSCENE_OPENAI_INIT_CONFIG_JSON='{"baseURL":"....","defaultHeaders":{"ke
 # if you want to use proxy. Midscene uses `socks-proxy-agent` under the hood.
 export MIDSCENE_OPENAI_SOCKS_PROXY="socks5://127.0.0.1:1080"
 ```
+
+Note:
+
+- Always choose a model that supports vision input. Currently, the known supported models are:
+  - OpenAI: `gpt-4o`
+  - Aliyun: `qwen-vl-max-latest`
+- Please follow the terms of use of each model.
