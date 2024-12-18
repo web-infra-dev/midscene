@@ -62,14 +62,18 @@ modelList.forEach((model) => {
     it('scroll page', async () => {
       const { context } = await getPageDataOfTestName('todo');
       const { actions } = await plan(
-        'Scroll down the page',
+        'Scroll down the page by 200px, scroll up the page by 100px, scroll right the second item of the task list by 300px',
         { context },
         model,
       );
-      console.log(actions);
+      expect(actions.length).toBe(3);
       expect(actions).toBeTruthy();
       expect(actions[0].type).toBe('Scroll');
       expect(actions[0].locate).toBeNull();
+      expect(actions[0].param).toBeDefined();
+
+      expect(actions[2].locate).toBeTruthy();
+      expect(actions[2].param).toBeDefined();
     });
 
     it('throw error when instruction is not feasible', async () => {
