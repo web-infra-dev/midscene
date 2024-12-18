@@ -1,17 +1,26 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { call } from '@/ai-model/openai/index';
-import { compositeElementInfoImg, saveBase64Image } from '@midscene/shared/img';
-import { describe, expect, it } from 'vitest';
+import {
+  compositeElementInfoImg,
+  imageInfo,
+  saveBase64Image,
+} from '@midscene/shared/img';
+import sizeOf from 'image-size';
+import { assert, afterAll, describe, expect, it } from 'vitest';
 
 interface ElementPoint {
   point: [number, number];
-  reason: string;
+  // reason: string;
   duration: string;
 }
 
+const min_pixels = 256 * 28 * 28;
+const max_pixels = 1344 * 28 * 28;
+
 interface PageInfo {
   imageBase64: string;
+  inputImgPath: string;
   size: {
     screenWidth: number;
     screenHeight: number;
@@ -34,6 +43,7 @@ class ElementLocator {
 
     this.pageInfo = {
       imageBase64: image.toString('base64'),
+      inputImgPath: imagePath,
       size: {
         screenWidth: elementSnapshotList[0].screenWidth,
         screenHeight: elementSnapshotList[0].screenHeight,
@@ -43,64 +53,84 @@ class ElementLocator {
 
   async findElement(prompt: string): Promise<ElementPoint> {
     const startTime = Date.now();
-    const result = await call([
+    const response = await fetch(
+      `${process.env.OPENAI_BASE_URL}/chat/completions`,
       {
-        role: 'system',
-        content: `
-          You are an expert in precisely locating page elements. You will receive the following information:
-          1. User's target element description (in any language)
-          2. Page dimensions (width x height)
-          3. Page screenshot (base64 encoded)
-
-          Your task is:
-          1. Carefully analyze the user's description to understand the specific element they want to find, regardless of the language used
-          2. Accurately locate this element in the page screenshot
-          3. Return the center point coordinates of the element and explain your reasoning
-
-          Requirements:
-          1. Coordinates must be within page dimensions
-          2. Coordinates should point to the center of the target element as precisely as possible
-          3. If multiple matching elements are found, choose the one that best matches the user's description
-          4. If no matching element can be found, return null
-          5. You should be able to handle element descriptions in any language (e.g. English, Chinese, Japanese, etc.)
-
-          Return format (strict JSON):
-          {
-            "point": [x, y],  // x,y as integer coordinates
-            "reason": "string" // Detailed explanation of why this element was chosen and how it matches the description
-          }
-          or
-          {
-            "point": null,
-            "reason": "string" // Explanation of why no matching element could be found
-          }
-        `,
-      },
-      {
-        role: 'user',
-        content: [
-          {
-            type: 'text',
-            text: `
-            用户希望查找的目标元素描述: ${prompt}
-            页面尺寸: ${this.pageInfo.size.screenWidth}x${this.pageInfo.size.screenHeight}
-            `,
-          },
-          {
-            type: 'image_url',
-            image_url: {
-              url: `data:image/png;base64,${this.pageInfo.imageBase64}`,
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Cookie: process.env.MIDSCENE_COOKIE || '',
+        },
+        body: JSON.stringify({
+          model: process.env.MIDSCENE_MODEL_NAME,
+          messages: [
+            {
+              role: 'user',
+              content: [
+                {
+                  type: 'text',
+                  text: 'Based on the screenshot of the page, I give a text description and you give its corresponding location. The coordinate represents a clickable location [x, y] for an element, which is a relative coordinate on the screenshot, scaled from 0 to 1.',
+                },
+                {
+                  type: 'image',
+                  image_url: {
+                    url: `data:image/png;base64,${this.pageInfo.imageBase64}`,
+                  },
+                  min_pixels: min_pixels,
+                  max_pixels: max_pixels,
+                },
+                {
+                  type: 'text',
+                  text: `${prompt}`,
+                },
+              ],
             },
-          },
-        ],
+          ],
+          temperature: 0.1,
+        }),
       },
-    ]);
+    );
+
+    const data = await response.json();
+    // const result = await call([
+    //   // {
+    //   //   role: 'system',
+    //   //   // biome-ignore lint/style/noUnusedTemplateLiteral: <explanation>
+    //   //   content: `Based on the screenshot of the page, I give a text description and you give its corresponding location. The coordinate represents a clickable location [x, y] for an element, which is a relative coordinate on the screenshot, scaled from 0 to 1.`,
+    //   // },
+    //   {
+    //     role: 'user',
+    //     content: [
+    //       {
+    //         type: 'text',
+    //         text: `
+    //         Based on the screenshot of the page, I give a text description and you give its corresponding location. The coordinate represents a clickable location [x, y] for an element, which is a relative coordinate on the screenshot, scaled from 0 to 1.
+    //         `,
+    //       },
+    //       {
+    //         type: 'text',
+    //         text: `
+    //         用户希望查找的目标元素描述: ${prompt}
+    //         页面尺寸: ${this.pageInfo.size.screenWidth}x${this.pageInfo.size.screenHeight}
+    //         `,
+    //       },
+    //       {
+    //         type: 'image_url',
+    //         image_url: {
+    //           url: `data:image/png;base64,${this.pageInfo.imageBase64}`,
+    //         },
+    //       },
+    //     ],
+    //   },
+    // ]);
 
     const duration = `${(Date.now() - startTime) / 1000}s`;
-    const resObj = this.parseNonStrictJSON(result.content);
+    const { content } = data.choices[0].message;
+    console.log(content);
+    // const resObj = this.parseNonStrictJSON(result.content);
 
     return {
-      ...resObj,
+      point: content as unknown as [number, number],
       duration,
     };
   }
@@ -110,15 +140,17 @@ class ElementLocator {
       point: result.point,
       index,
     }));
+    const { width, height } = await sizeOf(this.pageInfo.inputImgPath);
+    assert(width && height, 'Invalid image');
 
     const composeImage = await compositeElementInfoImg({
       inputImgBase64: this.pageInfo.imageBase64,
       elementsPositionInfo: points.map((point) => ({
         rect: {
-          left: point.point[0] - 4,
-          top: point.point[1] - 4,
-          width: 8,
-          height: 8,
+          left: width * point.point[0] - 2,
+          top: height * point.point[1] - 2,
+          width: 4,
+          height: 4,
         },
         indexId: point.index,
       })),
@@ -155,47 +187,48 @@ describe(
   () => {
     async function runTest(dataDir: string, prompts: string[]) {
       const locator = new ElementLocator(dataDir);
-
-      const points = await Promise.all(
-        prompts.map(async (prompt, index) => ({
+      const points = [];
+      for (let index = 0; index < prompts.length; index++) {
+        const prompt = prompts[index];
+        const result = await locator.findElement(prompt);
+        points.push({
           index,
           prompt,
-          ...(await locator.findElement(prompt)),
-        })),
-      );
+          ...result,
+        });
+      }
 
       await locator.visualizeResults(
         points,
         path.join(dataDir, 'output_with_markers.png'),
       );
 
-      console.log(points);
+      console.log('points', points);
       expect(points).toBeDefined();
     }
 
-    it('online order', async () => {
-      await runTest(path.resolve(__dirname, '../test-data/online_order_en'), [
-        'Shopping cart button in the top right',
-        'Select specifications',
-        'Price',
-        'Customer service button in the lower right corner',
-        'Switch language',
-      ]);
-    });
+    // it('online order', async () => {
+    //   await runTest(path.resolve(__dirname, '../test-data/online_order_en'), [
+    //     'Shopping cart button in the top right',
+    //     'Select specifications',
+    //     'Price',
+    //     'Customer service button in the lower right corner',
+    //     'Switch language',
+    //   ]);
+    // });
 
     it('online order chinese', async () => {
       await runTest(path.resolve(__dirname, '../test-data/online_order'), [
-        '右上角购物车按钮',
-        '选规格',
-        '价格',
-        '客服按钮',
-        '切换语言',
+        'switch language.',
+        '多肉葡萄价格',
+        '多肉葡萄选择规格',
+        '右上角购物车',
       ]);
     });
 
     it('video player', async () => {
       await runTest(path.resolve(__dirname, '../test-data/aweme-play'), [
-        '播放按钮',
+        '五角星按钮',
         '点赞按钮',
         '收藏按钮',
         '关闭按钮',

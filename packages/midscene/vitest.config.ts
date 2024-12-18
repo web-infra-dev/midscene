@@ -17,7 +17,7 @@ const basicTest = ['tests/unit-test/**/*.test.ts'];
 
 export default defineConfig({
   test: {
-    pool: 'forks',
+    pool: 'threads',
     include: enableAiTest
       ? ['tests/ai/**/**.test.ts', ...basicTest]
       : basicTest,

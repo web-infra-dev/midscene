@@ -54,7 +54,8 @@
     "dotenv": "16.4.5",
     "langsmith": "0.1.36",
     "typescript": "~5.0.4",
-    "vitest": "^1.6.0"
+    "vitest": "2.1.8",
+    "image-size": "1.1.1"
   },
   "engines": {
     "node": ">=16.0.0"
