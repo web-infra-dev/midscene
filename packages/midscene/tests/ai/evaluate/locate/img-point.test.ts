@@ -69,7 +69,7 @@ class ElementLocator {
               content: [
                 {
                   type: 'text',
-                  text: 'Based on the screenshot of the page, I give a text description and you give its corresponding location. The coordinate represents a clickable location [x, y] for an element, which is a relative coordinate on the screenshot, scaled from 0 to 1.',
+                  text: 'Based on the screenshot of the page, I give a text description and you give its corresponding center point location. The coordinate represents the center point [x, y] of the target element, which is a relative coordinate on the screenshot, scaled from 0 to 1. Please ensure the coordinate is at the exact center of the element.',
                 },
                 {
                   type: 'image',
@@ -215,6 +215,7 @@ describe(
         '多肉葡萄价格',
         '多肉葡萄选择规格',
         '右上角购物车',
+        '右下角客服',
       ]);
     });
 

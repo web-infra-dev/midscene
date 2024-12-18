@@ -1,8 +1,8 @@
 import { plan } from '@/ai-model';
 /* eslint-disable max-lines-per-function */
 import { describe, expect, it, vi } from 'vitest';
-import { modelList } from '../util';
-import { getPageDataOfTestName } from './test-suite/util';
+import { modelList } from '../../util';
+import { getPageDataOfTestName } from '../test-suite/util';
 
 vi.setConfig({
   testTimeout: 180 * 1000,
