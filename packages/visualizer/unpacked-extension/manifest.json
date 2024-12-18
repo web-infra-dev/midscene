@@ -1,7 +1,7 @@
 {
-  "name": "Midscene",
-  "description": "Interacting with, querying, and asserting web pages using AI through natural language.",
-  "version": "0.6",
+  "name": "Midscene.js",
+  "description": "Open-source SDK for automating web pages using natural language through AI.",
+  "version": "0.8",
   "manifest_version": 3,
   "permissions": [
     "scripting",

@@ -1,13 +1,13 @@
 import { readFileSync, writeFileSync } from 'node:fs';
-/* eslint-disable @typescript-eslint/no-magic-numbers */
 import path, { join } from 'node:path';
+import type { callAiFn } from '@/ai-model/common';
 import {
   base64Encoded,
   imageInfoOfBase64,
   transformImgPathToBase64,
 } from '@/image';
 import Insight from '@/insight';
-import type { BaseElement, UIContext } from '@/types';
+import type { AIElementIdResponse, BaseElement, UIContext } from '@/types';
 import { vi } from 'vitest';
 
 export function getFixture(name: string) {
@@ -45,16 +45,18 @@ export function fakeInsight(content: string) {
         center: [250, 250],
         tap: vi.fn() as unknown,
       },
-      // describer: basicPa
     ] as unknown as BaseElement[],
   };
   const context: UIContext = {
     ...basicContext,
   };
 
-  const aiVendor = () => ({
-    elements: [{ id: '0' }],
-    errors: [],
+  const aiVendor: typeof callAiFn<AIElementIdResponse> = async () => ({
+    content: {
+      elements: [{ id: '0', reason: '', text: '' }],
+      errors: [],
+    },
+    usage: undefined,
   });
 
   const insight = new Insight(context, {

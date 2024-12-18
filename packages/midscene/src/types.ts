@@ -314,6 +314,9 @@ export interface PlaywrightParserOpt extends BaseAgentParserOpt {}
 /*
 action
 */
+export interface ExecutionTaskProgressOptions {
+  onTaskStart?: (task: ExecutionTask) => Promise<void> | void;
+}
 
 export interface ExecutionRecorderItem {
   type: 'screenshot';

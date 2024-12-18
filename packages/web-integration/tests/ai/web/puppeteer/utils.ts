@@ -13,6 +13,7 @@ export async function launchPage(
     headless: typeof opt?.headless === 'boolean' ? opt.headless : true,
     args: [
       '--no-sandbox',
+      '--disable-setuid-sandbox',
       '--disable-features=PasswordLeakDetection',
       '--disable-save-password-bubble',
     ],
@@ -28,7 +29,9 @@ export async function launchPage(
     'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
   );
   const response = await originPage.goto(url);
-  await originPage.waitForNetworkIdle();
+  await originPage.waitForNetworkIdle({
+    concurrency: 1,
+  });
   if (response?.status) {
     assert(response.status() <= 399, `Page load failed: ${response.status()}`);
   }

@@ -96,7 +96,7 @@ export default class Insight<
     const startTime = Date.now();
     const { parseResult, elementById, rawResponse, usage } =
       await AiInspectElement({
-        callAI,
+        callAI: callAI || this.aiVendorFn,
         context,
         multi: Boolean(multi),
         targetElementDescription: queryPrompt,

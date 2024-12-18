@@ -7,6 +7,8 @@ import assert from 'node:assert';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { basename, dirname, extname, join } from 'node:path';
 import { PuppeteerAgent } from '@midscene/web/puppeteer';
+import { paramStr, typeStr } from '@midscene/web/ui-utils';
+
 import {
   contextInfo,
   contextTaskListSummary,
@@ -116,14 +118,14 @@ export async function playYamlFiles(
 
     ttyRenderer.start();
     for (const context of fileContextList) {
-      await context.player.play();
+      await context.player.run();
     }
     ttyRenderer.stop();
   } else {
     for (const context of fileContextList) {
       const { mergedText } = contextInfo(context);
       console.log(mergedText);
-      await context.player.play();
+      await context.player.run();
       console.log(contextTaskListSummary(context.player.taskStatus, context));
     }
   }
@@ -220,7 +222,13 @@ export class ScriptPlayer {
           typeof prompt === 'string',
           'prompt for aiAction must be a string',
         );
-        await agent.aiAction(prompt);
+        await agent.aiAction(prompt, {
+          onTaskStart(task) {
+            const tip = `${typeStr(task)} - ${paramStr(task)}`;
+            (flowItem as MidsceneYamlFlowItemAIAction).aiActionProgressTip =
+              tip;
+          },
+        });
       } else if ((flowItem as MidsceneYamlFlowItemAIAssert).aiAssert) {
         const assertTask = flowItem as MidsceneYamlFlowItemAIAssert;
         const prompt = assertTask.aiAssert;
@@ -273,7 +281,7 @@ export class ScriptPlayer {
     this.reportFile = agent.reportFile;
   }
 
-  async play() {
+  async run() {
     const { target, tasks } = this.script;
     this.setPlayerStatus('running');
 
@@ -351,6 +359,12 @@ export class ScriptPlayer {
     }
     const browser = await puppeteer.launch({
       headless: !headed,
+      args: [
+        '--no-sandbox',
+        '--disable-setuid-sandbox',
+        '--disable-features=PasswordLeakDetection',
+        '--disable-save-password-bubble',
+      ],
     });
     freeFn.push({
       name: 'puppeteer_browser',

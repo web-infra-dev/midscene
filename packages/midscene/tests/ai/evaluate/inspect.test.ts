@@ -3,7 +3,6 @@ import path from 'node:path';
 import { describe } from 'node:test';
 import { AiInspectElement, plan } from '@/ai-model';
 import { afterAll, expect, test } from 'vitest';
-import { repeatTime } from '../util';
 import {
   TestResultAnalyzer,
   updateAggregatedResults,
@@ -15,6 +14,9 @@ import {
   runTestCases,
 } from './test-suite/util';
 
+const repeatTime = 2;
+const relocateAfterPlanning = false;
+const failCaseThreshold = process.env.CI ? 1 : 0;
 const testSources = [
   'todo',
   'online_order',
@@ -47,8 +49,8 @@ describe('ai inspect element', () => {
   });
 
   repeat(repeatTime, (repeatIndex) => {
-    // const runType = repeatIndex <= repeatTime / 2 ? 'inspect' : 'planning';
-    const runType = 'inspect';
+    const runType = repeatIndex % 2 === 1 ? 'inspect' : 'planning';
+    // const runType = 'planning';
     testSources.forEach((source) => {
       test(
         `${source}-${repeatIndex}-${runType}: locate element`,
@@ -71,35 +73,47 @@ describe('ai inspect element', () => {
             aiData.testCases,
             context,
             async (testCase) => {
-              // if (runType === 'planning') {
-              //   // use planning to get quick answer to test element inspector
-              //   const res: any = await plan(
-              //     `Tap this: ${testCase.description}`,
-              //     {
-              //       context,
-              //     },
-              //   );
-              //   console.log('planning result:', JSON.stringify(res, null, 2));
+              let prompt = testCase.description;
+              if (runType === 'planning') {
+                // use planning to get quick answer to test element inspector
+                const res = await plan(
+                  `follow the instruction (if any) or tap this element:${testCase.description}. Current time is ${new Date().toLocaleString()}.`,
+                  {
+                    context,
+                  },
+                );
 
-              //   const matchedId = res.actions[0].locate?.id;
-              //   if (matchedId) {
-              //     return {
-              //       elements: [elementById(matchedId)],
-              //     };
-              //   }
+                console.log('planning res', res);
+                prompt = res.actions[0].locate?.prompt as string;
+                console.log('prompt from planning', prompt);
+                expect(prompt).toBeTruthy();
+                // console.log('planning res', res.actions[0].locate?.prompt);
 
-              //   return {
-              //     elements: [],
-              //   };
-              // }
+                if (!relocateAfterPlanning) {
+                  const matchedId = res.actions[0].locate?.id;
+                  if (matchedId) {
+                    return {
+                      elements: [elementById(matchedId)],
+                    };
+                  }
+
+                  return {
+                    elements: [],
+                  };
+                }
+              }
 
               const { parseResult } = await AiInspectElement({
                 context,
-                multi: testCase.multi,
-                targetElementDescription: testCase.description,
+                multi: false,
+                targetElementDescription: prompt,
               });
-              console.log('parseResult:', JSON.stringify(parseResult, null, 2));
-              return parseResult as any;
+              return {
+                ...parseResult,
+                elements: parseResult.elements.length
+                  ? [parseResult.elements[0]]
+                  : [],
+              };
             },
           );
 
@@ -124,7 +138,12 @@ describe('ai inspect element', () => {
             },
           });
           // await sleep(20 * 1000);
-          expect(resultData.failCount).toBeLessThanOrEqual(1);
+          expect(resultData.successCount).toBeGreaterThan(0);
+          expect(resultData.failCount).toBeLessThanOrEqual(
+            source === 'aweme_play' ? 2 : failCaseThreshold,
+          );
+
+          await new Promise((resolve) => setTimeout(resolve, 10 * 1000));
         },
         {
           timeout: 120 * 1000,

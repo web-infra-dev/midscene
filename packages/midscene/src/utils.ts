@@ -10,6 +10,7 @@ import {
   MIDSCENE_DEBUG_MODE,
   MIDSCENE_OPENAI_INIT_CONFIG_JSON,
   getAIConfig,
+  getAIConfigInJson,
 } from './env';
 import type { Rect, ReportDumpWithAttributes } from './types';
 
@@ -227,16 +228,11 @@ function debugLog(...message: any[]) {
 }
 
 let lastReportedRepoUrl = '';
-export function uploadTestInfoToServer({
-  testUrl,
-}: {
-  testUrl: string;
-}) {
+export function uploadTestInfoToServer({ testUrl }: { testUrl: string }) {
   let repoUrl = '';
   let userEmail = '';
 
-  const extraConfigString = getAIConfig(MIDSCENE_OPENAI_INIT_CONFIG_JSON);
-  const extraConfig = extraConfigString ? JSON.parse(extraConfigString) : {};
+  const extraConfig = getAIConfigInJson(MIDSCENE_OPENAI_INIT_CONFIG_JSON);
   const serverUrl = extraConfig?.REPORT_SERVER_URL;
 
   try {

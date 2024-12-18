@@ -34,7 +34,6 @@ export async function plan(
     elementByPosition,
     elementByIndexId,
   } = await describeUserPage(context);
-  let planFromAI: PlanningAIResponse | undefined;
 
   const systemPrompt = systemPromptToTaskPlanning();
 
@@ -133,18 +132,14 @@ ${taskBackgroundContext}
   const endTime = Date.now();
   console.log(`AI planning took ${endTime - startTime}ms`);
 
-  planFromAI = content;
+  const planFromAI = content;
 
   const actions = planFromAI?.actions || [];
   assert(planFromAI, "can't get plans from AI");
   assert(
     actions.length > 0,
-    `no actions in ai plan with context: ${planFromAI}`,
+    `Failed to plan actions with context: ${planFromAI.error}`,
   );
-
-  if (planFromAI.error) {
-    throw new Error(planFromAI.error);
-  }
 
   return planFromAI;
 }

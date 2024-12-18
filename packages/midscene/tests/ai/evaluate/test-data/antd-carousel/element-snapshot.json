@@ -1,10 +1,10 @@
 [
   {
-    "id": "676530",
+    "id": "a52b25a1",
     "indexId": 0,
     "nodePath": "0-1-2-1-0-0-0-0-0",
-    "nodeHashId": "676530",
-    "locator": "[_midscene_retrieve_task_id='676530']",
+    "nodeHashId": "a52b25a1",
+    "locator": "[_midscene_retrieve_task_id='a52b25a1']",
     "attributes": {
       "src": "https://gw.alipayobjects.com/zos/rmsportal/KDpgvgu...",
       "draggable": "false",
@@ -29,10 +29,10 @@
     "screenHeight": 1080
   },
   {
-    "id": "327990",
+    "id": "5013600a",
     "indexId": 1,
     "nodePath": "0-1-2-1-0-0-0-0-1-0",
-    "nodeHashId": "327990",
+    "nodeHashId": "5013600a",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
@@ -55,11 +55,11 @@
     "screenHeight": 1080
   },
   {
-    "id": "779977",
+    "id": "be6c9448",
     "indexId": 2,
     "nodePath": "0-1-2-1-0-1-0-0-0",
-    "nodeHashId": "779977",
-    "locator": "[_midscene_retrieve_task_id='779977']",
+    "nodeHashId": "be6c9448",
+    "locator": "[_midscene_retrieve_task_id='be6c9448']",
     "attributes": {
       "svgContent": "true",
       "nodeType": "IMG Node"
@@ -82,10 +82,10 @@
     "screenHeight": 1080
   },
   {
-    "id": "440282",
+    "id": "6b7da1bb",
     "nodePath": "0-1-2-1-0-1-0-0-1",
-    "nodeHashId": "440282",
-    "locator": "[_midscene_retrieve_task_id='440282']",
+    "nodeHashId": "6b7da1bb",
+    "locator": "[_midscene_retrieve_task_id='6b7da1bb']",
     "nodeType": "FORM_ITEM Node",
     "indexId": 3,
     "attributes": {
@@ -111,10 +111,10 @@
     "screenHeight": 1080
   },
   {
-    "id": "291589",
+    "id": "47305845",
     "indexId": 4,
     "nodePath": "0-1-2-1-0-1-0-0-2-0",
-    "nodeHashId": "291589",
+    "nodeHashId": "47305845",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
@@ -137,10 +137,10 @@
     "screenHeight": 1080
   },
   {
-    "id": "215584",
+    "id": "34a206d1",
     "indexId": 5,
     "nodePath": "0-1-2-1-0-1-0-0-2-2",
-    "nodeHashId": "215584",
+    "nodeHashId": "34a206d1",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
@@ -163,10 +163,10 @@
     "screenHeight": 1080
   },
   {
-    "id": "187158",
+    "id": "2db16595",
     "indexId": 6,
     "nodePath": "0-1-2-1-0-1-0-1-0-0-0-0",
-    "nodeHashId": "187158",
+    "nodeHashId": "2db16595",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
@@ -189,10 +189,10 @@
     "screenHeight": 1080
   },
   {
-    "id": "91098",
+    "id": "163da381",
     "indexId": 7,
     "nodePath": "0-1-2-1-0-1-0-1-1-0-0-0",
-    "nodeHashId": "91098",
+    "nodeHashId": "163da381",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
@@ -215,10 +215,10 @@
     "screenHeight": 1080
   },
   {
-    "id": "592145",
+    "id": "909119bb",
     "indexId": 8,
     "nodePath": "0-1-2-1-0-1-0-1-2-0-0-0",
-    "nodeHashId": "592145",
+    "nodeHashId": "909119bb",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
@@ -241,10 +241,10 @@
     "screenHeight": 1080
   },
   {
-    "id": "750759",
+    "id": "b74a7e3c",
     "indexId": 9,
     "nodePath": "0-1-2-1-0-1-0-1-3-0-0-0",
-    "nodeHashId": "750759",
+    "nodeHashId": "b74a7e3c",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
@@ -267,10 +267,10 @@
     "screenHeight": 1080
   },
   {
-    "id": "944999",
+    "id": "e6b67766",
     "indexId": 10,
     "nodePath": "0-1-2-1-0-1-0-1-4-0-0-0",
-    "nodeHashId": "944999",
+    "nodeHashId": "e6b67766",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
@@ -293,10 +293,10 @@
     "screenHeight": 1080
   },
   {
-    "id": "85118",
+    "id": "14c7eb3b",
     "indexId": 11,
     "nodePath": "0-1-2-1-0-1-0-1-5-0-0-0",
-    "nodeHashId": "85118",
+    "nodeHashId": "14c7eb3b",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
@@ -319,10 +319,10 @@
     "screenHeight": 1080
   },
   {
-    "id": "702144",
+    "id": "ab6c0c25",
     "indexId": 12,
     "nodePath": "0-1-2-1-0-1-0-3-0-0-1-0",
-    "nodeHashId": "702144",
+    "nodeHashId": "ab6c0c25",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
@@ -345,12 +345,12 @@
     "screenHeight": 1080
   },
   {
-    "id": "943905",
+    "id": "e672113e",
     "indexId": 13,
     "nodePath": "0-1-2-1-0-1-0-4",
-    "nodeHashId": "943905",
+    "nodeHashId": "e672113e",
     "nodeType": "BUTTON Node",
-    "locator": "[_midscene_retrieve_task_id='943905']",
+    "locator": "[_midscene_retrieve_task_id='e672113e']",
     "attributes": {
       "type": "button",
       "class": ".acss-yk1wp5",
@@ -373,12 +373,12 @@
     "screenHeight": 1080
   },
   {
-    "id": "735563",
+    "id": "b394bf18",
     "indexId": 14,
     "nodePath": "0-1-2-1-0-1-0-5",
-    "nodeHashId": "735563",
+    "nodeHashId": "b394bf18",
     "nodeType": "BUTTON Node",
-    "locator": "[_midscene_retrieve_task_id='735563']",
+    "locator": "[_midscene_retrieve_task_id='b394bf18']",
     "attributes": {
       "type": "button",
       "class": ".acss-yk1wp5",
@@ -402,12 +402,12 @@
     "screenHeight": 1080
   },
   {
-    "id": "653448",
+    "id": "9f888a4e",
     "indexId": 15,
     "nodePath": "0-1-2-1-0-1-0-6-0",
-    "nodeHashId": "653448",
+    "nodeHashId": "9f888a4e",
     "nodeType": "BUTTON Node",
-    "locator": "[_midscene_retrieve_task_id='653448']",
+    "locator": "[_midscene_retrieve_task_id='9f888a4e']",
     "attributes": {
       "type": "button",
       "class": ".acss-yk1wp5",
@@ -430,10 +430,10 @@
     "screenHeight": 1080
   },
   {
-    "id": "901964",
+    "id": "dc34c2a0",
     "indexId": 16,
     "nodePath": "0-1-2-2-0-0-0-0-0-0-0-0-0",
-    "nodeHashId": "901964",
+    "nodeHashId": "dc34c2a0",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
@@ -456,10 +456,10 @@
     "screenHeight": 1080
   },
   {
-    "id": "1041351",
+    "id": "fe3c757b",
     "indexId": 17,
     "nodePath": "0-1-2-2-0-0-1-0-0",
-    "nodeHashId": "1041351",
+    "nodeHashId": "fe3c757b",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
@@ -482,10 +482,10 @@
     "screenHeight": 1080
   },
   {
-    "id": "366564",
+    "id": "597e4ca3",
     "indexId": 18,
     "nodePath": "0-1-2-2-0-0-1-1-0-0-0-0-0-0-0",
-    "nodeHashId": "366564",
+    "nodeHashId": "597e4ca3",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
@@ -508,10 +508,10 @@
     "screenHeight": 1080
   },
   {
-    "id": "406686",
+    "id": "6349ee61",
     "indexId": 19,
     "nodePath": "0-1-2-2-0-0-1-1-0-0-0-0-1-0-0",
-    "nodeHashId": "406686",
+    "nodeHashId": "6349ee61",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
@@ -534,10 +534,10 @@
     "screenHeight": 1080
   },
   {
-    "id": "843137",
+    "id": "cdd81124",
     "indexId": 20,
     "nodePath": "0-1-2-2-0-0-1-1-1-0-0-0-0-0-0",
-    "nodeHashId": "843137",
+    "nodeHashId": "cdd81124",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
@@ -560,10 +560,10 @@
     "screenHeight": 1080
   },
   {
-    "id": "35228",
+    "id": "0899c7fa",
     "indexId": 21,
     "nodePath": "0-1-2-2-0-0-1-1-1-0-0-0-1-0-0",
-    "nodeHashId": "35228",
+    "nodeHashId": "0899c7fa",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
@@ -586,10 +586,10 @@
     "screenHeight": 1080
   },
   {
-    "id": "347107",
+    "id": "c245677f",
     "indexId": 22,
     "nodePath": "0-1-2-2-0-0-1-1-1-0-0-1-0",
-    "nodeHashId": "347107",
+    "nodeHashId": "c245677f",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
@@ -612,10 +612,10 @@
     "screenHeight": 1080
   },
   {
-    "id": "600217",
+    "id": "92899059",
     "indexId": 23,
     "nodePath": "0-1-2-2-0-0-1-1-2-0-0-0-0-0-0",
-    "nodeHashId": "600217",
+    "nodeHashId": "92899059",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
@@ -638,10 +638,10 @@
     "screenHeight": 1080
   },
   {
-    "id": "471292",
+    "id": "730fc62f",
     "indexId": 24,
     "nodePath": "0-1-2-2-0-0-1-1-2-0-0-0-1-0-0",
-    "nodeHashId": "471292",
+    "nodeHashId": "730fc62f",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
@@ -664,10 +664,10 @@
     "screenHeight": 1080
   },
   {
-    "id": "889747",
+    "id": "d9393d58",
     "indexId": 25,
     "nodePath": "0-1-2-2-0-0-1-1-3-0-0-0-0-0-0",
-    "nodeHashId": "889747",
+    "nodeHashId": "d9393d58",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
@@ -690,10 +690,10 @@
     "screenHeight": 1080
   },
   {
-    "id": "9727",
+    "id": "025ffa3e",
     "indexId": 26,
     "nodePath": "0-1-2-2-0-0-1-1-3-0-0-0-1-0-0",
-    "nodeHashId": "9727",
+    "nodeHashId": "025ffa3e",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
@@ -716,10 +716,10 @@
     "screenHeight": 1080
   },
   {
-    "id": "780876",
+    "id": "bea4c618",
     "indexId": 27,
     "nodePath": "0-1-2-2-0-0-2-0-0",
-    "nodeHashId": "780876",
+    "nodeHashId": "bea4c618",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
@@ -742,10 +742,10 @@
     "screenHeight": 1080
   },
   {
-    "id": "826226",
+    "id": "c9b72810",
     "indexId": 28,
     "nodePath": "0-1-2-2-0-0-2-1-0-0-0-0-0-0-0",
-    "nodeHashId": "826226",
+    "nodeHashId": "c9b72810",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
@@ -768,10 +768,10 @@
     "screenHeight": 1080
   },
   {
-    "id": "14213",
+    "id": "037852fb",
     "indexId": 29,
     "nodePath": "0-1-2-2-0-0-2-1-0-0-0-0-1-0-0",
-    "nodeHashId": "14213",
+    "nodeHashId": "037852fb",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
@@ -794,10 +794,10 @@
     "screenHeight": 1080
   },
   {
-    "id": "374194",
+    "id": "5b5b2fee",
     "indexId": 30,
     "nodePath": "0-1-2-2-0-0-2-1-1-0-0-0-0-0-0",
-    "nodeHashId": "374194",
+    "nodeHashId": "5b5b2fee",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
@@ -820,10 +820,10 @@
     "screenHeight": 1080
   },
   {
-    "id": "257036",
+    "id": "3ec0cd30",
     "indexId": 31,
     "nodePath": "0-1-2-2-0-0-2-1-1-0-0-0-1-0-0",
-    "nodeHashId": "257036",
+    "nodeHashId": "3ec0cd30",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
@@ -846,10 +846,10 @@
     "screenHeight": 1080
   },
   {
-    "id": "669421",
+    "id": "e9fc5118",
     "indexId": 32,
     "nodePath": "0-1-2-2-0-0-2-1-1-0-0-1-0",
-    "nodeHashId": "669421",
+    "nodeHashId": "e9fc5118",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
@@ -872,10 +872,10 @@
     "screenHeight": 1080
   },
   {
-    "id": "175236",
+    "id": "2ac84c41",
     "indexId": 33,
     "nodePath": "0-1-2-2-0-0-2-1-2-0-0-0-0-0-0",
-    "nodeHashId": "175236",
+    "nodeHashId": "2ac84c41",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
@@ -898,10 +898,10 @@
     "screenHeight": 1080
   },
   {
-    "id": "787532",
+    "id": "c044ca14",
     "indexId": 34,
     "nodePath": "0-1-2-2-0-0-2-1-2-0-0-0-1-0-0",
-    "nodeHashId": "787532",
+    "nodeHashId": "c044ca14",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
@@ -924,10 +924,10 @@
     "screenHeight": 1080
   },
   {
-    "id": "85901",
+    "id": "14f8d216",
     "indexId": 35,
     "nodePath": "0-1-2-2-0-0-2-1-3-0-0-0-0-0-0",
-    "nodeHashId": "85901",
+    "nodeHashId": "14f8d216",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
@@ -950,10 +950,10 @@
     "screenHeight": 1080
   },
   {
-    "id": "222674",
+    "id": "365d2d11",
     "indexId": 36,
     "nodePath": "0-1-2-2-0-0-2-1-3-0-0-0-1-0-0",
-    "nodeHashId": "222674",
+    "nodeHashId": "365d2d11",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
@@ -976,10 +976,10 @@
     "screenHeight": 1080
   },
   {
-    "id": "628395",
+    "id": "996aba2a",
     "indexId": 37,
     "nodePath": "0-1-2-2-0-0-2-1-4-0-0-0-0-0-0",
-    "nodeHashId": "628395",
+    "nodeHashId": "996aba2a",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
@@ -1002,10 +1002,10 @@
     "screenHeight": 1080
   },
   {
-    "id": "135231",
+    "id": "2103fc6d",
     "indexId": 38,
     "nodePath": "0-1-2-2-0-0-2-1-4-0-0-0-1-0-0",
-    "nodeHashId": "135231",
+    "nodeHashId": "2103fc6d",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
@@ -1028,10 +1028,10 @@
     "screenHeight": 1080
   },
   {
-    "id": "883251",
+    "id": "d7a335ad",
     "indexId": 39,
     "nodePath": "0-1-2-2-0-0-2-1-5-0-0-0-0-0-0",
-    "nodeHashId": "883251",
+    "nodeHashId": "d7a335ad",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
@@ -1054,10 +1054,10 @@
     "screenHeight": 1080
   },
   {
-    "id": "579102",
+    "id": "8d61e899",
     "indexId": 40,
     "nodePath": "0-1-2-2-0-0-2-1-5-0-0-0-1-0-0",
-    "nodeHashId": "579102",
+    "nodeHashId": "8d61e899",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
@@ -1080,10 +1080,10 @@
     "screenHeight": 1080
   },
   {
-    "id": "622999",
+    "id": "4d8115f8",
     "indexId": 41,
     "nodePath": "0-1-2-2-0-0-2-1-5-0-0-1-0",
-    "nodeHashId": "622999",
+    "nodeHashId": "4d8115f8",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
@@ -1106,10 +1106,10 @@
     "screenHeight": 1080
   },
   {
-    "id": "702556",
+    "id": "ab85cae3",
     "indexId": 42,
     "nodePath": "0-1-2-2-0-0-3-0-0",
-    "nodeHashId": "702556",
+    "nodeHashId": "ab85cae3",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
@@ -1132,10 +1132,10 @@
     "screenHeight": 1080
   },
   {
-    "id": "232628",
+    "id": "38cb4824",
     "indexId": 43,
     "nodePath": "0-1-2-2-0-0-3-1-0-0-0-0-0-0-0",
-    "nodeHashId": "232628",
+    "nodeHashId": "38cb4824",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
@@ -1158,10 +1158,10 @@
     "screenHeight": 1080
   },
   {
-    "id": "994448",
+    "id": "f2c90c92",
     "indexId": 44,
     "nodePath": "0-1-2-2-0-0-3-1-0-0-0-0-1-0-0",
-    "nodeHashId": "994448",
+    "nodeHashId": "f2c90c92",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
@@ -1184,10 +1184,10 @@
     "screenHeight": 1080
   },
   {
-    "id": "1041411",
+    "id": "fe403dbb",
     "indexId": 45,
     "nodePath": "0-1-2-2-0-0-3-1-1-0-0-0-0-0-0",
-    "nodeHashId": "1041411",
+    "nodeHashId": "fe403dbb",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
@@ -1210,10 +1210,10 @@
     "screenHeight": 1080
   },
   {
-    "id": "859354",
+    "id": "d1cda59c",
     "indexId": 46,
     "nodePath": "0-1-2-2-0-0-3-1-1-0-0-0-1-0-0",
-    "nodeHashId": "859354",
+    "nodeHashId": "d1cda59c",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
@@ -1236,10 +1236,10 @@
     "screenHeight": 1080
   },
   {
-    "id": "556213",
+    "id": "87cb54d4",
     "indexId": 47,
     "nodePath": "0-1-2-2-0-0-3-1-2-0-0-0-0-0-0",
-    "nodeHashId": "556213",
+    "nodeHashId": "87cb54d4",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
@@ -1262,10 +1262,10 @@
     "screenHeight": 1080
   },
   {
-    "id": "418626",
+    "id": "66342a74",
     "indexId": 48,
     "nodePath": "0-1-2-2-0-0-3-1-2-0-0-0-1-0-0",
-    "nodeHashId": "418626",
+    "nodeHashId": "66342a74",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
@@ -1288,10 +1288,10 @@
     "screenHeight": 1080
   },
   {
-    "id": "596602",
+    "id": "91a7a92d",
     "indexId": 49,
     "nodePath": "0-1-2-2-0-0-3-1-3-0-0-0-0-0-0",
-    "nodeHashId": "596602",
+    "nodeHashId": "91a7a92d",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
@@ -1314,10 +1314,10 @@
     "screenHeight": 1080
   },
   {
-    "id": "702591",
+    "id": "ab87fc1f",
     "indexId": 50,
     "nodePath": "0-1-2-2-0-0-3-1-3-0-0-0-1-0-0",
-    "nodeHashId": "702591",
+    "nodeHashId": "ab87fc1f",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
@@ -1340,10 +1340,10 @@
     "screenHeight": 1080
   },
   {
-    "id": "361428",
+    "id": "583d47e5",
     "indexId": 51,
     "nodePath": "0-1-2-2-0-0-3-1-4-0-0-0-0-0-0",
-    "nodeHashId": "361428",
+    "nodeHashId": "583d47e5",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
@@ -1366,10 +1366,10 @@
     "screenHeight": 1080
   },
   {
-    "id": "458930",
+    "id": "700b2ff8",
     "indexId": 52,
     "nodePath": "0-1-2-2-0-0-3-1-4-0-0-0-1-0-0",
-    "nodeHashId": "458930",
+    "nodeHashId": "700b2ff8",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
@@ -1392,10 +1392,10 @@
     "screenHeight": 1080
   },
   {
-    "id": "575357",
+    "id": "8c77d3b0",
     "indexId": 53,
     "nodePath": "0-1-2-2-0-0-3-1-5-0-0-0-0-0-0",
-    "nodeHashId": "575357",
+    "nodeHashId": "8c77d3b0",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
@@ -1418,10 +1418,10 @@
     "screenHeight": 1080
   },
   {
-    "id": "637663",
+    "id": "9badf81e",
     "indexId": 54,
     "nodePath": "0-1-2-2-0-0-3-1-5-0-0-0-1-0-0",
-    "nodeHashId": "637663",
+    "nodeHashId": "9badf81e",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
@@ -1444,10 +1444,10 @@
     "screenHeight": 1080
   },
   {
-    "id": "337942",
+    "id": "528161c4",
     "indexId": 55,
     "nodePath": "0-1-2-2-1-0-2-0-0-1-0-0",
-    "nodeHashId": "337942",
+    "nodeHashId": "528161c4",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
@@ -1470,10 +1470,10 @@
     "screenHeight": 1080
   },
   {
-    "id": "160678",
+    "id": "273a60be",
     "indexId": 56,
     "nodePath": "0-1-2-2-1-0-2-0-0-2-0-0",
-    "nodeHashId": "160678",
+    "nodeHashId": "273a60be",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
@@ -1496,10 +1496,10 @@
     "screenHeight": 1080
   },
   {
-    "id": "526446",
+    "id": "8086e149",
     "indexId": 57,
     "nodePath": "0-1-2-2-1-0-2-0-0-2-1-0-0-0",
-    "nodeHashId": "526446",
+    "nodeHashId": "8086e149",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
@@ -1522,10 +1522,10 @@
     "screenHeight": 1080
   },
   {
-    "id": "635257",
+    "id": "9b179adf",
     "indexId": 58,
     "nodePath": "0-1-2-2-1-0-2-0-0-2-2-0-0-0",
-    "nodeHashId": "635257",
+    "nodeHashId": "9b179adf",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
@@ -1548,10 +1548,10 @@
     "screenHeight": 1080
   },
   {
-    "id": "585787",
+    "id": "8f03be2e",
     "indexId": 59,
     "nodePath": "0-1-2-2-1-0-2-0-0-2-3-0-0-0",
-    "nodeHashId": "585787",
+    "nodeHashId": "8f03be2e",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
@@ -1574,10 +1574,10 @@
     "screenHeight": 1080
   },
   {
-    "id": "259296",
+    "id": "3f4e0082",
     "indexId": 60,
     "nodePath": "0-1-2-2-1-0-2-0-0-2-4-0-0-0",
-    "nodeHashId": "259296",
+    "nodeHashId": "3f4e0082",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
@@ -1600,10 +1600,10 @@
     "screenHeight": 1080
   },
   {
-    "id": "963635",
+    "id": "eb43352a",
     "indexId": 61,
     "nodePath": "0-1-2-2-1-0-2-0-0-2-5-0-0-0",
-    "nodeHashId": "963635",
+    "nodeHashId": "eb43352a",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
@@ -1626,10 +1626,10 @@
     "screenHeight": 1080
   },
   {
-    "id": "163308",
+    "id": "27dec108",
     "indexId": 62,
     "nodePath": "0-1-2-2-1-0-2-0-0-3-0-0",
-    "nodeHashId": "163308",
+    "nodeHashId": "27dec108",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
@@ -1652,10 +1652,10 @@
     "screenHeight": 1080
   },
   {
-    "id": "501111",
+    "id": "7a5777ac",
     "indexId": 63,
     "nodePath": "0-1-2-2-1-0-2-0-0-4-0-0",
-    "nodeHashId": "501111",
+    "nodeHashId": "7a5777ac",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
@@ -1678,10 +1678,10 @@
     "screenHeight": 1080
   },
   {
-    "id": "985100",
+    "id": "f080c450",
     "indexId": 64,
     "nodePath": "0-1-2-2-1-0-2-0-0-5-0-0",
-    "nodeHashId": "985100",
+    "nodeHashId": "f080c450",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
@@ -1704,10 +1704,10 @@
     "screenHeight": 1080
   },
   {
-    "id": "847070",
+    "id": "cecde90e",
     "indexId": 65,
     "nodePath": "0-1-2-2-1-0-2-0-0-6-0-0",
-    "nodeHashId": "847070",
+    "nodeHashId": "cecde90e",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
@@ -1730,10 +1730,10 @@
     "screenHeight": 1080
   },
   {
-    "id": "192977",
+    "id": "2f1d1eab",
     "indexId": 66,
     "nodePath": "0-1-2-2-1-0-2-0-0-6-1-0-0-0",
-    "nodeHashId": "192977",
+    "nodeHashId": "2f1d1eab",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
@@ -1756,10 +1756,10 @@
     "screenHeight": 1080
   },
   {
-    "id": "638233",
+    "id": "9bd191c6",
     "indexId": 67,
     "nodePath": "0-1-2-2-1-1-0-0-0-0-0-0",
-    "nodeHashId": "638233",
+    "nodeHashId": "9bd191c6",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
@@ -1782,10 +1782,10 @@
     "screenHeight": 1080
   },
   {
-    "id": "133646",
+    "id": "20a0ea15",
     "indexId": 68,
     "nodePath": "0-1-2-2-1-1-0-0-0-1-0-0",
-    "nodeHashId": "133646",
+    "nodeHashId": "20a0ea15",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
@@ -1808,11 +1808,11 @@
     "screenHeight": 1080
   },
   {
-    "id": "214261",
+    "id": "344f54d9",
     "indexId": 69,
     "nodePath": "0-1-2-2-1-1-0-0-0-2-0-2-0-0",
-    "nodeHashId": "214261",
-    "locator": "[_midscene_retrieve_task_id='214261']",
+    "nodeHashId": "344f54d9",
+    "locator": "[_midscene_retrieve_task_id='344f54d9']",
     "attributes": {
       "svgContent": "true",
       "nodeType": "IMG Node"
@@ -1835,10 +1835,10 @@
     "screenHeight": 1080
   },
   {
-    "id": "1016316",
+    "id": "f81fc4cd",
     "indexId": 70,
     "nodePath": "0-1-2-2-1-1-2",
-    "nodeHashId": "1016316",
+    "nodeHashId": "f81fc4cd",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
@@ -1861,10 +1861,10 @@
     "screenHeight": 1080
   },
   {
-    "id": "680238",
+    "id": "a612e497",
     "indexId": 71,
     "nodePath": "0-1-2-2-1-1-3-0-0-0-0-0-0-0-0",
-    "nodeHashId": "680238",
+    "nodeHashId": "a612e497",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
@@ -1887,10 +1887,10 @@
     "screenHeight": 1080
   },
   {
-    "id": "166021",
+    "id": "28885631",
     "indexId": 72,
     "nodePath": "0-1-2-2-1-1-3-0-0-0-0-0-0-1-0-0-0",
-    "nodeHashId": "166021",
+    "nodeHashId": "28885631",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
@@ -1913,10 +1913,10 @@
     "screenHeight": 1080
   },
   {
-    "id": "995213",
+    "id": "f2f8da10",
     "indexId": 73,
     "nodePath": "0-1-2-2-1-1-3-0-0-0-0-0-0-1-0-1-0",
-    "nodeHashId": "995213",
+    "nodeHashId": "f2f8da10",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
@@ -1939,10 +1939,10 @@
     "screenHeight": 1080
   },
   {
-    "id": "514345",
+    "id": "7d929071",
     "indexId": 74,
     "nodePath": "0-1-2-2-1-1-3-0-0-0-0-0-0-1-0-2-0",
-    "nodeHashId": "514345",
+    "nodeHashId": "7d929071",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
@@ -1965,10 +1965,10 @@
     "screenHeight": 1080
   },
   {
-    "id": "1044754",
+    "id": "ff112ad2",
     "indexId": 75,
     "nodePath": "0-1-2-2-1-1-3-0-0-0-0-0-0-1-0-3-0",
-    "nodeHashId": "1044754",
+    "nodeHashId": "ff112ad2",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
@@ -1991,10 +1991,10 @@
     "screenHeight": 1080
   },
   {
-    "id": "65450",
+    "id": "0ffaa777",
     "indexId": 76,
     "nodePath": "0-1-2-2-1-1-3-0-0-0-0-0-0-1-0-4-0",
-    "nodeHashId": "65450",
+    "nodeHashId": "0ffaa777",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
@@ -2017,10 +2017,10 @@
     "screenHeight": 1080
   },
   {
-    "id": "773263",
+    "id": "bcc8f45b",
     "indexId": 77,
     "nodePath": "0-1-2-2-1-1-3-0-0-0-1-0-0-0-0",
-    "nodeHashId": "773263",
+    "nodeHashId": "bcc8f45b",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
@@ -2043,11 +2043,11 @@
     "screenHeight": 1080
   },
   {
-    "id": "428790",
+    "id": "68af6a4e",
     "indexId": 78,
     "nodePath": "0-1-2-2-1-1-3-0-0-0-1-0-0-1-0-0-0",
-    "nodeHashId": "428790",
-    "locator": "[_midscene_retrieve_task_id='428790']",
+    "nodeHashId": "68af6a4e",
+    "locator": "[_midscene_retrieve_task_id='68af6a4e']",
     "attributes": {
       "svgContent": "true",
       "nodeType": "IMG Node"
@@ -2070,10 +2070,10 @@
     "screenHeight": 1080
   },
   {
-    "id": "877636",
+    "id": "d644478d",
     "indexId": 79,
     "nodePath": "0-1-2-2-1-1-3-0-0-0-1-0-0-1-0-1-0",
-    "nodeHashId": "877636",
+    "nodeHashId": "d644478d",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
@@ -2096,10 +2096,10 @@
     "screenHeight": 1080
   },
   {
-    "id": "703567",
+    "id": "abc4fbe1",
     "indexId": 80,
     "nodePath": "0-1-2-2-1-1-3-0-0-0-2-0-0-0-0",
-    "nodeHashId": "703567",
+    "nodeHashId": "abc4fbe1",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
@@ -2122,11 +2122,11 @@
     "screenHeight": 1080
   },
   {
-    "id": "208552",
+    "id": "32ea8244",
     "indexId": 81,
     "nodePath": "0-1-2-2-1-1-3-0-0-0-2-0-0-1-0-0-0-0",
-    "nodeHashId": "208552",
-    "locator": "[_midscene_retrieve_task_id='208552']",
+    "nodeHashId": "32ea8244",
+    "locator": "[_midscene_retrieve_task_id='32ea8244']",
     "attributes": {
       "svgContent": "true",
       "nodeType": "IMG Node"
@@ -2149,10 +2149,10 @@
     "screenHeight": 1080
   },
   {
-    "id": "56918",
+    "id": "0de56676",
     "indexId": 82,
     "nodePath": "0-1-2-2-1-1-3-0-0-0-2-0-0-1-0-0-1-0",
-    "nodeHashId": "56918",
+    "nodeHashId": "0de56676",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
@@ -2175,11 +2175,11 @@
     "screenHeight": 1080
   },
   {
-    "id": "427084",
+    "id": "6844ce3b",
     "indexId": 83,
     "nodePath": "0-1-2-2-1-1-3-0-0-0-2-0-0-1-0-2-0-0",
-    "nodeHashId": "427084",
-    "locator": "[_midscene_retrieve_task_id='427084']",
+    "nodeHashId": "6844ce3b",
+    "locator": "[_midscene_retrieve_task_id='6844ce3b']",
     "attributes": {
       "svgContent": "true",
       "nodeType": "IMG Node"
@@ -2202,10 +2202,10 @@
     "screenHeight": 1080
   },
   {
-    "id": "715625",
+    "id": "aeb69358",
     "indexId": 84,
     "nodePath": "0-1-2-2-1-1-3-0-0-0-2-0-0-1-0-2-1-0",
-    "nodeHashId": "715625",
+    "nodeHashId": "aeb69358",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
@@ -2228,12 +2228,12 @@
     "screenHeight": 1080
   },
   {
-    "id": "453303",
+    "id": "6eab7930",
     "nodePath": "0-1-2-2-1-1-4-2-0-0",
-    "nodeHashId": "453303",
+    "nodeHashId": "6eab7930",
     "indexId": 85,
     "nodeType": "CONTAINER Node",
-    "locator": "[_midscene_retrieve_task_id='453303']",
+    "locator": "[_midscene_retrieve_task_id='6eab7930']",
     "attributes": {
       "aria-hidden": "true",
       "tabindex": "-1",
@@ -2257,10 +2257,10 @@
     "screenHeight": 1080
   },
   {
-    "id": "21792",
+    "id": "055208f4",
     "indexId": 86,
     "nodePath": "0-1-2-2-1-1-4-2-0-1",
-    "nodeHashId": "21792",
+    "nodeHashId": "055208f4",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
@@ -2283,10 +2283,10 @@
     "screenHeight": 1080
   },
   {
-    "id": "459666",
+    "id": "70392b31",
     "indexId": 87,
     "nodePath": "0-1-2-2-1-1-4-2-1-0-0",
-    "nodeHashId": "459666",
+    "nodeHashId": "70392b31",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
@@ -2309,10 +2309,10 @@
     "screenHeight": 1080
   },
   {
-    "id": "1037283",
+    "id": "fd3e36e0",
     "indexId": 88,
     "nodePath": "0-1-2-2-1-1-4-2-1-1-0",
-    "nodeHashId": "1037283",
+    "nodeHashId": "fd3e36e0",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
@@ -2335,10 +2335,10 @@
     "screenHeight": 1080
   },
   {
-    "id": "500040",
+    "id": "7a148d75",
     "indexId": 89,
     "nodePath": "0-1-2-2-1-1-4-2-1-2-0",
-    "nodeHashId": "500040",
+    "nodeHashId": "7a148d75",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
@@ -2361,12 +2361,12 @@
     "screenHeight": 1080
   },
   {
-    "id": "576040",
+    "id": "8ca2839a",
     "nodePath": "0-1-2-2-1-1-4-2-2-0",
-    "nodeHashId": "576040",
+    "nodeHashId": "8ca2839a",
     "indexId": 90,
     "nodeType": "CONTAINER Node",
-    "locator": "[_midscene_retrieve_task_id='576040']",
+    "locator": "[_midscene_retrieve_task_id='8ca2839a']",
     "attributes": {
       "aria-hidden": "true",
       "tabindex": "-1",
@@ -2390,10 +2390,10 @@
     "screenHeight": 1080
   },
   {
-    "id": "841498",
+    "id": "cd71a588",
     "indexId": 91,
     "nodePath": "0-1-2-2-1-1-4-2-2-1",
-    "nodeHashId": "841498",
+    "nodeHashId": "cd71a588",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
@@ -2416,12 +2416,12 @@
     "screenHeight": 1080
   },
   {
-    "id": "688126",
+    "id": "a7ffe41a",
     "indexId": 92,
     "nodePath": "0-1-2-2-1-1-4-3-0-0",
-    "nodeHashId": "688126",
+    "nodeHashId": "a7ffe41a",
     "nodeType": "BUTTON Node",
-    "locator": "[_midscene_retrieve_task_id='688126']",
+    "locator": "[_midscene_retrieve_task_id='a7ffe41a']",
     "attributes": {
       "type": "button",
       "class": ".ant-btn.css-var-R2a.ant-btn-text.ant-btn-color-default.ant-btn-variant-text.ant-btn-sm.ant-btn-icon-only",
@@ -2444,12 +2444,12 @@
     "screenHeight": 1080
   },
   {
-    "id": "797981",
+    "id": "c2d1dadd",
     "indexId": 93,
     "nodePath": "0-1-2-2-1-1-4-3-0-1",
-    "nodeHashId": "797981",
+    "nodeHashId": "c2d1dadd",
     "nodeType": "BUTTON Node",
-    "locator": "[_midscene_retrieve_task_id='797981']",
+    "locator": "[_midscene_retrieve_task_id='c2d1dadd']",
     "attributes": {
       "type": "button",
       "class": ".ant-btn.css-var-R2a.ant-btn-text.ant-btn-color-default.ant-btn-variant-text.ant-btn-sm.ant-btn-icon-only",
@@ -2472,12 +2472,12 @@
     "screenHeight": 1080
   },
   {
-    "id": "806079",
+    "id": "c4cbf556",
     "indexId": 94,
     "nodePath": "0-1-2-2-1-1-4-3-0-2",
-    "nodeHashId": "806079",
+    "nodeHashId": "c4cbf556",
     "nodeType": "BUTTON Node",
-    "locator": "[_midscene_retrieve_task_id='806079']",
+    "locator": "[_midscene_retrieve_task_id='c4cbf556']",
     "attributes": {
       "type": "button",
       "class": ".ant-btn.css-var-R2a.ant-btn-text.ant-btn-color-default.ant-btn-variant-text.ant-btn-sm.ant-btn-icon-only.icon-enabled",
@@ -2500,10 +2500,10 @@
     "screenHeight": 1080
   },
   {
-    "id": "323779",
+    "id": "4f0c397f",
     "indexId": 95,
     "nodePath": "0-1-2-2-1-1-4-3-2-0-1-0-0-0-0-0-1-0-0-0-0",
-    "nodeHashId": "323779",
+    "nodeHashId": "4f0c397f",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
@@ -2526,12 +2526,12 @@
     "screenHeight": 1080
   },
   {
-    "id": "129485",
+    "id": "1f9cd952",
     "indexId": 96,
     "nodePath": "0-1-2-2-1-1-4-3-2-0-1-0-0-0-1-0-0",
-    "nodeHashId": "129485",
+    "nodeHashId": "1f9cd952",
     "nodeType": "BUTTON Node",
-    "locator": "[_midscene_retrieve_task_id='129485']",
+    "locator": "[_midscene_retrieve_task_id='1f9cd952']",
     "attributes": {
       "nodeType": "BUTTON Node"
     },
@@ -2552,12 +2552,12 @@
     "screenHeight": 1080
   },
   {
-    "id": "921794",
+    "id": "e10c25a2",
     "indexId": 97,
     "nodePath": "0-1-2-2-1-1-4-3-2-0-1-0-0-0-1-1-0",
-    "nodeHashId": "921794",
+    "nodeHashId": "e10c25a2",
     "nodeType": "BUTTON Node",
-    "locator": "[_midscene_retrieve_task_id='921794']",
+    "locator": "[_midscene_retrieve_task_id='e10c25a2']",
     "attributes": {
       "nodeType": "BUTTON Node"
     },
@@ -2578,12 +2578,12 @@
     "screenHeight": 1080
   },
   {
-    "id": "608756",
+    "id": "949f4649",
     "indexId": 98,
     "nodePath": "0-1-2-2-1-1-4-3-2-0-1-0-0-0-1-2-0",
-    "nodeHashId": "608756",
+    "nodeHashId": "949f4649",
     "nodeType": "BUTTON Node",
-    "locator": "[_midscene_retrieve_task_id='608756']",
+    "locator": "[_midscene_retrieve_task_id='949f4649']",
     "attributes": {
       "nodeType": "BUTTON Node"
     },
@@ -2604,12 +2604,12 @@
     "screenHeight": 1080
   },
   {
-    "id": "164197",
+    "id": "28165cca",
     "indexId": 99,
     "nodePath": "0-1-2-2-1-1-4-3-2-0-1-0-0-0-1-3-0",
-    "nodeHashId": "164197",
+    "nodeHashId": "28165cca",
     "nodeType": "BUTTON Node",
-    "locator": "[_midscene_retrieve_task_id='164197']",
+    "locator": "[_midscene_retrieve_task_id='28165cca']",
     "attributes": {
       "nodeType": "BUTTON Node"
     },
@@ -2630,10 +2630,10 @@
     "screenHeight": 1080
   },
   {
-    "id": "1043187",
+    "id": "feaf346e",
     "indexId": 100,
     "nodePath": "0-1-2-2-1-1-4-3-2-0-1-1-0-0-0",
-    "nodeHashId": "1043187",
+    "nodeHashId": "feaf346e",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
@@ -2656,11 +2656,11 @@
     "screenHeight": 1080
   },
   {
-    "id": "322547",
+    "id": "4ebf3eb4",
     "indexId": 101,
     "nodePath": "0-1-2-2-1-1-4-3-2-0-1-1-0-1-0-0",
-    "nodeHashId": "322547",
-    "locator": "[_midscene_retrieve_task_id='322547']",
+    "nodeHashId": "4ebf3eb4",
+    "locator": "[_midscene_retrieve_task_id='4ebf3eb4']",
     "attributes": {
       "svgContent": "true",
       "nodeType": "IMG Node"
@@ -2683,10 +2683,10 @@
     "screenHeight": 1080
   },
   {
-    "id": "426885",
+    "id": "683852cc",
     "indexId": 102,
     "nodePath": "0-1-2-2-1-1-4-3-2-0-1-1-1-0-0",
-    "nodeHashId": "426885",
+    "nodeHashId": "683852cc",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
@@ -2709,11 +2709,11 @@
     "screenHeight": 1080
   },
   {
-    "id": "845430",
+    "id": "ce676864",
     "indexId": 103,
     "nodePath": "0-1-2-2-1-1-4-3-2-0-1-1-2-0-1-0",
-    "nodeHashId": "845430",
-    "locator": "[_midscene_retrieve_task_id='845430']",
+    "nodeHashId": "ce676864",
+    "locator": "[_midscene_retrieve_task_id='ce676864']",
     "attributes": {
       "svgContent": "true",
       "nodeType": "IMG Node"
@@ -2736,11 +2736,11 @@
     "screenHeight": 1080
   },
   {
-    "id": "510175",
+    "id": "7c8df382",
     "indexId": 104,
     "nodePath": "0-1-2-2-1-1-4-3-2-0-1-1-2-1-0-0",
-    "nodeHashId": "510175",
-    "locator": "[_midscene_retrieve_task_id='510175']",
+    "nodeHashId": "7c8df382",
+    "locator": "[_midscene_retrieve_task_id='7c8df382']",
     "attributes": {
       "svgContent": "true",
       "nodeType": "IMG Node"
@@ -2763,11 +2763,11 @@
     "screenHeight": 1080
   },
   {
-    "id": "1035160",
+    "id": "fcb983b3",
     "indexId": 105,
     "nodePath": "0-1-2-2-1-1-4-3-2-0-1-1-2-2-1-0",
-    "nodeHashId": "1035160",
-    "locator": "[_midscene_retrieve_task_id='1035160']",
+    "nodeHashId": "fcb983b3",
+    "locator": "[_midscene_retrieve_task_id='fcb983b3']",
     "attributes": {
       "svgContent": "true",
       "nodeType": "IMG Node"
@@ -2790,11 +2790,11 @@
     "screenHeight": 1080
   },
   {
-    "id": "242768",
+    "id": "3b4503b6",
     "indexId": 106,
     "nodePath": "0-1-2-2-1-1-4-3-2-0-1-1-2-3-0-0",
-    "nodeHashId": "242768",
-    "locator": "[_midscene_retrieve_task_id='242768']",
+    "nodeHashId": "3b4503b6",
+    "locator": "[_midscene_retrieve_task_id='3b4503b6']",
     "attributes": {
       "svgContent": "true",
       "nodeType": "IMG Node"
@@ -2817,11 +2817,11 @@
     "screenHeight": 1080
   },
   {
-    "id": "884686",
+    "id": "d7fce0f7",
     "indexId": 107,
     "nodePath": "0-1-2-2-1-1-4-3-2-0-1-1-2-4-0",
-    "nodeHashId": "884686",
-    "locator": "[_midscene_retrieve_task_id='884686']",
+    "nodeHashId": "d7fce0f7",
+    "locator": "[_midscene_retrieve_task_id='d7fce0f7']",
     "attributes": {
       "alt": "expand code",
       "src": "https://gw.alipayobjects.com/zos/antfincdn/Z5c7kzv...",
@@ -2846,10 +2846,10 @@
     "screenHeight": 1080
   },
   {
-    "id": "858250",
+    "id": "d188a526",
     "indexId": 108,
     "nodePath": "0-1-2-2-1-1-4-3-2-0-4-0-0-0-0-0-1-0-0-0-0",
-    "nodeHashId": "858250",
+    "nodeHashId": "d188a526",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
@@ -2872,10 +2872,10 @@
     "screenHeight": 1080
   },
   {
-    "id": "816596",
+    "id": "c75d4bea",
     "indexId": 109,
     "nodePath": "0-1-2-2-1-1-4-3-2-1-1-0-0-0-1-0",
-    "nodeHashId": "816596",
+    "nodeHashId": "c75d4bea",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
@@ -2898,10 +2898,10 @@
     "screenHeight": 1080
   },
   {
-    "id": "261916",
+    "id": "3ff1ce88",
     "indexId": 110,
     "nodePath": "0-1-2-2-1-1-4-3-2-1-1-0-0-1-1-0",
-    "nodeHashId": "261916",
+    "nodeHashId": "3ff1ce88",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
@@ -2924,10 +2924,10 @@
     "screenHeight": 1080
   },
   {
-    "id": "205036",
+    "id": "320ecdba",
     "indexId": 111,
     "nodePath": "0-1-2-2-1-1-4-3-2-1-1-0-0-2-1-0",
-    "nodeHashId": "205036",
+    "nodeHashId": "320ecdba",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
@@ -2950,10 +2950,10 @@
     "screenHeight": 1080
   },
   {
-    "id": "798842",
+    "id": "c307afc3",
     "indexId": 112,
     "nodePath": "0-1-2-2-1-1-4-3-2-1-1-0-0-3-1-0",
-    "nodeHashId": "798842",
+    "nodeHashId": "c307afc3",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
@@ -2976,10 +2976,10 @@
     "screenHeight": 1080
   },
   {
-    "id": "22000",
+    "id": "055f0c46",
     "indexId": 113,
     "nodePath": "0-1-2-2-1-1-4-3-2-1-1-0-1-0-0-0-1-0-0-0-0",
-    "nodeHashId": "22000",
+    "nodeHashId": "055f0c46",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
@@ -3002,12 +3002,12 @@
     "screenHeight": 1080
   },
   {
-    "id": "369685",
+    "id": "5a4158fe",
     "indexId": 114,
     "nodePath": "0-1-2-2-1-1-4-3-2-1-1-0-1-0-1-0-0",
     "nodeHashId": "369685",
     "nodeType": "BUTTON Node",
-    "locator": "[_midscene_retrieve_task_id='369685']",
+    "locator": "[_midscene_retrieve_task_id='5a4158fe']",
     "attributes": {
       "nodeType": "BUTTON Node"
     },
@@ -3028,12 +3028,12 @@
     "screenHeight": 1080
   },
   {
-    "id": "465381",
+    "id": "719e5ba8",
     "indexId": 115,
     "nodePath": "0-1-2-2-1-1-4-3-2-1-1-0-1-0-1-1-0",
     "nodeHashId": "465381",
     "nodeType": "BUTTON Node",
-    "locator": "[_midscene_retrieve_task_id='465381']",
+    "locator": "[_midscene_retrieve_task_id='719e5ba8']",
     "attributes": {
       "nodeType": "BUTTON Node"
     },
@@ -3054,12 +3054,12 @@
     "screenHeight": 1080
   },
   {
-    "id": "224030",
+    "id": "36b1e062",
     "indexId": 116,
     "nodePath": "0-1-2-2-1-1-4-3-2-1-1-0-1-0-1-2-0",
     "nodeHashId": "224030",
     "nodeType": "BUTTON Node",
-    "locator": "[_midscene_retrieve_task_id='224030']",
+    "locator": "[_midscene_retrieve_task_id='36b1e062']",
     "attributes": {
       "nodeType": "BUTTON Node"
     },
@@ -3080,12 +3080,12 @@
     "screenHeight": 1080
   },
   {
-    "id": "260460",
+    "id": "3f96c7c5",
     "indexId": 117,
     "nodePath": "0-1-2-2-1-1-4-3-2-1-1-0-1-0-1-3-0",
     "nodeHashId": "260460",
     "nodeType": "BUTTON Node",
-    "locator": "[_midscene_retrieve_task_id='260460']",
+    "locator": "[_midscene_retrieve_task_id='3f96c7c5']",
     "attributes": {
       "nodeType": "BUTTON Node"
     },
@@ -3106,7 +3106,7 @@
     "screenHeight": 1080
   },
   {
-    "id": "939008",
+    "id": "e5400e95",
     "indexId": 118,
     "nodePath": "0-1-2-2-1-1-4-3-2-1-1-1-0-0-0",
     "nodeHashId": "939008",
@@ -3132,7 +3132,7 @@
     "screenHeight": 1080
   },
   {
-    "id": "607790",
+    "id": "9462e9e4",
     "indexId": 119,
     "nodePath": "0-1-2-2-1-1-4-3-2-1-1-1-0-1-0-0",
     "nodeHashId": "607790",
@@ -3159,7 +3159,7 @@
     "screenHeight": 1080
   },
   {
-    "id": "191676",
+    "id": "2ecbc5c5",
     "indexId": 120,
     "nodePath": "0-1-2-2-1-1-4-3-2-1-1-1-1-0-0",
     "nodeHashId": "191676",
@@ -3185,7 +3185,7 @@
     "screenHeight": 1080
   },
   {
-    "id": "457701",
+    "id": "6fbe5868",
     "indexId": 121,
     "nodePath": "0-1-2-2-1-1-4-3-2-1-1-1-2-0-1-0",
     "nodeHashId": "457701",
@@ -3212,7 +3212,7 @@
     "screenHeight": 1080
   },
   {
-    "id": "216916",
+    "id": "34f54c97",
     "indexId": 122,
     "nodePath": "0-1-2-2-1-1-4-3-2-1-1-1-2-1-0-0",
     "nodeHashId": "216916",
@@ -3239,7 +3239,7 @@
     "screenHeight": 1080
   },
   {
-    "id": "564452",
+    "id": "89ce45ce",
     "indexId": 123,
     "nodePath": "0-1-2-2-1-1-4-3-2-1-1-1-2-2-1-0",
     "nodeHashId": "564452",
@@ -3266,7 +3266,7 @@
     "screenHeight": 1080
   },
   {
-    "id": "128793",
+    "id": "1f719580",
     "indexId": 124,
     "nodePath": "0-1-2-2-1-1-4-3-2-1-1-1-2-3-0-0",
     "nodeHashId": "128793",
@@ -3293,7 +3293,7 @@
     "screenHeight": 1080
   },
   {
-    "id": "1007718",
+    "id": "f6066dea",
     "indexId": 125,
     "nodePath": "0-1-2-2-1-1-4-3-2-1-1-1-2-4-0",
     "nodeHashId": "1007718",
@@ -3322,7 +3322,7 @@
     "screenHeight": 1080
   },
   {
-    "id": "713826",
+    "id": "ae462c36",
     "indexId": 126,
     "nodePath": "0-1-2-2-1-1-4-3-2-1-4-0-0-0-0-0-0-0-0-0-0",
     "nodeHashId": "713826",
@@ -3348,12 +3348,12 @@
     "screenHeight": 1080
   },
   {
-    "id": "1041818",
+    "id": "fe59a359",
     "indexId": 127,
     "nodePath": "0-1-2-5-0",
-    "nodeHashId": "1041818",
+    "nodeHashId": "fe59a359",
     "nodeType": "BUTTON Node",
-    "locator": "[_midscene_retrieve_task_id='1041818']",
+    "locator": "[_midscene_retrieve_task_id='fe59a359']",
     "attributes": {
       "aria-label": "Theme Switcher",
       "class": ".css-var-R2a.ant-float-btn-css-var.ant-float-btn.ant-float-btn-group-trigger.ant-float-btn-default.ant-float-btn-circle",

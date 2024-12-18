@@ -1,8 +1,9 @@
 import assert from 'node:assert';
 import { AIResponseFormat, type AIUsageInfo } from '@/types';
 import { ifInBrowser } from '@midscene/shared/utils';
-import OpenAI, { type ClientOptions, AzureOpenAI } from 'openai';
+import OpenAI, { AzureOpenAI } from 'openai';
 import type { ChatCompletionMessageParam } from 'openai/resources';
+import { SocksProxyAgent } from 'socks-proxy-agent';
 import {
   MIDSCENE_COOKIE,
   MIDSCENE_DANGEROUSLY_PRINT_ALL_CONFIG,
@@ -10,11 +11,13 @@ import {
   MIDSCENE_LANGSMITH_DEBUG,
   MIDSCENE_MODEL_NAME,
   MIDSCENE_OPENAI_INIT_CONFIG_JSON,
+  MIDSCENE_OPENAI_SOCKS_PROXY,
   OPENAI_API_KEY,
   OPENAI_BASE_URL,
   OPENAI_USE_AZURE,
   allAIConfig,
   getAIConfig,
+  getAIConfigInJson,
 } from '../../env';
 import { AIActionType } from '../common';
 import { findElementSchema } from '../prompt/element_inspector';
@@ -41,12 +44,15 @@ export function getModelName() {
 
 async function createOpenAI() {
   let openai: OpenAI | AzureOpenAI;
-  const extraConfigString = getAIConfig(MIDSCENE_OPENAI_INIT_CONFIG_JSON);
-  const extraConfig = extraConfigString ? JSON.parse(extraConfigString) : {};
+  const extraConfig = getAIConfigInJson(MIDSCENE_OPENAI_INIT_CONFIG_JSON);
+
+  const socksProxy = getAIConfig(MIDSCENE_OPENAI_SOCKS_PROXY);
+  const socksAgent = socksProxy ? new SocksProxyAgent(socksProxy) : undefined;
   if (getAIConfig(OPENAI_USE_AZURE)) {
     openai = new AzureOpenAI({
       baseURL: getAIConfig(OPENAI_BASE_URL),
       apiKey: getAIConfig(OPENAI_API_KEY),
+      httpAgent: socksAgent,
       ...extraConfig,
       dangerouslyAllowBrowser: true,
     });
@@ -54,6 +60,7 @@ async function createOpenAI() {
     openai = new OpenAI({
       baseURL: getAIConfig(OPENAI_BASE_URL),
       apiKey: getAIConfig(OPENAI_API_KEY),
+      httpAgent: socksAgent,
       ...extraConfig,
       dangerouslyAllowBrowser: true,
     });

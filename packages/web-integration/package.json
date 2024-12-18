@@ -1,7 +1,7 @@
 {
   "name": "@midscene/web",
   "description": "An AI-powered automation SDK can control the page, perform assertions, and extract data in JSON format using natural language. See https://midscenejs.com/ for details.",
-  "version": "0.8.4",
+  "version": "0.8.6",
   "repository": "https://github.com/web-infra-dev/midscene",
   "homepage": "https://midscenejs.com/",
   "jsnext:source": "./src/index.ts",
@@ -13,6 +13,7 @@
   "exports": {
     ".": "./dist/lib/index.js",
     "./utils": "./dist/lib/utils.js",
+    "./ui-utils": "./dist/lib/ui-utils.js",
     "./puppeteer": "./dist/lib/puppeteer.js",
     "./playwright": "./dist/lib/playwright.js",
     "./playwright-report": "./dist/lib/playwright-report.js",
@@ -26,6 +27,7 @@
     "*": {
       ".": ["./dist/types/index.d.ts"],
       "utils": ["./dist/types/utils.d.ts"],
+      "ui-utils": ["./dist/types/ui-utils.d.ts"],
       "puppeteer": ["./dist/types/puppeteer.d.ts"],
       "playwright": ["./dist/types/playwright.d.ts"],
       "playwright-report": ["./dist/types/playwright-report.d.ts"],
@@ -55,8 +57,9 @@
     "e2e:report": "MIDSCENE_REPORT=true playwright test --config=playwright.config.ts",
     "e2e:cache": "MIDSCENE_CACHE=true playwright test --config=playwright.config.ts",
     "e2e:ui": "playwright test --config=playwright.config.ts --ui",
-    "e2e:ui:cache": "MIDSCENE_CACHE=true playwright test --config=playwright.config.ts  --ui",
-    "e2e:generate-test-data": "GENERATE_TEST_DATA=true playwright test ./tests/ai/web/playwright/generate-test-data.spec.ts"
+    "e2e:ui:cache": "MIDSCENE_CACHE=true playwright test --config=playwright.config.ts --ui",
+    "e2e:generate-test-data": "GENERATE_TEST_DATA=true playwright test ./tests/ai/web/playwright/generate-test-data.spec.ts",
+    "e2e:generate-test-data:headed": "GENERATE_TEST_DATA=true playwright test ./tests/ai/web/playwright/generate-test-data.spec.ts --headed"
   },
   "files": ["static", "dist", "README.md", "bin"],
   "dependencies": {

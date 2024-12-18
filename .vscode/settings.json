@@ -4,5 +4,5 @@
   },
   "editor.defaultFormatter": "biomejs.biome",
   "editor.formatOnSave": true,
-  "cSpell.words": ["AITEST", "aweme", "httpbin", "iconfont", "taobao"]
+  "cSpell.words": ["AITEST", "aweme", "douyin", "httpbin", "iconfont", "taobao"]
 }
