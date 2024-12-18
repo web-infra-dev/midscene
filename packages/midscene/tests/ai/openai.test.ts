@@ -37,4 +37,27 @@ describe('openai', () => {
     );
     expect(result.content.answer).toBe(15);
   });
+
+  it('image input', async () => {
+    const result = await call([
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'text',
+            text: 'Describe this image in one sentence.',
+          },
+          {
+            type: 'image_url',
+            image_url: {
+              url: 'https://picsum.photos/id/237/200/300',
+              detail: 'high',
+            },
+          },
+        ],
+      },
+    ]);
+
+    expect(result.content.length).toBeGreaterThan(10);
+  });
 });
