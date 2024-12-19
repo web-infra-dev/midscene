@@ -37,6 +37,7 @@
     "prepublishOnly": "npm run build"
   },
   "dependencies": {
+    "@azure/identity": "4.5.0",
     "@midscene/shared": "workspace:*",
     "openai": "4.57.1",
     "optional": "0.1.4",

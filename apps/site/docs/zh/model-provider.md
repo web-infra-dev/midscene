@@ -17,9 +17,6 @@ export OPENAI_API_KEY="sk-abcdefghijklmnopqrstuvwxyz"
 # 可选, 如果你想更换 base URL
 export OPENAI_BASE_URL="https://..."
 
-# 可选, 如果你想使用 Azure OpenAI 服务
-export OPENAI_USE_AZURE="true"
-
 # 可选, 如果你想指定模型名称
 export MIDSCENE_MODEL_NAME='qwen-vl-max-lates';
 
@@ -28,6 +25,14 @@ export MIDSCENE_OPENAI_INIT_CONFIG_JSON='{"baseURL":"....","defaultHeaders":{"ke
 
 # 可选, 如果你想使用代理。Midscene 使用 `socks-proxy-agent` 作为底层库。
 export MIDSCENE_OPENAI_SOCKS_PROXY="socks5://127.0.0.1:1080"
+```
+
+使用 Azure OpenAI 服务时的配置：
+
+```bash
+export MIDSCENE_USE_AZURE_OPENAI=1
+export MIDSCENE_AZURE_OPENAI_SCOPE="https://cognitiveservices.azure.com/.default"
+export MIDSCENE_AZURE_OPENAI_INIT_CONFIG_JSON='{"apiVersion": "2024-11-01-preview", "endpoint": "...", "deployment": "..."}'
 ```
 
 说明：

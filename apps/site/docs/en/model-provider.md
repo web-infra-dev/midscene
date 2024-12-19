@@ -30,6 +30,14 @@ export MIDSCENE_OPENAI_INIT_CONFIG_JSON='{"baseURL":"....","defaultHeaders":{"ke
 export MIDSCENE_OPENAI_SOCKS_PROXY="socks5://127.0.0.1:1080"
 ```
 
+Using Azure OpenAI Service:
+
+```bash
+export MIDSCENE_USE_AZURE_OPENAI=1
+export MIDSCENE_AZURE_OPENAI_SCOPE="https://cognitiveservices.azure.com/.default"
+export MIDSCENE_AZURE_OPENAI_INIT_CONFIG_JSON='{"apiVersion": "2024-11-01-preview", "endpoint": "...", "deployment": "..."}'
+```
+
 Note:
 
 - Always choose a model that supports vision input. 

@@ -1,16 +1,23 @@
 import assert from 'node:assert';
 import { AIResponseFormat, type AIUsageInfo } from '@/types';
+import {
+  DefaultAzureCredential,
+  getBearerTokenProvider,
+} from '@azure/identity';
 import { ifInBrowser } from '@midscene/shared/utils';
 import OpenAI, { AzureOpenAI } from 'openai';
 import type { ChatCompletionMessageParam } from 'openai/resources';
 import { SocksProxyAgent } from 'socks-proxy-agent';
 import {
+  MIDSCENE_AZURE_OPENAI_INIT_CONFIG_JSON,
+  MIDSCENE_AZURE_OPENAI_SCOPE,
   MIDSCENE_DANGEROUSLY_PRINT_ALL_CONFIG,
   MIDSCENE_DEBUG_AI_PROFILE,
   MIDSCENE_LANGSMITH_DEBUG,
   MIDSCENE_MODEL_NAME,
   MIDSCENE_OPENAI_INIT_CONFIG_JSON,
   MIDSCENE_OPENAI_SOCKS_PROXY,
+  MIDSCENE_USE_AZURE_OPENAI,
   OPENAI_API_KEY,
   OPENAI_BASE_URL,
   OPENAI_USE_AZURE,
@@ -26,6 +33,7 @@ import { assertSchema } from '../prompt/util';
 export function preferOpenAIModel(preferVendor?: 'coze' | 'openAI') {
   if (preferVendor && preferVendor !== 'openAI') return false;
   if (getAIConfig(OPENAI_API_KEY)) return true;
+  if (getAIConfig(MIDSCENE_USE_AZURE_OPENAI)) return true;
 
   return Boolean(getAIConfig(MIDSCENE_OPENAI_INIT_CONFIG_JSON));
 }
@@ -47,13 +55,36 @@ async function createOpenAI() {
 
   const socksProxy = getAIConfig(MIDSCENE_OPENAI_SOCKS_PROXY);
   const socksAgent = socksProxy ? new SocksProxyAgent(socksProxy) : undefined;
+
   if (getAIConfig(OPENAI_USE_AZURE)) {
+    // this is deprecated
     openai = new AzureOpenAI({
       baseURL: getAIConfig(OPENAI_BASE_URL),
       apiKey: getAIConfig(OPENAI_API_KEY),
       httpAgent: socksAgent,
       ...extraConfig,
       dangerouslyAllowBrowser: true,
+    });
+  } else if (getAIConfig(MIDSCENE_USE_AZURE_OPENAI)) {
+    // sample code: https://github.com/Azure/azure-sdk-for-js/blob/main/sdk/openai/openai/samples/cookbook/simpleCompletionsPage/app.js
+    const scope = getAIConfig(MIDSCENE_AZURE_OPENAI_SCOPE);
+
+    assert(
+      !ifInBrowser,
+      'Azure OpenAI is not supported in browser with Midscene.',
+    );
+    const credential = new DefaultAzureCredential();
+
+    assert(scope, 'MIDSCENE_AZURE_OPENAI_SCOPE is required');
+    const tokenProvider = getBearerTokenProvider(credential, scope);
+
+    const extraAzureConfig = getAIConfigInJson(
+      MIDSCENE_AZURE_OPENAI_INIT_CONFIG_JSON,
+    );
+    openai = new AzureOpenAI({
+      azureADTokenProvider: tokenProvider,
+      ...extraConfig,
+      ...extraAzureConfig,
     });
   } else {
     openai = new OpenAI({
