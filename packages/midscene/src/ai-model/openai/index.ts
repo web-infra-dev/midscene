@@ -5,6 +5,7 @@ import {
   getBearerTokenProvider,
 } from '@azure/identity';
 import { ifInBrowser } from '@midscene/shared/utils';
+import dJSON from 'dirty-json';
 import OpenAI, { AzureOpenAI } from 'openai';
 import type { ChatCompletionMessageParam } from 'openai/resources';
 import { SocksProxyAgent } from 'socks-proxy-agent';
@@ -188,12 +189,18 @@ export async function callToGetJSONObject<T>(
   let jsonContent = safeJsonParse(response.content);
   if (jsonContent) return { content: jsonContent, usage: response.usage };
 
-  jsonContent = extractJSONFromCodeBlock(response.content);
+  const cleanJsonString = extractJSONFromCodeBlock(response.content);
   try {
-    return { content: JSON.parse(jsonContent), usage: response.usage };
-  } catch {
-    throw Error(`failed to parse json response: ${response.content}`);
-  }
+    jsonContent = JSON.parse(cleanJsonString);
+  } catch {}
+  if (jsonContent) return { content: jsonContent, usage: response.usage };
+
+  try {
+    jsonContent = dJSON.parse(cleanJsonString);
+  } catch {}
+  if (jsonContent) return { content: jsonContent, usage: response.usage };
+
+  throw Error(`failed to parse json response: ${response.content}`);
 }
 
 export function extractJSONFromCodeBlock(response: string) {

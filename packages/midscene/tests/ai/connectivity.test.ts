@@ -35,7 +35,7 @@ describe('openai sdk connectivity', () => {
       ],
       AIActionType.EXTRACT_DATA,
     );
-    expect(result.content.answer).toBe(15);
+    expect(result.content).toEqual({ answer: 15 });
   });
 
   it('image input', async () => {

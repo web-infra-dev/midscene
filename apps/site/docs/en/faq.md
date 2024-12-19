@@ -2,9 +2,7 @@
 
 ## Can Midscene smartly plan the actions according to my one-line goal? Like executing "Tweet 'hello world'"
 
-Midscene is an automation assistance SDK with a key feature of action stability — ensuring the same actions are performed in each run. To maintain this stability, we encourage you to provide detailed instructions to help the AI understand each step of your task.
-
-If you require a 'goal-to-task' AI planning tool, you can develop one based on Midscene.
+No. Midscene is an automation assistance SDK with a key feature of action stability — ensuring the same actions are performed in each run. To maintain this stability, we encourage you to provide detailed instructions to help the AI understand each step of your task.
 
 Related Docs: [Prompting Tips](./prompting-tips.html)
 
