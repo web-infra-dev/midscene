@@ -18,7 +18,7 @@ describe('automation - planning', () => {
         context,
       },
     );
-    console.log(actions);
+
     expect(actions.length).toBe(3);
     expect(actions[0].type).toBe('Input');
     expect(actions[1].type).toBe('Sleep');
@@ -47,9 +47,13 @@ describe('automation - planning', () => {
 
   it('scroll some element', async () => {
     const { context } = await getPageDataOfTestName('todo');
-    const { actions } = await plan('Scroll left the status filters', {
-      context,
-    });
+    const { actions } = await plan(
+      'Scroll left the status filters (with a button named "complete")',
+      {
+        context,
+      },
+    );
+
     expect(actions).toBeTruthy();
     expect(actions[0].type).toBe('Scroll');
     expect(actions[0].locate).toBeTruthy();
@@ -88,7 +92,7 @@ describe('automation - planning', () => {
     );
 
     expect(actions.length === 1).toBeTruthy();
-    expect(actions[0]!.type).toBe('FalsyIfStatement');
+    expect(actions[0]!.type).toBe('FalsyConditionStatement');
   });
 
   it('should give a further plan when something is not found', async () => {
@@ -103,14 +107,12 @@ describe('automation - planning', () => {
     expect(res.furtherPlan?.whatHaveDone).toBeTruthy();
   });
 
-  // this may fail sometimes, consider it acceptable
-  it.skip('partial error', async () => {
+  it('partial error', async () => {
     const { context } = await getPageDataOfTestName('todo');
     const res = await plan(
       'click the input box, click the close button of the cookie prompt',
       { context },
     );
-    console.log(res);
     expect(res.furtherPlan).toBeTruthy();
     expect(res.furtherPlan?.whatToDoNext).toBeTruthy();
     expect(res.furtherPlan?.whatHaveDone).toBeTruthy();

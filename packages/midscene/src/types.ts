@@ -243,7 +243,7 @@ export interface PlanningAction<ParamType = any> {
     | 'KeyboardPress'
     | 'Scroll'
     | 'Error'
-    | 'FalsyIfStatement'
+    | 'FalsyConditionStatement'
     | 'Assert'
     | 'AssertWithoutThrow'
     | 'Sleep';
@@ -350,7 +350,7 @@ export interface ExecutionTaskApply<
     param: TaskParam,
     context: ExecutorContext,
   ) => // biome-ignore lint/suspicious/noConfusingVoidType: <explanation>
-    | Promise<ExecutionTaskReturn<TaskOutput, TaskLog> | undefined | void>
+  | Promise<ExecutionTaskReturn<TaskOutput, TaskLog> | undefined | void>
     | undefined
     | void;
 }

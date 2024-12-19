@@ -379,18 +379,19 @@ export class PageTaskExecutor {
             },
           };
         tasks.push(taskActionError);
-      } else if (plan.type === 'FalsyIfStatement') {
-        const taskActionFalsyIfStatement: ExecutionTaskActionApply<null> = {
-          type: 'Action',
-          subType: 'FalsyIfStatement',
-          param: null,
-          thought: plan.thought,
-          locate: plan.locate,
-          executor: async () => {
-            // console.warn(`[warn]falsy condition: ${plan.thought}`);
-          },
-        };
-        tasks.push(taskActionFalsyIfStatement);
+      } else if (plan.type === 'FalsyConditionStatement') {
+        const taskActionFalsyConditionStatement: ExecutionTaskActionApply<null> =
+          {
+            type: 'Action',
+            subType: 'FalsyConditionStatement',
+            param: null,
+            thought: plan.thought,
+            locate: plan.locate,
+            executor: async () => {
+              // console.warn(`[warn]falsy condition: ${plan.thought}`);
+            },
+          };
+        tasks.push(taskActionFalsyConditionStatement);
       } else {
         throw new Error(`Unknown or unsupported task type: ${plan.type}`);
       }
