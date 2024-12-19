@@ -81,7 +81,7 @@ export default defineConfig({
               link: '/cache',
             },
             {
-              text: 'Customize Model Provider',
+              text: 'Customize Model and Provider',
               link: '/model-provider',
             },
           ],
@@ -138,7 +138,7 @@ export default defineConfig({
               link: '/zh/cache',
             },
             {
-              text: '自定义模型服务',
+              text: '自定义模型和服务商',
               link: '/zh/model-provider',
             },
           ],

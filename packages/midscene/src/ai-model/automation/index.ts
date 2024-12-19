@@ -17,7 +17,6 @@ export async function plan(
     context: UIContext;
     callAI?: typeof callAiFn<PlanningAIResponse>;
   },
-  useModel?: 'coze' | 'openAI',
 ): Promise<PlanningAIResponse> {
   const { callAI, context } = opts || {};
   const { screenshotBase64, screenshotBase64WithElementMarker } = context;
@@ -56,7 +55,7 @@ ${opts.whatHaveDone}
 pageDescription:\n 
 ${pageDescription}
 \n
-Here is what you need to do now:
+Here is the instruction:
 =====================================
 ${userPrompt}
 =====================================
@@ -72,7 +71,6 @@ ${taskBackgroundContext}
   const { content, usage } = await call({
     msgs,
     AIActionType: AIActionType.PLAN,
-    useModel,
   });
 
   const planFromAI = content;

@@ -5,8 +5,8 @@ import { describe, expect, it, vi } from 'vitest';
 vi.setConfig({
   testTimeout: 20 * 1000,
 });
-describe('openai', () => {
-  it('basic', async () => {
+describe('openai sdk connectivity', () => {
+  it('connectivity', async () => {
     const result = await call([
       {
         role: 'system',
@@ -36,5 +36,28 @@ describe('openai', () => {
       AIActionType.EXTRACT_DATA,
     );
     expect(result.content.answer).toBe(15);
+  });
+
+  it('image input', async () => {
+    const result = await call([
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'text',
+            text: 'Describe this image in one sentence.',
+          },
+          {
+            type: 'image_url',
+            image_url: {
+              url: 'https://portal.volccdn.com/obj/volcfe/bee_prod/biz_950/tos_38e6e81e1366482ed046045e72b0684d.png',
+              detail: 'high',
+            },
+          },
+        ],
+      },
+    ]);
+
+    expect(result.content.length).toBeGreaterThan(10);
   });
 });

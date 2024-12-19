@@ -322,7 +322,10 @@ export const generateAnimationScripts = (
         });
         insightOnTop = true;
       }
-    } else if (task.type === 'Action') {
+    } else if (
+      task.type === 'Action' &&
+      task.subType !== 'FalsyConditionStatement'
+    ) {
       const title = typeStr(task);
       const subTitle = paramStr(task);
       scripts.push(pointerScript(mousePointer, title, subTitle));

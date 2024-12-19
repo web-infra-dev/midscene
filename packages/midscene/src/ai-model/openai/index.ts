@@ -118,13 +118,12 @@ export async function callToGetJSONObject<T>(
   // gpt-4o-2024-05-13 only supports json_object response format
   let responseFormat:
     | OpenAI.ChatCompletionCreateParams['response_format']
-    | OpenAI.ResponseFormatJSONObject = {
-    type: AIResponseFormat.JSON,
-  };
+    | OpenAI.ResponseFormatJSONObject
+    | undefined;
 
   const model = getModelName();
 
-  if (model === 'gpt-4o-2024-08-06') {
+  if (model.includes('gpt-4o')) {
     switch (AIActionTypeValue) {
       case AIActionType.ASSERT:
         responseFormat = assertSchema;
@@ -140,10 +139,10 @@ export async function callToGetJSONObject<T>(
         responseFormat = planSchema;
         break;
     }
-  }
 
-  if (model.startsWith('gemini')) {
-    responseFormat = { type: AIResponseFormat.TEXT };
+    if (model === 'gpt-4o-2024-05-13') {
+      responseFormat = { type: AIResponseFormat.JSON };
+    }
   }
 
   const safeJsonParse = (input: string) => {
@@ -162,7 +161,7 @@ export async function callToGetJSONObject<T>(
   try {
     return { content: JSON.parse(jsonContent), usage: response.usage };
   } catch {
-    throw Error(`parse json error: ${response.content}`);
+    throw Error(`failed to parse json response: ${response.content}`);
   }
 }
 

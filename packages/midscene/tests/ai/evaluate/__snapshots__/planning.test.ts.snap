@@ -1,12 +1,12 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
-exports[`automation - planning openAI > basic run 1`] = `
+exports[`automation - planning > basic run 1`] = `
 {
   "timeMs": 3500,
 }
 `;
 
-exports[`automation - planning openAI > basic run 2`] = `
+exports[`automation - planning > basic run 2`] = `
 {
   "value": "Enter",
 }

@@ -1,10 +1,12 @@
 import type {
   ExecutionTask,
   ExecutionTaskAction,
+  ExecutionTaskActionApply,
   ExecutionTaskInsightAssertion,
   ExecutionTaskInsightLocate,
   ExecutionTaskInsightQuery,
   ExecutionTaskPlanning,
+  PlanningActionParamScroll,
 } from '@midscene/core';
 
 export function typeStr(task: ExecutionTask) {
@@ -27,8 +29,23 @@ export function paramStr(task: ExecutionTask) {
 
   if (task.type === 'Action') {
     const sleepMs = (task as ExecutionTaskAction)?.param?.timeMs;
+    const scrollType = (
+      task as ExecutionTask<ExecutionTaskActionApply<PlanningActionParamScroll>>
+    )?.param?.scrollType;
     if (sleepMs) {
       value = `${sleepMs}ms`;
+    } else if (scrollType) {
+      const scrollDirection = (
+        task as ExecutionTask<
+          ExecutionTaskActionApply<PlanningActionParamScroll>
+        >
+      )?.param?.direction;
+      const scrollDistance = (
+        task as ExecutionTask<
+          ExecutionTaskActionApply<PlanningActionParamScroll>
+        >
+      )?.param?.distance;
+      value = `${scrollDirection}, ${scrollType}, ${scrollDistance || 'distance-not-set'}`;
     } else {
       value =
         (task as ExecutionTaskAction)?.param?.value ||

@@ -313,27 +313,42 @@ export class PageTaskExecutor {
             param: plan.param,
             thought: plan.thought,
             locate: plan.locate,
-            executor: async (taskParam) => {
-              const scrollToEventName = taskParam.scrollType;
-
-              switch (scrollToEventName) {
-                case 'scrollUntilTop':
-                  await this.page.scrollUntilTop();
-                  break;
-                case 'scrollUntilBottom':
-                  await this.page.scrollUntilBottom();
-                  break;
-                case 'scrollUpOneScreen':
-                  await this.page.scrollUpOneScreen();
-                  break;
-                case 'scrollDownOneScreen':
-                  await this.page.scrollDownOneScreen();
-                  break;
-                default:
-                  console.error(
-                    'Unknown scroll event type:',
-                    scrollToEventName,
+            executor: async (taskParam, { element }) => {
+              if (element) {
+                await this.page.mouse.move(
+                  element.center[0],
+                  element.center[1],
+                );
+              }
+              const scrollToEventName = taskParam?.scrollType;
+              if (scrollToEventName === 'untilTop') {
+                await this.page.scrollUntilTop();
+              } else if (scrollToEventName === 'untilBottom') {
+                await this.page.scrollUntilBottom();
+              } else if (scrollToEventName === 'untilRight') {
+                await this.page.scrollUntilRight();
+              } else if (scrollToEventName === 'untilLeft') {
+                await this.page.scrollUntilLeft();
+              } else if (scrollToEventName === 'once') {
+                if (taskParam.direction === 'down') {
+                  await this.page.scrollDown(taskParam.distance || undefined);
+                } else if (taskParam.direction === 'up') {
+                  await this.page.scrollUp(taskParam.distance || undefined);
+                } else if (taskParam.direction === 'left') {
+                  await this.page.scrollLeft(taskParam.distance || undefined);
+                } else if (taskParam.direction === 'right') {
+                  await this.page.scrollRight(taskParam.distance || undefined);
+                } else {
+                  throw new Error(
+                    `Unknown scroll direction: ${taskParam.direction}`,
                   );
+                }
+              } else {
+                throw new Error(
+                  `Unknown scroll event type: ${scrollToEventName}, taskParam: ${JSON.stringify(
+                    taskParam,
+                  )}`,
+                );
               }
             },
           };
@@ -364,6 +379,19 @@ export class PageTaskExecutor {
             },
           };
         tasks.push(taskActionError);
+      } else if (plan.type === 'FalsyConditionStatement') {
+        const taskActionFalsyConditionStatement: ExecutionTaskActionApply<null> =
+          {
+            type: 'Action',
+            subType: 'FalsyConditionStatement',
+            param: null,
+            thought: plan.thought,
+            locate: plan.locate,
+            executor: async () => {
+              // console.warn(`[warn]falsy condition: ${plan.thought}`);
+            },
+          };
+        tasks.push(taskActionFalsyConditionStatement);
       } else {
         throw new Error(`Unknown or unsupported task type: ${plan.type}`);
       }
@@ -512,6 +540,11 @@ export class PageTaskExecutor {
         return this.appendErrorPlan(taskExecutor, errorMsg);
       }
 
+      if (replanCount > 0) {
+        // add a brief sleep to wait for the page to be ready
+        await sleep(300);
+      }
+
       // plan
       await taskExecutor.append(planningTask);
       const planResult: PlanningAIResponse = await taskExecutor.flush();
@@ -523,26 +556,6 @@ export class PageTaskExecutor {
       }
 
       const plans = planResult.actions;
-
-      // check if their is nothing but a locate will null task
-      // const validPlans = plans.filter((plan: PlanningAction) => {
-      //   if (plan.type === 'Locate' && !plan.param?.id) {
-      //     return false;
-      //   }
-      //   return plan.type !== 'Plan';
-      // });
-      // if (validPlans.length === 0) {
-      //   if (replanCount === 0) {
-      //     return this.appendErrorPlan(
-      //       taskExecutor,
-      //       `No valid plans found, cannot proceed: ${userPrompt}`,
-      //     );
-      //   }
-      //   return this.appendErrorPlan(
-      //     taskExecutor,
-      //     `Cannot proceed after several steps, please check the report: ${userPrompt}`,
-      //   );
-      // }
 
       let executables: Awaited<ReturnType<typeof this.convertPlanToExecutable>>;
       try {
