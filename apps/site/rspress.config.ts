@@ -52,7 +52,7 @@ export default defineConfig({
               link: '/',
             },
             {
-              text: 'Quick Experience',
+              text: 'Quick Experience by Chrome Extension',
               link: '/quick-experience',
             },
           ],
@@ -109,7 +109,7 @@ export default defineConfig({
               link: '/zh/index',
             },
             {
-              text: '快速体验',
+              text: '通过 Chrome 插件快速体验',
               link: '/zh/quick-experience',
             },
           ],

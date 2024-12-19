@@ -46,6 +46,7 @@ Midscene.js is an AI-powered automation SDK can control the page, perform assert
 * [Automate with Scripts in YAML](https://midscenejs.com/automate-with-scripts-in-yaml.html)
 * [Integrate with Puppeteer](https://midscenejs.com/integrate-with-puppeteer.html)
 * [Integrate with Playwright](https://midscenejs.com/integrate-with-playwright.html)
+* [Customize Model and Provider](https://midscenejs.com/model-provider.html)
 
 ## License
 
