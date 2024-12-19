@@ -20,7 +20,7 @@ There are some limitations with Midscene. We are still working on them.
 
 Midscene needs a multimodal Large Language Model (LLM) to understand the UI. Currently, we find that OpenAI's  GPT-4o performs much better than others.
 
-You can [customize model provider](./model-provider.html) if needed.
+You can [customize model and provider](./model-provider.html) if needed.
 
 ## About the token cost
 

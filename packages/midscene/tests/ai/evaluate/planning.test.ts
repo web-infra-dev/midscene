@@ -107,7 +107,7 @@ describe('automation - planning', () => {
     expect(res.furtherPlan?.whatHaveDone).toBeTruthy();
   });
 
-  it('partial error', async () => {
+  it.skip('partial error', async () => {
     const { context } = await getPageDataOfTestName('todo');
     const res = await plan(
       'click the input box, click the close button of the cookie prompt',

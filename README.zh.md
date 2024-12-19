@@ -43,7 +43,7 @@ Midscene.js 是一个由 AI 驱动的自动化 SDK，能够使用自然语言对
 * [使用 YAML 格式的自动化脚本](https://midscenejs.com/zh/automate-with-scripts-in-yaml.html)
 * [集成到 Puppeteer](https://midscenejs.com/zh/integrate-with-puppeteer.html)
 * [集成到 Playwright](https://midscenejs.com/zh/integrate-with-playwright.html)
-
+* [自定义模型和服务商](https://midscenejs.com/zh/model-provider.html)
 
 ## 授权许可
 
