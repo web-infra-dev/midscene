@@ -91,10 +91,16 @@ export class PageTaskExecutor {
             (async () => {
               await sleep(100);
               if ((this.page as PuppeteerWebPage).waitUntilNetworkIdle) {
-                await (this.page as PuppeteerWebPage).waitUntilNetworkIdle();
+                try {
+                  await (this.page as PuppeteerWebPage).waitUntilNetworkIdle({
+                    idleTime: 300,
+                  });
+                } catch (error) {
+                  // console.error('waitUntilNetworkIdle error', error);
+                }
               }
             })(),
-            sleep(300),
+            sleep(200),
           ]);
         }
         if (appendAfterExecution) {

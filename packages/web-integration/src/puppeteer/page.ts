@@ -11,7 +11,7 @@ export class WebPage extends BasePage<'puppeteer', PuppeteerPageType> {
     concurrency?: number;
   }): Promise<void> {
     await this.underlyingPage.waitForNetworkIdle({
-      idleTime: options?.idleTime || 500,
+      idleTime: options?.idleTime || 5000,
       concurrency: options?.concurrency || 2,
     });
   }
