@@ -14,11 +14,9 @@ There are some limitations with Midscene. We are still working on them.
 2. LLM is not 100% stable. Even GPT-4o can't return the right answer all the time. Following the [Prompting Tips](./prompting-tips) will help improve stability.
 3. Since we use JavaScript to retrieve items from the page, the elements inside the iframe cannot be accessed.
 
-## Which LLM should I choose ?
+## Can I use a model other than `gpt-4o`?
 
-Midscene needs a multimodal Large Language Model (LLM) to understand the UI. Currently, we find that OpenAI's  GPT-4o performs much better than others.
-
-You can [customize model and provider](./model-provider.html) if needed.
+Yes. You can [customize model and provider](./model-provider.html) if needed.
 
 ## About the token cost
 

@@ -30,7 +30,7 @@ export MIDSCENE_OPENAI_INIT_CONFIG_JSON='{"baseURL":"....","defaultHeaders":{"ke
 export MIDSCENE_OPENAI_SOCKS_PROXY="socks5://127.0.0.1:1080"
 ```
 
-Using Azure OpenAI Service:
+## Using Azure OpenAI Service
 
 ```bash
 export MIDSCENE_USE_AZURE_OPENAI=1
@@ -38,13 +38,28 @@ export MIDSCENE_AZURE_OPENAI_SCOPE="https://cognitiveservices.azure.com/.default
 export MIDSCENE_AZURE_OPENAI_INIT_CONFIG_JSON='{"apiVersion": "2024-11-01-preview", "endpoint": "...", "deployment": "..."}'
 ```
 
-Note:
+## Choose a model other than `gpt-4o`
 
-- Always choose a model that supports vision input. 
-- Currently, the known supported models are: `gpt-4o`, `qwen-vl-max-latest`, `gemini-1.5-pro`
-- Please follow the terms of use of each model.
+We find that `gpt-4o` performs the best for Midscene at this moment. The other known supported models are: `gemini-1.5-pro`, `qwen-vl-max-latest`, `doubao-vision-pro-32k`
 
-## Example: Using `qwen-vl-max-latest` service from Aliyun
+If you want to use other models, please follow these steps:
+
+1. Choose a model that supports image input (a.k.a. multimodal model).
+2. Find out how to to call it with an OpenAI SDK compatible endpoint. Usually you should set the `OPENAI_BASE_URL`, `OPENAI_API_KEY` and `MIDSCENE_MODEL_NAME`.
+3. If you find it not working well after changing the model, you can try using some short and clear prompt (or roll back to the previous model). See more details in [Prompting Tips](./prompting-tips.html).
+4. Remember to follow the terms of use of each model.
+
+## Example: Using `gemini-1.5-pro` from Google
+
+Configure the environment variables:
+
+```bash
+export OPENAI_BASE_URL="https://generativelanguage.googleapis.com/v1beta/openai"
+export OPENAI_API_KEY="....."
+export MIDSCENE_MODEL_NAME="gemini-1.5-pro"
+```
+
+## Example: Using `qwen-vl-max-latest` from Aliyun
 
 Configure the environment variables:
 
@@ -52,4 +67,16 @@ Configure the environment variables:
 export OPENAI_API_KEY="sk-..."
 export OPENAI_BASE_URL="https://dashscope.aliyuncs.com/compatible-mode/v1"
 export MIDSCENE_MODEL_NAME="qwen-vl-max-latest"
+```
+
+## Example: Using `doubao-vision-pro-32k` from Volcengine
+
+Create a inference point first: https://console.volcengine.com/ark/region:ark+cn-beijing/endpoint
+
+Configure the environment variables:
+
+```bash
+export OPENAI_BASE_URL="https://ark.cn-beijing.volces.com/api/v3"
+export OPENAI_API_KEY="..."
+export MIDSCENE_MODEL_NAME="ep-202....."
 ```
