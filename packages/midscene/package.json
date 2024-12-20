@@ -37,6 +37,7 @@
     "prepublishOnly": "npm run build"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "0.33.1",
     "@azure/identity": "4.5.0",
     "@midscene/shared": "workspace:*",
     "dirty-json": "0.9.2",

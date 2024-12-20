@@ -1,11 +1,13 @@
+import assert from 'node:assert';
 import { MIDSCENE_MODEL_TEXT_ONLY, getAIConfig } from '@/env';
 import type { AIUsageInfo } from '@/types';
+
 import type {
   ChatCompletionContentPart,
   ChatCompletionSystemMessageParam,
   ChatCompletionUserMessageParam,
 } from 'openai/resources';
-import { callToGetJSONObject, preferOpenAIModel } from './openai';
+import { callToGetJSONObject, checkAIConfig } from './openai';
 
 export type AIArgs = [
   ChatCompletionSystemMessageParam,
@@ -24,17 +26,16 @@ export async function callAiFn<T>(options: {
   AIActionType: AIActionType;
 }): Promise<{ content: T; usage?: AIUsageInfo }> {
   const { msgs, AIActionType: AIActionTypeValue } = options;
-  if (preferOpenAIModel('openAI')) {
-    const { content, usage } = await callToGetJSONObject<T>(
-      msgs,
-      AIActionTypeValue,
-    );
-    return { content, usage };
-  }
-
-  throw Error(
-    'Cannot find OpenAI config. You should set it before using. https://midscenejs.com/model-provider.html',
+  assert(
+    checkAIConfig(),
+    'Cannot find config for AI model service. You should set it before using. https://midscenejs.com/model-provider.html',
   );
+
+  const { content, usage } = await callToGetJSONObject<T>(
+    msgs,
+    AIActionTypeValue,
+  );
+  return { content, usage };
 }
 
 export function transformUserMessages(msgs: ChatCompletionContentPart[]) {

@@ -40,7 +40,7 @@ export MIDSCENE_AZURE_OPENAI_INIT_CONFIG_JSON='{"apiVersion": "2024-11-01-previe
 
 ## Choose a model other than `gpt-4o`
 
-We find that `gpt-4o` performs the best for Midscene at this moment. The other known supported models are: `gemini-1.5-pro`, `qwen-vl-max-latest`, `doubao-vision-pro-32k`
+We find that `gpt-4o` performs the best for Midscene at this moment. The other known supported models are `claude-3-opus-20240229`, `gemini-1.5-pro`, `qwen-vl-max-latest`, `doubao-vision-pro-32k`
 
 If you want to use other models, please follow these steps:
 
@@ -48,6 +48,18 @@ If you want to use other models, please follow these steps:
 2. Find out how to to call it with an OpenAI SDK compatible endpoint. Usually you should set the `OPENAI_BASE_URL`, `OPENAI_API_KEY` and `MIDSCENE_MODEL_NAME`.
 3. If you find it not working well after changing the model, you can try using some short and clear prompt (or roll back to the previous model). See more details in [Prompting Tips](./prompting-tips.html).
 4. Remember to follow the terms of use of each model.
+
+## Example: Using `claude-3-opus-20240229` from Anthropic
+
+When configuring `MIDSCENE_USE_ANTHROPIC_SDK=1`, Midscene will use Anthropic SDK (`@anthropic-ai/sdk`) to call the model.
+
+Configure the environment variables:
+
+```bash
+export MIDSCENE_USE_ANTHROPIC_SDK=1
+export ANTHROPIC_API_KEY="....."
+export MIDSCENE_MODEL_NAME="claude-3-opus-20240229"
+```
 
 ## Example: Using `gemini-1.5-pro` from Google
 

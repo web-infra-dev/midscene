@@ -37,7 +37,7 @@ export MIDSCENE_AZURE_OPENAI_INIT_CONFIG_JSON='{"apiVersion": "2024-11-01-previe
 
 ## 选用 `gpt-4o` 以外的其他模型
 
-我们发现 `gpt-4o` 是目前表现最佳的模型。其他已知支持的模型有：`qwen-vl-max-latest` (千问), `gemini-1.5-pro`, `doubao-vision-pro-32k` (豆包)
+我们发现 `gpt-4o` 是目前表现最佳的模型。其他已知支持的模型有：`claude-3-opus-20240229`, `gemini-1.5-pro`, `qwen-vl-max-latest` (千问）, `doubao-vision-pro-32k`  (豆包）
 
 如果你想要使用其他模型，请遵循以下步骤：
 
@@ -46,15 +46,6 @@ export MIDSCENE_AZURE_OPENAI_INIT_CONFIG_JSON='{"apiVersion": "2024-11-01-previe
 3. 如果发现使用新模型后效果不佳，可以尝试使用一些简短且清晰的提示词（或回滚到之前的模型）。更多详情请参阅 [Prompting Tips](./prompting-tips.html)。
 4. 请遵守各模型的使用条款。
 
-## 示例：使用 Google 的 `gemini-1.5-pro` 模型
-
-配置环境变量：
-
-```bash
-export OPENAI_BASE_URL="https://generativelanguage.googleapis.com/v1beta/openai"
-export OPENAI_API_KEY="....."
-export MIDSCENE_MODEL_NAME="gemini-1.5-pro"
-```
 
 ## 示例：使用阿里云的 `qwen-vl-max-latest` 模型
 
@@ -64,6 +55,28 @@ export MIDSCENE_MODEL_NAME="gemini-1.5-pro"
 export OPENAI_API_KEY="sk-..."
 export OPENAI_BASE_URL="https://dashscope.aliyuncs.com/compatible-mode/v1"
 export MIDSCENE_MODEL_NAME="qwen-vl-max-latest"
+```
+
+## 示例：使用 Anthropic 的 `claude-3-opus-20240229` 模型
+
+当配置 `MIDSCENE_USE_ANTHROPIC_SDK=1` 时，Midscene 会使用 Anthropic SDK (`@anthropic-ai/sdk`) 来调用模型。
+
+配置环境变量：
+
+```bash
+export MIDSCENE_USE_ANTHROPIC_SDK=1
+export ANTHROPIC_API_KEY="....."
+export MIDSCENE_MODEL_NAME="claude-3-opus-20240229"
+```
+
+## 示例：使用 Google 的 `gemini-1.5-pro` 模型
+
+配置环境变量：
+
+```bash
+export OPENAI_BASE_URL="https://generativelanguage.googleapis.com/v1beta/openai"
+export OPENAI_API_KEY="....."
+export MIDSCENE_MODEL_NAME="gemini-1.5-pro"
 ```
 
 ## 示例：使用火山云的豆包 `doubao-vision-pro-32k` 模型

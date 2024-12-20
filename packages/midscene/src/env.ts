@@ -21,6 +21,9 @@ export const MIDSCENE_AZURE_OPENAI_SCOPE = 'MIDSCENE_AZURE_OPENAI_SCOPE';
 export const MIDSCENE_AZURE_OPENAI_INIT_CONFIG_JSON =
   'MIDSCENE_AZURE_OPENAI_INIT_CONFIG_JSON';
 
+export const MIDSCENE_USE_ANTHROPIC_SDK = 'MIDSCENE_USE_ANTHROPIC_SDK';
+export const ANTHROPIC_API_KEY = 'ANTHROPIC_API_KEY';
+
 // @deprecated
 export const OPENAI_USE_AZURE = 'OPENAI_USE_AZURE';
 
@@ -54,6 +57,9 @@ const allConfigFromEnv = () => {
       'https://cognitiveservices.azure.com/.default',
     [MIDSCENE_AZURE_OPENAI_INIT_CONFIG_JSON]:
       process.env[MIDSCENE_AZURE_OPENAI_INIT_CONFIG_JSON] || undefined,
+    [MIDSCENE_USE_ANTHROPIC_SDK]:
+      process.env[MIDSCENE_USE_ANTHROPIC_SDK] || undefined,
+    [ANTHROPIC_API_KEY]: process.env[ANTHROPIC_API_KEY] || undefined,
   };
 };
 
