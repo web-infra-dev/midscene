@@ -12,10 +12,11 @@ vi.setConfig({
 });
 [
   '.env.qwen',
-  '.env.gemini', // Gemini is not supported in China
+  '.env.gemini',
   '.env.doubao',
   '.env.init_json',
   '.env.anthropic',
+  '.env.openai',
 ].forEach((envFile) => {
   const configPath = path.resolve(__dirname, `../../${envFile}`);
   if (!existsSync(configPath)) {
@@ -36,7 +37,7 @@ vi.setConfig({
         }
       });
 
-      it('connectivity', async () => {
+      it('text only', async () => {
         const result = await call([
           {
             role: 'system',

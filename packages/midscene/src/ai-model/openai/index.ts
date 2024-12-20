@@ -238,6 +238,7 @@ export async function callToGetJSONObject<T>(
       case AIActionType.EXTRACT_DATA:
         //TODO: Currently the restriction type can only be a json subset of the constraint, and the way the extract api is used needs to be adjusted to limit the user's data to this as well
         // targetResponseFormat = extractDataSchema;
+        responseFormat = { type: AIResponseFormat.JSON };
         break;
       case AIActionType.PLAN:
         responseFormat = planSchema;
