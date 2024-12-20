@@ -92,3 +92,9 @@ export OPENAI_BASE_URL="https://ark.cn-beijing.volces.com/api/v3"
 export OPENAI_API_KEY="..."
 export MIDSCENE_MODEL_NAME="ep-202....."
 ```
+
+## Troubleshooting LLM Service Connectivity Issues
+
+If you want to troubleshoot connectivity issues, you can use the 'connectivity-test' folder in our example project: [https://github.com/web-infra-dev/midscene-example/tree/main/connectivity-test](https://github.com/web-infra-dev/midscene-example/tree/main/connectivity-test)
+
+Put your `.env` file in the `connectivity-test` folder, and run the test with `npm i && npm run test`.

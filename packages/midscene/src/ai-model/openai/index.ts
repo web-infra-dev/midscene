@@ -245,7 +245,7 @@ export async function callToGetJSONObject<T>(
         break;
     }
 
-    if (model === 'gpt-4o-2024-05-13') {
+    if (model === 'gpt-4o-2024-05-13' || !responseFormat) {
       responseFormat = { type: AIResponseFormat.JSON };
     }
   }
