@@ -1,6 +1,14 @@
 import { AIActionType } from '@/ai-model/common';
 import { call, callToGetJSONObject } from '@/ai-model/openai';
+import { base64Encoded } from '@/image';
+import dotenv from 'dotenv';
+import { getFixture } from 'tests/utils';
 import { describe, expect, it, vi } from 'vitest';
+
+const result = dotenv.config({ debug: true });
+if (result.error) {
+  throw result.error;
+}
 
 vi.setConfig({
   testTimeout: 20 * 1000,
@@ -35,10 +43,11 @@ describe('openai sdk connectivity', () => {
       ],
       AIActionType.EXTRACT_DATA,
     );
-    expect(result.content.answer).toBe(15);
+    expect(result.content).toEqual({ answer: 15 });
   });
 
   it('image input', async () => {
+    const imagePath = getFixture('baidu.png');
     const result = await call([
       {
         role: 'user',
@@ -50,7 +59,7 @@ describe('openai sdk connectivity', () => {
           {
             type: 'image_url',
             image_url: {
-              url: 'https://portal.volccdn.com/obj/volcfe/bee_prod/biz_950/tos_38e6e81e1366482ed046045e72b0684d.png',
+              url: base64Encoded(imagePath),
               detail: 'high',
             },
           },
