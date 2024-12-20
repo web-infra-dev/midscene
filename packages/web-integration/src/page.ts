@@ -1,4 +1,4 @@
-import type { Size } from '@midscene/core/.';
+import type { Point, Size } from '@midscene/core/.';
 import type { WebKeyInput } from './common/page';
 import type { WebUIContext } from './common/utils';
 import type { ElementInfo } from './extractor';
@@ -33,13 +33,13 @@ export abstract class AbstractPage {
 
   async clearInput(element: ElementInfo): Promise<void> {}
 
-  abstract scrollUntilTop(): Promise<void>;
-  abstract scrollUntilBottom(): Promise<void>;
-  abstract scrollUntilLeft(): Promise<void>;
-  abstract scrollUntilRight(): Promise<void>;
-  abstract scrollUp(distance?: number): Promise<void>;
-  abstract scrollDown(distance?: number): Promise<void>;
-  abstract scrollLeft(distance?: number): Promise<void>;
+  abstract scrollUntilTop(startingPoint?: Point): Promise<void>;
+  abstract scrollUntilBottom(startingPoint?: Point): Promise<void>;
+  abstract scrollUntilLeft(startingPoint?: Point): Promise<void>;
+  abstract scrollUntilRight(startingPoint?: Point): Promise<void>;
+  abstract scrollUp(distance?: number, startingPoint?: Point): Promise<void>;
+  abstract scrollDown(distance?: number, startingPoint?: Point): Promise<void>;
+  abstract scrollLeft(distance?: number, startingPoint?: Point): Promise<void>;
   abstract scrollRight(distance?: number): Promise<void>;
 
   abstract _forceUsePageContext?(): Promise<WebUIContext>;
