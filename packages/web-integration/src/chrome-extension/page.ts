@@ -12,6 +12,7 @@ import type { AbstractPage } from '@/page';
 import type { Point, Rect, Size } from '@midscene/core/.';
 import { ifInBrowser } from '@midscene/shared/utils';
 import type { Protocol as CDPTypes } from 'devtools-protocol';
+import { CdpKeyboard } from './cdpInput';
 
 // remember to include this file into extension's package
 const scriptFileToRetrieve = './lib/htmlElement.js';
@@ -324,35 +325,16 @@ export default class ChromeExtensionProxyPage implements AbstractPage {
 
   keyboard = {
     type: async (text: string) => {
-      for (const char of text) {
-        await this.sendCommandToDebugger('Input.insertText', {
-          text: char,
-        });
-
-        // sleep 50ms
-        await new Promise((resolve) => setTimeout(resolve, 50));
-      }
+      const cdpKeyboard = new CdpKeyboard({
+        send: this.sendCommandToDebugger.bind(this),
+      });
+      await cdpKeyboard.type(text);
     },
     press: async (key: WebKeyInput) => {
-      await this.sendCommandToDebugger('Input.dispatchKeyEvent', {
-        type: 'rawKeyDown',
-        code: key,
-        key: key,
+      const cdpKeyboard = new CdpKeyboard({
+        send: this.sendCommandToDebugger.bind(this),
       });
-
-      // Dispatch 'char' event
-      await this.sendCommandToDebugger('Input.dispatchKeyEvent', {
-        type: 'char',
-        code: key,
-        key: key,
-      });
-
-      // Dispatch 'keyUp' event
-      await this.sendCommandToDebugger('Input.dispatchKeyEvent', {
-        type: 'keyUp',
-        code: key,
-        key: key,
-      });
+      await cdpKeyboard.press(key);
     },
   };
 

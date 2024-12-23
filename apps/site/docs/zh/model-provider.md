@@ -37,7 +37,7 @@ export MIDSCENE_AZURE_OPENAI_INIT_CONFIG_JSON='{"apiVersion": "2024-11-01-previe
 
 ## 选用 `gpt-4o` 以外的其他模型
 
-我们发现 `gpt-4o` 是目前表现最佳的模型。其他已知支持的模型有：`claude-3-opus-20240229`, `gemini-1.5-pro`, `qwen-vl-max-latest` (千问）, `doubao-vision-pro-32k`  (豆包）
+我们发现 `gpt-4o` 是目前表现最佳的模型。其他已知支持的模型有：`claude-3-opus-20240229`, `gemini-1.5-pro`, `qwen-vl-max-latest`（千问）, `doubao-vision-pro-32k`（豆包）
 
 如果你想要使用其他模型，请遵循以下步骤：
 
