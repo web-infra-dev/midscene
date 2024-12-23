@@ -1,0 +1,8 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`utils > build yaml 1`] = `
+"target:
+  url: https://www.baidu.com
+tasks: []
+"
+`;
