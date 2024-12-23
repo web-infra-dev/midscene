@@ -18,9 +18,9 @@ dotenv.config({
  */
 export default defineConfig({
   // testDir: './tests/ai/e2e',
-  testIgnore: process.env.GENERATE_TEST_DATA
-    ? undefined
-    : 'generate-test-data.spec.ts',
+  // testIgnore: process.env.GENERATE_TEST_DATA
+  //   ? undefined
+  //   : 'generate-test-data.spec.ts',
   timeout: 900 * 1000,
   /* Run tests in files in parallel */
   fullyParallel: false,

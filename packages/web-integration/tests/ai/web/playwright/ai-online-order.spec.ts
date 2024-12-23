@@ -1,4 +1,4 @@
-import path from 'path';
+import path from 'node:path';
 import { generateExtractData, generateTestDataPath } from '@/debug';
 import { PlaywrightWebPage } from '@/playwright';
 import { expect } from 'playwright/test';
@@ -11,23 +11,44 @@ test.beforeEach(async ({ page }) => {
   await page.goto('https://heyteavivocity.meuu.online/home');
   await page.waitForLoadState('networkidle');
 });
+let index = 0;
+async function generateTestData(playwrightPage: any) {
+  return await generateExtractData(
+    playwrightPage,
+    path.join(__dirname, 'test-data', 'online-order-history', `${index++}`),
+    {
+      disableInputImage: false,
+      disableOutputImage: true,
+      disableOutputWithoutTextImg: true,
+      disableResizeOutputImg: true,
+      disableSnapshot: true,
+    },
+  );
+}
 
 test('ai online order', async ({ ai, page, aiQuery }) => {
   const playwrightPage = new PlaywrightWebPage(page);
+  await generateTestData(playwrightPage);
   await ai('点击语言切换按钮“english”');
+  await generateTestData(playwrightPage);
   await ai('点击语言切换中的中文');
+  await generateTestData(playwrightPage);
   await ai('向下滚动两屏');
-  await generateExtractData(
-    playwrightPage,
-    path.join(__dirname, 'test-data', 'ai-online-order'),
-  );
+  await generateTestData(playwrightPage);
   await ai('点击多肉葡萄的选规格按钮');
+  await generateTestData(playwrightPage);
   await ai('点击不使用吸管、点击冰沙推荐、点击正常冰推荐');
+  await generateTestData(playwrightPage);
   await ai('向下滚动一屏');
+  await generateTestData(playwrightPage);
   await ai('点击标准甜、点击绿妍（推荐）、点击标准口味');
+  await generateTestData(playwrightPage);
   await ai('滚动到最下面');
+  await generateTestData(playwrightPage);
   await ai('点击页面下边的“选好了”按钮');
+  await generateTestData(playwrightPage);
   await ai('点击屏幕右上角购物袋按钮');
+  await generateTestData(playwrightPage);
 
   const cardDetail = await aiQuery({
     productName: '商品名称，在价格上面',

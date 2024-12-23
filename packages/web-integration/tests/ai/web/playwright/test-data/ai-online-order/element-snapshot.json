@@ -1,14 +1,15 @@
 [
   {
-    "id": "917697",
+    "id": "e00c1b86",
     "indexId": 0,
     "nodePath": "0-3-1-1-0-0-0-0-0-1-0-0-0",
-    "nodeHashId": "917697",
-    "locator": "[_midscene_retrieve_task_id='917697']",
+    "nodeHashId": "e00c1b86",
+    "locator": "[_midscene_retrieve_task_id='e00c1b86']",
     "attributes": {
       "src": "image",
       "class": ".icon",
-      "nodeType": "IMG Node"
+      "nodeType": "IMG Node",
+      "htmlTagName": "<div>"
     },
     "nodeType": "IMG Node",
     "content": "",
@@ -28,14 +29,15 @@
     "screenHeight": 905
   },
   {
-    "id": "498940",
+    "id": "79cfcf9a",
     "indexId": 1,
     "nodePath": "0-3-1-1-0-0-0-0-0-1-0-1-0-0-0",
-    "nodeHashId": "498940",
+    "nodeHashId": "79cfcf9a",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
-      "nodeType": "TEXT Node"
+      "nodeType": "TEXT Node",
+      "htmlTagName": "<span>"
     },
     "center": [
       81,
@@ -54,15 +56,16 @@
     "screenHeight": 905
   },
   {
-    "id": "790454",
+    "id": "c0fb608a",
     "indexId": 2,
     "nodePath": "0-3-1-1-0-0-0-1-0-0-0",
-    "nodeHashId": "790454",
-    "locator": "[_midscene_retrieve_task_id='790454']",
+    "nodeHashId": "c0fb608a",
+    "locator": "[_midscene_retrieve_task_id='c0fb608a']",
     "attributes": {
-      "src": "https://dec-pub-img.obs.ap-southeast-3.myhuaweiclo...",
+      "src": "https://dec-pub-img.obs.ap-southeast-3.myhuaweicloud.com/rfkle/16509415998546650.jpg",
       "class": ".img",
-      "nodeType": "IMG Node"
+      "nodeType": "IMG Node",
+      "htmlTagName": "<div>"
     },
     "nodeType": "IMG Node",
     "content": "",
@@ -82,15 +85,16 @@
     "screenHeight": 905
   },
   {
-    "id": "387792",
+    "id": "5ead026c",
     "indexId": 3,
     "nodePath": "0-3-1-1-0-0-0-2-0-1-0-0-0-0-0-0",
-    "nodeHashId": "387792",
-    "locator": "[_midscene_retrieve_task_id='387792']",
+    "nodeHashId": "5ead026c",
+    "locator": "[_midscene_retrieve_task_id='5ead026c']",
     "attributes": {
       "src": "image",
       "class": ".icon",
-      "nodeType": "IMG Node"
+      "nodeType": "IMG Node",
+      "htmlTagName": "<div>"
     },
     "nodeType": "IMG Node",
     "content": "",
@@ -110,14 +114,15 @@
     "screenHeight": 905
   },
   {
-    "id": "472664",
+    "id": "73658dec",
     "indexId": 4,
     "nodePath": "0-3-1-2-0-1-0-1-0-6-1-0-0-1-0-0",
-    "nodeHashId": "472664",
+    "nodeHashId": "73658dec",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
-      "nodeType": "TEXT Node"
+      "nodeType": "TEXT Node",
+      "htmlTagName": "<span>"
     },
     "center": [
       29,
@@ -136,14 +141,15 @@
     "screenHeight": 905
   },
   {
-    "id": "446796",
+    "id": "6d14cb95",
     "indexId": 5,
     "nodePath": "0-3-1-2-0-1-0-1-0-6-1-0-0-2-0-0",
-    "nodeHashId": "446796",
+    "nodeHashId": "6d14cb95",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
-      "nodeType": "TEXT Node"
+      "nodeType": "TEXT Node",
+      "htmlTagName": "<span>"
     },
     "center": [
       35,
@@ -162,14 +168,15 @@
     "screenHeight": 905
   },
   {
-    "id": "593105",
+    "id": "90cd1b15",
     "indexId": 6,
     "nodePath": "0-3-1-2-0-1-0-1-0-6-1-0-0-3-0-0",
-    "nodeHashId": "593105",
+    "nodeHashId": "90cd1b15",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
-      "nodeType": "TEXT Node"
+      "nodeType": "TEXT Node",
+      "htmlTagName": "<span>"
     },
     "center": [
       35,
@@ -188,14 +195,15 @@
     "screenHeight": 905
   },
   {
-    "id": "340057",
+    "id": "53059976",
     "indexId": 7,
     "nodePath": "0-3-1-2-0-1-0-1-0-6-1-0-0-4-0-0",
-    "nodeHashId": "340057",
+    "nodeHashId": "53059976",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
-      "nodeType": "TEXT Node"
+      "nodeType": "TEXT Node",
+      "htmlTagName": "<span>"
     },
     "center": [
       23,
@@ -214,14 +222,15 @@
     "screenHeight": 905
   },
   {
-    "id": "779025",
+    "id": "be311fe8",
     "indexId": 8,
     "nodePath": "0-3-1-2-0-1-0-1-0-6-1-0-0-5-0-0",
-    "nodeHashId": "779025",
+    "nodeHashId": "be311fe8",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
-      "nodeType": "TEXT Node"
+      "nodeType": "TEXT Node",
+      "htmlTagName": "<span>"
     },
     "center": [
       23,
@@ -240,14 +249,15 @@
     "screenHeight": 905
   },
   {
-    "id": "537624",
+    "id": "83418692",
     "indexId": 9,
     "nodePath": "0-3-1-2-0-1-0-1-0-6-1-0-0-6-0-0",
-    "nodeHashId": "537624",
+    "nodeHashId": "83418692",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
-      "nodeType": "TEXT Node"
+      "nodeType": "TEXT Node",
+      "htmlTagName": "<span>"
     },
     "center": [
       23,
@@ -266,14 +276,15 @@
     "screenHeight": 905
   },
   {
-    "id": "620276",
+    "id": "976f4356",
     "indexId": 10,
     "nodePath": "0-3-1-2-0-1-0-1-0-6-1-0-0-7-0-0",
-    "nodeHashId": "620276",
+    "nodeHashId": "976f4356",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
-      "nodeType": "TEXT Node"
+      "nodeType": "TEXT Node",
+      "htmlTagName": "<span>"
     },
     "center": [
       29,
@@ -292,129 +303,24 @@
     "screenHeight": 905
   },
   {
-    "id": "452546",
+    "id": "8c50c5f3",
     "indexId": 11,
-    "nodePath": "0-3-1-2-0-1-0-1-0-6-1-1-1-1-0-0",
-    "nodeHashId": "452546",
-    "locator": "[_midscene_retrieve_task_id='452546']",
-    "attributes": {
-      "src": "https://dec-pub-img.obs.ap-southeast-3.myhuaweiclo...",
-      "class": ".img",
-      "nodeType": "IMG Node"
-    },
-    "nodeType": "IMG Node",
-    "content": "",
-    "rect": {
-      "left": 88,
-      "top": 26,
-      "width": 90,
-      "height": 90,
-      "zoom": 1
-    },
-    "center": [
-      133,
-      71
-    ],
-    "zoom": 1,
-    "screenWidth": 400,
-    "screenHeight": 905
-  },
-  {
-    "id": "829273",
-    "indexId": 12,
-    "nodePath": "0-3-1-2-0-1-0-1-0-6-1-1-1-1-0-1-1-0-0-0",
-    "nodeHashId": "829273",
+    "nodePath": "0-3-1-2-0-1-0-1-0-6-1-1-3-0-0-0",
+    "nodeHashId": "8c50c5f3",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
-      "nodeType": "TEXT Node"
-    },
-    "center": [
-      194,
-      105
-    ],
-    "content": "S$",
-    "rect": {
-      "left": 188,
-      "top": 98,
-      "width": 12,
-      "height": 14,
-      "zoom": 1
-    },
-    "zoom": 1,
-    "screenWidth": 400,
-    "screenHeight": 905
-  },
-  {
-    "id": "962004",
-    "indexId": 13,
-    "nodePath": "0-3-1-2-0-1-0-1-0-6-1-1-1-1-0-1-1-0-1-0",
-    "nodeHashId": "962004",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node"
-    },
-    "center": [
-      223,
-      103
-    ],
-    "content": "6.82",
-    "rect": {
-      "left": 204,
-      "top": 90,
-      "width": 37,
-      "height": 25,
-      "zoom": 1
-    },
-    "zoom": 1,
-    "screenWidth": 400,
-    "screenHeight": 905
-  },
-  {
-    "id": "648632",
-    "indexId": 14,
-    "nodePath": "0-3-1-2-0-1-0-1-0-6-1-1-1-1-0-1-1-1-0-0",
-    "nodeHashId": "648632",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node"
-    },
-    "center": [
-      355,
-      99
-    ],
-    "content": "选规格",
-    "rect": {
-      "left": 337,
-      "top": 90,
-      "width": 36,
-      "height": 17,
-      "zoom": 1
-    },
-    "zoom": 1,
-    "screenWidth": 400,
-    "screenHeight": 905
-  },
-  {
-    "id": "436559",
-    "indexId": 15,
-    "nodePath": "0-3-1-2-0-1-0-1-0-6-1-1-2-0-0-0",
-    "nodeHashId": "436559",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node"
+      "nodeType": "TEXT Node",
+      "htmlTagName": "<span>"
     },
     "center": [
       134,
-      142
+      76
     ],
-    "content": "清爽不喝腻 (5)",
+    "content": "经典不踩雷 (4)",
     "rect": {
       "left": 88,
-      "top": 132,
+      "top": 66,
       "width": 92,
       "height": 20,
       "zoom": 1
@@ -424,51 +330,765 @@
     "screenHeight": 905
   },
   {
-    "id": "473871",
-    "indexId": 16,
-    "nodePath": "0-3-1-2-0-1-0-1-0-6-1-1-2-1-0-0",
-    "nodeHashId": "473871",
-    "locator": "[_midscene_retrieve_task_id='473871']",
+    "id": "90c7ce65",
+    "indexId": 12,
+    "nodePath": "0-3-1-2-0-1-0-1-0-6-1-1-3-1-0-0",
+    "nodeHashId": "90c7ce65",
+    "locator": "[_midscene_retrieve_task_id='90c7ce65']",
     "attributes": {
-      "src": "https://dec-pub-img.obs.ap-southeast-3.myhuaweiclo...",
+      "src": "https://dec-pub-img.obs.ap-southeast-3.myhuaweicloud.com/djlxq/16509432868609005.jpeg",
       "class": ".img",
-      "nodeType": "IMG Node"
+      "nodeType": "IMG Node",
+      "htmlTagName": "<div>"
     },
     "nodeType": "IMG Node",
     "content": "",
     "rect": {
       "left": 88,
-      "top": 169,
+      "top": 102,
       "width": 90,
       "height": 90,
       "zoom": 1
     },
     "center": [
       133,
-      214
+      147
     ],
     "zoom": 1,
     "screenWidth": 400,
     "screenHeight": 905
   },
   {
-    "id": "925255",
-    "indexId": 17,
-    "nodePath": "0-3-1-2-0-1-0-1-0-6-1-1-2-1-0-1-0-0-1",
-    "nodeHashId": "925255",
+    "id": "7cbcf8a7",
+    "indexId": 13,
+    "nodePath": "0-3-1-2-0-1-0-1-0-6-1-1-3-1-0-1-0-0-1",
+    "nodeHashId": "7cbcf8a7",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
-      "nodeType": "TEXT Node"
+      "nodeType": "TEXT Node",
+      "htmlTagName": "<h2>"
+    },
+    "center": [
+      244,
+      113
+    ],
+    "content": "多肉葡萄（首创）",
+    "rect": {
+      "left": 188,
+      "top": 103,
+      "width": 112,
+      "height": 20,
+      "zoom": 1
+    },
+    "zoom": 1,
+    "screenWidth": 400,
+    "screenHeight": 905
+  },
+  {
+    "id": "66c698bf",
+    "indexId": 14,
+    "nodePath": "0-3-1-2-0-1-0-1-0-6-1-1-3-1-0-1-1-0-0-0",
+    "nodeHashId": "66c698bf",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node",
+      "htmlTagName": "<span>"
+    },
+    "center": [
+      194,
+      182
+    ],
+    "content": "S$",
+    "rect": {
+      "left": 188,
+      "top": 175,
+      "width": 12,
+      "height": 14,
+      "zoom": 1
+    },
+    "zoom": 1,
+    "screenWidth": 400,
+    "screenHeight": 905
+  },
+  {
+    "id": "7291fbf4",
+    "indexId": 15,
+    "nodePath": "0-3-1-2-0-1-0-1-0-6-1-1-3-1-0-1-1-0-1-0",
+    "nodeHashId": "7291fbf4",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node",
+      "htmlTagName": "<span>"
     },
     "center": [
       223,
       179
     ],
-    "content": "轻芒芒甘露",
+    "content": "9.32",
+    "rect": {
+      "left": 204,
+      "top": 166,
+      "width": 37,
+      "height": 25,
+      "zoom": 1
+    },
+    "zoom": 1,
+    "screenWidth": 400,
+    "screenHeight": 905
+  },
+  {
+    "id": "5d50c378",
+    "indexId": 16,
+    "nodePath": "0-3-1-2-0-1-0-1-0-6-1-1-3-1-0-1-1-1-0-0",
+    "nodeHashId": "5d50c378",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node",
+      "htmlTagName": "<div>"
+    },
+    "center": [
+      355,
+      175
+    ],
+    "content": "选规格",
+    "rect": {
+      "left": 337,
+      "top": 166,
+      "width": 36,
+      "height": 17,
+      "zoom": 1
+    },
+    "zoom": 1,
+    "screenWidth": 400,
+    "screenHeight": 905
+  },
+  {
+    "id": "b24476dc",
+    "indexId": 17,
+    "nodePath": "0-3-1-2-0-1-0-1-0-6-1-1-3-1-1-0",
+    "nodeHashId": "b24476dc",
+    "locator": "[_midscene_retrieve_task_id='b24476dc']",
+    "attributes": {
+      "src": "https://dec-pub-img.obs.ap-southeast-3.myhuaweicloud.com/djlxq/16509434349096787.jpeg",
+      "class": ".img",
+      "nodeType": "IMG Node",
+      "htmlTagName": "<div>"
+    },
+    "nodeType": "IMG Node",
+    "content": "",
+    "rect": {
+      "left": 88,
+      "top": 208,
+      "width": 90,
+      "height": 90,
+      "zoom": 1
+    },
+    "center": [
+      133,
+      253
+    ],
+    "zoom": 1,
+    "screenWidth": 400,
+    "screenHeight": 905
+  },
+  {
+    "id": "1609763e",
+    "indexId": 18,
+    "nodePath": "0-3-1-2-0-1-0-1-0-6-1-1-3-1-1-1-0-0-1",
+    "nodeHashId": "1609763e",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node",
+      "htmlTagName": "<h2>"
+    },
+    "center": [
+      244,
+      219
+    ],
+    "content": "满杯红柚（首创）",
     "rect": {
       "left": 188,
-      "top": 169,
+      "top": 209,
+      "width": 112,
+      "height": 20,
+      "zoom": 1
+    },
+    "zoom": 1,
+    "screenWidth": 400,
+    "screenHeight": 905
+  },
+  {
+    "id": "79efda76",
+    "indexId": 19,
+    "nodePath": "0-3-1-2-0-1-0-1-0-6-1-1-3-1-1-1-1-0-0-0",
+    "nodeHashId": "79efda76",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node",
+      "htmlTagName": "<span>"
+    },
+    "center": [
+      194,
+      288
+    ],
+    "content": "S$",
+    "rect": {
+      "left": 188,
+      "top": 281,
+      "width": 12,
+      "height": 14,
+      "zoom": 1
+    },
+    "zoom": 1,
+    "screenWidth": 400,
+    "screenHeight": 905
+  },
+  {
+    "id": "8328e8bd",
+    "indexId": 20,
+    "nodePath": "0-3-1-2-0-1-0-1-0-6-1-1-3-1-1-1-1-0-1-0",
+    "nodeHashId": "8328e8bd",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node",
+      "htmlTagName": "<span>"
+    },
+    "center": [
+      221,
+      285
+    ],
+    "content": "6.19",
+    "rect": {
+      "left": 204,
+      "top": 272,
+      "width": 34,
+      "height": 25,
+      "zoom": 1
+    },
+    "zoom": 1,
+    "screenWidth": 400,
+    "screenHeight": 905
+  },
+  {
+    "id": "a6c05d00",
+    "indexId": 21,
+    "nodePath": "0-3-1-2-0-1-0-1-0-6-1-1-3-1-1-1-1-1-0-0",
+    "nodeHashId": "a6c05d00",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node",
+      "htmlTagName": "<div>"
+    },
+    "center": [
+      355,
+      281
+    ],
+    "content": "选规格",
+    "rect": {
+      "left": 337,
+      "top": 272,
+      "width": 36,
+      "height": 17,
+      "zoom": 1
+    },
+    "zoom": 1,
+    "screenWidth": 400,
+    "screenHeight": 905
+  },
+  {
+    "id": "88f2405d",
+    "indexId": 22,
+    "nodePath": "0-3-1-2-0-1-0-1-0-6-1-1-3-1-2-0",
+    "nodeHashId": "88f2405d",
+    "locator": "[_midscene_retrieve_task_id='88f2405d']",
+    "attributes": {
+      "src": "https://dec-pub-img.obs.ap-southeast-3.myhuaweicloud.com/djlxq/16509434864662214.jpeg",
+      "class": ".img",
+      "nodeType": "IMG Node",
+      "htmlTagName": "<div>"
+    },
+    "nodeType": "IMG Node",
+    "content": "",
+    "rect": {
+      "left": 88,
+      "top": 314,
+      "width": 90,
+      "height": 90,
+      "zoom": 1
+    },
+    "center": [
+      133,
+      359
+    ],
+    "zoom": 1,
+    "screenWidth": 400,
+    "screenHeight": 905
+  },
+  {
+    "id": "20d73e8c",
+    "indexId": 23,
+    "nodePath": "0-3-1-2-0-1-0-1-0-6-1-1-3-1-2-1-0-0-1",
+    "nodeHashId": "20d73e8c",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node",
+      "htmlTagName": "<h2>"
+    },
+    "center": [
+      230,
+      325
+    ],
+    "content": "多肉芒芒甘露",
+    "rect": {
+      "left": 188,
+      "top": 315,
+      "width": 84,
+      "height": 20,
+      "zoom": 1
+    },
+    "zoom": 1,
+    "screenWidth": 400,
+    "screenHeight": 905
+  },
+  {
+    "id": "52de930b",
+    "indexId": 24,
+    "nodePath": "0-3-1-2-0-1-0-1-0-6-1-1-3-1-2-1-1-0-0-0",
+    "nodeHashId": "52de930b",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node",
+      "htmlTagName": "<span>"
+    },
+    "center": [
+      194,
+      394
+    ],
+    "content": "S$",
+    "rect": {
+      "left": 188,
+      "top": 387,
+      "width": 12,
+      "height": 14,
+      "zoom": 1
+    },
+    "zoom": 1,
+    "screenWidth": 400,
+    "screenHeight": 905
+  },
+  {
+    "id": "3b799f2e",
+    "indexId": 25,
+    "nodePath": "0-3-1-2-0-1-0-1-0-6-1-1-3-1-2-1-1-0-1-0",
+    "nodeHashId": "3b799f2e",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node",
+      "htmlTagName": "<span>"
+    },
+    "center": [
+      223,
+      391
+    ],
+    "content": "8.33",
+    "rect": {
+      "left": 204,
+      "top": 378,
+      "width": 37,
+      "height": 25,
+      "zoom": 1
+    },
+    "zoom": 1,
+    "screenWidth": 400,
+    "screenHeight": 905
+  },
+  {
+    "id": "396ebc49",
+    "indexId": 26,
+    "nodePath": "0-3-1-2-0-1-0-1-0-6-1-1-3-1-2-1-1-1-0-0",
+    "nodeHashId": "396ebc49",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node",
+      "htmlTagName": "<div>"
+    },
+    "center": [
+      355,
+      387
+    ],
+    "content": "选规格",
+    "rect": {
+      "left": 337,
+      "top": 378,
+      "width": 36,
+      "height": 17,
+      "zoom": 1
+    },
+    "zoom": 1,
+    "screenWidth": 400,
+    "screenHeight": 905
+  },
+  {
+    "id": "c545bb15",
+    "indexId": 27,
+    "nodePath": "0-3-1-2-0-1-0-1-0-6-1-1-3-1-3-0",
+    "nodeHashId": "c545bb15",
+    "locator": "[_midscene_retrieve_task_id='c545bb15']",
+    "attributes": {
+      "src": "https://dec-pub-img.obs.ap-southeast-3.myhuaweicloud.com/djlxq/16509435319588931.jpeg",
+      "class": ".img",
+      "nodeType": "IMG Node",
+      "htmlTagName": "<div>"
+    },
+    "nodeType": "IMG Node",
+    "content": "",
+    "rect": {
+      "left": 88,
+      "top": 420,
+      "width": 90,
+      "height": 90,
+      "zoom": 1
+    },
+    "center": [
+      133,
+      465
+    ],
+    "zoom": 1,
+    "screenWidth": 400,
+    "screenHeight": 905
+  },
+  {
+    "id": "3422d88b",
+    "indexId": 28,
+    "nodePath": "0-3-1-2-0-1-0-1-0-6-1-1-3-1-3-1-0-0-1",
+    "nodeHashId": "3422d88b",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node",
+      "htmlTagName": "<h2>"
+    },
+    "center": [
+      244,
+      431
+    ],
+    "content": "芝芝芒芒（首创）",
+    "rect": {
+      "left": 188,
+      "top": 421,
+      "width": 112,
+      "height": 20,
+      "zoom": 1
+    },
+    "zoom": 1,
+    "screenWidth": 400,
+    "screenHeight": 905
+  },
+  {
+    "id": "0366dbc8",
+    "indexId": 29,
+    "nodePath": "0-3-1-2-0-1-0-1-0-6-1-1-3-1-3-1-1-0-0-0",
+    "nodeHashId": "0366dbc8",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node",
+      "htmlTagName": "<span>"
+    },
+    "center": [
+      194,
+      500
+    ],
+    "content": "S$",
+    "rect": {
+      "left": 188,
+      "top": 493,
+      "width": 12,
+      "height": 14,
+      "zoom": 1
+    },
+    "zoom": 1,
+    "screenWidth": 400,
+    "screenHeight": 905
+  },
+  {
+    "id": "f3bccfe8",
+    "indexId": 30,
+    "nodePath": "0-3-1-2-0-1-0-1-0-6-1-1-3-1-3-1-1-0-1-0",
+    "nodeHashId": "f3bccfe8",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node",
+      "htmlTagName": "<span>"
+    },
+    "center": [
+      223,
+      497
+    ],
+    "content": "9.32",
+    "rect": {
+      "left": 204,
+      "top": 484,
+      "width": 37,
+      "height": 25,
+      "zoom": 1
+    },
+    "zoom": 1,
+    "screenWidth": 400,
+    "screenHeight": 905
+  },
+  {
+    "id": "b185b59d",
+    "indexId": 31,
+    "nodePath": "0-3-1-2-0-1-0-1-0-6-1-1-3-1-3-1-1-1-0-0",
+    "nodeHashId": "b185b59d",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node",
+      "htmlTagName": "<div>"
+    },
+    "center": [
+      355,
+      493
+    ],
+    "content": "选规格",
+    "rect": {
+      "left": 337,
+      "top": 484,
+      "width": 36,
+      "height": 17,
+      "zoom": 1
+    },
+    "zoom": 1,
+    "screenWidth": 400,
+    "screenHeight": 905
+  },
+  {
+    "id": "4073ff31",
+    "indexId": 32,
+    "nodePath": "0-3-1-2-0-1-0-1-0-6-1-1-4-0-0-0",
+    "nodeHashId": "4073ff31",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node",
+      "htmlTagName": "<span>"
+    },
+    "center": [
+      120,
+      537
+    ],
+    "content": "要浓郁 (4)",
+    "rect": {
+      "left": 88,
+      "top": 527,
+      "width": 64,
+      "height": 20,
+      "zoom": 1
+    },
+    "zoom": 1,
+    "screenWidth": 400,
+    "screenHeight": 905
+  },
+  {
+    "id": "7527078f",
+    "indexId": 33,
+    "nodePath": "0-3-1-2-0-1-0-1-0-6-1-1-4-1-0-0",
+    "nodeHashId": "7527078f",
+    "locator": "[_midscene_retrieve_task_id='7527078f']",
+    "attributes": {
+      "src": "https://dec-pub-img.obs.ap-southeast-3.myhuaweicloud.com/djlxq/16509435913326476.jpeg",
+      "class": ".img",
+      "nodeType": "IMG Node",
+      "htmlTagName": "<div>"
+    },
+    "nodeType": "IMG Node",
+    "content": "",
+    "rect": {
+      "left": 88,
+      "top": 563,
+      "width": 90,
+      "height": 90,
+      "zoom": 1
+    },
+    "center": [
+      133,
+      608
+    ],
+    "zoom": 1,
+    "screenWidth": 400,
+    "screenHeight": 905
+  },
+  {
+    "id": "e1454dd0",
+    "indexId": 34,
+    "nodePath": "0-3-1-2-0-1-0-1-0-6-1-1-4-1-0-1-0-0-1",
+    "nodeHashId": "e1454dd0",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node",
+      "htmlTagName": "<h2>"
+    },
+    "center": [
+      265,
+      574
+    ],
+    "content": "烤黑糖波波牛乳（首创）",
+    "rect": {
+      "left": 188,
+      "top": 564,
+      "width": 154,
+      "height": 20,
+      "zoom": 1
+    },
+    "zoom": 1,
+    "screenWidth": 400,
+    "screenHeight": 905
+  },
+  {
+    "id": "16dc4593",
+    "indexId": 35,
+    "nodePath": "0-3-1-2-0-1-0-1-0-6-1-1-4-1-0-1-1-0-0-0",
+    "nodeHashId": "16dc4593",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node",
+      "htmlTagName": "<span>"
+    },
+    "center": [
+      194,
+      643
+    ],
+    "content": "S$",
+    "rect": {
+      "left": 188,
+      "top": 636,
+      "width": 12,
+      "height": 14,
+      "zoom": 1
+    },
+    "zoom": 1,
+    "screenWidth": 400,
+    "screenHeight": 905
+  },
+  {
+    "id": "7a2da6ac",
+    "indexId": 36,
+    "nodePath": "0-3-1-2-0-1-0-1-0-6-1-1-4-1-0-1-1-0-1-0",
+    "nodeHashId": "7a2da6ac",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node",
+      "htmlTagName": "<span>"
+    },
+    "center": [
+      223,
+      640
+    ],
+    "content": "5.92",
+    "rect": {
+      "left": 204,
+      "top": 627,
+      "width": 37,
+      "height": 25,
+      "zoom": 1
+    },
+    "zoom": 1,
+    "screenWidth": 400,
+    "screenHeight": 905
+  },
+  {
+    "id": "2fc93d9d",
+    "indexId": 37,
+    "nodePath": "0-3-1-2-0-1-0-1-0-6-1-1-4-1-0-1-1-1-0-0",
+    "nodeHashId": "2fc93d9d",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node",
+      "htmlTagName": "<div>"
+    },
+    "center": [
+      355,
+      636
+    ],
+    "content": "选规格",
+    "rect": {
+      "left": 337,
+      "top": 627,
+      "width": 36,
+      "height": 17,
+      "zoom": 1
+    },
+    "zoom": 1,
+    "screenWidth": 400,
+    "screenHeight": 905
+  },
+  {
+    "id": "e76e1873",
+    "indexId": 38,
+    "nodePath": "0-3-1-2-0-1-0-1-0-6-1-1-4-1-1-0",
+    "nodeHashId": "e76e1873",
+    "locator": "[_midscene_retrieve_task_id='e76e1873']",
+    "attributes": {
+      "src": "https://dec-pub-img.obs.ap-southeast-3.myhuaweicloud.com/djlxq/16509436554602403.jpeg",
+      "class": ".img",
+      "nodeType": "IMG Node",
+      "htmlTagName": "<div>"
+    },
+    "nodeType": "IMG Node",
+    "content": "",
+    "rect": {
+      "left": 88,
+      "top": 669,
+      "width": 90,
+      "height": 90,
+      "zoom": 1
+    },
+    "center": [
+      133,
+      714
+    ],
+    "zoom": 1,
+    "screenWidth": 400,
+    "screenHeight": 905
+  },
+  {
+    "id": "5e898e7e",
+    "indexId": 39,
+    "nodePath": "0-3-1-2-0-1-0-1-0-6-1-1-4-1-1-1-0-0-1",
+    "nodeHashId": "5e898e7e",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node",
+      "htmlTagName": "<h2>"
+    },
+    "center": [
+      223,
+      680
+    ],
+    "content": "轻波波牛乳",
+    "rect": {
+      "left": 188,
+      "top": 670,
       "width": 70,
       "height": 20,
       "zoom": 1
@@ -478,605 +1098,26 @@
     "screenHeight": 905
   },
   {
-    "id": "188058",
-    "indexId": 18,
-    "nodePath": "0-3-1-2-0-1-0-1-0-6-1-1-2-1-0-1-1-0-0-0",
-    "nodeHashId": "188058",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node"
-    },
-    "center": [
-      194,
-      248
-    ],
-    "content": "S$",
-    "rect": {
-      "left": 188,
-      "top": 241,
-      "width": 12,
-      "height": 14,
-      "zoom": 1
-    },
-    "zoom": 1,
-    "screenWidth": 400,
-    "screenHeight": 905
-  },
-  {
-    "id": "586742",
-    "indexId": 19,
-    "nodePath": "0-3-1-2-0-1-0-1-0-6-1-1-2-1-0-1-1-0-1-0",
-    "nodeHashId": "586742",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node"
-    },
-    "center": [
-      223,
-      246
-    ],
-    "content": "6.54",
-    "rect": {
-      "left": 204,
-      "top": 233,
-      "width": 37,
-      "height": 25,
-      "zoom": 1
-    },
-    "zoom": 1,
-    "screenWidth": 400,
-    "screenHeight": 905
-  },
-  {
-    "id": "975584",
-    "indexId": 20,
-    "nodePath": "0-3-1-2-0-1-0-1-0-6-1-1-2-1-0-1-1-1-0-0",
-    "nodeHashId": "975584",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node"
-    },
-    "center": [
-      355,
-      242
-    ],
-    "content": "选规格",
-    "rect": {
-      "left": 337,
-      "top": 233,
-      "width": 36,
-      "height": 17,
-      "zoom": 1
-    },
-    "zoom": 1,
-    "screenWidth": 400,
-    "screenHeight": 905
-  },
-  {
-    "id": "625093",
-    "indexId": 21,
-    "nodePath": "0-3-1-2-0-1-0-1-0-6-1-1-2-1-1-0",
-    "nodeHashId": "625093",
-    "locator": "[_midscene_retrieve_task_id='625093']",
-    "attributes": {
-      "src": "https://dec-pub-img.obs.ap-southeast-3.myhuaweiclo...",
-      "class": ".img",
-      "nodeType": "IMG Node"
-    },
-    "nodeType": "IMG Node",
-    "content": "",
-    "rect": {
-      "left": 88,
-      "top": 275,
-      "width": 90,
-      "height": 90,
-      "zoom": 1
-    },
-    "center": [
-      133,
-      320
-    ],
-    "zoom": 1,
-    "screenWidth": 400,
-    "screenHeight": 905
-  },
-  {
-    "id": "687655",
-    "indexId": 22,
-    "nodePath": "0-3-1-2-0-1-0-1-0-6-1-1-2-1-1-1-0-0-1",
-    "nodeHashId": "687655",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node"
-    },
-    "center": [
-      216,
-      285
-    ],
-    "content": "多肉芒芒",
-    "rect": {
-      "left": 188,
-      "top": 275,
-      "width": 56,
-      "height": 20,
-      "zoom": 1
-    },
-    "zoom": 1,
-    "screenWidth": 400,
-    "screenHeight": 905
-  },
-  {
-    "id": "217621",
-    "indexId": 23,
-    "nodePath": "0-3-1-2-0-1-0-1-0-6-1-1-2-1-1-1-1-0-0-0",
-    "nodeHashId": "217621",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node"
-    },
-    "center": [
-      194,
-      354
-    ],
-    "content": "S$",
-    "rect": {
-      "left": 188,
-      "top": 347,
-      "width": 12,
-      "height": 14,
-      "zoom": 1
-    },
-    "zoom": 1,
-    "screenWidth": 400,
-    "screenHeight": 905
-  },
-  {
-    "id": "446441",
-    "indexId": 24,
-    "nodePath": "0-3-1-2-0-1-0-1-0-6-1-1-2-1-1-1-1-0-1-0",
-    "nodeHashId": "446441",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node"
-    },
-    "center": [
-      223,
-      352
-    ],
-    "content": "7.98",
-    "rect": {
-      "left": 204,
-      "top": 339,
-      "width": 37,
-      "height": 25,
-      "zoom": 1
-    },
-    "zoom": 1,
-    "screenWidth": 400,
-    "screenHeight": 905
-  },
-  {
-    "id": "94140",
-    "indexId": 25,
-    "nodePath": "0-3-1-2-0-1-0-1-0-6-1-1-2-1-1-1-1-1-0-0",
-    "nodeHashId": "94140",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node"
-    },
-    "center": [
-      355,
-      348
-    ],
-    "content": "选规格",
-    "rect": {
-      "left": 337,
-      "top": 339,
-      "width": 36,
-      "height": 17,
-      "zoom": 1
-    },
-    "zoom": 1,
-    "screenWidth": 400,
-    "screenHeight": 905
-  },
-  {
-    "id": "68722",
-    "indexId": 26,
-    "nodePath": "0-3-1-2-0-1-0-1-0-6-1-1-2-1-2-0",
-    "nodeHashId": "68722",
-    "locator": "[_midscene_retrieve_task_id='68722']",
-    "attributes": {
-      "src": "https://dec-pub-img.obs.ap-southeast-3.myhuaweiclo...",
-      "class": ".img",
-      "nodeType": "IMG Node"
-    },
-    "nodeType": "IMG Node",
-    "content": "",
-    "rect": {
-      "left": 88,
-      "top": 381,
-      "width": 90,
-      "height": 90,
-      "zoom": 1
-    },
-    "center": [
-      133,
-      426
-    ],
-    "zoom": 1,
-    "screenWidth": 400,
-    "screenHeight": 905
-  },
-  {
-    "id": "810157",
-    "indexId": 27,
-    "nodePath": "0-3-1-2-0-1-0-1-0-6-1-1-2-1-2-1-0-0-1",
-    "nodeHashId": "810157",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node"
-    },
-    "center": [
-      216,
-      391
-    ],
-    "content": "粒粒红柚",
-    "rect": {
-      "left": 188,
-      "top": 381,
-      "width": 56,
-      "height": 20,
-      "zoom": 1
-    },
-    "zoom": 1,
-    "screenWidth": 400,
-    "screenHeight": 905
-  },
-  {
-    "id": "438561",
-    "indexId": 28,
-    "nodePath": "0-3-1-2-0-1-0-1-0-6-1-1-2-1-2-1-1-0-0-0",
-    "nodeHashId": "438561",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node"
-    },
-    "center": [
-      194,
-      460
-    ],
-    "content": "S$",
-    "rect": {
-      "left": 188,
-      "top": 453,
-      "width": 12,
-      "height": 14,
-      "zoom": 1
-    },
-    "zoom": 1,
-    "screenWidth": 400,
-    "screenHeight": 905
-  },
-  {
-    "id": "537670",
-    "indexId": 29,
-    "nodePath": "0-3-1-2-0-1-0-1-0-6-1-1-2-1-2-1-1-0-1-0",
-    "nodeHashId": "537670",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node"
-    },
-    "center": [
-      223,
-      458
-    ],
-    "content": "5.03",
-    "rect": {
-      "left": 204,
-      "top": 445,
-      "width": 37,
-      "height": 25,
-      "zoom": 1
-    },
-    "zoom": 1,
-    "screenWidth": 400,
-    "screenHeight": 905
-  },
-  {
-    "id": "380648",
-    "indexId": 30,
-    "nodePath": "0-3-1-2-0-1-0-1-0-6-1-1-2-1-2-1-1-1-0-0",
-    "nodeHashId": "380648",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node"
-    },
-    "center": [
-      355,
-      454
-    ],
-    "content": "选规格",
-    "rect": {
-      "left": 337,
-      "top": 445,
-      "width": 36,
-      "height": 17,
-      "zoom": 1
-    },
-    "zoom": 1,
-    "screenWidth": 400,
-    "screenHeight": 905
-  },
-  {
-    "id": "26200",
-    "indexId": 31,
-    "nodePath": "0-3-1-2-0-1-0-1-0-6-1-1-2-1-3-0",
-    "nodeHashId": "26200",
-    "locator": "[_midscene_retrieve_task_id='26200']",
-    "attributes": {
-      "src": "https://dec-pub-img.obs.ap-southeast-3.myhuaweiclo...",
-      "class": ".img",
-      "nodeType": "IMG Node"
-    },
-    "nodeType": "IMG Node",
-    "content": "",
-    "rect": {
-      "left": 88,
-      "top": 487,
-      "width": 90,
-      "height": 90,
-      "zoom": 1
-    },
-    "center": [
-      133,
-      532
-    ],
-    "zoom": 1,
-    "screenWidth": 400,
-    "screenHeight": 905
-  },
-  {
-    "id": "627353",
-    "indexId": 32,
-    "nodePath": "0-3-1-2-0-1-0-1-0-6-1-1-2-1-3-1-0-0-1",
-    "nodeHashId": "627353",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node"
-    },
-    "center": [
-      216,
-      497
-    ],
-    "content": "纯莓莓桃",
-    "rect": {
-      "left": 188,
-      "top": 487,
-      "width": 56,
-      "height": 20,
-      "zoom": 1
-    },
-    "zoom": 1,
-    "screenWidth": 400,
-    "screenHeight": 905
-  },
-  {
-    "id": "811071",
-    "indexId": 33,
-    "nodePath": "0-3-1-2-0-1-0-1-0-6-1-1-2-1-3-1-1-0-0-0",
-    "nodeHashId": "811071",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node"
-    },
-    "center": [
-      194,
-      566
-    ],
-    "content": "S$",
-    "rect": {
-      "left": 188,
-      "top": 559,
-      "width": 12,
-      "height": 14,
-      "zoom": 1
-    },
-    "zoom": 1,
-    "screenWidth": 400,
-    "screenHeight": 905
-  },
-  {
-    "id": "220579",
-    "indexId": 34,
-    "nodePath": "0-3-1-2-0-1-0-1-0-6-1-1-2-1-3-1-1-0-1-0",
-    "nodeHashId": "220579",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node"
-    },
-    "center": [
-      223,
-      564
-    ],
-    "content": "7.89",
-    "rect": {
-      "left": 204,
-      "top": 551,
-      "width": 37,
-      "height": 25,
-      "zoom": 1
-    },
-    "zoom": 1,
-    "screenWidth": 400,
-    "screenHeight": 905
-  },
-  {
-    "id": "1027288",
-    "indexId": 35,
-    "nodePath": "0-3-1-2-0-1-0-1-0-6-1-1-2-1-3-1-1-1-0-0",
-    "nodeHashId": "1027288",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node"
-    },
-    "center": [
-      355,
-      560
-    ],
-    "content": "选规格",
-    "rect": {
-      "left": 337,
-      "top": 551,
-      "width": 36,
-      "height": 17,
-      "zoom": 1
-    },
-    "zoom": 1,
-    "screenWidth": 400,
-    "screenHeight": 905
-  },
-  {
-    "id": "474730",
-    "indexId": 36,
-    "nodePath": "0-3-1-2-0-1-0-1-0-6-1-1-2-1-4-0",
-    "nodeHashId": "474730",
-    "locator": "[_midscene_retrieve_task_id='474730']",
-    "attributes": {
-      "src": "https://dec-pub-img.obs.ap-southeast-3.myhuaweiclo...",
-      "class": ".img",
-      "nodeType": "IMG Node"
-    },
-    "nodeType": "IMG Node",
-    "content": "",
-    "rect": {
-      "left": 88,
-      "top": 593,
-      "width": 90,
-      "height": 90,
-      "zoom": 1
-    },
-    "center": [
-      133,
-      638
-    ],
-    "zoom": 1,
-    "screenWidth": 400,
-    "screenHeight": 905
-  },
-  {
-    "id": "950292",
-    "indexId": 37,
-    "nodePath": "0-3-1-2-0-1-0-1-0-6-1-1-2-1-4-1-0-0-1",
-    "nodeHashId": "950292",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node"
-    },
-    "center": [
-      216,
-      603
-    ],
-    "content": "王榨油柑",
-    "rect": {
-      "left": 188,
-      "top": 593,
-      "width": 56,
-      "height": 20,
-      "zoom": 1
-    },
-    "zoom": 1,
-    "screenWidth": 400,
-    "screenHeight": 905
-  },
-  {
-    "id": "80211",
-    "indexId": 38,
-    "nodePath": "0-3-1-2-0-1-0-1-0-6-1-1-2-1-4-1-1-0-0-0",
-    "nodeHashId": "80211",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node"
-    },
-    "center": [
-      194,
-      672
-    ],
-    "content": "S$",
-    "rect": {
-      "left": 188,
-      "top": 665,
-      "width": 12,
-      "height": 14,
-      "zoom": 1
-    },
-    "zoom": 1,
-    "screenWidth": 400,
-    "screenHeight": 905
-  },
-  {
-    "id": "985242",
-    "indexId": 39,
-    "nodePath": "0-3-1-2-0-1-0-1-0-6-1-1-2-1-4-1-1-0-1-0",
-    "nodeHashId": "985242",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node"
-    },
-    "center": [
-      220,
-      670
-    ],
-    "content": "7.71",
-    "rect": {
-      "left": 204,
-      "top": 657,
-      "width": 32,
-      "height": 25,
-      "zoom": 1
-    },
-    "zoom": 1,
-    "screenWidth": 400,
-    "screenHeight": 905
-  },
-  {
-    "id": "981855",
+    "id": "87876603",
     "indexId": 40,
-    "nodePath": "0-3-1-2-0-1-0-1-0-6-1-1-2-1-4-1-1-1-0-0",
-    "nodeHashId": "981855",
+    "nodePath": "0-3-1-2-0-1-0-1-0-6-1-1-4-1-1-1-1-0-0-0",
+    "nodeHashId": "87876603",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
-      "nodeType": "TEXT Node"
+      "nodeType": "TEXT Node",
+      "htmlTagName": "<span>"
     },
     "center": [
-      355,
-      666
+      194,
+      749
     ],
-    "content": "选规格",
+    "content": "S$",
     "rect": {
-      "left": 337,
-      "top": 657,
-      "width": 36,
-      "height": 17,
+      "left": 188,
+      "top": 742,
+      "width": 12,
+      "height": 14,
       "zoom": 1
     },
     "zoom": 1,
@@ -1084,129 +1125,24 @@
     "screenHeight": 905
   },
   {
-    "id": "757079",
+    "id": "99122417",
     "indexId": 41,
-    "nodePath": "0-3-1-2-0-1-0-1-0-6-1-1-3-0-0-0",
-    "nodeHashId": "757079",
+    "nodePath": "0-3-1-2-0-1-0-1-0-6-1-1-4-1-1-1-1-0-1-0",
+    "nodeHashId": "99122417",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
-      "nodeType": "TEXT Node"
+      "nodeType": "TEXT Node",
+      "htmlTagName": "<span>"
     },
     "center": [
-      134,
-      709
-    ],
-    "content": "经典不踩雷 (4)",
-    "rect": {
-      "left": 88,
-      "top": 699,
-      "width": 92,
-      "height": 20,
-      "zoom": 1
-    },
-    "zoom": 1,
-    "screenWidth": 400,
-    "screenHeight": 905
-  },
-  {
-    "id": "1044757",
-    "indexId": 42,
-    "nodePath": "0-3-1-2-0-1-0-1-0-6-1-1-3-1-0-0",
-    "nodeHashId": "1044757",
-    "locator": "[_midscene_retrieve_task_id='1044757']",
-    "attributes": {
-      "src": "https://dec-pub-img.obs.ap-southeast-3.myhuaweiclo...",
-      "class": ".img",
-      "nodeType": "IMG Node"
-    },
-    "nodeType": "IMG Node",
-    "content": "",
-    "rect": {
-      "left": 88,
-      "top": 736,
-      "width": 90,
-      "height": 90,
-      "zoom": 1
-    },
-    "center": [
-      133,
-      781
-    ],
-    "zoom": 1,
-    "screenWidth": 400,
-    "screenHeight": 905
-  },
-  {
-    "id": "1003627",
-    "indexId": 43,
-    "nodePath": "0-3-1-2-0-1-0-1-0-6-1-1-3-1-0-1-0-0-1",
-    "nodeHashId": "1003627",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node"
-    },
-    "center": [
-      244,
+      223,
       746
     ],
-    "content": "多肉葡萄（首创）",
-    "rect": {
-      "left": 188,
-      "top": 736,
-      "width": 112,
-      "height": 20,
-      "zoom": 1
-    },
-    "zoom": 1,
-    "screenWidth": 400,
-    "screenHeight": 905
-  },
-  {
-    "id": "254581",
-    "indexId": 44,
-    "nodePath": "0-3-1-2-0-1-0-1-0-6-1-1-3-1-0-1-1-0-0-0",
-    "nodeHashId": "254581",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node"
-    },
-    "center": [
-      194,
-      815
-    ],
-    "content": "S$",
-    "rect": {
-      "left": 188,
-      "top": 808,
-      "width": 12,
-      "height": 14,
-      "zoom": 1
-    },
-    "zoom": 1,
-    "screenWidth": 400,
-    "screenHeight": 905
-  },
-  {
-    "id": "543874",
-    "indexId": 45,
-    "nodePath": "0-3-1-2-0-1-0-1-0-6-1-1-3-1-0-1-1-0-1-0",
-    "nodeHashId": "543874",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node"
-    },
-    "center": [
-      223,
-      813
-    ],
-    "content": "9.32",
+    "content": "4.04",
     "rect": {
       "left": 204,
-      "top": 800,
+      "top": 733,
       "width": 37,
       "height": 25,
       "zoom": 1
@@ -1216,23 +1152,24 @@
     "screenHeight": 905
   },
   {
-    "id": "158348",
-    "indexId": 46,
-    "nodePath": "0-3-1-2-0-1-0-1-0-6-1-1-3-1-0-1-1-1-0-0",
-    "nodeHashId": "158348",
+    "id": "c4af93d6",
+    "indexId": 42,
+    "nodePath": "0-3-1-2-0-1-0-1-0-6-1-1-4-1-1-1-1-1-0-0",
+    "nodeHashId": "c4af93d6",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
-      "nodeType": "TEXT Node"
+      "nodeType": "TEXT Node",
+      "htmlTagName": "<div>"
     },
     "center": [
       355,
-      809
+      742
     ],
     "content": "选规格",
     "rect": {
       "left": 337,
-      "top": 800,
+      "top": 733,
       "width": 36,
       "height": 17,
       "zoom": 1
@@ -1242,51 +1179,53 @@
     "screenHeight": 905
   },
   {
-    "id": "427168",
-    "indexId": 47,
-    "nodePath": "0-3-1-2-0-1-0-1-0-6-1-1-3-1-1-0",
-    "nodeHashId": "427168",
-    "locator": "[_midscene_retrieve_task_id='427168']",
+    "id": "67ad7c72",
+    "indexId": 43,
+    "nodePath": "0-3-1-2-0-1-0-1-0-6-1-1-4-1-2-0",
+    "nodeHashId": "67ad7c72",
+    "locator": "[_midscene_retrieve_task_id='67ad7c72']",
     "attributes": {
-      "src": "https://dec-pub-img.obs.ap-southeast-3.myhuaweiclo...",
+      "src": "https://dec-pub-img.obs.ap-southeast-3.myhuaweicloud.com/djlxq/16509437187485848.jpeg",
       "class": ".img",
-      "nodeType": "IMG Node"
+      "nodeType": "IMG Node",
+      "htmlTagName": "<div>"
     },
     "nodeType": "IMG Node",
     "content": "",
     "rect": {
       "left": 88,
-      "top": 842,
+      "top": 775,
       "width": 90,
       "height": 90,
       "zoom": 1
     },
     "center": [
       133,
-      887
+      820
     ],
     "zoom": 1,
     "screenWidth": 400,
     "screenHeight": 905
   },
   {
-    "id": "124828",
-    "indexId": 48,
-    "nodePath": "0-3-1-2-0-1-0-1-0-6-1-1-3-1-1-1-0-0-1",
-    "nodeHashId": "124828",
+    "id": "beec0d7c",
+    "indexId": 44,
+    "nodePath": "0-3-1-2-0-1-0-1-0-6-1-1-4-1-2-1-0-0-1",
+    "nodeHashId": "beec0d7c",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
-      "nodeType": "TEXT Node"
+      "nodeType": "TEXT Node",
+      "htmlTagName": "<h2>"
     },
     "center": [
       244,
-      852
+      786
     ],
-    "content": "满杯红柚（首创）",
+    "content": "烤黑糖波波牛乳茶",
     "rect": {
       "left": 188,
-      "top": 842,
+      "top": 776,
       "width": 112,
       "height": 20,
       "zoom": 1
@@ -1296,14 +1235,123 @@
     "screenHeight": 905
   },
   {
-    "id": "754365",
+    "id": "8e839726",
+    "indexId": 45,
+    "nodePath": "0-3-1-2-0-1-0-1-0-6-1-1-4-1-2-1-1-0-0-0",
+    "nodeHashId": "8e839726",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node",
+      "htmlTagName": "<span>"
+    },
+    "center": [
+      194,
+      855
+    ],
+    "content": "S$",
+    "rect": {
+      "left": 188,
+      "top": 848,
+      "width": 12,
+      "height": 14,
+      "zoom": 1
+    },
+    "zoom": 1,
+    "screenWidth": 400,
+    "screenHeight": 905
+  },
+  {
+    "id": "554f581a",
+    "indexId": 46,
+    "nodePath": "0-3-1-2-0-1-0-1-0-6-1-1-4-1-2-1-1-0-1-0",
+    "nodeHashId": "554f581a",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node",
+      "htmlTagName": "<span>"
+    },
+    "center": [
+      223,
+      852
+    ],
+    "content": "6.47",
+    "rect": {
+      "left": 204,
+      "top": 839,
+      "width": 37,
+      "height": 25,
+      "zoom": 1
+    },
+    "zoom": 1,
+    "screenWidth": 400,
+    "screenHeight": 905
+  },
+  {
+    "id": "14638b9e",
+    "indexId": 47,
+    "nodePath": "0-3-1-2-0-1-0-1-0-6-1-1-4-1-2-1-1-1-0-0",
+    "nodeHashId": "14638b9e",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node",
+      "htmlTagName": "<div>"
+    },
+    "center": [
+      355,
+      848
+    ],
+    "content": "选规格",
+    "rect": {
+      "left": 337,
+      "top": 839,
+      "width": 36,
+      "height": 17,
+      "zoom": 1
+    },
+    "zoom": 1,
+    "screenWidth": 400,
+    "screenHeight": 905
+  },
+  {
+    "id": "e101104c",
+    "indexId": 48,
+    "nodePath": "0-3-1-2-0-1-0-1-0-6-1-1-4-1-3-1-0-0-1",
+    "nodeHashId": "e101104c",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node",
+      "htmlTagName": "<h2>"
+    },
+    "center": [
+      223,
+      892
+    ],
+    "content": "芋泥牛乳茶",
+    "rect": {
+      "left": 188,
+      "top": 882,
+      "width": 70,
+      "height": 20,
+      "zoom": 1
+    },
+    "zoom": 1,
+    "screenWidth": 400,
+    "screenHeight": 905
+  },
+  {
+    "id": "b82bdf3a",
     "indexId": 49,
     "nodePath": "0-3-1-2-3-0",
-    "nodeHashId": "754365",
-    "locator": "[_midscene_retrieve_task_id='754365']",
+    "nodeHashId": "b82bdf3a",
+    "locator": "[_midscene_retrieve_task_id='b82bdf3a']",
     "attributes": {
       "src": "/img/customer.8a8d9dc9.png",
-      "nodeType": "IMG Node"
+      "nodeType": "IMG Node",
+      "htmlTagName": "<div>"
     },
     "nodeType": "IMG Node",
     "content": "",
