@@ -2,6 +2,8 @@
 
 import type { ChatCompletionMessageParam } from 'openai/resources';
 
+export * from './yaml.d';
+
 export interface Point {
   left: number;
   top: number;
@@ -350,7 +352,7 @@ export interface ExecutionTaskApply<
     param: TaskParam,
     context: ExecutorContext,
   ) => // biome-ignore lint/suspicious/noConfusingVoidType: <explanation>
-    | Promise<ExecutionTaskReturn<TaskOutput, TaskLog> | undefined | void>
+  | Promise<ExecutionTaskReturn<TaskOutput, TaskLog> | undefined | void>
     | undefined
     | void;
 }

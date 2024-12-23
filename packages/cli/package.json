@@ -9,7 +9,11 @@
   "bin": {
     "midscene": "./bin/midscene"
   },
-  "files": ["dist", "README.md", "bin"],
+  "files": [
+    "dist",
+    "README.md",
+    "bin"
+  ],
   "scripts": {
     "dev": "modern dev",
     "build": "modern build",
@@ -23,7 +27,6 @@
   "dependencies": {
     "@midscene/core": "workspace:*",
     "@midscene/web": "workspace:*",
-    "http-server": "14.1.1",
     "puppeteer": "23.0.2"
   },
   "devDependencies": {

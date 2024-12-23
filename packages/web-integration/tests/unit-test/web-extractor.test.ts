@@ -1,4 +1,3 @@
-import { assert } from 'node:console';
 import path, { join } from 'node:path';
 import { parseContextFromWebPage } from '@/common/utils';
 import { generateExtractData } from '@/debug';

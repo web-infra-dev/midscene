@@ -1,6 +1,6 @@
 import 'dotenv/config';
 import { matchYamlFiles, parseProcessArgs } from './cli-utils';
-import { playYamlFiles } from './yaml-player';
+import { playYamlFiles } from './yaml-runner';
 
 Promise.resolve(
   (async () => {
