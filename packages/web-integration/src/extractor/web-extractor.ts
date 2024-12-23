@@ -5,11 +5,14 @@ import {
 } from '@midscene/shared/constants';
 import type { ElementInfo } from '.';
 import {
+  USER_DESCRIBED_ELEMENT_ATTRIBUTE_ID,
+  USER_DESCRIBED_ELEMENT_ATTRIBUTE_REF,
   isButtonElement,
   isContainerElement,
   isFormElement,
   isImgElement,
   isTextElement,
+  isUserDescribedElement,
 } from './dom-util';
 import {
   getDocument,
@@ -40,7 +43,7 @@ function tagNameOfNode(node: Node): string {
   }
 
   const parentElement = node.parentElement;
-  if (parentElement && parentElement instanceof HTMLElement) {
+  if (!tagName && parentElement && parentElement instanceof HTMLElement) {
     tagName = parentElement.tagName.toLowerCase();
   }
 
@@ -51,7 +54,7 @@ function collectElementInfo(
   node: Node,
   nodePath: string,
   baseZoom = 1,
-): WebElementInfo | null {
+): WebElementInfo | WebElementInfo[] | null {
   const rect = visibleRect(node, baseZoom);
   if (
     !rect ||
@@ -60,6 +63,88 @@ function collectElementInfo(
   ) {
     return null;
   }
+
+  if (isUserDescribedElement(node)) {
+    console.log('isUserDescribedElement', node);
+    const element = node as Element;
+    const descriptionId = element.getAttribute(
+      USER_DESCRIBED_ELEMENT_ATTRIBUTE_REF,
+    );
+    const targetSelector = `[${USER_DESCRIBED_ELEMENT_ATTRIBUTE_ID}="${descriptionId}"]`;
+    const targetElement = document.querySelectorAll(targetSelector);
+    if (targetElement.length === 0) {
+      console.warn(
+        'cannot find element for Midscene description',
+        targetSelector,
+      );
+      return null;
+    }
+
+    if (targetElement.length > 1) {
+      console.warn(
+        'multiple elements found for Midscene description',
+        targetSelector,
+      );
+    }
+
+    const descriptionElement = targetElement[0] as HTMLElement;
+    const description = descriptionElement.innerText;
+    try {
+      const descriptionJson = JSON.parse(description);
+      if (!Array.isArray(descriptionJson)) {
+        console.warn('description is not a valid JSON', description);
+        return null;
+      }
+
+      const infoList = descriptionJson.map((item, index) => {
+        const overallRect = {
+          left: item.rect.x + rect.left,
+          top: item.rect.y + rect.top,
+          width: item.rect.width,
+          height: item.rect.height,
+        };
+        const center: [number, number] = [
+          Math.round(overallRect.left + overallRect.width / 2),
+          Math.round(overallRect.top + overallRect.height / 2),
+        ];
+        const nodeType = item.text ? NodeType.TEXT : NodeType.CONTAINER;
+        const nodeHashId = midsceneGenerateHash(
+          null,
+          `${index}-${item.text || ''}`,
+          overallRect,
+        );
+        return {
+          id: nodeHashId,
+          indexId: indexId++,
+          zoom: 1,
+          locator: '',
+          nodeType,
+          nodePath,
+          nodeHashId,
+          attributes: {
+            ...(item.description ? { description: item.description } : {}),
+            nodeType,
+          },
+          content: item.text || '',
+          rect: overallRect,
+          center,
+          screenWidth: window.innerWidth,
+          screenHeight: window.innerHeight,
+        };
+      });
+
+      return infoList;
+    } catch (e) {
+      console.error(e);
+      console.warn(
+        'description is not a valid JSON',
+        targetSelector,
+        description,
+      );
+      return null;
+    }
+  }
+
   if (isFormElement(node)) {
     const attributes = getNodeAttributes(node);
     let valueContent =
@@ -266,6 +351,12 @@ export function extractTextWithPosition(
     }
 
     const elementInfo = collectElementInfo(node, nodePath, baseZoom);
+
+    if (Array.isArray(elementInfo)) {
+      elementInfoArray.push(...elementInfo);
+      return null;
+    }
+
     // stop collecting if the node is a Button or Image
     if (
       elementInfo?.nodeType === NodeType.BUTTON ||

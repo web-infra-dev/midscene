@@ -268,7 +268,7 @@ exports[`extractor > basic 1`] = `
   },
   {
     "attributes": {
-      "htmlTagName": "<div>",
+      "htmlTagName": "<button>",
       "nodeType": "BUTTON Node",
     },
     "content": "Click Me",
@@ -320,6 +320,20 @@ exports[`extractor > basic 1`] = `
   },
   {
     "attributes": {
+      "description": "This is a div",
+      "nodeType": "TEXT Node",
+    },
+    "content": "This is a div",
+  },
+  {
+    "attributes": {
+      "description": "This is a lucky draw button",
+      "nodeType": "CONTAINER Node",
+    },
+    "content": "",
+  },
+  {
+    "attributes": {
       "htmlTagName": "<label>",
       "nodeType": "TEXT Node",
     },
@@ -350,7 +364,7 @@ exports[`extractor > basic 1`] = `
   },
   {
     "attributes": {
-      "htmlTagName": "<body>",
+      "htmlTagName": "<div>",
       "id": "J_resize",
       "nodeType": "CONTAINER Node",
       "style": "width:30px;height:30px;background: #AC0",
@@ -402,7 +416,7 @@ exports[`extractor > basic 1`] = `
   {
     "attributes": {
       "class": ".life-core-checkbox-icon",
-      "htmlTagName": "<label>",
+      "htmlTagName": "<span>",
       "nodeType": "CONTAINER Node",
     },
     "content": "",
@@ -410,7 +424,7 @@ exports[`extractor > basic 1`] = `
   {
     "attributes": {
       "aria-label": "The phrase 'The quick brown fox jumps over the lazy dog' is a well-known English-language pangram, meaning it contains every letter of the alphabet at least once. This sentence has become a standard tool for various applications, particularly in typing practice, font display, and keyboard testing. T...",
-      "htmlTagName": "<body>",
+      "htmlTagName": "<div>",
       "nodeType": "CONTAINER Node",
       "style": "width: 100px; height: 100px; background-color: #ccc;",
     },
@@ -421,13 +435,13 @@ exports[`extractor > basic 1`] = `
       "htmlTagName": "<body>",
       "nodeType": "TEXT Node",
     },
-    "content": "phrase "The quick brown fox jumps over the lazy dog" is a well-known English-language pangram, meaning it contains every letter of the alphabet at least once. This sentence has become a standard tool for various applications, particularly     in typing practice, font display, and keyboard testing. The phrase has permeated popular culture and is referenced in various media, including literature and film. Its simplicity and utility have made it a staple in educational contexts and beyond.     For instance, it was famously used as the first message sent over the Moscow–Washington hotline in 19634.",
+    "content": "phrase "The quick brown fox jumps over the lazy dog" is a well-known English-language pangram, meaning     it contains every letter of the alphabet at least once. This sentence has become a standard tool for various     applications, particularly     in typing practice, font display, and keyboard testing. The phrase has permeated popular culture and is referenced     in various media, including literature and film. Its simplicity and utility have made it a staple in educational     contexts and beyond.     For instance, it was famously used as the first message sent over the Moscow–Washington hotline in 19634.",
   },
   {
     "attributes": {
       "aria-label": "Search",
       "class": ".btn",
-      "htmlTagName": "<body>",
+      "htmlTagName": "<button>",
       "nodeType": "BUTTON Node",
       "tabindex": "0",
       "type": "submit",
@@ -458,7 +472,7 @@ exports[`extractor > basic 1`] = `
   },
   {
     "attributes": {
-      "htmlTagName": "<div>",
+      "htmlTagName": "<img>",
       "nodeType": "IMG Node",
       "src": "image",
     },
@@ -466,7 +480,7 @@ exports[`extractor > basic 1`] = `
   },
   {
     "attributes": {
-      "htmlTagName": "<div>",
+      "htmlTagName": "<button>",
       "nodeType": "BUTTON Node",
       "very-long-attr": "width: 100px; height: 100px; background-color: #ccc;width: 100px; height: 100px; background-color: #ccc;width: 100px; height: 100px; background-color: #ccc;width: 100px; height: 100px; background-color: #ccc;",
     },
@@ -483,7 +497,7 @@ exports[`extractor > basic 1`] = `
     "attributes": {
       "aria-controls": "semi-select-5yxiyng",
       "class": ".widget",
-      "htmlTagName": "<body>",
+      "htmlTagName": "<div>",
       "nodeType": "CONTAINER Node",
     },
     "content": "",
@@ -492,7 +506,7 @@ exports[`extractor > basic 1`] = `
     "attributes": {
       "aria-labelledby": "eval_object.object_type-label",
       "class": ".widget",
-      "htmlTagName": "<body>",
+      "htmlTagName": "<div>",
       "nodeType": "CONTAINER Node",
     },
     "content": "",
@@ -539,7 +553,7 @@ exports[`extractor > basic 1`] = `
   {
     "attributes": {
       "class": ".child-container-5",
-      "htmlTagName": "<body>",
+      "htmlTagName": "<span>",
       "nodeType": "IMG Node",
     },
     "content": "",
@@ -577,7 +591,7 @@ exports[`extractor > basic 1`] = `
     "attributes": {
       "frameborder": "0",
       "height": "200px",
-      "htmlTagName": "<body>",
+      "htmlTagName": "<iframe>",
       "nodeType": "CONTAINER Node",
       "src": "child.html",
       "width": "400px",

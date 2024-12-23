@@ -1,0 +1,37 @@
+# 自定义页面元素的描述信息
+
+在某些情况下，你可能需要自定义页面元素的描述。例如，你可能需要描述页面中无法被 Midscene 提取的 `<canvas />` 元素的内容。或者你只是单纯想对 LLM 示好。
+
+为此，你可以在元素上添加 `midscene-description-ref` 属性，然后在 `<script>` 标签中添加一个相同标识的 JSON 内容。Midscene 会使用这些描述来喂给 LLM。
+
+例如：
+
+```html
+<canvas style="width: 80px; height: 80px; background: #AC0;" midscene-description-ref="ac7"></canvas>
+<script type="text/json" midscene-description-id="ac7">
+  [{
+    "rect": {
+      "x": 20,
+      "y": 20,
+      "width": 20,
+      "height": 20
+    },
+    "text": "Rule of the game",
+    "description": "This is a description of the rule of the game"
+  }, {
+    "rect": {
+      "x": 60,
+      "y": 60,
+      "width": 20,
+      "height": 20
+    },
+    "description": "This is a lucky draw button"
+  }]
+</script>
+```
+
+这里的关键字段是 `rect`、`text` 和 `description`。
+
+- `rect`: 该内容的坐标区域。必选。所有坐标都是相对于此元素的左上角。
+- `text`: 该内容的文本内容。可选。应与屏幕上的文本一致。
+- `description`: 该内容的简短描述。可选。
