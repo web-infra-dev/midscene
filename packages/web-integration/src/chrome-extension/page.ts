@@ -9,7 +9,7 @@ import fs from 'node:fs';
 import type { WebKeyInput } from '@/common/page';
 import type { ElementInfo } from '@/extractor';
 import type { AbstractPage } from '@/page';
-import type { Rect, Size } from '@midscene/core/.';
+import type { Point, Rect, Size } from '@midscene/core/.';
 import { ifInBrowser } from '@midscene/shared/utils';
 import type { Protocol as CDPTypes } from 'devtools-protocol';
 
@@ -184,44 +184,76 @@ export default class ChromeExtensionProxyPage implements AbstractPage {
     return url || '';
   }
 
-  async scrollUntilTop() {
+  async scrollUntilTop(startingPoint?: Point) {
+    if (startingPoint) {
+      await this.mouse.move(startingPoint.left, startingPoint.top);
+    }
     return this.mouse.wheel(0, -9999999);
   }
 
-  async scrollUntilBottom() {
+  async scrollUntilBottom(startingPoint?: Point) {
+    if (startingPoint) {
+      await this.mouse.move(startingPoint.left, startingPoint.top);
+    }
     return this.mouse.wheel(0, 9999999);
   }
 
-  async scrollUntilLeft() {
+  async scrollUntilLeft(startingPoint?: Point) {
+    if (startingPoint) {
+      await this.mouse.move(startingPoint.left, startingPoint.top);
+    }
     return this.mouse.wheel(-9999999, 0);
   }
 
-  async scrollUntilRight() {
+  async scrollUntilRight(startingPoint?: Point) {
+    if (startingPoint) {
+      await this.mouse.move(startingPoint.left, startingPoint.top);
+    }
     return this.mouse.wheel(9999999, 0);
   }
 
-  async scrollUp(distance?: number) {
+  async scrollUp(distance?: number, startingPoint?: Point) {
     const { height } = await this.size();
     const scrollDistance = distance || height * 0.7;
-    return this.mouse.wheel(0, -scrollDistance);
+    return this.mouse.wheel(
+      0,
+      -scrollDistance,
+      startingPoint?.left,
+      startingPoint?.top,
+    );
   }
 
-  async scrollDown(distance?: number) {
+  async scrollDown(distance?: number, startingPoint?: Point) {
     const { height } = await this.size();
     const scrollDistance = distance || height * 0.7;
-    return this.mouse.wheel(0, scrollDistance);
+    return this.mouse.wheel(
+      0,
+      scrollDistance,
+      startingPoint?.left,
+      startingPoint?.top,
+    );
   }
 
-  async scrollLeft(distance?: number) {
+  async scrollLeft(distance?: number, startingPoint?: Point) {
     const { width } = await this.size();
     const scrollDistance = distance || width * 0.7;
-    return this.mouse.wheel(-scrollDistance, 0);
+    return this.mouse.wheel(
+      -scrollDistance,
+      0,
+      startingPoint?.left,
+      startingPoint?.top,
+    );
   }
 
-  async scrollRight(distance?: number) {
+  async scrollRight(distance?: number, startingPoint?: Point) {
     const { width } = await this.size();
     const scrollDistance = distance || width * 0.7;
-    return this.mouse.wheel(scrollDistance, 0);
+    return this.mouse.wheel(
+      scrollDistance,
+      0,
+      startingPoint?.left,
+      startingPoint?.top,
+    );
   }
 
   async clearInput(element: ElementInfo) {
@@ -267,11 +299,16 @@ export default class ChromeExtensionProxyPage implements AbstractPage {
         clickCount: 1,
       });
     },
-    wheel: async (deltaX: number, deltaY: number) => {
+    wheel: async (
+      deltaX: number,
+      deltaY: number,
+      startX?: number,
+      startY?: number,
+    ) => {
       await this.sendCommandToDebugger('Input.dispatchMouseEvent', {
         type: 'mouseWheel',
-        x: 10,
-        y: 10,
+        x: startX || 10,
+        y: startY || 10,
         deltaX,
         deltaY,
       });
