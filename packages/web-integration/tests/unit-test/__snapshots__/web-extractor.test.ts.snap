@@ -320,10 +320,10 @@ exports[`extractor > basic 1`] = `
   },
   {
     "attributes": {
-      "description": "This is a div",
+      "description": "This is a description of the rule of the game",
       "nodeType": "TEXT Node",
     },
-    "content": "This is a div",
+    "content": "Rule of the game",
   },
   {
     "attributes": {
