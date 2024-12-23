@@ -213,7 +213,7 @@ ${JSON.stringify({
 
     const message = data.choices[0].message.content;
     const jsonData: any = parseNonStrictJSON(message);
-    console.log('AiInspectElement jsonData', jsonData);
+    // console.log('AiInspectElement jsonData', jsonData);
     return {
       parseResult: transformElementPositionToId(jsonData, context.content),
       rawResponse: jsonData,

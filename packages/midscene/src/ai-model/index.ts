@@ -11,5 +11,7 @@ export {
   transformElementPositionToId,
 } from './inspect';
 
+export { findElementPoint } from './prompt/find_element_point';
 export { plan } from './automation';
+export { planTargetAction } from './automation/plan-action';
 export { callAiFn } from './common';

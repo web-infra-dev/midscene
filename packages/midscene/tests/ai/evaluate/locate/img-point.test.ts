@@ -1,6 +1,8 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import { call } from '@/ai-model/openai/index';
+import { AIActionType } from '@/ai-model/common';
+import { call, callToGetJSONObject } from '@/ai-model/openai/index';
+import { findElementPointPrompt } from '@/ai-model/prompt/find_element_point';
 import {
   compositePointInfoImg,
   imageInfo,
@@ -31,12 +33,12 @@ class ElementLocator {
   private pageInfo: PageInfo;
 
   constructor(testDataDir: string) {
-    const elementSnapshotList = JSON.parse(
-      fs.readFileSync(
-        path.resolve(testDataDir, 'element-snapshot.json'),
-        'utf8',
-      ),
-    );
+    // const elementSnapshotList = JSON.parse(
+    //   fs.readFileSync(
+    //     path.resolve(testDataDir, 'element-snapshot.json'),
+    //     'utf8',
+    //   ),
+    // );
 
     const imagePath = path.resolve(testDataDir, 'input.png');
     const image = fs.readFileSync(imagePath);
@@ -45,87 +47,93 @@ class ElementLocator {
       imageBase64: image.toString('base64'),
       inputImgPath: imagePath,
       size: {
-        screenWidth: elementSnapshotList[0].screenWidth,
-        screenHeight: elementSnapshotList[0].screenHeight,
+        // screenWidth: elementSnapshotList[0].screenWidth,
+        // screenHeight: elementSnapshotList[0].screenHeight,
+        screenWidth: 400,
+        screenHeight: 905,
       },
     };
   }
 
   async findElement(prompt: string): Promise<ElementPoint> {
     const startTime = Date.now();
-    const response = await fetch(
-      `${process.env.OPENAI_BASE_URL}/chat/completions`,
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Cookie: process.env.MIDSCENE_COOKIE || '',
-        },
-        body: JSON.stringify({
-          model: process.env.MIDSCENE_MODEL_NAME,
-          messages: [
+    // const response = await fetch(
+    //   `${process.env.OPENAI_BASE_URL}/chat/completions`,
+    //   {
+    //     method: 'POST',
+    //     headers: {
+    //       'Content-Type': 'application/json',
+    //       Cookie: process.env.MIDSCENE_COOKIE || '',
+    //     },
+    //     body: JSON.stringify({
+    //       model: process.env.MIDSCENE_MODEL_NAME,
+    //       messages: [
+    //         {
+    //           role: 'user',
+    //           content: [
+    //             {
+    //               type: 'text',
+    //               text: 'Based on the screenshot of the page, I give a text description and you give its corresponding center point location. The coordinate represents the center point [x, y] of the target element, which is a relative coordinate on the screenshot, scaled from 0 to 1. Please ensure the coordinate is at the exact center of the element.',
+    //             },
+    //             {
+    //               type: 'image',
+    //               image_url: {
+    //                 url: `data:image/png;base64,${this.pageInfo.imageBase64}`,
+    //               },
+    //               min_pixels: min_pixels,
+    //               max_pixels: max_pixels,
+    //             },
+    //             {
+    //               type: 'text',
+    //               text: `${prompt}`,
+    //             },
+    //           ],
+    //         },
+    //       ],
+    //       temperature: 0.1,
+    //     }),
+    //   },
+    // );
+
+    // const data = await response.json();
+    const { content } = await callToGetJSONObject(
+      [
+        // {
+        //   role: 'system',
+        //   content:
+        //     'Based on the screenshot of the page, I give a text description and you give its corresponding center point location. The coordinate represents the center point [x, y] of the target element, which is a relative coordinate on the screenshot, scaled from 0 to 1. Please ensure the coordinate is at the exact center of the element.',
+        // },
+        {
+          role: 'user',
+          content: [
             {
-              role: 'user',
-              content: [
-                {
-                  type: 'text',
-                  text: 'Based on the screenshot of the page, I give a text description and you give its corresponding center point location. The coordinate represents the center point [x, y] of the target element, which is a relative coordinate on the screenshot, scaled from 0 to 1. Please ensure the coordinate is at the exact center of the element.',
-                },
-                {
-                  type: 'image',
-                  image_url: {
-                    url: `data:image/png;base64,${this.pageInfo.imageBase64}`,
-                  },
-                  min_pixels: min_pixels,
-                  max_pixels: max_pixels,
-                },
-                {
-                  type: 'text',
-                  text: `${prompt}`,
-                },
-              ],
+              type: 'text',
+              text: findElementPointPrompt,
+            },
+            // {
+            //   type: 'text',
+            //   text: 'Based on the screenshot of the page, I give a text description and you give its corresponding center point location. The coordinate represents the center point [x, y] of the target element, which is a relative coordinate on the screenshot, scaled from 0 to 1. Please ensure the coordinate is at the exact center of the element.',
+            // },
+            {
+              //@ts-ignore
+              type: 'image_url',
+              image_url: {
+                url: `data:image/png;base64,${this.pageInfo.imageBase64}`,
+              },
+              min_pixels: min_pixels,
+              max_pixels: max_pixels,
+            },
+            {
+              type: 'text',
+              text: `找到元素：${prompt}`,
             },
           ],
-          temperature: 0.1,
-        }),
-      },
+        },
+      ],
+      AIActionType.INSPECT_ELEMENT,
     );
 
-    const data = await response.json();
-    // const result = await call([
-    //   // {
-    //   //   role: 'system',
-    //   //   // biome-ignore lint/style/noUnusedTemplateLiteral: <explanation>
-    //   //   content: `Based on the screenshot of the page, I give a text description and you give its corresponding location. The coordinate represents a clickable location [x, y] for an element, which is a relative coordinate on the screenshot, scaled from 0 to 1.`,
-    //   // },
-    //   {
-    //     role: 'user',
-    //     content: [
-    //       {
-    //         type: 'text',
-    //         text: `
-    //         Based on the screenshot of the page, I give a text description and you give its corresponding location. The coordinate represents a clickable location [x, y] for an element, which is a relative coordinate on the screenshot, scaled from 0 to 1.
-    //         `,
-    //       },
-    //       {
-    //         type: 'text',
-    //         text: `
-    //         用户希望查找的目标元素描述: ${prompt}
-    //         页面尺寸: ${this.pageInfo.size.screenWidth}x${this.pageInfo.size.screenHeight}
-    //         `,
-    //       },
-    //       {
-    //         type: 'image_url',
-    //         image_url: {
-    //           url: `data:image/png;base64,${this.pageInfo.imageBase64}`,
-    //         },
-    //       },
-    //     ],
-    //   },
-    // ]);
-
     const duration = `${(Date.now() - startTime) / 1000}s`;
-    const { content } = data.choices[0].message;
     console.log(content);
     // const resObj = this.parseNonStrictJSON(result.content);
 
@@ -137,7 +145,7 @@ class ElementLocator {
 
   async visualizeResults(results: ElementPoint[], outputPath: string) {
     const points = results.map((result, index) => ({
-      point: result.point,
+      point: [result.point[0], result.point[1]] as [number, number],
       index,
     }));
     const { width, height } = await sizeOf(this.pageInfo.inputImgPath);
@@ -209,26 +217,37 @@ describe(
     //   ]);
     // });
 
-    it('online order chinese', async () => {
-      await runTest(path.resolve(__dirname, '../test-data/online_order'), [
-        'switch language.',
-        '多肉葡萄价格',
-        '多肉葡萄选择规格',
-        '右上角购物车',
-        '右下角客服',
-      ]);
+    // it('online order list', async () => {
+    //   await runTest(path.resolve(__dirname, '../test-data/online_order_list'), [
+    //     '多肉葡萄选择规格按钮',
+    //   ]);
+    // });
+    it('online order args', async () => {
+      await runTest(
+        path.resolve(__dirname, '../test-data/oneline_order_args'),
+        ['「可降解吸管」'],
+      );
     });
+    // it('online order chinese', async () => {
+    //   await runTest(path.resolve(__dirname, '../test-data/online_order'), [
+    //     'switch language.',
+    //     '多肉葡萄价格',
+    //     '多肉葡萄选择规格',
+    //     '右上角购物车',
+    //     '右下角客服',
+    //   ]);
+    // });
 
-    it('video player', async () => {
-      await runTest(path.resolve(__dirname, '../test-data/aweme-play'), [
-        '五角星按钮',
-        '点赞按钮',
-        '收藏按钮',
-        '关闭按钮',
-        '搜索框',
-        '音量调节按钮',
-      ]);
-    });
+    // it('video player', async () => {
+    //   await runTest(path.resolve(__dirname, '../test-data/aweme-play'), [
+    //     '五角星按钮',
+    //     '点赞按钮',
+    //     '收藏按钮',
+    //     '关闭按钮',
+    //     '搜索框',
+    //     '音量调节按钮',
+    //   ]);
+    // });
   },
   {
     timeout: 180 * 1000,

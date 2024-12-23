@@ -17,6 +17,7 @@ export const MATCH_BY_POSITION = 'MATCH_BY_POSITION';
 export const MIDSCENE_REPORT_TAG_NAME = 'MIDSCENE_REPORT_TAG_NAME';
 export const MATCH_BY_TAG_NUMBER = 'MATCH_BY_TAG_NUMBER';
 export const MIDSCENE_COOKIE = 'MIDSCENE_COOKIE';
+export const MIDSCENE_API_TYPE = 'midscene-ai-type';
 
 const allConfigFromEnv = () => {
   return {
