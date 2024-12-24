@@ -1,3 +1,14 @@
+export const USER_DESCRIBED_ELEMENT_ATTRIBUTE_REF = 'midscene-description-ref';
+export const USER_DESCRIBED_ELEMENT_ATTRIBUTE_ID = 'midscene-description-id';
+
+export function isUserDescribedElement(node: Node): boolean {
+  if (node instanceof Element) {
+    return node.hasAttribute(USER_DESCRIBED_ELEMENT_ATTRIBUTE_REF);
+  }
+
+  return false;
+}
+
 export function isFormElement(node: Node) {
   return (
     node instanceof HTMLElement &&
