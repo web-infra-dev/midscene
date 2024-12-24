@@ -37,8 +37,8 @@ export function getLogDirByType(type: 'dump' | 'cache' | 'report' | 'tmp') {
 let reportTpl: string | null = null;
 function getReportTpl() {
   if (ifInBrowser) {
-    if (!reportTpl && (window as any).midscene_report_tpl) {
-      reportTpl = (window as any).midscene_report_tpl;
+    if (!reportTpl && (window as any).get_midscene_report_tpl) {
+      reportTpl = (window as any).get_midscene_report_tpl();
     }
     assert(
       reportTpl,
@@ -57,6 +57,15 @@ function getReportTpl() {
   return reportTpl;
 }
 
+export function replaceStringWithFirstAppearance(
+  str: string,
+  target: string,
+  replacement: string,
+) {
+  const index = str.indexOf(target);
+  return str.slice(0, index) + replacement + str.slice(index + target.length);
+}
+
 export function reportHTMLContent(
   dumpData: string | ReportDumpWithAttributes[],
 ): string {
@@ -66,13 +75,15 @@ export function reportHTMLContent(
     (Array.isArray(dumpData) && dumpData.length === 0) ||
     typeof dumpData === 'undefined'
   ) {
-    reportContent = tpl.replace(
-      /\s+{{dump}}\s+/,
+    reportContent = replaceStringWithFirstAppearance(
+      tpl,
+      '{{dump}}',
       `<script type="midscene_web_dump" type="application/json"></script>`,
     );
   } else if (typeof dumpData === 'string') {
-    reportContent = tpl.replace(
-      /\s+{{dump}}\s+/,
+    reportContent = replaceStringWithFirstAppearance(
+      tpl,
+      '{{dump}}',
       `<script type="midscene_web_dump" type="application/json">${dumpData}</script>`,
     );
   } else {
@@ -84,7 +95,11 @@ export function reportHTMLContent(
         ' ',
       )}\n>${dumpString}\n</script>`;
     });
-    reportContent = tpl.replace(/\s+{{dump}}\s+/, dumps.join('\n'));
+    reportContent = replaceStringWithFirstAppearance(
+      tpl,
+      '{{dump}}',
+      dumps.join('\n'),
+    );
   }
   return reportContent;
 }
