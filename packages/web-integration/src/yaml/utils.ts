@@ -52,8 +52,11 @@ export const flowItemBrief = (flowItem?: MidsceneYamlFlowItem) => {
     (flowItem as MidsceneYamlFlowItemAIAction).aiAction ||
     (flowItem as MidsceneYamlFlowItemAIAction).ai
   ) {
+    const lastTip = (
+      (flowItem as MidsceneYamlFlowItemAIAction).aiActionProgressTips || []
+    ).at(-1);
     return `aiAction: ${sliceText(
-      (flowItem as MidsceneYamlFlowItemAIAction).aiActionProgressTip ||
+      lastTip ||
         (flowItem as MidsceneYamlFlowItemAIAction).aiAction ||
         (flowItem as MidsceneYamlFlowItemAIAction).ai,
     )}`;

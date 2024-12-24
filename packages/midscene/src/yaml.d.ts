@@ -26,7 +26,7 @@ export interface MidsceneYamlScriptEnv {
 export interface MidsceneYamlFlowItemAIAction {
   ai?: string; // this is the shortcut for aiAction
   aiAction?: string;
-  aiActionProgressTip?: string;
+  aiActionProgressTips?: string[];
 }
 
 export interface MidsceneYamlFlowItemAIAssert {

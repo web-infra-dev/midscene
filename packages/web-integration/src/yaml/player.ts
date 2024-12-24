@@ -58,7 +58,21 @@ export class ScriptPlayer {
     this.errorInSetup = error;
   }
 
-  private setTaskStatus(
+  private notifyCurrentTaskStatusChange(taskIndex?: number) {
+    const taskIndexToNotify =
+      typeof taskIndex === 'number' ? taskIndex : this.currentTaskIndex;
+
+    if (typeof taskIndexToNotify !== 'number') {
+      return;
+    }
+
+    const taskStatus = this.taskStatus[taskIndexToNotify];
+    if (this.onTaskStatusChange) {
+      this.onTaskStatusChange(taskStatus);
+    }
+  }
+
+  private async setTaskStatus(
     index: number,
     statusValue: ScriptPlayerStatusValue,
     error?: Error,
@@ -68,9 +82,7 @@ export class ScriptPlayer {
       this.taskStatus[index].error = error;
     }
 
-    if (this.onTaskStatusChange) {
-      this.onTaskStatusChange(this.taskStatus[index]);
-    }
+    this.notifyCurrentTaskStatusChange(index);
   }
 
   private setTaskIndex(taskIndex: number) {
@@ -80,7 +92,6 @@ export class ScriptPlayer {
   private flushResult() {
     if (Object.keys(this.result).length && this.output) {
       const output = join(process.cwd(), this.output);
-      // ensure the output directory exists
       const outputDir = dirname(output);
       if (!existsSync(outputDir)) {
         mkdirSync(outputDir, { recursive: true });
@@ -92,9 +103,12 @@ export class ScriptPlayer {
   async playTask(taskStatus: ScriptPlayerTaskStatus, agent: PageAgent) {
     const { flow } = taskStatus;
     assert(flow, 'missing flow in task');
+    const notifyTaskStatusChange =
+      this.notifyCurrentTaskStatusChange.bind(this);
 
     for (const flowItemIndex in flow) {
-      taskStatus.currentStep = Number.parseInt(flowItemIndex, 10);
+      const currentStep = Number.parseInt(flowItemIndex, 10);
+      taskStatus.currentStep = currentStep;
       const flowItem = flow[flowItemIndex];
       if (
         (flowItem as MidsceneYamlFlowItemAIAction).aiAction ||
@@ -110,8 +124,12 @@ export class ScriptPlayer {
         await agent.aiAction(prompt, {
           onTaskStart(task) {
             const tip = `${typeStr(task)} - ${paramStr(task)}`;
-            (flowItem as MidsceneYamlFlowItemAIAction).aiActionProgressTip =
-              tip;
+            const actionItem = flowItem as MidsceneYamlFlowItemAIAction;
+            actionItem.aiActionProgressTips =
+              actionItem.aiActionProgressTips || [];
+            actionItem.aiActionProgressTips.push(tip);
+
+            notifyTaskStatusChange();
           },
         });
       } else if ((flowItem as MidsceneYamlFlowItemAIAssert).aiAssert) {

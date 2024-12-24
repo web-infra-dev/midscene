@@ -29,7 +29,12 @@ import Logo from './logo';
 import { serverBase, useServerValid } from './open-in-playground';
 
 import { paramStr, typeStr } from '@midscene/web/ui-utils';
-import { ScriptPlayer, buildYaml, parseYamlScript } from '@midscene/web/yaml';
+import {
+  ScriptPlayer,
+  buildYaml,
+  flowItemBrief,
+  parseYamlScript,
+} from '@midscene/web/yaml';
 
 import { overrideAIConfig } from '@midscene/core';
 import type { ChromeExtensionProxyPageAgent } from '@midscene/web/chrome-extension';
@@ -284,20 +289,27 @@ export function Playground({
                 freeFn: [],
               };
             },
-            (status) => {
-              console.log('task status', status);
+            (taskStatus) => {
+              let overallStatus = '';
+              if (taskStatus.status === 'init') {
+                overallStatus = 'initializing...';
+              } else if (
+                taskStatus.status === 'running' ||
+                taskStatus.status === 'error'
+              ) {
+                const item = taskStatus.flow[0] as MidsceneYamlFlowItemAIAction;
+                // const brief = flowItemBrief(item);
+                const tips = item?.aiActionProgressTips || [];
+                if (tips.length > 0) {
+                  overallStatus = tips[tips.length - 1];
+                }
+              }
+
+              setLoadingProgressText(overallStatus);
             },
           );
 
-          console.log('yamlPlayer', yamlPlayer);
           await yamlPlayer.run();
-          // result.result = await activeAgent?.aiAction(value.prompt, {
-          //   onTaskStart: (task) => {
-          //     const type = typeStr(task);
-          //     const param = paramStr(task);
-          //     setLoadingProgressText(`${type}: ${param}`);
-          //   },
-          // });
         } else if (value.type === 'aiQuery') {
           result.result = await activeAgent?.aiQuery(value.prompt);
         } else if (value.type === 'aiAssert') {
