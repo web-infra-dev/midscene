@@ -1,6 +1,6 @@
 import { strict as assert } from 'node:assert';
 import { rmSync, writeFileSync } from 'node:fs';
-import { dirname, join } from 'node:path';
+import { join } from 'node:path';
 import { execa } from 'execa';
 import {
   ensureDirectoryExistence,
@@ -36,33 +36,52 @@ const outputExtensionPlayground = join(
 );
 const outputExtensionSidepanel = join(outputExtensionPageDir, 'sidepanel.html');
 
+const replaceStringWithFirstAppearance = (
+  str: string,
+  target: string,
+  replacement: string,
+) => {
+  const index = str.indexOf(target);
+  return str.slice(0, index) + replacement + str.slice(index + target.length);
+};
+
 /* report utils */
 function emptyDumpReportHTML() {
-  return tplReplacer(reportTpl, {
-    css: `<style>\n${reportCSS}\n</style>\n`,
-    js: `<script>\n${reportJS}\n</script>`,
-    dump: '',
-  });
+  let html = replaceStringWithFirstAppearance(
+    reportTpl,
+    '{{css}}',
+    `<style>\n${reportCSS}\n</style>\n`,
+  );
+  html = replaceStringWithFirstAppearance(
+    html,
+    '{{js}}',
+    `<script>\n${reportJS}\n</script>`,
+  );
+  return html;
 }
 
-function scriptsOfSettingReportTpl() {
-  const leftAngleMark = '__left_angle_mark_';
-  return `window.midscene_report_tpl = ${JSON.stringify(
-    emptyDumpReportHTML(),
-  ).replace(/</g, leftAngleMark)}.replace(/${leftAngleMark}/g, '<') ;`;
-}
-
+const tplRetrieverFn = `window.get_midscene_report_tpl = () => {
+  const tpl = document.getElementById('midscene_report_tpl').innerText;
+  const tplDecoded = decodeURIComponent(tpl);
+  return tplDecoded;
+};`;
 function putReportTplIntoHTML(html: string, outsourceMode = false) {
   assert(html.indexOf('</body>') !== -1, 'HTML must contain </body>');
+
+  const tplWrapper = `<noscript id="midscene_report_tpl">\n${encodeURIComponent(
+    emptyDumpReportHTML(),
+  )}\n</noscript>`;
+
   if (outsourceMode) {
+    // in Chrome extension
     return html.replace(
       '</body>',
-      `<script src="/lib/set-report-tpl.js"></script>\n</body>`,
+      `${tplWrapper}<script src="/lib/set-report-tpl.js"></script>\n</body>`,
     );
   }
   return html.replace(
     '</body>',
-    `<script>\n${scriptsOfSettingReportTpl()}\n</script>\n</body>`,
+    `${tplWrapper}<script>${tplRetrieverFn}</script>\n</body>`,
   );
 }
 
@@ -76,9 +95,11 @@ function reportHTMLWithDump(
     dumpContent = `<script type="midscene_web_dump">\n${dumpJsonString}\n</script>`;
   }
 
-  const reportHTML = tplReplacer(emptyDumpReportHTML(), {
-    dump: dumpContent,
-  });
+  const reportHTML = replaceStringWithFirstAppearance(
+    emptyDumpReportHTML(),
+    '{{dump}}',
+    dumpContent || '{{dump}}',
+  );
 
   const html = putReportTplIntoHTML(reportHTML);
   if (filePath) {
@@ -97,7 +118,7 @@ function buildExtension() {
   // write the set-report-tpl.js into the extension
   writeFileSync(
     join(__dirname, '../unpacked-extension/lib/set-report-tpl.js'),
-    scriptsOfSettingReportTpl(),
+    tplRetrieverFn,
   );
 
   // playground.html
@@ -115,7 +136,7 @@ function buildExtension() {
   // sidepanel.html
   writeFileSync(
     outputExtensionSidepanel,
-    putReportTplIntoHTML(extensionSidepanelTpl, true), // TODO: remove the inline script
+    putReportTplIntoHTML(extensionSidepanelTpl, true),
   );
   console.log(`HTML file generated successfully: ${outputExtensionSidepanel}`);
 
@@ -151,7 +172,9 @@ function buildReport() {
   assert(reportHTMLContent.length >= 1000);
   ensureDirectoryExistence(outputReportHTML);
   writeFileSync(outputReportHTML, reportHTMLContent);
-  console.log(`HTML file generated successfully: ${outputReportHTML}`);
+  console.log(
+    `HTML file generated successfully: ${outputReportHTML}, size: ${reportHTMLContent.length}`,
+  );
 
   // demo pages
   for (const demo of demoData) {
@@ -179,6 +202,6 @@ function buildReport() {
   );
 }
 
-buildExtension();
 buildReport();
+buildExtension();
 packExtension();
