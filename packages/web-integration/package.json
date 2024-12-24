@@ -21,7 +21,8 @@
     "./debug": "./dist/lib/debug.js",
     "./constants": "./dist/lib/constants.js",
     "./html-element": "./dist/lib/html-element/index.js",
-    "./chrome-extension": "./dist/lib/chrome-extension.js"
+    "./chrome-extension": "./dist/lib/chrome-extension.js",
+    "./yaml": "./dist/lib/yaml.js"
   },
   "typesVersions": {
     "*": {
@@ -57,6 +58,9 @@
       ],
       "chrome-extension": [
         "./dist/types/chrome-extension.d.ts"
+      ],
+      "yaml": [
+        "./dist/types/yaml.d.ts"
       ]
     }
   },
@@ -96,8 +100,7 @@
     "cors": "2.8.5",
     "express": "4.21.1",
     "inquirer": "10.1.5",
-    "openai": "4.57.1",
-    "http-server": "14.1.1"
+    "openai": "4.57.1"
   },
   "devDependencies": {
     "@types/js-yaml": "4.0.9",

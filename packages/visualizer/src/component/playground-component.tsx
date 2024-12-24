@@ -23,6 +23,7 @@ import Logo from './logo';
 import { serverBase, useServerValid } from './open-in-playground';
 
 import { paramStr, typeStr } from '@midscene/web/ui-utils';
+// import { buildYaml, loadYamlScript } from '@midscene/web/yaml';
 
 import { overrideAIConfig } from '@midscene/core';
 import type { ChromeExtensionProxyPageAgent } from '@midscene/web/chrome-extension';
@@ -240,6 +241,20 @@ export function Playground({
       reportHTML: null,
       error: null,
     };
+
+    // const yamlScript = buildYaml(
+    //   {
+    //     url: 'https://www.baidu.com',
+    //   },
+    //   [
+    //     {
+    //       name: 'search',
+    //       flow: [{ aiAction: 'type "hello" in search box, hit enter' }],
+    //     },
+    //   ],
+    // );
+    // console.log('yamlScript', yamlScript);
+
     try {
       agent?.resetDump();
       if (serviceMode === 'Server') {

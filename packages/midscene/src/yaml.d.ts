@@ -53,3 +53,8 @@ export type MidsceneYamlFlowItem =
   | MidsceneYamlFlowItemAIQuery
   | MidsceneYamlFlowItemAIWaitFor
   | MidsceneYamlFlowItemSleep;
+
+export interface FreeFn {
+  name: string;
+  fn: () => void;
+}

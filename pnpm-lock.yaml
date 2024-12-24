@@ -87,6 +87,9 @@ importers:
       '@midscene/web':
         specifier: workspace:*
         version: link:../web-integration
+      http-server:
+        specifier: 14.1.1
+        version: 14.1.1
       puppeteer:
         specifier: 23.0.2
         version: 23.0.2(typescript@5.0.4)
@@ -309,9 +312,6 @@ importers:
       express:
         specifier: 4.21.1
         version: 4.21.1
-      http-server:
-        specifier: 14.1.1
-        version: 14.1.1
       inquirer:
         specifier: 10.1.5
         version: 10.1.5

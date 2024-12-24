@@ -1,14 +1,17 @@
 import assert from 'node:assert';
-import { randomUUID } from 'node:crypto';
-import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 
-import { ScriptPlayer, buildYaml, launchServer, loadYamlScript } from '@/yaml';
+import { randomUUID } from 'node:crypto';
+import { existsSync } from 'node:fs';
+import { puppeteerAgentForTarget } from '@/puppeteer';
+import { ScriptPlayer, buildYaml, loadYamlScript } from '@/yaml';
 import { describe, expect, test } from 'vitest';
+
+const serverRoot = join(__dirname, 'server_root');
 
 const runYaml = async (yamlString: string) => {
   const script = loadYamlScript(yamlString);
-  const player = new ScriptPlayer(script);
+  const player = new ScriptPlayer(script, puppeteerAgentForTarget);
   await player.run();
   assert(
     player.status === 'done',
@@ -19,8 +22,7 @@ const runYaml = async (yamlString: string) => {
 const shouldRunAITest =
   process.platform !== 'linux' || process.env.AITEST === 'true';
 
-const serverRoot = join(__dirname, 'server_root');
-describe('yaml', () => {
+describe('yaml utils', () => {
   test('basic build && load', () => {
     const script = buildYaml(
       {
@@ -59,19 +61,6 @@ describe('yaml', () => {
     }).toThrow(/some_error_path/);
   });
 
-  test('launch server', async () => {
-    const serverResult = await launchServer(serverRoot);
-    expect(serverResult).toBeDefined();
-
-    const serverAddress = serverResult.server.address();
-    const staticServerUrl = `http://${serverAddress?.address}:${serverAddress?.port}`;
-
-    const contents = await fetch(`${staticServerUrl}/index.html`);
-    expect(contents.status).toBe(200);
-
-    await serverResult.server.close();
-  });
-
   test('player - bad params', async () => {
     expect(async () => {
       await runYaml(`
@@ -93,28 +82,11 @@ describe('yaml', () => {
 describe.skipIf(!shouldRunAITest)(
   'player - e2e',
   () => {
-    test('local server', async () => {
-      const yamlString = `
-      target:
-        serve: ${serverRoot}
-        url: index.html
-        viewportWidth: 300
-        viewportHeight: 500
-      tasks:
-        - name: local page
-          flow:
-            - aiAssert: the content title is "My App"
-    `;
-
-      await runYaml(yamlString);
-    });
-
-    test('local server - flush output even if assertion failed', async () => {
+    test('flush output even if assertion failed', async () => {
       const outputPath = `./midscene_run/output/${randomUUID()}.json`;
       const yamlString = `
       target:
-        serve: ${serverRoot}
-        url: index.html
+        url: https://www.bing.com
         output: ${outputPath}
       tasks:
         - name: local page
@@ -123,31 +95,13 @@ describe.skipIf(!shouldRunAITest)(
                 the background color of the page, { color: 'white' | 'black' | 'red' | 'green' | 'blue' | 'yellow' | 'purple' | 'orange' | 'pink' | 'brown' | 'gray' | 'black' 
         - name: check content
           flow:
-            - aiAssert: this is a search result page
+            - aiAssert: this is a food delivery service app
       `;
       await expect(async () => {
         await runYaml(yamlString);
       }).rejects.toThrow();
 
       expect(existsSync(outputPath)).toBe(true);
-    });
-
-    test('local server - assertion failed', async () => {
-      const yamlString = `
-      target:
-        serve: ${serverRoot}
-        url: index.html
-        viewportWidth: 300
-        viewportHeight: 500
-      tasks:
-        - name: check content
-          flow:
-            - aiAssert: it shows the width is 888
-      `;
-
-      expect(async () => {
-        await runYaml(yamlString);
-      }).rejects.toThrow();
     });
 
     test('cookie', async () => {

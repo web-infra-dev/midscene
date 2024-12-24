@@ -8,4 +8,4 @@ export { StaticPageAgent } from './playground/agent';
 
 export { generateExtractData } from './debug';
 
-export { ScriptPlayer, loadYamlScript, type ScriptPlayerOptions } from './yaml';
+export { ScriptPlayer, loadYamlScript } from './yaml';

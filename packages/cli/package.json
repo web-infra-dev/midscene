@@ -27,7 +27,8 @@
   "dependencies": {
     "@midscene/core": "workspace:*",
     "@midscene/web": "workspace:*",
-    "puppeteer": "23.0.2"
+    "puppeteer": "23.0.2",
+    "http-server": "14.1.1"
   },
   "devDependencies": {
     "@modern-js/module-tools": "2.60.6",

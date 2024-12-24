@@ -1,11 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { basename, extname } from 'node:path';
-
-import {
-  ScriptPlayer,
-  type ScriptPlayerOptions,
-  loadYamlScript,
-} from '@midscene/web';
+import { ScriptPlayer, loadYamlScript } from '@midscene/web';
+import { createServer } from 'http-server';
 import {
   contextInfo,
   contextTaskListSummary,
@@ -19,34 +15,81 @@ interface MidsceneYamlFileContext {
   file: string;
   player: ScriptPlayer;
 }
+import { assert } from 'node:console';
+import type { FreeFn } from '@midscene/core';
+import { puppeteerAgentForTarget } from '@midscene/web/puppeteer';
 
-export const defaultUA =
-  'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36';
-export const defaultViewportWidth = 1280;
-export const defaultViewportHeight = 960;
-export const defaultViewportScale = process.platform === 'darwin' ? 2 : 1;
-export const defaultWaitForNetworkIdleTimeout = 10 * 1000;
+export const launchServer = async (
+  dir: string,
+): Promise<ReturnType<typeof createServer>> => {
+  // https://github.com/http-party/http-server/blob/master/bin/http-server
+  return new Promise((resolve, reject) => {
+    const server = createServer({
+      root: dir,
+    });
+    server.listen(0, '127.0.0.1', () => {
+      resolve(server);
+    });
+  });
+};
 
 let ttyRenderer: TTYWindowRenderer | undefined;
 export async function playYamlFiles(
   files: string[],
-  options?: ScriptPlayerOptions,
+  options?: {
+    headed?: boolean;
+    keepWindow?: boolean;
+  },
 ): Promise<boolean> {
   // prepare
   const fileContextList: MidsceneYamlFileContext[] = [];
   for (const file of files) {
     const script = loadYamlScript(readFileSync(file, 'utf-8'), file);
     const fileName = basename(file, extname(file));
-    const player = new ScriptPlayer(script, {
-      ...options,
+    const preference = {
+      headed: options?.headed,
+      keepWindow: options?.keepWindow,
       testId: fileName,
-      onTaskStatusChange: (taskStatus) => {
+    };
+    const player = new ScriptPlayer(
+      script,
+      async (target) => {
+        const freeFn: FreeFn[] = [];
+
+        // launch local server if needed
+        let localServer: Awaited<ReturnType<typeof launchServer>> | undefined;
+        let urlToVisit: string | undefined;
+        assert(typeof target.url === 'string', 'url is required');
+        if (target.serve) {
+          localServer = await launchServer(target.serve);
+          const serverAddress = localServer.server.address();
+          freeFn.push({
+            name: 'local_server',
+            fn: () => localServer?.server.close(),
+          });
+          if (target.url.startsWith('/')) {
+            urlToVisit = `http://${serverAddress?.address}:${serverAddress?.port}${target.url}`;
+          } else {
+            urlToVisit = `http://${serverAddress?.address}:${serverAddress?.port}/${target.url}`;
+          }
+          target.url = urlToVisit;
+        }
+
+        const { agent, freeFn: newFreeFn } = await puppeteerAgentForTarget(
+          target,
+          preference,
+        );
+        freeFn.push(...newFreeFn);
+
+        return { agent, freeFn };
+      },
+      (taskStatus) => {
         if (!isTTY) {
           const { nameText } = singleTaskInfo(taskStatus);
           // console.log(`${taskStatus.status} - ${nameText}`);
         }
       },
-    });
+    );
     fileContextList.push({ file, player });
   }
 

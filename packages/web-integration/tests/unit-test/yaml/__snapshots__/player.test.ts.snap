@@ -1,6 +1,6 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
-exports[`yaml > basic build && load 1`] = `
+exports[`yaml utils > basic build && load 1`] = `
 "target:
   url: https://www.baidu.com
   waitForNetworkIdle:
@@ -13,42 +13,7 @@ tasks:
 "
 `;
 
-exports[`yaml > basic build && load 2`] = `
-{
-  "target": {
-    "url": "https://www.baidu.com",
-    "waitForNetworkIdle": {
-      "continueOnNetworkIdleError": true,
-      "timeout": 1000,
-    },
-  },
-  "tasks": [
-    {
-      "flow": [
-        {
-          "aiAction": "type "hello" in search box, hit enter",
-        },
-      ],
-      "name": "search",
-    },
-  ],
-}
-`;
-
-exports[`yaml > basic load 1`] = `
-"target:
-  url: https://www.baidu.com
-  waitForNetworkIdle:
-    timeout: 1000
-    continueOnNetworkIdleError: true
-tasks:
-  - name: search
-    flow:
-      - aiAction: type "hello" in search box, hit enter
-"
-`;
-
-exports[`yaml > basic load 2`] = `
+exports[`yaml utils > basic build && load 2`] = `
 {
   "target": {
     "url": "https://www.baidu.com",
