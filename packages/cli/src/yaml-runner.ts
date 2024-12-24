@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { basename, extname } from 'node:path';
-import { ScriptPlayer, loadYamlScript } from '@midscene/web';
+import { ScriptPlayer, parseYamlScript } from '@midscene/web';
 import { createServer } from 'http-server';
 import {
   contextInfo,
@@ -44,7 +44,7 @@ export async function playYamlFiles(
   // prepare
   const fileContextList: MidsceneYamlFileContext[] = [];
   for (const file of files) {
-    const script = loadYamlScript(readFileSync(file, 'utf-8'), file);
+    const script = parseYamlScript(readFileSync(file, 'utf-8'), file);
     const fileName = basename(file, extname(file));
     const preference = {
       headed: options?.headed,

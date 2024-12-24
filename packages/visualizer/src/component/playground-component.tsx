@@ -1,5 +1,11 @@
 import { DownOutlined, LoadingOutlined, SendOutlined } from '@ant-design/icons';
-import type { GroupedActionDump, UIContext } from '@midscene/core/.';
+import type {
+  GroupedActionDump,
+  MidsceneYamlFlowItemAIAction,
+  MidsceneYamlFlowItemAIQuery,
+  MidsceneYamlTask,
+  UIContext,
+} from '@midscene/core/.';
 import { Helmet } from '@modern-js/runtime/head';
 import { Alert, Button, Spin, Tooltip, message } from 'antd';
 import { Form, Input } from 'antd';
@@ -23,7 +29,7 @@ import Logo from './logo';
 import { serverBase, useServerValid } from './open-in-playground';
 
 import { paramStr, typeStr } from '@midscene/web/ui-utils';
-// import { buildYaml, loadYamlScript } from '@midscene/web/yaml';
+import { ScriptPlayer, buildYaml, parseYamlScript } from '@midscene/web/yaml';
 
 import { overrideAIConfig } from '@midscene/core';
 import type { ChromeExtensionProxyPageAgent } from '@midscene/web/chrome-extension';
@@ -242,42 +248,63 @@ export function Playground({
       error: null,
     };
 
-    // const yamlScript = buildYaml(
-    //   {
-    //     url: 'https://www.baidu.com',
-    //   },
-    //   [
-    //     {
-    //       name: 'search',
-    //       flow: [{ aiAction: 'type "hello" in search box, hit enter' }],
-    //     },
-    //   ],
-    // );
-    // console.log('yamlScript', yamlScript);
-
     try {
-      agent?.resetDump();
+      activeAgent?.resetDump();
       if (serviceMode === 'Server') {
-        const uiContext = await agent?.getUIContext();
+        const uiContext = await activeAgent?.getUIContext();
         result = await requestPlaygroundServer(
           uiContext!,
           value.type,
           value.prompt,
         );
-      } else if (value.type === 'aiAction') {
-        result.result = await activeAgent?.aiAction(value.prompt, {
-          onTaskStart: (task) => {
-            const type = typeStr(task);
-            const param = paramStr(task);
-            setLoadingProgressText(`${type}: ${param}`);
-          },
-        });
-      } else if (value.type === 'aiQuery') {
-        result.result = await activeAgent?.aiQuery(value.prompt);
-      } else if (value.type === 'aiAssert') {
-        result.result = await activeAgent?.aiAssert(value.prompt, undefined, {
-          keepRawResponse: true,
-        });
+      } else {
+        if (value.type === 'aiAction') {
+          const yamlString = buildYaml(
+            {
+              url: 'https://www.baidu.com',
+            },
+            [
+              {
+                name: 'aiAction',
+                flow: [{ aiAction: value.prompt }],
+              },
+            ],
+          );
+
+          const parsedYamlScript = parseYamlScript(yamlString);
+          console.log('yamlString', parsedYamlScript, yamlString);
+          const yamlPlayer = new ScriptPlayer(
+            parsedYamlScript,
+            async () => {
+              if (!activeAgent) throw new Error('Agent is not initialized');
+
+              activeAgent?.resetDump();
+              return {
+                agent: activeAgent,
+                freeFn: [],
+              };
+            },
+            (status) => {
+              console.log('task status', status);
+            },
+          );
+
+          console.log('yamlPlayer', yamlPlayer);
+          await yamlPlayer.run();
+          // result.result = await activeAgent?.aiAction(value.prompt, {
+          //   onTaskStart: (task) => {
+          //     const type = typeStr(task);
+          //     const param = paramStr(task);
+          //     setLoadingProgressText(`${type}: ${param}`);
+          //   },
+          // });
+        } else if (value.type === 'aiQuery') {
+          result.result = await activeAgent?.aiQuery(value.prompt);
+        } else if (value.type === 'aiAssert') {
+          result.result = await activeAgent?.aiAssert(value.prompt, undefined, {
+            keepRawResponse: true,
+          });
+        }
       }
     } catch (e: any) {
       console.error(e);

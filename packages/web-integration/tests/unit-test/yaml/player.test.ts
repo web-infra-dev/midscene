@@ -4,15 +4,21 @@ import { join } from 'node:path';
 import { randomUUID } from 'node:crypto';
 import { existsSync } from 'node:fs';
 import { puppeteerAgentForTarget } from '@/puppeteer';
-import { ScriptPlayer, buildYaml, loadYamlScript } from '@/yaml';
-import { describe, expect, test } from 'vitest';
+import { ScriptPlayer, buildYaml, parseYamlScript } from '@/yaml';
+import { describe, expect, test, vi } from 'vitest';
 
 const serverRoot = join(__dirname, 'server_root');
 
 const runYaml = async (yamlString: string) => {
-  const script = loadYamlScript(yamlString);
-  const player = new ScriptPlayer(script, puppeteerAgentForTarget);
+  const script = parseYamlScript(yamlString);
+  const statusUpdate = vi.fn();
+  const player = new ScriptPlayer(
+    script,
+    puppeteerAgentForTarget,
+    statusUpdate,
+  );
   await player.run();
+  expect(statusUpdate).toHaveBeenCalled();
   assert(
     player.status === 'done',
     player.errorInSetup?.message || 'unknown error',
@@ -45,13 +51,13 @@ describe('yaml utils', () => {
     );
     expect(script).toMatchSnapshot();
 
-    const loadedScript = loadYamlScript(script);
+    const loadedScript = parseYamlScript(script);
     expect(loadedScript).toMatchSnapshot();
   });
 
   test('load error with filePath', () => {
     expect(() => {
-      loadYamlScript(
+      parseYamlScript(
         `
       target:
         a: 1

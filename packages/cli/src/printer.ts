@@ -1,16 +1,11 @@
 import { basename, dirname, relative } from 'node:path';
-import chalk from 'chalk';
 import type {
   MidsceneYamlFileContext,
-  MidsceneYamlFlowItem,
-  MidsceneYamlFlowItemAIAction,
-  MidsceneYamlFlowItemAIAssert,
-  MidsceneYamlFlowItemAIQuery,
-  MidsceneYamlFlowItemAIWaitFor,
-  MidsceneYamlFlowItemSleep,
   ScriptPlayerStatusValue,
   ScriptPlayerTaskStatus,
-} from './types';
+} from '@midscene/core';
+import { flowItemBrief } from '@midscene/web/.';
+import chalk from 'chalk';
 
 export const isTTY = process.env.MIDSCENE_CLI_LOG_ON_NON_TTY
   ? false
@@ -24,51 +19,8 @@ export const currentSpinningFrame = () => {
   ];
 };
 
-export const flowItemBrief = (flowItem?: MidsceneYamlFlowItem) => {
-  if (!flowItem) {
-    return '';
-  }
-
-  const sliceText = (text?: string) => {
-    const lengthLimit = 60;
-    if (text && text.length > lengthLimit) {
-      return `${text.slice(0, lengthLimit)}...`;
-    }
-
-    return text || '';
-  };
-
-  if (
-    (flowItem as MidsceneYamlFlowItemAIAction).aiAction ||
-    (flowItem as MidsceneYamlFlowItemAIAction).ai
-  ) {
-    return `aiAction: ${sliceText(
-      (flowItem as MidsceneYamlFlowItemAIAction).aiActionProgressTip ||
-        (flowItem as MidsceneYamlFlowItemAIAction).aiAction ||
-        (flowItem as MidsceneYamlFlowItemAIAction).ai,
-    )}`;
-  }
-  if ((flowItem as MidsceneYamlFlowItemAIAssert).aiAssert) {
-    return `aiAssert: ${sliceText(
-      (flowItem as MidsceneYamlFlowItemAIAssert).aiAssert,
-    )}`;
-  }
-  if ((flowItem as MidsceneYamlFlowItemAIQuery).aiQuery) {
-    return `aiQuery: ${sliceText((flowItem as MidsceneYamlFlowItemAIQuery).aiQuery)}`;
-  }
-  if ((flowItem as MidsceneYamlFlowItemAIWaitFor).aiWaitFor) {
-    return `aiWaitFor: ${sliceText(
-      (flowItem as MidsceneYamlFlowItemAIWaitFor).aiWaitFor,
-    )}`;
-  }
-  if ((flowItem as MidsceneYamlFlowItemSleep).sleep) {
-    return `sleep: ${(flowItem as MidsceneYamlFlowItemSleep).sleep}`;
-  }
-  return '';
-};
-
 // status: init / running / done / error
-function textForStatus(status: ScriptPlayerStatusValue) {
+function indicatorForStatus(status: ScriptPlayerStatusValue) {
   if (status === 'init') {
     return chalk.gray('◌');
   }
@@ -88,7 +40,7 @@ export const contextInfo = (context: MidsceneYamlFileContext) => {
   const fileName = basename(filePath);
   const fileDir = dirname(filePath);
   const fileNameToPrint = `${chalk.gray(`${fileDir}/`)}${fileName}`;
-  const fileStatusText = textForStatus(context.player.status);
+  const fileStatusText = indicatorForStatus(context.player.status);
   const contextActionText =
     typeof context.player.currentTaskIndex === 'undefined' &&
     context.player.status === 'running'
@@ -146,7 +98,7 @@ export const singleTaskInfo = (task: ScriptPlayerTaskStatus) => {
       ? `\n${indent}${chalk.gray('error:')}\n${indent}${indent}${task.error?.message}`
       : '';
 
-  const statusText = textForStatus(task.status);
+  const statusText = indicatorForStatus(task.status);
   const mergedLine = `${statusText} ${task.name} ${stepText}${errorText}`;
   return {
     nameText: task.name,
