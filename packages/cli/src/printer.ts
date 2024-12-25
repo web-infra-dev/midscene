@@ -3,7 +3,7 @@ import type {
   ScriptPlayerStatusValue,
   ScriptPlayerTaskStatus,
 } from '@midscene/core';
-import { type ScriptPlayer, flowItemBrief } from '@midscene/web';
+import { type ScriptPlayer, flowItemBrief } from '@midscene/web/yaml';
 import chalk from 'chalk';
 
 export interface MidsceneYamlFileContext {
