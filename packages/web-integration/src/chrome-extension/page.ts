@@ -9,7 +9,7 @@ import fs from 'node:fs';
 import type { WebKeyInput } from '@/common/page';
 import type { ElementInfo } from '@/extractor';
 import type { AbstractPage } from '@/page';
-import type { Point, Rect, Size } from '@midscene/core/.';
+import type { Point, Rect, Size } from '@midscene/core';
 import { ifInBrowser } from '@midscene/shared/utils';
 import type { Protocol as CDPTypes } from 'devtools-protocol';
 import { CdpKeyboard } from './cdpInput';

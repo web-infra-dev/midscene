@@ -1,5 +1,5 @@
 import fs from 'node:fs';
-import type { Point, Size } from '@midscene/core/.';
+import type { Point, Size } from '@midscene/core';
 import { getTmpFile } from '@midscene/core/utils';
 import { base64Encoded, resizeImg } from '@midscene/shared/img';
 import { DOMParser } from '@xmldom/xmldom';

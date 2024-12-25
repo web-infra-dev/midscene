@@ -11,7 +11,7 @@ import type {
   GroupedActionDump,
   InsightDump,
   Rect,
-} from '@midscene/core/.';
+} from '@midscene/core';
 
 export interface CameraState {
   left: number;

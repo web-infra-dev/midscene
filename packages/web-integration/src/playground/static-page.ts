@@ -3,7 +3,7 @@ import {
   type WebUIContext,
 } from '@/common/utils';
 import type { AbstractPage } from '@/page';
-import type { Point } from '@midscene/core/.';
+import type { Point } from '@midscene/core';
 
 const ThrowNotImplemented: any = (methodName: string) => {
   throw new Error(

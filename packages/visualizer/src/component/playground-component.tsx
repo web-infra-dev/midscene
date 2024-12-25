@@ -5,7 +5,7 @@ import type {
   MidsceneYamlFlowItemAIQuery,
   MidsceneYamlTask,
   UIContext,
-} from '@midscene/core/.';
+} from '@midscene/core';
 import { Helmet } from '@modern-js/runtime/head';
 import { Alert, Button, Spin, Tooltip, message } from 'antd';
 import { Form, Input } from 'antd';

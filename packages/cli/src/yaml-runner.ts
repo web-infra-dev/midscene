@@ -3,6 +3,7 @@ import { basename, extname } from 'node:path';
 import { ScriptPlayer, parseYamlScript } from '@midscene/web';
 import { createServer } from 'http-server';
 import {
+  type MidsceneYamlFileContext,
   contextInfo,
   contextTaskListSummary,
   isTTY,
@@ -11,10 +12,6 @@ import {
 } from './printer';
 import { TTYWindowRenderer } from './tty-renderer';
 
-interface MidsceneYamlFileContext {
-  file: string;
-  player: ScriptPlayer;
-}
 import { assert } from 'node:console';
 import type { FreeFn } from '@midscene/core';
 import { puppeteerAgentForTarget } from '@midscene/web/puppeteer';
@@ -99,7 +96,7 @@ export async function playYamlFiles(
       const summary: string[] = [''];
       for (const context of fileContextList) {
         summary.push(
-          contextTaskListSummary(context.player.taskStatus, context),
+          contextTaskListSummary(context.player.taskStatusList, context),
         );
       }
       summary.push('');

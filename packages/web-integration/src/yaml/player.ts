@@ -13,17 +13,9 @@ import type {
   MidsceneYamlFlowItemSleep,
   MidsceneYamlScript,
   MidsceneYamlScriptEnv,
-  MidsceneYamlTask,
+  ScriptPlayerStatusValue,
+  ScriptPlayerTaskStatus,
 } from '@midscene/core';
-
-export interface ScriptPlayerTaskStatus extends MidsceneYamlTask {
-  status: ScriptPlayerStatusValue;
-  currentStep?: number;
-  totalSteps: number;
-  error?: Error;
-}
-
-export type ScriptPlayerStatusValue = 'init' | 'running' | 'done' | 'error';
 
 export class ScriptPlayer {
   public currentTaskIndex?: number;

@@ -1,11 +1,15 @@
 import { basename, dirname, relative } from 'node:path';
 import type {
-  MidsceneYamlFileContext,
   ScriptPlayerStatusValue,
   ScriptPlayerTaskStatus,
 } from '@midscene/core';
-import { flowItemBrief } from '@midscene/web/.';
+import { type ScriptPlayer, flowItemBrief } from '@midscene/web';
 import chalk from 'chalk';
+
+export interface MidsceneYamlFileContext {
+  file: string;
+  player: ScriptPlayer;
+}
 
 export const isTTY = process.env.MIDSCENE_CLI_LOG_ON_NON_TTY
   ? false
