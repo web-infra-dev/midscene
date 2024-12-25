@@ -119,7 +119,9 @@ export async function playYamlFiles(
       const { mergedText } = contextInfo(context);
       console.log(mergedText);
       await context.player.run();
-      console.log(contextTaskListSummary(context.player.taskStatus, context));
+      console.log(
+        contextTaskListSummary(context.player.taskStatusList, context),
+      );
     }
   }
 
