@@ -1,3 +1,5 @@
+import { activeTabId } from '@/extension/utils';
+import { currentWindowId } from '@/extension/utils';
 import * as Z from 'zustand';
 // import { createStore } from 'zustand/vanilla';
 import type {
@@ -73,6 +75,31 @@ export interface HistoryItem {
   prompt: string;
   timestamp: number;
 }
+
+export const useChromeTabInfo = create<{
+  tabId: number | null;
+  windowId: number | null;
+}>((set) => {
+  const data = {
+    tabId: null,
+    windowId: null,
+  };
+
+  Promise.resolve().then(async () => {
+    const tabId = await activeTabId();
+    const windowId = await currentWindowId();
+    set({ tabId, windowId });
+
+    chrome.tabs.onActivated.addListener(async (activeInfo) => {
+      const tabId = activeInfo.tabId;
+      const windowId = await currentWindowId();
+
+      set({ tabId, windowId });
+    });
+  });
+
+  return data;
+});
 
 /**
 /**

@@ -117,7 +117,14 @@ export default function OpenInPlayground(props?: { context?: UIContext }) {
         }}
         className="playground-drawer"
       >
-        <Playground agent={agent} hideLogo={true} key={contextLoadingCounter} />
+        <Playground
+          getAgent={() => {
+            return agent;
+          }}
+          dryMode={true}
+          hideLogo={true}
+          key={contextLoadingCounter}
+        />
       </Drawer>
     </>
   );

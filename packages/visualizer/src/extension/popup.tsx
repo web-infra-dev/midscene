@@ -6,8 +6,6 @@ import './popup.less';
 import {
   type WorkerRequestSaveContext,
   type WorkerResponseSaveContext,
-  activeTabId,
-  currentWindowId,
   getExtensionVersion,
   getPlaygroundUrl,
   sendToWorker,
@@ -16,12 +14,13 @@ import {
 
 import { globalThemeConfig } from '@/component/color';
 import Logo from '@/component/logo';
-import { Playground } from '@/component/playground-component';
-import { SendOutlined } from '@ant-design/icons';
 import {
-  ChromeExtensionProxyPage,
-  ChromeExtensionProxyPageAgent,
-} from '@midscene/web/chrome-extension';
+  Playground,
+  extensionAgentForTabId,
+} from '@/component/playground-component';
+import { useChromeTabInfo } from '@/component/store';
+import { SendOutlined } from '@ant-design/icons';
+import type { ChromeExtensionProxyPageAgent } from '@midscene/web/chrome-extension';
 import { useEffect, useState } from 'react';
 
 const shotAndOpenPlayground = async (
@@ -32,7 +31,6 @@ const shotAndOpenPlayground = async (
     return;
   }
   const context = await agent.getUIContext();
-  // console.log('context got', context);
 
   // cache screenshot when page is active
   const { id } = await sendToWorker<
@@ -48,49 +46,10 @@ const shotAndOpenPlayground = async (
   });
 };
 
-const useExtensionAgent = (tabId: number | null, windowId: number | null) => {
-  const [agent, setAgent] = useState<ChromeExtensionProxyPageAgent | null>(
-    null,
-  );
-
-  useEffect(() => {
-    if (!tabId || !windowId) {
-      return;
-    }
-    const page = new ChromeExtensionProxyPage(tabId, windowId);
-    const agent = new ChromeExtensionProxyPageAgent(page);
-    setAgent(agent);
-
-    return () => {
-      console.log('will destroy agent for TabId', tabId, 'WindowId', windowId);
-      agent.page.destroy();
-    };
-  }, [tabId, windowId]);
-
-  return agent;
-};
-
 function PlaygroundPopup() {
   const [loading, setLoading] = useState(false);
-  const [tabId, setTabId] = useState<number | null>(null);
-  const [windowId, setWindowId] = useState<number | null>(null);
-  const agent = useExtensionAgent(tabId, windowId);
   const extensionVersion = getExtensionVersion();
-  useEffect(() => {
-    Promise.resolve().then(async () => {
-      const tabId = await activeTabId();
-      const windowId = await currentWindowId();
-      setTabId(tabId);
-      setWindowId(windowId);
-
-      chrome.tabs.onActivated.addListener(async (activeInfo) => {
-        const tabId = activeInfo.tabId;
-        const windowId = await currentWindowId();
-        setTabId(tabId);
-        setWindowId(windowId);
-      });
-    });
-  }, []);
+  const { tabId, windowId } = useChromeTabInfo();
 
   const handleSendToPlayground = async () => {
     if (!tabId || !windowId) {
@@ -99,7 +58,9 @@ function PlaygroundPopup() {
     }
     setLoading(true);
     try {
+      const agent = extensionAgentForTabId(tabId, windowId);
       await shotAndOpenPlayground(agent);
+      await agent!.page.destroy();
     } catch (e: any) {
       message.error(e.message || 'Failed to launch Playground');
     }
@@ -135,7 +96,13 @@ function PlaygroundPopup() {
 
         <div className="hr" />
         <div className="popup-playground-container">
-          <Playground hideLogo agent={agent} showContextPreview={false} />
+          <Playground
+            hideLogo
+            getAgent={() => {
+              return extensionAgentForTabId(tabId, windowId);
+            }}
+            showContextPreview={false}
+          />
         </div>
         <div className="popup-footer">
           <p>Midscene.js Chrome Extension v{extensionVersion}</p>
