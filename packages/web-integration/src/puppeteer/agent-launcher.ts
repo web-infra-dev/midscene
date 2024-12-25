@@ -1,6 +1,5 @@
 import assert from 'node:assert';
 import { readFileSync } from 'node:fs';
-import puppeteer from 'puppeteer';
 
 import { PuppeteerAgent } from '@/puppeteer';
 import type { MidsceneYamlScriptEnv } from '@midscene/core';
@@ -72,6 +71,7 @@ export async function puppeteerAgentForTarget(
       'you are probably running headed mode in CI, this will usually fail.',
     );
   }
+  const puppeteer = await import('puppeteer');
   const browser = await puppeteer.launch({
     headless: !headed,
     args: [
