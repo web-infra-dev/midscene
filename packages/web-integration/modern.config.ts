@@ -20,6 +20,6 @@ export default defineConfig({
       yaml: 'src/yaml/index.ts',
     },
     target: 'es2018',
-    externals: ['@midscene/core', '@midscene/shared'],
+    externals: ['@midscene/core', '@midscene/shared', 'puppeteer'],
   },
 });
