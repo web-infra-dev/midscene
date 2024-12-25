@@ -61,6 +61,8 @@ const SideItem = (props: {
 };
 
 const Sidebar = (): JSX.Element => {
+  const sdkVersion = useExecutionDump((store) => store.sdkVersion);
+  const modelName = useExecutionDump((store) => store.modelName);
   const groupedDump = useExecutionDump((store) => store.dump);
   const setActiveTask = useExecutionDump((store) => store.setActiveTask);
   const activeTask = useExecutionDump((store) => store.activeTask);
@@ -107,6 +109,10 @@ const Sidebar = (): JSX.Element => {
       document.removeEventListener('keydown', handleKeyDown);
     };
   }, [currentSelectedIndex, allTasks, setActiveTask]);
+
+  const envInfo = sdkVersion
+    ? `v${sdkVersion}, ${modelName || 'default model'}`
+    : '';
 
   const sideList = groupedDump ? (
     [groupedDump].map((group, groupIndex) => {
@@ -161,7 +167,7 @@ const Sidebar = (): JSX.Element => {
       });
       return (
         <div key={groupIndex}>
-          <PanelTitle title={group.groupName} />
+          <PanelTitle title={group.groupName} subTitle={envInfo} />
           {executions}
         </div>
       );

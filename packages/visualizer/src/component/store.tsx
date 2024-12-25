@@ -144,6 +144,8 @@ export const useExecutionDump = create<{
   replayAllMode: boolean;
   setReplayAllMode: (replayAllMode: boolean) => void;
   allExecutionAnimation: AnimationScript[] | null;
+  sdkVersion: string | null;
+  modelName: string | null;
   insightWidth: number | null;
   insightHeight: number | null;
   activeExecution: ExecutionDump | null;
@@ -164,6 +166,8 @@ export const useExecutionDump = create<{
     dump: null,
     replayAllMode: false,
     allExecutionAnimation: null,
+    sdkVersion: null,
+    modelName: null,
     insightWidth: null,
     insightHeight: null,
     activeTask: null,
@@ -228,7 +232,13 @@ export const useExecutionDump = create<{
           return setDefaultActiveTask();
         }
 
-        const { scripts: allScripts, width, height } = allScriptsInfo;
+        const {
+          scripts: allScripts,
+          width,
+          height,
+          modelName,
+          sdkVersion,
+        } = allScriptsInfo;
 
         set({
           allExecutionAnimation: allScripts,
@@ -236,6 +246,8 @@ export const useExecutionDump = create<{
           replayAllMode: true,
           insightWidth: width,
           insightHeight: height,
+          modelName,
+          sdkVersion,
         });
       }
     },
