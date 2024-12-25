@@ -8,6 +8,7 @@ import {
   type WorkerResponseSaveContext,
   activeTabId,
   currentWindowId,
+  getExtensionVersion,
   getPlaygroundUrl,
   sendToWorker,
   workerMessageTypes,
@@ -74,7 +75,7 @@ function PlaygroundPopup() {
   const [tabId, setTabId] = useState<number | null>(null);
   const [windowId, setWindowId] = useState<number | null>(null);
   const agent = useExtensionAgent(tabId, windowId);
-
+  const extensionVersion = getExtensionVersion();
   useEffect(() => {
     Promise.resolve().then(async () => {
       const tabId = await activeTabId();
@@ -135,6 +136,9 @@ function PlaygroundPopup() {
         <div className="hr" />
         <div className="popup-playground-container">
           <Playground hideLogo agent={agent} showContextPreview={false} />
+        </div>
+        <div className="popup-footer">
+          <p>Midscene.js Chrome Extension v{extensionVersion}</p>
         </div>
       </div>
     </ConfigProvider>
