@@ -27,7 +27,7 @@ export type ScriptPlayerStatusValue = 'init' | 'running' | 'done' | 'error';
 
 export class ScriptPlayer {
   public currentTaskIndex?: number;
-  public taskStatus: ScriptPlayerTaskStatus[] = [];
+  public taskStatusList: ScriptPlayerTaskStatus[] = [];
   public status: ScriptPlayerStatusValue = 'init';
   public reportFile?: string | null;
   public result: Record<string, any>;
@@ -41,11 +41,11 @@ export class ScriptPlayer {
       agent: PageAgent;
       freeFn: FreeFn[];
     }>,
-    private onTaskStatusChange?: (taskStatus: ScriptPlayerTaskStatus) => void,
+    public onTaskStatusChange?: (taskStatus: ScriptPlayerTaskStatus) => void,
   ) {
     this.result = {};
     this.output = script.target.output;
-    this.taskStatus = (script.tasks || []).map((task, taskIndex) => ({
+    this.taskStatusList = (script.tasks || []).map((task, taskIndex) => ({
       ...task,
       index: taskIndex,
       status: 'init',
@@ -66,7 +66,7 @@ export class ScriptPlayer {
       return;
     }
 
-    const taskStatus = this.taskStatus[taskIndexToNotify];
+    const taskStatus = this.taskStatusList[taskIndexToNotify];
     if (this.onTaskStatusChange) {
       this.onTaskStatusChange(taskStatus);
     }
@@ -77,9 +77,9 @@ export class ScriptPlayer {
     statusValue: ScriptPlayerStatusValue,
     error?: Error,
   ) {
-    this.taskStatus[index].status = statusValue;
+    this.taskStatusList[index].status = statusValue;
     if (error) {
-      this.taskStatus[index].error = error;
+      this.taskStatusList[index].error = error;
     }
 
     this.notifyCurrentTaskStatusChange(index);
@@ -209,7 +209,7 @@ export class ScriptPlayer {
 
       try {
         this.setTaskIndex(taskIndex);
-        await this.playTask(this.taskStatus[taskIndex], this.pageAgent);
+        await this.playTask(this.taskStatusList[taskIndex], this.pageAgent);
       } catch (e) {
         this.setTaskStatus(taskIndex, 'error' as any, e as Error);
         this.setPlayerStatus('error');

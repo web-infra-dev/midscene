@@ -116,14 +116,14 @@ function paddingLines(lines: string[]) {
 }
 
 export const contextTaskListSummary = (
-  taskStatus: ScriptPlayerTaskStatus[],
+  taskStatusArray: ScriptPlayerTaskStatus[],
   context: MidsceneYamlFileContext,
 ) => {
   const prefixLines: string[] = [];
   const currentLine: string[] = [];
   const suffixText: string[] = [];
   const { mergedText: fileInfo } = contextInfo(context);
-  for (const task of taskStatus) {
+  for (const task of taskStatusArray) {
     const { mergedLine } = singleTaskInfo(task);
 
     if (context.player.status === 'init') {
