@@ -1,4 +1,4 @@
-import type { Point, Size } from '@midscene/core/.';
+import type { Point, Size } from '@midscene/core';
 import type { WebKeyInput } from './common/page';
 import type { WebUIContext } from './common/utils';
 import type { ElementInfo } from './extractor';

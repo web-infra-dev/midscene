@@ -21,7 +21,8 @@
     "./debug": "./dist/lib/debug.js",
     "./constants": "./dist/lib/constants.js",
     "./html-element": "./dist/lib/html-element/index.js",
-    "./chrome-extension": "./dist/lib/chrome-extension.js"
+    "./chrome-extension": "./dist/lib/chrome-extension.js",
+    "./yaml": "./dist/lib/yaml.js"
   },
   "typesVersions": {
     "*": {
@@ -35,7 +36,8 @@
       "debug": ["./dist/types/debug.d.ts"],
       "constants": ["./dist/types/constants.d.ts"],
       "html-element": ["./dist/types/html-element/index.d.ts"],
-      "chrome-extension": ["./dist/types/chrome-extension.d.ts"]
+      "chrome-extension": ["./dist/types/chrome-extension.d.ts"],
+      "yaml": ["./dist/types/yaml.d.ts"]
     }
   },
   "scripts": {
@@ -72,6 +74,8 @@
     "openai": "4.57.1"
   },
   "devDependencies": {
+    "@types/js-yaml": "4.0.9",
+    "js-yaml": "4.1.0",
     "@modern-js/module-tools": "2.60.6",
     "@playwright/test": "1.44.1",
     "@types/chrome": "0.0.279",
@@ -108,7 +112,7 @@
     }
   },
   "engines": {
-    "node": ">=16.0.0"
+    "node": ">=18.0.0"
   },
   "publishConfig": {
     "access": "public",

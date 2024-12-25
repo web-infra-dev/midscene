@@ -1,0 +1,14 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`utils > action brief text 1`] = `"aiAction: search for weather"`;
+
+exports[`utils > action brief text 2`] = `"sleep: 1000"`;
+
+exports[`utils > action brief text 3`] = `"aiWaitFor: wait for something"`;
+
+exports[`utils > build yaml 1`] = `
+"target:
+  url: https://www.baidu.com
+tasks: []
+"
+`;

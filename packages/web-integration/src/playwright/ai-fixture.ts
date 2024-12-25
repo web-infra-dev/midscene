@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { PageAgent } from '@/common/agent';
 import { PlaywrightWebPage } from '@/playwright';
-import type { AgentWaitForOpt } from '@midscene/core/.';
+import type { AgentWaitForOpt } from '@midscene/core';
 import { type TestInfo, type TestType, test } from '@playwright/test';
 import type { Page as OriginPlaywrightPage } from 'playwright';
 import type { PageTaskExecutor } from '../common/tasks';

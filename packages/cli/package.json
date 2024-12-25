@@ -23,8 +23,8 @@
   "dependencies": {
     "@midscene/core": "workspace:*",
     "@midscene/web": "workspace:*",
-    "http-server": "14.1.1",
-    "puppeteer": "23.0.2"
+    "puppeteer": "23.0.2",
+    "http-server": "14.1.1"
   },
   "devDependencies": {
     "@modern-js/module-tools": "2.60.6",
@@ -44,7 +44,7 @@
     "yargs": "17.7.2"
   },
   "engines": {
-    "node": ">=16.0.0"
+    "node": ">=18.0.0"
   },
   "publishConfig": {
     "access": "public",

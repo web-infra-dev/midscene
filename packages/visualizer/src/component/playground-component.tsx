@@ -1,5 +1,11 @@
 import { DownOutlined, LoadingOutlined, SendOutlined } from '@ant-design/icons';
-import type { GroupedActionDump, UIContext } from '@midscene/core/.';
+import type {
+  GroupedActionDump,
+  MidsceneYamlFlowItemAIAction,
+  MidsceneYamlFlowItemAIQuery,
+  MidsceneYamlTask,
+  UIContext,
+} from '@midscene/core';
 import { Helmet } from '@modern-js/runtime/head';
 import { Alert, Button, Spin, Tooltip, message } from 'antd';
 import { Form, Input } from 'antd';
@@ -23,9 +29,14 @@ import Logo from './logo';
 import { serverBase, useServerValid } from './open-in-playground';
 
 import { paramStr, typeStr } from '@midscene/web/ui-utils';
+import {
+  ScriptPlayer,
+  buildYaml,
+  flowItemBrief,
+  parseYamlScript,
+} from '@midscene/web/yaml';
 
 import { overrideAIConfig } from '@midscene/core';
-import type { ChromeExtensionProxyPageAgent } from '@midscene/web/chrome-extension';
 import {
   ERROR_CODE_NOT_IMPLEMENTED_AS_DESIGNED,
   StaticPage,
@@ -35,7 +46,13 @@ import type { WebUIContext } from '@midscene/web/utils';
 import type { MenuProps } from 'antd';
 import { Dropdown, Space } from 'antd';
 import { EnvConfig } from './env-config';
-import { type HistoryItem, useEnvConfig } from './store';
+import { type HistoryItem, useChromeTabInfo, useEnvConfig } from './store';
+
+import { getTabInfo } from '@/extension/utils';
+import {
+  ChromeExtensionProxyPage,
+  ChromeExtensionProxyPageAgent,
+} from '@midscene/web/chrome-extension';
 
 interface PlaygroundResult {
   result: any;
@@ -150,14 +167,28 @@ const serverLaunchTip = (
   </div>
 );
 
+// remember to destroy the agent when the tab is destroyed: agent.page.destroy()
+export const extensionAgentForTabId = (
+  tabId: number | null,
+  windowId: number | null,
+) => {
+  if (!tabId || !windowId) {
+    return null;
+  }
+  const page = new ChromeExtensionProxyPage(tabId, windowId);
+  return new ChromeExtensionProxyPageAgent(page);
+};
+
 export function Playground({
-  agent,
+  getAgent,
   hideLogo,
   showContextPreview = true,
+  dryMode = false,
 }: {
-  agent: StaticPageAgent | ChromeExtensionProxyPageAgent | null;
+  getAgent: () => StaticPageAgent | ChromeExtensionProxyPageAgent | null;
   hideLogo?: boolean;
   showContextPreview?: boolean;
+  dryMode?: boolean;
 }) {
   // const contextId = useContextId();
   const [uiContextPreview, setUiContextPreview] = useState<
@@ -165,6 +196,7 @@ export function Playground({
   >(undefined);
 
   const [loading, setLoading] = useState(false);
+  const [tabInfoString, setTabInfoString] = useState('');
   const [loadingProgressText, setLoadingProgressText] = useState('');
   const [result, setResult] = useState<PlaygroundResult | null>(null);
   const [form] = Form.useForm();
@@ -173,6 +205,8 @@ export function Playground({
   const runResultRef = useRef<HTMLHeadingElement>(null);
 
   const [verticalMode, setVerticalMode] = useState(false);
+
+  const { tabId } = useChromeTabInfo();
 
   // if the screen is narrow, we use vertical mode
   useEffect(() => {
@@ -193,8 +227,6 @@ export function Playground({
     overrideAIConfig(config as any);
   }, [config]);
 
-  const activeAgent = agent;
-
   const [replayScriptsInfo, setReplayScriptsInfo] =
     useState<ReplayScriptsInfo | null>(null);
   const [replayCounter, setReplayCounter] = useState(0);
@@ -206,7 +238,7 @@ export function Playground({
     if (uiContextPreview) return;
     if (!showContextPreview) return;
 
-    agent
+    getAgent()
       ?.getUIContext()
       .then((context) => {
         setUiContextPreview(context);
@@ -215,7 +247,7 @@ export function Playground({
         message.error('Failed to get UI context');
         console.error(e);
       });
-  }, [uiContextPreview, showContextPreview, agent]);
+  }, [uiContextPreview, showContextPreview, getAgent]);
 
   const addHistory = useEnvConfig((state) => state.addHistory);
 
@@ -227,6 +259,14 @@ export function Playground({
     }
 
     const startTime = Date.now();
+
+    if (tabId) {
+      Promise.resolve().then(async () => {
+        const tab = await getTabInfo(tabId);
+        const tabInfoString = dryMode ? '' : `${tab.title} ${tab.url}`;
+        setTabInfoString(tabInfoString);
+      });
+    }
     setLoading(true);
     setResult(null);
     addHistory({
@@ -240,29 +280,75 @@ export function Playground({
       reportHTML: null,
       error: null,
     };
+
+    const activeAgent = getAgent();
     try {
-      agent?.resetDump();
+      if (!activeAgent) {
+        throw new Error('No agent found');
+      }
+      activeAgent?.resetDump();
       if (serviceMode === 'Server') {
-        const uiContext = await agent?.getUIContext();
+        const uiContext = await activeAgent?.getUIContext();
         result = await requestPlaygroundServer(
           uiContext!,
           value.type,
           value.prompt,
         );
-      } else if (value.type === 'aiAction') {
-        result.result = await activeAgent?.aiAction(value.prompt, {
-          onTaskStart: (task) => {
-            const type = typeStr(task);
-            const param = paramStr(task);
-            setLoadingProgressText(`${type}: ${param}`);
-          },
-        });
-      } else if (value.type === 'aiQuery') {
-        result.result = await activeAgent?.aiQuery(value.prompt);
-      } else if (value.type === 'aiAssert') {
-        result.result = await activeAgent?.aiAssert(value.prompt, undefined, {
-          keepRawResponse: true,
-        });
+      } else {
+        if (value.type === 'aiAction') {
+          const yamlString = buildYaml(
+            {
+              url: 'https://www.baidu.com',
+            },
+            [
+              {
+                name: 'aiAction',
+                flow: [{ aiAction: value.prompt }],
+              },
+            ],
+          );
+
+          const parsedYamlScript = parseYamlScript(yamlString);
+          console.log('yamlString', parsedYamlScript, yamlString);
+          const yamlPlayer = new ScriptPlayer(
+            parsedYamlScript,
+            async () => {
+              if (!activeAgent) throw new Error('Agent is not initialized');
+
+              activeAgent?.resetDump();
+              return {
+                agent: activeAgent,
+                freeFn: [],
+              };
+            },
+            (taskStatus) => {
+              let overallStatus = '';
+              if (taskStatus.status === 'init') {
+                overallStatus = 'initializing...';
+              } else if (
+                taskStatus.status === 'running' ||
+                taskStatus.status === 'error'
+              ) {
+                const item = taskStatus.flow[0] as MidsceneYamlFlowItemAIAction;
+                // const brief = flowItemBrief(item);
+                const tips = item?.aiActionProgressTips || [];
+                if (tips.length > 0) {
+                  overallStatus = tips[tips.length - 1];
+                }
+              }
+
+              setLoadingProgressText(overallStatus);
+            },
+          );
+
+          await yamlPlayer.run();
+        } else if (value.type === 'aiQuery') {
+          result.result = await activeAgent?.aiQuery(value.prompt);
+        } else if (value.type === 'aiAssert') {
+          result.result = await activeAgent?.aiAssert(value.prompt, undefined, {
+            keepRawResponse: true,
+          });
+        }
       }
     } catch (e: any) {
       console.error(e);
@@ -290,6 +376,14 @@ export function Playground({
       console.error(e);
     }
 
+    try {
+      console.log('destroy agent.page', activeAgent?.page);
+      await activeAgent?.page?.destroy();
+      console.log('destroy agent.page done', activeAgent?.page);
+    } catch (e) {
+      console.error(e);
+    }
+
     setResult(result);
     setLoading(false);
     if (value.type === 'aiAction' && result?.dump) {
@@ -305,7 +399,7 @@ export function Playground({
     // setTimeout(() => {
     //   runResultRef.current?.scrollIntoView({ behavior: 'smooth' });
     // }, 50);
-  }, [form, agent, activeAgent, serviceMode, serverValid]);
+  }, [form, getAgent, serviceMode, serverValid, tabId]);
 
   let placeholder = 'What do you want to do?';
   const selectedType = Form.useWatch('type', form);
@@ -317,9 +411,9 @@ export function Playground({
   }
 
   const runButtonEnabled =
-    (serviceMode === 'In-Browser' && agent && configAlreadySet) ||
+    (serviceMode === 'In-Browser' && !!getAgent && configAlreadySet) ||
     (serviceMode === 'Server' && serverValid) ||
-    (serviceMode === 'In-Browser-Extension' && agent && configAlreadySet);
+    (serviceMode === 'In-Browser-Extension' && !!getAgent && configAlreadySet);
 
   let resultDataToShow: any = (
     <div className="result-empty-tip">
@@ -332,7 +426,12 @@ export function Playground({
     resultDataToShow = (
       <div className="loading-container">
         <Spin spinning={loading} indicator={<LoadingOutlined spin />} />
-        <div className="loading-progress-text">{loadingProgressText}</div>
+        <div className="loading-progress-text loading-progress-text-tab-info">
+          {tabInfoString}
+        </div>
+        <div className="loading-progress-text loading-progress-text-progress">
+          {loadingProgressText}
+        </div>
       </div>
     );
   } else if (replayScriptsInfo) {
@@ -391,7 +490,6 @@ export function Playground({
 
   const statusContent = serviceMode === 'Server' ? serverTip : <EnvConfig />;
 
-  const dryMode = agent?.dryMode;
   const actionBtn = dryMode ? (
     <Tooltip title="Start executing until some interaction actions need to be performed. You can see the process of planning and locating.">
       <Button
@@ -569,5 +667,12 @@ export function StaticPlayground({
   context: WebUIContext | null;
 }) {
   const agent = useStaticPageAgent(context);
-  return <Playground agent={agent} />;
+  return (
+    <Playground
+      getAgent={() => {
+        return agent;
+      }}
+      dryMode={true}
+    />
+  );
 }
