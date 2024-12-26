@@ -28,13 +28,7 @@ import './playground-component.less';
 import Logo from './logo';
 import { serverBase, useServerValid } from './open-in-playground';
 
-import { paramStr, typeStr } from '@midscene/web/ui-utils';
-import {
-  ScriptPlayer,
-  buildYaml,
-  flowItemBrief,
-  parseYamlScript,
-} from '@midscene/web/yaml';
+import { ScriptPlayer, buildYaml, parseYamlScript } from '@midscene/web/yaml';
 
 import { overrideAIConfig } from '@midscene/core';
 import {
@@ -310,6 +304,7 @@ export function Playground({
 
           const parsedYamlScript = parseYamlScript(yamlString);
           console.log('yamlString', parsedYamlScript, yamlString);
+          let errorMessage = '';
           const yamlPlayer = new ScriptPlayer(
             parsedYamlScript,
             async () => {
@@ -335,6 +330,10 @@ export function Playground({
                 if (tips.length > 0) {
                   overallStatus = tips[tips.length - 1];
                 }
+
+                if (taskStatus.status === 'error') {
+                  errorMessage = taskStatus.error?.message || '';
+                }
               }
 
               setLoadingProgressText(overallStatus);
@@ -342,6 +341,9 @@ export function Playground({
           );
 
           await yamlPlayer.run();
+          if (yamlPlayer.status === 'error') {
+            throw new Error(errorMessage || 'Failed to run the script');
+          }
         } else if (value.type === 'aiQuery') {
           result.result = await activeAgent?.aiQuery(value.prompt);
         } else if (value.type === 'aiAssert') {
@@ -353,7 +355,12 @@ export function Playground({
     } catch (e: any) {
       console.error(e);
       if (typeof e === 'string') {
-        result.error = e;
+        if (e.includes('of different extension')) {
+          result.error =
+            'Cannot access a chrome-extension:// URL of different extension. Please disable the suspicious plugins and refresh the page. Guide: https://midscenejs.com/quick-experience.html#faq';
+        } else {
+          result.error = e;
+        }
       } else if (!e.message?.includes(ERROR_CODE_NOT_IMPLEMENTED_AS_DESIGNED)) {
         result.error = e.message;
       } else {
