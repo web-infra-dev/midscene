@@ -28,6 +28,9 @@ export MIDSCENE_OPENAI_INIT_CONFIG_JSON='{"baseURL":"....","defaultHeaders":{"ke
 
 # if you want to use proxy. Midscene uses `socks-proxy-agent` under the hood.
 export MIDSCENE_OPENAI_SOCKS_PROXY="socks5://127.0.0.1:1080"
+
+# if you want to specify the max tokens for the model
+export OPENAI_MAX_TOKENS=2048
 ```
 
 ## Using Azure OpenAI Service

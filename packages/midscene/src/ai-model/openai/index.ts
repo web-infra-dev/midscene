@@ -24,6 +24,7 @@ import {
   MIDSCENE_USE_AZURE_OPENAI,
   OPENAI_API_KEY,
   OPENAI_BASE_URL,
+  OPENAI_MAX_TOKENS,
   OPENAI_USE_AZURE,
   allAIConfig,
   getAIConfig,
@@ -149,6 +150,8 @@ export async function call(
   const shouldPrintTiming =
     typeof getAIConfig(MIDSCENE_DEBUG_AI_PROFILE) === 'string';
 
+  const maxTokens = getAIConfig(OPENAI_MAX_TOKENS);
+
   const startTime = Date.now();
   const model = getModelName();
   let content: string | undefined;
@@ -156,7 +159,10 @@ export async function call(
   const commonConfig = {
     temperature: 0.1,
     stream: false,
-    max_tokens: 3000,
+    max_tokens:
+      typeof maxTokens === 'number'
+        ? maxTokens
+        : Number.parseInt(maxTokens || '2048', 10),
   };
   if (style === 'openai') {
     const result = await completion.create({
