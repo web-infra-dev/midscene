@@ -86,7 +86,7 @@ describe(
     });
 
     it('search engine', async () => {
-      const { originPage, reset } = await launchPage('https://www.baidu.com/');
+      const { originPage, reset } = await launchPage('https://www.bing.com/');
       const mid = new PuppeteerAgent(originPage);
       await mid.aiAction(
         'type "AI 101" in search box, hit Enter, wait 2s, click the second result, wait 4s',
@@ -100,7 +100,6 @@ describe(
     it('scroll', async () => {
       const htmlPath = path.join(__dirname, 'scroll.html');
       const { originPage, reset } = await launchPage(`file://${htmlPath}`);
-      // const { originPage, reset } = await launchPage('https://news.baidu.com/');
       const mid = new PuppeteerAgent(originPage);
       await mid.aiAction(
         'find the "Vertical 2" element, scroll down 200px, find the "Horizontal 2" element, scroll right 100px',
