@@ -25,6 +25,9 @@ export MIDSCENE_OPENAI_INIT_CONFIG_JSON='{"baseURL":"....","defaultHeaders":{"ke
 
 # 可选, 如果你想使用代理。Midscene 使用 `socks-proxy-agent` 作为底层库。
 export MIDSCENE_OPENAI_SOCKS_PROXY="socks5://127.0.0.1:1080"
+
+# 可选, 如果你想指定模型 max_tokens
+export OPENAI_MAX_TOKENS=2048
 ```
 
 ## 使用 Azure OpenAI 服务时的配置
