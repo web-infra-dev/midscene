@@ -44,6 +44,11 @@ export async function launchPage(
       const pages = await browser.pages();
       await Promise.all(pages.map((page) => page.close()));
       await browser.close();
+      await sleep(1000);
     },
   };
+}
+
+async function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
