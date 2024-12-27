@@ -51,6 +51,7 @@ Midscene.js is an AI-powered automation SDK can control the page, perform assert
 ## Community
 
 * [Lark Group](https://applink.larkoffice.com/client/chat/chatter/add_by_link?link_token=291q2b25-e913-411a-8c51-191e59aab14d)
+![lark-group-link](https://github.com/user-attachments/assets/7c132fbf-37a7-4005-8fb1-59342efdf9b2)
 
 ## License
 
