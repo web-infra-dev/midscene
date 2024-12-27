@@ -337,6 +337,9 @@ importers:
       '@types/fs-extra':
         specifier: 11.0.4
         version: 11.0.4
+      '@types/js-yaml':
+        specifier: 4.0.9
+        version: 4.0.9
       '@types/node':
         specifier: ^18.0.0
         version: 18.19.62
@@ -355,6 +358,9 @@ importers:
       js-sha256:
         specifier: 0.11.0
         version: 0.11.0
+      js-yaml:
+        specifier: 4.1.0
+        version: 4.1.0
       playwright:
         specifier: 1.44.1
         version: 1.44.1

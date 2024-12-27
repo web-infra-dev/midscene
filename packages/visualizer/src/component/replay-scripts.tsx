@@ -11,7 +11,7 @@ import type {
   GroupedActionDump,
   InsightDump,
   Rect,
-} from '@midscene/core/.';
+} from '@midscene/core';
 
 export interface CameraState {
   left: number;
@@ -117,6 +117,8 @@ export interface ReplayScriptsInfo {
   scripts: AnimationScript[];
   width: number;
   height: number;
+  sdkVersion?: string;
+  modelName?: string;
 }
 
 export const allScriptsFromDump = (
@@ -125,6 +127,8 @@ export const allScriptsFromDump = (
   // find out the width and height of the screenshot
   let width = 0;
   let height = 0;
+  let sdkVersion = '';
+  let modelName = '';
 
   dump.executions.forEach((execution) => {
     execution.tasks.forEach((task) => {
@@ -132,6 +136,14 @@ export const allScriptsFromDump = (
       if (insightTask.log?.dump?.context?.size?.width) {
         width = insightTask.log?.dump?.context?.size?.width;
         height = insightTask.log?.dump?.context?.size?.height;
+      }
+
+      if (insightTask.log?.dump?.sdkVersion) {
+        sdkVersion = insightTask.log.dump.sdkVersion;
+      }
+
+      if (insightTask.log?.dump?.model_name) {
+        modelName = insightTask.log.dump.model_name;
       }
     });
   });
@@ -162,6 +174,8 @@ export const allScriptsFromDump = (
     scripts: allScriptsWithoutIntermediateDoneFrame,
     width,
     height,
+    sdkVersion,
+    modelName,
   };
 };
 

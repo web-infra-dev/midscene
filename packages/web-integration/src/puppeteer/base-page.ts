@@ -1,4 +1,4 @@
-import type { Point, Size } from '@midscene/core/.';
+import type { Point, Size } from '@midscene/core';
 import { getTmpFile } from '@midscene/core/utils';
 import { base64Encoded } from '@midscene/shared/img';
 import type { Page as PlaywrightPage } from 'playwright';

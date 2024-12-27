@@ -9,7 +9,7 @@ import {
   DownloadOutlined,
   LoadingOutlined,
 } from '@ant-design/icons';
-import type { BaseElement } from '@midscene/core/.';
+import type { BaseElement } from '@midscene/core';
 import { Button, ConfigProvider, Spin } from 'antd';
 import { rectMarkForItem } from './blackboard';
 import type {

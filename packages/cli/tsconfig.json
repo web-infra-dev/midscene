@@ -7,7 +7,7 @@
     "forceConsistentCasingInFileNames": true,
     "isolatedModules": true,
     "jsx": "preserve",
-    "lib": ["DOM", "ESNext"],
+    "lib": ["ESNext"],
     "moduleResolution": "node",
     "paths": {
       "@/*": ["./src/*"]

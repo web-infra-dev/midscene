@@ -2,6 +2,8 @@
 
 import type { ChatCompletionMessageParam } from 'openai/resources';
 
+export * from './yaml.d';
+
 export interface Point {
   left: number;
   top: number;

@@ -9,7 +9,7 @@ import fs from 'node:fs';
 import type { WebKeyInput } from '@/common/page';
 import type { ElementInfo } from '@/extractor';
 import type { AbstractPage } from '@/page';
-import type { Point, Rect, Size } from '@midscene/core/.';
+import type { Point, Rect, Size } from '@midscene/core';
 import { ifInBrowser } from '@midscene/shared/utils';
 import type { Protocol as CDPTypes } from 'devtools-protocol';
 import { CdpKeyboard } from './cdpInput';
@@ -65,6 +65,8 @@ export default class ChromeExtensionProxyPage implements AbstractPage {
 
   private debuggerAttached = false;
 
+  private attachingDebugger: Promise<void> | null = null;
+
   constructor(tabId: number, windowId: number) {
     this.tabId = tabId;
     this.windowId = windowId;
@@ -73,16 +75,31 @@ export default class ChromeExtensionProxyPage implements AbstractPage {
   private async attachDebugger() {
     if (this.debuggerAttached) return;
 
-    await chrome.debugger.attach({ tabId: this.tabId }, '1.3');
-    this.debuggerAttached = true;
+    // If already attaching, wait for it to complete
+    if (this.attachingDebugger) {
+      await this.attachingDebugger;
+      return;
+    }
 
-    // listen to the debugger detach event
-    chrome.debugger.onEvent.addListener((source, method, params) => {
-      console.log('debugger event', source, method, params);
-      if (method === 'Debugger.detached') {
-        this.debuggerAttached = false;
+    // Create new attaching promise
+    this.attachingDebugger = (async () => {
+      try {
+        await chrome.debugger.attach({ tabId: this.tabId }, '1.3');
+        this.debuggerAttached = true;
+
+        // listen to the debugger detach event
+        chrome.debugger.onEvent.addListener((source, method, params) => {
+          console.log('debugger event', source, method, params);
+          if (method === 'Debugger.detached') {
+            this.debuggerAttached = false;
+          }
+        });
+      } finally {
+        this.attachingDebugger = null;
       }
-    });
+    })();
+
+    await this.attachingDebugger;
   }
 
   private async detachDebugger() {
@@ -141,24 +158,24 @@ export default class ChromeExtensionProxyPage implements AbstractPage {
     return returnValue.result.value;
   }
 
-  private async rectOfNodeId(nodeId: number): Promise<Rect | null> {
-    try {
-      const { model } =
-        await this.sendCommandToDebugger<CDPTypes.DOM.GetBoxModelResponse>(
-          'DOM.getBoxModel',
-          { nodeId },
-        );
-      return {
-        left: model.border[0],
-        top: model.border[1],
-        width: model.border[2] - model.border[0],
-        height: model.border[5] - model.border[1],
-      };
-    } catch (error) {
-      console.error('Error getting box model for nodeId', nodeId, error);
-      return null;
-    }
-  }
+  // private async rectOfNodeId(nodeId: number): Promise<Rect | null> {
+  //   try {
+  //     const { model } =
+  //       await this.sendCommandToDebugger<CDPTypes.DOM.GetBoxModelResponse>(
+  //         'DOM.getBoxModel',
+  //         { nodeId },
+  //       );
+  //     return {
+  //       left: model.border[0],
+  //       top: model.border[1],
+  //       width: model.border[2] - model.border[0],
+  //       height: model.border[5] - model.border[1],
+  //     };
+  //   } catch (error) {
+  //     console.error('Error getting box model for nodeId', nodeId, error);
+  //     return null;
+  //   }
+  // }
 
   async getElementInfos() {
     const content = await this.getPageContentByCDP();
@@ -176,8 +193,12 @@ export default class ChromeExtensionProxyPage implements AbstractPage {
   }
 
   async screenshotBase64() {
-    const base64 = await getScreenshotBase64FromWindowId(this.windowId);
-    return base64;
+    // screenshot by cdp
+    const base64 = await this.sendCommandToDebugger('Page.captureScreenshot', {
+      format: 'jpeg',
+      quality: 70,
+    });
+    return `data:image/jpeg;base64,${base64.data}`;
   }
 
   async url() {

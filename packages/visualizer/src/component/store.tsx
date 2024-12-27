@@ -1,3 +1,5 @@
+import { activeTabId } from '@/extension/utils';
+import { currentWindowId } from '@/extension/utils';
 import * as Z from 'zustand';
 // import { createStore } from 'zustand/vanilla';
 import type {
@@ -74,6 +76,31 @@ export interface HistoryItem {
   timestamp: number;
 }
 
+export const useChromeTabInfo = create<{
+  tabId: number | null;
+  windowId: number | null;
+}>((set) => {
+  const data = {
+    tabId: null,
+    windowId: null,
+  };
+
+  Promise.resolve().then(async () => {
+    const tabId = await activeTabId();
+    const windowId = await currentWindowId();
+    set({ tabId, windowId });
+
+    chrome.tabs.onActivated.addListener(async (activeInfo) => {
+      const tabId = activeInfo.tabId;
+      const windowId = await currentWindowId();
+
+      set({ tabId, windowId });
+    });
+  });
+
+  return data;
+});
+
 /**
 /**
  * Service Mode
@@ -144,6 +171,8 @@ export const useExecutionDump = create<{
   replayAllMode: boolean;
   setReplayAllMode: (replayAllMode: boolean) => void;
   allExecutionAnimation: AnimationScript[] | null;
+  sdkVersion: string | null;
+  modelName: string | null;
   insightWidth: number | null;
   insightHeight: number | null;
   activeExecution: ExecutionDump | null;
@@ -164,6 +193,8 @@ export const useExecutionDump = create<{
     dump: null,
     replayAllMode: false,
     allExecutionAnimation: null,
+    sdkVersion: null,
+    modelName: null,
     insightWidth: null,
     insightHeight: null,
     activeTask: null,
@@ -228,7 +259,13 @@ export const useExecutionDump = create<{
           return setDefaultActiveTask();
         }
 
-        const { scripts: allScripts, width, height } = allScriptsInfo;
+        const {
+          scripts: allScripts,
+          width,
+          height,
+          modelName,
+          sdkVersion,
+        } = allScriptsInfo;
 
         set({
           allExecutionAnimation: allScripts,
@@ -236,6 +273,8 @@ export const useExecutionDump = create<{
           replayAllMode: true,
           insightWidth: width,
           insightHeight: height,
+          modelName,
+          sdkVersion,
         });
       }
     },

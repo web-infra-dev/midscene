@@ -1,3 +1,13 @@
+export interface MidsceneYamlScript {
+  target: MidsceneYamlScriptEnv;
+  tasks: MidsceneYamlTask[];
+}
+
+export interface MidsceneYamlTask {
+  name: string;
+  flow: MidsceneYamlFlowItem[];
+}
+
 export interface MidsceneYamlScriptEnv {
   url: string;
   userAgent?: string;
@@ -16,7 +26,7 @@ export interface MidsceneYamlScriptEnv {
 export interface MidsceneYamlFlowItemAIAction {
   ai?: string; // this is the shortcut for aiAction
   aiAction?: string;
-  aiActionProgressTip?: string;
+  aiActionProgressTips?: string[];
 }
 
 export interface MidsceneYamlFlowItemAIAssert {
@@ -44,14 +54,9 @@ export type MidsceneYamlFlowItem =
   | MidsceneYamlFlowItemAIWaitFor
   | MidsceneYamlFlowItemSleep;
 
-export interface MidsceneYamlScript {
-  target: MidsceneYamlScriptEnv;
-  tasks: MidsceneYamlTask[];
-}
-
-export interface MidsceneYamlTask {
+export interface FreeFn {
   name: string;
-  flow: MidsceneYamlFlowItem[];
+  fn: () => void;
 }
 
 export interface ScriptPlayerTaskStatus extends MidsceneYamlTask {
@@ -62,15 +67,3 @@ export interface ScriptPlayerTaskStatus extends MidsceneYamlTask {
 }
 
 export type ScriptPlayerStatusValue = 'init' | 'running' | 'done' | 'error';
-
-export interface ScriptPlayerOptions {
-  headed?: boolean;
-  keepWindow?: boolean;
-  testId?: string;
-  onTaskStatusChange?: (taskStatus: ScriptPlayerTaskStatus) => void;
-}
-
-export interface MidsceneYamlFileContext {
-  file: string;
-  player: ScriptPlayer;
-}

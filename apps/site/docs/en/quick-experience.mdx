@@ -43,4 +43,10 @@ After experiencing, you may want to write some code to integrate Midscene. There
 
 * Extension fails to run and shows 'Cannot access a chrome-extension:// URL of different extension'
 
-Make sure you are using the Midscene extension on a normal http(s):// page. If the error persists, it's mainly due to conflicts with other extensions injecting `<iframes />` into the page. Try disabling the suspicious plugins and refresh.
+It's mainly due to conflicts with other extensions injecting `<iframe />` or `<script />` into the page. Try disabling the suspicious plugins and refresh. 
+
+To find the suspicious plugins:
+ 
+1. Open the Devtools of the page, find the `<script>` or `<iframe>` with a url like `chrome-extension://{ID-of-the-suspicious-plugin}/...`.
+2. Copy the ID from the url, open chrome://extensions/, find the plugin with the same ID, disable it.
+3. Refresh the page, try again.
