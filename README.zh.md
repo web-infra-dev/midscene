@@ -45,6 +45,12 @@ Midscene.js 是一个由 AI 驱动的自动化 SDK，能够使用自然语言对
 * [集成到 Playwright](https://midscenejs.com/zh/integrate-with-playwright.html)
 * [自定义模型和服务商](https://midscenejs.com/zh/model-provider.html)
 
+## 社区
+
+* [飞书群](https://applink.larkoffice.com/client/chat/chatter/add_by_link?link_token=291q2b25-e913-411a-8c51-191e59aab14d)
+
+
+
 ## 授权许可
 
 Midscene.js 遵循 [MIT 许可协议](https://github.com/web-infra-dev/midscene/blob/main/LICENSE)。

@@ -48,6 +48,10 @@ Midscene.js is an AI-powered automation SDK can control the page, perform assert
 * [Integrate with Playwright](https://midscenejs.com/integrate-with-playwright.html)
 * [Customize Model and Provider](https://midscenejs.com/model-provider.html)
 
+## Community
+
+* [Lark Group](https://applink.larkoffice.com/client/chat/chatter/add_by_link?link_token=291q2b25-e913-411a-8c51-191e59aab14d)
+
 ## License
 
 Midscene.js is [MIT licensed](https://github.com/web-infra-dev/midscene/blob/main/LICENSE).
