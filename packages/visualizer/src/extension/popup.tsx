@@ -22,6 +22,7 @@ import { useChromeTabInfo } from '@/component/store';
 import { SendOutlined } from '@ant-design/icons';
 import type { ChromeExtensionProxyPageAgent } from '@midscene/web/chrome-extension';
 import { useEffect, useState } from 'react';
+import Bridge from './bridge';
 
 const shotAndOpenPlayground = async (
   agent?: ChromeExtensionProxyPageAgent | null,
@@ -58,7 +59,7 @@ function PlaygroundPopup() {
     }
     setLoading(true);
     try {
-      const agent = extensionAgentForTabId(tabId, windowId);
+      const agent = extensionAgentForTabId(tabId);
       await shotAndOpenPlayground(agent);
       await agent!.page.destroy();
     } catch (e: any) {
@@ -94,12 +95,13 @@ function PlaygroundPopup() {
           </p>
         </div>
 
+        <Bridge />
         <div className="hr" />
         <div className="popup-playground-container">
           <Playground
             hideLogo
             getAgent={() => {
-              return extensionAgentForTabId(tabId, windowId);
+              return extensionAgentForTabId(tabId);
             }}
             showContextPreview={false}
           />

@@ -27,39 +27,10 @@ const scriptFileContent = async () => {
   return fs.readFileSync(scriptFileToRetrieve, 'utf8');
 };
 
-const lastTwoCallTime = [0, 0];
-const callInterval = 1050;
-async function getScreenshotBase64FromWindowId(windowId: number) {
-  // check if this window is active
-  const activeWindow = await chrome.windows.getAll({ populate: true });
-  if (activeWindow.find((w) => w.id === windowId) === undefined) {
-    throw new Error(`Window with id ${windowId} is not active`);
-  }
-
-  // avoid MAX_CAPTURE_VISIBLE_TAB_CALLS_PER_SECOND
-  const now = Date.now();
-  if (now - lastTwoCallTime[0] < callInterval) {
-    const sleepTime = callInterval - (now - lastTwoCallTime[0]);
-    console.warn(
-      `Sleep for ${sleepTime}ms to avoid too frequent screenshot calls`,
-    );
-    await new Promise((resolve) => setTimeout(resolve, sleepTime));
-  }
-  const base64 = await chrome.tabs.captureVisibleTab(windowId, {
-    format: 'jpeg',
-    quality: 70,
-  });
-  lastTwoCallTime.shift();
-  lastTwoCallTime.push(Date.now());
-  return base64;
-}
-
 export default class ChromeExtensionProxyPage implements AbstractPage {
   pageType = 'chrome-extension-proxy';
 
   private tabId: number;
-
-  private windowId: number;
 
   private viewportSize?: Size;
 
@@ -67,9 +38,8 @@ export default class ChromeExtensionProxyPage implements AbstractPage {
 
   private attachingDebugger: Promise<void> | null = null;
 
-  constructor(tabId: number, windowId: number) {
+  constructor(tabId: number) {
     this.tabId = tabId;
-    this.windowId = windowId;
   }
 
   private async attachDebugger() {
@@ -157,25 +127,6 @@ export default class ChromeExtensionProxyPage implements AbstractPage {
     // console.log('returnValue', returnValue.result.value);
     return returnValue.result.value;
   }
-
-  // private async rectOfNodeId(nodeId: number): Promise<Rect | null> {
-  //   try {
-  //     const { model } =
-  //       await this.sendCommandToDebugger<CDPTypes.DOM.GetBoxModelResponse>(
-  //         'DOM.getBoxModel',
-  //         { nodeId },
-  //       );
-  //     return {
-  //       left: model.border[0],
-  //       top: model.border[1],
-  //       width: model.border[2] - model.border[0],
-  //       height: model.border[5] - model.border[1],
-  //     };
-  //   } catch (error) {
-  //     console.error('Error getting box model for nodeId', nodeId, error);
-  //     return null;
-  //   }
-  // }
 
   async getElementInfos() {
     const content = await this.getPageContentByCDP();
