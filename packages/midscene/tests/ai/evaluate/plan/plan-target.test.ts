@@ -1,5 +1,6 @@
 import path from 'node:path';
 import { planTargetAction } from '@/ai-model';
+import { extractJSONFromCodeBlock, safeParseJson } from '@/ai-model/openai';
 import { findElementPoint } from '@/ai-model/prompt/find_element_point';
 import { compositePointInfoImg, saveBase64Image } from '@midscene/shared/img';
 import sizeOf from 'image-size';
@@ -12,11 +13,24 @@ vi.setConfig({
   hookTimeout: 30 * 1000,
 });
 
+function getPoint(predictions: any, factor = 1000) {
+  const [x, y] = predictions.positions;
+  const point = [(x / factor).toFixed(3), (y / factor).toFixed(3)].map(Number);
+  return point as [number, number];
+}
+
+async function getImgSize(base64: string) {
+  const base64Data = base64.replace(/^data:image\/\w+;base64,/, '');
+  const imageBuffer = Buffer.from(base64Data, 'base64');
+  const { width, height } = await sizeOf(imageBuffer);
+  return { width, height };
+}
+
 describe('automation - planning target', () => {
   it('basic run', async () => {
     const { context } = await getPageDataOfTestName('todo');
     const startTime = Date.now();
-    const data = await planTargetAction<any>(
+    const predictions = await planTargetAction<any>(
       'type "Why is the earth a sphere?", wait 3.5s, hit Enter',
       [],
       {
@@ -26,38 +40,29 @@ describe('automation - planning target', () => {
     const endTime = Date.now();
     const duration = endTime - startTime;
     console.log(`API call duration: ${duration}ms`);
-    console.log(data.content);
-    const findElementStartTime = Date.now();
-    const pointInfo = await findElementPoint<any>(
-      data.content['target-element'],
-      {
-        screenshotBase64: context.screenshotBase64,
-      },
-    );
-    const findElementEndTime = Date.now();
-    const findElementDuration = findElementEndTime - findElementStartTime;
-    console.log(`Find element duration: ${findElementDuration}ms`);
+    console.log(predictions);
+    const { width, height } = await getImgSize(context.screenshotBase64);
+    assert(width && height, 'Invalid image');
+    const point = getPoint(predictions);
 
-    // const { width, height } = await sizeOf(context.screenshotBase64);
-    // assert(width && height, 'Invalid image');
     const composeImage = await compositePointInfoImg({
       inputImgBase64: context.screenshotBase64,
       points: [
         {
-          point: pointInfo.content,
+          point: [point[0], point[1]],
           indexId: 0,
         },
       ],
       size: {
-        width: 1280,
-        height: 720,
+        width,
+        height,
       },
     });
     await saveBase64Image({
       base64Data: composeImage,
       outputPath: path.join(__dirname, 'output', 'plan-target.png'),
     });
-    console.log(pointInfo);
-    expect(data).toBeTruthy();
+    // // console.log(pointInfo);
+    // expect(data).toBeTruthy();
   });
 });

@@ -1,5 +1,8 @@
-import { call, callToGetJSONObject } from '@/ai-model/openai/index';
-import type { AIUsageInfo, PlanningAIResponse, UIContext } from '@/types';
+import {
+  call,
+  callToGetJSONObject,
+  safeParseJson,
+} from '@/ai-model/openai/index';
 import { AIActionType } from '../common';
 import { systemPrompt } from '../prompt/plan-target';
 
@@ -11,12 +14,20 @@ export async function planTargetAction<T>(
   },
 ) {
   const { screenshotBase64 } = opts;
-  const data = await callToGetJSONObject(
+  const data = await callToGetJSONObject<any>(
     [
       { role: 'system', content: systemPrompt },
       {
         role: 'user',
         content: [
+          {
+            type: 'text',
+            text: `已经执行过的操作：${historyActions.join('\n')}`,
+          },
+          {
+            type: 'text',
+            text: `用户希望达成的目标：${userPrompt}`,
+          },
           {
             //@ts-ignore
             type: 'image_url',
@@ -26,18 +37,12 @@ export async function planTargetAction<T>(
             // min_pixels: min_pixels,
             // max_pixels: max_pixels,
           },
-          {
-            type: 'text',
-            text: `已经执行过的操作：${historyActions.join('\n')}`,
-          },
-          {
-            type: 'text',
-            text: `用户希望达成的目标：${userPrompt}`,
-          },
         ],
       },
     ],
     AIActionType.PLAN,
   );
-  return data as T;
+  const prediction = safeParseJson(data.content[0].prediction);
+
+  return prediction as T;
 }

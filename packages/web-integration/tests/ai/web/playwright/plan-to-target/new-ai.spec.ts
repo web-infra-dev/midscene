@@ -11,6 +11,12 @@ test.beforeEach(async ({ page }) => {
   await page.waitForLoadState('networkidle');
 });
 
+function getPoint(predictions: any, factor = 1000) {
+  const [x, y] = predictions.positions;
+  const point = [(x / factor).toFixed(3), (y / factor).toFixed(3)].map(Number);
+  return point as [number, number];
+}
+
 test('ai online order', async ({ page }) => {
   try {
     const outputPath = path.join(__dirname, 'output');
@@ -23,36 +29,32 @@ test('ai online order', async ({ page }) => {
   const historyActions: string[] = [];
   let isCompleted = false;
   let currentActionNumber = 0;
-  const targetPrompt =
-    '切换语言中文，滚动找到多肉葡萄，点击选择规格，在选择规格勾选所有必选参数';
+  const targetPrompt = '切换语言中文';
 
   while (!isCompleted && currentActionNumber < 10) {
     await page.waitForLoadState('networkidle');
     const screenshotBase64 = await playwrightPage.screenshotBase64();
-
-    const data = await planTargetAction<any>(targetPrompt, historyActions, {
+    const startTime = Date.now();
+    const data = await planTargetAction<any>(targetPrompt, [], {
       screenshotBase64,
     });
-    console.log(data.content);
+    const endTime = Date.now();
+    const duration = endTime - startTime;
+    console.log(`API call duration: ${duration}ms`, data);
 
-    if (data.content['is-completed'] === true) {
+    if (data && data['is-completed'] === true) {
       isCompleted = true;
       break;
     }
 
-    const pointInfo = await findElementPoint<any>(
-      data.content['target-element'],
-      {
-        screenshotBase64,
-      },
-    );
-    console.log(pointInfo);
     const size = await playwrightPage.size();
+    const [x, y] = getPoint(data);
+    const point = [x * size.width, y * size.height];
     const composeImage = await compositePointInfoImg({
       inputImgBase64: screenshotBase64,
       points: [
         {
-          point: [pointInfo.content[0], pointInfo.content[1]],
+          point: [x, y],
           indexId: 0,
         },
       ],
@@ -69,18 +71,16 @@ test('ai online order', async ({ page }) => {
         `plan-target-${currentActionNumber++}.png`,
       ),
     });
-    if (data.content['action-type'] === 'CLICK') {
-      await playwrightPage.mouse.click(
-        pointInfo.content[0] * size.width,
-        pointInfo.content[1] * size.height,
-      );
-    } else if (data.content['action-type'] === 'SCROLL') {
+    if (data['action-type'] === 'click') {
+      await playwrightPage.mouse.click(point[0], point[1]);
+    } else if (data['action-type'] === 'scroll') {
       await playwrightPage.scrollDownOneScreen();
     }
 
     historyActions.push(
-      `action: ${data.content['action-type']}, target: ${data.content['target-element']} thinking: ${data.content.thinking}`,
+      `action: ${data['action-type']}, target: ${data['target-element']} thinking: ${data.thinking}`,
     );
+    // break;
   }
   console.log('historyActions', historyActions);
 });

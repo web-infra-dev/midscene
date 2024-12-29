@@ -1,0 +1,83 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`automation - planning input - openAI > input value 1`] = `
+[
+  {
+    "locate": {
+      "id": "fbc2d002",
+      "prompt": "the input field with placeholder 'What needs to be done?'",
+    },
+    "param": null,
+    "thought": undefined,
+    "type": "Tap",
+  },
+  {
+    "locate": {
+      "id": "fbc2d002",
+      "prompt": "the input field with placeholder 'What needs to be done?'",
+    },
+    "param": {
+      "value": "learning english",
+    },
+    "thought": undefined,
+    "type": "Input",
+  },
+]
+`;
+
+exports[`automation - planning input - openAI > input value 2`] = `
+[
+  {
+    "locate": {
+      "id": "fbc2d002",
+      "prompt": "the input field with placeholder 'What needs to be done?'",
+    },
+    "param": null,
+    "thought": undefined,
+    "type": "Tap",
+  },
+  {
+    "locate": {
+      "id": "fbc2d002",
+      "prompt": "the input field with placeholder 'What needs to be done?'",
+    },
+    "param": {
+      "value": "learning english",
+    },
+    "thought": undefined,
+    "type": "Input",
+  },
+  {
+    "param": {
+      "value": "Enter",
+    },
+    "thought": undefined,
+    "type": "KeyboardPress",
+  },
+]
+`;
+
+exports[`automation - planning input - openAI > input value 3`] = `
+[
+  {
+    "locate": {
+      "id": "fbc2d002",
+      "prompt": "the input field with placeholder 'What needs to be done?'",
+    },
+    "param": null,
+    "thought": undefined,
+    "type": "Tap",
+  },
+  {
+    "locate": {
+      "id": "fbc2d002",
+      "prompt": "the input field with placeholder 'What needs to be done?'",
+    },
+    "param": {
+      "value": "learning english",
+    },
+    "thought": undefined,
+    "type": "Input",
+  },
+]
+`;

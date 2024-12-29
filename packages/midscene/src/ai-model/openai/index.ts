@@ -212,3 +212,19 @@ export function extractJSONFromCodeBlock(response: string) {
   // If no JSON-like structure is found, return the original response
   return response;
 }
+
+export function safeParseJson(input: string) {
+  try {
+    let json = extractJSONFromCodeBlock(input);
+    if (typeof json === 'string') {
+      // Convert tuple-like position format (x,y) to array format [x,y]
+      json = json.replace(
+        /\"positions\":\s*\((\d+),(\d+)\)/g,
+        '"positions": [$1,$2]',
+      );
+    }
+    return JSON.parse(json);
+  } catch {
+    return null;
+  }
+}

@@ -1,6 +1,7 @@
 import { call, callToGetJSONObject } from '@/ai-model/openai/index';
 import type { AIUsageInfo, PlanningAIResponse, UIContext } from '@/types';
 import { AIActionType } from '../common';
+
 export const systemPrompt = `
 You are using a browser page.
 You can interact with the computer using a mouse and keyboard based on the given task and screenshot.
@@ -30,7 +31,7 @@ Please follow the output format strictly.
 \`\`\`json
 {
     "action-type": "action_type", // choose one from available actions
-    "target-element": "目标元素的文本内容或独特的视觉特征", // describe using the element's exact text or unique visual features
+    "positions": [x1, y1, x2, y2], // the element positions
     "value": "value", // the value to be input, if the action is INPUT
     "is-completed": true | false, // whether the task is completed
     "thinking": "str" // describe your thoughts on how to achieve the task, including reflection on past actions
@@ -41,7 +42,7 @@ Please follow the output format strictly.
 \`\`\`json
 {  
     "action-type": "INPUT",
-    "target-element": "search box with magnifying glass icon",
+    "positions": [100, 200, 110, 210],
     "value": "Why is the earth a sphere?",
     "thinking": "I need to search and navigate to amazon.com. Previous search might not have executed correctly, so I'm ensuring the input is accurate.",
     "is-completed": false
@@ -52,7 +53,7 @@ Please follow the output format strictly.
 1. Carefully observe the screenshot to understand the current state and review history actions.
 2. **Reflect on Past Actions:** Determine if previous actions were successful. If not, adjust your current action accordingly.
 3. You should only provide a single action at a time. For example, INPUT text and ENTER cannot be in one next-action.
-4. For \`target-element\`, use the element's exact text or describe its unique visual features.
+4. For \`positions\`, the element's positions.
 5. Do not include other actions, such as keyboard shortcuts.
 6. When the task is completed, you should:
    - Set \`"is-completed"\` to \`true\`
