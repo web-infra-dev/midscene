@@ -21,7 +21,7 @@ export OPENAI_BASE_URL="https://..."
 export OPENAI_USE_AZURE="true"
 
 # if you want to specify a model name other than gpt-4o
-export MIDSCENE_MODEL_NAME='qwen-vl-max-lates';
+export MIDSCENE_MODEL_NAME='qwen-vl-max-latest';
 
 # if you want to pass customized JSON data to the `init` process of OpenAI SDK
 export MIDSCENE_OPENAI_INIT_CONFIG_JSON='{"baseURL":"....","defaultHeaders":{"key": "value"}}'
