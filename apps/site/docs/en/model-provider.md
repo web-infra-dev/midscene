@@ -35,10 +35,17 @@ export OPENAI_MAX_TOKENS=2048
 
 ## Using Azure OpenAI Service
 
+Usually Azure OpenAI Service will provide you with endpoint (`AZURE_OPENAI_ENDPOINT`), deployment (`AZURE_OPENAI_DEPLOYMENT_NAME`) and apiVersion (`AZURE_OPENAI_API_VERSION`) parameters, you need to put them into `MIDSCENE_AZURE_OPENAI_INIT_CONFIG_JSON` as a valid JSON string.
+
 ```bash
+# this is always true when using Azure OpenAI Service
 export MIDSCENE_USE_AZURE_OPENAI=1
+
+# this is the default scope
 export MIDSCENE_AZURE_OPENAI_SCOPE="https://cognitiveservices.azure.com/.default"
-export MIDSCENE_AZURE_OPENAI_INIT_CONFIG_JSON='{"apiVersion": "2024-11-01-preview", "endpoint": "...", "deployment": "..."}'
+
+# replace the json with your own parameters
+export MIDSCENE_AZURE_OPENAI_INIT_CONFIG_JSON='{"apiVersion": "2024-11-01-preview", "endpoint": "<replace-this-with-AZURE_OPENAI_ENDPOINT>", "deployment": "<replace-this-with-AZURE_OPENAI_DEPLOYMENT_NAME>"}'
 ```
 
 ## Choose a model other than `gpt-4o`
@@ -94,6 +101,15 @@ Configure the environment variables:
 export OPENAI_BASE_URL="https://ark.cn-beijing.volces.com/api/v3"
 export OPENAI_API_KEY="..."
 export MIDSCENE_MODEL_NAME="ep-202....."
+```
+
+## Example: config request headers (like for openrouter)
+
+```bash
+export OPENAI_BASE_URL="https://openrouter.ai/api/v1"
+export OPENAI_API_KEY="..."
+export MIDSCENE_MODEL_NAME="..."
+export MIDSCENE_OPENAI_INIT_CONFIG_JSON='{"defaultHeaders":{"HTTP-Referer":"...","X-Title":"..."}}'
 ```
 
 ## Troubleshooting LLM Service Connectivity Issues

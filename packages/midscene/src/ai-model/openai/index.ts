@@ -102,6 +102,9 @@ async function createChatClient(): Promise<{
       httpAgent: socksAgent,
       ...extraConfig,
       dangerouslyAllowBrowser: true,
+      defaultHeaders: {
+        Origin: 'https://midscenejs.com',
+      },
     });
   }
 
