@@ -18,7 +18,7 @@ export OPENAI_API_KEY="sk-abcdefghijklmnopqrstuvwxyz"
 export OPENAI_BASE_URL="https://..."
 
 # 可选, 如果你想指定模型名称
-export MIDSCENE_MODEL_NAME='qwen-vl-max-lates';
+export MIDSCENE_MODEL_NAME='qwen-vl-max-latest';
 
 # 可选, 如果你想变更 SDK 的初始化参数
 export MIDSCENE_OPENAI_INIT_CONFIG_JSON='{"baseURL":"....","defaultHeaders":{"key": "value"}}'
