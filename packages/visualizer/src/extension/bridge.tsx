@@ -1,62 +1,49 @@
-import {
-  ChromeExtensionPageBridgeSide,
-  getBridgePageInCliSide,
-} from '@midscene/web/chrome-extension';
+import { ChromeExtensionPageBrowserSide } from '@midscene/web/chrome-extension';
 import { Button } from 'antd';
 import { useEffect, useState } from 'react';
 
 export default function Bridge() {
-  const [bridge, setBridge] = useState<ChromeExtensionPageBridgeSide | null>(
-    null,
-  );
-  const [tabId, setTabId] = useState<number | null>(null);
-  useEffect(() => {
-    const bridge = new ChromeExtensionPageBridgeSide();
-    bridge.connect();
-    setBridge(bridge);
-  }, []);
+  const [bridgePage, setBridgePage] =
+    useState<ChromeExtensionPageBrowserSide | null>(null);
 
-  const newTab = async () => {
-    if (!bridge) {
-      throw new Error('bridge is not initialized');
+  const [bridgeStatus, setBridgeStatus] = useState<
+    'init' | 'connecting' | 'connected' | 'error' | 'closed'
+  >('init');
+
+  const startConnection = async () => {
+    const bridgePage = new ChromeExtensionPageBrowserSide(() => {
+      setBridgeStatus('closed');
+    });
+    try {
+      setBridgeStatus('connecting');
+      await bridgePage.connect();
+      console.log('bridgePage connected !', bridgePage);
+      setBridgePage(bridgePage);
+      setBridgeStatus('connected');
+    } catch (e) {
+      console.error(e);
+      setBridgeStatus('error');
     }
-    const { tabId } = await bridge.connectNewTabWithUrl(
-      'https://www.baidu.com',
-    );
-    setTabId(tabId);
-  };
-
-  const doSomething = async () => {
-    if (!tabId) {
-      throw new Error('bridge is not initialized');
-    }
-
-    const proxy: any = getBridgePageInCliSide(tabId);
-    console.log('1');
-    console.log(proxy.screenshotBase64());
-    console.log('2');
-    console.log(await proxy.mouse.click());
-    // const page =
-    // await bridge.call(tabId, 'screenshotBase64');
   };
 
   return (
     <div>
-      <h1>Bridge List</h1>
-      <div>
-        {Object.entries(bridge?.connectedPages || {}).map(([tabId, page]) => (
-          <div key={tabId}>{tabId}</div>
-        ))}
-      </div>
-      <Button onClick={newTab}>new tab</Button>
+      <h1>Bridge Mode ({bridgeStatus})</h1>
       <Button
         onClick={() => {
-          bridge?.closeAll();
+          if (
+            bridgeStatus === 'init' ||
+            bridgeStatus === 'closed' ||
+            bridgeStatus === 'error'
+          ) {
+            startConnection();
+          } else {
+            console.warn('bridge is already connected, will not connect again');
+          }
         }}
       >
-        close all
+        Connect
       </Button>
-      <Button onClick={doSomething}>do something</Button>
     </div>
   );
 }

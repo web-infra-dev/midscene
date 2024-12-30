@@ -1,6 +1,7 @@
-/// <reference types="chrome" />
 import { Button, ConfigProvider, message } from 'antd';
 import ReactDOM from 'react-dom/client';
+import { setSideEffect } from '../init';
+/// <reference types="chrome" />
 import './popup.less';
 
 import {
@@ -24,6 +25,7 @@ import type { ChromeExtensionProxyPageAgent } from '@midscene/web/chrome-extensi
 import { useEffect, useState } from 'react';
 import Bridge from './bridge';
 
+setSideEffect();
 const shotAndOpenPlayground = async (
   agent?: ChromeExtensionProxyPageAgent | null,
 ) => {

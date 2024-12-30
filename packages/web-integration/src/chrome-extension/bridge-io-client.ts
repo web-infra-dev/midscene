@@ -15,13 +15,28 @@ export class BridgeClient {
   constructor(
     public endpoint: string,
     public onBridgeCall: (method: string, args: any[]) => Promise<any>,
+    public onDisconnect?: () => void,
   ) {}
 
   async connect() {
     return new Promise((resolve, reject) => {
-      this.socket = ClientIO(this.endpoint);
+      this.socket = ClientIO(this.endpoint, {
+        reconnection: false,
+      });
+
+      const timeout = setTimeout(() => {
+        reject(new Error('failed to connect to bridge server'));
+      }, 1 * 1000);
+
+      // on disconnect
+      this.socket.on('disconnect', (reason: string) => {
+        console.log('bridge-disconnected, reason:', reason);
+        this.socket = null;
+        this.onDisconnect?.();
+      });
 
       this.socket.on(BridgeConnectedEvent, () => {
+        clearTimeout(timeout);
         console.log('bridge-connected');
         resolve(this.socket);
       });
@@ -36,10 +51,12 @@ export class BridgeClient {
           let response: any;
           try {
             response = await this.onBridgeCall(call.method, call.args);
-          } catch (e) {
+          } catch (e: any) {
+            const errorContent = `Error from bridge client when calling ${call.method}: ${e?.message || e}\n${e?.stack || ''}`;
+            console.error(errorContent);
             return this.socket?.emit(BridgeCallResponseEvent, {
               id,
-              error: e,
+              error: errorContent,
             } as BridgeCallResponse);
           }
           this.socket?.emit(BridgeCallResponseEvent, {

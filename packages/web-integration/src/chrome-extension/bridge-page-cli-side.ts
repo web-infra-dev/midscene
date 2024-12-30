@@ -2,9 +2,10 @@ import assert from 'node:assert';
 import type { KeyboardAction, MouseAction } from '@/page';
 import { DefaultBridgeServerPort } from './bridge-common';
 import { BridgeServer } from './bridge-io-server';
+import type { ChromeExtensionPageBrowserSide } from './bridge-page';
 
 // TODO: handle the connection timeout
-export const getBridgePageInCliSide = () => {
+export const getBridgePageInCliSide = (): ChromeExtensionPageBrowserSide => {
   const server = new BridgeServer(DefaultBridgeServerPort);
 
   server.listen();
@@ -15,18 +16,22 @@ export const getBridgePageInCliSide = () => {
     };
   };
   const page = {};
-  // const page = {
-  //   pendingCalls: [] as BridgeCall[],
-  //   listen: () => {
-  //     const io = new Server(DefaultBridgeServerPort);
-  //     io.on('connection', (socket) => {
-  //       socket.emit('bridge-connected', tabId);
-  //     });
-  //   },
-  // };
+
   return new Proxy(page, {
     get(target, prop, receiver) {
       assert(typeof prop === 'string', 'prop must be a string');
+
+      if (prop === 'toJSON') {
+        return () => {
+          return {
+            pageType: 'page-over-chrome-extension-bridge',
+          };
+        };
+      }
+
+      if (prop === '_forceUsePageContext') {
+        return undefined;
+      }
 
       if (Object.keys(page).includes(prop)) {
         return page[prop as keyof typeof page];
@@ -53,7 +58,18 @@ export const getBridgePageInCliSide = () => {
         return keyboard;
       }
 
+      if (prop === 'destroy') {
+        return async () => {
+          try {
+            await bridgeCaller('destroy');
+          } catch (e) {
+            console.error('error calling destroy', e);
+          }
+          return server.close();
+        };
+      }
+
       return bridgeCaller(prop);
     },
-  });
+  }) as ChromeExtensionPageBrowserSide;
 };

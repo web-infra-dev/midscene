@@ -14,7 +14,7 @@ export interface BridgeCall {
   response: any;
   callTime: number;
   responseTime: number;
-  callback: (response: any) => void;
+  callback: (error: Error | undefined, response: any) => void;
   error?: Error;
 }
 

@@ -1,20 +1,23 @@
 import assert from 'node:assert';
+import { MouseAction } from '@/page';
+import { KeyboardAction } from '@/page';
 import { DefaultBridgeServerPort } from './bridge-common';
 import { BridgeClient } from './bridge-io-client';
 import ChromeExtensionProxyPage from './page';
 
-export class ChromeExtensionPageBridgeSide extends ChromeExtensionProxyPage {
+export class ChromeExtensionPageBrowserSide extends ChromeExtensionProxyPage {
   public bridgeClient: BridgeClient | null = null;
 
-  constructor() {
+  constructor(public onDisconnect: () => void = () => {}) {
     super(0);
   }
 
   private async setupBridgeClient() {
     this.bridgeClient = new BridgeClient(
       `ws://localhost:${DefaultBridgeServerPort}`,
-      (method, args: any[]) => {
-        if (method === 'newTabWithUrl') {
+      async (method, args: any[]) => {
+        console.log('bridge call from cli side', method, args);
+        if (method === 'connectNewTabWithUrl') {
           return this.connectNewTabWithUrl.apply(
             this,
             args as unknown as [string],
@@ -25,8 +28,23 @@ export class ChromeExtensionPageBridgeSide extends ChromeExtensionProxyPage {
           throw new Error('no tab is connected');
         }
 
+        if (method.startsWith('mouse.')) {
+          const actionName = method.split('.')[1] as keyof MouseAction;
+          return this.mouse[actionName].apply(this.mouse, args as any);
+        }
+
+        if (method.startsWith('keyboard.')) {
+          const actionName = method.split('.')[1] as keyof KeyboardAction;
+          return this.keyboard[actionName].apply(this.keyboard, args as any);
+        }
+
         // @ts-expect-error
         return this[method as keyof ChromeExtensionProxyPage](...args);
+      },
+      // on disconnect
+      () => {
+        this.bridgeClient = null;
+        return this.destroy();
       },
     );
     await this.bridgeClient.connect();
@@ -37,6 +55,7 @@ export class ChromeExtensionPageBridgeSide extends ChromeExtensionProxyPage {
     while (Date.now() - startTime < timeout) {
       try {
         await this.setupBridgeClient();
+        console.log('bridge client connected');
         return;
       } catch (e) {
         console.error('failed to connect to bridge server', e);
@@ -61,10 +80,13 @@ export class ChromeExtensionPageBridgeSide extends ChromeExtensionProxyPage {
     this.tabId = tabId;
   }
 
-  disconnect() {
+  async destroy() {
     if (this.bridgeClient) {
       this.bridgeClient.disconnect();
+      this.bridgeClient = null;
     }
+    super.destroy();
     this.tabId = 0;
+    this.onDisconnect();
   }
 }

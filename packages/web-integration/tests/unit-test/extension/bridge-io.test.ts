@@ -1,7 +1,6 @@
-import { describe, expect, it } from 'vitest';
-
 import { BridgeClient } from '@/chrome-extension/bridge-io-client';
 import { BridgeServer } from '@/chrome-extension/bridge-io-server';
+import { describe, expect, it, vi } from 'vitest';
 
 let testPort = 1234;
 describe('bridge-io', () => {
@@ -65,7 +64,49 @@ describe('bridge-io', () => {
     client.disconnect();
   });
 
-  it('flush all calls', async () => {
+  it('client call error', async () => {
+    const port = testPort++;
+    const server = new BridgeServer(port);
+    const errMsg = 'internal error';
+    server.listen();
+
+    const client = new BridgeClient(
+      `ws://localhost:${port}`,
+      (method, args) => {
+        return Promise.reject(new Error(errMsg));
+      },
+    );
+
+    await client.connect();
+    // await server.call('test', ['a', 'b']);
+    expect(server.call('test', ['a', 'b'])).rejects.toThrow(errMsg);
+  });
+
+  it('client disconnect event', async () => {
+    const port = testPort++;
+    const server = new BridgeServer(port);
+    server.listen();
+
+    const fn = vi.fn();
+
+    const client = new BridgeClient(
+      `ws://localhost:${port}`,
+      (method, args) => {
+        return Promise.resolve('ok');
+      },
+      fn,
+    );
+
+    await client.connect();
+
+    await server.close();
+
+    // sleep 1s
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+    expect(fn).toHaveBeenCalled();
+  });
+
+  it('flush all calls before connecting', async () => {
     const port = testPort++;
     const server = new BridgeServer(port);
     server.listen();

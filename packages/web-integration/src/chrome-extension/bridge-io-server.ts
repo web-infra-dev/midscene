@@ -48,10 +48,13 @@ export class BridgeServer {
             if (!call) {
               throw new Error(`call ${id} not found`);
             }
+            call.error = params.error;
             call.response = response;
             call.responseTime = Date.now();
 
-            call.callback(response);
+            // console.log('callback', call.method, call.error, response);
+
+            call.callback(call.error, response);
           });
 
           // flush all calls
@@ -112,9 +115,13 @@ export class BridgeServer {
         response: null,
         callTime: 0,
         responseTime: 0,
-        callback: (response: any) => {
+        callback: (error: Error | undefined, response: any) => {
           clearTimeout(timeoutId);
-          resolve(response);
+          if (error) {
+            reject(error);
+          } else {
+            resolve(response);
+          }
         },
       };
 
