@@ -182,20 +182,28 @@ export function truncateText(text: string, maxLength = 100) {
   return '';
 }
 
-export function elementByPosition(
+export function elementByPositionWithElementInfo(
   elementsInfo: BaseElement[],
   position: {
     x: number;
     y: number;
   },
+  size: { width: number; height: number },
 ) {
   assert(typeof position !== 'undefined', 'position is required for query');
+  console.log('positionN', { position, size });
+  const screenWidth = size.width;
+  const screenHeight = size.height;
+  const positionN = {
+    x: Number(((position.x / 1000) * screenWidth).toFixed(3)),
+    y: Number(((position.y / 1000) * screenHeight).toFixed(3)),
+  };
   const item = elementsInfo.find((item) => {
     return (
-      item.rect.left <= position.x &&
-      position.x <= item.rect.left + item.rect.width &&
-      item.rect.top <= position.y &&
-      position.y <= item.rect.top + item.rect.height
+      item.rect.left <= positionN.x &&
+      positionN.x <= item.rect.left + item.rect.width &&
+      item.rect.top <= positionN.y &&
+      positionN.y <= item.rect.top + item.rect.height
     );
   });
   return item;
@@ -240,6 +248,8 @@ export async function describeUserPage<
     const imgSize = await imageInfoOfBase64(screenshotBase64);
     ({ width, height } = imgSize);
   }
+  console.log('width', width);
+  console.log('height', height);
 
   const elementsInfo = context.content;
   const idElementMap: Record<string, ElementType> = {};
@@ -282,9 +292,14 @@ ${
       const item = idElementMap[`${id}`];
       return item;
     },
-    elementByPosition(position: { x: number; y: number }) {
-      return elementByPosition(elementsInfo, position);
+    elementByPosition(
+      position: { x: number; y: number },
+      size: { width: number; height: number },
+    ) {
+      console.log('elementByPosition', { position, size });
+      return elementByPositionWithElementInfo(elementsInfo, position, size);
     },
+    size: { width, height },
   };
 }
 

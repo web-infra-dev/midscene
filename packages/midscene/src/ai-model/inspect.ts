@@ -18,7 +18,7 @@ import {
 } from './prompt/element_inspector';
 import {
   describeUserPage,
-  elementByPosition,
+  elementByPositionWithElementInfo,
   systemPromptToAssert,
   systemPromptToExtract,
 } from './prompt/util';
@@ -36,7 +36,9 @@ const liteContextConfig = {
 export function transformElementPositionToId(
   aiResult: AIElementResponse,
   elementsInfo: BaseElement[],
+  size: { width: number; height: number },
 ) {
+  console.log('transformElementPositionToId', { size });
   return {
     errors: aiResult.errors,
     elements: aiResult.elements.map((item) => {
@@ -44,7 +46,12 @@ export function transformElementPositionToId(
         return item;
       }
       const { position } = item;
-      const id = elementByPosition(elementsInfo, position)?.id;
+      const id = elementByPositionWithElementInfo(
+        elementsInfo,
+        position,
+        size,
+      )?.id;
+      console.log('id', id);
       assert(
         id,
         `inspect: no id found with position: ${JSON.stringify({ position })}`,
@@ -69,49 +76,49 @@ export async function AiInspectElement<
 }) {
   const { context, multi, targetElementDescription, callAI } = options;
   const { screenshotBase64, screenshotBase64WithElementMarker } = context;
-  const { description, elementById, elementByPosition } =
+  const { description, elementById, elementByPosition, size } =
     await describeUserPage(context);
-
   // meet quick answer
-  if (options.quickAnswer) {
-    if ('id' in options.quickAnswer) {
-      if (elementById(options.quickAnswer.id)) {
-        return {
-          parseResult: {
-            elements: [options.quickAnswer],
-            errors: [],
-          },
-          elementById,
-        };
-      }
+  // if (options.quickAnswer) {
+  //   if ('id' in options.quickAnswer && options.quickAnswer.id) {
+  //     if (elementById(options.quickAnswer.id)) {
+  //       return {
+  //         parseResult: {
+  //           elements: [options.quickAnswer],
+  //           errors: [],
+  //         },
+  //         elementById,
+  //       };
+  //     }
 
-      if (!targetElementDescription) {
-        return {
-          parseResult: {
-            elements: [],
-            errors: [
-              `inspect: cannot find the target by id: ${options.quickAnswer.id}, and no target element description is provided`,
-            ],
-          },
-          elementById,
-        };
-      }
-    }
-    if (
-      'position' in options.quickAnswer &&
-      elementByPosition(options.quickAnswer.position)
-    ) {
-      return {
-        parseResult: transformElementPositionToId(
-          {
-            elements: [options.quickAnswer],
-          },
-          context.content,
-        ),
-        elementById,
-      };
-    }
-  }
+  //     if (!targetElementDescription) {
+  //       return {
+  //         parseResult: {
+  //           elements: [],
+  //           errors: [
+  //             `inspect: cannot find the target by id: ${options.quickAnswer.id}, and no target element description is provided`,
+  //           ],
+  //         },
+  //         elementById,
+  //       };
+  //     }
+  //   }
+  //   if (
+  //     'position' in options.quickAnswer &&
+  //     elementByPosition(options.quickAnswer.position, size)
+  //   ) {
+  //     return {
+  //       parseResult: transformElementPositionToId(
+  //         {
+  //           elements: [options.quickAnswer],
+  //         },
+  //         context.content,
+  //         size,
+  //       ),
+  //       elementById,
+  //     };
+  //   }
+  // }
 
   assert(
     targetElementDescription,
@@ -153,7 +160,11 @@ ${JSON.stringify({
       AIActionType: AIActionType.INSPECT_ELEMENT,
     });
     return {
-      parseResult: transformElementPositionToId(res.content, context.content),
+      parseResult: transformElementPositionToId(
+        res.content,
+        context.content,
+        size,
+      ),
       rawResponse: res,
       elementById,
       usage: res.usage,
@@ -164,11 +175,11 @@ ${JSON.stringify({
     msgs,
     AIActionType: AIActionType.INSPECT_ELEMENT,
   });
-
   return {
     parseResult: transformElementPositionToId(
       inspectElement.content,
       context.content,
+      size,
     ),
     rawResponse: inspectElement,
     elementById,

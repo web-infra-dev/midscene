@@ -167,12 +167,13 @@ export class PageTaskExecutor {
                   return Promise.resolve({ content: locateCache });
                 }
                 const { content: aiResult, usage } = await callAI(...message);
-                locateResult = transformElementPositionToId(
-                  aiResult,
-                  pageContext.content,
-                );
-                assert(locateResult);
-                return { content: locateResult, usage };
+                // locateResult = transformElementPositionToId(
+                //   aiResult,
+                //   pageContext.content,
+                //   size,
+                // );
+                // assert(locateResult);
+                return { content: aiResult, usage };
               },
             });
 

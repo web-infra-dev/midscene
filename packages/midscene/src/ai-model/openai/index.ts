@@ -12,8 +12,11 @@ import type { ChatCompletionMessageParam } from 'openai/resources';
 import { SocksProxyAgent } from 'socks-proxy-agent';
 import {
   ANTHROPIC_API_KEY,
+  MATCH_BY_POSITION,
+  MIDSCENE_API_TYPE,
   MIDSCENE_AZURE_OPENAI_INIT_CONFIG_JSON,
   MIDSCENE_AZURE_OPENAI_SCOPE,
+  MIDSCENE_COOKIE,
   MIDSCENE_DANGEROUSLY_PRINT_ALL_CONFIG,
   MIDSCENE_DEBUG_AI_PROFILE,
   MIDSCENE_LANGSMITH_DEBUG,
@@ -46,6 +49,37 @@ export function checkAIConfig(preferVendor?: 'coze' | 'openAI') {
 
 // default model
 const defaultModel = 'gpt-4o-2024-08-06';
+export async function useHttpAgent(
+  msgs: ChatCompletionMessageParam[],
+  AIActionTypeValue: AIActionType,
+) {
+  const response = await fetch(
+    `${getAIConfig(OPENAI_BASE_URL)}/chat/completions`,
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Cookie: getAIConfig(MIDSCENE_COOKIE) || '',
+        [MIDSCENE_API_TYPE]: AIActionTypeValue.toString(),
+      },
+      body: JSON.stringify({
+        model: getAIConfig(MIDSCENE_MODEL_NAME),
+        messages: msgs,
+        temperature: 0.1,
+      }),
+    },
+  );
+  const data = await response.json();
+
+  const content = data.choices[0].message.content;
+  // const jsonData: any = safeParseJson(message);
+  // console.log('AiInspectElement jsonData', jsonData);
+  return {
+    content,
+    usage: data.usage,
+  };
+}
+
 export function getModelName() {
   let modelName = defaultModel;
   const nameInConfig = getAIConfig(MIDSCENE_MODEL_NAME);
@@ -142,6 +176,7 @@ async function createChatClient(): Promise<{
 
 export async function call(
   messages: ChatCompletionMessageParam[],
+  AIActionTypeValue: AIActionType,
   responseFormat?:
     | OpenAI.ChatCompletionCreateParams['response_format']
     | OpenAI.ResponseFormatJSONObject,
@@ -164,6 +199,10 @@ export async function call(
         ? maxTokens
         : Number.parseInt(maxTokens || '2048', 10),
   };
+
+  if (getAIConfig(MATCH_BY_POSITION)) {
+    return useHttpAgent(messages, AIActionTypeValue);
+  }
   if (style === 'openai') {
     const result = await completion.create({
       model,
@@ -256,51 +295,45 @@ export async function callToGetJSONObject<T>(
     }
   }
 
-  const safeJsonParse = (input: string) => {
-    try {
-      return JSON.parse(input);
-    } catch {
-      return null;
-    }
-  };
-  const response = await call(messages, responseFormat);
+  const response = await call(messages, AIActionTypeValue, responseFormat);
   assert(response, 'empty response');
-  let jsonContent = safeJsonParse(response.content);
-  if (jsonContent) return { content: jsonContent, usage: response.usage };
-
-  const cleanJsonString = extractJSONFromCodeBlock(response.content);
-  try {
-    jsonContent = JSON.parse(cleanJsonString);
-  } catch {}
-  if (jsonContent) return { content: jsonContent, usage: response.usage };
-
-  try {
-    jsonContent = dJSON.parse(cleanJsonString);
-  } catch {}
-  if (jsonContent) return { content: jsonContent, usage: response.usage };
-
-  throw Error(`failed to parse json response: ${response.content}`);
+  const jsonContent = safeParseJson(response.content);
+  return { content: jsonContent, usage: response.usage };
 }
 
 export function extractJSONFromCodeBlock(response: string) {
-  // First, try to match a JSON object directly in the response
-  const jsonMatch = response.match(/^\s*(\{[\s\S]*\})\s*$/);
-  if (jsonMatch) {
-    return jsonMatch[1];
-  }
+  try {
+    // First, try to match a JSON object directly in the response
+    const jsonMatch = response.match(/^\s*(\{[\s\S]*\})\s*$/);
+    if (jsonMatch) {
+      return jsonMatch[1];
+    }
 
-  // If no direct JSON object is found, try to extract JSON from a code block
-  const codeBlockMatch = response.match(/```(?:json)?\s*(\{[\s\S]*?\})\s*```/);
-  if (codeBlockMatch) {
-    return codeBlockMatch[1];
-  }
+    // If no direct JSON object is found, try to extract JSON from a code block
+    const codeBlockMatch = response.match(
+      /```(?:json)?\s*(\{[\s\S]*?\})\s*```/,
+    );
+    if (codeBlockMatch) {
+      return codeBlockMatch[1];
+    }
 
-  // If no code block is found, try to find a JSON-like structure in the text
-  const jsonLikeMatch = response.match(/\{[\s\S]*\}/);
-  if (jsonLikeMatch) {
-    return jsonLikeMatch[0];
-  }
-
+    // If no code block is found, try to find a JSON-like structure in the text
+    const jsonLikeMatch = response.match(/\{[\s\S]*\}/);
+    if (jsonLikeMatch) {
+      return jsonLikeMatch[0];
+    }
+  } catch {}
   // If no JSON-like structure is found, return the original response
   return response;
+}
+
+export function safeParseJson(input: string) {
+  const cleanJsonString = extractJSONFromCodeBlock(input);
+  try {
+    return JSON.parse(cleanJsonString);
+  } catch {}
+  try {
+    return dJSON.parse(cleanJsonString);
+  } catch {}
+  throw Error(`failed to parse json response: ${input}`);
 }

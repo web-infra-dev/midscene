@@ -23,7 +23,7 @@ export async function plan(
   const { description: pageDescription, elementByPosition } =
     await describeUserPage(context);
 
-  const systemPrompt = systemPromptToTaskPlanning();
+  const systemPrompt = await systemPromptToTaskPlanning();
 
   let taskBackgroundContext = '';
   if (opts.originalPrompt && opts.whatHaveDone) {
@@ -74,6 +74,7 @@ ${taskBackgroundContext}
   });
 
   const planFromAI = content;
+  console.log('planFromAI', JSON.stringify(planFromAI, null, 2));
 
   const actions = planFromAI?.actions || [];
   assert(planFromAI, "can't get plans from AI");

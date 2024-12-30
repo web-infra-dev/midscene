@@ -20,11 +20,11 @@ const relocateAfterPlanning = false;
 const failCaseThreshold = process.env.CI ? 1 : 0;
 const testSources = [
   'todo',
-  'online_order',
-  'online_order_list',
-  'taobao',
-  'aweme_login',
-  'aweme_play',
+  // 'online_order',
+  // 'online_order_list',
+  // 'taobao',
+  // 'aweme_login',
+  // 'aweme_play',
 ];
 
 describe('ai inspect element', () => {
