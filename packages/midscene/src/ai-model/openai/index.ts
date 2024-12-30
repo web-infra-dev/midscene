@@ -1,9 +1,12 @@
 import assert from 'node:assert';
 import { AIResponseFormat, type AIUsageInfo } from '@/types';
 import { ifInBrowser } from '@midscene/shared/utils';
+//@ts-ignore
+import dJSON from 'dirty-json';
 import OpenAI, { AzureOpenAI } from 'openai';
 import type { ChatCompletionMessageParam } from 'openai/resources';
 import { SocksProxyAgent } from 'socks-proxy-agent';
+
 import {
   MIDSCENE_API_TYPE,
   MIDSCENE_COOKIE,
@@ -170,18 +173,12 @@ export async function callToGetJSONObject<T>(
   };
   const response = await call(messages, AIActionTypeValue, responseFormat);
   assert(response, 'empty response');
-  let jsonContent = safeJsonParse(response.content);
-  if (jsonContent) return { content: jsonContent, usage: response.usage };
 
-  jsonContent = extractJSONFromCodeBlock(response.content);
-  if (typeof jsonContent === 'string') {
-    try {
-      return { content: JSON.parse(jsonContent), usage: response.usage };
-    } catch {
-      throw Error(`parse json error: ${response.content}`);
-    }
+  try {
+    return { content: safeParseJson(response.content), usage: response.usage };
+  } catch {
+    throw Error(`parse json error: ${response.content}`);
   }
-  return { content: jsonContent, usage: response.usage };
 }
 
 export function extractJSONFromCodeBlock(response: string) {
@@ -215,16 +212,20 @@ export function extractJSONFromCodeBlock(response: string) {
 
 export function safeParseJson(input: string) {
   try {
-    let json = extractJSONFromCodeBlock(input);
-    if (typeof json === 'string') {
-      // Convert tuple-like position format (x,y) to array format [x,y]
-      json = json.replace(
-        /\"positions\":\s*\((\d+),(\d+)\)/g,
-        '"positions": [$1,$2]',
-      );
-    }
-    return JSON.parse(json);
+    const json = extractJSONFromCodeBlock(input);
+    // console.log('parse json', json);
+    // if (typeof json === 'string') {
+    //   // Convert tuple-like position format (x,y) to array format [x,y]
+    //   json = json.replace(
+    //     /\"positions\":\s*\((\d+),(\d+)\)/g,
+    //     '"positions": [$1,$2]',
+    //   );
+    // }
+    return dJSON.parse(json);
   } catch {
-    return null;
+    console.log('parse json error', input);
+    return {
+      error: 'parse json error',
+    };
   }
 }

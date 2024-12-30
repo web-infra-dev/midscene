@@ -45,6 +45,7 @@
   },
   "dependencies": {
     "@midscene/shared": "workspace:*",
+    "dirty-json": "0.9.2",
     "openai": "4.57.1",
     "optional": "0.1.4",
     "socks-proxy-agent": "8.0.4"
@@ -54,10 +55,10 @@
     "@types/node": "^18.0.0",
     "@types/node-fetch": "2.6.11",
     "dotenv": "16.4.5",
+    "image-size": "1.1.1",
     "langsmith": "0.1.36",
     "typescript": "~5.0.4",
-    "vitest": "2.1.8",
-    "image-size": "1.1.1"
+    "vitest": "2.1.8"
   },
   "engines": {
     "node": ">=16.0.0"

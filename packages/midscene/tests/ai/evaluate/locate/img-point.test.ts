@@ -2,7 +2,10 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { AIActionType } from '@/ai-model/common';
 import { call, callToGetJSONObject } from '@/ai-model/openai/index';
-import { findElementPointPrompt } from '@/ai-model/prompt/find_element_point';
+import {
+  findElementPoin,
+  findElementPointPrompt,
+} from '@/ai-model/prompt/find_element_point';
 import {
   compositePointInfoImg,
   imageInfo,
@@ -96,49 +99,16 @@ class ElementLocator {
     // );
 
     // const data = await response.json();
-    const { content } = await callToGetJSONObject(
-      [
-        // {
-        //   role: 'system',
-        //   content:
-        //     'Based on the screenshot of the page, I give a text description and you give its corresponding center point location. The coordinate represents the center point [x, y] of the target element, which is a relative coordinate on the screenshot, scaled from 0 to 1. Please ensure the coordinate is at the exact center of the element.',
-        // },
-        {
-          role: 'user',
-          content: [
-            {
-              type: 'text',
-              text: findElementPointPrompt,
-            },
-            // {
-            //   type: 'text',
-            //   text: 'Based on the screenshot of the page, I give a text description and you give its corresponding center point location. The coordinate represents the center point [x, y] of the target element, which is a relative coordinate on the screenshot, scaled from 0 to 1. Please ensure the coordinate is at the exact center of the element.',
-            // },
-            {
-              //@ts-ignore
-              type: 'image_url',
-              image_url: {
-                url: `data:image/png;base64,${this.pageInfo.imageBase64}`,
-              },
-              min_pixels: min_pixels,
-              max_pixels: max_pixels,
-            },
-            {
-              type: 'text',
-              text: `找到元素：${prompt}`,
-            },
-          ],
-        },
-      ],
-      AIActionType.INSPECT_ELEMENT,
-    );
+    const point = await findElementPoin(prompt, {
+      screenshotBase64: this.pageInfo.imageBase64,
+    });
 
     const duration = `${(Date.now() - startTime) / 1000}s`;
-    console.log(content);
+    // console.log(point);
     // const resObj = this.parseNonStrictJSON(result.content);
 
     return {
-      point: content as unknown as [number, number],
+      point: point,
       duration,
     };
   }
@@ -207,47 +177,47 @@ describe(
       expect(points).toBeDefined();
     }
 
-    // it('online order', async () => {
-    //   await runTest(path.resolve(__dirname, '../test-data/online_order_en'), [
-    //     'Shopping cart button in the top right',
-    //     'Select specifications',
-    //     'Price',
-    //     'Customer service button in the lower right corner',
-    //     'Switch language',
-    //   ]);
-    // });
+    it('online order', async () => {
+      await runTest(path.resolve(__dirname, '../test-data/online_order_en'), [
+        'Shopping cart button in the top right',
+        'Select specifications',
+        'Price',
+        'Customer service button in the lower right corner',
+        'Switch language',
+      ]);
+    });
 
-    // it('online order list', async () => {
-    //   await runTest(path.resolve(__dirname, '../test-data/online_order_list'), [
-    //     '多肉葡萄选择规格按钮',
-    //   ]);
-    // });
+    it('online order list', async () => {
+      await runTest(path.resolve(__dirname, '../test-data/online_order_list'), [
+        '多肉葡萄选择规格按钮',
+      ]);
+    });
     it('online order args', async () => {
       await runTest(
         path.resolve(__dirname, '../test-data/oneline_order_args'),
-        ['「可降解吸管」'],
+        ['可降解吸管，复选框', '冰沙'],
       );
     });
-    // it('online order chinese', async () => {
-    //   await runTest(path.resolve(__dirname, '../test-data/online_order'), [
-    //     'switch language.',
-    //     '多肉葡萄价格',
-    //     '多肉葡萄选择规格',
-    //     '右上角购物车',
-    //     '右下角客服',
-    //   ]);
-    // });
+    it('online order chinese', async () => {
+      await runTest(path.resolve(__dirname, '../test-data/online_order'), [
+        'switch language.',
+        '多肉葡萄价格',
+        '多肉葡萄选择规格',
+        '右上角购物车',
+        '右下角客服',
+      ]);
+    });
 
-    // it('video player', async () => {
-    //   await runTest(path.resolve(__dirname, '../test-data/aweme-play'), [
-    //     '五角星按钮',
-    //     '点赞按钮',
-    //     '收藏按钮',
-    //     '关闭按钮',
-    //     '搜索框',
-    //     '音量调节按钮',
-    //   ]);
-    // });
+    it('video player', async () => {
+      await runTest(path.resolve(__dirname, '../test-data/aweme-play'), [
+        '五角星按钮',
+        '点赞按钮',
+        '收藏按钮',
+        '关闭按钮',
+        '搜索框',
+        '音量调节按钮',
+      ]);
+    });
   },
   {
     timeout: 180 * 1000,
