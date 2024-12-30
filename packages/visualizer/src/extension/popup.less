@@ -7,6 +7,7 @@ body {
   font-size: 14px;
 }
 
+@footer-height: 40px;
 .popup-wrapper {
   width: 100%;
   height: 100%;
@@ -15,6 +16,15 @@ body {
   background: #FFF;
   display: flex;
   flex-direction: column;
+
+  .tabs-container {
+    flex-grow: 1;
+  }
+
+  .ant-tabs-nav {
+    padding: 0 @layout-extension-space-horizontal;
+    box-sizing: border-box;
+  }
 
   .popup-header {
     padding: 0 @layout-extension-space-horizontal;
@@ -28,12 +38,18 @@ body {
     box-sizing: border-box;
   }
 
-  .popup-playground-container {
+  .popup-playground-container,
+  .popup-bridge-container {
     flex-grow: 1;
   }
 
+  .popup-bridge-container {
+    padding: 0 @layout-extension-space-horizontal;
+    box-sizing: border-box;
+  }
+
   .popup-footer {
-    color: @weak-text;
+    color: @footer-text;
     text-align: center;
     width: 100%;
   }

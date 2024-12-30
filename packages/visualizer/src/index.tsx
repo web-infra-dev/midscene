@@ -1,5 +1,4 @@
 import './index.less';
-import './init';
 import DetailSide from '@/component/detail-side';
 import Sidebar from '@/component/sidebar';
 import { useExecutionDump } from '@/component/store';

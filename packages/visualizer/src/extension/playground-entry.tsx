@@ -1,5 +1,3 @@
-import '../init';
-
 import queryString from 'query-string';
 
 import type { WebUIContext } from '@midscene/web/utils';

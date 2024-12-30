@@ -1,6 +1,27 @@
 import './logo.less';
 
-const Logo = () => {
+const Logo = ({ withGithubStar = true }: { withGithubStar?: boolean }) => {
+  if (withGithubStar) {
+    return (
+      <div className="logo logo-with-star">
+        <img
+          alt="Midscene_logo"
+          src="https://lf3-static.bytednsdoc.com/obj/eden-cn/vhaeh7vhabf/Midscene.png"
+        />
+        <a
+          href="https://github.com/web-infra-dev/midscene"
+          target="_blank"
+          rel="noreferrer"
+        >
+          <img
+            src="https://img.shields.io/github/stars/web-infra-dev/midscene?style=social"
+            alt="Github star"
+          />
+        </a>
+      </div>
+    );
+  }
+
   return (
     <div className="logo">
       <img

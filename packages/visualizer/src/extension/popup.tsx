@@ -1,4 +1,4 @@
-import { Button, ConfigProvider, message } from 'antd';
+import { Button, ConfigProvider, Tabs, message } from 'antd';
 import ReactDOM from 'react-dom/client';
 import { setSideEffect } from '../init';
 /// <reference types="chrome" />
@@ -20,7 +20,8 @@ import {
   extensionAgentForTabId,
 } from '@/component/playground-component';
 import { useChromeTabInfo } from '@/component/store';
-import { SendOutlined } from '@ant-design/icons';
+import { useEnvConfig } from '@/component/store';
+import { ApiOutlined, SendOutlined } from '@ant-design/icons';
 import type { ChromeExtensionProxyPageAgent } from '@midscene/web/chrome-extension';
 import { useEffect, useState } from 'react';
 import Bridge from './bridge';
@@ -49,10 +50,26 @@ const shotAndOpenPlayground = async (
   });
 };
 
+// {
+//   /* <p>
+//             To keep the current page context, you can also{' '}
+//             <Button
+//               onClick={handleSendToPlayground}
+//               loading={loading}
+//               type="link"
+//               size="small"
+//               icon={<SendOutlined />}
+//             >
+//               send to fullscreen playground
+//             </Button>
+//           </p> */
+// }
+
 function PlaygroundPopup() {
   const [loading, setLoading] = useState(false);
   const extensionVersion = getExtensionVersion();
   const { tabId, windowId } = useChromeTabInfo();
+  const { popupTab, setPopupTab } = useEnvConfig();
 
   const handleSendToPlayground = async () => {
     if (!tabId || !windowId) {
@@ -70,35 +87,12 @@ function PlaygroundPopup() {
     setLoading(false);
   };
 
-  return (
-    <ConfigProvider theme={globalThemeConfig()}>
-      <div className="popup-wrapper">
-        <div className="popup-header">
-          <Logo />
-          <p>
-            Midscene.js helps to automate browser actions, perform assertions,
-            and extract data in JSON format using natural language.{' '}
-            <a href="https://midscenejs.com/" target="_blank" rel="noreferrer">
-              Learn more
-            </a>
-          </p>
-          <p>This is a panel for experimenting with Midscene.js.</p>
-          <p>
-            To keep the current page context, you can also{' '}
-            <Button
-              onClick={handleSendToPlayground}
-              loading={loading}
-              type="link"
-              size="small"
-              icon={<SendOutlined />}
-            >
-              send to fullscreen playground
-            </Button>
-          </p>
-        </div>
-
-        <Bridge />
-        <div className="hr" />
+  const items = [
+    {
+      key: 'playground',
+      label: 'Playground',
+      icon: <SendOutlined />,
+      children: (
         <div className="popup-playground-container">
           <Playground
             hideLogo
@@ -108,6 +102,42 @@ function PlaygroundPopup() {
             showContextPreview={false}
           />
         </div>
+      ),
+    },
+    {
+      key: 'bridge',
+      label: 'Bridge Mode',
+      children: (
+        <div className="popup-bridge-container">
+          <Bridge />
+        </div>
+      ),
+      icon: <ApiOutlined />,
+    },
+  ];
+
+  return (
+    <ConfigProvider theme={globalThemeConfig()}>
+      <div className="popup-wrapper">
+        <div className="popup-header">
+          <Logo withGithubStar={true} />
+          <p>
+            Automate browser actions, perform assertions, and extract data by
+            AI. Also offers a javascript SDK.{' '}
+            <a href="https://midscenejs.com/" target="_blank" rel="noreferrer">
+              Learn more
+            </a>
+          </p>
+        </div>
+        <div className="tabs-container">
+          <Tabs
+            defaultActiveKey="playground"
+            activeKey={popupTab}
+            items={items}
+            onChange={(key) => setPopupTab(key as 'playground' | 'bridge')}
+          />
+        </div>
+
         <div className="popup-footer">
           <p>Midscene.js Chrome Extension v{extensionVersion}</p>
         </div>
