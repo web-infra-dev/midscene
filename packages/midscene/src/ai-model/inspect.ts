@@ -110,8 +110,7 @@ export async function AiInspectElement<
   useModel?: 'coze' | 'openAI';
   quickAnswer?: AISingleElementResponse;
 }) {
-  const { context, multi, targetElementDescription, callAI, useModel } =
-    options;
+  const { context, multi, targetElementDescription, callAI } = options;
   const { screenshotBase64, screenshotBase64WithElementMarker } = context;
   const { description, elementById, elementByPosition } =
     await describeUserPage(context);
@@ -226,7 +225,6 @@ ${JSON.stringify({
     const res = await callAI({
       msgs,
       AIActionType: AIActionType.INSPECT_ELEMENT,
-      useModel,
     });
     return {
       parseResult: transformElementPositionToId(res.content, context.content),
@@ -239,7 +237,6 @@ ${JSON.stringify({
   const inspectElement = await callAiFn<AIElementResponse>({
     msgs,
     AIActionType: AIActionType.INSPECT_ELEMENT,
-    useModel,
   });
 
   return {
@@ -305,7 +302,6 @@ DATA_DEMAND ends.
 
   const result = await callAiFn<AISectionParseResponse<T>>({
     msgs,
-    useModel,
     AIActionType: AIActionType.EXTRACT_DATA,
   });
   return {
@@ -359,7 +355,6 @@ export async function AiAssert<
   const { content: assertResult, usage } = await callAiFn<AIAssertionResponse>({
     msgs,
     AIActionType: AIActionType.ASSERT,
-    useModel,
   });
   return {
     content: assertResult,

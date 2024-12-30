@@ -19,6 +19,12 @@ export default defineConfig({
         mode: 'link',
         content: 'https://github.com/web-infra-dev/midscene',
       },
+      {
+        icon: 'lark',
+        mode: 'link',
+        content:
+          'https://applink.larkoffice.com/client/chat/chatter/add_by_link?link_token=291q2b25-e913-411a-8c51-191e59aab14d',
+      },
     ],
     footer: {
       message: `
@@ -52,7 +58,7 @@ export default defineConfig({
               link: '/',
             },
             {
-              text: 'Quick Experience',
+              text: 'Quick Experience by Chrome Extension',
               link: '/quick-experience',
             },
           ],
@@ -81,7 +87,7 @@ export default defineConfig({
               link: '/cache',
             },
             {
-              text: 'Customize Model Provider',
+              text: 'Customize Model and Provider',
               link: '/model-provider',
             },
           ],
@@ -109,7 +115,7 @@ export default defineConfig({
               link: '/zh/index',
             },
             {
-              text: '快速体验',
+              text: '通过 Chrome 插件快速体验',
               link: '/zh/quick-experience',
             },
           ],
@@ -138,7 +144,7 @@ export default defineConfig({
               link: '/zh/cache',
             },
             {
-              text: '自定义模型服务',
+              text: '自定义模型和服务商',
               link: '/zh/model-provider',
             },
           ],

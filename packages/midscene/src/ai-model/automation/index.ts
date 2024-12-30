@@ -25,7 +25,6 @@ export async function plan(
     context: UIContext;
     callAI?: typeof callAiFn<PlanningAIResponse>;
   },
-  useModel?: 'coze' | 'openAI',
 ): Promise<PlanningAIResponse> {
   const { callAI, context } = opts || {};
   const { screenshotBase64, screenshotBase64WithElementMarker } = context;
@@ -67,7 +66,7 @@ export async function plan(
 pageDescription:\n 
 ${pageDescription}
 \n
-Here is what you need to do now:
+Here is the instruction:
 =====================================
 ${userPrompt}
 =====================================
@@ -127,7 +126,6 @@ ${taskBackgroundContext}
   const { content, usage } = await call({
     msgs,
     AIActionType: AIActionType.PLAN,
-    useModel,
   });
   const endTime = Date.now();
   console.log(`AI planning took ${endTime - startTime}ms`);

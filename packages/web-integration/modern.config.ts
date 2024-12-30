@@ -17,8 +17,9 @@ export default defineConfig({
       appium: 'src/appium/index.ts',
       'playwright-report': './src/playwright/reporter/index.ts',
       'chrome-extension': 'src/chrome-extension/index.ts',
+      yaml: 'src/yaml/index.ts',
     },
     target: 'es2018',
-    externals: ['@midscene/core', '@midscene/shared'],
+    externals: ['@midscene/core', '@midscene/shared', 'puppeteer'],
   },
 });

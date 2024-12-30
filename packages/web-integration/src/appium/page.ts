@@ -1,5 +1,5 @@
 import fs from 'node:fs';
-import type { Size } from '@midscene/core/.';
+import type { Point, Size } from '@midscene/core';
 import { getTmpFile } from '@midscene/core/utils';
 import { base64Encoded, resizeImg } from '@midscene/shared/img';
 import { DOMParser } from '@xmldom/xmldom';
@@ -104,31 +104,83 @@ export class Page implements AbstractPage {
   }
 
   // Scroll to top element
-  async scrollUntilTop(): Promise<void> {
-    const { height } = await this.browser.getWindowSize();
+  async scrollUntilTop(startingPoint?: Point): Promise<void> {
+    if (startingPoint) {
+      await this.mouse.move(startingPoint.left, startingPoint.top);
+    }
 
-    await this.mouseWheel(0, height, 100);
+    await this.mouseWheel(0, -9999999, 100);
   }
 
   // Scroll to bottom element
-  async scrollUntilBottom(): Promise<void> {
-    const { height } = await this.browser.getWindowSize();
+  async scrollUntilBottom(startingPoint?: Point): Promise<void> {
+    if (startingPoint) {
+      await this.mouse.move(startingPoint.left, startingPoint.top);
+    }
 
-    await this.mouseWheel(0, -height, 100);
+    await this.mouseWheel(0, 9999999, 100);
+  }
+
+  async scrollUntilLeft(startingPoint?: Point): Promise<void> {
+    if (startingPoint) {
+      await this.mouse.move(startingPoint.left, startingPoint.top);
+    }
+
+    await this.mouseWheel(-9999999, 0, 100);
+  }
+
+  async scrollUntilRight(startingPoint?: Point): Promise<void> {
+    if (startingPoint) {
+      await this.mouse.move(startingPoint.left, startingPoint.top);
+    }
+
+    await this.mouseWheel(9999999, 0, 100);
   }
 
   // Scroll up one screen
-  async scrollUpOneScreen(): Promise<void> {
+  async scrollUp(distance?: number, startingPoint?: Point): Promise<void> {
     const { height } = await this.browser.getWindowSize();
+    const scrollDistance = distance || height * 0.7;
 
-    await this.mouseWheel(0, height, 1000);
+    if (startingPoint) {
+      await this.mouse.move(startingPoint.left, startingPoint.top);
+    }
+
+    await this.mouseWheel(0, -scrollDistance, 1000);
   }
 
   // Scroll down one screen
-  async scrollDownOneScreen(): Promise<void> {
+  async scrollDown(distance?: number, startingPoint?: Point): Promise<void> {
     const { height } = await this.browser.getWindowSize();
+    const scrollDistance = distance || height * 0.7;
 
-    await this.mouseWheel(0, -height, 1000);
+    if (startingPoint) {
+      await this.mouse.move(startingPoint.left, startingPoint.top);
+    }
+
+    await this.mouseWheel(0, scrollDistance, 1000);
+  }
+
+  async scrollLeft(distance?: number, startingPoint?: Point): Promise<void> {
+    const { width } = await this.browser.getWindowSize();
+    const scrollDistance = distance || width * 0.7;
+
+    if (startingPoint) {
+      await this.mouse.move(startingPoint.left, startingPoint.top);
+    }
+
+    await this.mouseWheel(-scrollDistance, 0, 1000);
+  }
+
+  async scrollRight(distance?: number, startingPoint?: Point): Promise<void> {
+    const { width } = await this.browser.getWindowSize();
+    const scrollDistance = distance || width * 0.7;
+
+    if (startingPoint) {
+      await this.mouse.move(startingPoint.left, startingPoint.top);
+    }
+
+    await this.mouseWheel(scrollDistance, 0, 1000);
   }
 
   private async keyboardType(text: string): Promise<void> {

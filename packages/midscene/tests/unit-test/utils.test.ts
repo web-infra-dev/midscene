@@ -98,6 +98,10 @@ describe('extractJSONFromCodeBlock', () => {
     const input = '```json\n{ "key": "value" }\n```';
     const result = extractJSONFromCodeBlock(input);
     expect(result).toBe('{ "key": "value" }');
+
+    const input2 = '  ```JSON\n{ "key": "value" }\n```';
+    const result2 = extractJSONFromCodeBlock(input2);
+    expect(result2).toBe('{ "key": "value" }');
   });
 
   it('should extract JSON from a code block without language specifier', () => {

@@ -1,23 +1,31 @@
 import assert from 'node:assert';
 import { AIResponseFormat, type AIUsageInfo } from '@/types';
+import { Anthropic } from '@anthropic-ai/sdk';
+import {
+  DefaultAzureCredential,
+  getBearerTokenProvider,
+} from '@azure/identity';
 import { ifInBrowser } from '@midscene/shared/utils';
-//@ts-ignore
 import dJSON from 'dirty-json';
 import OpenAI, { AzureOpenAI } from 'openai';
 import type { ChatCompletionMessageParam } from 'openai/resources';
 import { SocksProxyAgent } from 'socks-proxy-agent';
 
 import {
-  MIDSCENE_API_TYPE,
-  MIDSCENE_COOKIE,
+  ANTHROPIC_API_KEY,
+  MIDSCENE_AZURE_OPENAI_INIT_CONFIG_JSON,
+  MIDSCENE_AZURE_OPENAI_SCOPE,
   MIDSCENE_DANGEROUSLY_PRINT_ALL_CONFIG,
   MIDSCENE_DEBUG_AI_PROFILE,
   MIDSCENE_LANGSMITH_DEBUG,
   MIDSCENE_MODEL_NAME,
   MIDSCENE_OPENAI_INIT_CONFIG_JSON,
   MIDSCENE_OPENAI_SOCKS_PROXY,
+  MIDSCENE_USE_ANTHROPIC_SDK,
+  MIDSCENE_USE_AZURE_OPENAI,
   OPENAI_API_KEY,
   OPENAI_BASE_URL,
+  OPENAI_MAX_TOKENS,
   OPENAI_USE_AZURE,
   allAIConfig,
   getAIConfig,
@@ -28,9 +36,11 @@ import { findElementSchema } from '../prompt/element_inspector';
 import { planSchema } from '../prompt/planning';
 import { assertSchema } from '../prompt/util';
 
-export function preferOpenAIModel(preferVendor?: 'coze' | 'openAI') {
+export function checkAIConfig(preferVendor?: 'coze' | 'openAI') {
   if (preferVendor && preferVendor !== 'openAI') return false;
   if (getAIConfig(OPENAI_API_KEY)) return true;
+  if (getAIConfig(MIDSCENE_USE_AZURE_OPENAI)) return true;
+  if (getAIConfig(ANTHROPIC_API_KEY)) return true;
 
   return Boolean(getAIConfig(MIDSCENE_OPENAI_INIT_CONFIG_JSON));
 }
@@ -46,21 +56,47 @@ export function getModelName() {
   return modelName;
 }
 
-async function createOpenAI() {
-  let openai: OpenAI | AzureOpenAI;
+async function createChatClient(): Promise<{
+  completion: OpenAI.Chat.Completions;
+  style: 'openai' | 'anthropic';
+}> {
+  let openai: OpenAI | AzureOpenAI | undefined;
   const extraConfig = getAIConfigInJson(MIDSCENE_OPENAI_INIT_CONFIG_JSON);
 
   const socksProxy = getAIConfig(MIDSCENE_OPENAI_SOCKS_PROXY);
   const socksAgent = socksProxy ? new SocksProxyAgent(socksProxy) : undefined;
+
   if (getAIConfig(OPENAI_USE_AZURE)) {
+    // this is deprecated
     openai = new AzureOpenAI({
       baseURL: getAIConfig(OPENAI_BASE_URL),
       apiKey: getAIConfig(OPENAI_API_KEY),
       httpAgent: socksAgent,
       ...extraConfig,
       dangerouslyAllowBrowser: true,
+    }) as OpenAI;
+  } else if (getAIConfig(MIDSCENE_USE_AZURE_OPENAI)) {
+    // sample code: https://github.com/Azure/azure-sdk-for-js/blob/main/sdk/openai/openai/samples/cookbook/simpleCompletionsPage/app.js
+    const scope = getAIConfig(MIDSCENE_AZURE_OPENAI_SCOPE);
+
+    assert(
+      !ifInBrowser,
+      'Azure OpenAI is not supported in browser with Midscene.',
+    );
+    const credential = new DefaultAzureCredential();
+
+    assert(scope, 'MIDSCENE_AZURE_OPENAI_SCOPE is required');
+    const tokenProvider = getBearerTokenProvider(credential, scope);
+
+    const extraAzureConfig = getAIConfigInJson(
+      MIDSCENE_AZURE_OPENAI_INIT_CONFIG_JSON,
+    );
+    openai = new AzureOpenAI({
+      azureADTokenProvider: tokenProvider,
+      ...extraConfig,
+      ...extraAzureConfig,
     });
-  } else {
+  } else if (!getAIConfig(MIDSCENE_USE_ANTHROPIC_SDK)) {
     openai = new OpenAI({
       baseURL: getAIConfig(OPENAI_BASE_URL),
       apiKey: getAIConfig(OPENAI_API_KEY),
@@ -70,7 +106,7 @@ async function createOpenAI() {
     });
   }
 
-  if (getAIConfig(MIDSCENE_LANGSMITH_DEBUG)) {
+  if (openai && getAIConfig(MIDSCENE_LANGSMITH_DEBUG)) {
     if (ifInBrowser) {
       throw new Error('langsmith is not supported in browser');
     }
@@ -79,7 +115,30 @@ async function createOpenAI() {
     openai = wrapOpenAI(openai);
   }
 
-  return openai;
+  if (typeof openai !== 'undefined') {
+    return {
+      completion: openai.chat.completions,
+      style: 'openai',
+    };
+  }
+
+  // Anthropic
+  if (getAIConfig(MIDSCENE_USE_ANTHROPIC_SDK)) {
+    const apiKey = getAIConfig(ANTHROPIC_API_KEY);
+    assert(apiKey, 'ANTHROPIC_API_KEY is required');
+    openai = new Anthropic({
+      apiKey,
+    }) as any;
+  }
+
+  if (typeof openai !== 'undefined' && (openai as any).messages) {
+    return {
+      completion: (openai as any).messages,
+      style: 'anthropic',
+    };
+  }
+
+  throw new Error('Openai SDK or Anthropic SDK is not initialized');
 }
 
 export async function call(
@@ -89,44 +148,79 @@ export async function call(
     | OpenAI.ChatCompletionCreateParams['response_format']
     | OpenAI.ResponseFormatJSONObject,
 ): Promise<{ content: string; usage?: AIUsageInfo }> {
-  const openai = await createOpenAI();
+  const { completion, style } = await createChatClient();
   const shouldPrintTiming =
     typeof getAIConfig(MIDSCENE_DEBUG_AI_PROFILE) === 'string';
-  if (getAIConfig(MIDSCENE_DANGEROUSLY_PRINT_ALL_CONFIG)) {
-    console.log(allAIConfig());
-  }
+
+  const maxTokens = getAIConfig(OPENAI_MAX_TOKENS);
 
   const startTime = Date.now();
   const model = getModelName();
-  const completion = await openai.chat.completions.create(
-    {
+  let content: string | undefined;
+  let usage: OpenAI.CompletionUsage | undefined;
+  const commonConfig = {
+    temperature: 0.1,
+    stream: false,
+    max_tokens:
+      typeof maxTokens === 'number'
+        ? maxTokens
+        : Number.parseInt(maxTokens || '2048', 10),
+  };
+  if (style === 'openai') {
+    const result = await completion.create({
       model,
       messages,
       response_format: responseFormat,
-      temperature: 0.1,
-      // top_p: 0.1,
-      max_tokens: 2000,
-      stream: false,
+      ...commonConfig,
       // betas: ['computer-use-2024-10-22'],
-    } as any,
-    {
-      headers: {
-        Cookie: getAIConfig(MIDSCENE_COOKIE) || '',
-        [MIDSCENE_API_TYPE]: apiType?.toString() || '',
-      },
-    },
-  );
+    } as any);
+    shouldPrintTiming &&
+      console.log(
+        'Midscene - AI call',
+        model,
+        result.usage,
+        `${Date.now() - startTime}ms`,
+      );
+    content = result.choices[0].message.content!;
+    assert(content, 'empty content');
+    usage = result.usage;
+  } else if (style === 'anthropic') {
+    const convertImageContent = (content: any) => {
+      if (content.type === 'image_url') {
+        const imgBase64 = content.image_url.url;
+        assert(imgBase64, 'image_url is required');
+        return {
+          source: {
+            type: 'base64',
+            media_type: imgBase64.includes('data:image/png;base64,')
+              ? 'image/png'
+              : 'image/jpeg',
+            data: imgBase64.split(',')[1],
+          },
+          type: 'image',
+        };
+      }
+      return content;
+    };
 
-  shouldPrintTiming &&
-    console.log(
-      'Midscene - AI call',
+    const result = await completion.create({
       model,
-      completion.usage,
-      `${Date.now() - startTime}ms`,
-    );
-  const { content } = completion.choices[0].message;
-  assert(content, 'empty content');
-  return { content, usage: completion.usage };
+      system: 'You are a versatile professional in software UI automation',
+      messages: messages.map((m) => ({
+        role: 'user',
+        content: Array.isArray(m.content)
+          ? (m.content as any).map(convertImageContent)
+          : m.content,
+      })),
+      response_format: responseFormat,
+      ...commonConfig,
+    } as any);
+    content = (result as any).content[0].text as string;
+    assert(content, 'empty content');
+    usage = result.usage;
+  }
+
+  return { content: content || '', usage };
 }
 
 export async function callToGetJSONObject<T>(
@@ -136,13 +230,12 @@ export async function callToGetJSONObject<T>(
   // gpt-4o-2024-05-13 only supports json_object response format
   let responseFormat:
     | OpenAI.ChatCompletionCreateParams['response_format']
-    | OpenAI.ResponseFormatJSONObject = {
-    type: AIResponseFormat.JSON,
-  };
+    | OpenAI.ResponseFormatJSONObject
+    | undefined;
 
   const model = getModelName();
 
-  if (model === 'gpt-4o-2024-08-06') {
+  if (model.includes('gpt-4o')) {
     switch (AIActionTypeValue) {
       case AIActionType.ASSERT:
         responseFormat = assertSchema;
@@ -153,32 +246,31 @@ export async function callToGetJSONObject<T>(
       case AIActionType.EXTRACT_DATA:
         //TODO: Currently the restriction type can only be a json subset of the constraint, and the way the extract api is used needs to be adjusted to limit the user's data to this as well
         // targetResponseFormat = extractDataSchema;
+        responseFormat = { type: AIResponseFormat.JSON };
         break;
       case AIActionType.PLAN:
         responseFormat = planSchema;
         break;
     }
-  }
 
-  if (model.startsWith('gemini')) {
-    responseFormat = { type: AIResponseFormat.TEXT };
-  }
-
-  const safeJsonParse = (input: string) => {
-    try {
-      return JSON.parse(input);
-    } catch {
-      return null;
+    if (model === 'gpt-4o-2024-05-13' || !responseFormat) {
+      responseFormat = { type: AIResponseFormat.JSON };
     }
-  };
+  }
+
   const response = await call(messages, AIActionTypeValue, responseFormat);
   assert(response, 'empty response');
 
   try {
-    return { content: safeParseJson(response.content), usage: response.usage };
+    const jsonContent = safeParseJson(response.content);
+    return { content: jsonContent, usage: response.usage };
   } catch {
-    throw Error(`parse json error: ${response.content}`);
+    // retry
+    // const res =  await callToGetJSONObject(messages, AIActionTypeValue, responseFormat);
   }
+  // if (jsonContent) return { content: jsonContent, usage: response.usage };
+
+  throw Error(`failed to parse json response: ${response.content}`);
 }
 
 export function extractJSONFromCodeBlock(response: string) {

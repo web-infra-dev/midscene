@@ -1,4 +1,3 @@
-import { assert } from 'node:console';
 import path, { join } from 'node:path';
 import { parseContextFromWebPage } from '@/common/utils';
 import { generateExtractData } from '@/debug';
@@ -118,7 +117,7 @@ describe(
           height: 200,
         },
       });
-      await page.scrollDownOneScreen();
+      await page.scrollDown();
       await new Promise((resolve) => setTimeout(resolve, 1000));
       await generateExtractData(
         page,

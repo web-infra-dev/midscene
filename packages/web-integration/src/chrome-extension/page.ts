@@ -9,9 +9,10 @@ import fs from 'node:fs';
 import type { WebKeyInput } from '@/common/page';
 import type { ElementInfo } from '@/extractor';
 import type { AbstractPage } from '@/page';
-import type { Rect, Size } from '@midscene/core/.';
+import type { Point, Rect, Size } from '@midscene/core';
 import { ifInBrowser } from '@midscene/shared/utils';
 import type { Protocol as CDPTypes } from 'devtools-protocol';
+import { CdpKeyboard } from './cdpInput';
 
 // remember to include this file into extension's package
 const scriptFileToRetrieve = './lib/htmlElement.js';
@@ -64,6 +65,8 @@ export default class ChromeExtensionProxyPage implements AbstractPage {
 
   private debuggerAttached = false;
 
+  private attachingDebugger: Promise<void> | null = null;
+
   constructor(tabId: number, windowId: number) {
     this.tabId = tabId;
     this.windowId = windowId;
@@ -72,16 +75,31 @@ export default class ChromeExtensionProxyPage implements AbstractPage {
   private async attachDebugger() {
     if (this.debuggerAttached) return;
 
-    await chrome.debugger.attach({ tabId: this.tabId }, '1.3');
-    this.debuggerAttached = true;
+    // If already attaching, wait for it to complete
+    if (this.attachingDebugger) {
+      await this.attachingDebugger;
+      return;
+    }
 
-    // listen to the debugger detach event
-    chrome.debugger.onEvent.addListener((source, method, params) => {
-      console.log('debugger event', source, method, params);
-      if (method === 'Debugger.detached') {
-        this.debuggerAttached = false;
+    // Create new attaching promise
+    this.attachingDebugger = (async () => {
+      try {
+        await chrome.debugger.attach({ tabId: this.tabId }, '1.3');
+        this.debuggerAttached = true;
+
+        // listen to the debugger detach event
+        chrome.debugger.onEvent.addListener((source, method, params) => {
+          console.log('debugger event', source, method, params);
+          if (method === 'Debugger.detached') {
+            this.debuggerAttached = false;
+          }
+        });
+      } finally {
+        this.attachingDebugger = null;
       }
-    });
+    })();
+
+    await this.attachingDebugger;
   }
 
   private async detachDebugger() {
@@ -140,24 +158,24 @@ export default class ChromeExtensionProxyPage implements AbstractPage {
     return returnValue.result.value;
   }
 
-  private async rectOfNodeId(nodeId: number): Promise<Rect | null> {
-    try {
-      const { model } =
-        await this.sendCommandToDebugger<CDPTypes.DOM.GetBoxModelResponse>(
-          'DOM.getBoxModel',
-          { nodeId },
-        );
-      return {
-        left: model.border[0],
-        top: model.border[1],
-        width: model.border[2] - model.border[0],
-        height: model.border[5] - model.border[1],
-      };
-    } catch (error) {
-      console.error('Error getting box model for nodeId', nodeId, error);
-      return null;
-    }
-  }
+  // private async rectOfNodeId(nodeId: number): Promise<Rect | null> {
+  //   try {
+  //     const { model } =
+  //       await this.sendCommandToDebugger<CDPTypes.DOM.GetBoxModelResponse>(
+  //         'DOM.getBoxModel',
+  //         { nodeId },
+  //       );
+  //     return {
+  //       left: model.border[0],
+  //       top: model.border[1],
+  //       width: model.border[2] - model.border[0],
+  //       height: model.border[5] - model.border[1],
+  //     };
+  //   } catch (error) {
+  //     console.error('Error getting box model for nodeId', nodeId, error);
+  //     return null;
+  //   }
+  // }
 
   async getElementInfos() {
     const content = await this.getPageContentByCDP();
@@ -175,8 +193,12 @@ export default class ChromeExtensionProxyPage implements AbstractPage {
   }
 
   async screenshotBase64() {
-    const base64 = await getScreenshotBase64FromWindowId(this.windowId);
-    return base64;
+    // screenshot by cdp
+    const base64 = await this.sendCommandToDebugger('Page.captureScreenshot', {
+      format: 'jpeg',
+      quality: 70,
+    });
+    return `data:image/jpeg;base64,${base64.data}`;
   }
 
   async url() {
@@ -184,30 +206,76 @@ export default class ChromeExtensionProxyPage implements AbstractPage {
     return url || '';
   }
 
-  async scrollUntilTop() {
+  async scrollUntilTop(startingPoint?: Point) {
+    if (startingPoint) {
+      await this.mouse.move(startingPoint.left, startingPoint.top);
+    }
     return this.mouse.wheel(0, -9999999);
   }
 
-  async scrollUntilBottom() {
+  async scrollUntilBottom(startingPoint?: Point) {
+    if (startingPoint) {
+      await this.mouse.move(startingPoint.left, startingPoint.top);
+    }
     return this.mouse.wheel(0, 9999999);
   }
 
-  async scrollUpOneScreen() {
-    await chrome.scripting.executeScript({
-      target: { tabId: this.tabId, allFrames: true },
-      func: () => {
-        window.scrollBy(0, -window.innerHeight * 0.7);
-      },
-    });
+  async scrollUntilLeft(startingPoint?: Point) {
+    if (startingPoint) {
+      await this.mouse.move(startingPoint.left, startingPoint.top);
+    }
+    return this.mouse.wheel(-9999999, 0);
   }
 
-  async scrollDownOneScreen() {
-    await chrome.scripting.executeScript({
-      target: { tabId: this.tabId, allFrames: true },
-      func: () => {
-        window.scrollBy(0, window.innerHeight * 0.7);
-      },
-    });
+  async scrollUntilRight(startingPoint?: Point) {
+    if (startingPoint) {
+      await this.mouse.move(startingPoint.left, startingPoint.top);
+    }
+    return this.mouse.wheel(9999999, 0);
+  }
+
+  async scrollUp(distance?: number, startingPoint?: Point) {
+    const { height } = await this.size();
+    const scrollDistance = distance || height * 0.7;
+    return this.mouse.wheel(
+      0,
+      -scrollDistance,
+      startingPoint?.left,
+      startingPoint?.top,
+    );
+  }
+
+  async scrollDown(distance?: number, startingPoint?: Point) {
+    const { height } = await this.size();
+    const scrollDistance = distance || height * 0.7;
+    return this.mouse.wheel(
+      0,
+      scrollDistance,
+      startingPoint?.left,
+      startingPoint?.top,
+    );
+  }
+
+  async scrollLeft(distance?: number, startingPoint?: Point) {
+    const { width } = await this.size();
+    const scrollDistance = distance || width * 0.7;
+    return this.mouse.wheel(
+      -scrollDistance,
+      0,
+      startingPoint?.left,
+      startingPoint?.top,
+    );
+  }
+
+  async scrollRight(distance?: number, startingPoint?: Point) {
+    const { width } = await this.size();
+    const scrollDistance = distance || width * 0.7;
+    return this.mouse.wheel(
+      scrollDistance,
+      0,
+      startingPoint?.left,
+      startingPoint?.top,
+    );
   }
 
   async clearInput(element: ElementInfo) {
@@ -253,11 +321,16 @@ export default class ChromeExtensionProxyPage implements AbstractPage {
         clickCount: 1,
       });
     },
-    wheel: async (deltaX: number, deltaY: number) => {
+    wheel: async (
+      deltaX: number,
+      deltaY: number,
+      startX?: number,
+      startY?: number,
+    ) => {
       await this.sendCommandToDebugger('Input.dispatchMouseEvent', {
         type: 'mouseWheel',
-        x: 10,
-        y: 10,
+        x: startX || 10,
+        y: startY || 10,
         deltaX,
         deltaY,
       });
@@ -273,35 +346,16 @@ export default class ChromeExtensionProxyPage implements AbstractPage {
 
   keyboard = {
     type: async (text: string) => {
-      for (const char of text) {
-        await this.sendCommandToDebugger('Input.insertText', {
-          text: char,
-        });
-
-        // sleep 50ms
-        await new Promise((resolve) => setTimeout(resolve, 50));
-      }
+      const cdpKeyboard = new CdpKeyboard({
+        send: this.sendCommandToDebugger.bind(this),
+      });
+      await cdpKeyboard.type(text);
     },
     press: async (key: WebKeyInput) => {
-      await this.sendCommandToDebugger('Input.dispatchKeyEvent', {
-        type: 'rawKeyDown',
-        code: key,
-        key: key,
+      const cdpKeyboard = new CdpKeyboard({
+        send: this.sendCommandToDebugger.bind(this),
       });
-
-      // Dispatch 'char' event
-      await this.sendCommandToDebugger('Input.dispatchKeyEvent', {
-        type: 'char',
-        code: key,
-        key: key,
-      });
-
-      // Dispatch 'keyUp' event
-      await this.sendCommandToDebugger('Input.dispatchKeyEvent', {
-        type: 'keyUp',
-        code: key,
-        key: key,
-      });
+      await cdpKeyboard.press(key);
     },
   };
 
@@ -309,60 +363,3 @@ export default class ChromeExtensionProxyPage implements AbstractPage {
     await this.detachDebugger();
   }
 }
-
-// backup: some implementation by chrome extension API instead of CDP
-// async function getPageContentOfTab(tabId: number): Promise<{
-//   context: ElementInfo[];
-//   size: { width: number; height: number; dpr: number };
-// }> {
-//   await chrome.scripting.executeScript({
-//     target: {
-//       tabId,
-//       allFrames: true,
-//     },
-//     files: [scriptFileToRetrieve],
-//   });
-
-//   // call and retrieve the result
-//   const returnValue = await chrome.scripting.executeScript({
-//     target: { tabId, allFrames: true },
-//     func: () => {
-//       return {
-//         context: (
-//           window as any
-//         ).midscene_element_inspector.webExtractTextWithPosition(),
-//         size: {
-//           width: document.documentElement.clientWidth,
-//           height: document.documentElement.clientHeight,
-//           dpr: window.devicePixelRatio,
-//         },
-//       };
-//     },
-//   });
-
-//   console.log('returnValue', returnValue);
-//   if (!returnValue[0].result) {
-//     throw new Error(`Failed to get active page content of tabId: ${tabId}`);
-//   }
-
-//   return returnValue[0].result;
-// }
-
-// async function getSizeInfoOfTab(tabId: number): Promise<{
-//   dpr: number;
-//   width: number;
-//   height: number;
-// }> {
-//   const returnValue = await chrome.scripting.executeScript({
-//     target: { tabId, allFrames: false },
-//     func: () => {
-//       return {
-//         dpr: window.devicePixelRatio,
-//         width: document.documentElement.clientWidth,
-//         height: document.documentElement.clientHeight,
-//       };
-//     },
-//   });
-//   // console.log('returnValue of getScreenInfoOfTab', returnValue);
-//   return returnValue[0].result!;
-// }

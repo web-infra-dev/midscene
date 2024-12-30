@@ -1,5 +1,5 @@
 import { printReportMsg, reportFileName } from '@/common/utils';
-import type { ReportDumpWithAttributes } from '@midscene/core/.';
+import type { ReportDumpWithAttributes } from '@midscene/core';
 import { writeDumpReport } from '@midscene/core/utils';
 import type {
   FullConfig,

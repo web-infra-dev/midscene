@@ -42,6 +42,7 @@ Midscene.jsは、自然言語を使用してページを制御し、アサーシ
 * [YAML形式の自動化スクリプトを使用する](https://midscenejs.com/automate-with-scripts-in-yaml.html)
 * [Puppeteerとの統合](https://midscenejs.com/integrate-with-puppeteer.html)
 * [Playwrightとの統合](https://midscenejs.com/integrate-with-playwright.html)
+* [モデルとサービスプロバイダーのカスタマイズ](https://midscenejs.com/model-provider.html)
 
 ## ライセンス
 

@@ -1,4 +1,4 @@
-# 使用 Chrome 插件体验
+# 通过 Chrome 插件快速体验
 
 通过使用 Midscene.js Chrome 插件，你可以快速在任意网页上体验 Midscene 的主要功能，而无需编写任何代码。
 
@@ -41,4 +41,10 @@ OPENAI_API_KEY="sk-replace-by-your-own"
 
 * 插件运行失败，提示 'Cannot access a chrome-extension:// URL of different extension'
 
-请确保你在普通的 http(s):// 页面上使用 Midscene.js 插件。如果依然报错，一般是与其他插件冲突（被注入了 `<iframe />` ）所致，临时禁用可疑插件即可。
+这一般是与其他插件冲突所致，如页面已经被其他插件注入了 `<iframe />` 或 `<script />`。
+
+找到可疑插件：
+
+1. 打开页面的调试器，找到被其他插件注入的 `<iframe />` 或 `<script />`，一般 URL 是 `chrome-extension://{这串就是ID}/...` 格式，复制其 ID。
+2. 打开 chrome://extensions/ ，找到相同 ID 的插件，禁用它。
+3. 刷新页面，再次尝试。

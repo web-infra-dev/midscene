@@ -1,4 +1,4 @@
-import { readFileSync, writeFileSync } from 'node:fs';
+import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { describe } from 'node:test';
 import { AiInspectElement, plan } from '@/ai-model';
@@ -13,6 +13,7 @@ import {
   repeat,
   runTestCases,
 } from './test-suite/util';
+import 'dotenv/config';
 
 const repeatTime = 2;
 const relocateAfterPlanning = false;

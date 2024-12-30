@@ -2,6 +2,8 @@
 
 import type { ChatCompletionMessageParam } from 'openai/resources';
 
+export * from './yaml.d';
+
 export interface Point {
   left: number;
   top: number;
@@ -244,6 +246,7 @@ export interface PlanningAction<ParamType = any> {
     | 'KeyboardPress'
     | 'Scroll'
     | 'Error'
+    | 'FalsyConditionStatement'
     | 'Assert'
     | 'AssertWithoutThrow'
     | 'Sleep';
@@ -270,11 +273,9 @@ export interface PlanningActionParamInputOrKeyPress {
   value: string;
 }
 export interface PlanningActionParamScroll {
-  scrollType:
-    | 'scrollUntilTop'
-    | 'scrollUntilBottom'
-    | 'scrollUpOneScreen'
-    | 'scrollDownOneScreen';
+  direction: 'down' | 'up' | 'right' | 'left';
+  scrollType: 'once' | 'untilBottom' | 'untilTop' | 'untilRight' | 'untilLeft';
+  distance: null | number;
 }
 
 export interface PlanningActionParamAssert {

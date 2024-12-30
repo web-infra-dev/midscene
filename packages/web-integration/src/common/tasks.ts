@@ -91,10 +91,17 @@ export class PageTaskExecutor {
             (async () => {
               await sleep(100);
               if ((this.page as PuppeteerWebPage).waitUntilNetworkIdle) {
-                await (this.page as PuppeteerWebPage).waitUntilNetworkIdle();
+                try {
+                  await (this.page as PuppeteerWebPage).waitUntilNetworkIdle({
+                    idleTime: 100,
+                    timeout: 800,
+                  });
+                } catch (error) {
+                  // console.error('waitUntilNetworkIdle error', error);
+                }
               }
             })(),
-            sleep(300),
+            sleep(200),
           ]);
         }
         if (appendAfterExecution) {
@@ -318,27 +325,56 @@ export class PageTaskExecutor {
             param: plan.param,
             thought: plan.thought,
             locate: plan.locate,
-            executor: async (taskParam) => {
-              const scrollToEventName = taskParam.scrollType;
-
-              switch (scrollToEventName) {
-                case 'scrollUntilTop':
-                  await this.page.scrollUntilTop();
-                  break;
-                case 'scrollUntilBottom':
-                  await this.page.scrollUntilBottom();
-                  break;
-                case 'scrollUpOneScreen':
-                  await this.page.scrollUpOneScreen();
-                  break;
-                case 'scrollDownOneScreen':
-                  await this.page.scrollDownOneScreen();
-                  break;
-                default:
-                  console.error(
-                    'Unknown scroll event type:',
-                    scrollToEventName,
+            executor: async (taskParam, { element }) => {
+              const startingPoint = element
+                ? {
+                    left: element.center[0],
+                    top: element.center[1],
+                  }
+                : undefined;
+              const scrollToEventName = taskParam?.scrollType;
+              if (scrollToEventName === 'untilTop') {
+                await this.page.scrollUntilTop(startingPoint);
+              } else if (scrollToEventName === 'untilBottom') {
+                await this.page.scrollUntilBottom(startingPoint);
+              } else if (scrollToEventName === 'untilRight') {
+                await this.page.scrollUntilRight(startingPoint);
+              } else if (scrollToEventName === 'untilLeft') {
+                await this.page.scrollUntilLeft(startingPoint);
+              } else if (scrollToEventName === 'once') {
+                if (taskParam.direction === 'down') {
+                  await this.page.scrollDown(
+                    taskParam.distance || undefined,
+                    startingPoint,
                   );
+                } else if (taskParam.direction === 'up') {
+                  await this.page.scrollUp(
+                    taskParam.distance || undefined,
+                    startingPoint,
+                  );
+                } else if (taskParam.direction === 'left') {
+                  await this.page.scrollLeft(
+                    taskParam.distance || undefined,
+                    startingPoint,
+                  );
+                } else if (taskParam.direction === 'right') {
+                  await this.page.scrollRight(
+                    taskParam.distance || undefined,
+                    startingPoint,
+                  );
+                } else {
+                  throw new Error(
+                    `Unknown scroll direction: ${taskParam.direction}`,
+                  );
+                }
+                // until mouse event is done
+                await sleep(500);
+              } else {
+                throw new Error(
+                  `Unknown scroll event type: ${scrollToEventName}, taskParam: ${JSON.stringify(
+                    taskParam,
+                  )}`,
+                );
               }
             },
           };
@@ -369,6 +405,19 @@ export class PageTaskExecutor {
             },
           };
         tasks.push(taskActionError);
+      } else if (plan.type === 'FalsyConditionStatement') {
+        const taskActionFalsyConditionStatement: ExecutionTaskActionApply<null> =
+          {
+            type: 'Action',
+            subType: 'FalsyConditionStatement',
+            param: null,
+            thought: plan.thought,
+            locate: plan.locate,
+            executor: async () => {
+              // console.warn(`[warn]falsy condition: ${plan.thought}`);
+            },
+          };
+        tasks.push(taskActionFalsyConditionStatement);
       } else {
         throw new Error(`Unknown or unsupported task type: ${plan.type}`);
       }
@@ -511,6 +560,11 @@ export class PageTaskExecutor {
         return this.appendErrorPlan(taskExecutor, errorMsg);
       }
 
+      if (replanCount > 0) {
+        // add a brief sleep to wait for the page to be ready
+        await sleep(300);
+      }
+
       // plan
       await taskExecutor.append(planningTask);
       const planResult: PlanningAIResponse = await taskExecutor.flush();
@@ -522,26 +576,6 @@ export class PageTaskExecutor {
       }
 
       const plans = planResult.actions;
-
-      // check if their is nothing but a locate will null task
-      // const validPlans = plans.filter((plan: PlanningAction) => {
-      //   if (plan.type === 'Locate' && !plan.param?.id) {
-      //     return false;
-      //   }
-      //   return plan.type !== 'Plan';
-      // });
-      // if (validPlans.length === 0) {
-      //   if (replanCount === 0) {
-      //     return this.appendErrorPlan(
-      //       taskExecutor,
-      //       `No valid plans found, cannot proceed: ${userPrompt}`,
-      //     );
-      //   }
-      //   return this.appendErrorPlan(
-      //     taskExecutor,
-      //     `Cannot proceed after several steps, please check the report: ${userPrompt}`,
-      //   );
-      // }
 
       let executables: Awaited<ReturnType<typeof this.convertPlanToExecutable>>;
       try {

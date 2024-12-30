@@ -6,8 +6,6 @@ Introducing Midscene.js, an innovative SDK designed to bring joy back to automat
 
 Midscene.js leverages a multimodal Large Language Model (LLM) to intuitively “understand” your user interface and carry out the necessary actions. You can simply describe the interaction steps or expected data formats, and the AI will handle the execution for you.
 
-Currently, the model we are using by default is the OpenAI GPT-4o model, while you can customize it to a different model if needed.
-
 <div style={{"width": "100%", "display": "flex", justifyContent: "center"}}>
   <iframe
     style={{"maxWidth": "100%", "width": "800px", "height": "450px"}}
@@ -67,3 +65,11 @@ Midscene will provide a visual report after each run. With this report, you can 
 ## Just you and model provider, no third-party services
 
 ⁠Midscene.js is an open-source project (GitHub: [Midscene](https://github.com/web-infra-dev/midscene/)) under the MIT license. You can run it in your own environment. All data gathered from pages will be sent directly to OpenAI or the custom model provider according to your configuration. Therefore, only you and the model provider will have access to the data. No third-party platform will access the data.
+
+## Customize Model
+
+Currently, the model we are using by default is the OpenAI GPT-4o model, while you can [customize it to a different multimodal model](./model-provider.html) if needed.
+
+## Start with Chrome Extension
+
+To quickly experience the main features of Midscene, you can use the [Chrome Extension](./quick-experience.html). It allows you to use Midscene on any webpage without writing any code.

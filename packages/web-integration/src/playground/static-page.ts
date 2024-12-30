@@ -3,6 +3,7 @@ import {
   type WebUIContext,
 } from '@/common/utils';
 import type { AbstractPage } from '@/page';
+import type { Point } from '@midscene/core';
 
 const ThrowNotImplemented: any = (methodName: string) => {
   throw new Error(
@@ -39,20 +40,36 @@ export default class StaticPage implements AbstractPage {
     return this.uiContext.url;
   }
 
-  async scrollUntilTop() {
+  async scrollUntilTop(startingPoint?: Point) {
     return ThrowNotImplemented('scrollUntilTop');
   }
 
-  async scrollUntilBottom() {
+  async scrollUntilBottom(startingPoint?: Point) {
     return ThrowNotImplemented('scrollUntilBottom');
   }
 
-  async scrollUpOneScreen() {
-    return ThrowNotImplemented('scrollUpOneScreen');
+  async scrollUntilLeft(startingPoint?: Point) {
+    return ThrowNotImplemented('scrollUntilLeft');
   }
 
-  async scrollDownOneScreen() {
-    return ThrowNotImplemented('scrollDownOneScreen');
+  async scrollUntilRight(startingPoint?: Point) {
+    return ThrowNotImplemented('scrollUntilRight');
+  }
+
+  async scrollUp(distance?: number, startingPoint?: Point) {
+    return ThrowNotImplemented('scrollUp');
+  }
+
+  async scrollDown(distance?: number, startingPoint?: Point) {
+    return ThrowNotImplemented('scrollDown');
+  }
+
+  async scrollLeft(distance?: number, startingPoint?: Point) {
+    return ThrowNotImplemented('scrollLeft');
+  }
+
+  async scrollRight(distance?: number, startingPoint?: Point) {
+    return ThrowNotImplemented('scrollRight');
   }
 
   async clearInput() {

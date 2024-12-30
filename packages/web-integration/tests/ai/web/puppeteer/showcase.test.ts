@@ -1,3 +1,4 @@
+import path from 'node:path';
 import { PuppeteerAgent } from '@/puppeteer';
 import { describe, expect, it, vi } from 'vitest';
 import { launchPage } from './utils';
@@ -84,14 +85,38 @@ describe(
       await reset();
     });
 
-    it('Search', async () => {
-      const { originPage, reset } = await launchPage('https://www.baidu.com/');
+    it('search engine', async () => {
+      const { originPage, reset } = await launchPage('https://www.bing.com/');
       const mid = new PuppeteerAgent(originPage);
       await mid.aiAction(
         'type "AI 101" in search box, hit Enter, wait 2s, click the second result, wait 4s',
       );
 
       await mid.aiWaitFor('there are some search results');
+
+      await reset();
+    });
+
+    it('scroll', async () => {
+      const htmlPath = path.join(__dirname, 'scroll.html');
+      const { originPage, reset } = await launchPage(`file://${htmlPath}`);
+      const mid = new PuppeteerAgent(originPage);
+      await mid.aiAction(
+        'find the "Vertical 2" element, scroll down 200px, find the "Horizontal 2" element, scroll right 100px',
+      );
+      await mid.aiAssert(
+        'the "Horizontal 2", "Horizontal 4" and "Vertical 5" elements are visible',
+      );
+      await reset();
+    });
+
+    it.skip('Playground', async () => {
+      const { originPage, reset } = await launchPage('https://www.baidu.com/');
+      const mid = new PuppeteerAgent(originPage);
+      // await mid.aiAction('Close the cookie prompt');
+      await mid.aiAction(
+        'Type "AI 101" in search box, hit Enter, wait 2s. If there is a cookie prompt, close it',
+      );
 
       await reset();
     });
