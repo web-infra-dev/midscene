@@ -32,9 +32,11 @@ export default function Bridge() {
   };
 
   useEffect(() => {
-    if (bridgeStatus === 'connected') {
-      activeBridgePage?.destroy();
-    }
+    return () => {
+      if (bridgeStatus === 'connected') {
+        activeBridgePage?.destroy();
+      }
+    };
   }, [bridgeStatus]);
 
   const stopConnection = () => {
@@ -63,9 +65,9 @@ export default function Bridge() {
         appendBridgeLog('Bridge connected');
         return;
       } catch (e) {
-        // console.warn('failed to connect to bridge server', e);
+        console.warn('failed to connect to bridge server', e);
       }
-      console.log('waiting for connection...');
+      console.log('will retry...');
       await new Promise((resolve) => setTimeout(resolve, connectRetryInterval));
     }
 

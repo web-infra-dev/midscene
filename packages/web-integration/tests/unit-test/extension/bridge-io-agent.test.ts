@@ -19,13 +19,9 @@ describe('fully functional agent in server(cli) side', () => {
 
       // make sure the extension bridge is launched before timeout
       await page.connectNewTabWithUrl('https://www.baidu.com');
-      console.log('connected !');
 
       const agent = new ChromeExtensionProxyPageAgent(page);
-
-      console.log('will call aiAction');
       await agent.aiAction('tap "百度一下"');
-      console.log('will destroy');
       await agent.destroy();
     },
     30 * 1000,

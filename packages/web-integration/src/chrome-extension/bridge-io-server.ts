@@ -19,7 +19,7 @@ export class BridgeServer {
 
   constructor(public port: number) {}
 
-  async listen(timeout = 30000): Promise<void> {
+  async listen(timeout = 10000): Promise<void> {
     return new Promise((resolve, reject) => {
       const timeoutListener = setTimeout(() => {
         reject(
@@ -31,6 +31,8 @@ export class BridgeServer {
 
       this.io = new Server(this.port);
       this.io.on('connection', (socket) => {
+        clearTimeout(timeoutListener);
+
         if (this.socket) {
           console.log('server already connected, refusing new connection');
           socket.emit(BridgeRefusedEvent);
@@ -39,7 +41,6 @@ export class BridgeServer {
         try {
           console.log('one client connected');
           this.socket = socket;
-          socket.emit(BridgeConnectedEvent);
 
           socket.on(BridgeCallResponseEvent, (params: BridgeCallResponse) => {
             const id = params.id;
@@ -56,14 +57,17 @@ export class BridgeServer {
             call.callback(call.error, response);
           });
 
-          // flush all calls
-          for (const id in this.calls) {
-            if (this.calls[id].callTime === 0) {
-              this.emitCall(id);
-            }
-          }
+          setTimeout(() => {
+            socket.emit(BridgeConnectedEvent);
+            Promise.resolve().then(() => {
+              for (const id in this.calls) {
+                if (this.calls[id].callTime === 0) {
+                  this.emitCall(id);
+                }
+              }
+            });
+          }, 0);
 
-          clearTimeout(timeoutListener);
           resolve();
         } catch (e) {
           console.error('failed to handle connection event', e);

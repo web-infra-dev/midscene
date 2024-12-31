@@ -7,7 +7,6 @@ import type { ChromeExtensionPageBrowserSide } from './bridge-page-browser-side'
 // TODO: handle the connection timeout
 export const getBridgePageInCliSide = (): ChromeExtensionPageBrowserSide => {
   const server = new BridgeServer(DefaultBridgeServerPort);
-
   server.listen();
   const bridgeCaller = (method: string) => {
     return async (...args: any[]) => {

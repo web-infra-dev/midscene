@@ -71,9 +71,9 @@ export class ChromeExtensionPageBrowserSide extends ChromeExtensionProxyPage {
     if (this.bridgeClient) {
       this.bridgeClient.disconnect();
       this.bridgeClient = null;
+      this.onDisconnect();
     }
     super.destroy();
     this.tabId = 0;
-    this.onDisconnect();
   }
 }
