@@ -12,12 +12,19 @@ const quickAnswerFormat = () => {
         '"position": { x: number; y: number } // Represents the position of the element; replace with actual values in practice (ensure it reflects the element\'s position)',
       format: '"position": { x: number; y: number }',
       sample: '{"prompt": "the search bar"}',
+      locateParam: `{
+        "prompt"?: string // the description of the element to find. It can only be omitted when locate is null.
+      } | null // If it's not on the page, the LocateParam should be null`,
     },
     id: {
       description:
         '"id": string // Represents the ID of the element; replace with actual values in practice',
       format: '"id": string',
-      sample: '{"id": "c81c4e9a33", "prompt": "the search bar"}',
+      sample: `{"id": "c81c4e9a33", "prompt": "the search bar"}`,
+      locateParam: `{
+        "id": string, // the id of the element found. It should either be the id marked with a rectangle in the screenshot or the id described in the description.
+        "prompt"?: string // the description of the element to find. It can only be omitted when locate is null.
+      } | null // If it's not on the page, the LocateParam should be null`,
     },
   };
 
@@ -28,6 +35,7 @@ const quickAnswerFormat = () => {
     description: format.description,
     format: format.format,
     sample: format.sample,
+    locateParam: format.locateParam,
   };
 };
 
@@ -65,16 +73,13 @@ You are a versatile professional in software UI automation. Your outstanding con
 
 The \`locate\` param is commonly used in the \`param\` field of the action, means to locate the target element to perform the action, it follows the following scheme:
 
-type LocateParam = {{
-  "id": string, // the id of the element found. It should either be the id marked with a rectangle in the screenshot or the id described in the description.
-  prompt?: string // the description of the element to find. It can only be omitted when locate is null.
-}} | null // If it's not on the page, the LocateParam should be null
+type LocateParam = {locateParam}
 
 ### Supported actions
 
 Each action has a \`type\` and corresponding \`param\`. To be detailed:
 - type: 'Tap', tap the located element
-  * {{ locate: LocateParam, param: null }}
+  * {{ locate: {sample}, param: null }}
 - type: 'Hover', move mouse over to the located element
   * {{ locate: LocateParam, param: null }}
 - type: 'Input', replace the value in the input field
@@ -247,12 +252,13 @@ Reason:
 export async function systemPromptToTaskPlanning() {
   const promptTemplate = new PromptTemplate({
     template: `${systemTemplate}\n\n${outputTemplate}`,
-    inputVariables: ['pageDescription', 'sample'],
+    inputVariables: ['pageDescription', 'sample', 'locateParam'],
   });
 
   return await promptTemplate.format({
     pageDescription: samplePageDescription,
     sample: quickAnswerFormat().sample,
+    locateParam: quickAnswerFormat().locateParam,
   });
 }
 
@@ -343,3 +349,37 @@ export const planSchema: ResponseFormatJSONSchema = {
     },
   },
 };
+
+export const taskBackgroundContext = async (
+  originalPrompt?: string,
+  whatHaveDone?: string,
+) => {
+  if (!originalPrompt || !whatHaveDone) {
+    return '';
+  }
+
+  return `
+    For your information, this is a task that some important person handed to you. Here is the original task description and what have been done after the previous actions:
+    =====================================
+    Original task description:
+    ${originalPrompt}
+    =====================================
+    What have been done:
+    ${whatHaveDone}
+    =====================================
+`;
+};
+
+export const automationUserPrompt = new PromptTemplate({
+  template: `
+    Here is the instruction:
+    =====================================
+    {userPrompt}
+    =====================================
+
+    {taskBackgroundContext}
+
+    pageDescription: {pageDescription}
+  `,
+  inputVariables: ['pageDescription', 'userPrompt', 'taskBackgroundContext'],
+});

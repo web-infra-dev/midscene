@@ -2,6 +2,7 @@ import assert from 'node:assert';
 import { MATCH_BY_POSITION, getAIConfig } from '@/env';
 import { imageInfoOfBase64 } from '@/image';
 import type { BaseElement, Size, UIContext } from '@/types';
+import { PromptTemplate } from '@langchain/core/prompts';
 import type { ResponseFormatJSONSchema } from 'openai/resources';
 
 const characteristic =
@@ -63,6 +64,23 @@ Return in the following JSON format:
 }
 `;
 }
+
+export const extractDataPrompt = new PromptTemplate({
+  template: `
+pageDescription: {pageDescription}
+
+Use your extract_data_from_UI skill to find the following data, placing it in the \`data\` field
+DATA_DEMAND start:
+=====================================
+{dataKeys}
+
+{dataQuery}
+
+=====================================
+DATA_DEMAND ends.
+  `,
+  inputVariables: ['pageDescription', 'dataKeys', 'dataQuery'],
+});
 
 export const extractDataSchema: ResponseFormatJSONSchema = {
   type: 'json_schema',
@@ -188,22 +206,14 @@ export function elementByPositionWithElementInfo(
     x: number;
     y: number;
   },
-  size: { width: number; height: number },
 ) {
   assert(typeof position !== 'undefined', 'position is required for query');
-  console.log('positionN', { position, size });
-  const screenWidth = size.width;
-  const screenHeight = size.height;
-  const positionN = {
-    x: Number(((position.x / 1000) * screenWidth).toFixed(3)),
-    y: Number(((position.y / 1000) * screenHeight).toFixed(3)),
-  };
   const item = elementsInfo.find((item) => {
     return (
-      item.rect.left <= positionN.x &&
-      positionN.x <= item.rect.left + item.rect.width &&
-      item.rect.top <= positionN.y &&
-      positionN.y <= item.rect.top + item.rect.height
+      item.rect.left <= position.x &&
+      position.x <= item.rect.left + item.rect.width &&
+      item.rect.top <= position.y &&
+      position.y <= item.rect.top + item.rect.height
     );
   });
   return item;
@@ -275,17 +285,16 @@ export async function describeUserPage<
     })
     .join('\n\n');
 
+  // if match by position, don't need to provide the page description
+  const pageJSONDescription = getAIConfig(MATCH_BY_POSITION)
+    ? ''
+    : `Some of the elements are marked with a rectangle in the screenshot, some are not. \n Json description of all the page elements:\n${contentList}`;
+  const sizeDescription = describeSize({ width, height });
+
   return {
     description: `
-The size of the page: ${describeSize({ width, height })}
-Some of the elements are marked with a rectangle in the screenshot, some are not.
-
-${
-  // if match by id, use the description of the element
-  getAIConfig(MATCH_BY_POSITION)
-    ? ''
-    : `Json description of all the page elements:\n${contentList}`
-}
+  The size of the page: ${sizeDescription} \n
+  ${pageJSONDescription}
 `,
     elementById(id: string) {
       assert(typeof id !== 'undefined', 'id is required for query');
@@ -297,7 +306,7 @@ ${
       size: { width: number; height: number },
     ) {
       console.log('elementByPosition', { position, size });
-      return elementByPositionWithElementInfo(elementsInfo, position, size);
+      return elementByPositionWithElementInfo(elementsInfo, position);
     },
     size: { width, height },
   };
