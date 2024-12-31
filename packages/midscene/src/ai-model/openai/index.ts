@@ -13,7 +13,7 @@ import { SocksProxyAgent } from 'socks-proxy-agent';
 import {
   ANTHROPIC_API_KEY,
   AZURE_OPENAI_API_VERSION,
-  AZURE_OPENAI_DEPLOYMENT_NAME,
+  AZURE_OPENAI_DEPLOYMENT,
   AZURE_OPENAI_ENDPOINT,
   AZURE_OPENAI_KEY,
   MIDSCENE_AZURE_OPENAI_INIT_CONFIG_JSON,
@@ -79,6 +79,11 @@ async function createChatClient(): Promise<{
       dangerouslyAllowBrowser: true,
     }) as OpenAI;
   } else if (getAIConfig(MIDSCENE_USE_AZURE_OPENAI)) {
+    const extraAzureConfig = getAIConfigInJson(
+      MIDSCENE_AZURE_OPENAI_INIT_CONFIG_JSON,
+    );
+
+    // https://learn.microsoft.com/en-us/azure/ai-services/openai/chatgpt-quickstart?tabs=bash%2Cjavascript-key%2Ctypescript-keyless%2Cpython&pivots=programming-language-javascript#rest-api
     // keyless authentication
     const scope = getAIConfig(MIDSCENE_AZURE_OPENAI_SCOPE);
     let tokenProvider: any = undefined;
@@ -91,22 +96,26 @@ async function createChatClient(): Promise<{
 
       assert(scope, 'MIDSCENE_AZURE_OPENAI_SCOPE is required');
       tokenProvider = getBearerTokenProvider(credential, scope);
+
+      openai = new AzureOpenAI({
+        azureADTokenProvider: tokenProvider,
+        endpoint: getAIConfig(AZURE_OPENAI_ENDPOINT),
+        apiVersion: getAIConfig(AZURE_OPENAI_API_VERSION),
+        deployment: getAIConfig(AZURE_OPENAI_DEPLOYMENT),
+        ...extraConfig,
+        ...extraAzureConfig,
+      });
+    } else {
+      // endpoint, apiKey, apiVersion, deployment
+      openai = new AzureOpenAI({
+        apiKey: getAIConfig(AZURE_OPENAI_KEY),
+        endpoint: getAIConfig(AZURE_OPENAI_ENDPOINT),
+        apiVersion: getAIConfig(AZURE_OPENAI_API_VERSION),
+        deployment: getAIConfig(AZURE_OPENAI_DEPLOYMENT),
+        ...extraConfig,
+        ...extraAzureConfig,
+      });
     }
-
-    const extraAzureConfig = getAIConfigInJson(
-      MIDSCENE_AZURE_OPENAI_INIT_CONFIG_JSON,
-    );
-
-    // endpoint, apiKey, apiVersion, deployment
-    openai = new AzureOpenAI({
-      azureADTokenProvider: tokenProvider,
-      endpoint: getAIConfig(AZURE_OPENAI_ENDPOINT),
-      apiKey: getAIConfig(AZURE_OPENAI_KEY),
-      apiVersion: getAIConfig(AZURE_OPENAI_API_VERSION),
-      deploymentName: getAIConfig(AZURE_OPENAI_DEPLOYMENT_NAME),
-      ...extraConfig,
-      ...extraAzureConfig,
-    });
   } else if (!getAIConfig(MIDSCENE_USE_ANTHROPIC_SDK)) {
     openai = new OpenAI({
       baseURL: getAIConfig(OPENAI_BASE_URL),

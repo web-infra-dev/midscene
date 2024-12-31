@@ -42,7 +42,7 @@ export MIDSCENE_USE_AZURE_OPENAI=1
 export MIDSCENE_AZURE_OPENAI_SCOPE="https://cognitiveservices.azure.com/.default"
 export AZURE_OPENAI_ENDPOINT="..."
 export AZURE_OPENAI_API_VERSION="2024-05-01-preview"
-export AZURE_OPENAI_DEPLOYMENT_NAME="gpt-4o"
+export AZURE_OPENAI_DEPLOYMENT="gpt-4o"
 ```
 
 Or use keyless authentication
@@ -52,7 +52,7 @@ export MIDSCENE_USE_AZURE_OPENAI=1
 export AZURE_OPENAI_ENDPOINT="..."
 export AZURE_OPENAI_KEY="..."
 export AZURE_OPENAI_API_VERSION="2024-05-01-preview"
-export AZURE_OPENAI_DEPLOYMENT_NAME="gpt-4o"
+export AZURE_OPENAI_DEPLOYMENT="gpt-4o"
 ```
 
 ## Choose a model other than `gpt-4o`
