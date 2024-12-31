@@ -21,7 +21,7 @@ describe('fully functional agent in server(cli) side', () => {
       await page.connectNewTabWithUrl('https://www.baidu.com');
 
       const agent = new ChromeExtensionProxyPageAgent(page);
-      await agent.aiAction('tap "百度一下"');
+      await agent.aiAction('type "AI 101" and tap "百度一下"');
       await agent.destroy();
     },
     30 * 1000,

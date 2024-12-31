@@ -7,7 +7,10 @@ import ChromeExtensionProxyPage from './page';
 export class ChromeExtensionPageBrowserSide extends ChromeExtensionProxyPage {
   public bridgeClient: BridgeClient | null = null;
 
-  constructor(public onDisconnect: () => void = () => {}) {
+  constructor(
+    public onDisconnect: () => void = () => {},
+    public onStatusMessage: (message: string) => void = () => {},
+  ) {
     super(0);
   }
 
@@ -37,12 +40,16 @@ export class ChromeExtensionPageBrowserSide extends ChromeExtensionProxyPage {
           return this.keyboard[actionName].apply(this.keyboard, args as any);
         }
 
+        // TODO: property white list
+        // const properties = Object.getOwnPropertyNames(this).concat(
+        //   Object.getOwnPropertyNames(ChromeExtensionProxyPage.prototype),
+        // );
+        // console.log('properties', properties);
         // @ts-expect-error
         return this[method as keyof ChromeExtensionProxyPage](...args);
       },
       // on disconnect
       () => {
-        this.bridgeClient = null;
         return this.destroy();
       },
     );
@@ -60,6 +67,7 @@ export class ChromeExtensionPageBrowserSide extends ChromeExtensionProxyPage {
     }
 
     // new tab
+    this.onStatusMessage(`creating new tab with url: ${url}`);
     const tab = await chrome.tabs.create({ url });
     const tabId = tab.id;
     assert(tabId, 'failed to get tabId after creating a new tab');

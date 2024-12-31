@@ -1,7 +1,11 @@
-import { LoadingOutlined } from '@ant-design/icons';
+import {
+  CheckOutlined,
+  CloseOutlined,
+  LoadingOutlined,
+} from '@ant-design/icons';
 import { ChromeExtensionPageBrowserSide } from '@midscene/web/chrome-extension';
 import { Button, Spin } from 'antd';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import './bridge.less';
 import dayjs from 'dayjs';
 
@@ -47,15 +51,26 @@ export default function Bridge() {
     setActiveBridgePage(null);
   };
 
+  const stopListeningFlag = useRef(false);
+  const stopListening = () => {
+    stopListeningFlag.current = true;
+  };
+
   const startConnection = async (timeout = connectTimeout) => {
     if (activeBridgePage) {
       console.error('activeBridgePage', activeBridgePage);
       throw new Error('There is already a connection, cannot start a new one');
     }
     const startTime = Date.now();
+    appendBridgeLog('Start listening for connection');
     setBridgeStatus('open-for-connection');
+    stopListeningFlag.current = false;
+
     while (Date.now() - startTime < timeout) {
       try {
+        if (stopListeningFlag.current) {
+          break;
+        }
         const activeBridgePage = new ChromeExtensionPageBrowserSide(() => {
           stopConnection();
         });
@@ -75,21 +90,23 @@ export default function Bridge() {
     appendBridgeLog('No connection found within timeout');
   };
 
-  const stopListening = () => {
-    console.warn('not implemented');
-  };
-
-  let statusText: any;
+  let statusElement: any;
   let statusBtn: any;
   if (bridgeStatus === 'closed') {
-    statusText = 'Closed';
+    statusElement = (
+      <span>
+        <CloseOutlined />
+        {'  '}
+        Closed
+      </span>
+    );
     statusBtn = (
       <Button type="primary" onClick={() => startConnection()}>
         Allow Connection
       </Button>
     );
   } else if (bridgeStatus === 'open-for-connection') {
-    statusText = (
+    statusElement = (
       <span>
         <Spin indicator={<LoadingOutlined spin />} size="small" />
         {'  '}
@@ -100,18 +117,25 @@ export default function Bridge() {
     );
     statusBtn = <Button onClick={stopListening}>Stop</Button>;
   } else if (bridgeStatus === 'connected') {
-    statusText = <span>Connected</span>;
+    statusElement = (
+      <span>
+        <CheckOutlined />
+        {'  '}
+        Connected
+      </span>
+    );
     statusBtn = <Button onClick={stopConnection}>Stop</Button>;
   } else {
-    statusText = <span>Unknown Status - {bridgeStatus}</span>;
+    statusElement = <span>Unknown Status - {bridgeStatus}</span>;
     statusBtn = <Button onClick={stopConnection}>Stop</Button>;
   }
 
-  const logs = bridgeLog.map((log) => {
+  const logs = [...bridgeLog].reverse().map((log) => {
     return (
       <div className="bridge-log-item" key={log.time}>
-        <div className="bridge-log-item-time">{log.time}</div>
-        <div className="bridge-log-item-content">{log.content}</div>
+        <div className="bridge-log-item-content">
+          {log.time} - {log.content}
+        </div>
       </div>
     );
   });
@@ -131,7 +155,7 @@ export default function Bridge() {
         <div className="form-part">
           <h3>Bridge Status</h3>
           <div className="bridge-status-bar">
-            <div>{statusText}</div>
+            <div>{statusElement}</div>
             <div className="bridge-status-btn">{statusBtn}</div>
           </div>
         </div>

@@ -15,13 +15,14 @@ export class BridgeServer {
   private callId = 0;
   private io: Server | null = null;
   private socket: ServerSocket | null = null;
+  private listeningTimeoutId: NodeJS.Timeout | null = null;
   public calls: Record<string, BridgeCall> = {};
 
   constructor(public port: number) {}
 
-  async listen(timeout = 10000): Promise<void> {
+  async listen(timeout = 30000): Promise<void> {
     return new Promise((resolve, reject) => {
-      const timeoutListener = setTimeout(() => {
+      this.listeningTimeoutId = setTimeout(() => {
         reject(
           new Error(
             `no client connected after ${timeout}ms (${BridgeErrorCodeNoClientConnected})`,
@@ -31,7 +32,7 @@ export class BridgeServer {
 
       this.io = new Server(this.port);
       this.io.on('connection', (socket) => {
-        clearTimeout(timeoutListener);
+        this.listeningTimeoutId && clearTimeout(this.listeningTimeoutId);
 
         if (this.socket) {
           console.log('server already connected, refusing new connection');
@@ -53,7 +54,6 @@ export class BridgeServer {
             call.response = response;
             call.responseTime = Date.now();
 
-            console.log('callback', call.method, call.error, response);
             call.callback(call.error, response);
           });
 
@@ -133,6 +133,7 @@ export class BridgeServer {
   }
 
   close() {
+    this.listeningTimeoutId && clearTimeout(this.listeningTimeoutId);
     this.io?.close();
     this.io = null;
   }

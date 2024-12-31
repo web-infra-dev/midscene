@@ -28,7 +28,7 @@ export const getBridgePageInCliSide = (): ChromeExtensionPageBrowserSide => {
         };
       }
 
-      if (prop === '_forceUsePageContext') {
+      if (prop === '_forceUsePageContext' || prop === 'waitUntilNetworkIdle') {
         return undefined;
       }
 
