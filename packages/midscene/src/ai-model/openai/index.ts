@@ -12,6 +12,10 @@ import type { ChatCompletionMessageParam } from 'openai/resources';
 import { SocksProxyAgent } from 'socks-proxy-agent';
 import {
   ANTHROPIC_API_KEY,
+  AZURE_OPENAI_API_VERSION,
+  AZURE_OPENAI_DEPLOYMENT_NAME,
+  AZURE_OPENAI_ENDPOINT,
+  AZURE_OPENAI_KEY,
   MIDSCENE_AZURE_OPENAI_INIT_CONFIG_JSON,
   MIDSCENE_AZURE_OPENAI_SCOPE,
   MIDSCENE_DANGEROUSLY_PRINT_ALL_CONFIG,
@@ -75,23 +79,31 @@ async function createChatClient(): Promise<{
       dangerouslyAllowBrowser: true,
     }) as OpenAI;
   } else if (getAIConfig(MIDSCENE_USE_AZURE_OPENAI)) {
-    // sample code: https://github.com/Azure/azure-sdk-for-js/blob/main/sdk/openai/openai/samples/cookbook/simpleCompletionsPage/app.js
+    // keyless authentication
     const scope = getAIConfig(MIDSCENE_AZURE_OPENAI_SCOPE);
+    let tokenProvider: any = undefined;
+    if (scope) {
+      assert(
+        !ifInBrowser,
+        'Azure OpenAI is not supported in browser with Midscene.',
+      );
+      const credential = new DefaultAzureCredential();
 
-    assert(
-      !ifInBrowser,
-      'Azure OpenAI is not supported in browser with Midscene.',
-    );
-    const credential = new DefaultAzureCredential();
-
-    assert(scope, 'MIDSCENE_AZURE_OPENAI_SCOPE is required');
-    const tokenProvider = getBearerTokenProvider(credential, scope);
+      assert(scope, 'MIDSCENE_AZURE_OPENAI_SCOPE is required');
+      tokenProvider = getBearerTokenProvider(credential, scope);
+    }
 
     const extraAzureConfig = getAIConfigInJson(
       MIDSCENE_AZURE_OPENAI_INIT_CONFIG_JSON,
     );
+
+    // endpoint, apiKey, apiVersion, deployment
     openai = new AzureOpenAI({
       azureADTokenProvider: tokenProvider,
+      endpoint: getAIConfig(AZURE_OPENAI_ENDPOINT),
+      apiKey: getAIConfig(AZURE_OPENAI_KEY),
+      apiVersion: getAIConfig(AZURE_OPENAI_API_VERSION),
+      deploymentName: getAIConfig(AZURE_OPENAI_DEPLOYMENT_NAME),
       ...extraConfig,
       ...extraAzureConfig,
     });
