@@ -1,47 +1,80 @@
 import { LoadingOutlined } from '@ant-design/icons';
 import { ChromeExtensionPageBrowserSide } from '@midscene/web/chrome-extension';
 import { Button, Spin } from 'antd';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import './bridge.less';
+import dayjs from 'dayjs';
+
+interface BridgeLogItem {
+  time: string;
+  content: string;
+}
+
+const connectTimeout = 30 * 1000;
+const connectRetryInterval = 300;
 export default function Bridge() {
-  const [bridgePage, setBridgePage] =
+  const [activeBridgePage, setActiveBridgePage] =
     useState<ChromeExtensionPageBrowserSide | null>(null);
 
   const [bridgeStatus, setBridgeStatus] = useState<
     'closed' | 'open-for-connection' | 'connected'
   >('closed');
 
+  const [bridgeLog, setBridgeLog] = useState<BridgeLogItem[]>([]);
+  const appendBridgeLog = (content: string) => {
+    setBridgeLog((prev) => [
+      ...prev,
+      {
+        time: dayjs().format('HH:mm:ss.SSS'),
+        content,
+      },
+    ]);
+  };
+
   useEffect(() => {
     if (bridgeStatus === 'connected') {
-      bridgePage?.destroy();
+      activeBridgePage?.destroy();
     }
   }, [bridgeStatus]);
 
-  const startConnection = async () => {
-    const bridgePage = new ChromeExtensionPageBrowserSide(() => {
-      setBridgeStatus('closed');
-    });
-    try {
-      setBridgeStatus('open-for-connection');
-      await bridgePage.connect();
-      console.log('bridgePage connected !', bridgePage);
-      setBridgePage(bridgePage);
-      setBridgeStatus('connected');
-    } catch (e) {
-      // TODO: log error
-      console.error(e);
-      setBridgeStatus('closed');
+  const stopConnection = () => {
+    if (activeBridgePage) {
+      activeBridgePage.destroy();
     }
+    setBridgeStatus('closed');
+    setActiveBridgePage(null);
+  };
+
+  const startConnection = async (timeout = connectTimeout) => {
+    if (activeBridgePage) {
+      console.error('activeBridgePage', activeBridgePage);
+      throw new Error('There is already a connection, cannot start a new one');
+    }
+    const startTime = Date.now();
+    setBridgeStatus('open-for-connection');
+    while (Date.now() - startTime < timeout) {
+      try {
+        const activeBridgePage = new ChromeExtensionPageBrowserSide(() => {
+          stopConnection();
+        });
+        await activeBridgePage.connect();
+        setActiveBridgePage(activeBridgePage);
+        setBridgeStatus('connected');
+        appendBridgeLog('Bridge connected');
+        return;
+      } catch (e) {
+        // console.warn('failed to connect to bridge server', e);
+      }
+      console.log('waiting for connection...');
+      await new Promise((resolve) => setTimeout(resolve, connectRetryInterval));
+    }
+
+    setBridgeStatus('closed');
+    appendBridgeLog('No connection found within timeout');
   };
 
   const stopListening = () => {
     console.warn('not implemented');
-  };
-
-  const stopConnection = () => {
-    if (bridgePage) {
-      bridgePage.destroy();
-    }
   };
 
   let statusText: any;
@@ -49,7 +82,7 @@ export default function Bridge() {
   if (bridgeStatus === 'closed') {
     statusText = 'Closed';
     statusBtn = (
-      <Button type="primary" onClick={startConnection}>
+      <Button type="primary" onClick={() => startConnection()}>
         Allow Connection
       </Button>
     );
@@ -72,6 +105,15 @@ export default function Bridge() {
     statusBtn = <Button onClick={stopConnection}>Stop</Button>;
   }
 
+  const logs = bridgeLog.map((log) => {
+    return (
+      <div className="bridge-log-item" key={log.time}>
+        <div className="bridge-log-item-time">{log.time}</div>
+        <div className="bridge-log-item-content">{log.content}</div>
+      </div>
+    );
+  });
+
   return (
     <div>
       <p>
@@ -93,19 +135,7 @@ export default function Bridge() {
         </div>
         <div className="form-part">
           <h3>Bridge Log</h3>
-          <div className="bridge-log-container">
-            <div className="bridge-log-item">
-              <div className="bridge-log-item-time">12:00:00</div>
-              <div className="bridge-log-item-content">
-                <div className="bridge-log-item-content-title">
-                  Bridge Connected
-                </div>
-                <div className="bridge-log-item-content-detail">
-                  Bridge connected successfully
-                </div>
-              </div>
-            </div>
-          </div>
+          <div className="bridge-log-container">{logs}</div>
         </div>
       </div>
     </div>

@@ -52,8 +52,7 @@ export class BridgeServer {
             call.response = response;
             call.responseTime = Date.now();
 
-            // console.log('callback', call.method, call.error, response);
-
+            console.log('callback', call.method, call.error, response);
             call.callback(call.error, response);
           });
 

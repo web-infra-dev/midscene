@@ -2,7 +2,7 @@ import assert from 'node:assert';
 import type { KeyboardAction, MouseAction } from '@/page';
 import { DefaultBridgeServerPort } from './bridge-common';
 import { BridgeServer } from './bridge-io-server';
-import type { ChromeExtensionPageBrowserSide } from './bridge-page';
+import type { ChromeExtensionPageBrowserSide } from './bridge-page-browser-side';
 
 // TODO: handle the connection timeout
 export const getBridgePageInCliSide = (): ChromeExtensionPageBrowserSide => {

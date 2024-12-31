@@ -1,6 +1,5 @@
 import assert from 'node:assert';
-import { MouseAction } from '@/page';
-import { KeyboardAction } from '@/page';
+import type { KeyboardAction, MouseAction } from '@/page';
 import { DefaultBridgeServerPort } from './bridge-common';
 import { BridgeClient } from './bridge-io-client';
 import ChromeExtensionProxyPage from './page';
@@ -50,20 +49,8 @@ export class ChromeExtensionPageBrowserSide extends ChromeExtensionProxyPage {
     await this.bridgeClient.connect();
   }
 
-  public async connect(timeout = 30 * 1000) {
-    const startTime = Date.now();
-    while (Date.now() - startTime < timeout) {
-      try {
-        await this.setupBridgeClient();
-        console.log('bridge client connected');
-        return;
-      } catch (e) {
-        console.error('failed to connect to bridge server', e);
-      }
-      // wait for 300ms before retrying
-      await new Promise((resolve) => setTimeout(resolve, 300));
-    }
-    throw new Error(`failed to connect to bridge server after ${timeout}ms`);
+  public async connect() {
+    return await this.setupBridgeClient();
   }
 
   public async connectNewTabWithUrl(url: string) {
