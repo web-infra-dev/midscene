@@ -1,12 +1,12 @@
 <p align="center">
-  <img alt="Midscene.js"  width="260" src="https://github.com/user-attachments/assets/bff5e76f-ea5c-42b7-bd12-0143a04671cf">
+  <img alt="Midscene.js"  width="260" src="https://github.com/user-attachments/assets/f60de3c1-dd6f-4213-97a1-85bf7c6e79e4">
 </p>
 
 
 <h1 align="center">Midscene.js</h1>
 <div align="center">
 
-English | [简体中文](./README.zh.md) | [日本語](./README.ja.md)
+English | [简体中文](./README.zh.md)
 
 </div>
 
