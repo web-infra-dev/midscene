@@ -32,10 +32,24 @@ export OPENAI_MAX_TOKENS=2048
 
 ## 使用 Azure OpenAI 服务时的配置
 
+使用 ADT token provider
+
 ```bash
 export MIDSCENE_USE_AZURE_OPENAI=1
 export MIDSCENE_AZURE_OPENAI_SCOPE="https://cognitiveservices.azure.com/.default"
-export MIDSCENE_AZURE_OPENAI_INIT_CONFIG_JSON='{"apiVersion": "2024-11-01-preview", "endpoint": "...", "deployment": "..."}'
+export AZURE_OPENAI_ENDPOINT="..."
+export AZURE_OPENAI_API_VERSION="2024-05-01-preview"
+export AZURE_OPENAI_DEPLOYMENT="gpt-4o"
+```
+
+使用 keyless 模式
+
+```bash
+export MIDSCENE_USE_AZURE_OPENAI=1
+export AZURE_OPENAI_ENDPOINT="..."
+export AZURE_OPENAI_KEY="..."
+export AZURE_OPENAI_API_VERSION="2024-05-01-preview"
+export AZURE_OPENAI_DEPLOYMENT="gpt-4o"
 ```
 
 ## 选用 `gpt-4o` 以外的其他模型
