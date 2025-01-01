@@ -49,7 +49,7 @@ function transformPosition(position: { x: number; y: number }, size: Size) {
   };
 }
 
-let index = 0;
+// let index = 0;
 export async function transformElementPositionToId(
   aiResult: AIElementResponse | [number, number],
   elementsInfo: BaseElement[],
@@ -58,7 +58,6 @@ export async function transformElementPositionToId(
 ) {
   if (Array.isArray(aiResult)) {
     const point = aiResult;
-    console.log('point', point);
     const newPosition = transformPosition(
       {
         x: point[0],
@@ -66,11 +65,11 @@ export async function transformElementPositionToId(
       },
       size,
     );
-    await savePositionImg({
-      inputImgBase64: screenshotBase64,
-      rect: newPosition,
-      outputPath: path.join(__dirname, 'test-data', `output-${index++}.png`),
-    });
+    // await savePositionImg({
+    //   inputImgBase64: screenshotBase64,
+    //   rect: newPosition,
+    //   outputPath: path.join(__dirname, 'test-data', `output-${index++}.png`),
+    // });
     const element = elementByPositionWithElementInfo(elementsInfo, newPosition);
     assert(
       element,
@@ -171,7 +170,6 @@ export async function AiInspectElement<
     callAI || callToGetJSONObject<AIElementResponse | [number, number]>;
 
   const res = await callAIFn(msgs, AIActionType.INSPECT_ELEMENT);
-  console.log('res.content', res.content);
   return {
     parseResult: await transformElementPositionToId(
       res.content,

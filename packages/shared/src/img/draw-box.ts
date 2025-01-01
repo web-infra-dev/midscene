@@ -52,7 +52,7 @@ export async function savePositionImg(options: {
 }) {
   const { inputImgBase64, rect, outputPath } = options;
   const imgBase64 = await drawBoxOnImage({ inputImgBase64, rect });
-  console.log('outputPath', outputPath);
+  //   console.log('outputPath', outputPath);
   await saveBase64Image({
     base64Data: imgBase64,
     outputPath,

@@ -62,7 +62,6 @@ export async function plan(
   const { content, usage } = await call(msgs, AIActionType.PLAN);
 
   const planFromAI = content;
-  console.log('planFromAI', JSON.stringify(planFromAI, null, 2));
 
   const actions = planFromAI?.actions || [];
   assert(planFromAI, "can't get plans from AI");

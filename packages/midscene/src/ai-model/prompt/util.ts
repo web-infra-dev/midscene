@@ -258,8 +258,6 @@ export async function describeUserPage<
     const imgSize = await imageInfoOfBase64(screenshotBase64);
     ({ width, height } = imgSize);
   }
-  console.log('width', width);
-  console.log('height', height);
 
   const elementsInfo = context.content;
   const idElementMap: Record<string, ElementType> = {};
