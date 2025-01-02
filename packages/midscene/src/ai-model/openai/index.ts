@@ -93,7 +93,11 @@ export function getModelName() {
   return modelName;
 }
 
-async function createChatClient(): Promise<{
+async function createChatClient({
+  AIActionTypeValue,
+}: {
+  AIActionTypeValue: AIActionType;
+}): Promise<{
   completion: OpenAI.Chat.Completions;
   style: 'openai' | 'anthropic';
 }> {
@@ -156,6 +160,11 @@ async function createChatClient(): Promise<{
       apiKey: getAIConfig(OPENAI_API_KEY),
       httpAgent: socksAgent,
       ...extraConfig,
+      defaultHeaders: {
+        ...(extraConfig.defaultHeaders || {}),
+        Cookie: getAIConfig(MIDSCENE_COOKIE) || '',
+        [MIDSCENE_API_TYPE]: AIActionTypeValue.toString(),
+      },
       dangerouslyAllowBrowser: true,
     });
   }
@@ -202,7 +211,9 @@ export async function call(
     | OpenAI.ChatCompletionCreateParams['response_format']
     | OpenAI.ResponseFormatJSONObject,
 ): Promise<{ content: string; usage?: AIUsageInfo }> {
-  const { completion, style } = await createChatClient();
+  const { completion, style } = await createChatClient({
+    AIActionTypeValue,
+  });
   const shouldPrintTiming =
     typeof getAIConfig(MIDSCENE_DEBUG_AI_PROFILE) === 'string';
 
@@ -221,9 +232,9 @@ export async function call(
         : Number.parseInt(maxTokens || '2048', 10),
   };
 
-  if (getAIConfig(MATCH_BY_POSITION)) {
-    return useHttpAgent(messages, AIActionTypeValue);
-  }
+  // if (getAIConfig(MATCH_BY_POSITION)) {
+  //   return useHttpAgent(messages, AIActionTypeValue);
+  // }
   if (style === 'openai') {
     const result = await completion.create({
       model,
