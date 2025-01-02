@@ -122,10 +122,38 @@ export default class ChromeExtensionProxyPage implements AbstractPage {
     });
 
     if (!returnValue.result.value) {
-      throw new Error('Failed to get page content from page');
+      const errorDescription =
+        returnValue.exceptionDetails?.exception?.description || '';
+      if (!errorDescription) {
+        console.error('returnValue from cdp', returnValue);
+      }
+      throw new Error(
+        `Failed to get page content from page, error: ${errorDescription}`,
+      );
     }
     // console.log('returnValue', returnValue.result.value);
     return returnValue.result.value;
+  }
+
+  // current implementation is wait until domReadyState is complete
+  public async waitUntilNetworkIdle() {
+    const timeout = 10000;
+    const startTime = Date.now();
+    let lastReadyState = '';
+    while (Date.now() - startTime < timeout) {
+      const result = await this.sendCommandToDebugger('Runtime.evaluate', {
+        expression: 'document.readyState',
+      });
+      lastReadyState = result.result.value;
+      if (lastReadyState === 'complete') {
+        await new Promise((resolve) => setTimeout(resolve, 300));
+        return;
+      }
+      await new Promise((resolve) => setTimeout(resolve, 300));
+    }
+    throw new Error(
+      `Failed to wait until network idle, last readyState: ${lastReadyState}`,
+    );
   }
 
   async getElementInfos() {

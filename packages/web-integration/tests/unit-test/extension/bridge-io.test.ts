@@ -106,6 +106,27 @@ describe('bridge-io', () => {
     expect(fn).toHaveBeenCalled();
   });
 
+  it('client close before server', async () => {
+    const port = testPort++;
+    const onConnect = vi.fn();
+    const onDisconnect = vi.fn();
+    const server = new BridgeServer(port, onConnect, onDisconnect);
+    server.listen();
+
+    const client = new BridgeClient(`ws://localhost:${port}`, () => {
+      return Promise.resolve('ok');
+    });
+    await client.connect();
+
+    await new Promise((resolve) => setTimeout(resolve, 500));
+    expect(onConnect).toHaveBeenCalled();
+
+    expect(onDisconnect).not.toHaveBeenCalled();
+    await client.disconnect();
+    await new Promise((resolve) => setTimeout(resolve, 500));
+    expect(onDisconnect).toHaveBeenCalled();
+  });
+
   it('flush all calls before connecting', async () => {
     const port = testPort++;
     const server = new BridgeServer(port);

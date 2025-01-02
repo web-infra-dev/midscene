@@ -30,6 +30,8 @@ export class ChromeExtensionPageBrowserSide extends ChromeExtensionProxyPage {
           throw new Error('no tab is connected');
         }
 
+        this.onStatusMessage(`calling method: ${method}`);
+
         if (method.startsWith('mouse.')) {
           const actionName = method.split('.')[1] as keyof MouseAction;
           return this.mouse[actionName].apply(this.mouse, args as any);
@@ -40,11 +42,6 @@ export class ChromeExtensionPageBrowserSide extends ChromeExtensionProxyPage {
           return this.keyboard[actionName].apply(this.keyboard, args as any);
         }
 
-        // TODO: property white list
-        // const properties = Object.getOwnPropertyNames(this).concat(
-        //   Object.getOwnPropertyNames(ChromeExtensionProxyPage.prototype),
-        // );
-        // console.log('properties', properties);
         // @ts-expect-error
         return this[method as keyof ChromeExtensionProxyPage](...args);
       },
@@ -66,13 +63,13 @@ export class ChromeExtensionPageBrowserSide extends ChromeExtensionProxyPage {
       throw new Error('tab is already connected');
     }
 
-    // new tab
-    this.onStatusMessage(`creating new tab with url: ${url}`);
     const tab = await chrome.tabs.create({ url });
     const tabId = tab.id;
     assert(tabId, 'failed to get tabId after creating a new tab');
-
     this.tabId = tabId;
+
+    // new tab
+    this.onStatusMessage(`creating new tab with url: ${url}`);
   }
 
   async destroy() {

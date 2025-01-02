@@ -7,6 +7,7 @@ import { ChromeExtensionPageBrowserSide } from '@midscene/web/chrome-extension';
 import { Button, Spin } from 'antd';
 import { useEffect, useRef, useState } from 'react';
 import './bridge.less';
+import { iconForStatus } from '@/component/misc';
 import dayjs from 'dayjs';
 
 interface BridgeLogItem {
@@ -17,8 +18,9 @@ interface BridgeLogItem {
 const connectTimeout = 30 * 1000;
 const connectRetryInterval = 300;
 export default function Bridge() {
-  const [activeBridgePage, setActiveBridgePage] =
-    useState<ChromeExtensionPageBrowserSide | null>(null);
+  const activeBridgePageRef = useRef<ChromeExtensionPageBrowserSide | null>(
+    null,
+  );
 
   const [bridgeStatus, setBridgeStatus] = useState<
     'closed' | 'open-for-connection' | 'connected'
@@ -35,20 +37,21 @@ export default function Bridge() {
     ]);
   };
 
+  const destroyBridgePage = () => {};
+
   useEffect(() => {
     return () => {
-      if (bridgeStatus === 'connected') {
-        activeBridgePage?.destroy();
-      }
+      destroyBridgePage();
     };
-  }, [bridgeStatus]);
+  }, []);
 
   const stopConnection = () => {
-    if (activeBridgePage) {
-      activeBridgePage.destroy();
+    if (activeBridgePageRef.current) {
+      appendBridgeLog('bridge page destroyed');
+      activeBridgePageRef.current.destroy();
+      activeBridgePageRef.current = null;
     }
     setBridgeStatus('closed');
-    setActiveBridgePage(null);
   };
 
   const stopListeningFlag = useRef(false);
@@ -57,12 +60,13 @@ export default function Bridge() {
   };
 
   const startConnection = async (timeout = connectTimeout) => {
-    if (activeBridgePage) {
-      console.error('activeBridgePage', activeBridgePage);
+    if (activeBridgePageRef.current) {
+      console.error('activeBridgePage', activeBridgePageRef.current);
       throw new Error('There is already a connection, cannot start a new one');
     }
     const startTime = Date.now();
-    appendBridgeLog('Start listening for connection');
+    setBridgeLog([]);
+    appendBridgeLog('listening for connection...');
     setBridgeStatus('open-for-connection');
     stopListeningFlag.current = false;
 
@@ -71,13 +75,18 @@ export default function Bridge() {
         if (stopListeningFlag.current) {
           break;
         }
-        const activeBridgePage = new ChromeExtensionPageBrowserSide(() => {
-          stopConnection();
-        });
+        const activeBridgePage = new ChromeExtensionPageBrowserSide(
+          () => {
+            stopConnection();
+          },
+          (message) => {
+            appendBridgeLog(message);
+          },
+        );
         await activeBridgePage.connect();
-        setActiveBridgePage(activeBridgePage);
+        activeBridgePageRef.current = activeBridgePage;
         setBridgeStatus('connected');
-        appendBridgeLog('Bridge connected');
+        appendBridgeLog('bridge connected');
         return;
       } catch (e) {
         console.warn('failed to connect to bridge server', e);
@@ -95,7 +104,7 @@ export default function Bridge() {
   if (bridgeStatus === 'closed') {
     statusElement = (
       <span>
-        <CloseOutlined />
+        {iconForStatus('closed')}
         {'  '}
         Closed
       </span>
@@ -119,7 +128,7 @@ export default function Bridge() {
   } else if (bridgeStatus === 'connected') {
     statusElement = (
       <span>
-        <CheckOutlined />
+        {iconForStatus('connected')}
         {'  '}
         Connected
       </span>
@@ -130,10 +139,16 @@ export default function Bridge() {
     statusBtn = <Button onClick={stopConnection}>Stop</Button>;
   }
 
-  const logs = [...bridgeLog].reverse().map((log) => {
+  const logs = [...bridgeLog].reverse().map((log, index) => {
     return (
-      <div className="bridge-log-item" key={log.time}>
-        <div className="bridge-log-item-content">
+      <div className="bridge-log-item" key={index}>
+        <div
+          className="bridge-log-item-content"
+          style={{
+            fontVariantNumeric: 'tabular-nums',
+            fontFeatureSettings: 'tnum',
+          }}
+        >
           {log.time} - {log.content}
         </div>
       </div>
@@ -160,7 +175,12 @@ export default function Bridge() {
           </div>
         </div>
         <div className="form-part">
-          <h3>Bridge Log</h3>
+          <h3>
+            Bridge Log{' '}
+            <Button type="text" onClick={() => setBridgeLog([])}>
+              clear
+            </Button>
+          </h3>
           <div className="bridge-log-container">{logs}</div>
         </div>
       </div>

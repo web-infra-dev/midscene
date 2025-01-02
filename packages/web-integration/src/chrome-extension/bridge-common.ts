@@ -19,13 +19,13 @@ export interface BridgeCall {
 }
 
 export interface BridgeCallRequest {
-  id: number;
+  id: string;
   method: string;
   args: any[];
 }
 
 export interface BridgeCallResponse {
-  id: number;
+  id: string;
   response: any;
   error?: any;
 }

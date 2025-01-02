@@ -4,7 +4,6 @@ import { DefaultBridgeServerPort } from './bridge-common';
 import { BridgeServer } from './bridge-io-server';
 import type { ChromeExtensionPageBrowserSide } from './bridge-page-browser-side';
 
-// TODO: handle the connection timeout
 export const getBridgePageInCliSide = (): ChromeExtensionPageBrowserSide => {
   const server = new BridgeServer(DefaultBridgeServerPort);
   server.listen();
@@ -28,7 +27,7 @@ export const getBridgePageInCliSide = (): ChromeExtensionPageBrowserSide => {
         };
       }
 
-      if (prop === '_forceUsePageContext' || prop === 'waitUntilNetworkIdle') {
+      if (prop === '_forceUsePageContext') {
         return undefined;
       }
 

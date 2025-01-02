@@ -18,20 +18,31 @@ export class BridgeServer {
   private listeningTimeoutId: NodeJS.Timeout | null = null;
   public calls: Record<string, BridgeCall> = {};
 
-  constructor(public port: number) {}
+  private connectionLost = false;
+  private connectionLostReason = '';
+
+  constructor(
+    public port: number,
+    public onConnect?: () => void,
+    public onDisconnect?: (reason: string) => void,
+  ) {}
 
   async listen(timeout = 30000): Promise<void> {
     return new Promise((resolve, reject) => {
       this.listeningTimeoutId = setTimeout(() => {
         reject(
           new Error(
-            `no client connected after ${timeout}ms (${BridgeErrorCodeNoClientConnected})`,
+            `no extension connected after ${timeout}ms (${BridgeErrorCodeNoClientConnected})`,
           ),
         );
       }, timeout);
 
-      this.io = new Server(this.port);
+      this.io = new Server(this.port, {
+        maxHttpBufferSize: 100 * 1024 * 1024, // 100MB
+      });
       this.io.on('connection', (socket) => {
+        this.connectionLost = false;
+        this.connectionLostReason = '';
         this.listeningTimeoutId && clearTimeout(this.listeningTimeoutId);
 
         if (this.socket) {
@@ -40,24 +51,39 @@ export class BridgeServer {
           reject(new Error('server already connected by another client'));
         }
         try {
-          console.log('one client connected');
+          // console.log('one client connected');
           this.socket = socket;
 
           socket.on(BridgeCallResponseEvent, (params: BridgeCallResponse) => {
             const id = params.id;
             const response = params.response;
-            const call = this.calls[id];
-            if (!call) {
-              throw new Error(`call ${id} not found`);
-            }
-            call.error = params.error;
-            call.response = response;
-            call.responseTime = Date.now();
+            const error = params.error;
 
-            call.callback(call.error, response);
+            this.triggerCallResponseCallback(id, error, response);
+          });
+
+          socket.on('disconnect', (reason: string) => {
+            this.connectionLost = true;
+            this.connectionLostReason = reason;
+            this.onDisconnect?.(reason);
+
+            // flush all pending calls as error
+            for (const id in this.calls) {
+              const call = this.calls[id];
+
+              if (!call.responseTime) {
+                const errorMessage = this.connectionLostErrorMsg();
+                this.triggerCallResponseCallback(
+                  id,
+                  new Error(errorMessage),
+                  null,
+                );
+              }
+            }
           });
 
           setTimeout(() => {
+            this.onConnect?.();
             socket.emit(BridgeConnectedEvent);
             Promise.resolve().then(() => {
               for (const id in this.calls) {
@@ -77,10 +103,36 @@ export class BridgeServer {
     });
   }
 
+  private connectionLostErrorMsg = () => {
+    return `Connection lost, reason: ${this.connectionLostReason}`;
+  };
+
+  private async triggerCallResponseCallback(
+    id: string | number,
+    error: Error | null,
+    response: any,
+  ) {
+    const call = this.calls[id];
+    if (!call) {
+      throw new Error(`call ${id} not found`);
+    }
+    call.error = error || undefined;
+    call.response = response;
+    call.responseTime = Date.now();
+
+    call.callback(call.error, response);
+  }
+
   private async emitCall(id: string) {
     const call = this.calls[id];
     if (!call) {
       throw new Error(`call ${id} not found`);
+    }
+
+    if (this.connectionLost) {
+      const message = `Connection lost, reason: ${this.connectionLostReason}`;
+      call.callback(new Error(message), null);
+      return;
     }
 
     if (this.socket) {
