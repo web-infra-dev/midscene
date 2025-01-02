@@ -62,8 +62,7 @@ const allConfigFromEnv = () => {
     [MIDSCENE_USE_AZURE_OPENAI]:
       process.env[MIDSCENE_USE_AZURE_OPENAI] || undefined,
     [MIDSCENE_AZURE_OPENAI_SCOPE]:
-      process.env[MIDSCENE_AZURE_OPENAI_SCOPE] ||
-      'https://cognitiveservices.azure.com/.default',
+      process.env[MIDSCENE_AZURE_OPENAI_SCOPE] || undefined,
     [MIDSCENE_COOKIE]: process.env[MIDSCENE_COOKIE] || undefined,
     [MIDSCENE_API_TYPE]: process.env[MIDSCENE_API_TYPE] || undefined,
     [MIDSCENE_AZURE_OPENAI_INIT_CONFIG_JSON]:

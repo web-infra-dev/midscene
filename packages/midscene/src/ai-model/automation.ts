@@ -24,7 +24,7 @@ export async function plan(
     await describeUserPage(context);
 
   const systemPrompt = await systemPromptToTaskPlanning();
-  const planTextPrompt = await automationUserPrompt.format({
+  const userInstructionPrompt = await automationUserPrompt.format({
     pageDescription,
     userPrompt,
     taskBackgroundContext: taskBackgroundContext(
@@ -47,7 +47,7 @@ export async function plan(
         },
         {
           type: 'text',
-          text: planTextPrompt.trim(),
+          text: userInstructionPrompt,
         },
       ],
     },
@@ -55,7 +55,6 @@ export async function plan(
 
   const call = callAI || callAiFn;
   const { content, usage } = await call(msgs, AIActionType.PLAN);
-
   const planFromAI = content;
 
   const actions = planFromAI?.actions || [];

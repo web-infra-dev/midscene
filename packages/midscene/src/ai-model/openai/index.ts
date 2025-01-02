@@ -161,7 +161,7 @@ async function createChatClient({
       httpAgent: socksAgent,
       ...extraConfig,
       defaultHeaders: {
-        ...(extraConfig.defaultHeaders || {}),
+        ...(extraConfig?.defaultHeaders || {}),
         Cookie: getAIConfig(MIDSCENE_COOKIE) || '',
         [MIDSCENE_API_TYPE]: AIActionTypeValue.toString(),
       },

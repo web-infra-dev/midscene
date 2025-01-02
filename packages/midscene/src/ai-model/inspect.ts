@@ -42,14 +42,17 @@ const liteContextConfig = {
   truncateTextLength: 200,
 };
 
-function transformPosition(position: { x: number; y: number }, size: Size) {
+function transformToAbsoluteCoords(
+  relativePosition: { x: number; y: number },
+  size: Size,
+) {
   return {
-    x: Number(((position.x / 1000) * size.width).toFixed(3)),
-    y: Number(((position.y / 1000) * size.height).toFixed(3)),
+    x: Number(((relativePosition.x / 1000) * size.width).toFixed(3)),
+    y: Number(((relativePosition.y / 1000) * size.height).toFixed(3)),
   };
 }
 
-// let index = 0;
+let index = 0;
 export async function transformElementPositionToId(
   aiResult: AIElementResponse | [number, number],
   elementsInfo: BaseElement[],
@@ -57,23 +60,26 @@ export async function transformElementPositionToId(
   screenshotBase64: string,
 ) {
   if (Array.isArray(aiResult)) {
-    const point = aiResult;
-    const newPosition = transformPosition(
+    const relativePosition = aiResult;
+    const absolutePosition = transformToAbsoluteCoords(
       {
-        x: point[0],
-        y: point[1],
+        x: relativePosition[0],
+        y: relativePosition[1],
       },
       size,
     );
-    // await savePositionImg({
-    //   inputImgBase64: screenshotBase64,
-    //   rect: newPosition,
-    //   outputPath: path.join(__dirname, 'test-data', `output-${index++}.png`),
-    // });
-    const element = elementByPositionWithElementInfo(elementsInfo, newPosition);
+    await savePositionImg({
+      inputImgBase64: screenshotBase64,
+      rect: absolutePosition,
+      outputPath: path.join(__dirname, 'test-data', `output-${index++}.png`),
+    });
+    const element = elementByPositionWithElementInfo(
+      elementsInfo,
+      absolutePosition,
+    );
     assert(
       element,
-      `inspect: no id found with position: ${JSON.stringify({ point })}`,
+      `inspect: no id found with position: ${JSON.stringify({ absolutePosition })}`,
     );
 
     return {
@@ -141,7 +147,7 @@ export async function AiInspectElement<
     'cannot find the target element description',
   );
 
-  const findElementDescription = await findElementPrompt.format({
+  const userInstructionPrompt = await findElementPrompt.format({
     pageDescription: description,
     targetElementDescription,
     multi,
@@ -160,7 +166,7 @@ export async function AiInspectElement<
         },
         {
           type: 'text',
-          text: findElementDescription,
+          text: userInstructionPrompt,
         },
       ],
     },
