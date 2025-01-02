@@ -1,5 +1,5 @@
-import { BridgeClient } from '@/chrome-extension/bridge-io-client';
-import { BridgeServer } from '@/chrome-extension/bridge-io-server';
+import { BridgeClient } from '@/bridge-mode/io-client';
+import { BridgeServer } from '@/bridge-mode/io-server';
 import { describe, expect, it, vi } from 'vitest';
 
 let testPort = 1234;

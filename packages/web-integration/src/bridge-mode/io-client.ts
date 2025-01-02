@@ -7,7 +7,7 @@ import {
   BridgeCallResponseEvent,
   BridgeConnectedEvent,
   BridgeRefusedEvent,
-} from './bridge-common';
+} from './common';
 
 // ws client, this is where the request is processed
 export class BridgeClient {

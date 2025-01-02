@@ -1,8 +1,8 @@
-import { describe, expect, it, vi } from 'vitest';
-
-import { ChromeExtensionProxyPageAgent } from '@/chrome-extension/agent';
-import { ChromePageOverBridgeAgent } from '@/chrome-extension/bridge-agent-cli-side';
-import { getBridgePageInCliSide } from '@/chrome-extension/bridge-page-cli-side';
+import {
+  ChromePageOverBridgeAgent,
+  getBridgePageInCliSide,
+} from '@/bridge-mode/agent-cli-side';
+import { describe, expect, it } from 'vitest';
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 describe.skipIf(process.env.CI)(
@@ -32,7 +32,7 @@ describe.skipIf(process.env.CI)(
       40 * 1000, // longer than the timeout of the bridge io
     );
 
-    it.only(
+    it(
       'agent in cli side',
       async () => {
         const agent = new ChromePageOverBridgeAgent();

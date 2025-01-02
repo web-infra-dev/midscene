@@ -1,9 +1,5 @@
-import {
-  CheckOutlined,
-  CloseOutlined,
-  LoadingOutlined,
-} from '@ant-design/icons';
-import { ChromeExtensionPageBrowserSide } from '@midscene/web/chrome-extension';
+import { LoadingOutlined } from '@ant-design/icons';
+import { ChromeExtensionPageBrowserSide } from '@midscene/web/bridge-mode-browser';
 import { Button, Spin } from 'antd';
 import { useEffect, useRef, useState } from 'react';
 import './bridge.less';

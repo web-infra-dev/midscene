@@ -1,9 +1,11 @@
 import assert from 'node:assert';
+import { PageAgent } from '@/common/agent';
 import type { KeyboardAction, MouseAction } from '@/page';
-import { DefaultBridgeServerPort } from './bridge-common';
-import { BridgeServer } from './bridge-io-server';
-import type { ChromeExtensionPageBrowserSide } from './bridge-page-browser-side';
+import { DefaultBridgeServerPort } from './common';
+import { BridgeServer } from './io-server';
+import type { ChromeExtensionPageBrowserSide } from './page-browser-side';
 
+// actually, this is a proxy to the page in browser side
 export const getBridgePageInCliSide = (): ChromeExtensionPageBrowserSide => {
   const server = new BridgeServer(DefaultBridgeServerPort);
   server.listen();
@@ -71,3 +73,16 @@ export const getBridgePageInCliSide = (): ChromeExtensionPageBrowserSide => {
     },
   }) as ChromeExtensionPageBrowserSide;
 };
+
+export class ChromePageOverBridgeAgent extends PageAgent {
+  constructor() {
+    const page = getBridgePageInCliSide();
+    super(page, {});
+  }
+
+  async connectNewTabWithUrl(url: string) {
+    await (this.page as ChromeExtensionPageBrowserSide).connectNewTabWithUrl(
+      url,
+    );
+  }
+}

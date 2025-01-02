@@ -8,7 +8,7 @@ import {
   BridgeConnectedEvent,
   BridgeErrorCodeNoClientConnected,
   BridgeRefusedEvent,
-} from './bridge-common';
+} from './common';
 
 // ws server, this is where the request is sent
 export class BridgeServer {

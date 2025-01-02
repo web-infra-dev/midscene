@@ -1,8 +1,8 @@
 import assert from 'node:assert';
 import type { KeyboardAction, MouseAction } from '@/page';
-import { DefaultBridgeServerPort } from './bridge-common';
-import { BridgeClient } from './bridge-io-client';
-import ChromeExtensionProxyPage from './page';
+import ChromeExtensionProxyPage from '../chrome-extension/page';
+import { DefaultBridgeServerPort } from './common';
+import { BridgeClient } from './io-client';
 
 export class ChromeExtensionPageBrowserSide extends ChromeExtensionProxyPage {
   public bridgeClient: BridgeClient | null = null;
