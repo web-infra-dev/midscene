@@ -373,6 +373,8 @@ export function safeParseJson(input: string) {
   } catch {}
   try {
     return dJSON.parse(cleanJsonString);
-  } catch {}
+  } catch (e) {
+    console.log('e:', e);
+  }
   throw Error(`failed to parse json response: ${input}`);
 }

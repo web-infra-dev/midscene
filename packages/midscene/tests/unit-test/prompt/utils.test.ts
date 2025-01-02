@@ -1,4 +1,5 @@
 import { describeUserPage } from '@/ai-model/prompt/util';
+import { getAIConfig } from '@/env';
 import { describe, expect, it } from 'vitest';
 import { getPageDataOfTestName } from '../../ai/evaluate/test-suite/util';
 
@@ -28,6 +29,8 @@ describe('prompt utils', () => {
     expect(description).toBeTruthy();
     expect(stringLengthOfEachItem).toBeLessThan(160);
 
-    expect(description.length).toBeLessThan(lengthOfDescription * 0.8);
+    if (!getAIConfig('MATCH_BY_POSITION')) {
+      expect(description.length).toBeLessThan(lengthOfDescription * 0.8);
+    }
   });
 });

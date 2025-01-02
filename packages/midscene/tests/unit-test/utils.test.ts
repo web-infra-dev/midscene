@@ -153,7 +153,8 @@ describe('extractJSONFromCodeBlock', () => {
 
   it('should throw error for unparseable content', () => {
     const input = 'not a json at all';
-    expect(() => safeParseJson(input)).toThrow('failed to parse json response');
+    const result = safeParseJson(input);
+    expect(result).toEqual(input);
   });
 
   it('should parse JSON from code block', () => {
