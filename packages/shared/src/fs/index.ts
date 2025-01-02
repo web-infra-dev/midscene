@@ -1,4 +1,3 @@
-import assert from 'node:assert';
 import { existsSync, readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 
@@ -24,7 +23,11 @@ export function getRunningPkgInfo(dir?: string): PkgInfo | null {
 
   if (pkgDir && pkgJsonFile) {
     const { name, version } = JSON.parse(readFileSync(pkgJsonFile, 'utf-8'));
-    pkgCacheMap[dirToCheck] = { name, version, dir: pkgDir };
+    pkgCacheMap[dirToCheck] = {
+      name: name || 'midscene-unknown-package-name',
+      version: version || '0.0.0',
+      dir: pkgDir,
+    };
     return pkgCacheMap[dirToCheck];
   }
   return {

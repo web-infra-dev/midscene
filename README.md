@@ -1,12 +1,12 @@
 <p align="center">
-  <img alt="Midscene.js"  width="260" src="https://github.com/user-attachments/assets/bff5e76f-ea5c-42b7-bd12-0143a04671cf">
+  <img alt="Midscene.js"  width="260" src="https://github.com/user-attachments/assets/f60de3c1-dd6f-4213-97a1-85bf7c6e79e4">
 </p>
 
 
 <h1 align="center">Midscene.js</h1>
 <div align="center">
 
-English | [简体中文](./README.zh.md) | [日本語](./README.ja.md)
+English | [简体中文](./README.zh.md)
 
 </div>
 
@@ -24,7 +24,7 @@ Midscene.js is an AI-powered automation SDK can control the page, perform assert
 
 <p align="center">
   
-<video src="https://github.com/user-attachments/assets/c9f1e7fa-9834-45ba-8e3b-c3fdc1f7e5bb" controls />
+<video src="https://github.com/user-attachments/assets/58ebeb48-deb0-4edf-8ca0-af6be5bf1c70" controls />
 
 </p>
 
@@ -34,8 +34,9 @@ Midscene.js is an AI-powered automation SDK can control the page, perform assert
 - **Natural Language Interaction 👆**: Describe the steps, and let Midscene plan and control the user interface for you
 - **Understand UI, Answer in JSON 🔍**: Provide prompts regarding the desired data format, and then receive the expected response in JSON format.
 - **Intuitive Assertion 🤔**: Make assertions in natural language; it’s all based on AI understanding.
-- **Out-of-box LLM 🪓**: It is fine to use public multimodal LLMs like GPT-4o. There is no need for any custom training.
+- **Experience by Chrome Extension 🖥️**: Start immediately with the Chrome Extension. No code is needed while exploring.
 - **Visualized Report 🎞️**: With our visualized report file, you can easily understand and debug the whole process.
+- **Out-of-box LLM 🪓**: It is fine to use public multimodal LLMs like GPT-4o. There is no need for any custom training.
 - **Brand New Experience! 🔥**: Experience a whole new world of automation development. Enjoy!
 
 ## Resources 📄
@@ -53,7 +54,7 @@ Midscene.js is an AI-powered automation SDK can control the page, perform assert
 * [Lark Group](https://applink.larkoffice.com/client/chat/chatter/add_by_link?link_token=291q2b25-e913-411a-8c51-191e59aab14d)
 
 
-  <img src="https://github.com/user-attachments/assets/7c132fbf-37a7-4005-8fb1-59342efdf9b2" alt="lark group link" width="300" />
+  <img src="https://github.com/user-attachments/assets/211b05c9-3ccd-4f52-b798-f3a7f51330ed" alt="lark group link" width="300" />
 
 ## License
 

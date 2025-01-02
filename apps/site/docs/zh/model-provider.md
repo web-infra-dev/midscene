@@ -32,17 +32,26 @@ export OPENAI_MAX_TOKENS=2048
 
 ## 使用 Azure OpenAI 服务时的配置
 
-Azure 一般会提供给你 endpoint (AZURE_OPENAI_ENDPOINT), deployment (AZURE_OPENAI_DEPLOYMENT_NAME) , apiVersion 这些参数，你需要将它们合并配置在 `MIDSCENE_AZURE_OPENAI_INIT_CONFIG_JSON` 中，拼接为合法的 JSON 字符串。
+使用 ADT token provider
 
 ```bash
 # 使用 Azure OpenAI 服务时，配置为 1
 export MIDSCENE_USE_AZURE_OPENAI=1
 
-# Azure OpenAI 的 scope
 export MIDSCENE_AZURE_OPENAI_SCOPE="https://cognitiveservices.azure.com/.default"
+export AZURE_OPENAI_ENDPOINT="..."
+export AZURE_OPENAI_API_VERSION="2024-05-01-preview"
+export AZURE_OPENAI_DEPLOYMENT="gpt-4o"
+```
 
-# 把 JSON 中的参数替换为你的参数
-export MIDSCENE_AZURE_OPENAI_INIT_CONFIG_JSON='{"apiVersion": "2024-11-01-preview", "endpoint": "<此处替换为 AZURE_OPENAI_ENDPOINT>", "deployment": "<此处替换为 AZURE_OPENAI_DEPLOYMENT_NAME>"}'
+使用 keyless 模式
+
+```bash
+export MIDSCENE_USE_AZURE_OPENAI=1
+export AZURE_OPENAI_ENDPOINT="..."
+export AZURE_OPENAI_KEY="..."
+export AZURE_OPENAI_API_VERSION="2024-05-01-preview"
+export AZURE_OPENAI_DEPLOYMENT="gpt-4o"
 ```
 
 ## 选用 `gpt-4o` 以外的其他模型

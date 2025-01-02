@@ -17,7 +17,7 @@ Optional configs:
 # if you want to use a customized endpoint
 export OPENAI_BASE_URL="https://..."
 
-# if you want to use Azure OpenAI Service
+# if you want to use Azure OpenAI Service. See more details in the next section.
 export OPENAI_USE_AZURE="true"
 
 # if you want to specify a model name other than gpt-4o
@@ -35,17 +35,26 @@ export OPENAI_MAX_TOKENS=2048
 
 ## Using Azure OpenAI Service
 
-Usually Azure OpenAI Service will provide you with endpoint (`AZURE_OPENAI_ENDPOINT`), deployment (`AZURE_OPENAI_DEPLOYMENT_NAME`) and apiVersion (`AZURE_OPENAI_API_VERSION`) parameters, you need to put them into `MIDSCENE_AZURE_OPENAI_INIT_CONFIG_JSON` as a valid JSON string.
+Use ADT token provider
 
 ```bash
 # this is always true when using Azure OpenAI Service
 export MIDSCENE_USE_AZURE_OPENAI=1
 
-# this is the default scope
 export MIDSCENE_AZURE_OPENAI_SCOPE="https://cognitiveservices.azure.com/.default"
+export AZURE_OPENAI_ENDPOINT="..."
+export AZURE_OPENAI_API_VERSION="2024-05-01-preview"
+export AZURE_OPENAI_DEPLOYMENT="gpt-4o"
+```
 
-# replace the json with your own parameters
-export MIDSCENE_AZURE_OPENAI_INIT_CONFIG_JSON='{"apiVersion": "2024-11-01-preview", "endpoint": "<replace-this-with-AZURE_OPENAI_ENDPOINT>", "deployment": "<replace-this-with-AZURE_OPENAI_DEPLOYMENT_NAME>"}'
+Or use keyless authentication
+
+```bash
+export MIDSCENE_USE_AZURE_OPENAI=1
+export AZURE_OPENAI_ENDPOINT="..."
+export AZURE_OPENAI_KEY="..."
+export AZURE_OPENAI_API_VERSION="2024-05-01-preview"
+export AZURE_OPENAI_DEPLOYMENT="gpt-4o"
 ```
 
 ## Choose a model other than `gpt-4o`

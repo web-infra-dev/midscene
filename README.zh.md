@@ -1,11 +1,11 @@
 <p align="center">
-  <img alt="Midscene.js"  width="260" src="https://github.com/user-attachments/assets/bff5e76f-ea5c-42b7-bd12-0143a04671cf">
+  <img alt="Midscene.js"  width="260" src="https://github.com/user-attachments/assets/f60de3c1-dd6f-4213-97a1-85bf7c6e79e4">
 </p>
 
 <h1 align="center">Midscene.js</h1>
 <div align="center">
 
-[English](./README.md) | 简体中文 | [日本語](./README.ja.md)
+[English](./README.md) | 简体中文
 
 </div>
 
@@ -23,7 +23,7 @@
 Midscene.js 是一个由 AI 驱动的自动化 SDK，能够使用自然语言对网页进行操作、验证，并提取 JSON 格式的数据。
 
 <p align="center">
-  <video src="https://github.com/user-attachments/assets/c9f1e7fa-9834-45ba-8e3b-c3fdc1f7e5bb" controls />
+  <video src="https://github.com/user-attachments/assets/58ebeb48-deb0-4edf-8ca0-af6be5bf1c70" controls />
 </p>
 
 ## 特性 ✨
@@ -31,6 +31,7 @@ Midscene.js 是一个由 AI 驱动的自动化 SDK，能够使用自然语言对
 - **自然语言互动 👆**：只需描述你的步骤，Midscene 会为你规划和操作用户界面
 - **理解UI、JSON格式回答 🔍**：你可以提出关于数据格式的要求，然后得到 JSON 格式的预期回应。
 - **直观断言 🤔**：用自然语言表达你的断言，AI 会理解并处理。
+- **Chrome 插件体验 🖥️**：通过 Chrome 插件，你可以立即开始体验，无需编写代码。
 - **开箱即用的LLM 🪓**：支持使用公开的多模态大语言模型（ 如 GPT-4o ），无需任何定制训练。
 - **可视化报告 🎞️**：通过我们的测试报告和 Playground，你可以轻松理解和调试整个过程。
 - **全新体验 🔥**：体验全新的自动化开发世界，尽情享受吧！
@@ -49,7 +50,7 @@ Midscene.js 是一个由 AI 驱动的自动化 SDK，能够使用自然语言对
 
 * [飞书群](https://applink.larkoffice.com/client/chat/chatter/add_by_link?link_token=291q2b25-e913-411a-8c51-191e59aab14d)
 
-  <img src="https://github.com/user-attachments/assets/7c132fbf-37a7-4005-8fb1-59342efdf9b2" alt="lark group link" width="300" />
+  <img src="https://github.com/user-attachments/assets/211b05c9-3ccd-4f52-b798-f3a7f51330ed" alt="lark group link" width="300" />
 
 
 ## 授权许可

@@ -5,7 +5,7 @@ export default defineConfig({
   root: path.join(__dirname, 'docs'),
   title: 'Midscene.js',
   description:
-    'Transform UI automation into a joyful experience with Midscene.js, enabling seamless interaction, querying, and assertions through natural language',
+    'Automate browser actions, extract data, and perform assertions using AI, including a Chrome extension, JavaScript SDK, and support for scripting in YAML.',
   icon: '/midscene-icon.png',
   logo: {
     light: '/midscene_with_text_light.png',
@@ -26,16 +26,16 @@ export default defineConfig({
           'https://applink.larkoffice.com/client/chat/chatter/add_by_link?link_token=291q2b25-e913-411a-8c51-191e59aab14d',
       },
     ],
-    footer: {
-      message: `
-        <footer class="footer">
-          <div class="footer-content">
-            <img src="/midscene-icon.png" alt="Midscene.js Logo" class="footer-logo" />
-            <p class="footer-text">&copy; 2024 Midscene.js. All Rights Reserved.</p>
-          </div>
-        </footer>
-      `,
-    },
+    // footer: {
+    //   message: `
+    //     <footer class="footer">
+    //       <div class="footer-content">
+    //         <img src="/midscene-icon.png" alt="Midscene.js Logo" class="footer-logo" />
+    //         <p class="footer-text">&copy; 2024 Midscene.js. All Rights Reserved.</p>
+    //       </div>
+    //     </footer>
+    //   `,
+    // },
     locales: [
       {
         lang: 'en',

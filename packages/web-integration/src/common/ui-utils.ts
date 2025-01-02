@@ -45,7 +45,9 @@ export function paramStr(task: ExecutionTask) {
           ExecutionTaskActionApply<PlanningActionParamScroll>
         >
       )?.param?.distance;
-      value = `${scrollDirection}, ${scrollType}, ${scrollDistance || 'distance-not-set'}`;
+      value = `${scrollDirection || 'down'}, ${scrollType || 'once'}, ${
+        scrollDistance || 'distance-not-set'
+      }`;
     } else {
       value =
         (task as ExecutionTaskAction)?.param?.value ||
