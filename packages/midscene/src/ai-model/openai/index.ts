@@ -53,37 +53,6 @@ export function checkAIConfig(preferVendor?: 'coze' | 'openAI') {
 
 // default model
 const defaultModel = 'gpt-4o-2024-08-06';
-export async function useHttpAgent(
-  msgs: ChatCompletionMessageParam[],
-  AIActionTypeValue: AIActionType,
-) {
-  const response = await fetch(
-    `${getAIConfig(OPENAI_BASE_URL)}/chat/completions`,
-    {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Cookie: getAIConfig(MIDSCENE_COOKIE) || '',
-        [MIDSCENE_API_TYPE]: AIActionTypeValue.toString(),
-      },
-      body: JSON.stringify({
-        model: getAIConfig(MIDSCENE_MODEL_NAME),
-        messages: msgs,
-        temperature: 0.1,
-      }),
-    },
-  );
-  const data = await response.json();
-
-  const content = data.choices[0].message.content;
-  // const jsonData: any = safeParseJson(message);
-  // console.log('AiInspectElement jsonData', jsonData);
-  return {
-    content,
-    usage: data.usage,
-  };
-}
-
 export function getModelName() {
   let modelName = defaultModel;
   const nameInConfig = getAIConfig(MIDSCENE_MODEL_NAME);
