@@ -19,6 +19,7 @@ test('inspect with quick answer', async () => {
       text: 'never mind',
     },
   });
+  console.log('parseResult', parseResult);
   const endTime = Date.now();
   const cost = endTime - startTime;
   expect(parseResult.elements.length).toBe(1);

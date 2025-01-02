@@ -4,11 +4,11 @@ exports[`assert openAI > online order 1`] = `
 {
   "data": [
     {
-      "name": "多肉大橘（首创）",
+      "name": "Very Tangerine Blast (Original)",
       "price": "6.82",
     },
     {
-      "name": "轻芒芒甘露",
+      "name": "Mango Grapefruit Pops",
       "price": "6.54",
     },
   ],

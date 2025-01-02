@@ -1,33 +1,45 @@
 import { MATCH_BY_POSITION, getAIConfig } from '@/env';
+import { PromptTemplate } from '@langchain/core/prompts';
 import type { ResponseFormatJSONSchema } from 'openai/resources';
 import { samplePageDescription } from './util';
 
 const quickAnswerFormat = () => {
   const matchByPosition = getAIConfig(MATCH_BY_POSITION);
-  const description = `
-  ${
-    matchByPosition
-      ? '"position": { x: number; y: number } // Represents the position of the element; replace with actual values in practice (ensure it reflects the element\'s position)'
-      : '"id": string // Represents the ID of the element; replace with actual values in practice'
-  }
-  `;
 
-  const format = matchByPosition
-    ? '"position": { x: number; y: number }'
-    : '"id": string';
+  const locationFormat = {
+    position: {
+      description:
+        '"position": { x: number; y: number } // Represents the position of the element; replace with actual values in practice (ensure it reflects the element\'s position)',
+      format: '"position": { x: number; y: number }',
+      sample: '{"prompt": "the search bar"}',
+      locateParam: `{
+        "prompt"?: string // the description of the element to find. It can only be omitted when locate is null.
+      } | null // If it's not on the page, the LocateParam should be null`,
+    },
+    id: {
+      description:
+        '"id": string // Represents the ID of the element; replace with actual values in practice',
+      format: '"id": string',
+      sample: `{"id": "c81c4e9a33", "prompt": "the search bar"}`,
+      locateParam: `{
+        "id": string, // the id of the element found. It should either be the id marked with a rectangle in the screenshot or the id described in the description.
+        "prompt"?: string // the description of the element to find. It can only be omitted when locate is null.
+      } | null // If it's not on the page, the LocateParam should be null`,
+    },
+  };
 
-  const sample = matchByPosition
-    ? '{"position": { x: 100, y: 200 }}'
-    : '{"id": "c81c4e9a33"}';
+  const type = matchByPosition ? 'position' : 'id';
+  const format = locationFormat[type];
 
   return {
-    description,
-    format,
-    sample,
+    description: format.description,
+    format: format.format,
+    sample: format.sample,
+    locateParam: format.locateParam,
   };
 };
-export function systemPromptToTaskPlanning() {
-  return `
+
+const systemTemplate = `
 ## Role
 
 You are a versatile professional in software UI automation. Your outstanding contributions will impact the user experience of billions of users.
@@ -61,76 +73,71 @@ You are a versatile professional in software UI automation. Your outstanding con
 
 The \`locate\` param is commonly used in the \`param\` field of the action, means to locate the target element to perform the action, it follows the following scheme:
 
-type LocateParam = {
-  "id": string, // the id of the element found. It should either be the id marked with a rectangle in the screenshot or the id described in the description.
-  prompt?: string // the description of the element to find. It can only be omitted when locate is null.
-} | null // If it's not on the page, the LocateParam should be null
+type LocateParam = {locateParam}
 
 ### Supported actions
 
 Each action has a \`type\` and corresponding \`param\`. To be detailed:
 - type: 'Tap', tap the located element
-  * { locate: LocateParam, param: null }
+  * {{ locate: {sample}, param: null }}
 - type: 'Hover', move mouse over to the located element
-  * { locate: LocateParam, param: null }
+  * {{ locate: LocateParam, param: null }}
 - type: 'Input', replace the value in the input field
-  * { locate: LocateParam, param: { value: string } }
+  * {{ locate: LocateParam, param: {{ value: string }} }}
   * \`value\` is the final required input value based on the existing input. No matter what modifications are required, just provide the final value to replace the existing input value. 
 - type: 'KeyboardPress', press a key
-  * { param: { value: string } }
+  * {{ param: {{ value: string }} }}
 - type: 'Scroll', scroll up or down.
-  * { 
+  * {{ 
       locate: LocateParam | null, 
-      param: { 
+      param: {{ 
         direction: 'down'(default) | 'up' | 'right' | 'left', 
         scrollType: 'once' (default) | 'untilBottom' | 'untilTop' | 'untilRight' | 'untilLeft', 
         distance: null | number 
-      } 
-    }
+      }} 
+    }}
     * To scroll some specific element, put the element at the center of the region in the \`locate\` field. If it's a page scroll, put \`null\` in the \`locate\` field. 
     * \`param\` is required in this action. If some fields are not specified, use direction \`down\`, \`once\` scroll type, and \`null\` distance.
 - type: 'FalsyConditionStatement'
-  * { param: null }
+  * {{ param: null }}
   * use this action when the instruction is an "if" statement and the condition is falsy.
 - type: 'Sleep'
-  * { param: { timeMs: number } }
+  * {{ param: {{ timeMs: number }} }}
 
 ## How to compose the \`taskWillBeAccomplished\` and \`furtherPlan\` fields ?
 
 \`taskWillBeAccomplished\` is a boolean field, means whether the task will be accomplished after all the actions.
 
-\`furtherPlan\` is used when the task cannot be accomplished. It follows the scheme { whatHaveDone: string, whatToDoNext: string }:
+\`furtherPlan\` is used when the task cannot be accomplished. It follows the scheme {{ whatHaveDone: string, whatToDoNext: string }}:
 - \`whatHaveDone\`: a string, describe what have been done after the previous actions.
 - \`whatToDoNext\`: a string, describe what should be done next after the previous actions has finished. It should be a concise and clear description of the actions to be performed. Make sure you don't lose any necessary steps user asked.
+`;
 
+const outputTemplate = `
 ## Output JSON Format:
 
 The JSON format is as follows:
 
-{
+{{
   "actions": [
-    {
+    {{
       "thought": "Reasons for generating this task, and why this task is feasible on this page",
       "type": "Tap",
       "param": null,
-      "locate": {
-        {"id": "c81c4e9a33"},
-        prompt: "the search bar"
-      } | null,
-    },
+      "locate": {sample} | null,
+    }},
     // ... more actions
   ],
   "taskWillBeAccomplished": boolean,
-  "furtherPlan": { "whatHaveDone": string, "whatToDoNext": string } | null,
+  "furtherPlan": {{ "whatHaveDone": string, "whatToDoNext": string }} | null,
   "error"?: string
-}
-
-## Example #1 : How to decompose a task
+}}
+Here is an example of how to decompose a task:
 
 When a user says 'Click the language switch button, wait 1s, click "English"', the user will give you the description like this:
 
 ====================
-${samplePageDescription}
+{pageDescription}
 ====================
 
 By viewing the page screenshot and description, you should consider this and output the JSON:
@@ -140,110 +147,119 @@ By viewing the page screenshot and description, you should consider this and out
 * The "English" option button is not shown in the screenshot now, it means it may only show after the previous actions are finished. So the last action will have a \`null\` value in the \`locate\` field. 
 * The task cannot be accomplished (because we cannot see the "English" option now), so a \`furtherPlan\` field is needed.
 
-{
+{{
   "actions":[
-    {
+    {{
+      "type": "Tap", 
       "thought": "Click the language switch button to open the language options.",
-      "type": "Tap",
       "param": null,
-      "locate": {
-        ${quickAnswerFormat().sample},
-        "prompt": "the language switch button with the text '中文'"
-      }
-    },
-    {
-      "thought": "Wait for 1 second to ensure the language options are displayed.",
+      "locate": {sample},
+    }},
+    {{
       "type": "Sleep",
-      "param": { "timeMs": 1000 },
-    },
-    {
-      "thought": "Locate the 'English' option in the language menu.", 
+      "thought": "Wait for 1 second to ensure the language options are displayed.",
+      "param": {{ "timeMs": 1000 }},
+    }},
+    {{
       "type": "Tap",
-      "param": null,
+      "thought": "Locate the 'English' option in the language menu.",
+      "param": null, 
       "locate": null
-    },
+    }},
   ],
   "error": null,
   "taskWillBeAccomplished": false,
-  "furtherPlan": { 
-    "whatToDoNext": "find the 'English' option and click on it", 
-    "whatHaveDone": "Click the language switch button and wait 1s" 
-  }
-}
+  "furtherPlan": {{
+    "whatToDoNext": "find the 'English' option and click on it",
+    "whatHaveDone": "Click the language switch button and wait 1s"
+  }}
+}}
 
-## Example #2 : Tolerate the error situation only when the instruction is an "if" statement
+Here is another example of how to tolerate error situations only when the instruction is an "if" statement:
 
 If the user says "If there is a popup, close it", you should consider this and output the JSON:
 
 * By viewing the page screenshot and description, you cannot find the popup, so the condition is falsy.
 * The instruction itself is an "if" statement, it means the user can tolerate this situation, so you should leave a \`FalsyConditionStatement\` action.
 
-{
-  "actions": [{
-      "thought": "There is no popup on the page",
+{{
+  "actions": [{{
       "type": "FalsyConditionStatement",
+      "thought": "There is no popup on the page",
       "param": null
-    }
+    }}
   ],
   "taskWillBeAccomplished": true,
   "furtherPlan": null
-}
+}}
 
 For contrast, if the user says "Close the popup" in this situation, you should consider this and output the JSON:
 
-{
+{{
   "actions": [],
   "error": "The instruction and page context are irrelevant, there is no popup on the page",
   "taskWillBeAccomplished": true,
   "furtherPlan": null
-}
+}}
 
-## Example #3 : When task is accomplished, don't plan more actions
+Here is an example of when task is accomplished, don't plan more actions:
 
 When the user ask to "Wait 4s", you should consider this:
 
-{
+{{
   "actions": [
-    {
-      "thought": "Wait for 4 seconds",
+    {{
       "type": "Sleep",
-      "param": { "timeMs": 4000 },
-    },
+      "thought": "Wait for 4 seconds",
+      "param": {{ "timeMs": 4000 }},
+    }},
   ],
   "taskWillBeAccomplished": true,
   "furtherPlan": null // All steps have been included in the actions, so no further plan is needed
-}
+}}
 
-## Bad case #1 : Missing \`prompt\` in the 'Locate' field; Missing \`furtherPlan\` field when the task won't be accomplished
+Here is an example of what NOT to do:
 
 Wrong output:
 
-{
+{{
   "actions":[
-    {
+    {{
+      "type": "Tap",
       "thought": "Click the language switch button to open the language options.",
-      "type": "Tap",
       "param": null,
-      "locate": {
-        ${quickAnswerFormat().sample}, // WRONG:prompt is missing
-      }
-    },
-    {
+      "locate": {{
+        {sample}, // WRONG:prompt is missing
+      }}
+    }},
+    {{
+      "type": "Tap", 
       "thought": "Click the English option",
-      "type": "Tap",
       "param": null,
       "locate": null, // This means the 'English' option is not shown in the screenshot, the task cannot be accomplished
-    }
+    }}
   ],
   "taskWillBeAccomplished": false,
   // WRONG: should not be null
   "furtherPlan": null,
-}
+}}
 
-Reason: 
+Reason:
 * The \`prompt\` is missing in the first 'Locate' action
 * Since the option button is not shown in the screenshot, the task cannot be accomplished, so a \`furtherPlan\` field is needed.
 `;
+
+export async function systemPromptToTaskPlanning() {
+  const promptTemplate = new PromptTemplate({
+    template: `${systemTemplate}\n\n${outputTemplate}`,
+    inputVariables: ['pageDescription', 'sample', 'locateParam'],
+  });
+
+  return await promptTemplate.format({
+    pageDescription: samplePageDescription,
+    sample: quickAnswerFormat().sample,
+    locateParam: quickAnswerFormat().locateParam,
+  });
 }
 
 export const planSchema: ResponseFormatJSONSchema = {
@@ -333,3 +349,37 @@ export const planSchema: ResponseFormatJSONSchema = {
     },
   },
 };
+
+export const taskBackgroundContext = async (
+  originalPrompt?: string,
+  whatHaveDone?: string,
+) => {
+  if (!originalPrompt || !whatHaveDone) {
+    return '';
+  }
+
+  return `
+    For your information, this is a task that some important person handed to you. Here is the original task description and what have been done after the previous actions:
+    =====================================
+    Original task description:
+    ${originalPrompt}
+    =====================================
+    What have been done:
+    ${whatHaveDone}
+    =====================================
+`;
+};
+
+export const automationUserPrompt = new PromptTemplate({
+  template: `
+    Here is the instruction:
+    =====================================
+    {userPrompt}
+    =====================================
+
+    {taskBackgroundContext}
+
+    pageDescription: {pageDescription}
+  `,
+  inputVariables: ['pageDescription', 'userPrompt', 'taskBackgroundContext'],
+});

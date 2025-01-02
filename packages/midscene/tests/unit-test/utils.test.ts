@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { extractJSONFromCodeBlock } from '@/ai-model/openai';
+import { extractJSONFromCodeBlock, safeParseJson } from '@/ai-model/openai';
 import {
   getLogDir,
   getTmpDir,
@@ -131,5 +131,57 @@ describe('extractJSONFromCodeBlock', () => {
     }`;
     const result = extractJSONFromCodeBlock(input);
     expect(result).toBe(input);
+  });
+
+  it('should handle JSON with point coordinates', () => {
+    const input = '(123,456)';
+    const result = safeParseJson(input);
+    expect(result).toEqual([123, 456]);
+  });
+
+  it('should parse valid JSON string using JSON.parse', () => {
+    const input = '{"key": "value"}';
+    const result = safeParseJson(input);
+    expect(result).toEqual({ key: 'value' });
+  });
+
+  it('should parse dirty JSON using dirty-json parser', () => {
+    const input = "{key: 'value'}"; // Invalid JSON but valid dirty-json
+    const result = safeParseJson(input);
+    expect(result).toEqual({ key: 'value' });
+  });
+
+  it('should throw error for unparseable content', () => {
+    const input = 'not a json at all';
+    const result = safeParseJson(input);
+    expect(result).toEqual(input);
+  });
+
+  it('should parse JSON from code block', () => {
+    const input = '```json\n{"key": "value"}\n```';
+    const result = safeParseJson(input);
+    expect(result).toEqual({ key: 'value' });
+  });
+
+  it('should parse complex nested JSON', () => {
+    const input = `{
+      "string": "value",
+      "number": 123,
+      "boolean": true,
+      "array": [1, 2, 3],
+      "object": {
+        "nested": "value"
+      }
+    }`;
+    const result = safeParseJson(input);
+    expect(result).toEqual({
+      string: 'value',
+      number: 123,
+      boolean: true,
+      array: [1, 2, 3],
+      object: {
+        nested: 'value',
+      },
+    });
   });
 });

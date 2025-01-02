@@ -68,32 +68,17 @@ export type AISingleElementResponseByPosition = {
   text: string;
 };
 
-export type AISingleElementResponse =
-  | AISingleElementResponseById
-  | AISingleElementResponseByPosition;
-
+export type AISingleElementResponse = AISingleElementResponseById;
 export interface AIElementIdResponse {
   elements: {
     id: string;
-    reason: string;
-    text: string;
+    reason?: string;
+    text?: string;
   }[];
   errors?: string[];
 }
 
-export interface AIElementPositionResponse {
-  elements: {
-    position: {
-      x: number;
-      y: number;
-    };
-    reason: string;
-    text: string;
-  }[];
-  errors?: string[];
-}
-
-export type AIElementResponse = AIElementIdResponse | AIElementPositionResponse;
+export type AIElementResponse = AIElementIdResponse;
 
 export interface AISectionParseResponse<DataShape> {
   data: DataShape;

@@ -14,3 +14,4 @@ export {
   saveBase64Image,
 } from './transform';
 export { processImageElementInfo, compositeElementInfoImg } from './box-select';
+export { drawBoxOnImage, savePositionImg } from './draw-box';

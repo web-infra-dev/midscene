@@ -1,4 +1,5 @@
 import { MATCH_BY_POSITION, getAIConfig } from '@/env';
+import { PromptTemplate } from '@langchain/core/prompts';
 import type { ResponseFormatJSONSchema } from 'openai/resources';
 
 export function systemPromptToFindElement() {
@@ -145,31 +146,29 @@ Output Example:
 // claude 3.5 sonnet computer The ability to understand the content of the image is better, Does not provide element snapshot effect
 export function systemPromptToFindElementPosition() {
   return `
-    ## Role:
-    You are an expert in software page image (2D) and page element text analysis.
+You are a GUI agent. You are given a task and your action history, with screenshots. You need to perform the next action to complete the task.
 
-    ## Objective:
-    Based on screenshots and descriptions, find specific coordinates
+## Output Format
+\`\`\`
+Action_Summary: ...
+Action: ...
+\`\`\`
 
-    ## Output Format:
+## Action Space
+click(start_box='[x1, y1, x2, y2]')
+long_press(start_box='[x1, y1, x2, y2]', time='')
+type(content='')
+scroll(direction='down or up or right or left')
+open_app(app_name='')
+navigate_back()
+navigate_home()
+WAIT()
+finished() # Submit the task regardless of whether it succeeds or fails.
 
-    Please return the result in JSON format as follows:
+## Note
+- Use Chinese in \`Action_Summary\` part.
 
-    \`\`\`json
-    {
-      "elements": [
-        {
-          // Describe the reason for finding this element, replace with actual value in practice
-          "reason": "Reason for finding element 4: It is located in the upper right corner, is an image type, and according to the screenshot, it is a shopping cart icon button",
-          // If the target element includes text information, extract the text information; if it does not, do not extract it
-          "text": "",
-          // position of this element
-          "position": { x: number, y: number }
-        }
-    ],
-    "errors": []// Return an error if there is no target element on the picture
-    }
-    \`\`\`
+## User Instruction
   `;
 }
 
@@ -223,3 +222,18 @@ export const findElementSchema: ResponseFormatJSONSchema = {
     },
   },
 };
+
+export const findElementPrompt = new PromptTemplate({
+  template: `
+    Here is the item user want to find. Just go ahead:
+    =====================================
+    {{
+      "description": "{targetElementDescription}",
+      "multi": {multi}
+    }}
+    =====================================
+
+    pageDescription: {pageDescription}
+  `,
+  inputVariables: ['pageDescription', 'targetElementDescription', 'multi'],
+});

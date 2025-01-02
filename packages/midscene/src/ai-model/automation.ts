@@ -1,13 +1,13 @@
 import assert from 'node:assert';
 import type { AIUsageInfo, PlanningAIResponse, UIContext } from '@/types';
+import { PromptTemplate } from '@langchain/core/prompts';
+import { AIActionType, type AIArgs, callAiFn } from './common';
 import {
-  AIActionType,
-  type AIArgs,
-  callAiFn,
-  transformUserMessages,
-} from '../common';
-import { systemPromptToTaskPlanning } from '../prompt/planning';
-import { describeUserPage } from '../prompt/util';
+  automationUserPrompt,
+  systemPromptToTaskPlanning,
+  taskBackgroundContext,
+} from './prompt/planning';
+import { describeUserPage } from './prompt/util';
 
 export async function plan(
   userPrompt: string,
@@ -23,25 +23,21 @@ export async function plan(
   const { description: pageDescription, elementByPosition } =
     await describeUserPage(context);
 
-  const systemPrompt = systemPromptToTaskPlanning();
+  const systemPrompt = await systemPromptToTaskPlanning();
+  const userInstructionPrompt = await automationUserPrompt.format({
+    pageDescription,
+    userPrompt,
+    taskBackgroundContext: taskBackgroundContext(
+      opts.originalPrompt,
+      opts.whatHaveDone,
+    ),
+  });
 
-  let taskBackgroundContext = '';
-  if (opts.originalPrompt && opts.whatHaveDone) {
-    taskBackgroundContext = `For your information, this is a task that some important person handed to you. Here is the original task description and what have been done after the previous actions:
-=====================================
-Original task description:
-${opts.originalPrompt}
-=====================================
-What have been done:
-${opts.whatHaveDone}
-=====================================
-`;
-  }
   const msgs: AIArgs = [
     { role: 'system', content: systemPrompt },
     {
       role: 'user',
-      content: transformUserMessages([
+      content: [
         {
           type: 'image_url',
           image_url: {
@@ -51,28 +47,14 @@ ${opts.whatHaveDone}
         },
         {
           type: 'text',
-          text: `
-pageDescription:\n 
-${pageDescription}
-\n
-Here is the instruction:
-=====================================
-${userPrompt}
-=====================================
-
-${taskBackgroundContext}
-`.trim(),
+          text: userInstructionPrompt,
         },
-      ]),
+      ],
     },
   ];
 
   const call = callAI || callAiFn;
-  const { content, usage } = await call({
-    msgs,
-    AIActionType: AIActionType.PLAN,
-  });
-
+  const { content, usage } = await call(msgs, AIActionType.PLAN);
   const planFromAI = content;
 
   const actions = planFromAI?.actions || [];

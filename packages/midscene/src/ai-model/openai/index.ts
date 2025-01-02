@@ -16,6 +16,8 @@ import {
   AZURE_OPENAI_DEPLOYMENT,
   AZURE_OPENAI_ENDPOINT,
   AZURE_OPENAI_KEY,
+  MATCH_BY_POSITION,
+  MIDSCENE_API_TYPE,
   MIDSCENE_AZURE_OPENAI_INIT_CONFIG_JSON,
   MIDSCENE_AZURE_OPENAI_SCOPE,
   MIDSCENE_DANGEROUSLY_PRINT_ALL_CONFIG,
@@ -59,7 +61,11 @@ export function getModelName() {
   return modelName;
 }
 
-async function createChatClient(): Promise<{
+async function createChatClient({
+  AIActionTypeValue,
+}: {
+  AIActionTypeValue: AIActionType;
+}): Promise<{
   completion: OpenAI.Chat.Completions;
   style: 'openai' | 'anthropic';
 }> {
@@ -122,6 +128,10 @@ async function createChatClient(): Promise<{
       apiKey: getAIConfig(OPENAI_API_KEY),
       httpAgent: socksAgent,
       ...extraConfig,
+      defaultHeaders: {
+        ...(extraConfig?.defaultHeaders || {}),
+        [MIDSCENE_API_TYPE]: AIActionTypeValue.toString(),
+      },
       dangerouslyAllowBrowser: true,
     });
   }
@@ -163,11 +173,14 @@ async function createChatClient(): Promise<{
 
 export async function call(
   messages: ChatCompletionMessageParam[],
+  AIActionTypeValue: AIActionType,
   responseFormat?:
     | OpenAI.ChatCompletionCreateParams['response_format']
     | OpenAI.ResponseFormatJSONObject,
 ): Promise<{ content: string; usage?: AIUsageInfo }> {
-  const { completion, style } = await createChatClient();
+  const { completion, style } = await createChatClient({
+    AIActionTypeValue,
+  });
   const shouldPrintTiming =
     typeof getAIConfig(MIDSCENE_DEBUG_AI_PROFILE) === 'string';
 
@@ -185,6 +198,10 @@ export async function call(
         ? maxTokens
         : Number.parseInt(maxTokens || '2048', 10),
   };
+
+  // if (getAIConfig(MATCH_BY_POSITION)) {
+  //   return useHttpAgent(messages, AIActionTypeValue);
+  // }
   if (style === 'openai') {
     const result = await completion.create({
       model,
@@ -277,51 +294,54 @@ export async function callToGetJSONObject<T>(
     }
   }
 
-  const safeJsonParse = (input: string) => {
-    try {
-      return JSON.parse(input);
-    } catch {
-      return null;
-    }
-  };
-  const response = await call(messages, responseFormat);
+  const response = await call(messages, AIActionTypeValue, responseFormat);
   assert(response, 'empty response');
-  let jsonContent = safeJsonParse(response.content);
-  if (jsonContent) return { content: jsonContent, usage: response.usage };
-
-  const cleanJsonString = extractJSONFromCodeBlock(response.content);
-  try {
-    jsonContent = JSON.parse(cleanJsonString);
-  } catch {}
-  if (jsonContent) return { content: jsonContent, usage: response.usage };
-
-  try {
-    jsonContent = dJSON.parse(cleanJsonString);
-  } catch {}
-  if (jsonContent) return { content: jsonContent, usage: response.usage };
-
-  throw Error(`failed to parse json response: ${response.content}`);
+  const jsonContent = safeParseJson(response.content);
+  return { content: jsonContent, usage: response.usage };
 }
 
 export function extractJSONFromCodeBlock(response: string) {
-  // First, try to match a JSON object directly in the response
-  const jsonMatch = response.match(/^\s*(\{[\s\S]*\})\s*$/);
-  if (jsonMatch) {
-    return jsonMatch[1];
-  }
+  try {
+    // First, try to match a JSON object directly in the response
+    const jsonMatch = response.match(/^\s*(\{[\s\S]*\})\s*$/);
+    if (jsonMatch) {
+      return jsonMatch[1];
+    }
 
-  // If no direct JSON object is found, try to extract JSON from a code block
-  const codeBlockMatch = response.match(/```(?:json)?\s*(\{[\s\S]*?\})\s*```/);
-  if (codeBlockMatch) {
-    return codeBlockMatch[1];
-  }
+    // If no direct JSON object is found, try to extract JSON from a code block
+    const codeBlockMatch = response.match(
+      /```(?:json)?\s*(\{[\s\S]*?\})\s*```/,
+    );
+    if (codeBlockMatch) {
+      return codeBlockMatch[1];
+    }
 
-  // If no code block is found, try to find a JSON-like structure in the text
-  const jsonLikeMatch = response.match(/\{[\s\S]*\}/);
-  if (jsonLikeMatch) {
-    return jsonLikeMatch[0];
-  }
-
+    // If no code block is found, try to find a JSON-like structure in the text
+    const jsonLikeMatch = response.match(/\{[\s\S]*\}/);
+    if (jsonLikeMatch) {
+      return jsonLikeMatch[0];
+    }
+  } catch {}
   // If no JSON-like structure is found, return the original response
   return response;
+}
+
+export function safeParseJson(input: string) {
+  const cleanJsonString = extractJSONFromCodeBlock(input);
+  // match the point
+  if (cleanJsonString.match(/\((\d+),(\d+)\)/)) {
+    return cleanJsonString
+      .match(/\((\d+),(\d+)\)/)
+      ?.slice(1)
+      .map(Number);
+  }
+  try {
+    return JSON.parse(cleanJsonString);
+  } catch {}
+  try {
+    return dJSON.parse(cleanJsonString);
+  } catch (e) {
+    console.log('e:', e);
+  }
+  throw Error(`failed to parse json response: ${input}`);
 }
