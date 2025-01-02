@@ -24,7 +24,7 @@ Midscene.js is an AI-powered automation SDK can control the page, perform assert
 
 <p align="center">
   
-<video src="https://github.com/user-attachments/assets/c9f1e7fa-9834-45ba-8e3b-c3fdc1f7e5bb" controls />
+<video src="https://github.com/user-attachments/assets/58ebeb48-deb0-4edf-8ca0-af6be5bf1c70" controls />
 
 </p>
 
