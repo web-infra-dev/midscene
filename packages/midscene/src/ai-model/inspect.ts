@@ -52,7 +52,7 @@ function transformToAbsoluteCoords(
   };
 }
 
-let index = 0;
+// let index = 0;
 export async function transformElementPositionToId(
   aiResult: AIElementResponse | [number, number],
   elementsInfo: BaseElement[],
@@ -68,11 +68,11 @@ export async function transformElementPositionToId(
       },
       size,
     );
-    await savePositionImg({
-      inputImgBase64: screenshotBase64,
-      rect: absolutePosition,
-      outputPath: path.join(__dirname, 'test-data', `output-${index++}.png`),
-    });
+    // await savePositionImg({
+    //   inputImgBase64: screenshotBase64,
+    //   rect: absolutePosition,
+    //   outputPath: path.join(__dirname, 'test-data', `output-${index++}.png`),
+    // });
     const element = elementByPositionWithElementInfo(
       elementsInfo,
       absolutePosition,
