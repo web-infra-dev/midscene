@@ -20,7 +20,6 @@ import {
   MIDSCENE_API_TYPE,
   MIDSCENE_AZURE_OPENAI_INIT_CONFIG_JSON,
   MIDSCENE_AZURE_OPENAI_SCOPE,
-  MIDSCENE_COOKIE,
   MIDSCENE_DANGEROUSLY_PRINT_ALL_CONFIG,
   MIDSCENE_DEBUG_AI_PROFILE,
   MIDSCENE_LANGSMITH_DEBUG,
@@ -131,7 +130,6 @@ async function createChatClient({
       ...extraConfig,
       defaultHeaders: {
         ...(extraConfig?.defaultHeaders || {}),
-        Cookie: getAIConfig(MIDSCENE_COOKIE) || '',
         [MIDSCENE_API_TYPE]: AIActionTypeValue.toString(),
       },
       dangerouslyAllowBrowser: true,

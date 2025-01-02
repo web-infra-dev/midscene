@@ -150,19 +150,19 @@ By viewing the page screenshot and description, you should consider this and out
 {{
   "actions":[
     {{
-      "thought": "Click the language switch button to open the language options.",
       "type": "Tap", 
+      "thought": "Click the language switch button to open the language options.",
       "param": null,
       "locate": {sample},
     }},
     {{
-      "thought": "Wait for 1 second to ensure the language options are displayed.",
       "type": "Sleep",
+      "thought": "Wait for 1 second to ensure the language options are displayed.",
       "param": {{ "timeMs": 1000 }},
     }},
     {{
-      "thought": "Locate the 'English' option in the language menu.",
       "type": "Tap",
+      "thought": "Locate the 'English' option in the language menu.",
       "param": null, 
       "locate": null
     }},
@@ -184,8 +184,8 @@ If the user says "If there is a popup, close it", you should consider this and o
 
 {{
   "actions": [{{
-      "thought": "There is no popup on the page",
       "type": "FalsyConditionStatement",
+      "thought": "There is no popup on the page",
       "param": null
     }}
   ],
@@ -209,8 +209,8 @@ When the user ask to "Wait 4s", you should consider this:
 {{
   "actions": [
     {{
-      "thought": "Wait for 4 seconds",
       "type": "Sleep",
+      "thought": "Wait for 4 seconds",
       "param": {{ "timeMs": 4000 }},
     }},
   ],
@@ -225,16 +225,16 @@ Wrong output:
 {{
   "actions":[
     {{
-      "thought": "Click the language switch button to open the language options.",
       "type": "Tap",
+      "thought": "Click the language switch button to open the language options.",
       "param": null,
       "locate": {{
         {sample}, // WRONG:prompt is missing
       }}
     }},
     {{
-      "thought": "Click the English option",
       "type": "Tap", 
+      "thought": "Click the English option",
       "param": null,
       "locate": null, // This means the 'English' option is not shown in the screenshot, the task cannot be accomplished
     }}

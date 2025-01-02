@@ -15,8 +15,7 @@ export const MIDSCENE_MODEL_TEXT_ONLY = 'MIDSCENE_MODEL_TEXT_ONLY';
 
 export const MIDSCENE_CACHE = 'MIDSCENE_CACHE';
 export const MATCH_BY_POSITION = 'MATCH_BY_POSITION';
-export const MIDSCENE_COOKIE = 'MIDSCENE_COOKIE';
-export const MIDSCENE_API_TYPE = 'midscene-ai-type';
+export const MIDSCENE_API_TYPE = 'MIDSCENE_API_TYPE';
 export const MIDSCENE_REPORT_TAG_NAME = 'MIDSCENE_REPORT_TAG_NAME';
 
 export const MIDSCENE_USE_AZURE_OPENAI = 'MIDSCENE_USE_AZURE_OPENAI';
@@ -63,8 +62,6 @@ const allConfigFromEnv = () => {
       process.env[MIDSCENE_USE_AZURE_OPENAI] || undefined,
     [MIDSCENE_AZURE_OPENAI_SCOPE]:
       process.env[MIDSCENE_AZURE_OPENAI_SCOPE] || undefined,
-    [MIDSCENE_COOKIE]: process.env[MIDSCENE_COOKIE] || undefined,
-    [MIDSCENE_API_TYPE]: process.env[MIDSCENE_API_TYPE] || undefined,
     [MIDSCENE_AZURE_OPENAI_INIT_CONFIG_JSON]:
       process.env[MIDSCENE_AZURE_OPENAI_INIT_CONFIG_JSON] || undefined,
     [MIDSCENE_USE_ANTHROPIC_SDK]:
