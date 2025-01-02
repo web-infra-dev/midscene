@@ -17,7 +17,7 @@ import type {
   ChatCompletionSystemMessageParam,
   ChatCompletionUserMessageParam,
 } from 'openai/resources';
-import { AIActionType, callAiFn, transformUserMessages } from './common';
+import { AIActionType, callAiFn } from './common';
 import { call, callToGetJSONObject } from './openai';
 import {
   findElementPrompt,

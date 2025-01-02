@@ -36,15 +36,3 @@ export async function callAiFn<T>(
   );
   return { content, usage };
 }
-
-export function transformUserMessages(msgs: ChatCompletionContentPart[]) {
-  const textOnly = Boolean(getAIConfig(MIDSCENE_MODEL_TEXT_ONLY));
-  if (!textOnly) return msgs;
-
-  return msgs.reduce((res, msg) => {
-    if (msg.type === 'text') {
-      res += msg.text;
-    }
-    return res;
-  }, '');
-}
