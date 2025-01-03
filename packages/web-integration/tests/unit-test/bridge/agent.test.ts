@@ -1,5 +1,5 @@
 import {
-  ChromePageOverBridgeAgent,
+  AgentOverChromeBridge,
   getBridgePageInCliSide,
 } from '@/bridge-mode/agent-cli-side';
 import { describe, expect, it } from 'vitest';
@@ -35,7 +35,7 @@ describe.skipIf(process.env.CI)(
     it(
       'agent in cli side, new tab',
       async () => {
-        const agent = new ChromePageOverBridgeAgent();
+        const agent = new AgentOverChromeBridge();
 
         await agent.connectNewTabWithUrl('https://www.bing.com');
         await sleep(3000);
@@ -52,7 +52,7 @@ describe.skipIf(process.env.CI)(
     it(
       'agent in cli side, current tab',
       async () => {
-        const agent = new ChromePageOverBridgeAgent();
+        const agent = new AgentOverChromeBridge();
         await agent.connectCurrentTab();
         await sleep(3000);
         const answer = await agent.aiQuery(

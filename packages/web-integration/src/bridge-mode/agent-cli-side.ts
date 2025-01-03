@@ -86,7 +86,7 @@ export const getBridgePageInCliSide = (): ChromeExtensionPageCliSide => {
   }) as ChromeExtensionPageCliSide;
 };
 
-export class ChromePageOverBridgeAgent extends PageAgent<ChromeExtensionPageCliSide> {
+export class AgentOverChromeBridge extends PageAgent<ChromeExtensionPageCliSide> {
   constructor() {
     const page = getBridgePageInCliSide();
     super(page, {});

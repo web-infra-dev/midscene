@@ -23,12 +23,12 @@ Install [Midscene extension from Chrome web store](https://chromewebstore.google
 Write and save the following code as `./demo-new-tab.ts`.
 
 ```typescript
-import { ChromePageOverBridgeAgent } from "@midscene/web/bridge-mode";
+import { AgentOverChromeBridge } from "@midscene/web/bridge-mode";
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 Promise.resolve(
   (async () => {
-    const agent = new ChromePageOverBridgeAgent();
+    const agent = new AgentOverChromeBridge();
 
     // This will connect to a new tab on your desktop Chrome
     // remember to start your chrome extension, click 'allow connection' button. Otherwise you will get an timeout error
@@ -62,7 +62,7 @@ After executing the script, you should see the status of the Chrome extension sw
 
 ## API
 
-Except [the normal agent interface](./api), `ChromePageOverBridgeAgent` provides some other interfaces to control the desktop Chrome.
+Except [the normal agent interface](./api), `AgentOverChromeBridge` provides some other interfaces to control the desktop Chrome.
 
 :::info
 You should always call `connectCurrentTab` or `connectNewTabWithUrl` before doing further actions.

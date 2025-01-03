@@ -122,6 +122,10 @@ export default defineConfig({
               link: '/zh/automate-with-scripts-in-yaml',
             },
             {
+              text: '使用 Chrome 插件的桥接模式（Bridge Mode）',
+              link: '/zh/bridge-mode-by-chrome-extension',
+            },
+            {
               text: '集成到 Playwright',
               link: '/zh/integrate-with-playwright',
             },

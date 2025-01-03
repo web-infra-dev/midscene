@@ -12,7 +12,7 @@
   },
   "exports": {
     ".": "./dist/lib/index.js",
-    "./bridge-mode": "./dist/lib/bridge-mode",
+    "./bridge-mode": "./dist/lib/bridge-mode.js",
     "./bridge-mode-browser": "./dist/lib/bridge-mode-browser.js",
     "./utils": "./dist/lib/utils.js",
     "./ui-utils": "./dist/lib/ui-utils.js",

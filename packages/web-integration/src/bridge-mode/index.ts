@@ -1,3 +1,3 @@
-import { ChromePageOverBridgeAgent } from './agent-cli-side';
+import { AgentOverChromeBridge } from './agent-cli-side';
 
-export { ChromePageOverBridgeAgent };
+export { AgentOverChromeBridge };
