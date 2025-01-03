@@ -17,9 +17,6 @@
       ]
     },
     "test": {
-      "dependsOn": [
-        "^build"
-      ],
       "cache": false
     },
     "e2e": {
