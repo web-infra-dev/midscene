@@ -41,7 +41,7 @@ import { findElementSchema } from '../prompt/element_inspector';
 import { planSchema } from '../prompt/planning';
 import { assertSchema } from '../prompt/util';
 
-export function checkAIConfig(preferVendor?: 'coze' | 'openAI') {
+export function checkAIConfig(preferVendor?: 'openAI') {
   if (preferVendor && preferVendor !== 'openAI') return false;
   if (getAIConfig(OPENAI_API_KEY)) return true;
   if (getAIConfig(MIDSCENE_USE_AZURE_OPENAI)) return true;

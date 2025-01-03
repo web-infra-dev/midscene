@@ -124,7 +124,6 @@ export async function AiInspectElement<
   multi: boolean;
   targetElementDescription: string;
   callAI?: typeof callAiFn<AIElementResponse | [number, number]>;
-  useModel?: 'coze' | 'openAI';
   quickAnswer?: AISingleElementResponse;
 }): Promise<{
   parseResult: AIElementResponse;
@@ -195,9 +194,8 @@ export async function AiExtractElementInfo<
 >(options: {
   dataQuery: string | Record<string, string>;
   context: UIContext<ElementType>;
-  useModel?: 'coze' | 'openAI';
 }) {
-  const { dataQuery, context, useModel } = options;
+  const { dataQuery, context } = options;
   const systemPrompt = systemPromptToExtract();
 
   const { screenshotBase64 } = context;
@@ -256,9 +254,8 @@ export async function AiAssert<
 >(options: {
   assertion: string;
   context: UIContext<ElementType>;
-  useModel?: 'coze' | 'openAI';
 }) {
-  const { assertion, context, useModel } = options;
+  const { assertion, context } = options;
 
   assert(assertion, 'assertion should be a string');
 
