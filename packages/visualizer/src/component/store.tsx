@@ -120,6 +120,8 @@ export const useEnvConfig = create<{
   history: HistoryItem[];
   clearHistory: () => void;
   addHistory: (history: HistoryItem) => void;
+  popupTab: 'playground' | 'bridge';
+  setPopupTab: (tab: 'playground' | 'bridge') => void;
 }>((set, get) => {
   const configString = getConfigStringFromLocalStorage();
   const config = parseConfig(configString);
@@ -160,6 +162,10 @@ export const useEnvConfig = create<{
       }
       set({ history: newHistory });
       localStorage.setItem(HISTORY_KEY, JSON.stringify(newHistory));
+    },
+    popupTab: 'playground',
+    setPopupTab: (tab: 'playground' | 'bridge') => {
+      set({ popupTab: tab });
     },
   };
 });

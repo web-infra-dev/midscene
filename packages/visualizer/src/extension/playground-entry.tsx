@@ -6,11 +6,15 @@ import { useEffect, useMemo, useState } from 'react';
 import ReactDOM from 'react-dom/client';
 import { globalThemeConfig } from '../component/color';
 import { StaticPlayground } from '../component/playground-component';
+import { setSideEffect } from '../init';
 import type { WorkerResponseGetContext } from './utils';
 import { sendToWorker } from './utils';
 import type { WorkerRequestGetContext } from './utils';
 import { workerMessageTypes } from './utils';
+
 import './playground-entry.less';
+
+setSideEffect();
 
 const PlaygroundEntry = () => {
   // extension proxy agent

@@ -5,6 +5,21 @@ import type { ElementInfo } from './extractor';
 
 export type MouseButton = 'left' | 'right' | 'middle';
 
+export interface MouseAction {
+  click: (
+    x: number,
+    y: number,
+    options: { button: MouseButton },
+  ) => Promise<void>;
+  wheel: (deltaX: number, deltaY: number) => Promise<void>;
+  move: (x: number, y: number) => Promise<void>;
+}
+
+export interface KeyboardAction {
+  type: (text: string) => Promise<void>;
+  press: (key: WebKeyInput) => Promise<void>;
+}
+
 export abstract class AbstractPage {
   abstract pageType: string;
   abstract getElementInfos(): Promise<ElementInfo[]>;
@@ -12,7 +27,7 @@ export abstract class AbstractPage {
   abstract screenshotBase64?(): Promise<string>;
   abstract size(): Promise<Size>;
 
-  get mouse() {
+  get mouse(): MouseAction {
     return {
       click: async (
         x: number,
@@ -24,7 +39,7 @@ export abstract class AbstractPage {
     };
   }
 
-  get keyboard() {
+  get keyboard(): KeyboardAction {
     return {
       type: async (text: string) => {},
       press: async (key: WebKeyInput) => {},

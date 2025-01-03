@@ -265,6 +265,11 @@ export function extractTextWithPosition(
       return null;
     }
 
+    if (node.nodeType && node.nodeType === 10) {
+      // Doctype node
+      return null;
+    }
+
     const elementInfo = collectElementInfo(node, nodePath, baseZoom);
     // stop collecting if the node is a Button or Image
     if (
@@ -291,7 +296,8 @@ export function extractTextWithPosition(
     return elementInfo;
   }
 
-  dfs(initNode || getDocument(), '0');
+  const rootNode = initNode || getDocument();
+  dfs(rootNode, '0');
 
   if (currentFrame.left !== 0 || currentFrame.top !== 0) {
     for (let i = 0; i < elementInfoArray.length; i++) {

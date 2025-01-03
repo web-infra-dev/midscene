@@ -51,6 +51,7 @@ export const iconForStatus = (status: string): JSX.Element => {
         </span>
       );
     case 'failed':
+    case 'closed':
     case 'timedOut':
     case 'interrupted':
       return (

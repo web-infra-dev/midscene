@@ -1,4 +1,6 @@
 import './index.less';
+import { setSideEffect } from './init';
+
 import DetailSide from '@/component/detail-side';
 import Sidebar from '@/component/sidebar';
 import { useExecutionDump } from '@/component/store';
@@ -26,6 +28,8 @@ import Logo from './component/logo';
 import { iconForStatus, timeCostStrElement } from './component/misc';
 import Player from './component/player';
 import Timeline from './component/timeline';
+
+setSideEffect();
 
 const { Dragger } = Upload;
 let globalRenderCount = 1;

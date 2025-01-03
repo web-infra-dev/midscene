@@ -1,0 +1,92 @@
+# 使用 Chrome 插件的桥接模式（Bridge Mode）
+
+import { PackageManagerTabs } from '@theme';
+
+使用 Midscene 的 Chrome 插件的桥接模式，你可以用本地脚本控制桌面版本的 Chrome。你的脚本可以连接到新标签页或当前已激活的标签页。
+
+使用桌面版本的 Chrome 可以让你复用已有的 cookie、插件、页面状态等。你可以使用自动化脚本与操作者互动，来完成你的任务。
+
+:::info Demo Project
+you can check the demo project of bridge mode here: [https://github.com/web-infra-dev/midscene-example/blob/main/bridge-mode-demo](https://github.com/web-infra-dev/midscene-example/blob/main/bridge-mode-demo)
+:::
+
+## 准备工作
+
+安装 [Midscene 插件](https://chromewebstore.google.com/detail/midscene/gbldofcpkknbggpkmbdaefngejllnief)。
+
+## 第一步：安装依赖
+
+<PackageManagerTabs command="install @midscene/web tsx --save-dev" />
+
+## 第二步：编写脚本
+
+编写并保存以下代码为 `./demo-new-tab.ts`。
+
+```typescript
+import { AgentOverChromeBridge } from "@midscene/web/bridge-mode";
+
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+Promise.resolve(
+  (async () => {
+    const agent = new AgentOverChromeBridge();
+
+    // 这个方法将连接到你的桌面 Chrome 的新标签页
+    // 记得启动你的 Chrome 插件，并点击 'allow connection' 按钮。否则你会得到一个 timeout 错误
+    await agent.connectNewTabWithUrl("https://www.bing.com");
+
+    // 这些方法与普通 Midscene agent 相同
+    await agent.ai('type "AI 101" and hit Enter');
+    await sleep(3000);
+
+    await agent.aiAssert("there are some search results");
+    await agent.destroy();
+  })()
+);
+```
+
+## 第三步：运行脚本
+
+启动你的桌面 Chrome。启动 Midscene 插件，并切换到 'Bridge Mode' 标签页。点击 "Allow connection"。
+
+运行你的脚本
+
+```bash
+tsx demo-new-tab.ts
+```
+
+执行脚本后，你应该看到 Chrome 插件的状态展示切换为 'connected'，并且新标签页已打开。现在这个标签页由你的脚本控制。
+
+:::info
+执行脚本和点击插件中的 'Allow connection' 按钮没有顺序要求。
+:::
+
+## API
+
+除了 [普通的 agent 接口](./api)，`AgentOverChromeBridge` 还提供了一些额外的接口来控制桌面 Chrome。
+
+:::info
+你应该在执行其他操作前，先调用 `connectCurrentTab` 或 `connectNewTabWithUrl`。
+
+每个 agent 实例只能连接到一个标签页实例，并且一旦被销毁，就无法重新连接。
+:::
+
+### `connectCurrentTab`
+
+连接到当前已激活的标签页。
+
+### `connectNewTabWithUrl(ur: string)`
+
+创建一个新标签页，并立即连接到它。
+
+### `destroy`
+
+销毁连接。
+
+## 在 YAML 脚本中使用桥接模式
+
+这个功能正在开发中，很快就会与你见面。
+
+
+
+
+

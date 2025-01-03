@@ -154,18 +154,9 @@ importers:
       '@midscene/shared':
         specifier: workspace:*
         version: link:../shared
-      dirty-json:
-        specifier: 0.9.2
-        version: 0.9.2
-      langchain:
-        specifier: 0.3.8
-        version: 0.3.8(@langchain/core@0.3.26(openai@4.57.1(zod@3.23.8)))(axios@1.7.7)(cheerio@1.0.0)(openai@4.57.1(zod@3.23.8))
       openai:
         specifier: 4.57.1
         version: 4.57.1(zod@3.23.8)
-      optional:
-        specifier: 0.1.4
-        version: 0.1.4
       socks-proxy-agent:
         specifier: 8.0.4
         version: 8.0.4
@@ -179,12 +170,15 @@ importers:
       '@types/node-fetch':
         specifier: 2.6.11
         version: 2.6.11
+      dirty-json:
+        specifier: 0.9.2
+        version: 0.9.2
       dotenv:
         specifier: 16.4.5
         version: 16.4.5
       langsmith:
         specifier: 0.1.36
-        version: 0.1.36(@langchain/core@0.3.26(openai@4.57.1(zod@3.23.8)))(langchain@0.3.8(@langchain/core@0.3.26(openai@4.57.1(zod@3.23.8)))(axios@1.7.7)(cheerio@1.0.0)(openai@4.57.1(zod@3.23.8)))(openai@4.57.1(zod@3.23.8))
+        version: 0.1.36(@langchain/core@0.3.26(openai@4.57.1(zod@3.23.8)))(langchain@0.3.8(@langchain/core@0.3.26(openai@4.57.1(zod@3.23.8)))(openai@4.57.1(zod@3.23.8)))(openai@4.57.1(zod@3.23.8))
       typescript:
         specifier: ~5.0.4
         version: 5.0.4
@@ -215,6 +209,10 @@ importers:
         version: 1.6.0(@types/node@18.19.62)(jsdom@24.1.1)(sass-embedded@1.80.5)(terser@5.36.0)
 
   packages/visualizer:
+    dependencies:
+      buffer:
+        specifier: 6.0.3
+        version: 6.0.3
     devDependencies:
       '@ant-design/icons':
         specifier: 5.3.7
@@ -324,6 +322,12 @@ importers:
       openai:
         specifier: 4.57.1
         version: 4.57.1(zod@3.23.8)
+      socket.io:
+        specifier: 4.8.1
+        version: 4.8.1
+      socket.io-client:
+        specifier: 4.8.1
+        version: 4.8.1
     devDependencies:
       '@modern-js/module-tools':
         specifier: 2.60.6
@@ -3340,6 +3344,9 @@ packages:
     resolution: {integrity: sha512-tlqY9xq5ukxTUZBmoOp+m61cqwQD5pHJtFY3Mn8CA8ps6yghLH/Hw8UPdqg4OLmFW3IFlcXnQNmo/dh8HzXYIQ==}
     engines: {node: '>=18'}
 
+  '@socket.io/component-emitter@3.1.2':
+    resolution: {integrity: sha512-9BCxFwvbGg/RsZK9tjXd8s4UcwR0MWeFQ1XEKIQVVvAGJyINdrqKMcTRyLoK8Rse1GjzLV9cwjWV1olXRWEXVA==}
+
   '@svgr/babel-plugin-add-jsx-attribute@8.0.0':
     resolution: {integrity: sha512-b9MIk7yhdS1pMCZM8VeNfUlSKVRhsHZNMl5O9SfaX0l0t5wjdgu4IDzGB8bpnGBBOjGST3rRFVsaaEtI4W6f7g==}
     engines: {node: '>=14'}
@@ -3491,6 +3498,9 @@ packages:
 
   '@types/conventional-commits-parser@5.0.0':
     resolution: {integrity: sha512-loB369iXNmAZglwWATL+WRe+CRMmmBPtpolYzIebFaX4YA3x+BEfLqhUAV9WanycKI3TG1IMr5bMJDajDKLlUQ==}
+
+  '@types/cookie@0.4.1':
+    resolution: {integrity: sha512-XW/Aa8APYr6jSVVA1y/DEIZX0/GMKLEVekNG727R8cs56ahETkRAy/3DR7+fJyh7oUgGwNQaRfXCun0+KbWY7Q==}
 
   '@types/cors@2.8.12':
     resolution: {integrity: sha512-vt+kDhq/M2ayberEtJcIN/hxXy1Pk+59g2FV/ZQceeaTyCtCucjL2Q7FXlFjtWn4n15KCr1NE2lNNFhp0lEThw==}
@@ -4147,6 +4157,10 @@ packages:
 
   base64-js@1.5.1:
     resolution: {integrity: sha512-AKpaYlHn8t4SVbOHCy+b5+KKgvR4vrsD8vbvrbiQJps7fKDTkjkDry6ji0rUJjC0kzbNePLwzxq8iypo41qeWA==}
+
+  base64id@2.0.0:
+    resolution: {integrity: sha512-lGe34o6EHj9y3Kts9R4ZYs/Gr+6N7MCaMlIFA3F1R2O5/m7K06AxfSeO5530PEERE6/WyEg3lsuyw4GHlPZHog==}
+    engines: {node: ^4.5.0 || >= 5.9}
 
   basic-auth@2.0.1:
     resolution: {integrity: sha512-NF+epuEdnUYVlGuhaxbbq+dvJttwLnGY+YixlXlME5KpQ5W3CnXA5cVTneY3SPbPDRkcjMbifrwmFYcClgOZeg==}
@@ -5109,6 +5123,17 @@ packages:
 
   end-of-stream@1.4.4:
     resolution: {integrity: sha512-+uw1inIHVPQoaVuHzRyXd21icM+cnt4CzD5rW+NC1wjOUSTOs+Te7FOv7AhN7vS9x/oIyhLP5PR1H+phQAHu5Q==}
+
+  engine.io-client@6.6.2:
+    resolution: {integrity: sha512-TAr+NKeoVTjEVW8P3iHguO1LO6RlUz9O5Y8o7EY0fU+gY1NYqas7NN3slpFtbXEsLMHk0h90fJMfKjRkQ0qUIw==}
+
+  engine.io-parser@5.2.3:
+    resolution: {integrity: sha512-HqD3yTBfnBxIrbnM1DoD6Pcq8NECnh8d4As1Qgh0z5Gg3jRRIqijury0CL3ghu/edArpUYiYqQiDUQBIs4np3Q==}
+    engines: {node: '>=10.0.0'}
+
+  engine.io@6.6.2:
+    resolution: {integrity: sha512-gmNvsYi9C8iErnZdVcJnvCpSKbWTt1E8+JZo8b+daLninywUWi5NQ5STSHZ9rFjFO7imNcvb8Pc5pe/wMR5xEw==}
+    engines: {node: '>=10.2.0'}
 
   enhanced-resolve@5.12.0:
     resolution: {integrity: sha512-QHTXI/sZQmko1cbDoNAa3mJ5qhWUUNAq3vR0/YiD379fWQrcfuoX1+HW2S0MTt7XmoPLapdaDKUtelUSPic7hQ==}
@@ -7352,9 +7377,6 @@ packages:
     resolution: {integrity: sha512-ur5UIdyw5Y7yEj9wLzhqXiy6GZ3Mwx0yGI+5sMn2r0N0v3cKJvUmFH5yPP+WXh9e0xfyzyJX95D8l088DNFj7A==}
     hasBin: true
 
-  optional@0.1.4:
-    resolution: {integrity: sha512-gtvrrCfkE08wKcgXaVwQVgwEQ8vel2dc5DDBn9RLQZ3YtmtkBss6A2HY6BnJH4N/4Ku97Ri/SF8sNWE2225WJw==}
-
   ora@5.3.0:
     resolution: {integrity: sha512-zAKMgGXUim0Jyd6CXK9lraBnD3H5yPGBPPOkC23a2BG6hsm4Zu6OQSjQuEtV0BHDf4aKHcUFvJiGRrFuW3MG8g==}
     engines: {node: '>=10'}
@@ -9007,6 +9029,21 @@ packages:
   snake-case@3.0.4:
     resolution: {integrity: sha512-LAOh4z89bGQvl9pFfNF8V146i7o7/CqFPbqzYgP+yYzDIDeS9HaNFtXABamRW+AQzEVODcvE79ljJ+8a9YSdMg==}
 
+  socket.io-adapter@2.5.5:
+    resolution: {integrity: sha512-eLDQas5dzPgOWCk9GuuJC2lBqItuhKI4uxGgo9aIV7MYbk2h9Q6uULEh8WBzThoI7l+qU9Ast9fVUmkqPP9wYg==}
+
+  socket.io-client@4.8.1:
+    resolution: {integrity: sha512-hJVXfu3E28NmzGk8o1sHhN3om52tRvwYeidbj7xKy2eIIse5IoKX3USlS6Tqt3BHAtflLIkCQBkzVrEEfWUyYQ==}
+    engines: {node: '>=10.0.0'}
+
+  socket.io-parser@4.2.4:
+    resolution: {integrity: sha512-/GbIKmo8ioc+NIWIhwdecY0ge+qVBSMdgxGygevmdHj24bsfgtCmcUUcQ5ZzcylGFHsN3k4HB4Cgkl96KVnuew==}
+    engines: {node: '>=10.0.0'}
+
+  socket.io@4.8.1:
+    resolution: {integrity: sha512-oZ7iUCxph8WYRHHcjBEc9unw3adt5CmSNlppj/5Q4k2RIrhl8Z5yY2Xr4j9zj0+wzVZ0bxmYoGSzKJnRl6A4yg==}
+    engines: {node: '>=10.2.0'}
+
   socks-proxy-agent@8.0.4:
     resolution: {integrity: sha512-GNAq/eg8Udq2x0eNiFkr9gRg5bA7PXEWagQdeRX4cPSG+X/8V38v637gim9bjFptMk1QWsCTr0ttrJEiXbNnRw==}
     engines: {node: '>= 14'}
@@ -9974,6 +10011,18 @@ packages:
   wrappy@1.0.2:
     resolution: {integrity: sha512-l4Sp/DRseor9wL6EvV2+TuQn63dMkPjZ/sp9XkghTEbV9KlPS1xUsZ3u7/IQO4wxtcFB4bgpQPRcR3QCvezPcQ==}
 
+  ws@8.17.1:
+    resolution: {integrity: sha512-6XQFvXTkbfUOZOKKILFG1PDK2NDQs4azKQl26T0YS5CxqWLgXajbPZ+h4gZekJyRqFU8pvnbAbbs/3TgRPy+GQ==}
+    engines: {node: '>=10.0.0'}
+    peerDependencies:
+      bufferutil: ^4.0.1
+      utf-8-validate: '>=5.0.2'
+    peerDependenciesMeta:
+      bufferutil:
+        optional: true
+      utf-8-validate:
+        optional: true
+
   ws@8.18.0:
     resolution: {integrity: sha512-8VbfWfHLbbwu3+N6OKsOMpBdT4kXPDDB9cJk2bJ6mh9ucxdlnNvH1e+roYkKmN9Nxw2yjz7VzeO9oOz2zJ04Pw==}
     engines: {node: '>=10.0.0'}
@@ -10010,6 +10059,10 @@ packages:
 
   xmlchars@2.2.0:
     resolution: {integrity: sha512-JZnDKK8B0RCDw84FNdDAIpZK+JuJw+s7Lz8nksI7SIuU3UXJJslUthsi+uWBUYOwPFwW7W7PRLRfUKpxjtjFCw==}
+
+  xmlhttprequest-ssl@2.1.2:
+    resolution: {integrity: sha512-TEU+nJVUUnA4CYJFLvK5X9AOeH4KvDvhIfm0vV1GaQRtchnG0hgK5p8hw/xjv8cunWYCsiPCSDzObPyhEwq3KQ==}
+    engines: {node: '>=0.4.0'}
 
   xtend@4.0.2:
     resolution: {integrity: sha512-LKYU1iAXJXUgAXn9URjiu+MWhyUXHsvfp7mcuYm9dSUKK0/CjtrUwFAxD82/mCWbtLsGjFIad0wIsod4zrTAEQ==}
@@ -12328,11 +12381,13 @@ snapshots:
       zod-to-json-schema: 3.24.1(zod@3.23.8)
     transitivePeerDependencies:
       - encoding
+    optional: true
 
   '@langchain/textsplitters@0.1.0(@langchain/core@0.3.26(openai@4.57.1(zod@3.23.8)))':
     dependencies:
       '@langchain/core': 0.3.26(openai@4.57.1(zod@3.23.8))
       js-tiktoken: 1.0.16
+    optional: true
 
   '@loadable/babel-plugin@5.15.3(@babel/core@7.26.0)':
     dependencies:
@@ -14255,6 +14310,8 @@ snapshots:
 
   '@sindresorhus/merge-streams@4.0.0': {}
 
+  '@socket.io/component-emitter@3.1.2': {}
+
   '@svgr/babel-plugin-add-jsx-attribute@8.0.0(@babel/core@7.26.0)':
     dependencies:
       '@babel/core': 7.26.0
@@ -14431,6 +14488,8 @@ snapshots:
     dependencies:
       '@types/node': 18.19.62
     optional: true
+
+  '@types/cookie@0.4.1': {}
 
   '@types/cors@2.8.12': {}
 
@@ -15272,6 +15331,8 @@ snapshots:
     optional: true
 
   base64-js@1.5.1: {}
+
+  base64id@2.0.0: {}
 
   basic-auth@2.0.1:
     dependencies:
@@ -16401,6 +16462,37 @@ snapshots:
   end-of-stream@1.4.4:
     dependencies:
       once: 1.4.0
+
+  engine.io-client@6.6.2:
+    dependencies:
+      '@socket.io/component-emitter': 3.1.2
+      debug: 4.3.7(supports-color@5.5.0)
+      engine.io-parser: 5.2.3
+      ws: 8.17.1
+      xmlhttprequest-ssl: 2.1.2
+    transitivePeerDependencies:
+      - bufferutil
+      - supports-color
+      - utf-8-validate
+
+  engine.io-parser@5.2.3: {}
+
+  engine.io@6.6.2:
+    dependencies:
+      '@types/cookie': 0.4.1
+      '@types/cors': 2.8.12
+      '@types/node': 18.19.62
+      accepts: 1.3.8
+      base64id: 2.0.0
+      cookie: 0.7.2
+      cors: 2.8.5
+      debug: 4.3.7(supports-color@5.5.0)
+      engine.io-parser: 5.2.3
+      ws: 8.17.1
+    transitivePeerDependencies:
+      - bufferutil
+      - supports-color
+      - utf-8-validate
 
   enhanced-resolve@5.12.0:
     dependencies:
@@ -18139,7 +18231,8 @@ snapshots:
 
   jsonparse@1.3.1: {}
 
-  jsonpointer@5.0.1: {}
+  jsonpointer@5.0.1:
+    optional: true
 
   jsonwebtoken@9.0.2:
     dependencies:
@@ -18202,7 +18295,7 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  langchain@0.3.8(@langchain/core@0.3.26(openai@4.57.1(zod@3.23.8)))(axios@1.7.7)(cheerio@1.0.0)(openai@4.57.1(zod@3.23.8)):
+  langchain@0.3.8(@langchain/core@0.3.26(openai@4.57.1(zod@3.23.8)))(openai@4.57.1(zod@3.23.8)):
     dependencies:
       '@langchain/core': 0.3.26(openai@4.57.1(zod@3.23.8))
       '@langchain/openai': 0.3.16(@langchain/core@0.3.26(openai@4.57.1(zod@3.23.8)))
@@ -18217,14 +18310,12 @@ snapshots:
       yaml: 2.6.1
       zod: 3.23.8
       zod-to-json-schema: 3.24.1(zod@3.23.8)
-    optionalDependencies:
-      axios: 1.7.7
-      cheerio: 1.0.0
     transitivePeerDependencies:
       - encoding
       - openai
+    optional: true
 
-  langsmith@0.1.36(@langchain/core@0.3.26(openai@4.57.1(zod@3.23.8)))(langchain@0.3.8(@langchain/core@0.3.26(openai@4.57.1(zod@3.23.8)))(axios@1.7.7)(cheerio@1.0.0)(openai@4.57.1(zod@3.23.8)))(openai@4.57.1(zod@3.23.8)):
+  langsmith@0.1.36(@langchain/core@0.3.26(openai@4.57.1(zod@3.23.8)))(langchain@0.3.8(@langchain/core@0.3.26(openai@4.57.1(zod@3.23.8)))(openai@4.57.1(zod@3.23.8)))(openai@4.57.1(zod@3.23.8)):
     dependencies:
       '@types/uuid': 9.0.8
       commander: 10.0.1
@@ -18233,7 +18324,7 @@ snapshots:
       uuid: 9.0.1
     optionalDependencies:
       '@langchain/core': 0.3.26(openai@4.57.1(zod@3.23.8))
-      langchain: 0.3.8(@langchain/core@0.3.26(openai@4.57.1(zod@3.23.8)))(axios@1.7.7)(cheerio@1.0.0)(openai@4.57.1(zod@3.23.8))
+      langchain: 0.3.8(@langchain/core@0.3.26(openai@4.57.1(zod@3.23.8)))(openai@4.57.1(zod@3.23.8))
       openai: 4.57.1(zod@3.23.8)
 
   langsmith@0.2.14(openai@4.57.1(zod@3.23.8)):
@@ -19312,12 +19403,12 @@ snapshots:
       zod: 3.23.8
     transitivePeerDependencies:
       - encoding
+    optional: true
 
-  openapi-types@12.1.3: {}
+  openapi-types@12.1.3:
+    optional: true
 
   opener@1.5.2: {}
-
-  optional@0.1.4: {}
 
   ora@5.3.0:
     dependencies:
@@ -21203,6 +21294,47 @@ snapshots:
       dot-case: 3.0.4
       tslib: 2.8.1
 
+  socket.io-adapter@2.5.5:
+    dependencies:
+      debug: 4.3.7(supports-color@5.5.0)
+      ws: 8.17.1
+    transitivePeerDependencies:
+      - bufferutil
+      - supports-color
+      - utf-8-validate
+
+  socket.io-client@4.8.1:
+    dependencies:
+      '@socket.io/component-emitter': 3.1.2
+      debug: 4.3.7(supports-color@5.5.0)
+      engine.io-client: 6.6.2
+      socket.io-parser: 4.2.4
+    transitivePeerDependencies:
+      - bufferutil
+      - supports-color
+      - utf-8-validate
+
+  socket.io-parser@4.2.4:
+    dependencies:
+      '@socket.io/component-emitter': 3.1.2
+      debug: 4.3.7(supports-color@5.5.0)
+    transitivePeerDependencies:
+      - supports-color
+
+  socket.io@4.8.1:
+    dependencies:
+      accepts: 1.3.8
+      base64id: 2.0.0
+      cors: 2.8.5
+      debug: 4.3.7(supports-color@5.5.0)
+      engine.io: 6.6.2
+      socket.io-adapter: 2.5.5
+      socket.io-parser: 4.2.4
+    transitivePeerDependencies:
+      - bufferutil
+      - supports-color
+      - utf-8-validate
+
   socks-proxy-agent@8.0.4:
     dependencies:
       agent-base: 7.1.1
@@ -22303,6 +22435,8 @@ snapshots:
 
   wrappy@1.0.2: {}
 
+  ws@8.17.1: {}
+
   ws@8.18.0: {}
 
   xhr@2.6.0:
@@ -22328,6 +22462,8 @@ snapshots:
 
   xmlchars@2.2.0: {}
 
+  xmlhttprequest-ssl@2.1.2: {}
+
   xtend@4.0.2: {}
 
   y18n@4.0.3: {}
@@ -22347,7 +22483,8 @@ snapshots:
 
   yaml@1.10.2: {}
 
-  yaml@2.6.1: {}
+  yaml@2.6.1:
+    optional: true
 
   yargs-parser@18.1.3:
     dependencies:

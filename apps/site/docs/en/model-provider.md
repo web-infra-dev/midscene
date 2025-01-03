@@ -38,7 +38,9 @@ export OPENAI_MAX_TOKENS=2048
 Use ADT token provider
 
 ```bash
+# this is always true when using Azure OpenAI Service
 export MIDSCENE_USE_AZURE_OPENAI=1
+
 export MIDSCENE_AZURE_OPENAI_SCOPE="https://cognitiveservices.azure.com/.default"
 export AZURE_OPENAI_ENDPOINT="..."
 export AZURE_OPENAI_API_VERSION="2024-05-01-preview"
@@ -108,6 +110,15 @@ Configure the environment variables:
 export OPENAI_BASE_URL="https://ark.cn-beijing.volces.com/api/v3"
 export OPENAI_API_KEY="..."
 export MIDSCENE_MODEL_NAME="ep-202....."
+```
+
+## Example: config request headers (like for openrouter)
+
+```bash
+export OPENAI_BASE_URL="https://openrouter.ai/api/v1"
+export OPENAI_API_KEY="..."
+export MIDSCENE_MODEL_NAME="..."
+export MIDSCENE_OPENAI_INIT_CONFIG_JSON='{"defaultHeaders":{"HTTP-Referer":"...","X-Title":"..."}}'
 ```
 
 ## Troubleshooting LLM Service Connectivity Issues

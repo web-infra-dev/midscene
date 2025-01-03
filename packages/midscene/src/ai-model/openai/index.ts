@@ -118,6 +118,7 @@ async function createChatClient({
         endpoint: getAIConfig(AZURE_OPENAI_ENDPOINT),
         apiVersion: getAIConfig(AZURE_OPENAI_API_VERSION),
         deployment: getAIConfig(AZURE_OPENAI_DEPLOYMENT),
+        dangerouslyAllowBrowser: true,
         ...extraConfig,
         ...extraAzureConfig,
       });
