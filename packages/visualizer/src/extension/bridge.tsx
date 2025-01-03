@@ -179,7 +179,7 @@ export default function Bridge() {
         <div className="form-part">
           <h3>Bridge Status</h3>
           <div className="bridge-status-bar">
-            <div>{statusElement}</div>
+            <div className="bridge-status-text">{statusElement}</div>
             <div className="bridge-status-btn">{statusBtn}</div>
           </div>
         </div>
