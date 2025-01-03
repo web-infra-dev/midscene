@@ -30,14 +30,14 @@ export class BridgeClient {
 
       // on disconnect
       this.socket.on('disconnect', (reason: string) => {
-        console.log('bridge-disconnected, reason:', reason);
+        // console.log('bridge-disconnected, reason:', reason);
         this.socket = null;
         this.onDisconnect?.();
       });
 
       this.socket.on(BridgeConnectedEvent, () => {
         clearTimeout(timeout);
-        console.log('bridge-connected');
+        // console.log('bridge-connected');
         resolve(this.socket);
       });
       this.socket.on(BridgeRefusedEvent, (e: any) => {

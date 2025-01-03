@@ -26,16 +26,6 @@ export default defineConfig({
           'https://applink.larkoffice.com/client/chat/chatter/add_by_link?link_token=291q2b25-e913-411a-8c51-191e59aab14d',
       },
     ],
-    // footer: {
-    //   message: `
-    //     <footer class="footer">
-    //       <div class="footer-content">
-    //         <img src="/midscene-icon.png" alt="Midscene.js Logo" class="footer-logo" />
-    //         <p class="footer-text">&copy; 2024 Midscene.js. All Rights Reserved.</p>
-    //       </div>
-    //     </footer>
-    //   `,
-    // },
     locales: [
       {
         lang: 'en',
@@ -69,6 +59,10 @@ export default defineConfig({
             {
               text: 'Automate with Scripts in YAML',
               link: '/automate-with-scripts-in-yaml',
+            },
+            {
+              text: 'Bridge Mode by Chrome Extension',
+              link: '/bridge-mode-by-chrome-extension',
             },
             {
               text: 'Integrate with Playwright',
