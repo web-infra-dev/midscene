@@ -11,7 +11,8 @@ const quickAnswerFormat = () => {
       description:
         '"position": { x: number; y: number } // Represents the position of the element; replace with actual values in practice (ensure it reflects the element\'s position)',
       format: '"position": { x: number; y: number }',
-      sample: '{"prompt": "the search bar"}',
+      sample:
+        '{"prompt": "the search bar" // Use language consistent with the information on the page}',
       locateParam: `{
         "prompt"?: string // the description of the element to find. It can only be omitted when locate is null.
       } | null // If it's not on the page, the LocateParam should be null`,
@@ -350,36 +351,38 @@ export const planSchema: ResponseFormatJSONSchema = {
   },
 };
 
-export const taskBackgroundContext = async (
+export const generateTaskBackgroundContext = (
+  userPrompt: string,
   originalPrompt?: string,
   whatHaveDone?: string,
 ) => {
-  if (!originalPrompt || !whatHaveDone) {
-    return '';
+  if (originalPrompt && whatHaveDone) {
+    return `
+    For your information, this is a task that some important person handed to you. Here is the original task description and what have been done after the previous actions:
+    =====================================
+    Original task description: ${originalPrompt}
+    =====================================
+    What have been done: ${whatHaveDone}
+    =====================================
+    `;
   }
 
   return `
-    For your information, this is a task that some important person handed to you. Here is the original task description and what have been done after the previous actions:
-    =====================================
-    Original task description:
-    ${originalPrompt}
-    =====================================
-    What have been done:
-    ${whatHaveDone}
-    =====================================
-`;
+  Here is the instruction:
+  =====================================
+  ${userPrompt}
+  =====================================
+  `;
 };
 
 export const automationUserPrompt = new PromptTemplate({
   template: `
-    Here is the instruction:
+    pageDescription:
     =====================================
-    {userPrompt}
+    {pageDescription}
     =====================================
 
     {taskBackgroundContext}
-
-    pageDescription: {pageDescription}
   `,
-  inputVariables: ['pageDescription', 'userPrompt', 'taskBackgroundContext'],
+  inputVariables: ['pageDescription', 'taskBackgroundContext'],
 });

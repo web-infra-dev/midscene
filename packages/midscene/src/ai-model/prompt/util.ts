@@ -290,10 +290,7 @@ export async function describeUserPage<
   const sizeDescription = describeSize({ width, height });
 
   return {
-    description: `
-  The size of the page: ${sizeDescription} \n
-  ${pageJSONDescription}
-`,
+    description: `The size of the page: ${sizeDescription} \n ${pageJSONDescription}`,
     elementById(id: string) {
       assert(typeof id !== 'undefined', 'id is required for query');
       const item = idElementMap[`${id}`];
