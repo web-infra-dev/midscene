@@ -32,6 +32,10 @@ export class ChromeExtensionPageBrowserSide extends ChromeExtensionProxyPage {
           );
         }
 
+        if (method === 'connectCurrentTab') {
+          return this.connectCurrentTab.apply(this, args as any);
+        }
+
         if (method === BridgeUpdateAgentStatusEvent) {
           return this.onLogMessage(args[0] as string, 'status');
         }
@@ -52,8 +56,21 @@ export class ChromeExtensionPageBrowserSide extends ChromeExtensionProxyPage {
           return this.keyboard[actionName].apply(this.keyboard, args as any);
         }
 
-        // @ts-expect-error
-        return this[method as keyof ChromeExtensionProxyPage](...args);
+        try {
+          // @ts-expect-error
+          const result = await this[method as keyof ChromeExtensionProxyPage](
+            ...args,
+          );
+          return result;
+        } catch (e) {
+          const errorMessage = e instanceof Error ? e.message : 'Unknown error';
+          console.error('error calling method', method, args, e);
+          this.onLogMessage(
+            `Error calling method: ${method}, ${errorMessage}`,
+            'log',
+          );
+          throw new Error(errorMessage, { cause: e });
+        }
       },
       // on disconnect
       () => {
@@ -80,6 +97,21 @@ export class ChromeExtensionPageBrowserSide extends ChromeExtensionProxyPage {
 
     // new tab
     this.onLogMessage(`Creating new tab: ${url}`, 'log');
+  }
+
+  public async connectCurrentTab() {
+    if (this.tabId) {
+      throw new Error(
+        `already connected with tab id ${this.tabId}, cannot reconnect`,
+      );
+    }
+    const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
+    console.log('current tab', tabs);
+    const tabId = tabs[0]?.id;
+    assert(tabId, 'failed to get tabId');
+    this.tabId = tabId;
+
+    this.onLogMessage(`Connected to current tab: ${tabs[0]?.url}`, 'log');
   }
 
   async destroy() {

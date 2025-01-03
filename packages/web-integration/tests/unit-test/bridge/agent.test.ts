@@ -33,7 +33,7 @@ describe.skipIf(process.env.CI)(
     );
 
     it(
-      'agent in cli side',
+      'agent in cli side, new tab',
       async () => {
         const agent = new ChromePageOverBridgeAgent();
 
@@ -44,6 +44,23 @@ describe.skipIf(process.env.CI)(
         await sleep(3000);
 
         await agent.aiAssert('there are some search results');
+        await agent.destroy();
+      },
+      60 * 1000,
+    );
+
+    it(
+      'agent in cli side, current tab',
+      async () => {
+        const agent = new ChromePageOverBridgeAgent();
+        await agent.connectCurrentTab();
+        await sleep(3000);
+        const answer = await agent.aiQuery(
+          'what is the current page? return {description: string}',
+        );
+
+        console.log(answer);
+        expect(answer.description).toBeTruthy();
         await agent.destroy();
       },
       60 * 1000,

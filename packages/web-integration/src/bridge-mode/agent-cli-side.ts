@@ -96,6 +96,10 @@ export class ChromePageOverBridgeAgent extends PageAgent<ChromeExtensionPageCliS
     await this.page.connectNewTabWithUrl(url);
   }
 
+  async connectCurrentTab() {
+    await this.page.connectCurrentTab();
+  }
+
   async aiAction(prompt: string, options?: any) {
     if (options) {
       console.warn(
