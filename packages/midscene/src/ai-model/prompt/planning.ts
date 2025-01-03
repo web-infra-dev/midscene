@@ -358,6 +358,11 @@ export const generateTaskBackgroundContext = (
 ) => {
   if (originalPrompt && whatHaveDone) {
     return `
+    Here is the instruction:
+    =====================================
+    ${userPrompt}
+    =====================================
+
     For your information, this is a task that some important person handed to you. Here is the original task description and what have been done after the previous actions:
     =====================================
     Original task description: ${originalPrompt}
