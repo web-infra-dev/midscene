@@ -3,14 +3,10 @@
 exports[`automation - planning input - openAI > input value 1`] = `
 [
   {
-    "param": {
-      "id": "fbc2d0029b",
-      "prompt": "",
+    "locate": {
+      "id": "fbc2d002",
+      "prompt": "the input field with placeholder 'What needs to be done?'",
     },
-    "thought": undefined,
-    "type": "Locate",
-  },
-  {
     "param": {
       "value": "learning english",
     },
@@ -23,14 +19,10 @@ exports[`automation - planning input - openAI > input value 1`] = `
 exports[`automation - planning input - openAI > input value 2`] = `
 [
   {
-    "param": {
-      "id": "fbc2d0029b",
-      "prompt": "",
+    "locate": {
+      "id": "fbc2d002",
+      "prompt": "the input field with placeholder 'What needs to be done?'",
     },
-    "thought": undefined,
-    "type": "Locate",
-  },
-  {
     "param": {
       "value": "learning english",
     },
@@ -38,6 +30,7 @@ exports[`automation - planning input - openAI > input value 2`] = `
     "type": "Input",
   },
   {
+    "locate": null,
     "param": {
       "value": "Enter",
     },
@@ -50,14 +43,10 @@ exports[`automation - planning input - openAI > input value 2`] = `
 exports[`automation - planning input - openAI > input value 3`] = `
 [
   {
-    "param": {
-      "id": "fbc2d0029b",
-      "prompt": "",
+    "locate": {
+      "id": "fbc2d002",
+      "prompt": "the input field with placeholder 'What needs to be done?'",
     },
-    "thought": undefined,
-    "type": "Locate",
-  },
-  {
     "param": {
       "value": "learning english",
     },
@@ -70,14 +59,10 @@ exports[`automation - planning input - openAI > input value 3`] = `
 exports[`automation - planning input - openAI > input value 4`] = `
 [
   {
-    "param": {
-      "id": "fbc2d0029b",
-      "prompt": "",
+    "locate": {
+      "id": "fbc2d002",
+      "prompt": "the input field with placeholder 'What needs to be done?'",
     },
-    "thought": undefined,
-    "type": "Locate",
-  },
-  {
     "param": {
       "value": "learning english",
     },
@@ -85,6 +70,7 @@ exports[`automation - planning input - openAI > input value 4`] = `
     "type": "Input",
   },
   {
+    "locate": null,
     "param": {
       "value": "Enter",
     },
@@ -97,14 +83,10 @@ exports[`automation - planning input - openAI > input value 4`] = `
 exports[`automation - planning input - openAI > input value 5`] = `
 [
   {
-    "param": {
-      "id": "fbc2d0029b",
-      "prompt": "",
+    "locate": {
+      "id": "fbc2d002",
+      "prompt": "the input field with placeholder 'What needs to be done?'",
     },
-    "thought": undefined,
-    "type": "Locate",
-  },
-  {
     "param": {
       "value": "learning english",
     },
@@ -117,14 +99,10 @@ exports[`automation - planning input - openAI > input value 5`] = `
 exports[`automation - planning input - openAI > input value 6`] = `
 [
   {
-    "param": {
-      "id": "fbc2d0029b",
-      "prompt": "",
+    "locate": {
+      "id": "fbc2d002",
+      "prompt": "the input field with placeholder 'What needs to be done?'",
     },
-    "thought": undefined,
-    "type": "Locate",
-  },
-  {
     "param": {
       "value": "learning english",
     },
@@ -132,6 +110,7 @@ exports[`automation - planning input - openAI > input value 6`] = `
     "type": "Input",
   },
   {
+    "locate": null,
     "param": {
       "value": "Enter",
     },
@@ -144,14 +123,10 @@ exports[`automation - planning input - openAI > input value 6`] = `
 exports[`automation - planning input - openAI > input value 7`] = `
 [
   {
-    "param": {
-      "id": "fbc2d0029b",
-      "prompt": "",
+    "locate": {
+      "id": "fbc2d002",
+      "prompt": "the input field with placeholder 'What needs to be done?'",
     },
-    "thought": undefined,
-    "type": "Locate",
-  },
-  {
     "param": {
       "value": "learning english",
     },
@@ -164,14 +139,10 @@ exports[`automation - planning input - openAI > input value 7`] = `
 exports[`automation - planning input - openAI > input value 8`] = `
 [
   {
-    "param": {
-      "id": "fbc2d0029b",
-      "prompt": "",
+    "locate": {
+      "id": "fbc2d002",
+      "prompt": "the input field with placeholder 'What needs to be done?'",
     },
-    "thought": undefined,
-    "type": "Locate",
-  },
-  {
     "param": {
       "value": "learning english",
     },
@@ -179,358 +150,12 @@ exports[`automation - planning input - openAI > input value 8`] = `
     "type": "Input",
   },
   {
+    "locate": null,
     "param": {
       "value": "Enter",
     },
     "thought": undefined,
     "type": "KeyboardPress",
-  },
-]
-`;
-
-exports[`automation - planning input - openAI > input value 9`] = `
-[
-  {
-    "param": {
-      "id": "fbc2d0029b",
-      "prompt": "",
-    },
-    "thought": undefined,
-    "type": "Locate",
-  },
-  {
-    "param": {
-      "value": "learning english",
-    },
-    "thought": undefined,
-    "type": "Input",
-  },
-]
-`;
-
-exports[`automation - planning input - openAI > input value 10`] = `
-[
-  {
-    "param": {
-      "id": "fbc2d0029b",
-      "prompt": "",
-    },
-    "thought": undefined,
-    "type": "Locate",
-  },
-  {
-    "param": {
-      "value": "learning english",
-    },
-    "thought": undefined,
-    "type": "Input",
-  },
-  {
-    "param": {
-      "value": "Enter",
-    },
-    "thought": undefined,
-    "type": "KeyboardPress",
-  },
-]
-`;
-
-exports[`automation - planning input - openAI > input value Add, delete, correct and check 1`] = `
-[
-  {
-    "param": {
-      "id": "fbc2d0029b",
-      "prompt": "",
-    },
-    "thought": undefined,
-    "type": "Locate",
-  },
-  {
-    "param": {
-      "value": "Learn Englishtomorrow",
-    },
-    "thought": undefined,
-    "type": "Input",
-  },
-]
-`;
-
-exports[`automation - planning input - openAI > input value Add, delete, correct and check 2`] = `
-[
-  {
-    "param": {
-      "id": "fbc2d0029b",
-      "prompt": "",
-    },
-    "thought": undefined,
-    "type": "Locate",
-  },
-  {
-    "param": {
-      "value": "Learn Skiing",
-    },
-    "thought": undefined,
-    "type": "Input",
-  },
-]
-`;
-
-exports[`automation - planning input - openAI > input value Add, delete, correct and check 3`] = `
-[
-  {
-    "param": {
-      "id": "fbc2d0029b",
-      "prompt": "",
-    },
-    "thought": undefined,
-    "type": "Locate",
-  },
-  {
-    "param": {
-      "value": "Learn",
-    },
-    "thought": undefined,
-    "type": "Input",
-  },
-]
-`;
-
-exports[`automation - planning input - openAI > input value Add, delete, correct and check 4`] = `
-[
-  {
-    "param": {
-      "id": "fbc2d0029b",
-      "prompt": "",
-    },
-    "thought": undefined,
-    "type": "Locate",
-  },
-  {
-    "param": {
-      "value": "Learn Englishtomorrow",
-    },
-    "thought": undefined,
-    "type": "Input",
-  },
-]
-`;
-
-exports[`automation - planning input - openAI > input value Add, delete, correct and check 5`] = `
-[
-  {
-    "param": {
-      "id": "fbc2d0029b",
-      "prompt": "",
-    },
-    "thought": undefined,
-    "type": "Locate",
-  },
-  {
-    "param": {
-      "value": "Learn Skiing",
-    },
-    "thought": undefined,
-    "type": "Input",
-  },
-]
-`;
-
-exports[`automation - planning input - openAI > input value Add, delete, correct and check 6`] = `
-[
-  {
-    "param": {
-      "id": "fbc2d0029b",
-      "prompt": "",
-    },
-    "thought": undefined,
-    "type": "Locate",
-  },
-  {
-    "param": {
-      "value": "Learn",
-    },
-    "thought": undefined,
-    "type": "Input",
-  },
-]
-`;
-
-exports[`automation - planning input - openAI > input value Add, delete, correct and check 7`] = `
-[
-  {
-    "param": {
-      "id": "fbc2d0029b",
-      "prompt": "",
-    },
-    "thought": undefined,
-    "type": "Locate",
-  },
-  {
-    "param": {
-      "value": "Learn Englishtomorrow",
-    },
-    "thought": undefined,
-    "type": "Input",
-  },
-]
-`;
-
-exports[`automation - planning input - openAI > input value Add, delete, correct and check 8`] = `
-[
-  {
-    "param": {
-      "id": "fbc2d0029b",
-      "prompt": "",
-    },
-    "thought": undefined,
-    "type": "Locate",
-  },
-  {
-    "param": {
-      "value": "Learn Skiing",
-    },
-    "thought": undefined,
-    "type": "Input",
-  },
-]
-`;
-
-exports[`automation - planning input - openAI > input value Add, delete, correct and check 9`] = `
-[
-  {
-    "param": {
-      "id": "fbc2d0029b",
-      "prompt": "",
-    },
-    "thought": undefined,
-    "type": "Locate",
-  },
-  {
-    "param": {
-      "value": "Learn",
-    },
-    "thought": undefined,
-    "type": "Input",
-  },
-]
-`;
-
-exports[`automation - planning input - openAI > input value Add, delete, correct and check 10`] = `
-[
-  {
-    "param": {
-      "id": "fbc2d0029b",
-      "prompt": "",
-    },
-    "thought": undefined,
-    "type": "Locate",
-  },
-  {
-    "param": {
-      "value": "Learn Englishtomorrow",
-    },
-    "thought": undefined,
-    "type": "Input",
-  },
-]
-`;
-
-exports[`automation - planning input - openAI > input value Add, delete, correct and check 11`] = `
-[
-  {
-    "param": {
-      "id": "fbc2d0029b",
-      "prompt": "",
-    },
-    "thought": undefined,
-    "type": "Locate",
-  },
-  {
-    "param": {
-      "value": "Learn Skiing",
-    },
-    "thought": undefined,
-    "type": "Input",
-  },
-]
-`;
-
-exports[`automation - planning input - openAI > input value Add, delete, correct and check 12`] = `
-[
-  {
-    "param": {
-      "id": "fbc2d0029b",
-      "prompt": "",
-    },
-    "thought": undefined,
-    "type": "Locate",
-  },
-  {
-    "param": {
-      "value": "Learn",
-    },
-    "thought": undefined,
-    "type": "Input",
-  },
-]
-`;
-
-exports[`automation - planning input - openAI > input value Add, delete, correct and check 13`] = `
-[
-  {
-    "param": {
-      "id": "fbc2d0029b",
-      "prompt": "",
-    },
-    "thought": undefined,
-    "type": "Locate",
-  },
-  {
-    "param": {
-      "value": "Learn Englishtomorrow",
-    },
-    "thought": undefined,
-    "type": "Input",
-  },
-]
-`;
-
-exports[`automation - planning input - openAI > input value Add, delete, correct and check 14`] = `
-[
-  {
-    "param": {
-      "id": "fbc2d0029b",
-      "prompt": "",
-    },
-    "thought": undefined,
-    "type": "Locate",
-  },
-  {
-    "param": {
-      "value": "Learn Skiing",
-    },
-    "thought": undefined,
-    "type": "Input",
-  },
-]
-`;
-
-exports[`automation - planning input - openAI > input value Add, delete, correct and check 15`] = `
-[
-  {
-    "param": {
-      "id": "fbc2d0029b",
-      "prompt": "",
-    },
-    "thought": undefined,
-    "type": "Locate",
-  },
-  {
-    "param": {
-      "value": "Learn",
-    },
-    "thought": undefined,
-    "type": "Input",
   },
 ]
 `;

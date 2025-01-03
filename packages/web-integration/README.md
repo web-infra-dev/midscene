@@ -1,6 +1,6 @@
 ## Documentation
 
-An AI-powered automation SDK can control the page, perform assertions, and extract data in JSON format using natural language.
+Automate browser actions, extract data, and perform assertions using AI. It offers JavaScript SDK, Chrome extension, and support for scripting in YAML.
 
 See https://midscenejs.com/ for details.
 

@@ -1,14 +1,18 @@
 {
   "name": "@midscene/core",
-  "description": "An AI-powered automation SDK can control the page, perform assertions, and extract data in JSON format using natural language. See https://midscenejs.com/ for details.",
-  "version": "0.8.15",
+  "description": "Automate browser actions, extract data, and perform assertions using AI. It offers JavaScript SDK, Chrome extension, and support for scripting in YAML. See https://midscenejs.com/ for details.",
+  "version": "0.8.16",
   "repository": "https://github.com/web-infra-dev/midscene",
   "homepage": "https://midscenejs.com/",
   "jsnext:source": "./src/index.ts",
   "type": "commonjs",
   "main": "./dist/lib/index.js",
   "types": "./dist/lib/types/index.d.ts",
-  "files": ["dist", "report", "README.md"],
+  "files": [
+    "dist",
+    "report",
+    "README.md"
+  ],
   "exports": {
     ".": "./dist/lib/index.js",
     "./env": "./dist/lib/env.js",
@@ -17,10 +21,18 @@
   },
   "typesVersions": {
     "*": {
-      ".": ["./dist/lib/types/index.d.ts"],
-      "env": ["./dist/lib/types/env.d.ts"],
-      "utils": ["./dist/lib/types/utils.d.ts"],
-      "ai-model": ["./dist/lib/types/ai-model.d.ts"]
+      ".": [
+        "./dist/lib/types/index.d.ts"
+      ],
+      "env": [
+        "./dist/lib/types/env.d.ts"
+      ],
+      "utils": [
+        "./dist/lib/types/utils.d.ts"
+      ],
+      "ai-model": [
+        "./dist/lib/types/ai-model.d.ts"
+      ]
     }
   },
   "scripts": {
@@ -33,6 +45,7 @@
     "test:ai": "AITEST=true npm run test",
     "computer": "TEST_COMPUTER=true npm run test:ai -- tests/ai/evaluate/computer.test.ts",
     "evaluate": "npm run test:ai -- tests/ai/evaluate/inspect.test.ts",
+    "prompt": "npm run test:ai -- tests/ai/inspect2.test.ts",
     "evaluate:update": "UPDATE_AI_DATA=true npm run test:ai -- tests/ai/evaluate/inspect.test.ts",
     "prepublishOnly": "npm run build"
   },
@@ -40,6 +53,7 @@
     "@azure/identity": "4.5.0",
     "@anthropic-ai/sdk": "0.33.1",
     "@midscene/shared": "workspace:*",
+    "@langchain/core": "0.3.26",
     "socks-proxy-agent": "8.0.4",
     "openai": "4.57.1"
   },

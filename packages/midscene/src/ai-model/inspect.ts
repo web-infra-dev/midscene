@@ -1,24 +1,33 @@
 import assert from 'node:assert';
+import path from 'node:path';
 import type {
   AIAssertionResponse,
   AIElementResponse,
   AISectionParseResponse,
   AISingleElementResponse,
+  AIUsageInfo,
   BaseElement,
+  ElementById,
+  Point,
+  Size,
   UIContext,
 } from '@/types';
+import { savePositionImg } from '@midscene/shared/img';
 import type {
   ChatCompletionSystemMessageParam,
   ChatCompletionUserMessageParam,
 } from 'openai/resources';
-import { AIActionType, callAiFn, transformUserMessages } from './common';
+import { AIActionType, callAiFn } from './common';
+import { call, callToGetJSONObject } from './openai';
 import {
+  findElementPrompt,
   multiDescription,
   systemPromptToFindElement,
 } from './prompt/element_inspector';
 import {
   describeUserPage,
-  elementByPosition,
+  elementByPositionWithElementInfo,
+  extractDataPrompt,
   systemPromptToAssert,
   systemPromptToExtract,
 } from './prompt/util';
@@ -33,28 +42,79 @@ const liteContextConfig = {
   truncateTextLength: 200,
 };
 
-export function transformElementPositionToId(
-  aiResult: AIElementResponse,
-  elementsInfo: BaseElement[],
+function transformToAbsoluteCoords(
+  relativePosition: { x: number; y: number },
+  size: Size,
 ) {
   return {
-    errors: aiResult.errors,
-    elements: aiResult.elements.map((item) => {
-      if ('id' in item) {
-        return item;
-      }
-      const { position } = item;
-      const id = elementByPosition(elementsInfo, position)?.id;
-      assert(
-        id,
-        `inspect: no id found with position: ${JSON.stringify({ position })}`,
-      );
-      return {
-        ...item,
-        id,
-      };
-    }),
+    x: Number(((relativePosition.x / 1000) * size.width).toFixed(3)),
+    y: Number(((relativePosition.y / 1000) * size.height).toFixed(3)),
   };
+}
+
+// let index = 0;
+export async function transformElementPositionToId(
+  aiResult: AIElementResponse | [number, number],
+  elementsInfo: BaseElement[],
+  size: { width: number; height: number },
+  screenshotBase64: string,
+) {
+  if (Array.isArray(aiResult)) {
+    const relativePosition = aiResult;
+    const absolutePosition = transformToAbsoluteCoords(
+      {
+        x: relativePosition[0],
+        y: relativePosition[1],
+      },
+      size,
+    );
+    // await savePositionImg({
+    //   inputImgBase64: screenshotBase64,
+    //   rect: absolutePosition,
+    //   outputPath: path.join(__dirname, 'test-data', `output-${index++}.png`),
+    // });
+    const element = elementByPositionWithElementInfo(
+      elementsInfo,
+      absolutePosition,
+    );
+    assert(
+      element,
+      `inspect: no id found with position: ${JSON.stringify({ absolutePosition })}`,
+    );
+
+    return {
+      errors: [],
+      elements: [
+        {
+          id: element.id,
+        },
+      ],
+    };
+  }
+
+  return {
+    errors: aiResult.errors,
+    elements: aiResult.elements,
+  };
+}
+
+function getQuickAnswer(
+  quickAnswer: AISingleElementResponse | undefined,
+  elementById: ElementById,
+) {
+  if (!quickAnswer) {
+    return undefined;
+  }
+  if ('id' in quickAnswer && quickAnswer.id && elementById(quickAnswer.id)) {
+    return {
+      parseResult: {
+        elements: [quickAnswer],
+        errors: [],
+      },
+      rawResponse: quickAnswer,
+      elementById,
+    };
+  }
 }
 
 export async function AiInspectElement<
@@ -63,66 +123,41 @@ export async function AiInspectElement<
   context: UIContext<ElementType>;
   multi: boolean;
   targetElementDescription: string;
-  callAI?: typeof callAiFn<AIElementResponse>;
+  callAI?: typeof callAiFn<AIElementResponse | [number, number]>;
   useModel?: 'coze' | 'openAI';
   quickAnswer?: AISingleElementResponse;
-}) {
+}): Promise<{
+  parseResult: AIElementResponse;
+  rawResponse: any;
+  elementById: ElementById;
+  usage?: AIUsageInfo;
+}> {
   const { context, multi, targetElementDescription, callAI } = options;
   const { screenshotBase64, screenshotBase64WithElementMarker } = context;
-  const { description, elementById, elementByPosition } =
+  const { description, elementById, elementByPosition, size } =
     await describeUserPage(context);
-
   // meet quick answer
-  if (options.quickAnswer) {
-    if ('id' in options.quickAnswer) {
-      if (elementById(options.quickAnswer.id)) {
-        return {
-          parseResult: {
-            elements: [options.quickAnswer],
-            errors: [],
-          },
-          elementById,
-        };
-      }
-
-      if (!targetElementDescription) {
-        return {
-          parseResult: {
-            elements: [],
-            errors: [
-              `inspect: cannot find the target by id: ${options.quickAnswer.id}, and no target element description is provided`,
-            ],
-          },
-          elementById,
-        };
-      }
-    }
-    if (
-      'position' in options.quickAnswer &&
-      elementByPosition(options.quickAnswer.position)
-    ) {
-      return {
-        parseResult: transformElementPositionToId(
-          {
-            elements: [options.quickAnswer],
-          },
-          context.content,
-        ),
-        elementById,
-      };
-    }
+  const quickAnswer = getQuickAnswer(options.quickAnswer, elementById);
+  if (quickAnswer) {
+    return quickAnswer;
   }
 
   assert(
     targetElementDescription,
     'cannot find the target element description',
   );
+
+  const userInstructionPrompt = await findElementPrompt.format({
+    pageDescription: description,
+    targetElementDescription,
+    multi,
+  });
   const systemPrompt = systemPromptToFindElement();
   const msgs: AIArgs = [
     { role: 'system', content: systemPrompt },
     {
       role: 'user',
-      content: transformUserMessages([
+      content: [
         {
           type: 'image_url',
           image_url: {
@@ -131,48 +166,26 @@ export async function AiInspectElement<
         },
         {
           type: 'text',
-          text: `
-pageDescription: \n
-${description}
-
-Here is the item user want to find. Just go ahead:
-=====================================
-${JSON.stringify({
-  description: targetElementDescription,
-  multi: multiDescription(multi),
-})}
-=====================================`,
+          text: userInstructionPrompt,
         },
-      ]),
+      ],
     },
   ];
 
-  if (callAI) {
-    const res = await callAI({
-      msgs,
-      AIActionType: AIActionType.INSPECT_ELEMENT,
-    });
-    return {
-      parseResult: transformElementPositionToId(res.content, context.content),
-      rawResponse: res,
-      elementById,
-      usage: res.usage,
-    };
-  }
+  const callAIFn =
+    callAI || callToGetJSONObject<AIElementResponse | [number, number]>;
 
-  const inspectElement = await callAiFn<AIElementResponse>({
-    msgs,
-    AIActionType: AIActionType.INSPECT_ELEMENT,
-  });
-
+  const res = await callAIFn(msgs, AIActionType.INSPECT_ELEMENT);
   return {
-    parseResult: transformElementPositionToId(
-      inspectElement.content,
+    parseResult: await transformElementPositionToId(
+      res.content,
       context.content,
+      size,
+      screenshotBase64,
     ),
-    rawResponse: inspectElement,
+    rawResponse: res.content,
     elementById,
-    usage: inspectElement.usage,
+    usage: res.usage,
   };
 }
 
@@ -193,11 +206,26 @@ export async function AiExtractElementInfo<
     liteContextConfig,
   );
 
+  let dataKeys = '';
+  let dataQueryText = '';
+  if (typeof dataQuery === 'string') {
+    dataKeys = '';
+    dataQueryText = dataQuery;
+  } else {
+    dataKeys = `return in key-value style object, keys are ${Object.keys(dataQuery).join(',')}`;
+    dataQueryText = JSON.stringify(dataQuery, null, 2);
+  }
+  const extractDataPromptText = await extractDataPrompt.format({
+    pageDescription: description,
+    dataKeys,
+    dataQuery: dataQueryText,
+  });
+
   const msgs: AIArgs = [
     { role: 'system', content: systemPrompt },
     {
       role: 'user',
-      content: transformUserMessages([
+      content: [
         {
           type: 'image_url',
           image_url: {
@@ -206,30 +234,16 @@ export async function AiExtractElementInfo<
         },
         {
           type: 'text',
-          text: `
-pageDescription: ${description}
-
-Use your extract_data_from_UI skill to find the following data, placing it in the \`data\` field
-DATA_DEMAND start:
-=====================================
-${
-  typeof dataQuery === 'object'
-    ? `return in key-value style object, keys are ${Object.keys(dataQuery).join(',')}`
-    : ''
-}
-${typeof dataQuery === 'string' ? dataQuery : JSON.stringify(dataQuery, null, 2)}
-=====================================
-DATA_DEMAND ends.
-          `,
+          text: extractDataPromptText,
         },
-      ]),
+      ],
     },
   ];
 
-  const result = await callAiFn<AISectionParseResponse<T>>({
+  const result = await callAiFn<AISectionParseResponse<T>>(
     msgs,
-    AIActionType: AIActionType.EXTRACT_DATA,
-  });
+    AIActionType.EXTRACT_DATA,
+  );
   return {
     parseResult: result.content,
     elementById,
@@ -256,7 +270,7 @@ export async function AiAssert<
     { role: 'system', content: systemPrompt },
     {
       role: 'user',
-      content: transformUserMessages([
+      content: [
         {
           type: 'image_url',
           image_url: {
@@ -274,14 +288,14 @@ export async function AiAssert<
     =====================================
   `,
         },
-      ]),
+      ],
     },
   ];
 
-  const { content: assertResult, usage } = await callAiFn<AIAssertionResponse>({
+  const { content: assertResult, usage } = await callAiFn<AIAssertionResponse>(
     msgs,
-    AIActionType: AIActionType.ASSERT,
-  });
+    AIActionType.ASSERT,
+  );
   return {
     content: assertResult,
     usage,
