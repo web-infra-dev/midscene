@@ -10,6 +10,14 @@ describe('bridge-io', () => {
     server.close();
   });
 
+  it('server already listening', async () => {
+    const port = testPort++;
+    const server = new BridgeServer(port);
+    server.listen();
+    await expect(server.listen()).rejects.toThrow();
+    server.close();
+  });
+
   it('refuse 2nd client connection', async () => {
     const port = testPort++;
     const server = new BridgeServer(port);

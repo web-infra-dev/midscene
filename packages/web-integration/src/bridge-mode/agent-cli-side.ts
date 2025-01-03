@@ -1,12 +1,20 @@
 import assert from 'node:assert';
 import { PageAgent } from '@/common/agent';
+import { paramStr, typeStr } from '@/common/ui-utils';
 import type { KeyboardAction, MouseAction } from '@/page';
-import { DefaultBridgeServerPort } from './common';
+import {
+  BridgeUpdateAgentStatusEvent,
+  DefaultBridgeServerPort,
+} from './common';
 import { BridgeServer } from './io-server';
 import type { ChromeExtensionPageBrowserSide } from './page-browser-side';
 
+interface ChromeExtensionPageCliSide extends ChromeExtensionPageBrowserSide {
+  showStatusMessage: (message: string) => Promise<void>;
+}
+
 // actually, this is a proxy to the page in browser side
-export const getBridgePageInCliSide = (): ChromeExtensionPageBrowserSide => {
+export const getBridgePageInCliSide = (): ChromeExtensionPageCliSide => {
   const server = new BridgeServer(DefaultBridgeServerPort);
   server.listen();
   const bridgeCaller = (method: string) => {
@@ -15,7 +23,11 @@ export const getBridgePageInCliSide = (): ChromeExtensionPageBrowserSide => {
       return response;
     };
   };
-  const page = {};
+  const page = {
+    showStatusMessage: async (message: string) => {
+      await server.call(BridgeUpdateAgentStatusEvent, [message]);
+    },
+  };
 
   return new Proxy(page, {
     get(target, prop, receiver) {
@@ -71,18 +83,30 @@ export const getBridgePageInCliSide = (): ChromeExtensionPageBrowserSide => {
 
       return bridgeCaller(prop);
     },
-  }) as ChromeExtensionPageBrowserSide;
+  }) as ChromeExtensionPageCliSide;
 };
 
-export class ChromePageOverBridgeAgent extends PageAgent {
+export class ChromePageOverBridgeAgent extends PageAgent<ChromeExtensionPageCliSide> {
   constructor() {
     const page = getBridgePageInCliSide();
     super(page, {});
   }
 
   async connectNewTabWithUrl(url: string) {
-    await (this.page as ChromeExtensionPageBrowserSide).connectNewTabWithUrl(
-      url,
-    );
+    await this.page.connectNewTabWithUrl(url);
+  }
+
+  async aiAction(prompt: string, options?: any) {
+    if (options) {
+      console.warn(
+        'the `options` parameter of aiAction is not supported in cli side',
+      );
+    }
+    return await super.aiAction(prompt, {
+      onTaskStart: (task) => {
+        const tip = `${typeStr(task)} - ${paramStr(task)}`;
+        this.page.showStatusMessage(tip);
+      },
+    });
   }
 }

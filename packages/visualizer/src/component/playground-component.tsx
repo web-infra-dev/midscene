@@ -2,8 +2,6 @@ import { DownOutlined, LoadingOutlined, SendOutlined } from '@ant-design/icons';
 import type {
   GroupedActionDump,
   MidsceneYamlFlowItemAIAction,
-  MidsceneYamlFlowItemAIQuery,
-  MidsceneYamlTask,
   UIContext,
 } from '@midscene/core';
 import { Helmet } from '@modern-js/runtime/head';

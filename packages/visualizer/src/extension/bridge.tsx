@@ -23,6 +23,7 @@ export default function Bridge() {
   >('closed');
 
   const [bridgeLog, setBridgeLog] = useState<BridgeLogItem[]>([]);
+  const [bridgeAgentStatus, setBridgeAgentStatus] = useState<string>('');
   const appendBridgeLog = (content: string) => {
     setBridgeLog((prev) => [
       ...prev,
@@ -43,7 +44,7 @@ export default function Bridge() {
 
   const stopConnection = () => {
     if (activeBridgePageRef.current) {
-      appendBridgeLog('bridge page destroyed');
+      appendBridgeLog('Bridge disconnected');
       activeBridgePageRef.current.destroy();
       activeBridgePageRef.current = null;
     }
@@ -62,7 +63,8 @@ export default function Bridge() {
     }
     const startTime = Date.now();
     setBridgeLog([]);
-    appendBridgeLog('listening for connection...');
+    setBridgeAgentStatus('');
+    appendBridgeLog('Listening for connection...');
     setBridgeStatus('open-for-connection');
     stopListeningFlag.current = false;
 
@@ -75,14 +77,17 @@ export default function Bridge() {
           () => {
             stopConnection();
           },
-          (message) => {
+          (message, type) => {
             appendBridgeLog(message);
+            if (type === 'status') {
+              setBridgeAgentStatus(message);
+            }
           },
         );
         await activeBridgePage.connect();
         activeBridgePageRef.current = activeBridgePage;
         setBridgeStatus('connected');
-        appendBridgeLog('bridge connected');
+        appendBridgeLog('Bridge connected');
         return;
       } catch (e) {
         console.warn('failed to connect to bridge server', e);
@@ -107,7 +112,7 @@ export default function Bridge() {
     );
     statusBtn = (
       <Button type="primary" onClick={() => startConnection()}>
-        Allow Connection
+        Allow connection
       </Button>
     );
   } else if (bridgeStatus === 'open-for-connection') {
@@ -116,7 +121,7 @@ export default function Bridge() {
         <Spin indicator={<LoadingOutlined spin />} size="small" />
         {'  '}
         <span style={{ marginLeft: '6px', display: 'inline-block' }}>
-          Listening for Connection...
+          Listening for connection...
         </span>
       </span>
     );
@@ -127,6 +132,14 @@ export default function Bridge() {
         {iconForStatus('connected')}
         {'  '}
         Connected
+        <span
+          style={{
+            marginLeft: '6px',
+            display: bridgeAgentStatus ? 'inline-block' : 'none',
+          }}
+        >
+          - {bridgeAgentStatus}
+        </span>
       </span>
     );
     statusBtn = <Button onClick={stopConnection}>Stop</Button>;
@@ -155,11 +168,8 @@ export default function Bridge() {
     <div>
       <p>
         In Bridge Mode, you can control this browser by the Midscene SDK running
-        in the local terminal.{' '}
-      </p>
-      <p>
-        This is useful for interacting both through scripts and manually, or to
-        reuse cookies.
+        in the local terminal. This is useful for interacting both through
+        scripts and manually, or to reuse cookies.
       </p>
 
       <div className="playground-form-container">
@@ -173,7 +183,14 @@ export default function Bridge() {
         <div className="form-part">
           <h3>
             Bridge Log{' '}
-            <Button type="text" onClick={() => setBridgeLog([])}>
+            <Button
+              type="text"
+              onClick={() => setBridgeLog([])}
+              style={{
+                marginLeft: '6px',
+                display: logs.length > 0 ? 'inline-block' : 'none',
+              }}
+            >
               clear
             </Button>
           </h3>

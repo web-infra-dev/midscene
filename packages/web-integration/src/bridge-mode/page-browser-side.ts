@@ -1,7 +1,10 @@
 import assert from 'node:assert';
 import type { KeyboardAction, MouseAction } from '@/page';
 import ChromeExtensionProxyPage from '../chrome-extension/page';
-import { DefaultBridgeServerPort } from './common';
+import {
+  BridgeUpdateAgentStatusEvent,
+  DefaultBridgeServerPort,
+} from './common';
 import { BridgeClient } from './io-client';
 
 export class ChromeExtensionPageBrowserSide extends ChromeExtensionProxyPage {
@@ -9,7 +12,10 @@ export class ChromeExtensionPageBrowserSide extends ChromeExtensionProxyPage {
 
   constructor(
     public onDisconnect: () => void = () => {},
-    public onStatusMessage: (message: string) => void = () => {},
+    public onLogMessage: (
+      message: string,
+      type: 'log' | 'status',
+    ) => void = () => {},
   ) {
     super(0);
   }
@@ -26,11 +32,15 @@ export class ChromeExtensionPageBrowserSide extends ChromeExtensionProxyPage {
           );
         }
 
+        if (method === BridgeUpdateAgentStatusEvent) {
+          return this.onLogMessage(args[0] as string, 'status');
+        }
+
         if (!this.tabId || this.tabId === 0) {
           throw new Error('no tab is connected');
         }
 
-        this.onStatusMessage(`calling method: ${method}`);
+        // this.onLogMessage(`calling method: ${method}`);
 
         if (method.startsWith('mouse.')) {
           const actionName = method.split('.')[1] as keyof MouseAction;
@@ -69,7 +79,7 @@ export class ChromeExtensionPageBrowserSide extends ChromeExtensionProxyPage {
     this.tabId = tabId;
 
     // new tab
-    this.onStatusMessage(`creating new tab with url: ${url}`);
+    this.onLogMessage(`Creating new tab: ${url}`, 'log');
   }
 
   async destroy() {

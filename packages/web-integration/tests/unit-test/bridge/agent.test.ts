@@ -40,7 +40,7 @@ describe.skipIf(process.env.CI)(
         await agent.connectNewTabWithUrl('https://www.bing.com');
         await sleep(3000);
 
-        await agent.ai('type "AI 101" and tap "Search"');
+        await agent.ai('type "AI 101" and hit Enter');
         await sleep(3000);
 
         await agent.aiAssert('there are some search results');

@@ -16,6 +16,7 @@ export class BridgeServer {
   private io: Server | null = null;
   private socket: ServerSocket | null = null;
   private listeningTimeoutId: NodeJS.Timeout | null = null;
+  private connectionTipTimer: NodeJS.Timeout | null = null;
   public calls: Record<string, BridgeCall> = {};
 
   private connectionLost = false;
@@ -29,6 +30,10 @@ export class BridgeServer {
 
   async listen(timeout = 30000): Promise<void> {
     return new Promise((resolve, reject) => {
+      if (this.listeningTimeoutId) {
+        return reject(new Error('already listening'));
+      }
+
       this.listeningTimeoutId = setTimeout(() => {
         reject(
           new Error(
@@ -37,6 +42,13 @@ export class BridgeServer {
         );
       }, timeout);
 
+      this.connectionTipTimer =
+        timeout > 3000
+          ? setTimeout(() => {
+              console.log('waiting for bridge to connect...');
+            }, 2000)
+          : null;
+
       this.io = new Server(this.port, {
         maxHttpBufferSize: 100 * 1024 * 1024, // 100MB
       });
@@ -44,7 +56,9 @@ export class BridgeServer {
         this.connectionLost = false;
         this.connectionLostReason = '';
         this.listeningTimeoutId && clearTimeout(this.listeningTimeoutId);
-
+        this.listeningTimeoutId = null;
+        this.connectionTipTimer && clearTimeout(this.connectionTipTimer);
+        this.connectionTipTimer = null;
         if (this.socket) {
           console.log('server already connected, refusing new connection');
           socket.emit(BridgeRefusedEvent);
@@ -186,6 +200,7 @@ export class BridgeServer {
 
   close() {
     this.listeningTimeoutId && clearTimeout(this.listeningTimeoutId);
+    this.connectionTipTimer && clearTimeout(this.connectionTipTimer);
     this.io?.close();
     this.io = null;
   }
