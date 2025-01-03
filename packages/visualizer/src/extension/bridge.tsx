@@ -169,7 +169,10 @@ export default function Bridge() {
       <p>
         In Bridge Mode, you can control this browser by the Midscene SDK running
         in the local terminal. This is useful for interacting both through
-        scripts and manually, or to reuse cookies.
+        scripts and manually, or to reuse cookies.{' '}
+        <a href="https://www.midscenejs.com/bridge-mode-by-chrome-extension">
+          More about bridge mode
+        </a>
       </p>
 
       <div className="playground-form-container">
