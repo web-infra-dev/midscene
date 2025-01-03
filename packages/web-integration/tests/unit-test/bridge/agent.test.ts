@@ -56,11 +56,11 @@ describe.skipIf(process.env.CI)(
         await agent.connectCurrentTab();
         await sleep(3000);
         const answer = await agent.aiQuery(
-          'what is the current page? return {description: string}',
+          'name of the current page? return {name: string}',
         );
 
         console.log(answer);
-        expect(answer.description).toBeTruthy();
+        expect(answer.name).toBeTruthy();
         await agent.destroy();
       },
       60 * 1000,

@@ -28,20 +28,48 @@
   },
   "typesVersions": {
     "*": {
-      ".": ["./dist/types/index.d.ts"],
-      "bridge-mode": ["./dist/types/bridge-mode.d.ts"],
-      "bridge-mode-browser": ["./dist/types/bridge-mode-browser.d.ts"],
-      "utils": ["./dist/types/utils.d.ts"],
-      "ui-utils": ["./dist/types/ui-utils.d.ts"],
-      "puppeteer": ["./dist/types/puppeteer.d.ts"],
-      "playwright": ["./dist/types/playwright.d.ts"],
-      "playwright-report": ["./dist/types/playwright-report.d.ts"],
-      "playground": ["./dist/types/playground.d.ts"],
-      "debug": ["./dist/types/debug.d.ts"],
-      "constants": ["./dist/types/constants.d.ts"],
-      "html-element": ["./dist/types/html-element/index.d.ts"],
-      "chrome-extension": ["./dist/types/chrome-extension.d.ts"],
-      "yaml": ["./dist/types/yaml.d.ts"]
+      ".": [
+        "./dist/types/index.d.ts"
+      ],
+      "bridge-mode": [
+        "./dist/types/bridge-mode.d.ts"
+      ],
+      "bridge-mode-browser": [
+        "./dist/types/bridge-mode-browser.d.ts"
+      ],
+      "utils": [
+        "./dist/types/utils.d.ts"
+      ],
+      "ui-utils": [
+        "./dist/types/ui-utils.d.ts"
+      ],
+      "puppeteer": [
+        "./dist/types/puppeteer.d.ts"
+      ],
+      "playwright": [
+        "./dist/types/playwright.d.ts"
+      ],
+      "playwright-report": [
+        "./dist/types/playwright-report.d.ts"
+      ],
+      "playground": [
+        "./dist/types/playground.d.ts"
+      ],
+      "debug": [
+        "./dist/types/debug.d.ts"
+      ],
+      "constants": [
+        "./dist/types/constants.d.ts"
+      ],
+      "html-element": [
+        "./dist/types/html-element/index.d.ts"
+      ],
+      "chrome-extension": [
+        "./dist/types/chrome-extension.d.ts"
+      ],
+      "yaml": [
+        "./dist/types/yaml.d.ts"
+      ]
     }
   },
   "scripts": {
@@ -67,7 +95,12 @@
     "e2e:generate-test-data": "GENERATE_TEST_DATA=true playwright test ./tests/ai/web/playwright/generate-test-data.spec.ts",
     "e2e:generate-test-data:headed": "GENERATE_TEST_DATA=true playwright test ./tests/ai/web/playwright/generate-test-data.spec.ts --headed"
   },
-  "files": ["static", "dist", "README.md", "bin"],
+  "files": [
+    "static",
+    "dist",
+    "README.md",
+    "bin"
+  ],
   "dependencies": {
     "@midscene/core": "workspace:*",
     "@midscene/shared": "workspace:*",
@@ -76,7 +109,8 @@
     "express": "4.21.1",
     "inquirer": "10.1.5",
     "openai": "4.57.1",
-    "socket.io": "4.8.1"
+    "socket.io": "4.8.1",
+    "socket.io-client": "4.8.1"
   },
   "devDependencies": {
     "@modern-js/module-tools": "2.60.6",
