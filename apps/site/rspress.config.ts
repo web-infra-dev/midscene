@@ -90,6 +90,10 @@ export default defineConfig({
               text: 'Customize Model and Provider',
               link: '/model-provider',
             },
+            {
+              text: 'Describe Elements by Your Own',
+              link: '/describe-elements-by-your-own',
+            },
           ],
         },
         {
@@ -146,6 +150,10 @@ export default defineConfig({
             {
               text: '自定义模型和服务商',
               link: '/zh/model-provider',
+            },
+            {
+              text: '自定义页面元素的描述信息',
+              link: '/zh/describe-elements-by-your-own',
             },
           ],
         },
