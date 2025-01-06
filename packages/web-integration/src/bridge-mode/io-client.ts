@@ -1,13 +1,10 @@
 import assert from 'node:assert';
 import { io as ClientIO, type Socket as ClientSocket } from 'socket.io-client';
 import {
-  BridgeCallEvent,
   type BridgeCallRequest,
   type BridgeCallResponse,
-  BridgeCallResponseEvent,
-  BridgeConnectedEvent,
   type BridgeConnectedEventPayload,
-  BridgeRefusedEvent,
+  BridgeEvent,
 } from './common';
 
 declare const __VERSION__: string;
@@ -43,7 +40,7 @@ export class BridgeClient {
       });
 
       this.socket.on(
-        BridgeConnectedEvent,
+        BridgeEvent.Connected,
         (payload: BridgeConnectedEventPayload) => {
           clearTimeout(timeout);
           // console.log('bridge-connected');
@@ -51,11 +48,11 @@ export class BridgeClient {
           resolve(this.socket);
         },
       );
-      this.socket.on(BridgeRefusedEvent, (e: any) => {
+      this.socket.on(BridgeEvent.Refused, (e: any) => {
         console.error('bridge-refused', e);
         reject(new Error(e || 'bridge refused'));
       });
-      this.socket.on(BridgeCallEvent, (call: BridgeCallRequest) => {
+      this.socket.on(BridgeEvent.Call, (call: BridgeCallRequest) => {
         const id = call.id;
         assert(typeof id !== 'undefined', 'call id is required');
         Promise.resolve().then(async () => {
@@ -65,12 +62,12 @@ export class BridgeClient {
           } catch (e: any) {
             const errorContent = `Error from bridge client when calling ${call.method}: ${e?.message || e}\n${e?.stack || ''}`;
             console.error(errorContent);
-            return this.socket?.emit(BridgeCallResponseEvent, {
+            return this.socket?.emit(BridgeEvent.CallResponse, {
               id,
               error: errorContent,
             } as BridgeCallResponse);
           }
-          this.socket?.emit(BridgeCallResponseEvent, {
+          this.socket?.emit(BridgeEvent.CallResponse, {
             id,
             response,
           } as BridgeCallResponse);

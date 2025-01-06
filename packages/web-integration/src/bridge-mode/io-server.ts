@@ -1,14 +1,11 @@
 import { Server, type Socket as ServerSocket } from 'socket.io';
 import {
   type BridgeCall,
-  BridgeCallEvent,
   type BridgeCallResponse,
-  BridgeCallResponseEvent,
   BridgeCallTimeout,
-  BridgeConnectedEvent,
   type BridgeConnectedEventPayload,
   BridgeErrorCodeNoClientConnected,
-  BridgeRefusedEvent,
+  BridgeEvent,
 } from './common';
 
 declare const __VERSION__: string;
@@ -64,7 +61,7 @@ export class BridgeServer {
         this.connectionTipTimer = null;
         if (this.socket) {
           console.log('server already connected, refusing new connection');
-          socket.emit(BridgeRefusedEvent);
+          socket.emit(BridgeEvent.Refused);
           reject(new Error('server already connected by another client'));
         }
 
@@ -80,7 +77,7 @@ export class BridgeServer {
             clientVersion,
           );
 
-          socket.on(BridgeCallResponseEvent, (params: BridgeCallResponse) => {
+          socket.on(BridgeEvent.CallResponse, (params: BridgeCallResponse) => {
             const id = params.id;
             const response = params.response;
             const error = params.error;
@@ -114,7 +111,7 @@ export class BridgeServer {
             const payload = {
               version: __VERSION__,
             } as BridgeConnectedEventPayload;
-            socket.emit(BridgeConnectedEvent, payload);
+            socket.emit(BridgeEvent.Connected, payload);
             Promise.resolve().then(() => {
               for (const id in this.calls) {
                 if (this.calls[id].callTime === 0) {
@@ -166,7 +163,7 @@ export class BridgeServer {
     }
 
     if (this.socket) {
-      this.socket.emit(BridgeCallEvent, {
+      this.socket.emit(BridgeEvent.Call, {
         id,
         method: call.method,
         args: call.args,

@@ -1,10 +1,7 @@
 import assert from 'node:assert';
 import type { KeyboardAction, MouseAction } from '@/page';
 import ChromeExtensionProxyPage from '../chrome-extension/page';
-import {
-  BridgeUpdateAgentStatusEvent,
-  DefaultBridgeServerPort,
-} from './common';
+import { BridgeEvent, DefaultBridgeServerPort } from './common';
 import { BridgeClient } from './io-client';
 
 declare const __VERSION__: string;
@@ -27,18 +24,18 @@ export class ChromeExtensionPageBrowserSide extends ChromeExtensionProxyPage {
       `ws://localhost:${DefaultBridgeServerPort}`,
       async (method, args: any[]) => {
         console.log('bridge call from cli side', method, args);
-        if (method === 'connectNewTabWithUrl') {
+        if (method === BridgeEvent.ConnectNewTabWithUrl) {
           return this.connectNewTabWithUrl.apply(
             this,
             args as unknown as [string],
           );
         }
 
-        if (method === 'connectCurrentTab') {
+        if (method === BridgeEvent.ConnectCurrentTab) {
           return this.connectCurrentTab.apply(this, args as any);
         }
 
-        if (method === BridgeUpdateAgentStatusEvent) {
+        if (method === BridgeEvent.UpdateAgentStatus) {
           return this.onLogMessage(args[0] as string, 'status');
         }
 

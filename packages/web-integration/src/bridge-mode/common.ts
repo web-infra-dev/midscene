@@ -1,12 +1,18 @@
 export const DefaultBridgeServerPort = 3766;
 export const DefaultLocalEndpoint = `http://127.0.0.1:${DefaultBridgeServerPort}`;
 export const BridgeCallTimeout = 30000;
-export const BridgeCallEvent = 'bridge-call';
-export const BridgeCallResponseEvent = 'bridge-call-response';
-export const BridgeUpdateAgentStatusEvent = 'bridge-update-agent-status';
-export const BridgeMessageEvent = 'bridge-message';
-export const BridgeConnectedEvent = 'bridge-connected';
-export const BridgeRefusedEvent = 'bridge-refused';
+
+export enum BridgeEvent {
+  Call = 'bridge-call',
+  CallResponse = 'bridge-call-response',
+  UpdateAgentStatus = 'bridge-update-agent-status',
+  Message = 'bridge-message',
+  Connected = 'bridge-connected',
+  Refused = 'bridge-refused',
+  ConnectNewTabWithUrl = 'connectNewTabWithUrl',
+  ConnectCurrentTab = 'connectCurrentTab',
+}
+
 export const BridgeErrorCodeNoClientConnected = 'no-client-connected';
 
 export interface BridgeCall {

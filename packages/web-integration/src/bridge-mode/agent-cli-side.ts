@@ -2,10 +2,7 @@ import assert from 'node:assert';
 import { PageAgent } from '@/common/agent';
 import { paramStr, typeStr } from '@/common/ui-utils';
 import type { KeyboardAction, MouseAction } from '@/page';
-import {
-  BridgeUpdateAgentStatusEvent,
-  DefaultBridgeServerPort,
-} from './common';
+import { BridgeEvent, DefaultBridgeServerPort } from './common';
 import { BridgeServer } from './io-server';
 import type { ChromeExtensionPageBrowserSide } from './page-browser-side';
 
@@ -25,7 +22,7 @@ export const getBridgePageInCliSide = (): ChromeExtensionPageCliSide => {
   };
   const page = {
     showStatusMessage: async (message: string) => {
-      await server.call(BridgeUpdateAgentStatusEvent, [message]);
+      await server.call(BridgeEvent.UpdateAgentStatus, [message]);
     },
   };
 
