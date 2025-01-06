@@ -10,6 +10,8 @@ import {
   BridgeRefusedEvent,
 } from './common';
 
+declare const __VERSION__: string;
+
 // ws client, this is where the request is processed
 export class BridgeClient {
   private socket: ClientSocket | null = null;
@@ -24,6 +26,9 @@ export class BridgeClient {
     return new Promise((resolve, reject) => {
       this.socket = ClientIO(this.endpoint, {
         reconnection: false,
+        query: {
+          version: __VERSION__,
+        },
       });
 
       const timeout = setTimeout(() => {

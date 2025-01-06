@@ -67,9 +67,18 @@ export class BridgeServer {
           socket.emit(BridgeRefusedEvent);
           reject(new Error('server already connected by another client'));
         }
+
         try {
           // console.log('one client connected');
           this.socket = socket;
+
+          const clientVersion = socket.handshake.query.version;
+          console.log(
+            'Bridge connected, cli-side version:',
+            __VERSION__,
+            'browser-side version:',
+            clientVersion,
+          );
 
           socket.on(BridgeCallResponseEvent, (params: BridgeCallResponse) => {
             const id = params.id;
