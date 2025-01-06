@@ -158,6 +158,7 @@ async function createChatClient({
     assert(apiKey, 'ANTHROPIC_API_KEY is required');
     openai = new Anthropic({
       apiKey,
+      dangerouslyAllowBrowser: true,
     }) as any;
   }
 
