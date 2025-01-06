@@ -11,20 +11,67 @@
     "midscene-playground": "./bin/midscene-playground"
   },
   "exports": {
-    ".": "./dist/lib/index.js",
-    "./bridge-mode-cli": "./dist/lib/bridge-mode-cli.js",
-    "./bridge-mode-browser": "./dist/lib/bridge-mode-browser.js",
-    "./utils": "./dist/lib/utils.js",
-    "./ui-utils": "./dist/lib/ui-utils.js",
-    "./puppeteer": "./dist/lib/puppeteer.js",
-    "./playwright": "./dist/lib/playwright.js",
-    "./playwright-report": "./dist/lib/playwright-report.js",
-    "./playground": "./dist/lib/playground.js",
-    "./debug": "./dist/lib/debug.js",
-    "./constants": "./dist/lib/constants.js",
-    "./html-element": "./dist/lib/html-element/index.js",
-    "./chrome-extension": "./dist/lib/chrome-extension.js",
-    "./yaml": "./dist/lib/yaml.js"
+    ".": {
+      "require": "./dist/lib/index.js",
+      "types": "./dist/types/index.d.ts"
+    },
+    "./bridge-mode-cli": {
+      "require": "./dist/lib/bridge-mode-cli.js",
+      "types": "./dist/types/bridge-mode-cli.d.ts"
+    },
+    "./bridge-mode-browser": {
+      "require": "./dist/lib/bridge-mode-browser.js",
+      "import": "./dist/es/bridge-mode-browser.js",
+      "types": "./dist/types/bridge-mode-browser.d.ts"
+    },
+    "./utils": {
+      "require": "./dist/lib/utils.js",
+      "types": "./dist/types/utils.d.ts"
+    },
+    "./ui-utils": {
+      "require": "./dist/lib/ui-utils.js",
+      "import": "./dist/es/ui-utils.js",
+      "types": "./dist/types/ui-utils.d.ts"
+    },
+    "./puppeteer": {
+      "require": "./dist/lib/puppeteer.js",
+      "types": "./dist/types/puppeteer.d.ts"
+    },
+    "./playwright": {
+      "require": "./dist/lib/playwright.js",
+      "types": "./dist/types/playwright.d.ts"
+    },
+    "./playwright-report": {
+      "require": "./dist/lib/playwright-report.js",
+      "types": "./dist/types/playwright-report.d.ts"
+    },
+    "./playground": {
+      "require": "./dist/lib/playground.js",
+      "import": "./dist/es/playground.js",
+      "types": "./dist/types/playground.d.ts"
+    },
+    "./debug": {
+      "require": "./dist/lib/debug.js",
+      "types": "./dist/types/debug.d.ts"
+    },
+    "./constants": {
+      "require": "./dist/lib/constants.js",
+      "types": "./dist/types/constants.d.ts"
+    },
+    "./html-element": {
+      "require": "./dist/lib/html-element/index.js",
+      "types": "./dist/types/html-element/index.d.ts"
+    },
+    "./chrome-extension": {
+      "require": "./dist/lib/chrome-extension.js",
+      "import": "./dist/es/chrome-extension.js",
+      "types": "./dist/types/chrome-extension.d.ts"
+    },
+    "./yaml": {
+      "require": "./dist/lib/yaml.js",
+      "import": "./dist/es/yaml.js",
+      "types": "./dist/types/yaml.d.ts"
+    }
   },
   "typesVersions": {
     "*": {

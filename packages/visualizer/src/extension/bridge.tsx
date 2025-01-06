@@ -11,6 +11,12 @@ interface BridgeLogItem {
   content: string;
 }
 
+enum BridgeStatus {
+  Closed = 'closed',
+  OpenForConnection = 'open-for-connection',
+  Connected = 'connected',
+}
+
 const connectTimeout = 30 * 1000;
 const connectRetryInterval = 300;
 export default function Bridge() {
@@ -18,9 +24,9 @@ export default function Bridge() {
     null,
   );
 
-  const [bridgeStatus, setBridgeStatus] = useState<
-    'closed' | 'open-for-connection' | 'connected'
-  >('closed');
+  const [bridgeStatus, setBridgeStatus] = useState<BridgeStatus>(
+    BridgeStatus.Closed,
+  );
 
   const [bridgeLog, setBridgeLog] = useState<BridgeLogItem[]>([]);
   const [bridgeAgentStatus, setBridgeAgentStatus] = useState<string>('');
@@ -48,7 +54,7 @@ export default function Bridge() {
       activeBridgePageRef.current.destroy();
       activeBridgePageRef.current = null;
     }
-    setBridgeStatus('closed');
+    setBridgeStatus(BridgeStatus.Closed);
   };
 
   const stopListeningFlag = useRef(false);
@@ -65,7 +71,7 @@ export default function Bridge() {
     setBridgeLog([]);
     setBridgeAgentStatus('');
     appendBridgeLog('Listening for connection...');
-    setBridgeStatus('open-for-connection');
+    setBridgeStatus(BridgeStatus.OpenForConnection);
     stopListeningFlag.current = false;
 
     while (Date.now() - startTime < timeout) {
@@ -86,7 +92,7 @@ export default function Bridge() {
         );
         await activeBridgePage.connect();
         activeBridgePageRef.current = activeBridgePage;
-        setBridgeStatus('connected');
+        setBridgeStatus(BridgeStatus.Connected);
         return;
       } catch (e) {
         console.warn('failed to setup connection', e);
@@ -95,7 +101,7 @@ export default function Bridge() {
       await new Promise((resolve) => setTimeout(resolve, connectRetryInterval));
     }
 
-    setBridgeStatus('closed');
+    setBridgeStatus(BridgeStatus.Closed);
     appendBridgeLog('No connection found within timeout');
   };
 
