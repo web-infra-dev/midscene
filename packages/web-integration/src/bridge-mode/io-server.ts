@@ -76,7 +76,7 @@ export class BridgeServer {
           console.log(
             'Bridge connected, cli-side version:',
             __VERSION__,
-            'browser-side version:',
+            ', browser-side version:',
             clientVersion,
           );
 

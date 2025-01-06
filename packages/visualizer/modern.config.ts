@@ -17,7 +17,7 @@ const commonConfig = {
       }
     : undefined,
   define: {
-    __VERSION__: JSON.stringify(version),
+    __VERSION__: version,
   },
 };
 

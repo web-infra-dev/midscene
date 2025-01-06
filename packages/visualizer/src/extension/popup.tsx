@@ -27,6 +27,9 @@ import { useEffect, useState } from 'react';
 import Bridge from './bridge';
 
 setSideEffect();
+
+declare const __VERSION__: string;
+
 const shotAndOpenPlayground = async (
   agent?: ChromeExtensionProxyPageAgent | null,
 ) => {
@@ -140,7 +143,10 @@ function PlaygroundPopup() {
         </div>
 
         <div className="popup-footer">
-          <p>Midscene.js Chrome Extension v{extensionVersion}</p>
+          <p>
+            Midscene.js Chrome Extension v{extensionVersion} (SDK v{__VERSION__}
+            )
+          </p>
         </div>
       </div>
     </ConfigProvider>
