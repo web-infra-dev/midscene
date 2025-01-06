@@ -13,10 +13,12 @@
   "exports": {
     ".": {
       "require": "./dist/lib/index.js",
+      "import": "./dist/es/index.js",
       "types": "./dist/types/index.d.ts"
     },
     "./bridge-mode-cli": {
       "require": "./dist/lib/bridge-mode-cli.js",
+      "import": "./dist/es/bridge-mode-cli.js",
       "types": "./dist/types/bridge-mode-cli.d.ts"
     },
     "./bridge-mode-browser": {
@@ -26,6 +28,7 @@
     },
     "./utils": {
       "require": "./dist/lib/utils.js",
+      "import": "./dist/es/utils.js",
       "types": "./dist/types/utils.d.ts"
     },
     "./ui-utils": {
@@ -35,10 +38,12 @@
     },
     "./puppeteer": {
       "require": "./dist/lib/puppeteer.js",
+      "import": "./dist/es/puppeteer.js",
       "types": "./dist/types/puppeteer.d.ts"
     },
     "./playwright": {
       "require": "./dist/lib/playwright.js",
+      "import": "./dist/es/playwright.js",
       "types": "./dist/types/playwright.d.ts"
     },
     "./playwright-report": {
@@ -56,6 +61,7 @@
     },
     "./constants": {
       "require": "./dist/lib/constants.js",
+      "import": "./dist/es/constants.js",
       "types": "./dist/types/constants.d.ts"
     },
     "./html-element": {
@@ -75,20 +81,48 @@
   },
   "typesVersions": {
     "*": {
-      ".": ["./dist/types/index.d.ts"],
-      "bridge-mode-cli": ["./dist/types/bridge-mode-cli.d.ts"],
-      "bridge-mode-browser": ["./dist/types/bridge-mode-browser.d.ts"],
-      "utils": ["./dist/types/utils.d.ts"],
-      "ui-utils": ["./dist/types/ui-utils.d.ts"],
-      "puppeteer": ["./dist/types/puppeteer.d.ts"],
-      "playwright": ["./dist/types/playwright.d.ts"],
-      "playwright-report": ["./dist/types/playwright-report.d.ts"],
-      "playground": ["./dist/types/playground.d.ts"],
-      "debug": ["./dist/types/debug.d.ts"],
-      "constants": ["./dist/types/constants.d.ts"],
-      "html-element": ["./dist/types/html-element/index.d.ts"],
-      "chrome-extension": ["./dist/types/chrome-extension.d.ts"],
-      "yaml": ["./dist/types/yaml.d.ts"]
+      ".": [
+        "./dist/types/index.d.ts"
+      ],
+      "bridge-mode-cli": [
+        "./dist/types/bridge-mode-cli.d.ts"
+      ],
+      "bridge-mode-browser": [
+        "./dist/types/bridge-mode-browser.d.ts"
+      ],
+      "utils": [
+        "./dist/types/utils.d.ts"
+      ],
+      "ui-utils": [
+        "./dist/types/ui-utils.d.ts"
+      ],
+      "puppeteer": [
+        "./dist/types/puppeteer.d.ts"
+      ],
+      "playwright": [
+        "./dist/types/playwright.d.ts"
+      ],
+      "playwright-report": [
+        "./dist/types/playwright-report.d.ts"
+      ],
+      "playground": [
+        "./dist/types/playground.d.ts"
+      ],
+      "debug": [
+        "./dist/types/debug.d.ts"
+      ],
+      "constants": [
+        "./dist/types/constants.d.ts"
+      ],
+      "html-element": [
+        "./dist/types/html-element/index.d.ts"
+      ],
+      "chrome-extension": [
+        "./dist/types/chrome-extension.d.ts"
+      ],
+      "yaml": [
+        "./dist/types/yaml.d.ts"
+      ]
     }
   },
   "scripts": {
@@ -114,7 +148,12 @@
     "e2e:generate-test-data": "GENERATE_TEST_DATA=true playwright test ./tests/ai/web/playwright/generate-test-data.spec.ts",
     "e2e:generate-test-data:headed": "GENERATE_TEST_DATA=true playwright test ./tests/ai/web/playwright/generate-test-data.spec.ts --headed"
   },
-  "files": ["static", "dist", "README.md", "bin"],
+  "files": [
+    "static",
+    "dist",
+    "README.md",
+    "bin"
+  ],
   "dependencies": {
     "@midscene/core": "workspace:*",
     "@midscene/shared": "workspace:*",
