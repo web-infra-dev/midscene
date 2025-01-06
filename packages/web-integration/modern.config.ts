@@ -1,4 +1,5 @@
 import { defineConfig, moduleTools } from '@modern-js/module-tools';
+import { version } from './package.json';
 
 export default defineConfig({
   plugins: [moduleTools()],
@@ -29,5 +30,8 @@ export default defineConfig({
       'bufferutil',
       'utf-8-validate',
     ],
+    define: {
+      __VERSION__: version,
+    },
   },
 });

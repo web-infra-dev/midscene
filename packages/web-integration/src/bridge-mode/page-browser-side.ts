@@ -7,6 +7,8 @@ import {
 } from './common';
 import { BridgeClient } from './io-client';
 
+declare const __VERSION__: string;
+
 export class ChromeExtensionPageBrowserSide extends ChromeExtensionProxyPage {
   public bridgeClient: BridgeClient | null = null;
 
@@ -78,6 +80,10 @@ export class ChromeExtensionPageBrowserSide extends ChromeExtensionProxyPage {
       },
     );
     await this.bridgeClient.connect();
+    this.onLogMessage(
+      `Bridge connected, cli-side version ${this.bridgeClient.serverVersion}, browser-side version: ${__VERSION__}`,
+      'log',
+    );
   }
 
   public async connect() {

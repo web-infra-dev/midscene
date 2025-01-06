@@ -87,10 +87,9 @@ export default function Bridge() {
         await activeBridgePage.connect();
         activeBridgePageRef.current = activeBridgePage;
         setBridgeStatus('connected');
-        appendBridgeLog('Bridge connected');
         return;
       } catch (e) {
-        console.warn('failed to connect to bridge server', e);
+        console.warn('failed to setup connection', e);
       }
       console.log('will retry...');
       await new Promise((resolve) => setTimeout(resolve, connectRetryInterval));

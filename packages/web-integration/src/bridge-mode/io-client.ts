@@ -6,12 +6,14 @@ import {
   type BridgeCallResponse,
   BridgeCallResponseEvent,
   BridgeConnectedEvent,
+  type BridgeConnectedEventPayload,
   BridgeRefusedEvent,
 } from './common';
 
 // ws client, this is where the request is processed
 export class BridgeClient {
   private socket: ClientSocket | null = null;
+  public serverVersion: string | null = null;
   constructor(
     public endpoint: string,
     public onBridgeCall: (method: string, args: any[]) => Promise<any>,
@@ -25,7 +27,7 @@ export class BridgeClient {
       });
 
       const timeout = setTimeout(() => {
-        reject(new Error('failed to connect to bridge server'));
+        reject(new Error('failed to connect to bridge server after timeout'));
       }, 1 * 1000);
 
       // on disconnect
@@ -35,11 +37,15 @@ export class BridgeClient {
         this.onDisconnect?.();
       });
 
-      this.socket.on(BridgeConnectedEvent, () => {
-        clearTimeout(timeout);
-        // console.log('bridge-connected');
-        resolve(this.socket);
-      });
+      this.socket.on(
+        BridgeConnectedEvent,
+        (payload: BridgeConnectedEventPayload) => {
+          clearTimeout(timeout);
+          // console.log('bridge-connected');
+          this.serverVersion = payload?.version || 'unknown';
+          resolve(this.socket);
+        },
+      );
       this.socket.on(BridgeRefusedEvent, (e: any) => {
         console.error('bridge-refused', e);
         reject(new Error(e || 'bridge refused'));

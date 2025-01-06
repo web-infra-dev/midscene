@@ -6,9 +6,12 @@ import {
   BridgeCallResponseEvent,
   BridgeCallTimeout,
   BridgeConnectedEvent,
+  type BridgeConnectedEventPayload,
   BridgeErrorCodeNoClientConnected,
   BridgeRefusedEvent,
 } from './common';
+
+declare const __VERSION__: string;
 
 // ws server, this is where the request is sent
 export class BridgeServer {
@@ -98,7 +101,11 @@ export class BridgeServer {
 
           setTimeout(() => {
             this.onConnect?.();
-            socket.emit(BridgeConnectedEvent);
+
+            const payload = {
+              version: __VERSION__,
+            } as BridgeConnectedEventPayload;
+            socket.emit(BridgeConnectedEvent, payload);
             Promise.resolve().then(() => {
               for (const id in this.calls) {
                 if (this.calls[id].callTime === 0) {

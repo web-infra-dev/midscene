@@ -30,3 +30,7 @@ export interface BridgeCallResponse {
   response: any;
   error?: any;
 }
+
+export interface BridgeConnectedEventPayload {
+  version: string;
+}
