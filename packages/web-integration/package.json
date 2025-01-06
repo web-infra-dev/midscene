@@ -12,7 +12,7 @@
   },
   "exports": {
     ".": "./dist/lib/index.js",
-    "./bridge-mode": "./dist/lib/bridge-mode.js",
+    "./bridge-mode-cli": "./dist/lib/bridge-mode-cli.js",
     "./bridge-mode-browser": "./dist/lib/bridge-mode-browser.js",
     "./utils": "./dist/lib/utils.js",
     "./ui-utils": "./dist/lib/ui-utils.js",
@@ -29,7 +29,7 @@
   "typesVersions": {
     "*": {
       ".": ["./dist/types/index.d.ts"],
-      "bridge-mode": ["./dist/types/bridge-mode.d.ts"],
+      "bridge-mode-cli": ["./dist/types/bridge-mode-cli.d.ts"],
       "bridge-mode-browser": ["./dist/types/bridge-mode-browser.d.ts"],
       "utils": ["./dist/types/utils.d.ts"],
       "ui-utils": ["./dist/types/ui-utils.d.ts"],

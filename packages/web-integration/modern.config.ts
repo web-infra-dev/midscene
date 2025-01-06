@@ -8,7 +8,7 @@ export default defineConfig({
     format: 'cjs',
     input: {
       index: 'src/index.ts',
-      'bridge-mode': 'src/bridge-mode/index.ts',
+      'bridge-mode-cli': 'src/bridge-mode/index.ts',
       'bridge-mode-browser': 'src/bridge-mode/browser.ts',
       utils: 'src/common/utils.ts',
       'ui-utils': 'src/common/ui-utils.ts',
