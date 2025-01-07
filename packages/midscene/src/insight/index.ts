@@ -208,7 +208,7 @@ export default class Insight<
 
     let errorLog: string | undefined;
     if (parseResult.errors?.length) {
-      errorLog = `segment - AI response error: \n${parseResult.errors.join('\n')}`;
+      errorLog = `AI response error: \n${parseResult.errors.join('\n')}`;
     }
 
     const dumpData: PartialInsightDumpFromSDK = {
@@ -225,12 +225,12 @@ export default class Insight<
     };
     const logId = writeInsightDump(dumpData, undefined, dumpSubscriber);
 
-    if (errorLog) {
+    const { data } = parseResult;
+    if (errorLog && !data) {
       console.error(errorLog);
       throw new Error(errorLog);
     }
 
-    const { data } = parseResult;
     let mergedData = data;
 
     // expand elements in object style data
