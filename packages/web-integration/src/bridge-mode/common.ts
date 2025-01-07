@@ -15,15 +15,15 @@ export enum BridgeEvent {
 
 export enum MouseEvent {
   PREFIX = 'mouse.',
-  Click = 'click',
-  Wheel = 'wheel',
-  Move = 'move',
+  Click = 'mouse.click',
+  Wheel = 'mouse.wheel',
+  Move = 'mouse.move',
 }
 
 export enum KeyboardEvent {
   PREFIX = 'keyboard.',
-  Type = 'type',
-  Press = 'press',
+  Type = 'keyboard.type',
+  Press = 'keyboard.press',
 }
 
 export const BridgePageType = 'page-over-chrome-extension-bridge';

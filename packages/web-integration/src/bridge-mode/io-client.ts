@@ -60,7 +60,7 @@ export class BridgeClient {
           try {
             response = await this.onBridgeCall(call.method, call.args);
           } catch (e: any) {
-            const errorContent = `Error from bridge client when calling ${call.method}: ${e?.message || e}\n${e?.stack || ''}`;
+            const errorContent = `Error from bridge client when calling, method: ${call.method}, args: ${call.args}, error: ${e?.message || e}\n${e?.stack || ''}`;
             console.error(errorContent);
             return this.socket?.emit(BridgeEvent.CallResponse, {
               id,
