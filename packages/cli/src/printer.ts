@@ -51,6 +51,11 @@ export const contextInfo = (context: MidsceneYamlFileContext) => {
       ? chalk.gray('(navigating)')
       : '';
 
+  // error: ...
+  const errorText = context.player.errorInSetup
+    ? `\n${indent}${chalk.red('error:')} ${context.player.errorInSetup?.message}\n${indent}${indent}${context.player.errorInSetup?.stack}`
+    : '';
+
   // output: ...
   const outputFile = context.player.output;
   const outputText =
@@ -66,7 +71,7 @@ export const contextInfo = (context: MidsceneYamlFileContext) => {
     : '';
 
   const mergedText =
-    `${fileStatusText} ${fileNameToPrint} ${contextActionText}${outputText}${reportText}`.trim();
+    `${fileStatusText} ${fileNameToPrint} ${contextActionText}${outputText}${reportText}${errorText}`.trim();
 
   return {
     fileNameToPrint,
@@ -127,17 +132,19 @@ export const contextTaskListSummary = (
   const currentLine: string[] = [];
   const suffixText: string[] = [];
   const { mergedText: fileInfo } = contextInfo(context);
-  for (const task of taskStatusArray) {
-    const { mergedLine } = singleTaskInfo(task);
+  if (!context.player.errorInSetup) {
+    for (const task of taskStatusArray) {
+      const { mergedLine } = singleTaskInfo(task);
 
-    if (context.player.status === 'init') {
-      suffixText.push(mergedLine);
-    } else if (context.player.status === 'running') {
-      currentLine.push(mergedLine);
-    } else if (context.player.status === 'done') {
-      prefixLines.push(mergedLine);
-    } else if (context.player.status === 'error') {
-      prefixLines.push(mergedLine);
+      if (context.player.status === 'init') {
+        suffixText.push(mergedLine);
+      } else if (context.player.status === 'running') {
+        currentLine.push(mergedLine);
+      } else if (context.player.status === 'done') {
+        prefixLines.push(mergedLine);
+      } else if (context.player.status === 'error') {
+        prefixLines.push(mergedLine);
+      }
     }
   }
   const currentLineText =
