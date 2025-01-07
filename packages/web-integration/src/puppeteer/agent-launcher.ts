@@ -86,7 +86,13 @@ export async function puppeteerAgentForTarget(
     name: 'puppeteer_browser',
     fn: () => {
       if (!preference?.keepWindow) {
-        browser.close();
+        if (isWindows) {
+          setTimeout(() => {
+            browser.close();
+          }, 800);
+        } else {
+          browser.close();
+        }
       }
     },
   });
