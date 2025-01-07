@@ -12,7 +12,7 @@ import type {
 } from '@midscene/core';
 
 function interpolateEnvVars(content: string): string {
-  return content.replace(/\{\{([^}]+)\}\}/g, (_, envVar) => {
+  return content.replace(/\$\{([^}]+)\}/g, (_, envVar) => {
     const value = process.env[envVar.trim()];
     if (value === undefined) {
       throw new Error(`Environment variable "${envVar.trim()}" is not defined`);

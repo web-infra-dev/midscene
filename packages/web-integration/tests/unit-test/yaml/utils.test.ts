@@ -22,7 +22,7 @@ describe('utils', () => {
 
       const yamlContent = `
 target:
-  url: "{{TEST_URL}}{{TEST_PATH}}"
+  url: "\${TEST_URL}\${TEST_PATH}"
 tasks:
   - sleep: 1000
 `;
@@ -34,7 +34,7 @@ tasks:
     test('throws error for undefined environment variables', () => {
       const yamlContent = `
 target:
-  url: "{{UNDEFINED_ENV_VAR}}"
+  url: "\${UNDEFINED_ENV_VAR}"
 tasks:
   - sleep: 1000
 `;
