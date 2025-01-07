@@ -13,6 +13,21 @@ export enum BridgeEvent {
   ConnectCurrentTab = 'connectCurrentTab',
 }
 
+export enum MouseEvent {
+  PREFIX = 'mouse.',
+  Click = 'click',
+  Wheel = 'wheel',
+  Move = 'move',
+}
+
+export enum KeyboardEvent {
+  PREFIX = 'keyboard.',
+  Type = 'type',
+  Press = 'press',
+}
+
+export const BridgePageType = 'page-over-chrome-extension-bridge';
+
 export const BridgeErrorCodeNoClientConnected = 'no-client-connected';
 
 export interface BridgeCall {

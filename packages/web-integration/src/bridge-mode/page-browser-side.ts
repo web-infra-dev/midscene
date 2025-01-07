@@ -1,7 +1,12 @@
 import assert from 'node:assert';
 import type { KeyboardAction, MouseAction } from '@/page';
 import ChromeExtensionProxyPage from '../chrome-extension/page';
-import { BridgeEvent, DefaultBridgeServerPort } from './common';
+import {
+  BridgeEvent,
+  DefaultBridgeServerPort,
+  KeyboardEvent,
+  MouseEvent,
+} from './common';
 import { BridgeClient } from './io-client';
 
 declare const __VERSION__: string;
@@ -45,12 +50,12 @@ export class ChromeExtensionPageBrowserSide extends ChromeExtensionProxyPage {
 
         // this.onLogMessage(`calling method: ${method}`);
 
-        if (method.startsWith('mouse.')) {
+        if (method.startsWith(MouseEvent.PREFIX)) {
           const actionName = method.split('.')[1] as keyof MouseAction;
           return this.mouse[actionName].apply(this.mouse, args as any);
         }
 
-        if (method.startsWith('keyboard.')) {
+        if (method.startsWith(KeyboardEvent.PREFIX)) {
           const actionName = method.split('.')[1] as keyof KeyboardAction;
           return this.keyboard[actionName].apply(this.keyboard, args as any);
         }

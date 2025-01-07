@@ -2,7 +2,13 @@ import assert from 'node:assert';
 import { PageAgent } from '@/common/agent';
 import { paramStr, typeStr } from '@/common/ui-utils';
 import type { KeyboardAction, MouseAction } from '@/page';
-import { BridgeEvent, DefaultBridgeServerPort } from './common';
+import {
+  BridgeEvent,
+  BridgePageType,
+  DefaultBridgeServerPort,
+  KeyboardEvent,
+  MouseEvent,
+} from './common';
 import { BridgeServer } from './io-server';
 import type { ChromeExtensionPageBrowserSide } from './page-browser-side';
 
@@ -33,9 +39,13 @@ export const getBridgePageInCliSide = (): ChromeExtensionPageCliSide => {
       if (prop === 'toJSON') {
         return () => {
           return {
-            pageType: 'page-over-chrome-extension-bridge',
+            pageType: BridgePageType,
           };
         };
+      }
+
+      if (prop === 'pageType') {
+        return BridgePageType;
       }
 
       if (prop === '_forceUsePageContext') {
@@ -46,23 +56,19 @@ export const getBridgePageInCliSide = (): ChromeExtensionPageCliSide => {
         return page[prop as keyof typeof page];
       }
 
-      if (prop === 'pageType') {
-        return 'page-over-chrome-extension-bridge';
-      }
-
       if (prop === 'mouse') {
         const mouse: MouseAction = {
-          click: bridgeCaller('mouse.click'),
-          wheel: bridgeCaller('mouse.wheel'),
-          move: bridgeCaller('mouse.move'),
+          click: bridgeCaller(MouseEvent.Click),
+          wheel: bridgeCaller(MouseEvent.Wheel),
+          move: bridgeCaller(MouseEvent.Move),
         };
         return mouse;
       }
 
       if (prop === 'keyboard') {
         const keyboard: KeyboardAction = {
-          type: bridgeCaller('keyboard.type'),
-          press: bridgeCaller('keyboard.press'),
+          type: bridgeCaller(KeyboardEvent.Type),
+          press: bridgeCaller(KeyboardEvent.Press),
         };
         return keyboard;
       }
