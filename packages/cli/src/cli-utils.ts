@@ -53,6 +53,7 @@ export async function matchYamlFiles(fileGlob: string) {
   const files = await glob(fileGlob, {
     nodir: true,
     windowsPathsNoEscape: true,
+    ignore: ['**/node_modules/**'],
   });
   return files
     .filter((file) => file.endsWith('.yml') || file.endsWith('.yaml'))
