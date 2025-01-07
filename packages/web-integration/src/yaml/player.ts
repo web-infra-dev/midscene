@@ -197,26 +197,31 @@ export class ScriptPlayer {
     this.setPlayerStatus('running');
     let errorFlag = false;
     while (taskIndex < tasks.length) {
+      const taskStatus = this.taskStatusList[taskIndex];
       this.setTaskStatus(taskIndex, 'running' as any);
+      this.setTaskIndex(taskIndex);
 
       try {
-        this.setTaskIndex(taskIndex);
-        await this.playTask(this.taskStatusList[taskIndex], this.pageAgent);
+        await this.playTask(taskStatus, this.pageAgent);
+        this.setTaskStatus(taskIndex, 'done' as any);
       } catch (e) {
         this.setTaskStatus(taskIndex, 'error' as any, e as Error);
-        this.setPlayerStatus('error');
-        errorFlag = true;
 
-        this.reportFile = agent.reportFile;
-        taskIndex++;
-        continue;
+        if (taskStatus.continueOnError) {
+          // nothing more to do
+        } else {
+          this.reportFile = agent.reportFile;
+          errorFlag = true;
+          break;
+        }
       }
       this.reportFile = agent.reportFile;
-      this.setTaskStatus(taskIndex, 'done' as any);
       taskIndex++;
     }
 
-    if (!errorFlag) {
+    if (errorFlag) {
+      this.setPlayerStatus('error');
+    } else {
       this.setPlayerStatus('done');
     }
 
