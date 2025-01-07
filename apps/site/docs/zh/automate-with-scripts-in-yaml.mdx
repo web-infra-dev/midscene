@@ -151,6 +151,7 @@ target:
 ```yaml
 tasks:
   - name: <name>
+    continueOnError: <boolean> # 可选，错误时是否继续执行下一个任务，默认 false
     flow:
       # 执行一个交互，`ai` 是 `aiAction` 的简写方式
       - ai: <prompt>
