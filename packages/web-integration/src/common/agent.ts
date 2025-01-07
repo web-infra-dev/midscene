@@ -34,8 +34,8 @@ export interface PageAgentOpt {
   autoPrintReportMsg?: boolean;
 }
 
-export class PageAgent {
-  page: WebPage;
+export class PageAgent<PageType extends WebPage = WebPage> {
+  page: PageType;
 
   insight: Insight<WebElementInfo, WebUIContext>;
 
@@ -54,7 +54,7 @@ export class PageAgent {
    */
   dryMode = false;
 
-  constructor(page: WebPage, opts?: PageAgentOpt) {
+  constructor(page: PageType, opts?: PageAgentOpt) {
     this.page = page;
     this.opts = Object.assign(
       {

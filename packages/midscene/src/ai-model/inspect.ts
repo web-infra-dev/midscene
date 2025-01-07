@@ -161,6 +161,7 @@ export async function AiInspectElement<
           type: 'image_url',
           image_url: {
             url: screenshotBase64WithElementMarker || screenshotBase64,
+            detail: 'high',
           },
         },
         {
@@ -228,6 +229,7 @@ export async function AiExtractElementInfo<
           type: 'image_url',
           image_url: {
             url: screenshotBase64,
+            detail: 'high',
           },
         },
         {
@@ -251,10 +253,7 @@ export async function AiExtractElementInfo<
 
 export async function AiAssert<
   ElementType extends BaseElement = BaseElement,
->(options: {
-  assertion: string;
-  context: UIContext<ElementType>;
-}) {
+>(options: { assertion: string; context: UIContext<ElementType> }) {
   const { assertion, context } = options;
 
   assert(assertion, 'assertion should be a string');
@@ -272,6 +271,7 @@ export async function AiAssert<
           type: 'image_url',
           image_url: {
             url: screenshotBase64,
+            detail: 'high',
           },
         },
         {

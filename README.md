@@ -2,7 +2,6 @@
   <img alt="Midscene.js"  width="260" src="https://github.com/user-attachments/assets/f60de3c1-dd6f-4213-97a1-85bf7c6e79e4">
 </p>
 
-
 <h1 align="center">Midscene.js</h1>
 <div align="center">
 

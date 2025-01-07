@@ -56,5 +56,8 @@
   "sideEffects": ["**/*.css", "**/*.less", "**/*.sass", "**/*.scss"],
   "publishConfig": {
     "access": "public"
+  },
+  "dependencies": {
+    "buffer": "6.0.3"
   }
 }
