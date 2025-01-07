@@ -118,6 +118,7 @@ async function createChatClient({
         endpoint: getAIConfig(AZURE_OPENAI_ENDPOINT),
         apiVersion: getAIConfig(AZURE_OPENAI_API_VERSION),
         deployment: getAIConfig(AZURE_OPENAI_DEPLOYMENT),
+        dangerouslyAllowBrowser: true,
         ...extraConfig,
         ...extraAzureConfig,
       });
@@ -158,6 +159,7 @@ async function createChatClient({
     assert(apiKey, 'ANTHROPIC_API_KEY is required');
     openai = new Anthropic({
       apiKey,
+      dangerouslyAllowBrowser: true,
     }) as any;
   }
 

@@ -9,7 +9,7 @@ import fs from 'node:fs';
 import type { WebKeyInput } from '@/common/page';
 import type { ElementInfo } from '@/extractor';
 import type { AbstractPage } from '@/page';
-import type { Point, Rect, Size } from '@midscene/core';
+import type { Point, Size } from '@midscene/core';
 import { ifInBrowser } from '@midscene/shared/utils';
 import type { Protocol as CDPTypes } from 'devtools-protocol';
 import { CdpKeyboard } from './cdpInput';
@@ -27,39 +27,10 @@ const scriptFileContent = async () => {
   return fs.readFileSync(scriptFileToRetrieve, 'utf8');
 };
 
-const lastTwoCallTime = [0, 0];
-const callInterval = 1050;
-async function getScreenshotBase64FromWindowId(windowId: number) {
-  // check if this window is active
-  const activeWindow = await chrome.windows.getAll({ populate: true });
-  if (activeWindow.find((w) => w.id === windowId) === undefined) {
-    throw new Error(`Window with id ${windowId} is not active`);
-  }
-
-  // avoid MAX_CAPTURE_VISIBLE_TAB_CALLS_PER_SECOND
-  const now = Date.now();
-  if (now - lastTwoCallTime[0] < callInterval) {
-    const sleepTime = callInterval - (now - lastTwoCallTime[0]);
-    console.warn(
-      `Sleep for ${sleepTime}ms to avoid too frequent screenshot calls`,
-    );
-    await new Promise((resolve) => setTimeout(resolve, sleepTime));
-  }
-  const base64 = await chrome.tabs.captureVisibleTab(windowId, {
-    format: 'jpeg',
-    quality: 70,
-  });
-  lastTwoCallTime.shift();
-  lastTwoCallTime.push(Date.now());
-  return base64;
-}
-
 export default class ChromeExtensionProxyPage implements AbstractPage {
   pageType = 'chrome-extension-proxy';
 
-  private tabId: number;
-
-  private windowId: number;
+  public tabId: number;
 
   private viewportSize?: Size;
 
@@ -67,9 +38,8 @@ export default class ChromeExtensionProxyPage implements AbstractPage {
 
   private attachingDebugger: Promise<void> | null = null;
 
-  constructor(tabId: number, windowId: number) {
+  constructor(tabId: number) {
     this.tabId = tabId;
-    this.windowId = windowId;
   }
 
   private async attachDebugger() {
@@ -152,30 +122,39 @@ export default class ChromeExtensionProxyPage implements AbstractPage {
     });
 
     if (!returnValue.result.value) {
-      throw new Error('Failed to get page content from page');
+      const errorDescription =
+        returnValue.exceptionDetails?.exception?.description || '';
+      if (!errorDescription) {
+        console.error('returnValue from cdp', returnValue);
+      }
+      throw new Error(
+        `Failed to get page content from page, error: ${errorDescription}`,
+      );
     }
     // console.log('returnValue', returnValue.result.value);
     return returnValue.result.value;
   }
 
-  // private async rectOfNodeId(nodeId: number): Promise<Rect | null> {
-  //   try {
-  //     const { model } =
-  //       await this.sendCommandToDebugger<CDPTypes.DOM.GetBoxModelResponse>(
-  //         'DOM.getBoxModel',
-  //         { nodeId },
-  //       );
-  //     return {
-  //       left: model.border[0],
-  //       top: model.border[1],
-  //       width: model.border[2] - model.border[0],
-  //       height: model.border[5] - model.border[1],
-  //     };
-  //   } catch (error) {
-  //     console.error('Error getting box model for nodeId', nodeId, error);
-  //     return null;
-  //   }
-  // }
+  // current implementation is wait until domReadyState is complete
+  public async waitUntilNetworkIdle() {
+    const timeout = 10000;
+    const startTime = Date.now();
+    let lastReadyState = '';
+    while (Date.now() - startTime < timeout) {
+      const result = await this.sendCommandToDebugger('Runtime.evaluate', {
+        expression: 'document.readyState',
+      });
+      lastReadyState = result.result.value;
+      if (lastReadyState === 'complete') {
+        await new Promise((resolve) => setTimeout(resolve, 300));
+        return;
+      }
+      await new Promise((resolve) => setTimeout(resolve, 300));
+    }
+    throw new Error(
+      `Failed to wait until network idle, last readyState: ${lastReadyState}`,
+    );
+  }
 
   async getElementInfos() {
     const content = await this.getPageContentByCDP();
