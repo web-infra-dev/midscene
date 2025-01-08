@@ -72,10 +72,7 @@ export class BridgeServer {
 
           const clientVersion = socket.handshake.query.version;
           console.log(
-            'Bridge connected, cli-side version:',
-            __VERSION__,
-            ', browser-side version:',
-            clientVersion,
+            `Bridge connected, cli-side version v${__VERSION__}, browser-side version v${clientVersion}`,
           );
 
           socket.on(BridgeEvent.CallResponse, (params: BridgeCallResponse) => {

@@ -22,10 +22,6 @@ export function parseYamlScript(
     typeof obj.target === 'object',
     `property "target" must be an object${pathTip}`,
   );
-  assert(
-    typeof obj.target.url === 'string',
-    `property "target.url" must be provided in yaml script: ${pathTip}`,
-  );
   assert(obj.tasks, `property "tasks" is required in yaml script${pathTip}`);
   assert(
     Array.isArray(obj.tasks),

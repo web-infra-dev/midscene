@@ -1,0 +1,13 @@
+target:
+  url: https://www.bing.com
+  bridgeMode: newTabWithUrl
+tasks:
+  - name: search weather
+    flow:
+      - sleep: 5000
+      - ai: input 'weather today' in input box, click search button
+      - sleep: 5000
+
+  - name: check result
+    flow:
+      - aiAssert: the result shows the weather info

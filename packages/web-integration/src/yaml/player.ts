@@ -209,10 +209,14 @@ export class ScriptPlayer {
     }
 
     // free the resources
-    freeFn.forEach((fn) => {
+    for (const fn of freeFn) {
       try {
-        fn.fn();
-      } catch (e) {}
-    });
+        // console.log('freeing', fn.name);
+        await fn.fn();
+        // console.log('freed', fn.name);
+      } catch (e) {
+        // console.error('error freeing', fn.name, e);
+      }
+    }
   }
 }
