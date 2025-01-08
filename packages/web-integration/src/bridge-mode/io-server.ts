@@ -1,3 +1,4 @@
+import { uuid } from '@midscene/shared/utils';
 import { Server, type Socket as ServerSocket } from 'socket.io';
 import {
   type BridgeCall,
@@ -12,6 +13,7 @@ declare const __VERSION__: string;
 
 // ws server, this is where the request is sent
 export class BridgeServer {
+  private serverId = '';
   private callId = 0;
   private io: Server | null = null;
   private socket: ServerSocket | null = null;
@@ -26,7 +28,9 @@ export class BridgeServer {
     public port: number,
     public onConnect?: () => void,
     public onDisconnect?: (reason: string) => void,
-  ) {}
+  ) {
+    this.serverId = uuid();
+  }
 
   async listen(timeout = 30000): Promise<void> {
     return new Promise((resolve, reject) => {
@@ -45,7 +49,7 @@ export class BridgeServer {
       this.connectionTipTimer =
         timeout > 3000
           ? setTimeout(() => {
-              console.log('waiting for bridge to connect...');
+              console.log('waiting for bridge to connect...', this.serverId);
             }, 2000)
           : null;
 
@@ -60,9 +64,16 @@ export class BridgeServer {
         this.connectionTipTimer && clearTimeout(this.connectionTipTimer);
         this.connectionTipTimer = null;
         if (this.socket) {
-          console.log('server already connected, refusing new connection');
+          console.log(
+            'server already connected, refusing new connection',
+            this.serverId,
+          );
           socket.emit(BridgeEvent.Refused);
-          reject(new Error('server already connected by another client'));
+          return reject(
+            new Error(
+              `server already connected by another client, serverId=${this.serverId}`,
+            ),
+          );
         }
 
         try {
@@ -75,6 +86,8 @@ export class BridgeServer {
             __VERSION__,
             ', browser-side version:',
             clientVersion,
+            ', serverId:',
+            this.serverId,
           );
 
           socket.on(BridgeEvent.CallResponse, (params: BridgeCallResponse) => {
@@ -88,7 +101,12 @@ export class BridgeServer {
           socket.on('disconnect', (reason: string) => {
             this.connectionLost = true;
             this.connectionLostReason = reason;
-            this.onDisconnect?.(reason);
+
+            try {
+              this.io?.close();
+            } catch (e) {
+              // ignore
+            }
 
             // flush all pending calls as error
             for (const id in this.calls) {
@@ -103,6 +121,8 @@ export class BridgeServer {
                 );
               }
             }
+
+            this.onDisconnect?.(reason);
           });
 
           setTimeout(() => {

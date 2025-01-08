@@ -18,6 +18,7 @@ interface ChromeExtensionPageCliSide extends ChromeExtensionPageBrowserSide {
 
 // actually, this is a proxy to the page in browser side
 export const getBridgePageInCliSide = (): ChromeExtensionPageCliSide => {
+  console.log('getBridgePageInCliSide, new server');
   const server = new BridgeServer(DefaultBridgeServerPort);
   server.listen();
   const bridgeCaller = (method: string) => {

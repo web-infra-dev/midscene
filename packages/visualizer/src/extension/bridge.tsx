@@ -17,12 +17,13 @@ enum BridgeStatus {
   Connected = 'connected',
 }
 
-const connectTimeout = 30 * 1000;
+const connectTimeout = 60 * 1000;
 const connectRetryInterval = 300;
 export default function Bridge() {
   const activeBridgePageRef = useRef<ChromeExtensionPageBrowserSide | null>(
     null,
   );
+  const allowAutoConnectionRef = useRef(false);
 
   const [bridgeStatus, setBridgeStatus] = useState<BridgeStatus>(
     BridgeStatus.Closed,
@@ -59,6 +60,7 @@ export default function Bridge() {
 
   const stopListeningFlag = useRef(false);
   const stopListening = () => {
+    allowAutoConnectionRef.current = false;
     stopListeningFlag.current = true;
   };
 
@@ -68,20 +70,28 @@ export default function Bridge() {
       throw new Error('There is already a connection, cannot start a new one');
     }
     const startTime = Date.now();
-    setBridgeLog([]);
     setBridgeAgentStatus('');
     appendBridgeLog('Listening for connection...');
     setBridgeStatus(BridgeStatus.OpenForConnection);
     stopListeningFlag.current = false;
 
+    let noConnectionTip = 'No connection found within timeout';
+    console.log('startConnection');
     while (Date.now() - startTime < timeout) {
       try {
         if (stopListeningFlag.current) {
+          noConnectionTip = 'Listening stopped by user';
           break;
         }
         const activeBridgePage = new ChromeExtensionPageBrowserSide(
           () => {
+            console.log('stopConnection');
             stopConnection();
+            if (allowAutoConnectionRef.current) {
+              setTimeout(() => {
+                startConnection();
+              }, connectRetryInterval);
+            }
           },
           (message, type) => {
             appendBridgeLog(message);
@@ -102,7 +112,7 @@ export default function Bridge() {
     }
 
     setBridgeStatus(BridgeStatus.Closed);
-    appendBridgeLog('No connection found within timeout');
+    appendBridgeLog(noConnectionTip);
   };
 
   let statusElement: any;
@@ -116,7 +126,13 @@ export default function Bridge() {
       </span>
     );
     statusBtn = (
-      <Button type="primary" onClick={() => startConnection()}>
+      <Button
+        type="primary"
+        onClick={() => {
+          allowAutoConnectionRef.current = true;
+          startConnection();
+        }}
+      >
         Allow connection
       </Button>
     );
@@ -147,10 +163,28 @@ export default function Bridge() {
         </span>
       </span>
     );
-    statusBtn = <Button onClick={stopConnection}>Stop</Button>;
+    statusBtn = (
+      <Button
+        onClick={() => {
+          allowAutoConnectionRef.current = false;
+          stopConnection();
+        }}
+      >
+        Stop
+      </Button>
+    );
   } else {
     statusElement = <span>Unknown Status - {bridgeStatus}</span>;
-    statusBtn = <Button onClick={stopConnection}>Stop</Button>;
+    statusBtn = (
+      <Button
+        onClick={() => {
+          allowAutoConnectionRef.current = false;
+          stopConnection();
+        }}
+      >
+        Stop
+      </Button>
+    );
   }
 
   const logs = [...bridgeLog].reverse().map((log, index) => {
@@ -175,7 +209,11 @@ export default function Bridge() {
         In Bridge Mode, you can control this browser by the Midscene SDK running
         in the local terminal. This is useful for interacting both through
         scripts and manually, or to reuse cookies.{' '}
-        <a href="https://www.midscenejs.com/bridge-mode-by-chrome-extension">
+        <a
+          href="https://www.midscenejs.com/bridge-mode-by-chrome-extension"
+          target="_blank"
+          rel="noreferrer"
+        >
           More about bridge mode
         </a>
       </p>
