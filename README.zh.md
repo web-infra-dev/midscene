@@ -39,11 +39,13 @@ Midscene.js 是一个由 AI 驱动的自动化 SDK，能够使用自然语言对
 ## 资源 📄
 
 * [官网首页: https://midscenejs.com](https://midscenejs.com/zh)
-* [使用 Chrome 插件体验](https://midscenejs.com/zh/quick-experience.html)
+* [使用 Chrome 插件体验](https://midscenejs.com/zh/quick-experience.html)，请从这里开始体验 Midscene 
+* 集成方案
+  * [使用 YAML 格式的自动化脚本](https://midscenejs.com/zh/automate-with-scripts-in-yaml.html), 如果你更喜欢写 YAML 文件而不是代码
+  * [使用 Chrome 插件桥接模式（Bridge Mode）](https://midscenejs.com/zh/bridge-mode-by-chrome-extension.html), 使用 Midscene 来控制桌面端 Chrome 
+  * [集成到 Puppeteer](https://midscenejs.com/zh/integrate-with-puppeteer.html)
+  * [集成到 Playwright](https://midscenejs.com/zh/integrate-with-playwright.html)
 * [API 文档](https://midscenejs.com/zh/api.html)
-* [使用 YAML 格式的自动化脚本](https://midscenejs.com/zh/automate-with-scripts-in-yaml.html)
-* [集成到 Puppeteer](https://midscenejs.com/zh/integrate-with-puppeteer.html)
-* [集成到 Playwright](https://midscenejs.com/zh/integrate-with-playwright.html)
 * [自定义模型和服务商](https://midscenejs.com/zh/model-provider.html)
 
 ## 社区
