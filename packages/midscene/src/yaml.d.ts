@@ -6,6 +6,7 @@ export interface MidsceneYamlScript {
 export interface MidsceneYamlTask {
   name: string;
   flow: MidsceneYamlFlowItem[];
+  continueOnError?: boolean;
 }
 
 export interface MidsceneYamlScriptEnv {

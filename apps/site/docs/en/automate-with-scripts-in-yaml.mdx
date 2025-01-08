@@ -151,6 +151,7 @@ The `tasks` part is an array indicates the tasks to do. Remember to write a `-` 
 ```yaml
 tasks:
   - name: <name>
+    continueOnError: <boolean> # optional, default is false
     flow:
       # perform an action, this is the shortcut for aiAction
       - ai: <prompt>
