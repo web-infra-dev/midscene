@@ -48,45 +48,36 @@ export async function playYamlFiles(
       keepWindow: options?.keepWindow,
       testId: fileName,
     };
-    const player = new ScriptPlayer(
-      script,
-      async (target) => {
-        const freeFn: FreeFn[] = [];
+    const player = new ScriptPlayer(script, async (target) => {
+      const freeFn: FreeFn[] = [];
 
-        // launch local server if needed
-        let localServer: Awaited<ReturnType<typeof launchServer>> | undefined;
-        let urlToVisit: string | undefined;
-        assert(typeof target.url === 'string', 'url is required');
-        if (target.serve) {
-          localServer = await launchServer(target.serve);
-          const serverAddress = localServer.server.address();
-          freeFn.push({
-            name: 'local_server',
-            fn: () => localServer?.server.close(),
-          });
-          if (target.url.startsWith('/')) {
-            urlToVisit = `http://${serverAddress?.address}:${serverAddress?.port}${target.url}`;
-          } else {
-            urlToVisit = `http://${serverAddress?.address}:${serverAddress?.port}/${target.url}`;
-          }
-          target.url = urlToVisit;
+      // launch local server if needed
+      let localServer: Awaited<ReturnType<typeof launchServer>> | undefined;
+      let urlToVisit: string | undefined;
+      assert(typeof target.url === 'string', 'url is required');
+      if (target.serve) {
+        localServer = await launchServer(target.serve);
+        const serverAddress = localServer.server.address();
+        freeFn.push({
+          name: 'local_server',
+          fn: () => localServer?.server.close(),
+        });
+        if (target.url.startsWith('/')) {
+          urlToVisit = `http://${serverAddress?.address}:${serverAddress?.port}${target.url}`;
+        } else {
+          urlToVisit = `http://${serverAddress?.address}:${serverAddress?.port}/${target.url}`;
         }
+        target.url = urlToVisit;
+      }
 
-        const { agent, freeFn: newFreeFn } = await puppeteerAgentForTarget(
-          target,
-          preference,
-        );
-        freeFn.push(...newFreeFn);
+      const { agent, freeFn: newFreeFn } = await puppeteerAgentForTarget(
+        target,
+        preference,
+      );
+      freeFn.push(...newFreeFn);
 
-        return { agent, freeFn };
-      },
-      (taskStatus) => {
-        if (!isTTY) {
-          const { nameText } = singleTaskInfo(taskStatus);
-          // console.log(`${taskStatus.status} - ${nameText}`);
-        }
-      },
-    );
+      return { agent, freeFn };
+    });
     fileContextList.push({ file, player });
   }
 

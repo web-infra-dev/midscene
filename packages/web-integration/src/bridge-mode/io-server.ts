@@ -1,4 +1,3 @@
-import { uuid } from '@midscene/shared/utils';
 import { Server, type Socket as ServerSocket } from 'socket.io';
 import {
   type BridgeCall,
@@ -13,7 +12,6 @@ declare const __VERSION__: string;
 
 // ws server, this is where the request is sent
 export class BridgeServer {
-  private serverId = '';
   private callId = 0;
   private io: Server | null = null;
   private socket: ServerSocket | null = null;
@@ -28,9 +26,7 @@ export class BridgeServer {
     public port: number,
     public onConnect?: () => void,
     public onDisconnect?: (reason: string) => void,
-  ) {
-    this.serverId = uuid();
-  }
+  ) {}
 
   async listen(timeout = 30000): Promise<void> {
     return new Promise((resolve, reject) => {
@@ -49,7 +45,7 @@ export class BridgeServer {
       this.connectionTipTimer =
         timeout > 3000
           ? setTimeout(() => {
-              console.log('waiting for bridge to connect...', this.serverId);
+              console.log('waiting for bridge to connect...');
             }, 2000)
           : null;
 
@@ -64,15 +60,9 @@ export class BridgeServer {
         this.connectionTipTimer && clearTimeout(this.connectionTipTimer);
         this.connectionTipTimer = null;
         if (this.socket) {
-          console.log(
-            'server already connected, refusing new connection',
-            this.serverId,
-          );
           socket.emit(BridgeEvent.Refused);
           return reject(
-            new Error(
-              `server already connected by another client, serverId=${this.serverId}`,
-            ),
+            new Error('server already connected by another client'),
           );
         }
 
@@ -86,8 +76,6 @@ export class BridgeServer {
             __VERSION__,
             ', browser-side version:',
             clientVersion,
-            ', serverId:',
-            this.serverId,
           );
 
           socket.on(BridgeEvent.CallResponse, (params: BridgeCallResponse) => {

@@ -93,7 +93,11 @@ export const getBridgePageInCliSide = (): ChromeExtensionPageCliSide => {
 export class AgentOverChromeBridge extends PageAgent<ChromeExtensionPageCliSide> {
   constructor() {
     const page = getBridgePageInCliSide();
-    super(page, {});
+    super(page, {
+      onTaskStartTip: (tip: string) => {
+        this.page.showStatusMessage(tip);
+      },
+    });
   }
 
   async connectNewTabWithUrl(url: string) {
@@ -110,11 +114,6 @@ export class AgentOverChromeBridge extends PageAgent<ChromeExtensionPageCliSide>
         'the `options` parameter of aiAction is not supported in cli side',
       );
     }
-    return await super.aiAction(prompt, {
-      onTaskStart: (task) => {
-        const tip = `${typeStr(task)} - ${paramStr(task)}`;
-        this.page.showStatusMessage(tip);
-      },
-    });
+    return await super.aiAction(prompt);
   }
 }
