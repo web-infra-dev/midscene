@@ -84,11 +84,37 @@ tsx demo-new-tab.ts
 
 销毁连接。
 
-## 在 YAML 脚本中使用桥接模式
+## 在 YAML 自动化脚本中使用桥接模式
 
-这个功能正在开发中，很快就会与你见面。
+[Yaml 格式的自动化脚本](./automate-with-scripts-in-yaml) 是 Midscene 提供给开发者的一种编写自动化脚本的方式。通过使用 yaml 格式，脚本会变得易于阅读和编写。
 
+在 Yaml 脚本中使用桥接模式时，需要配置 `target` 中的 `bridgeMode` 属性。如果想要使用当前标签页，设置为 `currentTab`，否则设置为 `newTabWithUrl`。
 
+例如，以下脚本将会通过 Chrome 插件的桥接模式打开一个新的标签页：
 
+```diff
+target:
+  url: https://www.bing.com
++ bridgeMode: newTabWithUrl
+tasks:
+```
+
+运行脚本：
+
+```bash
+midscene ./bing.yaml
+```
+
+在运行脚本后，记得要启动 Chrome 插件，并点击 'Allow connection' 按钮。
+
+### 不支持的选项
+
+在桥接模式下，以下选项将不会生效（它们将遵循桌面浏览器的设置）：
+- userAgent
+- viewportWidth
+- viewportHeight
+- viewportScale
+- waitForNetworkIdle
+- cookie
 
 
