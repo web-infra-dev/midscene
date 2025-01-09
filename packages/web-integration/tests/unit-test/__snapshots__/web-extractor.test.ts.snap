@@ -421,7 +421,7 @@ exports[`extractor > basic 1`] = `
       "htmlTagName": "<body>",
       "nodeType": "TEXT Node",
     },
-    "content": "phrase "The quick brown fox jumps over the lazy dog" is a well-known English-language pangram, meaning it contains every letter of the alphabet at least once. This sentence has become a standard tool for various applications, particularly     in typing practice, font display, and keyboard testing. The phrase has permeated popular culture and is referenced in various media, including literature and film. Its simplicity and utility have made it a staple in educational contexts and beyond.     For instance, it was famously used as the first message sent over the Moscow–Washington hotline in 19634.",
+    "content": "phrase "The quick brown fox jumps over the lazy dog" is a well-known English-language pangram, meaning     it contains every letter of the alphabet at least once. This sentence has become a standard tool for various     applications, particularly     in typing practice, font display, and keyboard testing. The phrase has permeated popular culture and is referenced     in various media, including literature and film. Its simplicity and utility have made it a staple in educational     contexts and beyond.     For instance, it was famously used as the first message sent over the Moscow–Washington hotline in 19634.",
   },
   {
     "attributes": {
@@ -575,14 +575,32 @@ exports[`extractor > basic 1`] = `
   },
   {
     "attributes": {
-      "frameborder": "0",
-      "height": "200px",
+      "class": ".two-columns",
       "htmlTagName": "<body>",
       "nodeType": "CONTAINER Node",
-      "src": "child.html",
-      "width": "400px",
     },
     "content": "",
+  },
+  {
+    "attributes": {
+      "htmlTagName": "",
+      "nodeType": "TEXT Node",
+    },
+    "content": "Child Page",
+  },
+  {
+    "attributes": {
+      "htmlTagName": "",
+      "nodeType": "TEXT Node",
+    },
+    "content": "This is a child page.",
+  },
+  {
+    "attributes": {
+      "htmlTagName": "",
+      "nodeType": "TEXT Node",
+    },
+    "content": "Click me",
   },
 ]
 `;

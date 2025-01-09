@@ -1,3 +1,4 @@
+import type { Point } from '@midscene/core';
 import {
   CONTAINER_MINI_HEIGHT,
   CONTAINER_MINI_WIDTH,
@@ -12,16 +13,15 @@ import {
   isTextElement,
 } from './dom-util';
 import {
-  getDocument,
   getNodeAttributes,
   getPseudoElementContent,
   getRect,
+  getTopDocument,
   logger,
   midsceneGenerateHash,
   resetNodeHashCacheList,
   setDataForNode,
   setDebugMode,
-  setFrameId,
   visibleRect,
 } from './util';
 
@@ -50,9 +50,12 @@ function tagNameOfNode(node: Node): string {
 function collectElementInfo(
   node: Node,
   nodePath: string,
+  currentWindow: typeof window,
+  currentDocument: typeof document,
   baseZoom = 1,
+  basePoint: Point = { left: 0, top: 0 },
 ): WebElementInfo | null {
-  const rect = visibleRect(node, baseZoom);
+  const rect = visibleRect(node, currentWindow, currentDocument, baseZoom);
   if (
     !rect ||
     rect.width < CONTAINER_MINI_WIDTH ||
@@ -60,12 +63,17 @@ function collectElementInfo(
   ) {
     return null;
   }
+  if (basePoint.left !== 0 || basePoint.top !== 0) {
+    rect.left += basePoint.left;
+    rect.top += basePoint.top;
+  }
+
   if (isFormElement(node)) {
-    const attributes = getNodeAttributes(node);
+    const attributes = getNodeAttributes(node, currentWindow);
     let valueContent =
       attributes.value || attributes.placeholder || node.textContent || '';
     const nodeHashId = midsceneGenerateHash(node, valueContent, rect);
-    const selector = setDataForNode(node, nodeHashId);
+    const selector = setDataForNode(node, nodeHashId, false, currentWindow);
     const tagName = (node as HTMLElement).tagName.toLowerCase();
     if ((node as HTMLElement).tagName.toLowerCase() === 'select') {
       // Get the selected option using the selectedIndex property
@@ -104,18 +112,18 @@ function collectElementInfo(
         Math.round(rect.top + rect.height / 2),
       ],
       zoom: rect.zoom,
-      screenWidth: window.innerWidth,
-      screenHeight: window.innerHeight,
+      screenWidth: currentWindow.innerWidth,
+      screenHeight: currentWindow.innerHeight,
     };
     return elementInfo;
   }
 
   if (isButtonElement(node)) {
-    const attributes = getNodeAttributes(node);
-    const pseudo = getPseudoElementContent(node);
+    const attributes = getNodeAttributes(node, currentWindow);
+    const pseudo = getPseudoElementContent(node, currentWindow);
     const content = node.innerText || pseudo.before || pseudo.after || '';
     const nodeHashId = midsceneGenerateHash(node, content, rect);
-    const selector = setDataForNode(node, nodeHashId);
+    const selector = setDataForNode(node, nodeHashId, false, currentWindow);
     const elementInfo: WebElementInfo = {
       id: nodeHashId,
       indexId: indexId++,
@@ -135,16 +143,16 @@ function collectElementInfo(
         Math.round(rect.top + rect.height / 2),
       ],
       zoom: rect.zoom,
-      screenWidth: window.innerWidth,
-      screenHeight: window.innerHeight,
+      screenWidth: currentWindow.innerWidth,
+      screenHeight: currentWindow.innerHeight,
     };
     return elementInfo;
   }
 
   if (isImgElement(node)) {
-    const attributes = getNodeAttributes(node);
+    const attributes = getNodeAttributes(node, currentWindow);
     const nodeHashId = midsceneGenerateHash(node, '', rect);
-    const selector = setDataForNode(node, nodeHashId);
+    const selector = setDataForNode(node, nodeHashId, false, currentWindow);
     const elementInfo: WebElementInfo = {
       id: nodeHashId,
       indexId: indexId++,
@@ -169,8 +177,8 @@ function collectElementInfo(
         Math.round(rect.top + rect.height / 2),
       ],
       zoom: rect.zoom,
-      screenWidth: window.innerWidth,
-      screenHeight: window.innerHeight,
+      screenWidth: currentWindow.innerWidth,
+      screenHeight: currentWindow.innerHeight,
     };
     return elementInfo;
   }
@@ -180,13 +188,13 @@ function collectElementInfo(
     if (!text) {
       return null;
     }
-    const attributes = getNodeAttributes(node);
+    const attributes = getNodeAttributes(node, currentWindow);
     const attributeKeys = Object.keys(attributes);
     if (!text.trim() && attributeKeys.length === 0) {
       return null;
     }
     const nodeHashId = midsceneGenerateHash(node, text, rect);
-    const selector = setDataForNode(node, nodeHashId, true);
+    const selector = setDataForNode(node, nodeHashId, true, currentWindow);
     const elementInfo: WebElementInfo = {
       id: nodeHashId,
       indexId: indexId++,
@@ -207,17 +215,17 @@ function collectElementInfo(
       content: text,
       rect,
       zoom: rect.zoom,
-      screenWidth: window.innerWidth,
-      screenHeight: window.innerHeight,
+      screenWidth: currentWindow.innerWidth,
+      screenHeight: currentWindow.innerHeight,
     };
     return elementInfo;
   }
 
   // else, consider as a container
   if (isContainerElement(node)) {
-    const attributes = getNodeAttributes(node);
+    const attributes = getNodeAttributes(node, currentWindow);
     const nodeHashId = midsceneGenerateHash(node, '', rect);
-    const selector = setDataForNode(node, nodeHashId);
+    const selector = setDataForNode(node, nodeHashId, false, currentWindow);
     const elementInfo: WebElementInfo = {
       id: nodeHashId,
       nodePath,
@@ -237,8 +245,8 @@ function collectElementInfo(
         Math.round(rect.top + rect.height / 2),
       ],
       zoom: rect.zoom,
-      screenWidth: window.innerWidth,
-      screenHeight: window.innerHeight,
+      screenWidth: currentWindow.innerWidth,
+      screenHeight: currentWindow.innerHeight,
     };
     return elementInfo;
   }
@@ -248,10 +256,8 @@ function collectElementInfo(
 export function extractTextWithPosition(
   initNode: Node,
   debugMode = false,
-  currentFrame = { id: 0, left: 0, top: 0 },
 ): WebElementInfo[] {
   setDebugMode(debugMode);
-  setFrameId(currentFrame.id);
   resetNodeHashCacheList();
   indexId = 0;
   const elementInfoArray: WebElementInfo[] = [];
@@ -259,7 +265,10 @@ export function extractTextWithPosition(
   function dfs(
     node: Node,
     nodePath: string,
+    currentWindow: typeof window,
+    currentDocument: typeof document,
     baseZoom = 1,
+    basePoint: Point = { left: 0, top: 0 },
   ): WebElementInfo | null {
     if (!node) {
       return null;
@@ -270,7 +279,25 @@ export function extractTextWithPosition(
       return null;
     }
 
-    const elementInfo = collectElementInfo(node, nodePath, baseZoom);
+    const elementInfo = collectElementInfo(
+      node,
+      nodePath,
+      currentWindow,
+      currentDocument,
+      baseZoom,
+      basePoint,
+    );
+
+    if (elementInfo && node instanceof currentWindow.HTMLIFrameElement) {
+      if (
+        (node as HTMLIFrameElement).contentWindow &&
+        (node as HTMLIFrameElement).contentWindow
+      ) {
+        // other scripts will handle this
+        return elementInfo;
+      }
+    }
+
     // stop collecting if the node is a Button or Image
     if (
       elementInfo?.nodeType === NodeType.BUTTON ||
@@ -283,10 +310,17 @@ export function extractTextWithPosition(
       return elementInfo;
     }
 
-    const rect = getRect(node, baseZoom);
+    const rect = getRect(node, baseZoom, currentWindow);
     for (let i = 0; i < node.childNodes.length; i++) {
       logger('will dfs', node.childNodes[i]);
-      dfs(node.childNodes[i], `${nodePath}-${i}`, rect.zoom);
+      dfs(
+        node.childNodes[i],
+        `${nodePath}-${i}`,
+        currentWindow,
+        currentDocument,
+        rect.zoom,
+        basePoint,
+      );
     }
 
     if (!elementInfo) {
@@ -296,18 +330,40 @@ export function extractTextWithPosition(
     return elementInfo;
   }
 
-  const rootNode = initNode || getDocument();
-  dfs(rootNode, '0');
+  const topDocument = getTopDocument();
+  const rootNode = initNode || topDocument;
 
-  if (currentFrame.left !== 0 || currentFrame.top !== 0) {
-    for (let i = 0; i < elementInfoArray.length; i++) {
-      elementInfoArray[i].rect.left += currentFrame.left;
-      elementInfoArray[i].rect.top += currentFrame.top;
-      elementInfoArray[i].center[0] += currentFrame.left;
-      elementInfoArray[i].center[1] += currentFrame.top;
-      elementInfoArray[i].nodePath =
-        `frame${currentFrame.id}-${elementInfoArray[i].nodePath}`;
+  dfs(rootNode, '0', window, document, 1, { left: 0, top: 0 });
+  if (rootNode === topDocument) {
+    // find all the same-origin iframes
+    const iframes = document.querySelectorAll('iframe');
+    for (let i = 0; i < iframes.length; i++) {
+      const iframe = iframes[i];
+      if (iframe.contentDocument && iframe.contentWindow) {
+        const iframeInfo = collectElementInfo(
+          iframe,
+          `${i}`,
+          window,
+          document,
+          1,
+        );
+        if (iframeInfo) {
+          // it's still in the viewport
+          dfs(
+            iframe.contentDocument.body,
+            `${i}`,
+            iframe.contentWindow as any,
+            iframe.contentDocument,
+            1,
+            {
+              left: iframeInfo.rect.left,
+              top: iframeInfo.rect.top,
+            },
+          );
+        }
+      }
     }
   }
+
   return elementInfoArray;
 }

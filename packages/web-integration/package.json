@@ -145,6 +145,7 @@
     "devtools-protocol": "0.0.1380148",
     "dotenv": "16.4.5",
     "fs-extra": "11.2.0",
+    "http-server": "14.1.1",
     "js-sha256": "0.11.0",
     "js-yaml": "4.1.0",
     "playwright": "1.44.1",
