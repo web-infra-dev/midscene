@@ -423,6 +423,16 @@ export class PageTaskExecutor {
             },
           };
         tasks.push(taskActionFalsyConditionStatement);
+      } else if (plan.type === 'Finished') {
+        const taskActionFinished: ExecutionTaskActionApply<null> = {
+          type: 'Action',
+          subType: 'Finished',
+          param: null,
+          thought: plan.thought,
+          locate: plan.locate,
+          executor: async (param) => {},
+        };
+        tasks.push(taskActionFinished);
       } else {
         throw new Error(`Unknown or unsupported task type: ${plan.type}`);
       }
@@ -567,7 +577,7 @@ export class PageTaskExecutor {
         };
         executorContext.task.recorder = [recordItem];
         (executorContext.task as any).pageContext = pageContext;
-        this.conversationHistory.push({
+        this.appendConversationHistory({
           role: 'user',
           content: [
             {
@@ -584,7 +594,7 @@ export class PageTaskExecutor {
           size: pageContext.size,
         });
         const { actions, action_summary } = planResult;
-        this.conversationHistory.push({
+        this.appendConversationHistory({
           role: 'assistant',
           content: action_summary,
         });
@@ -702,7 +712,6 @@ export class PageTaskExecutor {
       await taskExecutor.append(planningTask);
       const output = await taskExecutor.flush();
       const plans = output.actions;
-
       let executables: Awaited<ReturnType<typeof this.convertPlanToExecutable>>;
       try {
         executables = await this.convertPlanToExecutable(plans);
@@ -717,11 +726,16 @@ export class PageTaskExecutor {
       }
 
       const result = await taskExecutor.flush();
+
       if (taskExecutor.isInErrorState()) {
         return {
           output: result,
           executor: taskExecutor,
         };
+      }
+
+      if (plans[0].type === 'Finished') {
+        break;
       }
     }
     return {
@@ -784,6 +798,39 @@ export class PageTaskExecutor {
       output,
       executor: taskExecutor,
     };
+  }
+
+  /**
+   * Append a message to the conversation history
+   * For user messages with images:
+   * - Keep max 4 user image messages in history
+   * - Remove oldest user image message when limit reached
+   * For assistant messages:
+   * - Simply append to history
+   * @param conversationHistory Message to append
+   */
+  private appendConversationHistory(
+    conversationHistory: ChatCompletionMessageParam,
+  ) {
+    if (conversationHistory.role === 'user') {
+      // Get all existing user messages with images
+      const userImgItems = this.conversationHistory.filter(
+        (item) => item.role === 'user',
+      );
+
+      // If we already have 4 user image messages
+      if (userImgItems.length >= 4 && conversationHistory.role === 'user') {
+        // Remove first user image message when we already have 4, before adding new one
+        const firstUserImgIndex = this.conversationHistory.findIndex(
+          (item) => item.role === 'user',
+        );
+        if (firstUserImgIndex >= 0) {
+          this.conversationHistory.splice(firstUserImgIndex, 1);
+        }
+      }
+    }
+    // For non-user messages, simply append to history
+    this.conversationHistory.push(conversationHistory);
   }
 
   private async appendErrorPlan(taskExecutor: Executor, errorMsg: string) {
