@@ -4,7 +4,6 @@ import { extractTextWithPosition } from './web-extractor';
 // import { TEXT_MAX_SIZE } from './constants';
 const MAX_VALUE_LENGTH = 300;
 let debugMode = false;
-let frameId = 0;
 
 export function setDebugMode(mode: boolean) {
   debugMode = mode;
@@ -12,14 +11,6 @@ export function setDebugMode(mode: boolean) {
 
 export function getDebugMode(): boolean {
   return debugMode;
-}
-
-export function getFrameId(): number {
-  return frameId;
-}
-
-export function setFrameId(id: number) {
-  frameId = id;
 }
 
 export function logger(..._msg: any[]): void {
@@ -42,10 +33,11 @@ function selectorForValue(val: number | string): string {
 export function setDataForNode(
   node: HTMLElement | Node,
   nodeHash: string,
-  setToParentNode = false,
+  setToParentNode: boolean, // should be false for default
+  currentWindow: typeof window,
 ): string {
   const taskId = taskIdKey;
-  if (!(node instanceof Element)) {
+  if (!(node instanceof currentWindow.HTMLElement)) {
     return '';
   }
   if (!taskId) {
@@ -56,7 +48,7 @@ export function setDataForNode(
   const selector = selectorForValue(nodeHash);
   if (getDebugMode()) {
     if (setToParentNode) {
-      if (node.parentNode instanceof HTMLElement) {
+      if (node.parentNode instanceof currentWindow.HTMLElement) {
         node.parentNode.setAttribute(taskIdKey, nodeHash.toString());
       }
     } else {
@@ -66,17 +58,25 @@ export function setDataForNode(
   return selector;
 }
 
-function isElementPartiallyInViewport(rect: ReturnType<typeof getRect>) {
+function isElementPartiallyInViewport(
+  rect: ReturnType<typeof getRect>,
+  currentWindow: typeof window,
+  currentDocument: typeof document,
+) {
   const elementHeight = rect.height;
   const elementWidth = rect.width;
 
   const viewportRect = {
     left: 0,
     top: 0,
-    width: window.innerWidth || document.documentElement.clientWidth,
-    height: window.innerHeight || document.documentElement.clientHeight,
-    right: window.innerWidth || document.documentElement.clientWidth,
-    bottom: window.innerHeight || document.documentElement.clientHeight,
+    width:
+      currentWindow.innerWidth || currentDocument.documentElement.clientWidth,
+    height:
+      currentWindow.innerHeight || currentDocument.documentElement.clientHeight,
+    right:
+      currentWindow.innerWidth || currentDocument.documentElement.clientWidth,
+    bottom:
+      currentWindow.innerHeight || currentDocument.documentElement.clientHeight,
     x: 0,
     y: 0,
     zoom: 1,
@@ -93,17 +93,20 @@ function isElementPartiallyInViewport(rect: ReturnType<typeof getRect>) {
   return visibleArea / totalArea >= 2 / 3;
 }
 
-export function getPseudoElementContent(element: Node): {
+export function getPseudoElementContent(
+  element: Node,
+  currentWindow: typeof window,
+): {
   before: string;
   after: string;
 } {
-  if (!(element instanceof HTMLElement)) {
+  if (!(element instanceof currentWindow.HTMLElement)) {
     return { before: '', after: '' };
   }
-  const beforeContent = window
+  const beforeContent = currentWindow
     .getComputedStyle(element, '::before')
     .getPropertyValue('content');
-  const afterContent = window
+  const afterContent = currentWindow
     .getComputedStyle(element, '::after')
     .getPropertyValue('content');
   return {
@@ -112,8 +115,11 @@ export function getPseudoElementContent(element: Node): {
   };
 }
 
-export function hasOverflowY(element: HTMLElement): boolean {
-  const style = window.getComputedStyle(element);
+export function hasOverflowY(
+  element: HTMLElement,
+  currentWindow: typeof window,
+): boolean {
+  const style = currentWindow.getComputedStyle(element);
   return (
     style.overflowY === 'scroll' ||
     style.overflowY === 'auto' ||
@@ -158,18 +164,22 @@ export function overlappedRect(
   return null;
 }
 
-export function getRect(el: HTMLElement | Node, baseZoom = 1): ExtractedRect {
+export function getRect(
+  el: HTMLElement | Node,
+  baseZoom: number, // base zoom
+  currentWindow: typeof window,
+): ExtractedRect {
   let originalRect: DOMRect;
   let newZoom = 1;
-  if (!(el instanceof HTMLElement)) {
-    const range = document.createRange();
+  if (!(el instanceof currentWindow.HTMLElement)) {
+    const range = currentWindow.document.createRange();
     range.selectNodeContents(el);
     originalRect = range.getBoundingClientRect();
   } else {
     originalRect = el.getBoundingClientRect();
     // from Chrome v128, the API would return differently https://docs.google.com/document/d/1AcnDShjT-kEuRaMchZPm5uaIgNZ4OiYtM4JI9qiV8Po/edit
     if (!('currentCSSZoom' in el)) {
-      newZoom = Number.parseFloat(window.getComputedStyle(el).zoom) || 1;
+      newZoom = Number.parseFloat(currentWindow.getComputedStyle(el).zoom) || 1;
     }
   }
 
@@ -188,13 +198,17 @@ export function getRect(el: HTMLElement | Node, baseZoom = 1): ExtractedRect {
   };
 }
 
-const isElementCovered = (el: HTMLElement | Node, rect: ExtractedRect) => {
+const isElementCovered = (
+  el: HTMLElement | Node,
+  rect: ExtractedRect,
+  currentWindow: typeof window,
+) => {
   // Gets the center coordinates of the element
   const x = rect.left + rect.width / 2;
   const y = rect.top + rect.height / 2;
 
   // Gets the element above that point
-  const topElement = document.elementFromPoint(x, y);
+  const topElement = currentWindow.document.elementFromPoint(x, y);
   if (!topElement) {
     return false; // usually because it's outside the screen
   }
@@ -210,7 +224,7 @@ const isElementCovered = (el: HTMLElement | Node, rect: ExtractedRect) => {
     return false;
   }
 
-  const rectOfTopElement = getRect(topElement as HTMLElement, 1);
+  const rectOfTopElement = getRect(topElement as HTMLElement, 1, currentWindow);
 
   // get the remaining area of the base element
   const overlapRect = overlappedRect(rect, rectOfTopElement);
@@ -241,6 +255,8 @@ const isElementCovered = (el: HTMLElement | Node, rect: ExtractedRect) => {
 
 export function visibleRect(
   el: HTMLElement | Node | null,
+  currentWindow: typeof window,
+  currentDocument: typeof document,
   baseZoom = 1,
 ):
   | { left: number; top: number; width: number; height: number; zoom: number }
@@ -251,7 +267,7 @@ export function visibleRect(
   }
 
   if (
-    !(el instanceof HTMLElement) &&
+    !(el instanceof currentWindow.HTMLElement) &&
     el.nodeType !== Node.TEXT_NODE &&
     el.nodeName.toLowerCase() !== 'svg'
   ) {
@@ -259,8 +275,8 @@ export function visibleRect(
     return false;
   }
 
-  if (el instanceof HTMLElement) {
-    const style = window.getComputedStyle(el);
+  if (el instanceof currentWindow.HTMLElement) {
+    const style = currentWindow.getComputedStyle(el);
     if (
       style.display === 'none' ||
       style.visibility === 'hidden' ||
@@ -271,7 +287,7 @@ export function visibleRect(
     }
   }
 
-  const rect = getRect(el, baseZoom);
+  const rect = getRect(el, baseZoom, currentWindow);
 
   if (rect.width === 0 && rect.height === 0) {
     logger(el, 'Element has no size');
@@ -280,18 +296,24 @@ export function visibleRect(
 
   // check if the element is covered by another element
   // if the element is zoomed, the coverage check should be done with the original zoom
-  if (baseZoom === 1 && isElementCovered(el, rect)) {
+  if (baseZoom === 1 && isElementCovered(el, rect, currentWindow)) {
     return false;
   }
 
-  const scrollLeft = window.pageXOffset || document.documentElement.scrollLeft;
-  const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+  const scrollLeft =
+    currentWindow.pageXOffset || currentDocument.documentElement.scrollLeft;
+  const scrollTop =
+    currentWindow.pageYOffset || currentDocument.documentElement.scrollTop;
   const viewportWidth =
-    window.innerWidth || document.documentElement.clientWidth;
+    currentWindow.innerWidth || currentDocument.documentElement.clientWidth;
   const viewportHeight =
-    window.innerHeight || document.documentElement.clientHeight;
+    currentWindow.innerHeight || currentDocument.documentElement.clientHeight;
 
-  const isPartiallyInViewport = isElementPartiallyInViewport(rect);
+  const isPartiallyInViewport = isElementPartiallyInViewport(
+    rect,
+    currentWindow,
+    currentDocument,
+  );
 
   if (!isPartiallyInViewport) {
     logger(el, 'Element is completely outside the viewport', {
@@ -305,14 +327,14 @@ export function visibleRect(
   }
 
   let parent: HTMLElement | Node | null = el;
-  while (parent && parent !== document.body) {
-    if (!(parent instanceof HTMLElement)) {
+  while (parent && parent !== currentDocument.body) {
+    if (!(parent instanceof currentWindow.HTMLElement)) {
       parent = parent.parentElement;
       continue;
     }
-    const parentStyle = window.getComputedStyle(parent);
+    const parentStyle = currentWindow.getComputedStyle(parent);
     if (parentStyle.overflow === 'hidden') {
-      const parentRect = getRect(parent, 1);
+      const parentRect = getRect(parent, 1, currentWindow);
       const tolerance = 10;
 
       if (
@@ -352,23 +374,6 @@ export function validTextNodeContent(node: Node): string | false {
     return false;
   }
 
-  // const everyChildNodeIsText = Array.from(node.childNodes).every((child) => {
-  //   const tagName = ((child as HTMLElement).tagName || '').toLowerCase();
-  //   if (
-  //     tagName === 'script' ||
-  //     tagName === 'style' ||
-  //     tagName === 'link' ||
-  //     tagName !== '#text'
-  //   ) {
-  //     return false;
-  //   }
-  //   return true;
-  // });
-
-  // if (!everyChildNodeIsText) {
-  //   return false;
-  // }
-
   const content = node.textContent || (node as HTMLElement).innerText;
   if (content && !/^\s*$/.test(content)) {
     return content.trim();
@@ -379,8 +384,13 @@ export function validTextNodeContent(node: Node): string | false {
 
 export function getNodeAttributes(
   node: HTMLElement | Node,
+  currentWindow: typeof window,
 ): Record<string, string> {
-  if (!node || !(node instanceof HTMLElement) || !node.attributes) {
+  if (
+    !node ||
+    !(node instanceof currentWindow.HTMLElement) ||
+    !node.attributes
+  ) {
     return {};
   }
 
@@ -436,7 +446,6 @@ export function midsceneGenerateHash(
   const combined = JSON.stringify({
     content,
     rect,
-    _midscene_frame_id: getFrameId(),
   });
   // Generates the sha-256 hash value
   let sliceLength = 8;
@@ -486,7 +495,7 @@ export function setExtractTextWithPositionOnWindow() {
   }
 }
 
-export function getDocument(): HTMLElement {
+export function getTopDocument(): HTMLElement {
   const container: HTMLElement = document.body || document;
   return container;
 }
