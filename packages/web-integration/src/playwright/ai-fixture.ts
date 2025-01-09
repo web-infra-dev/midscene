@@ -112,6 +112,27 @@ export const PlaywrightAiFixture = () => {
       });
       updateDumpAnnotation(testInfo, agent.dumpDataString());
     },
+    aiTarget: async (
+      { page }: { page: OriginPlaywrightPage },
+      use: any,
+      testInfo: TestInfo,
+    ) => {
+      const agent = agentForPage(page, testInfo);
+      await use(async (taskPrompt: string) => {
+        return new Promise((resolve, reject) => {
+          test.step(`aiTarget - ${taskPrompt}`, async () => {
+            await waitForNetworkIdle(page);
+            try {
+              const result = await agent.aiToTarget(taskPrompt);
+              resolve(result);
+            } catch (error) {
+              reject(error);
+            }
+          });
+        });
+      });
+      updateDumpAnnotation(testInfo, agent.dumpDataString());
+    },
     aiQuery: async (
       { page }: { page: OriginPlaywrightPage },
       use: any,
@@ -184,6 +205,9 @@ export type PlayWrightAiFixtureType = {
     opts?: { type?: 'action' | 'query' },
   ) => Promise<T>;
   aiAction: (taskPrompt: string) => ReturnType<PageTaskExecutor['action']>;
+  aiTarget: (
+    taskPrompt: string,
+  ) => ReturnType<PageTaskExecutor['actionToGoal']>;
   aiQuery: <T = any>(demand: any) => Promise<T>;
   aiAssert: (assertion: string, errorMsg?: string) => Promise<void>;
   aiWaitFor: (assertion: string, opt?: AgentWaitForOpt) => Promise<void>;

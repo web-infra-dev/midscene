@@ -29,6 +29,10 @@ import {
   plan,
   transformElementPositionToId,
 } from '@midscene/core';
+import {
+  type ChatCompletionMessageParam,
+  planToTarget,
+} from '@midscene/core/ai-model';
 import { sleep } from '@midscene/core/utils';
 import type { KeyInput } from 'puppeteer';
 import type { ElementInfo } from '../extractor';
@@ -47,6 +51,8 @@ export class PageTaskExecutor {
   insight: Insight<WebElementInfo, WebUIContext>;
 
   taskCache: TaskCache;
+
+  conversationHistory: ChatCompletionMessageParam[] = [];
 
   constructor(
     page: WebPage,
@@ -155,12 +161,13 @@ export class PageTaskExecutor {
             );
             let locateResult: AIElementIdResponse | undefined;
             const callAI = this.insight.aiVendorFn;
+
+            const quickAnswer = {
+              id: param?.id,
+              position: param?.position,
+            };
             const element = await this.insight.locate(param.prompt, {
-              quickAnswer: param?.id
-                ? {
-                    id: param.id,
-                  }
-                : undefined,
+              quickAnswer,
               callAI: async (...message: any) => {
                 if (locateCache) {
                   locateResult = locateCache;
@@ -268,6 +275,8 @@ export class PageTaskExecutor {
                   return;
                 }
 
+                await this.page.keyboard.type(taskParam.value);
+              } else {
                 await this.page.keyboard.type(taskParam.value);
               }
             },
@@ -540,6 +549,62 @@ export class PageTaskExecutor {
     return task;
   }
 
+  private planningTaskToGoal(userPrompt: string) {
+    const task: ExecutionTaskPlanningApply = {
+      type: 'Planning',
+      locate: null,
+      param: {
+        userPrompt,
+      },
+      executor: async (param, executorContext) => {
+        const shotTime = Date.now();
+        const pageContext = await this.insight.contextRetrieverFn('locate');
+        const recordItem: ExecutionRecorderItem = {
+          type: 'screenshot',
+          ts: shotTime,
+          screenshot: pageContext.screenshotBase64,
+          timing: 'before planning',
+        };
+        executorContext.task.recorder = [recordItem];
+        (executorContext.task as any).pageContext = pageContext;
+        this.conversationHistory.push({
+          role: 'user',
+          content: [
+            {
+              type: 'image_url',
+              image_url: {
+                url: pageContext.screenshotBase64,
+              },
+            },
+          ],
+        });
+        const planResult = await planToTarget({
+          userInstruction: param.userPrompt,
+          conversationHistory: this.conversationHistory,
+          size: pageContext.size,
+        });
+        const { actions, action_summary } = planResult;
+        this.conversationHistory.push({
+          role: 'assistant',
+          content: action_summary,
+        });
+        return {
+          output: {
+            actions,
+            action_summary,
+            taskWillBeAccomplished: false,
+            furtherPlan: {
+              whatToDoNext: '',
+              whatHaveDone: '',
+            },
+          },
+        };
+      },
+    };
+
+    return task;
+  }
+
   async action(
     userPrompt: string,
     options?: ExecutionTaskProgressOptions,
@@ -615,6 +680,52 @@ export class PageTaskExecutor {
 
     return {
       output: result,
+      executor: taskExecutor,
+    };
+  }
+
+  async actionToGoal(
+    userPrompt: string,
+    options?: ExecutionTaskProgressOptions,
+  ) {
+    const taskExecutor = new Executor(userPrompt, undefined, undefined, {
+      onTaskStart: options?.onTaskStart,
+    });
+
+    const isCompleted = false;
+    let currentActionNumber = 0;
+
+    while (!isCompleted && currentActionNumber < 100) {
+      currentActionNumber++;
+      const planningTask: ExecutionTaskPlanningApply =
+        this.planningTaskToGoal(userPrompt);
+      await taskExecutor.append(planningTask);
+      const output = await taskExecutor.flush();
+      const plans = output.actions;
+
+      let executables: Awaited<ReturnType<typeof this.convertPlanToExecutable>>;
+      try {
+        executables = await this.convertPlanToExecutable(plans);
+        taskExecutor.append(executables.tasks);
+      } catch (error) {
+        return this.appendErrorPlan(
+          taskExecutor,
+          `Error converting plans to executable tasks: ${error}, plans: ${JSON.stringify(
+            plans,
+          )}`,
+        );
+      }
+
+      const result = await taskExecutor.flush();
+      if (taskExecutor.isInErrorState()) {
+        return {
+          output: result,
+          executor: taskExecutor,
+        };
+      }
+    }
+    return {
+      output: {},
       executor: taskExecutor,
     };
   }

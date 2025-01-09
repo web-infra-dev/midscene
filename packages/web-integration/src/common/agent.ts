@@ -198,6 +198,20 @@ export class PageAgent {
     }
   }
 
+  async aiToTarget(taskPrompt: string, options?: ExecutionTaskProgressOptions) {
+    const { executor } = await this.taskExecutor.actionToGoal(
+      taskPrompt,
+      options,
+    );
+    this.appendExecutionDump(executor.dump());
+    this.writeOutActionDumps();
+
+    if (executor.isInErrorState()) {
+      const errorTask = executor.latestErrorTask();
+      throw new Error(`${errorTask?.error}\n${errorTask?.errorStack}`);
+    }
+  }
+
   async ai(taskPrompt: string, type = 'action') {
     if (type === 'action') {
       return this.aiAction(taskPrompt);

@@ -164,7 +164,7 @@ export interface InsightDump extends DumpMeta {
     sections?: Record<string, string>;
     assertion?: string;
   }; // ?
-  quickAnswer?: AISingleElementResponse | null;
+  quickAnswer?: Partial<AISingleElementResponse> | null;
   matchedSection: [];
   matchedElement: BaseElement[];
   data: any;
@@ -233,7 +233,8 @@ export interface PlanningAction<ParamType = any> {
     | 'FalsyConditionStatement'
     | 'Assert'
     | 'AssertWithoutThrow'
-    | 'Sleep';
+    | 'Sleep'
+    | 'Finished';
   param: ParamType;
   locate: PlanningLocateParam | null;
 }
