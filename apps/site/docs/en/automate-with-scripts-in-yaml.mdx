@@ -144,6 +144,9 @@ target:
   
   # string, the path to save the aiQuery result, optional
   output: <path-to-output-file>
+
+  # string, the bridge mode to use, optional, default is 'currentTab', can be 'newTabWithUrl' or 'currentTab'
+  bridgeMode: <mode>
 ```
 
 The `tasks` part is an array indicates the tasks to do. Remember to write a `-` before each item which means an array item.
@@ -177,6 +180,11 @@ tasks:
     flow:
       # ...
 ```
+
+## Use bridge mode
+By using bridge mode, you can utilize YAML scripts to automate the web browser on your desktop. This is particularly useful if you want to reuse cookies, plugins, and page states, or if you want to manually interact with automation scripts.
+
+See [Bridge Mode by Chrome Extension](./bridge-mode-by-chrome-extension.html) for more details.
 
 ## FAQ
 

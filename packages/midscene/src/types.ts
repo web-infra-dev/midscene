@@ -197,6 +197,8 @@ export type InsightAssertionResponse = AIAssertionResponse;
  * agent
  */
 
+export type OnTaskStartTip = (tip: string) => Promise<void> | void;
+
 export interface AgentWaitForOpt {
   checkIntervalMs?: number;
   timeoutMs?: number;

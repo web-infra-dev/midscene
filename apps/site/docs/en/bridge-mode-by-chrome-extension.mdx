@@ -93,7 +93,38 @@ Destroy the connection.
 
 ## Use bridge mode in yaml-script
 
-We are still building this, and it will be ready soon.
+[Yaml scripts](./automate-with-scripts-in-yaml) is a way for developers to write automation scripts in yaml format, which is easy to read and write comparing to javascript.
+
+To use bridge mode in yaml script, set the `bridgeMode` property in the `target` section. If you want to use the current tab, set it to `currentTab`, otherwise set it to `newTabWithUrl`.
+
+For example, the following script will open a new tab by Chrome extension bridge: 
+
+```diff
+target:
+  url: https://www.bing.com
++ bridgeMode: newTabWithUrl
+tasks:
+```
+
+Run the script:
+
+```bash
+midscene ./bing.yaml
+```
+
+Remember to start the chrome extension and click 'Allow connection' button after the script is running.
+
+### Unsupported options
+
+In bridge mode, these options will be ignored (they will follow your desktop browser's settings):
+- userAgent
+- viewportWidth
+- viewportHeight
+- viewportScale
+- waitForNetworkIdle
+- cookie
+
+
 
 
 

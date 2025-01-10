@@ -60,9 +60,10 @@ export class BridgeServer {
         this.connectionTipTimer && clearTimeout(this.connectionTipTimer);
         this.connectionTipTimer = null;
         if (this.socket) {
-          console.log('server already connected, refusing new connection');
           socket.emit(BridgeEvent.Refused);
-          reject(new Error('server already connected by another client'));
+          return reject(
+            new Error('server already connected by another client'),
+          );
         }
 
         try {
@@ -71,10 +72,7 @@ export class BridgeServer {
 
           const clientVersion = socket.handshake.query.version;
           console.log(
-            'Bridge connected, cli-side version:',
-            __VERSION__,
-            ', browser-side version:',
-            clientVersion,
+            `Bridge connected, cli-side version v${__VERSION__}, browser-side version v${clientVersion}`,
           );
 
           socket.on(BridgeEvent.CallResponse, (params: BridgeCallResponse) => {
@@ -88,7 +86,12 @@ export class BridgeServer {
           socket.on('disconnect', (reason: string) => {
             this.connectionLost = true;
             this.connectionLostReason = reason;
-            this.onDisconnect?.(reason);
+
+            try {
+              this.io?.close();
+            } catch (e) {
+              // ignore
+            }
 
             // flush all pending calls as error
             for (const id in this.calls) {
@@ -103,6 +106,8 @@ export class BridgeServer {
                 );
               }
             }
+
+            this.onDisconnect?.(reason);
           });
 
           setTimeout(() => {
