@@ -11,11 +11,22 @@ import type {
   MidsceneYamlFlowItemSleep,
 } from '@midscene/core';
 
+function interpolateEnvVars(content: string): string {
+  return content.replace(/\$\{([^}]+)\}/g, (_, envVar) => {
+    const value = process.env[envVar.trim()];
+    if (value === undefined) {
+      throw new Error(`Environment variable "${envVar.trim()}" is not defined`);
+    }
+    return value;
+  });
+}
+
 export function parseYamlScript(
   content: string,
   filePath?: string,
 ): MidsceneYamlScript {
-  const obj = yaml.load(content) as MidsceneYamlScript;
+  const interpolatedContent = interpolateEnvVars(content);
+  const obj = yaml.load(interpolatedContent) as MidsceneYamlScript;
   const pathTip = filePath ? `, failed to load ${filePath}` : '';
   assert(obj.target, `property "target" is required in yaml script${pathTip}`);
   assert(
