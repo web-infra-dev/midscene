@@ -10,8 +10,9 @@ test('inspect with quick answer', async () => {
     path.join(__dirname, '../evaluate/test-data/todo'),
   );
 
+  const { width, height } = context.size;
   const startTime = Date.now();
-  const res = await planToTarget({
+  const { realActions } = await planToTarget({
     userInstruction: '删除第二条任务',
     conversationHistory: [
       {
@@ -26,14 +27,20 @@ test('inspect with quick answer', async () => {
         ],
       },
     ],
+    size: {
+      width,
+      height,
+    },
   });
 
   const endTime = Date.now();
   const cost = (endTime - startTime) / 1000;
-  const box = JSON.parse(res[0].action_inputs.start_box);
-  const { width, height } = context.size;
+  const start_box =
+    'start_box' in realActions[0].action_inputs
+      ? realActions[0].action_inputs.start_box
+      : '[]';
+  const box = JSON.parse(start_box);
   console.log('plan to target content:', {
-    res,
     box,
     size: {
       width,

@@ -701,6 +701,7 @@ export class PageTaskExecutor {
     const taskExecutor = new Executor(userPrompt, undefined, undefined, {
       onTaskStart: options?.onTaskStart,
     });
+    this.conversationHistory = [];
 
     const isCompleted = false;
     let currentActionNumber = 0;
