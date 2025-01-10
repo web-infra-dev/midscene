@@ -115,7 +115,7 @@ async function loopAgent(
   console.log('historyActions', conversationHistory);
 }
 
-test('search midscene and star aiTarget', async ({ page, aiTarget }) => {
+test('search midscene and star aiTarget', async ({ page, aiAction }) => {
   try {
     const outputPath = path.join(__dirname, 'output');
     await fs.rmSync(outputPath, { recursive: true });
@@ -127,10 +127,10 @@ test('search midscene and star aiTarget', async ({ page, aiTarget }) => {
     await popup.close(); // 关闭新打开的标签页
     await page.goto(url);
   });
-  await aiTarget('搜索 midscene ，找到 github 地址，点击 star');
+  await aiAction('搜索 midscene ，找到 github 地址，点击 star');
 });
 
-test('music aiTarget', async ({ page, aiTarget }) => {
+test('music aiTarget', async ({ page, aiAction }) => {
   try {
     const outputPath = path.join(__dirname, 'output');
     await fs.rmdirSync(outputPath, { recursive: true });
@@ -142,7 +142,7 @@ test('music aiTarget', async ({ page, aiTarget }) => {
     await popup.close(); // 关闭新打开的标签页
     await page.goto(url);
   });
-  await aiTarget('搜索抖音，搜索黑神话悟空，点赞');
+  await aiAction('搜索抖音，搜索黑神话悟空，点赞');
 });
 
 test('search midscene and star', async ({ page }) => {

@@ -184,9 +184,6 @@ export type PlayWrightAiFixtureType = {
     opts?: { type?: 'action' | 'query' },
   ) => Promise<T>;
   aiAction: (taskPrompt: string) => ReturnType<PageTaskExecutor['action']>;
-  aiTarget: (
-    taskPrompt: string,
-  ) => ReturnType<PageTaskExecutor['actionToGoal']>;
   aiQuery: <T = any>(demand: any) => Promise<T>;
   aiAssert: (assertion: string, errorMsg?: string) => Promise<void>;
   aiWaitFor: (assertion: string, opt?: AgentWaitForOpt) => Promise<void>;
