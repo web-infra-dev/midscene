@@ -83,7 +83,7 @@ export class ChromeExtensionPageBrowserSide extends ChromeExtensionProxyPage {
     );
     await this.bridgeClient.connect();
     this.onLogMessage(
-      `Bridge connected, cli-side version ${this.bridgeClient.serverVersion}, browser-side version: ${__VERSION__}`,
+      `Bridge connected, cli-side version v${this.bridgeClient.serverVersion}, browser-side version v${__VERSION__}`,
       'log',
     );
   }

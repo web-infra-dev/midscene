@@ -3,10 +3,11 @@ import {
   type AgentAssertOpt,
   type AgentWaitForOpt,
   type ExecutionDump,
-  type ExecutionTaskProgressOptions,
+  type ExecutionTask,
   type GroupedActionDump,
   Insight,
   type InsightAction,
+  type OnTaskStartTip,
 } from '@midscene/core';
 import { NodeType } from '@midscene/shared/constants';
 
@@ -19,6 +20,7 @@ import {
 import { PageTaskExecutor } from '../common/tasks';
 import { WebElementInfo } from '../web-element';
 import type { AiTaskCache } from './task-cache';
+import { paramStr, typeStr } from './ui-utils';
 import { printReportMsg, reportFileName } from './utils';
 import { type WebUIContext, parseContextFromWebPage } from './utils';
 
@@ -32,6 +34,7 @@ export interface PageAgentOpt {
   generateReport?: boolean;
   /* if auto print report msg, default true */
   autoPrintReportMsg?: boolean;
+  onTaskStartTip?: OnTaskStartTip;
 }
 
 export class PageAgent<PageType extends WebPage = WebPage> {
@@ -142,8 +145,17 @@ export class PageAgent<PageType extends WebPage = WebPage> {
     }
   }
 
-  async aiAction(taskPrompt: string, options?: ExecutionTaskProgressOptions) {
-    const { executor } = await this.taskExecutor.action(taskPrompt, options);
+  private async callbackOnTaskStartTip(task: ExecutionTask) {
+    if (this.opts.onTaskStartTip) {
+      const tip = `${typeStr(task)} - ${paramStr(task)}`;
+      await this.opts.onTaskStartTip(tip);
+    }
+  }
+
+  async aiAction(taskPrompt: string) {
+    const { executor } = await this.taskExecutor.action(taskPrompt, {
+      onTaskStart: this.callbackOnTaskStartTip.bind(this),
+    });
     this.appendExecutionDump(executor.dump());
     this.writeOutActionDumps();
 
@@ -154,7 +166,9 @@ export class PageAgent<PageType extends WebPage = WebPage> {
   }
 
   async aiQuery(demand: any) {
-    const { output, executor } = await this.taskExecutor.query(demand);
+    const { output, executor } = await this.taskExecutor.query(demand, {
+      onTaskStart: this.callbackOnTaskStartTip.bind(this),
+    });
     this.appendExecutionDump(executor.dump());
     this.writeOutActionDumps();
 
@@ -166,7 +180,9 @@ export class PageAgent<PageType extends WebPage = WebPage> {
   }
 
   async aiAssert(assertion: string, msg?: string, opt?: AgentAssertOpt) {
-    const { output, executor } = await this.taskExecutor.assert(assertion);
+    const { output, executor } = await this.taskExecutor.assert(assertion, {
+      onTaskStart: this.callbackOnTaskStartTip.bind(this),
+    });
     this.appendExecutionDump(executor.dump());
     this.writeOutActionDumps();
 

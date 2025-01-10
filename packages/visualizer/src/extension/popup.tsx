@@ -53,21 +53,6 @@ const shotAndOpenPlayground = async (
   });
 };
 
-// {
-//   /* <p>
-//             To keep the current page context, you can also{' '}
-//             <Button
-//               onClick={handleSendToPlayground}
-//               loading={loading}
-//               type="link"
-//               size="small"
-//               icon={<SendOutlined />}
-//             >
-//               send to fullscreen playground
-//             </Button>
-//           </p> */
-// }
-
 function PlaygroundPopup() {
   const [loading, setLoading] = useState(false);
   const extensionVersion = getExtensionVersion();
