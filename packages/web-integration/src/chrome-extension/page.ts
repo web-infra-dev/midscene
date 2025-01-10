@@ -328,13 +328,13 @@ export default class ChromeExtensionProxyPage implements AbstractPage {
       const cdpKeyboard = new CdpKeyboard({
         send: this.sendCommandToDebugger.bind(this),
       });
-      await cdpKeyboard.type(text);
+      await cdpKeyboard.type(text, { delay: 0 });
     },
     press: async (key: WebKeyInput) => {
       const cdpKeyboard = new CdpKeyboard({
         send: this.sendCommandToDebugger.bind(this),
       });
-      await cdpKeyboard.press(key);
+      await cdpKeyboard.press(key, { delay: 0 });
     },
   };
 

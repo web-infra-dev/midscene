@@ -28,7 +28,7 @@ import { serverBase, useServerValid } from './open-in-playground';
 
 import { ScriptPlayer, buildYaml, parseYamlScript } from '@midscene/web/yaml';
 
-import { overrideAIConfig } from '@midscene/core';
+import { overrideAIConfig } from '@midscene/core/env';
 import {
   ERROR_CODE_NOT_IMPLEMENTED_AS_DESIGNED,
   StaticPage,

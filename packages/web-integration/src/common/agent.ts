@@ -214,11 +214,10 @@ export class PageAgent<PageType extends WebPage = WebPage> {
     }
   }
 
-  async aiToTarget(taskPrompt: string, options?: ExecutionTaskProgressOptions) {
-    const { executor } = await this.taskExecutor.actionToGoal(
-      taskPrompt,
-      options,
-    );
+  async aiToTarget(taskPrompt: string) {
+    const { executor } = await this.taskExecutor.actionToGoal(taskPrompt, {
+      onTaskStart: this.callbackOnTaskStartTip.bind(this),
+    });
     this.appendExecutionDump(executor.dump());
     this.writeOutActionDumps();
 

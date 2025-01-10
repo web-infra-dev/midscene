@@ -133,7 +133,7 @@ export default class PlaygroundServer {
           if (type === 'aiQuery') {
             response.result = await agent.aiQuery(prompt);
           } else if (type === 'aiAction') {
-            response.result = await agent.aiAction(prompt);
+            response.result = await agent.aiToTarget(prompt);
           } else if (type === 'aiAssert') {
             response.result = await agent.aiAssert(prompt, undefined, {
               keepRawResponse: true,

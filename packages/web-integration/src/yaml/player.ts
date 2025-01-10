@@ -111,7 +111,7 @@ export class ScriptPlayer {
           typeof prompt === 'string',
           'prompt for aiAction must be a string',
         );
-        await agent.aiAction(prompt);
+        await agent.aiToTarget(prompt);
       } else if ((flowItem as MidsceneYamlFlowItemAIAssert).aiAssert) {
         const assertTask = flowItem as MidsceneYamlFlowItemAIAssert;
         const prompt = assertTask.aiAssert;
