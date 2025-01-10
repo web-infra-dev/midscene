@@ -201,9 +201,6 @@ export async function call(
         : Number.parseInt(maxTokens || '2048', 10),
   };
 
-  // if (getAIConfig(MATCH_BY_POSITION)) {
-  //   return useHttpAgent(messages, AIActionTypeValue);
-  // }
   if (style === 'openai') {
     const result = await completion.create({
       model,

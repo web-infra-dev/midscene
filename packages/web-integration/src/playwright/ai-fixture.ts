@@ -112,27 +112,6 @@ export const PlaywrightAiFixture = () => {
       });
       updateDumpAnnotation(testInfo, agent.dumpDataString());
     },
-    aiTarget: async (
-      { page }: { page: OriginPlaywrightPage },
-      use: any,
-      testInfo: TestInfo,
-    ) => {
-      const agent = agentForPage(page, testInfo);
-      await use(async (taskPrompt: string) => {
-        return new Promise((resolve, reject) => {
-          test.step(`aiTarget - ${taskPrompt}`, async () => {
-            await waitForNetworkIdle(page);
-            try {
-              const result = await agent.aiToTarget(taskPrompt);
-              resolve(result);
-            } catch (error) {
-              reject(error);
-            }
-          });
-        });
-      });
-      updateDumpAnnotation(testInfo, agent.dumpDataString());
-    },
     aiQuery: async (
       { page }: { page: OriginPlaywrightPage },
       use: any,
