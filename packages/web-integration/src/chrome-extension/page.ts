@@ -30,7 +30,8 @@ const scriptFileContent = async () => {
 export default class ChromeExtensionProxyPage implements AbstractPage {
   pageType = 'chrome-extension-proxy';
 
-  public tabId: number;
+  public getTabId: () => number;
+  private lastAttachedTabId?: number;
 
   private viewportSize?: Size;
 
@@ -38,12 +39,17 @@ export default class ChromeExtensionProxyPage implements AbstractPage {
 
   private attachingDebugger: Promise<void> | null = null;
 
-  constructor(tabId: number) {
-    this.tabId = tabId;
+  constructor(getTabId: () => number) {
+    this.getTabId = getTabId;
   }
 
   private async attachDebugger() {
-    if (this.debuggerAttached) return;
+    // Check if debugger is attached to the same tab
+    const currentTabId = this.getTabId();
+    if (this.debuggerAttached && this.lastAttachedTabId === currentTabId) {
+      console.log('debugger already attached to the same tab');
+      return;
+    }
 
     // If already attaching, wait for it to complete
     if (this.attachingDebugger) {
@@ -54,14 +60,16 @@ export default class ChromeExtensionProxyPage implements AbstractPage {
     // Create new attaching promise
     this.attachingDebugger = (async () => {
       try {
-        await chrome.debugger.attach({ tabId: this.tabId }, '1.3');
+        await chrome.debugger.attach({ tabId: currentTabId }, '1.3');
         this.debuggerAttached = true;
+        this.lastAttachedTabId = currentTabId;
 
         // listen to the debugger detach event
         chrome.debugger.onEvent.addListener((source, method, params) => {
           console.log('debugger event', source, method, params);
           if (method === 'Debugger.detached') {
             this.debuggerAttached = false;
+            this.lastAttachedTabId = undefined;
           }
         });
       } finally {
@@ -74,7 +82,7 @@ export default class ChromeExtensionProxyPage implements AbstractPage {
 
   private async detachDebugger() {
     if (!this.debuggerAttached) return;
-    await chrome.debugger.detach({ tabId: this.tabId });
+    await chrome.debugger.detach({ tabId: this.getTabId() });
     this.debuggerAttached = false;
   }
 
@@ -84,7 +92,7 @@ export default class ChromeExtensionProxyPage implements AbstractPage {
   ): Promise<ResponseType> {
     await this.attachDebugger();
     return (await chrome.debugger.sendCommand(
-      { tabId: this.tabId },
+      { tabId: this.getTabId() },
       command,
       params as any,
     )) as ResponseType;
@@ -181,7 +189,7 @@ export default class ChromeExtensionProxyPage implements AbstractPage {
   }
 
   async url() {
-    const url = await chrome.tabs.get(this.tabId).then((tab) => tab.url);
+    const url = await chrome.tabs.get(this.getTabId()).then((tab) => tab.url);
     return url || '';
   }
 

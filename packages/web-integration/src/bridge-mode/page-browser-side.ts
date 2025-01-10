@@ -21,7 +21,7 @@ export class ChromeExtensionPageBrowserSide extends ChromeExtensionProxyPage {
       type: 'log' | 'status',
     ) => void = () => {},
   ) {
-    super(0);
+    super(() => 0);
   }
 
   private async setupBridgeClient() {
@@ -44,7 +44,7 @@ export class ChromeExtensionPageBrowserSide extends ChromeExtensionProxyPage {
           return this.onLogMessage(args[0] as string, 'status');
         }
 
-        if (!this.tabId || this.tabId === 0) {
+        if (!this.getTabId || this.getTabId() === 0) {
           throw new Error('no tab is connected');
         }
 
@@ -94,30 +94,30 @@ export class ChromeExtensionPageBrowserSide extends ChromeExtensionProxyPage {
 
   public async connectNewTabWithUrl(url: string) {
     assert(url, 'url is required to create a new tab');
-    if (this.tabId) {
+    if (this.getTabId()) {
       throw new Error('tab is already connected');
     }
 
     const tab = await chrome.tabs.create({ url });
     const tabId = tab.id;
     assert(tabId, 'failed to get tabId after creating a new tab');
-    this.tabId = tabId;
+    this.getTabId = () => tabId;
 
     // new tab
     this.onLogMessage(`Creating new tab: ${url}`, 'log');
   }
 
   public async connectCurrentTab() {
-    if (this.tabId) {
+    if (this.getTabId()) {
       throw new Error(
-        `already connected with tab id ${this.tabId}, cannot reconnect`,
+        `already connected with tab id ${this.getTabId()}, cannot reconnect`,
       );
     }
     const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
     console.log('current tab', tabs);
     const tabId = tabs[0]?.id;
     assert(tabId, 'failed to get tabId');
-    this.tabId = tabId;
+    this.getTabId = () => tabId;
 
     this.onLogMessage(`Connected to current tab: ${tabs[0]?.url}`, 'log');
   }
@@ -129,6 +129,6 @@ export class ChromeExtensionPageBrowserSide extends ChromeExtensionProxyPage {
       this.onDisconnect();
     }
     super.destroy();
-    this.tabId = 0;
+    this.getTabId = () => 0;
   }
 }

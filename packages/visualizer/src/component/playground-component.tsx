@@ -160,11 +160,11 @@ const serverLaunchTip = (
 );
 
 // remember to destroy the agent when the tab is destroyed: agent.page.destroy()
-export const extensionAgentForTabId = (tabId: number | null) => {
-  if (!tabId) {
+export const extensionAgentForTabId = (getTabId: () => number) => {
+  if (!getTabId()) {
     return null;
   }
-  const page = new ChromeExtensionProxyPage(tabId);
+  const page = new ChromeExtensionProxyPage(getTabId);
   return new ChromeExtensionProxyPageAgent(page);
 };
 

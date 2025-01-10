@@ -23,7 +23,7 @@ import { useChromeTabInfo } from '@/component/store';
 import { useEnvConfig } from '@/component/store';
 import { ApiOutlined, SendOutlined } from '@ant-design/icons';
 import type { ChromeExtensionProxyPageAgent } from '@midscene/web/chrome-extension';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Bridge from './bridge';
 
 setSideEffect();
@@ -57,6 +57,7 @@ function PlaygroundPopup() {
   const [loading, setLoading] = useState(false);
   const extensionVersion = getExtensionVersion();
   const { tabId, windowId } = useChromeTabInfo();
+  const tabIdRef = useRef<number | null>(null);
   const { popupTab, setPopupTab } = useEnvConfig();
 
   const handleSendToPlayground = async () => {
@@ -66,7 +67,7 @@ function PlaygroundPopup() {
     }
     setLoading(true);
     try {
-      const agent = extensionAgentForTabId(tabId);
+      const agent = extensionAgentForTabId(() => tabId);
       await shotAndOpenPlayground(agent);
       await agent!.page.destroy();
     } catch (e: any) {
@@ -74,6 +75,12 @@ function PlaygroundPopup() {
     }
     setLoading(false);
   };
+
+  useEffect(() => {
+    if (tabId) {
+      tabIdRef.current = tabId;
+    }
+  }, [tabId]);
 
   const items = [
     {
@@ -85,7 +92,7 @@ function PlaygroundPopup() {
           <Playground
             hideLogo
             getAgent={() => {
-              return extensionAgentForTabId(tabId);
+              return extensionAgentForTabId(() => tabIdRef.current || 0);
             }}
             showContextPreview={false}
           />
