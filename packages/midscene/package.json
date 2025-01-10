@@ -60,7 +60,15 @@
   },
   "publishConfig": {
     "access": "public",
-    "registry": "https://registry.npmjs.org"
+    "registry": "https://registry.npmjs.org",
+    "typesVersions": {
+      "*": {
+        ".": ["./src/index.ts"],
+        "env": ["./src/env.ts"],
+        "utils": ["./src/utils.ts"],
+        "ai-model": ["./src/ai-model/index.ts"]
+      }
+    }
   },
   "license": "MIT"
 }
