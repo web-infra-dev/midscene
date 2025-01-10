@@ -17,10 +17,10 @@
   },
   "typesVersions": {
     "*": {
-      ".": ["./dist/lib/types/index.d.ts"],
-      "env": ["./dist/lib/types/env.d.ts"],
-      "utils": ["./dist/lib/types/utils.d.ts"],
-      "ai-model": ["./dist/lib/types/ai-model.d.ts"]
+      ".": ["./src/index.ts"],
+      "env": ["./src/env.ts"],
+      "utils": ["./src/utils.ts"],
+      "ai-model": ["./src/ai-model/index.ts"]
     }
   },
   "scripts": {
@@ -63,10 +63,10 @@
     "registry": "https://registry.npmjs.org",
     "typesVersions": {
       "*": {
-        ".": ["./src/index.ts"],
-        "env": ["./src/env.ts"],
-        "utils": ["./src/utils.ts"],
-        "ai-model": ["./src/ai-model/index.ts"]
+        ".": ["./dist/lib/types/index.d.ts"],
+        "env": ["./dist/lib/types/env.d.ts"],
+        "utils": ["./dist/lib/types/utils.d.ts"],
+        "ai-model": ["./dist/lib/types/ai-model.d.ts"]
       }
     }
   },
