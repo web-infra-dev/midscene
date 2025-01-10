@@ -2,6 +2,7 @@ import path from 'node:path';
 //@ts-ignore
 import dotenv from 'dotenv';
 import { defineConfig } from 'vitest/config';
+import { version } from './package.json';
 
 /**
  * Read environment variables from file.
@@ -13,7 +14,10 @@ dotenv.config({
 
 const aiTestType = process.env.AI_TEST_TYPE;
 const unitTests = ['tests/unit-test/**/*.test.ts'];
-const aiWebTests = ['tests/ai/web/**/*.test.ts'];
+const aiWebTests = [
+  'tests/ai/web/**/*.test.ts',
+  'tests/ai/bridge/**/*.test.ts',
+];
 const aiNativeTests = ['tests/ai/native/**/*.test.ts'];
 // const aiNativeTests = ['tests/ai/native/appium/dongchedi.test.ts'];
 const testFiles = (() => {
@@ -35,5 +39,8 @@ export default defineConfig({
   },
   test: {
     include: testFiles,
+  },
+  define: {
+    __VERSION__: `'${version}'`,
   },
 });

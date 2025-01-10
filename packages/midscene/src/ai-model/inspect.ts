@@ -144,7 +144,6 @@ export async function AiInspectElement<
   multi: boolean;
   targetElementDescription: string;
   callAI?: typeof callAiFn<AIElementResponse | [number, number]>;
-  useModel?: 'coze' | 'openAI';
   quickAnswer?: Partial<
     AISingleElementResponse | AISingleElementResponseByPosition
   >;
@@ -188,6 +187,7 @@ export async function AiInspectElement<
           type: 'image_url',
           image_url: {
             url: screenshotBase64WithElementMarker || screenshotBase64,
+            detail: 'high',
           },
         },
         {
@@ -221,9 +221,8 @@ export async function AiExtractElementInfo<
 >(options: {
   dataQuery: string | Record<string, string>;
   context: UIContext<ElementType>;
-  useModel?: 'coze' | 'openAI';
 }) {
-  const { dataQuery, context, useModel } = options;
+  const { dataQuery, context } = options;
   const systemPrompt = systemPromptToExtract();
 
   const { screenshotBase64 } = context;
@@ -256,6 +255,7 @@ export async function AiExtractElementInfo<
           type: 'image_url',
           image_url: {
             url: screenshotBase64,
+            detail: 'high',
           },
         },
         {
@@ -279,12 +279,8 @@ export async function AiExtractElementInfo<
 
 export async function AiAssert<
   ElementType extends BaseElement = BaseElement,
->(options: {
-  assertion: string;
-  context: UIContext<ElementType>;
-  useModel?: 'coze' | 'openAI';
-}) {
-  const { assertion, context, useModel } = options;
+>(options: { assertion: string; context: UIContext<ElementType> }) {
+  const { assertion, context } = options;
 
   assert(assertion, 'assertion should be a string');
 
@@ -301,6 +297,7 @@ export async function AiAssert<
           type: 'image_url',
           image_url: {
             url: screenshotBase64,
+            detail: 'high',
           },
         },
         {

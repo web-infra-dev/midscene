@@ -745,10 +745,15 @@ export class PageTaskExecutor {
     };
   }
 
-  async query(demand: InsightExtractParam): Promise<ExecutionResult> {
+  async query(
+    demand: InsightExtractParam,
+    options?: ExecutionTaskProgressOptions,
+  ): Promise<ExecutionResult> {
     const description =
       typeof demand === 'string' ? demand : JSON.stringify(demand);
-    const taskExecutor = new Executor(description);
+    const taskExecutor = new Executor(description, undefined, undefined, {
+      onTaskStart: options?.onTaskStart,
+    });
     const queryTask: ExecutionTaskInsightQueryApply = {
       type: 'Insight',
       subType: 'Query',
@@ -780,9 +785,12 @@ export class PageTaskExecutor {
 
   async assert(
     assertion: string,
+    options?: ExecutionTaskProgressOptions,
   ): Promise<ExecutionResult<InsightAssertionResponse>> {
     const description = `assert: ${assertion}`;
-    const taskExecutor = new Executor(description);
+    const taskExecutor = new Executor(description, undefined, undefined, {
+      onTaskStart: options?.onTaskStart,
+    });
     const assertionPlan: PlanningAction<PlanningActionParamAssert> = {
       type: 'Assert',
       param: {

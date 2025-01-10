@@ -41,7 +41,7 @@ import { findElementSchema } from '../prompt/element-inspector';
 import { planSchema } from '../prompt/planning';
 import { assertSchema } from '../prompt/util';
 
-export function checkAIConfig(preferVendor?: 'coze' | 'openAI') {
+export function checkAIConfig(preferVendor?: 'openAI') {
   if (preferVendor && preferVendor !== 'openAI') return false;
   if (getAIConfig(OPENAI_API_KEY)) return true;
   if (getAIConfig(MIDSCENE_USE_AZURE_OPENAI)) return true;
@@ -118,6 +118,7 @@ async function createChatClient({
         endpoint: getAIConfig(AZURE_OPENAI_ENDPOINT),
         apiVersion: getAIConfig(AZURE_OPENAI_API_VERSION),
         deployment: getAIConfig(AZURE_OPENAI_DEPLOYMENT),
+        dangerouslyAllowBrowser: true,
         ...extraConfig,
         ...extraAzureConfig,
       });
@@ -158,6 +159,7 @@ async function createChatClient({
     assert(apiKey, 'ANTHROPIC_API_KEY is required');
     openai = new Anthropic({
       apiKey,
+      dangerouslyAllowBrowser: true,
     }) as any;
   }
 

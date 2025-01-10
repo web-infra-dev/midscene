@@ -6,20 +6,26 @@ export interface MidsceneYamlScript {
 export interface MidsceneYamlTask {
   name: string;
   flow: MidsceneYamlFlowItem[];
+  continueOnError?: boolean;
 }
 
 export interface MidsceneYamlScriptEnv {
+  serve?: string;
   url: string;
+
+  // puppeteer only
   userAgent?: string;
   viewportWidth?: number;
   viewportHeight?: number;
   viewportScale?: number;
-  serve?: string;
   waitForNetworkIdle?: {
     timeout?: number; // ms, 30000 for default, set to 0 to disable
     continueOnNetworkIdleError?: boolean; // should continue if failed to wait for network idle, true for default
   };
   cookie?: string;
+
+  // bridge mode only
+  bridgeMode?: 'newTabWithUrl' | 'currentTab';
   output?: string;
 }
 

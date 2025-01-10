@@ -1,4 +1,5 @@
 import { defineConfig, moduleTools } from '@modern-js/module-tools';
+import { version } from './package.json';
 
 export default defineConfig({
   plugins: [moduleTools()],
@@ -7,6 +8,8 @@ export default defineConfig({
     format: 'cjs',
     input: {
       index: 'src/index.ts',
+      'bridge-mode': 'src/bridge-mode/index.ts',
+      'bridge-mode-browser': 'src/bridge-mode/browser.ts',
       utils: 'src/common/utils.ts',
       'ui-utils': 'src/common/ui-utils.ts',
       debug: 'src/debug/index.ts',
@@ -20,6 +23,15 @@ export default defineConfig({
       yaml: 'src/yaml/index.ts',
     },
     target: 'es2018',
-    externals: ['@midscene/core', '@midscene/shared', 'puppeteer'],
+    externals: [
+      '@midscene/core',
+      '@midscene/shared',
+      'puppeteer',
+      'bufferutil',
+      'utf-8-validate',
+    ],
+    define: {
+      __VERSION__: version,
+    },
   },
 });

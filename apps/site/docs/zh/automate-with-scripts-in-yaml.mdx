@@ -151,6 +151,7 @@ target:
 ```yaml
 tasks:
   - name: <name>
+    continueOnError: <boolean> # 可选，错误时是否继续执行下一个任务，默认 false
     flow:
       # 执行一个交互，`ai` 是 `aiAction` 的简写方式
       - ai: <prompt>
@@ -176,6 +177,12 @@ tasks:
     flow:
       # ...
 ```
+
+## 使用桥接模式
+
+通过使用桥接模式，你可以利用 YAML 脚本在已有的桌面浏览器上执行自动化。这对于需要复用 Cookies、插件和页面状态，或者需要手工与自动化脚本交互的情况非常有用。
+
+请参阅 [通过 Chrome 扩展桥接模式](./bridge-mode-by-chrome-extension.html) 了解更多详细信息。
 
 ## FAQ
 

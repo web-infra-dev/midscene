@@ -1,0 +1,6 @@
+target:
+  bridgeMode: currentTab
+tasks:
+  - name: check page content
+    flow:
+      - aiAssert: this is a web page

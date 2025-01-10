@@ -5,14 +5,12 @@
       "dependsOn": ["^build"]
     },
     "build": {
-      "dependsOn": ["^build"],
-      "cache": true
+      "dependsOn": ["^build"]
     },
     "build:watch": {
       "dependsOn": ["^build"]
     },
     "test": {
-      "dependsOn": ["^build"],
       "cache": false
     },
     "e2e": {

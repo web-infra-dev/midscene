@@ -72,11 +72,12 @@ export async function puppeteerAgentForTarget(
     );
   }
   const puppeteer = await import('puppeteer');
+  // do not use 'no-sandbox' on windows https://www.perplexity.ai/search/how-to-solve-this-with-nodejs-dMHpdCypRa..JA8TkQzbeQ
+  const isWindows = process.platform === 'win32';
   const browser = await puppeteer.launch({
     headless: !headed,
     args: [
-      '--no-sandbox',
-      '--disable-setuid-sandbox',
+      ...(isWindows ? [] : ['--no-sandbox', '--disable-setuid-sandbox']),
       '--disable-features=PasswordLeakDetection',
       '--disable-save-password-bubble',
     ],
@@ -85,7 +86,13 @@ export async function puppeteerAgentForTarget(
     name: 'puppeteer_browser',
     fn: () => {
       if (!preference?.keepWindow) {
-        browser.close();
+        if (isWindows) {
+          setTimeout(() => {
+            browser.close();
+          }, 800);
+        } else {
+          browser.close();
+        }
       }
     },
   });

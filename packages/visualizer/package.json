@@ -1,6 +1,6 @@
 {
   "name": "@midscene/visualizer",
-  "version": "0.8.16",
+  "version": "0.9.0",
   "repository": "https://github.com/web-infra-dev/midscene",
   "homepage": "https://midscenejs.com/",
   "types": "./dist/types/index.d.ts",
@@ -56,5 +56,8 @@
   "sideEffects": ["**/*.css", "**/*.less", "**/*.sass", "**/*.scss"],
   "publishConfig": {
     "access": "public"
+  },
+  "dependencies": {
+    "buffer": "6.0.3"
   }
 }

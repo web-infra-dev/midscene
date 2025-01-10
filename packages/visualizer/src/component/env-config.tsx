@@ -8,6 +8,7 @@ export function EnvConfig() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [tempConfigString, setTempConfigString] = useState(configString);
 
+  const popupTab = useEnvConfig((state) => state.popupTab);
   const showModal = (e: React.MouseEvent) => {
     setIsModalOpen(true);
     e.preventDefault();
@@ -36,9 +37,9 @@ export function EnvConfig() {
         {iconForStatus('failed')} No config
         <p>
           <Tooltip
-            title="Please set up your environment variables to use Midscene."
+            title="Please set up your environment variables before using."
             placement="right"
-            open={!isModalOpen}
+            open={!isModalOpen && popupTab === 'playground'}
           >
             <Button type="primary" onClick={showModal}>
               Click to set up

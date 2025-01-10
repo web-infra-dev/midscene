@@ -35,7 +35,9 @@ export OPENAI_MAX_TOKENS=2048
 使用 ADT token provider
 
 ```bash
+# 使用 Azure OpenAI 服务时，配置为 1
 export MIDSCENE_USE_AZURE_OPENAI=1
+
 export MIDSCENE_AZURE_OPENAI_SCOPE="https://cognitiveservices.azure.com/.default"
 export AZURE_OPENAI_ENDPOINT="..."
 export AZURE_OPENAI_API_VERSION="2024-05-01-preview"

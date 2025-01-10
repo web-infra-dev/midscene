@@ -1,0 +1,125 @@
+# Bridge Mode by Chrome Extension
+
+import { PackageManagerTabs } from '@theme';
+
+The bridge mode in the Midscene Chrome extension is a tool that allows you to use local scripts to control the desktop version of Chrome. Your scripts can connect to either a new tab or the currently active tab.
+
+Using the desktop version of Chrome allows you to reuse all cookies, plugins, page status, and everything else you want. You can work with automation scripts to complete your tasks. This mode is commonly referred to as 'man-in-the-loop' in the context of automation.
+
+![bridge mode](/midscene-bridge-mode.jpg)
+
+:::info Demo Project
+you can check the demo project of bridge mode here: [https://github.com/web-infra-dev/midscene-example/blob/main/bridge-mode-demo](https://github.com/web-infra-dev/midscene-example/blob/main/bridge-mode-demo)
+:::
+
+## Preparation
+
+Install [Midscene extension from Chrome web store](https://chromewebstore.google.com/detail/midscene/gbldofcpkknbggpkmbdaefngejllnief). We will use it later.
+
+## Step 1. install dependencies
+
+<PackageManagerTabs command="install @midscene/web tsx --save-dev" />
+
+## Step 2. write scripts
+
+Write and save the following code as `./demo-new-tab.ts`.
+
+```typescript
+import { AgentOverChromeBridge } from "@midscene/web/bridge-mode";
+
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+Promise.resolve(
+  (async () => {
+    const agent = new AgentOverChromeBridge();
+
+    // This will connect to a new tab on your desktop Chrome
+    // remember to start your chrome extension, click 'allow connection' button. Otherwise you will get an timeout error
+    await agent.connectNewTabWithUrl("https://www.bing.com");
+
+    // these are the same as normal Midscene agent
+    await agent.ai('type "AI 101" and hit Enter');
+    await sleep(3000);
+
+    await agent.aiAssert("there are some search results");
+    await agent.destroy();
+  })()
+);
+```
+
+## Step 3. run
+
+Launch your desktop Chrome. Start Midscene extension and switch to 'Bridge Mode' tab. Click "Allow connection".
+
+Run your scripts
+
+```bash
+tsx demo-new-tab.ts
+```
+
+After executing the script, you should see the status of the Chrome extension switched to 'connected', and a new tab has been opened. Now this tab is controlled by your scripts.
+
+:::info
+⁠Whether the scripts are run before or after clicking 'Allow connection' in the browser is not significant.
+:::
+
+## API
+
+Except [the normal agent interface](./api), `AgentOverChromeBridge` provides some other interfaces to control the desktop Chrome.
+
+:::info
+You should always call `connectCurrentTab` or `connectNewTabWithUrl` before doing further actions.
+
+Each of the agent instance can only connect to one tab instance, and it cannot be reconnected after destroy.
+:::
+
+### `connectCurrentTab`
+
+Connect to the current active tab on Chrome.
+
+### `connectNewTabWithUrl(ur: string)`
+
+Create a new tab with url and connect to immediately.
+
+### `destroy`
+
+Destroy the connection.
+
+## Use bridge mode in yaml-script
+
+[Yaml scripts](./automate-with-scripts-in-yaml) is a way for developers to write automation scripts in yaml format, which is easy to read and write comparing to javascript.
+
+To use bridge mode in yaml script, set the `bridgeMode` property in the `target` section. If you want to use the current tab, set it to `currentTab`, otherwise set it to `newTabWithUrl`.
+
+For example, the following script will open a new tab by Chrome extension bridge: 
+
+```diff
+target:
+  url: https://www.bing.com
++ bridgeMode: newTabWithUrl
+tasks:
+```
+
+Run the script:
+
+```bash
+midscene ./bing.yaml
+```
+
+Remember to start the chrome extension and click 'Allow connection' button after the script is running.
+
+### Unsupported options
+
+In bridge mode, these options will be ignored (they will follow your desktop browser's settings):
+- userAgent
+- viewportWidth
+- viewportHeight
+- viewportScale
+- waitForNetworkIdle
+- cookie
+
+
+
+
+
+
+

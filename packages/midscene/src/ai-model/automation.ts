@@ -4,8 +4,8 @@ import { PromptTemplate } from '@langchain/core/prompts';
 import { AIActionType, type AIArgs, callAiFn } from './common';
 import {
   automationUserPrompt,
+  generateTaskBackgroundContext,
   systemPromptToTaskPlanning,
-  taskBackgroundContext,
 } from './prompt/planning';
 import { describeUserPage } from './prompt/util';
 
@@ -24,13 +24,14 @@ export async function plan(
     await describeUserPage(context);
 
   const systemPrompt = await systemPromptToTaskPlanning();
+  const taskBackgroundContextText = generateTaskBackgroundContext(
+    userPrompt,
+    opts.originalPrompt,
+    opts.whatHaveDone,
+  );
   const userInstructionPrompt = await automationUserPrompt.format({
     pageDescription,
-    userPrompt,
-    taskBackgroundContext: taskBackgroundContext(
-      opts.originalPrompt,
-      opts.whatHaveDone,
-    ),
+    taskBackgroundContext: taskBackgroundContextText,
   });
 
   const msgs: AIArgs = [
