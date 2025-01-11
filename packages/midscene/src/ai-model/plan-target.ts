@@ -46,19 +46,19 @@ export async function planToTarget(options: {
       transformActions.push({
         type: 'Locate',
         locate: {
-          position: { x: point[0], y: point[1] },
           prompt: action.thought || '',
+          position: { x: point[0], y: point[1] },
         },
         param: {
-          action,
-          position: { x: point[0], y: point[1] },
+          // action,
+          // position: { x: point[0], y: point[1] },
         },
       });
       transformActions.push({
         type: 'Tap',
         locate: {
-          position: { x: point[0], y: point[1] },
           prompt: action.thought || '',
+          position: { x: point[0], y: point[1] },
         },
         param: {
           action,
