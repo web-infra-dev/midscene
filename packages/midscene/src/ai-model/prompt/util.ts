@@ -3,6 +3,8 @@ import { MATCH_BY_POSITION, getAIConfig } from '@/env';
 import { imageInfoOfBase64 } from '@/image';
 import type { BaseElement, Size, UIContext } from '@/types';
 import { PromptTemplate } from '@langchain/core/prompts';
+import { NodeType } from '@midscene/shared/constants';
+import { generateHashId } from '@midscene/shared/utils';
 import type { ResponseFormatJSONSchema } from 'openai/resources';
 
 const characteristic =
@@ -302,6 +304,25 @@ export async function describeUserPage<
     ) {
       console.log('elementByPosition', { position, size });
       return elementByPositionWithElementInfo(elementsInfo, position);
+    },
+    insertElementByPosition(position: { x: number; y: number }) {
+      const rect = {
+        left: position.x - 4,
+        top: position.y - 4,
+        width: 8,
+        height: 8,
+      };
+      const id = generateHashId(rect);
+      const element = {
+        id,
+        attributes: { nodeType: NodeType.POSITION },
+        rect,
+        content: '',
+        center: [position.x, position.y],
+      } as ElementType;
+      elementsInfo.push(element);
+      idElementMap[id] = element;
+      return element;
     },
     size: { width, height },
   };

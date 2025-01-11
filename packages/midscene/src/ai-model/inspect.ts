@@ -106,6 +106,7 @@ function getQuickAnswer(
     | undefined,
   elementsInfo: BaseElement[],
   elementById: ElementById,
+  insertElementByPosition: (position: { x: number; y: number }) => BaseElement,
 ) {
   if (!quickAnswer) {
     return undefined;
@@ -122,10 +123,13 @@ function getQuickAnswer(
   }
 
   if ('position' in quickAnswer && quickAnswer.position) {
-    const element = elementByPositionWithElementInfo(
+    let element = elementByPositionWithElementInfo(
       elementsInfo,
       quickAnswer.position,
     );
+    if (!element) {
+      element = insertElementByPosition(quickAnswer.position);
+    }
     return {
       parseResult: {
         elements: [element],
@@ -155,13 +159,14 @@ export async function AiInspectElement<
 }> {
   const { context, multi, targetElementDescription, callAI } = options;
   const { screenshotBase64, screenshotBase64WithElementMarker } = context;
-  const { description, elementById, elementByPosition, size } =
+  const { description, elementById, insertElementByPosition, size } =
     await describeUserPage(context);
   // meet quick answer
   const quickAnswer = getQuickAnswer(
     options.quickAnswer,
     context.content,
     elementById,
+    insertElementByPosition,
   );
   if (quickAnswer) {
     return quickAnswer;

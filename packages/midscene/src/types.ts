@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
+import type { NodeType } from '@midscene/shared/constants';
 import type { ChatCompletionMessageParam } from 'openai/resources';
 
 export * from './yaml.d';
@@ -16,14 +17,6 @@ export interface Size {
 }
 
 export type Rect = Point & Size & { zoom?: number };
-
-enum NodeType {
-  CONTAINER = 'CONTAINER Node',
-  FORM_ITEM = 'FORM_ITEM Node',
-  BUTTON = 'BUTTON Node',
-  IMG = 'IMG Node',
-  TEXT = 'TEXT Node',
-}
 
 export abstract class BaseElement {
   abstract id: string;
