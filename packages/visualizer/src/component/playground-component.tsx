@@ -299,7 +299,7 @@ export function Playground({
 
           const parsedYamlScript = parseYamlScript(yamlString);
           console.log('yamlString', parsedYamlScript, yamlString);
-          let errorMessage = '';
+          let errorMessage: Error | null = null;
           const yamlPlayer = new ScriptPlayer(
             parsedYamlScript,
             async () => {
@@ -327,7 +327,7 @@ export function Playground({
                 }
 
                 if (taskStatus.status === 'error') {
-                  errorMessage = taskStatus.error?.message || '';
+                  errorMessage = taskStatus.error || null;
                 }
               }
 
@@ -337,7 +337,8 @@ export function Playground({
 
           await yamlPlayer.run();
           if (yamlPlayer.status === 'error') {
-            throw new Error(errorMessage || 'Failed to run the script');
+            // throw new Error(errorMessage || 'Failed to run the script');
+            throw errorMessage || new Error('Failed to run the script');
           }
         } else if (value.type === 'aiQuery') {
           result.result = await activeAgent?.aiQuery(value.prompt);

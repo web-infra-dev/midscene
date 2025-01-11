@@ -10,7 +10,7 @@ import {
 } from './prompt/plan-to-target';
 import { describeUserPage } from './prompt/util';
 
-type ActionType = 'click' | 'type' | 'hotkey' | 'finished' | 'scroll';
+type ActionType = 'click' | 'type' | 'hotkey' | 'finished' | 'scroll' | 'wait';
 
 function capitalize(str: string) {
   return str.charAt(0).toUpperCase() + str.slice(1);
@@ -38,8 +38,6 @@ export async function planToTarget(options: {
     ],
     AIActionType.INSPECT_ELEMENT,
   );
-  console.log('res', res.content);
-  // console.log('res', );
   const actions = parseActionVlm(res.content);
   const transformActions: PlanningAction[] = [];
   actions.forEach((action) => {
@@ -104,7 +102,21 @@ export async function planToTarget(options: {
           thought: action.thought || '',
         });
       }
+    } else if (action.action_type === 'wait') {
+      transformActions.push({
+        type: 'Sleep',
+        param: {
+          timeMs: action.action_inputs.time,
+        },
+        locate: null,
+        thought: action.thought || '',
+      });
     }
+  });
+  console.log('planToTarget:', {
+    original: res.content,
+    actions,
+    transformActions,
   });
   return {
     actions: transformActions,
@@ -129,6 +141,13 @@ interface ClickAction extends BaseAction {
   action_type: 'click';
   action_inputs: {
     start_box: string; // JSON string of [x, y] coordinates
+  };
+}
+
+interface WaitAction extends BaseAction {
+  action_type: 'wait';
+  action_inputs: {
+    time: string; // JSON string of [x, y] coordinates
   };
 }
 
@@ -163,4 +182,5 @@ export type Action =
   | TypeAction
   | HotkeyAction
   | ScrollAction
-  | FinishedAction;
+  | FinishedAction
+  | WaitAction;

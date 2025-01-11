@@ -47,7 +47,6 @@ export default class ChromeExtensionProxyPage implements AbstractPage {
     // Check if debugger is attached to the same tab
     const currentTabId = this.getTabId();
     if (this.debuggerAttached && this.lastAttachedTabId === currentTabId) {
-      console.log('debugger already attached to the same tab');
       return;
     }
 
