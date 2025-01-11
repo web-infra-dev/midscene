@@ -237,7 +237,7 @@ export interface PlanningAction<ParamType = any> {
 export interface PlanningAIResponse {
   actions: PlanningAction[];
   taskWillBeAccomplished: boolean;
-  furtherPlan: PlanningFurtherPlan | null;
+  furtherPlan?: PlanningFurtherPlan | null;
   error?: string;
 }
 
@@ -367,6 +367,7 @@ export type ExecutionTask<
       start: number;
       end?: number;
       cost?: number;
+      aiCost?: number;
     };
   };
 

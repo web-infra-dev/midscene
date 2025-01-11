@@ -166,6 +166,7 @@ export class PageTaskExecutor {
               id: param?.id,
               position: param?.position,
             };
+            const startTime = Date.now();
             const element = await this.insight.locate(param.prompt, {
               quickAnswer,
               callAI: async (...message: any) => {
@@ -183,6 +184,7 @@ export class PageTaskExecutor {
                 return { content: aiResult, usage };
               },
             });
+            const aiCost = Date.now() - startTime;
 
             if (locateResult) {
               cacheGroup?.saveCache({
@@ -213,6 +215,7 @@ export class PageTaskExecutor {
                 hit: Boolean(locateCache),
               },
               recorder: [recordItem],
+              aiCost,
             };
           },
         };
@@ -588,11 +591,13 @@ export class PageTaskExecutor {
             },
           ],
         });
+        const startTime = Date.now();
         const planResult = await planToTarget({
           userInstruction: param.userPrompt,
           conversationHistory: this.conversationHistory,
           size: pageContext.size,
         });
+        const aiCost = Date.now() - startTime;
         const { actions, action_summary } = planResult;
         this.appendConversationHistory({
           role: 'assistant',
@@ -601,13 +606,15 @@ export class PageTaskExecutor {
         return {
           output: {
             actions,
-            action_summary,
+            thought: actions[0].thought,
+            actionType: actions[0].type,
             taskWillBeAccomplished: false,
             furtherPlan: {
               whatToDoNext: '',
               whatHaveDone: '',
             },
           },
+          aiCost,
         };
       },
     };

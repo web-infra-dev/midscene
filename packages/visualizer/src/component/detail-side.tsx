@@ -200,6 +200,14 @@ const DetailSide = (): JSX.Element => {
         key: 'time cost',
         content: timeCostStrElement(task?.timing?.cost),
       },
+      ...(task?.timing?.aiCost
+        ? [
+            {
+              key: 'ai cost',
+              content: timeCostStrElement(task?.timing?.aiCost),
+            },
+          ]
+        : []),
       {
         key: 'cache',
         content: task?.cache ? JSON.stringify(task?.cache) : 'false',
