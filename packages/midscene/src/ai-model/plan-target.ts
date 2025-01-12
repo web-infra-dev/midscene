@@ -60,9 +60,7 @@ export async function planToTarget(options: {
           prompt: action.thought || '',
           position: { x: point[0], y: point[1] },
         },
-        param: {
-          action,
-        },
+        param: action.thought || '',
       });
     } else if (action.action_type === 'type') {
       transformActions.push({
