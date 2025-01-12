@@ -1,0 +1,37 @@
+# Describe Elements by Your Own
+
+In some cases, you may want to describe elements by yourself. For example, you may want to describe the content inside an `<canvas />` element which cannot be extracted by Midscene. Or you just want to "be friendly" to the LLM.
+
+To do this, you can put an identifier in the `midscene-description-ref` attribute, and put the description JSON in a `<script>` tag with the same identifier. Midscene will take use these descriptions to feed the LLM.
+
+For example:
+
+```html
+<canvas style="width: 80px; height: 80px; background: #AC0;" midscene-description-ref="ac7"></canvas>
+<script type="text/json" midscene-description-id="ac7">
+  [{
+    "rect": {
+        "x": 20,
+        "y": 20,
+        "width": 20,
+        "height": 20
+    },
+    "text": "Rule of the game",
+    "description": "This is a description of the rule of the game"
+  }, {
+    "rect": {
+        "x": 60,
+        "y": 60,
+        "width": 20,
+        "height": 20
+    },
+    "description": "This is a lucky draw button"
+  }]
+</script>
+```
+
+The core fields are `rect`, `text`, and `description`.
+
+- `rect`: The rectangle of this content. Required. All the coordinates are relative to the upper left corner of the element.
+- `text`: The text of this content. Optional. Should be same as the text on screen.
+- `description`: A short description of this content. Optional.

@@ -1,3 +1,14 @@
+export const USER_DESCRIBED_ELEMENT_ATTRIBUTE_REF = 'midscene-description-ref';
+export const USER_DESCRIBED_ELEMENT_ATTRIBUTE_ID = 'midscene-description-id';
+
+export function isUserDescribedElement(node: Node): boolean {
+  if (node instanceof Element) {
+    return node.hasAttribute(USER_DESCRIBED_ELEMENT_ATTRIBUTE_REF);
+  }
+
+  return false;
+}
+
 export function isFormElement(node: Node) {
   return (
     node instanceof HTMLElement &&
@@ -54,12 +65,27 @@ export function isContainerElement(node: Node): node is HTMLElement {
     return false;
   }
 
+  if (includeUserDescribedElement(node)) {
+    return false;
+  }
+
   const computedStyle = window.getComputedStyle(node);
   const backgroundColor = computedStyle.getPropertyValue('background-color');
   if (backgroundColor) {
     return true;
   }
 
+  return false;
+}
+
+function includeUserDescribedElement(node: Node) {
+  if (node instanceof Element) {
+    const selector = `[${USER_DESCRIBED_ELEMENT_ATTRIBUTE_REF}]`;
+    const elements = node.querySelectorAll(selector);
+    if (elements.length > 0) {
+      return true;
+    }
+  }
   return false;
 }
 
@@ -72,6 +98,7 @@ function includeBaseElement(node: Node) {
   }
 
   const includeList = [
+    'canvas',
     'svg',
     'button',
     'input',
