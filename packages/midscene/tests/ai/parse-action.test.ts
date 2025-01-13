@@ -1,7 +1,7 @@
 import {
   getSummary,
   parseActionFromVlm,
-} from '@/ai-model/prompt/ui-tars-planing';
+} from '@/ai-model/prompt/ui-tars-planning';
 import { describe, expect, it } from 'vitest';
 
 describe('parse action from vlm', () => {

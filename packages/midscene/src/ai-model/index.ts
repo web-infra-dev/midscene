@@ -14,4 +14,4 @@ export {
 export { plan } from './automation';
 export { callAiFn } from './common';
 
-export { vlmPlaning } from './vlm-planing';
+export { vlmPlanning } from './vlm-planning';

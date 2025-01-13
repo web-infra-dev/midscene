@@ -1,6 +1,6 @@
 import path from 'node:path';
 import { AiInspectElement } from '@/ai-model';
-import { vlmPlaning } from '@/ai-model/vlm-planing';
+import { vlmPlanning } from '@/ai-model/vlm-planning';
 import { savePositionImg } from '@midscene/shared/img';
 import { expect, test } from 'vitest';
 import { getPageTestData } from '../evaluate/test-suite/util';
@@ -12,7 +12,7 @@ test('inspect with quick answer', async () => {
 
   const { width, height } = context.size;
   const startTime = Date.now();
-  const { realActions } = await vlmPlaning({
+  const { realActions } = await vlmPlanning({
     userInstruction: '删除第二条任务',
     conversationHistory: [
       {

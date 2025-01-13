@@ -4,7 +4,7 @@ import { generateExtractData, generateTestDataPath } from '@/debug';
 import { PlaywrightWebPage } from '@/playwright';
 import {
   type ChatCompletionMessageParam,
-  vlmPlaning,
+  vlmPlanning,
 } from '@midscene/core/ai-model';
 import { saveBase64Image, savePositionImg } from '@midscene/shared/img';
 import type { Page } from 'playwright';
@@ -50,7 +50,7 @@ async function loopAgent(
         },
       ],
     });
-    const { realActions, action_summary } = await vlmPlaning({
+    const { realActions, action_summary } = await vlmPlanning({
       userInstruction: userInstruction,
       conversationHistory,
       size,
