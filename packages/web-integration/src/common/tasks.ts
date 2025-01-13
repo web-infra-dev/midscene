@@ -712,13 +712,20 @@ export class PageTaskExecutor {
 
     const isCompleted = false;
     let currentActionNumber = 0;
+    const maxActionNumber = 20;
 
-    while (!isCompleted && currentActionNumber < 100) {
+    while (!isCompleted && currentActionNumber < maxActionNumber) {
       currentActionNumber++;
       const planningTask: ExecutionTaskPlanningApply =
         this.planningTaskToGoal(userPrompt);
       await taskExecutor.append(planningTask);
       const output = await taskExecutor.flush();
+      if (taskExecutor.isInErrorState()) {
+        return {
+          output: output,
+          executor: taskExecutor,
+        };
+      }
       const plans = output.actions;
       let executables: Awaited<ReturnType<typeof this.convertPlanToExecutable>>;
       try {
