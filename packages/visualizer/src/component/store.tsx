@@ -92,7 +92,8 @@ export const useChromeTabInfo = create<{
 
     chrome.tabs.onActivated.addListener(async (activeInfo) => {
       const tabId = activeInfo.tabId;
-      const windowId = await currentWindowId();
+      const windowId = activeInfo.windowId;
+      // console.log('active tab', tabId, windowId);
 
       set({ tabId, windowId });
     });

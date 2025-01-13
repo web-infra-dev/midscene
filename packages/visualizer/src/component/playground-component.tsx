@@ -353,7 +353,7 @@ export function Playground({
       if (typeof e === 'string') {
         if (e.includes('of different extension')) {
           result.error =
-            'Cannot access a chrome-extension:// URL of different extension. Please disable the suspicious plugins and refresh the page. Guide: https://midscenejs.com/quick-experience.html#faq';
+            'Conflicting extension detected. Please disable the suspicious plugins and refresh the page. Guide: https://midscenejs.com/quick-experience.html#faq';
         } else {
           result.error = e;
         }

@@ -181,6 +181,24 @@ tasks:
       # ...
 ```
 
+## Use environment variables in `.yaml` file
+
+You can use environment variables in `.yaml` file by `${variable-name}`.
+
+For example, if you have a `.env` file with the following content:
+
+```env filename=.env
+topic=weather today
+```
+
+You can use the environment variable in the `.yaml` file like this:
+
+```yaml
+#...
+ - ai: type ${topic} in input box
+#...
+```
+
 ## Use bridge mode
 By using bridge mode, you can utilize YAML scripts to automate the web browser on your desktop. This is particularly useful if you want to reuse cookies, plugins, and page states, or if you want to manually interact with automation scripts.
 

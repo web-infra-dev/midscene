@@ -1,17 +1,10 @@
-import { Button, ConfigProvider, Tabs, message } from 'antd';
+import { ConfigProvider, Tabs } from 'antd';
 import ReactDOM from 'react-dom/client';
 import { setSideEffect } from '../init';
 /// <reference types="chrome" />
 import './popup.less';
 
-import {
-  type WorkerRequestSaveContext,
-  type WorkerResponseSaveContext,
-  getExtensionVersion,
-  getPlaygroundUrl,
-  sendToWorker,
-  workerMessageTypes,
-} from './utils';
+import { getExtensionVersion } from './utils';
 
 import { globalThemeConfig } from '@/component/color';
 import Logo from '@/component/logo';
@@ -30,51 +23,11 @@ setSideEffect();
 
 declare const __VERSION__: string;
 
-const shotAndOpenPlayground = async (
-  agent?: ChromeExtensionProxyPageAgent | null,
-) => {
-  if (!agent) {
-    message.error('No agent found');
-    return;
-  }
-  const context = await agent.getUIContext();
-
-  // cache screenshot when page is active
-  const { id } = await sendToWorker<
-    WorkerRequestSaveContext,
-    WorkerResponseSaveContext
-  >(workerMessageTypes.SAVE_CONTEXT, {
-    context,
-  });
-  const url = getPlaygroundUrl(id);
-  chrome.tabs.create({
-    url,
-    active: true,
-  });
-};
-
 function PlaygroundPopup() {
-  const [loading, setLoading] = useState(false);
   const extensionVersion = getExtensionVersion();
   const { tabId, windowId } = useChromeTabInfo();
   const tabIdRef = useRef<number | null>(null);
   const { popupTab, setPopupTab } = useEnvConfig();
-
-  const handleSendToPlayground = async () => {
-    if (!tabId || !windowId) {
-      message.error('No active tab or window found');
-      return;
-    }
-    setLoading(true);
-    try {
-      const agent = extensionAgentForTabId(() => tabId);
-      await shotAndOpenPlayground(agent);
-      await agent!.page.destroy();
-    } catch (e: any) {
-      message.error(e.message || 'Failed to launch Playground');
-    }
-    setLoading(false);
-  };
 
   useEffect(() => {
     if (tabId) {
@@ -150,3 +103,42 @@ if (element) {
   const root = ReactDOM.createRoot(element);
   root.render(<PlaygroundPopup />);
 }
+
+// const shotAndOpenPlayground = async (
+//   agent?: ChromeExtensionProxyPageAgent | null,
+// ) => {
+//   if (!agent) {
+//     message.error('No agent found');
+//     return;
+//   }
+//   const context = await agent.getUIContext();
+
+//   // cache screenshot when page is active
+//   const { id } = await sendToWorker<
+//     WorkerRequestSaveContext,
+//     WorkerResponseSaveContext
+//   >(workerMessageTypes.SAVE_CONTEXT, {
+//     context,
+//   });
+//   const url = getPlaygroundUrl(id);
+//   chrome.tabs.create({
+//     url,
+//     active: true,
+//   });
+// };
+
+// const handleSendToPlayground = async () => {
+//   if (!tabId || !windowId) {
+//     message.error('No active tab or window found');
+//     return;
+//   }
+//   setLoading(true);
+//   try {
+//     const agent = extensionAgentForTabId(tabId);
+//     await shotAndOpenPlayground(agent);
+//     await agent!.page.destroy();
+//   } catch (e: any) {
+//     message.error(e.message || 'Failed to launch Playground');
+//   }
+//   setLoading(false);
+// };
