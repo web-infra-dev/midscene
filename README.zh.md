@@ -14,11 +14,12 @@
 </p>
 
 <p align="center">
+  <a href="https://discord.gg/AFHJBdnn"><img src="https://img.shields.io/discord/1328277792730779648?color=7289DA&label=Discord&logo=discord&logoColor=white" alt="discord" /></a>
+  <a href="https://x.com/midscene_ai"><img src="https://img.shields.io/twitter/follow/midscene_ai" alt="twitter" /></a>
   <img src="https://img.shields.io/npm/v/@midscene/web?style=flat-square&color=00a8f0" alt="npm version" />
   <img src="https://img.shields.io/npm/dm/@midscene/web.svg?style=flat-square&color=00a8f0" alt="downloads" />
   <img src="https://img.shields.io/badge/License-MIT-blue.svg?style=flat-square&color=00a8f0" alt="License" />
 </p>
-
 
 Midscene.js 是一个由 AI 驱动的自动化 SDK，能够使用自然语言对网页进行操作、验证，并提取 JSON 格式的数据。
 
@@ -50,6 +51,8 @@ Midscene.js 是一个由 AI 驱动的自动化 SDK，能够使用自然语言对
 
 ## 社区
 
+* [Discord](https://discord.gg/AFHJBdnn)
+* [Follow us on X](https://x.com/midscene_ai)
 * [飞书群](https://applink.larkoffice.com/client/chat/chatter/add_by_link?link_token=291q2b25-e913-411a-8c51-191e59aab14d)
 
   <img src="https://github.com/user-attachments/assets/211b05c9-3ccd-4f52-b798-f3a7f51330ed" alt="lark group link" width="300" />
