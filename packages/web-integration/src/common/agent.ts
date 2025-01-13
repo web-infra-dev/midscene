@@ -11,6 +11,7 @@ import {
 } from '@midscene/core';
 import { NodeType } from '@midscene/shared/constants';
 
+import { MIDSCENE_USE_VLM_UI_TARS, getAIConfig } from '@midscene/core/env';
 import {
   groupedActionDumpFileExt,
   reportHTMLContent,
@@ -153,15 +154,28 @@ export class PageAgent<PageType extends WebPage = WebPage> {
   }
 
   async aiAction(taskPrompt: string) {
-    const { executor } = await this.taskExecutor.action(taskPrompt, {
-      onTaskStart: this.callbackOnTaskStartTip.bind(this),
-    });
-    this.appendExecutionDump(executor.dump());
-    this.writeOutActionDumps();
+    if (getAIConfig(MIDSCENE_USE_VLM_UI_TARS)) {
+      const { executor } = await this.taskExecutor.actionToGoal(taskPrompt, {
+        onTaskStart: this.callbackOnTaskStartTip.bind(this),
+      });
+      this.appendExecutionDump(executor.dump());
+      this.writeOutActionDumps();
 
-    if (executor.isInErrorState()) {
-      const errorTask = executor.latestErrorTask();
-      throw new Error(`${errorTask?.error}\n${errorTask?.errorStack}`);
+      if (executor.isInErrorState()) {
+        const errorTask = executor.latestErrorTask();
+        throw new Error(`${errorTask?.error}\n${errorTask?.errorStack}`);
+      }
+    } else {
+      const { executor } = await this.taskExecutor.action(taskPrompt, {
+        onTaskStart: this.callbackOnTaskStartTip.bind(this),
+      });
+      this.appendExecutionDump(executor.dump());
+      this.writeOutActionDumps();
+
+      if (executor.isInErrorState()) {
+        const errorTask = executor.latestErrorTask();
+        throw new Error(`${errorTask?.error}\n${errorTask?.errorStack}`);
+      }
     }
   }
 

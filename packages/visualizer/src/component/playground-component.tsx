@@ -28,7 +28,7 @@ import { serverBase, useServerValid } from './open-in-playground';
 
 import { ScriptPlayer, buildYaml, parseYamlScript } from '@midscene/web/yaml';
 
-import { overrideAIConfig } from '@midscene/core';
+import { overrideAIConfig } from '@midscene/core/env';
 import {
   ERROR_CODE_NOT_IMPLEMENTED_AS_DESIGNED,
   StaticPage,
@@ -160,11 +160,11 @@ const serverLaunchTip = (
 );
 
 // remember to destroy the agent when the tab is destroyed: agent.page.destroy()
-export const extensionAgentForTabId = (tabId: number | null) => {
-  if (!tabId) {
+export const extensionAgentForTabId = (getTabId: () => number) => {
+  if (!getTabId()) {
     return null;
   }
-  const page = new ChromeExtensionProxyPage(tabId);
+  const page = new ChromeExtensionProxyPage(getTabId);
   return new ChromeExtensionProxyPageAgent(page);
 };
 
@@ -299,7 +299,7 @@ export function Playground({
 
           const parsedYamlScript = parseYamlScript(yamlString);
           console.log('yamlString', parsedYamlScript, yamlString);
-          let errorMessage = '';
+          let errorMessage: Error | null = null;
           const yamlPlayer = new ScriptPlayer(
             parsedYamlScript,
             async () => {
@@ -327,7 +327,7 @@ export function Playground({
                 }
 
                 if (taskStatus.status === 'error') {
-                  errorMessage = taskStatus.error?.message || '';
+                  errorMessage = taskStatus.error || null;
                 }
               }
 
@@ -337,7 +337,8 @@ export function Playground({
 
           await yamlPlayer.run();
           if (yamlPlayer.status === 'error') {
-            throw new Error(errorMessage || 'Failed to run the script');
+            // throw new Error(errorMessage || 'Failed to run the script');
+            throw errorMessage || new Error('Failed to run the script');
           }
         } else if (value.type === 'aiQuery') {
           result.result = await activeAgent?.aiQuery(value.prompt);

@@ -1,5 +1,4 @@
 import { Executor } from './action/executor';
-import { allAIConfig, getAIConfig, overrideAIConfig } from './env';
 import Insight from './insight';
 import { getElement, getSection } from './query';
 import { getLogDirByType, getVersion, setLogDir } from './utils';
@@ -16,7 +15,4 @@ export {
   getLogDirByType,
   Insight,
   getVersion,
-  getAIConfig,
-  overrideAIConfig,
-  allAIConfig,
 };

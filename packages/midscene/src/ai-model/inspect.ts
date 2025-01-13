@@ -5,6 +5,7 @@ import type {
   AIElementResponse,
   AISectionParseResponse,
   AISingleElementResponse,
+  AISingleElementResponseByPosition,
   AIUsageInfo,
   BaseElement,
   ElementById,
@@ -23,7 +24,7 @@ import {
   findElementPrompt,
   multiDescription,
   systemPromptToFindElement,
-} from './prompt/element_inspector';
+} from './prompt/element-inspector';
 import {
   describeUserPage,
   elementByPositionWithElementInfo,
@@ -99,8 +100,13 @@ export async function transformElementPositionToId(
 }
 
 function getQuickAnswer(
-  quickAnswer: AISingleElementResponse | undefined,
+  quickAnswer:
+    | Partial<AISingleElementResponse>
+    | Partial<AISingleElementResponseByPosition>
+    | undefined,
+  elementsInfo: BaseElement[],
   elementById: ElementById,
+  insertElementByPosition: (position: { x: number; y: number }) => BaseElement,
 ) {
   if (!quickAnswer) {
     return undefined;
@@ -115,6 +121,24 @@ function getQuickAnswer(
       elementById,
     };
   }
+
+  if ('position' in quickAnswer && quickAnswer.position) {
+    let element = elementByPositionWithElementInfo(
+      elementsInfo,
+      quickAnswer.position,
+    );
+    if (!element) {
+      element = insertElementByPosition(quickAnswer.position);
+    }
+    return {
+      parseResult: {
+        elements: [element],
+        errors: [],
+      },
+      rawResponse: quickAnswer,
+      elementById,
+    } as any;
+  }
 }
 
 export async function AiInspectElement<
@@ -124,7 +148,9 @@ export async function AiInspectElement<
   multi: boolean;
   targetElementDescription: string;
   callAI?: typeof callAiFn<AIElementResponse | [number, number]>;
-  quickAnswer?: AISingleElementResponse;
+  quickAnswer?: Partial<
+    AISingleElementResponse | AISingleElementResponseByPosition
+  >;
 }): Promise<{
   parseResult: AIElementResponse;
   rawResponse: any;
@@ -133,10 +159,15 @@ export async function AiInspectElement<
 }> {
   const { context, multi, targetElementDescription, callAI } = options;
   const { screenshotBase64, screenshotBase64WithElementMarker } = context;
-  const { description, elementById, elementByPosition, size } =
+  const { description, elementById, insertElementByPosition, size } =
     await describeUserPage(context);
   // meet quick answer
-  const quickAnswer = getQuickAnswer(options.quickAnswer, elementById);
+  const quickAnswer = getQuickAnswer(
+    options.quickAnswer,
+    context.content,
+    elementById,
+    insertElementByPosition,
+  );
   if (quickAnswer) {
     return quickAnswer;
   }

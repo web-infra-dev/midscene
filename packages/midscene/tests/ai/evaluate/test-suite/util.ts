@@ -155,7 +155,21 @@ export function writeFileSyncWithDir(
   writeFileSync(filePath, content, options);
 }
 
-export async function getPageTestData(targetDir: string) {
+export async function getPageTestData(targetDir: string): Promise<{
+  context: {
+    size: {
+      width: number;
+      height: number;
+    };
+    content: any;
+    screenshotBase64: string;
+    originalScreenshotBase64: string;
+    describer: () => Promise<any>;
+  };
+  snapshotJson: string;
+  screenshotBase64: string;
+  originalScreenshotBase64: string;
+}> {
   // Note: this is the magic
   const resizeOutputImgP = path.join(targetDir, 'output_without_text.png');
   const originalInputputImgP = path.join(targetDir, 'input.png');

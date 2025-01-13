@@ -24,7 +24,7 @@ import { idsIntoElements, shallowExpandIds, writeInsightDump } from './utils';
 export interface LocateOpts {
   multi?: boolean;
   callAI?: typeof callAiFn<AIElementResponse>;
-  quickAnswer?: AISingleElementResponse;
+  quickAnswer?: Partial<AISingleElementResponse>;
 }
 
 // export type UnwrapDataShape<T> = T extends EnhancedQuery<infer DataShape> ? DataShape : {};
@@ -74,10 +74,7 @@ export default class Insight<
 
   async locate(
     queryPrompt: string,
-    opt?: {
-      callAI?: typeof callAiFn<AIElementResponse>;
-      quickAnswer?: AISingleElementResponse | null;
-    },
+    opt?: LocateOpts,
   ): Promise<ElementType | null>;
   async locate(
     queryPrompt: string,

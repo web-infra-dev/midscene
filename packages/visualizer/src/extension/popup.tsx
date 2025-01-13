@@ -15,7 +15,7 @@ import {
 import { useChromeTabInfo } from '@/component/store';
 import { useEnvConfig } from '@/component/store';
 import { ApiOutlined, SendOutlined } from '@ant-design/icons';
-import { useState } from 'react';
+import { useEffect, useRef } from 'react';
 import Bridge from './bridge';
 
 setSideEffect();
@@ -24,8 +24,15 @@ declare const __VERSION__: string;
 
 function PlaygroundPopup() {
   const extensionVersion = getExtensionVersion();
-  const { tabId } = useChromeTabInfo();
+  const { tabId, windowId } = useChromeTabInfo();
+  const tabIdRef = useRef<number | null>(null);
   const { popupTab, setPopupTab } = useEnvConfig();
+
+  useEffect(() => {
+    if (tabId) {
+      tabIdRef.current = tabId;
+    }
+  }, [tabId]);
 
   const items = [
     {
@@ -37,7 +44,7 @@ function PlaygroundPopup() {
           <Playground
             hideLogo
             getAgent={() => {
-              return extensionAgentForTabId(tabId);
+              return extensionAgentForTabId(() => tabIdRef.current || 0);
             }}
             showContextPreview={false}
           />

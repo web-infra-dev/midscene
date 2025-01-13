@@ -1,6 +1,6 @@
 {
   "name": "@midscene/shared",
-  "version": "0.9.0",
+  "version": "0.9.1",
   "repository": "https://github.com/web-infra-dev/midscene",
   "homepage": "https://midscenejs.com/",
   "types": "./src/index.ts",
@@ -9,44 +9,44 @@
   "module": "./dist/es/index.js",
   "exports": {
     ".": {
-      "types": "./dist/lib/index.d.ts",
+      "types": "./src/index.ts",
       "require": "./dist/lib/index.js",
       "import": "./dist/es/index.js"
     },
     "./constants": {
-      "types": "./dist/lib/constants.d.ts",
+      "types": "./src/constants/index.ts",
       "require": "./dist/lib/constants.js",
       "import": "./dist/es/constants.js"
     },
     "./fs": {
-      "types": "./dist/lib/fs.d.ts",
+      "types": "./src/fs/index.ts",
       "require": "./dist/lib/fs.js",
       "import": "./dist/es/fs.js"
     },
     "./img": {
-      "types": "./dist/lib/img.d.ts",
+      "types": "./src/img/index.ts",
       "require": "./dist/lib/img.js",
       "import": "./dist/es/img.js"
     },
     "./browser/img": {
-      "types": "./dist/browser/img.d.ts",
+      "types": "./src/img/index.ts",
       "require": "./dist/browser/img.js",
       "import": "./dist/browser/img.js"
     },
     "./utils": {
-      "types": "./dist/lib/utils.d.ts",
+      "types": "./src/utils.ts",
       "require": "./dist/lib/utils.js",
       "import": "./dist/es/utils.js"
     }
   },
   "typesVersions": {
     "*": {
-      ".": ["./dist/lib/index.d.ts"],
-      "constants": ["./dist/lib/constants.d.ts"],
-      "img": ["./dist/lib/img.d.ts"],
-      "browser/img": ["./dist/browser/img.d.ts"],
-      "fs": ["./dist/lib/fs.d.ts"],
-      "utils": ["./dist/lib/utils.d.ts"]
+      ".": ["./src/index.ts"],
+      "constants": ["./src/constants/index.ts"],
+      "img": ["./src/img/index.ts"],
+      "browser/img": ["./src/img/index.ts"],
+      "fs": ["./src/fs/index.ts"],
+      "utils": ["./src/utils.ts"]
     }
   },
   "files": ["dist", "src", "README.md"],
@@ -76,11 +76,54 @@
     "typescript": "~5.0.4",
     "@types/node": "^18.0.0",
     "rimraf": "~3.0.2",
-    "vitest": "^1.6.0"
+    "vitest": "^1.6.0",
+    "js-sha256": "0.11.0"
   },
   "sideEffects": [],
   "publishConfig": {
     "access": "public",
-    "registry": "https://registry.npmjs.org/"
+    "registry": "https://registry.npmjs.org/",
+    "exports": {
+      ".": {
+        "types": "./dist/lib/index.d.ts",
+        "require": "./dist/lib/index.js",
+        "import": "./dist/es/index.js"
+      },
+      "./constants": {
+        "types": "./dist/lib/constants.d.ts",
+        "require": "./dist/lib/constants.js",
+        "import": "./dist/es/constants.js"
+      },
+      "./fs": {
+        "types": "./dist/lib/fs.d.ts",
+        "require": "./dist/lib/fs.js",
+        "import": "./dist/es/fs.js"
+      },
+      "./img": {
+        "types": "./dist/lib/img.d.ts",
+        "require": "./dist/lib/img.js",
+        "import": "./dist/es/img.js"
+      },
+      "./browser/img": {
+        "types": "./dist/browser/img.d.ts",
+        "require": "./dist/browser/img.js",
+        "import": "./dist/browser/img.js"
+      },
+      "./utils": {
+        "types": "./dist/lib/utils.d.ts",
+        "require": "./dist/lib/utils.js",
+        "import": "./dist/es/utils.js"
+      }
+    },
+    "typesVersions": {
+      "*": {
+        ".": ["./dist/lib/index.d.ts"],
+        "constants": ["./dist/lib/constants.d.ts"],
+        "img": ["./dist/lib/img.d.ts"],
+        "browser/img": ["./dist/browser/img.d.ts"],
+        "fs": ["./dist/lib/fs.d.ts"],
+        "utils": ["./dist/lib/utils.d.ts"]
+      }
+    }
   }
 }

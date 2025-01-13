@@ -1,7 +1,7 @@
 {
   "name": "@midscene/web",
   "description": "Automate browser actions, extract data, and perform assertions using AI. It offers JavaScript SDK, Chrome extension, and support for scripting in YAML. See https://midscenejs.com/ for details.",
-  "version": "0.9.0",
+  "version": "0.9.1",
   "repository": "https://github.com/web-infra-dev/midscene",
   "homepage": "https://midscenejs.com/",
   "jsnext:source": "./src/index.ts",
@@ -175,7 +175,76 @@
   },
   "publishConfig": {
     "access": "public",
-    "registry": "https://registry.npmjs.org"
+    "registry": "https://registry.npmjs.org",
+    "exports": {
+      ".": {
+        "require": "./dist/lib/index.js",
+        "import": "./dist/es/index.js",
+        "types": "./dist/types/index.d.ts"
+      },
+      "./bridge-mode": {
+        "require": "./dist/lib/bridge-mode.js",
+        "import": "./dist/es/bridge-mode.js",
+        "types": "./dist/types/bridge-mode.d.ts"
+      },
+      "./bridge-mode-browser": {
+        "require": "./dist/lib/bridge-mode-browser.js",
+        "import": "./dist/es/bridge-mode-browser.js",
+        "types": "./dist/types/bridge-mode-browser.d.ts"
+      },
+      "./utils": {
+        "require": "./dist/lib/utils.js",
+        "import": "./dist/es/utils.js",
+        "types": "./dist/types/utils.d.ts"
+      },
+      "./ui-utils": {
+        "require": "./dist/lib/ui-utils.js",
+        "import": "./dist/es/ui-utils.js",
+        "types": "./dist/types/ui-utils.d.ts"
+      },
+      "./puppeteer": {
+        "require": "./dist/lib/puppeteer.js",
+        "import": "./dist/es/puppeteer.js",
+        "types": "./dist/types/puppeteer.d.ts"
+      },
+      "./playwright": {
+        "require": "./dist/lib/playwright.js",
+        "import": "./dist/es/playwright.js",
+        "types": "./dist/types/playwright.d.ts"
+      },
+      "./playwright-report": {
+        "require": "./dist/lib/playwright-report.js",
+        "types": "./dist/types/playwright-report.d.ts"
+      },
+      "./playground": {
+        "require": "./dist/lib/playground.js",
+        "import": "./dist/es/playground.js",
+        "types": "./dist/types/playground.d.ts"
+      },
+      "./debug": {
+        "require": "./dist/lib/debug.js",
+        "types": "./dist/types/debug.d.ts"
+      },
+      "./constants": {
+        "require": "./dist/lib/constants.js",
+        "import": "./dist/es/constants.js",
+        "types": "./dist/types/constants.d.ts"
+      },
+      "./html-element": {
+        "require": "./dist/lib/html-element/index.js",
+        "types": "./dist/types/html-element/index.d.ts"
+      },
+      "./chrome-extension": {
+        "require": "./dist/lib/chrome-extension.js",
+        "import": "./dist/es/chrome-extension.js",
+        "types": "./dist/types/chrome-extension.d.ts"
+      },
+      "./yaml": {
+        "require": "./dist/lib/yaml.js",
+        "import": "./dist/es/yaml.js",
+        "types": "./dist/types/yaml.d.ts"
+      }
+    }
   },
   "license": "MIT"
 }

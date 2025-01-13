@@ -1,7 +1,7 @@
 {
   "name": "@midscene/core",
   "description": "Automate browser actions, extract data, and perform assertions using AI. It offers JavaScript SDK, Chrome extension, and support for scripting in YAML. See https://midscenejs.com/ for details.",
-  "version": "0.9.0",
+  "version": "0.9.1",
   "repository": "https://github.com/web-infra-dev/midscene",
   "homepage": "https://midscenejs.com/",
   "jsnext:source": "./src/index.ts",
@@ -33,7 +33,7 @@
     "test:ai": "AITEST=true npm run test",
     "computer": "TEST_COMPUTER=true npm run test:ai -- tests/ai/evaluate/computer.test.ts",
     "evaluate": "npm run test:ai -- tests/ai/evaluate/inspect.test.ts",
-    "prompt": "npm run test:ai -- tests/ai/inspect2.test.ts",
+    "prompt": "npm run test:ai -- tests/ai/parse-action.test.ts",
     "evaluate:update": "UPDATE_AI_DATA=true npm run test:ai -- tests/ai/evaluate/inspect.test.ts",
     "prepublishOnly": "npm run build"
   },

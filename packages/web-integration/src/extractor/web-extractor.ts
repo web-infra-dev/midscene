@@ -3,6 +3,7 @@ import {
   CONTAINER_MINI_WIDTH,
   NodeType,
 } from '@midscene/shared/constants';
+import { setFrameId } from '@midscene/shared/utils';
 import type { ElementInfo } from '.';
 import {
   isButtonElement,
@@ -21,7 +22,6 @@ import {
   resetNodeHashCacheList,
   setDataForNode,
   setDebugMode,
-  setFrameId,
   visibleRect,
 } from './util';
 

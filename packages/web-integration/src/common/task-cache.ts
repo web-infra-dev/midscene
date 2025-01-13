@@ -1,10 +1,7 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import {
-  type AIElementIdResponse,
-  type PlanningAIResponse,
-  getAIConfig,
-} from '@midscene/core';
+import type { AIElementIdResponse, PlanningAIResponse } from '@midscene/core';
+import { getAIConfig } from '@midscene/core/env';
 import {
   getLogDirByType,
   stringifyDumpData,
