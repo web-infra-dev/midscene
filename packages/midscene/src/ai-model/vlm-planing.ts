@@ -5,9 +5,9 @@ import { AIActionType } from './common';
 import { call, callToGetJSONObject } from './openai';
 import {
   getSummary,
-  parseActionVlm,
-  planToTargetPrompt,
-} from './prompt/plan-to-target';
+  parseActionFromVlm,
+  uiTarsPlaningPrompt,
+} from './prompt/ui-tars-planing';
 import { describeUserPage } from './prompt/util';
 
 type ActionType = 'click' | 'type' | 'hotkey' | 'finished' | 'scroll' | 'wait';
@@ -16,7 +16,7 @@ function capitalize(str: string) {
   return str.charAt(0).toUpperCase() + str.slice(1);
 }
 
-export async function planToTarget(options: {
+export async function vlmPlaning(options: {
   userInstruction: string;
   conversationHistory: ChatCompletionMessageParam[];
   size: { width: number; height: number };
@@ -26,7 +26,7 @@ export async function planToTarget(options: {
   action_summary: string;
 }> {
   const { conversationHistory, userInstruction, size } = options;
-  const systemPrompt = planToTargetPrompt + userInstruction;
+  const systemPrompt = uiTarsPlaningPrompt + userInstruction;
 
   const res = await call(
     [
@@ -38,7 +38,7 @@ export async function planToTarget(options: {
     ],
     AIActionType.INSPECT_ELEMENT,
   );
-  const actions = parseActionVlm(res.content);
+  const actions = parseActionFromVlm(res.content);
   const transformActions: PlanningAction[] = [];
   actions.forEach((action) => {
     if (action.action_type === 'click') {
@@ -111,7 +111,7 @@ export async function planToTarget(options: {
       });
     }
   });
-  console.log('planToTarget:', {
+  console.log('vlmPlaning:', {
     original: res.content,
     actions,
     transformActions,

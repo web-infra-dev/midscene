@@ -59,6 +59,9 @@ export default class ChromeExtensionProxyPage implements AbstractPage {
     // Create new attaching promise
     this.attachingDebugger = (async () => {
       try {
+        if (this.lastAttachedTabId) {
+          await chrome.debugger.detach({ tabId: this.lastAttachedTabId });
+        }
         await chrome.debugger.attach({ tabId: currentTabId }, '1.3');
         this.debuggerAttached = true;
         this.lastAttachedTabId = currentTabId;

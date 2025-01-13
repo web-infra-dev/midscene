@@ -4,7 +4,7 @@ import { generateExtractData, generateTestDataPath } from '@/debug';
 import { PlaywrightWebPage } from '@/playwright';
 import {
   type ChatCompletionMessageParam,
-  planToTarget,
+  vlmPlaning,
 } from '@midscene/core/ai-model';
 import { saveBase64Image, savePositionImg } from '@midscene/shared/img';
 import type { Page } from 'playwright';
@@ -50,7 +50,7 @@ async function loopAgent(
         },
       ],
     });
-    const { realActions, action_summary } = await planToTarget({
+    const { realActions, action_summary } = await vlmPlaning({
       userInstruction: userInstruction,
       conversationHistory,
       size,
@@ -177,30 +177,3 @@ test('douyin', async ({ page }) => {
 
   await loopAgent(page, playwrightPage, '搜索 黑神话，看两个视频');
 });
-
-// test('ai online order plan to target', async ({ page }) => {
-//   try {
-//     const outputPath = path.join(__dirname, 'output');
-//     await fs.rmdirSync(outputPath, { recursive: true });
-//   } catch (error) {
-//     // console.log('output path not found');
-//   }
-
-//   const playwrightPage = new PlaywrightWebPage(page);
-//   // const historyActions: string[] = [];
-//   // let isCompleted = false;
-//   // let currentActionNumber = 0;
-
-//   await loopAgent(page, playwrightPage, '切换中文');
-//   await loopAgent(page, playwrightPage, '点击青芒芒甘露的选择规格按钮');
-//   await loopAgent(
-//     page,
-//     playwrightPage,
-//     '在饮品选择规格页，将必选规格都勾选上，需要向下滚动，直到看到下单按钮',
-//   );
-//   // await loopAgent(
-//   //   page,
-//   //   playwrightPage,
-//   //   '点击轻芒芒甘露选择规格，并将选择饮品中的规格',
-//   // );
-// });

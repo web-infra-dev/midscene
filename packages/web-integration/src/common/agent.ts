@@ -11,7 +11,7 @@ import {
 } from '@midscene/core';
 import { NodeType } from '@midscene/shared/constants';
 
-import { MATCH_BY_POSITION, getAIConfig } from '@midscene/core/env';
+import { MIDSCENE_USE_VLM_UI_TARS, getAIConfig } from '@midscene/core/env';
 import {
   groupedActionDumpFileExt,
   reportHTMLContent,
@@ -154,7 +154,7 @@ export class PageAgent<PageType extends WebPage = WebPage> {
   }
 
   async aiAction(taskPrompt: string) {
-    if (getAIConfig(MATCH_BY_POSITION)) {
+    if (getAIConfig(MIDSCENE_USE_VLM_UI_TARS)) {
       const { executor } = await this.taskExecutor.actionToGoal(taskPrompt, {
         onTaskStart: this.callbackOnTaskStartTip.bind(this),
       });

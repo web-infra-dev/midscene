@@ -1,6 +1,6 @@
-import type { Action } from '../plan-target';
+import type { Action } from '../vlm-planing';
 
-export const planToTargetPrompt = `
+export const uiTarsPlaningPrompt = `
 You are a GUI agent. You are given a task and your action history, with screenshots. You need to perform the next action to complete the task. 
 
 ## Output Format
@@ -45,7 +45,7 @@ export const getSummary = (prediction: string) =>
     .replace(/Reflection:[\s\S]*?(?=Action_Summary:|Action:|$)/g, '')
     .trim();
 
-export function parseActionVlm(
+export function parseActionFromVlm(
   text: string,
   factor = 1000,
   mode: 'bc' | 'o1' = 'bc',
