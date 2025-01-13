@@ -20,6 +20,16 @@ export default defineConfig({
         content: 'https://github.com/web-infra-dev/midscene',
       },
       {
+        icon: 'discord',
+        mode: 'link',
+        content: 'https://discord.gg/AFHJBdnn',
+      },
+      {
+        icon: 'x',
+        mode: 'link',
+        content: 'https://x.com/midscene_ai',
+      },
+      {
         icon: 'lark',
         mode: 'link',
         content:
