@@ -43,21 +43,38 @@ export default class ChromeExtensionProxyPage implements AbstractPage {
   }
 
   private async attachDebugger() {
-    const currentTabId = this.getTabId();
-    // check if debugger is already attached to the tab
-    const targets = await chrome.debugger.getTargets();
-    const target = targets.find(
-      (target) => target.tabId === currentTabId && target.attached === true,
-    );
-    if (target) {
-      return;
-    }
-
     // If already attaching, wait for it to complete
     if (this.attachingDebugger) {
       await this.attachingDebugger;
       return;
     }
+
+    // Create new attaching promise
+    this.attachingDebugger = (async () => {
+      try {
+        const currentTabId = this.getTabId();
+        // check if debugger is already attached to the tab
+        const targets = await chrome.debugger.getTargets();
+        const target = targets.find(
+          (target) => target.tabId === currentTabId && target.attached === true,
+        );
+        if (!target) {
+          // await chrome.debugger.detach({ tabId: currentTabId });
+          await chrome.debugger.attach({ tabId: currentTabId }, '1.3');
+          this.debuggerAttached = true;
+
+          // listen to the debugger detach event
+          chrome.debugger.onEvent.addListener((source, method, params) => {
+            console.log('debugger event', source, method, params);
+            if (method === 'Debugger.detached') {
+              this.debuggerAttached = false;
+            }
+          });
+        }
+      } finally {
+        this.attachingDebugger = null;
+      }
+    })();
 
     const url = await this.url();
     if (url.startsWith('chrome://')) {
@@ -65,24 +82,6 @@ export default class ChromeExtensionProxyPage implements AbstractPage {
         'Cannot attach debugger to chrome:// pages, please use Midscene in a normal page with http://, https:// or file://',
       );
     }
-
-    // Create new attaching promise
-    this.attachingDebugger = (async () => {
-      try {
-        await chrome.debugger.attach({ tabId: currentTabId }, '1.3');
-        this.debuggerAttached = true;
-
-        // listen to the debugger detach event
-        chrome.debugger.onEvent.addListener((source, method, params) => {
-          console.log('debugger event', source, method, params);
-          if (method === 'Debugger.detached') {
-            this.debuggerAttached = false;
-          }
-        });
-      } finally {
-        this.attachingDebugger = null;
-      }
-    })();
 
     await this.attachingDebugger;
   }
