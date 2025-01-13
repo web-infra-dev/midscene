@@ -307,8 +307,8 @@ export async function describeUserPage<
     },
     insertElementByPosition(position: { x: number; y: number }) {
       const rect = {
-        left: position.x - 4,
-        top: position.y - 4,
+        left: Math.max(position.x - 4, 0),
+        top: Math.max(position.y - 4, 0),
         width: 8,
         height: 8,
       };

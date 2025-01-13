@@ -111,11 +111,11 @@ export async function vlmPlaning(options: {
       });
     }
   });
-  console.log('vlmPlaning:', {
-    original: res.content,
-    actions,
-    transformActions,
-  });
+  // console.log('vlmPlaning:', {
+  //   original: res.content,
+  //   actions,
+  //   transformActions,
+  // });
   return {
     actions: transformActions,
     realActions: actions,
