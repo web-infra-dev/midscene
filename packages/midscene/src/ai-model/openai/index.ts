@@ -37,7 +37,7 @@ import {
   getAIConfigInJson,
 } from '../../env';
 import { AIActionType } from '../common';
-import { findElementSchema } from '../prompt/element_inspector';
+import { findElementSchema } from '../prompt/element-inspector';
 import { planSchema } from '../prompt/planning';
 import { assertSchema } from '../prompt/util';
 
@@ -201,9 +201,6 @@ export async function call(
         : Number.parseInt(maxTokens || '2048', 10),
   };
 
-  // if (getAIConfig(MATCH_BY_POSITION)) {
-  //   return useHttpAgent(messages, AIActionTypeValue);
-  // }
   if (style === 'openai') {
     const result = await completion.create({
       model,

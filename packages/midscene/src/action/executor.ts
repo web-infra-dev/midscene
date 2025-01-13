@@ -140,6 +140,7 @@ export class Executor {
         task.status = 'finished';
         task.timing.end = Date.now();
         task.timing.cost = task.timing.end - task.timing.start;
+        task.timing.aiCost = (returnValue as any)?.aiCost || 0;
         taskIndex++;
       } catch (e: any) {
         successfullyCompleted = false;

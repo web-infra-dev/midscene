@@ -11,4 +11,5 @@ export enum NodeType {
   BUTTON = 'BUTTON Node',
   IMG = 'IMG Node',
   TEXT = 'TEXT Node',
+  POSITION = 'POSITION Node',
 }

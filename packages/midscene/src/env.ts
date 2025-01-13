@@ -14,6 +14,7 @@ export const OPENAI_MAX_TOKENS = 'OPENAI_MAX_TOKENS';
 export const MIDSCENE_MODEL_TEXT_ONLY = 'MIDSCENE_MODEL_TEXT_ONLY';
 
 export const MIDSCENE_CACHE = 'MIDSCENE_CACHE';
+export const MIDSCENE_USE_VLM_UI_TARS = 'MIDSCENE_USE_VLM_UI_TARS';
 export const MATCH_BY_POSITION = 'MATCH_BY_POSITION';
 export const MIDSCENE_API_TYPE = 'MIDSCENE-API-TYPE';
 export const MIDSCENE_REPORT_TAG_NAME = 'MIDSCENE_REPORT_TAG_NAME';
@@ -66,6 +67,8 @@ const allConfigFromEnv = () => {
       process.env[MIDSCENE_AZURE_OPENAI_INIT_CONFIG_JSON] || undefined,
     [MIDSCENE_USE_ANTHROPIC_SDK]:
       process.env[MIDSCENE_USE_ANTHROPIC_SDK] || undefined,
+    [MIDSCENE_USE_VLM_UI_TARS]:
+      process.env[MIDSCENE_USE_VLM_UI_TARS] || undefined,
     [ANTHROPIC_API_KEY]: process.env[ANTHROPIC_API_KEY] || undefined,
     [AZURE_OPENAI_ENDPOINT]: process.env[AZURE_OPENAI_ENDPOINT] || undefined,
     [AZURE_OPENAI_KEY]: process.env[AZURE_OPENAI_KEY] || undefined,

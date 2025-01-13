@@ -197,9 +197,17 @@ const DetailSide = (): JSX.Element => {
         content: timeStr(task?.timing?.end),
       },
       {
-        key: 'time cost',
+        key: 'total time cost',
         content: timeCostStrElement(task?.timing?.cost),
       },
+      ...(task?.timing?.aiCost
+        ? [
+            {
+              key: 'ai service cost',
+              content: timeCostStrElement(task?.timing?.aiCost),
+            },
+          ]
+        : []),
       {
         key: 'cache',
         content: task?.cache ? JSON.stringify(task?.cache) : 'false',
