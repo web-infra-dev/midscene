@@ -86,10 +86,35 @@ export default class ChromeExtensionProxyPage implements AbstractPage {
     await this.attachingDebugger;
   }
 
+  private async enableWaterFlowAnimation() {
+    chrome.scripting.executeScript({
+      target: { tabId: this.getTabId() },
+      files: ['lib/water-flow.js'],
+    });
+  }
+
+  private async disableWaterFlowAnimation(tabId: number) {
+    chrome.scripting.executeScript({
+      target: { tabId },
+      files: ['lib/stop-water-flow.js'],
+    });
+  }
+
   private async detachDebugger() {
-    if (!this.debuggerAttached) return;
-    await chrome.debugger.detach({ tabId: this.getTabId() });
-    this.debuggerAttached = false;
+    const currentTabId = this.getTabId();
+    // check if debugger is already attached to the tab
+    const targets = await chrome.debugger.getTargets();
+    console.log('detachDebugger', targets);
+    const attendTabs = targets.filter((target) => target.attached === true);
+    if (attendTabs.length > 0) {
+      attendTabs.forEach((tab) => {
+        if (tab.tabId) {
+          this.disableWaterFlowAnimation(tab.tabId);
+          chrome.debugger.detach({ tabId: tab.tabId });
+        }
+      });
+      this.debuggerAttached = false;
+    }
   }
 
   private async sendCommandToDebugger<ResponseType = any, RequestType = any>(
@@ -97,6 +122,7 @@ export default class ChromeExtensionProxyPage implements AbstractPage {
     params: RequestType,
   ): Promise<ResponseType> {
     await this.attachDebugger();
+    this.enableWaterFlowAnimation();
     return (await chrome.debugger.sendCommand(
       { tabId: this.getTabId() },
       command,

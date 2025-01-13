@@ -7,7 +7,8 @@
     "activeTab",
     "tabs",
     "sidePanel",
-    "debugger"
+    "debugger",
+    "scripting"
   ],
   "incognito": "split",
   "background": {
@@ -15,6 +16,16 @@
   },
   "host_permissions": [
     "<all_urls>"
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "lib/water-flow.js"
+      ],
+      "matches": [
+        "<all_urls>"
+      ]
+    }
   ],
   "action": {
     "default_icon": "icon128.png",
