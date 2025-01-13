@@ -27,6 +27,10 @@ const scriptFileContent = async () => {
   return fs.readFileSync(scriptFileToRetrieve, 'utf8');
 };
 
+function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 export default class ChromeExtensionProxyPage implements AbstractPage {
   pageType = 'chrome-extension-proxy';
 
@@ -51,6 +55,13 @@ export default class ChromeExtensionProxyPage implements AbstractPage {
 
     // Create new attaching promise
     this.attachingDebugger = (async () => {
+      const url = await this.url();
+      if (url.startsWith('chrome://')) {
+        throw new Error(
+          'Cannot attach debugger to chrome:// pages, please use Midscene in a normal page with http://, https:// or file://',
+        );
+      }
+
       try {
         const currentTabId = this.getTabId();
         // check if debugger is already attached to the tab
@@ -62,7 +73,7 @@ export default class ChromeExtensionProxyPage implements AbstractPage {
           // await chrome.debugger.detach({ tabId: currentTabId });
           await chrome.debugger.attach({ tabId: currentTabId }, '1.3');
           this.debuggerAttached = true;
-
+          await sleep(500);
           // listen to the debugger detach event
           chrome.debugger.onEvent.addListener((source, method, params) => {
             console.log('debugger event', source, method, params);
@@ -75,13 +86,6 @@ export default class ChromeExtensionProxyPage implements AbstractPage {
         this.attachingDebugger = null;
       }
     })();
-
-    const url = await this.url();
-    if (url.startsWith('chrome://')) {
-      throw new Error(
-        'Cannot attach debugger to chrome:// pages, please use Midscene in a normal page with http://, https:// or file://',
-      );
-    }
 
     await this.attachingDebugger;
   }
