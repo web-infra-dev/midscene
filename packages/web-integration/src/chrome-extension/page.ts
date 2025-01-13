@@ -83,13 +83,6 @@ export default class ChromeExtensionProxyPage implements AbstractPage {
       }
     })();
 
-    const url = await this.url();
-    if (url.startsWith('chrome://')) {
-      throw new Error(
-        'Cannot attach debugger to chrome:// pages, please use Midscene in a normal page with http://, https:// or file://',
-      );
-    }
-
     await this.attachingDebugger;
   }
 
