@@ -1,11 +1,16 @@
-import { DownOutlined, LoadingOutlined, SendOutlined } from '@ant-design/icons';
+import {
+  HistoryOutlined,
+  LoadingOutlined,
+  SendOutlined,
+  SettingOutlined,
+} from '@ant-design/icons';
 import type {
   GroupedActionDump,
   MidsceneYamlFlowItemAIAction,
   UIContext,
 } from '@midscene/core';
 import { Helmet } from '@modern-js/runtime/head';
-import { Alert, Button, Spin, Tooltip, message } from 'antd';
+import { Alert, Button, Checkbox, Spin, Tooltip, message } from 'antd';
 import { Form, Input } from 'antd';
 import { Radio } from 'antd';
 import React, {
@@ -130,7 +135,8 @@ const useHistorySelector = (onSelect: (history: HistoryItem) => void) => {
     <div className="history-selector">
       <Dropdown menu={{ items }}>
         <Space>
-          history <DownOutlined />
+          <HistoryOutlined />
+          history
         </Space>
       </Dropdown>
     </div>
@@ -190,6 +196,10 @@ export function Playground({
   const [result, setResult] = useState<PlaygroundResult | null>(null);
   const [form] = Form.useForm();
   const { config, serviceMode, setServiceMode } = useEnvConfig();
+  const trackingActiveTab = useEnvConfig((state) => state.trackingActiveTab);
+  const setTrackingActiveTab = useEnvConfig(
+    (state) => state.setTrackingActiveTab,
+  );
   const configAlreadySet = Object.keys(config || {}).length >= 1;
   const runResultRef = useRef<HTMLHeadingElement>(null);
 
@@ -239,6 +249,34 @@ export function Playground({
   }, [uiContextPreview, showContextPreview, getAgent]);
 
   const addHistory = useEnvConfig((state) => state.addHistory);
+
+  const configItems = [
+    {
+      label: (
+        <Checkbox
+          onChange={(e) => setTrackingActiveTab(e.target.checked)}
+          checked={trackingActiveTab}
+        >
+          Track newly-opened tabs
+        </Checkbox>
+      ),
+      key: 'config',
+    },
+  ];
+
+  const configSelector =
+    serviceMode === 'In-Browser-Extension' ? (
+      <div className="config-selector">
+        <Dropdown menu={{ items: configItems }}>
+          <Space>
+            <SettingOutlined />
+            {trackingActiveTab
+              ? 'Tracking newly-opened tabs'
+              : 'Focus on current tab'}
+          </Space>
+        </Dropdown>
+      </div>
+    ) : null;
 
   const handleRun = useCallback(async () => {
     const value = form.getFieldsValue();
@@ -539,6 +577,7 @@ export function Playground({
     };
   }, []);
 
+  const [hoveringSettings, setHoveringSettings] = useState(false);
   const formSection = (
     <Form
       form={form}
@@ -616,8 +655,20 @@ export function Playground({
                 }}
               />
             </Form.Item>
+
             {actionBtn}
-            {historySelector}
+            <div
+              className={
+                hoveringSettings
+                  ? 'settings-wrapper settings-wrapper-hover'
+                  : 'settings-wrapper'
+              }
+              onMouseEnter={() => setHoveringSettings(true)}
+              onMouseLeave={() => setHoveringSettings(false)}
+            >
+              {historySelector}
+              {configSelector}
+            </div>
           </div>
         </div>
       </div>

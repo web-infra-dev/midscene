@@ -118,6 +118,8 @@ export const useEnvConfig = create<{
   configString: string;
   setConfig: (config: Record<string, string>) => void;
   loadConfig: (configString: string) => void;
+  trackingActiveTab: boolean;
+  setTrackingActiveTab: (trackingActiveTab: boolean) => void;
   history: HistoryItem[];
   clearHistory: () => void;
   addHistory: (history: HistoryItem) => void;
@@ -147,6 +149,10 @@ export const useEnvConfig = create<{
       const config = parseConfig(configString);
       set({ config, configString });
       localStorage.setItem(CONFIG_KEY, configString);
+    },
+    trackingActiveTab: false,
+    setTrackingActiveTab: (trackingActiveTab: boolean) => {
+      set({ trackingActiveTab });
     },
     history: getHistoryFromLocalStorage(),
     clearHistory: () => {
