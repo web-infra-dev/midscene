@@ -6,8 +6,8 @@ import { call, callToGetJSONObject } from './openai';
 import {
   getSummary,
   parseActionFromVlm,
-  uiTarsPlaningPrompt,
-} from './prompt/ui-tars-planing';
+  uiTarsPlanningPrompt,
+} from './prompt/ui-tars-planning';
 import { describeUserPage } from './prompt/util';
 
 type ActionType = 'click' | 'type' | 'hotkey' | 'finished' | 'scroll' | 'wait';
@@ -16,7 +16,7 @@ function capitalize(str: string) {
   return str.charAt(0).toUpperCase() + str.slice(1);
 }
 
-export async function vlmPlaning(options: {
+export async function vlmPlanning(options: {
   userInstruction: string;
   conversationHistory: ChatCompletionMessageParam[];
   size: { width: number; height: number };
@@ -26,7 +26,7 @@ export async function vlmPlaning(options: {
   action_summary: string;
 }> {
   const { conversationHistory, userInstruction, size } = options;
-  const systemPrompt = uiTarsPlaningPrompt + userInstruction;
+  const systemPrompt = uiTarsPlanningPrompt + userInstruction;
 
   const res = await call(
     [
@@ -111,7 +111,7 @@ export async function vlmPlaning(options: {
       });
     }
   });
-  // console.log('vlmPlaning:', {
+  // console.log('vlmPlanning:', {
   //   original: res.content,
   //   actions,
   //   transformActions,

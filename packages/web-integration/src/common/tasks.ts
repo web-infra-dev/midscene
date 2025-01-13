@@ -31,7 +31,7 @@ import {
 } from '@midscene/core';
 import {
   type ChatCompletionMessageParam,
-  vlmPlaning,
+  vlmPlanning,
 } from '@midscene/core/ai-model';
 import { sleep } from '@midscene/core/utils';
 import type { KeyInput } from 'puppeteer';
@@ -592,7 +592,7 @@ export class PageTaskExecutor {
           ],
         });
         const startTime = Date.now();
-        const planResult = await vlmPlaning({
+        const planResult = await vlmPlanning({
           userInstruction: param.userPrompt,
           conversationHistory: this.conversationHistory,
           size: pageContext.size,
