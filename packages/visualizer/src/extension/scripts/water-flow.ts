@@ -76,7 +76,6 @@ const waterFlowAnimation = {
   },
 };
 
-// 将对象挂载到window上
 export {};
 declare global {
   interface Window {

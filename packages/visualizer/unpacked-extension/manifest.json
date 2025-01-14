@@ -7,8 +7,7 @@
     "activeTab",
     "tabs",
     "sidePanel",
-    "debugger",
-    "scripting"
+    "debugger"
   ],
   "incognito": "split",
   "background": {
