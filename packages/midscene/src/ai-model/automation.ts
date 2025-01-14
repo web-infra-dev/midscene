@@ -62,7 +62,7 @@ export async function plan(
   assert(planFromAI, "can't get plans from AI");
   assert(
     actions.length > 0,
-    `Failed to plan actions with context: ${planFromAI.error}`,
+    `Failed to plan actions: ${planFromAI.error || '(no error details)'}`,
   );
 
   return planFromAI;

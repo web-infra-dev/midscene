@@ -1,4 +1,4 @@
-import { activeTabId } from '@/extension/utils';
+import { activeTab } from '@/extension/utils';
 import { currentWindowId } from '@/extension/utils';
 import * as Z from 'zustand';
 // import { createStore } from 'zustand/vanilla';
@@ -78,24 +78,37 @@ export interface HistoryItem {
 
 export const useChromeTabInfo = create<{
   tabId: number | null;
+  tabTitle: string | null;
+  tabUrl: string | null;
   windowId: number | null;
 }>((set) => {
   const data = {
     tabId: null,
+    tabTitle: null,
+    tabUrl: null,
     windowId: null,
   };
 
   Promise.resolve().then(async () => {
-    const tabId = await activeTabId();
+    const tab = await activeTab();
     const windowId = await currentWindowId();
-    set({ tabId, windowId });
+    set({
+      tabId: tab.id,
+      tabTitle: tab.title,
+      tabUrl: tab.url,
+      windowId,
+    });
 
     chrome.tabs.onActivated.addListener(async (activeInfo) => {
       const tabId = activeInfo.tabId;
       const windowId = activeInfo.windowId;
-      // console.log('active tab', tabId, windowId);
-
-      set({ tabId, windowId });
+      try {
+        const tab = await chrome.tabs.get(tabId);
+        set({ tabId, windowId, tabTitle: tab.title, tabUrl: tab.url });
+      } catch (e) {
+        console.error('failed to get active tab', e);
+        set({ tabId: null, windowId: null, tabTitle: null, tabUrl: null });
+      }
     });
   });
 

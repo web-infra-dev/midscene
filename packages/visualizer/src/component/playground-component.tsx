@@ -31,8 +31,6 @@ import './playground-component.less';
 import Logo from './logo';
 import { serverBase, useServerValid } from './open-in-playground';
 
-import { ScriptPlayer, buildYaml, parseYamlScript } from '@midscene/web/yaml';
-
 import { overrideAIConfig } from '@midscene/core/env';
 import {
   ERROR_CODE_NOT_IMPLEMENTED_AS_DESIGNED,
@@ -45,7 +43,6 @@ import { Dropdown, Space } from 'antd';
 import { EnvConfig } from './env-config';
 import { type HistoryItem, useChromeTabInfo, useEnvConfig } from './store';
 
-import { getTabInfo } from '@/extension/utils';
 import {
   ChromeExtensionProxyPage,
   ChromeExtensionProxyPageAgent,
@@ -80,12 +77,6 @@ const actionNameForType = (type: string) => {
   return type;
 };
 
-// context and agent
-const useContextId = () => {
-  const path = window.location.pathname;
-  const match = path.match(/^\/playground\/([a-zA-Z0-9-]+)$/);
-  return match ? match[1] : null;
-};
 const { TextArea } = Input;
 
 export const staticAgentFromContext = (context: WebUIContext) => {
@@ -185,13 +176,11 @@ export function Playground({
   showContextPreview?: boolean;
   dryMode?: boolean;
 }) {
-  // const contextId = useContextId();
   const [uiContextPreview, setUiContextPreview] = useState<
     UIContext | undefined
   >(undefined);
 
   const [loading, setLoading] = useState(false);
-  const [tabInfoString, setTabInfoString] = useState('');
   const [loadingProgressText, setLoadingProgressText] = useState('');
   const [result, setResult] = useState<PlaygroundResult | null>(null);
   const [form] = Form.useForm();
@@ -205,7 +194,7 @@ export function Playground({
 
   const [verticalMode, setVerticalMode] = useState(false);
 
-  const { tabId } = useChromeTabInfo();
+  const { tabId, tabUrl } = useChromeTabInfo();
 
   // if the screen is narrow, we use vertical mode
   useEffect(() => {
@@ -250,6 +239,7 @@ export function Playground({
 
   const addHistory = useEnvConfig((state) => state.addHistory);
 
+  const trackingTip = 'Track newly-opened tabs';
   const configItems = [
     {
       label: (
@@ -257,7 +247,7 @@ export function Playground({
           onChange={(e) => setTrackingActiveTab(e.target.checked)}
           checked={trackingActiveTab}
         >
-          Track newly-opened tabs
+          {trackingTip}
         </Checkbox>
       ),
       key: 'config',
@@ -270,9 +260,7 @@ export function Playground({
         <Dropdown menu={{ items: configItems }}>
           <Space>
             <SettingOutlined />
-            {trackingActiveTab
-              ? 'Tracking newly-opened tabs'
-              : 'Focus on current tab'}
+            {trackingActiveTab ? trackingTip : 'Focus on current tab'}
           </Space>
         </Dropdown>
       </div>
@@ -287,13 +275,6 @@ export function Playground({
 
     const startTime = Date.now();
 
-    if (tabId) {
-      Promise.resolve().then(async () => {
-        const tab = await getTabInfo(tabId);
-        const tabInfoString = dryMode ? '' : `${tab.title} ${tab.url}`;
-        setTabInfoString(tabInfoString);
-      });
-    }
     setLoading(true);
     setResult(null);
     addHistory({
@@ -313,7 +294,10 @@ export function Playground({
       if (!activeAgent) {
         throw new Error('No agent found');
       }
-      activeAgent?.resetDump();
+      activeAgent.resetDump();
+      activeAgent.opts.onTaskStartTip = (tip: string) => {
+        setLoadingProgressText(tip);
+      };
       if (serviceMode === 'Server') {
         const uiContext = await activeAgent?.getUIContext();
         result = await requestPlaygroundServer(
@@ -323,61 +307,21 @@ export function Playground({
         );
       } else {
         if (value.type === 'aiAction') {
-          const yamlString = buildYaml(
-            {
-              url: 'https://www.baidu.com',
-            },
-            [
-              {
-                name: 'aiAction',
-                flow: [{ aiAction: value.prompt }],
-              },
-            ],
-          );
+          // const yamlString = buildYaml(
+          //   {
+          //     url: tabUrl || '',
+          //   },
+          //   [
+          //     {
+          //       name: 'aiAction',
+          //       flow: [{ aiAction: value.prompt }],
+          //     },
+          //   ],
+          // );
+          // const parsedYamlScript = parseYamlScript(yamlString);
+          // console.log('yamlString', parsedYamlScript, yamlString);
 
-          const parsedYamlScript = parseYamlScript(yamlString);
-          console.log('yamlString', parsedYamlScript, yamlString);
-          let errorMessage: Error | null = null;
-          const yamlPlayer = new ScriptPlayer(
-            parsedYamlScript,
-            async () => {
-              if (!activeAgent) throw new Error('Agent is not initialized');
-
-              activeAgent?.resetDump();
-              return {
-                agent: activeAgent,
-                freeFn: [],
-              };
-            },
-            (taskStatus) => {
-              let overallStatus = '';
-              if (taskStatus.status === 'init') {
-                overallStatus = 'initializing...';
-              } else if (
-                taskStatus.status === 'running' ||
-                taskStatus.status === 'error'
-              ) {
-                const item = taskStatus.flow[0] as MidsceneYamlFlowItemAIAction;
-                // const brief = flowItemBrief(item);
-                const tips = item?.aiActionProgressTips || [];
-                if (tips.length > 0) {
-                  overallStatus = tips[tips.length - 1];
-                }
-
-                if (taskStatus.status === 'error') {
-                  errorMessage = taskStatus.error || null;
-                }
-              }
-
-              setLoadingProgressText(overallStatus);
-            },
-          );
-
-          await yamlPlayer.run();
-          if (yamlPlayer.status === 'error') {
-            // throw new Error(errorMessage || 'Failed to run the script');
-            throw errorMessage || new Error('Failed to run the script');
-          }
+          result.result = await activeAgent?.aiAction(value.prompt);
         } else if (value.type === 'aiQuery') {
           result.result = await activeAgent?.aiQuery(value.prompt);
         } else if (value.type === 'aiAssert') {
@@ -467,9 +411,9 @@ export function Playground({
     resultDataToShow = (
       <div className="loading-container">
         <Spin spinning={loading} indicator={<LoadingOutlined spin />} />
-        <div className="loading-progress-text loading-progress-text-tab-info">
+        {/* <div className="loading-progress-text loading-progress-text-tab-info">
           {tabInfoString}
-        </div>
+        </div> */}
         <div className="loading-progress-text loading-progress-text-progress">
           {loadingProgressText}
         </div>

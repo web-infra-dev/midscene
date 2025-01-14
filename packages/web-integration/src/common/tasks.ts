@@ -498,7 +498,8 @@ export class PageTaskExecutor {
           });
         }
 
-        const { actions, furtherPlan, taskWillBeAccomplished } = planResult;
+        const { actions, furtherPlan, taskWillBeAccomplished, error } =
+          planResult;
         // console.log('actions', taskWillBeAccomplished, actions, furtherPlan);
 
         let stopCollecting = false;
@@ -532,7 +533,10 @@ export class PageTaskExecutor {
           [],
         );
 
-        assert(finalActions.length > 0, 'No plans found');
+        assert(
+          finalActions.length > 0,
+          error ? `No plan: ${error}` : 'No plans found',
+        );
 
         cacheGroup.saveCache({
           type: 'plan',
