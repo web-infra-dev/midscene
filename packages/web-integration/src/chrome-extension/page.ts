@@ -65,7 +65,7 @@ export default class ChromeExtensionProxyPage implements AbstractPage {
           await chrome.debugger.attach({ tabId: currentTabId }, '1.3');
           this.debuggerAttached = true;
           // Prevent AI logic from being influenced by changes in page width and height due to the debugger banner appearing on attach.
-          await sleep(100);
+          await sleep(340);
           // listen to the debugger detach event
           chrome.debugger.onEvent.addListener((source, method, params) => {
             console.log('debugger event', source, method, params);
