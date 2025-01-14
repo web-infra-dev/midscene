@@ -73,9 +73,8 @@ function PlaygroundPopup() {
         <div className="popup-header">
           <Logo withGithubStar={true} />
           <p>
-            Automate browser actions, extract data, and perform assertions using
-            AI, including a Chrome extension, JavaScript SDK, and support for
-            scripting in YAML.{' '}
+            AI-Driven Browser Automation with Chrome Extensions, JavaScript, and
+            YAML Scripts.{' '}
             <a href="https://midscenejs.com/" target="_blank" rel="noreferrer">
               Learn more
             </a>

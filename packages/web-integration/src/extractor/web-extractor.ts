@@ -60,6 +60,12 @@ function collectElementInfo(
   ) {
     return null;
   }
+  // Skip elements that cover the entire viewport, as they are likely background containers
+  // rather than meaningful interactive elements
+  if (rect.height >= window.innerHeight && rect.width >= window.innerWidth) {
+    return null;
+  }
+
   if (isFormElement(node)) {
     const attributes = getNodeAttributes(node);
     let valueContent =
