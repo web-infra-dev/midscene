@@ -1,4 +1,4 @@
-import { Executor } from './action/executor';
+import { Executor } from './ai-model/action-executor';
 import Insight from './insight';
 import { getLogDirByType, getVersion, setLogDir } from './utils';
 
