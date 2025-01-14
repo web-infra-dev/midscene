@@ -74,10 +74,18 @@ body {
       padding-bottom: 40px;
     }
 
-    .ant-btn {
+    .form-controller-wrapper {
       position: absolute;
       bottom: 8px;
-      right: 8px;
+      padding: 0 12px;
+      left: 0px;
+      display: flex;
+      flex-direction: row;
+      justify-content: space-between;
+      width: 100%;
+      box-sizing: border-box;
+      align-items: flex-end;
+      gap: 8px;
     }
 
     .settings-wrapper {
@@ -85,13 +93,15 @@ body {
         color: @main-text;
       }
 
-      position: absolute;
-      bottom: 8px;
-      left: 12px;
       display: flex;
       flex-direction: row;
-      gap: 16px;
+      gap: 2px;
       color: @weak-text;
+      flex-wrap: wrap;
+    }
+
+    .history-selector {
+      margin-right: 8px;
     }
   }
 

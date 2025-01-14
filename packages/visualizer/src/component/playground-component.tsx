@@ -157,11 +157,8 @@ const serverLaunchTip = (
 );
 
 // remember to destroy the agent when the tab is destroyed: agent.page.destroy()
-export const extensionAgentForTabId = (getTabId: () => number) => {
-  if (!getTabId()) {
-    return null;
-  }
-  const page = new ChromeExtensionProxyPage(getTabId);
+export const extensionAgentForTabId = (trackingActiveTab: () => boolean) => {
+  const page = new ChromeExtensionProxyPage(trackingActiveTab);
   return new ChromeExtensionProxyPageAgent(page);
 };
 
@@ -171,7 +168,9 @@ export function Playground({
   showContextPreview = true,
   dryMode = false,
 }: {
-  getAgent: () => StaticPageAgent | ChromeExtensionProxyPageAgent | null;
+  getAgent: (
+    trackingActiveTab: () => boolean,
+  ) => StaticPageAgent | ChromeExtensionProxyPageAgent | null;
   hideLogo?: boolean;
   showContextPreview?: boolean;
   dryMode?: boolean;
@@ -194,7 +193,14 @@ export function Playground({
 
   const [verticalMode, setVerticalMode] = useState(false);
 
-  const { tabId, tabUrl } = useChromeTabInfo();
+  const { tabId } = useChromeTabInfo();
+  const tabActiveRef = useRef<boolean>(true);
+
+  useEffect(() => {
+    if (tabId) {
+      tabActiveRef.current = trackingActiveTab;
+    }
+  }, [trackingActiveTab]);
 
   // if the screen is narrow, we use vertical mode
   useEffect(() => {
@@ -226,7 +232,7 @@ export function Playground({
     if (uiContextPreview) return;
     if (!showContextPreview) return;
 
-    getAgent()
+    getAgent(() => tabActiveRef.current)
       ?.getUIContext()
       .then((context) => {
         setUiContextPreview(context);
@@ -239,7 +245,7 @@ export function Playground({
 
   const addHistory = useEnvConfig((state) => state.addHistory);
 
-  const trackingTip = 'Track newly-opened tabs';
+  const trackingTip = 'track newly-opened tabs';
   const configItems = [
     {
       label: (
@@ -260,7 +266,7 @@ export function Playground({
         <Dropdown menu={{ items: configItems }}>
           <Space>
             <SettingOutlined />
-            {trackingActiveTab ? trackingTip : 'Focus on current tab'}
+            {trackingActiveTab ? trackingTip : 'focus on current tab'}
           </Space>
         </Dropdown>
       </div>
@@ -289,7 +295,7 @@ export function Playground({
       error: null,
     };
 
-    const activeAgent = getAgent();
+    const activeAgent = getAgent(() => tabActiveRef.current);
     try {
       if (!activeAgent) {
         throw new Error('No agent found');
@@ -600,18 +606,20 @@ export function Playground({
               />
             </Form.Item>
 
-            {actionBtn}
-            <div
-              className={
-                hoveringSettings
-                  ? 'settings-wrapper settings-wrapper-hover'
-                  : 'settings-wrapper'
-              }
-              onMouseEnter={() => setHoveringSettings(true)}
-              onMouseLeave={() => setHoveringSettings(false)}
-            >
-              {historySelector}
-              {configSelector}
+            <div className="form-controller-wrapper">
+              <div
+                className={
+                  hoveringSettings
+                    ? 'settings-wrapper settings-wrapper-hover'
+                    : 'settings-wrapper'
+                }
+                onMouseEnter={() => setHoveringSettings(true)}
+                onMouseLeave={() => setHoveringSettings(false)}
+              >
+                {historySelector}
+                {configSelector}
+              </div>
+              {actionBtn}
             </div>
           </div>
         </div>

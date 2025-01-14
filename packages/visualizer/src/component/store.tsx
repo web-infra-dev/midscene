@@ -32,6 +32,7 @@ export const useBlackboardPreference = create<{
 const CONFIG_KEY = 'midscene-env-config';
 const SERVICE_MODE_KEY = 'midscene-service-mode';
 const HISTORY_KEY = 'midscene-prompt-history';
+const TRACKING_ACTIVE_TAB_KEY = 'midscene-tracking-active-tab';
 const getConfigStringFromLocalStorage = () => {
   const configString = localStorage.getItem(CONFIG_KEY);
   return configString || '';
@@ -145,6 +146,8 @@ export const useEnvConfig = create<{
   const savedServiceMode = localStorage.getItem(
     SERVICE_MODE_KEY,
   ) as ServiceModeType | null;
+  const savedTrackingActiveTab =
+    localStorage.getItem(TRACKING_ACTIVE_TAB_KEY) !== 'false';
   return {
     serviceMode: ifInExtension
       ? 'In-Browser-Extension'
@@ -163,9 +166,13 @@ export const useEnvConfig = create<{
       set({ config, configString });
       localStorage.setItem(CONFIG_KEY, configString);
     },
-    trackingActiveTab: false,
+    trackingActiveTab: savedTrackingActiveTab,
     setTrackingActiveTab: (trackingActiveTab: boolean) => {
       set({ trackingActiveTab });
+      localStorage.setItem(
+        TRACKING_ACTIVE_TAB_KEY,
+        trackingActiveTab.toString(),
+      );
     },
     history: getHistoryFromLocalStorage(),
     clearHistory: () => {

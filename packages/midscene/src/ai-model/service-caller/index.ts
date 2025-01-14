@@ -16,7 +16,6 @@ import {
   AZURE_OPENAI_DEPLOYMENT,
   AZURE_OPENAI_ENDPOINT,
   AZURE_OPENAI_KEY,
-  MATCH_BY_POSITION,
   MIDSCENE_API_TYPE,
   MIDSCENE_AZURE_OPENAI_INIT_CONFIG_JSON,
   MIDSCENE_AZURE_OPENAI_SCOPE,
@@ -37,8 +36,8 @@ import {
   getAIConfigInJson,
 } from '../../env';
 import { AIActionType } from '../common';
-import { findElementSchema } from '../prompt/element-inspector';
-import { planSchema } from '../prompt/planning';
+import { findElementSchema } from '../prompt/llm-locator';
+import { planSchema } from '../prompt/llm-planning';
 import { assertSchema } from '../prompt/util';
 
 export function checkAIConfig(preferVendor?: 'openAI') {

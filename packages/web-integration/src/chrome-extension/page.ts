@@ -5,7 +5,6 @@
   The page must be active when interacting with it.
 */
 
-import fs from 'node:fs';
 import type { WebKeyInput } from '@/common/page';
 import type { ElementInfo } from '@/extractor';
 import type { AbstractPage } from '@/page';
@@ -13,33 +12,41 @@ import type { Point, Size } from '@midscene/core';
 import { ifInBrowser } from '@midscene/shared/utils';
 import type { Protocol as CDPTypes } from 'devtools-protocol';
 import { CdpKeyboard } from './cdpInput';
+import {
+  getHtmlElementScript,
+  injectStopWaterFlowAnimation,
+  injectWaterFlowAnimation,
+} from './dynamic-scripts';
 
-// remember to include this file into extension's package
-const scriptFileToRetrieve = './lib/htmlElement.js';
-let scriptFileContentCache: string | null = null;
-const scriptFileContent = async () => {
-  if (scriptFileContentCache) return scriptFileContentCache;
-  if (ifInBrowser) {
-    const script = await fetch('/lib/htmlElement.js');
-    scriptFileContentCache = await script.text();
-    return scriptFileContentCache;
-  }
-  return fs.readFileSync(scriptFileToRetrieve, 'utf8');
-};
+function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
 
 export default class ChromeExtensionProxyPage implements AbstractPage {
   pageType = 'chrome-extension-proxy';
 
-  public getTabId: () => number;
+  public trackingActiveTab: () => boolean;
 
   private viewportSize?: Size;
 
-  private debuggerAttached = false;
+  private activeTabId: number | null = null;
 
   private attachingDebugger: Promise<void> | null = null;
 
-  constructor(getTabId: () => number) {
-    this.getTabId = getTabId;
+  constructor(trackingActiveTab: () => boolean) {
+    this.trackingActiveTab = trackingActiveTab;
+  }
+
+  public async getTabId() {
+    const trackingActiveTab = this.trackingActiveTab();
+    if (this.activeTabId && !trackingActiveTab) {
+      return this.activeTabId;
+    }
+    const tabId = await chrome.tabs
+      .query({ active: true, currentWindow: true })
+      .then((tabs) => tabs[0]?.id);
+    this.activeTabId = tabId || 0;
+    return this.activeTabId;
   }
 
   private async attachDebugger() {
@@ -51,8 +58,15 @@ export default class ChromeExtensionProxyPage implements AbstractPage {
 
     // Create new attaching promise
     this.attachingDebugger = (async () => {
+      const url = await this.url();
+      if (url.startsWith('chrome://')) {
+        throw new Error(
+          'Cannot attach debugger to chrome:// pages, please use Midscene in a normal page with http://, https:// or file://',
+        );
+      }
+
       try {
-        const currentTabId = this.getTabId();
+        const currentTabId = await this.getTabId();
         // check if debugger is already attached to the tab
         const targets = await chrome.debugger.getTargets();
         const target = targets.find(
@@ -61,35 +75,49 @@ export default class ChromeExtensionProxyPage implements AbstractPage {
         if (!target) {
           // await chrome.debugger.detach({ tabId: currentTabId });
           await chrome.debugger.attach({ tabId: currentTabId }, '1.3');
-          this.debuggerAttached = true;
-
-          // listen to the debugger detach event
-          chrome.debugger.onEvent.addListener((source, method, params) => {
-            console.log('debugger event', source, method, params);
-            if (method === 'Debugger.detached') {
-              this.debuggerAttached = false;
-            }
-          });
+          // Prevent AI logic from being influenced by changes in page width and height due to the debugger banner appearing on attach.
+          await sleep(340);
         }
       } finally {
         this.attachingDebugger = null;
       }
     })();
 
-    const url = await this.url();
-    if (url.startsWith('chrome://')) {
-      throw new Error(
-        'Cannot attach debugger to chrome:// pages, please use Midscene in a normal page with http://, https:// or file://',
-      );
-    }
-
     await this.attachingDebugger;
   }
 
+  private async enableWaterFlowAnimation(tabId: number) {
+    const script = await injectWaterFlowAnimation();
+
+    await chrome.debugger.sendCommand({ tabId }, 'Runtime.evaluate', {
+      expression: script,
+    });
+  }
+
+  private async disableWaterFlowAnimation(tabId: number) {
+    const script = await injectStopWaterFlowAnimation();
+
+    await chrome.debugger.sendCommand({ tabId }, 'Runtime.evaluate', {
+      expression: script,
+    });
+  }
+
   private async detachDebugger() {
-    if (!this.debuggerAttached) return;
-    await chrome.debugger.detach({ tabId: this.getTabId() });
-    this.debuggerAttached = false;
+    // check if debugger is already attached to the tab
+    const targets = await chrome.debugger.getTargets();
+    const attendTabs = targets.filter(
+      (target) =>
+        target.attached === true &&
+        !target.url.startsWith('chrome-extension://'),
+    );
+    if (attendTabs.length > 0) {
+      for (const tab of attendTabs) {
+        if (tab.tabId) {
+          await this.disableWaterFlowAnimation(tab.tabId);
+          chrome.debugger.detach({ tabId: tab.tabId });
+        }
+      }
+    }
   }
 
   private async sendCommandToDebugger<ResponseType = any, RequestType = any>(
@@ -97,15 +125,17 @@ export default class ChromeExtensionProxyPage implements AbstractPage {
     params: RequestType,
   ): Promise<ResponseType> {
     await this.attachDebugger();
+    const tabId = await this.getTabId();
+    this.enableWaterFlowAnimation(tabId);
     return (await chrome.debugger.sendCommand(
-      { tabId: this.getTabId() },
+      { tabId },
       command,
       params as any,
     )) as ResponseType;
   }
 
   private async getPageContentByCDP() {
-    const script = await scriptFileContent();
+    const script = await getHtmlElementScript();
 
     // check tab url
     await this.sendCommandToDebugger<
@@ -195,7 +225,8 @@ export default class ChromeExtensionProxyPage implements AbstractPage {
   }
 
   async url() {
-    const url = await chrome.tabs.get(this.getTabId()).then((tab) => tab.url);
+    const tabId = await this.getTabId();
+    const url = await chrome.tabs.get(tabId).then((tab) => tab.url);
     return url || '';
   }
 
@@ -353,6 +384,7 @@ export default class ChromeExtensionProxyPage implements AbstractPage {
   };
 
   async destroy(): Promise<void> {
+    this.activeTabId = null;
     await this.detachDebugger();
   }
 }

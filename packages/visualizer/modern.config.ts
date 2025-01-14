@@ -51,6 +51,8 @@ export default defineConfig({
       format: 'iife',
       dts: false,
       input: {
+        'water-flow': 'src/extension/scripts/water-flow.ts',
+        'stop-water-flow': 'src/extension/scripts/stop-water-flow.ts',
         popup: 'src/extension/popup.tsx',
         worker: 'src/extension/worker.ts',
         'playground-entry': 'src/extension/playground-entry.tsx',

@@ -1,5 +1,4 @@
 import assert from 'node:assert';
-import path from 'node:path';
 import type {
   AIAssertionResponse,
   AIElementResponse,
@@ -9,22 +8,18 @@ import type {
   AIUsageInfo,
   BaseElement,
   ElementById,
-  Point,
   Size,
   UIContext,
 } from '@/types';
-import { savePositionImg } from '@midscene/shared/img';
 import type {
   ChatCompletionSystemMessageParam,
   ChatCompletionUserMessageParam,
 } from 'openai/resources';
 import { AIActionType, callAiFn } from './common';
-import { call, callToGetJSONObject } from './openai';
 import {
   findElementPrompt,
-  multiDescription,
-  systemPromptToFindElement,
-} from './prompt/element-inspector';
+  systemPromptToLocateElement,
+} from './prompt/llm-locator';
 import {
   describeUserPage,
   elementByPositionWithElementInfo,
@@ -32,6 +27,7 @@ import {
   systemPromptToAssert,
   systemPromptToExtract,
 } from './prompt/util';
+import { callToGetJSONObject } from './service-caller';
 
 export type AIArgs = [
   ChatCompletionSystemMessageParam,
@@ -69,11 +65,7 @@ export async function transformElementPositionToId(
       },
       size,
     );
-    // await savePositionImg({
-    //   inputImgBase64: screenshotBase64,
-    //   rect: absolutePosition,
-    //   outputPath: path.join(__dirname, 'test-data', `output-${index++}.png`),
-    // });
+
     const element = elementByPositionWithElementInfo(
       elementsInfo,
       absolutePosition,
@@ -182,7 +174,7 @@ export async function AiInspectElement<
     targetElementDescription,
     multi,
   });
-  const systemPrompt = systemPromptToFindElement();
+  const systemPrompt = systemPromptToLocateElement();
   const msgs: AIArgs = [
     { role: 'system', content: systemPrompt },
     {
