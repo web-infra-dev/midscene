@@ -19,8 +19,8 @@ import { AIActionType, callAiFn } from './common';
 import { call, callToGetJSONObject } from './openai';
 import {
   findElementPrompt,
-  systemPromptToFindElement,
-} from './prompt/element-inspector';
+  systemPromptToLocateElement,
+} from './prompt/llm-locator';
 import {
   describeUserPage,
   elementByPositionWithElementInfo,
@@ -178,7 +178,7 @@ export async function AiInspectElement<
     targetElementDescription,
     multi,
   });
-  const systemPrompt = systemPromptToFindElement();
+  const systemPrompt = systemPromptToLocateElement();
   const msgs: AIArgs = [
     { role: 'system', content: systemPrompt },
     {

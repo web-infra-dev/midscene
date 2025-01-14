@@ -37,8 +37,8 @@ import {
   getAIConfigInJson,
 } from '../../env';
 import { AIActionType } from '../common';
-import { findElementSchema } from '../prompt/element-inspector';
-import { planSchema } from '../prompt/planning';
+import { findElementSchema } from '../prompt/llm-locator';
+import { planSchema } from '../prompt/llm-planning';
 import { assertSchema } from '../prompt/util';
 
 export function checkAIConfig(preferVendor?: 'openAI') {

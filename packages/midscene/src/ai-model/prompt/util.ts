@@ -13,7 +13,10 @@ const characteristic =
 const contextFormatIntro = `
 The user will give you a screenshot and some of the texts on it. There may be some none-English characters (like Chinese) on it, indicating it's an non-English app. If some text is shown on screenshot but not introduced by the JSON description, use the information you see on screenshot.`;
 
-export function systemPromptToFindElement(queryPrompt: string, multi: boolean) {
+export function systemPromptToLocateElement(
+  queryPrompt: string,
+  multi: boolean,
+) {
   assert(queryPrompt, 'queryPrompt is required');
   return `
 ${characteristic}

@@ -1,4 +1,4 @@
-import type { Action } from '../vlm-planning';
+import type { Action } from '../ui-tars-planning';
 
 export const uiTarsPlanningPrompt = `
 You are a GUI agent. You are given a task and your action history, with screenshots. You need to perform the next action to complete the task. 
