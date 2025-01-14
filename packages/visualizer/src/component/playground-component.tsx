@@ -194,7 +194,7 @@ export function Playground({
 
   const [verticalMode, setVerticalMode] = useState(false);
 
-  const { tabId, tabUrl } = useChromeTabInfo();
+  const { tabId } = useChromeTabInfo();
 
   // if the screen is narrow, we use vertical mode
   useEffect(() => {
@@ -239,7 +239,7 @@ export function Playground({
 
   const addHistory = useEnvConfig((state) => state.addHistory);
 
-  const trackingTip = 'Track newly-opened tabs';
+  const trackingTip = 'track newly-opened tabs';
   const configItems = [
     {
       label: (
@@ -260,7 +260,7 @@ export function Playground({
         <Dropdown menu={{ items: configItems }}>
           <Space>
             <SettingOutlined />
-            {trackingActiveTab ? trackingTip : 'Focus on current tab'}
+            {trackingActiveTab ? trackingTip : 'focus on current tab'}
           </Space>
         </Dropdown>
       </div>
@@ -600,18 +600,20 @@ export function Playground({
               />
             </Form.Item>
 
-            {actionBtn}
-            <div
-              className={
-                hoveringSettings
-                  ? 'settings-wrapper settings-wrapper-hover'
-                  : 'settings-wrapper'
-              }
-              onMouseEnter={() => setHoveringSettings(true)}
-              onMouseLeave={() => setHoveringSettings(false)}
-            >
-              {historySelector}
-              {configSelector}
+            <div className="form-controller-wrapper">
+              <div
+                className={
+                  hoveringSettings
+                    ? 'settings-wrapper settings-wrapper-hover'
+                    : 'settings-wrapper'
+                }
+                onMouseEnter={() => setHoveringSettings(true)}
+                onMouseLeave={() => setHoveringSettings(false)}
+              >
+                {historySelector}
+                {configSelector}
+              </div>
+              {actionBtn}
             </div>
           </div>
         </div>

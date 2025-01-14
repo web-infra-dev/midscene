@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef } from 'react';
 
 import './timeline.less';
 import type { ExecutionRecorderItem, ExecutionTask } from '@midscene/core';
+import { getTextureFromCache, loadTexture } from './pixi-loader';
 import { useAllCurrentTasks, useExecutionDump } from './store';
 
 interface TimelineItem {
@@ -120,6 +121,7 @@ const TimelineWidget = (props: {
   ]);
 
   useEffect(() => {
+    let freeFn = () => {};
     Promise.resolve(
       (async () => {
         if (!domRef.current) {
@@ -161,6 +163,9 @@ const TimelineWidget = (props: {
           height: canvasHeight,
           backgroundColor: sideBg,
         });
+        freeFn = () => {
+          app.destroy();
+        };
         if (!domRef.current) {
           app.destroy();
           return;
@@ -226,44 +231,50 @@ const TimelineWidget = (props: {
           const container = new PIXI.Container();
           shotContainers.push(container);
           app.stage.addChild(container);
-          const img = new Image();
-          img.src = screenshot.img;
-          img.onload = () => {
-            const screenshotTexture = PIXI.Texture.from(img);
-            const screenshotSprite = new PIXI.Sprite(screenshotTexture);
+          Promise.resolve(
+            (async () => {
+              await loadTexture(screenshot.img);
+              const texture = getTextureFromCache(screenshot.img);
+              if (!texture) {
+                return;
+              }
 
-            // get width / height of img
-            const originalWidth = img.width;
-            const originalHeight = img.height;
+              // clone the sprite
+              const screenshotSprite = PIXI.Sprite.from(texture);
 
-            const screenshotHeight = screenshotMaxHeight;
-            const screenshotWidth = Math.floor(
-              (screenshotHeight / originalHeight) * originalWidth,
-            );
+              // get width / height of img
+              const originalWidth = screenshotSprite.width;
+              const originalHeight = screenshotSprite.height;
 
-            const screenshotX = leftForTimeOffset(screenshot.timeOffset);
-            allScreenshots[index].x = screenshotX;
-            allScreenshots[index].y = screenshotTop;
-            allScreenshots[index].width = screenshotWidth;
-            allScreenshots[index].height = screenshotMaxHeight;
+              const screenshotHeight = screenshotMaxHeight;
+              const screenshotWidth = Math.floor(
+                (screenshotHeight / originalHeight) * originalWidth,
+              );
 
-            const border = new PIXI.Graphics();
-            border.lineStyle(sizeRatio, shotBorderColor, 1);
-            border.drawRect(
-              screenshotX,
-              screenshotTop,
-              screenshotWidth,
-              screenshotMaxHeight,
-            );
-            border.endFill();
-            container.addChild(border);
+              const screenshotX = leftForTimeOffset(screenshot.timeOffset);
+              allScreenshots[index].x = screenshotX;
+              allScreenshots[index].y = screenshotTop;
+              allScreenshots[index].width = screenshotWidth;
+              allScreenshots[index].height = screenshotMaxHeight;
 
-            screenshotSprite.x = screenshotX;
-            screenshotSprite.y = screenshotTop;
-            screenshotSprite.width = screenshotWidth;
-            screenshotSprite.height = screenshotMaxHeight;
-            container.addChild(screenshotSprite);
-          };
+              const border = new PIXI.Graphics();
+              border.lineStyle(sizeRatio, shotBorderColor, 1);
+              border.drawRect(
+                screenshotX,
+                screenshotTop,
+                screenshotWidth,
+                screenshotMaxHeight,
+              );
+              border.endFill();
+              container.addChild(border);
+
+              screenshotSprite.x = screenshotX;
+              screenshotSprite.y = screenshotTop;
+              screenshotSprite.width = screenshotWidth;
+              screenshotSprite.height = screenshotMaxHeight;
+              container.addChild(screenshotSprite);
+            })(),
+          );
         });
 
         const highlightMaskUpdater = (
@@ -422,6 +433,10 @@ const TimelineWidget = (props: {
         canvas.addEventListener('pointerdown', onPointerTap);
       })(),
     );
+
+    return () => {
+      freeFn();
+    };
   }, []);
 
   return <div className="timeline-canvas-wrapper" ref={domRef} />;
