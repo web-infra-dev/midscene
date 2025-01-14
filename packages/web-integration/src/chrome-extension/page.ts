@@ -5,7 +5,6 @@
   The page must be active when interacting with it.
 */
 
-import fs from 'node:fs';
 import type { WebKeyInput } from '@/common/page';
 import type { ElementInfo } from '@/extractor';
 import type { AbstractPage } from '@/page';
@@ -13,19 +12,15 @@ import type { Point, Size } from '@midscene/core';
 import { ifInBrowser } from '@midscene/shared/utils';
 import type { Protocol as CDPTypes } from 'devtools-protocol';
 import { CdpKeyboard } from './cdpInput';
+import {
+  getHtmlElementScript,
+  injectStopWaterFlowAnimation,
+  injectWaterFlowAnimation,
+} from './dynamic-scripts';
 
-// remember to include this file into extension's package
-const scriptFileToRetrieve = './lib/htmlElement.js';
-let scriptFileContentCache: string | null = null;
-const scriptFileContent = async () => {
-  if (scriptFileContentCache) return scriptFileContentCache;
-  if (ifInBrowser) {
-    const script = await fetch('/lib/htmlElement.js');
-    scriptFileContentCache = await script.text();
-    return scriptFileContentCache;
-  }
-  return fs.readFileSync(scriptFileToRetrieve, 'utf8');
-};
+function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
 
 export default class ChromeExtensionProxyPage implements AbstractPage {
   pageType = 'chrome-extension-proxy';
@@ -51,6 +46,13 @@ export default class ChromeExtensionProxyPage implements AbstractPage {
 
     // Create new attaching promise
     this.attachingDebugger = (async () => {
+      const url = await this.url();
+      if (url.startsWith('chrome://')) {
+        throw new Error(
+          'Cannot attach debugger to chrome:// pages, please use Midscene in a normal page with http://, https:// or file://',
+        );
+      }
+
       try {
         const currentTabId = this.getTabId();
         // check if debugger is already attached to the tab
@@ -62,7 +64,8 @@ export default class ChromeExtensionProxyPage implements AbstractPage {
           // await chrome.debugger.detach({ tabId: currentTabId });
           await chrome.debugger.attach({ tabId: currentTabId }, '1.3');
           this.debuggerAttached = true;
-
+          // Prevent AI logic from being influenced by changes in page width and height due to the debugger banner appearing on attach.
+          await sleep(500);
           // listen to the debugger detach event
           chrome.debugger.onEvent.addListener((source, method, params) => {
             console.log('debugger event', source, method, params);
@@ -76,20 +79,42 @@ export default class ChromeExtensionProxyPage implements AbstractPage {
       }
     })();
 
-    const url = await this.url();
-    if (url.startsWith('chrome://')) {
-      throw new Error(
-        'Cannot attach debugger to chrome:// pages, please use Midscene in a normal page with http://, https:// or file://',
-      );
-    }
-
     await this.attachingDebugger;
   }
 
+  private async enableWaterFlowAnimation(tabId: number) {
+    const script = await injectWaterFlowAnimation();
+
+    await chrome.debugger.sendCommand({ tabId }, 'Runtime.evaluate', {
+      expression: script,
+    });
+  }
+
+  private async disableWaterFlowAnimation(tabId: number) {
+    const script = await injectStopWaterFlowAnimation();
+
+    await chrome.debugger.sendCommand({ tabId }, 'Runtime.evaluate', {
+      expression: script,
+    });
+  }
+
   private async detachDebugger() {
-    if (!this.debuggerAttached) return;
-    await chrome.debugger.detach({ tabId: this.getTabId() });
-    this.debuggerAttached = false;
+    // check if debugger is already attached to the tab
+    const targets = await chrome.debugger.getTargets();
+    const attendTabs = targets.filter(
+      (target) =>
+        target.attached === true &&
+        !target.url.startsWith('chrome-extension://'),
+    );
+    if (attendTabs.length > 0) {
+      for (const tab of attendTabs) {
+        if (tab.tabId) {
+          await this.disableWaterFlowAnimation(tab.tabId);
+          chrome.debugger.detach({ tabId: tab.tabId });
+        }
+      }
+      this.debuggerAttached = false;
+    }
   }
 
   private async sendCommandToDebugger<ResponseType = any, RequestType = any>(
@@ -97,15 +122,17 @@ export default class ChromeExtensionProxyPage implements AbstractPage {
     params: RequestType,
   ): Promise<ResponseType> {
     await this.attachDebugger();
+    const tabId = this.getTabId();
+    this.enableWaterFlowAnimation(tabId);
     return (await chrome.debugger.sendCommand(
-      { tabId: this.getTabId() },
+      { tabId },
       command,
       params as any,
     )) as ResponseType;
   }
 
   private async getPageContentByCDP() {
-    const script = await scriptFileContent();
+    const script = await getHtmlElementScript();
 
     // check tab url
     await this.sendCommandToDebugger<
