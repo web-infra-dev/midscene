@@ -4,7 +4,11 @@ import path from 'node:path';
 import type { ElementInfo } from '@/extractor';
 import type { StaticPage } from '@/playground';
 import type { PlaywrightParserOpt, UIContext } from '@midscene/core';
-import { MIDSCENE_REPORT_TAG_NAME, getAIConfig } from '@midscene/core/env';
+import {
+  MIDSCENE_REPORT_TAG_NAME,
+  MIDSCENE_USE_VLM_UI_TARS,
+  getAIConfig,
+} from '@midscene/core/env';
 import { uploadTestInfoToServer } from '@midscene/core/utils';
 import { NodeType } from '@midscene/shared/constants';
 import { findNearestPackageJson } from '@midscene/shared/fs';
@@ -52,24 +56,29 @@ export async function parseContextFromWebPage(
   );
 
   const size = await page.size();
+  let screenshotBase64WithElementMarker = screenshotBase64;
 
-  const screenshotBase64WithElementMarker = _opt?.ignoreMarker
-    ? await compositeElementInfoImg({
+  if (!getAIConfig(MIDSCENE_USE_VLM_UI_TARS)) {
+    if (_opt?.ignoreMarker) {
+      screenshotBase64WithElementMarker = await compositeElementInfoImg({
         inputImgBase64: screenshotBase64,
         elementsPositionInfo: [],
         size,
-      })
-    : await compositeElementInfoImg({
+      });
+    } else {
+      screenshotBase64WithElementMarker = await compositeElementInfoImg({
         inputImgBase64: screenshotBase64,
         elementsPositionInfo: elementsPositionInfoWithoutText,
         size,
       });
+    }
+  }
 
   return {
     content: elementsInfo!,
     size,
     screenshotBase64: screenshotBase64!,
-    screenshotBase64WithElementMarker,
+    screenshotBase64WithElementMarker: screenshotBase64WithElementMarker,
     url,
   };
 }
