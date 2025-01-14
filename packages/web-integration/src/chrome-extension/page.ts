@@ -25,16 +25,28 @@ function sleep(ms: number) {
 export default class ChromeExtensionProxyPage implements AbstractPage {
   pageType = 'chrome-extension-proxy';
 
-  public getTabId: () => number;
+  public trackingActiveTab: () => boolean;
 
   private viewportSize?: Size;
 
-  private debuggerAttached = false;
+  private activeTabId: number | null = null;
 
   private attachingDebugger: Promise<void> | null = null;
 
-  constructor(getTabId: () => number) {
-    this.getTabId = getTabId;
+  constructor(trackingActiveTab: () => boolean) {
+    this.trackingActiveTab = trackingActiveTab;
+  }
+
+  public async getTabId() {
+    const trackingActiveTab = this.trackingActiveTab();
+    if (this.activeTabId && !trackingActiveTab) {
+      return this.activeTabId;
+    }
+    const tabId = await chrome.tabs
+      .query({ active: true, currentWindow: true })
+      .then((tabs) => tabs[0]?.id);
+    this.activeTabId = tabId || 0;
+    return this.activeTabId;
   }
 
   private async attachDebugger() {
@@ -54,7 +66,7 @@ export default class ChromeExtensionProxyPage implements AbstractPage {
       }
 
       try {
-        const currentTabId = this.getTabId();
+        const currentTabId = await this.getTabId();
         // check if debugger is already attached to the tab
         const targets = await chrome.debugger.getTargets();
         const target = targets.find(
@@ -63,16 +75,8 @@ export default class ChromeExtensionProxyPage implements AbstractPage {
         if (!target) {
           // await chrome.debugger.detach({ tabId: currentTabId });
           await chrome.debugger.attach({ tabId: currentTabId }, '1.3');
-          this.debuggerAttached = true;
           // Prevent AI logic from being influenced by changes in page width and height due to the debugger banner appearing on attach.
           await sleep(340);
-          // listen to the debugger detach event
-          chrome.debugger.onEvent.addListener((source, method, params) => {
-            console.log('debugger event', source, method, params);
-            if (method === 'Debugger.detached') {
-              this.debuggerAttached = false;
-            }
-          });
         }
       } finally {
         this.attachingDebugger = null;
@@ -113,7 +117,6 @@ export default class ChromeExtensionProxyPage implements AbstractPage {
           chrome.debugger.detach({ tabId: tab.tabId });
         }
       }
-      this.debuggerAttached = false;
     }
   }
 
@@ -122,7 +125,7 @@ export default class ChromeExtensionProxyPage implements AbstractPage {
     params: RequestType,
   ): Promise<ResponseType> {
     await this.attachDebugger();
-    const tabId = this.getTabId();
+    const tabId = await this.getTabId();
     this.enableWaterFlowAnimation(tabId);
     return (await chrome.debugger.sendCommand(
       { tabId },
@@ -222,7 +225,8 @@ export default class ChromeExtensionProxyPage implements AbstractPage {
   }
 
   async url() {
-    const url = await chrome.tabs.get(this.getTabId()).then((tab) => tab.url);
+    const tabId = await this.getTabId();
+    const url = await chrome.tabs.get(tabId).then((tab) => tab.url);
     return url || '';
   }
 
@@ -380,6 +384,7 @@ export default class ChromeExtensionProxyPage implements AbstractPage {
   };
 
   async destroy(): Promise<void> {
+    this.activeTabId = null;
     await this.detachDebugger();
   }
 }

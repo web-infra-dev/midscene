@@ -23,15 +23,7 @@ declare const __VERSION__: string;
 
 function PlaygroundPopup() {
   const extensionVersion = getExtensionVersion();
-  const { tabId } = useChromeTabInfo();
-  const tabIdRef = useRef<number | null>(null);
   const { popupTab, setPopupTab, trackingActiveTab } = useEnvConfig();
-
-  useEffect(() => {
-    if (tabId) {
-      tabIdRef.current = tabId;
-    }
-  }, [tabId]);
 
   const items = [
     {
@@ -42,13 +34,8 @@ function PlaygroundPopup() {
         <div className="popup-playground-container">
           <Playground
             hideLogo
-            getAgent={() => {
-              return extensionAgentForTabId(() => {
-                if (trackingActiveTab) {
-                  return tabIdRef.current || 0;
-                }
-                return tabId || 0;
-              });
+            getAgent={(trackingActiveTab: () => boolean) => {
+              return extensionAgentForTabId(trackingActiveTab);
             }}
             showContextPreview={false}
           />
