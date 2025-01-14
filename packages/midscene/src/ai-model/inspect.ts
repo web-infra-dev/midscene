@@ -16,7 +16,7 @@ import type {
   ChatCompletionUserMessageParam,
 } from 'openai/resources';
 import { AIActionType, callAiFn } from './common';
-import { call, callToGetJSONObject } from './openai';
+import { callToGetJSONObject } from './openai';
 import {
   findElementPrompt,
   systemPromptToLocateElement,
@@ -65,11 +65,7 @@ export async function transformElementPositionToId(
       },
       size,
     );
-    // await savePositionImg({
-    //   inputImgBase64: screenshotBase64,
-    //   rect: absolutePosition,
-    //   outputPath: path.join(__dirname, 'test-data', `output-${index++}.png`),
-    // });
+
     const element = elementByPositionWithElementInfo(
       elementsInfo,
       absolutePosition,

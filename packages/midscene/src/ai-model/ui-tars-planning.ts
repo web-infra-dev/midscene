@@ -1,14 +1,12 @@
-import type { UIContext } from '@/types';
 import type { PlanningAction } from '@/types';
 import type { ChatCompletionMessageParam } from 'openai/resources';
 import { AIActionType } from './common';
-import { call, callToGetJSONObject } from './openai';
+import { call } from './openai';
 import {
   getSummary,
   parseActionFromVlm,
   uiTarsPlanningPrompt,
 } from './prompt/ui-tars-planning';
-import { describeUserPage } from './prompt/util';
 
 type ActionType = 'click' | 'type' | 'hotkey' | 'finished' | 'scroll' | 'wait';
 

@@ -1,9 +1,7 @@
 import assert from 'node:assert';
-import { MIDSCENE_MODEL_TEXT_ONLY, getAIConfig } from '@/env';
 import type { AIUsageInfo } from '@/types';
 
 import type {
-  ChatCompletionContentPart,
   ChatCompletionSystemMessageParam,
   ChatCompletionUserMessageParam,
 } from 'openai/resources';
