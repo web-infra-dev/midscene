@@ -148,8 +148,13 @@ export class PageAgent<PageType extends WebPage = WebPage> {
 
   private async callbackOnTaskStartTip(task: ExecutionTask) {
     if (this.opts.onTaskStartTip) {
-      const tip = `${typeStr(task)} - ${paramStr(task)}`;
-      await this.opts.onTaskStartTip(tip);
+      const param = paramStr(task);
+      if (param) {
+        const tip = `${typeStr(task)} - ${param}`;
+        await this.opts.onTaskStartTip(tip);
+      } else {
+        await this.opts.onTaskStartTip(typeStr(task));
+      }
     }
   }
 
