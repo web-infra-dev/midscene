@@ -80,10 +80,18 @@ body {
       right: 8px;
     }
 
-    .history-selector {
+    .settings-wrapper {
+      &.settings-wrapper-hover {
+        color: @main-text;
+      }
+
       position: absolute;
       bottom: 8px;
       left: 12px;
+      display: flex;
+      flex-direction: row;
+      gap: 16px;
+      color: @weak-text;
     }
   }
 

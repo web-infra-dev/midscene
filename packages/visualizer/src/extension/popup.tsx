@@ -1,10 +1,8 @@
+/// <reference types="chrome" />
 import { ConfigProvider, Tabs } from 'antd';
 import ReactDOM from 'react-dom/client';
 import { setSideEffect } from '../init';
-/// <reference types="chrome" />
 import './popup.less';
-
-import { getExtensionVersion } from './utils';
 
 import { globalThemeConfig } from '@/component/color';
 import Logo from '@/component/logo';
@@ -15,9 +13,9 @@ import {
 import { useChromeTabInfo } from '@/component/store';
 import { useEnvConfig } from '@/component/store';
 import { ApiOutlined, SendOutlined } from '@ant-design/icons';
-import type { ChromeExtensionProxyPageAgent } from '@midscene/web/chrome-extension';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef } from 'react';
 import Bridge from './bridge';
+import { getExtensionVersion } from './utils';
 
 setSideEffect();
 
@@ -25,9 +23,9 @@ declare const __VERSION__: string;
 
 function PlaygroundPopup() {
   const extensionVersion = getExtensionVersion();
-  const { tabId, windowId } = useChromeTabInfo();
+  const { tabId } = useChromeTabInfo();
   const tabIdRef = useRef<number | null>(null);
-  const { popupTab, setPopupTab } = useEnvConfig();
+  const { popupTab, setPopupTab, trackingActiveTab } = useEnvConfig();
 
   useEffect(() => {
     if (tabId) {
@@ -45,7 +43,12 @@ function PlaygroundPopup() {
           <Playground
             hideLogo
             getAgent={() => {
-              return extensionAgentForTabId(() => tabIdRef.current || 0);
+              return extensionAgentForTabId(() => {
+                if (trackingActiveTab) {
+                  return tabIdRef.current || 0;
+                }
+                return tabId || 0;
+              });
             }}
             showContextPreview={false}
           />

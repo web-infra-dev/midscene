@@ -1,6 +1,6 @@
 # Customize Model and Provider
 
-Midscene uses the OpenAI SDK to call AI services. You can customize the configuration using environment variables. All the configs can also be used in the [Chrome Extension](./quick-experience.html).
+Midscene uses the OpenAI SDK to call AI services. You can customize the configuration using environment variables. All the configs can also be used in the [Chrome Extension](./quick-experience).
 
 These are the main configs, in which `OPENAI_API_KEY` is required.
 
@@ -65,7 +65,7 @@ If you want to use other models, please follow these steps:
 
 1. Choose a model that supports image input (a.k.a. multimodal model).
 2. Find out how to to call it with an OpenAI SDK compatible endpoint. Usually you should set the `OPENAI_BASE_URL`, `OPENAI_API_KEY` and `MIDSCENE_MODEL_NAME`.
-3. If you find it not working well after changing the model, you can try using some short and clear prompt (or roll back to the previous model). See more details in [Prompting Tips](./prompting-tips.html).
+3. If you find it not working well after changing the model, you can try using some short and clear prompt (or roll back to the previous model). See more details in [Prompting Tips](./prompting-tips).
 4. Remember to follow the terms of use of each model.
 
 ## Example: Using `claude-3-opus-20240229` from Anthropic

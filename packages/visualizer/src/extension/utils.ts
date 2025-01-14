@@ -45,11 +45,11 @@ export function getPlaygroundUrl(cacheContextId: string) {
   );
 }
 
-export async function activeTabId(): Promise<number> {
+export async function activeTab(): Promise<chrome.tabs.Tab> {
   return new Promise((resolve, reject) => {
     chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-      if (tabs?.[0]?.id) {
-        resolve(tabs[0].id);
+      if (tabs?.[0]) {
+        resolve(tabs[0]);
       } else {
         reject(new Error('No active tab found'));
       }
