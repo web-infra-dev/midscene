@@ -50,7 +50,6 @@ const TimelineWidget = (props: {
   highlightMask?: HighlightMask;
   hoverMask?: HighlightMask;
 }): JSX.Element => {
-  console.log('TimelineWidget rerender', props);
   const domRef = useRef<HTMLDivElement>(null); // Should be HTMLDivElement not HTMLInputElement
   const app = useMemo<PIXI.Application>(() => new PIXI.Application(), []);
 
