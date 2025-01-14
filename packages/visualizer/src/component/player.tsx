@@ -12,6 +12,7 @@ import {
 import type { BaseElement } from '@midscene/core';
 import { Button, ConfigProvider, Spin } from 'antd';
 import { rectMarkForItem } from './blackboard';
+import { getTextureFromCache, loadTexture } from './pixi-loader';
 import type {
   AnimationScript,
   CameraState,
@@ -180,25 +181,21 @@ export default function Player(props?: {
 
   const cameraState = useRef<CameraState>({ ...basicCameraState });
 
-  const preloadImage = async (img: string): Promise<void> => {
-    if (imgSpriteMap.current.has(img)) return;
-    return PIXI.Assets.load(img).then((texture) => {
-      const sprite = PIXI.Sprite.from(texture);
-      imgSpriteMap.current.set(img, sprite);
-    });
-  };
-
   const repaintImage = async (): Promise<void> => {
     const imgToUpdate = currentImg.current;
     if (!imgToUpdate) {
       console.warn('no image to update');
       return;
     }
-    if (!imgSpriteMap.current.has(imgToUpdate)) {
+    if (!getTextureFromCache(imgToUpdate)) {
       console.warn('image not loaded', imgToUpdate);
-      await preloadImage(imgToUpdate!);
+      await loadTexture(imgToUpdate!);
     }
-    const sprite = imgSpriteMap.current.get(imgToUpdate);
+    const texture = getTextureFromCache(imgToUpdate);
+    if (!texture) {
+      throw new Error('texture not found');
+    }
+    const sprite = PIXI.Sprite.from(texture);
     if (!sprite) {
       throw new Error('sprite not found');
     }
@@ -265,14 +262,15 @@ export default function Player(props?: {
     x?: number,
     y?: number,
   ): Promise<void> => {
-    if (!imgSpriteMap.current.has(img)) {
+    if (!getTextureFromCache(img)) {
       console.warn('image not loaded', img);
-      await preloadImage(img);
+      await loadTexture(img);
     }
-    const sprite = imgSpriteMap.current.get(img);
-    if (!sprite) {
-      throw new Error('sprite not found');
+    const texture = getTextureFromCache(img);
+    if (!texture) {
+      throw new Error('texture not found');
     }
+    const sprite = PIXI.Sprite.from(texture);
 
     let targetX = pointerSprite.current?.x;
     let targetY = pointerSprite.current?.y;
@@ -570,7 +568,7 @@ export default function Player(props?: {
           .map((item) => item.img!);
 
         // Load and display the image
-        await Promise.all([...allImages, mouseLoading].map(preloadImage));
+        await Promise.all([...allImages, mouseLoading].map(loadTexture));
 
         // pointer on top
         insightMarkContainer.removeChildren();

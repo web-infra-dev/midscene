@@ -194,7 +194,7 @@ export function Playground({
 
   const [verticalMode, setVerticalMode] = useState(false);
 
-  const { tabId, tabUrl } = useChromeTabInfo();
+  const { tabId } = useChromeTabInfo();
 
   // if the screen is narrow, we use vertical mode
   useEffect(() => {
@@ -600,18 +600,20 @@ export function Playground({
               />
             </Form.Item>
 
-            {actionBtn}
-            <div
-              className={
-                hoveringSettings
-                  ? 'settings-wrapper settings-wrapper-hover'
-                  : 'settings-wrapper'
-              }
-              onMouseEnter={() => setHoveringSettings(true)}
-              onMouseLeave={() => setHoveringSettings(false)}
-            >
-              {historySelector}
-              {configSelector}
+            <div className="form-controller-wrapper">
+              <div
+                className={
+                  hoveringSettings
+                    ? 'settings-wrapper settings-wrapper-hover'
+                    : 'settings-wrapper'
+                }
+                onMouseEnter={() => setHoveringSettings(true)}
+                onMouseLeave={() => setHoveringSettings(false)}
+              >
+                {historySelector}
+                {configSelector}
+              </div>
+              {actionBtn}
             </div>
           </div>
         </div>

@@ -265,7 +265,7 @@ export const generateAnimationScripts = (
         scripts.push({
           type: 'img',
           img: planningTask.recorder?.[0]?.screenshot,
-          camera: fullPageCameraState,
+          camera: index === 0 ? fullPageCameraState : undefined,
           duration: stillDuration,
           title: typeStr(task),
           subTitle: paramStr(task),
