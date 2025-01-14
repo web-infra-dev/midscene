@@ -1,5 +1,5 @@
-export { callToGetJSONObject } from './openai';
-export { systemPromptToFindElement } from './prompt/element-inspector';
+export { callToGetJSONObject } from './service-caller';
+export { systemPromptToLocateElement } from './prompt/llm-locator';
 export { describeUserPage } from './prompt/util';
 
 export type { ChatCompletionMessageParam } from 'openai/resources';
@@ -11,7 +11,6 @@ export {
   transformElementPositionToId,
 } from './inspect';
 
-export { plan } from './automation';
+export { plan } from './llm-planning';
 export { callAiFn } from './common';
-
-export { vlmPlanning } from './vlm-planning';
+export { vlmPlanning } from './ui-tars-planning';

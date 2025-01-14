@@ -1,11 +1,11 @@
 import { MATCH_BY_POSITION, getAIConfig } from '@/env';
 import { PromptTemplate } from '@langchain/core/prompts';
 import type { ResponseFormatJSONSchema } from 'openai/resources';
-import { systemPromptToFindElementPosition } from './element-point';
+import { systemPromptToLocateElementPosition } from './ui-tars-locator';
 
-export function systemPromptToFindElement() {
+export function systemPromptToLocateElement() {
   if (getAIConfig(MATCH_BY_POSITION)) {
-    return systemPromptToFindElementPosition();
+    return systemPromptToLocateElementPosition();
   }
   return `
 ## Role:
@@ -142,12 +142,6 @@ Output Example:
 \`\`\`
   
   `;
-}
-
-export function multiDescription(multi: boolean) {
-  return multi
-    ? 'multiple elements matching the description (two or more)'
-    : 'The element closest to the description (only one)';
 }
 
 export const findElementSchema: ResponseFormatJSONSchema = {

@@ -1,7 +1,7 @@
 import { existsSync } from 'node:fs';
 import path from 'node:path';
 import { AIActionType } from '@/ai-model/common';
-import { call, callToGetJSONObject } from '@/ai-model/openai';
+import { call, callToGetJSONObject } from '@/ai-model/service-caller';
 import { base64Encoded } from '@/image';
 import dotenv from 'dotenv';
 import { getFixture } from 'tests/utils';

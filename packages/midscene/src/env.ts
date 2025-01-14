@@ -11,7 +11,6 @@ export const MIDSCENE_OPENAI_SOCKS_PROXY = 'MIDSCENE_OPENAI_SOCKS_PROXY';
 export const OPENAI_API_KEY = 'OPENAI_API_KEY';
 export const OPENAI_BASE_URL = 'OPENAI_BASE_URL';
 export const OPENAI_MAX_TOKENS = 'OPENAI_MAX_TOKENS';
-export const MIDSCENE_MODEL_TEXT_ONLY = 'MIDSCENE_MODEL_TEXT_ONLY';
 
 export const MIDSCENE_CACHE = 'MIDSCENE_CACHE';
 export const MIDSCENE_USE_VLM_UI_TARS = 'MIDSCENE_USE_VLM_UI_TARS';
@@ -49,8 +48,6 @@ const allConfigFromEnv = () => {
       process.env[MIDSCENE_DANGEROUSLY_PRINT_ALL_CONFIG] || undefined,
     [OPENAI_API_KEY]: process.env[OPENAI_API_KEY] || undefined,
     [OPENAI_BASE_URL]: process.env[OPENAI_BASE_URL] || undefined,
-    [MIDSCENE_MODEL_TEXT_ONLY]:
-      process.env[MIDSCENE_MODEL_TEXT_ONLY] || undefined,
     [OPENAI_MAX_TOKENS]: process.env[OPENAI_MAX_TOKENS] || undefined,
     [OPENAI_USE_AZURE]: process.env[OPENAI_USE_AZURE] || undefined,
     [MIDSCENE_CACHE]: process.env[MIDSCENE_CACHE] || undefined,

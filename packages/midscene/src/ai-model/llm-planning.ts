@@ -6,7 +6,7 @@ import {
   automationUserPrompt,
   generateTaskBackgroundContext,
   systemPromptToTaskPlanning,
-} from './prompt/planning';
+} from './prompt/llm-planning';
 import { describeUserPage } from './prompt/util';
 
 export async function plan(
