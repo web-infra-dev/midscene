@@ -157,11 +157,8 @@ const serverLaunchTip = (
 );
 
 // remember to destroy the agent when the tab is destroyed: agent.page.destroy()
-export const extensionAgentForTabId = (getTabId: () => number) => {
-  if (!getTabId()) {
-    return null;
-  }
-  const page = new ChromeExtensionProxyPage(getTabId);
+export const extensionAgentForTabId = (trackingActiveTab: () => boolean) => {
+  const page = new ChromeExtensionProxyPage(trackingActiveTab);
   return new ChromeExtensionProxyPageAgent(page);
 };
 
@@ -171,7 +168,9 @@ export function Playground({
   showContextPreview = true,
   dryMode = false,
 }: {
-  getAgent: () => StaticPageAgent | ChromeExtensionProxyPageAgent | null;
+  getAgent: (
+    trackingActiveTab: () => boolean,
+  ) => StaticPageAgent | ChromeExtensionProxyPageAgent | null;
   hideLogo?: boolean;
   showContextPreview?: boolean;
   dryMode?: boolean;
@@ -195,6 +194,13 @@ export function Playground({
   const [verticalMode, setVerticalMode] = useState(false);
 
   const { tabId } = useChromeTabInfo();
+  const tabActiveRef = useRef<boolean>(true);
+
+  useEffect(() => {
+    if (tabId) {
+      tabActiveRef.current = trackingActiveTab;
+    }
+  }, [trackingActiveTab]);
 
   // if the screen is narrow, we use vertical mode
   useEffect(() => {
@@ -226,7 +232,7 @@ export function Playground({
     if (uiContextPreview) return;
     if (!showContextPreview) return;
 
-    getAgent()
+    getAgent(() => tabActiveRef.current)
       ?.getUIContext()
       .then((context) => {
         setUiContextPreview(context);
@@ -289,7 +295,7 @@ export function Playground({
       error: null,
     };
 
-    const activeAgent = getAgent();
+    const activeAgent = getAgent(() => tabActiveRef.current);
     try {
       if (!activeAgent) {
         throw new Error('No agent found');
