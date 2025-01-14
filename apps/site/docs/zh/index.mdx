@@ -1,26 +1,29 @@
-# Midscene.js - AI 加持，带来愉悦的 UI 自动化体验
-
-传统 UI 自动化太难维护了。自动化脚本里往往到处都是选择器，比如 `#ids`、`data-test`、`.selectors`。在需要重构的时候，这可能会让人感到非常头疼，尽管在这种情况下，UI 自动化应该能够发挥作用。
-
-我们在这里推出 Midscene.js，助你重拾编码的乐趣。
-
-Midscene.js 采用了多模态大语言模型（LLM），能够直观地“理解”你的用户界面并执行必要的操作。你只需描述交互步骤或期望的数据格式，AI 就能为你完成任务。
+# Midscene.js - AI 驱动，带来愉悦的 UI 自动化体验
 
 <video src="/introduction/Midscene.mp4" controls/>
 
 ## 通过 AI 执行交互、提取数据和断言
 
-一共有三种关键方法：交互（`.ai`, `.aiAction`）, 提取 (`.aiQuery`), 断言 (`.aiAssert`)。
+Midscene 提供了三种关键方法：交互（`.ai`, `.aiAction`, 提取 (`.aiQuery`), 断言 (`.aiAssert`)。
 
-* 用 `.ai`方法描述步骤并执行交互
-* 用 `.aiQuery` 从 UI 中“理解”并提取数据，返回值是 JSON 格式，你可以尽情描述想要的数据结构
-* 用 `.aiAssert` 来执行断言
+* 交互 - 用 `.ai` 方法描述步骤并执行交互
+* 提取 - 用 `.aiQuery` 从 UI 中“理解”并提取数据，返回值是 JSON 格式，你可以尽情描述想要的数据结构
+* 断言 - 用 `.aiAssert` 来执行断言
 
-举例：
+## 从 Chrome 插件开始快速体验
+
+通过使用 Midscene.js Chrome 插件，你可以快速在任意网页上体验 Midscene 的主要功能，而无需编写任何代码。
+
+点击 [这里](https://chromewebstore.google.com/detail/midscene/gbldofcpkknbggpkmbdaefngejllnief) 从 Chrome Web Store 安装 Midscene 插件。
+
+请参照文档 [通过 Chrome 插件快速体验](./quick-experience) 进行安装和配置。
+
+## 多种代码集成形式
+
+维护 Midscene 自动化脚本是一种全新的编码体验。例如，在网页上搜索耳机，你可以这样做：
 
 ```typescript
 // 👀 输入关键字，执行搜索
-// 尽管这是一个英文页面，你也可以用中文指令控制它
 await ai('在搜索框输入 "Headphones" ，敲回车');
 
 // 👀 找到列表里耳机相关的信息
@@ -31,13 +34,9 @@ const items = await aiQuery(
 console.log("headphones in stock", items);
 ```
 
-## 多种集成形式
+有多种形式可以将 Midscene 集成到代码项目中：
 
-如果你想要测试 Midscene 的核心能力，我们推荐从 [浏览器插件](./quick-experience) 开始快速体验。插件里可以用自然语言与任意网页联动，调用交互、提取、断言三种接口，无需搭建代码项目。
-
-此外，还有几种形式将 Midscene 集成到代码：
-
-* [使用 YAML 格式的自动化脚本](./automate-with-scripts-in-yaml)，如果你更喜欢写 YAML 文件而不是代码
+* [使用 YAML 格式的自动化脚本](./automate-with-scripts-in-yaml)，如果你更喜欢写 YAML 文件而不是 Javascript 代码
 * [使用 Chrome 插件的桥接模式](./bridge-mode-by-chrome-extension)，用它来通过脚本控制桌面 Chrome
 * [集成到 Puppeteer](./integrate-with-puppeteer)
 * [集成到 Playwright](./integrate-with-playwright)
@@ -52,14 +51,18 @@ console.log("headphones in stock", items);
   <img src="/report.gif" alt="visualized report" />
 </p>
 
-## 直连模型端，无需三方服务
-
-Midscene.js 是一个采用 MIT 许可证的开源项目 (GitHub: [Midscene](https://github.com/web-infra-dev/midscene/)) 。项目代码运行在用户的自有环境中，所有从页面收集的数据会依照用户的配置，直接传送到 OpenAI 或指定的自定义模型。因此，数据仅用户和指定的模型服务商可访问，任何第三方平台均无法获取这些数据。
 
 ## 自定义模型
 
 目前我们默认选择的是 OpenAI GPT-4o 作为模型，你也可以[自定义为其他多模态模型](./model-provider)。
 
-## 从 Chrome插件开始快速体验
+## 直连模型端，无需三方服务
 
-通过使用 Midscene.js Chrome 插件，你可以快速在任意网页上体验 Midscene 的主要功能，而无需编写任何代码。请参照文档 [通过 Chrome 插件快速体验](./quick-experience) 进行安装和配置。
+Midscene.js 是一个采用 MIT 许可证的开源项目 (GitHub: [Midscene](https://github.com/web-infra-dev/midscene/)) 。项目代码运行在用户的自有环境中，所有从页面收集的数据会依照用户的配置，直接传送到 OpenAI 或指定的自定义模型。因此，任何第三方平台均无法获取这些数据。
+
+## 关注我们
+
+* [GitHub - 请给我们点个 star](https://github.com/web-infra-dev/midscene)
+* [Twitter](https://x.com/midscene_ai)
+* [Discord](https://discord.gg/AFHJBdnn)
+* [飞书交流群](https://applink.larkoffice.com/client/chat/chatter/add_by_link?link_token=291q2b25-e913-411a-8c51-191e59aab14d)
