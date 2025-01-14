@@ -31,8 +31,8 @@ await mid.ai('点击任务列表下方的 "completed" 状态按钮');
 目前，Midscene 无法规划包含条件和循环的步骤。
 
 关联文档:
-* [FAQ: Midscene 能否根据一句话指令实现智能操作？比如执行 "发一条微博"'](./faq.html)
-* [编写提示词的技巧](./prompting-tips.html)
+* [FAQ: Midscene 能否根据一句话指令实现智能操作？比如执行 "发一条微博"'](./faq)
+* [编写提示词的技巧](./prompting-tips)
 
 ## `.aiQuery(dataShape: any)` - 从页面提取数据
 

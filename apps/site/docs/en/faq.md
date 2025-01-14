@@ -4,7 +4,7 @@
 
 No. Midscene is an automation assistance SDK with a key feature of action stability — ensuring the same actions are performed in each run. To maintain this stability, we encourage you to provide detailed instructions to help the AI understand each step of your task.
 
-Related Docs: [Prompting Tips](./prompting-tips.html)
+Related Docs: [Prompting Tips](./prompting-tips)
 
 ## Limitations
 
@@ -17,7 +17,7 @@ There are some limitations with Midscene. We are still working on them.
 
 ## Can I use a model other than `gpt-4o`?
 
-Yes. You can [customize model and provider](./model-provider.html) if needed.
+Yes. You can [customize model and provider](./model-provider) if needed.
 
 ## About the token cost
 

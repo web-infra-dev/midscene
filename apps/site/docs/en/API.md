@@ -31,8 +31,8 @@ The main capabilities of Midscene are as follows, and your task will be split in
 Currently, Midscene can't plan steps that include conditions and loops.
 
 Related Docs:
-* [FAQ: Can Midscene smartly plan the actions according to my one-line goal? Like executing "Tweet 'hello world'](./faq.html)
-* [Prompting Tips](./prompting-tips.html)
+* [FAQ: Can Midscene smartly plan the actions according to my one-line goal? Like executing "Tweet 'hello world'](./faq)
+* [Prompting Tips](./prompting-tips)
 
 ## `.aiQuery(dataDemand: any)` - extract any data from page
 

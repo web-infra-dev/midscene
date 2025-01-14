@@ -19,7 +19,7 @@ Midscene 存在一些局限性，我们仍在努力改进。
 
 ## 能否选用 `gpt-4o` 以外的其他模型？
 
-可以。你可以[自定义模型和服务商](./model-provider.html)。
+可以。你可以[自定义模型和服务商](./model-provider)。
 
 ## 关于 token 成本
 
