@@ -10,10 +10,7 @@ import type {
   DumpSubscriber,
   ElementById,
   InsightDump,
-  LiteUISection,
   PartialInsightDumpFromSDK,
-  Rect,
-  UIContext,
 } from '@/types';
 import {
   getLogDir,
@@ -78,42 +75,4 @@ export function writeInsightDump(
   }
 
   return id;
-}
-
-export function idsIntoElements(
-  ids: string[],
-  elementById: ElementById,
-): BaseElement[] {
-  return ids.reduce<BaseElement[]>((acc, id) => {
-    const element = elementById(id);
-    if (element) {
-      acc.push(element);
-    } else {
-      console.warn(`element not found by id: ${id}`);
-    }
-    return acc;
-  }, []);
-}
-
-// biome-ignore lint/complexity/noBannedTypes: <explanation>
-export function shallowExpandIds<DataScheme extends object = {}>(
-  data: DataScheme,
-  ifMeet: (id: string) => boolean,
-  elementsById: (id: string) => BaseElement | BaseElement[] | null,
-
-  // return same type as data
-): DataScheme {
-  const keys = Object.keys(data);
-  keys.forEach((key) => {
-    const value = (data as any)[key];
-    if (typeof value === 'string' && ifMeet(value)) {
-      // (data as any)[key] = elementsById(value);
-      (data as any)[key] = elementsById(value);
-    } else if (Array.isArray(value)) {
-      const newValue = value.map((id) => (ifMeet(id) ? elementsById(id) : id));
-      (data as any)[key] = newValue;
-    }
-  });
-
-  return data;
 }

@@ -144,12 +144,6 @@ Output Example:
   `;
 }
 
-export function multiDescription(multi: boolean) {
-  return multi
-    ? 'multiple elements matching the description (two or more)'
-    : 'The element closest to the description (only one)';
-}
-
 export const findElementSchema: ResponseFormatJSONSchema = {
   type: 'json_schema',
   json_schema: {

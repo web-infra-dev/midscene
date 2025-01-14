@@ -13,10 +13,6 @@ const characteristic =
 const contextFormatIntro = `
 The user will give you a screenshot and some of the texts on it. There may be some none-English characters (like Chinese) on it, indicating it's an non-English app. If some text is shown on screenshot but not introduced by the JSON description, use the information you see on screenshot.`;
 
-const ONE_ELEMENT_LOCATOR_PREFIX = 'LOCATE_ONE_ELEMENT';
-const ELEMENTS_LOCATOR_PREFIX = 'LOCATE_ONE_OR_MORE_ELEMENTS';
-const SECTION_MATCHER_FLAG = 'SECTION_MATCHER_FLAG/';
-
 export function systemPromptToFindElement(queryPrompt: string, multi: boolean) {
   assert(queryPrompt, 'queryPrompt is required');
   return `
@@ -384,59 +380,4 @@ function cropFieldInformation(
     return elementInfosDescription.filter((item) => item.content);
   }
   return elementInfosDescription;
-}
-
-/**
- * elements
- */
-export function retrieveElement(
-  prompt: string,
-  opt?: { multi: boolean },
-): string {
-  if (opt?.multi) {
-    return `follow ${ELEMENTS_LOCATOR_PREFIX}: ${prompt}`;
-  }
-  return `follow ${ONE_ELEMENT_LOCATOR_PREFIX}: ${prompt}`;
-}
-
-export function ifElementTypeResponse(response: string): boolean {
-  if (typeof response !== 'string') {
-    return false;
-  }
-  return (
-    response.startsWith(ONE_ELEMENT_LOCATOR_PREFIX) ||
-    response.startsWith(ELEMENTS_LOCATOR_PREFIX)
-  );
-}
-
-export function splitElementResponse(
-  response: string,
-): string | null | string[] {
-  const oneElementSplitter = `${ONE_ELEMENT_LOCATOR_PREFIX}/`;
-  if (response.startsWith(oneElementSplitter)) {
-    const id = response.slice(oneElementSplitter.length);
-    if (id.indexOf(',') >= 0) {
-      console.warn(`unexpected comma in one element response: ${id}`);
-    }
-    return id ? id : null;
-  }
-
-  const elementsSplitter = `${ELEMENTS_LOCATOR_PREFIX}/`;
-  if (response.startsWith(elementsSplitter)) {
-    const idsString = response.slice(elementsSplitter.length);
-    if (!idsString) {
-      return [];
-    }
-    return idsString.split(',');
-  }
-
-  return null;
-}
-
-/**
- * sections
- */
-
-export function retrieveSection(prompt: string): string {
-  return `${SECTION_MATCHER_FLAG}${prompt}`;
 }

@@ -1,5 +1,4 @@
 import assert from 'node:assert';
-import path from 'node:path';
 import type {
   AIAssertionResponse,
   AIElementResponse,
@@ -9,11 +8,9 @@ import type {
   AIUsageInfo,
   BaseElement,
   ElementById,
-  Point,
   Size,
   UIContext,
 } from '@/types';
-import { savePositionImg } from '@midscene/shared/img';
 import type {
   ChatCompletionSystemMessageParam,
   ChatCompletionUserMessageParam,
@@ -22,7 +19,6 @@ import { AIActionType, callAiFn } from './common';
 import { call, callToGetJSONObject } from './openai';
 import {
   findElementPrompt,
-  multiDescription,
   systemPromptToFindElement,
 } from './prompt/element-inspector';
 import {
