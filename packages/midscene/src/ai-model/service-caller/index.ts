@@ -215,6 +215,10 @@ export async function call(
         result.usage,
         `${Date.now() - startTime}ms`,
       );
+    assert(
+      result.choices,
+      `invalid response from LLM service: ${JSON.stringify(result)}`,
+    );
     content = result.choices[0].message.content!;
     assert(content, 'empty content');
     usage = result.usage;
