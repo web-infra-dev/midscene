@@ -1,7 +1,10 @@
 import { randomUUID } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { extractJSONFromCodeBlock, safeParseJson } from '@/ai-model/openai';
+import {
+  extractJSONFromCodeBlock,
+  safeParseJson,
+} from '@/ai-model/service-caller';
 import {
   getLogDir,
   getTmpDir,

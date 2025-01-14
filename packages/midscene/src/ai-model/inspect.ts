@@ -16,7 +16,6 @@ import type {
   ChatCompletionUserMessageParam,
 } from 'openai/resources';
 import { AIActionType, callAiFn } from './common';
-import { callToGetJSONObject } from './openai';
 import {
   findElementPrompt,
   systemPromptToLocateElement,
@@ -28,6 +27,7 @@ import {
   systemPromptToAssert,
   systemPromptToExtract,
 } from './prompt/util';
+import { callToGetJSONObject } from './service-caller';
 
 export type AIArgs = [
   ChatCompletionSystemMessageParam,

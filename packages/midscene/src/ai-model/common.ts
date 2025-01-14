@@ -5,7 +5,7 @@ import type {
   ChatCompletionSystemMessageParam,
   ChatCompletionUserMessageParam,
 } from 'openai/resources';
-import { callToGetJSONObject, checkAIConfig } from './openai';
+import { callToGetJSONObject, checkAIConfig } from './service-caller';
 
 export type AIArgs = [
   ChatCompletionSystemMessageParam,
