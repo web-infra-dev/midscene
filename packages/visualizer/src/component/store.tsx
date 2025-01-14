@@ -147,7 +147,7 @@ export const useEnvConfig = create<{
     SERVICE_MODE_KEY,
   ) as ServiceModeType | null;
   const savedTrackingActiveTab =
-    localStorage.getItem(TRACKING_ACTIVE_TAB_KEY) === 'true';
+    localStorage.getItem(TRACKING_ACTIVE_TAB_KEY) !== 'false';
   return {
     serviceMode: ifInExtension
       ? 'In-Browser-Extension'
