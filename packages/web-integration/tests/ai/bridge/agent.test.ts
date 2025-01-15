@@ -57,7 +57,7 @@ describe.skipIf(process.env.CI)(
       await agent.destroy();
     });
 
-    it.only('agent in cli side, current tab, tracking active tab', async () => {
+    it('agent in cli side, current tab, tracking active tab', async () => {
       const agent = new AgentOverChromeBridge();
       await agent.connectCurrentTab({ trackingActiveTab: true });
 
