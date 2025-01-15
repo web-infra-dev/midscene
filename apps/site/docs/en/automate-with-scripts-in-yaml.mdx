@@ -145,8 +145,8 @@ target:
   # string, the path to save the aiQuery result, optional
   output: <path-to-output-file>
 
-  # string, the bridge mode to use, optional, default is 'currentTab', can be 'newTabWithUrl' or 'currentTab'
-  bridgeMode: <mode>
+  # string, the bridge mode to use, optional, default is false, can be 'newTabWithUrl' or 'currentTab'. More details see the following section
+  bridgeMode: false | 'newTabWithUrl' | 'currentTab'
 ```
 
 The `tasks` part is an array indicates the tasks to do. Remember to write a `-` before each item which means an array item.

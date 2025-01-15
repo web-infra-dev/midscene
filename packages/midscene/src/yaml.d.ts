@@ -23,10 +23,10 @@ export interface MidsceneYamlScriptEnv {
     continueOnNetworkIdleError?: boolean; // should continue if failed to wait for network idle, true for default
   };
   cookie?: string;
-
-  // bridge mode only
-  bridgeMode?: 'newTabWithUrl' | 'currentTab';
   output?: string;
+
+  // bridge mode config
+  bridgeMode?: false | 'newTabWithUrl' | 'currentTab';
 }
 
 export interface MidsceneYamlFlowItemAIAction {

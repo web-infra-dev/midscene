@@ -1,11 +1,5 @@
 # Midscene.js - Joyful Automation by AI
 
-UI automation testing is often difficult to maintain, which often involves a maze of *#ids*, *data-test* attributes, and *.selectors*. When it comes to refactoring, it can be a nightmare, although this is precisely the situation where UI automation should be useful.
-
-Introducing Midscene.js, an innovative SDK designed to bring joy back to automation scripts by simplifying the commands.
-
-Midscene.js leverages a multimodal Large Language Model (LLM) to intuitively “understand” your user interface and carry out the necessary actions. You can simply describe the interaction steps or expected data formats, and the AI will handle the execution for you.
-
 <div style={{"width": "100%", "display": "flex", justifyContent: "center"}}>
   <iframe
     style={{"maxWidth": "100%", "width": "800px", "height": "450px"}}
@@ -19,15 +13,25 @@ Midscene.js leverages a multimodal Large Language Model (LLM) to intuitively “
 
 ## Interact, query and assert by natural language
 
-There are three main capabilities: action (`.ai`, `.aiAction`), query (`.aiQuery`), assert(`.aiAssert`).
+There are three main capabilities: **action**, **query**, **assert**.
 
-* Use `.ai` to execute a series of actions by describing the steps
-* Use `.aiQuery` to extract customized data from the UI. Just describe the JSON format you want, and AI will give the answer based on its "understand" of the page
-* Use `.aiAssert` to perform assertions on the page.
+* Use **action (`.ai`, `.aiAction`)** to execute a series of actions by describing the steps
+* Use **query (`.aiQuery`)** to extract customized data from the UI. Describe the JSON format you want, and AI will give the answer based on its "understand" of the page
+* Use **assert (`.aiAssert`)** to perform assertions on the page.
 
 All these methods accept natural language prompt as param. Obviously, the cost of script maintenance will be greatly decreased.
 
-For example 
+## Start with Chrome extension
+
+To quickly experience the main features of Midscene, you can use the Midscene Chrome extension. It allows you to use Midscene on any webpage without writing any code.
+
+Click [here](https://chromewebstore.google.com/detail/midscene/gbldofcpkknbggpkmbdaefngejllnief) to install Midscene extension from Chrome Web Store.
+
+For instructions, please refer to [Quick Experience](./quick-experience).
+
+## Multiple ways to integrate
+
+Maintaining automation scripts by Midscene could be a brand new experience. For example, to search for headphones on a website, you can do this:
 
 ```typescript
 // 👀 type keywords, perform a search
@@ -44,11 +48,7 @@ console.log("headphones in stock", items);
 await aiAssert("There is a category filter on the left");
 ```
 
-## Multiple ways to integrate
-
-To start experiencing the core feature of Midscene, we recommend you use [the Chrome Extension](./quick-experience). You can call Action / Query / Assert by natural language on any webpage, without needing to set up a code project.
-
-Also, there are several ways to integrate Midscene into your code project:
+There are several ways to integrate Midscene into your code project:
 
 * [Automate with Scripts in YAML](./automate-with-scripts-in-yaml), use this if you prefer to write YAML file instead of code
 * [Bridge Mode by Chrome Extension](./bridge-mode-by-chrome-extension), use this to control the desktop Chrome by scripts
@@ -57,20 +57,23 @@ Also, there are several ways to integrate Midscene into your code project:
 
 ## Visualized report
 
-Midscene will provide a visual report after each run. With this report, you can review the animated replay and view the details of each step in the process. What's more, there is a playground in the report file for you to adjust your prompt without re-running all your scripts.
+Midscene provides a visual report after each run. With this report, you can review the animated replay and view the details of each step in the process. What's more, there is a playground in the report file for you to adjust your prompt without re-running all your scripts.
 
 <p align="center">
   <img src="/report.gif" alt="visualized report" />
 </p>
 
-## Just you and model provider, no third-party services
-
-⁠Midscene.js is an open-source project (GitHub: [Midscene](https://github.com/web-infra-dev/midscene/)) under the MIT license. You can run it in your own environment. All data gathered from pages will be sent directly to OpenAI or the custom model provider according to your configuration. Therefore, only you and the model provider will have access to the data. No third-party platform will access the data.
-
-## Customize Model
+## Customize model
 
 Currently, the model we are using by default is the OpenAI GPT-4o model, while you can [customize it to a different multimodal model](./model-provider) if needed.
 
-## Start with Chrome Extension
+## Just you and model provider, no third-party services
 
-To quickly experience the main features of Midscene, you can use the [Chrome Extension](./quick-experience). It allows you to use Midscene on any webpage without writing any code.
+⁠Midscene.js is an open-source project (GitHub: [Midscene](https://github.com/web-infra-dev/midscene/)) under the MIT license. You can run it in your own environment. All data gathered from pages will be sent directly to OpenAI or the custom model provider according to your configuration. Therefore, no third-party platform will access the data.
+
+## Follow us
+
+* [GitHub - give us a star](https://github.com/web-infra-dev/midscene)
+* [Twitter](https://x.com/midscene_ai)
+* [Discord](https://discord.gg/AFHJBdnn)
+* [Lark](https://applink.larkoffice.com/client/chat/chatter/add_by_link?link_token=291q2b25-e913-411a-8c51-191e59aab14d)
