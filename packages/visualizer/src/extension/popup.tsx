@@ -10,10 +10,8 @@ import {
   Playground,
   extensionAgentForTabId,
 } from '@/component/playground-component';
-import { useChromeTabInfo } from '@/component/store';
 import { useEnvConfig } from '@/component/store';
 import { ApiOutlined, SendOutlined } from '@ant-design/icons';
-import { useEffect, useRef } from 'react';
 import Bridge from './bridge';
 import { getExtensionVersion } from './utils';
 

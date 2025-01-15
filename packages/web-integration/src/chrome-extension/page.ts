@@ -5,6 +5,7 @@
   The page must be active when interacting with it.
 */
 
+import assert from 'node:assert';
 import type { WebKeyInput } from '@/common/page';
 import type { ElementInfo } from '@/extractor';
 import type { AbstractPage } from '@/page';
@@ -33,6 +34,8 @@ export default class ChromeExtensionProxyPage implements AbstractPage {
 
   private attachingDebugger: Promise<void> | null = null;
 
+  private destroyed = false;
+
   constructor(trackingActiveTab: () => boolean) {
     this.trackingActiveTab = trackingActiveTab;
   }
@@ -50,6 +53,8 @@ export default class ChromeExtensionProxyPage implements AbstractPage {
   }
 
   private async attachDebugger() {
+    assert(!this.destroyed, 'Page is destroyed');
+
     // If already attaching, wait for it to complete
     if (this.attachingDebugger) {
       await this.attachingDebugger;
@@ -386,5 +391,6 @@ export default class ChromeExtensionProxyPage implements AbstractPage {
   async destroy(): Promise<void> {
     this.activeTabId = null;
     await this.detachDebugger();
+    this.destroyed = true;
   }
 }
