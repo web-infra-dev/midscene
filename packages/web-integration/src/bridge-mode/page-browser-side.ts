@@ -2,6 +2,7 @@ import assert from 'node:assert';
 import type { KeyboardAction, MouseAction } from '@/page';
 import ChromeExtensionProxyPage from '../chrome-extension/page';
 import {
+  type BridgeConnectTabOptions,
   BridgeEvent,
   DefaultBridgeServerPort,
   KeyboardEvent,
@@ -93,22 +94,33 @@ export class ChromeExtensionPageBrowserSide extends ChromeExtensionProxyPage {
     return await this.setupBridgeClient();
   }
 
-  public async connectNewTabWithUrl(url: string) {
+  public async connectNewTabWithUrl(
+    url: string,
+    options?: BridgeConnectTabOptions,
+  ) {
     const tab = await chrome.tabs.create({ url });
     const tabId = tab.id;
     assert(tabId, 'failed to get tabId after creating a new tab');
 
     // new tab
     this.onLogMessage(`Creating new tab: ${url}`, 'log');
+
+    if (options?.trackingActiveTab) {
+      this.trackingActiveTab = true;
+    }
   }
 
-  public async connectCurrentTab() {
+  public async connectCurrentTab(options?: BridgeConnectTabOptions) {
     const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
     console.log('current tab', tabs);
     const tabId = tabs[0]?.id;
     assert(tabId, 'failed to get tabId');
 
     this.onLogMessage(`Connected to current tab: ${tabs[0]?.url}`, 'log');
+
+    if (options?.trackingActiveTab) {
+      this.trackingActiveTab = true;
+    }
   }
 
   async destroy() {

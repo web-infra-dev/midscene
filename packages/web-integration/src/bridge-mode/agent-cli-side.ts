@@ -1,8 +1,8 @@
 import assert from 'node:assert';
 import { PageAgent } from '@/common/agent';
-import { paramStr, typeStr } from '@/common/ui-utils';
 import type { KeyboardAction, MouseAction } from '@/page';
 import {
+  type BridgeConnectTabOptions,
   BridgeEvent,
   BridgePageType,
   DefaultBridgeServerPort,
@@ -99,12 +99,12 @@ export class AgentOverChromeBridge extends PageAgent<ChromeExtensionPageCliSide>
     });
   }
 
-  async connectNewTabWithUrl(url: string) {
-    await this.page.connectNewTabWithUrl(url);
+  async connectNewTabWithUrl(url: string, options?: BridgeConnectTabOptions) {
+    await this.page.connectNewTabWithUrl(url, options);
   }
 
-  async connectCurrentTab() {
-    await this.page.connectCurrentTab();
+  async connectCurrentTab(options?: BridgeConnectTabOptions) {
+    await this.page.connectCurrentTab(options);
   }
 
   async aiAction(prompt: string, options?: any) {

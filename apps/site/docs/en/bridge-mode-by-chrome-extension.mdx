@@ -79,11 +79,13 @@ You should always call `connectCurrentTab` or `connectNewTabWithUrl` before doin
 Each of the agent instance can only connect to one tab instance, and it cannot be reconnected after destroy.
 :::
 
-### `connectCurrentTab`
+### `connectCurrentTab(options?: { trackingActiveTab?: boolean })`
 
 Connect to the current active tab on Chrome.
 
-### `connectNewTabWithUrl(ur: string)`
+If `trackingActiveTab` is true, the agent will always track the active tab. For example, if you switch to another tab or a new tab is opened, the agent will track the latest active tab. Otherwise, the agent will only track the tab you connected to initially.
+
+### `connectNewTabWithUrl(url: string, options?: { trackingActiveTab?: boolean })`
 
 Create a new tab with url and connect to immediately.
 
