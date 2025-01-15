@@ -47,5 +47,5 @@ OPENAI_API_KEY="sk-replace-by-your-own"
 找到可疑插件：
 
 1. 打开页面的调试器，找到被其他插件注入的 `<iframe />` 或 `<script />`，一般 URL 是 `chrome-extension://{这串就是ID}/...` 格式，复制其 ID。
-2. 打开 chrome://extensions/ ，找到相同 ID 的插件，禁用它。
+2. 打开 `chrome://extensions/` ，用 cmd+f 找到相同 ID 的插件，禁用它。
 3. 刷新页面，再次尝试。

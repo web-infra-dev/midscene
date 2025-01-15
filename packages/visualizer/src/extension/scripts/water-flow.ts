@@ -1,5 +1,68 @@
-const waterFlowAnimation = {
+const midsceneWaterFlowAnimation = {
   styleElement: null as null | HTMLStyleElement,
+
+  mousePointerAttribute: 'data-water-flow-pointer',
+
+  showMousePointer(x: number, y: number) {
+    const existingPointer = document.querySelector(
+      `div[${this.mousePointerAttribute}]`,
+    ) as HTMLDivElement | null;
+
+    // Clear any existing timeouts to prevent race conditions
+    if (existingPointer) {
+      const timeoutId = Number(existingPointer.getAttribute('data-timeout-id'));
+      if (timeoutId) clearTimeout(timeoutId);
+      const removeTimeoutId = Number(
+        existingPointer.getAttribute('data-remove-timeout-id'),
+      );
+      if (removeTimeoutId) clearTimeout(removeTimeoutId);
+    }
+
+    const size = 30;
+    const pointer =
+      existingPointer ||
+      (() => {
+        const p = document.createElement('div');
+        p.setAttribute(this.mousePointerAttribute, 'true');
+        p.style.position = 'fixed';
+        p.style.width = `${size}px`;
+        p.style.height = `${size}px`;
+        p.style.borderRadius = '50%';
+        p.style.backgroundColor = 'rgba(0, 0, 255, 0.3)';
+        p.style.border = '1px solid rgba(0, 0, 255, 0.3)';
+        p.style.zIndex = '99999';
+        p.style.transition = 'opacity 0.5s ease-in-out';
+        p.style.pointerEvents = 'none'; // Make pointer not clickable
+        document.body.appendChild(p);
+        return p;
+      })();
+
+    // Update position and opacity
+    pointer.style.left = `${x - size / 2}px`; // Subtract half width to center
+    pointer.style.top = `${y - size / 2}px`; // Subtract half height to center
+    pointer.style.opacity = '1';
+
+    // Set new timeouts
+    const fadeTimeoutId = setTimeout(() => {
+      pointer.style.opacity = '0';
+      const removeTimeoutId = setTimeout(() => {
+        if (pointer.parentNode) {
+          document.body.removeChild(pointer);
+        }
+      }, 500);
+      pointer.setAttribute('data-remove-timeout-id', String(removeTimeoutId));
+    }, 2000);
+    pointer.setAttribute('data-timeout-id', String(fadeTimeoutId));
+  },
+
+  hideMousePointer() {
+    const pointer = document.querySelector(
+      `div[${this.mousePointerAttribute}]`,
+    ) as HTMLDivElement | null;
+    if (pointer) {
+      document.body.removeChild(pointer);
+    }
+  },
 
   enable() {
     if (this.styleElement) return;
@@ -73,14 +136,22 @@ const waterFlowAnimation = {
       document.head.removeChild(element);
     });
     this.styleElement = null;
+
+    // remove all mouse pointers
+    const mousePointers = document.querySelectorAll(
+      `div[${this.mousePointerAttribute}]`,
+    );
+    mousePointers.forEach((element) => {
+      document.body.removeChild(element);
+    });
   },
 };
 
 export {};
 declare global {
   interface Window {
-    waterFlowAnimation: typeof waterFlowAnimation;
+    midsceneWaterFlowAnimation: typeof midsceneWaterFlowAnimation;
   }
 }
-(window as any).waterFlowAnimation = waterFlowAnimation;
-(window as any).waterFlowAnimation.enable();
+(window as any).midsceneWaterFlowAnimation = midsceneWaterFlowAnimation;
+(window as any).midsceneWaterFlowAnimation.enable();

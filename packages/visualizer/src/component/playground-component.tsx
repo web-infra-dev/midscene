@@ -339,16 +339,15 @@ export function Playground({
         }
       }
     } catch (e: any) {
+      const errorMessage = e?.message || '';
       console.error(e);
-      if (typeof e === 'string') {
-        if (e.includes('of different extension')) {
-          result.error =
-            'Conflicting extension detected. Please disable the suspicious plugins and refresh the page. Guide: https://midscenejs.com/quick-experience.html#faq';
-        } else {
-          result.error = e;
-        }
-      } else if (!e.message?.includes(ERROR_CODE_NOT_IMPLEMENTED_AS_DESIGNED)) {
-        result.error = e.message;
+      if (errorMessage.includes('of different extension')) {
+        result.error =
+          'Conflicting extension detected. Please disable the suspicious plugins and refresh the page. Guide: https://midscenejs.com/quick-experience.html#faq';
+      } else if (
+        !errorMessage?.includes(ERROR_CODE_NOT_IMPLEMENTED_AS_DESIGNED)
+      ) {
+        result.error = errorMessage;
       } else {
         result.error = 'Unknown error';
       }
