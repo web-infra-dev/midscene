@@ -27,7 +27,6 @@ import {
   type PlanningActionParamTap,
   type PlanningActionParamWaitFor,
   plan,
-  transformElementPositionToId,
 } from '@midscene/core';
 import {
   type ChatCompletionMessageParam,

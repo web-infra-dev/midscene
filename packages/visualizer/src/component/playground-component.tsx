@@ -1,25 +1,17 @@
 import {
+  BorderOutlined,
   HistoryOutlined,
   LoadingOutlined,
   SendOutlined,
   SettingOutlined,
 } from '@ant-design/icons';
-import type {
-  GroupedActionDump,
-  MidsceneYamlFlowItemAIAction,
-  UIContext,
-} from '@midscene/core';
+import type { GroupedActionDump, UIContext } from '@midscene/core';
 import { Helmet } from '@modern-js/runtime/head';
 import { Alert, Button, Checkbox, Spin, Tooltip, message } from 'antd';
 import { Form, Input } from 'antd';
 import { Radio } from 'antd';
-import React, {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from 'react';
+import type React from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
 import Blackboard from './blackboard';
 import { iconForStatus } from './misc';
@@ -157,9 +149,16 @@ const serverLaunchTip = (
 );
 
 // remember to destroy the agent when the tab is destroyed: agent.page.destroy()
-export const extensionAgentForTabId = (trackingActiveTab: () => boolean) => {
-  const page = new ChromeExtensionProxyPage(trackingActiveTab);
+export const extensionAgentForTab = (trackingActiveTab?: boolean) => {
+  const page = new ChromeExtensionProxyPage(trackingActiveTab || false);
   return new ChromeExtensionProxyPageAgent(page);
+};
+
+const blankResult: PlaygroundResult = {
+  result: null,
+  dump: null,
+  reportHTML: null,
+  error: null,
 };
 
 export function Playground({
@@ -169,7 +168,7 @@ export function Playground({
   dryMode = false,
 }: {
   getAgent: (
-    trackingActiveTab: () => boolean,
+    trackingActiveTab?: boolean,
   ) => StaticPageAgent | ChromeExtensionProxyPageAgent | null;
   hideLogo?: boolean;
   showContextPreview?: boolean;
@@ -182,6 +181,7 @@ export function Playground({
   const [loading, setLoading] = useState(false);
   const [loadingProgressText, setLoadingProgressText] = useState('');
   const [result, setResult] = useState<PlaygroundResult | null>(null);
+  const [verticalMode, setVerticalMode] = useState(false);
   const [form] = Form.useForm();
   const { config, serviceMode, setServiceMode } = useEnvConfig();
   const trackingActiveTab = useEnvConfig((state) => state.trackingActiveTab);
@@ -190,17 +190,7 @@ export function Playground({
   );
   const configAlreadySet = Object.keys(config || {}).length >= 1;
   const runResultRef = useRef<HTMLHeadingElement>(null);
-
-  const [verticalMode, setVerticalMode] = useState(false);
-
-  const { tabId } = useChromeTabInfo();
-  const tabActiveRef = useRef<boolean>(true);
-
-  useEffect(() => {
-    if (tabId) {
-      tabActiveRef.current = trackingActiveTab;
-    }
-  }, [trackingActiveTab]);
+  const addHistory = useEnvConfig((state) => state.addHistory);
 
   // if the screen is narrow, we use vertical mode
   useEffect(() => {
@@ -224,17 +214,22 @@ export function Playground({
   const [replayScriptsInfo, setReplayScriptsInfo] =
     useState<ReplayScriptsInfo | null>(null);
   const [replayCounter, setReplayCounter] = useState(0);
-
   const serverValid = useServerValid(serviceMode === 'Server');
+
+  const resetResult = () => {
+    setResult(null);
+    setLoading(false);
+    setReplayScriptsInfo(null);
+  };
 
   // setup context preview
   useEffect(() => {
     if (uiContextPreview) return;
     if (!showContextPreview) return;
 
-    getAgent(() => tabActiveRef.current)
+    getAgent()
       ?.getUIContext()
-      .then((context) => {
+      .then((context: UIContext) => {
         setUiContextPreview(context);
       })
       .catch((e) => {
@@ -242,8 +237,6 @@ export function Playground({
         console.error(e);
       });
   }, [uiContextPreview, showContextPreview, getAgent]);
-
-  const addHistory = useEnvConfig((state) => state.addHistory);
 
   const trackingTip = 'track newly-opened tabs';
   const configItems = [
@@ -272,6 +265,12 @@ export function Playground({
       </div>
     ) : null;
 
+  const currentAgentRef = useRef<
+    StaticPageAgent | ChromeExtensionProxyPageAgent | null
+  >(null);
+
+  const currentRunningIdRef = useRef<number | null>(0);
+  const interruptedFlagRef = useRef<Record<number, boolean>>({});
   const handleRun = useCallback(async () => {
     const value = form.getFieldsValue();
     if (!value.prompt) {
@@ -288,20 +287,23 @@ export function Playground({
       prompt: value.prompt,
       timestamp: Date.now(),
     });
-    let result: PlaygroundResult = {
-      result: null,
-      dump: null,
-      reportHTML: null,
-      error: null,
-    };
+    let result: PlaygroundResult = { ...blankResult };
 
-    const activeAgent = getAgent(() => tabActiveRef.current);
+    const activeAgent = getAgent(trackingActiveTab);
+    const thisRunningId = Date.now();
     try {
       if (!activeAgent) {
         throw new Error('No agent found');
       }
+      currentAgentRef.current = activeAgent;
+
+      currentRunningIdRef.current = thisRunningId;
+      interruptedFlagRef.current[thisRunningId] = false;
       activeAgent.resetDump();
       activeAgent.opts.onTaskStartTip = (tip: string) => {
+        if (interruptedFlagRef.current[thisRunningId]) {
+          return;
+        }
         setLoadingProgressText(tip);
       };
       if (serviceMode === 'Server') {
@@ -351,6 +353,10 @@ export function Playground({
         result.error = 'Unknown error';
       }
     }
+    if (interruptedFlagRef.current[thisRunningId]) {
+      console.log('interrupted, result is', result);
+      return;
+    }
 
     try {
       if (
@@ -375,6 +381,7 @@ export function Playground({
       console.error(e);
     }
 
+    currentAgentRef.current = null;
     setResult(result);
     setLoading(false);
     if (value.type === 'aiAction' && result?.dump) {
@@ -390,7 +397,7 @@ export function Playground({
     // setTimeout(() => {
     //   runResultRef.current?.scrollIntoView({ behavior: 'smooth' });
     // }, 50);
-  }, [form, getAgent, serviceMode, serverValid, tabId]);
+  }, [form, getAgent, serviceMode, serverValid, trackingActiveTab]);
 
   let placeholder = 'What do you want to do?';
   const selectedType = Form.useWatch('type', form);
@@ -481,8 +488,42 @@ export function Playground({
 
   const statusContent = serviceMode === 'Server' ? serverTip : <EnvConfig />;
 
-  const actionBtn = dryMode ? (
-    <Tooltip title="Start executing until some interaction actions need to be performed. You can see the process of planning and locating.">
+  const stoppable =
+    !dryMode && serviceMode === 'In-Browser-Extension' && loading;
+
+  const handleStop = async () => {
+    const thisRunningId = currentRunningIdRef.current;
+    if (thisRunningId) {
+      await currentAgentRef.current?.destroy();
+      interruptedFlagRef.current[thisRunningId] = true;
+      resetResult();
+      console.log('destroy agent done');
+    }
+  };
+
+  let actionBtn: React.ReactNode = null;
+  if (dryMode) {
+    actionBtn = (
+      <Tooltip title="Start executing until some interaction actions need to be performed. You can see the process of planning and locating.">
+        <Button
+          type="primary"
+          icon={<SendOutlined />}
+          onClick={handleRun}
+          disabled={!runButtonEnabled}
+          loading={loading}
+        >
+          Dry Run
+        </Button>
+      </Tooltip>
+    );
+  } else if (stoppable) {
+    actionBtn = (
+      <Button icon={<BorderOutlined />} onClick={handleStop}>
+        Stop
+      </Button>
+    );
+  } else {
+    actionBtn = (
       <Button
         type="primary"
         icon={<SendOutlined />}
@@ -490,20 +531,10 @@ export function Playground({
         disabled={!runButtonEnabled}
         loading={loading}
       >
-        Dry Run
+        Run
       </Button>
-    </Tooltip>
-  ) : (
-    <Button
-      type="primary"
-      icon={<SendOutlined />}
-      onClick={handleRun}
-      disabled={!runButtonEnabled}
-      loading={loading}
-    >
-      Run
-    </Button>
-  );
+    );
+  }
 
   const historySelector = useHistorySelector((historyItem) => {
     form.setFieldsValue({

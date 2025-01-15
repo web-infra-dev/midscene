@@ -20,8 +20,9 @@ export class ChromeExtensionPageBrowserSide extends ChromeExtensionProxyPage {
       message: string,
       type: 'log' | 'status',
     ) => void = () => {},
+    trackingActiveTab = false,
   ) {
-    super(() => true);
+    super(trackingActiveTab);
   }
 
   private async setupBridgeClient() {
