@@ -149,8 +149,8 @@ const serverLaunchTip = (
 );
 
 // remember to destroy the agent when the tab is destroyed: agent.page.destroy()
-export const extensionAgentForTabId = (trackingActiveTab: () => boolean) => {
-  const page = new ChromeExtensionProxyPage(trackingActiveTab);
+export const extensionAgentForTab = (trackingActiveTab?: boolean) => {
+  const page = new ChromeExtensionProxyPage(trackingActiveTab || false);
   return new ChromeExtensionProxyPageAgent(page);
 };
 
@@ -168,7 +168,7 @@ export function Playground({
   dryMode = false,
 }: {
   getAgent: (
-    trackingActiveTab: () => boolean,
+    trackingActiveTab?: boolean,
   ) => StaticPageAgent | ChromeExtensionProxyPageAgent | null;
   hideLogo?: boolean;
   showContextPreview?: boolean;
@@ -191,15 +191,6 @@ export function Playground({
   const configAlreadySet = Object.keys(config || {}).length >= 1;
   const runResultRef = useRef<HTMLHeadingElement>(null);
   const addHistory = useEnvConfig((state) => state.addHistory);
-
-  const { tabId } = useChromeTabInfo();
-  const tabActiveRef = useRef<boolean>(true);
-
-  useEffect(() => {
-    if (tabId) {
-      tabActiveRef.current = trackingActiveTab;
-    }
-  }, [trackingActiveTab]);
 
   // if the screen is narrow, we use vertical mode
   useEffect(() => {
@@ -229,7 +220,6 @@ export function Playground({
     setResult(null);
     setLoading(false);
     setReplayScriptsInfo(null);
-    setReplayCounter(0);
   };
 
   // setup context preview
@@ -237,9 +227,9 @@ export function Playground({
     if (uiContextPreview) return;
     if (!showContextPreview) return;
 
-    getAgent(() => tabActiveRef.current)
+    getAgent()
       ?.getUIContext()
-      .then((context) => {
+      .then((context: UIContext) => {
         setUiContextPreview(context);
       })
       .catch((e) => {
@@ -279,7 +269,8 @@ export function Playground({
     StaticPageAgent | ChromeExtensionProxyPageAgent | null
   >(null);
 
-  const interruptedFlagRef = useRef(false);
+  const currentRunningIdRef = useRef<number | null>(0);
+  const interruptedFlagRef = useRef<Record<number, boolean>>({});
   const handleRun = useCallback(async () => {
     const value = form.getFieldsValue();
     if (!value.prompt) {
@@ -298,15 +289,21 @@ export function Playground({
     });
     let result: PlaygroundResult = { ...blankResult };
 
-    const activeAgent = getAgent(() => tabActiveRef.current);
+    const activeAgent = getAgent(trackingActiveTab);
+    const thisRunningId = Date.now();
     try {
       if (!activeAgent) {
         throw new Error('No agent found');
       }
       currentAgentRef.current = activeAgent;
-      interruptedFlagRef.current = false;
+
+      currentRunningIdRef.current = thisRunningId;
+      interruptedFlagRef.current[thisRunningId] = false;
       activeAgent.resetDump();
       activeAgent.opts.onTaskStartTip = (tip: string) => {
+        if (interruptedFlagRef.current[thisRunningId]) {
+          return;
+        }
         setLoadingProgressText(tip);
       };
       if (serviceMode === 'Server') {
@@ -343,9 +340,6 @@ export function Playground({
       }
     } catch (e: any) {
       console.error(e);
-      if (interruptedFlagRef.current) {
-        return;
-      }
       if (typeof e === 'string') {
         if (e.includes('of different extension')) {
           result.error =
@@ -358,6 +352,10 @@ export function Playground({
       } else {
         result.error = 'Unknown error';
       }
+    }
+    if (interruptedFlagRef.current[thisRunningId]) {
+      console.log('interrupted, result is', result);
+      return;
     }
 
     try {
@@ -399,7 +397,7 @@ export function Playground({
     // setTimeout(() => {
     //   runResultRef.current?.scrollIntoView({ behavior: 'smooth' });
     // }, 50);
-  }, [form, getAgent, serviceMode, serverValid, tabId]);
+  }, [form, getAgent, serviceMode, serverValid, trackingActiveTab]);
 
   let placeholder = 'What do you want to do?';
   const selectedType = Form.useWatch('type', form);
@@ -494,11 +492,13 @@ export function Playground({
     !dryMode && serviceMode === 'In-Browser-Extension' && loading;
 
   const handleStop = async () => {
-    console.log('will destroy agent', currentAgentRef.current);
-    await currentAgentRef.current?.destroy();
-    interruptedFlagRef.current = true;
-    resetResult();
-    console.log('destroy agent done');
+    const thisRunningId = currentRunningIdRef.current;
+    if (thisRunningId) {
+      await currentAgentRef.current?.destroy();
+      interruptedFlagRef.current[thisRunningId] = true;
+      resetResult();
+      console.log('destroy agent done');
+    }
   };
 
   let actionBtn: React.ReactNode = null;

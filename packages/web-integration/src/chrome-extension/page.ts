@@ -10,7 +10,6 @@ import type { WebKeyInput } from '@/common/page';
 import type { ElementInfo } from '@/extractor';
 import type { AbstractPage } from '@/page';
 import type { Point, Size } from '@midscene/core';
-import { ifInBrowser } from '@midscene/shared/utils';
 import type { Protocol as CDPTypes } from 'devtools-protocol';
 import { CdpKeyboard } from './cdpInput';
 import {
@@ -26,7 +25,7 @@ function sleep(ms: number) {
 export default class ChromeExtensionProxyPage implements AbstractPage {
   pageType = 'chrome-extension-proxy';
 
-  public trackingActiveTab: () => boolean;
+  public trackingActiveTab: boolean;
 
   private viewportSize?: Size;
 
@@ -36,13 +35,12 @@ export default class ChromeExtensionProxyPage implements AbstractPage {
 
   private destroyed = false;
 
-  constructor(trackingActiveTab: () => boolean) {
+  constructor(trackingActiveTab: boolean) {
     this.trackingActiveTab = trackingActiveTab;
   }
 
   public async getTabId() {
-    const trackingActiveTab = this.trackingActiveTab();
-    if (this.activeTabId && !trackingActiveTab) {
+    if (this.activeTabId && !this.trackingActiveTab) {
       return this.activeTabId;
     }
     const tabId = await chrome.tabs
