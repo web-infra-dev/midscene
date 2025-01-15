@@ -58,7 +58,7 @@ export function parseActionFromVlm(
   if (mode === 'bc') {
     // Parse thought/reflection based on different text patterns
     if (text.startsWith('Thought:')) {
-      const thoughtMatch = text.match(/Thought: (.+?)(?=\s*Action:|$)/);
+      const thoughtMatch = text.match(/Thought: (.+?)(?=\s*Action:|$)/s);
       if (thoughtMatch) {
         thought = thoughtMatch[1].trim();
       }
