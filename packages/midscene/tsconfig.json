@@ -16,7 +16,8 @@
     "rootDir": ".",
     "skipLibCheck": true,
     "strict": true,
-    "module": "ESNext"
+    "module": "ESNext",
+    "target": "es2018"
   },
   "exclude": ["**/node_modules"],
   "include": ["src", "tests", "report"]

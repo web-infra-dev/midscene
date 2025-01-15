@@ -209,7 +209,7 @@ export function elementByPositionWithElementInfo(
   },
 ) {
   assert(typeof position !== 'undefined', 'position is required for query');
-  const item = elementsInfo.find((item) => {
+  const matchingElements = elementsInfo.filter((item) => {
     return (
       item.rect.left <= position.x &&
       position.x <= item.rect.left + item.rect.width &&
@@ -217,7 +217,17 @@ export function elementByPositionWithElementInfo(
       position.y <= item.rect.top + item.rect.height
     );
   });
-  return item;
+
+  if (matchingElements.length === 0) {
+    return undefined;
+  }
+
+  // Find the smallest element by area
+  return matchingElements.reduce((smallest, current) => {
+    const smallestArea = smallest.rect.width * smallest.rect.height;
+    const currentArea = current.rect.width * current.rect.height;
+    return currentArea < smallestArea ? current : smallest;
+  });
 }
 
 export const samplePageDescription = `
