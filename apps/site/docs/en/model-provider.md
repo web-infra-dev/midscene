@@ -11,7 +11,7 @@ These are the most common configs, in which `OPENAI_API_KEY` is required.
 | Name | Description |
 |------|-------------|
 | `OPENAI_API_KEY` | Required. Your OpenAI API key (e.g. "sk-abcdefghijklmnopqrstuvwxyz") |
-| `OPENAI_BASE_URL` | Optional. Custom endpoint URL for API endpoint. Often used to switch to a provider other than OpenAI. |
+| `OPENAI_BASE_URL` | Optional. Custom endpoint URL for API endpoint. Often used to switch to a provider other than OpenAI (e.g. "https://some_service_name.com/v1") |
 | `MIDSCENE_MODEL_NAME` | Optional. Specify a different model name (default is gpt-4o). Often used to switch to a different model. |
 
 Some advanced configs are also supported. Usually you don't need to use them.

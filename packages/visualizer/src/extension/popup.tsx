@@ -8,12 +8,10 @@ import { globalThemeConfig } from '@/component/color';
 import Logo from '@/component/logo';
 import {
   Playground,
-  extensionAgentForTabId,
+  extensionAgentForTab,
 } from '@/component/playground-component';
-import { useChromeTabInfo } from '@/component/store';
 import { useEnvConfig } from '@/component/store';
 import { ApiOutlined, SendOutlined } from '@ant-design/icons';
-import { useEffect, useRef } from 'react';
 import Bridge from './bridge';
 import { getExtensionVersion } from './utils';
 
@@ -34,8 +32,8 @@ function PlaygroundPopup() {
         <div className="popup-playground-container">
           <Playground
             hideLogo
-            getAgent={(trackingActiveTab: () => boolean) => {
-              return extensionAgentForTabId(trackingActiveTab);
+            getAgent={(trackingActiveTab?: boolean) => {
+              return extensionAgentForTab(trackingActiveTab);
             }}
             showContextPreview={false}
           />
@@ -123,7 +121,7 @@ if (element) {
 //   }
 //   setLoading(true);
 //   try {
-//     const agent = extensionAgentForTabId(tabId);
+//     const agent = extensionAgentForTab(tabId);
 //     await shotAndOpenPlayground(agent);
 //     await agent!.page.destroy();
 //   } catch (e: any) {

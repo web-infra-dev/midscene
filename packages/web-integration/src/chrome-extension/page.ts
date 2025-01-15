@@ -5,11 +5,11 @@
   The page must be active when interacting with it.
 */
 
+import assert from 'node:assert';
 import type { WebKeyInput } from '@/common/page';
 import type { ElementInfo } from '@/extractor';
 import type { AbstractPage } from '@/page';
 import type { Point, Size } from '@midscene/core';
-import { ifInBrowser } from '@midscene/shared/utils';
 import type { Protocol as CDPTypes } from 'devtools-protocol';
 import { CdpKeyboard } from './cdpInput';
 import {
@@ -25,7 +25,7 @@ function sleep(ms: number) {
 export default class ChromeExtensionProxyPage implements AbstractPage {
   pageType = 'chrome-extension-proxy';
 
-  public trackingActiveTab: () => boolean;
+  public trackingActiveTab: boolean;
 
   private viewportSize?: Size;
 
@@ -33,13 +33,14 @@ export default class ChromeExtensionProxyPage implements AbstractPage {
 
   private attachingDebugger: Promise<void> | null = null;
 
-  constructor(trackingActiveTab: () => boolean) {
+  private destroyed = false;
+
+  constructor(trackingActiveTab: boolean) {
     this.trackingActiveTab = trackingActiveTab;
   }
 
   public async getTabId() {
-    const trackingActiveTab = this.trackingActiveTab();
-    if (this.activeTabId && !trackingActiveTab) {
+    if (this.activeTabId && !this.trackingActiveTab) {
       return this.activeTabId;
     }
     const tabId = await chrome.tabs
@@ -50,6 +51,8 @@ export default class ChromeExtensionProxyPage implements AbstractPage {
   }
 
   private async attachDebugger() {
+    assert(!this.destroyed, 'Page is destroyed');
+
     // If already attaching, wait for it to complete
     if (this.attachingDebugger) {
       await this.attachingDebugger;
@@ -76,7 +79,7 @@ export default class ChromeExtensionProxyPage implements AbstractPage {
           // await chrome.debugger.detach({ tabId: currentTabId });
           await chrome.debugger.attach({ tabId: currentTabId }, '1.3');
           // Prevent AI logic from being influenced by changes in page width and height due to the debugger banner appearing on attach.
-          await sleep(340);
+          await sleep(500);
         }
       } finally {
         this.attachingDebugger = null;
@@ -386,5 +389,6 @@ export default class ChromeExtensionProxyPage implements AbstractPage {
   async destroy(): Promise<void> {
     this.activeTabId = null;
     await this.detachDebugger();
+    this.destroyed = true;
   }
 }

@@ -13,7 +13,7 @@ Midscene 默认集成了 OpenAI SDK 调用 AI 服务。使用这个 SDK 限定�
 | 名称 | 描述 |
 |------|-------------|
 | `OPENAI_API_KEY` | 必选项。你的 OpenAI API Key (如 "sk-abcdefghijklmnopqrstuvwxyz") |
-| `OPENAI_BASE_URL` | 可选。API 的接入 URL。常用于切换到其他模型服务|
+| `OPENAI_BASE_URL` | 可选。API 的接入 URL。常用于切换到其他模型服务，如 `https://some_service_name.com/v1` |
 | `MIDSCENE_MODEL_NAME` | 可选。指定一个不同的模型名称 (默认是 gpt-4o)。常用于切换到其他模型服务|
 
 还有一些高级配置项，通常不需要使用。
