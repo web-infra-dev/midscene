@@ -1,3 +1,5 @@
+import { language } from './ui-tars-planning';
+
 // claude 3.5 sonnet computer The ability to understand the content of the image is better, Does not provide element snapshot effect
 export function systemPromptToLocateElementPosition() {
   return `
@@ -22,7 +24,7 @@ finished()
 call_user() # Submit the task and call the user when the task is unsolvable, or when you need the user's help.
 
 ## Note
-- Use English in \`Thought\` part.
+- Use ${language} in \`Thought\` part.
 - Write a small plan and finally summarize your next action (with its target element) in one sentence in \`Thought\` part.
 
 ## User Instruction
