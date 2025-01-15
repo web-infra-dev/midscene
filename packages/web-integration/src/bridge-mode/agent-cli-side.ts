@@ -16,6 +16,8 @@ interface ChromeExtensionPageCliSide extends ChromeExtensionPageBrowserSide {
   showStatusMessage: (message: string) => Promise<void>;
 }
 
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
 // actually, this is a proxy to the page in browser side
 export const getBridgePageInCliSide = (): ChromeExtensionPageCliSide => {
   const server = new BridgeServer(DefaultBridgeServerPort);
@@ -101,10 +103,12 @@ export class AgentOverChromeBridge extends PageAgent<ChromeExtensionPageCliSide>
 
   async connectNewTabWithUrl(url: string) {
     await this.page.connectNewTabWithUrl(url);
+    await sleep(500);
   }
 
   async connectCurrentTab() {
     await this.page.connectCurrentTab();
+    await sleep(500);
   }
 
   async aiAction(prompt: string, options?: any) {
