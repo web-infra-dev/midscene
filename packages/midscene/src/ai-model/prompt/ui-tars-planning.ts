@@ -4,7 +4,6 @@ export const uiTarsPlanningPrompt = `
 You are a GUI agent. You are given a task and your action history, with screenshots. You need to perform the next action to complete the task. 
 
 ## Output Format
-
 \`\`\`
 Thought: ...
 Action: ...
@@ -23,7 +22,7 @@ finished()
 call_user() # Submit the task and call the user when the task is unsolvable, or when you need the user's help.
 
 ## Note
-- Use Chinese in \`Thought\` part.
+- Use English in \`Thought\` part.
 - Write a small plan and finally summarize your next action (with its target element) in one sentence in \`Thought\` part.
 
 ## User Instruction
