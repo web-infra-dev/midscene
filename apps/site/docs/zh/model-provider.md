@@ -29,14 +29,14 @@ Midscene 默认集成了 OpenAI SDK 调用 AI 服务。使用这个 SDK 限定�
 
 选择其中一种方式来配置环境变量。
 
-### 1. 在系统中设置环境变量
+### 方法一：在系统中设置环境变量
 
 ```bash
 # 替换为你自己的 API Key
 export OPENAI_API_KEY="sk-abcdefghijklmnopqrstuvwxyz"
 ```
 
-### 2. 使用 dotenv 配置环境变量
+### 方法二：使用 dotenv 配置环境变量
 
 我们的 [demo 项目](https://github.com/web-infra-dev/midscene-example) 使用了这种方式。
 
