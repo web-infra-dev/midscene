@@ -113,12 +113,18 @@ export default class ChromeExtensionProxyPage implements AbstractPage {
   }
 
   private async showMousePointer(x: number, y: number) {
+    // update mouse pointer while redirecting
+    const pointerScript = `(() => {
+      if(typeof window.midsceneWaterFlowAnimation !== 'undefined') {
+        window.midsceneWaterFlowAnimation.enable();
+        window.midsceneWaterFlowAnimation.showMousePointer(${x}, ${y});
+      } else {
+        console.log('midsceneWaterFlowAnimation is not defined');
+      }
+    })()`;
+
     await this.sendCommandToDebugger('Runtime.evaluate', {
-      expression: `(() => {
-        if(typeof window.midsceneWaterFlowAnimation !== 'undefined') {
-          window.midsceneWaterFlowAnimation.showMousePointer(${x}, ${y});
-        }
-      })()`,
+      expression: `${pointerScript}`,
     });
   }
 

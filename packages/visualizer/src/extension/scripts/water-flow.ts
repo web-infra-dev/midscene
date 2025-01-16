@@ -8,7 +8,7 @@ const midsceneWaterFlowAnimation = {
   cleanupTimeout: null as null | number,
 
   // call to reset the self cleaning timer
-  selfCleaning() {
+  registerSelfCleaning() {
     // clean up all the indicators if there is no call for 30 seconds
     this.lastCallTime = Date.now();
     const cleaningTimeout = 30000;
@@ -26,7 +26,8 @@ const midsceneWaterFlowAnimation = {
   },
 
   showMousePointer(x: number, y: number) {
-    this.selfCleaning();
+    this.enable(); // show water flow animation
+    this.registerSelfCleaning();
     const existingPointer = document.querySelector(
       `div[${this.mousePointerAttribute}]`,
     ) as HTMLDivElement | null;
@@ -83,7 +84,7 @@ const midsceneWaterFlowAnimation = {
   },
 
   hideMousePointer() {
-    this.selfCleaning();
+    this.registerSelfCleaning();
     const pointer = document.querySelector(
       `div[${this.mousePointerAttribute}]`,
     ) as HTMLDivElement | null;
@@ -93,11 +94,14 @@ const midsceneWaterFlowAnimation = {
   },
 
   enable() {
-    this.selfCleaning();
-    if (this.styleElement) return;
-    // Check if water flow animation style already exists
-    const existingStyle = document.querySelector('#water-flow-animation');
-    if (existingStyle) return;
+    this.registerSelfCleaning();
+    if (this.styleElement) {
+      // double check if styleElement is still in the dom tree
+      if (document.head.contains(this.styleElement)) {
+        return;
+      }
+      this.styleElement = null;
+    }
 
     this.styleElement = document.createElement('style');
     this.styleElement.id = 'water-flow-animation';
@@ -163,9 +167,7 @@ const midsceneWaterFlowAnimation = {
       this.cleanupTimeout = null;
     }
 
-    const styleElements = document.querySelectorAll(
-      '[id="water-flow-animation"]',
-    );
+    const styleElements = document.querySelectorAll('#water-flow-animation');
     styleElements.forEach((element) => {
       document.head.removeChild(element);
     });
