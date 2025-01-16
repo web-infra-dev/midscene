@@ -6,6 +6,11 @@ on:
       - opened
       - edited
 
+permissions:
+  # Permits `github/issue-labeler` to add a label to a pull request
+  pull-requests: write
+  contents: read
+
 jobs:
   change-labeling:
     name: Labeling for changes
