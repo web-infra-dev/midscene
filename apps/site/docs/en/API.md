@@ -1,6 +1,8 @@
 # API
 
-In the following documentation, you may see functions called with the `mid.` prefix. If you use destructuring in Playwright, like `async ({ ai, aiQuery }) => { /* ... */}`, you can call the functions without this prefix. It's just a matter of syntax.
+These are the main APIs of all kinds of agents in Midscene.
+
+> In the following documentation, you may see functions called with the `mid.` prefix. If you use destructuring in Playwright, like `async ({ ai, aiQuery }) => { /* ... */}`, you can call the functions without this prefix. It's just a matter of syntax.
 
 ## `.aiAction(steps: string)` or `.ai(steps: string)` - Interact with the page
 

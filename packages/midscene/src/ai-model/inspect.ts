@@ -300,12 +300,10 @@ export async function AiAssert<
         {
           type: 'text',
           text: `
-    pageDescription: \n
-    ${description}
-    Here is the description of the assertion. Just go ahead:
-    =====================================
-    ${assertion}
-    =====================================
+Here is the description of the assertion. Just go ahead:
+=====================================
+${assertion}
+=====================================
   `,
         },
       ],
