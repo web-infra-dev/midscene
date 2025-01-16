@@ -1,6 +1,5 @@
 import path from 'node:path';
-import { AiInspectElement } from '@/ai-model';
-import { vlmPlanning } from '@/ai-model/vlm-planning';
+import { vlmPlanning } from '@/ai-model/ui-tars-planning';
 import { savePositionImg } from '@midscene/shared/img';
 import { expect, test } from 'vitest';
 import { getPageTestData } from '../evaluate/test-suite/util';
