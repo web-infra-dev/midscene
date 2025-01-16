@@ -211,6 +211,7 @@ export function elementByPositionWithElementInfo(
   assert(typeof position !== 'undefined', 'position is required for query');
   const matchingElements = elementsInfo.filter((item) => {
     return (
+      item.attributes.nodeType !== NodeType.CONTAINER &&
       item.rect.left <= position.x &&
       position.x <= item.rect.left + item.rect.width &&
       item.rect.top <= position.y &&
