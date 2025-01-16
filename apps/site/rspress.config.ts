@@ -107,6 +107,10 @@ export default defineConfig({
               text: 'FAQ',
               link: '/faq',
             },
+            {
+              text: 'Data Privacy',
+              link: '/data-privacy',
+            },
           ],
         },
       ],
@@ -165,8 +169,12 @@ export default defineConfig({
               link: '/zh/prompting-tips',
             },
             {
-              text: '常见问题',
+              text: '常见问题 FAQ',
               link: '/zh/faq',
+            },
+            {
+              text: '数据隐私',
+              link: '/zh/data-privacy',
             },
           ],
         },

@@ -71,12 +71,12 @@ tsx demo-new-tab.ts
 
 ## API
 
-除了 [普通的 agent 接口](./api)，`AgentOverChromeBridge` 还提供了一些额外的接口来控制桌面 Chrome。
+除了 [普通的 Agent 接口](./api)，`AgentOverChromeBridge` 还提供了一些额外的接口来控制桌面 Chrome。
 
 :::info
 你应该在执行其他操作前，先调用 `connectCurrentTab` 或 `connectNewTabWithUrl`。
 
-每个 agent 实例只能连接到一个标签页实例，并且一旦被销毁，就无法重新连接。
+每个 agent 实例只能连接到一个标签页实例，并且一旦被销毁就无法重新连接，需要重新创建 agent 实例。
 :::
 
 ### `connectCurrentTab(options?: { trackingActiveTab?: boolean })`
@@ -92,6 +92,10 @@ tsx demo-new-tab.ts
 ### `destroy`
 
 销毁连接。
+
+### 更多接口
+
+Agent 中的常用接口（如 `aiAction`，`aiQuery` 等）请阅读 [API 参考](./API)。
 
 ## 在 YAML 自动化脚本中使用桥接模式
 
