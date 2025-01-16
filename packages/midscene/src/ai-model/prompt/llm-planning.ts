@@ -122,7 +122,7 @@ The JSON format is as follows:
 {{
   "actions": [
     {{
-      "thought": "Reasons for generating this task, and why this task is feasible on this page",
+      "thought": "Reasons for generating this task, and why this task is feasible on this page.", // Use the same language as the user's instruction.
       "type": "Tap",
       "param": null,
       "locate": {sample} | null,
@@ -130,8 +130,8 @@ The JSON format is as follows:
     // ... more actions
   ],
   "taskWillBeAccomplished": boolean,
-  "furtherPlan": {{ "whatHaveDone": string, "whatToDoNext": string }} | null,
-  "error"?: string
+  "furtherPlan": {{ "whatHaveDone": string, "whatToDoNext": string }} | null, // Use the same language as the user's instruction.
+  "error"?: string // Use the same language as the user's instruction.
 }}
 Here is an example of how to decompose a task:
 

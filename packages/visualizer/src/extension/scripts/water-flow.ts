@@ -7,6 +7,7 @@ const midsceneWaterFlowAnimation = {
 
   cleanupTimeout: null as null | number,
 
+  // call to reset the self cleaning timer
   selfCleaning() {
     // clean up all the indicators if there is no call for 30 seconds
     this.lastCallTime = Date.now();
@@ -56,9 +57,8 @@ const midsceneWaterFlowAnimation = {
         p.style.transition = 'all 1s ease-in';
         p.style.pointerEvents = 'none'; // Make pointer not clickable
         // Start from offset position if new pointer
-        p.style.left = `${x + 100 - size / 2}px`;
-        p.style.top = `${y + 100 - size / 2}px`;
-        p.style.opacity = '0.6';
+        p.style.left = `${x - size / 2}px`;
+        p.style.top = `${y - size / 2}px`;
         document.body.appendChild(p);
         return p;
       })();

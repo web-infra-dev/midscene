@@ -174,6 +174,8 @@ export default class ChromeExtensionProxyPage implements AbstractPage {
 
     assert(this.tabIdOfDebuggerAttached, 'Debugger is not attached');
 
+    // wo don't have to await it
+    this.enableWaterFlowAnimation();
     return (await chrome.debugger.sendCommand(
       { tabId: this.tabIdOfDebuggerAttached! },
       command,
