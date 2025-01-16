@@ -38,7 +38,7 @@ Midscene.js is an AI-powered automation SDK can control the page, perform assert
 - **Experience by Chrome Extension 🖥️**: Start immediately with the Chrome Extension. No code is needed while exploring.
 - **Visualized Report 🎞️**: With our visualized report file, you can easily understand and debug the whole process.
 - **Out-of-box LLM 🪓**: It is fine to use public multimodal LLMs like GPT-4o. There is no need for any custom training.
-- **Brand New Experience! 🔥**: Experience a whole new world of automation development. Enjoy!
+- **Totally Open Source! 🔥**: Experience a whole new world of automation development. Enjoy!
 
 ## Resources 📄
 
@@ -50,7 +50,7 @@ Midscene.js is an AI-powered automation SDK can control the page, perform assert
   * [Integrate with Puppeteer](https://midscenejs.com/integrate-with-puppeteer.html)
   * [Integrate with Playwright](https://midscenejs.com/integrate-with-playwright.html)
 * [API Reference](https://midscenejs.com/api.html)
-* [Customize Model and Provider](https://midscenejs.com/model-provider.html), see how to use your own model and provider
+* [Customize Model and Provider（e.g. using Gemini）](https://midscenejs.com/model-provider.html), see how to use your own model and provider
 
 ## Community
 

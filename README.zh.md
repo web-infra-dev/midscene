@@ -35,7 +35,7 @@ Midscene.js 是一个由 AI 驱动的自动化 SDK，能够使用自然语言对
 - **Chrome 插件体验 🖥️**：通过 Chrome 插件，你可以立即开始体验，无需编写代码。
 - **开箱即用的LLM 🪓**：支持使用公开的多模态大语言模型（ 如 GPT-4o ），无需任何定制训练。
 - **可视化报告 🎞️**：通过我们的测试报告和 Playground，你可以轻松理解和调试整个过程。
-- **全新体验 🔥**：体验全新的自动化开发世界，尽情享受吧！
+- **完全开源 🔥**：体验全新的自动化开发世界，尽情享受吧！
 
 ## 资源 📄
 
@@ -47,13 +47,13 @@ Midscene.js 是一个由 AI 驱动的自动化 SDK，能够使用自然语言对
   * [集成到 Puppeteer](https://midscenejs.com/zh/integrate-with-puppeteer.html)
   * [集成到 Playwright](https://midscenejs.com/zh/integrate-with-playwright.html)
 * [API 文档](https://midscenejs.com/zh/api.html)
-* [自定义模型和服务商](https://midscenejs.com/zh/model-provider.html)
+* [自定义模型和服务商（e.g. 使用千问模型）](https://midscenejs.com/zh/model-provider.html)
 
 ## 社区
 
+* [飞书交流群](https://applink.larkoffice.com/client/chat/chatter/add_by_link?link_token=291q2b25-e913-411a-8c51-191e59aab14d)
 * [Discord](https://discord.gg/AFHJBdnn)
 * [Follow us on X](https://x.com/midscene_ai)
-* [飞书群](https://applink.larkoffice.com/client/chat/chatter/add_by_link?link_token=291q2b25-e913-411a-8c51-191e59aab14d)
 
   <img src="https://github.com/user-attachments/assets/211b05c9-3ccd-4f52-b798-f3a7f51330ed" alt="lark group link" width="300" />
 
