@@ -3,7 +3,29 @@ const midsceneWaterFlowAnimation = {
 
   mousePointerAttribute: 'data-water-flow-pointer',
 
+  lastCallTime: 0,
+
+  cleanupTimeout: null as null | number,
+
+  selfCleaning() {
+    // clean up all the indicators if there is no call for 30 seconds
+    this.lastCallTime = Date.now();
+    const cleaningTimeout = 30000;
+
+    if (this.cleanupTimeout) {
+      clearTimeout(this.cleanupTimeout);
+    }
+
+    this.cleanupTimeout = window.setTimeout(() => {
+      const now = Date.now();
+      if (now - this.lastCallTime >= cleaningTimeout) {
+        this.disable();
+      }
+    }, cleaningTimeout);
+  },
+
   showMousePointer(x: number, y: number) {
+    this.selfCleaning();
     const existingPointer = document.querySelector(
       `div[${this.mousePointerAttribute}]`,
     ) as HTMLDivElement | null;
@@ -31,16 +53,21 @@ const midsceneWaterFlowAnimation = {
         p.style.backgroundColor = 'rgba(0, 0, 255, 0.3)';
         p.style.border = '1px solid rgba(0, 0, 255, 0.3)';
         p.style.zIndex = '99999';
-        p.style.transition = 'opacity 0.5s ease-in-out';
+        p.style.transition = 'all 1s ease-in';
         p.style.pointerEvents = 'none'; // Make pointer not clickable
+        // Start from offset position if new pointer
+        p.style.left = `${x + 100 - size / 2}px`;
+        p.style.top = `${y + 100 - size / 2}px`;
+        p.style.opacity = '0.6';
         document.body.appendChild(p);
         return p;
       })();
 
-    // Update position and opacity
-    pointer.style.left = `${x - size / 2}px`; // Subtract half width to center
-    pointer.style.top = `${y - size / 2}px`; // Subtract half height to center
-    pointer.style.opacity = '1';
+    requestAnimationFrame(() => {
+      pointer.style.left = `${x - size / 2}px`;
+      pointer.style.top = `${y - size / 2}px`;
+      pointer.style.opacity = '1';
+    });
 
     // Set new timeouts
     const fadeTimeoutId = setTimeout(() => {
@@ -51,11 +78,12 @@ const midsceneWaterFlowAnimation = {
         }
       }, 500);
       pointer.setAttribute('data-remove-timeout-id', String(removeTimeoutId));
-    }, 2000);
+    }, 3000);
     pointer.setAttribute('data-timeout-id', String(fadeTimeoutId));
   },
 
   hideMousePointer() {
+    this.selfCleaning();
     const pointer = document.querySelector(
       `div[${this.mousePointerAttribute}]`,
     ) as HTMLDivElement | null;
@@ -65,6 +93,7 @@ const midsceneWaterFlowAnimation = {
   },
 
   enable() {
+    this.selfCleaning();
     if (this.styleElement) return;
     // Check if water flow animation style already exists
     const existingStyle = document.querySelector('#water-flow-animation');
@@ -129,6 +158,11 @@ const midsceneWaterFlowAnimation = {
   },
 
   disable() {
+    if (this.cleanupTimeout) {
+      clearTimeout(this.cleanupTimeout);
+      this.cleanupTimeout = null;
+    }
+
     const styleElements = document.querySelectorAll(
       '[id="water-flow-animation"]',
     );
@@ -153,5 +187,6 @@ declare global {
     midsceneWaterFlowAnimation: typeof midsceneWaterFlowAnimation;
   }
 }
-(window as any).midsceneWaterFlowAnimation = midsceneWaterFlowAnimation;
+(window as any).midsceneWaterFlowAnimation =
+  (window as any).midsceneWaterFlowAnimation || midsceneWaterFlowAnimation;
 (window as any).midsceneWaterFlowAnimation.enable();
