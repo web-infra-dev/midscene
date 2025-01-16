@@ -1,5 +1,7 @@
 # API 参考
 
+这些是 Midscene 中各类 Agent 的主要 API。
+
 > 在以下文档中，你可能会看到带有 `mid.` 前缀的函数调用。如果你在 Playwright 中使用了解构赋值（object destructuring），如 `async ({ ai, aiQuery }) => { /* ... */}`，你可以不带这个前缀进行调用。这只是语法的区别。
 
 ## `.aiAction(steps: string)` 或 `.ai(steps: string)` - 控制界面
