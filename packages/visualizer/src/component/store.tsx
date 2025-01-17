@@ -91,6 +91,9 @@ export const useChromeTabInfo = create<{
   };
 
   Promise.resolve().then(async () => {
+    if (typeof window.chrome === 'undefined') {
+      return;
+    }
     const tab = await activeTab();
     const windowId = await currentWindowId();
     set({
@@ -206,6 +209,7 @@ export const useExecutionDump = create<{
   allExecutionAnimation: AnimationScript[] | null;
   sdkVersion: string | null;
   modelName: string | null;
+  modelDescription: string | null;
   insightWidth: number | null;
   insightHeight: number | null;
   activeExecution: ExecutionDump | null;
@@ -228,6 +232,7 @@ export const useExecutionDump = create<{
     allExecutionAnimation: null,
     sdkVersion: null,
     modelName: null,
+    modelDescription: null,
     insightWidth: null,
     insightHeight: null,
     activeTask: null,
@@ -297,6 +302,7 @@ export const useExecutionDump = create<{
           width,
           height,
           modelName,
+          modelDescription,
           sdkVersion,
         } = allScriptsInfo;
 
@@ -307,6 +313,7 @@ export const useExecutionDump = create<{
           insightWidth: width,
           insightHeight: height,
           modelName,
+          modelDescription,
           sdkVersion,
         });
       }

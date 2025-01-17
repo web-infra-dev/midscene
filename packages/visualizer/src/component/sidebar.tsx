@@ -63,6 +63,7 @@ const SideItem = (props: {
 const Sidebar = (): JSX.Element => {
   const sdkVersion = useExecutionDump((store) => store.sdkVersion);
   const modelName = useExecutionDump((store) => store.modelName);
+  const modelDescription = useExecutionDump((store) => store.modelDescription);
   const groupedDump = useExecutionDump((store) => store.dump);
   const setActiveTask = useExecutionDump((store) => store.setActiveTask);
   const activeTask = useExecutionDump((store) => store.activeTask);
@@ -110,8 +111,9 @@ const Sidebar = (): JSX.Element => {
     };
   }, [currentSelectedIndex, allTasks, setActiveTask]);
 
+  const modelDescriptionText = modelDescription ? `, ${modelDescription}` : '';
   const envInfo = sdkVersion
-    ? `v${sdkVersion}, ${modelName || 'default model'}`
+    ? `v${sdkVersion}, ${modelName || 'default model'}${modelDescriptionText}`
     : '';
 
   const sideList = groupedDump ? (

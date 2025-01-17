@@ -33,7 +33,7 @@ import type { WebUIContext } from '@midscene/web/utils';
 import type { MenuProps } from 'antd';
 import { Dropdown, Space } from 'antd';
 import { EnvConfig } from './env-config';
-import { type HistoryItem, useChromeTabInfo, useEnvConfig } from './store';
+import { type HistoryItem, useEnvConfig } from './store';
 
 import {
   ChromeExtensionProxyPage,
