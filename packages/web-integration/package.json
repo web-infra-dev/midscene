@@ -107,6 +107,7 @@
     "test": "vitest --run",
     "test:u": "vitest --run -u",
     "test:ai": "AI_TEST_TYPE=web npm run test",
+    "test:ai:temp": "AI_TEST_TYPE=web vitest --run tests/ai/bridge/temp.test.ts",
     "test:ai:cache": "MIDSCENE_CACHE=true AI_TEST_TYPE=web npm run test",
     "test:ai:all": "npm run test:ai:web && npm run test:ai:native",
     "test:ai:native": "MIDSCENE_CACHE=true AI_TEST_TYPE=native npm run test",

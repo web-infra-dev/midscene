@@ -311,6 +311,23 @@ export class PageTaskExecutor {
             },
           };
         tasks.push(taskActionTap);
+      } else if (plan.type === 'Drag') {
+        const taskActionDrag: ExecutionTaskActionApply<{
+          start_box: { x: number; y: number };
+          end_box: { x: number; y: number };
+        }> = {
+          type: 'Action',
+          subType: 'Drag',
+          param: plan.param,
+          thought: plan.thought,
+          locate: plan.locate,
+          executor: async (taskParam) => {
+            console.log('taskParam', taskParam);
+            // assert(taskParam?.value, 'No key to press');
+            // await this.page.keyboard.press(taskParam.value as KeyInput);
+          },
+        };
+        tasks.push(taskActionDrag);
       } else if (plan.type === 'Hover') {
         const taskActionHover: ExecutionTaskActionApply<PlanningActionParamHover> =
           {
