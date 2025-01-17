@@ -73,7 +73,9 @@ import 'dotenv/config';
 
 ## 使用 Azure OpenAI 服务时的配置
 
-使用 ADT token provider
+### 使用 ADT token provider
+
+此种模式无法运行在浏览器插件中。
 
 ```bash
 # 使用 Azure OpenAI 服务时，配置为 1
@@ -85,7 +87,7 @@ export AZURE_OPENAI_API_VERSION="2024-05-01-preview"
 export AZURE_OPENAI_DEPLOYMENT="gpt-4o"
 ```
 
-使用 keyless 模式
+### 使用 keyless 模式
 
 ```bash
 export MIDSCENE_USE_AZURE_OPENAI=1

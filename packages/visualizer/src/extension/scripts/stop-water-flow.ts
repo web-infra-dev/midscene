@@ -1,4 +1,3 @@
-const styleElements = document.querySelectorAll('[id="water-flow-animation"]');
-styleElements.forEach((element) => {
-  document.head.removeChild(element);
-});
+if (typeof window.midsceneWaterFlowAnimation !== 'undefined') {
+  window.midsceneWaterFlowAnimation.disable();
+}

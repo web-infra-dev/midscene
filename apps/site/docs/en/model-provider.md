@@ -86,6 +86,8 @@ There are some extra configs when using Azure OpenAI Service.
 
 ### Use ADT token provider
 
+This mode cannot be used in Chrome extension.
+
 ```bash
 # this is always true when using Azure OpenAI Service
 export MIDSCENE_USE_AZURE_OPENAI=1

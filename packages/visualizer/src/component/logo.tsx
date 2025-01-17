@@ -1,13 +1,13 @@
 import './logo.less';
 
+export const LogoUrl =
+  'https://lf3-static.bytednsdoc.com/obj/eden-cn/vhaeh7vhabf/Midscene.png';
+
 const Logo = ({ withGithubStar = false }: { withGithubStar?: boolean }) => {
   if (withGithubStar) {
     return (
       <div className="logo logo-with-star-wrapper">
-        <img
-          alt="Midscene_logo"
-          src="https://lf3-static.bytednsdoc.com/obj/eden-cn/vhaeh7vhabf/Midscene.png"
-        />
+        <img alt="Midscene_logo" src={LogoUrl} />
         <a
           href="https://github.com/web-infra-dev/midscene"
           target="_blank"

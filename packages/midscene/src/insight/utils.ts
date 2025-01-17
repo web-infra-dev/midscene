@@ -1,14 +1,15 @@
 import assert from 'node:assert';
-import { randomUUID } from 'node:crypto';
 /* eslint-disable @typescript-eslint/ban-types */
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
-import { MIDSCENE_MODEL_NAME, getAIConfig } from '@/env';
+import {
+  MIDSCENE_MODEL_NAME,
+  MIDSCENE_USE_VLM_UI_TARS,
+  getAIConfig,
+} from '@/env';
 import type {
-  BaseElement,
   DumpMeta,
   DumpSubscriber,
-  ElementById,
   InsightDump,
   PartialInsightDumpFromSDK,
 } from '@/types';
@@ -40,6 +41,9 @@ export function writeInsightDump(
     sdkVersion: getVersion(),
     logTime: Date.now(),
     model_name: getAIConfig(MIDSCENE_MODEL_NAME) || '',
+    model_description: getAIConfig(MIDSCENE_USE_VLM_UI_TARS)
+      ? 'vlm-ui-tars enabled'
+      : '',
   };
   const finalData: InsightDump = {
     logId: id,
