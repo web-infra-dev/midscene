@@ -293,6 +293,23 @@
         <span>hidden label</span>
     </label>
 
+    <!-- element under position: fixed -->
+    <div style="position: absolute; top: -100px; left: -100px; width: 100px; height: 100px; background-color: #ccc; overflow: hidden;">
+        <div style="position: fixed; top: 200px; right: 40px; width: 200px; height: 100px; background-color: #EEE;">
+            <div>i am fixed child content</div>
+        </div>
+    </div>
+
+    <!-- div with content editable -->
+    <div contenteditable="true" class="content-editable-div" style="position: relative; width: 300px; height: 100px; background-color: #ccc;">
+        <!-- I am a content editable div. -->
+        <span>abcd efg</span>
+        <div style="position: absolute; left: 0px; bottom: 0; width: 100%; height: 50px; background-color: #EEE;">
+            content editable div content. We should collect the parent.
+        </div>
+    </div>
+
+
     <!-- absolute parent with width 0 -->
     <div style="position: absolute; top: 0px; left: 0; width: 100%; height: 0;">
         <div>absolute child content</div>

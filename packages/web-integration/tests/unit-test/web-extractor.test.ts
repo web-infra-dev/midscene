@@ -11,7 +11,7 @@ const pagePath = join(__dirname, './fixtures/web-extractor/index.html');
 describe(
   'extractor',
   () => {
-    it('basic', async () => {
+    it.only('basic', async () => {
       const { page, reset } = await launchPage(`file://${pagePath}`, {
         viewport: {
           width: 1080,

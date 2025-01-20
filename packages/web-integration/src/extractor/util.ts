@@ -295,6 +295,7 @@ export function visibleRect(
     return false;
   }
 
+  // check if the element is hidden by an ancestor
   let parent: HTMLElement | Node | null = el;
   while (parent && parent !== document.body) {
     if (!(parent instanceof HTMLElement)) {
@@ -318,6 +319,10 @@ export function visibleRect(
         });
         return false;
       }
+    }
+    // if the parent is a fixed element, stop the search
+    if (parent.style.position === 'fixed') {
+      break;
     }
     parent = parent.parentElement;
   }
