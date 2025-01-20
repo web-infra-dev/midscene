@@ -125,10 +125,17 @@ export class Page<
 
     const isMac = process.platform === 'darwin';
     if (isMac) {
-      // https://github.com/segment-boneyard/nightmare/issues/810#issuecomment-452669866
-      await this.mouse.click(element.center[0], element.center[1], {
-        count: 3,
-      });
+      if (this.pageType === 'puppeteer') {
+        // https://github.com/segment-boneyard/nightmare/issues/810#issuecomment-452669866
+        await this.mouse.click(element.center[0], element.center[1], {
+          count: 3,
+        });
+      } else {
+        await this.mouse.click(element.center[0], element.center[1]);
+        await this.underlyingPage.keyboard.down('Meta');
+        await this.underlyingPage.keyboard.press('a');
+        await this.underlyingPage.keyboard.up('Meta');
+      }
     } else {
       await this.mouse.click(element.center[0], element.center[1]);
       await this.underlyingPage.keyboard.down('Control');
