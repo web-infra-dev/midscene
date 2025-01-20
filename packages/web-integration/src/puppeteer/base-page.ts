@@ -55,20 +55,13 @@ export class Page<
   async screenshotBase64(): Promise<string> {
     // get viewport size from underlyingPage
     // const viewportSize = await this.size();
-    const path = getTmpFile('png')!;
-
+    const imgType = 'jpeg';
+    const path = getTmpFile(imgType)!;
     await this.underlyingPage.screenshot({
       path,
-      type: 'png',
+      type: imgType,
+      quality: 75,
     });
-    // let buf: Buffer;
-    // if (viewportSize.dpr && viewportSize.dpr > 1) {
-    //   buf = await resizeImg(readFileSync(path), {
-    //     width: viewportSize.width,
-    //     height: viewportSize.height,
-    //   });
-    //   writeFileSync(path, buf);
-    // }
 
     return base64Encoded(path, true);
   }
