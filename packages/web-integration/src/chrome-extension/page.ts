@@ -373,16 +373,13 @@ export default class ChromeExtensionProxyPage implements AbstractPage {
     });
 
     await this.sendCommandToDebugger('Input.dispatchKeyEvent', {
-      type: 'keyDown',
-      key: 'Backspace',
-      code: 'Backspace',
+      type: 'keyUp',
+      commands: ['selectAll'],
     });
 
-    await this.sendCommandToDebugger('Input.dispatchKeyEvent', {
-      type: 'keyUp',
-      key: 'Backspace',
-      code: 'Backspace',
-    });
+    await sleep(100);
+
+    await this.keyboard.press('Backspace');
   }
 
   mouse = {
