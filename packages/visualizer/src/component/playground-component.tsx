@@ -438,7 +438,11 @@ export function Playground({
         replayScripts={replayScriptsInfo.scripts}
         imageWidth={replayScriptsInfo.width}
         imageHeight={replayScriptsInfo.height}
-        reportFileContent={result?.reportHTML}
+        reportFileContent={
+          serviceMode === 'In-Browser-Extension' && result?.reportHTML
+            ? result?.reportHTML
+            : null
+        }
       />
     );
   } else if (result?.result) {

@@ -36,7 +36,7 @@ export async function transformImgPathToBase64(inputPath: string) {
   // Use Jimp to process images and generate base64 data
   const Jimp = await getJimp();
   const image = await Jimp.read(inputPath);
-  const buffer = await image.getBufferAsync(Jimp.MIME_PNG);
+  const buffer = await image.getBufferAsync(Jimp.MIME_JPEG);
   return buffer.toString('base64');
 }
 
@@ -72,7 +72,8 @@ export async function resizeImg(
     finalNewSize.height,
     Jimp.RESIZE_NEAREST_NEIGHBOR,
   );
-  const resizedBuffer = await image.getBufferAsync(Jimp.MIME_PNG);
+  image.quality(75);
+  const resizedBuffer = await image.getBufferAsync(Jimp.MIME_JPEG);
 
   return resizedBuffer;
 }
