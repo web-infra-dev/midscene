@@ -321,7 +321,7 @@ export function visibleRect(
       }
     }
     // if the parent is a fixed element, stop the search
-    if (parent.style.position === 'fixed') {
+    if (parentStyle.position === 'fixed') {
       break;
     }
     parent = parent.parentElement;
