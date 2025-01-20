@@ -21,7 +21,7 @@ English | [简体中文](./README.zh.md)
   <a href="https://x.com/midscene_ai"><img src="https://img.shields.io/twitter/follow/midscene_ai?style=flat-square" alt="twitter" /></a>
 </p>
 
-Midscene.js is an AI-powered automation SDK can control the page, perform assertions, and extract data in JSON format using natural language.
+Midscene.js is an AI-powered automation SDK with the abilities to control the page, perform assertions and extract data in JSON format using natural language.
 
 <p align="center">
   
