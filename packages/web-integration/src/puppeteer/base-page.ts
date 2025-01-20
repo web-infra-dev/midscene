@@ -1,5 +1,5 @@
 import type { Point, Size } from '@midscene/core';
-import { getTmpFile } from '@midscene/core/utils';
+import { getTmpFile, sleep } from '@midscene/core/utils';
 import { base64Encoded } from '@midscene/shared/img';
 import type { Page as PlaywrightPage } from 'playwright';
 import type { Page as PuppeteerPage } from 'puppeteer';
@@ -79,9 +79,14 @@ export class Page<
 
   get mouse() {
     return {
-      click: async (x: number, y: number, options?: { button: MouseButton }) =>
+      click: async (
+        x: number,
+        y: number,
+        options?: { button?: MouseButton; count?: number },
+      ) =>
         this.underlyingPage.mouse.click(x, y, {
           button: options?.button || 'left',
+          count: options?.count || 1,
         }),
       wheel: async (deltaX: number, deltaY: number) => {
         if (this.pageType === 'puppeteer') {
@@ -118,18 +123,19 @@ export class Page<
       return;
     }
 
-    await this.mouse.click(element.center[0], element.center[1]);
-
     const isMac = process.platform === 'darwin';
     if (isMac) {
-      await this.underlyingPage.keyboard.down('Meta');
-      await this.underlyingPage.keyboard.press('a');
-      await this.underlyingPage.keyboard.up('Meta');
+      // https://github.com/segment-boneyard/nightmare/issues/810#issuecomment-452669866
+      await this.mouse.click(element.center[0], element.center[1], {
+        count: 3,
+      });
     } else {
+      await this.mouse.click(element.center[0], element.center[1]);
       await this.underlyingPage.keyboard.down('Control');
       await this.underlyingPage.keyboard.press('a');
       await this.underlyingPage.keyboard.up('Control');
     }
+    await sleep(100);
     await this.keyboard.press('Backspace');
   }
 
