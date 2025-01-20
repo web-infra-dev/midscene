@@ -57,10 +57,13 @@ npm i @midscene/cli --save-dev
 ```yaml
 target:
   url: https://www.bing.com
-flow:
-  - ai: 搜索 "今日天气"
-  - sleep: 3000
-  - aiAssert: 结果显示天气信息
+
+tasks:
+  - name: 搜索天气
+    flow:
+      - ai: 搜索 "今日天气"
+      - sleep: 3000
+      - aiAssert: 结果显示天气信息
 ```
 
 运行脚本
