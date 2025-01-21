@@ -1,4 +1,4 @@
-# Customize Model and Provider
+# Config Model and Provider
 
 Midscene uses the OpenAI SDK to call AI services. Using this SDK limits the input and output format of AI services, but it doesn't mean you can only use OpenAI's models. You can use any model service that supports the same interface (most platforms or tools support this).
 
@@ -13,6 +13,14 @@ These are the most common configs, in which `OPENAI_API_KEY` is required.
 | `OPENAI_API_KEY` | Required. Your OpenAI API key (e.g. "sk-abcdefghijklmnopqrstuvwxyz") |
 | `OPENAI_BASE_URL` | Optional. Custom endpoint URL for API endpoint. Often used to switch to a provider other than OpenAI (e.g. "https://some_service_name.com/v1") |
 | `MIDSCENE_MODEL_NAME` | Optional. Specify a different model name (default is gpt-4o). Often used to switch to a different model. |
+
+Config to use `UI-TARS` model:
+
+`UI-TARS` is a dedicated model for UI automation. See more details in [Choose a model](./choose-a-model).
+
+| Name | Description |
+|------|-------------|
+| `MIDSCENE_USE_VLM_UI_TARS` | Optional. Set to "1" to use UI-TARS model. |
 
 Some advanced configs are also supported. Usually you don't need to use them.
 
@@ -57,18 +65,7 @@ Import the dotenv module in your script. It will automatically read the environm
 import 'dotenv/config';
 ```
 
-## Choose a model other than `gpt-4o`
-
-We find that `gpt-4o` performs the best for Midscene at this moment. The other known supported models are `claude-3-opus-20240229`, `gemini-1.5-pro`, `qwen-vl-max-latest`, `doubao-vision-pro-32k`
-
-If you want to use other models, please follow these steps:
-
-1. Choose a model that supports image input (a.k.a. multimodal model).
-2. Find out how to to call it with an OpenAI SDK compatible endpoint. Usually you should set the `OPENAI_BASE_URL`, `OPENAI_API_KEY` and `MIDSCENE_MODEL_NAME`.
-3. If you find it not working well after changing the model, you can try using some short and clear prompt (or roll back to the previous model). See more details in [Prompting Tips](./prompting-tips).
-4. Remember to follow the terms of use of each model.
-
-## Example: Using `claude-3-opus-20240229` from Anthropic
+## Example: Config `claude-3-opus-20240229` from Anthropic
 
 When configuring `MIDSCENE_USE_ANTHROPIC_SDK=1`, Midscene will use Anthropic SDK (`@anthropic-ai/sdk`) to call the model.
 

@@ -1,55 +1,60 @@
 .rspress-logo {
-  height: 2.6rem;
+    height: 2.6rem;
 }
+
+:root {
+    --rp-c-text-1: #0B140F;
+}
+
 
 /* Footer styles */
 
 .footer {
-  background-color: transparent;
-  text-align: center;
+    background-color: transparent;
+    text-align: center;
 }
 
 .footer::before,
 .footer::after {
-  content: none;
-  border: none;
+    content: none;
+    border: none;
 }
 
 .footer-content {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 15px;
-  border: none;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 15px;
+    border: none;
 }
 
 .footer-logo {
-  width: 40px;
-  border: none;
+    width: 40px;
+    border: none;
 }
 
 .footer-text {
-  margin: 0;
-  font-size: 14px;
-  border: none;
-  white-space: nowrap;
+    margin: 0;
+    font-size: 14px;
+    border: none;
+    white-space: nowrap;
 }
 
 @media (max-width: 768px) {
-  .md\:text-6xl {
-    font-size: 3.3rem;
-    line-height: 1;
-  }
-  .footer-content {
-    flex-direction: column;
-    align-items: center;
-    text-align: center;
-  }
-  .footer-logo {
-    margin-bottom: 10px;
-  }
-  .footer-bottom {
-    text-align: center;
-  }
+    .md\:text-6xl {
+        font-size: 3.3rem;
+        line-height: 1;
+    }
+    .footer-content {
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+    }
+    .footer-logo {
+        margin-bottom: 10px;
+    }
+    .footer-bottom {
+        text-align: center;
+    }
 }

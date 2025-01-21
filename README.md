@@ -29,16 +29,24 @@ Midscene.js is an AI-powered automation SDK with the abilities to control the pa
 
 </p>
 
+:::info new open-source model choice 🔥
+From version v0.10.0, we support a new open-source model named `UI-TARS`. Read more about it in [Choose a model](https://midscenejs.com/choose-a-model).
+:::
 
-## Features ✨
+## Features 💡
 
 - **Natural Language Interaction 👆**: Describe the steps, and let Midscene plan and control the user interface for you
 - **Understand UI, Answer in JSON 🔍**: Provide prompts regarding the desired data format, and then receive the expected response in JSON format.
 - **Intuitive Assertion 🤔**: Make assertions in natural language; it’s all based on AI understanding.
 - **Experience by Chrome Extension 🖥️**: Start immediately with the Chrome Extension. No code is needed while exploring.
-- **Visualized Report 🎞️**: With our visualized report file, you can easily understand and debug the whole process.
-- **Out-of-box LLM 🪓**: It is fine to use public multimodal LLMs like GPT-4o. There is no need for any custom training.
+- **Visualized Report for Debugging 🎞️**: With our visualized report file, you can easily understand and debug the whole process.
 - **Totally Open Source! 🔥**: Experience a whole new world of automation development. Enjoy!
+
+## Models ✨
+
+- You can use general-purpose LLMs like `gpt-4o`, it works well for most cases. And also, `gemini-1.5-pro`, `qwen-vl-max-latest` are supported.
+- You can also use `UI-TARS` model, which is an **open-source model** dedicated for UI automation. You can deploy it on your own server, and it will dramatically improve the performance and data privacy. 
+- Read more about [Choose a model](https://midscenejs.com/choose-a-model)
 
 ## Resources 📄
 
@@ -50,7 +58,8 @@ Midscene.js is an AI-powered automation SDK with the abilities to control the pa
   * [Integrate with Puppeteer](https://midscenejs.com/integrate-with-puppeteer.html)
   * [Integrate with Playwright](https://midscenejs.com/integrate-with-playwright.html)
 * [API Reference](https://midscenejs.com/api.html)
-* [Customize Model and Provider（e.g. using Gemini）](https://midscenejs.com/model-provider.html), see how to use your own model and provider
+* [Choose a model](https://midscenejs.com/choose-a-model.html)
+* [Config Model and Provider](https://midscenejs.com/model-provider.html)
 
 ## Community
 
