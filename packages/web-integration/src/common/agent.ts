@@ -3,13 +3,15 @@ import {
   type AgentAssertOpt,
   type AgentWaitForOpt,
   type ExecutionDump,
-  type ExecutionTaskProgressOptions,
+  type ExecutionTask,
   type GroupedActionDump,
   Insight,
   type InsightAction,
+  type OnTaskStartTip,
 } from '@midscene/core';
 import { NodeType } from '@midscene/shared/constants';
 
+import { MIDSCENE_USE_VLM_UI_TARS, getAIConfig } from '@midscene/core/env';
 import {
   groupedActionDumpFileExt,
   reportHTMLContent,
@@ -19,6 +21,7 @@ import {
 import { PageTaskExecutor } from '../common/tasks';
 import { WebElementInfo } from '../web-element';
 import type { AiTaskCache } from './task-cache';
+import { paramStr, typeStr } from './ui-utils';
 import { printReportMsg, reportFileName } from './utils';
 import { type WebUIContext, parseContextFromWebPage } from './utils';
 
@@ -32,6 +35,7 @@ export interface PageAgentOpt {
   generateReport?: boolean;
   /* if auto print report msg, default true */
   autoPrintReportMsg?: boolean;
+  onTaskStartTip?: OnTaskStartTip;
 }
 
 export class PageAgent<PageType extends WebPage = WebPage> {
@@ -142,19 +146,48 @@ export class PageAgent<PageType extends WebPage = WebPage> {
     }
   }
 
-  async aiAction(taskPrompt: string, options?: ExecutionTaskProgressOptions) {
-    const { executor } = await this.taskExecutor.action(taskPrompt, options);
-    this.appendExecutionDump(executor.dump());
-    this.writeOutActionDumps();
+  private async callbackOnTaskStartTip(task: ExecutionTask) {
+    if (this.opts.onTaskStartTip) {
+      const param = paramStr(task);
+      if (param) {
+        const tip = `${typeStr(task)} - ${param}`;
+        await this.opts.onTaskStartTip(tip);
+      } else {
+        await this.opts.onTaskStartTip(typeStr(task));
+      }
+    }
+  }
 
-    if (executor.isInErrorState()) {
-      const errorTask = executor.latestErrorTask();
-      throw new Error(`${errorTask?.error}\n${errorTask?.errorStack}`);
+  async aiAction(taskPrompt: string) {
+    if (getAIConfig(MIDSCENE_USE_VLM_UI_TARS)) {
+      const { executor } = await this.taskExecutor.actionToGoal(taskPrompt, {
+        onTaskStart: this.callbackOnTaskStartTip.bind(this),
+      });
+      this.appendExecutionDump(executor.dump());
+      this.writeOutActionDumps();
+
+      if (executor.isInErrorState()) {
+        const errorTask = executor.latestErrorTask();
+        throw new Error(`${errorTask?.error}\n${errorTask?.errorStack}`);
+      }
+    } else {
+      const { executor } = await this.taskExecutor.action(taskPrompt, {
+        onTaskStart: this.callbackOnTaskStartTip.bind(this),
+      });
+      this.appendExecutionDump(executor.dump());
+      this.writeOutActionDumps();
+
+      if (executor.isInErrorState()) {
+        const errorTask = executor.latestErrorTask();
+        throw new Error(`${errorTask?.error}\n${errorTask?.errorStack}`);
+      }
     }
   }
 
   async aiQuery(demand: any) {
-    const { output, executor } = await this.taskExecutor.query(demand);
+    const { output, executor } = await this.taskExecutor.query(demand, {
+      onTaskStart: this.callbackOnTaskStartTip.bind(this),
+    });
     this.appendExecutionDump(executor.dump());
     this.writeOutActionDumps();
 
@@ -166,7 +199,9 @@ export class PageAgent<PageType extends WebPage = WebPage> {
   }
 
   async aiAssert(assertion: string, msg?: string, opt?: AgentAssertOpt) {
-    const { output, executor } = await this.taskExecutor.assert(assertion);
+    const { output, executor } = await this.taskExecutor.assert(assertion, {
+      onTaskStart: this.callbackOnTaskStartTip.bind(this),
+    });
     this.appendExecutionDump(executor.dump());
     this.writeOutActionDumps();
 

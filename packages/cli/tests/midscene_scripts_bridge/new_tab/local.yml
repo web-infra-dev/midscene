@@ -1,0 +1,8 @@
+target:
+  serve: ./tests/server_root
+  url: index.html
+  bridgeMode: newTabWithUrl
+tasks:
+  - name: check title
+    flow:
+      - aiAssert: the content title is "My App"

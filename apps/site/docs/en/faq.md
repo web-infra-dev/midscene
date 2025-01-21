@@ -4,7 +4,7 @@
 
 No. Midscene is an automation assistance SDK with a key feature of action stability — ensuring the same actions are performed in each run. To maintain this stability, we encourage you to provide detailed instructions to help the AI understand each step of your task.
 
-Related Docs: [Prompting Tips](./prompting-tips.html)
+Related Docs: [Prompting Tips](./prompting-tips)
 
 ## Limitations
 
@@ -12,11 +12,13 @@ There are some limitations with Midscene. We are still working on them.
 
 1. The interaction types are limited to only tap, type, keyboard press, and scroll.
 2. LLM is not 100% stable. Even GPT-4o can't return the right answer all the time. Following the [Prompting Tips](./prompting-tips) will help improve stability.
-3. Since we use JavaScript to retrieve items from the page, the elements inside the cross-origin iframe cannot be accessed.
+3. Since we use JavaScript to retrieve elements from the page, the elements inside the cross-origin iframe cannot be accessed.
+4. We cannot access the native elements of Chrome, like the right-click context menu or file upload dialog.
+5. Do not use Midscene to bypass CAPTCHA. Some LLM services are set to decline requests that involve CAPTCHA-solving (e.g., OpenAI), while the DOM of some CAPTCHA pages is not accessible by regular web scraping methods. Therefore, using Midscene to bypass CAPTCHA is not a reliable method.
 
 ## Can I use a model other than `gpt-4o`?
 
-Yes. You can [customize model and provider](./model-provider.html) if needed.
+Yes. You can [customize model and provider](./model-provider) if needed.
 
 ## About the token cost
 

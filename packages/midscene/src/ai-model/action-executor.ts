@@ -8,6 +8,7 @@ import type {
   ExecutionTaskProgressOptions,
   ExecutionTaskReturn,
   ExecutorContext,
+  PlanningAction,
 } from '@/types';
 import { getVersion } from '@/utils';
 
@@ -99,7 +100,7 @@ export class Executor {
             await this.onTaskStart(task);
           }
         } catch (e) {
-          // console.error('error in onTaskStart', e);
+          console.error('error in onTaskStart', e);
         }
         assert(
           ['Insight', 'Action', 'Planning'].indexOf(task.type) >= 0,
@@ -114,6 +115,7 @@ export class Executor {
           task,
           element: previousFindOutput?.element,
         };
+
         if (task.type === 'Insight') {
           assert(
             task.subType === 'Locate' ||
@@ -140,6 +142,7 @@ export class Executor {
         task.status = 'finished';
         task.timing.end = Date.now();
         task.timing.cost = task.timing.end - task.timing.start;
+        task.timing.aiCost = (returnValue as any)?.aiCost || 0;
         taskIndex++;
       } catch (e: any) {
         successfullyCompleted = false;

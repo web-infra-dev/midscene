@@ -1,8 +1,8 @@
 import assert from 'node:assert';
 import { PageAgent } from '@/common/agent';
-import { paramStr, typeStr } from '@/common/ui-utils';
 import type { KeyboardAction, MouseAction } from '@/page';
 import {
+  type BridgeConnectTabOptions,
   BridgeEvent,
   BridgePageType,
   DefaultBridgeServerPort,
@@ -15,6 +15,8 @@ import type { ChromeExtensionPageBrowserSide } from './page-browser-side';
 interface ChromeExtensionPageCliSide extends ChromeExtensionPageBrowserSide {
   showStatusMessage: (message: string) => Promise<void>;
 }
+
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 // actually, this is a proxy to the page in browser side
 export const getBridgePageInCliSide = (): ChromeExtensionPageCliSide => {
@@ -92,15 +94,21 @@ export const getBridgePageInCliSide = (): ChromeExtensionPageCliSide => {
 export class AgentOverChromeBridge extends PageAgent<ChromeExtensionPageCliSide> {
   constructor() {
     const page = getBridgePageInCliSide();
-    super(page, {});
+    super(page, {
+      onTaskStartTip: (tip: string) => {
+        this.page.showStatusMessage(tip);
+      },
+    });
   }
 
-  async connectNewTabWithUrl(url: string) {
-    await this.page.connectNewTabWithUrl(url);
+  async connectNewTabWithUrl(url: string, options?: BridgeConnectTabOptions) {
+    await this.page.connectNewTabWithUrl(url, options);
+    await sleep(500);
   }
 
-  async connectCurrentTab() {
-    await this.page.connectCurrentTab();
+  async connectCurrentTab(options?: BridgeConnectTabOptions) {
+    await this.page.connectCurrentTab(options);
+    await sleep(500);
   }
 
   async aiAction(prompt: string, options?: any) {
@@ -109,11 +117,6 @@ export class AgentOverChromeBridge extends PageAgent<ChromeExtensionPageCliSide>
         'the `options` parameter of aiAction is not supported in cli side',
       );
     }
-    return await super.aiAction(prompt, {
-      onTaskStart: (task) => {
-        const tip = `${typeStr(task)} - ${paramStr(task)}`;
-        this.page.showStatusMessage(tip);
-      },
-    });
+    return await super.aiAction(prompt);
   }
 }

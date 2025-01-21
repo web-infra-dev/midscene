@@ -17,8 +17,9 @@
   <img src="https://img.shields.io/npm/v/@midscene/web?style=flat-square&color=00a8f0" alt="npm version" />
   <img src="https://img.shields.io/npm/dm/@midscene/web.svg?style=flat-square&color=00a8f0" alt="downloads" />
   <img src="https://img.shields.io/badge/License-MIT-blue.svg?style=flat-square&color=00a8f0" alt="License" />
+  <a href="https://discord.gg/AFHJBdnn"><img src="https://img.shields.io/discord/1328277792730779648?color=7289DA&label=Discord&logo=discord&logoColor=white" alt="discord" /></a>
+  <a href="https://x.com/midscene_ai"><img src="https://img.shields.io/twitter/follow/midscene_ai" alt="twitter" /></a>
 </p>
-
 
 Midscene.js 是一个由 AI 驱动的自动化 SDK，能够使用自然语言对网页进行操作、验证，并提取 JSON 格式的数据。
 
@@ -34,21 +35,25 @@ Midscene.js 是一个由 AI 驱动的自动化 SDK，能够使用自然语言对
 - **Chrome 插件体验 🖥️**：通过 Chrome 插件，你可以立即开始体验，无需编写代码。
 - **开箱即用的LLM 🪓**：支持使用公开的多模态大语言模型（ 如 GPT-4o ），无需任何定制训练。
 - **可视化报告 🎞️**：通过我们的测试报告和 Playground，你可以轻松理解和调试整个过程。
-- **全新体验 🔥**：体验全新的自动化开发世界，尽情享受吧！
+- **完全开源 🔥**：体验全新的自动化开发世界，尽情享受吧！
 
 ## 资源 📄
 
 * [官网首页: https://midscenejs.com](https://midscenejs.com/zh)
-* [使用 Chrome 插件体验](https://midscenejs.com/zh/quick-experience.html)
+* [使用 Chrome 插件体验](https://midscenejs.com/zh/quick-experience.html)，请从这里开始体验 Midscene 
+* 集成方案
+  * [使用 YAML 格式的自动化脚本](https://midscenejs.com/zh/automate-with-scripts-in-yaml.html), 如果你更喜欢写 YAML 文件而不是代码
+  * [使用 Chrome 插件桥接模式（Bridge Mode）](https://midscenejs.com/zh/bridge-mode-by-chrome-extension.html), 使用 Midscene 来控制桌面端 Chrome 
+  * [集成到 Puppeteer](https://midscenejs.com/zh/integrate-with-puppeteer.html)
+  * [集成到 Playwright](https://midscenejs.com/zh/integrate-with-playwright.html)
 * [API 文档](https://midscenejs.com/zh/api.html)
-* [使用 YAML 格式的自动化脚本](https://midscenejs.com/zh/automate-with-scripts-in-yaml.html)
-* [集成到 Puppeteer](https://midscenejs.com/zh/integrate-with-puppeteer.html)
-* [集成到 Playwright](https://midscenejs.com/zh/integrate-with-playwright.html)
-* [自定义模型和服务商](https://midscenejs.com/zh/model-provider.html)
+* [自定义模型和服务商（e.g. 使用千问模型）](https://midscenejs.com/zh/model-provider.html)
 
 ## 社区
 
-* [飞书群](https://applink.larkoffice.com/client/chat/chatter/add_by_link?link_token=291q2b25-e913-411a-8c51-191e59aab14d)
+* [飞书交流群](https://applink.larkoffice.com/client/chat/chatter/add_by_link?link_token=291q2b25-e913-411a-8c51-191e59aab14d)
+* [Discord](https://discord.gg/AFHJBdnn)
+* [Follow us on X](https://x.com/midscene_ai)
 
   <img src="https://github.com/user-attachments/assets/211b05c9-3ccd-4f52-b798-f3a7f51330ed" alt="lark group link" width="300" />
 

@@ -95,8 +95,6 @@ export class ScriptPlayer {
   async playTask(taskStatus: ScriptPlayerTaskStatus, agent: PageAgent) {
     const { flow } = taskStatus;
     assert(flow, 'missing flow in task');
-    const notifyTaskStatusChange =
-      this.notifyCurrentTaskStatusChange.bind(this);
 
     for (const flowItemIndex in flow) {
       const currentStep = Number.parseInt(flowItemIndex, 10);
@@ -113,17 +111,7 @@ export class ScriptPlayer {
           typeof prompt === 'string',
           'prompt for aiAction must be a string',
         );
-        await agent.aiAction(prompt, {
-          onTaskStart(task) {
-            const tip = `${typeStr(task)} - ${paramStr(task)}`;
-            const actionItem = flowItem as MidsceneYamlFlowItemAIAction;
-            actionItem.aiActionProgressTips =
-              actionItem.aiActionProgressTips || [];
-            actionItem.aiActionProgressTips.push(tip);
-
-            notifyTaskStatusChange();
-          },
-        });
+        await agent.aiAction(prompt);
       } else if ((flowItem as MidsceneYamlFlowItemAIAssert).aiAssert) {
         const assertTask = flowItem as MidsceneYamlFlowItemAIAssert;
         const prompt = assertTask.aiAssert;
@@ -197,34 +185,43 @@ export class ScriptPlayer {
     this.setPlayerStatus('running');
     let errorFlag = false;
     while (taskIndex < tasks.length) {
+      const taskStatus = this.taskStatusList[taskIndex];
       this.setTaskStatus(taskIndex, 'running' as any);
+      this.setTaskIndex(taskIndex);
 
       try {
-        this.setTaskIndex(taskIndex);
-        await this.playTask(this.taskStatusList[taskIndex], this.pageAgent);
+        await this.playTask(taskStatus, this.pageAgent);
+        this.setTaskStatus(taskIndex, 'done' as any);
       } catch (e) {
         this.setTaskStatus(taskIndex, 'error' as any, e as Error);
-        this.setPlayerStatus('error');
-        errorFlag = true;
 
-        this.reportFile = agent.reportFile;
-        taskIndex++;
-        continue;
+        if (taskStatus.continueOnError) {
+          // nothing more to do
+        } else {
+          this.reportFile = agent.reportFile;
+          errorFlag = true;
+          break;
+        }
       }
       this.reportFile = agent.reportFile;
-      this.setTaskStatus(taskIndex, 'done' as any);
       taskIndex++;
     }
 
-    if (!errorFlag) {
+    if (errorFlag) {
+      this.setPlayerStatus('error');
+    } else {
       this.setPlayerStatus('done');
     }
 
     // free the resources
-    freeFn.forEach((fn) => {
+    for (const fn of freeFn) {
       try {
-        fn.fn();
-      } catch (e) {}
-    });
+        // console.log('freeing', fn.name);
+        await fn.fn();
+        // console.log('freed', fn.name);
+      } catch (e) {
+        // console.error('error freeing', fn.name, e);
+      }
+    }
   }
 }

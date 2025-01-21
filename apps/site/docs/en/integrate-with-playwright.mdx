@@ -12,7 +12,7 @@ you can check the demo project of Playwright here: [https://github.com/web-infra
 
 ## Preparation
 
-Config the OpenAI API key, or [customize model and provider](./model-provider.html)
+Config the OpenAI API key, or [customize model and provider](./model-provider)
 
 ```bash
 # replace with your own
@@ -76,8 +76,9 @@ test("search headphone on ebay", async ({ ai, aiQuery, aiAssert }) => {
   // 👀 assert by AI
   await aiAssert("There is a category filter on the left");
 });
-
 ```
+
+For the agent's more APIs, please refer to [API](./API).
 
 ## Step 4. run the test case
 
@@ -91,4 +92,4 @@ After the above command executes successfully, the console will output: `Midscen
 
 ## More
 
-You may also be interested in [Prompting Tips](./prompting-tips.html)
+You may also be interested in [Prompting Tips](./prompting-tips)

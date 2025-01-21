@@ -1,4 +1,4 @@
-import { sha256 } from 'js-sha256';
+import { generateHashId } from '@midscene/shared/utils';
 import { extractTextWithPosition } from './web-extractor';
 
 // import { TEXT_MAX_SIZE } from './constants';
@@ -326,6 +326,7 @@ export function visibleRect(
     return false;
   }
 
+  // check if the element is hidden by an ancestor
   let parent: HTMLElement | Node | null = el;
   while (parent && parent !== currentDocument.body) {
     if (!(parent instanceof currentWindow.HTMLElement)) {
@@ -349,6 +350,10 @@ export function visibleRect(
         });
         return false;
       }
+    }
+    // if the parent is a fixed element, stop the search
+    if (parentStyle.position === 'fixed') {
+      break;
     }
     parent = parent.parentElement;
   }
@@ -442,24 +447,7 @@ export function midsceneGenerateHash(
   if (node && nodeHashCacheList.find((item) => item.node === node)) {
     return nodeHashCacheList.find((item) => item.node === node)?.id || '';
   }
-  // Combine the input into a string
-  const combined = JSON.stringify({
-    content,
-    rect,
-  });
-  // Generates the sha-256 hash value
-  let sliceLength = 8;
-  let slicedHash = '';
-  const hashHex = sha256.create().update(combined).hex();
-  while (sliceLength < hashHex.length - 1) {
-    slicedHash = hashHex.slice(0, sliceLength);
-    if (hashMap[slicedHash] && hashMap[slicedHash] !== combined) {
-      sliceLength++;
-      continue;
-    }
-    hashMap[slicedHash] = combined;
-    break;
-  }
+  const slicedHash = generateHashId(rect, content);
   if (node && typeof window !== 'undefined') {
     (window as any).midsceneNodeHashCacheList.push({ node, id: slicedHash });
   }

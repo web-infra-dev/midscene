@@ -1,4 +1,4 @@
-import { activeTabId } from '@/extension/utils';
+import { activeTab } from '@/extension/utils';
 import { currentWindowId } from '@/extension/utils';
 import * as Z from 'zustand';
 // import { createStore } from 'zustand/vanilla';
@@ -32,6 +32,7 @@ export const useBlackboardPreference = create<{
 const CONFIG_KEY = 'midscene-env-config';
 const SERVICE_MODE_KEY = 'midscene-service-mode';
 const HISTORY_KEY = 'midscene-prompt-history';
+const TRACKING_ACTIVE_TAB_KEY = 'midscene-tracking-active-tab';
 const getConfigStringFromLocalStorage = () => {
   const configString = localStorage.getItem(CONFIG_KEY);
   return configString || '';
@@ -78,23 +79,40 @@ export interface HistoryItem {
 
 export const useChromeTabInfo = create<{
   tabId: number | null;
+  tabTitle: string | null;
+  tabUrl: string | null;
   windowId: number | null;
 }>((set) => {
   const data = {
     tabId: null,
+    tabTitle: null,
+    tabUrl: null,
     windowId: null,
   };
 
   Promise.resolve().then(async () => {
-    const tabId = await activeTabId();
+    if (typeof window.chrome === 'undefined') {
+      return;
+    }
+    const tab = await activeTab();
     const windowId = await currentWindowId();
-    set({ tabId, windowId });
+    set({
+      tabId: tab.id,
+      tabTitle: tab.title,
+      tabUrl: tab.url,
+      windowId,
+    });
 
     chrome.tabs.onActivated.addListener(async (activeInfo) => {
       const tabId = activeInfo.tabId;
-      const windowId = await currentWindowId();
-
-      set({ tabId, windowId });
+      const windowId = activeInfo.windowId;
+      try {
+        const tab = await chrome.tabs.get(tabId);
+        set({ tabId, windowId, tabTitle: tab.title, tabUrl: tab.url });
+      } catch (e) {
+        console.error('failed to get active tab', e);
+        set({ tabId: null, windowId: null, tabTitle: null, tabUrl: null });
+      }
     });
   });
 
@@ -117,6 +135,8 @@ export const useEnvConfig = create<{
   configString: string;
   setConfig: (config: Record<string, string>) => void;
   loadConfig: (configString: string) => void;
+  trackingActiveTab: boolean;
+  setTrackingActiveTab: (trackingActiveTab: boolean) => void;
   history: HistoryItem[];
   clearHistory: () => void;
   addHistory: (history: HistoryItem) => void;
@@ -129,6 +149,8 @@ export const useEnvConfig = create<{
   const savedServiceMode = localStorage.getItem(
     SERVICE_MODE_KEY,
   ) as ServiceModeType | null;
+  const savedTrackingActiveTab =
+    localStorage.getItem(TRACKING_ACTIVE_TAB_KEY) !== 'false';
   return {
     serviceMode: ifInExtension
       ? 'In-Browser-Extension'
@@ -146,6 +168,14 @@ export const useEnvConfig = create<{
       const config = parseConfig(configString);
       set({ config, configString });
       localStorage.setItem(CONFIG_KEY, configString);
+    },
+    trackingActiveTab: savedTrackingActiveTab,
+    setTrackingActiveTab: (trackingActiveTab: boolean) => {
+      set({ trackingActiveTab });
+      localStorage.setItem(
+        TRACKING_ACTIVE_TAB_KEY,
+        trackingActiveTab.toString(),
+      );
     },
     history: getHistoryFromLocalStorage(),
     clearHistory: () => {
@@ -179,6 +209,7 @@ export const useExecutionDump = create<{
   allExecutionAnimation: AnimationScript[] | null;
   sdkVersion: string | null;
   modelName: string | null;
+  modelDescription: string | null;
   insightWidth: number | null;
   insightHeight: number | null;
   activeExecution: ExecutionDump | null;
@@ -201,6 +232,7 @@ export const useExecutionDump = create<{
     allExecutionAnimation: null,
     sdkVersion: null,
     modelName: null,
+    modelDescription: null,
     insightWidth: null,
     insightHeight: null,
     activeTask: null,
@@ -270,6 +302,7 @@ export const useExecutionDump = create<{
           width,
           height,
           modelName,
+          modelDescription,
           sdkVersion,
         } = allScriptsInfo;
 
@@ -280,6 +313,7 @@ export const useExecutionDump = create<{
           insightWidth: width,
           insightHeight: height,
           modelName,
+          modelDescription,
           sdkVersion,
         });
       }

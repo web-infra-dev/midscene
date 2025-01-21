@@ -1,4 +1,4 @@
-import { Executor } from '@/action/executor';
+import { Executor } from '@/index';
 import type {
   DumpSubscriber,
   ExecutionTaskActionApply,

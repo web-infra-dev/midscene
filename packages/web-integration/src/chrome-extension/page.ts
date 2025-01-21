@@ -5,45 +5,55 @@
   The page must be active when interacting with it.
 */
 
-import fs from 'node:fs';
+import assert from 'node:assert';
 import type { WebKeyInput } from '@/common/page';
 import type { ElementInfo } from '@/extractor';
 import type { AbstractPage } from '@/page';
 import type { Point, Size } from '@midscene/core';
-import { ifInBrowser } from '@midscene/shared/utils';
 import type { Protocol as CDPTypes } from 'devtools-protocol';
 import { CdpKeyboard } from './cdpInput';
+import {
+  getHtmlElementScript,
+  injectStopWaterFlowAnimation,
+  injectWaterFlowAnimation,
+} from './dynamic-scripts';
 
-// remember to include this file into extension's package
-const scriptFileToRetrieve = './lib/htmlElement.js';
-let scriptFileContentCache: string | null = null;
-const scriptFileContent = async () => {
-  if (scriptFileContentCache) return scriptFileContentCache;
-  if (ifInBrowser) {
-    const script = await fetch('/lib/htmlElement.js');
-    scriptFileContentCache = await script.text();
-    return scriptFileContentCache;
-  }
-  return fs.readFileSync(scriptFileToRetrieve, 'utf8');
-};
+function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
 
 export default class ChromeExtensionProxyPage implements AbstractPage {
   pageType = 'chrome-extension-proxy';
 
-  public tabId: number;
+  public trackingActiveTab: boolean;
 
   private viewportSize?: Size;
 
-  private debuggerAttached = false;
+  private activeTabId: number | null = null;
+
+  private tabIdOfDebuggerAttached: number | null = null;
 
   private attachingDebugger: Promise<void> | null = null;
 
-  constructor(tabId: number) {
-    this.tabId = tabId;
+  private destroyed = false;
+
+  constructor(trackingActiveTab: boolean) {
+    this.trackingActiveTab = trackingActiveTab;
+  }
+
+  public async getTabId() {
+    if (this.activeTabId && !this.trackingActiveTab) {
+      return this.activeTabId;
+    }
+    const tabId = await chrome.tabs
+      .query({ active: true, currentWindow: true })
+      .then((tabs) => tabs[0]?.id);
+    this.activeTabId = tabId || 0;
+    return this.activeTabId;
   }
 
   private async attachDebugger() {
-    if (this.debuggerAttached) return;
+    assert(!this.destroyed, 'Page is destroyed');
 
     // If already attaching, wait for it to complete
     if (this.attachingDebugger) {
@@ -53,17 +63,47 @@ export default class ChromeExtensionProxyPage implements AbstractPage {
 
     // Create new attaching promise
     this.attachingDebugger = (async () => {
-      try {
-        await chrome.debugger.attach({ tabId: this.tabId }, '1.3');
-        this.debuggerAttached = true;
+      const url = await this.url();
+      if (url.startsWith('chrome://')) {
+        throw new Error(
+          'Cannot attach debugger to chrome:// pages, please use Midscene in a normal page with http://, https:// or file://',
+        );
+      }
 
-        // listen to the debugger detach event
-        chrome.debugger.onEvent.addListener((source, method, params) => {
-          console.log('debugger event', source, method, params);
-          if (method === 'Debugger.detached') {
-            this.debuggerAttached = false;
+      try {
+        const currentTabId = await this.getTabId();
+
+        if (this.tabIdOfDebuggerAttached === currentTabId) {
+          // already attached
+          return;
+        }
+        if (
+          this.tabIdOfDebuggerAttached &&
+          this.tabIdOfDebuggerAttached !== currentTabId
+        ) {
+          // detach the previous tab
+          console.log(
+            'detach the previous tab',
+            this.tabIdOfDebuggerAttached,
+            '->',
+            currentTabId,
+          );
+          try {
+            await this.detachDebugger(this.tabIdOfDebuggerAttached);
+          } catch (error) {
+            console.error('Failed to detach debugger', error);
           }
-        });
+        }
+
+        // detach any debugger attached to the tab
+        await chrome.debugger.attach({ tabId: currentTabId }, '1.3');
+        // wait util the debugger banner in Chrome appears
+        await sleep(500);
+        this.tabIdOfDebuggerAttached = currentTabId;
+
+        await this.enableWaterFlowAnimation();
+      } catch (error) {
+        console.error('Failed to attach debugger', error);
       } finally {
         this.attachingDebugger = null;
       }
@@ -72,10 +112,64 @@ export default class ChromeExtensionProxyPage implements AbstractPage {
     await this.attachingDebugger;
   }
 
-  private async detachDebugger() {
-    if (!this.debuggerAttached) return;
-    await chrome.debugger.detach({ tabId: this.tabId });
-    this.debuggerAttached = false;
+  private async showMousePointer(x: number, y: number) {
+    // update mouse pointer while redirecting
+    const pointerScript = `(() => {
+      if(typeof window.midsceneWaterFlowAnimation !== 'undefined') {
+        window.midsceneWaterFlowAnimation.enable();
+        window.midsceneWaterFlowAnimation.showMousePointer(${x}, ${y});
+      } else {
+        console.log('midsceneWaterFlowAnimation is not defined');
+      }
+    })()`;
+
+    await this.sendCommandToDebugger('Runtime.evaluate', {
+      expression: `${pointerScript}`,
+    });
+  }
+
+  private async hideMousePointer() {
+    await this.sendCommandToDebugger('Runtime.evaluate', {
+      expression: `(() => {
+        if(typeof window.midsceneWaterFlowAnimation !== 'undefined') {
+          window.midsceneWaterFlowAnimation.hideMousePointer();
+        }
+      })()`,
+    });
+  }
+
+  private async detachDebugger(tabId?: number) {
+    const tabIdToDetach = tabId || this.tabIdOfDebuggerAttached;
+    if (!tabIdToDetach) {
+      console.warn('No tab id to detach');
+      return;
+    }
+
+    await this.disableWaterFlowAnimation(tabIdToDetach);
+    await sleep(200);
+    await chrome.debugger.detach({ tabId: tabIdToDetach });
+
+    this.tabIdOfDebuggerAttached = null;
+  }
+
+  private async enableWaterFlowAnimation() {
+    const script = await injectWaterFlowAnimation();
+    // we will call this function in sendCommandToDebugger, so we have to use the chrome.debugger.sendCommand
+    await chrome.debugger.sendCommand(
+      { tabId: this.tabIdOfDebuggerAttached! },
+      'Runtime.evaluate',
+      {
+        expression: script,
+      },
+    );
+  }
+
+  private async disableWaterFlowAnimation(tabId: number) {
+    const script = await injectStopWaterFlowAnimation();
+
+    await chrome.debugger.sendCommand({ tabId }, 'Runtime.evaluate', {
+      expression: script,
+    });
   }
 
   private async sendCommandToDebugger<ResponseType = any, RequestType = any>(
@@ -83,15 +177,20 @@ export default class ChromeExtensionProxyPage implements AbstractPage {
     params: RequestType,
   ): Promise<ResponseType> {
     await this.attachDebugger();
+
+    assert(this.tabIdOfDebuggerAttached, 'Debugger is not attached');
+
+    // wo don't have to await it
+    this.enableWaterFlowAnimation();
     return (await chrome.debugger.sendCommand(
-      { tabId: this.tabId },
+      { tabId: this.tabIdOfDebuggerAttached! },
       command,
       params as any,
     )) as ResponseType;
   }
 
   private async getPageContentByCDP() {
-    const script = await scriptFileContent();
+    const script = await getHtmlElementScript();
 
     // check tab url
     await this.sendCommandToDebugger<
@@ -157,6 +256,7 @@ export default class ChromeExtensionProxyPage implements AbstractPage {
   }
 
   async getElementInfos() {
+    await this.hideMousePointer();
     const content = await this.getPageContentByCDP();
     if (content?.size) {
       this.viewportSize = content.size;
@@ -173,6 +273,7 @@ export default class ChromeExtensionProxyPage implements AbstractPage {
 
   async screenshotBase64() {
     // screenshot by cdp
+    await this.hideMousePointer();
     const base64 = await this.sendCommandToDebugger('Page.captureScreenshot', {
       format: 'jpeg',
       quality: 70,
@@ -181,7 +282,8 @@ export default class ChromeExtensionProxyPage implements AbstractPage {
   }
 
   async url() {
-    const url = await chrome.tabs.get(this.tabId).then((tab) => tab.url);
+    const tabId = await this.getTabId();
+    const url = await chrome.tabs.get(tabId).then((tab) => tab.url);
     return url || '';
   }
 
@@ -271,20 +373,18 @@ export default class ChromeExtensionProxyPage implements AbstractPage {
     });
 
     await this.sendCommandToDebugger('Input.dispatchKeyEvent', {
-      type: 'keyDown',
-      key: 'Backspace',
-      code: 'Backspace',
+      type: 'keyUp',
+      commands: ['selectAll'],
     });
 
-    await this.sendCommandToDebugger('Input.dispatchKeyEvent', {
-      type: 'keyUp',
-      key: 'Backspace',
-      code: 'Backspace',
-    });
+    await sleep(100);
+
+    await this.keyboard.press('Backspace');
   }
 
   mouse = {
     click: async (x: number, y: number) => {
+      await this.showMousePointer(x, y);
       await this.sendCommandToDebugger('Input.dispatchMouseEvent', {
         type: 'mousePressed',
         x,
@@ -306,15 +406,19 @@ export default class ChromeExtensionProxyPage implements AbstractPage {
       startX?: number,
       startY?: number,
     ) => {
+      const finalX = startX || 50;
+      const finalY = startY || 50;
+      await this.showMousePointer(finalX, finalY);
       await this.sendCommandToDebugger('Input.dispatchMouseEvent', {
         type: 'mouseWheel',
-        x: startX || 10,
-        y: startY || 10,
+        x: finalX,
+        y: finalY,
         deltaX,
         deltaY,
       });
     },
     move: async (x: number, y: number) => {
+      await this.showMousePointer(x, y);
       await this.sendCommandToDebugger('Input.dispatchMouseEvent', {
         type: 'mouseMoved',
         x,
@@ -328,17 +432,19 @@ export default class ChromeExtensionProxyPage implements AbstractPage {
       const cdpKeyboard = new CdpKeyboard({
         send: this.sendCommandToDebugger.bind(this),
       });
-      await cdpKeyboard.type(text);
+      await cdpKeyboard.type(text, { delay: 0 });
     },
     press: async (key: WebKeyInput) => {
       const cdpKeyboard = new CdpKeyboard({
         send: this.sendCommandToDebugger.bind(this),
       });
-      await cdpKeyboard.press(key);
+      await cdpKeyboard.press(key, { delay: 0 });
     },
   };
 
   async destroy(): Promise<void> {
+    this.activeTabId = null;
     await this.detachDebugger();
+    this.destroyed = true;
   }
 }

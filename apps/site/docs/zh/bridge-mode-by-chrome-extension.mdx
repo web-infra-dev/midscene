@@ -14,7 +14,14 @@ you can check the demo project of bridge mode here: [https://github.com/web-infr
 
 ## 准备工作
 
-安装 [Midscene 插件](https://chromewebstore.google.com/detail/midscene/gbldofcpkknbggpkmbdaefngejllnief)。
+1. 配置 OpenAI API Key，或 [自定义模型和服务商](./model-provider)
+
+```bash
+# 更新为你自己的 Key
+export OPENAI_API_KEY="sk-abcdefghijklmnopqrstuvwxyz"
+```
+
+2. 安装 [Midscene 浏览器插件](https://chromewebstore.google.com/detail/midscene/gbldofcpkknbggpkmbdaefngejllnief)
 
 ## 第一步：安装依赖
 
@@ -64,19 +71,21 @@ tsx demo-new-tab.ts
 
 ## API
 
-除了 [普通的 agent 接口](./api)，`AgentOverChromeBridge` 还提供了一些额外的接口来控制桌面 Chrome。
+除了 [普通的 Agent 接口](./api)，`AgentOverChromeBridge` 还提供了一些额外的接口来控制桌面 Chrome。
 
 :::info
 你应该在执行其他操作前，先调用 `connectCurrentTab` 或 `connectNewTabWithUrl`。
 
-每个 agent 实例只能连接到一个标签页实例，并且一旦被销毁，就无法重新连接。
+每个 agent 实例只能连接到一个标签页实例，并且一旦被销毁就无法重新连接，需要重新创建 agent 实例。
 :::
 
-### `connectCurrentTab`
+### `connectCurrentTab(options?: { trackingActiveTab?: boolean })`
 
 连接到当前已激活的标签页。
 
-### `connectNewTabWithUrl(ur: string)`
+如果 `trackingActiveTab` 为 true，则 agent 将始终跟踪当前激活的标签页。例如，如果你切换到另一个标签页或打开一个新的标签页，agent 将跟踪最新激活的标签页。否则，agent 将只跟踪你最初连接的标签页。
+
+### `connectNewTabWithUrl(url: string, options?: { trackingActiveTab?: boolean })`
 
 创建一个新标签页，并立即连接到它。
 
@@ -84,11 +93,41 @@ tsx demo-new-tab.ts
 
 销毁连接。
 
-## 在 YAML 脚本中使用桥接模式
+### 更多接口
 
-这个功能正在开发中，很快就会与你见面。
+Agent 中的常用接口（如 `aiAction`，`aiQuery` 等）请阅读 [API 参考](./API)。
 
+## 在 YAML 自动化脚本中使用桥接模式
 
+[Yaml 格式的自动化脚本](./automate-with-scripts-in-yaml) 是 Midscene 提供给开发者的一种编写自动化脚本的方式。通过使用 yaml 格式，脚本会变得易于阅读和编写。
 
+在 Yaml 脚本中使用桥接模式时，需要配置 `target` 中的 `bridgeMode` 属性。如果想要使用当前标签页，设置为 `currentTab`，否则设置为 `newTabWithUrl`。
+
+例如，以下脚本将会通过 Chrome 插件的桥接模式打开一个新的标签页：
+
+```diff
+target:
+  url: https://www.bing.com
++ bridgeMode: newTabWithUrl
+tasks:
+```
+
+运行脚本：
+
+```bash
+midscene ./bing.yaml
+```
+
+在运行脚本后，记得要启动 Chrome 插件，并点击 'Allow connection' 按钮。
+
+### 不支持的选项
+
+在桥接模式下，以下选项将不会生效（它们将遵循桌面浏览器的设置）：
+- userAgent
+- viewportWidth
+- viewportHeight
+- viewportScale
+- waitForNetworkIdle
+- cookie
 
 

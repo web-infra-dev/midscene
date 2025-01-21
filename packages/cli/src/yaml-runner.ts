@@ -7,15 +7,14 @@ import {
   contextInfo,
   contextTaskListSummary,
   isTTY,
-  singleTaskInfo,
   spinnerInterval,
 } from './printer';
 import { TTYWindowRenderer } from './tty-renderer';
 
-import { assert } from 'node:console';
+import assert from 'node:assert';
 import type { FreeFn } from '@midscene/core';
+import { AgentOverChromeBridge } from '@midscene/web/bridge-mode';
 import { puppeteerAgentForTarget } from '@midscene/web/puppeteer';
-
 export const launchServer = async (
   dir: string,
 ): Promise<ReturnType<typeof createServer>> => {
@@ -48,30 +47,30 @@ export async function playYamlFiles(
       keepWindow: options?.keepWindow,
       testId: fileName,
     };
-    const player = new ScriptPlayer(
-      script,
-      async (target) => {
-        const freeFn: FreeFn[] = [];
+    const player = new ScriptPlayer(script, async (target) => {
+      const freeFn: FreeFn[] = [];
 
-        // launch local server if needed
-        let localServer: Awaited<ReturnType<typeof launchServer>> | undefined;
-        let urlToVisit: string | undefined;
-        assert(typeof target.url === 'string', 'url is required');
-        if (target.serve) {
-          localServer = await launchServer(target.serve);
-          const serverAddress = localServer.server.address();
-          freeFn.push({
-            name: 'local_server',
-            fn: () => localServer?.server.close(),
-          });
-          if (target.url.startsWith('/')) {
-            urlToVisit = `http://${serverAddress?.address}:${serverAddress?.port}${target.url}`;
-          } else {
-            urlToVisit = `http://${serverAddress?.address}:${serverAddress?.port}/${target.url}`;
-          }
-          target.url = urlToVisit;
+      // launch local server if needed
+      let localServer: Awaited<ReturnType<typeof launchServer>> | undefined;
+      let urlToVisit: string | undefined;
+      if (target.serve) {
+        assert(typeof target.url === 'string', 'url is required in serve mode');
+        localServer = await launchServer(target.serve);
+        const serverAddress = localServer.server.address();
+        freeFn.push({
+          name: 'local_server',
+          fn: () => localServer?.server.close(),
+        });
+        if (target.url.startsWith('/')) {
+          urlToVisit = `http://${serverAddress?.address}:${serverAddress?.port}${target.url}`;
+        } else {
+          urlToVisit = `http://${serverAddress?.address}:${serverAddress?.port}/${target.url}`;
         }
+        target.url = urlToVisit;
+      }
 
+      // puppeteer
+      if (!target.bridgeMode) {
         const { agent, freeFn: newFreeFn } = await puppeteerAgentForTarget(
           target,
           preference,
@@ -79,14 +78,46 @@ export async function playYamlFiles(
         freeFn.push(...newFreeFn);
 
         return { agent, freeFn };
-      },
-      (taskStatus) => {
-        if (!isTTY) {
-          const { nameText } = singleTaskInfo(taskStatus);
-          // console.log(`${taskStatus.status} - ${nameText}`);
+      }
+
+      // bridge mode
+      assert(
+        target.bridgeMode === 'newTabWithUrl' ||
+          target.bridgeMode === 'currentTab',
+        `bridgeMode config value must be either "newTabWithUrl" or "currentTab", but got ${target.bridgeMode}`,
+      );
+
+      if (
+        target.userAgent ||
+        target.viewportWidth ||
+        target.viewportHeight ||
+        target.viewportScale ||
+        target.waitForNetworkIdle ||
+        target.cookie
+      ) {
+        console.warn(
+          'puppeteer options (userAgent, viewportWidth, viewportHeight, viewportScale, waitForNetworkIdle, cookie) are not supported in bridge mode, will be ignored',
+        );
+      }
+
+      const agent = new AgentOverChromeBridge();
+      if (target.bridgeMode === 'newTabWithUrl') {
+        await agent.connectNewTabWithUrl(target.url);
+      } else {
+        if (target.url) {
+          console.warn('url will be ignored in bridge mode with "currentTab"');
         }
-      },
-    );
+        await agent.connectCurrentTab();
+      }
+      freeFn.push({
+        name: 'destroy_agent_over_chrome_bridge',
+        fn: () => agent.destroy(),
+      });
+      return {
+        agent,
+        freeFn,
+      };
+    });
     fileContextList.push({ file, player });
   }
 

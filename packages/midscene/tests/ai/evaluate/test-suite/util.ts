@@ -5,8 +5,8 @@ import { base64Encoded, imageInfoOfBase64 } from '@/image';
 
 type TestCase = {
   prompt: string;
-  multi?: boolean;
   response: Array<{ id: string; indexId: number }>;
+  expected?: boolean;
 };
 
 export type InspectAiTestCase = {
@@ -33,7 +33,6 @@ export interface AiElementsResponse {
 }
 
 export interface TextAiElementResponse extends AiElementsResponse {
-  multi: boolean;
   response: Array<
     | {
         id: string;
@@ -58,7 +57,6 @@ export async function runTestCases(
   context: any,
   getAiResponse: (options: {
     description: string;
-    multi: boolean;
   }) => Promise<AiElementsResponse>,
 ) {
   let aiResponse: Array<TextAiElementResponse> = [];
@@ -68,7 +66,6 @@ export async function runTestCases(
     const startTime = Date.now();
     const msg = await getAiResponse({
       description: testCase.prompt,
-      multi: Boolean(testCase.multi),
     });
     const endTime = Date.now();
     const spendTime = endTime - startTime;
@@ -77,7 +74,6 @@ export async function runTestCases(
         ...msg,
         prompt: testCase.prompt,
         response: msg.elements,
-        multi: Boolean(testCase.multi),
         caseIndex,
         spendTime,
         elementsSnapshot: msg.elements.map((element) => {
@@ -135,6 +131,18 @@ export const repeat = (times: number, fn: (index: number) => void) => {
   }
 };
 
+export const repeatFile = (
+  files: Array<string>,
+  times: number,
+  fn: (file: string, index: number) => void,
+) => {
+  for (const file of files) {
+    repeat(times, (index) => {
+      fn(file, index);
+    });
+  }
+};
+
 function ensureDirectoryExistence(filePath: string) {
   const dirname = path.dirname(filePath);
   if (existsSync(dirname)) {
@@ -155,15 +163,29 @@ export function writeFileSyncWithDir(
   writeFileSync(filePath, content, options);
 }
 
-export async function getPageTestData(targetDir: string) {
+export async function getPageTestData(targetDir: string): Promise<{
+  context: {
+    size: {
+      width: number;
+      height: number;
+    };
+    content: any;
+    screenshotBase64: string;
+    originalScreenshotBase64: string;
+    describer: () => Promise<any>;
+  };
+  snapshotJson: string;
+  screenshotBase64: string;
+  originalScreenshotBase64: string;
+}> {
   // Note: this is the magic
   const resizeOutputImgP = path.join(targetDir, 'output_without_text.png');
-  const originalInputputImgP = path.join(targetDir, 'input.png');
+  const originalInputImgP = path.join(targetDir, 'input.png');
   const snapshotJsonPath = path.join(targetDir, 'element-snapshot.json');
   const snapshotJson = readFileSync(snapshotJsonPath, { encoding: 'utf-8' });
   const elementSnapshot = JSON.parse(snapshotJson);
   const screenshotBase64 = base64Encoded(resizeOutputImgP);
-  const originalScreenshotBase64 = base64Encoded(originalInputputImgP);
+  const originalScreenshotBase64 = base64Encoded(originalInputImgP);
   const size = await imageInfoOfBase64(screenshotBase64);
   const baseContext = {
     size,

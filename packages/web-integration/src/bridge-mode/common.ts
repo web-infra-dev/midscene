@@ -13,6 +13,14 @@ export enum BridgeEvent {
   ConnectCurrentTab = 'connectCurrentTab',
 }
 
+export interface BridgeConnectTabOptions {
+  /**
+   * If true, the page will always track the active tab.
+   * @default false
+   */
+  trackingActiveTab?: boolean;
+}
+
 export enum MouseEvent {
   PREFIX = 'mouse.',
   Click = 'mouse.click',

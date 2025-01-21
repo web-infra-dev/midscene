@@ -27,8 +27,11 @@ import {
   type PlanningActionParamTap,
   type PlanningActionParamWaitFor,
   plan,
-  transformElementPositionToId,
 } from '@midscene/core';
+import {
+  type ChatCompletionMessageParam,
+  vlmPlanning,
+} from '@midscene/core/ai-model';
 import { sleep } from '@midscene/core/utils';
 import type { KeyInput } from 'puppeteer';
 import type { ElementInfo } from '../extractor';
@@ -47,6 +50,8 @@ export class PageTaskExecutor {
   insight: Insight<WebElementInfo, WebUIContext>;
 
   taskCache: TaskCache;
+
+  conversationHistory: ChatCompletionMessageParam[] = [];
 
   constructor(
     page: WebPage,
@@ -155,12 +160,14 @@ export class PageTaskExecutor {
             );
             let locateResult: AIElementIdResponse | undefined;
             const callAI = this.insight.aiVendorFn;
+
+            const quickAnswer = {
+              id: param?.id,
+              position: param?.position,
+            };
+            const startTime = Date.now();
             const element = await this.insight.locate(param.prompt, {
-              quickAnswer: param?.id
-                ? {
-                    id: param.id,
-                  }
-                : undefined,
+              quickAnswer,
               callAI: async (...message: any) => {
                 if (locateCache) {
                   locateResult = locateCache;
@@ -176,6 +183,7 @@ export class PageTaskExecutor {
                 return { content: aiResult, usage };
               },
             });
+            const aiCost = Date.now() - startTime;
 
             if (locateResult) {
               cacheGroup?.saveCache({
@@ -206,6 +214,7 @@ export class PageTaskExecutor {
                 hit: Boolean(locateCache),
               },
               recorder: [recordItem],
+              aiCost,
             };
           },
         };
@@ -268,6 +277,8 @@ export class PageTaskExecutor {
                   return;
                 }
 
+                await this.page.keyboard.type(taskParam.value);
+              } else {
                 await this.page.keyboard.type(taskParam.value);
               }
             },
@@ -414,6 +425,16 @@ export class PageTaskExecutor {
             },
           };
         tasks.push(taskActionFalsyConditionStatement);
+      } else if (plan.type === 'Finished') {
+        const taskActionFinished: ExecutionTaskActionApply<null> = {
+          type: 'Action',
+          subType: 'Finished',
+          param: null,
+          thought: plan.thought,
+          locate: plan.locate,
+          executor: async (param) => {},
+        };
+        tasks.push(taskActionFinished);
       } else {
         throw new Error(`Unknown or unsupported task type: ${plan.type}`);
       }
@@ -476,7 +497,8 @@ export class PageTaskExecutor {
           });
         }
 
-        const { actions, furtherPlan, taskWillBeAccomplished } = planResult;
+        const { actions, furtherPlan, taskWillBeAccomplished, error } =
+          planResult;
         // console.log('actions', taskWillBeAccomplished, actions, furtherPlan);
 
         let stopCollecting = false;
@@ -510,7 +532,10 @@ export class PageTaskExecutor {
           [],
         );
 
-        assert(finalActions.length > 0, 'No plans found');
+        assert(
+          finalActions.length > 0,
+          error ? `No plan: ${error}` : 'No plans found',
+        );
 
         cacheGroup.saveCache({
           type: 'plan',
@@ -533,6 +558,66 @@ export class PageTaskExecutor {
           },
           pageContext, // ?
           recorder: [recordItem],
+        };
+      },
+    };
+
+    return task;
+  }
+
+  private planningTaskToGoal(userPrompt: string) {
+    const task: ExecutionTaskPlanningApply = {
+      type: 'Planning',
+      locate: null,
+      param: {
+        userPrompt,
+      },
+      executor: async (param, executorContext) => {
+        const shotTime = Date.now();
+        const pageContext = await this.insight.contextRetrieverFn('locate');
+        const recordItem: ExecutionRecorderItem = {
+          type: 'screenshot',
+          ts: shotTime,
+          screenshot: pageContext.screenshotBase64,
+          timing: 'before planning',
+        };
+        executorContext.task.recorder = [recordItem];
+        (executorContext.task as any).pageContext = pageContext;
+        this.appendConversationHistory({
+          role: 'user',
+          content: [
+            {
+              type: 'image_url',
+              image_url: {
+                url: pageContext.screenshotBase64,
+              },
+            },
+          ],
+        });
+        const startTime = Date.now();
+        const planResult = await vlmPlanning({
+          userInstruction: param.userPrompt,
+          conversationHistory: this.conversationHistory,
+          size: pageContext.size,
+        });
+        const aiCost = Date.now() - startTime;
+        const { actions, action_summary } = planResult;
+        this.appendConversationHistory({
+          role: 'assistant',
+          content: action_summary,
+        });
+        return {
+          output: {
+            actions,
+            thought: actions[0].thought,
+            actionType: actions[0].type,
+            taskWillBeAccomplished: false,
+            furtherPlan: {
+              whatToDoNext: '',
+              whatHaveDone: '',
+            },
+          },
+          aiCost,
         };
       },
     };
@@ -619,10 +704,73 @@ export class PageTaskExecutor {
     };
   }
 
-  async query(demand: InsightExtractParam): Promise<ExecutionResult> {
+  async actionToGoal(
+    userPrompt: string,
+    options?: ExecutionTaskProgressOptions,
+  ) {
+    const taskExecutor = new Executor(userPrompt, undefined, undefined, {
+      onTaskStart: options?.onTaskStart,
+    });
+    this.conversationHistory = [];
+
+    const isCompleted = false;
+    let currentActionNumber = 0;
+    const maxActionNumber = 20;
+
+    while (!isCompleted && currentActionNumber < maxActionNumber) {
+      currentActionNumber++;
+      const planningTask: ExecutionTaskPlanningApply =
+        this.planningTaskToGoal(userPrompt);
+      await taskExecutor.append(planningTask);
+      const output = await taskExecutor.flush();
+      if (taskExecutor.isInErrorState()) {
+        return {
+          output: output,
+          executor: taskExecutor,
+        };
+      }
+      const plans = output.actions;
+      let executables: Awaited<ReturnType<typeof this.convertPlanToExecutable>>;
+      try {
+        executables = await this.convertPlanToExecutable(plans);
+        taskExecutor.append(executables.tasks);
+      } catch (error) {
+        return this.appendErrorPlan(
+          taskExecutor,
+          `Error converting plans to executable tasks: ${error}, plans: ${JSON.stringify(
+            plans,
+          )}`,
+        );
+      }
+
+      const result = await taskExecutor.flush();
+
+      if (taskExecutor.isInErrorState()) {
+        return {
+          output: result,
+          executor: taskExecutor,
+        };
+      }
+
+      if (plans[0].type === 'Finished') {
+        break;
+      }
+    }
+    return {
+      output: {},
+      executor: taskExecutor,
+    };
+  }
+
+  async query(
+    demand: InsightExtractParam,
+    options?: ExecutionTaskProgressOptions,
+  ): Promise<ExecutionResult> {
     const description =
       typeof demand === 'string' ? demand : JSON.stringify(demand);
-    const taskExecutor = new Executor(description);
+    const taskExecutor = new Executor(description, undefined, undefined, {
+      onTaskStart: options?.onTaskStart,
+    });
     const queryTask: ExecutionTaskInsightQueryApply = {
       type: 'Insight',
       subType: 'Query',
@@ -654,9 +802,12 @@ export class PageTaskExecutor {
 
   async assert(
     assertion: string,
+    options?: ExecutionTaskProgressOptions,
   ): Promise<ExecutionResult<InsightAssertionResponse>> {
     const description = `assert: ${assertion}`;
-    const taskExecutor = new Executor(description);
+    const taskExecutor = new Executor(description, undefined, undefined, {
+      onTaskStart: options?.onTaskStart,
+    });
     const assertionPlan: PlanningAction<PlanningActionParamAssert> = {
       type: 'Assert',
       param: {
@@ -673,6 +824,39 @@ export class PageTaskExecutor {
       output,
       executor: taskExecutor,
     };
+  }
+
+  /**
+   * Append a message to the conversation history
+   * For user messages with images:
+   * - Keep max 4 user image messages in history
+   * - Remove oldest user image message when limit reached
+   * For assistant messages:
+   * - Simply append to history
+   * @param conversationHistory Message to append
+   */
+  private appendConversationHistory(
+    conversationHistory: ChatCompletionMessageParam,
+  ) {
+    if (conversationHistory.role === 'user') {
+      // Get all existing user messages with images
+      const userImgItems = this.conversationHistory.filter(
+        (item) => item.role === 'user',
+      );
+
+      // If we already have 4 user image messages
+      if (userImgItems.length >= 4 && conversationHistory.role === 'user') {
+        // Remove first user image message when we already have 4, before adding new one
+        const firstUserImgIndex = this.conversationHistory.findIndex(
+          (item) => item.role === 'user',
+        );
+        if (firstUserImgIndex >= 0) {
+          this.conversationHistory.splice(firstUserImgIndex, 1);
+        }
+      }
+    }
+    // For non-user messages, simply append to history
+    this.conversationHistory.push(conversationHistory);
   }
 
   private async appendErrorPlan(taskExecutor: Executor, errorMsg: string) {

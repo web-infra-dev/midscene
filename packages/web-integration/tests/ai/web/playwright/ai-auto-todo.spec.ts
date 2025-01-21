@@ -12,7 +12,8 @@ test('ai todo', async ({ ai, aiQuery }) => {
     test.setTimeout(1000 * 50);
   }
 
-  await ai('Enter "Learn" in the task box, don\'t press enter');
+  await ai('Enter "Happy Birthday" in the task box');
+  await ai('Enter "Learn" in the task box');
 
   await ai(
     'Add "JS today" to base on the existing content(important) of the task box, then press enter',

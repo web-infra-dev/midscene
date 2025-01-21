@@ -14,7 +14,14 @@ you can check the demo project of bridge mode here: [https://github.com/web-infr
 
 ## Preparation
 
-Install [Midscene extension from Chrome web store](https://chromewebstore.google.com/detail/midscene/gbldofcpkknbggpkmbdaefngejllnief). We will use it later.
+1. Config the OpenAI API key, or [customize model and provider](./model-provider)
+
+```bash
+# replace with your own
+export OPENAI_API_KEY="sk-abcdefghijklmnopqrstuvwxyz"
+```
+
+2. Install [Midscene extension from Chrome web store](https://chromewebstore.google.com/detail/midscene/gbldofcpkknbggpkmbdaefngejllnief)
 
 ## Step 1. install dependencies
 
@@ -72,11 +79,13 @@ You should always call `connectCurrentTab` or `connectNewTabWithUrl` before doin
 Each of the agent instance can only connect to one tab instance, and it cannot be reconnected after destroy.
 :::
 
-### `connectCurrentTab`
+### `connectCurrentTab(options?: { trackingActiveTab?: boolean })`
 
 Connect to the current active tab on Chrome.
 
-### `connectNewTabWithUrl(ur: string)`
+If `trackingActiveTab` is true, the agent will always track the active tab. For example, if you switch to another tab or a new tab is opened, the agent will track the latest active tab. Otherwise, the agent will only track the tab you connected to initially.
+
+### `connectNewTabWithUrl(url: string, options?: { trackingActiveTab?: boolean })`
 
 Create a new tab with url and connect to immediately.
 
@@ -86,7 +95,38 @@ Destroy the connection.
 
 ## Use bridge mode in yaml-script
 
-We are still building this, and it will be ready soon.
+[Yaml scripts](./automate-with-scripts-in-yaml) is a way for developers to write automation scripts in yaml format, which is easy to read and write comparing to javascript.
+
+To use bridge mode in yaml script, set the `bridgeMode` property in the `target` section. If you want to use the current tab, set it to `currentTab`, otherwise set it to `newTabWithUrl`.
+
+For example, the following script will open a new tab by Chrome extension bridge: 
+
+```diff
+target:
+  url: https://www.bing.com
++ bridgeMode: newTabWithUrl
+tasks:
+```
+
+Run the script:
+
+```bash
+midscene ./bing.yaml
+```
+
+Remember to start the chrome extension and click 'Allow connection' button after the script is running.
+
+### Unsupported options
+
+In bridge mode, these options will be ignored (they will follow your desktop browser's settings):
+- userAgent
+- viewportWidth
+- viewportHeight
+- viewportScale
+- waitForNetworkIdle
+- cookie
+
+
 
 
 

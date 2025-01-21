@@ -34,13 +34,13 @@ Config the OpenAI API key in the environment variable
 export OPENAI_API_KEY="sk-abcdefghijklmnopqrstuvwxyz"
 ```
 
-or you can use a `.env` file to store the configuration
+or you can use a `.env` file to store the configuration, Midscene command line tool will automatically load it when running yaml scripts.
 
 ```env filename=.env
 OPENAI_API_KEY="sk-abcdefghijklmnopqrstuvwxyz"
 ```
 
-or you may [customize model and provider](./model-provider.html)
+For more details about model and provider, see [customize model and provider](./model-provider)
 
 ## Start
 
@@ -57,10 +57,13 @@ Write a yaml file to `bing-search.yaml`
 ```yaml
 target:
   url: https://www.bing.com
-flow:
-  - ai: search for 'weather today'
-  - sleep: 3000
-  - aiAssert: the result shows the weather info
+
+tasks:
+  - name: search weather
+    flow:
+      - ai: search for 'weather today'
+      - sleep: 3000
+      - aiAssert: the result shows the weather info
 ```
 
 Run this script
@@ -144,6 +147,9 @@ target:
   
   # string, the path to save the aiQuery result, optional
   output: <path-to-output-file>
+
+  # string, the bridge mode to use, optional, default is false, can be 'newTabWithUrl' or 'currentTab'. More details see the following section
+  bridgeMode: false | 'newTabWithUrl' | 'currentTab'
 ```
 
 The `tasks` part is an array indicates the tasks to do. Remember to write a `-` before each item which means an array item.
@@ -151,6 +157,7 @@ The `tasks` part is an array indicates the tasks to do. Remember to write a `-` 
 ```yaml
 tasks:
   - name: <name>
+    continueOnError: <boolean> # optional, default is false
     flow:
       # perform an action, this is the shortcut for aiAction
       - ai: <prompt>
@@ -177,6 +184,29 @@ tasks:
       # ...
 ```
 
+## Use environment variables in `.yaml` file
+
+You can use environment variables in `.yaml` file by `${variable-name}`.
+
+For example, if you have a `.env` file with the following content:
+
+```env filename=.env
+topic=weather today
+```
+
+You can use the environment variable in the `.yaml` file like this:
+
+```yaml
+#...
+ - ai: type ${topic} in input box
+#...
+```
+
+## Use bridge mode
+By using bridge mode, you can utilize YAML scripts to automate the web browser on your desktop. This is particularly useful if you want to reuse cookies, plugins, and page states, or if you want to manually interact with automation scripts.
+
+See [Bridge Mode by Chrome Extension](./bridge-mode-by-chrome-extension) for more details.
+
 ## FAQ
 
 **How to get cookies in JSON format from Chrome?**
@@ -185,4 +215,4 @@ You can use this [chrome extension](https://chromewebstore.google.com/detail/get
 
 ## More
 
-You may also be interested in [Prompting Tips](./prompting-tips.html)
+You may also be interested in [Prompting Tips](./prompting-tips)

@@ -34,13 +34,13 @@ tasks:
 export OPENAI_API_KEY="sk-abcdefghijklmnopqrstuvwxyz"
 ```
 
-或使用 `.env` 文件存储配置
+或使用 `.env` 文件存储配置，Midscene 命令行工具在运行 yaml 脚本时会自动加载它
 
 ```env filename=.env
 OPENAI_API_KEY="sk-abcdefghijklmnopqrstuvwxyz"
 ```
 
-或 [自定义模型和服务商](./model-provider.html)
+更多关于模型和服务商的配置，请参阅 [自定义模型和服务商](./model-provider)
 
 ## 开始
 
@@ -57,10 +57,13 @@ npm i @midscene/cli --save-dev
 ```yaml
 target:
   url: https://www.bing.com
-flow:
-  - ai: 搜索 "今日天气"
-  - sleep: 3000
-  - aiAssert: 结果显示天气信息
+
+tasks:
+  - name: 搜索天气
+    flow:
+      - ai: 搜索 "今日天气"
+      - sleep: 3000
+      - aiAssert: 结果显示天气信息
 ```
 
 运行脚本
@@ -144,6 +147,9 @@ target:
 
   # 输出 aiQuery 结果的 JSON 文件路径，可选
   output: <path-to-output-file>
+
+  # 桥接模式，可选，默认 false，可以为 'newTabWithUrl' 或 'currentTab'。更多详情请参阅后文
+  bridgeMode: false | 'newTabWithUrl' | 'currentTab'
 ```
 
 `tasks` 部分是一个数组，定义了脚本执行的步骤。记得在每个步骤前添加 `-` 符号。
@@ -151,6 +157,7 @@ target:
 ```yaml
 tasks:
   - name: <name>
+    continueOnError: <boolean> # 可选，错误时是否继续执行下一个任务，默认 false
     flow:
       # 执行一个交互，`ai` 是 `aiAction` 的简写方式
       - ai: <prompt>
@@ -177,6 +184,30 @@ tasks:
       # ...
 ```
 
+## 在 `.yaml` 文件中使用环境变量
+
+你可以在 `.yaml` 文件中使用环境变量，通过 `${variable-name}` 的方式。
+
+例如，如果你有一个 `.env` 文件，内容如下：
+
+```env filename=.env
+topic=weather today
+```
+
+你可以在 `.yaml` 文件中使用环境变量，如下所示：
+
+```yaml
+#...
+ - ai: type ${topic} in input box
+#...
+```
+
+## 使用桥接模式
+
+通过使用桥接模式，你可以利用 YAML 脚本在已有的桌面浏览器上执行自动化。这对于需要复用 Cookies、插件和页面状态，或者需要手工与自动化脚本交互的情况非常有用。
+
+请参阅 [通过 Chrome 扩展桥接模式](./bridge-mode-by-chrome-extension) 了解更多详细信息。
+
 ## FAQ
 
 **如何从 Chrome 中获取 JSON 格式的 Cookies？**
@@ -185,4 +216,4 @@ tasks:
 
 ## 更多
 
-你可能还想了解 [提示词技巧](./prompting-tips.html)
+你可能还想了解 [提示词技巧](./prompting-tips)

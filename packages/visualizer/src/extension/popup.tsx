@@ -1,94 +1,27 @@
-import { Button, ConfigProvider, Tabs, message } from 'antd';
+/// <reference types="chrome" />
+import { ConfigProvider, Tabs } from 'antd';
 import ReactDOM from 'react-dom/client';
 import { setSideEffect } from '../init';
-/// <reference types="chrome" />
 import './popup.less';
-
-import {
-  type WorkerRequestSaveContext,
-  type WorkerResponseSaveContext,
-  getExtensionVersion,
-  getPlaygroundUrl,
-  sendToWorker,
-  workerMessageTypes,
-} from './utils';
 
 import { globalThemeConfig } from '@/component/color';
 import Logo from '@/component/logo';
 import {
   Playground,
-  extensionAgentForTabId,
+  extensionAgentForTab,
 } from '@/component/playground-component';
-import { useChromeTabInfo } from '@/component/store';
 import { useEnvConfig } from '@/component/store';
 import { ApiOutlined, SendOutlined } from '@ant-design/icons';
-import type { ChromeExtensionProxyPageAgent } from '@midscene/web/chrome-extension';
-import { useEffect, useState } from 'react';
 import Bridge from './bridge';
+import { getExtensionVersion } from './utils';
 
 setSideEffect();
 
 declare const __VERSION__: string;
 
-const shotAndOpenPlayground = async (
-  agent?: ChromeExtensionProxyPageAgent | null,
-) => {
-  if (!agent) {
-    message.error('No agent found');
-    return;
-  }
-  const context = await agent.getUIContext();
-
-  // cache screenshot when page is active
-  const { id } = await sendToWorker<
-    WorkerRequestSaveContext,
-    WorkerResponseSaveContext
-  >(workerMessageTypes.SAVE_CONTEXT, {
-    context,
-  });
-  const url = getPlaygroundUrl(id);
-  chrome.tabs.create({
-    url,
-    active: true,
-  });
-};
-
-// {
-//   /* <p>
-//             To keep the current page context, you can also{' '}
-//             <Button
-//               onClick={handleSendToPlayground}
-//               loading={loading}
-//               type="link"
-//               size="small"
-//               icon={<SendOutlined />}
-//             >
-//               send to fullscreen playground
-//             </Button>
-//           </p> */
-// }
-
 function PlaygroundPopup() {
-  const [loading, setLoading] = useState(false);
   const extensionVersion = getExtensionVersion();
-  const { tabId, windowId } = useChromeTabInfo();
-  const { popupTab, setPopupTab } = useEnvConfig();
-
-  const handleSendToPlayground = async () => {
-    if (!tabId || !windowId) {
-      message.error('No active tab or window found');
-      return;
-    }
-    setLoading(true);
-    try {
-      const agent = extensionAgentForTabId(tabId);
-      await shotAndOpenPlayground(agent);
-      await agent!.page.destroy();
-    } catch (e: any) {
-      message.error(e.message || 'Failed to launch Playground');
-    }
-    setLoading(false);
-  };
+  const { popupTab, setPopupTab, trackingActiveTab } = useEnvConfig();
 
   const items = [
     {
@@ -99,8 +32,8 @@ function PlaygroundPopup() {
         <div className="popup-playground-container">
           <Playground
             hideLogo
-            getAgent={() => {
-              return extensionAgentForTabId(tabId);
+            getAgent={(trackingActiveTab?: boolean) => {
+              return extensionAgentForTab(trackingActiveTab);
             }}
             showContextPreview={false}
           />
@@ -125,9 +58,8 @@ function PlaygroundPopup() {
         <div className="popup-header">
           <Logo withGithubStar={true} />
           <p>
-            Automate browser actions, extract data, and perform assertions using
-            AI, including a Chrome extension, JavaScript SDK, and support for
-            scripting in YAML.{' '}
+            AI-Driven Browser Automation with Chrome Extensions, JavaScript, and
+            YAML Scripts.{' '}
             <a href="https://midscenejs.com/" target="_blank" rel="noreferrer">
               Learn more
             </a>
@@ -158,3 +90,42 @@ if (element) {
   const root = ReactDOM.createRoot(element);
   root.render(<PlaygroundPopup />);
 }
+
+// const shotAndOpenPlayground = async (
+//   agent?: ChromeExtensionProxyPageAgent | null,
+// ) => {
+//   if (!agent) {
+//     message.error('No agent found');
+//     return;
+//   }
+//   const context = await agent.getUIContext();
+
+//   // cache screenshot when page is active
+//   const { id } = await sendToWorker<
+//     WorkerRequestSaveContext,
+//     WorkerResponseSaveContext
+//   >(workerMessageTypes.SAVE_CONTEXT, {
+//     context,
+//   });
+//   const url = getPlaygroundUrl(id);
+//   chrome.tabs.create({
+//     url,
+//     active: true,
+//   });
+// };
+
+// const handleSendToPlayground = async () => {
+//   if (!tabId || !windowId) {
+//     message.error('No active tab or window found');
+//     return;
+//   }
+//   setLoading(true);
+//   try {
+//     const agent = extensionAgentForTab(tabId);
+//     await shotAndOpenPlayground(agent);
+//     await agent!.page.destroy();
+//   } catch (e: any) {
+//     message.error(e.message || 'Failed to launch Playground');
+//   }
+//   setLoading(false);
+// };

@@ -1,29 +1,25 @@
 import assert from 'node:assert';
-import path from 'node:path';
 import type {
   AIAssertionResponse,
   AIElementResponse,
   AISectionParseResponse,
   AISingleElementResponse,
+  AISingleElementResponseByPosition,
   AIUsageInfo,
   BaseElement,
   ElementById,
-  Point,
   Size,
   UIContext,
 } from '@/types';
-import { savePositionImg } from '@midscene/shared/img';
 import type {
   ChatCompletionSystemMessageParam,
   ChatCompletionUserMessageParam,
 } from 'openai/resources';
 import { AIActionType, callAiFn } from './common';
-import { call, callToGetJSONObject } from './openai';
 import {
   findElementPrompt,
-  multiDescription,
-  systemPromptToFindElement,
-} from './prompt/element_inspector';
+  systemPromptToLocateElement,
+} from './prompt/llm-locator';
 import {
   describeUserPage,
   elementByPositionWithElementInfo,
@@ -31,6 +27,7 @@ import {
   systemPromptToAssert,
   systemPromptToExtract,
 } from './prompt/util';
+import { callToGetJSONObject } from './service-caller';
 
 export type AIArgs = [
   ChatCompletionSystemMessageParam,
@@ -68,11 +65,7 @@ export async function transformElementPositionToId(
       },
       size,
     );
-    // await savePositionImg({
-    //   inputImgBase64: screenshotBase64,
-    //   rect: absolutePosition,
-    //   outputPath: path.join(__dirname, 'test-data', `output-${index++}.png`),
-    // });
+
     const element = elementByPositionWithElementInfo(
       elementsInfo,
       absolutePosition,
@@ -99,8 +92,13 @@ export async function transformElementPositionToId(
 }
 
 function getQuickAnswer(
-  quickAnswer: AISingleElementResponse | undefined,
+  quickAnswer:
+    | Partial<AISingleElementResponse>
+    | Partial<AISingleElementResponseByPosition>
+    | undefined,
+  elementsInfo: BaseElement[],
   elementById: ElementById,
+  insertElementByPosition: (position: { x: number; y: number }) => BaseElement,
 ) {
   if (!quickAnswer) {
     return undefined;
@@ -115,6 +113,24 @@ function getQuickAnswer(
       elementById,
     };
   }
+
+  if ('position' in quickAnswer && quickAnswer.position) {
+    let element = elementByPositionWithElementInfo(
+      elementsInfo,
+      quickAnswer.position,
+    );
+    if (!element) {
+      element = insertElementByPosition(quickAnswer.position);
+    }
+    return {
+      parseResult: {
+        elements: [element],
+        errors: [],
+      },
+      rawResponse: quickAnswer,
+      elementById,
+    } as any;
+  }
 }
 
 export async function AiInspectElement<
@@ -124,7 +140,9 @@ export async function AiInspectElement<
   multi: boolean;
   targetElementDescription: string;
   callAI?: typeof callAiFn<AIElementResponse | [number, number]>;
-  quickAnswer?: AISingleElementResponse;
+  quickAnswer?: Partial<
+    AISingleElementResponse | AISingleElementResponseByPosition
+  >;
 }): Promise<{
   parseResult: AIElementResponse;
   rawResponse: any;
@@ -133,10 +151,15 @@ export async function AiInspectElement<
 }> {
   const { context, multi, targetElementDescription, callAI } = options;
   const { screenshotBase64, screenshotBase64WithElementMarker } = context;
-  const { description, elementById, elementByPosition, size } =
+  const { description, elementById, insertElementByPosition, size } =
     await describeUserPage(context);
   // meet quick answer
-  const quickAnswer = getQuickAnswer(options.quickAnswer, elementById);
+  const quickAnswer = getQuickAnswer(
+    options.quickAnswer,
+    context.content,
+    elementById,
+    insertElementByPosition,
+  );
   if (quickAnswer) {
     return quickAnswer;
   }
@@ -151,7 +174,7 @@ export async function AiInspectElement<
     targetElementDescription,
     multi,
   });
-  const systemPrompt = systemPromptToFindElement();
+  const systemPrompt = systemPromptToLocateElement();
   const msgs: AIArgs = [
     { role: 'system', content: systemPrompt },
     {
@@ -277,12 +300,10 @@ export async function AiAssert<
         {
           type: 'text',
           text: `
-    pageDescription: \n
-    ${description}
-    Here is the description of the assertion. Just go ahead:
-    =====================================
-    ${assertion}
-    =====================================
+Here is the description of the assertion. Just go ahead:
+=====================================
+${assertion}
+=====================================
   `,
         },
       ],

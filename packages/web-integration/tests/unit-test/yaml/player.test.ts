@@ -9,7 +9,7 @@ import { describe, expect, test, vi } from 'vitest';
 
 const serverRoot = join(__dirname, 'server_root');
 
-const runYaml = async (yamlString: string) => {
+const runYaml = async (yamlString: string, ignoreStatusAssertion = false) => {
   const script = parseYamlScript(yamlString);
   const statusUpdate = vi.fn();
   const player = new ScriptPlayer(
@@ -18,11 +18,17 @@ const runYaml = async (yamlString: string) => {
     statusUpdate,
   );
   await player.run();
-  expect(statusUpdate).toHaveBeenCalled();
-  assert(
-    player.status === 'done',
-    player.errorInSetup?.message || 'unknown error',
-  );
+  if (!ignoreStatusAssertion) {
+    assert(
+      player.status === 'done',
+      player.errorInSetup?.message || 'unknown error',
+    );
+    expect(statusUpdate).toHaveBeenCalled();
+  }
+  return {
+    player,
+    statusUpdate,
+  };
 };
 
 const shouldRunAITest =
@@ -139,6 +145,44 @@ describe.skipIf(!shouldRunAITest)(
       expect(async () => {
         await runYaml(yamlString);
       }).rejects.toThrow(/TimeoutError/i);
+    });
+
+    test('stop on task error', async () => {
+      const yamlString = `
+      target:
+        url: https://www.baidu.com
+      tasks:
+        - name: assert1
+          flow:
+            - aiAssert: this is a food delivery service app
+        - name: assert2
+          flow:
+            - aiAssert: this is a search engine
+      `;
+
+      const { player } = await runYaml(yamlString, true);
+      expect(player.status).toBe('error');
+      expect(player.taskStatusList[0].status).toBe('error');
+      expect(player.taskStatusList[1].status).toBe('init');
+    });
+
+    test('allow continue on task error', async () => {
+      const yamlString = `
+      target:
+        url: https://www.baidu.com
+      tasks:
+        - name: assert1
+          continueOnError: true
+          flow:
+            - aiAssert: this is a food delivery service app
+        - name: assert2
+          flow:
+            - aiAssert: this is a search engine
+      `;
+      const { player } = await runYaml(yamlString, true);
+      expect(player.status).toBe('done');
+      expect(player.taskStatusList[0].status).toBe('error');
+      expect(player.taskStatusList[1].status).toBe('done');
     });
   },
   60 * 1000,

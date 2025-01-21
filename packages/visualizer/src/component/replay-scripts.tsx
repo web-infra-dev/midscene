@@ -119,6 +119,7 @@ export interface ReplayScriptsInfo {
   height: number;
   sdkVersion?: string;
   modelName?: string;
+  modelDescription?: string;
 }
 
 export const allScriptsFromDump = (
@@ -129,6 +130,7 @@ export const allScriptsFromDump = (
   let height = 0;
   let sdkVersion = '';
   let modelName = '';
+  let modelDescription = '';
 
   dump.executions.forEach((execution) => {
     execution.tasks.forEach((task) => {
@@ -144,6 +146,10 @@ export const allScriptsFromDump = (
 
       if (insightTask.log?.dump?.model_name) {
         modelName = insightTask.log.dump.model_name;
+      }
+
+      if (insightTask.log?.dump?.model_description) {
+        modelDescription = insightTask.log.dump.model_description;
       }
     });
   });
@@ -176,6 +182,7 @@ export const allScriptsFromDump = (
     height,
     sdkVersion,
     modelName,
+    modelDescription,
   };
 };
 
@@ -265,7 +272,7 @@ export const generateAnimationScripts = (
         scripts.push({
           type: 'img',
           img: planningTask.recorder?.[0]?.screenshot,
-          camera: fullPageCameraState,
+          camera: index === 0 ? fullPageCameraState : undefined,
           duration: stillDuration,
           title: typeStr(task),
           subTitle: paramStr(task),

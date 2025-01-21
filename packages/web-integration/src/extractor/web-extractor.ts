@@ -4,6 +4,7 @@ import {
   CONTAINER_MINI_WIDTH,
   NodeType,
 } from '@midscene/shared/constants';
+import { setFrameId } from '@midscene/shared/utils';
 import type { ElementInfo } from '.';
 import {
   isButtonElement,
@@ -66,6 +67,11 @@ function collectElementInfo(
   if (basePoint.left !== 0 || basePoint.top !== 0) {
     rect.left += basePoint.left;
     rect.top += basePoint.top;
+  }
+  // Skip elements that cover the entire viewport, as they are likely background containers
+  // rather than meaningful interactive elements
+  if (rect.height >= window.innerHeight && rect.width >= window.innerWidth) {
+    return null;
   }
 
   if (isFormElement(node)) {

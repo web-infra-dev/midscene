@@ -15,7 +15,7 @@
 
 前往 Chrome 扩展商店安装 Midscene 扩展：[Midscene](https://chromewebstore.google.com/detail/midscene/gbldofcpkknbggpkmbdaefngejllnief)
 
-启动扩展（可能默认是折叠的），通过粘贴 Key=Value 格式配置插件环境：
+启动扩展（可能默认折叠在 Chrome 扩展列表中），通过粘贴 Key=Value 格式配置插件环境：
 
 ```shell
 OPENAI_API_KEY="sk-replace-by-your-own"
@@ -34,6 +34,7 @@ OPENAI_API_KEY="sk-replace-by-your-own"
 插件体验结束后，你可能想将 Midscene 集成到代码中。这里有几种不同集成形式的文档：
 
 * [使用 YAML 格式的自动化脚本](./automate-with-scripts-in-yaml)
+* [使用 Chrome 插件的桥接模式](./bridge-mode-by-chrome-extension)
 * [集成到 Puppeteer](./integrate-with-puppeteer)
 * [集成到 Playwright](./integrate-with-playwright)
 
@@ -46,5 +47,5 @@ OPENAI_API_KEY="sk-replace-by-your-own"
 找到可疑插件：
 
 1. 打开页面的调试器，找到被其他插件注入的 `<iframe />` 或 `<script />`，一般 URL 是 `chrome-extension://{这串就是ID}/...` 格式，复制其 ID。
-2. 打开 chrome://extensions/ ，找到相同 ID 的插件，禁用它。
+2. 打开 `chrome://extensions/` ，用 cmd+f 找到相同 ID 的插件，禁用它。
 3. 刷新页面，再次尝试。

@@ -14,13 +14,13 @@ Prepare an OpenAI API key, we will use it soon.
 
 Install Midscene extension from chrome web store: [Midscene](https://chromewebstore.google.com/detail/midscene/gbldofcpkknbggpkmbdaefngejllnief)
 
-Start the extension (may be folded by default), setup the config by pasting the config in the K=V format:
+Start the extension (may be folded by Chrome extension icon), setup the config by pasting the config in the K=V format:
 
 ```shell
 OPENAI_API_KEY="sk-replace-by-your-own"
 ```
 
-You can also paste the configuration as described in [customize model and provider](./model-provider.html) here.
+You can also paste the configuration as described in [customize model and provider](./model-provider) here.
 
 ## Start experiencing
 
@@ -35,6 +35,7 @@ Enjoy !
 After experiencing, you may want to write some code to integrate Midscene. There are multiple ways to do that. Please refer to the documents below:
 
 * [Automate with Scripts in YAML](./automate-with-scripts-in-yaml)
+* [Bridge Mode by Chrome Extension](./bridge-mode-by-chrome-extension)
 * [Integrate with Puppeteer](./integrate-with-puppeteer)
 * [Integrate with Playwright](./integrate-with-playwright)
 
@@ -48,5 +49,5 @@ It's mainly due to conflicts with other extensions injecting `<iframe />` or `<s
 To find the suspicious plugins:
  
 1. Open the Devtools of the page, find the `<script>` or `<iframe>` with a url like `chrome-extension://{ID-of-the-suspicious-plugin}/...`.
-2. Copy the ID from the url, open chrome://extensions/, find the plugin with the same ID, disable it.
+2. Copy the ID from the url, open `chrome://extensions/` , use cmd+f to find the plugin with the same ID, disable it.
 3. Refresh the page, try again.

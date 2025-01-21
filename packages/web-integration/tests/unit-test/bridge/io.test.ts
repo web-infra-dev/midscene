@@ -180,4 +180,62 @@ describe('bridge-io', () => {
     server.close();
     client.disconnect();
   });
+
+  it('callback error after client disconnect', async () => {
+    const port = testPort++;
+    const server = new BridgeServer(port);
+    server.listen();
+
+    const client = new BridgeClient(
+      `ws://localhost:${port}`,
+      (method, args) => {
+        return new Promise((resolve, reject) => {
+          setTimeout(() => {
+            resolve('ok');
+          }, 100 * 1000);
+        });
+      },
+    );
+    await client.connect();
+
+    const callPromise = server.call('test', ['a', 'b']);
+
+    // sleep 2s
+    await new Promise((resolve) => setTimeout(resolve, 2 * 1000));
+
+    await client.disconnect();
+    await expect(callPromise).rejects.toThrow(/Connection lost/);
+  });
+
+  it('multiple server', async () => {
+    const commonPort = testPort++;
+    const server1 = new BridgeServer(commonPort);
+    server1.listen();
+
+    const client = new BridgeClient(
+      `ws://localhost:${commonPort}`,
+      (method, args) => {
+        return Promise.resolve('ok');
+      },
+    );
+    await client.connect();
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+    await client.disconnect();
+    // server port should be closed at this time
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+
+    const server2 = new BridgeServer(commonPort);
+    server2.listen();
+
+    const client2 = new BridgeClient(
+      `ws://localhost:${commonPort}`,
+      (method, args) => {
+        return Promise.resolve('ok2');
+      },
+    );
+    await client2.connect();
+
+    const res = await server2.call('test', ['a', 'b']);
+    expect(res).toEqual('ok2');
+  });
 });

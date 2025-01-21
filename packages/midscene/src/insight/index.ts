@@ -15,16 +15,12 @@ import type {
   PartialInsightDumpFromSDK,
   UIContext,
 } from '@/types';
-import {
-  ifElementTypeResponse,
-  splitElementResponse,
-} from '../ai-model/prompt/util';
-import { idsIntoElements, shallowExpandIds, writeInsightDump } from './utils';
+import { writeInsightDump } from './utils';
 
 export interface LocateOpts {
   multi?: boolean;
   callAI?: typeof callAiFn<AIElementResponse>;
-  quickAnswer?: AISingleElementResponse;
+  quickAnswer?: Partial<AISingleElementResponse>;
 }
 
 // export type UnwrapDataShape<T> = T extends EnhancedQuery<infer DataShape> ? DataShape : {};
@@ -74,10 +70,7 @@ export default class Insight<
 
   async locate(
     queryPrompt: string,
-    opt?: {
-      callAI?: typeof callAiFn<AIElementResponse>;
-      quickAnswer?: AISingleElementResponse | null;
-    },
+    opt?: LocateOpts,
   ): Promise<ElementType | null>;
   async locate(
     queryPrompt: string,
@@ -231,37 +224,17 @@ export default class Insight<
       throw new Error(errorLog);
     }
 
-    let mergedData = data;
-
-    // expand elements in object style data
-    if (data && typeof data === 'object' && !Array.isArray(data)) {
-      shallowExpandIds(data, ifElementTypeResponse, (id) => {
-        const idList = splitElementResponse(id);
-        if (typeof idList === 'string') {
-          return elementById(idList);
-        }
-        if (Array.isArray(idList)) {
-          return idsIntoElements(idList, elementById);
-        }
-        return idList; // i.e. null
-      });
-
-      mergedData = {
-        ...data,
-      };
-    }
-
     writeInsightDump(
       {
         ...dumpData,
         matchedSection: [],
-        data: mergedData,
+        data,
       },
       logId,
       dumpSubscriber,
     );
 
-    return mergedData;
+    return data;
   }
 
   async assert(assertion: string): Promise<InsightAssertionResponse> {

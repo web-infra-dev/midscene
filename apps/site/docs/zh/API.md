@@ -1,5 +1,7 @@
 # API 参考
 
+这些是 Midscene 中各类 Agent 的主要 API。
+
 > 在以下文档中，你可能会看到带有 `mid.` 前缀的函数调用。如果你在 Playwright 中使用了解构赋值（object destructuring），如 `async ({ ai, aiQuery }) => { /* ... */}`，你可以不带这个前缀进行调用。这只是语法的区别。
 
 ## `.aiAction(steps: string)` 或 `.ai(steps: string)` - 控制界面
@@ -31,8 +33,8 @@ await mid.ai('点击任务列表下方的 "completed" 状态按钮');
 目前，Midscene 无法规划包含条件和循环的步骤。
 
 关联文档:
-* [FAQ: Midscene 能否根据一句话指令实现智能操作？比如执行 "发一条微博"'](./faq.html)
-* [编写提示词的技巧](./prompting-tips.html)
+* [FAQ: Midscene 能否根据一句话指令实现智能操作？比如执行 "发一条微博"'](./faq)
+* [编写提示词的技巧](./prompting-tips)
 
 ## `.aiQuery(dataShape: any)` - 从页面提取数据
 

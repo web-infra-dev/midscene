@@ -1,19 +1,17 @@
 import assert from 'node:assert';
-import { randomUUID } from 'node:crypto';
 /* eslint-disable @typescript-eslint/ban-types */
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
-import { MIDSCENE_MODEL_NAME, getAIConfig } from '@/env';
+import {
+  MIDSCENE_MODEL_NAME,
+  MIDSCENE_USE_VLM_UI_TARS,
+  getAIConfig,
+} from '@/env';
 import type {
-  BaseElement,
   DumpMeta,
   DumpSubscriber,
-  ElementById,
   InsightDump,
-  LiteUISection,
   PartialInsightDumpFromSDK,
-  Rect,
-  UIContext,
 } from '@/types';
 import {
   getLogDir,
@@ -43,6 +41,9 @@ export function writeInsightDump(
     sdkVersion: getVersion(),
     logTime: Date.now(),
     model_name: getAIConfig(MIDSCENE_MODEL_NAME) || '',
+    model_description: getAIConfig(MIDSCENE_USE_VLM_UI_TARS)
+      ? 'vlm-ui-tars enabled'
+      : '',
   };
   const finalData: InsightDump = {
     logId: id,
@@ -78,42 +79,4 @@ export function writeInsightDump(
   }
 
   return id;
-}
-
-export function idsIntoElements(
-  ids: string[],
-  elementById: ElementById,
-): BaseElement[] {
-  return ids.reduce<BaseElement[]>((acc, id) => {
-    const element = elementById(id);
-    if (element) {
-      acc.push(element);
-    } else {
-      console.warn(`element not found by id: ${id}`);
-    }
-    return acc;
-  }, []);
-}
-
-// biome-ignore lint/complexity/noBannedTypes: <explanation>
-export function shallowExpandIds<DataScheme extends object = {}>(
-  data: DataScheme,
-  ifMeet: (id: string) => boolean,
-  elementsById: (id: string) => BaseElement | BaseElement[] | null,
-
-  // return same type as data
-): DataScheme {
-  const keys = Object.keys(data);
-  keys.forEach((key) => {
-    const value = (data as any)[key];
-    if (typeof value === 'string' && ifMeet(value)) {
-      // (data as any)[key] = elementsById(value);
-      (data as any)[key] = elementsById(value);
-    } else if (Array.isArray(value)) {
-      const newValue = value.map((id) => (ifMeet(id) ? elementsById(id) : id));
-      (data as any)[key] = newValue;
-    }
-  });
-
-  return data;
 }

@@ -3,6 +3,8 @@ import { MATCH_BY_POSITION, getAIConfig } from '@/env';
 import { imageInfoOfBase64 } from '@/image';
 import type { BaseElement, Size, UIContext } from '@/types';
 import { PromptTemplate } from '@langchain/core/prompts';
+import { NodeType } from '@midscene/shared/constants';
+import { generateHashId } from '@midscene/shared/utils';
 import type { ResponseFormatJSONSchema } from 'openai/resources';
 
 const characteristic =
@@ -11,11 +13,10 @@ const characteristic =
 const contextFormatIntro = `
 The user will give you a screenshot and some of the texts on it. There may be some none-English characters (like Chinese) on it, indicating it's an non-English app. If some text is shown on screenshot but not introduced by the JSON description, use the information you see on screenshot.`;
 
-const ONE_ELEMENT_LOCATOR_PREFIX = 'LOCATE_ONE_ELEMENT';
-const ELEMENTS_LOCATOR_PREFIX = 'LOCATE_ONE_OR_MORE_ELEMENTS';
-const SECTION_MATCHER_FLAG = 'SECTION_MATCHER_FLAG/';
-
-export function systemPromptToFindElement(queryPrompt: string, multi: boolean) {
+export function systemPromptToLocateElement(
+  queryPrompt: string,
+  multi: boolean,
+) {
   assert(queryPrompt, 'queryPrompt is required');
   return `
 ${characteristic}
@@ -75,7 +76,6 @@ DATA_DEMAND start:
 {dataKeys}
 
 {dataQuery}
-
 =====================================
 DATA_DEMAND ends.
   `,
@@ -116,14 +116,12 @@ export const extractDataSchema: ResponseFormatJSONSchema = {
 export function systemPromptToAssert() {
   return `
 ${characteristic}
-${contextFormatIntro}
-
-Based on the information you get, Return assertion judgment:
+User will give an assertion, and some information about the page. Based on the information you get, tell whether the assertion is truthy.
 
 Return in the following JSON format:
 {
   thought: string, // string, the thought of the assertion. Should in the same language as the assertion.
-  pass: true, // true or false, whether the assertion is passed
+  pass: true, // true or false, whether the assertion is truthy
 }
 `;
 }
@@ -208,15 +206,26 @@ export function elementByPositionWithElementInfo(
   },
 ) {
   assert(typeof position !== 'undefined', 'position is required for query');
-  const item = elementsInfo.find((item) => {
+  const matchingElements = elementsInfo.filter((item) => {
     return (
+      item.attributes.nodeType !== NodeType.CONTAINER &&
       item.rect.left <= position.x &&
       position.x <= item.rect.left + item.rect.width &&
       item.rect.top <= position.y &&
       position.y <= item.rect.top + item.rect.height
     );
   });
-  return item;
+
+  if (matchingElements.length === 0) {
+    return undefined;
+  }
+
+  // Find the smallest element by area
+  return matchingElements.reduce((smallest, current) => {
+    const smallestArea = smallest.rect.width * smallest.rect.height;
+    const currentArea = current.rect.width * current.rect.height;
+    return currentArea < smallestArea ? current : smallest;
+  });
 }
 
 export const samplePageDescription = `
@@ -303,6 +312,25 @@ export async function describeUserPage<
       console.log('elementByPosition', { position, size });
       return elementByPositionWithElementInfo(elementsInfo, position);
     },
+    insertElementByPosition(position: { x: number; y: number }) {
+      const rect = {
+        left: Math.max(position.x - 4, 0),
+        top: Math.max(position.y - 4, 0),
+        width: 8,
+        height: 8,
+      };
+      const id = generateHashId(rect);
+      const element = {
+        id,
+        attributes: { nodeType: NodeType.POSITION },
+        rect,
+        content: '',
+        center: [position.x, position.y],
+      } as ElementType;
+      elementsInfo.push(element);
+      idElementMap[id] = element;
+      return element;
+    },
     size: { width, height },
   };
 }
@@ -363,59 +391,4 @@ function cropFieldInformation(
     return elementInfosDescription.filter((item) => item.content);
   }
   return elementInfosDescription;
-}
-
-/**
- * elements
- */
-export function retrieveElement(
-  prompt: string,
-  opt?: { multi: boolean },
-): string {
-  if (opt?.multi) {
-    return `follow ${ELEMENTS_LOCATOR_PREFIX}: ${prompt}`;
-  }
-  return `follow ${ONE_ELEMENT_LOCATOR_PREFIX}: ${prompt}`;
-}
-
-export function ifElementTypeResponse(response: string): boolean {
-  if (typeof response !== 'string') {
-    return false;
-  }
-  return (
-    response.startsWith(ONE_ELEMENT_LOCATOR_PREFIX) ||
-    response.startsWith(ELEMENTS_LOCATOR_PREFIX)
-  );
-}
-
-export function splitElementResponse(
-  response: string,
-): string | null | string[] {
-  const oneElementSplitter = `${ONE_ELEMENT_LOCATOR_PREFIX}/`;
-  if (response.startsWith(oneElementSplitter)) {
-    const id = response.slice(oneElementSplitter.length);
-    if (id.indexOf(',') >= 0) {
-      console.warn(`unexpected comma in one element response: ${id}`);
-    }
-    return id ? id : null;
-  }
-
-  const elementsSplitter = `${ELEMENTS_LOCATOR_PREFIX}/`;
-  if (response.startsWith(elementsSplitter)) {
-    const idsString = response.slice(elementsSplitter.length);
-    if (!idsString) {
-      return [];
-    }
-    return idsString.split(',');
-  }
-
-  return null;
-}
-
-/**
- * sections
- */
-
-export function retrieveSection(prompt: string): string {
-  return `${SECTION_MATCHER_FLAG}${prompt}`;
 }

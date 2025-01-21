@@ -16,7 +16,6 @@ import {
   AZURE_OPENAI_DEPLOYMENT,
   AZURE_OPENAI_ENDPOINT,
   AZURE_OPENAI_KEY,
-  MATCH_BY_POSITION,
   MIDSCENE_API_TYPE,
   MIDSCENE_AZURE_OPENAI_INIT_CONFIG_JSON,
   MIDSCENE_AZURE_OPENAI_SCOPE,
@@ -37,8 +36,8 @@ import {
   getAIConfigInJson,
 } from '../../env';
 import { AIActionType } from '../common';
-import { findElementSchema } from '../prompt/element_inspector';
-import { planSchema } from '../prompt/planning';
+import { findElementSchema } from '../prompt/llm-locator';
+import { planSchema } from '../prompt/llm-planning';
 import { assertSchema } from '../prompt/util';
 
 export function checkAIConfig(preferVendor?: 'openAI') {
@@ -201,9 +200,6 @@ export async function call(
         : Number.parseInt(maxTokens || '2048', 10),
   };
 
-  // if (getAIConfig(MATCH_BY_POSITION)) {
-  //   return useHttpAgent(messages, AIActionTypeValue);
-  // }
   if (style === 'openai') {
     const result = await completion.create({
       model,
@@ -219,6 +215,10 @@ export async function call(
         result.usage,
         `${Date.now() - startTime}ms`,
       );
+    assert(
+      result.choices,
+      `invalid response from LLM service: ${JSON.stringify(result)}`,
+    );
     content = result.choices[0].message.content!;
     assert(content, 'empty content');
     usage = result.usage;

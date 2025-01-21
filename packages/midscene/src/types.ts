@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
+import type { NodeType } from '@midscene/shared/constants';
 import type { ChatCompletionMessageParam } from 'openai/resources';
 
 export * from './yaml.d';
@@ -16,14 +17,6 @@ export interface Size {
 }
 
 export type Rect = Point & Size & { zoom?: number };
-
-enum NodeType {
-  CONTAINER = 'CONTAINER Node',
-  FORM_ITEM = 'FORM_ITEM Node',
-  BUTTON = 'BUTTON Node',
-  IMG = 'IMG Node',
-  TEXT = 'TEXT Node',
-}
 
 export abstract class BaseElement {
   abstract id: string;
@@ -147,6 +140,7 @@ export interface DumpMeta {
   sdkVersion: string;
   logTime: number;
   model_name: string;
+  model_description?: string;
 }
 
 export interface ReportDumpWithAttributes {
@@ -164,7 +158,7 @@ export interface InsightDump extends DumpMeta {
     sections?: Record<string, string>;
     assertion?: string;
   }; // ?
-  quickAnswer?: AISingleElementResponse | null;
+  quickAnswer?: Partial<AISingleElementResponse> | null;
   matchedSection: [];
   matchedElement: BaseElement[];
   data: any;
@@ -196,6 +190,8 @@ export type InsightAssertionResponse = AIAssertionResponse;
 /**
  * agent
  */
+
+export type OnTaskStartTip = (tip: string) => Promise<void> | void;
 
 export interface AgentWaitForOpt {
   checkIntervalMs?: number;
@@ -233,7 +229,8 @@ export interface PlanningAction<ParamType = any> {
     | 'FalsyConditionStatement'
     | 'Assert'
     | 'AssertWithoutThrow'
-    | 'Sleep';
+    | 'Sleep'
+    | 'Finished';
   param: ParamType;
   locate: PlanningLocateParam | null;
 }
@@ -241,7 +238,7 @@ export interface PlanningAction<ParamType = any> {
 export interface PlanningAIResponse {
   actions: PlanningAction[];
   taskWillBeAccomplished: boolean;
-  furtherPlan: PlanningFurtherPlan | null;
+  furtherPlan?: PlanningFurtherPlan | null;
   error?: string;
 }
 
@@ -371,6 +368,7 @@ export type ExecutionTask<
       start: number;
       end?: number;
       cost?: number;
+      aiCost?: number;
     };
   };
 

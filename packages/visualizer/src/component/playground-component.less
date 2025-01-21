@@ -74,16 +74,34 @@ body {
       padding-bottom: 40px;
     }
 
-    .ant-btn {
+    .form-controller-wrapper {
       position: absolute;
       bottom: 8px;
-      right: 8px;
+      padding: 0 12px;
+      left: 0px;
+      display: flex;
+      flex-direction: row;
+      justify-content: space-between;
+      width: 100%;
+      box-sizing: border-box;
+      align-items: flex-end;
+      gap: 8px;
+    }
+
+    .settings-wrapper {
+      &.settings-wrapper-hover {
+        color: @main-text;
+      }
+
+      display: flex;
+      flex-direction: row;
+      gap: 2px;
+      color: @weak-text;
+      flex-wrap: wrap;
     }
 
     .history-selector {
-      position: absolute;
-      bottom: 8px;
-      left: 12px;
+      margin-right: 8px;
     }
   }
 
