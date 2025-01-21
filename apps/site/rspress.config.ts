@@ -174,6 +174,10 @@ export default defineConfig({
               link: '/zh/prompting-tips',
             },
             {
+              text: '选择 AI 模型',
+              link: '/zh/choose-a-model',
+            },
+            {
               text: '配置模型和服务商',
               link: '/zh/model-provider',
             },

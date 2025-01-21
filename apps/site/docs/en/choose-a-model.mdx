@@ -33,7 +33,7 @@ Besides `gpt-4o`, the known supported models are:
 
 ## Choose `UI-TARS` (a open-source model dedicated for UI automation)
 
-UI-TARS is an end-to-end GUI agent model based on VLM architecture. It solely perceives screenshots as input and performs human-like interactions (e.g., keyboard and mouse operations), achieving SOTA performance on 10+ GUI benchmarks.
+UI-TARS is an end-to-end GUI agent model based on VLM architecture. It solely perceives screenshots as input and performs human-like interactions (e.g., keyboard and mouse operations), achieving state-of-the-art performance on 10+ GUI benchmarks.
 
 UI-TARS is an open-source model, and provides different versions of size. You can deploy it on your own server, and it will dramatically improve the performance and data privacy.
 
@@ -43,7 +43,7 @@ For more details about UI-TARS, see [Github - UI-TARS](https://github.com/byteda
 
 - **Speed**: a private-deployed UI-TARS model can be 5x faster than a general-purpose LLM. Each step of `.ai` call can be processed in 1-2 seconds.
 - **Data privacy**: you can deploy it on your own server and your data will no longer be sent to the cloud.
-- **More stable with short prompt**: ⁠UI-TARS is optimized for UI automation and is capable of handling more complex tasks. You can use it with a shorter target-driven prompt (although it is not recommended), and it performs even better when compared to a general-purpose LLM.
+- **More stable with short prompt**: ⁠UI-TARS is optimized for UI automation and is capable of handling more complex tasks with target-driven prompts. You can use it with a shorter prompt (although it is not recommended), and it performs even better when compared to a general-purpose LLM.
 
 ### Config to use UI-TARS
 
@@ -57,7 +57,7 @@ MIDSCENE_USE_VLM_UI_TARS=1
 
 ### How Midscene.js works with general LLMs
 
-General LLMs can 'see' the screenshot, but they cannot provide the coordinates of the elements. To do automation tasks, we need to take extra steps to extract the elements' information and send it to the LLMs. When LLMs return the id of the element, we will map it back to the coordinates and control them.
+General LLMs can 'see' the screenshot, but they cannot provide the coordinates of the elements. To do automation tasks, we need to take extra steps to extract the elements' information and send it along with the screenshot to the LLMs. When LLMs return the id of the element, we will map it back to the coordinates and control them.
 
 This approach works in most cases, but it results in increased latency and costs. Additionally, we cannot extract contents in `<iframe />` or `<canvas />` tags.
 
@@ -67,7 +67,7 @@ This approach works in most cases, but it results in increased latency and costs
 
 This is more straightforward in agent design. Furthermore, the performance of self-hosted `UI-TARS` model is truly amazing. So we are very to happy to integrate it into Midscene.js as an alternative approach.
 
-## Which one should I choose?
+## Which one should I get started with?
 
 Use general-purpose LLMs first, this is the easiest way to get started.
 

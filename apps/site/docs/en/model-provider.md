@@ -2,7 +2,7 @@
 
 Midscene uses the OpenAI SDK to call AI services. Using this SDK limits the input and output format of AI services, but it doesn't mean you can only use OpenAI's models. You can use any model service that supports the same interface (most platforms or tools support this).
 
-In this article, we will show you how to config AI service provider and how to choose a different model.
+In this article, we will show you how to config AI service provider and how to choose a different model. You may read [Choose a model](./choose-a-model) to learn more about how to choose a model.
 
 ## Configs
 
