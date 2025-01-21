@@ -29,9 +29,9 @@ Midscene.js is an AI-powered automation SDK with the abilities to control the pa
 
 </p>
 
-## New open-source model choice 📢
+## New open-source model choice - UI-TARS 📢
 
-From version v0.10.0, we support a new open-source model named `UI-TARS`. Read more about it in [Choose a model](https://midscenejs.com/choose-a-model).
+From version v0.10.0, we support a new open-source model named [`UI-TARS`](https://github.com/bytedance/ui-tars). Read more about it in [Choose a model](https://midscenejs.com/choose-a-model).
 
 ## Features 💡
 

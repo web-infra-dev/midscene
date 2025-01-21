@@ -27,9 +27,9 @@ Midscene.js 是一个由 AI 驱动的自动化 SDK，能够使用自然语言对
   <video src="https://github.com/user-attachments/assets/58ebeb48-deb0-4edf-8ca0-af6be5bf1c70" controls />
 </p>
 
-## 支持了新的开源模型 📢
+## 支持了新的开源模型 - UI-TARS 📢
 
-从 v0.10.0 版本开始，我们支持了新的开源模型 `UI-TARS`。更多信息请查看 [选择 AI 模型](https://midscenejs.com/zh/choose-a-model)。
+从 v0.10.0 版本开始，我们支持了新的开源模型 [`UI-TARS`](https://github.com/bytedance/ui-tars)。更多信息请查看 [选择 AI 模型](https://midscenejs.com/zh/choose-a-model)。
 
 ## 特性 💡
 
