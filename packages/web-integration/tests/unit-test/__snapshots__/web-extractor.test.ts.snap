@@ -564,6 +564,27 @@ exports[`extractor > basic 1`] = `
       "htmlTagName": "<div>",
       "nodeType": "TEXT Node",
     },
+    "content": "i am fixed child content",
+  },
+  {
+    "attributes": {
+      "htmlTagName": "<span>",
+      "nodeType": "TEXT Node",
+    },
+    "content": "abcd efg",
+  },
+  {
+    "attributes": {
+      "htmlTagName": "<div>",
+      "nodeType": "TEXT Node",
+    },
+    "content": "content editable div content. We should collect the parent.",
+  },
+  {
+    "attributes": {
+      "htmlTagName": "<div>",
+      "nodeType": "TEXT Node",
+    },
     "content": "absolute child content",
   },
   {
