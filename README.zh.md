@@ -14,6 +14,7 @@
 </p>
 
 <p align="center">
+  🤗 <a href="https://huggingface.co/bytedance-research/UI-TARS-7B-SFT">UI-TARS Models</a>
   <img src="https://img.shields.io/npm/v/@midscene/web?style=flat-square&color=00a8f0" alt="npm version" />
   <img src="https://img.shields.io/npm/dm/@midscene/web.svg?style=flat-square&color=00a8f0" alt="downloads" />
   <img src="https://img.shields.io/badge/License-MIT-blue.svg?style=flat-square&color=00a8f0" alt="License" />
@@ -23,9 +24,14 @@
 
 Midscene.js 是一个由 AI 驱动的自动化 SDK，能够使用自然语言对网页进行操作、验证，并提取 JSON 格式的数据。
 
-<p align="center">
-  <video src="https://github.com/user-attachments/assets/58ebeb48-deb0-4edf-8ca0-af6be5bf1c70" controls />
-</p>
+## 案例
+
+| 指令  | 视频 |
+| :---:  | :---: |
+| 发布一条 Twitter      |    <video src="https://github.com/user-attachments/assets/bb3d695a-fbff-4af1-b6cc-5e967c07ccee" height="300" />    |
+| 用 JS 代码驱动编排任务，搜集周杰伦演唱会的信息，并写入 Google Docs   | <video src="https://github.com/user-attachments/assets/75474138-f51f-4c54-b3cf-46d61d059999" height="300" />        |
+
+
 
 ## 支持了新的开源模型 - UI-TARS 📢
 
@@ -43,7 +49,7 @@ Midscene.js 是一个由 AI 驱动的自动化 SDK，能够使用自然语言对
 ## 模型 ✨
 
 - 你可以使用通用的 LLM 模型，如 `gpt-4o`，它适用于大多数情况。同时，`gemini-1.5-pro` 和 `qwen-vl-max-latest`（千问）也是支持的。
-- 你也可以使用 [`UI-TARS` 模型](https://github.com/bytedance/ui-tars) ，这是一个专为 UI 自动化设计的大模型。你可以部署在本地，以提高性能和数据隐私。
+- 你也可以使用 [`UI-TARS` 模型](https://github.com/bytedance/ui-tars) ，这是一个专为 UI 自动化设计的大模型。你可以私有化部署，以提高性能和数据隐私。
 - 更多信息请查看 [选择 AI 模型](https://midscenejs.com/zh/choose-a-model)。
 
 ## 资源 📄

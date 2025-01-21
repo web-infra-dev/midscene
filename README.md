@@ -14,6 +14,7 @@ English | [简体中文](./README.zh.md)
 </p>
 
 <p align="center">
+  🤗 <a href="https://huggingface.co/bytedance-research/UI-TARS-7B-SFT">UI-TARS Models</a>
   <img src="https://img.shields.io/npm/v/@midscene/web?style=flat-square&color=00a8f0" alt="npm version" />
   <img src="https://img.shields.io/npm/dm/@midscene/web.svg?style=flat-square&color=00a8f0" alt="downloads" />
   <img src="https://img.shields.io/badge/License-MIT-blue.svg?style=flat-square&color=00a8f0" alt="License" />
@@ -23,11 +24,13 @@ English | [简体中文](./README.zh.md)
 
 Midscene.js is an AI-powered automation SDK with the abilities to control the page, perform assertions and extract data in JSON format using natural language.
 
-<p align="center">
-  
-<video src="https://github.com/user-attachments/assets/58ebeb48-deb0-4edf-8ca0-af6be5bf1c70" controls />
+## Showcases
 
-</p>
+| Instruction  | Video |
+| :---:  | :---: |
+| Post a Twitter      |    <video src="https://github.com/user-attachments/assets/bb3d695a-fbff-4af1-b6cc-5e967c07ccee" height="300" />    |
+| Use JS code to drive task orchestration, collect information about Jay Chou's concert, and write it into Google Docs   | <video src="https://github.com/user-attachments/assets/75474138-f51f-4c54-b3cf-46d61d059999" height="300" />        |
+
 
 ## New open-source model choice - UI-TARS 📢
 
