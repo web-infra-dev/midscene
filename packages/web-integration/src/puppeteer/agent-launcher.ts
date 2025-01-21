@@ -80,6 +80,8 @@ export async function puppeteerAgentForTarget(
       ...(isWindows ? [] : ['--no-sandbox', '--disable-setuid-sandbox']),
       '--disable-features=PasswordLeakDetection',
       '--disable-save-password-bubble',
+      '--start-maximized',
+      `--window-size=${width},${height}`,
     ],
   });
   freeFn.push({
