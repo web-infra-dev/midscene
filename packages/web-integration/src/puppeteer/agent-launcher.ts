@@ -6,8 +6,8 @@ import type { MidsceneYamlScriptEnv } from '@midscene/core';
 
 export const defaultUA =
   'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36';
-export const defaultViewportWidth = 1920;
-export const defaultViewportHeight = 1080;
+export const defaultViewportWidth = 1440;
+export const defaultViewportHeight = 900;
 export const defaultViewportScale = process.platform === 'darwin' ? 2 : 1;
 export const defaultWaitForNetworkIdleTimeout = 10 * 1000;
 
@@ -111,9 +111,7 @@ export async function puppeteerAgentForTarget(
   const pages = await browser.pages();
   const page = pages[0];
   await page.setUserAgent(ua);
-  if (!preferMaximizedWindow) {
-    await page.setViewport(viewportConfig);
-  }
+  await page.setViewport(viewportConfig);
 
   if (target.cookie) {
     const cookieFileContent = readFileSync(target.cookie, 'utf-8');
