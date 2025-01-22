@@ -11,20 +11,20 @@ export const defaultViewportHeight = 960;
 export const defaultViewportScale = process.platform === 'darwin' ? 2 : 1;
 export const defaultWaitForNetworkIdleTimeout = 10 * 1000;
 
-export async function puppeteerAgentForTarget(
+interface FreeFn {
+  name: string;
+  fn: () => void;
+}
+
+export async function launchPuppeteerPage(
   target: MidsceneYamlScriptEnv,
   preference?: {
     headed?: boolean;
     keepWindow?: boolean;
-    testId?: string;
   },
 ) {
   assert(target.url, 'url is required');
-
-  const freeFn: {
-    name: string;
-    fn: () => void;
-  }[] = [];
+  const freeFn: FreeFn[] = [];
 
   // prepare the environment
   const ua = target.userAgent || defaultUA;
@@ -76,12 +76,14 @@ export async function puppeteerAgentForTarget(
   const isWindows = process.platform === 'win32';
   const browser = await puppeteer.launch({
     headless: !headed,
+    defaultViewport: viewportConfig,
     args: [
       ...(isWindows ? [] : ['--no-sandbox', '--disable-setuid-sandbox']),
       '--disable-features=PasswordLeakDetection',
       '--disable-save-password-bubble',
       '--start-maximized',
       `--window-size=${width},${height}`,
+      `--user-agent="${ua}"`,
     ],
   });
   freeFn.push({
@@ -101,8 +103,8 @@ export async function puppeteerAgentForTarget(
 
   const pages = await browser.pages();
   const page = pages[0];
-  await page.setUserAgent(ua);
-  await page.setViewport(viewportConfig);
+  // await page.setUserAgent(ua);
+  // await page.setViewport(viewportConfig);
 
   if (target.cookie) {
     const cookieFileContent = readFileSync(target.cookie, 'utf-8');
@@ -134,6 +136,19 @@ export async function puppeteerAgentForTarget(
     const newMessage = `failed to wait for network idle after ${waitForNetworkIdleTimeout}ms, but the script will continue.`;
     console.warn(newMessage);
   }
+
+  return { page, freeFn };
+}
+
+export async function puppeteerAgentForTarget(
+  target: MidsceneYamlScriptEnv,
+  preference?: {
+    headed?: boolean;
+    keepWindow?: boolean;
+    testId?: string;
+  },
+) {
+  const { page, freeFn } = await launchPuppeteerPage(target, preference);
 
   // prepare Midscene agent
   const agent = new PuppeteerAgent(page, {

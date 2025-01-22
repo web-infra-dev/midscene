@@ -1,5 +1,6 @@
 import path from 'node:path';
 import { PuppeteerAgent } from '@/puppeteer';
+import { sleep } from '@midscene/core/utils';
 import { describe, expect, it, vi } from 'vitest';
 import { launchPage } from './utils';
 
@@ -62,7 +63,7 @@ describe(
 
     it('find widgets in antd', async () => {
       const { originPage, reset } = await launchPage(
-        'https://ant.design/components/form-cn/',
+        'https://ant.design/components/form/',
       );
       const mid = new PuppeteerAgent(originPage);
 
@@ -107,6 +108,17 @@ describe(
       await mid.aiAssert(
         'the "Horizontal 2", "Horizontal 4" and "Vertical 5" elements are visible',
       );
+      await reset();
+    });
+
+    it('tracking active tab', async () => {
+      const { originPage, reset } = await launchPage('https://www.baidu.com/');
+      const mid = new PuppeteerAgent(originPage, {
+        trackingActiveTab: true,
+      });
+      await mid.aiAction('Tap hao123 in the navigation bar');
+      await sleep(3000);
+      await mid.aiAction('There is a weather forecast in the page');
       await reset();
     });
 
