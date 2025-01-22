@@ -118,7 +118,7 @@ describe(
       });
       await mid.aiAction('Tap hao123 in the navigation bar');
       await sleep(3000);
-      await mid.aiAction('There is a weather forecast in the page');
+      await mid.aiAssert('There is a weather forecast in the page');
       await reset();
     });
 

@@ -94,6 +94,7 @@ export class PageAgent<PageType extends WebPage = WebPage> {
           console.log('will replace the page');
           const midscenePage = new PuppeteerWebPage(targetPage) as PageType;
           this.page = midscenePage;
+          this.taskExecutor.page = midscenePage;
         }
       });
     }

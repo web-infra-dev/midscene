@@ -111,12 +111,13 @@ export async function launchPuppeteerPage(
     await page.setCookie(...JSON.parse(cookieFileContent));
   }
 
-  await page.goto(target.url);
   const waitForNetworkIdleTimeout =
     typeof target.waitForNetworkIdle?.timeout === 'number'
       ? target.waitForNetworkIdle.timeout
       : defaultWaitForNetworkIdleTimeout;
+
   try {
+    await page.goto(target.url);
     if (waitForNetworkIdleTimeout > 0) {
       await page.waitForNetworkIdle({
         timeout: waitForNetworkIdleTimeout,
