@@ -190,8 +190,8 @@
 
     <!-- a button with children -->
     <button tabindex="0" class="btn" type="submit" aria-label="Search">
-        <img class="search-icon-dark" src="/assets/icons/search-dark.svg" alt="Search">
-        <img class="search-icon-light" src="/assets/icons/search.svg" alt="Search">
+        <img class="search-icon-dark" src="./assets/search-dark.svg" alt="Search">
+        <img class="search-icon-light" src="./assets/search.svg" alt="Search">
     </button>
 
     <!-- item hidden by css overflow: hidden  -->
@@ -324,8 +324,30 @@
             content Right
         </div>
     </div>
-    <!-- iframe -->
-    <iframe src="child.html" frameborder="0" width="400px" height="200px"></iframe>
+
+    <!-- two columns -->
+    <style>
+        .two-columns {
+            display: flex;
+            flex-direction: row;
+        }
+        
+        .column {
+            margin-left: 10px;
+            width: 40%;
+            background-color: #ccc;
+        }
+    </style>
+    <div class="two-columns">
+        <div class="column">
+            <!-- same-origin iframe -->
+            <iframe src="child.html" frameborder="0" width="400px" height="200px"></iframe>
+        </div>
+        <div class="column">
+            <!-- cross-origin iframe-->
+            <iframe src="https://www.bytedance.com" frameborder="0" width="400px" height="200px"></iframe>
+        </div>
+    </div>
 </body>
 
 </html>
