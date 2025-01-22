@@ -1,7 +1,6 @@
 import assert from 'node:assert';
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
-import { paramStr, typeStr } from '@/common/ui-utils';
 
 import type { PageAgent } from '@/common/agent';
 import type {
