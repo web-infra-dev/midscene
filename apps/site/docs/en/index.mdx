@@ -57,15 +57,21 @@ There are several ways to integrate Midscene into your code project:
 
 ## Visualized report
 
-Midscene provides a visual report after each run. With this report, you can review the animated replay and view the details of each step in the process. What's more, there is a playground in the report file for you to adjust your prompt without re-running all your scripts.
+Midscene wants to provide a way to make automation more stable and easier to debug, so we provide a visual report after each run. With this report, you can review the animated replay and view the details of each step in the process. 
+
+What's more, there is a playground in the report file for you to adjust your prompt without re-running all your scripts.
 
 <p align="center">
   <img src="/report.gif" alt="visualized report" />
 </p>
 
-## Customize model
+## Support both general-purpose LLM and open-source model
 
-Currently, the model we are using by default is the OpenAI GPT-4o model, while you can [customize it to a different multimodal model like Gemini, Qwen, etc](./model-provider) if needed.
+Midscene supports both general-purpose LLM and open-source model. You can use the general-purpose LLM like `gpt-4o` as the default model, it works well for most cases. 
+
+You can also use the open-source model named `UI-TARS`, which is an end-to-end GUI agent model based on VLM architecture. You can deploy it on your own server, and it will dramatically improve the performance and data privacy.
+
+Read more about it in [Choose a model](./choose-a-model).
 
 ## Just you and model provider, no third-party services
 

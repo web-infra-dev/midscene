@@ -2,6 +2,10 @@
   height: 2.6rem;
 }
 
+:root {
+  --rp-c-text-1: #0b140f;
+}
+
 /* Footer styles */
 
 .footer {

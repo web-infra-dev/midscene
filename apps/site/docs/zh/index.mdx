@@ -43,9 +43,9 @@ console.log("headphones in stock", items);
 
 ## 可视化报告
 
-运行结束后，Midscene 会提供可视化报告和调试 Playground，可以非常方便地调试提示和 AI 的响应。所有的中间数据，例如查询（Query）、计划（Planning）和动作（Actions），都可以被可视化。
+Midscene 希望让自动化脚本变得更稳定、更易于调试，因此我们提供了一个可视化报告。通过这个报告，你可以回顾动画回放，并查看每个步骤的详细信息。
 
-此外，Midscene 报告里还集成了一个 Playground，用以在报告中重新运行 Prompt 并调试。
+此外，Midscene 报告里还集成了一个 Playground，用以在报告中重新运行 Prompt 并进行调优。
 
 <p align="center">
   <img src="/report.gif" alt="visualized report" />
@@ -54,7 +54,11 @@ console.log("headphones in stock", items);
 
 ## 自定义模型
 
-目前我们默认选择的是 OpenAI GPT-4o 作为模型，你也可以[自定义为其他多模态模型，如千问、Gemini](./model-provider)。
+Midscene 同时支持通用 LLM 和开源模型。你可以使用通用的 LLM 模型，如 `gpt-4o`，它在大多数场景都表现很好。
+
+你也可以使用开源模型 `UI-TARS`，它是一个基于 VLM 架构的端到端 GUI 代理模型。你可以将它部署到你自己的服务器上，以提高性能和数据隐私。
+
+更多详情请参考 [选择 AI 模型](./choose-a-model)。
 
 ## 直连模型端，无需三方服务
 

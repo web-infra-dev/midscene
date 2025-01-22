@@ -90,8 +90,21 @@ export default defineConfig({
               text: 'Cache',
               link: '/cache',
             },
+          ],
+        },
+        {
+          text: 'AI Model',
+          items: [
             {
-              text: 'Customize Model and Provider',
+              text: 'Prompting Tips',
+              link: '/prompting-tips',
+            },
+            {
+              text: 'Choose a Model for Midscene.js',
+              link: '/choose-a-model',
+            },
+            {
+              text: 'Config Model and Provider',
               link: '/model-provider',
             },
           ],
@@ -99,10 +112,6 @@ export default defineConfig({
         {
           text: 'More',
           items: [
-            {
-              text: 'Prompting Tips',
-              link: '/prompting-tips',
-            },
             {
               text: 'FAQ',
               link: '/faq',
@@ -155,8 +164,21 @@ export default defineConfig({
               text: '缓存',
               link: '/zh/cache',
             },
+          ],
+        },
+        {
+          text: 'AI 模型',
+          items: [
             {
-              text: '自定义模型和服务商',
+              text: '编写提示词（指令）的技巧',
+              link: '/zh/prompting-tips',
+            },
+            {
+              text: '选择 AI 模型',
+              link: '/zh/choose-a-model',
+            },
+            {
+              text: '配置模型和服务商',
               link: '/zh/model-provider',
             },
           ],
@@ -164,10 +186,6 @@ export default defineConfig({
         {
           text: '更多',
           items: [
-            {
-              text: '提示词技巧',
-              link: '/zh/prompting-tips',
-            },
             {
               text: '常见问题 FAQ',
               link: '/zh/faq',

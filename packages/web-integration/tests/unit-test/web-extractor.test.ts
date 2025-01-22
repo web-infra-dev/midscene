@@ -152,7 +152,7 @@ describe(
     });
 
     it('profiling', async () => {
-      const { page, reset } = await launchPage('https://webinfra.org/about');
+      const { page, reset } = await launchPage('https://www.bytedance.com');
       await new Promise((resolve) => setTimeout(resolve, 1000));
       console.time('total - parseContextFromWebPage');
       await parseContextFromWebPage(page);
