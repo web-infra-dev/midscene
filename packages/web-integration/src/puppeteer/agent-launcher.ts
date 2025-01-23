@@ -6,8 +6,8 @@ import type { MidsceneYamlScriptEnv } from '@midscene/core';
 
 export const defaultUA =
   'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36';
-export const defaultViewportWidth = 1280;
-export const defaultViewportHeight = 960;
+export const defaultViewportWidth = 1440;
+export const defaultViewportHeight = 900;
 export const defaultViewportScale = process.platform === 'darwin' ? 2 : 1;
 export const defaultWaitForNetworkIdleTimeout = 10 * 1000;
 
@@ -29,7 +29,9 @@ export async function launchPuppeteerPage(
   // prepare the environment
   const ua = target.userAgent || defaultUA;
   let width = defaultViewportWidth;
+  let preferMaximizedWindow = true;
   if (target.viewportWidth) {
+    preferMaximizedWindow = false;
     assert(
       typeof target.viewportWidth === 'number',
       'viewportWidth must be a number',
@@ -39,6 +41,7 @@ export async function launchPuppeteerPage(
   }
   let height = defaultViewportHeight;
   if (target.viewportHeight) {
+    preferMaximizedWindow = false;
     assert(
       typeof target.viewportHeight === 'number',
       'viewportHeight must be a number',
@@ -51,6 +54,7 @@ export async function launchPuppeteerPage(
   }
   let dpr = defaultViewportScale;
   if (target.viewportScale) {
+    preferMaximizedWindow = false;
     assert(
       typeof target.viewportScale === 'number',
       'viewportScale must be a number',
@@ -65,6 +69,10 @@ export async function launchPuppeteerPage(
   };
 
   const headed = preference?.headed || preference?.keepWindow;
+
+  // only maximize window in headed mode
+  preferMaximizedWindow = preferMaximizedWindow && !!headed;
+
   // launch the browser
   if (headed && process.env.CI === '1') {
     console.warn(
@@ -81,9 +89,10 @@ export async function launchPuppeteerPage(
       ...(isWindows ? [] : ['--no-sandbox', '--disable-setuid-sandbox']),
       '--disable-features=PasswordLeakDetection',
       '--disable-save-password-bubble',
-      '--start-maximized',
-      `--window-size=${width},${height}`,
       `--user-agent="${ua}"`,
+      preferMaximizedWindow
+        ? '--start-maximized'
+        : `--window-size=${width},${height}`,
     ],
   });
   freeFn.push({

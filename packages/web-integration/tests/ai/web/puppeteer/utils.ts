@@ -24,21 +24,6 @@ export async function launchPage(
   const originPage = page;
   const midscenePage = new PuppeteerWebPage(originPage);
 
-  // let response: HTTPResponse | null = null;
-  // try {
-  //   response = await originPage.goto(url);
-  //   await originPage.waitForNetworkIdle({
-  //     concurrency: 1,
-  //   });
-  // } catch (e) {
-  //   if (response?.status) {
-  //     assert(
-  //       response.status() <= 399,
-  //       `Page load failed: ${response.status()}`,
-  //     );
-  //   }
-  // }
-
   return {
     page: midscenePage,
     originPage,
