@@ -1,7 +1,6 @@
-import assert from 'node:assert';
 import { PuppeteerWebPage } from '@/puppeteer';
 import { launchPuppeteerPage } from '@/puppeteer/agent-launcher';
-import type { HTTPResponse, Viewport } from 'puppeteer';
+import type { Viewport } from 'puppeteer';
 
 export async function launchPage(
   url: string,

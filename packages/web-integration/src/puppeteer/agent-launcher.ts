@@ -155,6 +155,10 @@ export async function puppeteerAgentForTarget(
   const agent = new PuppeteerAgent(page, {
     autoPrintReportMsg: false,
     testId: preference?.testId,
+    trackingActiveTab:
+      typeof target.trackingActiveTab !== 'undefined'
+        ? target.trackingActiveTab
+        : true, // true for default in yaml script
   });
 
   freeFn.push({
