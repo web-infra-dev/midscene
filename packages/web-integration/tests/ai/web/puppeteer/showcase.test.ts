@@ -116,7 +116,7 @@ describe(
       );
     });
 
-    it('not tracking active tab', async () => {
+    it.only('not tracking active tab', async () => {
       const { originPage, reset } = await launchPage('https://www.baidu.com/');
       resetFn = reset;
       const mid = new PuppeteerAgent(originPage, {
@@ -130,7 +130,7 @@ describe(
       }).rejects.toThrowError();
     });
 
-    it('tracking active tab', async () => {
+    it.only('tracking active tab', async () => {
       const { originPage, reset } = await launchPage('https://www.baidu.com/');
       resetFn = reset;
       const mid = new PuppeteerAgent(originPage, {

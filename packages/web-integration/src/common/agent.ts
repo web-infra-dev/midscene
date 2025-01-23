@@ -11,8 +11,6 @@ import {
 } from '@midscene/core';
 import { NodeType } from '@midscene/shared/constants';
 
-import assert from 'node:assert';
-import { PuppeteerWebPage } from '@/puppeteer';
 import { MIDSCENE_USE_VLM_UI_TARS, getAIConfig } from '@midscene/core/env';
 import {
   groupedActionDumpFileExt,
@@ -72,32 +70,6 @@ export class PageAgent<PageType extends WebPage = WebPage> {
       },
       opts || {},
     );
-
-    if (opts?.trackingActiveTab) {
-      assert(
-        this.page.pageType === 'puppeteer',
-        'trackingActiveTab is only supported for puppeteer',
-      );
-
-      // @ts-expect-error
-      const browser = (this.page as PuppeteerWebPage).underlyingPage.browser();
-
-      browser.on('targetcreated', async (target) => {
-        if (target.type() === 'page') {
-          const targetPage = await target.page();
-          if (!targetPage) {
-            console.warn(
-              'got a targetPage event, but the page is not ready yet, skip',
-            );
-            return;
-          }
-          console.log('will replace the page');
-          const midscenePage = new PuppeteerWebPage(targetPage) as PageType;
-          this.page = midscenePage;
-          this.taskExecutor.page = midscenePage;
-        }
-      });
-    }
     // get the parent browser of the puppeteer page
     // const browser = (this.page as PuppeteerWebPage).browser();
 
