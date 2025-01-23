@@ -18,7 +18,7 @@ There are some limitations with Midscene. We are still working on them.
 
 ## Can I use a model other than `gpt-4o`?
 
-Yes. You can [customize model and provider](./model-provider) if needed.
+Yes. You can [config model and provider](./model-provider) if needed.
 
 ## About the token cost
 

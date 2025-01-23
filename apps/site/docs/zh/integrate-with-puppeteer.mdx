@@ -98,6 +98,16 @@ npx ts-node demo.ts
 
 当上面的命令执行成功后，会在控制台输出：`Midscene - report file updated: /path/to/report/some_id.html`， 通过浏览器打开该文件即可看到报告。
 
+## 如何跟踪新打开的标签页
+
+如果你想要跟踪新打开的标签页（比如点击一个带有 `target="_blank"` 属性的链接），你可以设置 `trackingActiveTab` 选项为 `true`：
+
+```typescript
+const mid = new PuppeteerAgent(page, {
+  trackingActiveTab: true,
+});
+```
+
 ## 更多
 
 你可能还想了解 [提示词技巧](./prompting-tips)
