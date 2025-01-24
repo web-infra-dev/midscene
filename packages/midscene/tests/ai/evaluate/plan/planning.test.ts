@@ -78,9 +78,10 @@ describe('automation - planning', () => {
   it('throw error when instruction is not feasible', async () => {
     const { context } = await getPageDataOfTestName('todo');
     await expect(async () => {
-      await plan('close Cookie Prompt', {
+      const planFromAI = await plan('close Cookie Prompt', {
         context,
       });
+      console.log('planFromAI', planFromAI);
     }).rejects.toThrow();
   });
 
