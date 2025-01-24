@@ -76,7 +76,7 @@ There are so many UI automation tools out there, and each one seems to be all-po
 
 ## 🤝 Community
 
-* [Discord](https://discord.gg/AFHJBdnn)
+* [Discord](https://discord.gg/XEYR3tmZ)
 * [Follow us on X](https://x.com/midscene_ai)
 * [Lark Group](https://applink.larkoffice.com/client/chat/chatter/add_by_link?link_token=291q2b25-e913-411a-8c51-191e59aab14d)
 
