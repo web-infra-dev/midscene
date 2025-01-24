@@ -48,7 +48,7 @@ describe('automation - planning', () => {
   it('scroll some element', async () => {
     const { context } = await getPageDataOfTestName('todo');
     const { actions } = await plan(
-      'Scroll left the status filters (with a button named "complete")',
+      'Scroll left the status filters (with a button named "completed")',
       {
         context,
       },

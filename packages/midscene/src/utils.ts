@@ -40,10 +40,10 @@ function getReportTpl() {
     if (!reportTpl && (window as any).get_midscene_report_tpl) {
       reportTpl = (window as any).get_midscene_report_tpl();
     }
-    assert(
-      reportTpl,
-      'reportTpl should be set before writing report in browser',
-    );
+    // assert(
+    //   reportTpl,
+    //   'reportTpl should be set before writing report in browser',
+    // );
     return reportTpl;
   }
 
@@ -70,6 +70,10 @@ export function reportHTMLContent(
   dumpData: string | ReportDumpWithAttributes[],
 ): string {
   const tpl = getReportTpl();
+  if (!tpl) {
+    console.warn('reportTpl is not set, will not write report');
+    return '';
+  }
   let reportContent: string;
   if (
     (Array.isArray(dumpData) && dumpData.length === 0) ||
@@ -121,6 +125,10 @@ export function writeDumpReport(
 
   const reportPath = join(getLogDirByType('report'), `${fileName}.html`);
   const reportContent = reportHTMLContent(dumpData);
+  if (!reportContent) {
+    console.warn('reportContent is empty, will not write report');
+    return null;
+  }
   writeFileSync(reportPath, reportContent);
 
   return reportPath;

@@ -24,7 +24,7 @@ import logoImg from './component/assets/logo-plain.png';
 import { globalThemeConfig } from './component/color';
 import DetailPanel from './component/detail-panel';
 import GlobalHoverPreview from './component/global-hover-preview';
-import Logo from './component/logo';
+import Logo, { LogoUrl } from './component/logo';
 import { iconForStatus, timeCostStrElement } from './component/misc';
 import Player from './component/player';
 import Timeline from './component/timeline';
@@ -134,38 +134,55 @@ export function Visualizer(props: {
       </div>
     );
   } else if (!executionDump) {
+    // mainContent = (
+    //   <div className="main-right uploader-wrapper">
+    //     <Dragger className="uploader" {...uploadProps}>
+    //       <p className="ant-upload-drag-icon">
+    //         <img
+    //           alt="Midscene_logo"
+    //           style={{ width: 80, margin: 'auto' }}
+    //           src={logoImg}
+    //         />
+    //       </p>
+    //       <p className="ant-upload-text">
+    //         Click or drag the{' '}
+    //         <b>
+    //           <i>.web-dump.json</i>
+    //         </b>{' '}
+    //         {/* or{' '}
+    //         <b>
+    //           <i>.actions.json</i>
+    //         </b>{' '} */}
+    //         file into this area.
+    //       </p>
+    //       <p className="ant-upload-text">
+    //         The latest dump file is usually placed in{' '}
+    //         <b>
+    //           <i>./midscene_run/report</i>
+    //         </b>
+    //       </p>
+    //       <p className="ant-upload-text">
+    //         All data will be processed locally by the browser. No data will be
+    //         sent to the server.
+    //       </p>
+    //     </Dragger>
+    //   </div>
+    // );
+
     mainContent = (
-      <div className="main-right uploader-wrapper">
-        <Dragger className="uploader" {...uploadProps}>
-          <p className="ant-upload-drag-icon">
-            <img
-              alt="Midscene_logo"
-              style={{ width: 80, margin: 'auto' }}
-              src={logoImg}
-            />
-          </p>
-          <p className="ant-upload-text">
-            Click or drag the{' '}
-            <b>
-              <i>.web-dump.json</i>
-            </b>{' '}
-            {/* or{' '}
-            <b>
-              <i>.actions.json</i>
-            </b>{' '} */}
-            file into this area.
-          </p>
-          <p className="ant-upload-text">
-            The latest dump file is usually placed in{' '}
-            <b>
-              <i>./midscene_run/report</i>
-            </b>
-          </p>
-          <p className="ant-upload-text">
-            All data will be processed locally by the browser. No data will be
-            sent to the server.
-          </p>
-        </Dragger>
+      <div className="main-right">
+        <div
+          className="center-content"
+          style={{
+            width: '100%',
+            height: '100%',
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+          }}
+        >
+          <Empty image={LogoUrl} description="Loading report content..." />
+        </div>
       </div>
     );
 

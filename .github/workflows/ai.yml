@@ -21,7 +21,7 @@ jobs:
     env:
       OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
       OPENAI_BASE_URL: ${{ secrets.OPENAI_BASE_URL }}
-      MIDSCENE_MODEL_NAME: gpt-4o-2024-11-20
+      MIDSCENE_MODEL_NAME: gpt-4o-2024-08-06
       CI: 1
       # MIDSCENE_DEBUG_AI_PROFILE: 1
 
@@ -124,8 +124,10 @@ jobs:
         if-no-files-found: ignore
 
     - name: Check if script failed
-      if: steps.test-ai.outcome == 'failure'
+      if: steps.test-ai.outcome == 'failure' || steps.e2e-tests.outcome == 'failure' || steps.e2e-tests-cache.outcome == 'failure' || steps.e2e-tests-report.outcome == 'failure'
       run: exit 1
+
+
 
 
 

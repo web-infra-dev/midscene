@@ -33,7 +33,7 @@ import type { WebUIContext } from '@midscene/web/utils';
 import type { MenuProps } from 'antd';
 import { Dropdown, Space } from 'antd';
 import { EnvConfig } from './env-config';
-import { type HistoryItem, useChromeTabInfo, useEnvConfig } from './store';
+import { type HistoryItem, useEnvConfig } from './store';
 
 import {
   ChromeExtensionProxyPage,
@@ -339,16 +339,15 @@ export function Playground({
         }
       }
     } catch (e: any) {
+      const errorMessage = e?.message || '';
       console.error(e);
-      if (typeof e === 'string') {
-        if (e.includes('of different extension')) {
-          result.error =
-            'Conflicting extension detected. Please disable the suspicious plugins and refresh the page. Guide: https://midscenejs.com/quick-experience.html#faq';
-        } else {
-          result.error = e;
-        }
-      } else if (!e.message?.includes(ERROR_CODE_NOT_IMPLEMENTED_AS_DESIGNED)) {
-        result.error = e.message;
+      if (errorMessage.includes('of different extension')) {
+        result.error =
+          'Conflicting extension detected. Please disable the suspicious plugins and refresh the page. Guide: https://midscenejs.com/quick-experience.html#faq';
+      } else if (
+        !errorMessage?.includes(ERROR_CODE_NOT_IMPLEMENTED_AS_DESIGNED)
+      ) {
+        result.error = errorMessage;
       } else {
         result.error = 'Unknown error';
       }
@@ -439,7 +438,11 @@ export function Playground({
         replayScripts={replayScriptsInfo.scripts}
         imageWidth={replayScriptsInfo.width}
         imageHeight={replayScriptsInfo.height}
-        reportFileContent={result?.reportHTML}
+        reportFileContent={
+          serviceMode === 'In-Browser-Extension' && result?.reportHTML
+            ? result?.reportHTML
+            : null
+        }
       />
     );
   } else if (result?.result) {

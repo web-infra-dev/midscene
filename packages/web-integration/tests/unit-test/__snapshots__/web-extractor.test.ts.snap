@@ -564,6 +564,27 @@ exports[`extractor > basic 1`] = `
       "htmlTagName": "<div>",
       "nodeType": "TEXT Node",
     },
+    "content": "i am fixed child content",
+  },
+  {
+    "attributes": {
+      "htmlTagName": "<span>",
+      "nodeType": "TEXT Node",
+    },
+    "content": "abcd efg",
+  },
+  {
+    "attributes": {
+      "htmlTagName": "<div>",
+      "nodeType": "TEXT Node",
+    },
+    "content": "content editable div content. We should collect the parent.",
+  },
+  {
+    "attributes": {
+      "htmlTagName": "<div>",
+      "nodeType": "TEXT Node",
+    },
     "content": "absolute child content",
   },
   {
@@ -575,14 +596,32 @@ exports[`extractor > basic 1`] = `
   },
   {
     "attributes": {
-      "frameborder": "0",
-      "height": "200px",
+      "class": ".two-columns",
       "htmlTagName": "<body>",
       "nodeType": "CONTAINER Node",
-      "src": "child.html",
-      "width": "400px",
     },
     "content": "",
+  },
+  {
+    "attributes": {
+      "htmlTagName": "",
+      "nodeType": "TEXT Node",
+    },
+    "content": "Child Page",
+  },
+  {
+    "attributes": {
+      "htmlTagName": "",
+      "nodeType": "TEXT Node",
+    },
+    "content": "This is a child page.",
+  },
+  {
+    "attributes": {
+      "htmlTagName": "",
+      "nodeType": "TEXT Node",
+    },
+    "content": "Click me",
   },
 ]
 `;

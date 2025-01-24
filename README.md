@@ -15,32 +15,53 @@ English | [简体中文](./README.zh.md)
 
 <p align="center">
   <img src="https://img.shields.io/npm/v/@midscene/web?style=flat-square&color=00a8f0" alt="npm version" />
+  <a href="https://huggingface.co/bytedance-research/UI-TARS-7B-SFT"><img src="https://img.shields.io/badge/%F0%9F%A4%97-UI%20TARS%20Models-yellow" alt="huagging face model" /></a>
   <img src="https://img.shields.io/npm/dm/@midscene/web.svg?style=flat-square&color=00a8f0" alt="downloads" />
   <img src="https://img.shields.io/badge/License-MIT-blue.svg?style=flat-square&color=00a8f0" alt="License" />
   <a href="https://discord.gg/AFHJBdnn"><img src="https://img.shields.io/discord/1328277792730779648?style=flat-square&color=7289DA&label=Discord&logo=discord&logoColor=white" alt="discord" /></a>
   <a href="https://x.com/midscene_ai"><img src="https://img.shields.io/twitter/follow/midscene_ai?style=flat-square" alt="twitter" /></a>
 </p>
 
-Midscene.js is an AI-powered automation SDK can control the page, perform assertions, and extract data in JSON format using natural language.
+Midscene.js is an AI-powered automation SDK with the abilities to control the page, perform assertions and extract data in JSON format using natural language.
 
-<p align="center">
-  
-<video src="https://github.com/user-attachments/assets/58ebeb48-deb0-4edf-8ca0-af6be5bf1c70" controls />
+## Showcases
 
-</p>
+| Instruction  | Video |
+| :---:  | :---: |
+| Post a Tweet      |    <video src="https://github.com/user-attachments/assets/bb3d695a-fbff-4af1-b6cc-5e967c07ccee" height="300" />    |
+| Use JS code to drive task orchestration, collect information about Jay Chou's concert, and write it into Google Docs   | <video src="https://github.com/user-attachments/assets/75474138-f51f-4c54-b3cf-46d61d059999" height="300" />        |
 
 
-## Features ✨
+## 📢 New open-source model choice - UI-TARS 
+
+From version v0.10.0, we support a new open-source model named [`UI-TARS`](https://github.com/bytedance/ui-tars). Read more about it in [Choose a model](https://midscenejs.com/choose-a-model).
+
+## 💡 Features
 
 - **Natural Language Interaction 👆**: Describe the steps, and let Midscene plan and control the user interface for you
 - **Understand UI, Answer in JSON 🔍**: Provide prompts regarding the desired data format, and then receive the expected response in JSON format.
 - **Intuitive Assertion 🤔**: Make assertions in natural language; it’s all based on AI understanding.
 - **Experience by Chrome Extension 🖥️**: Start immediately with the Chrome Extension. No code is needed while exploring.
-- **Visualized Report 🎞️**: With our visualized report file, you can easily understand and debug the whole process.
-- **Out-of-box LLM 🪓**: It is fine to use public multimodal LLMs like GPT-4o. There is no need for any custom training.
+- **Visualized Report for Debugging 🎞️**: With our visualized report file, you can easily understand and debug the whole process.
 - **Totally Open Source! 🔥**: Experience a whole new world of automation development. Enjoy!
 
-## Resources 📄
+## ✨ Model Choices
+
+- You can use general-purpose LLMs like `gpt-4o`, it works well for most cases. And also, `gemini-1.5-pro`, `qwen-vl-max-latest` are supported.
+- You can also use [`UI-TARS`](https://github.com/bytedance/ui-tars) model, which is an **open-source model** dedicated for UI automation. You can deploy it on your own server, and it will dramatically improve the performance and data privacy. 
+- Read more about [Choose a model](https://midscenejs.com/choose-a-model)
+
+## 👀 Comparing to ...
+
+There are so many UI automation tools out there, and each one seems to be all-powerful. What's special about Midscene.js?
+
+* Debugging Experience: You will soon find that debugging and maintaining automation scripts is the real challenge point. No matter how magic the demo is, you still need to debug the process to make it stable over time. Midscene.js offers a visualized report file, a built-in playground, and a Chrome Extension to debug the entire process. This is what most developers really need. And we're continuing to work on improving the debugging experience.
+
+* Open Source, Free, Deploy as you want: Midscene.js is an open-source project. It's decoupled from any cloud service and model provider, you can choose either public or private deployment. There is always a suitable plan for your business.
+
+* Integrate with Javascript: You can always bet on Javascript 😎
+
+## 📄 Resources 
 
 * [Home Page: https://midscenejs.com](https://midscenejs.com/)
 * [Quick Experience By Chrome Extension](https://midscenejs.com/quick-experience.html), this is where you should get started 
@@ -50,14 +71,15 @@ Midscene.js is an AI-powered automation SDK can control the page, perform assert
   * [Integrate with Puppeteer](https://midscenejs.com/integrate-with-puppeteer.html)
   * [Integrate with Playwright](https://midscenejs.com/integrate-with-playwright.html)
 * [API Reference](https://midscenejs.com/api.html)
-* [Customize Model and Provider（e.g. using Gemini）](https://midscenejs.com/model-provider.html), see how to use your own model and provider
+* [Choose a model](https://midscenejs.com/choose-a-model.html)
+* [Config Model and Provider](https://midscenejs.com/model-provider.html)
 
-## Community
+## 🤝 Community
 
-* [Discord](https://discord.gg/AFHJBdnn)
+* [Discord](https://discord.gg/XEYR3tmZ)
 * [Follow us on X](https://x.com/midscene_ai)
 * [Lark Group](https://applink.larkoffice.com/client/chat/chatter/add_by_link?link_token=291q2b25-e913-411a-8c51-191e59aab14d)
 
-## License
+## 📝 License
 
 Midscene.js is [MIT licensed](https://github.com/web-infra-dev/midscene/blob/main/LICENSE).

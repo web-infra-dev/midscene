@@ -140,6 +140,7 @@ export interface DumpMeta {
   sdkVersion: string;
   logTime: number;
   model_name: string;
+  model_description?: string;
 }
 
 export interface ReportDumpWithAttributes {

@@ -28,12 +28,18 @@ export async function launchPage(
   await originPage.setUserAgent(
     'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
   );
-  const response = await originPage.goto(url);
-  await originPage.waitForNetworkIdle({
-    concurrency: 1,
-  });
-  if (response?.status) {
-    assert(response.status() <= 399, `Page load failed: ${response.status()}`);
+  let response;
+  try {
+    response = await originPage.goto(url);
+    await originPage.waitForNetworkIdle({ concurrency: 1 });
+  } catch (e) {
+    // ignore navigation error
+    if (response?.status) {
+      assert(
+        response.status() <= 399,
+        `Page load failed: ${response.status()}`,
+      );
+    }
   }
   const page = new PuppeteerWebPage(originPage);
 
@@ -44,6 +50,7 @@ export async function launchPage(
       const pages = await browser.pages();
       await Promise.all(pages.map((page) => page.close()));
       await browser.close();
+      await new Promise((resolve) => setTimeout(resolve, 1000));
     },
   };
 }

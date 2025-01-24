@@ -12,11 +12,8 @@ test('ai todo', async ({ ai, aiQuery }) => {
     test.setTimeout(1000 * 50);
   }
 
-  await ai('Enter "Learn" in the task box, don\'t press enter');
-
-  await ai(
-    'Add "JS today" to base on the existing content(important) of the task box, then press enter',
-  );
+  await ai('Enter "Happy Birthday" in the task box');
+  await ai('Enter "Learn JS today"in the task box, then press Enter to create');
 
   await ai(
     'Enter "Learn Rust tomorrow" in the task box, then press Enter to create',
@@ -26,6 +23,7 @@ test('ai todo', async ({ ai, aiQuery }) => {
   );
 
   const allTaskList = await aiQuery<string[]>('string[], tasks in the list');
+  console.log('allTaskList', allTaskList);
   expect(allTaskList.length).toBe(3);
   expect(allTaskList).toContain('Learn JS today');
   expect(allTaskList).toContain('Learn Rust tomorrow');

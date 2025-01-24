@@ -9,8 +9,8 @@ import {
   repeatFile,
 } from './test-suite/util';
 import 'dotenv/config';
+import { repeatTime } from '../util';
 
-const repeatTime = 2;
 const testSources = [
   // 'todo',
   'online_order',

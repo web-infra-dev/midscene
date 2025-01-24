@@ -368,6 +368,9 @@ importers:
       fs-extra:
         specifier: 11.2.0
         version: 11.2.0
+      http-server:
+        specifier: 14.1.1
+        version: 14.1.1
       js-sha256:
         specifier: 0.11.0
         version: 0.11.0

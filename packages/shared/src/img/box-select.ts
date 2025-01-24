@@ -238,7 +238,8 @@ export const compositeElementInfoImg = async (options: {
       return compositeImage;
     })
     .then(async (compositeImage: Jimp) => {
-      const base64 = await compositeImage.getBase64Async(Jimp.MIME_PNG);
+      compositeImage.quality(75);
+      const base64 = await compositeImage.getBase64Async(Jimp.MIME_JPEG);
       return base64;
     })
     .catch((error: unknown) => {

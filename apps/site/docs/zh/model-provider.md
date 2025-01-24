@@ -1,20 +1,28 @@
-# 自定义模型和服务商
+# 配置模型和服务商
 
 Midscene 默认集成了 OpenAI SDK 调用 AI 服务。使用这个 SDK 限定了 AI 服务出入参的形式，但并不意味着你只能使用 OpenAI 的模型，你可以使用任何兼容此类接口的模型服务（绝大多数平台或工具都支持）。
 
-在本文中，我们将展示如何配置 AI 服务提供商，以及如何选择不同的模型。
+在本文中，我们将展示如何配置 AI 提供商，以及如何选择不同的模型。你可以先阅读 [选择 AI 模型](./choose-a-model) 来了解如何选择模型。
 
 ## 配置
 
 你可以通过环境变量来自定义配置。这些配置同样可以在 [Chrome 插件](./quick-experience) 中使用。
 
-常用的主要配置项如下，其中 `OPENAI_API_KEY` 是必选项。
+常用的主要配置项如下，其中 `OPENAI_API_KEY` 是必选项：
 
 | 名称 | 描述 |
 |------|-------------|
 | `OPENAI_API_KEY` | 必选项。你的 OpenAI API Key (如 "sk-abcdefghijklmnopqrstuvwxyz") |
 | `OPENAI_BASE_URL` | 可选。API 的接入 URL。常用于切换到其他模型服务，如 `https://some_service_name.com/v1` |
 | `MIDSCENE_MODEL_NAME` | 可选。指定一个不同的模型名称 (默认是 gpt-4o)。常用于切换到其他模型服务|
+
+使用 `UI-TARS` 模型：
+
+`UI-TARS` 是一个专为 UI 自动化设计的模型，更多详情请参阅 [选择 AI 模型](./choose-a-model)。
+
+| 名称 | 描述 |
+|------|-------------|
+| `MIDSCENE_USE_VLM_UI_TARS` | 可选。设置为 "1" 以使用 UI-TARS 模型 |
 
 还有一些高级配置项，通常不需要使用。
 
@@ -59,21 +67,11 @@ OPENAI_API_KEY="sk-abcdefghijklmnopqrstuvwxyz"
 import 'dotenv/config';
 ```
 
-## 选用 `gpt-4o` 以外的其他模型
-
-我们发现 `gpt-4o` 是目前表现最佳的模型。其他已知支持的模型有：`claude-3-opus-20240229`, `gemini-1.5-pro`, `qwen-vl-max-latest`（千问）, `doubao-vision-pro-32k`（豆包）
-
-如果你想要使用其他模型，请遵循以下步骤：
-
-1. 选择一个支持视觉输入的模型（也就是“多模态模型”）。
-2. 找出如何使用 OpenAI SDK 兼容的方式调用它，模型提供商一般都会提供这样的接入点，你需要配置的是 `OPENAI_BASE_URL`, `OPENAI_API_KEY` 和 `MIDSCENE_MODEL_NAME`。
-3. 如果发现使用新模型后效果不佳，可以尝试使用一些简短且清晰的提示词（或回滚到之前的模型）。更多详情请参阅 [Prompting Tips](./prompting-tips)。
-4. 请遵守各模型的使用条款。
-
-
 ## 使用 Azure OpenAI 服务时的配置
 
-使用 ADT token provider
+### 使用 ADT token provider
+
+此种模式无法运行在浏览器插件中。
 
 ```bash
 # 使用 Azure OpenAI 服务时，配置为 1
@@ -85,7 +83,7 @@ export AZURE_OPENAI_API_VERSION="2024-05-01-preview"
 export AZURE_OPENAI_DEPLOYMENT="gpt-4o"
 ```
 
-使用 keyless 模式
+### 使用 keyless 模式
 
 ```bash
 export MIDSCENE_USE_AZURE_OPENAI=1

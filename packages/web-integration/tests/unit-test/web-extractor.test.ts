@@ -4,15 +4,33 @@ import { generateExtractData } from '@/debug';
 import StaticPage from '@/playground/static-page';
 import type { WebElementInfo } from '@/web-element';
 import { imageInfoOfBase64 } from '@midscene/shared/img';
-import { describe, expect, it } from 'vitest';
+import { createServer } from 'http-server';
+import { beforeAll, describe, expect, it } from 'vitest';
 import { launchPage } from '../ai/web/puppeteer/utils';
 
-const pagePath = join(__dirname, './fixtures/web-extractor/index.html');
+const pageDir = join(__dirname, './fixtures/web-extractor');
+const pagePath = join(pageDir, 'index.html');
 describe(
   'extractor',
   () => {
+    const port = 8082;
+    beforeAll(async () => {
+      const localServer = await new Promise((resolve, reject) => {
+        const server = createServer({
+          root: pageDir,
+        });
+        server.listen(port, '127.0.0.1', () => {
+          resolve(server);
+        });
+      });
+
+      return () => {
+        (localServer as any).server.close();
+      };
+    });
+
     it('basic', async () => {
-      const { page, reset } = await launchPage(`file://${pagePath}`, {
+      const { page, reset } = await launchPage(`http://127.0.0.1:${port}`, {
         viewport: {
           width: 1080,
           height: 3000,
@@ -134,7 +152,7 @@ describe(
     });
 
     it('profiling', async () => {
-      const { page, reset } = await launchPage('https://webinfra.org/about');
+      const { page, reset } = await launchPage('https://www.bytedance.com');
       await new Promise((resolve) => setTimeout(resolve, 1000));
       console.time('total - parseContextFromWebPage');
       await parseContextFromWebPage(page);

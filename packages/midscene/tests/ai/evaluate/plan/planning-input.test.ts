@@ -1,7 +1,7 @@
 import { plan } from '@/ai-model';
 /* eslint-disable max-lines-per-function */
 import { describe, expect, it, vi } from 'vitest';
-import { makePlanResultStable } from '../../util';
+import { makePlanResultStable, repeatTime } from '../../util';
 import { getPageDataOfTestName, repeat } from './../test-suite/util';
 
 vi.setConfig({
@@ -10,7 +10,7 @@ vi.setConfig({
 });
 
 describe('automation - planning input', () => {
-  repeat(5, () =>
+  repeat(repeatTime, () =>
     it('input value', async () => {
       const { context } = await getPageDataOfTestName('todo');
       const instructions = [
@@ -26,7 +26,7 @@ describe('automation - planning input', () => {
     }),
   );
 
-  repeat(5, () =>
+  repeat(repeatTime, () =>
     it('input value Add, delete, correct and check', async () => {
       const { context } = await getPageDataOfTestName('todo-input-with-value');
       const instructions = [

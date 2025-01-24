@@ -62,27 +62,31 @@ function emptyDumpReportHTML() {
 
 const tplRetrieverFn = `window.get_midscene_report_tpl = () => {
   const tpl = document.getElementById('midscene_report_tpl').innerText;
+  if (!tpl) {
+    return '';
+  }
   const tplDecoded = decodeURIComponent(tpl);
   return tplDecoded;
 };`;
 function putReportTplIntoHTML(html: string, outsourceMode = false) {
   assert(html.indexOf('</body>') !== -1, 'HTML must contain </body>');
 
-  const tplWrapper = `<noscript id="midscene_report_tpl">\n${encodeURIComponent(
-    emptyDumpReportHTML(),
-  )}\n</noscript>`;
-
   if (outsourceMode) {
+    const tplWrapper = `<noscript id="midscene_report_tpl">\n${encodeURIComponent(
+      emptyDumpReportHTML(),
+    )}\n</noscript>`;
     // in Chrome extension
     return html.replace(
       '</body>',
       `${tplWrapper}<script src="/lib/set-report-tpl.js"></script>\n</body>`,
     );
   }
-  return html.replace(
-    '</body>',
-    `${tplWrapper}<script>${tplRetrieverFn}</script>\n</body>`,
-  );
+
+  return html;
+  // return html.replace(
+  //   '</body>',
+  //   `${tplWrapper}<script>${tplRetrieverFn}</script>\n</body>`,
+  // );
 }
 
 function reportHTMLWithDump(
@@ -95,8 +99,15 @@ function reportHTMLWithDump(
     dumpContent = `<script type="midscene_web_dump">\n${dumpJsonString}\n</script>`;
   }
 
+  const emptyDumpHTML = emptyDumpReportHTML();
+  assert(
+    emptyDumpHTML.length <
+      (process.env.CI ? 10 * 1000 * 1000 : 20 * 1000 * 1000),
+    `emptyDumpHTML is too large, length: ${emptyDumpHTML.length}`,
+  );
+
   const reportHTML = replaceStringWithFirstAppearance(
-    emptyDumpReportHTML(),
+    emptyDumpHTML,
     '{{dump}}',
     dumpContent || '{{dump}}',
   );
