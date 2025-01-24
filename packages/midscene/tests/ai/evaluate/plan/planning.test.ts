@@ -81,7 +81,10 @@ describe('automation - planning', () => {
       const planFromAI = await plan('close Cookie Prompt', {
         context,
       });
-      console.log('planFromAI', planFromAI);
+      console.log(
+        'throw error when instruction is not feasible res:',
+        planFromAI,
+      );
     }).rejects.toThrow();
   });
 
