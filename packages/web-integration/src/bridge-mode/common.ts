@@ -26,6 +26,7 @@ export enum MouseEvent {
   Click = 'mouse.click',
   Wheel = 'mouse.wheel',
   Move = 'mouse.move',
+  Drag = 'mouse.drag',
 }
 
 export enum KeyboardEvent {

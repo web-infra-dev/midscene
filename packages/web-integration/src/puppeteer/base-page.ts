@@ -96,6 +96,32 @@ export class Page<
       },
       move: async (x: number, y: number) =>
         this.underlyingPage.mouse.move(x, y),
+      drag: async (
+        from: { x: number; y: number },
+        to: { x: number; y: number },
+      ) => {
+        if (this.pageType === 'puppeteer') {
+          await (this.underlyingPage as PuppeteerPage).mouse.drag(
+            {
+              x: from.x,
+              y: from.y,
+            },
+            {
+              x: to.x,
+              y: to.y,
+            },
+          );
+        } else if (this.pageType === 'playwright') {
+          // Playwright doesn't have a drag method, so we need to simulate it
+          await (this.underlyingPage as PlaywrightPage).mouse.move(
+            from.x,
+            from.y,
+          );
+          await (this.underlyingPage as PlaywrightPage).mouse.down();
+          await (this.underlyingPage as PlaywrightPage).mouse.move(to.x, to.y);
+          await (this.underlyingPage as PlaywrightPage).mouse.up();
+        }
+      },
     };
   }
 

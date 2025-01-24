@@ -322,9 +322,11 @@ export class PageTaskExecutor {
           thought: plan.thought,
           locate: plan.locate,
           executor: async (taskParam) => {
-            console.log('taskParam', taskParam);
-            // assert(taskParam?.value, 'No key to press');
-            // await this.page.keyboard.press(taskParam.value as KeyInput);
+            assert(
+              taskParam?.start_box && taskParam?.end_box,
+              'No start_box or end_box to drag',
+            );
+            await this.page.mouse.drag(taskParam.start_box, taskParam.end_box);
           },
         };
         tasks.push(taskActionDrag);

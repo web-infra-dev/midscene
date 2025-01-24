@@ -425,6 +425,27 @@ export default class ChromeExtensionProxyPage implements AbstractPage {
         y,
       });
     },
+    drag: async (
+      from: { x: number; y: number },
+      to: { x: number; y: number },
+    ) => {
+      await this.mouse.move(from.x, from.y);
+      await this.sendCommandToDebugger('Input.dispatchMouseEvent', {
+        type: 'mousePressed',
+        x: from.x,
+        y: from.y,
+        button: 'left',
+        clickCount: 1,
+      });
+      await this.mouse.move(to.x, to.y);
+      await this.sendCommandToDebugger('Input.dispatchMouseEvent', {
+        type: 'mouseReleased',
+        x: to.x,
+        y: to.y,
+        button: 'left',
+        clickCount: 1,
+      });
+    },
   };
 
   keyboard = {

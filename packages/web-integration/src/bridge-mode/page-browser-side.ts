@@ -55,6 +55,9 @@ export class ChromeExtensionPageBrowserSide extends ChromeExtensionProxyPage {
 
         if (method.startsWith(MouseEvent.PREFIX)) {
           const actionName = method.split('.')[1] as keyof MouseAction;
+          if (actionName === 'drag') {
+            return this.mouse[actionName].apply(this.mouse, args as any);
+          }
           return this.mouse[actionName].apply(this.mouse, args as any);
         }
 

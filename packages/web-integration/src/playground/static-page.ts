@@ -80,6 +80,7 @@ export default class StaticPage implements AbstractPage {
     click: ThrowNotImplemented.bind(null, 'mouse.click'),
     wheel: ThrowNotImplemented.bind(null, 'mouse.wheel'),
     move: ThrowNotImplemented.bind(null, 'mouse.move'),
+    drag: ThrowNotImplemented.bind(null, 'mouse.drag'),
   };
 
   keyboard = {
