@@ -1,12 +1,13 @@
 import path from 'node:path';
 import { vlmPlanning } from '@/ai-model/ui-tars-planning';
 import { savePositionImg } from '@midscene/shared/img';
-import { expect, test } from 'vitest';
+import { expect, it, test } from 'vitest';
 import { getPageTestData } from '../evaluate/test-suite/util';
 
-test.skipIf(!process.env.MIDSCENE_USE_VLM_UI_TARS)(
-  'inspect with quick answer',
-  async () => {
+const isUiTars = process.env.MIDSCENE_USE_VLM_UI_TARS === '1';
+
+test.skipIf(!isUiTars)('only run in ui-tars', () => {
+  it('plan to target', async () => {
     const { context } = await getPageTestData(
       path.join(__dirname, '../evaluate/test-data/todo'),
     );
@@ -56,6 +57,5 @@ test.skipIf(!process.env.MIDSCENE_USE_VLM_UI_TARS)(
       rect: { x: box[0] * width, y: box[1] * height },
       outputPath: path.join(__dirname, 'output.png'),
     });
-    //   expect(cost).toBeLessThan(100);
-  },
-);
+  });
+});

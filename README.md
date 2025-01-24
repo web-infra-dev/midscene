@@ -28,7 +28,7 @@ Midscene.js is an AI-powered automation SDK with the abilities to control the pa
 
 | Instruction  | Video |
 | :---:  | :---: |
-| Post a Twitter      |    <video src="https://github.com/user-attachments/assets/bb3d695a-fbff-4af1-b6cc-5e967c07ccee" height="300" />    |
+| Post a Tweet      |    <video src="https://github.com/user-attachments/assets/bb3d695a-fbff-4af1-b6cc-5e967c07ccee" height="300" />    |
 | Use JS code to drive task orchestration, collect information about Jay Chou's concert, and write it into Google Docs   | <video src="https://github.com/user-attachments/assets/75474138-f51f-4c54-b3cf-46d61d059999" height="300" />        |
 
 
@@ -76,7 +76,7 @@ There are so many UI automation tools out there, and each one seems to be all-po
 
 ## 🤝 Community
 
-* [Discord](https://discord.gg/AFHJBdnn)
+* [Discord](https://discord.gg/XEYR3tmZ)
 * [Follow us on X](https://x.com/midscene_ai)
 * [Lark Group](https://applink.larkoffice.com/client/chat/chatter/add_by_link?link_token=291q2b25-e913-411a-8c51-191e59aab14d)
 

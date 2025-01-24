@@ -78,7 +78,7 @@ Midscene.js 是一个由 AI 驱动的自动化 SDK，能够使用自然语言对
 ## 🤝 社区
 
 * [飞书交流群](https://applink.larkoffice.com/client/chat/chatter/add_by_link?link_token=291q2b25-e913-411a-8c51-191e59aab14d)
-* [Discord](https://discord.gg/AFHJBdnn)
+* [Discord](https://discord.gg/XEYR3tmZ)
 * [Follow us on X](https://x.com/midscene_ai)
 
   <img src="https://github.com/user-attachments/assets/211b05c9-3ccd-4f52-b798-f3a7f51330ed" alt="lark group link" width="300" />

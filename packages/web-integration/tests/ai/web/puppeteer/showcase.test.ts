@@ -75,7 +75,7 @@ describe(
       const mid = new PuppeteerAgent(originPage);
 
       // await mid.aiAction('If pop-ups are displayed click seven days out alert');
-
+      await sleep(8000);
       await mid.aiAction(
         'Click the password input in the demo section on page, type "abc"',
       );

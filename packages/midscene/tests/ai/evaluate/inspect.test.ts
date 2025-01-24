@@ -14,8 +14,8 @@ import {
   runTestCases,
 } from './test-suite/util';
 import 'dotenv/config';
+import { repeatTime } from '../util';
 
-const repeatTime = 2;
 const relocateAfterPlanning = false;
 const failCaseThreshold = process.env.CI ? 1 : 0;
 const testSources = [
