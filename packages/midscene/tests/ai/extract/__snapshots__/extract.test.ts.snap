@@ -1,6 +1,6 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
-exports[`assert openAI > online order 1`] = `
+exports[`extract > online order 1`] = `
 {
   "data": [
     {
@@ -17,7 +17,7 @@ exports[`assert openAI > online order 1`] = `
 }
 `;
 
-exports[`assert openAI > todo 1`] = `
+exports[`extract > todo 1`] = `
 {
   "data": [
     "Learn Python",
@@ -29,7 +29,7 @@ exports[`assert openAI > todo 1`] = `
 }
 `;
 
-exports[`assert openAI > todo obj 1`] = `
+exports[`extract > todo obj 1`] = `
 {
   "data": [
     {
