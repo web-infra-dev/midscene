@@ -348,26 +348,23 @@ export class PageTaskExecutor {
                 await this.page.scrollUntilRight(startingPoint);
               } else if (scrollToEventName === 'untilLeft') {
                 await this.page.scrollUntilLeft(startingPoint);
-              } else if (
-                (scrollToEventName === 'once' || !scrollToEventName) &&
-                taskParam?.direction
-              ) {
-                if (taskParam.direction === 'down' || !taskParam.direction) {
+              } else if (scrollToEventName === 'once' || !scrollToEventName) {
+                if (taskParam?.direction === 'down') {
                   await this.page.scrollDown(
                     taskParam.distance || undefined,
                     startingPoint,
                   );
-                } else if (taskParam.direction === 'up') {
+                } else if (taskParam?.direction === 'up') {
                   await this.page.scrollUp(
                     taskParam.distance || undefined,
                     startingPoint,
                   );
-                } else if (taskParam.direction === 'left') {
+                } else if (taskParam?.direction === 'left') {
                   await this.page.scrollLeft(
                     taskParam.distance || undefined,
                     startingPoint,
                   );
-                } else if (taskParam.direction === 'right') {
+                } else if (taskParam?.direction === 'right') {
                   await this.page.scrollRight(
                     taskParam.distance || undefined,
                     startingPoint,
