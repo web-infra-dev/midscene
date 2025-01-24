@@ -8,11 +8,11 @@ vi.setConfig({
   testTimeout: 260 * 1000,
 });
 
-describe.skipIf(process.env.CI)('drag event', () => {
+describe.skipIf(!process.env.BRIDGE_MODE)('drag event', () => {
   it('agent in cli side, current tab', async () => {
     const agent = new AgentOverChromeBridge();
     await agent.connectCurrentTab();
-    const answer = await agent.ai('完成滑块拖动');
+    await agent.ai('Finish dragging the slider');
 
     await agent.destroy();
   });
