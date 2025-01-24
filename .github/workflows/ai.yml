@@ -1,4 +1,4 @@
-name: AI e2e test
+name: AI test
 on:
   push:
     branches:
@@ -110,6 +110,22 @@ jobs:
         path: ${{ github.workspace }}/packages/web-integration/midscene_run/report
         if-no-files-found: ignore
 
+    - name: Run tests
+      run: pnpm run test:ai
+      id: test-ai
+      continue-on-error: true
+
+    - name: Upload test-ai output
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: test-ai-output
+        path: ${{ github.workspace }}/packages/web-integration/midscene_run/report
+        if-no-files-found: ignore
+
+    - name: Check if script failed
+      if: steps.test-ai.outcome == 'failure'
+      run: exit 1
 
 
 
