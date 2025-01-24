@@ -1,80 +1,68 @@
 {
-    "name": "@midscene/core",
-    "description": "Automate browser actions, extract data, and perform assertions using AI. It offers JavaScript SDK, Chrome extension, and support for scripting in YAML. See https://midscenejs.com/ for details.",
-    "version": "0.10.1",
-    "repository": "https://github.com/web-infra-dev/midscene",
-    "homepage": "https://midscenejs.com/",
-    "jsnext:source": "./src/index.ts",
-    "type": "commonjs",
-    "main": "./dist/lib/index.js",
-    "types": "./dist/lib/types/index.d.ts",
-    "files": [
-        "dist",
-        "report",
-        "README.md"
-    ],
-    "exports": {
-        ".": "./dist/lib/index.js",
-        "./env": "./dist/lib/env.js",
-        "./utils": "./dist/lib/utils.js",
-        "./ai-model": "./dist/lib/ai-model.js"
-    },
-    "typesVersions": {
-        "*": {
-            ".": [
-                "./dist/lib/types/index.d.ts"
-            ],
-            "env": [
-                "./dist/lib/types/env.d.ts"
-            ],
-            "utils": [
-                "./dist/lib/types/utils.d.ts"
-            ],
-            "ai-model": [
-                "./dist/lib/types/ai-model.d.ts"
-            ]
-        }
-    },
-    "scripts": {
-        "dev": "modern dev",
-        "build": "modern build",
-        "build:watch": "modern build -w",
-        "new": "modern new",
-        "upgrade": "modern upgrade",
-        "test": "vitest --run -u",
-        "test:ai": "AITEST=true npm run test",
-        "computer": "TEST_COMPUTER=true npm run test:ai -- tests/ai/evaluate/computer.test.ts",
-        "evaluate": "npm run test:ai -- tests/ai/evaluate/inspect.test.ts",
-        "evaluate:assertion": "npm run test:ai -- tests/ai/evaluate/assertion.test.ts",
-        "evaluate:plan": "npm run test:ai -- tests/ai/evaluate/plan/planning.test.ts",
-        "evaluate:update": "UPDATE_AI_DATA=true npm run test:ai -- tests/ai/evaluate/inspect.test.ts",
-        "prompt": "npm run test:ai -- tests/ai/parse-action.test.ts",
-        "prepublishOnly": "npm run build"
-    },
-    "dependencies": {
-        "@azure/identity": "4.5.0",
-        "@anthropic-ai/sdk": "0.33.1",
-        "@midscene/shared": "workspace:*",
-        "@langchain/core": "0.3.26",
-        "socks-proxy-agent": "8.0.4",
-        "openai": "4.57.1"
-    },
-    "devDependencies": {
-        "@modern-js/module-tools": "2.60.6",
-        "@types/node": "^18.0.0",
-        "@types/node-fetch": "2.6.11",
-        "dirty-json": "0.9.2",
-        "dotenv": "16.4.5",
-        "langsmith": "0.1.36",
-        "typescript": "~5.0.4",
-        "vitest": "^1.6.0"
-    },
-    "engines": {
-        "node": ">=18.0.0"
-    },
-    "publishConfig": {
-        "access": "public",
-        "registry": "https://registry.npmjs.org"
-    },
-    "license": "MIT"
+  "name": "@midscene/core",
+  "description": "Automate browser actions, extract data, and perform assertions using AI. It offers JavaScript SDK, Chrome extension, and support for scripting in YAML. See https://midscenejs.com/ for details.",
+  "version": "0.10.1",
+  "repository": "https://github.com/web-infra-dev/midscene",
+  "homepage": "https://midscenejs.com/",
+  "jsnext:source": "./src/index.ts",
+  "type": "commonjs",
+  "main": "./dist/lib/index.js",
+  "types": "./dist/lib/types/index.d.ts",
+  "files": ["dist", "report", "README.md"],
+  "exports": {
+    ".": "./dist/lib/index.js",
+    "./env": "./dist/lib/env.js",
+    "./utils": "./dist/lib/utils.js",
+    "./ai-model": "./dist/lib/ai-model.js"
+  },
+  "typesVersions": {
+    "*": {
+      ".": ["./dist/lib/types/index.d.ts"],
+      "env": ["./dist/lib/types/env.d.ts"],
+      "utils": ["./dist/lib/types/utils.d.ts"],
+      "ai-model": ["./dist/lib/types/ai-model.d.ts"]
+    }
+  },
+  "scripts": {
+    "dev": "modern dev",
+    "build": "modern build",
+    "build:watch": "modern build -w",
+    "new": "modern new",
+    "upgrade": "modern upgrade",
+    "test": "vitest --run -u",
+    "test:ai": "AITEST=true npm run test",
+    "computer": "TEST_COMPUTER=true npm run test:ai -- tests/ai/evaluate/computer.test.ts",
+    "evaluate": "npm run test:ai -- tests/ai/evaluate/inspect.test.ts",
+    "evaluate:assertion": "npm run test:ai -- tests/ai/evaluate/assertion.test.ts",
+    "evaluate:plan": "npm run test:ai -- tests/ai/evaluate/plan/planning.test.ts",
+    "evaluate:update": "UPDATE_AI_DATA=true npm run test:ai -- tests/ai/evaluate/inspect.test.ts",
+    "prompt": "npm run test:ai -- tests/ai/parse-action.test.ts",
+    "prepublishOnly": "npm run build"
+  },
+  "dependencies": {
+    "@azure/identity": "4.5.0",
+    "@anthropic-ai/sdk": "0.33.1",
+    "@midscene/shared": "workspace:*",
+    "@langchain/core": "0.3.26",
+    "socks-proxy-agent": "8.0.4",
+    "openai": "4.57.1"
+  },
+  "devDependencies": {
+    "@modern-js/module-tools": "2.60.6",
+    "@types/node": "^18.0.0",
+    "@types/node-fetch": "2.6.11",
+    "dirty-json": "0.9.2",
+    "dotenv": "16.4.5",
+    "langsmith": "0.1.36",
+    "typescript": "~5.0.4",
+    "vitest": "^1.6.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org"
+  },
+  "license": "MIT"
 }
