@@ -26,6 +26,8 @@ Midscene.js is an AI-powered automation SDK with the abilities to control the pa
 
 ## Showcases
 
+The following recorded example is based on the UI-TARS model. The video was recorded using the [UI-TARS 7B SFT](https://huggingface.co/bytedance-research/UI-TARS-7B-SFT) model, and the video has not been sped up at all~
+
 | Instruction  | Video |
 | :---:  | :---: |
 | Post a Tweet      |    <video src="https://github.com/user-attachments/assets/bb3d695a-fbff-4af1-b6cc-5e967c07ccee" height="300" />    |
