@@ -5,7 +5,7 @@ exports[`automation - planning input > input value 1`] = `
   {
     "locate": {
       "id": "fbc2d002",
-      "prompt": "the taskbar input field",
+      "prompt": "the input field with placeholder 'What needs to be done?'",
     },
     "param": {
       "value": "learning english",
@@ -21,7 +21,7 @@ exports[`automation - planning input > input value 2`] = `
   {
     "locate": {
       "id": "fbc2d002",
-      "prompt": "the taskbar input field",
+      "prompt": "the input field labeled 'What needs to be done?'",
     },
     "param": {
       "value": "learning english",
