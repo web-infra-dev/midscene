@@ -348,7 +348,10 @@ export class PageTaskExecutor {
                 await this.page.scrollUntilRight(startingPoint);
               } else if (scrollToEventName === 'untilLeft') {
                 await this.page.scrollUntilLeft(startingPoint);
-              } else if (scrollToEventName === 'once' || !scrollToEventName) {
+              } else if (
+                (scrollToEventName === 'once' || !scrollToEventName) &&
+                taskParam?.direction
+              ) {
                 if (taskParam.direction === 'down' || !taskParam.direction) {
                   await this.page.scrollDown(
                     taskParam.distance || undefined,
