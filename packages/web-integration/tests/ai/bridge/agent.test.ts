@@ -8,7 +8,8 @@ vi.setConfig({
   testTimeout: 60 * 1000,
 });
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
-describe.skipIf(process.env.CI)(
+
+describe.skipIf(!process.env.BRIDGE_MODE)(
   'fully functional agent in server(cli) side',
   () => {
     it('basic', async () => {

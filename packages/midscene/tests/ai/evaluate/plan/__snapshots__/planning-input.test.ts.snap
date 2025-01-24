@@ -1,0 +1,89 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`automation - planning input > input value 1`] = `
+[
+  {
+    "locate": {
+      "id": "fbc2d002",
+      "prompt": "the taskbar input field",
+    },
+    "param": {
+      "value": "learning english",
+    },
+    "thought": undefined,
+    "type": "Input",
+  },
+]
+`;
+
+exports[`automation - planning input > input value 2`] = `
+[
+  {
+    "locate": {
+      "id": "fbc2d002",
+      "prompt": "the taskbar input field",
+    },
+    "param": {
+      "value": "learning english",
+    },
+    "thought": undefined,
+    "type": "Input",
+  },
+  {
+    "locate": null,
+    "param": {
+      "value": "Enter",
+    },
+    "thought": undefined,
+    "type": "KeyboardPress",
+  },
+]
+`;
+
+exports[`automation - planning input > input value Add, delete, correct and check 1`] = `
+[
+  {
+    "locate": {
+      "id": "fbc2d002",
+      "prompt": "the task input box with the content 'Learn English'",
+    },
+    "param": {
+      "value": "Learn English tomorrow",
+    },
+    "thought": undefined,
+    "type": "Input",
+  },
+]
+`;
+
+exports[`automation - planning input > input value Add, delete, correct and check 2`] = `
+[
+  {
+    "locate": {
+      "id": "fbc2d002",
+      "prompt": "the input box containing 'Learn English'",
+    },
+    "param": {
+      "value": "Learn Skiing",
+    },
+    "thought": undefined,
+    "type": "Input",
+  },
+]
+`;
+
+exports[`automation - planning input > input value Add, delete, correct and check 3`] = `
+[
+  {
+    "locate": {
+      "id": "fbc2d002",
+      "prompt": "the task input box containing 'Learn English'",
+    },
+    "param": {
+      "value": "Learn",
+    },
+    "thought": undefined,
+    "type": "Input",
+  },
+]
+`;
