@@ -26,7 +26,7 @@ Midscene.js 是一个由 AI 驱动的自动化 SDK，能够使用自然语言对
 
 ## 案例
 
-下面的录制 example 基于 UI-TARS 模型，视频基于 [UI-TARS 7B SFT](https://huggingface.co/bytedance-research/UI-TARS-7B-SFT) 模型录制，视频没有任何加速～
+下面的录制 example 视频基于 [UI-TARS 7B SFT](https://huggingface.co/bytedance-research/UI-TARS-7B-SFT) 模型，视频没有任何加速～
 
 | 指令  | 视频 |
 | :---:  | :---: |
