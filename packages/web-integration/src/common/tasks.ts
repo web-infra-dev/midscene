@@ -355,20 +355,20 @@ export class PageTaskExecutor {
                   !taskParam.direction
                 ) {
                   await this.page.scrollDown(
-                    taskParam.distance || undefined,
+                    taskParam?.distance || undefined,
                     startingPoint,
                   );
-                } else if (taskParam?.direction === 'up') {
+                } else if (taskParam.direction === 'up') {
                   await this.page.scrollUp(
                     taskParam.distance || undefined,
                     startingPoint,
                   );
-                } else if (taskParam?.direction === 'left') {
+                } else if (taskParam.direction === 'left') {
                   await this.page.scrollLeft(
                     taskParam.distance || undefined,
                     startingPoint,
                   );
-                } else if (taskParam?.direction === 'right') {
+                } else if (taskParam.direction === 'right') {
                   await this.page.scrollRight(
                     taskParam.distance || undefined,
                     startingPoint,
