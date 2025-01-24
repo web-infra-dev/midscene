@@ -4,9 +4,9 @@ import { savePositionImg } from '@midscene/shared/img';
 import { expect, it, test } from 'vitest';
 import { getPageTestData } from '../evaluate/test-suite/util';
 
-const isUiTars = process.env.MIDSCENE_USE_VLM_UI_TARS !== '1';
+const isUiTars = process.env.MIDSCENE_USE_VLM_UI_TARS === '1';
 
-test.skipIf(isUiTars)('only run in ui-tars', () => {
+test.skipIf(!isUiTars)('only run in ui-tars', () => {
   it('plan to target', async () => {
     const { context } = await getPageTestData(
       path.join(__dirname, '../evaluate/test-data/todo'),
