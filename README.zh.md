@@ -22,7 +22,7 @@
   <a href="https://x.com/midscene_ai"><img src="https://img.shields.io/twitter/follow/midscene_ai" alt="twitter" /></a>
 </p>
 
-Midscene.js 让 AI 成为你的浏览器操作员 🤖。只需用自然语言描述你想做什么，它就能帮你操作网页、验证内容，并提取数据。无论你是想快速体验还是深度开发，都可以轻松上手。如果您在项目中使用了 Midscene.js，可以加入我们的 [社区](#-community) 来与我们交流和分享。
+Midscene.js 让 AI 成为你的浏览器操作员 🤖。只需用自然语言描述你想做什么，它就能帮你操作网页、验证内容，并提取数据。无论你是想快速体验还是深度开发，都可以轻松上手。如果您在项目中使用了 Midscene.js，可以加入我们的 [社区](https://github.com/web-infra-dev/midscene?tab=readme-ov-file#-community) 来与我们交流和分享。
 
 ## 案例
 
