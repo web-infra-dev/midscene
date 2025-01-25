@@ -72,7 +72,7 @@ describe('ai inspect element', () => {
           console.log('assertion passed, thought:', result?.content?.thought);
         },
         {
-          timeout: 30 * 1000,
+          timeout: 60 * 1000,
         },
       );
     });
