@@ -92,7 +92,7 @@ If you use Midscene.js in your research or project, please cite:
 
 ```bibtex
 @software{Midscene.js,
-  author = {Zhou xiao, Yutao},
+  author = {Zhou, Xiao and Yu, Tao},
   title = {Midscene.js: Assign AI as your web operator.},
   year = {2025},
   publisher = {GitHub},
