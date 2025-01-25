@@ -90,6 +90,7 @@ There are so many UI automation tools out there, and each one seems to be all-po
 
 If you use Midscene.js in your research or project, please cite:
 
+```bibtex
 @software{Midscene.js,
   author = {Zhou xiao, Yutao},
   title = {Midscene.js: Assign AI as your web operator.},
@@ -97,6 +98,7 @@ If you use Midscene.js in your research or project, please cite:
   publisher = {GitHub},
   url = {https://github.com/web-infra-dev/midscene}
 }
+```
 
 
 ## 📝 License
