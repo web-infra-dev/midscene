@@ -92,6 +92,7 @@ Midscene.js 让 AI 成为你的浏览器操作员 🤖。只需用自然语言�
 
 如果您在研究或项目中使用了 Midscene.js，请引用：
 
+```bibtex
 @software{Midscene.js,
   author = {Zhou xiao, Yutao},
   title = {Midscene.js: Assign AI as your web operator.},
@@ -99,6 +100,8 @@ Midscene.js 让 AI 成为你的浏览器操作员 🤖。只需用自然语言�
   publisher = {GitHub},
   url = {https://github.com/web-infra-dev/midscene}
 }
+```
+
 
 ## 📝 授权许可
 
