@@ -39,13 +39,15 @@ The following recorded example video is based on the [UI-TARS 7B SFT](https://hu
 From version v0.10.0, we support a new open-source model named [`UI-TARS`](https://github.com/bytedance/ui-tars). Read more about it in [Choose a model](https://midscenejs.com/choose-a-model).
 
 ## 💡 Features
-
-- **Natural Language Interaction 👆**: Describe the steps, and let Midscene plan and control the user interface for you
-- **Understand UI, Answer in JSON 🔍**: Provide prompts regarding the desired data format, and then receive the expected response in JSON format.
-- **Intuitive Assertion 🤔**: Make assertions in natural language; it’s all based on AI understanding.
-- **Experience by Chrome Extension 🖥️**: Start immediately with the Chrome Extension. No code is needed while exploring.
-- **Visualized Report for Debugging 🎞️**: With our visualized report file, you can easily understand and debug the whole process.
-- **Totally Open Source! 🔥**: Experience a whole new world of automation development. Enjoy!
+- **Natural Language Interaction 👆**: Just describe your goals and steps, and Midscene will plan and operate the user interface for you.
+- **Chrome Extension Experience 🖥️**: Start experiencing immediately through the Chrome extension, no coding required.
+- **Puppeteer/Playwright Integration 🔧**: Supports Puppeteer and Playwright integration, allowing you to combine AI capabilities with these powerful automation tools for easy automation.
+- **Support Private Deployment 🤖**: Supports private deployment of [`UI-TARS`](https://github.com/bytedance/ui-tars) model, which outperforms closed-source models like GPT-4o and Claude in UI automation scenarios while better protecting data security.
+- **Support General Models 🌟**: Supports general large models like GPT-4o and Claude, adapting to various scenario needs.
+- **Visual Reports for Debugging 🎞️**: Through our test reports and Playground, you can easily understand, replay and debug the entire process.
+- **Completely Open Source 🔥**: Experience a whole new automation development experience, enjoy!
+- **Understand UI, JSON Format Responses 🔍**: You can specify data format requirements and receive responses in JSON format.
+- **Intuitive Assertions 🤔**: Express your assertions in natural language, and AI will understand and process them.
 
 ## ✨ Model Choices
 
