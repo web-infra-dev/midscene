@@ -10,7 +10,7 @@
 </div>
 
 <p align="center">
-  AI 加持，更愉悦的 UI 自动化
+  让 AI 成为你的浏览器操作员
 </p>
 
 <p align="center">

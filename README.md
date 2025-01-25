@@ -10,7 +10,7 @@ English | [简体中文](./README.zh.md)
 </div>
 
 <p align="center">
-  Joyful UI Automation
+  Assign AI as your browser operator.
 </p>
 
 <p align="center">
@@ -27,8 +27,6 @@ Midscene.js lets AI be your browser operator 🤖.
 Just describe what you want to do in natural language, and it will help you operate web pages, validate content, and extract data.
 
 Whether you want a quick experience or deep development, you can get started easily.
-
-If you are using Midscene.js in your project, you can join our [community](https://github.com/web-infra-dev/midscene?tab=readme-ov-file#-community) to communicate and share with us.
 
 
 ## Showcases
