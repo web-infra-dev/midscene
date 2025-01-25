@@ -22,11 +22,7 @@ English | [简体中文](./README.zh.md)
   <a href="https://x.com/midscene_ai"><img src="https://img.shields.io/twitter/follow/midscene_ai?style=flat-square" alt="twitter" /></a>
 </p>
 
-Midscene.js lets AI be your browser operator 🤖.
-
-Just describe what you want to do in natural language, and it will help you operate web pages, validate content, and extract data.
-
-Whether you want a quick experience or deep development, you can get started easily.
+Midscene.js lets AI be your browser operator 🤖.Just describe what you want to do in natural language, and it will help you operate web pages, validate content, and extract data. Whether you want a quick experience or deep development, you can get started easily.
 
 
 ## Showcases
