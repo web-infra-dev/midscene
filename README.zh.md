@@ -22,7 +22,7 @@
   <a href="https://x.com/midscene_ai"><img src="https://img.shields.io/twitter/follow/midscene_ai" alt="twitter" /></a>
 </p>
 
-Midscene.js 是一个由 AI 驱动的自动化 SDK，能够使用自然语言对网页进行操作、验证，并提取 JSON 格式的数据。
+Midscene.js 让 AI 成为你的浏览器操作员 🤖。只需用自然语言描述你想做什么，它就能帮你操作网页、验证内容，并提取数据。无论你是想快速体验还是深度开发，都可以轻松上手。如果您在项目中使用了 Midscene.js，可以加入我们的 [社区](#-community) 来与我们交流和分享。
 
 ## 案例
 
@@ -88,7 +88,25 @@ Midscene.js 是一个由 AI 驱动的自动化 SDK，能够使用自然语言对
 
   <img src="https://github.com/user-attachments/assets/211b05c9-3ccd-4f52-b798-f3a7f51330ed" alt="lark group link" width="300" />
 
+## 引用
+
+如果您在研究或项目中使用了 Midscene.js，请引用：
+
+@software{Midscene.js,
+  author = {Zhou xiao, Yutao},
+  title = {Midscene.js: Assign AI as your web operator.},
+  year = {2025},
+  publisher = {GitHub},
+  url = {https://github.com/web-infra-dev/midscene}
+}
 
 ## 📝 授权许可
 
 Midscene.js 遵循 [MIT 许可协议](https://github.com/web-infra-dev/midscene/blob/main/LICENSE)。
+
+
+---
+
+<div align="center">
+  如果本项目对你有帮助或启发，请给我们一个 ⭐️
+</div>

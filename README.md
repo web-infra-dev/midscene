@@ -22,7 +22,8 @@ English | [简体中文](./README.zh.md)
   <a href="https://x.com/midscene_ai"><img src="https://img.shields.io/twitter/follow/midscene_ai?style=flat-square" alt="twitter" /></a>
 </p>
 
-Midscene.js is an AI-powered automation SDK with the abilities to control the page, perform assertions and extract data in JSON format using natural language.
+Midscene.js lets AI be your browser operator 🤖. Just describe what you want to do in natural language, and it will help you operate web pages, validate content, and extract data. Whether you want a quick experience or deep development, you can get started easily. If you are using Midscene.js in your project, you can join our [community](#-community) to communicate and share with us.
+
 
 ## Showcases
 
@@ -84,6 +85,26 @@ There are so many UI automation tools out there, and each one seems to be all-po
 * [Follow us on X](https://x.com/midscene_ai)
 * [Lark Group](https://applink.larkoffice.com/client/chat/chatter/add_by_link?link_token=291q2b25-e913-411a-8c51-191e59aab14d)
 
+
+## Citation
+
+If you use Midscene.js in your research or project, please cite:
+
+@software{Midscene.js,
+  author = {Zhou xiao, Yutao},
+  title = {Midscene.js: Assign AI as your web operator.},
+  year = {2025},
+  publisher = {GitHub},
+  url = {https://github.com/web-infra-dev/midscene}
+}
+
+
 ## 📝 License
 
 Midscene.js is [MIT licensed](https://github.com/web-infra-dev/midscene/blob/main/LICENSE).
+
+---
+
+<div align="center">
+  If this project helps you or inspires you, please give us a ⭐️
+</div>
