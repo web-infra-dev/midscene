@@ -8,7 +8,14 @@ import {
 } from './prompt/ui-tars-planning';
 import { call } from './service-caller';
 
-type ActionType = 'click' | 'type' | 'hotkey' | 'finished' | 'scroll' | 'wait';
+type ActionType =
+  | 'click'
+  | 'drag'
+  | 'type'
+  | 'hotkey'
+  | 'finished'
+  | 'scroll'
+  | 'wait';
 
 function capitalize(str: string) {
   return str.charAt(0).toUpperCase() + str.slice(1);
@@ -59,6 +66,18 @@ export async function vlmPlanning(options: {
           position: { x: point[0], y: point[1] },
         },
         param: action.thought || '',
+      });
+    } else if (action.action_type === 'drag') {
+      const startPoint = getPoint(action.action_inputs.start_box, size);
+      const endPoint = getPoint(action.action_inputs.end_box, size);
+      transformActions.push({
+        type: 'Drag',
+        param: {
+          start_box: { x: startPoint[0], y: startPoint[1] },
+          end_box: { x: endPoint[0], y: endPoint[1] },
+        },
+        locate: null,
+        thought: action.thought || '',
       });
     } else if (action.action_type === 'type') {
       transformActions.push({
@@ -140,6 +159,14 @@ interface ClickAction extends BaseAction {
   };
 }
 
+interface DragAction extends BaseAction {
+  action_type: 'drag';
+  action_inputs: {
+    start_box: string; // JSON string of [x, y] coordinates
+    end_box: string; // JSON string of [x, y] coordinates
+  };
+}
+
 interface WaitAction extends BaseAction {
   action_type: 'wait';
   action_inputs: {
@@ -175,6 +202,7 @@ interface FinishedAction extends BaseAction {
 
 export type Action =
   | ClickAction
+  | DragAction
   | TypeAction
   | HotkeyAction
   | ScrollAction

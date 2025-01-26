@@ -63,6 +63,7 @@ export const getBridgePageInCliSide = (): ChromeExtensionPageCliSide => {
           click: bridgeCaller(MouseEvent.Click),
           wheel: bridgeCaller(MouseEvent.Wheel),
           move: bridgeCaller(MouseEvent.Move),
+          drag: bridgeCaller(MouseEvent.Drag),
         };
         return mouse;
       }

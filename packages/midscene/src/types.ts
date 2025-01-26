@@ -221,6 +221,7 @@ export interface PlanningAction<ParamType = any> {
   type:
     | 'Locate'
     | 'Tap'
+    | 'Drag'
     | 'Hover'
     | 'Input'
     | 'KeyboardPress'

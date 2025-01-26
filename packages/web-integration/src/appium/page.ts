@@ -63,6 +63,8 @@ export class Page implements AbstractPage {
       wheel: (deltaX: number, deltaY: number) =>
         this.mouseWheel(deltaX, deltaY),
       move: (x: number, y: number) => this.mouseMove(x, y),
+      drag: (from: { x: number; y: number }, to: { x: number; y: number }) =>
+        this.mouseDrag(from, to),
     };
   }
 
@@ -245,6 +247,25 @@ export class Page implements AbstractPage {
         id: 'mouse',
         parameters: { pointerType: 'mouse' },
         actions: [{ type: 'pointerMove', duration: 0, x, y }],
+      },
+    ]);
+  }
+
+  private async mouseDrag(
+    from: { x: number; y: number },
+    to: { x: number; y: number },
+  ): Promise<void> {
+    await this.browser.performActions([
+      {
+        type: 'pointer',
+        id: 'mouse',
+        parameters: { pointerType: 'mouse' },
+        actions: [
+          { type: 'pointerMove', duration: 0, x: from.x, y: from.y },
+          { type: 'pointerDown', button: 0 },
+          { type: 'pointerMove', duration: 500, x: to.x, y: to.y },
+          { type: 'pointerUp', button: 0 },
+        ],
       },
     ]);
   }

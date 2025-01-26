@@ -13,6 +13,10 @@ export interface MouseAction {
   ) => Promise<void>;
   wheel: (deltaX: number, deltaY: number) => Promise<void>;
   move: (x: number, y: number) => Promise<void>;
+  drag: (
+    from: { x: number; y: number },
+    to: { x: number; y: number },
+  ) => Promise<void>;
 }
 
 export interface KeyboardAction {
@@ -36,6 +40,10 @@ export abstract class AbstractPage {
       ) => {},
       wheel: async (deltaX: number, deltaY: number) => {},
       move: async (x: number, y: number) => {},
+      drag: async (
+        from: { x: number; y: number },
+        to: { x: number; y: number },
+      ) => {},
     };
   }
 
