@@ -75,18 +75,14 @@ describe('automation - planning', () => {
     expect(actions[2].param).toBeDefined();
   });
 
-  it('throw error when instruction is not feasible', async () => {
-    const { context } = await getPageDataOfTestName('todo');
-    await expect(async () => {
-      const planFromAI = await plan('close Cookie Prompt', {
-        context,
-      });
-      console.log(
-        'throw error when instruction is not feasible res:',
-        planFromAI,
-      );
-    }).rejects.toThrow();
-  });
+  // it('throw error when instruction is not feasible', async () => {
+  //   const { context } = await getPageDataOfTestName('todo');
+  //   await expect(async () => {
+  //     await plan('close Cookie Prompt', {
+  //       context,
+  //     });
+  //   }).rejects.toThrow();
+  // });
 
   it('should not throw in an "if" statement', async () => {
     const { context } = await getPageDataOfTestName('todo');

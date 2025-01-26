@@ -10,7 +10,7 @@ English | [简体中文](./README.zh.md)
 </div>
 
 <p align="center">
-  Joyful UI Automation
+  Let AI be your browser operator.
 </p>
 
 <p align="center">
@@ -22,9 +22,12 @@ English | [简体中文](./README.zh.md)
   <a href="https://x.com/midscene_ai"><img src="https://img.shields.io/twitter/follow/midscene_ai?style=flat-square" alt="twitter" /></a>
 </p>
 
-Midscene.js is an AI-powered automation SDK with the abilities to control the page, perform assertions and extract data in JSON format using natural language.
+Midscene.js lets AI be your browser operator 🤖.Just describe what you want to do in natural language, and it will help you operate web pages, validate content, and extract data. Whether you want a quick experience or deep development, you can get started easily.
+
 
 ## Showcases
+
+The following recorded example video is based on the [UI-TARS 7B SFT](https://huggingface.co/bytedance-research/UI-TARS-7B-SFT) model, and the video has not been sped up at all~
 
 | Instruction  | Video |
 | :---:  | :---: |
@@ -37,13 +40,15 @@ Midscene.js is an AI-powered automation SDK with the abilities to control the pa
 From version v0.10.0, we support a new open-source model named [`UI-TARS`](https://github.com/bytedance/ui-tars). Read more about it in [Choose a model](https://midscenejs.com/choose-a-model).
 
 ## 💡 Features
-
-- **Natural Language Interaction 👆**: Describe the steps, and let Midscene plan and control the user interface for you
-- **Understand UI, Answer in JSON 🔍**: Provide prompts regarding the desired data format, and then receive the expected response in JSON format.
-- **Intuitive Assertion 🤔**: Make assertions in natural language; it’s all based on AI understanding.
-- **Experience by Chrome Extension 🖥️**: Start immediately with the Chrome Extension. No code is needed while exploring.
-- **Visualized Report for Debugging 🎞️**: With our visualized report file, you can easily understand and debug the whole process.
-- **Totally Open Source! 🔥**: Experience a whole new world of automation development. Enjoy!
+- **Natural Language Interaction 👆**: Just describe your goals and steps, and Midscene will plan and operate the user interface for you.
+- **Chrome Extension Experience 🖥️**: Start experiencing immediately through the Chrome extension, no coding required.
+- **Puppeteer/Playwright Integration 🔧**: Supports Puppeteer and Playwright integration, allowing you to combine AI capabilities with these powerful automation tools for easy automation.
+- **Support Private Deployment 🤖**: Supports private deployment of [`UI-TARS`](https://github.com/bytedance/ui-tars) model, which outperforms closed-source models like GPT-4o and Claude in UI automation scenarios while better protecting data security.
+- **Support General Models 🌟**: Supports general large models like GPT-4o and Claude, adapting to various scenario needs.
+- **Visual Reports for Debugging 🎞️**: Through our test reports and Playground, you can easily understand, replay and debug the entire process.
+- **Completely Open Source 🔥**: Experience a whole new automation development experience, enjoy!
+- **Understand UI, JSON Format Responses 🔍**: You can specify data format requirements and receive responses in JSON format.
+- **Intuitive Assertions 🤔**: Express your assertions in natural language, and AI will understand and process them.
 
 ## ✨ Model Choices
 
@@ -80,6 +85,28 @@ There are so many UI automation tools out there, and each one seems to be all-po
 * [Follow us on X](https://x.com/midscene_ai)
 * [Lark Group](https://applink.larkoffice.com/client/chat/chatter/add_by_link?link_token=291q2b25-e913-411a-8c51-191e59aab14d)
 
+
+## Citation
+
+If you use Midscene.js in your research or project, please cite:
+
+```bibtex
+@software{Midscene.js,
+  author = {Zhou, Xiao and Yu, Tao},
+  title = {Midscene.js: Assign AI as your web operator.},
+  year = {2025},
+  publisher = {GitHub},
+  url = {https://github.com/web-infra-dev/midscene}
+}
+```
+
+
 ## 📝 License
 
 Midscene.js is [MIT licensed](https://github.com/web-infra-dev/midscene/blob/main/LICENSE).
+
+---
+
+<div align="center">
+  If this project helps you or inspires you, please give us a ⭐️
+</div>

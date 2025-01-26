@@ -10,7 +10,7 @@
 </div>
 
 <p align="center">
-  AI 加持，更愉悦的 UI 自动化
+  让 AI 成为你的浏览器操作员
 </p>
 
 <p align="center">
@@ -22,9 +22,11 @@
   <a href="https://x.com/midscene_ai"><img src="https://img.shields.io/twitter/follow/midscene_ai" alt="twitter" /></a>
 </p>
 
-Midscene.js 是一个由 AI 驱动的自动化 SDK，能够使用自然语言对网页进行操作、验证，并提取 JSON 格式的数据。
+Midscene.js 让 AI 成为你的浏览器操作员 🤖。只需用自然语言描述你想做什么，它就能帮你操作网页、验证内容，并提取数据。无论你是想快速体验还是深度开发，都可以轻松上手。如果您在项目中使用了 Midscene.js，可以加入我们的 [社区](https://github.com/web-infra-dev/midscene?tab=readme-ov-file#-community) 来与我们交流和分享。
 
 ## 案例
+
+下面的录制 example 视频基于 [UI-TARS 7B SFT](https://huggingface.co/bytedance-research/UI-TARS-7B-SFT) 模型，视频没有任何加速～
 
 | 指令  | 视频 |
 | :---:  | :---: |
@@ -39,12 +41,15 @@ Midscene.js 是一个由 AI 驱动的自动化 SDK，能够使用自然语言对
 
 ## 💡 特性
 
-- **自然语言互动 👆**：只需描述你的步骤，Midscene 会为你规划和操作用户界面
+- **自然语言互动 👆**：只需描述你的目标和步骤，Midscene 会为你规划和操作用户界面。
+- **Chrome 插件体验 🖥️**：通过 Chrome 插件，你可以立即开始体验，无需编写代码。
+- **Puppeteer/Playwright 集成 🔧**：支持 Puppeteer 和 Playwright 集成，让你能够结合 AI 能力和这些自动化工具的强大功能，轻松实现自动化操作。
+- **支持私有化部署 🤖**：支持私有化部署 [`UI-TARS`](https://github.com/bytedance/ui-tars) 模型，相比 GPT-4o、Claude 等闭源模型，不仅在 UI 自动化场景下表现更加出色，还能更好地保护数据安全。
+- **支持通用模型 🌟**：支持 GPT-4o、Claude 等通用大模型，适配多种场景需求。
+- **用可视化报告来调试 🎞️**：通过我们的测试报告和 Playground，你可以轻松理解、回放和调试整个过程。
+- **完全开源 🔥**：体验全新的自动化开发体验，尽情享受吧！
 - **理解UI、JSON格式回答 🔍**：你可以提出关于数据格式的要求，然后得到 JSON 格式的预期回应。
 - **直观断言 🤔**：用自然语言表达你的断言，AI 会理解并处理。
-- **Chrome 插件体验 🖥️**：通过 Chrome 插件，你可以立即开始体验，无需编写代码。
-- **用可视化报告来调试 🎞️**：通过我们的测试报告和 Playground，你可以轻松理解和调试整个过程。
-- **完全开源 🔥**：体验全新的自动化开发体验，尽情享受吧！
 
 ## ✨ 选择 AI 模型 
 
@@ -83,7 +88,28 @@ Midscene.js 是一个由 AI 驱动的自动化 SDK，能够使用自然语言对
 
   <img src="https://github.com/user-attachments/assets/211b05c9-3ccd-4f52-b798-f3a7f51330ed" alt="lark group link" width="300" />
 
+## 引用
+
+如果您在研究或项目中使用了 Midscene.js，请引用：
+
+```bibtex
+@software{Midscene.js,
+  author = {Zhou, Xiao and Yu, Tao},
+  title = {Midscene.js: Assign AI as your web operator.},
+  year = {2025},
+  publisher = {GitHub},
+  url = {https://github.com/web-infra-dev/midscene}
+}
+```
+
 
 ## 📝 授权许可
 
 Midscene.js 遵循 [MIT 许可协议](https://github.com/web-infra-dev/midscene/blob/main/LICENSE)。
+
+
+---
+
+<div align="center">
+  如果本项目对你有帮助或启发，请给我们一个 ⭐️
+</div>
