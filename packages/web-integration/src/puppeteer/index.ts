@@ -1,4 +1,3 @@
-import assert from 'node:assert';
 import { PageAgent, type PageAgentOpt } from '@/common/agent';
 import type { Page as PuppeteerPage } from 'puppeteer';
 import { WebPage as PuppeteerWebPage } from './page';
