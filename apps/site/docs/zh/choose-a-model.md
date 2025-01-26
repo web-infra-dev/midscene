@@ -67,7 +67,10 @@ UI-TARS 是一个基于 VLM 架构的 GUI agent 模型。它仅以截图作为�
 
 UI-TARS 是一个开源模型，并提供了不同大小的版本。你可以部署到你自己的服务器上，它也支持在浏览器插件中使用。
 
-更多详情请查看 [Github - UI-TARS](https://github.com/bytedance/ui-tars), [🤗 HuggingFace - UI-TARS-7B-SFT](https://huggingface.co/bytedance-research/UI-TARS-7B-SFT).
+更多 UI-TARS 的详情可参阅:
+* [Github - UI-TARS](https://github.com/bytedance/ui-tars)
+* [🤗 HuggingFace - UI-TARS-7B-SFT](https://huggingface.co/bytedance-research/UI-TARS-7B-SFT)
+* [中文版: UI-TARS 模型部署教程](https://bytedance.sg.larkoffice.com/docx/TCcudYwyIox5vyxiSDLlgIsTgWf#U94rdCxzBoJMLex38NPlHL21gNb)
 
 ### 使用 UI-TARS 后你能获得什么
 
@@ -77,7 +80,7 @@ UI-TARS 是一个开源模型，并提供了不同大小的版本。你可以部
 
 ### 配置 UI-TARS 的步骤
 
-UI-TARS 的输出与通用 LLM 的输出不同。你需要添加以下配置来启用这个功能。
+UI-TARS 的输出与通用 LLM 的输出不同。你需要在 Midscene.js 中添加以下配置来启用这个功能。
 
 ```bash
 MIDSCENE_USE_VLM_UI_TARS=1
@@ -107,4 +110,3 @@ UI-TARS 是一个专为 UI 自动化设计的模型。我们只需要发送截�
 
 * [配置模型和服务商](./model-provider)
 * [Github - UI-TARS](https://github.com/bytedance/ui-tars)
-* [中文版: UI-TARS 模型部署教程](https://bytedance.sg.larkoffice.com/docx/TCcudYwyIox5vyxiSDLlgIsTgWf#U94rdCxzBoJMLex38NPlHL21gNb)

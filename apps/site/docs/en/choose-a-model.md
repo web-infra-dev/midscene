@@ -67,7 +67,10 @@ UI-TARS is an end-to-end GUI agent model based on VLM architecture. It solely pe
 
 UI-TARS is an open-source model, and provides different versions of size. You can deploy it on your own server, and it will dramatically improve the performance and data privacy.
 
-For more details about UI-TARS, see [Github - UI-TARS](https://github.com/bytedance/ui-tars), [🤗 HuggingFace - UI-TARS-7B-SFT](https://huggingface.co/bytedance-research/UI-TARS-7B-SFT).
+For more details about UI-TARS, see
+* [Github - UI-TARS](https://github.com/bytedance/ui-tars)
+* [🤗 HuggingFace - UI-TARS-7B-SFT](https://huggingface.co/bytedance-research/UI-TARS-7B-SFT)
+* [UI-TARS - Model Deployment Guide](https://juniper-switch-f10.notion.site/UI-TARS-Model-Deployment-Guide-17b5350241e280058e98cea60317de71)
 
 ### What you will have after using UI-TARS
 
@@ -107,4 +110,3 @@ Once you feel uncomfortable with the speed, the cost, the accuracy, or the data 
 
 * [Config Model and Provider](./model-provider)
 * [UI-TARS on Github](https://github.com/bytedance/ui-tars)
-* [UI-TARS - Model Deployment Guide](https://juniper-switch-f10.notion.site/UI-TARS-Model-Deployment-Guide-17b5350241e280058e98cea60317de71)
