@@ -1,5 +1,5 @@
 import PlaygroundServer from '@/playground/server';
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 describe('Playground Server', () => {
   let server: PlaygroundServer;

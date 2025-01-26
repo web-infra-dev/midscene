@@ -26,6 +26,7 @@ import { printReportMsg, reportFileName } from './utils';
 import { type WebUIContext, parseContextFromWebPage } from './utils';
 
 export interface PageAgentOpt {
+  trackingActiveTab?: boolean /* if tracking the newly created tab, default false */;
   testId?: string;
   cacheId?: string;
   groupName?: string;
@@ -69,6 +70,8 @@ export class PageAgent<PageType extends WebPage = WebPage> {
       },
       opts || {},
     );
+    // get the parent browser of the puppeteer page
+    // const browser = (this.page as PuppeteerWebPage).browser();
 
     this.insight = new Insight<WebElementInfo, WebUIContext>(
       async (action: InsightAction) => {

@@ -1,16 +1,24 @@
 import path from 'node:path';
 import { PuppeteerAgent } from '@/puppeteer';
 import { sleep } from '@midscene/core/utils';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { launchPage } from './utils';
 
 describe(
   'puppeteer integration',
   () => {
+    let resetFn: () => Promise<void>;
+    afterEach(async () => {
+      if (resetFn) {
+        await resetFn();
+      }
+    });
+
     it('Sauce Demo by Swag Lab', async () => {
       const { originPage, reset } = await launchPage(
         'https://www.saucedemo.com/',
       );
+      resetFn = reset;
       const onTaskStartTip = vi.fn();
       const mid = new PuppeteerAgent(originPage, {
         cacheId: 'puppeteer(Sauce Demo by Swag Lab)',
@@ -37,13 +45,13 @@ describe(
       expect(items.length).toBeGreaterThanOrEqual(2);
 
       await mid.aiAssert('The price of "Sauce Labs Onesie" is 7.99');
-      await reset();
     });
 
     it('extract the Github service status', async () => {
       const { originPage, reset } = await launchPage(
         'https://www.githubstatus.com/',
       );
+      resetFn = reset;
       const mid = new PuppeteerAgent(originPage);
 
       const result = await mid.aiQuery(
@@ -57,14 +65,13 @@ describe(
           'there is a "food delivery" service on page and is in normal state',
         );
       });
-
-      await reset();
     });
 
-    it('find widgets in antd', async () => {
+    it.skipIf(process.env.CI)('find widgets in antd', async () => {
       const { originPage, reset } = await launchPage(
-        'https://ant.design/components/form-cn/',
+        'https://ant.design/components/form/', // will be banned by the website on CI
       );
+      resetFn = reset;
       const mid = new PuppeteerAgent(originPage);
 
       // await mid.aiAction('If pop-ups are displayed click seven days out alert');
@@ -82,11 +89,11 @@ describe(
       );
 
       expect(names.length).toBeGreaterThan(5);
-      await reset();
     });
 
     it('search engine', async () => {
       const { originPage, reset } = await launchPage('https://www.baidu.com/');
+      resetFn = reset;
       const mid = new PuppeteerAgent(originPage);
       await mid.aiAction('type "AI 101" in search box');
       await mid.aiAction(
@@ -94,13 +101,12 @@ describe(
       );
 
       await mid.aiWaitFor('there are some search results about "Hello world"');
-
-      await reset();
     });
 
     it('scroll', async () => {
       const htmlPath = path.join(__dirname, 'scroll.html');
       const { originPage, reset } = await launchPage(`file://${htmlPath}`);
+      resetFn = reset;
       const mid = new PuppeteerAgent(originPage);
       await mid.aiAction(
         'find the "Vertical 2" element, scroll down 200px, find the "Horizontal 2" element, scroll right 100px',
@@ -108,21 +114,44 @@ describe(
       await mid.aiAssert(
         'the "Horizontal 2", "Horizontal 4" and "Vertical 5" elements are visible',
       );
-      await reset();
+    });
+
+    it('not tracking active tab', async () => {
+      const { originPage, reset } = await launchPage('https://www.baidu.com/');
+      resetFn = reset;
+      const mid = new PuppeteerAgent(originPage, {
+        trackingActiveTab: false,
+      });
+      await mid.aiAction('Tap hao123 in the navigation bar');
+      await sleep(3000);
+
+      expect(async () => {
+        await mid.aiAssert('There is a weather forecast in the page');
+      }).rejects.toThrowError();
+    });
+
+    it('tracking active tab', async () => {
+      const { originPage, reset } = await launchPage('https://www.baidu.com/');
+      resetFn = reset;
+      const mid = new PuppeteerAgent(originPage, {
+        trackingActiveTab: true,
+      });
+      await mid.aiAction('Tap hao123 in the navigation bar');
+      await sleep(3000);
+      await mid.aiAssert('There is a weather forecast in the page');
     });
 
     it.skip('Playground', async () => {
       const { originPage, reset } = await launchPage('https://www.baidu.com/');
+      resetFn = reset;
       const mid = new PuppeteerAgent(originPage);
       // await mid.aiAction('Close the cookie prompt');
       await mid.aiAction(
         'Type "AI 101" in search box, hit Enter, wait 2s. If there is a cookie prompt, close it',
       );
-
-      await reset();
     });
   },
   {
-    timeout: 180 * 1000,
+    timeout: 60 * 1000,
   },
 );

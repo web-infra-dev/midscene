@@ -11,20 +11,20 @@ export const defaultViewportHeight = 900;
 export const defaultViewportScale = process.platform === 'darwin' ? 2 : 1;
 export const defaultWaitForNetworkIdleTimeout = 10 * 1000;
 
-export async function puppeteerAgentForTarget(
+interface FreeFn {
+  name: string;
+  fn: () => void;
+}
+
+export async function launchPuppeteerPage(
   target: MidsceneYamlScriptEnv,
   preference?: {
     headed?: boolean;
     keepWindow?: boolean;
-    testId?: string;
   },
 ) {
   assert(target.url, 'url is required');
-
-  const freeFn: {
-    name: string;
-    fn: () => void;
-  }[] = [];
+  const freeFn: FreeFn[] = [];
 
   // prepare the environment
   const ua = target.userAgent || defaultUA;
@@ -84,10 +84,12 @@ export async function puppeteerAgentForTarget(
   const isWindows = process.platform === 'win32';
   const browser = await puppeteer.launch({
     headless: !headed,
+    defaultViewport: viewportConfig,
     args: [
       ...(isWindows ? [] : ['--no-sandbox', '--disable-setuid-sandbox']),
       '--disable-features=PasswordLeakDetection',
       '--disable-save-password-bubble',
+      `--user-agent="${ua}"`,
       preferMaximizedWindow
         ? '--start-maximized'
         : `--window-size=${width},${height}`,
@@ -110,20 +112,21 @@ export async function puppeteerAgentForTarget(
 
   const pages = await browser.pages();
   const page = pages[0];
-  await page.setUserAgent(ua);
-  await page.setViewport(viewportConfig);
+  // await page.setUserAgent(ua);
+  // await page.setViewport(viewportConfig);
 
   if (target.cookie) {
     const cookieFileContent = readFileSync(target.cookie, 'utf-8');
     await page.setCookie(...JSON.parse(cookieFileContent));
   }
 
-  await page.goto(target.url);
   const waitForNetworkIdleTimeout =
     typeof target.waitForNetworkIdle?.timeout === 'number'
       ? target.waitForNetworkIdle.timeout
       : defaultWaitForNetworkIdleTimeout;
+
   try {
+    await page.goto(target.url);
     if (waitForNetworkIdleTimeout > 0) {
       await page.waitForNetworkIdle({
         timeout: waitForNetworkIdleTimeout,
@@ -144,10 +147,27 @@ export async function puppeteerAgentForTarget(
     console.warn(newMessage);
   }
 
+  return { page, freeFn };
+}
+
+export async function puppeteerAgentForTarget(
+  target: MidsceneYamlScriptEnv,
+  preference?: {
+    headed?: boolean;
+    keepWindow?: boolean;
+    testId?: string;
+  },
+) {
+  const { page, freeFn } = await launchPuppeteerPage(target, preference);
+
   // prepare Midscene agent
   const agent = new PuppeteerAgent(page, {
     autoPrintReportMsg: false,
     testId: preference?.testId,
+    trackingActiveTab:
+      typeof target.trackingActiveTab !== 'undefined'
+        ? target.trackingActiveTab
+        : true, // true for default in yaml script
   });
 
   freeFn.push({

@@ -1,5 +1,5 @@
 import assert from 'node:assert';
-import { PageAgent } from '@/common/agent';
+import { PageAgent, type PageAgentOpt } from '@/common/agent';
 import type { KeyboardAction, MouseAction } from '@/page';
 import {
   type BridgeConnectTabOptions,
@@ -93,13 +93,16 @@ export const getBridgePageInCliSide = (): ChromeExtensionPageCliSide => {
 };
 
 export class AgentOverChromeBridge extends PageAgent<ChromeExtensionPageCliSide> {
-  constructor() {
+  constructor(opts?: PageAgentOpt) {
     const page = getBridgePageInCliSide();
-    super(page, {
-      onTaskStartTip: (tip: string) => {
-        this.page.showStatusMessage(tip);
-      },
-    });
+    super(
+      page,
+      Object.assign(opts || {}, {
+        onTaskStartTip: (tip: string) => {
+          this.page.showStatusMessage(tip);
+        },
+      }),
+    );
   }
 
   async connectNewTabWithUrl(url: string, options?: BridgeConnectTabOptions) {

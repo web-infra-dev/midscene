@@ -24,6 +24,7 @@ export interface MidsceneYamlScriptEnv {
   };
   cookie?: string;
   output?: string;
+  trackingActiveTab?: boolean; // if track the newly opened tab, true for default in yaml script
 
   // bridge mode config
   bridgeMode?: false | 'newTabWithUrl' | 'currentTab';

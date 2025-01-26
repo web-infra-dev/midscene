@@ -14,7 +14,7 @@ you can check the demo project of bridge mode here: [https://github.com/web-infr
 
 ## Preparation
 
-1. Config the OpenAI API key, or [customize model and provider](./model-provider)
+1. Config the OpenAI API key, or [config model and provider](./model-provider)
 
 ```bash
 # replace with your own
@@ -81,7 +81,7 @@ Each of the agent instance can only connect to one tab instance, and it cannot b
 
 ### `connectCurrentTab(options?: { trackingActiveTab?: boolean })`
 
-Connect to the current active tab on Chrome.
+Connect to the current active tab on Chrome as the starting point.
 
 If `trackingActiveTab` is true, the agent will always track the active tab. For example, if you switch to another tab or a new tab is opened, the agent will track the latest active tab. Otherwise, the agent will only track the tab you connected to initially.
 
