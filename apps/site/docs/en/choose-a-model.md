@@ -10,9 +10,26 @@ Midscene.js uses general-purpose large language models (LLMs, like `gpt-4o`) as 
 You can also use open-source models like `UI-TARS` to improve the performance and data privacy.
 :::
 
+## Comparison between general-purpose LLMs and dedicated model
+
+This is a table for comparison between general-purpose LLMs and dedicated model (like `UI-TARS`). We will talk about them in detail later.
+
+| | General-purpose LLMs (default) | Dedicated model like `UI-TARS` |
+| --- | --- | --- | 
+| **What it is** | for general-purpose tasks | dedicated for UI automation |
+| **How to get started** | easy, just to get an API key | a bit complex, you need to deploy it on your own server |
+| **Performance** | 3-10x slower compared to pure JavaScript automation | could be acceptable with proper deployment |
+| **Who will get the page data** | the model provider | your own server |
+| **Cost** | more expensive, usually pay for the token | less expensive, pay for the server |
+| **Prompting** | prefer step-by-step instructions | still prefer step-by-step instructions, but performs better in uncertainty situations |
+
 ## Choose a general-purpose LLM
 
 Midscene uses OpenAI `gpt-4o` as the default model, since this model performs the best among all general-purpose LLMs at this moment.
+
+To use the official `gpt-4o` from OpenAI, you can simply set the `OPENAI_API_KEY` in the environment variables. Refer to [Config Model and Provider](./model-provider) for more details.
+
+### Choose a model other than `gpt-4o`
 
 If you want to use other models, please follow these steps:
 
