@@ -22,7 +22,7 @@ If you want to use other models, please follow these steps:
 1. If you find it not working well after changing the model, you can try using some short and clear prompt, or roll back to the previous model. See more details in [Prompting Tips](./prompting-tips).
 1. Remember to follow the terms of use of each model and provider.
 
-### Known Supported General-Purpose Models
+### Known supported general-purpose models
 
 Besides `gpt-4o`, the known supported models are:
 
@@ -30,6 +30,19 @@ Besides `gpt-4o`, the known supported models are:
 - `gemini-1.5-pro`
 - `qwen-vl-max-latest`
 - `doubao-vision-pro-32k`
+
+### About the token cost
+
+Image resolution and element numbers (i.e., a UI context size created by Midscene) will affect the token bill.
+
+Here are some typical data with gpt-4o-0806 without prompt caching.
+
+|Task | Resolution | Prompt Tokens / Price | Completion Tokens / Price | Total Cost |
+|-----|------------|--------------|---------------|-----------------|
+|Plan and perform a search on eBay homepage| 1280x800 | 6005 / $0.0150125 |146 / $0.00146| $0.0164725 |
+|Query the information about the item in the search results| 1280x800 | 9107 / $0.0227675 | 122 / $0.00122 | $0.0239875 |
+
+> The price data was calculated in Nov 2024.
 
 ## Choose `UI-TARS` (a open-source model dedicated for UI automation)
 

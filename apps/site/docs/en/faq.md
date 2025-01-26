@@ -10,7 +10,7 @@ Related Docs: [Prompting Tips](./prompting-tips)
 
 There are some limitations with Midscene. We are still working on them.
 
-1. The interaction types are limited to only tap, type, keyboard press, and scroll.
+1. The interaction types are limited to only tap, drag, type, keyboard press, and scroll.
 2. LLM is not 100% stable. Even GPT-4o can't return the right answer all the time. Following the [Prompting Tips](./prompting-tips) will help improve stability.
 3. Since we use JavaScript to retrieve elements from the page, the elements inside the cross-origin iframe cannot be accessed.
 4. We cannot access the native elements of Chrome, like the right-click context menu or file upload dialog.
@@ -18,20 +18,7 @@ There are some limitations with Midscene. We are still working on them.
 
 ## Can I use a model other than `gpt-4o`?
 
-Yes. You can [customize model and provider](./model-provider) if needed.
-
-## About the token cost
-
-Image resolution and element numbers (i.e., a UI context size created by Midscene) will affect the token bill.
-
-Here are some typical data with gpt-4o-0806 without prompt caching.
-
-|Task | Resolution | Prompt Tokens / Price | Completion Tokens / Price | Total Cost |
-|-----|------------|--------------|---------------|-----------------|
-|Plan and perform a search on eBay homepage| 1280x800 | 6005 / $0.0150125 |146 / $0.00146| $0.0164725 |
-|Query the information about the item in the search results| 1280x800 | 9107 / $0.0227675 | 122 / $0.00122 | $0.0239875 |
-
-> The price data was calculated in Nov 2024.
+Yes. You can [choose a model](./choose-a-model) according to your needs.
 
 ## What data is sent to LLM ?
 
