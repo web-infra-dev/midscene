@@ -10,7 +10,7 @@ English | [简体中文](./README.zh.md)
 </div>
 
 <p align="center">
-  Assign AI as your browser operator.
+  Let AI be your browser operator.
 </p>
 
 <p align="center">
