@@ -1,6 +1,6 @@
 # Prompting Tips
 
-The natural language parameter passed to Midscene will be part of the prompt sent to the LLM. There are certain techniques in prompt engineering that can help improve the understanding of user interfaces.
+The natural language parameter passed to Midscene will be part of the prompt sent to the AI model. There are certain techniques in prompt engineering that can help improve the understanding of user interfaces.
 
 ## The purpose of optimization is to get a stable response from AI
 
@@ -50,6 +50,8 @@ To launch the local Playground server:
 ```
 npx --yes @midscene/web
 ```
+
+![Playground](/midescene-playground-entry.jpg)
 
 ## Infer or assert from the interface, not the DOM properties or browser status
 

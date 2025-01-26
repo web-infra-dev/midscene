@@ -311,6 +311,25 @@ export class PageTaskExecutor {
             },
           };
         tasks.push(taskActionTap);
+      } else if (plan.type === 'Drag') {
+        const taskActionDrag: ExecutionTaskActionApply<{
+          start_box: { x: number; y: number };
+          end_box: { x: number; y: number };
+        }> = {
+          type: 'Action',
+          subType: 'Drag',
+          param: plan.param,
+          thought: plan.thought,
+          locate: plan.locate,
+          executor: async (taskParam) => {
+            assert(
+              taskParam?.start_box && taskParam?.end_box,
+              'No start_box or end_box to drag',
+            );
+            await this.page.mouse.drag(taskParam.start_box, taskParam.end_box);
+          },
+        };
+        tasks.push(taskActionDrag);
       } else if (plan.type === 'Hover') {
         const taskActionHover: ExecutionTaskActionApply<PlanningActionParamHover> =
           {

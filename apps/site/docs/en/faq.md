@@ -10,7 +10,7 @@ Related Docs: [Prompting Tips](./prompting-tips)
 
 There are some limitations with Midscene. We are still working on them.
 
-1. The interaction types are limited to only tap, type, keyboard press, and scroll.
+1. The interaction types are limited to only tap, drag, type, keyboard press, and scroll.
 2. LLM is not 100% stable. Even GPT-4o can't return the right answer all the time. Following the [Prompting Tips](./prompting-tips) will help improve stability.
 3. Since we use JavaScript to retrieve elements from the page, the elements inside the cross-origin iframe cannot be accessed.
 4. We cannot access the native elements of Chrome, like the right-click context menu or file upload dialog.
@@ -18,34 +18,25 @@ There are some limitations with Midscene. We are still working on them.
 
 ## Can I use a model other than `gpt-4o`?
 
-Yes. You can [config model and provider](./model-provider) if needed.
+Of course. You can [choose a model](./choose-a-model) according to your needs.
 
-## About the token cost
-
-Image resolution and element numbers (i.e., a UI context size created by Midscene) will affect the token bill.
-
-Here are some typical data with gpt-4o-0806 without prompt caching.
-
-|Task | Resolution | Prompt Tokens / Price | Completion Tokens / Price | Total Cost |
-|-----|------------|--------------|---------------|-----------------|
-|Plan and perform a search on eBay homepage| 1280x800 | 6005 / $0.0150125 |146 / $0.00146| $0.0164725 |
-|Query the information about the item in the search results| 1280x800 | 9107 / $0.0227675 | 122 / $0.00122 | $0.0239875 |
-
-> The price data was calculated in Nov 2024.
-
-## What data is sent to LLM ?
+## What data is sent to AI model?
 
 Currently, the contents are: 
 1. the key information extracted from the DOM, such as text content, class name, tag name, coordinates; 
 2. a screenshot of the page.
 
+If you are concerned about the data privacy, please refer to [Data Privacy](./data-privacy).
+
 ## The automation process is running more slowly than the traditional one
 
-Since Midscene.js invokes AI for each planning and querying operation, the running time may increase by a factor of 3 to 10 compared to traditional Playwright scripts, for instance from 5 seconds to 20 seconds. This is currently inevitable but may improve with advancements in LLMs.
+When using general-purpose LLM in Midscene.js, the running time may increase by a factor of 3 to 10 compared to traditional Playwright scripts, for instance from 5 seconds to 20 seconds. To make the result more stable, the token and time cost is inevitable.
 
-Despite the increased time and cost, Midscene stands out in practical applications due to its unique development experience and easy-to-maintain codebase. We are confident that incorporating automation scripts powered by Midscene will significantly enhance your project’s efficiency, cover many more situations, and boost overall productivity.
 
-In short, it is worth the time and cost.
+
+There are two ways to improve the running time:
+1. Use a dedicated model, like UI-TARS. This is the recommended way. Read more about it in [Choose a model](./choose-a-model).
+2. Use caching to reduce the token cost. Read more about it in [Caching](./caching).
 
 ## The webpage continues to flash when running in headed mode
 

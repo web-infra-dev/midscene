@@ -1,4 +1,4 @@
-# Cache
+# Caching
 
 Midscene.js provides AI caching features to improve the stability and speed of the entire AI execution process. The cache mainly refers to caching how AI recognizes page elements. Cached AI query results are used if page elements haven't changed.
 
