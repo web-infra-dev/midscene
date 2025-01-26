@@ -63,6 +63,9 @@ export class ChromeExtensionPageBrowserSide extends ChromeExtensionProxyPage {
 
         if (method.startsWith(KeyboardEvent.PREFIX)) {
           const actionName = method.split('.')[1] as keyof KeyboardAction;
+          if (actionName === 'press') {
+            return this.keyboard[actionName].apply(this.keyboard, args as any);
+          }
           return this.keyboard[actionName].apply(this.keyboard, args as any);
         }
 

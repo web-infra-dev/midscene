@@ -7,6 +7,7 @@ const commonConfig = {
     constants: './src/constants/index.ts',
     fs: './src/fs/index.ts',
     utils: './src/utils.ts',
+    'us-keyboard-layout': './src/us-keyboard-layout.ts',
   },
 };
 

@@ -671,7 +671,7 @@ export const _keyDefinitions: Readonly<Record<KeyInput, KeyDefinition>> = {
 };
 
 // Add lowercase key mappings
-export const lowerCaseKeyDefinitions = Object.entries(_keyDefinitions).reduce(
+const lowerCaseKeyDefinitions = Object.entries(_keyDefinitions).reduce(
   (acc, [key, definition]) => {
     const lowerKey = key.toLowerCase();
     if (lowerKey !== key) {
@@ -681,3 +681,46 @@ export const lowerCaseKeyDefinitions = Object.entries(_keyDefinitions).reduce(
   },
   {} as Record<string, KeyDefinition>,
 );
+
+export const getKeyDefinition = (key: string): KeyInput => {
+  const lowerKey = key.toLowerCase();
+  if (lowerCaseKeyDefinitions[lowerKey]) {
+    return lowerCaseKeyDefinitions[lowerKey].key as KeyInput;
+  }
+  return key as KeyInput;
+};
+
+export const isMac =
+  typeof window !== 'undefined'
+    ? /Mac|iPod|iPhone|iPad/.test(window.navigator.platform)
+    : process.platform === 'darwin';
+
+//ui-tars key event mapping
+const keyMap: Record<string, KeyInput> = {
+  return: _keyDefinitions.Enter.key as KeyInput,
+  enter: _keyDefinitions.Enter.key as KeyInput,
+  ctrl: isMac
+    ? (_keyDefinitions.Meta.key as KeyInput)
+    : (_keyDefinitions.Control.key as KeyInput),
+  shift: _keyDefinitions.Shift.key as KeyInput,
+  alt: _keyDefinitions.Alt.key as KeyInput,
+  space: _keyDefinitions.Space.key as KeyInput,
+  'page down': _keyDefinitions.PageDown.key as KeyInput,
+  pagedown: _keyDefinitions.PageDown.key as KeyInput,
+  'page up': _keyDefinitions.PageUp.key as KeyInput,
+  pageup: _keyDefinitions.PageUp.key as KeyInput,
+};
+
+export function transformHotkeyInput(keyInput: string): string[] {
+  return keyInput.split(' ').map((key) => {
+    let newKey = key;
+    if (keyMap[key.toLowerCase()]) {
+      newKey = keyMap[key.toLowerCase()];
+    }
+    const keyDefinition = getKeyDefinition(newKey);
+    if (keyDefinition) {
+      return keyDefinition;
+    }
+    return newKey;
+  });
+}

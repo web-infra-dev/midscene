@@ -2,7 +2,7 @@ import type { Point, Size } from '@midscene/core';
 import { getTmpFile, sleep } from '@midscene/core/utils';
 import { base64Encoded } from '@midscene/shared/img';
 import type { Page as PlaywrightPage } from 'playwright';
-import type { Page as PuppeteerPage } from 'puppeteer';
+import type { KeyInput, Page as PuppeteerPage } from 'puppeteer';
 import type { WebKeyInput } from '../common/page';
 import { getExtraReturnLogic } from '../common/utils';
 import type { ElementInfo } from '../extractor';
@@ -129,10 +129,22 @@ export class Page<
     return {
       type: async (text: string) =>
         this.underlyingPage.keyboard.type(text, { delay: 80 }),
-      press: async (key: WebKeyInput) =>
-        this.underlyingPage.keyboard.press(key),
-      down: async (key: WebKeyInput) => this.underlyingPage.keyboard.down(key),
-      up: async (key: WebKeyInput) => this.underlyingPage.keyboard.up(key),
+      press: async (key: WebKeyInput | WebKeyInput[]) => {
+        const keys = Array.isArray(key) ? key : [key];
+        for (const key of keys) {
+          await this.underlyingPage.keyboard.down(key);
+        }
+
+        for (const key of [...keys].reverse()) {
+          await this.underlyingPage.keyboard.up(key);
+        }
+      },
+      down: async (key: WebKeyInput) => {
+        this.underlyingPage.keyboard.down(key);
+      },
+      up: async (key: WebKeyInput) => {
+        this.underlyingPage.keyboard.up(key);
+      },
     };
   }
 

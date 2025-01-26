@@ -38,7 +38,7 @@ describe.skipIf(!process.env.BRIDGE_MODE)(
       await agent.connectNewTabWithUrl('https://www.bing.com');
       await sleep(3000);
 
-      await agent.ai('type "AI 101" and hit Enter');
+      await agent.ai('type "AI 101" and hit Enter and scroll down');
       await sleep(3000);
 
       await agent.aiAssert('there are some search results');
@@ -66,5 +66,8 @@ describe.skipIf(!process.env.BRIDGE_MODE)(
       await sleep(3000);
       await agent.destroy();
     });
+  },
+  {
+    timeout: 3 * 60 * 10,
   },
 );

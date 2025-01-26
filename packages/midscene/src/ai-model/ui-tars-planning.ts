@@ -1,11 +1,11 @@
 import assert from 'node:assert';
 import type { PlanningAction } from '@/types';
+import { transformHotkeyInput } from '@midscene/shared/keyboard-layout';
 import { actionParser } from '@ui-tars/action-parser';
 import type { ChatCompletionMessageParam } from 'openai/resources';
 import { AIActionType } from './common';
 import { getSummary, uiTarsPlanningPrompt } from './prompt/ui-tars-planning';
 import { call } from './service-caller';
-
 type ActionType =
   | 'click'
   | 'drag'
@@ -110,18 +110,16 @@ export async function vlmPlanning(options: {
       });
     } else if (action.action_type === 'hotkey') {
       assert(action.action_inputs.key, 'key is required');
-      const keys = action.action_inputs.key.split(',');
-      for (const key of keys) {
-        // await playwrightPage.keyboard.press(capitalize(key) as any);
-        transformActions.push({
-          type: 'KeyboardPress',
-          param: {
-            value: capitalize(key),
-          },
-          locate: null,
-          thought: action.thought || '',
-        });
-      }
+      const keys = transformHotkeyInput(action.action_inputs.key);
+
+      transformActions.push({
+        type: 'KeyboardPress',
+        param: {
+          value: keys,
+        },
+        locate: null,
+        thought: action.thought || '',
+      });
     } else if (action.action_type === 'wait') {
       transformActions.push({
         type: 'Sleep',
@@ -133,6 +131,16 @@ export async function vlmPlanning(options: {
       });
     }
   });
+
+  if (transformActions.length === 0) {
+    throw new Error('No actions found', {
+      cause: {
+        prediction: res.content,
+        parsed,
+      },
+    });
+  }
+
   return {
     actions: transformActions,
     realActions: parsed,

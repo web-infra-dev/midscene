@@ -7,12 +7,12 @@
  */
 
 import assert from 'node:assert';
+import { WebKeyInput } from '@/common/page';
 import {
   type KeyDefinition,
   type KeyInput,
   _keyDefinitions,
-  lowerCaseKeyDefinitions,
-} from './USKeyboardLayout';
+} from '@midscene/shared/keyboard-layout';
 
 type KeyDescription = Required<
   Pick<KeyDefinition, 'keyCode' | 'key' | 'text' | 'code' | 'location'>
@@ -121,12 +121,7 @@ export class CdpKeyboard {
       location: 0,
     };
 
-    const lowerCaseKey = keyString.toLowerCase();
-    const definition =
-      _keyDefinitions[keyString] ||
-      _keyDefinitions[
-        lowerCaseKeyDefinitions[lowerCaseKey].key as unknown as KeyInput
-      ];
+    const definition = _keyDefinitions[keyString];
 
     assert(definition, `Unknown key: "${keyString}"`);
 
@@ -214,16 +209,24 @@ export class CdpKeyboard {
   }
 
   async press(
-    key: KeyInput,
+    key: KeyInput | KeyInput[],
     options: Readonly<KeyPressOptions> = {},
   ): Promise<void> {
     const { delay = null } = options;
-    await this.down(key, options);
+    const keys = Array.isArray(key) ? key : [key];
+
+    for (const k of keys) {
+      await this.down(k, options);
+    }
+
     if (delay) {
       await new Promise((f) => {
         return setTimeout(f, options.delay);
       });
     }
-    await this.up(key);
+
+    for (const k of [...keys].reverse()) {
+      await this.up(k);
+    }
   }
 }
