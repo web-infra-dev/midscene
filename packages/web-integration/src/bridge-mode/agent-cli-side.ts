@@ -1,5 +1,5 @@
 import assert from 'node:assert';
-import { PageAgent, PageAgentOpt } from '@/common/agent';
+import { PageAgent, type PageAgentOpt } from '@/common/agent';
 import type { KeyboardAction, MouseAction } from '@/page';
 import {
   type BridgeConnectTabOptions,
