@@ -107,3 +107,4 @@ Once you feel uncomfortable with the speed, the cost, the accuracy, or the data 
 
 * [Config Model and Provider](./model-provider)
 * [UI-TARS on Github](https://github.com/bytedance/ui-tars)
+* [UI-TARS - Model Deployment Guide](https://juniper-switch-f10.notion.site/UI-TARS-Model-Deployment-Guide-17b5350241e280058e98cea60317de71)

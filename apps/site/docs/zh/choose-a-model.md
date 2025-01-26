@@ -107,3 +107,4 @@ UI-TARS 是一个专为 UI 自动化设计的模型。我们只需要发送截�
 
 * [配置模型和服务商](./model-provider)
 * [Github - UI-TARS](https://github.com/bytedance/ui-tars)
+* [中文版: UI-TARS 模型部署教程](https://bytedance.sg.larkoffice.com/docx/TCcudYwyIox5vyxiSDLlgIsTgWf#U94rdCxzBoJMLex38NPlHL21gNb)
