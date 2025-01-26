@@ -43,12 +43,15 @@
 
 ### 使用可视化报告和 Playground 进行调试
 
-测试报告里有每个步骤的详细信息。如果你想结合报告里的 UI 状态重新运行 Prompt，你可以启动本地 Playground Server，然后点击“Send to Playground”.
+测试报告里有每个步骤的详细信息。如果你想结合报告里的 UI 状态重新运行 Prompt，你可以启动本地 Playground Server，然后点击“Send to Playground”。
 
 启动本地 Playground Server:
 ```
 npx --yes @midscene/web
 ```
+
+![Playground](/midescene-playground-entry.jpg)
+
 
 ### 从界面做推断，而不是 DOM 属性或者浏览器状态
 

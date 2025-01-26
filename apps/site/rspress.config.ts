@@ -87,8 +87,8 @@ export default defineConfig({
               link: '/api',
             },
             {
-              text: 'Cache',
-              link: '/cache',
+              text: 'Caching',
+              link: '/caching',
             },
           ],
         },
@@ -162,7 +162,7 @@ export default defineConfig({
             },
             {
               text: '缓存',
-              link: '/zh/cache',
+              link: '/zh/caching',
             },
           ],
         },

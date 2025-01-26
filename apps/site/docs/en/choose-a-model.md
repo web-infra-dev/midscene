@@ -10,9 +10,26 @@ Midscene.js uses general-purpose large language models (LLMs, like `gpt-4o`) as 
 You can also use open-source models like `UI-TARS` to improve the performance and data privacy.
 :::
 
+## Comparison between general-purpose LLMs and dedicated model
+
+This is a table for comparison between general-purpose LLMs and dedicated model (like `UI-TARS`). We will talk about them in detail later.
+
+| | General-purpose LLMs (default) | Dedicated model like `UI-TARS` |
+| --- | --- | --- | 
+| **What it is** | for general-purpose tasks | dedicated for UI automation |
+| **How to get started** | easy, just to get an API key | a bit complex, you need to deploy it on your own server |
+| **Performance** | 3-10x slower compared to pure JavaScript automation | could be acceptable with proper deployment |
+| **Who will get the page data** | the model provider | your own server |
+| **Cost** | more expensive, usually pay for the token | less expensive, pay for the server |
+| **Prompting** | prefer step-by-step instructions | still prefer step-by-step instructions, but performs better in uncertainty situations |
+
 ## Choose a general-purpose LLM
 
 Midscene uses OpenAI `gpt-4o` as the default model, since this model performs the best among all general-purpose LLMs at this moment.
+
+To use the official `gpt-4o` from OpenAI, you can simply set the `OPENAI_API_KEY` in the environment variables. Refer to [Config Model and Provider](./model-provider) for more details.
+
+### Choose a model other than `gpt-4o`
 
 If you want to use other models, please follow these steps:
 
@@ -22,7 +39,7 @@ If you want to use other models, please follow these steps:
 1. If you find it not working well after changing the model, you can try using some short and clear prompt, or roll back to the previous model. See more details in [Prompting Tips](./prompting-tips).
 1. Remember to follow the terms of use of each model and provider.
 
-### Known Supported General-Purpose Models
+### Known supported general-purpose models
 
 Besides `gpt-4o`, the known supported models are:
 
@@ -31,17 +48,33 @@ Besides `gpt-4o`, the known supported models are:
 - `qwen-vl-max-latest`
 - `doubao-vision-pro-32k`
 
+### About the token cost
+
+Image resolution and element numbers (i.e., a UI context size created by Midscene) will affect the token bill.
+
+Here are some typical data with gpt-4o-0806 without prompt caching.
+
+|Task | Resolution | Prompt Tokens / Price | Completion Tokens / Price | Total Cost |
+|-----|------------|--------------|---------------|-----------------|
+|Plan and perform a search on eBay homepage| 1280x800 | 6005 / $0.0150125 |146 / $0.00146| $0.0164725 |
+|Query the information about the item in the search results| 1280x800 | 9107 / $0.0227675 | 122 / $0.00122 | $0.0239875 |
+
+> The price data was calculated in Nov 2024.
+
 ## Choose `UI-TARS` (a open-source model dedicated for UI automation)
 
 UI-TARS is an end-to-end GUI agent model based on VLM architecture. It solely perceives screenshots as input and performs human-like interactions (e.g., keyboard and mouse operations), achieving state-of-the-art performance on 10+ GUI benchmarks.
 
 UI-TARS is an open-source model, and provides different versions of size. You can deploy it on your own server, and it will dramatically improve the performance and data privacy.
 
-For more details about UI-TARS, see [Github - UI-TARS](https://github.com/bytedance/ui-tars), [🤗 HuggingFace - UI-TARS-7B-SFT](https://huggingface.co/bytedance-research/UI-TARS-7B-SFT).
+For more details about UI-TARS, see
+* [Github - UI-TARS](https://github.com/bytedance/ui-tars)
+* [🤗 HuggingFace - UI-TARS-7B-SFT](https://huggingface.co/bytedance-research/UI-TARS-7B-SFT)
+* [UI-TARS - Model Deployment Guide](https://juniper-switch-f10.notion.site/UI-TARS-Model-Deployment-Guide-17b5350241e280058e98cea60317de71)
 
 ### What you will have after using UI-TARS
 
-- **Speed**: a private-deployed UI-TARS model can be 5x faster than a general-purpose LLM. Each step of `.ai` call can be processed in 1-2 seconds.
+- **Speed**: a private-deployed UI-TARS model can be 5x faster than a general-purpose LLM. Each step of `.ai` call can be processed in 1-2 seconds on a high-performance GPU server.
 - **Data privacy**: you can deploy it on your own server and your data will no longer be sent to the cloud.
 - **More stable with short prompt**: ⁠UI-TARS is optimized for UI automation and is capable of handling more complex tasks with target-driven prompts. You can use it with a shorter prompt (although it is not recommended), and it performs even better when compared to a general-purpose LLM.
 

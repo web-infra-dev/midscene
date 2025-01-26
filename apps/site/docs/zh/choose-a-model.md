@@ -5,16 +5,33 @@
 如果你想了解更多关于模型和提供商的配置方法，请查看 [配置模型和服务商](./model-provider)。
 
 :::info 先说结论
-Midscene.js 支持使用通用的 LLM 模型，如 `gpt-4o`，作为默认模型。这是最简单的上手方法。
+Midscene.js 支持使用通用的 LLM 模型（如 `gpt-4o`）作为默认模型。这是最简单的上手方法。
 
 你也可以使用开源模型，如 `UI-TARS`，来提高运行性能和数据隐私。
 :::
 
-## 选择通用的 LLM 模型
+## 通用 LLM 模型与专用模型（如 `UI-TARS`）的对比
 
-Midscene.js 使用 OpenAI `gpt-4o` 作为默认模型，因为这是目前最好的通用 LLM 模型。
+以下是通用 LLM 模型与专用模型（如 `UI-TARS`）的特性对比。我们将在后文详细讨论它们。
 
-如果你想要使用其他模型，请按照以下步骤操作：
+| | 通用 LLM 模型（默认） | 专用模型（如 `UI-TARS`） |
+| --- | --- | --- |
+| **模型用途** | 通用任务 | 专为 UI 自动化设计 |
+| **如何上手** | 简单，只需获取 API 密钥 | 复杂，需要部署到你自己的服务器 |
+| **性能** | 3-10倍慢于纯 JavaScript 驱动自动化 | 可以接受，如果部署得当 |
+| **谁会获取页面数据** | 模型提供商 | 你自己的服务器 |
+| **成本** | 更贵，通常按 token 付费 | 更便宜，按服务器付费 |
+| **提示词** | 更喜欢逐步指令 | 仍然更喜欢逐步指令，但在不确定性情况下表现更好 |
+
+## 选择通用 LLM 模型
+
+Midscene.js 使用 OpenAI `gpt-4o` 作为默认模型，因为这是通用 LLM 模型领域的最佳产品。
+
+要使用 OpenAI 官方的 `gpt-4o`，你只需要在环境变量中设置 `OPENAI_API_KEY`。更多详情请参阅 [配置模型和服务商](./model-provider)。
+
+### 选择 `gpt-4o` 以外的模型
+
+如果你想要选用其他模型，请按照以下步骤操作：
 1. 必须使用多模态模型，也就是支持图像输入的模型。
 1. 模型越大，效果表现越好。然而，它也更昂贵。
 1. 找出如何使用与 OpenAI SDK 兼容的方式调用它，服务商一般都会提供这样的接入点，你需要配置的是 `OPENAI_BASE_URL`, `OPENAI_API_KEY` 和 `MIDSCENE_MODEL_NAME`。
@@ -30,23 +47,40 @@ Midscene.js 使用 OpenAI `gpt-4o` 作为默认模型，因为这是目前最好
 - `qwen-vl-max-latest`（千问）
 - `doubao-vision-pro-32k`（豆包）
 
+### 关于 token 消耗量
+
+图像分辨率和元素数量（即 Midscene 创建的 UI 上下文大小）会显著影响 token 消耗。
+
+以下是使用 gpt-4o-08-06 模型且未启用 prompting caching 的典型数据：
+
+|任务 | 分辨率 | Prompt Tokens / 价格 | Completion Tokens / 价格 | 总价 |
+|-----|------------|--------------|---------------|--------------|
+|拆解（Plan）并在 eBay 执行一次搜索| 1280x800| 6005 / $0.0150125 |146 / $0.00146| $0.0164725 |
+|提取（Query）eBay 搜索结果的商品信息| 1280x800 | 9107 / $0.0227675 | 122 / $0.00122 | $0.0239875 |
+
+> 测算时间是 2024 年 11 月
+
+
 ## 选择 `UI-TARS`（一个专为 UI 自动化设计的开源模型）
 
 UI-TARS 是一个基于 VLM 架构的 GUI agent 模型。它仅以截图作为输入，并执行人类常用的交互（如键盘和鼠标操作），在 10 多个 GUI 基准测试中取得了顶尖性能。
 
 UI-TARS 是一个开源模型，并提供了不同大小的版本。你可以部署到你自己的服务器上，它也支持在浏览器插件中使用。
 
-更多详情请查看 [Github - UI-TARS](https://github.com/bytedance/ui-tars), [🤗 HuggingFace - UI-TARS-7B-SFT](https://huggingface.co/bytedance-research/UI-TARS-7B-SFT).
+更多 UI-TARS 的详情可参阅:
+* [Github - UI-TARS](https://github.com/bytedance/ui-tars)
+* [🤗 HuggingFace - UI-TARS-7B-SFT](https://huggingface.co/bytedance-research/UI-TARS-7B-SFT)
+* [中文版: UI-TARS 模型部署教程](https://bytedance.sg.larkoffice.com/docx/TCcudYwyIox5vyxiSDLlgIsTgWf#U94rdCxzBoJMLex38NPlHL21gNb)
 
 ### 使用 UI-TARS 后你能获得什么
 
-- **速度**：一个私有的 UI-TARS 模型可以比通用 LLM 快 5 倍。每次 `.ai` 中的步骤可以在 1-2 秒内完成。
+- **速度**：一个私有的 UI-TARS 模型可以比通用 LLM 快 5 倍。当部署在性能良好的 GPU 服务器上时，每次 `.ai` 中的步骤可以在 1-2 秒内完成。
 - **数据隐私**：你可以部署到你自己的服务器上，而不是每次发送到云端。
 - **更稳定的短提示**：UI-TARS 针对 UI 自动化进行了优化，并能够处理更复杂的目标驱动的任务。你可以使用更短的 Prompt 指令（尽管不推荐），并且它比通用 LLM 表现得更好。
 
 ### 配置 UI-TARS 的步骤
 
-UI-TARS 的输出与通用 LLM 的输出不同。你需要添加以下配置来启用这个功能。
+UI-TARS 的输出与通用 LLM 的输出不同。你需要在 Midscene.js 中添加以下配置来启用这个功能。
 
 ```bash
 MIDSCENE_USE_VLM_UI_TARS=1
