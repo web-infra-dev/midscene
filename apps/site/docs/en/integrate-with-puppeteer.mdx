@@ -22,7 +22,7 @@ export OPENAI_API_KEY="sk-abcdefghijklmnopqrstuvwxyz"
 
 ## Step 1. install dependencies
 
-<PackageManagerTabs command="install @midscene/web puppeteer ts-node --save-dev" />
+<PackageManagerTabs command="install @midscene/web puppeteer tsx --save-dev" />
 
 ## Step 2. write scripts
 
@@ -73,11 +73,11 @@ Promise.resolve(
 
 ## Step 3. run
 
-Using ts-node to run, you will get the data of Headphones on eBay:
+Using `tsx` to run, you will get the data of Headphones on eBay:
 
 ```bash
 # run
-npx ts-node demo.ts
+npx tsx demo.ts
 
 # it should print 
 #  [

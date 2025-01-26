@@ -22,7 +22,7 @@ export OPENAI_API_KEY="sk-abcdefghijklmnopqrstuvwxyz"
 
 ## 第一步：安装依赖
 
-<PackageManagerTabs command="install @midscene/web puppeteer ts-node --save-dev" />
+<PackageManagerTabs command="install @midscene/web puppeteer tsx --save-dev" />
 
 ## 第二步：编写脚本
 
@@ -75,11 +75,11 @@ Promise.resolve(
 
 ## 第三步：运行
 
-使用 `ts-node` 来运行，你会看到命令行打印出了耳机的商品信息：
+使用 `tsx` 来运行，你会看到命令行打印出了耳机的商品信息：
 
 ```bash
 # run
-npx ts-node demo.ts
+npx tsx demo.ts
 
 # 命令行应该有如下输出
 #  [
