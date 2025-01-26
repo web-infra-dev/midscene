@@ -138,7 +138,10 @@ export class PageTaskExecutor {
           locate: plan.locate,
           executor: async (param, taskContext) => {
             const { task } = taskContext;
-            assert(param?.prompt || param?.id, 'No prompt or id to locate');
+            assert(
+              param?.prompt || param?.id || param?.position,
+              'No prompt or id or position to locate',
+            );
             let insightDump: InsightDump | undefined;
             const dumpCollector: DumpSubscriber = (dump) => {
               insightDump = dump;
@@ -632,7 +635,7 @@ export class PageTaskExecutor {
         return {
           output: {
             actions,
-            thought: actions[0].thought,
+            thought: actions[0]?.thought,
             actionType: actions[0].type,
             taskWillBeAccomplished: false,
             furtherPlan: {

@@ -1,13 +1,11 @@
+import assert from 'node:assert';
 import type { PlanningAction } from '@/types';
+import { transformHotkeyInput } from '@midscene/shared/keyboard-layout';
+import { actionParser } from '@ui-tars/action-parser';
 import type { ChatCompletionMessageParam } from 'openai/resources';
 import { AIActionType } from './common';
-import {
-  getSummary,
-  parseActionFromVlm,
-  uiTarsPlanningPrompt,
-} from './prompt/ui-tars-planning';
+import { getSummary, uiTarsPlanningPrompt } from './prompt/ui-tars-planning';
 import { call } from './service-caller';
-
 type ActionType =
   | 'click'
   | 'drag'
@@ -27,7 +25,7 @@ export async function vlmPlanning(options: {
   size: { width: number; height: number };
 }): Promise<{
   actions: PlanningAction<any>[];
-  realActions: Array<Action>;
+  realActions: ReturnType<typeof actionParser>['parsed'];
   action_summary: string;
 }> {
   const { conversationHistory, userInstruction, size } = options;
@@ -43,10 +41,14 @@ export async function vlmPlanning(options: {
     ],
     AIActionType.INSPECT_ELEMENT,
   );
-  const actions = parseActionFromVlm(res.content);
+  const { parsed } = actionParser({
+    prediction: res.content,
+    factor: 1000,
+  });
   const transformActions: PlanningAction[] = [];
-  actions.forEach((action) => {
+  parsed.forEach((action) => {
     if (action.action_type === 'click') {
+      assert(action.action_inputs.start_box, 'start_box is required');
       const point = getPoint(action.action_inputs.start_box, size);
       transformActions.push({
         type: 'Locate',
@@ -68,6 +70,8 @@ export async function vlmPlanning(options: {
         param: action.thought || '',
       });
     } else if (action.action_type === 'drag') {
+      assert(action.action_inputs.start_box, 'start_box is required');
+      assert(action.action_inputs.end_box, 'end_box is required');
       const startPoint = getPoint(action.action_inputs.start_box, size);
       const endPoint = getPoint(action.action_inputs.end_box, size);
       transformActions.push({
@@ -105,37 +109,41 @@ export async function vlmPlanning(options: {
         thought: action.thought || '',
       });
     } else if (action.action_type === 'hotkey') {
-      const keys = action.action_inputs.key.split(',');
-      for (const key of keys) {
-        // await playwrightPage.keyboard.press(capitalize(key) as any);
-        transformActions.push({
-          type: 'KeyboardPress',
-          param: {
-            value: capitalize(key),
-          },
-          locate: null,
-          thought: action.thought || '',
-        });
-      }
+      assert(action.action_inputs.key, 'key is required');
+      const keys = transformHotkeyInput(action.action_inputs.key);
+
+      transformActions.push({
+        type: 'KeyboardPress',
+        param: {
+          value: keys,
+        },
+        locate: null,
+        thought: action.thought || '',
+      });
     } else if (action.action_type === 'wait') {
       transformActions.push({
         type: 'Sleep',
         param: {
-          timeMs: action.action_inputs.time,
+          timeMs: 1000,
         },
         locate: null,
         thought: action.thought || '',
       });
     }
   });
-  // console.log('vlmPlanning:', {
-  //   original: res.content,
-  //   actions,
-  //   transformActions,
-  // });
+
+  if (transformActions.length === 0) {
+    throw new Error('No actions found', {
+      cause: {
+        prediction: res.content,
+        parsed,
+      },
+    });
+  }
+
   return {
     actions: transformActions,
-    realActions: actions,
+    realActions: parsed,
     action_summary: getSummary(res.content),
   };
 }

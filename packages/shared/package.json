@@ -37,6 +37,11 @@
       "types": "./src/utils.ts",
       "require": "./dist/lib/utils.js",
       "import": "./dist/es/utils.js"
+    },
+    "./keyboard-layout": {
+      "types": "./src/us-keyboard-layout.ts",
+      "require": "./dist/lib/us-keyboard-layout.js",
+      "import": "./dist/es/us-keyboard-layout.js"
     }
   },
   "typesVersions": {
@@ -46,7 +51,8 @@
       "img": ["./src/img/index.ts"],
       "browser/img": ["./src/img/index.ts"],
       "fs": ["./src/fs/index.ts"],
-      "utils": ["./src/utils.ts"]
+      "utils": ["./src/utils.ts"],
+      "keyboard-layout": ["./src/us-keyboard-layout.ts"]
     }
   },
   "files": ["dist", "src", "README.md"],
@@ -122,7 +128,8 @@
         "img": ["./dist/lib/img.d.ts"],
         "browser/img": ["./dist/browser/img.d.ts"],
         "fs": ["./dist/lib/fs.d.ts"],
-        "utils": ["./dist/lib/utils.d.ts"]
+        "utils": ["./dist/lib/utils.d.ts"],
+        "keyboard-layout": ["./dist/lib/us-keyboard-layout.d.ts"]
       }
     }
   }
