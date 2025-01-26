@@ -70,7 +70,7 @@
     "new": "modern new",
     "upgrade": "modern upgrade",
     "prepublishOnly": "npm run build",
-    "test": "vitest --run -u",
+    "test": "vitest --run",
     "test:ai": "AITEST=true npm run test"
   },
   "dependencies": {
