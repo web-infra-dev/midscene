@@ -1,18 +1,38 @@
-import {
-  getSummary,
-  parseActionFromVlm,
-} from '@/ai-model/prompt/ui-tars-planning';
+import { getSummary } from '@/ai-model/prompt/ui-tars-planning';
+import { actionParser } from '@ui-tars/action-parser';
 import { describe, expect, it } from 'vitest';
 
 describe('parse action from vlm', () => {
+  it('should parse action with no Thought format', () => {
+    const text = `点击登录按钮
+  Action: click(start_box='(200,300,400,500)')`;
+
+    const { parsed } = actionParser({
+      prediction: text,
+      factor: 1000,
+    });
+    expect(parsed).toHaveLength(1);
+    expect(parsed[0]).toEqual({
+      reflection: '',
+      thought: '',
+      action_type: 'click',
+      action_inputs: {
+        start_box: '[0.2,0.3,0.4,0.5]',
+      },
+    });
+  });
+
   it('should parse action with Thought format', () => {
     const text = `Thought: 点击登录按钮
   Action: click(start_box='(200,300,400,500)')`;
 
-    const actions = parseActionFromVlm(text);
-    expect(actions).toHaveLength(1);
-    expect(actions[0]).toEqual({
-      reflection: null,
+    const { parsed } = actionParser({
+      prediction: text,
+      factor: 1000,
+    });
+    expect(parsed).toHaveLength(1);
+    expect(parsed[0]).toEqual({
+      reflection: '',
       thought: '点击登录按钮',
       action_type: 'click',
       action_inputs: {
@@ -26,10 +46,13 @@ describe('parse action from vlm', () => {
    Click on the "Google 搜索" button to initiate a search for Twitter.
 Action: click(start_box='(460,452)')`;
 
-    const actions = parseActionFromVlm(text);
-    expect(actions).toHaveLength(1);
-    expect(actions[0]).toEqual({
-      reflection: null,
+    const { parsed } = actionParser({
+      prediction: text,
+      factor: 1000,
+    });
+    expect(parsed).toHaveLength(1);
+    expect(parsed[0]).toEqual({
+      reflection: '',
       thought:
         'To proceed with the task of opening Twitter and posting a tweet, I need to first access the Google search page. The highlighted "Google 搜索" button is the appropriate element to interact with, as it will allow me to search for Twitter and navigate to its website.\n   Click on the "Google 搜索" button to initiate a search for Twitter.',
       action_type: 'click',
@@ -44,12 +67,15 @@ Action: click(start_box='(460,452)')`;
     const text = `Action_Summary: 输入用户名
 Action: type(content='username')`;
 
-    const actions = parseActionFromVlm(text);
-    expect(actions).toHaveLength(1);
-    expect(actions[0]).toEqual({
+    const { parsed } = actionParser({
+      prediction: text,
+      factor: 1000,
+    });
+    expect(parsed).toHaveLength(1);
+    expect(parsed[0]).toEqual({
       thought: '输入用户名',
       action_type: 'type',
-      reflection: null,
+      reflection: '',
       action_inputs: {
         content: 'username',
       },
@@ -62,20 +88,26 @@ Action: click(start_box='(100,200,300,400)')
 
 type(content='test')`;
 
-    const actions = parseActionFromVlm(text);
-    expect(actions).toHaveLength(2);
-    expect(actions[0].action_type).toBe('click');
-    expect(actions[1].action_type).toBe('type');
+    const { parsed } = actionParser({
+      prediction: text,
+      factor: 1000,
+    });
+    expect(parsed).toHaveLength(2);
+    expect(parsed[0].action_type).toBe('click');
+    expect(parsed[1].action_type).toBe('type');
   });
 
   it('should parse finished action', () => {
     const text = `Thought: 任务完成
 Action: finished()`;
 
-    const actions = parseActionFromVlm(text);
-    expect(actions).toHaveLength(1);
-    expect(actions[0].action_type).toBe('finished');
-    expect(actions[0].action_inputs).toEqual({});
+    const { parsed } = actionParser({
+      prediction: text,
+      factor: 1000,
+    });
+    expect(parsed).toHaveLength(1);
+    expect(parsed[0].action_type).toBe('finished');
+    expect(parsed[0].action_inputs).toEqual({});
   });
 });
 
