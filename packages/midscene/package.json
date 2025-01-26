@@ -32,7 +32,7 @@
     "test": "vitest --run -u",
     "test:ai": "AITEST=true npm run test",
     "computer": "TEST_COMPUTER=true npm run test:ai -- tests/ai/evaluate/computer.test.ts",
-    "t1": "npm run test:ai -- tests/ai/parse-action.test.ts",
+    "test:parse-action": "npm run test:ai -- tests/ai/parse-action.test.ts",
     "evaluate": "npm run test:ai -- tests/ai/evaluate/inspect.test.ts",
     "evaluate:assertion": "npm run test:ai -- tests/ai/evaluate/assertion.test.ts",
     "evaluate:plan": "npm run test:ai -- tests/ai/evaluate/plan/planning.test.ts",

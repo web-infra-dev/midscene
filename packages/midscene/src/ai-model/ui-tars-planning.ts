@@ -126,7 +126,7 @@ export async function vlmPlanning(options: {
       transformActions.push({
         type: 'Sleep',
         param: {
-          timeMs: 3000,
+          timeMs: 1000,
         },
         locate: null,
         thought: action.thought || '',

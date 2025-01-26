@@ -11,6 +11,7 @@ import {
   type KeyDefinition,
   type KeyInput,
   _keyDefinitions,
+  lowerCaseKeyDefinitions,
 } from './USKeyboardLayout';
 
 type KeyDescription = Required<
@@ -120,7 +121,13 @@ export class CdpKeyboard {
       location: 0,
     };
 
-    const definition = _keyDefinitions[keyString];
+    const lowerCaseKey = keyString.toLowerCase();
+    const definition =
+      _keyDefinitions[keyString] ||
+      _keyDefinitions[
+        lowerCaseKeyDefinitions[lowerCaseKey].key as unknown as KeyInput
+      ];
+
     assert(definition, `Unknown key: "${keyString}"`);
 
     if (definition.key) {

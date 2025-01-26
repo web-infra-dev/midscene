@@ -154,6 +154,9 @@ importers:
       '@midscene/shared':
         specifier: workspace:*
         version: link:../shared
+      '@ui-tars/action-parser':
+        specifier: 1.0.1
+        version: 1.0.1
       openai:
         specifier: 4.57.1
         version: 4.57.1(zod@3.23.8)
@@ -3723,6 +3726,12 @@ packages:
 
   '@types/yauzl@2.10.3':
     resolution: {integrity: sha512-oJoftv0LSuaDZE3Le4DbKX+KS9G36NzOeSap90UIK0yMA/NhKJhqlSGtNDORNRaIbQfzjXDrQa0ytJ6mNRGz/Q==}
+
+  '@ui-tars/action-parser@1.0.1':
+    resolution: {integrity: sha512-E+Fu+Ngzf5MLKjSIoSerGQU1w/GWSkp+A8ikUVJHfSUUwYjqtwMQ/9rxoutVe7OhiSRbiTzEEXrjXjBLROQ4wA==}
+
+  '@ui-tars/shared@1.0.1':
+    resolution: {integrity: sha512-p3aDDwciWEqI5hKrvCWPPurLMx5Vc+JvTzKUvhyvr5iFOvZbgxC2SUegG1CV3TyR5bxtIVsuIGLVUmIn71EmEg==}
 
   '@vitest/expect@1.6.0':
     resolution: {integrity: sha512-ixEvFVQjycy/oNgHjqsL6AZCDduC+tflRluaHIzKIsdbzkLn2U/iBnVeJwB6HsIjQBdfMR8Z0tRxKUsvFJEeWQ==}
@@ -14737,6 +14746,12 @@ snapshots:
     dependencies:
       '@types/node': 18.19.62
     optional: true
+
+  '@ui-tars/action-parser@1.0.1':
+    dependencies:
+      '@ui-tars/shared': 1.0.1
+
+  '@ui-tars/shared@1.0.1': {}
 
   '@vitest/expect@1.6.0':
     dependencies:

@@ -669,3 +669,15 @@ export const _keyDefinitions: Readonly<Record<KeyInput, KeyDefinition>> = {
   },
   VolumeUp: { keyCode: 183, key: 'VolumeUp', code: 'VolumeUp', location: 4 },
 };
+
+// Add lowercase key mappings
+export const lowerCaseKeyDefinitions = Object.entries(_keyDefinitions).reduce(
+  (acc, [key, definition]) => {
+    const lowerKey = key.toLowerCase();
+    if (lowerKey !== key) {
+      acc[lowerKey] = definition;
+    }
+    return acc;
+  },
+  {} as Record<string, KeyDefinition>,
+);
