@@ -18,21 +18,25 @@ There are some limitations with Midscene. We are still working on them.
 
 ## Can I use a model other than `gpt-4o`?
 
-Yes. You can [choose a model](./choose-a-model) according to your needs.
+Of course. You can [choose a model](./choose-a-model) according to your needs.
 
-## What data is sent to LLM ?
+## What data is sent to AI model?
 
 Currently, the contents are: 
 1. the key information extracted from the DOM, such as text content, class name, tag name, coordinates; 
 2. a screenshot of the page.
 
+If you are concerned about the data privacy, please refer to [Data Privacy](./data-privacy).
+
 ## The automation process is running more slowly than the traditional one
 
-Since Midscene.js invokes AI for each planning and querying operation, the running time may increase by a factor of 3 to 10 compared to traditional Playwright scripts, for instance from 5 seconds to 20 seconds. This is currently inevitable but may improve with advancements in LLMs.
+When using general-purpose LLM in Midscene.js, the running time may increase by a factor of 3 to 10 compared to traditional Playwright scripts, for instance from 5 seconds to 20 seconds. To make the result more stable, the token and time cost is inevitable.
 
-Despite the increased time and cost, Midscene stands out in practical applications due to its unique development experience and easy-to-maintain codebase. We are confident that incorporating automation scripts powered by Midscene will significantly enhance your project’s efficiency, cover many more situations, and boost overall productivity.
 
-In short, it is worth the time and cost.
+
+There are two ways to improve the running time:
+1. Use a dedicated model, like UI-TARS. This is the recommended way. Read more about it in [Choose a model](./choose-a-model).
+2. Use caching to reduce the token cost. Read more about it in [Caching](./caching).
 
 ## The webpage continues to flash when running in headed mode
 
