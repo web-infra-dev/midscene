@@ -74,7 +74,7 @@ For more details about UI-TARS, see
 
 ### What you will have after using UI-TARS
 
-- **Speed**: a private-deployed UI-TARS model can be 5x faster than a general-purpose LLM. Each step of `.ai` call can be processed in 1-2 seconds.
+- **Speed**: a private-deployed UI-TARS model can be 5x faster than a general-purpose LLM. Each step of `.ai` call can be processed in 1-2 seconds on a high-performance GPU server.
 - **Data privacy**: you can deploy it on your own server and your data will no longer be sent to the cloud.
 - **More stable with short prompt**: ⁠UI-TARS is optimized for UI automation and is capable of handling more complex tasks with target-driven prompts. You can use it with a shorter prompt (although it is not recommended), and it performs even better when compared to a general-purpose LLM.
 
