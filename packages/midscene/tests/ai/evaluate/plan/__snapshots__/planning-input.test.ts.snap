@@ -45,7 +45,7 @@ exports[`automation - planning input > input value Add, delete, correct and chec
   {
     "locate": {
       "id": "fbc2d002",
-      "prompt": "the task input box with the content 'Learn English'",
+      "prompt": "the task input box with content 'Learn English'",
     },
     "param": {
       "value": "Learn English tomorrow",
@@ -61,7 +61,7 @@ exports[`automation - planning input > input value Add, delete, correct and chec
   {
     "locate": {
       "id": "fbc2d002",
-      "prompt": "the input box containing 'Learn English'",
+      "prompt": "the task input box containing 'Learn English'",
     },
     "param": {
       "value": "Learn Skiing",
