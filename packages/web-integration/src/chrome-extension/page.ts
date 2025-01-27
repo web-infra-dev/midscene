@@ -7,9 +7,10 @@
 
 import assert from 'node:assert';
 import type { WebKeyInput } from '@/common/page';
+import { treeToList } from '@/common/utils';
 import type { ElementInfo } from '@/extractor';
 import type { AbstractPage } from '@/page';
-import type { Point, Size } from '@midscene/core';
+import type { BaseElement, ElementTreeNode, Point, Size } from '@midscene/core';
 import type { Protocol as CDPTypes } from 'devtools-protocol';
 import { CdpKeyboard } from './cdpInput';
 import {
@@ -202,9 +203,7 @@ export default class ChromeExtensionProxyPage implements AbstractPage {
 
     const expression = () => {
       return {
-        context: (
-          window as any
-        ).midscene_element_inspector.webExtractTextWithPosition(),
+        tree: (window as any).midscene_element_inspector.webExtractNodeTree(),
         size: {
           width: document.documentElement.clientWidth,
           height: document.documentElement.clientHeight,
@@ -231,7 +230,10 @@ export default class ChromeExtensionProxyPage implements AbstractPage {
       );
     }
     // console.log('returnValue', returnValue.result.value);
-    return returnValue.result.value;
+    return returnValue.result.value as {
+      tree: ElementTreeNode<ElementInfo>;
+      size: Size;
+    };
   }
 
   // current implementation is wait until domReadyState is complete
@@ -255,14 +257,19 @@ export default class ChromeExtensionProxyPage implements AbstractPage {
     );
   }
 
-  async getElementInfos() {
+  async getElementsInfo() {
+    const tree = await this.getElementsNodeTree();
+    return treeToList(tree);
+  }
+
+  async getElementsNodeTree() {
     await this.hideMousePointer();
     const content = await this.getPageContentByCDP();
     if (content?.size) {
       this.viewportSize = content.size;
     }
 
-    return content?.context || [];
+    return content?.tree || { node: null, children: [] };
   }
 
   async size() {

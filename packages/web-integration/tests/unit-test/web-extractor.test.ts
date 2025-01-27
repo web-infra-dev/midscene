@@ -3,6 +3,7 @@ import { parseContextFromWebPage } from '@/common/utils';
 import { generateExtractData } from '@/debug';
 import StaticPage from '@/playground/static-page';
 import type { WebElementInfo } from '@/web-element';
+import type { ElementTreeNode } from '@midscene/core/.';
 import { imageInfoOfBase64 } from '@midscene/shared/img';
 import { createServer } from 'http-server';
 import { beforeAll, describe, expect, it } from 'vitest';
@@ -10,6 +11,22 @@ import { launchPage } from '../ai/web/puppeteer/utils';
 
 const pageDir = join(__dirname, './fixtures/web-extractor');
 const pagePath = join(pageDir, 'index.html');
+
+const treeToList = (tree: ElementTreeNode<WebElementInfo>) => {
+  // dfs topChildren
+  const elementInfoArray: WebElementInfo[] = [];
+  function dfsTopChildren(node: ElementTreeNode<WebElementInfo>) {
+    if (node.node) {
+      elementInfoArray.push(node.node);
+    }
+    for (let i = 0; i < node.children.length; i++) {
+      dfsTopChildren(node.children[i]);
+    }
+  }
+  dfsTopChildren(tree);
+  return elementInfoArray;
+};
+
 describe(
   'extractor',
   () => {

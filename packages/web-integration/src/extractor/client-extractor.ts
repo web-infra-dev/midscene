@@ -195,7 +195,6 @@ export function extractTextWithPosition(initNode: Document): ElementInfo[] {
         Math.round(rect.top + rect.height / 2),
       ],
       nodeType,
-      nodePath: '',
     };
 
     if (elementInfo.nodeType !== NodeType.CONTAINER) {

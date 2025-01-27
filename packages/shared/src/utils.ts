@@ -8,22 +8,11 @@ export function uuid() {
 
 const hashMap: Record<string, string> = {}; // id - combined
 
-let frameId = 0;
-
-export function getFrameId(): number {
-  return frameId;
-}
-
-export function setFrameId(id: number) {
-  frameId = id;
-}
-
 export function generateHashId(rect: any, content = '') {
   // Combine the input into a string
   const combined = JSON.stringify({
     content,
     rect,
-    _midscene_frame_id: getFrameId(),
   });
 
   // Generates the sha-256 hash value

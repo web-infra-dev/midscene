@@ -35,6 +35,13 @@ export abstract class BaseElement {
   abstract locator?: string;
 }
 
+export interface ElementTreeNode<
+  ElementType extends BaseElement = BaseElement,
+> {
+  node: ElementType | null;
+  children: ElementTreeNode<ElementType>[];
+}
+
 export type AIUsageInfo = Record<string, any>;
 
 /**
@@ -93,7 +100,10 @@ export abstract class UIContext<ElementType extends BaseElement = BaseElement> {
 
   abstract screenshotBase64WithElementMarker?: string;
 
+  // @deprecated('use tree instead')
   abstract content: ElementType[];
+
+  abstract tree: ElementTreeNode<ElementType>;
 
   abstract size: Size;
 }
@@ -335,7 +345,7 @@ export interface ExecutionTaskApply<
     param: TaskParam,
     context: ExecutorContext,
   ) => // biome-ignore lint/suspicious/noConfusingVoidType: <explanation>
-    | Promise<ExecutionTaskReturn<TaskOutput, TaskLog> | undefined | void>
+  | Promise<ExecutionTaskReturn<TaskOutput, TaskLog> | undefined | void>
     | undefined
     | void;
 }

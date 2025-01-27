@@ -1,7 +1,7 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import type { WebPage } from '@/common/page';
-import { getElementInfos } from '@/debug';
+import { getElementsInfo } from '@/debug';
 import { saveBase64Image } from '@midscene/shared/img';
 import { processImageElementInfo } from '@midscene/shared/img';
 import { resizeImgBase64 } from '@midscene/shared/img';
@@ -22,7 +22,7 @@ export async function generateExtractData(
     elementsPositionInfo,
     captureElementSnapshot,
     elementsPositionInfoWithoutText,
-  } = await getElementInfos(page);
+  } = await getElementsInfo(page);
 
   const inputImagePath = path.join(targetDir, 'input.png');
   const outputImagePath = path.join(targetDir, 'output.png');

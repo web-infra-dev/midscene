@@ -14,7 +14,7 @@ describe(
       }
     });
 
-    it('Sauce Demo by Swag Lab', async () => {
+    it.only('Sauce Demo by Swag Lab', async () => {
       const { originPage, reset } = await launchPage(
         'https://www.saucedemo.com/',
       );

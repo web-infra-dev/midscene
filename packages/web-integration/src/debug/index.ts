@@ -26,7 +26,7 @@ export async function generateExtractData(
     elementsPositionInfo,
     captureElementSnapshot,
     elementsPositionInfoWithoutText,
-  } = await getElementInfos(page);
+  } = await getElementsInfo(page);
 
   const inputImagePath = path.join(targetDir, 'input.png');
   const outputImagePath = path.join(targetDir, 'output.png');
@@ -125,9 +125,9 @@ export function writeFileSyncWithDir(
   writeFileSync(filePath, content, options);
 }
 
-export async function getElementInfos(page: WebPage) {
+export async function getElementsInfo(page: WebPage) {
   const captureElementSnapshot: Array<ElementInfo> =
-    await page.getElementInfos();
+    await page.getElementsInfo();
 
   const elementsPositionInfoWithoutText = captureElementSnapshot.filter(
     (elementInfo) => {

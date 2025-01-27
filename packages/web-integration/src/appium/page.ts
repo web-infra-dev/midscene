@@ -22,7 +22,7 @@ export class Page implements AbstractPage {
     this.browser = browser;
   }
 
-  async getElementInfos() {
+  async getElementsInfo() {
     const pageSource = await this.browser.getPageSource();
     const { width, height } = await this.browser.getWindowSize();
     const parser = new DOMParser();
@@ -37,6 +37,10 @@ export class Page implements AbstractPage {
     );
 
     return infos;
+  }
+
+  async getElementsNodeTree(): Promise<any> {
+    throw new Error('Not implemented');
   }
 
   async size(): Promise<Size> {

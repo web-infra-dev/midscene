@@ -1,7 +1,7 @@
 import assert from 'node:assert';
 import { MATCH_BY_POSITION, getAIConfig } from '@/env';
 import { imageInfoOfBase64 } from '@/image';
-import type { BaseElement, Size, UIContext } from '@/types';
+import type { BaseElement, ElementTreeNode, Size, UIContext } from '@/types';
 import { PromptTemplate } from '@langchain/core/prompts';
 import { NodeType } from '@midscene/shared/constants';
 import { generateHashId } from '@midscene/shared/utils';
@@ -199,22 +199,36 @@ export function truncateText(text: string, maxLength = 100) {
 }
 
 export function elementByPositionWithElementInfo(
-  elementsInfo: BaseElement[],
+  treeRoot: ElementTreeNode<BaseElement>,
   position: {
     x: number;
     y: number;
   },
 ) {
   assert(typeof position !== 'undefined', 'position is required for query');
-  const matchingElements = elementsInfo.filter((item) => {
-    return (
-      item.attributes.nodeType !== NodeType.CONTAINER &&
-      item.rect.left <= position.x &&
-      position.x <= item.rect.left + item.rect.width &&
-      item.rect.top <= position.y &&
-      position.y <= item.rect.top + item.rect.height
-    );
-  });
+
+  const matchingElements: BaseElement[] = [];
+
+  function dfs(node: ElementTreeNode<BaseElement>) {
+    if (node.node) {
+      const item = node.node;
+      if (
+        item.attributes.nodeType !== NodeType.CONTAINER &&
+        item.rect.left <= position.x &&
+        position.x <= item.rect.left + item.rect.width &&
+        item.rect.top <= position.y &&
+        position.y <= item.rect.top + item.rect.height
+      ) {
+        matchingElements.push(item);
+      }
+    }
+
+    for (const child of node.children) {
+      dfs(child);
+    }
+  }
+
+  dfs(treeRoot);
 
   if (matchingElements.length === 0) {
     return undefined;
@@ -248,6 +262,99 @@ id=5a29bf6419bd: {
 
 ...many more`;
 
+export function trimAttributes(
+  attributes: Record<string, any>,
+  truncateTextLength?: number,
+) {
+  const tailorAttributes = Object.keys(attributes).reduce(
+    (res, currentKey: string) => {
+      const attributeVal = (attributes as any)[currentKey];
+      if (
+        currentKey === 'style' ||
+        currentKey === 'src' ||
+        currentKey === 'htmlTagName' ||
+        currentKey === 'nodeType'
+      ) {
+        return res;
+      }
+
+      res[currentKey] = truncateText(attributeVal, truncateTextLength);
+      return res;
+    },
+    {} as BaseElement['attributes'],
+  );
+  return tailorAttributes;
+}
+
+const nodeSizeThreshold = 4;
+export async function descriptionOfTree<
+  ElementType extends BaseElement = BaseElement,
+>(
+  tree: ElementTreeNode<ElementType>,
+  truncateTextLength?: number,
+  filterNonTextContent = false,
+) {
+  const attributesString = (kv: Record<string, any>) => {
+    return Object.entries(kv)
+      .map(
+        ([key, value]) => `${key}="${truncateText(value, truncateTextLength)}"`,
+      )
+      .join(' ');
+  };
+
+  function buildContentTree(
+    node: ElementTreeNode<ElementType>,
+    indent = 0,
+  ): string {
+    let before = '';
+    let contentWithIndent = '';
+    let after = '';
+    const indentStr = '  '.repeat(indent);
+
+    if (
+      node.node &&
+      node.node.rect.width > nodeSizeThreshold &&
+      node.node.rect.height > nodeSizeThreshold &&
+      (!filterNonTextContent || (filterNonTextContent && node.node.content))
+    ) {
+      let nodeTypeString: string;
+      if (node.node.attributes?.htmlTagName) {
+        nodeTypeString = node.node.attributes.htmlTagName.replace(/[<>]/g, '');
+      } else {
+        nodeTypeString = node.node.attributes.nodeType
+          .replace(/\sNode$/, '')
+          .toLowerCase();
+      }
+      const markerId = (node.node as any).indexId;
+      const markerIdString = markerId ? `markerId="${markerId}"` : '';
+      before = `<${nodeTypeString} id="${node.node.id}" ${markerIdString} ${attributesString(trimAttributes(node.node.attributes || {}, truncateTextLength))}>`;
+      const content = truncateText(node.node.content, truncateTextLength);
+      contentWithIndent = content ? `\n${indentStr}  ${content}` : '';
+      after = `</${nodeTypeString}>`;
+    } else if (!filterNonTextContent) {
+      before = '<>';
+      contentWithIndent = '';
+      after = '</>';
+    }
+
+    let children = '';
+    for (let i = 0; i < node.children.length; i++) {
+      const childContent = buildContentTree(node.children[i], indent + 1);
+      if (childContent) {
+        children += `\n${childContent}`;
+      }
+    }
+
+    const result = `${indentStr}${before}${contentWithIndent}${children}\n${indentStr}${after}`;
+    if (result.trim()) {
+      return result;
+    }
+    return '';
+  }
+
+  return buildContentTree(tree);
+}
+
 export async function describeUserPage<
   ElementType extends BaseElement = BaseElement,
 >(
@@ -268,34 +375,31 @@ export async function describeUserPage<
     ({ width, height } = imgSize);
   }
 
-  const elementsInfo = context.content;
+  const treeRoot = context.tree;
+  // dfs tree, save the id and element info
   const idElementMap: Record<string, ElementType> = {};
-  elementsInfo.forEach((item) => {
-    idElementMap[item.id] = item;
-    // accept indexId/markerId as a backup
-    if ((item as any).indexId) {
-      idElementMap[(item as any).indexId] = item;
+  const flatElements: ElementType[] = [];
+  function dfsTree(node: ElementTreeNode<ElementType>) {
+    if (node.node) {
+      idElementMap[node.node.id] = node.node;
+      flatElements.push(node.node);
     }
-    return { ...item };
-  });
+    for (let i = 0; i < node.children.length; i++) {
+      dfsTree(node.children[i]);
+    }
+  }
+  dfsTree(treeRoot);
 
-  const elementInfosDescription = cropFieldInformation(
-    elementsInfo,
+  const contentTree = await descriptionOfTree(
+    treeRoot,
     opt?.truncateTextLength,
     opt?.filterNonTextContent,
   );
 
-  const contentList = elementInfosDescription
-    .map((item) => {
-      const { id, ...rest } = item;
-      return `id=${id}: ${JSON.stringify(rest)}`;
-    })
-    .join('\n\n');
-
   // if match by position, don't need to provide the page description
   const pageJSONDescription = getAIConfig(MATCH_BY_POSITION)
     ? ''
-    : `Some of the elements are marked with a rectangle in the screenshot, some are not. \n Json description of all the page elements:\n${contentList}`;
+    : `Some of the elements are marked with a rectangle in the screenshot, some are not. \n The page elements tree:\n${contentTree}`;
   const sizeDescription = describeSize({ width, height });
 
   return {
@@ -310,7 +414,7 @@ export async function describeUserPage<
       size: { width: number; height: number },
     ) {
       console.log('elementByPosition', { position, size });
-      return elementByPositionWithElementInfo(elementsInfo, position);
+      return elementByPositionWithElementInfo(treeRoot, position);
     },
     insertElementByPosition(position: { x: number; y: number }) {
       const rect = {
@@ -327,68 +431,15 @@ export async function describeUserPage<
         content: '',
         center: [position.x, position.y],
       } as ElementType;
-      elementsInfo.push(element);
+
+      treeRoot.children.push({
+        node: element,
+        children: [],
+      });
+      flatElements.push(element);
       idElementMap[id] = element;
       return element;
     },
     size: { width, height },
   };
-}
-
-function cropFieldInformation(
-  elementsInfo: BaseElement[],
-  truncateTextLength?: number,
-  filterNonTextContent = false,
-) {
-  const elementInfosDescription: Array<Record<string, any>> = elementsInfo.map(
-    (item) => {
-      const { id, attributes = {}, rect, content } = item;
-      let htmlTagName = '';
-      const tailorContent = truncateText(content, truncateTextLength);
-      const tailorAttributes = Object.keys(attributes).reduce(
-        (res, currentKey: string) => {
-          const attributeVal = (attributes as any)[currentKey];
-          if (currentKey === 'style' || currentKey === 'src') return res;
-          if (currentKey === 'nodeType') {
-            // when filterNonTextContent is true, we don't need to keep the nodeType since they are all TEXT
-            if (!filterNonTextContent) {
-              res[currentKey] = attributeVal.replace(/\sNode$/, '');
-            }
-          } else if (currentKey === 'htmlTagName') {
-            if (!['<span>', '<p>', '<div>'].includes(attributeVal)) {
-              htmlTagName = attributeVal;
-            }
-          } else {
-            res[currentKey] = truncateText(attributeVal);
-          }
-          return res;
-        },
-        {} as BaseElement['attributes'],
-      );
-
-      return {
-        id,
-        ...(filterNonTextContent || tailorContent
-          ? {}
-          : { markerId: (item as any).indexId }),
-        ...(tailorContent ? { content: tailorContent } : {}),
-        ...(Object.keys(tailorAttributes).length && !tailorContent
-          ? { attributes: tailorAttributes }
-          : {}),
-        ...(htmlTagName ? { htmlTagName } : {}),
-        rect: {
-          left: rect.left,
-          top: rect.top,
-          width: rect.width,
-          height: rect.height,
-          // remove 'zoom' if it exists
-        },
-      };
-    },
-  );
-
-  if (filterNonTextContent) {
-    return elementInfosDescription.filter((item) => item.content);
-  }
-  return elementInfosDescription;
 }

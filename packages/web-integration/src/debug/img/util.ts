@@ -2,9 +2,9 @@ import type { ElementInfo } from '@/extractor';
 import { NodeType } from '@/extractor/constants';
 import type { WebPage } from '../../common/page';
 
-export async function getElementInfos(page: WebPage) {
+export async function getElementsInfo(page: WebPage) {
   const captureElementSnapshot: Array<ElementInfo> =
-    await page.getElementInfos();
+    await page.getElementsInfo();
   const elementsPositionInfo = captureElementSnapshot.map(
     (elementInfo, index) => {
       return {

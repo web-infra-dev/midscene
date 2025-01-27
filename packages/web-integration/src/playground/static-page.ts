@@ -20,8 +20,12 @@ export default class StaticPage implements AbstractPage {
     this.uiContext = uiContext;
   }
 
-  async getElementInfos() {
-    return ThrowNotImplemented('getElementInfos');
+  async getElementsInfo() {
+    return ThrowNotImplemented('getElementsInfo');
+  }
+
+  async getElementsNodeTree() {
+    return ThrowNotImplemented('getElementsNodeTree');
   }
 
   async size() {

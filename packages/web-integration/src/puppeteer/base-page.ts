@@ -1,11 +1,11 @@
-import type { Point, Size } from '@midscene/core';
+import type { ElementTreeNode, Point, Size } from '@midscene/core';
 import { getTmpFile, sleep } from '@midscene/core/utils';
 import { base64Encoded } from '@midscene/shared/img';
 import type { Page as PlaywrightPage } from 'playwright';
 import type { KeyInput, Page as PuppeteerPage } from 'puppeteer';
 import type { WebKeyInput } from '../common/page';
-import { getExtraReturnLogic } from '../common/utils';
-import type { ElementInfo } from '../extractor';
+import { getExtraReturnLogic, treeToList } from '../common/utils';
+import type { ElementInfo, ElementNode } from '../extractor';
 import type { AbstractPage } from '../page';
 import type { MouseButton } from '../page';
 
@@ -33,10 +33,19 @@ export class Page<
     this.pageType = pageType;
   }
 
-  async getElementInfos() {
-    const scripts = await getExtraReturnLogic();
+  // @deprecated
+  async getElementsInfo() {
+    // const scripts = await getExtraReturnLogic();
+    // const captureElementSnapshot = await this.evaluate(scripts);
+    // return captureElementSnapshot as ElementInfo[];
+    const tree = await this.getElementsNodeTree();
+    return treeToList(tree);
+  }
+
+  async getElementsNodeTree() {
+    const scripts = await getExtraReturnLogic(true);
     const captureElementSnapshot = await this.evaluate(scripts);
-    return captureElementSnapshot as ElementInfo[];
+    return captureElementSnapshot as ElementTreeNode<ElementInfo>;
   }
 
   async size(): Promise<Size> {

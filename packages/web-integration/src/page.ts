@@ -1,7 +1,7 @@
 import type { Point, Size } from '@midscene/core';
 import type { WebKeyInput } from './common/page';
 import type { WebUIContext } from './common/utils';
-import type { ElementInfo } from './extractor';
+import type { ElementInfo, ElementNode } from './extractor';
 
 export type MouseButton = 'left' | 'right' | 'middle';
 
@@ -26,7 +26,9 @@ export interface KeyboardAction {
 
 export abstract class AbstractPage {
   abstract pageType: string;
-  abstract getElementInfos(): Promise<ElementInfo[]>;
+  // @deprecated
+  abstract getElementsInfo(): Promise<ElementInfo[]>;
+  abstract getElementsNodeTree(): Promise<ElementNode>;
   abstract url(): string | Promise<string>;
   abstract screenshotBase64?(): Promise<string>;
   abstract size(): Promise<Size>;
