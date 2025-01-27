@@ -10,8 +10,13 @@ exports[`utils > should be able to describe tree 1`] = `
     world 2345
     <img id="3" markerId="20" ariaLabel="image description" storyContent="Legend had it that the Whispering Woods held an ancient secret, one that connected the world of man ...">
     </img>
-    <>
-    </>
+    
+      <>
+        <img id="3222" markerId="20" ariaLabel="image description" storyContent="Legend had it that the Whispering Woods held an ancient secret, one that connected the world of man ...">
+          world 2345
+        </img>
+      </>
+    
   </img>
 </container>"
 `;
@@ -24,6 +29,13 @@ exports[`utils > should be able to describe tree, filterNonTextContent = true 1`
   </text>
   <img id="3" markerId="20" ariaLabel="image description" storyContent="Legend had it that t...">
     world 2345
+    
+      
+        <img id="3222" markerId="20" ariaLabel="image description" storyContent="Legend had it that t...">
+          world 2345
+        </img>
+      
+    
   </img>
 </container>"
 `;

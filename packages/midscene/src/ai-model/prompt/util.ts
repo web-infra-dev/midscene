@@ -246,21 +246,14 @@ export const samplePageDescription = `
 The size of the page: 1280 x 720
 Some of the elements are marked with a rectangle in the screenshot, some are not.
 
-JSON description of all the elements in screenshot:
-id=c81c4e9a33: {
-  "markerId": 2, // The number indicated by the rectangle label in the screenshot
-  "attributes":  // Attributes of the element
-    {"data-id":"@submit s0","class":".gh-search","aria-label":"搜索","nodeType":"IMG", "src": "image_url"},
-  "rect": { "left": 16, "top": 378, "width": 89, "height": 16 } // Position of the element in the page
-}
-
-id=5a29bf6419bd: {
-  "content": "获取优惠券",
-  "attributes": { "nodeType": "TEXT" },
-  "rect": { "left": 32, "top": 332, "width": 70, "height": 18 }
-}
-
-...many more`;
+Description of all the elements in screenshot:
+<div id="969f1637" markerId="1"> // The markerId indicated by the rectangle label in the screenshot
+  <h4 id="b211ecb2" markerId="5" >
+    The username is accepted
+  </h4>
+  ...many more
+</div>
+`;
 
 export function trimAttributes(
   attributes: Record<string, any>,
@@ -309,7 +302,16 @@ export async function descriptionOfTree<
     let before = '';
     let contentWithIndent = '';
     let after = '';
+    let emptyNode = true;
     const indentStr = '  '.repeat(indent);
+
+    let children = '';
+    for (let i = 0; i < node.children.length; i++) {
+      const childContent = buildContentTree(node.children[i], indent + 1);
+      if (childContent) {
+        children += `\n${childContent}`;
+      }
+    }
 
     if (
       node.node &&
@@ -317,6 +319,7 @@ export async function descriptionOfTree<
       node.node.rect.height > nodeSizeThreshold &&
       (!filterNonTextContent || (filterNonTextContent && node.node.content))
     ) {
+      emptyNode = false;
       let nodeTypeString: string;
       if (node.node.attributes?.htmlTagName) {
         nodeTypeString = node.node.attributes.htmlTagName.replace(/[<>]/g, '');
@@ -332,17 +335,15 @@ export async function descriptionOfTree<
       contentWithIndent = content ? `\n${indentStr}  ${content}` : '';
       after = `</${nodeTypeString}>`;
     } else if (!filterNonTextContent) {
-      before = '<>';
-      contentWithIndent = '';
-      after = '</>';
+      if (!children.trim().startsWith('<>')) {
+        before = '<>';
+        contentWithIndent = '';
+        after = '</>';
+      }
     }
 
-    let children = '';
-    for (let i = 0; i < node.children.length; i++) {
-      const childContent = buildContentTree(node.children[i], indent + 1);
-      if (childContent) {
-        children += `\n${childContent}`;
-      }
+    if (emptyNode && !children.trim()) {
+      return '';
     }
 
     const result = `${indentStr}${before}${contentWithIndent}${children}\n${indentStr}${after}`;

@@ -26,6 +26,7 @@ export async function generateExtractData(
     elementsPositionInfo,
     captureElementSnapshot,
     elementsPositionInfoWithoutText,
+    elementTree,
   } = await getElementsInfo(page);
 
   const inputImagePath = path.join(targetDir, 'input.png');
@@ -36,7 +37,7 @@ export async function generateExtractData(
   );
   const resizeOutputImgPath = path.join(targetDir, 'resize-output.png');
   const snapshotJsonPath = path.join(targetDir, 'element-snapshot.json');
-
+  const elementTreeJsonPath = path.join(targetDir, 'element-tree.json');
   const {
     compositeElementInfoImgBase64,
     compositeElementInfoImgWithoutTextBase64,
@@ -52,9 +53,16 @@ export async function generateExtractData(
     ? JSON.parse(readFileSync(snapshotJsonPath, 'utf-8'))
     : null;
 
+  const existingElementTree = existsSync(elementTreeJsonPath)
+    ? JSON.parse(readFileSync(elementTreeJsonPath, 'utf-8'))
+    : null;
+
   if (
     existingSnapshot &&
-    JSON.stringify(existingSnapshot) === JSON.stringify(captureElementSnapshot)
+    JSON.stringify(existingSnapshot) ===
+      JSON.stringify(captureElementSnapshot) &&
+    existingElementTree &&
+    JSON.stringify(existingElementTree) === JSON.stringify(elementTree)
   ) {
     console.log('skip save snapshot for ', targetDir);
     return;
@@ -64,6 +72,10 @@ export async function generateExtractData(
     writeFileSyncWithDir(
       snapshotJsonPath,
       JSON.stringify(captureElementSnapshot, null, 2),
+    );
+    writeFileSyncWithDir(
+      elementTreeJsonPath,
+      JSON.stringify(elementTree, null, 2),
     );
   }
   if (!saveImgType?.disableInputImage) {
@@ -129,6 +141,8 @@ export async function getElementsInfo(page: WebPage) {
   const captureElementSnapshot: Array<ElementInfo> =
     await page.getElementsInfo();
 
+  const elementTree = await page.getElementsNodeTree();
+
   const elementsPositionInfoWithoutText = captureElementSnapshot.filter(
     (elementInfo) => {
       if (elementInfo.attributes.nodeType === NodeType.TEXT) {
@@ -139,6 +153,7 @@ export async function getElementsInfo(page: WebPage) {
   );
   return {
     elementsPositionInfo: captureElementSnapshot,
+    elementTree,
     captureElementSnapshot,
     elementsPositionInfoWithoutText,
   };

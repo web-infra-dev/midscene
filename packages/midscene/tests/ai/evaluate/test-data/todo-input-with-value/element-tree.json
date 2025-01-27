@@ -1,0 +1,1589 @@
+{
+  "node": null,
+  "children": [
+    {
+      "node": null,
+      "children": [
+        {
+          "node": null,
+          "children": [
+            {
+              "node": null,
+              "children": [
+                {
+                  "node": null,
+                  "children": []
+                },
+                {
+                  "node": null,
+                  "children": [
+                    {
+                      "node": {
+                        "id": "5f04b017",
+                        "indexId": 0,
+                        "nodeHashId": "5f04b017",
+                        "nodeType": "TEXT Node",
+                        "locator": "",
+                        "attributes": {
+                          "nodeType": "TEXT Node",
+                          "htmlTagName": "<h3>"
+                        },
+                        "center": [
+                          51,
+                          43
+                        ],
+                        "content": "React",
+                        "rect": {
+                          "left": 18,
+                          "top": 28,
+                          "width": 65,
+                          "height": 29,
+                          "zoom": 1
+                        },
+                        "zoom": 1,
+                        "screenWidth": 1280,
+                        "screenHeight": 720
+                      },
+                      "children": []
+                    }
+                  ]
+                },
+                {
+                  "node": null,
+                  "children": []
+                },
+                {
+                  "node": null,
+                  "children": [
+                    {
+                      "node": null,
+                      "children": []
+                    },
+                    {
+                      "node": null,
+                      "children": [
+                        {
+                          "node": {
+                            "id": "1a3eddc6",
+                            "indexId": 1,
+                            "nodeHashId": "1a3eddc6",
+                            "nodeType": "TEXT Node",
+                            "locator": "",
+                            "attributes": {
+                              "nodeType": "TEXT Node",
+                              "htmlTagName": "<h5>"
+                            },
+                            "center": [
+                              37,
+                              76
+                            ],
+                            "content": "React",
+                            "rect": {
+                              "left": 18,
+                              "top": 67,
+                              "width": 38,
+                              "height": 17,
+                              "zoom": 1
+                            },
+                            "zoom": 1,
+                            "screenWidth": 1280,
+                            "screenHeight": 720
+                          },
+                          "children": []
+                        }
+                      ]
+                    },
+                    {
+                      "node": null,
+                      "children": []
+                    },
+                    {
+                      "node": null,
+                      "children": [
+                        {
+                          "node": {
+                            "id": "efc50a02",
+                            "indexId": 2,
+                            "nodeHashId": "efc50a02",
+                            "nodeType": "TEXT Node",
+                            "locator": "",
+                            "attributes": {
+                              "nodeType": "TEXT Node",
+                              "htmlTagName": "<a>"
+                            },
+                            "center": [
+                              40,
+                              94
+                            ],
+                            "content": "Source",
+                            "rect": {
+                              "left": 18,
+                              "top": 85,
+                              "width": 44,
+                              "height": 17,
+                              "zoom": 1
+                            },
+                            "zoom": 1,
+                            "screenWidth": 1280,
+                            "screenHeight": 720
+                          },
+                          "children": []
+                        }
+                      ]
+                    },
+                    {
+                      "node": null,
+                      "children": []
+                    },
+                    {
+                      "node": null,
+                      "children": [
+                        {
+                          "node": {
+                            "id": "64fef586",
+                            "indexId": 3,
+                            "nodeHashId": "64fef586",
+                            "nodeType": "TEXT Node",
+                            "locator": "",
+                            "attributes": {
+                              "nodeType": "TEXT Node",
+                              "htmlTagName": "<h5>"
+                            },
+                            "center": [
+                              80,
+                              122
+                            ],
+                            "content": "TypeScript + React",
+                            "rect": {
+                              "left": 18,
+                              "top": 113,
+                              "width": 123,
+                              "height": 17,
+                              "zoom": 1
+                            },
+                            "zoom": 1,
+                            "screenWidth": 1280,
+                            "screenHeight": 720
+                          },
+                          "children": []
+                        }
+                      ]
+                    },
+                    {
+                      "node": null,
+                      "children": []
+                    },
+                    {
+                      "node": null,
+                      "children": [
+                        {
+                          "node": {
+                            "id": "5f5460ed",
+                            "indexId": 4,
+                            "nodeHashId": "5f5460ed",
+                            "nodeType": "TEXT Node",
+                            "locator": "",
+                            "attributes": {
+                              "nodeType": "TEXT Node",
+                              "htmlTagName": "<a>"
+                            },
+                            "center": [
+                              37,
+                              140
+                            ],
+                            "content": "Demo",
+                            "rect": {
+                              "left": 18,
+                              "top": 131,
+                              "width": 37,
+                              "height": 17,
+                              "zoom": 1
+                            },
+                            "zoom": 1,
+                            "screenWidth": 1280,
+                            "screenHeight": 720
+                          },
+                          "children": []
+                        }
+                      ]
+                    },
+                    {
+                      "node": {
+                        "id": "14de3d76",
+                        "indexId": 5,
+                        "nodeHashId": "14de3d76",
+                        "nodeType": "TEXT Node",
+                        "locator": "",
+                        "attributes": {
+                          "nodeType": "TEXT Node",
+                          "htmlTagName": "<span>"
+                        },
+                        "center": [
+                          59,
+                          140
+                        ],
+                        "content": ",",
+                        "rect": {
+                          "left": 55,
+                          "top": 131,
+                          "width": 8,
+                          "height": 17,
+                          "zoom": 1
+                        },
+                        "zoom": 1,
+                        "screenWidth": 1280,
+                        "screenHeight": 720
+                      },
+                      "children": []
+                    },
+                    {
+                      "node": null,
+                      "children": [
+                        {
+                          "node": {
+                            "id": "570e12e1",
+                            "indexId": 6,
+                            "nodeHashId": "570e12e1",
+                            "nodeType": "TEXT Node",
+                            "locator": "",
+                            "attributes": {
+                              "nodeType": "TEXT Node",
+                              "htmlTagName": "<a>"
+                            },
+                            "center": [
+                              85,
+                              140
+                            ],
+                            "content": "Source",
+                            "rect": {
+                              "left": 63,
+                              "top": 131,
+                              "width": 44,
+                              "height": 17,
+                              "zoom": 1
+                            },
+                            "zoom": 1,
+                            "screenWidth": 1280,
+                            "screenHeight": 720
+                          },
+                          "children": []
+                        }
+                      ]
+                    },
+                    {
+                      "node": null,
+                      "children": []
+                    }
+                  ]
+                },
+                {
+                  "node": null,
+                  "children": []
+                }
+              ]
+            },
+            {
+              "node": null,
+              "children": []
+            },
+            {
+              "node": null,
+              "children": []
+            },
+            {
+              "node": null,
+              "children": []
+            },
+            {
+              "node": null,
+              "children": [
+                {
+                  "node": null,
+                  "children": []
+                },
+                {
+                  "node": null,
+                  "children": [
+                    {
+                      "node": {
+                        "id": "4b597ca0",
+                        "indexId": 7,
+                        "nodeHashId": "4b597ca0",
+                        "nodeType": "TEXT Node",
+                        "locator": "",
+                        "attributes": {
+                          "nodeType": "TEXT Node",
+                          "htmlTagName": "<p>"
+                        },
+                        "center": [
+                          150,
+                          271
+                        ],
+                        "content": "React is a JavaScript library for creating user interfaces. Its core principles are declarative code, efficiency, and flexibility. Simply specify what your component looks like and React will keep it up-to-date when the underlying data changes.",
+                        "rect": {
+                          "left": 28,
+                          "top": 203,
+                          "width": 244,
+                          "height": 135,
+                          "zoom": 1
+                        },
+                        "zoom": 1,
+                        "screenWidth": 1280,
+                        "screenHeight": 720
+                      },
+                      "children": []
+                    }
+                  ]
+                },
+                {
+                  "node": null,
+                  "children": []
+                },
+                {
+                  "node": null,
+                  "children": [
+                    {
+                      "node": null,
+                      "children": []
+                    },
+                    {
+                      "node": null,
+                      "children": [
+                        {
+                          "node": {
+                            "id": "7aaa0bd8",
+                            "indexId": 8,
+                            "nodeHashId": "7aaa0bd8",
+                            "nodeType": "TEXT Node",
+                            "locator": "",
+                            "attributes": {
+                              "nodeType": "TEXT Node",
+                              "htmlTagName": "<a>"
+                            },
+                            "center": [
+                              272,
+                              379
+                            ],
+                            "content": "React",
+                            "rect": {
+                              "left": 253,
+                              "top": 370,
+                              "width": 37,
+                              "height": 17,
+                              "zoom": 1
+                            },
+                            "zoom": 1,
+                            "screenWidth": 1280,
+                            "screenHeight": 720
+                          },
+                          "children": []
+                        }
+                      ]
+                    },
+                    {
+                      "node": null,
+                      "children": []
+                    }
+                  ]
+                },
+                {
+                  "node": null,
+                  "children": []
+                }
+              ]
+            },
+            {
+              "node": null,
+              "children": []
+            },
+            {
+              "node": null,
+              "children": []
+            },
+            {
+              "node": null,
+              "children": []
+            },
+            {
+              "node": null,
+              "children": [
+                {
+                  "node": {
+                    "id": "9ac9641c",
+                    "indexId": 9,
+                    "nodeHashId": "9ac9641c",
+                    "nodeType": "TEXT Node",
+                    "locator": "",
+                    "attributes": {
+                      "nodeType": "TEXT Node",
+                      "htmlTagName": "<h4>"
+                    },
+                    "center": [
+                      94,
+                      441
+                    ],
+                    "content": "Official Resources",
+                    "rect": {
+                      "left": 18,
+                      "top": 430,
+                      "width": 151,
+                      "height": 22,
+                      "zoom": 1
+                    },
+                    "zoom": 1,
+                    "screenWidth": 1280,
+                    "screenHeight": 720
+                  },
+                  "children": []
+                }
+              ]
+            },
+            {
+              "node": null,
+              "children": []
+            },
+            {
+              "node": null,
+              "children": [
+                {
+                  "node": null,
+                  "children": []
+                },
+                {
+                  "node": null,
+                  "children": [
+                    {
+                      "node": null,
+                      "children": []
+                    },
+                    {
+                      "node": null,
+                      "children": [
+                        {
+                          "node": {
+                            "id": "2eadafc9",
+                            "indexId": 10,
+                            "nodeHashId": "2eadafc9",
+                            "nodeType": "TEXT Node",
+                            "locator": "",
+                            "attributes": {
+                              "nodeType": "TEXT Node",
+                              "htmlTagName": "<a>"
+                            },
+                            "center": [
+                              78,
+                              472
+                            ],
+                            "content": "Quick Start",
+                            "rect": {
+                              "left": 43,
+                              "top": 463,
+                              "width": 70,
+                              "height": 17,
+                              "zoom": 1
+                            },
+                            "zoom": 1,
+                            "screenWidth": 1280,
+                            "screenHeight": 720
+                          },
+                          "children": []
+                        }
+                      ]
+                    },
+                    {
+                      "node": null,
+                      "children": []
+                    }
+                  ]
+                },
+                {
+                  "node": null,
+                  "children": []
+                },
+                {
+                  "node": null,
+                  "children": [
+                    {
+                      "node": null,
+                      "children": []
+                    },
+                    {
+                      "node": null,
+                      "children": [
+                        {
+                          "node": {
+                            "id": "e1d1055f",
+                            "indexId": 11,
+                            "nodeHashId": "e1d1055f",
+                            "nodeType": "TEXT Node",
+                            "locator": "",
+                            "attributes": {
+                              "nodeType": "TEXT Node",
+                              "htmlTagName": "<a>"
+                            },
+                            "center": [
+                              88,
+                              492
+                            ],
+                            "content": "API Reference",
+                            "rect": {
+                              "left": 43,
+                              "top": 483,
+                              "width": 89,
+                              "height": 17,
+                              "zoom": 1
+                            },
+                            "zoom": 1,
+                            "screenWidth": 1280,
+                            "screenHeight": 720
+                          },
+                          "children": []
+                        }
+                      ]
+                    },
+                    {
+                      "node": null,
+                      "children": []
+                    }
+                  ]
+                },
+                {
+                  "node": null,
+                  "children": []
+                },
+                {
+                  "node": null,
+                  "children": [
+                    {
+                      "node": null,
+                      "children": []
+                    },
+                    {
+                      "node": null,
+                      "children": [
+                        {
+                          "node": {
+                            "id": "1a2978c0",
+                            "indexId": 12,
+                            "nodeHashId": "1a2978c0",
+                            "nodeType": "TEXT Node",
+                            "locator": "",
+                            "attributes": {
+                              "nodeType": "TEXT Node",
+                              "htmlTagName": "<a>"
+                            },
+                            "center": [
+                              78,
+                              512
+                            ],
+                            "content": "Philosophy",
+                            "rect": {
+                              "left": 43,
+                              "top": 503,
+                              "width": 69,
+                              "height": 17,
+                              "zoom": 1
+                            },
+                            "zoom": 1,
+                            "screenWidth": 1280,
+                            "screenHeight": 720
+                          },
+                          "children": []
+                        }
+                      ]
+                    },
+                    {
+                      "node": null,
+                      "children": []
+                    }
+                  ]
+                },
+                {
+                  "node": null,
+                  "children": []
+                },
+                {
+                  "node": null,
+                  "children": [
+                    {
+                      "node": null,
+                      "children": []
+                    },
+                    {
+                      "node": null,
+                      "children": [
+                        {
+                          "node": {
+                            "id": "46b5dd35",
+                            "indexId": 13,
+                            "nodeHashId": "46b5dd35",
+                            "nodeType": "TEXT Node",
+                            "locator": "",
+                            "attributes": {
+                              "nodeType": "TEXT Node",
+                              "htmlTagName": "<a>"
+                            },
+                            "center": [
+                              100,
+                              532
+                            ],
+                            "content": "React Community",
+                            "rect": {
+                              "left": 43,
+                              "top": 523,
+                              "width": 113,
+                              "height": 17,
+                              "zoom": 1
+                            },
+                            "zoom": 1,
+                            "screenWidth": 1280,
+                            "screenHeight": 720
+                          },
+                          "children": []
+                        }
+                      ]
+                    },
+                    {
+                      "node": null,
+                      "children": []
+                    }
+                  ]
+                },
+                {
+                  "node": null,
+                  "children": []
+                }
+              ]
+            },
+            {
+              "node": null,
+              "children": []
+            },
+            {
+              "node": null,
+              "children": [
+                {
+                  "node": {
+                    "id": "2440f869",
+                    "indexId": 14,
+                    "nodeHashId": "2440f869",
+                    "nodeType": "TEXT Node",
+                    "locator": "",
+                    "attributes": {
+                      "nodeType": "TEXT Node",
+                      "htmlTagName": "<h4>"
+                    },
+                    "center": [
+                      66,
+                      583
+                    ],
+                    "content": "Community",
+                    "rect": {
+                      "left": 18,
+                      "top": 572,
+                      "width": 95,
+                      "height": 22,
+                      "zoom": 1
+                    },
+                    "zoom": 1,
+                    "screenWidth": 1280,
+                    "screenHeight": 720
+                  },
+                  "children": []
+                }
+              ]
+            },
+            {
+              "node": null,
+              "children": []
+            },
+            {
+              "node": null,
+              "children": [
+                {
+                  "node": null,
+                  "children": []
+                },
+                {
+                  "node": null,
+                  "children": [
+                    {
+                      "node": null,
+                      "children": []
+                    },
+                    {
+                      "node": null,
+                      "children": [
+                        {
+                          "node": {
+                            "id": "33704d2d",
+                            "indexId": 15,
+                            "nodeHashId": "33704d2d",
+                            "nodeType": "TEXT Node",
+                            "locator": "",
+                            "attributes": {
+                              "nodeType": "TEXT Node",
+                              "htmlTagName": "<a>"
+                            },
+                            "center": [
+                              129,
+                              614
+                            ],
+                            "content": "ReactJS on Stack Overflow",
+                            "rect": {
+                              "left": 43,
+                              "top": 605,
+                              "width": 172,
+                              "height": 17,
+                              "zoom": 1
+                            },
+                            "zoom": 1,
+                            "screenWidth": 1280,
+                            "screenHeight": 720
+                          },
+                          "children": []
+                        }
+                      ]
+                    },
+                    {
+                      "node": null,
+                      "children": []
+                    }
+                  ]
+                },
+                {
+                  "node": null,
+                  "children": []
+                }
+              ]
+            },
+            {
+              "node": null,
+              "children": []
+            },
+            {
+              "node": null,
+              "children": [
+                {
+                  "node": null,
+                  "children": []
+                },
+                {
+                  "node": null,
+                  "children": []
+                },
+                {
+                  "node": null,
+                  "children": []
+                },
+                {
+                  "node": null,
+                  "children": [
+                    {
+                      "node": {
+                        "id": "d33261ff",
+                        "indexId": 16,
+                        "nodeHashId": "d33261ff",
+                        "nodeType": "TEXT Node",
+                        "locator": "",
+                        "attributes": {
+                          "nodeType": "TEXT Node",
+                          "htmlTagName": "<em>"
+                        },
+                        "center": [
+                          149,
+                          695
+                        ],
+                        "content": "If you have other helpful links to share, or find any of the links above no longer work, please",
+                        "rect": {
+                          "left": 18,
+                          "top": 677,
+                          "width": 261,
+                          "height": 36,
+                          "zoom": 1
+                        },
+                        "zoom": 1,
+                        "screenWidth": 1280,
+                        "screenHeight": 720
+                      },
+                      "children": []
+                    },
+                    {
+                      "node": null,
+                      "children": [
+                        {
+                          "node": null,
+                          "children": []
+                        }
+                      ]
+                    },
+                    {
+                      "node": null,
+                      "children": []
+                    }
+                  ]
+                },
+                {
+                  "node": null,
+                  "children": []
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "node": null,
+          "children": [
+            {
+              "node": null,
+              "children": [
+                {
+                  "node": null,
+                  "children": [
+                    {
+                      "node": {
+                        "id": "bd24ede5",
+                        "indexId": 17,
+                        "nodeHashId": "bd24ede5",
+                        "nodeType": "TEXT Node",
+                        "locator": "",
+                        "attributes": {
+                          "nodeType": "TEXT Node",
+                          "htmlTagName": "<h1>"
+                        },
+                        "center": [
+                          790,
+                          67
+                        ],
+                        "content": "todos",
+                        "rect": {
+                          "left": 696,
+                          "top": 19,
+                          "width": 188,
+                          "height": 95,
+                          "zoom": 1
+                        },
+                        "zoom": 1,
+                        "screenWidth": 1280,
+                        "screenHeight": 720
+                      },
+                      "children": []
+                    }
+                  ]
+                },
+                {
+                  "node": null,
+                  "children": [
+                    {
+                      "node": {
+                        "id": "ea61d21c",
+                        "nodeHashId": "ea61d21c",
+                        "locator": "[_midscene_retrieve_task_id='ea61d21c']",
+                        "nodeType": "FORM_ITEM Node",
+                        "indexId": 18,
+                        "attributes": {
+                          "class": ".new-todo",
+                          "id": "todo-input",
+                          "type": "text",
+                          "data-testid": "text-input",
+                          "placeholder": "What needs to be done?",
+                          "htmlTagName": "<input>",
+                          "nodeType": "FORM_ITEM Node"
+                        },
+                        "content": "Learn English",
+                        "rect": {
+                          "left": 515,
+                          "top": 130,
+                          "width": 550,
+                          "height": 65,
+                          "zoom": 1
+                        },
+                        "center": [
+                          790,
+                          163
+                        ],
+                        "zoom": 1,
+                        "screenWidth": 1280,
+                        "screenHeight": 720
+                      },
+                      "children": []
+                    },
+                    {
+                      "node": null,
+                      "children": [
+                        {
+                          "node": {
+                            "id": "b84227de",
+                            "indexId": 19,
+                            "nodeHashId": "b84227de",
+                            "nodeType": "TEXT Node",
+                            "locator": "",
+                            "attributes": {
+                              "nodeType": "TEXT Node",
+                              "htmlTagName": "<label>"
+                            },
+                            "center": [
+                              1110,
+                              140
+                            ],
+                            "content": "New Todo Input",
+                            "rect": {
+                              "left": 1064,
+                              "top": 131,
+                              "width": 91,
+                              "height": 17,
+                              "zoom": 1
+                            },
+                            "zoom": 1,
+                            "screenWidth": 1280,
+                            "screenHeight": 720
+                          },
+                          "children": []
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "node": null,
+              "children": [
+                {
+                  "node": null,
+                  "children": [
+                    {
+                      "node": {
+                        "id": "4955dd18",
+                        "nodeHashId": "4955dd18",
+                        "locator": "[_midscene_retrieve_task_id='4955dd18']",
+                        "nodeType": "FORM_ITEM Node",
+                        "indexId": 20,
+                        "attributes": {
+                          "class": ".toggle-all",
+                          "type": "checkbox",
+                          "id": "toggle-all",
+                          "data-testid": "toggle-all",
+                          "htmlTagName": "<input>",
+                          "nodeType": "FORM_ITEM Node"
+                        },
+                        "content": "on",
+                        "rect": {
+                          "left": 519,
+                          "top": 133,
+                          "width": 40,
+                          "height": 60,
+                          "zoom": 1
+                        },
+                        "center": [
+                          539,
+                          163
+                        ],
+                        "zoom": 1,
+                        "screenWidth": 1280,
+                        "screenHeight": 720
+                      },
+                      "children": []
+                    },
+                    {
+                      "node": null,
+                      "children": [
+                        {
+                          "node": null,
+                          "children": []
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "node": null,
+                  "children": [
+                    {
+                      "node": null,
+                      "children": [
+                        {
+                          "node": null,
+                          "children": [
+                            {
+                              "node": {
+                                "id": "713eeb11",
+                                "nodeHashId": "713eeb11",
+                                "locator": "[_midscene_retrieve_task_id='713eeb11']",
+                                "nodeType": "FORM_ITEM Node",
+                                "indexId": 21,
+                                "attributes": {
+                                  "class": ".toggle",
+                                  "type": "checkbox",
+                                  "data-testid": "todo-item-toggle",
+                                  "htmlTagName": "<input>",
+                                  "nodeType": "FORM_ITEM Node"
+                                },
+                                "content": "on",
+                                "rect": {
+                                  "left": 515,
+                                  "top": 205,
+                                  "width": 40,
+                                  "height": 40,
+                                  "zoom": 1
+                                },
+                                "center": [
+                                  535,
+                                  225
+                                ],
+                                "zoom": 1,
+                                "screenWidth": 1280,
+                                "screenHeight": 720
+                              },
+                              "children": []
+                            },
+                            {
+                              "node": null,
+                              "children": [
+                                {
+                                  "node": {
+                                    "id": "e5dc116e",
+                                    "indexId": 22,
+                                    "nodeHashId": "e5dc116e",
+                                    "nodeType": "TEXT Node",
+                                    "locator": "",
+                                    "attributes": {
+                                      "nodeType": "TEXT Node",
+                                      "htmlTagName": "<label>"
+                                    },
+                                    "center": [
+                                      647,
+                                      225
+                                    ],
+                                    "content": "Learn Python",
+                                    "rect": {
+                                      "left": 575,
+                                      "top": 211,
+                                      "width": 143,
+                                      "height": 28,
+                                      "zoom": 1
+                                    },
+                                    "zoom": 1,
+                                    "screenWidth": 1280,
+                                    "screenHeight": 720
+                                  },
+                                  "children": []
+                                }
+                              ]
+                            },
+                            {
+                              "node": null,
+                              "children": []
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "node": null,
+                      "children": [
+                        {
+                          "node": null,
+                          "children": [
+                            {
+                              "node": {
+                                "id": "23bb2248",
+                                "nodeHashId": "23bb2248",
+                                "locator": "[_midscene_retrieve_task_id='23bb2248']",
+                                "nodeType": "FORM_ITEM Node",
+                                "indexId": 23,
+                                "attributes": {
+                                  "class": ".toggle",
+                                  "type": "checkbox",
+                                  "data-testid": "todo-item-toggle",
+                                  "htmlTagName": "<input>",
+                                  "nodeType": "FORM_ITEM Node"
+                                },
+                                "content": "on",
+                                "rect": {
+                                  "left": 515,
+                                  "top": 265,
+                                  "width": 40,
+                                  "height": 40,
+                                  "zoom": 1
+                                },
+                                "center": [
+                                  535,
+                                  285
+                                ],
+                                "zoom": 1,
+                                "screenWidth": 1280,
+                                "screenHeight": 720
+                              },
+                              "children": []
+                            },
+                            {
+                              "node": null,
+                              "children": [
+                                {
+                                  "node": {
+                                    "id": "83c71e42",
+                                    "indexId": 24,
+                                    "nodeHashId": "83c71e42",
+                                    "nodeType": "TEXT Node",
+                                    "locator": "",
+                                    "attributes": {
+                                      "nodeType": "TEXT Node",
+                                      "htmlTagName": "<label>"
+                                    },
+                                    "center": [
+                                      634,
+                                      285
+                                    ],
+                                    "content": "Learn Rust",
+                                    "rect": {
+                                      "left": 575,
+                                      "top": 271,
+                                      "width": 117,
+                                      "height": 28,
+                                      "zoom": 1
+                                    },
+                                    "zoom": 1,
+                                    "screenWidth": 1280,
+                                    "screenHeight": 720
+                                  },
+                                  "children": []
+                                }
+                              ]
+                            },
+                            {
+                              "node": {
+                                "id": "9821ace4",
+                                "indexId": 25,
+                                "nodeHashId": "9821ace4",
+                                "nodeType": "BUTTON Node",
+                                "locator": "[_midscene_retrieve_task_id='9821ace4']",
+                                "attributes": {
+                                  "class": ".destroy",
+                                  "data-testid": "todo-item-button",
+                                  "htmlTagName": "<div>",
+                                  "nodeType": "BUTTON Node"
+                                },
+                                "content": "×",
+                                "rect": {
+                                  "left": 1015,
+                                  "top": 265,
+                                  "width": 40,
+                                  "height": 40,
+                                  "zoom": 1
+                                },
+                                "center": [
+                                  1035,
+                                  285
+                                ],
+                                "zoom": 1,
+                                "screenWidth": 1280,
+                                "screenHeight": 720
+                              },
+                              "children": []
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "node": null,
+                      "children": [
+                        {
+                          "node": null,
+                          "children": [
+                            {
+                              "node": {
+                                "id": "a92256fb",
+                                "nodeHashId": "a92256fb",
+                                "locator": "[_midscene_retrieve_task_id='a92256fb']",
+                                "nodeType": "FORM_ITEM Node",
+                                "indexId": 26,
+                                "attributes": {
+                                  "class": ".toggle",
+                                  "type": "checkbox",
+                                  "data-testid": "todo-item-toggle",
+                                  "htmlTagName": "<input>",
+                                  "nodeType": "FORM_ITEM Node"
+                                },
+                                "content": "on",
+                                "rect": {
+                                  "left": 515,
+                                  "top": 325,
+                                  "width": 40,
+                                  "height": 40,
+                                  "zoom": 1
+                                },
+                                "center": [
+                                  535,
+                                  345
+                                ],
+                                "zoom": 1,
+                                "screenWidth": 1280,
+                                "screenHeight": 720
+                              },
+                              "children": []
+                            },
+                            {
+                              "node": null,
+                              "children": [
+                                {
+                                  "node": {
+                                    "id": "db58d765",
+                                    "indexId": 27,
+                                    "nodeHashId": "db58d765",
+                                    "nodeType": "TEXT Node",
+                                    "locator": "",
+                                    "attributes": {
+                                      "nodeType": "TEXT Node",
+                                      "htmlTagName": "<label>"
+                                    },
+                                    "center": [
+                                      620,
+                                      345
+                                    ],
+                                    "content": "Learn AI",
+                                    "rect": {
+                                      "left": 575,
+                                      "top": 331,
+                                      "width": 89,
+                                      "height": 28,
+                                      "zoom": 1
+                                    },
+                                    "zoom": 1,
+                                    "screenWidth": 1280,
+                                    "screenHeight": 720
+                                  },
+                                  "children": []
+                                }
+                              ]
+                            },
+                            {
+                              "node": null,
+                              "children": []
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "node": null,
+              "children": [
+                {
+                  "node": null,
+                  "children": [
+                    {
+                      "node": null,
+                      "children": []
+                    }
+                  ]
+                },
+                {
+                  "node": null,
+                  "children": [
+                    {
+                      "node": null,
+                      "children": [
+                        {
+                          "node": null,
+                          "children": [
+                            {
+                              "node": {
+                                "id": "52d931ba",
+                                "indexId": 28,
+                                "nodeHashId": "52d931ba",
+                                "nodeType": "TEXT Node",
+                                "locator": "",
+                                "attributes": {
+                                  "nodeType": "TEXT Node",
+                                  "htmlTagName": "<a>"
+                                },
+                                "center": [
+                                  715,
+                                  395
+                                ],
+                                "content": "All",
+                                "rect": {
+                                  "left": 708,
+                                  "top": 386,
+                                  "width": 14,
+                                  "height": 18,
+                                  "zoom": 1
+                                },
+                                "zoom": 1,
+                                "screenWidth": 1280,
+                                "screenHeight": 720
+                              },
+                              "children": []
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "node": null,
+                      "children": [
+                        {
+                          "node": null,
+                          "children": [
+                            {
+                              "node": {
+                                "id": "8a5a8ea0",
+                                "indexId": 29,
+                                "nodeHashId": "8a5a8ea0",
+                                "nodeType": "TEXT Node",
+                                "locator": "",
+                                "attributes": {
+                                  "nodeType": "TEXT Node",
+                                  "htmlTagName": "<a>"
+                                },
+                                "center": [
+                                  763,
+                                  395
+                                ],
+                                "content": "Active",
+                                "rect": {
+                                  "left": 744,
+                                  "top": 386,
+                                  "width": 38,
+                                  "height": 18,
+                                  "zoom": 1
+                                },
+                                "zoom": 1,
+                                "screenWidth": 1280,
+                                "screenHeight": 720
+                              },
+                              "children": []
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "node": null,
+                      "children": [
+                        {
+                          "node": null,
+                          "children": [
+                            {
+                              "node": {
+                                "id": "330f2708",
+                                "indexId": 30,
+                                "nodeHashId": "330f2708",
+                                "nodeType": "TEXT Node",
+                                "locator": "",
+                                "attributes": {
+                                  "nodeType": "TEXT Node",
+                                  "htmlTagName": "<a>"
+                                },
+                                "center": [
+                                  838,
+                                  395
+                                ],
+                                "content": "Completed",
+                                "rect": {
+                                  "left": 803,
+                                  "top": 386,
+                                  "width": 69,
+                                  "height": 18,
+                                  "zoom": 1
+                                },
+                                "zoom": 1,
+                                "screenWidth": 1280,
+                                "screenHeight": 720
+                              },
+                              "children": []
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "node": {
+                    "id": "8e3c5e32",
+                    "indexId": 31,
+                    "nodeHashId": "8e3c5e32",
+                    "nodeType": "BUTTON Node",
+                    "locator": "[_midscene_retrieve_task_id='8e3c5e32']",
+                    "attributes": {
+                      "class": ".clear-completed",
+                      "htmlTagName": "<footer>",
+                      "nodeType": "BUTTON Node"
+                    },
+                    "content": "Clear completed",
+                    "rect": {
+                      "left": 947,
+                      "top": 385,
+                      "width": 103,
+                      "height": 19,
+                      "zoom": 1
+                    },
+                    "center": [
+                      999,
+                      395
+                    ],
+                    "zoom": 1,
+                    "screenWidth": 1280,
+                    "screenHeight": 720
+                  },
+                  "children": []
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "node": null,
+          "children": [
+            {
+              "node": null,
+              "children": [
+                {
+                  "node": {
+                    "id": "8988bf72",
+                    "indexId": 32,
+                    "nodeHashId": "8988bf72",
+                    "nodeType": "TEXT Node",
+                    "locator": "",
+                    "attributes": {
+                      "nodeType": "TEXT Node",
+                      "htmlTagName": "<p>"
+                    },
+                    "center": [
+                      790,
+                      486
+                    ],
+                    "content": "Double-click to edit a todo",
+                    "rect": {
+                      "left": 730,
+                      "top": 479,
+                      "width": 120,
+                      "height": 13,
+                      "zoom": 1
+                    },
+                    "zoom": 1,
+                    "screenWidth": 1280,
+                    "screenHeight": 720
+                  },
+                  "children": []
+                }
+              ]
+            },
+            {
+              "node": null,
+              "children": [
+                {
+                  "node": {
+                    "id": "b1a8dce0",
+                    "indexId": 33,
+                    "nodeHashId": "b1a8dce0",
+                    "nodeType": "TEXT Node",
+                    "locator": "",
+                    "attributes": {
+                      "nodeType": "TEXT Node",
+                      "htmlTagName": "<p>"
+                    },
+                    "center": [
+                      790,
+                      508
+                    ],
+                    "content": "Created by the TodoMVC Team",
+                    "rect": {
+                      "left": 718,
+                      "top": 501,
+                      "width": 144,
+                      "height": 13,
+                      "zoom": 1
+                    },
+                    "zoom": 1,
+                    "screenWidth": 1280,
+                    "screenHeight": 720
+                  },
+                  "children": []
+                }
+              ]
+            },
+            {
+              "node": null,
+              "children": [
+                {
+                  "node": {
+                    "id": "e3c37d9e",
+                    "indexId": 34,
+                    "nodeHashId": "e3c37d9e",
+                    "nodeType": "TEXT Node",
+                    "locator": "",
+                    "attributes": {
+                      "nodeType": "TEXT Node",
+                      "htmlTagName": "<p>"
+                    },
+                    "center": [
+                      766,
+                      530
+                    ],
+                    "content": "Part of",
+                    "rect": {
+                      "left": 749,
+                      "top": 523,
+                      "width": 33,
+                      "height": 13,
+                      "zoom": 1
+                    },
+                    "zoom": 1,
+                    "screenWidth": 1280,
+                    "screenHeight": 720
+                  },
+                  "children": []
+                },
+                {
+                  "node": null,
+                  "children": [
+                    {
+                      "node": {
+                        "id": "07711d1e",
+                        "indexId": 35,
+                        "nodeHashId": "07711d1e",
+                        "nodeType": "TEXT Node",
+                        "locator": "",
+                        "attributes": {
+                          "nodeType": "TEXT Node",
+                          "htmlTagName": "<a>"
+                        },
+                        "center": [
+                          806,
+                          530
+                        ],
+                        "content": "TodoMVC",
+                        "rect": {
+                          "left": 782,
+                          "top": 523,
+                          "width": 48,
+                          "height": 13,
+                          "zoom": 1
+                        },
+                        "zoom": 1,
+                        "screenWidth": 1280,
+                        "screenHeight": 720
+                      },
+                      "children": []
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "node": null,
+          "children": []
+        }
+      ]
+    }
+  ]
+}

@@ -20,8 +20,7 @@ export async function plan(
 ): Promise<PlanningAIResponse> {
   const { callAI, context } = opts || {};
   const { screenshotBase64, screenshotBase64WithElementMarker } = context;
-  const { description: pageDescription, elementByPosition } =
-    await describeUserPage(context);
+  const { description: pageDescription } = await describeUserPage(context);
 
   const systemPrompt = await systemPromptToTaskPlanning();
   const taskBackgroundContextText = generateTaskBackgroundContext(
