@@ -23,7 +23,7 @@ const aiNativeTests = ['tests/ai/native/**/*.test.ts'];
 const testFiles = (() => {
   switch (aiTestType) {
     case 'web':
-      return [...unitTests, ...aiWebTests];
+      return [...aiWebTests];
     case 'native':
       return [...aiNativeTests];
     default:
