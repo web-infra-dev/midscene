@@ -31,7 +31,7 @@ test('ai todo', async ({ ai, aiQuery }) => {
 
   await ai('Move your mouse over the second item in the task list');
   await ai('Click the delete button to the right of the second task');
-  await ai('Click the check button to the left of the second task');
+  await ai('Click the checkbox next to the second task');
   await ai('Click the "completed" Status button below the task list');
 
   const taskList = await aiQuery<string[]>('string[], tasks in the list');
