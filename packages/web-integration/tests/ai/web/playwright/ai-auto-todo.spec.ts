@@ -34,7 +34,9 @@ test('ai todo', async ({ ai, aiQuery }) => {
   await ai('Click the checkbox next to the second task');
   await ai('Click the "completed" Status button below the task list');
 
-  const taskList = await aiQuery<string[]>('string[], tasks in the list');
+  const taskList = await aiQuery<string[]>(
+    'string[], Extract a list task, whether completed or not',
+  );
   expect(taskList.length).toBe(1);
   expect(taskList[0]).toBe('Learning AI the day after tomorrow');
 

@@ -291,7 +291,7 @@ export const planSchema: ResponseFormatJSONSchema = {
                 type: ['object', 'null'],
                 description:
                   'Parameter of the action, can be null ONLY when the type field is Tap or Hover',
-                additionalProperties: false,
+                additionalProperties: true,
               },
               locate: {
                 type: ['object', 'null'],
