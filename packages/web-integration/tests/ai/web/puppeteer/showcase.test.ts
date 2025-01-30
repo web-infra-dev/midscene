@@ -91,17 +91,27 @@ describe(
       expect(names.length).toBeGreaterThan(5);
     });
 
-    it('search engine', async () => {
-      const { originPage, reset } = await launchPage('https://www.baidu.com/');
-      resetFn = reset;
-      const mid = new PuppeteerAgent(originPage);
-      await mid.aiAction('type "AI 101" in search box');
-      await mid.aiAction(
-        'type "Hello world" in search box, hit Enter, wait 2s, click the second result, wait 4s',
-      );
+    it(
+      'search engine',
+      async () => {
+        const { originPage, reset } = await launchPage(
+          'https://www.baidu.com/',
+        );
+        resetFn = reset;
+        const mid = new PuppeteerAgent(originPage);
+        await mid.aiAction('type "AI 101" in search box');
+        await mid.aiAction(
+          'type "Hello world" in search box, hit Enter, wait 2s, click the second result, wait 4s',
+        );
 
-      await mid.aiWaitFor('there are some search results about "Hello world"');
-    });
+        await mid.aiWaitFor(
+          'there are some search results about "Hello world"',
+        );
+      },
+      {
+        timeout: 3 * 60 * 1000,
+      },
+    );
 
     it('scroll', async () => {
       const htmlPath = path.join(__dirname, 'scroll.html');
@@ -152,6 +162,6 @@ describe(
     });
   },
   {
-    timeout: 60 * 1000,
+    timeout: 4 * 60 * 1000,
   },
 );
