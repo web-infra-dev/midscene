@@ -21,7 +21,7 @@ exports[`automation - planning input > input value 2`] = `
   {
     "locate": {
       "id": "fbc2d002",
-      "prompt": "the input field labeled 'What needs to be done?'",
+      "prompt": "the input field with placeholder 'What needs to be done?'",
     },
     "param": {
       "value": "learning english",
