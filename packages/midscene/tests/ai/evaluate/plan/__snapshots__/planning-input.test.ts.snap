@@ -7,6 +7,15 @@ exports[`automation - planning input > input value 1`] = `
       "id": "fbc2d002",
       "prompt": "the input field with placeholder 'What needs to be done?'",
     },
+    "param": null,
+    "thought": undefined,
+    "type": "Tap",
+  },
+  {
+    "locate": {
+      "id": "fbc2d002",
+      "prompt": "the input field with placeholder 'What needs to be done?'",
+    },
     "param": {
       "value": "learning english",
     },
@@ -21,7 +30,16 @@ exports[`automation - planning input > input value 2`] = `
   {
     "locate": {
       "id": "fbc2d002",
-      "prompt": "the input field labeled 'What needs to be done?'",
+      "prompt": "the input field with placeholder 'What needs to be done?'",
+    },
+    "param": null,
+    "thought": undefined,
+    "type": "Tap",
+  },
+  {
+    "locate": {
+      "id": "fbc2d002",
+      "prompt": "the input field with placeholder 'What needs to be done?'",
     },
     "param": {
       "value": "learning english",
@@ -30,7 +48,6 @@ exports[`automation - planning input > input value 2`] = `
     "type": "Input",
   },
   {
-    "locate": null,
     "param": {
       "value": "Enter",
     },
@@ -45,42 +62,10 @@ exports[`automation - planning input > input value Add, delete, correct and chec
   {
     "locate": {
       "id": "fbc2d002",
-      "prompt": "the task input box with content 'Learn English'",
+      "prompt": "the task input box containing 'Learn English'",
     },
     "param": {
       "value": "Learn English tomorrow",
-    },
-    "thought": undefined,
-    "type": "Input",
-  },
-]
-`;
-
-exports[`automation - planning input > input value Add, delete, correct and check 2`] = `
-[
-  {
-    "locate": {
-      "id": "fbc2d002",
-      "prompt": "the task input box containing 'Learn English'",
-    },
-    "param": {
-      "value": "Learn Skiing",
-    },
-    "thought": undefined,
-    "type": "Input",
-  },
-]
-`;
-
-exports[`automation - planning input > input value Add, delete, correct and check 3`] = `
-[
-  {
-    "locate": {
-      "id": "fbc2d002",
-      "prompt": "the task input box containing 'Learn English'",
-    },
-    "param": {
-      "value": "Learn",
     },
     "thought": undefined,
     "type": "Input",
