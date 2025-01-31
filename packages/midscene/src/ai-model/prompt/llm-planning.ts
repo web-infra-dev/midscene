@@ -276,7 +276,7 @@ export const planSchema: ResponseFormatJSONSchema = {
           type: 'array',
           items: {
             type: 'object',
-            strict: true,
+            strict: false,
             properties: {
               thought: {
                 type: 'string',
@@ -299,7 +299,7 @@ export const planSchema: ResponseFormatJSONSchema = {
                     optional: true,
                   },
                 },
-                additionalProperties: false,
+                additionalProperties: true,
                 description:
                   'Parameter of the action, can be null ONLY when the type field is Tap or Hover',
               },
