@@ -290,11 +290,14 @@ export const planSchema: ResponseFormatJSONSchema = {
               param: {
                 type: ['object', 'null'],
                 properties: {
-                  value: { type: 'string' },
-                  timeMs: { type: 'number' },
-                  direction: { type: 'string' },
-                  scrollType: { type: 'string' },
-                  distance: { type: ['number', 'null'] },
+                  value: { type: ['string', 'number'], optional: true },
+                  timeMs: { type: ['number', 'string'], optional: true },
+                  direction: { type: 'string', optional: true },
+                  scrollType: { type: 'string', optional: true },
+                  distance: {
+                    type: ['number', 'string', 'null'],
+                    optional: true,
+                  },
                 },
                 additionalProperties: false,
                 description:
