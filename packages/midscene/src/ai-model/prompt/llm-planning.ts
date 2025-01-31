@@ -289,9 +289,16 @@ export const planSchema: ResponseFormatJSONSchema = {
               },
               param: {
                 type: ['object', 'null'],
+                properties: {
+                  value: { type: 'string' },
+                  timeMs: { type: 'number' },
+                  direction: { type: 'string' },
+                  scrollType: { type: 'string' },
+                  distance: { type: ['number', 'null'] },
+                },
+                additionalProperties: false,
                 description:
                   'Parameter of the action, can be null ONLY when the type field is Tap or Hover',
-                additionalProperties: true,
               },
               locate: {
                 type: ['object', 'null'],
