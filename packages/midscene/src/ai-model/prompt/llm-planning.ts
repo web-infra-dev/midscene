@@ -276,7 +276,7 @@ export const planSchema: ResponseFormatJSONSchema = {
           type: 'array',
           items: {
             type: 'object',
-            strict: false,
+            strict: true,
             properties: {
               thought: {
                 type: 'string',
@@ -288,18 +288,31 @@ export const planSchema: ResponseFormatJSONSchema = {
                 description: 'Type of action, like "Tap", "Hover", etc.',
               },
               param: {
-                type: ['object', 'null'],
-                properties: {
-                  value: { type: ['string', 'number'], optional: true },
-                  timeMs: { type: ['number', 'string'], optional: true },
-                  direction: { type: 'string', optional: true },
-                  scrollType: { type: 'string', optional: true },
-                  distance: {
-                    type: ['number', 'string', 'null'],
-                    optional: true,
+                anyOf: [
+                  { type: 'null' },
+                  {
+                    type: 'object',
+                    properties: { value: { type: ['string', 'number'] } },
+                    required: ['value'],
+                    additionalProperties: false,
                   },
-                },
-                additionalProperties: true,
+                  {
+                    type: 'object',
+                    properties: { timeMs: { type: ['number', 'string'] } },
+                    required: ['timeMs'],
+                    additionalProperties: false,
+                  },
+                  {
+                    type: 'object',
+                    properties: {
+                      direction: { type: 'string' },
+                      scrollType: { type: 'string' },
+                      distance: { type: ['number', 'string', 'null'] },
+                    },
+                    required: ['direction', 'scrollType', 'distance'],
+                    additionalProperties: false,
+                  },
+                ],
                 description:
                   'Parameter of the action, can be null ONLY when the type field is Tap or Hover',
               },

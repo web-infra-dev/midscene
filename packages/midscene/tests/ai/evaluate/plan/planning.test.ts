@@ -18,7 +18,6 @@ describe('automation - planning', () => {
         context,
       },
     );
-
     expect(actions.length).toBe(3);
     expect(actions[0].type).toBe('Input');
     expect(actions[1].type).toBe('Sleep');
@@ -53,7 +52,6 @@ describe('automation - planning', () => {
         context,
       },
     );
-
     expect(actions).toBeTruthy();
     expect(actions[0].type).toBe('Scroll');
     expect(actions[0].locate).toBeTruthy();
