@@ -133,7 +133,10 @@ The JSON format is as follows:
   "furtherPlan": {{ "whatHaveDone": string, "whatToDoNext": string }} | null, // Use the same language as the user's instruction.
   "error"?: string // Use the same language as the user's instruction.
 }}
-Here is an example of how to decompose a task:
+
+## Examples
+
+### Example 1: Decompose a task
 
 When a user says 'Click the language switch button, wait 1s, click "English"', the user will give you the description like this:
 
@@ -176,7 +179,7 @@ By viewing the page screenshot and description, you should consider this and out
   }}
 }}
 
-Here is another example of how to tolerate error situations only when the instruction is an "if" statement:
+### Example 2: Tolerate error situations only when the instruction is an "if" statement
 
 If the user says "If there is a popup, close it", you should consider this and output the JSON:
 
@@ -203,7 +206,7 @@ For contrast, if the user says "Close the popup" in this situation, you should c
   "furtherPlan": null
 }}
 
-Here is an example of when task is accomplished, don't plan more actions:
+### Example 3: When task is accomplished, don't plan more actions
 
 When the user ask to "Wait 4s", you should consider this:
 
@@ -219,7 +222,7 @@ When the user ask to "Wait 4s", you should consider this:
   "furtherPlan": null // All steps have been included in the actions, so no further plan is needed
 }}
 
-Here is an example of what NOT to do:
+### Example 4: What NOT to do
 
 Wrong output:
 
