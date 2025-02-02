@@ -1,10 +1,9 @@
 [
   {
-    "id": "e00c1b86",
+    "id": "0c9b471d",
     "indexId": 0,
-    "nodePath": "0-3-1-1-0-0-0-0-0-1-0-0-0",
-    "nodeHashId": "e00c1b86",
-    "locator": "[_midscene_retrieve_task_id='e00c1b86']",
+    "nodeHashId": "0c9b471d",
+    "locator": "[_midscene_retrieve_task_id='0c9b471d']",
     "attributes": {
       "src": "image",
       "class": ".icon",
@@ -29,10 +28,9 @@
     "screenHeight": 905
   },
   {
-    "id": "79cfcf9a",
+    "id": "c8028d03",
     "indexId": 1,
-    "nodePath": "0-3-1-1-0-0-0-0-0-1-0-1-0-0-0",
-    "nodeHashId": "79cfcf9a",
+    "nodeHashId": "c8028d03",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
@@ -56,11 +54,10 @@
     "screenHeight": 905
   },
   {
-    "id": "c0fb608a",
+    "id": "a81e4af9",
     "indexId": 2,
-    "nodePath": "0-3-1-1-0-0-0-1-0-0-0",
-    "nodeHashId": "c0fb608a",
-    "locator": "[_midscene_retrieve_task_id='c0fb608a']",
+    "nodeHashId": "a81e4af9",
+    "locator": "[_midscene_retrieve_task_id='a81e4af9']",
     "attributes": {
       "src": "https://dec-pub-img.obs.ap-southeast-3.myhuaweicloud.com/rfkle/16509415998546650.jpg",
       "class": ".img",
@@ -85,11 +82,10 @@
     "screenHeight": 905
   },
   {
-    "id": "5ead026c",
+    "id": "fe3f08de",
     "indexId": 3,
-    "nodePath": "0-3-1-1-0-0-0-2-0-1-0-0-0-0-0-0",
-    "nodeHashId": "5ead026c",
-    "locator": "[_midscene_retrieve_task_id='5ead026c']",
+    "nodeHashId": "fe3f08de",
+    "locator": "[_midscene_retrieve_task_id='fe3f08de']",
     "attributes": {
       "src": "image",
       "class": ".icon",
@@ -114,10 +110,9 @@
     "screenHeight": 905
   },
   {
-    "id": "855135e2",
+    "id": "6ee4cdd0",
     "indexId": 4,
-    "nodePath": "0-3-1-2-0-1-0-1-0-6-1-0-0-1-0-0",
-    "nodeHashId": "855135e2",
+    "nodeHashId": "6ee4cdd0",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
@@ -141,10 +136,9 @@
     "screenHeight": 905
   },
   {
-    "id": "d73b79ae",
+    "id": "c920edec",
     "indexId": 5,
-    "nodePath": "0-3-1-2-0-1-0-1-0-6-1-0-0-2-0-0",
-    "nodeHashId": "d73b79ae",
+    "nodeHashId": "c920edec",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
@@ -168,10 +162,9 @@
     "screenHeight": 905
   },
   {
-    "id": "2ecf1b3b",
+    "id": "6a0745d2",
     "indexId": 6,
-    "nodePath": "0-3-1-2-0-1-0-1-0-6-1-0-0-3-0-0",
-    "nodeHashId": "2ecf1b3b",
+    "nodeHashId": "6a0745d2",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
@@ -195,10 +188,9 @@
     "screenHeight": 905
   },
   {
-    "id": "580c1575",
+    "id": "b56bcc48",
     "indexId": 7,
-    "nodePath": "0-3-1-2-0-1-0-1-0-6-1-0-0-4-0-0",
-    "nodeHashId": "580c1575",
+    "nodeHashId": "b56bcc48",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
@@ -222,10 +214,9 @@
     "screenHeight": 905
   },
   {
-    "id": "e67b593a",
+    "id": "123b4a05",
     "indexId": 8,
-    "nodePath": "0-3-1-2-0-1-0-1-0-6-1-0-0-5-0-0",
-    "nodeHashId": "e67b593a",
+    "nodeHashId": "123b4a05",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
@@ -249,10 +240,9 @@
     "screenHeight": 905
   },
   {
-    "id": "83418692",
+    "id": "b0b04520",
     "indexId": 9,
-    "nodePath": "0-3-1-2-0-1-0-1-0-6-1-0-0-6-0-0",
-    "nodeHashId": "83418692",
+    "nodeHashId": "b0b04520",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
@@ -276,10 +266,9 @@
     "screenHeight": 905
   },
   {
-    "id": "976f4356",
+    "id": "83900b40",
     "indexId": 10,
-    "nodePath": "0-3-1-2-0-1-0-1-0-6-1-0-0-7-0-0",
-    "nodeHashId": "976f4356",
+    "nodeHashId": "83900b40",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
@@ -303,11 +292,10 @@
     "screenHeight": 905
   },
   {
-    "id": "65d9098c",
+    "id": "9ed7c8de",
     "indexId": 11,
-    "nodePath": "0-3-1-2-0-1-0-1-0-6-1-1-1-1-0-0",
-    "nodeHashId": "65d9098c",
-    "locator": "[_midscene_retrieve_task_id='65d9098c']",
+    "nodeHashId": "9ed7c8de",
+    "locator": "[_midscene_retrieve_task_id='9ed7c8de']",
     "attributes": {
       "src": "https://dec-pub-img.obs.ap-southeast-3.myhuaweicloud.com/djlxq/16509428649460869.jpeg",
       "class": ".img",
@@ -332,10 +320,9 @@
     "screenHeight": 905
   },
   {
-    "id": "3c7c023f",
+    "id": "a48669fd",
     "indexId": 12,
-    "nodePath": "0-3-1-2-0-1-0-1-0-6-1-1-1-1-0-1-1-0-1-0",
-    "nodeHashId": "3c7c023f",
+    "nodeHashId": "a48669fd",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
@@ -343,14 +330,14 @@
       "htmlTagName": "<span>"
     },
     "center": [
-      211,
+      212,
       103
     ],
     "content": "6.82",
     "rect": {
       "left": 192,
       "top": 90,
-      "width": 37,
+      "width": 39,
       "height": 25,
       "zoom": 1
     },
@@ -359,10 +346,9 @@
     "screenHeight": 905
   },
   {
-    "id": "6959c43c",
+    "id": "530e5026",
     "indexId": 13,
-    "nodePath": "0-3-1-2-0-1-0-1-0-6-1-1-1-1-0-1-1-1-0-0",
-    "nodeHashId": "6959c43c",
+    "nodeHashId": "530e5026",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
@@ -386,10 +372,9 @@
     "screenHeight": 905
   },
   {
-    "id": "e6c9cac6",
+    "id": "648c0972",
     "indexId": 14,
-    "nodePath": "0-3-1-2-0-1-0-1-0-6-1-1-2-0-0-0",
-    "nodeHashId": "e6c9cac6",
+    "nodeHashId": "648c0972",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
@@ -397,14 +382,14 @@
       "htmlTagName": "<span>"
     },
     "center": [
-      134,
+      135,
       142
     ],
     "content": "清爽不喝腻 (5)",
     "rect": {
       "left": 88,
       "top": 132,
-      "width": 92,
+      "width": 93,
       "height": 20,
       "zoom": 1
     },
@@ -413,11 +398,10 @@
     "screenHeight": 905
   },
   {
-    "id": "9b540e80",
+    "id": "b6eb3fba",
     "indexId": 15,
-    "nodePath": "0-3-1-2-0-1-0-1-0-6-1-1-2-1-0-0",
-    "nodeHashId": "9b540e80",
-    "locator": "[_midscene_retrieve_task_id='9b540e80']",
+    "nodeHashId": "b6eb3fba",
+    "locator": "[_midscene_retrieve_task_id='b6eb3fba']",
     "attributes": {
       "src": "https://dec-pub-img.obs.ap-southeast-3.myhuaweicloud.com/djlxq/16509428062990437.jpeg",
       "class": ".img",
@@ -442,10 +426,9 @@
     "screenHeight": 905
   },
   {
-    "id": "e0f3910e",
+    "id": "145b7093",
     "indexId": 16,
-    "nodePath": "0-3-1-2-0-1-0-1-0-6-1-1-2-1-0-1-0-0-1",
-    "nodeHashId": "e0f3910e",
+    "nodeHashId": "145b7093",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
@@ -469,10 +452,9 @@
     "screenHeight": 905
   },
   {
-    "id": "6653ddcd",
+    "id": "9dd1336c",
     "indexId": 17,
-    "nodePath": "0-3-1-2-0-1-0-1-0-6-1-1-2-1-0-1-1-0-1-0",
-    "nodeHashId": "6653ddcd",
+    "nodeHashId": "9dd1336c",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
@@ -480,14 +462,14 @@
       "htmlTagName": "<span>"
     },
     "center": [
-      211,
+      212,
       246
     ],
     "content": "6.54",
     "rect": {
       "left": 192,
       "top": 233,
-      "width": 37,
+      "width": 39,
       "height": 25,
       "zoom": 1
     },
@@ -496,10 +478,9 @@
     "screenHeight": 905
   },
   {
-    "id": "2959b976",
+    "id": "9debc66b",
     "indexId": 18,
-    "nodePath": "0-3-1-2-0-1-0-1-0-6-1-1-2-1-0-1-1-1-0-0",
-    "nodeHashId": "2959b976",
+    "nodeHashId": "9debc66b",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
@@ -523,11 +504,10 @@
     "screenHeight": 905
   },
   {
-    "id": "989c5861",
+    "id": "4069b30a",
     "indexId": 19,
-    "nodePath": "0-3-1-2-0-1-0-1-0-6-1-1-2-1-1-0",
-    "nodeHashId": "989c5861",
-    "locator": "[_midscene_retrieve_task_id='989c5861']",
+    "nodeHashId": "4069b30a",
+    "locator": "[_midscene_retrieve_task_id='4069b30a']",
     "attributes": {
       "src": "https://dec-pub-img.obs.ap-southeast-3.myhuaweicloud.com/djlxq/16509429737793457.jpeg",
       "class": ".img",
@@ -552,10 +532,9 @@
     "screenHeight": 905
   },
   {
-    "id": "a7e27d34",
+    "id": "40170a33",
     "indexId": 20,
-    "nodePath": "0-3-1-2-0-1-0-1-0-6-1-1-2-1-1-1-0-0-1",
-    "nodeHashId": "a7e27d34",
+    "nodeHashId": "40170a33",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
@@ -579,10 +558,9 @@
     "screenHeight": 905
   },
   {
-    "id": "65a554cc",
+    "id": "58cedfb3",
     "indexId": 21,
-    "nodePath": "0-3-1-2-0-1-0-1-0-6-1-1-2-1-1-1-1-0-1-0",
-    "nodeHashId": "65a554cc",
+    "nodeHashId": "58cedfb3",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
@@ -597,7 +575,7 @@
     "rect": {
       "left": 192,
       "top": 339,
-      "width": 37,
+      "width": 38,
       "height": 25,
       "zoom": 1
     },
@@ -606,10 +584,9 @@
     "screenHeight": 905
   },
   {
-    "id": "16fbcef2",
+    "id": "65efca2b",
     "indexId": 22,
-    "nodePath": "0-3-1-2-0-1-0-1-0-6-1-1-2-1-1-1-1-1-0-0",
-    "nodeHashId": "16fbcef2",
+    "nodeHashId": "65efca2b",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
@@ -633,11 +610,10 @@
     "screenHeight": 905
   },
   {
-    "id": "10c72769",
+    "id": "7c11bcbc",
     "indexId": 23,
-    "nodePath": "0-3-1-2-0-1-0-1-0-6-1-1-2-1-2-0",
-    "nodeHashId": "10c72769",
-    "locator": "[_midscene_retrieve_task_id='10c72769']",
+    "nodeHashId": "7c11bcbc",
+    "locator": "[_midscene_retrieve_task_id='7c11bcbc']",
     "attributes": {
       "src": "https://dec-pub-img.obs.ap-southeast-3.myhuaweicloud.com/djlxq/16509430179662650.jpeg",
       "class": ".img",
@@ -662,10 +638,9 @@
     "screenHeight": 905
   },
   {
-    "id": "c5cad518",
+    "id": "733159d3",
     "indexId": 24,
-    "nodePath": "0-3-1-2-0-1-0-1-0-6-1-1-2-1-2-1-0-0-1",
-    "nodeHashId": "c5cad518",
+    "nodeHashId": "733159d3",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
@@ -689,10 +664,9 @@
     "screenHeight": 905
   },
   {
-    "id": "6cfd6b8b",
+    "id": "ddc21e20",
     "indexId": 25,
-    "nodePath": "0-3-1-2-0-1-0-1-0-6-1-1-2-1-2-1-1-0-1-0",
-    "nodeHashId": "6cfd6b8b",
+    "nodeHashId": "ddc21e20",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
@@ -700,14 +674,14 @@
       "htmlTagName": "<span>"
     },
     "center": [
-      211,
+      212,
       458
     ],
     "content": "5.03",
     "rect": {
       "left": 192,
       "top": 445,
-      "width": 37,
+      "width": 39,
       "height": 25,
       "zoom": 1
     },
@@ -716,10 +690,9 @@
     "screenHeight": 905
   },
   {
-    "id": "5cee8360",
+    "id": "f29fcc8c",
     "indexId": 26,
-    "nodePath": "0-3-1-2-0-1-0-1-0-6-1-1-2-1-2-1-1-1-0-0",
-    "nodeHashId": "5cee8360",
+    "nodeHashId": "f29fcc8c",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
@@ -743,11 +716,10 @@
     "screenHeight": 905
   },
   {
-    "id": "066588d0",
+    "id": "88118a3f",
     "indexId": 27,
-    "nodePath": "0-3-1-2-0-1-0-1-0-6-1-1-2-1-3-0",
-    "nodeHashId": "066588d0",
-    "locator": "[_midscene_retrieve_task_id='066588d0']",
+    "nodeHashId": "88118a3f",
+    "locator": "[_midscene_retrieve_task_id='88118a3f']",
     "attributes": {
       "src": "https://dec-pub-img.obs.ap-southeast-3.myhuaweicloud.com/djlxq/16509431253142949.jpeg",
       "class": ".img",
@@ -772,10 +744,9 @@
     "screenHeight": 905
   },
   {
-    "id": "99299dd7",
+    "id": "d2e942cb",
     "indexId": 28,
-    "nodePath": "0-3-1-2-0-1-0-1-0-6-1-1-2-1-3-1-0-0-1",
-    "nodeHashId": "99299dd7",
+    "nodeHashId": "d2e942cb",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
@@ -799,10 +770,9 @@
     "screenHeight": 905
   },
   {
-    "id": "fb255f86",
+    "id": "06d508c4",
     "indexId": 29,
-    "nodePath": "0-3-1-2-0-1-0-1-0-6-1-1-2-1-3-1-1-0-1-0",
-    "nodeHashId": "fb255f86",
+    "nodeHashId": "06d508c4",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
@@ -817,7 +787,7 @@
     "rect": {
       "left": 192,
       "top": 551,
-      "width": 37,
+      "width": 38,
       "height": 25,
       "zoom": 1
     },
@@ -826,10 +796,9 @@
     "screenHeight": 905
   },
   {
-    "id": "facd86fd",
+    "id": "960c242a",
     "indexId": 30,
-    "nodePath": "0-3-1-2-0-1-0-1-0-6-1-1-2-1-3-1-1-1-0-0",
-    "nodeHashId": "facd86fd",
+    "nodeHashId": "960c242a",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
@@ -853,11 +822,10 @@
     "screenHeight": 905
   },
   {
-    "id": "73e6ab14",
+    "id": "a05dd317",
     "indexId": 31,
-    "nodePath": "0-3-1-2-0-1-0-1-0-6-1-1-2-1-4-0",
-    "nodeHashId": "73e6ab14",
-    "locator": "[_midscene_retrieve_task_id='73e6ab14']",
+    "nodeHashId": "a05dd317",
+    "locator": "[_midscene_retrieve_task_id='a05dd317']",
     "attributes": {
       "src": "https://dec-pub-img.obs.ap-southeast-3.myhuaweicloud.com/djlxq/16509431808616430.jpeg",
       "class": ".img",
@@ -882,10 +850,9 @@
     "screenHeight": 905
   },
   {
-    "id": "e8014c22",
+    "id": "15ce19ca",
     "indexId": 32,
-    "nodePath": "0-3-1-2-0-1-0-1-0-6-1-1-2-1-4-1-0-0-1",
-    "nodeHashId": "e8014c22",
+    "nodeHashId": "15ce19ca",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
@@ -909,10 +876,9 @@
     "screenHeight": 905
   },
   {
-    "id": "46039c97",
+    "id": "d580aa3b",
     "indexId": 33,
-    "nodePath": "0-3-1-2-0-1-0-1-0-6-1-1-2-1-4-1-1-0-1-0",
-    "nodeHashId": "46039c97",
+    "nodeHashId": "d580aa3b",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
@@ -920,14 +886,14 @@
       "htmlTagName": "<span>"
     },
     "center": [
-      208,
+      209,
       670
     ],
     "content": "7.71",
     "rect": {
       "left": 192,
       "top": 657,
-      "width": 32,
+      "width": 33,
       "height": 25,
       "zoom": 1
     },
@@ -936,10 +902,9 @@
     "screenHeight": 905
   },
   {
-    "id": "efb5f47f",
+    "id": "0c16ee5c",
     "indexId": 34,
-    "nodePath": "0-3-1-2-0-1-0-1-0-6-1-1-2-1-4-1-1-1-0-0",
-    "nodeHashId": "efb5f47f",
+    "nodeHashId": "0c16ee5c",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
@@ -963,10 +928,9 @@
     "screenHeight": 905
   },
   {
-    "id": "b8d57b10",
+    "id": "fe2c3fab",
     "indexId": 35,
-    "nodePath": "0-3-1-2-0-1-0-1-0-6-1-1-3-0-0-0",
-    "nodeHashId": "b8d57b10",
+    "nodeHashId": "fe2c3fab",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
@@ -974,14 +938,14 @@
       "htmlTagName": "<span>"
     },
     "center": [
-      134,
+      135,
       709
     ],
     "content": "经典不踩雷 (4)",
     "rect": {
       "left": 88,
       "top": 699,
-      "width": 92,
+      "width": 93,
       "height": 20,
       "zoom": 1
     },
@@ -990,11 +954,10 @@
     "screenHeight": 905
   },
   {
-    "id": "ff115ba6",
+    "id": "38ee2933",
     "indexId": 36,
-    "nodePath": "0-3-1-2-0-1-0-1-0-6-1-1-3-1-0-0",
-    "nodeHashId": "ff115ba6",
-    "locator": "[_midscene_retrieve_task_id='ff115ba6']",
+    "nodeHashId": "38ee2933",
+    "locator": "[_midscene_retrieve_task_id='38ee2933']",
     "attributes": {
       "src": "https://dec-pub-img.obs.ap-southeast-3.myhuaweicloud.com/djlxq/16509432868609005.jpeg",
       "class": ".img",
@@ -1019,10 +982,9 @@
     "screenHeight": 905
   },
   {
-    "id": "f506b3d2",
+    "id": "c93af137",
     "indexId": 37,
-    "nodePath": "0-3-1-2-0-1-0-1-0-6-1-1-3-1-0-1-0-0-1",
-    "nodeHashId": "f506b3d2",
+    "nodeHashId": "c93af137",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
@@ -1046,10 +1008,9 @@
     "screenHeight": 905
   },
   {
-    "id": "c188fcd3",
+    "id": "f2481e28",
     "indexId": 38,
-    "nodePath": "0-3-1-2-0-1-0-1-0-6-1-1-3-1-0-1-1-0-1-0",
-    "nodeHashId": "c188fcd3",
+    "nodeHashId": "f2481e28",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
@@ -1057,14 +1018,14 @@
       "htmlTagName": "<span>"
     },
     "center": [
-      211,
+      212,
       813
     ],
     "content": "9.32",
     "rect": {
       "left": 192,
       "top": 800,
-      "width": 37,
+      "width": 39,
       "height": 25,
       "zoom": 1
     },
@@ -1073,10 +1034,9 @@
     "screenHeight": 905
   },
   {
-    "id": "26a8c5a4",
+    "id": "ac353d77",
     "indexId": 39,
-    "nodePath": "0-3-1-2-0-1-0-1-0-6-1-1-3-1-0-1-1-1-0-0",
-    "nodeHashId": "26a8c5a4",
+    "nodeHashId": "ac353d77",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
@@ -1100,11 +1060,10 @@
     "screenHeight": 905
   },
   {
-    "id": "684a07ca",
+    "id": "bc401ee0",
     "indexId": 40,
-    "nodePath": "0-3-1-2-0-1-0-1-0-6-1-1-3-1-1-0",
-    "nodeHashId": "684a07ca",
-    "locator": "[_midscene_retrieve_task_id='684a07ca']",
+    "nodeHashId": "bc401ee0",
+    "locator": "[_midscene_retrieve_task_id='bc401ee0']",
     "attributes": {
       "src": "https://dec-pub-img.obs.ap-southeast-3.myhuaweicloud.com/djlxq/16509434349096787.jpeg",
       "class": ".img",
@@ -1129,10 +1088,9 @@
     "screenHeight": 905
   },
   {
-    "id": "1e79c8fa",
+    "id": "542314b8",
     "indexId": 41,
-    "nodePath": "0-3-1-2-0-1-0-1-0-6-1-1-3-1-1-1-0-0-1",
-    "nodeHashId": "1e79c8fa",
+    "nodeHashId": "542314b8",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
@@ -1156,11 +1114,10 @@
     "screenHeight": 905
   },
   {
-    "id": "b82bdf3a",
+    "id": "3340b882",
     "indexId": 42,
-    "nodePath": "0-3-1-2-3-0",
-    "nodeHashId": "b82bdf3a",
-    "locator": "[_midscene_retrieve_task_id='b82bdf3a']",
+    "nodeHashId": "3340b882",
+    "locator": "[_midscene_retrieve_task_id='3340b882']",
     "attributes": {
       "src": "/img/customer.8a8d9dc9.png",
       "nodeType": "IMG Node",

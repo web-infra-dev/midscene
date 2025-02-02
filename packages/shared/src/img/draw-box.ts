@@ -41,7 +41,7 @@ export async function drawBoxOnImage(options: {
   );
 
   // Convert back to base64
-  image.quality(75);
+  image.quality(90);
   const resultBase64 = await image.getBase64Async(Jimp.MIME_JPEG);
   return resultBase64;
 }

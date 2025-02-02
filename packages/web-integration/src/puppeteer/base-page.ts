@@ -69,7 +69,7 @@ export class Page<
     await this.underlyingPage.screenshot({
       path,
       type: imgType,
-      quality: 75,
+      quality: 90,
     });
 
     return base64Encoded(path, true);

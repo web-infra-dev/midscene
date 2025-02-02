@@ -1,13 +1,13 @@
 [
   {
-    "id": "6f297a61",
+    "id": "61a4195c",
     "indexId": 0,
-    "nodePath": "0-90-0-0-0-0-0-0-0",
-    "nodeHashId": "6f297a61",
+    "nodeHashId": "61a4195c",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
-      "nodeType": "TEXT Node"
+      "nodeType": "TEXT Node",
+      "htmlTagName": "<div>"
     },
     "center": [
       640,
@@ -26,14 +26,14 @@
     "screenHeight": 800
   },
   {
-    "id": "5ac27f17",
+    "id": "00706ee6",
     "indexId": 1,
-    "nodePath": "0-90-0-0-0-0-0-1-0-0-0",
-    "nodeHashId": "5ac27f17",
+    "nodeHashId": "00706ee6",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
-      "nodeType": "TEXT Node"
+      "nodeType": "TEXT Node",
+      "htmlTagName": "<li>"
     },
     "center": [
       512,
@@ -52,14 +52,14 @@
     "screenHeight": 800
   },
   {
-    "id": "b4f52c9c",
+    "id": "0c2ba011",
     "indexId": 2,
-    "nodePath": "0-90-0-0-0-0-0-1-0-1-0",
-    "nodeHashId": "b4f52c9c",
+    "nodeHashId": "0c2ba011",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
-      "nodeType": "TEXT Node"
+      "nodeType": "TEXT Node",
+      "htmlTagName": "<li>"
     },
     "center": [
       648,
@@ -78,14 +78,14 @@
     "screenHeight": 800
   },
   {
-    "id": "b91943f3",
+    "id": "815917cd",
     "indexId": 3,
-    "nodePath": "0-90-0-0-0-0-0-1-0-2-0",
-    "nodeHashId": "b91943f3",
+    "nodeHashId": "815917cd",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
-      "nodeType": "TEXT Node"
+      "nodeType": "TEXT Node",
+      "htmlTagName": "<li>"
     },
     "center": [
       784,
@@ -104,14 +104,14 @@
     "screenHeight": 800
   },
   {
-    "id": "7e03c4a9",
+    "id": "0862bbc7",
     "indexId": 4,
-    "nodePath": "0-90-0-0-0-0-1",
-    "nodeHashId": "7e03c4a9",
-    "locator": "[_midscene_retrieve_task_id='7e03c4a9']",
+    "nodeHashId": "0862bbc7",
+    "locator": "[_midscene_retrieve_task_id='0862bbc7']",
     "attributes": {
       "class": ".douyin-login__close.dy-account-close",
-      "nodeType": "IMG Node"
+      "nodeType": "IMG Node",
+      "htmlTagName": "<div>"
     },
     "nodeType": "IMG Node",
     "content": "",
@@ -131,14 +131,14 @@
     "screenHeight": 800
   },
   {
-    "id": "e6f7d2a2",
+    "id": "0edc7b4f",
     "indexId": 5,
-    "nodePath": "0-90-0-0-0-0-2-0-0-0-0-0-0-0",
-    "nodeHashId": "e6f7d2a2",
+    "nodeHashId": "0edc7b4f",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
-      "nodeType": "TEXT Node"
+      "nodeType": "TEXT Node",
+      "htmlTagName": "<li>"
     },
     "center": [
       522,
@@ -157,14 +157,14 @@
     "screenHeight": 800
   },
   {
-    "id": "7e987c8e",
+    "id": "770eb7fa",
     "indexId": 6,
-    "nodePath": "0-90-0-0-0-0-2-0-0-0-0-0-1-0",
-    "nodeHashId": "7e987c8e",
+    "nodeHashId": "770eb7fa",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
-      "nodeType": "TEXT Node"
+      "nodeType": "TEXT Node",
+      "htmlTagName": "<li>"
     },
     "center": [
       640,
@@ -183,14 +183,14 @@
     "screenHeight": 800
   },
   {
-    "id": "b635484c",
+    "id": "5e1c1007",
     "indexId": 7,
-    "nodePath": "0-90-0-0-0-0-2-0-0-0-0-0-2-0",
-    "nodeHashId": "b635484c",
+    "nodeHashId": "5e1c1007",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
-      "nodeType": "TEXT Node"
+      "nodeType": "TEXT Node",
+      "htmlTagName": "<li>"
     },
     "center": [
       758,
@@ -209,10 +209,9 @@
     "screenHeight": 800
   },
   {
-    "id": "859766ba",
-    "nodePath": "0-90-0-0-0-0-2-0-0-0-1-0-0-0-0-0",
-    "nodeHashId": "859766ba",
-    "locator": "[_midscene_retrieve_task_id='859766ba']",
+    "id": "9356dca2",
+    "nodeHashId": "9356dca2",
+    "locator": "[_midscene_retrieve_task_id='9356dca2']",
     "nodeType": "FORM_ITEM Node",
     "indexId": 8,
     "attributes": {
@@ -247,14 +246,14 @@
     "screenHeight": 800
   },
   {
-    "id": "62fb2606",
+    "id": "da7a2600",
     "indexId": 9,
-    "nodePath": "0-90-0-0-0-0-2-0-0-0-1-0-0-0-0-1",
-    "nodeHashId": "62fb2606",
-    "locator": "[_midscene_retrieve_task_id='62fb2606']",
+    "nodeHashId": "da7a2600",
+    "locator": "[_midscene_retrieve_task_id='da7a2600']",
     "attributes": {
       "class": ".web-login-area-code__input-wrapper__icon-arrow.web-login-area-code__input-wrapper__icon-arrow__down",
-      "nodeType": "IMG Node"
+      "nodeType": "IMG Node",
+      "htmlTagName": "<div>"
     },
     "nodeType": "IMG Node",
     "content": "",
@@ -274,10 +273,9 @@
     "screenHeight": 800
   },
   {
-    "id": "39debc12",
-    "nodePath": "0-90-0-0-0-0-2-0-0-0-1-0-0-1",
-    "nodeHashId": "39debc12",
-    "locator": "[_midscene_retrieve_task_id='39debc12']",
+    "id": "c5e353c6",
+    "nodeHashId": "c5e353c6",
+    "locator": "[_midscene_retrieve_task_id='c5e353c6']",
     "nodeType": "FORM_ITEM Node",
     "indexId": 10,
     "attributes": {
@@ -309,14 +307,14 @@
     "screenHeight": 800
   },
   {
-    "id": "8ef267a7",
+    "id": "a3132a9e",
     "indexId": 11,
-    "nodePath": "0-90-0-0-0-0-2-0-0-0-1-1-0-0-0",
-    "nodeHashId": "8ef267a7",
+    "nodeHashId": "a3132a9e",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
-      "nodeType": "TEXT Node"
+      "nodeType": "TEXT Node",
+      "htmlTagName": "<span>"
     },
     "center": [
       732,
@@ -335,10 +333,9 @@
     "screenHeight": 800
   },
   {
-    "id": "0b044c25",
-    "nodePath": "0-90-0-0-0-0-2-0-0-0-1-1-0-1-0",
-    "nodeHashId": "0b044c25",
-    "locator": "[_midscene_retrieve_task_id='0b044c25']",
+    "id": "d71e534c",
+    "nodeHashId": "d71e534c",
+    "locator": "[_midscene_retrieve_task_id='d71e534c']",
     "nodeType": "FORM_ITEM Node",
     "indexId": 12,
     "attributes": {
@@ -370,12 +367,11 @@
     "screenHeight": 800
   },
   {
-    "id": "0a3e3ced",
-    "nodePath": "0-90-0-0-0-0-2-0-0-0-1-2",
-    "nodeHashId": "0a3e3ced",
+    "id": "7315c4ff",
+    "nodeHashId": "7315c4ff",
     "indexId": 13,
     "nodeType": "CONTAINER Node",
-    "locator": "[_midscene_retrieve_task_id='0a3e3ced']",
+    "locator": "[_midscene_retrieve_task_id='7315c4ff']",
     "attributes": {
       "class": ".web-login-error",
       "role": "alert",
@@ -384,7 +380,8 @@
       "aria-live": "assertive",
       "aria-atomic": "true",
       "aria-label": "警告:无",
-      "nodeType": "CONTAINER Node"
+      "nodeType": "CONTAINER Node",
+      "htmlTagName": "<form>"
     },
     "content": "",
     "rect": {
@@ -403,14 +400,14 @@
     "screenHeight": 800
   },
   {
-    "id": "c00d9462",
+    "id": "916aeaf5",
     "indexId": 14,
-    "nodePath": "0-90-0-0-0-0-2-0-0-0-1-3-0-0",
-    "nodeHashId": "c00d9462",
+    "nodeHashId": "916aeaf5",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
-      "nodeType": "TEXT Node"
+      "nodeType": "TEXT Node",
+      "htmlTagName": "<span>"
     },
     "center": [
       553,
@@ -429,14 +426,14 @@
     "screenHeight": 800
   },
   {
-    "id": "cde751ab",
+    "id": "b12ba644",
     "indexId": 15,
-    "nodePath": "0-90-0-0-0-0-2-0-0-0-1-3-1-0",
-    "nodeHashId": "cde751ab",
+    "nodeHashId": "b12ba644",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
-      "nodeType": "TEXT Node"
+      "nodeType": "TEXT Node",
+      "htmlTagName": "<a>"
     },
     "center": [
       643,
@@ -455,14 +452,14 @@
     "screenHeight": 800
   },
   {
-    "id": "2d5b1020",
+    "id": "ec999111",
     "indexId": 16,
-    "nodePath": "0-90-0-0-0-0-2-0-0-0-1-3-2-0",
-    "nodeHashId": "2d5b1020",
+    "nodeHashId": "ec999111",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
-      "nodeType": "TEXT Node"
+      "nodeType": "TEXT Node",
+      "htmlTagName": "<span>"
     },
     "center": [
       679,
@@ -481,14 +478,14 @@
     "screenHeight": 800
   },
   {
-    "id": "31293304",
+    "id": "6753a655",
     "indexId": 17,
-    "nodePath": "0-90-0-0-0-0-2-0-0-0-1-3-3-0",
-    "nodeHashId": "31293304",
+    "nodeHashId": "6753a655",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
-      "nodeType": "TEXT Node"
+      "nodeType": "TEXT Node",
+      "htmlTagName": "<a>"
     },
     "center": [
       715,
@@ -507,15 +504,15 @@
     "screenHeight": 800
   },
   {
-    "id": "90aec210",
+    "id": "19dfb33a",
     "indexId": 18,
-    "nodePath": "0-90-0-0-0-0-2-0-0-0-1-4-0",
-    "nodeHashId": "90aec210",
+    "nodeHashId": "19dfb33a",
     "nodeType": "BUTTON Node",
-    "locator": "[_midscene_retrieve_task_id='90aec210']",
+    "locator": "[_midscene_retrieve_task_id='19dfb33a']",
     "attributes": {
       "type": "submit",
       "class": ".web-login-button.web-login-button__disabled",
+      "htmlTagName": "<div>",
       "nodeType": "BUTTON Node"
     },
     "content": "登录/注册",

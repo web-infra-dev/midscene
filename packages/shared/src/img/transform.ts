@@ -72,7 +72,7 @@ export async function resizeImg(
     finalNewSize.height,
     Jimp.RESIZE_NEAREST_NEIGHBOR,
   );
-  image.quality(75);
+  image.quality(90);
   const resizedBuffer = await image.getBufferAsync(Jimp.MIME_JPEG);
 
   return resizedBuffer;
