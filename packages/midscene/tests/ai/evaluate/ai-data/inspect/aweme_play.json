@@ -5,7 +5,7 @@
       "prompt": "左下角暂停按钮",
       "response": [
         {
-          "id": "a1ebe418",
+          "id": "5c12d3db",
           "indexId": 4
         }
       ]
@@ -14,7 +14,7 @@
       "prompt": "点赞（爱心）按钮",
       "response": [
         {
-          "id": "eb71a6ad",
+          "id": "05858071",
           "indexId": 23
         }
       ]
@@ -23,7 +23,7 @@
       "prompt": "评论按钮",
       "response": [
         {
-          "id": "0dcb6b9a",
+          "id": "9b3c024c",
           "indexId": 25
         }
       ]
@@ -32,7 +32,7 @@
       "prompt": "书签收藏按钮",
       "response": [
         {
-          "id": "bf57e6c4",
+          "id": "dc62b7ea",
           "indexId": 27
         }
       ]
@@ -41,7 +41,7 @@
       "prompt": "分享按钮",
       "response": [
         {
-          "id": "e975c2eb",
+          "id": "4010f2b8",
           "indexId": 29
         }
       ]
@@ -50,7 +50,7 @@
       "prompt": "右下角区域声音按钮",
       "response": [
         {
-          "id": "7a5dd265",
+          "id": "39adc244",
           "indexId": 10
         }
       ]
