@@ -139,9 +139,10 @@ describe('ai inspect element', () => {
           });
           // await sleep(20 * 1000);
           expect(resultData.successCount).toBeGreaterThan(0);
-          expect(resultData.failCount).toBeLessThanOrEqual(
-            source === 'aweme_play' ? 2 : failCaseThreshold,
-          );
+          // expect(resultData.failCount).toBeLessThanOrEqual(
+          //   source === 'aweme_play' ? 2 : failCaseThreshold,
+          // );
+          expect(resultData.failCount).toBeLessThanOrEqual(failCaseThreshold);
 
           await new Promise((resolve) => setTimeout(resolve, 10 * 1000));
         },
