@@ -26,12 +26,26 @@ export function generateHashId(rect: any, content = '') {
     _midscene_frame_id: getFrameId(),
   });
 
-  // Generates the sha-256 hash value
+  // Generates the sha-256 hash value and converts to a-z chars
   let sliceLength = 8;
   let slicedHash = '';
   const hashHex = sha256.create().update(combined).hex();
-  while (sliceLength < hashHex.length - 1) {
-    slicedHash = hashHex.slice(0, sliceLength);
+
+  // Convert hex to a-z by mapping each hex char to a letter
+  const toLetters = (hex: string) => {
+    return hex
+      .split('')
+      .map((char) => {
+        const code = Number.parseInt(char, 16);
+        return String.fromCharCode(97 + (code % 26)); // 97 is 'a' in ASCII
+      })
+      .join('');
+  };
+
+  const hashLetters = toLetters(hashHex);
+
+  while (sliceLength < hashLetters.length - 1) {
+    slicedHash = hashLetters.slice(0, sliceLength);
     if (hashMap[slicedHash] && hashMap[slicedHash] !== combined) {
       sliceLength++;
       continue;

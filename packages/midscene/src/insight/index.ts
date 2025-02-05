@@ -15,7 +15,7 @@ import type {
   PartialInsightDumpFromSDK,
   UIContext,
 } from '@/types';
-import { writeInsightDump } from './utils';
+import { emitInsightDump } from './utils';
 
 export interface LocateOpts {
   multi?: boolean;
@@ -124,7 +124,7 @@ export default class Insight<
       error: errorLog,
     };
 
-    const logId = writeInsightDump(dumpData, undefined, dumpSubscriber);
+    const logId = emitInsightDump(dumpData, undefined, dumpSubscriber);
 
     if (errorLog) {
       console.error(errorLog);
@@ -146,7 +146,7 @@ export default class Insight<
       }
     });
 
-    writeInsightDump(
+    emitInsightDump(
       {
         ...dumpData,
         matchedElement: elements,
@@ -216,7 +216,7 @@ export default class Insight<
       taskInfo,
       error: errorLog,
     };
-    const logId = writeInsightDump(dumpData, undefined, dumpSubscriber);
+    const logId = emitInsightDump(dumpData, undefined, dumpSubscriber);
 
     const { data } = parseResult;
     if (errorLog && !data) {
@@ -224,7 +224,7 @@ export default class Insight<
       throw new Error(errorLog);
     }
 
-    writeInsightDump(
+    emitInsightDump(
       {
         ...dumpData,
         matchedSection: [],
@@ -277,7 +277,7 @@ export default class Insight<
       assertionThought: thought,
       error: pass ? undefined : thought,
     };
-    writeInsightDump(dumpData, undefined, dumpSubscriber);
+    emitInsightDump(dumpData, undefined, dumpSubscriber);
 
     return {
       pass,
