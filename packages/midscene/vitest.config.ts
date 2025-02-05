@@ -10,6 +10,8 @@ import { version } from './package.json';
  */
 dotenv.config({
   path: path.join(__dirname, '../../.env'),
+  override: true,
+  debug: true,
 });
 
 const enableAiTest = Boolean(process.env.AITEST);

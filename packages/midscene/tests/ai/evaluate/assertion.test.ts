@@ -9,7 +9,12 @@ import {
   repeatFile,
 } from './test-suite/util';
 import 'dotenv/config';
-import { repeatTime } from '../util';
+import dotenv from 'dotenv';
+
+dotenv.config({
+  debug: true,
+  override: true,
+});
 
 const testSources = [
   'online_order',

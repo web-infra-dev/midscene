@@ -322,7 +322,7 @@ export async function descriptionOfTree<
     const indentStr = '  '.repeat(indent);
 
     let children = '';
-    for (let i = 0; i < node.children.length; i++) {
+    for (let i = 0; i < (node.children || []).length; i++) {
       const childContent = buildContentTree(node.children[i], indent + 1);
       if (childContent) {
         children += `\n${childContent}`;
@@ -405,11 +405,11 @@ export async function describeUserPage<
   const idElementMap: Record<string, ElementType> = {};
   const flatElements: ElementType[] = [];
   function dfsTree(node: ElementTreeNode<ElementType>) {
-    if (node.node) {
+    if (node?.node) {
       idElementMap[node.node.id] = node.node;
       flatElements.push(node.node);
     }
-    for (let i = 0; i < node.children.length; i++) {
+    for (let i = 0; i < (node.children || []).length; i++) {
       dfsTree(node.children[i]);
     }
   }

@@ -17,7 +17,20 @@ export default class StaticPage implements AbstractPage {
   private uiContext: WebUIContext;
 
   constructor(uiContext: WebUIContext) {
-    this.uiContext = uiContext;
+    if (uiContext.tree) {
+      this.uiContext = uiContext;
+    } else {
+      const contents = uiContext.content;
+      this.uiContext = Object.assign(uiContext, {
+        tree: {
+          node: null,
+          children: contents.map((content) => ({
+            node: content,
+            children: [],
+          })),
+        },
+      });
+    }
   }
 
   async getElementsInfo() {
