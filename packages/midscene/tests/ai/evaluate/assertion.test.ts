@@ -12,8 +12,8 @@ import 'dotenv/config';
 import { repeatTime } from '../util';
 
 const testSources = [
-  // 'todo',
   'online_order',
+  // 'todo',
   // 'online_order_list',
   // 'taobao',
   // 'aweme_login',

@@ -8,6 +8,7 @@ import {
 } from '@/image';
 import Insight from '@/insight';
 import type { AIElementIdResponse, BaseElement, UIContext } from '@/types';
+import { NodeType } from '@midscene/shared/constants';
 import { vi } from 'vitest';
 
 export function getFixture(name: string) {
@@ -46,6 +47,24 @@ export function fakeInsight(content: string) {
         tap: vi.fn() as unknown,
       },
     ] as unknown as BaseElement[],
+    tree: {
+      node: {
+        id: '0',
+        attributes: {
+          nodeType: NodeType.CONTAINER,
+        },
+        content: '',
+        rect: {
+          width: 100,
+          height: 100,
+          top: 200,
+          left: 200,
+        },
+        center: [250, 250] as [number, number],
+        children: [],
+      },
+      children: [],
+    },
   };
   const context: UIContext = {
     ...basicContext,

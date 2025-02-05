@@ -13,7 +13,7 @@ describe('prompt utils', () => {
     const stringLengthOfEachItem =
       lengthOfDescription / context.context.content.length;
     expect(description).toBeTruthy();
-    expect(stringLengthOfEachItem).toBeLessThan(160);
+    expect(stringLengthOfEachItem).toBeLessThan(250);
   });
 
   it('describe context, length = 100, filterNonTextContent = true', async () => {

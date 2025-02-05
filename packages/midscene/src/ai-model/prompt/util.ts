@@ -226,7 +226,7 @@ export function elementByPositionWithElementInfo(
   const matchingElements: BaseElement[] = [];
 
   function dfs(node: ElementTreeNode<BaseElement>) {
-    if (node.node) {
+    if (node?.node) {
       const item = node.node;
       if (
         item.attributes.nodeType !== NodeType.CONTAINER &&
