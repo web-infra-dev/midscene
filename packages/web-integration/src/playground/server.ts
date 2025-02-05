@@ -129,6 +129,7 @@ export default class PlaygroundServer {
           error: null,
         };
 
+        const startTime = Date.now();
         try {
           if (type === 'aiQuery') {
             response.result = await agent.aiQuery(prompt);
@@ -146,6 +147,7 @@ export default class PlaygroundServer {
             response.error = error.message;
           }
         }
+
         try {
           response.dump = JSON.parse(agent.dumpDataString());
           agent.writeOutActionDumps();
@@ -156,12 +158,14 @@ export default class PlaygroundServer {
         }
 
         res.send(response);
+        const timeCost = Date.now() - startTime;
+
         if (response.error) {
           console.error(
-            `handle request failed: #${requestId}, ${response.error}`,
+            `handle request failed after ${timeCost}ms: #${requestId}, ${response.error}`,
           );
         } else {
-          console.log(`handle request done: #${requestId}`);
+          console.log(`handle request done after ${timeCost}ms: #${requestId}`);
         }
       },
     );

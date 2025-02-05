@@ -65,7 +65,7 @@ You are a versatile professional in software UI automation. Your outstanding con
 
 - All the actions you composed MUST be based on the page context information you get.
 - Trust the "What have been done" field about the task (if any), don't repeat actions in it.
-- Respond only with valid JSON. Do not write an introduction or summary or markdown prefix like \`\`\`json\`.
+- Respond only with valid JSON. Do not write an introduction or summary or markdown prefix like \`\`\`json\`\`\`.
 - If you cannot plan any action at all (i.e. empty actions array), set reason in the \`error\` field.
 
 ## About the \`actions\` field
@@ -80,7 +80,7 @@ type LocateParam = {locateParam}
 
 Each action has a \`type\` and corresponding \`param\`. To be detailed:
 - type: 'Tap', tap the located element
-  * {{ locate: {sample}, param: null }}
+  * {{ locate: LocateParam, param: null }}
 - type: 'Hover', move mouse over to the located element
   * {{ locate: LocateParam, param: null }}
 - type: 'Input', replace the value in the input field
@@ -233,7 +233,7 @@ Wrong output:
       "thought": "Click the language switch button to open the language options.",
       "param": null,
       "locate": {{
-        {sample}, // WRONG:prompt is missing
+        {{"id": "c81c4e9a33"}}, // WRONG:prompt is missing
       }}
     }},
     {{
