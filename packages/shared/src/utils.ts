@@ -16,7 +16,7 @@ export function generateHashId(rect: any, content = '') {
   });
 
   // Generates the sha-256 hash value and converts to a-z chars
-  let sliceLength = 8;
+  let sliceLength = 5;
   let slicedHash = '';
   const hashHex = sha256.create().update(combined).hex();
 
