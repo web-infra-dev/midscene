@@ -22,7 +22,6 @@ export class PuppeteerAgent extends PageAgent {
             );
             return;
           }
-          // console.log('will replace the page');
           const midscenePage = new PuppeteerWebPage(targetPage);
           this.page = midscenePage;
           this.taskExecutor.page = midscenePage;
