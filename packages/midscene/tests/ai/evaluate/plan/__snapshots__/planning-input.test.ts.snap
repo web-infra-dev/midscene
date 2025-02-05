@@ -5,7 +5,7 @@ exports[`automation - planning input > input value 1`] = `
   {
     "locate": {
       "id": "fbc2d002",
-      "prompt": "the input field with placeholder 'What needs to be done?'",
+      "prompt": "the input field labeled 'What needs to be done?'",
     },
     "param": {
       "value": "learning english",
@@ -21,7 +21,7 @@ exports[`automation - planning input > input value 2`] = `
   {
     "locate": {
       "id": "fbc2d002",
-      "prompt": "the input field labeled 'What needs to be done?'",
+      "prompt": "the input field with placeholder 'What needs to be done?'",
     },
     "param": {
       "value": "learning english",
@@ -45,7 +45,7 @@ exports[`automation - planning input > input value Add, delete, correct and chec
   {
     "locate": {
       "id": "fbc2d002",
-      "prompt": "the task input box with content 'Learn English'",
+      "prompt": "the task input box with the content 'Learn English'",
     },
     "param": {
       "value": "Learn English tomorrow",
@@ -61,7 +61,7 @@ exports[`automation - planning input > input value Add, delete, correct and chec
   {
     "locate": {
       "id": "fbc2d002",
-      "prompt": "the task input box containing 'Learn English'",
+      "prompt": "the input box containing 'Learn English'",
     },
     "param": {
       "value": "Learn Skiing",

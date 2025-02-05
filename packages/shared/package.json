@@ -1,6 +1,6 @@
 {
   "name": "@midscene/shared",
-  "version": "0.10.2",
+  "version": "0.10.5",
   "repository": "https://github.com/web-infra-dev/midscene",
   "homepage": "https://midscenejs.com/",
   "types": "./src/index.ts",
@@ -119,6 +119,11 @@
         "types": "./dist/lib/utils.d.ts",
         "require": "./dist/lib/utils.js",
         "import": "./dist/es/utils.js"
+      },
+      "./keyboard-layout": {
+        "types": "./dist/lib/us-keyboard-layout.d.ts",
+        "require": "./dist/lib/us-keyboard-layout.js",
+        "import": "./dist/es/us-keyboard-layout.js"
       }
     },
     "typesVersions": {

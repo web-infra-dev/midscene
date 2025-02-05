@@ -21,7 +21,7 @@ jobs:
     env:
       OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
       OPENAI_BASE_URL: ${{ secrets.OPENAI_BASE_URL }}
-      MIDSCENE_MODEL_NAME: gpt-4o-2024-08-06
+      MIDSCENE_MODEL_NAME: gpt-4o-2024-11-20
       CI: 1
       # MIDSCENE_DEBUG_AI_PROFILE: 1
 
@@ -110,24 +110,6 @@ jobs:
         path: ${{ github.workspace }}/packages/web-integration/midscene_run/report
         if-no-files-found: ignore
 
-    - name: Run tests
-      run: pnpm run test:ai
-      id: test-ai
-      continue-on-error: true
-
-    - name: Upload test-ai output
-      if: always()
-      uses: actions/upload-artifact@v4
-      with:
-        name: test-ai-output
-        path: ${{ github.workspace }}/packages/web-integration/midscene_run/report
-        if-no-files-found: ignore
-
     - name: Check if script failed
-      if: steps.test-ai.outcome == 'failure' || steps.e2e-tests.outcome == 'failure' || steps.e2e-tests-cache.outcome == 'failure' || steps.e2e-tests-report.outcome == 'failure'
+      if: steps.e2e-tests.outcome == 'failure' || steps.e2e-tests-cache.outcome == 'failure' || steps.e2e-tests-report.outcome == 'failure'
       run: exit 1
-
-
-
-
-

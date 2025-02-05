@@ -291,7 +291,31 @@ export const planSchema: ResponseFormatJSONSchema = {
                 description: 'Type of action, like "Tap", "Hover", etc.',
               },
               param: {
-                type: ['object', 'null'],
+                anyOf: [
+                  { type: 'null' },
+                  {
+                    type: 'object',
+                    properties: { value: { type: ['string', 'number'] } },
+                    required: ['value'],
+                    additionalProperties: false,
+                  },
+                  {
+                    type: 'object',
+                    properties: { timeMs: { type: ['number', 'string'] } },
+                    required: ['timeMs'],
+                    additionalProperties: false,
+                  },
+                  {
+                    type: 'object',
+                    properties: {
+                      direction: { type: 'string' },
+                      scrollType: { type: 'string' },
+                      distance: { type: ['number', 'string', 'null'] },
+                    },
+                    required: ['direction', 'scrollType', 'distance'],
+                    additionalProperties: false,
+                  },
+                ],
                 description:
                   'Parameter of the action, can be null ONLY when the type field is Tap or Hover',
               },

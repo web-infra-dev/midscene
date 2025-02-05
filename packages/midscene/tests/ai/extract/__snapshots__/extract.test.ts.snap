@@ -13,7 +13,7 @@ exports[`extract > online order 1`] = `
     },
   ],
   "errors": [],
-  "language": "zh",
+  "language": "en",
 }
 `;
 
