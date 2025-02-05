@@ -21,6 +21,8 @@ export type Rect = Point & Size & { zoom?: number };
 export abstract class BaseElement {
   abstract id: string;
 
+  abstract indexId?: number; // markerId for web
+
   abstract attributes: {
     nodeType: NodeType;
     [key: string]: string;
@@ -345,7 +347,7 @@ export interface ExecutionTaskApply<
     param: TaskParam,
     context: ExecutorContext,
   ) => // biome-ignore lint/suspicious/noConfusingVoidType: <explanation>
-    | Promise<ExecutionTaskReturn<TaskOutput, TaskLog> | undefined | void>
+  | Promise<ExecutionTaskReturn<TaskOutput, TaskLog> | undefined | void>
     | undefined
     | void;
 }

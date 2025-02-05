@@ -260,11 +260,11 @@ export function elementByPositionWithElementInfo(
 
 export const samplePageDescription = `
 The size of the page: 1280 x 720
-Some of the elements are marked with a rectangle in the screenshot, some are not.
+Some of the elements are marked with a rectangle in the screenshot corresponding to the markerId, some are not.
 
 Description of all the elements in screenshot:
-<div id="969f1637" markerId="1"> // The markerId indicated by the rectangle label in the screenshot
-  <h4 id="b211ecb2" markerId="5" >
+<div id="969f1637" markerId="1" left="100" top="100" width="100" height="100"> // The markerId indicated by the rectangle label in the screenshot
+  <h4 id="b211ecb2" markerId="5" left="150" top="150" width="90" height="60">
     The username is accepted
   </h4>
   ...many more
@@ -344,7 +344,7 @@ export async function descriptionOfTree<
           .replace(/\sNode$/, '')
           .toLowerCase();
       }
-      const markerId = (node.node as any).indexId;
+      const markerId = node.node.indexId;
       const markerIdString = markerId ? `markerId="${markerId}"` : '';
       const rectAttribute = node.node.rect
         ? {
@@ -407,6 +407,10 @@ export async function describeUserPage<
   function dfsTree(node: ElementTreeNode<ElementType>) {
     if (node?.node) {
       idElementMap[node.node.id] = node.node;
+
+      if (typeof node.node.indexId !== 'undefined') {
+        idElementMap[`${node.node.indexId}`] = node.node;
+      }
       flatElements.push(node.node);
     }
     for (let i = 0; i < (node.children || []).length; i++) {
