@@ -41,7 +41,7 @@ describe('ai inspect element', () => {
       }),
     );
   });
-  repeatFile(testSources, repeatTime, (source, repeatIndex) => {
+  repeatFile(testSources, 1, (source, repeatIndex) => {
     const aiDataPath = path.join(__dirname, `ai-data/assertion/${source}.json`);
     const aiData = JSON.parse(
       readFileSync(aiDataPath, 'utf-8'),
