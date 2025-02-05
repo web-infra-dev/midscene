@@ -20,7 +20,7 @@ export default class StaticPage implements AbstractPage {
     if (uiContext.tree) {
       this.uiContext = uiContext;
     } else {
-      const contents = uiContext.content;
+      const contents = uiContext.content || [];
       this.uiContext = Object.assign(uiContext, {
         tree: {
           node: null,
