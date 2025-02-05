@@ -187,14 +187,30 @@ export function describeElement(
     .join('\n');
 }
 
-export function truncateText(text: string, maxLength = 100) {
-  if (text && text.length > maxLength) {
+export function truncateText(
+  text: string | number | object | undefined,
+  maxLength = 150,
+) {
+  if (typeof text === 'undefined') {
+    return '';
+  }
+
+  if (typeof text === 'object') {
+    text = JSON.stringify(text);
+  }
+
+  if (typeof text === 'number') {
+    return text.toString();
+  }
+
+  if (typeof text === 'string' && text.length > maxLength) {
     return `${text.slice(0, maxLength)}...`;
   }
 
   if (typeof text === 'string') {
     return text.trim();
   }
+
   return '';
 }
 
@@ -330,7 +346,15 @@ export async function descriptionOfTree<
       }
       const markerId = (node.node as any).indexId;
       const markerIdString = markerId ? `markerId="${markerId}"` : '';
-      before = `<${nodeTypeString} id="${node.node.id}" ${markerIdString} ${attributesString(trimAttributes(node.node.attributes || {}, truncateTextLength))}>`;
+      const rectAttribute = node.node.rect
+        ? {
+            left: node.node.rect.left,
+            top: node.node.rect.top,
+            width: node.node.rect.width,
+            height: node.node.rect.height,
+          }
+        : {};
+      before = `<${nodeTypeString} id="${node.node.id}" ${markerIdString} ${attributesString(trimAttributes(node.node.attributes || {}, truncateTextLength))} ${attributesString(rectAttribute)}>`;
       const content = truncateText(node.node.content, truncateTextLength);
       contentWithIndent = content ? `\n${indentStr}  ${content}` : '';
       after = `</${nodeTypeString}>`;

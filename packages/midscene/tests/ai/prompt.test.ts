@@ -133,7 +133,9 @@ describe('utils', () => {
           },
           {
             node: {
-              attributes: {},
+              attributes: {
+                nodeType: NodeType.CONTAINER,
+              },
               id: '3',
               indexId: 20,
               rect: {
@@ -150,7 +152,9 @@ describe('utils', () => {
             children: [
               {
                 node: {
-                  attributes: {},
+                  attributes: {
+                    nodeType: NodeType.IMG,
+                  },
                   id: '3',
                   indexId: 20,
                   rect: {
@@ -202,13 +206,13 @@ describe('utils', () => {
 
   it('should be able to describe tree', async () => {
     const description = await descriptionOfTree(tree);
-    console.log(description);
+    // console.log(description);
     expect(description).toMatchSnapshot();
   });
 
   it('should be able to describe tree, filterNonTextContent = true', async () => {
     const description = await descriptionOfTree(tree, 20, true);
-    console.log(description);
+    // console.log(description);
     expect(description).toMatchSnapshot();
   });
 });

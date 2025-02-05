@@ -1,18 +1,18 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
 exports[`utils > should be able to describe tree 1`] = `
-"<container id="1" markerId="19" >
-  Legend had it that the Whispering Woods held an ancient secret, one that connected the world of man ...
-  <text id="2" markerId="999" ariaLabel="image description, it could be a long text, very loooooooooooooooooooooooooooooooooooooooooong">
+"<container id="1" markerId="19"  left="0" top="0" width="100" height="100">
+  Legend had it that the Whispering Woods held an ancient secret, one that connected the world of man and magic, of reality and dream. Each leaf, every ...
+  <text id="2" markerId="999" ariaLabel="image description, it could be a long text, very loooooooooooooooooooooooooooooooooooooooooong" left="0" top="0" width="100" height="100">
     world
   </text>
-  <img id="3" markerId="20" ariaLabel="image description" storyContent="Legend had it that the Whispering Woods held an ancient secret, one that connected the world of man ...">
+  <img id="3" markerId="20" ariaLabel="image description" storyContent="Legend had it that the Whispering Woods held an ancient secret, one that connected the world of man and magic, of reality and dream. Each leaf, every ..." left="0" top="0" width="100" height="100">
     world 2345
-    <img id="3" markerId="20" ariaLabel="image description" storyContent="Legend had it that the Whispering Woods held an ancient secret, one that connected the world of man ...">
+    <img id="3" markerId="20" ariaLabel="image description" storyContent="Legend had it that the Whispering Woods held an ancient secret, one that connected the world of man and magic, of reality and dream. Each leaf, every ..." left="0" top="0" width="100" height="100">
     </img>
     
       <>
-        <img id="3222" markerId="20" ariaLabel="image description" storyContent="Legend had it that the Whispering Woods held an ancient secret, one that connected the world of man ...">
+        <img id="3222" markerId="20" ariaLabel="image description" storyContent="Legend had it that the Whispering Woods held an ancient secret, one that connected the world of man and magic, of reality and dream. Each leaf, every ..." left="0" top="0" width="100" height="100">
           world 2345
         </img>
       </>
@@ -22,16 +22,16 @@ exports[`utils > should be able to describe tree 1`] = `
 `;
 
 exports[`utils > should be able to describe tree, filterNonTextContent = true 1`] = `
-"<container id="1" markerId="19" >
+"<container id="1" markerId="19"  left="0" top="0" width="100" height="100">
   Legend had it that t...
-  <text id="2" markerId="999" ariaLabel="image description, i...">
+  <text id="2" markerId="999" ariaLabel="image description, i..." left="0" top="0" width="100" height="100">
     world
   </text>
-  <img id="3" markerId="20" ariaLabel="image description" storyContent="Legend had it that t...">
+  <img id="3" markerId="20" ariaLabel="image description" storyContent="Legend had it that t..." left="0" top="0" width="100" height="100">
     world 2345
     
       
-        <img id="3222" markerId="20" ariaLabel="image description" storyContent="Legend had it that t...">
+        <img id="3222" markerId="20" ariaLabel="image description" storyContent="Legend had it that t..." left="0" top="0" width="100" height="100">
           world 2345
         </img>
       
