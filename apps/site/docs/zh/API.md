@@ -10,7 +10,7 @@ Midscene 中每个 Agent 都有自己的构造函数。
 这些 Agent 有一些相同的构造参数：
 
 * `generateReport: boolean`: 如果为 true，则生成报告文件。默认值为 true。
-* `autoPrintReportMsg: boolean`: 如果为 true，则打印报告消息。默认值为 true。
+* `autoPrintReportMsg: boolean`: 如果为 true，则生成报告后自动打印报告信息。默认值为 true。
 * `cacheId: string | undefined`: 如果配置，则使用此 cacheId 匹配缓存。默认值为 undefined。
 
 在 puppeteer 中，还有一个额外的参数：
