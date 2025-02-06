@@ -4,6 +4,9 @@ import { defineConfig } from 'rspress/config';
 export default defineConfig({
   root: path.join(__dirname, 'docs'),
   title: 'Midscene.js',
+  search: {
+    codeBlocks: true,
+  },
   description:
     'Automate browser actions, extract data, and perform assertions using AI. It offers JavaScript SDK, Chrome extension, and support for scripting in YAML.',
   icon: '/midscene-icon.png',
