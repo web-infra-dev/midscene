@@ -442,7 +442,7 @@ export async function describeUserPage<
       position: { x: number; y: number },
       size: { width: number; height: number },
     ) {
-      console.log('elementByPosition', { position, size });
+      // console.log('elementByPosition', { position, size });
       return elementByPositionWithElementInfo(treeRoot, position);
     },
     insertElementByPosition(position: { x: number; y: number }) {

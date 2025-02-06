@@ -1,9 +1,8 @@
 import path, { join } from 'node:path';
-import { parseContextFromWebPage } from '@/common/utils';
+import { parseContextFromWebPage, traverseTree } from '@/common/utils';
 import { generateExtractData } from '@/debug';
 import StaticPage from '@/playground/static-page';
 import type { WebElementInfo } from '@/web-element';
-import type { ElementTreeNode } from '@midscene/core/.';
 import { imageInfoOfBase64 } from '@midscene/shared/img';
 import { createServer } from 'http-server';
 import { beforeAll, describe, expect, it } from 'vitest';
@@ -11,21 +10,6 @@ import { launchPage } from '../ai/web/puppeteer/utils';
 
 const pageDir = join(__dirname, './fixtures/web-extractor');
 const pagePath = join(pageDir, 'index.html');
-
-// const treeToList = (tree: ElementTreeNode<WebElementInfo>) => {
-//   // dfs topChildren
-//   const elementInfoArray: WebElementInfo[] = [];
-//   function dfsTopChildren(node: ElementTreeNode<WebElementInfo>) {
-//     if (node.node) {
-//       elementInfoArray.push(node.node);
-//     }
-//     for (let i = 0; i < node.children.length; i++) {
-//       dfsTopChildren(node.children[i]);
-//     }
-//   }
-//   dfsTopChildren(tree);
-//   return elementInfoArray;
-// };
 
 describe(
   'extractor',
@@ -55,7 +39,7 @@ describe(
         },
       });
 
-      const { content } = await parseContextFromWebPage(page);
+      const { content, tree } = await parseContextFromWebPage(page);
       await generateExtractData(
         page,
         path.join(__dirname, 'fixtures/web-extractor'),
@@ -76,6 +60,17 @@ describe(
       });
 
       expect(list).toMatchSnapshot();
+
+      const simplifiedTree = traverseTree(tree!, (node) => {
+        return {
+          content: node.content,
+          id: node.id,
+          indexId: node.indexId,
+          attributes: node.attributes,
+        } as any;
+      });
+      // console.log(simplifiedTree);
+      expect(simplifiedTree).toMatchSnapshot();
       await reset();
     });
 

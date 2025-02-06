@@ -625,3 +625,2494 @@ exports[`extractor > basic 1`] = `
   },
 ]
 `;
+
+exports[`extractor > basic 2`] = `
+{
+  "children": [
+    {
+      "children": [
+        {
+          "children": [],
+          "node": null,
+        },
+        {
+          "children": [
+            {
+              "children": [],
+              "node": {
+                "attributes": {
+                  "htmlTagName": "<h1>",
+                  "nodeType": "TEXT Node",
+                },
+                "content": "Data Record",
+                "id": "fagak",
+                "indexId": 0,
+              },
+            },
+          ],
+          "node": null,
+        },
+        {
+          "children": [],
+          "node": null,
+        },
+        {
+          "children": [
+            {
+              "children": [],
+              "node": {
+                "attributes": {
+                  "htmlTagName": "<h2>",
+                  "nodeType": "TEXT Node",
+                },
+                "content": "1970-01-01 19:25:01",
+                "id": "hdpic",
+                "indexId": 1,
+              },
+            },
+          ],
+          "node": null,
+        },
+        {
+          "children": [],
+          "node": null,
+        },
+        {
+          "children": [
+            {
+              "children": [],
+              "node": {
+                "attributes": {
+                  "htmlTagName": "<h2>",
+                  "nodeType": "TEXT Node",
+                },
+                "content": "User Name: Stella",
+                "id": "fbldh",
+                "indexId": 2,
+              },
+            },
+          ],
+          "node": null,
+        },
+        {
+          "children": [],
+          "node": null,
+        },
+        {
+          "children": [
+            {
+              "children": [],
+              "node": null,
+            },
+            {
+              "children": [
+                {
+                  "children": [],
+                  "node": null,
+                },
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "node": null,
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "node": {
+                            "attributes": {
+                              "htmlTagName": "<th>",
+                              "nodeType": "TEXT Node",
+                            },
+                            "content": "ID",
+                            "id": "epedi",
+                            "indexId": 3,
+                          },
+                        },
+                      ],
+                      "node": null,
+                    },
+                    {
+                      "children": [],
+                      "node": null,
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "node": {
+                            "attributes": {
+                              "htmlTagName": "<th>",
+                              "nodeType": "TEXT Node",
+                            },
+                            "content": "Field 2",
+                            "id": "plfjm",
+                            "indexId": 4,
+                          },
+                        },
+                      ],
+                      "node": null,
+                    },
+                    {
+                      "children": [],
+                      "node": null,
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "node": {
+                            "attributes": {
+                              "htmlTagName": "<th>",
+                              "nodeType": "TEXT Node",
+                            },
+                            "content": "Field 3",
+                            "id": "jelcd",
+                            "indexId": 5,
+                          },
+                        },
+                      ],
+                      "node": null,
+                    },
+                    {
+                      "children": [],
+                      "node": null,
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "node": {
+                            "attributes": {
+                              "htmlTagName": "<th>",
+                              "nodeType": "TEXT Node",
+                            },
+                            "content": "Field 4",
+                            "id": "ibgpg",
+                            "indexId": 6,
+                          },
+                        },
+                      ],
+                      "node": null,
+                    },
+                    {
+                      "children": [],
+                      "node": null,
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "node": {
+                            "attributes": {
+                              "htmlTagName": "<th>",
+                              "nodeType": "TEXT Node",
+                            },
+                            "content": "Field 5",
+                            "id": "bijam",
+                            "indexId": 7,
+                          },
+                        },
+                      ],
+                      "node": null,
+                    },
+                    {
+                      "children": [],
+                      "node": null,
+                    },
+                  ],
+                  "node": null,
+                },
+                {
+                  "children": [],
+                  "node": null,
+                },
+              ],
+              "node": null,
+            },
+            {
+              "children": [],
+              "node": null,
+            },
+            {
+              "children": [
+                {
+                  "children": [],
+                  "node": null,
+                },
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "node": null,
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "node": {
+                            "attributes": {
+                              "htmlTagName": "<td>",
+                              "nodeType": "TEXT Node",
+                            },
+                            "content": "30S",
+                            "id": "efgfo",
+                            "indexId": 8,
+                          },
+                        },
+                      ],
+                      "node": null,
+                    },
+                    {
+                      "children": [],
+                      "node": null,
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "node": {
+                            "attributes": {
+                              "htmlTagName": "<td>",
+                              "nodeType": "TEXT Node",
+                            },
+                            "content": "Kace Cervantes",
+                            "id": "mefbp",
+                            "indexId": 9,
+                          },
+                        },
+                      ],
+                      "node": null,
+                    },
+                    {
+                      "children": [],
+                      "node": null,
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "node": {
+                            "attributes": {
+                              "htmlTagName": "<td>",
+                              "nodeType": "TEXT Node",
+                            },
+                            "content": "Aylin Sawyer",
+                            "id": "ckkfm",
+                            "indexId": 10,
+                          },
+                        },
+                      ],
+                      "node": null,
+                    },
+                    {
+                      "children": [],
+                      "node": null,
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "node": {
+                            "attributes": {
+                              "htmlTagName": "<td>",
+                              "nodeType": "TEXT Node",
+                            },
+                            "content": "Jefferson Kirby",
+                            "id": "ielnh",
+                            "indexId": 11,
+                          },
+                        },
+                      ],
+                      "node": null,
+                    },
+                    {
+                      "children": [],
+                      "node": null,
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "node": {
+                            "attributes": {
+                              "htmlTagName": "<td>",
+                              "nodeType": "TEXT Node",
+                            },
+                            "content": "Skyla Jefferson",
+                            "id": "ogied",
+                            "indexId": 12,
+                          },
+                        },
+                      ],
+                      "node": null,
+                    },
+                    {
+                      "children": [],
+                      "node": null,
+                    },
+                  ],
+                  "node": null,
+                },
+                {
+                  "children": [],
+                  "node": null,
+                },
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "node": null,
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "node": {
+                            "attributes": {
+                              "htmlTagName": "<td>",
+                              "nodeType": "TEXT Node",
+                            },
+                            "content": "70U",
+                            "id": "jnlok",
+                            "indexId": 13,
+                          },
+                        },
+                      ],
+                      "node": null,
+                    },
+                    {
+                      "children": [],
+                      "node": null,
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "node": {
+                            "attributes": {
+                              "htmlTagName": "<td>",
+                              "nodeType": "TEXT Node",
+                            },
+                            "content": "Florence Davenport",
+                            "id": "eocgd",
+                            "indexId": 14,
+                          },
+                        },
+                      ],
+                      "node": null,
+                    },
+                    {
+                      "children": [],
+                      "node": null,
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "node": {
+                            "attributes": {
+                              "htmlTagName": "<td>",
+                              "nodeType": "TEXT Node",
+                            },
+                            "content": "Dariel Acevedo",
+                            "id": "becfc",
+                            "indexId": 15,
+                          },
+                        },
+                      ],
+                      "node": null,
+                    },
+                    {
+                      "children": [],
+                      "node": null,
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "node": {
+                            "attributes": {
+                              "htmlTagName": "<td>",
+                              "nodeType": "TEXT Node",
+                            },
+                            "content": "Ashlynn Delacruz",
+                            "id": "bffpi",
+                            "indexId": 16,
+                          },
+                        },
+                      ],
+                      "node": null,
+                    },
+                    {
+                      "children": [],
+                      "node": null,
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "node": {
+                            "attributes": {
+                              "htmlTagName": "<td>",
+                              "nodeType": "TEXT Node",
+                            },
+                            "content": "Memphis Leal",
+                            "id": "nphnj",
+                            "indexId": 17,
+                          },
+                        },
+                      ],
+                      "node": null,
+                    },
+                    {
+                      "children": [],
+                      "node": null,
+                    },
+                  ],
+                  "node": null,
+                },
+                {
+                  "children": [],
+                  "node": null,
+                },
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "node": null,
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "node": {
+                            "attributes": {
+                              "htmlTagName": "<td>",
+                              "nodeType": "TEXT Node",
+                            },
+                            "content": "3AY",
+                            "id": "ffiel",
+                            "indexId": 18,
+                          },
+                        },
+                      ],
+                      "node": null,
+                    },
+                    {
+                      "children": [],
+                      "node": null,
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "node": {
+                            "attributes": {
+                              "htmlTagName": "<td>",
+                              "nodeType": "TEXT Node",
+                            },
+                            "content": "Crystal Newman",
+                            "id": "ecnjo",
+                            "indexId": 19,
+                          },
+                        },
+                      ],
+                      "node": null,
+                    },
+                    {
+                      "children": [],
+                      "node": null,
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "node": {
+                            "attributes": {
+                              "htmlTagName": "<td>",
+                              "nodeType": "TEXT Node",
+                            },
+                            "content": "Anderson Brown",
+                            "id": "mgkgf",
+                            "indexId": 20,
+                          },
+                        },
+                      ],
+                      "node": null,
+                    },
+                    {
+                      "children": [],
+                      "node": null,
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "node": {
+                            "attributes": {
+                              "htmlTagName": "<td>",
+                              "nodeType": "TEXT Node",
+                            },
+                            "content": "Charlotte Griffith",
+                            "id": "gafdi",
+                            "indexId": 21,
+                          },
+                        },
+                      ],
+                      "node": null,
+                    },
+                    {
+                      "children": [],
+                      "node": null,
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "node": {
+                            "attributes": {
+                              "htmlTagName": "<td>",
+                              "nodeType": "TEXT Node",
+                            },
+                            "content": "Franklin Everett",
+                            "id": "cdkjh",
+                            "indexId": 22,
+                          },
+                        },
+                      ],
+                      "node": null,
+                    },
+                    {
+                      "children": [],
+                      "node": null,
+                    },
+                  ],
+                  "node": null,
+                },
+                {
+                  "children": [],
+                  "node": null,
+                },
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "node": null,
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "node": {
+                            "attributes": {
+                              "htmlTagName": "<td>",
+                              "nodeType": "TEXT Node",
+                            },
+                            "content": "YPG",
+                            "id": "mclpm",
+                            "indexId": 23,
+                          },
+                        },
+                      ],
+                      "node": null,
+                    },
+                    {
+                      "children": [],
+                      "node": null,
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "node": {
+                            "attributes": {
+                              "htmlTagName": "<td>",
+                              "nodeType": "TEXT Node",
+                            },
+                            "content": "Kori Payne",
+                            "id": "oonlp",
+                            "indexId": 24,
+                          },
+                        },
+                      ],
+                      "node": null,
+                    },
+                    {
+                      "children": [],
+                      "node": null,
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "node": {
+                            "attributes": {
+                              "htmlTagName": "<td>",
+                              "nodeType": "TEXT Node",
+                            },
+                            "content": "Edward Blevins",
+                            "id": "aohfd",
+                            "indexId": 25,
+                          },
+                        },
+                      ],
+                      "node": null,
+                    },
+                    {
+                      "children": [],
+                      "node": null,
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "node": {
+                            "attributes": {
+                              "htmlTagName": "<td>",
+                              "nodeType": "TEXT Node",
+                            },
+                            "content": "Aila Gill",
+                            "id": "cdbak",
+                            "indexId": 26,
+                          },
+                        },
+                      ],
+                      "node": null,
+                    },
+                    {
+                      "children": [],
+                      "node": null,
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "node": {
+                            "attributes": {
+                              "htmlTagName": "<td>",
+                              "nodeType": "TEXT Node",
+                            },
+                            "content": "Matthias Reed",
+                            "id": "bicbj",
+                            "indexId": 27,
+                          },
+                        },
+                      ],
+                      "node": null,
+                    },
+                    {
+                      "children": [],
+                      "node": null,
+                    },
+                  ],
+                  "node": null,
+                },
+                {
+                  "children": [],
+                  "node": null,
+                },
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "node": null,
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "node": {
+                            "attributes": {
+                              "htmlTagName": "<td>",
+                              "nodeType": "TEXT Node",
+                            },
+                            "content": "ZEN",
+                            "id": "ajakg",
+                            "indexId": 28,
+                          },
+                        },
+                      ],
+                      "node": null,
+                    },
+                    {
+                      "children": [],
+                      "node": null,
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "node": {
+                            "attributes": {
+                              "htmlTagName": "<td>",
+                              "nodeType": "TEXT Node",
+                            },
+                            "content": "Magnolia Duke",
+                            "id": "ingna",
+                            "indexId": 29,
+                          },
+                        },
+                      ],
+                      "node": null,
+                    },
+                    {
+                      "children": [],
+                      "node": null,
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "node": {
+                            "attributes": {
+                              "htmlTagName": "<td>",
+                              "nodeType": "TEXT Node",
+                            },
+                            "content": "Kalel Glover",
+                            "id": "mgmdc",
+                            "indexId": 30,
+                          },
+                        },
+                      ],
+                      "node": null,
+                    },
+                    {
+                      "children": [],
+                      "node": null,
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "node": {
+                            "attributes": {
+                              "htmlTagName": "<td>",
+                              "nodeType": "TEXT Node",
+                            },
+                            "content": "Alessia Barton",
+                            "id": "dfjpc",
+                            "indexId": 31,
+                          },
+                        },
+                      ],
+                      "node": null,
+                    },
+                    {
+                      "children": [],
+                      "node": null,
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "node": {
+                            "attributes": {
+                              "htmlTagName": "<td>",
+                              "nodeType": "TEXT Node",
+                            },
+                            "content": "Cassius Peck",
+                            "id": "fdpfj",
+                            "indexId": 32,
+                          },
+                        },
+                      ],
+                      "node": null,
+                    },
+                    {
+                      "children": [],
+                      "node": null,
+                    },
+                  ],
+                  "node": null,
+                },
+                {
+                  "children": [],
+                  "node": null,
+                },
+              ],
+              "node": null,
+            },
+            {
+              "children": [],
+              "node": null,
+            },
+          ],
+          "node": null,
+        },
+        {
+          "children": [],
+          "node": null,
+        },
+        {
+          "children": [
+            {
+              "children": [],
+              "node": null,
+            },
+            {
+              "children": [
+                {
+                  "children": [],
+                  "node": {
+                    "attributes": {
+                      "htmlTagName": "<h3>",
+                      "nodeType": "TEXT Node",
+                    },
+                    "content": "Form",
+                    "id": "gmego",
+                    "indexId": 33,
+                  },
+                },
+              ],
+              "node": null,
+            },
+            {
+              "children": [],
+              "node": null,
+            },
+            {
+              "children": [
+                {
+                  "children": [],
+                  "node": {
+                    "attributes": {
+                      "htmlTagName": "<label>",
+                      "nodeType": "TEXT Node",
+                    },
+                    "content": "Name:",
+                    "id": "bnbkg",
+                    "indexId": 34,
+                  },
+                },
+              ],
+              "node": null,
+            },
+            {
+              "children": [],
+              "node": null,
+            },
+            {
+              "children": [],
+              "node": {
+                "attributes": {
+                  "htmlTagName": "<input>",
+                  "id": "J_input",
+                  "nodeType": "FORM_ITEM Node",
+                  "placeholder": "Hello World This is Placeholder",
+                },
+                "content": "Hello World This is Placeholder",
+                "id": "dbkeo",
+                "indexId": 35,
+              },
+            },
+            {
+              "children": [],
+              "node": null,
+            },
+            {
+              "children": [],
+              "node": {
+                "attributes": {
+                  "htmlTagName": "<input>",
+                  "id": "J_input",
+                  "nodeType": "FORM_ITEM Node",
+                  "placeholder": "Hello World This is Placeholder",
+                  "value": "Now I am a value, instead of placeholder",
+                },
+                "content": "Now I am a value, instead of placeholder",
+                "id": "aeifn",
+                "indexId": 36,
+              },
+            },
+            {
+              "children": [],
+              "node": null,
+            },
+            {
+              "children": [],
+              "node": {
+                "attributes": {
+                  "htmlTagName": "<div>",
+                  "nodeType": "BUTTON Node",
+                },
+                "content": "Click Me",
+                "id": "mplnd",
+                "indexId": 37,
+              },
+            },
+            {
+              "children": [],
+              "node": null,
+            },
+            {
+              "children": [
+                {
+                  "children": [],
+                  "node": {
+                    "attributes": {
+                      "htmlTagName": "<label>",
+                      "nodeType": "TEXT Node",
+                    },
+                    "content": "Shape",
+                    "id": "gbjmb",
+                    "indexId": 38,
+                  },
+                },
+              ],
+              "node": null,
+            },
+            {
+              "children": [],
+              "node": null,
+            },
+            {
+              "children": [],
+              "node": {
+                "attributes": {
+                  "htmlTagName": "<input>",
+                  "nodeType": "FORM_ITEM Node",
+                  "placeholder": "You shouldn't see this placeholder.",
+                  "value": "Rectangle",
+                },
+                "content": "Rectangle",
+                "id": "ncdfk",
+                "indexId": 39,
+              },
+            },
+            {
+              "children": [],
+              "node": null,
+            },
+            {
+              "children": [],
+              "node": null,
+            },
+            {
+              "children": [],
+              "node": null,
+            },
+            {
+              "children": [],
+              "node": {
+                "attributes": {
+                  "htmlTagName": "<textarea>",
+                  "nodeType": "FORM_ITEM Node",
+                  "placeholder": "this_is_a_textarea",
+                },
+                "content": "this_is_a_textarea",
+                "id": "empjl",
+                "indexId": 40,
+              },
+            },
+            {
+              "children": [],
+              "node": null,
+            },
+            {
+              "children": [],
+              "node": null,
+            },
+            {
+              "children": [],
+              "node": null,
+            },
+          ],
+          "node": null,
+        },
+        {
+          "children": [],
+          "node": null,
+        },
+        {
+          "children": [],
+          "node": null,
+        },
+        {
+          "children": [],
+          "node": null,
+        },
+        {
+          "children": [
+            {
+              "children": [],
+              "node": null,
+            },
+            {
+              "children": [
+                {
+                  "children": [],
+                  "node": null,
+                },
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "node": null,
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "node": null,
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "node": {
+                                    "attributes": {
+                                      "htmlTagName": "<span>",
+                                      "nodeType": "TEXT Node",
+                                    },
+                                    "content": "English",
+                                    "id": "omamo",
+                                    "indexId": 41,
+                                  },
+                                },
+                              ],
+                              "node": null,
+                            },
+                          ],
+                          "node": null,
+                        },
+                        {
+                          "children": [],
+                          "node": null,
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "node": {
+                                    "attributes": {
+                                      "htmlTagName": "<span>",
+                                      "nodeType": "TEXT Node",
+                                    },
+                                    "content": "中文",
+                                    "id": "emaam",
+                                    "indexId": 42,
+                                  },
+                                },
+                              ],
+                              "node": null,
+                            },
+                          ],
+                          "node": null,
+                        },
+                        {
+                          "children": [],
+                          "node": null,
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "node": {
+                                    "attributes": {
+                                      "htmlTagName": "<span>",
+                                      "nodeType": "TEXT Node",
+                                    },
+                                    "content": "Tiếng Việt",
+                                    "id": "dcfhc",
+                                    "indexId": 43,
+                                  },
+                                },
+                              ],
+                              "node": null,
+                            },
+                            {
+                              "children": [],
+                              "node": null,
+                            },
+                          ],
+                          "node": null,
+                        },
+                        {
+                          "children": [],
+                          "node": null,
+                        },
+                      ],
+                      "node": null,
+                    },
+                    {
+                      "children": [],
+                      "node": null,
+                    },
+                  ],
+                  "node": null,
+                },
+                {
+                  "children": [],
+                  "node": null,
+                },
+              ],
+              "node": null,
+            },
+            {
+              "children": [],
+              "node": null,
+            },
+          ],
+          "node": null,
+        },
+        {
+          "children": [],
+          "node": null,
+        },
+        {
+          "children": [],
+          "node": null,
+        },
+        {
+          "children": [],
+          "node": null,
+        },
+        {
+          "children": [
+            {
+              "children": [],
+              "node": null,
+            },
+            {
+              "children": [
+                {
+                  "children": [],
+                  "node": {
+                    "attributes": {
+                      "htmlTagName": "<label>",
+                      "nodeType": "TEXT Node",
+                    },
+                    "content": "Choose an option:",
+                    "id": "glepp",
+                    "indexId": 44,
+                  },
+                },
+              ],
+              "node": null,
+            },
+            {
+              "children": [],
+              "node": null,
+            },
+            {
+              "children": [],
+              "node": {
+                "attributes": {
+                  "htmlTagName": "<select>",
+                  "id": "options",
+                  "name": "options",
+                  "nodeType": "FORM_ITEM Node",
+                },
+                "content": "Option 1",
+                "id": "lcbej",
+                "indexId": 45,
+              },
+            },
+            {
+              "children": [],
+              "node": null,
+            },
+          ],
+          "node": null,
+        },
+        {
+          "children": [],
+          "node": null,
+        },
+        {
+          "children": [],
+          "node": null,
+        },
+        {
+          "children": [],
+          "node": null,
+        },
+        {
+          "children": [],
+          "node": null,
+        },
+        {
+          "children": [],
+          "node": null,
+        },
+        {
+          "children": [
+            {
+              "children": [],
+              "node": null,
+            },
+            {
+              "children": [
+                {
+                  "children": [],
+                  "node": {
+                    "attributes": {
+                      "htmlTagName": "<div>",
+                      "nodeType": "TEXT Node",
+                    },
+                    "content": "This is zoomed content",
+                    "id": "jamah",
+                    "indexId": 46,
+                  },
+                },
+              ],
+              "node": null,
+            },
+            {
+              "children": [],
+              "node": {
+                "attributes": {
+                  "htmlTagName": "<div>",
+                  "nodeType": "TEXT Node",
+                },
+                "content": "Something Else",
+                "id": "njiad",
+                "indexId": 47,
+              },
+            },
+          ],
+          "node": null,
+        },
+        {
+          "children": [],
+          "node": null,
+        },
+        {
+          "children": [],
+          "node": null,
+        },
+        {
+          "children": [],
+          "node": null,
+        },
+        {
+          "children": [],
+          "node": {
+            "attributes": {
+              "htmlTagName": "<body>",
+              "id": "J_resize",
+              "nodeType": "CONTAINER Node",
+              "style": "width:30px;height:30px;background: #AC0",
+            },
+            "content": "",
+            "id": "pnimc",
+            "indexId": 48,
+          },
+        },
+        {
+          "children": [],
+          "node": null,
+        },
+        {
+          "children": [
+            {
+              "children": [],
+              "node": null,
+            },
+          ],
+          "node": null,
+        },
+        {
+          "children": [],
+          "node": null,
+        },
+        {
+          "children": [],
+          "node": null,
+        },
+        {
+          "children": [],
+          "node": null,
+        },
+        {
+          "children": [
+            {
+              "children": [],
+              "node": null,
+            },
+            {
+              "children": [
+                {
+                  "children": [],
+                  "node": {
+                    "attributes": {
+                      "htmlTagName": "<label>",
+                      "nodeType": "TEXT Node",
+                    },
+                    "content": "输入搜索关键词",
+                    "id": "pclce",
+                    "indexId": 49,
+                  },
+                },
+              ],
+              "node": null,
+            },
+            {
+              "children": [],
+              "node": null,
+            },
+            {
+              "children": [],
+              "node": {
+                "attributes": {
+                  "aria-autocomplete": "list",
+                  "aria-expanded": "false",
+                  "aria-haspopup": "true",
+                  "aria-label": "搜索任何物品",
+                  "aria-owns": "ui-id-1",
+                  "autocapitalize": "off",
+                  "autocomplete": "off",
+                  "autocorrect": "off",
+                  "class": ".gh-tb.ui-autocomplete-input",
+                  "htmlTagName": "<input>",
+                  "id": "gh-ac",
+                  "maxlength": "300",
+                  "name": "_nkw",
+                  "nodeType": "FORM_ITEM Node",
+                  "placeholder": "搜索任何物品",
+                  "role": "combobox",
+                  "size": "50",
+                  "spellcheck": "false",
+                  "type": "text",
+                },
+                "content": "搜索任何物品",
+                "id": "mmpgi",
+                "indexId": 50,
+              },
+            },
+            {
+              "children": [],
+              "node": null,
+            },
+            {
+              "children": [],
+              "node": null,
+            },
+            {
+              "children": [],
+              "node": null,
+            },
+          ],
+          "node": null,
+        },
+        {
+          "children": [],
+          "node": null,
+        },
+        {
+          "children": [],
+          "node": null,
+        },
+        {
+          "children": [],
+          "node": null,
+        },
+        {
+          "children": [
+            {
+              "children": [],
+              "node": null,
+            },
+            {
+              "children": [],
+              "node": {
+                "attributes": {
+                  "class": ".life-core-input.life-core-input-size-md",
+                  "htmlTagName": "<input>",
+                  "nodeType": "FORM_ITEM Node",
+                  "placeholder": "验证码",
+                  "tabindex": "0",
+                  "type": "text",
+                },
+                "content": "验证码",
+                "id": "kgdae",
+                "indexId": 51,
+              },
+            },
+            {
+              "children": [],
+              "node": null,
+            },
+          ],
+          "node": null,
+        },
+        {
+          "children": [],
+          "node": null,
+        },
+        {
+          "children": [],
+          "node": null,
+        },
+        {
+          "children": [],
+          "node": null,
+        },
+        {
+          "children": [
+            {
+              "children": [],
+              "node": null,
+            },
+          ],
+          "node": null,
+        },
+        {
+          "children": [],
+          "node": null,
+        },
+        {
+          "children": [
+            {
+              "children": [],
+              "node": null,
+            },
+            {
+              "children": [
+                {
+                  "children": [],
+                  "node": null,
+                },
+                {
+                  "children": [],
+                  "node": null,
+                },
+                {
+                  "children": [],
+                  "node": null,
+                },
+                {
+                  "children": [],
+                  "node": {
+                    "attributes": {
+                      "class": ".life-core-checkbox-icon",
+                      "htmlTagName": "<label>",
+                      "nodeType": "CONTAINER Node",
+                    },
+                    "content": "",
+                    "id": "mellk",
+                    "indexId": 52,
+                  },
+                },
+                {
+                  "children": [],
+                  "node": null,
+                },
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "node": null,
+                    },
+                  ],
+                  "node": null,
+                },
+                {
+                  "children": [],
+                  "node": null,
+                },
+              ],
+              "node": null,
+            },
+            {
+              "children": [],
+              "node": null,
+            },
+          ],
+          "node": null,
+        },
+        {
+          "children": [],
+          "node": null,
+        },
+        {
+          "children": [],
+          "node": null,
+        },
+        {
+          "children": [],
+          "node": null,
+        },
+        {
+          "children": [],
+          "node": {
+            "attributes": {
+              "aria-label": "The phrase 'The quick brown fox jumps over the lazy dog' is a well-known English-language pangram, meaning it contains every letter of the alphabet at least once. This sentence has become a standard tool for various applications, particularly in typing practice, font display, and keyboard testing. T...",
+              "htmlTagName": "<body>",
+              "nodeType": "CONTAINER Node",
+              "style": "width: 100px; height: 100px; background-color: #ccc;",
+            },
+            "content": "",
+            "id": "monld",
+            "indexId": 53,
+          },
+        },
+        {
+          "children": [],
+          "node": null,
+        },
+        {
+          "children": [],
+          "node": null,
+        },
+        {
+          "children": [],
+          "node": {
+            "attributes": {
+              "htmlTagName": "<body>",
+              "nodeType": "TEXT Node",
+            },
+            "content": "phrase "The quick brown fox jumps over the lazy dog" is a well-known English-language pangram, meaning it contains every letter of the alphabet at least once. This sentence has become a standard tool for various applications, particularly     in typing practice, font display, and keyboard testing. The phrase has permeated popular culture and is referenced in various media, including literature and film. Its simplicity and utility have made it a staple in educational contexts and beyond.     For instance, it was famously used as the first message sent over the Moscow–Washington hotline in 19634.",
+            "id": "dojoe",
+            "indexId": 54,
+          },
+        },
+        {
+          "children": [],
+          "node": null,
+        },
+        {
+          "children": [],
+          "node": null,
+        },
+        {
+          "children": [],
+          "node": {
+            "attributes": {
+              "aria-label": "Search",
+              "class": ".btn",
+              "htmlTagName": "<body>",
+              "nodeType": "BUTTON Node",
+              "tabindex": "0",
+              "type": "submit",
+            },
+            "content": " ",
+            "id": "kohcf",
+            "indexId": 55,
+          },
+        },
+        {
+          "children": [],
+          "node": null,
+        },
+        {
+          "children": [],
+          "node": null,
+        },
+        {
+          "children": [],
+          "node": null,
+        },
+        {
+          "children": [
+            {
+              "children": [],
+              "node": null,
+            },
+          ],
+          "node": null,
+        },
+        {
+          "children": [],
+          "node": null,
+        },
+        {
+          "children": [
+            {
+              "children": [],
+              "node": null,
+            },
+            {
+              "children": [
+                {
+                  "children": [],
+                  "node": {
+                    "attributes": {
+                      "htmlTagName": "<div>",
+                      "nodeType": "TEXT Node",
+                    },
+                    "content": "content 000",
+                    "id": "mjdko",
+                    "indexId": 56,
+                  },
+                },
+              ],
+              "node": null,
+            },
+            {
+              "children": [],
+              "node": null,
+            },
+            {
+              "children": [],
+              "node": {
+                "attributes": {
+                  "htmlTagName": "<div>",
+                  "nodeType": "CONTAINER Node",
+                  "style": "height: 30px;width: 100px;",
+                },
+                "content": "",
+                "id": "fakog",
+                "indexId": 57,
+              },
+            },
+            {
+              "children": [],
+              "node": null,
+            },
+            {
+              "children": [
+                {
+                  "children": [],
+                  "node": {
+                    "attributes": {
+                      "htmlTagName": "<div>",
+                      "nodeType": "TEXT Node",
+                    },
+                    "content": "content AAA",
+                    "id": "hakph",
+                    "indexId": 58,
+                  },
+                },
+              ],
+              "node": null,
+            },
+            {
+              "children": [],
+              "node": null,
+            },
+            {
+              "children": [
+                {
+                  "children": [],
+                  "node": null,
+                },
+              ],
+              "node": null,
+            },
+            {
+              "children": [],
+              "node": null,
+            },
+          ],
+          "node": null,
+        },
+        {
+          "children": [],
+          "node": null,
+        },
+        {
+          "children": [],
+          "node": null,
+        },
+        {
+          "children": [],
+          "node": null,
+        },
+        {
+          "children": [
+            {
+              "children": [],
+              "node": null,
+            },
+            {
+              "children": [],
+              "node": {
+                "attributes": {
+                  "htmlTagName": "<div>",
+                  "nodeType": "IMG Node",
+                  "src": "image",
+                },
+                "content": "",
+                "id": "ihala",
+                "indexId": 59,
+              },
+            },
+            {
+              "children": [],
+              "node": null,
+            },
+            {
+              "children": [],
+              "node": {
+                "attributes": {
+                  "htmlTagName": "<div>",
+                  "nodeType": "BUTTON Node",
+                  "very-long-attr": "width: 100px; height: 100px; background-color: #ccc;width: 100px; height: 100px; background-color: #ccc;width: 100px; height: 100px; background-color: #ccc;width: 100px; height: 100px; background-color: #ccc;",
+                },
+                "content": "long-style-content",
+                "id": "ocfmk",
+                "indexId": 60,
+              },
+            },
+            {
+              "children": [],
+              "node": null,
+            },
+          ],
+          "node": null,
+        },
+        {
+          "children": [],
+          "node": null,
+        },
+        {
+          "children": [],
+          "node": null,
+        },
+        {
+          "children": [],
+          "node": null,
+        },
+        {
+          "children": [
+            {
+              "children": [],
+              "node": null,
+            },
+          ],
+          "node": null,
+        },
+        {
+          "children": [],
+          "node": null,
+        },
+        {
+          "children": [
+            {
+              "children": [],
+              "node": {
+                "attributes": {
+                  "htmlTagName": "<div>",
+                  "nodeType": "TEXT Node",
+                },
+                "content": "Click me",
+                "id": "omcnh",
+                "indexId": 61,
+              },
+            },
+          ],
+          "node": null,
+        },
+        {
+          "children": [],
+          "node": null,
+        },
+        {
+          "children": [],
+          "node": {
+            "attributes": {
+              "aria-controls": "semi-select-5yxiyng",
+              "class": ".widget",
+              "htmlTagName": "<body>",
+              "nodeType": "CONTAINER Node",
+            },
+            "content": "",
+            "id": "gpdfj",
+            "indexId": 62,
+          },
+        },
+        {
+          "children": [],
+          "node": null,
+        },
+        {
+          "children": [],
+          "node": {
+            "attributes": {
+              "aria-labelledby": "eval_object.object_type-label",
+              "class": ".widget",
+              "htmlTagName": "<body>",
+              "nodeType": "CONTAINER Node",
+            },
+            "content": "",
+            "id": "onedj",
+            "indexId": 63,
+          },
+        },
+        {
+          "children": [],
+          "node": null,
+        },
+        {
+          "children": [],
+          "node": null,
+        },
+        {
+          "children": [],
+          "node": null,
+        },
+        {
+          "children": [
+            {
+              "children": [],
+              "node": null,
+            },
+          ],
+          "node": null,
+        },
+        {
+          "children": [],
+          "node": null,
+        },
+        {
+          "children": [
+            {
+              "children": [],
+              "node": null,
+            },
+            {
+              "children": [
+                {
+                  "children": [],
+                  "node": {
+                    "attributes": {
+                      "htmlTagName": "<div>",
+                      "nodeType": "TEXT Node",
+                    },
+                    "content": "Content 1",
+                    "id": "aeeio",
+                    "indexId": 64,
+                  },
+                },
+              ],
+              "node": null,
+            },
+            {
+              "children": [],
+              "node": null,
+            },
+            {
+              "children": [
+                {
+                  "children": [],
+                  "node": null,
+                },
+                {
+                  "children": [],
+                  "node": {
+                    "attributes": {
+                      "class": ".child-container-without-content-2-1",
+                      "htmlTagName": "<div>",
+                      "nodeType": "CONTAINER Node",
+                      "style": "width: 100px; height: 100px; background-color: #ccc;",
+                    },
+                    "content": "",
+                    "id": "odfdn",
+                    "indexId": 65,
+                  },
+                },
+                {
+                  "children": [],
+                  "node": null,
+                },
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "node": null,
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "node": null,
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "node": {
+                                "attributes": {
+                                  "htmlTagName": "<span>",
+                                  "nodeType": "TEXT Node",
+                                },
+                                "content": "Content 2",
+                                "id": "aijea",
+                                "indexId": 66,
+                              },
+                            },
+                          ],
+                          "node": null,
+                        },
+                        {
+                          "children": [],
+                          "node": null,
+                        },
+                      ],
+                      "node": null,
+                    },
+                    {
+                      "children": [],
+                      "node": null,
+                    },
+                  ],
+                  "node": null,
+                },
+                {
+                  "children": [],
+                  "node": null,
+                },
+              ],
+              "node": null,
+            },
+            {
+              "children": [],
+              "node": null,
+            },
+            {
+              "children": [
+                {
+                  "children": [],
+                  "node": null,
+                },
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "node": null,
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "node": null,
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "node": {
+                                "attributes": {
+                                  "htmlTagName": "<span>",
+                                  "nodeType": "TEXT Node",
+                                },
+                                "content": "Nested Content 3",
+                                "id": "plkbo",
+                                "indexId": 67,
+                              },
+                            },
+                          ],
+                          "node": null,
+                        },
+                        {
+                          "children": [],
+                          "node": null,
+                        },
+                      ],
+                      "node": null,
+                    },
+                    {
+                      "children": [],
+                      "node": null,
+                    },
+                  ],
+                  "node": null,
+                },
+                {
+                  "children": [],
+                  "node": null,
+                },
+              ],
+              "node": null,
+            },
+            {
+              "children": [],
+              "node": null,
+            },
+            {
+              "children": [],
+              "node": {
+                "attributes": {
+                  "class": ".child-container-4",
+                  "htmlTagName": "<div>",
+                  "nodeType": "CONTAINER Node",
+                  "style": "width: 100px; height: 100px; background-color: #ccc;",
+                },
+                "content": "",
+                "id": "fdjdf",
+                "indexId": 68,
+              },
+            },
+            {
+              "children": [],
+              "node": null,
+            },
+          ],
+          "node": null,
+        },
+        {
+          "children": [],
+          "node": null,
+        },
+        {
+          "children": [],
+          "node": {
+            "attributes": {
+              "class": ".child-container-5",
+              "htmlTagName": "<body>",
+              "nodeType": "IMG Node",
+            },
+            "content": "",
+            "id": "fnnia",
+            "indexId": 69,
+          },
+        },
+        {
+          "children": [],
+          "node": null,
+        },
+        {
+          "children": [],
+          "node": null,
+        },
+        {
+          "children": [],
+          "node": null,
+        },
+        {
+          "children": [
+            {
+              "children": [],
+              "node": {
+                "attributes": {
+                  "htmlTagName": "<span>",
+                  "nodeType": "IMG Node",
+                  "svgContent": "true",
+                },
+                "content": "",
+                "id": "dffaj",
+                "indexId": 70,
+              },
+            },
+          ],
+          "node": null,
+        },
+        {
+          "children": [],
+          "node": null,
+        },
+        {
+          "children": [],
+          "node": null,
+        },
+        {
+          "children": [],
+          "node": null,
+        },
+        {
+          "children": [
+            {
+              "children": [],
+              "node": null,
+            },
+          ],
+          "node": null,
+        },
+        {
+          "children": [],
+          "node": null,
+        },
+        {
+          "children": [
+            {
+              "children": [],
+              "node": null,
+            },
+            {
+              "children": [
+                {
+                  "children": [],
+                  "node": {
+                    "attributes": {
+                      "htmlTagName": "<span>",
+                      "nodeType": "TEXT Node",
+                    },
+                    "content": "hidden label",
+                    "id": "hcfnc",
+                    "indexId": 71,
+                  },
+                },
+              ],
+              "node": null,
+            },
+            {
+              "children": [],
+              "node": null,
+            },
+          ],
+          "node": null,
+        },
+        {
+          "children": [],
+          "node": null,
+        },
+        {
+          "children": [],
+          "node": null,
+        },
+        {
+          "children": [],
+          "node": null,
+        },
+        {
+          "children": [
+            {
+              "children": [],
+              "node": null,
+            },
+            {
+              "children": [
+                {
+                  "children": [],
+                  "node": null,
+                },
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "node": {
+                        "attributes": {
+                          "htmlTagName": "<div>",
+                          "nodeType": "TEXT Node",
+                        },
+                        "content": "i am fixed child content",
+                        "id": "bdohg",
+                        "indexId": 72,
+                      },
+                    },
+                  ],
+                  "node": null,
+                },
+                {
+                  "children": [],
+                  "node": null,
+                },
+              ],
+              "node": null,
+            },
+            {
+              "children": [],
+              "node": null,
+            },
+          ],
+          "node": null,
+        },
+        {
+          "children": [],
+          "node": null,
+        },
+        {
+          "children": [],
+          "node": null,
+        },
+        {
+          "children": [],
+          "node": null,
+        },
+        {
+          "children": [
+            {
+              "children": [],
+              "node": null,
+            },
+            {
+              "children": [],
+              "node": null,
+            },
+            {
+              "children": [],
+              "node": null,
+            },
+            {
+              "children": [
+                {
+                  "children": [],
+                  "node": {
+                    "attributes": {
+                      "htmlTagName": "<span>",
+                      "nodeType": "TEXT Node",
+                    },
+                    "content": "abcd efg",
+                    "id": "bhkfa",
+                    "indexId": 73,
+                  },
+                },
+              ],
+              "node": null,
+            },
+            {
+              "children": [],
+              "node": null,
+            },
+            {
+              "children": [
+                {
+                  "children": [],
+                  "node": {
+                    "attributes": {
+                      "htmlTagName": "<div>",
+                      "nodeType": "TEXT Node",
+                    },
+                    "content": "content editable div content. We should collect the parent.",
+                    "id": "egcpb",
+                    "indexId": 74,
+                  },
+                },
+              ],
+              "node": null,
+            },
+            {
+              "children": [],
+              "node": null,
+            },
+          ],
+          "node": null,
+        },
+        {
+          "children": [],
+          "node": null,
+        },
+        {
+          "children": [],
+          "node": null,
+        },
+        {
+          "children": [],
+          "node": null,
+        },
+        {
+          "children": [
+            {
+              "children": [],
+              "node": null,
+            },
+            {
+              "children": [
+                {
+                  "children": [],
+                  "node": {
+                    "attributes": {
+                      "htmlTagName": "<div>",
+                      "nodeType": "TEXT Node",
+                    },
+                    "content": "absolute child content",
+                    "id": "nedgi",
+                    "indexId": 75,
+                  },
+                },
+              ],
+              "node": null,
+            },
+            {
+              "children": [],
+              "node": null,
+            },
+          ],
+          "node": null,
+        },
+        {
+          "children": [],
+          "node": null,
+        },
+        {
+          "children": [],
+          "node": null,
+        },
+        {
+          "children": [],
+          "node": null,
+        },
+        {
+          "children": [
+            {
+              "children": [],
+              "node": null,
+            },
+            {
+              "children": [
+                {
+                  "children": [],
+                  "node": null,
+                },
+              ],
+              "node": null,
+            },
+            {
+              "children": [],
+              "node": null,
+            },
+            {
+              "children": [
+                {
+                  "children": [],
+                  "node": {
+                    "attributes": {
+                      "htmlTagName": "<div>",
+                      "nodeType": "TEXT Node",
+                    },
+                    "content": "content Right",
+                    "id": "pnnbe",
+                    "indexId": 76,
+                  },
+                },
+              ],
+              "node": null,
+            },
+            {
+              "children": [],
+              "node": null,
+            },
+          ],
+          "node": null,
+        },
+        {
+          "children": [],
+          "node": null,
+        },
+        {
+          "children": [],
+          "node": null,
+        },
+        {
+          "children": [],
+          "node": null,
+        },
+        {
+          "children": [
+            {
+              "children": [],
+              "node": null,
+            },
+          ],
+          "node": null,
+        },
+        {
+          "children": [],
+          "node": null,
+        },
+        {
+          "children": [],
+          "node": {
+            "attributes": {
+              "class": ".two-columns",
+              "htmlTagName": "<body>",
+              "nodeType": "CONTAINER Node",
+            },
+            "content": "",
+            "id": "ikdmk",
+            "indexId": 77,
+          },
+        },
+        {
+          "children": [],
+          "node": null,
+        },
+      ],
+      "node": null,
+    },
+    {
+      "children": [
+        {
+          "children": [],
+          "node": null,
+        },
+        {
+          "children": [
+            {
+              "children": [],
+              "node": {
+                "attributes": {
+                  "htmlTagName": "",
+                  "nodeType": "TEXT Node",
+                },
+                "content": "Child Page",
+                "id": "mbpdn",
+                "indexId": 79,
+              },
+            },
+          ],
+          "node": null,
+        },
+        {
+          "children": [],
+          "node": null,
+        },
+        {
+          "children": [
+            {
+              "children": [],
+              "node": {
+                "attributes": {
+                  "htmlTagName": "",
+                  "nodeType": "TEXT Node",
+                },
+                "content": "This is a child page.",
+                "id": "eeoeo",
+                "indexId": 80,
+              },
+            },
+          ],
+          "node": null,
+        },
+        {
+          "children": [],
+          "node": null,
+        },
+        {
+          "children": [
+            {
+              "children": [],
+              "node": {
+                "attributes": {
+                  "htmlTagName": "",
+                  "nodeType": "TEXT Node",
+                },
+                "content": "Click me",
+                "id": "ebcbm",
+                "indexId": 81,
+              },
+            },
+          ],
+          "node": null,
+        },
+        {
+          "children": [],
+          "node": null,
+        },
+        {
+          "children": [],
+          "node": null,
+        },
+        {
+          "children": [],
+          "node": null,
+        },
+        {
+          "children": [
+            {
+              "children": [],
+              "node": null,
+            },
+          ],
+          "node": null,
+        },
+        {
+          "children": [],
+          "node": null,
+        },
+      ],
+      "node": null,
+    },
+  ],
+  "node": null,
+}
+`;
