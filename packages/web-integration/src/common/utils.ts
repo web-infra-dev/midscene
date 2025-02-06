@@ -126,8 +126,11 @@ export function reportFileName(tag = 'web') {
   return `${reportTagName || tag}-${dateTimeInFileName}`;
 }
 
-export function printReportMsg(filepath: string) {
-  console.log('Midscene - report file updated:', filepath);
+export function printReportMsg(
+  filepath: string,
+  prefix = 'Midscene - report file updated:',
+) {
+  console.log(prefix, filepath);
 }
 
 /**

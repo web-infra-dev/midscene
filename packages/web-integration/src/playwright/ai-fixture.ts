@@ -46,7 +46,7 @@ export const PlaywrightAiFixture = () => {
         cacheId: `${taskFile}(${taskTitle})`,
         groupName: taskTitle,
         groupDescription: taskFile,
-        generateReport: false, // we will generate it in the reporter
+        generateReport: true,
       });
     }
     return pageAgentMap[idForPage];
