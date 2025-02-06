@@ -25,3 +25,5 @@ export { extractTextWithPosition as webExtractTextWithPosition } from './web-ext
 export { extractTextWithPosition as clientExtractTextWithPosition } from './client-extractor';
 
 export { extractTreeNode as webExtractNodeTree } from './web-extractor';
+
+export { extractTreeNodeAsString as webExtractNodeTreeAsString } from './web-extractor';

@@ -3,6 +3,7 @@ import path from 'node:path';
 import type { WebPage } from '@/common/page';
 import type { ElementInfo } from '@/extractor';
 import { NodeType } from '@/extractor/constants';
+import { descriptionOfTree } from '@midscene/core/tree';
 import {
   processImageElementInfo,
   resizeImgBase64,
@@ -38,6 +39,8 @@ export async function generateExtractData(
   const resizeOutputImgPath = path.join(targetDir, 'resize-output.png');
   const snapshotJsonPath = path.join(targetDir, 'element-snapshot.json');
   const elementTreeJsonPath = path.join(targetDir, 'element-tree.json');
+  const elementTreeTextText = descriptionOfTree(elementTree);
+  const elementTreeTextPath = path.join(targetDir, 'element-tree.txt');
   const {
     compositeElementInfoImgBase64,
     compositeElementInfoImgWithoutTextBase64,
@@ -77,6 +80,7 @@ export async function generateExtractData(
       elementTreeJsonPath,
       JSON.stringify(elementTree, null, 2),
     );
+    writeFileSyncWithDir(elementTreeTextPath, elementTreeTextText);
   }
   if (!saveImgType?.disableInputImage) {
     await saveBase64Image({

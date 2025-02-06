@@ -69,7 +69,6 @@ describe(
           attributes: node.attributes,
         } as any;
       });
-      // console.log(simplifiedTree);
       expect(simplifiedTree).toMatchSnapshot();
       await reset();
     });

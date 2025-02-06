@@ -10,6 +10,7 @@ export default defineConfig({
       index: 'src/index.ts',
       env: 'src/env.ts',
       utils: 'src/utils.ts',
+      tree: 'src/tree.ts',
       'ai-model': 'src/ai-model/index.ts',
     },
     outDir: 'dist/lib',

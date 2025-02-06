@@ -1,4 +1,5 @@
 import type { Point } from '@midscene/core';
+import { descriptionOfTree } from '@midscene/core/tree';
 import {
   CONTAINER_MINI_HEIGHT,
   CONTAINER_MINI_WIDTH,
@@ -276,6 +277,14 @@ export function extractTextWithPosition(
   }
   dfsTopChildren({ children: elementNode.children, node: elementNode.node });
   return elementInfoArray;
+}
+
+export function extractTreeNodeAsString(
+  initNode: Node,
+  debugMode = false,
+): string {
+  const elementNode = extractTreeNode(initNode, debugMode);
+  return descriptionOfTree(elementNode);
 }
 
 export function extractTreeNode(
