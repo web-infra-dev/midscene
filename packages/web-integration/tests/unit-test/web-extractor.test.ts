@@ -64,7 +64,6 @@ describe(
       const simplifiedTree = traverseTree(tree!, (node) => {
         return {
           content: node.content,
-          id: node.id,
           indexId: node.indexId,
           attributes: node.attributes,
         } as any;

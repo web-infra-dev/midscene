@@ -58,7 +58,6 @@ export async function parseContextFromWebPage(
       id,
       content,
       attributes,
-      page,
       indexId,
     });
   });

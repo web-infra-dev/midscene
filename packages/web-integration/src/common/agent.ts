@@ -82,7 +82,6 @@ export class PageAgent<PageType extends WebPage = WebPage> {
           new WebElementInfo({
             content: content || '',
             rect,
-            page,
             id: '',
             attributes: {
               nodeType: NodeType.CONTAINER,

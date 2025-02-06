@@ -20,7 +20,7 @@ export class WebElementInfo implements BaseElement {
 
   center: [number, number];
 
-  page: WebPage;
+  // page: WebPage;
 
   id: string;
 
@@ -34,7 +34,7 @@ export class WebElementInfo implements BaseElement {
   constructor({
     content,
     rect,
-    page,
+    // page,
     locator,
     id,
     attributes,
@@ -42,7 +42,7 @@ export class WebElementInfo implements BaseElement {
   }: {
     content: string;
     rect: Rect;
-    page: WebPage;
+    // page: WebPage;
     locator?: string;
     id: string;
     attributes: {
@@ -57,7 +57,7 @@ export class WebElementInfo implements BaseElement {
       Math.floor(rect.left + rect.width / 2),
       Math.floor(rect.top + rect.height / 2),
     ];
-    this.page = page;
+    // this.page = page;
     this.locator = locator;
     this.id = id;
     this.attributes = attributes;
