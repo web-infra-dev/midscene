@@ -134,7 +134,7 @@ test('generate taobao test data', async ({ page, ai }) => {
   await page.goto('https://www.taobao.com/');
 
   // for --ui
-  // await sleep(5000);
+  await sleep(5000);
 
   await generateExtractData(playwrightPage, generateTestDataPath('taobao'));
 });

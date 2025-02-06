@@ -133,5 +133,6 @@ export function descriptionOfTree<
     return '';
   }
 
-  return buildContentTree(tree);
+  const result = buildContentTree(tree);
+  return result.replace(/^\s*\n/gm, '');
 }
