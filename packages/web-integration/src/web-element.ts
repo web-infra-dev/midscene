@@ -1,6 +1,5 @@
 import type { BaseElement, Rect } from '@midscene/core';
-import type { WebPage } from './common/page';
-import type { NodeType } from './extractor/constants';
+import type { NodeType } from '@midscene/shared/constants';
 
 export interface WebElementInfoType extends BaseElement {
   id: string;

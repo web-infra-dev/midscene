@@ -1,7 +1,6 @@
 import assert from 'node:assert';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
-import type { ElementInfo } from '@/extractor';
 import type { StaticPage } from '@/playground';
 import type {
   BaseElement,
@@ -16,6 +15,8 @@ import {
 } from '@midscene/core/env';
 import { uploadTestInfoToServer } from '@midscene/core/utils';
 import { NodeType } from '@midscene/shared/constants';
+import type { ElementInfo } from '@midscene/shared/extractor';
+import { traverseTree, treeToList } from '@midscene/shared/extractor';
 import { findNearestPackageJson } from '@midscene/shared/fs';
 import { compositeElementInfoImg } from '@midscene/shared/img';
 import { uuid } from '@midscene/shared/utils';
@@ -104,45 +105,10 @@ export async function parseContextFromWebPage(
   };
 }
 
-export function treeToList<T extends BaseElement>(
-  tree: ElementTreeNode<T>,
-): T[] {
-  const result: T[] = [];
-  function dfs(node: ElementTreeNode<T>) {
-    if (node.node) {
-      result.push(node.node);
-    }
-    for (const child of node.children) {
-      dfs(child);
-    }
-  }
-  dfs(tree);
-  return result;
-}
-
-export function traverseTree<
-  T extends BaseElement,
-  ReturnNodeType extends BaseElement,
->(
-  tree: ElementTreeNode<T>,
-  onNode: (node: T) => ReturnNodeType,
-): ElementTreeNode<ReturnNodeType> {
-  function dfs(node: ElementTreeNode<T>) {
-    if (node.node) {
-      node.node = onNode(node.node) as any;
-    }
-    for (const child of node.children) {
-      dfs(child);
-    }
-  }
-  dfs(tree);
-  return tree as any;
-}
-
 export async function getExtraReturnLogic(tree = false) {
   const pathDir = findNearestPackageJson(__dirname);
   assert(pathDir, `can't find pathDir, with ${__dirname}`);
-  const scriptPath = path.join(pathDir, './dist/script/htmlElement.js');
+  const scriptPath = path.join(pathDir, './iife-script/htmlElement.js');
   const elementInfosScriptContent = readFileSync(scriptPath, 'utf-8');
   if (tree) {
     return `${elementInfosScriptContent}midscene_element_inspector.webExtractNodeTree()`;

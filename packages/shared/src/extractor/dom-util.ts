@@ -1,4 +1,4 @@
-export function isFormElement(node: Node) {
+export function isFormElement(node: globalThis.Node) {
   return (
     node instanceof HTMLElement &&
     (node.tagName.toLowerCase() === 'input' ||
@@ -8,11 +8,15 @@ export function isFormElement(node: Node) {
   );
 }
 
-export function isButtonElement(node: Node): node is HTMLButtonElement {
+export function isButtonElement(
+  node: globalThis.Node,
+): node is globalThis.HTMLButtonElement {
   return node instanceof HTMLElement && node.tagName.toLowerCase() === 'button';
 }
 
-export function isImgElement(node: Node): node is HTMLImageElement {
+export function isImgElement(
+  node: globalThis.Node,
+): node is globalThis.HTMLImageElement {
   // check if the node is an image element
   if (!includeBaseElement(node) && node instanceof Element) {
     const computedStyle = window.getComputedStyle(node);
@@ -32,7 +36,7 @@ export function isImgElement(node: Node): node is HTMLImageElement {
   );
 }
 
-function isIconfont(node: Node): boolean {
+function isIconfont(node: globalThis.Node): boolean {
   if (node instanceof Element) {
     const computedStyle = window.getComputedStyle(node);
     const fontFamilyValue = computedStyle.fontFamily || '';
@@ -42,11 +46,15 @@ function isIconfont(node: Node): boolean {
   return false;
 }
 
-export function isTextElement(node: Node): node is HTMLTextAreaElement {
+export function isTextElement(
+  node: globalThis.Node,
+): node is globalThis.HTMLTextAreaElement {
   return node.nodeName.toLowerCase() === '#text' && !isIconfont(node);
 }
 
-export function isContainerElement(node: Node): node is HTMLElement {
+export function isContainerElement(
+  node: globalThis.Node,
+): node is globalThis.HTMLElement {
   if (!(node instanceof HTMLElement)) return false;
 
   // include other base elements
@@ -63,7 +71,7 @@ export function isContainerElement(node: Node): node is HTMLElement {
   return false;
 }
 
-function includeBaseElement(node: Node) {
+function includeBaseElement(node: globalThis.Node) {
   if (!(node instanceof HTMLElement)) return false;
 
   // include text

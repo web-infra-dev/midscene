@@ -7,10 +7,10 @@
 
 import assert from 'node:assert';
 import type { WebKeyInput } from '@/common/page';
-import { treeToList } from '@/common/utils';
-import type { ElementInfo } from '@/extractor';
 import type { AbstractPage } from '@/page';
 import type { BaseElement, ElementTreeNode, Point, Size } from '@midscene/core';
+import type { ElementInfo } from '@midscene/shared/extractor';
+import { treeToList } from '@midscene/shared/extractor';
 import type { Protocol as CDPTypes } from 'devtools-protocol';
 import { CdpKeyboard } from './cdpInput';
 import {

@@ -1,11 +1,12 @@
 import type { ElementTreeNode, Point, Size } from '@midscene/core';
 import { getTmpFile, sleep } from '@midscene/core/utils';
+import type { ElementInfo } from '@midscene/shared/extractor';
+import { treeToList } from '@midscene/shared/extractor';
 import { base64Encoded } from '@midscene/shared/img';
 import type { Page as PlaywrightPage } from 'playwright';
-import type { KeyInput, Page as PuppeteerPage } from 'puppeteer';
+import type { Page as PuppeteerPage } from 'puppeteer';
 import type { WebKeyInput } from '../common/page';
-import { getExtraReturnLogic, treeToList } from '../common/utils';
-import type { ElementInfo, ElementNode } from '../extractor';
+import { getExtraReturnLogic } from '../common/utils';
 import type { AbstractPage } from '../page';
 import type { MouseButton } from '../page';
 

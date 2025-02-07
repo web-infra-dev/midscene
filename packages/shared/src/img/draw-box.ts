@@ -1,5 +1,4 @@
-import type { Buffer } from 'node:buffer';
-import type { Rect } from '@/types';
+import type { Rect } from '../types';
 import getJimp from './get-jimp';
 import { bufferFromBase64 } from './info';
 import { saveBase64Image } from './transform';
