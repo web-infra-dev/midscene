@@ -1,5 +1,5 @@
 import { systemPromptToTaskPlanning } from '@/ai-model/prompt/llm-planning';
-import { describe, expect, it, test } from 'vitest';
+import { describe, expect, it } from 'vitest';
 
 describe('automation - computer', () => {
   it('should be able to generate prompt', async () => {

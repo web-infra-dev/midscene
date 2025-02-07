@@ -5,17 +5,17 @@ import { generateId, midsceneGenerateHash } from './util';
 // https://github.com/appium/appium/tree/master/packages/universal-xml-plugin
 // Definition of NodeDescriptor interface
 interface NodeDescriptor {
-  node: Node;
+  node: globalThis.Node;
   children: NodeDescriptor[];
 }
 
 // Retrieve attributes from a node
-function getNodeAttributes(node: Node): { [key: string]: string } {
+function getNodeAttributes(node: globalThis.Node): { [key: string]: string } {
   const attrs: { [key: string]: string } = {};
 
   // Check if node exists and its type is ELEMENT_NODE
   if (node && node.nodeType === 1) {
-    const element = node as Element;
+    const element = node as globalThis.Element;
 
     for (let i = 0; i < element.attributes.length; i++) {
       const attr = element.attributes[i];
@@ -115,7 +115,9 @@ function getXPathForElement(element: Node): string {
 }
 
 // Perform DFS traversal and collect element information
-export function extractTextWithPosition(initNode: Document): ElementInfo[] {
+export function extractTextWithPosition(
+  initNode: globalThis.Document,
+): ElementInfo[] {
   const elementInfoArray: ElementInfo[] = [];
   let nodeIndex = 1;
 
@@ -195,7 +197,6 @@ export function extractTextWithPosition(initNode: Document): ElementInfo[] {
         Math.round(rect.top + rect.height / 2),
       ],
       nodeType,
-      nodePath: '',
     };
 
     if (elementInfo.nodeType !== NodeType.CONTAINER) {

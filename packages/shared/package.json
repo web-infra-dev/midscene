@@ -38,6 +38,16 @@
       "require": "./dist/lib/utils.js",
       "import": "./dist/es/utils.js"
     },
+    "./extractor": {
+      "types": "./src/extractor/index.ts",
+      "require": "./dist/lib/extractor.js",
+      "import": "./dist/es/extractor.js"
+    },
+    "./extractor-debug": {
+      "types": "./src/extractor/debug.ts",
+      "require": "./dist/lib/extractor-debug.js",
+      "import": "./dist/es/extractor-debug.js"
+    },
     "./keyboard-layout": {
       "types": "./src/us-keyboard-layout.ts",
       "require": "./dist/lib/us-keyboard-layout.js",
@@ -52,13 +62,17 @@
       "browser/img": ["./src/img/index.ts"],
       "fs": ["./src/fs/index.ts"],
       "utils": ["./src/utils.ts"],
+      "extractor": ["./src/extractor/index.ts"],
+      "extractor-debug": ["./src/extractor/debug.ts"],
       "keyboard-layout": ["./src/us-keyboard-layout.ts"]
     }
   },
   "files": ["dist", "src", "README.md"],
   "scripts": {
     "dev": "modern dev",
-    "build": "modern build",
+    "build": "npm run build:pkg && npm run build:script",
+    "build:pkg": "modern build -c ./modern.config.ts",
+    "build:script": "modern build -c ./modern.inspect.config.ts",
     "build:watch": "modern build -w",
     "reset": "rimraf ./**/node_modules",
     "lint": "modern lint",
@@ -120,6 +134,16 @@
         "require": "./dist/lib/utils.js",
         "import": "./dist/es/utils.js"
       },
+      "./extractor": {
+        "types": "./dist/lib/extractor.d.ts",
+        "require": "./dist/lib/extractor.js",
+        "import": "./dist/es/extractor.js"
+      },
+      "./extractor-debug": {
+        "types": "./dist/lib/extractor-debug.d.ts",
+        "require": "./dist/lib/extractor-debug.js",
+        "import": "./dist/es/extractor-debug.js"
+      },
       "./keyboard-layout": {
         "types": "./dist/lib/us-keyboard-layout.d.ts",
         "require": "./dist/lib/us-keyboard-layout.js",
@@ -134,6 +158,8 @@
         "browser/img": ["./dist/browser/img.d.ts"],
         "fs": ["./dist/lib/fs.d.ts"],
         "utils": ["./dist/lib/utils.d.ts"],
+        "extractor": ["./dist/lib/extractor.d.ts"],
+        "extractor-debug": ["./dist/lib/extractor-debug.d.ts"],
         "keyboard-layout": ["./dist/lib/us-keyboard-layout.d.ts"]
       }
     }

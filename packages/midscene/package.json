@@ -13,14 +13,16 @@
     ".": "./dist/lib/index.js",
     "./env": "./dist/lib/env.js",
     "./utils": "./dist/lib/utils.js",
-    "./ai-model": "./dist/lib/ai-model.js"
+    "./ai-model": "./dist/lib/ai-model.js",
+    "./tree": "./dist/lib/tree.js"
   },
   "typesVersions": {
     "*": {
       ".": ["./dist/lib/types/index.d.ts"],
       "env": ["./dist/lib/types/env.d.ts"],
       "utils": ["./dist/lib/types/utils.d.ts"],
-      "ai-model": ["./dist/lib/types/ai-model.d.ts"]
+      "ai-model": ["./dist/lib/types/ai-model.d.ts"],
+      "tree": ["./dist/lib/types/tree.d.ts"]
     }
   },
   "scripts": {

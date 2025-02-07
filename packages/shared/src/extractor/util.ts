@@ -1,4 +1,4 @@
-import { generateHashId } from '@midscene/shared/utils';
+import { generateHashId } from '../utils';
 import { extractTextWithPosition } from './web-extractor';
 
 // import { TEXT_MAX_SIZE } from './constants';
@@ -31,10 +31,10 @@ function selectorForValue(val: number | string): string {
 }
 
 export function setDataForNode(
-  node: HTMLElement | Node,
+  node: globalThis.HTMLElement | globalThis.Node,
   nodeHash: string,
   setToParentNode: boolean, // should be false for default
-  currentWindow: typeof window,
+  currentWindow: typeof globalThis.window,
 ): string {
   const taskId = taskIdKey;
   if (!(node instanceof currentWindow.HTMLElement)) {
@@ -94,8 +94,8 @@ function isElementPartiallyInViewport(
 }
 
 export function getPseudoElementContent(
-  element: Node,
-  currentWindow: typeof window,
+  element: globalThis.Node,
+  currentWindow: typeof globalThis.window,
 ): {
   before: string;
   after: string;
@@ -116,8 +116,8 @@ export function getPseudoElementContent(
 }
 
 export function hasOverflowY(
-  element: HTMLElement,
-  currentWindow: typeof window,
+  element: globalThis.HTMLElement,
+  currentWindow: typeof globalThis.window,
 ): boolean {
   const style = currentWindow.getComputedStyle(element);
   return (
@@ -165,9 +165,9 @@ export function overlappedRect(
 }
 
 export function getRect(
-  el: HTMLElement | Node,
+  el: globalThis.HTMLElement | globalThis.Node,
   baseZoom: number, // base zoom
-  currentWindow: typeof window,
+  currentWindow: typeof globalThis.window,
 ): ExtractedRect {
   let originalRect: DOMRect;
   let newZoom = 1;
@@ -179,7 +179,9 @@ export function getRect(
     originalRect = el.getBoundingClientRect();
     // from Chrome v128, the API would return differently https://docs.google.com/document/d/1AcnDShjT-kEuRaMchZPm5uaIgNZ4OiYtM4JI9qiV8Po/edit
     if (!('currentCSSZoom' in el)) {
-      newZoom = Number.parseFloat(currentWindow.getComputedStyle(el).zoom) || 1;
+      newZoom =
+        Number.parseFloat((currentWindow.getComputedStyle(el) as any).zoom) ||
+        1;
     }
   }
 
@@ -199,9 +201,9 @@ export function getRect(
 }
 
 const isElementCovered = (
-  el: HTMLElement | Node,
+  el: globalThis.HTMLElement | globalThis.Node,
   rect: ExtractedRect,
-  currentWindow: typeof window,
+  currentWindow: typeof globalThis.window,
 ) => {
   // Gets the center coordinates of the element
   const x = rect.left + rect.width / 2;
@@ -254,9 +256,9 @@ const isElementCovered = (
 };
 
 export function visibleRect(
-  el: HTMLElement | Node | null,
-  currentWindow: typeof window,
-  currentDocument: typeof document,
+  el: globalThis.HTMLElement | globalThis.Node | null,
+  currentWindow: typeof globalThis.window,
+  currentDocument: typeof globalThis.document,
   baseZoom = 1,
 ):
   | { left: number; top: number; width: number; height: number; zoom: number }
@@ -367,7 +369,7 @@ export function visibleRect(
   };
 }
 
-export function validTextNodeContent(node: Node): string | false {
+export function validTextNodeContent(node: globalThis.Node): string | false {
   if (!node) {
     return false;
   }
@@ -388,8 +390,8 @@ export function validTextNodeContent(node: Node): string | false {
 }
 
 export function getNodeAttributes(
-  node: HTMLElement | Node,
-  currentWindow: typeof window,
+  node: globalThis.HTMLElement | globalThis.Node,
+  currentWindow: typeof globalThis.window,
 ): Record<string, string> {
   if (
     !node ||
@@ -440,7 +442,7 @@ export function resetNodeHashCacheList() {
 }
 
 export function midsceneGenerateHash(
-  node: Node | null,
+  node: globalThis.Node | null,
   content: string,
   rect: any,
 ): string {
@@ -483,7 +485,7 @@ export function setExtractTextWithPositionOnWindow() {
   }
 }
 
-export function getTopDocument(): HTMLElement {
-  const container: HTMLElement = document.body || document;
+export function getTopDocument(): globalThis.HTMLElement {
+  const container: globalThis.HTMLElement = document.body || document;
   return container;
 }

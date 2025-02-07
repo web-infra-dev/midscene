@@ -21,6 +21,8 @@ export type Rect = Point & Size & { zoom?: number };
 export abstract class BaseElement {
   abstract id: string;
 
+  abstract indexId?: number; // markerId for web
+
   abstract attributes: {
     nodeType: NodeType;
     [key: string]: string;
@@ -33,6 +35,13 @@ export abstract class BaseElement {
   abstract center: [number, number];
 
   abstract locator?: string;
+}
+
+export interface ElementTreeNode<
+  ElementType extends BaseElement = BaseElement,
+> {
+  node: ElementType | null;
+  children: ElementTreeNode<ElementType>[];
 }
 
 export type AIUsageInfo = Record<string, any>;
@@ -93,7 +102,10 @@ export abstract class UIContext<ElementType extends BaseElement = BaseElement> {
 
   abstract screenshotBase64WithElementMarker?: string;
 
+  // @deprecated('use tree instead')
   abstract content: ElementType[];
+
+  abstract tree: ElementTreeNode<ElementType>;
 
   abstract size: Size;
 }

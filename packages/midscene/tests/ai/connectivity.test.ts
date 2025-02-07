@@ -7,6 +7,11 @@ import dotenv from 'dotenv';
 import { getFixture } from 'tests/utils';
 import { beforeAll, describe, expect, it, vi } from 'vitest';
 
+dotenv.config({
+  debug: true,
+  override: true,
+});
+
 vi.setConfig({
   testTimeout: 20 * 1000,
 });

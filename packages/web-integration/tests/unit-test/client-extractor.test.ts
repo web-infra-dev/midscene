@@ -49,7 +49,7 @@ describe(
         height: 932,
       }) as unknown as import('webdriverio').Browser;
       const page = new AppiumPage(browser);
-      const infos = await page.getElementInfos();
+      const infos = await page.getElementsInfo();
       expect(infos).toMatchSnapshot();
     });
     it('android', async () => {
@@ -58,7 +58,7 @@ describe(
         height: 2400,
       }) as unknown as import('webdriverio').Browser;
       const page = new AppiumPage(browser);
-      const infos = await page.getElementInfos();
+      const infos = await page.getElementsInfo();
       expect(infos).toMatchSnapshot();
     });
   },

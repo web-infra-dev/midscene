@@ -15,7 +15,6 @@ import type { Rect, ReportDumpWithAttributes } from './types';
 
 let logDir = join(process.cwd(), './midscene_run/');
 let logEnvReady = false;
-export const insightDumpFileExt = 'insight-dump.json';
 export const groupedActionDumpFileExt = 'web-dump.json';
 
 export function getLogDir() {
@@ -162,7 +161,7 @@ export function writeLogFile(opts: {
     if (!gitIgnoreContent.includes(`${logDirName}/`)) {
       writeFileSync(
         gitIgnorePath,
-        `${gitIgnoreContent}\n# Midscene.js dump files\n${logDirName}/report\n${logDirName}/dump\n${logDirName}/tmp\n`,
+        `${gitIgnoreContent}\n# Midscene.js dump files\n${logDirName}/report\n${logDirName}/tmp\n`,
         'utf-8',
       );
     }
@@ -171,12 +170,15 @@ export function writeLogFile(opts: {
 
   const filePath = join(targetDir, `${fileName}.${fileExt}`);
 
-  const outputResourceDir = dirname(filePath);
-  if (!existsSync(outputResourceDir)) {
-    mkdirSync(outputResourceDir, { recursive: true });
-  }
+  if (type !== 'dump') {
+    // do not write dump file any more
+    const outputResourceDir = dirname(filePath);
+    if (!existsSync(outputResourceDir)) {
+      mkdirSync(outputResourceDir, { recursive: true });
+    }
 
-  writeFileSync(filePath, fileContent);
+    writeFileSync(filePath, fileContent);
+  }
 
   if (opts?.generateReport) {
     return writeDumpReport(fileName, fileContent);

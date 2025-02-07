@@ -1,9 +1,8 @@
-import type { NodeType } from '@midscene/shared/constants';
+import type { NodeType } from '../constants';
 
 export interface ElementInfo {
   id: string;
   indexId: number;
-  nodePath: string;
   nodeHashId: string;
   locator: string;
   attributes: {
@@ -16,5 +15,17 @@ export interface ElementInfo {
   center: [number, number];
 }
 
+export interface ElementNode {
+  node: ElementInfo | null;
+  children: ElementNode[];
+}
+
+export { descriptionOfTree, traverseTree, treeToList } from './tree';
+
 export { extractTextWithPosition as webExtractTextWithPosition } from './web-extractor';
+
 export { extractTextWithPosition as clientExtractTextWithPosition } from './client-extractor';
+
+export { extractTreeNode as webExtractNodeTree } from './web-extractor';
+
+export { extractTreeNodeAsString as webExtractNodeTreeAsString } from './web-extractor';

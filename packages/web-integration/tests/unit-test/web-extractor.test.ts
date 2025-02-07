@@ -3,6 +3,7 @@ import { parseContextFromWebPage } from '@/common/utils';
 import { generateExtractData } from '@/debug';
 import StaticPage from '@/playground/static-page';
 import type { WebElementInfo } from '@/web-element';
+import { traverseTree } from '@midscene/shared/extractor';
 import { imageInfoOfBase64 } from '@midscene/shared/img';
 import { createServer } from 'http-server';
 import { beforeAll, describe, expect, it } from 'vitest';
@@ -10,6 +11,7 @@ import { launchPage } from '../ai/web/puppeteer/utils';
 
 const pageDir = join(__dirname, './fixtures/web-extractor');
 const pagePath = join(pageDir, 'index.html');
+
 describe(
   'extractor',
   () => {
@@ -34,10 +36,11 @@ describe(
         viewport: {
           width: 1080,
           height: 3000,
+          deviceScaleFactor: 1,
         },
       });
 
-      const { content } = await parseContextFromWebPage(page);
+      const { content, tree } = await parseContextFromWebPage(page);
       await generateExtractData(
         page,
         path.join(__dirname, 'fixtures/web-extractor'),
@@ -58,6 +61,15 @@ describe(
       });
 
       expect(list).toMatchSnapshot();
+
+      const simplifiedTree = traverseTree(tree!, (node) => {
+        return {
+          content: node.content,
+          indexId: node.indexId,
+          attributes: node.attributes,
+        } as any;
+      });
+      expect(simplifiedTree).toMatchSnapshot();
       await reset();
     });
 
@@ -133,6 +145,7 @@ describe(
         viewport: {
           width: 1080,
           height: 200,
+          deviceScaleFactor: 1,
         },
       });
       await page.scrollDown();

@@ -1,5 +1,4 @@
-import type { Buffer } from 'node:buffer';
-import type { Rect } from '@/types';
+import type { Rect } from '../types';
 import getJimp from './get-jimp';
 import { bufferFromBase64 } from './info';
 import { saveBase64Image } from './transform';
@@ -41,7 +40,7 @@ export async function drawBoxOnImage(options: {
   );
 
   // Convert back to base64
-  image.quality(75);
+  image.quality(90);
   const resultBase64 = await image.getBase64Async(Jimp.MIME_JPEG);
   return resultBase64;
 }

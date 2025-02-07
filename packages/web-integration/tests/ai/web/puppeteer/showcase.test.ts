@@ -133,7 +133,7 @@ describe(
         trackingActiveTab: false,
       });
       await mid.aiAction('Tap hao123 in the navigation bar');
-      await sleep(3000);
+      await sleep(6000);
 
       expect(async () => {
         await mid.aiAssert('There is a weather forecast in the page');
@@ -147,8 +147,8 @@ describe(
         trackingActiveTab: true,
       });
       await mid.aiAction('Tap hao123 in the navigation bar');
-      await sleep(3000);
-      await mid.aiAssert('There is a weather forecast in the page');
+
+      await mid.aiWaitFor('There is a weather forecast in the page');
     });
 
     it.skip('Playground', async () => {

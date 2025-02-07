@@ -1,9 +1,10 @@
 import assert from 'node:assert';
 import { MATCH_BY_POSITION, getAIConfig } from '@/env';
 import { imageInfoOfBase64 } from '@/image';
-import type { BaseElement, Size, UIContext } from '@/types';
+import type { BaseElement, ElementTreeNode, Size, UIContext } from '@/types';
 import { PromptTemplate } from '@langchain/core/prompts';
 import { NodeType } from '@midscene/shared/constants';
+import { descriptionOfTree, treeToList } from '@midscene/shared/extractor';
 import { generateHashId } from '@midscene/shared/utils';
 import type { ResponseFormatJSONSchema } from 'openai/resources';
 
@@ -160,13 +161,6 @@ The following texts elements are formatted in the following way:
 id(string), left, top, right, bottom, content(may be truncated)`;
 }
 
-type PromptElementType = {
-  id: BaseElement['id'];
-  attributes: BaseElement['attributes'];
-  rect: BaseElement['rect'];
-  content: BaseElement['content'];
-};
-
 export function describeElement(
   elements: (Pick<BaseElement, 'rect' | 'content'> & { id: string })[],
 ) {
@@ -187,34 +181,37 @@ export function describeElement(
     .join('\n');
 }
 
-export function truncateText(text: string, maxLength = 100) {
-  if (text && text.length > maxLength) {
-    return `${text.slice(0, maxLength)}...`;
-  }
-
-  if (typeof text === 'string') {
-    return text.trim();
-  }
-  return '';
-}
-
 export function elementByPositionWithElementInfo(
-  elementsInfo: BaseElement[],
+  treeRoot: ElementTreeNode<BaseElement>,
   position: {
     x: number;
     y: number;
   },
 ) {
   assert(typeof position !== 'undefined', 'position is required for query');
-  const matchingElements = elementsInfo.filter((item) => {
-    return (
-      item.attributes.nodeType !== NodeType.CONTAINER &&
-      item.rect.left <= position.x &&
-      position.x <= item.rect.left + item.rect.width &&
-      item.rect.top <= position.y &&
-      position.y <= item.rect.top + item.rect.height
-    );
-  });
+
+  const matchingElements: BaseElement[] = [];
+
+  function dfs(node: ElementTreeNode<BaseElement>) {
+    if (node?.node) {
+      const item = node.node;
+      if (
+        item.attributes.nodeType !== NodeType.CONTAINER &&
+        item.rect.left <= position.x &&
+        position.x <= item.rect.left + item.rect.width &&
+        item.rect.top <= position.y &&
+        position.y <= item.rect.top + item.rect.height
+      ) {
+        matchingElements.push(item);
+      }
+    }
+
+    for (const child of node.children) {
+      dfs(child);
+    }
+  }
+
+  dfs(treeRoot);
 
   if (matchingElements.length === 0) {
     return undefined;
@@ -230,23 +227,16 @@ export function elementByPositionWithElementInfo(
 
 export const samplePageDescription = `
 The size of the page: 1280 x 720
-Some of the elements are marked with a rectangle in the screenshot, some are not.
+Some of the elements are marked with a rectangle in the screenshot corresponding to the markerId, some are not.
 
-JSON description of all the elements in screenshot:
-id=c81c4e9a33: {
-  "markerId": 2, // The number indicated by the rectangle label in the screenshot
-  "attributes":  // Attributes of the element
-    {"data-id":"@submit s0","class":".gh-search","aria-label":"搜索","nodeType":"IMG", "src": "image_url"},
-  "rect": { "left": 16, "top": 378, "width": 89, "height": 16 } // Position of the element in the page
-}
-
-id=5a29bf6419bd: {
-  "content": "获取优惠券",
-  "attributes": { "nodeType": "TEXT" },
-  "rect": { "left": 32, "top": 332, "width": 70, "height": 18 }
-}
-
-...many more`;
+Description of all the elements in screenshot:
+<div id="969f1637" markerId="1" left="100" top="100" width="100" height="100"> // The markerId indicated by the rectangle label in the screenshot
+  <h4 id="b211ecb2" markerId="5" left="150" top="150" width="90" height="60">
+    The username is accepted
+  </h4>
+  ...many more
+</div>
+`;
 
 export async function describeUserPage<
   ElementType extends BaseElement = BaseElement,
@@ -268,34 +258,27 @@ export async function describeUserPage<
     ({ width, height } = imgSize);
   }
 
-  const elementsInfo = context.content;
+  const treeRoot = context.tree;
+  // dfs tree, save the id and element info
   const idElementMap: Record<string, ElementType> = {};
-  elementsInfo.forEach((item) => {
-    idElementMap[item.id] = item;
-    // accept indexId/markerId as a backup
-    if ((item as any).indexId) {
-      idElementMap[(item as any).indexId] = item;
+  const flatElements: ElementType[] = treeToList(treeRoot);
+  flatElements.forEach((element) => {
+    idElementMap[element.id] = element;
+    if (typeof element.indexId !== 'undefined') {
+      idElementMap[`${element.indexId}`] = element;
     }
-    return { ...item };
   });
 
-  const elementInfosDescription = cropFieldInformation(
-    elementsInfo,
+  const contentTree = await descriptionOfTree(
+    treeRoot,
     opt?.truncateTextLength,
     opt?.filterNonTextContent,
   );
 
-  const contentList = elementInfosDescription
-    .map((item) => {
-      const { id, ...rest } = item;
-      return `id=${id}: ${JSON.stringify(rest)}`;
-    })
-    .join('\n\n');
-
   // if match by position, don't need to provide the page description
   const pageJSONDescription = getAIConfig(MATCH_BY_POSITION)
     ? ''
-    : `Some of the elements are marked with a rectangle in the screenshot, some are not. \n Json description of all the page elements:\n${contentList}`;
+    : `Some of the elements are marked with a rectangle in the screenshot, some are not. \n The page elements tree:\n${contentTree}`;
   const sizeDescription = describeSize({ width, height });
 
   return {
@@ -309,8 +292,8 @@ export async function describeUserPage<
       position: { x: number; y: number },
       size: { width: number; height: number },
     ) {
-      console.log('elementByPosition', { position, size });
-      return elementByPositionWithElementInfo(elementsInfo, position);
+      // console.log('elementByPosition', { position, size });
+      return elementByPositionWithElementInfo(treeRoot, position);
     },
     insertElementByPosition(position: { x: number; y: number }) {
       const rect = {
@@ -327,68 +310,15 @@ export async function describeUserPage<
         content: '',
         center: [position.x, position.y],
       } as ElementType;
-      elementsInfo.push(element);
+
+      treeRoot.children.push({
+        node: element,
+        children: [],
+      });
+      flatElements.push(element);
       idElementMap[id] = element;
       return element;
     },
     size: { width, height },
   };
-}
-
-function cropFieldInformation(
-  elementsInfo: BaseElement[],
-  truncateTextLength?: number,
-  filterNonTextContent = false,
-) {
-  const elementInfosDescription: Array<Record<string, any>> = elementsInfo.map(
-    (item) => {
-      const { id, attributes = {}, rect, content } = item;
-      let htmlTagName = '';
-      const tailorContent = truncateText(content, truncateTextLength);
-      const tailorAttributes = Object.keys(attributes).reduce(
-        (res, currentKey: string) => {
-          const attributeVal = (attributes as any)[currentKey];
-          if (currentKey === 'style' || currentKey === 'src') return res;
-          if (currentKey === 'nodeType') {
-            // when filterNonTextContent is true, we don't need to keep the nodeType since they are all TEXT
-            if (!filterNonTextContent) {
-              res[currentKey] = attributeVal.replace(/\sNode$/, '');
-            }
-          } else if (currentKey === 'htmlTagName') {
-            if (!['<span>', '<p>', '<div>'].includes(attributeVal)) {
-              htmlTagName = attributeVal;
-            }
-          } else {
-            res[currentKey] = truncateText(attributeVal);
-          }
-          return res;
-        },
-        {} as BaseElement['attributes'],
-      );
-
-      return {
-        id,
-        ...(filterNonTextContent || tailorContent
-          ? {}
-          : { markerId: (item as any).indexId }),
-        ...(tailorContent ? { content: tailorContent } : {}),
-        ...(Object.keys(tailorAttributes).length && !tailorContent
-          ? { attributes: tailorAttributes }
-          : {}),
-        ...(htmlTagName ? { htmlTagName } : {}),
-        rect: {
-          left: rect.left,
-          top: rect.top,
-          width: rect.width,
-          height: rect.height,
-          // remove 'zoom' if it exists
-        },
-      };
-    },
-  );
-
-  if (filterNonTextContent) {
-    return elementInfosDescription.filter((item) => item.content);
-  }
-  return elementInfosDescription;
 }

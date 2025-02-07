@@ -8,6 +8,7 @@ import type {
   AIUsageInfo,
   BaseElement,
   ElementById,
+  ElementTreeNode,
   Size,
   UIContext,
 } from '@/types';
@@ -52,9 +53,8 @@ function transformToAbsoluteCoords(
 // let index = 0;
 export async function transformElementPositionToId(
   aiResult: AIElementResponse | [number, number],
-  elementsInfo: BaseElement[],
+  treeRoot: ElementTreeNode<BaseElement>,
   size: { width: number; height: number },
-  screenshotBase64: string,
 ) {
   if (Array.isArray(aiResult)) {
     const relativePosition = aiResult;
@@ -67,7 +67,7 @@ export async function transformElementPositionToId(
     );
 
     const element = elementByPositionWithElementInfo(
-      elementsInfo,
+      treeRoot,
       absolutePosition,
     );
     assert(
@@ -96,7 +96,7 @@ function getQuickAnswer(
     | Partial<AISingleElementResponse>
     | Partial<AISingleElementResponseByPosition>
     | undefined,
-  elementsInfo: BaseElement[],
+  tree: ElementTreeNode<BaseElement>,
   elementById: ElementById,
   insertElementByPosition: (position: { x: number; y: number }) => BaseElement,
 ) {
@@ -115,10 +115,7 @@ function getQuickAnswer(
   }
 
   if ('position' in quickAnswer && quickAnswer.position) {
-    let element = elementByPositionWithElementInfo(
-      elementsInfo,
-      quickAnswer.position,
-    );
+    let element = elementByPositionWithElementInfo(tree, quickAnswer.position);
     if (!element) {
       element = insertElementByPosition(quickAnswer.position);
     }
@@ -156,7 +153,7 @@ export async function AiInspectElement<
   // meet quick answer
   const quickAnswer = getQuickAnswer(
     options.quickAnswer,
-    context.content,
+    context.tree,
     elementById,
     insertElementByPosition,
   );
@@ -202,9 +199,8 @@ export async function AiInspectElement<
   return {
     parseResult: await transformElementPositionToId(
       res.content,
-      context.content,
+      context.tree,
       size,
-      screenshotBase64,
     ),
     rawResponse: res.content,
     elementById,
@@ -282,7 +278,6 @@ export async function AiAssert<
   assert(assertion, 'assertion should be a string');
 
   const { screenshotBase64 } = context;
-  const { description } = await describeUserPage(context, liteContextConfig);
   const systemPrompt = systemPromptToAssert();
 
   const msgs: AIArgs = [

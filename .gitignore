@@ -96,6 +96,7 @@ test-results/
 playwright-report/
 blob-report/
 playwright/.cache/
+iife-script/
 
 # Midscene.js dump files
 __ai_responses__/

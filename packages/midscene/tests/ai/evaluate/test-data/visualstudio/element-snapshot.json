@@ -1,211 +1,22 @@
 [
   {
-    "id": "fe95f3dd",
+    "id": "fglbl",
     "indexId": 0,
-    "nodePath": "0-5-1-1-1-0-1-1-1",
-    "nodeHashId": "fe95f3dd",
-    "locator": "[_midscene_retrieve_task_id='fe95f3dd']",
-    "attributes": {
-      "svgContent": "true",
-      "nodeType": "IMG Node"
-    },
-    "nodeType": "IMG Node",
-    "content": "",
-    "rect": {
-      "left": 77,
-      "top": 21,
-      "width": 23,
-      "height": 23,
-      "zoom": 1
-    },
-    "center": [
-      89,
-      33
-    ],
-    "zoom": 1,
-    "screenWidth": 1280,
-    "screenHeight": 720
-  },
-  {
-    "id": "2970ed7c",
-    "indexId": 1,
-    "nodePath": "0-5-1-1-1-0-1-5-0",
-    "nodeHashId": "2970ed7c",
+    "nodeHashId": "fglbl",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
-      "nodeType": "TEXT Node"
-    },
-    "center": [
-      391,
-      41
-    ],
-    "content": "We use optional cookies to improve your experience on our websites, such as through social media connections, and to display personalized advertising based on your online activity. If you reject optional cookies, only cookies necessary to provide you the services will be used. You may change your selection by clicking “Manage Cookies” at the bottom of the page.",
-    "rect": {
-      "left": 112,
-      "top": 9,
-      "width": 557,
-      "height": 64,
-      "zoom": 1
-    },
-    "zoom": 1,
-    "screenWidth": 1280,
-    "screenHeight": 720
-  },
-  {
-    "id": "59ae1b0a",
-    "indexId": 2,
-    "nodePath": "0-5-1-1-1-0-1-5-1-0",
-    "nodeHashId": "59ae1b0a",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node"
-    },
-    "center": [
-      362,
-      73
-    ],
-    "content": "Privacy Statement",
-    "rect": {
-      "left": 112,
-      "top": 57,
-      "width": 499,
-      "height": 32,
-      "zoom": 1
-    },
-    "zoom": 1,
-    "screenWidth": 1280,
-    "screenHeight": 720
-  },
-  {
-    "id": "d357992e",
-    "indexId": 3,
-    "nodePath": "0-5-1-1-1-0-1-5-3-0",
-    "nodeHashId": "d357992e",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node"
-    },
-    "center": [
-      239,
-      81
-    ],
-    "content": "Third-Party Cookies",
-    "rect": {
-      "left": 178,
-      "top": 73,
-      "width": 121,
-      "height": 15,
-      "zoom": 1
-    },
-    "zoom": 1,
-    "screenWidth": 1280,
-    "screenHeight": 720
-  },
-  {
-    "id": "1012bff9",
-    "indexId": 4,
-    "nodePath": "0-5-1-1-1-0-3-1",
-    "nodeHashId": "1012bff9",
-    "nodeType": "BUTTON Node",
-    "locator": "[_midscene_retrieve_task_id='1012bff9']",
-    "attributes": {
-      "type": "button",
-      "class": "._1XuCi2WhiqeWRUVp3pnFG3.erL690_8JwUW-R4bJRcfl",
-      "nodeType": "BUTTON Node"
-    },
-    "content": "Accept",
-    "rect": {
-      "left": 738,
-      "top": 31,
-      "width": 150,
-      "height": 36,
-      "zoom": 1
-    },
-    "center": [
-      813,
-      49
-    ],
-    "zoom": 1,
-    "screenWidth": 1280,
-    "screenHeight": 720
-  },
-  {
-    "id": "17857671",
-    "indexId": 5,
-    "nodePath": "0-5-1-1-1-0-3-3",
-    "nodeHashId": "17857671",
-    "nodeType": "BUTTON Node",
-    "locator": "[_midscene_retrieve_task_id='17857671']",
-    "attributes": {
-      "type": "button",
-      "class": "._1XuCi2WhiqeWRUVp3pnFG3.erL690_8JwUW-R4bJRcfl",
-      "nodeType": "BUTTON Node"
-    },
-    "content": "Reject",
-    "rect": {
-      "left": 900,
-      "top": 31,
-      "width": 150,
-      "height": 36,
-      "zoom": 1
-    },
-    "center": [
-      975,
-      49
-    ],
-    "zoom": 1,
-    "screenWidth": 1280,
-    "screenHeight": 720
-  },
-  {
-    "id": "d6aaa4cc",
-    "indexId": 6,
-    "nodePath": "0-5-1-1-1-0-3-5",
-    "nodeHashId": "d6aaa4cc",
-    "nodeType": "BUTTON Node",
-    "locator": "[_midscene_retrieve_task_id='d6aaa4cc']",
-    "attributes": {
-      "type": "button",
-      "class": "._1XuCi2WhiqeWRUVp3pnFG3.erL690_8JwUW-R4bJRcfl",
-      "nodeType": "BUTTON Node"
-    },
-    "content": "Manage cookies",
-    "rect": {
-      "left": 1062,
-      "top": 31,
-      "width": 150,
-      "height": 36,
-      "zoom": 1
-    },
-    "center": [
-      1137,
-      49
-    ],
-    "zoom": 1,
-    "screenWidth": 1280,
-    "screenHeight": 720
-  },
-  {
-    "id": "061b4541",
-    "indexId": 7,
-    "nodePath": "0-5-1-1-3-1-1-1-0-0",
-    "nodeHashId": "061b4541",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node"
+      "nodeType": "TEXT Node",
+      "htmlTagName": "<span>"
     },
     "center": [
       201,
-      126
+      29
     ],
     "content": "Visual Studio Code",
     "rect": {
       "left": 116,
-      "top": 114,
+      "top": 17,
       "width": 170,
       "height": 24,
       "zoom": 1
@@ -215,23 +26,23 @@
     "screenHeight": 720
   },
   {
-    "id": "ff20860e",
-    "indexId": 8,
-    "nodePath": "0-5-1-1-3-1-3-1-1-0-0",
-    "nodeHashId": "ff20860e",
+    "id": "hbbjm",
+    "indexId": 1,
+    "nodeHashId": "hbbjm",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
-      "nodeType": "TEXT Node"
+      "nodeType": "TEXT Node",
+      "htmlTagName": "<a>"
     },
     "center": [
       332,
-      127
+      30
     ],
     "content": "Docs",
     "rect": {
       "left": 313,
-      "top": 117,
+      "top": 20,
       "width": 38,
       "height": 19,
       "zoom": 1
@@ -241,23 +52,23 @@
     "screenHeight": 720
   },
   {
-    "id": "b879dc70",
-    "indexId": 9,
-    "nodePath": "0-5-1-1-3-1-3-1-3-0-0",
-    "nodeHashId": "b879dc70",
+    "id": "ldhod",
+    "indexId": 2,
+    "nodeHashId": "ldhod",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
-      "nodeType": "TEXT Node"
+      "nodeType": "TEXT Node",
+      "htmlTagName": "<a>"
     },
     "center": [
       407,
-      127
+      30
     ],
     "content": "Updates",
     "rect": {
       "left": 375,
-      "top": 117,
+      "top": 20,
       "width": 63,
       "height": 19,
       "zoom": 1
@@ -267,23 +78,23 @@
     "screenHeight": 720
   },
   {
-    "id": "c0aa7bb5",
-    "indexId": 10,
-    "nodePath": "0-5-1-1-3-1-3-1-5-0-0",
-    "nodeHashId": "c0aa7bb5",
+    "id": "njicg",
+    "indexId": 3,
+    "nodeHashId": "njicg",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
-      "nodeType": "TEXT Node"
+      "nodeType": "TEXT Node",
+      "htmlTagName": "<a>"
     },
     "center": [
       478,
-      127
+      30
     ],
     "content": "Blog",
     "rect": {
       "left": 461,
-      "top": 117,
+      "top": 20,
       "width": 33,
       "height": 19,
       "zoom": 1
@@ -293,23 +104,23 @@
     "screenHeight": 720
   },
   {
-    "id": "b37556ba",
-    "indexId": 11,
-    "nodePath": "0-5-1-1-3-1-3-1-7-0-0",
-    "nodeHashId": "b37556ba",
+    "id": "bpelm",
+    "indexId": 4,
+    "nodeHashId": "bpelm",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
-      "nodeType": "TEXT Node"
+      "nodeType": "TEXT Node",
+      "htmlTagName": "<a>"
     },
     "center": [
       532,
-      127
+      30
     ],
     "content": "API",
     "rect": {
       "left": 519,
-      "top": 117,
+      "top": 20,
       "width": 25,
       "height": 19,
       "zoom": 1
@@ -319,23 +130,23 @@
     "screenHeight": 720
   },
   {
-    "id": "3511edc7",
-    "indexId": 12,
-    "nodePath": "0-5-1-1-3-1-3-1-9-0-0",
-    "nodeHashId": "3511edc7",
+    "id": "jdhej",
+    "indexId": 5,
+    "nodeHashId": "jdhej",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
-      "nodeType": "TEXT Node"
+      "nodeType": "TEXT Node",
+      "htmlTagName": "<a>"
     },
     "center": [
       609,
-      127
+      30
     ],
     "content": "Extensions",
     "rect": {
       "left": 568,
-      "top": 117,
+      "top": 20,
       "width": 81,
       "height": 19,
       "zoom": 1
@@ -345,23 +156,23 @@
     "screenHeight": 720
   },
   {
-    "id": "4386e995",
-    "indexId": 13,
-    "nodePath": "0-5-1-1-3-1-3-1-11-0-0",
-    "nodeHashId": "4386e995",
+    "id": "jfnal",
+    "indexId": 6,
+    "nodeHashId": "jfnal",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
-      "nodeType": "TEXT Node"
+      "nodeType": "TEXT Node",
+      "htmlTagName": "<a>"
     },
     "center": [
       688,
-      127
+      30
     ],
     "content": "FAQ",
     "rect": {
       "left": 672,
-      "top": 117,
+      "top": 20,
       "width": 31,
       "height": 19,
       "zoom": 1
@@ -371,23 +182,23 @@
     "screenHeight": 720
   },
   {
-    "id": "89e8facd",
-    "indexId": 14,
-    "nodePath": "0-5-1-1-3-1-3-1-15-0-0",
-    "nodeHashId": "89e8facd",
+    "id": "pnpcb",
+    "indexId": 7,
+    "nodeHashId": "pnpcb",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
-      "nodeType": "TEXT Node"
+      "nodeType": "TEXT Node",
+      "htmlTagName": "<a>"
     },
     "center": [
       782,
-      127
+      30
     ],
     "content": "GitHub Copilot",
     "rect": {
       "left": 727,
-      "top": 117,
+      "top": 20,
       "width": 109,
       "height": 19,
       "zoom": 1
@@ -397,41 +208,40 @@
     "screenHeight": 720
   },
   {
-    "id": "17839184",
-    "indexId": 15,
-    "nodePath": "0-5-1-1-3-1-3-3-1-1",
-    "nodeHashId": "17839184",
+    "id": "copdb",
+    "indexId": 8,
+    "nodeHashId": "copdb",
     "nodeType": "BUTTON Node",
-    "locator": "[_midscene_retrieve_task_id='17839184']",
+    "locator": "[_midscene_retrieve_task_id='copdb']",
     "attributes": {
       "type": "button",
       "class": ".theme-switch",
       "id": "theme-toggle",
+      "htmlTagName": "<li>",
       "nodeType": "BUTTON Node"
     },
     "content": "",
     "rect": {
       "left": 849,
-      "top": 110,
+      "top": 13,
       "width": 32,
       "height": 32,
       "zoom": 1
     },
     "center": [
       865,
-      126
+      29
     ],
     "zoom": 1,
     "screenWidth": 1280,
     "screenHeight": 720
   },
   {
-    "id": "cb96616e",
-    "nodePath": "0-5-1-1-3-1-3-3-5-1-1-1",
-    "nodeHashId": "cb96616e",
-    "locator": "[_midscene_retrieve_task_id='cb96616e']",
+    "id": "bminn",
+    "nodeHashId": "bminn",
+    "locator": "[_midscene_retrieve_task_id='bminn']",
     "nodeType": "FORM_ITEM Node",
-    "indexId": 16,
+    "indexId": 9,
     "attributes": {
       "type": "text",
       "name": "q",
@@ -444,67 +254,67 @@
     "content": "Search Docs",
     "rect": {
       "left": 885,
-      "top": 110,
+      "top": 13,
       "width": 200,
       "height": 32,
       "zoom": 1
     },
     "center": [
       985,
-      126
+      29
     ],
     "zoom": 1,
     "screenWidth": 1280,
     "screenHeight": 720
   },
   {
-    "id": "da36a12a",
-    "indexId": 17,
-    "nodePath": "0-5-1-1-3-1-3-3-5-1-1-3-1",
-    "nodeHashId": "da36a12a",
+    "id": "cipnh",
+    "indexId": 10,
+    "nodeHashId": "cipnh",
     "nodeType": "BUTTON Node",
-    "locator": "[_midscene_retrieve_task_id='da36a12a']",
+    "locator": "[_midscene_retrieve_task_id='cipnh']",
     "attributes": {
       "tabindex": "0",
       "class": ".btn",
       "type": "submit",
       "aria-label": "Search",
+      "htmlTagName": "<span>",
       "nodeType": "BUTTON Node"
     },
     "content": "",
     "rect": {
       "left": 892,
-      "top": 116,
+      "top": 19,
       "width": 28,
       "height": 20,
       "zoom": 1
     },
     "center": [
       906,
-      126
+      29
     ],
     "zoom": 1,
     "screenWidth": 1280,
     "screenHeight": 720
   },
   {
-    "id": "2f4573d1",
-    "indexId": 18,
-    "nodePath": "0-5-1-1-3-1-3-3-9-0-1-0",
-    "nodeHashId": "2f4573d1",
+    "id": "opjng",
+    "indexId": 11,
+    "nodeHashId": "opjng",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
-      "nodeType": "TEXT Node"
+      "nodeType": "TEXT Node",
+      "htmlTagName": "<span>"
     },
     "center": [
       1147,
-      127
+      30
     ],
     "content": "Download",
     "rect": {
       "left": 1109,
-      "top": 117,
+      "top": 20,
       "width": 75,
       "height": 19,
       "zoom": 1
@@ -514,24 +324,24 @@
     "screenHeight": 720
   },
   {
-    "id": "a71d5a27",
-    "indexId": 19,
-    "nodePath": "0-5-3-1-1-0-0",
-    "nodeHashId": "a71d5a27",
+    "id": "befbo",
+    "indexId": 12,
+    "nodeHashId": "befbo",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
-      "nodeType": "TEXT Node"
+      "nodeType": "TEXT Node",
+      "htmlTagName": "<p>"
     },
     "center": [
-      393,
+      519,
       86
     ],
-    "content": "Version 1.95",
+    "content": "🚀 Get",
     "rect": {
-      "left": 352,
+      "left": 496,
       "top": 77,
-      "width": 81,
+      "width": 45,
       "height": 17,
       "zoom": 1
     },
@@ -540,24 +350,24 @@
     "screenHeight": 720
   },
   {
-    "id": "7e4d58c3",
-    "indexId": 20,
-    "nodePath": "0-5-3-1-1-1",
-    "nodeHashId": "7e4d58c3",
+    "id": "hcbca",
+    "indexId": 13,
+    "nodeHashId": "hcbca",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
-      "nodeType": "TEXT Node"
+      "nodeType": "TEXT Node",
+      "htmlTagName": "<a>"
     },
     "center": [
-      665,
+      606,
       86
     ],
-    "content": "is now available! Read about the new features and fixes from October.",
+    "content": "GitHub Copilot Free",
     "rect": {
-      "left": 433,
+      "left": 541,
       "top": 77,
-      "width": 463,
+      "width": 130,
       "height": 17,
       "zoom": 1
     },
@@ -566,25 +376,25 @@
     "screenHeight": 720
   },
   {
-    "id": "886780d3",
-    "indexId": 21,
-    "nodePath": "0-5-3-3-0-0",
-    "nodeHashId": "886780d3",
+    "id": "bjijb",
+    "indexId": 14,
+    "nodeHashId": "bjijb",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
-      "nodeType": "TEXT Node"
+      "nodeType": "TEXT Node",
+      "htmlTagName": "<p>"
     },
     "center": [
-      1273,
-      115
+      711,
+      86
     ],
-    "content": "Dismiss this update",
+    "content": "in VS Code!",
     "rect": {
-      "left": 1248,
-      "top": 85,
-      "width": 50,
-      "height": 59,
+      "left": 671,
+      "top": 77,
+      "width": 80,
+      "height": 17,
       "zoom": 1
     },
     "zoom": 1,
@@ -592,51 +402,53 @@
     "screenHeight": 720
   },
   {
-    "id": "52221b3a",
-    "indexId": 22,
-    "nodePath": "0-5-9-1-1-1-1-0",
-    "nodeHashId": "52221b3a",
-    "nodeType": "TEXT Node",
-    "locator": "",
+    "id": "jnkgi",
+    "nodeHashId": "jnkgi",
+    "indexId": 15,
+    "nodeType": "CONTAINER Node",
+    "locator": "[_midscene_retrieve_task_id='jnkgi']",
     "attributes": {
-      "nodeType": "TEXT Node"
+      "aria-hidden": "true",
+      "class": ".glyph-icon",
+      "nodeType": "CONTAINER Node",
+      "htmlTagName": "<div>"
     },
-    "center": [
-      640,
-      182
-    ],
-    "content": "Code faster with AI",
+    "content": "",
     "rect": {
-      "left": 336,
-      "top": 139,
-      "width": 608,
-      "height": 85,
+      "left": 1241,
+      "top": 73,
+      "width": 15,
+      "height": 21,
       "zoom": 1
     },
+    "center": [
+      1249,
+      84
+    ],
     "zoom": 1,
     "screenWidth": 1280,
     "screenHeight": 720
   },
   {
-    "id": "404e5581",
-    "indexId": 23,
-    "nodePath": "0-5-9-1-1-1-3-0",
-    "nodeHashId": "404e5581",
+    "id": "cphhj",
+    "indexId": 16,
+    "nodeHashId": "cphhj",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
-      "nodeType": "TEXT Node"
+      "nodeType": "TEXT Node",
+      "htmlTagName": "<h1>"
     },
     "center": [
       641,
-      274
+      225
     ],
-    "content": "Visual Studio Code with GitHub Copilot supercharges your code with AI-powered suggestions, right in your editor.",
+    "content": "Your code editor. Redefined with AI.",
     "rect": {
-      "left": 284,
-      "top": 239,
-      "width": 713,
-      "height": 70,
+      "left": 350,
+      "top": 139,
+      "width": 581,
+      "height": 171,
       "zoom": 1
     },
     "zoom": 1,
@@ -644,54 +456,54 @@
     "screenHeight": 720
   },
   {
-    "id": "611c3bf4",
-    "indexId": 24,
-    "nodePath": "0-5-9-1-1-1-5-1-3-3",
-    "nodeHashId": "611c3bf4",
+    "id": "emfmn",
+    "indexId": 17,
+    "nodeHashId": "emfmn",
     "nodeType": "BUTTON Node",
-    "locator": "[_midscene_retrieve_task_id='611c3bf4']",
+    "locator": "[_midscene_retrieve_task_id='emfmn']",
     "attributes": {
       "type": "button",
       "class": ".link-button.dlink",
       "data-os": "win",
       "id": "download-buttons-win",
+      "htmlTagName": "<div>",
       "nodeType": "BUTTON Node"
     },
     "content": "Download for Windows",
     "rect": {
-      "left": 420,
-      "top": 345,
+      "left": 430,
+      "top": 336,
       "width": 235,
       "height": 48,
       "zoom": 1
     },
     "center": [
-      538,
-      369
+      548,
+      360
     ],
     "zoom": 1,
     "screenWidth": 1280,
     "screenHeight": 720
   },
   {
-    "id": "d47c243b",
-    "indexId": 25,
-    "nodePath": "0-5-9-1-1-1-5-1-3-9-0",
-    "nodeHashId": "d47c243b",
+    "id": "nhofd",
+    "indexId": 18,
+    "nodeHashId": "nhofd",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
-      "nodeType": "TEXT Node"
+      "nodeType": "TEXT Node",
+      "htmlTagName": "<a>"
     },
     "center": [
       763,
-      369
+      360
     ],
-    "content": "Try GitHub Copilot",
+    "content": "Get Copilot Free",
     "rect": {
-      "left": 687,
-      "top": 358,
-      "width": 152,
+      "left": 696,
+      "top": 349,
+      "width": 133,
       "height": 22,
       "zoom": 1
     },
@@ -700,23 +512,23 @@
     "screenHeight": 720
   },
   {
-    "id": "c9a28c2f",
-    "indexId": 26,
-    "nodePath": "0-5-9-1-1-1-5-3-0-0",
-    "nodeHashId": "c9a28c2f",
+    "id": "aolaj",
+    "indexId": 19,
+    "nodeHashId": "aolaj",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
-      "nodeType": "TEXT Node"
+      "nodeType": "TEXT Node",
+      "htmlTagName": "<a>"
     },
     "center": [
       536,
-      410
+      401
     ],
     "content": "Web",
     "rect": {
       "left": 523,
-      "top": 403,
+      "top": 394,
       "width": 26,
       "height": 14,
       "zoom": 1
@@ -726,23 +538,23 @@
     "screenHeight": 720
   },
   {
-    "id": "e3ae8c0b",
-    "indexId": 27,
-    "nodePath": "0-5-9-1-1-1-5-3-1",
-    "nodeHashId": "e3ae8c0b",
+    "id": "fjkhe",
+    "indexId": 20,
+    "nodeHashId": "fjkhe",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
-      "nodeType": "TEXT Node"
+      "nodeType": "TEXT Node",
+      "htmlTagName": "<p>"
     },
     "center": [
       553,
-      410
+      401
     ],
     "content": ",",
     "rect": {
       "left": 549,
-      "top": 403,
+      "top": 394,
       "width": 7,
       "height": 14,
       "zoom": 1
@@ -752,23 +564,23 @@
     "screenHeight": 720
   },
   {
-    "id": "d4393902",
-    "indexId": 28,
-    "nodePath": "0-5-9-1-1-1-5-3-2-0",
-    "nodeHashId": "d4393902",
+    "id": "ighlp",
+    "indexId": 21,
+    "nodeHashId": "ighlp",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
-      "nodeType": "TEXT Node"
+      "nodeType": "TEXT Node",
+      "htmlTagName": "<a>"
     },
     "center": [
       601,
-      410
+      401
     ],
     "content": "Insiders edition",
     "rect": {
       "left": 556,
-      "top": 403,
+      "top": 394,
       "width": 89,
       "height": 14,
       "zoom": 1
@@ -778,23 +590,23 @@
     "screenHeight": 720
   },
   {
-    "id": "f43e7752",
-    "indexId": 29,
-    "nodePath": "0-5-9-1-1-1-5-3-3",
-    "nodeHashId": "f43e7752",
+    "id": "cfbdk",
+    "indexId": 22,
+    "nodeHashId": "cfbdk",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
-      "nodeType": "TEXT Node"
+      "nodeType": "TEXT Node",
+      "htmlTagName": "<p>"
     },
     "center": [
       656,
-      410
+      401
     ],
     "content": ", or",
     "rect": {
       "left": 645,
-      "top": 403,
+      "top": 394,
       "width": 22,
       "height": 14,
       "zoom": 1
@@ -804,23 +616,23 @@
     "screenHeight": 720
   },
   {
-    "id": "7580b5c0",
-    "indexId": 30,
-    "nodePath": "0-5-9-1-1-1-5-3-4-0",
-    "nodeHashId": "7580b5c0",
+    "id": "llkjk",
+    "indexId": 23,
+    "nodeHashId": "llkjk",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
-      "nodeType": "TEXT Node"
+      "nodeType": "TEXT Node",
+      "htmlTagName": "<a>"
     },
     "center": [
       712,
-      410
+      401
     ],
     "content": "other platforms",
     "rect": {
       "left": 667,
-      "top": 403,
+      "top": 394,
       "width": 90,
       "height": 14,
       "zoom": 1
@@ -830,23 +642,23 @@
     "screenHeight": 720
   },
   {
-    "id": "983eec32",
-    "indexId": 31,
-    "nodePath": "0-5-9-1-1-1-5-5-0",
-    "nodeHashId": "983eec32",
+    "id": "dglpo",
+    "indexId": 24,
+    "nodeHashId": "dglpo",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
-      "nodeType": "TEXT Node"
+      "nodeType": "TEXT Node",
+      "htmlTagName": "<p>"
     },
     "center": [
       558,
-      439
+      430
     ],
     "content": "By using VS Code, you agree to its",
     "rect": {
       "left": 466,
-      "top": 432,
+      "top": 423,
       "width": 184,
       "height": 13,
       "zoom": 1
@@ -856,23 +668,23 @@
     "screenHeight": 720
   },
   {
-    "id": "2e2dc9d5",
-    "indexId": 32,
-    "nodePath": "0-5-9-1-1-1-5-5-1-0-0",
-    "nodeHashId": "2e2dc9d5",
+    "id": "mknif",
+    "indexId": 25,
+    "nodeHashId": "mknif",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
-      "nodeType": "TEXT Node"
+      "nodeType": "TEXT Node",
+      "htmlTagName": "<a>"
     },
     "center": [
       669,
-      439
+      430
     ],
     "content": "license",
     "rect": {
       "left": 650,
-      "top": 432,
+      "top": 423,
       "width": 38,
       "height": 13,
       "zoom": 1
@@ -882,23 +694,23 @@
     "screenHeight": 720
   },
   {
-    "id": "edbaf378",
-    "indexId": 33,
-    "nodePath": "0-5-9-1-1-1-5-5-1-1",
-    "nodeHashId": "edbaf378",
+    "id": "lnfni",
+    "indexId": 26,
+    "nodeHashId": "lnfni",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
-      "nodeType": "TEXT Node"
+      "nodeType": "TEXT Node",
+      "htmlTagName": "<span>"
     },
     "center": [
       701,
-      439
+      430
     ],
     "content": "and",
     "rect": {
       "left": 688,
-      "top": 432,
+      "top": 423,
       "width": 26,
       "height": 13,
       "zoom": 1
@@ -908,23 +720,23 @@
     "screenHeight": 720
   },
   {
-    "id": "07f4d5ed",
-    "indexId": 34,
-    "nodePath": "0-5-9-1-1-1-5-5-1-2-0",
-    "nodeHashId": "07f4d5ed",
+    "id": "ajndm",
+    "indexId": 27,
+    "nodeHashId": "ajndm",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
-      "nodeType": "TEXT Node"
+      "nodeType": "TEXT Node",
+      "htmlTagName": "<a>"
     },
     "center": [
       762,
-      439
+      430
     ],
     "content": "privacy statement",
     "rect": {
       "left": 714,
-      "top": 432,
+      "top": 423,
       "width": 96,
       "height": 13,
       "zoom": 1
@@ -934,56 +746,27 @@
     "screenHeight": 720
   },
   {
-    "id": "5eb44816",
-    "indexId": 35,
-    "nodePath": "0-5-9-1-1-1-5-5-1-3",
-    "nodeHashId": "5eb44816",
+    "id": "odkfd",
+    "indexId": 28,
+    "nodeHashId": "odkfd",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
-      "nodeType": "TEXT Node"
+      "nodeType": "TEXT Node",
+      "htmlTagName": "<span>"
     },
     "center": [
       812,
-      439
+      430
     ],
     "content": ".",
     "rect": {
       "left": 810,
-      "top": 432,
+      "top": 423,
       "width": 3,
       "height": 13,
       "zoom": 1
     },
-    "zoom": 1,
-    "screenWidth": 1280,
-    "screenHeight": 720
-  },
-  {
-    "id": "8311195e",
-    "indexId": 36,
-    "nodePath": "0-5-9-1-1-5",
-    "nodeHashId": "8311195e",
-    "locator": "[_midscene_retrieve_task_id='8311195e']",
-    "attributes": {
-      "src": "/assets/home/home-screenshot-copilot-light.png",
-      "class": ".hero-image.light",
-      "alt": "Visual Studio Code in action with AI-powered sugge...",
-      "nodeType": "IMG Node"
-    },
-    "nodeType": "IMG Node",
-    "content": "",
-    "rect": {
-      "left": 80,
-      "top": 473,
-      "width": 1120,
-      "height": 700,
-      "zoom": 1
-    },
-    "center": [
-      640,
-      823
-    ],
     "zoom": 1,
     "screenWidth": 1280,
     "screenHeight": 720

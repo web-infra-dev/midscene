@@ -33,8 +33,8 @@ import {
   vlmPlanning,
 } from '@midscene/core/ai-model';
 import { sleep } from '@midscene/core/utils';
+import type { ElementInfo } from '@midscene/shared/extractor';
 import type { KeyInput } from 'puppeteer';
-import type { ElementInfo } from '../extractor';
 import type { WebElementInfo } from '../web-element';
 import { TaskCache } from './task-cache';
 import type { WebUIContext } from './utils';

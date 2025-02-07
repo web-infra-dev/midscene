@@ -170,6 +170,7 @@ export async function getPageTestData(targetDir: string): Promise<{
       height: number;
     };
     content: any;
+    tree: any;
     screenshotBase64: string;
     originalScreenshotBase64: string;
     describer: () => Promise<any>;
@@ -182,14 +183,19 @@ export async function getPageTestData(targetDir: string): Promise<{
   const resizeOutputImgP = path.join(targetDir, 'output_without_text.png');
   const originalInputImgP = path.join(targetDir, 'input.png');
   const snapshotJsonPath = path.join(targetDir, 'element-snapshot.json');
+  const elementTreeJsonPath = path.join(targetDir, 'element-tree.json');
   const snapshotJson = readFileSync(snapshotJsonPath, { encoding: 'utf-8' });
   const elementSnapshot = JSON.parse(snapshotJson);
+  const elementTree = JSON.parse(
+    readFileSync(elementTreeJsonPath, { encoding: 'utf-8' }),
+  );
   const screenshotBase64 = base64Encoded(resizeOutputImgP);
   const originalScreenshotBase64 = base64Encoded(originalInputImgP);
   const size = await imageInfoOfBase64(screenshotBase64);
   const baseContext = {
     size,
     content: elementSnapshot,
+    tree: elementTree,
     screenshotBase64,
     originalScreenshotBase64,
   };

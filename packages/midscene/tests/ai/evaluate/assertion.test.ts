@@ -9,11 +9,16 @@ import {
   repeatFile,
 } from './test-suite/util';
 import 'dotenv/config';
-import { repeatTime } from '../util';
+import dotenv from 'dotenv';
+
+dotenv.config({
+  debug: true,
+  override: true,
+});
 
 const testSources = [
-  // 'todo',
   'online_order',
+  // 'todo',
   // 'online_order_list',
   // 'taobao',
   // 'aweme_login',
@@ -41,7 +46,7 @@ describe('ai inspect element', () => {
       }),
     );
   });
-  repeatFile(testSources, repeatTime, (source, repeatIndex) => {
+  repeatFile(testSources, 1, (source, repeatIndex) => {
     const aiDataPath = path.join(__dirname, `ai-data/assertion/${source}.json`);
     const aiData = JSON.parse(
       readFileSync(aiDataPath, 'utf-8'),

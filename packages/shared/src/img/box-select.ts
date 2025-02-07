@@ -1,8 +1,8 @@
 import assert from 'node:assert';
 import type { Buffer } from 'node:buffer';
-import type { Rect } from '@/types';
 import type Jimp from 'jimp';
 import type { NodeType } from '../constants';
+import type { Rect } from '../types';
 import getJimp from './get-jimp';
 import { bufferFromBase64, imageInfo, imageInfoOfBase64 } from './index';
 
@@ -238,7 +238,7 @@ export const compositeElementInfoImg = async (options: {
       return compositeImage;
     })
     .then(async (compositeImage: Jimp) => {
-      compositeImage.quality(75);
+      compositeImage.quality(90);
       const base64 = await compositeImage.getBase64Async(Jimp.MIME_JPEG);
       return base64;
     })

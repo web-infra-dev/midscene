@@ -1,9 +1,13 @@
 import assert from 'node:assert';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
-import type { ElementInfo } from '@/extractor';
 import type { StaticPage } from '@/playground';
-import type { PlaywrightParserOpt, UIContext } from '@midscene/core';
+import type {
+  BaseElement,
+  ElementTreeNode,
+  PlaywrightParserOpt,
+  UIContext,
+} from '@midscene/core';
 import {
   MIDSCENE_REPORT_TAG_NAME,
   MIDSCENE_USE_VLM_UI_TARS,
@@ -11,6 +15,8 @@ import {
 } from '@midscene/core/env';
 import { uploadTestInfoToServer } from '@midscene/core/utils';
 import { NodeType } from '@midscene/shared/constants';
+import type { ElementInfo } from '@midscene/shared/extractor';
+import { traverseTree, treeToList } from '@midscene/shared/extractor';
 import { findNearestPackageJson } from '@midscene/shared/fs';
 import { compositeElementInfoImg } from '@midscene/shared/img';
 import { uuid } from '@midscene/shared/utils';
@@ -34,16 +40,31 @@ export async function parseContextFromWebPage(
   uploadTestInfoToServer({ testUrl: url });
 
   let screenshotBase64: string;
-  let elementsInfo: WebElementInfo[] = [];
+  let tree: ElementTreeNode<ElementInfo>;
 
   await Promise.all([
     page.screenshotBase64().then((base64) => {
       screenshotBase64 = base64;
     }),
-    page.getElementInfos().then(async (snapshot) => {
-      elementsInfo = await alignElements(snapshot, page);
+    page.getElementsNodeTree().then(async (treeRoot) => {
+      tree = treeRoot;
     }),
   ]);
+
+  const webTree = traverseTree(tree!, (elementInfo) => {
+    const { rect, id, content, attributes, locator, indexId } = elementInfo;
+    return new WebElementInfo({
+      rect,
+      locator,
+      id,
+      content,
+      attributes,
+      indexId,
+    });
+  });
+
+  const elementsInfo = treeToList(webTree);
+
   assert(screenshotBase64!, 'screenshotBase64 is required');
 
   const elementsPositionInfoWithoutText = elementsInfo!.filter(
@@ -76,6 +97,7 @@ export async function parseContextFromWebPage(
 
   return {
     content: elementsInfo!,
+    tree: webTree,
     size,
     screenshotBase64: screenshotBase64!,
     screenshotBase64WithElementMarker: screenshotBase64WithElementMarker,
@@ -83,42 +105,45 @@ export async function parseContextFromWebPage(
   };
 }
 
-export async function getExtraReturnLogic() {
+export async function getExtraReturnLogic(tree = false) {
   const pathDir = findNearestPackageJson(__dirname);
   assert(pathDir, `can't find pathDir, with ${__dirname}`);
-  const scriptPath = path.join(pathDir, './dist/script/htmlElement.js');
+  const scriptPath = path.join(pathDir, './iife-script/htmlElement.js');
   const elementInfosScriptContent = readFileSync(scriptPath, 'utf-8');
+  if (tree) {
+    return `${elementInfosScriptContent}midscene_element_inspector.webExtractNodeTree()`;
+  }
   return `${elementInfosScriptContent}midscene_element_inspector.webExtractTextWithPosition()`;
 }
 
 const sizeThreshold = 3;
-async function alignElements(
-  elements: ElementInfo[],
-  page: WebPage,
-): Promise<WebElementInfo[]> {
-  const validElements = elements.filter((item) => {
-    return (
-      item.rect.height >= sizeThreshold && item.rect.width >= sizeThreshold
-    );
-  });
-  const textsAligned: WebElementInfo[] = [];
-  for (const item of validElements) {
-    const { rect, id, content, attributes, locator, indexId } = item;
-    textsAligned.push(
-      new WebElementInfo({
-        rect,
-        locator,
-        id,
-        content,
-        attributes,
-        page,
-        indexId,
-      }),
-    );
-  }
+// async function alignElements(
+//   elements: ElementInfo[],
+//   page: WebPage,
+// ): Promise<WebElementInfo[]> {
+//   const validElements = elements.filter((item) => {
+//     return (
+//       item.rect.height >= sizeThreshold && item.rect.width >= sizeThreshold
+//     );
+//   });
+//   const textsAligned: WebElementInfo[] = [];
+//   for (const item of validElements) {
+//     const { rect, id, content, attributes, locator, indexId } = item;
+//     textsAligned.push(
+//       new WebElementInfo({
+//         rect,
+//         locator,
+//         id,
+//         content,
+//         attributes,
+//         page,
+//         indexId,
+//       }),
+//     );
+//   }
 
-  return textsAligned;
-}
+//   return textsAligned;
+// }
 
 export function reportFileName(tag = 'web') {
   const reportTagName = getAIConfig(MIDSCENE_REPORT_TAG_NAME);

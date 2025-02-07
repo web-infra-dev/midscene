@@ -1,8 +1,9 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import type { WebPage } from '@/common/page';
-import type { ElementInfo } from '@/extractor';
-import { NodeType } from '@/extractor/constants';
+import { descriptionOfTree } from '@midscene/core/tree';
+import { NodeType } from '@midscene/shared/constants';
+import type { ElementInfo } from '@midscene/shared/extractor';
 import {
   processImageElementInfo,
   resizeImgBase64,
@@ -26,7 +27,8 @@ export async function generateExtractData(
     elementsPositionInfo,
     captureElementSnapshot,
     elementsPositionInfoWithoutText,
-  } = await getElementInfos(page);
+    elementTree,
+  } = await getElementsInfo(page);
 
   const inputImagePath = path.join(targetDir, 'input.png');
   const outputImagePath = path.join(targetDir, 'output.png');
@@ -36,7 +38,9 @@ export async function generateExtractData(
   );
   const resizeOutputImgPath = path.join(targetDir, 'resize-output.png');
   const snapshotJsonPath = path.join(targetDir, 'element-snapshot.json');
-
+  const elementTreeJsonPath = path.join(targetDir, 'element-tree.json');
+  const elementTreeTextText = descriptionOfTree(elementTree);
+  const elementTreeTextPath = path.join(targetDir, 'element-tree.txt');
   const {
     compositeElementInfoImgBase64,
     compositeElementInfoImgWithoutTextBase64,
@@ -52,9 +56,16 @@ export async function generateExtractData(
     ? JSON.parse(readFileSync(snapshotJsonPath, 'utf-8'))
     : null;
 
+  const existingElementTree = existsSync(elementTreeJsonPath)
+    ? JSON.parse(readFileSync(elementTreeJsonPath, 'utf-8'))
+    : null;
+
   if (
     existingSnapshot &&
-    JSON.stringify(existingSnapshot) === JSON.stringify(captureElementSnapshot)
+    JSON.stringify(existingSnapshot) ===
+      JSON.stringify(captureElementSnapshot) &&
+    existingElementTree &&
+    JSON.stringify(existingElementTree) === JSON.stringify(elementTree)
   ) {
     console.log('skip save snapshot for ', targetDir);
     return;
@@ -65,6 +76,11 @@ export async function generateExtractData(
       snapshotJsonPath,
       JSON.stringify(captureElementSnapshot, null, 2),
     );
+    writeFileSyncWithDir(
+      elementTreeJsonPath,
+      JSON.stringify(elementTree, null, 2),
+    );
+    writeFileSyncWithDir(elementTreeTextPath, elementTreeTextText);
   }
   if (!saveImgType?.disableInputImage) {
     await saveBase64Image({
@@ -125,9 +141,11 @@ export function writeFileSyncWithDir(
   writeFileSync(filePath, content, options);
 }
 
-export async function getElementInfos(page: WebPage) {
+export async function getElementsInfo(page: WebPage) {
   const captureElementSnapshot: Array<ElementInfo> =
-    await page.getElementInfos();
+    await page.getElementsInfo();
+
+  const elementTree = await page.getElementsNodeTree();
 
   const elementsPositionInfoWithoutText = captureElementSnapshot.filter(
     (elementInfo) => {
@@ -139,6 +157,7 @@ export async function getElementInfos(page: WebPage) {
   );
   return {
     elementsPositionInfo: captureElementSnapshot,
+    elementTree,
     captureElementSnapshot,
     elementsPositionInfoWithoutText,
   };

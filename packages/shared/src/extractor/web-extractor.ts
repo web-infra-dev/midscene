@@ -1,11 +1,10 @@
-import type { Point } from '@midscene/core';
+import type { ElementInfo } from '.';
 import {
   CONTAINER_MINI_HEIGHT,
   CONTAINER_MINI_WIDTH,
   NodeType,
-} from '@midscene/shared/constants';
-import { setFrameId } from '@midscene/shared/utils';
-import type { ElementInfo } from '.';
+} from '../constants';
+import type { Point } from '../types';
 import {
   isButtonElement,
   isContainerElement,
@@ -13,6 +12,7 @@ import {
   isImgElement,
   isTextElement,
 } from './dom-util';
+import { descriptionOfTree } from './tree';
 import {
   getNodeAttributes,
   getPseudoElementContent,
@@ -34,7 +34,7 @@ interface WebElementInfo extends ElementInfo {
 
 let indexId = 0;
 
-function tagNameOfNode(node: Node): string {
+function tagNameOfNode(node: globalThis.Node): string {
   let tagName = '';
   if (node instanceof HTMLElement) {
     tagName = node.tagName.toLowerCase();
@@ -50,7 +50,6 @@ function tagNameOfNode(node: Node): string {
 
 function collectElementInfo(
   node: Node,
-  nodePath: string,
   currentWindow: typeof window,
   currentDocument: typeof document,
   baseZoom = 1,
@@ -101,7 +100,6 @@ function collectElementInfo(
 
     const elementInfo: WebElementInfo = {
       id: nodeHashId,
-      nodePath,
       nodeHashId,
       locator: selector,
       nodeType: NodeType.FORM_ITEM,
@@ -133,7 +131,6 @@ function collectElementInfo(
     const elementInfo: WebElementInfo = {
       id: nodeHashId,
       indexId: indexId++,
-      nodePath,
       nodeHashId,
       nodeType: NodeType.BUTTON,
       locator: selector,
@@ -162,7 +159,6 @@ function collectElementInfo(
     const elementInfo: WebElementInfo = {
       id: nodeHashId,
       indexId: indexId++,
-      nodePath,
       nodeHashId,
       locator: selector,
       attributes: {
@@ -204,7 +200,6 @@ function collectElementInfo(
     const elementInfo: WebElementInfo = {
       id: nodeHashId,
       indexId: indexId++,
-      nodePath,
       nodeHashId,
       nodeType: NodeType.TEXT,
       locator: selector,
@@ -234,7 +229,6 @@ function collectElementInfo(
     const selector = setDataForNode(node, nodeHashId, false, currentWindow);
     const elementInfo: WebElementInfo = {
       id: nodeHashId,
-      nodePath,
       nodeHashId,
       indexId: indexId++,
       nodeType: NodeType.CONTAINER,
@@ -259,23 +253,59 @@ function collectElementInfo(
   return null;
 }
 
+interface WebElementNode {
+  node: WebElementInfo | null;
+  children: WebElementNode[];
+}
+
+// @deprecated
 export function extractTextWithPosition(
-  initNode: Node,
+  initNode: globalThis.Node,
   debugMode = false,
 ): WebElementInfo[] {
+  const elementNode = extractTreeNode(initNode, debugMode);
+
+  // dfs topChildren
+  const elementInfoArray: WebElementInfo[] = [];
+  function dfsTopChildren(node: WebElementNode) {
+    if (node.node) {
+      elementInfoArray.push(node.node);
+    }
+    for (let i = 0; i < node.children.length; i++) {
+      dfsTopChildren(node.children[i]);
+    }
+  }
+  dfsTopChildren({ children: elementNode.children, node: elementNode.node });
+  return elementInfoArray;
+}
+
+export function extractTreeNodeAsString(
+  initNode: globalThis.Node,
+  debugMode = false,
+): string {
+  const elementNode = extractTreeNode(initNode, debugMode);
+  return descriptionOfTree(elementNode);
+}
+
+export function extractTreeNode(
+  initNode: globalThis.Node,
+  debugMode = false,
+): WebElementNode {
   setDebugMode(debugMode);
   resetNodeHashCacheList();
   indexId = 0;
-  const elementInfoArray: WebElementInfo[] = [];
+
+  const topDocument = getTopDocument();
+  const startNode = initNode || topDocument;
+  const topChildren: WebElementNode[] = [];
 
   function dfs(
-    node: Node,
-    nodePath: string,
-    currentWindow: typeof window,
-    currentDocument: typeof document,
+    node: globalThis.Node,
+    currentWindow: typeof globalThis.window,
+    currentDocument: typeof globalThis.document,
     baseZoom = 1,
     basePoint: Point = { left: 0, top: 0 },
-  ): WebElementInfo | null {
+  ): WebElementNode | null {
     if (!node) {
       return null;
     }
@@ -287,23 +317,25 @@ export function extractTextWithPosition(
 
     const elementInfo = collectElementInfo(
       node,
-      nodePath,
       currentWindow,
       currentDocument,
       baseZoom,
       basePoint,
     );
 
-    if (elementInfo && node instanceof currentWindow.HTMLIFrameElement) {
+    if (node instanceof currentWindow.HTMLIFrameElement) {
       if (
         (node as HTMLIFrameElement).contentWindow &&
         (node as HTMLIFrameElement).contentWindow
       ) {
-        // other scripts will handle this
-        return elementInfo;
+        return null;
       }
     }
 
+    const nodeInfo: WebElementNode = {
+      node: elementInfo,
+      children: [],
+    };
     // stop collecting if the node is a Button or Image
     if (
       elementInfo?.nodeType === NodeType.BUTTON ||
@@ -312,52 +344,45 @@ export function extractTextWithPosition(
       elementInfo?.nodeType === NodeType.FORM_ITEM ||
       elementInfo?.nodeType === NodeType.CONTAINER
     ) {
-      elementInfoArray.push(elementInfo);
-      return elementInfo;
+      return nodeInfo;
     }
 
     const rect = getRect(node, baseZoom, currentWindow);
     for (let i = 0; i < node.childNodes.length; i++) {
       logger('will dfs', node.childNodes[i]);
-      dfs(
+      const childNodeInfo = dfs(
         node.childNodes[i],
-        `${nodePath}-${i}`,
         currentWindow,
         currentDocument,
         rect.zoom,
         basePoint,
       );
+      if (childNodeInfo) {
+        nodeInfo.children.push(childNodeInfo);
+      }
     }
 
-    if (!elementInfo) {
-      logger('should NOT continue for node', node);
-      return null;
-    }
-    return elementInfo;
+    return nodeInfo;
   }
 
-  const topDocument = getTopDocument();
-  const rootNode = initNode || topDocument;
-
-  dfs(rootNode, '0', window, document, 1, { left: 0, top: 0 });
-  if (rootNode === topDocument) {
+  const rootNodeInfo = dfs(startNode, window, document, 1, {
+    left: 0,
+    top: 0,
+  });
+  if (rootNodeInfo) {
+    topChildren.push(rootNodeInfo);
+  }
+  if (startNode === topDocument) {
     // find all the same-origin iframes
     const iframes = document.querySelectorAll('iframe');
     for (let i = 0; i < iframes.length; i++) {
       const iframe = iframes[i];
       if (iframe.contentDocument && iframe.contentWindow) {
-        const iframeInfo = collectElementInfo(
-          iframe,
-          `${i}`,
-          window,
-          document,
-          1,
-        );
+        const iframeInfo = collectElementInfo(iframe, window, document, 1);
+        // when the iframe is in the viewport, we need to collect its children
         if (iframeInfo) {
-          // it's still in the viewport
-          dfs(
+          const iframeChildren = dfs(
             iframe.contentDocument.body,
-            `${i}`,
             iframe.contentWindow as any,
             iframe.contentDocument,
             1,
@@ -366,10 +391,16 @@ export function extractTextWithPosition(
               top: iframeInfo.rect.top,
             },
           );
+          if (iframeChildren) {
+            topChildren.push(iframeChildren);
+          }
         }
       }
     }
   }
 
-  return elementInfoArray;
+  return {
+    node: null,
+    children: topChildren,
+  };
 }

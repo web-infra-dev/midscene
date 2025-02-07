@@ -14,7 +14,13 @@ import {
   runTestCases,
 } from './test-suite/util';
 import 'dotenv/config';
+import dotenv from 'dotenv';
 import { repeatTime } from '../util';
+
+dotenv.config({
+  debug: true,
+  override: true,
+});
 
 const relocateAfterPlanning = false;
 const failCaseThreshold = process.env.CI ? 1 : 0;
@@ -139,9 +145,10 @@ describe('ai inspect element', () => {
           });
           // await sleep(20 * 1000);
           expect(resultData.successCount).toBeGreaterThan(0);
-          expect(resultData.failCount).toBeLessThanOrEqual(
-            source === 'aweme_play' ? 2 : failCaseThreshold,
-          );
+          // expect(resultData.failCount).toBeLessThanOrEqual(
+          //   source === 'aweme_play' ? 2 : failCaseThreshold,
+          // );
+          expect(resultData.failCount).toBeLessThanOrEqual(failCaseThreshold);
 
           await new Promise((resolve) => setTimeout(resolve, 10 * 1000));
         },

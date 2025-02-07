@@ -10,9 +10,6 @@
     "jsx": "preserve",
     "lib": ["DOM", "ESNext"],
     "moduleResolution": "node",
-    "paths": {
-      "@/*": ["./src/*"]
-    },
     "resolveJsonModule": true,
     "rootDir": "src",
     "skipLibCheck": true,
