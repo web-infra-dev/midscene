@@ -120,7 +120,7 @@
     "e2e:generate-test-data": "GENERATE_TEST_DATA=true playwright test ./tests/ai/web/playwright/generate-test-data.spec.ts",
     "e2e:generate-test-data:headed": "GENERATE_TEST_DATA=true playwright test ./tests/ai/web/playwright/generate-test-data.spec.ts --headed"
   },
-  "files": ["static", "dist", "README.md", "bin"],
+  "files": ["static", "dist", "iife-script", "README.md", "bin"],
   "dependencies": {
     "@midscene/core": "workspace:*",
     "@midscene/shared": "workspace:*",
