@@ -153,7 +153,7 @@ function buildExtension() {
 
   // put the htmlElement.js into the extension
   safeCopyFile(
-    join(__dirname, '../../web-integration/dist/script/htmlElement.js'),
+    join(__dirname, '../../web-integration/iife-script/htmlElement.js'),
     join(__dirname, '../unpacked-extension/lib/htmlElement.js'),
   );
 }

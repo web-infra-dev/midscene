@@ -1,11 +1,10 @@
-import type { Point } from '@midscene/core';
-import { descriptionOfTree } from '@midscene/core/tree';
+import type { ElementInfo } from '.';
 import {
   CONTAINER_MINI_HEIGHT,
   CONTAINER_MINI_WIDTH,
   NodeType,
-} from '@midscene/shared/constants';
-import type { ElementInfo } from '.';
+} from '../constants';
+import type { Point } from '../types';
 import {
   isButtonElement,
   isContainerElement,
@@ -13,6 +12,7 @@ import {
   isImgElement,
   isTextElement,
 } from './dom-util';
+import { descriptionOfTree } from './tree';
 import {
   getNodeAttributes,
   getPseudoElementContent,
@@ -34,7 +34,7 @@ interface WebElementInfo extends ElementInfo {
 
 let indexId = 0;
 
-function tagNameOfNode(node: Node): string {
+function tagNameOfNode(node: globalThis.Node): string {
   let tagName = '';
   if (node instanceof HTMLElement) {
     tagName = node.tagName.toLowerCase();
@@ -260,7 +260,7 @@ interface WebElementNode {
 
 // @deprecated
 export function extractTextWithPosition(
-  initNode: Node,
+  initNode: globalThis.Node,
   debugMode = false,
 ): WebElementInfo[] {
   const elementNode = extractTreeNode(initNode, debugMode);
@@ -280,7 +280,7 @@ export function extractTextWithPosition(
 }
 
 export function extractTreeNodeAsString(
-  initNode: Node,
+  initNode: globalThis.Node,
   debugMode = false,
 ): string {
   const elementNode = extractTreeNode(initNode, debugMode);
@@ -288,7 +288,7 @@ export function extractTreeNodeAsString(
 }
 
 export function extractTreeNode(
-  initNode: Node,
+  initNode: globalThis.Node,
   debugMode = false,
 ): WebElementNode {
   setDebugMode(debugMode);
@@ -300,9 +300,9 @@ export function extractTreeNode(
   const topChildren: WebElementNode[] = [];
 
   function dfs(
-    node: Node,
-    currentWindow: typeof window,
-    currentDocument: typeof document,
+    node: globalThis.Node,
+    currentWindow: typeof globalThis.window,
+    currentDocument: typeof globalThis.document,
     baseZoom = 1,
     basePoint: Point = { left: 0, top: 0 },
   ): WebElementNode | null {

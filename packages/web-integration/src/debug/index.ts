@@ -1,9 +1,9 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import type { WebPage } from '@/common/page';
-import type { ElementInfo } from '@/extractor';
-import { NodeType } from '@/extractor/constants';
 import { descriptionOfTree } from '@midscene/core/tree';
+import { NodeType } from '@midscene/shared/constants';
+import type { ElementInfo } from '@midscene/shared/extractor';
 import {
   processImageElementInfo,
   resizeImgBase64,

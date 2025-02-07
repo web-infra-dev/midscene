@@ -1,10 +1,10 @@
 import assert from 'node:assert';
 import { MATCH_BY_POSITION, getAIConfig } from '@/env';
 import { imageInfoOfBase64 } from '@/image';
-import { descriptionOfTree } from '@/tree';
 import type { BaseElement, ElementTreeNode, Size, UIContext } from '@/types';
 import { PromptTemplate } from '@langchain/core/prompts';
 import { NodeType } from '@midscene/shared/constants';
+import { descriptionOfTree, treeToList } from '@midscene/shared/extractor';
 import { generateHashId } from '@midscene/shared/utils';
 import type { ResponseFormatJSONSchema } from 'openai/resources';
 
@@ -261,21 +261,10 @@ export async function describeUserPage<
   const treeRoot = context.tree;
   // dfs tree, save the id and element info
   const idElementMap: Record<string, ElementType> = {};
-  const flatElements: ElementType[] = [];
-  function dfsTree(node: ElementTreeNode<ElementType>) {
-    if (node?.node) {
-      idElementMap[node.node.id] = node.node;
-
-      if (typeof node.node.indexId !== 'undefined') {
-        idElementMap[`${node.node.indexId}`] = node.node;
-      }
-      flatElements.push(node.node);
-    }
-    for (let i = 0; i < (node.children || []).length; i++) {
-      dfsTree(node.children[i]);
-    }
-  }
-  dfsTree(treeRoot);
+  const flatElements: ElementType[] = treeToList(treeRoot);
+  flatElements.forEach((element) => {
+    idElementMap[element.id] = element;
+  });
 
   const contentTree = await descriptionOfTree(
     treeRoot,

@@ -1,11 +1,14 @@
 import fs from 'node:fs';
 import type { Point, Size } from '@midscene/core';
 import { getTmpFile } from '@midscene/core/utils';
+import {
+  type ElementInfo,
+  clientExtractTextWithPosition,
+} from '@midscene/shared/extractor';
 import { base64Encoded, resizeImg } from '@midscene/shared/img';
 import { DOMParser } from '@xmldom/xmldom';
 import type { KeyInput as PuppeteerKeyInput } from 'puppeteer';
 import type { Browser } from 'webdriverio';
-import { type ElementInfo, clientExtractTextWithPosition } from '../extractor';
 import type { AbstractPage, MouseButton } from '../page';
 
 type WebKeyInput = PuppeteerKeyInput;

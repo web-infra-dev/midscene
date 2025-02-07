@@ -100,10 +100,8 @@
   "scripts": {
     "dev": "modern dev",
     "dev:server": "npm run build && ./bin/midscene-playground",
-    "build": "npm run build:pkg && npm run build:script",
-    "build:pkg": "modern build -c ./modern.config.ts",
-    "build:script": "modern build -c ./modern.inspect.config.ts",
-    "build:watch": "modern build -w -c ./modern.config.ts & modern build -w -c ./modern.inspect.config.ts",
+    "build": "modern build -c ./modern.config.ts",
+    "build:watch": "modern build -w -c ./modern.config.ts",
     "test": "vitest --run",
     "test:u": "vitest --run -u",
     "test:ai": "AI_TEST_TYPE=web npm run test",

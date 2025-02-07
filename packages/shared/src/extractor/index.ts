@@ -1,4 +1,4 @@
-import type { NodeType } from '@midscene/shared/constants';
+import type { NodeType } from '../constants';
 
 export interface ElementInfo {
   id: string;
@@ -19,6 +19,8 @@ export interface ElementNode {
   node: ElementInfo | null;
   children: ElementNode[];
 }
+
+export { descriptionOfTree, traverseTree, treeToList } from './tree';
 
 export { extractTextWithPosition as webExtractTextWithPosition } from './web-extractor';
 

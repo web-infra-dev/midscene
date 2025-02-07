@@ -1,6 +1,6 @@
-import { descriptionOfTree } from '@/tree';
-import { NodeType } from '@midscene/shared/constants';
 import { describe, expect, it } from 'vitest';
+import { NodeType } from '../../src/constants';
+import { descriptionOfTree } from '../../src/extractor/tree';
 
 describe('utils', () => {
   const tree = {

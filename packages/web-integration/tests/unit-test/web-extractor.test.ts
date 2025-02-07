@@ -1,8 +1,9 @@
 import path, { join } from 'node:path';
-import { parseContextFromWebPage, traverseTree } from '@/common/utils';
+import { parseContextFromWebPage } from '@/common/utils';
 import { generateExtractData } from '@/debug';
 import StaticPage from '@/playground/static-page';
 import type { WebElementInfo } from '@/web-element';
+import { traverseTree } from '@midscene/shared/extractor';
 import { imageInfoOfBase64 } from '@midscene/shared/img';
 import { createServer } from 'http-server';
 import { beforeAll, describe, expect, it } from 'vitest';
