@@ -621,10 +621,31 @@ export class PageTaskExecutor {
           ],
         });
         const startTime = Date.now();
-        const planResult = await vlmPlanning({
-          userInstruction: param.userPrompt,
-          conversationHistory: this.conversationHistory,
-          size: pageContext.size,
+
+        const cacheGroup = this.taskCache.getCacheGroupByPrompt(userPrompt);
+        const planCache = cacheGroup.readCache(
+          pageContext,
+          'ui-tars-plan',
+          userPrompt,
+        );
+        let planResult: Awaited<ReturnType<typeof vlmPlanning>>;
+        if (planCache) {
+          planResult = planCache;
+        } else {
+          planResult = await vlmPlanning({
+            userInstruction: param.userPrompt,
+            conversationHistory: this.conversationHistory,
+            size: pageContext.size,
+          });
+        }
+        cacheGroup.saveCache({
+          type: 'ui-tars-plan',
+          pageContext: {
+            url: pageContext.url,
+            size: pageContext.size,
+          },
+          prompt: userPrompt,
+          response: planResult,
         });
         const aiCost = Date.now() - startTime;
         const { actions, action_summary } = planResult;
