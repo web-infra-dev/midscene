@@ -264,6 +264,9 @@ export async function describeUserPage<
   const flatElements: ElementType[] = treeToList(treeRoot);
   flatElements.forEach((element) => {
     idElementMap[element.id] = element;
+    if (typeof element.indexId !== 'undefined') {
+      idElementMap[`${element.indexId}`] = element;
+    }
   });
 
   const contentTree = await descriptionOfTree(
