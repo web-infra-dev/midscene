@@ -11,11 +11,17 @@ vi.setConfig({
 
 describe.skipIf(!process.env.BRIDGE_MODE)('drag event', () => {
   it('agent in cli side, current tab', async () => {
-    const agent = new AgentOverChromeBridge();
-    await agent.connectCurrentTab();
+    const agent = new AgentOverChromeBridge({
+      cacheId: 'search-midscene-star',
+    });
+    await agent.connectCurrentTab({
+      trackingActiveTab: true,
+    });
 
-    await agent.aiAction('全选，删除文本');
-    // sleep 3s
+    await agent.aiAction(
+      'Search midscene github and complete the star like or cancel',
+    );
+
     await sleep(3000);
 
     await agent.destroy();
