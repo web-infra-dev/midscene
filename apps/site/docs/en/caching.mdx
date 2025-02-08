@@ -8,14 +8,47 @@ Currently, the caching capability is supported in all scenarios, and Midscene ca
 
 **Usage**
 
-```diff
-- playwright test --config=playwright.config.ts
-+ MIDSCENE_CACHE=true playwright test --config=playwright.config.ts
-```
+
+import { Tab, Tabs } from 'rspress/theme';
+
+<Tabs>
+  <Tab label="Playwright">
+    ```diff
+    - playwright test --config=playwright.config.ts
+    + MIDSCENE_CACHE=true playwright test --config=playwright.config.ts
+    ```
+  </Tab>
+  <Tab label="Puppeteer">
+    ```diff
+    - tsx demo.ts 
+    + MIDSCENE_CACHE=true tsx demo.ts
+    ```
+    
+    ```javascript
+    const mid = new PuppeteerAgent(originPage, {
+      cacheId: 'puppeteer-swag-sab)', // Add cache id
+    });
+    ```
+  </Tab>
+  <Tab label="Bridge Mode">
+    ```diff
+    - tsx demo.ts
+    + MIDSCENE_CACHE=true tsx demo.ts
+    ```
+
+    ```javascript
+    const agent = new AgentOverChromeBridge({
+      cacheId: 'star-midscene-github', // Add cache id
+    });
+    ```
+  </Tab>
+</Tabs>
+
+
 
 **Effect**
 
-After enabling the cache, the execution time is significantly reduced, for example, from 1m16s to 23s.
+After enabling the cache, the execution time is significantly reduced, for example, from 39s to 13s.
 
 * **before**
 

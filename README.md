@@ -46,6 +46,7 @@ From version v0.10.0, we support a new open-source model named [`UI-TARS`](https
 - **Support Private Deployment 🤖**: Supports private deployment of [`UI-TARS`](https://github.com/bytedance/ui-tars) model, which outperforms closed-source models like GPT-4o and Claude in UI automation scenarios while better protecting data security.
 - **Support General Models 🌟**: Supports general large models like GPT-4o and Claude, adapting to various scenario needs.
 - **Visual Reports for Debugging 🎞️**: Through our test reports and Playground, you can easily understand, replay and debug the entire process.
+- **Support Caching 🔄**: The first time you execute a task through AI, it will be cached, and subsequent executions of the same task will significantly improve execution efficiency.
 - **Completely Open Source 🔥**: Experience a whole new automation development experience, enjoy!
 - **Understand UI, JSON Format Responses 🔍**: You can specify data format requirements and receive responses in JSON format.
 - **Intuitive Assertions 🤔**: Express your assertions in natural language, and AI will understand and process them.

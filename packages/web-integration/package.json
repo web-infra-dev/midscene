@@ -106,7 +106,7 @@
     "test:u": "vitest --run -u",
     "test:ai": "AI_TEST_TYPE=web npm run test",
     "test:ai:temp": "AI_TEST_TYPE=web BRIDGE_MODE=true vitest --run tests/ai/bridge/temp.test.ts",
-    "test:ai:bridge": "BRIDGE_MODE=true npm run test --inspect tests/ai/bridge/agent.test.ts",
+    "test:ai:bridge": "MIDSCENE_CACHE=true BRIDGE_MODE=true AI_TEST_TYPE=web npm run test --inspect tests/ai/bridge/temp.test.ts",
     "test:ai:cache": "MIDSCENE_CACHE=true AI_TEST_TYPE=web npm run test",
     "test:ai:all": "npm run test:ai:web && npm run test:ai:native",
     "test:ai:native": "MIDSCENE_CACHE=true AI_TEST_TYPE=native npm run test",

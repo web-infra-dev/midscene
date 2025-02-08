@@ -103,7 +103,9 @@ export class ChromeExtensionPageBrowserSide extends ChromeExtensionProxyPage {
 
   public async connectNewTabWithUrl(
     url: string,
-    options?: BridgeConnectTabOptions,
+    options: BridgeConnectTabOptions = {
+      trackingActiveTab: true,
+    },
   ) {
     const tab = await chrome.tabs.create({ url });
     const tabId = tab.id;
@@ -117,7 +119,11 @@ export class ChromeExtensionPageBrowserSide extends ChromeExtensionProxyPage {
     }
   }
 
-  public async connectCurrentTab(options?: BridgeConnectTabOptions) {
+  public async connectCurrentTab(
+    options: BridgeConnectTabOptions = {
+      trackingActiveTab: true,
+    },
+  ) {
     const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
     console.log('current tab', tabs);
     const tabId = tabs[0]?.id;
