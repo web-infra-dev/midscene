@@ -2,7 +2,7 @@
   "testDataPath": "test-data/online_order",
   "testCases": [
     {
-      "prompt": "the 'select option' button is yellow",
+      "prompt": "the 'select option' button background color is yellow",
       "expected": true
     },
     {

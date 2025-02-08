@@ -20,5 +20,6 @@ export default defineConfig({
       __VERSION__: version,
     },
     splitting: true,
+    sourceMap: true,
   },
 });
