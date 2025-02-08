@@ -591,7 +591,10 @@ export class PageTaskExecutor {
     return task;
   }
 
-  private planningTaskToGoal(userPrompt: string) {
+  private planningTaskToGoal(
+    userPrompt: string,
+    cacheGroup: ReturnType<TaskCache['getCacheGroupByPrompt']>,
+  ) {
     const task: ExecutionTaskPlanningApply = {
       type: 'Planning',
       locate: null,
@@ -622,7 +625,6 @@ export class PageTaskExecutor {
         });
         const startTime = Date.now();
 
-        const cacheGroup = this.taskCache.getCacheGroupByPrompt(userPrompt);
         const planCache = cacheGroup.readCache(
           pageContext,
           'ui-tars-plan',
@@ -663,6 +665,9 @@ export class PageTaskExecutor {
               whatToDoNext: '',
               whatHaveDone: '',
             },
+          },
+          cache: {
+            hit: Boolean(planCache),
           },
           aiCost,
         };
@@ -759,15 +764,17 @@ export class PageTaskExecutor {
       onTaskStart: options?.onTaskStart,
     });
     this.conversationHistory = [];
-
+    const cacheGroup = this.taskCache.getCacheGroupByPrompt(userPrompt);
     const isCompleted = false;
     let currentActionNumber = 0;
     const maxActionNumber = 20;
 
     while (!isCompleted && currentActionNumber < maxActionNumber) {
       currentActionNumber++;
-      const planningTask: ExecutionTaskPlanningApply =
-        this.planningTaskToGoal(userPrompt);
+      const planningTask: ExecutionTaskPlanningApply = this.planningTaskToGoal(
+        userPrompt,
+        cacheGroup,
+      );
       await taskExecutor.append(planningTask);
       const output = await taskExecutor.flush();
       if (taskExecutor.isInErrorState()) {
