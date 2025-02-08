@@ -8,14 +8,46 @@ Midscene.js 提供了 AI 缓存能力，用于提升整个 AI 执行过程的稳
 
 **使用方式**
 
-```diff
-- playwright test --config=playwright.config.ts
-+ MIDSCENE_CACHE=true playwright test --config=playwright.config.ts
-```
+
+import { Tab, Tabs } from 'rspress/theme';
+
+<Tabs>
+  <Tab label="Playwright">
+    ```diff
+    - playwright test --config=playwright.config.ts
+    + MIDSCENE_CACHE=true playwright test --config=playwright.config.ts
+    ```
+  </Tab>
+  <Tab label="Puppeteer">
+    ```diff
+    - tsx demo.ts 
+    + MIDSCENE_CACHE=true tsx demo.ts
+    ```
+    
+    ```javascript
+    const mid = new PuppeteerAgent(originPage, {
+      cacheId: 'puppeteer-swag-sab)', // Add cache id
+    });
+    ```
+  </Tab>
+  <Tab label="Bridge Mode">
+    ```diff
+    - tsx demo.ts
+    + MIDSCENE_CACHE=true tsx demo.ts
+    ```
+
+    ```javascript
+    const agent = new AgentOverChromeBridge({
+      cacheId: 'star-midscene-github', // Add cache id
+    });
+    ```
+  </Tab>
+</Tabs>
+
 
 **使用效果**
 
-通过引入缓存后，用例的执行时间大幅降低了，例如从1分16秒降低到了23秒。
+通过引入缓存后，用例的执行时间大幅降低了，例如从39秒降低到了13秒。
 
 * **before**
 

@@ -12,7 +12,7 @@ vi.setConfig({
 describe.skipIf(!process.env.BRIDGE_MODE)('drag event', () => {
   it('agent in cli side, current tab', async () => {
     const agent = new AgentOverChromeBridge({
-      cacheId: 'search-midscene-star',
+      cacheId: 'star-midscene-github',
     });
     await agent.connectCurrentTab({
       trackingActiveTab: true,
