@@ -133,7 +133,7 @@ export async function vlmPlanning(options: {
   });
 
   if (transformActions.length === 0) {
-    throw new Error('No actions found', {
+    throw new Error(`No actions found with reason: ${res.content}`, {
       cause: {
         prediction: res.content,
         parsed,
