@@ -189,10 +189,10 @@ export type PlayWrightAiFixtureType = {
   aiWaitFor: (assertion: string, opt?: AgentWaitForOpt) => Promise<void>;
 };
 
-function waitForNetworkIdle(page: OriginPlaywrightPage) {
-  const timeout = 20 * 1000;
-  return Promise.race([
-    page.waitForLoadState('networkidle'),
-    new Promise((resolve) => setTimeout(resolve, timeout)),
-  ]);
+async function waitForNetworkIdle(page: OriginPlaywrightPage, timeout = 20000) {
+  try {
+    await page.waitForLoadState('networkidle', { timeout });
+  } catch (error) {
+    console.warn(`Network idle timeout exceeded: ${error.message}`);
+  }
 }
