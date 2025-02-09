@@ -192,7 +192,7 @@ export type PlayWrightAiFixtureType = {
 async function waitForNetworkIdle(page: OriginPlaywrightPage, timeout = 20000) {
   try {
     await page.waitForLoadState('networkidle', { timeout });
-  } catch (error) {
-    console.warn(`Network idle timeout exceeded: ${error.message}`);
+  } catch (error: any) { 
+    console.warn(`Network idle timeout exceeded: ${error instanceof Error ? error.message : String(error)}`);
   }
 }
