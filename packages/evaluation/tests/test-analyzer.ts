@@ -1,7 +1,8 @@
 import { readFileSync, unlinkSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { MIDSCENE_MODEL_NAME, getAIConfig } from '@midscene/core';
-import { type getPageTestData, writeFileSyncWithDir } from './util';
+import type { buildContext } from '@midscene/core/evaluation';
+import { writeFileSyncWithDir } from './util';
 
 export class TestResultAnalyzer {
   private successCount = 0;
@@ -23,7 +24,7 @@ export class TestResultAnalyzer {
   private totalTime = 0;
 
   constructor(
-    private context: Awaited<ReturnType<typeof getPageTestData>>['context'],
+    private context: Awaited<ReturnType<typeof buildContext>>['context'],
     private aiDataPath: string,
     private aiData: any,
     private aiResponse: any[],
@@ -160,6 +161,7 @@ const aggregatedResultsPath = path.join(
   __dirname,
   `__ai_responses__/${getAIConfig(MIDSCENE_MODEL_NAME)}/aggregated-results.json`,
 );
+console.log(aggregatedResultsPath);
 
 // Function to delete the aggregated results file
 function deleteAggregatedResultsFile() {

@@ -109,7 +109,7 @@ test('heytea online order', async ({ page, ai }) => {
   );
 });
 
-test('heytea online order list (zh-cn)', async ({ page, ai }) => {
+test.only('heytea online order list (zh-cn)', async ({ page, ai }) => {
   const playwrightPage = new PlaywrightWebPage(page);
 
   page.setViewportSize({ width: 400, height: 905 });

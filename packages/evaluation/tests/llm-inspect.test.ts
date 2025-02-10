@@ -6,8 +6,7 @@ import { buildContext } from '@midscene/core/evaluation';
 import dotenv from 'dotenv';
 import { afterAll, expect, test } from 'vitest';
 import { TestResultAnalyzer, updateAggregatedResults } from './test-analyzer';
-import { type InspectAiTestCase, repeat, runTestCases } from './util';
-import { repeatTime } from './util';
+import { type InspectAiTestCase, runTestCases } from './util';
 
 dotenv.config({
   debug: true,
@@ -64,7 +63,6 @@ describe('ai inspect element', () => {
           );
 
           const { elementById } = await context.describer();
-
           const { aiResponse } = await runTestCases(
             pageData.testCases,
             context,
@@ -103,22 +101,25 @@ describe('ai inspect element', () => {
                 }
               }
 
-              const { parseResult } = await AiInspectElement({
-                context,
-                multi: false,
-                targetElementDescription: prompt,
-              });
+              const { parseResult, elementById: elementById2 } =
+                await AiInspectElement({
+                  context,
+                  multi: false,
+                  targetElementDescription: prompt,
+                });
+              const elements = parseResult.elements.length
+                ? parseResult.elements.map((item) => {
+                    const element = elementById2(item.id);
+                    return {
+                      id: element?.id ?? '',
+                      reason: item.reason ?? '',
+                      text: element?.content ?? '',
+                    };
+                  })
+                : [];
               return {
                 ...parseResult,
-                elements: parseResult.elements.length
-                  ? [
-                      {
-                        ...parseResult.elements[0],
-                        reason: parseResult.elements[0].reason ?? '',
-                        text: parseResult.elements[0].text ?? '',
-                      },
-                    ]
-                  : [],
+                elements,
               };
             },
           );
@@ -126,7 +127,7 @@ describe('ai inspect element', () => {
           const analyzer = new TestResultAnalyzer(
             context,
             aiDataPath,
-            aiData,
+            pageData,
             aiResponse,
             runType === 'planning' ? 1 : 0,
           );
@@ -144,7 +145,6 @@ describe('ai inspect element', () => {
             },
           });
           expect(resultData.successCount).toBeGreaterThan(0);
-          // await sleep(20 * 1000);
           expect(resultData.failCount).toBeLessThanOrEqual(
             source === 'aweme_play' ? 2 : failCaseThreshold,
           );
