@@ -59,4 +59,9 @@ describe('transformHotkeyInput', () => {
   it('should handle empty input', () => {
     expect(transformHotkeyInput('')).toEqual(['']);
   });
+
+  it('should handle page down', () => {
+    expect(transformHotkeyInput('page down')).toEqual(['PageDown']);
+    expect(transformHotkeyInput('page up')).toEqual(['PageUp']);
+  });
 });
