@@ -1,44 +1,55 @@
 {
-    "testDataPath": "taobao",
-    "testCases": [{
-            "prompt": "商品搜索框",
-            "multi": false,
-            "response": [{
-                "id": "jfjah",
-                "indexId": 27
-            }]
-        },
+  "testDataPath": "taobao",
+  "testCases": [
+    {
+      "prompt": "商品搜索框",
+      "multi": false,
+      "response": [
         {
-            "prompt": "搜索按钮",
-            "multi": false,
-            "response": [{
-                "id": "ondpi",
-                "indexId": 26
-            }]
-        },
-        {
-            "prompt": "产品分类里面的：男鞋（文字）",
-            "multi": false,
-            "response": [{
-                "id": "cjfcl",
-                "indexId": 99
-            }]
-        },
-        {
-            "prompt": "右侧“立即登录”下方的收藏夹 icon",
-            "multi": false,
-            "response": [{
-                "id": "fkfdl",
-                "indexId": 190
-            }]
-        },
-        {
-            "prompt": "右侧”官方客服“按钮文字",
-            "multi": false,
-            "response": [{
-                "id": "lhcmp",
-                "indexId": 214
-            }]
+          "id": "jfjah",
+          "indexId": 27
         }
-    ]
+      ]
+    },
+    {
+      "prompt": "搜索按钮",
+      "multi": false,
+      "response": [
+        {
+          "id": "ondpi",
+          "indexId": 26
+        }
+      ]
+    },
+    {
+      "prompt": "产品分类里面的：男鞋（文字）",
+      "multi": false,
+      "response": [
+        {
+          "id": "cjfcl",
+          "indexId": 99
+        }
+      ]
+    },
+    {
+      "prompt": "右侧“立即登录”下方的收藏夹 icon",
+      "multi": false,
+      "response": [
+        {
+          "id": "fkfdl",
+          "indexId": 190
+        }
+      ]
+    },
+    {
+      "prompt": "右侧”官方客服“按钮文字",
+      "multi": false,
+      "response": [
+        {
+          "id": "lhcmp",
+          "indexId": 214
+        }
+      ]
+    }
+  ]
 }
