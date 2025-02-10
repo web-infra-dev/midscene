@@ -1,0 +1,32 @@
+{
+    "name": "evaluation",
+    "private": true,
+    "scripts": {
+        "update-page-data:headless": "playwright test ./data-generator/generator-headless.spec.ts",
+        "update-page-data:headed": "playwright test ./data-generator/generator-headed.spec.ts --headed",
+        "evaluate:inspect": "npx vitest --run tests/inspect.test.ts",
+        "evaluate:inspect:update": "UPDATE_AI_DATA=true npm run evaluate:inspect",
+        "evaluate:assertion": "npx vitest --run tests/assertion.test.ts",
+        "evaluate:assertion:update": "UPDATE_AI_DATA=true npm run evaluate:assertion"
+    },
+    "dependencies": {
+        "@midscene/core": "workspace:*",
+        "@midscene/shared": "workspace:*",
+        "@midscene/web": "workspace:*"
+    },
+    "devDependencies": {
+        "dotenv": "16.4.5",
+        "playwright": "1.44.1",
+        "@playwright/test": "^1.44.1",
+        "typescript": "~5.0.4",
+        "vitest": "^1.6.0"
+    },
+    "engines": {
+        "node": ">=18.0.0"
+    },
+    "publishConfig": {
+        "access": "public",
+        "registry": "https://registry.npmjs.org"
+    },
+    "license": "MIT"
+}

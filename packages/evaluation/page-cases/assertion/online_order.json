@@ -1,0 +1,32 @@
+{
+    "testDataPath": "online_order",
+    "testCases": [{
+            "prompt": "the 'select option' button is yellow",
+            "expected": true
+        },
+        {
+            "prompt": "there are three tabs in the page, named 'Menu', 'Reviews', 'Merchant'",
+            "expected": true
+        },
+        {
+            "prompt": "the 'select option' button is blue",
+            "expected": false
+        },
+        {
+            "prompt": "there are three tabs in the page, named 'Home', 'Order', 'Profile'",
+            "expected": false
+        },
+        {
+            "prompt": "there is a shopping bag icon on the top right of the page",
+            "expected": true
+        },
+        {
+            "prompt": "The shopping bag icon on the top left of the page",
+            "expected": false
+        },
+        {
+            "prompt": "There is a homepage icon on the top right of the page",
+            "expected": false
+        }
+    ]
+}

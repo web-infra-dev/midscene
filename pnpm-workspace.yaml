@@ -5,3 +5,4 @@ packages:
   - packages/midscene
   - packages/visualizer
   - packages/web-integration
+  - packages/evaluation

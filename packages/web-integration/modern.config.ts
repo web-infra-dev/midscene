@@ -34,7 +34,6 @@ export default defineConfig({
       'bridge-mode-browser': 'src/bridge-mode/browser.ts',
       utils: 'src/common/utils.ts',
       'ui-utils': 'src/common/ui-utils.ts',
-      debug: 'src/debug/index.ts',
       puppeteer: 'src/puppeteer/index.ts',
       playwright: 'src/playwright/index.ts',
       playground: 'src/playground/index.ts',

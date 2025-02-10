@@ -55,10 +55,6 @@
       "import": "./dist/es/playground.js",
       "types": "./dist/types/playground.d.ts"
     },
-    "./debug": {
-      "require": "./dist/lib/debug.js",
-      "types": "./dist/types/debug.d.ts"
-    },
     "./constants": {
       "require": "./dist/lib/constants.js",
       "import": "./dist/es/constants.js",
@@ -81,20 +77,45 @@
   },
   "typesVersions": {
     "*": {
-      ".": ["./dist/types/index.d.ts"],
-      "bridge-mode": ["./dist/types/bridge-mode.d.ts"],
-      "bridge-mode-browser": ["./dist/types/bridge-mode-browser.d.ts"],
-      "utils": ["./dist/types/utils.d.ts"],
-      "ui-utils": ["./dist/types/ui-utils.d.ts"],
-      "puppeteer": ["./dist/types/puppeteer.d.ts"],
-      "playwright": ["./dist/types/playwright.d.ts"],
-      "playwright-report": ["./dist/types/playwright-report.d.ts"],
-      "playground": ["./dist/types/playground.d.ts"],
-      "debug": ["./dist/types/debug.d.ts"],
-      "constants": ["./dist/types/constants.d.ts"],
-      "html-element": ["./dist/types/html-element/index.d.ts"],
-      "chrome-extension": ["./dist/types/chrome-extension.d.ts"],
-      "yaml": ["./dist/types/yaml.d.ts"]
+      ".": [
+        "./dist/types/index.d.ts"
+      ],
+      "bridge-mode": [
+        "./dist/types/bridge-mode.d.ts"
+      ],
+      "bridge-mode-browser": [
+        "./dist/types/bridge-mode-browser.d.ts"
+      ],
+      "utils": [
+        "./dist/types/utils.d.ts"
+      ],
+      "ui-utils": [
+        "./dist/types/ui-utils.d.ts"
+      ],
+      "puppeteer": [
+        "./dist/types/puppeteer.d.ts"
+      ],
+      "playwright": [
+        "./dist/types/playwright.d.ts"
+      ],
+      "playwright-report": [
+        "./dist/types/playwright-report.d.ts"
+      ],
+      "playground": [
+        "./dist/types/playground.d.ts"
+      ],
+      "constants": [
+        "./dist/types/constants.d.ts"
+      ],
+      "html-element": [
+        "./dist/types/html-element/index.d.ts"
+      ],
+      "chrome-extension": [
+        "./dist/types/chrome-extension.d.ts"
+      ],
+      "yaml": [
+        "./dist/types/yaml.d.ts"
+      ]
     }
   },
   "scripts": {
@@ -120,7 +141,13 @@
     "e2e:generate-test-data": "GENERATE_TEST_DATA=true playwright test ./tests/ai/web/playwright/generate-test-data.spec.ts",
     "e2e:generate-test-data:headed": "GENERATE_TEST_DATA=true playwright test ./tests/ai/web/playwright/generate-test-data.spec.ts --headed"
   },
-  "files": ["static", "dist", "iife-script", "README.md", "bin"],
+  "files": [
+    "static",
+    "dist",
+    "iife-script",
+    "README.md",
+    "bin"
+  ],
   "dependencies": {
     "@midscene/core": "workspace:*",
     "@midscene/shared": "workspace:*",
@@ -221,10 +248,6 @@
         "require": "./dist/lib/playground.js",
         "import": "./dist/es/playground.js",
         "types": "./dist/types/playground.d.ts"
-      },
-      "./debug": {
-        "require": "./dist/lib/debug.js",
-        "types": "./dist/types/debug.d.ts"
       },
       "./constants": {
         "require": "./dist/lib/constants.js",

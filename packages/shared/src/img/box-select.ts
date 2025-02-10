@@ -1,23 +1,17 @@
 import assert from 'node:assert';
-import type { Buffer } from 'node:buffer';
 import type Jimp from 'jimp';
 import type { NodeType } from '../constants';
 import type { Rect } from '../types';
 import getJimp from './get-jimp';
-import { bufferFromBase64, imageInfo, imageInfoOfBase64 } from './index';
+import { bufferFromBase64, imageInfoOfBase64 } from './index';
 
 // Define picture path
 type ElementType = {
   locator?: string;
-
   rect: Rect;
-
   center?: [number, number];
-
   id?: string;
-
   indexId: number;
-
   attributes?: {
     nodeType: NodeType;
     [key: string]: string;
@@ -36,9 +30,11 @@ const createSvgOverlay = async (
 
   // Define color array
   const colors = [
-    { rect: 0xff0000ff, text: 0xffffffff }, // red, white
-    // { rect: 0x0000ffff, text: 0xffffffff }, // blue, white
-    // { rect: 0x8b4513ff, text: 0xffffffff }, // brown, white
+    { rect: 0xc62300ff, text: 0xffffffff }, // red, white
+    { rect: 0x0000ffff, text: 0xffffffff }, // blue, white
+    { rect: 0x8b4513ff, text: 0xffffffff }, // brown, white
+    { rect: 0x3e7b27ff, text: 0xffffffff }, // green, white
+    { rect: 0x500073ff, text: 0xffffffff }, // purple, white
   ];
 
   const boxPadding = 5;

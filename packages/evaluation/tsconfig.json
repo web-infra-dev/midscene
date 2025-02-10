@@ -1,6 +1,5 @@
 {
   "compilerOptions": {
-    "allowJs": true,
     "baseUrl": ".",
     "declaration": true,
     "emitDeclarationOnly": true,
@@ -10,11 +9,16 @@
     "jsx": "preserve",
     "lib": ["DOM", "ESNext"],
     "moduleResolution": "node",
+    "paths": {
+      "@/*": ["./src/*"]
+    },
+    "target": "ESNext",
     "resolveJsonModule": true,
-    "rootDir": "src",
+    "rootDir": "./",
     "skipLibCheck": true,
-    "strict": true
+    "strict": true,
+    "module": "ESNext"
   },
-  "exclude": ["**/node_modules"],
-  "include": ["src", "playwright.config.ts"]
+  "exclude": ["node_modules"],
+  "include": ["src", "tests", "./playwright.config.ts", "./vitest.config"]
 }

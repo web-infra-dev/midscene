@@ -4,6 +4,6 @@
     "baseUrl": "../",
     "rootDir": "../"
   },
-  "include": ["**/*", "../src"],
+  "include": ["**/*", "../src", "../../evaluation/tests/test-analyzer.ts"],
   "exclude": ["**/node_modules"]
 }
