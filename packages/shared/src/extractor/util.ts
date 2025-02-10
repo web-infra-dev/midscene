@@ -330,6 +330,19 @@ export function visibleRect(
 
   // check if the element is hidden by an ancestor
   let parent: HTMLElement | Node | null = el;
+  const parentUntilNonStatic = (currentNode: HTMLElement | Node | null) => {
+    // find a parent element that is not static
+    let parent = currentNode?.parentElement;
+    while (parent) {
+      const style = currentWindow.getComputedStyle(parent);
+      if (style.position !== 'static') {
+        return parent;
+      }
+      parent = parent.parentElement;
+    }
+    return null;
+  };
+
   while (parent && parent !== currentDocument.body) {
     if (!(parent instanceof currentWindow.HTMLElement)) {
       parent = parent.parentElement;
@@ -354,10 +367,15 @@ export function visibleRect(
       }
     }
     // if the parent is a fixed element, stop the search
-    if (parentStyle.position === 'fixed') {
+    if (parentStyle.position === 'fixed' || parentStyle.position === 'sticky') {
       break;
     }
-    parent = parent.parentElement;
+
+    if (parentStyle.position === 'absolute') {
+      parent = parentUntilNonStatic(parent);
+    } else {
+      parent = parent.parentElement;
+    }
   }
 
   return {
