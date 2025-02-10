@@ -11,6 +11,7 @@ import {
 } from '@midscene/core';
 import { NodeType } from '@midscene/shared/constants';
 
+import { ScriptPlayer, parseYamlScript } from '@/yaml';
 import { MIDSCENE_USE_VLM_UI_TARS, getAIConfig } from '@midscene/core/env';
 import {
   groupedActionDumpFileExt,
@@ -250,6 +251,30 @@ export class PageAgent<PageType extends WebPage = WebPage> {
     throw new Error(
       `Unknown type: ${type}, only support 'action', 'query', 'assert'`,
     );
+  }
+
+  async runYaml(yamlScriptContent: string): Promise<{
+    result: Record<string, any>;
+  }> {
+    const script = parseYamlScript(yamlScriptContent, 'yaml', true);
+    const player = new ScriptPlayer(script, async (target) => {
+      return { agent: this, freeFn: [] };
+    });
+    await player.run();
+
+    if (player.status === 'error') {
+      const errors = player.taskStatusList
+        .filter((task) => task.status === 'error')
+        .map((task) => {
+          return `task - ${task.name}: ${task.error?.message}`;
+        })
+        .join('\n');
+      throw new Error(`Error(s) occurred in running yaml script:\n${errors}`);
+    }
+
+    return {
+      result: player.result,
+    };
   }
 
   async destroy() {
