@@ -24,19 +24,25 @@ function interpolateEnvVars(content: string): string {
 export function parseYamlScript(
   content: string,
   filePath?: string,
+  ignoreCheckingTarget?: boolean,
 ): MidsceneYamlScript {
   const interpolatedContent = interpolateEnvVars(content);
   const obj = yaml.load(interpolatedContent) as MidsceneYamlScript;
   const pathTip = filePath ? `, failed to load ${filePath}` : '';
-  assert(obj.target, `property "target" is required in yaml script${pathTip}`);
-  assert(
-    typeof obj.target === 'object',
-    `property "target" must be an object${pathTip}`,
-  );
-  assert(obj.tasks, `property "tasks" is required in yaml script${pathTip}`);
+  if (!ignoreCheckingTarget) {
+    assert(
+      obj.target,
+      `property "target" is required in yaml script${pathTip}`,
+    );
+    assert(
+      typeof obj.target === 'object',
+      `property "target" must be an object${pathTip}`,
+    );
+  }
+  assert(obj.tasks, `property "tasks" is required in yaml script ${pathTip}`);
   assert(
     Array.isArray(obj.tasks),
-    `property "tasks" must be an array${pathTip}`,
+    `property "tasks" must be an array in yaml script, but got ${obj.tasks}`,
   );
   return obj;
 }
