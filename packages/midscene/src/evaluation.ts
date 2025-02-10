@@ -57,6 +57,5 @@ export async function getContextFromFixture(pageName: string) {
     __dirname,
     `../../evaluation/page-data/${pageName}`,
   );
-  console.log('targetDir', targetDir);
   return await buildContext(targetDir);
 }

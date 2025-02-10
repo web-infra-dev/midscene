@@ -9,7 +9,7 @@ vi.setConfig({
 
 describe('extract', () => {
   it('todo', async () => {
-    const { context } = await getContextFromFixture('todo');
+    const { context } = await getContextFromFixture('todo-input-with-value');
 
     const { parseResult } = await AiExtractElementInfo({
       dataQuery: 'Array<string>, Complete task list, string is the task',
@@ -29,7 +29,7 @@ describe('extract', () => {
   });
 
   it('todo obj', async () => {
-    const { context } = await getContextFromFixture('todo');
+    const { context } = await getContextFromFixture('todo-input-with-value');
 
     const { parseResult } = await AiExtractElementInfo({
       dataQuery:
