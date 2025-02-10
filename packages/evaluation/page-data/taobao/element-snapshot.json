@@ -9,10 +9,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<span>"
     },
-    "center": [
-      72,
-      18
-    ],
+    "center": [72, 18],
     "content": "中国大陆",
     "rect": {
       "left": 48,
@@ -44,10 +41,7 @@
       "height": 4,
       "zoom": 1
     },
-    "center": [
-      104,
-      18
-    ],
+    "center": [104, 18],
     "zoom": 1,
     "screenWidth": 1280,
     "screenHeight": 800
@@ -62,10 +56,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<a>"
     },
-    "center": [
-      154,
-      18
-    ],
+    "center": [154, 18],
     "content": "亲，请登录",
     "rect": {
       "left": 124,
@@ -88,10 +79,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<a>"
     },
-    "center": [
-      212,
-      18
-    ],
+    "center": [212, 18],
     "content": "免费注册",
     "rect": {
       "left": 188,
@@ -114,10 +102,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<span>"
     },
-    "center": [
-      286,
-      18
-    ],
+    "center": [286, 18],
     "content": "网页无障碍",
     "rect": {
       "left": 256,
@@ -140,10 +125,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<span>"
     },
-    "center": [
-      348,
-      18
-    ],
+    "center": [348, 18],
     "content": "切换",
     "rect": {
       "left": 336,
@@ -166,10 +148,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<span>"
     },
-    "center": [
-      378,
-      18
-    ],
+    "center": [378, 18],
     "content": "企业版",
     "rect": {
       "left": 360,
@@ -192,10 +171,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<span>"
     },
-    "center": [
-      440,
-      18
-    ],
+    "center": [440, 18],
     "content": "选择主题",
     "rect": {
       "left": 416,
@@ -227,10 +203,7 @@
       "height": 4,
       "zoom": 1
     },
-    "center": [
-      472,
-      18
-    ],
+    "center": [472, 18],
     "zoom": 1,
     "screenWidth": 1280,
     "screenHeight": 800
@@ -245,10 +218,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<span>"
     },
-    "center": [
-      702,
-      18
-    ],
+    "center": [702, 18],
     "content": "已买到的宝贝",
     "rect": {
       "left": 666,
@@ -271,10 +241,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<span>"
     },
-    "center": [
-      782,
-      18
-    ],
+    "center": [782, 18],
     "content": "我的淘宝",
     "rect": {
       "left": 758,
@@ -306,10 +273,7 @@
       "height": 4,
       "zoom": 1
     },
-    "center": [
-      814,
-      18
-    ],
+    "center": [814, 18],
     "zoom": 1,
     "screenWidth": 1280,
     "screenHeight": 800
@@ -333,10 +297,7 @@
       "height": 35,
       "zoom": 1
     },
-    "center": [
-      844,
-      18
-    ],
+    "center": [844, 18],
     "zoom": 1,
     "screenWidth": 1280,
     "screenHeight": 800
@@ -351,10 +312,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<span>"
     },
-    "center": [
-      872,
-      18
-    ],
+    "center": [872, 18],
     "content": "购物车",
     "rect": {
       "left": 854,
@@ -386,10 +344,7 @@
       "height": 35,
       "zoom": 1
     },
-    "center": [
-      922,
-      18
-    ],
+    "center": [922, 18],
     "zoom": 1,
     "screenWidth": 1280,
     "screenHeight": 800
@@ -404,10 +359,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<span>"
     },
-    "center": [
-      950,
-      18
-    ],
+    "center": [950, 18],
     "content": "收藏夹",
     "rect": {
       "left": 932,
@@ -439,10 +391,7 @@
       "height": 4,
       "zoom": 1
     },
-    "center": [
-      976,
-      18
-    ],
+    "center": [976, 18],
     "zoom": 1,
     "screenWidth": 1280,
     "screenHeight": 800
@@ -457,10 +406,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<span>"
     },
-    "center": [
-      1020,
-      18
-    ],
+    "center": [1020, 18],
     "content": "免费开店",
     "rect": {
       "left": 996,
@@ -492,10 +438,7 @@
       "height": 4,
       "zoom": 1
     },
-    "center": [
-      1052,
-      18
-    ],
+    "center": [1052, 18],
     "zoom": 1,
     "screenWidth": 1280,
     "screenHeight": 800
@@ -510,10 +453,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<span>"
     },
-    "center": [
-      1108,
-      18
-    ],
+    "center": [1108, 18],
     "content": "千牛卖家中心",
     "rect": {
       "left": 1072,
@@ -545,10 +485,7 @@
       "height": 4,
       "zoom": 1
     },
-    "center": [
-      1152,
-      18
-    ],
+    "center": [1152, 18],
     "zoom": 1,
     "screenWidth": 1280,
     "screenHeight": 800
@@ -563,10 +500,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<span>"
     },
-    "center": [
-      1196,
-      18
-    ],
+    "center": [1196, 18],
     "content": "帮助中心",
     "rect": {
       "left": 1172,
@@ -598,10 +532,7 @@
       "height": 4,
       "zoom": 1
     },
-    "center": [
-      1228,
-      18
-    ],
+    "center": [1228, 18],
     "zoom": 1,
     "screenWidth": 1280,
     "screenHeight": 800
@@ -627,10 +558,7 @@
       "height": 72,
       "zoom": 1
     },
-    "center": [
-      1104,
-      88
-    ],
+    "center": [1104, 88],
     "zoom": 1,
     "screenWidth": 1280,
     "screenHeight": 800
@@ -645,10 +573,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<span>"
     },
-    "center": [
-      352,
-      75
-    ],
+    "center": [352, 75],
     "content": "宝贝",
     "rect": {
       "left": 338,
@@ -680,10 +605,7 @@
       "height": 4,
       "zoom": 1
     },
-    "center": [
-      374,
-      75
-    ],
+    "center": [374, 75],
     "zoom": 1,
     "screenWidth": 1280,
     "screenHeight": 800
@@ -710,10 +632,7 @@
       "height": 36,
       "zoom": 1
     },
-    "center": [
-      812,
-      74
-    ],
+    "center": [812, 74],
     "zoom": 1,
     "screenWidth": 1280,
     "screenHeight": 800
@@ -745,10 +664,7 @@
       "height": 34,
       "zoom": 1
     },
-    "center": [
-      622,
-      75
-    ],
+    "center": [622, 75],
     "zoom": 1,
     "screenWidth": 1280,
     "screenHeight": 800
@@ -763,10 +679,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<a>"
     },
-    "center": [
-      374,
-      113
-    ],
+    "center": [374, 113],
     "content": "每满300减40",
     "rect": {
       "left": 338,
@@ -789,10 +702,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<a>"
     },
-    "center": [
-      442,
-      113
-    ],
+    "center": [442, 113],
     "content": "大额神券",
     "rect": {
       "left": 418,
@@ -815,10 +725,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<a>"
     },
-    "center": [
-      508,
-      113
-    ],
+    "center": [508, 113],
     "content": "好礼不只5折",
     "rect": {
       "left": 474,
@@ -841,10 +748,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<a>"
     },
-    "center": [
-      567,
-      113
-    ],
+    "center": [567, 113],
     "content": "电暖器",
     "rect": {
       "left": 549,
@@ -867,10 +771,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<a>"
     },
-    "center": [
-      617,
-      113
-    ],
+    "center": [617, 113],
     "content": "发热鞋垫",
     "rect": {
       "left": 593,
@@ -893,10 +794,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<a>"
     },
-    "center": [
-      667,
-      113
-    ],
+    "center": [667, 113],
     "content": "羽绒裤",
     "rect": {
       "left": 649,
@@ -919,10 +817,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<a>"
     },
-    "center": [
-      711,
-      113
-    ],
+    "center": [711, 113],
     "content": "雪地靴",
     "rect": {
       "left": 693,
@@ -945,10 +840,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<a>"
     },
-    "center": [
-      779,
-      113
-    ],
+    "center": [779, 113],
     "content": "男士休闲家居服",
     "rect": {
       "left": 737,
@@ -980,10 +872,7 @@
       "height": 20,
       "zoom": 1
     },
-    "center": [
-      882,
-      74
-    ],
+    "center": [882, 74],
     "zoom": 1,
     "screenWidth": 1280,
     "screenHeight": 800
@@ -998,10 +887,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<div>"
     },
-    "center": [
-      924,
-      75
-    ],
+    "center": [924, 75],
     "content": "搜同款",
     "rect": {
       "left": 900,
@@ -1024,10 +910,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<span>"
     },
-    "center": [
-      821,
-      130
-    ],
+    "center": [821, 130],
     "content": "按图片搜索",
     "rect": {
       "left": 786,
@@ -1050,10 +933,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<a>"
     },
-    "center": [
-      252,
-      156
-    ],
+    "center": [252, 156],
     "content": "天猫",
     "rect": {
       "left": 236,
@@ -1085,10 +965,7 @@
       "height": 16,
       "zoom": 1
     },
-    "center": [
-      324,
-      155
-    ],
+    "center": [324, 155],
     "zoom": 1,
     "screenWidth": 1280,
     "screenHeight": 800
@@ -1103,10 +980,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<a>"
     },
-    "center": [
-      370,
-      156
-    ],
+    "center": [370, 156],
     "content": "淘宝直播",
     "rect": {
       "left": 338,
@@ -1138,10 +1012,7 @@
       "height": 16,
       "zoom": 1
     },
-    "center": [
-      458,
-      155
-    ],
+    "center": [458, 155],
     "zoom": 1,
     "screenWidth": 1280,
     "screenHeight": 800
@@ -1156,10 +1027,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<a>"
     },
-    "center": [
-      512,
-      156
-    ],
+    "center": [512, 156],
     "content": "淘宝企业购",
     "rect": {
       "left": 472,
@@ -1182,10 +1050,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<a>"
     },
-    "center": [
-      632,
-      156
-    ],
+    "center": [632, 156],
     "content": "司法拍卖",
     "rect": {
       "left": 600,
@@ -1217,10 +1082,7 @@
       "height": 16,
       "zoom": 1
     },
-    "center": [
-      720,
-      155
-    ],
+    "center": [720, 155],
     "zoom": 1,
     "screenWidth": 1280,
     "screenHeight": 800
@@ -1235,10 +1097,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<a>"
     },
-    "center": [
-      766,
-      156
-    ],
+    "center": [766, 156],
     "content": "天猫超市",
     "rect": {
       "left": 734,
@@ -1270,10 +1129,7 @@
       "height": 16,
       "zoom": 1
     },
-    "center": [
-      854,
-      155
-    ],
+    "center": [854, 155],
     "zoom": 1,
     "screenWidth": 1280,
     "screenHeight": 800
@@ -1288,10 +1144,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<a>"
     },
-    "center": [
-      900,
-      156
-    ],
+    "center": [900, 156],
     "content": "闲鱼集市",
     "rect": {
       "left": 868,
@@ -1314,10 +1167,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<a>"
     },
-    "center": [
-      1012,
-      156
-    ],
+    "center": [1012, 156],
     "content": "天猫国际",
     "rect": {
       "left": 980,
@@ -1340,10 +1190,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<span>"
     },
-    "center": [
-      80,
-      212
-    ],
+    "center": [80, 212],
     "content": "分类",
     "rect": {
       "left": 64,
@@ -1376,10 +1223,7 @@
       "height": 20,
       "zoom": 1
     },
-    "center": [
-      150,
-      211
-    ],
+    "center": [150, 211],
     "zoom": 1,
     "screenWidth": 1280,
     "screenHeight": 800
@@ -1404,10 +1248,7 @@
       "height": 32,
       "zoom": 1
     },
-    "center": [
-      74,
-      243
-    ],
+    "center": [74, 243],
     "zoom": 1,
     "screenWidth": 1280,
     "screenHeight": 800
@@ -1422,10 +1263,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<a>"
     },
-    "center": [
-      135,
-      244
-    ],
+    "center": [135, 244],
     "content": "每满300减40",
     "rect": {
       "left": 92,
@@ -1457,10 +1295,7 @@
       "height": 32,
       "zoom": 1
     },
-    "center": [
-      188,
-      243
-    ],
+    "center": [188, 243],
     "zoom": 1,
     "screenWidth": 1280,
     "screenHeight": 800
@@ -1475,10 +1310,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<a>"
     },
-    "center": [
-      233,
-      244
-    ],
+    "center": [233, 244],
     "content": "复工开门红",
     "rect": {
       "left": 198,
@@ -1511,10 +1343,7 @@
       "height": 32,
       "zoom": 1
     },
-    "center": [
-      74,
-      275
-    ],
+    "center": [74, 275],
     "zoom": 1,
     "screenWidth": 1280,
     "screenHeight": 800
@@ -1529,10 +1358,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<a>"
     },
-    "center": [
-      106,
-      276
-    ],
+    "center": [106, 276],
     "content": "电脑",
     "rect": {
       "left": 92,
@@ -1564,10 +1390,7 @@
       "height": 32,
       "zoom": 1
     },
-    "center": [
-      131,
-      275
-    ],
+    "center": [131, 275],
     "zoom": 1,
     "screenWidth": 1280,
     "screenHeight": 800
@@ -1582,10 +1405,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<a>"
     },
-    "center": [
-      155,
-      276
-    ],
+    "center": [155, 276],
     "content": "配件",
     "rect": {
       "left": 141,
@@ -1617,10 +1437,7 @@
       "height": 32,
       "zoom": 1
     },
-    "center": [
-      180,
-      275
-    ],
+    "center": [180, 275],
     "zoom": 1,
     "screenWidth": 1280,
     "screenHeight": 800
@@ -1635,10 +1452,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<a>"
     },
-    "center": [
-      204,
-      276
-    ],
+    "center": [204, 276],
     "content": "办公",
     "rect": {
       "left": 190,
@@ -1670,10 +1484,7 @@
       "height": 32,
       "zoom": 1
     },
-    "center": [
-      229,
-      275
-    ],
+    "center": [229, 275],
     "zoom": 1,
     "screenWidth": 1280,
     "screenHeight": 800
@@ -1688,10 +1499,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<a>"
     },
-    "center": [
-      253,
-      276
-    ],
+    "center": [253, 276],
     "content": "文具",
     "rect": {
       "left": 239,
@@ -1724,10 +1532,7 @@
       "height": 32,
       "zoom": 1
     },
-    "center": [
-      74,
-      307
-    ],
+    "center": [74, 307],
     "zoom": 1,
     "screenWidth": 1280,
     "screenHeight": 800
@@ -1742,10 +1547,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<a>"
     },
-    "center": [
-      113,
-      308
-    ],
+    "center": [113, 308],
     "content": "工业品",
     "rect": {
       "left": 92,
@@ -1777,10 +1579,7 @@
       "height": 32,
       "zoom": 1
     },
-    "center": [
-      145,
-      307
-    ],
+    "center": [145, 307],
     "zoom": 1,
     "screenWidth": 1280,
     "screenHeight": 800
@@ -1795,10 +1594,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<a>"
     },
-    "center": [
-      169,
-      308
-    ],
+    "center": [169, 308],
     "content": "商业",
     "rect": {
       "left": 155,
@@ -1830,10 +1626,7 @@
       "height": 32,
       "zoom": 1
     },
-    "center": [
-      194,
-      307
-    ],
+    "center": [194, 307],
     "zoom": 1,
     "screenWidth": 1280,
     "screenHeight": 800
@@ -1848,10 +1641,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<a>"
     },
-    "center": [
-      218,
-      308
-    ],
+    "center": [218, 308],
     "content": "农业",
     "rect": {
       "left": 204,
@@ -1883,10 +1673,7 @@
       "height": 32,
       "zoom": 1
     },
-    "center": [
-      243,
-      307
-    ],
+    "center": [243, 307],
     "zoom": 1,
     "screenWidth": 1280,
     "screenHeight": 800
@@ -1901,10 +1688,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<a>"
     },
-    "center": [
-      267,
-      308
-    ],
+    "center": [267, 308],
     "content": "定制",
     "rect": {
       "left": 253,
@@ -1937,10 +1721,7 @@
       "height": 32,
       "zoom": 1
     },
-    "center": [
-      74,
-      339
-    ],
+    "center": [74, 339],
     "zoom": 1,
     "screenWidth": 1280,
     "screenHeight": 800
@@ -1955,10 +1736,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<a>"
     },
-    "center": [
-      106,
-      340
-    ],
+    "center": [106, 340],
     "content": "家电",
     "rect": {
       "left": 92,
@@ -1990,10 +1768,7 @@
       "height": 32,
       "zoom": 1
     },
-    "center": [
-      131,
-      339
-    ],
+    "center": [131, 339],
     "zoom": 1,
     "screenWidth": 1280,
     "screenHeight": 800
@@ -2008,10 +1783,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<a>"
     },
-    "center": [
-      155,
-      340
-    ],
+    "center": [155, 340],
     "content": "手机",
     "rect": {
       "left": 141,
@@ -2043,10 +1815,7 @@
       "height": 32,
       "zoom": 1
     },
-    "center": [
-      180,
-      339
-    ],
+    "center": [180, 339],
     "zoom": 1,
     "screenWidth": 1280,
     "screenHeight": 800
@@ -2061,10 +1830,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<a>"
     },
-    "center": [
-      204,
-      340
-    ],
+    "center": [204, 340],
     "content": "通信",
     "rect": {
       "left": 190,
@@ -2096,10 +1862,7 @@
       "height": 32,
       "zoom": 1
     },
-    "center": [
-      229,
-      339
-    ],
+    "center": [229, 339],
     "zoom": 1,
     "screenWidth": 1280,
     "screenHeight": 800
@@ -2114,10 +1877,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<a>"
     },
-    "center": [
-      253,
-      340
-    ],
+    "center": [253, 340],
     "content": "数码",
     "rect": {
       "left": 239,
@@ -2150,10 +1910,7 @@
       "height": 32,
       "zoom": 1
     },
-    "center": [
-      74,
-      371
-    ],
+    "center": [74, 371],
     "zoom": 1,
     "screenWidth": 1280,
     "screenHeight": 800
@@ -2168,10 +1925,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<a>"
     },
-    "center": [
-      106,
-      372
-    ],
+    "center": [106, 372],
     "content": "家具",
     "rect": {
       "left": 92,
@@ -2203,10 +1957,7 @@
       "height": 32,
       "zoom": 1
     },
-    "center": [
-      131,
-      371
-    ],
+    "center": [131, 371],
     "zoom": 1,
     "screenWidth": 1280,
     "screenHeight": 800
@@ -2221,10 +1972,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<a>"
     },
-    "center": [
-      155,
-      372
-    ],
+    "center": [155, 372],
     "content": "家装",
     "rect": {
       "left": 141,
@@ -2256,10 +2004,7 @@
       "height": 32,
       "zoom": 1
     },
-    "center": [
-      180,
-      371
-    ],
+    "center": [180, 371],
     "zoom": 1,
     "screenWidth": 1280,
     "screenHeight": 800
@@ -2274,10 +2019,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<a>"
     },
-    "center": [
-      204,
-      372
-    ],
+    "center": [204, 372],
     "content": "家居",
     "rect": {
       "left": 190,
@@ -2309,10 +2051,7 @@
       "height": 32,
       "zoom": 1
     },
-    "center": [
-      229,
-      371
-    ],
+    "center": [229, 371],
     "zoom": 1,
     "screenWidth": 1280,
     "screenHeight": 800
@@ -2327,10 +2066,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<a>"
     },
-    "center": [
-      253,
-      372
-    ],
+    "center": [253, 372],
     "content": "厨具",
     "rect": {
       "left": 239,
@@ -2363,10 +2099,7 @@
       "height": 32,
       "zoom": 1
     },
-    "center": [
-      74,
-      403
-    ],
+    "center": [74, 403],
     "zoom": 1,
     "screenWidth": 1280,
     "screenHeight": 800
@@ -2381,10 +2114,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<a>"
     },
-    "center": [
-      106,
-      404
-    ],
+    "center": [106, 404],
     "content": "女装",
     "rect": {
       "left": 92,
@@ -2416,10 +2146,7 @@
       "height": 32,
       "zoom": 1
     },
-    "center": [
-      131,
-      403
-    ],
+    "center": [131, 403],
     "zoom": 1,
     "screenWidth": 1280,
     "screenHeight": 800
@@ -2434,10 +2161,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<a>"
     },
-    "center": [
-      155,
-      404
-    ],
+    "center": [155, 404],
     "content": "男装",
     "rect": {
       "left": 141,
@@ -2469,10 +2193,7 @@
       "height": 32,
       "zoom": 1
     },
-    "center": [
-      180,
-      403
-    ],
+    "center": [180, 403],
     "zoom": 1,
     "screenWidth": 1280,
     "screenHeight": 800
@@ -2487,10 +2208,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<a>"
     },
-    "center": [
-      204,
-      404
-    ],
+    "center": [204, 404],
     "content": "内衣",
     "rect": {
       "left": 190,
@@ -2522,10 +2240,7 @@
       "height": 32,
       "zoom": 1
     },
-    "center": [
-      229,
-      403
-    ],
+    "center": [229, 403],
     "zoom": 1,
     "screenWidth": 1280,
     "screenHeight": 800
@@ -2540,10 +2255,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<a>"
     },
-    "center": [
-      253,
-      404
-    ],
+    "center": [253, 404],
     "content": "配饰",
     "rect": {
       "left": 239,
@@ -2576,10 +2288,7 @@
       "height": 32,
       "zoom": 1
     },
-    "center": [
-      74,
-      435
-    ],
+    "center": [74, 435],
     "zoom": 1,
     "screenWidth": 1280,
     "screenHeight": 800
@@ -2594,10 +2303,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<a>"
     },
-    "center": [
-      106,
-      436
-    ],
+    "center": [106, 436],
     "content": "女鞋",
     "rect": {
       "left": 92,
@@ -2629,10 +2335,7 @@
       "height": 32,
       "zoom": 1
     },
-    "center": [
-      131,
-      435
-    ],
+    "center": [131, 435],
     "zoom": 1,
     "screenWidth": 1280,
     "screenHeight": 800
@@ -2647,10 +2350,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<a>"
     },
-    "center": [
-      155,
-      436
-    ],
+    "center": [155, 436],
     "content": "男鞋",
     "rect": {
       "left": 141,
@@ -2682,10 +2382,7 @@
       "height": 32,
       "zoom": 1
     },
-    "center": [
-      180,
-      435
-    ],
+    "center": [180, 435],
     "zoom": 1,
     "screenWidth": 1280,
     "screenHeight": 800
@@ -2700,10 +2397,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<a>"
     },
-    "center": [
-      204,
-      436
-    ],
+    "center": [204, 436],
     "content": "运动",
     "rect": {
       "left": 190,
@@ -2735,10 +2429,7 @@
       "height": 32,
       "zoom": 1
     },
-    "center": [
-      229,
-      435
-    ],
+    "center": [229, 435],
     "zoom": 1,
     "screenWidth": 1280,
     "screenHeight": 800
@@ -2753,10 +2444,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<a>"
     },
-    "center": [
-      253,
-      436
-    ],
+    "center": [253, 436],
     "content": "户外",
     "rect": {
       "left": 239,
@@ -2789,10 +2477,7 @@
       "height": 32,
       "zoom": 1
     },
-    "center": [
-      74,
-      467
-    ],
+    "center": [74, 467],
     "zoom": 1,
     "screenWidth": 1280,
     "screenHeight": 800
@@ -2807,10 +2492,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<a>"
     },
-    "center": [
-      106,
-      468
-    ],
+    "center": [106, 468],
     "content": "汽车",
     "rect": {
       "left": 92,
@@ -2842,10 +2524,7 @@
       "height": 32,
       "zoom": 1
     },
-    "center": [
-      131,
-      467
-    ],
+    "center": [131, 467],
     "zoom": 1,
     "screenWidth": 1280,
     "screenHeight": 800
@@ -2860,10 +2539,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<a>"
     },
-    "center": [
-      155,
-      468
-    ],
+    "center": [155, 468],
     "content": "珠宝",
     "rect": {
       "left": 141,
@@ -2895,10 +2571,7 @@
       "height": 32,
       "zoom": 1
     },
-    "center": [
-      180,
-      467
-    ],
+    "center": [180, 467],
     "zoom": 1,
     "screenWidth": 1280,
     "screenHeight": 800
@@ -2913,10 +2586,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<a>"
     },
-    "center": [
-      204,
-      468
-    ],
+    "center": [204, 468],
     "content": "文玩",
     "rect": {
       "left": 190,
@@ -2948,10 +2618,7 @@
       "height": 32,
       "zoom": 1
     },
-    "center": [
-      229,
-      467
-    ],
+    "center": [229, 467],
     "zoom": 1,
     "screenWidth": 1280,
     "screenHeight": 800
@@ -2966,10 +2633,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<a>"
     },
-    "center": [
-      253,
-      468
-    ],
+    "center": [253, 468],
     "content": "箱包",
     "rect": {
       "left": 239,
@@ -3002,10 +2666,7 @@
       "height": 32,
       "zoom": 1
     },
-    "center": [
-      74,
-      499
-    ],
+    "center": [74, 499],
     "zoom": 1,
     "screenWidth": 1280,
     "screenHeight": 800
@@ -3020,10 +2681,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<a>"
     },
-    "center": [
-      106,
-      500
-    ],
+    "center": [106, 500],
     "content": "食品",
     "rect": {
       "left": 92,
@@ -3055,10 +2713,7 @@
       "height": 32,
       "zoom": 1
     },
-    "center": [
-      131,
-      499
-    ],
+    "center": [131, 499],
     "zoom": 1,
     "screenWidth": 1280,
     "screenHeight": 800
@@ -3073,10 +2728,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<a>"
     },
-    "center": [
-      155,
-      500
-    ],
+    "center": [155, 500],
     "content": "生鲜",
     "rect": {
       "left": 141,
@@ -3108,10 +2760,7 @@
       "height": 32,
       "zoom": 1
     },
-    "center": [
-      180,
-      499
-    ],
+    "center": [180, 499],
     "zoom": 1,
     "screenWidth": 1280,
     "screenHeight": 800
@@ -3126,10 +2775,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<a>"
     },
-    "center": [
-      204,
-      500
-    ],
+    "center": [204, 500],
     "content": "酒类",
     "rect": {
       "left": 190,
@@ -3161,10 +2807,7 @@
       "height": 32,
       "zoom": 1
     },
-    "center": [
-      229,
-      499
-    ],
+    "center": [229, 499],
     "zoom": 1,
     "screenWidth": 1280,
     "screenHeight": 800
@@ -3179,10 +2822,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<a>"
     },
-    "center": [
-      253,
-      500
-    ],
+    "center": [253, 500],
     "content": "健康",
     "rect": {
       "left": 239,
@@ -3215,10 +2855,7 @@
       "height": 32,
       "zoom": 1
     },
-    "center": [
-      74,
-      531
-    ],
+    "center": [74, 531],
     "zoom": 1,
     "screenWidth": 1280,
     "screenHeight": 800
@@ -3233,10 +2870,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<a>"
     },
-    "center": [
-      106,
-      532
-    ],
+    "center": [106, 532],
     "content": "母婴",
     "rect": {
       "left": 92,
@@ -3268,10 +2902,7 @@
       "height": 32,
       "zoom": 1
     },
-    "center": [
-      131,
-      531
-    ],
+    "center": [131, 531],
     "zoom": 1,
     "screenWidth": 1280,
     "screenHeight": 800
@@ -3286,10 +2917,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<a>"
     },
-    "center": [
-      155,
-      532
-    ],
+    "center": [155, 532],
     "content": "童装",
     "rect": {
       "left": 141,
@@ -3321,10 +2949,7 @@
       "height": 32,
       "zoom": 1
     },
-    "center": [
-      180,
-      531
-    ],
+    "center": [180, 531],
     "zoom": 1,
     "screenWidth": 1280,
     "screenHeight": 800
@@ -3339,10 +2964,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<a>"
     },
-    "center": [
-      204,
-      532
-    ],
+    "center": [204, 532],
     "content": "玩具",
     "rect": {
       "left": 190,
@@ -3374,10 +2996,7 @@
       "height": 32,
       "zoom": 1
     },
-    "center": [
-      229,
-      531
-    ],
+    "center": [229, 531],
     "zoom": 1,
     "screenWidth": 1280,
     "screenHeight": 800
@@ -3392,10 +3011,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<a>"
     },
-    "center": [
-      253,
-      532
-    ],
+    "center": [253, 532],
     "content": "宠物",
     "rect": {
       "left": 239,
@@ -3428,10 +3044,7 @@
       "height": 32,
       "zoom": 1
     },
-    "center": [
-      74,
-      563
-    ],
+    "center": [74, 563],
     "zoom": 1,
     "screenWidth": 1280,
     "screenHeight": 800
@@ -3446,10 +3059,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<a>"
     },
-    "center": [
-      106,
-      564
-    ],
+    "center": [106, 564],
     "content": "美妆",
     "rect": {
       "left": 92,
@@ -3481,10 +3091,7 @@
       "height": 32,
       "zoom": 1
     },
-    "center": [
-      131,
-      563
-    ],
+    "center": [131, 563],
     "zoom": 1,
     "screenWidth": 1280,
     "screenHeight": 800
@@ -3499,10 +3106,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<a>"
     },
-    "center": [
-      155,
-      564
-    ],
+    "center": [155, 564],
     "content": "个护",
     "rect": {
       "left": 141,
@@ -3534,10 +3138,7 @@
       "height": 32,
       "zoom": 1
     },
-    "center": [
-      180,
-      563
-    ],
+    "center": [180, 563],
     "zoom": 1,
     "screenWidth": 1280,
     "screenHeight": 800
@@ -3552,10 +3153,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<a>"
     },
-    "center": [
-      204,
-      564
-    ],
+    "center": [204, 564],
     "content": "娱乐",
     "rect": {
       "left": 190,
@@ -3587,10 +3185,7 @@
       "height": 32,
       "zoom": 1
     },
-    "center": [
-      229,
-      563
-    ],
+    "center": [229, 563],
     "zoom": 1,
     "screenWidth": 1280,
     "screenHeight": 800
@@ -3605,10 +3200,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<a>"
     },
-    "center": [
-      253,
-      564
-    ],
+    "center": [253, 564],
     "content": "图书",
     "rect": {
       "left": 239,
@@ -3642,10 +3234,7 @@
       "height": 16,
       "zoom": 1
     },
-    "center": [
-      485,
-      211
-    ],
+    "center": [485, 211],
     "zoom": 1,
     "screenWidth": 1280,
     "screenHeight": 800
@@ -3660,10 +3249,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<div>"
     },
-    "center": [
-      457,
-      243
-    ],
+    "center": [457, 243],
     "content": "新鲜果蔬",
     "rect": {
       "left": 409,
@@ -3686,10 +3272,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<div>"
     },
-    "center": [
-      457,
-      273
-    ],
+    "center": [457, 273],
     "content": "产地优选",
     "rect": {
       "left": 409,
@@ -3712,10 +3295,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<div>"
     },
-    "center": [
-      444,
-      305
-    ],
+    "center": [444, 305],
     "content": "便宜又新鲜",
     "rect": {
       "left": 409,
@@ -3746,10 +3326,7 @@
       "height": 6,
       "zoom": 1
     },
-    "center": [
-      344,
-      355
-    ],
+    "center": [344, 355],
     "zoom": 1,
     "screenWidth": 1280,
     "screenHeight": 800
@@ -3772,10 +3349,7 @@
       "height": 6,
       "zoom": 1
     },
-    "center": [
-      363,
-      355
-    ],
+    "center": [363, 355],
     "zoom": 1,
     "screenWidth": 1280,
     "screenHeight": 800
@@ -3798,10 +3372,7 @@
       "height": 6,
       "zoom": 1
     },
-    "center": [
-      382,
-      355
-    ],
+    "center": [382, 355],
     "zoom": 1,
     "screenWidth": 1280,
     "screenHeight": 800
@@ -3824,10 +3395,7 @@
       "height": 6,
       "zoom": 1
     },
-    "center": [
-      398,
-      355
-    ],
+    "center": [398, 355],
     "zoom": 1,
     "screenWidth": 1280,
     "screenHeight": 800
@@ -3850,10 +3418,7 @@
       "height": 6,
       "zoom": 1
     },
-    "center": [
-      414,
-      355
-    ],
+    "center": [414, 355],
     "zoom": 1,
     "screenWidth": 1280,
     "screenHeight": 800
@@ -3868,10 +3433,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<div>"
     },
-    "center": [
-      735,
-      212
-    ],
+    "center": [735, 212],
     "content": "百亿补贴 · 买贵必赔",
     "rect": {
       "left": 664,
@@ -3904,10 +3466,7 @@
       "height": 16,
       "zoom": 1
     },
-    "center": [
-      833,
-      211
-    ],
+    "center": [833, 211],
     "zoom": 1,
     "screenWidth": 1280,
     "screenHeight": 800
@@ -3931,10 +3490,7 @@
       "height": 84,
       "zoom": 1
     },
-    "center": [
-      708,
-      277
-    ],
+    "center": [708, 277],
     "zoom": 1,
     "screenWidth": 1280,
     "screenHeight": 800
@@ -3949,10 +3505,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<span>"
     },
-    "center": [
-      688,
-      338
-    ],
+    "center": [688, 338],
     "content": "¥",
     "rect": {
       "left": 684,
@@ -3975,10 +3528,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<span>"
     },
-    "center": [
-      714,
-      338
-    ],
+    "center": [714, 338],
     "content": "4990",
     "rect": {
       "left": 694,
@@ -4001,10 +3551,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<div>"
     },
-    "center": [
-      708,
-      355
-    ],
+    "center": [708, 355],
     "content": "已补2500元",
     "rect": {
       "left": 675,
@@ -4036,10 +3583,7 @@
       "height": 84,
       "zoom": 1
     },
-    "center": [
-      804,
-      277
-    ],
+    "center": [804, 277],
     "zoom": 1,
     "screenWidth": 1280,
     "screenHeight": 800
@@ -4054,10 +3598,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<span>"
     },
-    "center": [
-      788,
-      338
-    ],
+    "center": [788, 338],
     "content": "¥",
     "rect": {
       "left": 784,
@@ -4080,10 +3621,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<span>"
     },
-    "center": [
-      810,
-      338
-    ],
+    "center": [810, 338],
     "content": "999",
     "rect": {
       "left": 795,
@@ -4106,10 +3644,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<div>"
     },
-    "center": [
-      804,
-      355
-    ],
+    "center": [804, 355],
     "content": "全网低价",
     "rect": {
       "left": 780,
@@ -4141,10 +3676,7 @@
       "height": 84,
       "zoom": 1
     },
-    "center": [
-      900,
-      277
-    ],
+    "center": [900, 277],
     "zoom": 1,
     "screenWidth": 1280,
     "screenHeight": 800
@@ -4159,10 +3691,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<span>"
     },
-    "center": [
-      880,
-      338
-    ],
+    "center": [880, 338],
     "content": "¥",
     "rect": {
       "left": 876,
@@ -4185,10 +3714,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<span>"
     },
-    "center": [
-      905,
-      338
-    ],
+    "center": [905, 338],
     "content": "2299",
     "rect": {
       "left": 886,
@@ -4211,10 +3737,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<div>"
     },
-    "center": [
-      900,
-      355
-    ],
+    "center": [900, 355],
     "content": "60天最低",
     "rect": {
       "left": 874,
@@ -4237,10 +3760,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<div>"
     },
-    "center": [
-      360,
-      420
-    ],
+    "center": [360, 420],
     "content": "淘江湖",
     "rect": {
       "left": 336,
@@ -4273,10 +3793,7 @@
       "height": 16,
       "zoom": 1
     },
-    "center": [
-      416,
-      419
-    ],
+    "center": [416, 419],
     "zoom": 1,
     "screenWidth": 1280,
     "screenHeight": 800
@@ -4291,10 +3808,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<div>"
     },
-    "center": [
-      466,
-      455
-    ],
+    "center": [466, 455],
     "content": "淘江湖2月更新公告，红包兑换即将回归！",
     "rect": {
       "left": 336,
@@ -4317,10 +3831,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<div>"
     },
-    "center": [
-      399,
-      481
-    ],
+    "center": [399, 481],
     "content": "春节假期节后综合征",
     "rect": {
       "left": 336,
@@ -4343,10 +3854,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<div>"
     },
-    "center": [
-      440,
-      507
-    ],
+    "center": [440, 507],
     "content": "甘肃礼县：“小”苹果迎来“大”升级",
     "rect": {
       "left": 336,
@@ -4369,10 +3877,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<div>"
     },
-    "center": [
-      451,
-      533
-    ],
+    "center": [451, 533],
     "content": "江西寻乌:以“橙”为媒 点亮乡村振兴路",
     "rect": {
       "left": 336,
@@ -4395,10 +3900,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<div>"
     },
-    "center": [
-      434,
-      559
-    ],
+    "center": [434, 559],
     "content": "徒步鞋选对，户外环境全hold住",
     "rect": {
       "left": 336,
@@ -4421,10 +3923,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<div>"
     },
-    "center": [
-      532,
-      420
-    ],
+    "center": [532, 420],
     "content": "淘宝直播",
     "rect": {
       "left": 500,
@@ -4457,10 +3956,7 @@
       "height": 16,
       "zoom": 1
     },
-    "center": [
-      511,
-      439
-    ],
+    "center": [511, 439],
     "zoom": 1,
     "screenWidth": 1280,
     "screenHeight": 800
@@ -4485,10 +3981,7 @@
       "height": 16,
       "zoom": 1
     },
-    "center": [
-      512,
-      455
-    ],
+    "center": [512, 455],
     "zoom": 1,
     "screenWidth": 1280,
     "screenHeight": 800
@@ -4513,10 +4006,7 @@
       "height": 16,
       "zoom": 1
     },
-    "center": [
-      520,
-      583
-    ],
+    "center": [520, 583],
     "zoom": 1,
     "screenWidth": 1280,
     "screenHeight": 800
@@ -4531,10 +4021,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<div>"
     },
-    "center": [
-      696,
-      420
-    ],
+    "center": [696, 420],
     "content": "万券齐发",
     "rect": {
       "left": 664,
@@ -4567,10 +4054,7 @@
       "height": 16,
       "zoom": 1
     },
-    "center": [
-      687,
-      439
-    ],
+    "center": [687, 439],
     "zoom": 1,
     "screenWidth": 1280,
     "screenHeight": 800
@@ -4594,10 +4078,7 @@
       "height": 84,
       "zoom": 1
     },
-    "center": [
-      722,
-      485
-    ],
+    "center": [722, 485],
     "zoom": 1,
     "screenWidth": 1280,
     "screenHeight": 800
@@ -4612,10 +4093,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<span>"
     },
-    "center": [
-      722,
-      544
-    ],
+    "center": [722, 544],
     "content": "大额补贴",
     "rect": {
       "left": 695,
@@ -4638,10 +4116,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<div>"
     },
-    "center": [
-      722,
-      561
-    ],
+    "center": [722, 561],
     "content": "万券齐发",
     "rect": {
       "left": 698,
@@ -4664,10 +4139,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<div>"
     },
-    "center": [
-      860,
-      420
-    ],
+    "center": [860, 420],
     "content": "淘宝秒杀",
     "rect": {
       "left": 828,
@@ -4700,10 +4172,7 @@
       "height": 16,
       "zoom": 1
     },
-    "center": [
-      839,
-      439
-    ],
+    "center": [839, 439],
     "zoom": 1,
     "screenWidth": 1280,
     "screenHeight": 800
@@ -4727,10 +4196,7 @@
       "height": 84,
       "zoom": 1
     },
-    "center": [
-      886,
-      485
-    ],
+    "center": [886, 485],
     "zoom": 1,
     "screenWidth": 1280,
     "screenHeight": 800
@@ -4745,10 +4211,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<span>"
     },
-    "center": [
-      866,
-      546
-    ],
+    "center": [866, 546],
     "content": "¥",
     "rect": {
       "left": 862,
@@ -4771,10 +4234,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<span>"
     },
-    "center": [
-      891,
-      546
-    ],
+    "center": [891, 546],
     "content": "5299",
     "rect": {
       "left": 872,
@@ -4797,10 +4257,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<div>"
     },
-    "center": [
-      886,
-      563
-    ],
+    "center": [886, 563],
     "content": "机甲外观内置大电池",
     "rect": {
       "left": 832,
@@ -4832,10 +4289,7 @@
       "height": 54,
       "zoom": 1
     },
-    "center": [
-      1019,
-      230
-    ],
+    "center": [1019, 230],
     "zoom": 1,
     "screenWidth": 1280,
     "screenHeight": 800
@@ -4850,10 +4304,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<strong>"
     },
-    "center": [
-      1082,
-      220
-    ],
+    "center": [1082, 220],
     "content": "晚上好",
     "rect": {
       "left": 1058,
@@ -4876,10 +4327,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<a>"
     },
-    "center": [
-      1070,
-      244
-    ],
+    "center": [1070, 244],
     "content": "注册",
     "rect": {
       "left": 1058,
@@ -4902,10 +4350,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<a>"
     },
-    "center": [
-      1111,
-      244
-    ],
+    "center": [1111, 244],
     "content": "开店",
     "rect": {
       "left": 1099,
@@ -4928,10 +4373,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<div>"
     },
-    "center": [
-      1104,
-      282
-    ],
+    "center": [1104, 282],
     "content": "登录淘宝后更多精彩",
     "rect": {
       "left": 1032,
@@ -4954,10 +4396,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<div>"
     },
-    "center": [
-      1104,
-      301
-    ],
+    "center": [1104, 301],
     "content": "嘿！更懂你的推荐，更便捷的搜索",
     "rect": {
       "left": 1014,
@@ -4980,10 +4419,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<a>"
     },
-    "center": [
-      1104,
-      346
-    ],
+    "center": [1104, 346],
     "content": "立即登录",
     "rect": {
       "left": 1072,
@@ -5015,10 +4451,7 @@
       "height": 28,
       "zoom": 1
     },
-    "center": [
-      1017,
-      393
-    ],
+    "center": [1017, 393],
     "zoom": 1,
     "screenWidth": 1280,
     "screenHeight": 800
@@ -5033,10 +4466,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<p>"
     },
-    "center": [
-      1017,
-      417
-    ],
+    "center": [1017, 417],
     "content": "购物车",
     "rect": {
       "left": 999,
@@ -5068,10 +4498,7 @@
       "height": 28,
       "zoom": 1
     },
-    "center": [
-      1075,
-      393
-    ],
+    "center": [1075, 393],
     "zoom": 1,
     "screenWidth": 1280,
     "screenHeight": 800
@@ -5086,10 +4513,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<p>"
     },
-    "center": [
-      1075,
-      417
-    ],
+    "center": [1075, 417],
     "content": "收藏夹",
     "rect": {
       "left": 1057,
@@ -5121,10 +4545,7 @@
       "height": 28,
       "zoom": 1
     },
-    "center": [
-      1133,
-      393
-    ],
+    "center": [1133, 393],
     "zoom": 1,
     "screenWidth": 1280,
     "screenHeight": 800
@@ -5139,10 +4560,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<p>"
     },
-    "center": [
-      1133,
-      417
-    ],
+    "center": [1133, 417],
     "content": "买过的店",
     "rect": {
       "left": 1109,
@@ -5174,10 +4592,7 @@
       "height": 28,
       "zoom": 1
     },
-    "center": [
-      1191,
-      393
-    ],
+    "center": [1191, 393],
     "zoom": 1,
     "screenWidth": 1280,
     "screenHeight": 800
@@ -5192,10 +4607,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<p>"
     },
-    "center": [
-      1191,
-      417
-    ],
+    "center": [1191, 417],
     "content": "足迹",
     "rect": {
       "left": 1179,
@@ -5231,10 +4643,7 @@
       "height": 133,
       "zoom": 1
     },
-    "center": [
-      1105,
-      508
-    ],
+    "center": [1105, 508],
     "zoom": 1,
     "screenWidth": 1280,
     "screenHeight": 800
@@ -5259,10 +4668,7 @@
       "height": 24,
       "zoom": 1
     },
-    "center": [
-      60,
-      616
-    ],
+    "center": [60, 616],
     "zoom": 1,
     "screenWidth": 1280,
     "screenHeight": 800
@@ -5277,10 +4683,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<div>"
     },
-    "center": [
-      106,
-      617
-    ],
+    "center": [106, 617],
     "content": "猜你喜欢",
     "rect": {
       "left": 74,
@@ -5313,10 +4716,7 @@
       "height": 24,
       "zoom": 1
     },
-    "center": [
-      182,
-      616
-    ],
+    "center": [182, 616],
     "zoom": 1,
     "screenWidth": 1280,
     "screenHeight": 800
@@ -5331,10 +4731,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<div>"
     },
-    "center": [
-      228,
-      617
-    ],
+    "center": [228, 617],
     "content": "运动户外",
     "rect": {
       "left": 196,
@@ -5367,10 +4764,7 @@
       "height": 24,
       "zoom": 1
     },
-    "center": [
-      304,
-      616
-    ],
+    "center": [304, 616],
     "zoom": 1,
     "screenWidth": 1280,
     "screenHeight": 800
@@ -5385,10 +4779,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<div>"
     },
-    "center": [
-      350,
-      617
-    ],
+    "center": [350, 617],
     "content": "馋嘴零食",
     "rect": {
       "left": 318,
@@ -5421,10 +4812,7 @@
       "height": 24,
       "zoom": 1
     },
-    "center": [
-      426,
-      616
-    ],
+    "center": [426, 616],
     "zoom": 1,
     "screenWidth": 1280,
     "screenHeight": 800
@@ -5439,10 +4827,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<div>"
     },
-    "center": [
-      472,
-      617
-    ],
+    "center": [472, 617],
     "content": "潮电数码",
     "rect": {
       "left": 440,
@@ -5475,10 +4860,7 @@
       "height": 24,
       "zoom": 1
     },
-    "center": [
-      548,
-      616
-    ],
+    "center": [548, 616],
     "zoom": 1,
     "screenWidth": 1280,
     "screenHeight": 800
@@ -5493,10 +4875,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<div>"
     },
-    "center": [
-      594,
-      617
-    ],
+    "center": [594, 617],
     "content": "服饰时尚",
     "rect": {
       "left": 562,
@@ -5529,10 +4908,7 @@
       "height": 24,
       "zoom": 1
     },
-    "center": [
-      670,
-      616
-    ],
+    "center": [670, 616],
     "zoom": 1,
     "screenWidth": 1280,
     "screenHeight": 800
@@ -5547,10 +4923,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<div>"
     },
-    "center": [
-      716,
-      617
-    ],
+    "center": [716, 617],
     "content": "家装建材",
     "rect": {
       "left": 684,
@@ -5583,10 +4956,7 @@
       "height": 24,
       "zoom": 1
     },
-    "center": [
-      792,
-      616
-    ],
+    "center": [792, 616],
     "zoom": 1,
     "screenWidth": 1280,
     "screenHeight": 800
@@ -5601,10 +4971,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<div>"
     },
-    "center": [
-      838,
-      617
-    ],
+    "center": [838, 617],
     "content": "办公文具",
     "rect": {
       "left": 806,
@@ -5638,10 +5005,7 @@
       "height": 32,
       "zoom": 1
     },
-    "center": [
-      1260,
-      320
-    ],
+    "center": [1260, 320],
     "zoom": 1,
     "screenWidth": 1280,
     "screenHeight": 800
@@ -5666,10 +5030,7 @@
       "height": 30,
       "zoom": 1
     },
-    "center": [
-      1260,
-      359
-    ],
+    "center": [1260, 359],
     "zoom": 1,
     "screenWidth": 1280,
     "screenHeight": 800
@@ -5695,10 +5056,7 @@
       "height": 32,
       "zoom": 1
     },
-    "center": [
-      1260,
-      400
-    ],
+    "center": [1260, 400],
     "zoom": 1,
     "screenWidth": 1280,
     "screenHeight": 800
@@ -5724,10 +5082,7 @@
       "height": 32,
       "zoom": 1
     },
-    "center": [
-      1260,
-      440
-    ],
+    "center": [1260, 440],
     "zoom": 1,
     "screenWidth": 1280,
     "screenHeight": 800
@@ -5753,10 +5108,7 @@
       "height": 32,
       "zoom": 1
     },
-    "center": [
-      1260,
-      480
-    ],
+    "center": [1260, 480],
     "zoom": 1,
     "screenWidth": 1280,
     "screenHeight": 800

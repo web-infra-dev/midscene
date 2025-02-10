@@ -9,10 +9,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<div>"
     },
-    "center": [
-      640,
-      140
-    ],
+    "center": [640, 140],
     "content": "登录后免费畅享高清视频",
     "rect": {
       "left": 508,
@@ -35,10 +32,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<li>"
     },
-    "center": [
-      512,
-      180
-    ],
+    "center": [512, 180],
     "content": "点赞评论随心发",
     "rect": {
       "left": 463,
@@ -61,10 +55,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<li>"
     },
-    "center": [
-      648,
-      180
-    ],
+    "center": [648, 180],
     "content": "直播间畅聊打赏",
     "rect": {
       "left": 599,
@@ -87,10 +78,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<li>"
     },
-    "center": [
-      784,
-      180
-    ],
+    "center": [784, 180],
     "content": "朋友视频一键览",
     "rect": {
       "left": 735,
@@ -122,10 +110,7 @@
       "height": 36,
       "zoom": 1
     },
-    "center": [
-      852,
-      127
-    ],
+    "center": [852, 127],
     "zoom": 1,
     "screenWidth": 1280,
     "screenHeight": 800
@@ -140,10 +125,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<li>"
     },
-    "center": [
-      522,
-      254
-    ],
+    "center": [522, 254],
     "content": "扫码登录",
     "rect": {
       "left": 486,
@@ -166,10 +148,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<li>"
     },
-    "center": [
-      640,
-      254
-    ],
+    "center": [640, 254],
     "content": "验证码登录",
     "rect": {
       "left": 595,
@@ -192,10 +171,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<li>"
     },
-    "center": [
-      758,
-      254
-    ],
+    "center": [758, 254],
     "content": "密码登录",
     "rect": {
       "left": 722,
@@ -237,10 +213,7 @@
       "height": 36,
       "zoom": 1
     },
-    "center": [
-      518,
-      367
-    ],
+    "center": [518, 367],
     "zoom": 1,
     "screenWidth": 1280,
     "screenHeight": 800
@@ -264,10 +237,7 @@
       "height": 16,
       "zoom": 1
     },
-    "center": [
-      541,
-      367
-    ],
+    "center": [541, 367],
     "zoom": 1,
     "screenWidth": 1280,
     "screenHeight": 800
@@ -298,10 +268,7 @@
       "height": 36,
       "zoom": 1
     },
-    "center": [
-      663,
-      367
-    ],
+    "center": [663, 367],
     "zoom": 1,
     "screenWidth": 1280,
     "screenHeight": 800
@@ -316,10 +283,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<span>"
     },
-    "center": [
-      732,
-      443
-    ],
+    "center": [732, 443],
     "content": "获取验证码",
     "rect": {
       "left": 697,
@@ -358,10 +322,7 @@
       "height": 20,
       "zoom": 1
     },
-    "center": [
-      600,
-      444
-    ],
+    "center": [600, 444],
     "zoom": 1,
     "screenWidth": 1280,
     "screenHeight": 800
@@ -391,10 +352,7 @@
       "height": 20,
       "zoom": 1
     },
-    "center": [
-      640,
-      483
-    ],
+    "center": [640, 483],
     "zoom": 1,
     "screenWidth": 1280,
     "screenHeight": 800
@@ -409,10 +367,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<span>"
     },
-    "center": [
-      553,
-      534
-    ],
+    "center": [553, 534],
     "content": "登录或注册即代表同意",
     "rect": {
       "left": 493,
@@ -435,10 +390,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<a>"
     },
-    "center": [
-      643,
-      534
-    ],
+    "center": [643, 534],
     "content": "用户协议",
     "rect": {
       "left": 619,
@@ -461,10 +413,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<span>"
     },
-    "center": [
-      679,
-      534
-    ],
+    "center": [679, 534],
     "content": "和",
     "rect": {
       "left": 673,
@@ -487,10 +436,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<a>"
     },
-    "center": [
-      715,
-      534
-    ],
+    "center": [715, 534],
     "content": "隐私政策",
     "rect": {
       "left": 691,
@@ -523,10 +469,7 @@
       "height": 48,
       "zoom": 1
     },
-    "center": [
-      640,
-      581
-    ],
+    "center": [640, 581],
     "zoom": 1,
     "screenWidth": 1280,
     "screenHeight": 800

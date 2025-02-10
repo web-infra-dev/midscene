@@ -20,10 +20,7 @@
       "height": 32,
       "zoom": 1
     },
-    "center": [
-      56,
-      32
-    ],
+    "center": [56, 32],
     "zoom": 1,
     "screenWidth": 1920,
     "screenHeight": 1080
@@ -38,10 +35,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<span>"
     },
-    "center": [
-      131,
-      32
-    ],
+    "center": [131, 32],
     "content": "Ant Design",
     "rect": {
       "left": 84,
@@ -73,10 +67,7 @@
       "height": 13,
       "zoom": 1
     },
-    "center": [
-      345,
-      33
-    ],
+    "center": [345, 33],
     "zoom": 1,
     "screenWidth": 1920,
     "screenHeight": 1080
@@ -101,10 +92,7 @@
       "height": 22,
       "zoom": 1
     },
-    "center": [
-      461,
-      32
-    ],
+    "center": [461, 32],
     "zoom": 1,
     "screenWidth": 1920,
     "screenHeight": 1080
@@ -119,10 +107,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<span>"
     },
-    "center": [
-      616,
-      32
-    ],
+    "center": [616, 32],
     "content": "⌘",
     "rect": {
       "left": 610,
@@ -145,10 +130,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<span>"
     },
-    "center": [
-      627,
-      32
-    ],
+    "center": [627, 32],
     "content": "K",
     "rect": {
       "left": 621,
@@ -171,10 +153,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<a>"
     },
-    "center": [
-      1302,
-      33
-    ],
+    "center": [1302, 33],
     "content": "设计",
     "rect": {
       "left": 1288,
@@ -197,10 +176,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<a>"
     },
-    "center": [
-      1366,
-      33
-    ],
+    "center": [1366, 33],
     "content": "研发",
     "rect": {
       "left": 1352,
@@ -223,10 +199,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<a>"
     },
-    "center": [
-      1430,
-      33
-    ],
+    "center": [1430, 33],
     "content": "组件",
     "rect": {
       "left": 1416,
@@ -249,10 +222,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<a>"
     },
-    "center": [
-      1494,
-      33
-    ],
+    "center": [1494, 33],
     "content": "博客",
     "rect": {
       "left": 1480,
@@ -275,10 +245,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<a>"
     },
-    "center": [
-      1558,
-      33
-    ],
+    "center": [1558, 33],
     "content": "资源",
     "rect": {
       "left": 1544,
@@ -301,10 +268,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<a>"
     },
-    "center": [
-      1630,
-      33
-    ],
+    "center": [1630, 33],
     "content": "国内镜像",
     "rect": {
       "left": 1602,
@@ -327,10 +291,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<span>"
     },
-    "center": [
-      1711,
-      32
-    ],
+    "center": [1711, 32],
     "content": "5.23.4",
     "rect": {
       "left": 1690,
@@ -363,10 +324,7 @@
       "height": 32,
       "zoom": 1
     },
-    "center": [
-      1800,
-      32
-    ],
+    "center": [1800, 32],
     "zoom": 1,
     "screenWidth": 1920,
     "screenHeight": 1080
@@ -392,10 +350,7 @@
       "height": 32,
       "zoom": 1
     },
-    "center": [
-      1844,
-      32
-    ],
+    "center": [1844, 32],
     "zoom": 1,
     "screenWidth": 1920,
     "screenHeight": 1080
@@ -420,10 +375,7 @@
       "height": 32,
       "zoom": 1
     },
-    "center": [
-      1888,
-      32
-    ],
+    "center": [1888, 32],
     "zoom": 1,
     "screenWidth": 1920,
     "screenHeight": 1080
@@ -438,10 +390,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<span>"
     },
-    "center": [
-      72,
-      129
-    ],
+    "center": [72, 129],
     "content": "组件总览",
     "rect": {
       "left": 44,
@@ -464,10 +413,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<div>"
     },
-    "center": [
-      58,
-      184
-    ],
+    "center": [58, 184],
     "content": "通用",
     "rect": {
       "left": 44,
@@ -490,10 +436,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<span>"
     },
-    "center": [
-      65,
-      240
-    ],
+    "center": [65, 240],
     "content": "Button",
     "rect": {
       "left": 44,
@@ -516,10 +459,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<span>"
     },
-    "center": [
-      106,
-      240
-    ],
+    "center": [106, 240],
     "content": "按钮",
     "rect": {
       "left": 94,
@@ -542,10 +482,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<span>"
     },
-    "center": [
-      81,
-      284
-    ],
+    "center": [81, 284],
     "content": "FloatButton",
     "rect": {
       "left": 44,
@@ -568,10 +505,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<span>"
     },
-    "center": [
-      149,
-      284
-    ],
+    "center": [149, 284],
     "content": "悬浮按钮",
     "rect": {
       "left": 125,
@@ -594,10 +528,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<span>"
     },
-    "center": [
-      277,
-      283
-    ],
+    "center": [277, 283],
     "content": "5.0.0",
     "rect": {
       "left": 263,
@@ -620,10 +551,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<span>"
     },
-    "center": [
-      58,
-      328
-    ],
+    "center": [58, 328],
     "content": "Icon",
     "rect": {
       "left": 44,
@@ -646,10 +574,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<span>"
     },
-    "center": [
-      91,
-      328
-    ],
+    "center": [91, 328],
     "content": "图标",
     "rect": {
       "left": 79,
@@ -672,10 +597,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<span>"
     },
-    "center": [
-      81,
-      372
-    ],
+    "center": [81, 372],
     "content": "Typography",
     "rect": {
       "left": 44,
@@ -698,10 +620,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<span>"
     },
-    "center": [
-      138,
-      372
-    ],
+    "center": [138, 372],
     "content": "排版",
     "rect": {
       "left": 126,
@@ -724,10 +643,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<div>"
     },
-    "center": [
-      58,
-      427
-    ],
+    "center": [58, 427],
     "content": "布局",
     "rect": {
       "left": 44,
@@ -750,10 +666,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<span>"
     },
-    "center": [
-      67,
-      483
-    ],
+    "center": [67, 483],
     "content": "Divider",
     "rect": {
       "left": 44,
@@ -776,10 +689,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<span>"
     },
-    "center": [
-      115,
-      483
-    ],
+    "center": [115, 483],
     "content": "分割线",
     "rect": {
       "left": 97,
@@ -802,10 +712,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<span>"
     },
-    "center": [
-      57,
-      527
-    ],
+    "center": [57, 527],
     "content": "Flex",
     "rect": {
       "left": 44,
@@ -828,10 +735,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<span>"
     },
-    "center": [
-      102,
-      527
-    ],
+    "center": [102, 527],
     "content": "弹性布局",
     "rect": {
       "left": 78,
@@ -854,10 +758,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<span>"
     },
-    "center": [
-      274,
-      526
-    ],
+    "center": [274, 526],
     "content": "5.10.0",
     "rect": {
       "left": 257,
@@ -880,10 +781,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<span>"
     },
-    "center": [
-      58,
-      571
-    ],
+    "center": [58, 571],
     "content": "Grid",
     "rect": {
       "left": 44,
@@ -906,10 +804,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<span>"
     },
-    "center": [
-      91,
-      571
-    ],
+    "center": [91, 571],
     "content": "栅格",
     "rect": {
       "left": 79,
@@ -932,10 +827,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<span>"
     },
-    "center": [
-      65,
-      615
-    ],
+    "center": [65, 615],
     "content": "Layout",
     "rect": {
       "left": 44,
@@ -958,10 +850,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<span>"
     },
-    "center": [
-      106,
-      615
-    ],
+    "center": [106, 615],
     "content": "布局",
     "rect": {
       "left": 94,
@@ -984,10 +873,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<span>"
     },
-    "center": [
-      63,
-      659
-    ],
+    "center": [63, 659],
     "content": "Space",
     "rect": {
       "left": 44,
@@ -1010,10 +896,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<span>"
     },
-    "center": [
-      102,
-      659
-    ],
+    "center": [102, 659],
     "content": "间距",
     "rect": {
       "left": 90,
@@ -1036,10 +919,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<span>"
     },
-    "center": [
-      67,
-      703
-    ],
+    "center": [67, 703],
     "content": "Splitter",
     "rect": {
       "left": 44,
@@ -1062,10 +942,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<span>"
     },
-    "center": [
-      121,
-      703
-    ],
+    "center": [121, 703],
     "content": "分隔面板",
     "rect": {
       "left": 97,
@@ -1088,10 +965,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<span>"
     },
-    "center": [
-      274,
-      702
-    ],
+    "center": [274, 702],
     "content": "5.21.0",
     "rect": {
       "left": 257,
@@ -1114,10 +988,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<div>"
     },
-    "center": [
-      58,
-      758
-    ],
+    "center": [58, 758],
     "content": "导航",
     "rect": {
       "left": 44,
@@ -1140,10 +1011,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<span>"
     },
-    "center": [
-      67,
-      814
-    ],
+    "center": [67, 814],
     "content": "Anchor",
     "rect": {
       "left": 44,
@@ -1166,10 +1034,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<span>"
     },
-    "center": [
-      109,
-      814
-    ],
+    "center": [109, 814],
     "content": "锚点",
     "rect": {
       "left": 97,
@@ -1192,10 +1057,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<span>"
     },
-    "center": [
-      82,
-      858
-    ],
+    "center": [82, 858],
     "content": "Breadcrumb",
     "rect": {
       "left": 44,
@@ -1218,10 +1080,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<span>"
     },
-    "center": [
-      146,
-      858
-    ],
+    "center": [146, 858],
     "content": "面包屑",
     "rect": {
       "left": 128,
@@ -1244,10 +1103,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<span>"
     },
-    "center": [
-      77,
-      902
-    ],
+    "center": [77, 902],
     "content": "Dropdown",
     "rect": {
       "left": 44,
@@ -1270,10 +1126,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<span>"
     },
-    "center": [
-      142,
-      902
-    ],
+    "center": [142, 902],
     "content": "下拉菜单",
     "rect": {
       "left": 118,
@@ -1296,10 +1149,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<span>"
     },
-    "center": [
-      62,
-      946
-    ],
+    "center": [62, 946],
     "content": "Menu",
     "rect": {
       "left": 44,
@@ -1322,10 +1172,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<span>"
     },
-    "center": [
-      112,
-      946
-    ],
+    "center": [112, 946],
     "content": "导航菜单",
     "rect": {
       "left": 88,
@@ -1348,10 +1195,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<span>"
     },
-    "center": [
-      77,
-      990
-    ],
+    "center": [77, 990],
     "content": "Pagination",
     "rect": {
       "left": 44,
@@ -1374,10 +1218,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<span>"
     },
-    "center": [
-      130,
-      990
-    ],
+    "center": [130, 990],
     "content": "分页",
     "rect": {
       "left": 118,
@@ -1400,10 +1241,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<span>"
     },
-    "center": [
-      62,
-      1034
-    ],
+    "center": [62, 1034],
     "content": "Steps",
     "rect": {
       "left": 44,
@@ -1426,10 +1264,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<span>"
     },
-    "center": [
-      105,
-      1034
-    ],
+    "center": [105, 1034],
     "content": "步骤条",
     "rect": {
       "left": 87,
@@ -1452,10 +1287,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<a>"
     },
-    "center": [
-      1810,
-      117
-    ],
+    "center": [1810, 117],
     "content": "何时使用",
     "rect": {
       "left": 1786,
@@ -1478,10 +1310,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<a>"
     },
-    "center": [
-      1810,
-      144
-    ],
+    "center": [1810, 144],
     "content": "代码演示",
     "rect": {
       "left": 1786,
@@ -1504,10 +1333,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<span>"
     },
-    "center": [
-      1814,
-      168
-    ],
+    "center": [1814, 168],
     "content": "基本",
     "rect": {
       "left": 1802,
@@ -1530,10 +1356,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<span>"
     },
-    "center": [
-      1814,
-      191
-    ],
+    "center": [1814, 191],
     "content": "方向",
     "rect": {
       "left": 1802,
@@ -1556,10 +1379,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<span>"
     },
-    "center": [
-      1814,
-      213
-    ],
+    "center": [1814, 213],
     "content": "更多",
     "rect": {
       "left": 1802,
@@ -1582,10 +1402,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<span>"
     },
-    "center": [
-      1814,
-      236
-    ],
+    "center": [1814, 236],
     "content": "改变",
     "rect": {
       "left": 1802,
@@ -1608,10 +1425,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<span>"
     },
-    "center": [
-      1814,
-      259
-    ],
+    "center": [1814, 259],
     "content": "跳转",
     "rect": {
       "left": 1802,
@@ -1634,10 +1448,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<span>"
     },
-    "center": [
-      1814,
-      282
-    ],
+    "center": [1814, 282],
     "content": "迷你",
     "rect": {
       "left": 1802,
@@ -1660,10 +1471,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<span>"
     },
-    "center": [
-      1814,
-      305
-    ],
+    "center": [1814, 305],
     "content": "简洁",
     "rect": {
       "left": 1802,
@@ -1686,10 +1494,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<span>"
     },
-    "center": [
-      1814,
-      328
-    ],
+    "center": [1814, 328],
     "content": "受控",
     "rect": {
       "left": 1802,
@@ -1712,10 +1517,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<span>"
     },
-    "center": [
-      1814,
-      351
-    ],
+    "center": [1814, 351],
     "content": "总数",
     "rect": {
       "left": 1802,
@@ -1738,10 +1540,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<span>"
     },
-    "center": [
-      1826,
-      373
-    ],
+    "center": [1826, 373],
     "content": "全部展示",
     "rect": {
       "left": 1802,
@@ -1764,10 +1563,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<span>"
     },
-    "center": [
-      1844,
-      396
-    ],
+    "center": [1844, 396],
     "content": "上一步和下一步",
     "rect": {
       "left": 1802,
@@ -1790,10 +1586,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<a>"
     },
-    "center": [
-      1796,
-      425
-    ],
+    "center": [1796, 425],
     "content": "API",
     "rect": {
       "left": 1786,
@@ -1816,10 +1609,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<a>"
     },
-    "center": [
-      1860,
-      452
-    ],
+    "center": [1860, 452],
     "content": "主题变量（Design Token）",
     "rect": {
       "left": 1786,
@@ -1842,10 +1632,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<span>"
     },
-    "center": [
-      445,
-      123
-    ],
+    "center": [445, 123],
     "content": "Pagination",
     "rect": {
       "left": 368,
@@ -1868,10 +1655,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<span>"
     },
-    "center": [
-      562,
-      123
-    ],
+    "center": [562, 123],
     "content": "分页",
     "rect": {
       "left": 530,
@@ -1903,10 +1687,7 @@
       "height": 14,
       "zoom": 1
     },
-    "center": [
-      618,
-      125
-    ],
+    "center": [618, 125],
     "zoom": 1,
     "screenWidth": 1920,
     "screenHeight": 1080
@@ -1921,10 +1702,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<article>"
     },
-    "center": [
-      515,
-      170
-    ],
+    "center": [515, 170],
     "content": "分页器用于分隔长列表，每次只加载一个页面。",
     "rect": {
       "left": 368,
@@ -1947,10 +1725,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<span>"
     },
-    "center": [
-      382,
-      208
-    ],
+    "center": [382, 208],
     "content": "使用",
     "rect": {
       "left": 368,
@@ -1973,10 +1748,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<span>"
     },
-    "center": [
-      454,
-      208
-    ],
+    "center": [454, 208],
     "content": "import",
     "rect": {
       "left": 428,
@@ -1999,10 +1771,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<span>"
     },
-    "center": [
-      542,
-      208
-    ],
+    "center": [542, 208],
     "content": "{ Pagination }",
     "rect": {
       "left": 483,
@@ -2025,10 +1794,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<span>"
     },
-    "center": [
-      622,
-      208
-    ],
+    "center": [622, 208],
     "content": "from",
     "rect": {
       "left": 605,
@@ -2051,10 +1817,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<span>"
     },
-    "center": [
-      675,
-      208
-    ],
+    "center": [675, 208],
     "content": "\"antd\"",
     "rect": {
       "left": 649,
@@ -2077,10 +1840,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<span>"
     },
-    "center": [
-      708,
-      208
-    ],
+    "center": [708, 208],
     "content": ";",
     "rect": {
       "left": 704,
@@ -2103,10 +1863,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<span>"
     },
-    "center": [
-      382,
-      238
-    ],
+    "center": [382, 238],
     "content": "源码",
     "rect": {
       "left": 368,
@@ -2138,10 +1895,7 @@
       "height": 14,
       "zoom": 1
     },
-    "center": [
-      435,
-      238
-    ],
+    "center": [435, 238],
     "zoom": 1,
     "screenWidth": 1920,
     "screenHeight": 1080
@@ -2156,10 +1910,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<span>"
     },
-    "center": [
-      539,
-      238
-    ],
+    "center": [539, 238],
     "content": "components/pagination",
     "rect": {
       "left": 450,
@@ -2182,10 +1933,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<span>"
     },
-    "center": [
-      382,
-      268
-    ],
+    "center": [382, 268],
     "content": "文档",
     "rect": {
       "left": 368,
@@ -2217,10 +1965,7 @@
       "height": 13,
       "zoom": 1
     },
-    "center": [
-      436,
-      268
-    ],
+    "center": [436, 268],
     "zoom": 1,
     "screenWidth": 1920,
     "screenHeight": 1080
@@ -2235,10 +1980,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<span>"
     },
-    "center": [
-      478,
-      268
-    ],
+    "center": [478, 268],
     "content": "编辑此页",
     "rect": {
       "left": 450,
@@ -2270,10 +2012,7 @@
       "height": 13,
       "zoom": 1
     },
-    "center": [
-      537,
-      268
-    ],
+    "center": [537, 268],
     "zoom": 1,
     "screenWidth": 1920,
     "screenHeight": 1080
@@ -2288,10 +2027,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<span>"
     },
-    "center": [
-      580,
-      268
-    ],
+    "center": [580, 268],
     "content": "更新日志",
     "rect": {
       "left": 552,
@@ -2323,10 +2059,7 @@
       "height": 13,
       "zoom": 1
     },
-    "center": [
-      376,
-      334
-    ],
+    "center": [376, 334],
     "zoom": 1,
     "screenWidth": 1920,
     "screenHeight": 1080
@@ -2341,10 +2074,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<span>"
     },
-    "center": [
-      408,
-      334
-    ],
+    "center": [408, 334],
     "content": "开发",
     "rect": {
       "left": 394,
@@ -2376,10 +2106,7 @@
       "height": 12,
       "zoom": 1
     },
-    "center": [
-      462,
-      333
-    ],
+    "center": [462, 333],
     "zoom": 1,
     "screenWidth": 1920,
     "screenHeight": 1080
@@ -2394,10 +2121,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<span>"
     },
-    "center": [
-      494,
-      334
-    ],
+    "center": [494, 334],
     "content": "设计",
     "rect": {
       "left": 480,
@@ -2431,10 +2155,7 @@
       "height": 38,
       "zoom": 1
     },
-    "center": [
-      356,
-      414
-    ],
+    "center": [356, 414],
     "zoom": 1,
     "screenWidth": 1920,
     "screenHeight": 1080
@@ -2449,10 +2170,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<h2>"
     },
-    "center": [
-      416,
-      412
-    ],
+    "center": [416, 412],
     "content": "何时使用",
     "rect": {
       "left": 368,
@@ -2475,10 +2193,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<li>"
     },
-    "center": [
-      520,
-      456
-    ],
+    "center": [520, 456],
     "content": "当加载/渲染所有数据将花费很多时间时；",
     "rect": {
       "left": 392,
@@ -2501,10 +2216,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<li>"
     },
-    "center": [
-      462,
-      484
-    ],
+    "center": [462, 484],
     "content": "可切换页码浏览数据。",
     "rect": {
       "left": 392,
@@ -2538,10 +2250,7 @@
       "height": 38,
       "zoom": 1
     },
-    "center": [
-      356,
-      555
-    ],
+    "center": [356, 555],
     "zoom": 1,
     "screenWidth": 1920,
     "screenHeight": 1080
@@ -2556,10 +2265,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<h2>"
     },
-    "center": [
-      416,
-      552
-    ],
+    "center": [416, 552],
     "content": "代码演示",
     "rect": {
       "left": 368,
@@ -2592,10 +2298,7 @@
       "height": 24,
       "zoom": 1
     },
-    "center": [
-      1680,
-      554
-    ],
+    "center": [1680, 554],
     "zoom": 1,
     "screenWidth": 1920,
     "screenHeight": 1080
@@ -2620,10 +2323,7 @@
       "height": 24,
       "zoom": 1
     },
-    "center": [
-      1712,
-      554
-    ],
+    "center": [1712, 554],
     "zoom": 1,
     "screenWidth": 1920,
     "screenHeight": 1080
@@ -2648,10 +2348,7 @@
       "height": 24,
       "zoom": 1
     },
-    "center": [
-      1744,
-      554
-    ],
+    "center": [1744, 554],
     "zoom": 1,
     "screenWidth": 1920,
     "screenHeight": 1080
@@ -2677,10 +2374,7 @@
       "height": 32,
       "zoom": 1
     },
-    "center": [
-      409,
-      641
-    ],
+    "center": [409, 641],
     "zoom": 1,
     "screenWidth": 1920,
     "screenHeight": 1080
@@ -2695,10 +2389,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<a>"
     },
-    "center": [
-      450,
-      642
-    ],
+    "center": [450, 642],
     "content": "1",
     "rect": {
       "left": 446,
@@ -2721,10 +2412,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<a>"
     },
-    "center": [
-      489,
-      642
-    ],
+    "center": [489, 642],
     "content": "2",
     "rect": {
       "left": 485,
@@ -2747,10 +2435,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<a>"
     },
-    "center": [
-      530,
-      642
-    ],
+    "center": [530, 642],
     "content": "3",
     "rect": {
       "left": 525,
@@ -2773,10 +2458,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<a>"
     },
-    "center": [
-      570,
-      642
-    ],
+    "center": [570, 642],
     "content": "4",
     "rect": {
       "left": 565,
@@ -2799,10 +2481,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<a>"
     },
-    "center": [
-      610,
-      642
-    ],
+    "center": [610, 642],
     "content": "5",
     "rect": {
       "left": 605,
@@ -2836,10 +2515,7 @@
       "height": 32,
       "zoom": 1
     },
-    "center": [
-      649,
-      641
-    ],
+    "center": [649, 641],
     "zoom": 1,
     "screenWidth": 1920,
     "screenHeight": 1080
@@ -2854,10 +2530,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<a>"
     },
-    "center": [
-      407,
-      710
-    ],
+    "center": [407, 710],
     "content": "基本",
     "rect": {
       "left": 393,
@@ -2889,10 +2562,7 @@
       "height": 14,
       "zoom": 1
     },
-    "center": [
-      437,
-      708
-    ],
+    "center": [437, 708],
     "zoom": 1,
     "screenWidth": 1920,
     "screenHeight": 1080
@@ -2907,10 +2577,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<p>"
     },
-    "center": [
-      428,
-      741
-    ],
+    "center": [428, 741],
     "content": "基础分页。",
     "rect": {
       "left": 393,
@@ -2942,10 +2609,7 @@
       "height": 16,
       "zoom": 1
     },
-    "center": [
-      998,
-      787
-    ],
+    "center": [998, 787],
     "zoom": 1,
     "screenWidth": 1920,
     "screenHeight": 1080
@@ -2969,10 +2633,7 @@
       "height": 16,
       "zoom": 1
     },
-    "center": [
-      1030,
-      788
-    ],
+    "center": [1030, 788],
     "zoom": 1,
     "screenWidth": 1920,
     "screenHeight": 1080
@@ -2996,10 +2657,7 @@
       "height": 14,
       "zoom": 1
     },
-    "center": [
-      1061,
-      787
-    ],
+    "center": [1061, 787],
     "zoom": 1,
     "screenWidth": 1920,
     "screenHeight": 1080
@@ -3023,10 +2681,7 @@
       "height": 11,
       "zoom": 1
     },
-    "center": [
-      1094,
-      788
-    ],
+    "center": [1094, 788],
     "zoom": 1,
     "screenWidth": 1920,
     "screenHeight": 1080
@@ -3052,10 +2707,7 @@
       "height": 16,
       "zoom": 1
     },
-    "center": [
-      1126,
-      787
-    ],
+    "center": [1126, 787],
     "zoom": 1,
     "screenWidth": 1920,
     "screenHeight": 1080
@@ -3081,10 +2733,7 @@
       "height": 32,
       "zoom": 1
     },
-    "center": [
-      409,
-      883
-    ],
+    "center": [409, 883],
     "zoom": 1,
     "screenWidth": 1920,
     "screenHeight": 1080
@@ -3099,10 +2748,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<a>"
     },
-    "center": [
-      450,
-      884
-    ],
+    "center": [450, 884],
     "content": "1",
     "rect": {
       "left": 446,
@@ -3125,10 +2771,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<a>"
     },
-    "center": [
-      489,
-      884
-    ],
+    "center": [489, 884],
     "content": "2",
     "rect": {
       "left": 485,
@@ -3151,10 +2794,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<a>"
     },
-    "center": [
-      530,
-      884
-    ],
+    "center": [530, 884],
     "content": "3",
     "rect": {
       "left": 525,
@@ -3177,10 +2817,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<a>"
     },
-    "center": [
-      570,
-      884
-    ],
+    "center": [570, 884],
     "content": "4",
     "rect": {
       "left": 565,
@@ -3203,10 +2840,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<a>"
     },
-    "center": [
-      610,
-      884
-    ],
+    "center": [610, 884],
     "content": "5",
     "rect": {
       "left": 605,
@@ -3240,10 +2874,7 @@
       "height": 32,
       "zoom": 1
     },
-    "center": [
-      649,
-      883
-    ],
+    "center": [649, 883],
     "zoom": 1,
     "screenWidth": 1920,
     "screenHeight": 1080
@@ -3269,10 +2900,7 @@
       "height": 32,
       "zoom": 1
     },
-    "center": [
-      942,
-      937
-    ],
+    "center": [942, 937],
     "zoom": 1,
     "screenWidth": 1920,
     "screenHeight": 1080
@@ -3287,10 +2915,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<a>"
     },
-    "center": [
-      983,
-      938
-    ],
+    "center": [983, 938],
     "content": "1",
     "rect": {
       "left": 979,
@@ -3313,10 +2938,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<a>"
     },
-    "center": [
-      1022,
-      938
-    ],
+    "center": [1022, 938],
     "content": "2",
     "rect": {
       "left": 1018,
@@ -3339,10 +2961,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<a>"
     },
-    "center": [
-      1063,
-      938
-    ],
+    "center": [1063, 938],
     "content": "3",
     "rect": {
       "left": 1058,
@@ -3365,10 +2984,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<a>"
     },
-    "center": [
-      1103,
-      938
-    ],
+    "center": [1103, 938],
     "content": "4",
     "rect": {
       "left": 1098,
@@ -3391,10 +3007,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<a>"
     },
-    "center": [
-      1143,
-      938
-    ],
+    "center": [1143, 938],
     "content": "5",
     "rect": {
       "left": 1138,
@@ -3428,10 +3041,7 @@
       "height": 32,
       "zoom": 1
     },
-    "center": [
-      1182,
-      937
-    ],
+    "center": [1182, 937],
     "zoom": 1,
     "screenWidth": 1920,
     "screenHeight": 1080
@@ -3457,10 +3067,7 @@
       "height": 32,
       "zoom": 1
     },
-    "center": [
-      1475,
-      991
-    ],
+    "center": [1475, 991],
     "zoom": 1,
     "screenWidth": 1920,
     "screenHeight": 1080
@@ -3475,10 +3082,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<a>"
     },
-    "center": [
-      1516,
-      992
-    ],
+    "center": [1516, 992],
     "content": "1",
     "rect": {
       "left": 1512,
@@ -3501,10 +3105,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<a>"
     },
-    "center": [
-      1555,
-      992
-    ],
+    "center": [1555, 992],
     "content": "2",
     "rect": {
       "left": 1551,
@@ -3527,10 +3128,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<a>"
     },
-    "center": [
-      1596,
-      992
-    ],
+    "center": [1596, 992],
     "content": "3",
     "rect": {
       "left": 1591,
@@ -3553,10 +3151,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<a>"
     },
-    "center": [
-      1636,
-      992
-    ],
+    "center": [1636, 992],
     "content": "4",
     "rect": {
       "left": 1631,
@@ -3579,10 +3174,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<a>"
     },
-    "center": [
-      1676,
-      992
-    ],
+    "center": [1676, 992],
     "content": "5",
     "rect": {
       "left": 1671,
@@ -3616,10 +3208,7 @@
       "height": 32,
       "zoom": 1
     },
-    "center": [
-      1715,
-      991
-    ],
+    "center": [1715, 991],
     "zoom": 1,
     "screenWidth": 1920,
     "screenHeight": 1080
@@ -3634,10 +3223,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<span>"
     },
-    "center": [
-      1737,
-      844
-    ],
+    "center": [1737, 844],
     "content": "5.19.0",
     "rect": {
       "left": 1718,
@@ -3669,10 +3255,7 @@
       "height": 6,
       "zoom": 1
     },
-    "center": [
-      1760,
-      857
-    ],
+    "center": [1760, 857],
     "zoom": 1,
     "screenWidth": 1920,
     "screenHeight": 1080
@@ -3698,10 +3281,7 @@
       "height": 40,
       "zoom": 1
     },
-    "center": [
-      1876,
-      1012
-    ],
+    "center": [1876, 1012],
     "zoom": 1,
     "screenWidth": 1920,
     "screenHeight": 1080

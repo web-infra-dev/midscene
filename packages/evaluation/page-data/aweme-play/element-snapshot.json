@@ -18,10 +18,7 @@
       "height": 64,
       "zoom": 1
     },
-    "center": [
-      67,
-      67
-    ],
+    "center": [67, 67],
     "zoom": 1,
     "screenWidth": 1280,
     "screenHeight": 800
@@ -45,10 +42,7 @@
       "height": 18,
       "zoom": 1
     },
-    "center": [
-      67,
-      67
-    ],
+    "center": [67, 67],
     "zoom": 1,
     "screenWidth": 1280,
     "screenHeight": 800
@@ -75,10 +69,7 @@
       "height": 36,
       "zoom": 1
     },
-    "center": [
-      240,
-      67
-    ],
+    "center": [240, 67],
     "zoom": 1,
     "screenWidth": 1280,
     "screenHeight": 800
@@ -104,10 +95,7 @@
       "height": 36,
       "zoom": 1
     },
-    "center": [
-      378,
-      67
-    ],
+    "center": [378, 67],
     "zoom": 1,
     "screenWidth": 1280,
     "screenHeight": 800
@@ -131,10 +119,7 @@
       "height": 16,
       "zoom": 1
     },
-    "center": [
-      24,
-      777
-    ],
+    "center": [24, 777],
     "zoom": 1,
     "screenWidth": 1280,
     "screenHeight": 800
@@ -149,10 +134,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<span>"
     },
-    "center": [
-      65,
-      777
-    ],
+    "center": [65, 777],
     "content": "00:00",
     "rect": {
       "left": 46,
@@ -175,10 +157,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<span>"
     },
-    "center": [
-      93,
-      777
-    ],
+    "center": [93, 777],
     "content": "/",
     "rect": {
       "left": 89,
@@ -201,10 +180,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<span>"
     },
-    "center": [
-      121,
-      777
-    ],
+    "center": [121, 777],
     "content": "00:00",
     "rect": {
       "left": 102,
@@ -236,10 +212,7 @@
       "height": 22,
       "zoom": 1
     },
-    "center": [
-      640,
-      753
-    ],
+    "center": [640, 753],
     "zoom": 1,
     "screenWidth": 1280,
     "screenHeight": 800
@@ -263,10 +236,7 @@
       "height": 16,
       "zoom": 1
     },
-    "center": [
-      1249,
-      777
-    ],
+    "center": [1249, 777],
     "zoom": 1,
     "screenWidth": 1280,
     "screenHeight": 800
@@ -290,10 +260,7 @@
       "height": 17,
       "zoom": 1
     },
-    "center": [
-      1212,
-      777
-    ],
+    "center": [1212, 777],
     "zoom": 1,
     "screenWidth": 1280,
     "screenHeight": 800
@@ -317,10 +284,7 @@
       "height": 17,
       "zoom": 1
     },
-    "center": [
-      1176,
-      778
-    ],
+    "center": [1176, 778],
     "zoom": 1,
     "screenWidth": 1280,
     "screenHeight": 800
@@ -335,10 +299,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<span>"
     },
-    "center": [
-      1202,
-      736
-    ],
+    "center": [1202, 736],
     "content": "L",
     "rect": {
       "left": 1198,
@@ -361,10 +322,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<div>"
     },
-    "center": [
-      1136,
-      777
-    ],
+    "center": [1136, 777],
     "content": "倍速",
     "rect": {
       "left": 1122,
@@ -387,10 +345,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<div>"
     },
-    "center": [
-      1091,
-      777
-    ],
+    "center": [1091, 777],
     "content": "智能",
     "rect": {
       "left": 1077,
@@ -425,10 +380,7 @@
       "height": 14,
       "zoom": 1
     },
-    "center": [
-      1017,
-      777
-    ],
+    "center": [1017, 777],
     "zoom": 1,
     "screenWidth": 1280,
     "screenHeight": 800
@@ -443,10 +395,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<span>"
     },
-    "center": [
-      1047,
-      777
-    ],
+    "center": [1047, 777],
     "content": "清屏",
     "rect": {
       "left": 1033,
@@ -481,10 +430,7 @@
       "height": 14,
       "zoom": 1
     },
-    "center": [
-      950,
-      777
-    ],
+    "center": [950, 777],
     "zoom": 1,
     "screenWidth": 1280,
     "screenHeight": 800
@@ -499,10 +445,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<span>"
     },
-    "center": [
-      980,
-      777
-    ],
+    "center": [980, 777],
     "content": "连播",
     "rect": {
       "left": 966,
@@ -534,10 +477,7 @@
       "height": 8,
       "zoom": 1
     },
-    "center": [
-      1219,
-      189
-    ],
+    "center": [1219, 189],
     "zoom": 1,
     "screenWidth": 1280,
     "screenHeight": 800
@@ -561,10 +501,7 @@
       "height": 8,
       "zoom": 1
     },
-    "center": [
-      1219,
-      228
-    ],
+    "center": [1219, 228],
     "zoom": 1,
     "screenWidth": 1280,
     "screenHeight": 800
@@ -589,10 +526,7 @@
       "height": 40,
       "zoom": 1
     },
-    "center": [
-      1217,
-      295
-    ],
+    "center": [1217, 295],
     "zoom": 1,
     "screenWidth": 1280,
     "screenHeight": 800
@@ -616,10 +550,7 @@
       "height": 17,
       "zoom": 1
     },
-    "center": [
-      1217,
-      315
-    ],
+    "center": [1217, 315],
     "zoom": 1,
     "screenWidth": 1280,
     "screenHeight": 800
@@ -643,10 +574,7 @@
       "height": 21,
       "zoom": 1
     },
-    "center": [
-      1217,
-      362
-    ],
+    "center": [1217, 362],
     "zoom": 1,
     "screenWidth": 1280,
     "screenHeight": 800
@@ -661,10 +589,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<div>"
     },
-    "center": [
-      1218,
-      396
-    ],
+    "center": [1218, 396],
     "content": "6.5万",
     "rect": {
       "left": 1199,
@@ -696,10 +621,7 @@
       "height": 22,
       "zoom": 1
     },
-    "center": [
-      1217,
-      436
-    ],
+    "center": [1217, 436],
     "zoom": 1,
     "screenWidth": 1280,
     "screenHeight": 800
@@ -714,10 +636,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<div>"
     },
-    "center": [
-      1218,
-      470
-    ],
+    "center": [1218, 470],
     "content": "2070",
     "rect": {
       "left": 1200,
@@ -749,10 +668,7 @@
       "height": 22,
       "zoom": 1
     },
-    "center": [
-      1218,
-      509
-    ],
+    "center": [1218, 509],
     "zoom": 1,
     "screenWidth": 1280,
     "screenHeight": 800
@@ -767,10 +683,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<div>"
     },
-    "center": [
-      1217,
-      544
-    ],
+    "center": [1217, 544],
     "content": "9396",
     "rect": {
       "left": 1199,
@@ -802,10 +715,7 @@
       "height": 18,
       "zoom": 1
     },
-    "center": [
-      1218,
-      584
-    ],
+    "center": [1218, 584],
     "zoom": 1,
     "screenWidth": 1280,
     "screenHeight": 800
@@ -820,10 +730,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<div>"
     },
-    "center": [
-      1218,
-      618
-    ],
+    "center": [1218, 618],
     "content": "9515",
     "rect": {
       "left": 1201,
@@ -855,10 +762,7 @@
       "height": 21,
       "zoom": 1
     },
-    "center": [
-      1218,
-      657
-    ],
+    "center": [1218, 657],
     "zoom": 1,
     "screenWidth": 1280,
     "screenHeight": 800
@@ -873,10 +777,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<div>"
     },
-    "center": [
-      1218,
-      684
-    ],
+    "center": [1218, 684],
     "content": "看相关",
     "rect": {
       "left": 1195,
@@ -908,10 +809,7 @@
       "height": 4,
       "zoom": 1
     },
-    "center": [
-      1217,
-      718
-    ],
+    "center": [1217, 718],
     "zoom": 1,
     "screenWidth": 1280,
     "screenHeight": 800
@@ -926,10 +824,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<span>"
     },
-    "center": [
-      640,
-      356
-    ],
+    "center": [640, 356],
     "content": "不支持的音频/视频格式 或 设备无网络",
     "rect": {
       "left": 520,
@@ -952,10 +847,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<span>"
     },
-    "center": [
-      623,
-      395
-    ],
+    "center": [623, 395],
     "content": "请试试",
     "rect": {
       "left": 602,
@@ -978,10 +870,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<span>"
     },
-    "center": [
-      661,
-      395
-    ],
+    "center": [661, 395],
     "content": "刷新",
     "rect": {
       "left": 647,
@@ -1014,10 +903,7 @@
       "height": 50,
       "zoom": 1
     },
-    "center": [
-      1264,
-      400
-    ],
+    "center": [1264, 400],
     "zoom": 1,
     "screenWidth": 1280,
     "screenHeight": 800
@@ -1043,10 +929,7 @@
       "height": 40,
       "zoom": 1
     },
-    "center": [
-      1236,
-      740
-    ],
+    "center": [1236, 740],
     "zoom": 1,
     "screenWidth": 1280,
     "screenHeight": 800

@@ -68,10 +68,7 @@
                                           "height": 32,
                                           "zoom": 1
                                         },
-                                        "center": [
-                                          56,
-                                          32
-                                        ],
+                                        "center": [56, 32],
                                         "zoom": 1,
                                         "screenWidth": 1920,
                                         "screenHeight": 1080
@@ -92,10 +89,7 @@
                                               "nodeType": "TEXT Node",
                                               "htmlTagName": "<span>"
                                             },
-                                            "center": [
-                                              131,
-                                              32
-                                            ],
+                                            "center": [131, 32],
                                             "content": "Ant Design",
                                             "rect": {
                                               "left": 84,
@@ -147,10 +141,7 @@
                                           "height": 13,
                                           "zoom": 1
                                         },
-                                        "center": [
-                                          345,
-                                          33
-                                        ],
+                                        "center": [345, 33],
                                         "zoom": 1,
                                         "screenWidth": 1920,
                                         "screenHeight": 1080
@@ -178,10 +169,7 @@
                                           "height": 22,
                                           "zoom": 1
                                         },
-                                        "center": [
-                                          461,
-                                          32
-                                        ],
+                                        "center": [461, 32],
                                         "zoom": 1,
                                         "screenWidth": 1920,
                                         "screenHeight": 1080
@@ -202,10 +190,7 @@
                                               "nodeType": "TEXT Node",
                                               "htmlTagName": "<span>"
                                             },
-                                            "center": [
-                                              616,
-                                              32
-                                            ],
+                                            "center": [616, 32],
                                             "content": "⌘",
                                             "rect": {
                                               "left": 610,
@@ -235,10 +220,7 @@
                                               "nodeType": "TEXT Node",
                                               "htmlTagName": "<span>"
                                             },
-                                            "center": [
-                                              627,
-                                              32
-                                            ],
+                                            "center": [627, 32],
                                             "content": "K",
                                             "rect": {
                                               "left": 621,
@@ -280,10 +262,7 @@
                                                       "nodeType": "TEXT Node",
                                                       "htmlTagName": "<a>"
                                                     },
-                                                    "center": [
-                                                      1302,
-                                                      33
-                                                    ],
+                                                    "center": [1302, 33],
                                                     "content": "设计",
                                                     "rect": {
                                                       "left": 1288,
@@ -324,10 +303,7 @@
                                                       "nodeType": "TEXT Node",
                                                       "htmlTagName": "<a>"
                                                     },
-                                                    "center": [
-                                                      1366,
-                                                      33
-                                                    ],
+                                                    "center": [1366, 33],
                                                     "content": "研发",
                                                     "rect": {
                                                       "left": 1352,
@@ -368,10 +344,7 @@
                                                       "nodeType": "TEXT Node",
                                                       "htmlTagName": "<a>"
                                                     },
-                                                    "center": [
-                                                      1430,
-                                                      33
-                                                    ],
+                                                    "center": [1430, 33],
                                                     "content": "组件",
                                                     "rect": {
                                                       "left": 1416,
@@ -412,10 +385,7 @@
                                                       "nodeType": "TEXT Node",
                                                       "htmlTagName": "<a>"
                                                     },
-                                                    "center": [
-                                                      1494,
-                                                      33
-                                                    ],
+                                                    "center": [1494, 33],
                                                     "content": "博客",
                                                     "rect": {
                                                       "left": 1480,
@@ -456,10 +426,7 @@
                                                       "nodeType": "TEXT Node",
                                                       "htmlTagName": "<a>"
                                                     },
-                                                    "center": [
-                                                      1558,
-                                                      33
-                                                    ],
+                                                    "center": [1558, 33],
                                                     "content": "资源",
                                                     "rect": {
                                                       "left": 1544,
@@ -500,10 +467,7 @@
                                                       "nodeType": "TEXT Node",
                                                       "htmlTagName": "<a>"
                                                     },
-                                                    "center": [
-                                                      1630,
-                                                      33
-                                                    ],
+                                                    "center": [1630, 33],
                                                     "content": "国内镜像",
                                                     "rect": {
                                                       "left": 1602,
@@ -562,10 +526,7 @@
                                                       "nodeType": "TEXT Node",
                                                       "htmlTagName": "<span>"
                                                     },
-                                                    "center": [
-                                                      1711,
-                                                      32
-                                                    ],
+                                                    "center": [1711, 32],
                                                     "content": "5.23.4",
                                                     "rect": {
                                                       "left": 1690,
@@ -628,10 +589,7 @@
                                       "height": 32,
                                       "zoom": 1
                                     },
-                                    "center": [
-                                      1800,
-                                      32
-                                    ],
+                                    "center": [1800, 32],
                                     "zoom": 1,
                                     "screenWidth": 1920,
                                     "screenHeight": 1080
@@ -660,10 +618,7 @@
                                       "height": 32,
                                       "zoom": 1
                                     },
-                                    "center": [
-                                      1844,
-                                      32
-                                    ],
+                                    "center": [1844, 32],
                                     "zoom": 1,
                                     "screenWidth": 1920,
                                     "screenHeight": 1080
@@ -694,10 +649,7 @@
                                           "height": 32,
                                           "zoom": 1
                                         },
-                                        "center": [
-                                          1888,
-                                          32
-                                        ],
+                                        "center": [1888, 32],
                                         "zoom": 1,
                                         "screenWidth": 1920,
                                         "screenHeight": 1080
@@ -752,10 +704,7 @@
                                                           "nodeType": "TEXT Node",
                                                           "htmlTagName": "<span>"
                                                         },
-                                                        "center": [
-                                                          72,
-                                                          129
-                                                        ],
+                                                        "center": [72, 129],
                                                         "content": "组件总览",
                                                         "rect": {
                                                           "left": 44,
@@ -799,10 +748,7 @@
                                           "nodeType": "TEXT Node",
                                           "htmlTagName": "<div>"
                                         },
-                                        "center": [
-                                          58,
-                                          184
-                                        ],
+                                        "center": [58, 184],
                                         "content": "通用",
                                         "rect": {
                                           "left": 44,
@@ -852,8 +798,7 @@
                                                                   "htmlTagName": "<span>"
                                                                 },
                                                                 "center": [
-                                                                  65,
-                                                                  240
+                                                                  65, 240
                                                                 ],
                                                                 "content": "Button",
                                                                 "rect": {
@@ -891,8 +836,7 @@
                                                                   "htmlTagName": "<span>"
                                                                 },
                                                                 "center": [
-                                                                  106,
-                                                                  240
+                                                                  106, 240
                                                                 ],
                                                                 "content": "按钮",
                                                                 "rect": {
@@ -950,8 +894,7 @@
                                                                   "htmlTagName": "<span>"
                                                                 },
                                                                 "center": [
-                                                                  81,
-                                                                  284
+                                                                  81, 284
                                                                 ],
                                                                 "content": "FloatButton",
                                                                 "rect": {
@@ -989,8 +932,7 @@
                                                                   "htmlTagName": "<span>"
                                                                 },
                                                                 "center": [
-                                                                  149,
-                                                                  284
+                                                                  149, 284
                                                                 ],
                                                                 "content": "悬浮按钮",
                                                                 "rect": {
@@ -1026,10 +968,7 @@
                                                           "nodeType": "TEXT Node",
                                                           "htmlTagName": "<span>"
                                                         },
-                                                        "center": [
-                                                          277,
-                                                          283
-                                                        ],
+                                                        "center": [277, 283],
                                                         "content": "5.0.0",
                                                         "rect": {
                                                           "left": 263,
@@ -1082,8 +1021,7 @@
                                                                   "htmlTagName": "<span>"
                                                                 },
                                                                 "center": [
-                                                                  58,
-                                                                  328
+                                                                  58, 328
                                                                 ],
                                                                 "content": "Icon",
                                                                 "rect": {
@@ -1121,8 +1059,7 @@
                                                                   "htmlTagName": "<span>"
                                                                 },
                                                                 "center": [
-                                                                  91,
-                                                                  328
+                                                                  91, 328
                                                                 ],
                                                                 "content": "图标",
                                                                 "rect": {
@@ -1180,8 +1117,7 @@
                                                                   "htmlTagName": "<span>"
                                                                 },
                                                                 "center": [
-                                                                  81,
-                                                                  372
+                                                                  81, 372
                                                                 ],
                                                                 "content": "Typography",
                                                                 "rect": {
@@ -1219,8 +1155,7 @@
                                                                   "htmlTagName": "<span>"
                                                                 },
                                                                 "center": [
-                                                                  138,
-                                                                  372
+                                                                  138, 372
                                                                 ],
                                                                 "content": "排版",
                                                                 "rect": {
@@ -1269,10 +1204,7 @@
                                           "nodeType": "TEXT Node",
                                           "htmlTagName": "<div>"
                                         },
-                                        "center": [
-                                          58,
-                                          427
-                                        ],
+                                        "center": [58, 427],
                                         "content": "布局",
                                         "rect": {
                                           "left": 44,
@@ -1322,8 +1254,7 @@
                                                                   "htmlTagName": "<span>"
                                                                 },
                                                                 "center": [
-                                                                  67,
-                                                                  483
+                                                                  67, 483
                                                                 ],
                                                                 "content": "Divider",
                                                                 "rect": {
@@ -1361,8 +1292,7 @@
                                                                   "htmlTagName": "<span>"
                                                                 },
                                                                 "center": [
-                                                                  115,
-                                                                  483
+                                                                  115, 483
                                                                 ],
                                                                 "content": "分割线",
                                                                 "rect": {
@@ -1420,8 +1350,7 @@
                                                                   "htmlTagName": "<span>"
                                                                 },
                                                                 "center": [
-                                                                  57,
-                                                                  527
+                                                                  57, 527
                                                                 ],
                                                                 "content": "Flex",
                                                                 "rect": {
@@ -1459,8 +1388,7 @@
                                                                   "htmlTagName": "<span>"
                                                                 },
                                                                 "center": [
-                                                                  102,
-                                                                  527
+                                                                  102, 527
                                                                 ],
                                                                 "content": "弹性布局",
                                                                 "rect": {
@@ -1496,10 +1424,7 @@
                                                           "nodeType": "TEXT Node",
                                                           "htmlTagName": "<span>"
                                                         },
-                                                        "center": [
-                                                          274,
-                                                          526
-                                                        ],
+                                                        "center": [274, 526],
                                                         "content": "5.10.0",
                                                         "rect": {
                                                           "left": 257,
@@ -1552,8 +1477,7 @@
                                                                   "htmlTagName": "<span>"
                                                                 },
                                                                 "center": [
-                                                                  58,
-                                                                  571
+                                                                  58, 571
                                                                 ],
                                                                 "content": "Grid",
                                                                 "rect": {
@@ -1591,8 +1515,7 @@
                                                                   "htmlTagName": "<span>"
                                                                 },
                                                                 "center": [
-                                                                  91,
-                                                                  571
+                                                                  91, 571
                                                                 ],
                                                                 "content": "栅格",
                                                                 "rect": {
@@ -1650,8 +1573,7 @@
                                                                   "htmlTagName": "<span>"
                                                                 },
                                                                 "center": [
-                                                                  65,
-                                                                  615
+                                                                  65, 615
                                                                 ],
                                                                 "content": "Layout",
                                                                 "rect": {
@@ -1689,8 +1611,7 @@
                                                                   "htmlTagName": "<span>"
                                                                 },
                                                                 "center": [
-                                                                  106,
-                                                                  615
+                                                                  106, 615
                                                                 ],
                                                                 "content": "布局",
                                                                 "rect": {
@@ -1748,8 +1669,7 @@
                                                                   "htmlTagName": "<span>"
                                                                 },
                                                                 "center": [
-                                                                  63,
-                                                                  659
+                                                                  63, 659
                                                                 ],
                                                                 "content": "Space",
                                                                 "rect": {
@@ -1787,8 +1707,7 @@
                                                                   "htmlTagName": "<span>"
                                                                 },
                                                                 "center": [
-                                                                  102,
-                                                                  659
+                                                                  102, 659
                                                                 ],
                                                                 "content": "间距",
                                                                 "rect": {
@@ -1846,8 +1765,7 @@
                                                                   "htmlTagName": "<span>"
                                                                 },
                                                                 "center": [
-                                                                  67,
-                                                                  703
+                                                                  67, 703
                                                                 ],
                                                                 "content": "Splitter",
                                                                 "rect": {
@@ -1885,8 +1803,7 @@
                                                                   "htmlTagName": "<span>"
                                                                 },
                                                                 "center": [
-                                                                  121,
-                                                                  703
+                                                                  121, 703
                                                                 ],
                                                                 "content": "分隔面板",
                                                                 "rect": {
@@ -1922,10 +1839,7 @@
                                                           "nodeType": "TEXT Node",
                                                           "htmlTagName": "<span>"
                                                         },
-                                                        "center": [
-                                                          274,
-                                                          702
-                                                        ],
+                                                        "center": [274, 702],
                                                         "content": "5.21.0",
                                                         "rect": {
                                                           "left": 257,
@@ -1969,10 +1883,7 @@
                                           "nodeType": "TEXT Node",
                                           "htmlTagName": "<div>"
                                         },
-                                        "center": [
-                                          58,
-                                          758
-                                        ],
+                                        "center": [58, 758],
                                         "content": "导航",
                                         "rect": {
                                           "left": 44,
@@ -2022,8 +1933,7 @@
                                                                   "htmlTagName": "<span>"
                                                                 },
                                                                 "center": [
-                                                                  67,
-                                                                  814
+                                                                  67, 814
                                                                 ],
                                                                 "content": "Anchor",
                                                                 "rect": {
@@ -2061,8 +1971,7 @@
                                                                   "htmlTagName": "<span>"
                                                                 },
                                                                 "center": [
-                                                                  109,
-                                                                  814
+                                                                  109, 814
                                                                 ],
                                                                 "content": "锚点",
                                                                 "rect": {
@@ -2120,8 +2029,7 @@
                                                                   "htmlTagName": "<span>"
                                                                 },
                                                                 "center": [
-                                                                  82,
-                                                                  858
+                                                                  82, 858
                                                                 ],
                                                                 "content": "Breadcrumb",
                                                                 "rect": {
@@ -2159,8 +2067,7 @@
                                                                   "htmlTagName": "<span>"
                                                                 },
                                                                 "center": [
-                                                                  146,
-                                                                  858
+                                                                  146, 858
                                                                 ],
                                                                 "content": "面包屑",
                                                                 "rect": {
@@ -2218,8 +2125,7 @@
                                                                   "htmlTagName": "<span>"
                                                                 },
                                                                 "center": [
-                                                                  77,
-                                                                  902
+                                                                  77, 902
                                                                 ],
                                                                 "content": "Dropdown",
                                                                 "rect": {
@@ -2257,8 +2163,7 @@
                                                                   "htmlTagName": "<span>"
                                                                 },
                                                                 "center": [
-                                                                  142,
-                                                                  902
+                                                                  142, 902
                                                                 ],
                                                                 "content": "下拉菜单",
                                                                 "rect": {
@@ -2316,8 +2221,7 @@
                                                                   "htmlTagName": "<span>"
                                                                 },
                                                                 "center": [
-                                                                  62,
-                                                                  946
+                                                                  62, 946
                                                                 ],
                                                                 "content": "Menu",
                                                                 "rect": {
@@ -2355,8 +2259,7 @@
                                                                   "htmlTagName": "<span>"
                                                                 },
                                                                 "center": [
-                                                                  112,
-                                                                  946
+                                                                  112, 946
                                                                 ],
                                                                 "content": "导航菜单",
                                                                 "rect": {
@@ -2414,8 +2317,7 @@
                                                                   "htmlTagName": "<span>"
                                                                 },
                                                                 "center": [
-                                                                  77,
-                                                                  990
+                                                                  77, 990
                                                                 ],
                                                                 "content": "Pagination",
                                                                 "rect": {
@@ -2453,8 +2355,7 @@
                                                                   "htmlTagName": "<span>"
                                                                 },
                                                                 "center": [
-                                                                  130,
-                                                                  990
+                                                                  130, 990
                                                                 ],
                                                                 "content": "分页",
                                                                 "rect": {
@@ -2512,8 +2413,7 @@
                                                                   "htmlTagName": "<span>"
                                                                 },
                                                                 "center": [
-                                                                  62,
-                                                                  1034
+                                                                  62, 1034
                                                                 ],
                                                                 "content": "Steps",
                                                                 "rect": {
@@ -2551,8 +2451,7 @@
                                                                   "htmlTagName": "<span>"
                                                                 },
                                                                 "center": [
-                                                                  105,
-                                                                  1034
+                                                                  105, 1034
                                                                 ],
                                                                 "content": "步骤条",
                                                                 "rect": {
@@ -5358,10 +5257,7 @@
                                                       "nodeType": "TEXT Node",
                                                       "htmlTagName": "<a>"
                                                     },
-                                                    "center": [
-                                                      1810,
-                                                      117
-                                                    ],
+                                                    "center": [1810, 117],
                                                     "content": "何时使用",
                                                     "rect": {
                                                       "left": 1786,
@@ -5397,10 +5293,7 @@
                                                       "nodeType": "TEXT Node",
                                                       "htmlTagName": "<a>"
                                                     },
-                                                    "center": [
-                                                      1810,
-                                                      144
-                                                    ],
+                                                    "center": [1810, 144],
                                                     "content": "代码演示",
                                                     "rect": {
                                                       "left": 1786,
@@ -5438,8 +5331,7 @@
                                                               "htmlTagName": "<span>"
                                                             },
                                                             "center": [
-                                                              1814,
-                                                              168
+                                                              1814, 168
                                                             ],
                                                             "content": "基本",
                                                             "rect": {
@@ -5482,8 +5374,7 @@
                                                               "htmlTagName": "<span>"
                                                             },
                                                             "center": [
-                                                              1814,
-                                                              191
+                                                              1814, 191
                                                             ],
                                                             "content": "位置",
                                                             "rect": {
@@ -5526,8 +5417,7 @@
                                                               "htmlTagName": "<span>"
                                                             },
                                                             "center": [
-                                                              1826,
-                                                              213
+                                                              1826, 213
                                                             ],
                                                             "content": "自动切换",
                                                             "rect": {
@@ -5570,8 +5460,7 @@
                                                               "htmlTagName": "<span>"
                                                             },
                                                             "center": [
-                                                              1814,
-                                                              236
+                                                              1814, 236
                                                             ],
                                                             "content": "渐显",
                                                             "rect": {
@@ -5614,8 +5503,7 @@
                                                               "htmlTagName": "<span>"
                                                             },
                                                             "center": [
-                                                              1826,
-                                                              259
+                                                              1826, 259
                                                             ],
                                                             "content": "切换箭头",
                                                             "rect": {
@@ -5656,10 +5544,7 @@
                                                       "nodeType": "TEXT Node",
                                                       "htmlTagName": "<a>"
                                                     },
-                                                    "center": [
-                                                      1796,
-                                                      288
-                                                    ],
+                                                    "center": [1796, 288],
                                                     "content": "API",
                                                     "rect": {
                                                       "left": 1786,
@@ -5695,10 +5580,7 @@
                                                       "nodeType": "TEXT Node",
                                                       "htmlTagName": "<a>"
                                                     },
-                                                    "center": [
-                                                      1798,
-                                                      315
-                                                    ],
+                                                    "center": [1798, 315],
                                                     "content": "方法",
                                                     "rect": {
                                                       "left": 1786,
@@ -5734,10 +5616,7 @@
                                                       "nodeType": "TEXT Node",
                                                       "htmlTagName": "<a>"
                                                     },
-                                                    "center": [
-                                                      1860,
-                                                      342
-                                                    ],
+                                                    "center": [1860, 342],
                                                     "content": "主题变量（Design Token）",
                                                     "rect": {
                                                       "left": 1786,
@@ -5773,10 +5652,7 @@
                                                       "nodeType": "TEXT Node",
                                                       "htmlTagName": "<a>"
                                                     },
-                                                    "center": [
-                                                      1798,
-                                                      369
-                                                    ],
+                                                    "center": [1798, 369],
                                                     "content": "FAQ",
                                                     "rect": {
                                                       "left": 1786,
@@ -5814,8 +5690,7 @@
                                                               "htmlTagName": "<span>"
                                                             },
                                                             "center": [
-                                                              1850,
-                                                              392
+                                                              1850, 392
                                                             ],
                                                             "content": "如何自定义箭头？",
                                                             "rect": {
@@ -5876,10 +5751,7 @@
                                                       "nodeType": "TEXT Node",
                                                       "htmlTagName": "<span>"
                                                     },
-                                                    "center": [
-                                                      433,
-                                                      123
-                                                    ],
+                                                    "center": [433, 123],
                                                     "content": "Carousel",
                                                     "rect": {
                                                       "left": 368,
@@ -5915,10 +5787,7 @@
                                                       "nodeType": "TEXT Node",
                                                       "htmlTagName": "<span>"
                                                     },
-                                                    "center": [
-                                                      554,
-                                                      123
-                                                    ],
+                                                    "center": [554, 123],
                                                     "content": "走马灯",
                                                     "rect": {
                                                       "left": 506,
@@ -5978,8 +5847,7 @@
                                                               "zoom": 1
                                                             },
                                                             "center": [
-                                                              625,
-                                                              125
+                                                              625, 125
                                                             ],
                                                             "zoom": 1,
                                                             "screenWidth": 1920,
@@ -6025,10 +5893,7 @@
                                   "nodeType": "TEXT Node",
                                   "htmlTagName": "<article>"
                                 },
-                                "center": [
-                                  424,
-                                  170
-                                ],
+                                "center": [424, 170],
                                 "content": "一组轮播的区域。",
                                 "rect": {
                                   "left": 368,
@@ -6079,8 +5944,7 @@
                                                                   "htmlTagName": "<span>"
                                                                 },
                                                                 "center": [
-                                                                  382,
-                                                                  208
+                                                                  382, 208
                                                                 ],
                                                                 "content": "使用",
                                                                 "rect": {
@@ -6308,8 +6172,7 @@
                                                                   "htmlTagName": "<span>"
                                                                 },
                                                                 "center": [
-                                                                  382,
-                                                                  238
+                                                                  382, 238
                                                                 ],
                                                                 "content": "源码",
                                                                 "rect": {
@@ -6436,8 +6299,7 @@
                                                                   "htmlTagName": "<span>"
                                                                 },
                                                                 "center": [
-                                                                  382,
-                                                                  268
+                                                                  382, 268
                                                                 ],
                                                                 "content": "文档",
                                                                 "rect": {
@@ -6674,10 +6536,7 @@
                                               "height": 38,
                                               "zoom": 1
                                             },
-                                            "center": [
-                                              356,
-                                              336
-                                            ],
+                                            "center": [356, 336],
                                             "zoom": 1,
                                             "screenWidth": 1920,
                                             "screenHeight": 1080
@@ -6695,10 +6554,7 @@
                                               "nodeType": "TEXT Node",
                                               "htmlTagName": "<h2>"
                                             },
-                                            "center": [
-                                              416,
-                                              334
-                                            ],
+                                            "center": [416, 334],
                                             "content": "何时使用",
                                             "rect": {
                                               "left": 368,
@@ -6732,10 +6588,7 @@
                                                   "nodeType": "TEXT Node",
                                                   "htmlTagName": "<li>"
                                                 },
-                                                "center": [
-                                                  462,
-                                                  378
-                                                ],
+                                                "center": [462, 378],
                                                 "content": "当有一组平级的内容。",
                                                 "rect": {
                                                   "left": 392,
@@ -6766,10 +6619,7 @@
                                                   "nodeType": "TEXT Node",
                                                   "htmlTagName": "<li>"
                                                 },
-                                                "center": [
-                                                  602,
-                                                  406
-                                                ],
+                                                "center": [602, 406],
                                                 "content": "当内容空间不足时，可以用走马灯的形式进行收纳，进行轮播展现。",
                                                 "rect": {
                                                   "left": 392,
@@ -6800,10 +6650,7 @@
                                                   "nodeType": "TEXT Node",
                                                   "htmlTagName": "<li>"
                                                 },
-                                                "center": [
-                                                  483,
-                                                  434
-                                                ],
+                                                "center": [483, 434],
                                                 "content": "常用于一组图片或卡片轮播。",
                                                 "rect": {
                                                   "left": 392,
@@ -6847,10 +6694,7 @@
                                               "height": 38,
                                               "zoom": 1
                                             },
-                                            "center": [
-                                              356,
-                                              505
-                                            ],
+                                            "center": [356, 505],
                                             "zoom": 1,
                                             "screenWidth": 1920,
                                             "screenHeight": 1080
@@ -6868,10 +6712,7 @@
                                               "nodeType": "TEXT Node",
                                               "htmlTagName": "<h2>"
                                             },
-                                            "center": [
-                                              416,
-                                              502
-                                            ],
+                                            "center": [416, 502],
                                             "content": "代码演示",
                                             "rect": {
                                               "left": 368,
@@ -6917,10 +6758,7 @@
                                               "height": 24,
                                               "zoom": 1
                                             },
-                                            "center": [
-                                              1680,
-                                              504
-                                            ],
+                                            "center": [1680, 504],
                                             "zoom": 1,
                                             "screenWidth": 1920,
                                             "screenHeight": 1080
@@ -6948,10 +6786,7 @@
                                               "height": 24,
                                               "zoom": 1
                                             },
-                                            "center": [
-                                              1712,
-                                              504
-                                            ],
+                                            "center": [1712, 504],
                                             "zoom": 1,
                                             "screenWidth": 1920,
                                             "screenHeight": 1080
@@ -6979,10 +6814,7 @@
                                               "height": 24,
                                               "zoom": 1
                                             },
-                                            "center": [
-                                              1744,
-                                              504
-                                            ],
+                                            "center": [1744, 504],
                                             "zoom": 1,
                                             "screenWidth": 1920,
                                             "screenHeight": 1080
@@ -7428,8 +7260,7 @@
                                                                   "htmlTagName": "<a>"
                                                                 },
                                                                 "center": [
-                                                                  407,
-                                                                  788
+                                                                  407, 788
                                                                 ],
                                                                 "content": "基本",
                                                                 "rect": {
@@ -7474,8 +7305,7 @@
                                                                       "zoom": 1
                                                                     },
                                                                     "center": [
-                                                                      437,
-                                                                      786
+                                                                      437, 786
                                                                     ],
                                                                     "zoom": 1,
                                                                     "screenWidth": 1920,
@@ -7507,8 +7337,7 @@
                                                                   "htmlTagName": "<p>"
                                                                 },
                                                                 "center": [
-                                                                  442,
-                                                                  819
+                                                                  442, 819
                                                                 ],
                                                                 "content": "最简单的用法。",
                                                                 "rect": {
@@ -7562,8 +7391,7 @@
                                                                       "zoom": 1
                                                                     },
                                                                     "center": [
-                                                                      647,
-                                                                      865
+                                                                      647, 865
                                                                     ],
                                                                     "zoom": 1,
                                                                     "screenWidth": 1920,
@@ -7602,8 +7430,7 @@
                                                                       "zoom": 1
                                                                     },
                                                                     "center": [
-                                                                      679,
-                                                                      866
+                                                                      679, 866
                                                                     ],
                                                                     "zoom": 1,
                                                                     "screenWidth": 1920,
@@ -7646,8 +7473,7 @@
                                                                       "zoom": 1
                                                                     },
                                                                     "center": [
-                                                                      710,
-                                                                      865
+                                                                      710, 865
                                                                     ],
                                                                     "zoom": 1,
                                                                     "screenWidth": 1920,
@@ -7686,8 +7512,7 @@
                                                                       "zoom": 1
                                                                     },
                                                                     "center": [
-                                                                      743,
-                                                                      866
+                                                                      743, 866
                                                                     ],
                                                                     "zoom": 1,
                                                                     "screenWidth": 1920,
@@ -7725,8 +7550,7 @@
                                                                   "zoom": 1
                                                                 },
                                                                 "center": [
-                                                                  775,
-                                                                  865
+                                                                  775, 865
                                                                 ],
                                                                 "zoom": 1,
                                                                 "screenWidth": 1920,
@@ -8900,8 +8724,7 @@
                                                                       "htmlTagName": "<span>"
                                                                     },
                                                                     "center": [
-                                                                      1123,
-                                                                      592
+                                                                      1123, 592
                                                                     ],
                                                                     "content": "Top",
                                                                     "rect": {
@@ -8952,8 +8775,7 @@
                                                                       "htmlTagName": "<span>"
                                                                     },
                                                                     "center": [
-                                                                      1190,
-                                                                      592
+                                                                      1190, 592
                                                                     ],
                                                                     "content": "Bottom",
                                                                     "rect": {
@@ -9004,8 +8826,7 @@
                                                                       "htmlTagName": "<span>"
                                                                     },
                                                                     "center": [
-                                                                      1257,
-                                                                      592
+                                                                      1257, 592
                                                                     ],
                                                                     "content": "Left",
                                                                     "rect": {
@@ -9056,8 +8877,7 @@
                                                                       "htmlTagName": "<span>"
                                                                     },
                                                                     "center": [
-                                                                      1317,
-                                                                      592
+                                                                      1317, 592
                                                                     ],
                                                                     "content": "Right",
                                                                     "rect": {
@@ -9504,8 +9324,7 @@
                                                                   "htmlTagName": "<a>"
                                                                 },
                                                                 "center": [
-                                                                  1109,
-                                                                  828
+                                                                  1109, 828
                                                                 ],
                                                                 "content": "位置",
                                                                 "rect": {
@@ -9550,8 +9369,7 @@
                                                                       "zoom": 1
                                                                     },
                                                                     "center": [
-                                                                      1139,
-                                                                      826
+                                                                      1139, 826
                                                                     ],
                                                                     "zoom": 1,
                                                                     "screenWidth": 1920,
@@ -9583,8 +9401,7 @@
                                                                   "htmlTagName": "<p>"
                                                                 },
                                                                 "center": [
-                                                                  1152,
-                                                                  859
+                                                                  1152, 859
                                                                 ],
                                                                 "content": "位置有 4 个方向。",
                                                                 "rect": {
@@ -9638,8 +9455,7 @@
                                                                       "zoom": 1
                                                                     },
                                                                     "center": [
-                                                                      1349,
-                                                                      905
+                                                                      1349, 905
                                                                     ],
                                                                     "zoom": 1,
                                                                     "screenWidth": 1920,
@@ -9678,8 +9494,7 @@
                                                                       "zoom": 1
                                                                     },
                                                                     "center": [
-                                                                      1381,
-                                                                      906
+                                                                      1381, 906
                                                                     ],
                                                                     "zoom": 1,
                                                                     "screenWidth": 1920,
@@ -9722,8 +9537,7 @@
                                                                       "zoom": 1
                                                                     },
                                                                     "center": [
-                                                                      1412,
-                                                                      905
+                                                                      1412, 905
                                                                     ],
                                                                     "zoom": 1,
                                                                     "screenWidth": 1920,
@@ -9762,8 +9576,7 @@
                                                                       "zoom": 1
                                                                     },
                                                                     "center": [
-                                                                      1445,
-                                                                      906
+                                                                      1445, 906
                                                                     ],
                                                                     "zoom": 1,
                                                                     "screenWidth": 1920,
@@ -9801,8 +9614,7 @@
                                                                   "zoom": 1
                                                                 },
                                                                 "center": [
-                                                                  1477,
-                                                                  905
+                                                                  1477, 905
                                                                 ],
                                                                 "zoom": 1,
                                                                 "screenWidth": 1920,
@@ -13213,10 +13025,7 @@
                           "height": 40,
                           "zoom": 1
                         },
-                        "center": [
-                          1876,
-                          1012
-                        ],
+                        "center": [1876, 1012],
                         "zoom": 1,
                         "screenWidth": 1920,
                         "screenHeight": 1080

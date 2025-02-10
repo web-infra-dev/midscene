@@ -2,8 +2,10 @@ import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { describe } from 'node:test';
 import { AiAssert } from '@midscene/core';
+import { buildContext } from '@midscene/core/evaluation';
 import { afterAll, expect, test } from 'vitest';
-import { type InspectAiTestCase, getPageContext, repeatFile } from './util';
+import { type InspectAiTestCase, repeatFile } from './util';
+
 import 'dotenv/config';
 import dotenv from 'dotenv';
 
@@ -49,7 +51,7 @@ describe('ai inspect element', () => {
       test(
         `${source}-${repeatIndex}: assertion-${prompt.slice(0, 30)}...`,
         async () => {
-          const { context } = await getPageContext(
+          const { context } = await buildContext(
             path.join(__dirname, '../page-data/', aiData.testDataPath),
           );
 

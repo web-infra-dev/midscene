@@ -1,16 +1,14 @@
 import path from 'node:path';
 import { vlmPlanning } from '@/ai-model/ui-tars-planning';
+import { getContextFromFixture } from '@/evaluation';
 import { savePositionImg } from '@midscene/shared/img';
 import { assert, expect, it, test } from 'vitest';
-import { getPageTestData } from '../evaluate/test-suite/util';
 
 const isUiTars = process.env.MIDSCENE_USE_VLM_UI_TARS === '1';
 
 test.skipIf(!isUiTars)('only run in ui-tars', () => {
   it('plan to target', async () => {
-    const { context } = await getPageTestData(
-      path.join(__dirname, '../evaluate/test-data/todo'),
-    );
+    const { context } = await getContextFromFixture('todo');
 
     const { width, height } = context.size;
     const startTime = Date.now();

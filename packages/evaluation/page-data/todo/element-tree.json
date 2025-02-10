@@ -28,10 +28,7 @@
                           "nodeType": "TEXT Node",
                           "htmlTagName": "<h3>"
                         },
-                        "center": [
-                          51,
-                          43
-                        ],
+                        "center": [51, 43],
                         "content": "React",
                         "rect": {
                           "left": 18,
@@ -73,10 +70,7 @@
                               "nodeType": "TEXT Node",
                               "htmlTagName": "<h5>"
                             },
-                            "center": [
-                              37,
-                              76
-                            ],
+                            "center": [37, 76],
                             "content": "React",
                             "rect": {
                               "left": 18,
@@ -111,10 +105,7 @@
                               "nodeType": "TEXT Node",
                               "htmlTagName": "<a>"
                             },
-                            "center": [
-                              40,
-                              94
-                            ],
+                            "center": [40, 94],
                             "content": "Source",
                             "rect": {
                               "left": 18,
@@ -149,10 +140,7 @@
                               "nodeType": "TEXT Node",
                               "htmlTagName": "<h5>"
                             },
-                            "center": [
-                              80,
-                              122
-                            ],
+                            "center": [80, 122],
                             "content": "TypeScript + React",
                             "rect": {
                               "left": 18,
@@ -187,10 +175,7 @@
                               "nodeType": "TEXT Node",
                               "htmlTagName": "<a>"
                             },
-                            "center": [
-                              37,
-                              140
-                            ],
+                            "center": [37, 140],
                             "content": "Demo",
                             "rect": {
                               "left": 18,
@@ -218,10 +203,7 @@
                           "nodeType": "TEXT Node",
                           "htmlTagName": "<span>"
                         },
-                        "center": [
-                          59,
-                          140
-                        ],
+                        "center": [59, 140],
                         "content": ",",
                         "rect": {
                           "left": 55,
@@ -250,10 +232,7 @@
                               "nodeType": "TEXT Node",
                               "htmlTagName": "<a>"
                             },
-                            "center": [
-                              85,
-                              140
-                            ],
+                            "center": [85, 140],
                             "content": "Source",
                             "rect": {
                               "left": 63,
@@ -315,10 +294,7 @@
                           "nodeType": "TEXT Node",
                           "htmlTagName": "<p>"
                         },
-                        "center": [
-                          150,
-                          271
-                        ],
+                        "center": [150, 271],
                         "content": "React is a JavaScript library for creating user interfaces. Its core principles are declarative code, efficiency, and flexibility. Simply specify what your component looks like and React will keep it up-to-date when the underlying data changes.",
                         "rect": {
                           "left": 28,
@@ -360,10 +336,7 @@
                               "nodeType": "TEXT Node",
                               "htmlTagName": "<a>"
                             },
-                            "center": [
-                              272,
-                              379
-                            ],
+                            "center": [272, 379],
                             "content": "React",
                             "rect": {
                               "left": 253,
@@ -418,10 +391,7 @@
                       "nodeType": "TEXT Node",
                       "htmlTagName": "<h4>"
                     },
-                    "center": [
-                      94,
-                      441
-                    ],
+                    "center": [94, 441],
                     "content": "Official Resources",
                     "rect": {
                       "left": 18,
@@ -470,10 +440,7 @@
                               "nodeType": "TEXT Node",
                               "htmlTagName": "<a>"
                             },
-                            "center": [
-                              78,
-                              472
-                            ],
+                            "center": [78, 472],
                             "content": "Quick Start",
                             "rect": {
                               "left": 43,
@@ -521,10 +488,7 @@
                               "nodeType": "TEXT Node",
                               "htmlTagName": "<a>"
                             },
-                            "center": [
-                              88,
-                              492
-                            ],
+                            "center": [88, 492],
                             "content": "API Reference",
                             "rect": {
                               "left": 43,
@@ -572,10 +536,7 @@
                               "nodeType": "TEXT Node",
                               "htmlTagName": "<a>"
                             },
-                            "center": [
-                              78,
-                              512
-                            ],
+                            "center": [78, 512],
                             "content": "Philosophy",
                             "rect": {
                               "left": 43,
@@ -623,10 +584,7 @@
                               "nodeType": "TEXT Node",
                               "htmlTagName": "<a>"
                             },
-                            "center": [
-                              100,
-                              532
-                            ],
+                            "center": [100, 532],
                             "content": "React Community",
                             "rect": {
                               "left": 43,
@@ -673,10 +631,7 @@
                       "nodeType": "TEXT Node",
                       "htmlTagName": "<h4>"
                     },
-                    "center": [
-                      66,
-                      583
-                    ],
+                    "center": [66, 583],
                     "content": "Community",
                     "rect": {
                       "left": 18,
@@ -725,10 +680,7 @@
                               "nodeType": "TEXT Node",
                               "htmlTagName": "<a>"
                             },
-                            "center": [
-                              129,
-                              614
-                            ],
+                            "center": [129, 614],
                             "content": "ReactJS on Stack Overflow",
                             "rect": {
                               "left": 43,
@@ -790,10 +742,7 @@
                           "nodeType": "TEXT Node",
                           "htmlTagName": "<em>"
                         },
-                        "center": [
-                          149,
-                          695
-                        ],
+                        "center": [149, 695],
                         "content": "If you have other helpful links to share, or find any of the links above no longer work, please",
                         "rect": {
                           "left": 18,
@@ -851,10 +800,7 @@
                           "nodeType": "TEXT Node",
                           "htmlTagName": "<h1>"
                         },
-                        "center": [
-                          790,
-                          67
-                        ],
+                        "center": [790, 67],
                         "content": "todos",
                         "rect": {
                           "left": 696,
@@ -898,10 +844,7 @@
                           "height": 65,
                           "zoom": 1
                         },
-                        "center": [
-                          790,
-                          163
-                        ],
+                        "center": [790, 163],
                         "zoom": 1,
                         "screenWidth": 1280,
                         "screenHeight": 720
@@ -922,10 +865,7 @@
                               "nodeType": "TEXT Node",
                               "htmlTagName": "<label>"
                             },
-                            "center": [
-                              1110,
-                              140
-                            ],
+                            "center": [1110, 140],
                             "content": "New Todo Input",
                             "rect": {
                               "left": 1064,
@@ -975,10 +915,7 @@
                           "height": 60,
                           "zoom": 1
                         },
-                        "center": [
-                          539,
-                          163
-                        ],
+                        "center": [539, 163],
                         "zoom": 1,
                         "screenWidth": 1280,
                         "screenHeight": 720
@@ -1027,10 +964,7 @@
                                   "height": 40,
                                   "zoom": 1
                                 },
-                                "center": [
-                                  535,
-                                  225
-                                ],
+                                "center": [535, 225],
                                 "zoom": 1,
                                 "screenWidth": 1280,
                                 "screenHeight": 720
@@ -1051,10 +985,7 @@
                                       "nodeType": "TEXT Node",
                                       "htmlTagName": "<label>"
                                     },
-                                    "center": [
-                                      647,
-                                      225
-                                    ],
+                                    "center": [647, 225],
                                     "content": "Learn Python",
                                     "rect": {
                                       "left": 575,
@@ -1107,10 +1038,7 @@
                                   "height": 40,
                                   "zoom": 1
                                 },
-                                "center": [
-                                  535,
-                                  285
-                                ],
+                                "center": [535, 285],
                                 "zoom": 1,
                                 "screenWidth": 1280,
                                 "screenHeight": 720
@@ -1131,10 +1059,7 @@
                                       "nodeType": "TEXT Node",
                                       "htmlTagName": "<label>"
                                     },
-                                    "center": [
-                                      634,
-                                      285
-                                    ],
+                                    "center": [634, 285],
                                     "content": "Learn Rust",
                                     "rect": {
                                       "left": 575,
@@ -1172,10 +1097,7 @@
                                   "height": 40,
                                   "zoom": 1
                                 },
-                                "center": [
-                                  1035,
-                                  285
-                                ],
+                                "center": [1035, 285],
                                 "zoom": 1,
                                 "screenWidth": 1280,
                                 "screenHeight": 720
@@ -1214,10 +1136,7 @@
                                   "height": 40,
                                   "zoom": 1
                                 },
-                                "center": [
-                                  535,
-                                  345
-                                ],
+                                "center": [535, 345],
                                 "zoom": 1,
                                 "screenWidth": 1280,
                                 "screenHeight": 720
@@ -1238,10 +1157,7 @@
                                       "nodeType": "TEXT Node",
                                       "htmlTagName": "<label>"
                                     },
-                                    "center": [
-                                      620,
-                                      345
-                                    ],
+                                    "center": [620, 345],
                                     "content": "Learn AI",
                                     "rect": {
                                       "left": 575,
@@ -1302,10 +1218,7 @@
                                   "nodeType": "TEXT Node",
                                   "htmlTagName": "<a>"
                                 },
-                                "center": [
-                                  715,
-                                  395
-                                ],
+                                "center": [715, 395],
                                 "content": "All",
                                 "rect": {
                                   "left": 708,
@@ -1341,10 +1254,7 @@
                                   "nodeType": "TEXT Node",
                                   "htmlTagName": "<a>"
                                 },
-                                "center": [
-                                  763,
-                                  395
-                                ],
+                                "center": [763, 395],
                                 "content": "Active",
                                 "rect": {
                                   "left": 744,
@@ -1380,10 +1290,7 @@
                                   "nodeType": "TEXT Node",
                                   "htmlTagName": "<a>"
                                 },
-                                "center": [
-                                  838,
-                                  395
-                                ],
+                                "center": [838, 395],
                                 "content": "Completed",
                                 "rect": {
                                   "left": 803,
@@ -1424,10 +1331,7 @@
                       "height": 19,
                       "zoom": 1
                     },
-                    "center": [
-                      999,
-                      395
-                    ],
+                    "center": [999, 395],
                     "zoom": 1,
                     "screenWidth": 1280,
                     "screenHeight": 720
@@ -1455,10 +1359,7 @@
                       "nodeType": "TEXT Node",
                       "htmlTagName": "<p>"
                     },
-                    "center": [
-                      790,
-                      486
-                    ],
+                    "center": [790, 486],
                     "content": "Double-click to edit a todo",
                     "rect": {
                       "left": 730,
@@ -1489,10 +1390,7 @@
                       "nodeType": "TEXT Node",
                       "htmlTagName": "<p>"
                     },
-                    "center": [
-                      790,
-                      508
-                    ],
+                    "center": [790, 508],
                     "content": "Created by the TodoMVC Team",
                     "rect": {
                       "left": 718,
@@ -1523,10 +1421,7 @@
                       "nodeType": "TEXT Node",
                       "htmlTagName": "<p>"
                     },
-                    "center": [
-                      766,
-                      530
-                    ],
+                    "center": [766, 530],
                     "content": "Part of",
                     "rect": {
                       "left": 749,
@@ -1555,10 +1450,7 @@
                           "nodeType": "TEXT Node",
                           "htmlTagName": "<a>"
                         },
-                        "center": [
-                          806,
-                          530
-                        ],
+                        "center": [806, 530],
                         "content": "TodoMVC",
                         "rect": {
                           "left": 782,

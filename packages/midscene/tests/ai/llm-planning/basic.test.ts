@@ -1,7 +1,7 @@
 import { plan } from '@/ai-model';
+import { getContextFromFixture } from '@/evaluation';
 /* eslint-disable max-lines-per-function */
 import { describe, expect, it, vi } from 'vitest';
-import { getPageDataOfTestName } from '../test-suite/util';
 
 vi.setConfig({
   testTimeout: 180 * 1000,
@@ -10,7 +10,7 @@ vi.setConfig({
 
 describe('automation - planning', () => {
   it('basic run', async () => {
-    const { context } = await getPageDataOfTestName('todo');
+    const { context } = await getContextFromFixture('todo');
 
     const { actions } = await plan(
       'type "Why is the earth a sphere?", wait 3.5s, hit Enter',
@@ -26,26 +26,45 @@ describe('automation - planning', () => {
     expect(actions[2].param).toMatchSnapshot();
   });
 
-  it('instructions of to-do mvc', async () => {
-    const { context } = await getPageDataOfTestName('todo');
-    const instructions = [
-      '在任务框 input 输入 今天学习 JS，按回车键',
-      '在任务框 input 输入 明天学习 Rust，按回车键',
-      '在任务框 input 输入后天学习 AI，按回车键',
-      '将鼠标移动到任务列表中的第二项，点击第二项任务右边的删除按钮',
-      '点击第二条任务左边的勾选按钮',
-      '点击任务列表下面的 completed 状态按钮',
-    ];
+  const todoInstructions = [
+    {
+      name: 'input first todo item',
+      instruction: '在任务框 input 输入 今天学习 JS，按回车键',
+    },
+    {
+      name: 'input second todo item',
+      instruction: '在任务框 input 输入 明天学习 Rust，按回车键',
+    },
+    {
+      name: 'input third todo item',
+      instruction: '在任务框 input 输入后天学习 AI，按回车键',
+    },
+    {
+      name: 'delete second todo item',
+      instruction:
+        '将鼠标移动到任务列表中的第二项，点击第二项任务右边的删除按钮',
+    },
+    {
+      name: 'check second todo item',
+      instruction: '点击第二条任务左边的勾选按钮',
+    },
+    {
+      name: 'filter completed items',
+      instruction: '点击任务列表下面的 completed 状态按钮',
+    },
+  ];
 
-    for (const instruction of instructions) {
+  todoInstructions.forEach(({ name, instruction }) => {
+    it(`todo mvc - ${name}`, async () => {
+      const { context } = await getContextFromFixture('todo');
       const { actions } = await plan(instruction, { context });
       expect(actions).toBeTruthy();
       expect(actions[0].locate?.id).toBeTruthy();
-    }
+    });
   });
 
   it('scroll some element', async () => {
-    const { context } = await getPageDataOfTestName('todo');
+    const { context } = await getContextFromFixture('todo');
     const { actions } = await plan(
       'Scroll left the status filters (with a button named "completed")',
       {
@@ -58,7 +77,7 @@ describe('automation - planning', () => {
   });
 
   it('scroll page', async () => {
-    const { context } = await getPageDataOfTestName('todo');
+    const { context } = await getContextFromFixture('todo');
     const { actions } = await plan(
       'Scroll down the page by 200px, scroll up the page by 100px, scroll right the second item of the task list by 300px',
       { context },
@@ -83,7 +102,7 @@ describe('automation - planning', () => {
   // });
 
   it('should not throw in an "if" statement', async () => {
-    const { context } = await getPageDataOfTestName('todo');
+    const { context } = await getContextFromFixture('todo');
     const { actions, error } = await plan(
       'If there is a cookie prompt, close it',
       { context },
@@ -94,7 +113,7 @@ describe('automation - planning', () => {
   });
 
   it('should give a further plan when something is not found', async () => {
-    const { context } = await getPageDataOfTestName('todo');
+    const { context } = await getContextFromFixture('todo');
     const res = await plan(
       'click the input box, wait 300ms, click the close button of the cookie prompt',
       { context },
@@ -106,7 +125,7 @@ describe('automation - planning', () => {
   });
 
   it.skip('partial error', async () => {
-    const { context } = await getPageDataOfTestName('todo');
+    const { context } = await getContextFromFixture('todo');
     const res = await plan(
       'click the input box, click the close button of the cookie prompt',
       { context },

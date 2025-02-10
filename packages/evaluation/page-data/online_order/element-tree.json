@@ -298,10 +298,7 @@
                                                           "height": 22,
                                                           "zoom": 1
                                                         },
-                                                        "center": [
-                                                          26,
-                                                          28
-                                                        ],
+                                                        "center": [26, 28],
                                                         "zoom": 1,
                                                         "screenWidth": 400,
                                                         "screenHeight": 905
@@ -331,8 +328,7 @@
                                                                   "htmlTagName": "<span>"
                                                                 },
                                                                 "center": [
-                                                                  92,
-                                                                  29
+                                                                  92, 29
                                                                 ],
                                                                 "content": "English",
                                                                 "rect": {
@@ -406,10 +402,7 @@
                                                   "height": 44,
                                                   "zoom": 1
                                                 },
-                                                "center": [
-                                                  225,
-                                                  30
-                                                ],
+                                                "center": [225, 30],
                                                 "zoom": 1,
                                                 "screenWidth": 400,
                                                 "screenHeight": 905
@@ -618,8 +611,7 @@
                                                                       "zoom": 1
                                                                     },
                                                                     "center": [
-                                                                      363,
-                                                                      29
+                                                                      363, 29
                                                                     ],
                                                                     "zoom": 1,
                                                                     "screenWidth": 400,
@@ -5298,10 +5290,7 @@
                                                               "nodeType": "TEXT Node",
                                                               "htmlTagName": "<p>"
                                                             },
-                                                            "center": [
-                                                              201,
-                                                              79
-                                                            ],
+                                                            "center": [201, 79],
                                                             "content": "Delivery and self pick-up not available",
                                                             "rect": {
                                                               "left": 75,
@@ -5351,8 +5340,7 @@
                                                               "htmlTagName": "<span>"
                                                             },
                                                             "center": [
-                                                              178,
-                                                              133
+                                                              178, 133
                                                             ],
                                                             "content": "Islandwide Delivery, Minimum Spending of S$ 11",
                                                             "rect": {
@@ -5411,10 +5399,7 @@
                                                   "height": 180,
                                                   "zoom": 1
                                                 },
-                                                "center": [
-                                                  200,
-                                                  350
-                                                ],
+                                                "center": [200, 350],
                                                 "zoom": 1,
                                                 "screenWidth": 400,
                                                 "screenHeight": 905
@@ -5439,10 +5424,7 @@
                                                       "nodeType": "TEXT Node",
                                                       "htmlTagName": "<p>"
                                                     },
-                                                    "center": [
-                                                      181,
-                                                      472
-                                                    ],
+                                                    "center": [181, 472],
                                                     "content": "HEYTEA Singapore. The original cheezo tea 2012, fostering joy & inspiration with every sip.",
                                                     "rect": {
                                                       "left": 16,
@@ -5496,8 +5478,7 @@
                                                                   "htmlTagName": "<span>"
                                                                 },
                                                                 "center": [
-                                                                  95,
-                                                                  548
+                                                                  95, 548
                                                                 ],
                                                                 "content": "Menu",
                                                                 "rect": {
@@ -5534,10 +5515,7 @@
                                                               "height": 4,
                                                               "zoom": 1
                                                             },
-                                                            "center": [
-                                                              95,
-                                                              570
-                                                            ],
+                                                            "center": [95, 570],
                                                             "zoom": 1,
                                                             "screenWidth": 400,
                                                             "screenHeight": 905
@@ -5564,8 +5542,7 @@
                                                                   "htmlTagName": "<span>"
                                                                 },
                                                                 "center": [
-                                                                  186,
-                                                                  548
+                                                                  186, 548
                                                                 ],
                                                                 "content": "Reviews",
                                                                 "rect": {
@@ -5611,8 +5588,7 @@
                                                                   "htmlTagName": "<span>"
                                                                 },
                                                                 "center": [
-                                                                  291,
-                                                                  548
+                                                                  291, 548
                                                                 ],
                                                                 "content": "Merchant",
                                                                 "rect": {
@@ -5671,8 +5647,7 @@
                                                                       "htmlTagName": "<span>"
                                                                     },
                                                                     "center": [
-                                                                      37,
-                                                                      603
+                                                                      37, 603
                                                                     ],
                                                                     "content": "IN SEASON",
                                                                     "rect": {
@@ -5710,8 +5685,7 @@
                                                                       "htmlTagName": "<span>"
                                                                     },
                                                                     "center": [
-                                                                      43,
-                                                                      663
+                                                                      43, 663
                                                                     ],
                                                                     "content": "REFRESHING DRINKS",
                                                                     "rect": {
@@ -5749,8 +5723,7 @@
                                                                       "htmlTagName": "<span>"
                                                                     },
                                                                     "center": [
-                                                                      39,
-                                                                      723
+                                                                      39, 723
                                                                     ],
                                                                     "content": "SIGNATURE DRINKS",
                                                                     "rect": {
@@ -5788,8 +5761,7 @@
                                                                       "htmlTagName": "<span>"
                                                                     },
                                                                     "center": [
-                                                                      35,
-                                                                      783
+                                                                      35, 783
                                                                     ],
                                                                     "content": "COMFORT DRINKS",
                                                                     "rect": {
@@ -5827,8 +5799,7 @@
                                                                       "htmlTagName": "<span>"
                                                                     },
                                                                     "center": [
-                                                                      34,
-                                                                      843
+                                                                      34, 843
                                                                     ],
                                                                     "content": "SIMPLE CLASSICS",
                                                                     "rect": {
@@ -5908,8 +5879,7 @@
                                                                       "htmlTagName": "<span>"
                                                                     },
                                                                     "center": [
-                                                                      137,
-                                                                      612
+                                                                      137, 612
                                                                     ],
                                                                     "content": "IN SEASON (1)",
                                                                     "rect": {
@@ -5961,8 +5931,7 @@
                                                                       "zoom": 1
                                                                     },
                                                                     "center": [
-                                                                      133,
-                                                                      683
+                                                                      133, 683
                                                                     ],
                                                                     "zoom": 1,
                                                                     "screenWidth": 400,
@@ -6150,8 +6119,7 @@
                                                                       "htmlTagName": "<span>"
                                                                     },
                                                                     "center": [
-                                                                      174,
-                                                                      773
+                                                                      174, 773
                                                                     ],
                                                                     "content": "REFRESHING DRINKS (5)",
                                                                     "rect": {
@@ -6203,8 +6171,7 @@
                                                                       "zoom": 1
                                                                     },
                                                                     "center": [
-                                                                      133,
-                                                                      845
+                                                                      133, 845
                                                                     ],
                                                                     "zoom": 1,
                                                                     "screenWidth": 400,
@@ -9538,10 +9505,7 @@
                               "height": 42,
                               "zoom": 1
                             },
-                            "center": [
-                              379,
-                              834
-                            ],
+                            "center": [379, 834],
                             "zoom": 1,
                             "screenWidth": 400,
                             "screenHeight": 905

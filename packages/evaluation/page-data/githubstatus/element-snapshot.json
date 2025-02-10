@@ -18,10 +18,7 @@
       "height": 31,
       "zoom": 1
     },
-    "center": [
-      960,
-      36
-    ],
+    "center": [960, 36],
     "zoom": 1,
     "screenWidth": 1920,
     "screenHeight": 1080
@@ -36,10 +33,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<a>"
     },
-    "center": [
-      41,
-      37
-    ],
+    "center": [41, 37],
     "content": "Help",
     "rect": {
       "left": 24,
@@ -62,10 +56,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<a>"
     },
-    "center": [
-      128,
-      37
-    ],
+    "center": [128, 37],
     "content": "Community",
     "rect": {
       "left": 86,
@@ -88,10 +79,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<a>"
     },
-    "center": [
-      220,
-      37
-    ],
+    "center": [220, 37],
     "content": "Status",
     "rect": {
       "left": 197,
@@ -114,10 +102,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<a>"
     },
-    "center": [
-      1665,
-      37
-    ],
+    "center": [1665, 37],
     "content": "GitHub.com",
     "rect": {
       "left": 1622,
@@ -156,10 +141,7 @@
       "height": 19,
       "zoom": 1
     },
-    "center": [
-      1816,
-      37
-    ],
+    "center": [1816, 37],
     "zoom": 1,
     "screenWidth": 1920,
     "screenHeight": 1080
@@ -186,10 +168,7 @@
       "height": 422,
       "zoom": 1
     },
-    "center": [
-      960,
-      284
-    ],
+    "center": [960, 284],
     "zoom": 1,
     "screenWidth": 1920,
     "screenHeight": 1080
@@ -204,10 +183,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<span>"
     },
-    "center": [
-      632,
-      427
-    ],
+    "center": [632, 427],
     "content": "All Systems Operational",
     "rect": {
       "left": 522,
@@ -230,10 +206,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<span>"
     },
-    "center": [
-      546,
-      593
-    ],
+    "center": [546, 593],
     "content": "Git Operations",
     "rect": {
       "left": 492,
@@ -256,10 +229,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<span>"
     },
-    "center": [
-      617,
-      592
-    ],
+    "center": [617, 592],
     "content": "?",
     "rect": {
       "left": 614,
@@ -291,10 +261,7 @@
       "height": 24,
       "zoom": 1
     },
-    "center": [
-      928,
-      595
-    ],
+    "center": [928, 595],
     "zoom": 1,
     "screenWidth": 1920,
     "screenHeight": 1080
@@ -309,10 +276,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<span>"
     },
-    "center": [
-      516,
-      619
-    ],
+    "center": [516, 619],
     "content": "Normal",
     "rect": {
       "left": 492,
@@ -335,10 +299,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<span>"
     },
-    "center": [
-      1020,
-      593
-    ],
+    "center": [1020, 593],
     "content": "Webhooks",
     "rect": {
       "left": 981,
@@ -361,10 +322,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<span>"
     },
-    "center": [
-      1077,
-      592
-    ],
+    "center": [1077, 592],
     "content": "?",
     "rect": {
       "left": 1074,
@@ -396,10 +354,7 @@
       "height": 24,
       "zoom": 1
     },
-    "center": [
-      1417,
-      595
-    ],
+    "center": [1417, 595],
     "zoom": 1,
     "screenWidth": 1920,
     "screenHeight": 1080
@@ -414,10 +369,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<span>"
     },
-    "center": [
-      1005,
-      619
-    ],
+    "center": [1005, 619],
     "content": "Normal",
     "rect": {
       "left": 981,
@@ -440,10 +392,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<span>"
     },
-    "center": [
-      541,
-      683
-    ],
+    "center": [541, 683],
     "content": "API Requests",
     "rect": {
       "left": 492,
@@ -466,10 +415,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<span>"
     },
-    "center": [
-      608,
-      682
-    ],
+    "center": [608, 682],
     "content": "?",
     "rect": {
       "left": 605,
@@ -501,10 +447,7 @@
       "height": 24,
       "zoom": 1
     },
-    "center": [
-      928,
-      684
-    ],
+    "center": [928, 684],
     "zoom": 1,
     "screenWidth": 1920,
     "screenHeight": 1080
@@ -519,10 +462,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<span>"
     },
-    "center": [
-      516,
-      709
-    ],
+    "center": [516, 709],
     "content": "Normal",
     "rect": {
       "left": 492,
@@ -545,10 +485,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<span>"
     },
-    "center": [
-      1005,
-      683
-    ],
+    "center": [1005, 683],
     "content": "Issues",
     "rect": {
       "left": 981,
@@ -571,10 +508,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<span>"
     },
-    "center": [
-      1046,
-      682
-    ],
+    "center": [1046, 682],
     "content": "?",
     "rect": {
       "left": 1043,
@@ -606,10 +540,7 @@
       "height": 24,
       "zoom": 1
     },
-    "center": [
-      1417,
-      684
-    ],
+    "center": [1417, 684],
     "zoom": 1,
     "screenWidth": 1920,
     "screenHeight": 1080
@@ -624,10 +555,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<span>"
     },
-    "center": [
-      1005,
-      709
-    ],
+    "center": [1005, 709],
     "content": "Normal",
     "rect": {
       "left": 981,
@@ -650,10 +578,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<span>"
     },
-    "center": [
-      542,
-      772
-    ],
+    "center": [542, 772],
     "content": "Pull Requests",
     "rect": {
       "left": 492,
@@ -676,10 +601,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<span>"
     },
-    "center": [
-      611,
-      771
-    ],
+    "center": [611, 771],
     "content": "?",
     "rect": {
       "left": 608,
@@ -711,10 +633,7 @@
       "height": 24,
       "zoom": 1
     },
-    "center": [
-      928,
-      774
-    ],
+    "center": [928, 774],
     "zoom": 1,
     "screenWidth": 1920,
     "screenHeight": 1080
@@ -729,10 +648,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<span>"
     },
-    "center": [
-      516,
-      798
-    ],
+    "center": [516, 798],
     "content": "Normal",
     "rect": {
       "left": 492,
@@ -755,10 +671,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<span>"
     },
-    "center": [
-      1009,
-      772
-    ],
+    "center": [1009, 772],
     "content": "Actions",
     "rect": {
       "left": 981,
@@ -781,10 +694,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<span>"
     },
-    "center": [
-      1055,
-      771
-    ],
+    "center": [1055, 771],
     "content": "?",
     "rect": {
       "left": 1052,
@@ -816,10 +726,7 @@
       "height": 24,
       "zoom": 1
     },
-    "center": [
-      1417,
-      774
-    ],
+    "center": [1417, 774],
     "zoom": 1,
     "screenWidth": 1920,
     "screenHeight": 1080
@@ -834,10 +741,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<span>"
     },
-    "center": [
-      1005,
-      798
-    ],
+    "center": [1005, 798],
     "content": "Normal",
     "rect": {
       "left": 981,
@@ -860,10 +764,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<span>"
     },
-    "center": [
-      528,
-      861
-    ],
+    "center": [528, 861],
     "content": "Packages",
     "rect": {
       "left": 492,
@@ -886,10 +787,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<span>"
     },
-    "center": [
-      581,
-      861
-    ],
+    "center": [581, 861],
     "content": "?",
     "rect": {
       "left": 578,
@@ -921,10 +819,7 @@
       "height": 24,
       "zoom": 1
     },
-    "center": [
-      928,
-      863
-    ],
+    "center": [928, 863],
     "zoom": 1,
     "screenWidth": 1920,
     "screenHeight": 1080
@@ -939,10 +834,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<span>"
     },
-    "center": [
-      516,
-      887
-    ],
+    "center": [516, 887],
     "content": "Normal",
     "rect": {
       "left": 492,
@@ -965,10 +857,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<span>"
     },
-    "center": [
-      1004,
-      861
-    ],
+    "center": [1004, 861],
     "content": "Pages",
     "rect": {
       "left": 981,
@@ -991,10 +880,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<span>"
     },
-    "center": [
-      1044,
-      861
-    ],
+    "center": [1044, 861],
     "content": "?",
     "rect": {
       "left": 1041,
@@ -1026,10 +912,7 @@
       "height": 24,
       "zoom": 1
     },
-    "center": [
-      1417,
-      863
-    ],
+    "center": [1417, 863],
     "zoom": 1,
     "screenWidth": 1920,
     "screenHeight": 1080
@@ -1044,10 +927,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<span>"
     },
-    "center": [
-      1005,
-      887
-    ],
+    "center": [1005, 887],
     "content": "Normal",
     "rect": {
       "left": 981,
@@ -1070,10 +950,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<span>"
     },
-    "center": [
-      538,
-      951
-    ],
+    "center": [538, 951],
     "content": "Codespaces",
     "rect": {
       "left": 492,
@@ -1096,10 +973,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<span>"
     },
-    "center": [
-      602,
-      950
-    ],
+    "center": [602, 950],
     "content": "?",
     "rect": {
       "left": 599,
@@ -1131,10 +1005,7 @@
       "height": 24,
       "zoom": 1
     },
-    "center": [
-      928,
-      952
-    ],
+    "center": [928, 952],
     "zoom": 1,
     "screenWidth": 1920,
     "screenHeight": 1080
@@ -1149,10 +1020,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<span>"
     },
-    "center": [
-      516,
-      977
-    ],
+    "center": [516, 977],
     "content": "Normal",
     "rect": {
       "left": 492,
@@ -1175,10 +1043,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<span>"
     },
-    "center": [
-      1008,
-      951
-    ],
+    "center": [1008, 951],
     "content": "Copilot",
     "rect": {
       "left": 981,
@@ -1210,10 +1075,7 @@
       "height": 24,
       "zoom": 1
     },
-    "center": [
-      1417,
-      952
-    ],
+    "center": [1417, 952],
     "zoom": 1,
     "screenWidth": 1920,
     "screenHeight": 1080
@@ -1228,10 +1090,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<span>"
     },
-    "center": [
-      1005,
-      977
-    ],
+    "center": [1005, 977],
     "content": "Normal",
     "rect": {
       "left": 981,
@@ -1254,10 +1113,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<a>"
     },
-    "center": [
-      1379,
-      1077
-    ],
+    "center": [1379, 1077],
     "content": "Incident History",
     "rect": {
       "left": 1326,

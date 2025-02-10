@@ -9,10 +9,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<span>"
     },
-    "center": [
-      201,
-      29
-    ],
+    "center": [201, 29],
     "content": "Visual Studio Code",
     "rect": {
       "left": 116,
@@ -35,10 +32,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<a>"
     },
-    "center": [
-      332,
-      30
-    ],
+    "center": [332, 30],
     "content": "Docs",
     "rect": {
       "left": 313,
@@ -61,10 +55,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<a>"
     },
-    "center": [
-      407,
-      30
-    ],
+    "center": [407, 30],
     "content": "Updates",
     "rect": {
       "left": 375,
@@ -87,10 +78,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<a>"
     },
-    "center": [
-      478,
-      30
-    ],
+    "center": [478, 30],
     "content": "Blog",
     "rect": {
       "left": 461,
@@ -113,10 +101,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<a>"
     },
-    "center": [
-      532,
-      30
-    ],
+    "center": [532, 30],
     "content": "API",
     "rect": {
       "left": 519,
@@ -139,10 +124,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<a>"
     },
-    "center": [
-      609,
-      30
-    ],
+    "center": [609, 30],
     "content": "Extensions",
     "rect": {
       "left": 568,
@@ -165,10 +147,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<a>"
     },
-    "center": [
-      688,
-      30
-    ],
+    "center": [688, 30],
     "content": "FAQ",
     "rect": {
       "left": 672,
@@ -191,10 +170,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<a>"
     },
-    "center": [
-      782,
-      30
-    ],
+    "center": [782, 30],
     "content": "GitHub Copilot",
     "rect": {
       "left": 727,
@@ -228,10 +204,7 @@
       "height": 32,
       "zoom": 1
     },
-    "center": [
-      865,
-      29
-    ],
+    "center": [865, 29],
     "zoom": 1,
     "screenWidth": 1280,
     "screenHeight": 720
@@ -259,10 +232,7 @@
       "height": 32,
       "zoom": 1
     },
-    "center": [
-      985,
-      29
-    ],
+    "center": [985, 29],
     "zoom": 1,
     "screenWidth": 1280,
     "screenHeight": 720
@@ -289,10 +259,7 @@
       "height": 20,
       "zoom": 1
     },
-    "center": [
-      906,
-      29
-    ],
+    "center": [906, 29],
     "zoom": 1,
     "screenWidth": 1280,
     "screenHeight": 720
@@ -307,10 +274,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<span>"
     },
-    "center": [
-      1147,
-      30
-    ],
+    "center": [1147, 30],
     "content": "Download",
     "rect": {
       "left": 1109,
@@ -333,10 +297,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<p>"
     },
-    "center": [
-      519,
-      86
-    ],
+    "center": [519, 86],
     "content": "🚀 Get",
     "rect": {
       "left": 496,
@@ -359,10 +320,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<a>"
     },
-    "center": [
-      606,
-      86
-    ],
+    "center": [606, 86],
     "content": "GitHub Copilot Free",
     "rect": {
       "left": 541,
@@ -385,10 +343,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<p>"
     },
-    "center": [
-      711,
-      86
-    ],
+    "center": [711, 86],
     "content": "in VS Code!",
     "rect": {
       "left": 671,
@@ -421,10 +376,7 @@
       "height": 21,
       "zoom": 1
     },
-    "center": [
-      1249,
-      84
-    ],
+    "center": [1249, 84],
     "zoom": 1,
     "screenWidth": 1280,
     "screenHeight": 720
@@ -439,10 +391,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<h1>"
     },
-    "center": [
-      641,
-      225
-    ],
+    "center": [641, 225],
     "content": "Your code editor. Redefined with AI.",
     "rect": {
       "left": 350,
@@ -477,10 +426,7 @@
       "height": 48,
       "zoom": 1
     },
-    "center": [
-      548,
-      360
-    ],
+    "center": [548, 360],
     "zoom": 1,
     "screenWidth": 1280,
     "screenHeight": 720
@@ -495,10 +441,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<a>"
     },
-    "center": [
-      755,
-      360
-    ],
+    "center": [755, 360],
     "content": "Get Copilot Free",
     "rect": {
       "left": 688,
@@ -521,10 +464,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<a>"
     },
-    "center": [
-      536,
-      401
-    ],
+    "center": [536, 401],
     "content": "Web",
     "rect": {
       "left": 523,
@@ -547,10 +487,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<p>"
     },
-    "center": [
-      553,
-      401
-    ],
+    "center": [553, 401],
     "content": ",",
     "rect": {
       "left": 549,
@@ -573,10 +510,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<a>"
     },
-    "center": [
-      601,
-      401
-    ],
+    "center": [601, 401],
     "content": "Insiders edition",
     "rect": {
       "left": 556,
@@ -599,10 +533,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<p>"
     },
-    "center": [
-      656,
-      401
-    ],
+    "center": [656, 401],
     "content": ", or",
     "rect": {
       "left": 645,
@@ -625,10 +556,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<a>"
     },
-    "center": [
-      712,
-      401
-    ],
+    "center": [712, 401],
     "content": "other platforms",
     "rect": {
       "left": 667,
@@ -651,10 +579,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<p>"
     },
-    "center": [
-      558,
-      430
-    ],
+    "center": [558, 430],
     "content": "By using VS Code, you agree to its",
     "rect": {
       "left": 466,
@@ -677,10 +602,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<a>"
     },
-    "center": [
-      669,
-      430
-    ],
+    "center": [669, 430],
     "content": "license",
     "rect": {
       "left": 650,
@@ -703,10 +625,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<span>"
     },
-    "center": [
-      701,
-      430
-    ],
+    "center": [701, 430],
     "content": "and",
     "rect": {
       "left": 688,
@@ -729,10 +648,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<a>"
     },
-    "center": [
-      762,
-      430
-    ],
+    "center": [762, 430],
     "content": "privacy statement",
     "rect": {
       "left": 714,
@@ -755,10 +671,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<span>"
     },
-    "center": [
-      812,
-      430
-    ],
+    "center": [812, 430],
     "content": ".",
     "rect": {
       "left": 810,

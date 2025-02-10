@@ -1,42 +1,53 @@
 {
-    "testDataPath": "taobao",
-    "testCases": [{
-            "prompt": "商品搜索框",
-            "multi": false,
-            "response": [{
-                "id": "jfjah",
-                "indexId": 27
-            }]
-        },
+  "testDataPath": "taobao",
+  "testCases": [
+    {
+      "prompt": "商品搜索框",
+      "multi": false,
+      "response": [
         {
-            "prompt": "搜索按钮",
-            "multi": false,
-            "response": [{
-                "id": "ondpi",
-                "indexId": 26
-            }]
-        },
-        {
-            "prompt": "产品分类里面的：男鞋（文字）",
-            "multi": false,
-            "response": [{
-                "id": "98"
-            }]
-        },
-        {
-            "prompt": "收藏的店ICON",
-            "multi": false,
-            "response": [{
-                "id": "fkfdl",
-                "indexId": 189
-            }]
-        },
-        {
-            "prompt": "右侧”官方客服“按钮文字",
-            "multi": false,
-            "response": [{
-                "id": "213"
-            }]
+          "id": "jfjah",
+          "indexId": 27
         }
-    ]
+      ]
+    },
+    {
+      "prompt": "搜索按钮",
+      "multi": false,
+      "response": [
+        {
+          "id": "ondpi",
+          "indexId": 26
+        }
+      ]
+    },
+    {
+      "prompt": "产品分类里面的：男鞋（文字）",
+      "multi": false,
+      "response": [
+        {
+          "id": "98"
+        }
+      ]
+    },
+    {
+      "prompt": "收藏的店ICON",
+      "multi": false,
+      "response": [
+        {
+          "id": "fkfdl",
+          "indexId": 189
+        }
+      ]
+    },
+    {
+      "prompt": "右侧”官方客服“按钮文字",
+      "multi": false,
+      "response": [
+        {
+          "id": "213"
+        }
+      ]
+    }
+  ]
 }

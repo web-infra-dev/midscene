@@ -19,10 +19,7 @@
       "height": 22,
       "zoom": 1
     },
-    "center": [
-      26,
-      28
-    ],
+    "center": [26, 28],
     "zoom": 1,
     "screenWidth": 400,
     "screenHeight": 905
@@ -37,10 +34,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<span>"
     },
-    "center": [
-      92,
-      29
-    ],
+    "center": [92, 29],
     "content": "English",
     "rect": {
       "left": 65,
@@ -73,10 +67,7 @@
       "height": 44,
       "zoom": 1
     },
-    "center": [
-      225,
-      30
-    ],
+    "center": [225, 30],
     "zoom": 1,
     "screenWidth": 400,
     "screenHeight": 905
@@ -101,10 +92,7 @@
       "height": 25,
       "zoom": 1
     },
-    "center": [
-      363,
-      29
-    ],
+    "center": [363, 29],
     "zoom": 1,
     "screenWidth": 400,
     "screenHeight": 905
@@ -119,10 +107,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<p>"
     },
-    "center": [
-      201,
-      79
-    ],
+    "center": [201, 79],
     "content": "Delivery and self pick-up not available",
     "rect": {
       "left": 75,
@@ -145,10 +130,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<span>"
     },
-    "center": [
-      178,
-      133
-    ],
+    "center": [178, 133],
     "content": "Islandwide Delivery, Minimum Spending of S$ 11",
     "rect": {
       "left": 22,
@@ -180,10 +162,7 @@
       "height": 180,
       "zoom": 1
     },
-    "center": [
-      200,
-      350
-    ],
+    "center": [200, 350],
     "zoom": 1,
     "screenWidth": 400,
     "screenHeight": 905
@@ -198,10 +177,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<p>"
     },
-    "center": [
-      181,
-      472
-    ],
+    "center": [181, 472],
     "content": "HEYTEA Singapore. The original cheezo tea 2012, fostering joy & inspiration with every sip.",
     "rect": {
       "left": 16,
@@ -224,10 +200,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<span>"
     },
-    "center": [
-      95,
-      548
-    ],
+    "center": [95, 548],
     "content": "Menu",
     "rect": {
       "left": 74,
@@ -258,10 +231,7 @@
       "height": 4,
       "zoom": 1
     },
-    "center": [
-      95,
-      570
-    ],
+    "center": [95, 570],
     "zoom": 1,
     "screenWidth": 400,
     "screenHeight": 905
@@ -276,10 +246,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<span>"
     },
-    "center": [
-      186,
-      548
-    ],
+    "center": [186, 548],
     "content": "Reviews",
     "rect": {
       "left": 155,
@@ -302,10 +269,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<span>"
     },
-    "center": [
-      291,
-      548
-    ],
+    "center": [291, 548],
     "content": "Merchant",
     "rect": {
       "left": 256,
@@ -328,10 +292,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<span>"
     },
-    "center": [
-      37,
-      603
-    ],
+    "center": [37, 603],
     "content": "IN SEASON",
     "rect": {
       "left": 5,
@@ -354,10 +315,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<span>"
     },
-    "center": [
-      43,
-      663
-    ],
+    "center": [43, 663],
     "content": "REFRESHING DRINKS",
     "rect": {
       "left": 5,
@@ -380,10 +338,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<span>"
     },
-    "center": [
-      39,
-      723
-    ],
+    "center": [39, 723],
     "content": "SIGNATURE DRINKS",
     "rect": {
       "left": 5,
@@ -406,10 +361,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<span>"
     },
-    "center": [
-      35,
-      783
-    ],
+    "center": [35, 783],
     "content": "COMFORT DRINKS",
     "rect": {
       "left": 5,
@@ -432,10 +384,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<span>"
     },
-    "center": [
-      34,
-      843
-    ],
+    "center": [34, 843],
     "content": "SIMPLE CLASSICS",
     "rect": {
       "left": 5,
@@ -458,10 +407,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<span>"
     },
-    "center": [
-      137,
-      612
-    ],
+    "center": [137, 612],
     "content": "IN SEASON (1)",
     "rect": {
       "left": 88,
@@ -494,10 +440,7 @@
       "height": 90,
       "zoom": 1
     },
-    "center": [
-      133,
-      683
-    ],
+    "center": [133, 683],
     "zoom": 1,
     "screenWidth": 400,
     "screenHeight": 905
@@ -512,10 +455,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<h2>"
     },
-    "center": [
-      259,
-      660
-    ],
+    "center": [259, 660],
     "content": "Very Tangerine Blast (Original)",
     "rect": {
       "left": 188,
@@ -538,10 +478,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<span>"
     },
-    "center": [
-      212,
-      734
-    ],
+    "center": [212, 734],
     "content": "6.82",
     "rect": {
       "left": 192,
@@ -564,10 +501,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<div>"
     },
-    "center": [
-      344,
-      730
-    ],
+    "center": [344, 730],
     "content": "Select Option",
     "rect": {
       "left": 306,
@@ -590,10 +524,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<span>"
     },
-    "center": [
-      174,
-      773
-    ],
+    "center": [174, 773],
     "content": "REFRESHING DRINKS (5)",
     "rect": {
       "left": 88,
@@ -626,10 +557,7 @@
       "height": 90,
       "zoom": 1
     },
-    "center": [
-      133,
-      845
-    ],
+    "center": [133, 845],
     "zoom": 1,
     "screenWidth": 400,
     "screenHeight": 905
@@ -644,10 +572,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<h2>"
     },
-    "center": [
-      268,
-      810
-    ],
+    "center": [268, 810],
     "content": "Mango Grapefruit Pops",
     "rect": {
       "left": 188,
@@ -670,10 +595,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<span>"
     },
-    "center": [
-      212,
-      877
-    ],
+    "center": [212, 877],
     "content": "6.54",
     "rect": {
       "left": 192,
@@ -696,10 +618,7 @@
       "nodeType": "TEXT Node",
       "htmlTagName": "<div>"
     },
-    "center": [
-      344,
-      873
-    ],
+    "center": [344, 873],
     "content": "Select Option",
     "rect": {
       "left": 306,
@@ -731,10 +650,7 @@
       "height": 42,
       "zoom": 1
     },
-    "center": [
-      379,
-      834
-    ],
+    "center": [379, 834],
     "zoom": 1,
     "screenWidth": 400,
     "screenHeight": 905

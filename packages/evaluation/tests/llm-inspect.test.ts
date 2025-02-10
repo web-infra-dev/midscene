@@ -2,15 +2,11 @@ import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { describe } from 'node:test';
 import { AiInspectElement, plan } from '@midscene/core';
+import { buildContext } from '@midscene/core/evaluation';
 import dotenv from 'dotenv';
 import { afterAll, expect, test } from 'vitest';
 import { TestResultAnalyzer, updateAggregatedResults } from './test-analyzer';
-import {
-  type InspectAiTestCase,
-  getPageContext,
-  repeat,
-  runTestCases,
-} from './util';
+import { type InspectAiTestCase, repeat, runTestCases } from './util';
 import { repeatTime } from './util';
 
 dotenv.config({
@@ -22,11 +18,11 @@ const relocateAfterPlanning = false;
 const failCaseThreshold = process.env.CI ? 1 : 0;
 const testSources = [
   'todo',
-  // 'online_order',
-  // 'online_order_list',
-  // 'taobao',
-  // 'aweme_login',
-  // 'aweme_play',
+  'online_order',
+  'online_order_list',
+  'taobao',
+  'aweme_login',
+  'aweme_play',
 ];
 
 describe('ai inspect element', () => {
@@ -65,7 +61,7 @@ describe('ai inspect element', () => {
             readFileSync(aiDataPath, 'utf-8'),
           ) as InspectAiTestCase;
 
-          const { context } = await getPageContext(
+          const { context } = await buildContext(
             path.join(__dirname, '../page-data/', aiData.testDataPath),
           );
 

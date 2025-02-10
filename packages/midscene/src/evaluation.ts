@@ -1,9 +1,9 @@
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { readFileSync } from 'node:fs';
 import path from 'node:path';
-import { describeUserPage } from '@/ai-model';
-import { base64Encoded, imageInfoOfBase64 } from '@/image';
+import { describeUserPage } from '@/index';
+import { base64Encoded, imageInfoOfBase64 } from '@midscene/shared/img';
 
-export async function getPageContext(targetDir: string): Promise<{
+export async function buildContext(targetDir: string): Promise<{
   context: {
     size: {
       width: number;
@@ -19,7 +19,6 @@ export async function getPageContext(targetDir: string): Promise<{
   screenshotBase64: string;
   originalScreenshotBase64: string;
 }> {
-  // Note: this is the magic
   const resizeOutputImgP = path.join(targetDir, 'output_without_text.png');
   const originalInputImgP = path.join(targetDir, 'input.png');
   const snapshotJsonPath = path.join(targetDir, 'element-snapshot.json');
@@ -53,7 +52,11 @@ export async function getPageContext(targetDir: string): Promise<{
   };
 }
 
-export async function getPageData(pageName: string) {
-  const targetDir = path.join(__dirname, `../page-cases/inspect/${pageName}`);
-  return await getPageContext(targetDir);
+export async function getContextFromFixture(pageName: string) {
+  const targetDir = path.join(
+    __dirname,
+    `../../evaluation/page-data/${pageName}`,
+  );
+  console.log('targetDir', targetDir);
+  return await buildContext(targetDir);
 }

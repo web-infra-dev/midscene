@@ -1,52 +1,65 @@
 {
-    "testDataPath": "todo",
-    "testCases": [{
-            "prompt": "Input current time in the task box input and press the Enter key",
-            "multi": false,
-            "response": [{
-                "id": "okgbn",
-                "indexId": 18
-            }]
-        },
+  "testDataPath": "todo",
+  "testCases": [
+    {
+      "prompt": "Input current time in the task box input and press the Enter key",
+      "multi": false,
+      "response": [
         {
-            "prompt": "Input 'Study Rust tomorrow' in the task box input and press the Enter key ",
-            "multi": false,
-            "response": [{
-                "id": "okgbn",
-                "indexId": 18
-            }]
-        },
-        {
-            "prompt": "任务列表中的第二项名称",
-            "multi": false,
-            "response": [{
-                "id": "idmhb",
-                "indexId": 24
-            }]
-        },
-        {
-            "prompt": "第二项任务右边的删除按钮",
-            "multi": false,
-            "response": [{
-                "id": "jicbk",
-                "indexId": 25
-            }]
-        },
-        {
-            "prompt": "任务列表中第三项左边的勾选按钮",
-            "multi": false,
-            "response": [{
-                "id": "kjccf",
-                "indexId": 26
-            }]
-        },
-        {
-            "prompt": "任务列表下面的 Completed 状态按钮",
-            "multi": false,
-            "response": [{
-                "id": "ddapc",
-                "indexId": 30
-            }]
+          "id": "okgbn",
+          "indexId": 18
         }
-    ]
+      ]
+    },
+    {
+      "prompt": "Input 'Study Rust tomorrow' in the task box input and press the Enter key ",
+      "multi": false,
+      "response": [
+        {
+          "id": "okgbn",
+          "indexId": 18
+        }
+      ]
+    },
+    {
+      "prompt": "任务列表中的第二项名称",
+      "multi": false,
+      "response": [
+        {
+          "id": "idmhb",
+          "indexId": 24
+        }
+      ]
+    },
+    {
+      "prompt": "第二项任务右边的删除按钮",
+      "multi": false,
+      "response": [
+        {
+          "id": "jicbk",
+          "indexId": 25
+        }
+      ]
+    },
+    {
+      "prompt": "任务列表中第三项左边的勾选按钮",
+      "multi": false,
+      "response": [
+        {
+          "id": "kjccf",
+          "indexId": 26
+        }
+      ]
+    },
+    {
+      "prompt": "任务列表下面的 Completed 状态按钮",
+      "multi": false,
+      "response": [
+        {
+          "id": "ddapc",
+          "indexId": 30
+        }
+      ]
+    }
+  ]
 }

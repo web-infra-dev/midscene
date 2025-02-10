@@ -21,7 +21,8 @@
       "**/playwright-report/**",
       "**/todo-report.spec.ts-snapshots/**",
       "**/visualizer/scripts/fixture/*",
-      "**/unpacked-extension/*"
+      "**/unpacked-extension/*",
+      "**/page-data/**"
     ]
   },
   "javascript": {
