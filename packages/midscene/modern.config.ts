@@ -12,6 +12,7 @@ export default defineConfig({
       utils: 'src/utils.ts',
       tree: 'src/tree.ts',
       'ai-model': 'src/ai-model/index.ts',
+      evaluation: 'src/evaluation.ts',
     },
     outDir: 'dist/lib',
     externals: ['langsmith'],

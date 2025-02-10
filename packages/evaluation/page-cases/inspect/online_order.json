@@ -1,0 +1,65 @@
+{
+  "testDataPath": "online_order",
+  "testCases": [
+    {
+      "prompt": "Top left menu bar icon",
+      "multi": false,
+      "response": [
+        {
+          "id": "amjle",
+          "indexId": 0
+        }
+      ]
+    },
+    {
+      "prompt": "点击左上角语言切换按钮(写着 English 或者 中文)，在弹出的下拉列表中点击中文",
+      "multi": false,
+      "response": [
+        {
+          "id": "kciee",
+          "indexId": 1
+        }
+      ]
+    },
+    {
+      "prompt": "Top right shopping cart",
+      "multi": false,
+      "response": [
+        {
+          "id": "podpa",
+          "indexId": 3
+        }
+      ]
+    },
+    {
+      "prompt": "The price number of the upper drink",
+      "multi": false,
+      "response": [
+        {
+          "id": "idbdp",
+          "indexId": 20
+        }
+      ]
+    },
+    {
+      "prompt": "最下面一种饮料的选择规格按钮",
+      "multi": false,
+      "response": [
+        {
+          "id": "cdmma",
+          "indexId": 26
+        }
+      ]
+    },
+    {
+      "prompt": "Bottom right Customer service button",
+      "multi": false,
+      "response": [
+        {
+          "id": "ddeal",
+          "indexId": 27
+        }
+      ]
+    }
+  ]
+}

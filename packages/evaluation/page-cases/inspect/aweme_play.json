@@ -1,0 +1,58 @@
+{
+  "testDataPath": "aweme-play",
+  "testCases": [
+    {
+      "prompt": "左下角暂停按钮",
+      "response": [
+        {
+          "id": "3"
+        }
+      ]
+    },
+    {
+      "prompt": "点赞（爱心）按钮",
+      "response": [
+        {
+          "id": "afifi",
+          "indexId": 22
+        }
+      ]
+    },
+    {
+      "prompt": "评论按钮",
+      "response": [
+        {
+          "id": "jldma",
+          "indexId": 24
+        }
+      ]
+    },
+    {
+      "prompt": "书签收藏按钮",
+      "response": [
+        {
+          "id": "nmgcl",
+          "indexId": 26
+        }
+      ]
+    },
+    {
+      "prompt": "分享按钮",
+      "response": [
+        {
+          "id": "eabap",
+          "indexId": 28
+        }
+      ]
+    },
+    {
+      "prompt": "右下角区域声音按钮",
+      "response": [
+        {
+          "id": "djknm",
+          "indexId": 9
+        }
+      ]
+    }
+  ]
+}

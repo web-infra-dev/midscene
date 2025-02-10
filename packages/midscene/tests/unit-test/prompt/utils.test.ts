@@ -1,12 +1,12 @@
 import { describeUserPage } from '@/ai-model/prompt/util';
 import { getAIConfig } from '@/env';
+import { getContextFromFixture } from '@/evaluation';
 import { describe, expect, it } from 'vitest';
-import { getPageDataOfTestName } from '../../ai/evaluate/test-suite/util';
 
 describe('prompt utils', () => {
   let lengthOfDescription: number;
   it('describe context', async () => {
-    const context = await getPageDataOfTestName('taobao');
+    const context = await getContextFromFixture('taobao');
     const { description } = await describeUserPage(context.context);
 
     lengthOfDescription = description.length;
@@ -17,7 +17,7 @@ describe('prompt utils', () => {
   });
 
   it('describe context, length = 100, filterNonTextContent = true', async () => {
-    const context = await getPageDataOfTestName('taobao');
+    const context = await getContextFromFixture('taobao');
 
     const { description } = await describeUserPage(context.context, {
       truncateTextLength: 100,

@@ -1,0 +1,75 @@
+{
+  "testDataPath": "aweme-login",
+  "testCases": [
+    {
+      "prompt": "密码登录",
+      "multi": false,
+      "response": [
+        {
+          "id": "fobmb",
+          "indexId": 7
+        }
+      ]
+    },
+    {
+      "prompt": "扫码登录",
+      "multi": false,
+      "response": [
+        {
+          "id": "aonmh",
+          "indexId": 5
+        }
+      ]
+    },
+    {
+      "prompt": "手机号输入框",
+      "multi": false,
+      "response": [
+        {
+          "id": "mfodf",
+          "indexId": 10
+        }
+      ]
+    },
+    {
+      "prompt": "验证码输入框",
+      "multi": false,
+      "response": [
+        {
+          "id": "nhbof",
+          "indexId": 12
+        }
+      ]
+    },
+    {
+      "prompt": "发送验证码按钮",
+      "multi": false,
+      "response": [
+        {
+          "id": "kdbdc",
+          "indexId": 11
+        }
+      ]
+    },
+    {
+      "prompt": "登录按钮",
+      "multi": false,
+      "response": [
+        {
+          "id": "bjnpl",
+          "indexId": 18
+        }
+      ]
+    },
+    {
+      "prompt": "X 关闭按钮",
+      "multi": false,
+      "response": [
+        {
+          "id": "aigcl",
+          "indexId": 4
+        }
+      ]
+    }
+  ]
+}
