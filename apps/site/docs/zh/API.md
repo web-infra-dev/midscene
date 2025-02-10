@@ -21,7 +21,7 @@ Midscene 中每个 Agent 都有自己的构造函数。
 
 这些是 Midscene 中各类 Agent 的主要 API。
 
-> 在以下文档中，你可能会看到带有 `mid.` 前缀的函数调用。如果你在 Playwright 中使用了解构赋值（object destructuring），如 `async ({ ai, aiQuery }) => { /* ... */}`，你可以不带这个前缀进行调用。这只是语法的区别。
+> 在以下文档中，你可能会看到带有 `agent.` 前缀的函数调用。如果你在 Playwright 中使用了解构赋值（object destructuring），如 `async ({ ai, aiQuery }) => { /* ... */}`，你可以不带这个前缀进行调用。这只是语法的区别。
 
 ### `.aiAction(steps: string)` 或 `.ai(steps: string)` - 控制界面
 
@@ -32,11 +32,11 @@ Midscene 中每个 Agent 都有自己的构造函数。
 以下是一些正确示例：
 
 ```typescript
-await mid.aiAction('在任务框中输入 "Learn JS today"，然后按回车键创建任务');
-await mid.aiAction('将鼠标移动到任务列表中的第二项，然后点击第二个任务右侧的删除按钮');
+await agent.aiAction('在任务框中输入 "Learn JS today"，然后按回车键创建任务');
+await agent.aiAction('将鼠标移动到任务列表中的第二项，然后点击第二个任务右侧的删除按钮');
 
 // 使用 `.ai` 简写
-await mid.ai('点击任务列表下方的 "completed" 状态按钮');
+await agent.ai('点击任务列表下方的 "completed" 状态按钮');
 ```
 
 务必使用清晰、详细的步骤描述。使用非常简略的指令（如 “发一条微博” ）会导致非常不稳定的执行结果或运行失败。
@@ -62,7 +62,7 @@ await mid.ai('点击任务列表下方的 "completed" 状态按钮');
 例如，从页面解析详细信息：
 
 ```typescript
-const dataA = await mid.aiQuery({
+const dataA = await agent.aiQuery({
   time: '左上角展示的日期和时间，string',
   userInfo: '用户信息，{name: string}',
   tableFields: '表格的字段名，string[]',
@@ -72,10 +72,10 @@ const dataA = await mid.aiQuery({
 你也可以用纯字符串描述预期的返回值格式：
 
 // dataB 将是一个字符串数组
-const dataB = await mid.aiQuery('string[]，列表中的任务名称');
+const dataB = await agent.aiQuery('string[]，列表中的任务名称');
 
 // dataC 将是一个包含对象的数组
-const dataC = await mid.aiQuery('{name: string, age: string}[], 表格中的数据记录');
+const dataC = await agent.aiQuery('{name: string, age: string}[], 表格中的数据记录');
 ```
 
 ### `.aiAssert(assertion: string, errorMsg?: string)` - 进行断言
@@ -83,7 +83,7 @@ const dataC = await mid.aiQuery('{name: string, age: string}[], 表格中的数�
 `.aiAssert` 的功能类似于一般的断言（assert）方法，但可以用自然语言编写条件参数 `assertion`。Midscene 会调用 AI 来判断条件是否为真。若条件不满足，SDK 会抛出一个错误并在 `errorMsg` 后附上 AI 生成的错误原因。
 
 ```typescript
-await mid.aiAssert('"Sauce Labs Onesie" 的价格是 7.99');
+await agent.aiAssert('"Sauce Labs Onesie" 的价格是 7.99');
 ```
 
 :::tip
@@ -92,7 +92,7 @@ await mid.aiAssert('"Sauce Labs Onesie" 的价格是 7.99');
 例如你可以这么替代上一个断言代码：
 
 ```typescript
-const items = await mid.aiQuery(
+const items = await agent.aiQuery(
   '"{name: string, price: number}[], 返回商品名称和价格列表)',
 );
 const onesieItem = items.find(item => item.name === 'Sauce Labs Onesie');
@@ -108,7 +108,29 @@ expect(onesieItem.price).toBe(7.99);
 考虑到 AI 服务的时间消耗，`.aiWaitFor` 并不是一个特别高效的方法。使用一个普通的 `sleep` 可能是替代 `waitFor` 的另一种方式。
 
 ```typescript
-await mid.aiWaitFor("界面上至少有一个耳机的信息");
+await agent.aiWaitFor("界面上至少有一个耳机的信息");
+```
+
+### `.runYaml(yamlScriptContent: string)` - 运行一个 yaml 脚本
+
+`.runYaml` 会运行 yaml 脚本中的 `tasks` 部分，并返回所有 `.aiQuery` 调用的结果（如果存在此类调用）。yaml 脚本中的 `target` 部分将被忽略。
+
+如果想要忽略 yaml 脚本运行中的错误，可以在 yaml 脚本中设置 `continueOnError` 选项。更多关于 yaml 脚本的信息，请参考 [Automate with Scripts in YAML](./automate-with-scripts-in-yaml)。
+
+```typescript
+const { result } = await agent.runYaml(`
+tasks:
+  - name: search weather
+    flow:
+      - ai: input 'weather today' in input box, click search button
+      - sleep: 3000
+
+  - name: query weather
+    flow:
+      - aiQuery: "the result shows the weather info, {description: string}"
+        name: weather
+`);
+console.log(result);
 ```
 
 ## 属性

@@ -35,7 +35,7 @@ export class ScriptPlayer {
     public onTaskStatusChange?: (taskStatus: ScriptPlayerTaskStatus) => void,
   ) {
     this.result = {};
-    this.output = script.target.output;
+    this.output = script.target?.output;
     this.taskStatusList = (script.tasks || []).map((task, taskIndex) => ({
       ...task,
       index: taskIndex,
