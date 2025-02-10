@@ -604,6 +604,20 @@ exports[`extractor > basic 1`] = `
   },
   {
     "attributes": {
+      "htmlTagName": "<div>",
+      "nodeType": "TEXT Node",
+    },
+    "content": "AAA",
+  },
+  {
+    "attributes": {
+      "htmlTagName": "<div>",
+      "nodeType": "TEXT Node",
+    },
+    "content": "This should be collected",
+  },
+  {
+    "attributes": {
       "htmlTagName": "",
       "nodeType": "TEXT Node",
     },
@@ -2938,6 +2952,72 @@ exports[`extractor > basic 2`] = `
           "children": [],
           "node": null,
         },
+        {
+          "children": [
+            {
+              "children": [],
+              "node": null,
+            },
+            {
+              "children": [
+                {
+                  "children": [],
+                  "node": {
+                    "attributes": {
+                      "htmlTagName": "<div>",
+                      "nodeType": "TEXT Node",
+                    },
+                    "content": "AAA",
+                    "indexId": 78,
+                  },
+                },
+              ],
+              "node": null,
+            },
+            {
+              "children": [],
+              "node": null,
+            },
+            {
+              "children": [
+                {
+                  "children": [],
+                  "node": null,
+                },
+              ],
+              "node": null,
+            },
+            {
+              "children": [],
+              "node": null,
+            },
+            {
+              "children": [
+                {
+                  "children": [],
+                  "node": {
+                    "attributes": {
+                      "htmlTagName": "<div>",
+                      "nodeType": "TEXT Node",
+                    },
+                    "content": "This should be collected",
+                    "indexId": 79,
+                  },
+                },
+              ],
+              "node": null,
+            },
+            {
+              "children": [],
+              "node": null,
+            },
+          ],
+          "node": null,
+        },
+        {
+          "children": [],
+          "node": null,
+        },
       ],
       "node": null,
     },
@@ -2957,7 +3037,7 @@ exports[`extractor > basic 2`] = `
                   "nodeType": "TEXT Node",
                 },
                 "content": "Child Page",
-                "indexId": 79,
+                "indexId": 81,
               },
             },
           ],
@@ -2977,7 +3057,7 @@ exports[`extractor > basic 2`] = `
                   "nodeType": "TEXT Node",
                 },
                 "content": "This is a child page.",
-                "indexId": 80,
+                "indexId": 82,
               },
             },
           ],
@@ -2997,7 +3077,7 @@ exports[`extractor > basic 2`] = `
                   "nodeType": "TEXT Node",
                 },
                 "content": "Click me",
-                "indexId": 81,
+                "indexId": 83,
               },
             },
           ],
