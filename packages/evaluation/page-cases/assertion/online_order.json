@@ -22,7 +22,7 @@
       "expected": false
     },
     {
-      "prompt": "There is a homepage icon on the top right of the page",
+      "prompt": "There is a homepage icon on the top right of the page, instead of a shopping bag icon",
       "expected": false
     }
   ]

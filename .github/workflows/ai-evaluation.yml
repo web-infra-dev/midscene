@@ -1,4 +1,4 @@
-name: AI unit test
+name: AI evaluation
 on:
   push:
     branches:
