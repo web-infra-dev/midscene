@@ -3,7 +3,11 @@ import { parseContextFromWebPage } from '@/common/utils';
 import StaticPage from '@/playground/static-page';
 import type { WebElementInfo } from '@/web-element';
 import { traverseTree } from '@midscene/shared/extractor';
-import { imageInfoOfBase64 } from '@midscene/shared/img';
+import {
+  compositeElementInfoImg,
+  imageInfoOfBase64,
+  saveBase64Image,
+} from '@midscene/shared/img';
 import { createServer } from 'http-server';
 import { beforeAll, describe, expect, it } from 'vitest';
 import { launchPage } from '../ai/web/puppeteer/utils';
@@ -39,19 +43,22 @@ describe(
         },
       });
 
-      const { content, tree } = await parseContextFromWebPage(page);
-      // TODO
-      // await generateExtractData(
-      //   page,
-      //   path.join(__dirname, 'fixtures/web-extractor'),
-      //   {
-      //     disableInputImage: false,
-      //     disableOutputImage: false,
-      //     disableOutputWithoutTextImg: true,
-      //     disableResizeOutputImg: true,
-      //     disableSnapshot: true,
-      //   },
-      // );
+      const { content, tree, screenshotBase64 } =
+        await parseContextFromWebPage(page);
+
+      const markedImg = await compositeElementInfoImg({
+        inputImgBase64: await page.screenshotBase64(),
+        elementsPositionInfo: content,
+      });
+
+      await saveBase64Image({
+        base64Data: screenshotBase64,
+        outputPath: join(pageDir, 'input.png'),
+      });
+      await saveBase64Image({
+        base64Data: markedImg,
+        outputPath: join(pageDir, 'output.png'),
+      });
 
       const list = content.map((item) => {
         return {
