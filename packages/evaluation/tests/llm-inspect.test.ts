@@ -46,29 +46,27 @@ describe('ai inspect element', () => {
       }),
     );
   });
-  repeat(repeatTime * 2, (repeatIndex) => {
-    const runType = repeatIndex % 2 === 1 ? 'inspect' : 'planning';
-    // const runType = 'planning';
+  ['inspect', 'planning'].forEach((runType) => {
     testSources.forEach((source) => {
       test(
-        `${source}-${repeatIndex}-${runType}: locate element`,
+        `${source}-${runType}: locate element`,
         async () => {
           const aiDataPath = path.join(
             __dirname,
             `../page-cases/inspect/${source}.json`,
           );
-          const aiData = JSON.parse(
+          const pageData = JSON.parse(
             readFileSync(aiDataPath, 'utf-8'),
           ) as InspectAiTestCase;
 
           const { context } = await buildContext(
-            path.join(__dirname, '../page-data/', aiData.testDataPath),
+            path.join(__dirname, '../page-data/', pageData.testDataPath),
           );
 
           const { elementById } = await context.describer();
 
           const { aiResponse } = await runTestCases(
-            aiData.testCases,
+            pageData.testCases,
             context,
             async (testCase) => {
               let prompt = testCase.description;
@@ -130,14 +128,14 @@ describe('ai inspect element', () => {
             aiDataPath,
             aiData,
             aiResponse,
-            repeatIndex,
+            runType === 'planning' ? 1 : 0,
           );
           const resultData = analyzer.analyze();
 
           updateAggregatedResults(source, resultData);
 
           testResult.push({
-            path: `${source}-${repeatIndex}: inspect element -- result:`,
+            path: `${source}-${runType}-result:`,
             result: {
               score: resultData.score,
               averageTime: resultData.averageTime,
@@ -145,12 +143,11 @@ describe('ai inspect element', () => {
               failCount: resultData.failCount,
             },
           });
-          // await sleep(20 * 1000);
           expect(resultData.successCount).toBeGreaterThan(0);
-          // expect(resultData.failCount).toBeLessThanOrEqual(
-          //   source === 'aweme_play' ? 2 : failCaseThreshold,
-          // );
-          expect(resultData.failCount).toBeLessThanOrEqual(failCaseThreshold);
+          // await sleep(20 * 1000);
+          expect(resultData.failCount).toBeLessThanOrEqual(
+            source === 'aweme_play' ? 2 : failCaseThreshold,
+          );
 
           await new Promise((resolve) => setTimeout(resolve, 10 * 1000));
         },

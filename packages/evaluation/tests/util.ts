@@ -63,8 +63,8 @@ export async function runTestCases(
 ) {
   let aiResponse: Array<TextAiElementResponse> = [];
   const { content: elementSnapshot } = context;
-
-  const aiReq = testCases.map(async (testCase, caseIndex) => {
+  for (let caseIndex = 0; caseIndex < testCases.length; caseIndex++) {
+    const testCase = testCases[caseIndex];
     const startTime = Date.now();
     const msg = await getAiResponse({
       description: testCase.prompt,
@@ -92,8 +92,8 @@ export async function runTestCases(
         error: `can't find element with description: ${testCase.prompt}`,
       } as any);
     }
-  });
-  await Promise.all(aiReq);
+  }
+
   aiResponse = aiResponse.sort((a, b) => {
     if (a.caseIndex !== undefined && b.caseIndex !== undefined) {
       return a.caseIndex - b.caseIndex;
