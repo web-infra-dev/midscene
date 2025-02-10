@@ -1,6 +1,7 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import type { AIElementIdResponse, PlanningAIResponse } from '@midscene/core';
+import type { vlmPlanning } from '@midscene/core/ai-model';
 import { getAIConfig } from '@midscene/core/env';
 import {
   getLogDirByType,
@@ -24,6 +25,19 @@ export type PlanTask = {
   response: PlanningAIResponse;
 };
 
+export type UITarsPlanTask = {
+  type: 'ui-tars-plan';
+  prompt: string;
+  pageContext: {
+    url: string;
+    size: {
+      width: number;
+      height: number;
+    };
+  };
+  response: Awaited<ReturnType<typeof vlmPlanning>>;
+};
+
 export type LocateTask = {
   type: 'locate';
   prompt: string;
@@ -37,13 +51,26 @@ export type LocateTask = {
   response: AIElementIdResponse;
 };
 
-export type AiTasks = Array<PlanTask | LocateTask>;
+export type AiTasks = Array<PlanTask | LocateTask | UITarsPlanTask>;
 
 export type AiTaskCache = {
   aiTasks: Array<{
     prompt: string;
     tasks: AiTasks;
   }>;
+};
+
+export type CacheGroup = {
+  readCache: <T extends 'plan' | 'locate' | 'ui-tars-plan'>(
+    pageContext: WebUIContext,
+    type: T,
+    actionPrompt: string,
+  ) => T extends 'plan'
+    ? PlanTask['response']
+    : T extends 'locate'
+      ? LocateTask['response']
+      : UITarsPlanTask['response'];
+  saveCache: (cache: UITarsPlanTask | PlanTask | LocateTask) => void;
 };
 
 export class TaskCache {
@@ -66,7 +93,7 @@ export class TaskCache {
     };
   }
 
-  getCacheGroupByPrompt(aiActionPrompt: string) {
+  getCacheGroupByPrompt(aiActionPrompt: string): CacheGroup {
     const { aiTasks = [] } = this.cache || { aiTasks: [] };
     const index = aiTasks.findIndex((item) => item.prompt === aiActionPrompt);
     const newCacheGroup: AiTasks = [];
@@ -75,13 +102,13 @@ export class TaskCache {
       tasks: newCacheGroup,
     });
     return {
-      readCache: <T extends 'plan' | 'locate'>(
+      readCache: <T extends 'plan' | 'locate' | 'ui-tars-plan'>(
         pageContext: WebUIContext,
         type: T,
         actionPrompt: string,
       ) => {
         if (index === -1) {
-          return false;
+          return false as any;
         }
         if (type === 'plan') {
           return this.readCache(
@@ -89,16 +116,29 @@ export class TaskCache {
             type,
             actionPrompt,
             aiTasks[index].tasks,
-          ) as T extends 'plan' ? PlanTask['response'] : LocateTask['response'];
+          ) as PlanTask['response'];
         }
+        if (type === 'ui-tars-plan') {
+          return this.readCache(
+            pageContext,
+            type,
+            actionPrompt,
+            aiTasks[index].tasks,
+          ) as UITarsPlanTask['response'];
+        }
+
         return this.readCache(
           pageContext,
           type,
           actionPrompt,
           aiTasks[index].tasks,
-        ) as T extends 'plan' ? PlanTask['response'] : LocateTask['response'];
+        ) as T extends 'plan'
+          ? PlanTask['response']
+          : T extends 'locate'
+            ? LocateTask['response']
+            : UITarsPlanTask['response'];
       },
-      saveCache: (cache: PlanTask | LocateTask) => {
+      saveCache: (cache: PlanTask | LocateTask | UITarsPlanTask) => {
         newCacheGroup.push(cache);
         this.writeCacheToFile();
       },
@@ -129,16 +169,26 @@ export class TaskCache {
   ): PlanTask['response'];
   readCache(
     pageContext: WebUIContext,
+    type: 'ui-tars-plan',
+    userPrompt: string,
+    cacheGroup: AiTasks,
+  ): UITarsPlanTask['response'];
+  readCache(
+    pageContext: WebUIContext,
     type: 'locate',
     userPrompt: string,
     cacheGroup: AiTasks,
   ): LocateTask['response'];
   readCache(
     pageContext: WebUIContext,
-    type: 'plan' | 'locate',
+    type: 'plan' | 'locate' | 'ui-tars-plan',
     userPrompt: string,
     cacheGroup: AiTasks,
-  ): PlanTask['response'] | LocateTask['response'] | false {
+  ):
+    | PlanTask['response']
+    | LocateTask['response']
+    | UITarsPlanTask['response']
+    | false {
     if (cacheGroup.length > 0) {
       const index = cacheGroup.findIndex((item) => item.prompt === userPrompt);
 

@@ -87,8 +87,15 @@ describe('ai inspect element', () => {
                 if (!relocateAfterPlanning) {
                   const matchedId = res.actions[0].locate?.id;
                   if (matchedId) {
+                    const element = elementById(matchedId);
                     return {
-                      elements: [elementById(matchedId)],
+                      elements: [
+                        {
+                          id: element.id,
+                          reason: element.reason ?? '',
+                          text: element.content ?? '',
+                        },
+                      ],
                     };
                   }
 
@@ -106,7 +113,13 @@ describe('ai inspect element', () => {
               return {
                 ...parseResult,
                 elements: parseResult.elements.length
-                  ? [parseResult.elements[0]]
+                  ? [
+                      {
+                        ...parseResult.elements[0],
+                        reason: parseResult.elements[0].reason ?? '',
+                        text: parseResult.elements[0].text ?? '',
+                      },
+                    ]
                   : [],
               };
             },

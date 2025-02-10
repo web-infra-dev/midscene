@@ -23,10 +23,13 @@ function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+declare const __VERSION__: string;
+
 export default class ChromeExtensionProxyPage implements AbstractPage {
   pageType = 'chrome-extension-proxy';
 
   public trackingActiveTab: boolean;
+  private version: string = __VERSION__;
 
   private viewportSize?: Size;
 
