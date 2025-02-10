@@ -253,7 +253,9 @@ export class PageAgent<PageType extends WebPage = WebPage> {
     );
   }
 
-  async runYaml(yamlScriptContent: string) {
+  async runYaml(yamlScriptContent: string): Promise<{
+    result: Record<string, any>;
+  }> {
     const script = parseYamlScript(yamlScriptContent, 'yaml', true);
     const player = new ScriptPlayer(script, async (target) => {
       return { agent: this, freeFn: [] };
