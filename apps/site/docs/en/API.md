@@ -156,10 +156,12 @@ LangSmith is a platform designed to debug the LLMs. To integrate LangSmith, plea
 export MIDSCENE_LANGSMITH_DEBUG=1 
 
 # LangSmith config
-export LANGCHAIN_TRACING_V2=true
-export LANGCHAIN_ENDPOINT="https://api.smith.langchain.com"
-export LANGCHAIN_API_KEY="your_key_here"
-export LANGCHAIN_PROJECT="your_project_name_here"
+export LANGSMITH_TRACING_V2=true
+export LANGSMITH_ENDPOINT="https://api.smith.langchain.com"
+export LANGSMITH_API_KEY="your_key_here"
+export LANGSMITH_PROJECT="your_project_name_here"
+
+# Due to a backward compatibility issue of LangSmith, for users who use Midscene <= 0.10.6, you need to set the variables starting with `LANGCHAIN_` instead of `LANGSMITH_`. 
 ```
 
 Launch Midscene, you should see logs like this:
