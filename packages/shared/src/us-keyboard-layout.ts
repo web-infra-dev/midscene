@@ -712,15 +712,12 @@ const keyMap: Record<string, KeyInput> = {
 };
 
 export function transformHotkeyInput(keyInput: string): string[] {
+  // page down
+  if (keyMap[keyInput.toLowerCase()]) {
+    return [getKeyDefinition(keyMap[keyInput.toLowerCase()])];
+  }
+
   return keyInput.split(' ').map((key) => {
-    let newKey = key;
-    if (keyMap[key.toLowerCase()]) {
-      newKey = keyMap[key.toLowerCase()];
-    }
-    const keyDefinition = getKeyDefinition(newKey);
-    if (keyDefinition) {
-      return keyDefinition;
-    }
-    return newKey;
+    return getKeyDefinition(keyMap[key.toLowerCase()] || key);
   });
 }

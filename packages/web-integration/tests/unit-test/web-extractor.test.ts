@@ -1,10 +1,13 @@
-import path, { join } from 'node:path';
+import { join } from 'node:path';
 import { parseContextFromWebPage } from '@/common/utils';
-import { generateExtractData } from '@/debug';
 import StaticPage from '@/playground/static-page';
 import type { WebElementInfo } from '@/web-element';
 import { traverseTree } from '@midscene/shared/extractor';
-import { imageInfoOfBase64 } from '@midscene/shared/img';
+import {
+  compositeElementInfoImg,
+  imageInfoOfBase64,
+  saveBase64Image,
+} from '@midscene/shared/img';
 import { createServer } from 'http-server';
 import { beforeAll, describe, expect, it } from 'vitest';
 import { launchPage } from '../ai/web/puppeteer/utils';
@@ -40,18 +43,22 @@ describe(
         },
       });
 
-      const { content, tree } = await parseContextFromWebPage(page);
-      await generateExtractData(
-        page,
-        path.join(__dirname, 'fixtures/web-extractor'),
-        {
-          disableInputImage: false,
-          disableOutputImage: false,
-          disableOutputWithoutTextImg: true,
-          disableResizeOutputImg: true,
-          disableSnapshot: true,
-        },
-      );
+      const { content, tree, screenshotBase64 } =
+        await parseContextFromWebPage(page);
+
+      const markedImg = await compositeElementInfoImg({
+        inputImgBase64: await page.screenshotBase64(),
+        elementsPositionInfo: content,
+      });
+
+      await saveBase64Image({
+        base64Data: screenshotBase64,
+        outputPath: join(pageDir, 'input.png'),
+      });
+      await saveBase64Image({
+        base64Data: markedImg,
+        outputPath: join(pageDir, 'output.png'),
+      });
 
       const list = content.map((item) => {
         return {
@@ -140,29 +147,29 @@ describe(
       await reset();
     });
 
-    it('scroll', async () => {
-      const { page, reset } = await launchPage(`file://${pagePath}`, {
-        viewport: {
-          width: 1080,
-          height: 200,
-          deviceScaleFactor: 1,
-        },
-      });
-      await page.scrollDown();
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-      await generateExtractData(
-        page,
-        path.join(__dirname, 'fixtures/web-extractor/scroll'),
-        {
-          disableInputImage: false,
-          disableOutputImage: false,
-          disableOutputWithoutTextImg: true,
-          disableResizeOutputImg: true,
-          disableSnapshot: true,
-        },
-      );
-      await reset();
-    });
+    // it('scroll', async () => {
+    //   const { page, reset } = await launchPage(`file://${pagePath}`, {
+    //     viewport: {
+    //       width: 1080,
+    //       height: 200,
+    //       deviceScaleFactor: 1,
+    //     },
+    //   });
+    //   await page.scrollDown();
+    //   await new Promise((resolve) => setTimeout(resolve, 1000));
+    //   await generateExtractData(
+    //     page,
+    //     path.join(__dirname, 'fixtures/web-extractor/scroll'),
+    //     {
+    //       disableInputImage: false,
+    //       disableOutputImage: false,
+    //       disableOutputWithoutTextImg: true,
+    //       disableResizeOutputImg: true,
+    //       disableSnapshot: true,
+    //     },
+    //   );
+    //   await reset();
+    // });
 
     it('profiling', async () => {
       const { page, reset } = await launchPage('https://www.bytedance.com');

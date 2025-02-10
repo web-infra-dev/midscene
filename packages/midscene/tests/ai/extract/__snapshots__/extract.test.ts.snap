@@ -13,13 +13,14 @@ exports[`extract > online order 1`] = `
     },
   ],
   "errors": [],
-  "language": "en",
+  "language": "zh",
 }
 `;
 
 exports[`extract > todo 1`] = `
 {
   "data": [
+    "Learn English",
     "Learn Python",
     "Learn Rust",
     "Learn AI",

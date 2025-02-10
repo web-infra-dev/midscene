@@ -1,7 +1,7 @@
 import { AiAssert } from '@/ai-model';
+import { getContextFromFixture } from '@/evaluation';
 /* eslint-disable max-lines-per-function */
 import { describe, expect, it, vi } from 'vitest';
-import { getPageDataOfTestName } from '../evaluate/test-suite/util';
 
 vi.setConfig({
   testTimeout: 180 * 1000,
@@ -10,7 +10,7 @@ vi.setConfig({
 
 describe('assert', () => {
   it('todo pass', async () => {
-    const { context } = await getPageDataOfTestName('todo');
+    const { context } = await getContextFromFixture('todo');
 
     const {
       content: { pass },
@@ -22,7 +22,7 @@ describe('assert', () => {
   });
 
   it('todo error', async () => {
-    const { context } = await getPageDataOfTestName('todo');
+    const { context } = await getContextFromFixture('todo');
 
     const {
       content: { pass, thought },

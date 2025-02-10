@@ -55,10 +55,6 @@
       "import": "./dist/es/playground.js",
       "types": "./dist/types/playground.d.ts"
     },
-    "./debug": {
-      "require": "./dist/lib/debug.js",
-      "types": "./dist/types/debug.d.ts"
-    },
     "./constants": {
       "require": "./dist/lib/constants.js",
       "import": "./dist/es/constants.js",
@@ -90,7 +86,6 @@
       "playwright": ["./dist/types/playwright.d.ts"],
       "playwright-report": ["./dist/types/playwright-report.d.ts"],
       "playground": ["./dist/types/playground.d.ts"],
-      "debug": ["./dist/types/debug.d.ts"],
       "constants": ["./dist/types/constants.d.ts"],
       "html-element": ["./dist/types/html-element/index.d.ts"],
       "chrome-extension": ["./dist/types/chrome-extension.d.ts"],
@@ -134,7 +129,7 @@
   },
   "devDependencies": {
     "@modern-js/module-tools": "2.60.6",
-    "@playwright/test": "1.44.1",
+    "@playwright/test": "^1.44.1",
     "@types/chrome": "0.0.279",
     "@types/cors": "2.8.12",
     "@types/express": "4.17.14",
@@ -221,10 +216,6 @@
         "require": "./dist/lib/playground.js",
         "import": "./dist/es/playground.js",
         "types": "./dist/types/playground.d.ts"
-      },
-      "./debug": {
-        "require": "./dist/lib/debug.js",
-        "types": "./dist/types/debug.d.ts"
       },
       "./constants": {
         "require": "./dist/lib/constants.js",
