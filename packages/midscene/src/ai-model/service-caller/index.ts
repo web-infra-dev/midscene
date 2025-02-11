@@ -190,7 +190,7 @@ export async function call(
   let content: string | undefined;
   let usage: OpenAI.CompletionUsage | undefined;
   const commonConfig = {
-    temperature: 0.1,
+    temperature: 1,
     stream: false,
     max_tokens:
       typeof maxTokens === 'number'

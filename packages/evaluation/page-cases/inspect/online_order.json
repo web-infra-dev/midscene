@@ -35,7 +35,7 @@
       "response_coordinates": [352, 26]
     },
     {
-      "prompt": "The price number of the upper drink",
+      "prompt": "The text indicating the price of the upper drink",
       "multi": false,
       "response": [
         {

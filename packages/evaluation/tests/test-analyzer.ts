@@ -134,11 +134,12 @@ ${testLog.success ? '(skipped)' : JSON.stringify(testLog.testCase.response, null
     const failedCaseGroups = resultData.filter(
       (item) => item.failCount > allowFailCaseCount,
     );
+    let errMsg = '';
     if (failedCaseGroups.length > 0) {
-      console.log('failedCaseGroups', failedCaseGroups);
-      throw new Error(
-        `Failed case groups: ${failedCaseGroups.map((item) => item.caseGroup).join(', ')}`,
-      );
+      errMsg = `Failed case groups: ${failedCaseGroups.map((item) => item.caseGroup).join(', ')}`;
+      console.log(errMsg);
+      console.log('error log file:', this.failedCaseLogPath);
+      throw new Error(errMsg);
     }
     return resultData;
   }
@@ -154,16 +155,16 @@ ${testLog.success ? '(skipped)' : JSON.stringify(testLog.testCase.response, null
         testCase.response_coordinates,
         'testCase.response_coordinates is required',
       );
-      const distance = Math.sqrt(
-        (result.rawResponse.coordinates[0] -
-          testCase.response_coordinates[0]) **
-          2 +
-          (result.rawResponse.coordinates[1] -
-            testCase.response_coordinates[1]) **
-            2,
+      const distance = Math.floor(
+        Math.sqrt(
+          (result.rawResponse.coordinates[0] -
+            testCase.response_coordinates[0]) **
+            2 +
+            (result.rawResponse.coordinates[1] -
+              testCase.response_coordinates[1]) **
+              2,
+        ),
       );
-
-      // console.log('distance', distance);
 
       if (distance > distanceThreshold) {
         console.log(

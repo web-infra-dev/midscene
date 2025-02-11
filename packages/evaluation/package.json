@@ -8,8 +8,8 @@
     "update-answer-data:inspect:position": "UPDATE_ANSWER_DATA=true MATCH_BY_POSITION=1 npm run evaluate:inspect",
     "update-answer-data:inspect:element": "UPDATE_ANSWER_DATA=true npm run evaluate:inspect",
     "evaluate:inspect": "npm run evaluate:inspect:element",
-    "evaluate:inspect:element": "npx vitest --run tests/llm-inspector-runner.test.ts",
-    "evaluate:inspect:position": "MATCH_BY_POSITION=1 npx vitest --run tests/llm-inspector-runner.test.ts",
+    "evaluate:inspect:element": "npx vitest --run tests/llm-inspector.test.ts",
+    "evaluate:inspect:position": "MATCH_BY_POSITION=1 npx npm run evaluate:inspect:element",
     "evaluate:assertion": "npx vitest --run tests/assertion.test.ts",
     "evaluate:assertion:update": "UPDATE_ANSWER_DATA=true npm run evaluate:assertion"
   },
