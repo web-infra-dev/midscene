@@ -9,6 +9,12 @@
           "id": "okgbn",
           "indexId": 18
         }
+      ],
+      "response_bbox": [
+        520,
+        130,
+        1081,
+        206
       ]
     },
     {
@@ -19,6 +25,12 @@
           "id": "okgbn",
           "indexId": 18
         }
+      ],
+      "response_bbox": [
+        520,
+        130,
+        1081,
+        201
       ]
     },
     {
@@ -29,6 +41,12 @@
           "id": "idmhb",
           "indexId": 24
         }
+      ],
+      "response_bbox": [
+        582,
+        283,
+        699,
+        302
       ]
     },
     {
@@ -39,6 +57,12 @@
           "id": "jicbk",
           "indexId": 25
         }
+      ],
+      "response_bbox": [
+        1041,
+        285,
+        1058,
+        300
       ]
     },
     {
@@ -49,6 +73,12 @@
           "id": "kjccf",
           "indexId": 26
         }
+      ],
+      "response_bbox": [
+        528,
+        340,
+        564,
+        366
       ]
     },
     {
@@ -59,6 +89,12 @@
           "id": "ddapc",
           "indexId": 30
         }
+      ],
+      "response_bbox": [
+        812,
+        399,
+        883,
+        410
       ]
     }
   ]

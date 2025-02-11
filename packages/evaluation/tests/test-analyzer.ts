@@ -120,8 +120,8 @@ ${testLog.success ? '(skipped)' : JSON.stringify(testLog.testCase.response, null
           failCount: testLogs.filter((log) => !log.success).length,
           passRate: `${(passRate * 100).toFixed(2)}%`,
           averageCost: `${averageCost.toFixed(2)}ms`,
-          averagePromptTokens: `${averagePromptTokens.toFixed(2)}`,
-          averageCompletionTokens: `${averageCompletionTokens.toFixed(2)}`,
+          averagePromptTokens: `${averagePromptTokens.toFixed(0)}`,
+          averageCompletionTokens: `${averageCompletionTokens.toFixed(0)}`,
           totalTimeCost: `${totalTimeCost}ms`,
         };
       },
@@ -150,19 +150,20 @@ ${testLog.success ? '(skipped)' : JSON.stringify(testLog.testCase.response, null
   ) {
     const distanceThreshold = 16;
     // compare coordinates
-    if (result.rawResponse.coordinates) {
-      assert(
-        testCase.response_coordinates,
-        'testCase.response_coordinates is required',
-      );
+    if (result.rawResponse.bbox) {
+      assert(testCase.response_bbox, 'testCase.response_bbox is required');
+      const centerX =
+        (result.rawResponse.bbox[0] + result.rawResponse.bbox[2]) / 2;
+      const centerY =
+        (result.rawResponse.bbox[1] + result.rawResponse.bbox[3]) / 2;
+
+      const expectedCenterX =
+        (testCase.response_bbox[0] + testCase.response_bbox[2]) / 2;
+      const expectedCenterY =
+        (testCase.response_bbox[1] + testCase.response_bbox[3]) / 2;
       const distance = Math.floor(
         Math.sqrt(
-          (result.rawResponse.coordinates[0] -
-            testCase.response_coordinates[0]) **
-            2 +
-            (result.rawResponse.coordinates[1] -
-              testCase.response_coordinates[1]) **
-              2,
+          (centerX - expectedCenterX) ** 2 + (centerY - expectedCenterY) ** 2,
         ),
       );
 

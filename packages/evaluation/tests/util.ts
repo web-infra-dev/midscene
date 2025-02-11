@@ -1,6 +1,10 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
-import { base64Encoded, imageInfoOfBase64 } from '@midscene/shared/img';
+import {
+  base64Encoded,
+  compositeElementInfoImg,
+  imageInfoOfBase64,
+} from '@midscene/shared/img';
 import { parseContextFromWebPage } from '@midscene/web';
 
 export const repeatTime = 1;
@@ -8,7 +12,7 @@ export const repeatTime = 1;
 export type TestCase = {
   prompt: string;
   response: Array<{ id: string; indexId: number }>;
-  response_coordinates?: [number, number];
+  response_bbox?: [number, number, number, number];
   expected?: boolean;
 };
 
@@ -208,4 +212,28 @@ export async function buildContext(pageName: string) {
 
   const context = await parseContextFromWebPage(fakePage as any);
   return context;
+}
+
+export async function annotatePoints(
+  imgBase64: string,
+  points: Array<{
+    indexId: number;
+    points: [number, number, number, number];
+  }>,
+) {
+  const markedImage = await compositeElementInfoImg({
+    inputImgBase64: imgBase64,
+    elementsPositionInfo: points.map((item, index) => {
+      return {
+        rect: {
+          left: item.points[0],
+          top: item.points[1],
+          width: item.points[2] - item.points[0],
+          height: item.points[3] - item.points[1],
+        },
+        indexId: item.indexId,
+      };
+    }),
+  });
+  return markedImage;
 }

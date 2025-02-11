@@ -1,37 +1,37 @@
 {
-  "name": "evaluation",
-  "private": true,
-  "scripts": {
-    "update-page-data:headless": "playwright test ./data-generator/generator-headless.spec.ts",
-    "update-page-data:headed": "playwright test ./data-generator/generator-headed.spec.ts --headed",
-    "update-answer-data": "npm run update-answer-data:inspect:position && npm run update-answer-data:inspect:element",
-    "update-answer-data:inspect:position": "UPDATE_ANSWER_DATA=true MATCH_BY_POSITION=1 npm run evaluate:inspect",
-    "update-answer-data:inspect:element": "UPDATE_ANSWER_DATA=true npm run evaluate:inspect",
-    "evaluate:inspect": "npm run evaluate:inspect:element",
-    "evaluate:inspect:element": "npx vitest --run tests/llm-inspector.test.ts",
-    "evaluate:inspect:position": "MATCH_BY_POSITION=1 npx npm run evaluate:inspect:element",
-    "evaluate:assertion": "npx vitest --run tests/assertion.test.ts",
-    "evaluate:assertion:update": "UPDATE_ANSWER_DATA=true npm run evaluate:assertion"
-  },
-  "dependencies": {
-    "@midscene/core": "workspace:*",
-    "@midscene/shared": "workspace:*",
-    "@midscene/web": "workspace:*"
-  },
-  "devDependencies": {
-    "dotenv": "16.4.5",
-    "playwright": "1.44.1",
-    "@playwright/test": "^1.44.1",
-    "typescript": "~5.0.4",
-    "vitest": "^1.6.0"
-  },
-  "engines": {
-    "node": ">=18.0.0"
-  },
-  "publishConfig": {
-    "access": "public",
-    "registry": "https://registry.npmjs.org"
-  },
-  "license": "MIT",
-  "version": "0.11.0"
+    "name": "evaluation",
+    "private": true,
+    "scripts": {
+        "update-page-data:headless": "playwright test ./data-generator/generator-headless.spec.ts",
+        "update-page-data:headed": "playwright test ./data-generator/generator-headed.spec.ts --headed",
+        "update-answer-data": "npm run update-answer-data:inspect:position && npm run update-answer-data:inspect:element",
+        "update-answer-data:inspect:coord": "UPDATE_ANSWER_DATA=true MATCH_BY_POSITION=1 npm run evaluate:inspect",
+        "update-answer-data:inspect:element": "UPDATE_ANSWER_DATA=true npm run evaluate:inspect",
+        "evaluate:inspect": "npm run evaluate:inspect:element",
+        "evaluate:inspect:element": "npx vitest --run tests/llm-inspector.test.ts",
+        "evaluate:inspect:position": "MATCH_BY_POSITION=1 npx npm run evaluate:inspect:element",
+        "evaluate:assertion": "npx vitest --run tests/assertion.test.ts",
+        "evaluate:assertion:update": "UPDATE_ANSWER_DATA=true npm run evaluate:assertion"
+    },
+    "dependencies": {
+        "@midscene/core": "workspace:*",
+        "@midscene/shared": "workspace:*",
+        "@midscene/web": "workspace:*"
+    },
+    "devDependencies": {
+        "dotenv": "16.4.5",
+        "playwright": "1.44.1",
+        "@playwright/test": "^1.44.1",
+        "typescript": "~5.0.4",
+        "vitest": "^1.6.0"
+    },
+    "engines": {
+        "node": ">=18.0.0"
+    },
+    "publishConfig": {
+        "access": "public",
+        "registry": "https://registry.npmjs.org"
+    },
+    "license": "MIT",
+    "version": "0.11.0"
 }

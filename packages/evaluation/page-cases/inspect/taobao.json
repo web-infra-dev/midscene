@@ -9,6 +9,12 @@
           "id": "jfjah",
           "indexId": 27
         }
+      ],
+      "response_bbox": [
+        316,
+        53,
+        765,
+        92
       ]
     },
     {
@@ -19,6 +25,12 @@
           "id": "ondpi",
           "indexId": 26
         }
+      ],
+      "response_bbox": [
+        767,
+        55,
+        849,
+        92
       ]
     },
     {
@@ -29,6 +41,12 @@
           "id": "cjfcl",
           "indexId": 99
         }
+      ],
+      "response_bbox": [
+        137,
+        427,
+        177,
+        440
       ]
     },
     {
@@ -39,16 +57,28 @@
           "id": "fkfdl",
           "indexId": 190
         }
+      ],
+      "response_bbox": [
+        1054,
+        388,
+        1076,
+        412
       ]
     },
     {
-      "prompt": "右侧”官方客服“按钮文字",
+      "prompt": "最右侧悬浮”旺旺客服“按钮icon",
       "multi": false,
       "response": [
         {
-          "id": "lhcmp",
-          "indexId": 214
+          "id": "iegkg",
+          "indexId": 212
         }
+      ],
+      "response_bbox": [
+        1228,
+        272,
+        1267,
+        491
       ]
     }
   ]

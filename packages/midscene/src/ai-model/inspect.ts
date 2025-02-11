@@ -64,27 +64,44 @@ export async function transformElementPositionToId(
     errors: [],
     elements: [],
   };
-  if ('coordinates' in aiResult) {
+  if ('bbox' in aiResult) {
     if (
-      !Array.isArray(aiResult.coordinates) ||
-      (aiResult.coordinates as number[]).length === 0
+      !Array.isArray(aiResult.bbox) ||
+      (aiResult.bbox as number[]).length !== 4
     ) {
       return emptyResponse;
     }
+
+    const useQwenVl = getAIConfigInBoolean(MIDSCENE_USE_QWEN_VL);
+    const zoomFactorX = useQwenVl
+      ? (Math.ceil(size.width / 28) * 28) / size.width
+      : 1;
+    const zoomFactorY = useQwenVl
+      ? (Math.ceil(size.height / 28) * 28) / size.height
+      : 1;
+
+    aiResult.bbox[0] = Math.ceil(aiResult.bbox[0] * zoomFactorX);
+    aiResult.bbox[1] = Math.ceil(aiResult.bbox[1] * zoomFactorY);
+    aiResult.bbox[2] = Math.ceil(aiResult.bbox[2] * zoomFactorX);
+    aiResult.bbox[3] = Math.ceil(aiResult.bbox[3] * zoomFactorY);
+
+    const centerX = (aiResult.bbox[0] + aiResult.bbox[2]) / 2;
+    const centerY = (aiResult.bbox[1] + aiResult.bbox[3]) / 2;
+
     let element = elementByPositionWithElementInfo(treeRoot, {
-      x: aiResult.coordinates[0],
-      y: aiResult.coordinates[1],
+      x: centerX,
+      y: centerY,
     });
 
     if (!element) {
       element = insertElementByPosition({
-        x: aiResult.coordinates[0],
-        y: aiResult.coordinates[1],
+        x: centerX,
+        y: centerY,
       });
     }
     assert(
       element,
-      `inspect: no element found with coordinates: ${JSON.stringify(aiResult.coordinates)}`,
+      `inspect: no element found with coordinates: ${JSON.stringify(aiResult.bbox)}`,
     );
     return {
       errors: [],
@@ -211,6 +228,7 @@ export async function AiInspectElement<
   });
   const locateByCoordinates = getAIConfigInBoolean(MATCH_BY_POSITION);
   const systemPrompt = systemPromptToLocateElement();
+
   const msgs: AIArgs = [
     { role: 'system', content: systemPrompt },
     {
@@ -229,7 +247,8 @@ export async function AiInspectElement<
                     Math.ceil(size.width / 28) *
                     Math.ceil(size.height / 28) *
                     28 *
-                    28, // 28 is the size of the image block https://help.aliyun.com/zh/model-studio/user-guide/qwen-vl-ocr
+                    28 *
+                    1.1, // 28 is the size of the image block https://help.aliyun.com/zh/model-studio/user-guide/qwen-vl-ocr
                 }
               : {}),
           },

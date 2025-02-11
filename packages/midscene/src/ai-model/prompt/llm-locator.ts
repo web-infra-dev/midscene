@@ -15,8 +15,7 @@ You are an expert in software page image (2D) and page element text analysis.
 ## Output Format:
 \`\`\`json
 {
-  "coordinates": [number, number], // The coordinates of the element that matches the user's description best in the screenshot
-  "reason": string, // The thought process for finding the element, replace PLACEHOLDER with your thought process
+  "bbox": [number, number, number, number], // The bounding box of the element that matches the user's description best in the screenshot
   "errors"?: string[] // Optional, put the error message here(if any)
 }
 \`\`\`

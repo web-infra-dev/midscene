@@ -85,8 +85,7 @@ export interface AIElementIdResponse {
 }
 
 export interface AIElementCoordinatesResponse {
-  coordinates: [number, number];
-  reason: string;
+  bbox: [number, number, number, number];
   errors?: string[];
 }
 
@@ -359,7 +358,7 @@ export interface ExecutionTaskApply<
     param: TaskParam,
     context: ExecutorContext,
   ) => // biome-ignore lint/suspicious/noConfusingVoidType: <explanation>
-    | Promise<ExecutionTaskReturn<TaskOutput, TaskLog> | undefined | void>
+  | Promise<ExecutionTaskReturn<TaskOutput, TaskLog> | undefined | void>
     | undefined
     | void;
 }
