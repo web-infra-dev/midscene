@@ -1,5 +1,5 @@
 import assert from 'node:assert';
-import { MATCH_BY_POSITION, getAIConfig } from '@/env';
+import { MATCH_BY_POSITION, getAIConfigInBoolean } from '@/env';
 import { imageInfoOfBase64 } from '@/image';
 import type { BaseElement, ElementTreeNode, Size, UIContext } from '@/types';
 import { PromptTemplate } from '@langchain/core/prompts';
@@ -196,7 +196,6 @@ export function elementByPositionWithElementInfo(
     if (node?.node) {
       const item = node.node;
       if (
-        item.attributes.nodeType !== NodeType.CONTAINER &&
         item.rect.left <= position.x &&
         position.x <= item.rect.left + item.rect.width &&
         item.rect.top <= position.y &&
@@ -276,7 +275,7 @@ export async function describeUserPage<
   );
 
   // if match by position, don't need to provide the page description
-  const pageJSONDescription = getAIConfig(MATCH_BY_POSITION)
+  const pageJSONDescription = getAIConfigInBoolean(MATCH_BY_POSITION)
     ? ''
     : `Some of the elements are marked with a rectangle in the screenshot, some are not. \n The page elements tree:\n${contentTree}`;
   const sizeDescription = describeSize({ width, height });

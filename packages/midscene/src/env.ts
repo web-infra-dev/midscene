@@ -14,6 +14,7 @@ export const OPENAI_MAX_TOKENS = 'OPENAI_MAX_TOKENS';
 
 export const MIDSCENE_CACHE = 'MIDSCENE_CACHE';
 export const MIDSCENE_USE_VLM_UI_TARS = 'MIDSCENE_USE_VLM_UI_TARS';
+export const MIDSCENE_USE_QWEN_VL = 'MIDSCENE_USE_QWEN_VL';
 export const MATCH_BY_POSITION = 'MATCH_BY_POSITION';
 export const MIDSCENE_API_TYPE = 'MIDSCENE-API-TYPE';
 export const MIDSCENE_REPORT_TAG_NAME = 'MIDSCENE_REPORT_TAG_NAME';
@@ -66,6 +67,7 @@ const allConfigFromEnv = () => {
       process.env[MIDSCENE_USE_ANTHROPIC_SDK] || undefined,
     [MIDSCENE_USE_VLM_UI_TARS]:
       process.env[MIDSCENE_USE_VLM_UI_TARS] || undefined,
+    [MIDSCENE_USE_QWEN_VL]: process.env[MIDSCENE_USE_QWEN_VL] || undefined,
     [ANTHROPIC_API_KEY]: process.env[ANTHROPIC_API_KEY] || undefined,
     [AZURE_OPENAI_ENDPOINT]: process.env[AZURE_OPENAI_ENDPOINT] || undefined,
     [AZURE_OPENAI_KEY]: process.env[AZURE_OPENAI_KEY] || undefined,
@@ -85,6 +87,11 @@ export const getAIConfig = (
     return userConfig[configKey];
   }
   return allConfigFromEnv()[configKey];
+};
+
+export const getAIConfigInBoolean = (configKey: keyof typeof userConfig) => {
+  const config = getAIConfig(configKey);
+  return config === 'true' || config === '1';
 };
 
 export const getAIConfigInJson = (configKey: keyof typeof userConfig) => {

@@ -1,12 +1,28 @@
-import { MATCH_BY_POSITION, getAIConfig } from '@/env';
+import { MATCH_BY_POSITION, getAIConfigInBoolean } from '@/env';
 import { PromptTemplate } from '@langchain/core/prompts';
 import type { ResponseFormatJSONSchema } from 'openai/resources';
-import { systemPromptToLocateElementPosition } from './ui-tars-locator';
 
 export function systemPromptToLocateElement() {
-  if (getAIConfig(MATCH_BY_POSITION)) {
-    return systemPromptToLocateElementPosition();
+  if (getAIConfigInBoolean(MATCH_BY_POSITION)) {
+    return `
+## Role:
+You are an expert in software page image (2D) and page element text analysis.
+
+## Objective:
+- Identify elements in screenshots and text that match the user's description.
+- Give the coordinates of the element that matches the user's description best in the screenshot.
+
+## Output Format:
+\`\`\`json
+{
+  "coordinates": [number, number], // The coordinates of the element that matches the user's description best in the screenshot
+  "reason": string, // The thought process for finding the element, replace PLACEHOLDER with your thought process
+  "errors"?: string[] // Optional, put the error message here(if any)
+}
+\`\`\`
+`;
   }
+
   return `
 ## Role:
 You are an expert in software page image (2D) and page element text analysis.
@@ -191,15 +207,12 @@ export const findElementSchema: ResponseFormatJSONSchema = {
 
 export const findElementPrompt = new PromptTemplate({
   template: `
-    Here is the item user want to find. Just go ahead:
+    Here is the item user want to find:
     =====================================
-    {{
-      "description": "{targetElementDescription}",
-      "multi": {multi}
-    }}
+    {targetElementDescription}
     =====================================
 
-    pageDescription: {pageDescription}
+    {pageDescription}
   `,
-  inputVariables: ['pageDescription', 'targetElementDescription', 'multi'],
+  inputVariables: ['pageDescription', 'targetElementDescription'],
 });

@@ -1,6 +1,9 @@
 import assert from 'node:assert';
+import { MATCH_BY_POSITION, MIDSCENE_USE_QWEN_VL } from '@/env';
+import { getAIConfigInBoolean } from '@/env';
 import type {
   AIAssertionResponse,
+  AIElementIdResponse,
   AIElementResponse,
   AISectionParseResponse,
   AISingleElementResponse,
@@ -55,7 +58,44 @@ export async function transformElementPositionToId(
   aiResult: AIElementResponse | [number, number],
   treeRoot: ElementTreeNode<BaseElement>,
   size: { width: number; height: number },
+  insertElementByPosition: (position: { x: number; y: number }) => BaseElement,
 ) {
+  const emptyResponse: AIElementResponse = {
+    errors: [],
+    elements: [],
+  };
+  if ('coordinates' in aiResult) {
+    if (
+      !Array.isArray(aiResult.coordinates) ||
+      (aiResult.coordinates as number[]).length === 0
+    ) {
+      return emptyResponse;
+    }
+    let element = elementByPositionWithElementInfo(treeRoot, {
+      x: aiResult.coordinates[0],
+      y: aiResult.coordinates[1],
+    });
+
+    if (!element) {
+      element = insertElementByPosition({
+        x: aiResult.coordinates[0],
+        y: aiResult.coordinates[1],
+      });
+    }
+    assert(
+      element,
+      `inspect: no element found with coordinates: ${JSON.stringify(aiResult.coordinates)}`,
+    );
+    return {
+      errors: [],
+      elements: [
+        {
+          id: element.id,
+        },
+      ],
+    };
+  }
+
   if (Array.isArray(aiResult)) {
     const relativePosition = aiResult;
     const absolutePosition = transformToAbsoluteCoords(
@@ -134,19 +174,18 @@ export async function AiInspectElement<
   ElementType extends BaseElement = BaseElement,
 >(options: {
   context: UIContext<ElementType>;
-  multi: boolean;
   targetElementDescription: string;
   callAI?: typeof callAiFn<AIElementResponse | [number, number]>;
   quickAnswer?: Partial<
     AISingleElementResponse | AISingleElementResponseByPosition
   >;
 }): Promise<{
-  parseResult: AIElementResponse;
+  parseResult: AIElementIdResponse;
   rawResponse: any;
   elementById: ElementById;
   usage?: AIUsageInfo;
 }> {
-  const { context, multi, targetElementDescription, callAI } = options;
+  const { context, targetElementDescription, callAI } = options;
   const { screenshotBase64, screenshotBase64WithElementMarker } = context;
   const { description, elementById, insertElementByPosition, size } =
     await describeUserPage(context);
@@ -169,8 +208,8 @@ export async function AiInspectElement<
   const userInstructionPrompt = await findElementPrompt.format({
     pageDescription: description,
     targetElementDescription,
-    multi,
   });
+  const locateByCoordinates = getAIConfigInBoolean(MATCH_BY_POSITION);
   const systemPrompt = systemPromptToLocateElement();
   const msgs: AIArgs = [
     { role: 'system', content: systemPrompt },
@@ -180,8 +219,19 @@ export async function AiInspectElement<
         {
           type: 'image_url',
           image_url: {
-            url: screenshotBase64WithElementMarker || screenshotBase64,
+            url: locateByCoordinates
+              ? screenshotBase64
+              : screenshotBase64WithElementMarker || screenshotBase64,
             detail: 'high',
+            ...(getAIConfigInBoolean(MIDSCENE_USE_QWEN_VL)
+              ? {
+                  max_pixels:
+                    Math.ceil(size.width / 28) *
+                    Math.ceil(size.height / 28) *
+                    28 *
+                    28, // 28 is the size of the image block https://help.aliyun.com/zh/model-studio/user-guide/qwen-vl-ocr
+                }
+              : {}),
           },
         },
         {
@@ -196,12 +246,16 @@ export async function AiInspectElement<
     callAI || callToGetJSONObject<AIElementResponse | [number, number]>;
 
   const res = await callAIFn(msgs, AIActionType.INSPECT_ELEMENT);
+
+  const parseResult = await transformElementPositionToId(
+    res.content,
+    context.tree,
+    size,
+    insertElementByPosition,
+  );
+
   return {
-    parseResult: await transformElementPositionToId(
-      res.content,
-      context.tree,
-      size,
-    ),
+    parseResult,
     rawResponse: res.content,
     elementById,
     usage: res.usage,

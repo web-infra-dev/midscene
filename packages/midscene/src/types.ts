@@ -44,7 +44,11 @@ export interface ElementTreeNode<
   children: ElementTreeNode<ElementType>[];
 }
 
-export type AIUsageInfo = Record<string, any>;
+export type AIUsageInfo = Record<string, any> & {
+  prompt_tokens: number;
+  completion_tokens: number;
+  total_tokens: number;
+};
 
 /**
  * openai
@@ -80,7 +84,15 @@ export interface AIElementIdResponse {
   errors?: string[];
 }
 
-export type AIElementResponse = AIElementIdResponse;
+export interface AIElementCoordinatesResponse {
+  coordinates: [number, number];
+  reason: string;
+  errors?: string[];
+}
+
+export type AIElementResponse =
+  | AIElementIdResponse
+  | AIElementCoordinatesResponse;
 
 export interface AISectionParseResponse<DataShape> {
   data: DataShape;

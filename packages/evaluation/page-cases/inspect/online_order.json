@@ -9,7 +9,8 @@
           "id": "amjle",
           "indexId": 0
         }
-      ]
+      ],
+      "response_coordinates": [25, 27]
     },
     {
       "prompt": "点击左上角语言切换按钮(写着 English 或者 中文)，在弹出的下拉列表中点击中文",
@@ -19,7 +20,8 @@
           "id": "kciee",
           "indexId": 1
         }
-      ]
+      ],
+      "response_coordinates": [134, 27]
     },
     {
       "prompt": "Top right shopping cart",
@@ -29,7 +31,8 @@
           "id": "podpa",
           "indexId": 3
         }
-      ]
+      ],
+      "response_coordinates": [352, 26]
     },
     {
       "prompt": "The price number of the upper drink",
@@ -39,7 +42,8 @@
           "id": "idbdp",
           "indexId": 20
         }
-      ]
+      ],
+      "response_coordinates": [205, 726]
     },
     {
       "prompt": "最下面一种饮料的选择规格按钮",
@@ -49,7 +53,8 @@
           "id": "cdmma",
           "indexId": 26
         }
-      ]
+      ],
+      "response_coordinates": [336, 862]
     },
     {
       "prompt": "Bottom right Customer service button",
@@ -59,7 +64,8 @@
           "id": "ddeal",
           "indexId": 27
         }
-      ]
+      ],
+      "response_coordinates": [368, 824]
     }
   ]
 }

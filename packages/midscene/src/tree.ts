@@ -101,7 +101,8 @@ export function descriptionOfTree<
           .toLowerCase();
       }
       const markerId = node.node.indexId;
-      const markerIdString = markerId ? `markerId="${markerId}"` : '';
+      const markerIdString =
+        typeof markerId !== 'undefined' ? `markerId="${markerId}"` : '';
       const rectAttribute = node.node.rect
         ? {
             left: node.node.rect.left,

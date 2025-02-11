@@ -1,13 +1,14 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
-import { describeUserPage } from '@midscene/core';
 import { base64Encoded, imageInfoOfBase64 } from '@midscene/shared/img';
+import { parseContextFromWebPage } from '@midscene/web';
 
 export const repeatTime = 1;
 
-type TestCase = {
+export type TestCase = {
   prompt: string;
   response: Array<{ id: string; indexId: number }>;
+  response_coordinates?: [number, number];
   expected?: boolean;
 };
 
@@ -20,16 +21,16 @@ export interface AiElementsResponse {
   elements: Array<
     | {
         id: string;
-        reason: string;
-        text: string;
+        reason?: string;
+        text?: string;
       }
     | {
         position: {
           x: number;
           y: number;
         };
-        reason: string;
-        text: string;
+        reason?: string;
+        text?: string;
       }
   >;
 }
@@ -163,4 +164,48 @@ export function writeFileSyncWithDir(
 ) {
   ensureDirectoryExistence(filePath);
   writeFileSync(filePath, content, options);
+}
+
+export async function getCases(
+  pageName: string,
+  type = 'inspect',
+): Promise<{
+  path: string;
+  content: InspectAiTestCase;
+}> {
+  const pageDataPath = path.join(
+    __dirname,
+    `../page-cases/${type}/${pageName}.json`,
+  );
+  const pageData = JSON.parse(readFileSync(pageDataPath, 'utf-8'));
+  return {
+    path: pageDataPath,
+    content: pageData,
+  };
+}
+
+export async function buildContext(pageName: string) {
+  const targetDir = path.join(__dirname, '../page-data/', pageName);
+  const screenshotBase64Path = path.join(targetDir, 'input.png');
+  const screenshotBase64 = base64Encoded(screenshotBase64Path);
+  const size = await imageInfoOfBase64(screenshotBase64);
+
+  const fakePage = {
+    screenshotBase64: async () => screenshotBase64,
+    getElementsNodeTree: async () => {
+      const tree = JSON.parse(
+        readFileSync(path.join(targetDir, 'element-tree.json'), 'utf-8'),
+      );
+      return tree;
+    },
+    url: () => {
+      return 'https://unknown-url';
+    },
+    size: () => {
+      return size;
+    },
+  };
+
+  const context = await parseContextFromWebPage(fakePage as any);
+  return context;
 }

@@ -69,7 +69,7 @@ tasks:
 tasks:
   - name: search weather
     flow:
-      - ai: input 'weather today' in input box, click search button
+      - ai: input 'weather today' in input box, press Enter
       - sleep: 3000
 
   - name: query weather

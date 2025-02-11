@@ -1,10 +1,10 @@
-import { MATCH_BY_POSITION, getAIConfig } from '@/env';
+import { MATCH_BY_POSITION, getAIConfigInBoolean } from '@/env';
 import { PromptTemplate } from '@langchain/core/prompts';
 import type { ResponseFormatJSONSchema } from 'openai/resources';
 import { samplePageDescription } from './util';
 
 const quickAnswerFormat = () => {
-  const matchByPosition = getAIConfig(MATCH_BY_POSITION);
+  const matchByPosition = getAIConfigInBoolean(MATCH_BY_POSITION);
 
   const locationFormat = {
     position: {
@@ -322,7 +322,7 @@ export const planSchema: ResponseFormatJSONSchema = {
               locate: {
                 type: ['object', 'null'],
                 properties: {
-                  ...(getAIConfig(MATCH_BY_POSITION)
+                  ...(getAIConfigInBoolean(MATCH_BY_POSITION)
                     ? {
                         position: {
                           type: 'object',
@@ -340,7 +340,7 @@ export const planSchema: ResponseFormatJSONSchema = {
                   prompt: { type: 'string' },
                 },
                 required: [
-                  getAIConfig(MATCH_BY_POSITION) ? 'position' : 'id',
+                  getAIConfigInBoolean(MATCH_BY_POSITION) ? 'position' : 'id',
                   'prompt',
                 ],
                 additionalProperties: false,
