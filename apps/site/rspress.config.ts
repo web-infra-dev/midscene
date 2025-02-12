@@ -25,7 +25,7 @@ export default defineConfig({
       {
         icon: 'discord',
         mode: 'link',
-        content: 'https://discord.gg/XEYR3tmZ',
+        content: 'https://discord.gg/2JyBHxszE4',
       },
       {
         icon: 'x',
