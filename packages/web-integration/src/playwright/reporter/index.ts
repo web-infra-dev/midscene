@@ -20,7 +20,7 @@ const testDataList: Array<ReportDumpWithAttributes> = [];
 let filename: string;
 function updateReport() {
   const reportPath = writeDumpReport(filename, testDataList);
-  reportPath && printReportMsg(reportPath);
+  reportPath && printReportMsg(reportPath, 'Midscene - merged report file:');
 }
 
 class MidsceneReporter implements Reporter {
@@ -28,8 +28,6 @@ class MidsceneReporter implements Reporter {
     if (!filename) {
       filename = reportFileName('playwright-merged');
     }
-    // const suites = suite.allTests();
-    // logger(`Starting the run with ${suites.length} tests`);
   }
 
   onTestBegin(test: TestCase, _result: TestResult) {
