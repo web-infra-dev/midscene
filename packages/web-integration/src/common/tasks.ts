@@ -126,7 +126,11 @@ export class PageTaskExecutor {
     const tasks: ExecutionTaskApply[] = [];
     plans.forEach((plan) => {
       if (plan.type === 'Locate') {
-        if (plan.locate?.id === null || plan.locate?.id === 'null') {
+        if (
+          plan.locate === null ||
+          plan.locate?.id === null ||
+          plan.locate?.id === 'null'
+        ) {
           // console.warn('Locate action with id is null, will be ignored');
           return;
         }
@@ -139,8 +143,8 @@ export class PageTaskExecutor {
           executor: async (param, taskContext) => {
             const { task } = taskContext;
             assert(
-              param?.prompt || param?.id || param?.position,
-              'No prompt or id or position to locate',
+              param?.prompt || param?.id || param?.position || param?.bbox,
+              'No prompt or id or position or bbox to locate',
             );
             let insightDump: InsightDump | undefined;
             const dumpCollector: DumpSubscriber = (dump) => {
@@ -167,6 +171,7 @@ export class PageTaskExecutor {
             const quickAnswer = {
               id: param?.id,
               position: param?.position,
+              bbox: param?.bbox,
             };
             const startTime = Date.now();
             const element = await this.insight.locate(param.prompt, {
@@ -177,12 +182,6 @@ export class PageTaskExecutor {
                   return Promise.resolve({ content: locateCache });
                 }
                 const { content: aiResult, usage } = await callAI(...message);
-                // locateResult = transformElementPositionToId(
-                //   aiResult,
-                //   pageContext.content,
-                //   size,
-                // );
-                // assert(locateResult);
                 return { content: aiResult, usage };
               },
             });
@@ -513,7 +512,6 @@ export class PageTaskExecutor {
         const planCache = cacheGroup.readCache(pageContext, 'plan', userPrompt);
         let planResult: Awaited<ReturnType<typeof plan>>;
         if (planCache) {
-          // console.log('planCache', planCache);
           planResult = planCache;
         } else {
           planResult = await plan(param.userPrompt, {
@@ -582,7 +580,7 @@ export class PageTaskExecutor {
           cache: {
             hit: Boolean(planCache),
           },
-          pageContext, // ?
+          pageContext,
           recorder: [recordItem],
         };
       },

@@ -14,7 +14,7 @@ describe(
       }
     });
 
-    it('Sauce Demo by Swag Lab', async () => {
+    it.only('Sauce Demo by Swag Lab', async () => {
       const { originPage, reset } = await launchPage(
         'https://www.saucedemo.com/',
       );
@@ -25,8 +25,10 @@ describe(
         onTaskStartTip,
       });
 
+      await sleep(10 * 1000);
+
       await mid.aiAction(
-        'type "standard_user" in user name input, type "secret_sauce" in password, click "Login", sleep 1s',
+        'type "standard_user" in user name input, type "secret_sauce" in password, click "Login", sleep 1 second',
       );
 
       expect(onTaskStartTip.mock.calls.length).toBeGreaterThan(1);

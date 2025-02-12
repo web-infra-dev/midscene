@@ -3,41 +3,35 @@ import { PromptTemplate } from '@langchain/core/prompts';
 import type { ResponseFormatJSONSchema } from 'openai/resources';
 import { samplePageDescription } from './util';
 
-const quickAnswerFormat = () => {
+const locatorConfig = () => {
   const matchByPosition = getAIConfigInBoolean(MATCH_BY_POSITION);
-
-  const locationFormat = {
-    position: {
-      description:
-        '"position": { x: number; y: number } // Represents the position of the element; replace with actual values in practice (ensure it reflects the element\'s position)',
-      format: '"position": { x: number; y: number }',
-      sample:
-        '{"prompt": "the search bar" // Use language consistent with the information on the page}',
-      locateParam: `{
-        "prompt"?: string // the description of the element to find. It can only be omitted when locate is null.
-      } | null // If it's not on the page, the LocateParam should be null`,
-    },
-    id: {
-      description:
-        '"id": string // Represents the ID of the element; replace with actual values in practice',
-      format: '"id": string',
-      sample: `{"id": "c81c4e9a33", "prompt": "the search bar"}`,
-      locateParam: `{
-        "id": string, // the id of the element found. It should either be the id marked with a rectangle in the screenshot or the id described in the description.
-        "prompt"?: string // the description of the element to find. It can only be omitted when locate is null.
-      } | null // If it's not on the page, the LocateParam should be null`,
-    },
+  const locationByPosition = {
+    // description:
+    //   '"bbox": [number, number, number, number] // the bounding box of the element',
+    // format: '"bbox": [number, number, number, number]',
+    format: '{"bbox": [number, number, number, number], "prompt": string }',
+    sample: '{"bbox": [20, 50, 200, 400], "prompt": "the search bar"}',
+    wrongSample: '{"bbox": [20, 50, 200, 400]}',
+    locateParam: `{
+      "bbox": [number, number, number, number], // the bounding box of the element found. It should either be the bounding box marked with a rectangle in the screenshot or the bounding box described in the description.
+      "prompt"?: string // the description of the element to find. It can only be omitted when locate is null.
+    } | null // If it's not on the page, the LocateParam should be null`,
   };
 
-  const type = matchByPosition ? 'position' : 'id';
-  const format = locationFormat[type];
-
-  return {
-    description: format.description,
-    format: format.format,
-    sample: format.sample,
-    locateParam: format.locateParam,
+  const locationById = {
+    // description:
+    //   '"id": string // Represents the ID of the element; replace with actual values in practice',
+    // format: '"id": string',
+    format: '{"id": string, "prompt": string}',
+    sample: `{"id": "c81c4e9a33", "prompt": "the search bar"}`,
+    wrongSample: '{"id": "c81c4e9a33"}',
+    locateParam: `{
+      "id": string, // the id of the element found. It should either be the id marked with a rectangle in the screenshot or the id described in the description.
+      "prompt"?: string // the description of the element to find. It can only be omitted when locate is null.
+    } | null // If it's not on the page, the LocateParam should be null`,
   };
+
+  return matchByPosition ? locationByPosition : locationById;
 };
 
 const systemTemplate = `
@@ -125,7 +119,7 @@ The JSON format is as follows:
       "thought": "Reasons for generating this task, and why this task is feasible on this page.", // Use the same language as the user's instruction.
       "type": "Tap",
       "param": null,
-      "locate": {sample} | null,
+      "locate": {format} | null,
     }},
     // ... more actions
   ],
@@ -138,11 +132,9 @@ The JSON format is as follows:
 
 ### Example 1: Decompose a task
 
-When a user says 'Click the language switch button, wait 1s, click "English"', the user will give you the description like this:
+When a user says 'Click the language switch button, wait 1s, click "English"'
 
-====================
 {pageDescription}
-====================
 
 By viewing the page screenshot and description, you should consider this and output the JSON:
 
@@ -232,9 +224,8 @@ Wrong output:
       "type": "Tap",
       "thought": "Click the language switch button to open the language options.",
       "param": null,
-      "locate": {{
-        {{"id": "c81c4e9a33"}}, // WRONG:prompt is missing
-      }}
+      "locate": {wrongSample}, // WRONG: prompt is missing here
+    }},
     }},
     {{
       "type": "Tap", 
@@ -256,13 +247,21 @@ Reason:
 export async function systemPromptToTaskPlanning() {
   const promptTemplate = new PromptTemplate({
     template: `${systemTemplate}\n\n${outputTemplate}`,
-    inputVariables: ['pageDescription', 'sample', 'locateParam'],
+    inputVariables: [
+      'pageDescription',
+      'sample',
+      'locateParam',
+      'wrongSample',
+      'format',
+    ],
   });
 
   return await promptTemplate.format({
-    pageDescription: samplePageDescription,
-    sample: quickAnswerFormat().sample,
-    locateParam: quickAnswerFormat().locateParam,
+    pageDescription: samplePageDescription(),
+    sample: locatorConfig().sample,
+    locateParam: locatorConfig().locateParam,
+    wrongSample: locatorConfig().wrongSample,
+    format: locatorConfig().format,
   });
 }
 
@@ -324,14 +323,11 @@ export const planSchema: ResponseFormatJSONSchema = {
                 properties: {
                   ...(getAIConfigInBoolean(MATCH_BY_POSITION)
                     ? {
-                        position: {
-                          type: 'object',
-                          properties: {
-                            x: { type: 'number' },
-                            y: { type: 'number' },
-                          },
-                          required: ['x', 'y'],
-                          additionalProperties: false,
+                        bbox: {
+                          type: 'array',
+                          items: { type: 'number' },
+                          minItems: 4,
+                          maxItems: 4,
                         },
                       }
                     : {
@@ -407,14 +403,23 @@ export const generateTaskBackgroundContext = (
   `;
 };
 
-export const automationUserPrompt = new PromptTemplate({
-  template: `
-    pageDescription:
-    =====================================
-    {pageDescription}
-    =====================================
+export const automationUserPrompt = () => {
+  if (getAIConfigInBoolean(MATCH_BY_POSITION)) {
+    return new PromptTemplate({
+      template: '{taskBackgroundContext}',
+      inputVariables: ['taskBackgroundContext'],
+    });
+  }
 
-    {taskBackgroundContext}
-  `,
-  inputVariables: ['pageDescription', 'taskBackgroundContext'],
-});
+  return new PromptTemplate({
+    template: `
+      pageDescription:
+      =====================================
+      {pageDescription}
+      =====================================
+  
+      {taskBackgroundContext}
+    `,
+    inputVariables: ['pageDescription', 'taskBackgroundContext'],
+  });
+};

@@ -1,5 +1,10 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
+import type {
+  PlanningAIResponse,
+  PlanningAction,
+  PlanningLocateParam,
+} from '@midscene/core';
 import {
   base64Encoded,
   compositeElementInfoImg,
@@ -13,6 +18,7 @@ export type TestCase = {
   prompt: string;
   response: Array<{ id: string; indexId: number }>;
   response_bbox?: [number, number, number, number];
+  response_planning?: PlanningAIResponse;
   expected?: boolean;
 };
 

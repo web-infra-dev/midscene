@@ -19,7 +19,7 @@ import type {
   ChatCompletionSystemMessageParam,
   ChatCompletionUserMessageParam,
 } from 'openai/resources';
-import { AIActionType, callAiFn } from './common';
+import { AIActionType, callAiFn, qwenVLZoomFactor } from './common';
 import {
   findElementPrompt,
   systemPromptToLocateElement,
@@ -72,13 +72,8 @@ export async function transformElementPositionToId(
       return emptyResponse;
     }
 
-    const useQwenVl = getAIConfigInBoolean(MIDSCENE_USE_QWEN_VL);
-    const zoomFactorX = useQwenVl
-      ? (Math.ceil(size.width / 28) * 28) / size.width
-      : 1;
-    const zoomFactorY = useQwenVl
-      ? (Math.ceil(size.height / 28) * 28) / size.height
-      : 1;
+    const zoomFactorX = await qwenVLZoomFactor(size.width);
+    const zoomFactorY = await qwenVLZoomFactor(size.height);
 
     aiResult.bbox[0] = Math.ceil(aiResult.bbox[0] * zoomFactorX);
     aiResult.bbox[1] = Math.ceil(aiResult.bbox[1] * zoomFactorY);
@@ -185,6 +180,27 @@ function getQuickAnswer(
       elementById,
     } as any;
   }
+
+  if ('bbox' in quickAnswer && quickAnswer.bbox) {
+    const centerPosition = {
+      x: Math.floor((quickAnswer.bbox[0] + quickAnswer.bbox[2]) / 2),
+      y: Math.floor((quickAnswer.bbox[1] + quickAnswer.bbox[3]) / 2),
+    };
+    let element = elementByPositionWithElementInfo(tree, centerPosition);
+    if (!element) {
+      element = insertElementByPosition(centerPosition);
+    }
+    return {
+      parseResult: {
+        elements: [element],
+        errors: [],
+      },
+      rawResponse: quickAnswer,
+      elementById,
+    } as any;
+  }
+
+  return undefined;
 }
 
 export async function AiInspectElement<
@@ -226,7 +242,6 @@ export async function AiInspectElement<
     pageDescription: description,
     targetElementDescription,
   });
-  const locateByCoordinates = getAIConfigInBoolean(MATCH_BY_POSITION);
   const systemPrompt = systemPromptToLocateElement();
 
   const msgs: AIArgs = [
@@ -237,20 +252,8 @@ export async function AiInspectElement<
         {
           type: 'image_url',
           image_url: {
-            url: locateByCoordinates
-              ? screenshotBase64
-              : screenshotBase64WithElementMarker || screenshotBase64,
+            url: screenshotBase64WithElementMarker || screenshotBase64,
             detail: 'high',
-            ...(getAIConfigInBoolean(MIDSCENE_USE_QWEN_VL)
-              ? {
-                  max_pixels:
-                    Math.ceil(size.width / 28) *
-                    Math.ceil(size.height / 28) *
-                    28 *
-                    28 *
-                    1.1, // 28 is the size of the image block https://help.aliyun.com/zh/model-studio/user-guide/qwen-vl-ocr
-                }
-              : {}),
           },
         },
         {

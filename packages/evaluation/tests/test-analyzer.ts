@@ -12,14 +12,20 @@ import {
   type AiInspectElement,
   MIDSCENE_MODEL_NAME,
   getAIConfig,
+  plan,
 } from '@midscene/core';
+import { expect } from 'vitest';
 import type { TestCase } from './util';
+
+type ActualResult =
+  | Awaited<ReturnType<typeof AiInspectElement>>
+  | Awaited<ReturnType<typeof plan>>;
 
 interface TestLog {
   success: boolean;
   caseGroup: string;
   testCase: TestCase;
-  actualResult: Awaited<ReturnType<typeof AiInspectElement>>;
+  actualResult: ActualResult;
   cost: number;
 }
 
@@ -55,13 +61,14 @@ export class TestResultCollector {
   addResult(
     caseGroup: string,
     testCase: TestCase,
-    actualResult: Awaited<ReturnType<typeof AiInspectElement>>,
+    actualResult: ActualResult,
     cost: number,
   ) {
     const sameResult = this.compareResult(testCase, actualResult);
+    const errorMsg = sameResult instanceof Error ? sameResult.message : '';
 
     const testLog: TestLog = {
-      success: sameResult,
+      success: sameResult === true,
       caseGroup,
       testCase,
       actualResult,
@@ -76,12 +83,13 @@ ActualResponse:
 ${JSON.stringify(testLog.actualResult, null, 2)}
 ExpectedResponse:
 ${testLog.success ? '(skipped)' : JSON.stringify(testLog.testCase.response, null, 2)}
+${errorMsg ? `Error: ${errorMsg}` : ''}
 --------------------------------
 `;
     appendFileSync(this.logFilePath, logContent, 'utf-8');
 
-    if (!sameResult) {
-      appendFileSync(this.failedCaseLogPath, logContent, 'utf-8');
+    if (sameResult !== true) {
+      appendFileSync(this.failedCaseLogPath, `${logContent}\n`, 'utf-8');
     }
   }
 
@@ -146,11 +154,11 @@ ${testLog.success ? '(skipped)' : JSON.stringify(testLog.testCase.response, null
 
   private compareResult(
     testCase: TestCase,
-    result: Awaited<ReturnType<typeof AiInspectElement>>,
-  ) {
+    result: ActualResult,
+  ): true | Error {
     const distanceThreshold = 16;
     // compare coordinates
-    if (result.rawResponse.bbox) {
+    if ('rawResponse' in result && result.rawResponse.bbox) {
       assert(testCase.response_bbox, 'testCase.response_bbox is required');
       const centerX =
         (result.rawResponse.bbox[0] + result.rawResponse.bbox[2]) / 2;
@@ -168,18 +176,57 @@ ${testLog.success ? '(skipped)' : JSON.stringify(testLog.testCase.response, null
       );
 
       if (distance > distanceThreshold) {
-        console.log(
-          `distance: ${distance} is greater than threshold: ${distanceThreshold}, the prompt is: ${testCase.prompt}`,
-        );
-        return false;
+        const msg = `distance: ${distance} is greater than threshold: ${distanceThreshold}, the prompt is: ${testCase.prompt}`;
+        return new Error(msg);
       }
 
       return true;
     }
-    // compare id
-    const expectedId = testCase.response[0].id;
-    const expectedIndexId = testCase.response[0].indexId;
-    const actualId = result.parseResult.elements[0].id;
-    return actualId === expectedId || `${actualId}` === `${expectedIndexId}`;
+
+    if ('parseResult' in result) {
+      // compare id
+      const expectedId = testCase.response[0].id;
+      const expectedIndexId = testCase.response[0].indexId;
+      const actualId = result.parseResult.elements[0].id;
+      if (actualId !== expectedId && `${actualId}` !== `${expectedIndexId}`) {
+        const msg = `actualId: ${actualId} is not equal to expectedId: ${expectedId} or expectedIndexId: ${expectedIndexId}, the prompt is: ${testCase.prompt}`;
+        console.log(msg);
+        return new Error(msg);
+      }
+      return true;
+    }
+
+    if ('actions' in result) {
+      // compare actions
+      const expected = testCase.response_planning;
+
+      const steps =
+        expected?.actions.map((action) => {
+          return action.type;
+        }) || [];
+      const actualActions = result.actions.map((action) => {
+        return action.type;
+      });
+      // tell if steps and actualActions are the same
+      if (steps.length !== actualActions.length) {
+        const msg = `steps.length: ${steps.length} is not equal to actualActions.length: ${actualActions.length}, the prompt is: ${testCase.prompt}`;
+        return new Error(msg);
+      }
+      for (let i = 0; i < steps.length; i++) {
+        if (steps[i] !== actualActions[i]) {
+          const msg = `steps[${i}]: ${steps[i]} is not equal to actualActions[${i}]: ${actualActions[i]}, the prompt is: ${testCase.prompt}`;
+          return new Error(msg);
+        }
+      }
+
+      if (expected?.taskWillBeAccomplished !== result.taskWillBeAccomplished) {
+        const msg = `expected?.taskWillBeAccomplished: ${expected?.taskWillBeAccomplished} is not equal to result.taskWillBeAccomplished: ${result.taskWillBeAccomplished}, the prompt is: ${testCase.prompt}`;
+        return new Error(msg);
+      }
+
+      return true;
+    }
+    const msg = `unknown result type, can not compare, the prompt is: ${testCase.prompt}`;
+    return new Error(msg);
   }
 }

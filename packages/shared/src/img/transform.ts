@@ -67,6 +67,10 @@ export async function resizeImg(
 
   const finalNewSize = newSize || calculateNewDimensions(width, height);
 
+  if (finalNewSize.width === width && finalNewSize.height === height) {
+    return inputData;
+  }
+
   image.resize(
     finalNewSize.width,
     finalNewSize.height,
@@ -79,14 +83,14 @@ export async function resizeImg(
 }
 
 export async function resizeImgBase64(
-  inputData: string,
+  inputBase64: string,
   newSize?: {
     width: number;
     height: number;
   },
 ): Promise<string> {
   const splitFlag = ';base64,';
-  const dataSplitted = inputData.split(splitFlag);
+  const dataSplitted = inputBase64.split(splitFlag);
   if (dataSplitted.length !== 2) {
     throw Error('Invalid base64 data');
   }

@@ -26,11 +26,13 @@ import {
   MIDSCENE_OPENAI_SOCKS_PROXY,
   MIDSCENE_USE_ANTHROPIC_SDK,
   MIDSCENE_USE_AZURE_OPENAI,
+  MIDSCENE_USE_QWEN_VL,
   OPENAI_API_KEY,
   OPENAI_BASE_URL,
   OPENAI_MAX_TOKENS,
   OPENAI_USE_AZURE,
   getAIConfig,
+  getAIConfigInBoolean,
   getAIConfigInJson,
 } from '../../env';
 import { AIActionType } from '../common';
@@ -190,14 +192,18 @@ export async function call(
   let content: string | undefined;
   let usage: OpenAI.CompletionUsage | undefined;
   const commonConfig = {
-    temperature: 1,
+    temperature: 0.1,
     stream: false,
     max_tokens:
       typeof maxTokens === 'number'
         ? maxTokens
         : Number.parseInt(maxTokens || '2048', 10),
+    ...(getAIConfigInBoolean(MIDSCENE_USE_QWEN_VL)
+      ? {
+          vl_high_resolution_images: 'true',
+        }
+      : {}),
   };
-
   if (style === 'openai') {
     const result = await completion.create({
       model,
@@ -220,6 +226,7 @@ export async function call(
     content = result.choices[0].message.content!;
     assert(content, 'empty content');
     usage = result.usage;
+    // console.log('headers', result.headers);
   } else if (style === 'anthropic') {
     const convertImageContent = (content: any) => {
       if (content.type === 'image_url') {
@@ -288,10 +295,10 @@ export async function callToGetJSONObject<T>(
         responseFormat = planSchema;
         break;
     }
+  }
 
-    if (model === 'gpt-4o-2024-05-13' || !responseFormat) {
-      responseFormat = { type: AIResponseFormat.JSON };
-    }
+  if (model === 'gpt-4o-2024-05-13' || !responseFormat) {
+    responseFormat = { type: AIResponseFormat.JSON };
   }
 
   const response = await call(messages, AIActionTypeValue, responseFormat);

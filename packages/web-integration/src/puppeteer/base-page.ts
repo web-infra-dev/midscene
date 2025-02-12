@@ -63,8 +63,6 @@ export class Page<
   }
 
   async screenshotBase64(): Promise<string> {
-    // get viewport size from underlyingPage
-    // const viewportSize = await this.size();
     const imgType = 'jpeg';
     const path = getTmpFile(imgType)!;
     await this.underlyingPage.screenshot({

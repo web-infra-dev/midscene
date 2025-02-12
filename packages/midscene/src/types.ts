@@ -66,10 +66,11 @@ export type AISingleElementResponseById = {
 };
 
 export type AISingleElementResponseByPosition = {
-  position: {
+  position?: {
     x: number;
     y: number;
   };
+  bbox?: [number, number, number, number];
   reason: string;
   text: string;
 };
@@ -236,6 +237,7 @@ export interface PlanningLocateParam {
     x: number;
     y: number;
   };
+  bbox?: [number, number, number, number];
   prompt: string;
 }
 
@@ -264,6 +266,7 @@ export interface PlanningAIResponse {
   taskWillBeAccomplished: boolean;
   furtherPlan?: PlanningFurtherPlan | null;
   error?: string;
+  usage?: AIUsageInfo;
 }
 
 export interface PlanningFurtherPlan {

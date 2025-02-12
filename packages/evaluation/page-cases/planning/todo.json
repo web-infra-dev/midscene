@@ -1,0 +1,64 @@
+{
+  "testDataPath": "todo",
+  "testCases": [
+    {
+      "prompt": "type 'hello' in the input box, sleep 5s, hit enter",
+      "response_planning": {
+        "actions": [
+          {
+            "thought": "Type 'hello' into the input box.",
+            "type": "Input",
+            "param": {
+              "value": "hello"
+            },
+            "locate": {
+              "id": "okgbn",
+              "prompt": "the input box with placeholder 'What needs to be done?'"
+            }
+          },
+          {
+            "thought": "Sleep for 5 seconds.",
+            "type": "Sleep",
+            "param": {
+              "timeMs": 5000
+            }
+          },
+          {
+            "thought": "Press the Enter key.",
+            "type": "KeyboardPress",
+            "param": {
+              "value": "Enter"
+            }
+          }
+        ],
+        "taskWillBeAccomplished": true,
+        "furtherPlan": null
+      }
+    },
+    {
+      "prompt": "click the delete button of the second entry, wait 3s",
+      "response_planning": {
+        "actions": [
+          {
+            "thought": "Click the delete button of the second entry.",
+            "type": "Tap",
+            "param": null,
+            "locate": {
+              "id": "25",
+              "prompt": "the delete button of the second entry"
+            }
+          },
+          {
+            "thought": "Wait for 3 seconds after clicking the delete button.",
+            "type": "Sleep",
+            "param": {
+              "timeMs": 3000
+            }
+          }
+        ],
+        "taskWillBeAccomplished": true,
+        "furtherPlan": null
+      }
+    }
+  ]
+}
