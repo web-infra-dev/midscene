@@ -115,9 +115,9 @@ ${testLog.success ? '(skipped)' : JSON.stringify(testLog.testCase.response, null
           ) / testLogs.length;
         return {
           caseGroup,
-          caseCount: testLogs.length,
-          successCount: testLogs.filter((log) => log.success).length,
-          failCount: testLogs.filter((log) => !log.success).length,
+          cases: testLogs.length,
+          success: testLogs.filter((log) => log.success).length,
+          fail: testLogs.filter((log) => !log.success).length,
           passRate: `${(passRate * 100).toFixed(2)}%`,
           averageCost: `${averageCost.toFixed(2)}ms`,
           averagePromptTokens: `${averagePromptTokens.toFixed(0)}`,
@@ -132,7 +132,7 @@ ${testLog.success ? '(skipped)' : JSON.stringify(testLog.testCase.response, null
 
     // check if the fail count is greater than the allowFailCaseCount
     const failedCaseGroups = resultData.filter(
-      (item) => item.failCount > allowFailCaseCount,
+      (item) => item.fail > allowFailCaseCount,
     );
     let errMsg = '';
     if (failedCaseGroups.length > 0) {
