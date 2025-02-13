@@ -1,5 +1,4 @@
 import { writeFileSync } from 'node:fs';
-import { describe } from 'node:test';
 import {
   AiInspectElement,
   MIDSCENE_MODEL_NAME,

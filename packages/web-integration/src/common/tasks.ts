@@ -526,6 +526,7 @@ export class PageTaskExecutor {
         // console.log('actions', taskWillBeAccomplished, actions, furtherPlan);
 
         let stopCollecting = false;
+        let bboxCollected = false;
         const finalActions = actions.reduce<PlanningAction[]>(
           (acc, planningAction) => {
             if (stopCollecting) {
@@ -533,6 +534,16 @@ export class PageTaskExecutor {
             }
 
             if (planningAction.locate) {
+              // we only collect bbox once, let qwen re-locate in the following steps
+              if (bboxCollected && planningAction.locate.bbox) {
+                // biome-ignore lint/performance/noDelete: <explanation>
+                delete planningAction.locate.bbox;
+              }
+
+              if (planningAction.locate.bbox) {
+                bboxCollected = true;
+              }
+
               acc.push({
                 type: 'Locate',
                 locate: planningAction.locate,
