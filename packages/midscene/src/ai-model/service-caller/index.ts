@@ -200,7 +200,7 @@ export async function call(
         : Number.parseInt(maxTokens || '2048', 10),
     ...(getAIConfigInBoolean(MIDSCENE_USE_QWEN_VL)
       ? {
-          vl_high_resolution_images: 'true',
+          vl_high_resolution_images: true,
         }
       : {}),
   };
@@ -214,6 +214,7 @@ export async function call(
     shouldPrintTiming &&
       console.log(
         'Midscene - AI call',
+        getAIConfig(MIDSCENE_USE_QWEN_VL) ? 'MIDSCENE_USE_QWEN_VL' : '',
         model,
         result.usage,
         `${Date.now() - startTime}ms`,

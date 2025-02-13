@@ -9,14 +9,14 @@
     "update-answer-data:locator:element": "UPDATE_ANSWER_DATA=true npm run evaluate:locator:element",
     "update-answer-data:planning:coord": "UPDATE_ANSWER_DATA=true npm run evaluate:planning:coord",
     "update-answer-data:planning:element": "UPDATE_ANSWER_DATA=true npm run evaluate:planning:element",
+    "update-answer-data:assertion": "UPDATE_ANSWER_DATA=true npm run evaluate:assertion",
     "evaluate:locator": "npm run evaluate:locator:element",
     "evaluate:locator:element": "npx vitest --run tests/llm-locator.test.ts",
     "evaluate:locator:coord": "MATCH_BY_POSITION=1 npx npm run evaluate:locator:element",
     "evaluate:planning": "npx npm run evaluate:planning:element",
     "evaluate:planning:element": "npx vitest --run tests/llm-planning.test.ts",
     "evaluate:planning:coord": "MATCH_BY_POSITION=1 npx npm run evaluate:planning:element",
-    "evaluate:assertion": "npx vitest --run tests/assertion.test.ts",
-    "evaluate:assertion:update": "UPDATE_ANSWER_DATA=true npm run evaluate:assertion"
+    "evaluate:assertion": "npx vitest --run tests/assertion.test.ts"
   },
   "dependencies": {
     "@midscene/core": "workspace:*",

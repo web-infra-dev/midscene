@@ -10,7 +10,7 @@
           "indexId": 18
         }
       ],
-      "response_bbox": [520, 130, 1081, 206]
+      "response_bbox": [574, 130, 1076, 202]
     },
     {
       "prompt": "Input 'Study Rust tomorrow' in the task box input and press the Enter key ",
@@ -21,7 +21,7 @@
           "indexId": 18
         }
       ],
-      "response_bbox": [520, 130, 1081, 201]
+      "response_bbox": [572, 149, 1076, 203]
     },
     {
       "prompt": "任务列表中的第二项名称",
@@ -32,7 +32,7 @@
           "indexId": 24
         }
       ],
-      "response_bbox": [582, 283, 699, 302]
+      "response_bbox": [576, 278, 694, 301]
     },
     {
       "prompt": "第二项任务右边的删除按钮",
@@ -43,7 +43,7 @@
           "indexId": 25
         }
       ],
-      "response_bbox": [1041, 285, 1058, 300]
+      "response_bbox": [1014, 265, 1067, 308]
     },
     {
       "prompt": "任务列表中第三项左边的勾选按钮",
@@ -54,7 +54,7 @@
           "indexId": 26
         }
       ],
-      "response_bbox": [528, 340, 564, 366]
+      "response_bbox": [512, 324, 567, 378]
     },
     {
       "prompt": "任务列表下面的 Completed 状态按钮",
@@ -65,7 +65,7 @@
           "indexId": 30
         }
       ],
-      "response_bbox": [812, 399, 883, 410]
+      "response_bbox": [805, 394, 876, 407]
     }
   ]
 }

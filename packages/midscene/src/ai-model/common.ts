@@ -38,7 +38,9 @@ export async function callAiFn<T>(
 }
 
 export async function qwenVLZoomFactor(length: number) {
-  const useQwenVl = getAIConfigInBoolean(MIDSCENE_USE_QWEN_VL);
-  const zoomFactor = useQwenVl ? (Math.ceil(length / 28) * 28) / length : 1;
-  return zoomFactor;
+  // seems we don't need to zoom while image is within range of vl_high_resolution_images: true
+  // const useQwenVl = getAIConfigInBoolean(MIDSCENE_USE_QWEN_VL);
+  // const zoomFactor = useQwenVl ? length / (Math.ceil(length / 28) * 28) : 1;
+  // return zoomFactor;
+  return 1;
 }

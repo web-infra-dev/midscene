@@ -7,10 +7,10 @@ export {
 } from './info';
 export {
   trimImage,
-  calculateNewDimensions,
   resizeImg,
   resizeImgBase64,
   transformImgPathToBase64,
+  zoomForGPT4o,
   saveBase64Image,
 } from './transform';
 export { processImageElementInfo, compositeElementInfoImg } from './box-select';
