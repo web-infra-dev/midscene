@@ -23,7 +23,7 @@
   "dependencies": {
     "@midscene/core": "workspace:*",
     "@midscene/web": "workspace:*",
-    "puppeteer": "23.0.2",
+    "puppeteer": "24.2.0",
     "http-server": "14.1.1"
   },
   "devDependencies": {
