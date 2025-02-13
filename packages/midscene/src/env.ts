@@ -83,6 +83,11 @@ let userConfig: ReturnType<typeof allConfigFromEnv> = {} as any;
 export const getAIConfig = (
   configKey: keyof typeof userConfig,
 ): string | undefined => {
+  if (configKey === MATCH_BY_POSITION) {
+    // currently qwen is considering the same as by_coordinates
+    configKey = MIDSCENE_USE_QWEN_VL;
+  }
+
   if (typeof userConfig[configKey] !== 'undefined') {
     return userConfig[configKey];
   }

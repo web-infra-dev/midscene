@@ -3,7 +3,6 @@ import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import type { StaticPage } from '@/playground';
 import type {
-  BaseElement,
   ElementTreeNode,
   PlaywrightParserOpt,
   UIContext,

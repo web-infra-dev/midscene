@@ -41,7 +41,6 @@ export async function plan(
     pageDescription,
     taskBackgroundContext: taskBackgroundContextText,
   });
-  // const locateByCoordinates = getAIConfigInBoolean(MATCH_BY_POSITION);
 
   const msgs: AIArgs = [
     { role: 'system', content: systemPrompt },
