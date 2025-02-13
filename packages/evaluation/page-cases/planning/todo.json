@@ -12,12 +12,7 @@
               "value": "hello"
             },
             "locate": {
-              "bbox": [
-                578,
-                132,
-                1083,
-                185
-              ],
+              "bbox": [578, 132, 1083, 185],
               "prompt": "What needs to be done?"
             }
           },

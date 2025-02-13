@@ -12,7 +12,7 @@ import {
   type AiInspectElement,
   MIDSCENE_MODEL_NAME,
   getAIConfig,
-  plan,
+  type plan,
 } from '@midscene/core';
 import { expect } from 'vitest';
 import type { TestCase } from './util';

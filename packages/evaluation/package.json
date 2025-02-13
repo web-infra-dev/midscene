@@ -1,42 +1,42 @@
 {
-    "name": "evaluation",
-    "private": true,
-    "scripts": {
-        "update-page-data:headless": "playwright test ./data-generator/generator-headless.spec.ts",
-        "update-page-data:headed": "playwright test ./data-generator/generator-headed.spec.ts --headed",
-        "update-answer-data": "npm run update-answer-data:locator:coord && npm run update-answer-data:locator:element",
-        "update-answer-data:locator:coord": "UPDATE_ANSWER_DATA=true npm run evaluate:locator:coord",
-        "update-answer-data:locator:element": "UPDATE_ANSWER_DATA=true npm run evaluate:locator:element",
-        "update-answer-data:planning:coord": "UPDATE_ANSWER_DATA=true npm run evaluate:planning:coord",
-        "update-answer-data:planning:element": "UPDATE_ANSWER_DATA=true npm run evaluate:planning:element",
-        "evaluate:locator": "npm run evaluate:locator:element",
-        "evaluate:locator:element": "npx vitest --run tests/llm-locator.test.ts",
-        "evaluate:locator:coord": "MATCH_BY_POSITION=1 npx npm run evaluate:locator:element",
-        "evaluate:planning": "npx npm run evaluate:planning:element",
-        "evaluate:planning:element": "npx vitest --run tests/llm-planning.test.ts",
-        "evaluate:planning:coord": "MATCH_BY_POSITION=1 npx npm run evaluate:planning:element",
-        "evaluate:assertion": "npx vitest --run tests/assertion.test.ts",
-        "evaluate:assertion:update": "UPDATE_ANSWER_DATA=true npm run evaluate:assertion"
-    },
-    "dependencies": {
-        "@midscene/core": "workspace:*",
-        "@midscene/shared": "workspace:*",
-        "@midscene/web": "workspace:*"
-    },
-    "devDependencies": {
-        "dotenv": "16.4.5",
-        "playwright": "1.44.1",
-        "@playwright/test": "^1.44.1",
-        "typescript": "~5.0.4",
-        "vitest": "^1.6.0"
-    },
-    "engines": {
-        "node": ">=18.0.0"
-    },
-    "publishConfig": {
-        "access": "public",
-        "registry": "https://registry.npmjs.org"
-    },
-    "license": "MIT",
-    "version": "0.11.0"
+  "name": "evaluation",
+  "private": true,
+  "scripts": {
+    "update-page-data:headless": "playwright test ./data-generator/generator-headless.spec.ts",
+    "update-page-data:headed": "playwright test ./data-generator/generator-headed.spec.ts --headed",
+    "update-answer-data": "npm run update-answer-data:locator:coord && npm run update-answer-data:locator:element",
+    "update-answer-data:locator:coord": "UPDATE_ANSWER_DATA=true npm run evaluate:locator:coord",
+    "update-answer-data:locator:element": "UPDATE_ANSWER_DATA=true npm run evaluate:locator:element",
+    "update-answer-data:planning:coord": "UPDATE_ANSWER_DATA=true npm run evaluate:planning:coord",
+    "update-answer-data:planning:element": "UPDATE_ANSWER_DATA=true npm run evaluate:planning:element",
+    "evaluate:locator": "npm run evaluate:locator:element",
+    "evaluate:locator:element": "npx vitest --run tests/llm-locator.test.ts",
+    "evaluate:locator:coord": "MATCH_BY_POSITION=1 npx npm run evaluate:locator:element",
+    "evaluate:planning": "npx npm run evaluate:planning:element",
+    "evaluate:planning:element": "npx vitest --run tests/llm-planning.test.ts",
+    "evaluate:planning:coord": "MATCH_BY_POSITION=1 npx npm run evaluate:planning:element",
+    "evaluate:assertion": "npx vitest --run tests/assertion.test.ts",
+    "evaluate:assertion:update": "UPDATE_ANSWER_DATA=true npm run evaluate:assertion"
+  },
+  "dependencies": {
+    "@midscene/core": "workspace:*",
+    "@midscene/shared": "workspace:*",
+    "@midscene/web": "workspace:*"
+  },
+  "devDependencies": {
+    "dotenv": "16.4.5",
+    "playwright": "1.44.1",
+    "@playwright/test": "^1.44.1",
+    "typescript": "~5.0.4",
+    "vitest": "^1.6.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org"
+  },
+  "license": "MIT",
+  "version": "0.11.0"
 }

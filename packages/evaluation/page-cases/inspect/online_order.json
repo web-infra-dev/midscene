@@ -10,12 +10,7 @@
           "indexId": 0
         }
       ],
-      "response_bbox": [
-        17,
-        21,
-        41,
-        35
-      ]
+      "response_bbox": [17, 21, 41, 35]
     },
     {
       "prompt": "点击左上角语言切换按钮(写着 English 或者 中文)，在弹出的下拉列表中点击中文",
@@ -26,12 +21,7 @@
           "indexId": 1
         }
       ],
-      "response_bbox": [
-        59,
-        15,
-        130,
-        41
-      ]
+      "response_bbox": [59, 15, 130, 41]
     },
     {
       "prompt": "Top right shopping cart",
@@ -42,12 +32,7 @@
           "indexId": 3
         }
       ],
-      "response_bbox": [
-        363,
-        20,
-        384,
-        39
-      ]
+      "response_bbox": [363, 20, 384, 39]
     },
     {
       "prompt": "The text indicating the price of the upper drink",
@@ -58,12 +43,7 @@
           "indexId": 20
         }
       ],
-      "response_bbox": [
-        197,
-        735,
-        237,
-        752
-      ]
+      "response_bbox": [197, 735, 237, 752]
     },
     {
       "prompt": "最下面一种饮料的选择规格按钮",
@@ -74,12 +54,7 @@
           "indexId": 26
         }
       ],
-      "response_bbox": [
-        311,
-        872,
-        398,
-        892
-      ]
+      "response_bbox": [311, 872, 398, 892]
     },
     {
       "prompt": "Bottom right Customer service button",
@@ -90,12 +65,7 @@
           "indexId": 27
         }
       ],
-      "response_bbox": [
-        381,
-        826,
-        405,
-        859
-      ]
+      "response_bbox": [381, 826, 405, 859]
     }
   ]
 }
