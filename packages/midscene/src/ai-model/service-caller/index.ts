@@ -210,7 +210,6 @@ export async function call(
       messages,
       response_format: responseFormat,
       ...commonConfig,
-      // betas: ['computer-use-2024-10-22'],
     } as any);
     shouldPrintTiming &&
       console.log(

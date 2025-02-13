@@ -437,11 +437,11 @@ export class PageTaskExecutor {
             },
           };
         tasks.push(taskActionError);
-      } else if (plan.type === 'FalsyConditionStatement') {
+      } else if (plan.type === 'ExpectedFalsyCondition') {
         const taskActionFalsyConditionStatement: ExecutionTaskActionApply<null> =
           {
             type: 'Action',
-            subType: 'FalsyConditionStatement',
+            subType: 'ExpectedFalsyCondition',
             param: null,
             thought: plan.thought,
             locate: plan.locate,

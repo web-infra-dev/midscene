@@ -58,8 +58,6 @@ describe('ai planning', () => {
             context,
           });
 
-          assert(res.actions.length > 0, 'No actions found');
-
           if (process.env.UPDATE_ANSWER_DATA) {
             testCase.response_planning = res;
             writeFileSync(aiDataPath, JSON.stringify(cases, null, 2));

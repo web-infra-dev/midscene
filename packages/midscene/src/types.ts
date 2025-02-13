@@ -252,7 +252,7 @@ export interface PlanningAction<ParamType = any> {
     | 'KeyboardPress'
     | 'Scroll'
     | 'Error'
-    | 'FalsyConditionStatement'
+    | 'ExpectedFalsyCondition'
     | 'Assert'
     | 'AssertWithoutThrow'
     | 'Sleep'
