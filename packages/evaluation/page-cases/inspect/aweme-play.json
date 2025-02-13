@@ -9,7 +9,7 @@
           "indexId": 4
         }
       ],
-      "response_bbox": [16, 784, 32, 805]
+      "response_bbox": [16, 780, 32, 795]
     },
     {
       "prompt": "点赞（爱心）按钮",
@@ -19,7 +19,7 @@
           "indexId": 23
         }
       ],
-      "response_bbox": [1203, 356, 1240, 387]
+      "response_bbox": [1209, 354, 1238, 376]
     },
     {
       "prompt": "评论按钮",
@@ -29,7 +29,7 @@
           "indexId": 25
         }
       ],
-      "response_bbox": [1204, 658, 1237, 679]
+      "response_bbox": [1209, 430, 1245, 456]
     },
     {
       "prompt": "书签收藏按钮",
@@ -39,7 +39,7 @@
           "indexId": -1
         }
       ],
-      "response_bbox": [1208, 504, 1239, 536]
+      "response_bbox": [1213, 509, 1240, 528]
     },
     {
       "prompt": "分享按钮",
@@ -49,7 +49,7 @@
           "indexId": -1
         }
       ],
-      "response_bbox": [1203, 578, 1249, 604]
+      "response_bbox": [1209, 584, 1237, 602]
     },
     {
       "prompt": "右下角区域声音按钮",
@@ -59,7 +59,7 @@
           "indexId": -1
         }
       ],
-      "response_bbox": [1250, 376, 1280, 429]
+      "response_bbox": [1207, 783, 1225, 800]
     }
   ]
 }

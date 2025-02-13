@@ -206,12 +206,12 @@ export const findElementSchema: ResponseFormatJSONSchema = {
 
 export const findElementPrompt = new PromptTemplate({
   template: `
-    Here is the item user want to find:
-    =====================================
-    {targetElementDescription}
-    =====================================
+Here is the item user want to find:
+=====================================
+{targetElementDescription}
+=====================================
 
-    {pageDescription}
+{pageDescription}
   `,
   inputVariables: ['pageDescription', 'targetElementDescription'],
 });

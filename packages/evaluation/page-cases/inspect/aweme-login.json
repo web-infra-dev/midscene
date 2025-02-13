@@ -10,7 +10,7 @@
           "indexId": 7
         }
       ],
-      "response_bbox": [725, 248, 798, 268]
+      "response_bbox": [726, 248, 798, 268]
     },
     {
       "prompt": "扫码登录",
@@ -32,7 +32,7 @@
           "indexId": 10
         }
       ],
-      "response_bbox": [553, 349, 780, 396]
+      "response_bbox": [495, 348, 792, 396]
     },
     {
       "prompt": "验证码输入框",
@@ -43,7 +43,7 @@
           "indexId": 12
         }
       ],
-      "response_bbox": [498, 435, 706, 467]
+      "response_bbox": [496, 425, 793, 475]
     },
     {
       "prompt": "发送验证码按钮",
@@ -54,7 +54,7 @@
           "indexId": 11
         }
       ],
-      "response_bbox": [714, 439, 772, 458]
+      "response_bbox": [701, 439, 772, 458]
     },
     {
       "prompt": "登录按钮",
@@ -65,7 +65,7 @@
           "indexId": 18
         }
       ],
-      "response_bbox": [491, 563, 798, 620]
+      "response_bbox": [495, 568, 792, 613]
     },
     {
       "prompt": "X 关闭按钮",
@@ -76,7 +76,7 @@
           "indexId": 4
         }
       ],
-      "response_bbox": [847, 119, 865, 139]
+      "response_bbox": [849, 120, 867, 135]
     }
   ]
 }
