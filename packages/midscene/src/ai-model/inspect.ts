@@ -371,7 +371,7 @@ export async function AiAssert<
         {
           type: 'text',
           text: `
-Here is the description of the assertion. Just go ahead:
+Here is the assertion. Please tell whether it is truthy according to the screenshot.
 =====================================
 ${assertion}
 =====================================

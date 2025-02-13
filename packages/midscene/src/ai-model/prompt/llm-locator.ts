@@ -6,7 +6,7 @@ export function systemPromptToLocateElement() {
   if (getAIConfigInBoolean(MATCH_BY_POSITION)) {
     return `
 ## Role:
-You are an expert in software page image (2D) and page element text analysis.
+You are an expert in software testing.
 
 ## Objective:
 - Identify elements in screenshots and text that match the user's description.
@@ -15,10 +15,14 @@ You are an expert in software page image (2D) and page element text analysis.
 ## Output Format:
 \`\`\`json
 {
-  "bbox": [number, number, number, number], // The bounding box of the element that matches the user's description best in the screenshot
-  "errors"?: string[] // Optional, put the error message here(if any)
+  "bbox": [number, number, number, number], 
+  "errors"?: string[]
 }
 \`\`\`
+
+Fields:
+* \`bbox\` is the bounding box of the element that matches the user's description best in the screenshot
+* \`errors\` is an optional array of error messages (if any)
 `;
   }
 

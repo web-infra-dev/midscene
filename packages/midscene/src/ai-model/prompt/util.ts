@@ -100,11 +100,12 @@ export const extractDataSchema: ResponseFormatJSONSchema = {
 export function systemPromptToAssert() {
   return `
 ${characteristic}
-User will give an assertion, and some information about the page. Based on the information you get, tell whether the assertion is truthy.
+User will give an assertion and a screenshot of a page. Based on the information you get, tell whether the assertion is truthy.
 
 Return in the following JSON format:
 {
-  thought: string, // string, the thought of the assertion. Should in the same language as the assertion.
+  whatIsActuallyShownInString: string, // string, according to the screenshot, what is actually shown on the page. Describe by the same language as the assertion.
+  thought: string, // string, the thought of the assertion.
   pass: true, // true or false, whether the assertion is truthy
 }
 `;

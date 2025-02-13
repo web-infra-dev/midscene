@@ -267,6 +267,7 @@ export interface PlanningAIResponse {
   furtherPlan?: PlanningFurtherPlan | null;
   error?: string;
   usage?: AIUsageInfo;
+  rawResponse?: string;
 }
 
 export interface PlanningFurtherPlan {
@@ -361,7 +362,7 @@ export interface ExecutionTaskApply<
     param: TaskParam,
     context: ExecutorContext,
   ) => // biome-ignore lint/suspicious/noConfusingVoidType: <explanation>
-    | Promise<ExecutionTaskReturn<TaskOutput, TaskLog> | undefined | void>
+  | Promise<ExecutionTaskReturn<TaskOutput, TaskLog> | undefined | void>
     | undefined
     | void;
 }
@@ -397,6 +398,7 @@ export type ExecutionTask<
       cost?: number;
       aiCost?: number;
     };
+    usage?: AIUsageInfo;
   };
 
 export interface ExecutionDump extends DumpMeta {

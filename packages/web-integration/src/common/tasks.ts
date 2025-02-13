@@ -3,6 +3,7 @@ import type { WebPage } from '@/common/page';
 import type { PuppeteerWebPage } from '@/puppeteer';
 import {
   type AIElementIdResponse,
+  type AIUsageInfo,
   type DumpSubscriber,
   type ExecutionRecorderItem,
   type ExecutionTaskActionApply,
@@ -147,8 +148,10 @@ export class PageTaskExecutor {
               'No prompt or id or position or bbox to locate',
             );
             let insightDump: InsightDump | undefined;
+            let usage: AIUsageInfo | undefined;
             const dumpCollector: DumpSubscriber = (dump) => {
               insightDump = dump;
+              usage = dump?.taskInfo?.usage;
             };
             this.insight.onceDumpUpdatedFn = dumpCollector;
             const shotTime = Date.now();
@@ -217,6 +220,7 @@ export class PageTaskExecutor {
               },
               recorder: [recordItem],
               aiCost,
+              usage,
             };
           },
         };
@@ -521,12 +525,18 @@ export class PageTaskExecutor {
           });
         }
 
-        const { actions, furtherPlan, taskWillBeAccomplished, error } =
-          planResult;
-        // console.log('actions', taskWillBeAccomplished, actions, furtherPlan);
+        const {
+          actions,
+          furtherPlan,
+          // taskWillBeAccomplished,
+          error,
+          usage,
+          rawResponse,
+        } = planResult;
 
         let stopCollecting = false;
         let bboxCollected = false;
+        let planParsingError = '';
         const finalActions = actions.reduce<PlanningAction[]>(
           (acc, planningAction) => {
             if (stopCollecting) {
@@ -547,16 +557,13 @@ export class PageTaskExecutor {
               acc.push({
                 type: 'Locate',
                 locate: planningAction.locate,
-                // remove id from planning, since the result is not accurate
-                // locate: {
-                //   prompt: planningAction.locate.prompt,
-                // },
                 param: null,
                 thought: planningAction.locate.prompt,
               });
             } else if (
               ['Tap', 'Hover', 'Input'].includes(planningAction.type)
             ) {
+              planParsingError = `invalid planning response: ${JSON.stringify(planningAction)}`;
               // should include locate but get null
               stopCollecting = true;
               return acc;
@@ -569,7 +576,9 @@ export class PageTaskExecutor {
 
         assert(
           finalActions.length > 0,
-          error ? `No plan: ${error}` : 'No plans found',
+          error
+            ? `Failed to plan: ${error}`
+            : planParsingError || 'No plan found',
         );
 
         cacheGroup.saveCache({
@@ -593,6 +602,8 @@ export class PageTaskExecutor {
           },
           pageContext,
           recorder: [recordItem],
+          usage,
+          rawResponse,
         };
       },
     };

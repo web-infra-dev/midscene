@@ -64,10 +64,14 @@ export async function plan(
 
   const call = callAI || callAiFn;
   const { content, usage } = await call(msgs, AIActionType.PLAN);
+  const rawResponse = JSON.stringify(content, undefined, 2);
   const planFromAI = content;
-  planFromAI.usage = usage;
-
   const actions = planFromAI?.actions || [];
+  const returnValue: PlanningAIResponse = {
+    ...planFromAI,
+    rawResponse,
+    usage,
+  };
 
   if (getAIConfigInBoolean(MIDSCENE_USE_QWEN_VL)) {
     const zoomFactorX = await qwenVLZoomFactor(size.width);
@@ -89,8 +93,12 @@ export async function plan(
       if (action.locate?.bbox) {
         action.locate.bbox[0] = Math.ceil(action.locate.bbox[0] * zoomFactorX);
         action.locate.bbox[1] = Math.ceil(action.locate.bbox[1] * zoomFactorY);
-        action.locate.bbox[2] = Math.ceil(action.locate.bbox[2] * zoomFactorX);
-        action.locate.bbox[3] = Math.ceil(action.locate.bbox[3] * zoomFactorY);
+        action.locate.bbox[2] = Math.ceil(
+          (action.locate.bbox[2] || action.locate.bbox[0] + 20) * zoomFactorX, // sometimes the bbox is not complete
+        );
+        action.locate.bbox[3] = Math.ceil(
+          (action.locate.bbox[3] || action.locate.bbox[1] + 20) * zoomFactorY,
+        );
       }
     });
   }
@@ -101,5 +109,5 @@ export async function plan(
     `Failed to plan actions: ${planFromAI.error || '(no error details)'}`,
   );
 
-  return planFromAI;
+  return returnValue;
 }

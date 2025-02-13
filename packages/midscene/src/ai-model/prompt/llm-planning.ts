@@ -10,8 +10,8 @@ const locatorConfig = () => {
     sample: '{"bbox": [20, 50, 200, 400], "prompt": "the search bar"}',
     wrongSample: '{"bbox": [20, 50, 200, 400]}',
     locateParam: `{
-      "bbox": [number, number, number, number], // the bounding box of the element found. It should either be the bounding box marked with a rectangle in the screenshot or the bounding box described in the description.
-      "prompt"?: string // the description of the element to find. It can only be omitted when locate is null.
+      "bbox": [number, number, number, number], // the bounding box of the element to manipulate
+      "prompt": string // the description of the element
     } | null // If it's not on the page, the LocateParam should be null`,
     sampleStepOfLocating: '',
   };
@@ -73,17 +73,17 @@ type LocateParam = {locateParam}
 
 Each action has a \`type\` and corresponding \`param\`. To be detailed:
 - type: 'Tap', tap the located element
-  * {{ locate: LocateParam, param: null }}
+  * {{ locate: {format}, param: null }}
 - type: 'Hover', move mouse over to the located element
-  * {{ locate: LocateParam, param: null }}
+  * {{ locate: {format}, param: null }}
 - type: 'Input', replace the value in the input field
-  * {{ locate: LocateParam, param: {{ value: string }} }}
+  * {{ locate: {format}, param: {{ value: string }} }}
   * \`value\` is the final required input value based on the existing input. No matter what modifications are required, just provide the final value to replace the existing input value. 
 - type: 'KeyboardPress', press a key
   * {{ param: {{ value: string }} }}
 - type: 'Scroll', scroll up or down.
   * {{ 
-      locate: LocateParam | null, 
+      locate: {format} | null, 
       param: {{ 
         direction: 'down'(default) | 'up' | 'right' | 'left', 
         scrollType: 'once' (default) | 'untilBottom' | 'untilTop' | 'untilRight' | 'untilLeft', 
