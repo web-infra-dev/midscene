@@ -37,6 +37,7 @@ import type { ElementInfo } from '@midscene/shared/extractor';
 import type { KeyInput } from 'puppeteer';
 import type { WebElementInfo } from '../web-element';
 import { TaskCache } from './task-cache';
+import { getKeyCommands } from './ui-utils';
 import type { WebUIContext } from './utils';
 
 interface ExecutionResult<OutputType = any> {
@@ -296,8 +297,9 @@ export class PageTaskExecutor {
             thought: plan.thought,
             locate: plan.locate,
             executor: async (taskParam) => {
-              assert(taskParam?.value, 'No key to press');
-              await this.page.keyboard.press(taskParam.value as KeyInput);
+              const keys = getKeyCommands(taskParam.value);
+
+              await this.page.keyboard.press(keys);
             },
           };
         tasks.push(taskActionKeyboardPress);
@@ -767,7 +769,7 @@ export class PageTaskExecutor {
     const cacheGroup = this.taskCache.getCacheGroupByPrompt(userPrompt);
     const isCompleted = false;
     let currentActionNumber = 0;
-    const maxActionNumber = 20;
+    const maxActionNumber = 40;
 
     while (!isCompleted && currentActionNumber < maxActionNumber) {
       currentActionNumber++;

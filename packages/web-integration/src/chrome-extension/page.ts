@@ -389,7 +389,9 @@ export default class ChromeExtensionProxyPage implements AbstractPage {
 
     await sleep(100);
 
-    await this.keyboard.press('Backspace');
+    await this.keyboard.press({
+      key: 'Backspace',
+    });
   }
 
   mouse = {
@@ -465,16 +467,21 @@ export default class ChromeExtensionProxyPage implements AbstractPage {
       });
       await cdpKeyboard.type(text, { delay: 0 });
     },
-    press: async (key: WebKeyInput | WebKeyInput[]) => {
+    press: async (
+      action:
+        | { key: WebKeyInput; command?: string }
+        | { key: WebKeyInput; command?: string }[],
+    ) => {
       const cdpKeyboard = new CdpKeyboard({
         send: this.sendCommandToDebugger.bind(this),
       });
-      const keys = Array.isArray(key) ? key : [key];
+      const keys = Array.isArray(action) ? action : [action];
       for (const k of keys) {
-        await cdpKeyboard.down(k);
+        const commands = k.command ? [k.command] : [];
+        await cdpKeyboard.down(k.key, { commands });
       }
       for (const k of [...keys].reverse()) {
-        await cdpKeyboard.up(k);
+        await cdpKeyboard.up(k.key);
       }
     },
   };
