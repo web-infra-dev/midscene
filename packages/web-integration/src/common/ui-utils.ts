@@ -13,6 +13,28 @@ export function typeStr(task: ExecutionTask) {
   return task.subType ? `${task.type} / ${task.subType || ''}` : task.type;
 }
 
+export function getKeyCommands(
+  value: string | string[],
+): Array<{ key: string; command?: string }> {
+  // Ensure value is an array of keys
+  const keys = Array.isArray(value) ? value : [value];
+
+  // Process each key to attach a corresponding command if needed, based on the presence of 'Meta' or 'Control' in the keys array.
+  return keys.reduce((acc: Array<{ key: string; command?: string }>, k) => {
+    const includeMeta = keys.includes('Meta') || keys.includes('Control');
+    if (includeMeta && (k === 'a' || k === 'A')) {
+      return acc.concat([{ key: k, command: 'SelectAll' }]);
+    }
+    if (includeMeta && (k === 'c' || k === 'C')) {
+      return acc.concat([{ key: k, command: 'Copy' }]);
+    }
+    if (includeMeta && (k === 'v' || k === 'V')) {
+      return acc.concat([{ key: k, command: 'Paste' }]);
+    }
+    return acc.concat([{ key: k }]);
+  }, []);
+}
+
 export function paramStr(task: ExecutionTask) {
   let value: string | undefined | object;
   if (task.type === 'Planning') {

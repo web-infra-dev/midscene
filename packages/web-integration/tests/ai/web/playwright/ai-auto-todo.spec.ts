@@ -12,7 +12,8 @@ test('ai todo', async ({ ai, aiQuery }) => {
     test.setTimeout(1000 * 1000);
   }
 
-  await ai('Enter "Happy Birthday" in the task box');
+  await ai('输入 "Happy Birthday" 然后全选删除');
+  // await ai('Enter "Happy Birthday" in the task box');
   // await ai('Enter "Learn JS today"in the task box, then press Enter to create');
 
   // await ai(
