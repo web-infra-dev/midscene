@@ -79,13 +79,13 @@ tsx demo-new-tab.ts
 每个 agent 实例只能连接到一个标签页实例，并且一旦被销毁就无法重新连接，需要重新创建 agent 实例。
 :::
 
-### `connectCurrentTab(options?: { trackingActiveTab?: boolean })`
+### `connectCurrentTab(options?: { forceSameTabNavigation?: boolean })`
 
 连接到当前已激活的标签页。
 
-如果 `trackingActiveTab` 为 true，则 agent 将始终跟踪当前激活的标签页。例如，如果你切换到另一个标签页或打开一个新的标签页，agent 将跟踪最新激活的标签页。否则，agent 将只跟踪你最初连接的标签页。
+如果 `forceSameTabNavigation` 为 true(默认是 true)，则 agent 将限制页面在当前 tab 打开。例如，如果你切换到另一个标签页或打开一个新的标签页，agent 将限制在上次打开的页面。否则，agent 将不限制页面在当前 tab 打开。
 
-### `connectNewTabWithUrl(url: string, options?: { trackingActiveTab?: boolean })`
+### `connectNewTabWithUrl(url: string, options?: { forceSameTabNavigation?: boolean })`
 
 创建一个新标签页，并立即连接到它。
 

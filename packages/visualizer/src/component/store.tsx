@@ -135,8 +135,8 @@ export const useEnvConfig = create<{
   configString: string;
   setConfig: (config: Record<string, string>) => void;
   loadConfig: (configString: string) => void;
-  trackingActiveTab: boolean;
-  setTrackingActiveTab: (trackingActiveTab: boolean) => void;
+  forceSameTabNavigation: boolean;
+  setforceSameTabNavigation: (forceSameTabNavigation: boolean) => void;
   history: HistoryItem[];
   clearHistory: () => void;
   addHistory: (history: HistoryItem) => void;
@@ -149,7 +149,7 @@ export const useEnvConfig = create<{
   const savedServiceMode = localStorage.getItem(
     SERVICE_MODE_KEY,
   ) as ServiceModeType | null;
-  const savedTrackingActiveTab =
+  const savedforceSameTabNavigation =
     localStorage.getItem(TRACKING_ACTIVE_TAB_KEY) !== 'false';
   return {
     serviceMode: ifInExtension
@@ -169,12 +169,12 @@ export const useEnvConfig = create<{
       set({ config, configString });
       localStorage.setItem(CONFIG_KEY, configString);
     },
-    trackingActiveTab: savedTrackingActiveTab,
-    setTrackingActiveTab: (trackingActiveTab: boolean) => {
-      set({ trackingActiveTab });
+    forceSameTabNavigation: savedforceSameTabNavigation,
+    setforceSameTabNavigation: (forceSameTabNavigation: boolean) => {
+      set({ forceSameTabNavigation });
       localStorage.setItem(
         TRACKING_ACTIVE_TAB_KEY,
-        trackingActiveTab.toString(),
+        forceSameTabNavigation.toString(),
       );
     },
     history: getHistoryFromLocalStorage(),

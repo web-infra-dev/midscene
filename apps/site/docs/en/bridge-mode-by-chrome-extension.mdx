@@ -79,13 +79,13 @@ You should always call `connectCurrentTab` or `connectNewTabWithUrl` before doin
 Each of the agent instance can only connect to one tab instance, and it cannot be reconnected after destroy.
 :::
 
-### `connectCurrentTab(options?: { trackingActiveTab?: boolean })`
+### `connectCurrentTab(options?: { forceSameTabNavigation?: boolean })`
 
 Connect to the current active tab on Chrome as the starting point.
 
-If `trackingActiveTab` is true, the agent will always track the active tab. For example, if you switch to another tab or a new tab is opened, the agent will track the latest active tab. Otherwise, the agent will only track the tab you connected to initially.
+If `forceSameTabNavigation` is true(default is true), the agent will limit the popup to the current page. For example, if you switch to another tab or a new tab is opened, the agent will limit the popup to the latest active tab. Otherwise, the agent will not limit the popup.
 
-### `connectNewTabWithUrl(url: string, options?: { trackingActiveTab?: boolean })`
+### `connectNewTabWithUrl(url: string, options?: { forceSameTabNavigation?: boolean })`
 
 Create a new tab with url and connect to immediately.
 

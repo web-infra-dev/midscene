@@ -13,7 +13,7 @@ import {
   MIDSCENE_USE_VLM_UI_TARS,
   getAIConfig,
 } from '@midscene/core/env';
-import { uploadTestInfoToServer } from '@midscene/core/utils';
+import { sleep, uploadTestInfoToServer } from '@midscene/core/utils';
 import { NodeType } from '@midscene/shared/constants';
 import type { ElementInfo } from '@midscene/shared/extractor';
 import { traverseTree, treeToList } from '@midscene/shared/extractor';
@@ -41,6 +41,18 @@ export async function parseContextFromWebPage(
 
   let screenshotBase64: string;
   let tree: ElementTreeNode<ElementInfo>;
+
+  // ref: packages/web-integration/src/playwright/ai-fixture.ts popup logic
+  // During test execution, a new page might be opened through a connection, and the page remains confined to the same page instance.
+  // The page may go through opening, closing, and reopening; if the page is closed, evaluate may return undefined, which can lead to errors.
+  // Therefore, when the page is closed, wait for 500ms before attempting to evaluate again.
+  if (
+    'isClosed' in page &&
+    typeof page.isClosed === 'function' &&
+    page.isClosed()
+  ) {
+    await sleep(1000);
+  }
 
   await Promise.all([
     page.screenshotBase64().then((base64) => {

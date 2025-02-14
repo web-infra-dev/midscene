@@ -15,7 +15,7 @@ Here are the common options for all agents:
 
 And also, puppeteer agent has an extra option:
 
-* `trackingActiveTab`: If true, the agent will track the newly opened tab. Default is false.
+* `forceSameTabNavigation`: If true, the agent will limit the popup to the current page. Default is true.
 
 ## Methods
 

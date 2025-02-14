@@ -58,9 +58,9 @@ describe.skipIf(!process.env.BRIDGE_MODE)(
       await agent.destroy();
     });
 
-    it('agent in cli side, current tab, tracking active tab', async () => {
+    it('agent in cli side, current tab, limit popup to current page', async () => {
       const agent = new AgentOverChromeBridge();
-      await agent.connectCurrentTab({ trackingActiveTab: true });
+      await agent.connectCurrentTab({ forceSameTabNavigation: true });
 
       await agent.ai('click "文库"，sleep 1500ms，type "AI 101" and hit Enter');
       await sleep(3000);

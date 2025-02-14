@@ -28,7 +28,7 @@ declare const __VERSION__: string;
 export default class ChromeExtensionProxyPage implements AbstractPage {
   pageType = 'chrome-extension-proxy';
 
-  public trackingActiveTab: boolean;
+  public forceSameTabNavigation: boolean;
   private version: string = __VERSION__;
 
   private viewportSize?: Size;
@@ -41,12 +41,12 @@ export default class ChromeExtensionProxyPage implements AbstractPage {
 
   private destroyed = false;
 
-  constructor(trackingActiveTab: boolean) {
-    this.trackingActiveTab = trackingActiveTab;
+  constructor(forceSameTabNavigation: boolean) {
+    this.forceSameTabNavigation = forceSameTabNavigation;
   }
 
   public async getTabId() {
-    if (this.activeTabId && !this.trackingActiveTab) {
+    if (this.activeTabId && !this.forceSameTabNavigation) {
       return this.activeTabId;
     }
     const tabId = await chrome.tabs
