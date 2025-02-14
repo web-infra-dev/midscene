@@ -84,6 +84,7 @@ export class Page<
     // const viewportSize = await this.size();
     const imgType = 'jpeg';
     const path = getTmpFile(imgType)!;
+    await this.waitForNavigation();
     await this.underlyingPage.screenshot({
       path,
       type: imgType,
