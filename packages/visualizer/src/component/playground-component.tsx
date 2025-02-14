@@ -187,8 +187,8 @@ export function Playground({
   const forceSameTabNavigation = useEnvConfig(
     (state) => state.forceSameTabNavigation,
   );
-  const setforceSameTabNavigation = useEnvConfig(
-    (state) => state.setforceSameTabNavigation,
+  const setForceSameTabNavigation = useEnvConfig(
+    (state) => state.setForceSameTabNavigation,
   );
   const configAlreadySet = Object.keys(config || {}).length >= 1;
   const runResultRef = useRef<HTMLHeadingElement>(null);
@@ -245,7 +245,7 @@ export function Playground({
     {
       label: (
         <Checkbox
-          onChange={(e) => setforceSameTabNavigation(e.target.checked)}
+          onChange={(e) => setForceSameTabNavigation(e.target.checked)}
           checked={forceSameTabNavigation}
         >
           {trackingTip}
@@ -261,7 +261,7 @@ export function Playground({
         <Dropdown menu={{ items: configItems }}>
           <Space>
             <SettingOutlined />
-            {forceSameTabNavigation ? trackingTip : 'focus on current tab'}
+            {forceSameTabNavigation ? trackingTip : "don't track popup"}
           </Space>
         </Dropdown>
       </div>
