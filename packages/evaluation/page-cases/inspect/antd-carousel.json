@@ -1,0 +1,95 @@
+{
+  "testDataPath": "antd-carousel",
+  "testCases": [
+    {
+      "prompt": "'最简单的用法'下方有五个 icon，左侧第一个 icon",
+      "response_bbox": [487, 869, 507, 883],
+      "response": [
+        {
+          "id": "nkpld",
+          "indexId": 104
+        }
+      ]
+    },
+    {
+      "prompt": "'最简单的用法'下方有五个 icon，左侧第二个 icon",
+      "response_bbox": [519, 872, 536, 884],
+      "response": [
+        {
+          "id": "hdbbh",
+          "indexId": 105
+        }
+      ]
+    },
+    {
+      "prompt": "'最简单的用法'下方有五个 icon，左侧第三个 icon",
+      "response_bbox": [552, 871, 569, 883],
+      "response": [
+        {
+          "id": "ncono",
+          "indexId": 106
+        }
+      ]
+    },
+    {
+      "prompt": "'最简单的用法'下方有五个 icon，左侧第四个 icon",
+      "response_bbox": [584, 872, 596, 883],
+      "response": [
+        {
+          "id": "jkeam",
+          "indexId": 107
+        }
+      ]
+    },
+    {
+      "prompt": "'最简单的用法'下方有五个 icon，最右侧的 icon",
+      "response_bbox": [617, 873, 629, 884],
+      "response": [
+        {
+          "id": "nnkcf",
+          "indexId": 108
+        }
+      ]
+    },
+    {
+      "prompt": "全屏幕右上角、版本号右侧有三个 icon ，查找左侧第一个",
+      "response_bbox": [1269, 24, 1290, 38],
+      "response": [
+        {
+          "id": "dinoj",
+          "indexId": 13
+        }
+      ]
+    },
+    {
+      "prompt": "全屏幕右上角有三个 icon ，查找左侧第二个",
+      "response_bbox": [1314, 20, 1335, 40],
+      "response": [
+        {
+          "id": "nfpha",
+          "indexId": 14
+        }
+      ]
+    },
+    {
+      "prompt": "屏幕右上角有三个 icon ，左侧第三个",
+      "response_bbox": [1356, 20, 1378, 42],
+      "response": [
+        {
+          "id": "hmbld",
+          "indexId": 15
+        }
+      ]
+    },
+    {
+      "prompt": "在‘代码演示’右侧有三个 icon 按钮中，查找最中间的按钮",
+      "response_bbox": [1185, 503, 1204, 517],
+      "response": [
+        {
+          "id": "pkafb",
+          "indexId": 94
+        }
+      ]
+    }
+  ]
+}

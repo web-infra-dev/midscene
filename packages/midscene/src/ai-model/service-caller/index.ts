@@ -218,7 +218,7 @@ export async function call(
         model,
         result.usage,
         `${Date.now() - startTime}ms`,
-        result._request_id,
+        result._request_id || '',
       );
     assert(
       result.choices,

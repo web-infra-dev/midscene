@@ -19,6 +19,7 @@ dotenv.config({
 
 const failCaseThreshold = process.env.CI ? 1 : 0;
 const testSources = [
+  'antd-carousel',
   'todo',
   'online_order',
   'online_order_list',
@@ -111,7 +112,7 @@ testSources.forEach((source) => {
       await sleep(3 * 1000);
     },
     {
-      timeout: 240 * 1000,
+      timeout: 360 * 1000,
     },
   );
 });

@@ -14,7 +14,7 @@ dotenv.config({
   override: true,
 });
 
-const testSources = ['online_order'];
+const testSources = ['online_order', 'online_order_list'];
 
 describe('ai inspect element', () => {
   const testResult: {
