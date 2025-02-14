@@ -229,7 +229,7 @@ export function Playground({
     if (uiContextPreview) return;
     if (!showContextPreview) return;
 
-    getAgent()
+    getAgent(forceSameTabNavigation)
       ?.getUIContext()
       .then((context: UIContext) => {
         setUiContextPreview(context);

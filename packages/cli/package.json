@@ -40,7 +40,7 @@
     "js-yaml": "4.1.0",
     "restore-cursor": "5.1.0",
     "typescript": "~5.0.4",
-    "vitest": "^1.6.0",
+    "vitest": "3.0.5",
     "yargs": "17.7.2"
   },
   "engines": {

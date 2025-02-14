@@ -9,7 +9,9 @@ vi.setConfig({
   testTimeout: 300 * 1000,
 });
 
-describe.skipIf(!process.env.BRIDGE_MODE)('drag event', () => {
+const describeIf = process.env.BRIDGE_MODE ? describe : describe.skip;
+
+describeIf('drag event', () => {
   it('agent in cli side, current tab', async () => {
     const agent = new AgentOverChromeBridge({
       cacheId: 'finish-form-and-submit',

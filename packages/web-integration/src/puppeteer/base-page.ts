@@ -35,15 +35,9 @@ export class Page<
   }
 
   async waitForNavigation() {
-    if (this.pageType === 'puppeteer') {
-      await (this.underlyingPage as PuppeteerPage).waitForNavigation();
-    } else if (this.pageType === 'playwright') {
-      await (this.underlyingPage as PlaywrightPage).waitForURL(
-        this.underlyingPage.url(),
-        {
-          waitUntil: 'load',
-        },
-      );
+    // issue: https://github.com/puppeteer/puppeteer/issues/3323
+    if (this.pageType === 'puppeteer' || this.pageType === 'playwright') {
+      await (this.underlyingPage as PuppeteerPage).waitForSelector('html');
     }
   }
 
@@ -52,6 +46,7 @@ export class Page<
     // const scripts = await getExtraReturnLogic();
     // const captureElementSnapshot = await this.evaluate(scripts);
     // return captureElementSnapshot as ElementInfo[];
+    await this.waitForNavigation();
     const tree = await this.getElementsNodeTree();
     return treeToList(tree);
   }
@@ -267,7 +262,5 @@ export class Page<
     return this.mouse.wheel(scrollDistance, 0);
   }
 
-  async destroy(): Promise<void> {
-    //
-  }
+  async destroy(): Promise<void> {}
 }

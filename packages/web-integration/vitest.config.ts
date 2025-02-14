@@ -39,6 +39,7 @@ export default defineConfig({
   },
   test: {
     include: testFiles,
+    testTimeout: 3 * 60 * 1000, // Global timeout set to 10 seconds
   },
   define: {
     __VERSION__: `'${version}'`,

@@ -8,9 +8,13 @@ vi.setConfig({
   testTimeout: 60 * 1000,
 });
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+const describeIf = process.env.BRIDGE_MODE ? describe : describe.skip;
 
-describe.skipIf(!process.env.BRIDGE_MODE)(
+describeIf(
   'fully functional agent in server(cli) side',
+  {
+    timeout: 3 * 60 * 10,
+  },
   () => {
     it('basic', async () => {
       const page = getBridgePageInCliSide();
@@ -66,8 +70,5 @@ describe.skipIf(!process.env.BRIDGE_MODE)(
       await sleep(3000);
       await agent.destroy();
     });
-  },
-  {
-    timeout: 3 * 60 * 10,
   },
 );
