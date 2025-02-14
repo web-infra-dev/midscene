@@ -149,8 +149,8 @@ const serverLaunchTip = (
 );
 
 // remember to destroy the agent when the tab is destroyed: agent.page.destroy()
-export const extensionAgentForTab = (trackingActiveTab?: boolean) => {
-  const page = new ChromeExtensionProxyPage(trackingActiveTab || false);
+export const extensionAgentForTab = (forceSameTabNavigation = true) => {
+  const page = new ChromeExtensionProxyPage(forceSameTabNavigation);
   return new ChromeExtensionProxyPageAgent(page);
 };
 
@@ -168,7 +168,7 @@ export function Playground({
   dryMode = false,
 }: {
   getAgent: (
-    trackingActiveTab?: boolean,
+    forceSameTabNavigation?: boolean,
   ) => StaticPageAgent | ChromeExtensionProxyPageAgent | null;
   hideLogo?: boolean;
   showContextPreview?: boolean;
@@ -184,9 +184,11 @@ export function Playground({
   const [verticalMode, setVerticalMode] = useState(false);
   const [form] = Form.useForm();
   const { config, serviceMode, setServiceMode } = useEnvConfig();
-  const trackingActiveTab = useEnvConfig((state) => state.trackingActiveTab);
-  const setTrackingActiveTab = useEnvConfig(
-    (state) => state.setTrackingActiveTab,
+  const forceSameTabNavigation = useEnvConfig(
+    (state) => state.forceSameTabNavigation,
+  );
+  const setForceSameTabNavigation = useEnvConfig(
+    (state) => state.setForceSameTabNavigation,
   );
   const configAlreadySet = Object.keys(config || {}).length >= 1;
   const runResultRef = useRef<HTMLHeadingElement>(null);
@@ -227,7 +229,7 @@ export function Playground({
     if (uiContextPreview) return;
     if (!showContextPreview) return;
 
-    getAgent()
+    getAgent(forceSameTabNavigation)
       ?.getUIContext()
       .then((context: UIContext) => {
         setUiContextPreview(context);
@@ -238,13 +240,13 @@ export function Playground({
       });
   }, [uiContextPreview, showContextPreview, getAgent]);
 
-  const trackingTip = 'track newly-opened tabs';
+  const trackingTip = 'limit popup to current tab';
   const configItems = [
     {
       label: (
         <Checkbox
-          onChange={(e) => setTrackingActiveTab(e.target.checked)}
-          checked={trackingActiveTab}
+          onChange={(e) => setForceSameTabNavigation(e.target.checked)}
+          checked={forceSameTabNavigation}
         >
           {trackingTip}
         </Checkbox>
@@ -259,7 +261,7 @@ export function Playground({
         <Dropdown menu={{ items: configItems }}>
           <Space>
             <SettingOutlined />
-            {trackingActiveTab ? trackingTip : 'focus on current tab'}
+            {forceSameTabNavigation ? trackingTip : "don't track popup"}
           </Space>
         </Dropdown>
       </div>
@@ -289,7 +291,7 @@ export function Playground({
     });
     let result: PlaygroundResult = { ...blankResult };
 
-    const activeAgent = getAgent(trackingActiveTab);
+    const activeAgent = getAgent(forceSameTabNavigation);
     const thisRunningId = Date.now();
     try {
       if (!activeAgent) {
@@ -396,7 +398,7 @@ export function Playground({
     // setTimeout(() => {
     //   runResultRef.current?.scrollIntoView({ behavior: 'smooth' });
     // }, 50);
-  }, [form, getAgent, serviceMode, serverValid, trackingActiveTab]);
+  }, [form, getAgent, serviceMode, serverValid, forceSameTabNavigation]);
 
   let placeholder = 'What do you want to do?';
   const selectedType = Form.useWatch('type', form);

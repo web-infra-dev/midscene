@@ -27,7 +27,7 @@ import { printReportMsg, reportFileName } from './utils';
 import { type WebUIContext, parseContextFromWebPage } from './utils';
 
 export interface PageAgentOpt {
-  trackingActiveTab?: boolean /* if tracking the newly created tab, default false */;
+  forceSameTabNavigation?: boolean /* if limit the new tab to the current page, default true */;
   testId?: string;
   cacheId?: string;
   groupName?: string;

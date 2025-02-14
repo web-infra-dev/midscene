@@ -7,6 +7,7 @@
 
 import assert from 'node:assert';
 import type { WebKeyInput } from '@/common/page';
+import { limitOpenNewTabScript } from '@/common/ui-utils';
 import type { AbstractPage } from '@/page';
 import type { BaseElement, ElementTreeNode, Point, Size } from '@midscene/core';
 import type { ElementInfo } from '@midscene/shared/extractor';
@@ -28,7 +29,7 @@ declare const __VERSION__: string;
 export default class ChromeExtensionProxyPage implements AbstractPage {
   pageType = 'chrome-extension-proxy';
 
-  public trackingActiveTab: boolean;
+  public forceSameTabNavigation: boolean;
   private version: string = __VERSION__;
 
   private viewportSize?: Size;
@@ -41,12 +42,12 @@ export default class ChromeExtensionProxyPage implements AbstractPage {
 
   private destroyed = false;
 
-  constructor(trackingActiveTab: boolean) {
-    this.trackingActiveTab = trackingActiveTab;
+  constructor(forceSameTabNavigation: boolean) {
+    this.forceSameTabNavigation = forceSameTabNavigation;
   }
 
   public async getTabId() {
-    if (this.activeTabId && !this.trackingActiveTab) {
+    if (this.activeTabId && !this.forceSameTabNavigation) {
       return this.activeTabId;
     }
     const tabId = await chrome.tabs
@@ -103,6 +104,17 @@ export default class ChromeExtensionProxyPage implements AbstractPage {
         await chrome.debugger.attach({ tabId: currentTabId }, '1.3');
         // wait util the debugger banner in Chrome appears
         await sleep(500);
+
+        if (this.forceSameTabNavigation) {
+          await chrome.debugger.sendCommand(
+            { tabId: currentTabId },
+            'Runtime.evaluate',
+            {
+              expression: limitOpenNewTabScript,
+            },
+          );
+        }
+
         this.tabIdOfDebuggerAttached = currentTabId;
 
         await this.enableWaterFlowAnimation();

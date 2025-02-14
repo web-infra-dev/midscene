@@ -13,7 +13,7 @@ import {
   MIDSCENE_USE_VLM_UI_TARS,
   getAIConfig,
 } from '@midscene/core/env';
-import { uploadTestInfoToServer } from '@midscene/core/utils';
+import { sleep, uploadTestInfoToServer } from '@midscene/core/utils';
 import { NodeType } from '@midscene/shared/constants';
 import type { ElementInfo } from '@midscene/shared/extractor';
 import { traverseTree, treeToList } from '@midscene/shared/extractor';
@@ -23,7 +23,6 @@ import { uuid } from '@midscene/shared/utils';
 import dayjs from 'dayjs';
 import { WebElementInfo } from '../web-element';
 import type { WebPage } from './page';
-
 export type WebUIContext = UIContext<WebElementInfo> & {
   url: string;
 };

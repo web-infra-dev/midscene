@@ -34,16 +34,28 @@ export class Page<
     this.pageType = pageType;
   }
 
+  async waitForNavigation() {
+    // issue: https://github.com/puppeteer/puppeteer/issues/3323
+    if (this.pageType === 'puppeteer' || this.pageType === 'playwright') {
+      await (this.underlyingPage as PuppeteerPage).waitForSelector('html');
+    }
+  }
+
   // @deprecated
   async getElementsInfo() {
     // const scripts = await getExtraReturnLogic();
     // const captureElementSnapshot = await this.evaluate(scripts);
     // return captureElementSnapshot as ElementInfo[];
+    await this.waitForNavigation();
     const tree = await this.getElementsNodeTree();
     return treeToList(tree);
   }
 
   async getElementsNodeTree() {
+    // ref: packages/web-integration/src/playwright/ai-fixture.ts popup logic
+    // During test execution, a new page might be opened through a connection, and the page remains confined to the same page instance.
+    // The page may go through opening, closing, and reopening; if the page is closed, evaluate may return undefined, which can lead to errors.
+    await this.waitForNavigation();
     const scripts = await getExtraReturnLogic(true);
     const captureElementSnapshot = await this.evaluate(scripts);
     return captureElementSnapshot as ElementTreeNode<ElementInfo>;
@@ -67,6 +79,7 @@ export class Page<
     // const viewportSize = await this.size();
     const imgType = 'jpeg';
     const path = getTmpFile(imgType)!;
+    await this.waitForNavigation();
     await this.underlyingPage.screenshot({
       path,
       type: imgType,
@@ -249,7 +262,5 @@ export class Page<
     return this.mouse.wheel(scrollDistance, 0);
   }
 
-  async destroy(): Promise<void> {
-    //
-  }
+  async destroy(): Promise<void> {}
 }

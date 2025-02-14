@@ -258,9 +258,12 @@ export class TaskCache {
         if (!this.midscenePkgInfo) {
           return undefined;
         }
+        const jsonDataPkgVersion = jsonData.pkgVersion.split('.');
+        const midscenePkgInfoPkgVersion =
+          this.midscenePkgInfo.version.split('.');
         if (
-          jsonData.pkgName !== this.midscenePkgInfo.name ||
-          jsonData.pkgVersion !== this.midscenePkgInfo.version
+          jsonDataPkgVersion[0] !== midscenePkgInfoPkgVersion[0] ||
+          jsonDataPkgVersion[1] !== midscenePkgInfoPkgVersion[1]
         ) {
           return undefined;
         }

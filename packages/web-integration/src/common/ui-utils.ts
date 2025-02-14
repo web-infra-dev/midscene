@@ -87,3 +87,22 @@ export function paramStr(task: ExecutionTask) {
     ? value
     : JSON.stringify(value, undefined, 2);
 }
+
+export const limitOpenNewTabScript = `
+// Intercept the window.open method
+window.open = function() { 
+  console.log('Blocked window.open:', arguments);
+  return null;
+};
+
+// Block all a tag clicks
+document.addEventListener('click', function(e) {
+  const target = e.target.closest('a');
+  if (target && target.target === '_blank') {
+    e.preventDefault();
+    console.log('Blocked new tab:', target.href);
+    window.location.href = target.href;
+    target.removeAttribute('target');
+  }
+}, true);
+`;

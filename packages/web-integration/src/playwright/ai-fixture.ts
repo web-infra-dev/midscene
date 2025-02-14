@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
-import { PageAgent } from '@/common/agent';
-import { PlaywrightWebPage } from '@/playwright';
+import type { PageAgent } from '@/common/agent';
+import { PlaywrightAgent } from '@/playwright';
 import type { AgentWaitForOpt } from '@midscene/core';
 import { type TestInfo, type TestType, test } from '@playwright/test';
 import type { Page as OriginPlaywrightPage } from 'playwright';
@@ -28,7 +28,10 @@ const groupAndCaseForTest = (testInfo: TestInfo) => {
 
 const midsceneAgentKeyId = '_midsceneAgentId';
 export const midsceneDumpAnnotationId = 'MIDSCENE_DUMP_ANNOTATION';
-export const PlaywrightAiFixture = () => {
+export const PlaywrightAiFixture = (options?: {
+  forceSameTabNavigation?: boolean;
+}) => {
+  const { forceSameTabNavigation = true } = options ?? {};
   const pageAgentMap: Record<string, PageAgent> = {};
   const agentForPage = (
     page: OriginPlaywrightPage,
@@ -40,9 +43,9 @@ export const PlaywrightAiFixture = () => {
       (page as any)[midsceneAgentKeyId] = idForPage;
       const { testId } = testInfo;
       const { taskFile, taskTitle } = groupAndCaseForTest(testInfo);
-
-      pageAgentMap[idForPage] = new PageAgent(new PlaywrightWebPage(page), {
+      pageAgentMap[idForPage] = new PlaywrightAgent(page, {
         testId: `playwright-${testId}-${idForPage}`,
+        forceSameTabNavigation,
         cacheId: `${taskFile}(${taskTitle})`,
         groupName: taskTitle,
         groupDescription: taskFile,
@@ -73,14 +76,19 @@ export const PlaywrightAiFixture = () => {
       testInfo: TestInfo,
     ) => {
       const agent = agentForPage(page, testInfo);
+
       await use(
-        async (taskPrompt: string, opts?: { type?: 'action' | 'query' }) => {
+        async (
+          taskPrompt: string,
+          opts?: { type?: 'action' | 'query'; trackNewTab?: boolean },
+        ) => {
           return new Promise((resolve, reject) => {
+            const { type = 'action' } = opts || {};
+
             test.step(`ai - ${taskPrompt}`, async () => {
               await waitForNetworkIdle(page);
-              const actionType = opts?.type || 'action';
               try {
-                const result = await agent.ai(taskPrompt, actionType);
+                const result = await agent.ai(taskPrompt, type);
                 resolve(result);
               } catch (error) {
                 reject(error);
@@ -181,7 +189,7 @@ export const PlaywrightAiFixture = () => {
 export type PlayWrightAiFixtureType = {
   ai: <T = any>(
     prompt: string,
-    opts?: { type?: 'action' | 'query' },
+    opts?: { type?: 'action' | 'query'; trackNewTab?: boolean },
   ) => Promise<T>;
   aiAction: (taskPrompt: string) => ReturnType<PageTaskExecutor['action']>;
   aiQuery: <T = any>(demand: any) => Promise<T>;

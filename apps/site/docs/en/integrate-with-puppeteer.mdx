@@ -100,13 +100,13 @@ After the above command executes successfully, the console will output: `Midscen
 
 ## More options in PuppeteerAgent constructor
 
-### To track newly opened tab
+### To limit the popup to the current page
 
-If you want to track the newly opened tab (like clicking a link with `target="_blank"`), you can set the `trackingActiveTab` option to `true`:
+If you want to limit the popup to the current page (like clicking a link with `target="_blank"`), you can set the `forceSameTabNavigation` option to `true`:
 
 ```typescript
 const mid = new PuppeteerAgent(page, {
-  trackingActiveTab: true,
+  forceSameTabNavigation: true,
 });
 ```
 

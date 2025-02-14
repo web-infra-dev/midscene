@@ -21,7 +21,7 @@ declare const __VERSION__: string;
 
 function PlaygroundPopup() {
   const extensionVersion = getExtensionVersion();
-  const { popupTab, setPopupTab, trackingActiveTab } = useEnvConfig();
+  const { popupTab, setPopupTab, forceSameTabNavigation } = useEnvConfig();
 
   const items = [
     {
@@ -32,8 +32,8 @@ function PlaygroundPopup() {
         <div className="popup-playground-container">
           <Playground
             hideLogo
-            getAgent={(trackingActiveTab?: boolean) => {
-              return extensionAgentForTab(trackingActiveTab);
+            getAgent={(forceSameTabNavigation?: boolean) => {
+              return extensionAgentForTab(forceSameTabNavigation);
             }}
             showContextPreview={false}
           />

@@ -19,7 +19,7 @@
     "playwright": "1.44.1",
     "@playwright/test": "^1.44.1",
     "typescript": "~5.0.4",
-    "vitest": "^1.6.0"
+    "vitest": "3.0.5"
   },
   "engines": {
     "node": ">=18.0.0"
