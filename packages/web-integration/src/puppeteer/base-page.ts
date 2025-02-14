@@ -34,6 +34,19 @@ export class Page<
     this.pageType = pageType;
   }
 
+  async waitForNavigation() {
+    if (this.pageType === 'puppeteer') {
+      await (this.underlyingPage as PuppeteerPage).waitForNavigation();
+    } else if (this.pageType === 'playwright') {
+      await (this.underlyingPage as PlaywrightPage).waitForURL(
+        this.underlyingPage.url(),
+        {
+          waitUntil: 'load',
+        },
+      );
+    }
+  }
+
   // @deprecated
   async getElementsInfo() {
     // const scripts = await getExtraReturnLogic();
@@ -44,6 +57,10 @@ export class Page<
   }
 
   async getElementsNodeTree() {
+    // ref: packages/web-integration/src/playwright/ai-fixture.ts popup logic
+    // During test execution, a new page might be opened through a connection, and the page remains confined to the same page instance.
+    // The page may go through opening, closing, and reopening; if the page is closed, evaluate may return undefined, which can lead to errors.
+    await this.waitForNavigation();
     const scripts = await getExtraReturnLogic(true);
     const captureElementSnapshot = await this.evaluate(scripts);
     return captureElementSnapshot as ElementTreeNode<ElementInfo>;

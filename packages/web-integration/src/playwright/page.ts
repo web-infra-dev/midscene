@@ -3,7 +3,7 @@ import type { Page as PlaywrightPageType } from 'playwright';
 import { Page as BasePage } from '../puppeteer/base-page';
 
 export class WebPage extends BasePage<'playwright', PlaywrightPageType> {
-  constructor(page: PlaywrightPageType, opts?: PageAgentOpt) {
+  constructor(page: PlaywrightPageType) {
     super(page, 'playwright');
   }
 }
