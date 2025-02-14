@@ -79,7 +79,11 @@ export class Page implements AbstractPage {
   get keyboard() {
     return {
       type: (text: string) => this.keyboardType(text),
-      press: (key: WebKeyInput) => this.keyboardPress(key),
+      press: (
+        action:
+          | { key: WebKeyInput; command?: string }
+          | { key: WebKeyInput; command?: string }[],
+      ) => this.keyboardPressAction(action),
     };
   }
 
@@ -224,6 +228,38 @@ export class Page implements AbstractPage {
         ],
       },
     ]);
+  }
+
+  private async keyboardPressAction(
+    action:
+      | { key: WebKeyInput; command?: string }
+      | { key: WebKeyInput; command?: string }[],
+  ): Promise<void> {
+    if (Array.isArray(action)) {
+      for (const act of action) {
+        await this.browser.performActions([
+          {
+            type: 'key',
+            id: 'keyboard',
+            actions: [
+              { type: 'keyDown', value: act.key },
+              { type: 'keyUp', value: act.key },
+            ],
+          },
+        ]);
+      }
+    } else {
+      await this.browser.performActions([
+        {
+          type: 'key',
+          id: 'keyboard',
+          actions: [
+            { type: 'keyDown', value: action.key },
+            { type: 'keyUp', value: action.key },
+          ],
+        },
+      ]);
+    }
   }
 
   private async mouseClick(

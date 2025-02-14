@@ -15,6 +15,13 @@ describe('puppeteer integration', () => {
     }
   });
 
+  it('input and clear text', async () => {
+    const { originPage, reset } = await launchPage('https://www.google.com/');
+    resetFn = reset;
+    const agent = new PuppeteerAgent(originPage);
+    await agent.aiAction('Enter "happy birthday" and select Delete all');
+  });
+
   it('Sauce Demo, agent with yaml script', async () => {
     const { originPage, reset } = await launchPage('https://www.bing.com/');
     resetFn = reset;
@@ -22,17 +29,17 @@ describe('puppeteer integration', () => {
     await sleep(3000);
     const { result } = await agent.runYaml(
       `
-tasks:
-  - name: search weather
-    flow:
-      - ai: input 'weather today' in input box, click search button
-      - sleep: 3000
+  tasks:
+    - name: search weather
+      flow:
+        - ai: input 'weather today' in input box, click search button
+        - sleep: 3000
 
-  - name: query weather
-    flow:
-      - aiQuery: "the result shows the weather info, {description: string}"
-        name: weather
-`,
+    - name: query weather
+      flow:
+        - aiQuery: "the result shows the weather info, {description: string}"
+          name: weather
+  `,
     );
 
     expect(result.weather.description).toBeDefined();
@@ -46,11 +53,11 @@ tasks:
     try {
       await agent.runYaml(
         `
-  tasks:
-  - name: search weather
-    flow:
-      - aiAssert: the result shows food delivery service
-        `,
+    tasks:
+    - name: search weather
+      flow:
+        - aiAssert: the result shows food delivery service
+          `,
       );
     } catch (e: any) {
       errorMsg = e.message;
@@ -66,22 +73,22 @@ tasks:
     const agent = new PuppeteerAgent(originPage);
     const { result } = await agent.runYaml(
       `
-tasks:
-  - name: search weather
-    flow:
-      - ai: input 'weather today' in input box, press Enter
-      - sleep: 3000
+  tasks:
+    - name: search weather
+      flow:
+        - ai: input 'weather today' in input box, click search button
+        - sleep: 3000
 
-  - name: query weather
-    flow:
-      - aiQuery: "the result shows the weather info, {description: string}"
-        name: weather
+    - name: query weather
+      flow:
+        - aiQuery: "the result shows the weather info, {description: string}"
+          name: weather
 
-  - name: error
-    continueOnError: true
-    flow:
-      - aiAssert: the result shows food delivery service
-  `,
+    - name: error
+      continueOnError: true
+      flow:
+        - aiAssert: the result shows food delivery service
+    `,
     );
 
     expect(result.weather.description).toBeDefined();

@@ -1,7 +1,7 @@
 {
   "name": "@midscene/web",
   "description": "Automate browser actions, extract data, and perform assertions using AI. It offers JavaScript SDK, Chrome extension, and support for scripting in YAML. See https://midscenejs.com/ for details.",
-  "version": "0.11.0",
+  "version": "0.11.1",
   "repository": "https://github.com/web-infra-dev/midscene",
   "homepage": "https://midscenejs.com/",
   "jsnext:source": "./src/index.ts",
@@ -144,7 +144,7 @@
     "js-sha256": "0.11.0",
     "js-yaml": "4.1.0",
     "playwright": "1.44.1",
-    "puppeteer": "23.0.2",
+    "puppeteer": "24.2.0",
     "typescript": "~5.0.4",
     "vitest": "^1.6.0",
     "webdriverio": "9.0.6"

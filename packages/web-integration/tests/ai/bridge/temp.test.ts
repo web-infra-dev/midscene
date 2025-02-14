@@ -6,23 +6,20 @@ import { sleep } from '@midscene/core/utils';
 import { describe, expect, it, vi } from 'vitest';
 
 vi.setConfig({
-  testTimeout: 40 * 60 * 1000,
+  testTimeout: 300 * 1000,
 });
 
 describe.skipIf(!process.env.BRIDGE_MODE)('drag event', () => {
   it('agent in cli side, current tab', async () => {
     const agent = new AgentOverChromeBridge({
-      cacheId: 'star-midscene-github',
+      // cacheId: 'finish-form-and-submit',
     });
-    await agent.connectCurrentTab({
-      trackingActiveTab: true,
-    });
+    await agent.connectCurrentTab();
 
-    await agent.aiAction(
-      'Search midscene github and complete the star like or cancel',
-    );
+    await sleep(2000);
 
-    await sleep(3000);
+    await agent.aiAction('输入 "Happy Birthday，只需要输入即可"');
+    await agent.aiQuery('输入框内容：Array<string>');
 
     await agent.destroy();
   });

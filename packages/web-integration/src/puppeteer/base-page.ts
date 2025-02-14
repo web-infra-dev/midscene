@@ -137,14 +137,19 @@ export class Page<
     return {
       type: async (text: string) =>
         this.underlyingPage.keyboard.type(text, { delay: 80 }),
-      press: async (key: WebKeyInput | WebKeyInput[]) => {
-        const keys = Array.isArray(key) ? key : [key];
-        for (const key of keys) {
-          await this.underlyingPage.keyboard.down(key);
-        }
 
-        for (const key of [...keys].reverse()) {
-          await this.underlyingPage.keyboard.up(key);
+      press: async (
+        action:
+          | { key: WebKeyInput; command?: string }
+          | { key: WebKeyInput; command?: string }[],
+      ) => {
+        const keys = Array.isArray(action) ? action : [action];
+        for (const k of keys) {
+          const commands = k.command ? [k.command] : [];
+          await this.underlyingPage.keyboard.down(k.key, { commands });
+        }
+        for (const k of [...keys].reverse()) {
+          await this.underlyingPage.keyboard.up(k.key);
         }
       },
       down: async (key: WebKeyInput) => {
@@ -182,7 +187,7 @@ export class Page<
       await this.underlyingPage.keyboard.up('Control');
     }
     await sleep(100);
-    await this.keyboard.press('Backspace');
+    await this.keyboard.press([{ key: 'Backspace' }]);
   }
 
   private async moveToPoint(point?: Point): Promise<void> {

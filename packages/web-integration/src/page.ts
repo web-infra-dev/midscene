@@ -21,7 +21,11 @@ export interface MouseAction {
 
 export interface KeyboardAction {
   type: (text: string) => Promise<void>;
-  press: (key: WebKeyInput) => Promise<void>;
+  press: (
+    action:
+      | { key: WebKeyInput; command?: string }
+      | { key: WebKeyInput; command?: string }[],
+  ) => Promise<void>;
 }
 
 export abstract class AbstractPage {
@@ -52,7 +56,11 @@ export abstract class AbstractPage {
   get keyboard(): KeyboardAction {
     return {
       type: async (text: string) => {},
-      press: async (key: WebKeyInput) => {},
+      press: async (
+        action:
+          | { key: WebKeyInput; command?: string }
+          | { key: WebKeyInput; command?: string }[],
+      ) => {},
     };
   }
 
