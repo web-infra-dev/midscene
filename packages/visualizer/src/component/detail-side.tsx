@@ -223,17 +223,17 @@ const DetailSide = (): JSX.Element => {
   let taskParam: JSX.Element | null = null;
   if (task?.type === 'Planning') {
     const planningTask = task as ExecutionTaskPlanning;
-    if (planningTask.param?.whatHaveDone) {
+    if (planningTask.param?.userInstruction) {
       taskParam = MetaKV({
         data: [
           { key: 'type', content: (task && typeStr(task)) || '' },
           {
-            key: 'whatHaveDone',
-            content: planningTask.param.whatHaveDone,
+            key: 'userInstruction',
+            content: planningTask.param.userInstruction,
           },
           {
-            key: 'whatToDoNext',
-            content: planningTask.param.userPrompt,
+            key: 'logs',
+            content: planningTask.param.log,
           },
         ],
       });
@@ -398,20 +398,29 @@ const DetailSide = (): JSX.Element => {
         };
       }),
     );
-    if ((task as ExecutionTaskPlanning).output?.furtherPlan) {
+    if ((task as ExecutionTaskPlanning).output?.log) {
       timelineData.push({
         color: '#06B1AB',
         children: (
           <>
             <p>
-              <b>Further Plan</b>
+              <b>What have been done</b>
             </p>
+            <p>{(task as ExecutionTaskPlanning).output?.log}</p>
+          </>
+        ),
+      });
+    }
+
+    if (typeof (task as ExecutionTaskPlanning).output?.finish === 'boolean') {
+      timelineData.push({
+        color: '#06B1AB',
+        children: (
+          <>
             <p>
-              {
-                (task as ExecutionTaskPlanning).output?.furtherPlan
-                  ?.whatToDoNext
-              }
+              <b>if finished</b>
             </p>
+            <p>{(task as ExecutionTaskPlanning).output?.finish}</p>
           </>
         ),
       });

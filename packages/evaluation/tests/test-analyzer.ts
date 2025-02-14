@@ -219,8 +219,8 @@ ${errorMsg ? `Error: ${errorMsg}` : ''}
         }
       }
 
-      if (expected?.taskWillBeAccomplished !== result.taskWillBeAccomplished) {
-        const msg = `expected?.taskWillBeAccomplished: ${expected?.taskWillBeAccomplished} is not equal to result.taskWillBeAccomplished: ${result.taskWillBeAccomplished}, the prompt is: ${testCase.prompt}`;
+      if (expected?.finish !== result.finish) {
+        const msg = `expected?.finish: ${expected?.finish} is not equal to result.finish: ${result.finish}, the prompt is: ${testCase.prompt}`;
         return new Error(msg);
       }
 

@@ -19,10 +19,9 @@ import {
 import { describeUserPage } from './prompt/util';
 
 export async function plan(
-  userPrompt: string,
+  userInstruction: string,
   opts: {
-    whatHaveDone?: string;
-    originalPrompt?: string;
+    log?: string;
     context: UIContext;
     callAI?: typeof callAiFn<PlanningAIResponse>;
   },
@@ -33,9 +32,8 @@ export async function plan(
 
   const systemPrompt = await systemPromptToTaskPlanning();
   const taskBackgroundContextText = generateTaskBackgroundContext(
-    userPrompt,
-    opts.originalPrompt,
-    opts.whatHaveDone,
+    userInstruction,
+    opts.log,
   );
   const userInstructionPrompt = await automationUserPrompt().format({
     pageDescription,
@@ -66,9 +64,12 @@ export async function plan(
   const { content, usage } = await call(msgs, AIActionType.PLAN);
   const rawResponse = JSON.stringify(content, undefined, 2);
   const planFromAI = content;
-  const actions = planFromAI?.actions || [];
+  const actions = (planFromAI as any).action
+    ? [(planFromAI as any).action]
+    : [];
   const returnValue: PlanningAIResponse = {
     ...planFromAI,
+    actions,
     rawResponse,
     usage,
   };
@@ -77,7 +78,6 @@ export async function plan(
     const zoomFactorX = await qwenVLZoomFactor(size.width);
     const zoomFactorY = await qwenVLZoomFactor(size.height);
 
-    const actions = planFromAI?.actions || [];
     actions.forEach((action) => {
       if (
         action.locate &&
@@ -105,7 +105,7 @@ export async function plan(
 
   assert(planFromAI, "can't get plans from AI");
   assert(
-    actions.length > 0,
+    actions.length > 0 || returnValue.finish,
     `Failed to plan actions: ${planFromAI.error || '(no error details)'}`,
   );
 
