@@ -505,28 +505,8 @@ export function Playground({
   };
 
   let actionBtn: React.ReactNode = null;
-  if (dryMode) {
-    actionBtn = (
-      <Tooltip title="Start executing until some interaction actions need to be performed. You can see the process of planning and locating.">
-        <Button
-          type="primary"
-          icon={<SendOutlined />}
-          onClick={handleRun}
-          disabled={!runButtonEnabled}
-          loading={loading}
-        >
-          Dry Run
-        </Button>
-      </Tooltip>
-    );
-  } else if (stoppable) {
-    actionBtn = (
-      <Button icon={<BorderOutlined />} onClick={handleStop}>
-        Stop
-      </Button>
-    );
-  } else {
-    actionBtn = (
+  const runBtn = (text: string) => {
+    return (
       <Button
         type="primary"
         icon={<SendOutlined />}
@@ -534,9 +514,27 @@ export function Playground({
         disabled={!runButtonEnabled}
         loading={loading}
       >
-        Run
+        {text}
       </Button>
     );
+  };
+  if (dryMode) {
+    actionBtn =
+      selectedType === 'aiAction' ? (
+        <Tooltip title="Start executing until some interaction actions need to be performed. You can see the process of planning and locating.">
+          {runBtn('Dry Run')}
+        </Tooltip>
+      ) : (
+        runBtn('Run')
+      );
+  } else if (stoppable) {
+    actionBtn = (
+      <Button icon={<BorderOutlined />} onClick={handleStop}>
+        Stop
+      </Button>
+    );
+  } else {
+    actionBtn = runBtn('Run');
   }
 
   const historySelector = useHistorySelector((historyItem) => {

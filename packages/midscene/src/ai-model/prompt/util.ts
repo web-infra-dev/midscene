@@ -99,16 +99,15 @@ export const extractDataSchema: ResponseFormatJSONSchema = {
 
 export function systemPromptToAssert() {
   return `
-${characteristic}
-User will give an assertion and a screenshot of a page. Based on the information you get, tell whether the assertion is truthy.
+You are a senior testing engineer. User will give an assertion and a screenshot of a page. Please tell whether the assertion is truthy.
+This is a situation for UI testing, so the checking process should be very strict. For example, make sure the text shown on screenshot is EXACTLY the same as the assertion.
 
 Return in the following JSON format:
 {
-  whatIsActuallyShownInString: string, // string, according to the screenshot, what is actually shown on the page. Describe by the same language as the assertion.
-  thought: string, // string, the thought of the assertion.
-  pass: true, // true or false, whether the assertion is truthy
-}
-`;
+  pass: boolean, // whether the assertion is truthy
+  thought: string, // string, if the result is falsy, give the reason why it is falsy. Otherwise, don't include this field.
+  }
+  `;
 }
 
 export const assertSchema: ResponseFormatJSONSchema = {
@@ -119,16 +118,16 @@ export const assertSchema: ResponseFormatJSONSchema = {
     schema: {
       type: 'object',
       properties: {
-        thought: {
-          type: 'string',
-          description: 'The thought process behind the assertion',
-        },
         pass: {
           type: 'boolean',
           description: 'Whether the assertion passed or failed',
         },
+        thought: {
+          type: 'string',
+          description: 'The thought process behind the assertion',
+        },
       },
-      required: ['thought', 'pass'],
+      required: ['pass'],
       additionalProperties: false,
     },
   },
