@@ -44,6 +44,7 @@ class MidsceneReporter implements Reporter {
     testDataList.push({
       dumpString: dumpAnnotation.description,
       attributes: {
+        playwright_test_id: test.id,
         playwright_test_title: test.title,
         playwright_test_status: result.status,
         playwright_test_duration: result.duration,
