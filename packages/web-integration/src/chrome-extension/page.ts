@@ -105,16 +105,6 @@ export default class ChromeExtensionProxyPage implements AbstractPage {
         // wait util the debugger banner in Chrome appears
         await sleep(500);
 
-        if (this.forceSameTabNavigation) {
-          await chrome.debugger.sendCommand(
-            { tabId: currentTabId },
-            'Runtime.evaluate',
-            {
-              expression: limitOpenNewTabScript,
-            },
-          );
-        }
-
         this.tabIdOfDebuggerAttached = currentTabId;
 
         await this.enableWaterFlowAnimation();
@@ -169,6 +159,17 @@ export default class ChromeExtensionProxyPage implements AbstractPage {
   }
 
   private async enableWaterFlowAnimation() {
+    // limit open page in new tab
+    if (this.forceSameTabNavigation) {
+      await chrome.debugger.sendCommand(
+        { tabId: this.tabIdOfDebuggerAttached! },
+        'Runtime.evaluate',
+        {
+          expression: limitOpenNewTabScript,
+        },
+      );
+    }
+
     const script = await injectWaterFlowAnimation();
     // we will call this function in sendCommandToDebugger, so we have to use the chrome.debugger.sendCommand
     await chrome.debugger.sendCommand(

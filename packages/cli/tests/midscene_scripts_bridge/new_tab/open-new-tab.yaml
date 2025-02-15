@@ -1,0 +1,15 @@
+target:
+  url: https://www.bing.com
+  bridgeMode: newTabWithUrl
+  forceSameTabNavigation: true
+tasks:
+  - name: search weather
+    flow:
+      - sleep: 5000
+      - ai: input 'midscene github' in input box, click search button
+      - ai: click the first result
+      - sleep: 5000
+
+  - name: check result
+    flow:
+      - aiAssert: the page is "midscene github"
