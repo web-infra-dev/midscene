@@ -6,6 +6,7 @@ import { paramStr, typeStr } from '@midscene/web/ui-utils';
 import type {
   ExecutionDump,
   ExecutionTask,
+  ExecutionTaskApply,
   ExecutionTaskInsightLocate,
   ExecutionTaskPlanning,
   GroupedActionDump,
@@ -135,9 +136,9 @@ export const allScriptsFromDump = (
   dump.executions.forEach((execution) => {
     execution.tasks.forEach((task) => {
       const insightTask = task as ExecutionTaskInsightLocate;
-      if (insightTask.log?.dump?.context?.size?.width) {
-        width = insightTask.log?.dump?.context?.size?.width;
-        height = insightTask.log?.dump?.context?.size?.height;
+      if (insightTask.pageContext?.size?.width) {
+        width = insightTask.pageContext.size.width;
+        height = insightTask.pageContext.size.height;
       }
 
       if (insightTask.log?.dump?.sdkVersion) {
