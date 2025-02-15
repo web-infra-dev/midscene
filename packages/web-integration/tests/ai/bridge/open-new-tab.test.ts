@@ -19,7 +19,7 @@ describeIf('open new tab in bridge mode', () => {
     },
     async () => {
       const agent = new AgentOverChromeBridge();
-      await agent.connectNewTabWithUrl('https://www.baidu.com');
+      await agent.connectNewTabWithUrl('https://www.google.com');
 
       await agent.aiAction(
         'search "midscene github" and open the first result',
