@@ -10,7 +10,7 @@ There are multiple agents in Midscene, each with its own constructor.
 Here are the common options for all agents:
 
 * `generateReport: boolean`: If true, the agent will generate a report file. Default is true.
-* `autoPrintReportMsg: boolean`: If true, the agent will print the report message. Default is true.
+* `autoPrintReportMsg: boolean`: If true, the agent will print the report message once generated. Default is true.
 * `cacheId: string | undefined`: If set, the agent will use this cacheId to match the cache. Default is undefined.
 
 And also, puppeteer agent has an extra option:
