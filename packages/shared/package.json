@@ -1,6 +1,6 @@
 {
   "name": "@midscene/shared",
-  "version": "0.11.2",
+  "version": "0.11.3",
   "repository": "https://github.com/web-infra-dev/midscene",
   "homepage": "https://midscenejs.com/",
   "types": "./src/index.ts",
