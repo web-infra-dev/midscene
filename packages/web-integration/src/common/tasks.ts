@@ -962,7 +962,9 @@ export class PageTaskExecutor {
     opt: PlanningActionParamWaitFor,
   ): Promise<ExecutionResult<void>> {
     const description = `waitFor: ${assertion}`;
-    const taskExecutor = new Executor(description);
+    const taskExecutor = new Executor(description, undefined, undefined, {
+      onTaskStart: opt.onTaskStart,
+    });
     const { timeoutMs, checkIntervalMs } = opt;
 
     assert(assertion, 'No assertion for waitFor');

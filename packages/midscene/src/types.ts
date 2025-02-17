@@ -300,9 +300,10 @@ export interface PlanningActionParamError {
   thought: string;
 }
 
-export type PlanningActionParamWaitFor = AgentWaitForOpt & {
-  assertion: string;
-};
+export type PlanningActionParamWaitFor = ExecutionTaskProgressOptions &
+  AgentWaitForOpt & {
+    assertion: string;
+  };
 /**
  * misc
  */

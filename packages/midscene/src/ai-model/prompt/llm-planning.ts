@@ -8,15 +8,16 @@ import type { ResponseFormatJSONSchema } from 'openai/resources';
 import { samplePageDescription } from './util';
 
 const systemTemplateOfQwen = `
-Target: User will give you a screenshot, an instruction and some previous logs indicating what have been done. Please tell what the next action is to finish the instruction.
+Target: User will give you a screenshot, an instruction and some previous logs indicating what have been done. Please tell what the NEXT action is to finish the instruction.
+Don't give extra actions beyond the instruction. Don't repeat actions in the previous logs.
 
 Supporting actions:
 - Tap: { type: "Tap", locate: {"bbox": [number, number, number, number] } }
 - Hover: { type: "Hover", locate: {"bbox": [number, number, number, number] } }
 - Input: { type: "Input", locate: {"bbox": [number, number, number, number] }, param: { value: string } } // \`value\` is the final that should be filled in the input box. No matter what modifications are required, just provide the final value to replace the existing input value. 
 - KeyboardPress: { type: "KeyboardPress", param: { value: string } }
-- Scroll: { type: "Scroll",   locate: {"bbox": [number, number, number, number] } | null, param: { direction: 'down'(default) | 'up' | 'right' | 'left', scrollType: 'once' (default) | 'untilBottom' | 'untilTop' | 'untilRight' | 'untilLeft', distance: null | number }}
-- ExpectedFalsyCondition: { type: "ExpectedFalsyCondition", param: null } // Use this action when the conditional statement talked about in the instruction is falsy.
+- Scroll: { type: "Scroll", locate: {"bbox": [number, number, number, number] } | null, param: { direction: 'down'(default) | 'up' | 'right' | 'left', scrollType: 'once' (default) | 'untilBottom' | 'untilTop' | 'untilRight' | 'untilLeft', distance: null | number }}
+- ExpectedFalsyCondition: { type: "ExpectedFalsyCondition", param: {reason: string} } // Use this action when the conditional statement talked about in the instruction is falsy.
 
 Return in JSON format:
 {
@@ -25,9 +26,9 @@ Return in JSON format:
       // one of the supporting actions
     },
   ,
-  "finish": boolean, // Whether the instruction is finished after the action.
   "sleep"?: number, // The sleep time after the action, in milliseconds.
-  "log": string, // Log what have been done in this action. Use the same language as the user's instruction.
+  "finish": boolean, // Whether this action is the last one to finish the instruction
+  "log": string, // Log what this action does. Use the same language as the user's instruction.
   "error"?: string // Error messages about unexpected situations, if any. Use the same language as the user's instruction.
 }
 `;
@@ -306,7 +307,8 @@ Here is the user's instruction:
 ${userInstruction}
 =============
 
-This is the logs means what have been done after the previous actions. Please plan the next action based on the following logs:
+These are the logs from previous executions, which indicate what was done in the previous actions.
+Do NOT repeat these actions.
 =============
 ${log}
 =============

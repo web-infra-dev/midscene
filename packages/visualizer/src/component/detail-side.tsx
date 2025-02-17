@@ -228,11 +228,11 @@ const DetailSide = (): JSX.Element => {
         data: [
           { key: 'type', content: (task && typeStr(task)) || '' },
           {
-            key: 'userInstruction',
+            key: 'instruction',
             content: planningTask.param.userInstruction,
           },
           {
-            key: 'logs',
+            key: 'log',
             content: planningTask.param.log,
           },
         ],
