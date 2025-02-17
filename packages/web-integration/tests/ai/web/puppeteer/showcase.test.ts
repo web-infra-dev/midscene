@@ -14,7 +14,7 @@ describe(
       }
     });
 
-    it.only('Sauce Demo by Swag Lab', async () => {
+    it('Sauce Demo by Swag Lab', async () => {
       const { originPage, reset } = await launchPage(
         'https://www.saucedemo.com/',
       );
@@ -33,20 +33,20 @@ describe(
 
       expect(onTaskStartTip.mock.calls.length).toBeGreaterThan(1);
 
-      // await expect(async () => {
-      //   await mid.aiWaitFor('there is a cookie prompt in the UI', {
-      //     timeoutMs: 10 * 1000,
-      //   });
-      // }).rejects.toThrowError();
+      await expect(async () => {
+        await mid.aiWaitFor('there is a cookie prompt in the UI', {
+          timeoutMs: 10 * 1000,
+        });
+      }).rejects.toThrowError();
 
-      // // find the items
-      // const items = await mid.aiQuery(
-      //   '"{name: string, price: number, actionBtnName: string}[], return item name, price and the action button name on the lower right corner of each item (like "Remove")',
-      // );
-      // console.log('item list', items);
-      // expect(items.length).toBeGreaterThanOrEqual(2);
+      // find the items
+      const items = await mid.aiQuery(
+        '"{name: string, price: number, actionBtnName: string}[], return item name, price and the action button name on the lower right corner of each item (like "Remove")',
+      );
+      console.log('item list', items);
+      expect(items.length).toBeGreaterThanOrEqual(2);
 
-      // await mid.aiAssert('The price of "Sauce Labs Onesie" is 7.99');
+      await mid.aiAssert('The price of "Sauce Labs Onesie" is 7.99');
     });
 
     it('extract the Github service status', async () => {

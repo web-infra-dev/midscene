@@ -1,9 +1,5 @@
 import assert from 'node:assert';
-import {
-  MATCH_BY_POSITION,
-  MIDSCENE_USE_QWEN_VL,
-  getAIConfigInBoolean,
-} from '@/env';
+import { MIDSCENE_USE_QWEN_VL, getAIConfigInBoolean } from '@/env';
 import type { PlanningAIResponse, UIContext } from '@/types';
 import {
   AIActionType,

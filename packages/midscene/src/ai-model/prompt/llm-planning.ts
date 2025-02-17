@@ -1,34 +1,36 @@
-import { MATCH_BY_POSITION, getAIConfigInBoolean } from '@/env';
+import {
+  MATCH_BY_POSITION,
+  MIDSCENE_USE_QWEN_VL,
+  getAIConfigInBoolean,
+} from '@/env';
 import { PromptTemplate } from '@langchain/core/prompts';
 import type { ResponseFormatJSONSchema } from 'openai/resources';
 import { samplePageDescription } from './util';
 
-const locatorConfig = () => {
-  const matchByPosition = getAIConfigInBoolean(MATCH_BY_POSITION);
-  const locationByPosition = {
-    format: '{"bbox": [number, number, number, number], "prompt": string }',
-    sample: '{"bbox": [20, 50, 200, 400], "prompt": "the search bar"}',
-    wrongSample: '{"bbox": [20, 50, 200, 400]}',
-    locateParam: `{
-      "bbox": [number, number, number, number], // the bounding box of the element to manipulate
-      "prompt": string // the description of the element
-    } | null // If it's not on the page, the LocateParam should be null`,
-    sampleStepOfLocating: '',
-  };
+const systemTemplateOfQwen = `
+Target: User will give you a screenshot, an instruction and some previous logs indicating what have been done. Please tell what the next action is to finish the instruction.
 
-  const locationById = {
-    format: '{"id": string, "prompt": string}',
-    sample: `{"id": "c81c4e9a33", "prompt": "the search bar"}`,
-    wrongSample: '{"id": "c81c4e9a33"}',
-    locateParam: `{
-      "id": string, // the id of the element found. It should either be the id marked with a rectangle in the screenshot or the id described in the description.
-      "prompt"?: string // the description of the element to find. It can only be omitted when locate is null.
-    } | null // If it's not on the page, the LocateParam should be null`,
-    sampleStepOfLocating: `* The language switch button is shown in the screenshot, but it's not marked with a rectangle. So we have to use the page description to find the element. By carefully checking the context information (coordinates, attributes, content, etc.), you can find the element.`,
-  };
+Supporting actions:
+- Tap: { type: "Tap", locate: {"bbox": [number, number, number, number] } }
+- Hover: { type: "Hover", locate: {"bbox": [number, number, number, number] } }
+- Input: { type: "Input", locate: {"bbox": [number, number, number, number] }, param: { value: string } } // \`value\` is the final that should be filled in the input box. No matter what modifications are required, just provide the final value to replace the existing input value. 
+- KeyboardPress: { type: "KeyboardPress", param: { value: string } }
+- Scroll: { type: "Scroll",   locate: {"bbox": [number, number, number, number] } | null, param: { direction: 'down'(default) | 'up' | 'right' | 'left', scrollType: 'once' (default) | 'untilBottom' | 'untilTop' | 'untilRight' | 'untilLeft', distance: null | number }}
+- ExpectedFalsyCondition: { type: "ExpectedFalsyCondition", param: null } // Use this action when the conditional statement talked about in the instruction is falsy.
 
-  return matchByPosition ? locationByPosition : locationById;
-};
+Return in JSON format:
+{
+  "action": 
+    {
+      // one of the supporting actions
+    },
+  ,
+  "finish": boolean, // Whether the instruction is finished after the action.
+  "sleep"?: number, // The sleep time after the action, in milliseconds.
+  "log": string, // Log what have been done in this action. Use the same language as the user's instruction.
+  "error"?: string // Error messages about unexpected situations, if any. Use the same language as the user's instruction.
+}
+`;
 
 const systemTemplate = `
 ## Role
@@ -58,23 +60,26 @@ You are a versatile professional in software UI automation. Your outstanding con
 
 The \`locate\` param is commonly used in the \`param\` field of the action, means to locate the target element to perform the action, it conforms to the following scheme:
 
-type LocateParam = {locateParam}
+type LocateParam = {
+      "id": string, // the id of the element found. It should either be the id marked with a rectangle in the screenshot or the id described in the description.
+      "prompt"?: string // the description of the element to find. It can only be omitted when locate is null.
+    } | null // If it's not on the page, the LocateParam should be null
 
 ### Supported actions
 
 Each action has a \`type\` and corresponding \`param\`. To be detailed:
 - type: 'Tap', tap the located element
-  * {{ locate: {format} }}
+  * {{ locate: {"id": string, "prompt": string} }}
 - type: 'Hover', move mouse over to the located element
-  * {{ locate: {format} }}
+  * {{ locate: {"id": string, "prompt": string} }}
 - type: 'Input', replace the value in the input field
-  * {{ locate: {format}, param: {{ value: string }} }}
+  * {{ locate: {"id": string, "prompt": string}, param: {{ value: string }} }}
   * \`value\` is the final required input value based on the existing input. No matter what modifications are required, just provide the final value to replace the existing input value. 
 - type: 'KeyboardPress', press a key
   * {{ param: {{ value: string }} }}
 - type: 'Scroll', scroll up or down.
   * {{ 
-      locate: {format} | null, 
+      locate: {"id": string, "prompt": string} | null, 
       param: {{ 
         direction: 'down'(default) | 'up' | 'right' | 'left', 
         scrollType: 'once' (default) | 'untilBottom' | 'untilTop' | 'untilRight' | 'untilLeft', 
@@ -96,7 +101,7 @@ The JSON format is as follows:
   "action": 
     {{
       "type": "Tap",
-      "locate": {format} | null,
+      "locate": {"id": string, "prompt": string} | null,
     }},
   ,
   "finish": boolean,
@@ -114,14 +119,14 @@ When the instruction is 'Click the language switch button, wait 1s, click "Engli
 By viewing the page screenshot and description, you should consider this and output the JSON:
 
 * The first step should be: tap the switch button, and sleep 1s after tapping.
-{sampleStepOfLocating}
+* The language switch button is shown in the screenshot, but it's not marked with a rectangle. So we have to use the page description to find the element. By carefully checking the context information (coordinates, attributes, content, etc.), you can find the element.
 * The task cannot be accomplished (this is just the first step), so \`finish\` is false.
 
 {{
   "action":
     {{
       "type": "Tap", 
-      "locate": {sample},
+      "locate": {"id": "c81c4e9a33", "prompt": "the search bar"},
     }}
   ,
   "sleep": 1000,
@@ -166,25 +171,17 @@ For contrast, if the instruction is "Close the popup", you should consider this 
 `;
 
 export async function systemPromptToTaskPlanning() {
+  if (getAIConfigInBoolean(MIDSCENE_USE_QWEN_VL)) {
+    return systemTemplateOfQwen;
+  }
+
   const promptTemplate = new PromptTemplate({
     template: `${systemTemplate}\n\n${outputTemplate}`,
-    inputVariables: [
-      'pageDescription',
-      'sample',
-      'locateParam',
-      'wrongSample',
-      'format',
-      'sampleStepOfLocating',
-    ],
+    inputVariables: ['pageDescription'],
   });
 
   return await promptTemplate.format({
-    pageDescription: samplePageDescription(),
-    sample: locatorConfig().sample,
-    locateParam: locatorConfig().locateParam,
-    wrongSample: locatorConfig().wrongSample,
-    format: locatorConfig().format,
-    sampleStepOfLocating: locatorConfig().sampleStepOfLocating,
+    pageDescription: samplePageDescription,
   });
 }
 
@@ -305,22 +302,22 @@ export const generateTaskBackgroundContext = (
   if (log) {
     return `
 Here is the user's instruction:
-=====================================
+=============
 ${userInstruction}
-=====================================
+=============
 
 This is the logs means what have been done after the previous actions. Please plan the next action based on the following logs:
-=====================================
+=============
 ${log}
-=====================================
+=============
 `;
   }
 
   return `
 Here is the user's instruction:
-=====================================
+=============
 ${userInstruction}
-=====================================
+=============
 `;
 };
 

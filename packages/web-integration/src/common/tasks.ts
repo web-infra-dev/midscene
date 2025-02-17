@@ -529,6 +529,7 @@ export class PageTaskExecutor {
           });
         }
 
+        // console.log('planResult is', planResult);
         const { actions, log, finish, error, usage, rawResponse, sleep } =
           planResult;
 

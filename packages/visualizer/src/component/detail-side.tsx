@@ -404,7 +404,7 @@ const DetailSide = (): JSX.Element => {
         children: (
           <>
             <p>
-              <b>What have been done</b>
+              <b>Log - What have been done</b>
             </p>
             <p>{(task as ExecutionTaskPlanning).output?.log}</p>
           </>
@@ -418,9 +418,13 @@ const DetailSide = (): JSX.Element => {
         children: (
           <>
             <p>
-              <b>if finished</b>
+              <b>If finished</b>
             </p>
-            <p>{(task as ExecutionTaskPlanning).output?.finish}</p>
+            <p>
+              {(task as ExecutionTaskPlanning).output?.finish
+                ? 'true'
+                : 'false'}
+            </p>
           </>
         ),
       });
