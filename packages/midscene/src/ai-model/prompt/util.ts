@@ -100,7 +100,7 @@ export const extractDataSchema: ResponseFormatJSONSchema = {
 export function systemPromptToAssert() {
   return `
 You are a senior testing engineer. User will give an assertion and a screenshot of a page. Please tell whether the assertion is truthy.
-This is a situation for UI testing, so the checking process should be very strict. For example, make sure the text shown on screenshot is EXACTLY the same as the assertion.
+This is a situation for UI testing, so the checking process should be strict. For example, make sure the text shown on screenshot is EXACTLY the same as the assertion.
 
 Return in the following JSON format:
 {

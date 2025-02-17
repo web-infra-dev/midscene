@@ -450,7 +450,7 @@ export class PageTaskExecutor {
             type: 'Action',
             subType: 'ExpectedFalsyCondition',
             param: null,
-            thought: plan.thought,
+            thought: plan.param?.reason,
             locate: plan.locate,
             executor: async () => {
               // console.warn(`[warn]falsy condition: ${plan.thought}`);
