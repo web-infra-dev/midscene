@@ -148,7 +148,7 @@ export async function transformElementPositionToId(
   };
 }
 
-function getQuickAnswer(
+function matchQuickAnswer(
   quickAnswer:
     | Partial<AISingleElementResponse>
     | Partial<AISingleElementResponseByPosition>
@@ -156,14 +156,14 @@ function getQuickAnswer(
   tree: ElementTreeNode<BaseElement>,
   elementById: ElementById,
   insertElementByPosition: (position: { x: number; y: number }) => BaseElement,
-) {
+): Awaited<ReturnType<typeof AiInspectElement>> | undefined {
   if (!quickAnswer) {
     return undefined;
   }
   if ('id' in quickAnswer && quickAnswer.id && elementById(quickAnswer.id)) {
     return {
       parseResult: {
-        elements: [quickAnswer],
+        elements: [quickAnswer as AISingleElementResponse],
         errors: [],
       },
       rawResponse: quickAnswer,
@@ -228,7 +228,7 @@ export async function AiInspectElement<
   const { description, elementById, insertElementByPosition, size } =
     await describeUserPage(context);
   // meet quick answer
-  const quickAnswer = getQuickAnswer(
+  const quickAnswer = matchQuickAnswer(
     options.quickAnswer,
     context.tree,
     elementById,
