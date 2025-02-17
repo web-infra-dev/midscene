@@ -51,6 +51,10 @@ class MidsceneReporter implements Reporter {
       },
     });
 
+    test.annotations = test.annotations.filter(
+      (annotation) => annotation.type !== 'MIDSCENE_DUMP_ANNOTATION',
+    );
+
     updateReport();
   }
 

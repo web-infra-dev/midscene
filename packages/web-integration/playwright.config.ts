@@ -58,6 +58,11 @@ export default defineConfig({
   ],
   reporter: [
     [process.env.CI ? 'line' : 'list'],
+    // [
+    //   'json',
+    //   { outputFile: 'midscene_run/playwright-report/test-results.json' },
+    // ],
+    // ['html', { outputFolder: 'midscene_run/playwright-report' }],
     ['./src/playwright/reporter/index.ts'],
   ],
 });
