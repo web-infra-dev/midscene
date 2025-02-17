@@ -237,6 +237,7 @@ export class PageAgent<PageType extends WebPage = WebPage> {
       timeoutMs: opt?.timeoutMs || 15 * 1000,
       checkIntervalMs: opt?.checkIntervalMs || 3 * 1000,
       assertion,
+      onTaskStart: this.callbackOnTaskStartTip.bind(this),
     });
     this.appendExecutionDump(executor.dump());
     this.writeOutActionDumps();

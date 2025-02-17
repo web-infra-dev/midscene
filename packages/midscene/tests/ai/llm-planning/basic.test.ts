@@ -121,7 +121,7 @@ describe('automation - planning', () => {
     // console.log(res);
     expect(res.furtherPlan).toBeTruthy();
     expect(res.furtherPlan?.whatToDoNext).toBeTruthy();
-    expect(res.furtherPlan?.whatHaveDone).toBeTruthy();
+    expect(res.furtherPlan?.log).toBeTruthy();
   });
 
   it.skip('partial error', async () => {
@@ -132,6 +132,6 @@ describe('automation - planning', () => {
     );
     expect(res.furtherPlan).toBeTruthy();
     expect(res.furtherPlan?.whatToDoNext).toBeTruthy();
-    expect(res.furtherPlan?.whatHaveDone).toBeTruthy();
+    expect(res.furtherPlan?.log).toBeTruthy();
   });
 });

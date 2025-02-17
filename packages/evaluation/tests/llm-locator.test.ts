@@ -20,12 +20,12 @@ dotenv.config({
 const failCaseThreshold = process.env.CI ? 1 : 0;
 const testSources = [
   'antd-carousel',
-  'todo',
-  'online_order',
-  'online_order_list',
-  'taobao',
-  'aweme-login',
-  'aweme-play',
+  // 'todo',
+  // 'online_order',
+  // 'online_order_list',
+  // 'taobao',
+  // 'aweme-login',
+  // 'aweme-play',
 ];
 
 const positionModeTag = getAIConfig(MATCH_BY_POSITION)

@@ -151,11 +151,15 @@ export class ScriptPlayer {
       } else if ((flowItem as MidsceneYamlFlowItemSleep).sleep) {
         const sleepTask = flowItem as MidsceneYamlFlowItemSleep;
         const ms = sleepTask.sleep;
+        let msNumber = ms;
+        if (typeof ms === 'string') {
+          msNumber = Number.parseInt(ms, 10);
+        }
         assert(
-          ms && ms > 0,
+          msNumber && msNumber > 0,
           `ms for sleep must be greater than 0, but got ${ms}`,
         );
-        await new Promise((resolve) => setTimeout(resolve, ms));
+        await new Promise((resolve) => setTimeout(resolve, msNumber));
       } else {
         throw new Error(`unknown flowItem: ${JSON.stringify(flowItem)}`);
       }

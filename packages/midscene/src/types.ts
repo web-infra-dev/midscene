@@ -262,19 +262,20 @@ export interface PlanningAction<ParamType = any> {
 }
 
 export interface PlanningAIResponse {
-  actions: PlanningAction[];
-  taskWillBeAccomplished: boolean;
-  furtherPlan?: PlanningFurtherPlan | null;
+  actions: PlanningAction[]; // TODO: remove this field
+  finish: boolean;
+  log: string;
+  sleep?: number;
   error?: string;
   usage?: AIUsageInfo;
   rawResponse?: string;
 }
 
-export interface PlanningFurtherPlan {
-  whatToDoNext: string;
-  whatHaveDone: string;
-}
-export type PlanningActionParamPlan = PlanningFurtherPlan;
+// export interface PlanningFurtherPlan {
+//   whatToDoNext: string;
+//   log: string;
+// }
+// export type PlanningActionParamPlan = PlanningFurtherPlan;
 
 export type PlanningActionParamTap = null;
 export type PlanningActionParamHover = null;
@@ -299,9 +300,10 @@ export interface PlanningActionParamError {
   thought: string;
 }
 
-export type PlanningActionParamWaitFor = AgentWaitForOpt & {
-  assertion: string;
-};
+export type PlanningActionParamWaitFor = ExecutionTaskProgressOptions &
+  AgentWaitForOpt & {
+    assertion: string;
+  };
 /**
  * misc
  */
@@ -362,7 +364,7 @@ export interface ExecutionTaskApply<
     param: TaskParam,
     context: ExecutorContext,
   ) => // biome-ignore lint/suspicious/noConfusingVoidType: <explanation>
-    | Promise<ExecutionTaskReturn<TaskOutput, TaskLog> | undefined | void>
+  | Promise<ExecutionTaskReturn<TaskOutput, TaskLog> | undefined | void>
     | undefined
     | void;
 }
@@ -487,9 +489,8 @@ task - planning
 export type ExecutionTaskPlanningApply = ExecutionTaskApply<
   'Planning',
   {
-    userPrompt: string;
-    whatHaveDone?: string;
-    originalPrompt?: string;
+    userInstruction: string;
+    log?: string;
   },
   PlanningAIResponse
 >;

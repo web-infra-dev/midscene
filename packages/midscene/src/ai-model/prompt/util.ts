@@ -200,10 +200,7 @@ export function elementByPositionWithElementInfo(
   });
 }
 
-export const samplePageDescription = () => {
-  return getAIConfigInBoolean(MATCH_BY_POSITION)
-    ? ''
-    : `
+export const samplePageDescription = `
 And the page is described as follows:
 ====================
 The size of the page: 1280 x 720
@@ -218,7 +215,6 @@ Description of all the elements in screenshot:
 </div>
 ====================
 `;
-};
 
 export async function describeUserPage<
   ElementType extends BaseElement = BaseElement,
