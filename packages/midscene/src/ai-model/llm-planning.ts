@@ -1,12 +1,7 @@
 import assert from 'node:assert';
 import { MIDSCENE_USE_QWEN_VL, getAIConfigInBoolean } from '@/env';
 import type { PlanningAIResponse, UIContext } from '@/types';
-import {
-  AIActionType,
-  type AIArgs,
-  callAiFn,
-  qwenVLZoomFactor,
-} from './common';
+import { AIActionType, type AIArgs, callAiFn } from './common';
 import {
   automationUserPrompt,
   generateTaskBackgroundContext,
@@ -71,9 +66,6 @@ export async function plan(
   };
 
   if (getAIConfigInBoolean(MIDSCENE_USE_QWEN_VL)) {
-    const zoomFactorX = await qwenVLZoomFactor(size.width);
-    const zoomFactorY = await qwenVLZoomFactor(size.height);
-
     actions.forEach((action) => {
       if (
         action.locate &&
@@ -87,13 +79,13 @@ export async function plan(
       }
 
       if (action.locate?.bbox) {
-        action.locate.bbox[0] = Math.ceil(action.locate.bbox[0] * zoomFactorX);
-        action.locate.bbox[1] = Math.ceil(action.locate.bbox[1] * zoomFactorY);
+        action.locate.bbox[0] = Math.ceil(action.locate.bbox[0]);
+        action.locate.bbox[1] = Math.ceil(action.locate.bbox[1]);
         action.locate.bbox[2] = Math.ceil(
-          (action.locate.bbox[2] || action.locate.bbox[0] + 20) * zoomFactorX, // sometimes the bbox is not complete
+          action.locate.bbox[2] || action.locate.bbox[0] + 20, // sometimes the bbox is not complete
         );
         action.locate.bbox[3] = Math.ceil(
-          (action.locate.bbox[3] || action.locate.bbox[1] + 20) * zoomFactorY,
+          action.locate.bbox[3] || action.locate.bbox[1] + 20,
         );
       }
     });

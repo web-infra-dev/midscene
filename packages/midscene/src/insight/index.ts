@@ -18,12 +18,9 @@ import type {
 import { emitInsightDump } from './utils';
 
 export interface LocateOpts {
-  multi?: boolean;
   callAI?: typeof callAiFn<AIElementResponse>;
   quickAnswer?: Partial<AISingleElementResponse>;
 }
-
-// export type UnwrapDataShape<T> = T extends EnhancedQuery<infer DataShape> ? DataShape : {};
 
 export type AnyValue<T> = {
   [K in keyof T]: unknown extends T[K] ? any : T[K];
@@ -72,12 +69,8 @@ export default class Insight<
     queryPrompt: string,
     opt?: LocateOpts,
   ): Promise<ElementType | null>;
-  async locate(
-    queryPrompt: string,
-    opt: { multi: true },
-  ): Promise<ElementType[]>;
   async locate(queryPrompt: string, opt?: LocateOpts) {
-    const { callAI, multi = false } = opt || {};
+    const { callAI } = opt || {};
     assert(
       queryPrompt || opt?.quickAnswer,
       'query or quickAnswer is required for locate',
@@ -154,9 +147,6 @@ export default class Insight<
       dumpSubscriber,
     );
 
-    if (opt?.multi) {
-      return elements;
-    }
     if (elements.length >= 2) {
       console.warn(
         `locate: multiple elements found, return the first one. (query: ${queryPrompt})`,

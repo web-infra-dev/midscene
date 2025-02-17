@@ -1,6 +1,4 @@
 import assert from 'node:assert';
-import { MATCH_BY_POSITION, MIDSCENE_USE_QWEN_VL } from '@/env';
-import { getAIConfigInBoolean } from '@/env';
 import type {
   AIAssertionResponse,
   AIElementIdResponse,
@@ -19,7 +17,7 @@ import type {
   ChatCompletionSystemMessageParam,
   ChatCompletionUserMessageParam,
 } from 'openai/resources';
-import { AIActionType, callAiFn, qwenVLZoomFactor } from './common';
+import { AIActionType, callAiFn } from './common';
 import {
   findElementPrompt,
   systemPromptToLocateElement,
@@ -66,6 +64,15 @@ export async function transformElementPositionToId(
     errors: [],
     elements: [],
   };
+
+  const elementAtPosition = (center: { x: number; y: number }) => {
+    const element = elementByPositionWithElementInfo(treeRoot, center);
+    const distanceToCenter = element
+      ? distance({ x: element.center[0], y: element.center[1] }, center)
+      : 0;
+    return distanceToCenter <= distanceThreshold ? element : undefined;
+  };
+
   if ('bbox' in aiResult) {
     if (
       !Array.isArray(aiResult.bbox) ||
@@ -74,30 +81,17 @@ export async function transformElementPositionToId(
       return emptyResponse;
     }
 
-    const zoomFactorX = await qwenVLZoomFactor(size.width);
-    const zoomFactorY = await qwenVLZoomFactor(size.height);
-
-    aiResult.bbox[0] = Math.ceil(aiResult.bbox[0] * zoomFactorX);
-    aiResult.bbox[1] = Math.ceil(aiResult.bbox[1] * zoomFactorY);
-    aiResult.bbox[2] = Math.ceil(aiResult.bbox[2] * zoomFactorX);
-    aiResult.bbox[3] = Math.ceil(aiResult.bbox[3] * zoomFactorY);
+    aiResult.bbox[0] = Math.ceil(aiResult.bbox[0]);
+    aiResult.bbox[1] = Math.ceil(aiResult.bbox[1]);
+    aiResult.bbox[2] = Math.ceil(aiResult.bbox[2]);
+    aiResult.bbox[3] = Math.ceil(aiResult.bbox[3]);
 
     const centerX = (aiResult.bbox[0] + aiResult.bbox[2]) / 2;
     const centerY = (aiResult.bbox[1] + aiResult.bbox[3]) / 2;
 
-    let element = elementByPositionWithElementInfo(treeRoot, {
-      x: centerX,
-      y: centerY,
-    });
+    let element = elementAtPosition({ x: centerX, y: centerY });
 
-    const distanceToCenter = element
-      ? distance(
-          { x: centerX, y: centerY },
-          { x: element?.center[0] || 0, y: element?.center[1] || 0 },
-        )
-      : 0;
-
-    if (!element || distanceToCenter > distanceThreshold) {
+    if (!element) {
       element = insertElementByPosition({
         x: centerX,
         y: centerY,
@@ -118,6 +112,7 @@ export async function transformElementPositionToId(
   }
 
   if (Array.isArray(aiResult)) {
+    // [number, number] coord
     const relativePosition = aiResult;
     const absolutePosition = transformToAbsoluteCoords(
       {
@@ -127,16 +122,8 @@ export async function transformElementPositionToId(
       size,
     );
 
-    let element = elementByPositionWithElementInfo(treeRoot, absolutePosition);
-
-    const distanceToCenter = element
-      ? distance(
-          { x: element.center[0], y: element.center[1] },
-          absolutePosition,
-        )
-      : 0;
-
-    if (!element || distanceToCenter > distanceThreshold) {
+    let element = elementAtPosition(absolutePosition);
+    if (!element) {
       element = insertElementByPosition(absolutePosition);
     }
 
