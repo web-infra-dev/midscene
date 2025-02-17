@@ -26,6 +26,8 @@ import {
 } from './prompt/llm-locator';
 import {
   describeUserPage,
+  distance,
+  distanceThreshold,
   elementByPositionWithElementInfo,
   extractDataPrompt,
   systemPromptToAssert,
@@ -88,7 +90,14 @@ export async function transformElementPositionToId(
       y: centerY,
     });
 
-    if (!element) {
+    const distanceToCenter = element
+      ? distance(
+          { x: centerX, y: centerY },
+          { x: element?.center[0] || 0, y: element?.center[1] || 0 },
+        )
+      : 0;
+
+    if (!element || distanceToCenter > distanceThreshold) {
       element = insertElementByPosition({
         x: centerX,
         y: centerY,
@@ -118,10 +127,19 @@ export async function transformElementPositionToId(
       size,
     );
 
-    const element = elementByPositionWithElementInfo(
-      treeRoot,
-      absolutePosition,
-    );
+    let element = elementByPositionWithElementInfo(treeRoot, absolutePosition);
+
+    const distanceToCenter = element
+      ? distance(
+          { x: element.center[0], y: element.center[1] },
+          absolutePosition,
+        )
+      : 0;
+
+    if (!element || distanceToCenter > distanceThreshold) {
+      element = insertElementByPosition(absolutePosition);
+    }
+
     assert(
       element,
       `inspect: no id found with position: ${JSON.stringify({ absolutePosition })}`,

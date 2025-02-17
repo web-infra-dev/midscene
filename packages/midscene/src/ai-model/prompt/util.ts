@@ -193,11 +193,26 @@ export function elementByPositionWithElementInfo(
   }
 
   // Find the smallest element by area
-  return matchingElements.reduce((smallest, current) => {
+  const element = matchingElements.reduce((smallest, current) => {
     const smallestArea = smallest.rect.width * smallest.rect.height;
     const currentArea = current.rect.width * current.rect.height;
     return currentArea < smallestArea ? current : smallest;
   });
+
+  const distanceToCenter = distance(
+    { x: element.center[0], y: element.center[1] },
+    position,
+  );
+
+  return distanceToCenter <= distanceThreshold ? element : undefined;
+}
+
+export const distanceThreshold = 16;
+export function distance(
+  point1: { x: number; y: number },
+  point2: { x: number; y: number },
+) {
+  return Math.sqrt((point1.x - point2.x) ** 2 + (point1.y - point2.y) ** 2);
 }
 
 export const samplePageDescription = `
