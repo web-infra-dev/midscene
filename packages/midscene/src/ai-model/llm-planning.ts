@@ -55,9 +55,10 @@ export async function plan(
   const { content, usage } = await call(msgs, AIActionType.PLAN);
   const rawResponse = JSON.stringify(content, undefined, 2);
   const planFromAI = content;
-  const actions = (planFromAI as any).action
-    ? [(planFromAI as any).action]
-    : [];
+  const actions =
+    ((planFromAI as any).action
+      ? [(planFromAI as any).action]
+      : planFromAI.actions) || [];
   const returnValue: PlanningAIResponse = {
     ...planFromAI,
     actions,

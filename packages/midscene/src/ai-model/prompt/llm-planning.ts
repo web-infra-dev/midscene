@@ -33,7 +33,7 @@ Return in JSON format:
 }
 `;
 
-const systemTemplate = `
+const systemTemplateOfLLM = `
 ## Role
 
 You are a versatile professional in software UI automation. Your outstanding contributions will impact the user experience of billions of users.
@@ -63,30 +63,28 @@ You are a versatile professional in software UI automation. Your outstanding con
 
 ## About the \`actions\` field
 
-### The common \`locate\` param
-
 The \`locate\` param is commonly used in the \`param\` field of the action, means to locate the target element to perform the action, it conforms to the following scheme:
 
-type LocateParam = {
-      "id": string, // the id of the element found. It should either be the id marked with a rectangle in the screenshot or the id described in the description.
-      "prompt"?: string // the description of the element to find. It can only be omitted when locate is null.
-    } | null // If it's not on the page, the LocateParam should be null
+type LocateParam = {{
+  "id": string, // the id of the element found. It should either be the id marked with a rectangle in the screenshot or the id described in the description.
+  "prompt"?: string // the description of the element to find. It can only be omitted when locate is null.
+}} | null // If it's not on the page, the LocateParam should be null
 
-### Supported actions
+## Supported actions
 
 Each action has a \`type\` and corresponding \`param\`. To be detailed:
 - type: 'Tap'
-  * {{ locate: {"id": string, "prompt": string} }}
+  * {{ locate: {{"id": string, "prompt": string}} | null }}
 - type: 'Hover'
-  * {{ locate: {"id": string, "prompt": string} }}
+  * {{ locate: {{"id": string, "prompt": string}} | null }}
 - type: 'Input', replace the value in the input field
-  * {{ locate: {"id": string, "prompt": string}, param: {{ value: string }} }}
+  * {{ locate: {{"id": string, "prompt": string}} | null, param: {{ value: string }} }}
   * \`value\` is the final required input value based on the existing input. No matter what modifications are required, just provide the final value to replace the existing input value. 
 - type: 'KeyboardPress', press a key
   * {{ param: {{ value: string }} }}
 - type: 'Scroll', scroll up or down.
   * {{ 
-      locate: {"id": string, "prompt": string} | null, 
+      locate: {{"id": string, "prompt": string}} | null, 
       param: {{ 
         direction: 'down'(default) | 'up' | 'right' | 'left', 
         scrollType: 'once' (default) | 'untilBottom' | 'untilTop' | 'untilRight' | 'untilLeft', 
@@ -109,12 +107,7 @@ The JSON format is as follows:
 
 {{
   "actions": [
-    {{
-      "type": "Tap",
-      "param": null,
-      "locate": {sample} | null,
-    }},
-    // ... more actions
+    // ... some actions
   ],
   "finish": boolean, // Whether the task will be accomplished after all the actions
   "log": string, // Log what these action do. Use the same language as the user's instruction. 
@@ -140,7 +133,7 @@ By viewing the page screenshot and description, you should consider this and out
       "type": "Tap", 
       "thought": "Click the language switch button to open the language options.",
       "param": null,
-      "locate": {sample},
+      "locate": {{ id: "c81c4e9a33", prompt: "The language switch button" }},
     }},
     {{
       "type": "Sleep",
@@ -162,7 +155,7 @@ Wrong output:
       "thought": "Click the language switch button to open the language options.",
       "param": null,
       "locate": {{
-        {{"id": "c81c4e9a33"}}, // WRONG: prompt is missing
+        {{ "id": "c81c4e9a33" }}, // WRONG: prompt is missing
       }}
     }},
     {{
@@ -178,7 +171,7 @@ Wrong output:
 
 Reason:
 * The \`prompt\` is missing in the first 'Locate' action
-* Since the option button is not shown in the screenshot, the task cannot be accomplished, so a \`finish\` field should be false
+* Since the option button is not shown in the screenshot, the task cannot be accomplished, so the \`finish\` field should be false
 `;
 
 export async function systemPromptToTaskPlanning() {
@@ -187,7 +180,7 @@ export async function systemPromptToTaskPlanning() {
   }
 
   const promptTemplate = new PromptTemplate({
-    template: `${systemTemplate}\n\n${outputTemplate}`,
+    template: `${systemTemplateOfLLM}\n\n${outputTemplate}`,
     inputVariables: ['pageDescription'],
   });
 
@@ -253,24 +246,10 @@ export const planSchema: ResponseFormatJSONSchema = {
               locate: {
                 type: ['object', 'null'],
                 properties: {
-                  ...(getAIConfigInBoolean(MATCH_BY_POSITION)
-                    ? {
-                        bbox: {
-                          type: 'array',
-                          items: { type: 'number' },
-                          minItems: 4,
-                          maxItems: 4,
-                        },
-                      }
-                    : {
-                        id: { type: 'string' },
-                      }),
+                  id: { type: 'string' },
                   prompt: { type: 'string' },
                 },
-                required: [
-                  getAIConfigInBoolean(MATCH_BY_POSITION) ? 'position' : 'id',
-                  'prompt',
-                ],
+                required: ['id', 'prompt'],
                 additionalProperties: false,
                 description: 'Location information for the target element',
               },
@@ -285,22 +264,16 @@ export const planSchema: ResponseFormatJSONSchema = {
           description:
             'Whether the task will be accomplished after the actions',
         },
-        furtherPlan: {
-          type: ['object', 'null'],
-          properties: {
-            log: { type: 'string' },
-            whatToDoNext: { type: 'string' },
-          },
-          required: ['log', 'whatToDoNext'],
-          additionalProperties: false,
-          description: 'Plan the task when the task cannot be accomplished',
+        log: {
+          type: 'string',
+          description: 'Log what these action do',
         },
         error: {
           type: ['string', 'null'],
           description: 'Error messages about unexpected situations',
         },
       },
-      required: ['actions', 'finish', 'furtherPlan', 'error'],
+      required: ['actions', 'finish', 'log', 'error'],
       additionalProperties: false,
     },
   },

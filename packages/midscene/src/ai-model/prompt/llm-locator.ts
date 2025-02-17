@@ -163,7 +163,7 @@ Output Example:
   `;
 }
 
-export const findElementSchema: ResponseFormatJSONSchema = {
+export const locatorSchema: ResponseFormatJSONSchema = {
   type: 'json_schema',
   json_schema: {
     name: 'find_elements',

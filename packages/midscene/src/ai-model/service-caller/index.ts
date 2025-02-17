@@ -36,9 +36,9 @@ import {
   getAIConfigInJson,
 } from '../../env';
 import { AIActionType } from '../common';
-import { findElementSchema } from '../prompt/llm-locator';
+import { assertSchema } from '../prompt/assertion';
+import { locatorSchema } from '../prompt/llm-locator';
 import { planSchema } from '../prompt/llm-planning';
-import { assertSchema } from '../prompt/util';
 
 export function checkAIConfig(preferVendor?: 'openAI') {
   if (preferVendor && preferVendor !== 'openAI') return false;
@@ -285,7 +285,7 @@ export async function callToGetJSONObject<T>(
         responseFormat = assertSchema;
         break;
       case AIActionType.INSPECT_ELEMENT:
-        responseFormat = findElementSchema;
+        responseFormat = locatorSchema;
         break;
       case AIActionType.EXTRACT_DATA:
         //TODO: Currently the restriction type can only be a json subset of the constraint, and the way the extract api is used needs to be adjusted to limit the user's data to this as well

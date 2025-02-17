@@ -18,6 +18,8 @@ import type {
   ChatCompletionUserMessageParam,
 } from 'openai/resources';
 import { AIActionType, callAiFn } from './common';
+import { systemPromptToAssert } from './prompt/assertion';
+import { extractDataPrompt, systemPromptToExtract } from './prompt/extraction';
 import {
   findElementPrompt,
   systemPromptToLocateElement,
@@ -27,9 +29,6 @@ import {
   distance,
   distanceThreshold,
   elementByPositionWithElementInfo,
-  extractDataPrompt,
-  systemPromptToAssert,
-  systemPromptToExtract,
 } from './prompt/util';
 import { callToGetJSONObject } from './service-caller';
 
