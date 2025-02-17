@@ -44,7 +44,11 @@ export interface ElementTreeNode<
   children: ElementTreeNode<ElementType>[];
 }
 
-export type AIUsageInfo = Record<string, any>;
+export type AIUsageInfo = Record<string, any> & {
+  prompt_tokens: number;
+  completion_tokens: number;
+  total_tokens: number;
+};
 
 /**
  * openai
@@ -62,10 +66,11 @@ export type AISingleElementResponseById = {
 };
 
 export type AISingleElementResponseByPosition = {
-  position: {
+  position?: {
     x: number;
     y: number;
   };
+  bbox?: [number, number, number, number];
   reason: string;
   text: string;
 };
@@ -80,7 +85,14 @@ export interface AIElementIdResponse {
   errors?: string[];
 }
 
-export type AIElementResponse = AIElementIdResponse;
+export interface AIElementCoordinatesResponse {
+  bbox: [number, number, number, number];
+  errors?: string[];
+}
+
+export type AIElementResponse =
+  | AIElementIdResponse
+  | AIElementCoordinatesResponse;
 
 export interface AISectionParseResponse<DataShape> {
   data: DataShape;
@@ -225,6 +237,7 @@ export interface PlanningLocateParam {
     x: number;
     y: number;
   };
+  bbox?: [number, number, number, number];
   prompt: string;
 }
 
@@ -239,7 +252,7 @@ export interface PlanningAction<ParamType = any> {
     | 'KeyboardPress'
     | 'Scroll'
     | 'Error'
-    | 'FalsyConditionStatement'
+    | 'ExpectedFalsyCondition'
     | 'Assert'
     | 'AssertWithoutThrow'
     | 'Sleep'
@@ -253,6 +266,8 @@ export interface PlanningAIResponse {
   taskWillBeAccomplished: boolean;
   furtherPlan?: PlanningFurtherPlan | null;
   error?: string;
+  usage?: AIUsageInfo;
+  rawResponse?: string;
 }
 
 export interface PlanningFurtherPlan {
@@ -384,6 +399,7 @@ export type ExecutionTask<
       cost?: number;
       aiCost?: number;
     };
+    usage?: AIUsageInfo;
   };
 
 export interface ExecutionDump extends DumpMeta {

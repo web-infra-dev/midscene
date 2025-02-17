@@ -1,9 +1,9 @@
                         <>
-                          <div id="amjle"  undefined="" class=".icon" left="15" top="17" width="22" height="22">
+                          <div id="amjle" markerId="0" undefined="" class=".icon" left="15" top="17" width="22" height="22">
                           </div>
                         </>
                             <>
-                              <span id="kciee" markerId="1"  left="65" top="17" width="54" height="23">
+                              <span id="kfmhg" markerId="1"  left="65" top="17" width="53" height="23">
                                 English
                               </span>
                             </>
@@ -16,7 +16,7 @@
                                 </div>
                               </>
                           <>
-                            <p id="lpmmd" markerId="4"  left="75" top="69" width="251" height="20">
+                            <p id="mhedh" markerId="4"  left="75" top="69" width="250" height="20">
                               Delivery and self pick-up not available
                             </p>
                           </>
@@ -75,7 +75,7 @@
                                 </span>
                               </>
                               <>
-                                <span id="mcpfc" markerId="17"  left="88" top="602" width="98" height="20">
+                                <span id="hjlcp" markerId="17"  left="88" top="602" width="96" height="20">
                                   IN SEASON (1)
                                 </span>
                               </>
@@ -83,12 +83,12 @@
                                 <div id="obhgh" markerId="18" undefined="" class=".img" left="88" top="638" width="90" height="90">
                                 </div>
                                     <>
-                                      <h2 id="pkjep" markerId="19"  left="188" top="639" width="142" height="41">
+                                      <h2 id="millo" markerId="19"  left="188" top="639" width="139" height="41">
                                         Very Tangerine Blast (Original)
                                       </h2>
                                     </>
                                       <>
-                                        <span id="idbdp" markerId="20"  left="192" top="721" width="39" height="25">
+                                        <span id="dmggl" markerId="20"  left="192" top="721" width="37" height="25">
                                           6.82
                                         </span>
                                       </>
@@ -99,7 +99,7 @@
                                       </>
                               </>
                               <>
-                                <span id="nmbln" markerId="22"  left="88" top="763" width="172" height="20">
+                                <span id="eabbl" markerId="22"  left="88" top="763" width="169" height="20">
                                   REFRESHING DRINKS (5)
                                 </span>
                               </>
@@ -107,12 +107,12 @@
                                 <div id="enebg" markerId="23" undefined="" class=".img" left="88" top="800" width="90" height="90">
                                 </div>
                                     <>
-                                      <h2 id="mdnbp" markerId="24"  left="188" top="800" width="159" height="20">
+                                      <h2 id="iihbj" markerId="24"  left="188" top="800" width="156" height="20">
                                         Mango Grapefruit Pops
                                       </h2>
                                     </>
                                       <>
-                                        <span id="fldho" markerId="25"  left="192" top="864" width="39" height="25">
+                                        <span id="naibh" markerId="25"  left="192" top="864" width="37" height="25">
                                           6.54
                                         </span>
                                       </>

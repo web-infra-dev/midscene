@@ -1,6 +1,8 @@
 import assert from 'node:assert';
 import type { AIUsageInfo } from '@/types';
 
+import { MIDSCENE_USE_QWEN_VL } from '@/env';
+import { getAIConfigInBoolean } from '@/env';
 import type {
   ChatCompletionSystemMessageParam,
   ChatCompletionUserMessageParam,
@@ -33,4 +35,12 @@ export async function callAiFn<T>(
     AIActionTypeValue,
   );
   return { content, usage };
+}
+
+export async function qwenVLZoomFactor(length: number) {
+  // seems we don't need to zoom while image is within range of vl_high_resolution_images: true
+  // const useQwenVl = getAIConfigInBoolean(MIDSCENE_USE_QWEN_VL);
+  // const zoomFactor = useQwenVl ? length / (Math.ceil(length / 28) * 28) : 1;
+  // return zoomFactor;
+  return 1;
 }

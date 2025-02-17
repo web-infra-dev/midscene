@@ -1,6 +1,9 @@
 import assert from 'node:assert';
+import { MATCH_BY_POSITION, MIDSCENE_USE_QWEN_VL } from '@/env';
+import { getAIConfigInBoolean } from '@/env';
 import type {
   AIAssertionResponse,
+  AIElementIdResponse,
   AIElementResponse,
   AISectionParseResponse,
   AISingleElementResponse,
@@ -16,7 +19,7 @@ import type {
   ChatCompletionSystemMessageParam,
   ChatCompletionUserMessageParam,
 } from 'openai/resources';
-import { AIActionType, callAiFn } from './common';
+import { AIActionType, callAiFn, qwenVLZoomFactor } from './common';
 import {
   findElementPrompt,
   systemPromptToLocateElement,
@@ -55,7 +58,56 @@ export async function transformElementPositionToId(
   aiResult: AIElementResponse | [number, number],
   treeRoot: ElementTreeNode<BaseElement>,
   size: { width: number; height: number },
+  insertElementByPosition: (position: { x: number; y: number }) => BaseElement,
 ) {
+  const emptyResponse: AIElementResponse = {
+    errors: [],
+    elements: [],
+  };
+  if ('bbox' in aiResult) {
+    if (
+      !Array.isArray(aiResult.bbox) ||
+      (aiResult.bbox as number[]).length !== 4
+    ) {
+      return emptyResponse;
+    }
+
+    const zoomFactorX = await qwenVLZoomFactor(size.width);
+    const zoomFactorY = await qwenVLZoomFactor(size.height);
+
+    aiResult.bbox[0] = Math.ceil(aiResult.bbox[0] * zoomFactorX);
+    aiResult.bbox[1] = Math.ceil(aiResult.bbox[1] * zoomFactorY);
+    aiResult.bbox[2] = Math.ceil(aiResult.bbox[2] * zoomFactorX);
+    aiResult.bbox[3] = Math.ceil(aiResult.bbox[3] * zoomFactorY);
+
+    const centerX = (aiResult.bbox[0] + aiResult.bbox[2]) / 2;
+    const centerY = (aiResult.bbox[1] + aiResult.bbox[3]) / 2;
+
+    let element = elementByPositionWithElementInfo(treeRoot, {
+      x: centerX,
+      y: centerY,
+    });
+
+    if (!element) {
+      element = insertElementByPosition({
+        x: centerX,
+        y: centerY,
+      });
+    }
+    assert(
+      element,
+      `inspect: no element found with coordinates: ${JSON.stringify(aiResult.bbox)}`,
+    );
+    return {
+      errors: [],
+      elements: [
+        {
+          id: element.id,
+        },
+      ],
+    };
+  }
+
   if (Array.isArray(aiResult)) {
     const relativePosition = aiResult;
     const absolutePosition = transformToAbsoluteCoords(
@@ -128,25 +180,45 @@ function getQuickAnswer(
       elementById,
     } as any;
   }
+
+  if ('bbox' in quickAnswer && quickAnswer.bbox) {
+    const centerPosition = {
+      x: Math.floor((quickAnswer.bbox[0] + quickAnswer.bbox[2]) / 2),
+      y: Math.floor((quickAnswer.bbox[1] + quickAnswer.bbox[3]) / 2),
+    };
+    let element = elementByPositionWithElementInfo(tree, centerPosition);
+    if (!element) {
+      element = insertElementByPosition(centerPosition);
+    }
+    return {
+      parseResult: {
+        elements: [element],
+        errors: [],
+      },
+      rawResponse: quickAnswer,
+      elementById,
+    } as any;
+  }
+
+  return undefined;
 }
 
 export async function AiInspectElement<
   ElementType extends BaseElement = BaseElement,
 >(options: {
   context: UIContext<ElementType>;
-  multi: boolean;
   targetElementDescription: string;
   callAI?: typeof callAiFn<AIElementResponse | [number, number]>;
   quickAnswer?: Partial<
     AISingleElementResponse | AISingleElementResponseByPosition
   >;
 }): Promise<{
-  parseResult: AIElementResponse;
+  parseResult: AIElementIdResponse;
   rawResponse: any;
   elementById: ElementById;
   usage?: AIUsageInfo;
 }> {
-  const { context, multi, targetElementDescription, callAI } = options;
+  const { context, targetElementDescription, callAI } = options;
   const { screenshotBase64, screenshotBase64WithElementMarker } = context;
   const { description, elementById, insertElementByPosition, size } =
     await describeUserPage(context);
@@ -169,9 +241,9 @@ export async function AiInspectElement<
   const userInstructionPrompt = await findElementPrompt.format({
     pageDescription: description,
     targetElementDescription,
-    multi,
   });
   const systemPrompt = systemPromptToLocateElement();
+
   const msgs: AIArgs = [
     { role: 'system', content: systemPrompt },
     {
@@ -196,12 +268,16 @@ export async function AiInspectElement<
     callAI || callToGetJSONObject<AIElementResponse | [number, number]>;
 
   const res = await callAIFn(msgs, AIActionType.INSPECT_ELEMENT);
+
+  const parseResult = await transformElementPositionToId(
+    res.content,
+    context.tree,
+    size,
+    insertElementByPosition,
+  );
+
   return {
-    parseResult: await transformElementPositionToId(
-      res.content,
-      context.tree,
-      size,
-    ),
+    parseResult,
     rawResponse: res.content,
     elementById,
     usage: res.usage,
@@ -295,7 +371,7 @@ export async function AiAssert<
         {
           type: 'text',
           text: `
-Here is the description of the assertion. Just go ahead:
+Here is the assertion. Please tell whether it is truthy according to the screenshot.
 =====================================
 ${assertion}
 =====================================

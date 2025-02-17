@@ -91,7 +91,6 @@ export default class Insight<
       await AiInspectElement({
         callAI: callAI || this.aiVendorFn,
         context,
-        multi: Boolean(multi),
         targetElementDescription: queryPrompt,
         quickAnswer: opt?.quickAnswer,
       });

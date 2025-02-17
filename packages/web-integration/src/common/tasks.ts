@@ -3,6 +3,7 @@ import type { WebPage } from '@/common/page';
 import type { PuppeteerWebPage } from '@/puppeteer';
 import {
   type AIElementIdResponse,
+  type AIUsageInfo,
   type DumpSubscriber,
   type ExecutionRecorderItem,
   type ExecutionTaskActionApply,
@@ -127,7 +128,11 @@ export class PageTaskExecutor {
     const tasks: ExecutionTaskApply[] = [];
     plans.forEach((plan) => {
       if (plan.type === 'Locate') {
-        if (plan.locate?.id === null || plan.locate?.id === 'null') {
+        if (
+          plan.locate === null ||
+          plan.locate?.id === null ||
+          plan.locate?.id === 'null'
+        ) {
           // console.warn('Locate action with id is null, will be ignored');
           return;
         }
@@ -140,12 +145,14 @@ export class PageTaskExecutor {
           executor: async (param, taskContext) => {
             const { task } = taskContext;
             assert(
-              param?.prompt || param?.id || param?.position,
-              'No prompt or id or position to locate',
+              param?.prompt || param?.id || param?.position || param?.bbox,
+              'No prompt or id or position or bbox to locate',
             );
             let insightDump: InsightDump | undefined;
+            let usage: AIUsageInfo | undefined;
             const dumpCollector: DumpSubscriber = (dump) => {
               insightDump = dump;
+              usage = dump?.taskInfo?.usage;
             };
             this.insight.onceDumpUpdatedFn = dumpCollector;
             const shotTime = Date.now();
@@ -168,6 +175,7 @@ export class PageTaskExecutor {
             const quickAnswer = {
               id: param?.id,
               position: param?.position,
+              bbox: param?.bbox,
             };
             const startTime = Date.now();
             const element = await this.insight.locate(param.prompt, {
@@ -178,12 +186,6 @@ export class PageTaskExecutor {
                   return Promise.resolve({ content: locateCache });
                 }
                 const { content: aiResult, usage } = await callAI(...message);
-                // locateResult = transformElementPositionToId(
-                //   aiResult,
-                //   pageContext.content,
-                //   size,
-                // );
-                // assert(locateResult);
                 return { content: aiResult, usage };
               },
             });
@@ -220,6 +222,7 @@ export class PageTaskExecutor {
               },
               recorder: [recordItem],
               aiCost,
+              usage,
             };
           },
         };
@@ -441,11 +444,11 @@ export class PageTaskExecutor {
             },
           };
         tasks.push(taskActionError);
-      } else if (plan.type === 'FalsyConditionStatement') {
+      } else if (plan.type === 'ExpectedFalsyCondition') {
         const taskActionFalsyConditionStatement: ExecutionTaskActionApply<null> =
           {
             type: 'Action',
-            subType: 'FalsyConditionStatement',
+            subType: 'ExpectedFalsyCondition',
             param: null,
             thought: plan.thought,
             locate: plan.locate,
@@ -516,7 +519,6 @@ export class PageTaskExecutor {
         const planCache = cacheGroup.readCache(pageContext, 'plan', userPrompt);
         let planResult: Awaited<ReturnType<typeof plan>>;
         if (planCache) {
-          // console.log('planCache', planCache);
           planResult = planCache;
         } else {
           planResult = await plan(param.userPrompt, {
@@ -526,11 +528,18 @@ export class PageTaskExecutor {
           });
         }
 
-        const { actions, furtherPlan, taskWillBeAccomplished, error } =
-          planResult;
-        // console.log('actions', taskWillBeAccomplished, actions, furtherPlan);
+        const {
+          actions,
+          furtherPlan,
+          // taskWillBeAccomplished,
+          error,
+          usage,
+          rawResponse,
+        } = planResult;
 
         let stopCollecting = false;
+        let bboxCollected = false;
+        let planParsingError = '';
         const finalActions = actions.reduce<PlanningAction[]>(
           (acc, planningAction) => {
             if (stopCollecting) {
@@ -538,19 +547,26 @@ export class PageTaskExecutor {
             }
 
             if (planningAction.locate) {
+              // we only collect bbox once, let qwen re-locate in the following steps
+              if (bboxCollected && planningAction.locate.bbox) {
+                // biome-ignore lint/performance/noDelete: <explanation>
+                delete planningAction.locate.bbox;
+              }
+
+              if (planningAction.locate.bbox) {
+                bboxCollected = true;
+              }
+
               acc.push({
                 type: 'Locate',
                 locate: planningAction.locate,
-                // remove id from planning, since the result is not accurate
-                // locate: {
-                //   prompt: planningAction.locate.prompt,
-                // },
                 param: null,
                 thought: planningAction.locate.prompt,
               });
             } else if (
               ['Tap', 'Hover', 'Input'].includes(planningAction.type)
             ) {
+              planParsingError = `invalid planning response: ${JSON.stringify(planningAction)}`;
               // should include locate but get null
               stopCollecting = true;
               return acc;
@@ -563,7 +579,9 @@ export class PageTaskExecutor {
 
         assert(
           finalActions.length > 0,
-          error ? `No plan: ${error}` : 'No plans found',
+          error
+            ? `Failed to plan: ${error}`
+            : planParsingError || 'No plan found',
         );
 
         cacheGroup.saveCache({
@@ -585,8 +603,10 @@ export class PageTaskExecutor {
           cache: {
             hit: Boolean(planCache),
           },
-          pageContext, // ?
+          pageContext,
           recorder: [recordItem],
+          usage,
+          rawResponse,
         };
       },
     };

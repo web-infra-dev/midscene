@@ -7,6 +7,7 @@ import { paramStr, typeStr } from '@midscene/web/ui-utils';
 import { RadiusSettingOutlined } from '@ant-design/icons';
 import type {
   BaseElement,
+  ExecutionTask,
   ExecutionTaskInsightAssertion,
   ExecutionTaskInsightLocate,
   ExecutionTaskPlanning,
@@ -173,13 +174,8 @@ const DetailSide = (): JSX.Element => {
     });
   };
 
-  const usageInfo = (task as ExecutionTaskInsightLocate)?.log?.dump?.taskInfo
-    ?.usage
-    ? JSON.stringify(
-        (task as ExecutionTaskInsightLocate).log!.dump!.taskInfo!.usage,
-        undefined,
-        2,
-      )
+  const usageInfo = (task as ExecutionTask)?.usage
+    ? JSON.stringify((task as ExecutionTask)?.usage, undefined, 2)
     : '';
 
   const metaKVElement = MetaKV({

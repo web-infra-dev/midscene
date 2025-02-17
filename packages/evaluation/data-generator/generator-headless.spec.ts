@@ -86,7 +86,7 @@ test('antd widget - tooltip', async ({ page }) => {
 test('antd widget - carousel', async ({ page }) => {
   const playwrightPage = new PlaywrightWebPage(page);
 
-  await page.setViewportSize({ width: 1920, height: 1080 });
+  await page.setViewportSize({ width: 1400, height: 1080 });
   await page.goto('https://ant.design/components/carousel-cn');
   await page.waitForLoadState('networkidle');
   await generateExtractData(

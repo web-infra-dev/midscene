@@ -1,0 +1,64 @@
+{
+  "testDataPath": "todo",
+  "testCases": [
+    {
+      "prompt": "type 'hello' in the input box, sleep 5s, hit enter",
+      "response_planning": {
+        "actions": [
+          {
+            "thought": "Type 'hello' in the input box.",
+            "type": "Input",
+            "param": {
+              "value": "hello"
+            },
+            "locate": {
+              "bbox": [578, 132, 1083, 185],
+              "prompt": "What needs to be done?"
+            }
+          },
+          {
+            "thought": "Sleep for 5 seconds as instructed.",
+            "type": "Sleep",
+            "param": {
+              "timeMs": 5000
+            }
+          },
+          {
+            "thought": "Hit enter after sleeping for 5 seconds.",
+            "type": "KeyboardPress",
+            "param": {
+              "value": "Enter"
+            }
+          }
+        ],
+        "taskWillBeAccomplished": true,
+        "furtherPlan": null,
+        "usage": {
+          "prompt_tokens": 3241,
+          "completion_tokens": 183,
+          "total_tokens": 3424
+        }
+      }
+    },
+    {
+      "prompt": "if there are four entries, click the delete button of the second entry, wait 3s",
+      "response_planning": {
+        "actions": [
+          {
+            "thought": "There are only three entries on the page, not four. The condition is falsy.",
+            "type": "ExpectedFalsyCondition",
+            "param": null
+          }
+        ],
+        "taskWillBeAccomplished": true,
+        "furtherPlan": null,
+        "error": null,
+        "usage": {
+          "prompt_tokens": 3244,
+          "completion_tokens": 77,
+          "total_tokens": 3321
+        }
+      }
+    }
+  ]
+}

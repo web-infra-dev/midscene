@@ -298,7 +298,10 @@
                                                           "height": 22,
                                                           "zoom": 1
                                                         },
-                                                        "center": [26, 28],
+                                                        "center": [
+                                                          26,
+                                                          28
+                                                        ],
                                                         "zoom": 1,
                                                         "screenWidth": 400,
                                                         "screenHeight": 905
@@ -318,9 +321,9 @@
                                                           "children": [
                                                             {
                                                               "node": {
-                                                                "id": "kciee",
+                                                                "id": "kfmhg",
                                                                 "indexId": 1,
-                                                                "nodeHashId": "kciee",
+                                                                "nodeHashId": "kfmhg",
                                                                 "nodeType": "TEXT Node",
                                                                 "locator": "",
                                                                 "attributes": {
@@ -328,13 +331,14 @@
                                                                   "htmlTagName": "<span>"
                                                                 },
                                                                 "center": [
-                                                                  92, 29
+                                                                  92,
+                                                                  29
                                                                 ],
                                                                 "content": "English",
                                                                 "rect": {
                                                                   "left": 65,
                                                                   "top": 17,
-                                                                  "width": 54,
+                                                                  "width": 53,
                                                                   "height": 23,
                                                                   "zoom": 1
                                                                 },
@@ -402,7 +406,10 @@
                                                   "height": 44,
                                                   "zoom": 1
                                                 },
-                                                "center": [225, 30],
+                                                "center": [
+                                                  225,
+                                                  30
+                                                ],
                                                 "zoom": 1,
                                                 "screenWidth": 400,
                                                 "screenHeight": 905
@@ -611,7 +618,8 @@
                                                                       "zoom": 1
                                                                     },
                                                                     "center": [
-                                                                      363, 29
+                                                                      363,
+                                                                      29
                                                                     ],
                                                                     "zoom": 1,
                                                                     "screenWidth": 400,
@@ -5281,21 +5289,24 @@
                                                       "children": [
                                                         {
                                                           "node": {
-                                                            "id": "lpmmd",
+                                                            "id": "mhedh",
                                                             "indexId": 4,
-                                                            "nodeHashId": "lpmmd",
+                                                            "nodeHashId": "mhedh",
                                                             "nodeType": "TEXT Node",
                                                             "locator": "",
                                                             "attributes": {
                                                               "nodeType": "TEXT Node",
                                                               "htmlTagName": "<p>"
                                                             },
-                                                            "center": [201, 79],
+                                                            "center": [
+                                                              200,
+                                                              79
+                                                            ],
                                                             "content": "Delivery and self pick-up not available",
                                                             "rect": {
                                                               "left": 75,
                                                               "top": 69,
-                                                              "width": 251,
+                                                              "width": 250,
                                                               "height": 20,
                                                               "zoom": 1
                                                             },
@@ -5340,7 +5351,8 @@
                                                               "htmlTagName": "<span>"
                                                             },
                                                             "center": [
-                                                              178, 133
+                                                              178,
+                                                              133
                                                             ],
                                                             "content": "Islandwide Delivery, Minimum Spending of S$ 11",
                                                             "rect": {
@@ -5399,7 +5411,10 @@
                                                   "height": 180,
                                                   "zoom": 1
                                                 },
-                                                "center": [200, 350],
+                                                "center": [
+                                                  200,
+                                                  350
+                                                ],
                                                 "zoom": 1,
                                                 "screenWidth": 400,
                                                 "screenHeight": 905
@@ -5424,7 +5439,10 @@
                                                       "nodeType": "TEXT Node",
                                                       "htmlTagName": "<p>"
                                                     },
-                                                    "center": [181, 472],
+                                                    "center": [
+                                                      181,
+                                                      472
+                                                    ],
                                                     "content": "HEYTEA Singapore. The original cheezo tea 2012, fostering joy & inspiration with every sip.",
                                                     "rect": {
                                                       "left": 16,
@@ -5478,7 +5496,8 @@
                                                                   "htmlTagName": "<span>"
                                                                 },
                                                                 "center": [
-                                                                  95, 548
+                                                                  95,
+                                                                  548
                                                                 ],
                                                                 "content": "Menu",
                                                                 "rect": {
@@ -5515,7 +5534,10 @@
                                                               "height": 4,
                                                               "zoom": 1
                                                             },
-                                                            "center": [95, 570],
+                                                            "center": [
+                                                              95,
+                                                              570
+                                                            ],
                                                             "zoom": 1,
                                                             "screenWidth": 400,
                                                             "screenHeight": 905
@@ -5542,7 +5564,8 @@
                                                                   "htmlTagName": "<span>"
                                                                 },
                                                                 "center": [
-                                                                  186, 548
+                                                                  186,
+                                                                  548
                                                                 ],
                                                                 "content": "Reviews",
                                                                 "rect": {
@@ -5588,7 +5611,8 @@
                                                                   "htmlTagName": "<span>"
                                                                 },
                                                                 "center": [
-                                                                  291, 548
+                                                                  291,
+                                                                  548
                                                                 ],
                                                                 "content": "Merchant",
                                                                 "rect": {
@@ -5647,7 +5671,8 @@
                                                                       "htmlTagName": "<span>"
                                                                     },
                                                                     "center": [
-                                                                      37, 603
+                                                                      37,
+                                                                      603
                                                                     ],
                                                                     "content": "IN SEASON",
                                                                     "rect": {
@@ -5685,7 +5710,8 @@
                                                                       "htmlTagName": "<span>"
                                                                     },
                                                                     "center": [
-                                                                      43, 663
+                                                                      43,
+                                                                      663
                                                                     ],
                                                                     "content": "REFRESHING DRINKS",
                                                                     "rect": {
@@ -5723,7 +5749,8 @@
                                                                       "htmlTagName": "<span>"
                                                                     },
                                                                     "center": [
-                                                                      39, 723
+                                                                      39,
+                                                                      723
                                                                     ],
                                                                     "content": "SIGNATURE DRINKS",
                                                                     "rect": {
@@ -5761,7 +5788,8 @@
                                                                       "htmlTagName": "<span>"
                                                                     },
                                                                     "center": [
-                                                                      35, 783
+                                                                      35,
+                                                                      783
                                                                     ],
                                                                     "content": "COMFORT DRINKS",
                                                                     "rect": {
@@ -5799,7 +5827,8 @@
                                                                       "htmlTagName": "<span>"
                                                                     },
                                                                     "center": [
-                                                                      34, 843
+                                                                      34,
+                                                                      843
                                                                     ],
                                                                     "content": "SIMPLE CLASSICS",
                                                                     "rect": {
@@ -5869,9 +5898,9 @@
                                                               "children": [
                                                                 {
                                                                   "node": {
-                                                                    "id": "mcpfc",
+                                                                    "id": "hjlcp",
                                                                     "indexId": 17,
-                                                                    "nodeHashId": "mcpfc",
+                                                                    "nodeHashId": "hjlcp",
                                                                     "nodeType": "TEXT Node",
                                                                     "locator": "",
                                                                     "attributes": {
@@ -5879,13 +5908,14 @@
                                                                       "htmlTagName": "<span>"
                                                                     },
                                                                     "center": [
-                                                                      137, 612
+                                                                      136,
+                                                                      612
                                                                     ],
                                                                     "content": "IN SEASON (1)",
                                                                     "rect": {
                                                                       "left": 88,
                                                                       "top": 602,
-                                                                      "width": 98,
+                                                                      "width": 96,
                                                                       "height": 20,
                                                                       "zoom": 1
                                                                     },
@@ -5931,7 +5961,8 @@
                                                                       "zoom": 1
                                                                     },
                                                                     "center": [
-                                                                      133, 683
+                                                                      133,
+                                                                      683
                                                                     ],
                                                                     "zoom": 1,
                                                                     "screenWidth": 400,
@@ -5954,9 +5985,9 @@
                                                                             },
                                                                             {
                                                                               "node": {
-                                                                                "id": "pkjep",
+                                                                                "id": "millo",
                                                                                 "indexId": 19,
-                                                                                "nodeHashId": "pkjep",
+                                                                                "nodeHashId": "millo",
                                                                                 "nodeType": "TEXT Node",
                                                                                 "locator": "",
                                                                                 "attributes": {
@@ -5964,14 +5995,14 @@
                                                                                   "htmlTagName": "<h2>"
                                                                                 },
                                                                                 "center": [
-                                                                                  259,
+                                                                                  258,
                                                                                   660
                                                                                 ],
                                                                                 "content": "Very Tangerine Blast (Original)",
                                                                                 "rect": {
                                                                                   "left": 188,
                                                                                   "top": 639,
-                                                                                  "width": 142,
+                                                                                  "width": 139,
                                                                                   "height": 41,
                                                                                   "zoom": 1
                                                                                 },
@@ -6014,9 +6045,9 @@
                                                                               "children": [
                                                                                 {
                                                                                   "node": {
-                                                                                    "id": "idbdp",
+                                                                                    "id": "dmggl",
                                                                                     "indexId": 20,
-                                                                                    "nodeHashId": "idbdp",
+                                                                                    "nodeHashId": "dmggl",
                                                                                     "nodeType": "TEXT Node",
                                                                                     "locator": "",
                                                                                     "attributes": {
@@ -6024,14 +6055,14 @@
                                                                                       "htmlTagName": "<span>"
                                                                                     },
                                                                                     "center": [
-                                                                                      212,
+                                                                                      211,
                                                                                       734
                                                                                     ],
                                                                                     "content": "6.82",
                                                                                     "rect": {
                                                                                       "left": 192,
                                                                                       "top": 721,
-                                                                                      "width": 39,
+                                                                                      "width": 37,
                                                                                       "height": 25,
                                                                                       "zoom": 1
                                                                                     },
@@ -6109,9 +6140,9 @@
                                                               "children": [
                                                                 {
                                                                   "node": {
-                                                                    "id": "nmbln",
+                                                                    "id": "eabbl",
                                                                     "indexId": 22,
-                                                                    "nodeHashId": "nmbln",
+                                                                    "nodeHashId": "eabbl",
                                                                     "nodeType": "TEXT Node",
                                                                     "locator": "",
                                                                     "attributes": {
@@ -6119,13 +6150,14 @@
                                                                       "htmlTagName": "<span>"
                                                                     },
                                                                     "center": [
-                                                                      174, 773
+                                                                      173,
+                                                                      773
                                                                     ],
                                                                     "content": "REFRESHING DRINKS (5)",
                                                                     "rect": {
                                                                       "left": 88,
                                                                       "top": 763,
-                                                                      "width": 172,
+                                                                      "width": 169,
                                                                       "height": 20,
                                                                       "zoom": 1
                                                                     },
@@ -6171,7 +6203,8 @@
                                                                       "zoom": 1
                                                                     },
                                                                     "center": [
-                                                                      133, 845
+                                                                      133,
+                                                                      845
                                                                     ],
                                                                     "zoom": 1,
                                                                     "screenWidth": 400,
@@ -6194,9 +6227,9 @@
                                                                             },
                                                                             {
                                                                               "node": {
-                                                                                "id": "mdnbp",
+                                                                                "id": "iihbj",
                                                                                 "indexId": 24,
-                                                                                "nodeHashId": "mdnbp",
+                                                                                "nodeHashId": "iihbj",
                                                                                 "nodeType": "TEXT Node",
                                                                                 "locator": "",
                                                                                 "attributes": {
@@ -6204,14 +6237,14 @@
                                                                                   "htmlTagName": "<h2>"
                                                                                 },
                                                                                 "center": [
-                                                                                  268,
+                                                                                  266,
                                                                                   810
                                                                                 ],
                                                                                 "content": "Mango Grapefruit Pops",
                                                                                 "rect": {
                                                                                   "left": 188,
                                                                                   "top": 800,
-                                                                                  "width": 159,
+                                                                                  "width": 156,
                                                                                   "height": 20,
                                                                                   "zoom": 1
                                                                                 },
@@ -6254,9 +6287,9 @@
                                                                               "children": [
                                                                                 {
                                                                                   "node": {
-                                                                                    "id": "fldho",
+                                                                                    "id": "naibh",
                                                                                     "indexId": 25,
-                                                                                    "nodeHashId": "fldho",
+                                                                                    "nodeHashId": "naibh",
                                                                                     "nodeType": "TEXT Node",
                                                                                     "locator": "",
                                                                                     "attributes": {
@@ -6264,14 +6297,14 @@
                                                                                       "htmlTagName": "<span>"
                                                                                     },
                                                                                     "center": [
-                                                                                      212,
+                                                                                      211,
                                                                                       877
                                                                                     ],
                                                                                     "content": "6.54",
                                                                                     "rect": {
                                                                                       "left": 192,
                                                                                       "top": 864,
-                                                                                      "width": 39,
+                                                                                      "width": 37,
                                                                                       "height": 25,
                                                                                       "zoom": 1
                                                                                     },
@@ -9505,7 +9538,10 @@
                               "height": 42,
                               "zoom": 1
                             },
-                            "center": [379, 834],
+                            "center": [
+                              379,
+                              834
+                            ],
                             "zoom": 1,
                             "screenWidth": 400,
                             "screenHeight": 905

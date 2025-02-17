@@ -14,7 +14,7 @@ dotenv.config({
   override: true,
 });
 
-const testSources = ['online_order'];
+const testSources = ['online_order', 'online_order_list'];
 
 describe('ai inspect element', () => {
   const testResult: {
@@ -60,6 +60,7 @@ describe('ai inspect element', () => {
             assertion: prompt,
             context,
           });
+          console.log('assertion result', result);
 
           expect(typeof result?.content?.pass).toBe('boolean');
           if (result?.content?.pass !== expected) {
@@ -67,8 +68,6 @@ describe('ai inspect element', () => {
               `assertion failed: ${prompt} expected: ${expected}, actual: ${result?.content?.pass}, thought: ${result?.content?.thought}`,
             );
           }
-
-          console.log('assertion passed, thought:', result?.content?.thought);
         },
         {
           timeout: 3 * 60 * 1000,

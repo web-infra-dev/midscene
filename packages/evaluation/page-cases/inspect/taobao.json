@@ -9,7 +9,8 @@
           "id": "jfjah",
           "indexId": 27
         }
-      ]
+      ],
+      "response_bbox": [321, 54, 860, 97]
     },
     {
       "prompt": "搜索按钮",
@@ -19,7 +20,8 @@
           "id": "ondpi",
           "indexId": 26
         }
-      ]
+      ],
+      "response_bbox": [780, 56, 859, 94]
     },
     {
       "prompt": "产品分类里面的：男鞋（文字）",
@@ -29,7 +31,8 @@
           "id": "cjfcl",
           "indexId": 99
         }
-      ]
+      ],
+      "response_bbox": [94, 435, 126, 448]
     },
     {
       "prompt": "右侧“立即登录”下方的收藏夹 icon",
@@ -39,17 +42,19 @@
           "id": "fkfdl",
           "indexId": 190
         }
-      ]
+      ],
+      "response_bbox": [1065, 392, 1094, 408]
     },
     {
-      "prompt": "右侧”官方客服“按钮文字",
+      "prompt": "最右侧悬浮”旺旺客服“按钮icon",
       "multi": false,
       "response": [
         {
-          "id": "lhcmp",
-          "indexId": 214
+          "id": "iegkg",
+          "indexId": 212
         }
-      ]
+      ],
+      "response_bbox": [1250, 304, 1287, 500]
     }
   ]
 }

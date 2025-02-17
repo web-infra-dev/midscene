@@ -1,8 +1,10 @@
 import assert from 'node:assert';
 import {
   MIDSCENE_MODEL_NAME,
+  MIDSCENE_USE_QWEN_VL,
   MIDSCENE_USE_VLM_UI_TARS,
   getAIConfig,
+  getAIConfigInBoolean,
 } from '@/env';
 import type {
   DumpMeta,
@@ -24,13 +26,17 @@ export function emitInsightDump(
   assert(logDir, 'logDir should be set before writing dump file');
 
   const id = logId || uuid();
+  let modelDescription = '';
+  if (getAIConfigInBoolean(MIDSCENE_USE_VLM_UI_TARS)) {
+    modelDescription = 'vlm-ui-tars mode';
+  } else if (getAIConfigInBoolean(MIDSCENE_USE_QWEN_VL)) {
+    modelDescription = 'qwen-vl mode';
+  }
   const baseData: DumpMeta = {
     sdkVersion: getVersion(),
     logTime: Date.now(),
     model_name: getAIConfig(MIDSCENE_MODEL_NAME) || '',
-    model_description: getAIConfig(MIDSCENE_USE_VLM_UI_TARS)
-      ? 'vlm-ui-tars enabled'
-      : '',
+    model_description: modelDescription,
   };
   const finalData: InsightDump = {
     logId: id,

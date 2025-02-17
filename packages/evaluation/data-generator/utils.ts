@@ -5,9 +5,11 @@ import { NodeType } from '@midscene/shared/constants';
 import path from 'node:path';
 import { descriptionOfTree } from '@midscene/core/tree';
 import {
+  imageInfoOfBase64,
   processImageElementInfo,
   resizeImgBase64,
   saveBase64Image,
+  zoomForGPT4o,
 } from '@midscene/shared/img';
 import type { WebPage } from '@midscene/web';
 
@@ -53,26 +55,11 @@ export async function generateExtractData(
     inputImgBase64,
   });
 
-  const resizedImg = await resizeImgBase64(inputImgBase64, undefined);
-
-  const existingSnapshot = existsSync(snapshotJsonPath)
-    ? JSON.parse(readFileSync(snapshotJsonPath, 'utf-8'))
-    : null;
-
-  const existingElementTree = existsSync(elementTreeJsonPath)
-    ? JSON.parse(readFileSync(elementTreeJsonPath, 'utf-8'))
-    : null;
-
-  if (
-    existingSnapshot &&
-    JSON.stringify(existingSnapshot) ===
-      JSON.stringify(captureElementSnapshot) &&
-    existingElementTree &&
-    JSON.stringify(existingElementTree) === JSON.stringify(elementTree)
-  ) {
-    console.log('skip save snapshot for ', targetDir);
-    return;
-  }
+  const originalSize = await imageInfoOfBase64(inputImgBase64);
+  const resizedImg = await resizeImgBase64(
+    inputImgBase64,
+    zoomForGPT4o(originalSize.width, originalSize.height),
+  );
 
   if (!saveImgType?.disableSnapshot) {
     writeFileSyncWithDir(
