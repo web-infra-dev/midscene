@@ -407,6 +407,9 @@ export default class ChromeExtensionProxyPage implements AbstractPage {
     });
   }
 
+  private latestMouseX = 50;
+  private latestMouseY = 50;
+
   mouse = {
     click: async (x: number, y: number) => {
       await this.showMousePointer(x, y);
@@ -431,8 +434,8 @@ export default class ChromeExtensionProxyPage implements AbstractPage {
       startX?: number,
       startY?: number,
     ) => {
-      const finalX = startX || 50;
-      const finalY = startY || 50;
+      const finalX = startX || this.latestMouseX;
+      const finalY = startY || this.latestMouseY;
       await this.showMousePointer(finalX, finalY);
       await this.sendCommandToDebugger('Input.dispatchMouseEvent', {
         type: 'mouseWheel',
@@ -441,6 +444,8 @@ export default class ChromeExtensionProxyPage implements AbstractPage {
         deltaX,
         deltaY,
       });
+      this.latestMouseX = finalX;
+      this.latestMouseY = finalY;
     },
     move: async (x: number, y: number) => {
       await this.showMousePointer(x, y);
@@ -449,6 +454,8 @@ export default class ChromeExtensionProxyPage implements AbstractPage {
         x,
         y,
       });
+      this.latestMouseX = x;
+      this.latestMouseY = y;
     },
     drag: async (
       from: { x: number; y: number },

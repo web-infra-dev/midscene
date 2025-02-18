@@ -208,9 +208,6 @@ export class Page<
   private async moveToPoint(point?: Point): Promise<void> {
     if (point) {
       await this.mouse.move(point.left, point.top);
-    } else {
-      const size = await this.size();
-      await this.mouse.move(size.width / 2, size.height / 2);
     }
   }
 
