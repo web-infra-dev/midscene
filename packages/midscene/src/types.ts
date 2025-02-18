@@ -360,6 +360,7 @@ export interface ExecutionTaskApply<
   thought?: string;
   locate: PlanningLocateParam | null;
   quickAnswer?: AISingleElementResponse | null;
+  pageContext?: UIContext;
   executor: (
     param: TaskParam,
     context: ExecutorContext,

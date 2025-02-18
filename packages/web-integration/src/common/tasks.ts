@@ -214,6 +214,7 @@ export class PageTaskExecutor {
               output: {
                 element,
               },
+              pageContext,
               log: {
                 dump: insightDump,
               },

@@ -1,5 +1,5 @@
 import { join } from 'node:path';
-import { matchYamlFiles, parseArgsIntoYamlScript } from '@/cli-utils';
+import { matchYamlFiles } from '@/cli-utils';
 import { launchServer } from '@/yaml-runner';
 import { describe, expect, test } from 'vitest';
 const serverRoot = join(__dirname, 'server_root');

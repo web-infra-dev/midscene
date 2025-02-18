@@ -132,7 +132,7 @@ describe(
       const { originPage, reset } = await launchPage('https://www.baidu.com/');
       resetFn = reset;
       const mid = new PuppeteerAgent(originPage, {
-        trackingActiveTab: false,
+        forceSameTabNavigation: false,
       });
       await mid.aiAction('Tap hao123 in the navigation bar');
       await sleep(6000);
@@ -146,7 +146,7 @@ describe(
       const { originPage, reset } = await launchPage('https://www.baidu.com/');
       resetFn = reset;
       const mid = new PuppeteerAgent(originPage, {
-        trackingActiveTab: true,
+        forceSameTabNavigation: true,
       });
       await mid.aiAction('Tap hao123 in the navigation bar');
 

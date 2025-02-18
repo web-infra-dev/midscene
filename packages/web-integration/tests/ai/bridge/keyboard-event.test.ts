@@ -9,8 +9,13 @@ vi.setConfig({
 });
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
-describe.skipIf(!process.env.BRIDGE_MODE)(
+const describeIf = process.env.BRIDGE_MODE ? describe : describe.skip;
+
+describeIf(
   'keyboard event in bridge mode',
+  {
+    timeout: 3 * 60 * 10,
+  },
   () => {
     it('page in cli side scroll down', async () => {
       const agent = new AgentOverChromeBridge();
@@ -33,8 +38,5 @@ describe.skipIf(!process.env.BRIDGE_MODE)(
 
       await agent.destroy();
     });
-  },
-  {
-    timeout: 3 * 60 * 10,
   },
 );

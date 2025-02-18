@@ -1,7 +1,7 @@
 {
   "name": "@midscene/cli",
   "description": "An AI-powered automation SDK can control the page, perform assertions, and extract data in JSON format using natural language. See https://midscenejs.com/ for details.",
-  "version": "0.11.1",
+  "version": "0.11.3",
   "repository": "https://github.com/web-infra-dev/midscene",
   "homepage": "https://midscenejs.com/",
   "jsnext:source": "./src/index.ts",
@@ -18,6 +18,7 @@
     "upgrade": "modern upgrade",
     "test": "vitest --run",
     "test:ai": "AITEST=true vitest --run",
+    "test:ai:temp": "AITEST=true BRIDGE_MODE=true vitest tests/bridge.test.ts",
     "prepublishOnly": "npm run build"
   },
   "dependencies": {
@@ -40,7 +41,7 @@
     "js-yaml": "4.1.0",
     "restore-cursor": "5.1.0",
     "typescript": "~5.0.4",
-    "vitest": "^1.6.0",
+    "vitest": "3.0.5",
     "yargs": "17.7.2"
   },
   "engines": {

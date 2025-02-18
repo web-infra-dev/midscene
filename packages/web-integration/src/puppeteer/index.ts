@@ -9,23 +9,20 @@ export class PuppeteerAgent extends PageAgent {
     const webPage = new PuppeteerWebPage(page);
     super(webPage, opts);
 
-    if (opts?.trackingActiveTab) {
-      // @ts-expect-error
-      const browser = (this.page as PuppeteerWebPage).underlyingPage.browser();
+    const { forceSameTabNavigation = true } = opts ?? {};
 
-      browser.on('targetcreated', async (target) => {
-        if (target.type() === 'page') {
-          const targetPage = await target.page();
-          if (!targetPage) {
-            console.warn(
-              'got a targetPage event, but the page is not ready yet, skip',
-            );
-            return;
-          }
-          const midscenePage = new PuppeteerWebPage(targetPage);
-          this.page = midscenePage;
-          this.taskExecutor.page = midscenePage;
+    if (forceSameTabNavigation) {
+      page.on('popup', async (popup) => {
+        if (!popup) {
+          console.warn(
+            'got a popup event, but the popup is not ready yet, skip',
+          );
+          return;
         }
+        const url = await popup.url();
+        console.log(`Popup opened: ${url}`);
+        await popup.close(); // Close the newly opened TAB
+        await page.goto(url);
       });
     }
   }

@@ -16,9 +16,9 @@ export enum BridgeEvent {
 export interface BridgeConnectTabOptions {
   /**
    * If true, the page will always track the active tab.
-   * @default false
+   * @default true
    */
-  trackingActiveTab?: boolean;
+  forceSameTabNavigation?: boolean;
 }
 
 export enum MouseEvent {

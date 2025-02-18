@@ -1,4 +1,3 @@
-import { generateTestDataPath } from '@/debug';
 import { expect } from 'playwright/test';
 import { test } from './fixture';
 

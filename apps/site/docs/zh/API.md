@@ -15,7 +15,7 @@ Midscene 中每个 Agent 都有自己的构造函数。
 
 在 puppeteer 中，还有一个额外的参数：
 
-* `trackingActiveTab: boolean`: 如果为 true，则跟踪新打开的标签页。默认值为 false。
+* `forceSameTabNavigation: boolean`: 如果为 true，则限制页面在当前 tab 打开。默认值为 true。
 
 ## 方法
 
