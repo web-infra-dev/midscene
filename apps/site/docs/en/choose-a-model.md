@@ -18,7 +18,7 @@ GPT-4o is a general-purpose LLM by OpenAI, which supports image input. This is t
 
 **Features**
 
-- **Easy to achieve**: you can get the deployed API from many providers and just pay for the token.
+- **Easy to achieve**: you can get the stable API service from many providers and just pay for the token.
 - **Performing steadily**: it performs well on interaction, assertion, and query.
 
 **Limitations**

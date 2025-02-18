@@ -34,10 +34,9 @@ Midscene.js 让 AI 成为你的浏览器操作员 🤖。只需用自然语言�
 | 用 JS 代码驱动编排任务，搜集周杰伦演唱会的信息，并写入 Google Docs   | <video src="https://github.com/user-attachments/assets/75474138-f51f-4c54-b3cf-46d61d059999" height="300" />        |
 
 
+## 📢 支持了新的开源模型 - UI-TARS 和 Qwen2.5-VL
 
-## 📢 支持了新的开源模型 - UI-TARS
-
-从 v0.10.0 版本开始，我们支持了新的开源模型 [`UI-TARS`](https://github.com/bytedance/ui-tars)。更多信息请查看 [选择 AI 模型](https://midscenejs.com/zh/choose-a-model)。
+除了默认的 `gpt-4o` 模型，我们还支持了两个新的开源模型：`UI-TARS` 和 `Qwen2.5-VL`。（是的，开源模型！）它们是专为 UI 自动化和图像识别设计的模型，在 UI 自动化场景下表现出色。更多信息请查看 [选择 AI 模型](https://midscenejs.com/zh/choose-a-model)。
 
 ## 💡 特性
 

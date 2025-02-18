@@ -20,7 +20,7 @@ GPT-4o 是 OpenAI 提供的通用 LLM 模型，支持图像输入。这是 Midsc
 
 **特性**
 
-- **易于上手**：你只需要获取 API 密钥即可。
+- **易于上手**：OpenAI 提供了非常友好的 API 接入，你只需要获取 API 密钥即可。
 - **表现平稳**：它在交互（Action）、断言（Assertion）和查询（Query）方面表现均比较良好。
 
 **限制**
@@ -49,7 +49,7 @@ Qwen 2.5 VL 确实有内置的操作规划（action planning）功能来控制�
 - **低成本**：Midscene 不需要发送 DOM 树给模型。和 `gpt-4o` 相比，它可以节省 30% 到 50% 的 token 消耗，复杂场景下甚至更多。
 - **高分辨率支持**：Qwen 2.5 VL 支持更高的分辨率输入，足以满足大多数情况。
 - **开源**：这是一个开源模型，因此你可以选择使用云提供商已经部署好的版本，或者自己部署到你自己的服务器上。
-- **速度更快**：在大多数情况下，Qwen 2.5 VL 可以比 `gpt-4o` 更快。但阿里云的 API 服务似乎不太稳定，不时会有些耗时较长、影响体验的案例出现，有条件的开发者不妨尝试私有化部署。
+- **速度更快**：在大多数情况下，Qwen 2.5 VL 可以比 `gpt-4o` 更快。但阿里云的 API 服务似乎不太稳定，不时会有些长耗时、影响体验的案例出现，有条件的开发者不妨尝试私有化部署。
 
 **限制**
 
@@ -71,7 +71,7 @@ MIDSCENE_USE_QWEN_VL=1 # 别忘了配置这项用于 Qwen 2.5 模式！
 
 - [Qwen 2.5 on 🤗 HuggingFace](https://huggingface.co/Qwen/Qwen2.5-VL-72B-Instruct)
 - [Qwen 2.5 on Github](https://github.com/QwenLM/Qwen2.5-VL)
-- [Qwen 2.5 on Aliyun](https://bailian.console.aliyun.com/#/model-market/detail/qwen2.5-vl-72b-instruct)
+- [Qwen 2.5 - 阿里云百炼](https://bailian.console.aliyun.com/#/model-market/detail/qwen2.5-vl-72b-instruct)
 
 ### UI-TARS
 
