@@ -176,7 +176,6 @@ export OPENAI_API_KEY="....."
 export MIDSCENE_MODEL_NAME="gemini-1.5-pro"
 ```
 
-
 ## Troubleshooting LLM Service Connectivity Issues
 
 If you want to troubleshoot connectivity issues, you can use the 'connectivity-test' folder in our example project: [https://github.com/web-infra-dev/midscene-example/tree/main/connectivity-test](https://github.com/web-infra-dev/midscene-example/tree/main/connectivity-test)

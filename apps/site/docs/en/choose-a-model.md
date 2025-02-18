@@ -1,8 +1,8 @@
 # Choose a Model for Midscene.js
 
-In this article, we will talk about how to choose a model for Midscene.js.
+In this article, we will talk about how to choose a model for Midscene.js. All of these models configs are both supported in Chrome extension and SDK.
 
-If you want to see the detailed configuration of model and provider, see [Config Model and Provider](./model-provider). All of these models configs are both supported in Chrome extension and SDK.
+If you want to see the detailed configuration of model services, see [Config Model and Provider](./model-provider).
 
 :::info TLDR
 GPT-4o, Qwen2.5-VL-72B-Instruct, and UI-TARS are the most recommended models for Midscene.js. Choose the one that is easiest to obtain and use. You can also use other models, but you need to follow the steps in the article.
@@ -19,7 +19,7 @@ GPT-4o is a general-purpose LLM by OpenAI, which supports image input. This is t
 **Features**
 
 - **Easy to achieve**: you can get the deployed API from many providers and just pay for the token.
-- **Balanced performance**: it performs well on interaction, assertion, and query.
+- **Performing steadily**: it performs well on interaction, assertion, and query.
 
 **Limitations**
 
