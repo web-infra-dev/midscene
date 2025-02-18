@@ -38,8 +38,7 @@ import { findElementSchema } from '../prompt/llm-locator';
 import { planSchema } from '../prompt/llm-planning';
 import { assertSchema } from '../prompt/util';
 
-export function checkAIConfig(preferVendor?: 'openAI') {
-  if (preferVendor && preferVendor !== 'openAI') return false;
+export function checkAIConfig() {
   if (getAIConfig(OPENAI_API_KEY)) return true;
   if (getAIConfig(MIDSCENE_USE_AZURE_OPENAI)) return true;
   if (getAIConfig(ANTHROPIC_API_KEY)) return true;
