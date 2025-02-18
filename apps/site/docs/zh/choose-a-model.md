@@ -2,109 +2,143 @@
 
 在这篇文章中，我们将讨论如何为 Midscene.js 选择 AI 模型。
 
-如果你想了解更多关于模型和提供商的配置方法，请查看 [配置模型和服务商](./model-provider)。
+如果你想了解更多关于模型和提供商的配置方法，请查看 [配置模型和服务商](./model-provider)。所有这些配置都可以同时在浏览器插件和 SDK 中使用。
 
 :::info 先说结论
-Midscene.js 支持使用通用的 LLM 模型（如 `gpt-4o`）作为默认模型。这是最简单的上手方法。
-
-你也可以使用开源模型，如 `UI-TARS`，来提高运行性能和数据隐私。
+Midscene.js 推荐使用的三种模型是 `gpt-4o`，`qwen2.5-vl-72b-instruct` 和 UI-TARS。任选一个你最容易获取的模型开始使用即可。你也可以使用其他模型，但需要按照文章中的步骤去配置。
 :::
 
-## 通用 LLM 模型与专用模型（如 `UI-TARS`）的对比
+## 推荐模型
 
-以下是通用 LLM 模型与专用模型（如 `UI-TARS`）的特性对比。我们将在后文详细讨论它们。
+Midscene.js 推荐使用的三种模型是 `gpt-4o`，`qwen2.5-vl-72b-instruct` 和 UI-TARS。
 
-| | 通用 LLM 模型（默认） | 专用模型（如 `UI-TARS`） |
-| --- | --- | --- |
-| **模型用途** | 通用任务 | 专为 UI 自动化设计 |
-| **如何上手** | 简单，只需获取 API 密钥 | 复杂，需要部署到你自己的服务器 |
-| **性能** | 3-10倍慢于纯 JavaScript 驱动自动化 | 可以接受，如果部署得当 |
-| **谁会获取页面数据** | 模型提供商 | 你自己的服务器 |
-| **成本** | 更贵，通常按 token 付费 | 更便宜，按服务器付费 |
-| **提示词** | 更喜欢逐步指令 | 仍然更喜欢逐步指令，但在不确定性情况下表现更好 |
+### GPT-4o
 
-## 选择通用 LLM 模型
+GPT-4o 是 OpenAI 提供的通用 LLM 模型，支持图像输入。这是 Midscene.js 的默认模型。
 
-Midscene.js 使用 OpenAI `gpt-4o` 作为默认模型，因为这是通用 LLM 模型领域的最佳产品。
+我们推荐在 GPT-4o 中使用逐步指令（step-by-step）的提示词。
 
-要使用 OpenAI 官方的 `gpt-4o`，你只需要在环境变量中设置 `OPENAI_API_KEY`。更多详情请参阅 [配置模型和服务商](./model-provider)。
+**特性**
 
-### 选择 `gpt-4o` 以外的模型
+- **易于上手**：你只需要获取 API 密钥即可。
+- **性能平衡**：它在交互（Action）、断言（Assertion）和查询（Query）方面表现均比较良好。
 
-如果你想要选用其他模型，请按照以下步骤操作：
+**限制**
+
+- **成本较高**：Midscene 需要将截图和 DOM 树一起发送给模型，这会导致 token 消耗较高。例如，在 1280x800 分辨率下，eBay 首页需要 6000 个 token，搜索结果页面需要 9000 个 token。因此，成本会显著高于其他模型。
+- **内容限制**：它无法处理跨域的 `<iframe />` 或 `<canvas />` 标签中的内容。
+- **分辨率限制**：它无法处理分辨率超过 2048x768 的图像。
+- **小图标识别能力较差**：它可能无法准确定位小图标。
+
+**配置**
+
+```bash
+OPENAI_API_KEY="......"
+OPENAI_BASE_URL="https://dashscope.aliyuncs.com/compatible-mode/v1" # 可选，如果你想要使用一个不同于 OpenAI 的接入点
+MIDSCENE_MODEL_NAME="gpt-4o-2024-11-20" # 可选，默认是 "gpt-4o"。
+```
+
+### Qwen 2.5 VL
+
+Qwen 2.5 VL 是一个专为图像识别设计的开源模型，由阿里巴巴提供。在大多数情况下，它的表现与 GPT-4o 相当，甚至更好。
+
+Qwen 2.5 VL 确实有内置的操作规划（action planning）功能来控制应用程序，但我们仍然推荐开发者使用详细的提示词来驱动，以获得更稳定和可靠的结果。
+
+**特性**
+
+- **低成本**：Midscene 不需要发送 DOM 树给模型。和 `gpt-4o` 相比，它可以节省 30% 到 50% 的 token 消耗（复杂场景下甚至更多）。
+- **高分辨率支持**：Qwen 2.5 VL 支持更高的分辨率输入，足以满足大多数情况。
+- **开源**：这是一个开源模型，因此你可以选择使用云提供商已经部署好的版本，或者自己部署到你自己的服务器上。
+- **速度更快**：在大多数情况下，Qwen 2.5 VL 可以比 `gpt-4o` 更快。但阿里云的 API 服务似乎不太稳定，不时会有些耗时较长、影响体验的案例出现，有条件的开发者不妨使用私有化部署的版本。
+
+**限制**
+
+- **小图标识别能力较差**：和 `gpt-4o` 一样，它可能无法准确定位小图标。
+- **断言能力较差**：在某些情况下，Qwen 2.5 VL 的断言能力可能不如 `gpt-4o`。
+
+**配置**
+
+除了常规配置，你还需要包含 `MIDSCENE_USE_QWEN_VL=1` 配置来启用 Qwen 2.5 模式。否则，它将使用默认的 `gpt-4o` 模式（这将使用更多的 token）。
+
+```bash
+OPENAI_BASE_URL="https://dashscope.aliyuncs.com/compatible-mode/v1" # 或任何其他提供商的接入点。
+OPENAI_API_KEY="......"
+MIDSCENE_MODEL_NAME="qwen2.5-vl-72b-instruct"
+MIDSCENE_USE_QWEN_VL=1 # 别忘了配置这项用于 Qwen 2.5 模式！
+```
+
+**资源**
+
+- [Qwen 2.5 on 🤗 HuggingFace](https://huggingface.co/Qwen/Qwen2.5-VL-72B-Instruct)
+- [Qwen 2.5 on Github](https://github.com/QwenLM/Qwen2.5-VL)
+- [Qwen 2.5 on Aliyun](https://bailian.console.aliyun.com/#/model-market/detail/qwen2.5-vl-72b-instruct)
+
+### UI-TARS
+
+UI-TARS 是一个专为 UI 自动化设计的开源模型。它仅以截图作为输入，并执行人类常用的交互（如键盘和鼠标操作），在 10 多个 GUI 基准测试中取得了顶尖性能。UI-TARS 是一个开源模型，并提供了不同大小的版本。
+
+我们推荐在 UI-TARS 中使用目标驱动的提示词（target-driven prompt），如“使用用户名 foo 和密码 bar 登录”，它会逐步完成动作规划并执行。
+
+**特性**
+
+- **速度**：一个私有化的 UI-TARS 模型可以比通用 LLM 快 5 倍。当部署在性能良好的 GPU 服务器上时，每次 `.ai` 中的步骤可以在 1-2 秒内完成。
+- **原生图像识别**：UI-TARS 可以识别截图中的图像，和 Qwen 2.5 VL 一样，在使用 UI-TARS 时， Midscene.js 不需要发送 DOM 树。
+- **开源**：UI-TARS 是一个开源模型，因此你可以选择部署到你自己的服务器上，你的数据将不再发送到云端。
+- **更稳定的短提示**：UI-TARS 针对 UI 自动化进行了优化，并能够处理更复杂的目标驱动的任务。在使用更短的提示词时，UI-TARS 的表现比通用 LLM 更好。
+
+**限制**
+
+- **断言能力较差**：在某些情况下，UI-TARS 的断言能力可能不如 `gpt-4o`。
+
+**配置**
+
+除了常规配置，你还需要包含 `MIDSCENE_USE_VLM_UI_TARS=1` 配置来启用 UI-TARS 模式。否则，你会遇到一些 JSON 解析错误。
+
+```bash
+OPENAI_BASE_URL="....."
+OPENAI_API_KEY="......" 
+MIDSCENE_MODEL_NAME="ui-tars-7b-sft"
+MIDSCENE_USE_VLM_UI_TARS=1 # 别忘了配置这项用于 UI-TARS 模式！
+```
+
+**资源**
+
+- [UI-TARS on 🤗 HuggingFace](https://huggingface.co/bytedance-research/UI-TARS-72B-SFT)
+- [UI-TARS on Github](https://github.com/bytedance/ui-tars)
+- [UI-TARS - 模型部署指南](https://juniper-switch-f10.notion.site/UI-TARS-Model-Deployment-Guide-17b5350241e280058e98cea60317de71)
+
+:::info 我究竟从哪个模型开始使用？
+选择你最容易获取的模型开始使用即可。当你写好脚本后，可以再尝试使用其他模型，看看是否可以有更好的表现。
+:::
+
+### 选择其他通用 LLM 模型
+
+Midscene 也支持其他通用 LLM 模型。Midscene 会使用和 `gpt-4o` 模式下相同的提示词和策略来驱动这些模型。如果你想要选用其他模型，请按照以下步骤操作：
 1. 必须使用多模态模型，也就是支持图像输入的模型。
-1. 模型越大，效果表现越好。然而，它也更昂贵。
+1. 模型越大，效果表现越好。当然，这也意味着需要更多的 GPU 资源（或更贵的 API 服务）。
 1. 找出如何使用与 OpenAI SDK 兼容的方式调用它，服务商一般都会提供这样的接入点，你需要配置的是 `OPENAI_BASE_URL`, `OPENAI_API_KEY` 和 `MIDSCENE_MODEL_NAME`。
 1. 如果发现使用新模型后效果不佳，可以尝试使用一些简短且清晰的提示词（或回滚到之前的模型）。更多详情请参阅 [编写提示词（指令）的技巧](./prompting-tips)。
 1. 请遵守各模型和服务商的使用条款。
+1. 不要包含 `MIDSCENE_USE_VLM_UI_TARS` 和 `MIDSCENE_USE_QWEN_VL` 配置，除非你知道自己在做什么。
 
 ### 已知支持的通用 LLM 模型
 
-除了 `gpt-4o`，我们已知支持以下模型：
+我们已知支持以下模型，它们在不同场景下可能表现各异：
 
 - `claude-3-opus-20240229`
 - `gemini-1.5-pro`
 - `qwen-vl-max-latest`（千问）
 - `doubao-vision-pro-32k`（豆包）
 
-### 关于 token 消耗量
-
-图像分辨率和元素数量（即 Midscene 创建的 UI 上下文大小）会显著影响 token 消耗。
-
-以下是使用 gpt-4o-08-06 模型且未启用 prompting caching 的典型数据：
-
-|任务 | 分辨率 | Prompt Tokens / 价格 | Completion Tokens / 价格 | 总价 |
-|-----|------------|--------------|---------------|--------------|
-|拆解（Plan）并在 eBay 执行一次搜索| 1280x800| 6005 / $0.0150125 |146 / $0.00146| $0.0164725 |
-|提取（Query）eBay 搜索结果的商品信息| 1280x800 | 9107 / $0.0227675 | 122 / $0.00122 | $0.0239875 |
-
-> 测算时间是 2024 年 11 月
-
-
-## 选择 `UI-TARS`（一个专为 UI 自动化设计的开源模型）
-
-UI-TARS 是一个基于 VLM 架构的 GUI agent 模型。它仅以截图作为输入，并执行人类常用的交互（如键盘和鼠标操作），在 10 多个 GUI 基准测试中取得了顶尖性能。
-
-UI-TARS 是一个开源模型，并提供了不同大小的版本。你可以部署到你自己的服务器上，它也支持在浏览器插件中使用。
-
-更多 UI-TARS 的详情可参阅:
-* [Github - UI-TARS](https://github.com/bytedance/ui-tars)
-* [🤗 HuggingFace - UI-TARS-7B-SFT](https://huggingface.co/bytedance-research/UI-TARS-7B-SFT)
-* [中文版: UI-TARS 模型部署教程](https://bytedance.sg.larkoffice.com/docx/TCcudYwyIox5vyxiSDLlgIsTgWf#U94rdCxzBoJMLex38NPlHL21gNb)
-
-### 使用 UI-TARS 后你能获得什么
-
-- **速度**：一个私有的 UI-TARS 模型可以比通用 LLM 快 5 倍。当部署在性能良好的 GPU 服务器上时，每次 `.ai` 中的步骤可以在 1-2 秒内完成。
-- **数据隐私**：你可以部署到你自己的服务器上，而不是每次发送到云端。
-- **更稳定的短提示**：UI-TARS 针对 UI 自动化进行了优化，并能够处理更复杂的目标驱动的任务。你可以使用更短的 Prompt 指令（尽管不推荐），并且它比通用 LLM 表现得更好。
-
-### 配置 UI-TARS 的步骤
-
-UI-TARS 的输出与通用 LLM 的输出不同。你需要在 Midscene.js 中添加以下配置来启用这个功能。
+### 配置
 
 ```bash
-MIDSCENE_USE_VLM_UI_TARS=1
+MIDSCENE_MODEL_NAME="....."
+OPENAI_BASE_URL="......"
+OPENAI_API_KEY="......"
 ```
 
-## 底层原理
-
-### Midscene.js 是如何使用通用 LLM 模型的
-
-通用 LLM 模型可以“看到”截图，但它们无法提供元素的坐标。为了完成自动化任务，我们需要额外的脚本来提取元素信息并和截图一起发送给 LLM。当 LLM 返回元素的 id 时，我们会将它映射回坐标并控制它们。
-
-这种方法在大多数情况下都能表现正常，但会导致延迟和成本增加。此外，我们无法从 `<iframe />` 或 `<canvas />` 标签中提取内容。
-
-### Midscene.js 是如何使用 UI-TARS 模型的
-
-UI-TARS 是一个专为 UI 自动化设计的模型。我们只需要发送截图和指令，它就会返回执行动作和坐标。
-
-这种方法在 agent 架构设计中更为直接，并且自部署的 UI-TARS 模型性能非常出色。因此，我们非常高兴能够将它集成到 Midscene.js 中。
-
-## 我应该从哪种模型开始？
-
-从通用的 LLM 模型开始，这是最简单的上手方法。
-
-一旦你感到对速度，成本，准确性或数据隐私不满意，就可以开始尝试使用 UI-TARS 模型。当你有需求的时候，你自然知道什么时候开始迁移到 UI-TARS 模型（或者不必迁移）。
+更多详情请参阅 [配置模型和服务商](./model-provider)。
 
 ## 更多
 

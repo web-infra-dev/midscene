@@ -16,13 +16,19 @@ Midscene 默认集成了 OpenAI SDK 调用 AI 服务。使用这个 SDK 限定�
 | `OPENAI_BASE_URL` | 可选。API 的接入 URL。常用于切换到其他模型服务，如 `https://some_service_name.com/v1` |
 | `MIDSCENE_MODEL_NAME` | 可选。指定一个不同的模型名称 (默认是 gpt-4o)。常用于切换到其他模型服务|
 
-使用 `UI-TARS` 模型：
+使用 `Qwen 2.5 VL` 模型：
 
-`UI-TARS` 是一个专为 UI 自动化设计的模型，更多详情请参阅 [选择 AI 模型](./choose-a-model)。
+| 名称 | 描述 |
+|------|-------------|
+| `MIDSCENE_USE_QWEN_VL` | 可选。设置为 "1" 以使用 Qwen 2.5 VL 模型 |
+
+使用 `UI-TARS` 模型：
 
 | 名称 | 描述 |
 |------|-------------|
 | `MIDSCENE_USE_VLM_UI_TARS` | 可选。设置为 "1" 以使用 UI-TARS 模型 |
+
+关于模型的更多信息，请参阅 [选择 AI 模型](./choose-a-model)。
 
 还有一些高级配置项，通常不需要使用。
 
@@ -93,14 +99,35 @@ export AZURE_OPENAI_API_VERSION="2024-05-01-preview"
 export AZURE_OPENAI_DEPLOYMENT="gpt-4o"
 ```
 
-## 示例：使用阿里云的 `qwen-vl-max-latest` 模型
+## 示例：使用 OpenAI 的 `gpt-4o` 模型
+
+配置环境变量：
+
+```bash
+export OPENAI_API_KEY="sk-..."
+export OPENAI_BASE_URL="https://endpoint.some_other_provider.com/v1" # 可选，如果你想要使用一个不同于 OpenAI 官方的接入点
+export MIDSCENE_MODEL_NAME="gpt-4o-2024-11-20" # 可选，默认是 "gpt-4o"
+```
+
+## 示例：使用阿里云的 `qwen-vl-2.5-72b-instruct` 模型
 
 配置环境变量：
 
 ```bash
 export OPENAI_API_KEY="sk-..."
 export OPENAI_BASE_URL="https://dashscope.aliyuncs.com/compatible-mode/v1"
-export MIDSCENE_MODEL_NAME="qwen-vl-max-latest"
+export MIDSCENE_MODEL_NAME="qwen-vl-2.5-72b-instruct"
+export MIDSCENE_USE_QWEN_VL=1
+```
+
+## 示例：使用 UI-TARS 模型
+
+配置环境变量：
+
+```bash
+export OPENAI_BASE_URL="http://localhost:1234/v1"
+export MIDSCENE_MODEL_NAME="ui-tars-72b-sft"
+export MIDSCENE_USE_VLM_UI_TARS=1
 ```
 
 ## 示例：使用 Anthropic 的 `claude-3-opus-20240229` 模型
@@ -115,15 +142,6 @@ export ANTHROPIC_API_KEY="....."
 export MIDSCENE_MODEL_NAME="claude-3-opus-20240229"
 ```
 
-## 示例：使用 Google 的 `gemini-1.5-pro` 模型
-
-配置环境变量：
-
-```bash
-export OPENAI_BASE_URL="https://generativelanguage.googleapis.com/v1beta/openai"
-export OPENAI_API_KEY="....."
-export MIDSCENE_MODEL_NAME="gemini-1.5-pro"
-```
 
 ## 示例：使用火山云的豆包 `doubao-vision-pro-32k` 模型
 
@@ -137,6 +155,16 @@ export MIDSCENE_MODEL_NAME="gemini-1.5-pro"
 export OPENAI_BASE_URL="https://ark.cn-beijing.volces.com/api/v3"
 export OPENAI_API_KEY="..."
 export MIDSCENE_MODEL_NAME="ep-202....."
+```
+
+## 示例：使用 Google 的 `gemini-1.5-pro` 模型
+
+配置环境变量：
+
+```bash
+export OPENAI_BASE_URL="https://generativelanguage.googleapis.com/v1beta/openai"
+export OPENAI_API_KEY="....."
+export MIDSCENE_MODEL_NAME="gemini-1.5-pro"
 ```
 
 ## 调试 LLM 服务连接问题

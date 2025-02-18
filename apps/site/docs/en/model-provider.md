@@ -1,8 +1,8 @@
 # Config Model and Provider
 
-Midscene uses the OpenAI SDK to call AI services. Using this SDK limits the input and output format of AI services, but it doesn't mean you can only use OpenAI's models. You can use any model service that supports the same interface (most platforms or tools support this).
+Midscene uses the OpenAI SDK to call AI services. Using this SDK limits the input and output schema of AI services, but it doesn't mean you can only use OpenAI's services. You can use any model service that supports the same interface (most platforms or tools support this).
 
-In this article, we will show you how to config AI service provider and how to choose a different model. You may read [Choose a model](./choose-a-model) to learn more about how to choose a model.
+In this article, we will show you how to config AI service provider and how to choose a different model. You may read [Choose a model](./choose-a-model) first to learn more about how to choose a model.
 
 ## Configs
 
@@ -11,16 +11,22 @@ These are the most common configs, in which `OPENAI_API_KEY` is required.
 | Name | Description |
 |------|-------------|
 | `OPENAI_API_KEY` | Required. Your OpenAI API key (e.g. "sk-abcdefghijklmnopqrstuvwxyz") |
-| `OPENAI_BASE_URL` | Optional. Custom endpoint URL for API endpoint. Often used to switch to a provider other than OpenAI (e.g. "https://some_service_name.com/v1") |
-| `MIDSCENE_MODEL_NAME` | Optional. Specify a different model name (default is gpt-4o). Often used to switch to a different model. |
+| `OPENAI_BASE_URL` | Optional. Custom endpoint URL for API endpoint. Use it to switch to a provider other than OpenAI (e.g. "https://some_service_name.com/v1") |
+| `MIDSCENE_MODEL_NAME` | Optional. Specify a different model name other than `gpt-4o` |
 
-Config to use `UI-TARS` model:
-
-`UI-TARS` is a dedicated model for UI automation. See more details in [Choose a model](./choose-a-model).
+Config to use `Qwen 2.5 VL` model:
 
 | Name | Description |
 |------|-------------|
-| `MIDSCENE_USE_VLM_UI_TARS` | Optional. Set to "1" to use UI-TARS model. |
+| `MIDSCENE_USE_QWEN_VL` | Optional. Set to "1" to use Qwen 2.5 VL model |
+
+Config to use `UI-TARS` model:
+
+| Name | Description |
+|------|-------------|
+| `MIDSCENE_USE_VLM_UI_TARS` | Optional. Set to "1" to use UI-TARS model |
+
+For more information about the models, see [Choose a model](./choose-a-model).
 
 Some advanced configs are also supported. Usually you don't need to use them.
 
@@ -65,18 +71,6 @@ Import the dotenv module in your script. It will automatically read the environm
 import 'dotenv/config';
 ```
 
-## Example: Config `claude-3-opus-20240229` from Anthropic
-
-When configuring `MIDSCENE_USE_ANTHROPIC_SDK=1`, Midscene will use Anthropic SDK (`@anthropic-ai/sdk`) to call the model.
-
-Configure the environment variables:
-
-```bash
-export MIDSCENE_USE_ANTHROPIC_SDK=1
-export ANTHROPIC_API_KEY="....."
-export MIDSCENE_MODEL_NAME="claude-3-opus-20240229"
-```
-
 ## Using Azure OpenAI Service
 
 There are some extra configs when using Azure OpenAI Service.
@@ -105,24 +99,48 @@ export AZURE_OPENAI_API_VERSION="2024-05-01-preview"
 export AZURE_OPENAI_DEPLOYMENT="gpt-4o"
 ```
 
-## Example: Using `gemini-1.5-pro` from Google
+## Example: Using `gpt-4o` from OpenAI
 
 Configure the environment variables:
 
 ```bash
-export OPENAI_BASE_URL="https://generativelanguage.googleapis.com/v1beta/openai"
-export OPENAI_API_KEY="....."
-export MIDSCENE_MODEL_NAME="gemini-1.5-pro"
+export OPENAI_API_KEY="sk-..."
+export OPENAI_BASE_URL="https://endpoint.some_other_provider.com/v1" # config this if you want to use a different endpoint
+export MIDSCENE_MODEL_NAME="gpt-4o-2024-11-20" # optional, the default is "gpt-4o"
 ```
 
-## Example: Using `qwen-vl-max-latest` from Aliyun
+## Example: Using `qwen-vl-2.5-72b-instruct` from Aliyun
 
 Configure the environment variables:
 
 ```bash
 export OPENAI_API_KEY="sk-..."
 export OPENAI_BASE_URL="https://dashscope.aliyuncs.com/compatible-mode/v1"
-export MIDSCENE_MODEL_NAME="qwen-vl-max-latest"
+export MIDSCENE_MODEL_NAME="qwen-vl-2.5-72b-instruct"
+export MIDSCENE_USE_QWEN_VL=1
+```
+
+## Example: Using `ui-tars-72b-sft` hosted by yourself
+
+Configure the environment variables:
+
+```bash
+export OPENAI_API_KEY="sk-..."
+export OPENAI_BASE_URL="http://localhost:1234/v1"
+export MIDSCENE_MODEL_NAME="ui-tars-72b-sft"
+export MIDSCENE_USE_VLM_UI_TARS=1
+```
+
+## Example: Config `claude-3-opus-20240229` from Anthropic
+
+When configuring `MIDSCENE_USE_ANTHROPIC_SDK=1`, Midscene will use Anthropic SDK (`@anthropic-ai/sdk`) to call the model.
+
+Configure the environment variables:
+
+```bash
+export MIDSCENE_USE_ANTHROPIC_SDK=1
+export ANTHROPIC_API_KEY="....."
+export MIDSCENE_MODEL_NAME="claude-3-opus-20240229"
 ```
 
 ## Example: Using `doubao-vision-pro-32k` from Volcengine
@@ -147,6 +165,17 @@ export OPENAI_API_KEY="..."
 export MIDSCENE_MODEL_NAME="..."
 export MIDSCENE_OPENAI_INIT_CONFIG_JSON='{"defaultHeaders":{"HTTP-Referer":"...","X-Title":"..."}}'
 ```
+
+## Example: Using `gemini-1.5-pro` from Google
+
+Configure the environment variables:
+
+```bash
+export OPENAI_BASE_URL="https://generativelanguage.googleapis.com/v1beta/openai"
+export OPENAI_API_KEY="....."
+export MIDSCENE_MODEL_NAME="gemini-1.5-pro"
+```
+
 
 ## Troubleshooting LLM Service Connectivity Issues
 
