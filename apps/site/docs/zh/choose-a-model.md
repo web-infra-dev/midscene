@@ -140,6 +140,12 @@ OPENAI_API_KEY="......"
 
 更多详情请参阅 [配置模型和服务商](./model-provider)。
 
+## 常见问题
+
+### 如何确认模型的 token 使用情况？
+
+通过设置 `MIDSCENE_DEBUG_AI_PROFILE=1` 环境变量，你可以打印模型的使用情况和响应时间。
+
 ## 更多
 
 * [配置模型和服务商](./model-provider)

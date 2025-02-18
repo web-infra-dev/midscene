@@ -138,6 +138,12 @@ OPENAI_API_KEY="......"
 
 For more details and sample config, see [Config Model and Provider](./model-provider).
 
+## FAQ
+
+### How can i check the model's token usage?
+
+By setting `MIDSCENE_DEBUG_AI_PROFILE=1` in the environment variables, you can print the model's usage info and response time.
+
 ## More
 
 * [Config Model and Provider](./model-provider)
