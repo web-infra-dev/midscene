@@ -13,6 +13,7 @@ export const repeatTime = 1;
 
 export type TestCase = {
   prompt: string;
+  log?: string;
   response: Array<{ id: string; indexId: number }>;
   response_bbox?: [number, number, number, number];
   response_planning?: PlanningAIResponse;

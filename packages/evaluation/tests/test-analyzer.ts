@@ -200,6 +200,7 @@ ${errorMsg ? `Error: ${errorMsg}` : ''}
       // compare actions
       const expected = testCase.response_planning;
 
+      // check step names and order
       const steps =
         expected?.actions.map((action) => {
           return action.type;

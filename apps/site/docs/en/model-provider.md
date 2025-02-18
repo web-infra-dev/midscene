@@ -36,6 +36,7 @@ Some advanced configs are also supported. Usually you don't need to use them.
 | `MIDSCENE_OPENAI_INIT_CONFIG_JSON` | Optional. Custom JSON config for OpenAI SDK initialization |
 | `MIDSCENE_OPENAI_SOCKS_PROXY` | Optional. Proxy configuration (e.g. "socks5://127.0.0.1:1080") |
 | `OPENAI_MAX_TOKENS` | Optional. Maximum tokens for model response |
+| `MIDSCENE_DEBUG_AI_PROFILE` | Optional. Set to "1" to print the AI usage and response time |
 
 ## Two ways to config environment variables
 

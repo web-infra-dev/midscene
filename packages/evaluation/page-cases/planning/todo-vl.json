@@ -1,0 +1,106 @@
+{
+  "testDataPath": "todo",
+  "testCases": [
+    {
+      "prompt": "type 'hello' in the input box, sleep 5s, hit enter",
+      "response_planning": {
+        "action": {
+          "type": "Input",
+          "locate": {
+            "bbox": [
+              516,
+              129,
+              1074,
+              198
+            ]
+          },
+          "param": {
+            "value": "hello"
+          }
+        },
+        "sleep": 5000,
+        "finish": false,
+        "log": "type 'hello' in the input box and sleep for 5 seconds.",
+        "actions": [
+          {
+            "type": "Input",
+            "locate": {
+              "bbox": [
+                516,
+                129,
+                1074,
+                198
+              ]
+            },
+            "param": {
+              "value": "hello"
+            }
+          }
+        ],
+        "rawResponse": "{\n  \"action\": {\n    \"type\": \"Input\",\n    \"locate\": {\n      \"bbox\": [\n        516,\n        129,\n        1074,\n        198\n      ]\n    },\n    \"param\": {\n      \"value\": \"hello\"\n    }\n  },\n  \"sleep\": 5000,\n  \"finish\": false,\n  \"log\": \"type 'hello' in the input box and sleep for 5 seconds.\"\n}",
+        "usage": {
+          "prompt_tokens": 1703,
+          "completion_tokens": 92,
+          "total_tokens": 1795
+        }
+      }
+    },
+    {
+      "prompt": "if there are four entries, click the delete button of the second entry, wait 3s",
+      "response_planning": {
+        "action": {
+          "type": "ExpectedFalsyCondition",
+          "param": {
+            "reason": "There are only three entries, not four."
+          }
+        },
+        "finish": true,
+        "log": "There are only three entries, not four. No action needed.",
+        "error": "The condition of having four entries is not met.",
+        "actions": [
+          {
+            "type": "ExpectedFalsyCondition",
+            "param": {
+              "reason": "There are only three entries, not four."
+            }
+          }
+        ],
+        "rawResponse": "{\n  \"action\": {\n    \"type\": \"ExpectedFalsyCondition\",\n    \"param\": {\n      \"reason\": \"There are only three entries, not four.\"\n    }\n  },\n  \"finish\": true,\n  \"log\": \"There are only three entries, not four. No action needed.\",\n  \"error\": \"The condition of having four entries is not met.\"\n}",
+        "usage": {
+          "prompt_tokens": 1706,
+          "completion_tokens": 78,
+          "total_tokens": 1784
+        }
+      }
+    },
+    {
+      "prompt": "type 'hello' in the input box, sleep 5s, hit enter",
+      "log": "type 'hello' in the input box, sleep 5s",
+      "response_planning": {
+        "action": {
+          "type": "KeyboardPress",
+          "param": {
+            "value": "Enter"
+          }
+        },
+        "sleep": null,
+        "finish": true,
+        "log": "hit enter after typing 'hello' in the input box.",
+        "actions": [
+          {
+            "type": "KeyboardPress",
+            "param": {
+              "value": "Enter"
+            }
+          }
+        ],
+        "rawResponse": "{\n  \"action\": {\n    \"type\": \"KeyboardPress\",\n    \"param\": {\n      \"value\": \"Enter\"\n    }\n  },\n  \"sleep\": null,\n  \"finish\": true,\n  \"log\": \"hit enter after typing 'hello' in the input box.\"\n}",
+        "usage": {
+          "prompt_tokens": 1744,
+          "completion_tokens": 60,
+          "total_tokens": 1804
+        }
+      }
+    }
+  ]
+}

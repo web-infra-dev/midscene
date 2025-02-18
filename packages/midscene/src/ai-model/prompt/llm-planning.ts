@@ -27,7 +27,7 @@ Return in JSON format:
     },
   ,
   "sleep"?: number, // The sleep time after the action, in milliseconds.
-  "finish": boolean, // Whether this action is the last one to finish the instruction
+  "finish": boolean, // If all the actions described in the instruction have been covered by this action and logs, set this field to true.
   "log": string, // Log what this action does. Use the same language as the user's instruction.
   "error"?: string // Error messages about unexpected situations, if any. Use the same language as the user's instruction.
 }
@@ -109,7 +109,7 @@ The JSON format is as follows:
   "actions": [
     // ... some actions
   ],
-  "finish": boolean, // Whether the task will be accomplished after all the actions
+  "finish": boolean, // If all the actions described in the instruction have been covered by this action and logs, set this field to true.
   "log": string, // Log what these action do. Use the same language as the user's instruction. 
   "error"?: string // Use the same language as the user's instruction.
 }}
@@ -171,7 +171,7 @@ Wrong output:
 
 Reason:
 * The \`prompt\` is missing in the first 'Locate' action
-* Since the option button is not shown in the screenshot, the task cannot be accomplished, so the \`finish\` field should be false
+* Since the option button is not shown in the screenshot, there are still more actions to be done, so the \`finish\` field should be false
 `;
 
 export async function systemPromptToTaskPlanning() {
@@ -262,7 +262,7 @@ export const planSchema: ResponseFormatJSONSchema = {
         finish: {
           type: 'boolean',
           description:
-            'Whether the task will be accomplished after the actions',
+            'If all the actions described in the instruction have been covered by this action and logs, set this field to true.',
         },
         log: {
           type: 'string',

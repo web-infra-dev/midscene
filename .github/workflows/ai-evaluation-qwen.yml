@@ -1,4 +1,4 @@
-name: AI evaluation
+name: AI evaluation - Qwen
 on:
   push:
     branches:
@@ -19,9 +19,10 @@ jobs:
         node-version: [18.19.0]
 
     env:
-      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-      OPENAI_BASE_URL: ${{ secrets.OPENAI_BASE_URL }}
-      MIDSCENE_MODEL_NAME: gpt-4o-2024-11-20
+      OPENAI_API_KEY: ${{ secrets.QWEN_KEY }}
+      OPENAI_BASE_URL: "https://dashscope.aliyuncs.com/compatible-mode/v1"
+      MIDSCENE_MODEL_NAME: "qwen2.5-vl-72b-instruct"
+      MIDSCENE_USE_QWEN_VL: 1
       CI: 1
 
     steps:
@@ -50,5 +51,5 @@ jobs:
     - name: Run evaluation
       run: |
         cd packages/evaluation
-        pnpm run evaluate:locator
         pnpm run evaluate:planning
+        pnpm run evaluate:assertion
