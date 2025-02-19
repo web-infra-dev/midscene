@@ -38,7 +38,9 @@ MIDSCENE_MODEL_NAME="gpt-4o-2024-11-20" # optional. The default is "gpt-4o".
 
 ### Qwen 2.5 VL
 
-Qwen 2.5 VL (`qwen2.5-vl-72b-instruct`) is a dedicated model for image recognition. It is an open-source model published by Alibaba. In most of the cases, it performs as good as (or even better than) GPT-4o. 
+From 0.12.0 version, Midscene.js supports Qwen 2.5 VL model.
+
+Qwen 2.5 VL (`qwen2.5-vl-72b-instruct`) is a dedicated model for image recognition. It is an open-source model published by Alibaba. In most of the cases, it performs as good as (or even better than) GPT-4o. We recommend using the 72B version.
 
 Qwen 2.5 VL indeed has an action planning feature to control the application, but we still recommend using detailed prompts to provide a more stable and reliable result.
 
