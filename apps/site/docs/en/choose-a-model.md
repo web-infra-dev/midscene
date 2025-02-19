@@ -52,8 +52,8 @@ Qwen 2.5 VL indeed has an action planning feature to control the application, bu
 **Limitations**
 
 - **Not good at small icon recognition**: like GPT-4o, it may be hard to describe the target element if it's a very small icon.
-- **Perform not good on assertion**: it may not work as well as GPT-4o on assertion. 
-
+- **Perform not that good on assertion**: it may not work as well as GPT-4o on assertion. 
+- **Cache is not applicable**: the cache feature of Midscene.js is not applicable for Qwen 2.5 VL at this moment.
 **Config**
 
 Except for the regular config, you need to include the `MIDSCENE_USE_QWEN_VL=1` config to turn on Qwen 2.5 mode. Otherwise, it will be the default GPT-4o mode (much more tokens used).
