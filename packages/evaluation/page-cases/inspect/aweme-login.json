@@ -43,7 +43,7 @@
           "indexId": 12
         }
       ],
-      "response_bbox": [496, 425, 793, 475]
+      "response_bbox": [496, 425, 793, 474]
     },
     {
       "prompt": "发送验证码按钮",

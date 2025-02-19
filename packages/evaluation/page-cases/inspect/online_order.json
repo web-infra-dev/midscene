@@ -32,7 +32,7 @@
           "indexId": 3
         }
       ],
-      "response_bbox": [345, 19, 365, 38]
+      "response_bbox": [345, 18, 365, 39]
     },
     {
       "prompt": "The text indicating the price of the upper drink",
@@ -65,7 +65,7 @@
           "indexId": 27
         }
       ],
-      "response_bbox": [362, 809, 385, 841]
+      "response_bbox": [362, 810, 385, 840]
     }
   ]
 }

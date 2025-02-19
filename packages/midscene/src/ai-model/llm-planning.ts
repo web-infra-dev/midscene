@@ -73,7 +73,7 @@ export async function plan(
         (action.locate as any)?.bbox_2d &&
         !action.locate?.bbox
       ) {
-        // seems qwen insists on using the name "bbox_2d", we have to follow it
+        // seems using the name 'bbox_2d' will accelerate the inference speed of qwen. very interesting.
         action.locate.bbox = (action.locate as any).bbox_2d;
         // biome-ignore lint/performance/noDelete: <explanation>
         delete (action.locate as any).bbox_2d;

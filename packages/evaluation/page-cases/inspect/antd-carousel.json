@@ -3,7 +3,7 @@
   "testCases": [
     {
       "prompt": "'最简单的用法'下方有五个 icon，左侧第一个 icon",
-      "response_bbox": [487, 869, 507, 883],
+      "response_bbox": [486, 871, 509, 883],
       "response": [
         {
           "id": "nkpld",
@@ -53,7 +53,7 @@
     },
     {
       "prompt": "全屏幕右上角、版本号右侧有三个 icon ，查找左侧第一个",
-      "response_bbox": [1269, 24, 1290, 38],
+      "response_bbox": [1269, 23, 1290, 40],
       "response": [
         {
           "id": "dinoj",

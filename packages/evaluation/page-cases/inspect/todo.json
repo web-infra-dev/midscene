@@ -10,7 +10,7 @@
           "indexId": 18
         }
       ],
-      "response_bbox": [516, 128, 1074, 198]
+      "response_bbox": [516, 128, 1074, 199]
     },
     {
       "prompt": "Input 'Study Rust tomorrow' in the task box input and press the Enter key ",
@@ -43,7 +43,7 @@
           "indexId": 25
         }
       ],
-      "response_bbox": [1034, 281, 1051, 296]
+      "response_bbox": [1034, 281, 1051, 297]
     },
     {
       "prompt": "任务列表中第三项左边的勾选按钮",
@@ -65,7 +65,7 @@
           "indexId": 30
         }
       ],
-      "response_bbox": [806, 394, 877, 408]
+      "response_bbox": [806, 394, 877, 405]
     }
   ]
 }

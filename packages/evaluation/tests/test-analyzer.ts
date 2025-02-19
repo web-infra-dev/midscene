@@ -45,17 +45,20 @@ export class TestResultCollector {
       __dirname,
       `__ai_responses__/${this.modelName}`,
     );
-    this.logFilePath = path.join(logBasePath, `${this.testName}.log`);
+    this.logFilePath = path.join(
+      logBasePath,
+      `${this.testName}-${process.pid}.log`,
+    );
     this.failedCaseLogPath = path.join(
       logBasePath,
-      `${this.testName}-failed.log`,
+      `${this.testName}-${process.pid}-failed.log`,
     );
     if (!existsSync(logBasePath)) {
       mkdirSync(logBasePath, { recursive: true });
     }
 
-    writeFileSync(this.logFilePath, '', 'utf-8');
-    writeFileSync(this.failedCaseLogPath, '', 'utf-8');
+    appendFileSync(this.logFilePath, '', 'utf-8');
+    appendFileSync(this.failedCaseLogPath, '', 'utf-8');
   }
 
   addResult(

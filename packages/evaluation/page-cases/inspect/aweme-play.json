@@ -9,7 +9,7 @@
           "indexId": 4
         }
       ],
-      "response_bbox": [16, 780, 32, 795]
+      "response_bbox": [16, 782, 30, 795]
     },
     {
       "prompt": "点赞（爱心）按钮",
@@ -29,7 +29,7 @@
           "indexId": 25
         }
       ],
-      "response_bbox": [1209, 430, 1245, 456]
+      "response_bbox": [1209, 435, 1238, 452]
     },
     {
       "prompt": "书签收藏按钮",
@@ -59,7 +59,7 @@
           "indexId": -1
         }
       ],
-      "response_bbox": [1207, 783, 1225, 800]
+      "response_bbox": [1207, 783, 1226, 800]
     }
   ]
 }

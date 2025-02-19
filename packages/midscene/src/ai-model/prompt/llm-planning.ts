@@ -12,11 +12,11 @@ Target: User will give you a screenshot, an instruction and some previous logs i
 Don't give extra actions beyond the instruction. Don't repeat actions in the previous logs.
 
 Supporting actions:
-- Tap: { type: "Tap", locate: {"bbox": [number, number, number, number] } }
-- Hover: { type: "Hover", locate: {"bbox": [number, number, number, number] } }
-- Input: { type: "Input", locate: {"bbox": [number, number, number, number] }, param: { value: string } } // \`value\` is the final that should be filled in the input box. No matter what modifications are required, just provide the final value to replace the existing input value. 
+- Tap: { type: "Tap", locate: {"bbox_2d": [number, number, number, number] } }
+- Hover: { type: "Hover", locate: {"bbox_2d": [number, number, number, number] } }
+- Input: { type: "Input", locate: {"bbox_2d": [number, number, number, number] }, param: { value: string } } // \`value\` is the final that should be filled in the input box. No matter what modifications are required, just provide the final value to replace the existing input value. 
 - KeyboardPress: { type: "KeyboardPress", param: { value: string } }
-- Scroll: { type: "Scroll", locate: {"bbox": [number, number, number, number] } | null, param: { direction: 'down'(default) | 'up' | 'right' | 'left', scrollType: 'once' (default) | 'untilBottom' | 'untilTop' | 'untilRight' | 'untilLeft', distance: null | number }} // locate is the element to scroll. If it's a page scroll, put \`null\` in the \`locate\` field.
+- Scroll: { type: "Scroll", locate: {"bbox_2d": [number, number, number, number] } | null, param: { direction: 'down'(default) | 'up' | 'right' | 'left', scrollType: 'once' (default) | 'untilBottom' | 'untilTop' | 'untilRight' | 'untilLeft', distance: null | number }} // locate is the element to scroll. If it's a page scroll, put \`null\` in the \`locate\` field.
 - ExpectedFalsyCondition: { type: "ExpectedFalsyCondition", param: {reason: string} } // Use this action when the conditional statement talked about in the instruction is falsy.
 
 Return in JSON format:

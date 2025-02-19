@@ -21,7 +21,7 @@
           "indexId": 39
         }
       ],
-      "response_bbox": [326, 789, 379, 808]
+      "response_bbox": [326, 789, 378, 809]
     },
     {
       "prompt": "多肉葡萄的价格",
@@ -32,7 +32,7 @@
           "indexId": 38
         }
       ],
-      "response_bbox": [187, 795, 223, 809]
+      "response_bbox": [186, 795, 223, 809]
     },
     {
       "prompt": "左侧导航栏’要雪糕‘",
@@ -43,7 +43,7 @@
           "indexId": 9
         }
       ],
-      "response_bbox": [0, 375, 46, 392]
+      "response_bbox": [0, 375, 68, 401]
     }
   ]
 }

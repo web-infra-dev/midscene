@@ -10,7 +10,7 @@
           "indexId": 27
         }
       ],
-      "response_bbox": [321, 54, 860, 97]
+      "response_bbox": [321, 54, 857, 96]
     },
     {
       "prompt": "搜索按钮",
@@ -32,7 +32,7 @@
           "indexId": 99
         }
       ],
-      "response_bbox": [94, 435, 126, 448]
+      "response_bbox": [139, 436, 170, 450]
     },
     {
       "prompt": "右侧“立即登录”下方的收藏夹 icon",
@@ -54,7 +54,7 @@
           "indexId": 212
         }
       ],
-      "response_bbox": [1250, 304, 1287, 500]
+      "response_bbox": [1253, 304, 1287, 500]
     }
   ]
 }
