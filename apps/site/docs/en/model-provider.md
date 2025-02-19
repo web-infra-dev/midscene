@@ -110,14 +110,14 @@ export OPENAI_BASE_URL="https://endpoint.some_other_provider.com/v1" # config th
 export MIDSCENE_MODEL_NAME="gpt-4o-2024-11-20" # optional, the default is "gpt-4o"
 ```
 
-## Example: Using `qwen-vl-2.5-72b-instruct` from Aliyun
+## Example: Using `qwen-vl-max-latest` from Aliyun
 
 Configure the environment variables:
 
 ```bash
 export OPENAI_API_KEY="sk-..."
 export OPENAI_BASE_URL="https://dashscope.aliyuncs.com/compatible-mode/v1"
-export MIDSCENE_MODEL_NAME="qwen-vl-2.5-72b-instruct"
+export MIDSCENE_MODEL_NAME="qwen-vl-max-latest"
 export MIDSCENE_USE_QWEN_VL=1
 ```
 

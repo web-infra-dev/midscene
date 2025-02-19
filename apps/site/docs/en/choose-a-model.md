@@ -5,12 +5,12 @@ In this article, we will talk about how to choose a model for Midscene.js. All o
 If you want to see the detailed configuration of model services, see [Config Model and Provider](./model-provider).
 
 :::info TLDR
-GPT-4o, Qwen2.5-VL-72B-Instruct, and UI-TARS are the most recommended models for Midscene.js. Choose the one that is easiest to obtain and use. You can also use other models, but you need to follow the steps in the article.
+GPT-4o, Qwen-2.5-VL, and UI-TARS are the most recommended models for Midscene.js. Choose the one that is easiest to obtain and use. You can also use other models, but you need to follow the steps in the article.
 :::
 
 ## The recommended models
 
-GPT-4o, Qwen2.5-VL-72B-Instruct, and UI-TARS are the most recommended models for Midscene.js.
+GPT-4o, Qwen-2.5-VL, and UI-TARS are the most recommended models for Midscene.js.
 
 ### GPT-4o
 
@@ -40,7 +40,7 @@ MIDSCENE_MODEL_NAME="gpt-4o-2024-11-20" # optional. The default is "gpt-4o".
 
 From 0.12.0 version, Midscene.js supports Qwen 2.5 VL model.
 
-Qwen 2.5 VL (`qwen2.5-vl-72b-instruct`) is a dedicated model for image recognition. It is an open-source model published by Alibaba. In most of the cases, it performs as good as (or even better than) GPT-4o. We recommend using the 72B version.
+Qwen 2.5 VL is a dedicated model for image recognition. It is an open-source model published by Alibaba. In most of the cases, it performs as good as (or sometimes better than) GPT-4o. We recommend using the largest version (72B) for reliable output.
 
 Qwen 2.5 VL indeed has an action planning feature to control the application, but we still recommend using detailed prompts to provide a more stable and reliable result.
 
@@ -58,14 +58,20 @@ Qwen 2.5 VL indeed has an action planning feature to control the application, bu
 - **Cache is not applicable**: the cache feature of Midscene.js is not applicable for Qwen 2.5 VL at this moment.
 **Config**
 
-Except for the regular config, you need to include the `MIDSCENE_USE_QWEN_VL=1` config to turn on Qwen 2.5 mode. Otherwise, it will be the default GPT-4o mode (much more tokens used).
+Except for the regular config, you need to include the `MIDSCENE_USE_QWEN_VL=1` config to turn on Qwen 2.5 VL mode. Otherwise, it will be the default GPT-4o mode (much more tokens used).
 
 ```bash
 OPENAI_BASE_URL="https://dashscope.aliyuncs.com/compatible-mode/v1" # or any endpoint from other providers.
 OPENAI_API_KEY="......"
-MIDSCENE_MODEL_NAME="qwen2.5-vl-72b-instruct"
+MIDSCENE_MODEL_NAME="qwen-vl-max-latest" # use this for Aliyun service
 MIDSCENE_USE_QWEN_VL=1 # remember to include this for Qwen 2.5 mode !
 ```
+
+**Note about the model name**
+
+⁠While the open-source version of Qwen 2.5 VL (72B) is named `qwen2.5-vl-72b-instruct`, there is also an enhanced version named `qwen-vl-max-latest` officially hosted on Aliyun.com. When using the `qwen-vl-max-latest` model on Aliyun, you will get larger context support and a much lower price (likely only 19% of the open-source version).
+
+In short, if you want to use the Aliyun service, use `qwen-vl-max-latest`.
 
 **Links**
 - [Qwen 2.5 on 🤗 HuggingFace](https://huggingface.co/Qwen/Qwen2.5-VL-72B-Instruct)

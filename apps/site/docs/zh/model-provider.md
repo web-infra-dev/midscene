@@ -110,14 +110,14 @@ export OPENAI_BASE_URL="https://endpoint.some_other_provider.com/v1" # 可选，
 export MIDSCENE_MODEL_NAME="gpt-4o-2024-11-20" # 可选，默认是 "gpt-4o"
 ```
 
-## 示例：使用阿里云的 `qwen-vl-2.5-72b-instruct` 模型
+## 示例：使用阿里云官方的 `qwen-vl-max-latest` 模型
 
 配置环境变量：
 
 ```bash
 export OPENAI_API_KEY="sk-..."
 export OPENAI_BASE_URL="https://dashscope.aliyuncs.com/compatible-mode/v1"
-export MIDSCENE_MODEL_NAME="qwen-vl-2.5-72b-instruct"
+export MIDSCENE_MODEL_NAME="qwen-vl-max-latest"
 export MIDSCENE_USE_QWEN_VL=1
 ```
 

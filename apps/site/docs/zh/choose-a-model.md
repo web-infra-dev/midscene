@@ -5,12 +5,12 @@
 如果你想了解更多关于模型服务的配置项，请查看 [配置模型和服务商](./model-provider)。
 
 :::info 先说结论
-Midscene.js 推荐使用的三种模型是 GPT-4o，Qwen2.5-VL-72B-Instruct 和 UI-TARS。任选一个你最容易获取的模型开始使用即可。你也可以使用其他模型，但需要按照文章中的步骤去配置。
+Midscene.js 推荐使用的三种模型是 GPT-4o，Qwen2.5-VL 和 UI-TARS。任选一个你最容易获取的模型开始使用即可。你也可以使用其他模型，但需要按照文章中的步骤去配置。
 :::
 
 ## 推荐模型
 
-Midscene.js 推荐使用的三种模型是 GPT-4o，Qwen2.5-VL-72B-Instruct 和 UI-TARS。
+Midscene.js 推荐使用的三种模型是 GPT-4o，Qwen2.5-VL 和 UI-TARS。
 
 ### GPT-4o
 
@@ -42,7 +42,7 @@ MIDSCENE_MODEL_NAME="gpt-4o-2024-11-20" # 可选，默认是 "gpt-4o"。
 
 从 0.12.0 版本开始，Midscene.js 支持 Qwen 2.5 VL 模型。
 
-Qwen 2.5 VL 是一个专为图像识别设计的开源模型，由阿里巴巴开发。在大多数情况下，它的表现与 GPT-4o 相当，甚至更好。我们推荐使用 72B 版本。
+Qwen 2.5 VL 是一个专为图像识别设计的开源模型，由阿里巴巴开发。在大多数情况下，它的表现与 GPT-4o 相当，有时甚至更好。我们推荐使用 72B 版本。
 
 Qwen 2.5 VL 确实有内置的操作规划（action planning）功能来控制应用程序，但我们仍然推荐开发者使用详细的提示词来驱动，以获得更稳定和可靠的结果。
 
@@ -69,6 +69,13 @@ OPENAI_API_KEY="......"
 MIDSCENE_MODEL_NAME="qwen2.5-vl-72b-instruct"
 MIDSCENE_USE_QWEN_VL=1 # 别忘了配置这项用于 Qwen 2.5 模式！
 ```
+
+**特别注意：关于模型名称**
+
+虽然开源版本的 Qwen 2.5 VL (72B) 被命名为 `qwen2.5-vl-72b-instruct`，但阿里云平台上也提供了一个增强版本，名为 `qwen-vl-max-latest`。当在阿里云上使用 `qwen-vl-max-latest` 模型时，你将获得更大的上下文，并且价格更低（单价只有开源版本的 19%）。
+
+所以，如果你想要使用阿里云官方部署的 Qwen 2.5 VL 模型，请使用 `qwen-vl-max-latest` 作为模型名称。
+
 
 **资源**
 
