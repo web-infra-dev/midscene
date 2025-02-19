@@ -46,10 +46,9 @@ Qwen 2.5 VL indeed has an action planning feature to control the application, bu
 
 **Features**
 
-- **Low token cost**: the model can accurately tell the exact coordinates of target elements on the page, so we don't have to send the DOM tree to the model. You will achieve a token saving of 30% to 50% (or even more for complex pages) compared to GPT-4o.
+- **Low cost**: the model can accurately tell the exact coordinates of target elements on the page, so we don't have to send the DOM tree to the model. You will achieve a token saving of 30% to 50% compared to GPT-4o.
 - **Higher resolution support**: Qwen 2.5 VL supports higher resolution input than GPT-4o. It's enough for most of the cases.
 - **Open-source**: this is an open-source model, so you can both use the API already deployed by cloud providers or deploy it on your own server.
-- **Faster**: it's faster than GPT-4o in most cases, but the API service on Aliyun seems not that stable over time. A private-deployed version (or from other providers) may perform much better.
 
 **Limitations**
 
@@ -64,19 +63,19 @@ Except for the regular config, you need to include the `MIDSCENE_USE_QWEN_VL=1` 
 OPENAI_BASE_URL="https://dashscope.aliyuncs.com/compatible-mode/v1" # or any endpoint from other providers.
 OPENAI_API_KEY="......"
 MIDSCENE_MODEL_NAME="qwen-vl-max-latest" # use this for Aliyun service
-MIDSCENE_USE_QWEN_VL=1 # remember to include this for Qwen 2.5 mode !
+MIDSCENE_USE_QWEN_VL=1 # remember to include this for Qwen 2.5 mode
 ```
 
-**Note about the model name**
+**Note about the model name on Aliyun.com**
 
-⁠While the open-source version of Qwen 2.5 VL (72B) is named `qwen2.5-vl-72b-instruct`, there is also an enhanced version named `qwen-vl-max-latest` officially hosted on Aliyun.com. When using the `qwen-vl-max-latest` model on Aliyun, you will get larger context support and a much lower price (likely only 19% of the open-source version).
+⁠While the open-source version of Qwen 2.5 VL (72B) is named `qwen2.5-vl-72b-instruct`, there is also an enhanced and more stable version named `qwen-vl-max-latest` officially hosted on Aliyun.com. When using the `qwen-vl-max-latest` model on Aliyun, you will get larger context support and a much lower price (likely only 19% of the open-source version).
 
 In short, if you want to use the Aliyun service, use `qwen-vl-max-latest`.
 
 **Links**
 - [Qwen 2.5 on 🤗 HuggingFace](https://huggingface.co/Qwen/Qwen2.5-VL-72B-Instruct)
 - [Qwen 2.5 on Github](https://github.com/QwenLM/Qwen2.5-VL)
-- [Qwen 2.5 on Aliyun](https://bailian.console.aliyun.com/#/model-market/detail/qwen2.5-vl-72b-instruct)
+- [Qwen 2.5 on Aliyun](https://bailian.console.aliyun.com/#/model-market/detail/qwen-vl-max-latest)
 
 ### UI-TARS
 

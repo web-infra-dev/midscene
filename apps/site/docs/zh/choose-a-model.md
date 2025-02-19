@@ -42,16 +42,15 @@ MIDSCENE_MODEL_NAME="gpt-4o-2024-11-20" # 可选，默认是 "gpt-4o"。
 
 从 0.12.0 版本开始，Midscene.js 支持 Qwen 2.5 VL 模型。
 
-Qwen 2.5 VL 是一个专为图像识别设计的开源模型，由阿里巴巴开发。在大多数情况下，它的表现与 GPT-4o 相当，有时甚至更好。我们推荐使用 72B 版本。
+Qwen 2.5 VL 是一个专为图像识别设计的开源模型，由阿里巴巴开发。在大多数情况下，它的表现与 GPT-4o 相当，有时甚至更好。我们推荐使用最大参数的 72B 版本。
 
 Qwen 2.5 VL 确实有内置的操作规划（action planning）功能来控制应用程序，但我们仍然推荐开发者使用详细的提示词来驱动，以获得更稳定和可靠的结果。
 
 **特性**
 
-- **低成本**：Qwen 2.5 VL 支持识别截图中的图像位置，不需要发送 DOM 树给模型。和 `gpt-4o` 相比，它可以节省 30% 到 50% 的 token 消耗，复杂场景下甚至更多。
+- **低成本**：Qwen 2.5 VL 支持识别截图中的图像位置，不需要发送 DOM 树给模型。和 `gpt-4o` 相比，它可以节省 30% 到 50% 的 token 数量。在阿里云官方部署版本中，费用消耗可以下降 80% 以上。
 - **高分辨率支持**：Qwen 2.5 VL 支持更高的分辨率输入，足以满足大多数情况。
 - **开源**：这是一个开源模型，因此你可以选择使用云提供商已经部署好的版本，或者自己部署到你自己的服务器上。
-- **速度更快**：在大多数情况下，Qwen 2.5 VL 可以比 `gpt-4o` 更快。但阿里云的 API 服务似乎不太稳定，不时会有些长耗时、影响体验的案例出现，有条件的开发者不妨尝试私有化部署。
 
 **限制**
 
@@ -67,21 +66,20 @@ Qwen 2.5 VL 确实有内置的操作规划（action planning）功能来控制�
 OPENAI_BASE_URL="https://dashscope.aliyuncs.com/compatible-mode/v1" # 或任何其他提供商的接入点。
 OPENAI_API_KEY="......"
 MIDSCENE_MODEL_NAME="qwen2.5-vl-72b-instruct"
-MIDSCENE_USE_QWEN_VL=1 # 别忘了配置这项用于 Qwen 2.5 模式！
+MIDSCENE_USE_QWEN_VL=1 # 别忘了配置这项，用于启用 Qwen 2.5 模式！
 ```
 
-**特别注意：关于模型名称**
+**特别注意：关于阿里云上的模型版本**
 
-虽然开源版本的 Qwen 2.5 VL (72B) 被命名为 `qwen2.5-vl-72b-instruct`，但阿里云平台上也提供了一个增强版本，名为 `qwen-vl-max-latest`。当在阿里云上使用 `qwen-vl-max-latest` 模型时，你将获得更大的上下文，并且价格更低（单价只有开源版本的 19%）。
+虽然开源版本的 Qwen 2.5 VL (72B) 被命名为 `qwen2.5-vl-72b-instruct`，但阿里云平台实际还部署了一个更稳定的增强版本，名为 `qwen-vl-max-latest`。在使用后者时，输入 token 单价仅为开源版本的 19%，可以大幅缩减成本。
 
-所以，如果你想要使用阿里云官方部署的 Qwen 2.5 VL 模型，请使用 `qwen-vl-max-latest` 作为模型名称。
-
+所以，如果你在阿里云平台使用 Qwen 2.5 VL 模型，请使用 `qwen-vl-max-latest` 作为模型名称。
 
 **资源**
 
 - [Qwen 2.5 on 🤗 HuggingFace](https://huggingface.co/Qwen/Qwen2.5-VL-72B-Instruct)
 - [Qwen 2.5 on Github](https://github.com/QwenLM/Qwen2.5-VL)
-- [Qwen 2.5 - 阿里云百炼](https://bailian.console.aliyun.com/#/model-market/detail/qwen2.5-vl-72b-instruct)
+- [Qwen 2.5 - 阿里云百炼](https://bailian.console.aliyun.com/#/model-market/detail/qwen-vl-max-latest)
 
 ### UI-TARS
 
