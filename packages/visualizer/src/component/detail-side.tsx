@@ -193,13 +193,13 @@ const DetailSide = (): JSX.Element => {
         content: timeStr(task?.timing?.end),
       },
       {
-        key: 'total time cost',
+        key: 'total time',
         content: timeCostStrElement(task?.timing?.cost),
       },
       ...(task?.timing?.aiCost
         ? [
             {
-              key: 'ai service cost',
+              key: 'AI service time',
               content: timeCostStrElement(task?.timing?.aiCost),
             },
           ]
