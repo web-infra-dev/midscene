@@ -1,6 +1,10 @@
 import assert from 'node:assert';
 import { MIDSCENE_USE_QWEN_VL, getAIConfigInBoolean } from '@/env';
-import type { PlanningAIResponse, UIContext } from '@/types';
+import type {
+  PlanningAIResponse,
+  PlanningLocateParam,
+  UIContext,
+} from '@/types';
 import { AIActionType, type AIArgs, callAiFn } from './common';
 import {
   automationUserPrompt,
@@ -8,6 +12,31 @@ import {
   systemPromptToTaskPlanning,
 } from './prompt/llm-planning';
 import { describeUserPage } from './prompt/util';
+
+// transform the param of locate from qwen mode
+export function fillLocateParam(locate: PlanningLocateParam) {
+  if (locate?.bbox_2d && !locate?.bbox) {
+    locate.bbox = locate.bbox_2d;
+    // biome-ignore lint/performance/noDelete: <explanation>
+    delete locate.bbox_2d;
+  }
+
+  const defaultBboxSize = 20;
+  if (locate?.bbox) {
+    locate.bbox[0] = Math.round(locate.bbox[0]);
+    locate.bbox[1] = Math.round(locate.bbox[1]);
+    locate.bbox[2] =
+      typeof locate.bbox[2] === 'number'
+        ? Math.round(locate.bbox[2])
+        : Math.round(locate.bbox[0] + defaultBboxSize);
+    locate.bbox[3] =
+      typeof locate.bbox[3] === 'number'
+        ? Math.round(locate.bbox[3])
+        : Math.round(locate.bbox[1] + defaultBboxSize);
+  }
+
+  return locate;
+}
 
 export async function plan(
   userInstruction: string,
@@ -56,9 +85,7 @@ export async function plan(
   const rawResponse = JSON.stringify(content, undefined, 2);
   const planFromAI = content;
   const actions =
-    ((planFromAI as any).action
-      ? [(planFromAI as any).action]
-      : planFromAI.actions) || [];
+    (planFromAI.action ? [planFromAI.action] : planFromAI.actions) || [];
   const returnValue: PlanningAIResponse = {
     ...planFromAI,
     actions,
@@ -68,26 +95,8 @@ export async function plan(
 
   if (getAIConfigInBoolean(MIDSCENE_USE_QWEN_VL)) {
     actions.forEach((action) => {
-      if (
-        action.locate &&
-        (action.locate as any)?.bbox_2d &&
-        !action.locate?.bbox
-      ) {
-        // seems using the name 'bbox_2d' will accelerate the inference speed of qwen. very interesting.
-        action.locate.bbox = (action.locate as any).bbox_2d;
-        // biome-ignore lint/performance/noDelete: <explanation>
-        delete (action.locate as any).bbox_2d;
-      }
-
-      if (action.locate?.bbox) {
-        action.locate.bbox[0] = Math.ceil(action.locate.bbox[0]);
-        action.locate.bbox[1] = Math.ceil(action.locate.bbox[1]);
-        action.locate.bbox[2] = Math.ceil(
-          action.locate.bbox[2] || action.locate.bbox[0] + 20, // sometimes the bbox is not complete
-        );
-        action.locate.bbox[3] = Math.ceil(
-          action.locate.bbox[3] || action.locate.bbox[1] + 20,
-        );
+      if (action.locate) {
+        action.locate = fillLocateParam(action.locate);
       }
     });
   }

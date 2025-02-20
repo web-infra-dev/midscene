@@ -122,6 +122,15 @@ async function createChatClient({
       });
     }
   } else if (!getAIConfig(MIDSCENE_USE_ANTHROPIC_SDK)) {
+    const baseURL = getAIConfig(OPENAI_BASE_URL);
+    if (typeof baseURL === 'string') {
+      if (!/^https?:\/\//.test(baseURL)) {
+        throw new Error(
+          `OPENAI_BASE_URL must be a valid URL starting with http:// or https://, but got: ${baseURL}\nPlease check your config.`,
+        );
+      }
+    }
+
     openai = new OpenAI({
       baseURL: getAIConfig(OPENAI_BASE_URL),
       apiKey: getAIConfig(OPENAI_API_KEY),

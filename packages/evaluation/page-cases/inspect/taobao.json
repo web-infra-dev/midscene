@@ -10,7 +10,8 @@
           "indexId": 27
         }
       ],
-      "response_bbox": [321, 54, 857, 96]
+      "response_bbox": [321, 54, 857, 96],
+      "annotation_index_id": 1
     },
     {
       "prompt": "搜索按钮",
@@ -21,7 +22,8 @@
           "indexId": 26
         }
       ],
-      "response_bbox": [780, 56, 859, 94]
+      "response_bbox": [780, 56, 859, 94],
+      "annotation_index_id": 2
     },
     {
       "prompt": "产品分类里面的：男鞋（文字）",
@@ -32,7 +34,8 @@
           "indexId": 99
         }
       ],
-      "response_bbox": [139, 436, 170, 450]
+      "response_bbox": [138, 436, 170, 450],
+      "annotation_index_id": 3
     },
     {
       "prompt": "右侧“立即登录”下方的收藏夹 icon",
@@ -43,7 +46,8 @@
           "indexId": 190
         }
       ],
-      "response_bbox": [1065, 392, 1094, 408]
+      "response_bbox": [1065, 392, 1094, 408],
+      "annotation_index_id": 4
     },
     {
       "prompt": "最右侧悬浮”旺旺客服“按钮icon",
@@ -54,7 +58,8 @@
           "indexId": 212
         }
       ],
-      "response_bbox": [1253, 304, 1287, 500]
+      "response_bbox": [1253, 306, 1287, 495],
+      "annotation_index_id": 5
     }
   ]
 }

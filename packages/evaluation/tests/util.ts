@@ -18,6 +18,7 @@ export type TestCase = {
   response_bbox?: [number, number, number, number];
   response_planning?: PlanningAIResponse;
   expected?: boolean;
+  annotation_index_id?: number;
 };
 
 export type InspectAiTestCase = {

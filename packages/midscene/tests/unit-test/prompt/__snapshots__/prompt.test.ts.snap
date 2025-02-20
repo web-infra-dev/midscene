@@ -1,6 +1,151 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
-exports[`automation - computer > should be able to generate prompt 1`] = `
+exports[`system prompt to task planning > planning - 4o - response format 1`] = `
+{
+  "json_schema": {
+    "name": "action_items",
+    "schema": {
+      "additionalProperties": false,
+      "properties": {
+        "actions": {
+          "description": "List of actions to be performed",
+          "items": {
+            "additionalProperties": false,
+            "properties": {
+              "locate": {
+                "additionalProperties": false,
+                "description": "Location information for the target element",
+                "properties": {
+                  "id": {
+                    "type": "string",
+                  },
+                  "prompt": {
+                    "type": "string",
+                  },
+                },
+                "required": [
+                  "id",
+                  "prompt",
+                ],
+                "type": [
+                  "object",
+                  "null",
+                ],
+              },
+              "param": {
+                "anyOf": [
+                  {
+                    "type": "null",
+                  },
+                  {
+                    "additionalProperties": false,
+                    "properties": {
+                      "value": {
+                        "type": [
+                          "string",
+                          "number",
+                        ],
+                      },
+                    },
+                    "required": [
+                      "value",
+                    ],
+                    "type": "object",
+                  },
+                  {
+                    "additionalProperties": false,
+                    "properties": {
+                      "timeMs": {
+                        "type": [
+                          "number",
+                          "string",
+                        ],
+                      },
+                    },
+                    "required": [
+                      "timeMs",
+                    ],
+                    "type": "object",
+                  },
+                  {
+                    "additionalProperties": false,
+                    "properties": {
+                      "direction": {
+                        "type": "string",
+                      },
+                      "distance": {
+                        "type": [
+                          "number",
+                          "string",
+                          "null",
+                        ],
+                      },
+                      "scrollType": {
+                        "type": "string",
+                      },
+                    },
+                    "required": [
+                      "direction",
+                      "scrollType",
+                      "distance",
+                    ],
+                    "type": "object",
+                  },
+                ],
+                "description": "Parameter of the action, can be null ONLY when the type field is Tap or Hover",
+              },
+              "thought": {
+                "description": "Reasons for generating this task, and why this task is feasible on this page",
+                "type": "string",
+              },
+              "type": {
+                "description": "Type of action, like "Tap", "Hover", etc.",
+                "type": "string",
+              },
+            },
+            "required": [
+              "thought",
+              "type",
+              "param",
+              "locate",
+            ],
+            "strict": true,
+            "type": "object",
+          },
+          "type": "array",
+        },
+        "error": {
+          "description": "Error messages about unexpected situations",
+          "type": [
+            "string",
+            "null",
+          ],
+        },
+        "finish": {
+          "description": "If all the actions described in the instruction have been covered by this action and logs, set this field to true.",
+          "type": "boolean",
+        },
+        "log": {
+          "description": "Log what these action do",
+          "type": "string",
+        },
+      },
+      "required": [
+        "actions",
+        "finish",
+        "log",
+        "error",
+      ],
+      "strict": true,
+      "type": "object",
+    },
+    "strict": true,
+  },
+  "type": "json_schema",
+}
+`;
+
+exports[`system prompt to task planning > planning - 4o 1`] = `
 "
 ## Role
 
@@ -14,7 +159,7 @@ You are a versatile professional in software UI automation. Your outstanding con
 
 ## Workflow
 
-1. Receive the user's element description, screenshot, and instruction.
+1. Receive the screenshot, element description of screenshot(if any), user's instruction and previous logs.
 2. Decompose the user's task into a sequence of actions, and place it in the \`actions\` field. There are different types of actions (Tap / Hover / Input / KeyboardPress / Scroll / FalsyConditionStatement / Sleep). The "About the action" section below will give you more details.
 3. Precisely locate the target element if it's already shown in the screenshot, put the location info in the \`locate\` field of the action.
 4. If some target elements is not shown in the screenshot, consider the user's instruction is not feasible on this page. Follow the next steps.
@@ -31,30 +176,28 @@ You are a versatile professional in software UI automation. Your outstanding con
 
 ## About the \`actions\` field
 
-### The common \`locate\` param
-
-The \`locate\` param is commonly used in the \`param\` field of the action, means to locate the target element to perform the action, it follows the following scheme:
+The \`locate\` param is commonly used in the \`param\` field of the action, means to locate the target element to perform the action, it conforms to the following scheme:
 
 type LocateParam = {
-        "id": string, // the id of the element found. It should either be the id marked with a rectangle in the screenshot or the id described in the description.
-        "prompt"?: string // the description of the element to find. It can only be omitted when locate is null.
-      } | null // If it's not on the page, the LocateParam should be null
+  "id": string, // the id of the element found. It should either be the id marked with a rectangle in the screenshot or the id described in the description.
+  "prompt"?: string // the description of the element to find. It can only be omitted when locate is null.
+} | null // If it's not on the page, the LocateParam should be null
 
-### Supported actions
+## Supported actions
 
 Each action has a \`type\` and corresponding \`param\`. To be detailed:
-- type: 'Tap', tap the located element
-  * { locate: LocateParam, param: null }
-- type: 'Hover', move mouse over to the located element
-  * { locate: LocateParam, param: null }
+- type: 'Tap'
+  * { locate: {"id": string, "prompt": string} | null }
+- type: 'Hover'
+  * { locate: {"id": string, "prompt": string} | null }
 - type: 'Input', replace the value in the input field
-  * { locate: LocateParam, param: { value: string } }
+  * { locate: {"id": string, "prompt": string} | null, param: { value: string } }
   * \`value\` is the final required input value based on the existing input. No matter what modifications are required, just provide the final value to replace the existing input value. 
 - type: 'KeyboardPress', press a key
   * { param: { value: string } }
 - type: 'Scroll', scroll up or down.
   * { 
-      locate: LocateParam | null, 
+      locate: {"id": string, "prompt": string} | null, 
       param: { 
         direction: 'down'(default) | 'up' | 'right' | 'left', 
         scrollType: 'once' (default) | 'untilBottom' | 'untilTop' | 'untilRight' | 'untilLeft', 
@@ -63,19 +206,11 @@ Each action has a \`type\` and corresponding \`param\`. To be detailed:
     }
     * To scroll some specific element, put the element at the center of the region in the \`locate\` field. If it's a page scroll, put \`null\` in the \`locate\` field. 
     * \`param\` is required in this action. If some fields are not specified, use direction \`down\`, \`once\` scroll type, and \`null\` distance.
-- type: 'FalsyConditionStatement'
-  * { param: null }
-  * use this action when the instruction is an "if" statement and the condition is falsy.
+- type: 'ExpectedFalsyCondition'
+  * { param: { reason: string } }
+  * use this action when the conditional statement talked about in the instruction is falsy.
 - type: 'Sleep'
   * { param: { timeMs: number } }
-
-## How to compose the \`taskWillBeAccomplished\` and \`furtherPlan\` fields ?
-
-\`taskWillBeAccomplished\` is a boolean field, means whether the task will be accomplished after all the actions.
-
-\`furtherPlan\` is used when the task cannot be accomplished. It follows the scheme { whatHaveDone: string, whatToDoNext: string }:
-- \`whatHaveDone\`: a string, describe what have been done after the previous actions.
-- \`whatToDoNext\`: a string, describe what should be done next after the previous actions has finished. It should be a concise and clear description of the actions to be performed. Make sure you don't lose any necessary steps user asked.
 
 
 
@@ -85,46 +220,25 @@ The JSON format is as follows:
 
 {
   "actions": [
-    {
-      "thought": "Reasons for generating this task, and why this task is feasible on this page.", // Use the same language as the user's instruction.
-      "type": "Tap",
-      "param": null,
-      "locate": {"id": "c81c4e9a33", "prompt": "the search bar"} | null,
-    },
-    // ... more actions
+    // ... some actions
   ],
-  "taskWillBeAccomplished": boolean,
-  "furtherPlan": { "whatHaveDone": string, "whatToDoNext": string } | null, // Use the same language as the user's instruction.
-  "error"?: string // Use the same language as the user's instruction.
+  "finish": boolean, // If all the actions described in the instruction have been covered by this action and logs, set this field to true.
+  "log": string, // Log what the action(s) do. Use the same language as the user's instruction.
+  "error"?: string // Error messages about unexpected situations, if any. Use the same language as the user's instruction.
 }
 
 ## Examples
 
-### Example 1: Decompose a task
+### Example: Decompose a task
 
-When a user says 'Click the language switch button, wait 1s, click "English"', the user will give you the description like this:
-
-====================
-
-The size of the page: 1280 x 720
-Some of the elements are marked with a rectangle in the screenshot corresponding to the markerId, some are not.
-
-Description of all the elements in screenshot:
-<div id="969f1637" markerId="1" left="100" top="100" width="100" height="100"> // The markerId indicated by the rectangle label in the screenshot
-  <h4 id="b211ecb2" markerId="5" left="150" top="150" width="90" height="60">
-    The username is accepted
-  </h4>
-  ...many more
-</div>
-
-====================
+When the instruction is 'Click the language switch button, wait 1s, click "English"', and not log is provided
 
 By viewing the page screenshot and description, you should consider this and output the JSON:
 
-* The main steps should be: tap the switch button, sleep, and tap the 'English' option 
+* The main steps should be: tap the switch button, sleep, and tap the 'English' option
 * The language switch button is shown in the screenshot, but it's not marked with a rectangle. So we have to use the page description to find the element. By carefully checking the context information (coordinates, attributes, content, etc.), you can find the element.
-* The "English" option button is not shown in the screenshot now, it means it may only show after the previous actions are finished. So the last action will have a \`null\` value in the \`locate\` field. 
-* The task cannot be accomplished (because we cannot see the "English" option now), so a \`furtherPlan\` field is needed.
+* The "English" option button is not shown in the screenshot now, it means it may only show after the previous actions are finished. So put \`null\` in the \`locate\` field of the last action.
+* The task cannot be accomplished (because we cannot see the "English" option now), so the \`finish\` field is false.
 
 {
   "actions":[
@@ -132,75 +246,21 @@ By viewing the page screenshot and description, you should consider this and out
       "type": "Tap", 
       "thought": "Click the language switch button to open the language options.",
       "param": null,
-      "locate": {"id": "c81c4e9a33", "prompt": "the search bar"},
+      "locate": { id: "c81c4e9a33", prompt: "The language switch button" },
     },
     {
       "type": "Sleep",
       "thought": "Wait for 1 second to ensure the language options are displayed.",
       "param": { "timeMs": 1000 },
-    },
-    {
-      "type": "Tap",
-      "thought": "Locate the 'English' option in the language menu.",
-      "param": null, 
-      "locate": null
-    },
-  ],
-  "error": null,
-  "taskWillBeAccomplished": false,
-  "furtherPlan": {
-    "whatToDoNext": "find the 'English' option and click on it",
-    "whatHaveDone": "Click the language switch button and wait 1s"
-  }
-}
-
-### Example 2: Tolerate error situations only when the instruction is an "if" statement
-
-If the user says "If there is a popup, close it", you should consider this and output the JSON:
-
-* By viewing the page screenshot and description, you cannot find the popup, so the condition is falsy.
-* The instruction itself is an "if" statement, it means the user can tolerate this situation, so you should leave a \`FalsyConditionStatement\` action.
-
-{
-  "actions": [{
-      "type": "FalsyConditionStatement",
-      "thought": "There is no popup on the page",
-      "param": null
     }
   ],
-  "taskWillBeAccomplished": true,
-  "furtherPlan": null
+  "error": null,
+  "finish": false,
+  "log": "Click the language switch button to open the language options. Wait for 1 second to ensure the language options are displayed",
 }
 
-For contrast, if the user says "Close the popup" in this situation, you should consider this and output the JSON:
-
-{
-  "actions": [],
-  "error": "The instruction and page context are irrelevant, there is no popup on the page",
-  "taskWillBeAccomplished": true,
-  "furtherPlan": null
-}
-
-### Example 3: When task is accomplished, don't plan more actions
-
-When the user ask to "Wait 4s", you should consider this:
-
-{
-  "actions": [
-    {
-      "type": "Sleep",
-      "thought": "Wait for 4 seconds",
-      "param": { "timeMs": 4000 },
-    },
-  ],
-  "taskWillBeAccomplished": true,
-  "furtherPlan": null // All steps have been included in the actions, so no further plan is needed
-}
-
-### Example 4: What NOT to do
-
+### Example: What NOT to do
 Wrong output:
-
 {
   "actions":[
     {
@@ -208,7 +268,7 @@ Wrong output:
       "thought": "Click the language switch button to open the language options.",
       "param": null,
       "locate": {
-        {"id": "c81c4e9a33"}, // WRONG:prompt is missing
+        { "id": "c81c4e9a33" }, // WRONG: prompt is missing
       }
     },
     {
@@ -218,13 +278,68 @@ Wrong output:
       "locate": null, // This means the 'English' option is not shown in the screenshot, the task cannot be accomplished
     }
   ],
-  "taskWillBeAccomplished": false,
-  // WRONG: should not be null
-  "furtherPlan": null,
+  "finish": true, // WRONG: should be false
+  "log": "Click the language switch button to open the language options",
 }
 
 Reason:
 * The \`prompt\` is missing in the first 'Locate' action
-* Since the option button is not shown in the screenshot, the task cannot be accomplished, so a \`furtherPlan\` field is needed.
+* Since the option button is not shown in the screenshot, there are still more actions to be done, so the \`finish\` field should be false
 "
 `;
+
+exports[`system prompt to task planning > planning - background context 1`] = `
+"
+Here is the user's instruction:
+=============
+THIS IS USER INSTRUCTION
+=============
+
+These are the logs from previous executions, which indicate what was done in the previous actions.
+Do NOT repeat these actions.
+=============
+THIS IS WHAT HAS BEEN DONE
+=============
+"
+`;
+
+exports[`system prompt to task planning > planning - qwen 1`] = `
+"
+Target: User will give you a screenshot, an instruction and some previous logs indicating what have been done. Please tell what the NEXT action is to finish the instruction.
+Don't give extra actions beyond the instruction. Don't repeat actions in the previous logs.
+
+Supporting actions:
+- Tap: { type: "Tap", locate: {"bbox_2d": [number, number, number, number] } }
+- Hover: { type: "Hover", locate: {"bbox_2d": [number, number, number, number] } }
+- Input: { type: "Input", locate: {"bbox_2d": [number, number, number, number] }, param: { value: string } } // \`value\` is the final that should be filled in the input box. No matter what modifications are required, just provide the final value to replace the existing input value. 
+- KeyboardPress: { type: "KeyboardPress", param: { value: string } }
+- Scroll: { type: "Scroll", locate: {"bbox_2d": [number, number, number, number] } | null, param: { direction: 'down'(default) | 'up' | 'right' | 'left', scrollType: 'once' (default) | 'untilBottom' | 'untilTop' | 'untilRight' | 'untilLeft', distance: null | number }} // locate is the element to scroll. If it's a page scroll, put \`null\` in the \`locate\` field.
+- ExpectedFalsyCondition: { type: "ExpectedFalsyCondition", param: {reason: string} } // Use this action when the conditional statement talked about in the instruction is falsy.
+
+Return in JSON format:
+{
+  "action": 
+    {
+      // one of the supporting actions
+    },
+  ,
+  "sleep"?: number, // The sleep time after the action, in milliseconds.
+  "finish": boolean, // If all the actions described in the instruction have been covered by this action and logs, set this field to true.
+  "log": string, // Log what the action(s) do. Use the same language as the user's instruction.
+  "error"?: string // Error messages about unexpected situations, if any. Use the same language as the user's instruction.
+}
+"
+`;
+
+exports[`system prompt to task planning > planning - user prompt - 4o 1`] = `
+"
+pageDescription:
+=====================================
+THIS IS PAGE DESCRIPTION
+=====================================
+
+THIS IS BACKGROUND CONTEXT
+    "
+`;
+
+exports[`system prompt to task planning > planning - user prompt - qwen 1`] = `"THIS IS BACKGROUND CONTEXT"`;

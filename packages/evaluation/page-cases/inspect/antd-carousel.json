@@ -9,7 +9,8 @@
           "id": "nkpld",
           "indexId": 104
         }
-      ]
+      ],
+      "annotation_index_id": 1
     },
     {
       "prompt": "'最简单的用法'下方有五个 icon，左侧第二个 icon",
@@ -19,7 +20,8 @@
           "id": "hdbbh",
           "indexId": 105
         }
-      ]
+      ],
+      "annotation_index_id": 2
     },
     {
       "prompt": "'最简单的用法'下方有五个 icon，左侧第三个 icon",
@@ -29,17 +31,19 @@
           "id": "ncono",
           "indexId": 106
         }
-      ]
+      ],
+      "annotation_index_id": 3
     },
     {
       "prompt": "'最简单的用法'下方有五个 icon，左侧第四个 icon",
-      "response_bbox": [584, 872, 596, 883],
+      "response_bbox": [583, 872, 596, 884],
       "response": [
         {
           "id": "jkeam",
           "indexId": 107
         }
-      ]
+      ],
+      "annotation_index_id": 4
     },
     {
       "prompt": "'最简单的用法'下方有五个 icon，最右侧的 icon",
@@ -49,17 +53,19 @@
           "id": "nnkcf",
           "indexId": 108
         }
-      ]
+      ],
+      "annotation_index_id": 5
     },
     {
       "prompt": "全屏幕右上角、版本号右侧有三个 icon ，查找左侧第一个",
-      "response_bbox": [1269, 23, 1290, 40],
+      "response_bbox": [1269, 24, 1290, 38],
       "response": [
         {
           "id": "dinoj",
           "indexId": 13
         }
-      ]
+      ],
+      "annotation_index_id": 6
     },
     {
       "prompt": "全屏幕右上角有三个 icon ，查找左侧第二个",
@@ -69,7 +75,8 @@
           "id": "nfpha",
           "indexId": 14
         }
-      ]
+      ],
+      "annotation_index_id": 7
     },
     {
       "prompt": "屏幕右上角有三个 icon ，左侧第三个",
@@ -79,7 +86,8 @@
           "id": "hmbld",
           "indexId": 15
         }
-      ]
+      ],
+      "annotation_index_id": 8
     },
     {
       "prompt": "在‘代码演示’右侧有三个 icon 按钮中，查找最中间的按钮",
@@ -89,7 +97,8 @@
           "id": "pkafb",
           "indexId": 94
         }
-      ]
+      ],
+      "annotation_index_id": 9
     }
   ]
 }

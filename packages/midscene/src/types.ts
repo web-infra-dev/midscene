@@ -240,6 +240,7 @@ export interface PlanningLocateParam {
     y: number;
   };
   bbox?: [number, number, number, number];
+  bbox_2d?: [number, number, number, number];
   prompt: string;
 }
 
@@ -264,7 +265,8 @@ export interface PlanningAction<ParamType = any> {
 }
 
 export interface PlanningAIResponse {
-  actions: PlanningAction[]; // TODO: remove this field
+  action?: PlanningAction; // this is the qwen mode
+  actions?: PlanningAction[];
   finish: boolean;
   log: string;
   sleep?: number;

@@ -7,16 +7,22 @@ import { PromptTemplate } from '@langchain/core/prompts';
 import type { ResponseFormatJSONSchema } from 'openai/resources';
 import { samplePageDescription } from './util';
 
+const commonOutputFields = `"finish": boolean, // If all the actions described in the instruction have been covered by this action and logs, set this field to true.
+  "log": string, // Log what the action(s) do. Use the same language as the user's instruction.
+  "error"?: string // Error messages about unexpected situations, if any. Use the same language as the user's instruction.`;
+
+const qwenLocateParam = `locate: {"bbox_2d": [number, number, number, number] }`;
+
 const systemTemplateOfQwen = `
 Target: User will give you a screenshot, an instruction and some previous logs indicating what have been done. Please tell what the NEXT action is to finish the instruction.
 Don't give extra actions beyond the instruction. Don't repeat actions in the previous logs.
 
 Supporting actions:
-- Tap: { type: "Tap", locate: {"bbox_2d": [number, number, number, number] } }
-- Hover: { type: "Hover", locate: {"bbox_2d": [number, number, number, number] } }
-- Input: { type: "Input", locate: {"bbox_2d": [number, number, number, number] }, param: { value: string } } // \`value\` is the final that should be filled in the input box. No matter what modifications are required, just provide the final value to replace the existing input value. 
+- Tap: { type: "Tap", ${qwenLocateParam} }
+- Hover: { type: "Hover", ${qwenLocateParam} }
+- Input: { type: "Input", ${qwenLocateParam}, param: { value: string } } // \`value\` is the final that should be filled in the input box. No matter what modifications are required, just provide the final value to replace the existing input value. 
 - KeyboardPress: { type: "KeyboardPress", param: { value: string } }
-- Scroll: { type: "Scroll", locate: {"bbox_2d": [number, number, number, number] } | null, param: { direction: 'down'(default) | 'up' | 'right' | 'left', scrollType: 'once' (default) | 'untilBottom' | 'untilTop' | 'untilRight' | 'untilLeft', distance: null | number }} // locate is the element to scroll. If it's a page scroll, put \`null\` in the \`locate\` field.
+- Scroll: { type: "Scroll", ${qwenLocateParam} | null, param: { direction: 'down'(default) | 'up' | 'right' | 'left', scrollType: 'once' (default) | 'untilBottom' | 'untilTop' | 'untilRight' | 'untilLeft', distance: null | number }} // locate is the element to scroll. If it's a page scroll, put \`null\` in the \`locate\` field.
 - ExpectedFalsyCondition: { type: "ExpectedFalsyCondition", param: {reason: string} } // Use this action when the conditional statement talked about in the instruction is falsy.
 
 Return in JSON format:
@@ -27,12 +33,11 @@ Return in JSON format:
     },
   ,
   "sleep"?: number, // The sleep time after the action, in milliseconds.
-  "finish": boolean, // If all the actions described in the instruction have been covered by this action and logs, set this field to true.
-  "log": string, // Log what this action does. Use the same language as the user's instruction.
-  "error"?: string // Error messages about unexpected situations, if any. Use the same language as the user's instruction.
+  ${commonOutputFields}
 }
 `;
 
+const llmLocateParam = `locate: {{"id": string, "prompt": string}} | null`;
 const systemTemplateOfLLM = `
 ## Role
 
@@ -74,17 +79,17 @@ type LocateParam = {{
 
 Each action has a \`type\` and corresponding \`param\`. To be detailed:
 - type: 'Tap'
-  * {{ locate: {{"id": string, "prompt": string}} | null }}
+  * {{ ${llmLocateParam} }}
 - type: 'Hover'
-  * {{ locate: {{"id": string, "prompt": string}} | null }}
+  * {{ ${llmLocateParam} }}
 - type: 'Input', replace the value in the input field
-  * {{ locate: {{"id": string, "prompt": string}} | null, param: {{ value: string }} }}
+  * {{ ${llmLocateParam}, param: {{ value: string }} }}
   * \`value\` is the final required input value based on the existing input. No matter what modifications are required, just provide the final value to replace the existing input value. 
 - type: 'KeyboardPress', press a key
   * {{ param: {{ value: string }} }}
 - type: 'Scroll', scroll up or down.
   * {{ 
-      locate: {{"id": string, "prompt": string}} | null, 
+      ${llmLocateParam}, 
       param: {{ 
         direction: 'down'(default) | 'up' | 'right' | 'left', 
         scrollType: 'once' (default) | 'untilBottom' | 'untilTop' | 'untilRight' | 'untilLeft', 
@@ -109,9 +114,7 @@ The JSON format is as follows:
   "actions": [
     // ... some actions
   ],
-  "finish": boolean, // If all the actions described in the instruction have been covered by this action and logs, set this field to true.
-  "log": string, // Log what these action do. Use the same language as the user's instruction. 
-  "error"?: string // Use the same language as the user's instruction.
+  ${commonOutputFields}
 }}
 
 ## Examples
@@ -316,12 +319,12 @@ export const automationUserPrompt = () => {
 
   return new PromptTemplate({
     template: `
-      pageDescription:
-      =====================================
-      {pageDescription}
-      =====================================
-  
-      {taskBackgroundContext}
+pageDescription:
+=====================================
+{pageDescription}
+=====================================
+
+{taskBackgroundContext}
     `,
     inputVariables: ['pageDescription', 'taskBackgroundContext'],
   });

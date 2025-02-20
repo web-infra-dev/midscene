@@ -67,11 +67,13 @@ testSources.forEach((source) => {
           const { elementById } = result;
 
           if (result.rawResponse.bbox) {
+            const indexId = index + 1;
             testCase.response_bbox = result.rawResponse.bbox;
+            testCase.annotation_index_id = indexId;
             // biome-ignore lint/performance/noDelete: <explanation>
             delete (testCase as any).response_coordinates;
             annotations.push({
-              indexId: index + 1,
+              indexId,
               points: result.rawResponse.bbox,
             });
           } else if (result.parseResult.elements.length > 0) {

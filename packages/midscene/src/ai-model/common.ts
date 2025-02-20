@@ -1,8 +1,6 @@
 import assert from 'node:assert';
 import type { AIUsageInfo } from '@/types';
 
-import { MIDSCENE_USE_QWEN_VL } from '@/env';
-import { getAIConfigInBoolean } from '@/env';
 import type {
   ChatCompletionSystemMessageParam,
   ChatCompletionUserMessageParam,

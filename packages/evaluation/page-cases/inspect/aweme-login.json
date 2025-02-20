@@ -10,7 +10,8 @@
           "indexId": 7
         }
       ],
-      "response_bbox": [726, 248, 798, 268]
+      "response_bbox": [726, 248, 798, 268],
+      "annotation_index_id": 1
     },
     {
       "prompt": "扫码登录",
@@ -21,7 +22,8 @@
           "indexId": 5
         }
       ],
-      "response_bbox": [489, 247, 560, 267]
+      "response_bbox": [489, 247, 560, 267],
+      "annotation_index_id": 2
     },
     {
       "prompt": "手机号输入框",
@@ -32,7 +34,8 @@
           "indexId": 10
         }
       ],
-      "response_bbox": [495, 348, 792, 396]
+      "response_bbox": [495, 348, 792, 396],
+      "annotation_index_id": 3
     },
     {
       "prompt": "验证码输入框",
@@ -43,7 +46,8 @@
           "indexId": 12
         }
       ],
-      "response_bbox": [496, 425, 793, 474]
+      "response_bbox": [496, 425, 793, 475],
+      "annotation_index_id": 4
     },
     {
       "prompt": "发送验证码按钮",
@@ -54,7 +58,8 @@
           "indexId": 11
         }
       ],
-      "response_bbox": [701, 439, 772, 458]
+      "response_bbox": [701, 439, 772, 458],
+      "annotation_index_id": 5
     },
     {
       "prompt": "登录按钮",
@@ -65,7 +70,8 @@
           "indexId": 18
         }
       ],
-      "response_bbox": [495, 568, 792, 613]
+      "response_bbox": [495, 568, 792, 613],
+      "annotation_index_id": 6
     },
     {
       "prompt": "X 关闭按钮",
@@ -76,7 +82,8 @@
           "indexId": 4
         }
       ],
-      "response_bbox": [849, 120, 867, 135]
+      "response_bbox": [849, 120, 867, 135],
+      "annotation_index_id": 7
     }
   ]
 }
