@@ -268,6 +268,7 @@ export class PageTaskExecutor {
               log: {
                 dump: insightDump,
               },
+              usage: assertion.usage,
             };
           },
         };
@@ -911,7 +912,6 @@ export class PageTaskExecutor {
     return {
       output,
       executor: taskExecutor,
-      usage: output.usage,
     };
   }
 

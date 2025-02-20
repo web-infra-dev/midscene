@@ -251,7 +251,6 @@ export default class Insight<
       ...(this.taskInfo ? this.taskInfo : {}),
       durationMs: timeCost,
       rawResponse: JSON.stringify(assertResult.content),
-      usage: assertResult.usage,
     };
 
     const { thought, pass } = assertResult.content;
@@ -274,6 +273,7 @@ export default class Insight<
     return {
       pass,
       thought,
+      usage: assertResult.usage,
     };
   }
 }

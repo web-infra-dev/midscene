@@ -209,7 +209,9 @@ export interface LiteUISection {
 
 export type ElementById = (id: string) => BaseElement | null;
 
-export type InsightAssertionResponse = AIAssertionResponse;
+export type InsightAssertionResponse = AIAssertionResponse & {
+  usage?: AIUsageInfo;
+};
 
 /**
  * agent
