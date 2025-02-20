@@ -99,7 +99,7 @@ async function main() {
       await pushToGithub(selectVersion);
     }
   } catch (error) {
-    console.error(chalk.red(`Error during release process: ${error.message}`));
+    console.error(chalk.red('An error occurred during the release process. Please check the logs for more details.'));
     await cleanup();
     process.exit(1); // Exit with failure
   }
