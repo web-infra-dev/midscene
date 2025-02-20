@@ -64,6 +64,10 @@ export default defineConfig({
               text: 'Quick Experience by Chrome Extension',
               link: '/quick-experience',
             },
+            {
+              text: 'Choose a Model',
+              link: '/choose-a-model',
+            },
           ],
         },
         {
@@ -103,10 +107,6 @@ export default defineConfig({
               link: '/prompting-tips',
             },
             {
-              text: 'Choose a Model for Midscene.js',
-              link: '/choose-a-model',
-            },
-            {
               text: 'Config Model and Provider',
               link: '/model-provider',
             },
@@ -137,6 +137,10 @@ export default defineConfig({
             {
               text: '通过 Chrome 插件快速体验',
               link: '/zh/quick-experience',
+            },
+            {
+              text: '选择 AI 模型',
+              link: '/zh/choose-a-model',
             },
           ],
         },
@@ -175,10 +179,6 @@ export default defineConfig({
             {
               text: '编写提示词（指令）的技巧',
               link: '/zh/prompting-tips',
-            },
-            {
-              text: '选择 AI 模型',
-              link: '/zh/choose-a-model',
             },
             {
               text: '配置模型和服务商',

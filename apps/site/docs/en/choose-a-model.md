@@ -1,16 +1,23 @@
-# Choose a Model for Midscene.js
+# Choose a Model
 
 In this article, we will talk about how to choose a model for Midscene.js. All of these models configs are both supported in Chrome extension and SDK.
 
 If you want to see the detailed configuration of model services, see [Config Model and Provider](./model-provider).
 
-:::info TLDR
-GPT-4o, Qwen-2.5-VL, and UI-TARS are the most recommended models for Midscene.js. Choose the one that is easiest to obtain and use. You can also use other models, but you need to follow the steps in the article.
+GPT-4o, Qwen-2.5-VL, and UI-TARS are the most recommended models for Midscene.js. The main features are:
+
+* [GPT-4o](#gpt-4o): balanced model, more tokens used.
+* [Qwen-2.5-VL](#qwen-25-vl): open-source VL model, almost same performance as GPT-4o, and cost less when using Aliyun service.
+* [UI-TARS](#ui-tars): open-source, end-to-end GUI agent model, good at target-driven tasks and error correction.
+
+
+You can also use other models, but you need to follow [the steps in the article](#choose-other-general-purpose-llms).
+
+:::info Which model should I choose to get started?
+Just use the one that is easiest to obtain and get started. After writing your own scripts, you can try other models to see if they meet your specific needs.
 :::
 
 ## The recommended models
-
-GPT-4o, Qwen-2.5-VL, and UI-TARS are the most recommended models for Midscene.js.
 
 ### GPT-4o
 
@@ -36,18 +43,18 @@ OPENAI_BASE_URL="https://dashscope.aliyuncs.com/compatible-mode/v1" # optional, 
 MIDSCENE_MODEL_NAME="gpt-4o-2024-11-20" # optional. The default is "gpt-4o".
 ```
 
-### Qwen 2.5 VL
+### Qwen-2.5-VL
 
-From 0.12.0 version, Midscene.js supports Qwen 2.5 VL model.
+From 0.12.0 version, Midscene.js supports Qwen-2.5-VL model.
 
-Qwen 2.5 VL is a dedicated model for image recognition. It is an open-source model published by Alibaba. In most of the cases, it performs as good as (or sometimes better than) GPT-4o. We recommend using the largest version (72B) for reliable output.
+Qwen-2.5-VL is a dedicated model for image recognition. It is an open-source model published by Alibaba. In most of the cases, it performs as good as (or sometimes better than) GPT-4o. We recommend using the largest version (72B) for reliable output.
 
-Qwen 2.5 VL indeed has an action planning feature to control the application, but we still recommend using detailed prompts to provide a more stable and reliable result.
+Qwen-2.5-VL indeed has an action planning feature to control the application, but we still recommend using detailed prompts to provide a more stable and reliable result.
 
 **Features**
 
 - **Low cost**: the model can accurately tell the exact coordinates of target elements on the page, so we don't have to send the DOM tree to the model. You will achieve a token saving of 30% to 50% compared to GPT-4o.
-- **Higher resolution support**: Qwen 2.5 VL supports higher resolution input than GPT-4o. It's enough for most of the cases.
+- **Higher resolution support**: Qwen-2.5-VL supports higher resolution input than GPT-4o. It's enough for most of the cases.
 - **Open-source**: this is an open-source model, so you can both use the API already deployed by cloud providers or deploy it on your own server.
 
 **Limitations**
@@ -57,7 +64,7 @@ Qwen 2.5 VL indeed has an action planning feature to control the application, bu
 
 **Config**
 
-Except for the regular config, you need to include the `MIDSCENE_USE_QWEN_VL=1` config to turn on Qwen 2.5 VL mode. Otherwise, it will be the default GPT-4o mode (much more tokens used).
+Except for the regular config, you need to include the `MIDSCENE_USE_QWEN_VL=1` config to turn on Qwen-2.5-VL mode. Otherwise, it will be the default GPT-4o mode (much more tokens used).
 
 ```bash
 OPENAI_BASE_URL="https://dashscope.aliyuncs.com/compatible-mode/v1" # or any endpoint from other providers.
@@ -68,7 +75,7 @@ MIDSCENE_USE_QWEN_VL=1 # remember to include this for Qwen 2.5 mode
 
 **Note about the model name on Aliyun.com**
 
-⁠While the open-source version of Qwen 2.5 VL (72B) is named `qwen2.5-vl-72b-instruct`, there is also an enhanced and more stable version named `qwen-vl-max-latest` officially hosted on Aliyun.com. When using the `qwen-vl-max-latest` model on Aliyun, you will get larger context support and a much lower price (likely only 19% of the open-source version).
+⁠While the open-source version of Qwen-2.5-VL (72B) is named `qwen2.5-vl-72b-instruct`, there is also an enhanced and more stable version named `qwen-vl-max-latest` officially hosted on Aliyun.com. When using the `qwen-vl-max-latest` model on Aliyun, you will get larger context support and a much lower price (likely only 19% of the open-source version).
 
 In short, if you want to use the Aliyun service, use `qwen-vl-max-latest`.
 
@@ -85,14 +92,15 @@ When using UI-TARS, you can use target-driven style prompts, like "Login with us
 
 **Features**
 
-- **Speed**: a private-deployed UI-TARS model can be 5x faster than GPT-4o. Each step of `.ai` call can be processed in 1-2 seconds on a high-performance GPU server.
-- **Native image recognition**: Like Qwen 2.5 VL, UI-TARS can recognize the image directly from the screenshot, so Midscene.js does not need to extract the dom tree.
+- **Speed**: A private-deployed UI-TARS model can be 5x faster than GPT-4o. Each step of `.ai` call can be processed in 1-2 seconds on a high-performance GPU server.
+- **Native image recognition**: Like Qwen-2.5-VL, UI-TARS can recognize the image directly from the screenshot, so Midscene.js does not need to extract the dom tree.
 - **Open-source**: you can deploy it on your own server and your data will no longer be sent to the cloud.
-- **More stable with short prompt**: ⁠UI-TARS is optimized for UI automation and is capable of handling more complex tasks with target-driven prompts. It performs better than GPT-4o and Qwen 2.5 VL on short prompts.
+- **More stable with short prompt**: ⁠UI-TARS is optimized for UI automation and is capable of handling more complex tasks with target-driven prompts. It performs better than GPT-4o and Qwen-2.5-VL on short prompts.
 
 **Limitations**
 
 - **Perform not good on assertion**: it may not work as well as GPT-4o and Qwen 2.5 on assertion and query.
+- **Need to deploy yourself**: you need to deploy the model by yourself
 
 **Config**
 
@@ -109,11 +117,6 @@ Links:
 - [UI-TARS on 🤗 HuggingFace](https://huggingface.co/bytedance-research/UI-TARS-72B-SFT)
 - [UI-TARS on Github](https://github.com/bytedance/ui-tars)
 - [UI-TARS - Model Deployment Guide](https://juniper-switch-f10.notion.site/UI-TARS-Model-Deployment-Guide-17b5350241e280058e98cea60317de71)
-
-:::info Which model should I choose to get started?
-Just use the one that is easiest to obtain and get started. After writing your own scripts, you can try other models to see if they meet your specific needs.
-:::
-
 
 ## Choose other general-purpose LLMs
 

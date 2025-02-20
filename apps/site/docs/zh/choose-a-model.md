@@ -4,13 +4,20 @@
 
 如果你想了解更多关于模型服务的配置项，请查看 [配置模型和服务商](./model-provider)。
 
-:::info 先说结论
-Midscene.js 推荐使用的三种模型是 GPT-4o，Qwen2.5-VL 和 UI-TARS。任选一个你最容易获取的模型开始使用即可。你也可以使用其他模型，但需要按照文章中的步骤去配置。
+Midscene.js 推荐使用的三种模型是 GPT-4o，Qwen2.5-VL 和 UI-TARS。它们的的主要特性是：
+
+* [GPT-4o](#gpt-4o): 表现比较平衡，需要使用较多 token。
+* [Qwen-2.5-VL](#qwen-25-vl): 开源的 VL 模型，几乎与 GPT-4o 表现相同，使用阿里云部署的版本时成本很低。
+* [UI-TARS](#ui-tars): 开源的端到端 GUI 代理模型，擅长执行目标驱动的任务，有错误纠正能力。
+
+你也可以使用其他模型，但需要按照[文章中的步骤](#选择其他通用-llm-模型)去配置。
+
+:::info 我该从哪个模型开始上手？
+不必在项目启动时纠结模型，直接选用身边最容易获得的模型服务即可。
+在完成脚本编写并产生更具体的优化需求后，你可以再尝试比较其他模型。
 :::
 
 ## 推荐模型
-
-Midscene.js 推荐使用的三种模型是 GPT-4o，Qwen2.5-VL 和 UI-TARS。
 
 ### GPT-4o
 
@@ -113,11 +120,6 @@ MIDSCENE_USE_VLM_UI_TARS=1 # 别忘了配置这项用于 UI-TARS 模式！
 - [UI-TARS on 🤗 HuggingFace](https://huggingface.co/bytedance-research/UI-TARS-72B-SFT)
 - [UI-TARS on Github](https://github.com/bytedance/ui-tars)
 - [UI-TARS - 模型部署指南](https://juniper-switch-f10.notion.site/UI-TARS-Model-Deployment-Guide-17b5350241e280058e98cea60317de71)
-
-:::info 我该从哪个模型开始上手？
-不必在项目启动时纠结模型，直接选用身边最容易获得的模型服务即可。
-在完成脚本编写并产生更具体的优化需求后，你可以再尝试比较其他模型。
-:::
 
 ## 选择其他通用 LLM 模型
 
