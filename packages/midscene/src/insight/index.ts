@@ -176,7 +176,7 @@ export default class Insight<
     const context = await this.contextRetrieverFn('extract');
 
     const startTime = Date.now();
-    const { parseResult, elementById } = await AiExtractElementInfo<T>({
+    const { parseResult, usage } = await AiExtractElementInfo<T>({
       context,
       dataQuery: dataDemand,
     });
@@ -223,7 +223,10 @@ export default class Insight<
       dumpSubscriber,
     );
 
-    return data;
+    return {
+      data,
+      usage,
+    };
   }
 
   async assert(assertion: string): Promise<InsightAssertionResponse> {

@@ -869,10 +869,13 @@ export class PageTaskExecutor {
           insightDump = dump;
         };
         this.insight.onceDumpUpdatedFn = dumpCollector;
-        const data = await this.insight.extract<any>(param.dataDemand);
+        const { data, usage } = await this.insight.extract<any>(
+          param.dataDemand,
+        );
         return {
           output: data,
           log: { dump: insightDump },
+          usage,
         };
       },
     };
@@ -908,6 +911,7 @@ export class PageTaskExecutor {
     return {
       output,
       executor: taskExecutor,
+      usage: output.usage,
     };
   }
 
