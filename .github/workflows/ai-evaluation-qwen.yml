@@ -11,6 +11,9 @@ on:
         default: 'main'
         type: string
 
+permissions:
+  contents: read
+
 jobs:
   main:
     runs-on: ubuntu-22.04
@@ -20,7 +23,7 @@ jobs:
 
     env:
       OPENAI_API_KEY: ${{ secrets.QWEN_KEY }}
-      OPENAI_BASE_URL: "https://dashscope.aliyuncs.com/compatible-mode/v1"
+      OPENAI_BASE_URL: ${{ secrets.QWEN_BASE_URL }}
       MIDSCENE_MODEL_NAME: "qwen-vl-max-latest"
       MIDSCENE_USE_QWEN_VL: 1
       CI: 1

@@ -11,6 +11,9 @@ on:
         default: 'main'
         type: string
 
+permissions:
+  contents: read
+
 jobs:
   main:
     runs-on: ubuntu-22.04
