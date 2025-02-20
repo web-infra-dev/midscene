@@ -66,8 +66,10 @@ export class PageTaskExecutor {
     this.page = page;
     this.insight = insight;
 
+    const qwenMode = getAIConfigInBoolean(MIDSCENE_USE_QWEN_VL);
+
     this.taskCache = new TaskCache({
-      cacheId: opts?.cacheId,
+      cacheId: qwenMode ? undefined : opts?.cacheId, // cache is not supported in qwen mode
     });
   }
 
@@ -518,15 +520,13 @@ export class PageTaskExecutor {
         executorContext.task.recorder = [recordItem];
         (executorContext.task as any).pageContext = pageContext;
 
-        const qwenMode = getAIConfigInBoolean(MIDSCENE_USE_QWEN_VL);
-
         const planCache = cacheGroup.readCache(
           pageContext,
           'plan',
           param.userInstruction,
         );
         let planResult: Awaited<ReturnType<typeof plan>>;
-        if (planCache && !qwenMode) {
+        if (planCache) {
           planResult = planCache;
         } else {
           planResult = await plan(param.userInstruction, {
@@ -542,7 +542,7 @@ export class PageTaskExecutor {
         let stopCollecting = false;
         let bboxCollected = false;
         let planParsingError = '';
-        const finalActions = actions.reduce<PlanningAction[]>(
+        const finalActions = (actions || []).reduce<PlanningAction[]>(
           (acc, planningAction) => {
             if (stopCollecting) {
               return acc;
@@ -715,7 +715,7 @@ export class PageTaskExecutor {
     userPrompt: string,
     options?: ExecutionTaskProgressOptions,
   ): Promise<ExecutionResult> {
-    const taskExecutor = new Executor(userPrompt, undefined, undefined, {
+    const taskExecutor = new Executor(userPrompt, {
       onTaskStart: options?.onTaskStart,
     });
 
@@ -743,7 +743,7 @@ export class PageTaskExecutor {
         };
       }
 
-      const plans = planResult.actions;
+      const plans = planResult.actions || [];
 
       let executables: Awaited<ReturnType<typeof this.convertPlanToExecutable>>;
       try {
@@ -792,7 +792,7 @@ export class PageTaskExecutor {
     userPrompt: string,
     options?: ExecutionTaskProgressOptions,
   ) {
-    const taskExecutor = new Executor(userPrompt, undefined, undefined, {
+    const taskExecutor = new Executor(userPrompt, {
       onTaskStart: options?.onTaskStart,
     });
     this.conversationHistory = [];
@@ -854,7 +854,7 @@ export class PageTaskExecutor {
   ): Promise<ExecutionResult> {
     const description =
       typeof demand === 'string' ? demand : JSON.stringify(demand);
-    const taskExecutor = new Executor(description, undefined, undefined, {
+    const taskExecutor = new Executor(description, {
       onTaskStart: options?.onTaskStart,
     });
     const queryTask: ExecutionTaskInsightQueryApply = {
@@ -894,7 +894,7 @@ export class PageTaskExecutor {
     options?: ExecutionTaskProgressOptions,
   ): Promise<ExecutionResult<InsightAssertionResponse>> {
     const description = `assert: ${assertion}`;
-    const taskExecutor = new Executor(description, undefined, undefined, {
+    const taskExecutor = new Executor(description, {
       onTaskStart: options?.onTaskStart,
     });
     const assertionPlan: PlanningAction<PlanningActionParamAssert> = {
@@ -971,7 +971,7 @@ export class PageTaskExecutor {
     opt: PlanningActionParamWaitFor,
   ): Promise<ExecutionResult<void>> {
     const description = `waitFor: ${assertion}`;
-    const taskExecutor = new Executor(description, undefined, undefined, {
+    const taskExecutor = new Executor(description, {
       onTaskStart: opt.onTaskStart,
     });
     const { timeoutMs, checkIntervalMs } = opt;

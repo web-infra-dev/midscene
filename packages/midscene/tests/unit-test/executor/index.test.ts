@@ -75,7 +75,9 @@ describe('executor', () => {
 
     const inputTasks = [insightTask1, actionTask, actionTask2];
 
-    const executor = new Executor('test', 'hello, this is a test', inputTasks);
+    const executor = new Executor('test', {
+      tasks: inputTasks,
+    });
     const flushResult = await executor.flush();
     const tasks = executor.tasks as ExecutionTaskInsightLocate[];
     expect(executor.isInErrorState()).toBeFalsy();
@@ -157,10 +159,9 @@ describe('executor', () => {
   });
 
   it('insight - run with error', async () => {
-    const executor = new Executor('test', 'test-description', [
-      insightFindTask(true),
-      insightFindTask(),
-    ]);
+    const executor = new Executor('test', {
+      tasks: [insightFindTask(true), insightFindTask()],
+    });
     const r = await executor.flush();
     const tasks = executor.tasks as ExecutionTaskInsightLocate[];
 
