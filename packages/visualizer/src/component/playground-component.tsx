@@ -7,9 +7,8 @@ import {
 } from '@ant-design/icons';
 import type { GroupedActionDump, UIContext } from '@midscene/core';
 import { Helmet } from '@modern-js/runtime/head';
-import { Alert, Button, Checkbox, Spin, Tooltip, message } from 'antd';
+import { Alert, Button, Checkbox, Select, Spin, Tooltip, message } from 'antd';
 import { Form, Input } from 'antd';
-import { Radio } from 'antd';
 import type React from 'react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
@@ -33,12 +32,14 @@ import type { WebUIContext } from '@midscene/web/utils';
 import type { MenuProps } from 'antd';
 import { Dropdown, Space } from 'antd';
 import { EnvConfig } from './env-config';
-import { type HistoryItem, useEnvConfig } from './store';
+import { type HistoryItem, useChromeTabInfo, useEnvConfig } from './store';
 
 import {
   ChromeExtensionProxyPage,
   ChromeExtensionProxyPageAgent,
 } from '@midscene/web/chrome-extension';
+import { buildYaml } from '@midscene/web/yaml';
+import ButtonGroup from 'antd/es/button/button-group';
 
 interface PlaygroundResult {
   result: any;
@@ -180,8 +181,11 @@ export function Playground({
 
   const [loading, setLoading] = useState(false);
   const [loadingProgressText, setLoadingProgressText] = useState('');
-  const [result, setResult] = useState<PlaygroundResult | null>(null);
+  const [stepCount, setStepCount] = useState(5);
+  const [curStep, setCurStep] = useState(0);
+  const [result, setResult] = useState<(PlaygroundResult | null)[]>([]);
   const [verticalMode, setVerticalMode] = useState(false);
+  const { tabUrl } = useChromeTabInfo();
   const [form] = Form.useForm();
   const { config, serviceMode, setServiceMode } = useEnvConfig();
   const forceSameTabNavigation = useEnvConfig(
@@ -218,8 +222,12 @@ export function Playground({
   const [replayCounter, setReplayCounter] = useState(0);
   const serverValid = useServerValid(serviceMode === 'Server');
 
-  const resetResult = () => {
-    setResult(null);
+  const resetResult = (stepIndex: number) => {
+    setResult((prev) => {
+      const newResult = [...prev];
+      newResult[stepIndex] = null;
+      return newResult;
+    });
     setLoading(false);
     setReplayScriptsInfo(null);
   };
@@ -273,141 +281,165 @@ export function Playground({
 
   const currentRunningIdRef = useRef<number | null>(0);
   const interruptedFlagRef = useRef<Record<number, boolean>>({});
-  const handleRun = useCallback(async () => {
-    const value = form.getFieldsValue();
-    if (!value.prompt) {
-      message.error('Prompt is required');
-      return;
-    }
-
-    const startTime = Date.now();
-
-    setLoading(true);
-    setResult(null);
-    addHistory({
-      type: value.type,
-      prompt: value.prompt,
-      timestamp: Date.now(),
-    });
-    let result: PlaygroundResult = { ...blankResult };
-
-    const activeAgent = getAgent(forceSameTabNavigation);
-    const thisRunningId = Date.now();
-    try {
-      if (!activeAgent) {
-        throw new Error('No agent found');
-      }
-      currentAgentRef.current = activeAgent;
-
-      currentRunningIdRef.current = thisRunningId;
-      interruptedFlagRef.current[thisRunningId] = false;
-      activeAgent.resetDump();
-      activeAgent.opts.onTaskStartTip = (tip: string) => {
-        if (interruptedFlagRef.current[thisRunningId]) {
-          return;
-        }
-        setLoadingProgressText(tip);
+  const handleRun = useCallback(
+    async (stepIndex: number) => {
+      const _value = form.getFieldsValue();
+      const value = {
+        type: _value[`type-${stepIndex}`],
+        prompt: _value[`prompt-${stepIndex}`],
       };
-      if (serviceMode === 'Server') {
-        const uiContext = await activeAgent?.getUIContext();
-        result = await requestPlaygroundServer(
-          uiContext!,
-          value.type,
-          value.prompt,
-        );
-      } else {
-        if (value.type === 'aiAction') {
-          // const yamlString = buildYaml(
-          //   {
-          //     url: tabUrl || '',
-          //   },
-          //   [
-          //     {
-          //       name: 'aiAction',
-          //       flow: [{ aiAction: value.prompt }],
-          //     },
-          //   ],
-          // );
-          // const parsedYamlScript = parseYamlScript(yamlString);
-          // console.log('yamlString', parsedYamlScript, yamlString);
+      console.log('step', stepIndex, 'value', value);
 
-          result.result = await activeAgent?.aiAction(value.prompt);
-        } else if (value.type === 'aiQuery') {
-          result.result = await activeAgent?.aiQuery(value.prompt);
-        } else if (value.type === 'aiAssert') {
-          result.result = await activeAgent?.aiAssert(value.prompt, undefined, {
-            keepRawResponse: true,
-          });
+      if (!value.prompt) {
+        return false;
+      }
+
+      const startTime = Date.now();
+
+      setResult((prev) => {
+        const newResult = [...prev];
+        newResult[stepIndex] = null;
+        return newResult;
+      });
+      addHistory({
+        type: value.type,
+        prompt: value.prompt,
+        timestamp: Date.now(),
+      });
+      let result: PlaygroundResult = { ...blankResult };
+
+      const activeAgent = getAgent(forceSameTabNavigation);
+      const thisRunningId = Date.now();
+      try {
+        if (!activeAgent) {
+          throw new Error('No agent found');
+        }
+        currentAgentRef.current = activeAgent;
+
+        currentRunningIdRef.current = thisRunningId;
+        interruptedFlagRef.current[thisRunningId] = false;
+        activeAgent.resetDump();
+        activeAgent.opts.onTaskStartTip = (tip: string) => {
+          if (interruptedFlagRef.current[thisRunningId]) {
+            return;
+          }
+          setLoadingProgressText(tip);
+        };
+        if (serviceMode === 'Server') {
+          const uiContext = await activeAgent?.getUIContext();
+          result = await requestPlaygroundServer(
+            uiContext!,
+            value.type,
+            value.prompt,
+          );
+        } else {
+          if (value.type === 'aiAction') {
+            // const yamlString = buildYaml(
+            //   {
+            //     url: tabUrl || '',
+            //   },
+            //   [
+            //     {
+            //       name: 'aiAction',
+            //       flow: [{ aiAction: value.prompt }],
+            //     },
+            //   ],
+            // );
+            // const parsedYamlScript = parseYamlScript(yamlString);
+            // console.log('yamlString', parsedYamlScript, yamlString);
+
+            result.result = await activeAgent?.aiAction(value.prompt);
+          } else if (value.type === 'aiQuery') {
+            result.result = await activeAgent?.aiQuery(value.prompt);
+          } else if (value.type === 'aiAssert') {
+            result.result = await activeAgent?.aiAssert(
+              value.prompt,
+              undefined,
+              {
+                keepRawResponse: true,
+              },
+            );
+          }
+        }
+      } catch (e: any) {
+        const errorMessage = e?.message || '';
+        console.error(e);
+        if (errorMessage.includes('of different extension')) {
+          result.error =
+            'Conflicting extension detected. Please disable the suspicious plugins and refresh the page. Guide: https://midscenejs.com/quick-experience.html#faq';
+        } else if (
+          !errorMessage?.includes(ERROR_CODE_NOT_IMPLEMENTED_AS_DESIGNED)
+        ) {
+          result.error = errorMessage;
+        } else {
+          result.error = 'Unknown error';
         }
       }
-    } catch (e: any) {
-      const errorMessage = e?.message || '';
-      console.error(e);
-      if (errorMessage.includes('of different extension')) {
-        result.error =
-          'Conflicting extension detected. Please disable the suspicious plugins and refresh the page. Guide: https://midscenejs.com/quick-experience.html#faq';
-      } else if (
-        !errorMessage?.includes(ERROR_CODE_NOT_IMPLEMENTED_AS_DESIGNED)
-      ) {
-        result.error = errorMessage;
+      if (interruptedFlagRef.current[thisRunningId]) {
+        console.log('interrupted, result is', result);
+        return false;
+      }
+
+      try {
+        if (
+          serviceMode === 'In-Browser' ||
+          serviceMode === 'In-Browser-Extension'
+        ) {
+          result.dump = activeAgent?.dumpDataString()
+            ? JSON.parse(activeAgent.dumpDataString())
+            : null;
+
+          result.reportHTML = activeAgent?.reportHTMLString() || null;
+        }
+      } catch (e) {
+        console.error(e);
+      }
+
+      try {
+        console.log('destroy agent.page', activeAgent?.page);
+        await activeAgent?.page?.destroy();
+        console.log('destroy agent.page done', activeAgent?.page);
+      } catch (e) {
+        console.error(e);
+      }
+
+      currentAgentRef.current = null;
+      setResult((prev) => {
+        const newResult = [...prev];
+        newResult[stepIndex] = result;
+        return newResult;
+      });
+      if (value.type === 'aiAction' && result?.dump) {
+        const info = allScriptsFromDump(result.dump);
+        setReplayScriptsInfo(info);
+        setReplayCounter((c) => c + 1);
       } else {
-        result.error = 'Unknown error';
+        setReplayScriptsInfo(null);
+      }
+      console.log(`time taken: ${Date.now() - startTime}ms`);
+
+      // Scroll the Run header into view
+      // setTimeout(() => {
+      //   runResultRef.current?.scrollIntoView({ behavior: 'smooth' });
+      // }, 50);
+    },
+    [form, getAgent, serviceMode, serverValid, forceSameTabNavigation],
+  );
+
+  const handleRunFromStep = async (stepIndex: number) => {
+    setLoading(true);
+    for (let i = stepIndex; i < stepCount - 1; i++) {
+      const pass = await handleRun(i);
+      if (pass === false) {
+        // not pass, return to prev step
+        setCurStep((prev) => prev - 1);
+      } else {
+        // active next step
+        setCurStep(i + 1);
       }
     }
-    if (interruptedFlagRef.current[thisRunningId]) {
-      console.log('interrupted, result is', result);
-      return;
-    }
-
-    try {
-      if (
-        serviceMode === 'In-Browser' ||
-        serviceMode === 'In-Browser-Extension'
-      ) {
-        result.dump = activeAgent?.dumpDataString()
-          ? JSON.parse(activeAgent.dumpDataString())
-          : null;
-
-        result.reportHTML = activeAgent?.reportHTMLString() || null;
-      }
-    } catch (e) {
-      console.error(e);
-    }
-
-    try {
-      console.log('destroy agent.page', activeAgent?.page);
-      await activeAgent?.page?.destroy();
-      console.log('destroy agent.page done', activeAgent?.page);
-    } catch (e) {
-      console.error(e);
-    }
-
-    currentAgentRef.current = null;
-    setResult(result);
     setLoading(false);
-    if (value.type === 'aiAction' && result?.dump) {
-      const info = allScriptsFromDump(result.dump);
-      setReplayScriptsInfo(info);
-      setReplayCounter((c) => c + 1);
-    } else {
-      setReplayScriptsInfo(null);
-    }
-    console.log(`time taken: ${Date.now() - startTime}ms`);
-
-    // Scroll the Run header into view
-    // setTimeout(() => {
-    //   runResultRef.current?.scrollIntoView({ behavior: 'smooth' });
-    // }, 50);
-  }, [form, getAgent, serviceMode, serverValid, forceSameTabNavigation]);
-
-  let placeholder = 'What do you want to do?';
-  const selectedType = Form.useWatch('type', form);
-
-  if (selectedType === 'aiQuery') {
-    placeholder = 'What do you want to query?';
-  } else if (selectedType === 'aiAssert') {
-    placeholder = 'What do you want to assert?';
-  }
+  };
 
   const runButtonEnabled =
     (serviceMode === 'In-Browser' && !!getAgent && configAlreadySet) ||
@@ -419,6 +451,7 @@ export function Playground({
       <span>The result will be shown here</span>
     </div>
   );
+  const curResult = result[curStep];
   if (!serverValid && serviceMode === 'Server') {
     resultDataToShow = serverLaunchTip;
   } else if (loading) {
@@ -436,26 +469,26 @@ export function Playground({
   } else if (replayScriptsInfo) {
     resultDataToShow = (
       <Player
-        key={replayCounter}
+        key={`${curStep}-${replayCounter}`}
         replayScripts={replayScriptsInfo.scripts}
         imageWidth={replayScriptsInfo.width}
         imageHeight={replayScriptsInfo.height}
         reportFileContent={
-          serviceMode === 'In-Browser-Extension' && result?.reportHTML
-            ? result?.reportHTML
+          serviceMode === 'In-Browser-Extension' && curResult?.reportHTML
+            ? curResult?.reportHTML
             : null
         }
       />
     );
-  } else if (result?.result) {
+  } else if (curResult?.result) {
     resultDataToShow =
-      typeof result?.result === 'string' ? (
-        <pre>{result?.result}</pre>
+      typeof curResult?.result === 'string' ? (
+        <pre>{curResult?.result}</pre>
       ) : (
-        <pre>{JSON.stringify(result?.result, null, 2)}</pre>
+        <pre>{JSON.stringify(curResult?.result, null, 2)}</pre>
       );
-  } else if (result?.error) {
-    resultDataToShow = <pre>{result?.error}</pre>;
+  } else if (curResult?.error) {
+    resultDataToShow = <pre>{curResult?.error}</pre>;
   }
 
   const serverTip = !serverValid ? (
@@ -496,24 +529,24 @@ export function Playground({
   const stoppable =
     !dryMode && serviceMode === 'In-Browser-Extension' && loading;
 
-  const handleStop = async () => {
+  const handleStop = async (stepIndex: number) => {
     const thisRunningId = currentRunningIdRef.current;
     if (thisRunningId) {
       await currentAgentRef.current?.destroy();
       interruptedFlagRef.current[thisRunningId] = true;
-      resetResult();
+      resetResult(stepIndex);
       console.log('destroy agent done');
     }
   };
 
-  let actionBtn: React.ReactNode = null;
+  let renderActionBtn: (stepIndex: number) => React.ReactNode = () => null;
   if (dryMode) {
-    actionBtn = (
+    renderActionBtn = (stepIndex: number) => (
       <Tooltip title="Start executing until some interaction actions need to be performed. You can see the process of planning and locating.">
         <Button
           type="primary"
           icon={<SendOutlined />}
-          onClick={handleRun}
+          onClick={() => handleRunFromStep(stepIndex)}
           disabled={!runButtonEnabled}
           loading={loading}
         >
@@ -522,17 +555,17 @@ export function Playground({
       </Tooltip>
     );
   } else if (stoppable) {
-    actionBtn = (
-      <Button icon={<BorderOutlined />} onClick={handleStop}>
+    renderActionBtn = (stepIndex: number) => (
+      <Button icon={<BorderOutlined />} onClick={() => handleStop(stepIndex)}>
         Stop
       </Button>
     );
   } else {
-    actionBtn = (
+    renderActionBtn = (stepIndex: number) => (
       <Button
         type="primary"
         icon={<SendOutlined />}
-        onClick={handleRun}
+        onClick={() => handleRunFromStep(stepIndex)}
         disabled={!runButtonEnabled}
         loading={loading}
       >
@@ -543,8 +576,8 @@ export function Playground({
 
   const historySelector = useHistorySelector((historyItem) => {
     form.setFieldsValue({
-      prompt: historyItem.prompt,
-      type: historyItem.type,
+      [`prompt-${curStep}`]: historyItem.prompt,
+      [`type-${curStep}`]: historyItem.type,
     });
   });
 
@@ -563,11 +596,53 @@ export function Playground({
     };
   }, []);
 
+  async function copyCode(format: 'js' | 'yaml') {
+    try {
+      const stepContent = [];
+      const fullValue = form.getFieldsValue();
+      for (let i = 0; i < stepCount; i++) {
+        const type = fullValue[`type-${i}`];
+        const prompt = fullValue[`prompt-${i}`];
+        if (!prompt) continue;
+        if (format === 'yaml') {
+          stepContent.push({ [type]: prompt });
+        } else if (format === 'js') {
+          stepContent.push(`await ${type}('${prompt}');`);
+        }
+      }
+      if (stepContent.length) {
+        let text = '';
+        if (format === 'yaml') {
+          text = buildYaml(
+            {
+              url: tabUrl || '',
+            },
+            [
+              {
+                name: 'aiAction',
+                flow: stepContent as { [type: string]: string }[],
+              },
+            ],
+          );
+        } else if (format === 'js') {
+          text = stepContent.join('\n');
+        }
+        await navigator.clipboard.writeText(text);
+        message.success('Copy success');
+      } else {
+        message.info('No code to copy');
+      }
+    } catch (error) {
+      message.success('Copy failed');
+      console.error('Copy failed:', error);
+    }
+  }
+
   const [hoveringSettings, setHoveringSettings] = useState(false);
   const formSection = (
     <Form
       form={form}
-      onFinish={handleRun}
+      // onFinish={handleRun}
       initialValues={{ ...historyInitialValues }}
     >
       <div className="playground-form-container">
@@ -611,52 +686,83 @@ export function Playground({
           )}
         </div>
         <div className="form-part input-wrapper">
-          <h3>Run</h3>
-          <Form.Item name="type">
-            <Radio.Group buttonStyle="solid" disabled={!runButtonEnabled}>
-              <Radio.Button value="aiAction">
-                {actionNameForType('aiAction')}
-              </Radio.Button>
-              <Radio.Button value="aiQuery">
-                {actionNameForType('aiQuery')}
-              </Radio.Button>
-              <Radio.Button value="aiAssert">
-                {actionNameForType('aiAssert')}
-              </Radio.Button>
-            </Radio.Group>
-          </Form.Item>
-          <div className="main-side-console-input">
-            <Form.Item name="prompt">
-              <TextArea
-                disabled={!runButtonEnabled}
-                rows={4}
-                placeholder={placeholder}
-                autoFocus
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' && e.metaKey) {
-                    handleRun();
-                    e.preventDefault();
-                    e.stopPropagation();
-                  }
-                }}
-              />
-            </Form.Item>
-
-            <div className="form-controller-wrapper">
-              <div
+          <h3>Run Steps</h3>
+          {new Array(stepCount).fill(1).map((_, i) => {
+            return (
+              <Input.Group
+                compact
                 className={
-                  hoveringSettings
-                    ? 'settings-wrapper settings-wrapper-hover'
-                    : 'settings-wrapper'
+                  result[i]?.error ? 'fail' : curStep === i ? 'active' : ''
                 }
-                onMouseEnter={() => setHoveringSettings(true)}
-                onMouseLeave={() => setHoveringSettings(false)}
+                key={i.toString()}
               >
-                {historySelector}
-                {configSelector}
-              </div>
-              {actionBtn}
-            </div>
+                <Form.Item name={`type-${i}`} initialValue={'aiAction'} noStyle>
+                  <Select>
+                    <Select.Option value="aiAction">
+                      {actionNameForType('aiAction')}
+                    </Select.Option>
+                    <Select.Option value="aiQuery">
+                      {actionNameForType('aiQuery')}
+                    </Select.Option>
+                    <Select.Option value="aiAssert">
+                      {actionNameForType('aiAssert')}
+                    </Select.Option>
+                  </Select>
+                </Form.Item>
+                <Form.Item name={`prompt-${i}`} noStyle>
+                  <Input
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && e.metaKey) {
+                        handleRunFromStep(i);
+                        e.preventDefault();
+                        e.stopPropagation();
+                      }
+                    }}
+                    onFocus={() => {
+                      if (!loading) {
+                        setCurStep(i);
+                        const dump = result[i]?.dump;
+                        if (dump) {
+                          const info = allScriptsFromDump(dump);
+                          setReplayScriptsInfo(info);
+                        } else {
+                          setReplayScriptsInfo(null);
+                        }
+                      }
+                    }}
+                  />
+                </Form.Item>
+                {curStep === i ? renderActionBtn(i) : null}
+              </Input.Group>
+            );
+          })}
+          <div className="form-controller-wrapper">
+            <Tooltip title="aiAction report use a lot of memory, suggest step count less than 5">
+              <Button
+                type="primary"
+                onClick={() => {
+                  setStepCount(stepCount + 1);
+                }}
+              >
+                + Step
+              </Button>
+            </Tooltip>
+            <ButtonGroup>
+              <Button onClick={() => copyCode('js')}>Copy as JS</Button>
+              <Button onClick={() => copyCode('yaml')}>Copy as Yaml</Button>
+            </ButtonGroup>
+          </div>
+          <div
+            className={
+              hoveringSettings
+                ? 'settings-wrapper settings-wrapper-hover'
+                : 'settings-wrapper'
+            }
+            onMouseEnter={() => setHoveringSettings(true)}
+            onMouseLeave={() => setHoveringSettings(false)}
+          >
+            {historySelector}
+            {configSelector}
           </div>
         </div>
       </div>
