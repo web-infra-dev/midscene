@@ -21,7 +21,7 @@ export function fillLocateParam(locate: PlanningLocateParam) {
     delete locate.bbox_2d;
   }
 
-  const defaultBboxSize = 20;
+  const defaultBboxSize = 10;
   if (locate?.bbox) {
     locate.bbox[0] = Math.round(locate.bbox[0]);
     locate.bbox[1] = Math.round(locate.bbox[1]);

@@ -115,7 +115,7 @@ describe(
       },
     );
 
-    it('scroll', async () => {
+    it.only('scroll', async () => {
       const htmlPath = path.join(__dirname, 'scroll.html');
       const { originPage, reset } = await launchPage(`file://${htmlPath}`);
       resetFn = reset;

@@ -28,7 +28,7 @@ describe('llm planning', () => {
     expect(filledLocate).toEqual({
       id: 'test',
       prompt: 'test',
-      bbox: [100, 100, 120, 120],
+      bbox: [100, 100, 110, 110],
     });
   });
 });
