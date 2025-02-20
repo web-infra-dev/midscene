@@ -27,7 +27,7 @@ export async function callAiFn<T>(
 ): Promise<{ content: T; usage?: AIUsageInfo }> {
   assert(
     checkAIConfig(),
-    'Cannot find config for AI model service. You should set it before using. https://midscenejs.com/model-provider.html',
+    'Cannot find config for AI model service. If you are using a self-hosted model without validating the API key, please set `OPENAI_API_KEY` to any non-null value. https://midscenejs.com/model-provider.html',
   );
 
   const { content, usage } = await callToGetJSONObject<T>(

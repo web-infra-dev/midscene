@@ -40,8 +40,7 @@ import { assertSchema } from '../prompt/assertion';
 import { locatorSchema } from '../prompt/llm-locator';
 import { planSchema } from '../prompt/llm-planning';
 
-export function checkAIConfig(preferVendor?: 'openAI') {
-  if (preferVendor && preferVendor !== 'openAI') return false;
+export function checkAIConfig() {
   if (getAIConfig(OPENAI_API_KEY)) return true;
   if (getAIConfig(MIDSCENE_USE_AZURE_OPENAI)) return true;
   if (getAIConfig(ANTHROPIC_API_KEY)) return true;
