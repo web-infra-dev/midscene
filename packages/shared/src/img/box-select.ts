@@ -24,6 +24,7 @@ const createSvgOverlay = async (
   elements: Array<ElementType>,
   imageWidth: number,
   imageHeight: number,
+  boxPadding = 5,
 ): Promise<Jimp> => {
   const Jimp = await getJimp();
   const image = new Jimp(imageWidth, imageHeight, 0x00000000);
@@ -37,7 +38,6 @@ const createSvgOverlay = async (
     { rect: 0x500073ff, text: 0xffffffff }, // purple, white
   ];
 
-  const boxPadding = 5;
   for (let index = 0; index < elements.length; index++) {
     const element = elements[index];
     const color = colors[index % colors.length];
@@ -183,6 +183,7 @@ export const compositeElementInfoImg = async (options: {
   inputImgBase64: string;
   elementsPositionInfo: Array<ElementType>;
   size?: { width: number; height: number };
+  annotationPadding?: number;
 }) => {
   assert(options.inputImgBase64, 'inputImgBase64 is required');
   let width = 0;
@@ -224,6 +225,7 @@ export const compositeElementInfoImg = async (options: {
         elementsPositionInfo,
         width,
         height,
+        options.annotationPadding,
       );
       const svgImage = await Jimp.read(svgOverlay);
       const compositeImage = await image.composite(svgImage, 0, 0, {

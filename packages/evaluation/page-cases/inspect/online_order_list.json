@@ -10,7 +10,7 @@
           "indexId": 20
         }
       ],
-      "response_bbox": [184, 276, 250, 293],
+      "response_bbox": [186, 279, 245, 293],
       "annotation_index_id": 1
     },
     {
@@ -22,7 +22,7 @@
           "indexId": 39
         }
       ],
-      "response_bbox": [326, 789, 379, 809],
+      "response_bbox": [324, 801, 387, 816],
       "annotation_index_id": 2
     },
     {
@@ -34,7 +34,7 @@
           "indexId": 38
         }
       ],
-      "response_bbox": [186, 795, 223, 809],
+      "response_bbox": [190, 804, 230, 825],
       "annotation_index_id": 3
     },
     {
@@ -46,7 +46,7 @@
           "indexId": 9
         }
       ],
-      "response_bbox": [0, 375, 68, 401],
+      "response_bbox": [0, 378, 45, 401],
       "annotation_index_id": 4
     }
   ]

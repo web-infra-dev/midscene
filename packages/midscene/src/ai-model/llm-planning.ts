@@ -5,6 +5,7 @@ import type {
   PlanningLocateParam,
   UIContext,
 } from '@/types';
+import { paddingToMatchBlock } from '@midscene/shared/img';
 import { AIActionType, type AIArgs, callAiFn } from './common';
 import {
   automationUserPrompt,
@@ -12,7 +13,6 @@ import {
   systemPromptToTaskPlanning,
 } from './prompt/llm-planning';
 import { describeUserPage } from './prompt/util';
-
 // transform the param of locate from qwen mode
 export function fillLocateParam(locate: PlanningLocateParam) {
   if (locate?.bbox_2d && !locate?.bbox) {
@@ -60,6 +60,11 @@ export async function plan(
     taskBackgroundContext: taskBackgroundContextText,
   });
 
+  let imagePayload = screenshotBase64WithElementMarker || screenshotBase64;
+  if (getAIConfigInBoolean(MIDSCENE_USE_QWEN_VL)) {
+    imagePayload = await paddingToMatchBlock(imagePayload);
+  }
+
   const msgs: AIArgs = [
     { role: 'system', content: systemPrompt },
     {
@@ -68,7 +73,7 @@ export async function plan(
         {
           type: 'image_url',
           image_url: {
-            url: screenshotBase64WithElementMarker || screenshotBase64,
+            url: imagePayload,
             detail: 'high',
           },
         },

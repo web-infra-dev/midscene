@@ -1,4 +1,5 @@
 import assert from 'node:assert';
+import { MIDSCENE_USE_QWEN_VL, getAIConfigInBoolean } from '@/env';
 import type {
   AIAssertionResponse,
   AIElementIdResponse,
@@ -13,6 +14,7 @@ import type {
   Size,
   UIContext,
 } from '@/types';
+import { paddingToMatchBlock } from '@midscene/shared/img';
 import type {
   ChatCompletionSystemMessageParam,
   ChatCompletionUserMessageParam,
@@ -248,6 +250,12 @@ export async function AiInspectElement<
   });
   const systemPrompt = systemPromptToLocateElement();
 
+  let imagePayload = screenshotBase64WithElementMarker || screenshotBase64;
+
+  if (getAIConfigInBoolean(MIDSCENE_USE_QWEN_VL)) {
+    imagePayload = await paddingToMatchBlock(imagePayload);
+  }
+
   const msgs: AIArgs = [
     { role: 'system', content: systemPrompt },
     {
@@ -256,7 +264,7 @@ export async function AiInspectElement<
         {
           type: 'image_url',
           image_url: {
-            url: screenshotBase64WithElementMarker || screenshotBase64,
+            url: imagePayload,
             detail: 'high',
           },
         },

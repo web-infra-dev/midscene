@@ -3,7 +3,7 @@
   "testCases": [
     {
       "prompt": "'最简单的用法'下方有五个 icon，左侧第一个 icon",
-      "response_bbox": [486, 871, 509, 883],
+      "response_bbox": [487, 860, 509, 873],
       "response": [
         {
           "id": "nkpld",
@@ -14,7 +14,7 @@
     },
     {
       "prompt": "'最简单的用法'下方有五个 icon，左侧第二个 icon",
-      "response_bbox": [519, 872, 536, 884],
+      "response_bbox": [519, 860, 537, 874],
       "response": [
         {
           "id": "hdbbh",
@@ -25,7 +25,7 @@
     },
     {
       "prompt": "'最简单的用法'下方有五个 icon，左侧第三个 icon",
-      "response_bbox": [552, 871, 569, 883],
+      "response_bbox": [549, 861, 570, 873],
       "response": [
         {
           "id": "ncono",
@@ -36,7 +36,7 @@
     },
     {
       "prompt": "'最简单的用法'下方有五个 icon，左侧第四个 icon",
-      "response_bbox": [583, 872, 596, 884],
+      "response_bbox": [583, 861, 597, 874],
       "response": [
         {
           "id": "jkeam",
@@ -47,7 +47,7 @@
     },
     {
       "prompt": "'最简单的用法'下方有五个 icon，最右侧的 icon",
-      "response_bbox": [617, 873, 629, 884],
+      "response_bbox": [615, 862, 630, 874],
       "response": [
         {
           "id": "nnkcf",
@@ -58,7 +58,7 @@
     },
     {
       "prompt": "全屏幕右上角、版本号右侧有三个 icon ，查找左侧第一个",
-      "response_bbox": [1269, 24, 1290, 38],
+      "response_bbox": [1270, 23, 1290, 40],
       "response": [
         {
           "id": "dinoj",
@@ -69,7 +69,7 @@
     },
     {
       "prompt": "全屏幕右上角有三个 icon ，查找左侧第二个",
-      "response_bbox": [1314, 20, 1335, 40],
+      "response_bbox": [1315, 20, 1334, 39],
       "response": [
         {
           "id": "nfpha",
@@ -80,7 +80,7 @@
     },
     {
       "prompt": "屏幕右上角有三个 icon ，左侧第三个",
-      "response_bbox": [1356, 20, 1378, 42],
+      "response_bbox": [1356, 20, 1378, 40],
       "response": [
         {
           "id": "hmbld",
@@ -91,7 +91,7 @@
     },
     {
       "prompt": "在‘代码演示’右侧有三个 icon 按钮中，查找最中间的按钮",
-      "response_bbox": [1185, 503, 1204, 517],
+      "response_bbox": [1184, 497, 1203, 516],
       "response": [
         {
           "id": "pkafb",
