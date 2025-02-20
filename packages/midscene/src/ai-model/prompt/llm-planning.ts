@@ -11,7 +11,8 @@ const commonOutputFields = `"finish": boolean, // If all the actions described i
   "log": string, // Log what the action(s) do. Use the same language as the user's instruction.
   "error"?: string // Error messages about unexpected situations, if any. Use the same language as the user's instruction.`;
 
-const qwenLocateParam = `locate: {"bbox_2d": [number, number, number, number] }`;
+const qwenLocateParam =
+  'locate: {bbox_2d: [number, number, number, number], prompt: string }';
 
 const systemTemplateOfQwen = `
 Target: User will give you a screenshot, an instruction and some previous logs indicating what have been done. Please tell what the NEXT action is to finish the instruction.
@@ -24,6 +25,8 @@ Supporting actions:
 - KeyboardPress: { type: "KeyboardPress", param: { value: string } }
 - Scroll: { type: "Scroll", ${qwenLocateParam} | null, param: { direction: 'down'(default) | 'up' | 'right' | 'left', scrollType: 'once' (default) | 'untilBottom' | 'untilTop' | 'untilRight' | 'untilLeft', distance: null | number }} // locate is the element to scroll. If it's a page scroll, put \`null\` in the \`locate\` field.
 - ExpectedFalsyCondition: { type: "ExpectedFalsyCondition", param: {reason: string} } // Use this action when the conditional statement talked about in the instruction is falsy.
+
+The \`prompt\` field inside the \`locate\` field is a short description that could be used to locate the element.
 
 Return in JSON format:
 {

@@ -56,7 +56,6 @@ Qwen 2.5 VL 确实有内置的操作规划（action planning）功能来控制�
 
 - **小图标识别能力较差**：和 `gpt-4o` 一样，它可能无法准确定位小图标。
 - **断言能力一般**：在某些情况下，Qwen 2.5 VL 的断言能力可能不如 `gpt-4o`。
-- **无法使用缓存**：目前在 Qwen 2.5 VL 中无法使用 Midscene.js 的缓存功能。
 
 **配置**
 
@@ -65,7 +64,7 @@ Qwen 2.5 VL 确实有内置的操作规划（action planning）功能来控制�
 ```bash
 OPENAI_BASE_URL="https://dashscope.aliyuncs.com/compatible-mode/v1" # 或任何其他提供商的接入点。
 OPENAI_API_KEY="......"
-MIDSCENE_MODEL_NAME="qwen2.5-vl-72b-instruct"
+MIDSCENE_MODEL_NAME="qwen-vl-max-latest"
 MIDSCENE_USE_QWEN_VL=1 # 别忘了配置这项，用于启用 Qwen 2.5 模式！
 ```
 

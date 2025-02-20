@@ -33,8 +33,6 @@ import {
   type ChatCompletionMessageParam,
   vlmPlanning,
 } from '@midscene/core/ai-model';
-import { getAIConfigInBoolean } from '@midscene/core/env';
-import { MIDSCENE_USE_QWEN_VL } from '@midscene/core/env';
 import { sleep } from '@midscene/core/utils';
 import type { ElementInfo } from '@midscene/shared/extractor';
 import type { WebElementInfo } from '../web-element';
@@ -66,10 +64,8 @@ export class PageTaskExecutor {
     this.page = page;
     this.insight = insight;
 
-    const qwenMode = getAIConfigInBoolean(MIDSCENE_USE_QWEN_VL);
-
     this.taskCache = new TaskCache({
-      cacheId: qwenMode ? undefined : opts?.cacheId, // cache is not supported in qwen mode
+      cacheId: opts?.cacheId,
     });
   }
 
