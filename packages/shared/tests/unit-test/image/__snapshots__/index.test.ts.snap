@@ -15274,6 +15274,7 @@ exports[`image utils > imageInfo 1`] = `
     "getPixelColour": [Function],
     "setPixelColour": [Function],
     "writeAsync": [Function],
+    Symbol(shapeMode): false,
     Symbol(kCapture): false,
   },
   "width": 68,
@@ -15287,3 +15288,7 @@ exports[`image utils > jimp + imageInfo 2`] = `905`;
 exports[`image utils > jpeg + base64 + imageInfo 1`] = `400`;
 
 exports[`image utils > jpeg + base64 + imageInfo 2`] = `905`;
+
+exports[`image utils > paddingToMatchBlock 1`] = `420`;
+
+exports[`image utils > paddingToMatchBlock 2`] = `924`;
