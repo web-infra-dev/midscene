@@ -70,7 +70,7 @@ describe('puppeteer integration', () => {
     expect(multiLineErrorMsg.length).toBeGreaterThan(2);
   });
 
-  it.only('allow error in flow', async () => {
+  it('allow error in flow', async () => {
     const { originPage, reset } = await launchPage(
       platform() === 'darwin'
         ? 'https://www.baidu.com'
