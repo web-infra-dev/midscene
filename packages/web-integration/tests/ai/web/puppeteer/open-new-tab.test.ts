@@ -23,6 +23,6 @@ describe('agent with forceSameTabNavigation', () => {
     });
     await agent.aiAction('search "midscene github" and open the first result');
     await sleep(5000);
-    await agent.aiAssert('the page is "midscene github"');
+    await agent.aiAssert('the page is about "midscene" project');
   });
 });

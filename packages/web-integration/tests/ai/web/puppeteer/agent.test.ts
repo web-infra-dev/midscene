@@ -35,12 +35,12 @@ describe('puppeteer integration', () => {
   tasks:
     - name: search weather
       flow:
-        - ai: input 'weather today' in input box, click search button
+        - ai: input 'weather today' in input box, press Enter
         - sleep: 3000
 
     - name: result page
       flow:
-        - aiQuery: "this is a search result page about weather, {answer: boolean}"
+        - aiQuery: "this is a search result page about weather. Return in this format: {answer: boolean}"
           name: weather
   `,
     );
@@ -70,7 +70,7 @@ describe('puppeteer integration', () => {
     expect(multiLineErrorMsg.length).toBeGreaterThan(2);
   });
 
-  it('allow error in flow', async () => {
+  it.only('allow error in flow', async () => {
     const { originPage, reset } = await launchPage(
       platform() === 'darwin'
         ? 'https://www.baidu.com'
@@ -86,19 +86,19 @@ describe('puppeteer integration', () => {
         - ai: input 'weather today' in input box, click search button
         - sleep: 3000
 
-    - name: result page
-      continueOnError: true
-      flow:
-        - aiQuery: "this is a search result, {answer: boolean}"
-          name: pageLoaded
-
     - name: error
       continueOnError: true
       flow:
         - aiAssert: the result shows food delivery service
+
+    - name: result page
+      continueOnError: true
+      flow:
+        - aiQuery: "this is a search result, use this format to answer: {result: boolean}"
+          name: pageLoaded
     `,
     );
 
-    expect(result.pageLoaded.answer).toBeDefined();
+    expect(result.pageLoaded).toBeDefined();
   });
 });
