@@ -44,7 +44,11 @@ export interface ElementTreeNode<
   children: ElementTreeNode<ElementType>[];
 }
 
-export type AIUsageInfo = Record<string, any>;
+export type AIUsageInfo = Record<string, any> & {
+  prompt_tokens: number;
+  completion_tokens: number;
+  total_tokens: number;
+};
 
 /**
  * openai
@@ -62,10 +66,11 @@ export type AISingleElementResponseById = {
 };
 
 export type AISingleElementResponseByPosition = {
-  position: {
+  position?: {
     x: number;
     y: number;
   };
+  bbox?: [number, number, number, number];
   reason: string;
   text: string;
 };
@@ -80,7 +85,14 @@ export interface AIElementIdResponse {
   errors?: string[];
 }
 
-export type AIElementResponse = AIElementIdResponse;
+export interface AIElementCoordinatesResponse {
+  bbox: [number, number, number, number];
+  errors?: string[];
+}
+
+export type AIElementResponse =
+  | AIElementIdResponse
+  | AIElementCoordinatesResponse;
 
 export interface AISectionParseResponse<DataShape> {
   data: DataShape;
@@ -197,7 +209,9 @@ export interface LiteUISection {
 
 export type ElementById = (id: string) => BaseElement | null;
 
-export type InsightAssertionResponse = AIAssertionResponse;
+export type InsightAssertionResponse = AIAssertionResponse & {
+  usage?: AIUsageInfo;
+};
 
 /**
  * agent
@@ -225,6 +239,8 @@ export interface PlanningLocateParam {
     x: number;
     y: number;
   };
+  bbox?: [number, number, number, number];
+  bbox_2d?: [number, number, number, number];
   prompt: string;
 }
 
@@ -239,7 +255,7 @@ export interface PlanningAction<ParamType = any> {
     | 'KeyboardPress'
     | 'Scroll'
     | 'Error'
-    | 'FalsyConditionStatement'
+    | 'ExpectedFalsyCondition'
     | 'Assert'
     | 'AssertWithoutThrow'
     | 'Sleep'
@@ -249,17 +265,21 @@ export interface PlanningAction<ParamType = any> {
 }
 
 export interface PlanningAIResponse {
-  actions: PlanningAction[];
-  taskWillBeAccomplished: boolean;
-  furtherPlan?: PlanningFurtherPlan | null;
+  action?: PlanningAction; // this is the qwen mode
+  actions?: PlanningAction[];
+  finish: boolean;
+  log: string;
+  sleep?: number;
   error?: string;
+  usage?: AIUsageInfo;
+  rawResponse?: string;
 }
 
-export interface PlanningFurtherPlan {
-  whatToDoNext: string;
-  whatHaveDone: string;
-}
-export type PlanningActionParamPlan = PlanningFurtherPlan;
+// export interface PlanningFurtherPlan {
+//   whatToDoNext: string;
+//   log: string;
+// }
+// export type PlanningActionParamPlan = PlanningFurtherPlan;
 
 export type PlanningActionParamTap = null;
 export type PlanningActionParamHover = null;
@@ -284,9 +304,10 @@ export interface PlanningActionParamError {
   thought: string;
 }
 
-export type PlanningActionParamWaitFor = AgentWaitForOpt & {
-  assertion: string;
-};
+export type PlanningActionParamWaitFor = ExecutionTaskProgressOptions &
+  AgentWaitForOpt & {
+    assertion: string;
+  };
 /**
  * misc
  */
@@ -384,6 +405,7 @@ export type ExecutionTask<
       cost?: number;
       aiCost?: number;
     };
+    usage?: AIUsageInfo;
   };
 
 export interface ExecutionDump extends DumpMeta {
@@ -472,9 +494,8 @@ task - planning
 export type ExecutionTaskPlanningApply = ExecutionTaskApply<
   'Planning',
   {
-    userPrompt: string;
-    whatHaveDone?: string;
-    originalPrompt?: string;
+    userInstruction: string;
+    log?: string;
   },
   PlanningAIResponse
 >;

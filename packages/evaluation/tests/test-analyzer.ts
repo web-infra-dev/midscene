@@ -1,239 +1,236 @@
-import { readFileSync, unlinkSync, writeFileSync } from 'node:fs';
+import assert from 'node:assert';
+import {
+  appendFileSync,
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  unlinkSync,
+  writeFileSync,
+} from 'node:fs';
 import path from 'node:path';
-import { MIDSCENE_MODEL_NAME, getAIConfig } from '@midscene/core';
-import type { buildContext } from '@midscene/core/evaluation';
-import { writeFileSyncWithDir } from './util';
+import {
+  type AiInspectElement,
+  MIDSCENE_MODEL_NAME,
+  getAIConfig,
+  type plan,
+} from '@midscene/core';
+import { expect } from 'vitest';
+import type { TestCase } from './util';
 
-export class TestResultAnalyzer {
-  private successCount = 0;
-  private failCount = 0;
-  private repeatIndex = 0;
-  private modelName = getAIConfig(MIDSCENE_MODEL_NAME);
-  private updateAiData = Boolean(process.env.UPDATE_AI_DATA);
-  private successResults: {
-    index: number;
-    response: any[];
-    prompt: string;
-  }[] = [];
-  private failResults: {
-    index: number;
-    expected: any[];
-    actual: any[];
-    prompt: string;
-  }[] = [];
-  private totalTime = 0;
+type ActualResult =
+  | Awaited<ReturnType<typeof AiInspectElement>>
+  | Awaited<ReturnType<typeof plan>>;
 
-  constructor(
-    private context: Awaited<ReturnType<typeof buildContext>>['context'],
-    private aiDataPath: string,
-    private aiData: any,
-    private aiResponse: any[],
-    repeatIndex: number,
-  ) {
-    this.context = context;
-    this.repeatIndex = repeatIndex;
-  }
+interface TestLog {
+  success: boolean;
+  caseGroup: string;
+  testCase: TestCase;
+  actualResult: ActualResult;
+  cost: number;
+}
 
-  analyze() {
-    this.aiData.testCases.forEach((testCase: any, index: number) => {
-      const result = this.aiResponse[index];
-      this.totalTime += result.spendTime;
-      this.compareResult(testCase, result, index);
-    });
+export class TestResultCollector {
+  private testLogs: TestLog[] = [];
 
-    const resultData = this.generateResultData();
+  private testName: string;
+  private modelName: string;
+  private failedCaseLogPath: string;
+  private logFilePath: string;
 
-    if (this.updateAiData) {
-      writeFileSync(
-        this.aiDataPath,
-        JSON.stringify(this.aiData, null, 2),
-        'utf-8',
-      );
+  constructor(testName: string, modelName: string) {
+    this.testName = testName;
+    this.modelName = modelName;
+
+    const logBasePath = path.join(
+      __dirname,
+      `__ai_responses__/${this.modelName}`,
+    );
+    this.logFilePath = path.join(
+      logBasePath,
+      `${this.testName}-${process.pid}.log`,
+    );
+    this.failedCaseLogPath = path.join(
+      logBasePath,
+      `${this.testName}-${process.pid}-failed.log`,
+    );
+    if (!existsSync(logBasePath)) {
+      mkdirSync(logBasePath, { recursive: true });
     }
 
-    writeFileSyncWithDir(
-      path.join(
-        __dirname,
-        `__ai_responses__/${this.modelName}/${this.aiDataPath.split('/').pop()?.replace('.json', '')}-${this.repeatIndex}-inspector-element-result.json`,
-      ),
-      JSON.stringify(resultData, null, 2),
-      { encoding: 'utf-8' },
+    appendFileSync(this.logFilePath, '', 'utf-8');
+    appendFileSync(this.failedCaseLogPath, '', 'utf-8');
+  }
+
+  addResult(
+    caseGroup: string,
+    testCase: TestCase,
+    actualResult: ActualResult,
+    cost: number,
+  ) {
+    const sameResult = this.compareResult(testCase, actualResult);
+    const errorMsg = sameResult instanceof Error ? sameResult.message : '';
+
+    const testLog: TestLog = {
+      success: sameResult === true,
+      caseGroup,
+      testCase,
+      actualResult,
+      cost,
+    };
+    this.testLogs.push(testLog);
+    // log result
+    const logContent = `
+${testLog.success ? 'success' : 'failed'}: 
+${testLog.caseGroup} - ${testLog.testCase.prompt}
+ActualResponse:
+${JSON.stringify(testLog.actualResult, null, 2)}
+ExpectedResponse:
+${testLog.success ? '(skipped)' : JSON.stringify(testLog.testCase.response, null, 2)}
+${errorMsg ? `Error: ${errorMsg}` : ''}
+--------------------------------
+`;
+    appendFileSync(this.logFilePath, logContent, 'utf-8');
+
+    if (sameResult !== true) {
+      appendFileSync(this.failedCaseLogPath, `${logContent}\n`, 'utf-8');
+    }
+  }
+
+  analyze(allowFailCaseCount = 0) {
+    // group by caseGroup, calculate the pass rate and average cost of each group
+    const groupedTestLogs = this.testLogs.reduce(
+      (acc, log) => {
+        acc[log.caseGroup] = acc[log.caseGroup] || [];
+        acc[log.caseGroup].push(log);
+        return acc;
+      },
+      {} as Record<string, TestLog[]>,
+    );
+    const resultData = Object.entries(groupedTestLogs).map(
+      ([caseGroup, testLogs]) => {
+        const passRate =
+          testLogs.filter((log) => log.success).length / testLogs.length;
+        const averageCost =
+          testLogs.reduce((acc, log) => acc + log.cost, 0) / testLogs.length;
+        const totalTimeCost = testLogs.reduce((acc, log) => acc + log.cost, 0);
+        const averagePromptTokens =
+          testLogs.reduce(
+            (acc, log) => acc + (log.actualResult.usage?.prompt_tokens || 0),
+            0,
+          ) / testLogs.length;
+        const averageCompletionTokens =
+          testLogs.reduce(
+            (acc, log) =>
+              acc + (log.actualResult.usage?.completion_tokens || 0),
+            0,
+          ) / testLogs.length;
+        return {
+          caseGroup,
+          cases: testLogs.length,
+          success: testLogs.filter((log) => log.success).length,
+          fail: testLogs.filter((log) => !log.success).length,
+          passRate: `${(passRate * 100).toFixed(2)}%`,
+          averageCost: `${averageCost.toFixed(2)}ms`,
+          averagePromptTokens: `${averagePromptTokens.toFixed(0)}`,
+          averageCompletionTokens: `${averageCompletionTokens.toFixed(0)}`,
+          totalTimeCost: `${totalTimeCost}ms`,
+        };
+      },
     );
 
+    console.log(`${this.testName}, ${this.modelName}`);
+    console.table(resultData);
+
+    // check if the fail count is greater than the allowFailCaseCount
+    const failedCaseGroups = resultData.filter(
+      (item) => item.fail > allowFailCaseCount,
+    );
+    let errMsg = '';
+    if (failedCaseGroups.length > 0) {
+      errMsg = `Failed case groups: ${failedCaseGroups.map((item) => item.caseGroup).join(', ')}`;
+      console.log(errMsg);
+      console.log('error log file:', this.failedCaseLogPath);
+      throw new Error(errMsg);
+    }
     return resultData;
   }
 
-  private compareResult(testCase: any, result: any, index: number) {
-    const resultElements = result.response?.map((element: any) => ({
-      id: element.id,
-    }));
-    const testCaseElements = testCase.response.map((element: any) => ({
-      id: element.id,
-      ids: element.ids,
-    }));
+  private compareResult(
+    testCase: TestCase,
+    result: ActualResult,
+  ): true | Error {
+    const distanceThreshold = 16;
+    // compare coordinates
+    if ('rawResponse' in result && result.rawResponse.bbox) {
+      assert(testCase.response_bbox, 'testCase.response_bbox is required');
+      const centerX =
+        (result.rawResponse.bbox[0] + result.rawResponse.bbox[2]) / 2;
+      const centerY =
+        (result.rawResponse.bbox[1] + result.rawResponse.bbox[3]) / 2;
 
-    let isEqual = true;
-    if (resultElements.length !== testCaseElements.length) {
-      isEqual = false;
-    } else {
-      for (let i = 0; i < resultElements.length; i++) {
-        // There are multiple successful outcomes
-        if (testCaseElements[i].ids) {
-          if (!testCaseElements[i].ids.includes(resultElements[i].id)) {
-            isEqual = false;
-            break;
-          }
-        } else if (resultElements[i].id !== testCaseElements[i].id) {
-          isEqual = false;
-          break;
+      const expectedCenterX =
+        (testCase.response_bbox[0] + testCase.response_bbox[2]) / 2;
+      const expectedCenterY =
+        (testCase.response_bbox[1] + testCase.response_bbox[3]) / 2;
+      const distance = Math.floor(
+        Math.sqrt(
+          (centerX - expectedCenterX) ** 2 + (centerY - expectedCenterY) ** 2,
+        ),
+      );
+
+      if (distance > distanceThreshold) {
+        const msg = `distance: ${distance} is greater than threshold: ${distanceThreshold}, the prompt is: ${testCase.prompt}`;
+        return new Error(msg);
+      }
+
+      return true;
+    }
+
+    if ('parseResult' in result) {
+      // compare id
+      const expectedId = testCase.response[0].id;
+      const expectedIndexId = testCase.response[0].indexId;
+      const actualId = result.parseResult.elements[0].id;
+      if (actualId !== expectedId && `${actualId}` !== `${expectedIndexId}`) {
+        const msg = `actualId: ${actualId} is not equal to expectedId: ${expectedId} or expectedIndexId: ${expectedIndexId}, the prompt is: ${testCase.prompt}`;
+        console.log(msg);
+        return new Error(msg);
+      }
+      return true;
+    }
+
+    if ('actions' in result) {
+      // compare actions
+      const expected = testCase.response_planning;
+
+      // check step names and order
+      const steps =
+        expected?.actions.map((action) => {
+          return action.type;
+        }) || [];
+      const actualActions = result.actions.map((action) => {
+        return action.type;
+      });
+      // tell if steps and actualActions are the same
+      if (steps.length !== actualActions.length) {
+        const msg = `steps.length: ${steps.length} is not equal to actualActions.length: ${actualActions.length}, the prompt is: ${testCase.prompt}`;
+        return new Error(msg);
+      }
+      for (let i = 0; i < steps.length; i++) {
+        if (steps[i] !== actualActions[i]) {
+          const msg = `steps[${i}]: ${steps[i]} is not equal to actualActions[${i}]: ${actualActions[i]}, the prompt is: ${testCase.prompt}`;
+          return new Error(msg);
         }
       }
+
+      if (expected?.finish !== result.finish) {
+        const msg = `expected?.finish: ${expected?.finish} is not equal to result.finish: ${result.finish}, the prompt is: ${testCase.prompt}`;
+        return new Error(msg);
+      }
+
+      return true;
     }
-
-    if (isEqual) {
-      this.handleSuccess(result, testCase, index);
-    } else {
-      this.handleFailure(result, testCase, index);
-    }
-    if (this.updateAiData) {
-      testCase.response = result.response.map((element: any) => {
-        return {
-          id: element.id,
-          indexId: this.getElementIndexId(element.id),
-        };
-      });
-    }
+    const msg = `unknown result type, can not compare, the prompt is: ${testCase.prompt}`;
+    return new Error(msg);
   }
-
-  private getElementIndexId(id: string) {
-    const elementInfo = this.context.content.find((e: any) => e.id === id);
-    return elementInfo?.indexId;
-  }
-
-  private handleSuccess(result: any, testCase: any, index: number) {
-    this.successCount++;
-    this.successResults.push({
-      index,
-      response: result.elements.map((element: any) => {
-        return {
-          ...element,
-          indexId: this.getElementIndexId(element.id),
-        };
-      }),
-      prompt: testCase.prompt,
-    });
-  }
-
-  private handleFailure(result: any, testCase: any, index: number) {
-    this.failCount++;
-    this.failResults.push({
-      index,
-      expected: testCase.reponse,
-      actual: result.response.map((element: any) => {
-        return {
-          id: element.id,
-          indexId: this.getElementIndexId(element.id),
-        };
-      }),
-      prompt: result.prompt,
-    });
-  }
-
-  private generateResultData() {
-    const totalCount = this.successCount + this.failCount;
-    const score = (this.successCount / totalCount) * 100;
-    const averageTime = this.totalTime / totalCount;
-
-    return {
-      model: this.modelName,
-      score,
-      averageTime: `${(averageTime / 1000).toFixed(2)}s`,
-      successCount: this.successCount,
-      failCount: this.failCount,
-      failResults: this.failResults,
-      successResults: this.successResults,
-      aiResponse: this.aiResponse,
-    };
-  }
-}
-
-const aggregatedResultsPath = path.join(
-  __dirname,
-  `__ai_responses__/${getAIConfig(MIDSCENE_MODEL_NAME)}/aggregated-results.json`,
-);
-console.log(aggregatedResultsPath);
-
-// Function to delete the aggregated results file
-function deleteAggregatedResultsFile() {
-  try {
-    unlinkSync(aggregatedResultsPath);
-    console.log(`Successfully deleted ${aggregatedResultsPath}`);
-  } catch (error) {
-    // console.error(`Error deleting ${aggregatedResultsPath}:`, error);
-  }
-}
-
-// Call the function to delete the file
-deleteAggregatedResultsFile();
-
-export function updateAggregatedResults(source: string, resultData: any) {
-  // Read existing aggregated results or initialize new object
-  let aggregatedResults;
-  try {
-    aggregatedResults = JSON.parse(
-      readFileSync(aggregatedResultsPath, 'utf-8'),
-    );
-  } catch (error) {
-    aggregatedResults = {};
-  }
-
-  // Update aggregated results
-  aggregatedResults.model = getAIConfig(MIDSCENE_MODEL_NAME);
-  if (!aggregatedResults[source]) {
-    aggregatedResults[source] = {
-      totalScore: 0,
-      totalTime: 0,
-      totalSuccessCount: 0,
-      totalFailCount: 0,
-      count: 0,
-      repeatTime: 0,
-    };
-  }
-  // Calculate averages
-  const data = aggregatedResults[source];
-  data.totalScore += resultData.score || 0;
-  data.totalTime +=
-    Number.parseFloat(resultData.averageTime.replace('s', '')) || 0;
-  data.totalSuccessCount += resultData.successCount || 0;
-  data.totalFailCount += resultData.failCount || 0;
-  data.count++;
-  data.repeatTime++;
-  const totalTests = data.totalSuccessCount + data.totalFailCount;
-  const aggregatedResultsJson = {
-    ...aggregatedResults,
-    [source]: {
-      totalScore: data.totalScore,
-      totalTime: Number.parseFloat(data.totalTime),
-      totalSuccessCount: data.totalSuccessCount,
-      totalFailCount: data.totalFailCount,
-      count: data.count,
-      repeatTime: data.repeatTime,
-      averageScore: (data.totalScore / data.count).toFixed(2),
-      averageTime: `${(data.totalTime / data.count).toFixed(2)}s`,
-      successRate:
-        totalTests === 0
-          ? '0.00%'
-          : `${((data.totalSuccessCount / totalTests) * 100).toFixed(2)}%`,
-      failRate:
-        totalTests === 0
-          ? '0.00%'
-          : `${((data.totalFailCount / totalTests) * 100).toFixed(2)}%`,
-    },
-  };
-
-  // Write updated results to JSON file
-  writeFileSync(
-    aggregatedResultsPath,
-    JSON.stringify(aggregatedResultsJson, null, 2),
-  );
 }

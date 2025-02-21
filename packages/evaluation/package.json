@@ -4,10 +4,15 @@
   "scripts": {
     "update-page-data:headless": "playwright test ./data-generator/generator-headless.spec.ts",
     "update-page-data:headed": "playwright test ./data-generator/generator-headed.spec.ts --headed",
-    "evaluate:inspect": "npx vitest --run tests/llm-inspect.test.ts",
-    "evaluate:inspect:update": "UPDATE_AI_DATA=true npm run evaluate:inspect",
-    "evaluate:assertion": "npx vitest --run tests/assertion.test.ts",
-    "evaluate:assertion:update": "UPDATE_AI_DATA=true npm run evaluate:assertion"
+    "update-answer-data": "npm run update-answer-data:locator:coord && npm run update-answer-data:locator:element",
+    "update-answer-data:locator:coord": "UPDATE_ANSWER_DATA=true MIDSCENE_USE_QWEN_VL=1 npm run evaluate:locator",
+    "update-answer-data:locator:element": "UPDATE_ANSWER_DATA=true npm run evaluate:locator",
+    "update-answer-data:planning:coord": "UPDATE_ANSWER_DATA=true MIDSCENE_USE_QWEN_VL=1 npm run evaluate:planning",
+    "update-answer-data:planning:element": "UPDATE_ANSWER_DATA=true npm run evaluate:planning",
+    "update-answer-data:assertion": "UPDATE_ANSWER_DATA=true npm run evaluate:assertion",
+    "evaluate:locator": "npx vitest --run tests/llm-locator.test.ts",
+    "evaluate:planning": "npx vitest --run tests/llm-planning.test.ts",
+    "evaluate:assertion": "npx vitest --run tests/assertion.test.ts"
   },
   "dependencies": {
     "@midscene/core": "workspace:*",

@@ -26,17 +26,19 @@ import {
   MIDSCENE_OPENAI_SOCKS_PROXY,
   MIDSCENE_USE_ANTHROPIC_SDK,
   MIDSCENE_USE_AZURE_OPENAI,
+  MIDSCENE_USE_QWEN_VL,
   OPENAI_API_KEY,
   OPENAI_BASE_URL,
   OPENAI_MAX_TOKENS,
   OPENAI_USE_AZURE,
   getAIConfig,
+  getAIConfigInBoolean,
   getAIConfigInJson,
 } from '../../env';
 import { AIActionType } from '../common';
-import { findElementSchema } from '../prompt/llm-locator';
+import { assertSchema } from '../prompt/assertion';
+import { locatorSchema } from '../prompt/llm-locator';
 import { planSchema } from '../prompt/llm-planning';
-import { assertSchema } from '../prompt/util';
 
 export function checkAIConfig() {
   if (getAIConfig(OPENAI_API_KEY)) return true;
@@ -120,6 +122,15 @@ async function createChatClient({
       });
     }
   } else if (!getAIConfig(MIDSCENE_USE_ANTHROPIC_SDK)) {
+    const baseURL = getAIConfig(OPENAI_BASE_URL);
+    if (typeof baseURL === 'string') {
+      if (!/^https?:\/\//.test(baseURL)) {
+        throw new Error(
+          `OPENAI_BASE_URL must be a valid URL starting with http:// or https://, but got: ${baseURL}\nPlease check your config.`,
+        );
+      }
+    }
+
     openai = new OpenAI({
       baseURL: getAIConfig(OPENAI_BASE_URL),
       apiKey: getAIConfig(OPENAI_API_KEY),
@@ -195,22 +206,27 @@ export async function call(
       typeof maxTokens === 'number'
         ? maxTokens
         : Number.parseInt(maxTokens || '2048', 10),
+    ...(getAIConfigInBoolean(MIDSCENE_USE_QWEN_VL)
+      ? {
+          vl_high_resolution_images: true,
+        }
+      : {}),
   };
-
   if (style === 'openai') {
     const result = await completion.create({
       model,
       messages,
       response_format: responseFormat,
       ...commonConfig,
-      // betas: ['computer-use-2024-10-22'],
     } as any);
     shouldPrintTiming &&
       console.log(
         'Midscene - AI call',
+        getAIConfig(MIDSCENE_USE_QWEN_VL) ? 'MIDSCENE_USE_QWEN_VL' : '',
         model,
         result.usage,
         `${Date.now() - startTime}ms`,
+        result._request_id || '',
       );
     assert(
       result.choices,
@@ -219,6 +235,7 @@ export async function call(
     content = result.choices[0].message.content!;
     assert(content, 'empty content');
     usage = result.usage;
+    // console.log('headers', result.headers);
   } else if (style === 'anthropic') {
     const convertImageContent = (content: any) => {
       if (content.type === 'image_url') {
@@ -276,7 +293,7 @@ export async function callToGetJSONObject<T>(
         responseFormat = assertSchema;
         break;
       case AIActionType.INSPECT_ELEMENT:
-        responseFormat = findElementSchema;
+        responseFormat = locatorSchema;
         break;
       case AIActionType.EXTRACT_DATA:
         //TODO: Currently the restriction type can only be a json subset of the constraint, and the way the extract api is used needs to be adjusted to limit the user's data to this as well
@@ -287,10 +304,10 @@ export async function callToGetJSONObject<T>(
         responseFormat = planSchema;
         break;
     }
+  }
 
-    if (model === 'gpt-4o-2024-05-13' || !responseFormat) {
-      responseFormat = { type: AIResponseFormat.JSON };
-    }
+  if (model === 'gpt-4o-2024-05-13' || !responseFormat) {
+    responseFormat = { type: AIResponseFormat.JSON };
   }
 
   const response = await call(messages, AIActionTypeValue, responseFormat);

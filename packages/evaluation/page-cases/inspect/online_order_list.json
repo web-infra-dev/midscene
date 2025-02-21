@@ -9,7 +9,9 @@
           "id": "eabha",
           "indexId": 20
         }
-      ]
+      ],
+      "response_bbox": [184, 276, 250, 293],
+      "annotation_index_id": 1
     },
     {
       "prompt": "多肉葡萄的选择规格按钮",
@@ -19,7 +21,9 @@
           "id": "kmdfd",
           "indexId": 39
         }
-      ]
+      ],
+      "response_bbox": [326, 789, 379, 809],
+      "annotation_index_id": 2
     },
     {
       "prompt": "多肉葡萄的价格",
@@ -29,7 +33,9 @@
           "id": "pceib",
           "indexId": 38
         }
-      ]
+      ],
+      "response_bbox": [186, 795, 223, 809],
+      "annotation_index_id": 3
     },
     {
       "prompt": "左侧导航栏’要雪糕‘",
@@ -39,7 +45,9 @@
           "id": "lalae",
           "indexId": 9
         }
-      ]
+      ],
+      "response_bbox": [0, 375, 68, 401],
+      "annotation_index_id": 4
     }
   ]
 }

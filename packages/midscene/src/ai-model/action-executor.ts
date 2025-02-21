@@ -8,14 +8,11 @@ import type {
   ExecutionTaskProgressOptions,
   ExecutionTaskReturn,
   ExecutorContext,
-  PlanningAction,
 } from '@/types';
 import { getVersion } from '@/utils';
 
 export class Executor {
   name: string;
-
-  description?: string;
 
   tasks: ExecutionTask[];
 
@@ -26,14 +23,16 @@ export class Executor {
 
   constructor(
     name: string,
-    description?: string,
-    tasks?: ExecutionTaskApply[],
-    options?: ExecutionTaskProgressOptions,
+    options?: ExecutionTaskProgressOptions & {
+      tasks?: ExecutionTaskApply[];
+    },
   ) {
-    this.status = tasks && tasks.length > 0 ? 'pending' : 'init';
+    this.status =
+      options?.tasks && options.tasks.length > 0 ? 'pending' : 'init';
     this.name = name;
-    this.description = description;
-    this.tasks = (tasks || []).map((item) => this.markTaskAsPending(item));
+    this.tasks = (options?.tasks || []).map((item) =>
+      this.markTaskAsPending(item),
+    );
     this.onTaskStart = options?.onTaskStart;
   }
 
@@ -198,7 +197,6 @@ export class Executor {
       model_name: getAIConfig(MIDSCENE_MODEL_NAME) || '',
       logTime: Date.now(),
       name: this.name,
-      description: this.description,
       tasks: this.tasks,
     };
     return dumpData;

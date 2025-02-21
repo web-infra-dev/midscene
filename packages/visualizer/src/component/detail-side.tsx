@@ -7,6 +7,7 @@ import { paramStr, typeStr } from '@midscene/web/ui-utils';
 import { RadiusSettingOutlined } from '@ant-design/icons';
 import type {
   BaseElement,
+  ExecutionTask,
   ExecutionTaskInsightAssertion,
   ExecutionTaskInsightLocate,
   ExecutionTaskPlanning,
@@ -173,13 +174,8 @@ const DetailSide = (): JSX.Element => {
     });
   };
 
-  const usageInfo = (task as ExecutionTaskInsightLocate)?.log?.dump?.taskInfo
-    ?.usage
-    ? JSON.stringify(
-        (task as ExecutionTaskInsightLocate).log!.dump!.taskInfo!.usage,
-        undefined,
-        2,
-      )
+  const usageInfo = (task as ExecutionTask)?.usage
+    ? JSON.stringify((task as ExecutionTask)?.usage, undefined, 2)
     : '';
 
   const metaKVElement = MetaKV({
@@ -197,13 +193,13 @@ const DetailSide = (): JSX.Element => {
         content: timeStr(task?.timing?.end),
       },
       {
-        key: 'total time cost',
+        key: 'total time',
         content: timeCostStrElement(task?.timing?.cost),
       },
       ...(task?.timing?.aiCost
         ? [
             {
-              key: 'ai service cost',
+              key: 'AI service time',
               content: timeCostStrElement(task?.timing?.aiCost),
             },
           ]
@@ -227,17 +223,17 @@ const DetailSide = (): JSX.Element => {
   let taskParam: JSX.Element | null = null;
   if (task?.type === 'Planning') {
     const planningTask = task as ExecutionTaskPlanning;
-    if (planningTask.param?.whatHaveDone) {
+    if (planningTask.param?.userInstruction) {
       taskParam = MetaKV({
         data: [
           { key: 'type', content: (task && typeStr(task)) || '' },
           {
-            key: 'whatHaveDone',
-            content: planningTask.param.whatHaveDone,
+            key: 'instruction',
+            content: planningTask.param.userInstruction,
           },
           {
-            key: 'whatToDoNext',
-            content: planningTask.param.userPrompt,
+            key: 'log',
+            content: planningTask.param.log,
           },
         ],
       });
@@ -402,19 +398,32 @@ const DetailSide = (): JSX.Element => {
         };
       }),
     );
-    if ((task as ExecutionTaskPlanning).output?.furtherPlan) {
+    if ((task as ExecutionTaskPlanning).output?.log) {
       timelineData.push({
         color: '#06B1AB',
         children: (
           <>
             <p>
-              <b>Further Plan</b>
+              <b>Log - What have been done</b>
+            </p>
+            <p>{(task as ExecutionTaskPlanning).output?.log}</p>
+          </>
+        ),
+      });
+    }
+
+    if (typeof (task as ExecutionTaskPlanning).output?.finish === 'boolean') {
+      timelineData.push({
+        color: '#06B1AB',
+        children: (
+          <>
+            <p>
+              <b>If finished</b>
             </p>
             <p>
-              {
-                (task as ExecutionTaskPlanning).output?.furtherPlan
-                  ?.whatToDoNext
-              }
+              {(task as ExecutionTaskPlanning).output?.finish
+                ? 'true'
+                : 'false'}
             </p>
           </>
         ),

@@ -11,6 +11,9 @@ on:
         default: 'main'
         type: string
 
+permissions:
+  contents: read
+
 jobs:
   main:
     runs-on: ubuntu-22.04
@@ -50,5 +53,5 @@ jobs:
     - name: Run evaluation
       run: |
         cd packages/evaluation
-        pnpm run evaluate:inspect
-        pnpm run evaluate:assertion
+        pnpm run evaluate:locator
+        pnpm run evaluate:planning

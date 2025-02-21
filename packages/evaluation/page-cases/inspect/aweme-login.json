@@ -9,7 +9,9 @@
           "id": "fobmb",
           "indexId": 7
         }
-      ]
+      ],
+      "response_bbox": [726, 248, 798, 268],
+      "annotation_index_id": 1
     },
     {
       "prompt": "扫码登录",
@@ -19,7 +21,9 @@
           "id": "aonmh",
           "indexId": 5
         }
-      ]
+      ],
+      "response_bbox": [489, 247, 560, 267],
+      "annotation_index_id": 2
     },
     {
       "prompt": "手机号输入框",
@@ -29,7 +33,9 @@
           "id": "mfodf",
           "indexId": 10
         }
-      ]
+      ],
+      "response_bbox": [495, 348, 792, 396],
+      "annotation_index_id": 3
     },
     {
       "prompt": "验证码输入框",
@@ -39,7 +45,9 @@
           "id": "nhbof",
           "indexId": 12
         }
-      ]
+      ],
+      "response_bbox": [496, 425, 793, 475],
+      "annotation_index_id": 4
     },
     {
       "prompt": "发送验证码按钮",
@@ -49,7 +57,9 @@
           "id": "kdbdc",
           "indexId": 11
         }
-      ]
+      ],
+      "response_bbox": [701, 439, 772, 458],
+      "annotation_index_id": 5
     },
     {
       "prompt": "登录按钮",
@@ -59,7 +69,9 @@
           "id": "bjnpl",
           "indexId": 18
         }
-      ]
+      ],
+      "response_bbox": [495, 568, 792, 613],
+      "annotation_index_id": 6
     },
     {
       "prompt": "X 关闭按钮",
@@ -69,7 +81,9 @@
           "id": "aigcl",
           "indexId": 4
         }
-      ]
+      ],
+      "response_bbox": [849, 120, 867, 135],
+      "annotation_index_id": 7
     }
   ]
 }

@@ -35,9 +35,9 @@ The following recorded example video is based on the [UI-TARS 7B SFT](https://hu
 | Use JS code to drive task orchestration, collect information about Jay Chou's concert, and write it into Google Docs   | <video src="https://github.com/user-attachments/assets/75474138-f51f-4c54-b3cf-46d61d059999" height="300" />        |
 
 
-## 📢 New open-source model choice - UI-TARS 
+## 📢 New open-source model choice - UI-TARS and Qwen2.5-VL
 
-From version v0.10.0, we support a new open-source model named [`UI-TARS`](https://github.com/bytedance/ui-tars). Read more about it in [Choose a model](https://midscenejs.com/choose-a-model).
+Besides the default model *GPT-4o*, we have added two new recommended open-source models to Midscene.js: *UI-TARS* and *Qwen2.5-VL*. (Yes, Open Source !) They are dedicated models for image recognition and UI automation, which are known for performing well in UI automation scenarios. Read more about it in [Choose a model](https://midscenejs.com/choose-a-model).
 
 ## 💡 Features
 - **Natural Language Interaction 👆**: Just describe your goals and steps, and Midscene will plan and operate the user interface for you.

@@ -10,7 +10,6 @@ test(
     const startTime = Date.now();
     const { parseResult } = await AiInspectElement({
       context,
-      multi: false,
       targetElementDescription: 'input 输入框',
     });
     console.log('parseResult', JSON.stringify(parseResult, null, 2));
@@ -29,7 +28,6 @@ test('use quick answer', async () => {
   const startTime = Date.now();
   const { parseResult } = await AiInspectElement({
     context,
-    multi: false,
     targetElementDescription: 'never mind',
     quickAnswer: {
       id: context.content[0].id,

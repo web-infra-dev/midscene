@@ -3,6 +3,7 @@ import type { WebPage } from '@/common/page';
 import type { PuppeteerWebPage } from '@/puppeteer';
 import {
   type AIElementIdResponse,
+  type AIUsageInfo,
   type DumpSubscriber,
   type ExecutionRecorderItem,
   type ExecutionTaskActionApply,
@@ -34,7 +35,6 @@ import {
 } from '@midscene/core/ai-model';
 import { sleep } from '@midscene/core/utils';
 import type { ElementInfo } from '@midscene/shared/extractor';
-import type { KeyInput } from 'puppeteer';
 import type { WebElementInfo } from '../web-element';
 import { TaskCache } from './task-cache';
 import { getKeyCommands } from './ui-utils';
@@ -44,6 +44,8 @@ interface ExecutionResult<OutputType = any> {
   output: OutputType;
   executor: Executor;
 }
+
+const replanningCountLimit = 10;
 
 export class PageTaskExecutor {
   page: WebPage;
@@ -127,7 +129,11 @@ export class PageTaskExecutor {
     const tasks: ExecutionTaskApply[] = [];
     plans.forEach((plan) => {
       if (plan.type === 'Locate') {
-        if (plan.locate?.id === null || plan.locate?.id === 'null') {
+        if (
+          plan.locate === null ||
+          plan.locate?.id === null ||
+          plan.locate?.id === 'null'
+        ) {
           // console.warn('Locate action with id is null, will be ignored');
           return;
         }
@@ -140,12 +146,14 @@ export class PageTaskExecutor {
           executor: async (param, taskContext) => {
             const { task } = taskContext;
             assert(
-              param?.prompt || param?.id || param?.position,
-              'No prompt or id or position to locate',
+              param?.prompt || param?.id || param?.position || param?.bbox,
+              'No prompt or id or position or bbox to locate',
             );
             let insightDump: InsightDump | undefined;
+            let usage: AIUsageInfo | undefined;
             const dumpCollector: DumpSubscriber = (dump) => {
               insightDump = dump;
+              usage = dump?.taskInfo?.usage;
             };
             this.insight.onceDumpUpdatedFn = dumpCollector;
             const shotTime = Date.now();
@@ -168,6 +176,7 @@ export class PageTaskExecutor {
             const quickAnswer = {
               id: param?.id,
               position: param?.position,
+              bbox: param?.bbox,
             };
             const startTime = Date.now();
             const element = await this.insight.locate(param.prompt, {
@@ -178,12 +187,6 @@ export class PageTaskExecutor {
                   return Promise.resolve({ content: locateCache });
                 }
                 const { content: aiResult, usage } = await callAI(...message);
-                // locateResult = transformElementPositionToId(
-                //   aiResult,
-                //   pageContext.content,
-                //   size,
-                // );
-                // assert(locateResult);
                 return { content: aiResult, usage };
               },
             });
@@ -220,6 +223,7 @@ export class PageTaskExecutor {
               },
               recorder: [recordItem],
               aiCost,
+              usage,
             };
           },
         };
@@ -262,6 +266,7 @@ export class PageTaskExecutor {
               log: {
                 dump: insightDump,
               },
+              usage: assertion.usage,
             };
           },
         };
@@ -441,13 +446,13 @@ export class PageTaskExecutor {
             },
           };
         tasks.push(taskActionError);
-      } else if (plan.type === 'FalsyConditionStatement') {
+      } else if (plan.type === 'ExpectedFalsyCondition') {
         const taskActionFalsyConditionStatement: ExecutionTaskActionApply<null> =
           {
             type: 'Action',
-            subType: 'FalsyConditionStatement',
+            subType: 'ExpectedFalsyCondition',
             param: null,
-            thought: plan.thought,
+            thought: plan.param?.reason,
             locate: plan.locate,
             executor: async () => {
               // console.warn(`[warn]falsy condition: ${plan.thought}`);
@@ -487,18 +492,16 @@ export class PageTaskExecutor {
   }
 
   private planningTaskFromPrompt(
-    userPrompt: string,
+    userInstruction: string,
     cacheGroup: ReturnType<TaskCache['getCacheGroupByPrompt']>,
-    whatHaveDone?: string,
-    originalPrompt?: string,
+    log?: string,
   ) {
     const task: ExecutionTaskPlanningApply = {
       type: 'Planning',
       locate: null,
       param: {
-        userPrompt,
-        whatHaveDone,
-        originalPrompt,
+        userInstruction,
+        log,
       },
       executor: async (param, executorContext) => {
         const shotTime = Date.now();
@@ -513,58 +516,83 @@ export class PageTaskExecutor {
         executorContext.task.recorder = [recordItem];
         (executorContext.task as any).pageContext = pageContext;
 
-        const planCache = cacheGroup.readCache(pageContext, 'plan', userPrompt);
+        const planCache = cacheGroup.readCache(
+          pageContext,
+          'plan',
+          param.userInstruction,
+        );
         let planResult: Awaited<ReturnType<typeof plan>>;
         if (planCache) {
-          // console.log('planCache', planCache);
           planResult = planCache;
         } else {
-          planResult = await plan(param.userPrompt, {
+          planResult = await plan(param.userInstruction, {
             context: pageContext,
-            whatHaveDone: param.whatHaveDone,
-            originalPrompt: param.originalPrompt,
+            log: param.log,
           });
         }
 
-        const { actions, furtherPlan, taskWillBeAccomplished, error } =
+        // console.log('planResult is', planResult);
+        const { actions, log, finish, error, usage, rawResponse, sleep } =
           planResult;
-        // console.log('actions', taskWillBeAccomplished, actions, furtherPlan);
 
         let stopCollecting = false;
-        const finalActions = actions.reduce<PlanningAction[]>(
+        let bboxCollected = false;
+        let planParsingError = '';
+        const finalActions = (actions || []).reduce<PlanningAction[]>(
           (acc, planningAction) => {
             if (stopCollecting) {
               return acc;
             }
 
             if (planningAction.locate) {
+              // we only collect bbox once, let qwen re-locate in the following steps
+              if (bboxCollected && planningAction.locate.bbox) {
+                // biome-ignore lint/performance/noDelete: <explanation>
+                delete planningAction.locate.bbox;
+              }
+
+              if (planningAction.locate.bbox) {
+                bboxCollected = true;
+              }
+
               acc.push({
                 type: 'Locate',
                 locate: planningAction.locate,
-                // remove id from planning, since the result is not accurate
-                // locate: {
-                //   prompt: planningAction.locate.prompt,
-                // },
                 param: null,
                 thought: planningAction.locate.prompt,
               });
             } else if (
               ['Tap', 'Hover', 'Input'].includes(planningAction.type)
             ) {
+              planParsingError = `invalid planning response: ${JSON.stringify(planningAction)}`;
               // should include locate but get null
               stopCollecting = true;
               return acc;
             }
             acc.push(planningAction);
+
+            if (planResult.sleep) {
+              acc.push({
+                type: 'Sleep',
+                param: {
+                  timeMs: planResult.sleep,
+                },
+                locate: null,
+              } as PlanningAction<PlanningActionParamSleep>);
+            }
             return acc;
           },
           [],
         );
 
-        assert(
-          finalActions.length > 0,
-          error ? `No plan: ${error}` : 'No plans found',
-        );
+        if (finalActions.length === 0) {
+          assert(
+            finish,
+            error
+              ? `Failed to plan: ${error}`
+              : planParsingError || 'No plan found',
+          );
+        }
 
         cacheGroup.saveCache({
           type: 'plan',
@@ -572,21 +600,23 @@ export class PageTaskExecutor {
             url: pageContext.url,
             size: pageContext.size,
           },
-          prompt: userPrompt,
+          prompt: userInstruction,
           response: planResult,
         });
 
         return {
           output: {
             actions: finalActions,
-            taskWillBeAccomplished: false,
-            furtherPlan,
+            finish,
+            log,
           },
           cache: {
             hit: Boolean(planCache),
           },
-          pageContext, // ?
+          pageContext,
           recorder: [recordItem],
+          usage,
+          rawResponse,
         };
       },
     };
@@ -595,14 +625,14 @@ export class PageTaskExecutor {
   }
 
   private planningTaskToGoal(
-    userPrompt: string,
+    userInstruction: string,
     cacheGroup: ReturnType<TaskCache['getCacheGroupByPrompt']>,
   ) {
     const task: ExecutionTaskPlanningApply = {
       type: 'Planning',
       locate: null,
       param: {
-        userPrompt,
+        userInstruction,
       },
       executor: async (param, executorContext) => {
         const shotTime = Date.now();
@@ -631,14 +661,14 @@ export class PageTaskExecutor {
         const planCache = cacheGroup.readCache(
           pageContext,
           'ui-tars-plan',
-          userPrompt,
+          userInstruction,
         );
         let planResult: Awaited<ReturnType<typeof vlmPlanning>>;
         if (planCache) {
           planResult = planCache;
         } else {
           planResult = await vlmPlanning({
-            userInstruction: param.userPrompt,
+            userInstruction: param.userInstruction,
             conversationHistory: this.conversationHistory,
             size: pageContext.size,
           });
@@ -649,7 +679,7 @@ export class PageTaskExecutor {
             url: pageContext.url,
             size: pageContext.size,
           },
-          prompt: userPrompt,
+          prompt: userInstruction,
           response: planResult,
         });
         const aiCost = Date.now() - startTime;
@@ -663,11 +693,8 @@ export class PageTaskExecutor {
             actions,
             thought: actions[0]?.thought,
             actionType: actions[0].type,
-            taskWillBeAccomplished: false,
-            furtherPlan: {
-              whatToDoNext: '',
-              whatHaveDone: '',
-            },
+            finish: false,
+            log: '',
           },
           cache: {
             hit: Boolean(planCache),
@@ -684,27 +711,22 @@ export class PageTaskExecutor {
     userPrompt: string,
     options?: ExecutionTaskProgressOptions,
   ): Promise<ExecutionResult> {
-    const taskExecutor = new Executor(userPrompt, undefined, undefined, {
+    const taskExecutor = new Executor(userPrompt, {
       onTaskStart: options?.onTaskStart,
     });
 
     const cacheGroup = this.taskCache.getCacheGroupByPrompt(userPrompt);
-    const originalPrompt = userPrompt;
     let planningTask: ExecutionTaskPlanningApply | null =
-      this.planningTaskFromPrompt(originalPrompt, cacheGroup);
+      this.planningTaskFromPrompt(userPrompt, cacheGroup);
     let result: any;
     let replanCount = 0;
+    const logLog: string[] = [];
     while (planningTask) {
-      if (replanCount > 5) {
+      if (replanCount > replanningCountLimit) {
         const errorMsg =
           'Replanning too many times, please split the task into multiple steps';
 
         return this.appendErrorPlan(taskExecutor, errorMsg);
-      }
-
-      if (replanCount > 0) {
-        // add a brief sleep to wait for the page to be ready
-        await sleep(300);
       }
 
       // plan
@@ -717,7 +739,7 @@ export class PageTaskExecutor {
         };
       }
 
-      const plans = planResult.actions;
+      const plans = planResult.actions || [];
 
       let executables: Awaited<ReturnType<typeof this.convertPlanToExecutable>>;
       try {
@@ -739,18 +761,21 @@ export class PageTaskExecutor {
           executor: taskExecutor,
         };
       }
-      if (planResult.furtherPlan?.whatToDoNext) {
-        planningTask = this.planningTaskFromPrompt(
-          planResult.furtherPlan.whatToDoNext,
-          cacheGroup,
-          planResult.furtherPlan.whatHaveDone,
-          originalPrompt,
-        );
-        replanCount++;
-      } else {
+      if (planResult?.log) {
+        logLog.push(planResult.log);
+      }
+
+      // console.log('planningResult is', planResult);
+      if (planResult.finish) {
         planningTask = null;
         break;
       }
+      planningTask = this.planningTaskFromPrompt(
+        userPrompt,
+        cacheGroup,
+        logLog.join('\n'),
+      );
+      replanCount++;
     }
 
     return {
@@ -763,7 +788,7 @@ export class PageTaskExecutor {
     userPrompt: string,
     options?: ExecutionTaskProgressOptions,
   ) {
-    const taskExecutor = new Executor(userPrompt, undefined, undefined, {
+    const taskExecutor = new Executor(userPrompt, {
       onTaskStart: options?.onTaskStart,
     });
     this.conversationHistory = [];
@@ -825,7 +850,7 @@ export class PageTaskExecutor {
   ): Promise<ExecutionResult> {
     const description =
       typeof demand === 'string' ? demand : JSON.stringify(demand);
-    const taskExecutor = new Executor(description, undefined, undefined, {
+    const taskExecutor = new Executor(description, {
       onTaskStart: options?.onTaskStart,
     });
     const queryTask: ExecutionTaskInsightQueryApply = {
@@ -841,10 +866,13 @@ export class PageTaskExecutor {
           insightDump = dump;
         };
         this.insight.onceDumpUpdatedFn = dumpCollector;
-        const data = await this.insight.extract<any>(param.dataDemand);
+        const { data, usage } = await this.insight.extract<any>(
+          param.dataDemand,
+        );
         return {
           output: data,
           log: { dump: insightDump },
+          usage,
         };
       },
     };
@@ -862,7 +890,7 @@ export class PageTaskExecutor {
     options?: ExecutionTaskProgressOptions,
   ): Promise<ExecutionResult<InsightAssertionResponse>> {
     const description = `assert: ${assertion}`;
-    const taskExecutor = new Executor(description, undefined, undefined, {
+    const taskExecutor = new Executor(description, {
       onTaskStart: options?.onTaskStart,
     });
     const assertionPlan: PlanningAction<PlanningActionParamAssert> = {
@@ -939,7 +967,9 @@ export class PageTaskExecutor {
     opt: PlanningActionParamWaitFor,
   ): Promise<ExecutionResult<void>> {
     const description = `waitFor: ${assertion}`;
-    const taskExecutor = new Executor(description);
+    const taskExecutor = new Executor(description, {
+      onTaskStart: opt.onTaskStart,
+    });
     const { timeoutMs, checkIntervalMs } = opt;
 
     assert(assertion, 'No assertion for waitFor');

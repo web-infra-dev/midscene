@@ -3,7 +3,6 @@ import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import type { StaticPage } from '@/playground';
 import type {
-  BaseElement,
   ElementTreeNode,
   PlaywrightParserOpt,
   UIContext,
@@ -18,7 +17,7 @@ import { NodeType } from '@midscene/shared/constants';
 import type { ElementInfo } from '@midscene/shared/extractor';
 import { traverseTree, treeToList } from '@midscene/shared/extractor';
 import { findNearestPackageJson } from '@midscene/shared/fs';
-import { compositeElementInfoImg } from '@midscene/shared/img';
+import { compositeElementInfoImg, resizeImgBase64 } from '@midscene/shared/img';
 import { uuid } from '@midscene/shared/utils';
 import dayjs from 'dayjs';
 import { WebElementInfo } from '../web-element';
@@ -76,15 +75,20 @@ export async function parseContextFromWebPage(
   );
 
   const size = await page.size();
-  let screenshotBase64WithElementMarker = screenshotBase64;
 
+  if (size.dpr && size.dpr > 1) {
+    // console.time('resizeImgBase64');
+    screenshotBase64 = await resizeImgBase64(screenshotBase64, {
+      width: size.width,
+      height: size.height,
+    });
+    // console.timeEnd('resizeImgBase64');
+  }
+
+  let screenshotBase64WithElementMarker = screenshotBase64;
   if (!getAIConfig(MIDSCENE_USE_VLM_UI_TARS)) {
     if (_opt?.ignoreMarker) {
-      screenshotBase64WithElementMarker = await compositeElementInfoImg({
-        inputImgBase64: screenshotBase64,
-        elementsPositionInfo: [],
-        size,
-      });
+      screenshotBase64WithElementMarker = screenshotBase64;
     } else {
       screenshotBase64WithElementMarker = await compositeElementInfoImg({
         inputImgBase64: screenshotBase64,

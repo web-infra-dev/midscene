@@ -18,12 +18,9 @@ import type {
 import { emitInsightDump } from './utils';
 
 export interface LocateOpts {
-  multi?: boolean;
   callAI?: typeof callAiFn<AIElementResponse>;
   quickAnswer?: Partial<AISingleElementResponse>;
 }
-
-// export type UnwrapDataShape<T> = T extends EnhancedQuery<infer DataShape> ? DataShape : {};
 
 export type AnyValue<T> = {
   [K in keyof T]: unknown extends T[K] ? any : T[K];
@@ -72,12 +69,8 @@ export default class Insight<
     queryPrompt: string,
     opt?: LocateOpts,
   ): Promise<ElementType | null>;
-  async locate(
-    queryPrompt: string,
-    opt: { multi: true },
-  ): Promise<ElementType[]>;
   async locate(queryPrompt: string, opt?: LocateOpts) {
-    const { callAI, multi = false } = opt || {};
+    const { callAI } = opt || {};
     assert(
       queryPrompt || opt?.quickAnswer,
       'query or quickAnswer is required for locate',
@@ -91,7 +84,6 @@ export default class Insight<
       await AiInspectElement({
         callAI: callAI || this.aiVendorFn,
         context,
-        multi: Boolean(multi),
         targetElementDescription: queryPrompt,
         quickAnswer: opt?.quickAnswer,
       });
@@ -155,9 +147,6 @@ export default class Insight<
       dumpSubscriber,
     );
 
-    if (opt?.multi) {
-      return elements;
-    }
     if (elements.length >= 2) {
       console.warn(
         `locate: multiple elements found, return the first one. (query: ${queryPrompt})`,
@@ -187,7 +176,7 @@ export default class Insight<
     const context = await this.contextRetrieverFn('extract');
 
     const startTime = Date.now();
-    const { parseResult, elementById } = await AiExtractElementInfo<T>({
+    const { parseResult, usage } = await AiExtractElementInfo<T>({
       context,
       dataQuery: dataDemand,
     });
@@ -234,7 +223,10 @@ export default class Insight<
       dumpSubscriber,
     );
 
-    return data;
+    return {
+      data,
+      usage,
+    };
   }
 
   async assert(assertion: string): Promise<InsightAssertionResponse> {
@@ -259,7 +251,6 @@ export default class Insight<
       ...(this.taskInfo ? this.taskInfo : {}),
       durationMs: timeCost,
       rawResponse: JSON.stringify(assertResult.content),
-      usage: assertResult.usage,
     };
 
     const { thought, pass } = assertResult.content;
@@ -282,6 +273,7 @@ export default class Insight<
     return {
       pass,
       thought,
+      usage: assertResult.usage,
     };
   }
 }

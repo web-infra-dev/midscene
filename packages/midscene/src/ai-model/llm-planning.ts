@@ -1,6 +1,10 @@
 import assert from 'node:assert';
-import type { AIUsageInfo, PlanningAIResponse, UIContext } from '@/types';
-import { PromptTemplate } from '@langchain/core/prompts';
+import { MIDSCENE_USE_QWEN_VL, getAIConfigInBoolean } from '@/env';
+import type {
+  PlanningAIResponse,
+  PlanningLocateParam,
+  UIContext,
+} from '@/types';
 import { AIActionType, type AIArgs, callAiFn } from './common';
 import {
   automationUserPrompt,
@@ -9,26 +13,49 @@ import {
 } from './prompt/llm-planning';
 import { describeUserPage } from './prompt/util';
 
+// transform the param of locate from qwen mode
+export function fillLocateParam(locate: PlanningLocateParam) {
+  if (locate?.bbox_2d && !locate?.bbox) {
+    locate.bbox = locate.bbox_2d;
+    // biome-ignore lint/performance/noDelete: <explanation>
+    delete locate.bbox_2d;
+  }
+
+  const defaultBboxSize = 10;
+  if (locate?.bbox) {
+    locate.bbox[0] = Math.round(locate.bbox[0]);
+    locate.bbox[1] = Math.round(locate.bbox[1]);
+    locate.bbox[2] =
+      typeof locate.bbox[2] === 'number'
+        ? Math.round(locate.bbox[2])
+        : Math.round(locate.bbox[0] + defaultBboxSize);
+    locate.bbox[3] =
+      typeof locate.bbox[3] === 'number'
+        ? Math.round(locate.bbox[3])
+        : Math.round(locate.bbox[1] + defaultBboxSize);
+  }
+
+  return locate;
+}
+
 export async function plan(
-  userPrompt: string,
+  userInstruction: string,
   opts: {
-    whatHaveDone?: string;
-    originalPrompt?: string;
+    log?: string;
     context: UIContext;
     callAI?: typeof callAiFn<PlanningAIResponse>;
   },
 ): Promise<PlanningAIResponse> {
   const { callAI, context } = opts || {};
-  const { screenshotBase64, screenshotBase64WithElementMarker } = context;
+  const { screenshotBase64, screenshotBase64WithElementMarker, size } = context;
   const { description: pageDescription } = await describeUserPage(context);
 
   const systemPrompt = await systemPromptToTaskPlanning();
   const taskBackgroundContextText = generateTaskBackgroundContext(
-    userPrompt,
-    opts.originalPrompt,
-    opts.whatHaveDone,
+    userInstruction,
+    opts.log,
   );
-  const userInstructionPrompt = await automationUserPrompt.format({
+  const userInstructionPrompt = await automationUserPrompt().format({
     pageDescription,
     taskBackgroundContext: taskBackgroundContextText,
   });
@@ -55,14 +82,30 @@ export async function plan(
 
   const call = callAI || callAiFn;
   const { content, usage } = await call(msgs, AIActionType.PLAN);
+  const rawResponse = JSON.stringify(content, undefined, 2);
   const planFromAI = content;
+  const actions =
+    (planFromAI.action ? [planFromAI.action] : planFromAI.actions) || [];
+  const returnValue: PlanningAIResponse = {
+    ...planFromAI,
+    actions,
+    rawResponse,
+    usage,
+  };
 
-  const actions = planFromAI?.actions || [];
+  if (getAIConfigInBoolean(MIDSCENE_USE_QWEN_VL)) {
+    actions.forEach((action) => {
+      if (action.locate) {
+        action.locate = fillLocateParam(action.locate);
+      }
+    });
+  }
+
   assert(planFromAI, "can't get plans from AI");
   assert(
-    actions.length > 0,
+    actions.length > 0 || returnValue.finish,
     `Failed to plan actions: ${planFromAI.error || '(no error details)'}`,
   );
 
-  return planFromAI;
+  return returnValue;
 }

@@ -1,12 +1,31 @@
-import { MATCH_BY_POSITION, getAIConfig } from '@/env';
+import { MATCH_BY_POSITION, getAIConfigInBoolean } from '@/env';
 import { PromptTemplate } from '@langchain/core/prompts';
 import type { ResponseFormatJSONSchema } from 'openai/resources';
-import { systemPromptToLocateElementPosition } from './ui-tars-locator';
 
 export function systemPromptToLocateElement() {
-  if (getAIConfig(MATCH_BY_POSITION)) {
-    return systemPromptToLocateElementPosition();
+  if (getAIConfigInBoolean(MATCH_BY_POSITION)) {
+    return `
+## Role:
+You are an expert in software testing.
+
+## Objective:
+- Identify elements in screenshots and text that match the user's description.
+- Give the coordinates of the element that matches the user's description best in the screenshot.
+
+## Output Format:
+\`\`\`json
+{
+  "bbox": [number, number, number, number], 
+  "errors"?: string[]
+}
+\`\`\`
+
+Fields:
+* \`bbox\` is the bounding box of the element that matches the user's description best in the screenshot
+* \`errors\` is an optional array of error messages (if any)
+`;
   }
+
   return `
 ## Role:
 You are an expert in software page image (2D) and page element text analysis.
@@ -144,7 +163,7 @@ Output Example:
   `;
 }
 
-export const findElementSchema: ResponseFormatJSONSchema = {
+export const locatorSchema: ResponseFormatJSONSchema = {
   type: 'json_schema',
   json_schema: {
     name: 'find_elements',
@@ -191,15 +210,12 @@ export const findElementSchema: ResponseFormatJSONSchema = {
 
 export const findElementPrompt = new PromptTemplate({
   template: `
-    Here is the item user want to find. Just go ahead:
-    =====================================
-    {{
-      "description": "{targetElementDescription}",
-      "multi": {multi}
-    }}
-    =====================================
+Here is the item user want to find:
+=====================================
+{targetElementDescription}
+=====================================
 
-    pageDescription: {pageDescription}
+{pageDescription}
   `,
-  inputVariables: ['pageDescription', 'targetElementDescription', 'multi'],
+  inputVariables: ['pageDescription', 'targetElementDescription'],
 });

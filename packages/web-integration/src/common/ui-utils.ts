@@ -39,7 +39,7 @@ export function getKeyCommands(
 export function paramStr(task: ExecutionTask) {
   let value: string | undefined | object;
   if (task.type === 'Planning') {
-    value = (task as ExecutionTaskPlanning)?.param?.userPrompt;
+    value = (task as ExecutionTaskPlanning)?.param?.userInstruction;
   }
 
   if (task.type === 'Insight') {

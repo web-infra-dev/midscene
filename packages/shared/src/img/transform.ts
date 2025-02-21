@@ -1,3 +1,4 @@
+import assert from 'node:assert';
 import { Buffer } from 'node:buffer';
 import getJimp from './get-jimp';
 
@@ -49,13 +50,18 @@ export async function transformImgPathToBase64(inputPath: string) {
  */
 export async function resizeImg(
   inputData: Buffer,
-  newSize?: {
+  newSize: {
     width: number;
     height: number;
   },
 ): Promise<Buffer> {
   if (typeof inputData === 'string')
     throw Error('inputData is base64, use resizeImgBase64 instead');
+
+  assert(
+    newSize && newSize.width > 0 && newSize.height > 0,
+    'newSize must be positive',
+  );
 
   const Jimp = await getJimp();
   const image = await Jimp.read(inputData);
@@ -65,13 +71,11 @@ export async function resizeImg(
     throw Error('Undefined width or height from the input image.');
   }
 
-  const finalNewSize = newSize || calculateNewDimensions(width, height);
+  if (newSize.width === width && newSize.height === height) {
+    return inputData;
+  }
 
-  image.resize(
-    finalNewSize.width,
-    finalNewSize.height,
-    Jimp.RESIZE_NEAREST_NEIGHBOR,
-  );
+  image.resize(newSize.width, newSize.height, Jimp.RESIZE_NEAREST_NEIGHBOR);
   image.quality(90);
   const resizedBuffer = await image.getBufferAsync(Jimp.MIME_JPEG);
 
@@ -79,14 +83,14 @@ export async function resizeImg(
 }
 
 export async function resizeImgBase64(
-  inputData: string,
-  newSize?: {
+  inputBase64: string,
+  newSize: {
     width: number;
     height: number;
   },
 ): Promise<string> {
   const splitFlag = ';base64,';
-  const dataSplitted = inputData.split(splitFlag);
+  const dataSplitted = inputBase64.split(splitFlag);
   if (dataSplitted.length !== 2) {
     throw Error('Invalid base64 data');
   }
@@ -109,10 +113,7 @@ export async function resizeImgBase64(
  * @returns {Object} An object containing the new width and height.
  * @throws {Error} Throws an error if the width or height is not a positive number.
  */
-export function calculateNewDimensions(
-  originalWidth: number,
-  originalHeight: number,
-) {
+export function zoomForGPT4o(originalWidth: number, originalHeight: number) {
   // In low mode, the image is scaled to 512x512 pixels and 85 tokens are used to represent the image.
   // In high mode, the model looks at low-resolution images and then creates detailed crop images, using 170 tokens for each 512x512 pixel tile. In practical applications, it is recommended to control the image size within 2048x768 pixels
   const maxWidth = 2048; // Maximum width

@@ -15,10 +15,6 @@ type ActionType =
   | 'scroll'
   | 'wait';
 
-function capitalize(str: string) {
-  return str.charAt(0).toUpperCase() + str.slice(1);
-}
-
 export async function vlmPlanning(options: {
   userInstruction: string;
   conversationHistory: ChatCompletionMessageParam[];
@@ -133,7 +129,7 @@ export async function vlmPlanning(options: {
   });
 
   if (transformActions.length === 0) {
-    throw new Error(`No actions found with reason: ${res.content}`, {
+    throw new Error(`No actions found, response: ${res.content}`, {
       cause: {
         prediction: res.content,
         parsed,
