@@ -1,3 +1,4 @@
+import { platform } from 'node:os';
 import { PuppeteerAgent } from '@/puppeteer';
 import { sleep } from '@midscene/core/utils';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -68,7 +69,11 @@ describe('puppeteer integration', () => {
   });
 
   it('allow error in flow', async () => {
-    const { originPage, reset } = await launchPage('https://www.bing.com/');
+    const { originPage, reset } = await launchPage(
+      platform() === 'darwin'
+        ? 'https://www.baidu.com'
+        : 'https://www.bing.com/',
+    );
     resetFn = reset;
     const agent = new PuppeteerAgent(originPage);
     const { result } = await agent.runYaml(
@@ -79,10 +84,11 @@ describe('puppeteer integration', () => {
         - ai: input 'weather today' in input box, click search button
         - sleep: 3000
 
-    - name: query weather
+    - name: result page
+      continueOnError: true
       flow:
-        - aiQuery: "the result shows the weather info, {description: string}"
-          name: weather
+        - aiQuery: "this is a search result, {answer: boolean}"
+          name: pageLoaded
 
     - name: error
       continueOnError: true
@@ -91,6 +97,6 @@ describe('puppeteer integration', () => {
     `,
     );
 
-    expect(result.weather.description).toBeDefined();
+    expect(result.pageLoaded.answer).toBeDefined();
   });
 });

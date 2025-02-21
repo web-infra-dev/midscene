@@ -67,7 +67,7 @@ You are a versatile professional in software UI automation. Your outstanding con
 - All the actions you composed MUST be based on the page context information you get.
 - Trust the "What have been done" field about the task (if any), don't repeat actions in it.
 - Respond only with valid JSON. Do not write an introduction or summary or markdown prefix like \`\`\`json\`\`\`.
-- If you cannot plan any action at all (i.e. empty actions array), set reason in the \`error\` field.
+- If the screenshot and the instruction are totally irrelevant, set reason in the \`error\` field.
 
 ## About the \`actions\` field
 
@@ -218,7 +218,8 @@ export const planSchema: ResponseFormatJSONSchema = {
               },
               type: {
                 type: 'string',
-                description: 'Type of action, like "Tap", "Hover", etc.',
+                description:
+                  'Type of action, one of "Tap", "Hover" , "Input", "KeyboardPress", "Scroll", "ExpectedFalsyCondition", "Sleep"',
               },
               param: {
                 anyOf: [
@@ -243,6 +244,12 @@ export const planSchema: ResponseFormatJSONSchema = {
                       distance: { type: ['number', 'string', 'null'] },
                     },
                     required: ['direction', 'scrollType', 'distance'],
+                    additionalProperties: false,
+                  },
+                  {
+                    type: 'object',
+                    properties: { reason: { type: 'string' } },
+                    required: ['reason'],
                     additionalProperties: false,
                   },
                 ],

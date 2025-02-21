@@ -1003,7 +1003,9 @@ export class PageTaskExecutor {
         };
       }
 
-      errorThought = output?.thought || 'unknown error';
+      errorThought =
+        output?.thought ||
+        `unknown error when waiting for assertion: ${assertion}`;
       const now = Date.now();
       if (now - startTime < checkIntervalMs) {
         const timeRemaining = checkIntervalMs - (now - startTime);

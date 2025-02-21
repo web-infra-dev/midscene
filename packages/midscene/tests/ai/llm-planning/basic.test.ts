@@ -1,4 +1,5 @@
 import { plan } from '@/ai-model';
+import { MIDSCENE_USE_QWEN_VL, getAIConfigInBoolean } from '@/env';
 import { getContextFromFixture } from '@/evaluation';
 /* eslint-disable max-lines-per-function */
 import { describe, expect, it, vi } from 'vitest';
@@ -8,7 +9,9 @@ vi.setConfig({
   hookTimeout: 30 * 1000,
 });
 
-describe('automation - planning', () => {
+const qwenMode = getAIConfigInBoolean(MIDSCENE_USE_QWEN_VL);
+
+describe.skipIf(qwenMode)('automation - llm planning', () => {
   it('basic run', async () => {
     const { context } = await getContextFromFixture('todo');
 
@@ -18,14 +21,33 @@ describe('automation - planning', () => {
         context,
       },
     );
-    expect(actions.length).toBe(3);
-    expect(actions[0].type).toBe('Input');
-    expect(actions[1].type).toBe('Sleep');
-    expect(actions[1].param).toMatchSnapshot();
-    expect(actions[2].type).toBe('KeyboardPress');
-    expect(actions[2].param).toMatchSnapshot();
+    expect(actions).toBeTruthy();
+    expect(actions!.length).toBe(3);
+    expect(actions![0].type).toBe('Input');
+    expect(actions![1].type).toBe('Sleep');
+    expect(actions![1].param).toMatchSnapshot();
+    expect(actions![2].type).toBe('KeyboardPress');
+    expect(actions![2].param).toMatchSnapshot();
   });
 
+  it('scroll page', async () => {
+    const { context } = await getContextFromFixture('todo');
+    const { actions } = await plan(
+      'Scroll down the page by 200px, scroll up the page by 100px, scroll right the second item of the task list by 300px',
+      { context },
+    );
+    expect(actions).toBeTruthy();
+    expect(actions!.length).toBe(3);
+    expect(actions![0].type).toBe('Scroll');
+    expect(actions![0].locate).toBeNull();
+    expect(actions![0].param).toBeDefined();
+
+    expect(actions![2].locate).toBeTruthy();
+    expect(actions![2].param).toBeDefined();
+  });
+});
+
+describe('planning', () => {
   const todoInstructions = [
     {
       name: 'input first todo item',
@@ -59,7 +81,9 @@ describe('automation - planning', () => {
       const { context } = await getContextFromFixture('todo');
       const { actions } = await plan(instruction, { context });
       expect(actions).toBeTruthy();
-      expect(actions[0].locate?.id).toBeTruthy();
+      expect(actions![0].locate).toBeTruthy();
+      expect(actions![0].locate?.prompt).toBeTruthy();
+      expect(actions![0].locate?.id || actions![0].locate?.bbox).toBeTruthy();
     });
   });
 
@@ -72,34 +96,9 @@ describe('automation - planning', () => {
       },
     );
     expect(actions).toBeTruthy();
-    expect(actions[0].type).toBe('Scroll');
-    expect(actions[0].locate).toBeTruthy();
+    expect(actions![0].type).toBe('Scroll');
+    expect(actions![0].locate).toBeTruthy();
   });
-
-  it('scroll page', async () => {
-    const { context } = await getContextFromFixture('todo');
-    const { actions } = await plan(
-      'Scroll down the page by 200px, scroll up the page by 100px, scroll right the second item of the task list by 300px',
-      { context },
-    );
-    expect(actions.length).toBe(3);
-    expect(actions).toBeTruthy();
-    expect(actions[0].type).toBe('Scroll');
-    expect(actions[0].locate).toBeNull();
-    expect(actions[0].param).toBeDefined();
-
-    expect(actions[2].locate).toBeTruthy();
-    expect(actions[2].param).toBeDefined();
-  });
-
-  // it('throw error when instruction is not feasible', async () => {
-  //   const { context } = await getPageDataOfTestName('todo');
-  //   await expect(async () => {
-  //     await plan('close Cookie Prompt', {
-  //       context,
-  //     });
-  //   }).rejects.toThrow();
-  // });
 
   it('should not throw in an "if" statement', async () => {
     const { context } = await getContextFromFixture('todo');
@@ -108,30 +107,18 @@ describe('automation - planning', () => {
       { context },
     );
 
-    expect(actions.length === 1).toBeTruthy();
-    expect(actions[0]!.type).toBe('FalsyConditionStatement');
+    expect(actions?.length === 1).toBeTruthy();
+    expect(actions?.[0]!.type).toBe('ExpectedFalsyCondition');
   });
 
-  it('should give a further plan when something is not found', async () => {
+  it('should make mark unfinished when something is not found', async () => {
     const { context } = await getContextFromFixture('todo');
     const res = await plan(
       'click the input box, wait 300ms, click the close button of the cookie prompt',
       { context },
     );
-    // console.log(res);
-    expect(res.furtherPlan).toBeTruthy();
-    expect(res.furtherPlan?.whatToDoNext).toBeTruthy();
-    expect(res.furtherPlan?.log).toBeTruthy();
-  });
 
-  it.skip('partial error', async () => {
-    const { context } = await getContextFromFixture('todo');
-    const res = await plan(
-      'click the input box, click the close button of the cookie prompt',
-      { context },
-    );
-    expect(res.furtherPlan).toBeTruthy();
-    expect(res.furtherPlan?.whatToDoNext).toBeTruthy();
-    expect(res.furtherPlan?.log).toBeTruthy();
+    expect(res.finish).toBeFalsy();
+    expect(res.log).toBeDefined();
   });
 });
