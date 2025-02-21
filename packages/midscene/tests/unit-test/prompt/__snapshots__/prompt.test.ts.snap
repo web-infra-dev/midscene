@@ -91,6 +91,18 @@ exports[`system prompt to task planning > planning - 4o - response format 1`] = 
                     ],
                     "type": "object",
                   },
+                  {
+                    "additionalProperties": false,
+                    "properties": {
+                      "reason": {
+                        "type": "string",
+                      },
+                    },
+                    "required": [
+                      "reason",
+                    ],
+                    "type": "object",
+                  },
                 ],
                 "description": "Parameter of the action, can be null ONLY when the type field is Tap or Hover",
               },
@@ -99,7 +111,7 @@ exports[`system prompt to task planning > planning - 4o - response format 1`] = 
                 "type": "string",
               },
               "type": {
-                "description": "Type of action, like "Tap", "Hover", etc.",
+                "description": "Type of action, one of "Tap", "Hover" , "Input", "KeyboardPress", "Scroll", "ExpectedFalsyCondition", "Sleep"",
                 "type": "string",
               },
             },
@@ -172,7 +184,7 @@ You are a versatile professional in software UI automation. Your outstanding con
 - All the actions you composed MUST be based on the page context information you get.
 - Trust the "What have been done" field about the task (if any), don't repeat actions in it.
 - Respond only with valid JSON. Do not write an introduction or summary or markdown prefix like \`\`\`json\`\`\`.
-- If you cannot plan any action at all (i.e. empty actions array), set reason in the \`error\` field.
+- If the screenshot and the instruction are totally irrelevant, set reason in the \`error\` field.
 
 ## About the \`actions\` field
 
