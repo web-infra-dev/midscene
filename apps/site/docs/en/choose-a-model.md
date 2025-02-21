@@ -10,7 +10,6 @@ GPT-4o, Qwen-2.5-VL, and UI-TARS are the most recommended models for Midscene.js
 * [Qwen-2.5-VL](#qwen-25-vl): open-source VL model, almost same performance as GPT-4o, and cost less when using Aliyun service.
 * [UI-TARS](#ui-tars): open-source, end-to-end GUI agent model, good at target-driven tasks and error correction.
 
-
 You can also use other models, but you need to follow [the steps in the article](#choose-other-general-purpose-llms).
 
 :::info Which model should I choose to get started?
