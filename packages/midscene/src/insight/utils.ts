@@ -32,6 +32,7 @@ export function emitInsightDump(
   } else if (getAIConfigInBoolean(MIDSCENE_USE_QWEN_VL)) {
     modelDescription = 'qwen-vl mode';
   }
+
   const baseData: DumpMeta = {
     sdkVersion: getVersion(),
     logTime: Date.now(),
