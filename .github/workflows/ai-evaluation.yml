@@ -55,3 +55,11 @@ jobs:
         cd packages/evaluation
         pnpm run evaluate:locator
         pnpm run evaluate:planning
+
+    - name: Upload Logs
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: evaluation-logs
+        path: ${{ github.workspace }}/packages/evaluation/tests/__ai_responses__/
+        if-no-files-found: ignore
