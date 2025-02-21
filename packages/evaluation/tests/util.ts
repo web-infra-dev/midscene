@@ -241,6 +241,7 @@ export async function annotatePoints(
         indexId: item.indexId,
       };
     }),
+    annotationPadding: 0,
   });
   return markedImage;
 }

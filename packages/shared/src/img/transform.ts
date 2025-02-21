@@ -82,6 +82,15 @@ export async function resizeImg(
   return resizedBuffer;
 }
 
+export async function bufferFromBase64(base64: string) {
+  const splitFlag = ';base64,';
+  const dataSplitted = base64.split(splitFlag);
+  if (dataSplitted.length !== 2) {
+    throw Error('Invalid base64 data');
+  }
+  return Buffer.from(dataSplitted[1], 'base64');
+}
+
 export async function resizeImgBase64(
   inputBase64: string,
   newSize: {
@@ -182,91 +191,28 @@ export async function trimImage(image: string | Buffer): Promise<{
   };
 }
 
-/**
- * Aligns an image's coordinate system based on trimming information
- *
- * This function takes an image and a center rectangle as input. It first extracts the center
- * rectangle from the image using Jimp and converts it to a buffer. Then, it calls
- * the trimImage function to obtain the trimming information of the buffer image. If there is no
- * trimming information, the original center rectangle is returned. If there is trimming information,
- * a new rectangle is created based on the trimming information, with its top-left corner
- * positioned at the negative offset of the trimming from the original center rectangle's top-left
- * corner, and its width and height set to the trimmed image's dimensions.
- *
- * @param image The image file path or buffer to be processed
- * @param center The center rectangle of the image, which is used to extract and align
- * @returns A Promise that resolves to a rectangle object representing the aligned coordinates
- * @throws Error if there is an error during image processing
- */
-// export async function alignCoordByTrim(
-//   image: string | Buffer,
-//   centerRect: Rect,
-// ): Promise<Rect> {
-//   const isBuffer = Buffer.isBuffer(image);
-//   let jimpImage;
-//   if (isBuffer) {
-//     jimpImage = await Jimp.read(image);
-//   } else {
-//     jimpImage = await Jimp.read(image);
-//   }
+export function prependBase64Header(base64: string, mimeType = 'image/png') {
+  return `data:${mimeType};base64,${base64}`;
+}
 
-//   const { width, height } = jimpImage.bitmap;
-//   if (width <= 3 || height <= 3) {
-//     return centerRect;
-//   }
-//   const zeroSize: Rect = {
-//     left: 0,
-//     top: 0,
-//     width: -1,
-//     height: -1,
-//   };
-//   const finalCenterRect: Rect = { ...centerRect };
-//   if (centerRect.left > width || centerRect.top > height) {
-//     return zeroSize;
-//   }
+export async function paddingToMatchBlock(imageBase64: string, blockSize = 28) {
+  const Jimp = await getJimp();
+  const imageBuffer = await bufferFromBase64(imageBase64);
+  const image = await Jimp.read(imageBuffer);
+  const { width, height } = image.bitmap;
 
-//   if (finalCenterRect.left < 0) {
-//     finalCenterRect.width += finalCenterRect.left;
-//     finalCenterRect.left = 0;
-//   }
+  const targetWidth = Math.ceil(width / blockSize) * blockSize;
+  const targetHeight = Math.ceil(height / blockSize) * blockSize;
 
-//   if (finalCenterRect.top < 0) {
-//     finalCenterRect.height += finalCenterRect.top;
-//     finalCenterRect.top = 0;
-//   }
+  if (targetWidth === width && targetHeight === height) {
+    return imageBase64;
+  }
 
-//   if (finalCenterRect.left + finalCenterRect.width > width) {
-//     finalCenterRect.width = width - finalCenterRect.left;
-//   }
-//   if (finalCenterRect.top + finalCenterRect.height > height) {
-//     finalCenterRect.height = height - finalCenterRect.top;
-//   }
+  const paddedImage = new Jimp(targetWidth, targetHeight, 0xffffffff);
 
-//   if (finalCenterRect.width <= 3 || finalCenterRect.height <= 3) {
-//     return finalCenterRect;
-//   }
+  // Composite the original image onto the new canvas
+  paddedImage.composite(image, 0, 0);
 
-//   try {
-//     const croppedImage = jimpImage.crop(
-//       centerRect.left,
-//       centerRect.top,
-//       centerRect.width,
-//       centerRect.height,
-//     );
-//     const buffer = await croppedImage.getBufferAsync(Jimp.MIME_PNG);
-//     const trimInfo = await trimImage(buffer);
-//     if (!trimInfo) {
-//       return centerRect;
-//     }
-
-//     return {
-//       left: centerRect.left - trimInfo.trimOffsetLeft,
-//       top: centerRect.top - trimInfo.trimOffsetTop,
-//       width: trimInfo.width,
-//       height: trimInfo.height,
-//     };
-//   } catch (e) {
-//     console.log(jimpImage.bitmap);
-//     throw e;
-//   }
-// }
+  const base64 = await paddedImage.getBase64Async(Jimp.MIME_JPEG);
+  return base64;
+}

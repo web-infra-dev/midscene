@@ -1,4 +1,6 @@
 import { readFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import {
   base64Encoded,
   imageInfo,
@@ -7,6 +9,7 @@ import {
   resizeImgBase64,
 } from '@/img';
 import getJimp from '@/img/get-jimp';
+import { paddingToMatchBlock, saveBase64Image } from 'src/img/transform';
 import { getFixture } from 'tests/utils';
 import { describe, expect, it } from 'vitest';
 
@@ -70,6 +73,23 @@ describe('image utils', () => {
     expect(buffer).toBeDefined();
   });
 
+  it('paddingToMatchBlock', async () => {
+    const image = getFixture('heytea.jpeg');
+    const base64 = base64Encoded(image);
+    const paddedBase64 = await paddingToMatchBlock(base64);
+
+    const resultInfo = await imageInfoOfBase64(paddedBase64);
+    expect(resultInfo.width).toMatchSnapshot();
+    expect(resultInfo.height).toMatchSnapshot();
+
+    const tmpFile = join(tmpdir(), 'heytea-padded.jpeg');
+    await saveBase64Image({
+      base64Data: paddedBase64,
+      outputPath: tmpFile,
+    });
+    console.log('tmpFile', tmpFile);
+  });
+
   // it(
   //   'profile',
   //   async () => {
@@ -89,69 +109,3 @@ describe('image utils', () => {
   //   10 * 1000,
   // );
 });
-
-// it('align a sub-image', async () => {
-//   const file = getFixture('long-text.png');
-//   const rect = await alignCoordByTrim(file, {
-//     left: 140,
-//     top: 50,
-//     width: 200,
-//     height: 80,
-//   });
-//   expect(rect).toMatchSnapshot();
-// });
-
-// it('align a tiny sub-image', async () => {
-//   const file = getFixture('2x2.jpeg');
-//   const rect = await alignCoordByTrim(file, {
-//     left: 140,
-//     top: 50,
-//     width: 200,
-//     height: 80,
-//   });
-//   expect(rect).toMatchSnapshot();
-// });
-
-// it('align a table style sub-image', async () => {
-//   const file = getFixture('table.png');
-//   const rect = await alignCoordByTrim(file, {
-//     left: 140,
-//     top: 50,
-//     width: 200,
-//     height: 80,
-//   });
-//   expect(rect).toMatchSnapshot();
-// });
-
-// it('illegal center rect, refuse to align', async () => {
-//   const file = getFixture('long-text.png'); // 2862x250
-//   const rect = await alignCoordByTrim(file, {
-//     left: 3000,
-//     top: 3000,
-//     width: 200,
-//     height: 200,
-//   });
-//   expect(rect).toMatchSnapshot();
-// });
-
-// it('align a sub-image with negative coord', async () => {
-//   const file = getFixture('long-text.png'); // 2862x250
-//   const rect = await alignCoordByTrim(file, {
-//     left: -100,
-//     top: -100,
-//     width: 200,
-//     height: 200,
-//   });
-//   expect(rect).toMatchSnapshot();
-// });
-
-// it('align an oversized sub-image', async () => {
-//   const file = getFixture('long-text.png'); // 2862x250
-//   const rect = await alignCoordByTrim(file, {
-//     left: 2860,
-//     top: 200,
-//     width: 200,
-//     height: 200,
-//   });
-//   expect(rect).toMatchSnapshot();
-// });
