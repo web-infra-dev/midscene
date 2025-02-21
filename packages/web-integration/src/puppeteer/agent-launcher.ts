@@ -9,7 +9,7 @@ export const defaultUA =
 export const defaultViewportWidth = 1440;
 export const defaultViewportHeight = 900;
 export const defaultViewportScale = process.platform === 'darwin' ? 2 : 1;
-export const defaultWaitForNetworkIdleTimeout = 10 * 1000;
+export const defaultWaitForNetworkIdleTimeout = 6 * 1000;
 
 interface FreeFn {
   name: string;

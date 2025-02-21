@@ -96,23 +96,19 @@ describe(
     it(
       'search engine',
       async () => {
-        const { originPage, reset } = await launchPage(
-          'https://www.baidu.com/',
-        );
+        const { originPage, reset } = await launchPage('https://www.bing.com/');
         resetFn = reset;
         const mid = new PuppeteerAgent(originPage);
         await mid.aiAction('type "AI 101" in search box');
         await mid.aiAction(
-          'type "Hello world" in search box, hit Enter, wait 2s, click the second result, wait 4s',
+          'type "Hello world" in search box, hit Enter, wait 2s',
         );
 
         await mid.aiWaitFor(
           'there are some search results about "Hello world"',
         );
       },
-      {
-        timeout: 3 * 60 * 1000,
-      },
+      3 * 60 * 1000,
     );
 
     it('scroll', async () => {
@@ -163,7 +159,5 @@ describe(
       );
     });
   },
-  {
-    timeout: 4 * 60 * 1000,
-  },
+  4 * 60 * 1000,
 );

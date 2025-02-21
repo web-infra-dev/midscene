@@ -43,7 +43,7 @@ Besides the default model *GPT-4o*, we have added two new recommended open-sourc
 - **Natural Language Interaction 👆**: Just describe your goals and steps, and Midscene will plan and operate the user interface for you.
 - **Chrome Extension Experience 🖥️**: Start experiencing immediately through the Chrome extension, no coding required.
 - **Puppeteer/Playwright Integration 🔧**: Supports Puppeteer and Playwright integration, allowing you to combine AI capabilities with these powerful automation tools for easy automation.
-- **Support Private Deployment 🤖**: Supports private deployment of [`UI-TARS`](https://github.com/bytedance/ui-tars) model, which outperforms closed-source models like GPT-4o and Claude in UI automation scenarios while better protecting data security.
+- **Support Open-Source Models 🤖**: Supports private deployment of [`UI-TARS`](https://github.com/bytedance/ui-tars) and [`Qwen2.5-VL`](https://github.com/QwenLM/Qwen2.5-VL), which outperforms closed-source models like GPT-4o and Claude in UI automation scenarios while better protecting data security.
 - **Support General Models 🌟**: Supports general large models like GPT-4o and Claude, adapting to various scenario needs.
 - **Visual Reports for Debugging 🎞️**: Through our test reports and Playground, you can easily understand, replay and debug the entire process.
 - **Support Caching 🔄**: The first time you execute a task through AI, it will be cached, and subsequent executions of the same task will significantly improve execution efficiency.

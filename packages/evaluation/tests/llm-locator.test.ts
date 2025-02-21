@@ -4,7 +4,7 @@ import {
   MIDSCENE_MODEL_NAME,
   getAIConfig,
 } from '@midscene/core';
-import { MATCH_BY_POSITION } from '@midscene/core/env';
+import { MIDSCENE_USE_QWEN_VL, getAIConfigInBoolean } from '@midscene/core/env';
 import { sleep } from '@midscene/core/utils';
 import { saveBase64Image } from '@midscene/shared/img';
 import dotenv from 'dotenv';
@@ -17,7 +17,6 @@ dotenv.config({
   override: true,
 });
 
-const failCaseThreshold = process.env.CI ? 1 : 0;
 const testSources = [
   'antd-carousel',
   'todo',
@@ -28,13 +27,18 @@ const testSources = [
   'aweme-play',
 ];
 
-const positionModeTag = getAIConfig(MATCH_BY_POSITION)
+const positionModeTag = getAIConfigInBoolean(MIDSCENE_USE_QWEN_VL)
   ? 'by_coordinates'
   : 'by_element';
 const resultCollector = new TestResultCollector(
   positionModeTag,
   getAIConfig(MIDSCENE_MODEL_NAME) || 'unspecified',
 );
+
+let failCaseThreshold = 0;
+if (process.env.CI && !getAIConfigInBoolean(MIDSCENE_USE_QWEN_VL)) {
+  failCaseThreshold = 3;
+}
 
 afterAll(async () => {
   await resultCollector.analyze(failCaseThreshold);

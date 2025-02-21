@@ -8,7 +8,9 @@ Midscene.js provides a Chrome extension. By using it, you can quickly experience
 
 ## Preparation
 
-Prepare an OpenAI API key, we will use it soon.
+Prepare an API key from one of these models: OpenAI GPT-4o, Qwen-2.5-VL, UI-TARS, or any other supported providers. We will be using it soon.
+
+You can check the supported models in [Choose a model](./choose-a-model)
 
 ## Install and config
 
@@ -18,15 +20,16 @@ Start the extension (may be folded by Chrome extension icon), setup the config b
 
 ```shell
 OPENAI_API_KEY="sk-replace-by-your-own"
+# ...all other configs here (if any)
 ```
-
-You can also paste the configuration as described in [config model and provider](./model-provider) here.
 
 ## Start experiencing
 
-After the configuration, you can immediately experience Midscene. You can use actions to interact with the page, use queries to extract JSON data, or use assertions to validate. 
+After the configuration, you can immediately experience Midscene. There are three main tabs in the extension:
 
-You may notice that the extension will provide a playback of actions and a report file to review. This is the same report file you will receive from your automation scripts.
+- **Action**: use action to interact with the web page, like "type Midscene in the search box" or "click the login button".
+- **Query**: use query to extract JSON data from the web page, like "extract the user id from the page, return in {id: string}".
+- **Assert**: use assert to validate the web page, like "the page title is "Midscene"".
 
 Enjoy !
 
@@ -38,7 +41,6 @@ After experiencing, you may want to write some code to integrate Midscene. There
 * [Bridge Mode by Chrome Extension](./bridge-mode-by-chrome-extension)
 * [Integrate with Puppeteer](./integrate-with-puppeteer)
 * [Integrate with Playwright](./integrate-with-playwright)
-
 
 ## FAQ
 

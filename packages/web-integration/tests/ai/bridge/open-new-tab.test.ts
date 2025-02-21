@@ -24,6 +24,10 @@ describeIf('open new tab in bridge mode', () => {
       await agent.aiAction(
         'search "midscene github" and open the first result',
       );
+
+      // sleep 3s
+      await sleep(5000);
+
       await agent.aiAssert('the page is "midscene github"');
 
       await agent.destroy();

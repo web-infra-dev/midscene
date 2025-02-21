@@ -34,7 +34,7 @@ Midscene.js 让 AI 成为你的浏览器操作员 🤖。只需用自然语言�
 | 用 JS 代码驱动编排任务，搜集周杰伦演唱会的信息，并写入 Google Docs   | <video src="https://github.com/user-attachments/assets/75474138-f51f-4c54-b3cf-46d61d059999" height="300" />        |
 
 
-## 📢 支持了新的开源模型 - UI-TARS 和 Qwen2.5-VL
+## 📢 新增支持开源模型 - UI-TARS 和 Qwen2.5-VL（千问）
 
 除了默认的 `gpt-4o` 模型，我们还支持了两个新的开源模型：`UI-TARS` 和 `Qwen2.5-VL`。（是的，开源模型！）它们是专为 UI 自动化和图像识别设计的模型，在 UI 自动化场景下表现出色。更多信息请查看 [选择 AI 模型](https://midscenejs.com/zh/choose-a-model)。
 
@@ -43,7 +43,7 @@ Midscene.js 让 AI 成为你的浏览器操作员 🤖。只需用自然语言�
 - **自然语言互动 👆**：只需描述你的目标和步骤，Midscene 会为你规划和操作用户界面。
 - **Chrome 插件体验 🖥️**：通过 Chrome 插件，你可以立即开始体验，无需编写代码。
 - **Puppeteer/Playwright 集成 🔧**：支持 Puppeteer 和 Playwright 集成，让你能够结合 AI 能力和这些自动化工具的强大功能，轻松实现自动化操作。
-- **支持私有化部署 🤖**：支持私有化部署 [`UI-TARS`](https://github.com/bytedance/ui-tars) 模型，相比 GPT-4o、Claude 等闭源模型，不仅在 UI 自动化场景下表现更加出色，还能更好地保护数据安全。
+- **支持开源模型 🤖**：支持开源模型 [`UI-TARS`](https://github.com/bytedance/ui-tars) 和 [千问 `Qwen2.5-VL`](https://github.com/QwenLM/Qwen2.5-VL)，相比 GPT-4o、Claude 等闭源模型，不仅在 UI 自动化场景下表现更加出色，还能更好地保护数据安全。
 - **支持通用模型 🌟**：支持 GPT-4o、Claude 等通用大模型，适配多种场景需求。
 - **用可视化报告来调试 🎞️**：通过我们的测试报告和 Playground，你可以轻松理解、回放和调试整个过程。
 - **支持缓存 🔄**：首次通过 AI 执行后任务会被缓存，后续执行相同任务时可显著提升执行效率。

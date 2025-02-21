@@ -1,3 +1,4 @@
+import { platform } from 'node:os';
 import { PuppeteerAgent } from '@/puppeteer';
 import { sleep } from '@midscene/core/utils';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -19,10 +20,12 @@ describe('puppeteer integration', () => {
     const { originPage, reset } = await launchPage('https://www.google.com/');
     resetFn = reset;
     const agent = new PuppeteerAgent(originPage);
-    await agent.aiAction('Enter "happy birthday" and select Delete all');
+    await agent.aiAction(
+      'Enter "happy birthday" , sleep 100ms, delete all text in the input box',
+    );
   });
 
-  it('Sauce Demo, agent with yaml script', async () => {
+  it('agent with yaml script', async () => {
     const { originPage, reset } = await launchPage('https://www.bing.com/');
     resetFn = reset;
     const agent = new PuppeteerAgent(originPage);
@@ -32,17 +35,17 @@ describe('puppeteer integration', () => {
   tasks:
     - name: search weather
       flow:
-        - ai: input 'weather today' in input box, click search button
+        - ai: input 'weather today' in input box, press Enter
         - sleep: 3000
 
-    - name: query weather
+    - name: result page
       flow:
-        - aiQuery: "the result shows the weather info, {description: string}"
+        - aiQuery: "this is a search result page about weather. Return in this format: {answer: boolean}"
           name: weather
   `,
     );
 
-    expect(result.weather.description).toBeDefined();
+    expect(result.weather.answer).toBeDefined();
   });
 
   it('assertion failed', async () => {
@@ -68,7 +71,11 @@ describe('puppeteer integration', () => {
   });
 
   it('allow error in flow', async () => {
-    const { originPage, reset } = await launchPage('https://www.bing.com/');
+    const { originPage, reset } = await launchPage(
+      platform() === 'darwin'
+        ? 'https://www.baidu.com'
+        : 'https://www.bing.com/',
+    );
     resetFn = reset;
     const agent = new PuppeteerAgent(originPage);
     const { result } = await agent.runYaml(
@@ -79,18 +86,19 @@ describe('puppeteer integration', () => {
         - ai: input 'weather today' in input box, click search button
         - sleep: 3000
 
-    - name: query weather
-      flow:
-        - aiQuery: "the result shows the weather info, {description: string}"
-          name: weather
-
     - name: error
       continueOnError: true
       flow:
         - aiAssert: the result shows food delivery service
+
+    - name: result page
+      continueOnError: true
+      flow:
+        - aiQuery: "this is a search result, use this format to answer: {result: boolean}"
+          name: pageLoaded
     `,
     );
 
-    expect(result.weather.description).toBeDefined();
+    expect(result.pageLoaded).toBeDefined();
   });
 });

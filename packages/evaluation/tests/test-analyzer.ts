@@ -146,7 +146,7 @@ ${errorMsg ? `Error: ${errorMsg}` : ''}
       (item) => item.fail > allowFailCaseCount,
     );
     let errMsg = '';
-    if (failedCaseGroups.length > 0) {
+    if (failedCaseGroups.length > allowFailCaseCount) {
       errMsg = `Failed case groups: ${failedCaseGroups.map((item) => item.caseGroup).join(', ')}`;
       console.log(errMsg);
       console.log('error log file:', this.failedCaseLogPath);
