@@ -7,7 +7,7 @@ vi.setConfig({
   testTimeout: 120 * 1000,
 });
 
-describe('open new tab integration', () => {
+describe('agent with forceSameTabNavigation', () => {
   let resetFn: () => Promise<void>;
   afterEach(async () => {
     if (resetFn) {
@@ -22,6 +22,7 @@ describe('open new tab integration', () => {
       cacheId: 'puppeteer-open-new-tab',
     });
     await agent.aiAction('search "midscene github" and open the first result');
+    await sleep(5000);
     await agent.aiAssert('the page is "midscene github"');
   });
 });

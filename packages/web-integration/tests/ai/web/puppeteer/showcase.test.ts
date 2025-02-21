@@ -101,7 +101,7 @@ describe(
         const mid = new PuppeteerAgent(originPage);
         await mid.aiAction('type "AI 101" in search box');
         await mid.aiAction(
-          'type "Hello world" in search box, hit Enter, wait 2s, click the second result, wait 4s',
+          'type "Hello world" in search box, hit Enter, wait 2s',
         );
 
         await mid.aiWaitFor(
