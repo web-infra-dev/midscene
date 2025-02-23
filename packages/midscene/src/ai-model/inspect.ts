@@ -1,5 +1,9 @@
 import assert from 'node:assert';
-import { MIDSCENE_USE_QWEN_VL, getAIConfigInBoolean } from '@/env';
+import {
+  MIDSCENE_USE_QWEN_VL,
+  MIDSCENE_USE_VLM_UI_TARS,
+  getAIConfigInBoolean,
+} from '@/env';
 import type {
   AIAssertionResponse,
   AIElementIdResponse,
@@ -26,6 +30,7 @@ import {
   findElementPrompt,
   systemPromptToLocateElement,
 } from './prompt/llm-locator';
+import { systemPromptToAssertForUITars } from './prompt/ui-tars-assertion';
 import {
   describeUserPage,
   distance,
@@ -366,7 +371,10 @@ export async function AiAssert<
   assert(assertion, 'assertion should be a string');
 
   const { screenshotBase64 } = context;
-  const systemPrompt = systemPromptToAssert();
+
+  const systemPrompt = getAIConfigInBoolean(MIDSCENE_USE_VLM_UI_TARS)
+    ? systemPromptToAssertForUITars()
+    : systemPromptToAssert();
 
   const msgs: AIArgs = [
     { role: 'system', content: systemPrompt },

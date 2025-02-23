@@ -27,6 +27,7 @@ import {
   MIDSCENE_USE_ANTHROPIC_SDK,
   MIDSCENE_USE_AZURE_OPENAI,
   MIDSCENE_USE_QWEN_VL,
+  MIDSCENE_USE_VLM_UI_TARS,
   OPENAI_API_KEY,
   OPENAI_BASE_URL,
   OPENAI_MAX_TOKENS,
@@ -200,7 +201,7 @@ export async function call(
   let content: string | undefined;
   let usage: OpenAI.CompletionUsage | undefined;
   const commonConfig = {
-    temperature: 0.1,
+    temperature: getAIConfigInBoolean(MIDSCENE_USE_VLM_UI_TARS) ? 0.0 : 0.1,
     stream: false,
     max_tokens:
       typeof maxTokens === 'number'
@@ -279,7 +280,6 @@ export async function callToGetJSONObject<T>(
   messages: ChatCompletionMessageParam[],
   AIActionTypeValue: AIActionType,
 ): Promise<{ content: T; usage?: AIUsageInfo }> {
-  // gpt-4o-2024-05-13 only supports json_object response format
   let responseFormat:
     | OpenAI.ChatCompletionCreateParams['response_format']
     | OpenAI.ResponseFormatJSONObject
@@ -306,8 +306,14 @@ export async function callToGetJSONObject<T>(
     }
   }
 
+  // gpt-4o-2024-05-13 only supports json_object response format
   if (model === 'gpt-4o-2024-05-13' || !responseFormat) {
     responseFormat = { type: AIResponseFormat.JSON };
+  }
+
+  // ui-tars doesn't support response_format
+  if (model.includes('ui-tars')) {
+    responseFormat = undefined;
   }
 
   const response = await call(messages, AIActionTypeValue, responseFormat);
