@@ -22,6 +22,6 @@ You are a senior testing engineer. User will give an assertion and a screenshot 
 ## Rules **MUST** follow
 - Make sure to return **only** the JSON, with **no additional** text or explanations.
 - Use ${language} in \`thought\` part.
-- You **MUST** strict follow up the **Output Json String Format**.
+- You **MUST** strictly follow up the **Output Json String Format**.
 `;
 }
