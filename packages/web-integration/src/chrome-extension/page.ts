@@ -8,8 +8,8 @@
 import assert from 'node:assert';
 import type { WebKeyInput } from '@/common/page';
 import { limitOpenNewTabScript } from '@/common/ui-utils';
-import type { AbstractPage } from '@/page';
-import type { BaseElement, ElementTreeNode, Point, Size } from '@midscene/core';
+import type { AbstractPage, ChromePageDestroyOptions } from '@/page';
+import type { ElementTreeNode, Point, Size } from '@midscene/core';
 import type { ElementInfo } from '@midscene/shared/extractor';
 import { treeToList } from '@midscene/shared/extractor';
 import type { Protocol as CDPTypes } from 'devtools-protocol';
@@ -506,9 +506,13 @@ export default class ChromeExtensionProxyPage implements AbstractPage {
     },
   };
 
-  async destroy(): Promise<void> {
+  async destroy(destroyOptions?: ChromePageDestroyOptions): Promise<void> {
+    const activeTabId = this.activeTabId;
     this.activeTabId = null;
     await this.detachDebugger();
     this.destroyed = true;
+    if (destroyOptions?.closeTab && activeTabId) {
+      await chrome.tabs.remove(activeTabId!);
+    }
   }
 }

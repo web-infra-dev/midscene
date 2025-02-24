@@ -29,6 +29,13 @@ export class BridgeClient {
       });
 
       const timeout = setTimeout(() => {
+        try {
+          this.socket?.offAny();
+          this.socket?.close();
+        } catch (e) {
+          console.warn('got error when closing socket', e);
+        }
+        this.socket = null;
         reject(new Error('failed to connect to bridge server after timeout'));
       }, 1 * 1000);
 

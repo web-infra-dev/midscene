@@ -1,5 +1,9 @@
 import assert from 'node:assert';
-import type { KeyboardAction, MouseAction } from '@/page';
+import type {
+  ChromePageDestroyOptions,
+  KeyboardAction,
+  MouseAction,
+} from '@/page';
 import ChromeExtensionProxyPage from '../chrome-extension/page';
 import {
   type BridgeConnectTabOptions,
@@ -136,12 +140,16 @@ export class ChromeExtensionPageBrowserSide extends ChromeExtensionProxyPage {
     }
   }
 
-  async destroy() {
+  async destroy(destroyOptions?: ChromePageDestroyOptions) {
+    if (destroyOptions?.closeTab) {
+      this.onLogMessage('closing tab...', 'log');
+    }
+
     if (this.bridgeClient) {
       this.bridgeClient.disconnect();
       this.bridgeClient = null;
       this.onDisconnect();
     }
-    super.destroy();
+    super.destroy(destroyOptions);
   }
 }

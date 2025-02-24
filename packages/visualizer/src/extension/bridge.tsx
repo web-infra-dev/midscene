@@ -77,7 +77,7 @@ export default function Bridge() {
 
     let noConnectionTip = 'No connection found within timeout';
     console.log('startConnection');
-    while (Date.now() - startTime < timeout) {
+    while (true) {
       try {
         if (stopListeningFlag.current) {
           noConnectionTip = 'Listening stopped by user';

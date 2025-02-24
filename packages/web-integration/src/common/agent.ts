@@ -11,6 +11,7 @@ import {
 } from '@midscene/core';
 import { NodeType } from '@midscene/shared/constants';
 
+import type { ChromePageDestroyOptions } from '@/page';
 import { ScriptPlayer, parseYamlScript } from '@/yaml';
 import {
   MATCH_BY_POSITION,
@@ -289,7 +290,7 @@ export class PageAgent<PageType extends WebPage = WebPage> {
     };
   }
 
-  async destroy() {
-    await this.page.destroy();
+  async destroy(destroyOptions?: ChromePageDestroyOptions) {
+    await this.page.destroy(destroyOptions);
   }
 }
