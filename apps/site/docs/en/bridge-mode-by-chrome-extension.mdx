@@ -101,7 +101,7 @@ function connectCurrentTab(options?: {
 
 ```typescript
 try {
-  await agent.connectCurrentTab({ forceSameTabNavigation: true });
+  await agent.connectCurrentTab();
   console.log('Successfully connected to current tab');
 } catch (err) {
   console.error('Connection failed:', err.message);

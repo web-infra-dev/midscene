@@ -102,7 +102,7 @@ function connectCurrentTab(options?: {
 
 ```typescript
 try {
-  await agent.connectCurrentTab({ forceSameTabNavigation: true });
+  await agent.connectCurrentTab();
   console.log('成功连接到当前标签页');
 } catch (err) {
   console.error('连接失败:', err.message);
