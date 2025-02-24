@@ -1,42 +1,20 @@
 import assert from 'node:assert';
 import { MIDSCENE_USE_QWEN_VL, getAIConfigInBoolean } from '@/env';
-import type {
-  PlanningAIResponse,
-  PlanningLocateParam,
-  UIContext,
-} from '@/types';
+import type { PlanningAIResponse, UIContext } from '@/types';
 import { paddingToMatchBlock } from '@midscene/shared/img';
-import { AIActionType, type AIArgs, callAiFn } from './common';
+import {
+  AIActionType,
+  type AIArgs,
+  callAiFn,
+  fillLocateParam,
+  warnGPT4oSizeLimit,
+} from './common';
 import {
   automationUserPrompt,
   generateTaskBackgroundContext,
   systemPromptToTaskPlanning,
 } from './prompt/llm-planning';
 import { describeUserPage } from './prompt/util';
-// transform the param of locate from qwen mode
-export function fillLocateParam(locate: PlanningLocateParam) {
-  if (locate?.bbox_2d && !locate?.bbox) {
-    locate.bbox = locate.bbox_2d;
-    // biome-ignore lint/performance/noDelete: <explanation>
-    delete locate.bbox_2d;
-  }
-
-  const defaultBboxSize = 10;
-  if (locate?.bbox) {
-    locate.bbox[0] = Math.round(locate.bbox[0]);
-    locate.bbox[1] = Math.round(locate.bbox[1]);
-    locate.bbox[2] =
-      typeof locate.bbox[2] === 'number'
-        ? Math.round(locate.bbox[2])
-        : Math.round(locate.bbox[0] + defaultBboxSize);
-    locate.bbox[3] =
-      typeof locate.bbox[3] === 'number'
-        ? Math.round(locate.bbox[3])
-        : Math.round(locate.bbox[1] + defaultBboxSize);
-  }
-
-  return locate;
-}
 
 export async function plan(
   userInstruction: string,
@@ -64,6 +42,8 @@ export async function plan(
   if (getAIConfigInBoolean(MIDSCENE_USE_QWEN_VL)) {
     imagePayload = await paddingToMatchBlock(imagePayload);
   }
+
+  warnGPT4oSizeLimit(size);
 
   const msgs: AIArgs = [
     { role: 'system', content: systemPrompt },

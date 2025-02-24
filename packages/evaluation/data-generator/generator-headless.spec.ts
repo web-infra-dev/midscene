@@ -127,7 +127,7 @@ test('heytea online order list (zh-cn)', async ({ page, ai }) => {
   );
 });
 
-test('douyin', async ({ page, ai }) => {
+test.only('douyin', async ({ page, ai }) => {
   const playwrightPage = new PlaywrightWebPage(page);
 
   page.setViewportSize({ width: 1280, height: 800 });
@@ -135,10 +135,10 @@ test('douyin', async ({ page, ai }) => {
     'https://www.douyin.com/user/MS4wLjABAAAAGBQf_qNRUBcWNSRCZ1o8vP_qGUC58Gsbcy1Bc1AZvfc?from_tab_name=main&modal_id=7409244439434022195&vid=7409244439434022195',
   );
   await page.locator('.web-login-tab-list__item').nth(1).click();
-  await generateExtractData(
-    playwrightPage,
-    generateTestDataPath('aweme-login'),
-  );
+  // await generateExtractData(
+  //   playwrightPage,
+  //   generateTestDataPath('aweme-login'),
+  // );
   await page.locator('.douyin-login__close').click();
   await page.keyboard.press('ArrowDown');
   await page.waitForTimeout(2000);

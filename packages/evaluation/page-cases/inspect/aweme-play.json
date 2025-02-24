@@ -9,62 +9,92 @@
           "indexId": 4
         }
       ],
-      "response_bbox": [16, 770, 32, 784],
+      "response_bbox": [
+        16,
+        772,
+        30,
+        784
+      ],
       "annotation_index_id": 1
     },
     {
       "prompt": "点赞（爱心）按钮",
       "response": [
         {
-          "id": "afifi",
+          "id": "ebgie",
           "indexId": 23
         }
       ],
-      "response_bbox": [1203, 354, 1228, 371],
+      "response_bbox": [
+        1203,
+        354,
+        1227,
+        369
+      ],
       "annotation_index_id": 2
     },
     {
       "prompt": "评论按钮",
       "response": [
         {
-          "id": "jldma",
+          "id": "cjmim",
           "indexId": 25
         }
       ],
-      "response_bbox": [1204, 425, 1236, 447],
+      "response_bbox": [
+        1203,
+        425,
+        1226,
+        447
+      ],
       "annotation_index_id": 3
     },
     {
       "prompt": "书签收藏按钮",
       "response": [
         {
-          "id": "nmack",
-          "indexId": -1
+          "id": "moimk",
+          "indexId": 27
         }
       ],
-      "response_bbox": [1204, 500, 1230, 520],
+      "response_bbox": [
+        1204,
+        503,
+        1226,
+        520
+      ],
       "annotation_index_id": 4
     },
     {
       "prompt": "分享按钮",
       "response": [
         {
-          "id": "cmkle",
-          "indexId": -1
+          "id": "mgcne",
+          "indexId": 29
         }
       ],
-      "response_bbox": [1205, 648, 1237, 665],
+      "response_bbox": [
+        1206,
+        574,
+        1230,
+        592
+      ],
       "annotation_index_id": 5
     },
     {
       "prompt": "右下角区域声音按钮",
       "response": [
         {
-          "id": "mibjj",
-          "indexId": -1
+          "id": "djknm",
+          "indexId": 10
         }
       ],
-      "response_bbox": [1203, 768, 1224, 785],
+      "response_bbox": [
+        1203,
+        769,
+        1225,
+        784
+      ],
       "annotation_index_id": 6
     }
   ]

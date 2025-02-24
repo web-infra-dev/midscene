@@ -7,7 +7,7 @@ import type { MidsceneYamlScriptEnv } from '@midscene/core';
 export const defaultUA =
   'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36';
 export const defaultViewportWidth = 1440;
-export const defaultViewportHeight = 900;
+export const defaultViewportHeight = 768;
 export const defaultViewportScale = process.platform === 'darwin' ? 2 : 1;
 export const defaultWaitForNetworkIdleTimeout = 6 * 1000;
 

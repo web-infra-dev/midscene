@@ -49,7 +49,7 @@ export function checkAIConfig() {
 }
 
 // default model
-const defaultModel = 'gpt-4o-2024-08-06';
+const defaultModel = 'gpt-4o';
 export function getModelName() {
   let modelName = defaultModel;
   const nameInConfig = getAIConfig(MIDSCENE_MODEL_NAME);
