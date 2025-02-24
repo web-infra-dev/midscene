@@ -50,21 +50,21 @@ Promise.resolve(
     await sleep(5000);
 
     // 👀 初始化 Midscene agent 
-    const mid = new PuppeteerAgent(page);
+    const agent = new PuppeteerAgent(page);
 
     // 👀 执行搜索
     // 注：尽管这是一个英文页面，你也可以用中文指令控制它
-    await mid.aiAction('在搜索框输入 "Headphones" ，敲回车');
+    await agent.aiAction('在搜索框输入 "Headphones" ，敲回车');
     await sleep(5000);
 
     // 👀 理解页面，提取数据
-    const items = await mid.aiQuery(
+    const items = await agent.aiQuery(
       '{itemTitle: string, price: Number}[], 找到列表里的商品标题和价格',
     );
     console.log("耳机商品信息", items);
 
     // 👀 用 AI 断言
-    await mid.aiAssert("界面左侧有类目筛选功能");
+    await agent.aiAssert("界面左侧有类目筛选功能");
 
     await browser.close();
   })()

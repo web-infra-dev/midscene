@@ -23,13 +23,13 @@ describe(
   () => {
     it('iOS settings page demo', async () => {
       const page = await launchPage(IOS_DEFAULT_OPTIONS);
-      const mid = new AppiumAgent(page);
-      await mid.aiAction('滑动列表到底部');
-      await mid.aiAction('打开"开发者"');
-      await mid.aiAction('滑动列表到底部');
-      await mid.aiAction('滑动列表到顶部');
-      await mid.aiAction('向下滑动一屏');
-      await mid.aiAction('向上滑动一屏');
+      const agent = new AppiumAgent(page);
+      await agent.aiAction('滑动列表到底部');
+      await agent.aiAction('打开"开发者"');
+      await agent.aiAction('滑动列表到底部');
+      await agent.aiAction('滑动列表到顶部');
+      await agent.aiAction('向下滑动一屏');
+      await agent.aiAction('向上滑动一屏');
     });
   },
   {
