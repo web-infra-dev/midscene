@@ -9,12 +9,7 @@
           "indexId": 4
         }
       ],
-      "response_bbox": [
-        16,
-        772,
-        30,
-        784
-      ],
+      "response_bbox": [16, 772, 30, 784],
       "annotation_index_id": 1
     },
     {
@@ -25,12 +20,7 @@
           "indexId": 23
         }
       ],
-      "response_bbox": [
-        1203,
-        354,
-        1227,
-        369
-      ],
+      "response_bbox": [1203, 354, 1227, 369],
       "annotation_index_id": 2
     },
     {
@@ -41,12 +31,7 @@
           "indexId": 25
         }
       ],
-      "response_bbox": [
-        1203,
-        425,
-        1226,
-        447
-      ],
+      "response_bbox": [1203, 425, 1226, 447],
       "annotation_index_id": 3
     },
     {
@@ -57,12 +42,7 @@
           "indexId": 27
         }
       ],
-      "response_bbox": [
-        1204,
-        503,
-        1226,
-        520
-      ],
+      "response_bbox": [1204, 503, 1226, 520],
       "annotation_index_id": 4
     },
     {
@@ -73,12 +53,7 @@
           "indexId": 29
         }
       ],
-      "response_bbox": [
-        1206,
-        574,
-        1230,
-        592
-      ],
+      "response_bbox": [1206, 574, 1230, 592],
       "annotation_index_id": 5
     },
     {
@@ -89,12 +64,7 @@
           "indexId": 10
         }
       ],
-      "response_bbox": [
-        1203,
-        769,
-        1225,
-        784
-      ],
+      "response_bbox": [1203, 769, 1225, 784],
       "annotation_index_id": 6
     }
   ]

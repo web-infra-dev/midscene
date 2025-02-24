@@ -127,7 +127,7 @@ test('heytea online order list (zh-cn)', async ({ page, ai }) => {
   );
 });
 
-test.only('douyin', async ({ page, ai }) => {
+test('douyin', async ({ page, ai }) => {
   const playwrightPage = new PlaywrightWebPage(page);
 
   page.setViewportSize({ width: 1280, height: 800 });
