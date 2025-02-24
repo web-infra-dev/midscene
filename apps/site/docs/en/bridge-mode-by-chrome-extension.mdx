@@ -78,20 +78,88 @@ You should always call `connectCurrentTab` or `connectNewTabWithUrl` before doin
 
 Each of the agent instance can only connect to one tab instance, and it cannot be reconnected after destroy.
 :::
+### `connectCurrentTab()`
 
-### `connectCurrentTab(options?: { forceSameTabNavigation?: boolean })`
+Connect to the currently active tab.
 
-Connect to the current active tab on Chrome as the starting point.
+* Type
 
-If `forceSameTabNavigation` is true(default is true), the agent will limit the popup to the current page. For example, if you switch to another tab or a new tab is opened, the agent will limit the popup to the latest active tab. Otherwise, the agent will not limit the popup.
+```typescript
+function connectCurrentTab(options?: { 
+  forceSameTabNavigation?: boolean 
+}): Promise<void>;
+```
 
-### `connectNewTabWithUrl(url: string, options?: { forceSameTabNavigation?: boolean })`
+* Parameters:
+  * `options?: object` - Optional configuration object
+    * `forceSameTabNavigation?: boolean` - If true (default), restricts pages from opening new tabs, forcing new pages to open in the current tab to prevent AI operation failures due to manual tab switching. This configuration usually doesn't need to be changed
 
-Create a new tab with url and connect to immediately.
+* Returns:
+  * Returns a Promise that resolves to void when connected successfully; throws an error if connection fails
+
+* Example:
+
+```typescript
+try {
+  await agent.connectCurrentTab({ forceSameTabNavigation: true });
+  console.log('Successfully connected to current tab');
+} catch (err) {
+  console.error('Connection failed:', err.message);
+}
+```
+
+### `connectNewTabWithUrl()`
+
+Create a new tab and connect to it immediately.
+
+* Type
+
+```typescript
+function connectNewTabWithUrl(
+  url: string,
+  options?: { 
+    forceSameTabNavigation?: boolean 
+  }
+): Promise<void>;
+```
+
+* Parameters:
+  * `url: string` - URL to open in the new tab
+  * `options?: object` - Optional configuration object (same parameters as connectCurrentTab)
+
+* Returns:
+  * Returns a Promise that resolves to void when connected successfully; throws an error if connection fails
+
+* Example:
+
+```typescript
+// Open Bing and wait for connection
+await agent.connectNewTabWithUrl(
+  "https://www.bing.com",
+  { forceSameTabNavigation: false }
+);
+```
 
 ### `destroy`
 
-Destroy the connection.
+Destroy the connection and release resources.
+
+* Type
+
+```typescript
+function destroy(): Promise<void>;
+```
+
+* Returns:
+  * Returns a Promise that resolves to void when destruction completes
+
+* Example:
+
+```typescript
+// Destroy connection after completing operations
+await agent.ai('Perform final operation...');
+await agent.destroy();
+```
 
 ## Use bridge mode in yaml-script
 

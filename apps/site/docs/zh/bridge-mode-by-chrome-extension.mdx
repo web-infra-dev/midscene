@@ -79,19 +79,88 @@ tsx demo-new-tab.ts
 每个 agent 实例只能连接到一个标签页实例，并且一旦被销毁就无法重新连接，需要重新创建 agent 实例。
 :::
 
-### `connectCurrentTab(options?: { forceSameTabNavigation?: boolean })`
+### `connectCurrentTab()`
 
 连接到当前已激活的标签页。
 
-如果 `forceSameTabNavigation` 为 true(默认是 true)，则 agent 将限制页面在当前 tab 打开。例如，如果你切换到另一个标签页或打开一个新的标签页，agent 将限制在上次打开的页面。否则，agent 将不限制页面在当前 tab 打开。
+* 类型
 
-### `connectNewTabWithUrl(url: string, options?: { forceSameTabNavigation?: boolean })`
+```typescript
+function connectCurrentTab(options?: { 
+  forceSameTabNavigation?: boolean 
+}): Promise<void>;
+```
+
+* 参数：
+  * `options?: object` - 可选配置对象
+    * `forceSameTabNavigation?: boolean` - 如果为 true（默认值），限制页面打开新的标签页，让新的页面始终在旧的标签页中打开避免人为切换标签页导致 AI 操作失败，正常情况下都不需要更改此配置
+
+* 返回值：
+  * 返回一个 Promise。连接成功时解析为 void；若连接失败则抛出错误
+
+* 示例：
+
+```typescript
+try {
+  await agent.connectCurrentTab({ forceSameTabNavigation: true });
+  console.log('成功连接到当前标签页');
+} catch (err) {
+  console.error('连接失败:', err.message);
+}
+```
+
+### `connectNewTabWithUrl()`
 
 创建一个新标签页，并立即连接到它。
 
+* 类型
+
+```typescript
+function connectNewTabWithUrl(
+  url: string,
+  options?: { 
+    forceSameTabNavigation?: boolean 
+  }
+): Promise<void>;
+```
+
+* 参数：
+  * `url: string` - 新标签页要打开的 URL
+  * `options?: object` - 可选配置对象（参数同 connectCurrentTab）
+
+* 返回值：
+  * 返回一个 Promise。连接成功时解析为 void；若连接失败则抛出错误
+
+* 示例：
+
+```typescript
+// 打开 Bing 并等待连接
+await agent.connectNewTabWithUrl(
+  "https://www.bing.com",
+  { forceSameTabNavigation: false }
+);
+```
+
 ### `destroy`
 
-销毁连接。
+销毁连接并释放资源。
+
+* 类型
+
+```typescript
+function destroy(): Promise<void>;
+```
+
+* 返回值：
+  * 返回一个 Promise。销毁完成后解析为 void
+
+* 示例：
+
+```typescript
+// 完成操作后销毁连接
+await agent.ai('执行最终操作...');
+await agent.destroy();
+```
 
 ### 更多接口
 
