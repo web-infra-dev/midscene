@@ -1,0 +1,286 @@
+# API 参考
+
+## 构造器
+
+Midscene 中每个 Agent 都有自己的构造函数。
+
+* 在 Puppeteer 中，使用 [PuppeteerAgent](./integrate-with-puppeteer)
+* 在桥接模式（Bridge Mode）中，使用 [AgentOverChromeBridge](./bridge-mode-by-chrome-extension#constructor)
+
+这些 Agent 有一些相同的构造参数：
+
+* `generateReport: boolean`: 如果为 true，则生成报告文件。默认值为 true。
+* `autoPrintReportMsg: boolean`: 如果为 true，则打印报告消息。默认值为 true。
+* `cacheId: string | undefined`: 如果配置，则使用此 cacheId 匹配缓存。默认值为 undefined。
+
+在 puppeteer 中，还有一个额外的参数：
+
+* `forceSameTabNavigation: boolean`: 如果为 true，则限制页面在当前 tab 打开。默认值为 true。
+
+## 方法
+
+这些是 Midscene 中各类 Agent 的主要 API。
+
+> 在以下文档中，你可能会看到带有 `agent.` 前缀的函数调用。如果你在 Playwright 中使用了解构赋值（object destructuring），如 `async ({ ai, aiQuery }) => { /* ... */}`，你可以不带这个前缀进行调用。这只是语法的区别。
+
+
+### `agent.aiAction()` 或 `.ai()`
+
+使用此方法，你可以通过自然语言描述来执行一系列 UI 操作。Midscene 会自动分析并执行这些操作步骤。
+
+* 类型
+
+```typescript
+function aiAction(steps: string): Promise<void>;
+function ai(steps: string): Promise<void>; // 简写形式
+```
+
+* 参数：
+  * `steps: string` - 用自然语言描述的操作步骤序列。
+
+* 返回值：
+  * 返回一个 Promise。当所有步骤执行完成时解析为 void；若执行失败，则抛出错误。
+
+* 示例：
+
+```typescript
+// 基本用法
+await agent.aiAction('在搜索框中输入 "JavaScript"，然后点击搜索按钮');
+
+// 使用 .ai 简写形式
+await agent.ai('点击页面顶部的登录按钮，然后在用户名输入框中输入 "test@example.com"');
+
+// 复杂操作示例
+await agent.aiAction(`
+  1. 滚动到商品列表
+  2. 找到 "Sauce Labs Backpack" 商品
+  3. 点击其 "Add to cart" 按钮
+  4. 等待购物车图标更新
+`);
+```
+
+:::tip
+为了获得最佳效果，请提供清晰、详细的步骤描述。避免使用过于简略的指令（如 "发一条微博"），这可能导致执行不稳定或失败。
+
+在底层，Midscene 会将页面上下文和截图发送给 LLM，以详细规划步骤。随后，Midscene 会逐步执行这些步骤。如果 Midscene 认为无法执行，将抛出一个错误。
+
+你的任务会被拆解成下述内置方法，你可以在可视化报告中看到它们：
+
+1. **定位（Locator）**：使用自然语言描述找到目标元素
+2. **操作（Action）**：点击、滚动、键盘输入、悬停（hover）
+3. **其他**：等待（sleep）
+
+目前，Midscene 无法规划包含条件和循环的步骤。
+
+关联文档:
+* [FAQ: Midscene 能否根据一句话指令实现智能操作？比如执行 "发一条微博"'](./faq)
+* [编写提示词的技巧](./prompting-tips)
+
+:::
+
+
+### `agent.aiQuery()`
+
+使用此方法，你可以直接从 UI 提取数据，并借助多模态 AI 的推理能力，实现智能提取。只需在 `dataDemand` 中定义期望格式（如字符串、数字、JSON、数组等），Midscene 即返回相应结果。
+
+* 类型
+
+```typescript
+function aiQuery<T>(dataShape: string | Object): Promise<T>;
+```
+
+* 参数：
+  * `dataShape: T`: 描述预期的返回值格式。
+
+* 返回值：
+  * 返回值可以是任何合法的基本类型，比如字符串、数字、JSON、数组等。
+  * 你只需在 `dataDemand` 中描述它，Midscene 就会给你满足格式的返回。
+
+* 示例：
+
+```typescript
+const dataA = await agent.aiQuery({
+  time: '左上角展示的日期和时间，string',
+  userInfo: '用户信息，{name: string}',
+  tableFields: '表格的字段名，string[]',
+  tableDataRecord: '表格中的数据记录，{id: string, [fieldName]: string}[]',
+});
+
+// 你也可以用纯字符串描述预期的返回值格式：
+
+// dataB 将是一个字符串数组
+const dataB = await agent.aiQuery('string[]，列表中的任务名称');
+
+// dataC 将是一个包含对象的数组
+const dataC = await agent.aiQuery('{name: string, age: string}[], 表格中的数据记录');
+```
+
+### `agent.aiAssert()`
+
+使用此方法，你可以通过自然语言描述一个断言条件，让 AI 判断该条件是否为真。当条件不满足时，SDK 会抛出错误，并在错误信息中追加 AI 返回的详细原因。
+
+* 类型
+
+```typescript
+function aiAssert(assertion: string, errorMsg?: string): Promise<void>;
+```
+
+* 参数：
+  * assertion: string - 用自然语言描述的断言条件。
+  * errorMsg?: string - 当断言失败时附加的可选错误提示信息。
+
+* 返回值：
+  * 返回一个 Promise。当断言成功时解析为 void；若断言失败，则抛出一个错误，错误信息包含 `errorMsg` 以及 AI 生成的原因。
+
+* 示例：
+```typescript
+await agent.aiAssert('"Sauce Labs Onesie" 的价格是 7.99');
+```
+
+:::tip
+断言在测试脚本中非常重要。为了降低因 AI 幻觉导致错误断言的风险（例如遗漏错误），你也可以使用 `.aiQuery` 加上常规的 JavaScript 断言来替代 `.aiAssert`。
+
+例如，你可以这样替代上面的断言代码：
+
+```typescript
+const items = await agent.aiQuery(
+  '"{name: string, price: number}[], 返回商品名称和价格列表'
+);
+const onesieItem = items.find(item => item.name === 'Sauce Labs Onesie');
+expect(onesieItem).toBeTruthy();
+expect(onesieItem.price).toBe(7.99);
+```
+:::
+
+### `agent.aiWaitFor()`
+
+使用此方法，你可以等待某个断言条件成为真。考虑到 AI 服务的成本，检查间隔不会超过 `checkIntervalMs` 毫秒。
+
+* 类型
+
+```typescript
+function aiWaitFor(
+  assertion: string, 
+  options?: { 
+    timeoutMs?: number;
+    checkIntervalMs?: number;
+  }
+): Promise<void>;
+```
+
+* 参数：
+  * `assertion: string` - 用自然语言描述的断言条件
+  * `options?: object` - 可选的配置对象
+    * `timeoutMs?: number` - 超时时间（毫秒），默认为 15000
+    * `checkIntervalMs?: number` - 检查间隔（毫秒），默认为 3000
+
+* 返回值：
+  * 返回一个 Promise。当断言成功时解析为 void；若超时，则抛出错误。
+
+* 示例：
+
+```typescript
+// 基本用法
+await agent.aiWaitFor("界面上至少有一个耳机的信息");
+
+// 使用自定义配置
+await agent.aiWaitFor("购物车图标显示数量为 2", {
+  timeoutMs: 30000,    // 等待 30 秒
+  checkIntervalMs: 5000  // 每 5 秒检查一次
+});
+```
+
+:::tip
+考虑到 AI 服务的时间消耗，`.aiWaitFor` 并不是一个特别高效的方法。使用一个普通的 `sleep` 可能是替代 `waitFor` 的另一种方式。
+:::
+
+### `agent.runYaml()`
+
+使用此方法，你可以执行一个 YAML 格式的自动化脚本。脚本中的 `tasks` 部分会被执行，并返回所有 `.aiQuery` 调用的结果。
+
+* 类型
+
+```typescript
+function runYaml(yamlScriptContent: string): Promise<{ result: any }>;
+```
+
+* 参数：
+  * `yamlScriptContent: string` - YAML 格式的脚本内容
+
+* 返回值：
+  * 返回一个包含 `result` 属性的对象，其中包含所有 `aiQuery` 调用的结果
+
+* 示例：
+
+```typescript
+const { result } = await agent.runYaml(`
+tasks:
+  - name: search weather
+    flow:
+      - ai: input 'weather today' in input box, click search button
+      - sleep: 3000
+
+  - name: query weather
+    flow:
+      - aiQuery: "the result shows the weather info, {description: string}"
+`);
+console.log(result);
+```
+
+:::tip
+更多关于 YAML 脚本的信息，请参考 [Automate with Scripts in YAML](./automate-with-scripts-in-yaml)。
+:::
+
+## 属性
+
+### `.reportFile`
+
+报告文件的路径。
+
+## 更多配置
+
+### 在运行时设置环境变量
+
+你可以通过 `overrideAIConfig` 方法在运行时设置环境变量。
+
+```typescript
+import { overrideAIConfig } from '@midscene/web/puppeteer'; // 或其他的 Agent
+
+overrideAIConfig({
+  OPENAI_BASE_URL: "...",
+  OPENAI_API_KEY: "...",
+  MIDSCENE_MODEL_NAME: "..."
+});
+```
+
+### 打印 AI 性能信息
+
+设置 `MIDSCENE_DEBUG_AI_PROFILE` 变量，你可以看到每次调用 AI 的时间和 token 数量。
+
+```shell
+export MIDSCENE_DEBUG_AI_PROFILE=1
+```
+
+### 使用 LangSmith
+
+LangSmith 是一个用于调试大语言模型的平台。想要集成 LangSmith，请按以下步骤操作：
+
+```bash
+# 设置环境变量
+
+# 启用调试标志
+export MIDSCENE_LANGSMITH_DEBUG=1 
+
+# LangSmith 配置
+export LANGSMITH_TRACING_V2=true
+export LANGSMITH_ENDPOINT="https://api.smith.langchain.com"
+export LANGSMITH_API_KEY="your_key_here"
+export LANGSMITH_PROJECT="your_project_name_here"
+```
+
+启动 Midscene 后，你应该会看到类似如下的日志：
+
+```log
+DEBUGGING MODE: langsmith wrapper enabled
+```
+

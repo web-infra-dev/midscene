@@ -43,22 +43,22 @@ describe(
   () => {
     it('懂车帝查找小米 SU7', async () => {
       const page = await launchPage(ANDROID_OPTIONS);
-      const mid = new AppiumAgent(page);
-      await mid.aiAction('点击同意按钮');
+      const agent = new AppiumAgent(page);
+      await agent.aiAction('点击同意按钮');
       await sleep(3000);
-      await mid.aiAction('点击允许获取应用位置信息');
+      await agent.aiAction('点击允许获取应用位置信息');
       await sleep(3000);
-      await mid.aiAction('点击顶部输入框');
+      await agent.aiAction('点击顶部输入框');
       await sleep(3000);
-      await mid.aiAction('在输入框里输入"SU7"，并点击搜索');
+      await agent.aiAction('在输入框里输入"SU7"，并点击搜索');
       await sleep(3000);
-      const items = await mid.aiQuery(
+      const items = await agent.aiQuery(
         '"{carName: string, price: number }[], return item name, price',
       );
       console.log('items: ', items);
       expect(items.length).toBeGreaterThanOrEqual(2);
-      await mid.aiAssert('最贵的那辆是 29.99 万');
-      await mid.aiAction('列表滚动到底部');
+      await agent.aiAssert('最贵的那辆是 29.99 万');
+      await agent.aiAction('列表滚动到底部');
     });
   },
   {

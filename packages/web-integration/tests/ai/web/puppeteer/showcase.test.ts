@@ -20,33 +20,33 @@ describe(
       );
       resetFn = reset;
       const onTaskStartTip = vi.fn();
-      const mid = new PuppeteerAgent(originPage, {
+      const agent = new PuppeteerAgent(originPage, {
         cacheId: 'puppeteer(Sauce Demo by Swag Lab)',
         onTaskStartTip,
       });
 
       await sleep(10 * 1000);
 
-      await mid.aiAction(
+      await agent.aiAction(
         'type "standard_user" in user name input, type "secret_sauce" in password, click "Login", sleep 1 second',
       );
 
       expect(onTaskStartTip.mock.calls.length).toBeGreaterThan(1);
 
       await expect(async () => {
-        await mid.aiWaitFor('there is a cookie prompt in the UI', {
+        await agent.aiWaitFor('there is a cookie prompt in the UI', {
           timeoutMs: 10 * 1000,
         });
       }).rejects.toThrowError();
 
       // find the items
-      const items = await mid.aiQuery(
+      const items = await agent.aiQuery(
         '"{name: string, price: number, actionBtnName: string}[], return item name, price and the action button name on the lower right corner of each item (like "Remove")',
       );
       console.log('item list', items);
       expect(items.length).toBeGreaterThanOrEqual(2);
 
-      await mid.aiAssert('The price of "Sauce Labs Onesie" is 7.99');
+      await agent.aiAssert('The price of "Sauce Labs Onesie" is 7.99');
     });
 
     it('extract the Github service status', async () => {
@@ -54,16 +54,16 @@ describe(
         'https://www.githubstatus.com/',
       );
       resetFn = reset;
-      const mid = new PuppeteerAgent(originPage);
+      const agent = new PuppeteerAgent(originPage);
 
-      const result = await mid.aiQuery(
+      const result = await agent.aiQuery(
         'this is a service status page. Extract all status data with this scheme: {[serviceName]: [statusText]}',
       );
       console.log('Github service status', result);
 
       expect(async () => {
         // there is no food delivery service on Github
-        await mid.aiAssert(
+        await agent.aiAssert(
           'there is a "food delivery" service on page and is in normal state',
         );
       });
@@ -74,19 +74,19 @@ describe(
         'https://ant.design/components/form/', // will be banned by the website on CI
       );
       resetFn = reset;
-      const mid = new PuppeteerAgent(originPage);
+      const agent = new PuppeteerAgent(originPage);
 
-      // await mid.aiAction('If pop-ups are displayed click seven days out alert');
+      // await agent.aiAction('If pop-ups are displayed click seven days out alert');
       await sleep(8000);
-      await mid.aiAction(
+      await agent.aiAction(
         'Click the password input in the demo section on page, type "abc"',
       );
 
-      await mid.aiAction(
+      await agent.aiAction(
         'click the "icon" on the categories on the left, sleep 5s, in the newly loaded page, type "pause" in the icon search box(it shows "search icon here")',
       );
 
-      const names = await mid.aiQuery(
+      const names = await agent.aiQuery(
         'find all component names in the page, return in string[]',
       );
 
@@ -98,13 +98,13 @@ describe(
       async () => {
         const { originPage, reset } = await launchPage('https://www.bing.com/');
         resetFn = reset;
-        const mid = new PuppeteerAgent(originPage);
-        await mid.aiAction('type "AI 101" in search box');
-        await mid.aiAction(
+        const agent = new PuppeteerAgent(originPage);
+        await agent.aiAction('type "AI 101" in search box');
+        await agent.aiAction(
           'type "Hello world" in search box, hit Enter, wait 2s',
         );
 
-        await mid.aiWaitFor(
+        await agent.aiWaitFor(
           'there are some search results about "Hello world"',
         );
       },
@@ -115,11 +115,11 @@ describe(
       const htmlPath = path.join(__dirname, 'scroll.html');
       const { originPage, reset } = await launchPage(`file://${htmlPath}`);
       resetFn = reset;
-      const mid = new PuppeteerAgent(originPage);
-      await mid.aiAction(
+      const agent = new PuppeteerAgent(originPage);
+      await agent.aiAction(
         'find the "Vertical 2" element, scroll down 200px, find the "Horizontal 2" element, scroll right 100px',
       );
-      await mid.aiAssert(
+      await agent.aiAssert(
         'the "Horizontal 2", "Horizontal 4" and "Vertical 5" elements are visible',
       );
     });
@@ -127,34 +127,34 @@ describe(
     it('not tracking active tab', async () => {
       const { originPage, reset } = await launchPage('https://www.baidu.com/');
       resetFn = reset;
-      const mid = new PuppeteerAgent(originPage, {
+      const agent = new PuppeteerAgent(originPage, {
         forceSameTabNavigation: false,
       });
-      await mid.aiAction('Tap hao123 in the navigation bar');
+      await agent.aiAction('Tap hao123 in the navigation bar');
       await sleep(6000);
 
       expect(async () => {
-        await mid.aiAssert('There is a weather forecast in the page');
+        await agent.aiAssert('There is a weather forecast in the page');
       }).rejects.toThrowError();
     });
 
     it('tracking active tab', async () => {
       const { originPage, reset } = await launchPage('https://www.baidu.com/');
       resetFn = reset;
-      const mid = new PuppeteerAgent(originPage, {
+      const agent = new PuppeteerAgent(originPage, {
         forceSameTabNavigation: true,
       });
-      await mid.aiAction('Tap hao123 in the navigation bar');
+      await agent.aiAction('Tap hao123 in the navigation bar');
 
-      await mid.aiWaitFor('There is a weather forecast in the page');
+      await agent.aiWaitFor('There is a weather forecast in the page');
     });
 
     it.skip('Playground', async () => {
       const { originPage, reset } = await launchPage('https://www.baidu.com/');
       resetFn = reset;
-      const mid = new PuppeteerAgent(originPage);
-      // await mid.aiAction('Close the cookie prompt');
-      await mid.aiAction(
+      const agent = new PuppeteerAgent(originPage);
+      // await agent.aiAction('Close the cookie prompt');
+      await agent.aiAction(
         'Type "AI 101" in search box, hit Enter, wait 2s. If there is a cookie prompt, close it',
       );
     });

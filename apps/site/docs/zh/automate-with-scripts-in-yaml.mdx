@@ -213,24 +213,8 @@ topic=weather today
 
 ## 使用 JavaScript 运行 YAML 脚本
 
-你也可以使用 JavaScript 运行 YAML 脚本，调用 Agent 上的 `runYaml` 方法即可。注意，这种方法只会执行 YAML 脚本中的 `tasks` 部分。
+你也可以使用 JavaScript 运行 YAML 脚本，调用 Agent 上的 [`runYaml`](./api.html#runyaml) 方法即可。注意，这种方法只会执行 YAML 脚本中的 `tasks` 部分。
 
-```typescript
-const { result } = await agent.runYaml(`
-tasks:
-  - name: search weather
-    flow:
-      - ai: input 'weather today' in input box, click search button
-      - sleep: 3000
-
-  - name: query weather
-    flow:
-      - aiQuery: "the result shows the weather info, {description: string}"
-        name: weather
-`);
-```
-
-更多关于 agent 的 API，请参考 [API](./api)。
 
 ## FAQ
 

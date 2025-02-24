@@ -23,22 +23,22 @@ describe(
   async () => {
     await it('Android settings page demo for input', async () => {
       const page = await launchPage(ANDROID_DEFAULT_OPTIONS);
-      const mid = new AppiumAgent(page);
+      const agent = new AppiumAgent(page);
 
-      await mid.aiAction('输入框中输入“123”');
-      await mid.aiAction('输入框中输入“456”');
-      await mid.aiAction('输入框中输入“789”');
+      await agent.aiAction('输入框中输入“123”');
+      await agent.aiAction('输入框中输入“456”');
+      await agent.aiAction('输入框中输入“789”');
     });
     await it('Android settings page demo for scroll', async () => {
       const page = await launchPage(ANDROID_DEFAULT_OPTIONS);
-      const mid = new AppiumAgent(page);
+      const agent = new AppiumAgent(page);
 
-      await mid.aiAction('滑动列表到底部');
-      await mid.aiAction('打开"更多设置"');
-      await mid.aiAction('滑动列表到底部');
-      await mid.aiAction('滑动列表到顶部');
-      await mid.aiAction('向下滑动一屏');
-      await mid.aiAction('向上滑动一屏');
+      await agent.aiAction('滑动列表到底部');
+      await agent.aiAction('打开"更多设置"');
+      await agent.aiAction('滑动列表到底部');
+      await agent.aiAction('滑动列表到顶部');
+      await agent.aiAction('向下滑动一屏');
+      await agent.aiAction('向上滑动一屏');
     });
   },
   {
