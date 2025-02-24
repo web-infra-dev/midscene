@@ -49,7 +49,8 @@ await agent.aiAction('Type "JavaScript" into the search box, then click the sear
 // Using the shorthand .ai form
 await agent.ai('Click the login button at the top of the page, then enter "test@example.com" in the username field');
 
-// Complex operation example
+// Complex example of target-oriented prompts from the ui-tars model
+// Other models recommend writing the execution steps for each step
 await agent.aiAction(`
   1. Scroll to the product list
   2. Locate the "Sauce Labs Backpack" item

@@ -49,8 +49,7 @@ await agent.aiAction('在搜索框中输入 "JavaScript"，然后点击搜索按
 
 // 使用 .ai 简写形式
 await agent.ai('点击页面顶部的登录按钮，然后在用户名输入框中输入 "test@example.com"');
-
-// 复杂操作示例
+// 使用 ui-tars 模型的面向目标的复杂提示词示例，其他模型建议为每个步骤编写执行步骤
 await agent.aiAction(`
   1. 滚动到商品列表
   2. 找到 "Sauce Labs Backpack" 商品
