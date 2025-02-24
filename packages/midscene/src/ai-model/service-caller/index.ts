@@ -307,13 +307,8 @@ export async function callToGetJSONObject<T>(
   }
 
   // gpt-4o-2024-05-13 only supports json_object response format
-  if (model === 'gpt-4o-2024-05-13' || !responseFormat) {
+  if (model === 'gpt-4o-2024-05-13') {
     responseFormat = { type: AIResponseFormat.JSON };
-  }
-
-  // ui-tars doesn't support response_format
-  if (model.includes('ui-tars')) {
-    responseFormat = undefined;
   }
 
   const response = await call(messages, AIActionTypeValue, responseFormat);

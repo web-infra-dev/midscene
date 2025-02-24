@@ -30,7 +30,6 @@ import {
   findElementPrompt,
   systemPromptToLocateElement,
 } from './prompt/llm-locator';
-import { systemPromptToAssertForUITars } from './prompt/ui-tars-assertion';
 import {
   describeUserPage,
   distance,
@@ -372,9 +371,9 @@ export async function AiAssert<
 
   const { screenshotBase64 } = context;
 
-  const systemPrompt = getAIConfigInBoolean(MIDSCENE_USE_VLM_UI_TARS)
-    ? systemPromptToAssertForUITars()
-    : systemPromptToAssert();
+  const systemPrompt = systemPromptToAssert({
+    isUITars: getAIConfigInBoolean(MIDSCENE_USE_VLM_UI_TARS),
+  });
 
   const msgs: AIArgs = [
     { role: 'system', content: systemPrompt },
