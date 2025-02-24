@@ -69,6 +69,16 @@ tsx demo-new-tab.ts
 执行脚本和点击插件中的 'Allow connection' 按钮没有顺序要求。
 :::
 
+## 构造器
+
+```typescript
+const agent = new AgentOverChromeBridge();
+```
+
+除了 [普通 Agent 构造器](./api) 的参数，`AgentOverChromeBridge` 还提供了以下参数：
+
+* `closeNewTabsAfterDisconnect?: boolean`: 如果为 true，当桥接断开时，所有新创建的标签页都将被自动关闭。默认值为 false。
+
 ## API
 
 除了 [普通的 Agent 接口](./api)，`AgentOverChromeBridge` 还提供了一些额外的接口来控制桌面 Chrome。
@@ -141,18 +151,21 @@ await agent.connectNewTabWithUrl(
 );
 ```
 
-### `destroy`
+### `destroy()`
 
 销毁连接并释放资源。
 
 * 类型
 
 ```typescript
-function destroy(): Promise<void>;
+function destroy(closeNewTabsAfterDisconnect?: boolean): Promise<void>;
 ```
 
+* 参数：
+  * `closeNewTabsAfterDisconnect?: boolean` - 如果为 true，当桥接断开时，所有新创建的标签页都将被自动关闭。默认值为 false。这个参数将覆盖构造器中的 `closeNewTabsAfterDisconnect` 参数。
+
 * 返回值：
-  * 返回一个 Promise。销毁完成后解析为 void
+  * 返回一个 Promise，销毁完成后解析为 void
 
 * 示例：
 

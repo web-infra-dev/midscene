@@ -28,6 +28,7 @@ export interface MidsceneYamlScriptEnv {
 
   // bridge mode config
   bridgeMode?: false | 'newTabWithUrl' | 'currentTab';
+  closeNewTabsAfterDisconnect?: boolean;
 }
 
 export interface MidsceneYamlFlowItemAIAction {

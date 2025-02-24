@@ -506,13 +506,9 @@ export default class ChromeExtensionProxyPage implements AbstractPage {
     },
   };
 
-  async destroy(destroyOptions?: ChromePageDestroyOptions): Promise<void> {
-    const activeTabId = this.activeTabId;
+  async destroy(): Promise<void> {
     this.activeTabId = null;
     await this.detachDebugger();
     this.destroyed = true;
-    if (destroyOptions?.closeTab && activeTabId) {
-      await chrome.tabs.remove(activeTabId!);
-    }
   }
 }

@@ -14,7 +14,7 @@ you can check the demo project of bridge mode here: [https://github.com/web-infr
 
 ## Preparation
 
-1. Config the OpenAI API key, or [config model and provider](./model-provider)
+1. Config the OpenAI API key, or [Choose a model](./choose-a-model)
 
 ```bash
 # replace with your own
@@ -68,6 +68,16 @@ After executing the script, you should see the status of the Chrome extension sw
 :::info
 ⁠Whether the scripts are run before or after clicking 'Allow connection' in the browser is not significant.
 :::
+
+## Constructor
+
+```typescript
+const agent = new AgentOverChromeBridge();
+```
+
+Except [the normal parameters in the agent constructor](./api), `AgentOverChromeBridge` provides one more parameter:
+
+* `closeNewTabsAfterDisconnect?: boolean`: If true, the newly created tab will be closed when the bridge is destroyed. Default is false.
 
 ## API
 
@@ -140,15 +150,18 @@ await agent.connectNewTabWithUrl(
 );
 ```
 
-### `destroy`
+### `destroy()`
 
 Destroy the connection and release resources.
 
 * Type
 
 ```typescript
-function destroy(): Promise<void>;
+function destroy(closeNewTabsAfterDisconnect?: boolean): Promise<void>;
 ```
+
+* Parameters:
+  * `closeNewTabsAfterDisconnect?: boolean` - If true, the newly created tab will be closed when the bridge is destroyed. Default is false. The will override the `closeNewTabsAfterDisconnect` parameter in the constructor.
 
 * Returns:
   * Returns a Promise that resolves to void when destruction completes
@@ -167,12 +180,15 @@ await agent.destroy();
 
 To use bridge mode in yaml script, set the `bridgeMode` property in the `target` section. If you want to use the current tab, set it to `currentTab`, otherwise set it to `newTabWithUrl`.
 
+Set `closeNewTabsAfterDisconnect` to true if you want to close the newly created tabs when the bridge is destroyed. This is optional and the default value is false.
+
 For example, the following script will open a new tab by Chrome extension bridge: 
 
 ```diff
 target:
   url: https://www.bing.com
 + bridgeMode: newTabWithUrl
++ closeNewTabsAfterDisconnect: true
 tasks:
 ```
 

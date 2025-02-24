@@ -1,5 +1,5 @@
 import { LoadingOutlined } from '@ant-design/icons';
-import { ChromeExtensionPageBrowserSide } from '@midscene/web/bridge-mode-browser';
+import { ExtensionBridgePageBrowserSide } from '@midscene/web/bridge-mode-browser';
 import { Button, Spin } from 'antd';
 import { useEffect, useRef, useState } from 'react';
 import './bridge.less';
@@ -20,7 +20,7 @@ enum BridgeStatus {
 const connectTimeout = 60 * 1000;
 const connectRetryInterval = 300;
 export default function Bridge() {
-  const activeBridgePageRef = useRef<ChromeExtensionPageBrowserSide | null>(
+  const activeBridgePageRef = useRef<ExtensionBridgePageBrowserSide | null>(
     null,
   );
   const allowAutoConnectionRef = useRef(false);
@@ -83,7 +83,7 @@ export default function Bridge() {
           noConnectionTip = 'Listening stopped by user';
           break;
         }
-        const activeBridgePage = new ChromeExtensionPageBrowserSide(
+        const activeBridgePage = new ExtensionBridgePageBrowserSide(
           () => {
             console.log('stopConnection');
             stopConnection();

@@ -86,5 +86,5 @@ export abstract class AbstractPage {
     concurrency?: number;
   }): Promise<void>;
 
-  abstract destroy(): Promise<void>;
+  abstract destroy(options?: ChromePageDestroyOptions): Promise<void>;
 }
