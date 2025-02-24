@@ -130,7 +130,8 @@ By viewing the page screenshot and description, you should consider this and out
 
 * The main steps should be: tap the switch button, sleep, and tap the 'English' option
 * The language switch button is shown in the screenshot, but it's not marked with a rectangle. So we have to use the page description to find the element. By carefully checking the context information (coordinates, attributes, content, etc.), you can find the element.
-* The "English" option button is not shown in the screenshot now, it means it may only show after the previous actions are finished. So put \`null\` in the \`locate\` field of the last action.
+* The "English" option button is not shown in the screenshot now, it means it may only show after the previous actions are finished. So don't plan any action to do this.
+* Log what these action do: Click the language switch button to open the language options. Wait for 1 second.
 * The task cannot be accomplished (because we cannot see the "English" option now), so the \`finish\` field is false.
 
 {{
@@ -149,7 +150,7 @@ By viewing the page screenshot and description, you should consider this and out
   ],
   "error": null,
   "finish": false,
-  "log": "Click the language switch button to open the language options. Wait for 1 second to ensure the language options are displayed",
+  "log": "Click the language switch button to open the language options. Wait for 1 second",
 }}
 
 ### Example: What NOT to do
@@ -279,7 +280,8 @@ export const planSchema: ResponseFormatJSONSchema = {
         },
         log: {
           type: 'string',
-          description: 'Log what these action do',
+          description:
+            'Log what these planned actions do. Do not include further actions that have not been planned.',
         },
         error: {
           type: ['string', 'null'],

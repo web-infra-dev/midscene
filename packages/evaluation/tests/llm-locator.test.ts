@@ -117,8 +117,6 @@ testSources.forEach((source) => {
       await resultCollector.analyze(failCaseThreshold);
       await sleep(3 * 1000);
     },
-    {
-      timeout: 360 * 1000,
-    },
+    360 * 1000,
   );
 });

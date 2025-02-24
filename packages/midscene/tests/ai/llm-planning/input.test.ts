@@ -42,7 +42,7 @@ describe('automation - planning input', () => {
 
     for (const instruction of instructions) {
       const { actions } = await plan(instruction, { context });
-      const res = makePlanResultStable(actions);
+      const res = makePlanResultStable(actions!);
       expect(res).toMatchSnapshot();
     }
   });
@@ -57,7 +57,7 @@ describe('automation - planning input', () => {
 
     for (const instruction of instructions) {
       const { actions } = await plan(instruction, { context });
-      const res = makePlanResultStable(actions);
+      const res = makePlanResultStable(actions!);
       expect(res).toMatchSnapshot();
     }
   });
