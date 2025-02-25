@@ -18,7 +18,7 @@ There are some limitations with Midscene. We are still working on them.
 
 ## Which models are supported?
 
-Of course. Please refer to [Choose a model](./choose-a-model).
+Please refer to [Choose a model](./choose-a-model).
 
 ## What data is sent to AI model?
 
