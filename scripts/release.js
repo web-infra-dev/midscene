@@ -22,7 +22,11 @@ const run = async (bin, args, opts = {}) => {
     }
     return returnValue;
   } catch (error) {
-    console.error(chalk.red(`Error executing command. Please check the logs for more details.`));
+    console.error(
+      chalk.red(
+        'Error executing command. Please check the logs for more details.',
+      ),
+    );
     throw error;
   }
 };
