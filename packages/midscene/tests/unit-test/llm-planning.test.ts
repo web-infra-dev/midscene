@@ -1,4 +1,4 @@
-import { fillLocateParam } from '@/ai-model/llm-planning';
+import { fillLocateParam } from '@/ai-model/common';
 import { describe, expect, it } from 'vitest';
 
 describe('llm planning', () => {

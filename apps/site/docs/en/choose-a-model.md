@@ -31,7 +31,7 @@ GPT-4o is a general-purpose LLM by OpenAI, which supports image input. This is t
 
 - **High token cost**: dom tree and screenshot will be sent together to the model. For example, it will use 6k input tokens for ebay homepage under 1280x800 resolution, and 9k for search result page. As a result, the cost will be higher than other models. And it will also take longer time to generate the response.
 - **Content limitation**: it will not work if the target element is inside a cross-origin `<iframe />` or `<canvas />`.
-- **Low resolution support**: the upper limit of the resolution is 2048 x 768. For images larger than this, the output quality will be lower.
+- **Low resolution support**: the upper limit of the resolution is 2000 x 768. For images larger than this, the output quality will be lower.
 - **Not good at small icon recognition**: it may not work well if the target element is a small icon.
 
 **Config**
