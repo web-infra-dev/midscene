@@ -101,10 +101,9 @@ export async function playYamlFiles(
       }
 
       const agent = new AgentOverChromeBridge({
-        destroyOptions: {
-          closeTab: target.closeNewTabsAfterDisconnect,
-        },
+        closeNewTabsAfterDisconnect: target.closeNewTabsAfterDisconnect,
       });
+
       if (target.bridgeMode === 'newTabWithUrl') {
         await agent.connectNewTabWithUrl(target.url);
       } else {
