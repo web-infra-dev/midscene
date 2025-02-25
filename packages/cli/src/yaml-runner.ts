@@ -100,7 +100,10 @@ export async function playYamlFiles(
         );
       }
 
-      const agent = new AgentOverChromeBridge();
+      const agent = new AgentOverChromeBridge({
+        closeNewTabsAfterDisconnect: target.closeNewTabsAfterDisconnect,
+      });
+
       if (target.bridgeMode === 'newTabWithUrl') {
         await agent.connectNewTabWithUrl(target.url);
       } else {

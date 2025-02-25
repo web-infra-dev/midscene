@@ -8,8 +8,8 @@
 import assert from 'node:assert';
 import type { WebKeyInput } from '@/common/page';
 import { limitOpenNewTabScript } from '@/common/ui-utils';
-import type { AbstractPage } from '@/page';
-import type { BaseElement, ElementTreeNode, Point, Size } from '@midscene/core';
+import type { AbstractPage, ChromePageDestroyOptions } from '@/page';
+import type { ElementTreeNode, Point, Size } from '@midscene/core';
 import type { ElementInfo } from '@midscene/shared/extractor';
 import { treeToList } from '@midscene/shared/extractor';
 import type { Protocol as CDPTypes } from 'devtools-protocol';
@@ -69,6 +69,7 @@ export default class ChromeExtensionProxyPage implements AbstractPage {
     // Create new attaching promise
     this.attachingDebugger = (async () => {
       const url = await this.url();
+      let error: Error | null = null;
       if (url.startsWith('chrome://')) {
         throw new Error(
           'Cannot attach debugger to chrome:// pages, please use Midscene in a normal page with http://, https:// or file://',
@@ -101,6 +102,7 @@ export default class ChromeExtensionProxyPage implements AbstractPage {
         }
 
         // detach any debugger attached to the tab
+        console.log('attaching debugger', currentTabId);
         await chrome.debugger.attach({ tabId: currentTabId }, '1.3');
         // wait util the debugger banner in Chrome appears
         await sleep(500);
@@ -108,10 +110,14 @@ export default class ChromeExtensionProxyPage implements AbstractPage {
         this.tabIdOfDebuggerAttached = currentTabId;
 
         await this.enableWaterFlowAnimation();
-      } catch (error) {
-        console.error('Failed to attach debugger', error);
+      } catch (e) {
+        console.error('Failed to attach debugger', e);
+        error = e as Error;
       } finally {
         this.attachingDebugger = null;
+      }
+      if (error) {
+        throw error;
       }
     })();
 
@@ -146,15 +152,25 @@ export default class ChromeExtensionProxyPage implements AbstractPage {
 
   private async detachDebugger(tabId?: number) {
     const tabIdToDetach = tabId || this.tabIdOfDebuggerAttached;
+    console.log('detaching debugger', tabIdToDetach);
     if (!tabIdToDetach) {
       console.warn('No tab id to detach');
       return;
     }
 
-    await this.disableWaterFlowAnimation(tabIdToDetach);
-    await sleep(200);
-    await chrome.debugger.detach({ tabId: tabIdToDetach });
+    try {
+      await this.disableWaterFlowAnimation(tabIdToDetach);
+      await sleep(200); // wait for the animation to stop
+    } catch (error) {
+      console.warn('Failed to disable water flow animation', error);
+    }
 
+    try {
+      await chrome.debugger.detach({ tabId: tabIdToDetach });
+    } catch (error) {
+      // maybe tab is closed ?
+      console.warn('Failed to detach debugger', error);
+    }
     this.tabIdOfDebuggerAttached = null;
   }
 

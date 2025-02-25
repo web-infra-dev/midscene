@@ -28,6 +28,10 @@ export interface KeyboardAction {
   ) => Promise<void>;
 }
 
+export interface ChromePageDestroyOptions {
+  closeTab?: boolean; // should close the tab when the page object is destroyed
+}
+
 export abstract class AbstractPage {
   abstract pageType: string;
   // @deprecated
@@ -82,5 +86,5 @@ export abstract class AbstractPage {
     concurrency?: number;
   }): Promise<void>;
 
-  abstract destroy(): Promise<void>;
+  abstract destroy(options?: ChromePageDestroyOptions): Promise<void>;
 }
