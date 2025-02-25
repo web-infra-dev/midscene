@@ -158,8 +158,13 @@ export default class ChromeExtensionProxyPage implements AbstractPage {
       return;
     }
 
-    await this.disableWaterFlowAnimation(tabIdToDetach);
-    await sleep(200); // wait for the animation to stop
+    try {
+      await this.disableWaterFlowAnimation(tabIdToDetach);
+      await sleep(200); // wait for the animation to stop
+    } catch (error) {
+      console.warn('Failed to disable water flow animation', error);
+    }
+
     try {
       await chrome.debugger.detach({ tabId: tabIdToDetach });
     } catch (error) {
