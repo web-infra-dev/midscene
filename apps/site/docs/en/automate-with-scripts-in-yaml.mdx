@@ -153,6 +153,9 @@ target:
 
   # string, the bridge mode to use, optional, default is false, can be 'newTabWithUrl' or 'currentTab'. More details see the following section
   bridgeMode: false | 'newTabWithUrl' | 'currentTab'
+
+  # boolean, if close the new tabs after the bridge is disconnected, optional, default is false
+  closeNewTabsAfterDisconnect: <boolean>
 ```
 
 The `tasks` part is an array indicates the tasks to do. Remember to write a `-` before each item which means an array item.
@@ -208,6 +211,14 @@ You can use the environment variable in the `.yaml` file like this:
 ## Use bridge mode
 
 By using bridge mode, you can utilize YAML scripts to automate the web browser on your desktop. This is particularly useful if you want to reuse cookies, plugins, and page states, or if you want to manually interact with automation scripts.
+
+To use bridge mode, you should install the Chrome extension first, and use this configuration in the `target` section:
+
+```diff
+target:
+  url: https://www.bing.com
++ bridgeMode: newTabWithUrl
+```
 
 See [Bridge Mode by Chrome Extension](./bridge-mode-by-chrome-extension) for more details.
 
