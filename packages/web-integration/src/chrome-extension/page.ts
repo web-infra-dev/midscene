@@ -101,6 +101,7 @@ export default class ChromeExtensionProxyPage implements AbstractPage {
         }
 
         // detach any debugger attached to the tab
+        console.log('attaching debugger', currentTabId);
         await chrome.debugger.attach({ tabId: currentTabId }, '1.3');
         // wait util the debugger banner in Chrome appears
         await sleep(500);
@@ -146,14 +147,17 @@ export default class ChromeExtensionProxyPage implements AbstractPage {
 
   private async detachDebugger(tabId?: number) {
     const tabIdToDetach = tabId || this.tabIdOfDebuggerAttached;
+    console.log('detaching debugger', tabIdToDetach);
     if (!tabIdToDetach) {
       console.warn('No tab id to detach');
       return;
     }
 
-    await this.disableWaterFlowAnimation(tabIdToDetach);
-    await sleep(200);
-    await chrome.debugger.detach({ tabId: tabIdToDetach });
+    Promise.all([
+      this.disableWaterFlowAnimation(tabIdToDetach),
+      sleep(200), // wait for the animation to stop
+      chrome.debugger.detach({ tabId: tabIdToDetach }),
+    ]);
 
     this.tabIdOfDebuggerAttached = null;
   }

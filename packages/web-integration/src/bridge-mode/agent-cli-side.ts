@@ -86,7 +86,7 @@ export const getBridgePageInCliSide = (): ChromeExtensionPageCliSide => {
             const caller = bridgeCaller('destroy');
             await caller(...args);
           } catch (e) {
-            console.error('error calling destroy', e);
+            // console.error('error calling destroy', e);
           }
           return server.close();
         };

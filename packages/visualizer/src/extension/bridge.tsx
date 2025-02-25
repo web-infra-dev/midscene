@@ -11,26 +11,97 @@ interface BridgeLogItem {
   content: string;
 }
 
-enum BridgeStatus {
-  Closed = 'closed',
-  OpenForConnection = 'open-for-connection',
-  Connected = 'connected',
+const connectRetryInterval = 300;
+
+type BridgeStatus =
+  | 'listening'
+  | 'connected'
+  | 'disconnected' /* disconnected unintentionally */
+  | 'closed';
+
+class BridgeConnector {
+  status: BridgeStatus = 'closed';
+
+  activeBridgePage: ExtensionBridgePageBrowserSide | null = null;
+
+  constructor(
+    private onMessage: (message: string, type: 'log' | 'status') => void,
+    private onBridgeStatusChange: (status: BridgeStatus) => void,
+  ) {
+    this.status = 'closed';
+  }
+
+  setStatus(status: BridgeStatus) {
+    this.status = status;
+    this.onBridgeStatusChange(status);
+  }
+
+  keepListening() {
+    if (this.status === 'listening' || this.status === 'connected') {
+      return;
+    }
+
+    this.setStatus('listening');
+
+    Promise.resolve().then(async () => {
+      while (true) {
+        if (this.status === 'connected') {
+          await new Promise((resolve) => setTimeout(resolve, 1000));
+          continue;
+        }
+
+        if (this.status === 'closed') {
+          break;
+        }
+
+        if (this.status !== 'listening' && this.status !== 'disconnected') {
+          throw new Error(`unexpected status: ${this.status}`);
+        }
+
+        let activeBridgePage: ExtensionBridgePageBrowserSide | null = null;
+        try {
+          activeBridgePage = new ExtensionBridgePageBrowserSide(() => {
+            if (this.status !== 'closed') {
+              this.setStatus('disconnected');
+              this.activeBridgePage = null;
+            }
+          }, this.onMessage);
+          await activeBridgePage.connect();
+          this.activeBridgePage = activeBridgePage;
+
+          this.setStatus('connected');
+        } catch (e) {
+          this.activeBridgePage = null;
+          console.warn('failed to setup connection', e);
+          await new Promise((resolve) =>
+            setTimeout(resolve, connectRetryInterval),
+          );
+        }
+      }
+    });
+  }
+
+  async stopListening() {
+    if (this.status !== 'listening') {
+      console.warn('Cannot stop listening if not listening');
+      return;
+    }
+
+    if (this.activeBridgePage) {
+      await this.activeBridgePage.destroy();
+      this.activeBridgePage = null;
+    }
+
+    this.setStatus('closed');
+  }
 }
 
-const connectTimeout = 60 * 1000;
-const connectRetryInterval = 300;
 export default function Bridge() {
-  const activeBridgePageRef = useRef<ExtensionBridgePageBrowserSide | null>(
-    null,
-  );
-  const allowAutoConnectionRef = useRef(false);
-
-  const [bridgeStatus, setBridgeStatus] = useState<BridgeStatus>(
-    BridgeStatus.Closed,
-  );
+  const [bridgeStatus, setBridgeStatus] = useState<BridgeStatus>('closed');
+  const [taskStatus, setTaskStatus] = useState<string>('');
 
   const [bridgeLog, setBridgeLog] = useState<BridgeLogItem[]>([]);
-  const [bridgeAgentStatus, setBridgeAgentStatus] = useState<string>('');
+
   const appendBridgeLog = (content: string) => {
     setBridgeLog((prev) => [
       ...prev,
@@ -41,132 +112,73 @@ export default function Bridge() {
     ]);
   };
 
-  const destroyBridgePage = () => {};
+  const activeBridgeConnectorRef = useRef<BridgeConnector | null>(
+    new BridgeConnector(
+      (message, type) => {
+        appendBridgeLog(message);
+        if (type === 'status') {
+          console.log('status tip changed event', type, message);
+          setTaskStatus(message);
+        }
+      },
+      (status) => {
+        console.log('status changed event', status);
+        setTaskStatus('');
+        setBridgeStatus(status);
+      },
+    ),
+  );
 
   useEffect(() => {
     return () => {
-      destroyBridgePage();
+      activeBridgeConnectorRef.current?.stopListening();
     };
   }, []);
 
   const stopConnection = () => {
-    if (activeBridgePageRef.current) {
-      appendBridgeLog('Bridge disconnected');
-      activeBridgePageRef.current.destroy();
-      activeBridgePageRef.current = null;
-    }
-    setBridgeStatus(BridgeStatus.Closed);
+    activeBridgeConnectorRef.current?.stopListening();
   };
 
-  const stopListeningFlag = useRef(false);
-  const stopListening = () => {
-    allowAutoConnectionRef.current = false;
-    stopListeningFlag.current = true;
+  const startConnection = async () => {
+    activeBridgeConnectorRef.current?.keepListening();
   };
 
-  const startConnection = async (timeout = connectTimeout) => {
-    if (activeBridgePageRef.current) {
-      console.error('activeBridgePage', activeBridgePageRef.current);
-      throw new Error('There is already a connection, cannot start a new one');
-    }
-    const startTime = Date.now();
-    setBridgeAgentStatus('');
-    appendBridgeLog('Listening for connection...');
-    setBridgeStatus(BridgeStatus.OpenForConnection);
-    stopListeningFlag.current = false;
-
-    let noConnectionTip = 'No connection found within timeout';
-    console.log('startConnection');
-    while (true) {
-      try {
-        if (stopListeningFlag.current) {
-          noConnectionTip = 'Listening stopped by user';
-          break;
-        }
-        const activeBridgePage = new ExtensionBridgePageBrowserSide(
-          () => {
-            console.log('stopConnection');
-            stopConnection();
-            if (allowAutoConnectionRef.current) {
-              setTimeout(() => {
-                startConnection();
-              }, connectRetryInterval);
-            }
-          },
-          (message, type) => {
-            appendBridgeLog(message);
-            if (type === 'status') {
-              setBridgeAgentStatus(message);
-            }
-          },
-        );
-        await activeBridgePage.connect();
-        activeBridgePageRef.current = activeBridgePage;
-        setBridgeStatus(BridgeStatus.Connected);
-        return;
-      } catch (e) {
-        console.warn('failed to setup connection', e);
-      }
-      console.log('will retry...');
-      await new Promise((resolve) => setTimeout(resolve, connectRetryInterval));
-    }
-
-    setBridgeStatus(BridgeStatus.Closed);
-    appendBridgeLog(noConnectionTip);
-  };
-
-  let statusElement: any;
+  let statusIcon: any;
+  let statusTip: string;
   let statusBtn: any;
   if (bridgeStatus === 'closed') {
-    statusElement = (
-      <span>
-        {iconForStatus('closed')}
-        {'  '}
-        Closed
-      </span>
-    );
+    statusIcon = iconForStatus('closed');
+    statusTip = 'Closed';
     statusBtn = (
       <Button
         type="primary"
         onClick={() => {
-          allowAutoConnectionRef.current = true;
           startConnection();
         }}
       >
         Allow connection
       </Button>
     );
-  } else if (bridgeStatus === 'open-for-connection') {
-    statusElement = (
-      <span>
-        <Spin indicator={<LoadingOutlined spin />} size="small" />
-        {'  '}
-        <span style={{ marginLeft: '6px', display: 'inline-block' }}>
-          Listening for connection...
-        </span>
-      </span>
+  } else if (bridgeStatus === 'listening' || bridgeStatus === 'disconnected') {
+    statusIcon = (
+      <Spin
+        className="bridge-status-icon"
+        indicator={<LoadingOutlined spin />}
+        size="small"
+      />
     );
-    statusBtn = <Button onClick={stopListening}>Stop</Button>;
+    statusTip =
+      bridgeStatus === 'listening'
+        ? 'Listening for connection...'
+        : 'Disconnected, listening for a new connection...';
+    statusBtn = <Button onClick={stopConnection}>Stop</Button>;
   } else if (bridgeStatus === 'connected') {
-    statusElement = (
-      <span>
-        {iconForStatus('connected')}
-        {'  '}
-        Connected
-        <span
-          style={{
-            marginLeft: '6px',
-            display: bridgeAgentStatus ? 'inline-block' : 'none',
-          }}
-        >
-          - {bridgeAgentStatus}
-        </span>
-      </span>
-    );
+    statusIcon = iconForStatus('connected');
+    statusTip = taskStatus ? `Connected - ${taskStatus}` : 'Connected';
+
     statusBtn = (
       <Button
         onClick={() => {
-          allowAutoConnectionRef.current = false;
           stopConnection();
         }}
       >
@@ -174,17 +186,9 @@ export default function Bridge() {
       </Button>
     );
   } else {
-    statusElement = <span>Unknown Status - {bridgeStatus}</span>;
-    statusBtn = (
-      <Button
-        onClick={() => {
-          allowAutoConnectionRef.current = false;
-          stopConnection();
-        }}
-      >
-        Stop
-      </Button>
-    );
+    statusIcon = iconForStatus('failed');
+    statusTip = `Unknown Status - ${bridgeStatus}`;
+    statusBtn = null;
   }
 
   const logs = [...bridgeLog].reverse().map((log, index) => {
@@ -222,7 +226,10 @@ export default function Bridge() {
         <div className="form-part">
           <h3>Bridge Status</h3>
           <div className="bridge-status-bar">
-            <div className="bridge-status-text">{statusElement}</div>
+            <div className="bridge-status-text">
+              <span className="bridge-status-icon">{statusIcon}</span>
+              <span className="bridge-status-tip">{statusTip}</span>
+            </div>
             <div className="bridge-status-btn">{statusBtn}</div>
           </div>
         </div>
