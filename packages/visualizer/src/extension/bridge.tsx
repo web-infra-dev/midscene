@@ -81,9 +81,9 @@ class BridgeConnector {
     });
   }
 
-  async stopListening() {
-    if (this.status !== 'listening') {
-      console.warn('Cannot stop listening if not listening');
+  async stopConnection() {
+    if (this.status === 'closed') {
+      console.warn('Cannot stop connection if not connected');
       return;
     }
 
@@ -125,18 +125,21 @@ export default function Bridge() {
         console.log('status changed event', status);
         setTaskStatus('');
         setBridgeStatus(status);
+        if (status !== 'connected') {
+          appendBridgeLog(`Bridge status changed to ${status}`);
+        }
       },
     ),
   );
 
   useEffect(() => {
     return () => {
-      activeBridgeConnectorRef.current?.stopListening();
+      activeBridgeConnectorRef.current?.stopConnection();
     };
   }, []);
 
   const stopConnection = () => {
-    activeBridgeConnectorRef.current?.stopListening();
+    activeBridgeConnectorRef.current?.stopConnection();
   };
 
   const startConnection = async () => {

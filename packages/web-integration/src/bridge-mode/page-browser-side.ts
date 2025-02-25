@@ -158,6 +158,8 @@ export class ExtensionBridgePageBrowserSide extends ChromeExtensionProxyPage {
       this.newlyCreatedTabIds = [];
     }
 
+    await super.destroy();
+
     if (this.bridgeClient) {
       this.bridgeClient.disconnect();
       this.bridgeClient = null;

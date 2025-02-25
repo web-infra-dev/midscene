@@ -69,6 +69,7 @@ export default class ChromeExtensionProxyPage implements AbstractPage {
     // Create new attaching promise
     this.attachingDebugger = (async () => {
       const url = await this.url();
+      let error: Error | null = null;
       if (url.startsWith('chrome://')) {
         throw new Error(
           'Cannot attach debugger to chrome:// pages, please use Midscene in a normal page with http://, https:// or file://',
@@ -109,10 +110,14 @@ export default class ChromeExtensionProxyPage implements AbstractPage {
         this.tabIdOfDebuggerAttached = currentTabId;
 
         await this.enableWaterFlowAnimation();
-      } catch (error) {
-        console.error('Failed to attach debugger', error);
+      } catch (e) {
+        console.error('Failed to attach debugger', e);
+        error = e as Error;
       } finally {
         this.attachingDebugger = null;
+      }
+      if (error) {
+        throw error;
       }
     })();
 
@@ -153,12 +158,14 @@ export default class ChromeExtensionProxyPage implements AbstractPage {
       return;
     }
 
-    Promise.all([
-      this.disableWaterFlowAnimation(tabIdToDetach),
-      sleep(200), // wait for the animation to stop
-      chrome.debugger.detach({ tabId: tabIdToDetach }),
-    ]);
-
+    await this.disableWaterFlowAnimation(tabIdToDetach);
+    await sleep(200); // wait for the animation to stop
+    try {
+      await chrome.debugger.detach({ tabId: tabIdToDetach });
+    } catch (error) {
+      // maybe tab is closed ?
+      console.warn('Failed to detach debugger', error);
+    }
     this.tabIdOfDebuggerAttached = null;
   }
 
