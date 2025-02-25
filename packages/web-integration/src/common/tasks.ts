@@ -439,10 +439,12 @@ export class PageTaskExecutor {
             type: 'Action',
             subType: 'Error',
             param: plan.param,
-            thought: plan.thought,
+            thought: plan.thought || plan.param?.thought,
             locate: plan.locate,
             executor: async () => {
-              throw new Error(plan?.thought || 'error without thought');
+              throw new Error(
+                plan?.thought || plan.param?.thought || 'error without thought',
+              );
             },
           };
         tasks.push(taskActionError);
