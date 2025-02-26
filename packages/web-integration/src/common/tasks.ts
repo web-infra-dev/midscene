@@ -572,20 +572,28 @@ export class PageTaskExecutor {
               return acc;
             }
             acc.push(planningAction);
-
-            if (planResult.sleep) {
-              acc.push({
-                type: 'Sleep',
-                param: {
-                  timeMs: planResult.sleep,
-                },
-                locate: null,
-              } as PlanningAction<PlanningActionParamSleep>);
-            }
             return acc;
           },
           [],
         );
+
+        if (sleep) {
+          const timeNow = Date.now();
+          const timeRemaining = sleep - (timeNow - shotTime);
+          if (timeRemaining > 0) {
+            finalActions.push({
+              type: 'Sleep',
+              param: {
+                timeMs: timeRemaining,
+              },
+              locate: null,
+            } as PlanningAction<PlanningActionParamSleep>);
+          } else {
+            // console.warn(
+            //   `sleep time is negative, sleep: ${sleep}, timeNow: ${timeNow}, shotTime: ${shotTime}`,
+            // );
+          }
+        }
 
         if (finalActions.length === 0) {
           assert(
