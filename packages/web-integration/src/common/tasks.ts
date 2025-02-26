@@ -588,10 +588,6 @@ export class PageTaskExecutor {
               },
               locate: null,
             } as PlanningAction<PlanningActionParamSleep>);
-          } else {
-            // console.warn(
-            //   `sleep time is negative, sleep: ${sleep}, timeNow: ${timeNow}, shotTime: ${shotTime}`,
-            // );
           }
         }
 
