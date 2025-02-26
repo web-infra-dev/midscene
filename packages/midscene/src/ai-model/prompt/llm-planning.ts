@@ -9,15 +9,17 @@ import { samplePageDescription } from './util';
 
 // Note: put the log field first to trigger the CoT
 const commonOutputFields = `"log": string, // Log what the action(s) do. Use the same language as the user's instruction.
-  "finish": boolean, // If all the actions described in the instruction have been covered by this action and logs, set this field to true.
+  "more_actions_needed_by_instruction": boolean, // If all the actions described in the instruction have been covered by this action and logs, set this field to true.
   "error"?: string // Error messages about unexpected situations, if any. Use the same language as the user's instruction.`;
 
 const qwenLocateParam =
   'locate: {bbox_2d: [number, number, number, number], prompt: string }';
 
 const systemTemplateOfQwen = `
-Target: User will give you a screenshot, an instruction and some previous logs indicating what have been done. Please tell what the NEXT action is to finish the instruction.
-Don't give extra actions beyond the instruction. Don't repeat actions in the previous logs.
+Target: User will give you a screenshot, an instruction and some previous logs indicating what have been done. Please tell what the NEXT action is to do the tasks the instruction requires.
+Restriction:
+- Don't give extra actions or plans beyond the instruction. ONLY plan for what the instruction requires. For example, don't try to submit the form if the instruction is only to fill something.
+- Don't repeat actions in the previous logs.
 
 Supporting actions:
 - Tap: { type: "Tap", ${qwenLocateParam} }

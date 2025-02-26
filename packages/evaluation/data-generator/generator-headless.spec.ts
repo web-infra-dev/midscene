@@ -95,6 +95,18 @@ test('antd widget - carousel', async ({ page }) => {
   );
 });
 
+test('antd widget - form', async ({ page }) => {
+  const playwrightPage = new PlaywrightWebPage(page);
+
+  await page.setViewportSize({ width: 1400, height: 1080 });
+  await page.goto(
+    'https://ant-design.antgroup.com/components/form-cn#form-demo-register',
+  );
+  await page.waitForLoadState('networkidle');
+
+  await generateExtractData(playwrightPage, generateTestDataPath('antd-form'));
+});
+
 test('heytea online order', async ({ page, ai }) => {
   const playwrightPage = new PlaywrightWebPage(page);
 

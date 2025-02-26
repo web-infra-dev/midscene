@@ -72,8 +72,13 @@ export async function plan(
 
   const actions =
     (planFromAI.action?.type ? [planFromAI.action] : planFromAI.actions) || [];
+  const finish =
+    typeof planFromAI.finish === 'boolean'
+      ? planFromAI.finish
+      : !planFromAI.more_actions_needed_by_instruction;
   const returnValue: PlanningAIResponse = {
     ...planFromAI,
+    finish,
     actions,
     rawResponse,
     usage,

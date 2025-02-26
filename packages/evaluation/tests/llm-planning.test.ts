@@ -74,14 +74,12 @@ describe.skipIf(vlMode)('ai planning - by element', () => {
         await resultCollector.analyze(failCaseThreshold);
         await sleep(3 * 1000);
       },
-      {
-        timeout: 240 * 1000,
-      },
+      240 * 1000,
     );
   });
 });
 
-const vlCases = ['todo-vl'];
+const vlCases = ['todo-vl', 'aweme-login-vl', 'antd-form-vl'];
 
 describe.skipIf(!vlMode)('ai planning - by coordinates', () => {
   vlCases.forEach((source) => {
@@ -125,9 +123,7 @@ describe.skipIf(!vlMode)('ai planning - by coordinates', () => {
         await resultCollector.analyze(failCaseThreshold);
         await sleep(3 * 1000);
       },
-      {
-        timeout: 240 * 1000,
-      },
+      240 * 1000,
     );
   });
 });

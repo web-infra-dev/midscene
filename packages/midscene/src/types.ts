@@ -267,6 +267,7 @@ export interface PlanningAction<ParamType = any> {
 export interface PlanningAIResponse {
   action?: PlanningAction; // this is the qwen mode
   actions?: PlanningAction[];
+  more_actions_needed_by_instruction?: boolean;
   finish: boolean;
   log: string;
   sleep?: number;
