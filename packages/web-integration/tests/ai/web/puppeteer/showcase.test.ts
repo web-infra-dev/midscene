@@ -46,7 +46,7 @@ describe(
       console.log('item list', items);
       expect(items.length).toBeGreaterThanOrEqual(2);
 
-      await agent.aiAssert('The price of "Sauce Labs Onesie" is 7.99');
+      await agent.aiAssert('The price of "Sauce Labs Backpack" is 29.99');
     });
 
     it('extract the Github service status', async () => {
