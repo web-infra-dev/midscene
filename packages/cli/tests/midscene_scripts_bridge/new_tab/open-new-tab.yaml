@@ -1,7 +1,9 @@
 target:
   url: https://www.bing.com
-  bridgeMode: newTabWithUrl
   forceSameTabNavigation: true
+  bridgeMode: newTabWithUrl
+  closeNewTabsAfterDisconnect: true
+
 tasks:
   - name: search weather
     flow:

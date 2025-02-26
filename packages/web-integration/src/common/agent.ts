@@ -14,7 +14,6 @@ import { NodeType } from '@midscene/shared/constants';
 import { ScriptPlayer, parseYamlScript } from '@/yaml';
 import {
   MATCH_BY_POSITION,
-  MIDSCENE_USE_QWEN_VL,
   MIDSCENE_USE_VLM_UI_TARS,
   getAIConfig,
   getAIConfigInBoolean,

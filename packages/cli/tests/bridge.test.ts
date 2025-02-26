@@ -1,9 +1,5 @@
-import { join } from 'node:path';
-import { matchYamlFiles } from '@/cli-utils';
-import { launchServer } from '@/yaml-runner';
 import { execa } from 'execa';
-import { describe, expect, test } from 'vitest';
-const serverRoot = join(__dirname, 'server_root');
+import { describe, test } from 'vitest';
 const cliBin = require.resolve('../bin/midscene');
 
 const describeIf = process.env.BRIDGE_MODE ? describe : describe.skip;
@@ -11,7 +7,7 @@ const describeIf = process.env.BRIDGE_MODE ? describe : describe.skip;
 describeIf(
   'bridge',
   {
-    timeout: 1000 * 60 * 10,
+    timeout: 1000 * 60 * 3,
   },
   () => {
     test('open new tab', async () => {
