@@ -53,9 +53,15 @@ Promise.resolve(
 );
 ```
 
-## 第三步：运行脚本
+## 第三步：启动 Chrome 插件
 
-启动你的桌面 Chrome。启动 Midscene 插件，并切换到 'Bridge Mode' 标签页。点击 "Allow connection"。
+启动你的桌面 Chrome 和 Midscene 插件，并切换到 'Bridge Mode' 标签页。点击 "Allow connection"。
+
+<p align="center">
+  <img src="/bridge_in_extension.jpg" alt="bridge in extension" width="400"/>
+</p>
+
+## 第四步：运行脚本
 
 运行你的脚本
 
@@ -81,7 +87,7 @@ const agent = new AgentOverChromeBridge();
 
 * `closeNewTabsAfterDisconnect?: boolean`: 如果为 true，当桥接断开时，所有新创建的标签页都将被自动关闭。默认值为 false。
 
-## API
+## 方法
 
 除了 [普通的 Agent 接口](./api)，`AgentOverChromeBridge` 还提供了一些额外的接口来控制桌面 Chrome。
 

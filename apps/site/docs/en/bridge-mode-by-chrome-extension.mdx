@@ -53,9 +53,15 @@ Promise.resolve(
 );
 ```
 
-## Step 3. run
+## Step 3. start the chrome extension
 
-Launch your desktop Chrome. Start Midscene extension and switch to 'Bridge Mode' tab. Click "Allow connection".
+Start the chrome extension and switch to 'Bridge Mode' tab. Click "Allow connection".
+
+<p align="center">
+  <img src="/bridge_in_extension.jpg" alt="bridge in extension" width="400"/>
+</p>
+
+## Step 4. run the script
 
 Run your scripts
 
@@ -65,7 +71,7 @@ tsx demo-new-tab.ts
 
 After executing the script, you should see the status of the Chrome extension switched to 'connected', and a new tab has been opened. Now this tab is controlled by your scripts.
 
-:::info
+:::tip
 ⁠Whether the scripts are run before or after clicking 'Allow connection' in the browser is not significant.
 :::
 
@@ -81,7 +87,7 @@ Except [the normal parameters in the agent constructor](./api), `AgentOverChrome
 
 * `closeNewTabsAfterDisconnect?: boolean`: If true, the newly created tab will be closed when the bridge is destroyed. Default is false.
 
-## API
+## Methods
 
 Except [the normal agent interface](./api), `AgentOverChromeBridge` provides some other interfaces to control the desktop Chrome.
 
