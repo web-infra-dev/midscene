@@ -205,10 +205,10 @@ ${errorMsg ? `Error: ${errorMsg}` : ''}
 
       // check step names and order
       const steps =
-        expected?.actions.map((action) => {
+        expected?.actions!.map((action) => {
           return action.type;
         }) || [];
-      const actualActions = result.actions.map((action) => {
+      const actualActions = result.actions!.map((action) => {
         return action.type;
       });
       // tell if steps and actualActions are the same

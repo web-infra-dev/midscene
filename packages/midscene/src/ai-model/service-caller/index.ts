@@ -20,6 +20,7 @@ import {
   MIDSCENE_AZURE_OPENAI_INIT_CONFIG_JSON,
   MIDSCENE_AZURE_OPENAI_SCOPE,
   MIDSCENE_DEBUG_AI_PROFILE,
+  MIDSCENE_DEBUG_AI_RESPONSE,
   MIDSCENE_LANGSMITH_DEBUG,
   MIDSCENE_MODEL_NAME,
   MIDSCENE_OPENAI_INIT_CONFIG_JSON,
@@ -191,8 +192,10 @@ export async function call(
   const { completion, style } = await createChatClient({
     AIActionTypeValue,
   });
-  const shouldPrintTiming =
-    typeof getAIConfig(MIDSCENE_DEBUG_AI_PROFILE) === 'string';
+  const shouldPrintTiming = getAIConfigInBoolean(MIDSCENE_DEBUG_AI_PROFILE);
+  const shouldPrintAIResponse = getAIConfigInBoolean(
+    MIDSCENE_DEBUG_AI_RESPONSE,
+  );
 
   const maxTokens = getAIConfig(OPENAI_MAX_TOKENS);
 
@@ -229,11 +232,13 @@ export async function call(
         `${Date.now() - startTime}ms`,
         result._request_id || '',
       );
+
     assert(
       result.choices,
       `invalid response from LLM service: ${JSON.stringify(result)}`,
     );
     content = result.choices[0].message.content!;
+    shouldPrintAIResponse && console.log('Midscene - AI response', content);
     assert(content, 'empty content');
     usage = result.usage;
     // console.log('headers', result.headers);

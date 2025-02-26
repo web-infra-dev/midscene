@@ -69,8 +69,9 @@ export async function plan(
   const { content, usage } = await call(msgs, AIActionType.PLAN);
   const rawResponse = JSON.stringify(content, undefined, 2);
   const planFromAI = content;
+
   const actions =
-    (planFromAI.action ? [planFromAI.action] : planFromAI.actions) || [];
+    (planFromAI.action?.type ? [planFromAI.action] : planFromAI.actions) || [];
   const returnValue: PlanningAIResponse = {
     ...planFromAI,
     actions,
@@ -88,7 +89,7 @@ export async function plan(
 
   assert(planFromAI, "can't get plans from AI");
   assert(
-    actions.length > 0 || returnValue.finish,
+    actions.length > 0 || returnValue.finish || returnValue.sleep,
     `Failed to plan actions: ${planFromAI.error || '(no error details)'}`,
   );
 

@@ -7,7 +7,8 @@
         "action": {
           "type": "Input",
           "locate": {
-            "bbox": [516, 129, 1074, 198]
+            "prompt": "input box for adding a new todo",
+            "bbox": [513, 127, 1068, 194]
           },
           "param": {
             "value": "hello"
@@ -20,18 +21,19 @@
           {
             "type": "Input",
             "locate": {
-              "bbox": [516, 129, 1074, 198]
+              "prompt": "input box for adding a new todo",
+              "bbox": [513, 127, 1068, 194]
             },
             "param": {
               "value": "hello"
             }
           }
         ],
-        "rawResponse": "{\n  \"action\": {\n    \"type\": \"Input\",\n    \"locate\": {\n      \"bbox\": [\n        516,\n        129,\n        1074,\n        198\n      ]\n    },\n    \"param\": {\n      \"value\": \"hello\"\n    }\n  },\n  \"sleep\": 5000,\n  \"finish\": false,\n  \"log\": \"type 'hello' in the input box and sleep for 5 seconds.\"\n}",
+        "rawResponse": "{\n  \"action\": {\n    \"type\": \"Input\",\n    \"locate\": {\n      \"bbox_2d\": [\n        513,\n        127,\n        1068,\n        194\n      ],\n      \"prompt\": \"input box for adding a new todo\"\n    },\n    \"param\": {\n      \"value\": \"hello\"\n    }\n  },\n  \"sleep\": 5000,\n  \"finish\": false,\n  \"log\": \"type 'hello' in the input box and sleep for 5 seconds.\"\n}",
         "usage": {
-          "prompt_tokens": 1703,
-          "completion_tokens": 92,
-          "total_tokens": 1795
+          "prompt_tokens": 1751,
+          "completion_tokens": 118,
+          "total_tokens": 1869
         }
       }
     },
@@ -45,7 +47,7 @@
           }
         },
         "finish": true,
-        "log": "There are only three entries, not four. No action needed.",
+        "log": "There are only three entries, so no action is needed.",
         "error": "The condition of having four entries is not met.",
         "actions": [
           {
@@ -55,11 +57,11 @@
             }
           }
         ],
-        "rawResponse": "{\n  \"action\": {\n    \"type\": \"ExpectedFalsyCondition\",\n    \"param\": {\n      \"reason\": \"There are only three entries, not four.\"\n    }\n  },\n  \"finish\": true,\n  \"log\": \"There are only three entries, not four. No action needed.\",\n  \"error\": \"The condition of having four entries is not met.\"\n}",
+        "rawResponse": "{\n  \"action\": {\n    \"type\": \"ExpectedFalsyCondition\",\n    \"param\": {\n      \"reason\": \"There are only three entries, not four.\"\n    }\n  },\n  \"finish\": true,\n  \"log\": \"There are only three entries, so no action is needed.\",\n  \"error\": \"The condition of having four entries is not met.\"\n}",
         "usage": {
-          "prompt_tokens": 1706,
-          "completion_tokens": 78,
-          "total_tokens": 1784
+          "prompt_tokens": 1754,
+          "completion_tokens": 77,
+          "total_tokens": 1831
         }
       }
     },
@@ -86,9 +88,45 @@
         ],
         "rawResponse": "{\n  \"action\": {\n    \"type\": \"KeyboardPress\",\n    \"param\": {\n      \"value\": \"Enter\"\n    }\n  },\n  \"sleep\": null,\n  \"finish\": true,\n  \"log\": \"hit enter after typing 'hello' in the input box.\"\n}",
         "usage": {
-          "prompt_tokens": 1744,
-          "completion_tokens": 60,
-          "total_tokens": 1804
+          "prompt_tokens": 1792,
+          "completion_tokens": 64,
+          "total_tokens": 1856
+        }
+      }
+    },
+    {
+      "prompt": "type 'hello' in the input box",
+      "response_planning": {
+        "action": {
+          "type": "Input",
+          "locate": {
+            "prompt": "input box for adding a new todo",
+            "bbox": [513, 127, 1068, 194]
+          },
+          "param": {
+            "value": "hello"
+          }
+        },
+        "sleep": 500,
+        "finish": true,
+        "log": "type 'hello' in the input box",
+        "actions": [
+          {
+            "type": "Input",
+            "locate": {
+              "prompt": "input box for adding a new todo",
+              "bbox": [513, 127, 1068, 194]
+            },
+            "param": {
+              "value": "hello"
+            }
+          }
+        ],
+        "rawResponse": "{\n  \"action\": {\n    \"type\": \"Input\",\n    \"locate\": {\n      \"bbox_2d\": [\n        513,\n        127,\n        1068,\n        194\n      ],\n      \"prompt\": \"input box for adding a new todo\"\n    },\n    \"param\": {\n      \"value\": \"hello\"\n    }\n  },\n  \"sleep\": 500,\n  \"finish\": true,\n  \"log\": \"type 'hello' in the input box\"\n}",
+        "usage": {
+          "prompt_tokens": 1743,
+          "completion_tokens": 111,
+          "total_tokens": 1854
         }
       }
     }
