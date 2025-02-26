@@ -39,6 +39,7 @@ Midscene 默认集成了 OpenAI SDK 调用 AI 服务。使用这个 SDK 限定�
 | `MIDSCENE_OPENAI_SOCKS_PROXY` | 可选。代理配置 (如 "socks5://127.0.0.1:1080") |
 | `OPENAI_MAX_TOKENS` | 可选。模型响应的 max_tokens 数 |
 | `MIDSCENE_DEBUG_AI_PROFILE` | 可选。设置为 "1" 以打印 AI token 使用情况和响应时间 |
+| `MIDSCENE_DEBUG_AI_RESPONSE` | 可选。设置为 "1" 以打印 AI 响应内容 |
 
 ## 两种配置环境变量的方式
 
