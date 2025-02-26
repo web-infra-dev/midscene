@@ -7,8 +7,9 @@ import { PromptTemplate } from '@langchain/core/prompts';
 import type { ResponseFormatJSONSchema } from 'openai/resources';
 import { samplePageDescription } from './util';
 
-const commonOutputFields = `"finish": boolean, // If all the actions described in the instruction have been covered by this action and logs, set this field to true.
-  "log": string, // Log what the action(s) do. Use the same language as the user's instruction.
+// Note: put the log field first to trigger the CoT
+const commonOutputFields = `"log": string, // Log what the action(s) do. Use the same language as the user's instruction.
+  "finish": boolean, // If all the actions described in the instruction have been covered by this action and logs, set this field to true.
   "error"?: string // Error messages about unexpected situations, if any. Use the same language as the user's instruction.`;
 
 const qwenLocateParam =

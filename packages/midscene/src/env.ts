@@ -4,6 +4,7 @@ export const MIDSCENE_OPENAI_INIT_CONFIG_JSON =
 export const MIDSCENE_MODEL_NAME = 'MIDSCENE_MODEL_NAME';
 export const MIDSCENE_LANGSMITH_DEBUG = 'MIDSCENE_LANGSMITH_DEBUG';
 export const MIDSCENE_DEBUG_AI_PROFILE = 'MIDSCENE_DEBUG_AI_PROFILE';
+export const MIDSCENE_DEBUG_AI_RESPONSE = 'MIDSCENE_DEBUG_AI_RESPONSE';
 export const MIDSCENE_DANGEROUSLY_PRINT_ALL_CONFIG =
   'MIDSCENE_DANGEROUSLY_PRINT_ALL_CONFIG';
 export const MIDSCENE_DEBUG_MODE = 'MIDSCENE_DEBUG_MODE';
@@ -45,6 +46,8 @@ const allConfigFromEnv = () => {
       process.env[MIDSCENE_LANGSMITH_DEBUG] || undefined,
     [MIDSCENE_DEBUG_AI_PROFILE]:
       process.env[MIDSCENE_DEBUG_AI_PROFILE] || undefined,
+    [MIDSCENE_DEBUG_AI_RESPONSE]:
+      process.env[MIDSCENE_DEBUG_AI_RESPONSE] || undefined,
     [MIDSCENE_DANGEROUSLY_PRINT_ALL_CONFIG]:
       process.env[MIDSCENE_DANGEROUSLY_PRINT_ALL_CONFIG] || undefined,
     [OPENAI_API_KEY]: process.env[OPENAI_API_KEY] || undefined,
@@ -95,8 +98,8 @@ export const getAIConfig = (
 };
 
 export const getAIConfigInBoolean = (configKey: keyof typeof userConfig) => {
-  const config = getAIConfig(configKey);
-  return config === 'true' || config === '1';
+  const config = getAIConfig(configKey) || '';
+  return /^(true|1)$/i.test(config);
 };
 
 export const getAIConfigInJson = (configKey: keyof typeof userConfig) => {
