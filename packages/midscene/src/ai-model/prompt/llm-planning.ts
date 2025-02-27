@@ -8,7 +8,7 @@ import type { ResponseFormatJSONSchema } from 'openai/resources';
 import { samplePageDescription } from './util';
 
 // Note: put the log field first to trigger the CoT
-const commonOutputFields = `"log": string, // Log what the action(s) do. Use the same language as the user's instruction.
+const commonOutputFields = `"log": string, // Log what this action(s) you just planned do. Use the same language as the user's instruction.
   "more_actions_needed_by_instruction": boolean, // If all the actions described in the instruction have been covered by this action and logs, set this field to true.
   "error"?: string // Error messages about unexpected situations, if any. Use the same language as the user's instruction.`;
 
@@ -29,7 +29,8 @@ Supporting actions:
 - Scroll: { type: "Scroll", ${qwenLocateParam} | null, param: { direction: 'down'(default) | 'up' | 'right' | 'left', scrollType: 'once' (default) | 'untilBottom' | 'untilTop' | 'untilRight' | 'untilLeft', distance: null | number }} // locate is the element to scroll. If it's a page scroll, put \`null\` in the \`locate\` field.
 - ExpectedFalsyCondition: { type: "ExpectedFalsyCondition", param: {reason: string} } // Use this action when the conditional statement talked about in the instruction is falsy.
 
-The \`prompt\` field inside the \`locate\` field is a short description that could be used to locate the element.
+Field description:
+* The \`prompt\` field inside the \`locate\` field is a short description that could be used to locate the element.
 
 Return in JSON format:
 {

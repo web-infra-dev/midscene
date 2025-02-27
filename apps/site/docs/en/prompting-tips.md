@@ -32,7 +32,17 @@ Good ✅: Split the task into three steps:
 "Click Sign up button"
 "Fill the form with 'test@test.com' in the email field, 'test' in the password field, and click Sign up button"
 
-## LLMs can NOT tell the exact number like coords or hex-style color, give it some choices
+### Understand the reason why AI is wrong, and optimize the prompt
+
+This prompt may cause the click to fail:
+
+⚠️ Click the "include" in the "range" dropdown menu
+
+After checking the report, you will find that the AI may tend to open the floating layer first, and then find the "include" option. If the floating layer is already open, you can try:
+
+✅ The floating layer is open, please click the "include" option
+
+### LLMs can NOT tell the exact number like coords or hex-style color, give it some choices
 
 For example:
 
