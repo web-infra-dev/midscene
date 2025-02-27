@@ -42,6 +42,24 @@ After checking the report, you will find that the AI may tend to open the floati
 
 ✅ The floating layer is open, please click the "include" option
 
+Another example:
+
+This may fail when there are many "Add" buttons on the page, or the button is an icon button:
+
+⚠️ Click the "Add" button
+
+You can try:
+
+✅ Click the "Add" button on the top-right corner, it's a button with a "+" icon, on the right side of the "range" dropdown menu
+
+If the button is too large, the AI may misjudge the clickable range:
+
+⚠️ Click the "User Register" menu
+
+You can try:
+
+✅ Click the "User Register" text in the left menu
+
 ### LLMs can NOT tell the exact number like coords or hex-style color, give it some choices
 
 For example:
