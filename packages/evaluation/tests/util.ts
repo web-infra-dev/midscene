@@ -193,6 +193,28 @@ export async function getCases(
   };
 }
 
+export async function buildContextByImage(imagePath: string) {
+  const screenshotBase64 = base64Encoded(imagePath);
+  const size = await imageInfoOfBase64(screenshotBase64);
+
+  const fakePage = {
+    screenshotBase64: async () => screenshotBase64,
+    getElementsNodeTree: async () => {
+      return {
+        node: null,
+        children: [],
+      };
+    },
+    url: () => {
+      return 'https://unknown-url';
+    },
+    size: () => size,
+  };
+  return await parseContextFromWebPage(fakePage as any, {
+    ignoreMarker: true,
+  });
+}
+
 export async function buildContext(pageName: string) {
   const targetDir = path.join(__dirname, '../page-data/', pageName);
   const screenshotBase64Path = path.join(targetDir, 'input.png');

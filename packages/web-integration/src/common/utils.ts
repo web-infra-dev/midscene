@@ -12,7 +12,7 @@ import {
   MIDSCENE_USE_VLM_UI_TARS,
   getAIConfig,
 } from '@midscene/core/env';
-import { sleep, uploadTestInfoToServer } from '@midscene/core/utils';
+import { uploadTestInfoToServer } from '@midscene/core/utils';
 import { NodeType } from '@midscene/shared/constants';
 import type { ElementInfo } from '@midscene/shared/extractor';
 import { traverseTree, treeToList } from '@midscene/shared/extractor';
