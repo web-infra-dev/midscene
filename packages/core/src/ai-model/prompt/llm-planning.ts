@@ -136,7 +136,7 @@ By viewing the page screenshot and description, you should consider this and out
 * The language switch button is shown in the screenshot, but it's not marked with a rectangle. So we have to use the page description to find the element. By carefully checking the context information (coordinates, attributes, content, etc.), you can find the element.
 * The "English" option button is not shown in the screenshot now, it means it may only show after the previous actions are finished. So don't plan any action to do this.
 * Log what these action do: Click the language switch button to open the language options. Wait for 1 second.
-* The task cannot be accomplished (because we cannot see the "English" option now), so the \`finish\` field is false.
+* The task cannot be accomplished (because we cannot see the "English" option now), so the \`more_actions_needed_by_instruction\` field is true.
 
 {{
   "actions":[
@@ -153,7 +153,7 @@ By viewing the page screenshot and description, you should consider this and out
     }}
   ],
   "error": null,
-  "finish": false,
+  "more_actions_needed_by_instruction": true,
   "log": "Click the language switch button to open the language options. Wait for 1 second",
 }}
 
@@ -176,13 +176,13 @@ Wrong output:
       "locate": null, // This means the 'English' option is not shown in the screenshot, the task cannot be accomplished
     }}
   ],
-  "finish": true, // WRONG: should be false
+  "more_actions_needed_by_instruction": false, // WRONG: should be true
   "log": "Click the language switch button to open the language options",
 }}
 
 Reason:
 * The \`prompt\` is missing in the first 'Locate' action
-* Since the option button is not shown in the screenshot, there are still more actions to be done, so the \`finish\` field should be false
+* Since the option button is not shown in the screenshot, there are still more actions to be done, so the \`more_actions_needed_by_instruction\` field should be true
 `;
 
 export async function systemPromptToTaskPlanning() {
@@ -277,10 +277,10 @@ export const planSchema: ResponseFormatJSONSchema = {
           },
           description: 'List of actions to be performed',
         },
-        finish: {
+        more_actions_needed_by_instruction: {
           type: 'boolean',
           description:
-            'If all the actions described in the instruction have been covered by this action and logs, set this field to true.',
+            'If all the actions described in the instruction have been covered by this action and logs, set this field to false.',
         },
         log: {
           type: 'string',
@@ -292,7 +292,12 @@ export const planSchema: ResponseFormatJSONSchema = {
           description: 'Error messages about unexpected situations',
         },
       },
-      required: ['actions', 'finish', 'log', 'error'],
+      required: [
+        'actions',
+        'more_actions_needed_by_instruction',
+        'log',
+        'error',
+      ],
       additionalProperties: false,
     },
   },
