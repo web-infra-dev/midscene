@@ -118,7 +118,7 @@ describe('planning', () => {
       { context },
     );
 
-    expect(res.finish).toBeFalsy();
+    expect(res.more_actions_needed_by_instruction).toBeTruthy();
     expect(res.log).toBeDefined();
   });
 });

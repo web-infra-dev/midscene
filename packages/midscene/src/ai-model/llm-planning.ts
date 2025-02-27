@@ -89,7 +89,9 @@ export async function plan(
 
   assert(planFromAI, "can't get plans from AI");
   assert(
-    actions.length > 0 || returnValue.finish || returnValue.sleep,
+    actions.length > 0 ||
+      !returnValue.more_actions_needed_by_instruction ||
+      returnValue.sleep,
     `Failed to plan actions: ${planFromAI.error || '(no error details)'}`,
   );
 

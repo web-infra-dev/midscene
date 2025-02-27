@@ -69,9 +69,7 @@ describe('ai inspect element', () => {
             );
           }
         },
-        {
-          timeout: 3 * 60 * 1000,
-        },
+        3 * 60 * 1000,
       );
     });
   });

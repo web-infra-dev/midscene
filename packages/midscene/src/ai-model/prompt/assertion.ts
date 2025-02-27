@@ -3,7 +3,7 @@ import { getTimeZoneInfo } from './ui-tars-planning';
 
 export const language = getTimeZoneInfo().isChina ? 'Chinese' : 'English';
 const defaultAssertionPrompt =
-  'You are a senior testing engineer. User will give an assertion and a screenshot of a page. Please tell whether the assertion is truthy.';
+  'You are a senior testing engineer. User will give an assertion and a screenshot of a page. By carefully viewing the screenshot, please tell whether the assertion is truthy.';
 
 const defaultAssertionResponseJsonFormat = `Return in the following JSON format:
 {

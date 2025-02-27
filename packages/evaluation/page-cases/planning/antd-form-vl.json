@@ -1,0 +1,41 @@
+{
+  "testDataPath": "antd-form",
+  "testCases": [
+    {
+      "prompt": "首先，在 Email 输入框中输入'test@test.com'",
+      "response_planning": {
+        "action": {
+          "type": "Input",
+          "locate": {
+            "prompt": "Email input field",
+            "bbox": [563, 214, 965, 240]
+          },
+          "param": {
+            "value": "test@test.com"
+          }
+        },
+        "log": "在 Email 输入框中输入 'test@test.com'",
+        "more_actions_needed_by_instruction": false,
+        "finish": true,
+        "actions": [
+          {
+            "type": "Input",
+            "locate": {
+              "prompt": "Email input field",
+              "bbox": [563, 214, 965, 240]
+            },
+            "param": {
+              "value": "test@test.com"
+            }
+          }
+        ],
+        "rawResponse": "{\n  \"action\": {\n    \"type\": \"Input\",\n    \"locate\": {\n      \"bbox_2d\": [\n        563,\n        214,\n        965,\n        240\n      ],\n      \"prompt\": \"Email input field\"\n    },\n    \"param\": {\n      \"value\": \"test@test.com\"\n    }\n  },\n  \"log\": \"在 Email 输入框中输入 'test@test.com'\",\n  \"more_actions_needed_by_instruction\": false\n}",
+        "usage": {
+          "prompt_tokens": 2541,
+          "completion_tokens": 105,
+          "total_tokens": 2646
+        }
+      }
+    }
+  ]
+}
