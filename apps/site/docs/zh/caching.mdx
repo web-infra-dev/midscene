@@ -42,6 +42,13 @@ import { Tab, Tabs } from 'rspress/theme';
     });
     ```
   </Tab>
+  <Tab label="Yaml">
+    ```diff
+    - npx midscene ./bing-search.yaml
+    + # 增加缓存标识, cacheId 为 yaml 文件名
+    + MIDSCENE_CACHE=true npx midscene ./bing-search.yaml
+    ```
+  </Tab>
 </Tabs>
 
 

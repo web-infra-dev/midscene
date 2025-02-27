@@ -46,6 +46,7 @@ export async function playYamlFiles(
       headed: options?.headed,
       keepWindow: options?.keepWindow,
       testId: fileName,
+      cacheId: fileName,
     };
     const player = new ScriptPlayer(script, async (target) => {
       const freeFn: FreeFn[] = [];
@@ -102,6 +103,7 @@ export async function playYamlFiles(
 
       const agent = new AgentOverChromeBridge({
         closeNewTabsAfterDisconnect: target.closeNewTabsAfterDisconnect,
+        cacheId: fileName,
       });
 
       if (target.bridgeMode === 'newTabWithUrl') {

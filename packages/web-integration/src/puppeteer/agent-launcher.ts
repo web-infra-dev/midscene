@@ -156,6 +156,7 @@ export async function puppeteerAgentForTarget(
     headed?: boolean;
     keepWindow?: boolean;
     testId?: string;
+    cacheId?: string;
   },
 ) {
   const { page, freeFn } = await launchPuppeteerPage(target, preference);
@@ -164,6 +165,7 @@ export async function puppeteerAgentForTarget(
   const agent = new PuppeteerAgent(page, {
     autoPrintReportMsg: false,
     testId: preference?.testId,
+    cacheId: preference?.cacheId,
     forceSameTabNavigation:
       typeof target.forceSameTabNavigation !== 'undefined'
         ? target.forceSameTabNavigation
