@@ -209,7 +209,7 @@ function buildReport() {
   // copy to @midscene/core
   safeCopyFile(
     outputReportHTML,
-    join(__dirname, '../../midscene/report/index.html'),
+    join(__dirname, '../../core/report/index.html'),
   );
 }
 

@@ -4,7 +4,7 @@ import { Checkbox } from 'antd';
 import type { CheckboxProps } from 'antd';
 import * as PIXI from 'pixi.js';
 import { type ReactElement, useEffect, useMemo, useRef, useState } from 'react';
-import type { BaseElement, Rect, UIContext } from '../../../midscene';
+import type { BaseElement, Rect, UIContext } from '../../../core';
 import { colorForName, highlightColorForType } from './color';
 import './blackboard.less';
 import { DropShadowFilter } from 'pixi-filters';

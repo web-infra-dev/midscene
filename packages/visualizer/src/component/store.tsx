@@ -8,7 +8,7 @@ import type {
   ExecutionTaskInsightLocate,
   GroupedActionDump,
   InsightDump,
-} from '../../../midscene';
+} from '../../../core';
 import type { AnimationScript } from './replay-scripts';
 import { allScriptsFromDump, generateAnimationScripts } from './replay-scripts';
 
