@@ -72,13 +72,8 @@ export async function plan(
 
   const actions =
     (planFromAI.action?.type ? [planFromAI.action] : planFromAI.actions) || [];
-  const finish =
-    typeof planFromAI.finish === 'boolean'
-      ? planFromAI.finish
-      : !planFromAI.more_actions_needed_by_instruction;
   const returnValue: PlanningAIResponse = {
     ...planFromAI,
-    finish,
     actions,
     rawResponse,
     usage,
@@ -94,7 +89,9 @@ export async function plan(
 
   assert(planFromAI, "can't get plans from AI");
   assert(
-    actions.length > 0 || returnValue.finish || returnValue.sleep,
+    actions.length > 0 ||
+      !returnValue.more_actions_needed_by_instruction ||
+      returnValue.sleep,
     `Failed to plan actions: ${planFromAI.error || '(no error details)'}`,
   );
 

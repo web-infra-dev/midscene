@@ -412,16 +412,20 @@ const DetailSide = (): JSX.Element => {
       });
     }
 
-    if (typeof (task as ExecutionTaskPlanning).output?.finish === 'boolean') {
+    if (
+      typeof (task as ExecutionTaskPlanning).output
+        ?.more_actions_needed_by_instruction === 'boolean'
+    ) {
       timelineData.push({
         color: '#06B1AB',
         children: (
           <>
             <p>
-              <b>If finished</b>
+              <b>More actions needed</b>
             </p>
             <p>
-              {(task as ExecutionTaskPlanning).output?.finish
+              {(task as ExecutionTaskPlanning).output
+                ?.more_actions_needed_by_instruction
                 ? 'true'
                 : 'false'}
             </p>

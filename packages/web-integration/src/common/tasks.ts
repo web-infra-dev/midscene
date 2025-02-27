@@ -534,8 +534,15 @@ export class PageTaskExecutor {
         }
 
         // console.log('planResult is', planResult);
-        const { actions, log, finish, error, usage, rawResponse, sleep } =
-          planResult;
+        const {
+          actions,
+          log,
+          more_actions_needed_by_instruction,
+          error,
+          usage,
+          rawResponse,
+          sleep,
+        } = planResult;
 
         let stopCollecting = false;
         let bboxCollected = false;
@@ -593,7 +600,7 @@ export class PageTaskExecutor {
 
         if (finalActions.length === 0) {
           assert(
-            finish,
+            !more_actions_needed_by_instruction,
             error
               ? `Failed to plan: ${error}`
               : planParsingError || 'No plan found',
@@ -613,7 +620,7 @@ export class PageTaskExecutor {
         return {
           output: {
             actions: finalActions,
-            finish,
+            more_actions_needed_by_instruction,
             log,
           },
           cache: {
@@ -699,7 +706,7 @@ export class PageTaskExecutor {
             actions,
             thought: actions[0]?.thought,
             actionType: actions[0].type,
-            finish: false,
+            more_actions_needed_by_instruction: true,
             log: '',
           },
           cache: {
@@ -772,7 +779,7 @@ export class PageTaskExecutor {
       }
 
       // console.log('planningResult is', planResult);
-      if (planResult.finish) {
+      if (!planResult.more_actions_needed_by_instruction) {
         planningTask = null;
         break;
       }
