@@ -41,6 +41,14 @@ import { Tab, Tabs } from 'rspress/theme';
     });
     ```
   </Tab>
+
+  <Tab label="Yaml">
+    ```diff
+    - npx midscene ./bing-search.yaml
+    + # Add cache identifier, cacheId is the yaml filename
+    + MIDSCENE_CACHE=true npx midscene ./bing-search.yaml
+    ```
+  </Tab>
 </Tabs>
 
 **Effect**
