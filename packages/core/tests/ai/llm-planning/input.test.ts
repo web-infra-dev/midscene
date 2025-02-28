@@ -50,7 +50,7 @@ describe('automation - planning input', () => {
   it('input value Add, delete, correct and check', async () => {
     const { context } = await getContextFromFixture('todo-input-with-value');
     const instructions = [
-      'Append "tomorrow" to the existing content in the task input box',
+      'Append " tomorrow" to the existing content in the task input box',
       'Replace "English" with "Skiing" in the existing content of the task input box',
       'Delete "English" from the existing content in the task input box',
     ];

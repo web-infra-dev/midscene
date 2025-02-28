@@ -33,7 +33,7 @@ describe('extract', () => {
 
     const { parseResult } = await AiExtractElementInfo({
       dataQuery:
-        '{checked: boolean; text: string}[], Complete task list, task name as string and `checked` is true if the task is completed',
+        '{checked: boolean; text: string;}[], Task list with checkbox ahead of the task name (checkbox is a round box), task name as string and `checked` is true if the task is completed. Exclude the fist row if there is no round checkbox ahead of the task name.',
       context,
     });
     expect(parseResult).toMatchSnapshot();
