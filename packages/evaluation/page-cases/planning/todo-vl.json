@@ -15,8 +15,8 @@
           }
         },
         "sleep": 5000,
-        "finish": false,
-        "log": "type 'hello' in the input box and sleep for 5 seconds.",
+        "log": "输入 'hello' 到输入框中，然后等待5秒。",
+        "more_actions_needed_by_instruction": true,
         "actions": [
           {
             "type": "Input",
@@ -29,38 +29,25 @@
             }
           }
         ],
-        "rawResponse": "{\n  \"action\": {\n    \"type\": \"Input\",\n    \"locate\": {\n      \"bbox_2d\": [\n        513,\n        127,\n        1068,\n        194\n      ],\n      \"prompt\": \"input box for adding a new todo\"\n    },\n    \"param\": {\n      \"value\": \"hello\"\n    }\n  },\n  \"sleep\": 5000,\n  \"finish\": false,\n  \"log\": \"type 'hello' in the input box and sleep for 5 seconds.\"\n}",
+        "rawResponse": "{\n  \"action\": {\n    \"type\": \"Input\",\n    \"locate\": {\n      \"bbox_2d\": [\n        513,\n        127,\n        1068,\n        194\n      ],\n      \"prompt\": \"input box for adding a new todo\"\n    },\n    \"param\": {\n      \"value\": \"hello\"\n    }\n  },\n  \"sleep\": 5000,\n  \"log\": \"输入 'hello' 到输入框中，然后等待5秒。\",\n  \"more_actions_needed_by_instruction\": true\n}",
         "usage": {
-          "prompt_tokens": 1751,
-          "completion_tokens": 118,
-          "total_tokens": 1869
+          "prompt_tokens": 1782,
+          "completion_tokens": 122,
+          "total_tokens": 1904
         }
       }
     },
     {
-      "prompt": "if there are four entries, click the delete button of the second entry, wait 3s",
+      "prompt": "if there are five entries in the list, click the delete button of the second entry and wait 3s. Otherwise, do nothing.",
       "response_planning": {
-        "action": {
-          "type": "ExpectedFalsyCondition",
-          "param": {
-            "reason": "There are only three entries, not four."
-          }
-        },
-        "finish": true,
-        "log": "There are only three entries, so no action is needed.",
-        "error": "The condition of having four entries is not met.",
-        "actions": [
-          {
-            "type": "ExpectedFalsyCondition",
-            "param": {
-              "reason": "There are only three entries, not four."
-            }
-          }
-        ],
-        "rawResponse": "{\n  \"action\": {\n    \"type\": \"ExpectedFalsyCondition\",\n    \"param\": {\n      \"reason\": \"There are only three entries, not four.\"\n    }\n  },\n  \"finish\": true,\n  \"log\": \"There are only three entries, so no action is needed.\",\n  \"error\": \"The condition of having four entries is not met.\"\n}",
+        "action": null,
+        "log": "There are only three entries in the list, so no action is needed.",
+        "more_actions_needed_by_instruction": false,
+        "actions": [],
+        "rawResponse": "{\n  \"action\": null,\n  \"log\": \"There are only three entries in the list, so no action is needed.\",\n  \"more_actions_needed_by_instruction\": false\n}",
         "usage": {
-          "prompt_tokens": 1754,
-          "completion_tokens": 77,
+          "prompt_tokens": 1793,
+          "completion_tokens": 38,
           "total_tokens": 1831
         }
       }
@@ -76,8 +63,9 @@
           }
         },
         "sleep": null,
-        "finish": true,
-        "log": "hit enter after typing 'hello' in the input box.",
+        "log": "press the Enter key to submit the input.",
+        "more_actions_needed_by_instruction": false,
+        "error": null,
         "actions": [
           {
             "type": "KeyboardPress",
@@ -86,11 +74,11 @@
             }
           }
         ],
-        "rawResponse": "{\n  \"action\": {\n    \"type\": \"KeyboardPress\",\n    \"param\": {\n      \"value\": \"Enter\"\n    }\n  },\n  \"sleep\": null,\n  \"finish\": true,\n  \"log\": \"hit enter after typing 'hello' in the input box.\"\n}",
+        "rawResponse": "{\n  \"action\": {\n    \"type\": \"KeyboardPress\",\n    \"param\": {\n      \"value\": \"Enter\"\n    }\n  },\n  \"sleep\": null,\n  \"log\": \"press the Enter key to submit the input.\",\n  \"more_actions_needed_by_instruction\": false,\n  \"error\": null\n}",
         "usage": {
-          "prompt_tokens": 1792,
-          "completion_tokens": 64,
-          "total_tokens": 1856
+          "prompt_tokens": 1823,
+          "completion_tokens": 71,
+          "total_tokens": 1894
         }
       }
     },
@@ -107,9 +95,8 @@
             "value": "hello"
           }
         },
-        "sleep": 500,
-        "finish": true,
-        "log": "type 'hello' in the input box",
+        "log": "输入 'hello' 到输入框中。",
+        "more_actions_needed_by_instruction": false,
         "actions": [
           {
             "type": "Input",
@@ -122,11 +109,42 @@
             }
           }
         ],
-        "rawResponse": "{\n  \"action\": {\n    \"type\": \"Input\",\n    \"locate\": {\n      \"bbox_2d\": [\n        513,\n        127,\n        1068,\n        194\n      ],\n      \"prompt\": \"input box for adding a new todo\"\n    },\n    \"param\": {\n      \"value\": \"hello\"\n    }\n  },\n  \"sleep\": 500,\n  \"finish\": true,\n  \"log\": \"type 'hello' in the input box\"\n}",
+        "rawResponse": "{\n  \"action\": {\n    \"type\": \"Input\",\n    \"locate\": {\n      \"bbox_2d\": [\n        513,\n        127,\n        1068,\n        194\n      ],\n      \"prompt\": \"input box for adding a new todo\"\n    },\n    \"param\": {\n      \"value\": \"hello\"\n    }\n  },\n  \"log\": \"输入 'hello' 到输入框中。\",\n  \"more_actions_needed_by_instruction\": false\n}",
         "usage": {
-          "prompt_tokens": 1743,
-          "completion_tokens": 111,
-          "total_tokens": 1854
+          "prompt_tokens": 1774,
+          "completion_tokens": 107,
+          "total_tokens": 1881
+        }
+      }
+    },
+    {
+      "prompt": "click OK",
+      "response_planning": {
+        "action": null,
+        "log": "There is no 'OK' button visible on the current screen to click.",
+        "more_actions_needed_by_instruction": false,
+        "error": "The instruction cannot be completed as there is no 'OK' button present.",
+        "actions": [],
+        "rawResponse": "{\n  \"action\": null,\n  \"log\": \"There is no 'OK' button visible on the current screen to click.\",\n  \"more_actions_needed_by_instruction\": false,\n  \"error\": \"The instruction cannot be completed as there is no 'OK' button present.\"\n}",
+        "usage": {
+          "prompt_tokens": 1768,
+          "completion_tokens": 58,
+          "total_tokens": 1826
+        }
+      }
+    },
+    {
+      "prompt": "if there is an 'OK' button, click it",
+      "response_planning": {
+        "action": null,
+        "log": "There is no 'OK' button on the current screen.",
+        "more_actions_needed_by_instruction": false,
+        "actions": [],
+        "rawResponse": "{\n  \"action\": null,\n  \"log\": \"There is no 'OK' button on the current screen.\",\n  \"more_actions_needed_by_instruction\": false\n}",
+        "usage": {
+          "prompt_tokens": 1777,
+          "completion_tokens": 35,
+          "total_tokens": 1812
         }
       }
     }

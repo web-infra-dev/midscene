@@ -2,17 +2,18 @@
   "name": "evaluation",
   "private": true,
   "scripts": {
-    "update-page-data:headless": "playwright test ./data-generator/generator-headless.spec.ts",
-    "update-page-data:headed": "playwright test ./data-generator/generator-headed.spec.ts --headed",
-    "update-answer-data": "npm run update-answer-data:locator:coord && npm run update-answer-data:locator:element",
-    "update-answer-data:locator:coord": "UPDATE_ANSWER_DATA=true MIDSCENE_USE_QWEN_VL=1 npm run evaluate:locator",
-    "update-answer-data:locator:element": "UPDATE_ANSWER_DATA=true npm run evaluate:locator",
-    "update-answer-data:planning:coord": "UPDATE_ANSWER_DATA=true MIDSCENE_USE_QWEN_VL=1 npm run evaluate:planning",
-    "update-answer-data:planning:element": "UPDATE_ANSWER_DATA=true npm run evaluate:planning",
-    "update-answer-data:assertion": "UPDATE_ANSWER_DATA=true npm run evaluate:assertion",
+    "update-page-data:headless": "playwright test ./data-generator/generator-headless.spec.ts && npm run format",
+    "update-page-data:headed": "playwright test ./data-generator/generator-headed.spec.ts --headed && npm run format",
+    "update-answer-data": "npm run update-answer-data:locator:coord && npm run update-answer-data:locator:element && npm run format",
+    "update-answer-data:locator:coord": "UPDATE_ANSWER_DATA=true MIDSCENE_USE_QWEN_VL=1 npm run evaluate:locator && npm run format",
+    "update-answer-data:locator:element": "UPDATE_ANSWER_DATA=true npm run evaluate:locator && npm run format",
+    "update-answer-data:planning:coord": "UPDATE_ANSWER_DATA=true MIDSCENE_USE_QWEN_VL=1 npm run evaluate:planning && npm run format",
+    "update-answer-data:planning:element": "UPDATE_ANSWER_DATA=true npm run evaluate:planning && npm run format",
+    "update-answer-data:assertion": "UPDATE_ANSWER_DATA=true npm run evaluate:assertion && npm run format",
     "evaluate:locator": "npx vitest --run tests/llm-locator.test.ts",
     "evaluate:planning": "npx vitest --run tests/llm-planning.test.ts",
-    "evaluate:assertion": "npx vitest --run tests/assertion.test.ts"
+    "evaluate:assertion": "npx vitest --run tests/assertion.test.ts",
+    "format": "cd ../.. && npm run lint"
   },
   "dependencies": {
     "@midscene/core": "workspace:*",
