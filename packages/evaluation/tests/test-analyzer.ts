@@ -25,7 +25,7 @@ interface TestLog {
   success: boolean;
   caseGroup: string;
   testCase: TestCase;
-  actualResult: ActualResult;
+  actualResult: ActualResult | Error;
   cost: number;
 }
 
@@ -64,7 +64,7 @@ export class TestResultCollector {
   addResult(
     caseGroup: string,
     testCase: TestCase,
-    actualResult: ActualResult,
+    actualResult: ActualResult | Error,
     cost: number,
   ) {
     const sameResult = this.compareResult(testCase, actualResult);
@@ -157,7 +157,7 @@ ${errorMsg ? `Error: ${errorMsg}` : ''}
 
   private compareResult(
     testCase: TestCase,
-    result: ActualResult,
+    result: ActualResult | Error,
   ): true | Error {
     const distanceThreshold = 16;
     // compare coordinates
@@ -205,7 +205,7 @@ ${errorMsg ? `Error: ${errorMsg}` : ''}
 
       // check step names and order
       const steps =
-        expected?.actions!.map((action) => {
+        (expected?.actions || []).map((action) => {
           return action.type;
         }) || [];
       const actualActions = result.actions!.map((action) => {
@@ -223,13 +223,30 @@ ${errorMsg ? `Error: ${errorMsg}` : ''}
         }
       }
 
-      if (expected?.finish !== result.finish) {
-        const msg = `expected?.finish: ${expected?.finish} is not equal to result.finish: ${result.finish}, the prompt is: ${testCase.prompt}`;
+      if (
+        expected?.more_actions_needed_by_instruction !==
+        result.more_actions_needed_by_instruction
+      ) {
+        const msg = `expected?.more_actions_needed_by_instruction: ${expected?.more_actions_needed_by_instruction} is not equal to result.more_actions_needed_by_instruction: ${result.more_actions_needed_by_instruction}, the prompt is: ${testCase.prompt}`;
         return new Error(msg);
       }
 
       return true;
     }
+
+    if (testCase.response_planning?.error) {
+      if (!(result instanceof Error)) {
+        const msg = `got error: ${result}, but expected?.error is not set, the prompt is: ${testCase.prompt}`;
+        return new Error(msg);
+      }
+      return true;
+    }
+
+    if (result instanceof Error) {
+      const msg = `got error: ${result}, but expected?.error is not set, the prompt is: ${testCase.prompt}`;
+      return new Error(msg);
+    }
+
     const msg = `unknown result type, can not compare, the prompt is: ${testCase.prompt}`;
     return new Error(msg);
   }
