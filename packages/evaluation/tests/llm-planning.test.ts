@@ -1,7 +1,7 @@
 import { writeFileSync } from 'node:fs';
 import {
   MIDSCENE_MODEL_NAME,
-  PlanningLocateParam,
+  type PlanningAIResponse,
   getAIConfig,
   plan,
 } from '@midscene/core';
@@ -80,6 +80,7 @@ describe.skipIf(vlMode)('ai planning - by element', () => {
 });
 
 const vlCases = ['todo-vl', 'aweme-login-vl', 'antd-form-vl'];
+// const vlCases = ['todo-vl'];
 
 describe.skipIf(!vlMode)('ai planning - by coordinates', () => {
   vlCases.forEach((source) => {
@@ -102,13 +103,25 @@ describe.skipIf(!vlMode)('ai planning - by coordinates', () => {
           const prompt = testCase.prompt;
           const startTime = Date.now();
 
-          const res = await plan(prompt, {
-            log: testCase.log,
-            context,
-          });
+          let res: PlanningAIResponse | Error;
+          try {
+            res = await plan(prompt, {
+              log: testCase.log,
+              context,
+            });
+          } catch (error) {
+            res = error as Error;
+            throw error;
+          }
 
           if (process.env.UPDATE_ANSWER_DATA) {
-            testCase.response_planning = res;
+            if (res instanceof Error) {
+              testCase.response_planning = {
+                error: res.message,
+              } as any;
+            } else {
+              testCase.response_planning = res;
+            }
             writeFileSync(aiDataPath, JSON.stringify(cases, null, 2));
           }
 
