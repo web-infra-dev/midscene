@@ -15,7 +15,7 @@ import {
   type plan,
 } from '@midscene/core';
 import { expect } from 'vitest';
-import type { TestCase } from './util';
+import type { TestCase } from '../tests/util';
 
 type ActualResult =
   | Awaited<ReturnType<typeof AiInspectElement>>

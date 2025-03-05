@@ -1,9 +1,9 @@
-import assert from 'node:assert';
 import type {
   ChromePageDestroyOptions,
   KeyboardAction,
   MouseAction,
 } from '@/page';
+import { assert } from '@midscene/shared/utils';
 import ChromeExtensionProxyPage from '../chrome-extension/page';
 import {
   type BridgeConnectTabOptions,

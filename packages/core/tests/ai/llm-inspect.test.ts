@@ -1,5 +1,5 @@
 import { AiInspectElement } from '@/ai-model';
-import { getContextFromFixture } from '@/evaluation';
+import { getContextFromFixture } from 'tests/evaluation';
 import { expect, test } from 'vitest';
 
 test(

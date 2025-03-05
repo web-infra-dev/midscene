@@ -1,5 +1,7 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
+import path from 'node:path';
+import { assert } from '../utils';
 
 interface PkgInfo {
   name: string;
@@ -56,4 +58,15 @@ export function findNearestPackageJson(dir: string): string | null {
   }
 
   return findNearestPackageJson(parentDir);
+}
+
+export async function getExtraReturnLogic(tree = false) {
+  const pathDir = findNearestPackageJson(__dirname);
+  assert(pathDir, `can't find pathDir, with ${__dirname}`);
+  const scriptPath = path.join(pathDir, './iife-script/htmlElement.js');
+  const elementInfosScriptContent = readFileSync(scriptPath, 'utf-8');
+  if (tree) {
+    return `${elementInfosScriptContent}midscene_element_inspector.webExtractNodeTree()`;
+  }
+  return `${elementInfosScriptContent}midscene_element_inspector.webExtractTextWithPosition()`;
 }

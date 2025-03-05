@@ -5,16 +5,8 @@ export default defineConfig({
   plugins: [moduleTools()],
   buildPreset: 'npm-library',
   buildConfig: {
-    format: 'cjs',
-    input: {
-      index: 'src/index.ts',
-      env: 'src/env.ts',
-      utils: 'src/utils.ts',
-      tree: 'src/tree.ts',
-      'ai-model': 'src/ai-model/index.ts',
-      evaluation: 'src/evaluation.ts',
-    },
-    outDir: 'dist/lib',
+    buildType: 'bundleless',
+    format: 'esm',
     externals: ['langsmith'],
     target: 'es2018',
     define: {

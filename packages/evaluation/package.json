@@ -1,5 +1,5 @@
 {
-  "name": "evaluation",
+  "name": "@midscene/evaluation",
   "private": true,
   "scripts": {
     "update-page-data:headless": "playwright test ./data-generator/generator-headless.spec.ts && npm run format",
@@ -15,12 +15,26 @@
     "evaluate:assertion": "npx vitest --run tests/assertion.test.ts",
     "format": "cd ../.. && npm run lint"
   },
+  "files": ["dist", "README.md"],
+  "type": "module",
+  "exports": {
+    "./test-analyzer": {
+      "types": "./dist/types/test-analyzer.d.ts",
+      "import": "./dist/es/test-analyzer.js"
+    }
+  },
+  "typesVersions": {
+    "*": {
+      "./test-analyzer": ["./dist/types/test-analyzer.d.ts"]
+    }
+  },
   "dependencies": {
     "@midscene/core": "workspace:*",
     "@midscene/shared": "workspace:*",
     "@midscene/web": "workspace:*"
   },
   "devDependencies": {
+    "@modern-js/module-tools": "2.60.6",
     "dotenv": "16.4.5",
     "playwright": "1.44.1",
     "@playwright/test": "^1.44.1",

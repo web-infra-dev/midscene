@@ -4,54 +4,54 @@
   "repository": "https://github.com/web-infra-dev/midscene",
   "homepage": "https://midscenejs.com/",
   "types": "./src/index.ts",
-  "type": "commonjs",
+  "type": "module",
   "main": "./dist/lib/index.js",
   "module": "./dist/es/index.js",
   "exports": {
     ".": {
       "types": "./src/index.ts",
-      "require": "./dist/lib/index.js",
+      "default": "./dist/lib/index.js",
       "import": "./dist/es/index.js"
     },
     "./constants": {
       "types": "./src/constants/index.ts",
-      "require": "./dist/lib/constants.js",
-      "import": "./dist/es/constants.js"
+      "default": "./dist/lib/constants/index.js",
+      "import": "./dist/es/constants/index.js"
     },
     "./fs": {
-      "types": "./src/fs/index.ts",
-      "require": "./dist/lib/fs.js",
-      "import": "./dist/es/fs.js"
+      "types": "./src/node/fs.ts",
+      "default": "./dist/lib/node/fs.js",
+      "import": "./dist/es/node/fs.js"
     },
     "./img": {
       "types": "./src/img/index.ts",
-      "require": "./dist/lib/img.js",
-      "import": "./dist/es/img.js"
+      "default": "./dist/lib/img/index.js",
+      "import": "./dist/es/img/index.js"
     },
     "./browser/img": {
       "types": "./src/img/index.ts",
-      "require": "./dist/browser/img.js",
-      "import": "./dist/browser/img.js"
+      "default": "./dist/browser/img/index.js",
+      "import": "./dist/browser/img/index.js"
     },
     "./utils": {
       "types": "./src/utils.ts",
-      "require": "./dist/lib/utils.js",
-      "import": "./dist/es/utils.js"
+      "default": "./dist/lib/utils/index.js",
+      "import": "./dist/es/utils/index.js"
     },
     "./extractor": {
       "types": "./src/extractor/index.ts",
-      "require": "./dist/lib/extractor.js",
-      "import": "./dist/es/extractor.js"
+      "default": "./dist/lib/extractor/index.js",
+      "import": "./dist/es/extractor/index.js"
     },
     "./extractor-debug": {
       "types": "./src/extractor/debug.ts",
-      "require": "./dist/lib/extractor-debug.js",
-      "import": "./dist/es/extractor-debug.js"
+      "default": "./dist/lib/extractor-debug/index.js",
+      "import": "./dist/es/extractor-debug/index.js"
     },
     "./keyboard-layout": {
       "types": "./src/us-keyboard-layout.ts",
-      "require": "./dist/lib/us-keyboard-layout.js",
-      "import": "./dist/es/us-keyboard-layout.js"
+      "default": "./dist/lib/us-keyboard-layout/index.js",
+      "import": "./dist/es/us-keyboard-layout/index.js"
     }
   },
   "typesVersions": {
@@ -60,7 +60,7 @@
       "constants": ["./src/constants/index.ts"],
       "img": ["./src/img/index.ts"],
       "browser/img": ["./src/img/index.ts"],
-      "fs": ["./src/fs/index.ts"],
+      "fs": ["./src/node/fs.ts"],
       "utils": ["./src/utils.ts"],
       "extractor": ["./src/extractor/index.ts"],
       "extractor-debug": ["./src/extractor/debug.ts"],
@@ -105,62 +105,62 @@
     "registry": "https://registry.npmjs.org/",
     "exports": {
       ".": {
-        "types": "./dist/lib/index.d.ts",
-        "require": "./dist/lib/index.js",
+        "types": "./dist/types/index.d.ts",
+        "default": "./dist/lib/index.js",
         "import": "./dist/es/index.js"
       },
       "./constants": {
-        "types": "./dist/lib/constants.d.ts",
-        "require": "./dist/lib/constants.js",
-        "import": "./dist/es/constants.js"
+        "types": "./dist/types/constants.d.ts",
+        "default": "./dist/lib/constants/index.js",
+        "import": "./dist/es/constants/index.js"
       },
       "./fs": {
-        "types": "./dist/lib/fs.d.ts",
-        "require": "./dist/lib/fs.js",
-        "import": "./dist/es/fs.js"
+        "types": "./dist/types/node/fs.d.ts",
+        "default": "./dist/lib/node/fs.js",
+        "import": "./dist/es/node/fs.js"
       },
       "./img": {
-        "types": "./dist/lib/img.d.ts",
-        "require": "./dist/lib/img.js",
-        "import": "./dist/es/img.js"
+        "types": "./dist/types/img.d.ts",
+        "default": "./dist/lib/img/index.js",
+        "import": "./dist/es/img/index.js"
       },
       "./browser/img": {
-        "types": "./dist/browser/img.d.ts",
-        "require": "./dist/browser/img.js",
-        "import": "./dist/browser/img.js"
+        "types": "./dist/types/browser/img.d.ts",
+        "default": "./dist/browser/img/index.js",
+        "import": "./dist/browser/img/index.js"
       },
       "./utils": {
-        "types": "./dist/lib/utils.d.ts",
-        "require": "./dist/lib/utils.js",
-        "import": "./dist/es/utils.js"
+        "types": "./dist/types/utils.d.ts",
+        "default": "./dist/lib/utils/index.js",
+        "import": "./dist/es/utils/index.js"
       },
       "./extractor": {
-        "types": "./dist/lib/extractor.d.ts",
-        "require": "./dist/lib/extractor.js",
-        "import": "./dist/es/extractor.js"
+        "types": "./dist/types/extractor/index.d.ts",
+        "default": "./dist/lib/extractor/index.js",
+        "import": "./dist/es/extractor/index.js"
       },
       "./extractor-debug": {
-        "types": "./dist/lib/extractor-debug.d.ts",
-        "require": "./dist/lib/extractor-debug.js",
-        "import": "./dist/es/extractor-debug.js"
+        "types": "./dist/types/extractor/debug.d.ts",
+        "default": "./dist/lib/extractor-debug/index.js",
+        "import": "./dist/es/extractor/debug.js"
       },
       "./keyboard-layout": {
-        "types": "./dist/lib/us-keyboard-layout.d.ts",
-        "require": "./dist/lib/us-keyboard-layout.js",
-        "import": "./dist/es/us-keyboard-layout.js"
+        "types": "./dist/types/us-keyboard-layout.d.ts",
+        "default": "./dist/lib/us-keyboard-layout/index.js",
+        "import": "./dist/es/us-keyboard-layout/index.js"
       }
     },
     "typesVersions": {
       "*": {
-        ".": ["./dist/lib/index.d.ts"],
-        "constants": ["./dist/lib/constants.d.ts"],
-        "img": ["./dist/lib/img.d.ts"],
-        "browser/img": ["./dist/browser/img.d.ts"],
-        "fs": ["./dist/lib/fs.d.ts"],
-        "utils": ["./dist/lib/utils.d.ts"],
-        "extractor": ["./dist/lib/extractor.d.ts"],
-        "extractor-debug": ["./dist/lib/extractor-debug.d.ts"],
-        "keyboard-layout": ["./dist/lib/us-keyboard-layout.d.ts"]
+        ".": ["./dist/types/index.d.ts"],
+        "constants": ["./dist/types/constants.d.ts"],
+        "img": ["./dist/types/img.d.ts"],
+        "browser/img": ["./dist/types/browser/img.d.ts"],
+        "fs": ["./dist/types/node/fs.d.ts"],
+        "utils": ["./dist/types/utils.d.ts"],
+        "extractor": ["./dist/types/extractor/index.d.ts"],
+        "extractor-debug": ["./dist/types/extractor/debug.d.ts"],
+        "keyboard-layout": ["./dist/types/us-keyboard-layout.d.ts"]
       }
     }
   }

@@ -1,9 +1,9 @@
-import assert from 'node:assert';
 import { execSync } from 'node:child_process';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { basename, dirname, join } from 'node:path';
 import { getRunningPkgInfo } from '@midscene/shared/fs';
+import { assert } from '@midscene/shared/utils';
 import { ifInBrowser, uuid } from '@midscene/shared/utils';
 import {
   MIDSCENE_DEBUG_MODE,

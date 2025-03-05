@@ -1,6 +1,6 @@
-import assert from 'node:assert';
 import type { PlanningAction } from '@/types';
 import { transformHotkeyInput } from '@midscene/shared/keyboard-layout';
+import { assert } from '@midscene/shared/utils';
 import { actionParser } from '@ui-tars/action-parser';
 import type { ChatCompletionMessageParam } from 'openai/resources';
 import { AIActionType } from './common';
