@@ -161,10 +161,9 @@ function buildExtension() {
     join(__dirname, '../unpacked-extension/lib/htmlElement.js'),
   );
 }
-
 async function zipDir(src: string, dest: string) {
   // console.log('cwd', dirname(src));
-  execSync(`zip -r ${dest} .`, {
+  execSync(`zip -r "${dest}" .`, {
     cwd: src,
   });
 }
