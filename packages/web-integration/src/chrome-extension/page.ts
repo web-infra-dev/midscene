@@ -47,7 +47,8 @@ export default class ChromeExtensionProxyPage implements AbstractPage {
   }
 
   public async getTabId() {
-    if (this.activeTabId && !this.forceSameTabNavigation) {
+    if (this.activeTabId) {
+      // alway keep on the connected tab
       return this.activeTabId;
     }
     const tabId = await chrome.tabs
