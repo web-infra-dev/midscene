@@ -1,5 +1,6 @@
 import { copyFileSync, existsSync, mkdirSync, readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 export function ensureDirectoryExistence(filePath: string) {
   const directoryPath = dirname(filePath);
@@ -22,6 +23,8 @@ export function tplReplacer(
 }
 
 export const fileContentOfPath = (path: string) => {
+  const __filename = fileURLToPath(import.meta.url);
+  const __dirname = dirname(__filename);
   const filePath = join(__dirname, path);
   return readFileSync(filePath, 'utf-8');
 };

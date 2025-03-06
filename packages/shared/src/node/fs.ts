@@ -13,10 +13,6 @@ interface PkgInfo {
 const pkgCacheMap: Record<string, PkgInfo> = {};
 const ifInBrowser = typeof window !== 'undefined';
 
-// Get __dirname equivalent in ESM
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
-
 export function getRunningPkgInfo(dir?: string): PkgInfo | null {
   if (ifInBrowser) {
     return null;
@@ -67,6 +63,9 @@ export function findNearestPackageJson(dir: string): string | null {
 }
 
 export async function getExtraReturnLogic(tree = false) {
+  // Get __dirname equivalent in ESM
+  const __filename = fileURLToPath(import.meta.url);
+  const __dirname = dirname(__filename);
   const pathDir = findNearestPackageJson(__dirname);
   assert(pathDir, `can't find pathDir, with ${__dirname}`);
   const scriptPath = path.join(pathDir, './dist/script/htmlElement.js');

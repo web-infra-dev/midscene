@@ -17,6 +17,7 @@
     "rootDir": "src",
     "skipLibCheck": true,
     "strict": true,
+    "target": "ES2022",
     "types": ["react"]
   },
   "exclude": ["**/node_modules"],

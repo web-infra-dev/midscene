@@ -14,8 +14,9 @@
     "rootDir": "src",
     "skipLibCheck": true,
     "strict": true,
-    "module": "ESNext",
-    "target": "es2018"
+    "module": "ES2020",
+    "target": "es2020",
+    "types": ["node"]
   },
   "exclude": ["**/node_modules"],
   "include": ["src", "playwright.config.ts"]

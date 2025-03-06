@@ -10,7 +10,7 @@ const commonConfig = {
   },
   autoExternal: false,
   externals: [...externals],
-  target: 'es2018',
+  target: 'es2020',
   minify: process.env.CI
     ? {
         compress: true,
@@ -41,7 +41,7 @@ export default defineConfig({
       },
       platform: 'browser',
       outDir: 'dist',
-      target: 'es2018',
+      target: 'es2020',
       sourceMap: true,
     },
     {
@@ -60,9 +60,14 @@ export default defineConfig({
       },
       platform: 'browser',
       outDir: 'unpacked-extension/lib',
-      target: 'es2018',
+      target: 'es2020',
     },
   ],
-  plugins: [moduleTools(), modulePluginNodePolyfill()],
+  plugins: [
+    moduleTools(),
+    modulePluginNodePolyfill({
+      excludes: ['console'],
+    }),
+  ],
   buildPreset: 'npm-component',
 });

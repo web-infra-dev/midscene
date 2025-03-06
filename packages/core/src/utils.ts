@@ -14,9 +14,6 @@ import {
 } from './env';
 import type { Rect, ReportDumpWithAttributes } from './types';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
 let logDir = path.join(process.cwd(), './midscene_run/');
 let logEnvReady = false;
 export const groupedActionDumpFileExt = 'web-dump.json';
@@ -50,6 +47,8 @@ function getReportTpl() {
     return reportTpl;
   }
 
+  const __filename = fileURLToPath(import.meta.url);
+  const __dirname = path.dirname(__filename);
   if (!reportTpl) {
     let reportPath = path.join(__dirname, '../../report/index.html');
     if (!existsSync(reportPath)) {
@@ -120,6 +119,8 @@ export function writeDumpReport(
     return null;
   }
 
+  const __filename = fileURLToPath(import.meta.url);
+  const __dirname = path.dirname(__filename);
   const midscenePkgInfo = getRunningPkgInfo(__dirname);
   if (!midscenePkgInfo) {
     console.warn('midscenePkgInfo not found, will not write report');

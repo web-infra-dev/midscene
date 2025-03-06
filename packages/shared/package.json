@@ -3,68 +3,63 @@
   "version": "0.12.4",
   "repository": "https://github.com/web-infra-dev/midscene",
   "homepage": "https://midscenejs.com/",
-  "types": "./src/index.ts",
+  "types": "./dist/types/index.d.ts",
   "type": "module",
   "main": "./dist/lib/index.js",
   "module": "./dist/es/index.js",
   "exports": {
     ".": {
-      "types": "./src/index.ts",
+      "types": "./dist/types/index.d.ts",
       "import": "./dist/es/index.js",
       "require": "./dist/lib/index.js"
     },
     "./constants": {
-      "types": "./src/constants/index.ts",
+      "types": "./dist/types/constants/index.d.ts",
       "import": "./dist/es/constants/index.js",
       "require": "./dist/lib/constants/index.js"
     },
     "./fs": {
-      "types": "./src/node/fs.ts",
+      "types": "./dist/types/node/fs.d.ts",
       "require": "./dist/lib/node/fs.js",
       "import": "./dist/es/node/fs.js"
     },
     "./img": {
-      "types": "./src/img/index.ts",
+      "types": "./dist/types/img/index.d.ts",
       "import": "./dist/es/img/index.js",
       "require": "./dist/lib/img/index.js"
     },
-    "./browser/img": {
-      "types": "./src/img/index.ts",
-      "import": "./dist/es/browser/img/index.js",
-      "require": "./dist/browser/img/index.js"
-    },
     "./utils": {
-      "types": "./src/utils.ts",
+      "types": "./dist/types/utils.d.ts",
       "import": "./dist/es/utils.js",
       "require": "./dist/lib/utils.js"
     },
     "./extractor": {
-      "types": "./src/extractor/index.ts",
+      "types": "./dist/types/extractor/index.d.ts",
       "import": "./dist/es/extractor/index.js",
       "require": "./dist/lib/extractor/index.js"
     },
     "./extractor-debug": {
-      "types": "./src/extractor/debug.ts",
+      "types": "./dist/types/extractor/debug.d.ts",
       "import": "./dist/es/extractor-debug/index.js",
       "require": "./dist/lib/extractor-debug/index.js"
     },
     "./keyboard-layout": {
-      "types": "./src/us-keyboard-layout.ts",
+      "types": "./dist/types/us-keyboard-layout.d.ts",
       "import": "./dist/es/us-keyboard-layout.js",
       "require": "./dist/lib/us-keyboard-layout.js"
     }
   },
   "typesVersions": {
     "*": {
-      ".": ["./src/index.ts"],
-      "constants": ["./src/constants/index.ts"],
-      "img": ["./src/img/index.ts"],
-      "browser/img": ["./src/img/index.ts"],
-      "fs": ["./src/node/fs.ts"],
-      "utils": ["./src/utils.ts"],
-      "extractor": ["./src/extractor/index.ts"],
-      "extractor-debug": ["./src/extractor/debug.ts"],
-      "keyboard-layout": ["./src/us-keyboard-layout.ts"]
+      ".": ["./dist/types/index.d.ts"],
+      "constants": ["./dist/types/constants/index.d.ts"],
+      "img": ["./dist/types/img/index.d.ts"],
+      "browser/img": ["./dist/types/browser/img/index.d.ts"],
+      "fs": ["./dist/types/node/fs.d.ts"],
+      "utils": ["./dist/types/utils.d.ts"],
+      "extractor": ["./dist/types/extractor/index.d.ts"],
+      "extractor-debug": ["./dist/types/extractor/debug.d.ts"],
+      "keyboard-layout": ["./dist/types/us-keyboard-layout.d.ts"]
     }
   },
   "files": ["dist", "src", "README.md"],

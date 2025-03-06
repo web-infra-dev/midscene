@@ -1,13 +1,17 @@
 import { strict as assert } from 'node:assert';
+import { execSync } from 'node:child_process';
 import { rmSync, writeFileSync } from 'node:fs';
-import { join } from 'node:path';
-import { execa } from 'execa';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import {
   ensureDirectoryExistence,
   fileContentOfPath,
   safeCopyFile,
   tplReplacer,
 } from './building-utils';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 const demoData = ['demo', 'demo-mobile', 'zero-execution'];
 
@@ -160,7 +164,7 @@ function buildExtension() {
 
 async function zipDir(src: string, dest: string) {
   // console.log('cwd', dirname(src));
-  await execa('zip', ['-r', dest, '.'], {
+  execSync(`zip -r ${dest} .`, {
     cwd: src,
   });
 }
