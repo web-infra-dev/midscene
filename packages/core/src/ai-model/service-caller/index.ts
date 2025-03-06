@@ -351,7 +351,7 @@ export function extractJSONFromCodeBlock(response: string) {
 export function safeParseJson(input: string) {
   const cleanJsonString = extractJSONFromCodeBlock(input);
   // match the point
-  if (cleanJsonString.match(/\((\d+),(\d+)\)/)) {
+  if (cleanJsonString?.match(/\((\d+),(\d+)\)/)) {
     return cleanJsonString
       .match(/\((\d+),(\d+)\)/)
       ?.slice(1)
