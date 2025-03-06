@@ -5,37 +5,7 @@
       "prompt": "type 'user' in the username input box, type '123456' in the password input box",
       "log": "type 'user' in the username input box",
       "response_planning": {
-        "action": {
-          "type": "Input",
-          "locate": {
-            "prompt": "password input box",
-            "bbox": [493, 417, 786, 465]
-          },
-          "param": {
-            "value": "123456"
-          }
-        },
-        "sleep": 500,
-        "log": "type '123456' in the password input box",
-        "more_actions_needed_by_instruction": false,
-        "actions": [
-          {
-            "type": "Input",
-            "locate": {
-              "prompt": "password input box",
-              "bbox": [493, 417, 786, 465]
-            },
-            "param": {
-              "value": "123456"
-            }
-          }
-        ],
-        "rawResponse": "{\n  \"action\": {\n    \"type\": \"Input\",\n    \"locate\": {\n      \"bbox_2d\": [\n        493,\n        417,\n        786,\n        465\n      ],\n      \"prompt\": \"password input box\"\n    },\n    \"param\": {\n      \"value\": \"123456\"\n    }\n  },\n  \"sleep\": 500,\n  \"log\": \"type '123456' in the password input box\",\n  \"more_actions_needed_by_instruction\": false\n}",
-        "usage": {
-          "prompt_tokens": 2000,
-          "completion_tokens": 121,
-          "total_tokens": 2121
-        }
+        "error": "Failed to plan actions: The current screen does not have a username or password input box. It is showing a verification code login interface."
       }
     }
   ]

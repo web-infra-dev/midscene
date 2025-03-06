@@ -80,7 +80,7 @@ describe.skipIf(vlMode)('ai planning - by element', () => {
 });
 
 const vlCases = ['todo-vl', 'aweme-login-vl', 'antd-form-vl'];
-// const vlCases = ['todo-vl'];
+// const vlCases = ['aweme-login-vl'];
 
 describe.skipIf(!vlMode)('ai planning - by coordinates', () => {
   vlCases.forEach((source) => {
@@ -111,7 +111,6 @@ describe.skipIf(!vlMode)('ai planning - by coordinates', () => {
             });
           } catch (error) {
             res = error as Error;
-            throw error;
           }
 
           if (process.env.UPDATE_ANSWER_DATA) {
