@@ -6,6 +6,6 @@ export default defineConfig({
   buildConfig: {
     buildType: 'bundleless',
     format: 'esm',
-    target: 'es6',
+    target: 'es2020',
   },
 });

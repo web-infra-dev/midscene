@@ -12,7 +12,7 @@ export {
 
 export { getAIConfig, MIDSCENE_MODEL_NAME } from './env';
 
-export * from './types';
+export type * from './types';
 export default Insight;
 export { Executor, setLogDir, getLogDirByType, Insight, getVersion };
 

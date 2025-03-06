@@ -13,7 +13,9 @@
     "resolveJsonModule": true,
     "rootDir": "src",
     "skipLibCheck": true,
-    "strict": true
+    "strict": true,
+    "module": "ESNext",
+    "target": "es2018"
   },
   "exclude": ["**/node_modules"],
   "include": ["src", "playwright.config.ts"]

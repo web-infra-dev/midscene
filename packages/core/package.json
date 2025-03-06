@@ -34,11 +34,6 @@
       "types": "./dist/types/tree.d.ts",
       "import": "./dist/es/tree.js",
       "require": "./dist/lib/tree.js"
-    },
-    "./evaluation": {
-      "types": "./dist/types/evaluation.d.ts",
-      "import": "./dist/es/evaluation.js",
-      "require": "./dist/lib/evaluation.js"
     }
   },
   "typesVersions": {

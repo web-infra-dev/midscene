@@ -8,7 +8,7 @@ export default defineConfig({
     buildType: 'bundleless',
     format: 'esm',
     externals: ['langsmith'],
-    target: 'es2018',
+    target: 'es2020',
     define: {
       __VERSION__: version,
     },
