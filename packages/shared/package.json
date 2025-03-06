@@ -97,66 +97,6 @@
   "sideEffects": [],
   "publishConfig": {
     "access": "public",
-    "registry": "https://registry.npmjs.org/",
-    "exports": {
-      ".": {
-        "types": "./dist/types/index.d.ts",
-        "import": "./dist/es/index.js",
-        "default": "./dist/lib/index.js"
-      },
-      "./constants": {
-        "types": "./dist/types/constants.d.ts",
-        "import": "./dist/es/constants/index.js",
-        "default": "./dist/lib/constants/index.js"
-      },
-      "./fs": {
-        "types": "./dist/types/node/fs.d.ts",
-        "import": "./dist/es/node/fs.js",
-        "default": "./dist/lib/node/fs.js"
-      },
-      "./img": {
-        "types": "./dist/types/img.d.ts",
-        "import": "./dist/es/img/index.js",
-        "default": "./dist/lib/img/index.js"
-      },
-      "./browser/img": {
-        "types": "./dist/types/browser/img.d.ts",
-        "import": "./dist/browser/img/index.js",
-        "default": "./dist/browser/img/index.js"
-      },
-      "./utils": {
-        "types": "./dist/types/utils.d.ts",
-        "import": "./dist/es/utils/index.js",
-        "default": "./dist/lib/utils/index.js"
-      },
-      "./extractor": {
-        "types": "./dist/types/extractor/index.d.ts",
-        "import": "./dist/es/extractor/index.js",
-        "default": "./dist/lib/extractor/index.js"
-      },
-      "./extractor-debug": {
-        "types": "./dist/types/extractor/debug.d.ts",
-        "import": "./dist/es/extractor/debug.js",
-        "default": "./dist/lib/extractor-debug/index.js"
-      },
-      "./keyboard-layout": {
-        "types": "./dist/types/us-keyboard-layout.d.ts",
-        "import": "./dist/es/us-keyboard-layout/index.js",
-        "default": "./dist/lib/us-keyboard-layout/index.js"
-      }
-    },
-    "typesVersions": {
-      "*": {
-        ".": ["./dist/types/index.d.ts"],
-        "constants": ["./dist/types/constants.d.ts"],
-        "img": ["./dist/types/img.d.ts"],
-        "browser/img": ["./dist/types/browser/img.d.ts"],
-        "fs": ["./dist/types/node/fs.d.ts"],
-        "utils": ["./dist/types/utils.d.ts"],
-        "extractor": ["./dist/types/extractor/index.d.ts"],
-        "extractor-debug": ["./dist/types/extractor/debug.d.ts"],
-        "keyboard-layout": ["./dist/types/us-keyboard-layout.d.ts"]
-      }
-    }
+    "registry": "https://registry.npmjs.org/"
   }
 }
