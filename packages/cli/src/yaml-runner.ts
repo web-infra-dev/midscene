@@ -97,7 +97,7 @@ export async function playYamlFiles(
         target.cookie
       ) {
         console.warn(
-          'puppeteer options (userAgent, viewportWidth, viewportHeight, viewportScale, waitForNetworkIdle, cookie) are not supported in bridge mode, will be ignored',
+          'puppeteer options (userAgent, viewportWidth, viewportHeight, viewportScale, waitForNetworkIdle, cookie) are not supported in bridge mode. They will be ignored.',
         );
       }
 

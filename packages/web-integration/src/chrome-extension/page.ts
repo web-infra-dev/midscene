@@ -46,7 +46,20 @@ export default class ChromeExtensionProxyPage implements AbstractPage {
     this.forceSameTabNavigation = forceSameTabNavigation;
   }
 
-  public async getTabId() {
+  public async setActiveTabId(tabId: number) {
+    if (this.activeTabId) {
+      throw new Error(
+        `Active tab id is already set, which is ${this.activeTabId}, cannot set it to ${tabId}`,
+      );
+    }
+    this.activeTabId = tabId;
+  }
+
+  public async getActiveTabId() {
+    return this.activeTabId;
+  }
+
+  public async getTabIdOrConnectToCurrentTab() {
     if (this.activeTabId) {
       // alway keep on the connected tab
       return this.activeTabId;
@@ -54,6 +67,7 @@ export default class ChromeExtensionProxyPage implements AbstractPage {
     const tabId = await chrome.tabs
       .query({ active: true, currentWindow: true })
       .then((tabs) => tabs[0]?.id);
+    const stack = new Error().stack;
     this.activeTabId = tabId || 0;
     return this.activeTabId;
   }
@@ -78,7 +92,7 @@ export default class ChromeExtensionProxyPage implements AbstractPage {
       }
 
       try {
-        const currentTabId = await this.getTabId();
+        const currentTabId = await this.getTabIdOrConnectToCurrentTab();
 
         if (this.tabIdOfDebuggerAttached === currentTabId) {
           // already attached
@@ -322,7 +336,7 @@ export default class ChromeExtensionProxyPage implements AbstractPage {
   }
 
   async url() {
-    const tabId = await this.getTabId();
+    const tabId = await this.getTabIdOrConnectToCurrentTab();
     const url = await chrome.tabs.get(tabId).then((tab) => tab.url);
     return url || '';
   }
