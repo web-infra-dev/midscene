@@ -63,11 +63,13 @@ export function findNearestPackageJson(dir: string): string | null {
 }
 
 export async function getExtraReturnLogic(tree = false) {
+  if (ifInBrowser) {
+    return null;
+  }
   // Get __dirname equivalent in ESM
-  const __filename = fileURLToPath(import.meta.url);
-  const __dirname = dirname(__filename);
-  const pathDir = findNearestPackageJson(__dirname);
-  assert(pathDir, `can't find pathDir, with ${__dirname}`);
+  const filename = fileURLToPath(import.meta.url);
+  const pathDir = findNearestPackageJson(dirname(filename));
+  assert(pathDir, `can't find pathDir, with ${dirname}`);
   const scriptPath = path.join(pathDir, './dist/script/htmlElement.js');
   const elementInfosScriptContent = readFileSync(scriptPath, 'utf-8');
   if (tree) {

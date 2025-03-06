@@ -59,7 +59,7 @@ function emptyDumpReportHTML() {
   html = replaceStringWithFirstAppearance(
     html,
     '{{js}}',
-    `<script>\n${reportJS}\n</script>`,
+    `<script type="module">\n${reportJS}\n</script>`,
   );
   return html;
 }
@@ -82,7 +82,7 @@ function putReportTplIntoHTML(html: string, outsourceMode = false) {
     // in Chrome extension
     return html.replace(
       '</body>',
-      `${tplWrapper}<script src="/lib/set-report-tpl.js"></script>\n</body>`,
+      `${tplWrapper}<script type="module" src="/lib/set-report-tpl.js"></script>\n</body>`,
     );
   }
 

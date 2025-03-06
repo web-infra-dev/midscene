@@ -33,12 +33,6 @@ export default defineConfig({
       input: {
         report: 'src/index.tsx',
       },
-      umdModuleName: (path) => {
-        // if (path.includes('playground')) {
-        //   return 'midscenePlayground';
-        // }
-        return 'midsceneVisualizer';
-      },
       platform: 'browser',
       outDir: 'dist',
       target: 'es2020',
