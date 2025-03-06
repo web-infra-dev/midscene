@@ -526,7 +526,6 @@ export class PageTaskExecutor {
         let planResult: Awaited<ReturnType<typeof plan>>;
         if (planCache) {
           planResult = planCache;
-          // if (planResult.) {
         } else {
           planResult = await plan(param.userInstruction, {
             context: pageContext,
