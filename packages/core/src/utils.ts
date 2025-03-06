@@ -28,6 +28,9 @@ export function setLogDir(dir: string) {
 }
 
 export function getLogDirByType(type: 'dump' | 'cache' | 'report' | 'tmp') {
+  if (ifInBrowser) {
+    return '';
+  }
   const dir = path.join(getLogDir(), type);
   if (!existsSync(dir)) {
     mkdirSync(dir, { recursive: true });
