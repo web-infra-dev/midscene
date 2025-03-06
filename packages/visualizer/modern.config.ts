@@ -63,6 +63,6 @@ export default defineConfig({
       target: 'es2018',
     },
   ],
-  plugins: [moduleTools()],
+  plugins: [moduleTools(), modulePluginNodePolyfill()],
   buildPreset: 'npm-component',
 });

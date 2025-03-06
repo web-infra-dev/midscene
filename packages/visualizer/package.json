@@ -16,7 +16,7 @@
   },
   "scripts": {
     "dev": "npm run build && npx npm-watch",
-    "build": "modern build && npx tsx scripts/build-html.ts",
+    "build": "modern build",
     "build:watch": "modern build -w",
     "serve": "http-server ./dist/ -p 3000",
     "new": "modern new",

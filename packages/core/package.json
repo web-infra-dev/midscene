@@ -12,33 +12,33 @@
   "exports": {
     ".": {
       "types": "./dist/types/index.d.ts",
-      "default": "./dist/lib/index.js",
+      "require": "./dist/lib/index.js",
       "import": "./dist/es/index.js"
     },
     "./env": {
       "types": "./dist/types/env.d.ts",
-      "default": "./dist/lib/env.js",
-      "import": "./dist/es/env.js"
+      "import": "./dist/es/env.js",
+      "require": "./dist/lib/env.js"
     },
     "./utils": {
       "types": "./dist/types/utils.d.ts",
-      "default": "./dist/lib/utils.js",
-      "import": "./dist/es/utils.js"
+      "import": "./dist/es/utils.js",
+      "require": "./dist/lib/utils.js"
     },
     "./ai-model": {
       "types": "./dist/types/ai-model/index.d.ts",
-      "default": "./dist/lib/ai-model.js",
-      "import": "./dist/es/ai-model.js"
+      "import": "./dist/es/ai-model/index.js",
+      "require": "./dist/lib/ai-model/index.js"
     },
     "./tree": {
       "types": "./dist/types/tree.d.ts",
-      "default": "./dist/lib/tree.js",
-      "import": "./dist/es/tree.js"
+      "import": "./dist/es/tree.js",
+      "require": "./dist/lib/tree.js"
     },
     "./evaluation": {
       "types": "./dist/types/evaluation.d.ts",
-      "default": "./dist/lib/evaluation.js",
-      "import": "./dist/es/evaluation.js"
+      "import": "./dist/es/evaluation.js",
+      "require": "./dist/lib/evaluation.js"
     }
   },
   "typesVersions": {

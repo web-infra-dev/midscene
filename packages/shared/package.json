@@ -10,48 +10,48 @@
   "exports": {
     ".": {
       "types": "./src/index.ts",
-      "default": "./dist/lib/index.js",
-      "import": "./dist/es/index.js"
+      "import": "./dist/es/index.js",
+      "require": "./dist/lib/index.js"
     },
     "./constants": {
       "types": "./src/constants/index.ts",
-      "default": "./dist/lib/constants/index.js",
-      "import": "./dist/es/constants/index.js"
+      "import": "./dist/es/constants/index.js",
+      "require": "./dist/lib/constants/index.js"
     },
     "./fs": {
       "types": "./src/node/fs.ts",
-      "default": "./dist/lib/node/fs.js",
+      "require": "./dist/lib/node/fs.js",
       "import": "./dist/es/node/fs.js"
     },
     "./img": {
       "types": "./src/img/index.ts",
-      "default": "./dist/lib/img/index.js",
-      "import": "./dist/es/img/index.js"
+      "import": "./dist/es/img/index.js",
+      "require": "./dist/lib/img/index.js"
     },
     "./browser/img": {
       "types": "./src/img/index.ts",
-      "default": "./dist/browser/img/index.js",
-      "import": "./dist/browser/img/index.js"
+      "import": "./dist/es/browser/img/index.js",
+      "require": "./dist/browser/img/index.js"
     },
     "./utils": {
       "types": "./src/utils.ts",
-      "default": "./dist/lib/utils/index.js",
-      "import": "./dist/es/utils/index.js"
+      "import": "./dist/es/utils.js",
+      "require": "./dist/lib/utils.js"
     },
     "./extractor": {
       "types": "./src/extractor/index.ts",
-      "default": "./dist/lib/extractor/index.js",
-      "import": "./dist/es/extractor/index.js"
+      "import": "./dist/es/extractor/index.js",
+      "require": "./dist/lib/extractor/index.js"
     },
     "./extractor-debug": {
       "types": "./src/extractor/debug.ts",
-      "default": "./dist/lib/extractor-debug/index.js",
-      "import": "./dist/es/extractor-debug/index.js"
+      "import": "./dist/es/extractor-debug/index.js",
+      "require": "./dist/lib/extractor-debug/index.js"
     },
     "./keyboard-layout": {
       "types": "./src/us-keyboard-layout.ts",
-      "default": "./dist/lib/us-keyboard-layout/index.js",
-      "import": "./dist/es/us-keyboard-layout/index.js"
+      "import": "./dist/es/us-keyboard-layout.js",
+      "require": "./dist/lib/us-keyboard-layout.js"
     }
   },
   "typesVersions": {
@@ -106,48 +106,48 @@
     "exports": {
       ".": {
         "types": "./dist/types/index.d.ts",
-        "default": "./dist/lib/index.js",
-        "import": "./dist/es/index.js"
+        "import": "./dist/es/index.js",
+        "default": "./dist/lib/index.js"
       },
       "./constants": {
         "types": "./dist/types/constants.d.ts",
-        "default": "./dist/lib/constants/index.js",
-        "import": "./dist/es/constants/index.js"
+        "import": "./dist/es/constants/index.js",
+        "default": "./dist/lib/constants/index.js"
       },
       "./fs": {
         "types": "./dist/types/node/fs.d.ts",
-        "default": "./dist/lib/node/fs.js",
-        "import": "./dist/es/node/fs.js"
+        "import": "./dist/es/node/fs.js",
+        "default": "./dist/lib/node/fs.js"
       },
       "./img": {
         "types": "./dist/types/img.d.ts",
-        "default": "./dist/lib/img/index.js",
-        "import": "./dist/es/img/index.js"
+        "import": "./dist/es/img/index.js",
+        "default": "./dist/lib/img/index.js"
       },
       "./browser/img": {
         "types": "./dist/types/browser/img.d.ts",
-        "default": "./dist/browser/img/index.js",
-        "import": "./dist/browser/img/index.js"
+        "import": "./dist/browser/img/index.js",
+        "default": "./dist/browser/img/index.js"
       },
       "./utils": {
         "types": "./dist/types/utils.d.ts",
-        "default": "./dist/lib/utils/index.js",
-        "import": "./dist/es/utils/index.js"
+        "import": "./dist/es/utils/index.js",
+        "default": "./dist/lib/utils/index.js"
       },
       "./extractor": {
         "types": "./dist/types/extractor/index.d.ts",
-        "default": "./dist/lib/extractor/index.js",
-        "import": "./dist/es/extractor/index.js"
+        "import": "./dist/es/extractor/index.js",
+        "default": "./dist/lib/extractor/index.js"
       },
       "./extractor-debug": {
         "types": "./dist/types/extractor/debug.d.ts",
-        "default": "./dist/lib/extractor-debug/index.js",
-        "import": "./dist/es/extractor/debug.js"
+        "import": "./dist/es/extractor/debug.js",
+        "default": "./dist/lib/extractor-debug/index.js"
       },
       "./keyboard-layout": {
         "types": "./dist/types/us-keyboard-layout.d.ts",
-        "default": "./dist/lib/us-keyboard-layout/index.js",
-        "import": "./dist/es/us-keyboard-layout/index.js"
+        "import": "./dist/es/us-keyboard-layout/index.js",
+        "default": "./dist/lib/us-keyboard-layout/index.js"
       }
     },
     "typesVersions": {
