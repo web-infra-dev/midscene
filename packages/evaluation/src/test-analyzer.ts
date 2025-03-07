@@ -167,6 +167,20 @@ ${errorMsg ? `Error: ${errorMsg}` : ''}
     result: ActualResult | Error,
   ): true | Error {
     const distanceThreshold = 16;
+
+    if (testCase.response_planning?.error) {
+      if (!(result instanceof Error)) {
+        const msg = `Expected error: ${testCase.response_planning.error}, but got ${JSON.stringify(result, null, 2)}, the prompt is: ${testCase.prompt}`;
+        return new Error(msg);
+      }
+      return true;
+    }
+
+    if (result instanceof Error) {
+      const msg = `got error: ${result}, but expected?.error is not set, the prompt is: ${testCase.prompt}`;
+      return new Error(msg);
+    }
+
     // compare coordinates
     if ('rawResponse' in result && result.rawResponse.bbox) {
       assert(testCase.response_bbox, 'testCase.response_bbox is required');
@@ -239,19 +253,6 @@ ${errorMsg ? `Error: ${errorMsg}` : ''}
       }
 
       return true;
-    }
-
-    if (testCase.response_planning?.error) {
-      if (!(result instanceof Error)) {
-        const msg = `got error: ${result}, but expected?.error is not set, the prompt is: ${testCase.prompt}`;
-        return new Error(msg);
-      }
-      return true;
-    }
-
-    if (result instanceof Error) {
-      const msg = `got error: ${result}, but expected?.error is not set, the prompt is: ${testCase.prompt}`;
-      return new Error(msg);
     }
 
     const msg = `unknown result type, can not compare, the prompt is: ${testCase.prompt}`;

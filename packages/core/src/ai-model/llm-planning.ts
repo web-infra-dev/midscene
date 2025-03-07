@@ -88,12 +88,18 @@ export async function plan(
   }
 
   assert(planFromAI, "can't get plans from AI");
-  assert(
-    actions.length > 0 ||
-      !returnValue.more_actions_needed_by_instruction ||
-      returnValue.sleep,
-    `Failed to plan actions: ${planFromAI.error || '(no error details)'}`,
-  );
+  assert(!planFromAI.error, `Failed to plan actions: ${planFromAI.error}`);
+
+  if (
+    actions.length === 0 &&
+    returnValue.more_actions_needed_by_instruction &&
+    !returnValue.sleep
+  ) {
+    console.warn(
+      'No actions planned for the prompt, but model said more actions are needed:',
+      userInstruction,
+    );
+  }
 
   return returnValue;
 }
