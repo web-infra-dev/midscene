@@ -67,7 +67,6 @@ export default class ChromeExtensionProxyPage implements AbstractPage {
     const tabId = await chrome.tabs
       .query({ active: true, currentWindow: true })
       .then((tabs) => tabs[0]?.id);
-    const stack = new Error().stack;
     this.activeTabId = tabId || 0;
     return this.activeTabId;
   }
