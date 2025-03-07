@@ -13,7 +13,10 @@
     "resolveJsonModule": true,
     "rootDir": "src",
     "skipLibCheck": true,
-    "strict": true
+    "strict": true,
+    "module": "ES2020",
+    "target": "es2020",
+    "types": ["node"]
   },
   "exclude": ["**/node_modules"],
   "include": ["src", "playwright.config.ts"]

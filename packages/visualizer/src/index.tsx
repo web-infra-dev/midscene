@@ -465,6 +465,20 @@ function mount(id: string) {
   root.render(<Visualizer dumps={reportDump} />);
 }
 
+declare global {
+  interface Window {
+    midsceneVisualizer: {
+      mount: (id: string) => void;
+      Visualizer: typeof Visualizer;
+    };
+  }
+}
+
+window.midsceneVisualizer = {
+  mount,
+  Visualizer,
+};
+
 export default {
   mount,
   Visualizer,

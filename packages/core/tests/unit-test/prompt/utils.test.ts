@@ -1,6 +1,6 @@
 import { describeUserPage } from '@/ai-model/prompt/util';
 import { getAIConfigInBoolean } from '@/env';
-import { getContextFromFixture } from '@/evaluation';
+import { getContextFromFixture } from 'tests/evaluation';
 import { describe, expect, it } from 'vitest';
 
 describe('prompt utils', () => {

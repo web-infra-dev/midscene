@@ -6,13 +6,12 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import assert from 'node:assert';
-import { WebKeyInput } from '@/common/page';
 import {
   type KeyDefinition,
   type KeyInput,
   _keyDefinitions,
 } from '@midscene/shared/keyboard-layout';
+import { assert } from '@midscene/shared/utils';
 
 type KeyDescription = Required<
   Pick<KeyDefinition, 'keyCode' | 'key' | 'text' | 'code' | 'location'>

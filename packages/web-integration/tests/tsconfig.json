@@ -4,6 +4,6 @@
     "baseUrl": "../",
     "rootDir": "../"
   },
-  "include": ["**/*", "../src", "evaluation.ts"],
+  "include": ["**/*", "../src", "playwright.config.ts"],
   "exclude": ["**/node_modules"]
 }

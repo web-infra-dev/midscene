@@ -25,16 +25,16 @@ export async function drawBoxOnImage(options: {
     Math.floor(centerY - radius),
     radius * 2,
     radius * 2,
-    function (x, y, idx) {
+    (x: number, y: number, idx: number) => {
       // Calculate distance from current pixel to center
       const distance = Math.sqrt((x - centerX) ** 2 + (y - centerY) ** 2);
 
       // If distance is less than radius, color the pixel
       if (distance <= radius) {
-        this.bitmap.data[idx + 0] = color.r;
-        this.bitmap.data[idx + 1] = color.g;
-        this.bitmap.data[idx + 2] = color.b;
-        this.bitmap.data[idx + 3] = color.a;
+        image.bitmap.data[idx + 0] = color.r;
+        image.bitmap.data[idx + 1] = color.g;
+        image.bitmap.data[idx + 2] = color.b;
+        image.bitmap.data[idx + 3] = color.a;
       }
     },
   );

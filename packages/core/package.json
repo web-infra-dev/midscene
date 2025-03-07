@@ -5,26 +5,45 @@
   "repository": "https://github.com/web-infra-dev/midscene",
   "homepage": "https://midscenejs.com/",
   "jsnext:source": "./src/index.ts",
-  "type": "commonjs",
-  "main": "./dist/lib/index.js",
-  "types": "./dist/lib/types/index.d.ts",
+  "type": "module",
+  "main": "./dist/es/index.js",
+  "types": "./dist/types/index.d.ts",
   "files": ["dist", "report", "README.md"],
   "exports": {
-    ".": "./dist/lib/index.js",
-    "./env": "./dist/lib/env.js",
-    "./utils": "./dist/lib/utils.js",
-    "./ai-model": "./dist/lib/ai-model.js",
-    "./tree": "./dist/lib/tree.js",
-    "./evaluation": "./dist/lib/evaluation.js"
+    ".": {
+      "types": "./dist/types/index.d.ts",
+      "require": "./dist/lib/index.js",
+      "import": "./dist/es/index.js"
+    },
+    "./env": {
+      "types": "./dist/types/env.d.ts",
+      "import": "./dist/es/env.js",
+      "require": "./dist/lib/env.js"
+    },
+    "./utils": {
+      "types": "./dist/types/utils.d.ts",
+      "import": "./dist/es/utils.js",
+      "require": "./dist/lib/utils.js"
+    },
+    "./ai-model": {
+      "types": "./dist/types/ai-model/index.d.ts",
+      "import": "./dist/es/ai-model/index.js",
+      "require": "./dist/lib/ai-model/index.js"
+    },
+    "./tree": {
+      "types": "./dist/types/tree.d.ts",
+      "import": "./dist/es/tree.js",
+      "require": "./dist/lib/tree.js"
+    }
   },
   "typesVersions": {
     "*": {
-      ".": ["./dist/lib/types/index.d.ts"],
-      "env": ["./dist/lib/types/env.d.ts"],
-      "utils": ["./dist/lib/types/utils.d.ts"],
-      "ai-model": ["./dist/lib/types/ai-model.d.ts"],
-      "tree": ["./dist/lib/types/tree.d.ts"],
-      "evaluation": ["./dist/lib/types/evaluation.d.ts"]
+      ".": ["./dist/types/index.d.ts"],
+      "env": ["./dist/types/env.d.ts"],
+      "utils": ["./dist/types/utils.d.ts"],
+      "ai-model": ["./dist/types/ai-model/index.d.ts"],
+      "tree": ["./dist/types/tree.d.ts"],
+      "evaluation": ["./dist/types/evaluation.d.ts"]
     }
   },
   "scripts": {

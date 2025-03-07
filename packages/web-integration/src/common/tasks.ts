@@ -1,4 +1,3 @@
-import assert from 'node:assert';
 import type { WebPage } from '@/common/page';
 import type { PuppeteerWebPage } from '@/puppeteer';
 import {
@@ -35,6 +34,7 @@ import {
 } from '@midscene/core/ai-model';
 import { sleep } from '@midscene/core/utils';
 import type { ElementInfo } from '@midscene/shared/extractor';
+import { assert } from '@midscene/shared/utils';
 import type { WebElementInfo } from '../web-element';
 import { TaskCache } from './task-cache';
 import { getKeyCommands } from './ui-utils';

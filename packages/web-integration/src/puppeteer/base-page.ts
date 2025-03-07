@@ -2,11 +2,12 @@ import type { ElementTreeNode, Point, Size } from '@midscene/core';
 import { getTmpFile, sleep } from '@midscene/core/utils';
 import type { ElementInfo } from '@midscene/shared/extractor';
 import { treeToList } from '@midscene/shared/extractor';
+import { getExtraReturnLogic } from '@midscene/shared/fs';
 import { base64Encoded } from '@midscene/shared/img';
+import { assert } from '@midscene/shared/utils';
 import type { Page as PlaywrightPage } from 'playwright';
 import type { Page as PuppeteerPage } from 'puppeteer';
 import type { WebKeyInput } from '../common/page';
-import { getExtraReturnLogic } from '../common/utils';
 import type { AbstractPage } from '../page';
 import type { MouseButton } from '../page';
 
@@ -57,6 +58,7 @@ export class Page<
     // The page may go through opening, closing, and reopening; if the page is closed, evaluate may return undefined, which can lead to errors.
     await this.waitForNavigation();
     const scripts = await getExtraReturnLogic(true);
+    assert(scripts, 'scripts should be set before writing report in browser');
     const captureElementSnapshot = await this.evaluate(scripts);
     return captureElementSnapshot as ElementTreeNode<ElementInfo>;
   }

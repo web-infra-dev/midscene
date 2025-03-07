@@ -3,7 +3,7 @@
 import type { NodeType } from '@midscene/shared/constants';
 import type { ChatCompletionMessageParam } from 'openai/resources';
 
-export * from './yaml.d';
+export * from './yaml';
 
 export interface Point {
   left: number;

@@ -1,10 +1,10 @@
-import assert from 'node:assert';
 import { PageAgent, type PageAgentOpt } from '@/common/agent';
 import type {
   ChromePageDestroyOptions,
   KeyboardAction,
   MouseAction,
 } from '@/page';
+import { assert } from '@midscene/shared/utils';
 import {
   type BridgeConnectTabOptions,
   BridgeEvent,

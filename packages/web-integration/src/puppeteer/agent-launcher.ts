@@ -1,5 +1,5 @@
-import assert from 'node:assert';
 import { readFileSync } from 'node:fs';
+import { assert } from '@midscene/shared/utils';
 
 import { PuppeteerAgent } from '@/puppeteer';
 import type { MidsceneYamlScriptEnv } from '@midscene/core';

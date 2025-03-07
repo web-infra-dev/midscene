@@ -1,5 +1,5 @@
 import { AiExtractElementInfo } from '@/ai-model';
-import { getContextFromFixture } from '@/evaluation';
+import { getContextFromFixture } from 'tests/evaluation';
 import { describe, expect, it, vi } from 'vitest';
 
 vi.setConfig({

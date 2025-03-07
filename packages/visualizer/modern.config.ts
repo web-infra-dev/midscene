@@ -10,7 +10,7 @@ const commonConfig = {
   },
   autoExternal: false,
   externals: [...externals],
-  target: 'es2018',
+  target: 'es2020',
   minify: process.env.CI
     ? {
         compress: true,
@@ -33,15 +33,9 @@ export default defineConfig({
       input: {
         report: 'src/index.tsx',
       },
-      umdModuleName: (path) => {
-        // if (path.includes('playground')) {
-        //   return 'midscenePlayground';
-        // }
-        return 'midsceneVisualizer';
-      },
       platform: 'browser',
       outDir: 'dist',
-      target: 'es2018',
+      target: 'es2020',
       sourceMap: true,
     },
     {
@@ -60,7 +54,7 @@ export default defineConfig({
       },
       platform: 'browser',
       outDir: 'unpacked-extension/lib',
-      target: 'es2018',
+      target: 'es2020',
     },
   ],
   plugins: [

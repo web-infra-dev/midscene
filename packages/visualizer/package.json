@@ -6,6 +6,7 @@
   "types": "./dist/types/index.d.ts",
   "main": "./dist/lib/index.js",
   "module": "./dist/es/index.js",
+  "type": "module",
   "files": ["dist", "html", "README.md"],
   "watch": {
     "build": {

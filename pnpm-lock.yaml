@@ -222,6 +222,9 @@ importers:
       jimp:
         specifier: 0.22.12
         version: 0.22.12
+      js-sha256:
+        specifier: 0.11.0
+        version: 0.11.0
     devDependencies:
       '@modern-js/module-tools':
         specifier: 2.60.6
@@ -229,9 +232,6 @@ importers:
       '@types/node':
         specifier: ^18.0.0
         version: 18.19.62
-      js-sha256:
-        specifier: 0.11.0
-        version: 0.11.0
       rimraf:
         specifier: ~3.0.2
         version: 3.0.2

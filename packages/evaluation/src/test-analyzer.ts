@@ -15,7 +15,7 @@ import {
   type plan,
 } from '@midscene/core';
 import { expect } from 'vitest';
-import type { TestCase } from './util';
+import type { TestCase } from '../tests/util';
 
 type ActualResult =
   | Awaited<ReturnType<typeof AiInspectElement>>
@@ -115,13 +115,20 @@ ${errorMsg ? `Error: ${errorMsg}` : ''}
         const totalTimeCost = testLogs.reduce((acc, log) => acc + log.cost, 0);
         const averagePromptTokens =
           testLogs.reduce(
-            (acc, log) => acc + (log.actualResult.usage?.prompt_tokens || 0),
+            (acc, log) =>
+              acc +
+              (log.actualResult instanceof Error
+                ? 0
+                : log.actualResult.usage?.prompt_tokens || 0),
             0,
           ) / testLogs.length;
         const averageCompletionTokens =
           testLogs.reduce(
             (acc, log) =>
-              acc + (log.actualResult.usage?.completion_tokens || 0),
+              acc +
+              (log.actualResult instanceof Error
+                ? 0
+                : log.actualResult.usage?.completion_tokens || 0),
             0,
           ) / testLogs.length;
         return {

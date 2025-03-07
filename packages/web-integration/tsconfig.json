@@ -14,11 +14,11 @@
     },
     "target": "es6",
     "resolveJsonModule": true,
-    "rootDir": "./",
+    "rootDir": "./src",
     "skipLibCheck": true,
     "strict": true,
     "module": "ESNext"
   },
   "exclude": ["node_modules"],
-  "include": ["src", "tests", "./playwright.config.ts", "./vitest.config"]
+  "include": ["src", "./vitest.config"]
 }

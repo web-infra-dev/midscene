@@ -1,4 +1,4 @@
-import assert from 'node:assert';
+import { assert } from '@midscene/shared/utils';
 import { io as ClientIO, type Socket as ClientSocket } from 'socket.io-client';
 import {
   type BridgeCallRequest,
