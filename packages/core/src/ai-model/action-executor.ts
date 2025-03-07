@@ -1,4 +1,3 @@
-import assert from 'node:assert';
 import { MIDSCENE_MODEL_NAME, getAIConfig } from '@/env';
 import type {
   ExecutionDump,
@@ -10,6 +9,7 @@ import type {
   ExecutorContext,
 } from '@/types';
 import { getVersion } from '@/utils';
+import { assert } from '@midscene/shared/utils';
 
 export class Executor {
   name: string;

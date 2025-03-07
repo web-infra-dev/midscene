@@ -1,9 +1,11 @@
-import assert from 'node:assert';
 import { execSync } from 'node:child_process';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { basename, dirname, join } from 'node:path';
+import * as path from 'node:path';
+import { dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { getRunningPkgInfo } from '@midscene/shared/fs';
+import { assert } from '@midscene/shared/utils';
 import { ifInBrowser, uuid } from '@midscene/shared/utils';
 import {
   MIDSCENE_DEBUG_MODE,
@@ -13,7 +15,7 @@ import {
 } from './env';
 import type { Rect, ReportDumpWithAttributes } from './types';
 
-let logDir = join(process.cwd(), './midscene_run/');
+let logDir = path.join(process.cwd(), './midscene_run/');
 let logEnvReady = false;
 export const groupedActionDumpFileExt = 'web-dump.json';
 
@@ -26,7 +28,10 @@ export function setLogDir(dir: string) {
 }
 
 export function getLogDirByType(type: 'dump' | 'cache' | 'report' | 'tmp') {
-  const dir = join(getLogDir(), type);
+  if (ifInBrowser) {
+    return '';
+  }
+  const dir = path.join(getLogDir(), type);
   if (!existsSync(dir)) {
     mkdirSync(dir, { recursive: true });
   }
@@ -39,17 +44,15 @@ function getReportTpl() {
     if (!reportTpl && (window as any).get_midscene_report_tpl) {
       reportTpl = (window as any).get_midscene_report_tpl();
     }
-    // assert(
-    //   reportTpl,
-    //   'reportTpl should be set before writing report in browser',
-    // );
     return reportTpl;
   }
 
+  const filename = fileURLToPath(import.meta.url);
+  const __dirname = dirname(filename);
   if (!reportTpl) {
-    let reportPath = join(__dirname, '../../report/index.html');
+    let reportPath = path.join(__dirname, '../../report/index.html');
     if (!existsSync(reportPath)) {
-      reportPath = join(__dirname, '../report/index.html');
+      reportPath = path.join(__dirname, '../report/index.html');
     }
     reportTpl = readFileSync(reportPath, 'utf-8');
   }
@@ -116,13 +119,15 @@ export function writeDumpReport(
     return null;
   }
 
+  const filename = fileURLToPath(import.meta.url);
+  const __dirname = dirname(filename);
   const midscenePkgInfo = getRunningPkgInfo(__dirname);
   if (!midscenePkgInfo) {
     console.warn('midscenePkgInfo not found, will not write report');
     return null;
   }
 
-  const reportPath = join(getLogDirByType('report'), `${fileName}.html`);
+  const reportPath = path.join(getLogDirByType('report'), `${fileName}.html`);
   const reportContent = reportHTMLContent(dumpData);
   if (!reportContent) {
     console.warn('reportContent is empty, will not write report');
@@ -150,14 +155,14 @@ export function writeLogFile(opts: {
     assert(targetDir, 'logDir should be set before writing dump file');
 
     // gitIgnore in the parent directory
-    const gitIgnorePath = join(targetDir, '../../.gitignore');
+    const gitIgnorePath = path.join(targetDir, '../../.gitignore');
     let gitIgnoreContent = '';
     if (existsSync(gitIgnorePath)) {
       gitIgnoreContent = readFileSync(gitIgnorePath, 'utf-8');
     }
 
     // ignore the log folder
-    const logDirName = basename(logDir);
+    const logDirName = path.basename(logDir);
     if (!gitIgnoreContent.includes(`${logDirName}/`)) {
       writeFileSync(
         gitIgnorePath,
@@ -168,11 +173,11 @@ export function writeLogFile(opts: {
     logEnvReady = true;
   }
 
-  const filePath = join(targetDir, `${fileName}.${fileExt}`);
+  const filePath = path.join(targetDir, `${fileName}.${fileExt}`);
 
   if (type !== 'dump') {
     // do not write dump file any more
-    const outputResourceDir = dirname(filePath);
+    const outputResourceDir = path.dirname(filePath);
     if (!existsSync(outputResourceDir)) {
       mkdirSync(outputResourceDir, { recursive: true });
     }
@@ -188,17 +193,18 @@ export function writeLogFile(opts: {
 }
 
 export function getTmpDir(): string | null {
-  if (ifInBrowser) {
+  try {
+    const runningPkgInfo = getRunningPkgInfo();
+    if (!runningPkgInfo) {
+      return null;
+    }
+    const { name } = runningPkgInfo;
+    const tmpPath = path.join(tmpdir(), name);
+    mkdirSync(tmpPath, { recursive: true });
+    return tmpPath;
+  } catch (e) {
     return null;
   }
-  const runningPkgInfo = getRunningPkgInfo();
-  if (!runningPkgInfo) {
-    return null;
-  }
-  const { name } = runningPkgInfo;
-  const path = join(tmpdir(), name);
-  mkdirSync(path, { recursive: true });
-  return path;
 }
 
 export function getTmpFile(fileExtWithoutDot: string): string | null {
@@ -207,7 +213,7 @@ export function getTmpFile(fileExtWithoutDot: string): string | null {
   }
   const tmpDir = getTmpDir();
   const filename = `${uuid()}.${fileExtWithoutDot}`;
-  return join(tmpDir!, filename);
+  return path.join(tmpDir!, filename);
 }
 
 export function overlapped(container: Rect, target: Rect) {

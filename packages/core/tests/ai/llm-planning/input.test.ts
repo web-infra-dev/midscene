@@ -1,6 +1,6 @@
 import { plan } from '@/ai-model';
-import { getContextFromFixture } from '@/evaluation';
 import type { PlanningAction } from '@/types';
+import { getContextFromFixture } from 'tests/evaluation';
 /* eslint-disable max-lines-per-function */
 import { describe, expect, it, vi } from 'vitest';
 

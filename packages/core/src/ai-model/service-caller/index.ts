@@ -1,10 +1,10 @@
-import assert from 'node:assert';
 import { AIResponseFormat, type AIUsageInfo } from '@/types';
 import { Anthropic } from '@anthropic-ai/sdk';
 import {
   DefaultAzureCredential,
   getBearerTokenProvider,
 } from '@azure/identity';
+import { assert } from '@midscene/shared/utils';
 import { ifInBrowser } from '@midscene/shared/utils';
 import dJSON from 'dirty-json';
 import OpenAI, { AzureOpenAI } from 'openai';

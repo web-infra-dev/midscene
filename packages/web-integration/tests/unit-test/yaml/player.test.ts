@@ -1,5 +1,5 @@
-import assert from 'node:assert';
 import { join } from 'node:path';
+import { assert } from '@midscene/shared/utils';
 
 import { randomUUID } from 'node:crypto';
 import { existsSync } from 'node:fs';

@@ -1,7 +1,7 @@
-import assert from 'node:assert';
 import { MIDSCENE_USE_QWEN_VL, getAIConfigInBoolean } from '@/env';
 import type { PlanningAIResponse, UIContext } from '@/types';
 import { paddingToMatchBlock } from '@midscene/shared/img';
+import { assert } from '@midscene/shared/utils';
 import {
   AIActionType,
   type AIArgs,

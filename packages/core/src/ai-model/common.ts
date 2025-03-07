@@ -1,5 +1,5 @@
-import assert from 'node:assert';
 import type { AIUsageInfo, Size } from '@/types';
+import { assert } from '@midscene/shared/utils';
 
 import type {
   ChatCompletionSystemMessageParam,

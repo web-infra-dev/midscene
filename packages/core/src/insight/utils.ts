@@ -1,4 +1,3 @@
-import assert from 'node:assert';
 import {
   MIDSCENE_MODEL_NAME,
   MIDSCENE_USE_QWEN_VL,
@@ -13,6 +12,7 @@ import type {
   PartialInsightDumpFromSDK,
 } from '@/types';
 import { getLogDir, getVersion, stringifyDumpData } from '@/utils';
+import { assert } from '@midscene/shared/utils';
 import { uuid } from '@midscene/shared/utils';
 const logContent: string[] = [];
 const logIdIndexMap: Record<string, number> = {};

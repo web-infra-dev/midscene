@@ -13,7 +13,7 @@ import {
 import { sleep } from '@midscene/core/utils';
 import dotenv from 'dotenv';
 import { describe, expect, test } from 'vitest';
-import { TestResultCollector } from './test-analyzer';
+import { TestResultCollector } from '../src/test-analyzer';
 import { buildContext, getCases } from './util';
 
 dotenv.config({

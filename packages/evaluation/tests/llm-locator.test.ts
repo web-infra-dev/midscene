@@ -9,7 +9,7 @@ import { sleep } from '@midscene/core/utils';
 import { saveBase64Image } from '@midscene/shared/img';
 import dotenv from 'dotenv';
 import { afterAll, expect, test } from 'vitest';
-import { TestResultCollector } from './test-analyzer';
+import { TestResultCollector } from '../src/test-analyzer';
 import { annotatePoints, buildContext, getCases } from './util';
 
 dotenv.config({

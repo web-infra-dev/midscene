@@ -62,17 +62,17 @@ const createSvgOverlay = async (
       paddedRect.top,
       paddedRect.width,
       paddedRect.height,
-      function (x, y, idx) {
+      (x: number, y: number, idx: number): void => {
         if (
           x === paddedRect.left ||
           x === paddedRect.left + paddedRect.width - 1 ||
           y === paddedRect.top ||
           y === paddedRect.top + paddedRect.height - 1
         ) {
-          this.bitmap.data[idx + 0] = (color.rect >> 24) & 0xff; // R
-          this.bitmap.data[idx + 1] = (color.rect >> 16) & 0xff; // G
-          this.bitmap.data[idx + 2] = (color.rect >> 8) & 0xff; // B
-          this.bitmap.data[idx + 3] = color.rect & 0xff; // A
+          image.bitmap.data[idx + 0] = (color.rect >> 24) & 0xff; // R
+          image.bitmap.data[idx + 1] = (color.rect >> 16) & 0xff; // G
+          image.bitmap.data[idx + 2] = (color.rect >> 8) & 0xff; // B
+          image.bitmap.data[idx + 3] = color.rect & 0xff; // A
         }
       },
     );
@@ -150,12 +150,18 @@ const createSvgOverlay = async (
     // Note: If the original left position doesn't overlap and is within bounds, we keep it as is
 
     // Draw text background
-    image.scan(rectX, rectY, rectWidth, rectHeight, function (x, y, idx) {
-      this.bitmap.data[idx + 0] = (color.rect >> 24) & 0xff; // R
-      this.bitmap.data[idx + 1] = (color.rect >> 16) & 0xff; // G
-      this.bitmap.data[idx + 2] = (color.rect >> 8) & 0xff; // B
-      this.bitmap.data[idx + 3] = color.rect & 0xff; // A
-    });
+    image.scan(
+      rectX,
+      rectY,
+      rectWidth,
+      rectHeight,
+      (x: number, y: number, idx: number): void => {
+        image.bitmap.data[idx + 0] = (color.rect >> 24) & 0xff; // R
+        image.bitmap.data[idx + 1] = (color.rect >> 16) & 0xff; // G
+        image.bitmap.data[idx + 2] = (color.rect >> 8) & 0xff; // B
+        image.bitmap.data[idx + 3] = color.rect & 0xff; // A
+      },
+    );
     // Draw text (simplified, as Jimp doesn't have built-in text drawing)
     try {
       cachedFont = cachedFont || (await Jimp.loadFont(Jimp.FONT_SANS_16_WHITE));

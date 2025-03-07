@@ -1,7 +1,7 @@
 import { type LocateTask, type PlanTask, TaskCache } from '@/common/task-cache';
 import type { WebUIContext } from '@/common/utils';
 import type { WebElementInfo } from '@/web-element';
-import type { AIElementParseResponse } from '@midscene/core';
+import type { AIElementIdResponse } from '@midscene/core';
 import { beforeEach, describe, expect, it } from 'vitest';
 
 describe('TaskCache', () => {
@@ -19,7 +19,7 @@ describe('TaskCache', () => {
       ...pageContext,
       screenshotBase64: '',
       content: [{ id: 'element1' } as WebElementInfo], // 示例页面内容
-    };
+    } as any;
   });
 
   it('should return false if no cache is available', async () => {
@@ -41,7 +41,11 @@ describe('TaskCache', () => {
             type: 'plan',
             prompt: 'different prompt',
             pageContext,
-            response: { plans: [] },
+            response: {
+              actions: [],
+              log: '',
+              more_actions_needed_by_instruction: false,
+            },
           },
         ],
       },
@@ -67,7 +71,7 @@ describe('TaskCache', () => {
               pageContext,
               response: {
                 elements: [{ id: 'element3' }],
-              } as AIElementParseResponse,
+              } as AIElementIdResponse,
             },
           ],
         },
@@ -85,7 +89,9 @@ describe('TaskCache', () => {
   it('should return cached response if the conditions match', async () => {
     const cachedResponse = {
       plans: [{ type: 'Locate', thought: '', param: {} }],
-    } as PlanTask['response'];
+      more_actions_needed_by_instruction: false,
+      log: '',
+    };
     taskCache.cache = {
       aiTasks: [
         {
@@ -117,7 +123,11 @@ describe('TaskCache', () => {
       type: 'plan',
       prompt: 'new prompt',
       pageContext,
-      response: { plans: [{ type: 'Locate', thought: '', param: {} }] },
+      response: {
+        actions: [{ type: 'Locate', thought: '', param: {}, locate: null }],
+        more_actions_needed_by_instruction: false,
+        log: '',
+      },
     };
     cacheGroup.saveCache(newCache);
     expect(taskCache.newCache.aiTasks[0].tasks).toContain(newCache);

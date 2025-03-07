@@ -1,4 +1,3 @@
-import assert from 'node:assert';
 import { callAiFn } from '@/ai-model/common';
 import { AiExtractElementInfo, AiInspectElement } from '@/ai-model/index';
 import { AiAssert } from '@/ai-model/inspect';
@@ -15,6 +14,7 @@ import type {
   PartialInsightDumpFromSDK,
   UIContext,
 } from '@/types';
+import { assert } from '@midscene/shared/utils';
 import { emitInsightDump } from './utils';
 
 export interface LocateOpts {

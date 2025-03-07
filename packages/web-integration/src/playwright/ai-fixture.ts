@@ -197,7 +197,7 @@ export type PlayWrightAiFixtureType = {
   aiWaitFor: (assertion: string, opt?: AgentWaitForOpt) => Promise<void>;
 };
 
-async function waitForNetworkIdle(page: OriginPlaywrightPage, timeout = 20000) {
+async function waitForNetworkIdle(page: OriginPlaywrightPage, timeout = 10000) {
   try {
     await page.waitForLoadState('networkidle', { timeout });
   } catch (error: any) {

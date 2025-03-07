@@ -1,6 +1,6 @@
 import { plan } from '@/ai-model';
 import { MIDSCENE_USE_QWEN_VL, getAIConfigInBoolean } from '@/env';
-import { getContextFromFixture } from '@/evaluation';
+import { getContextFromFixture } from 'tests/evaluation';
 /* eslint-disable max-lines-per-function */
 import { describe, expect, it, vi } from 'vitest';
 

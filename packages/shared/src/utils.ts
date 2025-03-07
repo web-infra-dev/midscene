@@ -44,3 +44,16 @@ export function generateHashId(rect: any, content = '') {
   }
   return slicedHash;
 }
+
+/**
+ * A utility function that asserts a condition and throws an error with a message if the condition is false.
+ *
+ * @param condition - The condition to assert
+ * @param message - The error message to throw if the condition is false
+ * @throws Error with the provided message if the condition is false
+ */
+export function assert(condition: any, message?: string): asserts condition {
+  if (!condition) {
+    throw new Error(message || 'Assertion failed');
+  }
+}
