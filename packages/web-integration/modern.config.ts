@@ -28,7 +28,7 @@ export default defineConfig({
   buildPreset: 'npm-library',
   buildConfig: {
     format: 'esm',
-    target: 'es6',
+    target: 'es2020',
     buildType: 'bundleless',
     define: {
       __VERSION__: version,
