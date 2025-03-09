@@ -25,15 +25,35 @@ files.forEach(([src, dest]) => {
 
 export default defineConfig({
   plugins: [moduleTools()],
-  // buildPreset: 'npm-library',
+  buildPreset: 'npm-library',
   buildConfig: {
-    format: 'esm',
     target: 'es2020',
-    buildType: 'bundleless',
+    buildType: 'bundle',
+    input: {
+      index: 'src/index.ts',
+      'bridge-mode': 'src/bridge-mode/index.ts',
+      'bridge-mode-browser': 'src/bridge-mode/browser.ts',
+      utils: 'src/common/utils.ts',
+      'ui-utils': 'src/common/ui-utils.ts',
+      puppeteer: 'src/puppeteer/index.ts',
+      playwright: 'src/playwright/index.ts',
+      playground: 'src/playground/index.ts',
+      'midscene-playground': 'src/playground/bin.ts',
+      appium: 'src/appium/index.ts',
+      'playwright-report': './src/playwright/reporter/index.ts',
+      'chrome-extension': 'src/chrome-extension/index.ts',
+      yaml: 'src/yaml/index.ts',
+    },
+    externals: [
+      '@midscene/core',
+      '@midscene/shared',
+      'puppeteer',
+      'bufferutil',
+      'utf-8-validate',
+    ],
     define: {
       __VERSION__: version,
     },
     sourceMap: true,
-    autoExtension: true,
   },
 });
