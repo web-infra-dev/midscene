@@ -33,16 +33,16 @@
     "@types/minimist": "1.2.5",
     "@types/node": "^18.0.0",
     "@types/yargs": "17.0.32",
+    "typescript": "~5.0.4",
+    "vitest": "3.0.5",
+    "yargs": "17.7.2",
     "chalk": "4.1.2",
     "cli-spinners": "3.2.0",
     "dotenv": "16.4.5",
     "execa": "9.3.0",
     "glob": "11.0.0",
     "js-yaml": "4.1.0",
-    "restore-cursor": "5.1.0",
-    "typescript": "~5.0.4",
-    "vitest": "3.0.5",
-    "yargs": "17.7.2"
+    "restore-cursor": "5.1.0"
   },
   "engines": {
     "node": ">=18.0.0"

@@ -36,7 +36,7 @@ import {
   distanceThreshold,
   elementByPositionWithElementInfo,
 } from './prompt/util';
-import { callToGetJSONObject } from './service-caller';
+import { callToGetJSONObject } from './service-caller/index';
 
 export type AIArgs = [
   ChatCompletionSystemMessageParam,

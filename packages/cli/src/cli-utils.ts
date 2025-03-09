@@ -3,15 +3,15 @@ import 'dotenv/config';
 import { statSync } from 'node:fs';
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
+import { hideBin } from 'yargs/helpers';
 import yargs from 'yargs/yargs';
+
+declare const __VERSION__: string;
 
 export const parseProcessArgs = async (): Promise<{
   path?: string;
   options: Record<string, any>;
 }> => {
-  const versionFromPkgJson = require('../package.json').version;
-  const { hideBin } = require('yargs/helpers');
-
   const args = yargs(hideBin(process.argv))
     .usage(
       `Midscene.js helps you automate browser actions, assertions, and data extraction by AI. 
@@ -33,7 +33,7 @@ Usage: $0 [options] <path-to-yaml-script-file-or-directory>`,
           'Keep the browser window open after the script finishes. This is useful when debugging, but will consume more resources',
       },
     })
-    .version('version', 'Show version number', versionFromPkgJson)
+    .version('version', 'Show version number', __VERSION__)
     .help()
     .wrap(yargs().terminalWidth());
 

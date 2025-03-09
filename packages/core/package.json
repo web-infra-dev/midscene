@@ -5,7 +5,6 @@
   "repository": "https://github.com/web-infra-dev/midscene",
   "homepage": "https://midscenejs.com/",
   "jsnext:source": "./src/index.ts",
-  "type": "module",
   "main": "./dist/es/index.js",
   "types": "./dist/types/index.d.ts",
   "files": ["dist", "report", "README.md"],
@@ -26,9 +25,9 @@
       "require": "./dist/lib/utils.js"
     },
     "./ai-model": {
-      "types": "./dist/types/ai-model/index.d.ts",
-      "import": "./dist/es/ai-model/index.js",
-      "require": "./dist/lib/ai-model/index.js"
+      "types": "./dist/types/ai-model.d.ts",
+      "import": "./dist/es/ai-model.js",
+      "require": "./dist/lib/ai-model.js"
     },
     "./tree": {
       "types": "./dist/types/tree.d.ts",
@@ -41,9 +40,8 @@
       ".": ["./dist/types/index.d.ts"],
       "env": ["./dist/types/env.d.ts"],
       "utils": ["./dist/types/utils.d.ts"],
-      "ai-model": ["./dist/types/ai-model/index.d.ts"],
-      "tree": ["./dist/types/tree.d.ts"],
-      "evaluation": ["./dist/types/evaluation.d.ts"]
+      "ai-model": ["./dist/types/ai-model.d.ts"],
+      "tree": ["./dist/types/tree.d.ts"]
     }
   },
   "scripts": {
@@ -65,15 +63,15 @@
     "@midscene/shared": "workspace:*",
     "@ui-tars/action-parser": "1.0.1",
     "openai": "4.81.0",
-    "socks-proxy-agent": "8.0.4"
+    "socks-proxy-agent": "8.0.4",
+    "dirty-json": "0.9.2",
+    "dotenv": "16.4.5",
+    "langsmith": "0.3.7"
   },
   "devDependencies": {
     "@modern-js/module-tools": "2.60.6",
     "@types/node": "^18.0.0",
     "@types/node-fetch": "2.6.11",
-    "dirty-json": "0.9.2",
-    "dotenv": "16.4.5",
-    "langsmith": "0.3.7",
     "typescript": "~5.0.4",
     "vitest": "3.0.5"
   },
