@@ -329,7 +329,7 @@ export default class ChromeExtensionProxyPage implements AbstractPage {
     await this.hideMousePointer();
     const base64 = await this.sendCommandToDebugger('Page.captureScreenshot', {
       format: 'jpeg',
-      quality: 70,
+      quality: 90,
     });
     return `data:image/jpeg;base64,${base64.data}`;
   }

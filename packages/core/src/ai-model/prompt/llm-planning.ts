@@ -33,13 +33,13 @@ Field description:
 
 Return in JSON format:
 {
+  ${commonOutputFields},
   "action": 
     {
       // one of the supporting actions
     } | null,
   ,
   "sleep"?: number, // The sleep time after the action, in milliseconds.
-  ${commonOutputFields}
 }
 `;
 
@@ -309,23 +309,23 @@ export const generateTaskBackgroundContext = (
   if (log) {
     return `
 Here is the user's instruction:
-=============
+<instruction>
 ${userInstruction}
-=============
+</instruction>
 
 These are the logs from previous executions, which indicate what was done in the previous actions.
 Do NOT repeat these actions.
-=============
+<previous_logs>
 ${log}
-=============
+</previous_logs>
 `;
   }
 
   return `
 Here is the user's instruction:
-=============
+<instruction>
 ${userInstruction}
-=============
+</instruction>
 `;
 };
 
