@@ -123,11 +123,19 @@
     "@midscene/shared": "workspace:*",
     "@xmldom/xmldom": "0.8.10",
     "cors": "2.8.5",
+    "dayjs": "1.11.11",
     "express": "4.21.1",
     "inquirer": "10.1.5",
     "openai": "4.81.0",
     "socket.io": "4.8.1",
-    "socket.io-client": "4.8.1"
+    "socket.io-client": "4.8.1",
+    "dotenv": "16.4.5",
+    "devtools-protocol": "0.0.1380148",
+    "fs-extra": "11.2.0",
+    "http-server": "14.1.1",
+    "js-sha256": "0.11.0",
+    "js-yaml": "4.1.0",
+    "webdriverio": "9.0.6"
   },
   "devDependencies": {
     "@modern-js/module-tools": "2.60.6",
@@ -139,17 +147,10 @@
     "@types/js-yaml": "4.0.9",
     "@types/node": "^18.0.0",
     "@wdio/types": "9.0.4",
-    "devtools-protocol": "0.0.1380148",
-    "dotenv": "16.4.5",
-    "fs-extra": "11.2.0",
-    "http-server": "14.1.1",
-    "js-sha256": "0.11.0",
-    "js-yaml": "4.1.0",
     "playwright": "1.44.1",
     "puppeteer": "24.2.0",
     "typescript": "~5.0.4",
-    "vitest": "3.0.5",
-    "webdriverio": "9.0.6"
+    "vitest": "3.0.5"
   },
   "peerDependencies": {
     "@playwright/test": "^1.44.1",
