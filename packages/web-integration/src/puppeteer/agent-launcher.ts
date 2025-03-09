@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { assert } from '@midscene/shared/utils';
 
-import { PuppeteerAgent } from '@/puppeteer';
+import { PuppeteerAgent } from '@/puppeteer/index';
 import type { MidsceneYamlScriptEnv } from '@midscene/core';
 
 export const defaultUA =

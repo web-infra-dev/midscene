@@ -14,5 +14,6 @@ export default defineConfig({
     },
     splitting: true,
     sourceMap: true,
+    autoExtension: true,
   },
 });

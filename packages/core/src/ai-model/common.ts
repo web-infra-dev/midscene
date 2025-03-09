@@ -9,7 +9,7 @@ import {
   callToGetJSONObject,
   checkAIConfig,
   getModelName,
-} from './service-caller';
+} from './service-caller/index';
 
 import type { PlanningLocateParam } from '@/types';
 

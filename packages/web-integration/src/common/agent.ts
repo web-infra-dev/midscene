@@ -11,7 +11,7 @@ import {
 } from '@midscene/core';
 import { NodeType } from '@midscene/shared/constants';
 
-import { ScriptPlayer, parseYamlScript } from '@/yaml';
+import { ScriptPlayer, parseYamlScript } from '@/yaml/index';
 import {
   MATCH_BY_POSITION,
   MIDSCENE_USE_VLM_UI_TARS,

@@ -7,5 +7,6 @@ export default defineConfig({
     buildType: 'bundleless',
     format: 'esm',
     target: 'es2020',
+    autoExtension: true,
   },
 });

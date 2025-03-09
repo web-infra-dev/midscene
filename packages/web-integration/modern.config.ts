@@ -34,5 +34,6 @@ export default defineConfig({
       __VERSION__: version,
     },
     sourceMap: true,
+    autoExtension: true,
   },
 });
