@@ -65,13 +65,13 @@
     "openai": "4.81.0",
     "socks-proxy-agent": "8.0.4",
     "dirty-json": "0.9.2",
-    "dotenv": "16.4.5"
+    "dotenv": "16.4.5",
+    "langsmith": "0.3.7"
   },
   "devDependencies": {
     "@modern-js/module-tools": "2.60.6",
     "@types/node": "^18.0.0",
     "@types/node-fetch": "2.6.11",
-    "langsmith": "0.3.7",
     "typescript": "~5.0.4",
     "vitest": "3.0.5"
   },
