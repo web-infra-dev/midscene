@@ -5,12 +5,14 @@ export default defineConfig({
   plugins: [moduleTools()],
   buildPreset: 'npm-library',
   buildConfig: {
-    format: 'esm',
-    target: 'es6',
+    input: {
+      index: 'src/index.ts',
+    },
+    externals: ['node:buffer', 'puppeteer'],
+    target: 'es2020',
     define: {
       __VERSION__: version,
     },
-    buildType: 'bundleless',
-    autoExtension: true,
+    sourceMap: true,
   },
 });

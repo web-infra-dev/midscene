@@ -26,9 +26,9 @@
       "require": "./dist/lib/utils.js"
     },
     "./ai-model": {
-      "types": "./dist/types/ai-model/index.d.ts",
-      "import": "./dist/es/ai-model/index.js",
-      "require": "./dist/lib/ai-model/index.js"
+      "types": "./dist/types/ai-model.d.ts",
+      "import": "./dist/es/ai-model.js",
+      "require": "./dist/lib/ai-model.js"
     },
     "./tree": {
       "types": "./dist/types/tree.d.ts",
@@ -41,9 +41,8 @@
       ".": ["./dist/types/index.d.ts"],
       "env": ["./dist/types/env.d.ts"],
       "utils": ["./dist/types/utils.d.ts"],
-      "ai-model": ["./dist/types/ai-model/index.d.ts"],
-      "tree": ["./dist/types/tree.d.ts"],
-      "evaluation": ["./dist/types/evaluation.d.ts"]
+      "ai-model": ["./dist/types/ai-model.d.ts"],
+      "tree": ["./dist/types/tree.d.ts"]
     }
   },
   "scripts": {
