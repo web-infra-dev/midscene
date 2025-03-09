@@ -36,7 +36,6 @@ export default defineConfig({
       platform: 'browser',
       outDir: 'dist',
       target: 'es2020',
-      autoExtension: true,
     },
     {
       ...commonConfig,
