@@ -42,6 +42,7 @@
     },
     "./playwright-report": {
       "types": "./dist/playwright/reporter/index.d.ts",
+      "require": "./dist/playwright/reporter/index.js",
       "import": "./dist/playwright/reporter/index.js"
     },
     "./playground": {
