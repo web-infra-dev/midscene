@@ -5,94 +5,81 @@
   "repository": "https://github.com/web-infra-dev/midscene",
   "homepage": "https://midscenejs.com/",
   "jsnext:source": "./src/index.ts",
-  "main": "./dist/lib/index.js",
-  "types": "./dist/types/index.d.ts",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "type": "module",
   "bin": {
     "midscene-playground": "./bin/midscene-playground"
   },
   "exports": {
     ".": {
-      "types": "./dist/types/index.d.ts",
-      "import": "./dist/es/index.js",
-      "require": "./dist/lib/index.js"
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
     },
     "./bridge-mode": {
-      "types": "./dist/types/bridge-mode/index.d.ts",
-      "import": "./dist/es/bridge-mode/index.js",
-      "require": "./dist/lib/bridge-mode/index.js"
+      "types": "./dist/bridge-mode/index.d.ts",
+      "import": "./dist/bridge-mode/index.js"
     },
     "./bridge-mode-browser": {
-      "types": "./dist/types/bridge-mode/browser.d.ts",
-      "import": "./dist/es/bridge-mode/browser.js",
-      "require": "./dist/lib/bridge-mode/browser.js"
+      "types": "./dist/bridge-mode/browser.d.ts",
+      "import": "./dist/bridge-mode/browser.js"
     },
     "./utils": {
-      "types": "./dist/types/common/utils.d.ts",
-      "import": "./dist/es/common/utils.js",
-      "require": "./dist/lib/common/utils.js"
+      "types": "./dist/common/utils.d.ts",
+      "import": "./dist/common/utils.js"
     },
     "./ui-utils": {
-      "types": "./dist/types/common/ui-utils.d.ts",
-      "import": "./dist/es/common/ui-utils.js",
-      "require": "./dist/lib/common/ui-utils.js"
+      "types": "./dist/common/ui-utils.d.ts",
+      "import": "./dist/common/ui-utils.js"
     },
     "./puppeteer": {
-      "types": "./dist/types/puppeteer/index.d.ts",
-      "import": "./dist/es/puppeteer/index.js",
-      "require": "./dist/lib/puppeteer/index.js"
+      "types": "./dist/puppeteer/index.d.ts",
+      "import": "./dist/puppeteer/index.js"
     },
     "./playwright": {
-      "types": "./dist/types/playwright/index.d.ts",
-      "import": "./dist/es/playwright/index.js",
-      "require": "./dist/lib/playwright/index.js"
+      "types": "./dist/playwright/index.d.ts",
+      "import": "./dist/playwright/index.js"
     },
     "./playwright-report": {
-      "types": "./dist/types/playwright/reporter/index.d.ts",
-      "import": "./dist/es/playwright/reporter/index.js",
-      "require": "./dist/lib/playwright/reporter/index.js"
+      "types": "./dist/playwright/reporter/index.d.ts",
+      "import": "./dist/playwright/reporter/index.js"
     },
     "./playground": {
-      "types": "./dist/types/playground/index.d.ts",
-      "import": "./dist/es/playground/index.js",
-      "require": "./dist/lib/playground/index.js"
+      "types": "./dist/playground/index.d.ts",
+      "import": "./dist/playground/index.js"
     },
     "./midscene-playground": {
-      "types": "./dist/types/playground/bin.d.ts",
-      "import": "./dist/es/playground/bin.js",
-      "require": "./dist/lib/playground/bin.js"
+      "types": "./dist/playground/bin.d.ts",
+      "import": "./dist/playground/bin.js"
     },
     "./appium": {
-      "types": "./dist/types/appium/index.d.ts",
-      "import": "./dist/es/appium/index.js",
-      "require": "./dist/lib/appium/index.js"
+      "types": "./dist/appium/index.d.ts",
+      "import": "./dist/appium/index.js"
     },
     "./chrome-extension": {
-      "types": "./dist/types/chrome-extension/index.d.ts",
-      "import": "./dist/es/chrome-extension/index.js",
-      "require": "./dist/lib/chrome-extension/index.js"
+      "types": "./dist/chrome-extension/index.d.ts",
+      "import": "./dist/chrome-extension/index.js"
     },
     "./yaml": {
-      "types": "./dist/types/yaml/index.d.ts",
-      "import": "./dist/es/yaml/index.js",
-      "require": "./dist/lib/yaml/index.js"
+      "types": "./dist/yaml/index.d.ts",
+      "import": "./dist/yaml/index.js"
     }
   },
   "typesVersions": {
     "*": {
-      ".": ["./dist/types/index.d.ts"],
-      "bridge-mode": ["./dist/types/bridge-mode/index.d.ts"],
-      "bridge-mode-browser": ["./dist/types/bridge-mode/browser.d.ts"],
-      "utils": ["./dist/types/common/utils.d.ts"],
-      "ui-utils": ["./dist/types/common/ui-utils.d.ts"],
-      "puppeteer": ["./dist/types/puppeteer/index.d.ts"],
-      "playwright": ["./dist/types/playwright/index.d.ts"],
-      "playwright-report": ["./dist/types/playwright/reporter/index.d.ts"],
-      "playground": ["./dist/types/playground/index.d.ts"],
-      "midscene-playground": ["./dist/types/playground/bin.d.ts"],
-      "appium": ["./dist/types/appium/index.d.ts"],
-      "chrome-extension": ["./dist/types/chrome-extension/index.d.ts"],
-      "yaml": ["./dist/types/yaml/index.d.ts"]
+      ".": ["./dist/index.d.ts"],
+      "bridge-mode": ["./dist/bridge-mode/index.d.ts"],
+      "bridge-mode-browser": ["./dist/bridge-mode/browser.d.ts"],
+      "utils": ["./dist/common/utils.d.ts"],
+      "ui-utils": ["./dist/common/ui-utils.d.ts"],
+      "puppeteer": ["./dist/puppeteer/index.d.ts"],
+      "playwright": ["./dist/playwright/index.d.ts"],
+      "playwright-report": ["./dist/playwright/reporter/index.d.ts"],
+      "playground": ["./dist/playground/index.d.ts"],
+      "midscene-playground": ["./dist/playground/bin.d.ts"],
+      "appium": ["./dist/appium/index.d.ts"],
+      "chrome-extension": ["./dist/chrome-extension/index.d.ts"],
+      "yaml": ["./dist/yaml/index.d.ts"]
     }
   },
   "scripts": {

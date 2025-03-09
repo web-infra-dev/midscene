@@ -25,7 +25,7 @@ files.forEach(([src, dest]) => {
 
 export default defineConfig({
   plugins: [moduleTools()],
-  buildPreset: 'npm-library',
+  // buildPreset: 'npm-library',
   buildConfig: {
     format: 'esm',
     target: 'es2020',
