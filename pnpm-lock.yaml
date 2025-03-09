@@ -87,33 +87,12 @@ importers:
       '@midscene/web':
         specifier: workspace:*
         version: link:../web-integration
-      chalk:
-        specifier: 4.1.2
-        version: 4.1.2
-      cli-spinners:
-        specifier: 3.2.0
-        version: 3.2.0
-      dotenv:
-        specifier: 16.4.5
-        version: 16.4.5
-      execa:
-        specifier: 9.3.0
-        version: 9.3.0
-      glob:
-        specifier: 11.0.0
-        version: 11.0.0
       http-server:
         specifier: 14.1.1
         version: 14.1.1
-      js-yaml:
-        specifier: 4.1.0
-        version: 4.1.0
       puppeteer:
         specifier: 24.2.0
         version: 24.2.0(typescript@5.0.4)
-      restore-cursor:
-        specifier: 5.1.0
-        version: 5.1.0
     devDependencies:
       '@modern-js/module-tools':
         specifier: 2.60.6
@@ -130,6 +109,27 @@ importers:
       '@types/yargs':
         specifier: 17.0.32
         version: 17.0.32
+      chalk:
+        specifier: 4.1.2
+        version: 4.1.2
+      cli-spinners:
+        specifier: 3.2.0
+        version: 3.2.0
+      dotenv:
+        specifier: 16.4.5
+        version: 16.4.5
+      execa:
+        specifier: 9.3.0
+        version: 9.3.0
+      glob:
+        specifier: 11.0.0
+        version: 11.0.0
+      js-yaml:
+        specifier: 4.1.0
+        version: 4.1.0
+      restore-cursor:
+        specifier: 5.1.0
+        version: 5.1.0
       typescript:
         specifier: ~5.0.4
         version: 5.0.4

@@ -2,7 +2,6 @@ import { strict as assert } from 'node:assert';
 import { execSync } from 'node:child_process';
 import { rmSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
-import { fileURLToPath } from 'node:url';
 import {
   ensureDirectoryExistence,
   fileContentOfPath,
@@ -10,7 +9,6 @@ import {
   tplReplacer,
 } from './building-utils';
 
-const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 const demoData = ['demo', 'demo-mobile', 'zero-execution'];

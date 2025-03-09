@@ -66,9 +66,9 @@ export async function getExtraReturnLogic(tree = false) {
   if (ifInBrowser) {
     return null;
   }
-  // Get __dirname equivalent in ESM
-  const filename = fileURLToPath(import.meta.url);
-  const pathDir = findNearestPackageJson(dirname(filename));
+  // Get __dirname equivalent in Node.js environment
+  const currentFilePath = __filename;
+  const pathDir = findNearestPackageJson(dirname(currentFilePath));
   assert(pathDir, `can't find pathDir, with ${dirname}`);
   const scriptPath = path.join(pathDir, './dist/script/htmlElement.js');
   const elementInfosScriptContent = readFileSync(scriptPath, 'utf-8');

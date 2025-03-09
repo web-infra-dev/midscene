@@ -7,7 +7,6 @@
   "jsnext:source": "./src/index.ts",
   "main": "./dist/lib/index.js",
   "types": "./dist/types/index.d.ts",
-  "type": "module",
   "bin": {
     "midscene-playground": "./bin/midscene-playground"
   },

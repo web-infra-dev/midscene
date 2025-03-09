@@ -5,7 +5,6 @@
   "repository": "https://github.com/web-infra-dev/midscene",
   "homepage": "https://midscenejs.com/",
   "jsnext:source": "./src/index.ts",
-  "type": "module",
   "main": "./dist/es/index.js",
   "types": "./dist/types/index.d.ts",
   "files": ["dist", "report", "README.md"],

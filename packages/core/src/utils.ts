@@ -3,7 +3,6 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import * as path from 'node:path';
 import { dirname } from 'node:path';
-import { fileURLToPath } from 'node:url';
 import { getRunningPkgInfo } from '@midscene/shared/fs';
 import { assert } from '@midscene/shared/utils';
 import { ifInBrowser, uuid } from '@midscene/shared/utils';
@@ -47,8 +46,7 @@ function getReportTpl() {
     return reportTpl;
   }
 
-  const filename = fileURLToPath(import.meta.url);
-  const __dirname = dirname(filename);
+  const __dirname = dirname(__filename);
   if (!reportTpl) {
     let reportPath = path.join(__dirname, '../../report/index.html');
     if (!existsSync(reportPath)) {
@@ -119,8 +117,7 @@ export function writeDumpReport(
     return null;
   }
 
-  const filename = fileURLToPath(import.meta.url);
-  const __dirname = dirname(filename);
+  const __dirname = dirname(__filename);
   const midscenePkgInfo = getRunningPkgInfo(__dirname);
   if (!midscenePkgInfo) {
     console.warn('midscenePkgInfo not found, will not write report');
