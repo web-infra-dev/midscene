@@ -5,17 +5,13 @@ import {
   getAIConfig,
   plan,
 } from '@midscene/core';
-import {
-  MATCH_BY_POSITION,
-  MIDSCENE_USE_QWEN_VL,
-  getAIConfigInBoolean,
-} from '@midscene/core/env';
+import { MIDSCENE_USE_QWEN_VL, getAIConfigInBoolean } from '@midscene/core/env';
 import { sleep } from '@midscene/core/utils';
+import { saveBase64Image } from '@midscene/shared/img';
 import dotenv from 'dotenv';
 import { describe, expect, test } from 'vitest';
 import { TestResultCollector } from '../src/test-analyzer';
-import { buildContext, getCases } from './util';
-
+import { annotatePoints, buildContext, getCases } from './util';
 dotenv.config({
   debug: true,
   override: true,
@@ -79,7 +75,12 @@ describe.skipIf(vlMode)('ai planning - by element', () => {
   });
 });
 
-const vlCases = ['todo-vl', 'aweme-login-vl', 'antd-form-vl'];
+const vlCases = [
+  'todo-vl',
+  'aweme-login-vl',
+  'antd-form-vl',
+  'antd-tooltip-vl',
+];
 // const vlCases = ['aweme-login-vl'];
 
 describe.skipIf(!vlMode)('ai planning - by coordinates', () => {
@@ -97,7 +98,12 @@ describe.skipIf(!vlMode)('ai planning - by coordinates', () => {
           getAIConfig(MIDSCENE_MODEL_NAME) || 'unspecified',
         );
 
-        for (const [, testCase] of cases.testCases.entries()) {
+        const annotations: Array<{
+          indexId: number;
+          points: [number, number, number, number];
+        }> = [];
+
+        for (const [index, testCase] of cases.testCases.entries()) {
           const context = await buildContext(source.replace('-vl', ''));
 
           const prompt = testCase.prompt;
@@ -120,8 +126,28 @@ describe.skipIf(!vlMode)('ai planning - by coordinates', () => {
               } as any;
             } else {
               testCase.response_planning = res;
+              if (res.action?.locate?.bbox) {
+                const indexId = index + 1;
+                testCase.response_bbox = res.action.locate.bbox;
+                testCase.annotation_index_id = indexId;
+                annotations.push({
+                  indexId,
+                  points: res.action.locate.bbox,
+                });
+              }
             }
             writeFileSync(aiDataPath, JSON.stringify(cases, null, 2));
+          }
+
+          if (annotations.length > 0) {
+            const markedImage = await annotatePoints(
+              context.screenshotBase64,
+              annotations,
+            );
+            await saveBase64Image({
+              base64Data: markedImage,
+              outputPath: `${aiDataPath}-planning-coordinates-annotated.png`,
+            });
           }
 
           resultCollector.addResult(

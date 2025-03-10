@@ -79,16 +79,17 @@ export async function plan(
     usage,
   };
 
+  assert(planFromAI, "can't get plans from AI");
+
   if (getAIConfigInBoolean(MIDSCENE_USE_QWEN_VL)) {
     actions.forEach((action) => {
       if (action.locate) {
         action.locate = fillLocateParam(action.locate);
       }
     });
+    // in Qwen-VL, error means error. In GPT-4o, error may mean more actions are needed.
+    assert(!planFromAI.error, `Failed to plan actions: ${planFromAI.error}`);
   }
-
-  assert(planFromAI, "can't get plans from AI");
-  assert(!planFromAI.error, `Failed to plan actions: ${planFromAI.error}`);
 
   if (
     actions.length === 0 &&

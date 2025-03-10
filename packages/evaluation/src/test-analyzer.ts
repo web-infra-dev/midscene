@@ -162,6 +162,14 @@ ${errorMsg ? `Error: ${errorMsg}` : ''}
     return resultData;
   }
 
+  distanceOfTwoBbox(bbox1: number[], bbox2: number[]) {
+    const centerX1 = (bbox1[0] + bbox1[2]) / 2;
+    const centerY1 = (bbox1[1] + bbox1[3]) / 2;
+    const centerX2 = (bbox2[0] + bbox2[2]) / 2;
+    const centerY2 = (bbox2[1] + bbox2[3]) / 2;
+    return Math.sqrt((centerX1 - centerX2) ** 2 + (centerY1 - centerY2) ** 2);
+  }
+
   private compareResult(
     testCase: TestCase,
     result: ActualResult | Error,
@@ -177,26 +185,16 @@ ${errorMsg ? `Error: ${errorMsg}` : ''}
     }
 
     if (result instanceof Error) {
-      const msg = `got error: ${result}, but expected?.error is not set, the prompt is: ${testCase.prompt}`;
+      const msg = `got error: ${result}, but expected?.error is not set (i.e. this should not be an error), the prompt is: ${testCase.prompt}`;
       return new Error(msg);
     }
 
     // compare coordinates
     if ('rawResponse' in result && result.rawResponse.bbox) {
       assert(testCase.response_bbox, 'testCase.response_bbox is required');
-      const centerX =
-        (result.rawResponse.bbox[0] + result.rawResponse.bbox[2]) / 2;
-      const centerY =
-        (result.rawResponse.bbox[1] + result.rawResponse.bbox[3]) / 2;
-
-      const expectedCenterX =
-        (testCase.response_bbox[0] + testCase.response_bbox[2]) / 2;
-      const expectedCenterY =
-        (testCase.response_bbox[1] + testCase.response_bbox[3]) / 2;
-      const distance = Math.floor(
-        Math.sqrt(
-          (centerX - expectedCenterX) ** 2 + (centerY - expectedCenterY) ** 2,
-        ),
+      const distance = this.distanceOfTwoBbox(
+        result.rawResponse.bbox,
+        testCase.response_bbox,
       );
 
       if (distance > distanceThreshold) {
@@ -250,6 +248,22 @@ ${errorMsg ? `Error: ${errorMsg}` : ''}
       ) {
         const msg = `expected?.more_actions_needed_by_instruction: ${expected?.more_actions_needed_by_instruction} is not equal to result.more_actions_needed_by_instruction: ${result.more_actions_needed_by_instruction}, the prompt is: ${testCase.prompt}`;
         return new Error(msg);
+      }
+
+      const expectedBbox = expected?.action?.locate?.bbox;
+      const actualBbox = result.action?.locate?.bbox;
+
+      if (typeof expectedBbox !== typeof actualBbox) {
+        const msg = `expectedBbox: ${expectedBbox} is not equal to actualBbox: ${actualBbox}, the prompt is: ${testCase.prompt}`;
+        return new Error(msg);
+      }
+
+      if (expectedBbox && actualBbox) {
+        const distance = this.distanceOfTwoBbox(expectedBbox, actualBbox);
+        if (distance > distanceThreshold) {
+          const msg = `distance: ${distance} is greater than threshold: ${distanceThreshold}, the prompt is: ${testCase.prompt}`;
+          return new Error(msg);
+        }
       }
 
       return true;

@@ -1,5 +1,7 @@
 import { sha256 } from 'js-sha256';
 
+import debug from 'debug';
+
 export const ifInBrowser = typeof window !== 'undefined';
 
 export function uuid() {
@@ -7,6 +9,15 @@ export function uuid() {
 }
 
 const hashMap: Record<string, string> = {}; // id - combined
+
+const topicPrefix = 'midscene';
+export function getDebug(topic: string) {
+  return debug(`${topicPrefix}:${topic}`);
+}
+
+export function enableDebug(topic: string) {
+  debug.enable(`${topicPrefix}:${topic}`);
+}
 
 export function generateHashId(rect: any, content = '') {
   // Combine the input into a string

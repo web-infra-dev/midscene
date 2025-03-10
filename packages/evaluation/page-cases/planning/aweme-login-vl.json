@@ -2,10 +2,10 @@
   "testDataPath": "aweme-login",
   "testCases": [
     {
-      "prompt": "type 'user' in the username input box, type '123456' in the password input box",
+      "prompt": "type 'user' in the username input box, type '98' in the age input box",
       "log": "type 'user' in the username input box",
       "response_planning": {
-        "error": "Failed to plan actions: The current screen does not have a username or password input box. It is showing a verification code login interface."
+        "error": "Failed to plan actions: The current screenshot does not show a username input box or an age input box. The visible fields are for phone number and verification code, which do not match the instruction requirements."
       }
     }
   ]
