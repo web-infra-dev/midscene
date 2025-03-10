@@ -4,7 +4,7 @@ import {
   DefaultAzureCredential,
   getBearerTokenProvider,
 } from '@azure/identity';
-import { assert } from '@midscene/shared/utils';
+import { assert, enableDebug, getDebug } from '@midscene/shared/utils';
 import { ifInBrowser } from '@midscene/shared/utils';
 import dJSON from 'dirty-json';
 import OpenAI, { AzureOpenAI } from 'openai';
@@ -48,6 +48,24 @@ export function checkAIConfig() {
   if (getAIConfig(ANTHROPIC_API_KEY)) return true;
 
   return Boolean(getAIConfig(MIDSCENE_OPENAI_INIT_CONFIG_JSON));
+}
+
+const debugProfile = getDebug('ai:profile');
+const debugResponse = getDebug('ai:response');
+
+const shouldPrintTiming = getAIConfigInBoolean(MIDSCENE_DEBUG_AI_PROFILE);
+if (shouldPrintTiming) {
+  console.warn(
+    'MIDSCENE_DEBUG_AI_PROFILE is deprecated, use DEBUG=midscene:ai:profile instead',
+  );
+  enableDebug('ai:profile');
+}
+const shouldPrintAIResponse = getAIConfigInBoolean(MIDSCENE_DEBUG_AI_RESPONSE);
+if (shouldPrintAIResponse) {
+  console.warn(
+    'MIDSCENE_DEBUG_AI_RESPONSE is deprecated, use DEBUG=midscene:ai:response instead',
+  );
+  enableDebug('ai:response');
 }
 
 // default model
@@ -192,10 +210,6 @@ export async function call(
   const { completion, style } = await createChatClient({
     AIActionTypeValue,
   });
-  const shouldPrintTiming = getAIConfigInBoolean(MIDSCENE_DEBUG_AI_PROFILE);
-  const shouldPrintAIResponse = getAIConfigInBoolean(
-    MIDSCENE_DEBUG_AI_RESPONSE,
-  );
 
   const maxTokens = getAIConfig(OPENAI_MAX_TOKENS);
 
@@ -223,22 +237,22 @@ export async function call(
       response_format: responseFormat,
       ...commonConfig,
     } as any);
-    shouldPrintTiming &&
-      console.log(
-        'Midscene - AI call',
-        getAIConfig(MIDSCENE_USE_QWEN_VL) ? 'MIDSCENE_USE_QWEN_VL' : '',
-        model,
-        result.usage,
-        `${Date.now() - startTime}ms`,
-        result._request_id || '',
-      );
+
+    debugProfile(
+      model,
+      getAIConfig(MIDSCENE_USE_QWEN_VL) ? 'MIDSCENE_USE_QWEN_VL' : '',
+      result.usage,
+      `${Date.now() - startTime}ms`,
+      result._request_id || '',
+    );
 
     assert(
       result.choices,
       `invalid response from LLM service: ${JSON.stringify(result)}`,
     );
     content = result.choices[0].message.content!;
-    shouldPrintAIResponse && console.log('Midscene - AI response', content);
+
+    debugResponse(content);
     assert(content, 'empty content');
     usage = result.usage;
     // console.log('headers', result.headers);

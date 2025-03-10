@@ -96,7 +96,7 @@ importers:
     devDependencies:
       '@modern-js/module-tools':
         specifier: 2.60.6
-        version: 2.60.6(typescript@5.0.4)
+        version: 2.60.6(debug@4.4.0)(typescript@5.0.4)
       '@types/js-yaml':
         specifier: 4.0.9
         version: 4.0.9
@@ -175,7 +175,7 @@ importers:
     devDependencies:
       '@modern-js/module-tools':
         specifier: 2.60.6
-        version: 2.60.6(typescript@5.0.4)
+        version: 2.60.6(debug@4.4.0)(typescript@5.0.4)
       '@types/node':
         specifier: ^18.0.0
         version: 18.19.62
@@ -219,16 +219,22 @@ importers:
 
   packages/shared:
     dependencies:
+      debug:
+        specifier: 4.4.0
+        version: 4.4.0(supports-color@5.5.0)
       jimp:
         specifier: 0.22.12
-        version: 0.22.12
+        version: 0.22.12(debug@4.4.0)
       js-sha256:
         specifier: 0.11.0
         version: 0.11.0
     devDependencies:
       '@modern-js/module-tools':
         specifier: 2.60.6
-        version: 2.60.6(typescript@5.0.4)
+        version: 2.60.6(debug@4.4.0)(typescript@5.0.4)
+      '@types/debug':
+        specifier: 4.1.12
+        version: 4.1.12
       '@types/node':
         specifier: ^18.0.0
         version: 18.19.62
@@ -262,7 +268,7 @@ importers:
         version: link:../web-integration
       '@modern-js/module-tools':
         specifier: 2.60.6
-        version: 2.60.6(typescript@5.0.4)
+        version: 2.60.6(debug@4.4.0)(typescript@5.0.4)
       '@modern-js/plugin-module-doc':
         specifier: ^2.33.1
         version: 2.33.1(@modern-js/core@2.60.6)(@modern-js/doc-tools@2.32.1(@types/express@4.17.21)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(ts-node@10.9.2(@types/node@18.19.62)(typescript@5.0.4))(tsconfig-paths@4.2.0)(type-fest@3.13.1)(typescript@5.0.4)(webpack@5.95.0))(@modern-js/module-tools@2.60.6(typescript@5.0.4))(@types/express@4.17.21)(@types/react@18.3.3)(react-dom@18.3.1(react@18.3.1))(react-router-dom@6.29.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react@18.3.1)(ts-node@10.9.2(@types/node@18.19.62)(typescript@5.0.4))(tsconfig-paths@4.2.0)(type-fest@3.13.1)(typescript@5.0.4)(webpack@5.95.0)
@@ -389,7 +395,7 @@ importers:
     devDependencies:
       '@modern-js/module-tools':
         specifier: 2.60.6
-        version: 2.60.6(typescript@5.0.4)
+        version: 2.60.6(debug@4.4.0)(typescript@5.0.4)
       '@playwright/test':
         specifier: ^1.44.1
         version: 1.44.1
@@ -10677,7 +10683,7 @@ snapshots:
       '@babel/traverse': 7.26.8
       '@babel/types': 7.26.8
       convert-source-map: 2.0.0
-      debug: 4.4.0
+      debug: 4.4.0(supports-color@5.5.0)
       gensync: 1.0.0-beta.2
       json5: 2.2.3
       semver: 6.3.1
@@ -10744,7 +10750,7 @@ snapshots:
       '@babel/core': 7.26.0
       '@babel/helper-compilation-targets': 7.26.5
       '@babel/helper-plugin-utils': 7.25.9
-      debug: 4.4.0
+      debug: 4.4.0(supports-color@5.5.0)
       lodash.debounce: 4.0.8
       resolve: 1.22.8
     transitivePeerDependencies:
@@ -10755,7 +10761,7 @@ snapshots:
       '@babel/core': 7.26.0
       '@babel/helper-compilation-targets': 7.26.5
       '@babel/helper-plugin-utils': 7.26.5
-      debug: 4.4.0
+      debug: 4.4.0(supports-color@5.5.0)
       lodash.debounce: 4.0.8
       resolve: 1.22.10
     transitivePeerDependencies:
@@ -11616,7 +11622,7 @@ snapshots:
       '@babel/parser': 7.26.2
       '@babel/template': 7.25.9
       '@babel/types': 7.26.8
-      debug: 4.3.7(supports-color@5.5.0)
+      debug: 4.4.0(supports-color@5.5.0)
       globals: 11.12.0
     transitivePeerDependencies:
       - supports-color
@@ -11628,7 +11634,7 @@ snapshots:
       '@babel/parser': 7.26.8
       '@babel/template': 7.26.8
       '@babel/types': 7.26.8
-      debug: 4.4.0
+      debug: 4.4.0(supports-color@5.5.0)
       globals: 11.12.0
     transitivePeerDependencies:
       - supports-color
@@ -12734,12 +12740,12 @@ snapshots:
       '@jimp/custom': 0.22.12
       '@jimp/utils': 0.22.12
 
-  '@jimp/plugin-print@0.22.12(@jimp/custom@0.22.12)(@jimp/plugin-blit@0.22.12(@jimp/custom@0.22.12))':
+  '@jimp/plugin-print@0.22.12(@jimp/custom@0.22.12)(@jimp/plugin-blit@0.22.12(@jimp/custom@0.22.12))(debug@4.4.0)':
     dependencies:
       '@jimp/custom': 0.22.12
       '@jimp/plugin-blit': 0.22.12(@jimp/custom@0.22.12)
       '@jimp/utils': 0.22.12
-      load-bmfont: 1.4.2
+      load-bmfont: 1.4.2(debug@4.4.0)
     transitivePeerDependencies:
       - debug
 
@@ -12776,7 +12782,7 @@ snapshots:
       '@jimp/plugin-resize': 0.22.12(@jimp/custom@0.22.12)
       '@jimp/utils': 0.22.12
 
-  '@jimp/plugins@0.22.12(@jimp/custom@0.22.12)':
+  '@jimp/plugins@0.22.12(@jimp/custom@0.22.12)(debug@4.4.0)':
     dependencies:
       '@jimp/custom': 0.22.12
       '@jimp/plugin-blit': 0.22.12(@jimp/custom@0.22.12)
@@ -12794,7 +12800,7 @@ snapshots:
       '@jimp/plugin-invert': 0.22.12(@jimp/custom@0.22.12)
       '@jimp/plugin-mask': 0.22.12(@jimp/custom@0.22.12)
       '@jimp/plugin-normalize': 0.22.12(@jimp/custom@0.22.12)
-      '@jimp/plugin-print': 0.22.12(@jimp/custom@0.22.12)(@jimp/plugin-blit@0.22.12(@jimp/custom@0.22.12))
+      '@jimp/plugin-print': 0.22.12(@jimp/custom@0.22.12)(@jimp/plugin-blit@0.22.12(@jimp/custom@0.22.12))(debug@4.4.0)
       '@jimp/plugin-resize': 0.22.12(@jimp/custom@0.22.12)
       '@jimp/plugin-rotate': 0.22.12(@jimp/custom@0.22.12)(@jimp/plugin-blit@0.22.12(@jimp/custom@0.22.12))(@jimp/plugin-crop@0.22.12(@jimp/custom@0.22.12))(@jimp/plugin-resize@0.22.12(@jimp/custom@0.22.12))
       '@jimp/plugin-scale': 0.22.12(@jimp/custom@0.22.12)(@jimp/plugin-resize@0.22.12(@jimp/custom@0.22.12))
@@ -13700,7 +13706,7 @@ snapshots:
       '@modern-js/mdx-rs-binding-win32-arm64-msvc': 0.2.4
       '@modern-js/mdx-rs-binding-win32-x64-msvc': 0.2.4
 
-  '@modern-js/module-tools@2.60.6(typescript@5.0.4)':
+  '@modern-js/module-tools@2.60.6(debug@4.4.0)(typescript@5.0.4)':
     dependencies:
       '@ampproject/remapping': 2.3.0
       '@ast-grep/napi': 0.16.0
@@ -13708,7 +13714,7 @@ snapshots:
       '@babel/types': 7.26.8
       '@modern-js/core': 2.60.6
       '@modern-js/plugin': 2.60.6
-      '@modern-js/plugin-changeset': 2.60.6
+      '@modern-js/plugin-changeset': 2.60.6(debug@4.4.0)
       '@modern-js/plugin-i18n': 2.60.6
       '@modern-js/swc-plugins': 0.6.11(@swc/helpers@0.5.13)
       '@modern-js/types': 2.60.6
@@ -13767,7 +13773,7 @@ snapshots:
       '@swc/helpers': 0.5.13
       esbuild: 0.17.19
 
-  '@modern-js/plugin-changeset@2.60.6':
+  '@modern-js/plugin-changeset@2.60.6(debug@4.4.0)':
     dependencies:
       '@changesets/cli': 2.27.9
       '@changesets/git': 2.0.0
@@ -13775,7 +13781,7 @@ snapshots:
       '@modern-js/plugin-i18n': 2.60.6
       '@modern-js/utils': 2.60.6
       '@swc/helpers': 0.5.13
-      axios: 1.7.9
+      axios: 1.7.9(debug@4.4.0)
       resolve-from: 5.0.0
     transitivePeerDependencies:
       - debug
@@ -13802,7 +13808,7 @@ snapshots:
       '@modern-js/doc-core': 2.31.2(@modern-js/core@2.60.6)(@modern-js/doc-tools@2.32.1(@types/express@4.17.21)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(ts-node@10.9.2(@types/node@18.19.62)(typescript@5.0.4))(tsconfig-paths@4.2.0)(type-fest@3.13.1)(typescript@5.0.4)(webpack@5.95.0))(@types/express@4.17.21)(react@18.3.1)(ts-node@10.9.2(@types/node@18.19.62)(typescript@5.0.4))(tsconfig-paths@4.2.0)(type-fest@3.13.1)(typescript@5.0.4)(webpack@5.95.0)
       '@modern-js/doc-plugin-api-docgen': 2.31.2(@modern-js/core@2.60.6)(@modern-js/doc-tools@2.32.1(@types/express@4.17.21)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(ts-node@10.9.2(@types/node@18.19.62)(typescript@5.0.4))(tsconfig-paths@4.2.0)(type-fest@3.13.1)(typescript@5.0.4)(webpack@5.95.0))(@types/express@4.17.21)(@types/react@18.3.3)(react-dom@18.3.1(react@18.3.1))(react-router-dom@6.29.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react@18.3.1)(ts-node@10.9.2(@types/node@18.19.62)(typescript@5.0.4))(tsconfig-paths@4.2.0)(type-fest@3.13.1)(typescript@5.0.4)(webpack@5.95.0)
       '@modern-js/doc-plugin-preview': 2.31.2(@modern-js/core@2.60.6)(@modern-js/doc-tools@2.32.1(@types/express@4.17.21)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(ts-node@10.9.2(@types/node@18.19.62)(typescript@5.0.4))(tsconfig-paths@4.2.0)(type-fest@3.13.1)(typescript@5.0.4)(webpack@5.95.0))(@types/express@4.17.21)(react-dom@18.3.1(react@18.3.1))(react-router-dom@6.29.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react@18.3.1)(ts-node@10.9.2(@types/node@18.19.62)(typescript@5.0.4))(tsconfig-paths@4.2.0)(type-fest@3.13.1)(typescript@5.0.4)(webpack@5.95.0)
-      '@modern-js/module-tools': 2.60.6(typescript@5.0.4)
+      '@modern-js/module-tools': 2.60.6(debug@4.4.0)(typescript@5.0.4)
       react: 18.3.1
       react-dom: 18.3.1(react@18.3.1)
     transitivePeerDependencies:
@@ -13860,7 +13866,7 @@ snapshots:
       util: 0.12.5
       vm-browserify: 1.1.2
     optionalDependencies:
-      '@modern-js/module-tools': 2.60.6(typescript@5.0.4)
+      '@modern-js/module-tools': 2.60.6(debug@4.4.0)(typescript@5.0.4)
 
   '@modern-js/plugin@2.31.2(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
     dependencies:
@@ -14043,7 +14049,7 @@ snapshots:
       '@modern-js/types': 2.31.2
       '@modern-js/utils': 2.31.2(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@swc/helpers': 0.5.1
-      axios: 1.7.9
+      axios: 1.7.9(debug@4.4.0)
       connect-history-api-fallback: 2.0.0
       http-compression: 1.0.6
       minimatch: 3.1.2
@@ -14070,7 +14076,7 @@ snapshots:
       '@modern-js/types': 2.32.1
       '@modern-js/utils': 2.32.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@swc/helpers': 0.5.1
-      axios: 1.7.9
+      axios: 1.7.9(debug@4.4.0)
       connect-history-api-fallback: 2.0.0
       http-compression: 1.0.6
       minimatch: 3.1.2
@@ -14323,7 +14329,7 @@ snapshots:
 
   '@puppeteer/browsers@2.4.0':
     dependencies:
-      debug: 4.4.0
+      debug: 4.4.0(supports-color@5.5.0)
       extract-zip: 2.0.1
       progress: 2.0.3
       proxy-agent: 6.4.0
@@ -14336,7 +14342,7 @@ snapshots:
 
   '@puppeteer/browsers@2.7.1':
     dependencies:
-      debug: 4.4.0
+      debug: 4.4.0(supports-color@5.5.0)
       extract-zip: 2.0.1
       progress: 2.0.3
       proxy-agent: 6.5.0
@@ -15525,7 +15531,7 @@ snapshots:
 
   agent-base@6.0.2:
     dependencies:
-      debug: 4.4.0
+      debug: 4.4.0(supports-color@5.5.0)
     transitivePeerDependencies:
       - supports-color
 
@@ -15780,15 +15786,15 @@ snapshots:
 
   axios@1.7.7:
     dependencies:
-      follow-redirects: 1.15.9
+      follow-redirects: 1.15.9(debug@4.4.0)
       form-data: 4.0.1
       proxy-from-env: 1.1.0
     transitivePeerDependencies:
       - debug
 
-  axios@1.7.9:
+  axios@1.7.9(debug@4.4.0):
     dependencies:
-      follow-redirects: 1.15.9
+      follow-redirects: 1.15.9(debug@4.4.0)
       form-data: 4.0.1
       proxy-from-env: 1.1.0
     transitivePeerDependencies:
@@ -16109,9 +16115,9 @@ snapshots:
 
   ccount@2.0.1: {}
 
-  centra@2.7.0:
+  centra@2.7.0(debug@4.4.0):
     dependencies:
-      follow-redirects: 1.15.9
+      follow-redirects: 1.15.9(debug@4.4.0)
     transitivePeerDependencies:
       - debug
 
@@ -16753,15 +16759,15 @@ snapshots:
     dependencies:
       ms: 2.1.3
 
-  debug@4.3.7(supports-color@5.5.0):
+  debug@4.3.7:
+    dependencies:
+      ms: 2.1.3
+
+  debug@4.4.0(supports-color@5.5.0):
     dependencies:
       ms: 2.1.3
     optionalDependencies:
       supports-color: 5.5.0
-
-  debug@4.4.0:
-    dependencies:
-      ms: 2.1.3
 
   decamelize-keys@1.1.1:
     dependencies:
@@ -17053,7 +17059,7 @@ snapshots:
   engine.io-client@6.6.2:
     dependencies:
       '@socket.io/component-emitter': 3.1.2
-      debug: 4.3.7(supports-color@5.5.0)
+      debug: 4.3.7
       engine.io-parser: 5.2.3
       ws: 8.17.1
       xmlhttprequest-ssl: 2.1.2
@@ -17073,7 +17079,7 @@ snapshots:
       base64id: 2.0.0
       cookie: 0.7.2
       cors: 2.8.5
-      debug: 4.3.7(supports-color@5.5.0)
+      debug: 4.3.7
       engine.io-parser: 5.2.3
       ws: 8.17.1
     transitivePeerDependencies:
@@ -17472,7 +17478,7 @@ snapshots:
 
   extract-zip@2.0.1:
     dependencies:
-      debug: 4.4.0
+      debug: 4.4.0(supports-color@5.5.0)
       get-stream: 5.2.0
       yauzl: 2.10.0
     optionalDependencies:
@@ -17611,7 +17617,9 @@ snapshots:
 
   flexsearch@0.7.43: {}
 
-  follow-redirects@1.15.9: {}
+  follow-redirects@1.15.9(debug@4.4.0):
+    optionalDependencies:
+      debug: 4.4.0(supports-color@5.5.0)
 
   for-each@0.3.3:
     dependencies:
@@ -17786,7 +17794,7 @@ snapshots:
     dependencies:
       basic-ftp: 5.0.5
       data-uri-to-buffer: 6.0.2
-      debug: 4.4.0
+      debug: 4.4.0(supports-color@5.5.0)
       fs-extra: 11.2.0
     transitivePeerDependencies:
       - supports-color
@@ -18245,14 +18253,14 @@ snapshots:
     dependencies:
       '@tootallnate/once': 2.0.0
       agent-base: 6.0.2
-      debug: 4.4.0
+      debug: 4.4.0(supports-color@5.5.0)
     transitivePeerDependencies:
       - supports-color
 
   http-proxy-agent@7.0.2:
     dependencies:
       agent-base: 7.1.3
-      debug: 4.4.0
+      debug: 4.4.0(supports-color@5.5.0)
     transitivePeerDependencies:
       - supports-color
 
@@ -18271,7 +18279,7 @@ snapshots:
   http-proxy@1.18.1:
     dependencies:
       eventemitter3: 4.0.7
-      follow-redirects: 1.15.9
+      follow-redirects: 1.15.9(debug@4.4.0)
       requires-port: 1.0.0
     transitivePeerDependencies:
       - debug
@@ -18299,21 +18307,21 @@ snapshots:
   https-proxy-agent@5.0.1:
     dependencies:
       agent-base: 6.0.2
-      debug: 4.4.0
+      debug: 4.4.0(supports-color@5.5.0)
     transitivePeerDependencies:
       - supports-color
 
   https-proxy-agent@7.0.5:
     dependencies:
       agent-base: 7.1.3
-      debug: 4.4.0
+      debug: 4.4.0(supports-color@5.5.0)
     transitivePeerDependencies:
       - supports-color
 
   https-proxy-agent@7.0.6:
     dependencies:
       agent-base: 7.1.3
-      debug: 4.4.0
+      debug: 4.4.0(supports-color@5.5.0)
     transitivePeerDependencies:
       - supports-color
 
@@ -18695,10 +18703,10 @@ snapshots:
       merge-stream: 2.0.0
       supports-color: 8.1.1
 
-  jimp@0.22.12:
+  jimp@0.22.12(debug@4.4.0):
     dependencies:
       '@jimp/custom': 0.22.12
-      '@jimp/plugins': 0.22.12(@jimp/custom@0.22.12)
+      '@jimp/plugins': 0.22.12(@jimp/custom@0.22.12)(debug@4.4.0)
       '@jimp/types': 0.22.12(@jimp/custom@0.22.12)
       regenerator-runtime: 0.13.11
     transitivePeerDependencies:
@@ -18933,14 +18941,14 @@ snapshots:
 
   lines-and-columns@2.0.3: {}
 
-  load-bmfont@1.4.2:
+  load-bmfont@1.4.2(debug@4.4.0):
     dependencies:
       buffer-equal: 0.0.1
       mime: 1.6.0
       parse-bmfont-ascii: 1.0.6
       parse-bmfont-binary: 1.0.6
       parse-bmfont-xml: 1.1.6
-      phin: 3.7.1
+      phin: 3.7.1(debug@4.4.0)
       xhr: 2.6.0
       xtend: 4.0.2
     transitivePeerDependencies:
@@ -19605,7 +19613,7 @@ snapshots:
   micromark@3.2.0:
     dependencies:
       '@types/debug': 4.1.12
-      debug: 4.4.0
+      debug: 4.4.0(supports-color@5.5.0)
       decode-named-character-reference: 1.0.2
       micromark-core-commonmark: 1.1.0
       micromark-factory-space: 1.1.0
@@ -19791,7 +19799,7 @@ snapshots:
   nodemon@3.1.7:
     dependencies:
       chokidar: 3.6.0
-      debug: 4.3.7(supports-color@5.5.0)
+      debug: 4.4.0(supports-color@5.5.0)
       ignore-by-default: 1.0.1
       minimatch: 3.1.2
       pstree.remy: 1.1.8
@@ -20045,7 +20053,7 @@ snapshots:
     dependencies:
       '@tootallnate/quickjs-emscripten': 0.23.0
       agent-base: 7.1.3
-      debug: 4.4.0
+      debug: 4.4.0(supports-color@5.5.0)
       get-uri: 6.0.3
       http-proxy-agent: 7.0.2
       https-proxy-agent: 7.0.6
@@ -20058,7 +20066,7 @@ snapshots:
     dependencies:
       '@tootallnate/quickjs-emscripten': 0.23.0
       agent-base: 7.1.3
-      debug: 4.4.0
+      debug: 4.4.0(supports-color@5.5.0)
       get-uri: 6.0.3
       http-proxy-agent: 7.0.2
       https-proxy-agent: 7.0.6
@@ -20247,9 +20255,9 @@ snapshots:
       estree-walker: 3.0.3
       is-reference: 3.0.2
 
-  phin@3.7.1:
+  phin@3.7.1(debug@4.4.0):
     dependencies:
-      centra: 2.7.0
+      centra: 2.7.0(debug@4.4.0)
     transitivePeerDependencies:
       - debug
 
@@ -20614,7 +20622,7 @@ snapshots:
   proxy-agent@6.4.0:
     dependencies:
       agent-base: 7.1.3
-      debug: 4.4.0
+      debug: 4.4.0(supports-color@5.5.0)
       http-proxy-agent: 7.0.2
       https-proxy-agent: 7.0.6
       lru-cache: 7.18.3
@@ -20627,7 +20635,7 @@ snapshots:
   proxy-agent@6.5.0:
     dependencies:
       agent-base: 7.1.3
-      debug: 4.4.0
+      debug: 4.4.0(supports-color@5.5.0)
       http-proxy-agent: 7.0.2
       https-proxy-agent: 7.0.6
       lru-cache: 7.18.3
@@ -20669,7 +20677,7 @@ snapshots:
     dependencies:
       '@puppeteer/browsers': 2.7.1
       chromium-bidi: 1.2.0(devtools-protocol@0.0.1402036)
-      debug: 4.4.0
+      debug: 4.4.0(supports-color@5.5.0)
       devtools-protocol: 0.0.1402036
       typed-query-selector: 2.12.0
       ws: 8.18.0
@@ -21890,7 +21898,7 @@ snapshots:
 
   socket.io-adapter@2.5.5:
     dependencies:
-      debug: 4.3.7(supports-color@5.5.0)
+      debug: 4.3.7
       ws: 8.17.1
     transitivePeerDependencies:
       - bufferutil
@@ -21900,7 +21908,7 @@ snapshots:
   socket.io-client@4.8.1:
     dependencies:
       '@socket.io/component-emitter': 3.1.2
-      debug: 4.3.7(supports-color@5.5.0)
+      debug: 4.3.7
       engine.io-client: 6.6.2
       socket.io-parser: 4.2.4
     transitivePeerDependencies:
@@ -21911,7 +21919,7 @@ snapshots:
   socket.io-parser@4.2.4:
     dependencies:
       '@socket.io/component-emitter': 3.1.2
-      debug: 4.3.7(supports-color@5.5.0)
+      debug: 4.3.7
     transitivePeerDependencies:
       - supports-color
 
@@ -21920,7 +21928,7 @@ snapshots:
       accepts: 1.3.8
       base64id: 2.0.0
       cors: 2.8.5
-      debug: 4.3.7(supports-color@5.5.0)
+      debug: 4.3.7
       engine.io: 6.6.2
       socket.io-adapter: 2.5.5
       socket.io-parser: 4.2.4
@@ -21932,7 +21940,7 @@ snapshots:
   socks-proxy-agent@8.0.4:
     dependencies:
       agent-base: 7.1.3
-      debug: 4.4.0
+      debug: 4.4.0(supports-color@5.5.0)
       socks: 2.8.3
     transitivePeerDependencies:
       - supports-color
@@ -21940,7 +21948,7 @@ snapshots:
   socks-proxy-agent@8.0.5:
     dependencies:
       agent-base: 7.1.3
-      debug: 4.4.0
+      debug: 4.4.0(supports-color@5.5.0)
       socks: 2.8.3
     transitivePeerDependencies:
       - supports-color
@@ -22795,7 +22803,7 @@ snapshots:
   vite-node@3.0.5(@types/node@18.19.62)(sass-embedded@1.83.4)(terser@5.36.0):
     dependencies:
       cac: 6.7.14
-      debug: 4.4.0
+      debug: 4.4.0(supports-color@5.5.0)
       es-module-lexer: 1.6.0
       pathe: 2.0.3
       vite: 5.4.10(@types/node@18.19.62)(sass-embedded@1.83.4)(terser@5.36.0)
@@ -22813,7 +22821,7 @@ snapshots:
   vite-node@3.0.5(@types/node@22.8.5)(sass-embedded@1.83.4)(terser@5.36.0):
     dependencies:
       cac: 6.7.14
-      debug: 4.4.0
+      debug: 4.4.0(supports-color@5.5.0)
       es-module-lexer: 1.6.0
       pathe: 2.0.3
       vite: 5.4.10(@types/node@22.8.5)(sass-embedded@1.83.4)(terser@5.36.0)
@@ -22860,7 +22868,7 @@ snapshots:
       '@vitest/spy': 3.0.5
       '@vitest/utils': 3.0.5
       chai: 5.1.2
-      debug: 4.4.0
+      debug: 4.4.0(supports-color@5.5.0)
       expect-type: 1.1.0
       magic-string: 0.30.17
       pathe: 2.0.3
@@ -22897,7 +22905,7 @@ snapshots:
       '@vitest/spy': 3.0.5
       '@vitest/utils': 3.0.5
       chai: 5.1.2
-      debug: 4.4.0
+      debug: 4.4.0(supports-color@5.5.0)
       expect-type: 1.1.0
       magic-string: 0.30.17
       pathe: 2.0.3
@@ -22947,7 +22955,7 @@ snapshots:
     dependencies:
       chalk: 4.1.2
       commander: 9.5.0
-      debug: 4.4.0
+      debug: 4.4.0(supports-color@5.5.0)
     transitivePeerDependencies:
       - supports-color
 
