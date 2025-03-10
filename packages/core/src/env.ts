@@ -92,9 +92,9 @@ export const getAIConfig = (
   }
 
   if (typeof userConfig[configKey] !== 'undefined') {
-    return userConfig[configKey];
+    return userConfig[configKey]?.trim();
   }
-  return allConfigFromEnv()[configKey];
+  return allConfigFromEnv()[configKey]?.trim();
 };
 
 export const getAIConfigInBoolean = (configKey: keyof typeof userConfig) => {
