@@ -8,7 +8,7 @@ import type { ResponseFormatJSONSchema } from 'openai/resources';
 import { samplePageDescription } from './util';
 
 // Note: put the log field first to trigger the CoT
-const commonOutputFields = `"log"?: string, // Log what this action(s) you just planned do. If no action should be done, log the reason. Use the same language as the user's instruction. Omit this field if there is an error and error message is provided.
+const commonOutputFields = `"log": string, // Log what this action(s) you just planned do. If no action should be done, log the reason. Use the same language as the user's instruction.
   "error"?: string, // Error messages about unexpected situations, if any. Only think it is an error when the situation is not expected according to the instruction. Use the same language as the user's instruction.
   "more_actions_needed_by_instruction": boolean, // Consider if all the actions described in the instruction have been covered by this action and logs. If so, set this field to false. Otherwise, you must have a clear reason what the remaining actions are.`;
 
