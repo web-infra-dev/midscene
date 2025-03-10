@@ -1,0 +1,44 @@
+{
+  "testDataPath": "todo",
+  "testCases": [
+    {
+      "prompt": "用户要求进入 tooltip 文档页，现在我们已经进入了，需要点击顶部的右上角的版本号下拉框",
+      "response_planning": {
+        "log": "点击顶部的右上角的版本号下拉框。",
+        "more_actions_needed_by_instruction": false,
+        "action": {
+          "type": "Tap",
+          "locate": {
+            "prompt": "版本号下拉框",
+            "bbox": [1680, 25, 1773, 42]
+          }
+        },
+        "sleep": 3000,
+        "actions": [
+          {
+            "type": "Tap",
+            "locate": {
+              "prompt": "版本号下拉框",
+              "bbox": [1680, 25, 1773, 42]
+            }
+          }
+        ],
+        "rawResponse": "{\n  \"log\": \"点击顶部的右上角的版本号下拉框。\",\n  \"more_actions_needed_by_instruction\": false,\n  \"action\": {\n    \"type\": \"Tap\",\n    \"locate\": {\n      \"bbox_2d\": [\n        1680,\n        25,\n        1773,\n        42\n      ],\n      \"prompt\": \"版本号下拉框\"\n    }\n  },\n  \"sleep\": 3000\n}",
+        "usage": {
+          "prompt_tokens": 3369,
+          "completion_tokens": 104,
+          "total_tokens": 3473,
+          "completion_tokens_details": {
+            "text_tokens": 104
+          },
+          "prompt_tokens_details": {
+            "text_tokens": 676,
+            "image_tokens": 2693
+          }
+        }
+      },
+      "response_bbox": [1680, 25, 1773, 42],
+      "annotation_index_id": 1
+    }
+  ]
+}

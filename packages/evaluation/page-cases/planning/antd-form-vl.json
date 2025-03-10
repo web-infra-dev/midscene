@@ -4,37 +4,85 @@
     {
       "prompt": "在 Email 输入框中输入'test@test.com'",
       "response_planning": {
+        "log": "在 Email 输入框中输入'test@test.com'",
+        "more_actions_needed_by_instruction": false,
         "action": {
           "type": "Input",
           "locate": {
-            "prompt": "Email input field",
-            "bbox": [563, 214, 965, 240]
+            "prompt": "E-mail 输入框",
+            "bbox": [564, 213, 964, 240]
           },
           "param": {
             "value": "test@test.com"
           }
         },
-        "log": "在 Email 输入框中输入'test@test.com'",
-        "more_actions_needed_by_instruction": false,
         "actions": [
           {
             "type": "Input",
             "locate": {
-              "prompt": "Email input field",
-              "bbox": [563, 214, 965, 240]
+              "prompt": "E-mail 输入框",
+              "bbox": [564, 213, 964, 240]
             },
             "param": {
               "value": "test@test.com"
             }
           }
         ],
-        "rawResponse": "{\n  \"action\": {\n    \"type\": \"Input\",\n    \"locate\": {\n      \"bbox_2d\": [\n        563,\n        214,\n        965,\n        240\n      ],\n      \"prompt\": \"Email input field\"\n    },\n    \"param\": {\n      \"value\": \"test@test.com\"\n    }\n  },\n  \"log\": \"在 Email 输入框中输入'test@test.com'\",\n  \"more_actions_needed_by_instruction\": false\n}",
+        "rawResponse": "{\n  \"log\": \"在 Email 输入框中输入'test@test.com'\",\n  \"more_actions_needed_by_instruction\": false,\n  \"action\": {\n    \"type\": \"Input\",\n    \"locate\": {\n      \"bbox_2d\": [\n        564,\n        213,\n        964,\n        240\n      ],\n      \"prompt\": \"E-mail 输入框\"\n    },\n    \"param\": {\n      \"value\": \"test@test.com\"\n    }\n  }\n}",
         "usage": {
-          "prompt_tokens": 2565,
-          "completion_tokens": 105,
-          "total_tokens": 2670
+          "prompt_tokens": 2612,
+          "completion_tokens": 107,
+          "total_tokens": 2719,
+          "completion_tokens_details": {
+            "text_tokens": 107
+          },
+          "prompt_tokens_details": {
+            "text_tokens": 660,
+            "image_tokens": 1952
+          }
         }
-      }
+      },
+      "response_bbox": [564, 213, 964, 240],
+      "annotation_index_id": 1
+    },
+    {
+      "prompt": "界面已经打开，点击 Gender 下拉框",
+      "response_planning": {
+        "log": "点击 Gender 下拉框",
+        "more_actions_needed_by_instruction": false,
+        "action": {
+          "type": "Tap",
+          "locate": {
+            "prompt": "Gender 下拉框",
+            "bbox": [563, 749, 573, 759]
+          }
+        },
+        "sleep": 3000,
+        "actions": [
+          {
+            "type": "Tap",
+            "locate": {
+              "prompt": "Gender 下拉框",
+              "bbox": [563, 749, 573, 759]
+            }
+          }
+        ],
+        "rawResponse": "{\n  \"log\": \"点击 Gender 下拉框\",\n  \"more_actions_needed_by_instruction\": false,\n  \"action\": {\n    \"type\": \"Tap\",\n    \"locate\": {\n      \"bbox_2d\": [\n        563,\n        749\n      ],\n      \"prompt\": \"Gender 下拉框\"\n    }\n  },\n  \"sleep\": 3000\n}",
+        "usage": {
+          "prompt_tokens": 2611,
+          "completion_tokens": 86,
+          "total_tokens": 2697,
+          "completion_tokens_details": {
+            "text_tokens": 86
+          },
+          "prompt_tokens_details": {
+            "text_tokens": 659,
+            "image_tokens": 1952
+          }
+        }
+      },
+      "response_bbox": [563, 749, 573, 759],
+      "annotation_index_id": 2
     }
   ]
 }
