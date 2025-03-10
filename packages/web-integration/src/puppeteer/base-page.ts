@@ -76,15 +76,14 @@ export class Page<
 
   async screenshotBase64(): Promise<string> {
     const imgType = 'jpeg';
-    const path = getTmpFile(imgType)!;
     await this.waitForNavigation();
-    await this.underlyingPage.screenshot({
-      path,
+    const buffer = await this.underlyingPage.screenshot({
+      path: undefined,
       type: imgType,
       quality: 90,
     });
 
-    return base64Encoded(path, true);
+    return `data:image/jpeg;base64,${buffer.toString('base64')}`;
   }
 
   async url(): Promise<string> {
