@@ -51,7 +51,7 @@ export function checkAIConfig() {
 }
 
 const debugProfile = getDebug('ai:profile');
-const debugResponse = getDebug('ai:response');
+const debugCall = getDebug('ai:call');
 
 const shouldPrintTiming = getAIConfigInBoolean(MIDSCENE_DEBUG_AI_PROFILE);
 if (shouldPrintTiming) {
@@ -231,6 +231,7 @@ export async function call(
       : {}),
   };
   if (style === 'openai') {
+    debugCall(`will send request to ${model}`);
     const result = await completion.create({
       model,
       messages,
@@ -239,11 +240,7 @@ export async function call(
     } as any);
 
     debugProfile(
-      model,
-      getAIConfig(MIDSCENE_USE_QWEN_VL) ? 'MIDSCENE_USE_QWEN_VL' : '',
-      result.usage,
-      `${Date.now() - startTime}ms`,
-      result._request_id || '',
+      `model: ${model}, ${getAIConfig(MIDSCENE_USE_QWEN_VL) ? 'MIDSCENE_USE_QWEN_VL' : ''}, usage: ${JSON.stringify(result.usage)}, cost: ${Date.now() - startTime}ms, requestId: ${result._request_id || ''}`,
     );
 
     assert(
@@ -252,7 +249,7 @@ export async function call(
     );
     content = result.choices[0].message.content!;
 
-    debugResponse(content);
+    debugCall(`response: ${content}`);
     assert(content, 'empty content');
     usage = result.usage;
     // console.log('headers', result.headers);

@@ -8,6 +8,7 @@ import {
   ScheduleOutlined,
   VideoCameraOutlined,
 } from '@ant-design/icons';
+import type { ExecutionTaskPlanning } from '@midscene/core/.';
 import { ConfigProvider, Segmented } from 'antd';
 import { useEffect, useState } from 'react';
 import Blackboard from './blackboard';
@@ -186,7 +187,12 @@ const DetailPanel = (): JSX.Element => {
             }}
           />
 
-          <OpenInPlayground context={insightDump?.context} />
+          <OpenInPlayground
+            context={
+              insightDump?.context ||
+              (activeTask as ExecutionTaskPlanning)?.pageContext
+            }
+          />
         </ConfigProvider>
       </div>
       <div className="detail-content">{content}</div>
