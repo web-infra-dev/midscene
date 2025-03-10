@@ -1,12 +1,12 @@
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
+// import { fileURLToPath } from 'node:url';
 import { defineConfig, devices } from '@playwright/test';
 //@ts-ignore
 import dotenv from 'dotenv';
 
 // 添加这两行获取当前文件目录（ES 模块兼容方式）
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+// const __filename = fileURLToPath(import.meta.url);
+// const __dirname = path.dirname(__filename);
 
 const MIDSCENE_REPORT = process.env.MIDSCENE_REPORT;
 
