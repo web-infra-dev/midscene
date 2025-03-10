@@ -100,6 +100,11 @@ export interface AISectionParseResponse<DataShape> {
   errors?: string[];
 }
 
+export interface AISectionLocatorResponse {
+  bbox_2d: [number, number, number, number];
+  error?: string;
+}
+
 export interface AIAssertionResponse {
   pass: boolean;
   thought: string;

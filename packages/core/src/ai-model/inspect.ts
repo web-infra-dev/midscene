@@ -7,6 +7,7 @@ import type {
   AIAssertionResponse,
   AIElementIdResponse,
   AIElementResponse,
+  AISectionLocatorResponse,
   AISectionParseResponse,
   AISingleElementResponse,
   AISingleElementResponseByPosition,
@@ -30,6 +31,10 @@ import {
   findElementPrompt,
   systemPromptToLocateElement,
 } from './prompt/llm-locator';
+import {
+  sectionLocatorInstruction,
+  systemPromptToLocateSection,
+} from './prompt/llm-section-locator';
 import {
   describeUserPage,
   distance,
@@ -300,6 +305,50 @@ export async function AiInspectElement<
   };
 }
 
+export async function AiLocateSection(options: {
+  context: UIContext<BaseElement>;
+  sectionDescription: string;
+  callAI?: typeof callAiFn<AISectionLocatorResponse>;
+}) {
+  const { context, sectionDescription } = options;
+  const { screenshotBase64 } = context;
+
+  const systemPrompt = systemPromptToLocateSection();
+  const sectionLocatorInstructionText = await sectionLocatorInstruction.format({
+    sectionDescription,
+  });
+  const msgs: AIArgs = [
+    { role: 'system', content: systemPrompt },
+    {
+      role: 'user',
+      content: [
+        {
+          type: 'image_url',
+          image_url: {
+            url: screenshotBase64,
+            detail: 'high',
+          },
+        },
+        {
+          type: 'text',
+          text: sectionLocatorInstructionText,
+        },
+      ],
+    },
+  ];
+
+  const result = await callAiFn<AISectionLocatorResponse>(
+    msgs,
+    AIActionType.EXTRACT_DATA,
+  );
+
+  return {
+    sectionBbox: result.content.bbox_2d,
+    rawResponse: result.content,
+    usage: result.usage,
+  };
+}
+
 export async function AiExtractElementInfo<
   T,
   ElementType extends BaseElement = BaseElement,
@@ -353,7 +402,7 @@ export async function AiExtractElementInfo<
 
   const result = await callAiFn<AISectionParseResponse<T>>(
     msgs,
-    AIActionType.EXTRACT_DATA,
+    AIActionType.INSPECT_ELEMENT,
   );
   return {
     parseResult: result.content,
