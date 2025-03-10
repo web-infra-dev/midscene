@@ -54,18 +54,26 @@ const debugProfile = getDebug('ai:profile');
 const debugResponse = getDebug('ai:response');
 
 const shouldPrintTiming = getAIConfigInBoolean(MIDSCENE_DEBUG_AI_PROFILE);
+let debugConfig = '';
 if (shouldPrintTiming) {
   console.warn(
     'MIDSCENE_DEBUG_AI_PROFILE is deprecated, use DEBUG=midscene:ai:profile instead',
   );
-  enableDebug('ai:profile');
+  debugConfig = 'ai:profile';
 }
 const shouldPrintAIResponse = getAIConfigInBoolean(MIDSCENE_DEBUG_AI_RESPONSE);
 if (shouldPrintAIResponse) {
   console.warn(
     'MIDSCENE_DEBUG_AI_RESPONSE is deprecated, use DEBUG=midscene:ai:response instead',
   );
-  enableDebug('ai:response');
+  if (debugConfig) {
+    debugConfig = 'ai:*';
+  } else {
+    debugConfig = 'ai:response';
+  }
+}
+if (debugConfig) {
+  enableDebug(debugConfig);
 }
 
 // default model
@@ -164,7 +172,7 @@ async function createChatClient({
     });
   }
 
-  if (openai && getAIConfig(MIDSCENE_LANGSMITH_DEBUG)) {
+  if (openai && getAIConfigInBoolean(MIDSCENE_LANGSMITH_DEBUG)) {
     if (ifInBrowser) {
       throw new Error('langsmith is not supported in browser');
     }
@@ -239,11 +247,12 @@ export async function call(
     } as any);
 
     debugProfile(
+      'model %s, %s, usage %s, cost %s ms, requestId %s',
       model,
       getAIConfig(MIDSCENE_USE_QWEN_VL) ? 'MIDSCENE_USE_QWEN_VL' : '',
-      result.usage,
-      `${Date.now() - startTime}ms`,
-      result._request_id || '',
+      JSON.stringify(result.usage),
+      Date.now() - startTime,
+      result._request_id,
     );
 
     assert(
