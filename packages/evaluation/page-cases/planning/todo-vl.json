@@ -4,10 +4,79 @@
     {
       "prompt": "type 'hello' in the input box, sleep 5s, hit enter",
       "response_planning": {
+        "log": "type 'hello' in the input box.",
+        "more_actions_needed_by_instruction": true,
         "action": {
           "type": "Input",
           "locate": {
-            "prompt": "input box for adding a new todo",
+            "prompt": "input box for adding new todo",
+            "bbox": [513, 127, 1068, 194]
+          },
+          "param": {
+            "value": "hello"
+          }
+        },
+        "sleep": 5000,
+        "actions": [
+          {
+            "type": "Input",
+            "locate": {
+              "prompt": "input box for adding new todo",
+              "bbox": [513, 127, 1068, 194]
+            },
+            "param": {
+              "value": "hello"
+            }
+          }
+        ],
+        "rawResponse": "{\n  \"log\": \"type 'hello' in the input box.\",\n  \"more_actions_needed_by_instruction\": true,\n  \"action\": {\n    \"type\": \"Input\",\n    \"locate\": {\n      \"bbox_2d\": [\n        513,\n        127,\n        1068,\n        194\n      ],\n      \"prompt\": \"input box for adding new todo\"\n    },\n    \"param\": {\n      \"value\": \"hello\"\n    }\n  },\n  \"sleep\": 5000\n}",
+        "usage": {
+          "prompt_tokens": 1813,
+          "completion_tokens": 112,
+          "total_tokens": 1925,
+          "completion_tokens_details": {
+            "text_tokens": 112
+          },
+          "prompt_tokens_details": {
+            "text_tokens": 615,
+            "image_tokens": 1198
+          }
+        }
+      },
+      "response_bbox": [513, 127, 1068, 194],
+      "annotation_index_id": 1
+    },
+    {
+      "prompt": "if there are five entries in the list, click the delete button of the second entry and wait 3s. Otherwise, do nothing.",
+      "response_planning": {
+        "log": "There are only three entries in the list, so no action is needed.",
+        "more_actions_needed_by_instruction": false,
+        "action": null,
+        "actions": [],
+        "rawResponse": "{\n  \"log\": \"There are only three entries in the list, so no action is needed.\",\n  \"more_actions_needed_by_instruction\": false,\n  \"action\": null\n}",
+        "usage": {
+          "prompt_tokens": 1824,
+          "completion_tokens": 39,
+          "total_tokens": 1863,
+          "completion_tokens_details": {
+            "text_tokens": 39
+          },
+          "prompt_tokens_details": {
+            "text_tokens": 626,
+            "image_tokens": 1198
+          }
+        }
+      }
+    },
+    {
+      "prompt": "type 'hello' in the input box, sleep 5s, hit enter",
+      "response_planning": {
+        "log": "type 'hello' in the input box.",
+        "more_actions_needed_by_instruction": true,
+        "action": {
+          "type": "Input",
+          "locate": {
+            "prompt": "input box for adding new todo",
             "bbox": [513, 128, 1067, 194]
           },
           "param": {
@@ -15,13 +84,11 @@
           }
         },
         "sleep": 5000,
-        "log": "输入 'hello' 到输入框中，然后等待5秒。",
-        "more_actions_needed_by_instruction": true,
         "actions": [
           {
             "type": "Input",
             "locate": {
-              "prompt": "input box for adding a new todo",
+              "prompt": "input box for adding new todo",
               "bbox": [513, 128, 1067, 194]
             },
             "param": {
@@ -29,34 +96,29 @@
             }
           }
         ],
-        "rawResponse": "{\n  \"action\": {\n    \"type\": \"Input\",\n    \"locate\": {\n      \"bbox_2d\": [\n        513,\n        128,\n        1067,\n        194\n      ],\n      \"prompt\": \"input box for adding a new todo\"\n    },\n    \"param\": {\n      \"value\": \"hello\"\n    }\n  },\n  \"sleep\": 5000,\n  \"log\": \"输入 'hello' 到输入框中，然后等待5秒。\",\n  \"more_actions_needed_by_instruction\": true\n}",
+        "rawResponse": "{\n  \"log\": \"type 'hello' in the input box.\",\n  \"more_actions_needed_by_instruction\": true,\n  \"action\": {\n    \"type\": \"Input\",\n    \"locate\": {\n      \"bbox_2d\": [\n        513,\n        128,\n        1067,\n        194\n      ],\n      \"prompt\": \"input box for adding new todo\"\n    },\n    \"param\": {\n      \"value\": \"hello\"\n    }\n  },\n  \"sleep\": 5000\n}",
         "usage": {
-          "completion_tokens": 123,
-          "prompt_tokens": 1815,
-          "total_tokens": 1938
+          "prompt_tokens": 1813,
+          "completion_tokens": 112,
+          "total_tokens": 1925,
+          "completion_tokens_details": {
+            "text_tokens": 112
+          },
+          "prompt_tokens_details": {
+            "text_tokens": 615,
+            "image_tokens": 1198
+          }
         }
-      }
-    },
-    {
-      "prompt": "if there are five entries in the list, click the delete button of the second entry and wait 3s. Otherwise, do nothing.",
-      "response_planning": {
-        "action": null,
-        "sleep": 0,
-        "log": "There are only three entries in the list, so no action is needed.",
-        "more_actions_needed_by_instruction": false,
-        "actions": [],
-        "rawResponse": "{\n  \"action\": null,\n  \"sleep\": 0,\n  \"log\": \"There are only three entries in the list, so no action is needed.\",\n  \"more_actions_needed_by_instruction\": false\n}",
-        "usage": {
-          "completion_tokens": 46,
-          "prompt_tokens": 1826,
-          "total_tokens": 1872
-        }
-      }
+      },
+      "response_bbox": [513, 128, 1067, 194],
+      "annotation_index_id": 3
     },
     {
       "prompt": "type 'hello' in the input box, sleep 5s, hit enter",
       "log": "type 'hello' in the input box, sleep 5s",
       "response_planning": {
+        "log": "hit enter",
+        "more_actions_needed_by_instruction": false,
         "action": {
           "type": "KeyboardPress",
           "param": {
@@ -64,9 +126,6 @@
           }
         },
         "sleep": null,
-        "log": "hit enter",
-        "more_actions_needed_by_instruction": false,
-        "error": null,
         "actions": [
           {
             "type": "KeyboardPress",
@@ -75,90 +134,115 @@
             }
           }
         ],
-        "rawResponse": "{\n  \"action\": {\n    \"type\": \"KeyboardPress\",\n    \"param\": {\n      \"value\": \"Enter\"\n    }\n  },\n  \"sleep\": null,\n  \"log\": \"hit enter\",\n  \"more_actions_needed_by_instruction\": false,\n  \"error\": null\n}",
+        "rawResponse": "{\n  \"log\": \"hit enter\",\n  \"more_actions_needed_by_instruction\": false,\n  \"action\": {\n    \"type\": \"KeyboardPress\",\n    \"param\": {\n      \"value\": \"Enter\"\n    }\n  },\n  \"sleep\": null\n}",
         "usage": {
-          "completion_tokens": 66,
-          "prompt_tokens": 1856,
-          "total_tokens": 1922
+          "prompt_tokens": 1859,
+          "completion_tokens": 56,
+          "total_tokens": 1915,
+          "completion_tokens_details": {
+            "text_tokens": 56
+          },
+          "prompt_tokens_details": {
+            "text_tokens": 661,
+            "image_tokens": 1198
+          }
         }
       }
     },
     {
       "prompt": "type 'hello' in the input box",
       "response_planning": {
+        "log": "输入 'hello' 到输入框中。",
+        "more_actions_needed_by_instruction": false,
         "action": {
           "type": "Input",
           "locate": {
-            "prompt": "input box for adding a new todo",
-            "bbox": [513, 128, 1067, 194]
+            "prompt": "需要完成的任务的输入框",
+            "bbox": [513, 127, 1068, 194]
           },
           "param": {
             "value": "hello"
           }
         },
-        "log": "输入 'hello' 到输入框中。",
-        "more_actions_needed_by_instruction": false,
         "actions": [
           {
             "type": "Input",
             "locate": {
-              "prompt": "input box for adding a new todo",
-              "bbox": [513, 128, 1067, 194]
+              "prompt": "需要完成的任务的输入框",
+              "bbox": [513, 127, 1068, 194]
             },
             "param": {
               "value": "hello"
             }
           }
         ],
-        "rawResponse": "{\n  \"action\": {\n    \"type\": \"Input\",\n    \"locate\": {\n      \"bbox_2d\": [\n        513,\n        128,\n        1067,\n        194\n      ],\n      \"prompt\": \"input box for adding a new todo\"\n    },\n    \"param\": {\n      \"value\": \"hello\"\n    }\n  },\n  \"log\": \"输入 'hello' 到输入框中。\",\n  \"more_actions_needed_by_instruction\": false\n}",
+        "rawResponse": "{\n  \"log\": \"输入 'hello' 到输入框中。\",\n  \"more_actions_needed_by_instruction\": false,\n  \"action\": {\n    \"type\": \"Input\",\n    \"locate\": {\n      \"bbox_2d\": [\n        513,\n        127,\n        1068,\n        194\n      ],\n      \"prompt\": \"需要完成的任务的输入框\"\n    },\n    \"param\": {\n      \"value\": \"hello\"\n    }\n  }\n}",
         "usage": {
-          "completion_tokens": 108,
-          "prompt_tokens": 1807,
-          "total_tokens": 1915
+          "prompt_tokens": 1805,
+          "completion_tokens": 103,
+          "total_tokens": 1908,
+          "completion_tokens_details": {
+            "text_tokens": 103
+          },
+          "prompt_tokens_details": {
+            "text_tokens": 607,
+            "image_tokens": 1198
+          }
         }
-      }
+      },
+      "response_bbox": [513, 127, 1068, 194],
+      "annotation_index_id": 5
     },
     {
       "prompt": "click OK",
       "response_planning": {
-        "action": null,
-        "error": "There is no 'OK' button visible in the screenshot.",
-        "actions": [],
-        "rawResponse": "{\n  \"action\": null,\n  \"error\": \"There is no 'OK' button visible in the screenshot.\"\n}",
-        "usage": {
-          "completion_tokens": 26,
-          "prompt_tokens": 1801,
-          "total_tokens": 1827
-        }
+        "error": "Failed to plan actions: No 'OK' button found."
       }
     },
     {
       "prompt": "if there is an 'OK' button, click it",
       "response_planning": {
-        "action": null,
         "log": "There is no 'OK' button on the current screen.",
+        "error": null,
         "more_actions_needed_by_instruction": false,
+        "action": null,
         "actions": [],
-        "rawResponse": "{\n  \"action\": null,\n  \"log\": \"There is no 'OK' button on the current screen.\",\n  \"more_actions_needed_by_instruction\": false\n}",
+        "rawResponse": "{\n  \"log\": \"There is no 'OK' button on the current screen.\",\n  \"error\": null,\n  \"more_actions_needed_by_instruction\": false,\n  \"action\": null\n}",
         "usage": {
-          "completion_tokens": 36,
-          "prompt_tokens": 1810,
-          "total_tokens": 1846
+          "prompt_tokens": 1808,
+          "completion_tokens": 42,
+          "total_tokens": 1850,
+          "completion_tokens_details": {
+            "text_tokens": 42
+          },
+          "prompt_tokens_details": {
+            "text_tokens": 610,
+            "image_tokens": 1198
+          }
         }
       }
     },
     {
       "prompt": "if there is an 'OK' button, click it. If not, try again in next step",
       "response_planning": {
-        "action": null,
-        "log": "There is no 'OK' button on the current screen.",
+        "log": "There is no 'OK' button visible in the current screenshot.",
+        "error": null,
         "more_actions_needed_by_instruction": true,
+        "action": null,
+        "sleep": 0,
         "actions": [],
-        "rawResponse": "{\n  \"action\": null,\n  \"log\": \"There is no 'OK' button on the current screen.\",\n  \"more_actions_needed_by_instruction\": true\n}",
+        "rawResponse": "{\n  \"log\": \"There is no 'OK' button visible in the current screenshot.\",\n  \"error\": null,\n  \"more_actions_needed_by_instruction\": true,\n  \"action\": null,\n  \"sleep\": 0\n}",
         "usage": {
-          "completion_tokens": 36,
-          "prompt_tokens": 1819,
-          "total_tokens": 1855
+          "prompt_tokens": 1817,
+          "completion_tokens": 50,
+          "total_tokens": 1867,
+          "completion_tokens_details": {
+            "text_tokens": 50
+          },
+          "prompt_tokens_details": {
+            "text_tokens": 619,
+            "image_tokens": 1198
+          }
         }
       }
     }

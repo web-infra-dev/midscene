@@ -8,9 +8,11 @@ import type { ResponseFormatJSONSchema } from 'openai/resources';
 import { samplePageDescription } from './util';
 
 // Note: put the log field first to trigger the CoT
-const commonOutputFields = `"log": string, // Log what this action(s) you just planned do. If no action should be done, log the reason. Use the same language as the user's instruction.
+const qwenCoTLog = `"wants_to_do_next_by_instruction": string, // What the user wants to do according to the instruction and previous logs. `;
+
+const commonOutputFields = `"log": string, // Log what the action(s) you can do according to the screenshot and the instruction. If no action should be done, log the reason. Use the same language as the user's instruction.
   "error"?: string, // Error messages about unexpected situations, if any. Only think it is an error when the situation is not expected according to the instruction. Use the same language as the user's instruction.
-  "more_actions_needed_by_instruction": boolean, // Consider if all the actions described in the instruction have been covered by this action and logs. If so, set this field to false. Otherwise, you must have a clear reason what the remaining actions are.`;
+  "more_actions_needed_by_instruction": boolean, // Consider if there is still more action(s) to do after the action in "Log" is done, according to the instruction. If so, set this field to true. Otherwise, set it to false.`;
 
 const qwenLocateParam =
   'locate: {bbox_2d: [number, number, number, number], prompt: string }';
@@ -33,6 +35,7 @@ Field description:
 
 Return in JSON format:
 {
+  ${qwenCoTLog}
   ${commonOutputFields}
   "action": 
     {
