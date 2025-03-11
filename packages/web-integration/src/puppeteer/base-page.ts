@@ -117,8 +117,10 @@ export class Page<
           );
         }
       },
-      move: async (x: number, y: number) =>
-        this.underlyingPage.mouse.move(x, y),
+      move: async (x: number, y: number) => {
+        this.everMoved = true;
+        return this.underlyingPage.mouse.move(x, y);
+      },
       drag: async (
         from: { x: number; y: number },
         to: { x: number; y: number },
@@ -205,57 +207,64 @@ export class Page<
     await this.keyboard.press([{ key: 'Backspace' }]);
   }
 
-  private async moveToPoint(point?: Point): Promise<void> {
+  private everMoved = false;
+  private async moveToPointBeforeScroll(point?: Point): Promise<void> {
     if (point) {
       await this.mouse.move(point.left, point.top);
+    } else if (!this.everMoved) {
+      // If the mouse has never moved, move it to the center of the page
+      const size = await this.size();
+      const targetX = Math.floor(size.width / 2);
+      const targetY = Math.floor(size.height / 2);
+      await this.mouse.move(targetX, targetY);
     }
   }
 
   async scrollUntilTop(startingPoint?: Point): Promise<void> {
-    await this.moveToPoint(startingPoint);
+    await this.moveToPointBeforeScroll(startingPoint);
     return this.mouse.wheel(0, -9999999);
   }
 
   async scrollUntilBottom(startingPoint?: Point): Promise<void> {
-    await this.moveToPoint(startingPoint);
+    await this.moveToPointBeforeScroll(startingPoint);
     return this.mouse.wheel(0, 9999999);
   }
 
   async scrollUntilLeft(startingPoint?: Point): Promise<void> {
-    await this.moveToPoint(startingPoint);
+    await this.moveToPointBeforeScroll(startingPoint);
     return this.mouse.wheel(-9999999, 0);
   }
 
   async scrollUntilRight(startingPoint?: Point): Promise<void> {
-    await this.moveToPoint(startingPoint);
+    await this.moveToPointBeforeScroll(startingPoint);
     return this.mouse.wheel(9999999, 0);
   }
 
   async scrollUp(distance?: number, startingPoint?: Point): Promise<void> {
     const innerHeight = await this.evaluate(() => window.innerHeight);
     const scrollDistance = distance || innerHeight * 0.7;
-    await this.moveToPoint(startingPoint);
+    await this.moveToPointBeforeScroll(startingPoint);
     return this.mouse.wheel(0, -scrollDistance);
   }
 
   async scrollDown(distance?: number, startingPoint?: Point): Promise<void> {
     const innerHeight = await this.evaluate(() => window.innerHeight);
     const scrollDistance = distance || innerHeight * 0.7;
-    await this.moveToPoint(startingPoint);
+    await this.moveToPointBeforeScroll(startingPoint);
     return this.mouse.wheel(0, scrollDistance);
   }
 
   async scrollLeft(distance?: number, startingPoint?: Point): Promise<void> {
     const innerWidth = await this.evaluate(() => window.innerWidth);
     const scrollDistance = distance || innerWidth * 0.7;
-    await this.moveToPoint(startingPoint);
+    await this.moveToPointBeforeScroll(startingPoint);
     return this.mouse.wheel(-scrollDistance, 0);
   }
 
   async scrollRight(distance?: number, startingPoint?: Point): Promise<void> {
     const innerWidth = await this.evaluate(() => window.innerWidth);
     const scrollDistance = distance || innerWidth * 0.7;
-    await this.moveToPoint(startingPoint);
+    await this.moveToPointBeforeScroll(startingPoint);
     return this.mouse.wheel(scrollDistance, 0);
   }
 
