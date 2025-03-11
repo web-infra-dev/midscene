@@ -437,8 +437,8 @@ export default class ChromeExtensionProxyPage implements AbstractPage {
     });
   }
 
-  private latestMouseX = 50;
-  private latestMouseY = 50;
+  private latestMouseX = 100;
+  private latestMouseY = 100;
 
   mouse = {
     click: async (x: number, y: number) => {

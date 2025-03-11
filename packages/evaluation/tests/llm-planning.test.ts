@@ -18,14 +18,7 @@ dotenv.config({
 });
 
 const failCaseThreshold = process.env.CI ? 1 : 0;
-const testSources = [
-  'todo',
-  // 'online_order',
-  // 'online_order_list',
-  // 'taobao',
-  // 'aweme-login',
-  // 'aweme-play',
-];
+const testSources = ['todo'];
 
 const vlMode = getAIConfigInBoolean(MIDSCENE_USE_QWEN_VL);
 
