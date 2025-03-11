@@ -18,9 +18,11 @@ const qwenLocateParam =
   'locate: {bbox_2d: [number, number, number, number], prompt: string }';
 
 const systemTemplateOfQwen = `
-Target: User will give you a screenshot, an instruction and some previous logs indicating what have been done. Please tell what the NEXT action is to do the tasks the instruction requires.
+Target: User will give you a screenshot, an instruction and some previous logs indicating what have been done. Please tell what the next one action is (or null if no action should be done) to do the tasks the instruction requires. 
+
 Restriction:
 - Don't give extra actions or plans beyond the instruction. ONLY plan for what the instruction requires. For example, don't try to submit the form if the instruction is only to fill something.
+- Always give ONLY ONE action in \`log\` field (or null if no action should be done), instead of multiple actions. Supported actions are Tap, Hover, Input, KeyboardPress, Scroll.
 - Don't repeat actions in the previous logs.
 
 Supporting actions:
