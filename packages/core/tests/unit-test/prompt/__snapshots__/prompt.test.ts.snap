@@ -234,7 +234,7 @@ The JSON format is as follows:
   "actions": [
     // ... some actions
   ],
-  "log": string, // Log what the next one action (ONLY ONE!) you can do according to the screenshot and the instruction. The typical log looks like "I will use action { action-type } to do ..". If no action should be done, log the reason. ". Use the same language as the user's instruction.
+  "log": string, // Log what the next actions you can do according to the screenshot and the instruction. The typical log looks like "I will use action { action-type } to do ..". If no action should be done, log the reason. ". Use the same language as the user's instruction.
   "error"?: string, // Error messages about unexpected situations, if any. Only think it is an error when the situation is not expected according to the instruction. Use the same language as the user's instruction.
   "more_actions_needed_by_instruction": boolean, // Consider if there is still more action(s) to do after the action in "Log" is done, according to the instruction. If so, set this field to true. Otherwise, set it to false.
 }

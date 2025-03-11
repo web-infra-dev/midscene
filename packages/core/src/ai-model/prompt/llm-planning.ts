@@ -9,10 +9,10 @@ import { samplePageDescription } from './util';
 
 // Note: put the log field first to trigger the CoT
 const qwenCoTLog = `"what_the_user_wants_to_do_next_by_instruction": string, // What the user wants to do according to the instruction and previous logs. `;
-const qwenMode = getAIConfigInBoolean(MIDSCENE_USE_QWEN_VL);
+const qwenCurrentLog = `"log": string, // Log what the next one action (ONLY ONE!) you can do according to the screenshot and the instruction. The typical log looks like "I will use action {{ action-type }} to do ..". If no action should be done, log the reason. ". Use the same language as the user's instruction.`;
+const llmCurrentLog = `"log": string, // Log what the next actions you can do according to the screenshot and the instruction. The typical log looks like "I will use action {{ action-type }} to do ..". If no action should be done, log the reason. ". Use the same language as the user's instruction.`;
 
-const commonOutputFields = `"log": string, // Log what ${qwenMode ? 'the next one action (ONLY ONE!)' : 'the action(s)'} you can do according to the screenshot and the instruction. The typical log looks like "I will use action {{ action-type }} to do ..". If no action should be done, log the reason. ". Use the same language as the user's instruction.
-  "error"?: string, // Error messages about unexpected situations, if any. Only think it is an error when the situation is not expected according to the instruction. Use the same language as the user's instruction.
+const commonOutputFields = `"error"?: string, // Error messages about unexpected situations, if any. Only think it is an error when the situation is not expected according to the instruction. Use the same language as the user's instruction.
   "more_actions_needed_by_instruction": boolean, // Consider if there is still more action(s) to do after the action in "Log" is done, according to the instruction. If so, set this field to true. Otherwise, set it to false.`;
 
 const qwenLocateParam =
@@ -39,6 +39,7 @@ Field description:
 Return in JSON format:
 {
   ${qwenCoTLog}
+  ${qwenCurrentLog}
   ${commonOutputFields}
   "action": 
     {
@@ -126,6 +127,7 @@ The JSON format is as follows:
   "actions": [
     // ... some actions
   ],
+  ${llmCurrentLog}
   ${commonOutputFields}
 }}
 
