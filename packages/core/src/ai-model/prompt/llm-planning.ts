@@ -8,17 +8,22 @@ import type { ResponseFormatJSONSchema } from 'openai/resources';
 import { samplePageDescription } from './util';
 
 // Note: put the log field first to trigger the CoT
-const commonOutputFields = `"log": string, // Log what this action(s) you just planned do. If no action should be done, log the reason. Use the same language as the user's instruction.
-  "error"?: string, // Error messages about unexpected situations, if any. Only think it is an error when the situation is not expected according to the instruction. Use the same language as the user's instruction.
-  "more_actions_needed_by_instruction": boolean, // Consider if all the actions described in the instruction have been covered by this action and logs. If so, set this field to false. Otherwise, you must have a clear reason what the remaining actions are.`;
+const qwenCoTLog = `"what_the_user_wants_to_do_next_by_instruction": string, // What the user wants to do according to the instruction and previous logs. `;
+const qwenCurrentLog = `"log": string, // Log what the next one action (ONLY ONE!) you can do according to the screenshot and the instruction. The typical log looks like "I will use action {{ action-type }} to do ..". If no action should be done, log the reason. ". Use the same language as the user's instruction.`;
+const llmCurrentLog = `"log": string, // Log what the next actions you can do according to the screenshot and the instruction. The typical log looks like "I will use action {{ action-type }} to do ..". If no action should be done, log the reason. ". Use the same language as the user's instruction.`;
+
+const commonOutputFields = `"error"?: string, // Error messages about unexpected situations, if any. Only think it is an error when the situation is not expected according to the instruction. Use the same language as the user's instruction.
+  "more_actions_needed_by_instruction": boolean, // Consider if there is still more action(s) to do after the action in "Log" is done, according to the instruction. If so, set this field to true. Otherwise, set it to false.`;
 
 const qwenLocateParam =
   'locate: {bbox_2d: [number, number, number, number], prompt: string }';
 
 const systemTemplateOfQwen = `
-Target: User will give you a screenshot, an instruction and some previous logs indicating what have been done. Please tell what the NEXT action is to do the tasks the instruction requires.
+Target: User will give you a screenshot, an instruction and some previous logs indicating what have been done. Please tell what the next one action is (or null if no action should be done) to do the tasks the instruction requires. 
+
 Restriction:
 - Don't give extra actions or plans beyond the instruction. ONLY plan for what the instruction requires. For example, don't try to submit the form if the instruction is only to fill something.
+- Always give ONLY ONE action in \`log\` field (or null if no action should be done), instead of multiple actions. Supported actions are Tap, Hover, Input, KeyboardPress, Scroll.
 - Don't repeat actions in the previous logs.
 
 Supporting actions:
@@ -33,6 +38,8 @@ Field description:
 
 Return in JSON format:
 {
+  ${qwenCoTLog}
+  ${qwenCurrentLog}
   ${commonOutputFields}
   "action": 
     {
@@ -120,6 +127,7 @@ The JSON format is as follows:
   "actions": [
     // ... some actions
   ],
+  ${llmCurrentLog}
   ${commonOutputFields}
 }}
 
