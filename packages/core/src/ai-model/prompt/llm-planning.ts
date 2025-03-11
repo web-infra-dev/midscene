@@ -8,7 +8,7 @@ import type { ResponseFormatJSONSchema } from 'openai/resources';
 import { samplePageDescription } from './util';
 
 // Note: put the log field first to trigger the CoT
-const qwenCoTLog = `"wants_to_do_next_by_instruction": string, // What the user wants to do according to the instruction and previous logs. `;
+const qwenCoTLog = `"what_the_user_wants_to_do_next_by_instruction": string, // What the user wants to do according to the instruction and previous logs. `;
 
 const commonOutputFields = `"log": string, // Log what the action(s) you can do according to the screenshot and the instruction. If no action should be done, log the reason. Use the same language as the user's instruction.
   "error"?: string, // Error messages about unexpected situations, if any. Only think it is an error when the situation is not expected according to the instruction. Use the same language as the user's instruction.
