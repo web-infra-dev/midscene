@@ -12,9 +12,10 @@ describe('extract', () => {
     const { context } = await getContextFromFixture('todo-input-with-value');
 
     const { parseResult } = await AiExtractElementInfo({
-      dataQuery: 'Array<string>, Complete task list, string is the task',
+      dataQuery: 'Array<string>, task list, task name as string',
       context,
     });
+    expect(parseResult).toBeDefined();
     expect(parseResult).toMatchSnapshot();
   });
 

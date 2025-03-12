@@ -204,7 +204,7 @@ Each action has a \`type\` and corresponding \`param\`. To be detailed:
   * { locate: {"id": string, "prompt": string} | null }
 - type: 'Input', replace the value in the input field
   * { locate: {"id": string, "prompt": string} | null, param: { value: string } }
-  * \`value\` is the final required input value based on the existing input. No matter what modifications are required, just provide the final value to replace the existing input value. 
+  * \`value\` is the final value that should be filled in the input field. No matter what modifications are required, just provide the final value user should see after the action is done. 
 - type: 'KeyboardPress', press a key
   * { param: { value: string } }
 - type: 'Scroll', scroll up or down.
