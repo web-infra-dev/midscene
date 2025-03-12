@@ -175,13 +175,13 @@ export function writeFileSyncWithDir(
   writeFileSync(filePath, content, options);
 }
 
-export async function getCases(
+export function getCases(
   pageName: string,
   type = 'inspect',
-): Promise<{
+): {
   path: string;
   content: InspectAiTestCase;
-}> {
+} {
   const pageDataPath = path.join(
     __dirname,
     `../page-cases/${type}/${pageName}.json`,
