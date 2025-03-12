@@ -10,7 +10,7 @@ Related Docs: [Prompting Tips](./prompting-tips)
 
 There are some limitations with Midscene. We are still working on them.
 
-1. The interaction types are limited to only tap, drag, type, keyboard press, and scroll.
+1. The interaction types are limited to only tap, drag (in UI-TARS model only), type, keyboard press, and scroll.
 2. AI model is not 100% stable. Following the [Prompting Tips](./prompting-tips) will help improve stability.
 3. You cannot interact with the elements inside the cross-origin iframe and canvas when using GPT-4o. This is not a problem when using Qwen and UI-TARS model.
 4. We cannot access the native elements of Chrome, like the right-click context menu or file upload dialog.
