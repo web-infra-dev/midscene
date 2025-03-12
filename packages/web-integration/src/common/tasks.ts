@@ -26,6 +26,7 @@ import {
   type PlanningActionParamSleep,
   type PlanningActionParamTap,
   type PlanningActionParamWaitFor,
+  PlanningLocateParam,
   plan,
 } from '@midscene/core';
 import {
@@ -718,6 +719,23 @@ export class PageTaskExecutor {
     };
 
     return task;
+  }
+
+  async runPlans(
+    title: string,
+    plans: PlanningAction[],
+    options?: ExecutionTaskProgressOptions,
+  ): Promise<ExecutionResult> {
+    const taskExecutor = new Executor(title, {
+      onTaskStart: options?.onTaskStart,
+    });
+    const { tasks } = await this.convertPlanToExecutable(plans);
+    await taskExecutor.append(tasks);
+    const result = await taskExecutor.flush();
+    return {
+      output: result,
+      executor: taskExecutor,
+    };
   }
 
   async action(

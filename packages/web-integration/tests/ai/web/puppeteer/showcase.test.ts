@@ -93,6 +93,13 @@ describe(
       expect(names.length).toBeGreaterThan(5);
     });
 
+    it('search engine with specific actions', async () => {
+      const { originPage, reset } = await launchPage('https://www.bing.com/');
+      resetFn = reset;
+      const agent = new PuppeteerAgent(originPage);
+      await agent.aiTap('the search box');
+    });
+
     it(
       'search engine',
       async () => {
