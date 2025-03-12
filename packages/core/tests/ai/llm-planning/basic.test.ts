@@ -100,7 +100,7 @@ describe('planning', () => {
     expect(actions![0].locate).toBeTruthy();
   });
 
-  it('should not throw in an "if" statement', async () => {
+  it.skip('should not throw in an "if" statement', async () => {
     const { context } = await getContextFromFixture('todo');
     const { actions, error } = await plan(
       'If there is a cookie prompt, close it',

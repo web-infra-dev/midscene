@@ -10,7 +10,12 @@ describe(
     let resetFn: () => Promise<void>;
     afterEach(async () => {
       if (resetFn) {
-        await resetFn();
+        try {
+          await resetFn();
+        } catch (e) {
+          console.warn('resetFn error');
+          console.warn(e);
+        }
       }
     });
 

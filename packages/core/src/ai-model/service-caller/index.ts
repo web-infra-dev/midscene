@@ -248,9 +248,9 @@ export async function call(
     } as any);
 
     debugProfile(
-      'model %s, %s, usage %s, cost %s ms, requestId %s',
+      'model %s,%s usage %s, cost %s ms, requestId %s',
       model,
-      getAIConfig(MIDSCENE_USE_QWEN_VL) ? 'MIDSCENE_USE_QWEN_VL' : '',
+      getAIConfig(MIDSCENE_USE_QWEN_VL) ? ' MIDSCENE_USE_QWEN_VL,' : '',
       JSON.stringify(result.usage),
       Date.now() - startTime,
       result._request_id,

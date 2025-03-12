@@ -55,35 +55,3 @@ exports[`automation - planning input > input value Add, delete, correct and chec
   },
 ]
 `;
-
-exports[`automation - planning input > input value Add, delete, correct and check 2`] = `
-[
-  {
-    "locate": {
-      "id": "okgbn",
-      "prompt": "",
-    },
-    "param": {
-      "value": "Learn Skiing",
-    },
-    "thought": undefined,
-    "type": "Input",
-  },
-]
-`;
-
-exports[`automation - planning input > input value Add, delete, correct and check 3`] = `
-[
-  {
-    "locate": {
-      "id": "okgbn",
-      "prompt": "",
-    },
-    "param": {
-      "value": "Learn",
-    },
-    "thought": undefined,
-    "type": "Input",
-  },
-]
-`;
