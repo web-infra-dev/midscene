@@ -1,6 +1,6 @@
 import { strict as assert } from 'node:assert';
 import { execSync } from 'node:child_process';
-import { rmSync, writeFileSync } from 'node:fs';
+import { rmSync, statSync, writeFileSync } from 'node:fs';
 import { platform } from 'node:os';
 import { dirname, join } from 'node:path';
 import {
@@ -178,6 +178,9 @@ async function packExtension() {
   // zip the extension
   if (platform() !== 'win32') {
     await zipDir(outputExtensionUnpackedBaseDir, distFile);
+    // print size of the zip file
+    const size = statSync(distFile).size;
+    console.log(`Zip file size: ${size} bytes`);
   } else {
     console.warn('zip is not supported on this platform, will skip it');
   }
