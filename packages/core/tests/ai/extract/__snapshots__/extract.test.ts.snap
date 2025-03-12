@@ -16,18 +16,6 @@ exports[`extract > online order 1`] = `
 }
 `;
 
-exports[`extract > todo 1`] = `
-{
-  "data": [
-    "Learn English",
-    "Learn Python",
-    "Learn Rust",
-    "Learn AI",
-  ],
-  "errors": [],
-}
-`;
-
 exports[`extract > todo obj 1`] = `
 {
   "data": [
