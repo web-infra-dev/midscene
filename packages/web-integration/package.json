@@ -1,7 +1,7 @@
 {
   "name": "@midscene/web",
   "description": "Automate browser actions, extract data, and perform assertions using AI. It offers JavaScript SDK, Chrome extension, and support for scripting in YAML. See https://midscenejs.com/ for details.",
-  "version": "0.12.5",
+  "version": "0.12.6",
   "repository": "https://github.com/web-infra-dev/midscene",
   "homepage": "https://midscenejs.com/",
   "jsnext:source": "./src/index.ts",
@@ -11,71 +11,19 @@
     "midscene-playground": "./bin/midscene-playground"
   },
   "exports": {
-    ".": {
-      "types": "./dist/types/index.d.ts",
-      "import": "./dist/es/index.js",
-      "default": "./dist/lib/index.js"
-    },
-    "./bridge-mode": {
-      "types": "./dist/types/bridge-mode.d.ts",
-      "import": "./dist/es/bridge-mode.js",
-      "default": "./dist/lib/bridge-mode.js"
-    },
-    "./bridge-mode-browser": {
-      "types": "./dist/types/bridge-mode-browser.d.ts",
-      "import": "./dist/es/bridge-mode-browser.js",
-      "default": "./dist/lib/bridge-mode-browser.js"
-    },
-    "./utils": {
-      "types": "./dist/types/utils.d.ts",
-      "import": "./dist/es/utils.js",
-      "default": "./dist/lib/utils.js"
-    },
-    "./ui-utils": {
-      "types": "./dist/types/ui-utils.d.ts",
-      "import": "./dist/es/ui-utils.js",
-      "default": "./dist/lib/ui-utils.js"
-    },
-    "./puppeteer": {
-      "types": "./dist/types/puppeteer.d.ts",
-      "import": "./dist/es/puppeteer.js",
-      "default": "./dist/lib/puppeteer.js"
-    },
-    "./playwright": {
-      "types": "./dist/types/playwright.d.ts",
-      "import": "./dist/es/playwright.js",
-      "default": "./dist/lib/playwright.js"
-    },
-    "./playwright-report": {
-      "types": "./dist/types/playwright-report.d.ts",
-      "import": "./dist/es/playwright-report.js",
-      "default": "./dist/lib/playwright-report.js"
-    },
-    "./playground": {
-      "types": "./dist/types/playground.d.ts",
-      "import": "./dist/es/playground.js",
-      "default": "./dist/lib/playground.js"
-    },
-    "./midscene-playground": {
-      "types": "./dist/types/midscene-playground.d.ts",
-      "import": "./dist/es/midscene-playground.js",
-      "default": "./dist/lib/midscene-playground.js"
-    },
-    "./appium": {
-      "types": "./dist/types/appium.d.ts",
-      "import": "./dist/es/appium.js",
-      "default": "./dist/lib/appium.js"
-    },
-    "./chrome-extension": {
-      "types": "./dist/types/chrome-extension.d.ts",
-      "import": "./dist/es/chrome-extension.js",
-      "default": "./dist/lib/chrome-extension.js"
-    },
-    "./yaml": {
-      "types": "./dist/types/yaml.d.ts",
-      "import": "./dist/es/yaml.js",
-      "default": "./dist/lib/yaml.js"
-    }
+    ".": "./dist/lib/index.js",
+    "./bridge-mode": "./dist/lib/bridge-mode.js",
+    "./bridge-mode-browser": "./dist/lib/bridge-mode-browser.js",
+    "./utils": "./dist/lib/utils.js",
+    "./ui-utils": "./dist/lib/ui-utils.js",
+    "./puppeteer": "./dist/lib/puppeteer.js",
+    "./playwright": "./dist/lib/playwright.js",
+    "./playwright-report": "./dist/lib/playwright-report.js",
+    "./playground": "./dist/lib/playground.js",
+    "./midscene-playground": "./dist/lib/midscene-playground.js",
+    "./appium": "./dist/lib/appium.js",
+    "./chrome-extension": "./dist/lib/chrome-extension.js",
+    "./yaml": "./dist/lib/yaml.js"
   },
   "typesVersions": {
     "*": {
