@@ -1,6 +1,9 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import type { AIElementIdResponse, PlanningAIResponse } from '@midscene/core';
+import type {
+  AIElementLocatorResponse,
+  PlanningAIResponse,
+} from '@midscene/core';
 import type { vlmPlanning } from '@midscene/core/ai-model';
 import { getAIConfig, getAIConfigInBoolean } from '@midscene/core/env';
 import {
@@ -50,7 +53,7 @@ export type LocateTask = {
       height: number;
     };
   };
-  response: AIElementIdResponse;
+  response: AIElementLocatorResponse;
 };
 
 export type AiTasks = Array<PlanTask | LocateTask | UITarsPlanTask>;

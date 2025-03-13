@@ -16,10 +16,9 @@ import { NodeType } from '@midscene/shared/constants';
 
 import { ScriptPlayer, parseYamlScript } from '@/yaml/index';
 import {
-  MATCH_BY_POSITION,
   MIDSCENE_USE_VLM_UI_TARS,
   getAIConfig,
-  getAIConfigInBoolean,
+  vlLocateMode,
 } from '@midscene/core/env';
 import {
   groupedActionDumpFileExt,
@@ -115,7 +114,7 @@ export class PageAgent<PageType extends WebPage = WebPage> {
       });
     }
     return await parseContextFromWebPage(this.page, {
-      ignoreMarker: getAIConfigInBoolean(MATCH_BY_POSITION),
+      ignoreMarker: !!vlLocateMode(),
     });
   }
 

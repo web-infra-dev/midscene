@@ -1,7 +1,7 @@
 import type { WebPage } from '@/common/page';
 import type { PuppeteerWebPage } from '@/puppeteer';
 import {
-  type AIElementIdResponse,
+  type AIElementLocatorResponse,
   type AIUsageInfo,
   type DumpSubscriber,
   type ExecutionRecorderItem,
@@ -171,7 +171,7 @@ export class PageTaskExecutor {
               'locate',
               param.prompt,
             );
-            let locateResult: AIElementIdResponse | undefined;
+            let locateResult: AIElementLocatorResponse | undefined;
             const callAI = this.insight.aiVendorFn;
 
             const quickAnswer = {

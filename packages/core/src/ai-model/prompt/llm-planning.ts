@@ -1,8 +1,4 @@
-import {
-  MATCH_BY_POSITION,
-  MIDSCENE_USE_QWEN_VL,
-  getAIConfigInBoolean,
-} from '@/env';
+import { vlLocateMode } from '@/env';
 import { PromptTemplate } from '@langchain/core/prompts';
 import type { ResponseFormatJSONSchema } from 'openai/resources';
 import { samplePageDescription } from './util';
@@ -18,13 +14,14 @@ const commonOutputFields = `"error"?: string, // Error messages about unexpected
 const qwenLocateParam =
   'locate: {bbox_2d: [number, number, number, number], prompt: string }';
 
-const systemTemplateOfQwen = `
+const systemTemplateOfVLPlanning = `
 Target: User will give you a screenshot, an instruction and some previous logs indicating what have been done. Please tell what the next one action is (or null if no action should be done) to do the tasks the instruction requires. 
 
 Restriction:
 - Don't give extra actions or plans beyond the instruction. ONLY plan for what the instruction requires. For example, don't try to submit the form if the instruction is only to fill something.
 - Always give ONLY ONE action in \`log\` field (or null if no action should be done), instead of multiple actions. Supported actions are Tap, Hover, Input, KeyboardPress, Scroll.
 - Don't repeat actions in the previous logs.
+- Bbox is the bounding box of the element to be located. It's an array of 4 numbers, representing the top-left x, top-left y, bottom-right x, bottom-right y of the element.
 
 Supporting actions:
 - Tap: { type: "Tap", ${qwenLocateParam} }
@@ -193,8 +190,8 @@ Reason:
 `;
 
 export async function systemPromptToTaskPlanning() {
-  if (getAIConfigInBoolean(MIDSCENE_USE_QWEN_VL)) {
-    return systemTemplateOfQwen;
+  if (vlLocateMode()) {
+    return systemTemplateOfVLPlanning;
   }
 
   const promptTemplate = new PromptTemplate({
@@ -338,7 +335,7 @@ ${userInstruction}
 };
 
 export const automationUserPrompt = () => {
-  if (getAIConfigInBoolean(MATCH_BY_POSITION)) {
+  if (vlLocateMode()) {
     return new PromptTemplate({
       template: '{taskBackgroundContext}',
       inputVariables: ['taskBackgroundContext'],
