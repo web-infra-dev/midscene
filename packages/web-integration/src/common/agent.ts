@@ -10,7 +10,7 @@ import {
   type InsightAction,
   type OnTaskStartTip,
   type PlanningActionParamInputOrKeyPress,
-  type PlanningActionParamScroll,
+  // type PlanningActionParamScroll,
 } from '@midscene/core';
 import { NodeType } from '@midscene/shared/constants';
 
@@ -242,19 +242,19 @@ export class PageAgent<PageType extends WebPage = WebPage> {
     return output;
   }
 
-  async aiScroll(where: string, param: PlanningActionParamScroll) {
-    const plans = buildAndRunPlan(
-      'Scroll',
-      {
-        prompt: where,
-      },
-      param,
-    );
-    const { executor, output } = await this.taskExecutor.runPlans(
-      `Scroll ${where} - ${paramStr(param)}`,
-      plans,
-    );
-  }
+  // async aiScroll(where: string, param: PlanningActionParamScroll) {
+  //   const plans = buildAndRunPlan(
+  //     'Scroll',
+  //     {
+  //       prompt: where,
+  //     },
+  //     param,
+  //   );
+  //   const { executor, output } = await this.taskExecutor.runPlans(
+  //     `Scroll ${where} - ${paramStr(param)}`,
+  //     plans,
+  //   );
+  // }
 
   async aiAction(taskPrompt: string) {
     const { executor } = await (getAIConfig(MIDSCENE_USE_VLM_UI_TARS)
