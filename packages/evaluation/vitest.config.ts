@@ -8,6 +8,7 @@ import { defineConfig } from 'vitest/config';
  * https://github.com/motdotla/dotenv
  */
 dotenv.config({
+  path: path.join(__dirname, '../../.env'),
   override: true,
   debug: true,
 });
