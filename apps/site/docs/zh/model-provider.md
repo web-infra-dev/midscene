@@ -44,7 +44,7 @@ Midscene 还支持一些调试配置：
 | 名称 | 描述 |
 |------|-------------|
 | `DEBUG=midscene:ai:profile` | 可选。设置此项，可以打印 AI token 使用情况和响应时间 |
-| `DEBUG=midscene:ai:response` | 可选。设置此项，可以打印 AI 响应内容 |
+| `DEBUG=midscene:ai:call` | 可选。设置此项，可以打印 AI 响应详情 |
 
 ## 两种配置环境变量的方式
 

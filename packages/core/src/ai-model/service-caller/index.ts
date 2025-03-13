@@ -51,7 +51,7 @@ export function checkAIConfig() {
 }
 
 const debugProfile = getDebug('ai:profile');
-const debugResponse = getDebug('ai:response');
+const debugCall = getDebug('ai:call');
 
 const shouldPrintTiming = getAIConfigInBoolean(MIDSCENE_DEBUG_AI_PROFILE);
 let debugConfig = '';
@@ -69,7 +69,7 @@ if (shouldPrintAIResponse) {
   if (debugConfig) {
     debugConfig = 'ai:*';
   } else {
-    debugConfig = 'ai:response';
+    debugConfig = 'ai:call';
   }
 }
 if (debugConfig) {
@@ -239,6 +239,7 @@ export async function call(
       : {}),
   };
   if (style === 'openai') {
+    debugCall(`will send request to ${model}`);
     const result = await completion.create({
       model,
       messages,
@@ -261,7 +262,7 @@ export async function call(
     );
     content = result.choices[0].message.content!;
 
-    debugResponse(content);
+    debugCall(`response: ${content}`);
     assert(content, 'empty content');
     usage = result.usage;
     // console.log('headers', result.headers);

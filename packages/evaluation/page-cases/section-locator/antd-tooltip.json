@@ -1,0 +1,20 @@
+{
+  "testDataPath": "antd-tooltip",
+  "testCases": [
+    {
+      "prompt": "the version info on the top right corner",
+      "annotation_index_id": 1,
+      "response_bbox": [1689, 20, 1784, 43]
+    },
+    {
+      "prompt": "‘位置有12个方向’上面有一圈按钮",
+      "annotation_index_id": 2,
+      "response_bbox": [1075, 569, 1768, 923]
+    },
+    {
+      "prompt": "‘a series of buttons under 'show/hide' switch",
+      "annotation_index_id": 3,
+      "response_bbox": [498, 865, 931, 1053]
+    }
+  ]
+}

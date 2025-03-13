@@ -42,7 +42,7 @@ There are some debug configs:
 | Name | Description |
 |------|-------------|
 | `DEBUG=midscene:ai:profile` | Optional. Set this to print the AI usage and response time |
-| `DEBUG=midscene:ai:response` | Optional. Set this to print the AI response content |
+| `DEBUG=midscene:ai:call` | Optional. Set this to print the AI response details |
 
 ## Two ways to config environment variables
 

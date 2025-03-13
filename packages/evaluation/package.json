@@ -10,9 +10,11 @@
     "update-answer-data:planning:coord": "UPDATE_ANSWER_DATA=true MIDSCENE_USE_QWEN_VL=1 npm run evaluate:planning && npm run format",
     "update-answer-data:planning:element": "UPDATE_ANSWER_DATA=true npm run evaluate:planning && npm run format",
     "update-answer-data:assertion": "UPDATE_ANSWER_DATA=true npm run evaluate:assertion && npm run format",
+    "update-answer-data:section-locator": "UPDATE_ANSWER_DATA=true npm run evaluate:section-locator && npm run format",
     "evaluate:locator": "npx vitest --run tests/llm-locator.test.ts",
     "evaluate:planning": "npx vitest --run tests/llm-planning.test.ts",
     "evaluate:assertion": "npx vitest --run tests/assertion.test.ts",
+    "evaluate:section-locator": "npx vitest --run tests/llm-section-locator.test.ts",
     "format": "cd ../.. && npm run lint"
   },
   "files": ["dist", "README.md"],

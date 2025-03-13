@@ -8,6 +8,7 @@ export {
   AiInspectElement,
   AiExtractElementInfo,
   AiAssert,
+  AiLocateSection,
   transformElementPositionToId,
 } from './inspect';
 
