@@ -402,7 +402,7 @@ export async function AiExtractElementInfo<
 
   const result = await callAiFn<AISectionParseResponse<T>>(
     msgs,
-    AIActionType.INSPECT_ELEMENT,
+    AIActionType.EXTRACT_DATA,
   );
   return {
     parseResult: result.content,
