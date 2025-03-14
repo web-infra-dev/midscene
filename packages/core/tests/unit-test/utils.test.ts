@@ -7,6 +7,7 @@ import {
   preprocessDoubaoBboxJson,
   safeParseJson,
 } from '@/ai-model/service-caller';
+import { getAIConfig, overrideAIConfig } from '@/env';
 import {
   getLogDir,
   getTmpDir,
@@ -247,5 +248,22 @@ describe('doubao-vision', () => {
 
   it('adaptDoubaoBbox with invalid bbox data', () => {
     expect(() => adaptDoubaoBbox([100], 1000, 2000)).toThrow();
+  });
+});
+
+describe('env', () => {
+  it('getAIConfig', () => {
+    const result = getAIConfig('NEVER_EXIST_CONFIG' as any);
+    expect(result).toBeUndefined();
+  });
+
+  it('overrideAIConfig', () => {
+    expect(() =>
+      overrideAIConfig({
+        MIDSCENE_CACHE: {
+          foo: 123,
+        } as any,
+      }),
+    ).toThrow();
   });
 });
