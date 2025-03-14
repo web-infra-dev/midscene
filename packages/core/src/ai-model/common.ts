@@ -69,7 +69,9 @@ export function adaptQwenBbox(
   errorMsg?: string,
 ): [number, number, number, number] {
   if (bbox.length < 2) {
-    const msg = errorMsg || `invalid bbox data: ${JSON.stringify(bbox)} `;
+    const msg =
+      errorMsg ||
+      `invalid bbox data for qwen-vl mode: ${JSON.stringify(bbox)} `;
     throw new Error(msg);
   }
 
@@ -105,7 +107,7 @@ export function adaptDoubaoBbox(
     ];
   }
 
-  if (bbox.length === 6) {
+  if (bbox.length === 6 || bbox.length === 2) {
     return [
       Math.round((bbox[0] * width) / 1000),
       Math.round((bbox[1] * height) / 1000),
@@ -123,7 +125,9 @@ export function adaptDoubaoBbox(
     ];
   }
 
-  const msg = errorMsg || `invalid bbox data: ${JSON.stringify(bbox)} `;
+  const msg =
+    errorMsg ||
+    `invalid bbox data for doubao-vision mode: ${JSON.stringify(bbox)} `;
   throw new Error(msg);
 }
 
