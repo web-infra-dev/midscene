@@ -1,7 +1,12 @@
 import path from 'node:path';
+// import { fileURLToPath } from 'node:url';
 import { defineConfig, devices } from '@playwright/test';
 //@ts-ignore
 import dotenv from 'dotenv';
+
+// 添加这两行获取当前文件目录（ES 模块兼容方式）
+// const __filename = fileURLToPath(import.meta.url);
+// const __dirname = path.dirname(__filename);
 
 const MIDSCENE_REPORT = process.env.MIDSCENE_REPORT;
 
@@ -10,7 +15,7 @@ const MIDSCENE_REPORT = process.env.MIDSCENE_REPORT;
  * https://github.com/motdotla/dotenv
  */
 dotenv.config({
-  path: path.join(__dirname, '../../.env'),
+  path: path.join(__dirname, '../../../.env'),
 });
 
 /**
@@ -18,9 +23,6 @@ dotenv.config({
  */
 export default defineConfig({
   // testDir: './tests/ai/e2e',
-  testIgnore: process.env.GENERATE_TEST_DATA
-    ? undefined
-    : 'generate-test-data.spec.ts',
   timeout: 900 * 1000,
   /* Run tests in files in parallel */
   fullyParallel: false,
@@ -47,12 +49,12 @@ export default defineConfig({
     MIDSCENE_REPORT
       ? {
           name: 'report',
-          testDir: './tests/ai/web/playwright-report-test',
+          testDir: './ai/web/playwright-report-test',
           use: { ...devices['Desktop Chrome'] },
         }
       : {
           name: 'e2e',
-          testDir: './tests/ai/web/playwright',
+          testDir: './ai/web/playwright',
           use: { ...devices['Desktop Chrome'] },
         },
   ],
@@ -63,6 +65,6 @@ export default defineConfig({
     //   { outputFile: 'midscene_run/playwright-report/test-results.json' },
     // ],
     // ['html', { outputFolder: 'midscene_run/playwright-report' }],
-    ['./src/playwright/reporter/index.ts'],
+    ['../src/playwright/reporter/index.ts'],
   ],
 });

@@ -1,6 +1,6 @@
-import assert from 'node:assert';
 import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
+import { assert } from '@midscene/shared/utils';
 
 import type { PageAgent } from '@/common/agent';
 import type {

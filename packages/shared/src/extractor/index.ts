@@ -1,4 +1,4 @@
-import type { NodeType } from '../constants';
+import type { NodeType } from '../constants/index';
 
 export interface ElementInfo {
   id: string;

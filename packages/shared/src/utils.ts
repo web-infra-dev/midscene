@@ -1,5 +1,7 @@
 import { sha256 } from 'js-sha256';
 
+import debug from 'debug';
+
 export const ifInBrowser = typeof window !== 'undefined';
 
 export function uuid() {
@@ -7,6 +9,15 @@ export function uuid() {
 }
 
 const hashMap: Record<string, string> = {}; // id - combined
+
+const topicPrefix = 'midscene';
+export function getDebug(topic: string) {
+  return debug(`${topicPrefix}:${topic}`);
+}
+
+export function enableDebug(topic: string) {
+  debug.enable(`${topicPrefix}:${topic}`);
+}
 
 export function generateHashId(rect: any, content = '') {
   // Combine the input into a string
@@ -43,4 +54,17 @@ export function generateHashId(rect: any, content = '') {
     break;
   }
   return slicedHash;
+}
+
+/**
+ * A utility function that asserts a condition and throws an error with a message if the condition is false.
+ *
+ * @param condition - The condition to assert
+ * @param message - The error message to throw if the condition is false
+ * @throws Error with the provided message if the condition is false
+ */
+export function assert(condition: any, message?: string): asserts condition {
+  if (!condition) {
+    throw new Error(message || 'Assertion failed');
+  }
 }

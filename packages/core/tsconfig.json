@@ -14,12 +14,12 @@
       "@/*": ["./src/*"]
     },
     "resolveJsonModule": true,
-    "rootDir": ".",
+    "rootDir": "./src",
     "skipLibCheck": true,
     "strict": true,
     "module": "ESNext",
     "target": "es2018"
   },
   "exclude": ["**/node_modules"],
-  "include": ["src", "tests", "report"]
+  "include": ["src", "report"]
 }

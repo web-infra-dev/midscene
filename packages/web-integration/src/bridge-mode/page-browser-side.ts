@@ -1,9 +1,9 @@
-import assert from 'node:assert';
 import type {
   ChromePageDestroyOptions,
   KeyboardAction,
   MouseAction,
 } from '@/page';
+import { assert } from '@midscene/shared/utils';
 import ChromeExtensionProxyPage from '../chrome-extension/page';
 import {
   type BridgeConnectTabOptions,
@@ -54,7 +54,7 @@ export class ExtensionBridgePageBrowserSide extends ChromeExtensionProxyPage {
           return this.onLogMessage(args[0] as string, 'status');
         }
 
-        const tabId = await this.getTabId();
+        const tabId = await this.getActiveTabId();
         if (!tabId || tabId === 0) {
           throw new Error('no tab is connected');
         }
@@ -126,6 +126,8 @@ export class ExtensionBridgePageBrowserSide extends ChromeExtensionProxyPage {
     if (options?.forceSameTabNavigation) {
       this.forceSameTabNavigation = true;
     }
+
+    await this.setActiveTabId(tabId);
   }
 
   public async connectCurrentTab(
@@ -143,6 +145,8 @@ export class ExtensionBridgePageBrowserSide extends ChromeExtensionProxyPage {
     if (options?.forceSameTabNavigation) {
       this.forceSameTabNavigation = true;
     }
+
+    await this.setActiveTabId(tabId);
   }
 
   public async setDestroyOptions(options: ChromePageDestroyOptions) {

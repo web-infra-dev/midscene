@@ -3,7 +3,7 @@ import {
   CONTAINER_MINI_HEIGHT,
   CONTAINER_MINI_WIDTH,
   NodeType,
-} from '../constants';
+} from '../constants/index';
 import type { Point } from '../types';
 import {
   isButtonElement,

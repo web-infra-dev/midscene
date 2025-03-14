@@ -1,5 +1,5 @@
-import assert from 'node:assert';
 import type { AIUsageInfo, Size } from '@/types';
+import { assert } from '@midscene/shared/utils';
 
 import type {
   ChatCompletionSystemMessageParam,
@@ -9,7 +9,7 @@ import {
   callToGetJSONObject,
   checkAIConfig,
   getModelName,
-} from './service-caller';
+} from './service-caller/index';
 
 import type { PlanningLocateParam } from '@/types';
 

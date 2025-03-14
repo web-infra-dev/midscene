@@ -1,4 +1,4 @@
-import assert from 'node:assert';
+import { assert } from '@midscene/shared/utils';
 import yaml from 'js-yaml';
 
 import type { MidsceneYamlScript } from '@midscene/core';

@@ -1,12 +1,13 @@
-import assert from 'node:assert';
 import { randomUUID } from 'node:crypto';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import type { Server } from 'node:http';
 import { join } from 'node:path';
 import { ERROR_CODE_NOT_IMPLEMENTED_AS_DESIGNED } from '@/common/utils';
 import { getTmpDir } from '@midscene/core/utils';
+import { assert } from '@midscene/shared/utils';
 import { ifInBrowser } from '@midscene/shared/utils';
 import cors from 'cors';
+import dotenv from 'dotenv';
 import express from 'express';
 import { StaticPageAgent } from './agent';
 import StaticPage from './static-page';
@@ -24,7 +25,6 @@ const errorHandler = (err: any, req: any, res: any, next: any) => {
 
 const setup = async () => {
   if (!ifInBrowser) {
-    const dotenv = await import('dotenv');
     dotenv.config();
   }
 };

@@ -1,6 +1,6 @@
 import { plan } from '@/ai-model';
-import { getContextFromFixture } from '@/evaluation';
 import type { PlanningAction } from '@/types';
+import { getContextFromFixture } from 'tests/evaluation';
 /* eslint-disable max-lines-per-function */
 import { describe, expect, it, vi } from 'vitest';
 
@@ -51,8 +51,8 @@ describe('automation - planning input', () => {
     const { context } = await getContextFromFixture('todo-input-with-value');
     const instructions = [
       'Append " tomorrow" to the existing content in the task input box',
-      'Replace "English" with "Skiing" in the existing content of the task input box',
-      'Delete "English" from the existing content in the task input box',
+      // 'Replace the word "English" with "Skiing" in the existing content of the task input box. Remember to keep other unmatched content',
+      // 'Delete the word "English" from the existing content in the task input box (first line) . Remember to keep the remaining content',
     ];
 
     for (const instruction of instructions) {

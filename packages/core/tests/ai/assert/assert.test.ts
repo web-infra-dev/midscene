@@ -1,5 +1,5 @@
 import { AiAssert } from '@/ai-model';
-import { getContextFromFixture } from '@/evaluation';
+import { getContextFromFixture } from 'tests/evaluation';
 /* eslint-disable max-lines-per-function */
 import { describe, expect, it, vi } from 'vitest';
 

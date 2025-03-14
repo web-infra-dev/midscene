@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import type { PageAgent } from '@/common/agent';
-import { PlaywrightAgent } from '@/playwright';
+import { PlaywrightAgent } from '@/playwright/index';
 import type { AgentWaitForOpt } from '@midscene/core';
 import { type TestInfo, type TestType, test } from '@playwright/test';
 import type { Page as OriginPlaywrightPage } from 'playwright';
@@ -197,7 +197,7 @@ export type PlayWrightAiFixtureType = {
   aiWaitFor: (assertion: string, opt?: AgentWaitForOpt) => Promise<void>;
 };
 
-async function waitForNetworkIdle(page: OriginPlaywrightPage, timeout = 20000) {
+async function waitForNetworkIdle(page: OriginPlaywrightPage, timeout = 10000) {
   try {
     await page.waitForLoadState('networkidle', { timeout });
   } catch (error: any) {

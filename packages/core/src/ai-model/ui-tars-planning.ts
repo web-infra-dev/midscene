@@ -1,11 +1,11 @@
-import assert from 'node:assert';
 import type { PlanningAction } from '@/types';
 import { transformHotkeyInput } from '@midscene/shared/keyboard-layout';
+import { assert } from '@midscene/shared/utils';
 import { actionParser } from '@ui-tars/action-parser';
 import type { ChatCompletionMessageParam } from 'openai/resources';
 import { AIActionType } from './common';
 import { getSummary, uiTarsPlanningPrompt } from './prompt/ui-tars-planning';
-import { call } from './service-caller';
+import { call } from './service-caller/index';
 type ActionType =
   | 'click'
   | 'drag'

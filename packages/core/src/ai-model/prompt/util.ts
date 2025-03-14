@@ -1,9 +1,9 @@
-import assert from 'node:assert';
 import { MATCH_BY_POSITION, getAIConfigInBoolean } from '@/env';
-import { imageInfoOfBase64 } from '@/image';
+import { imageInfoOfBase64 } from '@/image/index';
 import type { BaseElement, ElementTreeNode, Size, UIContext } from '@/types';
 import { NodeType } from '@midscene/shared/constants';
 import { descriptionOfTree, treeToList } from '@midscene/shared/extractor';
+import { assert } from '@midscene/shared/utils';
 import { generateHashId } from '@midscene/shared/utils';
 
 export function describeSize(size: Size) {

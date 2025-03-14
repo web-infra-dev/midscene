@@ -5,13 +5,13 @@
   The page must be active when interacting with it.
 */
 
-import assert from 'node:assert';
 import type { WebKeyInput } from '@/common/page';
 import { limitOpenNewTabScript } from '@/common/ui-utils';
 import type { AbstractPage, ChromePageDestroyOptions } from '@/page';
 import type { ElementTreeNode, Point, Size } from '@midscene/core';
 import type { ElementInfo } from '@midscene/shared/extractor';
 import { treeToList } from '@midscene/shared/extractor';
+import { assert } from '@midscene/shared/utils';
 import type { Protocol as CDPTypes } from 'devtools-protocol';
 import { CdpKeyboard } from './cdpInput';
 import {
@@ -46,7 +46,20 @@ export default class ChromeExtensionProxyPage implements AbstractPage {
     this.forceSameTabNavigation = forceSameTabNavigation;
   }
 
-  public async getTabId() {
+  public async setActiveTabId(tabId: number) {
+    if (this.activeTabId) {
+      throw new Error(
+        `Active tab id is already set, which is ${this.activeTabId}, cannot set it to ${tabId}`,
+      );
+    }
+    this.activeTabId = tabId;
+  }
+
+  public async getActiveTabId() {
+    return this.activeTabId;
+  }
+
+  public async getTabIdOrConnectToCurrentTab() {
     if (this.activeTabId) {
       // alway keep on the connected tab
       return this.activeTabId;
@@ -78,7 +91,7 @@ export default class ChromeExtensionProxyPage implements AbstractPage {
       }
 
       try {
-        const currentTabId = await this.getTabId();
+        const currentTabId = await this.getTabIdOrConnectToCurrentTab();
 
         if (this.tabIdOfDebuggerAttached === currentTabId) {
           // already attached
@@ -316,13 +329,13 @@ export default class ChromeExtensionProxyPage implements AbstractPage {
     await this.hideMousePointer();
     const base64 = await this.sendCommandToDebugger('Page.captureScreenshot', {
       format: 'jpeg',
-      quality: 70,
+      quality: 90,
     });
     return `data:image/jpeg;base64,${base64.data}`;
   }
 
   async url() {
-    const tabId = await this.getTabId();
+    const tabId = await this.getTabIdOrConnectToCurrentTab();
     const url = await chrome.tabs.get(tabId).then((tab) => tab.url);
     return url || '';
   }
@@ -424,8 +437,8 @@ export default class ChromeExtensionProxyPage implements AbstractPage {
     });
   }
 
-  private latestMouseX = 50;
-  private latestMouseY = 50;
+  private latestMouseX = 100;
+  private latestMouseY = 100;
 
   mouse = {
     click: async (x: number, y: number) => {

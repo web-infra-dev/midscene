@@ -1,13 +1,15 @@
 import { strict as assert } from 'node:assert';
+import { execSync } from 'node:child_process';
 import { rmSync, writeFileSync } from 'node:fs';
-import { join } from 'node:path';
-import { execa } from 'execa';
+import { dirname, join } from 'node:path';
 import {
   ensureDirectoryExistence,
   fileContentOfPath,
   safeCopyFile,
   tplReplacer,
 } from './building-utils';
+
+const __dirname = dirname(__filename);
 
 const demoData = ['demo', 'demo-mobile', 'zero-execution'];
 
@@ -55,7 +57,7 @@ function emptyDumpReportHTML() {
   html = replaceStringWithFirstAppearance(
     html,
     '{{js}}',
-    `<script>\n${reportJS}\n</script>`,
+    `<script type="module">\n${reportJS}\n</script>`,
   );
   return html;
 }
@@ -78,7 +80,7 @@ function putReportTplIntoHTML(html: string, outsourceMode = false) {
     // in Chrome extension
     return html.replace(
       '</body>',
-      `${tplWrapper}<script src="/lib/set-report-tpl.js"></script>\n</body>`,
+      `${tplWrapper}<script type="module" src="/lib/set-report-tpl.js"></script>\n</body>`,
     );
   }
 
@@ -157,10 +159,9 @@ function buildExtension() {
     join(__dirname, '../unpacked-extension/lib/htmlElement.js'),
   );
 }
-
 async function zipDir(src: string, dest: string) {
   // console.log('cwd', dirname(src));
-  await execa('zip', ['-r', dest, '.'], {
+  execSync(`zip -r "${dest}" .`, {
     cwd: src,
   });
 }

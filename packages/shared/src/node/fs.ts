@@ -1,5 +1,8 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { assert } from '../utils';
 
 interface PkgInfo {
   name: string;
@@ -9,6 +12,7 @@ interface PkgInfo {
 
 const pkgCacheMap: Record<string, PkgInfo> = {};
 const ifInBrowser = typeof window !== 'undefined';
+
 export function getRunningPkgInfo(dir?: string): PkgInfo | null {
   if (ifInBrowser) {
     return null;
@@ -56,4 +60,20 @@ export function findNearestPackageJson(dir: string): string | null {
   }
 
   return findNearestPackageJson(parentDir);
+}
+
+export async function getExtraReturnLogic(tree = false) {
+  if (ifInBrowser) {
+    return null;
+  }
+  // Get __dirname equivalent in Node.js environment
+  const currentFilePath = __filename;
+  const pathDir = findNearestPackageJson(dirname(currentFilePath));
+  assert(pathDir, `can't find pathDir, with ${dirname}`);
+  const scriptPath = path.join(pathDir, './dist/script/htmlElement.js');
+  const elementInfosScriptContent = readFileSync(scriptPath, 'utf-8');
+  if (tree) {
+    return `${elementInfosScriptContent}midscene_element_inspector.webExtractNodeTree()`;
+  }
+  return `${elementInfosScriptContent}midscene_element_inspector.webExtractTextWithPosition()`;
 }

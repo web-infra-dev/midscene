@@ -27,7 +27,8 @@ export default defineConfig({
   plugins: [moduleTools()],
   buildPreset: 'npm-library',
   buildConfig: {
-    format: 'cjs',
+    target: 'es2020',
+    buildType: 'bundle',
     input: {
       index: 'src/index.ts',
       'bridge-mode': 'src/bridge-mode/index.ts',
@@ -43,7 +44,6 @@ export default defineConfig({
       'chrome-extension': 'src/chrome-extension/index.ts',
       yaml: 'src/yaml/index.ts',
     },
-    target: 'es2018',
     externals: [
       '@midscene/core',
       '@midscene/shared',
@@ -55,6 +55,5 @@ export default defineConfig({
       __VERSION__: version,
     },
     sourceMap: true,
-    // splitting: true,
   },
 });

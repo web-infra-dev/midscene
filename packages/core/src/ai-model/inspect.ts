@@ -1,4 +1,3 @@
-import assert from 'node:assert';
 import {
   MIDSCENE_USE_QWEN_VL,
   MIDSCENE_USE_VLM_UI_TARS,
@@ -19,6 +18,7 @@ import type {
   UIContext,
 } from '@/types';
 import { paddingToMatchBlock } from '@midscene/shared/img';
+import { assert } from '@midscene/shared/utils';
 import type {
   ChatCompletionSystemMessageParam,
   ChatCompletionUserMessageParam,
@@ -36,7 +36,7 @@ import {
   distanceThreshold,
   elementByPositionWithElementInfo,
 } from './prompt/util';
-import { callToGetJSONObject } from './service-caller';
+import { callToGetJSONObject } from './service-caller/index';
 
 export type AIArgs = [
   ChatCompletionSystemMessageParam,

@@ -2,13 +2,16 @@ import type { ElementTreeNode, Point, Size } from '@midscene/core';
 import { getTmpFile, sleep } from '@midscene/core/utils';
 import type { ElementInfo } from '@midscene/shared/extractor';
 import { treeToList } from '@midscene/shared/extractor';
+import { getExtraReturnLogic } from '@midscene/shared/fs';
 import { base64Encoded } from '@midscene/shared/img';
+import { assert, getDebug } from '@midscene/shared/utils';
 import type { Page as PlaywrightPage } from 'playwright';
 import type { Page as PuppeteerPage } from 'puppeteer';
 import type { WebKeyInput } from '../common/page';
-import { getExtraReturnLogic } from '../common/utils';
 import type { AbstractPage } from '../page';
 import type { MouseButton } from '../page';
+
+const debugPage = getDebug('web:page');
 
 export class Page<
   AgentType extends 'puppeteer' | 'playwright',
@@ -23,10 +26,21 @@ export class Page<
     pageFunction: string | ((...args: any[]) => R | Promise<R>),
     arg?: any,
   ): Promise<R> {
+    let result: R;
+    debugPage('evaluate function begin');
     if (this.pageType === 'puppeteer') {
-      return (this.underlyingPage as PuppeteerPage).evaluate(pageFunction, arg);
+      result = await (this.underlyingPage as PuppeteerPage).evaluate(
+        pageFunction,
+        arg,
+      );
+    } else {
+      result = await (this.underlyingPage as PlaywrightPage).evaluate(
+        pageFunction,
+        arg,
+      );
     }
-    return (this.underlyingPage as PlaywrightPage).evaluate(pageFunction, arg);
+    debugPage('evaluate function end');
+    return result;
   }
 
   constructor(underlyingPage: PageType, pageType: AgentType) {
@@ -37,7 +51,9 @@ export class Page<
   async waitForNavigation() {
     // issue: https://github.com/puppeteer/puppeteer/issues/3323
     if (this.pageType === 'puppeteer' || this.pageType === 'playwright') {
+      debugPage('waitForNavigation begin');
       await (this.underlyingPage as PuppeteerPage).waitForSelector('html');
+      debugPage('waitForNavigation end');
     }
   }
 
@@ -47,7 +63,9 @@ export class Page<
     // const captureElementSnapshot = await this.evaluate(scripts);
     // return captureElementSnapshot as ElementInfo[];
     await this.waitForNavigation();
+    debugPage('getElementsInfo begin');
     const tree = await this.getElementsNodeTree();
+    debugPage('getElementsInfo end');
     return treeToList(tree);
   }
 
@@ -57,6 +75,7 @@ export class Page<
     // The page may go through opening, closing, and reopening; if the page is closed, evaluate may return undefined, which can lead to errors.
     await this.waitForNavigation();
     const scripts = await getExtraReturnLogic(true);
+    assert(scripts, 'scripts should be set before writing report in browser');
     const captureElementSnapshot = await this.evaluate(scripts);
     return captureElementSnapshot as ElementTreeNode<ElementInfo>;
   }
@@ -76,14 +95,29 @@ export class Page<
 
   async screenshotBase64(): Promise<string> {
     const imgType = 'jpeg';
+    const quality = 90;
     await this.waitForNavigation();
-    const buffer = await this.underlyingPage.screenshot({
-      path: undefined,
-      type: imgType,
-      quality: 90,
-    });
+    debugPage('screenshotBase64 begin');
 
-    return `data:image/jpeg;base64,${buffer.toString('base64')}`;
+    let base64: string;
+    if (this.pageType === 'puppeteer') {
+      const result = await (this.underlyingPage as PuppeteerPage).screenshot({
+        type: imgType,
+        quality,
+        encoding: 'base64',
+      });
+      base64 = `data:image/jpeg;base64,${result}`;
+    } else if (this.pageType === 'playwright') {
+      const buffer = await (this.underlyingPage as PlaywrightPage).screenshot({
+        type: imgType,
+        quality,
+      });
+      base64 = `data:image/jpeg;base64,${buffer.toString('base64')}`;
+    } else {
+      throw new Error('Unsupported page type for screenshot');
+    }
+    debugPage('screenshotBase64 end');
+    return base64;
   }
 
   async url(): Promise<string> {
@@ -114,8 +148,10 @@ export class Page<
           );
         }
       },
-      move: async (x: number, y: number) =>
-        this.underlyingPage.mouse.move(x, y),
+      move: async (x: number, y: number) => {
+        this.everMoved = true;
+        return this.underlyingPage.mouse.move(x, y);
+      },
       drag: async (
         from: { x: number; y: number },
         to: { x: number; y: number },
@@ -202,57 +238,64 @@ export class Page<
     await this.keyboard.press([{ key: 'Backspace' }]);
   }
 
-  private async moveToPoint(point?: Point): Promise<void> {
+  private everMoved = false;
+  private async moveToPointBeforeScroll(point?: Point): Promise<void> {
     if (point) {
       await this.mouse.move(point.left, point.top);
+    } else if (!this.everMoved) {
+      // If the mouse has never moved, move it to the center of the page
+      const size = await this.size();
+      const targetX = Math.floor(size.width / 2);
+      const targetY = Math.floor(size.height / 2);
+      await this.mouse.move(targetX, targetY);
     }
   }
 
   async scrollUntilTop(startingPoint?: Point): Promise<void> {
-    await this.moveToPoint(startingPoint);
+    await this.moveToPointBeforeScroll(startingPoint);
     return this.mouse.wheel(0, -9999999);
   }
 
   async scrollUntilBottom(startingPoint?: Point): Promise<void> {
-    await this.moveToPoint(startingPoint);
+    await this.moveToPointBeforeScroll(startingPoint);
     return this.mouse.wheel(0, 9999999);
   }
 
   async scrollUntilLeft(startingPoint?: Point): Promise<void> {
-    await this.moveToPoint(startingPoint);
+    await this.moveToPointBeforeScroll(startingPoint);
     return this.mouse.wheel(-9999999, 0);
   }
 
   async scrollUntilRight(startingPoint?: Point): Promise<void> {
-    await this.moveToPoint(startingPoint);
+    await this.moveToPointBeforeScroll(startingPoint);
     return this.mouse.wheel(9999999, 0);
   }
 
   async scrollUp(distance?: number, startingPoint?: Point): Promise<void> {
     const innerHeight = await this.evaluate(() => window.innerHeight);
     const scrollDistance = distance || innerHeight * 0.7;
-    await this.moveToPoint(startingPoint);
+    await this.moveToPointBeforeScroll(startingPoint);
     return this.mouse.wheel(0, -scrollDistance);
   }
 
   async scrollDown(distance?: number, startingPoint?: Point): Promise<void> {
     const innerHeight = await this.evaluate(() => window.innerHeight);
     const scrollDistance = distance || innerHeight * 0.7;
-    await this.moveToPoint(startingPoint);
+    await this.moveToPointBeforeScroll(startingPoint);
     return this.mouse.wheel(0, scrollDistance);
   }
 
   async scrollLeft(distance?: number, startingPoint?: Point): Promise<void> {
     const innerWidth = await this.evaluate(() => window.innerWidth);
     const scrollDistance = distance || innerWidth * 0.7;
-    await this.moveToPoint(startingPoint);
+    await this.moveToPointBeforeScroll(startingPoint);
     return this.mouse.wheel(-scrollDistance, 0);
   }
 
   async scrollRight(distance?: number, startingPoint?: Point): Promise<void> {
     const innerWidth = await this.evaluate(() => window.innerWidth);
     const scrollDistance = distance || innerWidth * 0.7;
-    await this.moveToPoint(startingPoint);
+    await this.moveToPointBeforeScroll(startingPoint);
     return this.mouse.wheel(scrollDistance, 0);
   }
 

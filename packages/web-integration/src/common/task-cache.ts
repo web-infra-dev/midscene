@@ -2,15 +2,17 @@ import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import type { AIElementIdResponse, PlanningAIResponse } from '@midscene/core';
 import type { vlmPlanning } from '@midscene/core/ai-model';
-import { getAIConfig } from '@midscene/core/env';
+import { getAIConfig, getAIConfigInBoolean } from '@midscene/core/env';
 import {
   getLogDirByType,
   stringifyDumpData,
   writeLogFile,
 } from '@midscene/core/utils';
 import { getRunningPkgInfo } from '@midscene/shared/fs';
-import { ifInBrowser } from '@midscene/shared/utils';
-import { type WebUIContext, generateCacheId } from './utils';
+import { getDebug, ifInBrowser } from '@midscene/shared/utils';
+import type { WebUIContext } from './utils';
+
+const debug = getDebug('cache');
 
 export type PlanTask = {
   type: 'plan';
@@ -189,14 +191,27 @@ export class TaskCache {
     | LocateTask['response']
     | UITarsPlanTask['response']
     | false {
+    debug(
+      'will read cache, type: %s, prompt: %s, cacheGroupLength: %s',
+      type,
+      userPrompt,
+      cacheGroup.length,
+    );
     if (cacheGroup.length > 0) {
       const index = cacheGroup.findIndex((item) => item.prompt === userPrompt);
 
       if (index === -1) {
+        debug('cannot find any cache matching prompt: %s', userPrompt);
         return false;
       }
 
       const taskRes = cacheGroup.splice(index, 1)[0];
+      debug(
+        'found cache with same prompt, type: %s, prompt: %s, cached response is %j',
+        type,
+        userPrompt,
+        taskRes?.response,
+      );
 
       // The corresponding element cannot be found in the new context
       if (
@@ -211,17 +226,28 @@ export class TaskCache {
           return true;
         })
       ) {
+        debug('cannot find element with same id in current page');
         return false;
       }
-      if (
-        taskRes &&
-        taskRes.type === type &&
-        taskRes.prompt === userPrompt &&
-        this.pageContextEqual(taskRes.pageContext, pageContext)
-      ) {
+
+      if (taskRes && taskRes.type === type && taskRes.prompt === userPrompt) {
+        const contextEqual = this.pageContextEqual(
+          taskRes.pageContext,
+          pageContext,
+        );
+        if (!contextEqual) {
+          debug(
+            'cache almost hit, type: %s, prompt: %s, but context not equal, will not use cache',
+            type,
+            userPrompt,
+          );
+          return false;
+        }
+        debug('cache hit, type: %s, prompt: %s', type, userPrompt);
         return taskRes.response;
       }
     }
+    debug('no cache hit, type: %s, prompt: %s', type, userPrompt);
     return false;
   }
 
@@ -229,6 +255,13 @@ export class TaskCache {
     taskPageContext: LocateTask['pageContext'],
     pageContext: WebUIContext,
   ) {
+    debug(
+      'comparing page context size: %s x %s, %s x %s',
+      taskPageContext.size.width,
+      taskPageContext.size.height,
+      pageContext.size.width,
+      pageContext.size.height,
+    );
     return (
       taskPageContext.size.width === pageContext.size.width &&
       taskPageContext.size.height === pageContext.size.height
@@ -251,7 +284,7 @@ export class TaskCache {
       return undefined;
     }
     const cacheFile = join(getLogDirByType('cache'), `${this.cacheId}.json`);
-    if (getAIConfig('MIDSCENE_CACHE') === 'true' && existsSync(cacheFile)) {
+    if (getAIConfigInBoolean('MIDSCENE_CACHE') && existsSync(cacheFile)) {
       try {
         const data = readFileSync(cacheFile, 'utf8');
         const jsonData = JSON.parse(data);
