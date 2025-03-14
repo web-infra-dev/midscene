@@ -4,12 +4,14 @@ import type { ElementInfo } from '@midscene/shared/extractor';
 import { treeToList } from '@midscene/shared/extractor';
 import { getExtraReturnLogic } from '@midscene/shared/fs';
 import { base64Encoded } from '@midscene/shared/img';
-import { assert } from '@midscene/shared/utils';
+import { assert, getDebug } from '@midscene/shared/utils';
 import type { Page as PlaywrightPage } from 'playwright';
 import type { Page as PuppeteerPage } from 'puppeteer';
 import type { WebKeyInput } from '../common/page';
 import type { AbstractPage } from '../page';
 import type { MouseButton } from '../page';
+
+const debugPage = getDebug('web:page');
 
 export class Page<
   AgentType extends 'puppeteer' | 'playwright',
@@ -24,10 +26,21 @@ export class Page<
     pageFunction: string | ((...args: any[]) => R | Promise<R>),
     arg?: any,
   ): Promise<R> {
+    let result: R;
+    debugPage('evaluate function begin');
     if (this.pageType === 'puppeteer') {
-      return (this.underlyingPage as PuppeteerPage).evaluate(pageFunction, arg);
+      result = await (this.underlyingPage as PuppeteerPage).evaluate(
+        pageFunction,
+        arg,
+      );
+    } else {
+      result = await (this.underlyingPage as PlaywrightPage).evaluate(
+        pageFunction,
+        arg,
+      );
     }
-    return (this.underlyingPage as PlaywrightPage).evaluate(pageFunction, arg);
+    debugPage('evaluate function end');
+    return result;
   }
 
   constructor(underlyingPage: PageType, pageType: AgentType) {
@@ -38,7 +51,9 @@ export class Page<
   async waitForNavigation() {
     // issue: https://github.com/puppeteer/puppeteer/issues/3323
     if (this.pageType === 'puppeteer' || this.pageType === 'playwright') {
+      debugPage('waitForNavigation begin');
       await (this.underlyingPage as PuppeteerPage).waitForSelector('html');
+      debugPage('waitForNavigation end');
     }
   }
 
@@ -48,7 +63,9 @@ export class Page<
     // const captureElementSnapshot = await this.evaluate(scripts);
     // return captureElementSnapshot as ElementInfo[];
     await this.waitForNavigation();
+    debugPage('getElementsInfo begin');
     const tree = await this.getElementsNodeTree();
+    debugPage('getElementsInfo end');
     return treeToList(tree);
   }
 
@@ -78,15 +95,29 @@ export class Page<
 
   async screenshotBase64(): Promise<string> {
     const imgType = 'jpeg';
-    const path = getTmpFile(imgType)!;
+    const quality = 90;
     await this.waitForNavigation();
-    await this.underlyingPage.screenshot({
-      path,
-      type: imgType,
-      quality: 90,
-    });
+    debugPage('screenshotBase64 begin');
 
-    return base64Encoded(path, true);
+    let base64: string;
+    if (this.pageType === 'puppeteer') {
+      const result = await (this.underlyingPage as PuppeteerPage).screenshot({
+        type: imgType,
+        quality,
+        encoding: 'base64',
+      });
+      base64 = `data:image/jpeg;base64,${result}`;
+    } else if (this.pageType === 'playwright') {
+      const buffer = await (this.underlyingPage as PlaywrightPage).screenshot({
+        type: imgType,
+        quality,
+      });
+      base64 = `data:image/jpeg;base64,${buffer.toString('base64')}`;
+    } else {
+      throw new Error('Unsupported page type for screenshot');
+    }
+    debugPage('screenshotBase64 end');
+    return base64;
   }
 
   async url(): Promise<string> {
