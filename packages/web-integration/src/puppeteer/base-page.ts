@@ -52,7 +52,14 @@ export class Page<
     // issue: https://github.com/puppeteer/puppeteer/issues/3323
     if (this.pageType === 'puppeteer' || this.pageType === 'playwright') {
       debugPage('waitForNavigation begin');
-      await (this.underlyingPage as PuppeteerPage).waitForSelector('html');
+      try {
+        const maxWaitTime = 5000; // 5 seconds maximum wait time
+        await (this.underlyingPage as PuppeteerPage).waitForSelector('html', {
+          timeout: maxWaitTime,
+        });
+      } catch (error) {
+        // Ignore timeout error, continue execution
+      }
       debugPage('waitForNavigation end');
     }
   }
