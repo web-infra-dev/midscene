@@ -303,11 +303,18 @@ export class TaskCache {
         ) {
           return undefined;
         }
+        debug('read cache from file: %s', cacheFile);
         return jsonData as AiTaskCache;
       } catch (err) {
+        debug(
+          'cache file exists but parse failed, path: %s, error: %s',
+          cacheFile,
+          err,
+        );
         return undefined;
       }
     }
+    debug('no cache file found, path: %s', cacheFile);
     return undefined;
   }
 

@@ -23,7 +23,7 @@ describe('llm planning - qwen', () => {
       bbox_2d: [100, 100, 200, 200] as [number, number, number, number],
     };
 
-    const filledLocate = fillLocateParam(locate);
+    const filledLocate = fillLocateParam(locate, 1000, 1000);
     expect(filledLocate).toEqual({
       id: 'test',
       prompt: 'test',
@@ -38,11 +38,11 @@ describe('llm planning - qwen', () => {
       bbox_2d: [100, 100] as unknown as [number, number, number, number],
     };
 
-    const filledLocate = fillLocateParam(locate);
+    const filledLocate = fillLocateParam(locate, 1000, 1000);
     expect(filledLocate).toEqual({
       id: 'test',
       prompt: 'test',
-      bbox: [100, 100, 110, 110],
+      bbox: [100, 100, 120, 120],
     });
   });
 });
@@ -66,15 +66,10 @@ describe('llm planning - doubao', () => {
     const locate = {
       id: 'test',
       prompt: 'test',
-      bbox_2d: [0.923131, 0.123131, 0.123131, 0.123131] as [
-        number,
-        number,
-        number,
-        number,
-      ],
+      bbox_2d: [923, 123, 123, 123] as [number, number, number, number],
     };
 
-    const filledLocate = fillLocateParam(locate);
+    const filledLocate = fillLocateParam(locate, 1000, 1000);
     expect(filledLocate).toEqual({
       id: 'test',
       prompt: 'test',

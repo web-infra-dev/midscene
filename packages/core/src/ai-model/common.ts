@@ -92,6 +92,10 @@ export function adaptDoubaoBbox(
   height: number,
   errorMsg?: string,
 ): [number, number, number, number] {
+  assert(
+    width > 0 && height > 0,
+    'width and height must be greater than 0 in doubao mode',
+  );
   if (bbox.length === 4) {
     return [
       Math.round((bbox[0] * width) / 1000),
