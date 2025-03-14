@@ -468,9 +468,10 @@ export function midsceneGenerateHash(
     return nodeHashCacheList.find((item) => item.node === node)?.id || '';
   }
   const slicedHash = generateHashId(rect, content);
-  if (node && typeof window !== 'undefined') {
-    (window as any).midsceneNodeHashCacheList.push({ node, id: slicedHash });
-  }
+  // Frameworks like React may reuse the same node for different content. We have to disable the cache here.
+  // if (node && typeof window !== 'undefined') {
+  //   (window as any).midsceneNodeHashCacheList.push({ node, id: slicedHash });
+  // }
 
   // Returns the first 10 characters as a short hash
   return slicedHash;
