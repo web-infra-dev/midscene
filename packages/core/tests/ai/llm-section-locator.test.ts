@@ -1,4 +1,4 @@
-import { AiInspectElement } from '@/ai-model';
+import { AiLocateElement } from '@/ai-model';
 import { AiLocateSection } from '@/ai-model/inspect';
 import { getContextFromFixture } from 'tests/evaluation';
 import { expect, test } from 'vitest';

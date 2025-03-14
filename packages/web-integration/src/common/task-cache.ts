@@ -1,6 +1,9 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import type { AIElementIdResponse, PlanningAIResponse } from '@midscene/core';
+import type {
+  AIElementLocatorResponse,
+  PlanningAIResponse,
+} from '@midscene/core';
 import type { vlmPlanning } from '@midscene/core/ai-model';
 import { getAIConfig, getAIConfigInBoolean } from '@midscene/core/env';
 import {
@@ -50,7 +53,7 @@ export type LocateTask = {
       height: number;
     };
   };
-  response: AIElementIdResponse;
+  response: AIElementLocatorResponse;
 };
 
 export type AiTasks = Array<PlanTask | LocateTask | UITarsPlanTask>;
@@ -300,11 +303,18 @@ export class TaskCache {
         ) {
           return undefined;
         }
+        debug('read cache from file: %s', cacheFile);
         return jsonData as AiTaskCache;
       } catch (err) {
+        debug(
+          'cache file exists but parse failed, path: %s, error: %s',
+          cacheFile,
+          err,
+        );
         return undefined;
       }
     }
+    debug('no cache file found, path: %s', cacheFile);
     return undefined;
   }
 

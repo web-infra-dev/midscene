@@ -1,5 +1,5 @@
 import { callAiFn } from '@/ai-model/common';
-import { AiExtractElementInfo, AiInspectElement } from '@/ai-model/index';
+import { AiExtractElementInfo, AiLocateElement } from '@/ai-model/index';
 import { AiAssert } from '@/ai-model/inspect';
 import type {
   AIElementResponse,
@@ -81,7 +81,7 @@ export default class Insight<
 
     const startTime = Date.now();
     const { parseResult, elementById, rawResponse, usage } =
-      await AiInspectElement({
+      await AiLocateElement({
         callAI: callAI || this.aiVendorFn,
         context,
         targetElementDescription: queryPrompt,

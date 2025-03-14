@@ -1,9 +1,9 @@
-import { MATCH_BY_POSITION, getAIConfigInBoolean } from '@/env';
+import { vlLocateMode } from '@/env';
 import { PromptTemplate } from '@langchain/core/prompts';
 import type { ResponseFormatJSONSchema } from 'openai/resources';
 
 export function systemPromptToLocateElement() {
-  if (getAIConfigInBoolean(MATCH_BY_POSITION)) {
+  if (vlLocateMode()) {
     return `
 ## Role:
 You are an expert in software testing.
@@ -15,7 +15,7 @@ You are an expert in software testing.
 ## Output Format:
 \`\`\`json
 {
-  "bbox": [number, number, number, number], 
+  "bbox": [number, number, number, number],  // top-left x, top-left y, bottom-right x, bottom-right y
   "errors"?: string[]
 }
 \`\`\`

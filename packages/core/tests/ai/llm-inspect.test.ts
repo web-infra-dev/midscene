@@ -1,4 +1,4 @@
-import { AiInspectElement } from '@/ai-model';
+import { AiLocateElement } from '@/ai-model';
 import { getContextFromFixture } from 'tests/evaluation';
 import { expect, test } from 'vitest';
 
@@ -8,7 +8,7 @@ test(
     const { context } = await getContextFromFixture('todo');
 
     const startTime = Date.now();
-    const { parseResult } = await AiInspectElement({
+    const { parseResult } = await AiLocateElement({
       context,
       targetElementDescription: 'input 输入框',
     });
@@ -26,7 +26,7 @@ test('use quick answer', async () => {
   const { context } = await getContextFromFixture('todo');
 
   const startTime = Date.now();
-  const { parseResult } = await AiInspectElement({
+  const { parseResult } = await AiLocateElement({
     context,
     targetElementDescription: 'never mind',
     quickAnswer: {

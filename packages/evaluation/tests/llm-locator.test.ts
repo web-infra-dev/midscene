@@ -1,10 +1,10 @@
 import { writeFileSync } from 'node:fs';
 import {
-  AiInspectElement,
+  AiLocateElement,
   MIDSCENE_MODEL_NAME,
   getAIConfig,
 } from '@midscene/core';
-import { MIDSCENE_USE_QWEN_VL, getAIConfigInBoolean } from '@midscene/core/env';
+import { vlLocateMode } from '@midscene/core/env';
 import { sleep } from '@midscene/core/utils';
 import { saveBase64Image } from '@midscene/shared/img';
 import dotenv from 'dotenv';
@@ -27,17 +27,19 @@ const testSources = [
   'aweme-play',
 ];
 
-const positionModeTag = getAIConfigInBoolean(MIDSCENE_USE_QWEN_VL)
-  ? 'by_coordinates'
-  : 'by_element';
+const positionModeTag = vlLocateMode() ? 'by_coordinates' : 'by_element';
 const resultCollector = new TestResultCollector(
   positionModeTag,
   getAIConfig(MIDSCENE_MODEL_NAME) || 'unspecified',
 );
 
 let failCaseThreshold = 0;
-if (process.env.CI && !getAIConfigInBoolean(MIDSCENE_USE_QWEN_VL)) {
+if (process.env.CI && !vlLocateMode()) {
   failCaseThreshold = 3;
+}
+
+if (process.env.MIDSCENE_EVALUATION_EXPECT_VL) {
+  expect(vlLocateMode()).toBeTruthy();
 }
 
 afterAll(async () => {
@@ -62,7 +64,7 @@ testSources.forEach((source) => {
 
         const prompt = testCase.prompt;
         const startTime = Date.now();
-        const result = await AiInspectElement({
+        const result = await AiLocateElement({
           context,
           targetElementDescription: prompt,
         });
@@ -70,15 +72,15 @@ testSources.forEach((source) => {
         if (process.env.UPDATE_ANSWER_DATA) {
           const { elementById } = result;
 
-          if (result.rawResponse.bbox) {
+          if (result.parseResult.bbox) {
             const indexId = index + 1;
-            testCase.response_bbox = result.rawResponse.bbox;
+            testCase.response_bbox = result.parseResult.bbox;
             testCase.annotation_index_id = indexId;
             // biome-ignore lint/performance/noDelete: <explanation>
             delete (testCase as any).response_coordinates;
             annotations.push({
               indexId,
-              points: result.rawResponse.bbox,
+              points: result.parseResult.bbox,
             });
           } else if (result.parseResult.elements.length > 0) {
             const element = elementById(result.parseResult.elements[0].id);

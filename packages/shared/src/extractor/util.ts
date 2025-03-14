@@ -441,36 +441,12 @@ export function getNodeAttributes(
   return Object.fromEntries(attributesList);
 }
 
-let nodeHashCacheList: { node: Node; id: string }[] = [];
-if (typeof window !== 'undefined') {
-  (window as any).midsceneNodeHashCacheList =
-    (window as any).midsceneNodeHashCacheList || [];
-  nodeHashCacheList = (window as any).midsceneNodeHashCacheList;
-}
-const hashMap: Record<string, string> = {}; // id - combined
-
-// for each run, reset the cache list
-export function resetNodeHashCacheList() {
-  if (typeof window !== 'undefined') {
-    nodeHashCacheList = (window as any).midsceneNodeHashCacheList || [];
-    (window as any).midsceneNodeHashCacheList = [];
-  } else {
-    nodeHashCacheList = [];
-  }
-}
-
 export function midsceneGenerateHash(
   node: globalThis.Node | null,
   content: string,
   rect: any,
 ): string {
-  if (node && nodeHashCacheList.find((item) => item.node === node)) {
-    return nodeHashCacheList.find((item) => item.node === node)?.id || '';
-  }
   const slicedHash = generateHashId(rect, content);
-  if (node && typeof window !== 'undefined') {
-    (window as any).midsceneNodeHashCacheList.push({ node, id: slicedHash });
-  }
 
   // Returns the first 10 characters as a short hash
   return slicedHash;

@@ -16,6 +16,8 @@ export const OPENAI_MAX_TOKENS = 'OPENAI_MAX_TOKENS';
 export const MIDSCENE_CACHE = 'MIDSCENE_CACHE';
 export const MIDSCENE_USE_VLM_UI_TARS = 'MIDSCENE_USE_VLM_UI_TARS';
 export const MIDSCENE_USE_QWEN_VL = 'MIDSCENE_USE_QWEN_VL';
+export const MIDSCENE_USE_DOUBAO_VISION = 'MIDSCENE_USE_DOUBAO_VISION';
+export const MIDSCENE_USE_VL_MODEL = 'MIDSCENE_USE_VL_MODEL';
 export const MATCH_BY_POSITION = 'MATCH_BY_POSITION';
 export const MIDSCENE_API_TYPE = 'MIDSCENE-API-TYPE';
 export const MIDSCENE_REPORT_TAG_NAME = 'MIDSCENE_REPORT_TAG_NAME';
@@ -71,6 +73,9 @@ const allConfigFromEnv = () => {
     [MIDSCENE_USE_VLM_UI_TARS]:
       process.env[MIDSCENE_USE_VLM_UI_TARS] || undefined,
     [MIDSCENE_USE_QWEN_VL]: process.env[MIDSCENE_USE_QWEN_VL] || undefined,
+    [MIDSCENE_USE_DOUBAO_VISION]:
+      process.env[MIDSCENE_USE_DOUBAO_VISION] || undefined,
+    [MIDSCENE_USE_VL_MODEL]: process.env[MIDSCENE_USE_VL_MODEL] || undefined,
     [ANTHROPIC_API_KEY]: process.env[ANTHROPIC_API_KEY] || undefined,
     [AZURE_OPENAI_ENDPOINT]: process.env[AZURE_OPENAI_ENDPOINT] || undefined,
     [AZURE_OPENAI_KEY]: process.env[AZURE_OPENAI_KEY] || undefined,
@@ -81,18 +86,51 @@ const allConfigFromEnv = () => {
   };
 };
 
-let userConfig: ReturnType<typeof allConfigFromEnv> = {} as any;
+let userConfig: Partial<ReturnType<typeof allConfigFromEnv>> = {};
+
+export const vlLocateMode = ():
+  | 'qwen-vl'
+  | 'doubao-vision'
+  | 'vl-model'
+  | false => {
+  if (
+    getAIConfigInBoolean(MIDSCENE_USE_DOUBAO_VISION) &&
+    getAIConfigInBoolean(MIDSCENE_USE_QWEN_VL)
+  ) {
+    throw new Error(
+      'MIDSCENE_USE_DOUBAO_VISION and MIDSCENE_USE_QWEN_VL cannot be true at the same time',
+    );
+  }
+
+  if (getAIConfigInBoolean(MIDSCENE_USE_QWEN_VL)) {
+    return 'qwen-vl';
+  }
+
+  if (getAIConfigInBoolean(MIDSCENE_USE_DOUBAO_VISION)) {
+    return 'doubao-vision';
+  }
+
+  if (getAIConfigInBoolean(MIDSCENE_USE_VL_MODEL)) {
+    return 'vl-model';
+  }
+
+  return false;
+};
 
 export const getAIConfig = (
   configKey: keyof typeof userConfig,
 ): string | undefined => {
   if (configKey === MATCH_BY_POSITION) {
-    // currently qwen is considering the same as by_coordinates
-    configKey = MIDSCENE_USE_QWEN_VL;
+    throw new Error(
+      'MATCH_BY_POSITION is deprecated, use MIDSCENE_USE_VL_MODEL instead',
+    );
   }
 
   if (typeof userConfig[configKey] !== 'undefined') {
-    return userConfig[configKey]?.trim();
+    if (typeof userConfig[configKey] === 'string') {
+      return userConfig[configKey]?.trim();
+    }
+    return userConfig[configKey];
   }
   return allConfigFromEnv()[configKey]?.trim();
 };
@@ -121,8 +159,19 @@ export const allAIConfig = () => {
 };
 
 export const overrideAIConfig = (
-  newConfig: ReturnType<typeof allConfigFromEnv>,
+  newConfig: Partial<ReturnType<typeof allConfigFromEnv>>,
   extendMode?: boolean,
 ) => {
+  for (const key in newConfig) {
+    if (typeof key !== 'string') {
+      throw new Error(`Failed to override AI config, invalid key: ${key}`);
+    }
+    if (typeof newConfig[key as keyof typeof newConfig] === 'object') {
+      throw new Error(
+        `Failed to override AI config, invalid value for key: ${key}, value: ${newConfig[key as keyof typeof newConfig]}`,
+      );
+    }
+  }
+
   userConfig = extendMode ? { ...userConfig, ...newConfig } : { ...newConfig };
 };

@@ -5,7 +5,7 @@ import {
   getAIConfig,
   plan,
 } from '@midscene/core';
-import { MIDSCENE_USE_QWEN_VL, getAIConfigInBoolean } from '@midscene/core/env';
+import { vlLocateMode } from '@midscene/core/env';
 import { sleep } from '@midscene/core/utils';
 import { saveBase64Image } from '@midscene/shared/img';
 import dotenv from 'dotenv';
@@ -17,10 +17,14 @@ dotenv.config({
   override: true,
 });
 
+if (process.env.MIDSCENE_EVALUATION_EXPECT_VL) {
+  expect(vlLocateMode()).toBeTruthy();
+}
+
 const failCaseThreshold = process.env.CI ? 1 : 0;
 const testSources = ['todo'];
 
-const vlMode = getAIConfigInBoolean(MIDSCENE_USE_QWEN_VL);
+const vlMode = vlLocateMode();
 
 describe.skipIf(vlMode)('ai planning - by element', () => {
   testSources.forEach((source) => {

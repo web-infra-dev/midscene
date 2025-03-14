@@ -1,7 +1,7 @@
 import { type LocateTask, type PlanTask, TaskCache } from '@/common/task-cache';
 import type { WebUIContext } from '@/common/utils';
 import type { WebElementInfo } from '@/web-element';
-import type { AIElementIdResponse } from '@midscene/core';
+import type { AIElementLocatorResponse } from '@midscene/core';
 import { beforeEach, describe, expect, it } from 'vitest';
 
 describe('TaskCache', () => {
@@ -71,7 +71,7 @@ describe('TaskCache', () => {
               pageContext,
               response: {
                 elements: [{ id: 'element3' }],
-              } as AIElementIdResponse,
+              } as AIElementLocatorResponse,
             },
           ],
         },

@@ -9,7 +9,7 @@ Usually, it should be approximately an area not more than 300x300px. Changes of 
 return in this JSON format:
 \`\`\`json
 {
-  "bbox_2d": [number, number, number, number],
+  "bbox": [number, number, number, number],
   "error"?: string
 }
 \`\`\`

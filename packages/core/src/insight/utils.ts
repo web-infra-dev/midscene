@@ -1,9 +1,9 @@
 import {
   MIDSCENE_MODEL_NAME,
-  MIDSCENE_USE_QWEN_VL,
   MIDSCENE_USE_VLM_UI_TARS,
   getAIConfig,
   getAIConfigInBoolean,
+  vlLocateMode,
 } from '@/env';
 import type {
   DumpMeta,
@@ -29,8 +29,8 @@ export function emitInsightDump(
   let modelDescription = '';
   if (getAIConfigInBoolean(MIDSCENE_USE_VLM_UI_TARS)) {
     modelDescription = 'vlm-ui-tars mode';
-  } else if (getAIConfigInBoolean(MIDSCENE_USE_QWEN_VL)) {
-    modelDescription = 'qwen-vl mode';
+  } else if (vlLocateMode()) {
+    modelDescription = `${vlLocateMode()} mode`;
   }
 
   const baseData: DumpMeta = {

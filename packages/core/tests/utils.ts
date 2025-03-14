@@ -7,7 +7,7 @@ import {
   transformImgPathToBase64,
 } from '@/image';
 import Insight from '@/insight';
-import type { AIElementIdResponse, BaseElement, UIContext } from '@/types';
+import type { AIElementLocatorResponse, BaseElement, UIContext } from '@/types';
 import { NodeType } from '@midscene/shared/constants';
 import { vi } from 'vitest';
 
@@ -70,7 +70,7 @@ export function fakeInsight(content: string) {
     ...basicContext,
   };
 
-  const aiVendor: typeof callAiFn<AIElementIdResponse> = async () => ({
+  const aiVendor: typeof callAiFn<AIElementLocatorResponse> = async () => ({
     content: {
       elements: [{ id: '0', reason: '', text: '' }],
       errors: [],

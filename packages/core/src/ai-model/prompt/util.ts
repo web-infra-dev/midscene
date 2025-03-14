@@ -1,4 +1,4 @@
-import { MATCH_BY_POSITION, getAIConfigInBoolean } from '@/env';
+import { vlLocateMode } from '@/env';
 import { imageInfoOfBase64 } from '@/image/index';
 import type { BaseElement, ElementTreeNode, Size, UIContext } from '@/types';
 import { NodeType } from '@midscene/shared/constants';
@@ -142,7 +142,7 @@ export async function describeUserPage<
   );
 
   // if match by position, don't need to provide the page description
-  const pageJSONDescription = getAIConfigInBoolean(MATCH_BY_POSITION)
+  const pageJSONDescription = vlLocateMode()
     ? ''
     : `Some of the elements are marked with a rectangle in the screenshot, some are not. \n The page elements tree:\n${contentTree}`;
   const sizeDescription = describeSize({ width, height });

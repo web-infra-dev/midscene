@@ -1,4 +1,4 @@
-import { MIDSCENE_USE_QWEN_VL, getAIConfigInBoolean } from '@/env';
+import { vlLocateMode } from '@/env';
 import type { PlanningAIResponse, UIContext } from '@/types';
 import { paddingToMatchBlock } from '@midscene/shared/img';
 import { assert } from '@midscene/shared/utils';
@@ -39,7 +39,7 @@ export async function plan(
   });
 
   let imagePayload = screenshotBase64WithElementMarker || screenshotBase64;
-  if (getAIConfigInBoolean(MIDSCENE_USE_QWEN_VL)) {
+  if (vlLocateMode()) {
     imagePayload = await paddingToMatchBlock(imagePayload);
   }
 
@@ -81,10 +81,15 @@ export async function plan(
 
   assert(planFromAI, "can't get plans from AI");
 
-  if (getAIConfigInBoolean(MIDSCENE_USE_QWEN_VL)) {
+  if (vlLocateMode()) {
     actions.forEach((action) => {
       if (action.locate) {
-        action.locate = fillLocateParam(action.locate);
+        action.locate = fillLocateParam(
+          action.locate,
+          size.width,
+          size.height,
+          planFromAI.error,
+        );
       }
     });
     // in Qwen-VL, error means error. In GPT-4o, error may mean more actions are needed.

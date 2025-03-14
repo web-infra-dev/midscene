@@ -6,7 +6,7 @@ export {
   plan,
   transformElementPositionToId,
   describeUserPage,
-  AiInspectElement,
+  AiLocateElement,
   AiAssert,
 } from './ai-model/index';
 

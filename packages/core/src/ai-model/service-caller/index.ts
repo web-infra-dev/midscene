@@ -1,4 +1,4 @@
-import { AIResponseFormat, type AIUsageInfo } from '@/types';
+import { AIElementResponse, AIResponseFormat, type AIUsageInfo } from '@/types';
 import { Anthropic } from '@anthropic-ai/sdk';
 import {
   DefaultAzureCredential,
@@ -36,6 +36,7 @@ import {
   getAIConfig,
   getAIConfigInBoolean,
   getAIConfigInJson,
+  vlLocateMode,
 } from '../../env';
 import { AIActionType } from '../common';
 import { assertSchema } from '../prompt/assertion';
@@ -232,7 +233,7 @@ export async function call(
       typeof maxTokens === 'number'
         ? maxTokens
         : Number.parseInt(maxTokens || '2048', 10),
-    ...(getAIConfigInBoolean(MIDSCENE_USE_QWEN_VL)
+    ...(getAIConfigInBoolean(MIDSCENE_USE_QWEN_VL) // qwen specific config
       ? {
           vl_high_resolution_images: true,
         }
@@ -250,7 +251,7 @@ export async function call(
     debugProfile(
       'model %s,%s usage %s, cost %s ms, requestId %s',
       model,
-      getAIConfig(MIDSCENE_USE_QWEN_VL) ? ' MIDSCENE_USE_QWEN_VL,' : '',
+      vlLocateMode() ? ` ${vlLocateMode()},` : '',
       JSON.stringify(result.usage),
       Date.now() - startTime,
       result._request_id,
@@ -372,6 +373,11 @@ export function extractJSONFromCodeBlock(response: string) {
   return response;
 }
 
+export function preprocessDoubaoBboxJson(input: string) {
+  // replace all /\d+\s+\d+/g with /$1,$2/g
+  return input.replace(/(\d+)\s+(\d+)/g, '$1,$2');
+}
+
 export function safeParseJson(input: string) {
   const cleanJsonString = extractJSONFromCodeBlock(input);
   // match the point
@@ -386,8 +392,11 @@ export function safeParseJson(input: string) {
   } catch {}
   try {
     return dJSON.parse(cleanJsonString);
-  } catch (e) {
-    console.log('e:', e);
+  } catch (e) {}
+
+  if (vlLocateMode() === 'doubao-vision') {
+    const jsonString = preprocessDoubaoBboxJson(cleanJsonString);
+    return dJSON.parse(jsonString);
   }
   throw Error(`failed to parse json response: ${input}`);
 }

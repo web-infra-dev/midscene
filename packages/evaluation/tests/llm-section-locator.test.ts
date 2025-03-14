@@ -1,11 +1,7 @@
 import { writeFileSync } from 'node:fs';
-import {
-  AiInspectElement,
-  MIDSCENE_MODEL_NAME,
-  getAIConfig,
-} from '@midscene/core';
+import { MIDSCENE_MODEL_NAME, getAIConfig } from '@midscene/core';
 import { AiLocateSection } from '@midscene/core/ai-model';
-import { MIDSCENE_USE_QWEN_VL, getAIConfigInBoolean } from '@midscene/core/env';
+import { vlLocateMode } from '@midscene/core/env';
 import { sleep } from '@midscene/core/utils';
 import { saveBase64Image } from '@midscene/shared/img';
 import dotenv from 'dotenv';
@@ -26,7 +22,7 @@ const resultCollector = new TestResultCollector(
 );
 
 let failCaseThreshold = 0;
-if (process.env.CI && !getAIConfigInBoolean(MIDSCENE_USE_QWEN_VL)) {
+if (process.env.CI && !vlLocateMode()) {
   failCaseThreshold = 3;
 }
 
