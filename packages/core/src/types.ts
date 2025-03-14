@@ -102,7 +102,7 @@ export interface AISectionParseResponse<DataShape> {
 }
 
 export interface AISectionLocatorResponse {
-  bbox_2d: [number, number, number, number];
+  bbox: [number, number, number, number];
   error?: string;
 }
 
@@ -246,7 +246,6 @@ export interface PlanningLocateParam {
     y: number;
   };
   bbox?: [number, number, number, number];
-  bbox_2d?: [number, number, number, number];
   prompt: string;
 }
 

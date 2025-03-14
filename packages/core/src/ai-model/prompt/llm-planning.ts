@@ -12,7 +12,7 @@ const commonOutputFields = `"error"?: string, // Error messages about unexpected
   "more_actions_needed_by_instruction": boolean, // Consider if there is still more action(s) to do after the action in "Log" is done, according to the instruction. If so, set this field to true. Otherwise, set it to false.`;
 
 const vlLocateParam =
-  'locate: {bbox_2d: [number, number, number, number], prompt: string }';
+  'locate: {bbox: [number, number, number, number], prompt: string }';
 
 const systemTemplateOfVLPlanning = `
 Target: User will give you a screenshot, an instruction and some previous logs indicating what have been done. Please tell what the next one action is (or null if no action should be done) to do the tasks the instruction requires. 

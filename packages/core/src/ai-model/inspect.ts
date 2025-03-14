@@ -358,7 +358,7 @@ export async function AiLocateSection(options: {
   );
 
   return {
-    sectionBbox: result.content.bbox_2d,
+    sectionBbox: result.content.bbox,
     rawResponse: JSON.stringify(result.content),
     usage: result.usage,
   };

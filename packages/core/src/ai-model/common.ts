@@ -51,10 +51,10 @@ export function fillLocateParam(
   height: number,
   errorMsg?: string,
 ) {
-  if (locate?.bbox_2d && !locate?.bbox) {
-    locate.bbox = locate.bbox_2d;
+  if ((locate as any).bbox_2d && !locate?.bbox) {
+    locate.bbox = (locate as any).bbox_2d;
     // biome-ignore lint/performance/noDelete: <explanation>
-    delete locate.bbox_2d;
+    delete (locate as any).bbox_2d;
   }
 
   if (locate?.bbox) {
