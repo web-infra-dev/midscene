@@ -241,12 +241,9 @@ export interface AgentAssertOpt {
 
 export interface PlanningLocateParam {
   id?: string;
-  position?: {
-    x: number;
-    y: number;
-  };
   bbox?: [number, number, number, number];
   prompt: string;
+  searchArea?: string;
 }
 
 export interface PlanningAction<ParamType = any> {

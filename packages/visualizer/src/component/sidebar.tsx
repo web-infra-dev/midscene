@@ -17,6 +17,8 @@ const SideItem = (props: {
 
   const selectedClass = selected ? 'selected' : '';
   let statusText: JSX.Element | string = task.status;
+
+  const cacheEl = task.cache?.hit ? <span>(cache) </span> : null;
   if (task.timing?.cost) {
     statusText = timeCostStrElement(task.timing.cost);
   }
@@ -54,7 +56,10 @@ const SideItem = (props: {
         <div className="title">
           {typeStr(task)} {titleTextIcon}
         </div>
-        <div className="status-text">{statusText}</div>
+        <div className="status-text">
+          {cacheEl}
+          {statusText}
+        </div>
       </div>
     </div>
   );

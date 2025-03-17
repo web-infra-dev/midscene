@@ -15,6 +15,19 @@ type ActionType =
   | 'scroll'
   | 'wait';
 
+const bboxSize = 10;
+const pointToBbox = (
+  point: { x: number; y: number },
+  width: number,
+  height: number,
+): [number, number, number, number] => {
+  return [
+    Math.round(Math.max(point.x - bboxSize / 2, 0)),
+    Math.round(Math.max(point.y - bboxSize / 2, 0)),
+    Math.round(Math.min(point.x + bboxSize / 2, width)),
+    Math.round(Math.min(point.y + bboxSize / 2, height)),
+  ];
+};
 export async function vlmPlanning(options: {
   userInstruction: string;
   conversationHistory: ChatCompletionMessageParam[];
@@ -48,20 +61,25 @@ export async function vlmPlanning(options: {
       const point = getPoint(action.action_inputs.start_box, size);
       transformActions.push({
         type: 'Locate',
+        param: {},
         locate: {
           prompt: action.thought || '',
-          position: { x: point[0], y: point[1] },
-        },
-        param: {
-          // action,
-          // position: { x: point[0], y: point[1] },
+          bbox: pointToBbox(
+            { x: point[0], y: point[1] },
+            size.width,
+            size.height,
+          ),
         },
       });
       transformActions.push({
         type: 'Tap',
         locate: {
           prompt: action.thought || '',
-          position: { x: point[0], y: point[1] },
+          bbox: pointToBbox(
+            { x: point[0], y: point[1] },
+            size.width,
+            size.height,
+          ),
         },
         param: action.thought || '',
       });

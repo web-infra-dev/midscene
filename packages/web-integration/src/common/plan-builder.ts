@@ -11,7 +11,7 @@ import { assert, getDebug } from '@midscene/shared/utils';
 
 const debug = getDebug('plan-builder');
 
-export function buildAndRunPlan(
+export function buildPlans(
   type: PlanningAction['type'],
   locate: PlanningLocateParam | null,
   param?:
@@ -92,7 +92,7 @@ export function buildAndRunPlan(
   }
 
   if (returnPlans) {
-    debug('buildAndRunPlan', returnPlans);
+    debug('buildPlans', returnPlans);
     return returnPlans;
   }
 
