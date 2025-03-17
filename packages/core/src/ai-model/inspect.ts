@@ -181,21 +181,6 @@ function matchQuickAnswer(
     };
   }
 
-  if ('position' in quickAnswer && quickAnswer.position) {
-    let element = elementByPositionWithElementInfo(tree, quickAnswer.position);
-    if (!element) {
-      element = insertElementByPosition(quickAnswer.position);
-    }
-    return {
-      parseResult: {
-        elements: [element],
-        errors: [],
-      },
-      rawResponse: quickAnswer,
-      elementById,
-    } as any;
-  }
-
   if ('bbox' in quickAnswer && quickAnswer.bbox) {
     const centerPosition = {
       x: Math.floor((quickAnswer.bbox[0] + quickAnswer.bbox[2]) / 2),

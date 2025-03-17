@@ -1,6 +1,6 @@
 import { callAiFn } from '@/ai-model/common';
 import { AiExtractElementInfo, AiLocateElement } from '@/ai-model/index';
-import { AiAssert } from '@/ai-model/inspect';
+import { AiAssert, AiLocateSection } from '@/ai-model/inspect';
 import type {
   AIElementResponse,
   AISingleElementResponse,
@@ -12,6 +12,7 @@ import type {
   InsightOptions,
   InsightTaskInfo,
   PartialInsightDumpFromSDK,
+  PlanningLocateParam,
   UIContext,
 } from '@/types';
 import { assert } from '@midscene/shared/utils';
@@ -66,18 +67,25 @@ export default class Insight<
   }
 
   async locate(
-    queryPrompt: string,
+    query: string | PlanningLocateParam,
     opt?: LocateOpts,
   ): Promise<ElementType | null>;
-  async locate(queryPrompt: string, opt?: LocateOpts) {
+  async locate(query: string | PlanningLocateParam, opt?: LocateOpts) {
     const { callAI } = opt || {};
+    const queryPrompt = typeof query === 'string' ? query : query.prompt;
     assert(
       queryPrompt || opt?.quickAnswer,
       'query or quickAnswer is required for locate',
     );
     const dumpSubscriber = this.onceDumpUpdatedFn;
     this.onceDumpUpdatedFn = undefined;
+    // still under construction
+    // const searchArea = typeof query === 'string' ? undefined : query.searchArea;
     const context = await this.contextRetrieverFn('locate');
+    // const { sectionBbox, usage } = await AiLocateSection({
+    //   context,
+    //   sectionDescription: searchArea,
+    // })
 
     const startTime = Date.now();
     const { parseResult, elementById, rawResponse, usage } =

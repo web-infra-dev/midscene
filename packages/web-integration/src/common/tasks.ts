@@ -1,7 +1,6 @@
 import type { WebPage } from '@/common/page';
 import type { PuppeteerWebPage } from '@/puppeteer';
 import {
-  type AIElementLocatorResponse,
   type AIUsageInfo,
   type DumpSubscriber,
   type ExecutionRecorderItem,
@@ -26,7 +25,6 @@ import {
   type PlanningActionParamSleep,
   type PlanningActionParamTap,
   type PlanningActionParamWaitFor,
-  PlanningLocateParam,
   plan,
 } from '@midscene/core';
 import {
@@ -147,7 +145,7 @@ export class PageTaskExecutor {
           executor: async (param, taskContext) => {
             const { task } = taskContext;
             assert(
-              param?.prompt || param?.id || param?.position || param?.bbox,
+              param?.prompt || param?.id || param?.bbox,
               'No prompt or id or position or bbox to locate',
             );
             let insightDump: InsightDump | undefined;
@@ -166,32 +164,33 @@ export class PageTaskExecutor {
               timing: 'before locate',
             };
 
+            const cachePrompt = `${param.prompt} @ ${param.searchArea || ''}`;
             const locateCache = cacheGroup?.matchCache(
               pageContext,
               'locate',
-              param.prompt,
+              cachePrompt,
             );
-            const callAI = this.insight.aiVendorFn;
+            const idInCache = locateCache?.elements?.[0]?.id;
+            let cacheHitFlag = false;
+
+            let quickAnswerId = param?.id;
+            if (!quickAnswerId && idInCache) {
+              quickAnswerId = idInCache;
+            }
 
             const quickAnswer = {
-              id: param?.id,
-              position: param?.position,
+              id: quickAnswerId,
               bbox: param?.bbox,
             };
             const startTime = Date.now();
-            let newLocateResultFlag = false;
-            const element = await this.insight.locate(param.prompt, {
+            const element = await this.insight.locate(param, {
               quickAnswer,
-              callAI: async (...message: any) => {
-                if (locateCache) {
-                  return Promise.resolve({ content: locateCache });
-                }
-                const { content: aiResult, usage } = await callAI(...message);
-                newLocateResultFlag = true;
-                return { content: aiResult, usage };
-              },
             });
             const aiCost = Date.now() - startTime;
+
+            if (element && element.id === quickAnswerId) {
+              cacheHitFlag = true;
+            }
 
             if (element) {
               cacheGroup?.saveCache({
@@ -200,7 +199,7 @@ export class PageTaskExecutor {
                   url: pageContext.url,
                   size: pageContext.size,
                 },
-                prompt: param.prompt,
+                prompt: cachePrompt,
                 response: {
                   elements: [
                     {
@@ -226,7 +225,7 @@ export class PageTaskExecutor {
                 dump: insightDump,
               },
               cache: {
-                hit: Boolean(locateCache),
+                hit: cacheHitFlag,
               },
               recorder: [recordItem],
               aiCost,
@@ -525,10 +524,11 @@ export class PageTaskExecutor {
         executorContext.task.recorder = [recordItem];
         (executorContext.task as any).pageContext = pageContext;
 
+        const cachePrompt = `${param.userInstruction} @ ${param.log || ''}`;
         const planCache = cacheGroup.matchCache(
           pageContext,
           'plan',
-          param.userInstruction,
+          cachePrompt,
         );
         let planResult: Awaited<ReturnType<typeof plan>>;
         if (planCache) {
@@ -616,7 +616,7 @@ export class PageTaskExecutor {
 
         if (finalActions.length === 0) {
           assert(
-            !more_actions_needed_by_instruction,
+            !more_actions_needed_by_instruction || sleep,
             error
               ? `Failed to plan: ${error}`
               : planParsingError || 'No plan found',
@@ -629,7 +629,7 @@ export class PageTaskExecutor {
             url: pageContext.url,
             size: pageContext.size,
           },
-          prompt: userInstruction,
+          prompt: cachePrompt,
           response: planResult,
         });
 

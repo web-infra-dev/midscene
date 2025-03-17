@@ -28,7 +28,7 @@ import {
 } from '@midscene/core/utils';
 import { PageTaskExecutor } from '../common/tasks';
 import { WebElementInfo } from '../web-element';
-import { buildAndRunPlan } from './plan-builder';
+import { buildPlans } from './plan-builder';
 import type { AiTaskCache } from './task-cache';
 import { paramStr, typeStr } from './ui-utils';
 import { printReportMsg, reportFileName } from './utils';
@@ -181,12 +181,13 @@ export class PageAgent<PageType extends WebPage = WebPage> {
     }
   }
 
-  async aiTap(taskPrompt: string) {
-    const plans = buildAndRunPlan('Tap', {
-      prompt: taskPrompt,
+  async aiTap(targetPrompt: string, searchArea?: string) {
+    const plans = buildPlans('Tap', {
+      prompt: targetPrompt,
+      searchArea,
     });
     const { executor, output } = await this.taskExecutor.runPlans(
-      `Tap ${taskPrompt}`,
+      `Tap ${targetPrompt}`,
       plans,
     );
     this.afterTaskRunning(executor);
@@ -194,7 +195,7 @@ export class PageAgent<PageType extends WebPage = WebPage> {
   }
 
   async aiHover(taskPrompt: string) {
-    const plans = buildAndRunPlan('Hover', {
+    const plans = buildPlans('Hover', {
       prompt: taskPrompt,
     });
     const { executor, output } = await this.taskExecutor.runPlans(
@@ -206,7 +207,7 @@ export class PageAgent<PageType extends WebPage = WebPage> {
   }
 
   async aiInput(where: string, value: string) {
-    const plans = buildAndRunPlan(
+    const plans = buildPlans(
       'Input',
       {
         prompt: where,
@@ -224,7 +225,7 @@ export class PageAgent<PageType extends WebPage = WebPage> {
   }
 
   async aiKeyboardPress(where: string, value: string) {
-    const plans = buildAndRunPlan(
+    const plans = buildPlans(
       'KeyboardPress',
       {
         prompt: where,
@@ -242,7 +243,7 @@ export class PageAgent<PageType extends WebPage = WebPage> {
   }
 
   // async aiScroll(where: string, param: PlanningActionParamScroll) {
-  //   const plans = buildAndRunPlan(
+  //   const plans = buildPlans(
   //     'Scroll',
   //     {
   //       prompt: where,
