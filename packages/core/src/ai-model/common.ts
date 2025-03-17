@@ -51,6 +51,7 @@ export function fillLocateParam(
   height: number,
   errorMsg?: string,
 ) {
+  // The Qwen model might have hallucinations of naming bbox as bbox_2d.
   if ((locate as any).bbox_2d && !locate?.bbox) {
     locate.bbox = (locate as any).bbox_2d;
     // biome-ignore lint/performance/noDelete: <explanation>
