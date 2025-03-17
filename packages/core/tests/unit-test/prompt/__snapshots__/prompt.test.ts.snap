@@ -327,11 +327,11 @@ Restriction:
 - Bbox is the bounding box of the element to be located. It's an array of 4 numbers, representing the top-left x, top-left y, bottom-right x, bottom-right y of the element.
 
 Supporting actions:
-- Tap: { type: "Tap", locate: {bbox_2d: [number, number, number, number], prompt: string } }
-- Hover: { type: "Hover", locate: {bbox_2d: [number, number, number, number], prompt: string } }
-- Input: { type: "Input", locate: {bbox_2d: [number, number, number, number], prompt: string }, param: { value: string } } // \`value\` is the final that should be filled in the input box. No matter what modifications are required, just provide the final value to replace the existing input value. 
+- Tap: { type: "Tap", locate: {bbox: [number, number, number, number], prompt: string } }
+- Hover: { type: "Hover", locate: {bbox: [number, number, number, number], prompt: string } }
+- Input: { type: "Input", locate: {bbox: [number, number, number, number], prompt: string }, param: { value: string } } // \`value\` is the final that should be filled in the input box. No matter what modifications are required, just provide the final value to replace the existing input value. 
 - KeyboardPress: { type: "KeyboardPress", param: { value: string } }
-- Scroll: { type: "Scroll", locate: {bbox_2d: [number, number, number, number], prompt: string } | null, param: { direction: 'down'(default) | 'up' | 'right' | 'left', scrollType: 'once' (default) | 'untilBottom' | 'untilTop' | 'untilRight' | 'untilLeft', distance: null | number }} // locate is the element to scroll. If it's a page scroll, put \`null\` in the \`locate\` field.
+- Scroll: { type: "Scroll", locate: {bbox: [number, number, number, number], prompt: string } | null, param: { direction: 'down'(default) | 'up' | 'right' | 'left', scrollType: 'once' (default) | 'untilBottom' | 'untilTop' | 'untilRight' | 'untilLeft', distance: null | number }} // locate is the element to scroll. If it's a page scroll, put \`null\` in the \`locate\` field.
 
 Field description:
 * The \`prompt\` field inside the \`locate\` field is a short description that could be used to locate the element.
