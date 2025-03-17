@@ -1,4 +1,4 @@
-import { AIResponseFormat, type AIUsageInfo } from '@/types';
+import { AIElementResponse, AIResponseFormat, type AIUsageInfo } from '@/types';
 import { Anthropic } from '@anthropic-ai/sdk';
 import {
   DefaultAzureCredential,
@@ -36,6 +36,7 @@ import {
   getAIConfig,
   getAIConfigInBoolean,
   getAIConfigInJson,
+  vlLocateMode,
 } from '../../env';
 import { AIActionType } from '../common';
 import { assertSchema } from '../prompt/assertion';
@@ -51,7 +52,7 @@ export function checkAIConfig() {
 }
 
 const debugProfile = getDebug('ai:profile');
-const debugResponse = getDebug('ai:response');
+const debugCall = getDebug('ai:call');
 
 const shouldPrintTiming = getAIConfigInBoolean(MIDSCENE_DEBUG_AI_PROFILE);
 let debugConfig = '';
@@ -69,7 +70,7 @@ if (shouldPrintAIResponse) {
   if (debugConfig) {
     debugConfig = 'ai:*';
   } else {
-    debugConfig = 'ai:response';
+    debugConfig = 'ai:call';
   }
 }
 if (debugConfig) {
@@ -232,13 +233,14 @@ export async function call(
       typeof maxTokens === 'number'
         ? maxTokens
         : Number.parseInt(maxTokens || '2048', 10),
-    ...(getAIConfigInBoolean(MIDSCENE_USE_QWEN_VL)
+    ...(getAIConfigInBoolean(MIDSCENE_USE_QWEN_VL) // qwen specific config
       ? {
           vl_high_resolution_images: true,
         }
       : {}),
   };
   if (style === 'openai') {
+    debugCall(`will send request to ${model}`);
     const result = await completion.create({
       model,
       messages,
@@ -249,7 +251,7 @@ export async function call(
     debugProfile(
       'model %s,%s usage %s, cost %s ms, requestId %s',
       model,
-      getAIConfig(MIDSCENE_USE_QWEN_VL) ? ' MIDSCENE_USE_QWEN_VL,' : '',
+      vlLocateMode() ? ` ${vlLocateMode()},` : '',
       JSON.stringify(result.usage),
       Date.now() - startTime,
       result._request_id,
@@ -261,7 +263,7 @@ export async function call(
     );
     content = result.choices[0].message.content!;
 
-    debugResponse(content);
+    debugCall(`response: ${content}`);
     assert(content, 'empty content');
     usage = result.usage;
     // console.log('headers', result.headers);
@@ -371,6 +373,11 @@ export function extractJSONFromCodeBlock(response: string) {
   return response;
 }
 
+export function preprocessDoubaoBboxJson(input: string) {
+  // replace all /\d+\s+\d+/g with /$1,$2/g
+  return input.replace(/(\d+)\s+(\d+)/g, '$1,$2');
+}
+
 export function safeParseJson(input: string) {
   const cleanJsonString = extractJSONFromCodeBlock(input);
   // match the point
@@ -385,8 +392,11 @@ export function safeParseJson(input: string) {
   } catch {}
   try {
     return dJSON.parse(cleanJsonString);
-  } catch (e) {
-    console.log('e:', e);
+  } catch (e) {}
+
+  if (vlLocateMode() === 'doubao-vision') {
+    const jsonString = preprocessDoubaoBboxJson(cleanJsonString);
+    return dJSON.parse(jsonString);
   }
   throw Error(`failed to parse json response: ${input}`);
 }

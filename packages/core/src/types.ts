@@ -76,12 +76,13 @@ export type AISingleElementResponseByPosition = {
 };
 
 export type AISingleElementResponse = AISingleElementResponseById;
-export interface AIElementIdResponse {
+export interface AIElementLocatorResponse {
   elements: {
     id: string;
     reason?: string;
     text?: string;
   }[];
+  bbox?: [number, number, number, number];
   errors?: string[];
 }
 
@@ -91,13 +92,18 @@ export interface AIElementCoordinatesResponse {
 }
 
 export type AIElementResponse =
-  | AIElementIdResponse
+  | AIElementLocatorResponse
   | AIElementCoordinatesResponse;
 
 export interface AISectionParseResponse<DataShape> {
   data: DataShape;
   sections?: LiteUISection[];
   errors?: string[];
+}
+
+export interface AISectionLocatorResponse {
+  bbox: [number, number, number, number];
+  error?: string;
 }
 
 export interface AIAssertionResponse {
@@ -235,13 +241,9 @@ export interface AgentAssertOpt {
 
 export interface PlanningLocateParam {
   id?: string;
-  position?: {
-    x: number;
-    y: number;
-  };
   bbox?: [number, number, number, number];
-  bbox_2d?: [number, number, number, number];
   prompt: string;
+  searchArea?: string;
 }
 
 export interface PlanningAction<ParamType = any> {

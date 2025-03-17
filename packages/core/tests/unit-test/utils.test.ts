@@ -1,10 +1,13 @@
 import { randomUUID } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
+import { adaptDoubaoBbox, adaptQwenBbox } from '@/ai-model/common';
 import {
   extractJSONFromCodeBlock,
+  preprocessDoubaoBboxJson,
   safeParseJson,
 } from '@/ai-model/service-caller';
+import { getAIConfig, overrideAIConfig } from '@/env';
 import {
   getLogDir,
   getTmpDir,
@@ -186,5 +189,81 @@ describe('extractJSONFromCodeBlock', () => {
         nested: 'value',
       },
     });
+  });
+});
+
+describe('qwen-vl', () => {
+  it('adaptQwenBbox', () => {
+    const result = adaptQwenBbox([100.3, 200.4, 301, 401]);
+    expect(result).toEqual([100, 200, 301, 401]);
+  });
+
+  it('adaptQwenBbox with 2 points', () => {
+    const result = adaptQwenBbox([100, 200]);
+    expect(result).toEqual([100, 200, 120, 220]);
+  });
+
+  it('adaptQwenBbox with invalid bbox data', () => {
+    expect(() => adaptQwenBbox([100])).toThrow();
+  });
+});
+
+describe('doubao-vision', () => {
+  it('preprocessDoubaoBboxJson', () => {
+    const input = '123 456';
+    const result = preprocessDoubaoBboxJson(input);
+    expect(result).toBe('123,456');
+
+    const input2 = '1 4';
+    const result2 = preprocessDoubaoBboxJson(input2);
+    expect(result2).toBe('1,4');
+
+    const input3 = '123 456\n789 100';
+    const result3 = preprocessDoubaoBboxJson(input3);
+    expect(result3).toBe('123,456\n789,100');
+
+    const input4 = '[123 456,789 100]';
+    const result4 = preprocessDoubaoBboxJson(input4);
+    expect(result4).toBe('[123,456,789,100]');
+  });
+
+  it('adaptDoubaoBbox', () => {
+    const result = adaptDoubaoBbox([100, 200, 300, 400], 1000, 2000);
+    expect(result).toEqual([100, 400, 300, 800]);
+  });
+
+  it('adaptDoubaoBbox with 6 points', () => {
+    const result2 = adaptDoubaoBbox([100, 200, 300, 400, 100, 200], 1000, 2000);
+    expect(result2).toEqual([100, 400, 120, 420]);
+  });
+
+  it('adaptDoubaoBbox with 8 points', () => {
+    const result3 = adaptDoubaoBbox(
+      [100, 200, 300, 200, 300, 400, 100, 400],
+      1000,
+      2000,
+    );
+    expect(result3).toEqual([100, 400, 300, 800]);
+  });
+
+  it('adaptDoubaoBbox with invalid bbox data', () => {
+    expect(() => adaptDoubaoBbox([100], 1000, 2000)).toThrow();
+  });
+});
+
+describe('env', () => {
+  it('getAIConfig', () => {
+    const result = getAIConfig('NEVER_EXIST_CONFIG' as any);
+    expect(result).toBeUndefined();
+  });
+
+  it('overrideAIConfig', () => {
+    expect(() =>
+      overrideAIConfig({
+        MIDSCENE_CACHE: {
+          foo: 123,
+        } as any,
+      }),
+    ).toThrow();
   });
 });

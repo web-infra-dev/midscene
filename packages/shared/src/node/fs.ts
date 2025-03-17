@@ -1,8 +1,7 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
-import { assert } from '../utils';
+import { assert, ifInBrowser } from '../utils';
 
 interface PkgInfo {
   name: string;
@@ -11,7 +10,6 @@ interface PkgInfo {
 }
 
 const pkgCacheMap: Record<string, PkgInfo> = {};
-const ifInBrowser = typeof window !== 'undefined';
 
 export function getRunningPkgInfo(dir?: string): PkgInfo | null {
   if (ifInBrowser) {

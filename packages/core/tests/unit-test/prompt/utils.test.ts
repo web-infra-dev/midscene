@@ -1,5 +1,5 @@
 import { describeUserPage } from '@/ai-model/prompt/util';
-import { getAIConfigInBoolean } from '@/env';
+import { vlLocateMode } from '@/env';
 import { getContextFromFixture } from 'tests/evaluation';
 import { describe, expect, it } from 'vitest';
 
@@ -29,7 +29,7 @@ describe('prompt utils', () => {
     expect(description).toBeTruthy();
     expect(stringLengthOfEachItem).toBeLessThan(160);
 
-    if (!getAIConfigInBoolean('MATCH_BY_POSITION')) {
+    if (!vlLocateMode()) {
       expect(description.length).toBeLessThan(lengthOfDescription * 0.8);
     }
   });

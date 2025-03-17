@@ -1,6 +1,7 @@
 import { strict as assert } from 'node:assert';
 import { execSync } from 'node:child_process';
-import { rmSync, writeFileSync } from 'node:fs';
+import { rmSync, statSync, writeFileSync } from 'node:fs';
+import { platform } from 'node:os';
 import { dirname, join } from 'node:path';
 import {
   ensureDirectoryExistence,
@@ -175,7 +176,14 @@ async function packExtension() {
   ensureDirectoryExistence(distFile);
 
   // zip the extension
-  await zipDir(outputExtensionUnpackedBaseDir, distFile);
+  if (platform() !== 'win32') {
+    await zipDir(outputExtensionUnpackedBaseDir, distFile);
+    // print size of the zip file
+    const size = statSync(distFile).size;
+    console.log(`Zip file size: ${size} bytes`);
+  } else {
+    console.warn('zip is not supported on this platform, will skip it');
+  }
 }
 
 /* build task: report and demo pages*/

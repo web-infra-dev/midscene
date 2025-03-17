@@ -1,0 +1,50 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`build plans > hover 1`] = `
+[
+  {
+    "locate": {
+      "prompt": "OK button",
+      "searchArea": "the cookie prompt",
+    },
+    "param": {
+      "prompt": "OK button",
+      "searchArea": "the cookie prompt",
+    },
+    "thought": "",
+    "type": "Locate",
+  },
+  {
+    "locate": {
+      "prompt": "OK button",
+      "searchArea": "the cookie prompt",
+    },
+    "param": null,
+    "thought": "",
+    "type": "Hover",
+  },
+]
+`;
+
+exports[`build plans > tap 1`] = `
+[
+  {
+    "locate": {
+      "prompt": "OK button",
+    },
+    "param": {
+      "prompt": "OK button",
+    },
+    "thought": "",
+    "type": "Locate",
+  },
+  {
+    "locate": {
+      "prompt": "OK button",
+    },
+    "param": null,
+    "thought": "",
+    "type": "Tap",
+  },
+]
+`;

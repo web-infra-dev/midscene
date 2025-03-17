@@ -5,9 +5,10 @@ export { describeUserPage } from './prompt/util';
 export type { ChatCompletionMessageParam } from 'openai/resources';
 
 export {
-  AiInspectElement,
+  AiLocateElement,
   AiExtractElementInfo,
   AiAssert,
+  AiLocateSection,
   transformElementPositionToId,
 } from './inspect';
 

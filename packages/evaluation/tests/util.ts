@@ -1,7 +1,7 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import type { PlanningAIResponse } from '@midscene/core';
-import { MATCH_BY_POSITION, getAIConfigInBoolean } from '@midscene/core/env';
+import { vlLocateMode } from '@midscene/core/env';
 import {
   base64Encoded,
   compositeElementInfoImg,
@@ -238,7 +238,7 @@ export async function buildContext(pageName: string) {
   };
 
   const context = await parseContextFromWebPage(fakePage as any, {
-    ignoreMarker: getAIConfigInBoolean(MATCH_BY_POSITION),
+    ignoreMarker: vlLocateMode(),
   });
   return context;
 }

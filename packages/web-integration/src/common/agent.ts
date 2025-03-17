@@ -4,19 +4,21 @@ import {
   type AgentWaitForOpt,
   type ExecutionDump,
   type ExecutionTask,
+  type Executor,
   type GroupedActionDump,
   Insight,
   type InsightAction,
   type OnTaskStartTip,
+  type PlanningActionParamInputOrKeyPress,
+  // type PlanningActionParamScroll,
 } from '@midscene/core';
 import { NodeType } from '@midscene/shared/constants';
 
 import { ScriptPlayer, parseYamlScript } from '@/yaml/index';
 import {
-  MATCH_BY_POSITION,
   MIDSCENE_USE_VLM_UI_TARS,
   getAIConfig,
-  getAIConfigInBoolean,
+  vlLocateMode,
 } from '@midscene/core/env';
 import {
   groupedActionDumpFileExt,
@@ -26,6 +28,7 @@ import {
 } from '@midscene/core/utils';
 import { PageTaskExecutor } from '../common/tasks';
 import { WebElementInfo } from '../web-element';
+import { buildPlans } from './plan-builder';
 import type { AiTaskCache } from './task-cache';
 import { paramStr, typeStr } from './ui-utils';
 import { printReportMsg, reportFileName } from './utils';
@@ -111,7 +114,7 @@ export class PageAgent<PageType extends WebPage = WebPage> {
       });
     }
     return await parseContextFromWebPage(this.page, {
-      ignoreMarker: getAIConfigInBoolean(MATCH_BY_POSITION),
+      ignoreMarker: !!vlLocateMode(),
     });
   }
 
@@ -168,46 +171,108 @@ export class PageAgent<PageType extends WebPage = WebPage> {
     }
   }
 
-  async aiAction(taskPrompt: string) {
-    if (
-      getAIConfig(MIDSCENE_USE_VLM_UI_TARS) // ||
-      // getAIConfig(MIDSCENE_USE_QWEN_VL) // ING
-    ) {
-      const { executor } = await this.taskExecutor.actionToGoal(taskPrompt, {
-        onTaskStart: this.callbackOnTaskStartTip.bind(this),
-      });
-      this.appendExecutionDump(executor.dump());
-      this.writeOutActionDumps();
+  private afterTaskRunning(executor: Executor, doNotThrowError = false) {
+    this.appendExecutionDump(executor.dump());
+    this.writeOutActionDumps();
 
-      if (executor.isInErrorState()) {
-        const errorTask = executor.latestErrorTask();
-        throw new Error(`${errorTask?.error}\n${errorTask?.errorStack}`);
-      }
-    } else {
-      const { executor } = await this.taskExecutor.action(taskPrompt, {
-        onTaskStart: this.callbackOnTaskStartTip.bind(this),
-      });
-      this.appendExecutionDump(executor.dump());
-      this.writeOutActionDumps();
-
-      if (executor.isInErrorState()) {
-        const errorTask = executor.latestErrorTask();
-        throw new Error(`${errorTask?.error}\n${errorTask?.errorStack}`);
-      }
+    if (executor.isInErrorState() && !doNotThrowError) {
+      const errorTask = executor.latestErrorTask();
+      throw new Error(`${errorTask?.error}\n${errorTask?.errorStack}`);
     }
+  }
+
+  async aiTap(targetPrompt: string, searchArea?: string) {
+    const plans = buildPlans('Tap', {
+      prompt: targetPrompt,
+      searchArea,
+    });
+    const { executor, output } = await this.taskExecutor.runPlans(
+      `Tap ${targetPrompt}`,
+      plans,
+    );
+    this.afterTaskRunning(executor);
+    return output;
+  }
+
+  async aiHover(taskPrompt: string) {
+    const plans = buildPlans('Hover', {
+      prompt: taskPrompt,
+    });
+    const { executor, output } = await this.taskExecutor.runPlans(
+      `Hover ${taskPrompt}`,
+      plans,
+    );
+    this.afterTaskRunning(executor);
+    return output;
+  }
+
+  async aiInput(where: string, value: string) {
+    const plans = buildPlans(
+      'Input',
+      {
+        prompt: where,
+      },
+      {
+        value,
+      } as PlanningActionParamInputOrKeyPress,
+    );
+    const { executor, output } = await this.taskExecutor.runPlans(
+      `Input ${where} - ${value}`,
+      plans,
+    );
+    this.afterTaskRunning(executor);
+    return output;
+  }
+
+  async aiKeyboardPress(where: string, value: string) {
+    const plans = buildPlans(
+      'KeyboardPress',
+      {
+        prompt: where,
+      },
+      {
+        value,
+      } as PlanningActionParamInputOrKeyPress,
+    );
+    const { executor, output } = await this.taskExecutor.runPlans(
+      `KeyboardPress ${where} - ${value}`,
+      plans,
+    );
+    this.afterTaskRunning(executor);
+    return output;
+  }
+
+  // async aiScroll(where: string, param: PlanningActionParamScroll) {
+  //   const plans = buildPlans(
+  //     'Scroll',
+  //     {
+  //       prompt: where,
+  //     },
+  //     param,
+  //   );
+  //   const { executor, output } = await this.taskExecutor.runPlans(
+  //     `Scroll ${where} - ${paramStr(param)}`,
+  //     plans,
+  //   );
+  // }
+
+  async aiAction(taskPrompt: string) {
+    const { executor } = await (getAIConfig(MIDSCENE_USE_VLM_UI_TARS)
+      ? this.taskExecutor.actionToGoal(taskPrompt, {
+          onTaskStart: this.callbackOnTaskStartTip.bind(this),
+        })
+      : this.taskExecutor.action(taskPrompt, {
+          onTaskStart: this.callbackOnTaskStartTip.bind(this),
+        }));
+
+    this.afterTaskRunning(executor);
   }
 
   async aiQuery(demand: any) {
     const { output, executor } = await this.taskExecutor.query(demand, {
       onTaskStart: this.callbackOnTaskStartTip.bind(this),
     });
-    this.appendExecutionDump(executor.dump());
-    this.writeOutActionDumps();
-
-    if (executor.isInErrorState()) {
-      const errorTask = executor.latestErrorTask();
-      throw new Error(`${errorTask?.error}\n${errorTask?.errorStack}`);
-    }
+    this.afterTaskRunning(executor);
     return output;
   }
 
@@ -215,8 +280,7 @@ export class PageAgent<PageType extends WebPage = WebPage> {
     const { output, executor } = await this.taskExecutor.assert(assertion, {
       onTaskStart: this.callbackOnTaskStartTip.bind(this),
     });
-    this.appendExecutionDump(executor.dump());
-    this.writeOutActionDumps();
+    this.afterTaskRunning(executor, true);
 
     if (output && opt?.keepRawResponse) {
       return output;

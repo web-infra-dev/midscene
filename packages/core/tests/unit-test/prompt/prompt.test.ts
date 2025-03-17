@@ -7,8 +7,11 @@ import {
 import { describe, expect, it } from 'vitest';
 
 describe('system prompt to task planning', () => {
+  // TODO: restore config
+
   it('planning - 4o', async () => {
     process.env.MIDSCENE_USE_QWEN_VL = 'false';
+    process.env.MIDSCENE_USE_DOUBAO_VISION = 'false';
     const prompt = await systemPromptToTaskPlanning();
     expect(prompt).toMatchSnapshot();
   });
@@ -34,6 +37,7 @@ describe('system prompt to task planning', () => {
 
   it('planning - user prompt - 4o', async () => {
     process.env.MIDSCENE_USE_QWEN_VL = 'false';
+    process.env.MIDSCENE_USE_DOUBAO_VISION = 'false';
     const prompt = automationUserPrompt();
     const result = await prompt.format({
       pageDescription: 'THIS IS PAGE DESCRIPTION',

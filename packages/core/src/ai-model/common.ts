@@ -11,6 +11,7 @@ import {
   getModelName,
 } from './service-caller/index';
 
+import { vlLocateMode } from '@/env';
 import type { PlanningLocateParam } from '@/types';
 
 export type AIArgs = [
@@ -41,29 +42,107 @@ export async function callAiFn<T>(
   return { content, usage };
 }
 
+const defaultBboxSize = 20;
+
 // transform the param of locate from qwen mode
-export function fillLocateParam(locate: PlanningLocateParam) {
-  if (locate?.bbox_2d && !locate?.bbox) {
-    locate.bbox = locate.bbox_2d;
+export function fillLocateParam(
+  locate: PlanningLocateParam,
+  width: number,
+  height: number,
+  errorMsg?: string,
+) {
+  // The Qwen model might have hallucinations of naming bbox as bbox_2d.
+  if ((locate as any).bbox_2d && !locate?.bbox) {
+    locate.bbox = (locate as any).bbox_2d;
     // biome-ignore lint/performance/noDelete: <explanation>
-    delete locate.bbox_2d;
+    delete (locate as any).bbox_2d;
   }
 
-  const defaultBboxSize = 10;
   if (locate?.bbox) {
-    locate.bbox[0] = Math.round(locate.bbox[0]);
-    locate.bbox[1] = Math.round(locate.bbox[1]);
-    locate.bbox[2] =
-      typeof locate.bbox[2] === 'number'
-        ? Math.round(locate.bbox[2])
-        : Math.round(locate.bbox[0] + defaultBboxSize);
-    locate.bbox[3] =
-      typeof locate.bbox[3] === 'number'
-        ? Math.round(locate.bbox[3])
-        : Math.round(locate.bbox[1] + defaultBboxSize);
+    locate.bbox = adaptBbox(locate.bbox, width, height, errorMsg);
   }
 
   return locate;
+}
+
+export function adaptQwenBbox(
+  bbox: number[],
+  errorMsg?: string,
+): [number, number, number, number] {
+  if (bbox.length < 2) {
+    const msg =
+      errorMsg ||
+      `invalid bbox data for qwen-vl mode: ${JSON.stringify(bbox)} `;
+    throw new Error(msg);
+  }
+
+  const result: [number, number, number, number] = [
+    Math.round(bbox[0]),
+    Math.round(bbox[1]),
+    typeof bbox[2] === 'number'
+      ? Math.round(bbox[2])
+      : Math.round(bbox[0] + defaultBboxSize),
+    typeof bbox[3] === 'number'
+      ? Math.round(bbox[3])
+      : Math.round(bbox[1] + defaultBboxSize),
+  ];
+  return result;
+}
+
+export function adaptDoubaoBbox(
+  bbox: number[],
+  width: number,
+  height: number,
+  errorMsg?: string,
+): [number, number, number, number] {
+  assert(
+    width > 0 && height > 0,
+    'width and height must be greater than 0 in doubao mode',
+  );
+  if (bbox.length === 4) {
+    return [
+      Math.round((bbox[0] * width) / 1000),
+      Math.round((bbox[1] * height) / 1000),
+      Math.round((bbox[2] * width) / 1000),
+      Math.round((bbox[3] * height) / 1000),
+    ];
+  }
+
+  if (bbox.length === 6 || bbox.length === 2) {
+    return [
+      Math.round((bbox[0] * width) / 1000),
+      Math.round((bbox[1] * height) / 1000),
+      Math.round((bbox[0] * width) / 1000) + defaultBboxSize,
+      Math.round((bbox[1] * height) / 1000) + defaultBboxSize,
+    ];
+  }
+
+  if (bbox.length === 8) {
+    return [
+      Math.round((bbox[0] * width) / 1000),
+      Math.round((bbox[1] * height) / 1000),
+      Math.round((bbox[4] * width) / 1000),
+      Math.round((bbox[5] * height) / 1000),
+    ];
+  }
+
+  const msg =
+    errorMsg ||
+    `invalid bbox data for doubao-vision mode: ${JSON.stringify(bbox)} `;
+  throw new Error(msg);
+}
+
+export function adaptBbox(
+  bbox: number[],
+  width: number,
+  height: number,
+  errorMsg?: string,
+): [number, number, number, number] {
+  if (vlLocateMode() === 'doubao-vision') {
+    return adaptDoubaoBbox(bbox, width, height, errorMsg);
+  }
+
+  return adaptQwenBbox(bbox, errorMsg);
 }
 
 let warned = false;
