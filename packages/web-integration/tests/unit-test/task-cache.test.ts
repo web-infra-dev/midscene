@@ -1,7 +1,7 @@
 import { type LocateTask, type PlanTask, TaskCache } from '@/common/task-cache';
 import type { WebUIContext } from '@/common/utils';
 import type { WebElementInfo } from '@/web-element';
-import type { AIElementIdResponse } from '@midscene/core';
+import type { AIElementLocatorResponse } from '@midscene/core';
 import { beforeEach, describe, expect, it } from 'vitest';
 
 describe('TaskCache', () => {
@@ -24,7 +24,7 @@ describe('TaskCache', () => {
 
   it('should return false if no cache is available', async () => {
     const cacheGroup = taskCache.getCacheGroupByPrompt('test prompt');
-    const result = cacheGroup.readCache(
+    const result = cacheGroup.matchCache(
       formalPageContext,
       'plan',
       'test prompt',
@@ -51,7 +51,7 @@ describe('TaskCache', () => {
       },
     ];
     const cacheGroup = taskCache.getCacheGroupByPrompt('test prompt');
-    const result = cacheGroup.readCache(
+    const result = cacheGroup.matchCache(
       formalPageContext,
       'plan',
       'test prompt',
@@ -71,14 +71,14 @@ describe('TaskCache', () => {
               pageContext,
               response: {
                 elements: [{ id: 'element3' }],
-              } as AIElementIdResponse,
+              } as AIElementLocatorResponse,
             },
           ],
         },
       ],
     };
     const cacheGroup = taskCache.getCacheGroupByPrompt('test prompt');
-    const result = cacheGroup.readCache(
+    const result = cacheGroup.matchCache(
       formalPageContext,
       'locate',
       'test prompt',
@@ -109,7 +109,7 @@ describe('TaskCache', () => {
     };
 
     const cacheGroup = taskCache.getCacheGroupByPrompt('test prompt');
-    const result = cacheGroup.readCache(
+    const result = cacheGroup.matchCache(
       formalPageContext,
       'plan',
       'test prompt',

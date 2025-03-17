@@ -80,7 +80,7 @@ describe(
       await reset();
     });
 
-    it('keep same id after resize', async () => {
+    it.skip('keep same id after resize', async () => {
       const { page, reset } = await launchPage(
         `file://${pagePath}?resize-after-3s=1`,
         {

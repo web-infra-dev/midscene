@@ -1,7 +1,7 @@
 import type { WebPage } from '@/common/page';
 import type { PuppeteerWebPage } from '@/puppeteer';
 import {
-  type AIElementIdResponse,
+  type AIElementLocatorResponse,
   type AIUsageInfo,
   type DumpSubscriber,
   type ExecutionRecorderItem,
@@ -166,12 +166,11 @@ export class PageTaskExecutor {
               timing: 'before locate',
             };
 
-            const locateCache = cacheGroup?.readCache(
+            const locateCache = cacheGroup?.matchCache(
               pageContext,
               'locate',
               param.prompt,
             );
-            let locateResult: AIElementIdResponse | undefined;
             const callAI = this.insight.aiVendorFn;
 
             const quickAnswer = {
@@ -180,20 +179,21 @@ export class PageTaskExecutor {
               bbox: param?.bbox,
             };
             const startTime = Date.now();
+            let newLocateResultFlag = false;
             const element = await this.insight.locate(param.prompt, {
               quickAnswer,
               callAI: async (...message: any) => {
                 if (locateCache) {
-                  locateResult = locateCache;
                   return Promise.resolve({ content: locateCache });
                 }
                 const { content: aiResult, usage } = await callAI(...message);
+                newLocateResultFlag = true;
                 return { content: aiResult, usage };
               },
             });
             const aiCost = Date.now() - startTime;
 
-            if (locateResult) {
+            if (element) {
               cacheGroup?.saveCache({
                 type: 'locate',
                 pageContext: {
@@ -201,7 +201,13 @@ export class PageTaskExecutor {
                   size: pageContext.size,
                 },
                 prompt: param.prompt,
-                response: locateResult,
+                response: {
+                  elements: [
+                    {
+                      id: element.id,
+                    },
+                  ],
+                },
               });
             }
             if (!element) {
@@ -519,13 +525,23 @@ export class PageTaskExecutor {
         executorContext.task.recorder = [recordItem];
         (executorContext.task as any).pageContext = pageContext;
 
-        const planCache = cacheGroup.readCache(
+        const planCache = cacheGroup.matchCache(
           pageContext,
           'plan',
           param.userInstruction,
         );
         let planResult: Awaited<ReturnType<typeof plan>>;
         if (planCache) {
+          if ('actions' in planCache && Array.isArray(planCache.actions)) {
+            planCache.actions = planCache.actions.map((action) => {
+              // remove all bbox in actions cache while using
+              if (action.locate) {
+                // biome-ignore lint/performance/noDelete: intended to remove bbox
+                delete action.locate.bbox;
+              }
+              return action;
+            });
+          }
           planResult = planCache;
         } else {
           planResult = await plan(param.userInstruction, {
@@ -534,7 +550,6 @@ export class PageTaskExecutor {
           });
         }
 
-        // console.log('planResult is', planResult);
         const {
           actions,
           log,
@@ -672,7 +687,7 @@ export class PageTaskExecutor {
         });
         const startTime = Date.now();
 
-        const planCache = cacheGroup.readCache(
+        const planCache = cacheGroup.matchCache(
           pageContext,
           'ui-tars-plan',
           userInstruction,

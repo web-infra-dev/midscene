@@ -2,10 +2,12 @@ import {
   MIDSCENE_USE_QWEN_VL,
   MIDSCENE_USE_VLM_UI_TARS,
   getAIConfigInBoolean,
+  vlLocateMode,
 } from '@/env';
 import type {
   AIAssertionResponse,
-  AIElementIdResponse,
+  AIElementCoordinatesResponse,
+  AIElementLocatorResponse,
   AIElementResponse,
   AISectionLocatorResponse,
   AISectionParseResponse,
@@ -19,12 +21,12 @@ import type {
   UIContext,
 } from '@/types';
 import { paddingToMatchBlock } from '@midscene/shared/img';
-import { assert } from '@midscene/shared/utils';
+import { assert, getDebug } from '@midscene/shared/utils';
 import type {
   ChatCompletionSystemMessageParam,
   ChatCompletionUserMessageParam,
 } from 'openai/resources';
-import { AIActionType, callAiFn } from './common';
+import { AIActionType, adaptBbox, adaptQwenBbox, callAiFn } from './common';
 import { systemPromptToAssert } from './prompt/assertion';
 import { extractDataPrompt, systemPromptToExtract } from './prompt/extraction';
 import {
@@ -52,6 +54,8 @@ const liteContextConfig = {
   filterNonTextContent: true,
   truncateTextLength: 200,
 };
+
+const debugInspect = getDebug('ai:inspect');
 
 function transformToAbsoluteCoords(
   relativePosition: { x: number; y: number },
@@ -91,13 +95,8 @@ export async function transformElementPositionToId(
       return emptyResponse;
     }
 
-    aiResult.bbox[0] = Math.ceil(aiResult.bbox[0]);
-    aiResult.bbox[1] = Math.ceil(aiResult.bbox[1]);
-    aiResult.bbox[2] = Math.ceil(aiResult.bbox[2]);
-    aiResult.bbox[3] = Math.ceil(aiResult.bbox[3]);
-
-    const centerX = (aiResult.bbox[0] + aiResult.bbox[2]) / 2;
-    const centerY = (aiResult.bbox[1] + aiResult.bbox[3]) / 2;
+    const centerX = Math.round((aiResult.bbox[0] + aiResult.bbox[2]) / 2);
+    const centerY = Math.round((aiResult.bbox[1] + aiResult.bbox[3]) / 2);
 
     let element = elementAtPosition({ x: centerX, y: centerY });
 
@@ -118,6 +117,7 @@ export async function transformElementPositionToId(
           id: element.id,
         },
       ],
+      bbox: aiResult.bbox,
     };
   }
 
@@ -166,7 +166,7 @@ function matchQuickAnswer(
   tree: ElementTreeNode<BaseElement>,
   elementById: ElementById,
   insertElementByPosition: (position: { x: number; y: number }) => BaseElement,
-): Awaited<ReturnType<typeof AiInspectElement>> | undefined {
+): Awaited<ReturnType<typeof AiLocateElement>> | undefined {
   if (!quickAnswer) {
     return undefined;
   }
@@ -176,7 +176,7 @@ function matchQuickAnswer(
         elements: [quickAnswer as AISingleElementResponse],
         errors: [],
       },
-      rawResponse: quickAnswer,
+      rawResponse: JSON.stringify(quickAnswer),
       elementById,
     };
   }
@@ -218,7 +218,7 @@ function matchQuickAnswer(
   return undefined;
 }
 
-export async function AiInspectElement<
+export async function AiLocateElement<
   ElementType extends BaseElement = BaseElement,
 >(options: {
   context: UIContext<ElementType>;
@@ -228,8 +228,8 @@ export async function AiInspectElement<
     AISingleElementResponse | AISingleElementResponseByPosition
   >;
 }): Promise<{
-  parseResult: AIElementIdResponse;
-  rawResponse: any;
+  parseResult: AIElementLocatorResponse;
+  rawResponse: string;
   elementById: ElementById;
   usage?: AIUsageInfo;
 }> {
@@ -262,6 +262,7 @@ export async function AiInspectElement<
   let imagePayload = screenshotBase64WithElementMarker || screenshotBase64;
 
   if (getAIConfigInBoolean(MIDSCENE_USE_QWEN_VL)) {
+    // align image for qwen
     imagePayload = await paddingToMatchBlock(imagePayload);
   }
 
@@ -289,6 +290,20 @@ export async function AiInspectElement<
     callAI || callToGetJSONObject<AIElementResponse | [number, number]>;
 
   const res = await callAIFn(msgs, AIActionType.INSPECT_ELEMENT);
+  const rawResponse = JSON.stringify(res.content);
+
+  if ('bbox' in res.content && Array.isArray(res.content.bbox)) {
+    const errorMsg = res.content.errors?.length
+      ? `Failed to parse bbox: ${res.content.errors?.join(',')}`
+      : '';
+    res.content.bbox = adaptBbox(
+      res.content.bbox,
+      context.size.width,
+      context.size.height,
+      errorMsg,
+    );
+    debugInspect('res.content.bbox after adapt', res.content.bbox);
+  }
 
   const parseResult = await transformElementPositionToId(
     res.content,
@@ -299,7 +314,7 @@ export async function AiInspectElement<
 
   return {
     parseResult,
-    rawResponse: res.content,
+    rawResponse,
     elementById,
     usage: res.usage,
   };
@@ -343,8 +358,8 @@ export async function AiLocateSection(options: {
   );
 
   return {
-    sectionBbox: result.content.bbox_2d,
-    rawResponse: result.content,
+    sectionBbox: result.content.bbox,
+    rawResponse: JSON.stringify(result.content),
     usage: result.usage,
   };
 }

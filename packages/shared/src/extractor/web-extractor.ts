@@ -20,7 +20,6 @@ import {
   getTopDocument,
   logger,
   midsceneGenerateHash,
-  resetNodeHashCacheList,
   setDataForNode,
   setDebugMode,
   visibleRect,
@@ -292,7 +291,6 @@ export function extractTreeNode(
   debugMode = false,
 ): WebElementNode {
   setDebugMode(debugMode);
-  resetNodeHashCacheList();
   indexId = 0;
 
   const topDocument = getTopDocument();

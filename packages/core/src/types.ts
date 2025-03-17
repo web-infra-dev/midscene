@@ -76,12 +76,13 @@ export type AISingleElementResponseByPosition = {
 };
 
 export type AISingleElementResponse = AISingleElementResponseById;
-export interface AIElementIdResponse {
+export interface AIElementLocatorResponse {
   elements: {
     id: string;
     reason?: string;
     text?: string;
   }[];
+  bbox?: [number, number, number, number];
   errors?: string[];
 }
 
@@ -91,7 +92,7 @@ export interface AIElementCoordinatesResponse {
 }
 
 export type AIElementResponse =
-  | AIElementIdResponse
+  | AIElementLocatorResponse
   | AIElementCoordinatesResponse;
 
 export interface AISectionParseResponse<DataShape> {
@@ -101,7 +102,7 @@ export interface AISectionParseResponse<DataShape> {
 }
 
 export interface AISectionLocatorResponse {
-  bbox_2d: [number, number, number, number];
+  bbox: [number, number, number, number];
   error?: string;
 }
 
@@ -245,7 +246,6 @@ export interface PlanningLocateParam {
     y: number;
   };
   bbox?: [number, number, number, number];
-  bbox_2d?: [number, number, number, number];
   prompt: string;
 }
 

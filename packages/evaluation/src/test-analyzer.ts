@@ -9,7 +9,7 @@ import {
 } from 'node:fs';
 import path from 'node:path';
 import {
-  type AiInspectElement,
+  type AiLocateElement,
   MIDSCENE_MODEL_NAME,
   getAIConfig,
   type plan,
@@ -18,7 +18,7 @@ import type { AiLocateSection } from '@midscene/core/ai-model';
 import type { TestCase } from '../tests/util';
 
 type ActualResult =
-  | Awaited<ReturnType<typeof AiInspectElement>>
+  | Awaited<ReturnType<typeof AiLocateElement>>
   | Awaited<ReturnType<typeof plan>>
   | Awaited<ReturnType<typeof AiLocateSection>>;
 
@@ -191,10 +191,10 @@ ${errorMsg ? `Error: ${errorMsg}` : ''}
     }
 
     // compare coordinates
-    if ('rawResponse' in result && result.rawResponse.bbox) {
+    if ('parseResult' in result && result.parseResult.bbox) {
       assert(testCase.response_bbox, 'testCase.response_bbox is required');
       const distance = this.distanceOfTwoBbox(
-        result.rawResponse.bbox,
+        result.parseResult.bbox,
         testCase.response_bbox,
       );
 

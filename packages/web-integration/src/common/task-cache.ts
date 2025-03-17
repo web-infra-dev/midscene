@@ -1,6 +1,9 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import type { AIElementIdResponse, PlanningAIResponse } from '@midscene/core';
+import type {
+  AIElementLocatorResponse,
+  PlanningAIResponse,
+} from '@midscene/core';
 import type { vlmPlanning } from '@midscene/core/ai-model';
 import { getAIConfig, getAIConfigInBoolean } from '@midscene/core/env';
 import {
@@ -50,7 +53,7 @@ export type LocateTask = {
       height: number;
     };
   };
-  response: AIElementIdResponse;
+  response: AIElementLocatorResponse;
 };
 
 export type AiTasks = Array<PlanTask | LocateTask | UITarsPlanTask>;
@@ -63,7 +66,7 @@ export type AiTaskCache = {
 };
 
 export type CacheGroup = {
-  readCache: <T extends 'plan' | 'locate' | 'ui-tars-plan'>(
+  matchCache: <T extends 'plan' | 'locate' | 'ui-tars-plan'>(
     pageContext: WebUIContext,
     type: T,
     actionPrompt: string,
@@ -104,7 +107,7 @@ export class TaskCache {
       tasks: newCacheGroup,
     });
     return {
-      readCache: <T extends 'plan' | 'locate' | 'ui-tars-plan'>(
+      matchCache: <T extends 'plan' | 'locate' | 'ui-tars-plan'>(
         pageContext: WebUIContext,
         type: T,
         actionPrompt: string,
@@ -113,7 +116,7 @@ export class TaskCache {
           return false as any;
         }
         if (type === 'plan') {
-          return this.readCache(
+          return this.matchCache(
             pageContext,
             type,
             actionPrompt,
@@ -121,7 +124,7 @@ export class TaskCache {
           ) as PlanTask['response'];
         }
         if (type === 'ui-tars-plan') {
-          return this.readCache(
+          return this.matchCache(
             pageContext,
             type,
             actionPrompt,
@@ -129,7 +132,7 @@ export class TaskCache {
           ) as UITarsPlanTask['response'];
         }
 
-        return this.readCache(
+        return this.matchCache(
           pageContext,
           type,
           actionPrompt,
@@ -142,6 +145,11 @@ export class TaskCache {
       },
       saveCache: (cache: PlanTask | LocateTask | UITarsPlanTask) => {
         newCacheGroup.push(cache);
+        debug(
+          'saving cache to file, type: %s, cacheId: %s',
+          cache.type,
+          this.cacheId,
+        );
         this.writeCacheToFile();
       },
     };
@@ -163,25 +171,25 @@ export class TaskCache {
    * @param userPrompt String type, representing user prompt information
    * @return Returns a Promise object that resolves to a boolean or object
    */
-  readCache(
+  matchCache(
     pageContext: WebUIContext,
     type: 'plan',
     userPrompt: string,
     cacheGroup: AiTasks,
   ): PlanTask['response'];
-  readCache(
+  matchCache(
     pageContext: WebUIContext,
     type: 'ui-tars-plan',
     userPrompt: string,
     cacheGroup: AiTasks,
   ): UITarsPlanTask['response'];
-  readCache(
+  matchCache(
     pageContext: WebUIContext,
     type: 'locate',
     userPrompt: string,
     cacheGroup: AiTasks,
   ): LocateTask['response'];
-  readCache(
+  matchCache(
     pageContext: WebUIContext,
     type: 'plan' | 'locate' | 'ui-tars-plan',
     userPrompt: string,
@@ -214,20 +222,22 @@ export class TaskCache {
       );
 
       // The corresponding element cannot be found in the new context
-      if (
-        taskRes?.type === 'locate' &&
-        !taskRes.response?.elements.every((element) => {
-          const findIndex = pageContext.content.findIndex(
-            (contentElement) => contentElement.id === element.id,
-          );
-          if (findIndex === -1) {
-            return false;
-          }
-          return true;
-        })
-      ) {
-        debug('cannot find element with same id in current page');
-        return false;
+      if (taskRes?.type === 'locate') {
+        const id = taskRes.response?.elements[0].id;
+        if (!id) {
+          debug('no id in cached response');
+          return false;
+        }
+
+        const foundInContext = pageContext.content.find(
+          (contentElement) => contentElement.id === id,
+        );
+        if (!foundInContext) {
+          debug('cannot match element with same id in current page');
+          return false;
+        }
+
+        return taskRes.response;
       }
 
       if (taskRes && taskRes.type === type && taskRes.prompt === userPrompt) {
@@ -284,7 +294,11 @@ export class TaskCache {
       return undefined;
     }
     const cacheFile = join(getLogDirByType('cache'), `${this.cacheId}.json`);
-    if (getAIConfigInBoolean('MIDSCENE_CACHE') && existsSync(cacheFile)) {
+    if (!getAIConfigInBoolean('MIDSCENE_CACHE')) {
+      return undefined;
+    }
+
+    if (existsSync(cacheFile)) {
       try {
         const data = readFileSync(cacheFile, 'utf8');
         const jsonData = JSON.parse(data);
@@ -300,17 +314,30 @@ export class TaskCache {
         ) {
           return undefined;
         }
+        debug('read cache from file: %s', cacheFile);
         return jsonData as AiTaskCache;
       } catch (err) {
+        debug(
+          'cache file exists but parse failed, path: %s, error: %s',
+          cacheFile,
+          err,
+        );
         return undefined;
       }
     }
+    debug('no cache file found, path: %s', cacheFile);
     return undefined;
   }
 
   writeCacheToFile() {
     const midscenePkgInfo = getRunningPkgInfo();
-    if (!midscenePkgInfo || !this.cacheId) {
+    if (!midscenePkgInfo) {
+      debug('no midscene pkg info, will not write cache to file');
+      return;
+    }
+
+    if (!this.cacheId) {
+      debug('no cache id, will not write cache to file');
       return;
     }
 
