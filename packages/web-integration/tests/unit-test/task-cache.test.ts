@@ -24,7 +24,7 @@ describe('TaskCache', () => {
 
   it('should return false if no cache is available', async () => {
     const cacheGroup = taskCache.getCacheGroupByPrompt('test prompt');
-    const result = cacheGroup.readCache(
+    const result = cacheGroup.matchCache(
       formalPageContext,
       'plan',
       'test prompt',
@@ -51,7 +51,7 @@ describe('TaskCache', () => {
       },
     ];
     const cacheGroup = taskCache.getCacheGroupByPrompt('test prompt');
-    const result = cacheGroup.readCache(
+    const result = cacheGroup.matchCache(
       formalPageContext,
       'plan',
       'test prompt',
@@ -78,7 +78,7 @@ describe('TaskCache', () => {
       ],
     };
     const cacheGroup = taskCache.getCacheGroupByPrompt('test prompt');
-    const result = cacheGroup.readCache(
+    const result = cacheGroup.matchCache(
       formalPageContext,
       'locate',
       'test prompt',
@@ -109,7 +109,7 @@ describe('TaskCache', () => {
     };
 
     const cacheGroup = taskCache.getCacheGroupByPrompt('test prompt');
-    const result = cacheGroup.readCache(
+    const result = cacheGroup.matchCache(
       formalPageContext,
       'plan',
       'test prompt',
