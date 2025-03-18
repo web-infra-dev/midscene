@@ -83,7 +83,9 @@ const DetailPanel = (): JSX.Element => {
         <Blackboard
           uiContext={insightDump!.context}
           highlightElements={insightDump!.matchedElement}
+          highlightRect={insightDump!.taskInfo?.searchArea}
           key={`${dumpId}`}
+          disableInteraction
         />
       );
     } else {

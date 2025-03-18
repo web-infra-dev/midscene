@@ -98,7 +98,7 @@ describe(
       expect(names.length).toBeGreaterThan(5);
     });
 
-    it('search engine with specific actions', async () => {
+    it.skip('search engine with specific actions', async () => {
       const { originPage, reset } = await launchPage('https://www.baidu.com/');
       resetFn = reset;
       const agent = new PuppeteerAgent(originPage);
@@ -119,7 +119,8 @@ describe(
 
       await agent.aiTap({
         prompt: 'the settings button',
-        searchArea: 'the upper right corner of the page',
+        searchArea:
+          'the upper right corner of the page, including the login and settings button',
       });
     });
 

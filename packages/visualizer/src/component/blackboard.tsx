@@ -19,15 +19,21 @@ const noop = () => {
 export const rectMarkForItem = (
   rect: Rect,
   name: string,
-  ifHighlight: boolean,
+  type: 'element' | 'searchArea' | 'highlight',
   onPointOver?: () => void,
   onPointerOut?: () => void,
 ) => {
   const { left, top, width, height } = rect;
-  const themeColor = ifHighlight
-    ? highlightColorForType('element')
-    : colorForName(name);
-  const alpha = ifHighlight ? highlightAlpha : itemFillAlpha;
+  let themeColor: string;
+  if (type === 'element') {
+    themeColor = colorForName(name);
+  } else if (type === 'searchArea') {
+    themeColor = highlightColorForType('searchArea');
+  } else {
+    themeColor = highlightColorForType('element');
+  }
+
+  const alpha = type === 'highlight' ? highlightAlpha : itemFillAlpha;
   const graphics = new PIXI.Graphics();
   graphics.beginFill(themeColor, alpha);
   graphics.lineStyle(1, themeColor, 1);
@@ -62,11 +68,13 @@ export const rectMarkForItem = (
 const Blackboard = (props: {
   uiContext: UIContext;
   highlightElements?: BaseElement[];
+  highlightRect?: Rect;
   hideController?: boolean;
   disableInteraction?: boolean;
 }): JSX.Element => {
   const highlightElements: BaseElement[] = props.highlightElements || [];
   const highlightIds = highlightElements.map((e) => e.id);
+  const highlightRect = props.highlightRect;
 
   const context = props.uiContext!;
   const { size, screenshotBase64, screenshotBase64WithElementMarker } = context;
@@ -179,6 +187,17 @@ const Blackboard = (props: {
     highlightContainer.removeChildren();
     elementMarkContainer.removeChildren();
 
+    if (highlightRect) {
+      console.log('highlightRect', highlightRect);
+      const [graphics] = rectMarkForItem(
+        highlightRect,
+        'Search Area',
+        'searchArea',
+        noop,
+        noop,
+      );
+      highlightContainer.addChild(graphics);
+    }
     // element rects
     context.content.forEach((element) => {
       const { rect, content, id } = element;
@@ -187,7 +206,7 @@ const Blackboard = (props: {
         const [graphics] = rectMarkForItem(
           rect,
           content,
-          ifHighlight,
+          'highlight',
           noop,
           noop,
         );
@@ -200,7 +219,7 @@ const Blackboard = (props: {
       const [graphics] = rectMarkForItem(
         rect,
         content,
-        ifHighlight,
+        'element',
         props?.disableInteraction
           ? undefined
           : () => {
@@ -221,6 +240,7 @@ const Blackboard = (props: {
     highlightElements,
     context.content,
     hoverElement,
+    highlightRect,
     // bgVisible,
     // elementsVisible,
   ]);
