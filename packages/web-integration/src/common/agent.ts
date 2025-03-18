@@ -27,7 +27,7 @@ import {
   writeLogFile,
 } from '@midscene/core/utils';
 import { PageTaskExecutor } from '../common/tasks';
-import { WebElementInfo } from '../web-element';
+import type { WebElementInfo } from '../web-element';
 import { buildPlans } from './plan-builder';
 import type { AiTaskCache } from './task-cache';
 import { paramStr, typeStr } from './ui-utils';
@@ -85,18 +85,6 @@ export class PageAgent<PageType extends WebPage = WebPage> {
     this.insight = new Insight<WebElementInfo, WebUIContext>(
       async (action: InsightAction) => {
         return this.getUIContext(action);
-      },
-      {
-        generateElement: ({ content, rect }) =>
-          new WebElementInfo({
-            content: content || '',
-            rect,
-            id: '',
-            attributes: {
-              nodeType: NodeType.CONTAINER,
-            },
-            indexId: 0,
-          }),
       },
     );
 

@@ -183,7 +183,7 @@ export class PageTaskExecutor {
               bbox: param?.bbox,
             };
             const startTime = Date.now();
-            const element = await this.insight.locate(param, {
+            const { element } = await this.insight.locate(param, {
               quickAnswer,
             });
             const aiCost = Date.now() - startTime;

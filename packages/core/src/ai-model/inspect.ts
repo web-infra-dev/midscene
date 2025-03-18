@@ -221,6 +221,7 @@ export async function AiLocateElement<
   searchArea?: Rect;
 }): Promise<{
   parseResult: AIElementLocatorResponse;
+  rect?: Rect;
   rawResponse: string;
   elementById: ElementById;
   usage?: AIUsageInfo;
@@ -272,9 +273,7 @@ export async function AiLocateElement<
 
     imagePayload = await jimpToBase64(jimpImage);
     debugInspect(
-      'image size after processing',
-      jimpImage.bitmap.width,
-      jimpImage.bitmap.height,
+      `image size after processing: ${jimpImage.bitmap.width}x${jimpImage.bitmap.height}`,
     );
   }
 
@@ -305,6 +304,7 @@ export async function AiLocateElement<
 
   const rawResponse = JSON.stringify(res.content);
 
+  let resRect: Rect | undefined;
   if ('bbox' in res.content && Array.isArray(res.content.bbox)) {
     const errorMsg = res.content.errors?.length
       ? `Failed to parse bbox: ${res.content.errors?.join(',')}`
@@ -324,9 +324,10 @@ export async function AiLocateElement<
         }
         return v + offsetY;
       }) as [number, number, number, number];
+      debugInspect('res.content.bbox after offset', res.content.bbox);
     }
 
-    debugInspect('res.content.bbox after offset', res.content.bbox);
+    resRect = bboxToRect(res.content.bbox);
   }
 
   const parseResult = await transformElementPositionToId(
@@ -337,6 +338,7 @@ export async function AiLocateElement<
   );
 
   return {
+    rect: resRect,
     parseResult,
     rawResponse,
     elementById,

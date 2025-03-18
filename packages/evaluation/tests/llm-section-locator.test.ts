@@ -6,7 +6,7 @@ import { sleep } from '@midscene/core/utils';
 import { saveBase64Image } from '@midscene/shared/img';
 import dotenv from 'dotenv';
 import { afterAll, expect, test } from 'vitest';
-import { TestResultCollector } from '../src/test-analyzer';
+import { TestResultCollector } from '../src/test-printSummaryr';
 import { annotatePoints, buildContext, getCases } from './util';
 
 dotenv.config({
@@ -27,7 +27,7 @@ if (process.env.CI && !vlLocateMode()) {
 }
 
 afterAll(async () => {
-  await resultCollector.analyze(failCaseThreshold);
+  await resultCollector.printSummary(failCaseThreshold);
 });
 
 testSources.forEach((source) => {
@@ -87,7 +87,7 @@ testSources.forEach((source) => {
         );
       }
 
-      await resultCollector.analyze(failCaseThreshold);
+      await resultCollector.printSummary(failCaseThreshold);
       await sleep(3 * 1000);
     },
     360 * 1000,

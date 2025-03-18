@@ -13,6 +13,7 @@ import type {
   InsightExtractParam,
   InsightOptions,
   InsightTaskInfo,
+  LocateResult,
   PartialInsightDumpFromSDK,
   PlanningLocateParam,
   Rect,
@@ -43,8 +44,6 @@ export default class Insight<
 
   onceDumpUpdatedFn?: DumpSubscriber;
 
-  generateElement: InsightOptions['generateElement'];
-
   taskInfo?: Omit<InsightTaskInfo, 'durationMs'>;
 
   constructor(
@@ -60,8 +59,6 @@ export default class Insight<
       this.contextRetrieverFn = () => Promise.resolve(context);
     }
 
-    this.generateElement = opt?.generateElement;
-
     if (typeof opt?.aiVendorFn !== 'undefined') {
       this.aiVendorFn = opt.aiVendorFn;
     }
@@ -73,8 +70,7 @@ export default class Insight<
   async locate(
     query: string | PlanningLocateParam,
     opt?: LocateOpts,
-  ): Promise<ElementType | null>;
-  async locate(query: string | PlanningLocateParam, opt?: LocateOpts) {
+  ): Promise<LocateResult> {
     const { callAI } = opt || {};
     const queryPrompt = typeof query === 'string' ? query : query.prompt;
     assert(
@@ -83,15 +79,9 @@ export default class Insight<
     );
     const dumpSubscriber = this.onceDumpUpdatedFn;
     this.onceDumpUpdatedFn = undefined;
-    // still under construction
-    // const searchArea = typeof query === 'string' ? undefined : query.searchArea;
     const searchAreaPrompt =
       typeof query === 'string' ? undefined : query.searchArea;
     const context = await this.contextRetrieverFn('locate');
-    // const { sectionBbox, usage } = await AiLocateSection({
-    //   context,
-    //   sectionDescription: searchArea,
-    // })
 
     let searchArea: Rect | undefined = undefined;
     let searchAreaRawResponse: string | undefined = undefined;
@@ -137,7 +127,7 @@ export default class Insight<
     }
 
     const startTime = Date.now();
-    const { parseResult, elementById, rawResponse, usage } =
+    const { parseResult, rect, elementById, rawResponse, usage } =
       await AiLocateElement({
         callAI: callAI || this.aiVendorFn,
         context,
@@ -171,19 +161,14 @@ export default class Insight<
       },
       quickAnswer: opt?.quickAnswer,
       matchedElement: [],
+      matchedRect: rect,
       data: null,
       taskInfo,
       error: errorLog,
     };
 
-    const logId = emitInsightDump(dumpData, undefined, dumpSubscriber);
-
-    if (errorLog) {
-      throw new Error(errorLog);
-    }
-
     const elements: BaseElement[] = [];
-    parseResult.elements.forEach((item) => {
+    (parseResult.elements || []).forEach((item) => {
       if ('id' in item) {
         const element = elementById(item.id);
 
@@ -202,20 +187,38 @@ export default class Insight<
         ...dumpData,
         matchedElement: elements,
       },
-      logId,
       dumpSubscriber,
     );
+
+    if (errorLog) {
+      throw new Error(errorLog);
+    }
 
     if (elements.length >= 2) {
       console.warn(
         `locate: multiple elements found, return the first one. (query: ${queryPrompt})`,
       );
-      return elements[0];
+      return {
+        element: {
+          id: elements[0]!.id,
+          indexId: elements[0]!.indexId,
+        },
+        rect,
+      };
     }
     if (elements.length === 1) {
-      return elements[0];
+      return {
+        element: {
+          id: elements[0]!.id,
+          indexId: elements[0]!.indexId,
+        },
+        rect,
+      };
     }
-    return null;
+    return {
+      element: null,
+      rect,
+    };
   }
 
   async extract<T = any>(input: string): Promise<T>;
@@ -263,22 +266,21 @@ export default class Insight<
       taskInfo,
       error: errorLog,
     };
-    const logId = emitInsightDump(dumpData, undefined, dumpSubscriber);
 
-    const { data } = parseResult;
-    if (errorLog && !data) {
-      console.error(errorLog);
-      throw new Error(errorLog);
-    }
+    const { data } = parseResult || {};
 
+    // 4
     emitInsightDump(
       {
         ...dumpData,
         data,
       },
-      logId,
       dumpSubscriber,
     );
+
+    if (errorLog && !data) {
+      throw new Error(errorLog);
+    }
 
     return {
       data,
@@ -324,7 +326,7 @@ export default class Insight<
       assertionThought: thought,
       error: pass ? undefined : thought,
     };
-    emitInsightDump(dumpData, undefined, dumpSubscriber);
+    emitInsightDump(dumpData, dumpSubscriber);
 
     return {
       pass,

@@ -99,7 +99,7 @@ export function adaptDoubaoBbox(
     width > 0 && height > 0,
     'width and height must be greater than 0 in doubao mode',
   );
-  if (bbox.length === 4) {
+  if (bbox.length === 4 || bbox.length === 5) {
     return [
       Math.round((bbox[0] * width) / 1000),
       Math.round((bbox[1] * height) / 1000),

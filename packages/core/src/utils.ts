@@ -39,12 +39,14 @@ export function getLogDirByType(type: 'dump' | 'cache' | 'report' | 'tmp') {
 
 let reportTpl: string | null = null;
 function getReportTpl() {
-  if (ifInBrowser) {
+  if (ifInBrowser && typeof window !== 'undefined') {
     if (!reportTpl && (window as any).get_midscene_report_tpl) {
       reportTpl = (window as any).get_midscene_report_tpl();
     }
     return reportTpl;
   }
+
+  // TODO: ifInWorker
 
   const __dirname = dirname(__filename);
   if (!reportTpl) {

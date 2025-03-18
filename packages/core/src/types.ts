@@ -138,10 +138,6 @@ export type CallAIFn = <T>(
 export interface InsightOptions {
   taskInfo?: Omit<InsightTaskInfo, 'durationMs'>;
   aiVendorFn?: CallAIFn;
-  generateElement?: (opts: {
-    content?: string;
-    rect: BaseElement['rect'];
-  }) => BaseElement;
 }
 
 // export interface UISection {
@@ -157,6 +153,11 @@ export type EnsureObject<T> = { [K in keyof T]: any };
 export type InsightAction = 'locate' | 'extract' | 'assert';
 
 export type InsightExtractParam = string | Record<string, string>;
+
+export interface LocateResult {
+  element: { id: string; indexId?: number } | null;
+  rect?: Rect;
+}
 
 export interface InsightTaskInfo {
   durationMs: number;
@@ -191,6 +192,7 @@ export interface InsightDump extends DumpMeta {
   };
   quickAnswer?: Partial<AISingleElementResponse> | null;
   matchedElement: BaseElement[];
+  matchedRect?: Rect;
   data: any;
   assertionPass?: boolean;
   assertionThought?: string;

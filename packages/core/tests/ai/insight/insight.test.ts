@@ -9,7 +9,7 @@ test(
     const { context } = await getContextFromFixture('taobao');
 
     const insight = new Insight(context);
-    const element = await insight.locate({
+    const { element } = await insight.locate({
       prompt: '购物车 icon',
       searchArea: '顶部购物车栏目',
     });

@@ -4,74 +4,92 @@
     {
       "prompt": "Top left menu bar icon",
       "multi": false,
-      "response": [
-        {
-          "id": "amjle",
-          "indexId": 0
-        }
-      ],
-      "response_bbox": [16, 20, 43, 37],
-      "annotation_index_id": 1
+      "annotation_index_id": 1,
+      "response_rect": {
+        "left": 17,
+        "top": 20,
+        "width": 22,
+        "height": 16
+      },
+      "response_element": {
+        "id": "amjle",
+        "indexId": 0
+      }
     },
     {
       "prompt": "点击左上角语言切换按钮(写着 English 或者 中文)，在弹出的下拉列表中点击中文",
       "multi": false,
-      "response": [
-        {
-          "id": "kciee",
-          "indexId": 1
-        }
-      ],
-      "response_bbox": [57, 14, 126, 43],
-      "annotation_index_id": 2
+      "annotation_index_id": 2,
+      "response_rect": {
+        "left": 58,
+        "top": 16,
+        "width": 66,
+        "height": 23
+      },
+      "response_element": {
+        "id": "kfmhg",
+        "indexId": 1
+      }
     },
     {
       "prompt": "Top right shopping cart",
       "multi": false,
-      "response": [
-        {
-          "id": "podpa",
-          "indexId": 3
-        }
-      ],
-      "response_bbox": [352, 18, 374, 36],
-      "annotation_index_id": 3
+      "annotation_index_id": 3,
+      "response_rect": {
+        "left": 352,
+        "top": 19,
+        "width": 20,
+        "height": 17
+      },
+      "response_element": {
+        "id": "podpa",
+        "indexId": 3
+      }
     },
     {
       "prompt": "The text indicating the price of the upper drink",
       "multi": false,
-      "response": [
-        {
-          "id": "idbdp",
-          "indexId": 20
-        }
-      ],
-      "response_bbox": [189, 723, 228, 740],
-      "annotation_index_id": 4
+      "annotation_index_id": 4,
+      "response_rect": {
+        "left": 190,
+        "top": 724,
+        "width": 38,
+        "height": 19
+      },
+      "response_element": {
+        "id": "dmggl",
+        "indexId": 20
+      }
     },
     {
       "prompt": "最下面一种饮料的选择规格按钮",
       "multi": false,
-      "response": [
-        {
-          "id": "cdmma",
-          "indexId": 26
-        }
-      ],
-      "response_bbox": [301, 862, 389, 884],
-      "annotation_index_id": 5
+      "annotation_index_id": 5,
+      "response_rect": {
+        "left": 301,
+        "top": 864,
+        "width": 86,
+        "height": 18
+      },
+      "response_element": {
+        "id": "cdmma",
+        "indexId": 26
+      }
     },
     {
       "prompt": "Bottom right Customer service button",
       "multi": false,
-      "response": [
-        {
-          "id": "ddeal",
-          "indexId": 27
-        }
-      ],
-      "response_bbox": [368, 824, 401, 847],
-      "annotation_index_id": 6
+      "annotation_index_id": 6,
+      "response_rect": {
+        "left": 369,
+        "top": 825,
+        "width": 21,
+        "height": 16
+      },
+      "response_element": {
+        "id": "ddeal",
+        "indexId": 27
+      }
     }
   ]
 }

@@ -4,62 +4,75 @@
     {
       "prompt": "商品搜索框",
       "multi": false,
-      "response": [
-        {
-          "id": "jfjah",
-          "indexId": 27
-        }
-      ],
-      "response_bbox": [318, 52, 854, 96],
-      "annotation_index_id": 1
+      "annotation_index_id": 1,
+      "response_rect": {
+        "left": 319,
+        "top": 54,
+        "width": 533,
+        "height": 39
+      },
+      "response_element": {
+        "id": "ecgig"
+      }
     },
     {
       "prompt": "搜索按钮",
       "multi": false,
-      "response": [
-        {
-          "id": "ondpi",
-          "indexId": 26
-        }
-      ],
-      "response_bbox": [780, 56, 849, 92],
-      "annotation_index_id": 2
+      "annotation_index_id": 2,
+      "response_rect": {
+        "left": 793,
+        "top": 62,
+        "width": 35,
+        "height": 19
+      },
+      "response_element": {
+        "id": "ondpi",
+        "indexId": 26
+      }
     },
     {
       "prompt": "产品分类里面的：男鞋（文字）",
       "multi": false,
-      "response": [
-        {
-          "id": "cjfcl",
-          "indexId": 99
-        }
-      ],
-      "response_bbox": [92, 427, 125, 443],
-      "annotation_index_id": 3
+      "annotation_index_id": 3,
+      "response_rect": {
+        "left": 94,
+        "top": 428,
+        "width": 36,
+        "height": 14
+      },
+      "response_element": {
+        "id": "faanp",
+        "indexId": 97
+      }
     },
     {
       "prompt": "右侧“立即登录”下方的收藏夹 icon",
       "multi": false,
-      "response": [
-        {
-          "id": "fkfdl",
-          "indexId": 190
-        }
-      ],
-      "response_bbox": [1062, 385, 1090, 407],
-      "annotation_index_id": 4
+      "annotation_index_id": 4,
+      "response_rect": {
+        "left": 1062,
+        "top": 385,
+        "width": 22,
+        "height": 22
+      },
+      "response_element": {
+        "id": "fkfdl",
+        "indexId": 190
+      }
     },
     {
       "prompt": "最右侧悬浮”旺旺客服“按钮icon",
       "multi": false,
-      "response": [
-        {
-          "id": "iegkg",
-          "indexId": 212
-        }
-      ],
-      "response_bbox": [1240, 356, 1279, 408],
-      "annotation_index_id": 5
+      "annotation_index_id": 5,
+      "response_rect": {
+        "left": 1240,
+        "top": 356,
+        "width": 38,
+        "height": 134
+      },
+      "response_element": {
+        "id": "pmefj"
+      }
     }
   ]
 }
