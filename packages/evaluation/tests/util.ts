@@ -13,6 +13,7 @@ export const repeatTime = 1;
 
 export type TestCase = {
   prompt: string;
+  searchArea?: string;
   log?: string;
   response_element?: { id: string; indexId?: number };
   response_rect?: Rect;

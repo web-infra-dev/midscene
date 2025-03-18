@@ -247,12 +247,16 @@ export interface AgentAssertOpt {
  * planning
  *
  */
-
-export interface PlanningLocateParam {
-  id?: string;
-  bbox?: [number, number, number, number];
+export interface DetailedLocateParam {
   prompt: string;
   searchArea?: string;
+}
+
+export type LocateParam = string | DetailedLocateParam;
+
+export interface PlanningLocateParam extends DetailedLocateParam {
+  id?: string;
+  bbox?: [number, number, number, number];
 }
 
 export interface PlanningAction<ParamType = any> {
@@ -297,11 +301,14 @@ export type PlanningActionParamHover = null;
 export interface PlanningActionParamInputOrKeyPress {
   value: string;
 }
-export interface PlanningActionParamScroll {
+
+export interface scrollParam {
   direction: 'down' | 'up' | 'right' | 'left';
   scrollType: 'once' | 'untilBottom' | 'untilTop' | 'untilRight' | 'untilLeft';
-  distance: null | number;
+  distance?: null | number; // distance in px
 }
+
+export type PlanningActionParamScroll = scrollParam;
 
 export interface PlanningActionParamAssert {
   assertion: string;

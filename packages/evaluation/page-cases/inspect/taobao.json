@@ -9,10 +9,10 @@
         "left": 319,
         "top": 54,
         "width": 533,
-        "height": 39
+        "height": 36
       },
       "response_element": {
-        "id": "ecgig"
+        "id": "hlefc"
       }
     },
     {
@@ -20,10 +20,10 @@
       "multi": false,
       "annotation_index_id": 2,
       "response_rect": {
-        "left": 793,
-        "top": 62,
-        "width": 35,
-        "height": 19
+        "left": 789,
+        "top": 56,
+        "width": 45,
+        "height": 32
       },
       "response_element": {
         "id": "ondpi",
@@ -32,27 +32,29 @@
     },
     {
       "prompt": "产品分类里面的：男鞋（文字）",
+      "searchArea": "产品分类里面的：男鞋（文字）",
       "multi": false,
       "annotation_index_id": 3,
       "response_rect": {
-        "left": 94,
-        "top": 428,
-        "width": 36,
-        "height": 14
+        "left": 109,
+        "top": 429,
+        "width": 24,
+        "height": 15
       },
       "response_element": {
-        "id": "faanp",
-        "indexId": 97
+        "id": "hgioh",
+        "indexId": 98
       }
     },
     {
       "prompt": "右侧“立即登录”下方的收藏夹 icon",
+      "searchArea": "右侧“立即登录”下方的一排 icon",
       "multi": false,
       "annotation_index_id": 4,
       "response_rect": {
-        "left": 1062,
-        "top": 385,
-        "width": 22,
+        "left": 1064,
+        "top": 383,
+        "width": 21,
         "height": 22
       },
       "response_element": {
@@ -61,17 +63,34 @@
       }
     },
     {
-      "prompt": "最右侧悬浮”旺旺客服“按钮icon",
+      "prompt": "最右侧五个悬浮按钮的第二个",
+      "searchArea": "最右侧有一列悬浮按钮",
       "multi": false,
       "annotation_index_id": 5,
       "response_rect": {
-        "left": 1240,
-        "top": 356,
-        "width": 38,
-        "height": 134
+        "left": 1253,
+        "top": 355,
+        "width": 22,
+        "height": 22
       },
       "response_element": {
-        "id": "pmefj"
+        "id": "iegkg",
+        "indexId": 212
+      }
+    },
+    {
+      "prompt": "购物车 icon",
+      "searchArea": "顶部工具栏",
+      "response_rect": {
+        "left": 837,
+        "top": 10,
+        "width": 15,
+        "height": 16
+      },
+      "annotation_index_id": 6,
+      "response_element": {
+        "id": "aefln",
+        "indexId": 12
       }
     }
   ]

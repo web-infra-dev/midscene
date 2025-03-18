@@ -6,6 +6,7 @@ import type {
   ExecutionTaskInsightLocate,
   ExecutionTaskInsightQuery,
   ExecutionTaskPlanning,
+  LocateParam,
   PlanningActionParamScroll,
 } from '@midscene/core';
 
@@ -36,6 +37,29 @@ export function getKeyCommands(
   }, []);
 }
 
+export function locateParamStr(locate?: LocateParam) {
+  if (!locate) {
+    return '';
+  }
+
+  if (typeof locate === 'string') {
+    return locate;
+  }
+
+  if (!locate.searchArea) {
+    return locate.prompt;
+  }
+
+  return `${locate.prompt} @ ${locate.searchArea}`;
+}
+
+export function scrollParamStr(scrollParam?: PlanningActionParamScroll) {
+  if (!scrollParam) {
+    return '';
+  }
+  return `${scrollParam.direction || 'down'}, ${scrollParam.scrollType || 'once'}, ${scrollParam.distance || 'distance-not-set'}`;
+}
+
 export function paramStr(task: ExecutionTask) {
   let value: string | undefined | object;
   if (task.type === 'Planning') {
@@ -58,19 +82,12 @@ export function paramStr(task: ExecutionTask) {
     if (sleepMs) {
       value = `${sleepMs}ms`;
     } else if (scrollType) {
-      const scrollDirection = (
+      const scrollParam = (
         task as ExecutionTask<
           ExecutionTaskActionApply<PlanningActionParamScroll>
         >
-      )?.param?.direction;
-      const scrollDistance = (
-        task as ExecutionTask<
-          ExecutionTaskActionApply<PlanningActionParamScroll>
-        >
-      )?.param?.distance;
-      value = `${scrollDirection || 'down'}, ${scrollType || 'once'}, ${
-        scrollDistance || 'distance-not-set'
-      }`;
+      )?.param;
+      value = scrollParamStr(scrollParam);
     } else {
       value =
         (task as ExecutionTaskAction)?.param?.value ||

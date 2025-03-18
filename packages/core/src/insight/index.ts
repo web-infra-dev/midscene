@@ -13,9 +13,9 @@ import type {
   InsightExtractParam,
   InsightOptions,
   InsightTaskInfo,
+  LocateParam,
   LocateResult,
   PartialInsightDumpFromSDK,
-  PlanningLocateParam,
   Rect,
   UIContext,
 } from '@/types';
@@ -67,10 +67,7 @@ export default class Insight<
     }
   }
 
-  async locate(
-    query: string | PlanningLocateParam,
-    opt?: LocateOpts,
-  ): Promise<LocateResult> {
+  async locate(query: LocateParam, opt?: LocateOpts): Promise<LocateResult> {
     const { callAI } = opt || {};
     const queryPrompt = typeof query === 'string' ? query : query.prompt;
     assert(
@@ -86,7 +83,7 @@ export default class Insight<
     let searchArea: Rect | undefined = undefined;
     let searchAreaRawResponse: string | undefined = undefined;
     let searchAreaUsage: AIUsageInfo | undefined = undefined;
-    const searchAreaPadding = 20;
+    const searchAreaDefaultPadding = 20;
     if (searchAreaPrompt) {
       assert(
         vlLocateMode(),
@@ -111,15 +108,25 @@ export default class Insight<
       searchAreaRawResponse = rawResponse;
       searchAreaUsage = usage;
 
-      searchArea.left = Math.max(0, searchArea.left - searchAreaPadding);
+      // expand to at lease 200 x 200
+      const minEdgeSize = 100;
+      let paddingSize =
+        searchArea.width < minEdgeSize
+          ? Math.ceil((minEdgeSize - searchArea.width) / 2)
+          : searchAreaDefaultPadding;
+      searchArea.left = Math.max(0, searchArea.left - paddingSize);
       searchArea.width = Math.min(
-        searchArea.width + searchAreaPadding * 2,
+        searchArea.width + paddingSize * 2,
         context.size.width - searchArea.left,
       );
 
-      searchArea.top = Math.max(0, searchArea.top - searchAreaPadding);
+      paddingSize =
+        searchArea.height < minEdgeSize
+          ? Math.ceil((minEdgeSize - searchArea.height) / 2)
+          : searchAreaDefaultPadding;
+      searchArea.top = Math.max(0, searchArea.top - paddingSize);
       searchArea.height = Math.min(
-        searchArea.height + searchAreaPadding * 2,
+        searchArea.height + paddingSize * 2,
         context.size.height - searchArea.top,
       );
 

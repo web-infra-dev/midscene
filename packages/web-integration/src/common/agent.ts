@@ -8,11 +8,12 @@ import {
   type GroupedActionDump,
   Insight,
   type InsightAction,
+  type LocateParam,
   type OnTaskStartTip,
   type PlanningActionParamInputOrKeyPress,
+  type PlanningActionParamScroll,
   // type PlanningActionParamScroll,
 } from '@midscene/core';
-import { NodeType } from '@midscene/shared/constants';
 
 import { ScriptPlayer, parseYamlScript } from '@/yaml/index';
 import {
@@ -26,11 +27,12 @@ import {
   stringifyDumpData,
   writeLogFile,
 } from '@midscene/core/utils';
+import { assert } from '@midscene/shared/utils';
 import { PageTaskExecutor } from '../common/tasks';
 import type { WebElementInfo } from '../web-element';
 import { buildPlans } from './plan-builder';
 import type { AiTaskCache } from './task-cache';
-import { paramStr, typeStr } from './ui-utils';
+import { locateParamStr, paramStr, scrollParamStr, typeStr } from './ui-utils';
 import { printReportMsg, reportFileName } from './utils';
 import { type WebUIContext, parseContextFromWebPage } from './utils';
 
@@ -169,80 +171,64 @@ export class PageAgent<PageType extends WebPage = WebPage> {
     }
   }
 
-  async aiTap(targetPrompt: string, searchArea?: string) {
-    const plans = buildPlans('Tap', {
-      prompt: targetPrompt,
-      searchArea,
-    });
+  async aiTap(locate: LocateParam) {
+    const plans = buildPlans('Tap', locate);
     const { executor, output } = await this.taskExecutor.runPlans(
-      `Tap ${targetPrompt}`,
+      `Tap ${locateParamStr(locate)}`,
       plans,
     );
     this.afterTaskRunning(executor);
     return output;
   }
 
-  async aiHover(taskPrompt: string) {
-    const plans = buildPlans('Hover', {
-      prompt: taskPrompt,
-    });
+  async aiHover(locate: LocateParam) {
+    const plans = buildPlans('Hover', locate);
     const { executor, output } = await this.taskExecutor.runPlans(
-      `Hover ${taskPrompt}`,
+      `Hover ${locateParamStr(locate)}`,
       plans,
     );
     this.afterTaskRunning(executor);
     return output;
   }
 
-  async aiInput(where: string, value: string) {
-    const plans = buildPlans(
-      'Input',
-      {
-        prompt: where,
-      },
-      {
-        value,
-      } as PlanningActionParamInputOrKeyPress,
+  async aiInput(value: string, locate?: LocateParam) {
+    assert(
+      typeof value === 'string',
+      'input value must be a string, use empty string if you want to clear the input',
     );
+    const plans = buildPlans('Input', locate, {
+      value,
+    } as PlanningActionParamInputOrKeyPress);
     const { executor, output } = await this.taskExecutor.runPlans(
-      `Input ${where} - ${value}`,
+      `Input ${locateParamStr(locate)} - ${value}`,
       plans,
     );
     this.afterTaskRunning(executor);
     return output;
   }
 
-  async aiKeyboardPress(where: string, value: string) {
-    const plans = buildPlans(
-      'KeyboardPress',
-      {
-        prompt: where,
-      },
-      {
-        value,
-      } as PlanningActionParamInputOrKeyPress,
-    );
+  async aiKeyboardPress(keyName: string, locate?: LocateParam) {
+    assert(keyName, 'missing keyName for keyboard press');
+    const plans = buildPlans('KeyboardPress', locate, {
+      value: keyName,
+    } as PlanningActionParamInputOrKeyPress);
     const { executor, output } = await this.taskExecutor.runPlans(
-      `KeyboardPress ${where} - ${value}`,
+      `KeyboardPress ${locateParamStr(locate)} - ${keyName}`,
       plans,
     );
     this.afterTaskRunning(executor);
     return output;
   }
 
-  // async aiScroll(where: string, param: PlanningActionParamScroll) {
-  //   const plans = buildPlans(
-  //     'Scroll',
-  //     {
-  //       prompt: where,
-  //     },
-  //     param,
-  //   );
-  //   const { executor, output } = await this.taskExecutor.runPlans(
-  //     `Scroll ${where} - ${paramStr(param)}`,
-  //     plans,
-  //   );
-  // }
+  async aiScroll(scrollParam: PlanningActionParamScroll, locate?: LocateParam) {
+    const plans = buildPlans('Scroll', locate, scrollParam);
+    const { executor, output } = await this.taskExecutor.runPlans(
+      `Scroll ${locateParamStr(locate)} - ${scrollParamStr(scrollParam)}`,
+      plans,
+    );
+    this.afterTaskRunning(executor);
+    return output;
+  }
 
   async aiAction(taskPrompt: string) {
     const { executor } = await (getAIConfig(MIDSCENE_USE_VLM_UI_TARS)

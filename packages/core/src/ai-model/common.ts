@@ -42,7 +42,7 @@ export async function callAiFn<T>(
   return { content, usage };
 }
 
-const defaultBboxSize = 20;
+const defaultBboxSize = 20; // must be even number
 
 // transform the param of locate from qwen mode
 export function fillLocateParam(
@@ -99,6 +99,7 @@ export function adaptDoubaoBbox(
     width > 0 && height > 0,
     'width and height must be greater than 0 in doubao mode',
   );
+
   if (bbox.length === 4 || bbox.length === 5) {
     return [
       Math.round((bbox[0] * width) / 1000),
@@ -108,12 +109,19 @@ export function adaptDoubaoBbox(
     ];
   }
 
+  // treat the bbox as a center point
   if (bbox.length === 6 || bbox.length === 2) {
     return [
-      Math.round((bbox[0] * width) / 1000),
-      Math.round((bbox[1] * height) / 1000),
-      Math.round((bbox[0] * width) / 1000) + defaultBboxSize,
-      Math.round((bbox[1] * height) / 1000) + defaultBboxSize,
+      Math.max(0, Math.round((bbox[0] * width) / 1000) - defaultBboxSize / 2),
+      Math.max(0, Math.round((bbox[1] * height) / 1000) - defaultBboxSize / 2),
+      Math.min(
+        width,
+        Math.round((bbox[0] * width) / 1000) + defaultBboxSize / 2,
+      ),
+      Math.min(
+        height,
+        Math.round((bbox[1] * height) / 1000) + defaultBboxSize / 2,
+      ),
     ];
   }
 

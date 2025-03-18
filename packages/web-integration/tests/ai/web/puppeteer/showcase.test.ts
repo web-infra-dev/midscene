@@ -99,10 +99,28 @@ describe(
     });
 
     it('search engine with specific actions', async () => {
-      const { originPage, reset } = await launchPage('https://www.bing.com/');
+      const { originPage, reset } = await launchPage('https://www.baidu.com/');
       resetFn = reset;
       const agent = new PuppeteerAgent(originPage);
-      await agent.aiTap('the search box');
+
+      await agent.aiInput('AI 101', {
+        prompt: 'the search bar input',
+      });
+      await agent.aiTap('the search button');
+
+      await sleep(3000);
+
+      await agent.aiScroll({
+        direction: 'down',
+        scrollType: 'untilBottom',
+      });
+
+      await sleep(3000);
+
+      await agent.aiTap({
+        prompt: 'the settings button',
+        searchArea: 'the upper right corner of the page',
+      });
     });
 
     it(

@@ -2,10 +2,9 @@ import assert from 'node:assert';
 import { Buffer } from 'node:buffer';
 
 import getDebug from 'debug';
-import Jimp from 'jimp';
+import type Jimp from 'jimp';
 import type { Rect } from 'src/types';
 import getJimp from './get-jimp';
-
 const debugImg = getDebug('img');
 /**
 /**
@@ -233,6 +232,7 @@ export async function paddingToMatchBlock(
     return image;
   }
 
+  const Jimp = await getJimp();
   const paddedImage = new Jimp(targetWidth, targetHeight, 0xffffffff);
 
   // Composite the original image onto the new canvas
@@ -246,5 +246,6 @@ export async function cropByRect(image: Jimp, rect: Rect): Promise<void> {
 }
 
 export async function jimpToBase64(image: Jimp): Promise<string> {
+  const Jimp = await getJimp();
   return image.getBase64Async(Jimp.MIME_JPEG);
 }

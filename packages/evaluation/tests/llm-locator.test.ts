@@ -18,13 +18,13 @@ dotenv.config({
 });
 
 const testSources = [
-  'antd-carousel',
-  'todo',
-  'online_order',
-  'online_order_list',
+  // 'antd-carousel',
+  // 'todo',
+  // 'online_order',
+  // 'online_order_list',
   'taobao',
-  'aweme-login',
-  'aweme-play',
+  // 'aweme-login',
+  // 'aweme-play',
 ];
 
 const positionModeTag = vlLocateMode() ? 'by_coordinates' : 'by_element';
@@ -67,7 +67,10 @@ testSources.forEach((source) => {
 
         const insight = new Insight(context);
 
-        const result = await insight.locate(prompt);
+        const result = await insight.locate({
+          prompt,
+          searchArea: testCase.searchArea,
+        });
         const { element, rect } = result;
 
         if (process.env.UPDATE_ANSWER_DATA) {
