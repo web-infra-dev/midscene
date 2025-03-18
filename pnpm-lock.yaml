@@ -62,6 +62,9 @@ importers:
 
   apps/chrome-devtools:
     dependencies:
+      '@midscene/visualizer':
+        specifier: workspace:*
+        version: link:../../packages/visualizer
       react:
         specifier: ^18.3.1
         version: 18.3.1
@@ -13314,7 +13317,7 @@ snapshots:
       '@rspack/dev-client': 0.2.12(react-refresh@0.14.0)(type-fest@3.13.1)(webpack@5.95.0)
       '@rspack/plugin-html': 0.2.12(@rspack/core@0.2.12(type-fest@3.13.1)(webpack@5.95.0))
       '@swc/helpers': 0.5.1
-      caniuse-lite: 1.0.30001699
+      caniuse-lite: 1.0.30001706
       core-js: 3.30.2
       react-refresh: 0.14.0
       rspack-manifest-plugin: 5.0.0-alpha0(webpack@5.95.0)
@@ -13394,7 +13397,7 @@ snapshots:
       '@modern-js/utils': 2.32.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@swc/helpers': 0.5.1
       acorn: 8.14.0
-      caniuse-lite: 1.0.30001699
+      caniuse-lite: 1.0.30001706
       cssnano: 6.0.1(postcss@8.4.27)
       fork-ts-checker-webpack-plugin: 8.0.0(typescript@5.0.4)(webpack@5.95.0)
       htmlparser2: 9.0.0
@@ -14260,7 +14263,7 @@ snapshots:
     dependencies:
       '@remix-run/router': 1.6.1
       '@swc/helpers': 0.5.1
-      caniuse-lite: 1.0.30001699
+      caniuse-lite: 1.0.30001706
       lodash: 4.17.21
       react-router-dom: 6.11.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       serialize-javascript: 6.0.2

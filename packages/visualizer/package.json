@@ -6,6 +6,16 @@
   "types": "./dist/types/index.d.ts",
   "main": "./dist/lib/index.js",
   "module": "./dist/es/index.js",
+  "exports": {
+    ".": {
+      "types": "./dist/types/index.d.ts",
+      "default": "./dist/lib/index.js"
+    },
+    "./popup": {
+      "types": "./dist/types/extension/popup.d.ts",
+      "default": "./dist/popup.js"
+    }
+  },
   "files": ["dist", "html", "README.md"],
   "watch": {
     "build": {

@@ -19,7 +19,7 @@ setSideEffect();
 
 declare const __VERSION__: string;
 
-function PlaygroundPopup() {
+export function PlaygroundPopup() {
   const extensionVersion = getExtensionVersion();
   const { popupTab, setPopupTab, forceSameTabNavigation } = useEnvConfig();
 
@@ -85,11 +85,11 @@ function PlaygroundPopup() {
   );
 }
 
-const element = document.getElementById('root');
-if (element) {
-  const root = ReactDOM.createRoot(element);
-  root.render(<PlaygroundPopup />);
-}
+// const element = document.getElementById('root');
+// if (element) {
+//   const root = ReactDOM.createRoot(element);
+//   root.render(<PlaygroundPopup />);
+// }
 
 // const shotAndOpenPlayground = async (
 //   agent?: ChromeExtensionProxyPageAgent | null,
