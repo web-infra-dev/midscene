@@ -53,8 +53,6 @@ function getReportTpl() {
     return reportTpl;
   }
 
-  // TODO: ifInWorker
-
   const __dirname = dirname(__filename);
   if (!reportTpl) {
     let reportPath = path.join(__dirname, '../../report/index.html');

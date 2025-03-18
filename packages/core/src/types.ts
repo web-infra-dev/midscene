@@ -254,6 +254,13 @@ export interface PlanningLocateParam extends DetailedLocateParam {
   bbox?: [number, number, number, number];
 }
 
+export type LocateParam = string | DetailedLocateParam;
+
+export interface PlanningLocateParam extends DetailedLocateParam {
+  id?: string;
+  bbox?: [number, number, number, number];
+}
+
 export interface PlanningAction<ParamType = any> {
   thought?: string;
   type:

@@ -18,13 +18,13 @@ dotenv.config({
 });
 
 const testSources = [
-  'antd-carousel',
-  'todo',
-  'online_order',
-  'online_order_list',
+  // 'antd-carousel',
+  // 'todo',
+  // 'online_order',
+  // 'online_order_list',
   'taobao',
-  'aweme-login',
-  'aweme-play',
+  // 'aweme-login',
+  // 'aweme-play',
 ];
 
 const positionModeTag = vlLocateMode() ? 'by_coordinates' : 'by_element';
