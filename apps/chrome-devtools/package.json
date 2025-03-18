@@ -8,12 +8,13 @@
     "preview": "rsbuild preview"
   },
   "dependencies": {
+    "@midscene/visualizer": "workspace:*",
     "react": "^18.3.1",
-    "react-dom": "^18.3.1",
-    "@midscene/visualizer": "workspace:*"
+    "react-dom": "^18.3.1"
   },
   "devDependencies": {
     "@rsbuild/core": "^1.2.16",
+    "@rsbuild/plugin-node-polyfill": "1.3.0",
     "@rsbuild/plugin-react": "^1.1.1",
     "@types/react": "^18.3.18",
     "@types/react-dom": "^18.3.5",

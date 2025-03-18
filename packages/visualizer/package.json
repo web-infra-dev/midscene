@@ -14,6 +14,9 @@
     "./popup": {
       "types": "./dist/types/extension/popup.d.ts",
       "default": "./dist/popup.js"
+    },
+    "./popup.css": {
+      "default": "./dist/popup.css"
     }
   },
   "files": ["dist", "html", "README.md"],
@@ -32,6 +35,10 @@
     "new": "modern new",
     "upgrade": "modern upgrade",
     "e2e": "node ../cli/bin/midscene ./scripts/midscene/"
+  },
+  "peerDependencies": {
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0"
   },
   "devDependencies": {
     "@ant-design/icons": "5.3.7",
@@ -55,8 +62,8 @@
     "pixi-filters": "6.0.5",
     "pixi.js": "8.1.1",
     "query-string": "9.1.1",
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0",
+    "react": "18.3.1",
+    "react-dom": "18.3.1",
     "react-resizable-panels": "2.0.22",
     "rimraf": "~3.0.2",
     "tsx": "4.19.2",

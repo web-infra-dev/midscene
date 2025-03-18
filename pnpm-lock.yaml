@@ -75,6 +75,9 @@ importers:
       '@rsbuild/core':
         specifier: ^1.2.16
         version: 1.2.19
+      '@rsbuild/plugin-node-polyfill':
+        specifier: 1.3.0
+        version: 1.3.0(@rsbuild/core@1.2.19)
       '@rsbuild/plugin-react':
         specifier: ^1.1.1
         version: 1.1.1(@rsbuild/core@1.2.19)
@@ -346,10 +349,10 @@ importers:
         specifier: 9.1.1
         version: 9.1.1
       react:
-        specifier: ^18.2.0
+        specifier: 18.3.1
         version: 18.3.1
       react-dom:
-        specifier: ^18.2.0
+        specifier: 18.3.1
         version: 18.3.1(react@18.3.1)
       react-resizable-panels:
         specifier: 2.0.22
@@ -3314,6 +3317,14 @@ packages:
     peerDependencies:
       '@rsbuild/core': 1.x
 
+  '@rsbuild/plugin-node-polyfill@1.3.0':
+    resolution: {integrity: sha512-KvckyUg9wq3F1Iv/y4+mlcnO/E7vDklvMY7kF6CxnUYImroQVw/EDS0zDezkPvcm7aKTH5b0Jaa0iIcTNFzhVw==}
+    peerDependencies:
+      '@rsbuild/core': 1.x
+    peerDependenciesMeta:
+      '@rsbuild/core':
+        optional: true
+
   '@rsbuild/plugin-react@1.1.1':
     resolution: {integrity: sha512-gkATKrOQauXMMtrYA5jbTQkhmYTE0VXoknPLtVpiXtwDbBUwgX23LFf1XJ51YOwqYpP7g5SfPEMgD2FENtCq0A==}
     peerDependencies:
@@ -4371,6 +4382,9 @@ packages:
   assert@2.0.0:
     resolution: {integrity: sha512-se5Cd+js9dXJnu6Ag2JFc00t+HmHOen+8Q+L7O9zI0PqQXr20uk2J0XQqMxZEeo5U50o8Nvmmx7dZrl+Ufr35A==}
 
+  assert@2.1.0:
+    resolution: {integrity: sha512-eLHpSK/Y4nhMJ07gDaAzoX/XAKS8PSaojml3M0DM4JpV1LAi5JOJ/p6H/XWrl8L+DzVEvVCW1z3vWAaB9oTsQw==}
+
   assertion-error@2.0.1:
     resolution: {integrity: sha512-Izi8RQcffqCeNVgFigKli1ssklIbpHnCYc6AknXGYoB6grJqyeby7jv12JUQgmTAnIDnbck1uxksT4dzN3PWBA==}
     engines: {node: '>=12'}
@@ -5396,6 +5410,10 @@ packages:
   domain-browser@4.19.0:
     resolution: {integrity: sha512-fRA+BaAWOR/yr/t7T9E9GJztHPeFjj8U35ajyAjCDtAAnTn1Rc1f6W6VGPJrO1tkQv9zWu+JRof7z6oQtiYVFQ==}
     engines: {node: '>=10'}
+
+  domain-browser@5.7.0:
+    resolution: {integrity: sha512-edTFu0M/7wO1pXY6GDxVNVW086uqwWYIHP98txhcPyV995X21JIH2DtYp33sQJOupYoXKe9RwTw2Ya2vWaquTQ==}
+    engines: {node: '>=4'}
 
   domelementtype@2.3.0:
     resolution: {integrity: sha512-OLETBj6w0OsagBwdXnPdN0cnMfF9opN69co+7ZrbfPGrdpPVNBUj02spi6B1N7wChLQiPn4CSH/zJvXw56gmHw==}
@@ -14628,6 +14646,34 @@ snapshots:
       deepmerge: 4.3.1
       reduce-configs: 1.0.0
 
+  '@rsbuild/plugin-node-polyfill@1.3.0(@rsbuild/core@1.2.19)':
+    dependencies:
+      assert: 2.1.0
+      browserify-zlib: 0.2.0
+      buffer: 5.7.1
+      console-browserify: 1.2.0
+      constants-browserify: 1.0.0
+      crypto-browserify: 3.12.1
+      domain-browser: 5.7.0
+      events: 3.3.0
+      https-browserify: 1.0.0
+      os-browserify: 0.3.0
+      path-browserify: 1.0.1
+      process: 0.11.10
+      punycode: 2.3.1
+      querystring-es3: 0.2.1
+      readable-stream: 4.5.2
+      stream-browserify: 3.0.0
+      stream-http: 3.2.0
+      string_decoder: 1.3.0
+      timers-browserify: 2.0.12
+      tty-browserify: 0.0.1
+      url: 0.11.4
+      util: 0.12.5
+      vm-browserify: 1.1.2
+    optionalDependencies:
+      '@rsbuild/core': 1.2.19
+
   '@rsbuild/plugin-react@1.1.1(@rsbuild/core@1.2.19)':
     dependencies:
       '@rsbuild/core': 1.2.19
@@ -15934,6 +15980,14 @@ snapshots:
       object-is: 1.1.6
       util: 0.12.5
 
+  assert@2.1.0:
+    dependencies:
+      call-bind: 1.0.7
+      is-nan: 1.3.2
+      object-is: 1.1.6
+      object.assign: 4.1.5
+      util: 0.12.5
+
   assertion-error@2.0.1: {}
 
   ast-types@0.13.4:
@@ -17134,6 +17188,8 @@ snapshots:
   dom-walk@0.1.2: {}
 
   domain-browser@4.19.0: {}
+
+  domain-browser@5.7.0: {}
 
   domelementtype@2.3.0: {}
 

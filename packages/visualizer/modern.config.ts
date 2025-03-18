@@ -37,6 +37,7 @@ export default defineConfig({
       platform: 'browser',
       outDir: 'dist',
       target: 'es2020',
+      externals: [...externals, 'react', 'react-dom'],
     },
     {
       ...commonConfig,
