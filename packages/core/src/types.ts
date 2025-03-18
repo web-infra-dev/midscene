@@ -154,8 +154,15 @@ export type InsightAction = 'locate' | 'extract' | 'assert';
 
 export type InsightExtractParam = string | Record<string, string>;
 
+export type LocateResultElement = {
+  id: string;
+  indexId?: number;
+  center: [number, number];
+  rect: Rect;
+};
+
 export interface LocateResult {
-  element: { id: string; indexId?: number } | null;
+  element: LocateResultElement | null;
   rect?: Rect;
 }
 
@@ -349,7 +356,7 @@ export type ExecutionTaskType = 'Planning' | 'Insight' | 'Action' | 'Assertion';
 
 export interface ExecutorContext {
   task: ExecutionTask;
-  element?: BaseElement | null;
+  element?: LocateResultElement | null;
 }
 
 export interface TaskCacheInfo {
@@ -424,7 +431,7 @@ task - insight-locate
 export type ExecutionTaskInsightLocateParam = PlanningLocateParam;
 
 export interface ExecutionTaskInsightLocateOutput {
-  element: BaseElement | null;
+  element: LocateResultElement | null;
 }
 
 export interface ExecutionTaskInsightDumpLog {

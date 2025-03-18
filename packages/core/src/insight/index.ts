@@ -202,6 +202,8 @@ export default class Insight<
         element: {
           id: elements[0]!.id,
           indexId: elements[0]!.indexId,
+          center: elements[0]!.center,
+          rect: elements[0]!.rect,
         },
         rect,
       };
@@ -211,6 +213,8 @@ export default class Insight<
         element: {
           id: elements[0]!.id,
           indexId: elements[0]!.indexId,
+          center: elements[0]!.center,
+          rect: elements[0]!.rect,
         },
         rect,
       };
