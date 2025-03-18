@@ -1,11 +1,13 @@
 {
   "name": "chrome-devtools",
   "private": true,
+  "version": "12.4",
   "type": "module",
   "scripts": {
     "build": "rsbuild build",
     "dev": "rsbuild dev --open",
-    "preview": "rsbuild preview"
+    "preview": "rsbuild preview",
+    "pack-extension": "node scripts/pack-extension.js"
   },
   "dependencies": {
     "@midscene/visualizer": "workspace:*",
