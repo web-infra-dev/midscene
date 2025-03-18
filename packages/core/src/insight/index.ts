@@ -114,6 +114,46 @@ export default class Insight<
       searchArea = searchAreaResponse.rect;
     }
 
+    const searchAreaPadding = 20;
+    if (searchAreaPrompt) {
+      assert(
+        vlLocateMode(),
+        'locate with search area is not supported with general purposed LLM. Please use Midscene VL model. https://midscenejs.com/choose-a-model',
+      );
+      const {
+        rect,
+        rawResponse,
+        usage,
+        error: searchAreaError,
+      } = await AiLocateSection({
+        context,
+        sectionDescription: searchAreaPrompt,
+      });
+      searchArea = rect;
+      debug('original searchArea', searchArea);
+      assert(searchArea, `cannot find search area for "${searchAreaPrompt}"`);
+      assert(
+        !searchAreaError,
+        `failed to locate search area: ${searchAreaError}`,
+      );
+      searchAreaRawResponse = rawResponse;
+      searchAreaUsage = usage;
+
+      searchArea.left = Math.max(0, searchArea.left - searchAreaPadding);
+      searchArea.width = Math.min(
+        searchArea.width + searchAreaPadding * 2,
+        context.size.width - searchArea.left,
+      );
+
+      searchArea.top = Math.max(0, searchArea.top - searchAreaPadding);
+      searchArea.height = Math.min(
+        searchArea.height + searchAreaPadding * 2,
+        context.size.height - searchArea.top,
+      );
+
+      debug('adjusted searchArea', searchArea);
+    }
+
     const startTime = Date.now();
     const { parseResult, rect, elementById, rawResponse, usage } =
       await AiLocateElement({

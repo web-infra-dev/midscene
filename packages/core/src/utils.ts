@@ -313,3 +313,12 @@ export function uploadTestInfoToServer({ testUrl }: { testUrl: string }) {
     lastReportedRepoUrl = repoUrl;
   }
 }
+
+export function bboxToRect(bbox: [number, number, number, number]): Rect {
+  return {
+    left: bbox[0],
+    top: bbox[1],
+    width: bbox[2] - bbox[0],
+    height: bbox[3] - bbox[1],
+  };
+}
