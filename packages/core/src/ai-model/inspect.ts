@@ -6,21 +6,27 @@ import {
 } from '@/env';
 import type {
   AIAssertionResponse,
-  AIElementCoordinatesResponse,
+  AIDataExtractionResponse,
   AIElementLocatorResponse,
   AIElementResponse,
   AISectionLocatorResponse,
-  AISectionParseResponse,
   AISingleElementResponse,
   AISingleElementResponseByPosition,
   AIUsageInfo,
   BaseElement,
   ElementById,
   ElementTreeNode,
+  Rect,
   Size,
   UIContext,
 } from '@/types';
-import { paddingToMatchBlock } from '@midscene/shared/img';
+import { bboxToRect } from '@/utils';
+import {
+  cropByRect,
+  jimpFromBase64,
+  jimpToBase64,
+  paddingToMatchBlock,
+} from '@midscene/shared/img';
 import { assert, getDebug } from '@midscene/shared/utils';
 import type {
   ChatCompletionSystemMessageParam,
@@ -212,6 +218,7 @@ export async function AiLocateElement<
   quickAnswer?: Partial<
     AISingleElementResponse | AISingleElementResponseByPosition
   >;
+  searchArea?: Rect;
 }): Promise<{
   parseResult: AIElementLocatorResponse;
   rawResponse: string;
@@ -246,9 +253,29 @@ export async function AiLocateElement<
 
   let imagePayload = screenshotBase64WithElementMarker || screenshotBase64;
 
-  if (getAIConfigInBoolean(MIDSCENE_USE_QWEN_VL)) {
-    // align image for qwen
-    imagePayload = await paddingToMatchBlock(imagePayload);
+  let offsetX = 0;
+  let offsetY = 0;
+
+  if (options.searchArea || getAIConfigInBoolean(MIDSCENE_USE_QWEN_VL)) {
+    // need image processing
+    let jimpImage = await jimpFromBase64(imagePayload);
+
+    if (options.searchArea) {
+      await cropByRect(jimpImage, options.searchArea);
+      offsetX = options.searchArea.left;
+      offsetY = options.searchArea.top;
+    }
+
+    if (getAIConfigInBoolean(MIDSCENE_USE_QWEN_VL)) {
+      jimpImage = await paddingToMatchBlock(jimpImage);
+    }
+
+    imagePayload = await jimpToBase64(jimpImage);
+    debugInspect(
+      'image size after processing',
+      jimpImage.bitmap.width,
+      jimpImage.bitmap.height,
+    );
   }
 
   const msgs: AIArgs = [
@@ -275,6 +302,7 @@ export async function AiLocateElement<
     callAI || callToGetJSONObject<AIElementResponse | [number, number]>;
 
   const res = await callAIFn(msgs, AIActionType.INSPECT_ELEMENT);
+
   const rawResponse = JSON.stringify(res.content);
 
   if ('bbox' in res.content && Array.isArray(res.content.bbox)) {
@@ -288,6 +316,17 @@ export async function AiLocateElement<
       errorMsg,
     );
     debugInspect('res.content.bbox after adapt', res.content.bbox);
+
+    if (offsetX > 0 || offsetY > 0) {
+      res.content.bbox = res.content.bbox.map((v, i) => {
+        if (i % 2 === 0) {
+          return v + offsetX;
+        }
+        return v + offsetY;
+      }) as [number, number, number, number];
+    }
+
+    debugInspect('res.content.bbox after offset', res.content.bbox);
   }
 
   const parseResult = await transformElementPositionToId(
@@ -342,8 +381,20 @@ export async function AiLocateSection(options: {
     AIActionType.EXTRACT_DATA,
   );
 
+  let sectionRect: Rect | undefined;
+  let sectionBbox = result.content.bbox;
+  if (sectionBbox) {
+    sectionBbox = adaptBbox(
+      sectionBbox,
+      context.size.width,
+      context.size.height,
+    );
+    sectionRect = bboxToRect(sectionBbox);
+  }
+
   return {
-    sectionBbox: result.content.bbox,
+    rect: sectionRect,
+    error: result.content.error,
     rawResponse: JSON.stringify(result.content),
     usage: result.usage,
   };
@@ -400,7 +451,7 @@ export async function AiExtractElementInfo<
     },
   ];
 
-  const result = await callAiFn<AISectionParseResponse<T>>(
+  const result = await callAiFn<AIDataExtractionResponse<T>>(
     msgs,
     AIActionType.EXTRACT_DATA,
   );

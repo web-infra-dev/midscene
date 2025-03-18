@@ -1,9 +1,11 @@
 import { callAiFn } from '@/ai-model/common';
 import { AiExtractElementInfo, AiLocateElement } from '@/ai-model/index';
 import { AiAssert, AiLocateSection } from '@/ai-model/inspect';
+import { vlLocateMode } from '@/env';
 import type {
   AIElementResponse,
   AISingleElementResponse,
+  AIUsageInfo,
   BaseElement,
   DumpSubscriber,
   InsightAction,
@@ -13,9 +15,10 @@ import type {
   InsightTaskInfo,
   PartialInsightDumpFromSDK,
   PlanningLocateParam,
+  Rect,
   UIContext,
 } from '@/types';
-import { assert } from '@midscene/shared/utils';
+import { assert, getDebug } from '@midscene/shared/utils';
 import { emitInsightDump } from './utils';
 
 export interface LocateOpts {
@@ -27,6 +30,7 @@ export type AnyValue<T> = {
   [K in keyof T]: unknown extends T[K] ? any : T[K];
 };
 
+const debug = getDebug('ai:insight');
 export default class Insight<
   ElementType extends BaseElement = BaseElement,
   ContextType extends UIContext<ElementType> = UIContext<ElementType>,
@@ -81,11 +85,56 @@ export default class Insight<
     this.onceDumpUpdatedFn = undefined;
     // still under construction
     // const searchArea = typeof query === 'string' ? undefined : query.searchArea;
+    const searchAreaPrompt =
+      typeof query === 'string' ? undefined : query.searchArea;
     const context = await this.contextRetrieverFn('locate');
     // const { sectionBbox, usage } = await AiLocateSection({
     //   context,
     //   sectionDescription: searchArea,
     // })
+
+    let searchArea: Rect | undefined = undefined;
+    let searchAreaRawResponse: string | undefined = undefined;
+    let searchAreaUsage: AIUsageInfo | undefined = undefined;
+    const searchAreaPadding = 20;
+    if (searchAreaPrompt) {
+      assert(
+        vlLocateMode(),
+        'locate with search area is not supported with general purposed LLM. Please use Midscene VL model. https://midscenejs.com/choose-a-model',
+      );
+      const {
+        rect,
+        rawResponse,
+        usage,
+        error: searchAreaError,
+      } = await AiLocateSection({
+        context,
+        sectionDescription: searchAreaPrompt,
+      });
+      searchArea = rect;
+      debug('original searchArea', searchArea);
+      assert(searchArea, `cannot find search area for "${searchAreaPrompt}"`);
+      assert(
+        !searchAreaError,
+        `failed to locate search area: ${searchAreaError}`,
+      );
+      searchAreaRawResponse = rawResponse;
+      searchAreaUsage = usage;
+
+      searchArea.left = Math.max(0, searchArea.left - searchAreaPadding);
+      searchArea.width = Math.min(
+        searchArea.width + searchAreaPadding * 2,
+        context.size.width - searchArea.left,
+      );
+
+      searchArea.top = Math.max(0, searchArea.top - searchAreaPadding);
+      searchArea.height = Math.min(
+        searchArea.height + searchAreaPadding * 2,
+        context.size.height - searchArea.top,
+      );
+
+      debug('adjusted searchArea', searchArea);
+    }
 
     const startTime = Date.now();
     const { parseResult, elementById, rawResponse, usage } =
@@ -94,6 +143,7 @@ export default class Insight<
         context,
         targetElementDescription: queryPrompt,
         quickAnswer: opt?.quickAnswer,
+        searchArea,
       });
     // const parseResult = await this.aiVendorFn<AIElementParseResponse>(msgs);
     const timeCost = Date.now() - startTime;
@@ -103,6 +153,9 @@ export default class Insight<
       rawResponse: JSON.stringify(rawResponse),
       formatResponse: JSON.stringify(parseResult),
       usage,
+      searchArea,
+      searchAreaRawResponse,
+      searchAreaUsage,
     };
 
     let errorLog: string | undefined;
@@ -117,7 +170,6 @@ export default class Insight<
         element: queryPrompt,
       },
       quickAnswer: opt?.quickAnswer,
-      matchedSection: [],
       matchedElement: [],
       data: null,
       taskInfo,
@@ -127,7 +179,6 @@ export default class Insight<
     const logId = emitInsightDump(dumpData, undefined, dumpSubscriber);
 
     if (errorLog) {
-      console.error(errorLog);
       throw new Error(errorLog);
     }
 
@@ -207,7 +258,6 @@ export default class Insight<
       userQuery: {
         dataDemand,
       },
-      matchedSection: [],
       matchedElement: [],
       data: null,
       taskInfo,
@@ -224,7 +274,6 @@ export default class Insight<
     emitInsightDump(
       {
         ...dumpData,
-        matchedSection: [],
         data,
       },
       logId,
@@ -268,7 +317,6 @@ export default class Insight<
       userQuery: {
         assertion,
       },
-      matchedSection: [],
       matchedElement: [],
       data: null,
       taskInfo,

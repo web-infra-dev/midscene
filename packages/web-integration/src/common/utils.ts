@@ -8,6 +8,7 @@ import {
   MIDSCENE_REPORT_TAG_NAME,
   MIDSCENE_USE_VLM_UI_TARS,
   getAIConfig,
+  getAIConfigInBoolean,
 } from '@midscene/core/env';
 import { uploadTestInfoToServer } from '@midscene/core/utils';
 import { NodeType } from '@midscene/shared/constants';
@@ -82,7 +83,7 @@ export async function parseContextFromWebPage(
   }
 
   let screenshotBase64WithElementMarker = screenshotBase64;
-  if (!getAIConfig(MIDSCENE_USE_VLM_UI_TARS)) {
+  if (!getAIConfigInBoolean(MIDSCENE_USE_VLM_UI_TARS)) {
     if (_opt?.ignoreMarker) {
       screenshotBase64WithElementMarker = screenshotBase64;
     } else {

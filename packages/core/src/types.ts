@@ -95,9 +95,8 @@ export type AIElementResponse =
   | AIElementLocatorResponse
   | AIElementCoordinatesResponse;
 
-export interface AISectionParseResponse<DataShape> {
+export interface AIDataExtractionResponse<DataShape> {
   data: DataShape;
-  sections?: LiteUISection[];
   errors?: string[];
 }
 
@@ -164,6 +163,9 @@ export interface InsightTaskInfo {
   formatResponse?: string;
   rawResponse?: string;
   usage?: AIUsageInfo;
+  searchArea?: Rect;
+  searchAreaRawResponse?: string;
+  searchAreaUsage?: AIUsageInfo;
 }
 
 export interface DumpMeta {
@@ -185,11 +187,9 @@ export interface InsightDump extends DumpMeta {
   userQuery: {
     element?: string;
     dataDemand?: InsightExtractParam;
-    sections?: Record<string, string>;
     assertion?: string;
-  }; // ?
+  };
   quickAnswer?: Partial<AISingleElementResponse> | null;
-  matchedSection: [];
   matchedElement: BaseElement[];
   data: any;
   assertionPass?: boolean;

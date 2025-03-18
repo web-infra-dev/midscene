@@ -12,6 +12,9 @@ export {
   zoomForGPT4o,
   saveBase64Image,
   paddingToMatchBlock,
+  cropByRect,
+  jimpFromBase64,
+  jimpToBase64,
 } from './transform';
 export { processImageElementInfo, compositeElementInfoImg } from './box-select';
 export { drawBoxOnImage, savePositionImg } from './draw-box';
