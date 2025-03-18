@@ -9,10 +9,13 @@
   },
   "dependencies": {
     "@midscene/visualizer": "workspace:*",
+    "@midscene/web": "workspace:*",
     "react": "^18.3.1",
-    "react-dom": "^18.3.1"
+    "react-dom": "^18.3.1",
+    "antd": "5.21.6"
   },
   "devDependencies": {
+    "@types/chrome": "0.0.279",
     "@rsbuild/core": "^1.2.16",
     "@rsbuild/plugin-node-polyfill": "1.3.0",
     "@rsbuild/plugin-react": "^1.1.1",

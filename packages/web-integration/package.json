@@ -14,8 +14,14 @@
     ".": "./dist/lib/index.js",
     "./bridge-mode": "./dist/lib/bridge-mode.js",
     "./bridge-mode-browser": "./dist/lib/bridge-mode-browser.js",
-    "./utils": "./dist/lib/utils.js",
-    "./ui-utils": "./dist/lib/ui-utils.js",
+    "./utils": {
+      "types": "./dist/types/utils.d.ts",
+      "default": "./dist/lib/utils.js"
+    },
+    "./ui-utils": {
+      "types": "./dist/types/ui-utils.d.ts",
+      "default": "./dist/lib/ui-utils.js"
+    },
     "./puppeteer": "./dist/lib/puppeteer.js",
     "./playwright": "./dist/lib/playwright.js",
     "./playwright-report": "./dist/lib/playwright-report.js",

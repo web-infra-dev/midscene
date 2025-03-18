@@ -1,0 +1,22 @@
+{
+  "name": "Midscene.js",
+  "description": "Open-source SDK for automating web pages using natural language through AI.",
+  "version": "0.41",
+  "manifest_version": 3,
+  "permissions": ["activeTab", "tabs", "sidePanel", "debugger"],
+  "incognito": "split",
+  "background": {
+    "service_worker": "./worker.js"
+  },
+  "host_permissions": ["<all_urls>"],
+  "action": {
+    "default_icon": "icon128.png",
+    "default_title": "Midscene.js"
+  },
+  "side_panel": {
+    "default_path": "./index.html"
+  },
+  "icons": {
+    "128": "icon128.png"
+  }
+}
