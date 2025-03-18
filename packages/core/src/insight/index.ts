@@ -140,7 +140,7 @@ export default class Insight<
       searchAreaUsage = usage;
 
       // expand to at lease 200 x 200
-      const minEdgeSize = 100;
+      const minEdgeSize = 200;
       let paddingSize =
         searchArea.width < minEdgeSize
           ? Math.ceil((minEdgeSize - searchArea.width) / 2)
