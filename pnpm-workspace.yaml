@@ -1,5 +1,6 @@
 packages:
   - apps/site
+  - apps/chrome-devtools
   - packages/cli
   - packages/shared
   - packages/core
