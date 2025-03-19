@@ -228,3 +228,67 @@ Here are the steps to publish (we generally use CI for releases and avoid publis
 1. [Run the release action](https://github.com/web-infra-dev/midscene/actions/workflows/release.yml).
 2. [Generate the release notes](https://github.com/web-infra-dev/midscene/releases).
 
+## Chrome DevTools Extension
+
+### Directory Structure
+
+```
+midscene/
+├── apps/
+│   ├── chrome-extension/     # Chrome extension application
+│   │   ├── dist/            # Build output directory
+│   │   ├── extension/       # Packaged Chrome extension directory
+│   │   ├── scripts/         # Build and utility scripts
+│   │   ├── src/             # Source code
+│   │   │   ├── extension/   # Chrome extension-specific code
+│   │   │   └── ...
+│   │   ├── static/          # Static resources
+│   │   └── ...
+│   └── ...
+├── packages/
+│   ├── core/                # Core functionality
+│   ├── visualizer/          # Visualization components
+│   ├── web-integration/     # Web integration
+│   └── ...
+└── ...
+```
+
+### Developing the Chrome DevTools Extension
+
+The Chrome DevTools extension uses the Rsbuild build system. Development workflow is as follows:
+
+1. **Build base packages**:
+```sh
+# First build the base packages
+pnpm run build
+```
+
+2. **Development mode**:
+```sh
+# Navigate to chrome-extension directory
+cd apps/chrome-extension
+
+# Start the development server
+pnpm run dev
+```
+
+3. **Build the extension**:
+```sh
+# Build the Chrome extension
+cd apps/chrome-extension
+pnpm run build
+```
+
+4. **Install the extension**:
+
+The built `dist` directory can be directly installed as a Chrome extension. In Chrome browser:
+- Open `chrome://extensions/`
+- Enable "Developer mode" in the top-right corner
+- Click "Load unpacked" in the top-left corner
+- Select the `apps/chrome-extension/dist` directory
+
+Alternatively, you can use the packaged extension:
+- Select the `apps/chrome-extension/extension_output/midscene-extension-v{version}.zip` file
+
+For more detailed information, please refer to [Chrome DevTools README](./apps/chrome-extension/README.md).
+

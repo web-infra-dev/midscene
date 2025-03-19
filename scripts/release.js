@@ -4,7 +4,9 @@ const semver = require('semver');
 const dayjs = require('dayjs');
 const args = require('minimist')(process.argv.slice(2));
 const bumpPrompt = require('@jsdevtools/version-bump-prompt');
-const { execa } = require('@esm2cjs/execa');
+const {
+  execa
+} = require('@esm2cjs/execa');
 const chalk = require('chalk');
 
 const step = (msg) => {
@@ -33,8 +35,7 @@ const run = async (bin, args, opts = {}) => {
 
 const currentVersion = require('../package.json').version;
 
-const actionPublishCanary =
-  ['preminor', 'prepatch'].includes(args.version) && process.env.CI;
+const actionPublishCanary = ['preminor', 'prepatch'].includes(args.version) && process.env.CI;
 
 async function main() {
   try {
@@ -58,7 +59,9 @@ async function main() {
     step('\nLinting all packages...');
     await lint();
 
-    const { stdout } = await run('git', ['diff'], {
+    const {
+      stdout
+    } = await run('git', ['diff'], {
       stdio: 'pipe',
     });
     if (stdout) {
@@ -75,7 +78,7 @@ async function main() {
           '--global',
           'user.email',
           process.env.GIT_USER_EMAIL ||
-            'github-actions[bot]@users.noreply.github.com',
+          'github-actions[bot]@users.noreply.github.com',
         ]);
       }
       step('\nCommitting changes...');
@@ -145,7 +148,7 @@ async function test() {
 async function bumpExtensionVersion(newNpmVersion) {
   const manifestPath = path.join(
     __dirname,
-    '../packages/visualizer/unpacked-extension/manifest.json',
+    '../apps/chrome-extension/static/manifest.json',
   );
   const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
   const [a, b] = manifest.version.split('.').map(Number);

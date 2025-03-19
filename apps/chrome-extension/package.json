@@ -1,0 +1,33 @@
+{
+  "name": "chrome-extension",
+  "private": true,
+  "version": "0.12.4",
+  "type": "module",
+  "scripts": {
+    "build": "rsbuild build && npm run build:report-template && npm run pack-extension",
+    "build:report-template": "node scripts/build-report-template.js",
+    "dev": "rsbuild dev --open",
+    "preview": "rsbuild preview",
+    "pack-extension": "node scripts/pack-extension.js"
+  },
+  "dependencies": {
+    "@ant-design/icons": "^5.3.1",
+    "@midscene/visualizer": "workspace:*",
+    "@midscene/web": "workspace:*",
+    "antd": "5.21.6",
+    "dayjs": "^1.11.11",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@rsbuild/core": "^1.2.16",
+    "@rsbuild/plugin-less": "^1.1.1",
+    "@rsbuild/plugin-node-polyfill": "1.3.0",
+    "@rsbuild/plugin-react": "^1.1.1",
+    "@types/chrome": "0.0.279",
+    "@types/react": "^18.3.18",
+    "@types/react-dom": "^18.3.5",
+    "less": "^4.2.0",
+    "typescript": "^5.8.2"
+  }
+}

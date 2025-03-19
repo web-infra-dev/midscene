@@ -123,67 +123,11 @@ function reportHTMLWithDump(
   return html;
 }
 
-/* build task: extension */
-function buildExtension() {
-  // clear everything in the extension page dir
-  rmSync(outputExtensionPageDir, { recursive: true, force: true });
-  ensureDirectoryExistence(outputExtensionSidepanel);
-
-  // write the set-report-tpl.js into the extension
-  writeFileSync(
-    join(__dirname, '../unpacked-extension/lib/set-report-tpl.js'),
-    tplRetrieverFn,
-  );
-
-  // playground.html
-  const resultWithOutsource = tplReplacer(playgroundTpl, {
-    css: `<style>\n${playgroundCSS}\n</style>\n`,
-    js: `<script src="/lib/playground-entry.js"></script>`,
-    bootstrap: '<!-- leave it empty -->', // the entry iife will mount by itself
-  });
-  writeFileSync(
-    outputExtensionPlayground,
-    putReportTplIntoHTML(resultWithOutsource, true),
-  );
-  console.log(`HTML file generated successfully: ${outputExtensionPlayground}`);
-
-  // sidepanel.html
-  writeFileSync(
-    outputExtensionSidepanel,
-    putReportTplIntoHTML(extensionSidepanelTpl, true),
-  );
-  console.log(`HTML file generated successfully: ${outputExtensionSidepanel}`);
-
-  // put the htmlElement.js into the extension
-  safeCopyFile(
-    join(__dirname, '../../web-integration/iife-script/htmlElement.js'),
-    join(__dirname, '../unpacked-extension/lib/htmlElement.js'),
-  );
-}
 async function zipDir(src: string, dest: string) {
   // console.log('cwd', dirname(src));
   execSync(`zip -r "${dest}" .`, {
     cwd: src,
   });
-}
-
-async function packExtension() {
-  const manifest = fileContentOfPath('../unpacked-extension/manifest.json');
-
-  const version = JSON.parse(manifest).version;
-  const zipName = `midscene-extension-v${version}.zip`;
-  const distFile = join(outputExtensionZipDir, zipName);
-  ensureDirectoryExistence(distFile);
-
-  // zip the extension
-  if (platform() !== 'win32') {
-    await zipDir(outputExtensionUnpackedBaseDir, distFile);
-    // print size of the zip file
-    const size = statSync(distFile).size;
-    console.log(`Zip file size: ${size} bytes`);
-  } else {
-    console.warn('zip is not supported on this platform, will skip it');
-  }
 }
 
 /* build task: report and demo pages*/
@@ -223,5 +167,3 @@ function buildReport() {
 }
 
 buildReport();
-buildExtension();
-packExtension();

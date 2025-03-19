@@ -58,7 +58,7 @@
     "@types/debug": "4.1.12",
     "@types/node": "^18.0.0",
     "rimraf": "~3.0.2",
-    "typescript": "~5.0.4",
+    "typescript": "^5.8.2",
     "vitest": "3.0.5"
   },
   "sideEffects": [],

@@ -11,19 +11,58 @@
     "midscene-playground": "./bin/midscene-playground"
   },
   "exports": {
-    ".": "./dist/lib/index.js",
-    "./bridge-mode": "./dist/lib/bridge-mode.js",
-    "./bridge-mode-browser": "./dist/lib/bridge-mode-browser.js",
-    "./utils": "./dist/lib/utils.js",
-    "./ui-utils": "./dist/lib/ui-utils.js",
-    "./puppeteer": "./dist/lib/puppeteer.js",
-    "./playwright": "./dist/lib/playwright.js",
-    "./playwright-report": "./dist/lib/playwright-report.js",
-    "./playground": "./dist/lib/playground.js",
-    "./midscene-playground": "./dist/lib/midscene-playground.js",
-    "./appium": "./dist/lib/appium.js",
-    "./chrome-extension": "./dist/lib/chrome-extension.js",
-    "./yaml": "./dist/lib/yaml.js"
+    ".": {
+      "types": "./dist/types/index.d.ts",
+      "default": "./dist/lib/index.js"
+    },
+    "./bridge-mode": {
+      "types": "./dist/types/bridge-mode.d.ts",
+      "default": "./dist/lib/bridge-mode.js"
+    },
+    "./bridge-mode-browser": {
+      "types": "./dist/types/bridge-mode-browser.d.ts",
+      "default": "./dist/lib/bridge-mode-browser.js"
+    },
+    "./utils": {
+      "types": "./dist/types/utils.d.ts",
+      "default": "./dist/lib/utils.js"
+    },
+    "./ui-utils": {
+      "types": "./dist/types/ui-utils.d.ts",
+      "default": "./dist/lib/ui-utils.js"
+    },
+    "./puppeteer": {
+      "types": "./dist/types/puppeteer.d.ts",
+      "default": "./dist/lib/puppeteer.js"
+    },
+    "./playwright": {
+      "types": "./dist/types/playwright.d.ts",
+      "default": "./dist/lib/playwright.js"
+    },
+    "./playwright-report": {
+      "types": "./dist/types/playwright-report.d.ts",
+      "default": "./dist/lib/playwright-report.js"
+    },
+    "./playground": {
+      "types": "./dist/types/playground.d.ts",
+      "default": "./dist/lib/playground.js"
+    },
+    "./midscene-playground": {
+      "types": "./dist/types/midscene-playground.d.ts",
+      "default": "./dist/lib/midscene-playground.js"
+    },
+    "./appium": {
+      "types": "./dist/types/appium.d.ts",
+      "default": "./dist/lib/appium.js"
+    },
+    "./chrome-extension": {
+      "types": "./dist/types/chrome-extension.d.ts",
+      "default": "./dist/lib/chrome-extension.js"
+    },
+    "./yaml": {
+      "types": "./dist/types/yaml.d.ts",
+      "default": "./dist/lib/yaml.js"
+    }
   },
   "typesVersions": {
     "*": {
@@ -96,7 +135,7 @@
     "@wdio/types": "9.0.4",
     "playwright": "1.44.1",
     "puppeteer": "24.2.0",
-    "typescript": "~5.0.4",
+    "typescript": "^5.8.2",
     "vitest": "3.0.5"
   },
   "peerDependencies": {
