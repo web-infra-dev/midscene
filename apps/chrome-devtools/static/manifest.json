@@ -6,7 +6,7 @@
   "permissions": ["activeTab", "tabs", "sidePanel", "debugger"],
   "incognito": "split",
   "background": {
-    "service_worker": "./worker.js"
+    "service_worker": "./scripts/worker.js"
   },
   "host_permissions": ["<all_urls>"],
   "action": {

@@ -21,21 +21,32 @@ export default defineConfig({
     node: {
       source: {
         entry: {
-          index: './src/worker.ts',
+          worker: './src/scripts/worker.ts',
+          'stop-water-flow': './src/scripts/stop-water-flow.ts',
+          'water-flow': './src/scripts/water-flow.ts',
         },
       },
       output: {
         target: 'node',
         sourceMap: true,
         filename: {
-          js: 'worker.js',
+          js: 'scripts/[name].js',
         },
       },
     },
   },
   output: {
     polyfill: 'entry',
-    copy: [{ from: './static', to: './' }],
+    copy: [
+      { from: './static', to: './' },
+      {
+        from: path.resolve(
+          __dirname,
+          '../../packages/web-integration/iife-script',
+        ),
+        to: 'scripts',
+      },
+    ],
   },
   source: {
     define: {
@@ -44,8 +55,11 @@ export default defineConfig({
   },
   resolve: {
     alias: {
-      async_hooks: path.join(__dirname, './src/blank_polyfill.ts'),
-      'node:async_hooks': path.join(__dirname, './src/blank_polyfill.ts'),
+      async_hooks: path.join(__dirname, './src/scripts/blank_polyfill.ts'),
+      'node:async_hooks': path.join(
+        __dirname,
+        './src/scripts/blank_polyfill.ts',
+      ),
       react: path.resolve(__dirname, 'node_modules/react'),
       'react-dom': path.resolve(__dirname, 'node_modules/react-dom'),
     },

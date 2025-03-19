@@ -4,7 +4,7 @@
   "version": "0.12.4",
   "type": "module",
   "scripts": {
-    "build": "rsbuild build",
+    "build": "rsbuild build && node scripts/pack-extension.js",
     "dev": "rsbuild dev --open",
     "preview": "rsbuild preview",
     "pack-extension": "node scripts/pack-extension.js"
