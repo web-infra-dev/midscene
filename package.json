@@ -1,9 +1,9 @@
 {
   "name": "midscene",
   "private": true,
-  "version": "0.12.7",
+  "version": "0.12.8",
   "scripts": {
-    "build": "nx run-many --target=build --projects=@midscene/core,@midscene/shared,@midscene/visualizer,@midscene/web,@midscene/cli --verbose --skipNxCache",
+    "build": "nx run-many --target=build --projects=@midscene/core,@midscene/shared,@midscene/visualizer,@midscene/web,@midscene/cli,chrome-extension --verbose --skipNxCache",
     "test": "nx run-many --target=test --projects=@midscene/core,--projects=@midscene/shared,@midscene/visualizer,@midscene/web,@midscene/cli --verbose",
     "test:ai": "nx run-many --target=test:ai --projects=@midscene/core,@midscene/web --verbose",
     "e2e": "nx run @midscene/web:e2e --verbose",

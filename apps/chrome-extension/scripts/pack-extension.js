@@ -2,14 +2,11 @@
 
 import fs from 'node:fs';
 import path from 'node:path';
-import {
-  fileURLToPath
-} from 'node:url';
+import { fileURLToPath } from 'node:url';
 import archiver from 'archiver';
 
 // Get the directory path of the current file
-const __filename = fileURLToPath(
-  import.meta.url);
+const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 // Read package.json
@@ -47,13 +44,15 @@ if (fs.existsSync(zipFilePath)) {
 const output = fs.createWriteStream(zipFilePath);
 const archive = archiver('zip', {
   zlib: {
-    level: 9
-  } // Sets the compression level
+    level: 9,
+  }, // Sets the compression level
 });
 
 // Listen for all archive data to be written
 output.on('close', () => {
-  console.log(`Extension packed successfully: ${zipFileName} (${archive.pointer()} total bytes saved in extension directory)`);
+  console.log(
+    `Extension packed successfully: ${zipFileName} (${archive.pointer()} total bytes saved in extension directory)`,
+  );
 });
 
 // Handle warnings and errors
