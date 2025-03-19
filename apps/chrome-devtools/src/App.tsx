@@ -1,9 +1,7 @@
-import { PlaygroundPopup } from '@midscene/visualizer/popup';
-import '@midscene/visualizer/popup.css';
+import React from 'react';
 import './App.css';
+import { PlaygroundPopup } from './extension/popup';
 
-const App = () => {
+export default function App() {
   return <PlaygroundPopup />;
-};
-
-export default App;
+}

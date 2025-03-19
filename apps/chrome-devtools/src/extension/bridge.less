@@ -1,0 +1,50 @@
+@import './common.less';
+
+.bridge-status-bar {
+  height: 56px;
+  line-height: 56px;
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  box-sizing: border-box;
+  padding: 0 10px;
+  border: 1px solid @footer-text;
+  border-radius: 5px;
+
+  .bridge-status-text {
+    flex-grow: 1;
+    text-overflow: ellipsis;
+    overflow: hidden;
+    white-space: nowrap;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+
+    .bridge-status-tip {
+      margin-left: 6px;
+      flex-grow: 1;
+      text-overflow: ellipsis;
+      overflow: hidden;
+      white-space: nowrap;
+    }
+  }
+
+  .bridge-status-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+  }
+}
+
+.bridge-log-container {
+  flex-grow: 1;
+
+  .bridge-log-item-content {
+    word-break: break-all;
+    white-space: pre-wrap;
+    text-overflow: ellipsis;
+    width: 100%;
+    overflow: hidden;
+  }
+} 

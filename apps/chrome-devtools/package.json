@@ -1,7 +1,7 @@
 {
   "name": "chrome-devtools",
   "private": true,
-  "version": "12.4",
+  "version": "0.12.4",
   "type": "module",
   "scripts": {
     "build": "rsbuild build",
@@ -10,19 +10,23 @@
     "pack-extension": "node scripts/pack-extension.js"
   },
   "dependencies": {
+    "@ant-design/icons": "^5.3.1",
     "@midscene/visualizer": "workspace:*",
     "@midscene/web": "workspace:*",
+    "antd": "5.21.6",
+    "dayjs": "^1.11.11",
     "react": "^18.3.1",
-    "react-dom": "^18.3.1",
-    "antd": "5.21.6"
+    "react-dom": "^18.3.1"
   },
   "devDependencies": {
-    "@types/chrome": "0.0.279",
     "@rsbuild/core": "^1.2.16",
     "@rsbuild/plugin-node-polyfill": "1.3.0",
     "@rsbuild/plugin-react": "^1.1.1",
+    "@rsbuild/plugin-less": "^1.1.1",
+    "@types/chrome": "0.0.279",
     "@types/react": "^18.3.18",
     "@types/react-dom": "^18.3.5",
+    "less": "^4.2.0",
     "typescript": "^5.8.2"
   }
 }

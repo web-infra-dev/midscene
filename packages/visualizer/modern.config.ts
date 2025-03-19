@@ -33,6 +33,7 @@ export default defineConfig({
       input: {
         report: 'src/index.tsx',
         popup: 'src/extension/popup.tsx',
+        extension: 'src/extension.tsx',
       },
       platform: 'browser',
       outDir: 'dist',

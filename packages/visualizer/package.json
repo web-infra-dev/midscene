@@ -15,6 +15,10 @@
       "types": "./dist/types/extension/popup.d.ts",
       "default": "./dist/popup.js"
     },
+    "./extension": {
+      "types": "./dist/types/extension.d.ts",
+      "default": "./dist/extension.js"
+    },
     "./popup.css": {
       "default": "./dist/popup.css"
     }
