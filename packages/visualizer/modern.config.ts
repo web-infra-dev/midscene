@@ -36,6 +36,21 @@ export default defineConfig({
       platform: 'browser',
       outDir: 'dist',
       target: 'es2020',
+      externals: [...externals],
+    },
+    {
+      ...commonConfig,
+      alias: {
+        async_hooks: path.join(__dirname, './src/blank_polyfill.ts'),
+      },
+      dts: false,
+      input: {
+        extension: 'src/extension.tsx',
+      },
+      platform: 'browser',
+      outDir: 'dist',
+      target: 'es2020',
+      externals: [...externals, 'react', 'react-dom'],
     },
     {
       ...commonConfig,
@@ -45,10 +60,6 @@ export default defineConfig({
       format: 'iife',
       dts: false,
       input: {
-        'water-flow': 'src/extension/scripts/water-flow.ts',
-        'stop-water-flow': 'src/extension/scripts/stop-water-flow.ts',
-        popup: 'src/extension/popup.tsx',
-        worker: 'src/extension/worker.ts',
         'playground-entry': 'src/extension/playground-entry.tsx',
       },
       platform: 'browser',

@@ -5,7 +5,7 @@ import {
   type WorkerRequestGetContext,
   type WorkerRequestSaveContext,
   workerMessageTypes,
-} from './utils';
+} from '../utils';
 
 // console-browserify won't work in worker, so we need to use globalThis.console
 const console = globalThis.console;

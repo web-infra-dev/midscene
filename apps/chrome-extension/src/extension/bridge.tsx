@@ -1,10 +1,10 @@
 import { LoadingOutlined } from '@ant-design/icons';
 import { ExtensionBridgePageBrowserSide } from '@midscene/web/bridge-mode-browser';
 import { Button, Spin } from 'antd';
+import dayjs from 'dayjs';
 import { useEffect, useRef, useState } from 'react';
 import './bridge.less';
-import { iconForStatus } from '@/component/misc';
-import dayjs from 'dayjs';
+import { iconForStatus } from './misc';
 
 interface BridgeLogItem {
   time: string;
@@ -250,7 +250,9 @@ export default function Bridge() {
               clear
             </Button>
           </h3>
-          <div className="bridge-log-container">{logs}</div>
+          <div className="bridge-log-container">
+            {logs.length === 0 ? <p>No logs yet</p> : logs}
+          </div>
         </div>
       </div>
     </div>
