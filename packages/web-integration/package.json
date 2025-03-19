@@ -135,7 +135,7 @@
     "@wdio/types": "9.0.4",
     "playwright": "1.44.1",
     "puppeteer": "24.2.0",
-    "typescript": "~5.0.4",
+    "typescript": "^5.8.2",
     "vitest": "3.0.5"
   },
   "peerDependencies": {
