@@ -4,12 +4,12 @@ import {
   Logo,
   Playground,
   extensionAgentForTab,
+  getExtensionVersion,
   globalThemeConfig,
   useEnvConfig,
 } from '@midscene/visualizer/extension';
 import { ConfigProvider, Tabs } from 'antd';
 import Bridge from './bridge';
-import { getExtensionVersion } from './utils';
 import './popup.less';
 
 declare const __SDK_VERSION__: string;

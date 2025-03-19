@@ -28,11 +28,23 @@ export default defineConfig({
       alias: {
         async_hooks: path.join(__dirname, './src/blank_polyfill.ts'),
       },
-      // format: 'umd',
+      format: 'umd',
       dts: false,
       input: {
         report: 'src/index.tsx',
-        // popup: 'src/extension/popup.tsx',
+      },
+      platform: 'browser',
+      outDir: 'dist',
+      target: 'es2020',
+      externals: [...externals],
+    },
+    {
+      ...commonConfig,
+      alias: {
+        async_hooks: path.join(__dirname, './src/blank_polyfill.ts'),
+      },
+      dts: false,
+      input: {
         extension: 'src/extension.tsx',
       },
       platform: 'browser',
