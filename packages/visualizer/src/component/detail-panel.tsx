@@ -85,7 +85,6 @@ const DetailPanel = (): JSX.Element => {
           highlightElements={insightDump!.matchedElement}
           highlightRect={insightDump!.taskInfo?.searchArea}
           key={`${dumpId}`}
-          disableInteraction
         />
       );
     } else {

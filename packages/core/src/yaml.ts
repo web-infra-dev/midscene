@@ -1,3 +1,19 @@
+import type { PlanningActionParamScroll } from './types';
+
+export interface DetailedLocateParam {
+  prompt: string;
+  searchArea?: string;
+  deepThink?: boolean;
+}
+
+export type LocateParam = string | DetailedLocateParam;
+
+export interface scrollParam {
+  direction: 'down' | 'up' | 'right' | 'left';
+  scrollType: 'once' | 'untilBottom' | 'untilTop' | 'untilRight' | 'untilLeft';
+  distance?: null | number; // distance in px
+}
+
 export interface MidsceneYamlScript {
   target: MidsceneYamlScriptEnv;
   tasks: MidsceneYamlTask[];
@@ -51,6 +67,29 @@ export interface MidsceneYamlFlowItemAIWaitFor {
   timeout?: number;
 }
 
+export interface MidsceneYamlFlowItemAITap {
+  aiTap: LocateParam;
+}
+
+export interface MidsceneYamlFlowItemAIHover {
+  aiHover: LocateParam;
+}
+
+export interface MidsceneYamlFlowItemAIInput {
+  aiInput: string;
+  locate: LocateParam;
+}
+
+export interface MidsceneYamlFlowItemAIKeyboardPress {
+  aiKeyboardPress: string;
+  locate?: LocateParam;
+}
+
+export interface MidsceneYamlFlowItemAIScroll {
+  aiScroll: PlanningActionParamScroll;
+  locate?: LocateParam;
+}
+
 export interface MidsceneYamlFlowItemSleep {
   sleep: number;
 }
@@ -60,6 +99,11 @@ export type MidsceneYamlFlowItem =
   | MidsceneYamlFlowItemAIAssert
   | MidsceneYamlFlowItemAIQuery
   | MidsceneYamlFlowItemAIWaitFor
+  | MidsceneYamlFlowItemAITap
+  | MidsceneYamlFlowItemAIHover
+  | MidsceneYamlFlowItemAIInput
+  | MidsceneYamlFlowItemAIKeyboardPress
+  | MidsceneYamlFlowItemAIScroll
   | MidsceneYamlFlowItemSleep;
 
 export interface FreeFn {

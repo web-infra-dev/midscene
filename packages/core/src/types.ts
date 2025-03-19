@@ -2,6 +2,7 @@
 
 import type { NodeType } from '@midscene/shared/constants';
 import type { ChatCompletionMessageParam } from 'openai/resources';
+import type { DetailedLocateParam, scrollParam } from './yaml';
 
 export * from './yaml';
 
@@ -247,12 +248,6 @@ export interface AgentAssertOpt {
  * planning
  *
  */
-export interface DetailedLocateParam {
-  prompt: string;
-  searchArea?: string;
-}
-
-export type LocateParam = string | DetailedLocateParam;
 
 export interface PlanningLocateParam extends DetailedLocateParam {
   id?: string;
@@ -300,12 +295,6 @@ export type PlanningActionParamTap = null;
 export type PlanningActionParamHover = null;
 export interface PlanningActionParamInputOrKeyPress {
   value: string;
-}
-
-export interface scrollParam {
-  direction: 'down' | 'up' | 'right' | 'left';
-  scrollType: 'once' | 'untilBottom' | 'untilTop' | 'untilRight' | 'untilLeft';
-  distance?: null | number; // distance in px
 }
 
 export type PlanningActionParamScroll = scrollParam;

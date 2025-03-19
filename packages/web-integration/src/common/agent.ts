@@ -191,7 +191,7 @@ export class PageAgent<PageType extends WebPage = WebPage> {
     return output;
   }
 
-  async aiInput(value: string, locate?: LocateParam) {
+  async aiInput(value: string, locate: LocateParam) {
     assert(
       typeof value === 'string',
       'input value must be a string, use empty string if you want to clear the input',

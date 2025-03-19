@@ -20,8 +20,6 @@ export const rectMarkForItem = (
   rect: Rect,
   name: string,
   type: 'element' | 'searchArea' | 'highlight',
-  onPointOver?: () => void,
-  onPointerOut?: () => void,
 ) => {
   const { left, top, width, height } = rect;
   let themeColor: string;
@@ -39,11 +37,6 @@ export const rectMarkForItem = (
   graphics.lineStyle(1, themeColor, 1);
   graphics.drawRect(left, top, width, height);
   graphics.endFill();
-  if (onPointOver && onPointerOut) {
-    graphics.interactive = true;
-    graphics.on('pointerover', onPointOver);
-    graphics.on('pointerout', onPointerOut);
-  }
 
   const dropShadowFilter = new DropShadowFilter({
     blur: 2,
@@ -70,7 +63,6 @@ const Blackboard = (props: {
   highlightElements?: BaseElement[];
   highlightRect?: Rect;
   hideController?: boolean;
-  disableInteraction?: boolean;
 }): JSX.Element => {
   const highlightElements: BaseElement[] = props.highlightElements || [];
   const highlightIds = highlightElements.map((e) => e.id);
@@ -193,40 +185,28 @@ const Blackboard = (props: {
         highlightRect,
         'Search Area',
         'searchArea',
-        noop,
-        noop,
       );
       highlightContainer.addChild(graphics);
     }
+
+    if (highlightElements.length) {
+      highlightElements.forEach((element) => {
+        const { rect, content, id } = element;
+        const [graphics] = rectMarkForItem(rect, content, 'highlight');
+        highlightContainer.addChild(graphics);
+      });
+    }
+
     // element rects
     context.content.forEach((element) => {
       const { rect, content, id } = element;
       const ifHighlight = highlightIds.includes(id) || hoverElement?.id === id;
+
       if (ifHighlight) {
-        const [graphics] = rectMarkForItem(
-          rect,
-          content,
-          'highlight',
-          noop,
-          noop,
-        );
-        highlightContainer.addChild(graphics);
+        return;
       }
 
-      const removeHover = () => {
-        setHoverElement(null);
-      };
-      const [graphics] = rectMarkForItem(
-        rect,
-        content,
-        'element',
-        props?.disableInteraction
-          ? undefined
-          : () => {
-              setHoverElement(element);
-            },
-        props?.disableInteraction ? undefined : removeHover,
-      );
+      const [graphics] = rectMarkForItem(rect, content, 'element');
       elementMarkContainer.addChild(graphics);
     });
 
