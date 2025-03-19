@@ -288,7 +288,7 @@ The built `dist` directory can be directly installed as a Chrome extension. In C
 - Select the `apps/chrome-extension/dist` directory
 
 Alternatively, you can use the packaged extension:
-- Select the `apps/chrome-extension/extension/midscene-extension-v{version}.zip` file
+- Select the `apps/chrome-extension/extension_output/midscene-extension-v{version}.zip` file
 
 For more detailed information, please refer to [Chrome DevTools README](./apps/chrome-extension/README.md).
 
