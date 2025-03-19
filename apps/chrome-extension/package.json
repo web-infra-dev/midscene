@@ -14,8 +14,8 @@
     "@ant-design/icons": "^5.3.1",
     "@midscene/visualizer": "workspace:*",
     "@midscene/web": "workspace:*",
-    "antd": "5.21.6",
-    "dayjs": "^1.11.11",
+    "antd": "^5.21.6",
+    "dayjs": "1.11.11",
     "react": "^18.3.1",
     "react-dom": "^18.3.1"
   },
@@ -28,6 +28,7 @@
     "@types/react": "^18.3.18",
     "@types/react-dom": "^18.3.5",
     "less": "^4.2.0",
-    "typescript": "^5.8.2"
+    "typescript": "^5.8.2",
+    "archiver": "^6.0.0"
   }
 }
