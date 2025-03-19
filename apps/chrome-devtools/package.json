@@ -4,7 +4,8 @@
   "version": "0.12.4",
   "type": "module",
   "scripts": {
-    "build": "rsbuild build && node scripts/pack-extension.js",
+    "build": "rsbuild build && npm run build:report-template && npm run pack-extension",
+    "build:report-template": "node scripts/build-report-template.js",
     "dev": "rsbuild dev --open",
     "preview": "rsbuild preview",
     "pack-extension": "node scripts/pack-extension.js"
@@ -20,9 +21,9 @@
   },
   "devDependencies": {
     "@rsbuild/core": "^1.2.16",
+    "@rsbuild/plugin-less": "^1.2.16",
     "@rsbuild/plugin-node-polyfill": "1.3.0",
     "@rsbuild/plugin-react": "^1.1.1",
-    "@rsbuild/plugin-less": "^1.1.1",
     "@types/chrome": "0.0.279",
     "@types/react": "^18.3.18",
     "@types/react-dom": "^18.3.5",

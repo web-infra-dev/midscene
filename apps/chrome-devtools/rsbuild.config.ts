@@ -11,11 +11,22 @@ export default defineConfig({
       source: {
         entry: {
           index: './src/index.tsx',
+          popup: './src/extension/popup.tsx',
         },
       },
       output: {
         target: 'web',
         sourceMap: true,
+      },
+      html: {
+        tags: [
+          {
+            tag: 'script',
+            attrs: { src: 'scripts/report-template.js' },
+            head: true,
+            append: true,
+          },
+        ],
       },
     },
     node: {

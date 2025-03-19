@@ -41,7 +41,8 @@ if (fs.existsSync(zipFilePath)) {
 
 // Directly package the contents of the dist directory into a zip file in the extension directory
 try {
-  execSync(`zip -r ${zipFilePath} .`, {
+  const zipCommand = `zip -r ${path.basename(zipFilePath)} .`;
+  execSync(zipCommand, {
     cwd: distDir
   });
   console.log(
