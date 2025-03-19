@@ -2,34 +2,38 @@
 
 import fs from 'node:fs';
 import path from 'node:path';
-import {
-    fileURLToPath
-} from 'node:url';
+import { fileURLToPath } from 'node:url';
 
 // Get the directory path of the current file
-const __filename = fileURLToPath(
-    import.meta.url);
+const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 // Project root directory
 const projectRoot = path.resolve(__dirname, '../../..');
 
 // Path configuration
-const visualizerReportPath = path.join(projectRoot, 'packages/visualizer/dist/report/index.html');
+const visualizerReportPath = path.join(
+  projectRoot,
+  'packages/visualizer/dist/report/index.html',
+);
 const outputDir = path.join(__dirname, '../dist/scripts');
 const outputFile = path.join(outputDir, 'report-template.js');
 
 // Ensure the output directory exists
 console.log(`Creating output directory: ${outputDir}`);
 fs.mkdirSync(outputDir, {
-    recursive: true
+  recursive: true,
 });
 
 // Check if the visualizer has been built
 if (!fs.existsSync(visualizerReportPath)) {
-    console.error(`ERROR: Report template file not found at ${visualizerReportPath}`);
-    console.error('Make sure to build the visualizer package first with: npm run build -w @midscene/visualizer');
-    process.exit(1);
+  console.error(
+    `ERROR: Report template file not found at ${visualizerReportPath}`,
+  );
+  console.error(
+    'Make sure to build the visualizer package first with: npm run build -w @midscene/visualizer',
+  );
+  process.exit(1);
 }
 
 // Read the report template HTML

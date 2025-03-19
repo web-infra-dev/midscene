@@ -1,17 +1,12 @@
 #!/usr/bin/env node
 
-import {
-  execSync
-} from 'node:child_process';
+import { execSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
-import {
-  fileURLToPath
-} from 'node:url';
+import { fileURLToPath } from 'node:url';
 
 // Get the directory path of the current file
-const __filename = fileURLToPath(
-  import.meta.url);
+const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 // Read package.json
@@ -42,7 +37,7 @@ if (fs.existsSync(zipFilePath)) {
 // Directly package the contents of the dist directory into a zip file in the extension directory
 try {
   execSync(`zip -r ${zipFilePath} .`, {
-    cwd: distDir
+    cwd: distDir,
   });
   console.log(
     `Extension packed successfully: ${zipFileName} (saved in extension directory)`,
