@@ -1,5 +1,5 @@
 {
-  "name": "chrome-devtools",
+  "name": "chrome-extension",
   "private": true,
   "version": "0.12.4",
   "type": "module",

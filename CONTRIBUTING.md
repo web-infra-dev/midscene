@@ -235,7 +235,7 @@ Here are the steps to publish (we generally use CI for releases and avoid publis
 ```
 midscene/
 ├── apps/
-│   ├── chrome-devtools/     # Chrome extension application
+│   ├── chrome-extension/     # Chrome extension application
 │   │   ├── dist/            # Build output directory
 │   │   ├── extension/       # Packaged Chrome extension directory
 │   │   ├── scripts/         # Build and utility scripts
@@ -265,8 +265,8 @@ pnpm run build
 
 2. **Development mode**:
 ```sh
-# Navigate to chrome-devtools directory
-cd apps/chrome-devtools
+# Navigate to chrome-extension directory
+cd apps/chrome-extension
 
 # Start the development server
 pnpm run dev
@@ -275,7 +275,7 @@ pnpm run dev
 3. **Build the extension**:
 ```sh
 # Build the Chrome extension
-cd apps/chrome-devtools
+cd apps/chrome-extension
 pnpm run build
 ```
 
@@ -285,10 +285,10 @@ The built `dist` directory can be directly installed as a Chrome extension. In C
 - Open `chrome://extensions/`
 - Enable "Developer mode" in the top-right corner
 - Click "Load unpacked" in the top-left corner
-- Select the `apps/chrome-devtools/dist` directory
+- Select the `apps/chrome-extension/dist` directory
 
 Alternatively, you can use the packaged extension:
-- Select the `apps/chrome-devtools/extension/midscene-extension-v{version}.zip` file
+- Select the `apps/chrome-extension/extension/midscene-extension-v{version}.zip` file
 
-For more detailed information, please refer to [Chrome DevTools README](./apps/chrome-devtools/README.md).
+For more detailed information, please refer to [Chrome DevTools README](./apps/chrome-extension/README.md).
 

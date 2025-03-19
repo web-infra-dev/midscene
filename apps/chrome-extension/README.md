@@ -11,7 +11,7 @@ Make sure you have completed the basic environment setup according to the main p
 ### Directory Structure
 
 ```
-chrome-devtools/
+chrome-extension/
 ├── dist/                 # Build output directory, can be directly installed as a Chrome extension
 ├── extension/            # Packaged Chrome extension
 │   └── midscene-extension-v{version}.zip    # Compressed extension
@@ -54,14 +54,14 @@ pnpm run build
 3. **Development Mode**
 ```bash
 # Start the project in development mode
-cd apps/chrome-devtools
+cd apps/chrome-extension
 pnpm run dev
 ```
 
 4. **Build Project**
 ```bash
 # Build the Chrome extension
-cd apps/chrome-devtools
+cd apps/chrome-extension
 pnpm run build
 ```
 
@@ -78,7 +78,7 @@ The built `dist` directory can be directly installed as a Chrome extension:
 1. Open Chrome browser, navigate to `chrome://extensions/`
 2. Enable "Developer mode" in the top-right corner
 3. Click "Load unpacked" in the top-left corner
-4. Select the `apps/chrome-devtools/dist` directory
+4. Select the `apps/chrome-extension/dist` directory
 
 This method is suitable for quick testing during development.
 

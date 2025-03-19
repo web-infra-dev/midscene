@@ -61,5 +61,5 @@ jobs:
       with:
         if-no-files-found: error
         name: chrome_extension
-        path: ${{ github.workspace }}/apps/chrome-devtools/extension_output
+        path: ${{ github.workspace }}/apps/chrome-extension/extension_output
         
