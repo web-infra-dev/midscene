@@ -46,6 +46,9 @@ export default defineConfig({
       },
     },
   },
+  dev: {
+    writeToDisk: true,
+  },
   output: {
     polyfill: 'entry',
     copy: [
