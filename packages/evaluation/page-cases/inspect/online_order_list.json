@@ -4,50 +4,62 @@
     {
       "prompt": "'清爽不喝腻'下面第二个饮品的名称",
       "multi": false,
-      "response": [
-        {
-          "id": "eabha",
-          "indexId": 20
-        }
-      ],
-      "response_bbox": [186, 279, 245, 293],
-      "annotation_index_id": 1
+      "annotation_index_id": 1,
+      "response_rect": {
+        "left": 186,
+        "top": 275,
+        "width": 78,
+        "height": 18
+      },
+      "response_element": {
+        "id": "eabha",
+        "indexId": 20
+      }
     },
     {
       "prompt": "多肉葡萄的选择规格按钮",
       "multi": false,
-      "response": [
-        {
-          "id": "kmdfd",
-          "indexId": 39
-        }
-      ],
-      "response_bbox": [324, 801, 387, 816],
-      "annotation_index_id": 2
+      "annotation_index_id": 2,
+      "response_rect": {
+        "left": 324,
+        "top": 801,
+        "width": 62,
+        "height": 14
+      },
+      "response_element": {
+        "id": "kmdfd",
+        "indexId": 39
+      }
     },
     {
       "prompt": "多肉葡萄的价格",
       "multi": false,
-      "response": [
-        {
-          "id": "pceib",
-          "indexId": 38
-        }
-      ],
-      "response_bbox": [190, 804, 230, 825],
-      "annotation_index_id": 3
+      "annotation_index_id": 3,
+      "response_rect": {
+        "left": 187,
+        "top": 739,
+        "width": 102,
+        "height": 15
+      },
+      "response_element": {
+        "id": "mjdkp",
+        "indexId": 37
+      }
     },
     {
       "prompt": "左侧导航栏’要雪糕‘",
       "multi": false,
-      "response": [
-        {
-          "id": "lalae",
-          "indexId": 9
-        }
-      ],
-      "response_bbox": [0, 378, 45, 401],
-      "annotation_index_id": 4
+      "annotation_index_id": 4,
+      "response_rect": {
+        "left": 5,
+        "top": 382,
+        "width": 35,
+        "height": 14
+      },
+      "response_element": {
+        "id": "lalae",
+        "indexId": 9
+      }
     }
   ]
 }

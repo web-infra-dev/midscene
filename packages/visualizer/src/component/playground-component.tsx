@@ -584,11 +584,7 @@ export function Playground({
         >
           <h3>UI Context</h3>
           {uiContextPreview ? (
-            <Blackboard
-              uiContext={uiContextPreview}
-              hideController
-              disableInteraction
-            />
+            <Blackboard uiContext={uiContextPreview} hideController />
           ) : (
             <div>
               {iconForStatus('failed')} No UI context

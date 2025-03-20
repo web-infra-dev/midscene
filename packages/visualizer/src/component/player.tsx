@@ -9,7 +9,7 @@ import {
   DownloadOutlined,
   LoadingOutlined,
 } from '@ant-design/icons';
-import type { BaseElement } from '@midscene/core';
+import type { BaseElement, Rect } from '@midscene/core';
 import { Button, ConfigProvider, Spin } from 'antd';
 import { rectMarkForItem } from './blackboard';
 import { getTextureFromCache, loadTexture } from './pixi-loader';
@@ -455,6 +455,7 @@ export default function Player(props?: {
   const insightElementsAnimation = async (
     elements: BaseElement[],
     highlightElements: BaseElement[],
+    searchArea: Rect | undefined,
     duration: number,
     frame: FrameFn,
   ): Promise<void> => {
@@ -481,7 +482,7 @@ export default function Player(props?: {
             const [insightMarkGraphic] = rectMarkForItem(
               element.rect,
               element.content,
-              false,
+              'element',
             );
             insightMarkGraphic.alpha = 0;
             insightMarkContainer.addChild(insightMarkGraphic);
@@ -506,16 +507,27 @@ export default function Player(props?: {
             const [insightMarkGraphic] = rectMarkForItem(
               element.rect,
               element.content,
-              false,
+              'element',
             );
             insightMarkGraphic.alpha = 1; // Set alpha to 1 immediately for remaining items
             insightMarkContainer.addChild(insightMarkGraphic);
           }
+
+          if (searchArea) {
+            const [searchAreaGraphic] = rectMarkForItem(
+              searchArea,
+              'Search Area',
+              'searchArea',
+            );
+            searchAreaGraphic.alpha = 1;
+            insightMarkContainer.addChild(searchAreaGraphic);
+          }
+
           highlightElements.map((element) => {
             const [insightMarkGraphic] = rectMarkForItem(
               element.rect,
               element.content,
-              true,
+              'highlight',
             );
             insightMarkGraphic.alpha = 1;
             insightMarkContainer.addChild(insightMarkGraphic);
@@ -616,6 +628,7 @@ export default function Player(props?: {
             await insightElementsAnimation(
               elements,
               highlightElements,
+              item.insightDump.taskInfo?.searchArea,
               item.duration,
               frame,
             );

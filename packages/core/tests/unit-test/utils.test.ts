@@ -9,6 +9,7 @@ import {
 } from '@/ai-model/service-caller';
 import { getAIConfig, overrideAIConfig } from '@/env';
 import {
+  bboxToRect,
   getLogDir,
   getTmpDir,
   getTmpFile,
@@ -90,6 +91,11 @@ describe('utils', () => {
     expect(reportB).toContain(
       `<script type="midscene_web_dump" type="application/json">${content}</script>`,
     );
+  });
+
+  it('bboxToRect', () => {
+    const result = bboxToRect([100, 200, 300, 400]);
+    expect(result).toEqual({ left: 100, top: 200, width: 200, height: 200 });
   });
 });
 
@@ -227,14 +233,40 @@ describe('doubao-vision', () => {
     expect(result4).toBe('[123,456,789,100]');
   });
 
+  it('adaptDoubaoBbox with 2 points', () => {
+    const result = adaptDoubaoBbox([100, 200], 1000, 2000);
+    expect(result).toMatchInlineSnapshot(`
+      [
+        90,
+        390,
+        110,
+        410,
+      ]
+    `);
+  });
+
   it('adaptDoubaoBbox', () => {
     const result = adaptDoubaoBbox([100, 200, 300, 400], 1000, 2000);
-    expect(result).toEqual([100, 400, 300, 800]);
+    expect(result).toMatchInlineSnapshot(`
+      [
+        100,
+        400,
+        300,
+        800,
+      ]
+    `);
   });
 
   it('adaptDoubaoBbox with 6 points', () => {
     const result2 = adaptDoubaoBbox([100, 200, 300, 400, 100, 200], 1000, 2000);
-    expect(result2).toEqual([100, 400, 120, 420]);
+    expect(result2).toMatchInlineSnapshot(`
+      [
+        90,
+        390,
+        110,
+        410,
+      ]
+    `);
   });
 
   it('adaptDoubaoBbox with 8 points', () => {
@@ -243,7 +275,14 @@ describe('doubao-vision', () => {
       1000,
       2000,
     );
-    expect(result3).toEqual([100, 400, 300, 800]);
+    expect(result3).toMatchInlineSnapshot(`
+      [
+        100,
+        400,
+        300,
+        800,
+      ]
+    `);
   });
 
   it('adaptDoubaoBbox with invalid bbox data', () => {

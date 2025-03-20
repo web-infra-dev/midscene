@@ -9,7 +9,13 @@ import {
   resizeImgBase64,
 } from '@/img';
 import getJimp from '@/img/get-jimp';
-import { paddingToMatchBlock, saveBase64Image } from 'src/img/transform';
+import {
+  cropByRect,
+  jimpFromBase64,
+  jimpToBase64,
+  paddingToMatchBlock,
+  saveBase64Image,
+} from 'src/img/transform';
 import { getFixture } from 'tests/utils';
 import { describe, expect, it } from 'vitest';
 
@@ -76,18 +82,64 @@ describe('image utils', () => {
   it('paddingToMatchBlock', async () => {
     const image = getFixture('heytea.jpeg');
     const base64 = base64Encoded(image);
-    const paddedBase64 = await paddingToMatchBlock(base64);
+    const jimpImage = await jimpFromBase64(base64);
+    const result = await paddingToMatchBlock(jimpImage);
 
-    const resultInfo = await imageInfoOfBase64(paddedBase64);
-    expect(resultInfo.width).toMatchSnapshot();
-    expect(resultInfo.height).toMatchSnapshot();
+    const width = result.bitmap.width;
+    expect(width).toMatchSnapshot();
+
+    const height = result.bitmap.height;
+    expect(height).toMatchSnapshot();
 
     const tmpFile = join(tmpdir(), 'heytea-padded.jpeg');
     await saveBase64Image({
-      base64Data: paddedBase64,
+      base64Data: await jimpToBase64(result),
       outputPath: tmpFile,
     });
-    console.log('tmpFile', tmpFile);
+    // console.log('tmpFile', tmpFile);
+  });
+
+  it('cropByRect', async () => {
+    const image = getFixture('heytea.jpeg');
+    console.log('image', image);
+    const base64 = base64Encoded(image);
+    const jimpImage = await jimpFromBase64(base64);
+    await cropByRect(jimpImage, {
+      left: 200,
+      top: 80,
+      width: 100,
+      height: 400,
+    });
+
+    expect(jimpImage.bitmap.width).toMatchSnapshot();
+    expect(jimpImage.bitmap.height).toMatchSnapshot();
+
+    const tmpFile = join(tmpdir(), 'heytea-cropped.jpeg');
+    await saveBase64Image({
+      base64Data: await jimpToBase64(jimpImage),
+      outputPath: tmpFile,
+    });
+  });
+
+  it('padding then crop', async () => {
+    const image = getFixture('heytea.jpeg');
+    const base64 = base64Encoded(image);
+    const jimpImage = await jimpFromBase64(base64);
+    await paddingToMatchBlock(jimpImage);
+    await cropByRect(jimpImage, {
+      left: 350,
+      top: 80,
+      width: 70,
+      height: 400,
+    });
+    expect(jimpImage.bitmap.width).toMatchSnapshot();
+    expect(jimpImage.bitmap.height).toMatchSnapshot();
+    const tmpFile = join(tmpdir(), 'heytea-padded-cropped-2.jpeg');
+    await saveBase64Image({
+      base64Data: await jimpToBase64(jimpImage),
+      outputPath: tmpFile,
+    });
+    // console.log('tmpFile', tmpFile);
   });
 
   // it(

@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os';
 import * as path from 'node:path';
 import { dirname } from 'node:path';
 import { getRunningPkgInfo } from '@midscene/shared/fs';
-import { assert } from '@midscene/shared/utils';
+import { assert, getGlobalScope } from '@midscene/shared/utils';
 import { ifInBrowser, uuid } from '@midscene/shared/utils';
 import {
   MIDSCENE_DEBUG_MODE,
@@ -38,11 +38,18 @@ export function getLogDirByType(type: 'dump' | 'cache' | 'report' | 'tmp') {
 }
 
 let reportTpl: string | null = null;
+export function setReportTpl(tpl: string) {
+  reportTpl = tpl;
+}
+
 function getReportTpl() {
-  if (ifInBrowser) {
-    if (!reportTpl && (window as any).get_midscene_report_tpl) {
-      reportTpl = (window as any).get_midscene_report_tpl();
-    }
+  const globalScope = getGlobalScope();
+  if (
+    !reportTpl &&
+    globalScope &&
+    typeof (globalScope as any).get_midscene_report_tpl === 'function'
+  ) {
+    reportTpl = (globalScope as any).get_midscene_report_tpl();
     return reportTpl;
   }
 
@@ -305,4 +312,13 @@ export function uploadTestInfoToServer({ testUrl }: { testUrl: string }) {
       );
     lastReportedRepoUrl = repoUrl;
   }
+}
+
+export function bboxToRect(bbox: [number, number, number, number]): Rect {
+  return {
+    left: bbox[0],
+    top: bbox[1],
+    width: bbox[2] - bbox[0],
+    height: bbox[3] - bbox[1],
+  };
 }

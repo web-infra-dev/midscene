@@ -11,7 +11,7 @@ describeIf(
   },
   () => {
     test('open new tab', async () => {
-      // const params = ['./tests/midscene_scripts/sub/bing.yaml', '--keep-window'];
+      // const params = ['./tests/midscene_scripts/online/bing.yaml', '--keep-window'];
       const params = [
         './tests/midscene_scripts_bridge/new_tab/open-new-tab.yaml',
         '--keep-window',

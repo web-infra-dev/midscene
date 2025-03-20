@@ -14,18 +14,14 @@ import type {
 import { getLogDir, getVersion, stringifyDumpData } from '@/utils';
 import { assert } from '@midscene/shared/utils';
 import { uuid } from '@midscene/shared/utils';
-const logContent: string[] = [];
-const logIdIndexMap: Record<string, number> = {};
 
 export function emitInsightDump(
   data: PartialInsightDumpFromSDK,
-  logId?: string,
   dumpSubscriber?: DumpSubscriber,
-): string {
+) {
   const logDir = getLogDir();
   assert(logDir, 'logDir should be set before writing dump file');
 
-  const id = logId || uuid();
   let modelDescription = '';
   if (getAIConfigInBoolean(MIDSCENE_USE_VLM_UI_TARS)) {
     modelDescription = 'vlm-ui-tars mode';
@@ -40,21 +36,10 @@ export function emitInsightDump(
     model_description: modelDescription,
   };
   const finalData: InsightDump = {
-    logId: id,
+    logId: uuid(),
     ...baseData,
     ...data,
   };
 
   dumpSubscriber?.(finalData);
-
-  const dataString = stringifyDumpData(finalData, 2);
-
-  if (typeof logIdIndexMap[id] === 'number') {
-    logContent[logIdIndexMap[id]] = dataString;
-  } else {
-    const length = logContent.push(dataString);
-    logIdIndexMap[id] = length - 1;
-  }
-
-  return id;
 }

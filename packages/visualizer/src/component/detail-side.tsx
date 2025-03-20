@@ -121,7 +121,7 @@ const objectWithoutKeys = (obj: Record<string, unknown>, keys: string[]) =>
 const DetailSide = (): JSX.Element => {
   const task = useExecutionDump((store) => store.activeTask);
   const dump = useExecutionDump((store) => store.insightDump);
-  const { matchedSection: sections, matchedElement: elements } = dump || {};
+  const { matchedElement: elements } = dump || {};
 
   const kv = (data: Record<string, unknown>) => {
     const isElementItem = (value: unknown): value is BaseElement =>

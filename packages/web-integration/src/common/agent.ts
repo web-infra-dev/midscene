@@ -8,16 +8,17 @@ import {
   type GroupedActionDump,
   Insight,
   type InsightAction,
+  type LocateParam,
   type OnTaskStartTip,
   type PlanningActionParamInputOrKeyPress,
+  type PlanningActionParamScroll,
   // type PlanningActionParamScroll,
 } from '@midscene/core';
-import { NodeType } from '@midscene/shared/constants';
 
 import { ScriptPlayer, parseYamlScript } from '@/yaml/index';
 import {
   MIDSCENE_USE_VLM_UI_TARS,
-  getAIConfig,
+  getAIConfigInBoolean,
   vlLocateMode,
 } from '@midscene/core/env';
 import {
@@ -26,11 +27,18 @@ import {
   stringifyDumpData,
   writeLogFile,
 } from '@midscene/core/utils';
+import { assert } from '@midscene/shared/utils';
 import { PageTaskExecutor } from '../common/tasks';
-import { WebElementInfo } from '../web-element';
+import type { WebElementInfo } from '../web-element';
 import { buildPlans } from './plan-builder';
 import type { AiTaskCache } from './task-cache';
-import { paramStr, typeStr } from './ui-utils';
+import {
+  locateParamStr,
+  paramStr,
+  scrollParamStr,
+  taskTitleStr,
+  typeStr,
+} from './ui-utils';
 import { printReportMsg, reportFileName } from './utils';
 import { type WebUIContext, parseContextFromWebPage } from './utils';
 
@@ -68,6 +76,8 @@ export class PageAgent<PageType extends WebPage = WebPage> {
    */
   dryMode = false;
 
+  onTaskStartTip?: OnTaskStartTip;
+
   constructor(page: PageType, opts?: PageAgentOpt) {
     this.page = page;
     this.opts = Object.assign(
@@ -79,6 +89,8 @@ export class PageAgent<PageType extends WebPage = WebPage> {
       },
       opts || {},
     );
+
+    this.onTaskStartTip = this.opts.onTaskStartTip;
     // get the parent browser of the puppeteer page
     // const browser = (this.page as PuppeteerWebPage).browser();
 
@@ -86,22 +98,11 @@ export class PageAgent<PageType extends WebPage = WebPage> {
       async (action: InsightAction) => {
         return this.getUIContext(action);
       },
-      {
-        generateElement: ({ content, rect }) =>
-          new WebElementInfo({
-            content: content || '',
-            rect,
-            id: '',
-            attributes: {
-              nodeType: NodeType.CONTAINER,
-            },
-            indexId: 0,
-          }),
-      },
     );
 
     this.taskExecutor = new PageTaskExecutor(this.page, this.insight, {
       cacheId: opts?.cacheId,
+      onTaskStart: this.callbackOnTaskStartTip.bind(this),
     });
     this.dump = this.resetDump();
     this.reportFileName = reportFileName(opts?.testId || 'web');
@@ -160,14 +161,10 @@ export class PageAgent<PageType extends WebPage = WebPage> {
   }
 
   private async callbackOnTaskStartTip(task: ExecutionTask) {
-    if (this.opts.onTaskStartTip) {
-      const param = paramStr(task);
-      if (param) {
-        const tip = `${typeStr(task)} - ${param}`;
-        await this.opts.onTaskStartTip(tip);
-      } else {
-        await this.opts.onTaskStartTip(typeStr(task));
-      }
+    const param = paramStr(task);
+    const tip = param ? `${typeStr(task)} - ${param}` : typeStr(task);
+    if (this.onTaskStartTip) {
+      await this.onTaskStartTip(tip);
     }
   }
 
@@ -181,105 +178,84 @@ export class PageAgent<PageType extends WebPage = WebPage> {
     }
   }
 
-  async aiTap(targetPrompt: string, searchArea?: string) {
-    const plans = buildPlans('Tap', {
-      prompt: targetPrompt,
-      searchArea,
-    });
+  async aiTap(locate: LocateParam) {
+    const plans = buildPlans('Tap', locate);
     const { executor, output } = await this.taskExecutor.runPlans(
-      `Tap ${targetPrompt}`,
+      taskTitleStr('Tap', locateParamStr(locate)),
       plans,
     );
     this.afterTaskRunning(executor);
     return output;
   }
 
-  async aiHover(taskPrompt: string) {
-    const plans = buildPlans('Hover', {
-      prompt: taskPrompt,
-    });
+  async aiHover(locate: LocateParam) {
+    const plans = buildPlans('Hover', locate);
     const { executor, output } = await this.taskExecutor.runPlans(
-      `Hover ${taskPrompt}`,
+      taskTitleStr('Hover', locateParamStr(locate)),
       plans,
     );
     this.afterTaskRunning(executor);
     return output;
   }
 
-  async aiInput(where: string, value: string) {
-    const plans = buildPlans(
-      'Input',
-      {
-        prompt: where,
-      },
-      {
-        value,
-      } as PlanningActionParamInputOrKeyPress,
+  async aiInput(value: string, locate: LocateParam) {
+    assert(
+      typeof value === 'string',
+      'input value must be a string, use empty string if you want to clear the input',
     );
+    const plans = buildPlans('Input', locate, {
+      value,
+    } as PlanningActionParamInputOrKeyPress);
     const { executor, output } = await this.taskExecutor.runPlans(
-      `Input ${where} - ${value}`,
+      taskTitleStr('Input', `${locateParamStr(locate)} - ${value}`),
       plans,
     );
     this.afterTaskRunning(executor);
     return output;
   }
 
-  async aiKeyboardPress(where: string, value: string) {
-    const plans = buildPlans(
-      'KeyboardPress',
-      {
-        prompt: where,
-      },
-      {
-        value,
-      } as PlanningActionParamInputOrKeyPress,
-    );
+  async aiKeyboardPress(keyName: string, locate?: LocateParam) {
+    assert(keyName, 'missing keyName for keyboard press');
+    const plans = buildPlans('KeyboardPress', locate, {
+      value: keyName,
+    } as PlanningActionParamInputOrKeyPress);
     const { executor, output } = await this.taskExecutor.runPlans(
-      `KeyboardPress ${where} - ${value}`,
+      taskTitleStr('KeyboardPress', `${locateParamStr(locate)} - ${keyName}`),
       plans,
     );
     this.afterTaskRunning(executor);
     return output;
   }
 
-  // async aiScroll(where: string, param: PlanningActionParamScroll) {
-  //   const plans = buildPlans(
-  //     'Scroll',
-  //     {
-  //       prompt: where,
-  //     },
-  //     param,
-  //   );
-  //   const { executor, output } = await this.taskExecutor.runPlans(
-  //     `Scroll ${where} - ${paramStr(param)}`,
-  //     plans,
-  //   );
-  // }
+  async aiScroll(scrollParam: PlanningActionParamScroll, locate?: LocateParam) {
+    const plans = buildPlans('Scroll', locate, scrollParam);
+    const paramInTitle = locate
+      ? `${locateParamStr(locate)} - ${scrollParamStr(scrollParam)}`
+      : scrollParamStr(scrollParam);
+    const { executor, output } = await this.taskExecutor.runPlans(
+      taskTitleStr('Scroll', paramInTitle),
+      plans,
+    );
+    this.afterTaskRunning(executor);
+    return output;
+  }
 
   async aiAction(taskPrompt: string) {
-    const { executor } = await (getAIConfig(MIDSCENE_USE_VLM_UI_TARS)
-      ? this.taskExecutor.actionToGoal(taskPrompt, {
-          onTaskStart: this.callbackOnTaskStartTip.bind(this),
-        })
-      : this.taskExecutor.action(taskPrompt, {
-          onTaskStart: this.callbackOnTaskStartTip.bind(this),
-        }));
+    const { executor } = await (getAIConfigInBoolean(MIDSCENE_USE_VLM_UI_TARS)
+      ? this.taskExecutor.actionToGoal(taskPrompt)
+      : this.taskExecutor.action(taskPrompt));
 
     this.afterTaskRunning(executor);
   }
 
   async aiQuery(demand: any) {
-    const { output, executor } = await this.taskExecutor.query(demand, {
-      onTaskStart: this.callbackOnTaskStartTip.bind(this),
-    });
+    const { output, executor } = await this.taskExecutor.query(demand);
     this.afterTaskRunning(executor);
     return output;
   }
 
   async aiAssert(assertion: string, msg?: string, opt?: AgentAssertOpt) {
-    const { output, executor } = await this.taskExecutor.assert(assertion, {
-      onTaskStart: this.callbackOnTaskStartTip.bind(this),
-    });
+    const { output, executor } = await this.taskExecutor.assert(assertion);
     this.afterTaskRunning(executor, true);
 
     if (output && opt?.keepRawResponse) {
@@ -300,7 +276,6 @@ export class PageAgent<PageType extends WebPage = WebPage> {
       timeoutMs: opt?.timeoutMs || 15 * 1000,
       checkIntervalMs: opt?.checkIntervalMs || 3 * 1000,
       assertion,
-      onTaskStart: this.callbackOnTaskStartTip.bind(this),
     });
     this.appendExecutionDump(executor.dump());
     this.writeOutActionDumps();

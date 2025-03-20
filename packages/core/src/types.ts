@@ -2,6 +2,7 @@
 
 import type { NodeType } from '@midscene/shared/constants';
 import type { ChatCompletionMessageParam } from 'openai/resources';
+import type { DetailedLocateParam, scrollParam } from './yaml';
 
 export * from './yaml';
 
@@ -95,9 +96,8 @@ export type AIElementResponse =
   | AIElementLocatorResponse
   | AIElementCoordinatesResponse;
 
-export interface AISectionParseResponse<DataShape> {
+export interface AIDataExtractionResponse<DataShape> {
   data: DataShape;
-  sections?: LiteUISection[];
   errors?: string[];
 }
 
@@ -139,10 +139,6 @@ export type CallAIFn = <T>(
 export interface InsightOptions {
   taskInfo?: Omit<InsightTaskInfo, 'durationMs'>;
   aiVendorFn?: CallAIFn;
-  generateElement?: (opts: {
-    content?: string;
-    rect: BaseElement['rect'];
-  }) => BaseElement;
 }
 
 // export interface UISection {
@@ -159,11 +155,26 @@ export type InsightAction = 'locate' | 'extract' | 'assert';
 
 export type InsightExtractParam = string | Record<string, string>;
 
+export type LocateResultElement = {
+  id: string;
+  indexId?: number;
+  center: [number, number];
+  rect: Rect;
+};
+
+export interface LocateResult {
+  element: LocateResultElement | null;
+  rect?: Rect;
+}
+
 export interface InsightTaskInfo {
   durationMs: number;
   formatResponse?: string;
   rawResponse?: string;
   usage?: AIUsageInfo;
+  searchArea?: Rect;
+  searchAreaRawResponse?: string;
+  searchAreaUsage?: AIUsageInfo;
 }
 
 export interface DumpMeta {
@@ -185,12 +196,11 @@ export interface InsightDump extends DumpMeta {
   userQuery: {
     element?: string;
     dataDemand?: InsightExtractParam;
-    sections?: Record<string, string>;
     assertion?: string;
-  }; // ?
+  };
   quickAnswer?: Partial<AISingleElementResponse> | null;
-  matchedSection: [];
   matchedElement: BaseElement[];
+  matchedRect?: Rect;
   data: any;
   assertionPass?: boolean;
   assertionThought?: string;
@@ -239,11 +249,9 @@ export interface AgentAssertOpt {
  *
  */
 
-export interface PlanningLocateParam {
+export interface PlanningLocateParam extends DetailedLocateParam {
   id?: string;
   bbox?: [number, number, number, number];
-  prompt: string;
-  searchArea?: string;
 }
 
 export interface PlanningAction<ParamType = any> {
@@ -288,11 +296,8 @@ export type PlanningActionParamHover = null;
 export interface PlanningActionParamInputOrKeyPress {
   value: string;
 }
-export interface PlanningActionParamScroll {
-  direction: 'down' | 'up' | 'right' | 'left';
-  scrollType: 'once' | 'untilBottom' | 'untilTop' | 'untilRight' | 'untilLeft';
-  distance: null | number;
-}
+
+export type PlanningActionParamScroll = scrollParam;
 
 export interface PlanningActionParamAssert {
   assertion: string;
@@ -306,10 +311,9 @@ export interface PlanningActionParamError {
   thought: string;
 }
 
-export type PlanningActionParamWaitFor = ExecutionTaskProgressOptions &
-  AgentWaitForOpt & {
-    assertion: string;
-  };
+export type PlanningActionParamWaitFor = AgentWaitForOpt & {
+  assertion: string;
+};
 /**
  * misc
  */
@@ -347,7 +351,7 @@ export type ExecutionTaskType = 'Planning' | 'Insight' | 'Action' | 'Assertion';
 
 export interface ExecutorContext {
   task: ExecutionTask;
-  element?: BaseElement | null;
+  element?: LocateResultElement | null;
 }
 
 export interface TaskCacheInfo {
@@ -422,7 +426,7 @@ task - insight-locate
 export type ExecutionTaskInsightLocateParam = PlanningLocateParam;
 
 export interface ExecutionTaskInsightLocateOutput {
-  element: BaseElement | null;
+  element: LocateResultElement | null;
 }
 
 export interface ExecutionTaskInsightDumpLog {

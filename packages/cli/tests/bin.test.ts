@@ -66,12 +66,15 @@ describe.skipIf(!shouldRunAITest)('bin', () => {
   });
 
   test('run yaml scripts with keepWindow', async () => {
-    const params = ['./tests/midscene_scripts/sub/bing.yaml', '--keep-window'];
+    const params = [
+      './tests/midscene_scripts/online/bing.yaml',
+      '--keep-window',
+    ];
     await execa(cliBin, params);
   });
 
   test('run yaml scripts with headed, put options before path', async () => {
-    const params = ['--headed', './tests/midscene_scripts/sub/bing.yaml'];
+    const params = ['--headed', './tests/midscene_scripts/online/bing.yaml'];
     await execa(cliBin, params);
   });
 });

@@ -3,69 +3,87 @@
   "testCases": [
     {
       "prompt": "左下角暂停按钮",
-      "response": [
-        {
-          "id": "fmbcn",
-          "indexId": 4
-        }
-      ],
-      "response_bbox": [16, 772, 30, 784],
-      "annotation_index_id": 1
+      "annotation_index_id": 1,
+      "response_rect": {
+        "left": 17,
+        "top": 769,
+        "width": 15,
+        "height": 15
+      },
+      "response_element": {
+        "id": "fmbcn",
+        "indexId": 4
+      }
     },
     {
       "prompt": "点赞（爱心）按钮",
-      "response": [
-        {
-          "id": "ebgie",
-          "indexId": 23
-        }
-      ],
-      "response_bbox": [1203, 354, 1227, 369],
-      "annotation_index_id": 2
+      "annotation_index_id": 2,
+      "response_rect": {
+        "left": 1204,
+        "top": 352,
+        "width": 23,
+        "height": 19
+      },
+      "response_element": {
+        "id": "ebgie",
+        "indexId": 23
+      }
     },
     {
       "prompt": "评论按钮",
-      "response": [
-        {
-          "id": "cjmim",
-          "indexId": 25
-        }
-      ],
-      "response_bbox": [1203, 425, 1226, 447],
-      "annotation_index_id": 3
+      "annotation_index_id": 3,
+      "response_rect": {
+        "left": 1205,
+        "top": 426,
+        "width": 22,
+        "height": 17
+      },
+      "response_element": {
+        "id": "cjmim",
+        "indexId": 25
+      }
     },
     {
       "prompt": "书签收藏按钮",
-      "response": [
-        {
-          "id": "moimk",
-          "indexId": 27
-        }
-      ],
-      "response_bbox": [1204, 503, 1226, 520],
-      "annotation_index_id": 4
+      "annotation_index_id": 4,
+      "response_rect": {
+        "left": 1203,
+        "top": 498,
+        "width": 27,
+        "height": 22
+      },
+      "response_element": {
+        "id": "moimk",
+        "indexId": 27
+      }
     },
     {
       "prompt": "分享按钮",
-      "response": [
-        {
-          "id": "mgcne",
-          "indexId": 29
-        }
-      ],
-      "response_bbox": [1206, 574, 1230, 592],
-      "annotation_index_id": 5
+      "annotation_index_id": 5,
+      "response_rect": {
+        "left": 1203,
+        "top": 576,
+        "width": 25,
+        "height": 18
+      },
+      "response_element": {
+        "id": "mgcne",
+        "indexId": 29
+      }
     },
     {
       "prompt": "右下角区域声音按钮",
-      "response": [
-        {
-          "id": "djknm",
-          "indexId": 10
-        }
-      ],
-      "response_bbox": [1203, 769, 1225, 784],
-      "annotation_index_id": 6
+      "annotation_index_id": 6,
+      "response_rect": {
+        "left": 1203,
+        "top": 769,
+        "width": 22,
+        "height": 15
+      },
+      "response_element": {
+        "id": "djknm",
+        "indexId": 10
+      }
     }
   ]
 }

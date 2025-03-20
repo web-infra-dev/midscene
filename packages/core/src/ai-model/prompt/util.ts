@@ -142,13 +142,13 @@ export async function describeUserPage<
   );
 
   // if match by position, don't need to provide the page description
-  const pageJSONDescription = vlLocateMode()
-    ? ''
-    : `Some of the elements are marked with a rectangle in the screenshot, some are not. \n The page elements tree:\n${contentTree}`;
   const sizeDescription = describeSize({ width, height });
+  const pageDescription = vlLocateMode()
+    ? ''
+    : `The size of the page: ${sizeDescription} \n Some of the elements are marked with a rectangle in the screenshot, some are not. \n The page elements tree:\n${contentTree}`;
 
   return {
-    description: `The size of the page: ${sizeDescription} \n ${pageJSONDescription}`,
+    description: pageDescription,
     elementById(id: string) {
       assert(typeof id !== 'undefined', 'id is required for query');
       const item = idElementMap[`${id}`];

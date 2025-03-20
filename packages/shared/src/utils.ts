@@ -68,3 +68,18 @@ export function assert(condition: any, message?: string): asserts condition {
     throw new Error(message || 'Assertion failed');
   }
 }
+
+export function getGlobalScope() {
+  if (typeof window !== 'undefined') {
+    return window;
+  }
+
+  if (typeof global !== 'undefined') {
+    return global;
+  }
+
+  if (typeof self !== 'undefined') {
+    return self;
+  }
+  return undefined;
+}

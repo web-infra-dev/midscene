@@ -1,4 +1,5 @@
 import type {
+  LocateParam,
   PlanningAction,
   PlanningActionParamHover,
   PlanningActionParamInputOrKeyPress,
@@ -13,7 +14,7 @@ const debug = getDebug('plan-builder');
 
 export function buildPlans(
   type: PlanningAction['type'],
-  locate: PlanningLocateParam | null,
+  locate?: LocateParam,
   param?:
     | PlanningActionParamTap
     | PlanningActionParamHover
@@ -22,28 +23,31 @@ export function buildPlans(
     | PlanningActionParamSleep,
 ): PlanningAction[] {
   let returnPlans: PlanningAction[] = [];
-  const locatePlan: PlanningAction<PlanningLocateParam> | null = locate
+  const locateParam =
+    typeof locate === 'string' ? { prompt: locate } : (locate ?? null);
+  const locatePlan: PlanningAction<PlanningLocateParam> | null = locateParam
     ? {
         type: 'Locate',
-        locate,
-        param: locate,
+        locate: locateParam,
+        param: locateParam,
         thought: '',
       }
     : null;
   if (type === 'Tap' || type === 'Hover') {
+    assert(locate && locateParam, `missing locate info for action "${type}"`);
     assert(locatePlan, `missing locate info for action "${type}"`);
     const tapPlan: PlanningAction<PlanningActionParamTap> = {
       type,
       param: null,
       thought: '',
-      locate: locate,
+      locate: locateParam,
     };
 
     returnPlans = [locatePlan, tapPlan];
   }
   if (type === 'Input' || type === 'KeyboardPress') {
     if (type === 'Input') {
-      assert(locatePlan, `missing locate info for action "${type}"`);
+      assert(locate && locateParam, `missing locate info for action "${type}"`);
     }
     assert(param, `missing param for action "${type}"`);
 
@@ -51,7 +55,7 @@ export function buildPlans(
       type,
       param: param as PlanningActionParamInputOrKeyPress,
       thought: '',
-      locate,
+      locate: locateParam!,
     };
 
     if (locatePlan) {
@@ -68,7 +72,7 @@ export function buildPlans(
       type,
       param: param as PlanningActionParamScroll,
       thought: '',
-      locate,
+      locate: locateParam,
     };
 
     if (locatePlan) {
