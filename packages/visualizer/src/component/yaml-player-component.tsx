@@ -1,5 +1,5 @@
 import type { MidsceneYamlFlowItemAIAction } from '@midscene/core';
-import { type ScriptPlayer, flowItemBrief } from '@midscene/web/yaml';
+import type { ScriptPlayer } from '@midscene/web/yaml';
 import { Steps } from 'antd';
 import { useState } from 'react';
 
@@ -22,7 +22,6 @@ export function YamlPlayerStatusIndicator({
 
       for (let i = 0; i < currentTask.totalSteps; i++) {
         const flow = currentTask.flow[i];
-        const brief = flowItemBrief(flow);
         const tips = (
           (flow as MidsceneYamlFlowItemAIAction).aiActionProgressTips || []
         ).join('\n');
@@ -42,7 +41,6 @@ export function YamlPlayerStatusIndicator({
         taskStatus.status === 'error'
       ) {
         const item = taskStatus.flow[0] as MidsceneYamlFlowItemAIAction;
-        // const brief = flowItemBrief(item);
         const tips = item?.aiActionProgressTips || [];
         if (tips.length > 0) {
           overallStatus = tips[tips.length - 1];

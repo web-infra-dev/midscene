@@ -63,6 +63,22 @@ export function scrollParamStr(scrollParam?: PlanningActionParamScroll) {
   return `${scrollParam.direction || 'down'}, ${scrollParam.scrollType || 'once'}, ${scrollParam.distance || 'distance-not-set'}`;
 }
 
+export function taskTitleStr(
+  type:
+    | 'Tap'
+    | 'Hover'
+    | 'Input'
+    | 'KeyboardPress'
+    | 'Scroll'
+    | 'Action'
+    | 'Query'
+    | 'Assert'
+    | 'WaitFor',
+  prompt: string,
+) {
+  return `${type} - ${prompt}`;
+}
+
 export function paramStr(task: ExecutionTask) {
   let value: string | undefined | object;
   if (task.type === 'Planning') {
@@ -78,27 +94,28 @@ export function paramStr(task: ExecutionTask) {
   }
 
   if (task.type === 'Action') {
-    const sleepMs = (task as ExecutionTaskAction)?.param?.timeMs;
-    const scrollType = (
-      task as ExecutionTask<ExecutionTaskActionApply<PlanningActionParamScroll>>
-    )?.param?.scrollType;
-    if (sleepMs) {
-      value = `${sleepMs}ms`;
-    } else if (scrollType) {
-      const scrollParam = (
-        task as ExecutionTask<
-          ExecutionTaskActionApply<PlanningActionParamScroll>
-        >
-      )?.param;
-      value = scrollParamStr(scrollParam);
-    } else {
-      value =
-        (task as ExecutionTaskAction)?.param?.value ||
-        (task as ExecutionTaskAction)?.param?.scrollType;
+    const locate = (task as ExecutionTaskAction)?.locate;
+    const locateStr = locate ? locateParamStr(locate) : '';
+
+    value = task.thought || '';
+    if (typeof (task as ExecutionTaskAction)?.param?.timeMs === 'number') {
+      value = `${(task as ExecutionTaskAction)?.param?.timeMs}ms`;
+    } else if (
+      typeof (task as ExecutionTaskAction)?.param?.scrollType === 'string'
+    ) {
+      value = scrollParamStr((task as ExecutionTaskAction)?.param);
+    } else if (
+      typeof (task as ExecutionTaskAction)?.param?.value !== 'undefined'
+    ) {
+      value = (task as ExecutionTaskAction)?.param?.value;
     }
 
-    if (!value) {
-      value = task.thought;
+    if (locateStr) {
+      if (value) {
+        value = `${locateStr} - ${value}`;
+      } else {
+        value = locateStr;
+      }
     }
   }
 

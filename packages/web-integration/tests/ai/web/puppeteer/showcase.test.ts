@@ -119,9 +119,12 @@ describe(
 
       await agent.aiTap({
         prompt: 'the settings button',
-        searchArea:
-          'the upper right corner of the page, including the login and settings button',
+        deepThink: true,
       });
+
+      await agent.aiAction(
+        'click the first menu inside the settings menu on the upper top of the page',
+      );
     });
 
     it(

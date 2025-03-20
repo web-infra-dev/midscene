@@ -31,6 +31,7 @@ export class ScriptPlayer {
   public output?: string | null;
   public errorInSetup?: Error;
   private pageAgent: PageAgent | null = null;
+  public agentStatusTip?: string;
   constructor(
     private script: MidsceneYamlScript,
     private setupAgent: (target: MidsceneYamlScriptEnv) => Promise<{
@@ -203,6 +204,11 @@ export class ScriptPlayer {
       const { agent: newAgent, freeFn: newFreeFn } =
         await this.setupAgent(target);
       agent = newAgent;
+      agent.onTaskStartTip = (tip) => {
+        if (this.status === 'running') {
+          this.agentStatusTip = tip;
+        }
+      };
       freeFn = newFreeFn;
     } catch (e) {
       this.setPlayerStatus('error', e as Error);
@@ -241,6 +247,7 @@ export class ScriptPlayer {
     } else {
       this.setPlayerStatus('done');
     }
+    this.agentStatusTip = '';
 
     // free the resources
     for (const fn of freeFn) {
