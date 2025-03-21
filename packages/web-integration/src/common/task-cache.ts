@@ -5,7 +5,7 @@ import type {
   PlanningAIResponse,
 } from '@midscene/core';
 import type { vlmPlanning } from '@midscene/core/ai-model';
-import { getAIConfig, getAIConfigInBoolean } from '@midscene/core/env';
+import { getAIConfigInBoolean } from '@midscene/core/env';
 import {
   getLogDirByType,
   stringifyDumpData,

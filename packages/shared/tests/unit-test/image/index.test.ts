@@ -99,49 +99,65 @@ describe('image utils', () => {
     // console.log('tmpFile', tmpFile);
   });
 
-  it('cropByRect', async () => {
+  it('cropByRect, with padding', async () => {
     const image = getFixture('heytea.jpeg');
-    console.log('image', image);
     const base64 = base64Encoded(image);
-    const jimpImage = await jimpFromBase64(base64);
-    await cropByRect(jimpImage, {
-      left: 200,
-      top: 80,
-      width: 100,
-      height: 400,
-    });
+    const croppedBase64 = await cropByRect(
+      base64,
+      {
+        left: 200,
+        top: 80,
+        width: 100,
+        height: 400,
+      },
+      true,
+    );
 
-    expect(jimpImage.bitmap.width).toMatchSnapshot();
-    expect(jimpImage.bitmap.height).toMatchSnapshot();
+    expect(croppedBase64).toBeTruthy();
+
+    const info = await imageInfoOfBase64(croppedBase64);
+    // biome-ignore lint/style/noUnusedTemplateLiteral: by intention
+    expect(info.width).toMatchInlineSnapshot(`112`);
+    // biome-ignore lint/style/noUnusedTemplateLiteral: by intention
+    expect(info.height).toMatchInlineSnapshot(`420`);
 
     const tmpFile = join(tmpdir(), 'heytea-cropped.jpeg');
     await saveBase64Image({
-      base64Data: await jimpToBase64(jimpImage),
+      base64Data: croppedBase64,
       outputPath: tmpFile,
     });
+    console.log('cropped image saved to', tmpFile);
   });
 
-  it('padding then crop', async () => {
+  it('cropByRect, without padding', async () => {
     const image = getFixture('heytea.jpeg');
     const base64 = base64Encoded(image);
-    const jimpImage = await jimpFromBase64(base64);
-    await paddingToMatchBlock(jimpImage);
-    await cropByRect(jimpImage, {
-      left: 350,
-      top: 80,
-      width: 70,
-      height: 400,
-    });
-    expect(jimpImage.bitmap.width).toMatchSnapshot();
-    expect(jimpImage.bitmap.height).toMatchSnapshot();
-    const tmpFile = join(tmpdir(), 'heytea-padded-cropped-2.jpeg');
+    const croppedBase64 = await cropByRect(
+      base64,
+      {
+        left: 200,
+        top: 80,
+        width: 100,
+        height: 400,
+      },
+      false,
+    );
+
+    expect(croppedBase64).toBeTruthy();
+
+    const info = await imageInfoOfBase64(croppedBase64);
+    // biome-ignore lint/style/noUnusedTemplateLiteral: by intention
+    expect(info.width).toMatchInlineSnapshot(`100`);
+    // biome-ignore lint/style/noUnusedTemplateLiteral: by intention
+    expect(info.height).toMatchInlineSnapshot(`400`);
+
+    const tmpFile = join(tmpdir(), 'heytea-cropped-2.jpeg');
     await saveBase64Image({
-      base64Data: await jimpToBase64(jimpImage),
+      base64Data: croppedBase64,
       outputPath: tmpFile,
     });
-    // console.log('tmpFile', tmpFile);
+    console.log('cropped image saved to', tmpFile);
   });
-
   // it(
   //   'profile',
   //   async () => {

@@ -2,7 +2,6 @@ import {
   MIDSCENE_USE_QWEN_VL,
   MIDSCENE_USE_VLM_UI_TARS,
   getAIConfigInBoolean,
-  vlLocateMode,
 } from '@/env';
 import type {
   AIAssertionResponse,
@@ -20,19 +19,18 @@ import type {
   Size,
   UIContext,
 } from '@/types';
-import { bboxToRect } from '@/utils';
-import {
-  cropByRect,
-  jimpFromBase64,
-  jimpToBase64,
-  paddingToMatchBlock,
-} from '@midscene/shared/img';
+import { cropByRect, paddingToMatchBlockByBase64 } from '@midscene/shared/img';
 import { assert, getDebug } from '@midscene/shared/utils';
 import type {
   ChatCompletionSystemMessageParam,
   ChatCompletionUserMessageParam,
 } from 'openai/resources';
-import { AIActionType, adaptBbox, adaptQwenBbox, callAiFn } from './common';
+import {
+  AIActionType,
+  adaptBboxToRect,
+  callAiFn,
+  expandSearchArea,
+} from './common';
 import { systemPromptToAssert } from './prompt/assertion';
 import { extractDataPrompt, systemPromptToExtract } from './prompt/extraction';
 import {
@@ -62,6 +60,7 @@ const liteContextConfig = {
 };
 
 const debugInspect = getDebug('ai:inspect');
+const debugSection = getDebug('ai:section');
 
 function transformToAbsoluteCoords(
   relativePosition: { x: number; y: number },
@@ -218,7 +217,7 @@ export async function AiLocateElement<
   quickAnswer?: Partial<
     AISingleElementResponse | AISingleElementResponseByPosition
   >;
-  searchArea?: Rect;
+  searchConfig?: Awaited<ReturnType<typeof AiLocateSection>>;
 }): Promise<{
   parseResult: AIElementLocatorResponse;
   rect?: Rect;
@@ -254,27 +253,19 @@ export async function AiLocateElement<
 
   let imagePayload = screenshotBase64WithElementMarker || screenshotBase64;
 
-  let offsetX = 0;
-  let offsetY = 0;
-
-  if (options.searchArea || getAIConfigInBoolean(MIDSCENE_USE_QWEN_VL)) {
-    // need image processing
-    let jimpImage = await jimpFromBase64(imagePayload);
-
-    if (options.searchArea) {
-      await cropByRect(jimpImage, options.searchArea);
-      offsetX = options.searchArea.left;
-      offsetY = options.searchArea.top;
-    }
-
-    if (getAIConfigInBoolean(MIDSCENE_USE_QWEN_VL)) {
-      jimpImage = await paddingToMatchBlock(jimpImage);
-    }
-
-    imagePayload = await jimpToBase64(jimpImage);
-    debugInspect(
-      `image size after processing: ${jimpImage.bitmap.width}x${jimpImage.bitmap.height}`,
+  if (options.searchConfig) {
+    assert(
+      options.searchConfig.rect,
+      'searchArea is provided but its rect cannot be found. Failed to locate element',
     );
+    assert(
+      options.searchConfig.imageBase64,
+      'searchArea is provided but its imageBase64 cannot be found. Failed to locate element',
+    );
+
+    imagePayload = options.searchConfig.imageBase64;
+  } else if (getAIConfigInBoolean(MIDSCENE_USE_QWEN_VL)) {
+    imagePayload = await paddingToMatchBlockByBase64(imagePayload);
   }
 
   const msgs: AIArgs = [
@@ -309,25 +300,15 @@ export async function AiLocateElement<
     const errorMsg = res.content.errors?.length
       ? `Failed to parse bbox: ${res.content.errors?.join(',')}`
       : '';
-    res.content.bbox = adaptBbox(
+    resRect = adaptBboxToRect(
       res.content.bbox,
       context.size.width,
       context.size.height,
+      options.searchConfig?.rect?.left,
+      options.searchConfig?.rect?.top,
       errorMsg,
     );
-    debugInspect('res.content.bbox after adapt', res.content.bbox);
-
-    if (offsetX > 0 || offsetY > 0) {
-      res.content.bbox = res.content.bbox.map((v, i) => {
-        if (i % 2 === 0) {
-          return v + offsetX;
-        }
-        return v + offsetY;
-      }) as [number, number, number, number];
-      debugInspect('res.content.bbox after offset', res.content.bbox);
-    }
-
-    resRect = bboxToRect(res.content.bbox);
+    debugInspect('resRect', resRect);
   }
 
   const parseResult = await transformElementPositionToId(
@@ -350,7 +331,13 @@ export async function AiLocateSection(options: {
   context: UIContext<BaseElement>;
   sectionDescription: string;
   callAI?: typeof callAiFn<AISectionLocatorResponse>;
-}) {
+}): Promise<{
+  rect?: Rect;
+  imageBase64?: string;
+  error?: string;
+  rawResponse: string;
+  usage?: AIUsageInfo;
+}> {
   const { context, sectionDescription } = options;
   const { screenshotBase64 } = context;
 
@@ -384,18 +371,32 @@ export async function AiLocateSection(options: {
   );
 
   let sectionRect: Rect | undefined;
-  let sectionBbox = result.content.bbox;
+  const sectionBbox = result.content.bbox;
   if (sectionBbox) {
-    sectionBbox = adaptBbox(
+    sectionRect = adaptBboxToRect(
       sectionBbox,
       context.size.width,
       context.size.height,
     );
-    sectionRect = bboxToRect(sectionBbox);
+    debugSection('original sectionRect %j', sectionRect);
+
+    // expand search area to at least 200 x 200
+    sectionRect = expandSearchArea(sectionRect, context.size);
+    debugSection('expanded sectionRect %j', sectionRect);
+  }
+
+  let imageBase64 = screenshotBase64;
+  if (sectionRect) {
+    imageBase64 = await cropByRect(
+      screenshotBase64,
+      sectionRect,
+      getAIConfigInBoolean(MIDSCENE_USE_QWEN_VL),
+    );
   }
 
   return {
     rect: sectionRect,
+    imageBase64,
     error: result.content.error,
     rawResponse: JSON.stringify(result.content),
     usage: result.usage,
