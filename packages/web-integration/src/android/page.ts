@@ -20,15 +20,20 @@ export class Page implements AbstractPage {
   private tmpDir: string;
   private screenSize: Size | null = null;
   private yadbPushed = false;
+  private deviceRatio = 1;
   pageType = 'android';
 
-  constructor(deviceId: string) {
+  constructor(deviceId: string, url?: string) {
     this.deviceId = deviceId;
     this.tmpDir = path.join(process.cwd(), 'tmp');
 
     // Ensure the temporary directory exists
     if (!fs.existsSync(this.tmpDir)) {
       fs.mkdirSync(this.tmpDir, { recursive: true });
+    }
+
+    if (url) {
+      this.execAdb(`shell am start -a android.intent.action.VIEW -d "${url}"`);
     }
   }
 
@@ -77,18 +82,71 @@ export class Page implements AbstractPage {
       const match = output.match(/(\d+)x(\d+)/);
 
       if (match && match.length === 3) {
+        const width = Number.parseInt(match[1], 10);
+        const height = Number.parseInt(match[2], 10);
+
+        // Get device display density
+        try {
+          const densityOutput = await this.execAdb('shell wm density');
+          const densityMatch = densityOutput.match(/\d+/);
+          if (densityMatch) {
+            const density = Number.parseInt(densityMatch[0], 10);
+            // Standard density is 160, calculate the ratio
+            this.deviceRatio = density / 160;
+            debugPage(`Device display ratio: ${this.deviceRatio}`);
+          }
+        } catch (error) {
+          console.warn('Error getting device density:', error);
+        }
+
+        // calculate logical pixel size using reverseAdjustCoordinates function
+        const { x: logicalWidth, y: logicalHeight } =
+          this.reverseAdjustCoordinates(width, height);
+
         this.screenSize = {
-          width: Number.parseInt(match[1], 10),
-          height: Number.parseInt(match[2], 10),
+          width: logicalWidth,
+          height: logicalHeight,
         };
+
         return this.screenSize;
       }
       throw new Error('Unable to parse screen size');
     } catch (error) {
       console.error('Error getting screen size:', error);
-      // 默认分辨率
-      return { width: 1080, height: 1920 };
+      // default resolution
+      return { width: 720, height: 1280 };
     }
+  }
+
+  /**
+   * Convert logical coordinates to physical coordinates, handling device ratio
+   * @param x Logical X coordinate
+   * @param y Logical Y coordinate
+   * @returns Physical coordinate point
+   */
+  private adjustCoordinates(x: number, y: number): { x: number; y: number } {
+    const ratio = this.deviceRatio;
+    return {
+      x: Math.round(x * ratio),
+      y: Math.round(y * ratio),
+    };
+  }
+
+  /**
+   * Convert physical coordinates to logical coordinates, handling device ratio
+   * @param x Physical X coordinate
+   * @param y Physical Y coordinate
+   * @returns Logical coordinate point
+   */
+  private reverseAdjustCoordinates(
+    x: number,
+    y: number,
+  ): { x: number; y: number } {
+    const ratio = this.deviceRatio;
+    return {
+      x: Math.round(x / ratio),
+      y: Math.round(y / ratio),
+    };
   }
 
   async screenshotBase64(): Promise<string> {
@@ -103,6 +161,8 @@ export class Page implements AbstractPage {
 
       // Read the screenshot and resize it
       const screenshotBuffer = fs.readFileSync(screenshotPath);
+
+      // use the logical pixel size returned by the size() method to ensure consistency
       const resizedScreenshotBuffer = await resizeImg(screenshotBuffer, {
         width,
         height,
@@ -314,7 +374,10 @@ export class Page implements AbstractPage {
       }
 
       await this.mouseMove(x, y);
-      await this.execAdb(`shell input tap ${Math.round(x)} ${Math.round(y)}`);
+
+      // Use adjusted coordinates
+      const { x: adjustedX, y: adjustedY } = this.adjustCoordinates(x, y);
+      await this.execAdb(`shell input tap ${adjustedX} ${adjustedY}`);
     } catch (error) {
       console.error('Error clicking:', error);
     }
@@ -331,8 +394,12 @@ export class Page implements AbstractPage {
     to: { x: number; y: number },
   ): Promise<void> {
     try {
+      // Use adjusted coordinates
+      const { x: fromX, y: fromY } = this.adjustCoordinates(from.x, from.y);
+      const { x: toX, y: toY } = this.adjustCoordinates(to.x, to.y);
+
       await this.execAdb(
-        `shell input swipe ${Math.round(from.x)} ${Math.round(from.y)} ${Math.round(to.x)} ${Math.round(to.y)} 300`,
+        `shell input swipe ${fromX} ${fromY} ${toX} ${toY} 300`,
       );
     } catch (error) {
       console.error('Error dragging:', error);
@@ -374,9 +441,19 @@ export class Page implements AbstractPage {
       const endX = startX + deltaX;
       const endY = startY + deltaY;
 
+      // Adjust coordinates to fit device ratio
+      const { x: adjustedStartX, y: adjustedStartY } = this.adjustCoordinates(
+        startX,
+        startY,
+      );
+      const { x: adjustedEndX, y: adjustedEndY } = this.adjustCoordinates(
+        endX,
+        endY,
+      );
+
       // Execute the swipe operation
       await this.execAdb(
-        `shell input swipe ${Math.round(startX)} ${Math.round(startY)} ${Math.round(endX)} ${Math.round(endY)} ${duration}`,
+        `shell input swipe ${adjustedStartX} ${adjustedStartY} ${adjustedEndX} ${adjustedEndY} ${duration}`,
       );
     } catch (error) {
       console.error('Error scrolling:', error);
