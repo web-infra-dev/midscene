@@ -7,3 +7,4 @@ packages:
   - packages/visualizer
   - packages/web-integration
   - packages/evaluation
+  - packages/android

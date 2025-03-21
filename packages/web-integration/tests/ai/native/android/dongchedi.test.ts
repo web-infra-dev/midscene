@@ -1,4 +1,4 @@
-import { AdbAgent } from '@/adb';
+import { AndroidAgent } from '@/android';
 import { describe, expect, it, vi } from 'vitest';
 import { launchPage } from './utils';
 
@@ -12,17 +12,17 @@ const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 const DEVICE_ID = process.env.ANDROID_DEVICE_ID;
 
 describe(
-  'adb integration',
+  'android integration',
   () => {
     it('懂车帝查找小米 SU7', async () => {
       const page = await launchPage({ deviceId: DEVICE_ID });
-      const agent = new AdbAgent(page);
+      const agent = new AndroidAgent(page);
 
-      await agent.aiAction('点击同意按钮');
-      await sleep(3000);
+      // await agent.aiAction('点击同意按钮');
+      // await sleep(3000);
 
-      await agent.aiAction('点击允许获取应用位置信息');
-      await sleep(3000);
+      // await agent.aiAction('点击允许获取应用位置信息');
+      // await sleep(3000);
 
       await agent.aiAction('点击顶部输入框');
       await sleep(3000);
