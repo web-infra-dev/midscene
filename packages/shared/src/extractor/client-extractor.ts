@@ -1,8 +1,7 @@
 import type { ElementInfo } from './';
 import { NodeType } from './constants';
-import { generateId, midsceneGenerateHash } from './util';
+import { midsceneGenerateHash } from './util';
 
-// https://github.com/appium/appium/tree/master/packages/universal-xml-plugin
 // Definition of NodeDescriptor interface
 interface NodeDescriptor {
   node: globalThis.Node;
