@@ -85,7 +85,7 @@ export async function resizeImg(
     return inputData;
   }
 
-  image.resize(newSize.width, newSize.height, Jimp.RESIZE_NEAREST_NEIGHBOR);
+  image.resize(newSize.width, newSize.height, Jimp.RESIZE_BICUBIC);
   image.quality(90);
   const resizedBuffer = await image.getBufferAsync(Jimp.MIME_JPEG);
   debugImg(`resizeImg done, target size: ${newSize.width}x${newSize.height}`);
