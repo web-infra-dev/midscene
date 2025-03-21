@@ -1,6 +1,6 @@
 import { exec } from 'node:child_process';
 import { promisify } from 'node:util';
-import { AdbPage } from '../../../../src/adb';
+import { AndroidPage } from '../../../../src/android';
 
 const execPromise = promisify(exec);
 
@@ -48,12 +48,12 @@ export async function isDeviceAccessible(deviceId: string): Promise<boolean> {
 }
 
 /**
- * Launch Adb page
+ * Launch Android page
  * @param opt Launch options
- * @returns AdbPage instance
+ * @returns AndroidPage instance
  * @throws Error when no available device is found
  */
-export async function launchPage(opt: LaunchOptions): Promise<AdbPage> {
+export async function launchPage(opt: LaunchOptions): Promise<AndroidPage> {
   // If device ID is provided, use it directly
   let deviceId = opt.deviceId;
 
@@ -83,5 +83,5 @@ export async function launchPage(opt: LaunchOptions): Promise<AdbPage> {
     );
   }
 
-  return new AdbPage(deviceId);
+  return new AndroidPage(deviceId);
 }

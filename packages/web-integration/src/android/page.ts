@@ -20,7 +20,7 @@ export class Page implements AbstractPage {
   private tmpDir: string;
   private screenSize: Size | null = null;
   private yadbPushed = false;
-  pageType = 'adb';
+  pageType = 'android';
 
   constructor(deviceId: string) {
     this.deviceId = deviceId;
@@ -161,7 +161,7 @@ export class Page implements AbstractPage {
     try {
       // Get the current application package name and activity
       const result = await this.execAdb(
-        'shell dumpsys window | grep mCurrentFocus',
+        'shell dumpsys window | grep mCurrentFocus=Window',
       );
       return result;
     } catch (error) {

@@ -19,7 +19,7 @@ const aiWebTests = [
   'tests/ai/bridge/**/*.test.ts',
 ];
 const aiNativeTests = ['tests/ai/native/**/*.test.ts'];
-// const aiNativeTests = ['tests/ai/native/adb/dongchedi.test.ts'];
+// const aiNativeTests = ['tests/ai/native/android/dongchedi.test.ts'];
 const testFiles = (() => {
   switch (aiTestType) {
     case 'web':
