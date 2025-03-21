@@ -145,7 +145,7 @@ npx nx test:ai @midscene/web
 Midscene uses
 
 - [playwright](https://github.com/microsoft/playwright) to run end-to-end tests.
-- [appium](https://github.com/appium/appium) to run end-to-end tests on iOS/Android.
+- [adb](https://developer.android.com/tools/adb) to run end-to-end tests on Android.
 
 You can run the `e2e` command to run E2E tests for playwright:
 
@@ -159,11 +159,11 @@ If you need to run a specified test:
 npx nx e2e @midscene/web
 ```
 
-If you need to run E2E tests for appium:
-> Before running the test, you need to start the appium server first, please refer to the [README.md](./packages/web-integration/README.md) for details.
+If you need to run E2E tests for adb:
+> Before running the test, you need to start the adb server first, please refer to the [README.md](./packages/web-integration/README.md) for details.
 
 ```sh
-cd packages/web-integration && pnpm run test:ai -- appium
+cd packages/web-integration && pnpm run test:ai -- adb
 ```
 
 ---
