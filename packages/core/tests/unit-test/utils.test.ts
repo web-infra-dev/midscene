@@ -1,15 +1,19 @@
 import { randomUUID } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { adaptDoubaoBbox, adaptQwenBbox } from '@/ai-model/common';
+import {
+  adaptBboxToRect,
+  adaptDoubaoBbox,
+  adaptQwenBbox,
+  expandSearchArea,
+} from '@/ai-model/common';
 import {
   extractJSONFromCodeBlock,
   preprocessDoubaoBboxJson,
   safeParseJson,
 } from '@/ai-model/service-caller';
-import { getAIConfig, overrideAIConfig } from '@/env';
+import { getAIConfig, overrideAIConfig, vlLocateMode } from '@/env';
 import {
-  bboxToRect,
   getLogDir,
   getTmpDir,
   getTmpFile,
@@ -91,11 +95,6 @@ describe('utils', () => {
     expect(reportB).toContain(
       `<script type="midscene_web_dump" type="application/json">${content}</script>`,
     );
-  });
-
-  it('bboxToRect', () => {
-    const result = bboxToRect([100, 200, 300, 400]);
-    expect(result).toEqual({ left: 100, top: 200, width: 200, height: 200 });
   });
 });
 
@@ -212,6 +211,18 @@ describe('qwen-vl', () => {
   it('adaptQwenBbox with invalid bbox data', () => {
     expect(() => adaptQwenBbox([100])).toThrow();
   });
+
+  it.skipIf(vlLocateMode() !== 'qwen-vl')('adaptBboxToRect', () => {
+    const result = adaptBboxToRect([100, 200, 300, 400], 400, 900, 30, 60);
+    expect(result).toMatchInlineSnapshot(`
+      {
+        "height": 200,
+        "left": 130,
+        "top": 260,
+        "width": 200,
+      }
+    `);
+  });
 });
 
 describe('doubao-vision', () => {
@@ -287,6 +298,53 @@ describe('doubao-vision', () => {
 
   it('adaptDoubaoBbox with invalid bbox data', () => {
     expect(() => adaptDoubaoBbox([100], 1000, 2000)).toThrow();
+  });
+});
+
+describe('expandSearchArea', () => {
+  it('expandSearchArea', () => {
+    const result = expandSearchArea(
+      { left: 100, top: 100, width: 100, height: 100 },
+      { width: 1000, height: 1000 },
+    );
+    expect(result).toMatchInlineSnapshot(`
+      {
+        "height": 200,
+        "left": 50,
+        "top": 50,
+        "width": 200,
+      }
+    `);
+  });
+
+  it('expandSearchArea with a big rect', () => {
+    const result = expandSearchArea(
+      { left: 100, top: 100, width: 500, height: 500 },
+      { width: 1000, height: 1000 },
+    );
+    expect(result).toMatchInlineSnapshot(`
+      {
+        "height": 600,
+        "left": 50,
+        "top": 50,
+        "width": 600,
+      }
+    `);
+  });
+
+  it('expandSearchArea with a right-most rect', () => {
+    const result = expandSearchArea(
+      { left: 951, top: 800, width: 50, height: 50 },
+      { width: 1000, height: 1000 },
+    );
+    expect(result).toMatchInlineSnapshot(`
+      {
+        "height": 200,
+        "left": 876,
+        "top": 725,
+        "width": 124,
+      }
+    `);
   });
 });
 

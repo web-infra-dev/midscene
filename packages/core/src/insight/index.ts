@@ -1,4 +1,4 @@
-import { callAiFn } from '@/ai-model/common';
+import { callAiFn, expandSearchArea } from '@/ai-model/common';
 import { AiExtractElementInfo, AiLocateElement } from '@/ai-model/index';
 import { AiAssert, AiLocateSection } from '@/ai-model/inspect';
 import { vlLocateMode } from '@/env';
@@ -90,54 +90,28 @@ export default class Insight<
     let searchArea: Rect | undefined = undefined;
     let searchAreaRawResponse: string | undefined = undefined;
     let searchAreaUsage: AIUsageInfo | undefined = undefined;
-    const searchAreaDefaultPadding = 20;
+    let searchAreaResponse:
+      | Awaited<ReturnType<typeof AiLocateSection>>
+      | undefined = undefined;
     if (searchAreaPrompt) {
       assert(
         vlLocateMode(),
         'locate with search area is not supported with general purposed LLM. Please use Midscene VL model. https://midscenejs.com/choose-a-model',
       );
-      const {
-        rect,
-        rawResponse,
-        usage,
-        error: searchAreaError,
-      } = await AiLocateSection({
+
+      searchAreaResponse = await AiLocateSection({
         context,
         sectionDescription: searchAreaPrompt,
       });
-      searchArea = rect;
-      debug('original searchArea', searchArea);
-      assert(searchArea, `cannot find search area for "${searchAreaPrompt}"`);
       assert(
-        !searchAreaError,
-        `failed to locate search area: ${searchAreaError}`,
+        searchAreaResponse.rect,
+        `cannot find search area for "${searchAreaPrompt}"${
+          searchAreaResponse.error ? `: ${searchAreaResponse.error}` : ''
+        }`,
       );
-      searchAreaRawResponse = rawResponse;
-      searchAreaUsage = usage;
-
-      // expand to at lease 200 x 200
-      const minEdgeSize = 200;
-      let paddingSize =
-        searchArea.width < minEdgeSize
-          ? Math.ceil((minEdgeSize - searchArea.width) / 2)
-          : searchAreaDefaultPadding;
-      searchArea.left = Math.max(0, searchArea.left - paddingSize);
-      searchArea.width = Math.min(
-        searchArea.width + paddingSize * 2,
-        context.size.width - searchArea.left,
-      );
-
-      paddingSize =
-        searchArea.height < minEdgeSize
-          ? Math.ceil((minEdgeSize - searchArea.height) / 2)
-          : searchAreaDefaultPadding;
-      searchArea.top = Math.max(0, searchArea.top - paddingSize);
-      searchArea.height = Math.min(
-        searchArea.height + paddingSize * 2,
-        context.size.height - searchArea.top,
-      );
-
-      debug('adjusted searchArea', searchArea);
+      searchAreaRawResponse = searchAreaResponse.rawResponse;
+      searchAreaUsage = searchAreaResponse.usage;
+      searchArea = searchAreaResponse.rect;
     }
 
     const startTime = Date.now();
@@ -147,7 +121,7 @@ export default class Insight<
         context,
         targetElementDescription: queryPrompt,
         quickAnswer: opt?.quickAnswer,
-        searchArea,
+        searchConfig: searchAreaResponse,
       });
     // const parseResult = await this.aiVendorFn<AIElementParseResponse>(msgs);
     const timeCost = Date.now() - startTime;
@@ -208,20 +182,11 @@ export default class Insight<
       throw new Error(errorLog);
     }
 
-    if (elements.length >= 2) {
-      console.warn(
-        `locate: multiple elements found, return the first one. (query: ${queryPrompt})`,
-      );
-      return {
-        element: {
-          id: elements[0]!.id,
-          indexId: elements[0]!.indexId,
-          center: elements[0]!.center,
-          rect: elements[0]!.rect,
-        },
-        rect,
-      };
-    }
+    assert(
+      elements.length <= 1,
+      `locate: multiple elements found, length = ${elements.length}`,
+    );
+
     if (elements.length === 1) {
       return {
         element: {

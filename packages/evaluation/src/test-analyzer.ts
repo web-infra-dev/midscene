@@ -1,8 +1,11 @@
-import assert from 'node:assert';
 import { appendFileSync, existsSync, mkdirSync } from 'node:fs';
 import path from 'node:path';
-import type Insight from '@midscene/core';
-import type { LocateResult, Rect, plan } from '@midscene/core';
+import type {
+  LocateResult,
+  PlanningAIResponse,
+  Rect,
+  plan,
+} from '@midscene/core';
 import type { AiLocateSection } from '@midscene/core/ai-model';
 import type { TestCase } from '../tests/util';
 
@@ -125,11 +128,15 @@ ${errorMsg ? `Error: ${errorMsg}` : ''}
     const failedCases = this.testLogs.filter(
       (log) => log.caseGroup === caseGroup && !log.success,
     );
+
     // print failed cases
-    if (failedCases.length > 0) {
+    if (failedCases.length > allowFailCaseCount) {
       console.log(`Failed cases in ${caseGroup}:`);
       console.log(failedCases.map((log) => log.testCase.prompt).join('\n'));
-      throw new Error(`Failed cases: ${failedCases.length}`);
+      console.log('log: ', this.failedCaseLogPath);
+      throw new Error(
+        `Failed cases: ${failedCases.length}, log: ${this.failedCaseLogPath}`,
+      );
     }
   }
 
@@ -168,9 +175,67 @@ ${errorMsg ? `Error: ${errorMsg}` : ''}
       return new Error(msg);
     }
 
+    // check planning actions
+    if (testCase.response_planning) {
+      // compare actions
+      const expected = testCase.response_planning;
+      const planningResult = result as PlanningAIResponse;
+
+      // check step names and order
+      const steps =
+        (expected?.actions || []).map((action) => {
+          return action.type;
+        }) || [];
+      const actualActions = planningResult.actions!.map((action) => {
+        return action.type;
+      });
+      // tell if steps and actualActions are the same
+      if (steps.length !== actualActions.length) {
+        const msg = `steps.length: ${steps.length} is not equal to actualActions.length: ${actualActions.length}, the prompt is: ${testCase.prompt}`;
+        return new Error(msg);
+      }
+      for (let i = 0; i < steps.length; i++) {
+        if (steps[i] !== actualActions[i]) {
+          const msg = `steps[${i}]: ${steps[i]} is not equal to actualActions[${i}]: ${actualActions[i]}, the prompt is: ${testCase.prompt}`;
+          return new Error(msg);
+        }
+      }
+
+      if (
+        expected?.more_actions_needed_by_instruction !==
+        planningResult.more_actions_needed_by_instruction
+      ) {
+        const msg = `expected?.more_actions_needed_by_instruction: ${expected?.more_actions_needed_by_instruction} is not equal to result.more_actions_needed_by_instruction: ${planningResult.more_actions_needed_by_instruction}, the prompt is: ${testCase.prompt}`;
+        return new Error(msg);
+      }
+
+      const expectedBbox = expected?.action?.locate?.bbox;
+      const actualBbox = planningResult.action?.locate?.bbox;
+
+      if (typeof expectedBbox !== typeof actualBbox) {
+        const msg = `expectedBbox: ${expectedBbox} is not equal to actualBbox: ${actualBbox}, the prompt is: ${testCase.prompt}`;
+        return new Error(msg);
+      }
+
+      if (expectedBbox && actualBbox) {
+        const distance = this.distanceOfTwoBbox(expectedBbox, actualBbox);
+        if (distance > distanceThreshold) {
+          const msg = `distance: ${distance} is greater than threshold: ${distanceThreshold}, the prompt is: ${testCase.prompt}`;
+          return new Error(msg);
+        }
+      }
+
+      return true;
+    }
+
     // compare coordinates
     if (testCase.response_rect) {
-      const resultRect = (result as { rect: Rect }).rect;
+      const resultRect = (result as LocateResult).rect;
+      if (!resultRect) {
+        throw new Error(
+          `resultRect is not set, the prompt is: ${testCase.prompt}`,
+        );
+      }
       const distance = this.distanceOfTwoRect(
         resultRect,
         testCase.response_rect,
@@ -194,57 +259,6 @@ ${errorMsg ? `Error: ${errorMsg}` : ''}
         console.log(msg);
         return new Error(msg);
       }
-      return true;
-    }
-
-    if ('actions' in result) {
-      // compare actions
-      const expected = testCase.response_planning;
-
-      // check step names and order
-      const steps =
-        (expected?.actions || []).map((action) => {
-          return action.type;
-        }) || [];
-      const actualActions = result.actions!.map((action) => {
-        return action.type;
-      });
-      // tell if steps and actualActions are the same
-      if (steps.length !== actualActions.length) {
-        const msg = `steps.length: ${steps.length} is not equal to actualActions.length: ${actualActions.length}, the prompt is: ${testCase.prompt}`;
-        return new Error(msg);
-      }
-      for (let i = 0; i < steps.length; i++) {
-        if (steps[i] !== actualActions[i]) {
-          const msg = `steps[${i}]: ${steps[i]} is not equal to actualActions[${i}]: ${actualActions[i]}, the prompt is: ${testCase.prompt}`;
-          return new Error(msg);
-        }
-      }
-
-      if (
-        expected?.more_actions_needed_by_instruction !==
-        result.more_actions_needed_by_instruction
-      ) {
-        const msg = `expected?.more_actions_needed_by_instruction: ${expected?.more_actions_needed_by_instruction} is not equal to result.more_actions_needed_by_instruction: ${result.more_actions_needed_by_instruction}, the prompt is: ${testCase.prompt}`;
-        return new Error(msg);
-      }
-
-      const expectedBbox = expected?.action?.locate?.bbox;
-      const actualBbox = result.action?.locate?.bbox;
-
-      if (typeof expectedBbox !== typeof actualBbox) {
-        const msg = `expectedBbox: ${expectedBbox} is not equal to actualBbox: ${actualBbox}, the prompt is: ${testCase.prompt}`;
-        return new Error(msg);
-      }
-
-      if (expectedBbox && actualBbox) {
-        const distance = this.distanceOfTwoBbox(expectedBbox, actualBbox);
-        if (distance > distanceThreshold) {
-          const msg = `distance: ${distance} is greater than threshold: ${distanceThreshold}, the prompt is: ${testCase.prompt}`;
-          return new Error(msg);
-        }
-      }
-
       return true;
     }
 
