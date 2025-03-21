@@ -4,18 +4,16 @@ import path from 'node:path';
 import { promisify } from 'node:util';
 import type { Point, Size } from '@midscene/core';
 import { getTmpFile } from '@midscene/core/utils';
-import {
-  type ElementInfo,
-  clientExtractTextWithPosition,
-} from '@midscene/shared/extractor';
+import type { ElementInfo } from '@midscene/shared/extractor';
 import { base64Encoded, resizeImg } from '@midscene/shared/img';
-import { DOMParser } from '@xmldom/xmldom';
+import { getDebug } from '@midscene/shared/utils';
 import type { KeyInput as PuppeteerKeyInput } from 'puppeteer';
 import type { AbstractPage, MouseButton } from '../page';
 
 type WebKeyInput = PuppeteerKeyInput;
 
 const execPromise = promisify(exec);
+const debugPage = getDebug('android:page');
 
 export class Page implements AbstractPage {
   private deviceId: string;
@@ -36,15 +34,24 @@ export class Page implements AbstractPage {
 
   private async execAdb(command: string): Promise<string> {
     try {
+      debugPage(`execAdb begin command: ${command}`);
       const { stdout } = await execPromise(
         `adb -s ${this.deviceId} ${command}`,
       );
-
+      debugPage(`execAdb end command: ${command}`);
       return stdout.trim();
     } catch (error) {
       console.error(`ADB command error: ${error}`);
       throw error;
     }
+  }
+  private async execYadb(keyboardContent: string): Promise<void> {
+    const escapedContent = keyboardContent.replace(/(['"\\ ])/g, '\\$1');
+
+    await this.pushYadb();
+    await this.execAdb(
+      `shell app_process -Djava.class.path=/data/local/tmp/yadb /data/local/tmp com.ysbing.yadb.Main -keyboard "${escapedContent}"`,
+    );
   }
 
   async getElementsInfo(): Promise<ElementInfo[]> {
@@ -52,6 +59,7 @@ export class Page implements AbstractPage {
   }
 
   async getElementsNodeTree(): Promise<any> {
+    debugPage('getElementsNodeTree begin');
     // Simplified implementation, returns an empty node tree
     return {
       node: null,
@@ -85,6 +93,7 @@ export class Page implements AbstractPage {
 
   async screenshotBase64(): Promise<string> {
     try {
+      debugPage('screenshotBase64 begin');
       const { width, height } = await this.size();
       const screenshotPath = getTmpFile('png')!;
 
@@ -100,7 +109,9 @@ export class Page implements AbstractPage {
       });
       fs.writeFileSync(screenshotPath, resizedScreenshotBuffer);
 
-      return base64Encoded(screenshotPath);
+      const result = base64Encoded(screenshotPath);
+      debugPage('screenshotBase64 end');
+      return result;
     } catch (error) {
       console.error('Error taking screenshot:', error);
       throw error;
@@ -149,7 +160,10 @@ export class Page implements AbstractPage {
   async url(): Promise<string> {
     try {
       // Get the current application package name and activity
-      return await this.execAdb('shell dumpsys window | grep mCurrentFocus');
+      const result = await this.execAdb(
+        'shell dumpsys window | grep mCurrentFocus',
+      );
+      return result;
     } catch (error) {
       console.error('Error getting URL:', error);
       return '';
@@ -238,7 +252,6 @@ export class Page implements AbstractPage {
       const yadbBin = path.join(__dirname, '../../bin/yadb');
       await this.execAdb(`push ${yadbBin} /data/local/tmp`);
       this.yadbPushed = true;
-      console.log('YADB tool pushed to device');
     }
   }
 
@@ -247,12 +260,7 @@ export class Page implements AbstractPage {
 
     try {
       await this.pushYadb();
-      // Use YADB tool to input text
-      const escapedContent = text.replace(/(['"\\ ])/g, '\\$1');
-      console.log('escapedContent: ', escapedContent);
-      await this.execAdb(
-        `shell app_process -Djava.class.path=/data/local/tmp/yadb /data/local/tmp com.ysbing.yadb.Main -keyboard "${escapedContent}"`,
-      );
+      await this.execYadb(text);
     } catch (error) {
       console.error('Error typing text:', error);
       throw error;
