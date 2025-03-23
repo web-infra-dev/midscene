@@ -218,6 +218,7 @@ export async function jimpFromBase64(base64: string): Promise<Jimp> {
   return Jimp.read(imageBuffer);
 }
 
+// https://help.aliyun.com/zh/model-studio/user-guide/vision/
 export async function paddingToMatchBlock(
   image: Jimp,
   blockSize = 28,
@@ -240,9 +241,28 @@ export async function paddingToMatchBlock(
   return paddedImage;
 }
 
-export async function cropByRect(image: Jimp, rect: Rect): Promise<void> {
+export async function paddingToMatchBlockByBase64(
+  imageBase64: string,
+  blockSize = 28,
+): Promise<string> {
+  const jimpImage = await jimpFromBase64(imageBase64);
+  const paddedImage = await paddingToMatchBlock(jimpImage, blockSize);
+  return jimpToBase64(paddedImage);
+}
+export async function cropByRect(
+  imageBase64: string,
+  rect: Rect,
+  paddingImage: boolean,
+): Promise<string> {
+  const jimpImage = await jimpFromBase64(imageBase64);
   const { left, top, width, height } = rect;
-  image.crop(left, top, width, height);
+  jimpImage.crop(left, top, width, height);
+
+  if (paddingImage) {
+    const paddedImage = await paddingToMatchBlock(jimpImage);
+    return jimpToBase64(paddedImage);
+  }
+  return jimpToBase64(jimpImage);
 }
 
 export async function jimpToBase64(image: Jimp): Promise<string> {

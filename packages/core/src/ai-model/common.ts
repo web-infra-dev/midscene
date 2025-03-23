@@ -1,4 +1,4 @@
-import type { AIUsageInfo, Size } from '@/types';
+import type { AIUsageInfo, Rect, Size } from '@/types';
 import { assert } from '@midscene/shared/utils';
 
 import type {
@@ -153,6 +153,23 @@ export function adaptBbox(
   return adaptQwenBbox(bbox, errorMsg);
 }
 
+export function adaptBboxToRect(
+  bbox: number[],
+  width: number,
+  height: number,
+  offsetX = 0,
+  offsetY = 0,
+  errorMsg?: string,
+): Rect {
+  const [left, top, right, bottom] = adaptBbox(bbox, width, height, errorMsg);
+  return {
+    left: left + offsetX,
+    top: top + offsetY,
+    width: right - left,
+    height: bottom - top,
+  };
+}
+
 let warned = false;
 export function warnGPT4oSizeLimit(size: Size) {
   if (warned) return;
@@ -167,4 +184,30 @@ export function warnGPT4oSizeLimit(size: Size) {
       warned = true;
     }
   }
+}
+
+// expand the search area to at least 200 x 200, or add a default padding
+export function expandSearchArea(rect: Rect, screenSize: Size) {
+  const minEdgeSize = 200;
+  const defaultPadding = 50;
+
+  const paddingSizeHorizontal =
+    rect.width < minEdgeSize
+      ? Math.ceil((minEdgeSize - rect.width) / 2)
+      : defaultPadding;
+  const paddingSizeVertical =
+    rect.height < minEdgeSize
+      ? Math.ceil((minEdgeSize - rect.height) / 2)
+      : defaultPadding;
+  rect.left = Math.max(0, rect.left - paddingSizeHorizontal);
+  rect.width = Math.min(
+    rect.width + paddingSizeHorizontal * 2,
+    screenSize.width - rect.left,
+  );
+  rect.top = Math.max(0, rect.top - paddingSizeVertical);
+  rect.height = Math.min(
+    rect.height + paddingSizeVertical * 2,
+    screenSize.height - rect.top,
+  );
+  return rect;
 }

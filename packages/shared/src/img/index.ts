@@ -12,6 +12,7 @@ export {
   zoomForGPT4o,
   saveBase64Image,
   paddingToMatchBlock,
+  paddingToMatchBlockByBase64,
   cropByRect,
   jimpFromBase64,
   jimpToBase64,
