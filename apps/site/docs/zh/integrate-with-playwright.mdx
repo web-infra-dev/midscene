@@ -50,7 +50,172 @@ export const test = base.extend<PlayWrightAiFixtureType>(PlaywrightAiFixture());
 
 ## 第三步：编写测试用例
 
-编写下方代码，保存为 `./e2e/ebay-search.spec.ts`
+### 基础 AI 操作 API
+
+#### `ai` - 通用 AI 交互
+```typescript
+ai<T = any>(
+  prompt: string,
+  opts?: { 
+    type?: 'action' | 'query';  // 指定操作类型
+    trackNewTab?: boolean;      // 是否追踪新标签页
+  }
+): Promise<T>
+```
+用于执行通用的 AI 指令，可以处理各种交互场景。
+
+#### `aiAction` - 执行 AI 动作
+```typescript
+aiAction(taskPrompt: string): Promise<void>
+```
+执行特定的 AI 动作，如点击、输入等。
+
+#### `aiTap` - 点击操作
+```typescript
+aiTap(
+  target: string | { 
+    prompt: string;            // 目标元素描述
+    searchArea?: string;       // 搜索区域
+    deepThink?: boolean;       // 是否深度思考
+  },
+  options?: {                  // 可选配置
+    timeout?: number;          // 超时时间
+    retry?: number;           // 重试次数
+    force?: boolean;          // 是否强制点击
+  }
+): Promise<void>
+```
+执行点击操作，AI 会智能识别目标元素。
+
+#### `aiHover` - 悬停操作
+```typescript
+aiHover(
+  target: string | { 
+    prompt: string;            // 目标元素描述
+    searchArea?: string;       // 搜索区域
+    deepThink?: boolean;       // 是否深度思考
+  },
+  options?: {                  // 可选配置
+    timeout?: number;          // 超时时间
+    retry?: number;           // 重试次数
+  }
+): Promise<void>
+```
+执行鼠标悬停操作。
+
+#### `aiInput` - 输入操作
+```typescript
+aiInput(
+  text: string,                // 要输入的文本
+  target: string | { 
+    prompt: string;            // 目标元素描述
+    searchArea?: string;       // 搜索区域
+    deepThink?: boolean;       // 是否深度思考
+  },
+  options?: {                  // 可选配置
+    timeout?: number;          // 超时时间
+    retry?: number;           // 重试次数
+    clear?: boolean;          // 是否先清空输入框
+  }
+): Promise<void>
+```
+执行文本输入操作。
+
+#### `aiKeyboardPress` - 键盘操作
+```typescript
+aiKeyboardPress(
+  key: string,                 // 按键名称
+  target?: string | { 
+    prompt: string;            // 目标元素描述
+    searchArea?: string;       // 搜索区域
+    deepThink?: boolean;       // 是否深度思考
+  },
+  options?: {                  // 可选配置
+    timeout?: number;          // 超时时间
+    retry?: number;           // 重试次数
+  }
+): Promise<void>
+```
+执行键盘按键操作。
+
+#### `aiScroll` - 滚动操作
+```typescript
+aiScroll(
+  scroll: {
+    direction: 'down' | 'up' | 'right' | 'left';  // 滚动方向
+    scrollType: 'once' | 'untilBottom' | 'untilTop' | 'untilRight' | 'untilLeft';  // 滚动类型
+    distance?: number;        // 滚动距离
+  },
+  target?: string | { 
+    prompt: string;            // 目标元素描述
+    searchArea?: string;       // 搜索区域
+    deepThink?: boolean;       // 是否深度思考
+  },
+  options?: {                  // 可选配置
+    timeout?: number;          // 超时时间
+    retry?: number;           // 重试次数
+  }
+): Promise<void>
+```
+执行页面滚动操作。
+
+### 高级 API
+
+#### `generateMidsceneAgent` - 生成 AI Agent
+```typescript
+generateMidsceneAgent(
+  page?: Page,                 // 可选的页面实例
+  opts?: {                     // Agent 配置选项
+    selector?: string;         // 选择器
+    ignoreMarker?: boolean;    // 是否忽略标记
+    forceSameTabNavigation?: boolean;  // 是否强制在同一标签页导航
+    bridgeMode?: false | 'newTabWithUrl' | 'currentTab';  // 桥接模式
+    closeNewTabsAfterDisconnect?: boolean;  // 断开连接后是否关闭新标签页
+  }
+): Promise<PageAgent>
+```
+生成一个独立的 AI Agent 实例，可以用于更复杂的交互场景。
+
+### 查询和断言 API
+
+#### `aiQuery` - AI 查询
+```typescript
+aiQuery<T = any>(
+  query: string | Record<string, string>,  // 查询描述或结构化查询
+  options?: {                  // 可选配置
+    timeout?: number;          // 超时时间
+    retry?: number;           // 重试次数
+  }
+): Promise<T>
+```
+使用 AI 执行查询操作，返回结构化数据。
+
+#### `aiAssert` - AI 断言
+```typescript
+aiAssert(
+  assertion: string,           // 断言描述
+  options?: {                  // 可选配置
+    timeout?: number;          // 超时时间
+    retry?: number;           // 重试次数
+    keepRawResponse?: boolean; // 是否保留原始响应
+  }
+): Promise<void>
+```
+使用 AI 执行断言检查。
+
+#### `aiWaitFor` - AI 等待
+```typescript
+aiWaitFor(
+  assertion: string,           // 等待条件描述
+  options?: {                  // 等待选项
+    checkIntervalMs?: number;  // 检查间隔
+    timeoutMs?: number;       // 超时时间
+  }
+): Promise<void>
+```
+等待特定条件满足。
+
+### 示例代码
 
 ```typescript title="./e2e/ebay-search.spec.ts"
 import { expect } from "@playwright/test";
@@ -62,20 +227,41 @@ test.beforeEach(async ({ page }) => {
   await page.waitForLoadState("networkidle");
 });
 
-test("search headphone on ebay", async ({ ai, aiQuery, aiAssert }) => {
-  // 👀 输入关键字，执行搜索
-  // 注：尽管这是一个英文页面，你也可以用中文指令控制它
-  await ai('在搜索框输入 "Headphones" ，敲回车');
-
-  // 👀 找到列表里耳机相关的信息
-  const items = await aiQuery(
-    '{itemTitle: string, price: Number}[], 找到列表里的商品标题和价格'
+test("search headphone on ebay", async ({ 
+  ai, 
+  aiQuery, 
+  aiAssert,
+  aiInput,
+  aiTap,
+  aiScroll 
+}) => {
+  // 使用 aiInput 输入搜索关键词
+  await aiInput('Headphones', '搜索框', { clear: true });
+  
+  // 使用 aiTap 点击搜索按钮
+  await aiTap('搜索按钮');
+  
+  // 等待搜索结果加载
+  await aiWaitFor('搜索结果列表已加载', { timeoutMs: 5000 });
+  
+  // 使用 aiScroll 滚动到页面底部
+  await aiScroll(
+    { 
+      direction: 'down',
+      scrollType: 'untilBottom'
+    },
+    '搜索结果列表'
   );
-
+  
+  // 使用 aiQuery 获取商品信息
+  const items = await aiQuery<Array<{title: string, price: number}>>(
+    '获取搜索结果中的商品标题和价格'
+  );
+  
   console.log("headphones in stock", items);
   expect(items?.length).toBeGreaterThan(0);
-
-  // 👀 用 AI 断言
+  
+  // 使用 aiAssert 验证筛选功能
   await aiAssert("界面左侧有类目筛选功能");
 });
 ```
