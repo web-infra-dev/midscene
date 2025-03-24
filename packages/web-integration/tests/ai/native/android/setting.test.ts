@@ -20,13 +20,8 @@ describe(
         },
       });
       const agent = new AndroidAgent(page);
-
-      await agent.aiAction('scroll list to bottom');
-      await agent.aiAction('open "More settings"');
-      await agent.aiAction('scroll list to bottom');
-      await agent.aiAction('scroll list to top');
-      await agent.aiAction('swipe down one screen');
-      await agent.aiAction('swipe up one screen');
+      await agent.aiAction('点击输入框');
+      await agent.aiAction('在输入框输入你好 世界');
     });
   },
   360 * 1000,

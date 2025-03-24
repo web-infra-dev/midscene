@@ -1,12 +1,13 @@
+import fs from 'node:fs';
 import path from 'node:path';
 import type { Point, Size } from '@midscene/core';
+import { getTmpFile } from '@midscene/core/utils';
 import type { ElementInfo } from '@midscene/shared/extractor';
 import { resizeImg } from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/utils';
-import { ADB, type StartAppOptions } from 'appium-adb';
+import { ADB } from 'appium-adb';
 import type { KeyInput as PuppeteerKeyInput } from 'puppeteer';
 import type { AbstractPage, MouseButton } from '../page';
-
 type WebKeyInput = PuppeteerKeyInput;
 
 const debugPage = getDebug('android:page');
@@ -46,14 +47,12 @@ export class Page implements AbstractPage {
   }
 
   private async execYadb(keyboardContent: string): Promise<void> {
-    const escapedContent = keyboardContent.replace(/(['"\\ ])/g, '\\$1');
-
     await this.pushYadb();
 
     const adb = await this.getAdb();
 
     await adb.shell(
-      `app_process -Djava.class.path=/data/local/tmp/yadb /data/local/tmp com.ysbing.yadb.Main -keyboard "${escapedContent}"`,
+      `app_process -Djava.class.path=/data/local/tmp/yadb /data/local/tmp com.ysbing.yadb.Main -keyboard "${keyboardContent}"`,
     );
   }
 
@@ -168,7 +167,18 @@ export class Page implements AbstractPage {
       debugPage('screenshotBase64 begin');
       const { width, height } = await this.size();
       const adb = await this.getAdb();
-      const screenshotBuffer = await adb.takeScreenshot(0);
+      let screenshotBuffer;
+
+      try {
+        screenshotBuffer = await adb.takeScreenshot(null);
+      } catch (error) {
+        const screenshotPath = getTmpFile('png')!;
+
+        // Take a screenshot and save it locally
+        await adb.shell('screencap -p /sdcard/screenshot.png');
+        await adb.pull('/sdcard/screenshot.png', screenshotPath);
+        screenshotBuffer = await fs.promises.readFile(screenshotPath);
+      }
 
       const resizedScreenshotBuffer = await resizeImg(screenshotBuffer, {
         width,
@@ -502,6 +512,7 @@ export class Page implements AbstractPage {
     try {
       const adb = await this.getAdb();
 
+      await adb.shell('rm -f /sdcard/screenshot.png');
       await adb.shell('rm -f /sdcard/window_dump.xml');
     } catch (error) {
       console.error('Error during cleanup:', error);
