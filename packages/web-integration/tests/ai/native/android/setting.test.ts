@@ -6,7 +6,6 @@ vi.setConfig({
   testTimeout: 90 * 1000,
 });
 
-// 使用环境变量或默认值作为设备ID
 const DEVICE_ID = process.env.ANDROID_DEVICE_ID;
 
 describe(
@@ -15,7 +14,10 @@ describe(
     await it('Android settings page demo for scroll', async () => {
       const page = await launchPage({
         deviceId: DEVICE_ID,
-        page: 'android.settings.SETTINGS',
+        app: {
+          pkg: 'com.android.settings',
+          activity: '.Settings',
+        },
       });
       const agent = new AndroidAgent(page);
 

@@ -1,73 +1,59 @@
-import { exec } from 'node:child_process';
-import fs from 'node:fs';
 import path from 'node:path';
-import { promisify } from 'node:util';
 import type { Point, Size } from '@midscene/core';
-import { getTmpFile } from '@midscene/core/utils';
 import type { ElementInfo } from '@midscene/shared/extractor';
-import { base64Encoded, resizeImg } from '@midscene/shared/img';
+import { resizeImg } from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/utils';
+import { ADB, type StartAppOptions } from 'appium-adb';
 import type { KeyInput as PuppeteerKeyInput } from 'puppeteer';
 import type { AbstractPage, MouseButton } from '../page';
 
 type WebKeyInput = PuppeteerKeyInput;
 
-const execPromise = promisify(exec);
 const debugPage = getDebug('android:page');
 
 export class Page implements AbstractPage {
   private deviceId: string;
-  private tmpDir: string;
   private screenSize: Size | null = null;
   private yadbPushed = false;
   private deviceRatio = 1;
+  private adbPromise: Promise<ADB>;
   pageType = 'android';
 
-  constructor({
-    deviceId,
-    url,
-    page,
-  }: {
-    deviceId: string;
-    url?: string;
-    page?: string;
-  }) {
+  constructor({ deviceId }: { deviceId: string }) {
     this.deviceId = deviceId;
-    this.tmpDir = path.join(process.cwd(), 'tmp');
 
-    // Ensure the temporary directory exists
-    if (!fs.existsSync(this.tmpDir)) {
-      fs.mkdirSync(this.tmpDir, { recursive: true });
-    }
-
-    if (url) {
-      this.execAdb(`shell am start -a android.intent.action.VIEW -d "${url}"`);
-    }
-
-    if (page) {
-      this.execAdb(`shell am start -a "${page}"`);
-    }
+    // init ADB Promise
+    this.adbPromise = this.initAdb();
   }
 
-  private async execAdb(command: string): Promise<string> {
+  private async initAdb(): Promise<ADB> {
     try {
-      debugPage(`execAdb begin command: ${command}`);
-      const { stdout } = await execPromise(
-        `adb -s ${this.deviceId} ${command}`,
-      );
-      debugPage(`execAdb end command: ${command}`);
-      return stdout.trim();
+      debugPage(`Initializing ADB with device ID: ${this.deviceId}`);
+      const adb = await ADB.createADB({
+        udid: this.deviceId,
+        adbExecTimeout: 60000,
+      });
+      debugPage('ADB initialized successfully');
+      return adb;
     } catch (error) {
-      console.error(`ADB command error: ${error}`);
+      console.error(`Failed to initialize ADB: ${error}`);
       throw error;
     }
   }
+
+  public async getAdb(): Promise<ADB> {
+    return this.adbPromise;
+  }
+
   private async execYadb(keyboardContent: string): Promise<void> {
     const escapedContent = keyboardContent.replace(/(['"\\ ])/g, '\\$1');
 
     await this.pushYadb();
-    await this.execAdb(
-      `shell app_process -Djava.class.path=/data/local/tmp/yadb /data/local/tmp com.ysbing.yadb.Main -keyboard "${escapedContent}"`,
+
+    const adb = await this.getAdb();
+
+    await adb.shell(
+      `app_process -Djava.class.path=/data/local/tmp/yadb /data/local/tmp com.ysbing.yadb.Main -keyboard "${escapedContent}"`,
     );
   }
 
@@ -76,7 +62,6 @@ export class Page implements AbstractPage {
   }
 
   async getElementsNodeTree(): Promise<any> {
-    debugPage('getElementsNodeTree begin');
     // Simplified implementation, returns an empty node tree
     return {
       node: null,
@@ -90,39 +75,56 @@ export class Page implements AbstractPage {
     }
 
     try {
-      const output = await this.execAdb('shell wm size');
-      const match = output.match(/(\d+)x(\d+)/);
+      const adb = await this.getAdb();
 
-      if (match && match.length === 3) {
-        const width = Number.parseInt(match[1], 10);
-        const height = Number.parseInt(match[2], 10);
+      const screenSize = await adb.getScreenSize();
+      // screenSize is a string like "width x height", or an object
+      let width: number;
+      let height: number;
 
-        // Get device display density
-        try {
-          const densityOutput = await this.execAdb('shell wm density');
-          const densityMatch = densityOutput.match(/\d+/);
-          if (densityMatch) {
-            const density = Number.parseInt(densityMatch[0], 10);
-            // Standard density is 160, calculate the ratio
-            this.deviceRatio = density / 160;
-            debugPage(`Device display ratio: ${this.deviceRatio}`);
-          }
-        } catch (error) {
-          console.warn('Error getting device density:', error);
+      if (typeof screenSize === 'string') {
+        // handle string format "width x height"
+        const match = screenSize.match(/(\d+)x(\d+)/);
+        if (!match || match.length < 3) {
+          throw new Error(`Unable to parse screen size: ${screenSize}`);
         }
-
-        // calculate logical pixel size using reverseAdjustCoordinates function
-        const { x: logicalWidth, y: logicalHeight } =
-          this.reverseAdjustCoordinates(width, height);
-
-        this.screenSize = {
-          width: logicalWidth,
-          height: logicalHeight,
-        };
-
-        return this.screenSize;
+        width = Number.parseInt(match[1], 10);
+        height = Number.parseInt(match[2], 10);
+      } else if (typeof screenSize === 'object' && screenSize !== null) {
+        // handle object format
+        const sizeObj = screenSize as Record<string, any>;
+        if ('width' in sizeObj && 'height' in sizeObj) {
+          width = Number(sizeObj.width);
+          height = Number(sizeObj.height);
+        } else {
+          throw new Error(
+            `Invalid screen size object: ${JSON.stringify(screenSize)}`,
+          );
+        }
+      } else {
+        throw new Error(`Invalid screen size format: ${screenSize}`);
       }
-      throw new Error('Unable to parse screen size');
+
+      // Get device display density
+      try {
+        const densityNum = await adb.getScreenDensity();
+        // Standard density is 160, calculate the ratio
+        this.deviceRatio = Number(densityNum) / 160;
+        debugPage(`Device display ratio: ${this.deviceRatio}`);
+      } catch (error) {
+        console.warn('Error getting device density:', error);
+      }
+
+      // calculate logical pixel size using reverseAdjustCoordinates function
+      const { x: logicalWidth, y: logicalHeight } =
+        this.reverseAdjustCoordinates(width, height);
+
+      this.screenSize = {
+        width: logicalWidth,
+        height: logicalHeight,
+      };
+
+      return this.screenSize;
     } catch (error) {
       console.error('Error getting screen size:', error);
       // default resolution
@@ -165,23 +167,15 @@ export class Page implements AbstractPage {
     try {
       debugPage('screenshotBase64 begin');
       const { width, height } = await this.size();
-      const screenshotPath = getTmpFile('png')!;
+      const adb = await this.getAdb();
+      const screenshotBuffer = await adb.takeScreenshot(0);
 
-      // Take a screenshot and save it locally
-      await this.execAdb('shell screencap -p /sdcard/screenshot.png');
-      await this.execAdb(`pull /sdcard/screenshot.png ${screenshotPath}`);
-
-      // Read the screenshot and resize it
-      const screenshotBuffer = fs.readFileSync(screenshotPath);
-
-      // use the logical pixel size returned by the size() method to ensure consistency
       const resizedScreenshotBuffer = await resizeImg(screenshotBuffer, {
         width,
         height,
       });
-      fs.writeFileSync(screenshotPath, resizedScreenshotBuffer);
 
-      const result = base64Encoded(screenshotPath);
+      const result = `data:image/jpeg;base64,${resizedScreenshotBuffer.toString('base64')}`;
       debugPage('screenshotBase64 end');
       return result;
     } catch (error) {
@@ -220,9 +214,12 @@ export class Page implements AbstractPage {
 
     try {
       await this.pushYadb();
+
+      const adb = await this.getAdb();
+
       // Use the yadb tool to clear the input box
-      await this.execAdb(
-        'shell app_process -Djava.class.path=/data/local/tmp/yadb /data/local/tmp com.ysbing.yadb.Main -keyboard "~CLEAR~"',
+      await adb.shell(
+        'app_process -Djava.class.path=/data/local/tmp/yadb /data/local/tmp com.ysbing.yadb.Main -keyboard "~CLEAR~"',
       );
     } catch (error) {
       console.error('Error clearing input:', error);
@@ -231,11 +228,11 @@ export class Page implements AbstractPage {
 
   async url(): Promise<string> {
     try {
-      // Get the current application package name and activity
-      const result = await this.execAdb(
-        'shell dumpsys window | grep mCurrentFocus=Window',
-      );
-      return result;
+      const adb = await this.getAdb();
+
+      const { appPackage, appActivity } =
+        await adb.getFocusedPackageAndActivity();
+      return `${appPackage}/${appActivity}`;
     } catch (error) {
       console.error('Error getting URL:', error);
       return '';
@@ -321,8 +318,10 @@ export class Page implements AbstractPage {
   private async pushYadb() {
     // Push the YADB tool to the device only once
     if (!this.yadbPushed) {
+      const adb = await this.getAdb();
+
       const yadbBin = path.join(__dirname, '../../bin/yadb');
-      await this.execAdb(`push ${yadbBin} /data/local/tmp`);
+      await adb.push(yadbBin, '/data/local/tmp');
       this.yadbPushed = true;
     }
   }
@@ -331,7 +330,16 @@ export class Page implements AbstractPage {
     if (!text) return;
 
     try {
-      await this.pushYadb();
+      const adb = await this.getAdb();
+      const isChinese = /[\p{Script=Han}\p{sc=Hani}]/u.test(text);
+
+      // for pure ASCII characters, directly use inputText
+      if (!isChinese) {
+        await adb.inputText(text);
+        return;
+      }
+
+      // for non-ASCII characters, use yadb
       await this.execYadb(text);
     } catch (error) {
       console.error('Error typing text:', error);
@@ -340,22 +348,35 @@ export class Page implements AbstractPage {
   }
 
   private async keyboardPress(key: WebKeyInput): Promise<void> {
-    // Map web keys to Android key codes
-    const keyCodeMap: Record<string, string> = {
-      Enter: 'KEYCODE_ENTER',
-      Backspace: 'KEYCODE_DEL',
-      Tab: 'KEYCODE_TAB',
-      ArrowUp: 'KEYCODE_DPAD_UP',
-      ArrowDown: 'KEYCODE_DPAD_DOWN',
-      ArrowLeft: 'KEYCODE_DPAD_LEFT',
-      ArrowRight: 'KEYCODE_DPAD_RIGHT',
-      Escape: 'KEYCODE_ESCAPE',
-      Home: 'KEYCODE_HOME',
-      End: 'KEYCODE_MOVE_END',
+    // Map web keys to Android key codes (numbers)
+    const keyCodeMap: Record<string, number> = {
+      Enter: 66,
+      Backspace: 67,
+      Tab: 61,
+      ArrowUp: 19,
+      ArrowDown: 20,
+      ArrowLeft: 21,
+      ArrowRight: 22,
+      Escape: 111,
+      Home: 3,
+      End: 123,
     };
 
-    const keyCode = keyCodeMap[key] || `KEYCODE_${key.toUpperCase()}`;
-    await this.execAdb(`shell input keyevent ${keyCode}`);
+    const adb = await this.getAdb();
+
+    const keyCode = keyCodeMap[key];
+    if (keyCode !== undefined) {
+      await adb.keyevent(keyCode);
+    } else {
+      // for keys not in the mapping table, try to get its ASCII code (if it's a single character)
+      if (key.length === 1) {
+        const asciiCode = key.toUpperCase().charCodeAt(0);
+        // Android key codes, A-Z is 29-54
+        if (asciiCode >= 65 && asciiCode <= 90) {
+          await adb.keyevent(asciiCode - 36); // 65-36=29 (A's key code)
+        }
+      }
+    }
   }
 
   private async keyboardPressAction(
@@ -387,9 +408,11 @@ export class Page implements AbstractPage {
 
       await this.mouseMove(x, y);
 
+      const adb = await this.getAdb();
+
       // Use adjusted coordinates
       const { x: adjustedX, y: adjustedY } = this.adjustCoordinates(x, y);
-      await this.execAdb(`shell input tap ${adjustedX} ${adjustedY}`);
+      await adb.shell(`input tap ${adjustedX} ${adjustedY}`);
     } catch (error) {
       console.error('Error clicking:', error);
     }
@@ -406,13 +429,13 @@ export class Page implements AbstractPage {
     to: { x: number; y: number },
   ): Promise<void> {
     try {
+      const adb = await this.getAdb();
+
       // Use adjusted coordinates
       const { x: fromX, y: fromY } = this.adjustCoordinates(from.x, from.y);
       const { x: toX, y: toY } = this.adjustCoordinates(to.x, to.y);
 
-      await this.execAdb(
-        `shell input swipe ${fromX} ${fromY} ${toX} ${toY} 300`,
-      );
+      await adb.shell(`input swipe ${fromX} ${fromY} ${toX} ${toY} 300`);
     } catch (error) {
       console.error('Error dragging:', error);
     }
@@ -463,9 +486,11 @@ export class Page implements AbstractPage {
         endY,
       );
 
+      const adb = await this.getAdb();
+
       // Execute the swipe operation
-      await this.execAdb(
-        `shell input swipe ${adjustedStartX} ${adjustedStartY} ${adjustedEndX} ${adjustedEndY} ${duration}`,
+      await adb.shell(
+        `input swipe ${adjustedStartX} ${adjustedStartY} ${adjustedEndX} ${adjustedEndY} ${duration}`,
       );
     } catch (error) {
       console.error('Error scrolling:', error);
@@ -475,8 +500,9 @@ export class Page implements AbstractPage {
   async destroy(): Promise<void> {
     // Clean up temporary files
     try {
-      await this.execAdb('shell rm -f /sdcard/screenshot.png');
-      await this.execAdb('shell rm -f /sdcard/window_dump.xml');
+      const adb = await this.getAdb();
+
+      await adb.shell('rm -f /sdcard/window_dump.xml');
     } catch (error) {
       console.error('Error during cleanup:', error);
     }

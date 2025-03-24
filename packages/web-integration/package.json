@@ -108,6 +108,7 @@
     "@midscene/core": "workspace:*",
     "@midscene/shared": "workspace:*",
     "@xmldom/xmldom": "0.8.10",
+    "appium-adb": "12.12.1",
     "cors": "2.8.5",
     "dayjs": "1.11.11",
     "devtools-protocol": "0.0.1380148",
@@ -120,8 +121,7 @@
     "js-yaml": "4.1.0",
     "openai": "4.81.0",
     "socket.io": "4.8.1",
-    "socket.io-client": "4.8.1",
-    "webdriverio": ">=9.0.6"
+    "socket.io-client": "4.8.1"
   },
   "devDependencies": {
     "@modern-js/module-tools": "2.60.6",
@@ -147,9 +147,6 @@
       "optional": true
     },
     "puppeteer": {
-      "optional": true
-    },
-    "webdriverio": {
       "optional": true
     }
   },
