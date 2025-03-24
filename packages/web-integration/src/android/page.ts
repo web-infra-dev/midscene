@@ -126,8 +126,7 @@ export class Page implements AbstractPage {
       return this.screenSize;
     } catch (error) {
       console.error('Error getting screen size:', error);
-      // default resolution
-      return { width: 720, height: 1280 };
+      throw error;
     }
   }
 
