@@ -1,8 +1,10 @@
 import assert from 'node:assert';
 import { Buffer } from 'node:buffer';
-import getDebug from 'debug';
-import getJimp from './get-jimp';
 
+import getDebug from 'debug';
+import type Jimp from 'jimp';
+import type { Rect } from 'src/types';
+import getJimp from './get-jimp';
 const debugImg = getDebug('img');
 /**
 /**
@@ -210,26 +212,60 @@ export function prependBase64Header(base64: string, mimeType = 'image/png') {
   return `data:${mimeType};base64,${base64}`;
 }
 
-export async function paddingToMatchBlock(imageBase64: string, blockSize = 28) {
-  debugImg('paddingToMatchBlock start');
+export async function jimpFromBase64(base64: string): Promise<Jimp> {
   const Jimp = await getJimp();
-  const imageBuffer = await bufferFromBase64(imageBase64);
-  const image = await Jimp.read(imageBuffer);
+  const imageBuffer = await bufferFromBase64(base64);
+  return Jimp.read(imageBuffer);
+}
+
+// https://help.aliyun.com/zh/model-studio/user-guide/vision/
+export async function paddingToMatchBlock(
+  image: Jimp,
+  blockSize = 28,
+): Promise<Jimp> {
+  debugImg('paddingToMatchBlock start');
   const { width, height } = image.bitmap;
 
   const targetWidth = Math.ceil(width / blockSize) * blockSize;
   const targetHeight = Math.ceil(height / blockSize) * blockSize;
 
   if (targetWidth === width && targetHeight === height) {
-    return imageBase64;
+    return image;
   }
 
+  const Jimp = await getJimp();
   const paddedImage = new Jimp(targetWidth, targetHeight, 0xffffffff);
 
   // Composite the original image onto the new canvas
   paddedImage.composite(image, 0, 0);
+  return paddedImage;
+}
 
-  const base64 = await paddedImage.getBase64Async(Jimp.MIME_JPEG);
-  debugImg('paddingToMatchBlock done');
-  return base64;
+export async function paddingToMatchBlockByBase64(
+  imageBase64: string,
+  blockSize = 28,
+): Promise<string> {
+  const jimpImage = await jimpFromBase64(imageBase64);
+  const paddedImage = await paddingToMatchBlock(jimpImage, blockSize);
+  return jimpToBase64(paddedImage);
+}
+export async function cropByRect(
+  imageBase64: string,
+  rect: Rect,
+  paddingImage: boolean,
+): Promise<string> {
+  const jimpImage = await jimpFromBase64(imageBase64);
+  const { left, top, width, height } = rect;
+  jimpImage.crop(left, top, width, height);
+
+  if (paddingImage) {
+    const paddedImage = await paddingToMatchBlock(jimpImage);
+    return jimpToBase64(paddedImage);
+  }
+  return jimpToBase64(jimpImage);
+}
+
+export async function jimpToBase64(image: Jimp): Promise<string> {
+  const Jimp = await getJimp();
+  return image.getBase64Async(Jimp.MIME_JPEG);
 }

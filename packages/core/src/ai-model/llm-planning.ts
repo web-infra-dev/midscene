@@ -1,6 +1,6 @@
 import { vlLocateMode } from '@/env';
 import type { PlanningAIResponse, UIContext } from '@/types';
-import { paddingToMatchBlock } from '@midscene/shared/img';
+import { paddingToMatchBlockByBase64 } from '@midscene/shared/img';
 import { assert } from '@midscene/shared/utils';
 import {
   AIActionType,
@@ -40,7 +40,7 @@ export async function plan(
 
   let imagePayload = screenshotBase64WithElementMarker || screenshotBase64;
   if (vlLocateMode()) {
-    imagePayload = await paddingToMatchBlock(imagePayload);
+    imagePayload = await paddingToMatchBlockByBase64(imagePayload);
   }
 
   warnGPT4oSizeLimit(size);

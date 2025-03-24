@@ -11,6 +11,6 @@ exports[`cli utils > match files 1`] = `
 exports[`cli utils > match folder 1`] = `
 [
   "tests/midscene_scripts/local/local.yml",
-  "tests/midscene_scripts/sub/bing.yaml",
+  "tests/midscene_scripts/online/bing.yaml",
 ]
 `;

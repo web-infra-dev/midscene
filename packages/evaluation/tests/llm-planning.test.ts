@@ -2,16 +2,17 @@ import { writeFileSync } from 'node:fs';
 import {
   MIDSCENE_MODEL_NAME,
   type PlanningAIResponse,
+  type Rect,
   getAIConfig,
   plan,
 } from '@midscene/core';
 import { vlLocateMode } from '@midscene/core/env';
-import { sleep } from '@midscene/core/utils';
+import { bboxToRect, sleep } from '@midscene/core/utils';
 import { saveBase64Image } from '@midscene/shared/img';
 import dotenv from 'dotenv';
 import { describe, expect, test } from 'vitest';
 import { TestResultCollector } from '../src/test-analyzer';
-import { annotatePoints, buildContext, getCases } from './util';
+import { annotateRects, buildContext, getCases } from './util';
 dotenv.config({
   debug: true,
   override: true,
@@ -64,7 +65,8 @@ describe.skipIf(vlMode)('ai planning - by element', () => {
           );
         }
 
-        await resultCollector.analyze(failCaseThreshold);
+        await resultCollector.printSummary();
+        await resultCollector.analyze(source, failCaseThreshold);
         await sleep(3 * 1000);
       },
       240 * 1000,
@@ -97,7 +99,7 @@ describe.skipIf(!vlMode)('ai planning - by coordinates', () => {
 
         const annotations: Array<{
           indexId: number;
-          points: [number, number, number, number];
+          rect: Rect;
         }> = [];
 
         for (const [index, testCase] of cases.testCases.entries()) {
@@ -125,11 +127,11 @@ describe.skipIf(!vlMode)('ai planning - by coordinates', () => {
               testCase.response_planning = res;
               if (res.action?.locate?.bbox) {
                 const indexId = index + 1;
-                testCase.response_bbox = res.action.locate.bbox;
+                testCase.response_rect = bboxToRect(res.action.locate.bbox);
                 testCase.annotation_index_id = indexId;
                 annotations.push({
                   indexId,
-                  points: res.action.locate.bbox,
+                  rect: testCase.response_rect,
                 });
               }
             }
@@ -137,9 +139,9 @@ describe.skipIf(!vlMode)('ai planning - by coordinates', () => {
           }
 
           if (annotations.length > 0) {
-            const markedImage = await annotatePoints(
+            const markedImage = await annotateRects(
               context.screenshotBase64,
-              annotations,
+              annotations.map((item) => item.rect),
             );
             await saveBase64Image({
               base64Data: markedImage,
@@ -155,7 +157,8 @@ describe.skipIf(!vlMode)('ai planning - by coordinates', () => {
           );
         }
 
-        await resultCollector.analyze(failCaseThreshold);
+        await resultCollector.printSummary();
+        await resultCollector.analyze(source, failCaseThreshold);
         await sleep(3 * 1000);
       },
       240 * 1000,

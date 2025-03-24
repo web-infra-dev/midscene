@@ -1,5 +1,6 @@
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
+import { vlLocateMode } from '@/env';
 import { describeUserPage } from '@/index';
 import { base64Encoded, imageInfoOfBase64 } from '@midscene/shared/img';
 
@@ -28,8 +29,10 @@ export async function buildContext(targetDir: string): Promise<{
   const elementTree = JSON.parse(
     readFileSync(elementTreeJsonPath, { encoding: 'utf-8' }),
   );
-  const screenshotBase64 = base64Encoded(resizeOutputImgP);
   const originalScreenshotBase64 = base64Encoded(originalInputImgP);
+  const screenshotBase64 = vlLocateMode()
+    ? originalScreenshotBase64
+    : base64Encoded(resizeOutputImgP);
   const size = await imageInfoOfBase64(screenshotBase64);
   const baseContext = {
     size,

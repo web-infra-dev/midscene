@@ -240,7 +240,7 @@ export async function call(
       : {}),
   };
   if (style === 'openai') {
-    debugCall(`will send request to ${model}`);
+    debugCall(`sending request to ${model}`);
     const result = await completion.create({
       model,
       messages,

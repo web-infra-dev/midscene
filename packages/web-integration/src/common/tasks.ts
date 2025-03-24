@@ -36,7 +36,7 @@ import type { ElementInfo } from '@midscene/shared/extractor';
 import { assert } from '@midscene/shared/utils';
 import type { WebElementInfo } from '../web-element';
 import { TaskCache } from './task-cache';
-import { getKeyCommands } from './ui-utils';
+import { getKeyCommands, taskTitleStr } from './ui-utils';
 import type { WebUIContext } from './utils';
 
 interface ExecutionResult<OutputType = any> {
@@ -55,10 +55,15 @@ export class PageTaskExecutor {
 
   conversationHistory: ChatCompletionMessageParam[] = [];
 
+  onTaskStartCallback?: ExecutionTaskProgressOptions['onTaskStart'];
+
   constructor(
     page: WebPage,
     insight: Insight<WebElementInfo, WebUIContext>,
-    opts: { cacheId: string | undefined },
+    opts: {
+      cacheId: string | undefined;
+      onTaskStart?: ExecutionTaskProgressOptions['onTaskStart'];
+    },
   ) {
     this.page = page;
     this.insight = insight;
@@ -66,6 +71,8 @@ export class PageTaskExecutor {
     this.taskCache = new TaskCache({
       cacheId: opts?.cacheId,
     });
+
+    this.onTaskStartCallback = opts?.onTaskStart;
   }
 
   private async recordScreenshot(timing: ExecutionRecorderItem['timing']) {
@@ -183,7 +190,7 @@ export class PageTaskExecutor {
               bbox: param?.bbox,
             };
             const startTime = Date.now();
-            const element = await this.insight.locate(param, {
+            const { element } = await this.insight.locate(param, {
               quickAnswer,
             });
             const aiCost = Date.now() - startTime;
@@ -739,10 +746,9 @@ export class PageTaskExecutor {
   async runPlans(
     title: string,
     plans: PlanningAction[],
-    options?: ExecutionTaskProgressOptions,
   ): Promise<ExecutionResult> {
     const taskExecutor = new Executor(title, {
-      onTaskStart: options?.onTaskStart,
+      onTaskStart: this.onTaskStartCallback,
     });
     const { tasks } = await this.convertPlanToExecutable(plans);
     await taskExecutor.append(tasks);
@@ -753,12 +759,9 @@ export class PageTaskExecutor {
     };
   }
 
-  async action(
-    userPrompt: string,
-    options?: ExecutionTaskProgressOptions,
-  ): Promise<ExecutionResult> {
-    const taskExecutor = new Executor(userPrompt, {
-      onTaskStart: options?.onTaskStart,
+  async action(userPrompt: string): Promise<ExecutionResult> {
+    const taskExecutor = new Executor(taskTitleStr('Action', userPrompt), {
+      onTaskStart: this.onTaskStartCallback,
     });
 
     const cacheGroup = this.taskCache.getCacheGroupByPrompt(userPrompt);
@@ -830,12 +833,9 @@ export class PageTaskExecutor {
     };
   }
 
-  async actionToGoal(
-    userPrompt: string,
-    options?: ExecutionTaskProgressOptions,
-  ) {
-    const taskExecutor = new Executor(userPrompt, {
-      onTaskStart: options?.onTaskStart,
+  async actionToGoal(userPrompt: string) {
+    const taskExecutor = new Executor(taskTitleStr('Action', userPrompt), {
+      onTaskStart: this.onTaskStartCallback,
     });
     this.conversationHistory = [];
     const cacheGroup = this.taskCache.getCacheGroupByPrompt(userPrompt);
@@ -890,14 +890,11 @@ export class PageTaskExecutor {
     };
   }
 
-  async query(
-    demand: InsightExtractParam,
-    options?: ExecutionTaskProgressOptions,
-  ): Promise<ExecutionResult> {
+  async query(demand: InsightExtractParam): Promise<ExecutionResult> {
     const description =
       typeof demand === 'string' ? demand : JSON.stringify(demand);
-    const taskExecutor = new Executor(description, {
-      onTaskStart: options?.onTaskStart,
+    const taskExecutor = new Executor(taskTitleStr('Query', description), {
+      onTaskStart: this.onTaskStartCallback,
     });
     const queryTask: ExecutionTaskInsightQueryApply = {
       type: 'Insight',
@@ -933,11 +930,10 @@ export class PageTaskExecutor {
 
   async assert(
     assertion: string,
-    options?: ExecutionTaskProgressOptions,
   ): Promise<ExecutionResult<InsightAssertionResponse>> {
     const description = `assert: ${assertion}`;
-    const taskExecutor = new Executor(description, {
-      onTaskStart: options?.onTaskStart,
+    const taskExecutor = new Executor(taskTitleStr('Assert', description), {
+      onTaskStart: this.onTaskStartCallback,
     });
     const assertionPlan: PlanningAction<PlanningActionParamAssert> = {
       type: 'Assert',
@@ -1013,8 +1009,8 @@ export class PageTaskExecutor {
     opt: PlanningActionParamWaitFor,
   ): Promise<ExecutionResult<void>> {
     const description = `waitFor: ${assertion}`;
-    const taskExecutor = new Executor(description, {
-      onTaskStart: opt.onTaskStart,
+    const taskExecutor = new Executor(taskTitleStr('WaitFor', description), {
+      onTaskStart: this.onTaskStartCallback,
     });
     const { timeoutMs, checkIntervalMs } = opt;
 

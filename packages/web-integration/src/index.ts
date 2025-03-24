@@ -7,5 +7,5 @@ export { PlaywrightAgent } from './playwright';
 export { AppiumAgent, AppiumPage } from './appium';
 export { StaticPageAgent } from './playground/agent';
 
-export { ScriptPlayer, parseYamlScript, flowItemBrief } from './yaml';
+export { ScriptPlayer, parseYamlScript } from './yaml';
 export { parseContextFromWebPage } from './common/utils';

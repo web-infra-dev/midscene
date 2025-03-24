@@ -6,6 +6,7 @@ import type {
   ExecutionTaskInsightLocate,
   ExecutionTaskInsightQuery,
   ExecutionTaskPlanning,
+  LocateParam,
   PlanningActionParamScroll,
 } from '@midscene/core';
 
@@ -36,6 +37,48 @@ export function getKeyCommands(
   }, []);
 }
 
+export function locateParamStr(locate?: LocateParam) {
+  if (!locate) {
+    return '';
+  }
+
+  if (typeof locate === 'string') {
+    return locate;
+  }
+
+  if (!locate.searchArea) {
+    if (locate.deepThink) {
+      return `${locate.prompt} (deep think)`;
+    }
+    return locate.prompt;
+  }
+
+  return `${locate.prompt} @ ${locate.searchArea}`;
+}
+
+export function scrollParamStr(scrollParam?: PlanningActionParamScroll) {
+  if (!scrollParam) {
+    return '';
+  }
+  return `${scrollParam.direction || 'down'}, ${scrollParam.scrollType || 'once'}, ${scrollParam.distance || 'distance-not-set'}`;
+}
+
+export function taskTitleStr(
+  type:
+    | 'Tap'
+    | 'Hover'
+    | 'Input'
+    | 'KeyboardPress'
+    | 'Scroll'
+    | 'Action'
+    | 'Query'
+    | 'Assert'
+    | 'WaitFor',
+  prompt: string,
+) {
+  return `${type} - ${prompt}`;
+}
+
 export function paramStr(task: ExecutionTask) {
   let value: string | undefined | object;
   if (task.type === 'Planning') {
@@ -51,34 +94,28 @@ export function paramStr(task: ExecutionTask) {
   }
 
   if (task.type === 'Action') {
-    const sleepMs = (task as ExecutionTaskAction)?.param?.timeMs;
-    const scrollType = (
-      task as ExecutionTask<ExecutionTaskActionApply<PlanningActionParamScroll>>
-    )?.param?.scrollType;
-    if (sleepMs) {
-      value = `${sleepMs}ms`;
-    } else if (scrollType) {
-      const scrollDirection = (
-        task as ExecutionTask<
-          ExecutionTaskActionApply<PlanningActionParamScroll>
-        >
-      )?.param?.direction;
-      const scrollDistance = (
-        task as ExecutionTask<
-          ExecutionTaskActionApply<PlanningActionParamScroll>
-        >
-      )?.param?.distance;
-      value = `${scrollDirection || 'down'}, ${scrollType || 'once'}, ${
-        scrollDistance || 'distance-not-set'
-      }`;
-    } else {
-      value =
-        (task as ExecutionTaskAction)?.param?.value ||
-        (task as ExecutionTaskAction)?.param?.scrollType;
+    const locate = (task as ExecutionTaskAction)?.locate;
+    const locateStr = locate ? locateParamStr(locate) : '';
+
+    value = task.thought || '';
+    if (typeof (task as ExecutionTaskAction)?.param?.timeMs === 'number') {
+      value = `${(task as ExecutionTaskAction)?.param?.timeMs}ms`;
+    } else if (
+      typeof (task as ExecutionTaskAction)?.param?.scrollType === 'string'
+    ) {
+      value = scrollParamStr((task as ExecutionTaskAction)?.param);
+    } else if (
+      typeof (task as ExecutionTaskAction)?.param?.value !== 'undefined'
+    ) {
+      value = (task as ExecutionTaskAction)?.param?.value;
     }
 
-    if (!value) {
-      value = task.thought;
+    if (locateStr) {
+      if (value) {
+        value = `${locateStr} - ${value}`;
+      } else {
+        value = locateStr;
+      }
     }
   }
 

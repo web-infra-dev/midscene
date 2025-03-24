@@ -44,7 +44,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       break;
     }
     default:
-      console.log('will send response');
+      console.log('sending response');
       sendResponse({ error: 'Unknown message type' });
       break;
   }

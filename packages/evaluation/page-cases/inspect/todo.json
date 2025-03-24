@@ -4,74 +4,92 @@
     {
       "prompt": "Input current time in the task box input and press the Enter key",
       "multi": false,
-      "response": [
-        {
-          "id": "okgbn",
-          "indexId": 18
-        }
-      ],
-      "response_bbox": [512, 126, 1068, 197],
-      "annotation_index_id": 1
+      "annotation_index_id": 1,
+      "response_rect": {
+        "left": 512,
+        "top": 127,
+        "width": 556,
+        "height": 71
+      },
+      "response_element": {
+        "id": "okgbn",
+        "indexId": 18
+      }
     },
     {
       "prompt": "Input 'Study Rust tomorrow' in the task box input and press the Enter key ",
       "multi": false,
-      "response": [
-        {
-          "id": "okgbn",
-          "indexId": 18
-        }
-      ],
-      "response_bbox": [512, 126, 1068, 197],
-      "annotation_index_id": 2
+      "annotation_index_id": 2,
+      "response_rect": {
+        "left": 512,
+        "top": 127,
+        "width": 556,
+        "height": 71
+      },
+      "response_element": {
+        "id": "okgbn",
+        "indexId": 18
+      }
     },
     {
       "prompt": "任务列表中的第二项名称",
       "multi": false,
-      "response": [
-        {
-          "id": "idmhb",
-          "indexId": 24
-        }
-      ],
-      "response_bbox": [574, 276, 693, 294],
-      "annotation_index_id": 3
+      "annotation_index_id": 3,
+      "response_rect": {
+        "left": 574,
+        "top": 276,
+        "width": 117,
+        "height": 17
+      },
+      "response_element": {
+        "id": "idmhb",
+        "indexId": 24
+      }
     },
     {
       "prompt": "第二项任务右边的删除按钮",
       "multi": false,
-      "response": [
-        {
-          "id": "jicbk",
-          "indexId": 25
-        }
-      ],
-      "response_bbox": [1027, 278, 1045, 293],
-      "annotation_index_id": 4
+      "annotation_index_id": 4,
+      "response_rect": {
+        "left": 1028,
+        "top": 279,
+        "width": 15,
+        "height": 12
+      },
+      "response_element": {
+        "id": "jicbk",
+        "indexId": 25
+      }
     },
     {
       "prompt": "任务列表中第三项左边的勾选按钮",
       "multi": false,
-      "response": [
-        {
-          "id": "kjccf",
-          "indexId": 26
-        }
-      ],
-      "response_bbox": [521, 334, 557, 360],
-      "annotation_index_id": 5
+      "annotation_index_id": 5,
+      "response_rect": {
+        "left": 521,
+        "top": 334,
+        "width": 33,
+        "height": 26
+      },
+      "response_element": {
+        "id": "kjccf",
+        "indexId": 26
+      }
     },
     {
       "prompt": "任务列表下面的 Completed 状态按钮",
       "multi": false,
-      "response": [
-        {
-          "id": "ddapc",
-          "indexId": 30
-        }
-      ],
-      "response_bbox": [801, 390, 872, 405],
-      "annotation_index_id": 6
+      "annotation_index_id": 6,
+      "response_rect": {
+        "left": 802,
+        "top": 391,
+        "width": 69,
+        "height": 12
+      },
+      "response_element": {
+        "id": "ddapc",
+        "indexId": 30
+      }
     }
   ]
 }

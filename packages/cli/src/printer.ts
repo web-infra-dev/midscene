@@ -3,7 +3,7 @@ import type {
   ScriptPlayerStatusValue,
   ScriptPlayerTaskStatus,
 } from '@midscene/core';
-import { type ScriptPlayer, flowItemBrief } from '@midscene/web/yaml';
+import type { ScriptPlayer } from '@midscene/web/yaml';
 import chalk from 'chalk';
 
 export interface MidsceneYamlFileContext {
@@ -70,8 +70,14 @@ export const contextInfo = (context: MidsceneYamlFileContext) => {
     ? `\n${indent}${chalk.gray(`report: ./${reportFileToShow}`)}`
     : '';
 
+  // agent status: ...
+  const agentStatusTip = context.player.agentStatusTip;
+  const agentStatusText = agentStatusTip
+    ? `\n${indent}${chalk.gray(`agent status: ${agentStatusTip}`)}`
+    : '';
+
   const mergedText =
-    `${fileStatusText} ${fileNameToPrint} ${contextActionText}${outputText}${reportText}${errorText}`.trim();
+    `${fileStatusText} ${fileNameToPrint} ${contextActionText}${outputText}${reportText}${errorText}${agentStatusText}`.trim();
 
   return {
     fileNameToPrint,
@@ -91,14 +97,12 @@ export const singleTaskInfo = (task: ScriptPlayerTaskStatus) => {
     if (typeof task.currentStep === 'undefined') {
       stepText = chalk.gray('(navigating)');
     } else if (typeof task.currentStep === 'number') {
-      const currentFlowItem = task.flow[task.currentStep];
-      const taskBrief = currentFlowItem && flowItemBrief(currentFlowItem);
-      const actionText = taskBrief ? `, ${taskBrief}` : '';
+      const actionText = ''; // taskBrief ? `, ${taskBrief}` : '';
       stepText = chalk.gray(
-        `(step ${task.currentStep + 1}/${task.totalSteps}${actionText})`.trim(),
+        `(task ${task.currentStep + 1}/${task.totalSteps}${actionText})`.trim(),
       );
     } else {
-      stepText = chalk.gray('(unknown step)');
+      stepText = chalk.gray('(unknown task)');
     }
   }
 

@@ -1,4 +1,4 @@
-import { AiLocateElement } from '@/ai-model';
+import { AiLocateElement, AiLocateSection } from '@/ai-model';
 import { getContextFromFixture } from 'tests/evaluation';
 import { expect, test } from 'vitest';
 
@@ -21,6 +21,15 @@ test(
     timeout: 1000000,
   },
 );
+
+test('locate section', async () => {
+  const { context } = await getContextFromFixture('todo');
+  const { rect } = await AiLocateSection({
+    context,
+    sectionDescription: '搜索框',
+  });
+  expect(rect).toBeDefined();
+});
 
 test('use quick answer', async () => {
   const { context } = await getContextFromFixture('todo');

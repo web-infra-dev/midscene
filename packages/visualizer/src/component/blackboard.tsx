@@ -19,25 +19,24 @@ const noop = () => {
 export const rectMarkForItem = (
   rect: Rect,
   name: string,
-  ifHighlight: boolean,
-  onPointOver?: () => void,
-  onPointerOut?: () => void,
+  type: 'element' | 'searchArea' | 'highlight',
 ) => {
   const { left, top, width, height } = rect;
-  const themeColor = ifHighlight
-    ? highlightColorForType('element')
-    : colorForName(name);
-  const alpha = ifHighlight ? highlightAlpha : itemFillAlpha;
+  let themeColor: string;
+  if (type === 'element') {
+    themeColor = colorForName(name);
+  } else if (type === 'searchArea') {
+    themeColor = highlightColorForType('searchArea');
+  } else {
+    themeColor = highlightColorForType('element');
+  }
+
+  const alpha = type === 'highlight' ? highlightAlpha : itemFillAlpha;
   const graphics = new PIXI.Graphics();
   graphics.beginFill(themeColor, alpha);
   graphics.lineStyle(1, themeColor, 1);
   graphics.drawRect(left, top, width, height);
   graphics.endFill();
-  if (onPointOver && onPointerOut) {
-    graphics.interactive = true;
-    graphics.on('pointerover', onPointOver);
-    graphics.on('pointerout', onPointerOut);
-  }
 
   const dropShadowFilter = new DropShadowFilter({
     blur: 2,
@@ -62,11 +61,12 @@ export const rectMarkForItem = (
 const Blackboard = (props: {
   uiContext: UIContext;
   highlightElements?: BaseElement[];
+  highlightRect?: Rect;
   hideController?: boolean;
-  disableInteraction?: boolean;
 }): JSX.Element => {
   const highlightElements: BaseElement[] = props.highlightElements || [];
   const highlightIds = highlightElements.map((e) => e.id);
+  const highlightRect = props.highlightRect;
 
   const context = props.uiContext!;
   const { size, screenshotBase64, screenshotBase64WithElementMarker } = context;
@@ -179,35 +179,34 @@ const Blackboard = (props: {
     highlightContainer.removeChildren();
     elementMarkContainer.removeChildren();
 
+    if (highlightRect) {
+      console.log('highlightRect', highlightRect);
+      const [graphics] = rectMarkForItem(
+        highlightRect,
+        'Search Area',
+        'searchArea',
+      );
+      highlightContainer.addChild(graphics);
+    }
+
+    if (highlightElements.length) {
+      highlightElements.forEach((element) => {
+        const { rect, content, id } = element;
+        const [graphics] = rectMarkForItem(rect, content, 'highlight');
+        highlightContainer.addChild(graphics);
+      });
+    }
+
     // element rects
     context.content.forEach((element) => {
       const { rect, content, id } = element;
       const ifHighlight = highlightIds.includes(id) || hoverElement?.id === id;
+
       if (ifHighlight) {
-        const [graphics] = rectMarkForItem(
-          rect,
-          content,
-          ifHighlight,
-          noop,
-          noop,
-        );
-        highlightContainer.addChild(graphics);
+        return;
       }
 
-      const removeHover = () => {
-        setHoverElement(null);
-      };
-      const [graphics] = rectMarkForItem(
-        rect,
-        content,
-        ifHighlight,
-        props?.disableInteraction
-          ? undefined
-          : () => {
-              setHoverElement(element);
-            },
-        props?.disableInteraction ? undefined : removeHover,
-      );
+      const [graphics] = rectMarkForItem(rect, content, 'element');
       elementMarkContainer.addChild(graphics);
     });
 
@@ -221,6 +220,7 @@ const Blackboard = (props: {
     highlightElements,
     context.content,
     hoverElement,
+    highlightRect,
     // bgVisible,
     // elementsVisible,
   ]);

@@ -1,6 +1,6 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
-import type { PlanningAIResponse } from '@midscene/core';
+import type { PlanningAIResponse, Rect } from '@midscene/core';
 import { vlLocateMode } from '@midscene/core/env';
 import {
   base64Encoded,
@@ -13,9 +13,10 @@ export const repeatTime = 1;
 
 export type TestCase = {
   prompt: string;
+  searchArea?: string;
   log?: string;
-  response: Array<{ id: string; indexId: number }>;
-  response_bbox?: [number, number, number, number];
+  response_element?: { id: string; indexId?: number };
+  response_rect?: Rect;
   response_planning?: PlanningAIResponse;
   expected?: boolean;
   annotation_index_id?: number;
@@ -238,29 +239,18 @@ export async function buildContext(pageName: string) {
   };
 
   const context = await parseContextFromWebPage(fakePage as any, {
-    ignoreMarker: vlLocateMode(),
+    ignoreMarker: !!vlLocateMode(),
   });
   return context;
 }
 
-export async function annotatePoints(
-  imgBase64: string,
-  points: Array<{
-    indexId: number;
-    points: [number, number, number, number];
-  }>,
-) {
+export async function annotateRects(imgBase64: string, rects: Rect[]) {
   const markedImage = await compositeElementInfoImg({
     inputImgBase64: imgBase64,
-    elementsPositionInfo: points.map((item, index) => {
+    elementsPositionInfo: rects.map((rect, index) => {
       return {
-        rect: {
-          left: item.points[0],
-          top: item.points[1],
-          width: item.points[2] - item.points[0],
-          height: item.points[3] - item.points[1],
-        },
-        indexId: item.indexId,
+        rect,
+        indexId: index + 1,
       };
     }),
     annotationPadding: 0,

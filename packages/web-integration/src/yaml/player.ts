@@ -7,7 +7,12 @@ import type {
   FreeFn,
   MidsceneYamlFlowItemAIAction,
   MidsceneYamlFlowItemAIAssert,
+  MidsceneYamlFlowItemAIHover,
+  MidsceneYamlFlowItemAIInput,
+  MidsceneYamlFlowItemAIKeyboardPress,
   MidsceneYamlFlowItemAIQuery,
+  MidsceneYamlFlowItemAIScroll,
+  MidsceneYamlFlowItemAITap,
   MidsceneYamlFlowItemAIWaitFor,
   MidsceneYamlFlowItemSleep,
   MidsceneYamlScript,
@@ -26,6 +31,7 @@ export class ScriptPlayer {
   public output?: string | null;
   public errorInSetup?: Error;
   private pageAgent: PageAgent | null = null;
+  public agentStatusTip?: string;
   constructor(
     private script: MidsceneYamlScript,
     private setupAgent: (target: MidsceneYamlScriptEnv) => Promise<{
@@ -160,6 +166,27 @@ export class ScriptPlayer {
           `ms for sleep must be greater than 0, but got ${ms}`,
         );
         await new Promise((resolve) => setTimeout(resolve, msNumber));
+      } else if ((flowItem as MidsceneYamlFlowItemAITap).aiTap) {
+        const tapTask = flowItem as MidsceneYamlFlowItemAITap;
+        await agent.aiTap(tapTask.aiTap);
+      } else if ((flowItem as MidsceneYamlFlowItemAIHover).aiHover) {
+        const hoverTask = flowItem as MidsceneYamlFlowItemAIHover;
+        await agent.aiHover(hoverTask.aiHover);
+      } else if ((flowItem as MidsceneYamlFlowItemAIInput).aiInput) {
+        const inputTask = flowItem as MidsceneYamlFlowItemAIInput;
+        await agent.aiInput(inputTask.aiInput, inputTask.locate);
+      } else if (
+        (flowItem as MidsceneYamlFlowItemAIKeyboardPress).aiKeyboardPress
+      ) {
+        const keyboardPressTask =
+          flowItem as MidsceneYamlFlowItemAIKeyboardPress;
+        await agent.aiKeyboardPress(
+          keyboardPressTask.aiKeyboardPress,
+          keyboardPressTask.locate,
+        );
+      } else if ((flowItem as MidsceneYamlFlowItemAIScroll).aiScroll) {
+        const scrollTask = flowItem as MidsceneYamlFlowItemAIScroll;
+        await agent.aiScroll(scrollTask.aiScroll, scrollTask.locate);
       } else {
         throw new Error(`unknown flowItem: ${JSON.stringify(flowItem)}`);
       }
@@ -177,6 +204,11 @@ export class ScriptPlayer {
       const { agent: newAgent, freeFn: newFreeFn } =
         await this.setupAgent(target);
       agent = newAgent;
+      agent.onTaskStartTip = (tip) => {
+        if (this.status === 'running') {
+          this.agentStatusTip = tip;
+        }
+      };
       freeFn = newFreeFn;
     } catch (e) {
       this.setPlayerStatus('error', e as Error);
@@ -215,6 +247,7 @@ export class ScriptPlayer {
     } else {
       this.setPlayerStatus('done');
     }
+    this.agentStatusTip = '';
 
     // free the resources
     for (const fn of freeFn) {

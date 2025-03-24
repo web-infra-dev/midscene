@@ -31,9 +31,10 @@ const insightFindTask = (shouldThrow?: boolean) => {
         await new Promise((resolve) => setTimeout(resolve, 100));
         throw new Error('test-error');
       }
+      const { element } = await insight.locate(param.prompt);
       return {
         output: {
-          element: await insight.locate(param.prompt),
+          element,
         },
         log: {
           dump: insightDump,

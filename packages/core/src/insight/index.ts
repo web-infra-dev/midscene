@@ -1,9 +1,11 @@
-import { callAiFn } from '@/ai-model/common';
+import { callAiFn, expandSearchArea } from '@/ai-model/common';
 import { AiExtractElementInfo, AiLocateElement } from '@/ai-model/index';
 import { AiAssert, AiLocateSection } from '@/ai-model/inspect';
+import { vlLocateMode } from '@/env';
 import type {
   AIElementResponse,
   AISingleElementResponse,
+  AIUsageInfo,
   BaseElement,
   DumpSubscriber,
   InsightAction,
@@ -11,11 +13,13 @@ import type {
   InsightExtractParam,
   InsightOptions,
   InsightTaskInfo,
+  LocateParam,
+  LocateResult,
   PartialInsightDumpFromSDK,
-  PlanningLocateParam,
+  Rect,
   UIContext,
 } from '@/types';
-import { assert } from '@midscene/shared/utils';
+import { assert, getDebug } from '@midscene/shared/utils';
 import { emitInsightDump } from './utils';
 
 export interface LocateOpts {
@@ -27,6 +31,7 @@ export type AnyValue<T> = {
   [K in keyof T]: unknown extends T[K] ? any : T[K];
 };
 
+const debug = getDebug('ai:insight');
 export default class Insight<
   ElementType extends BaseElement = BaseElement,
   ContextType extends UIContext<ElementType> = UIContext<ElementType>,
@@ -38,8 +43,6 @@ export default class Insight<
   aiVendorFn: (...args: Array<any>) => Promise<any> = callAiFn;
 
   onceDumpUpdatedFn?: DumpSubscriber;
-
-  generateElement: InsightOptions['generateElement'];
 
   taskInfo?: Omit<InsightTaskInfo, 'durationMs'>;
 
@@ -56,8 +59,6 @@ export default class Insight<
       this.contextRetrieverFn = () => Promise.resolve(context);
     }
 
-    this.generateElement = opt?.generateElement;
-
     if (typeof opt?.aiVendorFn !== 'undefined') {
       this.aiVendorFn = opt.aiVendorFn;
     }
@@ -66,11 +67,7 @@ export default class Insight<
     }
   }
 
-  async locate(
-    query: string | PlanningLocateParam,
-    opt?: LocateOpts,
-  ): Promise<ElementType | null>;
-  async locate(query: string | PlanningLocateParam, opt?: LocateOpts) {
+  async locate(query: LocateParam, opt?: LocateOpts): Promise<LocateResult> {
     const { callAI } = opt || {};
     const queryPrompt = typeof query === 'string' ? query : query.prompt;
     assert(
@@ -79,21 +76,52 @@ export default class Insight<
     );
     const dumpSubscriber = this.onceDumpUpdatedFn;
     this.onceDumpUpdatedFn = undefined;
-    // still under construction
-    // const searchArea = typeof query === 'string' ? undefined : query.searchArea;
+    let searchAreaPrompt = undefined;
+
+    if (typeof query === 'object') {
+      searchAreaPrompt = query.searchArea;
+      if (!searchAreaPrompt && query.deepThink) {
+        searchAreaPrompt = query.prompt;
+      }
+    }
+
     const context = await this.contextRetrieverFn('locate');
-    // const { sectionBbox, usage } = await AiLocateSection({
-    //   context,
-    //   sectionDescription: searchArea,
-    // })
+
+    let searchArea: Rect | undefined = undefined;
+    let searchAreaRawResponse: string | undefined = undefined;
+    let searchAreaUsage: AIUsageInfo | undefined = undefined;
+    let searchAreaResponse:
+      | Awaited<ReturnType<typeof AiLocateSection>>
+      | undefined = undefined;
+    if (searchAreaPrompt) {
+      assert(
+        vlLocateMode(),
+        'locate with search area is not supported with general purposed LLM. Please use Midscene VL model. https://midscenejs.com/choose-a-model',
+      );
+
+      searchAreaResponse = await AiLocateSection({
+        context,
+        sectionDescription: searchAreaPrompt,
+      });
+      assert(
+        searchAreaResponse.rect,
+        `cannot find search area for "${searchAreaPrompt}"${
+          searchAreaResponse.error ? `: ${searchAreaResponse.error}` : ''
+        }`,
+      );
+      searchAreaRawResponse = searchAreaResponse.rawResponse;
+      searchAreaUsage = searchAreaResponse.usage;
+      searchArea = searchAreaResponse.rect;
+    }
 
     const startTime = Date.now();
-    const { parseResult, elementById, rawResponse, usage } =
+    const { parseResult, rect, elementById, rawResponse, usage } =
       await AiLocateElement({
         callAI: callAI || this.aiVendorFn,
         context,
         targetElementDescription: queryPrompt,
         quickAnswer: opt?.quickAnswer,
+        searchConfig: searchAreaResponse,
       });
     // const parseResult = await this.aiVendorFn<AIElementParseResponse>(msgs);
     const timeCost = Date.now() - startTime;
@@ -103,6 +131,9 @@ export default class Insight<
       rawResponse: JSON.stringify(rawResponse),
       formatResponse: JSON.stringify(parseResult),
       usage,
+      searchArea,
+      searchAreaRawResponse,
+      searchAreaUsage,
     };
 
     let errorLog: string | undefined;
@@ -117,22 +148,15 @@ export default class Insight<
         element: queryPrompt,
       },
       quickAnswer: opt?.quickAnswer,
-      matchedSection: [],
       matchedElement: [],
+      matchedRect: rect,
       data: null,
       taskInfo,
       error: errorLog,
     };
 
-    const logId = emitInsightDump(dumpData, undefined, dumpSubscriber);
-
-    if (errorLog) {
-      console.error(errorLog);
-      throw new Error(errorLog);
-    }
-
     const elements: BaseElement[] = [];
-    parseResult.elements.forEach((item) => {
+    (parseResult.elements || []).forEach((item) => {
       if ('id' in item) {
         const element = elementById(item.id);
 
@@ -151,20 +175,33 @@ export default class Insight<
         ...dumpData,
         matchedElement: elements,
       },
-      logId,
       dumpSubscriber,
     );
 
-    if (elements.length >= 2) {
-      console.warn(
-        `locate: multiple elements found, return the first one. (query: ${queryPrompt})`,
-      );
-      return elements[0];
+    if (errorLog) {
+      throw new Error(errorLog);
     }
+
+    assert(
+      elements.length <= 1,
+      `locate: multiple elements found, length = ${elements.length}`,
+    );
+
     if (elements.length === 1) {
-      return elements[0];
+      return {
+        element: {
+          id: elements[0]!.id,
+          indexId: elements[0]!.indexId,
+          center: elements[0]!.center,
+          rect: elements[0]!.rect,
+        },
+        rect,
+      };
     }
-    return null;
+    return {
+      element: null,
+      rect,
+    };
   }
 
   async extract<T = any>(input: string): Promise<T>;
@@ -207,29 +244,26 @@ export default class Insight<
       userQuery: {
         dataDemand,
       },
-      matchedSection: [],
       matchedElement: [],
       data: null,
       taskInfo,
       error: errorLog,
     };
-    const logId = emitInsightDump(dumpData, undefined, dumpSubscriber);
 
-    const { data } = parseResult;
-    if (errorLog && !data) {
-      console.error(errorLog);
-      throw new Error(errorLog);
-    }
+    const { data } = parseResult || {};
 
+    // 4
     emitInsightDump(
       {
         ...dumpData,
-        matchedSection: [],
         data,
       },
-      logId,
       dumpSubscriber,
     );
+
+    if (errorLog && !data) {
+      throw new Error(errorLog);
+    }
 
     return {
       data,
@@ -268,7 +302,6 @@ export default class Insight<
       userQuery: {
         assertion,
       },
-      matchedSection: [],
       matchedElement: [],
       data: null,
       taskInfo,
@@ -276,7 +309,7 @@ export default class Insight<
       assertionThought: thought,
       error: pass ? undefined : thought,
     };
-    emitInsightDump(dumpData, undefined, dumpSubscriber);
+    emitInsightDump(dumpData, dumpSubscriber);
 
     return {
       pass,

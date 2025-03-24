@@ -1,24 +1,16 @@
-import assert from 'node:assert';
-import {
-  appendFileSync,
-  existsSync,
-  mkdirSync,
-  readFileSync,
-  unlinkSync,
-  writeFileSync,
-} from 'node:fs';
+import { appendFileSync, existsSync, mkdirSync } from 'node:fs';
 import path from 'node:path';
-import {
-  type AiLocateElement,
-  MIDSCENE_MODEL_NAME,
-  getAIConfig,
-  type plan,
+import type {
+  LocateResult,
+  PlanningAIResponse,
+  Rect,
+  plan,
 } from '@midscene/core';
 import type { AiLocateSection } from '@midscene/core/ai-model';
 import type { TestCase } from '../tests/util';
 
 type ActualResult =
-  | Awaited<ReturnType<typeof AiLocateElement>>
+  | LocateResult
   | Awaited<ReturnType<typeof plan>>
   | Awaited<ReturnType<typeof AiLocateSection>>;
 
@@ -86,7 +78,7 @@ ${testLog.caseGroup} - ${testLog.testCase.prompt}
 ActualResponse:
 ${JSON.stringify(testLog.actualResult, null, 2)}
 ExpectedResponse:
-${testLog.success ? '(skipped)' : JSON.stringify(testLog.testCase.response, null, 2)}
+${testLog.success ? '(skipped)' : JSON.stringify(testLog.testCase, null, 2)}
 ${errorMsg ? `Error: ${errorMsg}` : ''}
 --------------------------------
 `;
@@ -97,7 +89,7 @@ ${errorMsg ? `Error: ${errorMsg}` : ''}
     }
   }
 
-  analyze(allowFailCaseCount = 0) {
+  printSummary() {
     // group by caseGroup, calculate the pass rate and average cost of each group
     const groupedTestLogs = this.testLogs.reduce(
       (acc, log) => {
@@ -114,24 +106,7 @@ ${errorMsg ? `Error: ${errorMsg}` : ''}
         const averageCost =
           testLogs.reduce((acc, log) => acc + log.cost, 0) / testLogs.length;
         const totalTimeCost = testLogs.reduce((acc, log) => acc + log.cost, 0);
-        const averagePromptTokens =
-          testLogs.reduce(
-            (acc, log) =>
-              acc +
-              (log.actualResult instanceof Error
-                ? 0
-                : log.actualResult.usage?.prompt_tokens || 0),
-            0,
-          ) / testLogs.length;
-        const averageCompletionTokens =
-          testLogs.reduce(
-            (acc, log) =>
-              acc +
-              (log.actualResult instanceof Error
-                ? 0
-                : log.actualResult.usage?.completion_tokens || 0),
-            0,
-          ) / testLogs.length;
+
         return {
           caseGroup,
           cases: testLogs.length,
@@ -139,8 +114,6 @@ ${errorMsg ? `Error: ${errorMsg}` : ''}
           fail: testLogs.filter((log) => !log.success).length,
           passRate: `${(passRate * 100).toFixed(2)}%`,
           averageCost: `${averageCost.toFixed(2)}ms`,
-          averagePromptTokens: `${averagePromptTokens.toFixed(0)}`,
-          averageCompletionTokens: `${averageCompletionTokens.toFixed(0)}`,
           totalTimeCost: `${totalTimeCost}ms`,
         };
       },
@@ -148,19 +121,23 @@ ${errorMsg ? `Error: ${errorMsg}` : ''}
 
     console.log(`${this.testName}, ${this.modelName}`);
     console.table(resultData);
+  }
 
-    // check if the fail count is greater than the allowFailCaseCount
-    const failedCaseGroups = resultData.filter(
-      (item) => item.fail > allowFailCaseCount,
+  analyze(caseGroup: string, allowFailCaseCount = 0) {
+    // collect all failed cases
+    const failedCases = this.testLogs.filter(
+      (log) => log.caseGroup === caseGroup && !log.success,
     );
-    let errMsg = '';
-    if (failedCaseGroups.length > allowFailCaseCount) {
-      errMsg = `Failed case groups: ${failedCaseGroups.map((item) => item.caseGroup).join(', ')}`;
-      console.log(errMsg);
-      console.log('error log file:', this.failedCaseLogPath);
-      throw new Error(errMsg);
+
+    // print failed cases
+    if (failedCases.length > allowFailCaseCount) {
+      console.log(`Failed cases in ${caseGroup}:`);
+      console.log(failedCases.map((log) => log.testCase.prompt).join('\n'));
+      console.log('log: ', this.failedCaseLogPath);
+      throw new Error(
+        `Failed cases: ${failedCases.length}, log: ${this.failedCaseLogPath}`,
+      );
     }
-    return resultData;
   }
 
   distanceOfTwoBbox(bbox1: number[], bbox2: number[]) {
@@ -168,6 +145,14 @@ ${errorMsg ? `Error: ${errorMsg}` : ''}
     const centerY1 = (bbox1[1] + bbox1[3]) / 2;
     const centerX2 = (bbox2[0] + bbox2[2]) / 2;
     const centerY2 = (bbox2[1] + bbox2[3]) / 2;
+    return Math.sqrt((centerX1 - centerX2) ** 2 + (centerY1 - centerY2) ** 2);
+  }
+
+  distanceOfTwoRect(rect1: Rect, rect2: Rect) {
+    const centerX1 = rect1.left + rect1.width / 2;
+    const centerY1 = rect1.top + rect1.height / 2;
+    const centerX2 = rect2.left + rect2.width / 2;
+    const centerY2 = rect2.top + rect2.height / 2;
     return Math.sqrt((centerX1 - centerX2) ** 2 + (centerY1 - centerY2) ** 2);
   }
 
@@ -190,45 +175,18 @@ ${errorMsg ? `Error: ${errorMsg}` : ''}
       return new Error(msg);
     }
 
-    // compare coordinates
-    if ('parseResult' in result && result.parseResult.bbox) {
-      assert(testCase.response_bbox, 'testCase.response_bbox is required');
-      const distance = this.distanceOfTwoBbox(
-        result.parseResult.bbox,
-        testCase.response_bbox,
-      );
-
-      if (distance > distanceThreshold) {
-        const msg = `distance: ${distance} is greater than threshold: ${distanceThreshold}, the prompt is: ${testCase.prompt}`;
-        return new Error(msg);
-      }
-
-      return true;
-    }
-
-    if ('parseResult' in result) {
-      // compare id
-      const expectedId = testCase.response[0].id;
-      const expectedIndexId = testCase.response[0].indexId;
-      const actualId = result.parseResult.elements[0].id;
-      if (actualId !== expectedId && `${actualId}` !== `${expectedIndexId}`) {
-        const msg = `actualId: ${actualId} is not equal to expectedId: ${expectedId} or expectedIndexId: ${expectedIndexId}, the prompt is: ${testCase.prompt}`;
-        console.log(msg);
-        return new Error(msg);
-      }
-      return true;
-    }
-
-    if ('actions' in result) {
+    // check planning actions
+    if (testCase.response_planning) {
       // compare actions
       const expected = testCase.response_planning;
+      const planningResult = result as PlanningAIResponse;
 
       // check step names and order
       const steps =
         (expected?.actions || []).map((action) => {
           return action.type;
         }) || [];
-      const actualActions = result.actions!.map((action) => {
+      const actualActions = planningResult.actions!.map((action) => {
         return action.type;
       });
       // tell if steps and actualActions are the same
@@ -245,14 +203,14 @@ ${errorMsg ? `Error: ${errorMsg}` : ''}
 
       if (
         expected?.more_actions_needed_by_instruction !==
-        result.more_actions_needed_by_instruction
+        planningResult.more_actions_needed_by_instruction
       ) {
-        const msg = `expected?.more_actions_needed_by_instruction: ${expected?.more_actions_needed_by_instruction} is not equal to result.more_actions_needed_by_instruction: ${result.more_actions_needed_by_instruction}, the prompt is: ${testCase.prompt}`;
+        const msg = `expected?.more_actions_needed_by_instruction: ${expected?.more_actions_needed_by_instruction} is not equal to result.more_actions_needed_by_instruction: ${planningResult.more_actions_needed_by_instruction}, the prompt is: ${testCase.prompt}`;
         return new Error(msg);
       }
 
       const expectedBbox = expected?.action?.locate?.bbox;
-      const actualBbox = result.action?.locate?.bbox;
+      const actualBbox = planningResult.action?.locate?.bbox;
 
       if (typeof expectedBbox !== typeof actualBbox) {
         const msg = `expectedBbox: ${expectedBbox} is not equal to actualBbox: ${actualBbox}, the prompt is: ${testCase.prompt}`;
@@ -270,20 +228,54 @@ ${errorMsg ? `Error: ${errorMsg}` : ''}
       return true;
     }
 
-    if ('sectionBbox' in result) {
-      const expected = testCase.response_bbox;
-      const actual = result.sectionBbox;
-      if (!expected || !actual) {
-        const msg = `expected: ${expected} is not equal to actual: ${actual}, the prompt is: ${testCase.prompt}`;
-        return new Error(msg);
+    // compare coordinates
+    if (testCase.response_rect) {
+      const resultRect = (result as LocateResult).rect;
+      if (!resultRect) {
+        throw new Error(
+          `resultRect is not set, the prompt is: ${testCase.prompt}`,
+        );
       }
-      const distance = this.distanceOfTwoBbox(expected, actual);
+      const distance = this.distanceOfTwoRect(
+        resultRect,
+        testCase.response_rect,
+      );
+
       if (distance > distanceThreshold) {
         const msg = `distance: ${distance} is greater than threshold: ${distanceThreshold}, the prompt is: ${testCase.prompt}`;
         return new Error(msg);
       }
+
       return true;
     }
+
+    if (testCase.response_element) {
+      // compare id
+      const expectedId = testCase.response_element?.id;
+      const expectedIndexId = testCase.response_element?.indexId;
+      const actualId = (result as LocateResult).element?.id;
+      if (actualId !== expectedId && `${actualId}` !== `${expectedIndexId}`) {
+        const msg = `actualId: ${actualId} is not equal to expectedId: ${expectedId} or expectedIndexId: ${expectedIndexId}, the prompt is: ${testCase.prompt}`;
+        console.log(msg);
+        return new Error(msg);
+      }
+      return true;
+    }
+
+    // if ('sectionBbox' in result) {
+    //   const expected = testCase.response_bbox;
+    //   const actual = result.sectionBbox;
+    //   if (!expected || !actual) {
+    //     const msg = `expected: ${expected} is not equal to actual: ${actual}, the prompt is: ${testCase.prompt}`;
+    //     return new Error(msg);
+    //   }
+    //   const distance = this.distanceOfTwoBbox(expected, actual);
+    //   if (distance > distanceThreshold) {
+    //     const msg = `distance: ${distance} is greater than threshold: ${distanceThreshold}, the prompt is: ${testCase.prompt}`;
+    //     return new Error(msg);
+    //   }
+    //   return true;
+    // }
     const msg = `unknown result type, can not compare, the prompt is: ${testCase.prompt}`;
     return new Error(msg);
   }
