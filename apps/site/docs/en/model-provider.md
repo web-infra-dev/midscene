@@ -43,6 +43,7 @@ There are some debug configs:
 |------|-------------|
 | `DEBUG=midscene:ai:profile` | Optional. Set this to print the AI usage and response time |
 | `DEBUG=midscene:ai:call` | Optional. Set this to print the AI response details |
+| `DEBUG=midscene:android` | Optional. Set this to print the adb command calling details |
 
 ## Two ways to config environment variables
 

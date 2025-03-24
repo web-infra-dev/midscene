@@ -10,7 +10,7 @@ import type { KeyInput as PuppeteerKeyInput } from 'puppeteer';
 import type { AbstractPage, MouseButton } from '../page';
 type WebKeyInput = PuppeteerKeyInput;
 
-const debugPage = getDebug('android:page');
+const debugPage = getDebug('android');
 
 export class Page implements AbstractPage {
   private deviceId: string;
