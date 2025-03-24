@@ -1,7 +1,15 @@
 {
   "name": "@midscene/android",
   "version": "1.0.0",
-  "main": "index.js",
+  "main": "./dist/lib/index.js",
+  "types": "./dist/types/index.d.ts",
+  "files": ["dist"],
+  "exports": {
+    ".": {
+      "types": "./dist/types/index.d.ts",
+      "default": "./dist/lib/index.js"
+    }
+  },
   "scripts": {
     "build": "modern build -c ./modern.config.ts"
   },
