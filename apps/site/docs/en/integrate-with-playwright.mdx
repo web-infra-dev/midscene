@@ -2,30 +2,30 @@
 
 import { PackageManagerTabs } from '@theme';
 
-[Playwright.js](https://playwright.com/) is an open-source automation library developed by Microsoft, primarily designed for end-to-end testing and web scraping of web applications.
+[Playwright.js](https://playwright.com/) is an open-source automation library developed by Microsoft, primarily used for end-to-end testing and web scraping of web applications.
 
-We assume you already have a project with Playwright.
+Here we assume you already have a repository with Playwright integration.
 
-:::info Demo Project
-you can check the demo project of Playwright here: [https://github.com/web-infra-dev/midscene-example/blob/main/playwright-demo](https://github.com/web-infra-dev/midscene-example/blob/main/playwright-demo)
+:::info Example Project
+You can find an example project of Playwright integration here: [https://github.com/web-infra-dev/midscene-example/blob/main/playwright-demo](https://github.com/web-infra-dev/midscene-example/blob/main/playwright-demo)
 :::
 
-## Preparation
+## Prerequisites
 
-Config the OpenAI API key, or [config model and provider](./model-provider)
+Configure OpenAI API Key, or [Custom Model and Provider](./model-provider)
 
 ```bash
-# replace with your own
+# Update with your own Key
 export OPENAI_API_KEY="sk-abcdefghijklmnopqrstuvwxyz"
 ```
 
-## Step 1. install dependency, update configuration
+## Step 1: Add Dependencies and Update Configuration
 
-add the dependency
+Add dependencies
 
 <PackageManagerTabs command="install @midscene/web --save-dev" />
 
-update playwright.config.ts
+Update playwright.config.ts
 
 ```diff
 export default defineConfig({
@@ -35,9 +35,9 @@ export default defineConfig({
 });
 ```
 
-## Step 2. extend the `test` instance
+## Step 2: Extend the `test` Instance
 
-Save the following code as `./e2e/fixture.ts`;
+Save the following code as `./e2e/fixture.ts`:
 
 ```typescript
 import { test as base } from '@playwright/test';
@@ -47,49 +47,236 @@ import { PlaywrightAiFixture } from '@midscene/web/playwright';
 export const test = base.extend<PlayWrightAiFixtureType>(PlaywrightAiFixture());
 ```
 
-## Step 3. write the test case
+## Step 3: Write Test Cases
 
-Save the following code as `./e2e/ebay-search.spec.ts`
+### Basic AI Operation APIs
+
+#### `ai` - General AI Command
+```typescript
+ai<T = any>(
+  prompt: string,
+  opts?: { 
+    type?: 'action' | 'query';  // Specify operation type
+    trackNewTab?: boolean;      // Whether to track new tabs
+  }
+): Promise<T>
+```
+Used to execute general AI commands, handling various interaction scenarios.
+
+#### `aiAction` - Execute AI Action
+```typescript
+aiAction(taskPrompt: string): Promise<void>
+```
+Execute specific AI actions, such as clicking, inputting, etc.
+
+#### `aiTap` - Click Operation
+```typescript
+aiTap(
+  target: string | { 
+    prompt: string;            // Target element description
+    searchArea?: string;       // Search area
+    deepThink?: boolean;       // Whether to think deeply
+  },
+  options?: {                  // Optional configuration
+    timeout?: number;          // Timeout duration
+    retry?: number;           // Retry attempts
+    force?: boolean;          // Whether to force click
+  }
+): Promise<void>
+```
+Execute click operation, AI will intelligently identify target elements.
+
+#### `aiHover` - Hover Operation
+```typescript
+aiHover(
+  target: string | { 
+    prompt: string;            // Target element description
+    searchArea?: string;       // Search area
+    deepThink?: boolean;       // Whether to think deeply
+  },
+  options?: {                  // Optional configuration
+    timeout?: number;          // Timeout duration
+    retry?: number;           // Retry attempts
+  }
+): Promise<void>
+```
+Execute mouse hover operation.
+
+#### `aiInput` - Input Operation
+```typescript
+aiInput(
+  text: string,                // Text to input
+  target: string | { 
+    prompt: string;            // Target element description
+    searchArea?: string;       // Search area
+    deepThink?: boolean;       // Whether to think deeply
+  },
+  options?: {                  // Optional configuration
+    timeout?: number;          // Timeout duration
+    retry?: number;           // Retry attempts
+    clear?: boolean;          // Whether to clear input first
+  }
+): Promise<void>
+```
+Execute text input operation.
+
+#### `aiKeyboardPress` - Keyboard Operation
+```typescript
+aiKeyboardPress(
+  key: string,                 // Key name
+  target?: string | { 
+    prompt: string;            // Target element description
+    searchArea?: string;       // Search area
+    deepThink?: boolean;       // Whether to think deeply
+  },
+  options?: {                  // Optional configuration
+    timeout?: number;          // Timeout duration
+    retry?: number;           // Retry attempts
+  }
+): Promise<void>
+```
+Execute keyboard key press operation.
+
+#### `aiScroll` - Scroll Operation
+```typescript
+aiScroll(
+  scroll: {
+    direction: 'down' | 'up' | 'right' | 'left';  // Scroll direction
+    scrollType: 'once' | 'untilBottom' | 'untilTop' | 'untilRight' | 'untilLeft';  // Scroll type
+    distance?: number;        // Scroll distance
+  },
+  target?: string | { 
+    prompt: string;            // Target element description
+    searchArea?: string;       // Search area
+    deepThink?: boolean;       // Whether to think deeply
+  },
+  options?: {                  // Optional configuration
+    timeout?: number;          // Timeout duration
+    retry?: number;           // Retry attempts
+  }
+): Promise<void>
+```
+Execute page scroll operation.
+
+### Advanced APIs
+
+#### `generateMidsceneAgent` - Generate AI Agent
+```typescript
+generateMidsceneAgent(
+  page?: Page,                 // Optional page instance
+  opts?: {                     // Agent configuration options
+    selector?: string;         // Selector
+    ignoreMarker?: boolean;    // Whether to ignore markers
+    forceSameTabNavigation?: boolean;  // Whether to force navigation in the same tab
+    bridgeMode?: false | 'newTabWithUrl' | 'currentTab';  // Bridge mode
+    closeNewTabsAfterDisconnect?: boolean;  // Whether to close new tabs after disconnection
+  }
+): Promise<PageAgent>
+```
+Generate an independent AI Agent instance for more complex interaction scenarios.
+
+### Query and Assertion APIs
+
+#### `aiQuery` - AI Query
+```typescript
+aiQuery<T = any>(
+  query: string | Record<string, string>,  // Query description or structured query
+  options?: {                  // Optional configuration
+    timeout?: number;          // Timeout duration
+    retry?: number;           // Retry attempts
+  }
+): Promise<T>
+```
+Use AI to execute query operations, returning structured data.
+
+#### `aiAssert` - AI Assertion
+```typescript
+aiAssert(
+  assertion: string,           // Assertion description
+  options?: {                  // Optional configuration
+    timeout?: number;          // Timeout duration
+    retry?: number;           // Retry attempts
+    keepRawResponse?: boolean; // Whether to keep raw response
+  }
+): Promise<void>
+```
+Use AI to execute assertion checks.
+
+#### `aiWaitFor` - AI Wait
+```typescript
+aiWaitFor(
+  assertion: string,           // Wait condition description
+  options?: {                  // Wait options
+    checkIntervalMs?: number;  // Check interval
+    timeoutMs?: number;       // Timeout duration
+  }
+): Promise<void>
+```
+Wait for specific conditions to be met.
+
+### Example Code
 
 ```typescript title="./e2e/ebay-search.spec.ts"
 import { expect } from "@playwright/test";
 import { test } from "./fixture";
 
 test.beforeEach(async ({ page }) => {
-  page.setViewportSize({ width: 1280, height: 800 });
+  page.setViewportSize({ width: 400, height: 905 });
   await page.goto("https://www.ebay.com");
   await page.waitForLoadState("networkidle");
 });
 
-test("search headphone on ebay", async ({ ai, aiQuery, aiAssert }) => {
-  // 👀 type keywords, perform a search
-  await ai('type "Headphones" in search box, hit Enter');
-
-  // 👀 find the items
-  const items = await aiQuery(
-    "{itemTitle: string, price: Number}[], find item in list and corresponding price"
+test("search headphone on ebay", async ({ 
+  ai, 
+  aiQuery, 
+  aiAssert,
+  aiInput,
+  aiTap,
+  aiScroll 
+}) => {
+  // Use aiInput to enter search keyword
+  await aiInput('Headphones', 'search box', { clear: true });
+  
+  // Use aiTap to click search button
+  await aiTap('search button');
+  
+  // Wait for search results to load
+  await aiWaitFor('search results list loaded', { timeoutMs: 5000 });
+  
+  // Use aiScroll to scroll to bottom
+  await aiScroll(
+    { 
+      direction: 'down',
+      scrollType: 'untilBottom'
+    },
+    'search results list'
   );
-
+  
+  // Use aiQuery to get product information
+  const items = await aiQuery<Array<{title: string, price: number}>>(
+    'get product titles and prices from search results'
+  );
+  
   console.log("headphones in stock", items);
   expect(items?.length).toBeGreaterThan(0);
-
-  // 👀 assert by AI
-  await aiAssert("There is a category filter on the left");
+  
+  // Use aiAssert to verify filter functionality
+  await aiAssert("category filter exists on the left side");
 });
 ```
 
-For the agent's more APIs, please refer to [API](./API).
+For more Agent API details, please refer to [API Reference](./API).
 
-## Step 4. run the test case
+## Step 4. Run Test Cases
 
 ```bash
 npx playwright test ./e2e/ebay-search.spec.ts
 ```
 
-## Step 5. view test report
+## Step 5. View Test Report
 
-After the above command executes successfully, the console will output: `Midscene - report file updated: ./current_cwd/midscene_run/report/some_id.html`. You can open this file in a browser to view the report.
+After the command executes successfully, it will output: `Midscene - report file updated: ./current_cwd/midscene_run/report/some_id.html`. Open this file in your browser to view the report.
 
 ## More
 
-You may also be interested in [Prompting Tips](./prompting-tips)
+You might also want to learn about [Prompting Tips](./prompting-tips)
