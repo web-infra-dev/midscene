@@ -16,33 +16,28 @@ export class Page implements AbstractPage {
   private screenSize: Size | null = null;
   private yadbPushed = false;
   private deviceRatio = 1;
-  private adbPromise: Promise<ADB>;
+  private adbInitPromise: Promise<ADB>;
   pageType = 'android';
 
   constructor({ deviceId }: { deviceId: string }) {
     this.deviceId = deviceId;
 
     // init ADB Promise
-    this.adbPromise = this.initAdb();
+    this.adbInitPromise = this.initAdb();
   }
 
   private async initAdb(): Promise<ADB> {
-    try {
-      debugPage(`Initializing ADB with device ID: ${this.deviceId}`);
-      const adb = await ADB.createADB({
-        udid: this.deviceId,
-        adbExecTimeout: 60000,
-      });
-      debugPage('ADB initialized successfully');
-      return adb;
-    } catch (error) {
-      console.error(`Failed to initialize ADB: ${error}`);
-      throw error;
-    }
+    debugPage(`Initializing ADB with device ID: ${this.deviceId}`);
+    const adb = await ADB.createADB({
+      udid: this.deviceId,
+      adbExecTimeout: 60000,
+    });
+    debugPage('ADB initialized successfully');
+    return adb;
   }
 
   public async getAdb(): Promise<ADB> {
-    return this.adbPromise;
+    return this.adbInitPromise;
   }
 
   private async execYadb(keyboardContent: string): Promise<void> {
