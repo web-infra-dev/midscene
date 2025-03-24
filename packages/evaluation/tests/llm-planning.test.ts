@@ -6,8 +6,9 @@ import {
   getAIConfig,
   plan,
 } from '@midscene/core';
+import { adaptBboxToRect } from '@midscene/core/ai-model';
 import { vlLocateMode } from '@midscene/core/env';
-import { bboxToRect, sleep } from '@midscene/core/utils';
+import { sleep } from '@midscene/core/utils';
 import { saveBase64Image } from '@midscene/shared/img';
 import dotenv from 'dotenv';
 import { describe, expect, test } from 'vitest';
@@ -37,8 +38,10 @@ describe.skipIf(vlMode)('ai planning - by element', () => {
           'planning',
         );
 
+        const caseGroupName = aiDataPath.split('/').pop() || '';
+
         const resultCollector = new TestResultCollector(
-          `${source}-planning`,
+          `${caseGroupName}-planning`,
           getAIConfig(MIDSCENE_MODEL_NAME) || 'unspecified',
         );
 
@@ -58,7 +61,7 @@ describe.skipIf(vlMode)('ai planning - by element', () => {
           }
 
           resultCollector.addResult(
-            aiDataPath.split('/').pop() || '',
+            caseGroupName,
             testCase,
             res,
             Date.now() - startTime,
@@ -66,7 +69,7 @@ describe.skipIf(vlMode)('ai planning - by element', () => {
         }
 
         await resultCollector.printSummary();
-        await resultCollector.analyze(source, failCaseThreshold);
+        await resultCollector.analyze(caseGroupName, failCaseThreshold);
         await sleep(3 * 1000);
       },
       240 * 1000,
@@ -80,7 +83,6 @@ const vlCases = [
   'antd-form-vl',
   'antd-tooltip-vl',
 ];
-// const vlCases = ['aweme-login-vl'];
 
 describe.skipIf(!vlMode)('ai planning - by coordinates', () => {
   vlCases.forEach((source) => {
@@ -92,8 +94,10 @@ describe.skipIf(!vlMode)('ai planning - by coordinates', () => {
           'planning',
         );
 
+        const caseGroupName = aiDataPath.split('/').pop() || '';
+
         const resultCollector = new TestResultCollector(
-          `${source}-planning`,
+          `${caseGroupName}-planning`,
           getAIConfig(MIDSCENE_MODEL_NAME) || 'unspecified',
         );
 
@@ -127,7 +131,11 @@ describe.skipIf(!vlMode)('ai planning - by coordinates', () => {
               testCase.response_planning = res;
               if (res.action?.locate?.bbox) {
                 const indexId = index + 1;
-                testCase.response_rect = bboxToRect(res.action.locate.bbox);
+                testCase.response_rect = adaptBboxToRect(
+                  res.action.locate.bbox,
+                  context.size.width,
+                  context.size.height,
+                );
                 testCase.annotation_index_id = indexId;
                 annotations.push({
                   indexId,
@@ -150,7 +158,7 @@ describe.skipIf(!vlMode)('ai planning - by coordinates', () => {
           }
 
           resultCollector.addResult(
-            aiDataPath.split('/').pop() || '',
+            caseGroupName,
             testCase,
             res,
             Date.now() - startTime,
@@ -158,7 +166,7 @@ describe.skipIf(!vlMode)('ai planning - by coordinates', () => {
         }
 
         await resultCollector.printSummary();
-        await resultCollector.analyze(source, failCaseThreshold);
+        await resultCollector.analyze(caseGroupName, failCaseThreshold);
         await sleep(3 * 1000);
       },
       240 * 1000,

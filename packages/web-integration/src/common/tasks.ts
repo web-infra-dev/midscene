@@ -769,7 +769,7 @@ export class PageTaskExecutor {
       this.planningTaskFromPrompt(userPrompt, cacheGroup);
     let result: any;
     let replanCount = 0;
-    const logLog: string[] = [];
+    const logList: string[] = [];
     while (planningTask) {
       if (replanCount > replanningCountLimit) {
         const errorMsg =
@@ -811,7 +811,7 @@ export class PageTaskExecutor {
         };
       }
       if (planResult?.log) {
-        logLog.push(planResult.log);
+        logList.push(planResult.log);
       }
 
       // console.log('planningResult is', planResult);
@@ -822,7 +822,7 @@ export class PageTaskExecutor {
       planningTask = this.planningTaskFromPrompt(
         userPrompt,
         cacheGroup,
-        logLog.join('\n'),
+        logList.length > 0 ? `- ${logList.join('\n- ')}` : undefined,
       );
       replanCount++;
     }

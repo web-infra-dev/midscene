@@ -5,7 +5,7 @@
       "prompt": "type 'hello' in the input box, sleep 5s, hit enter",
       "response_planning": {
         "what_the_user_wants_to_do_next_by_instruction": "type 'hello' in the input box",
-        "log": "I will use action Input to type 'hello' in the input box.",
+        "log": "I will use action Input to type 'hello' in the input box first.",
         "more_actions_needed_by_instruction": true,
         "action": {
           "type": "Input",
@@ -30,59 +30,47 @@
             }
           }
         ],
-        "rawResponse": "{\n  \"what_the_user_wants_to_do_next_by_instruction\": \"type 'hello' in the input box\",\n  \"log\": \"I will use action Input to type 'hello' in the input box.\",\n  \"more_actions_needed_by_instruction\": true,\n  \"action\": {\n    \"type\": \"Input\",\n    \"locate\": {\n      \"bbox_2d\": [\n        513,\n        128,\n        1067,\n        194\n      ],\n      \"prompt\": \"input box for adding a new todo\"\n    },\n    \"param\": {\n      \"value\": \"hello\"\n    }\n  },\n  \"sleep\": 5000\n}",
+        "rawResponse": "{\n  \"what_the_user_wants_to_do_next_by_instruction\": \"type 'hello' in the input box\",\n  \"log\": \"I will use action Input to type 'hello' in the input box first.\",\n  \"more_actions_needed_by_instruction\": true,\n  \"action\": {\n    \"type\": \"Input\",\n    \"locate\": {\n      \"bbox_2d\": [\n        513,\n        128,\n        1067,\n        194\n      ],\n      \"prompt\": \"input box for adding a new todo\"\n    },\n    \"param\": {\n      \"value\": \"hello\"\n    }\n  },\n  \"sleep\": 5000\n}",
         "usage": {
-          "prompt_tokens": 1928,
-          "completion_tokens": 146,
-          "total_tokens": 2074,
+          "prompt_tokens": 1961,
+          "completion_tokens": 147,
+          "total_tokens": 2108,
           "completion_tokens_details": {
-            "text_tokens": 146
+            "text_tokens": 147
           },
           "prompt_tokens_details": {
-            "text_tokens": 730,
+            "text_tokens": 763,
             "image_tokens": 1198
           }
         }
       },
       "response_bbox": [513, 128, 1067, 194],
-      "annotation_index_id": 1
+      "annotation_index_id": 1,
+      "response_rect": {
+        "left": 513,
+        "top": 128,
+        "width": 554,
+        "height": 66
+      }
     },
     {
       "prompt": "if there are five entries in the list, click the delete button of the second entry and wait 3s. Otherwise, do nothing.",
       "response_planning": {
-        "what_the_user_wants_to_do_next_by_instruction": "Check if there are five entries in the list and decide whether to click the delete button of the second entry.",
-        "log": "I will use action Scroll to check if there are more entries in the list. If there are five entries, I will click the delete button of the second entry and wait 3s. Otherwise, I will do nothing.",
-        "error": null,
-        "more_actions_needed_by_instruction": true,
-        "action": {
-          "type": "Scroll",
-          "locate": null,
-          "param": {
-            "direction": "down",
-            "scrollType": "once"
-          }
-        },
-        "sleep": null,
-        "actions": [
-          {
-            "type": "Scroll",
-            "locate": null,
-            "param": {
-              "direction": "down",
-              "scrollType": "once"
-            }
-          }
-        ],
-        "rawResponse": "{\n  \"what_the_user_wants_to_do_next_by_instruction\": \"Check if there are five entries in the list and decide whether to click the delete button of the second entry.\",\n  \"log\": \"I will use action Scroll to check if there are more entries in the list. If there are five entries, I will click the delete button of the second entry and wait 3s. Otherwise, I will do nothing.\",\n  \"error\": null,\n  \"more_actions_needed_by_instruction\": true,\n  \"action\": {\n    \"type\": \"Scroll\",\n    \"locate\": null,\n    \"param\": {\n      \"direction\": \"down\",\n      \"scrollType\": \"once\"\n    }\n  },\n  \"sleep\": null\n}",
+        "what_the_user_wants_to_do_next_by_instruction": "Check if there are five entries in the list and click the delete button of the second entry if so.",
+        "log": "There are only three entries in the list, so no action is needed according to the instruction.",
+        "more_actions_needed_by_instruction": false,
+        "action": null,
+        "actions": [],
+        "rawResponse": "{\n  \"what_the_user_wants_to_do_next_by_instruction\": \"Check if there are five entries in the list and click the delete button of the second entry if so.\",\n  \"log\": \"There are only three entries in the list, so no action is needed according to the instruction.\",\n  \"more_actions_needed_by_instruction\": false,\n  \"action\": null\n}",
         "usage": {
-          "prompt_tokens": 1939,
-          "completion_tokens": 153,
-          "total_tokens": 2092,
+          "prompt_tokens": 1972,
+          "completion_tokens": 82,
+          "total_tokens": 2054,
           "completion_tokens_details": {
-            "text_tokens": 153
+            "text_tokens": 82
           },
           "prompt_tokens_details": {
-            "text_tokens": 741,
+            "text_tokens": 774,
             "image_tokens": 1198
           }
         }
@@ -92,12 +80,12 @@
       "prompt": "type 'hello' in the input box, sleep 5s, hit enter",
       "response_planning": {
         "what_the_user_wants_to_do_next_by_instruction": "type 'hello' in the input box",
-        "log": "I will use action Input to type 'hello' in the input box.",
+        "log": "I will use action Input to type 'hello' in the input box first.",
         "more_actions_needed_by_instruction": true,
         "action": {
           "type": "Input",
           "locate": {
-            "prompt": "input box for adding a new todo",
+            "prompt": "input box for adding new todo",
             "bbox": [513, 128, 1067, 194]
           },
           "param": {
@@ -109,7 +97,7 @@
           {
             "type": "Input",
             "locate": {
-              "prompt": "input box for adding a new todo",
+              "prompt": "input box for adding new todo",
               "bbox": [513, 128, 1067, 194]
             },
             "param": {
@@ -117,22 +105,28 @@
             }
           }
         ],
-        "rawResponse": "{\n  \"what_the_user_wants_to_do_next_by_instruction\": \"type 'hello' in the input box\",\n  \"log\": \"I will use action Input to type 'hello' in the input box.\",\n  \"more_actions_needed_by_instruction\": true,\n  \"action\": {\n    \"type\": \"Input\",\n    \"locate\": {\n      \"bbox_2d\": [\n        513,\n        128,\n        1067,\n        194\n      ],\n      \"prompt\": \"input box for adding a new todo\"\n    },\n    \"param\": {\n      \"value\": \"hello\"\n    }\n  },\n  \"sleep\": 5000\n}",
+        "rawResponse": "{\n  \"what_the_user_wants_to_do_next_by_instruction\": \"type 'hello' in the input box\",\n  \"log\": \"I will use action Input to type 'hello' in the input box first.\",\n  \"more_actions_needed_by_instruction\": true,\n  \"action\": {\n    \"type\": \"Input\",\n    \"locate\": {\n      \"bbox_2d\": [\n        513,\n        128,\n        1067,\n        194\n      ],\n      \"prompt\": \"input box for adding new todo\"\n    },\n    \"param\": {\n      \"value\": \"hello\"\n    }\n  },\n  \"sleep\": 5000\n}",
         "usage": {
-          "prompt_tokens": 1928,
+          "prompt_tokens": 1961,
           "completion_tokens": 146,
-          "total_tokens": 2074,
+          "total_tokens": 2107,
           "completion_tokens_details": {
             "text_tokens": 146
           },
           "prompt_tokens_details": {
-            "text_tokens": 730,
+            "text_tokens": 763,
             "image_tokens": 1198
           }
         }
       },
       "response_bbox": [513, 128, 1067, 194],
-      "annotation_index_id": 3
+      "annotation_index_id": 3,
+      "response_rect": {
+        "left": 513,
+        "top": 128,
+        "width": 554,
+        "height": 66
+      }
     },
     {
       "prompt": "type 'hello' in the input box, sleep 5s, hit enter",
@@ -158,14 +152,14 @@
         ],
         "rawResponse": "{\n  \"what_the_user_wants_to_do_next_by_instruction\": \"hit enter\",\n  \"log\": \"I will use action KeyboardPress to hit the Enter key.\",\n  \"more_actions_needed_by_instruction\": false,\n  \"action\": {\n    \"type\": \"KeyboardPress\",\n    \"param\": {\n      \"value\": \"Enter\"\n    }\n  },\n  \"sleep\": null\n}",
         "usage": {
-          "prompt_tokens": 1974,
+          "prompt_tokens": 2007,
           "completion_tokens": 86,
-          "total_tokens": 2060,
+          "total_tokens": 2093,
           "completion_tokens_details": {
             "text_tokens": 86
           },
           "prompt_tokens_details": {
-            "text_tokens": 776,
+            "text_tokens": 809,
             "image_tokens": 1198
           }
         }
@@ -175,7 +169,7 @@
       "prompt": "type 'hello' in the input box",
       "response_planning": {
         "what_the_user_wants_to_do_next_by_instruction": "type 'hello' in the input box",
-        "log": "I will use action Input to type 'hello' in the input box.",
+        "log": "I will use action Input to type 'hello' in the input box first.",
         "more_actions_needed_by_instruction": false,
         "action": {
           "type": "Input",
@@ -199,22 +193,28 @@
             }
           }
         ],
-        "rawResponse": "{\n  \"what_the_user_wants_to_do_next_by_instruction\": \"type 'hello' in the input box\",\n  \"log\": \"I will use action Input to type 'hello' in the input box.\",\n  \"more_actions_needed_by_instruction\": false,\n  \"action\": {\n    \"type\": \"Input\",\n    \"locate\": {\n      \"bbox_2d\": [\n        513,\n        128,\n        1067,\n        194\n      ],\n      \"prompt\": \"input box for adding a new todo\"\n    },\n    \"param\": {\n      \"value\": \"hello\"\n    }\n  }\n}",
+        "rawResponse": "{\n  \"what_the_user_wants_to_do_next_by_instruction\": \"type 'hello' in the input box\",\n  \"log\": \"I will use action Input to type 'hello' in the input box first.\",\n  \"more_actions_needed_by_instruction\": false,\n  \"action\": {\n    \"type\": \"Input\",\n    \"locate\": {\n      \"bbox_2d\": [\n        513,\n        128,\n        1067,\n        194\n      ],\n      \"prompt\": \"input box for adding a new todo\"\n    },\n    \"param\": {\n      \"value\": \"hello\"\n    }\n  }\n}",
         "usage": {
-          "prompt_tokens": 1920,
-          "completion_tokens": 136,
-          "total_tokens": 2056,
+          "prompt_tokens": 1953,
+          "completion_tokens": 137,
+          "total_tokens": 2090,
           "completion_tokens_details": {
-            "text_tokens": 136
+            "text_tokens": 137
           },
           "prompt_tokens_details": {
-            "text_tokens": 722,
+            "text_tokens": 755,
             "image_tokens": 1198
           }
         }
       },
       "response_bbox": [513, 128, 1067, 194],
-      "annotation_index_id": 5
+      "annotation_index_id": 5,
+      "response_rect": {
+        "left": 513,
+        "top": 128,
+        "width": 554,
+        "height": 66
+      }
     },
     {
       "prompt": "click OK",
@@ -233,14 +233,14 @@
         "actions": [],
         "rawResponse": "{\n  \"what_the_user_wants_to_do_next_by_instruction\": \"check if there is an 'OK' button and click it\",\n  \"log\": \"There is no 'OK' button visible in the screenshot. No action needed.\",\n  \"error\": null,\n  \"more_actions_needed_by_instruction\": false,\n  \"action\": null\n}",
         "usage": {
-          "prompt_tokens": 1923,
+          "prompt_tokens": 1956,
           "completion_tokens": 73,
-          "total_tokens": 1996,
+          "total_tokens": 2029,
           "completion_tokens_details": {
             "text_tokens": 73
           },
           "prompt_tokens_details": {
-            "text_tokens": 725,
+            "text_tokens": 758,
             "image_tokens": 1198
           }
         }
@@ -250,22 +250,22 @@
       "prompt": "if there is an 'OK' button, click it. If not, try again in next step",
       "response_planning": {
         "what_the_user_wants_to_do_next_by_instruction": "check if there is an 'OK' button and click it if found",
-        "log": "I will use action null to do nothing because there is no 'OK' button visible in the screenshot.",
+        "log": "I will check the screenshot for an 'OK' button. If not found, I will wait for the next step.",
         "error": null,
         "more_actions_needed_by_instruction": true,
         "action": null,
         "sleep": 1000,
         "actions": [],
-        "rawResponse": "{\n  \"what_the_user_wants_to_do_next_by_instruction\": \"check if there is an 'OK' button and click it if found\",\n  \"log\": \"I will use action null to do nothing because there is no 'OK' button visible in the screenshot.\",\n  \"error\": null,\n  \"more_actions_needed_by_instruction\": true,\n  \"action\": null,\n  \"sleep\": 1000\n}",
+        "rawResponse": "{\n  \"what_the_user_wants_to_do_next_by_instruction\": \"check if there is an 'OK' button and click it if found\",\n  \"log\": \"I will check the screenshot for an 'OK' button. If not found, I will wait for the next step.\",\n  \"error\": null,\n  \"more_actions_needed_by_instruction\": true,\n  \"action\": null,\n  \"sleep\": 1000\n}",
         "usage": {
-          "prompt_tokens": 1932,
-          "completion_tokens": 94,
-          "total_tokens": 2026,
+          "prompt_tokens": 1965,
+          "completion_tokens": 97,
+          "total_tokens": 2062,
           "completion_tokens_details": {
-            "text_tokens": 94
+            "text_tokens": 97
           },
           "prompt_tokens_details": {
-            "text_tokens": 734,
+            "text_tokens": 767,
             "image_tokens": 1198
           }
         }
@@ -275,52 +275,60 @@
       "prompt": "Move the mouse to the second item in the task list and click the delete button on the right of the second task",
       "response_planning": {
         "what_the_user_wants_to_do_next_by_instruction": "Move the mouse to the second item in the task list and click the delete button on the right of the second task",
-        "log": "I will use action Hover to move the mouse to the second item in the task list.",
+        "log": "I will use action Hover to move the mouse to the second item in the task list first.",
+        "error": null,
         "more_actions_needed_by_instruction": true,
         "action": {
           "type": "Hover",
           "locate": {
             "prompt": "second item in the task list",
-            "bbox": [574, 276, 693, 298]
+            "bbox": [574, 269, 693, 298]
           }
         },
+        "sleep": 200,
         "actions": [
           {
             "type": "Hover",
             "locate": {
               "prompt": "second item in the task list",
-              "bbox": [574, 276, 693, 298]
+              "bbox": [574, 269, 693, 298]
             }
           }
         ],
-        "rawResponse": "{\n  \"what_the_user_wants_to_do_next_by_instruction\": \"Move the mouse to the second item in the task list and click the delete button on the right of the second task\",\n  \"log\": \"I will use action Hover to move the mouse to the second item in the task list.\",\n  \"more_actions_needed_by_instruction\": true,\n  \"action\": {\n    \"type\": \"Hover\",\n    \"locate\": {\n      \"bbox_2d\": [\n        574,\n        276,\n        693,\n        298\n      ],\n      \"prompt\": \"second item in the task list\"\n    }\n  }\n}",
+        "rawResponse": "{\n  \"what_the_user_wants_to_do_next_by_instruction\": \"Move the mouse to the second item in the task list and click the delete button on the right of the second task\",\n  \"log\": \"I will use action Hover to move the mouse to the second item in the task list first.\",\n  \"error\": null,\n  \"more_actions_needed_by_instruction\": true,\n  \"action\": {\n    \"type\": \"Hover\",\n    \"locate\": {\n      \"bbox_2d\": [\n        574,\n        269,\n        693,\n        298\n      ],\n      \"prompt\": \"second item in the task list\"\n    }\n  },\n  \"sleep\": 200\n}",
         "usage": {
-          "prompt_tokens": 1935,
-          "completion_tokens": 138,
-          "total_tokens": 2073,
+          "prompt_tokens": 1968,
+          "completion_tokens": 154,
+          "total_tokens": 2122,
           "completion_tokens_details": {
-            "text_tokens": 138
+            "text_tokens": 154
           },
           "prompt_tokens_details": {
-            "text_tokens": 737,
+            "text_tokens": 770,
             "image_tokens": 1198
           }
         }
       },
       "response_bbox": [574, 276, 693, 298],
-      "annotation_index_id": 9
+      "annotation_index_id": 9,
+      "response_rect": {
+        "left": 574,
+        "top": 269,
+        "width": 119,
+        "height": 29
+      }
     },
     {
       "prompt": "在任务框 input 输入 今天学习 JS，按回车键",
       "response_planning": {
         "what_the_user_wants_to_do_next_by_instruction": "在任务框 input 输入 今天学习 JS，按回车键",
-        "log": "我将使用 Input 动作来填写任务框。",
+        "log": "我将使用 Input 动作来填写任务框中的内容。",
         "more_actions_needed_by_instruction": true,
         "action": {
           "type": "Input",
           "locate": {
             "prompt": "任务输入框",
-            "bbox": [513, 128, 1067, 194]
+            "bbox": [513, 127, 1068, 197]
           },
           "param": {
             "value": "今天学习 JS"
@@ -331,29 +339,35 @@
             "type": "Input",
             "locate": {
               "prompt": "任务输入框",
-              "bbox": [513, 128, 1067, 194]
+              "bbox": [513, 127, 1068, 197]
             },
             "param": {
               "value": "今天学习 JS"
             }
           }
         ],
-        "rawResponse": "{\n  \"what_the_user_wants_to_do_next_by_instruction\": \"在任务框 input 输入 今天学习 JS，按回车键\",\n  \"log\": \"我将使用 Input 动作来填写任务框。\",\n  \"more_actions_needed_by_instruction\": true,\n  \"action\": {\n    \"type\": \"Input\",\n    \"locate\": {\n      \"bbox_2d\": [\n        513,\n        128,\n        1067,\n        194\n      ],\n      \"prompt\": \"任务输入框\"\n    },\n    \"param\": {\n      \"value\": \"今天学习 JS\"\n    }\n  }\n}",
+        "rawResponse": "{\n  \"what_the_user_wants_to_do_next_by_instruction\": \"在任务框 input 输入 今天学习 JS，按回车键\",\n  \"log\": \"我将使用 Input 动作来填写任务框中的内容。\",\n  \"more_actions_needed_by_instruction\": true,\n  \"action\": {\n    \"type\": \"Input\",\n    \"locate\": {\n      \"bbox_2d\": [\n        513,\n        127,\n        1068,\n        197\n      ],\n      \"prompt\": \"任务输入框\"\n    },\n    \"param\": {\n      \"value\": \"今天学习 JS\"\n    }\n  }\n}",
         "usage": {
-          "prompt_tokens": 1926,
-          "completion_tokens": 137,
-          "total_tokens": 2063,
+          "prompt_tokens": 1959,
+          "completion_tokens": 139,
+          "total_tokens": 2098,
           "completion_tokens_details": {
-            "text_tokens": 137
+            "text_tokens": 139
           },
           "prompt_tokens_details": {
-            "text_tokens": 728,
+            "text_tokens": 761,
             "image_tokens": 1198
           }
         }
       },
       "response_bbox": [513, 128, 1067, 194],
-      "annotation_index_id": 10
+      "annotation_index_id": 10,
+      "response_rect": {
+        "left": 513,
+        "top": 127,
+        "width": 555,
+        "height": 70
+      }
     }
   ]
 }
