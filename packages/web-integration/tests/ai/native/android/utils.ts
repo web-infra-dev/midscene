@@ -6,7 +6,8 @@ const execPromise = promisify(exec);
 
 interface LaunchOptions {
   deviceId?: string;
-  url?: string;
+  url?: string; // browser url
+  page?: string; // native page
 }
 
 /**
@@ -84,5 +85,9 @@ export async function launchPage(opt: LaunchOptions): Promise<AndroidPage> {
     );
   }
 
-  return new AndroidPage(deviceId, opt.url);
+  return new AndroidPage({
+    deviceId,
+    url: opt.url,
+    page: opt.page,
+  });
 }

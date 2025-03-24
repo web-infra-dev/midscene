@@ -23,7 +23,15 @@ export class Page implements AbstractPage {
   private deviceRatio = 1;
   pageType = 'android';
 
-  constructor(deviceId: string, url?: string) {
+  constructor({
+    deviceId,
+    url,
+    page,
+  }: {
+    deviceId: string;
+    url?: string;
+    page?: string;
+  }) {
     this.deviceId = deviceId;
     this.tmpDir = path.join(process.cwd(), 'tmp');
 
@@ -34,6 +42,10 @@ export class Page implements AbstractPage {
 
     if (url) {
       this.execAdb(`shell am start -a android.intent.action.VIEW -d "${url}"`);
+    }
+
+    if (page) {
+      this.execAdb(`shell am start -a "${page}"`);
     }
   }
 

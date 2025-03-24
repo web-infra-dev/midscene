@@ -114,56 +114,6 @@ export default class Insight<
       searchArea = searchAreaResponse.rect;
     }
 
-    const searchAreaPadding = 20;
-    if (searchAreaPrompt) {
-      assert(
-        vlLocateMode(),
-        'locate with search area is not supported with general purposed LLM. Please use Midscene VL model. https://midscenejs.com/choose-a-model',
-      );
-      const {
-        rect,
-        rawResponse,
-        usage,
-        error: searchAreaError,
-      } = await AiLocateSection({
-        context,
-        sectionDescription: searchAreaPrompt,
-      });
-      searchArea = rect;
-      debug('original searchArea', searchArea);
-      assert(searchArea, `cannot find search area for "${searchAreaPrompt}"`);
-      assert(
-        !searchAreaError,
-        `failed to locate search area: ${searchAreaError}`,
-      );
-      searchAreaRawResponse = rawResponse;
-      searchAreaUsage = usage;
-
-      // expand to at lease 200 x 200
-      const minEdgeSize = 200;
-      let paddingSize =
-        searchArea.width < minEdgeSize
-          ? Math.ceil((minEdgeSize - searchArea.width) / 2)
-          : searchAreaDefaultPadding;
-      searchArea.left = Math.max(0, searchArea.left - paddingSize);
-      searchArea.width = Math.min(
-        searchArea.width + paddingSize * 2,
-        context.size.width - searchArea.left,
-      );
-
-      paddingSize =
-        searchArea.height < minEdgeSize
-          ? Math.ceil((minEdgeSize - searchArea.height) / 2)
-          : searchAreaDefaultPadding;
-      searchArea.top = Math.max(0, searchArea.top - paddingSize);
-      searchArea.height = Math.min(
-        searchArea.height + paddingSize * 2,
-        context.size.height - searchArea.top,
-      );
-
-      debug('adjusted searchArea', searchArea);
-    }
-
     const startTime = Date.now();
     const { parseResult, rect, elementById, rawResponse, usage } =
       await AiLocateElement({

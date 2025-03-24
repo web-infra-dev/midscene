@@ -66,45 +66,19 @@
   },
   "typesVersions": {
     "*": {
-      ".": [
-        "./dist/types/index.d.ts"
-      ],
-      "bridge-mode": [
-        "./dist/types/bridge-mode.d.ts"
-      ],
-      "bridge-mode-browser": [
-        "./dist/types/bridge-mode-browser.d.ts"
-      ],
-      "utils": [
-        "./dist/types/utils.d.ts"
-      ],
-      "ui-utils": [
-        "./dist/types/ui-utils.d.ts"
-      ],
-      "puppeteer": [
-        "./dist/types/puppeteer.d.ts"
-      ],
-      "playwright": [
-        "./dist/types/playwright.d.ts"
-      ],
-      "playwright-report": [
-        "./dist/types/playwright-report.d.ts"
-      ],
-      "playground": [
-        "./dist/types/playground.d.ts"
-      ],
-      "midscene-playground": [
-        "./dist/types/midscene-playground.d.ts"
-      ],
-      "android": [
-        "./dist/types/android.d.ts"
-      ],
-      "chrome-extension": [
-        "./dist/types/chrome-extension.d.ts"
-      ],
-      "yaml": [
-        "./dist/types/yaml.d.ts"
-      ]
+      ".": ["./dist/types/index.d.ts"],
+      "bridge-mode": ["./dist/types/bridge-mode.d.ts"],
+      "bridge-mode-browser": ["./dist/types/bridge-mode-browser.d.ts"],
+      "utils": ["./dist/types/utils.d.ts"],
+      "ui-utils": ["./dist/types/ui-utils.d.ts"],
+      "puppeteer": ["./dist/types/puppeteer.d.ts"],
+      "playwright": ["./dist/types/playwright.d.ts"],
+      "playwright-report": ["./dist/types/playwright-report.d.ts"],
+      "playground": ["./dist/types/playground.d.ts"],
+      "midscene-playground": ["./dist/types/midscene-playground.d.ts"],
+      "android": ["./dist/types/android.d.ts"],
+      "chrome-extension": ["./dist/types/chrome-extension.d.ts"],
+      "yaml": ["./dist/types/yaml.d.ts"]
     }
   },
   "scripts": {
@@ -129,13 +103,7 @@
     "e2e:ui": "playwright test --config=tests/playwright.config.ts --ui",
     "e2e:ui:cache": "MIDSCENE_CACHE=true playwright test --config=tests/playwright.config.ts --ui"
   },
-  "files": [
-    "static",
-    "dist",
-    "iife-script",
-    "README.md",
-    "bin"
-  ],
+  "files": ["static", "dist", "iife-script", "README.md", "bin"],
   "dependencies": {
     "@midscene/core": "workspace:*",
     "@midscene/shared": "workspace:*",

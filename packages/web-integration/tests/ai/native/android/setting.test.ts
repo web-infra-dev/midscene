@@ -13,7 +13,10 @@ describe(
   'android integration',
   async () => {
     await it('Android settings page demo for scroll', async () => {
-      const page = await launchPage({ deviceId: DEVICE_ID });
+      const page = await launchPage({
+        deviceId: DEVICE_ID,
+        page: 'android.settings.SETTINGS',
+      });
       const agent = new AndroidAgent(page);
 
       await agent.aiAction('scroll list to bottom');

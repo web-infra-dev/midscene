@@ -1,5 +1,5 @@
-import { describe, it, expect, vi, beforeAll } from 'vitest';
 import { AndroidAgent } from '@/android';
+import { beforeAll, describe, expect, it, vi } from 'vitest';
 import { launchPage } from './utils';
 import 'dotenv/config'; // read environment variables from .env file
 
