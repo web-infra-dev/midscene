@@ -1,5 +1,7 @@
 # API 参考
 
+> 在以下文档中，你可能会看到带有 `agent.` 前缀的函数调用。如果你在 Playwright 中，这些调用是不带 `agent.` 前缀的，如 `async ({ ai, aiQuery }) => { /* ... */}`。这只是解构语法的区别。
+
 ## 构造器
 
 Midscene 中每个 Agent 都有自己的构造函数。
@@ -17,26 +19,32 @@ Midscene 中每个 Agent 都有自己的构造函数。
 
 * `forceSameTabNavigation: boolean`: 如果为 true，则限制页面在当前 tab 打开。默认值为 true。
 
-## 方法
+## 交互方法
 
 这些是 Midscene 中各类 Agent 的主要 API。
 
-> 在以下文档中，你可能会看到带有 `agent.` 前缀的函数调用。如果你在 Playwright 中使用了解构赋值（object destructuring），如 `async ({ ai, aiQuery }) => { /* ... */}`，你可以不带这个前缀进行调用。这只是语法的区别。
+:::info 自动规划 v.s. 即时操作
 
+在 Midscene 中，你可以选择使用自动规划（Auto Planning）或即时操作（Instant Action）。
+
+* `agent.ai()` 是自动规划（Auto Planning）：Midscene 会自动规划操作步骤并执行。它看起来更智能，更像流行的 AI Agent 风格，但可能较慢，且效果依赖于 AI 模型的质量。
+* `agent.aiTap()`, `agent.aiHover()`, `agent.aiInput()`, `agent.aiKeyboardPress()`, `agent.aiScroll()` 是即时操作（Instant Action）：Midscene 会直接执行指定的操作，而 AI 模型只负责底层任务，如定位元素等。这种接口形式更快、更可靠。当你完全确定自己想要执行的操作时，推荐使用这种接口形式。
+
+:::
 
 ### `agent.aiAction()` 或 `.ai()`
 
-使用此方法，你可以通过自然语言描述来执行一系列 UI 操作。Midscene 会自动分析并执行这些操作步骤。
+这个方法允许你通过自然语言描述一系列 UI 操作步骤。Midscene 会自动规划这些步骤并执行。
 
 * 类型
 
 ```typescript
-function aiAction(steps: string): Promise<void>;
-function ai(steps: string): Promise<void>; // 简写形式
+function aiAction(prompt: string): Promise<void>;
+function ai(prompt: string): Promise<void>; // 简写形式
 ```
 
 * 参数：
-  * `steps: string` - 用自然语言描述的操作步骤序列。
+  * `prompt: string` - 用自然语言描述的操作内容
 
 * 返回值：
   * 返回一个 Promise。当所有步骤执行完成时解析为 void；若执行失败，则抛出错误。
@@ -49,34 +57,139 @@ await agent.aiAction('在搜索框中输入 "JavaScript"，然后点击搜索按
 
 // 使用 .ai 简写形式
 await agent.ai('点击页面顶部的登录按钮，然后在用户名输入框中输入 "test@example.com"');
-// 使用 ui-tars 模型的面向目标的复杂提示词示例，其他模型建议为每个步骤编写执行步骤
-await agent.aiAction(`
-  1. 滚动到商品列表
-  2. 找到 "Sauce Labs Backpack" 商品
-  3. 点击其 "Add to cart" 按钮
-  4. 等待购物车图标更新
-`);
+
+// 使用 ui-tars 模型时，可以使用更高维度的提示词
+await agent.aiAction('发布一条微博，内容为 "Hello World"');
 ```
 
 :::tip
-为了获得最佳效果，请提供清晰、详细的步骤描述。避免使用过于简略的指令（如 "发一条微博"），这可能导致执行不稳定或失败。
 
-在底层，Midscene 会将页面上下文和截图发送给 LLM，以详细规划步骤。随后，Midscene 会逐步执行这些步骤。如果 Midscene 认为无法执行，将抛出一个错误。
+在实际运行时，Midscene 会将用户指令规划（Planning）成多个步骤，然后逐步执行。如果 Midscene 认为无法执行，将抛出一个错误。
 
-你的任务会被拆解成下述内置方法，你可以在可视化报告中看到它们：
+为了获得最佳效果，请尽可能提供清晰、详细的步骤描述。具体可以参考这篇文档：[编写提示词的技巧](./prompting-tips)
 
-1. **定位（Locator）**：使用自然语言描述找到目标元素
-2. **操作（Action）**：点击、滚动、键盘输入、悬停（hover）
-3. **其他**：等待（sleep）
-
-目前，Midscene 无法规划包含条件和循环的步骤。
-
-关联文档:
-* [FAQ: Midscene 能否根据一句话指令实现智能操作？比如执行 "发一条微博"'](./faq)
-* [编写提示词的技巧](./prompting-tips)
+关联文档：
+* [选择 AI 模型](./choose-a-model)
 
 :::
 
+### `agent.aiTap()`
+
+点击某个元素。
+
+* 类型
+
+```typescript
+function aiTap(locate: string): Promise<void>;
+```
+
+* 参数：
+  * `locate: string` - 用自然语言描述的元素定位。
+
+* 返回值：
+  * `Promise<void>`
+
+* 示例：
+
+```typescript
+await agent.aiTap('页面顶部的登录按钮');
+```
+
+### `agent.aiHover()`
+
+鼠标悬停某个元素上。
+
+* 类型
+
+```typescript
+function aiHover(locate: string): Promise<void>;
+```
+
+* 参数：
+  * `locate: string` - 用自然语言描述的元素定位。
+
+* 返回值：
+  * `Promise<void>`
+
+* 示例：
+
+```typescript
+await agent.aiHover('页面顶部的登录按钮');
+```
+
+### `agent.aiInput()`
+
+在某个元素中输入文本。
+
+* 类型
+
+```typescript
+function aiInput(text: string, locate: string): Promise<void>;
+```
+
+* 参数：
+  * `text: string` - 要输入的文本内容。使用空字符串可以清空输入框。
+  * `locate: string` - 用自然语言描述的元素定位。
+
+* 返回值：
+  * `Promise<void>`
+
+* 示例：
+
+```typescript
+await agent.aiInput('Hello World', '搜索框');
+```
+
+### `agent.aiKeyboardPress()`
+
+按下键盘上的某个键。
+
+* 类型
+
+```typescript
+function aiKeyboardPress(key: string, locate?: string): Promise<void>;
+```
+
+* 参数：
+  * `key: string` - 要按下的键，如 `Enter`、`Tab`、`Escape` 等。不支持组合键。
+  * `locate?: string` - 用自然语言描述的元素定位。
+
+* 返回值：
+  * `Promise<void>`
+
+* 示例：
+
+```typescript
+await agent.aiKeyboardPress('Enter', '搜索框');
+```
+
+### `agent.aiScroll()`
+
+滚动页面或某个元素。
+
+* 类型
+
+```typescript
+function aiScroll(scrollParam: PlanningActionParamScroll, locate?: string): Promise<void>;
+```
+
+* 参数：
+  * `scrollParam: PlanningActionParamScroll` - 滚动参数
+    * `direction: 'up' | 'down' | 'left' | 'right'` - 滚动方向
+    * `scrollType: 'once' | 'untilBottom' | 'untilTop' | 'untilRight' | 'untilLeft'` - 滚动类型
+    * `distance: number` - 滚动距离，单位为像素。
+  * `locate?: string` - 用自然语言描述的元素定位。如果未传入，Midscene 会在当前鼠标位置滚动。
+
+* 返回值：
+  * `Promise<void>`
+
+* 示例：
+
+```typescript
+await agent.aiScroll({ direction: 'up', distance: 100, scrollType: 'once' }, '表单区域');
+```
+
+## 数据提取
 
 ### `agent.aiQuery()`
 
@@ -113,6 +226,8 @@ const dataB = await agent.aiQuery('string[]，列表中的任务名称');
 // dataC 将是一个包含对象的数组
 const dataC = await agent.aiQuery('{name: string, age: string}[], 表格中的数据记录');
 ```
+
+## 更多方法
 
 ### `agent.aiAssert()`
 

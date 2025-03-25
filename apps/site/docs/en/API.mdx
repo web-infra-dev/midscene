@@ -1,5 +1,8 @@
 # API Reference
 
+
+> In the documentation below, you might see function calls prefixed with `agent.`. If you utilize destructuring in Playwright (e.g., `async ({ ai, aiQuery }) => { /* ... */ }`), you can call these functions without the `agent.` prefix. This is merely a syntactical difference.
+
 ## Constructors
 
 Each Agent in Midscene has its own constructor.
@@ -17,25 +20,33 @@ In Puppeteer, there is an additional parameter:
 
 * `forceSameTabNavigation: boolean`: If true, page navigation is restricted to the current tab. (Default: true)
 
-## Methods
+
+## Interaction Methods
 
 Below are the main APIs available for the various Agents in Midscene.
 
-> In the documentation below, you might see function calls prefixed with `agent.`. If you utilize destructuring in Playwright (e.g., `async ({ ai, aiQuery }) => { /* ... */ }`), you can call these functions without the `agent.` prefix. This is merely a syntactical difference.
+:::info Auto Planning v.s. Instant Action
+
+In Midscene, you can choose to use either auto planning or instant action.
+
+* `agent.ai()` is for Auto Planning: Midscene will automatically plan the steps and execute them. It's more smart and looks like more fashionable style for AI agents. But it may be slower and heavily rely on the quality of the AI model.
+* `agent.aiTap()`, `agent.aiHover()`, `agent.aiInput()`, `agent.aiKeyboardPress()`, `agent.aiScroll()` are for Instant Action: Midscene will directly perform the specified action, while the AI model is responsible for basic tasks such as locating elements. It's faster and more reliable if you are certain about the action you want to perform.
+
+:::
 
 ### `agent.aiAction()` or `.ai()`
 
-This method allows you to perform a series of UI actions described in natural language. Midscene automatically parses and executes the steps.
+This method allows you to perform a series of UI actions described in natural language. Midscene automatically plans the steps and executes them.
 
 * Type
 
 ```typescript
-function aiAction(steps: string): Promise<void>;
-function ai(steps: string): Promise<void>; // shorthand form
+function aiAction(prompt: string): Promise<void>;
+function ai(prompt: string): Promise<void>; // shorthand form
 ```
 
 * Parameters:
-  * `steps: string` - A natural language description of the UI steps.
+  * `prompt: string` - A natural language description of the UI steps.
 
 * Return Value:
   * Returns a Promise that resolves to void when all steps are completed; if execution fails, an error is thrown.
@@ -49,35 +60,139 @@ await agent.aiAction('Type "JavaScript" into the search box, then click the sear
 // Using the shorthand .ai form
 await agent.ai('Click the login button at the top of the page, then enter "test@example.com" in the username field');
 
-// Complex example of target-oriented prompts from the ui-tars model
-// Other models recommend writing the execution steps for each step
-await agent.aiAction(`
-  1. Scroll to the product list
-  2. Locate the "Sauce Labs Backpack" item
-  3. Click its "Add to cart" button
-  4. Wait for the shopping cart icon to update
-`);
+// When using UI Agent models like ui-tars, you can try a more high-level prompt
+await agent.aiAction('Post a Tweet "Hello World"');
 ```
 
 :::tip
-For optimal results, please provide clear and detailed instructions. Avoid vague commands (e.g., "post a tweet"), as they may lead to unstable or failed execution.
 
-Under the hood, Midscene sends the page context and screenshots to the LLM to plan the steps in detail. It then executes these steps sequentially. If Midscene determines that the actions cannot be performed, an error will be thrown.
+Under the hood, Midscene uses AI model to split the instruction into a series of steps (a.k.a. "Planning"). It then executes these steps sequentially. If Midscene determines that the actions cannot be performed, an error will be thrown. 
 
-Your task is decomposed into the following built-in methods, which you can view in the visual report:
-
-1. **Locator**: Locate target elements using natural language descriptions.
-2. **Action**: Click, scroll, perform keyboard input, hover.
-3. **Others**: Wait (using sleep).
-
-Currently, Midscene does not support planning steps with conditions or loops.
+For optimal results, please provide clear and detailed instructions for `agent.aiAction()`. For guides about writing prompts, you may read this doc: [Tips for Writing Prompts](./prompting-tips).
 
 Related Documentation:
-* [FAQ: Can Midscene perform intelligent operations based on a single command (e.g., "post a tweet")?](./faq)
-* [Tips for Writing Prompts](./prompting-tips)
+* [Choose a model](./choose-a-model)
 
 :::
 
+### `agent.aiTap()`
+
+Tap something.
+
+* Type
+
+```typescript
+function aiTap(locate: string): Promise<void>;
+```
+
+* Parameters:
+  * `locate: string` - A natural language description of the element to tap.
+
+* Return Value:
+  * Returns a `Promise<void>`
+
+* Examples:
+
+```typescript
+await agent.aiTap('The login button at the top of the page');
+```
+
+### `agent.aiHover()`
+
+Move mouse over something.
+
+* Type
+
+```typescript
+function aiHover(locate: string): Promise<void>;
+```
+
+* Parameters:
+  * `locate: string` - A natural language description of the element to hover over.
+
+* Return Value:
+  * Returns a `Promise<void>`
+
+* Examples:
+
+```typescript
+await agent.aiHover('The version number of the current page');
+```
+
+### `agent.aiInput()`
+
+Input text into something.
+
+* Type
+
+```typescript
+function aiInput(text: string, locate: string): Promise<void>;
+```
+
+* Parameters:
+  * `text: string` - The final text content that should be placed in the input element. Use blank string to clear the input.
+  * `locate: string` - A natural language description of the element to input text into.
+
+* Return Value:
+  * Returns a `Promise<void>`
+
+* Examples:
+
+```typescript
+await agent.aiInput('Hello World', 'The search input box');
+```
+
+### `agent.aiKeyboardPress()`
+
+Press a keyboard key.
+
+* Type
+
+```typescript
+function aiKeyboardPress(key: string, locate?: string): Promise<void>;
+```
+
+* Parameters:
+  * `key: string` - The web key to press, e.g. 'Enter', 'Tab', 'Escape', etc. Key Combination is not supported. 
+  * `locate?: string` - Optional, a natural language description of the element to press the key on.
+
+* Return Value:
+  * Returns a `Promise<void>`
+
+* Examples:
+
+```typescript
+await agent.aiKeyboardPress('Enter', 'The search input box');
+```
+
+
+### `agent.aiScroll()`
+
+Scroll a page or an element.
+
+* Type
+
+```typescript
+function aiScroll(scrollParam: PlanningActionParamScroll, locate?: string): Promise<void>;
+```
+
+* Parameters:
+  * `scrollParam: PlanningActionParamScroll` - The scroll parameter
+    * `direction: 'up' | 'down' | 'left' | 'right'` - The direction to scroll.
+    * `scrollType: 'once' | 'untilBottom' | 'untilTop' | 'untilRight' | 'untilLeft'` - Optional, the type of scroll to perform.
+    * `distance: number` - Optional, the distance to scroll in px.
+  * `locate?: string` - Optional, a natural language description of the element to scroll on. If not provided, Midscene will perform scroll on the current mouse position.
+
+* Return Value:
+  * Returns a `Promise<void>`
+
+* Examples:
+
+```typescript
+await agent.aiScroll({ direction: 'up', distance: 100, scrollType: 'once' }, 'The form panel');
+```
+
+## Data Extraction
 
 ### `agent.aiQuery()`
 
@@ -114,6 +229,8 @@ const dataB = await agent.aiQuery('string[], list of task names');
 // dataC will be an array of objects
 const dataC = await agent.aiQuery('{name: string, age: string}[], table data records');
 ```
+
+## More APIs
 
 ### `agent.aiAssert()`
 
