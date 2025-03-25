@@ -51,168 +51,23 @@ export const test = base.extend<PlayWrightAiFixtureType>(PlaywrightAiFixture());
 
 ### Basic AI Operation APIs
 
-#### `ai` - General AI Command
-```typescript
-ai<T = any>(
-  prompt: string,
-  opts?: { 
-    type?: 'action' | 'query';  // Specify operation type
-    trackNewTab?: boolean;      // Whether to track new tabs
-  }
-): Promise<T>
-```
-Used to execute general AI commands, handling various interaction scenarios.
+* `ai` or `aiAction` - General AI interaction
+* `aiTap` - Click operation
+* `aiHover` - Hover operation
+* `aiInput` - Input operation
+* `aiKeyboardPress` - Keyboard operation
+* `aiScroll` - Scroll operation
 
-#### `aiAction` - Execute AI Action
-```typescript
-aiAction(taskPrompt: string): Promise<void>
-```
-Execute specific AI actions, such as clicking, inputting, etc.
+### Query
 
-#### `aiTap` - Click Operation
-```typescript
-aiTap(
-  target: string | { 
-    prompt: string;            // Target element description
-    searchArea?: string;       // Search area
-    deepThink?: boolean;       // Whether to think deeply
-  },
-  options?: {                  // Optional configuration
-    timeout?: number;          // Timeout duration
-    retry?: number;           // Retry attempts
-    force?: boolean;          // Whether to force click
-  }
-): Promise<void>
-```
-Execute click operation, AI will intelligently identify target elements.
+* `aiQuery` - AI Query
 
-#### `aiHover` - Hover Operation
-```typescript
-aiHover(
-  target: string | { 
-    prompt: string;            // Target element description
-    searchArea?: string;       // Search area
-    deepThink?: boolean;       // Whether to think deeply
-  },
-  options?: {                  // Optional configuration
-    timeout?: number;          // Timeout duration
-    retry?: number;           // Retry attempts
-  }
-): Promise<void>
-```
-Execute mouse hover operation.
+### More APIs
 
-#### `aiInput` - Input Operation
-```typescript
-aiInput(
-  text: string,                // Text to input
-  target: string | { 
-    prompt: string;            // Target element description
-    searchArea?: string;       // Search area
-    deepThink?: boolean;       // Whether to think deeply
-  },
-  options?: {                  // Optional configuration
-    timeout?: number;          // Timeout duration
-    retry?: number;           // Retry attempts
-    clear?: boolean;          // Whether to clear input first
-  }
-): Promise<void>
-```
-Execute text input operation.
+* `aiAssert` - AI Assertion
+* `aiWaitFor` - AI Wait
 
-#### `aiKeyboardPress` - Keyboard Operation
-```typescript
-aiKeyboardPress(
-  key: string,                 // Key name
-  target?: string | { 
-    prompt: string;            // Target element description
-    searchArea?: string;       // Search area
-    deepThink?: boolean;       // Whether to think deeply
-  },
-  options?: {                  // Optional configuration
-    timeout?: number;          // Timeout duration
-    retry?: number;           // Retry attempts
-  }
-): Promise<void>
-```
-Execute keyboard key press operation.
-
-#### `aiScroll` - Scroll Operation
-```typescript
-aiScroll(
-  scroll: {
-    direction: 'down' | 'up' | 'right' | 'left';  // Scroll direction
-    scrollType: 'once' | 'untilBottom' | 'untilTop' | 'untilRight' | 'untilLeft';  // Scroll type
-    distance?: number;        // Scroll distance
-  },
-  target?: string | { 
-    prompt: string;            // Target element description
-    searchArea?: string;       // Search area
-    deepThink?: boolean;       // Whether to think deeply
-  },
-  options?: {                  // Optional configuration
-    timeout?: number;          // Timeout duration
-    retry?: number;           // Retry attempts
-  }
-): Promise<void>
-```
-Execute page scroll operation.
-
-### Advanced APIs
-
-#### `generateMidsceneAgent` - Generate AI Agent
-```typescript
-generateMidsceneAgent(
-  page?: Page,                 // Optional page instance
-  opts?: {                     // Agent configuration options
-    selector?: string;         // Selector
-    ignoreMarker?: boolean;    // Whether to ignore markers
-    forceSameTabNavigation?: boolean;  // Whether to force navigation in the same tab
-    bridgeMode?: false | 'newTabWithUrl' | 'currentTab';  // Bridge mode
-    closeNewTabsAfterDisconnect?: boolean;  // Whether to close new tabs after disconnection
-  }
-): Promise<PageAgent>
-```
-Generate an independent AI Agent instance for more complex interaction scenarios.
-
-### Query and Assertion APIs
-
-#### `aiQuery` - AI Query
-```typescript
-aiQuery<T = any>(
-  query: string | Record<string, string>,  // Query description or structured query
-  options?: {                  // Optional configuration
-    timeout?: number;          // Timeout duration
-    retry?: number;           // Retry attempts
-  }
-): Promise<T>
-```
-Use AI to execute query operations, returning structured data.
-
-#### `aiAssert` - AI Assertion
-```typescript
-aiAssert(
-  assertion: string,           // Assertion description
-  options?: {                  // Optional configuration
-    timeout?: number;          // Timeout duration
-    retry?: number;           // Retry attempts
-    keepRawResponse?: boolean; // Whether to keep raw response
-  }
-): Promise<void>
-```
-Use AI to execute assertion checks.
-
-#### `aiWaitFor` - AI Wait
-```typescript
-aiWaitFor(
-  assertion: string,           // Wait condition description
-  options?: {                  // Wait options
-    checkIntervalMs?: number;  // Check interval
-    timeoutMs?: number;       // Timeout duration
-  }
-): Promise<void>
-```
-Wait for specific conditions to be met.
+You can find more details in [API Reference](./API).
 
 ### Example Code
 
@@ -235,7 +90,7 @@ test("search headphone on ebay", async ({
   aiScroll 
 }) => {
   // Use aiInput to enter search keyword
-  await aiInput('Headphones', 'search box', { clear: true });
+  await aiInput('Headphones', 'search box');
   
   // Use aiTap to click search button
   await aiTap('search button');
@@ -279,4 +134,5 @@ After the command executes successfully, it will output: `Midscene - report file
 
 ## More
 
-You might also want to learn about [Prompting Tips](./prompting-tips)
+* For all the methods on the Agent, please refer to [API Reference](./API).
+* For more details about prompting, please refer to [Prompting Tips](./prompting-tips)
