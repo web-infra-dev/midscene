@@ -253,10 +253,7 @@ export const PlaywrightAiFixture = (options?: {
 
 export type PlayWrightAiFixtureType = {
   generateMidsceneAgent: (page?: any, opts?: any) => Promise<PageAgent>;
-  ai: <T = any>(
-    prompt: string,
-    opts?: { type?: 'action' | 'query'; trackNewTab?: boolean },
-  ) => Promise<T>;
+  ai: <T = any>(prompt: string) => Promise<T>;
   aiAction: (taskPrompt: string) => ReturnType<PageAgent['aiAction']>;
   aiTap: (
     ...args: Parameters<PageAgent['aiTap']>
