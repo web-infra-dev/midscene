@@ -4,7 +4,7 @@ export type { WebPage } from './common/page';
 
 export { PuppeteerAgent } from './puppeteer';
 export { PlaywrightAgent } from './playwright';
-export { AppiumAgent, AppiumPage } from './appium';
+export { AndroidAgent, AndroidPage } from './android';
 export { StaticPageAgent } from './playground/agent';
 
 export { ScriptPlayer, parseYamlScript } from './yaml';

@@ -36,3 +36,19 @@ describe.skipIf(!vlMode)('insight locate with search area', () => {
     await sleep(3000);
   });
 });
+
+vi.setConfig({
+  testTimeout: 60 * 1000,
+});
+
+test(
+  'insight locate with search area',
+  async () => {
+    const { context } = await getContextFromFixture('taobao');
+
+    await sleep(3000);
+  },
+  {
+    timeout: 60 * 1000,
+  },
+);

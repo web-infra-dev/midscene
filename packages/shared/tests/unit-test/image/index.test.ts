@@ -7,8 +7,8 @@ import {
   imageInfoOfBase64,
   resizeImg,
   resizeImgBase64,
-} from '@/img';
-import getJimp from '@/img/get-jimp';
+} from 'src/img';
+import getJimp from 'src/img/get-jimp';
 import {
   cropByRect,
   jimpFromBase64,

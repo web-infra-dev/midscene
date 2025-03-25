@@ -1,0 +1,27 @@
+{
+  "name": "@midscene/android",
+  "version": "1.0.0",
+  "main": "./dist/lib/index.js",
+  "types": "./dist/types/index.d.ts",
+  "files": ["dist"],
+  "exports": {
+    ".": {
+      "types": "./dist/types/index.d.ts",
+      "default": "./dist/lib/index.js"
+    }
+  },
+  "scripts": {
+    "build": "modern build -c ./modern.config.ts"
+  },
+  "dependencies": {
+    "@midscene/web": "workspace:*"
+  },
+  "devDependencies": {
+    "@modern-js/module-tools": "2.60.6",
+    "@types/node": "^18.0.0",
+    "typescript": "^5.8.2"
+  },
+  "author": "",
+  "license": "ISC",
+  "description": ""
+}
