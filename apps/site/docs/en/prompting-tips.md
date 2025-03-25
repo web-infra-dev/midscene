@@ -2,9 +2,9 @@
 
 The natural language parameter passed to Midscene will be part of the prompt sent to the AI model. There are certain techniques in prompt engineering that can help improve the understanding of user interfaces.
 
-## The purpose of optimization is to get a stable response from AI
+## The goal is to get a stable response from AI
 
-Since AI has the nature of heuristic, the purpose of prompt tuning should be to obtain stable responses from the AI model across runs. In most cases, to expect a consistent response from LLM by using a good prompt is entirely feasible.
+Since AI has the nature of heuristic, the purpose of prompt tuning should be to obtain stable responses from the AI model across runs. In most cases, to expect a consistent response from AI model by using a good prompt is entirely feasible.
 
 ## Use detailed descriptions and samples
 
@@ -20,45 +20,63 @@ Bad ❌: "Assert: food delivery service is in normal state"
 
 Good ✅: "Assert: There is a 'food delivery service' on page, and is in normal state"
 
+### Use instant action interface if you are sure about what you want to do
+
+For example:
+
+`agent.ai('Click Login Button')` is the auto planning mode, Midscene will plan the steps and then execute them. It will cost more time and tokens.
+
+By using `agent.aiTap('Login Button')`, you can directly using the locating result from the AI model and perform the click action. It's faster and more accurate compared to the auto planning mode.
+
+For more details, please refer to [API](./API).
+
+### Understand the reason why `.ai` is wrong, and optimize the prompt
+
+By reviewing the report, you can see there are two main steps of each `.ai` call:
+
+1. Planning
+2. Locating
+
+First, you should find out whether the AI is wrong in the planning step or the locating step.
+
+When you see the steps are not as expected (more steps or less steps), it means the AI is wrong in the planning step. So you can try to give more details in the task flow.
+
+For example:
+
+⚠️ Select "include" in the "range" dropdown menu
+
+You can try:
+
+✅ Click the "range" dropdown menu, and select "include"
+
+When you see the locating result is not as expected (wrong element or biased coordinates), try to give more details in the locate parameter.
+
+For example:
+
+⚠️ Click the "Add" button
+
+You can try:
+
+✅ Click the "Add" button on the top-right corner, it's on the right side of the "range" dropdown menu
+
+And also, there are some common ways to improve:
+
+* Use a larger and stronger AI model
+* Use instant action interface like `agent.aiTap()` instead of `.ai` if you are sure about what you want to do
+
 ## One prompt should only do one thing
 
 Use `.ai` each time to do one task. Although Midscene has an auto-replanning strategy, it's still preferable to keep the prompt concise. Otherwise the LLM output will likely be messy. The token cost between a long prompt and a short prompt is almost the same.
 
 Bad ❌: "Click Login button, then click Sign up button, fill the form with 'test@test.com' in the email field, 'test' in the password field, and click Sign up button"
 
-Good ✅: Split the task into three steps:
+Good ✅: Split the task into the following steps:
 
 "Click Login Button"
 "Click Sign up button"
-"Fill the form with 'test@test.com' in the email field, 'test' in the password field, and click Sign up button"
-
-### Understand the reason why AI is wrong, and optimize the prompt
-
-This prompt may cause the click to fail:
-
-⚠️ Click the "include" in the "range" dropdown menu
-
-After checking the report, you will find that the AI may tend to open the floating layer first, and then find the "include" option. If the floating layer is already open, you can try:
-
-✅ The floating layer is open, please click the "include" option
-
-Another example:
-
-This may fail when there are many "Add" buttons on the page, or the button is an icon button:
-
-⚠️ Click the "Add" button
-
-You can try:
-
-✅ Click the "Add" button on the top-right corner, it's a button with a "+" icon, on the right side of the "range" dropdown menu
-
-If the button is too large, the AI may misjudge the clickable range:
-
-⚠️ Click the "User Register" menu
-
-You can try:
-
-✅ Click the "User Register" text in the left menu
+"Fill the form with 'test@test.com' in the email field"
+"Fill the form with 'test' in the password field"
+"Click Sign up button"
 
 ### LLMs can NOT tell the exact number like coords or hex-style color, give it some choices
 

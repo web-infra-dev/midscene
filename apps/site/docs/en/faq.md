@@ -2,15 +2,25 @@
 
 ## Can Midscene smartly plan the actions according to my one-line goal? Like executing "Tweet 'hello world'"
 
-No. Midscene is an automation assistance SDK with a key feature of action stability — ensuring the same actions are performed in each run. To maintain this stability, we encourage you to provide detailed instructions to help the AI understand each step of your task.
+It's only recommended to use this kind of goal-oriented prompt when you are using GUI agent models like *UI-TARS*.
 
-Related Docs: [Prompting Tips](./prompting-tips)
+## Why does Midscene require developers to provide detailed steps while other AI agents are demonstrating "autonomous planning"? Is this an outdated approach?
+
+Midscene has a lot of tool developers, who are more concerned with the stability and performance of UI automation tools. To ensure that the Agent can run accurately in complex systems, clear prompts are still the optimal solution.
+
+To further improve stability, we also provide features like Instant Action interface, Playback Report, and Playground. They may seem traditional and not AI-like, but after extensive practice, we believe these features are the real key to improving efficiency.
+
+If you are interested in "smart GUI Agent", you can check out [UI-TARS](https://github.com/bytedance/ui-tars), which Midscene also supports.
+
+Related Docs: 
+* [Choose a model](./choose-a-model)
+* [Prompting Tips](./prompting-tips)
 
 ## Limitations
 
 There are some limitations with Midscene. We are still working on them.
 
-1. The interaction types are limited to only tap, drag (in UI-TARS model only), type, keyboard press, and scroll.
+1. The interaction types are limited to only tap, hover, drag (in UI-TARS model only), type, keyboard press, and scroll.
 2. AI model is not 100% stable. Following the [Prompting Tips](./prompting-tips) will help improve stability.
 3. You cannot interact with the elements inside the cross-origin iframe and canvas when using GPT-4o. This is not a problem when using Qwen and UI-TARS model.
 4. We cannot access the native elements of Chrome, like the right-click context menu or file upload dialog.
