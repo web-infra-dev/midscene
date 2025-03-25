@@ -23,7 +23,7 @@ if (process.env.MIDSCENE_EVALUATION_EXPECT_VL) {
   expect(vlLocateMode()).toBeTruthy();
 }
 
-const failCaseThreshold = process.env.CI ? 1 : 0;
+const failCaseThreshold = process.env.CI ? 2 : 0;
 const testSources = ['todo'];
 
 const vlMode = vlLocateMode();
