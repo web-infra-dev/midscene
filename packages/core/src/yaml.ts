@@ -3,7 +3,7 @@ import type { PlanningActionParamScroll } from './types';
 export interface DetailedLocateParam {
   prompt: string;
   searchArea?: string;
-  deepThink?: boolean;
+  deepThink?: boolean; // only available in vl model
 }
 
 export type LocateParam = string | DetailedLocateParam;
