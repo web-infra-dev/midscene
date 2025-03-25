@@ -4,7 +4,6 @@ import { PlaywrightAgent } from '@/playwright/index';
 import type { AgentWaitForOpt } from '@midscene/core';
 import { type TestInfo, type TestType, test } from '@playwright/test';
 import type { Page as OriginPlaywrightPage } from 'playwright';
-import type { PageTaskExecutor } from '../common/tasks';
 
 export type APITestType = Pick<TestType<any, any>, 'step'>;
 
@@ -58,7 +57,7 @@ export const PlaywrightAiFixture = (options?: {
     return pageAgentMap[idForPage];
   };
 
-  async function generateAiAction(options: {
+  async function generateAiFunction(options: {
     page: OriginPlaywrightPage;
     testInfo: TestInfo;
     use: any;
@@ -134,7 +133,7 @@ export const PlaywrightAiFixture = (options?: {
       use: any,
       testInfo: TestInfo,
     ) => {
-      await generateAiAction({
+      await generateAiFunction({
         page,
         testInfo,
         use,
@@ -146,7 +145,7 @@ export const PlaywrightAiFixture = (options?: {
       use: any,
       testInfo: TestInfo,
     ) => {
-      await generateAiAction({
+      await generateAiFunction({
         page,
         testInfo,
         use,
@@ -158,7 +157,7 @@ export const PlaywrightAiFixture = (options?: {
       use: any,
       testInfo: TestInfo,
     ) => {
-      await generateAiAction({
+      await generateAiFunction({
         page,
         testInfo,
         use,
@@ -170,7 +169,7 @@ export const PlaywrightAiFixture = (options?: {
       use: any,
       testInfo: TestInfo,
     ) => {
-      await generateAiAction({
+      await generateAiFunction({
         page,
         testInfo,
         use,
@@ -182,7 +181,7 @@ export const PlaywrightAiFixture = (options?: {
       use: any,
       testInfo: TestInfo,
     ) => {
-      await generateAiAction({
+      await generateAiFunction({
         page,
         testInfo,
         use,
@@ -194,7 +193,7 @@ export const PlaywrightAiFixture = (options?: {
       use: any,
       testInfo: TestInfo,
     ) => {
-      await generateAiAction({
+      await generateAiFunction({
         page,
         testInfo,
         use,
@@ -206,7 +205,7 @@ export const PlaywrightAiFixture = (options?: {
       use: any,
       testInfo: TestInfo,
     ) => {
-      await generateAiAction({
+      await generateAiFunction({
         page,
         testInfo,
         use,
@@ -218,7 +217,7 @@ export const PlaywrightAiFixture = (options?: {
       use: any,
       testInfo: TestInfo,
     ) => {
-      await generateAiAction({
+      await generateAiFunction({
         page,
         testInfo,
         use,
@@ -230,7 +229,7 @@ export const PlaywrightAiFixture = (options?: {
       use: any,
       testInfo: TestInfo,
     ) => {
-      await generateAiAction({
+      await generateAiFunction({
         page,
         testInfo,
         use,
@@ -242,7 +241,7 @@ export const PlaywrightAiFixture = (options?: {
       use: any,
       testInfo: TestInfo,
     ) => {
-      await generateAiAction({
+      await generateAiFunction({
         page,
         testInfo,
         use,

@@ -40,9 +40,8 @@ test('ai todo', async ({ ai, aiQuery }) => {
   expect(taskList.length).toBe(1);
   expect(taskList[0]).toBe('Learning AI the day after tomorrow');
 
-  const placeholder = await ai(
+  const placeholder = await aiQuery(
     'string, return the placeholder text in the input box',
-    { type: 'query' },
   );
   expect(placeholder).toBe('What needs to be done?');
 });

@@ -750,7 +750,8 @@ export class PageTaskExecutor {
     const taskExecutor = new Executor(title, {
       onTaskStart: this.onTaskStartCallback,
     });
-    const { tasks } = await this.convertPlanToExecutable(plans);
+    const cacheGroup = this.taskCache.getCacheGroupByPrompt(title);
+    const { tasks } = await this.convertPlanToExecutable(plans, cacheGroup);
     await taskExecutor.append(tasks);
     const result = await taskExecutor.flush();
     return {
