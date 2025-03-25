@@ -137,11 +137,13 @@ export class Page<
         x: number,
         y: number,
         options?: { button?: MouseButton; count?: number },
-      ) =>
+      ) => {
+        await this.mouse.move(x, y);
         this.underlyingPage.mouse.click(x, y, {
           button: options?.button || 'left',
           count: options?.count || 1,
-        }),
+        });
+      },
       wheel: async (deltaX: number, deltaY: number) => {
         if (this.pageType === 'puppeteer') {
           await (this.underlyingPage as PuppeteerPage).mouse.wheel({
