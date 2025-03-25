@@ -56,3 +56,10 @@ jobs:
         cd packages/evaluation
         pnpm run evaluate:planning
         pnpm run evaluate:assertion
+
+    - name: Upload test log
+      uses: actions/upload-artifact@v4
+      with:
+        name: evaluation-test-log
+        path: ${{ github.workspace }}/packages/evaluation/src/__ai_responses__
+        if-no-files-found: ignore
