@@ -68,61 +68,53 @@ export class Page implements AbstractPage {
       return this.screenSize;
     }
 
-    try {
-      const adb = await this.getAdb();
+    const adb = await this.getAdb();
 
-      const screenSize = await adb.getScreenSize();
-      // screenSize is a string like "width x height", or an object
-      let width: number;
-      let height: number;
+    const screenSize = await adb.getScreenSize();
+    // screenSize is a string like "width x height", or an object
+    let width: number;
+    let height: number;
 
-      if (typeof screenSize === 'string') {
-        // handle string format "width x height"
-        const match = screenSize.match(/(\d+)x(\d+)/);
-        if (!match || match.length < 3) {
-          throw new Error(`Unable to parse screen size: ${screenSize}`);
-        }
-        width = Number.parseInt(match[1], 10);
-        height = Number.parseInt(match[2], 10);
-      } else if (typeof screenSize === 'object' && screenSize !== null) {
-        // handle object format
-        const sizeObj = screenSize as Record<string, any>;
-        if ('width' in sizeObj && 'height' in sizeObj) {
-          width = Number(sizeObj.width);
-          height = Number(sizeObj.height);
-        } else {
-          throw new Error(
-            `Invalid screen size object: ${JSON.stringify(screenSize)}`,
-          );
-        }
+    if (typeof screenSize === 'string') {
+      // handle string format "width x height"
+      const match = screenSize.match(/(\d+)x(\d+)/);
+      if (!match || match.length < 3) {
+        throw new Error(`Unable to parse screen size: ${screenSize}`);
+      }
+      width = Number.parseInt(match[1], 10);
+      height = Number.parseInt(match[2], 10);
+    } else if (typeof screenSize === 'object' && screenSize !== null) {
+      // handle object format
+      const sizeObj = screenSize as Record<string, any>;
+      if ('width' in sizeObj && 'height' in sizeObj) {
+        width = Number(sizeObj.width);
+        height = Number(sizeObj.height);
       } else {
-        throw new Error(`Invalid screen size format: ${screenSize}`);
+        throw new Error(
+          `Invalid screen size object: ${JSON.stringify(screenSize)}`,
+        );
       }
-
-      // Get device display density
-      try {
-        const densityNum = await adb.getScreenDensity();
-        // Standard density is 160, calculate the ratio
-        this.deviceRatio = Number(densityNum) / 160;
-        debugPage(`Device display ratio: ${this.deviceRatio}`);
-      } catch (error) {
-        console.warn('Error getting device density:', error);
-      }
-
-      // calculate logical pixel size using reverseAdjustCoordinates function
-      const { x: logicalWidth, y: logicalHeight } =
-        this.reverseAdjustCoordinates(width, height);
-
-      this.screenSize = {
-        width: logicalWidth,
-        height: logicalHeight,
-      };
-
-      return this.screenSize;
-    } catch (error) {
-      console.error('Error getting screen size:', error);
-      throw error;
+    } else {
+      throw new Error(`Invalid screen size format: ${screenSize}`);
     }
+
+    // Get device display density
+    const densityNum = await adb.getScreenDensity();
+    // Standard density is 160, calculate the ratio
+    this.deviceRatio = Number(densityNum) / 160;
+
+    // calculate logical pixel size using reverseAdjustCoordinates function
+    const { x: logicalWidth, y: logicalHeight } = this.reverseAdjustCoordinates(
+      width,
+      height,
+    );
+
+    this.screenSize = {
+      width: logicalWidth,
+      height: logicalHeight,
+    };
+
+    return this.screenSize;
   }
 
   /**
@@ -157,35 +149,30 @@ export class Page implements AbstractPage {
   }
 
   async screenshotBase64(): Promise<string> {
+    debugPage('screenshotBase64 begin');
+    const { width, height } = await this.size();
+    const adb = await this.getAdb();
+    let screenshotBuffer;
+
     try {
-      debugPage('screenshotBase64 begin');
-      const { width, height } = await this.size();
-      const adb = await this.getAdb();
-      let screenshotBuffer;
-
-      try {
-        screenshotBuffer = await adb.takeScreenshot(null);
-      } catch (error) {
-        const screenshotPath = getTmpFile('png')!;
-
-        // Take a screenshot and save it locally
-        await adb.shell('screencap -p /sdcard/screenshot.png');
-        await adb.pull('/sdcard/screenshot.png', screenshotPath);
-        screenshotBuffer = await fs.promises.readFile(screenshotPath);
-      }
-
-      const resizedScreenshotBuffer = await resizeImg(screenshotBuffer, {
-        width,
-        height,
-      });
-
-      const result = `data:image/jpeg;base64,${resizedScreenshotBuffer.toString('base64')}`;
-      debugPage('screenshotBase64 end');
-      return result;
+      screenshotBuffer = await adb.takeScreenshot(null);
     } catch (error) {
-      console.error('Error taking screenshot:', error);
-      throw error;
+      const screenshotPath = getTmpFile('png')!;
+
+      // Take a screenshot and save it locally
+      await adb.shell('screencap -p /sdcard/screenshot.png');
+      await adb.pull('/sdcard/screenshot.png', screenshotPath);
+      screenshotBuffer = await fs.promises.readFile(screenshotPath);
     }
+
+    const resizedScreenshotBuffer = await resizeImg(screenshotBuffer, {
+      width,
+      height,
+    });
+
+    const result = `data:image/jpeg;base64,${resizedScreenshotBuffer.toString('base64')}`;
+    debugPage('screenshotBase64 end');
+    return result;
   }
 
   get mouse() {
@@ -216,31 +203,22 @@ export class Page implements AbstractPage {
       return;
     }
 
-    try {
-      await this.pushYadb();
+    await this.pushYadb();
 
-      const adb = await this.getAdb();
+    const adb = await this.getAdb();
 
-      // Use the yadb tool to clear the input box
-      await adb.shell(
-        'app_process -Djava.class.path=/data/local/tmp/yadb /data/local/tmp com.ysbing.yadb.Main -keyboard "~CLEAR~"',
-      );
-    } catch (error) {
-      console.error('Error clearing input:', error);
-    }
+    // Use the yadb tool to clear the input box
+    await adb.shell(
+      'app_process -Djava.class.path=/data/local/tmp/yadb /data/local/tmp com.ysbing.yadb.Main -keyboard "~CLEAR~"',
+    );
   }
 
   async url(): Promise<string> {
-    try {
-      const adb = await this.getAdb();
+    const adb = await this.getAdb();
 
-      const { appPackage, appActivity } =
-        await adb.getFocusedPackageAndActivity();
-      return `${appPackage}/${appActivity}`;
-    } catch (error) {
-      console.error('Error getting URL:', error);
-      return '';
-    }
+    const { appPackage, appActivity } =
+      await adb.getFocusedPackageAndActivity();
+    return `${appPackage}/${appActivity}`;
   }
 
   async scrollUntilTop(startingPoint?: Point): Promise<void> {
@@ -332,23 +310,17 @@ export class Page implements AbstractPage {
 
   private async keyboardType(text: string): Promise<void> {
     if (!text) return;
+    const adb = await this.getAdb();
+    const isChinese = /[\p{Script=Han}\p{sc=Hani}]/u.test(text);
 
-    try {
-      const adb = await this.getAdb();
-      const isChinese = /[\p{Script=Han}\p{sc=Hani}]/u.test(text);
-
-      // for pure ASCII characters, directly use inputText
-      if (!isChinese) {
-        await adb.inputText(text);
-        return;
-      }
-
-      // for non-ASCII characters, use yadb
-      await this.execYadb(text);
-    } catch (error) {
-      console.error('Error typing text:', error);
-      throw error;
+    // for pure ASCII characters, directly use inputText
+    if (!isChinese) {
+      await adb.inputText(text);
+      return;
     }
+
+    // for non-ASCII characters, use yadb
+    await this.execYadb(text);
   }
 
   private async keyboardPress(key: WebKeyInput): Promise<void> {
@@ -402,24 +374,20 @@ export class Page implements AbstractPage {
     y: number,
     button: MouseButton = 'left',
   ): Promise<void> {
-    try {
-      // ADB only supports left mouse button clicks
-      if (button !== 'left') {
-        console.warn(
-          `ADB only supports left mouse button clicks. Ignored request for ${button} button.`,
-        );
-      }
-
-      await this.mouseMove(x, y);
-
-      const adb = await this.getAdb();
-
-      // Use adjusted coordinates
-      const { x: adjustedX, y: adjustedY } = this.adjustCoordinates(x, y);
-      await adb.shell(`input tap ${adjustedX} ${adjustedY}`);
-    } catch (error) {
-      console.error('Error clicking:', error);
+    // ADB only supports left mouse button clicks
+    if (button !== 'left') {
+      console.warn(
+        `ADB only supports left mouse button clicks. Ignored request for ${button} button.`,
+      );
     }
+
+    await this.mouseMove(x, y);
+
+    const adb = await this.getAdb();
+
+    // Use adjusted coordinates
+    const { x: adjustedX, y: adjustedY } = this.adjustCoordinates(x, y);
+    await adb.shell(`input tap ${adjustedX} ${adjustedY}`);
   }
 
   private async mouseMove(x: number, y: number): Promise<void> {
@@ -432,17 +400,13 @@ export class Page implements AbstractPage {
     from: { x: number; y: number },
     to: { x: number; y: number },
   ): Promise<void> {
-    try {
-      const adb = await this.getAdb();
+    const adb = await this.getAdb();
 
-      // Use adjusted coordinates
-      const { x: fromX, y: fromY } = this.adjustCoordinates(from.x, from.y);
-      const { x: toX, y: toY } = this.adjustCoordinates(to.x, to.y);
+    // Use adjusted coordinates
+    const { x: fromX, y: fromY } = this.adjustCoordinates(from.x, from.y);
+    const { x: toX, y: toY } = this.adjustCoordinates(to.x, to.y);
 
-      await adb.shell(`input swipe ${fromX} ${fromY} ${toX} ${toY} 300`);
-    } catch (error) {
-      console.error('Error dragging:', error);
-    }
+    await adb.shell(`input swipe ${fromX} ${fromY} ${toX} ${toY} 300`);
   }
 
   private async mouseWheel(
@@ -450,55 +414,45 @@ export class Page implements AbstractPage {
     deltaY: number,
     duration = 1000,
   ): Promise<void> {
-    try {
-      const { width, height } = await this.size();
+    const { width, height } = await this.size();
 
-      // Calculate the starting and ending points of the swipe
-      const n = 4; // Divide the screen into n equal parts
+    // Calculate the starting and ending points of the swipe
+    const n = 4; // Divide the screen into n equal parts
 
-      // Set the starting point based on the swipe direction
-      const startX = deltaX < 0 ? (n - 1) * (width / n) : width / n;
-      const startY = deltaY < 0 ? (n - 1) * (height / n) : height / n;
+    // Set the starting point based on the swipe direction
+    const startX = deltaX < 0 ? (n - 1) * (width / n) : width / n;
+    const startY = deltaY < 0 ? (n - 1) * (height / n) : height / n;
 
-      // Calculate the maximum swipeable range
-      const maxNegativeDeltaX = startX;
-      const maxPositiveDeltaX = (n - 1) * (width / n);
-      const maxNegativeDeltaY = startY;
-      const maxPositiveDeltaY = (n - 1) * (height / n);
+    // Calculate the maximum swipeable range
+    const maxNegativeDeltaX = startX;
+    const maxPositiveDeltaX = (n - 1) * (width / n);
+    const maxNegativeDeltaY = startY;
+    const maxPositiveDeltaY = (n - 1) * (height / n);
 
-      // Limit the swipe distance
-      deltaX = Math.max(
-        -maxNegativeDeltaX,
-        Math.min(deltaX, maxPositiveDeltaX),
-      );
-      deltaY = Math.max(
-        -maxNegativeDeltaY,
-        Math.min(deltaY, maxPositiveDeltaY),
-      );
+    // Limit the swipe distance
+    deltaX = Math.max(-maxNegativeDeltaX, Math.min(deltaX, maxPositiveDeltaX));
+    deltaY = Math.max(-maxNegativeDeltaY, Math.min(deltaY, maxPositiveDeltaY));
 
-      // Calculate the end coordinates
-      const endX = startX + deltaX;
-      const endY = startY + deltaY;
+    // Calculate the end coordinates
+    const endX = startX + deltaX;
+    const endY = startY + deltaY;
 
-      // Adjust coordinates to fit device ratio
-      const { x: adjustedStartX, y: adjustedStartY } = this.adjustCoordinates(
-        startX,
-        startY,
-      );
-      const { x: adjustedEndX, y: adjustedEndY } = this.adjustCoordinates(
-        endX,
-        endY,
-      );
+    // Adjust coordinates to fit device ratio
+    const { x: adjustedStartX, y: adjustedStartY } = this.adjustCoordinates(
+      startX,
+      startY,
+    );
+    const { x: adjustedEndX, y: adjustedEndY } = this.adjustCoordinates(
+      endX,
+      endY,
+    );
 
-      const adb = await this.getAdb();
+    const adb = await this.getAdb();
 
-      // Execute the swipe operation
-      await adb.shell(
-        `input swipe ${adjustedStartX} ${adjustedStartY} ${adjustedEndX} ${adjustedEndY} ${duration}`,
-      );
-    } catch (error) {
-      console.error('Error scrolling:', error);
-    }
+    // Execute the swipe operation
+    await adb.shell(
+      `input swipe ${adjustedStartX} ${adjustedStartY} ${adjustedEndX} ${adjustedEndY} ${duration}`,
+    );
   }
 
   async destroy(): Promise<void> {
