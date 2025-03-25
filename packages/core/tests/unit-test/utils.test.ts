@@ -14,7 +14,6 @@ import {
 } from '@/ai-model/service-caller';
 import { getAIConfig, overrideAIConfig, vlLocateMode } from '@/env';
 import {
-  bboxToRect,
   getLogDir,
   getTmpDir,
   getTmpFile,
@@ -96,11 +95,6 @@ describe('utils', () => {
     expect(reportB).toContain(
       `<script type="midscene_web_dump" type="application/json">${content}</script>`,
     );
-  });
-
-  it('bboxToRect', () => {
-    const result = bboxToRect([100, 200, 300, 400]);
-    expect(result).toEqual({ left: 100, top: 200, width: 200, height: 200 });
   });
 });
 
