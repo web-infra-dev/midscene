@@ -51,10 +51,6 @@
       "types": "./dist/types/midscene-playground.d.ts",
       "default": "./dist/lib/midscene-playground.js"
     },
-    "./android": {
-      "types": "./dist/types/android.d.ts",
-      "default": "./dist/lib/android.js"
-    },
     "./chrome-extension": {
       "types": "./dist/types/chrome-extension.d.ts",
       "default": "./dist/lib/chrome-extension.js"
@@ -76,7 +72,6 @@
       "playwright-report": ["./dist/types/playwright-report.d.ts"],
       "playground": ["./dist/types/playground.d.ts"],
       "midscene-playground": ["./dist/types/midscene-playground.d.ts"],
-      "android": ["./dist/types/android.d.ts"],
       "chrome-extension": ["./dist/types/chrome-extension.d.ts"],
       "yaml": ["./dist/types/yaml.d.ts"]
     }
@@ -89,12 +84,10 @@
     "build:watch": "modern build -w -c ./modern.config.ts",
     "test": "vitest --run",
     "test:u": "vitest --run -u",
-    "test:ai": "AI_TEST_TYPE=web npm run test",
-    "test:ai:temp": "MIDSCENE_CACHE=true AI_TEST_TYPE=web BRIDGE_MODE=true vitest --run tests/ai/bridge/open-new-tab.test.ts",
-    "test:ai:bridge": "MIDSCENE_CACHE=true BRIDGE_MODE=true AI_TEST_TYPE=web npm run test --inspect tests/ai/bridge/temp.test.ts",
-    "test:ai:cache": "MIDSCENE_CACHE=true AI_TEST_TYPE=web npm run test",
-    "test:ai:all": "npm run test:ai:web && npm run test:ai:native",
-    "test:ai:native": "MIDSCENE_CACHE=true AI_TEST_TYPE=native npm run test",
+    "test:ai": "npm run test",
+    "test:ai:temp": "MIDSCENE_CACHE=true BRIDGE_MODE=true vitest --run tests/ai/bridge/open-new-tab.test.ts",
+    "test:ai:bridge": "MIDSCENE_CACHE=true BRIDGE_MODE=true npm run test --inspect tests/ai/bridge/temp.test.ts",
+    "test:ai:cache": "MIDSCENE_CACHE=true npm run test",
     "upgrade": "modern upgrade",
     "prepublishOnly": "npm run build",
     "e2e": "playwright test --config=tests/playwright.config.ts",
@@ -108,7 +101,6 @@
     "@midscene/core": "workspace:*",
     "@midscene/shared": "workspace:*",
     "@xmldom/xmldom": "0.8.10",
-    "appium-adb": "12.12.1",
     "cors": "2.8.5",
     "dayjs": "1.11.11",
     "devtools-protocol": "0.0.1380148",

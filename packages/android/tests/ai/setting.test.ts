@@ -1,5 +1,5 @@
-import { AndroidAgent } from '@/android';
 import { describe, it, vi } from 'vitest';
+import { AndroidAgent } from '../../src';
 import { launchPage } from './utils';
 
 vi.setConfig({

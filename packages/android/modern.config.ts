@@ -1,3 +1,4 @@
+import path from 'node:path';
 import { defineConfig, moduleTools } from '@modern-js/module-tools';
 
 export default defineConfig({

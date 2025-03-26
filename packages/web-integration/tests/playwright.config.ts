@@ -1,7 +1,6 @@
 import path from 'node:path';
 // import { fileURLToPath } from 'node:url';
 import { defineConfig, devices } from '@playwright/test';
-//@ts-ignore
 import dotenv from 'dotenv';
 
 // 添加这两行获取当前文件目录（ES 模块兼容方式）

@@ -1,5 +1,4 @@
 import path from 'node:path';
-//@ts-ignore
 import dotenv from 'dotenv';
 import { defineConfig } from 'vitest/config';
 

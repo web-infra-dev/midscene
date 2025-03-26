@@ -4,6 +4,12 @@
     "baseUrl": "../",
     "rootDir": "../"
   },
-  "include": ["**/*", "../src", "playwright.config.ts"],
+  "include": [
+    "**/*",
+    "../src",
+    "playwright.config.ts",
+    "../../android/tests/setting.test.ts",
+    "../../android/tests/todo.test.ts"
+  ],
   "exclude": ["**/node_modules"]
 }

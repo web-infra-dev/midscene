@@ -1,7 +1,7 @@
 import { exec } from 'node:child_process';
 import { promisify } from 'node:util';
 import type { StartAppOptions } from 'appium-adb';
-import { AndroidPage } from '../../../../src/android';
+import { Page as AndroidPage } from '../../src/page';
 const execPromise = promisify(exec);
 
 interface LaunchOptions {
