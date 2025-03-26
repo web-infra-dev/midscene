@@ -19,5 +19,8 @@
     "targetcreated",
     "Volcengine",
     "Yadb"
-  ]
+  ],
+  "[jsonc]": {
+    "editor.defaultFormatter": "biomejs.biome"
+  }
 }
