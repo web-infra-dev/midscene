@@ -1,1 +1,2 @@
-export { AndroidAgent, AndroidPage } from '@midscene/web/android';
+export { PageAgent as AndroidAgent } from '@midscene/web';
+export { Page as AndroidPage } from './page';

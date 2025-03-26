@@ -1,7 +1,6 @@
-import { AndroidAgent } from '@/android';
 import { beforeAll, describe, expect, it, vi } from 'vitest';
+import { AndroidAgent } from '../../src';
 import { launchPage } from './utils';
-import 'dotenv/config'; // read environment variables from .env file
 
 vi.setConfig({
   testTimeout: 240 * 1000,

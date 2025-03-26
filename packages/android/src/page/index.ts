@@ -5,10 +5,8 @@ import { getTmpFile } from '@midscene/core/utils';
 import type { ElementInfo } from '@midscene/shared/extractor';
 import { resizeImg } from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/utils';
+import type { AbstractPage } from '@midscene/web';
 import { ADB } from 'appium-adb';
-import type { KeyInput as PuppeteerKeyInput } from 'puppeteer';
-import type { AbstractPage, MouseButton } from '../page';
-type WebKeyInput = PuppeteerKeyInput;
 
 const debugPage = getDebug('android');
 
@@ -177,8 +175,7 @@ export class Page implements AbstractPage {
 
   get mouse() {
     return {
-      click: (x: number, y: number, options?: { button: MouseButton }) =>
-        this.mouseClick(x, y, options?.button || 'left'),
+      click: (x: number, y: number) => this.mouseClick(x, y),
       wheel: (deltaX: number, deltaY: number) =>
         this.mouseWheel(deltaX, deltaY),
       move: (x: number, y: number) => this.mouseMove(x, y),
@@ -192,8 +189,8 @@ export class Page implements AbstractPage {
       type: (text: string) => this.keyboardType(text),
       press: (
         action:
-          | { key: WebKeyInput; command?: string }
-          | { key: WebKeyInput; command?: string }[],
+          | { key: string; command?: string }
+          | { key: string; command?: string }[],
       ) => this.keyboardPressAction(action),
     };
   }
@@ -301,7 +298,6 @@ export class Page implements AbstractPage {
     // Push the YADB tool to the device only once
     if (!this.yadbPushed) {
       const adb = await this.getAdb();
-
       const yadbBin = path.join(__dirname, '../../bin/yadb');
       await adb.push(yadbBin, '/data/local/tmp');
       this.yadbPushed = true;
@@ -323,7 +319,7 @@ export class Page implements AbstractPage {
     await this.execYadb(text);
   }
 
-  private async keyboardPress(key: WebKeyInput): Promise<void> {
+  private async keyboardPress(key: string): Promise<void> {
     // Map web keys to Android key codes (numbers)
     const keyCodeMap: Record<string, number> = {
       Enter: 66,
@@ -357,8 +353,8 @@ export class Page implements AbstractPage {
 
   private async keyboardPressAction(
     action:
-      | { key: WebKeyInput; command?: string }
-      | { key: WebKeyInput; command?: string }[],
+      | { key: string; command?: string }
+      | { key: string; command?: string }[],
   ): Promise<void> {
     if (Array.isArray(action)) {
       for (const act of action) {
@@ -369,18 +365,7 @@ export class Page implements AbstractPage {
     }
   }
 
-  private async mouseClick(
-    x: number,
-    y: number,
-    button: MouseButton = 'left',
-  ): Promise<void> {
-    // ADB only supports left mouse button clicks
-    if (button !== 'left') {
-      console.warn(
-        `ADB only supports left mouse button clicks. Ignored request for ${button} button.`,
-      );
-    }
-
+  private async mouseClick(x: number, y: number): Promise<void> {
     await this.mouseMove(x, y);
 
     const adb = await this.getAdb();

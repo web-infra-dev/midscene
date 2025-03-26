@@ -1,5 +1,4 @@
 import path from 'node:path';
-//@ts-ignore
 import dotenv from 'dotenv';
 import { defineConfig } from 'vitest/config';
 import { version } from './package.json';
@@ -12,24 +11,7 @@ dotenv.config({
   path: path.join(__dirname, '../../.env'),
 });
 
-const aiTestType = process.env.AI_TEST_TYPE;
-const unitTests = ['tests/unit-test/**/*.test.ts'];
-const aiWebTests = [
-  'tests/ai/web/**/*.test.ts',
-  'tests/ai/bridge/**/*.test.ts',
-];
-const aiNativeTests = ['tests/ai/native/**/*.test.ts'];
-// const aiNativeTests = ['tests/ai/native/android/dongchedi.test.ts'];
-const testFiles = (() => {
-  switch (aiTestType) {
-    case 'web':
-      return [...aiWebTests];
-    case 'native':
-      return [...aiNativeTests];
-    default:
-      return unitTests;
-  }
-})();
+const testFiles = ['tests/ai/web/**/*.test.ts', 'tests/ai/bridge/**/*.test.ts'];
 
 export default defineConfig({
   resolve: {

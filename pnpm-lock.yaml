@@ -136,9 +136,18 @@ importers:
 
   packages/android:
     dependencies:
+      '@midscene/core':
+        specifier: workspace:*
+        version: link:../core
+      '@midscene/shared':
+        specifier: workspace:*
+        version: link:../shared
       '@midscene/web':
         specifier: workspace:*
         version: link:../web-integration
+      appium-adb:
+        specifier: 12.12.1
+        version: 12.12.1
     devDependencies:
       '@modern-js/module-tools':
         specifier: 2.60.6
@@ -146,9 +155,15 @@ importers:
       '@types/node':
         specifier: ^18.0.0
         version: 18.19.62
+      dotenv:
+        specifier: 16.4.5
+        version: 16.4.5
       typescript:
         specifier: ^5.8.2
         version: 5.8.2
+      vitest:
+        specifier: 3.0.5
+        version: 3.0.5(@types/debug@4.1.12)(@types/node@18.19.62)(jsdom@24.1.1)(less@4.2.2)(sass-embedded@1.83.4)(terser@5.36.0)
 
   packages/cli:
     dependencies:
@@ -309,6 +324,9 @@ importers:
       '@types/node':
         specifier: ^18.0.0
         version: 18.19.62
+      dotenv:
+        specifier: 16.4.5
+        version: 16.4.5
       rimraf:
         specifier: ~3.0.2
         version: 3.0.2
@@ -421,9 +439,6 @@ importers:
       '@xmldom/xmldom':
         specifier: 0.8.10
         version: 0.8.10
-      appium-adb:
-        specifier: 12.12.1
-        version: 12.12.1
       cors:
         specifier: 2.8.5
         version: 2.8.5

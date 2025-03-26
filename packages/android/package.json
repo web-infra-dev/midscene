@@ -1,9 +1,10 @@
 {
   "name": "@midscene/android",
   "version": "0.13.1",
+  "description": "Android automation library for Midscene",
   "main": "./dist/lib/index.js",
   "types": "./dist/types/index.d.ts",
-  "files": ["dist"],
+  "files": ["dist", "bin", "README.md"],
   "exports": {
     ".": {
       "types": "./dist/types/index.d.ts",
@@ -11,17 +12,23 @@
     }
   },
   "scripts": {
-    "build": "modern build -c ./modern.config.ts"
+    "build": "modern build -c ./modern.config.ts",
+    "test": "vitest --run",
+    "test:u": "vitest --run -u",
+    "test:ai": "MIDSCENE_CACHE=true npm run test"
   },
   "dependencies": {
-    "@midscene/web": "workspace:*"
+    "@midscene/web": "workspace:*",
+    "@midscene/core": "workspace:*",
+    "@midscene/shared": "workspace:*",
+    "appium-adb": "12.12.1"
   },
   "devDependencies": {
     "@modern-js/module-tools": "2.60.6",
     "@types/node": "^18.0.0",
-    "typescript": "^5.8.2"
+    "dotenv": "16.4.5",
+    "typescript": "^5.8.2",
+    "vitest": "3.0.5"
   },
-  "author": "",
-  "license": "ISC",
-  "description": ""
+  "license": "MIT"
 }
