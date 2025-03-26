@@ -28,6 +28,7 @@ const pointToBbox = (
     Math.round(Math.min(point.y + bboxSize / 2, height)),
   ];
 };
+
 export async function vlmPlanning(options: {
   userInstruction: string;
   conversationHistory: ChatCompletionMessageParam[];
@@ -50,8 +51,9 @@ export async function vlmPlanning(options: {
     ],
     AIActionType.INSPECT_ELEMENT,
   );
+  const convertedText = convertBboxToCoordinates(res.content);
   const { parsed } = actionParser({
-    prediction: res.content,
+    prediction: convertedText,
     factor: 1000,
   });
   const transformActions: PlanningAction[] = [];
@@ -160,6 +162,41 @@ export async function vlmPlanning(options: {
     realActions: parsed,
     action_summary: getSummary(res.content),
   };
+}
+
+/**
+ * Converts bounding box notation to coordinate points
+ * @param text - The text containing bbox tags to be converted
+ * @returns The text with bbox tags replaced by coordinate points
+ */
+function convertBboxToCoordinates(text: string): string {
+  // Match the four numbers after <bbox>
+  const pattern = /<bbox>(\d+)\s+(\d+)\s+(\d+)\s+(\d+)<\/bbox>/g;
+
+  function replaceMatch(
+    match: string,
+    x1: string,
+    y1: string,
+    x2: string,
+    y2: string,
+  ): string {
+    // Convert strings to numbers and calculate center point
+    const x1Num = Number.parseInt(x1, 10);
+    const y1Num = Number.parseInt(y1, 10);
+    const x2Num = Number.parseInt(x2, 10);
+    const y2Num = Number.parseInt(y2, 10);
+
+    // Use Math.floor to truncate and calculate center point
+    const x = Math.floor((x1Num + x2Num) / 2);
+    const y = Math.floor((y1Num + y2Num) / 2);
+
+    // Return formatted coordinate string
+    return `(${x},${y})`;
+  }
+
+  // Remove [EOS] and replace <bbox> coordinates
+  const cleanedText = text.replace(/\[EOS\]/g, '');
+  return cleanedText.replace(pattern, replaceMatch).trim();
 }
 
 function getPoint(startBox: string, size: { width: number; height: number }) {
