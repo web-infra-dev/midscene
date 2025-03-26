@@ -27,7 +27,7 @@ Midscene 中每个 Agent 都有自己的构造函数。
 
 在 Midscene 中，你可以选择使用自动规划（Auto Planning）或即时操作（Instant Action）。
 
-* `agent.ai()` 是自动规划（Auto Planning）：Midscene 会自动规划操作步骤并执行。它看起来更智能，更像流行的 AI Agent 风格，但可能较慢，且效果依赖于 AI 模型的质量。
+* `agent.ai()` 是自动规划（Auto Planning）：Midscene 会自动规划操作步骤并执行。它更智能，更像流行的 AI Agent 风格，但可能较慢，且效果依赖于 AI 模型的质量。
 * `agent.aiTap()`, `agent.aiHover()`, `agent.aiInput()`, `agent.aiKeyboardPress()`, `agent.aiScroll()` 是即时操作（Instant Action）：Midscene 会直接执行指定的操作，而 AI 模型只负责底层任务，如定位元素等。这种接口形式更快、更可靠。当你完全确定自己想要执行的操作时，推荐使用这种接口形式。
 
 :::
