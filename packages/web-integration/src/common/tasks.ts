@@ -227,7 +227,11 @@ export class PageTaskExecutor {
               output: {
                 element,
               },
-              pageContext,
+              pageContext: {
+                url: pageContext.url,
+                size: pageContext.size,
+                content: pageContext.content,
+              },
               log: {
                 dump: insightDump,
               },
@@ -649,7 +653,11 @@ export class PageTaskExecutor {
           cache: {
             hit: Boolean(planCache),
           },
-          pageContext,
+          pageContext: {
+            url: pageContext.url,
+            size: pageContext.size,
+            content: pageContext.content,
+          },
           recorder: [recordItem],
           usage,
           rawResponse,
