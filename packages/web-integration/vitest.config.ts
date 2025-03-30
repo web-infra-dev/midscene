@@ -11,7 +11,21 @@ dotenv.config({
   path: path.join(__dirname, '../../.env'),
 });
 
-const testFiles = ['tests/ai/web/**/*.test.ts', 'tests/ai/bridge/**/*.test.ts'];
+const aiTestType = process.env.AI_TEST_TYPE;
+const unitTests = ['tests/unit-test/**/*.test.ts'];
+const aiWebTests = [
+  'tests/ai/web/**/*.test.ts',
+  'tests/ai/bridge/**/*.test.ts',
+];
+
+const testFiles = (() => {
+  switch (aiTestType) {
+    case 'web':
+      return [...aiWebTests];
+    default:
+      return unitTests;
+  }
+})();
 
 export default defineConfig({
   resolve: {
