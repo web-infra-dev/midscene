@@ -4,7 +4,7 @@ import type { Point, Size } from '@midscene/core';
 import { getTmpFile } from '@midscene/core/utils';
 import type { ElementInfo } from '@midscene/shared/extractor';
 import { resizeImg } from '@midscene/shared/img';
-import { getDebug } from '@midscene/shared/utils';
+import { getDebug } from '@midscene/shared/logger';
 import type { AbstractPage } from '@midscene/web';
 import { ADB } from 'appium-adb';
 

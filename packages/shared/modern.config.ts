@@ -12,6 +12,7 @@ export default defineConfig({
       'extractor-debug': './src/extractor/debug.ts',
       fs: './src/node/fs.ts',
       utils: './src/utils.ts',
+      logger: './src/logger.ts',
       'us-keyboard-layout': './src/us-keyboard-layout.ts',
     },
     target: 'es2020',

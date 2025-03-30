@@ -4,7 +4,8 @@ import {
   DefaultAzureCredential,
   getBearerTokenProvider,
 } from '@azure/identity';
-import { assert, enableDebug, getDebug } from '@midscene/shared/utils';
+import { enableDebug, getDebug } from '@midscene/shared/logger';
+import { assert } from '@midscene/shared/utils';
 import { ifInBrowser } from '@midscene/shared/utils';
 import dJSON from 'dirty-json';
 import OpenAI, { AzureOpenAI } from 'openai';
