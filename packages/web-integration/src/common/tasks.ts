@@ -208,8 +208,13 @@ export class PageTaskExecutor {
                 },
                 prompt: cachePrompt,
                 response: {
-                  elements: [element],
+                  elements: [
+                    {
+                      id: element.id,
+                    },
+                  ],
                 },
+                element,
               });
             }
             if (!element) {

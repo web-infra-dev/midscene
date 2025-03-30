@@ -2,6 +2,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import type {
   AIElementLocatorResponse,
+  LocateResultElement,
   PlanningAIResponse,
 } from '@midscene/core';
 import type { vlmPlanning } from '@midscene/core/ai-model';
@@ -12,7 +13,8 @@ import {
   writeLogFile,
 } from '@midscene/core/utils';
 import { getRunningPkgInfo } from '@midscene/shared/fs';
-import { getDebug, ifInBrowser } from '@midscene/shared/utils';
+import { getDebug } from '@midscene/shared/logger';
+import { ifInBrowser } from '@midscene/shared/utils';
 import type { WebUIContext } from './utils';
 
 const debug = getDebug('cache');
@@ -54,6 +56,7 @@ export type LocateTask = {
     };
   };
   response: AIElementLocatorResponse;
+  element: LocateResultElement;
 };
 
 export type AiTasks = Array<PlanTask | LocateTask | UITarsPlanTask>;
@@ -233,7 +236,9 @@ export class TaskCache {
           (contentElement) => contentElement.id === id,
         );
         if (!foundInContext) {
-          debug('cannot match element with same id in current page');
+          debug('cannot match element with same id in current page', {
+            element: taskRes.element,
+          });
           return false;
         }
 
