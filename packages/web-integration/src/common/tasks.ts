@@ -208,11 +208,7 @@ export class PageTaskExecutor {
                 },
                 prompt: cachePrompt,
                 response: {
-                  elements: [
-                    {
-                      id: element.id,
-                    },
-                  ],
+                  elements: [element],
                 },
               });
             }
