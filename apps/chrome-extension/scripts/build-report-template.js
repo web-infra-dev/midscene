@@ -14,7 +14,7 @@ const projectRoot = path.resolve(__dirname, '../../..');
 // Path configuration
 const visualizerReportPath = path.join(
   projectRoot,
-  'packages/visualizer/dist/report/index.html',
+  'apps/report/dist/index.html',
 );
 const outputDir = path.join(__dirname, '../dist/scripts');
 const outputFile = path.join(outputDir, 'report-template.js');

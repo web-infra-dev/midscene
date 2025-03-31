@@ -1,0 +1,131 @@
+@import './common.less';
+
+@subSpacing: 5px;
+@lightTextColor: #777;
+
+.detail-side {
+  h2 {
+    padding-top: 0;
+    margin-top: 0;
+    margin-bottom: 4px;
+  }
+
+  .ant-tag{
+    margin-top: 2px;
+  }
+
+  .meta-kv {
+    padding: @side-vertical-spacing @side-horizontal-padding calc(@side-vertical-spacing + 4px);
+    overflow: hidden;
+    .meta {
+      box-sizing: border-box;
+      padding: 2px 0;
+      width: 100%;
+      display: flex;
+      flex-direction: row;
+      line-height: 1.5;
+
+      .meta-key {
+        width:100px;
+        text-align: right;
+        padding-right: 16px;
+        flex-shrink: 0;
+        // color: #999;
+      }
+      
+      .meta-value {
+        flex: 1;
+      }
+    }
+  }
+
+  .item-list {
+    padding: @side-vertical-spacing @side-horizontal-padding;
+
+    cursor:default;
+    margin-bottom: 10px;
+
+    .item {
+      padding: 16px @side-horizontal-padding @side-horizontal-padding;
+      transition: .1s;
+      border: 1px solid #DDD;
+      border-radius: @subSpacing;
+      margin-bottom: @side-vertical-spacing;
+      position: relative;
+
+      &.item-lite {
+        border: none;
+        padding: 0;
+      }
+    }
+
+    .item-highlight {
+      color: #FFF;
+      .subtitle {
+        color: #CCC;
+      }
+    }
+    
+    .item-extra {
+      position: absolute;
+      right: @side-horizontal-padding;
+      top: @side-horizontal-padding;
+      color: @lightTextColor;
+    }
+
+    .title-right-padding {
+      padding-right: 15px;
+    }
+  
+    .title {
+      font-size: 18px;
+      font-weight: bold;
+      margin-bottom: @subSpacing;
+
+      .title-tag {
+        display: inline-block;
+        margin-left: 6px;
+        color: @lightTextColor;
+        font-size: 14px;
+        line-height: 18px;
+      }
+    }
+
+    .subtitle {
+      font-weight: normal;
+      font-size: 14px;
+      color: #777;
+    }
+
+    .description {
+      margin-top: @subSpacing;
+    }
+  
+    .description-content {
+      font-size: 14px;
+      margin-top: @side-horizontal-padding;
+      white-space: break-spaces;
+      word-wrap: break-word;
+      margin: 0;
+    }
+
+    .element-button:hover {
+      // font-weight: bold;
+      color: #fff;
+      background: @main-orange;
+    }
+
+    .section-button:hover {
+      color: #fff;
+      background: #01204E;
+    }
+  }
+
+  pre {
+    text-wrap: balance;
+  }
+
+  .item-list-space-up {
+    margin-top: @side-vertical-spacing;
+  }
+}
