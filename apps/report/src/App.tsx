@@ -305,11 +305,7 @@ const App = () => {
       }
     });
 
-  return (
-    <div style={{ height: '100vh' }}>
-      <Visualizer dumps={reportDump} />
-    </div>
-  );
+  return <Visualizer dumps={reportDump} />;
 };
 
 export default App;

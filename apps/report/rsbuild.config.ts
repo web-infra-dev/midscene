@@ -7,25 +7,49 @@ import { pluginReact } from '@rsbuild/plugin-react';
 const testDataPath = path.join(__dirname, 'test-data', 'online-order.json');
 const testData = JSON.parse(fs.readFileSync(testDataPath, 'utf-8'));
 
+const copyReportTemplate = () => ({
+  name: 'copy-report-template',
+  setup(api) {
+    api.onAfterCreateCompiler(({ compiler }) => {
+      const srcPath = path.join(__dirname, 'dist', 'index.html');
+      const destPath = path.join(
+        __dirname,
+        '..',
+        '..',
+        'packages',
+        'core',
+        'report',
+        'index.html',
+      );
+      fs.mkdirSync(path.dirname(destPath), { recursive: true });
+      fs.copyFileSync(srcPath, destPath);
+    });
+  },
+});
+
 export default defineConfig({
   html: {
     template: './template/index.html',
-    inject: 'body',
-    tags: [
-      {
-        tag: 'script',
-        attrs: {
-          type: 'midscene_web_dump',
-          playwright_test_name: testData.groupName,
-          playwright_test_description: testData.groupDescription,
-          playwright_test_id: '8465e854a4d9a753cc87-1f096ece43c67754f95a',
-          playwright_test_title: 'test open new tab',
-          playwright_test_status: 'passed',
-          playwright_test_duration: '44274',
-        },
-        children: JSON.stringify(testData),
-      },
-    ],
+    inject: 'head',
+    favicon: './assets/logo-plain2.svg',
+    tags:
+      process.env.NODE_ENV === 'development'
+        ? [
+            {
+              tag: 'script',
+              attrs: {
+                type: 'midscene_web_dump',
+                playwright_test_name: testData.groupName,
+                playwright_test_description: testData.groupDescription,
+                playwright_test_id: '8465e854a4d9a753cc87-1f096ece43c67754f95a',
+                playwright_test_title: 'test open new tab',
+                playwright_test_status: 'passed',
+                playwright_test_duration: '44274',
+              },
+              children: JSON.stringify(testData),
+            },
+          ]
+        : [],
   },
   tools: {
     rspack: {
@@ -42,5 +66,5 @@ export default defineConfig({
     inlineScripts: true,
     injectStyles: true,
   },
-  plugins: [pluginReact(), pluginLess()],
+  plugins: [pluginReact(), pluginLess(), copyReportTemplate()],
 });
