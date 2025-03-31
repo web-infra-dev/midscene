@@ -58,8 +58,6 @@ await page.setViewport({
 
 The report files are saved in `./midscene-run/report/` by default.
 
-## How Midscene works
+## How can I learn about Midscene's working process?
 
-It's mainly about the UI parsing and multimodal AI. Here is a flowchart that describes the core process of the interaction between Midscene and AI.
-
-![](/flow.png)
+⁠By reviewing the report file after running the script, you can gain an overview of how Midscene works. 
