@@ -1,6 +1,7 @@
 packages:
   - apps/site
   - apps/chrome-extension
+  - apps/report
   - packages/cli
   - packages/shared
   - packages/core
