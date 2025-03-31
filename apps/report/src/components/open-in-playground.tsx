@@ -54,82 +54,78 @@ export const useServerValid = (shouldRun = true) => {
   return serverValid;
 };
 
-// export default function OpenInPlayground(props?: { context?: UIContext }) {
-//   const [context, setContext] = useState<UIContext | undefined>();
-//   const [contextLoadingCounter, setContextLoadingCounter] = useState(0);
-//   const [isDrawerVisible, setIsDrawerVisible] = useState(false);
-
-//   let ifPlaygroundValid = true;
-//   let invalidReason: React.ReactNode = '';
-//   if (!props?.context) {
-//     ifPlaygroundValid = false;
-//     invalidReason = errorMessageNoContext;
-//   }
-
-//   const showPlayground = () => {
-//     setContextLoadingCounter((c) => c + 1);
-//     setContext(props?.context || undefined);
-//     setIsDrawerVisible(true);
-//   };
-
-//   const handleClose = () => {
-//     setIsDrawerVisible(false);
-//   };
-//   const agent = useStaticPageAgent(context as WebUIContext);
-
-//   if (!ifPlaygroundValid) {
-//     return (
-//       <Tooltip
-//         title={
-//           <pre
-//             style={{
-//               whiteSpace: 'pre-wrap',
-//               wordWrap: 'break-word',
-//               margin: 0,
-//               padding: 0,
-//             }}
-//           >
-//             {invalidReason}
-//           </pre>
-//         }
-//         overlayInnerStyle={{ width: '380px' }}
-//       >
-//         <Button disabled icon={<PlayCircleOutlined />}>
-//           Open in Playground
-//         </Button>
-//       </Tooltip>
-//     );
-//   }
-
-//   return (
-//     <>
-//       <Button onClick={showPlayground} icon={<PlayCircleOutlined />}>
-//         Open in Playground
-//       </Button>
-//       <Drawer
-//         title="Playground"
-//         placement="right"
-//         onClose={handleClose}
-//         open={isDrawerVisible}
-//         width="90%"
-//         styles={{
-//           header: { padding: '16px' },
-//         }}
-//         className="playground-drawer"
-//       >
-//         <Playground
-//           getAgent={() => {
-//             return agent;
-//           }}
-//           dryMode={true}
-//           hideLogo={true}
-//           key={contextLoadingCounter}
-//         />
-//       </Drawer>
-//     </>
-//   );
-// }
-
 export default function OpenInPlayground(props?: { context?: UIContext }) {
-  return <div>OpenInPlayground</div>;
+  const [context, setContext] = useState<UIContext | undefined>();
+  const [contextLoadingCounter, setContextLoadingCounter] = useState(0);
+  const [isDrawerVisible, setIsDrawerVisible] = useState(false);
+
+  let ifPlaygroundValid = true;
+  let invalidReason: React.ReactNode = '';
+  if (!props?.context) {
+    ifPlaygroundValid = false;
+    invalidReason = errorMessageNoContext;
+  }
+
+  const showPlayground = () => {
+    setContextLoadingCounter((c) => c + 1);
+    setContext(props?.context || undefined);
+    setIsDrawerVisible(true);
+  };
+
+  const handleClose = () => {
+    setIsDrawerVisible(false);
+  };
+  const agent = useStaticPageAgent(context as WebUIContext);
+
+  if (!ifPlaygroundValid) {
+    return (
+      <Tooltip
+        title={
+          <pre
+            style={{
+              whiteSpace: 'pre-wrap',
+              wordWrap: 'break-word',
+              margin: 0,
+              padding: 0,
+            }}
+          >
+            {invalidReason}
+          </pre>
+        }
+        overlayInnerStyle={{ width: '380px' }}
+      >
+        <Button disabled icon={<PlayCircleOutlined />}>
+          Open in Playground
+        </Button>
+      </Tooltip>
+    );
+  }
+
+  return (
+    <>
+      <Button onClick={showPlayground} icon={<PlayCircleOutlined />}>
+        Open in Playground
+      </Button>
+      <Drawer
+        title="Playground"
+        placement="right"
+        onClose={handleClose}
+        open={isDrawerVisible}
+        width="90%"
+        styles={{
+          header: { padding: '16px' },
+        }}
+        className="playground-drawer"
+      >
+        <Playground
+          getAgent={() => {
+            return agent;
+          }}
+          dryMode={true}
+          hideLogo={true}
+          key={contextLoadingCounter}
+        />
+      </Drawer>
+    </>
+  );
 }
