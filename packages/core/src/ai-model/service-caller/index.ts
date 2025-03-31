@@ -52,7 +52,8 @@ export function checkAIConfig() {
   return Boolean(getAIConfig(MIDSCENE_OPENAI_INIT_CONFIG_JSON));
 }
 
-const debugProfile = getDebug('ai:profile');
+const debugProfileStats = getDebug('ai:profile:stats');
+const debugProfileDetail = getDebug('ai:profile:detail');
 const debugCall = getDebug('ai:call');
 
 const shouldPrintTiming = getAIConfigInBoolean(MIDSCENE_DEBUG_AI_PROFILE);
@@ -249,14 +250,11 @@ export async function call(
       ...commonConfig,
     } as any);
 
-    debugProfile(
-      'model %s,%s usage %s, cost %s ms, requestId %s',
-      model,
-      vlLocateMode() ? ` ${vlLocateMode()},` : '',
-      JSON.stringify(result.usage),
-      Date.now() - startTime,
-      result._request_id,
+    debugProfileStats(
+      `model, ${model}, mode, ${vlLocateMode() || 'default'}, prompt-tokens, ${result.usage?.prompt_tokens || ''}, completion-tokens, ${result.usage?.completion_tokens || ''}, total-tokens, ${result.usage?.total_tokens || ''}, cost-ms, ${Date.now() - startTime}, requestId, ${result._request_id || ''}`,
     );
+
+    debugProfileDetail('model usage detail: %s', JSON.stringify(result.usage));
 
     assert(
       result.choices,

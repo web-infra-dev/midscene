@@ -8,7 +8,7 @@ import { getDebug } from '@midscene/shared/logger';
 import type { AbstractPage } from '@midscene/web';
 import { ADB } from 'appium-adb';
 
-const debugPage = getDebug('android');
+const debugPage = getDebug('android:adb');
 
 export class Page implements AbstractPage {
   private deviceId: string;
