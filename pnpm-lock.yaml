@@ -115,6 +115,31 @@ importers:
         specifier: ^5.8.2
         version: 5.8.2
 
+  apps/report:
+    dependencies:
+      react:
+        specifier: ^18.3.1
+        version: 18.3.1
+      react-dom:
+        specifier: ^18.3.1
+        version: 18.3.1(react@18.3.1)
+    devDependencies:
+      '@rsbuild/core':
+        specifier: ^1.2.16
+        version: 1.2.19
+      '@rsbuild/plugin-react':
+        specifier: ^1.1.1
+        version: 1.1.1(@rsbuild/core@1.2.19)
+      '@types/react':
+        specifier: ^18.3.18
+        version: 18.3.18
+      '@types/react-dom':
+        specifier: ^18.3.5
+        version: 18.3.5(@types/react@18.3.18)
+      typescript:
+        specifier: ^5.8.2
+        version: 5.8.2
+
   apps/site:
     dependencies:
       querystring:
