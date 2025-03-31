@@ -168,13 +168,13 @@ export class ScriptPlayer {
         await new Promise((resolve) => setTimeout(resolve, msNumber));
       } else if ((flowItem as MidsceneYamlFlowItemAITap).aiTap) {
         const tapTask = flowItem as MidsceneYamlFlowItemAITap;
-        await agent.aiTap(tapTask.aiTap);
+        await agent.aiTap(tapTask.aiTap, tapTask);
       } else if ((flowItem as MidsceneYamlFlowItemAIHover).aiHover) {
         const hoverTask = flowItem as MidsceneYamlFlowItemAIHover;
-        await agent.aiHover(hoverTask.aiHover);
+        await agent.aiHover(hoverTask.aiHover, hoverTask);
       } else if ((flowItem as MidsceneYamlFlowItemAIInput).aiInput) {
         const inputTask = flowItem as MidsceneYamlFlowItemAIInput;
-        await agent.aiInput(inputTask.aiInput, inputTask.locate);
+        await agent.aiInput(inputTask.aiInput, inputTask.locate, inputTask);
       } else if (
         (flowItem as MidsceneYamlFlowItemAIKeyboardPress).aiKeyboardPress
       ) {
@@ -183,10 +183,14 @@ export class ScriptPlayer {
         await agent.aiKeyboardPress(
           keyboardPressTask.aiKeyboardPress,
           keyboardPressTask.locate,
+          keyboardPressTask,
         );
-      } else if ((flowItem as MidsceneYamlFlowItemAIScroll).aiScroll) {
+      } else if (
+        typeof (flowItem as MidsceneYamlFlowItemAIScroll).aiScroll !==
+        'undefined'
+      ) {
         const scrollTask = flowItem as MidsceneYamlFlowItemAIScroll;
-        await agent.aiScroll(scrollTask.aiScroll, scrollTask.locate);
+        await agent.aiScroll(scrollTask, scrollTask.locate, scrollTask);
       } else {
         throw new Error(`unknown flowItem: ${JSON.stringify(flowItem)}`);
       }

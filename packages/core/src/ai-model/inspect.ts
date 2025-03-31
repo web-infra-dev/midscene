@@ -77,6 +77,7 @@ export async function transformElementPositionToId(
   aiResult: AIElementResponse | [number, number],
   treeRoot: ElementTreeNode<BaseElement>,
   size: { width: number; height: number },
+  searchAreaRect: Rect | undefined,
   insertElementByPosition: (position: { x: number; y: number }) => BaseElement,
 ) {
   const emptyResponse: AIElementResponse = {
@@ -100,8 +101,14 @@ export async function transformElementPositionToId(
       return emptyResponse;
     }
 
-    const centerX = Math.round((aiResult.bbox[0] + aiResult.bbox[2]) / 2);
-    const centerY = Math.round((aiResult.bbox[1] + aiResult.bbox[3]) / 2);
+    const bbox: [number, number, number, number] = [
+      aiResult.bbox[0] + (searchAreaRect?.left || 0),
+      aiResult.bbox[1] + (searchAreaRect?.top || 0),
+      aiResult.bbox[2] + (searchAreaRect?.left || 0),
+      aiResult.bbox[3] + (searchAreaRect?.top || 0),
+    ];
+    const centerX = Math.round((bbox[0] + bbox[2]) / 2);
+    const centerY = Math.round((bbox[1] + bbox[3]) / 2);
 
     let element = elementAtPosition({ x: centerX, y: centerY });
 
@@ -113,7 +120,7 @@ export async function transformElementPositionToId(
     }
     assert(
       element,
-      `inspect: no element found with coordinates: ${JSON.stringify(aiResult.bbox)}`,
+      `inspect: no element found with coordinates: ${JSON.stringify(bbox)}`,
     );
     return {
       errors: [],
@@ -122,7 +129,7 @@ export async function transformElementPositionToId(
           id: element.id,
         },
       ],
-      bbox: aiResult.bbox,
+      bbox,
     };
   }
 
@@ -315,6 +322,7 @@ export async function AiLocateElement<
     res.content,
     context.tree,
     size,
+    options.searchConfig?.rect,
     insertElementByPosition,
   );
 

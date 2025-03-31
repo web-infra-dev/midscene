@@ -7,13 +7,13 @@ import type {
   AISingleElementResponse,
   AIUsageInfo,
   BaseElement,
+  DetailedLocateParam,
   DumpSubscriber,
   InsightAction,
   InsightAssertionResponse,
   InsightExtractParam,
   InsightOptions,
   InsightTaskInfo,
-  LocateParam,
   LocateResult,
   PartialInsightDumpFromSDK,
   Rect,
@@ -67,7 +67,10 @@ export default class Insight<
     }
   }
 
-  async locate(query: LocateParam, opt?: LocateOpts): Promise<LocateResult> {
+  async locate(
+    query: DetailedLocateParam,
+    opt?: LocateOpts,
+  ): Promise<LocateResult> {
     const { callAI } = opt || {};
     const queryPrompt = typeof query === 'string' ? query : query.prompt;
     assert(
@@ -78,11 +81,10 @@ export default class Insight<
     this.onceDumpUpdatedFn = undefined;
     let searchAreaPrompt = undefined;
 
-    if (typeof query === 'object') {
-      searchAreaPrompt = query.searchArea;
-      if (!searchAreaPrompt && query.deepThink) {
-        searchAreaPrompt = query.prompt;
-      }
+    assert(typeof query === 'object', 'query should be an object for locate');
+    searchAreaPrompt = query.searchArea;
+    if (!searchAreaPrompt && query.deepThink) {
+      searchAreaPrompt = query.prompt;
     }
 
     const context = await this.contextRetrieverFn('locate');
@@ -152,6 +154,7 @@ export default class Insight<
       matchedRect: rect,
       data: null,
       taskInfo,
+      deepThink: !!searchArea,
       error: errorLog,
     };
 

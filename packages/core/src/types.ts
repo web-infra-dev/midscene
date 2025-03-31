@@ -201,6 +201,7 @@ export interface InsightDump extends DumpMeta {
   quickAnswer?: Partial<AISingleElementResponse> | null;
   matchedElement: BaseElement[];
   matchedRect?: Rect;
+  deepThink?: boolean;
   data: any;
   assertionPass?: boolean;
   assertionThought?: string;
@@ -271,7 +272,7 @@ export interface PlanningAction<ParamType = any> {
     | 'Sleep'
     | 'Finished';
   param: ParamType;
-  locate: PlanningLocateParam | null;
+  locate?: PlanningLocateParam | null;
 }
 
 export interface PlanningAIResponse {
@@ -368,7 +369,7 @@ export interface ExecutionTaskApply<
   subType?: string;
   param?: TaskParam;
   thought?: string;
-  locate: PlanningLocateParam | null;
+  locate?: PlanningLocateParam | null;
   quickAnswer?: AISingleElementResponse | null;
   pageContext?: UIContext;
   executor: (

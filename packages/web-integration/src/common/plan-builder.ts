@@ -1,5 +1,5 @@
 import type {
-  LocateParam,
+  DetailedLocateParam,
   PlanningAction,
   PlanningActionParamHover,
   PlanningActionParamInputOrKeyPress,
@@ -14,17 +14,13 @@ const debug = getDebug('plan-builder');
 
 export function buildPlans(
   type: PlanningAction['type'],
-  locate?: LocateParam,
+  locateParam?: DetailedLocateParam,
   param?:
-    | PlanningActionParamTap
-    | PlanningActionParamHover
     | PlanningActionParamInputOrKeyPress
     | PlanningActionParamScroll
     | PlanningActionParamSleep,
 ): PlanningAction[] {
   let returnPlans: PlanningAction[] = [];
-  const locateParam =
-    typeof locate === 'string' ? { prompt: locate } : (locate ?? null);
   const locatePlan: PlanningAction<PlanningLocateParam> | null = locateParam
     ? {
         type: 'Locate',
@@ -34,7 +30,7 @@ export function buildPlans(
       }
     : null;
   if (type === 'Tap' || type === 'Hover') {
-    assert(locate && locateParam, `missing locate info for action "${type}"`);
+    assert(locateParam, `missing locate info for action "${type}"`);
     assert(locatePlan, `missing locate info for action "${type}"`);
     const tapPlan: PlanningAction<PlanningActionParamTap> = {
       type,
@@ -47,7 +43,7 @@ export function buildPlans(
   }
   if (type === 'Input' || type === 'KeyboardPress') {
     if (type === 'Input') {
-      assert(locate && locateParam, `missing locate info for action "${type}"`);
+      assert(locateParam, `missing locate info for action "${type}"`);
     }
     assert(param, `missing param for action "${type}"`);
 
