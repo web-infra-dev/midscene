@@ -1,22 +1,32 @@
 {
   "name": "@midscene/report",
-  "version": "0.12.4",
+  "version": "1.0.0",
   "private": true,
-  "type": "module",
   "scripts": {
+    "dev": "rsbuild dev",
     "build": "rsbuild build",
-    "dev": "rsbuild dev --open",
     "preview": "rsbuild preview"
   },
   "dependencies": {
-    "react": "^18.3.1",
-    "react-dom": "^18.3.1"
+    "@ant-design/icons": "^5.0.0",
+    "@midscene/core": "workspace:*",
+    "@midscene/web": "workspace:*",
+    "@types/chrome": "0.0.279",
+    "@midscene/visualizer": "workspace:*",
+    "@modern-js/runtime": "^2.0.0",
+    "antd": "^5.0.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-resizable-panels": "^1.0.0",
+    "zustand": "^4.0.0",
+    "pixi-filters": "6.0.5",
+    "pixi.js": "8.1.1"
   },
   "devDependencies": {
-    "@rsbuild/core": "^1.2.16",
-    "@rsbuild/plugin-react": "^1.1.1",
-    "@types/react": "^18.3.18",
-    "@types/react-dom": "^18.3.5",
-    "typescript": "^5.8.2"
+    "@rsbuild/core": "^0.4.0",
+    "@rsbuild/plugin-react": "^0.4.0",
+    "@types/react": "^18.2.0",
+    "@types/react-dom": "^18.2.0",
+    "typescript": "^5.0.0"
   }
 }
