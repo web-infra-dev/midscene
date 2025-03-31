@@ -5,7 +5,8 @@
   "scripts": {
     "dev": "rsbuild dev",
     "build": "rsbuild build",
-    "preview": "rsbuild preview"
+    "preview": "rsbuild preview",
+    "e2e": "node ../../packages/cli/bin/midscene ./e2e/"
   },
   "dependencies": {
     "@ant-design/icons": "^5.3.1",

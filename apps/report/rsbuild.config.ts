@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { defineConfig } from '@rsbuild/core';
 import { pluginLess } from '@rsbuild/plugin-less';
+import { pluginNodePolyfill } from '@rsbuild/plugin-node-polyfill';
 import { pluginReact } from '@rsbuild/plugin-react';
 
 const testDataPath = path.join(__dirname, 'test-data', 'online-order.json');
@@ -10,7 +11,7 @@ const testData = JSON.parse(fs.readFileSync(testDataPath, 'utf-8'));
 const copyReportTemplate = () => ({
   name: 'copy-report-template',
   setup(api) {
-    api.onAfterCreateCompiler(({ compiler }) => {
+    api.onAfterBuild(({ compiler }) => {
       const srcPath = path.join(__dirname, 'dist', 'index.html');
       const destPath = path.join(
         __dirname,
@@ -50,6 +51,14 @@ export default defineConfig({
           ]
         : [],
   },
+  resolve: {
+    alias: {
+      async_hooks: path.join(__dirname, './src/blank_polyfill.ts'),
+    },
+  },
+  dev: {
+    writeToDisk: true,
+  },
   tools: {
     rspack: {
       module: {
@@ -65,5 +74,10 @@ export default defineConfig({
     inlineScripts: true,
     injectStyles: true,
   },
-  plugins: [pluginReact(), pluginLess(), copyReportTemplate()],
+  plugins: [
+    pluginReact(),
+    pluginLess(),
+    pluginNodePolyfill(),
+    copyReportTemplate(),
+  ],
 });
