@@ -1,9 +1,10 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { defineConfig } from '@rsbuild/core';
+import { pluginLess } from '@rsbuild/plugin-less';
 import { pluginReact } from '@rsbuild/plugin-react';
 
-const testDataPath = path.join(__dirname, 'test-data', 'ai-todo.json');
+const testDataPath = path.join(__dirname, 'test-data', 'online-order.json');
 const testData = JSON.parse(fs.readFileSync(testDataPath, 'utf-8'));
 
 export default defineConfig({
@@ -26,9 +27,20 @@ export default defineConfig({
       },
     ],
   },
+  tools: {
+    rspack: {
+      module: {
+        parser: {
+          javascript: {
+            dynamicImportMode: 'eager',
+          },
+        },
+      },
+    },
+  },
   output: {
     inlineScripts: true,
     injectStyles: true,
   },
-  plugins: [pluginReact()],
+  plugins: [pluginReact(), pluginLess()],
 });

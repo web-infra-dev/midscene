@@ -2,7 +2,6 @@ import './App.css';
 import './index.less';
 
 import { CaretRightOutlined } from '@ant-design/icons';
-import { Helmet } from '@modern-js/runtime/head';
 import { Alert, Button, ConfigProvider, Empty, Spin } from 'antd';
 import { useEffect, useRef, useState } from 'react';
 import ReactDOM from 'react-dom/client';
@@ -272,46 +271,11 @@ export function Visualizer(props: VisualizerProps): JSX.Element {
 
 // Main App component using Visualizer
 const App = () => {
-  return (
-    <div style={{ height: '100vh' }}>
-      <Visualizer />
-    </div>
-  );
-};
-
-// Export mount function for backward compatibility
-export function mount(id: string) {
-  const element = document.getElementById(id);
-  if (!element) {
-    throw new Error(`failed to get element for id: ${id}`);
-  }
-  const root = ReactDOM.createRoot(element);
-
   const dumpElements = document.querySelectorAll(
     'script[type="midscene_web_dump"]',
   );
-  if (dumpElements.length === 1 && dumpElements[0].textContent?.trim() === '') {
-    const errorPanel = (
-      <div
-        style={{
-          width: '100%',
-          height: '100%',
-          padding: '100px',
-          boxSizing: 'border-box',
-        }}
-      >
-        <Alert
-          message="Midscene.js - Error"
-          description="There is no dump data to display."
-          type="error"
-          showIcon
-        />
-      </div>
-    );
-    return root.render(errorPanel);
-  }
-
   const reportDump: ExecutionDumpWithPlaywrightAttributes[] = [];
+
   Array.from(dumpElements)
     .filter((el) => {
       const textContent = el.textContent;
@@ -341,7 +305,11 @@ export function mount(id: string) {
       }
     });
 
-  root.render(<Visualizer dumps={reportDump} />);
-}
+  return (
+    <div style={{ height: '100vh' }}>
+      <Visualizer dumps={reportDump} />
+    </div>
+  );
+};
 
 export default App;

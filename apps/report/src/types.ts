@@ -1,4 +1,5 @@
 import type { GroupedActionDump } from '@midscene/core';
+import type { AnimationScript } from './components/replay-scripts';
 
 // Core visualization types
 export interface ExecutionDumpWithPlaywrightAttributes
@@ -17,9 +18,9 @@ export interface StoreState {
   _executionDumpLoadId: number;
   replayAllMode: boolean;
   setReplayAllMode: (mode: boolean) => void;
-  allExecutionAnimation: any[];
-  insightWidth: number;
-  insightHeight: number;
+  allExecutionAnimation: AnimationScript[] | null;
+  insightWidth: number | null;
+  insightHeight: number | null;
   setGroupedDump: (dump: GroupedActionDump) => void;
   reset: () => void;
 }
