@@ -31,7 +31,6 @@ export default defineConfig({
   html: {
     template: './template/index.html',
     inject: 'head',
-    favicon: './assets/logo-plain2.svg',
     tags:
       process.env.NODE_ENV === 'development'
         ? [
