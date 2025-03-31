@@ -37,20 +37,6 @@ export default defineConfig({
       target: 'es2020',
       externals: [...externals, 'react', 'react-dom'],
     },
-    {
-      ...commonConfig,
-      alias: {
-        async_hooks: path.join(__dirname, './src/blank_polyfill.ts'),
-      },
-      format: 'iife',
-      dts: false,
-      input: {
-        'playground-entry': 'src/extension/playground-entry.tsx',
-      },
-      platform: 'browser',
-      outDir: 'unpacked-extension/lib',
-      target: 'es2020',
-    },
   ],
   plugins: [
     moduleTools(),
