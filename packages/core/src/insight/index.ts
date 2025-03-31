@@ -1,7 +1,11 @@
 import { callAiFn, expandSearchArea } from '@/ai-model/common';
 import { AiExtractElementInfo, AiLocateElement } from '@/ai-model/index';
 import { AiAssert, AiLocateSection } from '@/ai-model/inspect';
-import { vlLocateMode } from '@/env';
+import {
+  MIDSCENE_FORCE_DEEP_THINK,
+  getAIConfigInBoolean,
+  vlLocateMode,
+} from '@/env';
 import type {
   AIElementResponse,
   AISingleElementResponse,
@@ -83,7 +87,14 @@ export default class Insight<
 
     assert(typeof query === 'object', 'query should be an object for locate');
     searchAreaPrompt = query.searchArea;
-    if (!searchAreaPrompt && query.deepThink) {
+
+    const globalDeepThinkSwitch = getAIConfigInBoolean(
+      MIDSCENE_FORCE_DEEP_THINK,
+    );
+    if (globalDeepThinkSwitch) {
+      debug('globalDeepThinkSwitch', globalDeepThinkSwitch);
+    }
+    if (!searchAreaPrompt && (query.deepThink || globalDeepThinkSwitch)) {
       searchAreaPrompt = query.prompt;
     }
 
