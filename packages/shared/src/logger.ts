@@ -1,19 +1,9 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import debug from 'debug';
+import { isNodeEnv, logDir } from './common';
 
 const topicPrefix = 'midscene';
-const isNodeEnv =
-  typeof process !== 'undefined' &&
-  process.versions != null &&
-  process.versions.node != null;
-
-// Create log directory if it doesn't exist
-const logDir = path.join(process.cwd(), 'midscene_run', 'log');
-if (isNodeEnv && !fs.existsSync(logDir)) {
-  fs.mkdirSync(logDir, { recursive: true });
-}
-
 // Map to store file streams
 const logStreams = new Map<string, fs.WriteStream>();
 
@@ -49,10 +39,10 @@ export function getDebug(topic: string): DebugFunction {
 
     if (isNodeEnv) {
       writeLogToFile(topic, message);
-    } else {
-      const debugFn = debug(`${topicPrefix}:${topic}`) as DebugFunction;
-      debugFn(...args);
     }
+
+    const debugFn = debug(`${topicPrefix}:${topic}`) as DebugFunction;
+    debugFn(...args);
   };
 }
 
