@@ -30,7 +30,7 @@ const copyReportTemplate = () => ({
 export default defineConfig({
   html: {
     template: './template/index.html',
-    inject: 'head',
+    inject: 'body',
     tags:
       process.env.NODE_ENV === 'development'
         ? [
