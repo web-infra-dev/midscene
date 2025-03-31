@@ -23,7 +23,8 @@ import type {
   Rect,
   UIContext,
 } from '@/types';
-import { assert, getDebug } from '@midscene/shared/utils';
+import { getDebug } from '@midscene/shared/logger';
+import { assert } from '@midscene/shared/utils';
 import { emitInsightDump } from './utils';
 
 export interface LocateOpts {

@@ -1,25 +1,14 @@
 import { sha256 } from 'js-sha256';
 
-import debug from 'debug';
-
 export const ifInBrowser = typeof window !== 'undefined';
 
-export function uuid() {
+export function uuid(): string {
   return Math.random().toString(36).substring(2, 15);
 }
 
 const hashMap: Record<string, string> = {}; // id - combined
 
-const topicPrefix = 'midscene';
-export function getDebug(topic: string) {
-  return debug(`${topicPrefix}:${topic}`);
-}
-
-export function enableDebug(topic: string) {
-  debug.enable(`${topicPrefix}:${topic}`);
-}
-
-export function generateHashId(rect: any, content = '') {
+export function generateHashId(rect: any, content = ''): string {
   // Combine the input into a string
   const combined = JSON.stringify({
     content,
@@ -32,7 +21,7 @@ export function generateHashId(rect: any, content = '') {
   const hashHex = sha256.create().update(combined).hex();
 
   // Convert hex to a-z by mapping each hex char to a letter
-  const toLetters = (hex: string) => {
+  const toLetters = (hex: string): string => {
     return hex
       .split('')
       .map((char) => {
@@ -69,13 +58,15 @@ export function assert(condition: any, message?: string): asserts condition {
   }
 }
 
-export function getGlobalScope() {
+type GlobalScope = typeof window | typeof globalThis | typeof self | undefined;
+
+export function getGlobalScope(): GlobalScope {
   if (typeof window !== 'undefined') {
     return window;
   }
 
-  if (typeof global !== 'undefined') {
-    return global;
+  if (typeof globalThis !== 'undefined') {
+    return globalThis;
   }
 
   if (typeof self !== 'undefined') {
