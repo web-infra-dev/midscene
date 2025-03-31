@@ -11,3 +11,7 @@ dist/
 .vscode/*
 !.vscode/extensions.json
 .idea
+
+# Midscene.js dump files
+midscene_run/report
+midscene_run/tmp

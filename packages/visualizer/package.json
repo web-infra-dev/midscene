@@ -33,12 +33,11 @@
   },
   "scripts": {
     "dev": "npm run build && npx npm-watch",
-    "build": "modern build && npx tsx scripts/build-html.ts",
+    "build": "modern build ",
     "build:watch": "modern build -w",
     "serve": "http-server ./dist/ -p 3000",
     "new": "modern new",
-    "upgrade": "modern upgrade",
-    "e2e": "node ../cli/bin/midscene ./scripts/midscene/"
+    "upgrade": "modern upgrade"
   },
   "peerDependencies": {
     "react": "^18.2.0",
