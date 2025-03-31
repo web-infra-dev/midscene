@@ -20,7 +20,8 @@ import type {
   UIContext,
 } from '@/types';
 import { cropByRect, paddingToMatchBlockByBase64 } from '@midscene/shared/img';
-import { assert, getDebug } from '@midscene/shared/utils';
+import { getDebug } from '@midscene/shared/logger';
+import { assert } from '@midscene/shared/utils';
 import type {
   ChatCompletionSystemMessageParam,
   ChatCompletionUserMessageParam,
