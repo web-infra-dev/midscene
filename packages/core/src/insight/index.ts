@@ -98,6 +98,13 @@ export default class Insight<
       searchAreaPrompt = query.prompt;
     }
 
+    if (searchAreaPrompt && !vlLocateMode()) {
+      console.warn(
+        'The "deepThink" feature is not supported with general purposed LLM. Please config VL model for Midscene. https://midscenejs.com/choose-a-model',
+      );
+      searchAreaPrompt = undefined;
+    }
+
     const context = await this.contextRetrieverFn('locate');
 
     let searchArea: Rect | undefined = undefined;
@@ -107,11 +114,6 @@ export default class Insight<
       | Awaited<ReturnType<typeof AiLocateSection>>
       | undefined = undefined;
     if (searchAreaPrompt) {
-      assert(
-        vlLocateMode(),
-        'locate with search area is not supported with general purposed LLM. Please use Midscene VL model. https://midscenejs.com/choose-a-model',
-      );
-
       searchAreaResponse = await AiLocateSection({
         context,
         sectionDescription: searchAreaPrompt,
