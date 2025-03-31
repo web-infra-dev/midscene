@@ -170,3 +170,11 @@ export function generateCacheId(fileName?: string): string {
 
 export const ERROR_CODE_NOT_IMPLEMENTED_AS_DESIGNED =
   'NOT_IMPLEMENTED_AS_DESIGNED';
+
+export function contextToDump(context: WebUIContext) {
+  return {
+    url: context.url,
+    size: context.size,
+    tree: context.tree,
+  };
+}

@@ -37,7 +37,7 @@ import { assert } from '@midscene/shared/utils';
 import type { WebElementInfo } from '../web-element';
 import { TaskCache } from './task-cache';
 import { getKeyCommands, taskTitleStr } from './ui-utils';
-import type { WebUIContext } from './utils';
+import { type WebUIContext, contextToDump } from './utils';
 
 interface ExecutionResult<OutputType = any> {
   output: OutputType;
@@ -227,11 +227,7 @@ export class PageTaskExecutor {
               output: {
                 element,
               },
-              pageContext: {
-                url: pageContext.url,
-                size: pageContext.size,
-                content: pageContext.content,
-              },
+              pageContext: contextToDump(pageContext),
               log: {
                 dump: insightDump,
               },
@@ -653,11 +649,7 @@ export class PageTaskExecutor {
           cache: {
             hit: Boolean(planCache),
           },
-          pageContext: {
-            url: pageContext.url,
-            size: pageContext.size,
-            content: pageContext.content,
-          },
+          pageContext: contextToDump(pageContext),
           recorder: [recordItem],
           usage,
           rawResponse,

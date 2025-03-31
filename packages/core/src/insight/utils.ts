@@ -11,7 +11,7 @@ import type {
   InsightDump,
   PartialInsightDumpFromSDK,
 } from '@/types';
-import { getLogDir, getVersion, stringifyDumpData } from '@/utils';
+import { getLogDir, getVersion } from '@/utils';
 import { assert } from '@midscene/shared/utils';
 import { uuid } from '@midscene/shared/utils';
 
