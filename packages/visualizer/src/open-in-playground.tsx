@@ -2,8 +2,11 @@ import { PlayCircleOutlined, SendOutlined } from '@ant-design/icons';
 import type { UIContext } from '@midscene/core';
 import { Button, Drawer, Tooltip } from 'antd';
 import { useEffect, useState } from 'react';
-import { Playground, useStaticPageAgent } from './playground-component';
-import { useEnvConfig } from './store';
+import {
+  Playground,
+  useStaticPageAgent,
+} from './component/playground-component';
+import { useEnvConfig } from './component/store';
 import './open-in-playground.less';
 import type { WebUIContext } from '@midscene/web/utils';
 

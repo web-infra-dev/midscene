@@ -20,8 +20,8 @@ import DemoData from './playground-demo-ui-context.json';
 import type { ReplayScriptsInfo } from './replay-scripts';
 import { allScriptsFromDump } from './replay-scripts';
 import './playground-component.less';
+import { serverBase, useServerValid } from '../open-in-playground';
 import Logo from './logo';
-import { serverBase, useServerValid } from './open-in-playground';
 
 import { overrideAIConfig } from '@midscene/core/env';
 import {

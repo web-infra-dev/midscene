@@ -11,8 +11,8 @@ import {
 import type { ExecutionTaskPlanning } from '@midscene/core/.';
 import { ConfigProvider, Segmented } from 'antd';
 import { useEffect, useState } from 'react';
+import OpenInPlayground from '../open-in-playground';
 import Blackboard from './blackboard';
-import OpenInPlayground from './open-in-playground';
 import Player from './player';
 
 const ScreenshotItem = (props: { time: string; img: string }) => {
