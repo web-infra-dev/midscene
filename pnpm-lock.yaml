@@ -166,9 +166,6 @@ importers:
         specifier: 4.5.2
         version: 4.5.2(@types/react@18.3.18)(immer@9.0.21)(react@18.3.1)
     devDependencies:
-      '@rsbuild/plugin-node-polyfill':
-        specifier: 1.3.0
-        version: 1.3.0(@rsbuild/core@1.3.1)
       '@types/react':
         specifier: ^18.3.18
         version: 18.3.18
