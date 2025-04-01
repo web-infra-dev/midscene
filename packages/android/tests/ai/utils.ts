@@ -1,7 +1,7 @@
 import { exec } from 'node:child_process';
 import { promisify } from 'node:util';
 import type { StartAppOptions } from 'appium-adb';
-import { Page as AndroidPage } from '../../src/page';
+import { AndroidDevice } from '../../src/page';
 const execPromise = promisify(exec);
 
 interface LaunchOptions {
@@ -55,7 +55,7 @@ export async function isDeviceAccessible(deviceId: string): Promise<boolean> {
  * @returns AndroidPage instance
  * @throws Error when no available device is found
  */
-export async function launchPage(opt: LaunchOptions): Promise<AndroidPage> {
+export async function launchPage(opt: LaunchOptions): Promise<AndroidDevice> {
   // If device ID is provided, use it directly
   let deviceId = opt.deviceId;
 
@@ -85,7 +85,7 @@ export async function launchPage(opt: LaunchOptions): Promise<AndroidPage> {
     );
   }
 
-  const androidPage = new AndroidPage({
+  const androidPage = new AndroidDevice({
     deviceId,
   });
 
