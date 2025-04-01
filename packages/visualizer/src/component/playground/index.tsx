@@ -1,4 +1,3 @@
-import type { UIContext } from '@midscene/core';
 import { overrideAIConfig } from '@midscene/core/env';
 import { Helmet } from '@modern-js/runtime/head';
 import { Form, message } from 'antd';
@@ -27,7 +26,8 @@ import {
 } from './playground-utils';
 import { useServerValid } from './useServerValid';
 import { useStaticPageAgent } from './useStaticPageAgent';
-import './index.less';
+import '../playground-component.less';
+import type { UIContext } from '@midscene/core';
 
 export function Playground({
   getAgent,

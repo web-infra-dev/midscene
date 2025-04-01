@@ -10,7 +10,6 @@ import { ADB } from 'appium-adb';
 
 const debugPage = getDebug('android:adb');
 const androidScreenshotPath = '/data/local/tmp/midscene_screenshot.png';
-const debugPage = getDebug('android');
 
 export class AndroidDevice implements AbstractPage {
   private deviceId: string;
