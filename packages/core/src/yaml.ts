@@ -1,12 +1,13 @@
 import type { PlanningActionParamScroll } from './types';
 
-export interface DetailedLocateParam {
-  prompt: string;
+export interface LocateOption {
   searchArea?: string;
   deepThink?: boolean; // only available in vl model
 }
 
-export type LocateParam = string | DetailedLocateParam;
+export interface DetailedLocateParam extends LocateOption {
+  prompt: string;
+}
 
 export interface scrollParam {
   direction: 'down' | 'up' | 'right' | 'left';
@@ -67,27 +68,29 @@ export interface MidsceneYamlFlowItemAIWaitFor {
   timeout?: number;
 }
 
-export interface MidsceneYamlFlowItemAITap {
-  aiTap: LocateParam;
+export interface MidsceneYamlFlowItemAITap extends LocateOption {
+  aiTap: string;
 }
 
-export interface MidsceneYamlFlowItemAIHover {
-  aiHover: LocateParam;
+export interface MidsceneYamlFlowItemAIHover extends LocateOption {
+  aiHover: string;
 }
 
-export interface MidsceneYamlFlowItemAIInput {
-  aiInput: string;
-  locate: LocateParam;
+export interface MidsceneYamlFlowItemAIInput extends LocateOption {
+  aiInput: string; // value to input
+  locate: string; // where to input
 }
 
-export interface MidsceneYamlFlowItemAIKeyboardPress {
+export interface MidsceneYamlFlowItemAIKeyboardPress extends LocateOption {
   aiKeyboardPress: string;
-  locate?: LocateParam;
+  locate?: string; // where to press, optional
 }
 
-export interface MidsceneYamlFlowItemAIScroll {
-  aiScroll: PlanningActionParamScroll;
-  locate?: LocateParam;
+export interface MidsceneYamlFlowItemAIScroll
+  extends LocateOption,
+    PlanningActionParamScroll {
+  aiScroll: null;
+  locate?: string; // which area to scroll, optional
 }
 
 export interface MidsceneYamlFlowItemSleep {

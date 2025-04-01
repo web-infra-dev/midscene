@@ -54,8 +54,6 @@ await page.setViewport({
 });
 ```
 
-## Midscene 的运行原理
+## 如何了解 Midscene 的运行原理？
 
-简单来讲，Midscene 提取了用户界面的结构信息并发送到多模态 AI 服务进行推理。这个流程图展示了 Midscene 和 AI 的交互流程。
-
-![](/flow.png)
+在运行脚本后，通过查看报告文件，你可以了解 Midscene 的大致运行原理。

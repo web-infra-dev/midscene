@@ -54,7 +54,7 @@ exports[`build plans > input 1`] = `
 exports[`build plans > keyboardPress 1`] = `
 [
   {
-    "locate": null,
+    "locate": undefined,
     "param": {
       "value": "OK",
     },
@@ -67,7 +67,7 @@ exports[`build plans > keyboardPress 1`] = `
 exports[`build plans > scroll 1`] = `
 [
   {
-    "locate": null,
+    "locate": undefined,
     "param": {
       "direction": "down",
       "distance": 100,
