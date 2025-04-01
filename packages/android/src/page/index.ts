@@ -8,7 +8,6 @@ import { getDebug } from '@midscene/shared/logger';
 import type { AbstractPage } from '@midscene/web';
 import { ADB } from 'appium-adb';
 
-const debugPage = getDebug('android:adb');
 const androidScreenshotPath = '/data/local/tmp/midscene_screenshot.png';
 
 export class AndroidDevice implements AbstractPage {
@@ -16,28 +15,70 @@ export class AndroidDevice implements AbstractPage {
   private screenSize: Size | null = null;
   private yadbPushed = false;
   private deviceRatio = 1;
-  private adbInitPromise: Promise<ADB>;
+  private adb: ADB | null = null;
   pageType = 'android';
 
-  constructor({ deviceId }: { deviceId: string }) {
+  constructor(deviceId: string) {
     this.deviceId = deviceId;
-
-    // init ADB Promise
-    this.adbInitPromise = this.initAdb();
   }
 
-  private async initAdb(): Promise<ADB> {
+  public async connect(): Promise<ADB> {
+    if (this.adb) {
+      return this.adb;
+    }
+
     debugPage(`Initializing ADB with device ID: ${this.deviceId}`);
-    const adb = await ADB.createADB({
-      udid: this.deviceId,
-      adbExecTimeout: 60000,
-    });
-    debugPage('ADB initialized successfully');
-    return adb;
+    try {
+      this.adb = await ADB.createADB({
+        udid: this.deviceId,
+        adbExecTimeout: 60000,
+      });
+      debugPage('ADB initialized successfully');
+      return this.adb;
+    } catch (error) {
+      debugPage(`Failed to initialize ADB: ${error}`);
+      throw new Error(`Unable to connect to device ${this.deviceId}: ${error}`);
+    }
   }
 
   public async getAdb(): Promise<ADB> {
-    return this.adbInitPromise;
+    if (!this.adb) {
+      throw new Error('ADB is not initialized. Please call connect() first.');
+    }
+    return this.adb;
+  }
+
+  public async launch(uri: string): Promise<AndroidDevice> {
+    const adb = await this.getAdb();
+
+    try {
+      if (
+        uri.startsWith('http://') ||
+        uri.startsWith('https://') ||
+        uri.includes('://')
+      ) {
+        // If it's a URI with scheme
+        await adb.startUri(uri);
+      } else if (uri.includes('/')) {
+        // If it's in format like 'com.android/settings.Settings'
+        const [appPackage, appActivity] = uri.split('/');
+        await adb.startApp({
+          pkg: appPackage,
+          activity: appActivity,
+        });
+      } else {
+        // Assume it's just a package name
+        await adb.startApp({
+          pkg: uri,
+        });
+      }
+      debugPage(`Successfully launched: ${uri}`);
+    } catch (error) {
+      debugPage(`Error launching ${uri}: ${error}`);
+      throw new Error(`Failed to launch ${uri}: ${error}`);
+    }
+
+    return this;
   }
 
   private async execYadb(keyboardContent: string): Promise<void> {
