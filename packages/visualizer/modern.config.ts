@@ -31,20 +31,7 @@ export default defineConfig({
       dts: false,
       input: {
         extension: 'src/extension.tsx',
-      },
-      platform: 'browser',
-      outDir: 'dist',
-      target: 'es2020',
-      externals: [...externals, 'react', 'react-dom'],
-    },
-    {
-      ...commonConfig,
-      alias: {
-        async_hooks: path.join(__dirname, './src/blank_polyfill.ts'),
-      },
-      dts: false,
-      input: {
-        openInPlayground: 'src/open-in-playground.tsx',
+        playground: 'src/playground.tsx',
       },
       platform: 'browser',
       outDir: 'dist',
