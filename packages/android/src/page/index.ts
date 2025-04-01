@@ -41,7 +41,7 @@ export class AndroidDevice implements AbstractPage {
   }
 
   private async execYadb(keyboardContent: string): Promise<void> {
-    await this.pushYadb();
+    await this.ensureYadb();
 
     const adb = await this.getAdb();
 
@@ -206,7 +206,7 @@ export class AndroidDevice implements AbstractPage {
       return;
     }
 
-    await this.pushYadb();
+    await this.ensureYadb();
 
     const adb = await this.getAdb();
 
@@ -218,7 +218,7 @@ export class AndroidDevice implements AbstractPage {
 
   private async forceScreenshot(path: string): Promise<void> {
     // screenshot which is forbidden by app
-    await this.pushYadb();
+    await this.ensureYadb();
 
     const adb = await this.getAdb();
 
@@ -338,7 +338,7 @@ export class AndroidDevice implements AbstractPage {
     await this.mouseWheel(-scrollDistance, 0, 1000);
   }
 
-  private async pushYadb() {
+  private async ensureYadb() {
     // Push the YADB tool to the device only once
     if (!this.yadbPushed) {
       const adb = await this.getAdb();
