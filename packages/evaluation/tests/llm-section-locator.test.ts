@@ -1,13 +1,13 @@
 import { writeFileSync } from 'node:fs';
-import { MIDSCENE_MODEL_NAME, getAIConfig } from '@midscene/core';
+import { MIDSCENE_MODEL_NAME, type Rect, getAIConfig } from '@midscene/core';
 import { AiLocateSection } from '@midscene/core/ai-model';
 import { vlLocateMode } from '@midscene/core/env';
 import { sleep } from '@midscene/core/utils';
 import { saveBase64Image } from '@midscene/shared/img';
 import dotenv from 'dotenv';
 import { afterAll, expect, test } from 'vitest';
-import { TestResultCollector } from '../src/test-printSummaryr';
-import { annotatePoints, buildContext, getCases } from './util';
+import { TestResultCollector } from '../src/test-analyzer';
+import { annotateRects, buildContext, getCases } from './util';
 
 dotenv.config({
   debug: true,
@@ -27,7 +27,7 @@ if (process.env.CI && !vlLocateMode()) {
 }
 
 afterAll(async () => {
-  await resultCollector.printSummary(failCaseThreshold);
+  await resultCollector.printSummary();
 });
 
 testSources.forEach((source) => {
@@ -41,7 +41,7 @@ testSources.forEach((source) => {
 
       const annotations: Array<{
         indexId: number;
-        points: [number, number, number, number];
+        rect: Rect;
       }> = [];
       for (const [index, testCase] of cases.testCases.entries()) {
         const context = await buildContext(source);
@@ -53,15 +53,15 @@ testSources.forEach((source) => {
         });
 
         if (process.env.UPDATE_ANSWER_DATA) {
-          const { sectionBbox } = result;
+          const { rect } = result;
 
-          if (sectionBbox) {
+          if (rect) {
             const indexId = index + 1;
-            testCase.response_bbox = sectionBbox;
+            testCase.response_rect = rect;
             testCase.annotation_index_id = indexId;
             annotations.push({
               indexId,
-              points: sectionBbox,
+              rect,
             });
           }
 
@@ -69,9 +69,9 @@ testSources.forEach((source) => {
           writeFileSync(aiDataPath, JSON.stringify(cases, null, 2));
         }
         if (annotations.length > 0) {
-          const markedImage = await annotatePoints(
+          const markedImage = await annotateRects(
             context.screenshotBase64,
-            annotations,
+            annotations.map((item) => item.rect),
           );
           await saveBase64Image({
             base64Data: markedImage,
@@ -87,7 +87,8 @@ testSources.forEach((source) => {
         );
       }
 
-      await resultCollector.printSummary(failCaseThreshold);
+      await resultCollector.printSummary();
+      await resultCollector.analyze(source, failCaseThreshold);
       await sleep(3 * 1000);
     },
     360 * 1000,

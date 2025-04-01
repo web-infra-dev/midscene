@@ -4,17 +4,42 @@
     {
       "prompt": "the version info on the top right corner",
       "annotation_index_id": 1,
-      "response_bbox": [1689, 20, 1784, 43]
+      "response_rect": {
+        "left": 1245,
+        "top": 0,
+        "width": 588,
+        "height": 200
+      }
     },
     {
-      "prompt": "‘位置有12个方向’上面有一圈按钮",
+      "prompt": "‘位置有12个方向’上面的一圈按钮",
       "annotation_index_id": 2,
-      "response_bbox": [1075, 569, 1768, 923]
+      "response_rect": {
+        "left": 1025,
+        "top": 524,
+        "width": 792,
+        "height": 447
+      }
+    },
+    {
+      "prompt": "‘位置有12个方向’上面的 Top 按钮",
+      "annotation_index_id": 3,
+      "response_rect": {
+        "left": 1049,
+        "top": 532,
+        "width": 464,
+        "height": 380
+      }
     },
     {
       "prompt": "‘a series of buttons under 'show/hide' switch",
-      "annotation_index_id": 3,
-      "response_bbox": [498, 865, 931, 1053]
+      "annotation_index_id": 4,
+      "response_rect": {
+        "left": 345,
+        "top": 754,
+        "width": 637,
+        "height": 326
+      }
     }
   ]
 }

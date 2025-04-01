@@ -186,6 +186,19 @@ export function warnGPT4oSizeLimit(size: Size) {
   }
 }
 
+export function mergeRects(rects: Rect[]) {
+  const minLeft = Math.min(...rects.map((r) => r.left));
+  const minTop = Math.min(...rects.map((r) => r.top));
+  const maxRight = Math.max(...rects.map((r) => r.left + r.width));
+  const maxBottom = Math.max(...rects.map((r) => r.top + r.height));
+  return {
+    left: minLeft,
+    top: minTop,
+    width: maxRight - minLeft,
+    height: maxBottom - minTop,
+  };
+}
+
 // expand the search area to at least 200 x 200, or add a default padding
 export function expandSearchArea(rect: Rect, screenSize: Size) {
   const minEdgeSize = 200;

@@ -6,6 +6,7 @@ import {
   adaptDoubaoBbox,
   adaptQwenBbox,
   expandSearchArea,
+  mergeRects,
 } from '@/ai-model/common';
 import {
   extractJSONFromCodeBlock,
@@ -301,7 +302,22 @@ describe('doubao-vision', () => {
   });
 });
 
-describe('expandSearchArea', () => {
+describe('search area', () => {
+  it('mergeRects', () => {
+    const result = mergeRects([
+      { left: 10, top: 10, width: 10, height: 500 },
+      { left: 100, top: 100, width: 100, height: 100 },
+    ]);
+    expect(result).toMatchInlineSnapshot(`
+      {
+        "height": 500,
+        "left": 10,
+        "top": 10,
+        "width": 190,
+      }
+    `);
+  });
+
   it('expandSearchArea', () => {
     const result = expandSearchArea(
       { left: 100, top: 100, width: 100, height: 100 },

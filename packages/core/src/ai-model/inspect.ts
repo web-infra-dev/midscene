@@ -31,6 +31,7 @@ import {
   adaptBboxToRect,
   callAiFn,
   expandSearchArea,
+  mergeRects,
 } from './common';
 import { systemPromptToAssert } from './prompt/assertion';
 import { extractDataPrompt, systemPromptToExtract } from './prompt/extraction';
@@ -374,15 +375,29 @@ export async function AiLocateSection(options: {
   let sectionRect: Rect | undefined;
   const sectionBbox = result.content.bbox;
   if (sectionBbox) {
-    sectionRect = adaptBboxToRect(
+    const targetRect = adaptBboxToRect(
       sectionBbox,
       context.size.width,
       context.size.height,
     );
-    debugSection('original sectionRect %j', sectionRect);
+    debugSection('original targetRect %j', targetRect);
+
+    const referenceBboxList = result.content.references_bbox || [];
+    debugSection('referenceBboxList %j', referenceBboxList);
+
+    const referenceRects = referenceBboxList
+      .filter((bbox) => Array.isArray(bbox) && bbox.length === 4)
+      .map((bbox) => {
+        return adaptBboxToRect(bbox, context.size.width, context.size.height);
+      });
+    debugSection('referenceRects %j', referenceRects);
+
+    // merge the sectionRect and referenceRects
+    const mergedRect = mergeRects([targetRect, ...referenceRects]);
+    debugSection('mergedRect %j', mergedRect);
 
     // expand search area to at least 200 x 200
-    sectionRect = expandSearchArea(sectionRect, context.size);
+    sectionRect = expandSearchArea(mergedRect, context.size);
     debugSection('expanded sectionRect %j', sectionRect);
   }
 

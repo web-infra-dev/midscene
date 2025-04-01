@@ -79,11 +79,8 @@ export default class Insight<
     this.onceDumpUpdatedFn = undefined;
     let searchAreaPrompt = undefined;
 
-    if (typeof query === 'object') {
-      searchAreaPrompt = query.searchArea;
-      if (!searchAreaPrompt && query.deepThink) {
-        searchAreaPrompt = query.prompt;
-      }
+    if (typeof query === 'object' && query.deepThink) {
+      searchAreaPrompt = query.prompt;
     }
 
     const context = await this.contextRetrieverFn('locate');

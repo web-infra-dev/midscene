@@ -103,6 +103,7 @@ export interface AIDataExtractionResponse<DataShape> {
 
 export interface AISectionLocatorResponse {
   bbox: [number, number, number, number];
+  references_bbox?: [number, number, number, number][];
   error?: string;
 }
 
