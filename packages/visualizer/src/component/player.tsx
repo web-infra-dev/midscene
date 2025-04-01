@@ -115,7 +115,7 @@ const downloadReport = (content: string): void => {
   a.click();
 };
 
-export default function Player(props?: {
+export function Player(props?: {
   replayScripts?: AnimationScript[];
   imageWidth?: number;
   imageHeight?: number;

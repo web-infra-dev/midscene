@@ -15,7 +15,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
 import Blackboard from './blackboard';
 import { iconForStatus } from './misc';
-import Player from './player';
+import { Player } from './player';
 import DemoData from './playground-demo-ui-context.json';
 import type { ReplayScriptsInfo } from './replay-scripts';
 import { allScriptsFromDump } from './replay-scripts';

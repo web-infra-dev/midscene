@@ -6,9 +6,12 @@ import type {
   GroupedActionDump,
   InsightDump,
 } from '@midscene/core';
+import type { AnimationScript } from '@midscene/visualizer/playground';
+import {
+  allScriptsFromDump,
+  generateAnimationScripts,
+} from '@midscene/visualizer/playground';
 import * as Z from 'zustand';
-import type { AnimationScript } from './replay-scripts';
-import { allScriptsFromDump, generateAnimationScripts } from './replay-scripts';
 
 const { create } = Z;
 export const useBlackboardPreference = create<{
