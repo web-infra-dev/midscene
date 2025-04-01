@@ -1,0 +1,33 @@
+target:
+  url: https://todomvc.com/
+tasks:
+  - name: scroll to bottom
+    flow:
+      - aiScroll:
+        direction: down
+        scrollType: untilBottom
+      - sleep: 2000
+
+  - name: tap
+    flow:
+      - aiAssert: there are some new feature introductions on the page
+      - aiTap: the "submit pull request" button
+        deepThink: true
+      - sleep: 2000
+
+  - name: github page
+    flow:
+      - aiTap: the triangle button on the left of 'Other implementations'
+        deepThink: true
+      - aiInput: 'Breakouts'
+        locate: 'Find a page'
+      - aiScroll:
+        direction: down
+        scrollType: untilBottom
+      - aiScroll:
+        direction: up
+        scrollType: untilTop
+      - aiTap: the number on the right of "Page"
+        deepThink: true
+      - aiAssert: the little triangle button beside "page" section is pointed right
+

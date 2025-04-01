@@ -8,11 +8,9 @@ import {
   type GroupedActionDump,
   Insight,
   type InsightAction,
-  type LocateParam,
+  type LocateOption,
   type OnTaskStartTip,
-  type PlanningActionParamInputOrKeyPress,
   type PlanningActionParamScroll,
-  // type PlanningActionParamScroll,
 } from '@midscene/core';
 
 import { ScriptPlayer, parseYamlScript } from '@/yaml/index';
@@ -178,59 +176,99 @@ export class PageAgent<PageType extends WebPage = WebPage> {
     }
   }
 
-  async aiTap(locate: LocateParam) {
-    const plans = buildPlans('Tap', locate);
+  private buildDetailedLocateParam(locatePrompt: string, opt?: LocateOption) {
+    assert(locatePrompt, 'missing locate prompt');
+    if (typeof opt === 'object') {
+      return {
+        prompt: locatePrompt,
+        ...opt,
+      };
+    }
+    return {
+      prompt: locatePrompt,
+    };
+  }
+
+  async aiTap(locatePrompt: string, opt?: LocateOption) {
+    const detailedLocateParam = this.buildDetailedLocateParam(
+      locatePrompt,
+      opt,
+    );
+    const plans = buildPlans('Tap', detailedLocateParam);
     const { executor, output } = await this.taskExecutor.runPlans(
-      taskTitleStr('Tap', locateParamStr(locate)),
+      taskTitleStr('Tap', locateParamStr(detailedLocateParam)),
       plans,
     );
     this.afterTaskRunning(executor);
     return output;
   }
 
-  async aiHover(locate: LocateParam) {
-    const plans = buildPlans('Hover', locate);
+  async aiHover(locatePrompt: string, opt?: LocateOption) {
+    const detailedLocateParam = this.buildDetailedLocateParam(
+      locatePrompt,
+      opt,
+    );
+    const plans = buildPlans('Hover', detailedLocateParam);
     const { executor, output } = await this.taskExecutor.runPlans(
-      taskTitleStr('Hover', locateParamStr(locate)),
+      taskTitleStr('Hover', locateParamStr(detailedLocateParam)),
       plans,
     );
     this.afterTaskRunning(executor);
     return output;
   }
 
-  async aiInput(value: string, locate: LocateParam) {
+  async aiInput(value: string, locatePrompt: string, opt?: LocateOption) {
     assert(
       typeof value === 'string',
       'input value must be a string, use empty string if you want to clear the input',
     );
-    const plans = buildPlans('Input', locate, {
+    assert(locatePrompt, 'missing locate prompt for input');
+    const detailedLocateParam = this.buildDetailedLocateParam(
+      locatePrompt,
+      opt,
+    );
+    const plans = buildPlans('Input', detailedLocateParam, {
       value,
-    } as PlanningActionParamInputOrKeyPress);
+    });
     const { executor, output } = await this.taskExecutor.runPlans(
-      taskTitleStr('Input', `${locateParamStr(locate)} - ${value}`),
+      taskTitleStr('Input', locateParamStr(detailedLocateParam)),
       plans,
     );
     this.afterTaskRunning(executor);
     return output;
   }
 
-  async aiKeyboardPress(keyName: string, locate?: LocateParam) {
+  async aiKeyboardPress(
+    keyName: string,
+    locatePrompt?: string,
+    opt?: LocateOption,
+  ) {
     assert(keyName, 'missing keyName for keyboard press');
-    const plans = buildPlans('KeyboardPress', locate, {
+    const detailedLocateParam = locatePrompt
+      ? this.buildDetailedLocateParam(locatePrompt, opt)
+      : undefined;
+    const plans = buildPlans('KeyboardPress', detailedLocateParam, {
       value: keyName,
-    } as PlanningActionParamInputOrKeyPress);
+    });
     const { executor, output } = await this.taskExecutor.runPlans(
-      taskTitleStr('KeyboardPress', `${locateParamStr(locate)} - ${keyName}`),
+      taskTitleStr('KeyboardPress', locateParamStr(detailedLocateParam)),
       plans,
     );
     this.afterTaskRunning(executor);
     return output;
   }
 
-  async aiScroll(scrollParam: PlanningActionParamScroll, locate?: LocateParam) {
-    const plans = buildPlans('Scroll', locate, scrollParam);
-    const paramInTitle = locate
-      ? `${locateParamStr(locate)} - ${scrollParamStr(scrollParam)}`
+  async aiScroll(
+    scrollParam: PlanningActionParamScroll,
+    locatePrompt?: string,
+    opt?: LocateOption,
+  ) {
+    const detailedLocateParam = locatePrompt
+      ? this.buildDetailedLocateParam(locatePrompt, opt)
+      : undefined;
+    const plans = buildPlans('Scroll', detailedLocateParam, scrollParam);
+    const paramInTitle = locatePrompt
+      ? `${locateParamStr(detailedLocateParam)} - ${scrollParamStr(scrollParam)}`
       : scrollParamStr(scrollParam);
     const { executor, output } = await this.taskExecutor.runPlans(
       taskTitleStr('Scroll', paramInTitle),

@@ -15,10 +15,10 @@
       "prompt": "‘位置有12个方向’上面的一圈按钮",
       "annotation_index_id": 2,
       "response_rect": {
-        "left": 1025,
-        "top": 524,
-        "width": 792,
-        "height": 447
+        "left": 1049,
+        "top": 526,
+        "width": 639,
+        "height": 386
       }
     },
     {
@@ -26,9 +26,9 @@
       "annotation_index_id": 3,
       "response_rect": {
         "left": 1049,
-        "top": 532,
+        "top": 528,
         "width": 464,
-        "height": 380
+        "height": 384
       }
     },
     {
@@ -37,7 +37,7 @@
       "response_rect": {
         "left": 345,
         "top": 754,
-        "width": 637,
+        "width": 636,
         "height": 326
       }
     }

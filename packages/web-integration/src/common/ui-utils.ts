@@ -1,12 +1,11 @@
 import type {
+  DetailedLocateParam,
   ExecutionTask,
   ExecutionTaskAction,
-  ExecutionTaskActionApply,
   ExecutionTaskInsightAssertion,
   ExecutionTaskInsightLocate,
   ExecutionTaskInsightQuery,
   ExecutionTaskPlanning,
-  LocateParam,
   PlanningActionParamScroll,
 } from '@midscene/core';
 
@@ -37,7 +36,7 @@ export function getKeyCommands(
   }, []);
 }
 
-export function locateParamStr(locate?: LocateParam) {
+export function locateParamStr(locate?: DetailedLocateParam) {
   if (!locate) {
     return '';
   }
@@ -72,7 +71,10 @@ export function taskTitleStr(
     | 'WaitFor',
   prompt: string,
 ) {
-  return `${type} - ${prompt}`;
+  if (prompt) {
+    return `${type} - ${prompt}`;
+  }
+  return type;
 }
 
 export function paramStr(task: ExecutionTask) {
