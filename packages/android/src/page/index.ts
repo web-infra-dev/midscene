@@ -1,6 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import type { Point, Size } from '@midscene/core';
+import type { Size } from '@midscene/core';
 import { getTmpFile } from '@midscene/core/utils';
 import type { ElementInfo } from '@midscene/shared/extractor';
 import { resizeImg } from '@midscene/shared/img';
@@ -8,9 +8,10 @@ import { getDebug } from '@midscene/shared/logger';
 import type { AbstractPage } from '@midscene/web';
 import { ADB } from 'appium-adb';
 
+const androidScreenshotPath = '/data/local/tmp/midscene_screenshot.png';
 const debugPage = getDebug('android');
 
-export class Page implements AbstractPage {
+export class AndroidDevice implements AbstractPage {
   private deviceId: string;
   private screenSize: Size | null = null;
   private yadbPushed = false;
@@ -157,9 +158,14 @@ export class Page implements AbstractPage {
     } catch (error) {
       const screenshotPath = getTmpFile('png')!;
 
-      // Take a screenshot and save it locally
-      await adb.shell('screencap -p /sdcard/screenshot.png');
-      await adb.pull('/sdcard/screenshot.png', screenshotPath);
+      try {
+        // Take a screenshot and save it locally
+        await adb.shell(`screencap -p ${androidScreenshotPath}`);
+      } catch (error) {
+        await this.forceScreenshot(androidScreenshotPath);
+      }
+
+      await adb.pull(androidScreenshotPath, screenshotPath);
       screenshotBuffer = await fs.promises.readFile(screenshotPath);
     }
 
@@ -210,6 +216,17 @@ export class Page implements AbstractPage {
     );
   }
 
+  private async forceScreenshot(path: string): Promise<void> {
+    // screenshot which is forbidden by app
+    await this.pushYadb();
+
+    const adb = await this.getAdb();
+
+    await adb.shell(
+      `app_process -Djava.class.path=/data/local/tmp/yadb /data/local/tmp com.ysbing.yadb.Main -screenshot ${path}`,
+    );
+  }
+
   async url(): Promise<string> {
     const adb = await this.getAdb();
 
@@ -218,78 +235,46 @@ export class Page implements AbstractPage {
     return `${appPackage}/${appActivity}`;
   }
 
-  async scrollUntilTop(startingPoint?: Point): Promise<void> {
-    if (startingPoint) {
-      await this.mouse.move(startingPoint.left, startingPoint.top);
-    }
-
+  async scrollUntilTop(): Promise<void> {
     await this.mouseWheel(0, 9999999, 100);
   }
 
-  async scrollUntilBottom(startingPoint?: Point): Promise<void> {
-    if (startingPoint) {
-      await this.mouse.move(startingPoint.left, startingPoint.top);
-    }
-
+  async scrollUntilBottom(): Promise<void> {
     await this.mouseWheel(0, -9999999, 100);
   }
 
-  async scrollUntilLeft(startingPoint?: Point): Promise<void> {
-    if (startingPoint) {
-      await this.mouse.move(startingPoint.left, startingPoint.top);
-    }
-
+  async scrollUntilLeft(): Promise<void> {
     await this.mouseWheel(9999999, 0, 100);
   }
 
-  async scrollUntilRight(startingPoint?: Point): Promise<void> {
-    if (startingPoint) {
-      await this.mouse.move(startingPoint.left, startingPoint.top);
-    }
-
+  async scrollUntilRight(): Promise<void> {
     await this.mouseWheel(-9999999, 0, 100);
   }
 
-  async scrollUp(distance?: number, startingPoint?: Point): Promise<void> {
+  async scrollUp(distance?: number): Promise<void> {
     const { height } = await this.size();
     const scrollDistance = distance || height * 0.7;
-
-    if (startingPoint) {
-      await this.mouse.move(startingPoint.left, startingPoint.top);
-    }
 
     await this.mouseWheel(0, scrollDistance, 1000);
   }
 
-  async scrollDown(distance?: number, startingPoint?: Point): Promise<void> {
+  async scrollDown(distance?: number): Promise<void> {
     const { height } = await this.size();
     const scrollDistance = distance || height * 0.7;
-
-    if (startingPoint) {
-      await this.mouse.move(startingPoint.left, startingPoint.top);
-    }
 
     await this.mouseWheel(0, -scrollDistance, 1000);
   }
 
-  async scrollLeft(distance?: number, startingPoint?: Point): Promise<void> {
+  async scrollLeft(distance?: number): Promise<void> {
     const { width } = await this.size();
     const scrollDistance = distance || width * 0.7;
-
-    if (startingPoint) {
-      await this.mouse.move(startingPoint.left, startingPoint.top);
-    }
 
     await this.mouseWheel(scrollDistance, 0, 1000);
   }
 
-  async scrollRight(distance?: number, startingPoint?: Point): Promise<void> {
+  async scrollRight(distance?: number): Promise<void> {
     const { width } = await this.size();
     const scrollDistance = distance || width * 0.7;
-
-    if (startingPoint) {
-      await this.mouse.move(startingPoint.left, startingPoint.top);
-    }
 
     await this.mouseWheel(-scrollDistance, 0, 1000);
   }
@@ -366,8 +351,6 @@ export class Page implements AbstractPage {
   }
 
   private async mouseClick(x: number, y: number): Promise<void> {
-    await this.mouseMove(x, y);
-
     const adb = await this.getAdb();
 
     // Use adjusted coordinates
@@ -445,8 +428,7 @@ export class Page implements AbstractPage {
     try {
       const adb = await this.getAdb();
 
-      await adb.shell('rm -f /sdcard/screenshot.png');
-      await adb.shell('rm -f /sdcard/window_dump.xml');
+      await adb.shell(`rm -f ${androidScreenshotPath}`);
     } catch (error) {
       console.error('Error during cleanup:', error);
     }

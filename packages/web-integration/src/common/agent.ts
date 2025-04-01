@@ -103,7 +103,9 @@ export class PageAgent<PageType extends WebPage = WebPage> {
       onTaskStart: this.callbackOnTaskStartTip.bind(this),
     });
     this.dump = this.resetDump();
-    this.reportFileName = reportFileName(opts?.testId || 'web');
+    this.reportFileName = reportFileName(
+      opts?.testId || this.page.pageType || 'web',
+    );
   }
 
   async getUIContext(action?: InsightAction): Promise<WebUIContext> {
