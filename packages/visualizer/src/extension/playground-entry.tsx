@@ -5,7 +5,7 @@ import { ConfigProvider } from 'antd';
 import { useEffect, useMemo, useState } from 'react';
 import ReactDOM from 'react-dom/client';
 import { globalThemeConfig } from '../component/color';
-import { StaticPlayground } from '../component/playground-component';
+import { StaticPlayground } from '../component/playground/index';
 import { setSideEffect } from '../init';
 import type { WorkerResponseGetContext } from './utils';
 import { sendToWorker } from './utils';

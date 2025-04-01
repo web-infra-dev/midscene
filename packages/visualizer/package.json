@@ -17,6 +17,9 @@
     "./extension": {
       "types": "./dist/types/extension.d.ts",
       "default": "./dist/extension.js"
+    },
+    "./extension.css": {
+      "default": "./dist/extension.css"
     }
   },
   "files": ["dist", "html", "README.md"],

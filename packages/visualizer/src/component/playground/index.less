@@ -1,4 +1,4 @@
-@import './common.less';
+@import '../common.less';
 
 body {
   margin: 0;
@@ -62,48 +62,6 @@ body {
     }
   }
 
-  .input-wrapper {
-    box-sizing: border-box;
-
-    .main-side-console-input {
-      position: relative;
-      margin-top: 4px;
-    }
-
-    .ant-input {
-      padding-bottom: 40px;
-    }
-
-    .form-controller-wrapper {
-      position: absolute;
-      bottom: 8px;
-      padding: 0 12px;
-      left: 0px;
-      display: flex;
-      flex-direction: row;
-      justify-content: space-between;
-      width: 100%;
-      box-sizing: border-box;
-      align-items: flex-end;
-      gap: 8px;
-    }
-
-    .settings-wrapper {
-      &.settings-wrapper-hover {
-        color: @main-text;
-      }
-
-      display: flex;
-      flex-direction: row;
-      gap: 2px;
-      color: @weak-text;
-      flex-wrap: wrap;
-    }
-
-    .history-selector {
-      margin-right: 8px;
-    }
-  }
 
 
   .loading-container {
@@ -162,5 +120,49 @@ body {
       word-wrap: break-word;
       white-space: pre-wrap;    
     }
+  }
+}
+
+
+.input-wrapper {
+  box-sizing: border-box;
+
+  .main-side-console-input {
+    position: relative;
+    margin-top: 4px;
+  }
+
+  .ant-input {
+    padding-bottom: 40px;
+  }
+
+  .form-controller-wrapper {
+    position: absolute;
+    bottom: 8px;
+    padding: 0 12px;
+    left: 0px;
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    width: 100%;
+    box-sizing: border-box;
+    align-items: flex-end;
+    gap: 8px;
+  }
+
+  .settings-wrapper {
+    &.settings-wrapper-hover {
+      color: @main-text;
+    }
+
+    display: flex;
+    flex-direction: row;
+    gap: 2px;
+    color: @weak-text;
+    flex-wrap: wrap;
+  }
+
+  .history-selector {
+    margin-right: 8px;
   }
 }

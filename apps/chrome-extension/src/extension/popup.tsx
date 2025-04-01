@@ -6,6 +6,7 @@ import {
   globalThemeConfig,
   useEnvConfig,
 } from '@midscene/visualizer/extension';
+import '@midscene/visualizer/extension.css';
 import { ConfigProvider, Tabs } from 'antd';
 import { getExtensionVersion } from '../utils';
 import Bridge from './bridge';

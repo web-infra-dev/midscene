@@ -1,7 +1,5 @@
-export {
-  Playground,
-  useStaticPageAgent,
-} from './component/playground-component';
+export { Playground, StaticPlayground } from './component/playground/index';
+export { useStaticPageAgent } from './component/playground/useStaticPageAgent';
 
 export { Player } from './component/player';
 
