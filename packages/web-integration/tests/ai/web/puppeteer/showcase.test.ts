@@ -34,8 +34,10 @@ describe(
       await sleep(10 * 1000);
 
       await agent.aiAction(
-        'type "standard_user" in user name input, type "secret_sauce" in password, click "Login", sleep 1 second',
+        'type "standard_user" in user name input, type "secret_sauce" in password',
       );
+
+      await agent.aiTap('Login');
 
       expect(onTaskStartTip.mock.calls.length).toBeGreaterThan(1);
 
@@ -99,7 +101,7 @@ describe(
       expect(names.length).toBeGreaterThan(5);
     });
 
-    it.only(!vlLocateMode())(
+    it.skipIf(!vlLocateMode())(
       'search engine with specific actions',
       async () => {
         const { originPage, reset } = await launchPage(
