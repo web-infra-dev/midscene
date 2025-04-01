@@ -45,9 +45,6 @@ export function locateParamStr(locate?: DetailedLocateParam) {
     return locate;
   }
 
-  if (locate.deepThink) {
-    return `${locate.prompt} (deep think)`;
-  }
   return locate.prompt;
 }
 

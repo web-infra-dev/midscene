@@ -1,10 +1,7 @@
 import './sidebar.less';
 import { useAllCurrentTasks, useExecutionDump } from '@/components/store';
 import { MessageOutlined, VideoCameraOutlined } from '@ant-design/icons';
-import type {
-  ExecutionTask,
-  ExecutionTaskInsightDumpLog,
-} from '@midscene/core';
+import type { ExecutionTask, ExecutionTaskInsightLocate } from '@midscene/core';
 import {
   iconForStatus,
   timeCostStrElement,
@@ -26,7 +23,7 @@ const SideItem = (props: {
 
   const cacheEl = task.cache?.hit ? <span>(cache) </span> : null;
 
-  const deepThinkEl = (task.log as ExecutionTaskInsightDumpLog)?.dump
+  const deepThinkEl = (task as ExecutionTaskInsightLocate)?.log?.dump
     ?.deepThink ? (
     <span>(deep think) </span>
   ) : null;
