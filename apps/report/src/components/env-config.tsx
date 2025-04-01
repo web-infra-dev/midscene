@@ -1,6 +1,6 @@
+import { iconForStatus } from '@midscene/visualizer/playground';
 import { Button, Input, Modal, Tooltip } from 'antd';
 import { useState } from 'react';
-import { iconForStatus } from './misc';
 import { useEnvConfig } from './store';
 
 export function EnvConfig() {

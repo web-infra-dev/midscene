@@ -10,3 +10,13 @@ export {
   allScriptsFromDump,
   generateAnimationScripts,
 } from './component/replay-scripts';
+
+export {
+  colorForName,
+  highlightColorForType,
+  globalThemeConfig,
+} from './component/color';
+
+export { Logo } from './component/logo';
+
+export { iconForStatus, timeCostStrElement } from './component/misc';

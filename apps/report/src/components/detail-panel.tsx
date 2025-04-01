@@ -44,6 +44,8 @@ const DetailPanel = (): JSX.Element => {
   const animationScripts = useExecutionDump(
     (store) => store.activeExecutionAnimation,
   );
+  const imageWidth = useExecutionDump((store) => store.insightWidth);
+  const imageHeight = useExecutionDump((store) => store.insightHeight);
 
   let availableViewTypes = [VIEW_TYPE_SCREENSHOT, VIEW_TYPE_JSON];
   if (blackboardViewAvailable) {
@@ -68,7 +70,14 @@ const DetailPanel = (): JSX.Element => {
 
   let content;
   if (activeExecution && viewType === VIEW_TYPE_REPLAY) {
-    content = <Player key={`${activeExecutionId}`} />;
+    content = (
+      <Player
+        key={`${activeExecutionId}`}
+        replayScripts={animationScripts || []}
+        imageWidth={imageWidth || 0}
+        imageHeight={imageHeight || 0}
+      />
+    );
   } else if (!activeTask) {
     content = <div>please select a task</div>;
   } else if (viewType === VIEW_TYPE_JSON) {

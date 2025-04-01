@@ -32,7 +32,7 @@ import type { WebUIContext } from '@midscene/web/utils';
 import type { MenuProps } from 'antd';
 import { Dropdown, Space } from 'antd';
 import { EnvConfig } from './env-config';
-import Logo from './logo';
+import { Logo } from './logo';
 import { type HistoryItem, useEnvConfig } from './store';
 
 export const serverBase = 'http://localhost:5800';
