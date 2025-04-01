@@ -76,7 +76,7 @@ npx midscene ./bing-search.yaml
 
 你应该会看到脚本的执行进度和可视化运行报告文件。
 
-## 详细用法
+## 命令行工具使用方法
 
 ### 运行单个 `.yaml` 文件
 
@@ -109,9 +109,11 @@ midscene /path/to/yaml --headed
 midscene /path/to/yaml --keep-window
 ```
 
-### `.yaml` 文件结构
+## `.yaml` 文件结构
 
 在 `.yaml` 文件中，有两个部分：`target` 和 `tasks`。
+
+### `target` 部分
 
 `target` 部分定义了任务的基本信息
 
@@ -158,29 +160,73 @@ target:
   closeNewTabsAfterDisconnect: <boolean>
 ```
 
-`tasks` 部分是一个数组，定义了脚本执行的步骤。记得在每个步骤前添加 `-` 符号。
+### `tasks` 部分
+
+`tasks` 部分是一个数组，定义了脚本执行的步骤。记得在每个步骤前添加 `-` 符号，表明这些步骤是个数组。
+
+`flow` 部分的接口与 [API](./api.html) 几乎相同，除了一些参数的嵌套层级。
 
 ```yaml
 tasks:
   - name: <name>
     continueOnError: <boolean> # 可选，错误时是否继续执行下一个任务，默认 false
     flow:
+
+      # 自动规划(Auto Planning, .ai)
+      # ----------------
+
       # 执行一个交互，`ai` 是 `aiAction` 的简写方式
       - ai: <prompt>
 
-      # 执行一个交互
+      # 这种用法与 `ai` 相同
       - aiAction: <prompt>
 
-      # 执行一个断言
-      - aiAssert: <prompt>
+      # 即时操作(Instant Action, .aiTap, .aiHover, .aiInput, .aiKeyboardPress, .aiScroll)
+      # ----------------
+
+      # 点击一个元素，用 prompt 描述元素位置
+      - aiTap: <prompt>
+        deepThink: <boolean> # 可选，是否使用深度思考（deepThink）来精确定位元素
+
+      # 鼠标悬停一个元素，用 prompt 描述元素位置
+      - aiHover: <prompt>
+        deepThink: <boolean> # 可选，是否使用深度思考（deepThink）来精确定位元素
+
+      # 输入文本到一个元素，用 prompt 描述元素位置
+      - aiInput: <输入框的最终文本内容>
+        locate: <prompt>
+        deepThink: <boolean> # 可选，是否使用深度思考（deepThink）来精确定位元素
+
+      # 在元素上按下某个按键（如 Enter，Tab，Escape 等），用 prompt 描述元素位置
+      - aiKeyboardPress: <按键>
+        locate: <prompt>
+        deepThink: <boolean> # 可选，是否使用深度思考（deepThink）来精确定位元素
+
+      # 全局滚动，或滚动 prompt 描述的元素
+      - aiScroll:
+        direction: 'up' # 或 'down' | 'left' | 'right'
+        scrollType: 'once' # 或 'untilTop' | 'untilBottom' | 'untilLeft' | 'untilRight'
+        distance: <number> # 可选，滚动距离，单位为像素
+        locate: <prompt> # 可选，执行滚动的元素
+        deepThink: <boolean> # 可选，是否使用深度思考（deepThink）来精确定位元素
+
+      # 数据提取
+      # ----------------
 
       # 执行一个查询，返回一个 JSON 对象
       - aiQuery: <prompt> # 记得在提示词中描述输出结果的格式
         name: <name> # 查询结果在 JSON 输出中的 key
-        
+
+
+      # 更多 API
+      # ----------------
+
       # 等待某个条件满足，并设置超时时间(ms，可选，默认 30000)
       - aiWaitFor: <prompt>
         timeout: <ms>
+
+      # 执行一个断言
+      - aiAssert: <prompt>
 
       # 等待一定时间
       - sleep: <ms>
@@ -190,7 +236,9 @@ tasks:
       # ...
 ```
 
-## 在 `.yaml` 文件中使用环境变量
+## 更多特性
+
+### 在 `.yaml` 文件中使用环境变量
 
 你可以在 `.yaml` 文件中使用环境变量，通过 `${variable-name}` 的方式。
 
@@ -208,7 +256,7 @@ topic=weather today
 #...
 ```
 
-## 使用桥接模式
+### 使用桥接模式
 
 通过使用桥接模式，你可以利用 YAML 脚本在已有的桌面浏览器上执行自动化。这对于需要复用 Cookies、插件和页面状态，或者需要人工与自动化脚本交互的情况非常有用。
 
@@ -222,7 +270,7 @@ target:
 
 请参阅 [通过 Chrome 扩展桥接模式](./bridge-mode-by-chrome-extension) 了解更多详细信息。
 
-## 使用 JavaScript 运行 YAML 脚本
+### 使用 JavaScript 运行 YAML 脚本
 
 你也可以使用 JavaScript 运行 YAML 脚本，调用 Agent 上的 [`runYaml`](./api.html#runyaml) 方法即可。注意，这种方法只会执行 YAML 脚本中的 `tasks` 部分。
 

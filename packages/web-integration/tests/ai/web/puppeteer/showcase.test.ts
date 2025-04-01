@@ -1,5 +1,6 @@
 import path from 'node:path';
 import { PuppeteerAgent } from '@/puppeteer';
+import { vlLocateMode } from '@midscene/core/env';
 import { sleep } from '@midscene/core/utils';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { launchPage } from './utils';
@@ -98,34 +99,42 @@ describe(
       expect(names.length).toBeGreaterThan(5);
     });
 
-    it.skip('search engine with specific actions', async () => {
-      const { originPage, reset } = await launchPage('https://www.baidu.com/');
-      resetFn = reset;
-      const agent = new PuppeteerAgent(originPage);
+    it.skipIf(!vlLocateMode())(
+      'search engine with specific actions',
+      async () => {
+        const { originPage, reset } = await launchPage(
+          'https://www.baidu.com/',
+        );
+        resetFn = reset;
+        const agent = new PuppeteerAgent(originPage);
 
-      await agent.aiInput('AI 101', {
-        prompt: 'the search bar input',
-      });
-      await agent.aiTap('the search button');
+        await agent.aiInput('AI 101', 'the search bar input');
+        await agent.aiTap('the search button');
 
-      await sleep(3000);
+        await sleep(3000);
 
-      await agent.aiScroll({
-        direction: 'down',
-        scrollType: 'untilBottom',
-      });
+        await agent.aiScroll({
+          direction: 'down',
+          scrollType: 'untilBottom',
+        });
 
-      await sleep(3000);
+        await sleep(3000);
 
-      await agent.aiTap({
-        prompt: 'the settings button',
-        deepThink: true,
-      });
+        await agent.aiTap('the settings button', {
+          deepThink: true,
+        });
 
-      await agent.aiAction(
-        'click the first menu inside the settings menu on the upper top of the page',
-      );
-    });
+        await agent.aiTap('搜索设置', {
+          deepThink: true,
+        });
+
+        await agent.aiTap('the close button of the popup', {
+          deepThink: true,
+        });
+
+        await agent.aiAssert('there is NOT a popup shown in the page');
+      },
+    );
 
     it(
       'search engine',
