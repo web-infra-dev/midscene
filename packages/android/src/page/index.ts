@@ -8,9 +8,10 @@ import { getDebug } from '@midscene/shared/logger';
 import type { AbstractPage } from '@midscene/web';
 import { ADB } from 'appium-adb';
 
+const androidScreenshotPath = '/data/local/tmp/midscene_screenshot.png';
 const debugPage = getDebug('android');
 
-export class Page implements AbstractPage {
+export class AndroidDevice implements AbstractPage {
   private deviceId: string;
   private screenSize: Size | null = null;
   private yadbPushed = false;
@@ -40,7 +41,7 @@ export class Page implements AbstractPage {
   }
 
   private async execYadb(keyboardContent: string): Promise<void> {
-    await this.pushYadb();
+    await this.ensureYadb();
 
     const adb = await this.getAdb();
 
@@ -157,9 +158,14 @@ export class Page implements AbstractPage {
     } catch (error) {
       const screenshotPath = getTmpFile('png')!;
 
-      // Take a screenshot and save it locally
-      await adb.shell('screencap -p /sdcard/screenshot.png');
-      await adb.pull('/sdcard/screenshot.png', screenshotPath);
+      try {
+        // Take a screenshot and save it locally
+        await adb.shell(`screencap -p ${androidScreenshotPath}`);
+      } catch (error) {
+        await this.forceScreenshot(androidScreenshotPath);
+      }
+
+      await adb.pull(androidScreenshotPath, screenshotPath);
       screenshotBuffer = await fs.promises.readFile(screenshotPath);
     }
 
@@ -200,13 +206,24 @@ export class Page implements AbstractPage {
       return;
     }
 
-    await this.pushYadb();
+    await this.ensureYadb();
 
     const adb = await this.getAdb();
 
     // Use the yadb tool to clear the input box
     await adb.shell(
       'app_process -Djava.class.path=/data/local/tmp/yadb /data/local/tmp com.ysbing.yadb.Main -keyboard "~CLEAR~"',
+    );
+  }
+
+  private async forceScreenshot(path: string): Promise<void> {
+    // screenshot which is forbidden by app
+    await this.ensureYadb();
+
+    const adb = await this.getAdb();
+
+    await adb.shell(
+      `app_process -Djava.class.path=/data/local/tmp/yadb /data/local/tmp com.ysbing.yadb.Main -screenshot ${path}`,
     );
   }
 
@@ -218,83 +235,110 @@ export class Page implements AbstractPage {
     return `${appPackage}/${appActivity}`;
   }
 
-  async scrollUntilTop(startingPoint?: Point): Promise<void> {
-    if (startingPoint) {
-      await this.mouse.move(startingPoint.left, startingPoint.top);
-    }
+  async scrollUntilTop(startPoint?: Point): Promise<void> {
+    if (startPoint) {
+      const start = { x: startPoint.left, y: startPoint.top };
+      const end = { x: start.x, y: 0 };
 
+      await this.mouseDrag(start, end);
+      return;
+    }
     await this.mouseWheel(0, 9999999, 100);
   }
 
-  async scrollUntilBottom(startingPoint?: Point): Promise<void> {
-    if (startingPoint) {
-      await this.mouse.move(startingPoint.left, startingPoint.top);
+  async scrollUntilBottom(startPoint?: Point): Promise<void> {
+    if (startPoint) {
+      const { height } = await this.size();
+      const start = { x: startPoint.left, y: startPoint.top };
+      const end = { x: start.x, y: height };
+      await this.mouseDrag(start, end);
+      return;
     }
-
     await this.mouseWheel(0, -9999999, 100);
   }
 
-  async scrollUntilLeft(startingPoint?: Point): Promise<void> {
-    if (startingPoint) {
-      await this.mouse.move(startingPoint.left, startingPoint.top);
+  async scrollUntilLeft(startPoint?: Point): Promise<void> {
+    if (startPoint) {
+      const start = { x: startPoint.left, y: startPoint.top };
+      const end = { x: 0, y: start.y };
+      await this.mouseDrag(start, end);
+      return;
     }
-
     await this.mouseWheel(9999999, 0, 100);
   }
 
-  async scrollUntilRight(startingPoint?: Point): Promise<void> {
-    if (startingPoint) {
-      await this.mouse.move(startingPoint.left, startingPoint.top);
+  async scrollUntilRight(startPoint?: Point): Promise<void> {
+    if (startPoint) {
+      const { width } = await this.size();
+      const start = { x: startPoint.left, y: startPoint.top };
+      const end = { x: width, y: start.y };
+      await this.mouseDrag(start, end);
+      return;
     }
-
     await this.mouseWheel(-9999999, 0, 100);
   }
 
-  async scrollUp(distance?: number, startingPoint?: Point): Promise<void> {
+  async scrollUp(distance?: number, startPoint?: Point): Promise<void> {
     const { height } = await this.size();
-    const scrollDistance = distance || height * 0.7;
+    const scrollDistance = distance || height;
 
-    if (startingPoint) {
-      await this.mouse.move(startingPoint.left, startingPoint.top);
+    if (startPoint) {
+      const start = { x: startPoint.left, y: startPoint.top };
+      const endY = Math.max(0, start.y - scrollDistance);
+      const end = { x: start.x, y: endY };
+      await this.mouseDrag(start, end);
+      return;
     }
 
     await this.mouseWheel(0, scrollDistance, 1000);
   }
 
-  async scrollDown(distance?: number, startingPoint?: Point): Promise<void> {
+  async scrollDown(distance?: number, startPoint?: Point): Promise<void> {
     const { height } = await this.size();
-    const scrollDistance = distance || height * 0.7;
+    const scrollDistance = distance || height;
 
-    if (startingPoint) {
-      await this.mouse.move(startingPoint.left, startingPoint.top);
+    if (startPoint) {
+      const start = { x: startPoint.left, y: startPoint.top };
+      const endY = Math.min(height, start.y + scrollDistance);
+      const end = { x: start.x, y: endY };
+      await this.mouseDrag(start, end);
+      return;
     }
 
     await this.mouseWheel(0, -scrollDistance, 1000);
   }
 
-  async scrollLeft(distance?: number, startingPoint?: Point): Promise<void> {
+  async scrollLeft(distance?: number, startPoint?: Point): Promise<void> {
     const { width } = await this.size();
-    const scrollDistance = distance || width * 0.7;
+    const scrollDistance = distance || width;
 
-    if (startingPoint) {
-      await this.mouse.move(startingPoint.left, startingPoint.top);
+    if (startPoint) {
+      const start = { x: startPoint.left, y: startPoint.top };
+      const endX = Math.max(0, start.x - scrollDistance);
+      const end = { x: endX, y: start.y };
+      await this.mouseDrag(start, end);
+      return;
     }
 
     await this.mouseWheel(scrollDistance, 0, 1000);
   }
 
-  async scrollRight(distance?: number, startingPoint?: Point): Promise<void> {
+  async scrollRight(distance?: number, startPoint?: Point): Promise<void> {
     const { width } = await this.size();
-    const scrollDistance = distance || width * 0.7;
+    const scrollDistance = distance || width;
 
-    if (startingPoint) {
-      await this.mouse.move(startingPoint.left, startingPoint.top);
+    if (startPoint) {
+      const start = { x: startPoint.left, y: startPoint.top };
+      const endX = Math.min(width, start.x + scrollDistance);
+      const end = { x: endX, y: start.y };
+      await this.mouseDrag(start, end);
+      return;
     }
 
     await this.mouseWheel(-scrollDistance, 0, 1000);
   }
 
-  private async pushYadb() {
+  private async ensureYadb() {
     // Push the YADB tool to the device only once
     if (!this.yadbPushed) {
       const adb = await this.getAdb();
@@ -366,8 +410,6 @@ export class Page implements AbstractPage {
   }
 
   private async mouseClick(x: number, y: number): Promise<void> {
-    await this.mouseMove(x, y);
-
     const adb = await this.getAdb();
 
     // Use adjusted coordinates
@@ -445,8 +487,7 @@ export class Page implements AbstractPage {
     try {
       const adb = await this.getAdb();
 
-      await adb.shell('rm -f /sdcard/screenshot.png');
-      await adb.shell('rm -f /sdcard/window_dump.xml');
+      await adb.shell(`rm -f ${androidScreenshotPath}`);
     } catch (error) {
       console.error('Error during cleanup:', error);
     }
