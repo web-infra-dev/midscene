@@ -1,5 +1,3 @@
-import { activeTab } from '@/extension/utils';
-import { currentWindowId } from '@/extension/utils';
 // import { createStore } from 'zustand/vanilla';
 import type {
   ExecutionDump,
@@ -8,9 +6,12 @@ import type {
   GroupedActionDump,
   InsightDump,
 } from '@midscene/core';
+import type { AnimationScript } from '@midscene/visualizer/playground';
+import {
+  allScriptsFromDump,
+  generateAnimationScripts,
+} from '@midscene/visualizer/playground';
 import * as Z from 'zustand';
-import type { AnimationScript } from './replay-scripts';
-import { allScriptsFromDump, generateAnimationScripts } from './replay-scripts';
 
 const { create } = Z;
 export const useBlackboardPreference = create<{
@@ -76,48 +77,6 @@ export interface HistoryItem {
   prompt: string;
   timestamp: number;
 }
-
-export const useChromeTabInfo = create<{
-  tabId: number | null;
-  tabTitle: string | null;
-  tabUrl: string | null;
-  windowId: number | null;
-}>((set) => {
-  const data = {
-    tabId: null,
-    tabTitle: null,
-    tabUrl: null,
-    windowId: null,
-  };
-
-  Promise.resolve().then(async () => {
-    if (typeof window.chrome === 'undefined') {
-      return;
-    }
-    const tab = await activeTab();
-    const windowId = await currentWindowId();
-    set({
-      tabId: tab.id,
-      tabTitle: tab.title,
-      tabUrl: tab.url,
-      windowId,
-    });
-
-    chrome.tabs.onActivated.addListener(async (activeInfo) => {
-      const tabId = activeInfo.tabId;
-      const windowId = activeInfo.windowId;
-      try {
-        const tab = await chrome.tabs.get(tabId);
-        set({ tabId, windowId, tabTitle: tab.title, tabUrl: tab.url });
-      } catch (e) {
-        console.error('failed to get active tab', e);
-        set({ tabId: null, windowId: null, tabTitle: null, tabUrl: null });
-      }
-    });
-  });
-
-  return data;
-});
 
 /**
 /**

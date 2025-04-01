@@ -31,6 +31,7 @@ export default defineConfig({
       dts: false,
       input: {
         extension: 'src/extension.tsx',
+        playground: 'src/playground.tsx',
       },
       platform: 'browser',
       outDir: 'dist',

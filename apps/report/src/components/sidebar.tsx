@@ -1,10 +1,16 @@
 import './sidebar.less';
 import { useAllCurrentTasks, useExecutionDump } from '@/components/store';
 import { MessageOutlined, VideoCameraOutlined } from '@ant-design/icons';
-import type { ExecutionTask } from '@midscene/core';
+import type {
+  ExecutionTask,
+  ExecutionTaskInsightDumpLog,
+} from '@midscene/core';
+import {
+  iconForStatus,
+  timeCostStrElement,
+} from '@midscene/visualizer/playground';
 import { typeStr } from '@midscene/web/ui-utils';
 import { useEffect } from 'react';
-import { iconForStatus, timeCostStrElement } from './misc';
 import PanelTitle from './panel-title';
 
 const SideItem = (props: {
@@ -19,6 +25,12 @@ const SideItem = (props: {
   let statusText: JSX.Element | string = task.status;
 
   const cacheEl = task.cache?.hit ? <span>(cache) </span> : null;
+
+  const deepThinkEl = (task.log as ExecutionTaskInsightDumpLog)?.dump
+    ?.deepThink ? (
+    <span>(deep think) </span>
+  ) : null;
+
   if (task.timing?.cost) {
     statusText = timeCostStrElement(task.timing.cost);
   }
@@ -58,6 +70,7 @@ const SideItem = (props: {
         </div>
         <div className="status-text">
           {cacheEl}
+          {deepThinkEl}
           {statusText}
         </div>
       </div>

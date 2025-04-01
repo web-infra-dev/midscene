@@ -8,6 +8,7 @@ import { getDebug } from '@midscene/shared/logger';
 import type { AbstractPage } from '@midscene/web';
 import { ADB } from 'appium-adb';
 
+const debugPage = getDebug('android:adb');
 const androidScreenshotPath = '/data/local/tmp/midscene_screenshot.png';
 const debugPage = getDebug('android');
 

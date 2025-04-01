@@ -1,11 +1,14 @@
 'use client';
 import 'pixi.js/unsafe-eval';
 import type { BaseElement, Rect, UIContext } from '@midscene/core';
+import {
+  colorForName,
+  highlightColorForType,
+} from '@midscene/visualizer/playground';
 import { Checkbox } from 'antd';
 import type { CheckboxProps } from 'antd';
 import * as PIXI from 'pixi.js';
 import { type ReactElement, useEffect, useMemo, useRef, useState } from 'react';
-import { colorForName, highlightColorForType } from './color';
 import './blackboard.less';
 import { DropShadowFilter } from 'pixi-filters';
 import { useBlackboardPreference } from './store';
