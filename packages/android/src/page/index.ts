@@ -1,6 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import type { Size } from '@midscene/core';
+import type { Point, Size } from '@midscene/core';
 import { getTmpFile } from '@midscene/core/utils';
 import type { ElementInfo } from '@midscene/shared/extractor';
 import { resizeImg } from '@midscene/shared/img';
@@ -235,46 +235,105 @@ export class AndroidDevice implements AbstractPage {
     return `${appPackage}/${appActivity}`;
   }
 
-  async scrollUntilTop(): Promise<void> {
+  async scrollUntilTop(startPoint?: Point): Promise<void> {
+    if (startPoint) {
+      const start = { x: startPoint.left, y: startPoint.top };
+      const end = { x: start.x, y: 0 };
+
+      await this.mouseDrag(start, end);
+      return;
+    }
     await this.mouseWheel(0, 9999999, 100);
   }
 
-  async scrollUntilBottom(): Promise<void> {
+  async scrollUntilBottom(startPoint?: Point): Promise<void> {
+    if (startPoint) {
+      const { height } = await this.size();
+      const start = { x: startPoint.left, y: startPoint.top };
+      const end = { x: start.x, y: height };
+      await this.mouseDrag(start, end);
+      return;
+    }
     await this.mouseWheel(0, -9999999, 100);
   }
 
-  async scrollUntilLeft(): Promise<void> {
+  async scrollUntilLeft(startPoint?: Point): Promise<void> {
+    if (startPoint) {
+      const start = { x: startPoint.left, y: startPoint.top };
+      const end = { x: 0, y: start.y };
+      await this.mouseDrag(start, end);
+      return;
+    }
     await this.mouseWheel(9999999, 0, 100);
   }
 
-  async scrollUntilRight(): Promise<void> {
+  async scrollUntilRight(startPoint?: Point): Promise<void> {
+    if (startPoint) {
+      const { width } = await this.size();
+      const start = { x: startPoint.left, y: startPoint.top };
+      const end = { x: width, y: start.y };
+      await this.mouseDrag(start, end);
+      return;
+    }
     await this.mouseWheel(-9999999, 0, 100);
   }
 
-  async scrollUp(distance?: number): Promise<void> {
+  async scrollUp(distance?: number, startPoint?: Point): Promise<void> {
     const { height } = await this.size();
-    const scrollDistance = distance || height * 0.7;
+    const scrollDistance = distance || height;
+
+    if (startPoint) {
+      const start = { x: startPoint.left, y: startPoint.top };
+      const endY = Math.max(0, start.y - scrollDistance);
+      const end = { x: start.x, y: endY };
+      await this.mouseDrag(start, end);
+      return;
+    }
 
     await this.mouseWheel(0, scrollDistance, 1000);
   }
 
-  async scrollDown(distance?: number): Promise<void> {
+  async scrollDown(distance?: number, startPoint?: Point): Promise<void> {
     const { height } = await this.size();
-    const scrollDistance = distance || height * 0.7;
+    const scrollDistance = distance || height;
+
+    if (startPoint) {
+      const start = { x: startPoint.left, y: startPoint.top };
+      const endY = Math.min(height, start.y + scrollDistance);
+      const end = { x: start.x, y: endY };
+      await this.mouseDrag(start, end);
+      return;
+    }
 
     await this.mouseWheel(0, -scrollDistance, 1000);
   }
 
-  async scrollLeft(distance?: number): Promise<void> {
+  async scrollLeft(distance?: number, startPoint?: Point): Promise<void> {
     const { width } = await this.size();
-    const scrollDistance = distance || width * 0.7;
+    const scrollDistance = distance || width;
+
+    if (startPoint) {
+      const start = { x: startPoint.left, y: startPoint.top };
+      const endX = Math.max(0, start.x - scrollDistance);
+      const end = { x: endX, y: start.y };
+      await this.mouseDrag(start, end);
+      return;
+    }
 
     await this.mouseWheel(scrollDistance, 0, 1000);
   }
 
-  async scrollRight(distance?: number): Promise<void> {
+  async scrollRight(distance?: number, startPoint?: Point): Promise<void> {
     const { width } = await this.size();
-    const scrollDistance = distance || width * 0.7;
+    const scrollDistance = distance || width;
+
+    if (startPoint) {
+      const start = { x: startPoint.left, y: startPoint.top };
+      const endX = Math.min(width, start.x + scrollDistance);
+      const end = { x: endX, y: start.y };
+      await this.mouseDrag(start, end);
+      return;
+    }
 
     await this.mouseWheel(-scrollDistance, 0, 1000);
   }
