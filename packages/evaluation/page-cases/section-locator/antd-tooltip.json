@@ -16,9 +16,9 @@
       "annotation_index_id": 2,
       "response_rect": {
         "left": 1049,
-        "top": 526,
+        "top": 524,
         "width": 639,
-        "height": 386
+        "height": 388
       }
     },
     {
@@ -28,7 +28,7 @@
         "left": 1049,
         "top": 528,
         "width": 464,
-        "height": 384
+        "height": 383
       }
     },
     {
@@ -37,7 +37,7 @@
       "response_rect": {
         "left": 345,
         "top": 754,
-        "width": 636,
+        "width": 637,
         "height": 326
       }
     }
