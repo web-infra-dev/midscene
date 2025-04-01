@@ -55,11 +55,17 @@ function getReportTpl() {
 
   const __dirname = dirname(__filename);
   if (!reportTpl) {
-    let reportPath = path.join(__dirname, '../../report/index.html');
-    if (!existsSync(reportPath)) {
-      reportPath = path.join(__dirname, '../report/index.html');
+    const possiblePaths = [
+      path.join(__dirname, '../../report/index.html'),
+      path.join(__dirname, '../report/index.html'),
+    ];
+
+    for (const reportPath of possiblePaths) {
+      if (existsSync(reportPath)) {
+        reportTpl = readFileSync(reportPath, 'utf-8');
+        break;
+      }
     }
-    reportTpl = readFileSync(reportPath, 'utf-8');
   }
   return reportTpl;
 }
@@ -81,6 +87,7 @@ export function reportHTMLContent(
     console.warn('reportTpl is not set, will not write report');
     return '';
   }
+
   let reportContent: string;
   if (
     (Array.isArray(dumpData) && dumpData.length === 0) ||
@@ -89,22 +96,30 @@ export function reportHTMLContent(
     reportContent = replaceStringWithFirstAppearance(
       tpl,
       '{{dump}}',
-      `<script type="midscene_web_dump" type="application/json"></script>`,
+      '<script type="midscene_web_dump" type="application/json"></script>',
     );
   } else if (typeof dumpData === 'string') {
     reportContent = replaceStringWithFirstAppearance(
       tpl,
       '{{dump}}',
-      `<script type="midscene_web_dump" type="application/json">${dumpData}</script>`,
+      // biome-ignore lint/style/useTemplate: <explanation>
+      '<script type="midscene_web_dump" type="application/json">\n' +
+        dumpData +
+        '\n</script>',
     );
   } else {
     const dumps = dumpData.map(({ dumpString, attributes }) => {
       const attributesArr = Object.keys(attributes || {}).map((key) => {
         return `${key}="${encodeURIComponent(attributes![key])}"`;
       });
-      return `<script type="midscene_web_dump" type="application/json" ${attributesArr.join(
-        ' ',
-      )}\n>${dumpString}\n</script>`;
+      return (
+        // biome-ignore lint/style/useTemplate: <explanation>
+        '<script type="midscene_web_dump" type="application/json" ' +
+        attributesArr.join(' ') +
+        '>\n' +
+        dumpString +
+        '\n</script>'
+      );
     });
     reportContent = replaceStringWithFirstAppearance(
       tpl,
