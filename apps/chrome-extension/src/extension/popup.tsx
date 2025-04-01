@@ -3,14 +3,23 @@ import { ApiOutlined, SendOutlined } from '@ant-design/icons';
 import {
   Logo,
   Playground,
-  extensionAgentForTab,
-  getExtensionVersion,
   globalThemeConfig,
   useEnvConfig,
 } from '@midscene/visualizer/extension';
 import { ConfigProvider, Tabs } from 'antd';
+import { getExtensionVersion } from '../utils';
 import Bridge from './bridge';
 import './popup.less';
+import {
+  ChromeExtensionProxyPage,
+  ChromeExtensionProxyPageAgent,
+} from '@midscene/web/chrome-extension';
+
+// remember to destroy the agent when the tab is destroyed: agent.page.destroy()
+const extensionAgentForTab = (forceSameTabNavigation = true) => {
+  const page = new ChromeExtensionProxyPage(forceSameTabNavigation);
+  return new ChromeExtensionProxyPageAgent(page);
+};
 
 declare const __SDK_VERSION__: string;
 

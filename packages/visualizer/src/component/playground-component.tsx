@@ -15,15 +15,14 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
 import Blackboard from './blackboard';
 import { iconForStatus } from './misc';
-import Player from './player';
+import { Player } from './player';
 import DemoData from './playground-demo-ui-context.json';
 import type { ReplayScriptsInfo } from './replay-scripts';
 import { allScriptsFromDump } from './replay-scripts';
 import './playground-component.less';
-import Logo from './logo';
-import { serverBase, useServerValid } from './open-in-playground';
 
 import { overrideAIConfig } from '@midscene/core/env';
+import type { ChromeExtensionProxyPageAgent } from '@midscene/web/chrome-extension';
 import {
   ERROR_CODE_NOT_IMPLEMENTED_AS_DESIGNED,
   StaticPage,
@@ -33,12 +32,49 @@ import type { WebUIContext } from '@midscene/web/utils';
 import type { MenuProps } from 'antd';
 import { Dropdown, Space } from 'antd';
 import { EnvConfig } from './env-config';
+import { Logo } from './logo';
 import { type HistoryItem, useEnvConfig } from './store';
 
-import {
-  ChromeExtensionProxyPage,
-  ChromeExtensionProxyPageAgent,
-} from '@midscene/web/chrome-extension';
+export const serverBase = 'http://localhost:5800';
+
+const checkServerStatus = async () => {
+  try {
+    const res = await fetch(`${serverBase}/status`);
+    return res.status === 200;
+  } catch (e) {
+    return false;
+  }
+};
+
+export const useServerValid = (shouldRun = true) => {
+  const [serverValid, setServerValid] = useState(false);
+  const { serviceMode } = useEnvConfig();
+
+  useEffect(() => {
+    let interruptFlag = false;
+    if (!shouldRun) return;
+    Promise.resolve(
+      (async () => {
+        while (!interruptFlag) {
+          const status = await checkServerStatus();
+          if (status) {
+            setServerValid(true);
+          } else {
+            setServerValid(false);
+          }
+          // sleep 1s
+          await new Promise((resolve) => setTimeout(resolve, 1000));
+        }
+      })(),
+    );
+
+    return () => {
+      interruptFlag = true;
+    };
+  }, [serviceMode, shouldRun]);
+
+  return serverValid;
+};
 
 interface PlaygroundResult {
   result: any;
@@ -147,12 +183,6 @@ const serverLaunchTip = (
     />
   </div>
 );
-
-// remember to destroy the agent when the tab is destroyed: agent.page.destroy()
-export const extensionAgentForTab = (forceSameTabNavigation = true) => {
-  const page = new ChromeExtensionProxyPage(forceSameTabNavigation);
-  return new ChromeExtensionProxyPageAgent(page);
-};
 
 const blankResult: PlaygroundResult = {
   result: null,

@@ -18,7 +18,6 @@ import type {
   CameraState,
   TargetCameraState,
 } from './replay-scripts';
-import { useExecutionDump } from './store';
 
 const canvasPaddingLeft = 0;
 const canvasPaddingTop = 0;
@@ -115,7 +114,7 @@ const downloadReport = (content: string): void => {
   a.click();
 };
 
-export default function Player(props?: {
+export function Player(props?: {
   replayScripts?: AnimationScript[];
   imageWidth?: number;
   imageHeight?: number;
@@ -124,19 +123,10 @@ export default function Player(props?: {
 }): JSX.Element {
   const [titleText, setTitleText] = useState('');
   const [subTitleText, setSubTitleText] = useState('');
-  const taskScripts = useExecutionDump(
-    (store) => store.activeExecutionAnimation,
-  );
 
-  const scripts = props?.replayScripts ? props.replayScripts : taskScripts;
-  const imageWidth =
-    props?.imageWidth ||
-    useExecutionDump((store) => store.insightWidth) ||
-    1920;
-  const imageHeight =
-    props?.imageHeight ||
-    useExecutionDump((store) => store.insightHeight) ||
-    1080;
+  const scripts = props?.replayScripts;
+  const imageWidth = props?.imageWidth || 1920;
+  const imageHeight = props?.imageHeight || 1080;
   const canvasWidth = imageWidth + canvasPaddingLeft * 2;
   const canvasHeight = imageHeight + canvasPaddingTop * 2;
   const currentImg = useRef<string | null>(scripts?.[0]?.img || null);

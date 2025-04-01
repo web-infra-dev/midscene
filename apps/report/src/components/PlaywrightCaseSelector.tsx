@@ -1,9 +1,12 @@
 import { DownOutlined } from '@ant-design/icons';
 import type { GroupedActionDump } from '@midscene/core';
+import {
+  iconForStatus,
+  timeCostStrElement,
+} from '@midscene/visualizer/playground';
 import { Dropdown } from 'antd';
 import type React from 'react';
 import type { ExecutionDumpWithPlaywrightAttributes } from '../types';
-import { iconForStatus, timeCostStrElement } from './misc';
 
 interface PlaywrightCaseSelectorProps {
   dumps?: ExecutionDumpWithPlaywrightAttributes[];

@@ -9,12 +9,13 @@ import type {
   BaseElement,
   ExecutionTask,
   ExecutionTaskInsightAssertion,
-  ExecutionTaskInsightLocate,
   ExecutionTaskPlanning,
 } from '@midscene/core';
+import {
+  highlightColorForType,
+  timeCostStrElement,
+} from '@midscene/visualizer/playground';
 import { Tag, Timeline, type TimelineItemProps, Tooltip } from 'antd';
-import { highlightColorForType } from './color';
-import { timeCostStrElement } from './misc';
 import PanelTitle from './panel-title';
 import { useExecutionDump } from './store';
 

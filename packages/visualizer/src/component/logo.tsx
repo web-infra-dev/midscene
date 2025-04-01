@@ -3,7 +3,9 @@ import './logo.less';
 export const LogoUrl =
   'https://lf3-static.bytednsdoc.com/obj/eden-cn/vhaeh7vhabf/Midscene.png';
 
-const Logo = ({ withGithubStar = false }: { withGithubStar?: boolean }) => {
+export const Logo = ({
+  withGithubStar = false,
+}: { withGithubStar?: boolean }) => {
   if (withGithubStar) {
     return (
       <div className="logo logo-with-star-wrapper">
@@ -32,5 +34,3 @@ const Logo = ({ withGithubStar = false }: { withGithubStar?: boolean }) => {
     </div>
   );
 };
-
-export default Logo;
