@@ -93,7 +93,7 @@ describe('utils', () => {
     const content = randomUUID();
     const reportB = reportHTMLContent(content);
     expect(reportB).toContain(
-      `<script type="midscene_web_dump" type="application/json">${content}</script>`,
+      `<script type="midscene_web_dump" type="application/json">\n${content}\n</script>`,
     );
   });
 });
