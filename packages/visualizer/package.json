@@ -43,10 +43,6 @@
     "react-dom": "^18.2.0"
   },
   "devDependencies": {
-    "@ant-design/icons": "^5.3.1",
-    "@midscene/core": "workspace:*",
-    "@midscene/shared": "workspace:*",
-    "@midscene/web": "workspace:*",
     "@modern-js/module-tools": "2.60.6",
     "@modern-js/plugin-module-doc": "^2.33.1",
     "@modern-js/plugin-module-node-polyfill": "2.60.6",
@@ -56,8 +52,6 @@
     "@types/node": "^18.0.0",
     "@types/react": "^18.3.18",
     "@types/react-dom": "^18.3.5",
-    "antd": "^5.21.6",
-    "dayjs": "1.11.11",
     "execa": "9.3.0",
     "http-server": "14.1.1",
     "npm-watch": "0.13.0",
@@ -77,6 +71,12 @@
     "access": "public"
   },
   "dependencies": {
-    "buffer": "6.0.3"
+    "buffer": "6.0.3",
+    "@ant-design/icons": "^5.3.1",
+    "@midscene/core": "workspace:*",
+    "@midscene/shared": "workspace:*",
+    "@midscene/web": "workspace:*",
+    "antd": "^5.21.6",
+    "dayjs": "1.11.11"
   }
 }

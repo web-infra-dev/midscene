@@ -1,6 +1,9 @@
 import { Form, Input, Radio } from 'antd';
 import type React from 'react';
+import type { HistoryItem } from '../store';
+import { ControlPanel } from './ControlPanel';
 import type { RunType } from './playground-types';
+import type { ServiceModeType } from './playground-types';
 import { actionNameForType, getPlaceholderForType } from './playground-utils';
 
 const { TextArea } = Input;
@@ -13,6 +16,15 @@ interface PromptInputProps {
   runButtonEnabled: boolean;
   onKeyDown?: (e: React.KeyboardEvent<HTMLTextAreaElement>) => void;
   form: any;
+  // Control panel related props
+  serviceMode: ServiceModeType;
+  selectedType: RunType;
+  dryMode: boolean;
+  stoppable: boolean;
+  loading: boolean;
+  onRun: () => void;
+  onStop: () => void;
+  onSelectHistory: (history: HistoryItem) => void;
 }
 
 export const PromptInput: React.FC<PromptInputProps> = ({
@@ -20,8 +32,16 @@ export const PromptInput: React.FC<PromptInputProps> = ({
   runButtonEnabled,
   onKeyDown,
   form,
+  // Control panel related props
+  serviceMode,
+  selectedType,
+  dryMode,
+  stoppable,
+  loading,
+  onRun,
+  onStop,
+  onSelectHistory,
 }) => {
-  const selectedType = Form.useWatch('type', form);
   const placeholder = getPlaceholderForType(selectedType);
 
   return (
@@ -50,6 +70,18 @@ export const PromptInput: React.FC<PromptInputProps> = ({
             onKeyDown={onKeyDown}
           />
         </Form.Item>
+
+        <ControlPanel
+          serviceMode={serviceMode}
+          selectedType={selectedType}
+          dryMode={dryMode}
+          stoppable={stoppable}
+          runButtonEnabled={runButtonEnabled}
+          loading={loading}
+          onRun={onRun}
+          onStop={onStop}
+          onSelectHistory={onSelectHistory}
+        />
       </div>
     </div>
   );

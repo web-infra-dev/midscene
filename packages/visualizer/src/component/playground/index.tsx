@@ -10,7 +10,6 @@ import type { ReplayScriptsInfo } from '../replay-scripts';
 import { useEnvConfig } from '../store';
 import type { HistoryItem } from '../store';
 import { ContextPreview } from './ContextPreview';
-import { ControlPanel } from './ControlPanel';
 import { PlaygroundResultView } from './PlaygroundResult';
 import { PromptInput } from './PromptInput';
 import { ServiceModeControl } from './ServiceModeControl';
@@ -26,7 +25,7 @@ import {
 } from './playground-utils';
 import { useServerValid } from './useServerValid';
 import { useStaticPageAgent } from './useStaticPageAgent';
-import '../playground-component.less';
+import './index.less';
 import type { UIContext } from '@midscene/core';
 
 export function Playground({
@@ -283,14 +282,10 @@ export function Playground({
           runButtonEnabled={runButtonEnabled}
           onKeyDown={handleKeyDown}
           form={form}
-        />
-
-        <ControlPanel
           serviceMode={serviceMode}
           selectedType={selectedType}
           dryMode={dryMode}
           stoppable={stoppable}
-          runButtonEnabled={runButtonEnabled}
           loading={loading}
           onRun={handleRun}
           onStop={handleStop}
@@ -383,7 +378,6 @@ export * from './playground-utils';
 export { ServiceModeControl } from './ServiceModeControl';
 export { ContextPreview } from './ContextPreview';
 export { PromptInput } from './PromptInput';
-export { ControlPanel } from './ControlPanel';
 export { PlaygroundResultView } from './PlaygroundResult';
 export { HistorySelector } from './HistorySelector';
 export { ConfigSelector } from './ConfigSelector';

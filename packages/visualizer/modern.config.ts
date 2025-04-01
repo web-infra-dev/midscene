@@ -2,7 +2,15 @@ import path from 'node:path';
 import { defineConfig, moduleTools } from '@modern-js/module-tools';
 import { modulePluginNodePolyfill } from '@modern-js/plugin-module-node-polyfill';
 import { version } from './package.json';
-const externals = ['playwright', 'bufferutil', 'utf-8-validate'];
+const externals = [
+  'playwright',
+  'bufferutil',
+  'utf-8-validate',
+  'antd',
+  '@ant-design/icons',
+  'react',
+  'react-dom',
+];
 
 const commonConfig = {
   asset: {
@@ -36,7 +44,7 @@ export default defineConfig({
       platform: 'browser',
       outDir: 'dist',
       target: 'es2020',
-      externals: [...externals, 'react', 'react-dom'],
+      externals: [...externals],
     },
   ],
   plugins: [
