@@ -72,7 +72,3 @@ export async function currentWindowId(): Promise<number> {
 export function getExtensionVersion() {
   return chrome.runtime?.getManifest()?.version || 'unknown';
 }
-
-export async function getTabInfo(tabId: number) {
-  return await chrome.tabs.get(tabId);
-}

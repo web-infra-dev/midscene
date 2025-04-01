@@ -22,6 +22,7 @@ import { allScriptsFromDump } from './replay-scripts';
 import './playground-component.less';
 
 import { overrideAIConfig } from '@midscene/core/env';
+import type { ChromeExtensionProxyPageAgent } from '@midscene/web/chrome-extension';
 import {
   ERROR_CODE_NOT_IMPLEMENTED_AS_DESIGNED,
   StaticPage,
@@ -33,11 +34,6 @@ import { Dropdown, Space } from 'antd';
 import { EnvConfig } from './env-config';
 import Logo from './logo';
 import { type HistoryItem, useEnvConfig } from './store';
-
-import {
-  ChromeExtensionProxyPage,
-  ChromeExtensionProxyPageAgent,
-} from '@midscene/web/chrome-extension';
 
 export const serverBase = 'http://localhost:5800';
 
@@ -187,12 +183,6 @@ const serverLaunchTip = (
     />
   </div>
 );
-
-// remember to destroy the agent when the tab is destroyed: agent.page.destroy()
-export const extensionAgentForTab = (forceSameTabNavigation = true) => {
-  const page = new ChromeExtensionProxyPage(forceSameTabNavigation);
-  return new ChromeExtensionProxyPageAgent(page);
-};
 
 const blankResult: PlaygroundResult = {
   result: null,
