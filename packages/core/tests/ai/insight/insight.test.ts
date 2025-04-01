@@ -1,3 +1,4 @@
+import { distance } from '@/ai-model/prompt/util';
 import { vlLocateMode } from '@/env';
 import Insight from '@/insight';
 import { sleep } from '@/utils';
@@ -28,11 +29,24 @@ describe.skipIf(!vlMode)('insight locate with search area', () => {
     const { context } = await getContextFromFixture('taobao');
 
     const insight = new Insight(context);
-    const { element } = await insight.locate({
+    const { element, rect } = await insight.locate({
       prompt: '顶部购物车 icon',
       deepThink: true,
     });
     expect(element).toBeDefined();
+    expect(rect).toBeDefined();
+    expect(
+      distance(
+        {
+          x: element!.rect.left,
+          y: element!.rect.top,
+        },
+        {
+          x: rect!.left,
+          y: rect!.top,
+        },
+      ),
+    ).toBeLessThan(100);
     await sleep(3000);
   });
 });

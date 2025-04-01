@@ -1,19 +1,23 @@
 import { callAiFn, expandSearchArea } from '@/ai-model/common';
 import { AiExtractElementInfo, AiLocateElement } from '@/ai-model/index';
 import { AiAssert, AiLocateSection } from '@/ai-model/inspect';
-import { vlLocateMode } from '@/env';
+import {
+  MIDSCENE_FORCE_DEEP_THINK,
+  getAIConfigInBoolean,
+  vlLocateMode,
+} from '@/env';
 import type {
   AIElementResponse,
   AISingleElementResponse,
   AIUsageInfo,
   BaseElement,
+  DetailedLocateParam,
   DumpSubscriber,
   InsightAction,
   InsightAssertionResponse,
   InsightExtractParam,
   InsightOptions,
   InsightTaskInfo,
-  LocateParam,
   LocateResult,
   PartialInsightDumpFromSDK,
   Rect,
@@ -68,7 +72,10 @@ export default class Insight<
     }
   }
 
-  async locate(query: LocateParam, opt?: LocateOpts): Promise<LocateResult> {
+  async locate(
+    query: DetailedLocateParam,
+    opt?: LocateOpts,
+  ): Promise<LocateResult> {
     const { callAI } = opt || {};
     const queryPrompt = typeof query === 'string' ? query : query.prompt;
     assert(
@@ -79,11 +86,24 @@ export default class Insight<
     this.onceDumpUpdatedFn = undefined;
     let searchAreaPrompt = undefined;
 
-    if (typeof query === 'object') {
-      searchAreaPrompt = query.searchArea;
-      if (!searchAreaPrompt && query.deepThink) {
-        searchAreaPrompt = query.prompt;
-      }
+    assert(typeof query === 'object', 'query should be an object for locate');
+    searchAreaPrompt = query.searchArea;
+
+    const globalDeepThinkSwitch = getAIConfigInBoolean(
+      MIDSCENE_FORCE_DEEP_THINK,
+    );
+    if (globalDeepThinkSwitch) {
+      debug('globalDeepThinkSwitch', globalDeepThinkSwitch);
+    }
+    if (!searchAreaPrompt && (query.deepThink || globalDeepThinkSwitch)) {
+      searchAreaPrompt = query.prompt;
+    }
+
+    if (searchAreaPrompt && !vlLocateMode()) {
+      console.warn(
+        'The "deepThink" feature is not supported with general purposed LLM. Please config VL model for Midscene. https://midscenejs.com/choose-a-model',
+      );
+      searchAreaPrompt = undefined;
     }
 
     const context = await this.contextRetrieverFn('locate');
@@ -95,11 +115,6 @@ export default class Insight<
       | Awaited<ReturnType<typeof AiLocateSection>>
       | undefined = undefined;
     if (searchAreaPrompt) {
-      assert(
-        vlLocateMode(),
-        'locate with search area is not supported with general purposed LLM. Please use Midscene VL model. https://midscenejs.com/choose-a-model',
-      );
-
       searchAreaResponse = await AiLocateSection({
         context,
         sectionDescription: searchAreaPrompt,
@@ -153,6 +168,7 @@ export default class Insight<
       matchedRect: rect,
       data: null,
       taskInfo,
+      deepThink: !!searchArea,
       error: errorLog,
     };
 

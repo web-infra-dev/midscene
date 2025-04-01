@@ -76,7 +76,7 @@ npx midscene ./bing-search.yaml
 
 You should see that the output shows the progress of the running process and the report file.
 
-## Usage in-depth
+## Command line usage
 
 ### Run single `.yaml` file
 
@@ -109,9 +109,11 @@ midscene /path/to/yaml --headed
 midscene /path/to/yaml --keep-window
 ```
 
-### `.yaml` file schema
+## YAML file schema
 
 There are two parts in a `.yaml` file, the `target` and the `tasks`.
+
+### `target` part
 
 The `target` part defines the basic of a task
 
@@ -158,29 +160,72 @@ target:
   closeNewTabsAfterDisconnect: <boolean>
 ```
 
+### `tasks` part
+
 The `tasks` part is an array indicates the tasks to do. Remember to write a `-` before each item which means an array item.
+
+The interfaces of the `flow` part are almost the same as the [API](./API.html), except for some parameter levels.
 
 ```yaml
 tasks:
   - name: <name>
     continueOnError: <boolean> # optional, default is false
     flow:
+      # Auto Planning (.ai)
+      # ----------------
+
       # perform an action, this is the shortcut for aiAction
       - ai: <prompt>
 
-      # perform an action
+      # this is the same as ai
       - aiAction: <prompt>
 
-      # perform an assertion
-      - aiAssert: <prompt>
+      # Instant Action(.aiTap, .aiHover, .aiInput, .aiKeyboardPress, .aiScroll)
+      # ----------------
+
+      # tap an element located by prompt
+      - aiTap: <prompt>
+        deepThink: <boolean> # optional, whether to use deepThink to precisely locate the element
+
+      # hover an element located by prompt
+      - aiHover: <prompt>
+        deepThink: <boolean> # optional, whether to use deepThink to precisely locate the element
+
+      # input text into an element located by prompt
+      - aiInput: <final text content of the input>
+        locate: <prompt>
+        deepThink: <boolean> # optional, whether to use deepThink to precisely locate the element
+
+      # press a key (like Enter, Tab, Escape, etc.) on an element located by prompt
+      - aiKeyboardPress: <key>
+        locate: <prompt>
+        deepThink: <boolean> # optional, whether to use deepThink to precisely locate the element
+
+
+      # scroll globally or on an element located by prompt
+      - aiScroll:
+        direction: 'up' # or 'down' | 'left' | 'right'
+        scrollType: 'once' # or 'untilTop' | 'untilBottom' | 'untilLeft' | 'untilRight'
+        distance: <number> # optional, distance to scroll in px
+        locate: <prompt> # optional, the element to scroll on
+        deepThink: <boolean> # optional, whether to use deepThink to precisely locate the element
+
+      # Data Extraction
+      # ----------------
 
       # perform a query, return a json object
       - aiQuery: <prompt> # remember to describe the format of the result in the prompt
         name: <name> # the name of the result, will be used as the key in the output json
 
+      # More APIs
+      # ----------------
+
       # wait for a condition to be met with a timeout (ms, optional, default 30000)
       - aiWaitFor: <prompt>
         timeout: <ms>
+
+      # perform an assertion
+      - aiAssert: <prompt>
 
       # sleep for a number of milliseconds
       - sleep: <ms>
@@ -190,7 +235,9 @@ tasks:
       # ...
 ```
 
-## Use environment variables in `.yaml` file
+## More features
+
+### Use environment variables in `.yaml` file
 
 You can use environment variables in `.yaml` file by `${variable-name}`.
 
@@ -208,7 +255,7 @@ You can use the environment variable in the `.yaml` file like this:
 #...
 ```
 
-## Use bridge mode
+### Use bridge mode
 
 By using bridge mode, you can utilize YAML scripts to automate the web browser on your desktop. This is particularly useful if you want to reuse cookies, plugins, and page states, or if you want to manually interact with automation scripts.
 
@@ -222,7 +269,7 @@ target:
 
 See [Bridge Mode by Chrome Extension](./bridge-mode-by-chrome-extension) for more details.
 
-## Run yaml script with javascript
+### Run yaml script with javascript
 
 You can also run a yaml script with javascript by using the [`runYaml`](./api.html#runyaml) method of the Midscene agent. Only the `tasks` part of the yaml script will be executed.
 

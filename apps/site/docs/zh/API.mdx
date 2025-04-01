@@ -80,11 +80,13 @@ await agent.aiAction('发布一条微博，内容为 "Hello World"');
 * 类型
 
 ```typescript
-function aiTap(locate: string): Promise<void>;
+function aiTap(locate: string, options?: Object): Promise<void>;
 ```
 
 * 参数：
   * `locate: string` - 用自然语言描述的元素定位。
+  * `options?: Object` - 可选，一个配置对象，包含：
+    * `deepThink?: boolean` - 是否开启深度思考。如果为 true，Midscene 会调用 AI 模型两次以精确定位元素。
 
 * 返回值：
   * `Promise<void>`
@@ -93,6 +95,9 @@ function aiTap(locate: string): Promise<void>;
 
 ```typescript
 await agent.aiTap('页面顶部的登录按钮');
+
+// 使用 deepThink 功能精确定位元素
+await agent.aiTap('页面顶部的登录按钮', { deepThink: true });
 ```
 
 ### `agent.aiHover()`
@@ -102,11 +107,13 @@ await agent.aiTap('页面顶部的登录按钮');
 * 类型
 
 ```typescript
-function aiHover(locate: string): Promise<void>;
+function aiHover(locate: string, options?: Object): Promise<void>;
 ```
 
 * 参数：
   * `locate: string` - 用自然语言描述的元素定位。
+  * `options?: Object` - 可选，一个配置对象，包含：
+    * `deepThink?: boolean` - 是否开启深度思考。如果为 true，Midscene 会调用 AI 模型两次以精确定位元素。
 
 * 返回值：
   * `Promise<void>`
@@ -124,12 +131,14 @@ await agent.aiHover('页面顶部的登录按钮');
 * 类型
 
 ```typescript
-function aiInput(text: string, locate: string): Promise<void>;
+function aiInput(text: string, locate: string, options?: Object): Promise<void>;
 ```
 
 * 参数：
   * `text: string` - 要输入的文本内容。使用空字符串可以清空输入框。
   * `locate: string` - 用自然语言描述的元素定位。
+  * `options?: Object` - 可选，一个配置对象，包含：
+    * `deepThink?: boolean` - 是否开启深度思考。如果为 true，Midscene 会调用 AI 模型两次以精确定位元素。
 
 * 返回值：
   * `Promise<void>`
@@ -147,12 +156,14 @@ await agent.aiInput('Hello World', '搜索框');
 * 类型
 
 ```typescript
-function aiKeyboardPress(key: string, locate?: string): Promise<void>;
+function aiKeyboardPress(key: string, locate?: string, options?: Object): Promise<void>;
 ```
 
 * 参数：
   * `key: string` - 要按下的键，如 `Enter`、`Tab`、`Escape` 等。不支持组合键。
   * `locate?: string` - 用自然语言描述的元素定位。
+  * `options?: Object` - 可选，一个配置对象，包含：
+    * `deepThink?: boolean` - 是否开启深度思考。如果为 true，Midscene 会调用 AI 模型两次以精确定位元素。
 
 * 返回值：
   * `Promise<void>`
@@ -170,7 +181,7 @@ await agent.aiKeyboardPress('Enter', '搜索框');
 * 类型
 
 ```typescript
-function aiScroll(scrollParam: PlanningActionParamScroll, locate?: string): Promise<void>;
+function aiScroll(scrollParam: PlanningActionParamScroll, locate?: string, options?: Object): Promise<void>;
 ```
 
 * 参数：
@@ -179,6 +190,8 @@ function aiScroll(scrollParam: PlanningActionParamScroll, locate?: string): Prom
     * `scrollType: 'once' | 'untilBottom' | 'untilTop' | 'untilRight' | 'untilLeft'` - 滚动类型
     * `distance: number` - 滚动距离，单位为像素。
   * `locate?: string` - 用自然语言描述的元素定位。如果未传入，Midscene 会在当前鼠标位置滚动。
+  * `options?: Object` - 可选，一个配置对象，包含：
+    * `deepThink?: boolean` - 是否开启深度思考。如果为 true，Midscene 会调用 AI 模型两次以精确定位元素。
 
 * 返回值：
   * `Promise<void>`
@@ -188,6 +201,12 @@ function aiScroll(scrollParam: PlanningActionParamScroll, locate?: string): Prom
 ```typescript
 await agent.aiScroll({ direction: 'up', distance: 100, scrollType: 'once' }, '表单区域');
 ```
+
+:::tip 关于 `deepThink` （深度思考）特性
+
+`deepThink` 是一个强大的特性，它允许 Midscene 调用 AI 模型两次以精确定位元素。这在目标元素面积较小、难以和周围元素区分时非常有用。
+
+:::
 
 ## 数据提取
 

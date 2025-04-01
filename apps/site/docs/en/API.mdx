@@ -82,11 +82,13 @@ Tap something.
 * Type
 
 ```typescript
-function aiTap(locate: string): Promise<void>;
+function aiTap(locate: string, options?: Object): Promise<void>;
 ```
 
 * Parameters:
   * `locate: string` - A natural language description of the element to tap.
+  * `options?: Object` - Optional, a configuration object containing:
+    * `deepThink?: boolean` - If true, Midscene will call AI model twice to precisely locate the element. 
 
 * Return Value:
   * Returns a `Promise<void>`
@@ -95,6 +97,9 @@ function aiTap(locate: string): Promise<void>;
 
 ```typescript
 await agent.aiTap('The login button at the top of the page');
+
+// Use deepThink feature to precisely locate the element
+await agent.aiTap('The login button at the top of the page', { deepThink: true });
 ```
 
 ### `agent.aiHover()`
@@ -104,11 +109,13 @@ Move mouse over something.
 * Type
 
 ```typescript
-function aiHover(locate: string): Promise<void>;
+function aiHover(locate: string, options?: Object): Promise<void>;
 ```
 
 * Parameters:
   * `locate: string` - A natural language description of the element to hover over.
+  * `options?: Object` - Optional, a configuration object containing:
+    * `deepThink?: boolean` - If true, Midscene will call AI model twice to precisely locate the element. 
 
 * Return Value:
   * Returns a `Promise<void>`
@@ -126,12 +133,14 @@ Input text into something.
 * Type
 
 ```typescript
-function aiInput(text: string, locate: string): Promise<void>;
+function aiInput(text: string, locate: string, options?: Object): Promise<void>;
 ```
 
 * Parameters:
   * `text: string` - The final text content that should be placed in the input element. Use blank string to clear the input.
   * `locate: string` - A natural language description of the element to input text into.
+  * `options?: Object` - Optional, a configuration object containing:
+    * `deepThink?: boolean` - If true, Midscene will call AI model twice to precisely locate the element. 
 
 * Return Value:
   * Returns a `Promise<void>`
@@ -149,12 +158,14 @@ Press a keyboard key.
 * Type
 
 ```typescript
-function aiKeyboardPress(key: string, locate?: string): Promise<void>;
+function aiKeyboardPress(key: string, locate?: string, options?: Object): Promise<void>;
 ```
 
 * Parameters:
   * `key: string` - The web key to press, e.g. 'Enter', 'Tab', 'Escape', etc. Key Combination is not supported. 
   * `locate?: string` - Optional, a natural language description of the element to press the key on.
+  * `options?: Object` - Optional, a configuration object containing:
+    * `deepThink?: boolean` - If true, Midscene will call AI model twice to precisely locate the element. 
 
 * Return Value:
   * Returns a `Promise<void>`
@@ -165,7 +176,6 @@ function aiKeyboardPress(key: string, locate?: string): Promise<void>;
 await agent.aiKeyboardPress('Enter', 'The search input box');
 ```
 
-
 ### `agent.aiScroll()`
 
 Scroll a page or an element.
@@ -173,7 +183,7 @@ Scroll a page or an element.
 * Type
 
 ```typescript
-function aiScroll(scrollParam: PlanningActionParamScroll, locate?: string): Promise<void>;
+function aiScroll(scrollParam: PlanningActionParamScroll, locate?: string, options?: Object): Promise<void>;
 ```
 
 * Parameters:
@@ -182,6 +192,8 @@ function aiScroll(scrollParam: PlanningActionParamScroll, locate?: string): Prom
     * `scrollType: 'once' | 'untilBottom' | 'untilTop' | 'untilRight' | 'untilLeft'` - Optional, the type of scroll to perform.
     * `distance: number` - Optional, the distance to scroll in px.
   * `locate?: string` - Optional, a natural language description of the element to scroll on. If not provided, Midscene will perform scroll on the current mouse position.
+  * `options?: Object` - Optional, a configuration object containing:
+    * `deepThink?: boolean` - If true, Midscene will call AI model twice to precisely locate the element. 
 
 * Return Value:
   * Returns a `Promise<void>`
@@ -191,6 +203,12 @@ function aiScroll(scrollParam: PlanningActionParamScroll, locate?: string): Prom
 ```typescript
 await agent.aiScroll({ direction: 'up', distance: 100, scrollType: 'once' }, 'The form panel');
 ```
+
+:::tip About the `deepThink` feature
+
+The `deepThink` feature is a powerful feature that allows Midscene to call AI model twice to precisely locate the element. It is useful when the AI model find it hard to distinguish the element from its surroundings.
+
+:::
 
 ## Data Extraction
 
