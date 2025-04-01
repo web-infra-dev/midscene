@@ -199,10 +199,10 @@ export function mergeRects(rects: Rect[]) {
   };
 }
 
-// expand the search area to at least 200 x 200, or add a default padding
+// expand the search area to at least 300 x 300, or add a default padding
 export function expandSearchArea(rect: Rect, screenSize: Size) {
-  const minEdgeSize = 200;
-  const defaultPadding = 50;
+  const minEdgeSize = 300;
+  const defaultPadding = 160;
 
   const paddingSizeHorizontal =
     rect.width < minEdgeSize
