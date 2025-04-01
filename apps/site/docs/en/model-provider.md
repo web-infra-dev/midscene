@@ -6,6 +6,7 @@ In this article, we will show you how to config AI service provider and how to c
 
 ## Configs
 
+### Common configs
 These are the most common configs, in which `OPENAI_API_KEY` is required.
 
 | Name | Description |
@@ -28,6 +29,8 @@ Config to use `UI-TARS` model:
 
 For more information about the models, see [Choose a model](./choose-a-model).
 
+### Advanced configs
+
 Some advanced configs are also supported. Usually you don't need to use them.
 
 | Name | Description |
@@ -37,13 +40,16 @@ Some advanced configs are also supported. Usually you don't need to use them.
 | `MIDSCENE_OPENAI_SOCKS_PROXY` | Optional. Proxy configuration (e.g. "socks5://127.0.0.1:1080") |
 | `OPENAI_MAX_TOKENS` | Optional. Maximum tokens for model response |
 
-There are some debug configs:
+### Debug configs
+
+By setting the following configs, you can see more logs for debugging. And also, they will be printed into the `./midscene_run/log` folder.
 
 | Name | Description |
 |------|-------------|
-| `DEBUG=midscene:ai:profile` | Optional. Set this to print the AI usage and response time |
+| `DEBUG=midscene:ai:profile:stats` | Optional. Set this to print the AI service cost time, token usage, etc. in comma separated format, useful for analysis |
+| `DEBUG=midscene:ai:profile:detail` | Optional. Set this to print the AI token usage details |
 | `DEBUG=midscene:ai:call` | Optional. Set this to print the AI response details |
-| `DEBUG=midscene:android` | Optional. Set this to print the adb command calling details |
+| `DEBUG=midscene:android:adb` | Optional. Set this to print the adb command calling details |
 
 ## Two ways to config environment variables
 

@@ -6,6 +6,8 @@ Midscene 默认集成了 OpenAI SDK 调用 AI 服务。使用这个 SDK 限定�
 
 ## 配置
 
+### 通用配置
+
 你可以通过环境变量来自定义配置。这些配置同样可以在 [Chrome 插件](./quick-experience) 中使用。
 
 常用的主要配置项如下，其中 `OPENAI_API_KEY` 是必选项：
@@ -30,6 +32,8 @@ Midscene 默认集成了 OpenAI SDK 调用 AI 服务。使用这个 SDK 限定�
 
 关于模型的更多信息，请参阅 [选择 AI 模型](./choose-a-model)。
 
+### 高级配置
+
 还有一些高级配置项，通常不需要使用。
 
 | 名称 | 描述 |
@@ -39,13 +43,16 @@ Midscene 默认集成了 OpenAI SDK 调用 AI 服务。使用这个 SDK 限定�
 | `MIDSCENE_OPENAI_SOCKS_PROXY` | 可选。代理配置 (如 "socks5://127.0.0.1:1080") |
 | `OPENAI_MAX_TOKENS` | 可选。模型响应的 max_tokens 数 |
 
-Midscene 还支持一些调试配置：
+### 调试配置
+
+通过设置以下配置，可以打印更多日志用于调试。这些日志也会打印到 `./midscene_run/log` 文件夹中。
 
 | 名称 | 描述 |
 |------|-------------|
-| `DEBUG=midscene:ai:profile` | 可选。设置此项，可以打印 AI token 使用情况和响应时间 |
+| `DEBUG=midscene:ai:profile:stats` | 可选。设置此项，可以打印 AI 服务消耗的时间、token 使用情况，用逗号分隔，便于分析 |
+| `DEBUG=midscene:ai:profile:detail` | 可选。设置此项，可以打印 AI token 消耗信息的详情 |
 | `DEBUG=midscene:ai:call` | 可选。设置此项，可以打印 AI 响应详情 |
-| `DEBUG=midscene:android` | 可选。设置此项，可以打印 Android adb 命令调用详情 |
+| `DEBUG=midscene:android:adb` | 可选。设置此项，可以打印 Android adb 命令调用详情 |
 
 ## 两种配置环境变量的方式
 
