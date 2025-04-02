@@ -177,6 +177,7 @@ export async function puppeteerAgentForTarget(
     autoPrintReportMsg: false,
     testId: preference?.testId,
     cacheId: preference?.cacheId,
+    aiActionContext: target.aiActionContext,
     forceSameTabNavigation:
       typeof target.forceSameTabNavigation !== 'undefined'
         ? target.forceSameTabNavigation

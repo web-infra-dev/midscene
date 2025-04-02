@@ -31,6 +31,7 @@ describe('system prompts', () => {
     const context = generateTaskBackgroundContext(
       'THIS IS USER INSTRUCTION',
       'THIS IS WHAT HAS BEEN DONE',
+      'THIS IS BACKGROUND PROMPT',
     );
     expect(context).toMatchSnapshot();
   });
@@ -42,6 +43,7 @@ describe('system prompts', () => {
     const result = await prompt.format({
       pageDescription: 'THIS IS PAGE DESCRIPTION',
       taskBackgroundContext: 'THIS IS BACKGROUND CONTEXT',
+      userActionContext: 'THIS IS BACKGROUND PROMPT',
     });
     expect(result).toMatchSnapshot();
   });
