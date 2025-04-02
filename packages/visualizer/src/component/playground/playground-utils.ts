@@ -6,10 +6,10 @@ import {
 } from '@midscene/web/playground';
 import type { WebUIContext } from '@midscene/web/utils';
 
-// 服务器基础URL
+// Server base URL
 export const serverBase = 'http://localhost:5800';
 
-// 检查服务器状态
+// Check server status
 export const checkServerStatus = async () => {
   try {
     const res = await fetch(`${serverBase}/status`);
@@ -19,7 +19,7 @@ export const checkServerStatus = async () => {
   }
 };
 
-// 向服务器发送请求
+// Send request to server
 export const requestPlaygroundServer = async (
   context: UIContext,
   type: string,
@@ -35,7 +35,7 @@ export const requestPlaygroundServer = async (
   return res.json();
 };
 
-// 根据类型获取动作名称
+// Get action name based on type
 export const actionNameForType = (type: string) => {
   if (type === 'aiAction') return 'Action';
   if (type === 'aiQuery') return 'Query';
@@ -43,13 +43,13 @@ export const actionNameForType = (type: string) => {
   return type;
 };
 
-// 从上下文创建静态代理
+// Create static agent from context
 export const staticAgentFromContext = (context: WebUIContext) => {
   const page = new StaticPage(context);
   return new StaticPageAgent(page);
 };
 
-// 处理错误信息
+// Format error message
 export const formatErrorMessage = (e: any): string => {
   const errorMessage = e?.message || '';
   if (errorMessage.includes('of different extension')) {
@@ -61,7 +61,7 @@ export const formatErrorMessage = (e: any): string => {
   return 'Unknown error';
 };
 
-// 根据运行类型获取输入框提示文本
+// Get placeholder text based on run type
 export const getPlaceholderForType = (type: string): string => {
   if (type === 'aiQuery') {
     return 'What do you want to query?';
@@ -72,7 +72,7 @@ export const getPlaceholderForType = (type: string): string => {
   return 'What do you want to do?';
 };
 
-// 空白结果模板
+// Blank result template
 export const blankResult = {
   result: null,
   dump: null,

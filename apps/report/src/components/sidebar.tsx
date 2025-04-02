@@ -5,10 +5,7 @@ import type {
   ExecutionTask,
   ExecutionTaskInsightDumpLog,
 } from '@midscene/core';
-import {
-  iconForStatus,
-  timeCostStrElement,
-} from '@midscene/visualizer/playground';
+import { iconForStatus, timeCostStrElement } from '@midscene/visualizer';
 import { typeStr } from '@midscene/web/ui-utils';
 import { useEffect } from 'react';
 import PanelTitle from './panel-title';

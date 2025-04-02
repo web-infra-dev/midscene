@@ -4,22 +4,15 @@
   "repository": "https://github.com/web-infra-dev/midscene",
   "homepage": "https://midscenejs.com/",
   "types": "./dist/types/index.d.ts",
-  "main": "./dist/playground.js",
-  "module": "./dist/es/playground.js",
+  "main": "./dist/index.js",
+  "module": "./dist/es/index.js",
   "exports": {
-    "./playground": {
-      "types": "./dist/types/playground.d.ts",
-      "default": "./dist/playground.js"
+    ".": {
+      "types": "./dist/types/index.d.ts",
+      "default": "./dist/index.js"
     },
-    "./playground.css": {
-      "default": "./dist/playground.css"
-    },
-    "./extension": {
-      "types": "./dist/types/extension.d.ts",
-      "default": "./dist/extension.js"
-    },
-    "./extension.css": {
-      "default": "./dist/extension.css"
+    "./index.css": {
+      "default": "./dist/index.css"
     }
   },
   "files": ["dist", "html", "README.md"],

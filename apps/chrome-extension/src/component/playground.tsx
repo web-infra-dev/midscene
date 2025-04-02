@@ -8,8 +8,8 @@ import {
   type ReplayScriptsInfo,
   ServiceModeControl,
   useEnvConfig,
-} from '@midscene/visualizer/extension';
-import { allScriptsFromDump } from '@midscene/visualizer/playground';
+} from '@midscene/visualizer';
+import { allScriptsFromDump } from '@midscene/visualizer';
 import { Form, message } from 'antd';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
@@ -46,7 +46,6 @@ export function BrowserExtensionPlayground({
   showContextPreview = true,
   dryMode = false,
 }: PlaygroundProps) {
-  const { serviceMode } = useEnvConfig();
   // State management
   const [uiContextPreview, setUiContextPreview] = useState<
     UIContext | undefined
@@ -225,7 +224,7 @@ export function BrowserExtensionPlayground({
       <Form form={form} onFinish={handleRun}>
         <div className="playground-form-container">
           <div className="form-part">
-            <ServiceModeControl serviceMode={serviceMode} />
+            <ServiceModeControl serviceMode={'In-Browser-Extension'} />
           </div>
 
           <ContextPreview
@@ -237,7 +236,7 @@ export function BrowserExtensionPlayground({
           <PromptInput
             runButtonEnabled={runButtonEnabled}
             form={form}
-            serviceMode={serviceMode}
+            serviceMode={'In-Browser-Extension'}
             selectedType={selectedType}
             dryMode={dryMode}
             stoppable={stoppable}
@@ -251,7 +250,7 @@ export function BrowserExtensionPlayground({
         <PlaygroundResultView
           result={result}
           loading={loading}
-          serviceMode={serviceMode}
+          serviceMode={'In-Browser-Extension'}
           replayScriptsInfo={replayScriptsInfo}
           replayCounter={replayCounter}
           loadingProgressText={loadingProgressText}

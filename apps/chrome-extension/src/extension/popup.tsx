@@ -1,11 +1,7 @@
 /// <reference types="chrome" />
 import { ApiOutlined, SendOutlined } from '@ant-design/icons';
-import {
-  Logo,
-  globalThemeConfig,
-  useEnvConfig,
-} from '@midscene/visualizer/extension';
-import '@midscene/visualizer/extension.css';
+import { Logo, globalThemeConfig, useEnvConfig } from '@midscene/visualizer';
+import '@midscene/visualizer/index.css';
 import { ConfigProvider, Tabs } from 'antd';
 import { BrowserExtensionPlayground } from '../component/playground';
 import { getExtensionVersion } from '../utils';
@@ -62,7 +58,7 @@ export function PlaygroundPopup() {
         <div className="popup-header">
           <Logo withGithubStar={true} />
           <p>
-            22222AI-Driven Browser Automation with Chrome Extensions, JavaScript, and
+            AI-Driven Browser Automation with Chrome Extensions, JavaScript, and
             YAML Scripts.{' '}
             <a href="https://midscenejs.com/" target="_blank" rel="noreferrer">
               Learn more

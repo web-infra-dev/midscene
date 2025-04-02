@@ -1,32 +1,59 @@
+import type { UIContext } from '@midscene/core';
 import { overrideAIConfig } from '@midscene/core/env';
-import { Helmet } from '@modern-js/runtime/head';
+import {
+  ContextPreview,
+  Logo,
+  type PlaygroundResult,
+  PlaygroundResultView,
+  PromptInput,
+  type ReplayScriptsInfo,
+  ServiceModeControl,
+  allScriptsFromDump,
+  useEnvConfig,
+  useServerValid,
+} from '@midscene/visualizer';
+import type { StaticPageAgent } from '@midscene/web/playground';
 import { Form, message } from 'antd';
-import type React from 'react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
-import { Logo } from '../logo';
-import { allScriptsFromDump } from '../replay-scripts';
-import type { ReplayScriptsInfo } from '../replay-scripts';
-import { useEnvConfig } from '../store/store';
-import { ContextPreview } from './ContextPreview';
-import { PlaygroundResultView } from './PlaygroundResult';
-import { PromptInput } from './PromptInput';
-import { ServiceModeControl } from './ServiceModeControl';
-import type {
-  PlaygroundProps,
-  PlaygroundResult,
-  ServiceModeType,
-  StaticPlaygroundProps,
-} from './playground-types';
-import {
-  blankResult,
-  formatErrorMessage,
-  requestPlaygroundServer,
-} from './playground-utils';
-import { useServerValid } from './useServerValid';
-import { useStaticPageAgent } from './useStaticPageAgent';
-import './index.less';
-import type { UIContext } from '@midscene/core';
+
+type ServiceModeType = 'Server' | 'In-Browser' | 'In-Browser-Extension';
+
+const blankResult = {
+  result: null,
+  dump: null,
+  reportHTML: null,
+  error: null,
+};
+const ERROR_CODE_NOT_IMPLEMENTED_AS_DESIGNED = 'NOT_IMPLEMENTED_AS_DESIGNED';
+
+export const serverBase = 'http://localhost:5800';
+
+const formatErrorMessage = (e: any): string => {
+  const errorMessage = e?.message || '';
+  if (errorMessage.includes('of different extension')) {
+    return 'Conflicting extension detected. Please disable the suspicious plugins and refresh the page. Guide: https://midscenejs.com/quick-experience.html#faq';
+  }
+  if (!errorMessage?.includes(ERROR_CODE_NOT_IMPLEMENTED_AS_DESIGNED)) {
+    return errorMessage;
+  }
+  return 'Unknown error';
+};
+
+const requestPlaygroundServer = async (
+  context: UIContext,
+  type: string,
+  prompt: string,
+) => {
+  const res = await fetch(`${serverBase}/execute`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ context, type, prompt }),
+  });
+  return res.json();
+};
 
 // Utility function to determine if the run button should be enabled
 function getRunButtonEnabled(
@@ -40,6 +67,12 @@ function getRunButtonEnabled(
     (serviceMode === 'Server' && serverValid) ||
     (serviceMode === 'In-Browser-Extension' && !!getAgent && configAlreadySet)
   );
+}
+interface PlaygroundProps {
+  getAgent: (forceSameTabNavigation?: boolean) => StaticPageAgent | null;
+  hideLogo?: boolean;
+  showContextPreview?: boolean;
+  dryMode?: boolean;
 }
 
 // Standard Playground Component (In-Browser and Server modes)
@@ -57,7 +90,6 @@ export function StandardPlayground({
   const [loading, setLoading] = useState(false);
   const [loadingProgressText, setLoadingProgressText] = useState('');
   const [result, setResult] = useState<PlaygroundResult | null>(null);
-  const [verticalMode, setVerticalMode] = useState(false);
   const [replayScriptsInfo, setReplayScriptsInfo] =
     useState<ReplayScriptsInfo | null>(null);
   const [replayCounter, setReplayCounter] = useState(0);
@@ -69,8 +101,6 @@ export function StandardPlayground({
     (state) => state.forceSameTabNavigation,
   );
 
-  // References
-  const runResultRef = useRef<HTMLHeadingElement>(null);
   const currentAgentRef = useRef<any>(null);
   const currentRunningIdRef = useRef<number | null>(0);
   const interruptedFlagRef = useRef<Record<number, boolean>>({});
@@ -79,19 +109,6 @@ export function StandardPlayground({
   const configAlreadySet = Object.keys(config || {}).length >= 1;
   const serverValid = useServerValid(serviceMode === 'Server');
 
-  // Responsive layout settings
-  useEffect(() => {
-    const sizeThreshold = 750;
-    setVerticalMode(window.innerWidth < sizeThreshold);
-
-    const handleResize = () => {
-      setVerticalMode(window.innerWidth < sizeThreshold);
-    };
-    window.addEventListener('resize', handleResize);
-    return () => {
-      window.removeEventListener('resize', handleResize);
-    };
-  }, []);
 
   // Override AI configuration
   useEffect(() => {
@@ -113,12 +130,6 @@ export function StandardPlayground({
         console.error(e);
       });
   }, [uiContextPreview, showContextPreview, getAgent, forceSameTabNavigation]);
-
-  const resetResult = () => {
-    setResult(null);
-    setLoading(false);
-    setReplayScriptsInfo(null);
-  };
 
   // Handle form submission
   const handleRun = useCallback(async () => {
@@ -260,34 +271,9 @@ export function StandardPlayground({
     </Form>
   );
 
-  // Vertical mode rendering
-  if (verticalMode) {
-    return (
-      <div className="playground-container vertical-mode">
-        {formSection}
-        <div className="form-part">
-          <PlaygroundResultView
-            result={result}
-            loading={loading}
-            serverValid={serverValid}
-            serviceMode={serviceMode}
-            replayScriptsInfo={replayScriptsInfo}
-            replayCounter={replayCounter}
-            loadingProgressText={loadingProgressText}
-            verticalMode={verticalMode}
-          />
-          <div ref={runResultRef} />
-        </div>
-      </div>
-    );
-  }
-
   // Horizontal mode rendering
   return (
     <div className="playground-container">
-      <Helmet>
-        <title>Playground - Midscene.js</title>
-      </Helmet>
       <PanelGroup autoSaveId="playground-layout" direction="horizontal">
         <Panel
           defaultSize={32}
@@ -312,17 +298,5 @@ export function StandardPlayground({
         </Panel>
       </PanelGroup>
     </div>
-  );
-}
-
-export function StaticPlayground({ context }: StaticPlaygroundProps) {
-  const agent = useStaticPageAgent(context);
-  return (
-    <StandardPlayground
-      getAgent={() => {
-        return agent;
-      }}
-      dryMode={true}
-    />
   );
 }

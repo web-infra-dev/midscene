@@ -1,10 +1,7 @@
 'use client';
 import 'pixi.js/unsafe-eval';
 import type { BaseElement, Rect, UIContext } from '@midscene/core';
-import {
-  colorForName,
-  highlightColorForType,
-} from '@midscene/visualizer/playground';
+import { colorForName, highlightColorForType } from '@midscene/visualizer';
 import { Checkbox } from 'antd';
 import type { CheckboxProps } from 'antd';
 import * as PIXI from 'pixi.js';
