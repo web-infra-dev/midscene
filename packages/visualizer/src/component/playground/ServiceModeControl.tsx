@@ -2,7 +2,7 @@ import { Button, Tooltip } from 'antd';
 import type React from 'react';
 import { EnvConfig } from '../env-config';
 import { iconForStatus } from '../misc';
-import { useEnvConfig } from '../store';
+import { useEnvConfig } from '../store/store';
 import type { ServiceModeType } from './playground-types';
 import { useServerValid } from './useServerValid';
 
@@ -10,22 +10,48 @@ interface ServiceModeControlProps {
   serviceMode: ServiceModeType;
 }
 
+// Centralized text constants
+const TITLE_TEXT = {
+  Server: 'Server Status',
+  'In-Browser': 'In-Browser Request Config',
+  'In-Browser-Extension': 'In-Browser Request Config',
+};
+
+const SWITCH_BUTTON_TEXT = {
+  Server: 'Switch to In-Browser Mode',
+  'In-Browser': 'Switch to Server Mode',
+};
+
 export const ServiceModeControl: React.FC<ServiceModeControlProps> = ({
   serviceMode,
 }) => {
   const { setServiceMode } = useEnvConfig();
   const serverValid = useServerValid(serviceMode === 'Server');
 
-  const serverTip = !serverValid ? (
-    <div className="server-tip">
-      {iconForStatus('failed')} Connection failed
-    </div>
-  ) : (
-    <div className="server-tip">{iconForStatus('connected')} Connected</div>
-  );
+  // Render server tip based on connection status
+  const renderServerTip = () => {
+    if (serverValid) {
+      return (
+        <div className="server-tip">{iconForStatus('connected')} Connected</div>
+      );
+    }
+    return (
+      <div className="server-tip">
+        {iconForStatus('failed')} Connection failed
+      </div>
+    );
+  };
 
-  const switchBtn =
-    serviceMode === 'In-Browser-Extension' ? null : (
+  // Render switch button if not in extension mode
+  const renderSwitchButton = () => {
+    if (serviceMode === 'In-Browser-Extension') {
+      return null;
+    }
+
+    const nextMode = serviceMode === 'Server' ? 'In-Browser' : 'Server';
+    const buttonText = SWITCH_BUTTON_TEXT[serviceMode];
+
+    return (
       <Tooltip
         title={
           <span>
@@ -39,27 +65,25 @@ export const ServiceModeControl: React.FC<ServiceModeControlProps> = ({
           type="link"
           onClick={(e) => {
             e.preventDefault();
-            setServiceMode(serviceMode === 'Server' ? 'In-Browser' : 'Server');
+            setServiceMode(nextMode);
           }}
         >
-          {serviceMode === 'Server'
-            ? 'Switch to In-Browser Mode'
-            : 'Switch to Server Mode'}
+          {buttonText}
         </Button>
       </Tooltip>
     );
+  };
 
-  const statusContent = serviceMode === 'Server' ? serverTip : <EnvConfig />;
+  // Determine content based on service mode
+  const statusContent =
+    serviceMode === 'Server' ? renderServerTip() : <EnvConfig />;
+  const title = TITLE_TEXT[serviceMode];
 
   return (
     <>
-      <h3>
-        {serviceMode === 'Server'
-          ? 'Server Status'
-          : 'In-Browser Request Config'}
-      </h3>
+      <h3>{title}</h3>
       {statusContent}
-      <div className="switch-btn-wrapper">{switchBtn}</div>
+      <div className="switch-btn-wrapper">{renderSwitchButton()}</div>
     </>
   );
 };

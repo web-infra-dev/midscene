@@ -1,7 +1,11 @@
-import { Form, Input, Radio } from 'antd';
+import { BorderOutlined, SendOutlined } from '@ant-design/icons';
+import { Button, Form, Input, Radio, Tooltip } from 'antd';
+import { useCallback, useEffect, useState } from 'react';
 import type React from 'react';
-import type { HistoryItem } from '../store';
-import { ControlPanel } from './ControlPanel';
+import type { HistoryItem } from '../store/history';
+import { useHistoryStore } from '../store/history';
+import { ConfigSelector } from './ConfigSelector';
+import { HistorySelector } from './HistorySelector';
 import type { RunType } from './playground-types';
 import type { ServiceModeType } from './playground-types';
 import { actionNameForType, getPlaceholderForType } from './playground-utils';
@@ -9,14 +13,8 @@ import { actionNameForType, getPlaceholderForType } from './playground-utils';
 const { TextArea } = Input;
 
 interface PromptInputProps {
-  initialValues: {
-    type: RunType;
-    prompt: string;
-  };
   runButtonEnabled: boolean;
-  onKeyDown?: (e: React.KeyboardEvent<HTMLTextAreaElement>) => void;
   form: any;
-  // Control panel related props
   serviceMode: ServiceModeType;
   selectedType: RunType;
   dryMode: boolean;
@@ -24,15 +22,11 @@ interface PromptInputProps {
   loading: boolean;
   onRun: () => void;
   onStop: () => void;
-  onSelectHistory: (history: HistoryItem) => void;
 }
 
 export const PromptInput: React.FC<PromptInputProps> = ({
-  initialValues,
   runButtonEnabled,
-  onKeyDown,
   form,
-  // Control panel related props
   serviceMode,
   selectedType,
   dryMode,
@@ -40,9 +34,117 @@ export const PromptInput: React.FC<PromptInputProps> = ({
   loading,
   onRun,
   onStop,
-  onSelectHistory,
 }) => {
+  const [hoveringSettings, setHoveringSettings] = useState(false);
   const placeholder = getPlaceholderForType(selectedType);
+
+  // Get history from store
+  const history = useHistoryStore((state) => state.history);
+  const addHistory = useHistoryStore((state) => state.addHistory);
+  const lastHistory = history[0];
+
+  // Initialize form values from history only when lastHistory changes
+  useEffect(() => {
+    if (lastHistory) {
+      form.setFieldsValue({
+        type: lastHistory.type || 'aiAction',
+        prompt: lastHistory.prompt || '',
+      });
+    } else {
+      form.setFieldsValue({
+        type: 'aiAction',
+        prompt: '',
+      });
+    }
+  }, [lastHistory, form]);
+
+  // Handle history selection internally
+  const handleSelectHistory = useCallback(
+    (historyItem: HistoryItem) => {
+      form.setFieldsValue({
+        prompt: historyItem.prompt,
+        type: historyItem.type,
+      });
+    },
+    [form],
+  );
+
+  // Handle run with history addition
+  const handleRunWithHistory = useCallback(() => {
+    const values = form.getFieldsValue();
+    if (values.prompt) {
+      addHistory({
+        type: values.type,
+        prompt: values.prompt,
+        timestamp: Date.now(),
+      });
+    }
+    onRun();
+  }, [form, addHistory, onRun]);
+
+  // Handle key events
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+      if (e.key === 'Enter' && e.metaKey) {
+        handleRunWithHistory();
+        e.preventDefault();
+        e.stopPropagation();
+      }
+    },
+    [handleRunWithHistory],
+  );
+
+  // Handle settings hover state
+  const handleMouseEnter = useCallback(() => {
+    setHoveringSettings(true);
+  }, []);
+
+  const handleMouseLeave = useCallback(() => {
+    setHoveringSettings(false);
+  }, []);
+
+  // Render action button based on current state
+  const renderActionButton = useCallback(() => {
+    const runButton = (text: string) => (
+      <Button
+        type="primary"
+        icon={<SendOutlined />}
+        onClick={handleRunWithHistory}
+        disabled={!runButtonEnabled}
+        loading={loading}
+      >
+        {text}
+      </Button>
+    );
+
+    if (dryMode) {
+      return selectedType === 'aiAction' ? (
+        <Tooltip title="Start executing until some interaction actions need to be performed. You can see the process of planning and locating.">
+          {runButton('Dry Run')}
+        </Tooltip>
+      ) : (
+        runButton('Run')
+      );
+    }
+
+    if (stoppable) {
+      return (
+        <Button icon={<BorderOutlined />} onClick={onStop}>
+          Stop
+        </Button>
+      );
+    }
+
+    return runButton('Run');
+  }, [
+    dryMode,
+    loading,
+    handleRunWithHistory,
+    onStop,
+    runButtonEnabled,
+    selectedType,
+    stoppable,
+  ]);
 
   return (
     <div className="form-part input-wrapper">
@@ -67,21 +169,25 @@ export const PromptInput: React.FC<PromptInputProps> = ({
             rows={4}
             placeholder={placeholder}
             autoFocus
-            onKeyDown={onKeyDown}
+            onKeyDown={handleKeyDown}
           />
         </Form.Item>
 
-        <ControlPanel
-          serviceMode={serviceMode}
-          selectedType={selectedType}
-          dryMode={dryMode}
-          stoppable={stoppable}
-          runButtonEnabled={runButtonEnabled}
-          loading={loading}
-          onRun={onRun}
-          onStop={onStop}
-          onSelectHistory={onSelectHistory}
-        />
+        <div className="form-controller-wrapper">
+          <div
+            className={
+              hoveringSettings
+                ? 'settings-wrapper settings-wrapper-hover'
+                : 'settings-wrapper'
+            }
+            onMouseEnter={handleMouseEnter}
+            onMouseLeave={handleMouseLeave}
+          >
+            <HistorySelector onSelect={handleSelectHistory} />
+            <ConfigSelector serviceMode={serviceMode} />
+          </div>
+          {renderActionButton()}
+        </div>
       </div>
     </div>
   );

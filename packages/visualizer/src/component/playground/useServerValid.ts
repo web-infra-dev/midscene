@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useEnvConfig } from '../store';
+import { useEnvConfig } from '../store/store';
 import { checkServerStatus } from './playground-utils';
 
 export const useServerValid = (shouldRun = true) => {

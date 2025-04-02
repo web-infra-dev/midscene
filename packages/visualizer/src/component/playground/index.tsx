@@ -2,13 +2,12 @@ import { overrideAIConfig } from '@midscene/core/env';
 import { Helmet } from '@modern-js/runtime/head';
 import { Form, message } from 'antd';
 import type React from 'react';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
 import { Logo } from '../logo';
 import { allScriptsFromDump } from '../replay-scripts';
 import type { ReplayScriptsInfo } from '../replay-scripts';
-import { useEnvConfig } from '../store';
-import type { HistoryItem } from '../store';
+import { useEnvConfig } from '../store/store';
 import { ContextPreview } from './ContextPreview';
 import { PlaygroundResultView } from './PlaygroundResult';
 import { PromptInput } from './PromptInput';
@@ -16,6 +15,7 @@ import { ServiceModeControl } from './ServiceModeControl';
 import type {
   PlaygroundProps,
   PlaygroundResult,
+  ServiceModeType,
   StaticPlaygroundProps,
 } from './playground-types';
 import {
@@ -28,13 +28,26 @@ import { useStaticPageAgent } from './useStaticPageAgent';
 import './index.less';
 import type { UIContext } from '@midscene/core';
 
+function getRunButtonEnabled(
+  serviceMode: ServiceModeType,
+  getAgent: () => any | undefined,
+  configAlreadySet: boolean,
+  serverValid: boolean,
+) {
+  return (
+    (serviceMode === 'In-Browser' && !!getAgent && configAlreadySet) ||
+    (serviceMode === 'Server' && serverValid) ||
+    (serviceMode === 'In-Browser-Extension' && !!getAgent && configAlreadySet)
+  );
+}
+
 export function Playground({
   getAgent,
   hideLogo = false,
   showContextPreview = true,
   dryMode = false,
 }: PlaygroundProps) {
-  // 状态管理
+  // State management
   const [uiContextPreview, setUiContextPreview] = useState<
     UIContext | undefined
   >(undefined);
@@ -46,30 +59,24 @@ export function Playground({
     useState<ReplayScriptsInfo | null>(null);
   const [replayCounter, setReplayCounter] = useState(0);
 
-  // 表单和环境配置
+  // Form and environment configuration
   const [form] = Form.useForm();
   const { config, serviceMode, setServiceMode } = useEnvConfig();
   const forceSameTabNavigation = useEnvConfig(
     (state) => state.forceSameTabNavigation,
   );
-  const setForceSameTabNavigation = useEnvConfig(
-    (state) => state.setForceSameTabNavigation,
-  );
-  const addHistory = useEnvConfig((state) => state.addHistory);
-  const history = useEnvConfig((state) => state.history);
-  const lastHistory = history[0];
 
-  // 参照
+  // References
   const runResultRef = useRef<HTMLHeadingElement>(null);
   const currentAgentRef = useRef<any>(null);
   const currentRunningIdRef = useRef<number | null>(0);
   const interruptedFlagRef = useRef<Record<number, boolean>>({});
 
-  // 环境配置检查
+  // Environment configuration check
   const configAlreadySet = Object.keys(config || {}).length >= 1;
   const serverValid = useServerValid(serviceMode === 'Server');
 
-  // 响应式布局设置
+  // Responsive layout settings
   useEffect(() => {
     const sizeThreshold = 750;
     setVerticalMode(window.innerWidth < sizeThreshold);
@@ -83,12 +90,12 @@ export function Playground({
     };
   }, []);
 
-  // 覆盖AI配置
+  // Override AI configuration
   useEffect(() => {
     overrideAIConfig(config as any);
   }, [config]);
 
-  // 初始化上下文预览
+  // Initialize context preview
   useEffect(() => {
     if (uiContextPreview) return;
     if (!showContextPreview) return;
@@ -110,7 +117,7 @@ export function Playground({
     setReplayScriptsInfo(null);
   };
 
-  // 处理表单提交
+  // Handle form submission
   const handleRun = useCallback(async () => {
     const value = form.getFieldsValue();
     if (!value.prompt) {
@@ -122,11 +129,6 @@ export function Playground({
 
     setLoading(true);
     setResult(null);
-    addHistory({
-      type: value.type,
-      prompt: value.prompt,
-      timestamp: Date.now(),
-    });
     let result: PlaygroundResult = { ...blankResult };
 
     const activeAgent = getAgent(forceSameTabNavigation);
@@ -208,9 +210,9 @@ export function Playground({
       setReplayScriptsInfo(null);
     }
     console.log(`time taken: ${Date.now() - startTime}ms`);
-  }, [form, getAgent, serviceMode, forceSameTabNavigation, addHistory]);
+  }, [form, getAgent, serviceMode, forceSameTabNavigation]);
 
-  // 处理停止运行
+  // Handle stop running
   const handleStop = async () => {
     const thisRunningId = currentRunningIdRef.current;
     if (thisRunningId) {
@@ -221,51 +223,24 @@ export function Playground({
     }
   };
 
-  // 按键事件处理
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === 'Enter' && e.metaKey) {
-      handleRun();
-      e.preventDefault();
-      e.stopPropagation();
-    }
-  };
+  // Validate if it can run
+  const runButtonEnabled = getRunButtonEnabled(
+    serviceMode,
+    getAgent,
+    configAlreadySet,
+    serverValid,
+  );
 
-  // 选择历史记录
-  const handleSelectHistory = (historyItem: HistoryItem) => {
-    form.setFieldsValue({
-      prompt: historyItem.prompt,
-      type: historyItem.type,
-    });
-  };
-
-  // 获取初始表单值
-  const historyInitialValues = useMemo(() => {
-    return {
-      type: lastHistory?.type || 'aiAction',
-      prompt: lastHistory?.prompt || '',
-    };
-  }, [lastHistory]);
-
-  // 验证是否可以运行
-  const runButtonEnabled =
-    (serviceMode === 'In-Browser' && !!getAgent && configAlreadySet) ||
-    (serviceMode === 'Server' && serverValid) ||
-    (serviceMode === 'In-Browser-Extension' && !!getAgent && configAlreadySet);
-
-  // 是否可以停止
+  // Check if it can be stopped
   const stoppable =
     !dryMode && serviceMode === 'In-Browser-Extension' && loading;
 
-  // 获取当前选中的类型
+  // Get the currently selected type
   const selectedType = Form.useWatch('type', form);
 
-  // 表单部分
+  // Form section
   const formSection = (
-    <Form
-      form={form}
-      onFinish={handleRun}
-      initialValues={{ ...historyInitialValues }}
-    >
+    <Form form={form} onFinish={handleRun}>
       <div className="playground-form-container">
         <div className="form-part">
           <ServiceModeControl serviceMode={serviceMode} />
@@ -278,9 +253,7 @@ export function Playground({
         />
 
         <PromptInput
-          initialValues={historyInitialValues}
           runButtonEnabled={runButtonEnabled}
-          onKeyDown={handleKeyDown}
           form={form}
           serviceMode={serviceMode}
           selectedType={selectedType}
@@ -289,20 +262,12 @@ export function Playground({
           loading={loading}
           onRun={handleRun}
           onStop={handleStop}
-          onSelectHistory={handleSelectHistory}
         />
       </div>
     </Form>
   );
 
-  // Logo部分
-  const logoComponent = !hideLogo && (
-    <div className="playground-header">
-      <Logo />
-    </div>
-  );
-
-  // 垂直模式渲染
+  // Vertical mode rendering
   if (verticalMode) {
     return (
       <div className="playground-container vertical-mode">
@@ -324,7 +289,7 @@ export function Playground({
     );
   }
 
-  // 水平模式渲染
+  // Horizontal mode rendering
   return (
     <div className="playground-container">
       <Helmet>
@@ -337,7 +302,7 @@ export function Playground({
           minSize={20}
           className="playground-left-panel"
         >
-          {logoComponent}
+          <Logo hideLogo={hideLogo} />
           {formSection}
         </Panel>
         <PanelResizeHandle className="panel-resize-handle" />
@@ -368,17 +333,3 @@ export function StaticPlayground({ context }: StaticPlaygroundProps) {
     />
   );
 }
-
-export * from './playground-types';
-export * from './useServerValid';
-export * from './useStaticPageAgent';
-export * from './playground-utils';
-
-// 导出各个组件，便于单独使用
-export { ServiceModeControl } from './ServiceModeControl';
-export { ContextPreview } from './ContextPreview';
-export { PromptInput } from './PromptInput';
-export { PlaygroundResultView } from './PlaygroundResult';
-export { HistorySelector } from './HistorySelector';
-export { ConfigSelector } from './ConfigSelector';
-export { ActionButtons } from './ActionButtons';

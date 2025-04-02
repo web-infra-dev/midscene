@@ -1,8 +1,8 @@
 import { HistoryOutlined } from '@ant-design/icons';
 import { Dropdown, type MenuProps, Space } from 'antd';
 import type React from 'react';
-import { useEnvConfig } from '../store';
-import type { HistoryItem } from '../store';
+import { useHistoryStore } from '../store/history';
+import type { HistoryItem } from '../store/history';
 import { actionNameForType } from './playground-utils';
 
 interface HistorySelectorProps {
@@ -12,8 +12,8 @@ interface HistorySelectorProps {
 export const HistorySelector: React.FC<HistorySelectorProps> = ({
   onSelect,
 }) => {
-  const history = useEnvConfig((state) => state.history);
-  const clearHistory = useEnvConfig((state) => state.clearHistory);
+  const history = useHistoryStore((state) => state.history);
+  const clearHistory = useHistoryStore((state) => state.clearHistory);
 
   const items: MenuProps['items'] = history.map((item, index) => ({
     label: (

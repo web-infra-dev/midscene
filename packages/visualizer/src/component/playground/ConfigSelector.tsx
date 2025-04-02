@@ -1,7 +1,7 @@
 import { SettingOutlined } from '@ant-design/icons';
 import { Checkbox, Dropdown, type MenuProps, Space } from 'antd';
 import type React from 'react';
-import { useEnvConfig } from '../store';
+import { useEnvConfig } from '../store/store';
 import { trackingTip } from './playground-constants';
 import type { ServiceModeType } from './playground-types';
 
