@@ -1,5 +1,6 @@
 import { beforeAll, describe, expect, it, vi } from 'vitest';
 import { AndroidAgent, AndroidDevice, getConnectedDevices } from '../../src';
+import { sleep } from '@midscene/core/utils';
 
 vi.setConfig({
   testTimeout: 240 * 1000,
@@ -16,6 +17,7 @@ describe('Test todo list', () => {
     agent = new AndroidAgent(page);
     await page.connect();
     await page.launch(pageUrl);
+    await sleep(3000);
   });
 
   it(
