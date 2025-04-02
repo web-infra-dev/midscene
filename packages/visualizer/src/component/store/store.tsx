@@ -1,16 +1,4 @@
-import { activeTab } from '@/extension/utils';
-import { currentWindowId } from '@/extension/utils';
 import * as Z from 'zustand';
-// import { createStore } from 'zustand/vanilla';
-import type {
-  ExecutionDump,
-  ExecutionTask,
-  ExecutionTaskInsightLocate,
-  GroupedActionDump,
-  InsightDump,
-} from '../../../core';
-import type { AnimationScript } from './replay-scripts';
-import { allScriptsFromDump, generateAnimationScripts } from './replay-scripts';
 
 const { create } = Z;
 export const useBlackboardPreference = create<{
@@ -31,15 +19,10 @@ export const useBlackboardPreference = create<{
 
 const CONFIG_KEY = 'midscene-env-config';
 const SERVICE_MODE_KEY = 'midscene-service-mode';
-const HISTORY_KEY = 'midscene-prompt-history';
 const TRACKING_ACTIVE_TAB_KEY = 'midscene-tracking-active-tab';
 const getConfigStringFromLocalStorage = () => {
   const configString = localStorage.getItem(CONFIG_KEY);
   return configString || '';
-};
-const getHistoryFromLocalStorage = () => {
-  const historyString = localStorage.getItem(HISTORY_KEY);
-  return historyString ? JSON.parse(historyString) : [];
 };
 const parseConfig = (configString: string) => {
   const lines = configString.split('\n');
@@ -71,13 +54,6 @@ const parseConfig = (configString: string) => {
   return config;
 };
 
-export interface HistoryItem {
-  type: 'aiAction' | 'aiQuery' | 'aiAssert';
-  prompt: string;
-  timestamp: number;
-}
-
-/**
 /**
  * Service Mode
  *
@@ -95,9 +71,6 @@ export const useEnvConfig = create<{
   loadConfig: (configString: string) => void;
   forceSameTabNavigation: boolean;
   setForceSameTabNavigation: (forceSameTabNavigation: boolean) => void;
-  history: HistoryItem[];
-  clearHistory: () => void;
-  addHistory: (history: HistoryItem) => void;
   popupTab: 'playground' | 'bridge';
   setPopupTab: (tab: 'playground' | 'bridge') => void;
 }>((set, get) => {
@@ -134,22 +107,6 @@ export const useEnvConfig = create<{
         TRACKING_ACTIVE_TAB_KEY,
         forceSameTabNavigation.toString(),
       );
-    },
-    history: getHistoryFromLocalStorage(),
-    clearHistory: () => {
-      set({ history: [] });
-      localStorage.removeItem(HISTORY_KEY);
-    },
-    addHistory: (history) => {
-      const newHistory = [
-        history,
-        ...get().history.filter((h) => h.prompt !== history.prompt),
-      ];
-      while (newHistory.length > 10) {
-        newHistory.pop();
-      }
-      set({ history: newHistory });
-      localStorage.setItem(HISTORY_KEY, JSON.stringify(newHistory));
     },
     popupTab: 'playground',
     setPopupTab: (tab: 'playground' | 'bridge') => {

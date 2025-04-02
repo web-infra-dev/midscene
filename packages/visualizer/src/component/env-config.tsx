@@ -1,7 +1,7 @@
 import { Button, Input, Modal, Tooltip } from 'antd';
 import { useState } from 'react';
 import { iconForStatus } from './misc';
-import { useEnvConfig } from './store';
+import { useEnvConfig } from './store/store';
 
 export function EnvConfig() {
   const { config, configString, loadConfig } = useEnvConfig();

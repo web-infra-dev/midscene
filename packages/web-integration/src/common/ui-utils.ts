@@ -45,14 +45,7 @@ export function locateParamStr(locate?: DetailedLocateParam) {
     return locate;
   }
 
-  if (!locate.searchArea) {
-    if (locate.deepThink) {
-      return `${locate.prompt} (deep think)`;
-    }
-    return locate.prompt;
-  }
-
-  return `${locate.prompt} @ ${locate.searchArea}`;
+  return locate.prompt;
 }
 
 export function scrollParamStr(scrollParam?: PlanningActionParamScroll) {

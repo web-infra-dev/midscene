@@ -6,11 +6,11 @@ import type {
   GroupedActionDump,
   InsightDump,
 } from '@midscene/core';
-import type { AnimationScript } from '@midscene/visualizer/playground';
+import type { AnimationScript } from '@midscene/visualizer';
 import {
   allScriptsFromDump,
   generateAnimationScripts,
-} from '@midscene/visualizer/playground';
+} from '@midscene/visualizer';
 import * as Z from 'zustand';
 
 const { create } = Z;

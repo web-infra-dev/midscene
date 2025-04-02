@@ -5,10 +5,7 @@ import type {
   ExecutionTask,
   ExecutionTaskInsightDumpLog,
 } from '@midscene/core';
-import {
-  iconForStatus,
-  timeCostStrElement,
-} from '@midscene/visualizer/playground';
+import { iconForStatus, timeCostStrElement } from '@midscene/visualizer';
 import { typeStr } from '@midscene/web/ui-utils';
 import { useEffect } from 'react';
 import PanelTitle from './panel-title';
@@ -26,7 +23,7 @@ const SideItem = (props: {
 
   const cacheEl = task.cache?.hit ? <span>(cache) </span> : null;
 
-  const deepThinkEl = (task.log as ExecutionTaskInsightDumpLog)?.dump
+  const deepThinkEl = (task as ExecutionTaskInsightLocate)?.log?.dump
     ?.deepThink ? (
     <span>(deep think) </span>
   ) : null;

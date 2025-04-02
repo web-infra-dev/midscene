@@ -243,12 +243,23 @@ export async function call(
   };
   if (style === 'openai') {
     debugCall(`sending request to ${model}`);
-    const result = await completion.create({
-      model,
-      messages,
-      response_format: responseFormat,
-      ...commonConfig,
-    } as any);
+    let result: Awaited<ReturnType<typeof completion.create>>;
+    try {
+      result = await completion.create({
+        model,
+        messages,
+        response_format: responseFormat,
+        ...commonConfig,
+      } as any);
+    } catch (e: any) {
+      const newError = new Error(
+        `failed to call AI model service: ${e.message}. Trouble shooting: https://midscenejs.com/model-provider.html`,
+        {
+          cause: e,
+        },
+      );
+      throw newError;
+    }
 
     debugProfileStats(
       `model, ${model}, mode, ${vlLocateMode() || 'default'}, prompt-tokens, ${result.usage?.prompt_tokens || ''}, completion-tokens, ${result.usage?.completion_tokens || ''}, total-tokens, ${result.usage?.total_tokens || ''}, cost-ms, ${Date.now() - startTime}, requestId, ${result._request_id || ''}`,
