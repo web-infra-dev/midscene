@@ -1,6 +1,6 @@
 export { PlaywrightAiFixture } from './playwright';
 export type { PlayWrightAiFixtureType } from './playwright';
-export type { WebPage } from './common/page';
+export type { WebPage, AndroidDevicePage } from './common/page';
 export type { AbstractPage } from './page';
 
 export { PageAgent, type PageAgentOpt } from './common/agent';

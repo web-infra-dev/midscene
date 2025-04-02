@@ -5,13 +5,13 @@ import { getTmpFile } from '@midscene/core/utils';
 import type { ElementInfo } from '@midscene/shared/extractor';
 import { resizeImg } from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
-import type { AbstractPage } from '@midscene/web';
+import type { AndroidDevicePage } from '@midscene/web';
 import { ADB } from 'appium-adb';
 
 const androidScreenshotPath = '/data/local/tmp/midscene_screenshot.png';
 export const debugPage = getDebug('android');
 
-export class AndroidDevice implements AbstractPage {
+export class AndroidDevice implements AndroidDevicePage {
   private deviceId: string;
   private screenSize: Size | null = null;
   private yadbPushed = false;
