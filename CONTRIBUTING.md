@@ -228,7 +228,7 @@ Here are the steps to publish (we generally use CI for releases and avoid publis
 1. [Run the release action](https://github.com/web-infra-dev/midscene/actions/workflows/release.yml).
 2. [Generate the release notes](https://github.com/web-infra-dev/midscene/releases).
 
-## Chrome DevTools Extension
+## Chrome Extension
 
 ### Directory Structure
 

@@ -125,6 +125,15 @@ export default defineConfig({
             },
           ],
         },
+        {
+          text: 'Blog',
+          items: [
+            {
+              text: 'Introducing Instant Actions and Deep Think',
+              link: '/blog-introducing-instant-actions-and-deep-think',
+            },
+          ],
+        },
       ],
       '/zh': [
         {
@@ -196,6 +205,15 @@ export default defineConfig({
             {
               text: '数据隐私',
               link: '/zh/data-privacy',
+            },
+          ],
+        },
+        {
+          text: 'Blog',
+          items: [
+            {
+              text: '即时操作和深度思考',
+              link: '/zh/blog-introducing-instant-actions-and-deep-think',
             },
           ],
         },
