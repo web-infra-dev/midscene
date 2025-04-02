@@ -1,6 +1,5 @@
 export {
   StandardPlayground,
-  BrowserExtensionPlayground,
   StaticPlayground,
 } from './component/playground';
 export { useStaticPageAgent } from './component/playground/useStaticPageAgent';

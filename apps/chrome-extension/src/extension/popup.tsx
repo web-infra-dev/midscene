@@ -1,13 +1,13 @@
 /// <reference types="chrome" />
 import { ApiOutlined, SendOutlined } from '@ant-design/icons';
 import {
-  BrowserExtensionPlayground,
   Logo,
   globalThemeConfig,
   useEnvConfig,
 } from '@midscene/visualizer/extension';
 import '@midscene/visualizer/extension.css';
 import { ConfigProvider, Tabs } from 'antd';
+import { BrowserExtensionPlayground } from '../component/playground';
 import { getExtensionVersion } from '../utils';
 import Bridge from './bridge';
 import './popup.less';

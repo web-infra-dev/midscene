@@ -10,7 +10,7 @@ import type { ServiceModeType } from './playground-types';
 interface PlaygroundResultProps {
   result: PlaygroundResultType | null;
   loading: boolean;
-  serverValid: boolean;
+  serverValid?: boolean;
   serviceMode: ServiceModeType;
   replayScriptsInfo: ReplayScriptsInfo | null;
   replayCounter: number;
