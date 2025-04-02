@@ -171,7 +171,7 @@ export class PageTaskExecutor {
               timing: 'before locate',
             };
 
-            const cachePrompt = `${param.prompt} @ ${param.searchArea || ''}`;
+            const cachePrompt = param.prompt;
             const locateCache = cacheGroup?.matchCache(
               pageContext,
               'locate',

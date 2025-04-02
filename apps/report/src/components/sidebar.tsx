@@ -23,7 +23,7 @@ const SideItem = (props: {
 
   const cacheEl = task.cache?.hit ? <span>(cache) </span> : null;
 
-  const deepThinkEl = (task.log as ExecutionTaskInsightDumpLog)?.dump
+  const deepThinkEl = (task as ExecutionTaskInsightLocate)?.log?.dump
     ?.deepThink ? (
     <span>(deep think) </span>
   ) : null;

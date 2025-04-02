@@ -1,7 +1,7 @@
 import type { PlanningActionParamScroll } from './types';
 
 export interface LocateOption {
-  searchArea?: string;
+  prompt?: string;
   deepThink?: boolean; // only available in vl model
 }
 

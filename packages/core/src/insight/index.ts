@@ -84,10 +84,8 @@ export default class Insight<
     );
     const dumpSubscriber = this.onceDumpUpdatedFn;
     this.onceDumpUpdatedFn = undefined;
-    let searchAreaPrompt = undefined;
 
     assert(typeof query === 'object', 'query should be an object for locate');
-    searchAreaPrompt = query.searchArea;
 
     const globalDeepThinkSwitch = getAIConfigInBoolean(
       MIDSCENE_FORCE_DEEP_THINK,
@@ -95,7 +93,8 @@ export default class Insight<
     if (globalDeepThinkSwitch) {
       debug('globalDeepThinkSwitch', globalDeepThinkSwitch);
     }
-    if (!searchAreaPrompt && (query.deepThink || globalDeepThinkSwitch)) {
+    let searchAreaPrompt;
+    if (query.deepThink || globalDeepThinkSwitch) {
       searchAreaPrompt = query.prompt;
     }
 
