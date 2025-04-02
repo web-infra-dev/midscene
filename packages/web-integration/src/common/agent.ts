@@ -52,6 +52,7 @@ export interface PageAgentOpt {
   /* if auto print report msg, default true */
   autoPrintReportMsg?: boolean;
   onTaskStartTip?: OnTaskStartTip;
+  aiActionContext?: string;
 }
 
 export class PageAgent<PageType extends WebPage = WebPage> {
@@ -117,6 +118,10 @@ export class PageAgent<PageType extends WebPage = WebPage> {
     return await parseContextFromWebPage(this.page, {
       ignoreMarker: !!vlLocateMode(),
     });
+  }
+
+  async setAIActionContext(prompt: string) {
+    this.opts.aiActionContext = prompt;
   }
 
   resetDump() {
@@ -283,7 +288,7 @@ export class PageAgent<PageType extends WebPage = WebPage> {
   async aiAction(taskPrompt: string) {
     const { executor } = await (getAIConfigInBoolean(MIDSCENE_USE_VLM_UI_TARS)
       ? this.taskExecutor.actionToGoal(taskPrompt)
-      : this.taskExecutor.action(taskPrompt));
+      : this.taskExecutor.action(taskPrompt, this.opts.aiActionContext));
 
     this.afterTaskRunning(executor);
   }

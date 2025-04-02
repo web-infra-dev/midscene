@@ -14,6 +14,7 @@ Midscene 中每个 Agent 都有自己的构造函数。
 * `generateReport: boolean`: 如果为 true，则生成报告文件。默认值为 true。
 * `autoPrintReportMsg: boolean`: 如果为 true，则打印报告消息。默认值为 true。
 * `cacheId: string | undefined`: 如果配置，则使用此 cacheId 保存或匹配缓存。默认值为 undefined，也就是不启用缓存。
+* `actionContext: string`: 调用 `agent.aiAction()` 时，发送给 AI 模型的背景知识，比如 '有 cookie 对话框时先关闭它'，默认值为空。
 
 在 puppeteer 中，还有一个额外的参数：
 
@@ -363,6 +364,25 @@ console.log(result);
 :::tip
 更多关于 YAML 脚本的信息，请参考 [Automate with Scripts in YAML](./automate-with-scripts-in-yaml)。
 :::
+
+### `agent.setAIActionContext()`
+
+这个方法允许你设置在调用 `agent.aiAction()` 时，发送给 AI 模型的背景知识。
+
+* 类型
+
+```typescript
+function setAIActionContext(actionContext: string): void;
+```
+
+* 参数：
+  * `actionContext: string` - 要发送给 AI 模型的背景知识。
+
+* 示例：
+
+```typescript
+await agent.setAIActionContext('如果 “使用cookie” 对话框存在，先关闭它');
+```
 
 ## 属性
 

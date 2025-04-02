@@ -304,8 +304,13 @@ Reason:
 exports[`system prompt to task planning > planning - background context 1`] = `
 "
 Here is the user's instruction:
+
 <instruction>
-THIS IS USER INSTRUCTION
+  <high_priority_knowledge>
+    THIS IS BACKGROUND PROMPT
+  </high_priority_knowledge>
+
+  THIS IS USER INSTRUCTION
 </instruction>
 
 These are the logs from previous executions, which indicate what was done in the previous actions.

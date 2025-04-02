@@ -309,12 +309,18 @@ export const planSchema: ResponseFormatJSONSchema = {
 export const generateTaskBackgroundContext = (
   userInstruction: string,
   log?: string,
+  userActionContext?: string,
 ) => {
   if (log) {
     return `
 Here is the user's instruction:
+
 <instruction>
-${userInstruction}
+  <high_priority_knowledge>
+    ${userActionContext}
+  </high_priority_knowledge>
+
+  ${userInstruction}
 </instruction>
 
 These are the logs from previous executions, which indicate what was done in the previous actions.
@@ -328,8 +334,13 @@ ${log}
   return `
 Here is the user's instruction:
 <instruction>
-${userInstruction}
-</instruction>`;
+  <high_priority_knowledge>
+    ${userActionContext}
+  </high_priority_knowledge>
+
+  ${userInstruction}
+</instruction>
+`;
 };
 
 export const automationUserPrompt = () => {
