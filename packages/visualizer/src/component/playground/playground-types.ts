@@ -28,7 +28,7 @@ export interface StaticPlaygroundProps {
 }
 
 // 服务模式类型
-export type ServiceModeType = 'Server' | 'In-Browser' | 'In-Browser-Extension';
+export type ServiceModeType = 'Server' | 'In-Browser';
 
 // 运行类型
 export type RunType = 'aiAction' | 'aiQuery' | 'aiAssert';

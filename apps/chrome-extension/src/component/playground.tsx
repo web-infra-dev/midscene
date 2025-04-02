@@ -2,11 +2,11 @@ import type { UIContext } from '@midscene/core';
 import { overrideAIConfig } from '@midscene/core/env';
 import {
   ContextPreview,
+  EnvConfig,
   type PlaygroundResult,
   PlaygroundResultView,
   PromptInput,
   type ReplayScriptsInfo,
-  ServiceModeControl,
   useEnvConfig,
 } from '@midscene/visualizer';
 import { allScriptsFromDump } from '@midscene/visualizer';
@@ -224,7 +224,8 @@ export function BrowserExtensionPlayground({
       <Form form={form} onFinish={handleRun}>
         <div className="playground-form-container">
           <div className="form-part">
-            <ServiceModeControl serviceMode={'In-Browser-Extension'} />
+            <h3>In-Browser Request Config</h3>
+            <EnvConfig />
           </div>
 
           <ContextPreview

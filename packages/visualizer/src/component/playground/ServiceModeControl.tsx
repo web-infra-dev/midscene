@@ -14,7 +14,6 @@ interface ServiceModeControlProps {
 const TITLE_TEXT = {
   Server: 'Server Status',
   'In-Browser': 'In-Browser Request Config',
-  'In-Browser-Extension': 'In-Browser Request Config',
 };
 
 const SWITCH_BUTTON_TEXT = {
@@ -44,9 +43,6 @@ export const ServiceModeControl: React.FC<ServiceModeControlProps> = ({
 
   // Render switch button if not in extension mode
   const renderSwitchButton = () => {
-    if (serviceMode === 'In-Browser-Extension') {
-      return null;
-    }
 
     const nextMode = serviceMode === 'Server' ? 'In-Browser' : 'Server';
     const buttonText = SWITCH_BUTTON_TEXT[serviceMode];

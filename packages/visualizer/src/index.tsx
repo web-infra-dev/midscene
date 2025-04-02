@@ -14,6 +14,8 @@ export {
   globalThemeConfig,
 } from './component/color';
 
+export { EnvConfig } from './component/env-config';
+
 export { Logo } from './component/logo';
 export { iconForStatus, timeCostStrElement } from './component/misc';
 export { useServerValid } from './component/playground/useServerValid';
