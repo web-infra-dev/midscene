@@ -274,6 +274,8 @@ export class AndroidDevice implements AndroidDevicePage {
 
     const adb = await this.getAdb();
 
+    await this.mouse.click(element.center[0], element.center[1]);
+
     // Use the yadb tool to clear the input box
     await adb.shell(
       'app_process -Djava.class.path=/data/local/tmp/yadb /data/local/tmp com.ysbing.yadb.Main -keyboard "~CLEAR~"',
