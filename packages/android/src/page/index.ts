@@ -1,3 +1,4 @@
+import assert from 'node:assert';
 import fs from 'node:fs';
 import path from 'node:path';
 import type { Point, Size } from '@midscene/core';
@@ -21,6 +22,8 @@ export class AndroidDevice implements AndroidDevicePage {
   pageType = 'android';
 
   constructor(deviceId: string) {
+    assert(deviceId, 'deviceId is required for AndroidDevice');
+
     this.deviceId = deviceId;
   }
 
