@@ -97,9 +97,6 @@ export function StandardPlayground({
   // Form and environment configuration
   const [form] = Form.useForm();
   const { config } = useEnvConfig();
-  const forceSameTabNavigation = useEnvConfig(
-    (state) => state.forceSameTabNavigation,
-  );
 
   const currentAgentRef = useRef<any>(null);
   const currentRunningIdRef = useRef<number | null>(0);
@@ -120,7 +117,7 @@ export function StandardPlayground({
     if (uiContextPreview) return;
     if (!showContextPreview) return;
 
-    getAgent(forceSameTabNavigation)
+    getAgent()
       ?.getUIContext()
       .then((context: UIContext) => {
         setUiContextPreview(context);
@@ -129,7 +126,7 @@ export function StandardPlayground({
         message.error('Failed to get UI context');
         console.error(e);
       });
-  }, [uiContextPreview, showContextPreview, getAgent, forceSameTabNavigation]);
+  }, [uiContextPreview, showContextPreview, getAgent]);
 
   // Handle form submission
   const handleRun = useCallback(async () => {
@@ -145,7 +142,7 @@ export function StandardPlayground({
     setResult(null);
     let result: PlaygroundResult = { ...blankResult };
 
-    const activeAgent = getAgent(forceSameTabNavigation);
+    const activeAgent = getAgent();
     const thisRunningId = Date.now();
     try {
       if (!activeAgent) {
@@ -221,7 +218,7 @@ export function StandardPlayground({
       setReplayScriptsInfo(null);
     }
     console.log(`time taken: ${Date.now() - startTime}ms`);
-  }, [form, getAgent, serviceMode, forceSameTabNavigation]);
+  }, [form, getAgent, serviceMode]);
 
   // Dummy handleStop for Standard mode (no real stopping functionality)
   const handleStop = async () => {
