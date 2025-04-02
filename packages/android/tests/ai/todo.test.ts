@@ -1,7 +1,6 @@
 import { sleep } from '@midscene/core/utils';
 import { beforeAll, describe, expect, it, vi } from 'vitest';
 import { AndroidAgent, AndroidDevice, getConnectedDevices } from '../../src';
-import { sleep } from '@midscene/core/utils';
 
 vi.setConfig({
   testTimeout: 240 * 1000,
