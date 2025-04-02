@@ -1,4 +1,4 @@
-import { PageAgent, type PageAgentOpt } from '@midscene/web';
+import { PageAgent, type PageAgentOpt } from '@midscene/web/agent';
 import { AndroidDevice } from '../page';
 import { getConnectedDevices } from '../utils';
 
