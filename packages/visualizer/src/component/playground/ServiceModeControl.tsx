@@ -7,7 +7,7 @@ import type { ServiceModeType } from './playground-types';
 import { useServerValid } from './useServerValid';
 
 interface ServiceModeControlProps {
-  serviceMode: ServiceModeType;
+  serviceMode: 'Server' | 'In-Browser';
 }
 
 // Centralized text constants

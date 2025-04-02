@@ -140,7 +140,7 @@ export function BrowserExtensionPlayground({
       currentRunningIdRef.current = thisRunningId;
       interruptedFlagRef.current[thisRunningId] = false;
       activeAgent.resetDump();
-      activeAgent.opts.onTaskStartTip = (tip: string) => {
+      activeAgent.onTaskStartTip = (tip: string) => {
         if (interruptedFlagRef.current[thisRunningId]) {
           return;
         }
