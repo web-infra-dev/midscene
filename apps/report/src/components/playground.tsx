@@ -106,7 +106,6 @@ export function StandardPlayground({
   const configAlreadySet = Object.keys(config || {}).length >= 1;
   const serverValid = useServerValid(serviceMode === 'Server');
 
-
   // Override AI configuration
   useEffect(() => {
     overrideAIConfig(config as any);
