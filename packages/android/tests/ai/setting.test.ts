@@ -1,5 +1,5 @@
 import { describe, it, vi } from 'vitest';
-import { agentFromDeviceId, getConnectedDevices } from '../../src';
+import { agentFromAdbDevice, getConnectedDevices } from '../../src';
 
 vi.setConfig({
   testTimeout: 90 * 1000,
@@ -10,7 +10,7 @@ describe(
   async () => {
     await it('Android settings page demo for scroll', async () => {
       const devices = await getConnectedDevices();
-      const agent = await agentFromDeviceId(devices[0].udid);
+      const agent = await agentFromAdbDevice(devices[0].udid);
 
       await agent.launch('com.android.settings/.Settings');
 

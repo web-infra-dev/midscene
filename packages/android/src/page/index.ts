@@ -9,6 +9,7 @@ import type { AbstractPage } from '@midscene/web';
 import { ADB } from 'appium-adb';
 
 const androidScreenshotPath = '/data/local/tmp/midscene_screenshot.png';
+export const debugPage = getDebug('android');
 
 export class AndroidDevice implements AbstractPage {
   private deviceId: string;
@@ -16,6 +17,7 @@ export class AndroidDevice implements AbstractPage {
   private yadbPushed = false;
   private deviceRatio = 1;
   private adb: ADB | null = null;
+  private connectingAdb: Promise<ADB> | null = null;
   pageType = 'android';
 
   constructor(deviceId: string) {
@@ -23,29 +25,47 @@ export class AndroidDevice implements AbstractPage {
   }
 
   public async connect(): Promise<ADB> {
+    return this.getAdb();
+  }
+
+  public async getAdb(): Promise<ADB> {
+    // if already has ADB instance, return it
     if (this.adb) {
       return this.adb;
     }
 
-    debugPage(`Initializing ADB with device ID: ${this.deviceId}`);
-    try {
-      this.adb = await ADB.createADB({
-        udid: this.deviceId,
-        adbExecTimeout: 60000,
-      });
-      debugPage('ADB initialized successfully');
-      return this.adb;
-    } catch (error) {
-      debugPage(`Failed to initialize ADB: ${error}`);
-      throw new Error(`Unable to connect to device ${this.deviceId}: ${error}`);
+    // If already connecting, wait for connection to complete
+    if (this.connectingAdb) {
+      return this.connectingAdb;
     }
-  }
 
-  public async getAdb(): Promise<ADB> {
-    if (!this.adb) {
-      throw new Error('ADB is not initialized. Please call connect() first.');
-    }
-    return this.adb;
+    // Create new connection Promise
+    this.connectingAdb = (async () => {
+      let error: Error | null = null;
+      debugPage(`Initializing ADB with device ID: ${this.deviceId}`);
+
+      try {
+        this.adb = await ADB.createADB({
+          udid: this.deviceId,
+          adbExecTimeout: 60000,
+        });
+        debugPage('ADB initialized successfully');
+        return this.adb;
+      } catch (e) {
+        debugPage(`Failed to initialize ADB: ${e}`);
+        error = new Error(`Unable to connect to device ${this.deviceId}: ${e}`);
+      } finally {
+        this.connectingAdb = null;
+      }
+
+      if (error) {
+        throw error;
+      }
+
+      throw new Error('ADB initialization failed unexpectedly');
+    })();
+
+    return this.connectingAdb;
   }
 
   public async launch(uri: string): Promise<AndroidDevice> {
@@ -75,7 +95,7 @@ export class AndroidDevice implements AbstractPage {
       debugPage(`Successfully launched: ${uri}`);
     } catch (error) {
       debugPage(`Error launching ${uri}: ${error}`);
-      throw new Error(`Failed to launch ${uri}: ${error}`);
+      throw new Error(`Failed to launch ${uri}: ${error}`, { cause: error });
     }
 
     return this;

@@ -1,3 +1,3 @@
 export { AndroidDevice } from './page';
-export { AndroidAgent } from './agent';
-export { agentFromDeviceId, getConnectedDevices } from './utils';
+export { AndroidAgent, agentFromAdbDevice } from './agent';
+export { getConnectedDevices } from './utils';
