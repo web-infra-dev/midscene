@@ -14,7 +14,7 @@ import type {
 import {
   highlightColorForType,
   timeCostStrElement,
-} from '@midscene/visualizer/playground';
+} from '@midscene/visualizer';
 import { Tag, Timeline, type TimelineItemProps, Tooltip } from 'antd';
 import PanelTitle from './panel-title';
 import { useExecutionDump } from './store';

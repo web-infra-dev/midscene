@@ -5,7 +5,12 @@ export const LogoUrl =
 
 export const Logo = ({
   withGithubStar = false,
-}: { withGithubStar?: boolean }) => {
+  hideLogo = false,
+}: { withGithubStar?: boolean; hideLogo?: boolean }) => {
+  if (hideLogo) {
+    return null;
+  }
+
   if (withGithubStar) {
     return (
       <div className="logo logo-with-star-wrapper">
