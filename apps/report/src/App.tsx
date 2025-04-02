@@ -6,11 +6,7 @@ import { Button, ConfigProvider, Empty, Spin } from 'antd';
 import { useEffect, useRef, useState } from 'react';
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
 
-import {
-  Logo,
-  Player,
-  globalThemeConfig,
-} from '@midscene/visualizer/playground';
+import { Logo, Player, globalThemeConfig } from '@midscene/visualizer';
 import { PlaywrightCaseSelector } from './components/PlaywrightCaseSelector';
 import DetailPanel from './components/detail-panel';
 import DetailSide from './components/detail-side';

@@ -1,10 +1,8 @@
-import { PlayCircleOutlined, SendOutlined } from '@ant-design/icons';
+import { PlayCircleOutlined } from '@ant-design/icons';
 import type { UIContext } from '@midscene/core';
-import {
-  Playground,
-  useStaticPageAgent,
-} from '@midscene/visualizer/playground';
-import '@midscene/visualizer/playground.css';
+import { useStaticPageAgent } from '@midscene/visualizer';
+import { StandardPlayground } from './playground';
+import '@midscene/visualizer/index.css';
 import { Button, Drawer, Tooltip } from 'antd';
 import { useEffect, useState } from 'react';
 import { useEnvConfig } from './store';
@@ -121,7 +119,7 @@ export default function OpenInPlayground(props?: { context?: UIContext }) {
         }}
         className="playground-drawer"
       >
-        <Playground
+        <StandardPlayground
           getAgent={() => {
             return agent;
           }}

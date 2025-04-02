@@ -1,9 +1,6 @@
 import { DownOutlined } from '@ant-design/icons';
 import type { GroupedActionDump } from '@midscene/core';
-import {
-  iconForStatus,
-  timeCostStrElement,
-} from '@midscene/visualizer/playground';
+import { iconForStatus, timeCostStrElement } from '@midscene/visualizer';
 import { Dropdown } from 'antd';
 import type React from 'react';
 import type { ExecutionDumpWithPlaywrightAttributes } from '../types';
