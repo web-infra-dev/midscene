@@ -1,5 +1,5 @@
 export { Logo } from './component/logo';
-export { Playground } from './component/playground/index';
+export { BrowserExtensionPlayground } from './component/playground/index';
 export { globalThemeConfig } from './component/color';
 export { useEnvConfig } from './component/store/store';
 

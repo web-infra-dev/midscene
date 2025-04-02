@@ -1,4 +1,8 @@
-export { Playground, StaticPlayground } from './component/playground';
+export {
+  StandardPlayground,
+  BrowserExtensionPlayground,
+  StaticPlayground,
+} from './component/playground';
 export { useStaticPageAgent } from './component/playground/useStaticPageAgent';
 
 export { Player } from './component/player';

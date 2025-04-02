@@ -1,8 +1,8 @@
 /// <reference types="chrome" />
 import { ApiOutlined, SendOutlined } from '@ant-design/icons';
 import {
+  BrowserExtensionPlayground,
   Logo,
-  Playground,
   globalThemeConfig,
   useEnvConfig,
 } from '@midscene/visualizer/extension';
@@ -35,7 +35,7 @@ export function PlaygroundPopup() {
       icon: <SendOutlined />,
       children: (
         <div className="popup-playground-container">
-          <Playground
+          <BrowserExtensionPlayground
             hideLogo
             getAgent={(forceSameTabNavigation?: boolean) => {
               return extensionAgentForTab(forceSameTabNavigation);
