@@ -15,7 +15,6 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 
 export interface PlaygroundProps {
   getAgent: (forceSameTabNavigation?: boolean) => any | null;
-  hideLogo?: boolean;
   showContextPreview?: boolean;
   dryMode?: boolean;
 }
@@ -33,7 +32,7 @@ const formatErrorMessage = (e: any): string => {
   return 'Unknown error';
 };
 
-// 空白结果模板
+// Blank result template
 const blankResult = {
   result: null,
   dump: null,
@@ -44,7 +43,6 @@ const blankResult = {
 // Browser Extension Playground Component
 export function BrowserExtensionPlayground({
   getAgent,
-  hideLogo = false,
   showContextPreview = true,
   dryMode = false,
 }: PlaygroundProps) {

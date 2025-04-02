@@ -36,7 +36,6 @@ export function PlaygroundPopup() {
       children: (
         <div className="popup-playground-container">
           <BrowserExtensionPlayground
-            hideLogo
             getAgent={(forceSameTabNavigation?: boolean) => {
               return extensionAgentForTab(forceSameTabNavigation);
             }}
@@ -63,7 +62,7 @@ export function PlaygroundPopup() {
         <div className="popup-header">
           <Logo withGithubStar={true} />
           <p>
-            AI-Driven Browser Automation with Chrome Extensions, JavaScript, and
+            22222AI-Driven Browser Automation with Chrome Extensions, JavaScript, and
             YAML Scripts.{' '}
             <a href="https://midscenejs.com/" target="_blank" rel="noreferrer">
               Learn more

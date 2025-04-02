@@ -1,19 +1,5 @@
-import { activeTab } from '@/extension/utils';
-import { currentWindowId } from '@/extension/utils';
-// import { createStore } from 'zustand/vanilla';
-import type {
-  ExecutionDump,
-  ExecutionTask,
-  ExecutionTaskInsightLocate,
-  GroupedActionDump,
-  InsightDump,
-} from '@midscene/core/.';
+
 import * as Z from 'zustand';
-import type { AnimationScript } from '../replay-scripts';
-import {
-  allScriptsFromDump,
-  generateAnimationScripts,
-} from '../replay-scripts';
 
 const { create } = Z;
 export const useBlackboardPreference = create<{

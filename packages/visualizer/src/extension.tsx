@@ -3,24 +3,24 @@ export { Logo } from './component/logo';
 export { globalThemeConfig } from './component/color';
 export { useEnvConfig } from './component/store/store';
 
-export {
-  type WorkerRequestGetContext,
-  type WorkerRequestSaveContext,
-  type WorkerResponseGetContext,
-  type WorkerResponseSaveContext,
-  workerMessageTypes,
-  currentWindowId,
-  sendToWorker,
-} from './extension/utils';
+// export {
+//   type WorkerRequestGetContext,
+//   type WorkerRequestSaveContext,
+//   type WorkerResponseGetContext,
+//   type WorkerResponseSaveContext,
+//   workerMessageTypes,
+//   currentWindowId,
+//   sendToWorker,
+// } from './extension/utils';
 
 export { useServerValid } from './component/playground/useServerValid';
 export {
   type AnimationScript,
+  type ReplayScriptsInfo,
   allScriptsFromDump,
   generateAnimationScripts,
 } from './component/replay-scripts';
 
-export type { ReplayScriptsInfo } from './component/replay-scripts';
 
 export { PlaygroundResultView } from './component/playground/PlaygroundResult';
 export type { PlaygroundResult } from './component/playground/playground-types';
