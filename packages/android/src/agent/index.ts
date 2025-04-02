@@ -1,5 +1,5 @@
 import assert from 'node:assert';
-import { PageAgent } from '@midscene/web';
+import { PageAgent, type PageAgentOpt } from '@midscene/web';
 import type { WebPage } from '@midscene/web/.';
 import { AndroidDevice } from '../page';
 
@@ -10,12 +10,15 @@ export class AndroidAgent extends PageAgent {
   }
 }
 
-export async function agentFromAdbDevice(deviceId: string) {
+export async function agentFromAdbDevice(
+  deviceId: string,
+  opts?: PageAgentOpt,
+) {
   assert(deviceId, 'deviceId is required for AndroidDevice');
 
   const page = new AndroidDevice(deviceId);
 
   await page.connect();
 
-  return new AndroidAgent(page as unknown as WebPage);
+  return new AndroidAgent(page as unknown as WebPage, opts);
 }
