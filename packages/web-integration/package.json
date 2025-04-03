@@ -55,6 +55,10 @@
       "types": "./dist/types/midscene-playground.d.ts",
       "default": "./dist/lib/midscene-playground.js"
     },
+    "./midscene-server": {
+      "types": "./dist/types/midscene-server.d.ts",
+      "default": "./dist/lib/midscene-server.js"
+    },
     "./chrome-extension": {
       "types": "./dist/types/chrome-extension.d.ts",
       "default": "./dist/lib/chrome-extension.js"
@@ -83,6 +87,7 @@
       "playwright-report": ["./dist/types/playwright-report.d.ts"],
       "playground": ["./dist/types/playground.d.ts"],
       "midscene-playground": ["./dist/types/midscene-playground.d.ts"],
+      "midscene-server": ["./dist/types/midscene-server.d.ts"],
       "chrome-extension": ["./dist/types/chrome-extension.d.ts"],
       "yaml": ["./dist/types/yaml.d.ts"],
       "agent": ["./dist/types/agent.d.ts"]
