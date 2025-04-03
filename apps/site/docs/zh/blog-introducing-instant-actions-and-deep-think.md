@@ -65,4 +65,4 @@ tasks:
 
 就像上面的例子一样，`deepThink` 的提示词需要遵循 [编写提示词的技巧](./prompting-tips)。这是确保结果稳定的关键。
 
-`deepThink` 只适用于支持视觉定位的模型，如 qwen2.5-vl。如果你使用的是像 gpt-4o 这样的模型，它不会起作用。
+`deepThink` 只适用于支持视觉定位的模型，如 qwen2.5-vl。如果你使用的是像 gpt-4o 这样的模型，`deepThink` 将无法发挥作用。
