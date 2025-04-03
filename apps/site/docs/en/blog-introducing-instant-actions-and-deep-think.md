@@ -64,3 +64,5 @@ By viewing the report file, you can see Midscene has found every target element 
 ![](/blog/report-coze-deep-think.png)
 
 Just like the example above, the highly-detailed prompt for `deepThink` adheres to [the prompting tips](./prompting-tips). This is always the key to make result stable.
+
+`deepThink` is only available with the models that support visual grounding like qwen2.5-vl. If you are using LLM models like gpt-4o, it won't work.
