@@ -10,7 +10,7 @@ import type { AndroidDevicePage } from '@midscene/web';
 import { ADB } from 'appium-adb';
 
 const androidScreenshotPath = '/data/local/tmp/midscene_screenshot.png';
-export const debugPage = getDebug('android');
+export const debugPage = getDebug('android:device');
 
 export class AndroidDevice implements AndroidDevicePage {
   private deviceId: string;

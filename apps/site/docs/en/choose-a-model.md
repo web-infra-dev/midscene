@@ -6,8 +6,8 @@ If you want to see the detailed configuration of model services, see [Config Mod
 
 GPT-4o, Qwen-2.5-VL, and UI-TARS are the most recommended models for Midscene.js. The main features are:
 
-* [GPT-4o](#gpt-4o): balanced model, more tokens used.
-* [Qwen-2.5-VL](#qwen-25-vl): open-source VL model, almost same performance as GPT-4o, and cost less when using Aliyun service.
+* [GPT-4o](#gpt-4o): balanced LLM model, more tokens used.
+* [Qwen-2.5-VL](#qwen-25-vl): open-source VL model, support visual grounding, almost same performance as GPT-4o, and cost less when using Aliyun service.
 * [UI-TARS](#ui-tars): open-source, end-to-end GUI agent model, good at target-driven tasks and error correction.
 
 You can also use other models, but you need to follow [the steps in the article](#choose-other-general-purpose-llms).
@@ -46,13 +46,13 @@ MIDSCENE_MODEL_NAME="gpt-4o-2024-11-20" # optional. The default is "gpt-4o".
 
 From 0.12.0 version, Midscene.js supports Qwen-2.5-VL model.
 
-Qwen-2.5-VL is a dedicated model for image recognition. It is an open-source model published by Alibaba. In most of the cases, it performs as good as (or sometimes better than) GPT-4o. We recommend using the largest version (72B) for reliable output.
+Qwen-2.5-VL is a dedicated model for image recognition. It is an open-source model published by Alibaba. It provides Visual Grounding ability, which can accurately return the coordinates of target elements on the page. In most of the cases, it performs as good as (or sometimes better than) GPT-4o. We recommend using the largest version (72B) for reliable output.
 
 Qwen-2.5-VL indeed has an action planning feature to control the application, but we still recommend using detailed prompts to provide a more stable and reliable result.
 
 **Features**
 
-- **Low cost**: the model can accurately tell the exact coordinates of target elements on the page, so we don't have to send the DOM tree to the model. You will achieve a token saving of 30% to 50% compared to GPT-4o.
+- **Low cost**: the model can accurately tell the exact coordinates of target elements on the page(Visual Grounding), so we don't have to send the DOM tree to the model. You will achieve a token saving of 30% to 50% compared to GPT-4o.
 - **Higher resolution support**: Qwen-2.5-VL supports higher resolution input than GPT-4o. It's enough for most of the cases.
 - **Open-source**: this is an open-source model, so you can both use the API already deployed by cloud providers or deploy it on your own server.
 

@@ -89,6 +89,9 @@ tsconfig.tsbuildinfo
 .temp
 .output
 
+## local debug scripts
+coze
+
 # emo infraDir: ''
 
 node_modules/
