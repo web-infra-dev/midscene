@@ -58,6 +58,10 @@
     "./yaml": {
       "types": "./dist/types/yaml.d.ts",
       "default": "./dist/lib/yaml.js"
+    },
+    "./agent": {
+      "types": "./dist/types/agent.d.ts",
+      "default": "./dist/lib/agent.js"
     }
   },
   "typesVersions": {
@@ -73,7 +77,8 @@
       "playground": ["./dist/types/playground.d.ts"],
       "midscene-playground": ["./dist/types/midscene-playground.d.ts"],
       "chrome-extension": ["./dist/types/chrome-extension.d.ts"],
-      "yaml": ["./dist/types/yaml.d.ts"]
+      "yaml": ["./dist/types/yaml.d.ts"],
+      "agent": ["./dist/types/agent.d.ts"]
     }
   },
   "scripts": {

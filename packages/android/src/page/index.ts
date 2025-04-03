@@ -1,3 +1,4 @@
+import assert from 'node:assert';
 import fs from 'node:fs';
 import path from 'node:path';
 import type { Point, Size } from '@midscene/core';
@@ -5,39 +6,102 @@ import { getTmpFile } from '@midscene/core/utils';
 import type { ElementInfo } from '@midscene/shared/extractor';
 import { resizeImg } from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
-import type { AbstractPage } from '@midscene/web';
+import type { AndroidDevicePage } from '@midscene/web';
 import { ADB } from 'appium-adb';
 
-const debugPage = getDebug('android:adb');
 const androidScreenshotPath = '/data/local/tmp/midscene_screenshot.png';
+export const debugPage = getDebug('android');
 
-export class AndroidDevice implements AbstractPage {
+export class AndroidDevice implements AndroidDevicePage {
   private deviceId: string;
   private screenSize: Size | null = null;
   private yadbPushed = false;
   private deviceRatio = 1;
-  private adbInitPromise: Promise<ADB>;
+  private adb: ADB | null = null;
+  private connectingAdb: Promise<ADB> | null = null;
   pageType = 'android';
 
-  constructor({ deviceId }: { deviceId: string }) {
-    this.deviceId = deviceId;
+  constructor(deviceId: string) {
+    assert(deviceId, 'deviceId is required for AndroidDevice');
 
-    // init ADB Promise
-    this.adbInitPromise = this.initAdb();
+    this.deviceId = deviceId;
   }
 
-  private async initAdb(): Promise<ADB> {
-    debugPage(`Initializing ADB with device ID: ${this.deviceId}`);
-    const adb = await ADB.createADB({
-      udid: this.deviceId,
-      adbExecTimeout: 60000,
-    });
-    debugPage('ADB initialized successfully');
-    return adb;
+  public async connect(): Promise<ADB> {
+    return this.getAdb();
   }
 
   public async getAdb(): Promise<ADB> {
-    return this.adbInitPromise;
+    // if already has ADB instance, return it
+    if (this.adb) {
+      return this.adb;
+    }
+
+    // If already connecting, wait for connection to complete
+    if (this.connectingAdb) {
+      return this.connectingAdb;
+    }
+
+    // Create new connection Promise
+    this.connectingAdb = (async () => {
+      let error: Error | null = null;
+      debugPage(`Initializing ADB with device ID: ${this.deviceId}`);
+
+      try {
+        this.adb = await ADB.createADB({
+          udid: this.deviceId,
+          adbExecTimeout: 60000,
+        });
+        debugPage('ADB initialized successfully');
+        return this.adb;
+      } catch (e) {
+        debugPage(`Failed to initialize ADB: ${e}`);
+        error = new Error(`Unable to connect to device ${this.deviceId}: ${e}`);
+      } finally {
+        this.connectingAdb = null;
+      }
+
+      if (error) {
+        throw error;
+      }
+
+      throw new Error('ADB initialization failed unexpectedly');
+    })();
+
+    return this.connectingAdb;
+  }
+
+  public async launch(uri: string): Promise<AndroidDevice> {
+    const adb = await this.getAdb();
+
+    try {
+      if (
+        uri.startsWith('http://') ||
+        uri.startsWith('https://') ||
+        uri.includes('://')
+      ) {
+        // If it's a URI with scheme
+        await adb.startUri(uri);
+      } else if (uri.includes('/')) {
+        // If it's in format like 'com.android/settings.Settings'
+        const [appPackage, appActivity] = uri.split('/');
+        await adb.startApp({
+          pkg: appPackage,
+          activity: appActivity,
+        });
+      } else {
+        // Assume it's just a package name
+        await adb.startApp({
+          pkg: uri,
+        });
+      }
+      debugPage(`Successfully launched: ${uri}`);
+    } catch (error) {
+      debugPage(`Error launching ${uri}: ${error}`);
+      throw new Error(`Failed to launch ${uri}: ${error}`, { cause: error });
+    }
+
+    return this;
   }
 
   private async execYadb(keyboardContent: string): Promise<void> {
@@ -210,10 +274,14 @@ export class AndroidDevice implements AbstractPage {
 
     const adb = await this.getAdb();
 
+    await this.mouse.click(element.center[0], element.center[1]);
+
     // Use the yadb tool to clear the input box
     await adb.shell(
       'app_process -Djava.class.path=/data/local/tmp/yadb /data/local/tmp com.ysbing.yadb.Main -keyboard "~CLEAR~"',
     );
+
+    await this.mouse.click(element.center[0], element.center[1]);
   }
 
   private async forceScreenshot(path: string): Promise<void> {

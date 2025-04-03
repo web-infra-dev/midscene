@@ -42,6 +42,7 @@ export default defineConfig({
       'playwright-report': './src/playwright/reporter/index.ts',
       'chrome-extension': 'src/chrome-extension/index.ts',
       yaml: 'src/yaml/index.ts',
+      agent: 'src/common/agent.ts',
     },
     externals: [
       '@midscene/core',
