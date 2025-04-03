@@ -325,10 +325,10 @@ describe('search area', () => {
     );
     expect(result).toMatchInlineSnapshot(`
       {
-        "height": 200,
-        "left": 50,
-        "top": 50,
-        "width": 200,
+        "height": 300,
+        "left": 0,
+        "top": 0,
+        "width": 300,
       }
     `);
   });
@@ -340,10 +340,10 @@ describe('search area', () => {
     );
     expect(result).toMatchInlineSnapshot(`
       {
-        "height": 600,
-        "left": 50,
-        "top": 50,
-        "width": 600,
+        "height": 820,
+        "left": 0,
+        "top": 0,
+        "width": 820,
       }
     `);
   });
@@ -355,10 +355,10 @@ describe('search area', () => {
     );
     expect(result).toMatchInlineSnapshot(`
       {
-        "height": 200,
-        "left": 876,
-        "top": 725,
-        "width": 124,
+        "height": 300,
+        "left": 826,
+        "top": 675,
+        "width": 174,
       }
     `);
   });
