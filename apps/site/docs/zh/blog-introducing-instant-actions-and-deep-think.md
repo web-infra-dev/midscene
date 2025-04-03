@@ -35,6 +35,12 @@ await agent.aiKeyboardPress('Enter');
 
 当使用 Midscene 与一些复杂的 UI 控件交互时，LLM 可能很难定位目标元素。我们引入了一个新的选项 `deepThink`（深度思考）到即时操作接口中。
 
+启用 `deepThink` 的即时操作函数签名如下：
+
+```typescript
+await agent.aiTap('target', { deepThink: true });
+```
+
 `deepThink` 是一种策略。它会首先找到一个包含目标元素的区域，然后“聚焦”在这个区域中再次搜索元素。通过这种方式，目标元素的坐标会更准确。
 
 让我们以 Coze.com 的工作流编辑页面为例。这个页面有许多自定义的图标在侧边栏。这对于 LLM 来说很难区分目标元素和它的周围元素。

@@ -35,6 +35,12 @@ The scripts with instant actions seems a little bit redundant (or not 'ai-style'
 
 When using Midscene with some complex widgets, the LLM may find it hard to locate the target element. We have introduced a new option named `deepThink` to the instant actions.
 
+The signature of the instant actions with `deepThink` is like this:
+
+```typescript
+await agent.aiTap('target', { deepThink: true });
+```
+
 `deepThink` is a strategy of locating elements. It will first find an area that contains the target element, then "focus" on this area to search the element again. By this way, the coordinates of the target element will be more accurate. 
 
 Let's take the workflow editor page of Coze.com as an example. There are many customized icons on the sidebar. This is usually hard for LLMs to distinguish the target element from its surroundings.
