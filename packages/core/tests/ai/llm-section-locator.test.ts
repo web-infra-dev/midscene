@@ -1,11 +1,12 @@
 import { AiLocateElement } from '@/ai-model';
 import { AiLocateSection } from '@/ai-model/inspect';
+import { vlLocateMode } from '@/env';
 import { saveBase64Image } from '@/image';
 import { getTmpFile } from '@/utils';
 import { getContextFromFixture } from 'tests/evaluation';
 import { expect, test } from 'vitest';
 
-test(
+test.skipIf(!vlLocateMode())(
   'locate section',
   async () => {
     const { context } = await getContextFromFixture('antd-tooltip');
@@ -21,7 +22,6 @@ test(
       base64Data: imageBase64!,
       outputPath: tmpFile!,
     });
-    console.log('tmpFile', tmpFile);
   },
   {
     timeout: 60 * 1000,
