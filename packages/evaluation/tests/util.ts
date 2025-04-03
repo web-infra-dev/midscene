@@ -20,6 +20,7 @@ export type TestCase = {
   response_planning?: PlanningAIResponse;
   expected?: boolean;
   annotation_index_id?: number;
+  action_context?: string;
 };
 
 export type InspectAiTestCase = {

@@ -4,12 +4,12 @@ import {
   planSchema,
   systemPromptToTaskPlanning,
 } from '@/ai-model/prompt/llm-planning';
+import { systemPromptToLocateSection } from '@/ai-model/prompt/llm-section-locator';
 import { describe, expect, it } from 'vitest';
 
-describe('system prompt to task planning', () => {
-  // TODO: restore config
-
+describe('system prompts', () => {
   it('planning - 4o', async () => {
+    // TODO: restore config
     process.env.MIDSCENE_USE_QWEN_VL = 'false';
     process.env.MIDSCENE_USE_DOUBAO_VISION = 'false';
     const prompt = await systemPromptToTaskPlanning();
@@ -31,6 +31,7 @@ describe('system prompt to task planning', () => {
     const context = generateTaskBackgroundContext(
       'THIS IS USER INSTRUCTION',
       'THIS IS WHAT HAS BEEN DONE',
+      'THIS IS BACKGROUND PROMPT',
     );
     expect(context).toMatchSnapshot();
   });
@@ -42,6 +43,7 @@ describe('system prompt to task planning', () => {
     const result = await prompt.format({
       pageDescription: 'THIS IS PAGE DESCRIPTION',
       taskBackgroundContext: 'THIS IS BACKGROUND CONTEXT',
+      userActionContext: 'THIS IS BACKGROUND PROMPT',
     });
     expect(result).toMatchSnapshot();
   });
@@ -54,5 +56,10 @@ describe('system prompt to task planning', () => {
       taskBackgroundContext: 'THIS IS BACKGROUND CONTEXT',
     });
     expect(result).toMatchSnapshot();
+  });
+
+  it('section locator', () => {
+    const prompt = systemPromptToLocateSection();
+    expect(prompt).toMatchSnapshot();
   });
 });

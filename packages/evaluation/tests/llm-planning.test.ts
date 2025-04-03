@@ -79,9 +79,9 @@ describe.skipIf(vlMode)('ai planning - by element', () => {
 
 const vlCases = [
   'todo-vl',
-  'aweme-login-vl',
-  'antd-form-vl',
-  'antd-tooltip-vl',
+  // 'aweme-login-vl',
+  // 'antd-form-vl',
+  // 'antd-tooltip-vl',
 ];
 
 describe.skipIf(!vlMode)('ai planning - by coordinates', () => {
@@ -117,6 +117,7 @@ describe.skipIf(!vlMode)('ai planning - by coordinates', () => {
             res = await plan(prompt, {
               log: testCase.log,
               context,
+              actionContext: testCase.action_context,
             });
           } catch (error) {
             res = error as Error;

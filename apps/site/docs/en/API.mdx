@@ -15,6 +15,7 @@ These Agents share some common constructor parameters:
 * `generateReport: boolean`: If true, a report file will be generated. (Default: true)
 * `autoPrintReportMsg: boolean`: If true, report messages will be printed. (Default: true)
 * `cacheId: string | undefined`: If provided, this cacheId will be used to save or match the cache. (Default: undefined, means cache feature is disabled)
+* `actionContext: string`: Some background knowledge that should be sent to the AI model when calling `agent.aiAction()`, like 'close the cookie consent dialog first if it exists' (Default: undefined)
 
 In Puppeteer, there is an additional parameter:
 
@@ -365,6 +366,26 @@ console.log(result);
 :::tip
 For more information about YAML scripts, please refer to [Automate with Scripts in YAML](./automate-with-scripts-in-yaml).
 :::
+
+### `agent.setAIActionContext()`
+
+This method allows you to set the background knowledge that should be sent to the AI model when calling `agent.aiAction()`.
+
+* Type
+
+```typescript
+function setAIActionContext(actionContext: string): void;
+```
+
+* Parameters:
+  * `actionContext: string` - The background knowledge that should be sent to the AI model.
+
+* Example:
+
+```typescript
+await agent.setAIActionContext('Close the cookie consent dialog first if it exists');
+```
+
 
 ## Properties
 

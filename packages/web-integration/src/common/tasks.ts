@@ -171,7 +171,7 @@ export class PageTaskExecutor {
               timing: 'before locate',
             };
 
-            const cachePrompt = `${param.prompt} @ ${param.searchArea || ''}`;
+            const cachePrompt = param.prompt;
             const locateCache = cacheGroup?.matchCache(
               pageContext,
               'locate',
@@ -511,6 +511,7 @@ export class PageTaskExecutor {
     userInstruction: string,
     cacheGroup: ReturnType<TaskCache['getCacheGroupByPrompt']>,
     log?: string,
+    actionContext?: string,
   ) {
     const task: ExecutionTaskPlanningApply = {
       type: 'Planning',
@@ -555,6 +556,7 @@ export class PageTaskExecutor {
           planResult = await plan(param.userInstruction, {
             context: pageContext,
             log: param.log,
+            actionContext,
           });
         }
 
@@ -761,14 +763,22 @@ export class PageTaskExecutor {
     };
   }
 
-  async action(userPrompt: string): Promise<ExecutionResult> {
+  async action(
+    userPrompt: string,
+    actionContext?: string,
+  ): Promise<ExecutionResult> {
     const taskExecutor = new Executor(taskTitleStr('Action', userPrompt), {
       onTaskStart: this.onTaskStartCallback,
     });
 
     const cacheGroup = this.taskCache.getCacheGroupByPrompt(userPrompt);
     let planningTask: ExecutionTaskPlanningApply | null =
-      this.planningTaskFromPrompt(userPrompt, cacheGroup);
+      this.planningTaskFromPrompt(
+        userPrompt,
+        cacheGroup,
+        undefined,
+        actionContext,
+      );
     let result: any;
     let replanCount = 0;
     const logList: string[] = [];
@@ -825,6 +835,7 @@ export class PageTaskExecutor {
         userPrompt,
         cacheGroup,
         logList.length > 0 ? `- ${logList.join('\n- ')}` : undefined,
+        actionContext,
       );
       replanCount++;
     }

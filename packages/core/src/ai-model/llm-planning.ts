@@ -20,6 +20,7 @@ export async function plan(
   userInstruction: string,
   opts: {
     log?: string;
+    actionContext?: string;
     context: UIContext;
     callAI?: typeof callAiFn<PlanningAIResponse>;
   },
@@ -32,6 +33,7 @@ export async function plan(
   const taskBackgroundContextText = generateTaskBackgroundContext(
     userInstruction,
     opts.log,
+    opts.actionContext,
   );
   const userInstructionPrompt = await automationUserPrompt().format({
     pageDescription,
@@ -39,7 +41,7 @@ export async function plan(
   });
 
   let imagePayload = screenshotBase64WithElementMarker || screenshotBase64;
-  if (vlLocateMode()) {
+  if (vlLocateMode() === 'qwen-vl') {
     imagePayload = await paddingToMatchBlockByBase64(imagePayload);
   }
 

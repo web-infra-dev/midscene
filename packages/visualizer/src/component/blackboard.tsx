@@ -8,7 +8,7 @@ import type { BaseElement, Rect, UIContext } from '../../../core';
 import { colorForName, highlightColorForType } from './color';
 import './blackboard.less';
 import { DropShadowFilter } from 'pixi-filters';
-import { useBlackboardPreference } from './store';
+import { useBlackboardPreference } from './store/store';
 
 const itemFillAlpha = 0.4;
 const highlightAlpha = 0.4;

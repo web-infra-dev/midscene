@@ -51,6 +51,7 @@ export default defineConfig({
   },
   output: {
     polyfill: 'entry',
+    injectStyles: true,
     copy: [
       { from: './static', to: './' },
       {

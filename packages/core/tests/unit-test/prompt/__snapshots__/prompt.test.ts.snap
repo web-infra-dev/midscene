@@ -1,6 +1,6 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
-exports[`system prompt to task planning > planning - 4o - response format 1`] = `
+exports[`system prompts > planning - 4o - response format 1`] = `
 {
   "json_schema": {
     "name": "action_items",
@@ -157,7 +157,7 @@ exports[`system prompt to task planning > planning - 4o - response format 1`] = 
 }
 `;
 
-exports[`system prompt to task planning > planning - 4o 1`] = `
+exports[`system prompts > planning - 4o 1`] = `
 "
 ## Role
 
@@ -301,11 +301,16 @@ Reason:
 "
 `;
 
-exports[`system prompt to task planning > planning - background context 1`] = `
+exports[`system prompts > planning - background context 1`] = `
 "
 Here is the user's instruction:
+
 <instruction>
-THIS IS USER INSTRUCTION
+  <high_priority_knowledge>
+    THIS IS BACKGROUND PROMPT
+  </high_priority_knowledge>
+
+  THIS IS USER INSTRUCTION
 </instruction>
 
 These are the logs from previous executions, which indicate what was done in the previous actions.
@@ -316,7 +321,7 @@ THIS IS WHAT HAS BEEN DONE
 "
 `;
 
-exports[`system prompt to task planning > planning - qwen 1`] = `
+exports[`system prompts > planning - qwen 1`] = `
 "
 Target: User will give you a screenshot, an instruction and some previous logs indicating what have been done. Please tell what the next one action is (or null if no action should be done) to do the tasks the instruction requires. 
 
@@ -352,7 +357,7 @@ Return in JSON format:
 "
 `;
 
-exports[`system prompt to task planning > planning - user prompt - 4o 1`] = `
+exports[`system prompts > planning - user prompt - 4o 1`] = `
 "
 pageDescription:
 =====================================
@@ -362,4 +367,27 @@ THIS IS PAGE DESCRIPTION
 THIS IS BACKGROUND CONTEXT"
 `;
 
-exports[`system prompt to task planning > planning - user prompt - qwen 1`] = `"THIS IS BACKGROUND CONTEXT"`;
+exports[`system prompts > planning - user prompt - qwen 1`] = `"THIS IS BACKGROUND CONTEXT"`;
+
+exports[`system prompts > section locator 1`] = `
+"
+You goal is to find out one section containing the target element in the screenshot, put it in the \`bbox\` field. If the user describe the target element with some reference elements, you should also find the section containing the reference elements, put it in the \`references_bbox\` field.
+
+For example, if the user describe the target element as "the delete button on the second row with title 'Peter'", you should put the bounding box of the delete button in the \`bbox\` field, and the bounding box of the second row in the \`references_bbox\` field.
+
+Usually, it should be approximately an area not more than 300x300px. Changes of the size are allowed if there are many elements to cover.
+
+return in this JSON format:
+\`\`\`json
+{
+  "bbox": [number, number, number, number],
+  "references_bbox"?: [
+    [number, number, number, number],
+    [number, number, number, number],
+    ...
+  ],
+  "error"?: string
+}
+\`\`\`
+"
+`;

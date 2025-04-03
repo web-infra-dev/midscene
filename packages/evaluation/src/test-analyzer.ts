@@ -7,6 +7,7 @@ import type {
   plan,
 } from '@midscene/core';
 import type { AiLocateSection } from '@midscene/core/ai-model';
+import { vlLocateMode } from '@midscene/core/env';
 import type { TestCase } from '../tests/util';
 
 type ActualResult =
@@ -229,7 +230,7 @@ ${errorMsg ? `Error: ${errorMsg}` : ''}
     }
 
     // compare coordinates
-    if (testCase.response_rect) {
+    if (testCase.response_rect && vlLocateMode()) {
       const resultRect = (result as LocateResult).rect;
       if (!resultRect) {
         throw new Error(

@@ -6,6 +6,7 @@ import {
   adaptDoubaoBbox,
   adaptQwenBbox,
   expandSearchArea,
+  mergeRects,
 } from '@/ai-model/common';
 import {
   extractJSONFromCodeBlock,
@@ -301,7 +302,22 @@ describe('doubao-vision', () => {
   });
 });
 
-describe('expandSearchArea', () => {
+describe('search area', () => {
+  it('mergeRects', () => {
+    const result = mergeRects([
+      { left: 10, top: 10, width: 10, height: 500 },
+      { left: 100, top: 100, width: 100, height: 100 },
+    ]);
+    expect(result).toMatchInlineSnapshot(`
+      {
+        "height": 500,
+        "left": 10,
+        "top": 10,
+        "width": 190,
+      }
+    `);
+  });
+
   it('expandSearchArea', () => {
     const result = expandSearchArea(
       { left: 100, top: 100, width: 100, height: 100 },
@@ -309,10 +325,10 @@ describe('expandSearchArea', () => {
     );
     expect(result).toMatchInlineSnapshot(`
       {
-        "height": 200,
-        "left": 50,
-        "top": 50,
-        "width": 200,
+        "height": 300,
+        "left": 0,
+        "top": 0,
+        "width": 300,
       }
     `);
   });
@@ -324,10 +340,10 @@ describe('expandSearchArea', () => {
     );
     expect(result).toMatchInlineSnapshot(`
       {
-        "height": 600,
-        "left": 50,
-        "top": 50,
-        "width": 600,
+        "height": 820,
+        "left": 0,
+        "top": 0,
+        "width": 820,
       }
     `);
   });
@@ -339,10 +355,10 @@ describe('expandSearchArea', () => {
     );
     expect(result).toMatchInlineSnapshot(`
       {
-        "height": 200,
-        "left": 876,
-        "top": 725,
-        "width": 124,
+        "height": 300,
+        "left": 826,
+        "top": 675,
+        "width": 174,
       }
     `);
   });

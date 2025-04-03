@@ -1,7 +1,7 @@
 import type { PlanningActionParamScroll } from './types';
 
 export interface LocateOption {
-  searchArea?: string;
+  prompt?: string;
   deepThink?: boolean; // only available in vl model
 }
 
@@ -27,6 +27,10 @@ export interface MidsceneYamlTask {
 }
 
 export interface MidsceneYamlScriptEnv {
+  output?: string;
+  aiActionContext?: string;
+
+  // for web only
   serve?: string;
   url: string;
 
@@ -40,7 +44,6 @@ export interface MidsceneYamlScriptEnv {
     continueOnNetworkIdleError?: boolean; // should continue if failed to wait for network idle, true for default
   };
   cookie?: string;
-  output?: string;
   forceSameTabNavigation?: boolean; // if track the newly opened tab, true for default in yaml script
 
   // bridge mode config
