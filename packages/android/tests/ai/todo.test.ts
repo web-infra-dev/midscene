@@ -14,7 +14,10 @@ describe('Test todo list', () => {
   beforeAll(async () => {
     const devices = await getConnectedDevices();
     const page = new AndroidDevice(devices[0].udid);
-    agent = new AndroidAgent(page);
+    agent = new AndroidAgent(page, {
+      aiActionContext:
+        'If any location, permission, user agreement, etc. popup, click agree. If login page pops up, close it.',
+    });
     await page.connect();
     await page.launch(pageUrl);
     await sleep(3000);

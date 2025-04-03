@@ -1,4 +1,3 @@
-import path from 'node:path';
 import { defineConfig, moduleTools } from '@modern-js/module-tools';
 
 export default defineConfig({
@@ -7,6 +6,7 @@ export default defineConfig({
   buildConfig: {
     input: {
       index: './src/index.ts',
+      playground: './src/playground/bin.ts',
     },
     target: 'es2020',
     dts: {
