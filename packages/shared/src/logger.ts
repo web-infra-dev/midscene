@@ -9,12 +9,13 @@ const logStreams = new Map<string, fs.WriteStream>();
 
 // Function to get or create a log stream
 function getLogStream(topic: string): fs.WriteStream {
-  if (!logStreams.has(topic)) {
-    const logFile = path.join(logDir, `${topic}.log`);
+  const topicFileName = topic.replace(/:/g, '-');
+  if (!logStreams.has(topicFileName)) {
+    const logFile = path.join(logDir, `${topicFileName}.log`);
     const stream = fs.createWriteStream(logFile, { flags: 'a' });
-    logStreams.set(topic, stream);
+    logStreams.set(topicFileName, stream);
   }
-  return logStreams.get(topic)!;
+  return logStreams.get(topicFileName)!;
 }
 
 // Function to write log to file
