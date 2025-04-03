@@ -1,6 +1,7 @@
+import { StaticPage, StaticPageAgent } from './';
 import PlaygroundServer from './server';
 
-const server = new PlaygroundServer();
+const server = new PlaygroundServer(StaticPage, StaticPageAgent);
 Promise.resolve()
   .then(() => server.launch())
   .then(() => {

@@ -9,8 +9,8 @@ import { ifInBrowser } from '@midscene/shared/utils';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import express from 'express';
-import { StaticPageAgent } from './agent';
-import StaticPage from './static-page';
+import type { PageAgent } from '../common/agent';
+import type { AbstractPage } from '../page';
 
 const defaultPort = 5800;
 // const staticPath = join(__dirname, '../../static');
@@ -34,9 +34,19 @@ export default class PlaygroundServer {
   tmpDir: string;
   server?: Server;
   port?: number | null;
-  constructor() {
+  pageClass: new (...args: any[]) => AbstractPage;
+  agentClass: new (...args: any[]) => PageAgent;
+  staticPath?: string;
+  constructor(
+    pageClass: new (...args: any[]) => AbstractPage,
+    agentClass: new (...args: any[]) => PageAgent,
+    staticPath?: string,
+  ) {
     this.app = express();
     this.tmpDir = getTmpDir()!;
+    this.pageClass = pageClass;
+    this.agentClass = agentClass;
+    this.staticPath = staticPath;
     setup();
   }
 
@@ -51,7 +61,8 @@ export default class PlaygroundServer {
     return tmpFile;
   }
 
-  async launch() {
+  async launch(port?: number) {
+    this.port = port || defaultPort;
     this.app.use(errorHandler);
 
     this.app.use(
@@ -67,11 +78,6 @@ export default class PlaygroundServer {
         status: 'ok',
       });
     });
-
-    // Serve index.html for the root route
-    // this.app.get('/', (req, res) => {
-    //   res.sendFile(join(staticPath, 'index.html'));
-    // });
 
     // this.app.get('/playground/:uuid', async (req, res) => {
     //   res.sendFile(join(staticPath, 'index.html'));
@@ -116,8 +122,8 @@ export default class PlaygroundServer {
         console.log(`handle request: #${requestId}, ${type}, ${prompt}`);
 
         // build an agent with context
-        const page = new StaticPage(context);
-        const agent = new StaticPageAgent(page);
+        const page = new this.pageClass(context);
+        const agent = new this.agentClass(page);
 
         const response: {
           result: any;
@@ -170,10 +176,21 @@ export default class PlaygroundServer {
       },
     );
 
+    // Set up static file serving after all API routes are defined
+    if (this.staticPath) {
+      this.app.get('*', (req, res) => {
+        const requestedPath = join(this.staticPath!, req.path);
+        if (existsSync(requestedPath)) {
+          res.sendFile(requestedPath);
+        } else {
+          res.sendFile(join(this.staticPath!, 'index.html'));
+        }
+      });
+    }
+
     return new Promise((resolve, reject) => {
-      const port = this.port || defaultPort;
+      const port = this.port;
       this.server = this.app.listen(port, () => {
-        this.port = port;
         resolve(this);
       });
     });

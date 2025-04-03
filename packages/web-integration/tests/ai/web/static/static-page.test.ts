@@ -23,7 +23,7 @@ describe(
     });
 
     it('server should work', async () => {
-      const server = new PlaygroundServer();
+      const server = new PlaygroundServer(StaticPage, StaticPageAgent);
       await server.launch();
 
       const port = server.port;

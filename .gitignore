@@ -112,3 +112,8 @@ midscene_run/report
 midscene_run/dump
 
 extension_output
+<<<<<<< HEAD
+=======
+
+static/
+>>>>>>> bec9d7a (feat: android playground)

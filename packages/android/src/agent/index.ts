@@ -2,6 +2,8 @@ import { PageAgent, type PageAgentOpt } from '@midscene/web/agent';
 import { AndroidDevice } from '../page';
 import { getConnectedDevices } from '../utils';
 
+import { debugPage } from '../page';
+
 export class AndroidAgent extends PageAgent<AndroidDevice> {
   async launch(uri: string): Promise<void> {
     const device = this.page;
@@ -17,6 +19,11 @@ export async function agentFromAdbDevice(
     const devices = await getConnectedDevices();
 
     deviceId = devices[0].udid;
+
+    debugPage(
+      'deviceId not specified, will use the first device (id = %s)',
+      deviceId,
+    );
   }
 
   const page = new AndroidDevice(deviceId);

@@ -1,0 +1,755 @@
+/*! Bundled license information:
+
+ieee754/index.js:
+  (*! ieee754. BSD-3-Clause License. Feross Aboukhadijeh <https://feross.org/opensource> *)
+
+buffer/index.js:
+  (*!
+   * The buffer module from node.js, for the browser.
+   *
+   * @author   Feross Aboukhadijeh <https://feross.org>
+   * @license  MIT
+   *)
+
+assert/build/internal/util/comparisons.js:
+  (*!
+   * The buffer module from node.js, for the browser.
+   *
+   * @author   Feross Aboukhadijeh <feross@feross.org> <http://feross.org>
+   * @license  MIT
+   *)
+
+safe-buffer/index.js:
+  (*! safe-buffer. MIT License. Feross Aboukhadijeh <https://feross.org/opensource> *)
+
+js-sha256/src/sha256.js:
+  (**
+   * [js-sha256]{@link https://github.com/emn178/js-sha256}
+   *
+   * @version 0.11.0
+   * @author Chen, Yi-Cyuan [emn178@gmail.com]
+   * @copyright Chen, Yi-Cyuan 2014-2024
+   * @license MIT
+   *)
+
+jimp/browser/lib/jimp.js:
+  (*! For license information please see jimp.js.LICENSE.txt *)
+
+timm/lib/timm.js:
+  (*!
+   * Timm
+   *
+   * Immutability helpers with fast reads and acceptable writes.
+   *
+   * @copyright Guillermo Grau Panea 2016
+   * @license MIT
+   *)
+
+image-q/dist/cjs/image-q.cjs:
+  (**
+   * @preserve
+   * Copyright 2015-2018 Igor Bezkrovnyi
+   * All rights reserved. (MIT Licensed)
+   *
+   * cie94.ts - part of Image Quantization Library
+   *)
+  (**
+   * @preserve
+   * Copyright 2015-2018 Igor Bezkrovnyi
+   * All rights reserved. (MIT Licensed)
+   *
+   * ciede2000.ts - part of Image Quantization Library
+   *)
+  (**
+   * @preserve
+   * Copyright 2015-2018 Igor Bezkrovnyi
+   * All rights reserved. (MIT Licensed)
+   *
+   * cmetric.ts - part of Image Quantization Library
+   *)
+  (**
+   * @preserve
+   * Copyright 2015-2018 Igor Bezkrovnyi
+   * All rights reserved. (MIT Licensed)
+   *
+   * common.ts - part of Image Quantization Library
+   *)
+  (**
+   * @preserve
+   * Copyright 2015-2018 Igor Bezkrovnyi
+   * All rights reserved. (MIT Licensed)
+   *
+   * constants.ts - part of Image Quantization Library
+   *)
+  (**
+   * @preserve
+   * Copyright 2015-2018 Igor Bezkrovnyi
+   * All rights reserved. (MIT Licensed)
+   *
+   * ditherErrorDiffusionArray.ts - part of Image Quantization Library
+   *)
+  (**
+   * @preserve
+   * Copyright 2015-2018 Igor Bezkrovnyi
+   * All rights reserved. (MIT Licensed)
+   *
+   * euclidean.ts - part of Image Quantization Library
+   *)
+  (**
+   * @preserve
+   * Copyright 2015-2018 Igor Bezkrovnyi
+   * All rights reserved. (MIT Licensed)
+   *
+   * helper.ts - part of Image Quantization Library
+   *)
+  (**
+   * @preserve
+   * Copyright 2015-2018 Igor Bezkrovnyi
+   * All rights reserved. (MIT Licensed)
+   *
+   * hueStatistics.ts - part of Image Quantization Library
+   *)
+  (**
+   * @preserve
+   * Copyright 2015-2018 Igor Bezkrovnyi
+   * All rights reserved. (MIT Licensed)
+   *
+   * iq.ts - Image Quantization Library
+   *)
+  (**
+   * @preserve
+   * Copyright 2015-2018 Igor Bezkrovnyi
+   * All rights reserved. (MIT Licensed)
+   *
+   * lab2rgb.ts - part of Image Quantization Library
+   *)
+  (**
+   * @preserve
+   * Copyright 2015-2018 Igor Bezkrovnyi
+   * All rights reserved. (MIT Licensed)
+   *
+   * lab2xyz.ts - part of Image Quantization Library
+   *)
+  (**
+   * @preserve
+   * Copyright 2015-2018 Igor Bezkrovnyi
+   * All rights reserved. (MIT Licensed)
+   *
+   * manhattanNeuQuant.ts - part of Image Quantization Library
+   *)
+  (**
+   * @preserve
+   * Copyright 2015-2018 Igor Bezkrovnyi
+   * All rights reserved. (MIT Licensed)
+   *
+   * nearestColor.ts - part of Image Quantization Library
+   *)
+  (**
+   * @preserve
+   * Copyright 2015-2018 Igor Bezkrovnyi
+   * All rights reserved. (MIT Licensed)
+   *
+   * palette.ts - part of Image Quantization Library
+   *)
+  (**
+   * @preserve
+   * Copyright 2015-2018 Igor Bezkrovnyi
+   * All rights reserved. (MIT Licensed)
+   *
+   * pngQuant.ts - part of Image Quantization Library
+   *)
+  (**
+   * @preserve
+   * Copyright 2015-2018 Igor Bezkrovnyi
+   * All rights reserved. (MIT Licensed)
+   *
+   * point.ts - part of Image Quantization Library
+   *)
+  (**
+   * @preserve
+   * Copyright 2015-2018 Igor Bezkrovnyi
+   * All rights reserved. (MIT Licensed)
+   *
+   * pointContainer.ts - part of Image Quantization Library
+   *)
+  (**
+   * @preserve
+   * Copyright 2015-2018 Igor Bezkrovnyi
+   * All rights reserved. (MIT Licensed)
+   *
+   * rgb2hsl.ts - part of Image Quantization Library
+   *)
+  (**
+   * @preserve
+   * Copyright 2015-2018 Igor Bezkrovnyi
+   * All rights reserved. (MIT Licensed)
+   *
+   * rgb2lab.ts - part of Image Quantization Library
+   *)
+  (**
+   * @preserve
+   * Copyright 2015-2018 Igor Bezkrovnyi
+   * All rights reserved. (MIT Licensed)
+   *
+   * rgb2xyz.ts - part of Image Quantization Library
+   *)
+  (**
+   * @preserve
+   * Copyright 2015-2018 Igor Bezkrovnyi
+   * All rights reserved. (MIT Licensed)
+   *
+   * ssim.ts - part of Image Quantization Library
+   *)
+  (**
+   * @preserve
+   * Copyright 2015-2018 Igor Bezkrovnyi
+   * All rights reserved. (MIT Licensed)
+   *
+   * wuQuant.ts - part of Image Quantization Library
+   *)
+  (**
+   * @preserve
+   * Copyright 2015-2018 Igor Bezkrovnyi
+   * All rights reserved. (MIT Licensed)
+   *
+   * xyz2lab.ts - part of Image Quantization Library
+   *)
+  (**
+   * @preserve
+   * Copyright 2015-2018 Igor Bezkrovnyi
+   * All rights reserved. (MIT Licensed)
+   *
+   * xyz2rgb.ts - part of Image Quantization Library
+   *)
+  (**
+   * @preserve
+   * MIT License
+   *
+   * Copyright 2015-2018 Igor Bezkrovnyi
+   *
+   * Permission is hereby granted, free of charge, to any person obtaining a copy
+   * of this software and associated documentation files (the "Software"), to
+   * deal in the Software without restriction, including without limitation the
+   * rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
+   * sell copies of the Software, and to permit persons to whom the Software is
+   * furnished to do so, subject to the following conditions:
+   *
+   * The above copyright notice and this permission notice shall be included in
+   * all copies or substantial portions of the Software.
+   *
+   * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+   * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+   * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
+   * THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+   * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+   * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+   * IN THE SOFTWARE.
+   *
+   * riemersma.ts - part of Image Quantization Library
+   *)
+  (**
+   * @preserve TypeScript port:
+   * Copyright 2015-2018 Igor Bezkrovnyi
+   * All rights reserved. (MIT Licensed)
+   *
+   * colorHistogram.ts - part of Image Quantization Library
+   *)
+  (**
+   * @preserve TypeScript port:
+   * Copyright 2015-2018 Igor Bezkrovnyi
+   * All rights reserved. (MIT Licensed)
+   *
+   * neuquant.ts - part of Image Quantization Library
+   *)
+  (**
+   * @preserve TypeScript port:
+   * Copyright 2015-2018 Igor Bezkrovnyi
+   * All rights reserved. (MIT Licensed)
+   *
+   * rgbquant.ts - part of Image Quantization Library
+   *)
+
+@azure/msal-common/dist/utils/Constants.mjs:
+  (*! @azure/msal-common v14.16.0 2024-11-05 *)
+
+@azure/msal-common/dist/error/AuthErrorCodes.mjs:
+  (*! @azure/msal-common v14.16.0 2024-11-05 *)
+
+@azure/msal-common/dist/error/AuthError.mjs:
+  (*! @azure/msal-common v14.16.0 2024-11-05 *)
+
+@azure/msal-common/dist/error/ClientAuthErrorCodes.mjs:
+  (*! @azure/msal-common v14.16.0 2024-11-05 *)
+
+@azure/msal-common/dist/error/ClientAuthError.mjs:
+  (*! @azure/msal-common v14.16.0 2024-11-05 *)
+
+@azure/msal-common/dist/crypto/ICrypto.mjs:
+  (*! @azure/msal-common v14.16.0 2024-11-05 *)
+
+@azure/msal-common/dist/logger/Logger.mjs:
+  (*! @azure/msal-common v14.16.0 2024-11-05 *)
+
+@azure/msal-common/dist/packageMetadata.mjs:
+  (*! @azure/msal-common v14.16.0 2024-11-05 *)
+
+@azure/msal-common/dist/authority/AuthorityOptions.mjs:
+  (*! @azure/msal-common v14.16.0 2024-11-05 *)
+
+@azure/msal-common/dist/account/AuthToken.mjs:
+  (*! @azure/msal-common v14.16.0 2024-11-05 *)
+
+@azure/msal-common/dist/utils/TimeUtils.mjs:
+  (*! @azure/msal-common v14.16.0 2024-11-05 *)
+
+@azure/msal-common/dist/cache/utils/CacheHelpers.mjs:
+  (*! @azure/msal-common v14.16.0 2024-11-05 *)
+
+@azure/msal-common/dist/error/ClientConfigurationErrorCodes.mjs:
+  (*! @azure/msal-common v14.16.0 2024-11-05 *)
+
+@azure/msal-common/dist/error/ClientConfigurationError.mjs:
+  (*! @azure/msal-common v14.16.0 2024-11-05 *)
+
+@azure/msal-common/dist/utils/StringUtils.mjs:
+  (*! @azure/msal-common v14.16.0 2024-11-05 *)
+
+@azure/msal-common/dist/request/ScopeSet.mjs:
+  (*! @azure/msal-common v14.16.0 2024-11-05 *)
+
+@azure/msal-common/dist/account/ClientInfo.mjs:
+  (*! @azure/msal-common v14.16.0 2024-11-05 *)
+
+@azure/msal-common/dist/account/AccountInfo.mjs:
+  (*! @azure/msal-common v14.16.0 2024-11-05 *)
+
+@azure/msal-common/dist/authority/AuthorityType.mjs:
+  (*! @azure/msal-common v14.16.0 2024-11-05 *)
+
+@azure/msal-common/dist/account/TokenClaims.mjs:
+  (*! @azure/msal-common v14.16.0 2024-11-05 *)
+
+@azure/msal-common/dist/authority/ProtocolMode.mjs:
+  (*! @azure/msal-common v14.16.0 2024-11-05 *)
+
+@azure/msal-common/dist/cache/entities/AccountEntity.mjs:
+  (*! @azure/msal-common v14.16.0 2024-11-05 *)
+
+@azure/msal-common/dist/utils/UrlUtils.mjs:
+  (*! @azure/msal-common v14.16.0 2024-11-05 *)
+
+@azure/msal-common/dist/url/UrlString.mjs:
+  (*! @azure/msal-common v14.16.0 2024-11-05 *)
+
+@azure/msal-common/dist/authority/AuthorityMetadata.mjs:
+  (*! @azure/msal-common v14.16.0 2024-11-05 *)
+
+@azure/msal-common/dist/error/CacheErrorCodes.mjs:
+  (*! @azure/msal-common v14.16.0 2024-11-05 *)
+
+@azure/msal-common/dist/error/CacheError.mjs:
+  (*! @azure/msal-common v14.16.0 2024-11-05 *)
+
+@azure/msal-common/dist/cache/CacheManager.mjs:
+  (*! @azure/msal-common v14.16.0 2024-11-05 *)
+
+@azure/msal-common/dist/config/ClientConfiguration.mjs:
+  (*! @azure/msal-common v14.16.0 2024-11-05 *)
+
+@azure/msal-common/dist/account/CcsCredential.mjs:
+  (*! @azure/msal-common v14.16.0 2024-11-05 *)
+
+@azure/msal-common/dist/constants/AADServerParamKeys.mjs:
+  (*! @azure/msal-common v14.16.0 2024-11-05 *)
+
+@azure/msal-common/dist/request/RequestValidator.mjs:
+  (*! @azure/msal-common v14.16.0 2024-11-05 *)
+
+@azure/msal-common/dist/request/RequestParameterBuilder.mjs:
+  (*! @azure/msal-common v14.16.0 2024-11-05 *)
+
+@azure/msal-common/dist/authority/OpenIdConfigResponse.mjs:
+  (*! @azure/msal-common v14.16.0 2024-11-05 *)
+
+@azure/msal-common/dist/authority/CloudInstanceDiscoveryResponse.mjs:
+  (*! @azure/msal-common v14.16.0 2024-11-05 *)
+
+@azure/msal-common/dist/authority/CloudInstanceDiscoveryErrorResponse.mjs:
+  (*! @azure/msal-common v14.16.0 2024-11-05 *)
+
+@azure/msal-common/dist/telemetry/performance/PerformanceEvent.mjs:
+  (*! @azure/msal-common v14.16.0 2024-11-05 *)
+
+@azure/msal-common/dist/utils/FunctionWrappers.mjs:
+  (*! @azure/msal-common v14.16.0 2024-11-05 *)
+
+@azure/msal-common/dist/authority/RegionDiscovery.mjs:
+  (*! @azure/msal-common v14.16.0 2024-11-05 *)
+
+@azure/msal-common/dist/authority/Authority.mjs:
+  (*! @azure/msal-common v14.16.0 2024-11-05 *)
+
+@azure/msal-common/dist/authority/AuthorityFactory.mjs:
+  (*! @azure/msal-common v14.16.0 2024-11-05 *)
+
+@azure/msal-common/dist/error/ServerError.mjs:
+  (*! @azure/msal-common v14.16.0 2024-11-05 *)
+
+@azure/msal-common/dist/network/ThrottlingUtils.mjs:
+  (*! @azure/msal-common v14.16.0 2024-11-05 *)
+
+@azure/msal-common/dist/error/NetworkError.mjs:
+  (*! @azure/msal-common v14.16.0 2024-11-05 *)
+
+@azure/msal-common/dist/client/BaseClient.mjs:
+  (*! @azure/msal-common v14.16.0 2024-11-05 *)
+
+@azure/msal-common/dist/error/InteractionRequiredAuthErrorCodes.mjs:
+  (*! @azure/msal-common v14.16.0 2024-11-05 *)
+
+@azure/msal-common/dist/error/InteractionRequiredAuthError.mjs:
+  (*! @azure/msal-common v14.16.0 2024-11-05 *)
+
+@azure/msal-common/dist/utils/ProtocolUtils.mjs:
+  (*! @azure/msal-common v14.16.0 2024-11-05 *)
+
+@azure/msal-common/dist/crypto/PopTokenGenerator.mjs:
+  (*! @azure/msal-common v14.16.0 2024-11-05 *)
+
+@azure/msal-common/dist/cache/persistence/TokenCacheContext.mjs:
+  (*! @azure/msal-common v14.16.0 2024-11-05 *)
+
+@azure/msal-common/dist/response/ResponseHandler.mjs:
+  (*! @azure/msal-common v14.16.0 2024-11-05 *)
+
+@azure/msal-common/dist/utils/ClientAssertionUtils.mjs:
+  (*! @azure/msal-common v14.16.0 2024-11-05 *)
+
+@azure/msal-common/dist/client/AuthorizationCodeClient.mjs:
+  (*! @azure/msal-common v14.16.0 2024-11-05 *)
+
+@azure/msal-common/dist/client/RefreshTokenClient.mjs:
+  (*! @azure/msal-common v14.16.0 2024-11-05 *)
+
+@azure/msal-common/dist/client/SilentFlowClient.mjs:
+  (*! @azure/msal-common v14.16.0 2024-11-05 *)
+
+@azure/msal-common/dist/network/INetworkModule.mjs:
+  (*! @azure/msal-common v14.16.0 2024-11-05 *)
+
+@azure/msal-common/dist/request/AuthenticationHeaderParser.mjs:
+  (*! @azure/msal-common v14.16.0 2024-11-05 *)
+
+@azure/msal-common/dist/telemetry/server/ServerTelemetryManager.mjs:
+  (*! @azure/msal-common v14.16.0 2024-11-05 *)
+
+@azure/msal-common/dist/error/JoseHeaderErrorCodes.mjs:
+  (*! @azure/msal-common v14.16.0 2024-11-05 *)
+
+@azure/msal-common/dist/error/JoseHeaderError.mjs:
+  (*! @azure/msal-common v14.16.0 2024-11-05 *)
+
+@azure/msal-common/dist/crypto/JoseHeader.mjs:
+  (*! @azure/msal-common v14.16.0 2024-11-05 *)
+
+@azure/msal-common/dist/telemetry/performance/StubPerformanceClient.mjs:
+  (*! @azure/msal-common v14.16.0 2024-11-05 *)
+
+@azure/msal-common/dist/telemetry/performance/PerformanceClient.mjs:
+  (*! @azure/msal-common v14.16.0 2024-11-05 *)
+
+@azure/msal-common/dist/index-browser.mjs:
+  (*! @azure/msal-common v14.16.0 2024-11-05 *)
+
+@azure/msal-browser/dist/error/BrowserAuthErrorCodes.mjs:
+  (*! @azure/msal-browser v3.28.0 2024-12-12 *)
+
+@azure/msal-browser/dist/error/BrowserAuthError.mjs:
+  (*! @azure/msal-browser v3.28.0 2024-12-12 *)
+
+@azure/msal-browser/dist/utils/BrowserConstants.mjs:
+  (*! @azure/msal-browser v3.28.0 2024-12-12 *)
+
+@azure/msal-browser/dist/encode/Base64Encode.mjs:
+  (*! @azure/msal-browser v3.28.0 2024-12-12 *)
+
+@azure/msal-browser/dist/crypto/BrowserCrypto.mjs:
+  (*! @azure/msal-browser v3.28.0 2024-12-12 *)
+
+@azure/msal-browser/dist/error/BrowserConfigurationAuthErrorCodes.mjs:
+  (*! @azure/msal-browser v3.28.0 2024-12-12 *)
+
+@azure/msal-browser/dist/error/BrowserConfigurationAuthError.mjs:
+  (*! @azure/msal-browser v3.28.0 2024-12-12 *)
+
+@azure/msal-browser/dist/utils/BrowserUtils.mjs:
+  (*! @azure/msal-browser v3.28.0 2024-12-12 *)
+
+@azure/msal-browser/dist/navigation/NavigationClient.mjs:
+  (*! @azure/msal-browser v3.28.0 2024-12-12 *)
+
+@azure/msal-browser/dist/network/FetchClient.mjs:
+  (*! @azure/msal-browser v3.28.0 2024-12-12 *)
+
+@azure/msal-browser/dist/config/Configuration.mjs:
+  (*! @azure/msal-browser v3.28.0 2024-12-12 *)
+
+@azure/msal-browser/dist/packageMetadata.mjs:
+  (*! @azure/msal-browser v3.28.0 2024-12-12 *)
+
+@azure/msal-browser/dist/operatingcontext/BaseOperatingContext.mjs:
+  (*! @azure/msal-browser v3.28.0 2024-12-12 *)
+
+@azure/msal-browser/dist/naa/BridgeStatusCode.mjs:
+  (*! @azure/msal-browser v3.28.0 2024-12-12 *)
+
+@azure/msal-browser/dist/naa/BridgeProxy.mjs:
+  (*! @azure/msal-browser v3.28.0 2024-12-12 *)
+
+@azure/msal-browser/dist/operatingcontext/NestedAppOperatingContext.mjs:
+  (*! @azure/msal-browser v3.28.0 2024-12-12 *)
+
+@azure/msal-browser/dist/operatingcontext/StandardOperatingContext.mjs:
+  (*! @azure/msal-browser v3.28.0 2024-12-12 *)
+
+@azure/msal-browser/dist/encode/Base64Decode.mjs:
+  (*! @azure/msal-browser v3.28.0 2024-12-12 *)
+
+@azure/msal-browser/dist/cache/DatabaseStorage.mjs:
+  (*! @azure/msal-browser v3.28.0 2024-12-12 *)
+
+@azure/msal-browser/dist/cache/MemoryStorage.mjs:
+  (*! @azure/msal-browser v3.28.0 2024-12-12 *)
+
+@azure/msal-browser/dist/cache/AsyncMemoryStorage.mjs:
+  (*! @azure/msal-browser v3.28.0 2024-12-12 *)
+
+@azure/msal-browser/dist/crypto/CryptoOps.mjs:
+  (*! @azure/msal-browser v3.28.0 2024-12-12 *)
+
+@azure/msal-browser/dist/cache/LocalStorage.mjs:
+  (*! @azure/msal-browser v3.28.0 2024-12-12 *)
+
+@azure/msal-browser/dist/cache/SessionStorage.mjs:
+  (*! @azure/msal-browser v3.28.0 2024-12-12 *)
+
+@azure/msal-browser/dist/utils/BrowserProtocolUtils.mjs:
+  (*! @azure/msal-browser v3.28.0 2024-12-12 *)
+
+@azure/msal-browser/dist/cache/CookieStorage.mjs:
+  (*! @azure/msal-browser v3.28.0 2024-12-12 *)
+
+@azure/msal-browser/dist/cache/BrowserCacheManager.mjs:
+  (*! @azure/msal-browser v3.28.0 2024-12-12 *)
+
+@azure/msal-browser/dist/cache/AccountManager.mjs:
+  (*! @azure/msal-browser v3.28.0 2024-12-12 *)
+
+@azure/msal-browser/dist/event/EventType.mjs:
+  (*! @azure/msal-browser v3.28.0 2024-12-12 *)
+
+@azure/msal-browser/dist/event/EventHandler.mjs:
+  (*! @azure/msal-browser v3.28.0 2024-12-12 *)
+
+@azure/msal-browser/dist/interaction_client/BaseInteractionClient.mjs:
+  (*! @azure/msal-browser v3.28.0 2024-12-12 *)
+
+@azure/msal-browser/dist/crypto/PkceGenerator.mjs:
+  (*! @azure/msal-browser v3.28.0 2024-12-12 *)
+
+@azure/msal-browser/dist/request/RequestHelpers.mjs:
+  (*! @azure/msal-browser v3.28.0 2024-12-12 *)
+
+@azure/msal-browser/dist/interaction_client/StandardInteractionClient.mjs:
+  (*! @azure/msal-browser v3.28.0 2024-12-12 *)
+
+@azure/msal-browser/dist/error/NativeAuthErrorCodes.mjs:
+  (*! @azure/msal-browser v3.28.0 2024-12-12 *)
+
+@azure/msal-browser/dist/broker/nativeBroker/NativeStatusCodes.mjs:
+  (*! @azure/msal-browser v3.28.0 2024-12-12 *)
+
+@azure/msal-browser/dist/error/NativeAuthError.mjs:
+  (*! @azure/msal-browser v3.28.0 2024-12-12 *)
+
+@azure/msal-browser/dist/interaction_client/SilentCacheClient.mjs:
+  (*! @azure/msal-browser v3.28.0 2024-12-12 *)
+
+@azure/msal-browser/dist/interaction_client/NativeInteractionClient.mjs:
+  (*! @azure/msal-browser v3.28.0 2024-12-12 *)
+
+@azure/msal-browser/dist/broker/nativeBroker/NativeMessageHandler.mjs:
+  (*! @azure/msal-browser v3.28.0 2024-12-12 *)
+
+@azure/msal-browser/dist/interaction_handler/InteractionHandler.mjs:
+  (*! @azure/msal-browser v3.28.0 2024-12-12 *)
+
+@azure/msal-browser/dist/response/ResponseHandler.mjs:
+  (*! @azure/msal-browser v3.28.0 2024-12-12 *)
+
+@azure/msal-browser/dist/interaction_client/PopupClient.mjs:
+  (*! @azure/msal-browser v3.28.0 2024-12-12 *)
+
+@azure/msal-browser/dist/interaction_handler/RedirectHandler.mjs:
+  (*! @azure/msal-browser v3.28.0 2024-12-12 *)
+
+@azure/msal-browser/dist/interaction_client/RedirectClient.mjs:
+  (*! @azure/msal-browser v3.28.0 2024-12-12 *)
+
+@azure/msal-browser/dist/interaction_handler/SilentHandler.mjs:
+  (*! @azure/msal-browser v3.28.0 2024-12-12 *)
+
+@azure/msal-browser/dist/interaction_client/SilentIframeClient.mjs:
+  (*! @azure/msal-browser v3.28.0 2024-12-12 *)
+
+@azure/msal-browser/dist/interaction_client/SilentRefreshClient.mjs:
+  (*! @azure/msal-browser v3.28.0 2024-12-12 *)
+
+@azure/msal-browser/dist/cache/TokenCache.mjs:
+  (*! @azure/msal-browser v3.28.0 2024-12-12 *)
+
+@azure/msal-browser/dist/interaction_client/HybridSpaAuthorizationCodeClient.mjs:
+  (*! @azure/msal-browser v3.28.0 2024-12-12 *)
+
+@azure/msal-browser/dist/interaction_client/SilentAuthCodeClient.mjs:
+  (*! @azure/msal-browser v3.28.0 2024-12-12 *)
+
+@azure/msal-browser/dist/controllers/StandardController.mjs:
+  (*! @azure/msal-browser v3.28.0 2024-12-12 *)
+
+@azure/msal-browser/dist/naa/BridgeError.mjs:
+  (*! @azure/msal-browser v3.28.0 2024-12-12 *)
+
+@azure/msal-browser/dist/naa/mapping/NestedAppAuthAdapter.mjs:
+  (*! @azure/msal-browser v3.28.0 2024-12-12 *)
+
+@azure/msal-browser/dist/error/NestedAppAuthError.mjs:
+  (*! @azure/msal-browser v3.28.0 2024-12-12 *)
+
+@azure/msal-browser/dist/controllers/NestedAppAuthController.mjs:
+  (*! @azure/msal-browser v3.28.0 2024-12-12 *)
+
+@azure/msal-browser/dist/controllers/ControllerFactory.mjs:
+  (*! @azure/msal-browser v3.28.0 2024-12-12 *)
+
+@azure/msal-browser/dist/app/PublicClientApplication.mjs:
+  (*! @azure/msal-browser v3.28.0 2024-12-12 *)
+
+@azure/msal-browser/dist/controllers/UnknownOperatingContextController.mjs:
+  (*! @azure/msal-browser v3.28.0 2024-12-12 *)
+
+@azure/msal-browser/dist/operatingcontext/UnknownOperatingContext.mjs:
+  (*! @azure/msal-browser v3.28.0 2024-12-12 *)
+
+@azure/msal-browser/dist/app/PublicClientNext.mjs:
+  (*! @azure/msal-browser v3.28.0 2024-12-12 *)
+
+@azure/msal-browser/dist/app/IPublicClientApplication.mjs:
+  (*! @azure/msal-browser v3.28.0 2024-12-12 *)
+
+@azure/msal-browser/dist/cache/BrowserStorage.mjs:
+  (*! @azure/msal-browser v3.28.0 2024-12-12 *)
+
+@azure/msal-browser/dist/event/EventMessage.mjs:
+  (*! @azure/msal-browser v3.28.0 2024-12-12 *)
+
+@azure/msal-browser/dist/crypto/SignedHttpRequest.mjs:
+  (*! @azure/msal-browser v3.28.0 2024-12-12 *)
+
+@azure/msal-browser/dist/telemetry/BrowserPerformanceMeasurement.mjs:
+  (*! @azure/msal-browser v3.28.0 2024-12-12 *)
+
+@azure/msal-browser/dist/telemetry/BrowserPerformanceClient.mjs:
+  (*! @azure/msal-browser v3.28.0 2024-12-12 *)
+
+@azure/msal-browser/dist/index.mjs:
+  (*! @azure/msal-browser v3.28.0 2024-12-12 *)
+
+string.fromcodepoint/fromcodepoint.js:
+  (*! http://mths.be/fromcodepoint v0.2.1 by @mathias *)
+
+utf8/utf8.js:
+  (*! https://mths.be/utf8js v3.0.0 by @mathias *)
+
+punycode/punycode.js:
+  (*! https://mths.be/punycode v1.4.1 by @mathias *)
+
+@langchain/core/dist/utils/fast-json-patch/src/helpers.cjs:
+  (*!
+   * https://github.com/Starcounter-Jack/JSON-Patch
+   * (c) 2017-2022 Joachim Wester
+   * MIT licensed
+   *)
+
+@langchain/core/dist/utils/fast-json-patch/src/duplex.cjs:
+  (*!
+   * https://github.com/Starcounter-Jack/JSON-Patch
+   * (c) 2013-2021 Joachim Wester
+   * MIT license
+   *)
+
+@langchain/core/dist/utils/fast-json-patch/src/helpers.js:
+  (*!
+   * https://github.com/Starcounter-Jack/JSON-Patch
+   * (c) 2017-2022 Joachim Wester
+   * MIT licensed
+   *)
+
+@langchain/core/dist/utils/fast-json-patch/src/duplex.js:
+  (*!
+   * https://github.com/Starcounter-Jack/JSON-Patch
+   * (c) 2013-2021 Joachim Wester
+   * MIT license
+   *)
+
+mustache/mustache.mjs:
+  (*!
+   * mustache.js - Logic-less {{mustache}} templates with JavaScript
+   * http://github.com/janl/mustache.js
+   *)
+
+mustache/mustache.js:
+  (*!
+   * mustache.js - Logic-less {{mustache}} templates with JavaScript
+   * http://github.com/janl/mustache.js
+   *)
+
+use-sync-external-store/cjs/use-sync-external-store-shim.development.js:
+  (**
+   * @license React
+   * use-sync-external-store-shim.development.js
+   *
+   * Copyright (c) Facebook, Inc. and its affiliates.
+   *
+   * This source code is licensed under the MIT license found in the
+   * LICENSE file in the root directory of this source tree.
+   *)
+
+use-sync-external-store/cjs/use-sync-external-store-shim/with-selector.development.js:
+  (**
+   * @license React
+   * use-sync-external-store-shim/with-selector.development.js
+   *
+   * Copyright (c) Facebook, Inc. and its affiliates.
+   *
+   * This source code is licensed under the MIT license found in the
+   * LICENSE file in the root directory of this source tree.
+   *)
+
+react/cjs/react-jsx-runtime.development.js:
+  (**
+   * @license React
+   * react-jsx-runtime.development.js
+   *
+   * Copyright (c) Facebook, Inc. and its affiliates.
+   *
+   * This source code is licensed under the MIT license found in the
+   * LICENSE file in the root directory of this source tree.
+   *)
+*/
+
+/**
+ * @license
+ * Copyright 2017 Google Inc.
+ * SPDX-License-Identifier: Apache-2.0
+ */
