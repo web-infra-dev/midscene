@@ -2,7 +2,7 @@
 
 From Midscene v0.14.0, we have introduced two new features: Instant Actions and Deep Think.
 
-## Instant Actions
+## Instant Actions - A More Predictable Way to Perform Actions
 
 You may have already been familiar with our `.ai` interface. It's an auto-planning interface to interact with web pages. For example, when performing a search, you can do this:
 
@@ -25,14 +25,13 @@ await agent.aiInput('Headphones', 'search-box');
 await agent.aiKeyboardPress('Enter');
 ```
 
-
 The typical workflow in the report file is like this, as you can see there is no planning process in the report file:
 
 ![](/blog/report-instant-action.png)
 
 The scripts with instant actions seems a little bit redundant (or not 'ai-style'), but we believe these structured interfaces are a good way to save time debugging when the action is already clear.
 
-## Deep Think
+## Deep Think - A More Accurate Way to Locate Elements
 
 When using Midscene with some complex widgets, the LLM may find it hard to locate the target element. We have introduced a new option named `deepThink` to the instant actions.
 
