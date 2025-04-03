@@ -34,8 +34,12 @@ export default class PlaygroundServer {
   tmpDir: string;
   server?: Server;
   port?: number | null;
-  pageClass: new (...args: any[]) => AbstractPage;
-  agentClass: new (...args: any[]) => PageAgent;
+  pageClass: new (
+    ...args: any[]
+  ) => AbstractPage;
+  agentClass: new (
+    ...args: any[]
+  ) => PageAgent;
   staticPath?: string;
   constructor(
     pageClass: new (...args: any[]) => AbstractPage,

@@ -1,8 +1,8 @@
+import path from 'node:path';
 import PlaygroundServer from '@midscene/web/midscene-server';
+import open from 'open';
 import { AndroidAgent, AndroidDevice } from '../';
 import ScrcpyServer from './scrcpy-server';
-import path from 'node:path';
-import open from 'open';
 
 const staticDir = path.join(__dirname, '../../static');
 const playgroundServer = new PlaygroundServer(

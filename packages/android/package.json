@@ -6,7 +6,8 @@
   "types": "./dist/types/index.d.ts",
   "files": ["dist", "static", "bin", "README.md"],
   "bin": {
-    "playground": "./bin/playground"
+    "playground": "./bin/playground",
+    "@midscene/android": "./bin/playground"
   },
   "exports": {
     ".": {

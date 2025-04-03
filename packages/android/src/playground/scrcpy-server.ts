@@ -26,7 +26,7 @@ export default class ScrcpyServer {
   adbClient: AdbServerClient | null = null;
   currentDeviceId: string | null = null;
   devicePollInterval: NodeJS.Timeout | null = null;
-  lastDeviceList: string = ''; // 用于保存上次设备列表的JSON字符串，用于比较变化
+  lastDeviceList = ''; // 用于保存上次设备列表的JSON字符串，用于比较变化
 
   constructor() {
     this.app = express();
