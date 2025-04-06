@@ -442,7 +442,7 @@ export default class ChromeExtensionProxyPage implements AbstractPage {
 
   mouse = {
     click: async (x: number, y: number) => {
-      await this.showMousePointer(x, y);
+      await this.mouse.move(x, y);
       await this.sendCommandToDebugger('Input.dispatchMouseEvent', {
         type: 'mousePressed',
         x,
