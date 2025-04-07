@@ -47,7 +47,7 @@ await agent.aiTap('target', { deepThink: true });
 
 ![](/blog/coze-sidebar.png)
 
-在即时操作中使用 `deepThink` 后，脚本会变成这样（当然，你也可以使用 javascript 接口）：
+在即时操作中使用 `deepThink` 后，yaml 脚本会变成这样（当然，你也可以使用 javascript 接口）：
 
 ```yaml
 tasks:

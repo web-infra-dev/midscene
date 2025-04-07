@@ -1,3 +1,5 @@
+import type { AbstractPage } from '@/page';
+import type { KeyboardAction, MouseAction } from '@/page';
 import { assert } from '@midscene/shared/utils';
 import { io as ClientIO, type Socket as ClientSocket } from 'socket.io-client';
 import {
@@ -5,6 +7,9 @@ import {
   type BridgeCallResponse,
   type BridgeConnectedEventPayload,
   BridgeEvent,
+  DefaultBridgeServerPort,
+  KeyboardEvent,
+  MouseEvent,
 } from './common';
 
 declare const __VERSION__: string;
@@ -88,3 +93,65 @@ export class BridgeClient {
     this.socket = null;
   }
 }
+
+export const pageClientConnector = <T extends AbstractPage>(
+  page: T,
+  options: {
+    shouldAnswerMethodCall: (method: string, args: any[]) => Promise<boolean>;
+    onMethodCall: (method: string, args: any[]) => Promise<any>;
+    onDestroy: () => void;
+  },
+): BridgeClient => {
+  const bridgeClient = new BridgeClient(
+    `ws://localhost:${DefaultBridgeServerPort}`,
+    async (method, args: any[]) => {
+      console.log('bridge call from cli side', method, args);
+
+      if (method === BridgeEvent.UpdateAgentStatus) {
+        return page.onLogMessage?.(args[0] as string, 'status');
+      }
+
+      if (await options.shouldAnswerMethodCall(method, args)) {
+        return options.onMethodCall(method, args);
+      }
+
+      // this.onLogMessage(`calling method: ${method}`);
+
+      if (method.startsWith(MouseEvent.PREFIX)) {
+        const actionName = method.split('.')[1] as keyof MouseAction;
+        if (actionName === 'drag') {
+          return page.mouse[actionName].apply(page.mouse, args as any);
+        }
+        return page.mouse[actionName].apply(page.mouse, args as any);
+      }
+
+      if (method.startsWith(KeyboardEvent.PREFIX)) {
+        const actionName = method.split('.')[1] as keyof KeyboardAction;
+        if (actionName === 'press') {
+          return page.keyboard[actionName].apply(page.keyboard, args as any);
+        }
+        return page.keyboard[actionName].apply(page.keyboard, args as any);
+      }
+
+      try {
+        // @ts-expect-error
+        const result = await page[method as keyof T](...args);
+        return result;
+      } catch (e) {
+        const errorMessage = e instanceof Error ? e.message : 'Unknown error';
+        console.error('error calling method', method, args, e);
+        page.onLogMessage?.(
+          `Error calling method: ${method}, ${errorMessage}`,
+          'log',
+        );
+        throw new Error(errorMessage, { cause: e });
+      }
+    },
+    // on disconnect
+    () => {
+      options.onDestroy?.();
+    },
+  );
+
+  return bridgeClient;
+};

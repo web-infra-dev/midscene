@@ -1,3 +1,3 @@
-import { ExtensionBridgePageBrowserSide } from '../bridge-mode/page-browser-side';
+import { ExtensionBridgePageBrowserSide } from '../bridge-mode/page-extension-side';
 
 export { ExtensionBridgePageBrowserSide };

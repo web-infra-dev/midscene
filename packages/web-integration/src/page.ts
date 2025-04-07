@@ -80,6 +80,10 @@ export abstract class AbstractPage {
   abstract scrollRight(distance?: number): Promise<void>;
 
   abstract _forceUsePageContext?(): Promise<WebUIContext>;
+  /**
+   * only used in bridge mode
+   */
+  abstract onLogMessage?: (message: string, type: 'log' | 'status') => void;
 
   abstract waitUntilNetworkIdle?(options?: {
     idleTime?: number;
