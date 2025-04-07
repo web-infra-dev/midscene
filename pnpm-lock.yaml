@@ -68,6 +68,9 @@ importers:
       '@midscene/android':
         specifier: workspace:*
         version: link:../../packages/android
+      '@midscene/core':
+        specifier: workspace:*
+        version: link:../../packages/core
       '@midscene/visualizer':
         specifier: workspace:*
         version: link:../../packages/visualizer
@@ -95,6 +98,9 @@ importers:
       socket.io-client:
         specifier: 4.8.1
         version: 4.8.1
+      uuid:
+        specifier: 11.1.0
+        version: 11.1.0
     devDependencies:
       '@rsbuild/core':
         specifier: ^1.2.16
