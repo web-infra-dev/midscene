@@ -282,11 +282,12 @@ export class PageAgent<PageType extends WebPage = WebPage> {
   }
 
   async aiAction(taskPrompt: string) {
-    const { executor } = await (vlLocateMode() === 'vlm-ui-tars'
+    const { output, executor } = await (vlLocateMode() === 'vlm-ui-tars'
       ? this.taskExecutor.actionToGoal(taskPrompt)
       : this.taskExecutor.action(taskPrompt, this.opts.aiActionContext));
 
     this.afterTaskRunning(executor);
+    return output;
   }
 
   async aiQuery(demand: any) {

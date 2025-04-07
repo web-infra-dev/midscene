@@ -3,6 +3,7 @@ import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import type { Server } from 'node:http';
 import { join } from 'node:path';
 import { ERROR_CODE_NOT_IMPLEMENTED_AS_DESIGNED } from '@/common/utils';
+import { overrideAIConfig } from '@midscene/core/env';
 import { getTmpDir } from '@midscene/core/utils';
 import { assert } from '@midscene/shared/utils';
 import { ifInBrowser } from '@midscene/shared/utils';
@@ -14,7 +15,6 @@ import type { AbstractPage } from '../page';
 
 const defaultPort = 5800;
 // const staticPath = join(__dirname, '../../static');
-let agentRequestCount = 1;
 
 const errorHandler = (err: any, req: any, res: any, next: any) => {
   console.error(err);
@@ -41,6 +41,8 @@ export default class PlaygroundServer {
     ...args: any[]
   ) => PageAgent;
   staticPath?: string;
+  taskProgressTips: Record<string, string>;
+
   constructor(
     pageClass: new (...args: any[]) => AbstractPage,
     agentClass: new (...args: any[]) => PageAgent,
@@ -51,6 +53,7 @@ export default class PlaygroundServer {
     this.pageClass = pageClass;
     this.agentClass = agentClass;
     this.staticPath = staticPath;
+    this.taskProgressTips = {};
     setup();
   }
 
@@ -97,6 +100,13 @@ export default class PlaygroundServer {
       });
     });
 
+    this.app.get('/task-progress/:requestId', cors(), async (req, res) => {
+      const { requestId } = req.params;
+      res.json({
+        tip: this.taskProgressTips[requestId] || '',
+      });
+    });
+
     // -------------------------
     // actions from report file
     this.app.post(
@@ -118,25 +128,33 @@ export default class PlaygroundServer {
       '/execute',
       express.json({ limit: '30mb' }),
       async (req, res) => {
-        const { context, type, prompt } = req.body;
+        const { context, type, prompt, requestId } = req.body;
         assert(context, 'context is required');
         assert(type, 'type is required');
         assert(prompt, 'prompt is required');
-        const requestId = agentRequestCount++;
-        console.log(`handle request: #${requestId}, ${type}, ${prompt}`);
+        assert(requestId, 'requestId is required');
+
+        this.taskProgressTips[requestId] = '';
 
         // build an agent with context
         const page = new this.pageClass(context);
         const agent = new this.agentClass(page);
 
+        agent.onTaskStartTip = (tip: string) => {
+          console.log(`task start tip: ${tip}`);
+          this.taskProgressTips[requestId] = tip;
+        };
+
         const response: {
           result: any;
           dump: string | null;
           error: string | null;
+          requestId: string;
         } = {
           result: null,
           dump: null,
           error: null,
+          requestId,
         };
 
         const startTime = Date.now();
@@ -167,6 +185,10 @@ export default class PlaygroundServer {
           );
         }
 
+        setTimeout(() => {
+          delete this.taskProgressTips[requestId];
+        }, 60 * 1000);
+
         res.send(response);
         const timeCost = Date.now() - startTime;
 
@@ -176,6 +198,36 @@ export default class PlaygroundServer {
           );
         } else {
           console.log(`handle request done after ${timeCost}ms: #${requestId}`);
+        }
+      },
+    );
+
+    this.app.post(
+      '/config',
+      express.json({ limit: '1mb' }),
+      async (req, res) => {
+        const { aiConfig } = req.body;
+
+        if (!aiConfig || typeof aiConfig !== 'object') {
+          return res.status(400).json({
+            error: 'aiConfig is required and must be an object',
+          });
+        }
+
+        try {
+          overrideAIConfig(aiConfig);
+
+          console.log(`AI config updated: ${JSON.stringify(aiConfig)}`);
+
+          return res.json({
+            status: 'ok',
+            message: 'AI config updated successfully',
+          });
+        } catch (error: any) {
+          console.error(`Failed to update AI config: ${error.message}`);
+          return res.status(500).json({
+            error: `Failed to update AI config: ${error.message}`,
+          });
         }
       },
     );
