@@ -118,6 +118,7 @@ export class Page<
       const buffer = await (this.underlyingPage as PlaywrightPage).screenshot({
         type: imgType,
         quality,
+        timeout: 3 * 1000,
       });
       base64 = `data:image/jpeg;base64,${buffer.toString('base64')}`;
     } else {
