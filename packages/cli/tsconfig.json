@@ -1,5 +1,6 @@
 {
   "compilerOptions": {
+    "composite": true,
     "baseUrl": ".",
     "declaration": true,
     "emitDeclarationOnly": true,
@@ -17,6 +18,14 @@
     "skipLibCheck": true,
     "strict": true
   },
+  "references": [
+    {
+      "path": "../core"
+    },
+    {
+      "path": "../web-Integration"
+    }
+  ],
   "exclude": ["**/node_modules"],
   "include": ["src", "tests"]
 }

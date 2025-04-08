@@ -3,8 +3,8 @@
   "private": true,
   "version": "0.14.1",
   "scripts": {
-    "build": "nx run-many --target=build --projects=@midscene/core,@midscene/shared,@midscene/visualizer,@midscene/web,@midscene/android,@midscene/cli,chrome-extension,@midscene/report --verbose --skipNxCache",
-    "test": "nx run-many --target=test --projects=@midscene/core,--projects=@midscene/shared,@midscene/visualizer,@midscene/web,@midscene/cli --verbose",
+    "build": "nx run-many --target=build --exclude=doc --verbose --skipNxCache",
+    "test": "nx run-many --target=test --exclude=doc --verbose",
     "test:ai": "nx run-many --target=test:ai --projects=@midscene/core,@midscene/web --verbose",
     "e2e": "nx run @midscene/web:e2e --verbose",
     "e2e:cache": "nx run @midscene/web:e2e:cache --verbose",

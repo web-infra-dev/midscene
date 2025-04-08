@@ -1,5 +1,6 @@
 {
   "compilerOptions": {
+    "composite": true,
     "baseUrl": ".",
     "sourceMap": true,
     "declaration": true,
@@ -20,6 +21,11 @@
     "module": "ESNext",
     "target": "es2018"
   },
+  "references": [
+    {
+      "path": "../shared"
+    }
+  ],
   "exclude": ["**/node_modules"],
   "include": ["src", "report"]
 }

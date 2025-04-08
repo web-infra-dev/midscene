@@ -1,5 +1,6 @@
 {
   "compilerOptions": {
+    "composite": true,
     "allowJs": true,
     "baseUrl": ".",
     "declaration": true,
@@ -16,8 +17,20 @@
     "strict": true,
     "module": "ES2020",
     "target": "es2020",
-    "types": ["node"]
+    "types": ["node"],
+    "declarationDir": "dist/types"
   },
+  "references": [
+    {
+      "path": "../core"
+    },
+    {
+      "path": "../shared"
+    },
+    {
+      "path": "../web-integration"
+    }
+  ],
   "exclude": ["**/node_modules"],
   "include": ["src"]
 }

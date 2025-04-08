@@ -1,5 +1,6 @@
 {
   "compilerOptions": {
+    "composite": true,
     "baseUrl": ".",
     "sourceMap": true,
     "declaration": true,
@@ -20,6 +21,17 @@
     "target": "ES2022",
     "types": ["react"]
   },
+  "references": [
+    {
+      "path": "../core"
+    },
+    {
+      "path": "../shared"
+    },
+    {
+      "path": "../web-Integration"
+    }
+  ],
   "exclude": ["**/node_modules"],
   "include": ["src", "builder"]
 }

@@ -1,5 +1,6 @@
 {
   "compilerOptions": {
+    "composite": true,
     "baseUrl": ".",
     "declaration": true,
     "emitDeclarationOnly": true,
@@ -19,6 +20,17 @@
     "strict": true,
     "module": "ESNext"
   },
+  "references": [
+    {
+      "path": "../core"
+    },
+    {
+      "path": "../shared"
+    },
+    {
+      "path": "../web-Integration"
+    }
+  ],
   "exclude": ["node_modules"],
   "include": ["src", "tests", "./playwright.config.ts", "./vitest.config"]
 }

@@ -1,5 +1,6 @@
 {
   "compilerOptions": {
+    "composite": true,
     "baseUrl": ".",
     "declaration": true,
     "emitDeclarationOnly": true,
@@ -17,8 +18,17 @@
     "rootDir": "./src",
     "skipLibCheck": true,
     "strict": true,
-    "module": "ESNext"
+    "module": "ESNext",
+    "declarationDir": "dist/types"
   },
+  "references": [
+    {
+      "path": "../core"
+    },
+    {
+      "path": "../shared"
+    }
+  ],
   "exclude": ["node_modules"],
   "include": ["src", "./vitest.config"]
 }
