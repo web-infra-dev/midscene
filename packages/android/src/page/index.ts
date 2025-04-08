@@ -52,6 +52,18 @@ export class AndroidDevice implements AndroidDevicePage {
           udid: this.deviceId,
           adbExecTimeout: 60000,
         });
+        const size = await this.getScreenSize();
+        console.log(`
+DeviceId: ${this.deviceId}
+ScreenSize:
+${Object.keys(size)
+  .filter((key) => size[key as keyof typeof size])
+  .map(
+    (key) =>
+      `  ${key} size: ${size[key as keyof typeof size]}${key === 'override' && size[key as keyof typeof size] ? ' ✅' : ''}`,
+  )
+  .join('\n')}
+`);
         debugPage('ADB initialized successfully');
         return this.adb;
       } catch (e) {
@@ -126,22 +138,37 @@ export class AndroidDevice implements AndroidDevicePage {
     };
   }
 
-  private async getScreenSize(): Promise<string> {
+  private async getScreenSize(): Promise<{
+    override: string;
+    physical: string;
+  }> {
     const adb = await this.getAdb();
     const stdout = await adb.shell(['wm', 'size']);
+    const size = {
+      override: '',
+      physical: '',
+    };
 
     // First try to get Override size
-    let size = new RegExp(/Override size: ([^\r?\n]+)*/g).exec(stdout);
-    if (size && size.length >= 2 && size[1]) {
-      debugPage(`Using Override size: ${size[1].trim()}`);
-      return size[1].trim();
+    const overrideSize = new RegExp(/Override size: ([^\r?\n]+)*/g).exec(
+      stdout,
+    );
+    if (overrideSize && overrideSize.length >= 2 && overrideSize[1]) {
+      debugPage(`Using Override size: ${overrideSize[1].trim()}`);
+      size.override = overrideSize[1].trim();
     }
 
     // If Override size doesn't exist, fallback to Physical size
-    size = new RegExp(/Physical size: ([^\r?\n]+)*/g).exec(stdout);
-    if (size && size.length >= 2) {
-      debugPage(`Using Physical size: ${size[1].trim()}`);
-      return size[1].trim();
+    const physicalSize = new RegExp(/Physical size: ([^\r?\n]+)*/g).exec(
+      stdout,
+    );
+    if (physicalSize && physicalSize.length >= 2) {
+      debugPage(`Using Physical size: ${physicalSize[1].trim()}`);
+      size.physical = physicalSize[1].trim();
+    }
+
+    if (size.override || size.physical) {
+      return size;
     }
 
     throw new Error(`Failed to get screen size, output: ${stdout}`);
@@ -159,7 +186,9 @@ export class AndroidDevice implements AndroidDevicePage {
     // screenSize is a string like "width x height"
 
     // handle string format "width x height"
-    const match = screenSize.match(/(\d+)x(\d+)/);
+    const match = (screenSize.override || screenSize.physical).match(
+      /(\d+)x(\d+)/,
+    );
     if (!match || match.length < 3) {
       throw new Error(`Unable to parse screen size: ${screenSize}`);
     }
