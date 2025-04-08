@@ -1,5 +1,6 @@
 import { createReadStream } from 'node:fs';
 import { createServer } from 'node:http';
+import { exec } from 'node:child_process';
 import type { Server as HttpServer } from 'node:http';
 import { Adb, AdbServerClient } from '@yume-chan/adb';
 import { AdbScrcpyClient, AdbScrcpyOptions2_1 } from '@yume-chan/adb-scrcpy';
@@ -14,8 +15,10 @@ import { ReadableStream } from '@yume-chan/stream-extra';
 import cors from 'cors';
 import express from 'express';
 import { Server } from 'socket.io';
-
 import { debugPage } from '../page';
+import { promisify } from 'node:util';
+
+const promiseExec = promisify(exec);
 
 export default class ScrcpyServer {
   app: express.Application;
@@ -89,7 +92,7 @@ export default class ScrcpyServer {
         devices = await client.getDevices();
         debugPage('original devices list:', devices);
       } catch (error) {
-        console.error('failed to get devices list, use test data:', error);
+        console.error('failed to get devices list:', error);
         return [];
       }
 
@@ -117,6 +120,8 @@ export default class ScrcpyServer {
   private async getAdbClient() {
     try {
       if (!this.adbClient) {
+        await promiseExec('adb start-server'); // make sure adb server is running
+        debugPage('adb server started');
         debugPage('initialize adb client');
         this.adbClient = new AdbServerClient(
           new AdbServerNodeTcpConnector({
@@ -124,7 +129,7 @@ export default class ScrcpyServer {
             port: 5037,
           }),
         );
-        debugPage('success to initialize adb client');
+        await debugPage('success to initialize adb client');
       } else {
         debugPage('use existing adb client');
       }
