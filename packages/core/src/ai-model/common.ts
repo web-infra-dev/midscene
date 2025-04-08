@@ -13,6 +13,7 @@ import {
 
 import { vlLocateMode } from '@/env';
 import type { PlanningLocateParam } from '@/types';
+import { getDebug } from '@midscene/shared/logger';
 
 export type AIArgs = [
   ChatCompletionSystemMessageParam,
@@ -43,6 +44,7 @@ export async function callAiFn<T>(
 }
 
 const defaultBboxSize = 20; // must be even number
+const debugInspectUtils = getDebug('ai:common');
 
 // transform the param of locate from qwen mode
 export function fillLocateParam(
@@ -110,7 +112,12 @@ export function adaptDoubaoBbox(
   }
 
   // treat the bbox as a center point
-  if (bbox.length === 6 || bbox.length === 2) {
+  if (
+    bbox.length === 6 ||
+    bbox.length === 2 ||
+    bbox.length === 3 ||
+    bbox.length === 7
+  ) {
     return [
       Math.max(0, Math.round((bbox[0] * width) / 1000) - defaultBboxSize / 2),
       Math.max(0, Math.round((bbox[1] * height) / 1000) - defaultBboxSize / 2),
@@ -161,6 +168,15 @@ export function adaptBboxToRect(
   offsetY = 0,
   errorMsg?: string,
 ): Rect {
+  debugInspectUtils(
+    'adaptBboxToRect',
+    bbox,
+    width,
+    height,
+    offsetX,
+    offsetY,
+    errorMsg || '',
+  );
   const [left, top, right, bottom] = adaptBbox(bbox, width, height, errorMsg);
   return {
     left: left + offsetX,

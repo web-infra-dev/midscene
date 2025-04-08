@@ -9,7 +9,6 @@ export {
   AiExtractElementInfo,
   AiAssert,
   AiLocateSection,
-  transformElementPositionToId,
 } from './inspect';
 
 export { plan } from './llm-planning';

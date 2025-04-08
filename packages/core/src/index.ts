@@ -4,7 +4,6 @@ import { getLogDirByType, getVersion, setLogDir } from './utils';
 
 export {
   plan,
-  transformElementPositionToId,
   describeUserPage,
   AiLocateElement,
   AiAssert,
