@@ -126,6 +126,27 @@ export class AndroidDevice implements AndroidDevicePage {
     };
   }
 
+  private async getScreenSize(): Promise<string> {
+    const adb = await this.getAdb();
+    const stdout = await adb.shell(['wm', 'size']);
+
+    // First try to get Override size
+    let size = new RegExp(/Override size: ([^\r?\n]+)*/g).exec(stdout);
+    if (size && size.length >= 2 && size[1]) {
+      console.log(`Using Override size: ${size[1].trim()}`);
+      return size[1].trim();
+    }
+
+    // If Override size doesn't exist, fallback to Physical size
+    size = new RegExp(/Physical size: ([^\r?\n]+)*/g).exec(stdout);
+    if (size && size.length >= 2) {
+      console.log(`Using Physical size: ${size[1].trim()}`);
+      return size[1].trim();
+    }
+
+    throw new Error(`Failed to get screen size, output: ${stdout}`);
+  }
+
   async size(): Promise<Size> {
     if (this.screenSize) {
       return this.screenSize;
@@ -133,33 +154,17 @@ export class AndroidDevice implements AndroidDevicePage {
 
     const adb = await this.getAdb();
 
-    const screenSize = await adb.getScreenSize();
-    // screenSize is a string like "width x height", or an object
-    let width: number;
-    let height: number;
+    // Use custom getScreenSize method instead of adb.getScreenSize()
+    const screenSize = await this.getScreenSize();
+    // screenSize is a string like "width x height"
 
-    if (typeof screenSize === 'string') {
-      // handle string format "width x height"
-      const match = screenSize.match(/(\d+)x(\d+)/);
-      if (!match || match.length < 3) {
-        throw new Error(`Unable to parse screen size: ${screenSize}`);
-      }
-      width = Number.parseInt(match[1], 10);
-      height = Number.parseInt(match[2], 10);
-    } else if (typeof screenSize === 'object' && screenSize !== null) {
-      // handle object format
-      const sizeObj = screenSize as Record<string, any>;
-      if ('width' in sizeObj && 'height' in sizeObj) {
-        width = Number(sizeObj.width);
-        height = Number(sizeObj.height);
-      } else {
-        throw new Error(
-          `Invalid screen size object: ${JSON.stringify(screenSize)}`,
-        );
-      }
-    } else {
-      throw new Error(`Invalid screen size format: ${screenSize}`);
+    // handle string format "width x height"
+    const match = screenSize.match(/(\d+)x(\d+)/);
+    if (!match || match.length < 3) {
+      throw new Error(`Unable to parse screen size: ${screenSize}`);
     }
+    const width = Number.parseInt(match[1], 10);
+    const height = Number.parseInt(match[2], 10);
 
     // Get device display density
     const densityNum = await adb.getScreenDensity();
@@ -180,12 +185,6 @@ export class AndroidDevice implements AndroidDevicePage {
     return this.screenSize;
   }
 
-  /**
-   * Convert logical coordinates to physical coordinates, handling device ratio
-   * @param x Logical X coordinate
-   * @param y Logical Y coordinate
-   * @returns Physical coordinate point
-   */
   private adjustCoordinates(x: number, y: number): { x: number; y: number } {
     const ratio = this.deviceRatio;
     return {
@@ -194,12 +193,6 @@ export class AndroidDevice implements AndroidDevicePage {
     };
   }
 
-  /**
-   * Convert physical coordinates to logical coordinates, handling device ratio
-   * @param x Physical X coordinate
-   * @param y Physical Y coordinate
-   * @returns Logical coordinate point
-   */
   private reverseAdjustCoordinates(
     x: number,
     y: number,
