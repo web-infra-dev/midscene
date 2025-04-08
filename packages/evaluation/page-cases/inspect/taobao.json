@@ -6,13 +6,14 @@
       "multi": false,
       "annotation_index_id": 1,
       "response_rect": {
-        "left": 319,
-        "top": 54,
-        "width": 533,
-        "height": 36
+        "left": 329,
+        "top": 56,
+        "width": 457,
+        "height": 41
       },
       "response_element": {
-        "id": "hlefc"
+        "id": "jfjah",
+        "indexId": 27
       }
     },
     {
@@ -20,10 +21,10 @@
       "multi": false,
       "annotation_index_id": 2,
       "response_rect": {
-        "left": 789,
-        "top": 56,
-        "width": 45,
-        "height": 32
+        "left": 786,
+        "top": 58,
+        "width": 64,
+        "height": 39
       },
       "response_element": {
         "id": "ondpi",
@@ -32,30 +33,30 @@
     },
     {
       "prompt": "产品分类里面的：男鞋（文字）",
-      "searchArea": "产品分类里面的：男鞋（文字）",
+      "deepThink": true,
       "multi": false,
       "annotation_index_id": 3,
       "response_rect": {
-        "left": 109,
-        "top": 429,
-        "width": 24,
-        "height": 15
+        "left": 137,
+        "top": 416,
+        "width": 36,
+        "height": 20
       },
       "response_element": {
-        "id": "hgioh",
-        "indexId": 98
+        "id": "cjfcl",
+        "indexId": 99
       }
     },
     {
       "prompt": "右侧“立即登录”下方的收藏夹 icon",
-      "searchArea": "右侧“立即登录”下方的一排 icon",
+      "deepThink": true,
       "multi": false,
       "annotation_index_id": 4,
       "response_rect": {
-        "left": 1064,
-        "top": 383,
-        "width": 21,
-        "height": 22
+        "left": 1056,
+        "top": 386,
+        "width": 32,
+        "height": 28
       },
       "response_element": {
         "id": "fkfdl",
@@ -64,33 +65,32 @@
     },
     {
       "prompt": "最右侧五个悬浮按钮的第二个",
-      "searchArea": "最右侧有一列悬浮按钮",
+      "deepThink": true,
       "multi": false,
       "annotation_index_id": 5,
       "response_rect": {
         "left": 1253,
-        "top": 355,
-        "width": 22,
-        "height": 22
+        "top": 366,
+        "width": 26,
+        "height": 32
       },
       "response_element": {
-        "id": "iegkg",
-        "indexId": 212
+        "id": "aodmc"
       }
     },
     {
       "prompt": "购物车 icon",
-      "searchArea": "顶部工具栏",
+      "deepThink": true,
       "response_rect": {
-        "left": 837,
-        "top": 10,
-        "width": 15,
-        "height": 16
+        "left": 1010,
+        "top": 390,
+        "width": 32,
+        "height": 28
       },
       "annotation_index_id": 6,
       "response_element": {
-        "id": "aefln",
-        "indexId": 12
+        "id": "nkpom",
+        "indexId": 188
       }
     }
   ]

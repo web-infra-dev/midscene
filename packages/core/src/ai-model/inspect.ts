@@ -2,6 +2,7 @@ import {
   MIDSCENE_USE_QWEN_VL,
   MIDSCENE_USE_VLM_UI_TARS,
   getAIConfigInBoolean,
+  vlLocateMode,
 } from '@/env';
 import type {
   AIAssertionResponse,
@@ -63,114 +64,6 @@ const liteContextConfig = {
 
 const debugInspect = getDebug('ai:inspect');
 const debugSection = getDebug('ai:section');
-
-function transformToAbsoluteCoords(
-  relativePosition: { x: number; y: number },
-  size: Size,
-) {
-  return {
-    x: Number(((relativePosition.x / 1000) * size.width).toFixed(3)),
-    y: Number(((relativePosition.y / 1000) * size.height).toFixed(3)),
-  };
-}
-
-// let index = 0;
-export async function transformElementPositionToId(
-  aiResult: AIElementResponse | [number, number],
-  treeRoot: ElementTreeNode<BaseElement>,
-  size: { width: number; height: number },
-  searchAreaRect: Rect | undefined,
-  insertElementByPosition: (position: { x: number; y: number }) => BaseElement,
-) {
-  const emptyResponse: AIElementResponse = {
-    errors: [],
-    elements: [],
-  };
-
-  const elementAtPosition = (center: { x: number; y: number }) => {
-    const element = elementByPositionWithElementInfo(treeRoot, center);
-    const distanceToCenter = element
-      ? distance({ x: element.center[0], y: element.center[1] }, center)
-      : 0;
-    return distanceToCenter <= distanceThreshold ? element : undefined;
-  };
-
-  if ('bbox' in aiResult) {
-    if (
-      !Array.isArray(aiResult.bbox) ||
-      (aiResult.bbox as number[]).length !== 4
-    ) {
-      return emptyResponse;
-    }
-
-    const bbox: [number, number, number, number] = [
-      aiResult.bbox[0] + (searchAreaRect?.left || 0),
-      aiResult.bbox[1] + (searchAreaRect?.top || 0),
-      aiResult.bbox[2] + (searchAreaRect?.left || 0),
-      aiResult.bbox[3] + (searchAreaRect?.top || 0),
-    ];
-    const centerX = Math.round((bbox[0] + bbox[2]) / 2);
-    const centerY = Math.round((bbox[1] + bbox[3]) / 2);
-
-    let element = elementAtPosition({ x: centerX, y: centerY });
-
-    if (!element) {
-      element = insertElementByPosition({
-        x: centerX,
-        y: centerY,
-      });
-    }
-    assert(
-      element,
-      `inspect: no element found with coordinates: ${JSON.stringify(bbox)}`,
-    );
-    return {
-      errors: [],
-      elements: [
-        {
-          id: element.id,
-        },
-      ],
-      bbox,
-    };
-  }
-
-  if (Array.isArray(aiResult)) {
-    // [number, number] coord
-    const relativePosition = aiResult;
-    const absolutePosition = transformToAbsoluteCoords(
-      {
-        x: relativePosition[0],
-        y: relativePosition[1],
-      },
-      size,
-    );
-
-    let element = elementAtPosition(absolutePosition);
-    if (!element) {
-      element = insertElementByPosition(absolutePosition);
-    }
-
-    assert(
-      element,
-      `inspect: no id found with position: ${JSON.stringify({ absolutePosition })}`,
-    );
-
-    return {
-      errors: [],
-      elements: [
-        {
-          id: element.id,
-        },
-      ],
-    };
-  }
-
-  return {
-    errors: aiResult.errors,
-    elements: aiResult.elements,
-  };
-}
 
 function matchQuickAnswer(
   quickAnswer:
@@ -258,7 +151,7 @@ export async function AiLocateElement<
     pageDescription: description,
     targetElementDescription,
   });
-  const systemPrompt = systemPromptToLocateElement();
+  const systemPrompt = systemPromptToLocateElement(!!vlLocateMode());
 
   let imagePayload = screenshotBase64WithElementMarker || screenshotBase64;
 
@@ -305,32 +198,51 @@ export async function AiLocateElement<
   const rawResponse = JSON.stringify(res.content);
 
   let resRect: Rect | undefined;
+  let matchedElements: AIElementLocatorResponse['elements'] =
+    'elements' in res.content ? res.content.elements : [];
+  let errors: AIElementLocatorResponse['errors'] | undefined =
+    'errors' in res.content ? res.content.errors : [];
   if ('bbox' in res.content && Array.isArray(res.content.bbox)) {
     const errorMsg = res.content.errors?.length
       ? `Failed to parse bbox: ${res.content.errors?.join(',')}`
       : '';
+
     resRect = adaptBboxToRect(
       res.content.bbox,
-      context.size.width,
-      context.size.height,
+      options.searchConfig?.rect?.width || context.size.width,
+      options.searchConfig?.rect?.height || context.size.height,
       options.searchConfig?.rect?.left,
       options.searchConfig?.rect?.top,
       errorMsg,
     );
     debugInspect('resRect', resRect);
-  }
 
-  const parseResult = await transformElementPositionToId(
-    res.content,
-    context.tree,
-    size,
-    options.searchConfig?.rect,
-    insertElementByPosition,
-  );
+    const rectCenter = {
+      x: resRect.left + resRect.width / 2,
+      y: resRect.top + resRect.height / 2,
+    };
+    let element = elementByPositionWithElementInfo(context.tree, rectCenter);
+
+    const distanceToCenter = element
+      ? distance({ x: element.center[0], y: element.center[1] }, rectCenter)
+      : 0;
+
+    if (!element || distanceToCenter > distanceThreshold) {
+      element = insertElementByPosition(rectCenter);
+    }
+
+    if (element) {
+      matchedElements = [element];
+      errors = [];
+    }
+  }
 
   return {
     rect: resRect,
-    parseResult,
+    parseResult: {
+      elements: matchedElements,
+      errors,
+    },
     rawResponse,
     elementById,
     usage: res.usage,
@@ -394,7 +306,7 @@ export async function AiLocateSection(options: {
     debugSection('referenceBboxList %j', referenceBboxList);
 
     const referenceRects = referenceBboxList
-      .filter((bbox) => Array.isArray(bbox) && bbox.length === 4)
+      .filter((bbox) => Array.isArray(bbox))
       .map((bbox) => {
         return adaptBboxToRect(bbox, context.size.width, context.size.height);
       });

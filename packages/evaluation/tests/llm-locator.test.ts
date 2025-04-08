@@ -69,7 +69,7 @@ testSources.forEach((source) => {
 
         const result = await insight.locate({
           prompt,
-          searchArea: testCase.searchArea,
+          deepThink: testCase.deepThink,
         });
         const { element, rect } = result;
 

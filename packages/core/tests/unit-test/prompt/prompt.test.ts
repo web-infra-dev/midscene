@@ -1,3 +1,4 @@
+import { systemPromptToLocateElement } from '@/ai-model';
 import {
   automationUserPrompt,
   generateTaskBackgroundContext,
@@ -60,6 +61,16 @@ describe('system prompts', () => {
 
   it('section locator', () => {
     const prompt = systemPromptToLocateSection();
+    expect(prompt).toMatchSnapshot();
+  });
+
+  it('locator - 4o', () => {
+    const prompt = systemPromptToLocateElement(false);
+    expect(prompt).toMatchSnapshot();
+  });
+
+  it('locator - qwen', () => {
+    const prompt = systemPromptToLocateElement(true);
     expect(prompt).toMatchSnapshot();
   });
 });

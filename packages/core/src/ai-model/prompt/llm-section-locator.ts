@@ -20,6 +20,8 @@ return in this JSON format:
   "error"?: string
 }
 \`\`\`
+
+In which, all the numbers in the \`bbox\` means the distance to the left, top, right, bottom of the page.
 `;
 }
 
