@@ -133,14 +133,14 @@ export class AndroidDevice implements AndroidDevicePage {
     // First try to get Override size
     let size = new RegExp(/Override size: ([^\r?\n]+)*/g).exec(stdout);
     if (size && size.length >= 2 && size[1]) {
-      console.log(`Using Override size: ${size[1].trim()}`);
+      debugPage(`Using Override size: ${size[1].trim()}`);
       return size[1].trim();
     }
 
     // If Override size doesn't exist, fallback to Physical size
     size = new RegExp(/Physical size: ([^\r?\n]+)*/g).exec(stdout);
     if (size && size.length >= 2) {
-      console.log(`Using Physical size: ${size[1].trim()}`);
+      debugPage(`Using Physical size: ${size[1].trim()}`);
       return size[1].trim();
     }
 
