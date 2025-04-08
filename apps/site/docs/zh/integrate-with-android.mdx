@@ -1,0 +1,139 @@
+# 集成到 Android
+
+import { PackageManagerTabs } from '@theme';
+
+:::info 样例项目
+你可以在这里看到向 Android 集成的样例项目：[https://github.com/web-infra-dev/midscene-example/blob/main/android-demo](https://github.com/web-infra-dev/midscene-example/blob/main/android-demo)
+
+这里还有一个 Android 和 Vitest 结合的样例项目：[https://github.com/web-infra-dev/midscene-example/tree/main/android-with-vitest-demo](https://github.com/web-infra-dev/midscene-example/tree/main/android-with-vitest-demo)
+:::
+
+## 准备工作
+
+### 配置 OpenAI API Key
+
+配置 OpenAI API Key，或 [自定义模型和服务商](./model-provider)
+
+```bash
+# 更新为你自己的 Key
+export OPENAI_API_KEY="sk-abcdefghijklmnopqrstuvwxyz"
+```
+
+### 准备 adb 环境
+
+- 方式一：使用 [Android Studio](https://developer.android.com/studio?hl=zh-cn) 安装
+- 方式二：使用 [Android command-line tools](https://developer.android.com/studio#command-line-tools-only) 安装
+
+验证 adb 是否安装成功：
+
+```bash
+adb --version
+```
+
+输出如下，说明 adb 安装成功
+
+```bash
+Android Debug Bridge version 1.0.41
+Version 34.0.4-10411341
+Installed as /usr/local/bin//adb
+Running on Darwin 24.3.0 (arm64)
+```
+
+### 使用 adb 连接 Android 设备
+
+打开安卓设备的 USB 调试，接着使用数据线连接一台安卓设备
+
+通过下面命令确认已经连接：
+
+```bash
+adb devices -l
+```
+
+输出如下，说明连接成功
+
+```bash
+List of devices attached
+s4ey59ytbitot4yp	device usb:34603008X product:cezanne model:M2006J10C device:cezanne transport_id:3
+```
+
+## 第一步：安装依赖
+
+<PackageManagerTabs command="install @midscene/android --save-dev" />
+
+## 第二步：编写脚本
+
+编写下方代码，保存为 `./demo.ts`
+
+```typescript title="./demo.ts"
+import { AndroidAgent, AndroidDevice, getConnectedDevices } from '@midscene/android';
+
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+Promise.resolve(
+  (async () => {
+    const devices = await getConnectedDevices();
+    const page = new AndroidDevice(devices[0].udid);
+
+    // 👀 初始化 Midscene agent
+    const agent = new AndroidAgent(page,{
+      aiActionContext:
+        '如果出现位置、权限、用户协议等弹窗，点击同意。如果出现登录页面，关闭它。',
+    });
+    await page.connect();
+
+    // 👀 打开浏览器并导航到 ebay.com（请确保当前页面有浏览器 App 喔）
+    await agent.aiAction('open browser and navigate to ebay.com');
+
+    await sleep(5000);
+
+    // 👀 输入关键词，执行搜索
+    await agent.aiAction('在搜索框输入 "Headphones" ，敲回车');
+
+    // 👀 等待加载完成
+    await agent.aiWaitFor("页面中至少有一个耳机商品");
+    // 或者你也可以使用一个普通的 sleep:
+    // await sleep(5000);
+
+    // 👀 理解页面内容，提取数据
+    const items = await agent.aiQuery(
+      "{itemTitle: string, price: Number}[], 找到列表里的商品标题和价格"
+    );
+    console.log("耳机商品信息", items);
+
+    // 👀 用 AI 断言
+    await agent.aiAssert("界面左侧有类目筛选功能");
+  })()
+);
+
+```
+
+更多 Agent 的 API 讲解请参考 [API 参考](./API)。
+
+## 第三步：运行
+
+使用 `tsx` 来运行，你会看到命令行打印出了耳机的商品信息：
+
+```bash
+# run
+npx tsx demo.ts
+
+# 命令行应该有如下输出
+#  [
+#   {
+#     itemTitle: 'JBL Tour Pro 2 - True wireless Noise Cancelling earbuds with Smart Charging Case',
+#     price: 551.21
+#   },
+#   {
+#     itemTitle: 'Soundcore Space One无线耳机40H ANC播放时间2XStronger语音还原',
+#     price: 543.94
+#   }
+# ]
+```
+
+## 第四步：查看运行报告
+
+当上面的命令执行成功后，会在控制台输出：`Midscene - report file updated: /path/to/report/some_id.html`， 通过浏览器打开该文件即可看到报告。
+
+## 更多
+
+* 更多 Agent 上的 API 接口请参考 [API 参考](./API)。
+* 更多关于提示词的技巧请参考 [提示词技巧](./prompting-tips)
