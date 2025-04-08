@@ -1,1 +1,0 @@
-{"version":3,"file":"scripts/stop-water-flow.js","sources":["webpack://android-playground/./src/scripts/stop-water-flow.ts"],"sourcesContent":["if (typeof window.midsceneWaterFlowAnimation !== 'undefined') {\n  window.midsceneWaterFlowAnimation.disable();\n}\n"],"names":["window"],"mappings":"AAAiD,SAAtCA,OAAO,0BAA0B,EAC1CA,OAAO,0BAA0B,CAAC,OAAO,G"}
