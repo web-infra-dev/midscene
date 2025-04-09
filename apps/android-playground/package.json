@@ -4,8 +4,7 @@
   "version": "0.12.4",
   "type": "module",
   "scripts": {
-    "build": "rsbuild build && npm run build:report-template && npm run copy-static",
-    "build:report-template": "node scripts/build-report-template.js",
+    "build": "rsbuild build && npm run copy-static",
     "copy-static": "mkdir -p ../../packages/android/static && cp -r dist/* ../../packages/android/static/",
     "dev": "rsbuild dev --open",
     "preview": "rsbuild preview"
