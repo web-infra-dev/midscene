@@ -1,8 +1,20 @@
 import { PageAgent, type PageAgentOpt } from '@midscene/web/agent';
 import { AndroidDevice } from '../page';
+
+import { vlLocateMode } from '@midscene/core/env';
 import { getConnectedDevices } from '../utils';
 
 export class AndroidAgent extends PageAgent<AndroidDevice> {
+  constructor(page: AndroidDevice, opts?: PageAgentOpt) {
+    super(page, opts);
+
+    if (!vlLocateMode()) {
+      throw new Error(
+        'Android Agent only supports vl-model. https://midscenejs.com/choose-a-model.html',
+      );
+    }
+  }
+
   async launch(uri: string): Promise<void> {
     const device = this.page;
     await device.launch(uri);
