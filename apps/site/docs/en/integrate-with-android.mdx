@@ -1,0 +1,244 @@
+
+# Integrate with Android
+
+You can use Midscene to control Android devices with visual-language (VL) models.
+
+import { PackageManagerTabs } from '@theme';
+
+:::info Demo Project
+Control Android devices with javascript: [https://github.com/web-infra-dev/midscene-example/blob/main/android-demo](https://github.com/web-infra-dev/midscene-example/blob/main/android-demo)
+
+Control Android devices with javascript and Vitest: [https://github.com/web-infra-dev/midscene-example/tree/main/android-with-vitest-demo](https://github.com/web-infra-dev/midscene-example/tree/main/android-with-vitest-demo)
+:::
+
+## Preparation
+
+### Config API Key
+
+Config the API key for VL model. For example, if you use qwen-2.5-vl, you can config the API key like this:
+
+```bash
+# replace with your own
+OPENAI_BASE_URL="https://dashscope.aliyuncs.com/compatible-mode/v1"
+OPENAI_API_KEY="......"
+MIDSCENE_MODEL_NAME="qwen-vl-max-latest"
+MIDSCENE_USE_QWEN_VL=1
+```
+
+Android devices can be controlled by Midscene with visual-language (VL) models. For more details, please refer to [choose a model](./choose-a-model).
+
+### Prepare adb environment
+
+- way 1: use [Android Studio](https://developer.android.com/studio?hl=zh-cn) to install
+- way 2: use [Android command-line tools](https://developer.android.com/studio#command-line-tools-only) to install
+
+Verify adb is installed successfully:
+
+```bash
+adb --version
+```
+
+When you see the following output, adb is installed successfully:
+
+```log
+Android Debug Bridge version 1.0.41
+Version 34.0.4-10411341
+Installed as /usr/local/bin//adb
+Running on Darwin 24.3.0 (arm64)
+```
+
+### Connect Android device with adb
+
+Open the USB debugging on the Android device, and then connect the Android device with a USB cable
+
+Verify the connection:
+
+```bash
+adb devices -l
+```
+
+When you see the following output, the connection is successful:
+
+```log
+List of devices attached
+s4ey59	device usb:34603008X product:cezanne model:M2006J device:cezan transport_id:3
+```
+
+## Step 1. Install dependencies
+
+<PackageManagerTabs command="install @midscene/android --save-dev" />
+
+## Step 2. Write scripts
+
+Let's take a simple example: search for headphones on eBay using the browser in the Android device. （Of course, you can also use any other apps on the Android device.）
+
+Write the following code, and save it as `./demo.ts`
+
+```typescript title="./demo.ts"
+import { AndroidAgent, AndroidDevice, getConnectedDevices } from '@midscene/android';
+
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+Promise.resolve(
+  (async () => {
+    const devices = await getConnectedDevices();
+    const page = new AndroidDevice(devices[0].udid);
+
+    // 👀 init Midscene agent
+    const agent = new AndroidAgent(page,{
+      aiActionContext:
+        'If any location, permission, user agreement, etc. popup, click agree. If login page pops up, close it.',
+    });
+    await page.connect();
+
+    // 👀 open browser and navigate to ebay.com (Please ensure that the current page has a browser app)
+    await agent.aiAction('open browser and navigate to ebay.com');
+
+    await sleep(5000);
+
+    // 👀 type keywords, perform a search
+    await agent.aiAction('type "Headphones" in search box, hit Enter');
+
+    // 👀 wait for loading completed
+    await agent.aiWaitFor("There is at least one headphone product");
+    // or you can use a normal sleep:
+    // await sleep(5000);
+
+    // 👀 understand the page content, extract data
+    const items = await agent.aiQuery(
+      "{itemTitle: string, price: Number}[], find item in list and corresponding price"
+    );
+    console.log("headphones in stock", items);
+
+    // 👀 assert by AI
+    await agent.aiAssert("There is a category filter on the left");
+  })()
+);
+
+```
+
+## Step 3. run
+
+Using `tsx` to run
+
+```bash
+# run
+npx tsx demo.ts
+```
+
+After a while, you will see the following output:
+
+```log
+[
+{
+  itemTitle: 'Beats by Dr. Dre Studio Buds Totally Wireless Noise Cancelling In Ear + OPEN BOX',
+  price: 505.15
+},
+{
+  itemTitle: 'Skullcandy Indy Truly Wireless Earbuds-Headphones Green Mint',
+  price: 186.69
+}
+]
+```
+
+## Step 4: view the report
+
+After the above command executes successfully, the console will output: `Midscene - report file updated: /path/to/report/some_id.html`. You can open this file in a browser to view the report.
+
+## More interfaces in AndroidAgent 
+
+Except the common agent interfaces in [API Reference](./API), AndroidAgent also provides some other interfaces:
+
+### `agent.launch()`
+
+Launch a webpage or native page.
+
+* Type
+
+```typescript
+function launch(uri: string): Promise<void>;
+```
+
+* Parameters:
+  * `uri: string` - The uri to open.
+
+* Return Value:
+  * Returns a Promise that resolves to void when the page is opened.
+
+* Examples:
+
+```typescript
+import { AndroidAgent, AndroidDevice } from '@midscene/android';
+
+const page = new AndroidDevice('s4ey59ytbitot4yp');
+const agent = new AndroidAgent(page);
+
+await agent.launch('https://www.ebay.com'); // open a webpage
+await agent.launch('com.android.settings'); // open a native page
+await agent.launch('com.android.settings/.Settings'); // open a native page
+```
+
+### `agentFromAdbDevice()`
+
+Create a AndroidAgent from a connected adb device.
+
+* Type
+
+```typescript
+function agentFromAdbDevice(deviceId?: string, opts?: PageAgentOpt): Promise<AndroidAgent>;
+```
+
+* Parameters:
+  * `deviceId?: string` - Optional, the adb device id to connect. If not provided, the first connected device will be used.
+  * `opts?: PageAgentOpt` - Optional, the options for the AndroidAgent, refer to [constructor](./API).
+
+* Return Value:
+  * `Promise<AndroidAgent>` Returns a Promise that resolves to an AndroidAgent.
+
+* Examples:
+
+```typescript
+import { agentFromAdbDevice } from '@midscene/android';
+
+const agent = await agentFromAdbDevice('s4ey59ytbitot4yp'); // create a AndroidAgent from a specific adb device
+const agent = await agentFromAdbDevice(); // no deviceId, use the first connected device
+```
+
+### `getConnectedDevices()`
+
+Get all connected Android devices.
+
+* Type
+
+```typescript
+function getConnectedDevices(): Promise<Device[]>;
+interface Device {
+  /**
+   * The device udid.
+   */
+  udid: string;
+  /**
+   * Current device state, as it is visible in
+   * _adb devices -l_ output.
+   */
+  state: string;
+  port?: number;
+}
+```
+
+* Return Value:
+  * `Promise<Device[]>` Returns a Promise that resolves to an array of Device.
+
+* Examples:
+
+```typescript
+import { agentFromAdbDevice, getConnectedDevices } from '@midscene/android';
+
+const devices = await getConnectedDevices();
+console.log(devices);
+const agent = await agentFromAdbDevice(devices[0].udid);
+```
+
+## More
+
+* For all the APIs on the Agent, please refer to [API Reference](./API).
+* For more details about prompting, please refer to [Prompting Tips](./prompting-tips)

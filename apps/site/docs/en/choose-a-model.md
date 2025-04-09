@@ -1,22 +1,25 @@
 # Choose a Model
 
-In this article, we will talk about how to choose a model for Midscene.js. All of these models configs are both supported in Chrome extension and SDK.
+In this article, we will talk about what kind of models are supported by Midscene.js and the features of each model.
 
-If you want to see the detailed configuration of model services, see [Config Model and Provider](./model-provider).
+## Two types of models
 
-GPT-4o, Qwen-2.5-VL, and UI-TARS are the most recommended models for Midscene.js. The main features are:
+Midscene supports two types of models, which are:
 
-* [GPT-4o](#gpt-4o): balanced LLM model, more tokens used.
-* [Qwen-2.5-VL](#qwen-25-vl): open-source VL model, support visual grounding, almost same performance as GPT-4o, and cost less when using Aliyun service.
-* [UI-TARS](#ui-tars): open-source, end-to-end GUI agent model, good at target-driven tasks and error correction.
+1. **general-purpose multimodal LLMs**: *GPT-4o* is this kind of model.
+2. **visual-language (VL) models with visual grounding capabilities**: *Qwen-2.5-VL* and *UI-TARS* are this kind of model.
 
-You can also use other models, but you need to follow [the steps in the article](#choose-other-general-purpose-llms).
+:::info What is 'visual grounding'?
+Visual grounding is the ability of the model to accurately return the coordinates of target elements on the page.
+:::
 
 :::info Which model should I choose to get started?
 Just use the one that is easiest to obtain and get started. After writing your own scripts, you can try other models to see if they meet your specific needs.
 :::
 
-## The recommended models
+If you want to see the detailed configuration of model services, see [Config Model and Provider](./model-provider).
+
+## The recommended models in detail
 
 ### GPT-4o
 
@@ -27,7 +30,7 @@ GPT-4o is a general-purpose LLM by OpenAI, which supports image input. This is t
 - **Easy to achieve**: you can get the stable API service from many providers and just pay for the token.
 - **Performing steadily**: it performs well on interaction, assertion, and query.
 
-**Limitations**
+**Limitations when used in Midscene.js**
 
 - **High token cost**: dom tree and screenshot will be sent together to the model. For example, it will use 6k input tokens for ebay homepage under 1280x800 resolution, and 9k for search result page. As a result, the cost will be higher than other models. And it will also take longer time to generate the response.
 - **Content limitation**: it will not work if the target element is inside a cross-origin `<iframe />` or `<canvas />`.
@@ -38,7 +41,7 @@ GPT-4o is a general-purpose LLM by OpenAI, which supports image input. This is t
 
 ```bash
 OPENAI_API_KEY="......"
-OPENAI_BASE_URL="https://dashscope.aliyuncs.com/compatible-mode/v1" # optional, if you want an endpoint other than the default one from OpenAI.
+OPENAI_BASE_URL="https://custom-endpoint.com/compatible-mode/v1" # optional, if you want an endpoint other than the default one from OpenAI.
 MIDSCENE_MODEL_NAME="gpt-4o-2024-11-20" # optional. The default is "gpt-4o".
 ```
 
@@ -46,7 +49,7 @@ MIDSCENE_MODEL_NAME="gpt-4o-2024-11-20" # optional. The default is "gpt-4o".
 
 From 0.12.0 version, Midscene.js supports Qwen-2.5-VL model.
 
-Qwen-2.5-VL is a dedicated model for image recognition. It is an open-source model published by Alibaba. It provides Visual Grounding ability, which can accurately return the coordinates of target elements on the page. In most of the cases, it performs as good as (or sometimes better than) GPT-4o. We recommend using the largest version (72B) for reliable output.
+Qwen-2.5-VL is an open-source model published by Alibaba. It provides Visual Grounding ability, which can accurately return the coordinates of target elements on the page. In most of the cases, it performs as good as (or sometimes better than) GPT-4o. We recommend using the largest version (72B) for reliable output.
 
 Qwen-2.5-VL indeed has an action planning feature to control the application, but we still recommend using detailed prompts to provide a more stable and reliable result.
 
@@ -56,7 +59,7 @@ Qwen-2.5-VL indeed has an action planning feature to control the application, bu
 - **Higher resolution support**: Qwen-2.5-VL supports higher resolution input than GPT-4o. It's enough for most of the cases.
 - **Open-source**: this is an open-source model, so you can both use the API already deployed by cloud providers or deploy it on your own server.
 
-**Limitations**
+**Limitations when used in Midscene.js**
 
 - **Not good at small icon recognition**: like GPT-4o, it may be hard to describe the target element if it's a very small icon.
 - **Perform not that good on assertion**: it may not work as well as GPT-4o on assertion. 
@@ -96,7 +99,7 @@ When using UI-TARS, you can use target-driven style prompts, like "Login with us
 - **Open-source**: you can deploy it on your own server and your data will no longer be sent to the cloud.
 - **More stable with short prompt**: ⁠UI-TARS is optimized for UI automation and is capable of handling more complex tasks with target-driven prompts. It performs better than GPT-4o and Qwen-2.5-VL on short prompts.
 
-**Limitations**
+**Limitations when used in Midscene.js**
 
 - **Perform not good on assertion**: it may not work as well as GPT-4o and Qwen 2.5 on assertion and query.
 - **Need to deploy yourself**: you need to deploy the model by yourself
