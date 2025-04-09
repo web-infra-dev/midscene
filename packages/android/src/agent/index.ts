@@ -8,8 +8,10 @@ export class AndroidAgent extends PageAgent<AndroidDevice> {
   constructor(page: AndroidDevice, opts?: PageAgentOpt) {
     super(page, opts);
 
-    if (vlLocateMode() === false) {
-      throw new Error('Android Agent only supports vl-model mode');
+    if (!vlLocateMode()) {
+      throw new Error(
+        'Android Agent only supports vl-model. https://midscenejs.com/choose-a-model.html',
+      );
     }
   }
 
