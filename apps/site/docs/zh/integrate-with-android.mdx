@@ -144,7 +144,7 @@ npx tsx demo.ts
 
 ### `agent.launch()`
 
-这个方法允许你传入一个 uri 来打开一个网页或者原生页面。
+启动一个网页或原生页面。
 
 * 类型
 
@@ -173,7 +173,7 @@ await agent.launch('com.android.settings/.Settings'); // 打开系统设置 app(
 
 ### `agentFromAdbDevice()`
 
-这个方法允许你传入一个 adb 设备 id 来创建一个 AndroidAgent。
+从已连接的 adb 设备中，创建一个 AndroidAgent。
 
 * 类型
 
@@ -199,7 +199,7 @@ const agent = await agentFromAdbDevice(); // 不传入 deviceId，则使用第�
 
 ### `getConnectedDevices()`
 
-这个方法允许你获取所有连接的 Android 设备。
+获取所有连接的 Android 设备。
 
 * 类型
 
@@ -228,6 +228,7 @@ interface Device {
 import { agentFromAdbDevice, getConnectedDevices } from '@midscene/android'
 
 const devices = await getConnectedDevices();
+console.log(devices);
 const agent = await agentFromAdbDevice(devices[0].udid);
 ```
 

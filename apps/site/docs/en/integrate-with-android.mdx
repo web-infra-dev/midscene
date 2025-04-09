@@ -150,7 +150,7 @@ Except the common agent interfaces in [API Reference](./API), AndroidAgent also 
 
 ### `agent.launch()`
 
-This method allows you to pass a uri to open a webpage or native page.
+Launch a webpage or native page.
 
 * Type
 
@@ -179,7 +179,7 @@ await agent.launch('com.android.settings/.Settings'); // open a native page
 
 ### `agentFromAdbDevice()`
 
-This method allows you to pass a adb device id to create a AndroidAgent.
+Create a AndroidAgent from a connected adb device.
 
 * Type
 
@@ -188,8 +188,8 @@ function agentFromAdbDevice(deviceId?: string, opts?: PageAgentOpt): Promise<And
 ```
 
 * Parameters:
-  * `deviceId?: string` - Optional parameter, the adb device id to connect. If not provided, the first connected device will be used.
-  * `opts?: PageAgentOpt` - Optional parameter, the options for the AndroidAgent, refer to [constructor](./API).
+  * `deviceId?: string` - Optional, the adb device id to connect. If not provided, the first connected device will be used.
+  * `opts?: PageAgentOpt` - Optional, the options for the AndroidAgent, refer to [constructor](./API).
 
 * Return Value:
   * `Promise<AndroidAgent>` Returns a Promise that resolves to an AndroidAgent.
@@ -199,13 +199,13 @@ function agentFromAdbDevice(deviceId?: string, opts?: PageAgentOpt): Promise<And
 ```typescript
 import { agentFromAdbDevice } from '@midscene/android';
 
-const agent = await agentFromAdbDevice('s4ey59ytbitot4yp'); // pass deviceId
-const agent = await agentFromAdbDevice(); // not pass deviceId, use the first connected device
+const agent = await agentFromAdbDevice('s4ey59ytbitot4yp'); // create a AndroidAgent from a specific adb device
+const agent = await agentFromAdbDevice(); // no deviceId, use the first connected device
 ```
 
 ### `getConnectedDevices()`
 
-This method allows you to get all connected Android devices.
+Get all connected Android devices.
 
 * Type
 
@@ -234,6 +234,7 @@ interface Device {
 import { agentFromAdbDevice, getConnectedDevices } from '@midscene/android';
 
 const devices = await getConnectedDevices();
+console.log(devices);
 const agent = await agentFromAdbDevice(devices[0].udid);
 ```
 
