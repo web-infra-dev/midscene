@@ -52,6 +52,18 @@ export class AndroidDevice implements AndroidDevicePage {
           udid: this.deviceId,
           adbExecTimeout: 60000,
         });
+        const size = await this.getScreenSize();
+        console.log(`
+DeviceId: ${this.deviceId}
+ScreenSize:
+${Object.keys(size)
+  .filter((key) => size[key as keyof typeof size])
+  .map(
+    (key) =>
+      `  ${key} size: ${size[key as keyof typeof size]}${key === 'override' && size[key as keyof typeof size] ? ' ✅' : ''}`,
+  )
+  .join('\n')}
+`);
         debugPage('ADB initialized successfully');
         return this.adb;
       } catch (e) {
@@ -126,6 +138,42 @@ export class AndroidDevice implements AndroidDevicePage {
     };
   }
 
+  private async getScreenSize(): Promise<{
+    override: string;
+    physical: string;
+  }> {
+    const adb = await this.getAdb();
+    const stdout = await adb.shell(['wm', 'size']);
+    const size = {
+      override: '',
+      physical: '',
+    };
+
+    // First try to get Override size
+    const overrideSize = new RegExp(/Override size: ([^\r?\n]+)*/g).exec(
+      stdout,
+    );
+    if (overrideSize && overrideSize.length >= 2 && overrideSize[1]) {
+      debugPage(`Using Override size: ${overrideSize[1].trim()}`);
+      size.override = overrideSize[1].trim();
+    }
+
+    // If Override size doesn't exist, fallback to Physical size
+    const physicalSize = new RegExp(/Physical size: ([^\r?\n]+)*/g).exec(
+      stdout,
+    );
+    if (physicalSize && physicalSize.length >= 2) {
+      debugPage(`Using Physical size: ${physicalSize[1].trim()}`);
+      size.physical = physicalSize[1].trim();
+    }
+
+    if (size.override || size.physical) {
+      return size;
+    }
+
+    throw new Error(`Failed to get screen size, output: ${stdout}`);
+  }
+
   async size(): Promise<Size> {
     if (this.screenSize) {
       return this.screenSize;
@@ -133,33 +181,19 @@ export class AndroidDevice implements AndroidDevicePage {
 
     const adb = await this.getAdb();
 
-    const screenSize = await adb.getScreenSize();
-    // screenSize is a string like "width x height", or an object
-    let width: number;
-    let height: number;
+    // Use custom getScreenSize method instead of adb.getScreenSize()
+    const screenSize = await this.getScreenSize();
+    // screenSize is a string like "width x height"
 
-    if (typeof screenSize === 'string') {
-      // handle string format "width x height"
-      const match = screenSize.match(/(\d+)x(\d+)/);
-      if (!match || match.length < 3) {
-        throw new Error(`Unable to parse screen size: ${screenSize}`);
-      }
-      width = Number.parseInt(match[1], 10);
-      height = Number.parseInt(match[2], 10);
-    } else if (typeof screenSize === 'object' && screenSize !== null) {
-      // handle object format
-      const sizeObj = screenSize as Record<string, any>;
-      if ('width' in sizeObj && 'height' in sizeObj) {
-        width = Number(sizeObj.width);
-        height = Number(sizeObj.height);
-      } else {
-        throw new Error(
-          `Invalid screen size object: ${JSON.stringify(screenSize)}`,
-        );
-      }
-    } else {
-      throw new Error(`Invalid screen size format: ${screenSize}`);
+    // handle string format "width x height"
+    const match = (screenSize.override || screenSize.physical).match(
+      /(\d+)x(\d+)/,
+    );
+    if (!match || match.length < 3) {
+      throw new Error(`Unable to parse screen size: ${screenSize}`);
     }
+    const width = Number.parseInt(match[1], 10);
+    const height = Number.parseInt(match[2], 10);
 
     // Get device display density
     const densityNum = await adb.getScreenDensity();
@@ -180,12 +214,6 @@ export class AndroidDevice implements AndroidDevicePage {
     return this.screenSize;
   }
 
-  /**
-   * Convert logical coordinates to physical coordinates, handling device ratio
-   * @param x Logical X coordinate
-   * @param y Logical Y coordinate
-   * @returns Physical coordinate point
-   */
   private adjustCoordinates(x: number, y: number): { x: number; y: number } {
     const ratio = this.deviceRatio;
     return {
@@ -194,12 +222,6 @@ export class AndroidDevice implements AndroidDevicePage {
     };
   }
 
-  /**
-   * Convert physical coordinates to logical coordinates, handling device ratio
-   * @param x Physical X coordinate
-   * @param y Physical Y coordinate
-   * @returns Logical coordinate point
-   */
   private reverseAdjustCoordinates(
     x: number,
     y: number,
