@@ -1,4 +1,8 @@
 import path from 'node:path';
+import {
+  PLAYGROUND_SERVER_PORT,
+  SCRCPY_SERVER_PORT,
+} from '@midscene/shared/constants';
 import PlaygroundServer from '@midscene/web/midscene-server';
 import open from 'open';
 import { AndroidAgent, AndroidDevice } from '../';
@@ -13,7 +17,10 @@ const playgroundServer = new PlaygroundServer(
 const scrcpyServer = new ScrcpyServer();
 
 // 启动两个服务器
-Promise.all([playgroundServer.launch(5800), scrcpyServer.launch(5700)])
+Promise.all([
+  playgroundServer.launch(PLAYGROUND_SERVER_PORT),
+  scrcpyServer.launch(SCRCPY_SERVER_PORT),
+])
   .then(() => {
     console.log(
       `Midscene playground server is running on http://localhost:${playgroundServer.port}`,

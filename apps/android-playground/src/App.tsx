@@ -1,5 +1,6 @@
 import './App.css';
 import { overrideAIConfig } from '@midscene/core/env';
+import { SCRCPY_SERVER_PORT } from '@midscene/shared/constants';
 import {
   EnvConfig,
   type PlaygroundResult,
@@ -7,8 +8,12 @@ import {
   PromptInput,
   type ReplayScriptsInfo,
   allScriptsFromDump,
+  getTaskProgress,
   globalThemeConfig,
+  overrideServerConfig,
+  requestPlaygroundServer,
   useEnvConfig,
+  useServerValid,
 } from '@midscene/visualizer';
 import { Col, ConfigProvider, Form, Layout, Row, Space, message } from 'antd';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -19,8 +24,7 @@ import ScrcpyPlayer from './scrcpy-player';
 import '@midscene/visualizer/index.css';
 
 const { Content } = Layout;
-const SERVER_URL = 'http://localhost:5700';
-const PLAYGROUND_SERVER_URL = 'http://localhost:5800';
+const SERVER_URL = `http://localhost:${SCRCPY_SERVER_PORT}`;
 
 export default function App() {
   const [form] = Form.useForm();
@@ -44,7 +48,8 @@ export default function App() {
   const [loadingProgressText, setLoadingProgressText] = useState('');
   const currentRequestIdRef = useRef<string | null>(null);
   const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
-
+  const configAlreadySet = Object.keys(config || {}).length >= 1;
+  const serverValid = useServerValid(true);
   // handle device selection
   const handleDeviceSelect = useCallback(
     (deviceId: string) => {
@@ -92,10 +97,7 @@ export default function App() {
       // set polling interval to 500ms
       pollIntervalRef.current = setInterval(async () => {
         try {
-          const response = await fetch(
-            `${PLAYGROUND_SERVER_URL}/task-progress/${requestId}`,
-          );
-          const data = await response.json();
+          const data = await getTaskProgress(requestId);
 
           if (data.tip) {
             setLoadingProgressText(data.tip);
@@ -145,13 +147,7 @@ export default function App() {
   // Override AI configuration
   useEffect(() => {
     overrideAIConfig(config);
-    fetch(`${PLAYGROUND_SERVER_URL}/config`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ aiConfig: config }),
-    });
+    overrideServerConfig(config);
   }, [config]);
 
   // handle run button click
@@ -167,6 +163,7 @@ export default function App() {
       );
       return;
     }
+
     setLoading(true);
     setResult(null);
     setReplayScriptsInfo(null);
@@ -182,19 +179,12 @@ export default function App() {
     startPollingProgress(requestId);
 
     try {
-      const response = await fetch(`${PLAYGROUND_SERVER_URL}/execute`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          context: selectedDeviceId,
-          type,
-          prompt,
-          requestId,
-        }),
-      });
-      const res = await response.json();
+      const res = await requestPlaygroundServer(
+        selectedDeviceId,
+        type,
+        prompt,
+        requestId,
+      );
 
       // stop polling
       clearPollingInterval();
@@ -202,8 +192,8 @@ export default function App() {
       setResult(res);
       setLoading(false);
 
-      if (!response.ok) {
-        throw new Error(`server returned status code: ${response.status}`);
+      if (!res) {
+        throw new Error('server returned empty response');
       }
 
       // handle the special case of aiAction type, extract script information
@@ -262,9 +252,11 @@ export default function App() {
                     <Space direction="vertical" size="middle">
                       <EnvConfig />
                       <PromptInput
-                        runButtonEnabled={!!selectedDeviceId && !loading}
+                        runButtonEnabled={
+                          !!selectedDeviceId && configAlreadySet
+                        }
                         form={form}
-                        serviceMode="In-Browser"
+                        serviceMode="Server"
                         selectedType="aiAction"
                         dryMode={false}
                         stoppable={loading}
@@ -275,7 +267,8 @@ export default function App() {
                       <PlaygroundResultView
                         result={result}
                         loading={loading}
-                        serviceMode={'In-Browser-Extension'}
+                        serverValid={serverValid}
+                        serviceMode={'Server'}
                         replayScriptsInfo={replayScriptsInfo}
                         replayCounter={replayCounter}
                         loadingProgressText={loadingProgressText}

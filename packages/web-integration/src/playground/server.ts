@@ -5,6 +5,7 @@ import { join } from 'node:path';
 import { ERROR_CODE_NOT_IMPLEMENTED_AS_DESIGNED } from '@/common/utils';
 import { overrideAIConfig } from '@midscene/core/env';
 import { getTmpDir } from '@midscene/core/utils';
+import { PLAYGROUND_SERVER_PORT } from '@midscene/shared/constants';
 import { assert } from '@midscene/shared/utils';
 import { ifInBrowser } from '@midscene/shared/utils';
 import cors from 'cors';
@@ -13,7 +14,7 @@ import express from 'express';
 import type { PageAgent } from '../common/agent';
 import type { AbstractPage } from '../page';
 
-const defaultPort = 5800;
+const defaultPort = PLAYGROUND_SERVER_PORT;
 // const staticPath = join(__dirname, '../../static');
 
 const errorHandler = (err: any, req: any, res: any, next: any) => {

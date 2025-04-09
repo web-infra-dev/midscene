@@ -13,6 +13,7 @@
     "@ant-design/icons": "^5.3.1",
     "@midscene/android": "workspace:*",
     "@midscene/core": "workspace:*",
+    "@midscene/shared": "workspace:*",
     "@midscene/visualizer": "workspace:*",
     "@midscene/web": "workspace:*",
     "@yume-chan/scrcpy": "^1.1.0",

@@ -71,6 +71,9 @@ importers:
       '@midscene/core':
         specifier: workspace:*
         version: link:../../packages/core
+      '@midscene/shared':
+        specifier: workspace:*
+        version: link:../../packages/shared
       '@midscene/visualizer':
         specifier: workspace:*
         version: link:../../packages/visualizer

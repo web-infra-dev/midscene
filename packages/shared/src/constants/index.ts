@@ -13,3 +13,6 @@ export enum NodeType {
   TEXT = 'TEXT Node',
   POSITION = 'POSITION Node',
 }
+
+export const PLAYGROUND_SERVER_PORT = 5800;
+export const SCRCPY_SERVER_PORT = 5700;

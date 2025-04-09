@@ -3,6 +3,7 @@ import { createReadStream } from 'node:fs';
 import { createServer } from 'node:http';
 import type { Server as HttpServer } from 'node:http';
 import { promisify } from 'node:util';
+import { SCRCPY_SERVER_PORT } from '@midscene/shared/constants';
 import { Adb, AdbServerClient } from '@yume-chan/adb';
 import { AdbScrcpyClient, AdbScrcpyOptions2_1 } from '@yume-chan/adb-scrcpy';
 import { AdbServerNodeTcpConnector } from '@yume-chan/adb-server-node-tcp';
@@ -25,7 +26,7 @@ export default class ScrcpyServer {
   httpServer: HttpServer;
   io: Server;
   port?: number | null;
-  defaultPort = 5700;
+  defaultPort = SCRCPY_SERVER_PORT;
   adbClient: AdbServerClient | null = null;
   currentDeviceId: string | null = null;
   devicePollInterval: NodeJS.Timeout | null = null;
