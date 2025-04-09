@@ -142,8 +142,94 @@ npx tsx demo.ts
 
 除了 [API 参考](./API) 中的通用 Agent 接口，AndroidAgent 还提供了一些其他接口：
 
-* `launch`
+### `agent.launch()`
 
+这个方法允许你传入一个 uri 来打开一个网页或者原生页面。
+
+* 类型
+
+```typescript
+function launch(uri: string): Promise<void>;
+```
+
+* 参数：
+  * `uri: string` - 要打开的 uri
+
+* 返回值：
+  * `Promise<void>`
+
+* 示例：
+
+```typescript
+import { AndroidAgent, AndroidDevice } from '@midscene/android';
+
+const page = new AndroidDevice('s4ey59ytbitot4yp');
+const agent = new AndroidAgent(page);
+
+await agent.launch('https://www.ebay.com'); // 打开网页
+await agent.launch('com.android.settings'); // 打开系统设置 app(package name)
+await agent.launch('com.android.settings/.Settings'); // 打开系统设置 app(package name) 的 .Settings(activity name) 页面
+```
+
+### `agentFromAdbDevice()`
+
+这个方法允许你传入一个 adb 设备 id 来创建一个 AndroidAgent。
+
+* 类型
+
+```typescript
+function agentFromAdbDevice(deviceId?: string, opts?: PageAgentOpt): Promise<AndroidAgent>;
+```
+
+* 参数：
+  * `deviceId?: string` - 可选参数，要连接的 adb 设备 id，如果未传入，则使用第一个连接的设备
+  * `opts?: PageAgentOpt` - 可选参数，用于初始化 AndroidAgent 的配置，参考 [构造器](./API)
+
+* 返回值：
+  * `Promise<AndroidAgent>` 返回一个 AndroidAgent 实例
+
+* 示例：
+
+```typescript
+import { agentFromAdbDevice } from '@midscene/android';
+
+const agent = await agentFromAdbDevice('s4ey59ytbitot4yp'); // 传入 deviceId
+const agent = await agentFromAdbDevice(); // 不传入 deviceId，则使用第一个连接的设备
+```
+
+### `getConnectedDevices()`
+
+这个方法允许你获取所有连接的 Android 设备。
+
+* 类型
+
+```typescript 
+function getConnectedDevices(): Promise<Device[]>;
+interface Device {
+  /**
+   * The device udid.
+   */
+  udid: string;
+  /**
+   * Current device state, as it is visible in
+   * _adb devices -l_ output.
+   */
+  state: string;
+  port?: number;
+}
+```
+
+* 返回值：
+  * `Promise<Device[]>` 返回一个 Device 数组
+
+* 示例：
+
+```typescript
+import { agentFromAdbDevice, getConnectedDevices } from '@midscene/android'
+
+const devices = await getConnectedDevices();
+const agent = await agentFromAdbDevice(devices[0].udid);
+```
 
 ## 更多
 

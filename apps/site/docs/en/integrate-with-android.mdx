@@ -148,8 +148,94 @@ After the above command executes successfully, the console will output: `Midscen
 
 Except the common agent interfaces in [API Reference](./API), AndroidAgent also provides some other interfaces:
 
-* `launch`
+### `agent.launch()`
 
+This method allows you to pass a uri to open a webpage or native page.
+
+* Type
+
+```typescript
+function launch(uri: string): Promise<void>;
+```
+
+* Parameters:
+  * `uri: string` - The uri to open.
+
+* Return Value:
+  * Returns a Promise that resolves to void when the page is opened.
+
+* Examples:
+
+```typescript
+import { AndroidAgent, AndroidDevice } from '@midscene/android';
+
+const page = new AndroidDevice('s4ey59ytbitot4yp');
+const agent = new AndroidAgent(page);
+
+await agent.launch('https://www.ebay.com'); // open a webpage
+await agent.launch('com.android.settings'); // open a native page
+await agent.launch('com.android.settings/.Settings'); // open a native page
+```
+
+### `agentFromAdbDevice()`
+
+This method allows you to pass a adb device id to create a AndroidAgent.
+
+* Type
+
+```typescript
+function agentFromAdbDevice(deviceId?: string, opts?: PageAgentOpt): Promise<AndroidAgent>;
+```
+
+* Parameters:
+  * `deviceId?: string` - Optional parameter, the adb device id to connect. If not provided, the first connected device will be used.
+  * `opts?: PageAgentOpt` - Optional parameter, the options for the AndroidAgent, refer to [constructor](./API).
+
+* Return Value:
+  * `Promise<AndroidAgent>` Returns a Promise that resolves to an AndroidAgent.
+
+* Examples:
+
+```typescript
+import { agentFromAdbDevice } from '@midscene/android';
+
+const agent = await agentFromAdbDevice('s4ey59ytbitot4yp'); // pass deviceId
+const agent = await agentFromAdbDevice(); // not pass deviceId, use the first connected device
+```
+
+### `getConnectedDevices()`
+
+This method allows you to get all connected Android devices.
+
+* Type
+
+```typescript
+function getConnectedDevices(): Promise<Device[]>;
+interface Device {
+  /**
+   * The device udid.
+   */
+  udid: string;
+  /**
+   * Current device state, as it is visible in
+   * _adb devices -l_ output.
+   */
+  state: string;
+  port?: number;
+}
+```
+
+* Return Value:
+  * `Promise<Device[]>` Returns a Promise that resolves to an array of Device.
+
+* Examples:
+
+```typescript
+import { agentFromAdbDevice, getConnectedDevices } from '@midscene/android';
+
+const devices = await getConnectedDevices();
+const agent = await agentFromAdbDevice(devices[0].udid);
+```
 
 ## More
 
