@@ -1,5 +1,7 @@
 # 集成到 Android
 
+Midscene 支持使用视觉语言（VL）模型来控制 Android 设备。
+
 import { PackageManagerTabs } from '@theme';
 
 :::info 样例项目
@@ -30,9 +32,9 @@ export OPENAI_API_KEY="sk-abcdefghijklmnopqrstuvwxyz"
 adb --version
 ```
 
-输出如下，说明 adb 安装成功
+当你看到如下输出，说明 adb 已经安装成功：
 
-```bash
+```log
 Android Debug Bridge version 1.0.41
 Version 34.0.4-10411341
 Installed as /usr/local/bin//adb
@@ -49,11 +51,11 @@ Running on Darwin 24.3.0 (arm64)
 adb devices -l
 ```
 
-输出如下，说明连接成功
+当你看到如下输出，说明连接成功：
 
-```bash
+```log
 List of devices attached
-s4ey59ytbitot4yp	device usb:34603008X product:cezanne model:M2006J10C device:cezanne transport_id:3
+s4ey59	device usb:34603008X product:cezanne model:M2006J device:cezan transport_id:3
 ```
 
 ## 第一步：安装依赖
@@ -61,6 +63,8 @@ s4ey59ytbitot4yp	device usb:34603008X product:cezanne model:M2006J10C device:cez
 <PackageManagerTabs command="install @midscene/android --save-dev" />
 
 ## 第二步：编写脚本
+
+这里以使用安卓浏览器搜索耳机为例。(当然，你也可以使用设备上的其他任何应用)
 
 编写下方代码，保存为 `./demo.ts`
 
@@ -106,32 +110,40 @@ Promise.resolve(
 
 ```
 
-更多 Agent 的 API 讲解请参考 [API 参考](./API)。
-
 ## 第三步：运行
 
-使用 `tsx` 来运行，你会看到命令行打印出了耳机的商品信息：
+使用 `tsx` 来运行
 
 ```bash
 # run
 npx tsx demo.ts
+```
 
-# 命令行应该有如下输出
-#  [
-#   {
-#     itemTitle: 'JBL Tour Pro 2 - True wireless Noise Cancelling earbuds with Smart Charging Case',
-#     price: 551.21
-#   },
-#   {
-#     itemTitle: 'Soundcore Space One无线耳机40H ANC播放时间2XStronger语音还原',
-#     price: 543.94
-#   }
-# ]
+稍等片刻，你会看到如下输出：
+
+```log
+[
+ {
+   itemTitle: 'JBL Tour Pro 2 - True wireless Noise Cancelling earbuds with Smart Charging Case',
+   price: 551.21
+ },
+ {
+   itemTitle: 'Soundcore Space One无线耳机40H ANC播放时间2XStronger语音还原',
+   price: 543.94
+ }
+]
 ```
 
 ## 第四步：查看运行报告
 
 当上面的命令执行成功后，会在控制台输出：`Midscene - report file updated: /path/to/report/some_id.html`， 通过浏览器打开该文件即可看到报告。
+
+## Android Agent 上的更多接口
+
+除了 [API 参考](./API) 中的通用 Agent 接口，AndroidAgent 还提供了一些其他接口：
+
+* `launch`
+
 
 ## 更多
 
