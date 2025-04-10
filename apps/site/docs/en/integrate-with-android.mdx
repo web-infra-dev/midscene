@@ -49,7 +49,11 @@ Running on Darwin 24.3.0 (arm64)
 
 ### Connect Android device with adb
 
-Open the USB debugging on the Android device, and then connect the Android device with a USB cable
+In the developer options of the system settings, enable the 'USB debugging' of the Android device, if the 'USB debugging (secure settings)' exists, also enable it, then connect the Android device with a USB cable
+
+<p align="center">
+  <img src="/android-usb-debug-en.png" alt="android usb debug" width="400"/>
+</p>
 
 Verify the connection:
 
@@ -242,3 +246,17 @@ const agent = await agentFromAdbDevice(devices[0].udid);
 
 * For all the APIs on the Agent, please refer to [API Reference](./API).
 * For more details about prompting, please refer to [Prompting Tips](./prompting-tips)
+
+## FAQ
+
+### Why can't I control the device even though I've connected it?
+
+Please check if the device is unlocked in the developer options of the system settings.
+
+<p align="center">
+  <img src="/android-usb-debug-en.png" alt="android usb debug" width="400"/>
+</p>
+
+### Why can't I see the device even though I've connected it?
+
+[Connect device](./integrate-with-android#connect-android-device-with-adb) , please ensure that the device is unlocked.

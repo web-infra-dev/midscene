@@ -43,7 +43,11 @@ Running on Darwin 24.3.0 (arm64)
 
 ### 使用 adb 连接 Android 设备
 
-打开安卓设备的 USB 调试，接着使用数据线连接一台安卓设备
+在系统设置的开发者选项中，开启安卓设备的『USB 调试』，如果存在『USB 调试（安全设置）』，也需要开启，接着使用数据线连接一台安卓设备
+
+<p align="center">
+  <img src="/android-usb-debug.png" alt="android usb debug" width="400"/>
+</p>
 
 通过下面命令确认已经连接：
 
@@ -236,3 +240,17 @@ const agent = await agentFromAdbDevice(devices[0].udid);
 
 * 更多 Agent 上的 API 接口请参考 [API 参考](./API)。
 * 更多关于提示词的技巧请参考 [提示词技巧](./prompting-tips)
+
+## FAQ
+
+### 为什么我连接了设备，但是通过 adb 仍然无法控制？
+
+请检查是否在系统设置的开发者选项中，如果存在『USB 调试（安全设置）』，也需要开启。
+
+<p align="center">
+  <img src="/android-usb-debug.png" alt="android usb debug" width="400"/>
+</p>
+
+### 为什么我连接了设备，但是通过 `adb devices -l` 命令看不到设备？
+
+[连接设备](./integrate-with-android#使用-adb-连接-android-设备) 时，请确保设备处于解锁状态。
