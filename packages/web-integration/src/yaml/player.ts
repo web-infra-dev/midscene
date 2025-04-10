@@ -1,7 +1,8 @@
 import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
-import { dirname, join } from 'node:path';
+import { dirname, join, resolve } from 'node:path';
 import { assert } from '@midscene/shared/utils';
 
+import type { ChromeExtensionProxyPage } from '@/chrome-extension';
 import type { PageAgent } from '@/common/agent';
 import type {
   FreeFn,
@@ -14,6 +15,7 @@ import type {
   MidsceneYamlFlowItemAIScroll,
   MidsceneYamlFlowItemAITap,
   MidsceneYamlFlowItemAIWaitFor,
+  MidsceneYamlFlowItemEvaluateJavaScript,
   MidsceneYamlFlowItemSleep,
   MidsceneYamlScript,
   MidsceneYamlScriptEnv,
@@ -41,13 +43,23 @@ export class ScriptPlayer {
     public onTaskStatusChange?: (taskStatus: ScriptPlayerTaskStatus) => void,
   ) {
     this.result = {};
-    this.output = script.target?.output;
+    this.output = script.target?.output || `output-${process.pid}.json`;
     this.taskStatusList = (script.tasks || []).map((task, taskIndex) => ({
       ...task,
       index: taskIndex,
       status: 'init',
       totalSteps: task.flow?.length || 0,
     }));
+  }
+
+  private setResult(key: string | undefined, value: any) {
+    const keyToUse = key || this.unnamedResultIndex++;
+    if (this.result[keyToUse]) {
+      console.warn(`result key ${keyToUse} already exists, will overwrite`);
+    }
+    this.result[keyToUse] = value;
+
+    this.flushResult();
   }
 
   private setPlayerStatus(status: ScriptPlayerStatusValue, error?: Error) {
@@ -88,7 +100,7 @@ export class ScriptPlayer {
 
   private flushResult() {
     if (Object.keys(this.result).length && this.output) {
-      const output = join(process.cwd(), this.output);
+      const output = resolve(process.cwd(), this.output);
       const outputDir = dirname(output);
       if (!existsSync(outputDir)) {
         mkdirSync(outputDir, { recursive: true });
@@ -135,15 +147,7 @@ export class ScriptPlayer {
           'prompt for aiQuery must be a string',
         );
         const queryResult = await agent.aiQuery(prompt);
-        const resultKey = queryTask.name || this.unnamedResultIndex++;
-        if (this.result[resultKey]) {
-          console.warn(
-            `result key ${resultKey} already exists, will overwrite`,
-          );
-        }
-
-        this.result[resultKey] = queryResult;
-        this.flushResult();
+        this.setResult(queryTask.name, queryResult);
       } else if ((flowItem as MidsceneYamlFlowItemAIWaitFor).aiWaitFor) {
         const waitForTask = flowItem as MidsceneYamlFlowItemAIWaitFor;
         const prompt = waitForTask.aiWaitFor;
@@ -191,6 +195,21 @@ export class ScriptPlayer {
       ) {
         const scrollTask = flowItem as MidsceneYamlFlowItemAIScroll;
         await agent.aiScroll(scrollTask, scrollTask.locate, scrollTask);
+      } else if (
+        typeof (flowItem as MidsceneYamlFlowItemEvaluateJavaScript)
+          .javascript !== 'undefined'
+      ) {
+        const evaluateJavaScriptTask =
+          flowItem as MidsceneYamlFlowItemEvaluateJavaScript;
+
+        assert(
+          agent.page.evaluateJavaScript,
+          'evaluateJavaScript is not supported in current agent',
+        );
+        const result = await agent.page.evaluateJavaScript(
+          evaluateJavaScriptTask.javascript,
+        );
+        this.setResult(evaluateJavaScriptTask.name, result);
       } else {
         throw new Error(`unknown flowItem: ${JSON.stringify(flowItem)}`);
       }

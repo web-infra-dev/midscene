@@ -97,6 +97,11 @@ export interface MidsceneYamlFlowItemAIScroll
   locate?: string; // which area to scroll, optional
 }
 
+export interface MidsceneYamlFlowItemEvaluateJavaScript {
+  javascript: string;
+  name?: string;
+}
+
 export interface MidsceneYamlFlowItemSleep {
   sleep: number;
 }
