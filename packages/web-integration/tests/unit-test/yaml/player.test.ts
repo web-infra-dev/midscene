@@ -5,6 +5,7 @@ import { randomUUID } from 'node:crypto';
 import { existsSync } from 'node:fs';
 import { puppeteerAgentForTarget } from '@/puppeteer';
 import { ScriptPlayer, buildYaml, parseYamlScript } from '@/yaml';
+import type { MidsceneYamlScriptWebEnv } from '@midscene/core';
 import { describe, expect, test, vi } from 'vitest';
 
 const serverRoot = join(__dirname, 'server_root');
@@ -12,7 +13,7 @@ const serverRoot = join(__dirname, 'server_root');
 const runYaml = async (yamlString: string, ignoreStatusAssertion = false) => {
   const script = parseYamlScript(yamlString);
   const statusUpdate = vi.fn();
-  const player = new ScriptPlayer(
+  const player = new ScriptPlayer<MidsceneYamlScriptWebEnv>(
     script,
     puppeteerAgentForTarget,
     statusUpdate,

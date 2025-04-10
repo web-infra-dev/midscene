@@ -1,12 +1,12 @@
 import type {
   MidsceneYamlScript,
-  MidsceneYamlScriptEnv,
+  MidsceneYamlScriptWebEnv,
   MidsceneYamlTask,
 } from '@midscene/core';
 import yaml from 'js-yaml';
 
 export function buildYaml(
-  env: MidsceneYamlScriptEnv,
+  env: MidsceneYamlScriptWebEnv,
   tasks: MidsceneYamlTask[],
 ) {
   const result: MidsceneYamlScript = {

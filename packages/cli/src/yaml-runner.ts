@@ -12,9 +12,11 @@ import {
 import { TTYWindowRenderer } from './tty-renderer';
 
 import assert from 'node:assert';
-import type { FreeFn } from '@midscene/core';
+import { agentFromAdbDevice } from '@midscene/android';
+import type { FreeFn, MidsceneYamlScriptWebEnv } from '@midscene/core';
 import { AgentOverChromeBridge } from '@midscene/web/bridge-mode';
 import { puppeteerAgentForTarget } from '@midscene/web/puppeteer';
+
 export const launchServer = async (
   dir: string,
 ): Promise<ReturnType<typeof createServer>> => {
@@ -50,78 +52,108 @@ export async function playYamlFiles(
     };
     const player = new ScriptPlayer(script, async (target) => {
       const freeFn: FreeFn[] = [];
+      const webTarget = script.web || script.target;
 
-      // launch local server if needed
-      let localServer: Awaited<ReturnType<typeof launchServer>> | undefined;
-      let urlToVisit: string | undefined;
-      if (target.serve) {
-        assert(typeof target.url === 'string', 'url is required in serve mode');
-        localServer = await launchServer(target.serve);
-        const serverAddress = localServer.server.address();
-        freeFn.push({
-          name: 'local_server',
-          fn: () => localServer?.server.close(),
-        });
-        if (target.url.startsWith('/')) {
-          urlToVisit = `http://${serverAddress?.address}:${serverAddress?.port}${target.url}`;
-        } else {
-          urlToVisit = `http://${serverAddress?.address}:${serverAddress?.port}/${target.url}`;
+      // handle new web config
+      if (webTarget) {
+        if (script.target) {
+          console.warn(
+            'target is deprecated, please use web instead. See https://midscenejs.com/automate-with-scripts-in-yaml for more information. Sorry for the inconvenience.',
+          );
         }
-        target.url = urlToVisit;
+
+        // launch local server if needed
+        let localServer: Awaited<ReturnType<typeof launchServer>> | undefined;
+        let urlToVisit: string | undefined;
+        if (webTarget.serve) {
+          assert(
+            typeof webTarget.url === 'string',
+            'url is required in serve mode',
+          );
+          localServer = await launchServer(webTarget.serve);
+          const serverAddress = localServer.server.address();
+          freeFn.push({
+            name: 'local_server',
+            fn: () => localServer?.server.close(),
+          });
+          if (webTarget.url.startsWith('/')) {
+            urlToVisit = `http://${serverAddress?.address}:${serverAddress?.port}${webTarget.url}`;
+          } else {
+            urlToVisit = `http://${serverAddress?.address}:${serverAddress?.port}/${webTarget.url}`;
+          }
+          webTarget.url = urlToVisit;
+        }
+
+        if (!webTarget.bridgeMode) {
+          // 使用 puppeteer
+          const { agent, freeFn: newFreeFn } = await puppeteerAgentForTarget(
+            webTarget,
+            preference,
+          );
+          freeFn.push(...newFreeFn);
+
+          return { agent, freeFn };
+        }
+        assert(
+          webTarget.bridgeMode === 'newTabWithUrl' ||
+            webTarget.bridgeMode === 'currentTab',
+          `bridgeMode config value must be either "newTabWithUrl" or "currentTab", but got ${webTarget.bridgeMode}`,
+        );
+
+        if (
+          webTarget.userAgent ||
+          webTarget.viewportWidth ||
+          webTarget.viewportHeight ||
+          webTarget.viewportScale ||
+          webTarget.waitForNetworkIdle ||
+          webTarget.cookie
+        ) {
+          console.warn(
+            'puppeteer options (userAgent, viewportWidth, viewportHeight, viewportScale, waitForNetworkIdle, cookie) are not supported in bridge mode. They will be ignored.',
+          );
+        }
+
+        const agent = new AgentOverChromeBridge({
+          closeNewTabsAfterDisconnect: webTarget.closeNewTabsAfterDisconnect,
+          cacheId: fileName,
+        });
+
+        if (webTarget.bridgeMode === 'newTabWithUrl') {
+          await agent.connectNewTabWithUrl(webTarget.url);
+        } else {
+          if (webTarget.url) {
+            console.warn(
+              'url will be ignored in bridge mode with "currentTab"',
+            );
+          }
+          await agent.connectCurrentTab();
+        }
+        freeFn.push({
+          name: 'destroy_agent_over_chrome_bridge',
+          fn: () => agent.destroy(),
+        });
+        return {
+          agent,
+          freeFn,
+        };
       }
 
-      // puppeteer
-      if (!target.bridgeMode) {
-        const { agent, freeFn: newFreeFn } = await puppeteerAgentForTarget(
-          target,
-          preference,
-        );
-        freeFn.push(...newFreeFn);
+      // handle android
+      if (script.android) {
+        const androidTarget = script.android;
+        const agent = await agentFromAdbDevice(androidTarget.deviceId);
+
+        await agent.launch(androidTarget.launch);
+
+        freeFn.push({
+          name: 'destroy_android_agent',
+          fn: () => agent.destroy(),
+        });
 
         return { agent, freeFn };
       }
 
-      // bridge mode
-      assert(
-        target.bridgeMode === 'newTabWithUrl' ||
-          target.bridgeMode === 'currentTab',
-        `bridgeMode config value must be either "newTabWithUrl" or "currentTab", but got ${target.bridgeMode}`,
-      );
-
-      if (
-        target.userAgent ||
-        target.viewportWidth ||
-        target.viewportHeight ||
-        target.viewportScale ||
-        target.waitForNetworkIdle ||
-        target.cookie
-      ) {
-        console.warn(
-          'puppeteer options (userAgent, viewportWidth, viewportHeight, viewportScale, waitForNetworkIdle, cookie) are not supported in bridge mode. They will be ignored.',
-        );
-      }
-
-      const agent = new AgentOverChromeBridge({
-        closeNewTabsAfterDisconnect: target.closeNewTabsAfterDisconnect,
-        cacheId: fileName,
-      });
-
-      if (target.bridgeMode === 'newTabWithUrl') {
-        await agent.connectNewTabWithUrl(target.url);
-      } else {
-        if (target.url) {
-          console.warn('url will be ignored in bridge mode with "currentTab"');
-        }
-        await agent.connectCurrentTab();
-      }
-      freeFn.push({
-        name: 'destroy_agent_over_chrome_bridge',
-        fn: () => agent.destroy(),
-      });
-      return {
-        agent,
-        freeFn,
-      };
+      throw new Error('No valid target configuration found in the script');
     });
     fileContextList.push({ file, player });
   }

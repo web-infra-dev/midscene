@@ -21,7 +21,7 @@ import type {
   ScriptPlayerTaskStatus,
 } from '@midscene/core';
 
-export class ScriptPlayer {
+export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
   public currentTaskIndex?: number;
   public taskStatusList: ScriptPlayerTaskStatus[] = [];
   public status: ScriptPlayerStatusValue = 'init';
@@ -34,7 +34,7 @@ export class ScriptPlayer {
   public agentStatusTip?: string;
   constructor(
     private script: MidsceneYamlScript,
-    private setupAgent: (target: MidsceneYamlScriptEnv) => Promise<{
+    private setupAgent: (target: T) => Promise<{
       agent: PageAgent;
       freeFn: FreeFn[];
     }>,
@@ -205,8 +205,9 @@ export class ScriptPlayer {
     let agent: PageAgent | null = null;
     let freeFn: FreeFn[] = [];
     try {
-      const { agent: newAgent, freeFn: newFreeFn } =
-        await this.setupAgent(target);
+      const { agent: newAgent, freeFn: newFreeFn } = await this.setupAgent(
+        target as T,
+      );
       agent = newAgent;
       agent.onTaskStartTip = (tip) => {
         if (this.status === 'running') {

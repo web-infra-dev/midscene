@@ -3,7 +3,7 @@ import { getDebug } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
 
 import { PuppeteerAgent } from '@/puppeteer/index';
-import type { MidsceneYamlScriptEnv } from '@midscene/core';
+import type { MidsceneYamlScriptWebEnv } from '@midscene/core';
 import puppeteer from 'puppeteer';
 
 export const defaultUA =
@@ -21,7 +21,7 @@ interface FreeFn {
 const launcherDebug = getDebug('puppeteer:launcher');
 
 export async function launchPuppeteerPage(
-  target: MidsceneYamlScriptEnv,
+  target: MidsceneYamlScriptWebEnv,
   preference?: {
     headed?: boolean;
     keepWindow?: boolean;
@@ -162,7 +162,7 @@ export async function launchPuppeteerPage(
 }
 
 export async function puppeteerAgentForTarget(
-  target: MidsceneYamlScriptEnv,
+  target: MidsceneYamlScriptWebEnv,
   preference?: {
     headed?: boolean;
     keepWindow?: boolean;
