@@ -1,6 +1,6 @@
 import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
-import { assert } from '@midscene/shared/utils';
+import { assert, getMidsceneRunPathOfType } from '@midscene/shared/utils';
 
 import type { ChromeExtensionProxyPage } from '@/chrome-extension';
 import type { PageAgent } from '@/common/agent';
@@ -43,7 +43,16 @@ export class ScriptPlayer {
     public onTaskStatusChange?: (taskStatus: ScriptPlayerTaskStatus) => void,
   ) {
     this.result = {};
-    this.output = script.target?.output || `output-${process.pid}.json`;
+
+    if (script.target?.output) {
+      this.output = resolve(process.cwd(), script.target.output);
+    } else {
+      this.output = join(
+        getMidsceneRunPathOfType('output'),
+        `${process.pid}.json`,
+      );
+    }
+
     this.taskStatusList = (script.tasks || []).map((task, taskIndex) => ({
       ...task,
       index: taskIndex,

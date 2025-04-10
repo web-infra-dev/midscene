@@ -1,3 +1,5 @@
+import fs from 'node:fs';
+import path from 'node:path';
 import { sha256 } from 'js-sha256';
 
 export const ifInBrowser = typeof window !== 'undefined';
@@ -74,3 +76,24 @@ export function getGlobalScope(): GlobalScope {
   }
   return undefined;
 }
+
+export const getMidsceneRunBasePath = (): string => {
+  const basePath = path.join(process.cwd(), 'midscene_run');
+
+  // Create a base directory
+  if (!fs.existsSync(basePath)) {
+    fs.mkdirSync(basePath, { recursive: true });
+  }
+  return basePath;
+};
+
+export const getMidsceneRunPathOfType = (
+  type: 'log' | 'report' | 'output' | 'cache',
+): string => {
+  const basePath = getMidsceneRunBasePath();
+  const runPath = path.join(basePath, type);
+  if (!fs.existsSync(runPath)) {
+    fs.mkdirSync(runPath, { recursive: true });
+  }
+  return runPath;
+};
