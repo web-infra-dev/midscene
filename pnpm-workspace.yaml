@@ -1,6 +1,7 @@
 packages:
   - apps/site
   - apps/chrome-extension
+  - apps/android-playground
   - apps/report
   - packages/cli
   - packages/shared

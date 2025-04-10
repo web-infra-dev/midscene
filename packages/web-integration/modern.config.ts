@@ -39,6 +39,7 @@ export default defineConfig({
       playwright: 'src/playwright/index.ts',
       playground: 'src/playground/index.ts',
       'midscene-playground': 'src/playground/bin.ts',
+      'midscene-server': 'src/playground/server.ts',
       'playwright-report': './src/playwright/reporter/index.ts',
       'chrome-extension': 'src/chrome-extension/index.ts',
       yaml: 'src/yaml/index.ts',

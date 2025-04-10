@@ -1,0 +1,78 @@
+.scrcpy-container {
+  max-width: 1200px;
+  margin: 0 auto;
+
+  .video-section {
+    position: relative;
+
+    .video-container {
+      width: 100%;
+      min-height: 300px;
+      background-color: #f0f0f0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      border-radius: 4px;
+      border: 1px solid #e0e0e0;
+      overflow: hidden;
+
+      canvas {
+        display: block;
+        margin: 0 auto;
+      }
+
+      &:empty::after {
+        content: 'Connect a device to display the screen';
+        color: #999;
+        font-size: 14px;
+      }
+    }
+
+    .screen-info {
+      position: absolute;
+      bottom: 8px;
+      right: 8px;
+      background-color: rgba(0, 0, 0, 0.5);
+      color: white;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 12px;
+    }
+  }
+
+  .controls-section {
+    margin-top: 16px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+
+    .button-group {
+      display: flex;
+      gap: 8px;
+      margin-right: 16px;
+
+      @media (max-width: 768px) {
+        margin-right: 0;
+        margin-bottom: 8px;
+      }
+    }
+
+    @media (max-width: 768px) {
+      flex-direction: column;
+      align-items: flex-start;
+    }
+  }
+}
+
+/* 确保响应式布局 */
+@media (max-width: 576px) {
+  .scrcpy-container {
+    .controls-section {
+      flex-direction: column;
+
+      .ant-space {
+        margin-bottom: 8px;
+      }
+    }
+  }
+}

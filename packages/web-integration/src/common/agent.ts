@@ -286,11 +286,14 @@ export class PageAgent<PageType extends WebPage = WebPage> {
   }
 
   async aiAction(taskPrompt: string) {
-    const { executor } = await (getAIConfigInBoolean(MIDSCENE_USE_VLM_UI_TARS)
+    const { output, executor } = await (getAIConfigInBoolean(
+      MIDSCENE_USE_VLM_UI_TARS,
+    )
       ? this.taskExecutor.actionToGoal(taskPrompt)
       : this.taskExecutor.action(taskPrompt, this.opts.aiActionContext));
 
     this.afterTaskRunning(executor);
+    return output;
   }
 
   async aiQuery(demand: any) {
