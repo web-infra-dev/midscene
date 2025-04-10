@@ -153,7 +153,9 @@ export async function playYamlFiles(
         return { agent, freeFn };
       }
 
-      throw new Error('No valid target configuration found in the script');
+      throw new Error(
+        'No valid target configuration found in the yaml script, should be either "web" or "android"',
+      );
     });
     fileContextList.push({ file, player });
   }
