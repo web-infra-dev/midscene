@@ -384,8 +384,13 @@ export function extractJSONFromCodeBlock(response: string) {
 }
 
 export function preprocessDoubaoBboxJson(input: string) {
-  // replace all /\d+\s+\d+/g with /$1,$2/g
-  return input.replace(/(\d+)\s+(\d+)/g, '$1,$2');
+  if (input.includes('bbox')) {
+    // when its values like 940 445 969 490, replace all /\d+\s+\d+/g with /$1,$2/g
+    while (/\d+\s+\d+/.test(input)) {
+      input = input.replace(/(\d+)\s+(\d+)/g, '$1,$2');
+    }
+  }
+  return input;
 }
 
 export function safeParseJson(input: string) {

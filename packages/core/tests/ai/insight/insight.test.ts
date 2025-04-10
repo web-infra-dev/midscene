@@ -11,14 +11,14 @@ vi.setConfig({
 
 const vlMode = vlLocateMode();
 
-describe.skipIf(!vlMode)('insight locate with search area', () => {
+describe.skipIf(!vlMode)('insight locate with deep think', () => {
   test('insight locate with search area', async () => {
     const { context } = await getContextFromFixture('taobao');
 
     const insight = new Insight(context);
     const { element } = await insight.locate({
       prompt: '购物车 icon',
-      searchArea: '顶部购物车栏目',
+      deepThink: true,
     });
     expect(element).toBeDefined();
 
@@ -55,14 +55,14 @@ vi.setConfig({
   testTimeout: 60 * 1000,
 });
 
-test(
-  'insight locate with search area',
-  async () => {
-    const { context } = await getContextFromFixture('taobao');
+test.skip('insight locate with search area', async () => {
+  const { context } = await getContextFromFixture('image-only');
 
-    await sleep(3000);
-  },
-  {
-    timeout: 60 * 1000,
-  },
-);
+  const insight = new Insight(context);
+  const { element, rect } = await insight.locate({
+    prompt: '-',
+    deepThink: true,
+  });
+  console.log(element, rect);
+  await sleep(3000);
+});
