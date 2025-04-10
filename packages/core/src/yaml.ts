@@ -36,6 +36,7 @@ export interface MidsceneYamlScriptEnv {
 
   // puppeteer only
   userAgent?: string;
+  acceptInsecureCerts?: boolean;
   viewportWidth?: number;
   viewportHeight?: number;
   viewportScale?: number;

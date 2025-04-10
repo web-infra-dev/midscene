@@ -105,6 +105,7 @@ export async function launchPuppeteerPage(
     headless: !headed,
     defaultViewport: viewportConfig,
     args,
+    acceptInsecureCerts: target.acceptInsecureCerts,
   });
   freeFn.push({
     name: 'puppeteer_browser',
