@@ -228,21 +228,32 @@ describe('qwen-vl', () => {
 
 describe('doubao-vision', () => {
   it('preprocessDoubaoBboxJson', () => {
-    const input = '123 456';
+    const input = 'bbox: [123 456]';
     const result = preprocessDoubaoBboxJson(input);
-    expect(result).toBe('123,456');
+    expect(result).toMatchInlineSnapshot(`"bbox: [123,456]"`);
 
-    const input2 = '1 4';
+    const input2 = 'bbox: [1 4]';
     const result2 = preprocessDoubaoBboxJson(input2);
-    expect(result2).toBe('1,4');
+    expect(result2).toMatchInlineSnapshot(`"bbox: [1,4]"`);
 
-    const input3 = '123 456\n789 100';
+    const input3 = 'bbox: [123 456]\nbbox: [789 100]';
     const result3 = preprocessDoubaoBboxJson(input3);
-    expect(result3).toBe('123,456\n789,100');
+    expect(result3).toMatchInlineSnapshot(`
+      "bbox: [123,456]
+      bbox: [789,100]"
+    `);
 
-    const input4 = '[123 456,789 100]';
+    const input4 = 'bbox: [123 456,789 100]';
     const result4 = preprocessDoubaoBboxJson(input4);
-    expect(result4).toBe('[123,456,789,100]');
+    expect(result4).toMatchInlineSnapshot(`"bbox: [123,456,789,100]"`);
+
+    const input5 = 'bbox: [940 445 969 490]';
+    const result5 = preprocessDoubaoBboxJson(input5);
+    expect(result5).toMatchInlineSnapshot(`"bbox: [940,445,969,490]"`);
+
+    const input6 = '123 345 11111';
+    const result6 = preprocessDoubaoBboxJson(input6);
+    expect(result6).toMatchInlineSnapshot(`"123 345 11111"`);
   });
 
   it('adaptDoubaoBbox with 2 points', () => {

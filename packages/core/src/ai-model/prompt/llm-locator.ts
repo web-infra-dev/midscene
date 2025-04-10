@@ -22,6 +22,22 @@ You are an expert in software testing.
 Fields:
 * \`bbox\` is the bounding box of the element that matches the user's description best in the screenshot
 * \`errors\` is an optional array of error messages (if any)
+
+For example, when an element is found:
+\`\`\`json
+{
+  "bbox": [100, 100, 200, 200],
+  "errors": []
+}
+\`\`\`
+
+When no element is found:
+\`\`\`json
+{
+  "bbox": [],
+  "errors": ["I can see ..., but {some element} is not found"]
+}
+\`\`\`
 `;
   }
 

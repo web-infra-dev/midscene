@@ -1,4 +1,4 @@
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { vlLocateMode } from '@/env';
 import { describeUserPage } from '@/index';
@@ -20,19 +20,54 @@ export async function buildContext(targetDir: string): Promise<{
   screenshotBase64: string;
   originalScreenshotBase64: string;
 }> {
+  const originalInputImgP = path.join(
+    targetDir,
+    existsSync(path.join(targetDir, 'input.png')) ? 'input.png' : 'input.jpeg',
+  );
+  const originalScreenshotBase64 = base64Encoded(originalInputImgP);
+
   const resizeOutputImgP = path.join(targetDir, 'output_without_text.png');
-  const originalInputImgP = path.join(targetDir, 'input.png');
   const snapshotJsonPath = path.join(targetDir, 'element-snapshot.json');
   const elementTreeJsonPath = path.join(targetDir, 'element-tree.json');
+
+  if (!existsSync(snapshotJsonPath)) {
+    console.warn(
+      'element-snapshot.json not found, will use input.png to generate context.',
+    );
+    const size = await imageInfoOfBase64(originalScreenshotBase64);
+    const baseContext = {
+      size,
+      content: [],
+      tree: {
+        node: null,
+        children: [],
+      },
+      screenshotBase64: originalScreenshotBase64,
+      originalScreenshotBase64,
+    };
+    const result = {
+      context: {
+        ...baseContext,
+        describer: async () => {
+          return describeUserPage(baseContext);
+        },
+      },
+      snapshotJson: '',
+      screenshotBase64: originalScreenshotBase64,
+      originalScreenshotBase64,
+    };
+    return result;
+  }
+
   const snapshotJson = readFileSync(snapshotJsonPath, { encoding: 'utf-8' });
   const elementSnapshot = JSON.parse(snapshotJson);
   const elementTree = JSON.parse(
     readFileSync(elementTreeJsonPath, { encoding: 'utf-8' }),
   );
-  const originalScreenshotBase64 = base64Encoded(originalInputImgP);
   const screenshotBase64 = vlLocateMode()
     ? originalScreenshotBase64
     : base64Encoded(resizeOutputImgP);
+
   const size = await imageInfoOfBase64(screenshotBase64);
   const baseContext = {
     size,
