@@ -28,10 +28,12 @@ export interface MidsceneYamlTask {
   continueOnError?: boolean;
 }
 
-export interface MidsceneYamlScriptWebEnv {
+export interface MidsceneYamlScriptEnvBase {
   output?: string;
   aiActionContext?: string;
+}
 
+export interface MidsceneYamlScriptWebEnv extends MidsceneYamlScriptEnvBase {
   // for web only
   serve?: string;
   url: string;
@@ -53,15 +55,13 @@ export interface MidsceneYamlScriptWebEnv {
   closeNewTabsAfterDisconnect?: boolean;
 }
 
-export interface MidsceneYamlScriptAndroidEnv {
-  output?: string;
-  aiActionContext?: string;
-
+export interface MidsceneYamlScriptAndroidEnv
+  extends MidsceneYamlScriptEnvBase {
   // The Android device ID to connect to, optional, will use the first device if not specified
   deviceId?: string;
 
-  // The URL or app package to launch, required
-  launch: string;
+  // The URL or app package to launch, optional, will use the current screen if not specified
+  launch?: string;
 }
 
 export type MidsceneYamlScriptEnv =
