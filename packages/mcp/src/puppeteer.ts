@@ -14,10 +14,10 @@ import {
   notifyConsoleLogsUpdated,
   notifyResourceListChanged,
   screenshots,
-} from './resources.js';
+} from './resources.js'; // Import state and notification helpers
 import { deepMerge } from './utils.js';
 
-// Global state
+// Puppeteer State
 let browser: Browser | null = null;
 let page: Page | null = null;
 let previousLaunchOptions: LaunchOptions | null = null;
@@ -27,8 +27,9 @@ interface EnsureBrowserArgs {
   allowDangerous?: boolean;
 }
 
+// Puppeteer Initialization and Management
 export async function ensureBrowser(
-  server: Server,
+  server: Server, // Pass server instance for notifications
   { launchOptions, allowDangerous = false }: EnsureBrowserArgs,
 ): Promise<Page> {
   const DANGEROUS_ARGS = [
@@ -108,10 +109,11 @@ export async function ensureBrowser(
       page = await browser.newPage();
     }
 
+    // Setup console listener
     page.on('console', (msg) => {
       const logEntry = `[${msg.type()}] ${msg.text()}`;
       consoleLogs.push(logEntry);
-      notifyConsoleLogsUpdated(server);
+      notifyConsoleLogsUpdated(server); // Use notification helper
     });
   }
   if (!page) {
@@ -120,6 +122,7 @@ export async function ensureBrowser(
   return page;
 }
 
+// Tool Call Handler
 declare global {
   interface Window {
     mcpHelper?: {
@@ -130,11 +133,11 @@ declare global {
 }
 
 export async function handleToolCall(
-  server: Server,
+  server: Server, // Pass server instance for notifications
   name: string,
   args: any,
 ): Promise<CallToolResult> {
-  const page = await ensureBrowser(server, args);
+  const page = await ensureBrowser(server, args); // Pass server instance
 
   switch (name) {
     case 'puppeteer_navigate':
@@ -175,7 +178,7 @@ export async function handleToolCall(
       }
 
       screenshots.set(args.name, screenshotResult);
-      notifyResourceListChanged(server);
+      notifyResourceListChanged(server); // Use notification helper
 
       return {
         content: [
@@ -380,19 +383,21 @@ export async function handleToolCall(
   }
 }
 
+// Cleanup Logic
 export async function cleanupPuppeteer() {
   if (browser) {
     try {
       await browser.close();
-      browser = null;
-      page = null;
       console.error('Browser closed.');
     } catch (e) {
       console.error('Error closing browser:', e);
     }
+    browser = null; // Ensure state is reset
+    page = null;
   }
 }
 
+// State Check
 export function isBrowserConnected(): boolean {
   return browser?.connected ?? false;
 }

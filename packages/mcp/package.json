@@ -19,7 +19,8 @@
   "scripts": {
     "build": "rslib build",
     "dev": "rslib build --watch",
-    "test": "vitest run"
+    "test": "vitest run",
+    "test:inspect": "npx @modelcontextprotocol/inspector node ./dist/index.cjs"
   },
   "devDependencies": {
     "@rslib/core": "^0.6.2",
