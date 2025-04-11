@@ -91,9 +91,9 @@ If cache is not hit, Midscene will call AI model again and the result in cache f
 
 You should commit the cache file to the repository (usually in the `./midscene_run/cache` directory). And also, check the cache-hit conditions.
 
-### How can I ensure my scripts are consistently stable when using a cache?
+### Can I guarantee that my scripts run consistently when using a cache?
 
-⁠We have noticed many scenarios where the cache may miss when the page changes, such as when the position changes slightly or the DOM structure changes. We believe caching is a feature that accelerates the local debugging process, rather than a tool for maintaining long-term script stability.
+We have noticed many scenarios where the cache may miss when the page changes, such as when the element position changes slightly or the DOM structure changes. We believe caching is just a feature that accelerates the local debugging process, rather than a tool for ensuring long-term script stability.
 
 ### How to manually remove the cache?
 
