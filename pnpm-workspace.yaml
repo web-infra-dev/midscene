@@ -4,6 +4,7 @@ packages:
   - apps/report
   - packages/cli
   - packages/shared
+  - packages/mcp
   - packages/core
   - packages/visualizer
   - packages/web-integration
