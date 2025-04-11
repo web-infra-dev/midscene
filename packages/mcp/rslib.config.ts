@@ -1,6 +1,12 @@
 import { defineConfig } from '@rslib/core';
+import { version } from './package.json';
 
 export default defineConfig({
+  source: {
+    define: {
+      __VERSION__: `'${version}'`,
+    },
+  },
   lib: [
     {
       format: 'esm',
