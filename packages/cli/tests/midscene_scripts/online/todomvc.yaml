@@ -1,5 +1,10 @@
 target:
   url: https://todomvc.com/
+
+# android:
+#   launch: https://todomvc.com/
+#   deviceId: s4ey59ytbitot4yp
+
 tasks:
   - name: scroll to bottom
     flow:

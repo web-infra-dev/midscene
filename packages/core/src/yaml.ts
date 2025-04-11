@@ -16,7 +16,9 @@ export interface scrollParam {
 }
 
 export interface MidsceneYamlScript {
-  target: MidsceneYamlScriptEnv;
+  target?: MidsceneYamlScriptWebEnv;
+  web?: MidsceneYamlScriptWebEnv;
+  android?: MidsceneYamlScriptAndroidEnv;
   tasks: MidsceneYamlTask[];
 }
 
@@ -26,10 +28,12 @@ export interface MidsceneYamlTask {
   continueOnError?: boolean;
 }
 
-export interface MidsceneYamlScriptEnv {
+export interface MidsceneYamlScriptEnvBase {
   output?: string;
   aiActionContext?: string;
+}
 
+export interface MidsceneYamlScriptWebEnv extends MidsceneYamlScriptEnvBase {
   // for web only
   serve?: string;
   url: string;
@@ -51,6 +55,19 @@ export interface MidsceneYamlScriptEnv {
   bridgeMode?: false | 'newTabWithUrl' | 'currentTab';
   closeNewTabsAfterDisconnect?: boolean;
 }
+
+export interface MidsceneYamlScriptAndroidEnv
+  extends MidsceneYamlScriptEnvBase {
+  // The Android device ID to connect to, optional, will use the first device if not specified
+  deviceId?: string;
+
+  // The URL or app package to launch, optional, will use the current screen if not specified
+  launch?: string;
+}
+
+export type MidsceneYamlScriptEnv =
+  | MidsceneYamlScriptWebEnv
+  | MidsceneYamlScriptAndroidEnv;
 
 export interface MidsceneYamlFlowItemAIAction {
   ai?: string; // this is the shortcut for aiAction

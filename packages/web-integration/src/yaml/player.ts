@@ -16,12 +16,14 @@ import type {
   MidsceneYamlFlowItemAIWaitFor,
   MidsceneYamlFlowItemSleep,
   MidsceneYamlScript,
+  MidsceneYamlScriptAndroidEnv,
   MidsceneYamlScriptEnv,
+  MidsceneYamlScriptWebEnv,
   ScriptPlayerStatusValue,
   ScriptPlayerTaskStatus,
 } from '@midscene/core';
 
-export class ScriptPlayer {
+export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
   public currentTaskIndex?: number;
   public taskStatusList: ScriptPlayerTaskStatus[] = [];
   public status: ScriptPlayerStatusValue = 'init';
@@ -34,7 +36,7 @@ export class ScriptPlayer {
   public agentStatusTip?: string;
   constructor(
     private script: MidsceneYamlScript,
-    private setupAgent: (target: MidsceneYamlScriptEnv) => Promise<{
+    private setupAgent: (platform: T) => Promise<{
       agent: PageAgent;
       freeFn: FreeFn[];
     }>,
@@ -199,14 +201,19 @@ export class ScriptPlayer {
   }
 
   async run() {
-    const { target, tasks } = this.script;
+    const { target, web, android, tasks } = this.script;
+    const webEnv = web || target;
+    const androidEnv = android;
+    const platform = webEnv || androidEnv;
+
     this.setPlayerStatus('running');
 
     let agent: PageAgent | null = null;
     let freeFn: FreeFn[] = [];
     try {
-      const { agent: newAgent, freeFn: newFreeFn } =
-        await this.setupAgent(target);
+      const { agent: newAgent, freeFn: newFreeFn } = await this.setupAgent(
+        platform as T,
+      );
       agent = newAgent;
       agent.onTaskStartTip = (tip) => {
         if (this.status === 'running') {

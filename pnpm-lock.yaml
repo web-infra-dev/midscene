@@ -237,6 +237,9 @@ importers:
 
   packages/cli:
     dependencies:
+      '@midscene/android':
+        specifier: workspace:*
+        version: link:../android
       '@midscene/core':
         specifier: workspace:*
         version: link:../core
