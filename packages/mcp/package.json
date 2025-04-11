@@ -23,14 +23,15 @@
     "test:inspect": "npx @modelcontextprotocol/inspector node ./dist/index.cjs"
   },
   "devDependencies": {
+    "@modelcontextprotocol/inspector": "0.8.2",
     "@rslib/core": "^0.6.2",
-    "@types/node": "^22.8.1",
-    "typescript": "^5.8.3",
-    "vitest": "^3.1.1"
+    "@types/node": "^18.0.0",
+    "typescript": "^5.8.2",
+    "vitest": "3.0.5"
   },
   "dependencies": {
+    "@midscene/web": "workspace:*",
     "@modelcontextprotocol/sdk": "1.9.0",
-    "puppeteer": ">=20.0.0",
-    "@midscene/web": "workspace:*"
+    "puppeteer": "24.2.0"
   }
 }
