@@ -87,6 +87,7 @@ export async function launchPuppeteerPage(
   const isWindows = process.platform === 'win32';
   const args = [
     ...(isWindows ? [] : ['--no-sandbox', '--disable-setuid-sandbox']),
+    '--disable-features=HttpsFirstBalancedModeAutoEnable',
     '--disable-features=PasswordLeakDetection',
     '--disable-save-password-bubble',
     `--user-agent="${ua}"`,
