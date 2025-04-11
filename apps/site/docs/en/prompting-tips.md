@@ -30,7 +30,9 @@ By using `agent.aiTap('Login Button')`, you can directly using the locating resu
 
 For more details, please refer to [API](./API).
 
-### Understand the reason why `.ai` is wrong, and optimize the prompt
+### Understand the reason why `.ai` is wrong
+
+**Understanding the report**
 
 By reviewing the report, you can see there are two main steps of each `.ai` call:
 
@@ -59,7 +61,7 @@ You can try:
 
 ✅ Click the "Add" button on the top-right corner, it's on the right side of the "range" dropdown menu
 
-And also, there are some common ways to improve:
+**Other ways to improve**
 
 * Use a larger and stronger AI model
 * Use instant action interface like `agent.aiTap()` instead of `.ai` if you are sure about what you want to do
