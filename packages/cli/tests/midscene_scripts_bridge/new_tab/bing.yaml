@@ -11,3 +11,7 @@ tasks:
   - name: check result
     flow:
       - aiAssert: the result shows the weather info
+
+  - name: evaluateJavaScript
+    flow:
+      - javascript: alert('finished! this is javascript')

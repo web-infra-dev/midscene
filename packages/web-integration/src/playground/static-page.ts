@@ -33,6 +33,10 @@ export default class StaticPage implements AbstractPage {
     }
   }
 
+  async evaluateJavaScript<T = any>(script: string): Promise<T> {
+    return ThrowNotImplemented('evaluateJavaScript');
+  }
+
   async getElementsInfo() {
     return ThrowNotImplemented('getElementsInfo');
   }

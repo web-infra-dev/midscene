@@ -87,4 +87,6 @@ export abstract class AbstractPage {
   }): Promise<void>;
 
   abstract destroy(options?: ChromePageDestroyOptions): Promise<void>;
+
+  abstract evaluateJavaScript?<T = any>(script: string): Promise<T>;
 }
