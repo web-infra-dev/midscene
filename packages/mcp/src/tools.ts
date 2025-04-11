@@ -3,7 +3,7 @@ import type { Tool } from '@modelcontextprotocol/sdk/types.js';
 // Define the tools once to avoid repetition
 export const TOOLS: Tool[] = [
   {
-    name: 'midscene_navigate',
+    name: 'puppeteer_navigate',
     description: 'Navigate to a URL',
     inputSchema: {
       type: 'object',
@@ -24,7 +24,7 @@ export const TOOLS: Tool[] = [
     },
   },
   {
-    name: 'midscene_screenshot',
+    name: 'puppeteer_screenshot',
     description: 'Take a screenshot of the current page or a specific element',
     inputSchema: {
       type: 'object',
@@ -47,7 +47,7 @@ export const TOOLS: Tool[] = [
     },
   },
   {
-    name: 'midscene_click',
+    name: 'puppeteer_click',
     description: 'Click an element on the page',
     inputSchema: {
       type: 'object',
@@ -61,7 +61,7 @@ export const TOOLS: Tool[] = [
     },
   },
   {
-    name: 'midscene_fill',
+    name: 'puppeteer_fill',
     description: 'Fill out an input field',
     inputSchema: {
       type: 'object',
@@ -76,7 +76,7 @@ export const TOOLS: Tool[] = [
     },
   },
   {
-    name: 'midscene_select',
+    name: 'puppeteer_select',
     description: 'Select an element on the page with Select tag',
     inputSchema: {
       type: 'object',
@@ -91,7 +91,7 @@ export const TOOLS: Tool[] = [
     },
   },
   {
-    name: 'midscene_hover',
+    name: 'puppeteer_hover',
     description: 'Hover an element on the page',
     inputSchema: {
       type: 'object',
@@ -105,7 +105,7 @@ export const TOOLS: Tool[] = [
     },
   },
   {
-    name: 'midscene_evaluate',
+    name: 'puppeteer_evaluate',
     description: 'Execute JavaScript in the browser console',
     inputSchema: {
       type: 'object',
