@@ -162,8 +162,6 @@ export class PuppeteerManager {
   }
 
   public async closeBrowser(): Promise<void> {
-    await this.browser?.close();
-    this.browser = null;
-    this.page = null;
+    await this.agent.destroy();
   }
 }
