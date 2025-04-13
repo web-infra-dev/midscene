@@ -2,7 +2,7 @@
 
 body {
   margin: 0;
-  font-family: -apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans",Helvetica,Arial,sans-serif,"Apple Color Emoji","Segoe UI Emoji";
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans", Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji";
   font-size: 14px;
 }
 
@@ -94,9 +94,10 @@ body {
     flex-direction: column;
     justify-content: center;
     box-sizing: border-box;
-    padding: @layout-extension-space-vertical @layout-extension-space-horizontal;
-    background-color: @side-bg;
+    padding: 0 @layout-extension-space-horizontal;
     border-radius: 4px;
+    flex: 1 1 auto;
+    min-height: 0;
 
     &.result-wrapper-compact {
       padding: 0;
@@ -105,18 +106,23 @@ body {
     &.vertical-mode-result {
       height: inherit;
       min-height: 300px;
-    }
-
-    .result-empty-tip {
-      text-align: center;
-      width: 100%;
-      color: @footer-text;
+      display: flex;
+      flex-direction: column;
+      flex: 1;
     }
 
     pre {
       display: block;
       word-wrap: break-word;
-      white-space: pre-wrap;    
+      white-space: pre-wrap;
+    }
+
+    .result-empty-tip {
+      flex: 1;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 200px;
     }
   }
 }
@@ -125,9 +131,78 @@ body {
 .input-wrapper {
   box-sizing: border-box;
 
+  .mode-radio-group {
+    display: flex;
+
+    .ant-radio-button-wrapper {
+      height: 36px;
+      padding: 0 20px;
+      line-height: 34px;
+      border-radius: 20px;
+      margin-right: 10px;
+      box-shadow: none;
+      border: none;
+      background-color: #F7F7F7;
+
+      &:before {
+        display: none;
+      }
+
+      &:focus-within {
+        outline: none;
+      }
+
+      &.ant-radio-button-wrapper-checked {
+        color: white;
+
+        &:hover {
+          color: white;
+        }
+      }
+
+      &:hover {
+        color: white;
+      }
+    }
+  }
+
+  .ant-radio-group {
+    display: flex;
+
+    .ant-radio-button-wrapper {
+      border-radius: 20px;
+      margin-right: 10px;
+      border-left-width: 1px !important;
+      box-shadow: none !important;
+
+      &:before {
+        display: none !important;
+        /* 移除竖线 */
+      }
+
+      &:first-child {
+        border-radius: 20px;
+      }
+
+      &:last-child {
+        border-radius: 20px;
+      }
+
+      &.ant-radio-button-wrapper-checked {
+        background-color: #0cbfa4;
+        border-color: #0cbfa4;
+        color: white;
+      }
+
+      &:hover {
+        color: #0cbfa4;
+      }
+    }
+  }
+
   .main-side-console-input {
     position: relative;
-    margin-top: 4px;
+    margin-top: 10px;
   }
 
   .ant-input {

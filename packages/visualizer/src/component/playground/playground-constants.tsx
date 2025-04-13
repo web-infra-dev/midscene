@@ -1,6 +1,8 @@
 import { Alert } from 'antd';
 import React from 'react';
 
+import './index.less';
+
 // 服务器未就绪错误信息
 export const errorMessageServerNotReady = (
   <span>
@@ -27,7 +29,20 @@ export const serverLaunchTip = (
 
 // 空结果提示
 export const emptyResultTip = (
-  <div className="result-empty-tip">
+  <div
+    className="result-empty-tip"
+    style={{
+      display: 'flex',
+      justifyContent: 'center',
+      alignItems: 'center',
+      width: '100%',
+      height: '100%',
+      border: '1px solid rgba(0, 0, 0, 0.06)',
+      borderRadius: '8px',
+      color: 'rgba(0, 0, 0, 0.45)',
+      fontSize: '14px',
+    }}
+  >
     <span>The result will be shown here</span>
   </div>
 );

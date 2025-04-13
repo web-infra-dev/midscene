@@ -74,5 +74,18 @@ export const PlaygroundResultView: React.FC<PlaygroundResultProps> = ({
     resultDataToShow = <pre>{result?.error}</pre>;
   }
 
-  return <div className={resultWrapperClassName}>{resultDataToShow}</div>;
+  return (
+    <div
+      className={resultWrapperClassName}
+      style={{
+        height: '100%',
+        display: 'flex',
+        flexDirection: 'column',
+        flex: '1 1 auto',
+        overflow: 'hidden',
+      }}
+    >
+      {resultDataToShow}
+    </div>
+  );
 };

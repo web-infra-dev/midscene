@@ -1,5 +1,9 @@
-import { BorderOutlined, SendOutlined } from '@ant-design/icons';
-import { Button, Form, Input, Radio, Tooltip } from 'antd';
+import {
+  ArrowUpOutlined,
+  BorderOutlined,
+  SendOutlined,
+} from '@ant-design/icons';
+import { Button, Form, Input, Radio, Space, Tooltip } from 'antd';
 import { useCallback, useEffect, useState } from 'react';
 import type React from 'react';
 import type { HistoryItem } from '../store/history';
@@ -148,23 +152,46 @@ export const PromptInput: React.FC<PromptInputProps> = ({
 
   return (
     <div className="form-part input-wrapper">
-      <h3>Run</h3>
-      <Form.Item name="type">
-        <Radio.Group buttonStyle="solid" disabled={!runButtonEnabled}>
-          <Radio.Button value="aiAction">
-            {actionNameForType('aiAction')}
-          </Radio.Button>
-          <Radio.Button value="aiQuery">
-            {actionNameForType('aiQuery')}
-          </Radio.Button>
-          <Radio.Button value="aiAssert">
-            {actionNameForType('aiAssert')}
-          </Radio.Button>
-        </Radio.Group>
-      </Form.Item>
+      <Space
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+        }}
+      >
+        <Form.Item name="type" style={{ margin: 0 }}>
+          <Radio.Group
+            buttonStyle="solid"
+            disabled={!runButtonEnabled}
+            className="mode-radio-group"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              height: '100%',
+            }}
+          >
+            <Radio.Button value="aiAction">
+              {actionNameForType('aiAction')}
+            </Radio.Button>
+            <Radio.Button value="aiQuery">
+              {actionNameForType('aiQuery')}
+            </Radio.Button>
+            <Radio.Button value="aiAssert">
+              {actionNameForType('aiAssert')}
+            </Radio.Button>
+          </Radio.Group>
+        </Form.Item>
+        <HistorySelector onSelect={handleSelectHistory} />
+      </Space>
       <div className="main-side-console-input">
-        <Form.Item name="prompt">
+        <Form.Item name="prompt" style={{ margin: 0 }}>
           <TextArea
+            style={{
+              height: 90,
+              borderRadius: 12,
+              border: '1px solid rgba(0, 0, 0, 0.12)',
+              padding: '12px 16px',
+            }}
             disabled={!runButtonEnabled}
             rows={4}
             placeholder={placeholder}
@@ -183,7 +210,6 @@ export const PromptInput: React.FC<PromptInputProps> = ({
             onMouseEnter={handleMouseEnter}
             onMouseLeave={handleMouseLeave}
           >
-            <HistorySelector onSelect={handleSelectHistory} />
             <ConfigSelector serviceMode={serviceMode} />
           </div>
           {renderActionButton()}

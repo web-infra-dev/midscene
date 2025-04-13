@@ -1,15 +1,28 @@
-import { PictureOutlined } from '@ant-design/icons';
+import { InfoCircleOutlined } from '@ant-design/icons';
 import { ScrcpyVideoCodecId } from '@yume-chan/scrcpy';
 import { WebCodecsVideoDecoder } from '@yume-chan/scrcpy-decoder-webcodecs';
 import {
   BitmapVideoFrameRenderer,
   WebGLVideoFrameRenderer,
 } from '@yume-chan/scrcpy-decoder-webcodecs';
-import { Button, Card, Col, Row, Typography, message } from 'antd';
+import {
+  Button,
+  Card,
+  Col,
+  Divider,
+  Row,
+  Spin,
+  Tooltip,
+  Typography,
+  message,
+} from 'antd';
 import type React from 'react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { Socket } from 'socket.io-client';
 import { io } from 'socket.io-client';
+import LinkedIcon from '../icons/linked.svg?react';
+import ScreenshotIcon from '../icons/screenshot.svg?react';
+import UnlinkIcon from '../icons/unlink.svg?react';
 import './index.less';
 
 const { Text } = Typography;
@@ -44,7 +57,7 @@ export const ScrcpyPlayer: React.FC<ScrcpyProps> = ({
     width: number;
     height: number;
   } | null>(null);
-  const [prevAutoConnect, setPrevAutoConnect] = useState(autoConnect);
+  const [deviceId, setDeviceId] = useState<string>('');
 
   const socketRef = useRef<Socket | null>(null);
   const videoContainerRef = useRef<HTMLDivElement>(null);
@@ -53,6 +66,78 @@ export const ScrcpyPlayer: React.FC<ScrcpyProps> = ({
   const reconnectTimerRef = useRef<NodeJS.Timeout | null>(null);
   const metadataTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
+  // 创建一个安全移除节点的工具函数
+  const safeRemoveChildNodes = useCallback((parent: Element | null) => {
+    if (!parent) return;
+
+    try {
+      // 使用更安全的方式清空子节点
+      while (parent.firstChild) {
+        try {
+          parent.removeChild(parent.firstChild);
+        } catch (e) {
+          console.warn('Failed to remove child, skipping:', e);
+          // 如果移除失败，将其设置为 null 以避免再次尝试移除
+          if (parent.firstChild) {
+            parent.innerHTML = '';
+            break;
+          }
+        }
+      }
+    } catch (e) {
+      console.error('Error clearing container:', e);
+      // 最后的手段 - 直接重置 HTML
+      try {
+        parent.innerHTML = '';
+      } catch (innerErr) {
+        console.error('Failed to reset innerHTML:', innerErr);
+      }
+    }
+  }, []);
+
+  // 更新 canvas 尺寸以适应容器
+  const updateCanvasSize = useCallback(() => {
+    if (!videoElementRef.current || !videoContainerRef.current || !screenInfo)
+      return;
+
+    const container = videoContainerRef.current;
+    const canvas = videoElementRef.current;
+    const containerWidth = container.clientWidth;
+    const containerHeight = container.clientHeight;
+    const { width: originalWidth, height: originalHeight } = screenInfo;
+
+    // 计算适合容器的尺寸，保持宽高比
+    const aspectRatio = originalWidth / originalHeight;
+    let targetWidth = containerWidth;
+    let targetHeight = containerWidth / aspectRatio;
+
+    if (targetHeight > containerHeight) {
+      targetHeight = containerHeight;
+      targetWidth = containerHeight * aspectRatio;
+    }
+
+    // 更新 canvas 属性和样式
+    canvas.width = originalWidth;
+    canvas.height = originalHeight;
+    canvas.style.width = `${targetWidth}px`;
+    canvas.style.height = `${targetHeight}px`;
+  }, [screenInfo]);
+
+  // 监听窗口大小变化
+  useEffect(() => {
+    const handleResize = () => {
+      updateCanvasSize();
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, [updateCanvasSize]);
+
+  // 当 screenInfo 更新时调整尺寸
+  useEffect(() => {
+    updateCanvasSize();
+  }, [screenInfo, updateCanvasSize]);
+
   // create and initialize renderer
   const createVideoFrameRenderer = async () => {
     // use WebGL renderer first, if not supported, fallback to Bitmap renderer
@@ -60,7 +145,6 @@ export const ScrcpyPlayer: React.FC<ScrcpyProps> = ({
       const renderer = new WebGLVideoFrameRenderer();
       return {
         renderer,
-        // type assertion, handle the type mismatch problem between HTMLCanvasElement and OffscreenCanvas
         element: renderer.canvas as HTMLCanvasElement,
       };
     }
@@ -85,18 +169,15 @@ export const ScrcpyPlayer: React.FC<ScrcpyProps> = ({
     const { renderer, element } = await createVideoFrameRenderer();
     videoElementRef.current = element;
 
-    // apply video element styles
-    if (videoElementRef.current) {
-      videoElementRef.current.style.maxWidth = '100%';
-      videoElementRef.current.style.border = '1px solid #ddd';
-      videoElementRef.current.style.boxShadow = '0 0 10px rgba(0,0,0,0.1)';
-      videoElementRef.current.style.height = '500px';
-    }
-
     // add video element to page
-    if (videoContainerRef.current && videoElementRef.current) {
-      videoContainerRef.current.innerHTML = '';
-      videoContainerRef.current.appendChild(videoElementRef.current);
+    if (videoContainerRef.current) {
+      const canvasWrapper =
+        videoContainerRef.current.querySelector('.canvas-wrapper');
+      if (canvasWrapper) {
+        // 安全地清空容器
+        safeRemoveChildNodes(canvasWrapper);
+        canvasWrapper.appendChild(videoElementRef.current);
+      }
     }
 
     // create decoder
@@ -235,10 +316,69 @@ export const ScrcpyPlayer: React.FC<ScrcpyProps> = ({
     }
   };
 
+  // disconnect device
+  const disconnectDevice = useCallback(() => {
+    console.log('Disconnecting device and cleaning resources...');
+
+    // 清理解码器资源
+    if (decoderRef.current) {
+      try {
+        decoderRef.current.dispose();
+        decoderRef.current = null;
+      } catch (error) {
+        console.error('Error disposing decoder:', error);
+      }
+    }
+
+    // 清空视频容器
+    if (videoContainerRef.current) {
+      const canvasWrapper =
+        videoContainerRef.current.querySelector('.canvas-wrapper');
+      safeRemoveChildNodes(canvasWrapper);
+    }
+
+    // 断开 socket 连接
+    if (socketRef.current) {
+      console.log('Disconnecting socket...');
+      socketRef.current.disconnect();
+      socketRef.current = null;
+    }
+
+    // 清理定时器
+    if (reconnectTimerRef.current) {
+      clearTimeout(reconnectTimerRef.current);
+      reconnectTimerRef.current = null;
+    }
+
+    if (metadataTimeoutRef.current) {
+      clearTimeout(metadataTimeoutRef.current);
+      metadataTimeoutRef.current = null;
+    }
+
+    // 重置状态
+    setConnected(false);
+    setConnecting(false);
+    setScreenInfo(null);
+
+    console.log('Device disconnected, all resources cleaned');
+  }, [safeRemoveChildNodes]);
+
   // connect device
   const connectDevice = useCallback(async () => {
     try {
+      console.log('开始连接设备...');
+
+      // 始终清理之前的资源，确保干净状态
+      disconnectDevice();
+
+      // 确保状态重置
+      setConnected(false);
       setConnecting(true);
+      setScreenInfo(null);
+
+      // 短暂延迟确保资源已清理
+      await new Promise((resolve) => setTimeout(resolve, 150));
+
       // ensure the component is still mounted and has a valid server URL
       if (!serverUrl) {
         console.error('Cannot connect: missing server URL');
@@ -316,6 +456,11 @@ export const ScrcpyPlayer: React.FC<ScrcpyProps> = ({
             console.log('Socket connected, notify parent component');
             onConnectionStatusChange?.(true);
 
+            // get device id from socket
+            if (socketRef.current?.id) {
+              setDeviceId(socketRef.current.id);
+            }
+
             if (reconnectTimerRef.current) {
               clearTimeout(reconnectTimerRef.current);
               reconnectTimerRef.current = null;
@@ -334,10 +479,29 @@ export const ScrcpyPlayer: React.FC<ScrcpyProps> = ({
             'video-metadata',
             async (metadata: VideoMetadata) => {
               try {
+                console.log('收到视频元数据:', metadata);
                 // clear metadata timeout
                 if (metadataTimeoutRef.current) {
                   clearTimeout(metadataTimeoutRef.current);
                   metadataTimeoutRef.current = null;
+                }
+
+                // 如果已有解码器，先清理
+                if (decoderRef.current) {
+                  try {
+                    console.log('清理现有解码器...');
+                    decoderRef.current.dispose();
+                    decoderRef.current = null;
+                  } catch (error) {
+                    console.error('Error disposing old decoder:', error);
+                  }
+                }
+
+                // 清理视频容器
+                if (videoContainerRef.current) {
+                  const canvasWrapper =
+                    videoContainerRef.current.querySelector('.canvas-wrapper');
+                  safeRemoveChildNodes(canvasWrapper);
                 }
 
                 // ensure the metadata object exists, and set the default codec
@@ -347,11 +511,18 @@ export const ScrcpyPlayer: React.FC<ScrcpyProps> = ({
                   : ScrcpyVideoCodecId.H264;
 
                 // create decoder
+                console.log('创建新解码器...');
                 decoderRef.current = await createDecoder(codecId);
+
+                // 确保解码器创建成功
+                if (!decoderRef.current) {
+                  throw new Error('Failed to create decoder');
+                }
 
                 // listen to size change event
                 decoderRef.current.sizeChanged(
                   ({ width, height }: { width: number; height: number }) => {
+                    console.log(`屏幕尺寸改变: ${width}x${height}`);
                     setScreenInfo({ width, height });
                   },
                 );
@@ -417,7 +588,10 @@ export const ScrcpyPlayer: React.FC<ScrcpyProps> = ({
             }
 
             if (videoContainerRef.current) {
-              videoContainerRef.current.innerHTML = '';
+              // 安全地清空容器
+              safeRemoveChildNodes(
+                videoContainerRef.current.querySelector('.canvas-wrapper'),
+              );
             }
 
             if (autoReconnect && !reconnectTimerRef.current) {
@@ -470,48 +644,27 @@ export const ScrcpyPlayer: React.FC<ScrcpyProps> = ({
     autoReconnect,
     reconnectInterval,
     onConnectionStatusChange,
+    disconnectDevice,
   ]);
-
-  // disconnect device
-  const disconnectDevice = () => {
-    if (socketRef.current) {
-      socketRef.current.disconnect();
-    }
-
-    if (reconnectTimerRef.current) {
-      clearTimeout(reconnectTimerRef.current);
-      reconnectTimerRef.current = null;
-    }
-
-    if (metadataTimeoutRef.current) {
-      clearTimeout(metadataTimeoutRef.current);
-      metadataTimeoutRef.current = null;
-    }
-
-    setConnected(false);
-    setConnecting(false);
-  };
 
   // detect autoConnect change, connect device when autoConnect is true
   useEffect(() => {
-    // detect autoConnect change from false to true
-    if (autoConnect && !prevAutoConnect && !connected && !connecting) {
-      console.log(
-        'detected autoConnect change from false to true, trigger connection',
-      );
+    console.log(
+      `autoConnect effect: autoConnect=${autoConnect}, connected=${connected}, connecting=${connecting}`,
+    );
 
-      // add a short delay to ensure the component is fully ready
+    if (autoConnect && !connected && !connecting) {
+      // 只有当未连接且不在连接中时才触发连接
+      console.log('autoConnect is true and not connected, trigger connection');
+
       const timer = setTimeout(() => {
-        console.log('start auto connection (triggered by state change)');
+        console.log('start auto connection');
         connectDevice();
       }, 300);
 
       return () => clearTimeout(timer);
     }
-
-    // update the previous autoConnect value
-    setPrevAutoConnect(autoConnect);
-  }, [autoConnect, prevAutoConnect, connected, connecting, connectDevice]);
+  }, [autoConnect, connected, connecting, connectDevice]);
 
   // resource cleanup useEffect
   useEffect(() => {
@@ -523,8 +676,26 @@ export const ScrcpyPlayer: React.FC<ScrcpyProps> = ({
 
       // dispose decoder
       if (decoderRef.current) {
-        decoderRef.current.dispose();
-        decoderRef.current = null;
+        try {
+          decoderRef.current.dispose();
+          decoderRef.current = null;
+        } catch (error) {
+          console.error('Error disposing decoder during unmount:', error);
+        }
+      }
+
+      // 清理视频容器
+      if (videoContainerRef.current) {
+        try {
+          const canvasWrapper =
+            videoContainerRef.current.querySelector('.canvas-wrapper');
+          if (canvasWrapper) {
+            // 安全地清空内容而非移除节点
+            canvasWrapper.innerHTML = '';
+          }
+        } catch (error) {
+          console.error('Error clearing canvas wrapper during unmount:', error);
+        }
       }
 
       // disconnect socket connection
@@ -550,55 +721,87 @@ export const ScrcpyPlayer: React.FC<ScrcpyProps> = ({
 
   return (
     <div className="scrcpy-container">
-      <Card title="Android device screen">
+      <Card>
+        {connected && (
+          <div className="header-bar">
+            <div className="header-left">
+              <Text>Screen Projection</Text>
+              <Tooltip
+                placement="bottom"
+                title={`Device ID: ${deviceId || 'Unknown'}`}
+              >
+                <InfoCircleOutlined />
+              </Tooltip>
+            </div>
+            <div className="screen-info">
+              <Text type="secondary">
+                size : {screenInfo?.width}×{screenInfo?.height}
+              </Text>
+            </div>
+            <div className="header-right">
+              <Tooltip placement="bottom" title="ScreenShot">
+                <Button icon={<ScreenshotIcon />} onClick={takeScreenshot} />
+              </Tooltip>
+              <Divider
+                type="vertical"
+                style={{
+                  margin: '0 16px',
+                }}
+              />
+              <Tooltip placement="bottom" title="Connect Device">
+                <Button
+                  disabled={connected}
+                  icon={<LinkedIcon />}
+                  onClick={connectDevice}
+                />
+              </Tooltip>
+              {connected && (
+                <>
+                  <Divider
+                    type="vertical"
+                    style={{
+                      margin: '0 16px',
+                    }}
+                  />
+                  <Tooltip title="Disconnect Device">
+                    <Button icon={<UnlinkIcon />} onClick={disconnectDevice} />
+                  </Tooltip>
+                </>
+              )}
+            </div>
+          </div>
+        )}
         <Row gutter={[16, 16]}>
           <Col span={24}>
             <div className="video-section">
-              <div ref={videoContainerRef} className="video-container" />
-              {screenInfo && (
-                <div className="screen-info">
-                  <Text type="secondary">
-                    screen size: {screenInfo.width} x {screenInfo.height}
-                  </Text>
-                </div>
-              )}
-            </div>
-          </Col>
-
-          <Col span={24}>
-            <div className="controls-section">
-              <Button
-                type="primary"
-                loading={connecting}
-                disabled={connected}
-                onClick={() => {
-                  connectDevice();
-                }}
-              >
-                {connected
-                  ? 'Connected'
-                  : connecting
-                    ? 'Connecting...'
-                    : 'Connect device'}
-              </Button>
-
-              <Button
-                danger
-                disabled={!connected}
-                onClick={disconnectDevice}
-                style={{ marginLeft: 8 }}
-              >
-                Disconnect
-              </Button>
-
-              <Button
-                icon={<PictureOutlined />}
-                disabled={!connected}
-                onClick={takeScreenshot}
-                style={{ marginLeft: 8 }}
-              >
-                Screenshot
-              </Button>
+              <div ref={videoContainerRef} className="video-container">
+                <div className="canvas-wrapper" />
+                {!connected && (
+                  <div className="empty-state">
+                    <div className="empty-state-icon">📱</div>
+                    <div className="empty-state-text">
+                      {connecting
+                        ? 'Connecting to device...'
+                        : 'No device connected'}
+                    </div>
+                    {!connecting && (
+                      <Button
+                        type="primary"
+                        onClick={() => {
+                          connectDevice();
+                        }}
+                      >
+                        Connect now
+                      </Button>
+                    )}
+                    {connecting && (
+                      <div className="loading-spinner">
+                        <Spin size="large" />
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
             </div>
           </Col>
         </Row>

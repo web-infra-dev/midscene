@@ -3,6 +3,7 @@ import { defineConfig } from '@rsbuild/core';
 import { pluginLess } from '@rsbuild/plugin-less';
 import { pluginNodePolyfill } from '@rsbuild/plugin-node-polyfill';
 import { pluginReact } from '@rsbuild/plugin-react';
+import { pluginSvgr } from '@rsbuild/plugin-svgr';
 import { version } from '../../packages/visualizer/package.json';
 
 export default defineConfig({
@@ -75,5 +76,5 @@ export default defineConfig({
       'react-dom': path.resolve(__dirname, 'node_modules/react-dom'),
     },
   },
-  plugins: [pluginReact(), pluginNodePolyfill(), pluginLess()],
+  plugins: [pluginReact(), pluginNodePolyfill(), pluginLess(), pluginSvgr()],
 });

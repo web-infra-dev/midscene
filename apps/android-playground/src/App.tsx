@@ -1,8 +1,9 @@
-import './App.css';
+import './App.less';
 import { overrideAIConfig } from '@midscene/core/env';
 import { SCRCPY_SERVER_PORT } from '@midscene/shared/constants';
 import {
   EnvConfig,
+  Logo,
   type PlaygroundResult,
   PlaygroundResultView,
   PromptInput,
@@ -15,13 +16,15 @@ import {
   useEnvConfig,
   useServerValid,
 } from '@midscene/visualizer';
-import { Col, ConfigProvider, Form, Layout, Row, Space, message } from 'antd';
+import { Col, ConfigProvider, Form, Layout, Row, message } from 'antd';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { type Socket, io } from 'socket.io-client';
 import { v4 as uuidv4 } from 'uuid';
-import DeviceList from './adb-devices';
+import AdbDevice from './adb-device';
 import ScrcpyPlayer from './scrcpy-player';
 
 import '@midscene/visualizer/index.css';
+import './adb-device/index.less';
 
 const { Content } = Layout;
 const SERVER_URL = `http://localhost:${SCRCPY_SERVER_PORT}`;
@@ -31,10 +34,13 @@ export default function App() {
   const [loading, setLoading] = useState(false);
   const [selectedDeviceId, setSelectedDeviceId] = useState<string | null>(null);
   const [connectToDevice, setConnectToDevice] = useState(false);
+  const [devices, setDevices] = useState<
+    { id: string; name: string; status: string }[]
+  >([]);
+  const [loadingDevices, setLoadingDevices] = useState(true);
   const lastSelectedDeviceRef = useRef<string | null>(null);
   const [messageApi, contextHolder] = message.useMessage();
   const [connectionReady, setConnectionReady] = useState(false);
-  const isFirstConnectionRef = useRef(true);
   const [result, setResult] = useState<PlaygroundResult | null>({
     result: null,
     dump: null,
@@ -50,36 +56,9 @@ export default function App() {
   const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const configAlreadySet = Object.keys(config || {}).length >= 1;
   const serverValid = useServerValid(true);
-  // handle device selection
-  const handleDeviceSelect = useCallback(
-    (deviceId: string) => {
-      // if the deviceId is the same as the last selected device and has been selected, skip
-      if (deviceId === lastSelectedDeviceRef.current) {
-        console.log('device already selected, skip', deviceId);
-        return;
-      }
 
-      setSelectedDeviceId(deviceId);
-      lastSelectedDeviceRef.current = deviceId;
-
-      // check connection ready status and consider whether it is the first connection
-      if (connectionReady || isFirstConnectionRef.current) {
-        console.log(
-          'connection ready or first connection, try to connect device',
-        );
-        isFirstConnectionRef.current = false;
-
-        setConnectToDevice(true);
-        messageApi.success(`device selected: ${deviceId}`);
-      } else {
-        console.log(
-          'connection not ready, wait for connection to device:',
-          deviceId,
-        );
-      }
-    },
-    [messageApi, connectionReady],
-  );
+  // Socket 连接及设备管理
+  const socketRef = useRef<Socket | null>(null);
 
   // clear the polling interval
   const clearPollingInterval = useCallback(() => {
@@ -88,6 +67,151 @@ export default function App() {
       pollIntervalRef.current = null;
     }
   }, []);
+
+  // 连接到设备服务器
+  useEffect(() => {
+    const socket = io(SERVER_URL, {
+      withCredentials: true,
+      reconnectionAttempts: 5,
+      reconnectionDelay: 1000,
+      timeout: 5000,
+    });
+
+    socket.on('connect', () => {
+      console.log('connected to device server');
+      socket.emit('get-devices');
+    });
+
+    socket.on('disconnect', (reason: string) => {
+      console.log('disconnected from device server:', reason);
+      setLoadingDevices(true);
+    });
+
+    socket.on(
+      'devices-list',
+      (data: {
+        devices: { id: string; name: string; status: string }[];
+        currentDeviceId: string | null;
+      }) => {
+        setDevices(data.devices);
+        if (data.currentDeviceId) {
+          setSelectedDeviceId(data.currentDeviceId);
+
+          if (data.devices.length === 1) {
+            handleDeviceSelect(data.devices[0].id);
+          }
+        }
+        setLoadingDevices(false);
+      },
+    );
+
+    socket.on('global-device-switched', (data: { deviceId: string }) => {
+      setSelectedDeviceId(data.deviceId);
+      console.log(`device switched to: ${data.deviceId}`);
+    });
+
+    socket.on('connect_error', (error: Error) => {
+      console.error('Socket.IO connection error:', error);
+      messageApi.error('等待连接设备服务器，请稍后再试');
+      setLoadingDevices(false);
+    });
+
+    socket.on('error', (error: Error) => {
+      console.error('Socket.IO error:', error);
+      messageApi.error(
+        `与服务器通信时发生错误: ${error.message || '未知错误'}`,
+      );
+    });
+
+    socketRef.current = socket;
+
+    // 定期请求设备列表
+    const timer = setTimeout(() => {
+      if (socket.connected) {
+        socket.emit('get-devices');
+      }
+    }, 2000);
+
+    return () => {
+      clearTimeout(timer);
+      console.log('disconnect Socket.IO connection');
+      socket.disconnect();
+    };
+  }, [messageApi]);
+
+  // 切换设备
+  const handleDeviceSelect = useCallback(
+    (deviceId: string) => {
+      if (deviceId === lastSelectedDeviceRef.current) {
+        return;
+      }
+
+      if (!socketRef.current) {
+        messageApi.warning(
+          'Waiting for device server connection, please try again later',
+        );
+        return;
+      }
+
+      if (!socketRef.current.connected) {
+        messageApi.warning(
+          'Waiting for device server connection, please try again later',
+        );
+        return;
+      }
+
+      console.log(`开始切换设备到: ${deviceId}`);
+
+      // 先断开当前连接，并重置相关状态
+      setConnectToDevice(false);
+      setConnectionReady(false);
+
+      // 清理当前会话状态
+      setResult(null);
+      setReplayScriptsInfo(null);
+      setLoading(false);
+      clearPollingInterval();
+
+      // 使用短暂延迟确保资源已清理
+      setTimeout(() => {
+        // 然后设置新的设备ID
+        setSelectedDeviceId(deviceId);
+        lastSelectedDeviceRef.current = deviceId;
+
+        setLoadingDevices(true);
+        if (socketRef.current) {
+          socketRef.current.emit('switch-device', deviceId);
+
+          const timeoutId = setTimeout(() => {
+            setLoadingDevices(false);
+            messageApi.error('Device switch timeout, please try again');
+          }, 10000);
+
+          socketRef.current.once('device-switched', () => {
+            clearTimeout(timeoutId);
+            setLoadingDevices(false);
+
+            // 设备切换成功后，触发新设备连接
+            console.log(`设备切换成功，准备连接: ${deviceId}`);
+            setTimeout(() => {
+              setConnectToDevice(true);
+              messageApi.success(`Device selected: ${deviceId}`);
+            }, 500); // 增加延迟，确保有足够时间完成切换
+          });
+
+          socketRef.current.once('error', (error: Error) => {
+            clearTimeout(timeoutId);
+            setLoadingDevices(false);
+            messageApi.error(`Device switch failed: ${error.message}`);
+          });
+        } else {
+          setLoadingDevices(false);
+          messageApi.error('Socket connection lost, please refresh the page');
+        }
+      }, 500); // 增加延迟，确保先断开连接
+    },
+    [messageApi, clearPollingInterval],
+  );
 
   // start polling task progress
   const startPollingProgress = useCallback(
@@ -137,12 +261,16 @@ export default function App() {
     if (connectToDevice) {
       // reset the connection flag, so that it can be triggered again
       const timer = setTimeout(() => {
-        setConnectToDevice(false);
-      }, 500);
+        // 只有当设备未切换时才重置 connectToDevice
+        // 这样确保设备切换过程中不会重置连接状态
+        if (selectedDeviceId === lastSelectedDeviceRef.current) {
+          setConnectToDevice(false);
+        }
+      }, 800); // 增加延迟，确保有足够时间连接
 
       return () => clearTimeout(timer);
     }
-  }, [connectToDevice]);
+  }, [connectToDevice, selectedDeviceId]);
 
   // Override AI configuration
   useEffect(() => {
@@ -153,14 +281,12 @@ export default function App() {
   // handle run button click
   const handleRun = useCallback(async () => {
     if (!selectedDeviceId) {
-      messageApi.warning('please select a device first');
+      messageApi.warning('请先选择一个设备');
       return;
     }
 
     if (!connectionReady) {
-      messageApi.warning(
-        'waiting for connection to be established, please try again later',
-      );
+      messageApi.warning('等待连接建立，请稍后再试');
       return;
     }
 
@@ -205,13 +331,13 @@ export default function App() {
       } else {
         setReplayScriptsInfo(null);
       }
-      messageApi.success('command executed');
+      messageApi.success('命令已执行');
     } catch (error) {
       clearPollingInterval();
       setLoading(false);
       console.error('execute command error:', error);
       messageApi.error(
-        `execute command failed: ${error instanceof Error ? error.message : 'unknown error'}`,
+        `执行命令失败: ${error instanceof Error ? error.message : '未知错误'}`,
       );
     }
   }, [
@@ -234,76 +360,66 @@ export default function App() {
     clearPollingInterval();
     setLoading(false);
     resetResult();
-    messageApi.info('operation stopped');
+    messageApi.info('操作已停止');
   }, [messageApi, clearPollingInterval]);
 
   return (
     <ConfigProvider theme={globalThemeConfig()}>
       {contextHolder}
-      <Layout className="app-container">
-        <Content style={{ padding: '16px', height: '100vh' }}>
+      <Layout className="app-container playground-container vertical-mode">
+        <Content className="app-content">
           <div className="app-grid-layout">
-            <Row gutter={[16, 16]} style={{ height: '100%' }}>
+            <Row className="app-grid-layout">
               {/* left panel: PromptInput */}
-              <Col xs={24} sm={24} md={8} lg={8} xl={8} className="app-panel">
-                <div className="panel-content">
+              <Col className="app-panel left-panel">
+                <div className="panel-content left-panel-content">
+                  <Logo />
                   <h2>Command input</h2>
-                  <Form form={form}>
-                    <Space direction="vertical" size="middle">
-                      <EnvConfig />
-                      <PromptInput
-                        runButtonEnabled={
-                          !!selectedDeviceId && configAlreadySet
-                        }
-                        form={form}
-                        serviceMode="Server"
-                        selectedType="aiAction"
-                        dryMode={false}
-                        stoppable={loading}
-                        loading={loading}
-                        onRun={handleRun}
-                        onStop={handleStop}
-                      />
-                      <PlaygroundResultView
-                        result={result}
-                        loading={loading}
-                        serverValid={serverValid}
-                        serviceMode={'Server'}
-                        replayScriptsInfo={replayScriptsInfo}
-                        replayCounter={replayCounter}
-                        loadingProgressText={loadingProgressText}
-                        verticalMode={true}
-                      />
-                    </Space>
+                  <Form form={form} className="command-form">
+                    <div className="form-content">
+                      <div>
+                        <EnvConfig />
+                        <PromptInput
+                          runButtonEnabled={
+                            !!selectedDeviceId && configAlreadySet
+                          }
+                          form={form}
+                          serviceMode="Server"
+                          selectedType="aiAction"
+                          dryMode={false}
+                          stoppable={loading}
+                          loading={loading}
+                          onRun={handleRun}
+                          onStop={handleStop}
+                        />
+                      </div>
+                      <div className="result-container">
+                        <PlaygroundResultView
+                          result={result}
+                          loading={loading}
+                          serverValid={serverValid}
+                          serviceMode={'Server'}
+                          replayScriptsInfo={replayScriptsInfo}
+                          replayCounter={replayCounter}
+                          loadingProgressText={loadingProgressText}
+                          verticalMode={false}
+                        />
+                      </div>
+                    </div>
                   </Form>
                 </div>
               </Col>
 
-              {/* middle panel: DeviceList */}
-              <Col xs={24} sm={24} md={6} lg={6} xl={6} className="app-panel">
-                <div className="panel-content">
-                  <h2>Device list</h2>
-                  <DeviceList
-                    serverUrl={SERVER_URL}
-                    onDeviceSelect={handleDeviceSelect}
-                  />
-                </div>
-              </Col>
-
               {/* right panel: ScrcpyPlayer */}
-              <Col
-                xs={24}
-                sm={24}
-                md={10}
-                lg={10}
-                xl={10}
-                className="app-panel"
-              >
-                <div className="panel-content">
-                  <h2>
-                    Screen Projection
-                    {selectedDeviceId ? `(${selectedDeviceId})` : ''}
-                  </h2>
+              <Col className="app-panel right-panel">
+                <div className="panel-content right-panel-content">
+                  <AdbDevice
+                    devices={devices}
+                    loadingDevices={loadingDevices}
+                    selectedDeviceId={selectedDeviceId}
+                    onDeviceSelect={handleDeviceSelect}
+                    socketRef={socketRef}
+                  />
                   <ScrcpyPlayer
                     serverUrl={SERVER_URL}
                     autoConnect={connectToDevice}

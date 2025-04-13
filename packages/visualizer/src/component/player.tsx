@@ -197,8 +197,11 @@ export function Player(props?: {
     }
     sprite.label = mainImgLabel;
     sprite.zIndex = LAYER_ORDER_IMG;
+
+    // 使用原始尺寸，保持图像质量
     sprite.width = imageWidth;
     sprite.height = imageHeight;
+
     windowContentContainer.addChild(sprite);
   };
 
@@ -531,15 +534,100 @@ export function Player(props?: {
     });
   };
 
+  // 定义更新Canvas尺寸的函数
+  const updateCanvasSize = (): void => {
+    if (!divContainerRef.current || !app) return;
+
+    const container = divContainerRef.current.parentElement;
+    if (!container) return;
+
+    // 获取容器尺寸
+    const parentContainerHeight = container.clientHeight;
+    const containerWidth = divContainerRef.current.clientWidth;
+
+    if (containerWidth <= 0 || parentContainerHeight <= 0) return;
+
+    // 计算 timeline 和 tools 的高度
+    const timelineHeight = 4; // player-timeline 高度
+    const toolsHeight = 40; // player-tools 高度
+    const toolsMargin = 15 * 2; // player-tools 上下 margin
+    const paddingHeight = 12; // 容器顶部 padding
+
+    // 为 timeline 和 tools 预留空间
+    const reservedHeight =
+      timelineHeight + toolsHeight + toolsMargin + paddingHeight;
+
+    // 计算 canvas 容器可用高度
+    const availableContainerHeight = Math.max(
+      200,
+      parentContainerHeight - reservedHeight,
+    );
+
+    // 计算适合容器的尺寸，保持宽高比
+    const aspectRatio = imageWidth / imageHeight;
+    let targetWidth = containerWidth;
+    let targetHeight = containerWidth / aspectRatio;
+
+    // 如果计算出的高度超过容器可用高度，则基于高度计算宽度
+    if (targetHeight > availableContainerHeight) {
+      targetHeight = availableContainerHeight;
+      targetWidth = targetHeight * aspectRatio;
+    }
+
+    // 确保尺寸不超过最大值
+    const maxSize = 600;
+    if (targetWidth > maxSize) {
+      targetWidth = maxSize;
+      targetHeight = maxSize / aspectRatio;
+    }
+
+    if (targetHeight > maxSize) {
+      targetHeight = maxSize;
+      targetWidth = maxSize * aspectRatio;
+    }
+
+    // 确保尺寸为整数
+    targetWidth = Math.floor(targetWidth);
+    targetHeight = Math.floor(targetHeight);
+
+    // 更新 canvas 样式而不是实际尺寸，PIXI 会自动缩放内容
+    if (app.canvas) {
+      app.canvas.style.width = `${targetWidth}px`;
+      app.canvas.style.height = `${targetHeight}px`;
+    }
+
+    // 设置 canvas 容器高度以确保布局正确
+    // 确保高度不超过可用高度，留出足够空间给 timeline 和 tools
+    const safeCanvasHeight = Math.min(targetHeight, availableContainerHeight);
+    divContainerRef.current.style.height = `${safeCanvasHeight}px`;
+
+    // 确保整体容器高度足够容纳所有元素
+    const playerContainer =
+      divContainerRef.current.closest('.player-container');
+    if (playerContainer && playerContainer instanceof HTMLElement) {
+      const totalHeight = safeCanvasHeight + reservedHeight;
+      playerContainer.style.minHeight = `${totalHeight}px`;
+    }
+  };
+
   const init = async (): Promise<void> => {
     if (!divContainerRef.current || !scripts) return;
 
+    // 使用原始图像尺寸进行初始化
+    // 这样可以保持图像的原始质量，然后通过 CSS 对画布进行缩放
     await app.init({
-      width: canvasWidth,
-      height: canvasHeight,
+      width: imageWidth,
+      height: imageHeight,
       background: 0xf4f4f4,
+      autoDensity: true,
+      antialias: true,
     });
-    divContainerRef.current.appendChild(app.canvas); // Ensure app.view is appended
+
+    if (!divContainerRef.current) return;
+    divContainerRef.current.appendChild(app.canvas);
+
+    // 调用函数来设置初始Canvas尺寸
+    updateCanvasSize();
 
     windowContentContainer.x = 0;
     windowContentContainer.y = 0;
@@ -750,46 +838,63 @@ export function Player(props?: {
     </div>
   ) : null;
 
+  // 监听窗口大小变化
+  useEffect(() => {
+    // 添加窗口大小变化监听
+    window.addEventListener('resize', updateCanvasSize);
+
+    // 初始调用一次以设置初始尺寸
+    setTimeout(updateCanvasSize, 100);
+    // 再次调用确保尺寸正确（有时第一次调用可能在DOM完全准备好之前）
+    setTimeout(updateCanvasSize, 500);
+
+    return () => window.removeEventListener('resize', updateCanvasSize);
+  }, [app, imageWidth, imageHeight]);
+
   return (
     <div className="player-container">
       <div className="canvas-container" ref={divContainerRef} />
-      <div className="player-timeline">
-        <div
-          className="player-timeline-progress"
-          style={{
-            width: `${progressString}%`,
-            transition: transitionStyle,
-          }}
-        />
-      </div>
-      <div className="player-tools">
-        <div className="player-control">
+      <div className="player-timeline-wrapper">
+        <div className="player-timeline">
           <div
-            className="status-icon"
-            onMouseEnter={() => setMouseOverStatusIcon(true)}
-            onMouseLeave={() => setMouseOverStatusIcon(false)}
-            style={statusStyle}
-            onClick={statusOnClick}
-          >
-            <ConfigProvider
-              theme={{
-                components: {
-                  Spin: {
-                    dotSize: 24,
-                    colorPrimary: 'rgb(6,177,171)',
-                  },
-                },
-              }}
-            >
-              {statusIconElement}
-            </ConfigProvider>
-          </div>
-          <div className="status-text">
-            <div className="title">{titleText}</div>
-            <div className="subtitle">{subTitleText}</div>
-          </div>
+            className="player-timeline-progress"
+            style={{
+              width: `${progressString}%`,
+              transition: transitionStyle,
+            }}
+          />
         </div>
-        {playerTopToolbar}
+      </div>
+      <div className="player-tools-wrapper">
+        <div className="player-tools">
+          <div className="player-control">
+            <div
+              className="status-icon"
+              onMouseEnter={() => setMouseOverStatusIcon(true)}
+              onMouseLeave={() => setMouseOverStatusIcon(false)}
+              style={statusStyle}
+              onClick={statusOnClick}
+            >
+              <ConfigProvider
+                theme={{
+                  components: {
+                    Spin: {
+                      dotSize: 24,
+                      colorPrimary: 'rgb(6,177,171)',
+                    },
+                  },
+                }}
+              >
+                {statusIconElement}
+              </ConfigProvider>
+            </div>
+            <div className="status-text">
+              <div className="title">{titleText}</div>
+              <div className="subtitle">{subTitleText}</div>
+            </div>
+          </div>
+          {playerTopToolbar}
+        </div>
       </div>
     </div>
   );

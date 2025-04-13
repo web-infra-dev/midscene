@@ -135,7 +135,7 @@ body {
   top: 0;
   left: 0;
   height: 4px;
-  background: #06b1ab;
+  background: #00b4ac;
 }
 .player-container .player-tools {
   margin-top: 15px;
@@ -156,7 +156,6 @@ body {
   flex-grow: 1;
   display: flex;
   flex-direction: row;
-  align-items: left;
 }
 .player-container .player-tools .status-icon {
   transition: 0.2s;
