@@ -6,6 +6,9 @@ export default defineConfig({
     define: {
       __VERSION__: `'${version}'`,
     },
+    entry: {
+      index: './src/index.ts',
+    },
   },
   lib: [
     {

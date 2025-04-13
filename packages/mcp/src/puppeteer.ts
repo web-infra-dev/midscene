@@ -1,3 +1,6 @@
+import fs from 'node:fs';
+import path from 'node:path';
+import { AgentOverChromeBridge } from '@midscene/web/bridge-mode';
 import type { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import type {
   CallToolResult,
@@ -34,96 +37,20 @@ export class PuppeteerManager {
   private screenshots = new Map<string, string>();
   private previousLaunchOptions: any = null;
   private server: Server<any, any>; // Add server instance
-
+  private agent: AgentOverChromeBridge;
   constructor(server: Server<any, any>) {
     this.server = server;
-  }
-
-  public async ensureBrowser({
-    launchOptions,
-    allowDangerous,
-  }: any): Promise<Page> {
-    let envConfig = {};
-    try {
-      envConfig = JSON.parse(process.env.PUPPETEER_LAUNCH_OPTIONS || '{}');
-    } catch (error: any) {
-      console.warn(
-        'Failed to parse PUPPETEER_LAUNCH_OPTIONS:',
-        error?.message || error,
-      );
-    }
-
-    const mergedConfig = deepMerge(envConfig, launchOptions || {});
-
-    if (mergedConfig?.args) {
-      const dangerousArgs = mergedConfig.args?.filter?.((arg: string) =>
-        DANGEROUS_ARGS.some((dangerousArg: string) =>
-          arg.startsWith(dangerousArg),
-        ),
-      );
-      if (
-        dangerousArgs?.length > 0 &&
-        !(allowDangerous || process.env.ALLOW_DANGEROUS === 'true')
-      ) {
-        throw new Error(
-          `Dangerous browser arguments detected: ${dangerousArgs.join(', ')}. Found from environment variable and tool call argument. Set allowDangerous: true in the tool call arguments to override.`,
-        );
-      }
-    }
-
-    try {
-      if (
-        (this.browser && !this.browser.connected) ||
-        (launchOptions &&
-          JSON.stringify(launchOptions) !==
-            JSON.stringify(this.previousLaunchOptions))
-      ) {
-        await this.browser?.close();
-        this.browser = null;
-      }
-    } catch (error) {
-      this.browser = null;
-    }
-
-    this.previousLaunchOptions = launchOptions;
-
-    if (!this.browser) {
-      const npx_args = { headless: false };
-      const docker_args = {
-        headless: true,
-        args: ['--no-sandbox', '--single-process', '--no-zygote'],
-      };
-      this.browser = await puppeteer.launch(
-        deepMerge(
-          process.env.DOCKER_CONTAINER ? docker_args : npx_args,
-          mergedConfig,
-        ),
-      );
-      const pages = await this.browser.pages();
-      this.page = pages[0];
-
-      this.page.on('console', (msg) => {
-        const logEntry = `[${msg.type()}] ${msg.text()}`;
-        this.consoleLogs.push(logEntry);
-        // Use the passed server instance
-        this.server.notification({
-          method: 'notifications/resources/updated',
-          params: { uri: 'console://logs' },
-        });
-      });
-    }
-    return this.page!;
+    this.agent = new AgentOverChromeBridge();
   }
 
   public async handleToolCall(
     name: string,
     args: any,
   ): Promise<CallToolResult> {
-    const page = await this.ensureBrowser(args);
-
     switch (name) {
       case 'puppeteer_navigate':
-        await page.goto(args.url);
+        // await page.goto(args.url);
+        await this.agent.connectNewTabWithUrl(args.url);
         return {
           content: [
             {
@@ -135,27 +62,29 @@ export class PuppeteerManager {
         };
 
       case 'puppeteer_screenshot': {
-        const width = args.width ?? 800;
-        const height = args.height ?? 600;
-        await page.setViewport({ width, height });
-
-        const screenshot = await (args.selector
-          ? (await page.$(args.selector))?.screenshot({ encoding: 'base64' })
-          : page.screenshot({ encoding: 'base64', fullPage: false }));
-
-        if (!screenshot) {
-          return {
-            content: [
-              {
-                type: 'text',
-                text: args.selector
-                  ? `Element not found: ${args.selector}`
-                  : 'Screenshot failed',
-              },
-            ],
-            isError: true,
-          };
+        await this.agent.connectCurrentTab();
+        const screenshot = await this.agent.page.screenshotBase64();
+        // Remove the data URL prefix if present
+        const base64Data = screenshot.replace(/^data:image\/\w+;base64,/, '');
+        // Define a directory to store screenshots
+        const screenshotsDir = path.resolve(process.cwd(), 'screenshots');
+        if (!fs.existsSync(screenshotsDir)) {
+          fs.mkdirSync(screenshotsDir, { recursive: true });
         }
+        // Construct the output file path
+        const filePath = path.join(
+          screenshotsDir,
+          `${args.name || 'screenshot'}.jpeg`,
+        );
+        const screenText = path.join(
+          screenshotsDir,
+          `${args.name || 'screenshot'}.txt`,
+        );
+        // Convert the base64 string to a binary buffer and write it as an image file
+        const imageBuffer = Buffer.from(base64Data, 'base64');
+        fs.writeFileSync(filePath, imageBuffer);
+        fs.writeFileSync(screenText, base64Data);
+        console.log('Saved screenshot to:', filePath);
 
         this.screenshots.set(args.name, screenshot as string);
         this.server.notification({
@@ -166,168 +95,168 @@ export class PuppeteerManager {
           content: [
             {
               type: 'text',
-              text: `Screenshot '${args.name}' taken at ${width}x${height}`,
+              text: `Screenshot '${args.name}' taken at 1200x800`,
             } as TextContent,
             {
               type: 'image',
-              data: screenshot,
-              mimeType: 'image/png',
+              data: screenshot.replace('data:image/jpeg;base64,', ''),
+              mimeType: 'image/jpeg',
             } as ImageContent,
           ],
           isError: false,
         };
       }
 
-      case 'puppeteer_click':
-        try {
-          await page.click(args.selector);
-          return {
-            content: [
-              {
-                type: 'text',
-                text: `Clicked: ${args.selector}`,
-              },
-            ],
-            isError: false,
-          };
-        } catch (error) {
-          return {
-            content: [
-              {
-                type: 'text',
-                text: `Failed to click ${args.selector}: ${(error as Error).message}`,
-              },
-            ],
-            isError: true,
-          };
-        }
+      // case 'puppeteer_click':
+      //   try {
+      //     await agent.page.click(args.selector);
+      //     return {
+      //       content: [
+      //         {
+      //           type: 'text',
+      //           text: `Clicked: ${args.selector}`,
+      //         },
+      //       ],
+      //       isError: false,
+      //     };
+      //   } catch (error) {
+      //     return {
+      //       content: [
+      //         {
+      //           type: 'text',
+      //           text: `Failed to click ${args.selector}: ${(error as Error).message}`,
+      //         },
+      //       ],
+      //       isError: true,
+      //     };
+      //   }
 
-      case 'puppeteer_fill':
-        try {
-          await page.waitForSelector(args.selector);
-          await page.type(args.selector, args.value);
-          return {
-            content: [
-              {
-                type: 'text',
-                text: `Filled ${args.selector} with: ${args.value}`,
-              },
-            ],
-            isError: false,
-          };
-        } catch (error) {
-          return {
-            content: [
-              {
-                type: 'text',
-                text: `Failed to fill ${args.selector}: ${(error as Error).message}`,
-              },
-            ],
-            isError: true,
-          };
-        }
+      // case 'puppeteer_fill':
+      //   try {
+      //     await page.waitForSelector(args.selector);
+      //     await page.type(args.selector, args.value);
+      //     return {
+      //       content: [
+      //         {
+      //           type: 'text',
+      //           text: `Filled ${args.selector} with: ${args.value}`,
+      //         },
+      //       ],
+      //       isError: false,
+      //     };
+      //   } catch (error) {
+      //     return {
+      //       content: [
+      //         {
+      //           type: 'text',
+      //           text: `Failed to fill ${args.selector}: ${(error as Error).message}`,
+      //         },
+      //       ],
+      //       isError: true,
+      //     };
+      //   }
 
-      case 'puppeteer_select':
-        try {
-          await page.waitForSelector(args.selector);
-          await page.select(args.selector, args.value);
-          return {
-            content: [
-              {
-                type: 'text',
-                text: `Selected ${args.selector} with: ${args.value}`,
-              },
-            ],
-            isError: false,
-          };
-        } catch (error) {
-          return {
-            content: [
-              {
-                type: 'text',
-                text: `Failed to select ${args.selector}: ${(error as Error).message}`,
-              },
-            ],
-            isError: true,
-          };
-        }
+      // case 'puppeteer_select':
+      //   try {
+      //     await page.waitForSelector(args.selector);
+      //     await page.select(args.selector, args.value);
+      //     return {
+      //       content: [
+      //         {
+      //           type: 'text',
+      //           text: `Selected ${args.selector} with: ${args.value}`,
+      //         },
+      //       ],
+      //       isError: false,
+      //     };
+      //   } catch (error) {
+      //     return {
+      //       content: [
+      //         {
+      //           type: 'text',
+      //           text: `Failed to select ${args.selector}: ${(error as Error).message}`,
+      //         },
+      //       ],
+      //       isError: true,
+      //     };
+      //   }
 
-      case 'puppeteer_hover':
-        try {
-          await page.waitForSelector(args.selector);
-          await page.hover(args.selector);
-          return {
-            content: [
-              {
-                type: 'text',
-                text: `Hovered ${args.selector}`,
-              },
-            ],
-            isError: false,
-          };
-        } catch (error) {
-          return {
-            content: [
-              {
-                type: 'text',
-                text: `Failed to hover ${args.selector}: ${(error as Error).message}`,
-              },
-            ],
-            isError: true,
-          };
-        }
+      // case 'puppeteer_hover':
+      //   try {
+      //     await page.waitForSelector(args.selector);
+      //     await page.hover(args.selector);
+      //     return {
+      //       content: [
+      //         {
+      //           type: 'text',
+      //           text: `Hovered ${args.selector}`,
+      //         },
+      //       ],
+      //       isError: false,
+      //     };
+      //   } catch (error) {
+      //     return {
+      //       content: [
+      //         {
+      //           type: 'text',
+      //           text: `Failed to hover ${args.selector}: ${(error as Error).message}`,
+      //         },
+      //       ],
+      //       isError: true,
+      //     };
+      //   }
 
-      case 'puppeteer_evaluate':
-        try {
-          await page.evaluate(() => {
-            //@ts-ignore
-            window.mcpHelper = {
-              logs: [],
-              originalConsole: { ...console },
-            };
+      // case 'puppeteer_evaluate':
+      //   try {
+      //     await page.evaluate(() => {
+      //       //@ts-ignore
+      //       window.mcpHelper = {
+      //         logs: [],
+      //         originalConsole: { ...console },
+      //       };
 
-            ['log', 'info', 'warn', 'error'].forEach((method) => {
-              (console as any)[method] = (...args: any[]) => {
-                //@ts-ignore
-                window.mcpHelper.logs.push(`[${method}] ${args.join(' ')}`);
-                //@ts-ignore
-                (window.mcpHelper.originalConsole as any)[method](...args);
-              };
-            });
-          });
+      //       ['log', 'info', 'warn', 'error'].forEach((method) => {
+      //         (console as any)[method] = (...args: any[]) => {
+      //           //@ts-ignore
+      //           window.mcpHelper.logs.push(`[${method}] ${args.join(' ')}`);
+      //           //@ts-ignore
+      //           (window.mcpHelper.originalConsole as any)[method](...args);
+      //         };
+      //       });
+      //     });
 
-          const result = await page.evaluate(args.script);
+      //     const result = await page.evaluate(args.script);
 
-          const logs = await page.evaluate(() => {
-            //@ts-ignore
-            Object.assign(console, window.mcpHelper.originalConsole);
-            //@ts-ignore
-            const logs = window.mcpHelper.logs;
-            //@ts-ignore
-            window.mcpHelper = undefined;
-            return logs;
-          });
+      //     const logs = await page.evaluate(() => {
+      //       //@ts-ignore
+      //       Object.assign(console, window.mcpHelper.originalConsole);
+      //       //@ts-ignore
+      //       const logs = window.mcpHelper.logs;
+      //       //@ts-ignore
+      //       window.mcpHelper = undefined;
+      //       return logs;
+      //     });
 
-          return {
-            content: [
-              {
-                type: 'text',
-                text: `Execution result:\n${JSON.stringify(result, null, 2)}\n\nConsole output:\n${logs.join('\n')}`,
-              },
-            ],
-            isError: false,
-          };
-        } catch (error) {
-          return {
-            content: [
-              {
-                type: 'text',
-                text: `Script execution failed: ${(error as Error).message}`,
-              },
-            ],
-            isError: true,
-          };
-        }
+      //     return {
+      //       content: [
+      //         {
+      //           type: 'text',
+      //           text: `Execution result:\n${JSON.stringify(result, null, 2)}\n\nConsole output:\n${logs.join('\n')}`,
+      //         },
+      //       ],
+      //       isError: false,
+      //     };
+      //   } catch (error) {
+      //     return {
+      //       content: [
+      //         {
+      //           type: 'text',
+      //           text: `Script execution failed: ${(error as Error).message}`,
+      //         },
+      //       ],
+      //       isError: true,
+      //     };
+      //   }
 
       default:
         // This case should ideally not be reached if called correctly from index.ts

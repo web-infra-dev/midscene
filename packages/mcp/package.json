@@ -20,7 +20,8 @@
     "build": "rslib build",
     "dev": "rslib build --watch",
     "test": "vitest run",
-    "test:inspect": "mcp-inspector node ./dist/index.cjs"
+    "inspect": "mcp-inspector node ./dist/index.cjs",
+    "inspect2": "mcp-inspector node ./dist/test2.cjs"
   },
   "devDependencies": {
     "@modelcontextprotocol/inspector": "0.8.2",
