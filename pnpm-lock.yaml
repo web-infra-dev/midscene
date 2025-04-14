@@ -117,6 +117,9 @@ importers:
       '@rsbuild/plugin-react':
         specifier: ^1.1.1
         version: 1.1.1(@rsbuild/core@1.3.1)
+      '@rsbuild/plugin-svgr':
+        specifier: ^1.1.1
+        version: 1.2.0(@rsbuild/core@1.3.1)(typescript@5.8.2)
       '@types/react':
         specifier: ^18.3.18
         version: 18.3.18
@@ -3697,6 +3700,11 @@ packages:
     peerDependencies:
       '@rsbuild/core': 1.x
 
+  '@rsbuild/plugin-svgr@1.2.0':
+    resolution: {integrity: sha512-J0XEqp++cXnzVpVXsq92H6S6VXYMuGjlw07Juh73tMpxlJdPsv95ULUoiCHmuTwUeTZMRfVMamTxz03/owYYSg==}
+    peerDependencies:
+      '@rsbuild/core': 1.x
+
   '@rspack/binding-darwin-arm64@0.2.12':
     resolution: {integrity: sha512-TTiizzXNYGILAwwUhf49AqeNRJ7NXnzObhmqaDJ76lwDph+yLf8HYhNWAzrhYljaWQGYjwTYUdXVrGflYb2pHA==}
     cpu: [arm64]
@@ -4044,6 +4052,12 @@ packages:
     peerDependencies:
       '@babel/core': ^7.0.0-0
 
+  '@svgr/babel-plugin-transform-react-native-svg@8.1.0':
+    resolution: {integrity: sha512-Tx8T58CHo+7nwJ+EhUwx3LfdNSG9R2OKfaIXXs5soiy5HtgoAEkDay9LIimLOcG8dJQH1wPZp/cnAv6S9CrR1Q==}
+    engines: {node: '>=14'}
+    peerDependencies:
+      '@babel/core': ^7.0.0-0
+
   '@svgr/babel-plugin-transform-svg-component@8.0.0':
     resolution: {integrity: sha512-DFx8xa3cZXTdb/k3kfPeaixecQLgKh5NVBMwD0AQxOzcZawK4oo1Jh9LbrcACUivsCA7TLG8eeWgrDXjTMhRmw==}
     engines: {node: '>=12'}
@@ -4056,8 +4070,18 @@ packages:
     peerDependencies:
       '@babel/core': ^7.0.0-0
 
+  '@svgr/babel-preset@8.1.0':
+    resolution: {integrity: sha512-7EYDbHE7MxHpv4sxvnVPngw5fuR6pw79SkcrILHJ/iMpuKySNCl5W1qcwPEpU+LgyRXOaAFgH0KhwD18wwg6ug==}
+    engines: {node: '>=14'}
+    peerDependencies:
+      '@babel/core': ^7.0.0-0
+
   '@svgr/core@8.0.0':
     resolution: {integrity: sha512-aJKtc+Pie/rFYsVH/unSkDaZGvEeylNv/s2cP+ta9/rYWxRVvoV/S4Qw65Kmrtah4CBK5PM6ISH9qUH7IJQCng==}
+    engines: {node: '>=14'}
+
+  '@svgr/core@8.1.0':
+    resolution: {integrity: sha512-8QqtOQT5ACVlmsvKOJNEaWmRPmcojMOzCz4Hs2BGG/toAp/K38LcsMRyLp349glq5AzJbCEeimEoxaX6v/fLrA==}
     engines: {node: '>=14'}
 
   '@svgr/hast-util-to-babel-ast@8.0.0':
@@ -4070,8 +4094,20 @@ packages:
     peerDependencies:
       '@svgr/core': '*'
 
+  '@svgr/plugin-jsx@8.1.0':
+    resolution: {integrity: sha512-0xiIyBsLlr8quN+WyuxooNW9RJ0Dpr8uOnH/xrCVO8GLUcwHISwj1AG0k+LFzteTkAA0GbX0kj9q6Dk70PTiPA==}
+    engines: {node: '>=14'}
+    peerDependencies:
+      '@svgr/core': '*'
+
   '@svgr/plugin-svgo@8.0.1':
     resolution: {integrity: sha512-29OJ1QmJgnohQHDAgAuY2h21xWD6TZiXji+hnx+W635RiXTAlHTbjrZDktfqzkN0bOeQEtNe+xgq73/XeWFfSg==}
+    engines: {node: '>=14'}
+    peerDependencies:
+      '@svgr/core': '*'
+
+  '@svgr/plugin-svgo@8.1.0':
+    resolution: {integrity: sha512-Ywtl837OGO9pTLIN/onoWLmDQ4zFUycI1g76vuKGEz6evR/ZTJlJuz3G/fIkb6OVBJ2g0o6CGJzaEjfmEo3AHA==}
     engines: {node: '>=14'}
     peerDependencies:
       '@svgr/core': '*'
@@ -15445,6 +15481,19 @@ snapshots:
       reduce-configs: 1.1.0
       sass-embedded: 1.83.4
 
+  '@rsbuild/plugin-svgr@1.2.0(@rsbuild/core@1.3.1)(typescript@5.8.2)':
+    dependencies:
+      '@rsbuild/core': 1.3.1
+      '@rsbuild/plugin-react': 1.1.1(@rsbuild/core@1.3.1)
+      '@svgr/core': 8.1.0(typescript@5.8.2)
+      '@svgr/plugin-jsx': 8.1.0(@svgr/core@8.1.0(typescript@5.8.2))
+      '@svgr/plugin-svgo': 8.1.0(@svgr/core@8.1.0(typescript@5.8.2))(typescript@5.8.2)
+      deepmerge: 4.3.1
+      loader-utils: 3.3.1
+    transitivePeerDependencies:
+      - supports-color
+      - typescript
+
   '@rspack/binding-darwin-arm64@0.2.12':
     optional: true
 
@@ -15824,6 +15873,10 @@ snapshots:
     dependencies:
       '@babel/core': 7.26.0
 
+  '@svgr/babel-plugin-transform-react-native-svg@8.1.0(@babel/core@7.26.0)':
+    dependencies:
+      '@babel/core': 7.26.0
+
   '@svgr/babel-plugin-transform-svg-component@8.0.0(@babel/core@7.26.0)':
     dependencies:
       '@babel/core': 7.26.0
@@ -15840,10 +15893,33 @@ snapshots:
       '@svgr/babel-plugin-transform-react-native-svg': 8.0.0(@babel/core@7.26.0)
       '@svgr/babel-plugin-transform-svg-component': 8.0.0(@babel/core@7.26.0)
 
+  '@svgr/babel-preset@8.1.0(@babel/core@7.26.0)':
+    dependencies:
+      '@babel/core': 7.26.0
+      '@svgr/babel-plugin-add-jsx-attribute': 8.0.0(@babel/core@7.26.0)
+      '@svgr/babel-plugin-remove-jsx-attribute': 8.0.0(@babel/core@7.26.0)
+      '@svgr/babel-plugin-remove-jsx-empty-expression': 8.0.0(@babel/core@7.26.0)
+      '@svgr/babel-plugin-replace-jsx-attribute-value': 8.0.0(@babel/core@7.26.0)
+      '@svgr/babel-plugin-svg-dynamic-title': 8.0.0(@babel/core@7.26.0)
+      '@svgr/babel-plugin-svg-em-dimensions': 8.0.0(@babel/core@7.26.0)
+      '@svgr/babel-plugin-transform-react-native-svg': 8.1.0(@babel/core@7.26.0)
+      '@svgr/babel-plugin-transform-svg-component': 8.0.0(@babel/core@7.26.0)
+
   '@svgr/core@8.0.0(typescript@5.8.2)':
     dependencies:
       '@babel/core': 7.26.0
       '@svgr/babel-preset': 8.0.0(@babel/core@7.26.0)
+      camelcase: 6.3.0
+      cosmiconfig: 8.3.6(typescript@5.8.2)
+      snake-case: 3.0.4
+    transitivePeerDependencies:
+      - supports-color
+      - typescript
+
+  '@svgr/core@8.1.0(typescript@5.8.2)':
+    dependencies:
+      '@babel/core': 7.26.0
+      '@svgr/babel-preset': 8.1.0(@babel/core@7.26.0)
       camelcase: 6.3.0
       cosmiconfig: 8.3.6(typescript@5.8.2)
       snake-case: 3.0.4
@@ -15866,9 +15942,28 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
+  '@svgr/plugin-jsx@8.1.0(@svgr/core@8.1.0(typescript@5.8.2))':
+    dependencies:
+      '@babel/core': 7.26.0
+      '@svgr/babel-preset': 8.1.0(@babel/core@7.26.0)
+      '@svgr/core': 8.1.0(typescript@5.8.2)
+      '@svgr/hast-util-to-babel-ast': 8.0.0
+      svg-parser: 2.0.4
+    transitivePeerDependencies:
+      - supports-color
+
   '@svgr/plugin-svgo@8.0.1(@svgr/core@8.0.0(typescript@5.8.2))(typescript@5.8.2)':
     dependencies:
       '@svgr/core': 8.0.0(typescript@5.8.2)
+      cosmiconfig: 8.3.6(typescript@5.8.2)
+      deepmerge: 4.3.1
+      svgo: 3.3.2
+    transitivePeerDependencies:
+      - typescript
+
+  '@svgr/plugin-svgo@8.1.0(@svgr/core@8.1.0(typescript@5.8.2))(typescript@5.8.2)':
+    dependencies:
+      '@svgr/core': 8.1.0(typescript@5.8.2)
       cosmiconfig: 8.3.6(typescript@5.8.2)
       deepmerge: 4.3.1
       svgo: 3.3.2

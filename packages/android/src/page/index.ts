@@ -129,19 +129,19 @@ ${Object.keys(size)
       ) {
         // If it's a URI with scheme
         await adb.startUri(uri);
-      } else if (uri.includes('/')) {
+      } else {
         // If it's in format like 'com.android/settings.Settings'
         const [appPackage, appActivity] = uri.split('/');
+
+        if (!appPackage || !appActivity) {
+          throw new Error(
+            `Invalid URI format: ${uri}, expected format: com.android/settings.Settings`,
+          );
+        }
+
         await adb.startApp({
           pkg: appPackage,
           activity: appActivity,
-        });
-      } else {
-        console.log('uri: ', uri);
-
-        // Assume it's just a package name
-        await adb.startApp({
-          pkg: uri,
         });
       }
       debugPage(`Successfully launched: ${uri}`);

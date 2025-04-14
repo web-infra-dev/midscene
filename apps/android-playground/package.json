@@ -31,6 +31,7 @@
     "@rsbuild/plugin-less": "^1.1.1",
     "@rsbuild/plugin-node-polyfill": "1.3.0",
     "@rsbuild/plugin-react": "^1.1.1",
+    "@rsbuild/plugin-svgr": "^1.1.1",
     "@types/react": "^18.3.18",
     "@types/react-dom": "^18.3.5",
     "archiver": "^6.0.0",
