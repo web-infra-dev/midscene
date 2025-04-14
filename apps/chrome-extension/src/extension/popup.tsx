@@ -1,6 +1,11 @@
 /// <reference types="chrome" />
 import { ApiOutlined, SendOutlined } from '@ant-design/icons';
-import { Logo, globalThemeConfig, useEnvConfig } from '@midscene/visualizer';
+import {
+  EnvConfig,
+  Logo,
+  globalThemeConfig,
+  useEnvConfig,
+} from '@midscene/visualizer';
 import '@midscene/visualizer/index.css';
 import { ConfigProvider, Tabs } from 'antd';
 import { BrowserExtensionPlayground } from '../component/playground';
@@ -56,7 +61,10 @@ export function PlaygroundPopup() {
     <ConfigProvider theme={globalThemeConfig()}>
       <div className="popup-wrapper">
         <div className="popup-header">
-          <Logo withGithubStar={true} />
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <Logo withGithubStar={true} />
+            <EnvConfig />
+          </div>
           <p>
             AI-Driven Browser Automation with Chrome Extensions, JavaScript, and
             YAML Scripts.{' '}

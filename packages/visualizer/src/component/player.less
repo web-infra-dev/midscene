@@ -6,7 +6,7 @@
 @radius: 8px;
 @player-control-bg: #666;
 @timeline-height: 4px;
-@tools-height: 40px;
+@tools-height: 42px;
 @tools-margin: 15px;
 
 .player-container {
@@ -89,7 +89,7 @@
     max-width: 100%;
     overflow: hidden;
     color: #000;
-    font-size: 16px;
+    font-size: 14px;
     box-sizing: border-box;
     display: flex;
     flex-direction: row;
@@ -102,14 +102,14 @@
       flex-grow: 1;
       display: flex;
       flex-direction: row;
+      align-items: center;
     }
 
     .status-icon {
       transition: .2s;
-      width: 40px;
-      height: 40px;
+      width: 32px;
+      height: 32px;
       margin-right: @player-spacing;
-      background: @player-control-bg;
       border-radius: @radius;
       display: flex;
       align-items: center;
@@ -121,31 +121,27 @@
       flex-grow: 1;
       overflow: hidden;
       position: relative;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
     }
 
     .title {
       font-weight: bold;
-      height: 20px;
       line-height: 20px;
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
-      position: absolute;
-      top: 0;
-      left: 0;
       width: 100%;
     }
 
     .subtitle {
-      height: 20px;
       line-height: 20px;
       width: 100%;
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
-      position: absolute;
-      top: 18px;
-      left: 0;
     }
 
     .player-tools-item {

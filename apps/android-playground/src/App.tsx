@@ -373,12 +373,20 @@ export default function App() {
               {/* left panel: PromptInput */}
               <Col className="app-panel left-panel">
                 <div className="panel-content left-panel-content">
-                  <Logo />
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '10px',
+                    }}
+                  >
+                    <Logo />
+                    <EnvConfig />
+                  </div>
                   <h2>Command input</h2>
                   <Form form={form} className="command-form">
                     <div className="form-content">
                       <div>
-                        <EnvConfig />
                         <PromptInput
                           runButtonEnabled={
                             !!selectedDeviceId && configAlreadySet

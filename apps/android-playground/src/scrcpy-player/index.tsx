@@ -106,14 +106,18 @@ export const ScrcpyPlayer: React.FC<ScrcpyProps> = ({
     const containerHeight = container.clientHeight;
     const { width: originalWidth, height: originalHeight } = screenInfo;
 
+    // 留出顶部和底部各20px的padding
+    const paddingVertical = 40; // 顶部和底部各20px
+    const availableHeight = containerHeight - paddingVertical;
+
     // 计算适合容器的尺寸，保持宽高比
     const aspectRatio = originalWidth / originalHeight;
     let targetWidth = containerWidth;
     let targetHeight = containerWidth / aspectRatio;
 
-    if (targetHeight > containerHeight) {
-      targetHeight = containerHeight;
-      targetWidth = containerHeight * aspectRatio;
+    if (targetHeight > availableHeight) {
+      targetHeight = availableHeight;
+      targetWidth = availableHeight * aspectRatio;
     }
 
     // 更新 canvas 属性和样式
@@ -121,6 +125,8 @@ export const ScrcpyPlayer: React.FC<ScrcpyProps> = ({
     canvas.height = originalHeight;
     canvas.style.width = `${targetWidth}px`;
     canvas.style.height = `${targetHeight}px`;
+    canvas.style.marginTop = '20px';
+    canvas.style.marginBottom = '20px';
   }, [screenInfo]);
 
   // 监听窗口大小变化

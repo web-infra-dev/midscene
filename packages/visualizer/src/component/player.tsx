@@ -10,7 +10,7 @@ import {
   LoadingOutlined,
 } from '@ant-design/icons';
 import type { BaseElement, Rect } from '@midscene/core';
-import { Button, ConfigProvider, Spin } from 'antd';
+import { Button, Spin } from 'antd';
 import { rectMarkForItem } from './blackboard';
 import { getTextureFromCache, loadTexture } from './pixi-loader';
 import type {
@@ -627,7 +627,7 @@ export function Player(props?: {
     divContainerRef.current.appendChild(app.canvas);
 
     // 调用函数来设置初始Canvas尺寸
-    updateCanvasSize();
+    // updateCanvasSize();
 
     windowContentContainer.x = 0;
     windowContentContainer.y = 0;
@@ -806,19 +806,19 @@ export function Player(props?: {
   let statusOnClick: () => void = () => {};
   if (animationProgress < 1) {
     statusIconElement = (
-      <Spin indicator={<LoadingOutlined spin />} size="default" />
+      <Spin indicator={<LoadingOutlined spin color="#333" />} size="default" />
     );
   } else if (mouseOverStatusIcon) {
     statusIconElement = (
-      <Spin indicator={<CaretRightOutlined />} size="default" />
+      <Spin indicator={<CaretRightOutlined color="#333" />} size="default" />
     );
     statusStyle.cursor = 'pointer';
-    statusStyle.background = '#888';
+    statusStyle.background = '#F0f0f0';
     statusOnClick = () => setReplayMark(Date.now());
   } else {
     statusIconElement = (
       // <Spin indicator={<CheckCircleOutlined />} size="default" />
-      <Spin indicator={<CaretRightOutlined />} size="default" />
+      <Spin indicator={<CaretRightOutlined color="#333" />} size="default" />
     );
   }
 
@@ -839,17 +839,17 @@ export function Player(props?: {
   ) : null;
 
   // 监听窗口大小变化
-  useEffect(() => {
-    // 添加窗口大小变化监听
-    window.addEventListener('resize', updateCanvasSize);
+  // useEffect(() => {
+  //   // 添加窗口大小变化监听
+  //   window.addEventListener('resize', updateCanvasSize);
 
-    // 初始调用一次以设置初始尺寸
-    setTimeout(updateCanvasSize, 100);
-    // 再次调用确保尺寸正确（有时第一次调用可能在DOM完全准备好之前）
-    setTimeout(updateCanvasSize, 500);
+  //   // 初始调用一次以设置初始尺寸
+  //   setTimeout(updateCanvasSize, 100);
+  //   // 再次调用确保尺寸正确（有时第一次调用可能在DOM完全准备好之前）
+  //   setTimeout(updateCanvasSize, 500);
 
-    return () => window.removeEventListener('resize', updateCanvasSize);
-  }, [app, imageWidth, imageHeight]);
+  //   return () => window.removeEventListener('resize', updateCanvasSize);
+  // }, [app, imageWidth, imageHeight]);
 
   return (
     <div className="player-container">
@@ -868,6 +868,10 @@ export function Player(props?: {
       <div className="player-tools-wrapper">
         <div className="player-tools">
           <div className="player-control">
+            <div className="status-text">
+              <div className="title">{titleText}</div>
+              <div className="subtitle">{subTitleText}</div>
+            </div>
             <div
               className="status-icon"
               onMouseEnter={() => setMouseOverStatusIcon(true)}
@@ -875,25 +879,10 @@ export function Player(props?: {
               style={statusStyle}
               onClick={statusOnClick}
             >
-              <ConfigProvider
-                theme={{
-                  components: {
-                    Spin: {
-                      dotSize: 24,
-                      colorPrimary: 'rgb(6,177,171)',
-                    },
-                  },
-                }}
-              >
-                {statusIconElement}
-              </ConfigProvider>
+              {statusIconElement}
             </div>
-            <div className="status-text">
-              <div className="title">{titleText}</div>
-              <div className="subtitle">{subTitleText}</div>
-            </div>
+            {playerTopToolbar}
           </div>
-          {playerTopToolbar}
         </div>
       </div>
     </div>

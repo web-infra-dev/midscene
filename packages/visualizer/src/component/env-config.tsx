@@ -1,4 +1,5 @@
-import { Button, Input, Modal, Tooltip } from 'antd';
+import { SettingOutlined } from '@ant-design/icons';
+import { Input, Modal, Tooltip } from 'antd';
 import { useState } from 'react';
 import { iconForStatus } from './misc';
 import { useEnvConfig } from './store/store';
@@ -23,50 +24,62 @@ export function EnvConfig() {
     setIsModalOpen(false);
   };
 
-  const editBtn = (
-    <Button type="link" size="small" onClick={showModal}>
-      Edit
-    </Button>
-  );
-
-  const [showEditButton, setShowEditButton] = useState(false);
-
   const configTip =
     Object.keys(config).length === 0 ? (
       <div>
-        {iconForStatus('failed')} No config
-        <p>
-          <Tooltip
-            title="Please set up your environment variables before using."
-            placement="right"
-            open={!isModalOpen && popupTab === 'playground'}
-          >
-            <Button type="primary" onClick={showModal}>
-              Click to set up
-            </Button>
-          </Tooltip>
-        </p>
+        <Tooltip title="No Config">{iconForStatus('failed')}</Tooltip>
       </div>
     ) : (
-      <div
-        onMouseEnter={() => setShowEditButton(true)}
-        onMouseLeave={() => setShowEditButton(false)}
-      >
-        {Object.entries(config).map(([key, value]) => (
-          <div key={key} style={{ lineHeight: '1.8' }}>
-            <span>
-              {iconForStatus('success')} {key}:{' '}
-              {key === 'MIDSCENE_MODEL_NAME' ? value : '***'}{' '}
-              {showEditButton && editBtn}
-            </span>
-          </div>
-        ))}
+      <div>
+        <Tooltip
+          overlayInnerStyle={{
+            width: 'fit-content',
+          }}
+          title={
+            <div>
+              {Object.entries(config).map(([key, value]) => (
+                <div
+                  key={key}
+                  style={{
+                    lineHeight: '1.8',
+                    display: 'flex',
+                    alignItems: 'center',
+                    marginBottom: '5px',
+                  }}
+                >
+                  <span style={{ color: '#52c41a', marginRight: '8px' }}>
+                    {iconForStatus('success')}
+                  </span>
+                  <span style={{ whiteSpace: 'nowrap' }}>
+                    {key}: {key === 'MIDSCENE_MODEL_NAME' ? value : '***'}
+                  </span>
+                </div>
+              ))}
+            </div>
+          }
+        >
+          {iconForStatus('success')}
+        </Tooltip>
       </div>
     );
 
   return (
-    <div>
-      {configTip}
+    <div
+      style={{
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        width: '100%',
+      }}
+    >
+      <div style={{ marginRight: '8px' }}>{configTip}</div>
+      <Tooltip
+        title="Please set up your environment variables before using."
+        placement="bottom"
+        open={Object.keys(config).length === 0}
+      >
+        <SettingOutlined onClick={showModal} />
+      </Tooltip>
       <Modal
         title="Env Config"
         open={isModalOpen}

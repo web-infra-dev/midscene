@@ -5,6 +5,18 @@ body {
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans",
     Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji";
   font-size: 14px;
+  height: 100vh;
+  width: 100%;
+  overflow: hidden;
+}
+html {
+  height: 100vh;
+  width: 100%;
+  overflow: hidden;
+}
+#root {
+  height: 100%;
+  width: 100%;
 }
 .popup-wrapper {
   width: 100%;
@@ -17,10 +29,70 @@ body {
 }
 .popup-wrapper .tabs-container {
   flex-grow: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
 }
 .popup-wrapper .ant-tabs-nav {
   padding: 0 20px;
   box-sizing: border-box;
+}
+.popup-wrapper .ant-tabs {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+.popup-wrapper .ant-tabs-content-holder {
+  flex: 1;
+  min-height: 0;
+  position: relative;
+  overflow: hidden;
+}
+.popup-wrapper .ant-tabs-content {
+  height: 100%;
+  width: 100%;
+  position: relative;
+}
+.popup-wrapper .ant-tabs-tabpane {
+  /* 基础样式 */
+  flex: 1;
+  display: flex;
+  width: 100%;
+  height: 100%;
+  position: absolute;
+  top: 0;
+  left: 0;
+
+  /* 非活动标签动画效果 */
+  visibility: hidden;
+  opacity: 0;
+  transform: translateX(8px); /* 稍微右移的起始位置 */
+  /* 较快的褪色和移动动画 */
+  transition: opacity 0.15s cubic-bezier(0.4, 0, 0.2, 1), transform 0.15s
+    cubic-bezier(0.4, 0, 0.2, 1),
+    /* 延迟visibility变化，避免动画中途隐藏内容 */ visibility 0s linear 0.15s;
+  z-index: 0;
+  pointer-events: none; /* 非活动时不响应交互 */
+}
+.popup-wrapper .ant-tabs-tabpane-active {
+  /* 活动标签动画效果 */
+  visibility: visible;
+  opacity: 1;
+  transform: translateX(0); /* 无位移 */
+  /* 平滑的淡入和移动效果 */
+  transition: opacity 0.15s cubic-bezier(0.4, 0, 0.2, 1), transform 0.15s
+    cubic-bezier(0.4, 0, 0.2, 1),
+    /* 立即改变visibility确保内容可见 */ visibility 0s linear;
+  z-index: 1;
+  pointer-events: auto; /* 活动时可交互 */
+}
+/* 刚刚失去活动状态的标签页，向左退出 */
+.popup-wrapper .ant-tabs-tabpane-inactive {
+  opacity: 0;
+  transform: translateX(-8px); /* 向左退出效果 */
+  visibility: hidden;
+  transition: opacity 0.15s cubic-bezier(0.4, 0, 0.2, 1), transform 0.15s
+    cubic-bezier(0.4, 0, 0.2, 1), visibility 0s linear 0.15s;
 }
 .popup-wrapper .popup-header {
   padding: 0 20px;
@@ -35,6 +107,11 @@ body {
 .popup-wrapper .popup-playground-container,
 .popup-wrapper .popup-bridge-container {
   flex-grow: 1;
+  display: flex;
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+  min-height: 0;
 }
 .popup-wrapper .popup-bridge-container {
   padding: 0 20px;
@@ -215,11 +292,17 @@ body {
   font-size: 14px;
 }
 .playground-container {
+  display: flex;
+  flex-direction: column;
   width: 100%;
   height: 100%;
+  min-height: 0;
 }
 .playground-container.vertical-mode {
-  height: inherit;
+  height: 100%;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
 }
 .playground-container.vertical-mode .form-part {
   margin-bottom: 15px;
@@ -247,18 +330,55 @@ body {
   flex-direction: column;
   justify-content: center;
 }
-.playground-container .form-part {
-  margin-bottom: 20px;
-  padding: 0 20px;
+.playground-container .playground-form-container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  flex: 1;
 }
+
+/* 命令表单样式 */
+.command-form {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+}
+
+.form-content {
+  display: grid;
+  grid-template-rows: auto 1fr;
+  height: 100%;
+  min-height: 0;
+  position: relative;
+}
+
+.playground-container .form-part {
+  margin-bottom: 10px;
+  padding: 0 20px;
+  min-height: 0;
+}
+
+.playground-container .form-part:not(.result-container) {
+  flex: 0 1 auto;
+  overflow: auto;
+}
+
 .playground-container .form-part h3 {
   margin-top: 0;
-  margin-bottom: 12px;
+  margin-bottom: 8px;
   font-size: 18px;
 }
+
+.playground-container .form-part:first-child {
+  overflow: auto;
+  flex: 0 1 auto;
+}
+
 .playground-container .form-part .switch-btn-wrapper {
   margin-left: 2px;
 }
+
 .playground-container .input-wrapper {
   box-sizing: border-box;
 }
@@ -323,9 +443,8 @@ body {
   flex-direction: column;
   justify-content: center;
   box-sizing: border-box;
-  padding: 20px 20px;
-  background-color: #f8f8f8;
   border-radius: 4px;
+  flex: 1;
 }
 .playground-container .result-wrapper.result-wrapper-compact {
   padding: 0;
@@ -345,6 +464,29 @@ body {
   white-space: pre-wrap;
 }
 
+/* 添加结果容器样式 */
+.result-container {
+  grid-row: 2;
+  margin-top: 12px;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  position: relative;
+  overflow: auto;
+  border-top: 1px solid #f0f0f0;
+  padding-top: 12px;
+}
+
+.result-container > div {
+  flex: 1;
+  height: auto;
+  min-height: 0;
+}
+
+.playground-container.vertical-mode .result-container {
+  grid-row: 2;
+}
+
 /* src/component/open-in-playground.less */
 .playground-drawer .ant-drawer-body {
   padding: 0;
@@ -352,14 +494,14 @@ body {
 
 /* src/extension/bridge.less */
 .bridge-status-bar {
-  height: 56px;
-  line-height: 56px;
+  height: 50px;
+  line-height: 50px;
   display: flex;
   flex-direction: row;
   justify-content: space-between;
   box-sizing: border-box;
   padding: 0 10px;
-  border: 1px solid #ccc;
+  border: 1px solid #e5e5e5;
   border-radius: 5px;
 }
 .bridge-status-bar .bridge-status-text {
@@ -386,11 +528,91 @@ body {
 }
 .bridge-log-container {
   flex-grow: 1;
+  flex-shrink: 1;
+  flex-basis: 0;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  margin-top: 10px;
+  min-height: 0;
+  border: 1px solid #f0f0f0;
+  padding: 10px;
+  border-radius: 4px;
 }
+
+.bridge-log-item {
+  margin-bottom: 6px;
+  padding: 4px 0;
+}
+
 .bridge-log-container .bridge-log-item-content {
   word-break: break-all;
   white-space: pre-wrap;
   text-overflow: ellipsis;
   width: 100%;
   overflow: hidden;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.bridge-log-container > p {
+  color: #999;
+  text-align: center;
+  margin-top: 40px;
+}
+
+.popup-bridge-container > div {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+
+.popup-bridge-container .playground-form-container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.popup-bridge-container .form-part {
+  margin-bottom: 10px;
+  min-height: 0;
+}
+
+.popup-bridge-container .form-part:nth-child(2) {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.popup-bridge-container > div > p {
+  margin-top: 0;
+  margin-bottom: 15px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: #666;
+}
+
+.popup-bridge-container > div > p a {
+  color: #1677ff;
+}
+
+.popup-bridge-container .form-part h3 {
+  margin-top: 0;
+  margin-bottom: 8px;
+  font-size: 15px;
+  display: flex;
+  align-items: center;
+}
+
+.popup-bridge-container .form-part h3 button {
+  padding: 2px 8px;
+  font-size: 12px;
+  height: auto;
+  line-height: 1.5;
 }

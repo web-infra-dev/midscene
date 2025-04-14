@@ -221,44 +221,41 @@ export function BrowserExtensionPlayground({
 
   return (
     <div className="playground-container vertical-mode">
-      <Form form={form} onFinish={handleRun}>
-        <div className="playground-form-container">
-          <div className="form-part">
-            <h3>In-Browser Request Config</h3>
-            <EnvConfig />
+      <Form form={form} onFinish={handleRun} className="command-form">
+        <div className="form-content">
+          <div>
+            <ContextPreview
+              uiContextPreview={uiContextPreview}
+              setUiContextPreview={setUiContextPreview}
+              showContextPreview={showContextPreview}
+            />
+
+            <PromptInput
+              runButtonEnabled={runButtonEnabled}
+              form={form}
+              serviceMode={'In-Browser-Extension'}
+              selectedType={selectedType}
+              dryMode={dryMode}
+              stoppable={stoppable}
+              loading={loading}
+              onRun={handleRun}
+              onStop={handleStop}
+            />
           </div>
-
-          <ContextPreview
-            uiContextPreview={uiContextPreview}
-            setUiContextPreview={setUiContextPreview}
-            showContextPreview={showContextPreview}
-          />
-
-          <PromptInput
-            runButtonEnabled={runButtonEnabled}
-            form={form}
-            serviceMode={'In-Browser-Extension'}
-            selectedType={selectedType}
-            dryMode={dryMode}
-            stoppable={stoppable}
-            loading={loading}
-            onRun={handleRun}
-            onStop={handleStop}
-          />
+          <div className="form-part result-container">
+            <PlaygroundResultView
+              result={result}
+              loading={loading}
+              serviceMode={'In-Browser-Extension'}
+              replayScriptsInfo={replayScriptsInfo}
+              replayCounter={replayCounter}
+              loadingProgressText={loadingProgressText}
+              verticalMode={verticalMode}
+            />
+            <div ref={runResultRef} />
+          </div>
         </div>
       </Form>
-      <div className="form-part">
-        <PlaygroundResultView
-          result={result}
-          loading={loading}
-          serviceMode={'In-Browser-Extension'}
-          replayScriptsInfo={replayScriptsInfo}
-          replayCounter={replayCounter}
-          loadingProgressText={loadingProgressText}
-          verticalMode={verticalMode}
-        />
-        <div ref={runResultRef} />
-      </div>
     </div>
   );
 }

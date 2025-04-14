@@ -137,6 +137,8 @@ ${Object.keys(size)
           activity: appActivity,
         });
       } else {
+        console.log('uri: ', uri);
+
         // Assume it's just a package name
         await adb.startApp({
           pkg: uri,

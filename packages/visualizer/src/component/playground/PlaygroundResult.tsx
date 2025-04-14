@@ -82,7 +82,6 @@ export const PlaygroundResultView: React.FC<PlaygroundResultProps> = ({
         display: 'flex',
         flexDirection: 'column',
         flex: '1 1 auto',
-        overflow: 'hidden',
       }}
     >
       {resultDataToShow}

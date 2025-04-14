@@ -15,6 +15,7 @@ body {
 
     .form-part {
       margin-bottom: 15px;
+      margin-top: 15px;
 
       h3 {
         font-size: 14px;
@@ -47,7 +48,6 @@ body {
 
   .form-part {
     margin-bottom: @layout-extension-space-vertical;
-    padding: 0 @layout-extension-space-horizontal;
 
     h3 {
       margin-top: 0;
@@ -94,7 +94,6 @@ body {
     flex-direction: column;
     justify-content: center;
     box-sizing: border-box;
-    padding: 0 @layout-extension-space-horizontal;
     border-radius: 4px;
     flex: 1 1 auto;
     min-height: 0;
@@ -123,6 +122,12 @@ body {
       justify-content: center;
       align-items: center;
       min-height: 200px;
+      width: 100%;
+      height: 100%;
+      border: 1px solid rgba(0, 0, 0, 0.12);
+      border-radius: 8px;
+      color: rgba(0, 0, 0, 0.45);
+      font-size: 14px;
     }
   }
 }
@@ -131,18 +136,27 @@ body {
 .input-wrapper {
   box-sizing: border-box;
 
+  .mode-radio-group-wrapper {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
   .mode-radio-group {
     display: flex;
+    align-items: center;
+    height: 100%;
 
     .ant-radio-button-wrapper {
-      height: 36px;
-      padding: 0 20px;
-      line-height: 34px;
-      border-radius: 20px;
-      margin-right: 10px;
+      height: 24px;
+      padding: 0 8px;
+      line-height: 24px;
+      border-radius: 11px;
+      margin-right: 8px;
       box-shadow: none;
       border: none;
       background-color: #F7F7F7;
+      font-size: 12px;
 
       &:before {
         display: none;
@@ -153,45 +167,13 @@ body {
       }
 
       &.ant-radio-button-wrapper-checked {
-        color: white;
-
-        &:hover {
-          color: white;
-        }
-      }
-
-      &:hover {
-        color: white;
-      }
-    }
-  }
-
-  .ant-radio-group {
-    display: flex;
-
-    .ant-radio-button-wrapper {
-      border-radius: 20px;
-      margin-right: 10px;
-      border-left-width: 1px !important;
-      box-shadow: none !important;
-
-      &:before {
-        display: none !important;
-        /* 移除竖线 */
-      }
-
-      &:first-child {
-        border-radius: 20px;
-      }
-
-      &:last-child {
-        border-radius: 20px;
-      }
-
-      &.ant-radio-button-wrapper-checked {
         background-color: #0cbfa4;
         border-color: #0cbfa4;
         color: white;
+
+        &:hover {
+          color: #fff;
+        }
       }
 
       &:hover {
@@ -203,6 +185,13 @@ body {
   .main-side-console-input {
     position: relative;
     margin-top: 10px;
+
+    .main-side-console-input-textarea {
+      height: 90px;
+      border-radius: 12px;
+      border: 1px solid rgba(0, 0, 0, 0.12);
+      padding: 12px 16px;
+    }
   }
 
   .ant-input {

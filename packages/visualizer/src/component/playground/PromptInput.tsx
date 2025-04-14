@@ -152,23 +152,12 @@ export const PromptInput: React.FC<PromptInputProps> = ({
 
   return (
     <div className="form-part input-wrapper">
-      <Space
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-        }}
-      >
+      <Space className="mode-radio-group-wrapper">
         <Form.Item name="type" style={{ margin: 0 }}>
           <Radio.Group
             buttonStyle="solid"
             disabled={!runButtonEnabled}
             className="mode-radio-group"
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              height: '100%',
-            }}
           >
             <Radio.Button value="aiAction">
               {actionNameForType('aiAction')}
@@ -186,12 +175,7 @@ export const PromptInput: React.FC<PromptInputProps> = ({
       <div className="main-side-console-input">
         <Form.Item name="prompt" style={{ margin: 0 }}>
           <TextArea
-            style={{
-              height: 90,
-              borderRadius: 12,
-              border: '1px solid rgba(0, 0, 0, 0.12)',
-              padding: '12px 16px',
-            }}
+            className="main-side-console-input-textarea"
             disabled={!runButtonEnabled}
             rows={4}
             placeholder={placeholder}
