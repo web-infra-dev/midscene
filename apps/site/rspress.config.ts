@@ -65,6 +65,10 @@ export default defineConfig({
               link: '/quick-experience',
             },
             {
+              text: 'Quick Experience by Android',
+              link: '/quick-experience-with-android',
+            },
+            {
               text: 'Choose a Model',
               link: '/choose-a-model',
             },
@@ -88,6 +92,10 @@ export default defineConfig({
             {
               text: 'Integrate with Puppeteer',
               link: '/integrate-with-puppeteer',
+            },
+            {
+              text: 'Integrate with Android',
+              link: '/integrate-with-android',
             },
             {
               text: 'API Reference',
@@ -148,6 +156,10 @@ export default defineConfig({
               link: '/zh/quick-experience',
             },
             {
+              text: '通过 Android 设备快速体验',
+              link: '/zh/quick-experience-with-android',
+            },
+            {
               text: '选择 AI 模型',
               link: '/zh/choose-a-model',
             },
@@ -171,6 +183,10 @@ export default defineConfig({
             {
               text: '集成到 Puppeteer',
               link: '/zh/integrate-with-puppeteer',
+            },
+            {
+              text: '集成到 Android',
+              link: '/zh/integrate-with-android',
             },
             {
               text: 'API 参考',
