@@ -6,14 +6,13 @@
       "multi": false,
       "annotation_index_id": 1,
       "response_rect": {
-        "left": 329,
-        "top": 56,
-        "width": 457,
-        "height": 41
+        "left": 319,
+        "top": 54,
+        "width": 533,
+        "height": 40
       },
       "response_element": {
-        "id": "jfjah",
-        "indexId": 27
+        "id": "aljah"
       }
     },
     {
@@ -21,10 +20,10 @@
       "multi": false,
       "annotation_index_id": 2,
       "response_rect": {
-        "left": 786,
-        "top": 58,
-        "width": 64,
-        "height": 39
+        "left": 792,
+        "top": 65,
+        "width": 38,
+        "height": 16
       },
       "response_element": {
         "id": "ondpi",
@@ -37,10 +36,10 @@
       "multi": false,
       "annotation_index_id": 3,
       "response_rect": {
-        "left": 137,
-        "top": 416,
-        "width": 36,
-        "height": 20
+        "left": 118,
+        "top": 428,
+        "width": 53,
+        "height": 12
       },
       "response_element": {
         "id": "cjfcl",
@@ -53,10 +52,10 @@
       "multi": false,
       "annotation_index_id": 4,
       "response_rect": {
-        "left": 1056,
-        "top": 386,
-        "width": 32,
-        "height": 28
+        "left": 1065,
+        "top": 385,
+        "width": 21,
+        "height": 19
       },
       "response_element": {
         "id": "fkfdl",
@@ -69,28 +68,29 @@
       "multi": false,
       "annotation_index_id": 5,
       "response_rect": {
-        "left": 1253,
-        "top": 366,
-        "width": 26,
-        "height": 32
+        "left": 1251,
+        "top": 352,
+        "width": 22,
+        "height": 22
       },
       "response_element": {
-        "id": "aodmc"
+        "id": "iegkg",
+        "indexId": 212
       }
     },
     {
-      "prompt": "购物车 icon",
+      "prompt": "顶部工具栏的购物车 icon",
       "deepThink": true,
       "response_rect": {
-        "left": 1010,
-        "top": 390,
-        "width": 32,
-        "height": 28
+        "left": 837,
+        "top": 12,
+        "width": 17,
+        "height": 14
       },
       "annotation_index_id": 6,
       "response_element": {
-        "id": "nkpom",
-        "indexId": 188
+        "id": "aefln",
+        "indexId": 12
       }
     }
   ]
