@@ -58,7 +58,7 @@ export const rectMarkForItem = (
   return [graphics, texts];
 };
 
-const Blackboard = (props: {
+export const Blackboard = (props: {
   uiContext: UIContext;
   highlightElements?: BaseElement[];
   highlightRect?: Rect;
@@ -104,7 +104,7 @@ const Blackboard = (props: {
         const canvasEl = domRef.current;
         domRef.current.appendChild(app.canvas); // Ensure app.view is appended
         const { clientWidth } = domRef.current.parentElement!;
-        const targetHeight = window.innerHeight * 0.5;
+        const targetHeight = window.innerHeight * 0.6;
         const viewportRatio = clientWidth / targetHeight;
         if (screenWidth / screenHeight <= viewportRatio) {
           const ratio = targetHeight / screenHeight;
