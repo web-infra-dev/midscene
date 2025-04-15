@@ -291,6 +291,37 @@ importers:
       '@midscene/web':
         specifier: workspace:*
         version: link:../web-integration
+      appium-adb:
+        specifier: 12.12.1
+        version: 12.12.1
+    devDependencies:
+      '@modern-js/module-tools':
+        specifier: 2.60.6
+        version: 2.60.6(debug@4.4.0)(typescript@5.8.2)
+      '@types/node':
+        specifier: ^18.0.0
+        version: 18.19.62
+      dotenv:
+        specifier: 16.4.5
+        version: 16.4.5
+      typescript:
+        specifier: ^5.8.2
+        version: 5.8.2
+      vitest:
+        specifier: 3.0.5
+        version: 3.0.5(@types/debug@4.1.12)(@types/node@18.19.62)(jsdom@24.1.1)(less@4.2.2)(sass-embedded@1.83.4)(terser@5.36.0)
+
+  packages/android-playground:
+    dependencies:
+      '@midscene/android':
+        specifier: workspace:*
+        version: link:../android
+      '@midscene/shared':
+        specifier: workspace:*
+        version: link:../shared
+      '@midscene/web':
+        specifier: workspace:*
+        version: link:../web-integration
       '@yume-chan/adb':
         specifier: ^1.1.0
         version: 1.1.0
@@ -309,9 +340,6 @@ importers:
       '@yume-chan/stream-extra':
         specifier: ^1.0.0
         version: 1.0.0
-      appium-adb:
-        specifier: 12.12.1
-        version: 12.12.1
       cors:
         specifier: 2.8.5
         version: 2.8.5
@@ -337,15 +365,9 @@ importers:
       '@types/node':
         specifier: ^18.0.0
         version: 18.19.62
-      dotenv:
-        specifier: 16.4.5
-        version: 16.4.5
       typescript:
         specifier: ^5.8.2
         version: 5.8.2
-      vitest:
-        specifier: 3.0.5
-        version: 3.0.5(@types/debug@4.1.12)(@types/node@18.19.62)(jsdom@24.1.1)(less@4.2.2)(sass-embedded@1.83.4)(terser@5.36.0)
 
   packages/cli:
     dependencies:
@@ -11323,7 +11345,7 @@ snapshots:
       '@appium/types': 0.25.2
       '@colors/colors': 1.6.0
       archiver: 7.0.1
-      axios: 1.8.3
+      axios: 1.8.3(debug@4.4.0)
       base64-stream: 1.0.0
       bluebird: 3.7.2
       bplist-creator: 0.1.1
@@ -14682,7 +14704,7 @@ snapshots:
       '@modern-js/plugin-i18n': 2.60.6
       '@modern-js/utils': 2.60.6
       '@swc/helpers': 0.5.13
-      axios: 1.7.9(debug@4.4.0)
+      axios: 1.8.3(debug@4.4.0)
       resolve-from: 5.0.0
     transitivePeerDependencies:
       - debug
@@ -14950,7 +14972,7 @@ snapshots:
       '@modern-js/types': 2.31.2
       '@modern-js/utils': 2.31.2(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@swc/helpers': 0.5.1
-      axios: 1.7.9(debug@4.4.0)
+      axios: 1.7.9
       connect-history-api-fallback: 2.0.0
       http-compression: 1.0.6
       minimatch: 3.1.2
@@ -14977,7 +14999,7 @@ snapshots:
       '@modern-js/types': 2.32.1
       '@modern-js/utils': 2.32.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@swc/helpers': 0.5.1
-      axios: 1.8.3
+      axios: 1.8.3(debug@4.4.0)
       connect-history-api-fallback: 2.0.0
       http-compression: 1.0.6
       minimatch: 3.1.2
@@ -16957,7 +16979,7 @@ snapshots:
     transitivePeerDependencies:
       - debug
 
-  axios@1.7.9(debug@4.4.0):
+  axios@1.7.9:
     dependencies:
       follow-redirects: 1.15.9(debug@4.4.0)
       form-data: 4.0.1
@@ -16965,7 +16987,7 @@ snapshots:
     transitivePeerDependencies:
       - debug
 
-  axios@1.8.3:
+  axios@1.8.3(debug@4.4.0):
     dependencies:
       follow-redirects: 1.15.9(debug@4.4.0)
       form-data: 4.0.2

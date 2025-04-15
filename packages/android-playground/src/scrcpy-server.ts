@@ -4,20 +4,14 @@ import { createServer } from 'node:http';
 import type { Server as HttpServer } from 'node:http';
 import { promisify } from 'node:util';
 import { SCRCPY_SERVER_PORT } from '@midscene/shared/constants';
-import { Adb, AdbServerClient } from '@yume-chan/adb';
-import { AdbScrcpyClient, AdbScrcpyOptions2_1 } from '@yume-chan/adb-scrcpy';
-import { AdbServerNodeTcpConnector } from '@yume-chan/adb-server-node-tcp';
-import { BIN } from '@yume-chan/fetch-scrcpy-server';
-import {
-  DefaultServerPath,
-  ScrcpyOptions3_1,
-  ScrcpyVideoCodecId,
-} from '@yume-chan/scrcpy';
-import { ReadableStream } from '@yume-chan/stream-extra';
+import { getDebug } from '@midscene/shared/logger';
+import type { Adb, AdbServerClient } from '@yume-chan/adb';
+
 import cors from 'cors';
 import express from 'express';
 import { Server } from 'socket.io';
-import { debugPage } from '../page';
+
+export const debugPage = getDebug('android:playground');
 
 const promiseExec = promisify(exec);
 

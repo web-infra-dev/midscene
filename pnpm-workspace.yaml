@@ -1,12 +1,3 @@
 packages:
-  - apps/site
-  - apps/chrome-extension
-  - apps/android-playground
-  - apps/report
-  - packages/cli
-  - packages/shared
-  - packages/core
-  - packages/visualizer
-  - packages/web-integration
-  - packages/evaluation
-  - packages/android
+  - apps/*
+  - packages/*
