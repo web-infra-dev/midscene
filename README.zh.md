@@ -74,8 +74,8 @@ Midscene.js 让 AI 成为你的浏览器操作员 🤖。只需用自然语言�
 * 集成方案
   * [使用 YAML 格式的自动化脚本](https://midscenejs.com/zh/automate-with-scripts-in-yaml.html), 如果你更喜欢写 YAML 文件而不是代码
   * [使用 Chrome 插件桥接模式（Bridge Mode）](https://midscenejs.com/zh/bridge-mode-by-chrome-extension.html), 使用 Midscene 来控制桌面端 Chrome 
-  * [集成到 Puppeteer](https://midscenejs.com/zh/integrate-with-puppeteer.html)
-  * [集成到 Playwright](https://midscenejs.com/zh/integrate-with-playwright.html)
+  * [与 Puppeteer 集成](https://midscenejs.com/zh/integrate-with-puppeteer.html)
+  * [与 Playwright 集成](https://midscenejs.com/zh/integrate-with-playwright.html)
 * [API 文档](https://midscenejs.com/zh/api.html)
 * [选择 AI 模型](https://midscenejs.com/zh/choose-a-model.html)
 * [配置模型和服务商（e.g. 使用千问模型）](https://midscenejs.com/zh/model-provider.html)

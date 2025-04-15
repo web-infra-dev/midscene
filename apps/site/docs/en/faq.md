@@ -43,7 +43,8 @@ When using general-purpose LLM in Midscene.js, the running time may increase by 
 There are several ways to improve the running time:
 1. Use instant action interface like `agent.aiTap('Login Button')` instead of `agent.ai('Click Login Button')`. Read more about it in [API](./API).
 2. Use a dedicated model and deploy it yourself, like UI-TARS. This is the recommended way. Read more about it in [Choose a model](./choose-a-model).
-3. Use caching to accelerate the debug process. Read more about it in [Caching](./caching).
+3. Use a lower resolution if possible.
+4. Use caching to accelerate the debug process. Read more about it in [Caching](./caching).
 
 ## The webpage continues to flash when running in headed mode
 

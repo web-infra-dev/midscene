@@ -1,4 +1,4 @@
-# 集成到 Android
+# 与 Android(adb) 集成
 
 Midscene 支持使用视觉语言（VL）模型来控制 Android 设备。
 
@@ -12,20 +12,22 @@ import { PackageManagerTabs } from '@theme';
 
 ## 准备工作
 
-### 配置 OpenAI API Key
+### 配置 API Key
 
-配置 OpenAI API Key，或 [自定义模型和服务商](./model-provider)
-
-:::info 提示
-Android 场景仅支持使用视觉语言（VL）模型，请参考 [选择模型](./choose-a-model) 文档选择合适的模型。
-:::
+配置 VL 模型的 API Key。如果使用 qwen-2.5-vl，可以配置如下：
 
 ```bash
-# 更新为你自己的 Key
-export OPENAI_API_KEY="sk-abcdefghijklmnopqrstuvwxyz"
+OPENAI_BASE_URL="https://dashscope.aliyuncs.com/compatible-mode/v1"
+OPENAI_API_KEY="......"
+MIDSCENE_MODEL_NAME="qwen-vl-max-latest"
+MIDSCENE_USE_QWEN_VL=1
 ```
 
+控制 Android 设备时，你只能使用 VL 模型。更多详情请参考 [选择模型](./choose-a-model)。
+
 ### 准备 adb 环境
+
+`adb` 是一个命令行工具，允许你与 Android 设备通信。
 
 - 方式一：使用 [Android Studio](https://developer.android.com/studio?hl=zh-cn) 安装
 - 方式二：使用 [Android command-line tools](https://developer.android.com/studio#command-line-tools-only) 安装
