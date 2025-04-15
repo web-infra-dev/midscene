@@ -21,7 +21,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { type Socket, io } from 'socket.io-client';
 import { v4 as uuidv4 } from 'uuid';
 import AdbDevice from './adb-device';
-import ScrcpyPlayer from './scrcpy-player';
+import ScrcpyPlayer, { type ScrcpyRefMethods } from './scrcpy-player';
 
 import '@midscene/visualizer/index.css';
 import './adb-device/index.less';
@@ -47,8 +47,6 @@ export default function App() {
     reportHTML: null,
     error: null,
   });
-  console.log('result: ', result);
-
   const [replayCounter, setReplayCounter] = useState(0);
   const [replayScriptsInfo, setReplayScriptsInfo] =
     useState<ReplayScriptsInfo | null>(null);
@@ -61,6 +59,8 @@ export default function App() {
 
   // Socket connection and device management
   const socketRef = useRef<Socket | null>(null);
+  // Add a ref to ScrcpyPlayer
+  const scrcpyPlayerRef = useRef<ScrcpyRefMethods>(null);
 
   // clear the polling interval
   const clearPollingInterval = useCallback(() => {
@@ -427,8 +427,10 @@ export default function App() {
                     selectedDeviceId={selectedDeviceId}
                     onDeviceSelect={handleDeviceSelect}
                     socketRef={socketRef}
+                    scrcpyPlayerRef={scrcpyPlayerRef}
                   />
                   <ScrcpyPlayer
+                    ref={scrcpyPlayerRef}
                     serverUrl={SERVER_URL}
                     autoConnect={connectToDevice}
                     onConnectionStatusChange={handleConnectionStatusChange}

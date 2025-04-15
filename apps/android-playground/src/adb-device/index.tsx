@@ -1,8 +1,10 @@
 import './index.less';
 import { MobileOutlined } from '@ant-design/icons';
-import { Button, Divider, Dropdown } from 'antd';
-import { useCallback, useRef, useState } from 'react';
+import { Button, Divider, Dropdown, message } from 'antd';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import type { RefObject } from 'react';
 import type { Socket } from 'socket.io-client';
+import type { ScrcpyRefMethods } from '../scrcpy-player';
 
 // status dot indicator
 const onlineStatus = (color: string) => (
@@ -28,6 +30,7 @@ export interface AdbDeviceProps {
   selectedDeviceId: string | null;
   onDeviceSelect: (deviceId: string) => void;
   socketRef: React.RefObject<Socket | null>;
+  scrcpyPlayerRef: RefObject<ScrcpyRefMethods>;
 }
 
 const AdbDevice: React.FC<AdbDeviceProps> = ({
@@ -36,9 +39,11 @@ const AdbDevice: React.FC<AdbDeviceProps> = ({
   selectedDeviceId,
   onDeviceSelect,
   socketRef,
+  scrcpyPlayerRef,
 }) => {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const lastSelectedDeviceRef = useRef<string | null>(null);
+  const [messageApi, contextHolder] = message.useMessage();
 
   // handle device selection
   const handleDeviceSelect = useCallback(
@@ -64,8 +69,36 @@ const AdbDevice: React.FC<AdbDeviceProps> = ({
     [onDeviceSelect, socketRef],
   );
 
+  // disconnect device
+  const disconnectDevice = useCallback(() => {
+    // call ScrcpyPlayer's disconnectDevice method
+    if (scrcpyPlayerRef.current) {
+      scrcpyPlayerRef.current.disconnectDevice();
+      messageApi.info('Device disconnected');
+    }
+
+    // disconnect socket
+    if (socketRef.current) {
+      socketRef.current.disconnect();
+    }
+  }, [socketRef, scrcpyPlayerRef, messageApi]);
+
+  // check if selected device is offline
+  const isSelectedDeviceOffline = selectedDeviceId
+    ? devices.find((d) => d.id === selectedDeviceId)?.status.toLowerCase() !==
+      'device'
+    : false;
+
+  // automatically unlink when device goes offline
+  useEffect(() => {
+    if (isSelectedDeviceOffline && selectedDeviceId) {
+      disconnectDevice();
+    }
+  }, [isSelectedDeviceOffline, selectedDeviceId, disconnectDevice, messageApi]);
+
   return (
     <div className="device-header">
+      {contextHolder}
       <div className="device-title-container">
         <h2 className="device-title">Device</h2>
         <Dropdown
@@ -155,12 +188,14 @@ const AdbDevice: React.FC<AdbDeviceProps> = ({
                 </div>
               )}
             </div>
-            <span className="device-name">
-              {selectedDeviceId
-                ? devices.find((d) => d.id === selectedDeviceId)?.name ||
-                  selectedDeviceId
-                : ''}
-            </span>
+            {selectedDeviceId && !isSelectedDeviceOffline ? (
+              <span className="device-name">
+                {devices.find((d) => d.id === selectedDeviceId)?.name ||
+                  selectedDeviceId}
+              </span>
+            ) : (
+              <span className="device-name no-device">No device</span>
+            )}
             <span className="dropdown-arrow">▼</span>
           </Button>
         </Dropdown>

@@ -19,14 +19,7 @@ export default defineConfig({
         sourceMap: true,
       },
       html: {
-        tags: [
-          {
-            tag: 'script',
-            attrs: { src: 'scripts/report-template.js' },
-            head: true,
-            append: true,
-          },
-        ],
+        title: 'Midscene Android Playground',
       },
     },
   },

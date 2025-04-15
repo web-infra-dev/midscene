@@ -222,8 +222,6 @@ export default class PlaygroundServer {
         try {
           overrideAIConfig(aiConfig);
 
-          console.log(`AI config updated: ${JSON.stringify(aiConfig)}`);
-
           return res.json({
             status: 'ok',
             message: 'AI config updated successfully',
