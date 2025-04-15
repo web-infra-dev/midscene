@@ -97,6 +97,7 @@ export const vlLocateMode = ():
   | 'qwen-vl'
   | 'doubao-vision'
   | 'vl-model'
+  | 'vlm-ui-tars'
   | false => {
   if (
     getAIConfigInBoolean(MIDSCENE_USE_DOUBAO_VISION) &&
@@ -117,6 +118,10 @@ export const vlLocateMode = ():
 
   if (getAIConfigInBoolean(MIDSCENE_USE_VL_MODEL)) {
     return 'vl-model';
+  }
+
+  if (getAIConfigInBoolean(MIDSCENE_USE_VLM_UI_TARS)) {
+    return 'vlm-ui-tars';
   }
 
   return false;
