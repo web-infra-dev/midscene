@@ -386,6 +386,28 @@ function setAIActionContext(actionContext: string): void;
 await agent.setAIActionContext('Close the cookie consent dialog first if it exists');
 ```
 
+### `agent.evaluateJavaScript()`
+
+This method allows you to evaluate a JavaScript expression in the web page context.
+
+* Type
+
+```typescript
+function evaluateJavaScript(script: string): Promise<any>;
+```
+
+* Parameters:
+  * `script: string` - The JavaScript expression to evaluate.
+
+* Return Value:
+  * Returns the result of the JavaScript expression.
+
+* Example:  
+
+```typescript
+const result = await agent.evaluateJavaScript('document.title');
+console.log(result);
+```
 
 ## Properties
 
