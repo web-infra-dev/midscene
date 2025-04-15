@@ -1,0 +1,34 @@
+import StartExperience from './common/start-experience.mdx';
+
+# 通过 Android 设备快速体验
+
+通过使用 Midscene.js Android 设备，你可以快速在 Android 设备上体验 Midscene 的主要功能，而无需编写任何代码。
+
+该 Playground 也是由 `@midscene/android` 包提供，因此你可以将其视为 Midscene  Android 端的一个 Playground 或调试工具。
+
+![](/android-playground.png)
+
+
+## 准备工作
+
+请先准备好任意一个支持视觉语言（VL）的模型 API 密钥。
+
+你可以在 [选择模型](./choose-a-model) 文档中查看 Midscene.js 支持的模型和配置。
+
+## 启动 Playground
+
+```bash
+npx @midscene/android
+```
+
+## 配置 API Key
+
+点击齿轮按钮，进入配置页面：
+
+![](/android-set-env.png)
+
+参考 [配置模型和服务商](./model-provider) 文档，配置 API Key。
+
+<StartExperience />
+
+* [与 Android(adb) 集成](./integrate-with-android)

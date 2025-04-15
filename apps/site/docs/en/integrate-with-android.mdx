@@ -1,7 +1,6 @@
+# Integrate with Android (adb)
 
-# Integrate with Android
-
-You can use Midscene to control Android devices with visual-language (VL) models.
+After connecting the Android device with adb, you can use Midscene to control Android devices with visual-language (VL) models.
 
 import { PackageManagerTabs } from '@theme';
 
@@ -25,9 +24,11 @@ MIDSCENE_MODEL_NAME="qwen-vl-max-latest"
 MIDSCENE_USE_QWEN_VL=1
 ```
 
-Android devices can be controlled by Midscene with visual-language (VL) models. For more details, please refer to [choose a model](./choose-a-model).
+Android devices can be only be controlled by visual-language (VL) models. For more details, please refer to [choose a model](./choose-a-model).
 
-### Prepare adb environment
+### Adb environment
+
+`adb` is a command-line tool that allows you to communicate with an Android device.
 
 - way 1: use [Android Studio](https://developer.android.com/studio?hl=zh-cn) to install
 - way 2: use [Android command-line tools](https://developer.android.com/studio#command-line-tools-only) to install

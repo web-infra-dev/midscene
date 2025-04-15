@@ -64,23 +64,11 @@ export default defineConfig({
               text: 'Quick Experience by Chrome Extension',
               link: '/quick-experience',
             },
-            {
-              text: 'Choose a Model',
-              link: '/choose-a-model',
-            },
           ],
         },
         {
-          text: 'Usage',
+          text: 'Web Browser Automation',
           items: [
-            {
-              text: 'Automate with Scripts in YAML',
-              link: '/automate-with-scripts-in-yaml',
-            },
-            {
-              text: 'Bridge Mode by Chrome Extension',
-              link: '/bridge-mode-by-chrome-extension',
-            },
             {
               text: 'Integrate with Playwright',
               link: '/integrate-with-playwright',
@@ -90,8 +78,8 @@ export default defineConfig({
               link: '/integrate-with-puppeteer',
             },
             {
-              text: 'API Reference',
-              link: '/api',
+              text: 'Bridge Mode by Chrome Extension',
+              link: '/bridge-mode-by-chrome-extension',
             },
             {
               text: 'Caching',
@@ -99,16 +87,46 @@ export default defineConfig({
             },
           ],
         },
+        // {
+        //   text: 'Android Automation',
+        //   items: [
+        //     {
+        //       text: 'Quick Experience',
+        //       link: '/quick-experience-with-android',
+        //     },
+        //     {
+        //       text: 'Integrate with Android(adb)',
+        //       link: '/integrate-with-android',
+        //     },
+        //   ],
+        // },
+        {
+          text: 'API and Usage',
+          items: [
+            {
+              text: 'Automate with Scripts in YAML',
+              link: '/automate-with-scripts-in-yaml',
+            },
+            {
+              text: 'API Reference',
+              link: '/api',
+            },
+          ],
+        },
         {
           text: 'AI Model',
           items: [
             {
-              text: 'Prompting Tips',
-              link: '/prompting-tips',
+              text: 'Choose a Model',
+              link: '/choose-a-model',
             },
             {
               text: 'Config Model and Provider',
               link: '/model-provider',
+            },
+            {
+              text: 'Prompting Tips',
+              link: '/prompting-tips',
             },
           ],
         },
@@ -147,23 +165,11 @@ export default defineConfig({
               text: '通过 Chrome 插件快速体验',
               link: '/zh/quick-experience',
             },
-            {
-              text: '选择 AI 模型',
-              link: '/zh/choose-a-model',
-            },
           ],
         },
         {
-          text: '使用指南',
+          text: 'Web 浏览器自动化',
           items: [
-            {
-              text: '使用 YAML 格式的自动化脚本',
-              link: '/zh/automate-with-scripts-in-yaml',
-            },
-            {
-              text: '使用 Chrome 插件的桥接模式（Bridge Mode）',
-              link: '/zh/bridge-mode-by-chrome-extension',
-            },
             {
               text: '集成到 Playwright',
               link: '/zh/integrate-with-playwright',
@@ -173,8 +179,8 @@ export default defineConfig({
               link: '/zh/integrate-with-puppeteer',
             },
             {
-              text: 'API 参考',
-              link: '/zh/api',
+              text: '使用 Chrome 插件的桥接模式（Bridge Mode）',
+              link: '/zh/bridge-mode-by-chrome-extension',
             },
             {
               text: '缓存',
@@ -182,16 +188,46 @@ export default defineConfig({
             },
           ],
         },
+        // {
+        //   text: 'Android 自动化',
+        //   items: [
+        //     {
+        //       text: '快速体验',
+        //       link: '/zh/quick-experience-with-android',
+        //     },
+        //     {
+        //       text: '与 Android(adb) 集成',
+        //       link: '/zh/integrate-with-android',
+        //     },
+        //   ],
+        // },
+        {
+          text: 'API 和用法',
+          items: [
+            {
+              text: '使用 YAML 格式的自动化脚本',
+              link: '/zh/automate-with-scripts-in-yaml',
+            },
+            {
+              text: 'API 参考',
+              link: '/zh/api',
+            },
+          ],
+        },
         {
           text: 'AI 模型',
           items: [
             {
-              text: '编写提示词（指令）的技巧',
-              link: '/zh/prompting-tips',
+              text: '选择 AI 模型',
+              link: '/zh/choose-a-model',
             },
             {
               text: '配置模型和服务商',
               link: '/zh/model-provider',
+            },
+            {
+              text: '编写提示词（指令）的技巧',
+              link: '/zh/prompting-tips',
             },
           ],
         },
