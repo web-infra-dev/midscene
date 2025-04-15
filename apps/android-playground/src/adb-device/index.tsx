@@ -4,7 +4,7 @@ import { Button, Divider, Dropdown } from 'antd';
 import { useCallback, useRef, useState } from 'react';
 import type { Socket } from 'socket.io-client';
 
-// 状态点指示器
+// status dot indicator
 const onlineStatus = (color: string) => (
   <span
     className="status-dot"
@@ -40,25 +40,25 @@ const AdbDevice: React.FC<AdbDeviceProps> = ({
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const lastSelectedDeviceRef = useRef<string | null>(null);
 
-  // 处理设备选择
+  // handle device selection
   const handleDeviceSelect = useCallback(
     (deviceId: string) => {
       if (deviceId === lastSelectedDeviceRef.current) {
         return;
       }
 
-      // 检查 socket 连接状态
+      // check socket connection status
       if (!socketRef.current || !socketRef.current.connected) {
         return;
       }
 
-      // 关闭下拉菜单
+      // close dropdown
       setDropdownOpen(false);
 
-      // 调用父组件传入的设备选择处理函数
+      // call the parent component's device selection handler
       onDeviceSelect(deviceId);
 
-      // 更新上次选择的设备ID
+      // update the last selected device id
       lastSelectedDeviceRef.current = deviceId;
     },
     [onDeviceSelect, socketRef],

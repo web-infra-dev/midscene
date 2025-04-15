@@ -66,18 +66,18 @@ export const ScrcpyPlayer: React.FC<ScrcpyProps> = ({
   const reconnectTimerRef = useRef<NodeJS.Timeout | null>(null);
   const metadataTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  // 创建一个安全移除节点的工具函数
+  // create a safe remove child nodes tool function
   const safeRemoveChildNodes = useCallback((parent: Element | null) => {
     if (!parent) return;
 
     try {
-      // 使用更安全的方式清空子节点
+      // use a safer way to clear child nodes
       while (parent.firstChild) {
         try {
           parent.removeChild(parent.firstChild);
         } catch (e) {
           console.warn('Failed to remove child, skipping:', e);
-          // 如果移除失败，将其设置为 null 以避免再次尝试移除
+          // if remove failed, set it to null to avoid trying to remove again
           if (parent.firstChild) {
             parent.innerHTML = '';
             break;
@@ -86,7 +86,7 @@ export const ScrcpyPlayer: React.FC<ScrcpyProps> = ({
       }
     } catch (e) {
       console.error('Error clearing container:', e);
-      // 最后的手段 - 直接重置 HTML
+      // last resort - directly reset HTML
       try {
         parent.innerHTML = '';
       } catch (innerErr) {
@@ -95,7 +95,7 @@ export const ScrcpyPlayer: React.FC<ScrcpyProps> = ({
     }
   }, []);
 
-  // 更新 canvas 尺寸以适应容器
+  // update canvas size to fit container
   const updateCanvasSize = useCallback(() => {
     if (!videoElementRef.current || !videoContainerRef.current || !screenInfo)
       return;
@@ -106,11 +106,11 @@ export const ScrcpyPlayer: React.FC<ScrcpyProps> = ({
     const containerHeight = container.clientHeight;
     const { width: originalWidth, height: originalHeight } = screenInfo;
 
-    // 留出顶部和底部各20px的padding
+    // leave 20px padding on top and bottom
     const paddingVertical = 40; // 顶部和底部各20px
     const availableHeight = containerHeight - paddingVertical;
 
-    // 计算适合容器的尺寸，保持宽高比
+    // calculate the size fit to container, keep the aspect ratio
     const aspectRatio = originalWidth / originalHeight;
     let targetWidth = containerWidth;
     let targetHeight = containerWidth / aspectRatio;
@@ -120,7 +120,7 @@ export const ScrcpyPlayer: React.FC<ScrcpyProps> = ({
       targetWidth = availableHeight * aspectRatio;
     }
 
-    // 更新 canvas 属性和样式
+    // update canvas properties and styles
     canvas.width = originalWidth;
     canvas.height = originalHeight;
     canvas.style.width = `${targetWidth}px`;
@@ -129,7 +129,7 @@ export const ScrcpyPlayer: React.FC<ScrcpyProps> = ({
     canvas.style.marginBottom = '20px';
   }, [screenInfo]);
 
-  // 监听窗口大小变化
+  // listen window size change
   useEffect(() => {
     const handleResize = () => {
       updateCanvasSize();
@@ -139,7 +139,7 @@ export const ScrcpyPlayer: React.FC<ScrcpyProps> = ({
     return () => window.removeEventListener('resize', handleResize);
   }, [updateCanvasSize]);
 
-  // 当 screenInfo 更新时调整尺寸
+  // when screenInfo updates, adjust the size
   useEffect(() => {
     updateCanvasSize();
   }, [screenInfo, updateCanvasSize]);
@@ -180,7 +180,7 @@ export const ScrcpyPlayer: React.FC<ScrcpyProps> = ({
       const canvasWrapper =
         videoContainerRef.current.querySelector('.canvas-wrapper');
       if (canvasWrapper) {
-        // 安全地清空容器
+        // safely clear container
         safeRemoveChildNodes(canvasWrapper);
         canvasWrapper.appendChild(videoElementRef.current);
       }
@@ -266,7 +266,6 @@ export const ScrcpyPlayer: React.FC<ScrcpyProps> = ({
 
         // handle disconnection
         const disconnectHandler = () => {
-          console.log('disconnected from server, closing stream');
           if (!streamClosed) {
             controller.close();
             streamClosed = true;
@@ -324,9 +323,7 @@ export const ScrcpyPlayer: React.FC<ScrcpyProps> = ({
 
   // disconnect device
   const disconnectDevice = useCallback(() => {
-    console.log('Disconnecting device and cleaning resources...');
-
-    // 清理解码器资源
+    // dispose decoder resources
     if (decoderRef.current) {
       try {
         decoderRef.current.dispose();
@@ -336,21 +333,20 @@ export const ScrcpyPlayer: React.FC<ScrcpyProps> = ({
       }
     }
 
-    // 清空视频容器
+    // clear video container
     if (videoContainerRef.current) {
       const canvasWrapper =
         videoContainerRef.current.querySelector('.canvas-wrapper');
       safeRemoveChildNodes(canvasWrapper);
     }
 
-    // 断开 socket 连接
+    // disconnect socket
     if (socketRef.current) {
-      console.log('Disconnecting socket...');
       socketRef.current.disconnect();
       socketRef.current = null;
     }
 
-    // 清理定时器
+    // clean up timers
     if (reconnectTimerRef.current) {
       clearTimeout(reconnectTimerRef.current);
       reconnectTimerRef.current = null;
@@ -361,28 +357,24 @@ export const ScrcpyPlayer: React.FC<ScrcpyProps> = ({
       metadataTimeoutRef.current = null;
     }
 
-    // 重置状态
+    // reset status
     setConnected(false);
     setConnecting(false);
     setScreenInfo(null);
-
-    console.log('Device disconnected, all resources cleaned');
   }, [safeRemoveChildNodes]);
 
   // connect device
   const connectDevice = useCallback(async () => {
     try {
-      console.log('开始连接设备...');
-
-      // 始终清理之前的资源，确保干净状态
+      // always clean up previous resources, ensure clean state
       disconnectDevice();
 
-      // 确保状态重置
+      // ensure status reset
       setConnected(false);
       setConnecting(true);
       setScreenInfo(null);
 
-      // 短暂延迟确保资源已清理
+      // short delay to ensure resources are cleaned
       await new Promise((resolve) => setTimeout(resolve, 150));
 
       // ensure the component is still mounted and has a valid server URL
@@ -403,13 +395,6 @@ export const ScrcpyPlayer: React.FC<ScrcpyProps> = ({
 
         // setup new timeout check
         metadataTimeoutRef.current = setTimeout(() => {
-          console.log(
-            'Warning: no video metadata event received, possible connection issue',
-            {
-              socketConnected: socketRef.current?.connected,
-            },
-          );
-
           if (socketRef.current?.connected) {
             try {
               socketRef.current.emit('connect-device', {
@@ -459,7 +444,6 @@ export const ScrcpyPlayer: React.FC<ScrcpyProps> = ({
 
           // notify parent component after connection is successful
           socketRef.current.on('connect', () => {
-            console.log('Socket connected, notify parent component');
             onConnectionStatusChange?.(true);
 
             // get device id from socket
@@ -485,17 +469,15 @@ export const ScrcpyPlayer: React.FC<ScrcpyProps> = ({
             'video-metadata',
             async (metadata: VideoMetadata) => {
               try {
-                console.log('收到视频元数据:', metadata);
                 // clear metadata timeout
                 if (metadataTimeoutRef.current) {
                   clearTimeout(metadataTimeoutRef.current);
                   metadataTimeoutRef.current = null;
                 }
 
-                // 如果已有解码器，先清理
+                // if there is already a decoder, clean it first
                 if (decoderRef.current) {
                   try {
-                    console.log('清理现有解码器...');
                     decoderRef.current.dispose();
                     decoderRef.current = null;
                   } catch (error) {
@@ -503,7 +485,7 @@ export const ScrcpyPlayer: React.FC<ScrcpyProps> = ({
                   }
                 }
 
-                // 清理视频容器
+                // clean video container
                 if (videoContainerRef.current) {
                   const canvasWrapper =
                     videoContainerRef.current.querySelector('.canvas-wrapper');
@@ -517,10 +499,9 @@ export const ScrcpyPlayer: React.FC<ScrcpyProps> = ({
                   : ScrcpyVideoCodecId.H264;
 
                 // create decoder
-                console.log('创建新解码器...');
                 decoderRef.current = await createDecoder(codecId);
 
-                // 确保解码器创建成功
+                // ensure the decoder is created successfully
                 if (!decoderRef.current) {
                   throw new Error('Failed to create decoder');
                 }
@@ -528,7 +509,6 @@ export const ScrcpyPlayer: React.FC<ScrcpyProps> = ({
                 // listen to size change event
                 decoderRef.current.sizeChanged(
                   ({ width, height }: { width: number; height: number }) => {
-                    console.log(`屏幕尺寸改变: ${width}x${height}`);
                     setScreenInfo({ width, height });
                   },
                 );
@@ -549,9 +529,6 @@ export const ScrcpyPlayer: React.FC<ScrcpyProps> = ({
                 setConnected(true);
                 setConnecting(false);
                 // video metadata received successfully, device connected
-                console.log(
-                  'video metadata received successfully, device connected',
-                );
                 onConnectionStatusChange?.(true);
               } catch (error: any) {
                 console.error('Failed to initialize decoder:', error);
@@ -578,7 +555,6 @@ export const ScrcpyPlayer: React.FC<ScrcpyProps> = ({
           // handle disconnection event
           socketRef.current.on('disconnect', () => {
             setConnected(false);
-            console.log('Socket disconnected, notify parent component');
             onConnectionStatusChange?.(false);
 
             // clear metadata timeout
@@ -594,7 +570,7 @@ export const ScrcpyPlayer: React.FC<ScrcpyProps> = ({
             }
 
             if (videoContainerRef.current) {
-              // 安全地清空容器
+              // safely clear container
               safeRemoveChildNodes(
                 videoContainerRef.current.querySelector('.canvas-wrapper'),
               );
@@ -655,16 +631,9 @@ export const ScrcpyPlayer: React.FC<ScrcpyProps> = ({
 
   // detect autoConnect change, connect device when autoConnect is true
   useEffect(() => {
-    console.log(
-      `autoConnect effect: autoConnect=${autoConnect}, connected=${connected}, connecting=${connecting}`,
-    );
-
     if (autoConnect && !connected && !connecting) {
-      // 只有当未连接且不在连接中时才触发连接
-      console.log('autoConnect is true and not connected, trigger connection');
-
+      // only trigger connection when not connected and not connecting
       const timer = setTimeout(() => {
-        console.log('start auto connection');
         connectDevice();
       }, 300);
 
@@ -676,8 +645,6 @@ export const ScrcpyPlayer: React.FC<ScrcpyProps> = ({
   useEffect(() => {
     // return cleanup function, called when component unmounts
     return () => {
-      console.log('component unmount, clean up resources...');
-
       onConnectionStatusChange?.(false);
 
       // dispose decoder
@@ -690,13 +657,13 @@ export const ScrcpyPlayer: React.FC<ScrcpyProps> = ({
         }
       }
 
-      // 清理视频容器
+      // clean video container
       if (videoContainerRef.current) {
         try {
           const canvasWrapper =
             videoContainerRef.current.querySelector('.canvas-wrapper');
           if (canvasWrapper) {
-            // 安全地清空内容而非移除节点
+            // safely clear content instead of removing node
             canvasWrapper.innerHTML = '';
           }
         } catch (error) {
@@ -720,8 +687,6 @@ export const ScrcpyPlayer: React.FC<ScrcpyProps> = ({
         clearTimeout(metadataTimeoutRef.current);
         metadataTimeoutRef.current = null;
       }
-
-      console.log('resource cleanup completed');
     };
   }, [onConnectionStatusChange]);
 

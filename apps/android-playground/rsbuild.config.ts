@@ -29,41 +29,9 @@ export default defineConfig({
         ],
       },
     },
-    node: {
-      source: {
-        entry: {
-          'stop-water-flow': './src/scripts/stop-water-flow.ts',
-          'water-flow': './src/scripts/water-flow.ts',
-        },
-      },
-      output: {
-        target: 'node',
-        sourceMap: true,
-        filename: {
-          js: 'scripts/[name].js',
-        },
-      },
-    },
   },
   dev: {
     writeToDisk: true,
-  },
-  output: {
-    polyfill: 'entry',
-    copy: [
-      {
-        from: path.resolve(
-          __dirname,
-          '../../packages/web-integration/iife-script',
-        ),
-        to: 'scripts',
-      },
-    ],
-  },
-  source: {
-    define: {
-      __SDK_VERSION__: JSON.stringify(version),
-    },
   },
   resolve: {
     alias: {

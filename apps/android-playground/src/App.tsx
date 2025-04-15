@@ -57,7 +57,7 @@ export default function App() {
   const configAlreadySet = Object.keys(config || {}).length >= 1;
   const serverValid = useServerValid(true);
 
-  // Socket 连接及设备管理
+  // Socket connection and device management
   const socketRef = useRef<Socket | null>(null);
 
   // clear the polling interval
@@ -68,7 +68,7 @@ export default function App() {
     }
   }, []);
 
-  // 连接到设备服务器
+  // connect to device server
   useEffect(() => {
     const socket = io(SERVER_URL, {
       withCredentials: true,
@@ -78,12 +78,10 @@ export default function App() {
     });
 
     socket.on('connect', () => {
-      console.log('connected to device server');
       socket.emit('get-devices');
     });
 
     socket.on('disconnect', (reason: string) => {
-      console.log('disconnected from device server:', reason);
       setLoadingDevices(true);
     });
 
@@ -107,25 +105,26 @@ export default function App() {
 
     socket.on('global-device-switched', (data: { deviceId: string }) => {
       setSelectedDeviceId(data.deviceId);
-      console.log(`device switched to: ${data.deviceId}`);
     });
 
     socket.on('connect_error', (error: Error) => {
       console.error('Socket.IO connection error:', error);
-      messageApi.error('等待连接设备服务器，请稍后再试');
+      messageApi.error(
+        'Waiting for device server connection, please try again later',
+      );
       setLoadingDevices(false);
     });
 
     socket.on('error', (error: Error) => {
       console.error('Socket.IO error:', error);
       messageApi.error(
-        `与服务器通信时发生错误: ${error.message || '未知错误'}`,
+        `Error occurred while communicating with the server: ${error.message || 'Unknown error'}`,
       );
     });
 
     socketRef.current = socket;
 
-    // 定期请求设备列表
+    // request device list periodically
     const timer = setTimeout(() => {
       if (socket.connected) {
         socket.emit('get-devices');
@@ -134,12 +133,11 @@ export default function App() {
 
     return () => {
       clearTimeout(timer);
-      console.log('disconnect Socket.IO connection');
       socket.disconnect();
     };
   }, [messageApi]);
 
-  // 切换设备
+  // switch device
   const handleDeviceSelect = useCallback(
     (deviceId: string) => {
       if (deviceId === lastSelectedDeviceRef.current) {
@@ -160,21 +158,19 @@ export default function App() {
         return;
       }
 
-      console.log(`开始切换设备到: ${deviceId}`);
-
-      // 先断开当前连接，并重置相关状态
+      // disconnect current connection and reset related status
       setConnectToDevice(false);
       setConnectionReady(false);
 
-      // 清理当前会话状态
+      // clean current session status
       setResult(null);
       setReplayScriptsInfo(null);
       setLoading(false);
       clearPollingInterval();
 
-      // 使用短暂延迟确保资源已清理
+      // use a short delay to ensure resources are cleaned
       setTimeout(() => {
-        // 然后设置新的设备ID
+        // then set the new device id
         setSelectedDeviceId(deviceId);
         lastSelectedDeviceRef.current = deviceId;
 
@@ -191,12 +187,11 @@ export default function App() {
             clearTimeout(timeoutId);
             setLoadingDevices(false);
 
-            // 设备切换成功后，触发新设备连接
-            console.log(`设备切换成功，准备连接: ${deviceId}`);
+            // after device switched, trigger new device connection
             setTimeout(() => {
               setConnectToDevice(true);
               messageApi.success(`Device selected: ${deviceId}`);
-            }, 500); // 增加延迟，确保有足够时间完成切换
+            }, 500); // add delay to ensure enough time for switch
           });
 
           socketRef.current.once('error', (error: Error) => {
@@ -208,7 +203,7 @@ export default function App() {
           setLoadingDevices(false);
           messageApi.error('Socket connection lost, please refresh the page');
         }
-      }, 500); // 增加延迟，确保先断开连接
+      }, 500); // add delay to ensure enough time for switch
     },
     [messageApi, clearPollingInterval],
   );
@@ -261,12 +256,12 @@ export default function App() {
     if (connectToDevice) {
       // reset the connection flag, so that it can be triggered again
       const timer = setTimeout(() => {
-        // 只有当设备未切换时才重置 connectToDevice
-        // 这样确保设备切换过程中不会重置连接状态
+        // only reset connectToDevice when the device is not switched
+        // this ensures that the connection status is not reset during device switch
         if (selectedDeviceId === lastSelectedDeviceRef.current) {
           setConnectToDevice(false);
         }
-      }, 800); // 增加延迟，确保有足够时间连接
+      }, 800); // add delay to ensure enough time for connection
 
       return () => clearTimeout(timer);
     }
@@ -281,12 +276,14 @@ export default function App() {
   // handle run button click
   const handleRun = useCallback(async () => {
     if (!selectedDeviceId) {
-      messageApi.warning('请先选择一个设备');
+      messageApi.warning('Please select a device first');
       return;
     }
 
     if (!connectionReady) {
-      messageApi.warning('等待连接建立，请稍后再试');
+      messageApi.warning(
+        'Waiting for connection establishment, please try again later',
+      );
       return;
     }
 
@@ -324,20 +321,19 @@ export default function App() {
 
       // handle the special case of aiAction type, extract script information
       if (type === 'aiAction' && res?.dump) {
-        console.log('type: ', type);
         const info = allScriptsFromDump(res.dump);
         setReplayScriptsInfo(info);
         setReplayCounter((c) => c + 1);
       } else {
         setReplayScriptsInfo(null);
       }
-      messageApi.success('命令已执行');
+      messageApi.success('Command executed');
     } catch (error) {
       clearPollingInterval();
       setLoading(false);
       console.error('execute command error:', error);
       messageApi.error(
-        `执行命令失败: ${error instanceof Error ? error.message : '未知错误'}`,
+        `Command execution failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
       );
     }
   }, [
@@ -360,7 +356,7 @@ export default function App() {
     clearPollingInterval();
     setLoading(false);
     resetResult();
-    messageApi.info('操作已停止');
+    messageApi.info('Operation stopped');
   }, [messageApi, clearPollingInterval]);
 
   return (
