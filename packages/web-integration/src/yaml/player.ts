@@ -1,8 +1,7 @@
 import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
-import { assert, getMidsceneRunPathOfType } from '@midscene/shared/utils';
+import { assert, ifInBrowser } from '@midscene/shared/utils';
 
-import type { ChromeExtensionProxyPage } from '@/chrome-extension';
 import type { PageAgent } from '@/common/agent';
 import type {
   FreeFn,
@@ -22,6 +21,7 @@ import type {
   ScriptPlayerStatusValue,
   ScriptPlayerTaskStatus,
 } from '@midscene/core';
+import { getMidsceneRunPathOfType } from '@midscene/shared/fs';
 
 export class ScriptPlayer {
   public currentTaskIndex?: number;
@@ -44,7 +44,9 @@ export class ScriptPlayer {
   ) {
     this.result = {};
 
-    if (script.target?.output) {
+    if (ifInBrowser) {
+      this.output = undefined;
+    } else if (script.target?.output) {
       this.output = resolve(process.cwd(), script.target.output);
     } else {
       this.output = join(
@@ -211,11 +213,7 @@ export class ScriptPlayer {
         const evaluateJavaScriptTask =
           flowItem as MidsceneYamlFlowItemEvaluateJavaScript;
 
-        assert(
-          agent.page.evaluateJavaScript,
-          'evaluateJavaScript is not supported in current agent',
-        );
-        const result = await agent.page.evaluateJavaScript(
+        const result = await agent.evaluateJavaScript(
           evaluateJavaScriptTask.javascript,
         );
         this.setResult(evaluateJavaScriptTask.name, result);

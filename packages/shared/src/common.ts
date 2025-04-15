@@ -1,4 +1,4 @@
-import { getMidsceneRunPathOfType } from './utils';
+import { getMidsceneRunPathOfType } from './node/fs';
 
 // Define locally for now to avoid import issues
 export const isNodeEnv =

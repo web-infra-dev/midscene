@@ -1,4 +1,4 @@
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import path from 'node:path';
 import { assert, ifInBrowser } from '../utils';
@@ -75,3 +75,31 @@ export async function getExtraReturnLogic(tree = false) {
   }
   return `${elementInfosScriptContent}midscene_element_inspector.webExtractTextWithPosition()`;
 }
+
+export const getMidsceneRunBasePath = (): string => {
+  if (ifInBrowser) {
+    return '';
+  }
+
+  const basePath = path.join(process.cwd(), 'midscene_run');
+
+  // Create a base directory
+  if (!existsSync(basePath)) {
+    mkdirSync(basePath, { recursive: true });
+  }
+  return basePath;
+};
+
+export const getMidsceneRunPathOfType = (
+  type: 'log' | 'report' | 'output' | 'cache',
+): string => {
+  if (ifInBrowser) {
+    return '';
+  }
+  const basePath = getMidsceneRunBasePath();
+  const runPath = path.join(basePath, type);
+  if (!existsSync(runPath)) {
+    mkdirSync(runPath, { recursive: true });
+  }
+  return runPath;
+};
