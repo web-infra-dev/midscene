@@ -87,19 +87,19 @@ export default defineConfig({
             },
           ],
         },
-        {
-          text: 'Android Automation',
-          items: [
-            {
-              text: 'Quick Experience',
-              link: '/quick-experience-with-android',
-            },
-            {
-              text: 'Integrate with Android(adb)',
-              link: '/integrate-with-android',
-            },
-          ],
-        },
+        // {
+        //   text: 'Android Automation',
+        //   items: [
+        //     {
+        //       text: 'Quick Experience',
+        //       link: '/quick-experience-with-android',
+        //     },
+        //     {
+        //       text: 'Integrate with Android(adb)',
+        //       link: '/integrate-with-android',
+        //     },
+        //   ],
+        // },
         {
           text: 'API and Usage',
           items: [
@@ -188,19 +188,19 @@ export default defineConfig({
             },
           ],
         },
-        {
-          text: 'Android 自动化',
-          items: [
-            {
-              text: '快速体验',
-              link: '/zh/quick-experience-with-android',
-            },
-            {
-              text: '与 Android(adb) 集成',
-              link: '/zh/integrate-with-android',
-            },
-          ],
-        },
+        // {
+        //   text: 'Android 自动化',
+        //   items: [
+        //     {
+        //       text: '快速体验',
+        //       link: '/zh/quick-experience-with-android',
+        //     },
+        //     {
+        //       text: '与 Android(adb) 集成',
+        //       link: '/zh/integrate-with-android',
+        //     },
+        //   ],
+        // },
         {
           text: 'API 和用法',
           items: [
