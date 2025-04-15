@@ -24,7 +24,7 @@ export default class ScrcpyServer {
   adbClient: AdbServerClient | null = null;
   currentDeviceId: string | null = null;
   devicePollInterval: NodeJS.Timeout | null = null;
-  lastDeviceList = ''; // 用于保存上次设备列表的JSON字符串，用于比较变化
+  lastDeviceList = ''; // use for comparing changes
 
   constructor() {
     this.app = express();
@@ -113,6 +113,10 @@ export default class ScrcpyServer {
 
   // get adb client
   private async getAdbClient() {
+    const { AdbServerClient } = await import('@yume-chan/adb');
+    const { AdbServerNodeTcpConnector } = await import(
+      '@yume-chan/adb-server-node-tcp'
+    );
     try {
       if (!this.adbClient) {
         await promiseExec('adb start-server'); // make sure adb server is running
@@ -137,6 +141,7 @@ export default class ScrcpyServer {
 
   // get adb object
   private async getAdb(deviceId?: string) {
+    const { Adb } = await import('@yume-chan/adb');
     try {
       const client = await this.getAdbClient();
       if (!client) {
@@ -166,6 +171,14 @@ export default class ScrcpyServer {
 
   // start scrcpy
   private async startScrcpy(adb: Adb, options = {}) {
+    const { AdbScrcpyClient, AdbScrcpyOptions2_1 } = await import(
+      '@yume-chan/adb-scrcpy'
+    );
+    const { ReadableStream } = await import('@yume-chan/stream-extra');
+    const { ScrcpyOptions3_1, DefaultServerPath } = await import(
+      '@yume-chan/scrcpy'
+    );
+    const { BIN } = await import('@yume-chan/fetch-scrcpy-server');
     try {
       // Push server
       await AdbScrcpyClient.pushServer(
@@ -262,6 +275,7 @@ export default class ScrcpyServer {
 
       // handle device connection request
       socket.on('connect-device', async (options) => {
+        const { ScrcpyVideoCodecId } = await import('@yume-chan/scrcpy');
         try {
           debugPage(
             'received device connection request, options: %s, client id: %s',
