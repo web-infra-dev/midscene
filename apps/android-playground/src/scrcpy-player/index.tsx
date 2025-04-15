@@ -441,7 +441,6 @@ export const ScrcpyPlayer = forwardRef<ScrcpyRefMethods, ScrcpyProps>(
 
               try {
                 if (socketRef.current) {
-                  socketRef.current.disconnect();
                   setTimeout(() => {
                     // reconnect after a short delay
                     if (socketRef.current) {
@@ -549,7 +548,6 @@ export const ScrcpyPlayer = forwardRef<ScrcpyRefMethods, ScrcpyProps>(
                     .pipeTo(decoderRef.current.writable)
                     .catch((error: Error) => {
                       console.error('video stream processing error:', error);
-                      message.error('video stream processing error');
                       onConnectionStatusChange?.(false);
                     });
 
@@ -753,6 +751,9 @@ export const ScrcpyPlayer = forwardRef<ScrcpyRefMethods, ScrcpyProps>(
                 <Tooltip placement="bottom" title="Connect Device">
                   <Button
                     disabled={connected}
+                    style={{
+                      backgroundColor: '#fff',
+                    }}
                     icon={<LinkedIcon />}
                     onClick={connectDevice}
                   />

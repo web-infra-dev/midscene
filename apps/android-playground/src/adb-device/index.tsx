@@ -76,12 +76,7 @@ const AdbDevice: React.FC<AdbDeviceProps> = ({
       scrcpyPlayerRef.current.disconnectDevice();
       messageApi.info('Device disconnected');
     }
-
-    // disconnect socket
-    if (socketRef.current) {
-      socketRef.current.disconnect();
-    }
-  }, [socketRef, scrcpyPlayerRef, messageApi]);
+  }, [scrcpyPlayerRef, messageApi]);
 
   // check if selected device is offline
   const isSelectedDeviceOffline = selectedDeviceId

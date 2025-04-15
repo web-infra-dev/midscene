@@ -113,6 +113,7 @@ export const PromptInput: React.FC<PromptInputProps> = ({
       <Button
         type="primary"
         icon={<SendOutlined />}
+        style={{ borderRadius: 20 }}
         onClick={handleRunWithHistory}
         disabled={!runButtonEnabled}
         loading={loading}

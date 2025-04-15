@@ -386,7 +386,7 @@ export default function App() {
                   <h2>Command input</h2>
                   <Form form={form} className="command-form">
                     <div className="form-content">
-                      <div>
+                      <div className="command-input-wrapper">
                         <PromptInput
                           runButtonEnabled={
                             !!selectedDeviceId && configAlreadySet

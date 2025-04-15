@@ -45,7 +45,6 @@ body {
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.09);
   }
 
-  // 左侧面板
   &.left-panel {
     width: 480px;
     flex: none;
@@ -55,7 +54,6 @@ body {
     flex-direction: column;
   }
 
-  // 右侧面板
   &.right-panel {
     border-radius: 0;
     flex: 1;
@@ -65,23 +63,20 @@ body {
 }
 
 .panel-content {
-  padding: 12px 24px;
+  padding: 12px 24px 24px 24px;
   height: 100%;
   overflow: auto;
   display: flex;
   flex-direction: column;
+  border-left: 1px solid rgba(0, 0, 0, 0.08);
 
-  // 左侧面板内容
   &.left-panel-content {
-    border-top-left-radius: 20px;
-    border-bottom-left-radius: 20px;
     display: flex;
     flex-direction: column;
     height: 100%;
     overflow: hidden;
   }
 
-  // 右侧面板内容
   &.right-panel-content {
     border-radius: 0;
   }
@@ -89,7 +84,8 @@ body {
   h2 {
     color: #000;
     font-size: 18px;
-    margin: 12px 0;
+    margin-top: 16px;
+    margin-bottom: 20px;
   }
 
   canvas {
@@ -100,7 +96,6 @@ body {
   }
 }
 
-// 表单样式
 .command-form {
   display: flex;
   flex-direction: column;
@@ -112,13 +107,16 @@ body {
     flex-direction: column;
     height: 100%;
   }
+
+  .command-input-wrapper {
+    margin-top: 8px;
+    margin-bottom: 25px;
+  }
 }
 
-// 结果显示区域
 .result-container {
   flex: 1;
   overflow: hidden;
-  margin-top: 12px;
   display: flex;
   flex-direction: column;
   min-height: 0;

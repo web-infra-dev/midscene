@@ -76,6 +76,7 @@ export function EnvConfig() {
       <Tooltip
         title="Please set up your environment variables before using."
         placement="bottom"
+        align={{ offset: [-10, 5] }}
         open={Object.keys(config).length === 0}
       >
         <SettingOutlined onClick={showModal} />
