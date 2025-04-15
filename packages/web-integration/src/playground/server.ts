@@ -151,11 +151,13 @@ export default class PlaygroundServer {
           dump: string | null;
           error: string | null;
           requestId: string;
+          reportHTML: string | null;
         } = {
           result: null,
           dump: null,
           error: null,
           requestId,
+          reportHTML: null,
         };
 
         const startTime = Date.now();
@@ -179,6 +181,8 @@ export default class PlaygroundServer {
 
         try {
           response.dump = JSON.parse(agent.dumpDataString());
+          response.reportHTML = agent.reportHTMLString() || null;
+
           agent.writeOutActionDumps();
         } catch (error: any) {
           console.error(

@@ -47,6 +47,8 @@ export default function App() {
     reportHTML: null,
     error: null,
   });
+  console.log('result: ', result);
+
   const [replayCounter, setReplayCounter] = useState(0);
   const [replayScriptsInfo, setReplayScriptsInfo] =
     useState<ReplayScriptsInfo | null>(null);
@@ -96,7 +98,7 @@ export default function App() {
           setSelectedDeviceId(data.currentDeviceId);
 
           if (data.devices.length === 1) {
-            handleDeviceSelect(data.devices[0].id);
+            handleDeviceSelect(data.devices[0].id, true);
           }
         }
         setLoadingDevices(false);
@@ -139,7 +141,7 @@ export default function App() {
 
   // switch device
   const handleDeviceSelect = useCallback(
-    (deviceId: string) => {
+    (deviceId: string, silent = false) => {
       if (deviceId === lastSelectedDeviceRef.current) {
         return;
       }
@@ -190,7 +192,9 @@ export default function App() {
             // after device switched, trigger new device connection
             setTimeout(() => {
               setConnectToDevice(true);
-              messageApi.success(`Device selected: ${deviceId}`);
+              if (!silent) {
+                messageApi.success(`Device selected: ${deviceId}`);
+              }
             }, 500); // add delay to ensure enough time for switch
           });
 
@@ -402,7 +406,7 @@ export default function App() {
                           result={result}
                           loading={loading}
                           serverValid={serverValid}
-                          serviceMode={'Server'}
+                          serviceMode="Server"
                           replayScriptsInfo={replayScriptsInfo}
                           replayCounter={replayCounter}
                           loadingProgressText={loadingProgressText}

@@ -57,7 +57,9 @@ export const PlaygroundResultView: React.FC<PlaygroundResultProps> = ({
         imageWidth={replayScriptsInfo.width}
         imageHeight={replayScriptsInfo.height}
         reportFileContent={
-          serviceMode === 'In-Browser-Extension' && result?.reportHTML
+          (serviceMode === 'In-Browser-Extension' ||
+            serviceMode === 'Server') &&
+          result?.reportHTML
             ? result?.reportHTML
             : null
         }
