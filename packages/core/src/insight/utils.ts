@@ -23,9 +23,8 @@ export function emitInsightDump(
   assert(logDir, 'logDir should be set before writing dump file');
 
   let modelDescription = '';
-  if (getAIConfigInBoolean(MIDSCENE_USE_VLM_UI_TARS)) {
-    modelDescription = 'vlm-ui-tars mode';
-  } else if (vlLocateMode()) {
+
+  if (vlLocateMode()) {
     modelDescription = `${vlLocateMode()} mode`;
   }
 
