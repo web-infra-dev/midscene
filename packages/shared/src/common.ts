@@ -1,6 +1,8 @@
 import fs from 'node:fs';
+import { tmpdir } from 'node:os';
 import path from 'node:path';
 
+const runDir = 'midscene_run';
 // Define locally for now to avoid import issues
 export const isNodeEnv =
   typeof process !== 'undefined' &&
@@ -15,11 +17,17 @@ export const isNodeEnv =
  * @returns The absolute path to the requested directory
  */
 export const getMidsceneRunLogPath = (): string => {
-  const basePath = path.join(process.cwd(), 'midscene_run');
+  let basePath = path.join(process.cwd(), runDir);
 
   // Create a base directory
   if (!fs.existsSync(basePath)) {
-    fs.mkdirSync(basePath, { recursive: true });
+    try {
+      fs.mkdirSync(basePath, { recursive: true });
+    } catch (error) {
+      // console.error(`Failed to create ${runDir} directory: ${error}`);
+      basePath = path.join(tmpdir(), runDir);
+      fs.mkdirSync(basePath, { recursive: true });
+    }
   }
 
   // Create a log directory
