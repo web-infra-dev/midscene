@@ -725,7 +725,9 @@ export const ScrcpyPlayer = forwardRef<ScrcpyRefMethods, ScrcpyProps>(
           {connected && (
             <div className="header-bar">
               <div className="header-left">
-                <Text>Screen Projection</Text>
+                <Text style={{ fontWeight: 600, fontSize: 12 }}>
+                  Screen Projection
+                </Text>
                 <Tooltip
                   placement="bottom"
                   title={`Device ID: ${deviceId || 'Unknown'}`}

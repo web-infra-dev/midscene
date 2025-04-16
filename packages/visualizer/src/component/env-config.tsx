@@ -82,7 +82,7 @@ export function EnvConfig() {
         <SettingOutlined onClick={showModal} />
       </Tooltip>
       <Modal
-        title="Env Config"
+        title="Model Env Config"
         open={isModalOpen}
         onOk={handleOk}
         onCancel={handleCancel}

@@ -134,7 +134,11 @@ export const PromptInput: React.FC<PromptInputProps> = ({
 
     if (stoppable) {
       return (
-        <Button icon={<BorderOutlined />} onClick={onStop}>
+        <Button
+          icon={<BorderOutlined />}
+          onClick={onStop}
+          style={{ borderRadius: 20 }}
+        >
           Stop
         </Button>
       );
@@ -160,15 +164,21 @@ export const PromptInput: React.FC<PromptInputProps> = ({
             disabled={!runButtonEnabled}
             className="mode-radio-group"
           >
-            <Radio.Button value="aiAction">
-              {actionNameForType('aiAction')}
-            </Radio.Button>
-            <Radio.Button value="aiQuery">
-              {actionNameForType('aiQuery')}
-            </Radio.Button>
-            <Radio.Button value="aiAssert">
-              {actionNameForType('aiAssert')}
-            </Radio.Button>
+            <Tooltip title="Auto Planning: plan the steps and execute">
+              <Radio.Button value="aiAction">
+                {actionNameForType('aiAction')}
+              </Radio.Button>
+            </Tooltip>
+            <Tooltip title="Extract data directly from the UI">
+              <Radio.Button value="aiQuery">
+                {actionNameForType('aiQuery')}
+              </Radio.Button>
+            </Tooltip>
+            <Tooltip title="Understand the UI and determine if the assertion is true">
+              <Radio.Button value="aiAssert">
+                {actionNameForType('aiAssert')}
+              </Radio.Button>
+            </Tooltip>
           </Radio.Group>
         </Form.Item>
         <HistorySelector onSelect={handleSelectHistory} />
