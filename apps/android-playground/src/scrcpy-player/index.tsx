@@ -1,4 +1,5 @@
 import { InfoCircleOutlined } from '@ant-design/icons';
+import { useServerValid } from '@midscene/visualizer';
 import { ScrcpyVideoCodecId } from '@yume-chan/scrcpy';
 import { WebCodecsVideoDecoder } from '@yume-chan/scrcpy-decoder-webcodecs';
 import {
@@ -79,7 +80,7 @@ export const ScrcpyPlayer = forwardRef<ScrcpyRefMethods, ScrcpyProps>(
     const decoderRef = useRef<any>(null);
     const reconnectTimerRef = useRef<NodeJS.Timeout | null>(null);
     const metadataTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-
+    const serverValid = useServerValid(true);
     // create a safe remove child nodes tool function
     const safeRemoveChildNodes = useCallback((parent: Element | null) => {
       if (!parent) return;
@@ -784,7 +785,7 @@ export const ScrcpyPlayer = forwardRef<ScrcpyRefMethods, ScrcpyProps>(
               <div className="video-section">
                 <div ref={videoContainerRef} className="video-container">
                   <div className="canvas-wrapper" />
-                  {!connected && (
+                  {!connected && serverValid ? (
                     <div className="empty-state">
                       <div className="empty-state-icon">📱</div>
                       <div className="empty-state-text">
@@ -808,6 +809,8 @@ export const ScrcpyPlayer = forwardRef<ScrcpyRefMethods, ScrcpyProps>(
                         </div>
                       )}
                     </div>
+                  ) : (
+                    <span>Please launch playground server!</span>
                   )}
                 </div>
               </div>

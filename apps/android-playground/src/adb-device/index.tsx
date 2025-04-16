@@ -1,5 +1,6 @@
 import './index.less';
 import { MobileOutlined } from '@ant-design/icons';
+import { useServerValid } from '@midscene/visualizer';
 import { Button, Divider, Dropdown, message } from 'antd';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { RefObject } from 'react';
@@ -44,6 +45,7 @@ const AdbDevice: React.FC<AdbDeviceProps> = ({
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const lastSelectedDeviceRef = useRef<string | null>(null);
   const [messageApi, contextHolder] = message.useMessage();
+  const serverValid = useServerValid(true);
 
   // handle device selection
   const handleDeviceSelect = useCallback(
@@ -171,7 +173,7 @@ const AdbDevice: React.FC<AdbDeviceProps> = ({
           <Button className="device-dropdown-button">
             <div className="device-icon-container">
               <MobileOutlined className="device-icon" />
-              {selectedDeviceId && (
+              {selectedDeviceId && serverValid && (
                 <div className="status-indicator">
                   {devices
                     .find((d) => d.id === selectedDeviceId)
@@ -183,7 +185,7 @@ const AdbDevice: React.FC<AdbDeviceProps> = ({
                 </div>
               )}
             </div>
-            {selectedDeviceId && !isSelectedDeviceOffline ? (
+            {selectedDeviceId && !isSelectedDeviceOffline && serverValid ? (
               <span className="device-name">
                 {devices.find((d) => d.id === selectedDeviceId)?.name ||
                   selectedDeviceId}

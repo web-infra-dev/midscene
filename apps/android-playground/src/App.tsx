@@ -146,14 +146,7 @@ export default function App() {
         return;
       }
 
-      if (!socketRef.current) {
-        messageApi.warning(
-          'Waiting for device server connection, please try again later',
-        );
-        return;
-      }
-
-      if (!socketRef.current.connected) {
+      if (!socketRef.current || !socketRef.current.connected) {
         messageApi.warning(
           'Waiting for device server connection, please try again later',
         );
