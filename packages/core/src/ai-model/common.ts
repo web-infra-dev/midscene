@@ -170,7 +170,7 @@ export function adaptBbox(
   height: number,
   errorMsg?: string,
 ): [number, number, number, number] {
-  if (vlLocateMode() === 'doubao-vision') {
+  if (vlLocateMode() === 'doubao-vision' || vlLocateMode() === 'vlm-ui-tars') {
     return adaptDoubaoBbox(bbox, width, height, errorMsg);
   }
 
