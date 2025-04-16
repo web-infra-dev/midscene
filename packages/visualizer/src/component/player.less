@@ -25,15 +25,14 @@
   flex-direction: column;
   overflow: visible;
   min-height: 300px;
+  position: relative;
 
   .canvas-container {
-    flex: none;
+    flex: 1;
     min-height: 200px;
-    max-height: calc(100% - @timeline-height - @tools-height - @tools-margin * 2 - @player-spacing);
     display: flex;
     justify-content: center;
     align-items: center;
-    overflow: hidden;
     overflow: hidden;
     padding: 8px;
     margin-bottom: @player-spacing;
@@ -53,7 +52,8 @@
 
   .player-timeline-wrapper {
     width: 100%;
-    flex-shrink: 0;
+    height: @timeline-height;
+    flex: none;
     margin-bottom: 2px;
     position: relative;
   }
@@ -77,13 +77,17 @@
 
   .player-tools-wrapper {
     width: 100%;
-    flex-shrink: 0;
+    height: @tools-height + @player-vertical-spacing * 2;
+    flex: none;
     position: relative;
+    padding-top: @player-vertical-spacing;
+    padding-bottom: @player-vertical-spacing;
+    box-sizing: border-box;
   }
 
   .player-tools {
-    margin-top: @player-vertical-spacing;
-    margin-bottom: @player-vertical-spacing;
+    width: 100%;
+    height: @tools-height;
     max-width: 100%;
     overflow: hidden;
     color: #000;
@@ -92,7 +96,6 @@
     display: flex;
     flex-direction: row;
     justify-content: space-between;
-    height: @tools-height;
     flex-shrink: 0;
 
     .ant-spin {
