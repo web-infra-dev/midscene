@@ -3,7 +3,7 @@ import { vlLocateMode } from '@/env';
 import { getContextFromFixture } from 'tests/evaluation';
 import { describe, expect, it } from 'vitest';
 
-describe('prompt utils', () => {
+describe.skipIf(vlLocateMode())('prompt utils', () => {
   let lengthOfDescription: number;
   it('describe context', async () => {
     const context = await getContextFromFixture('taobao');
