@@ -14,11 +14,7 @@ import {
 } from '@midscene/core';
 
 import { ScriptPlayer, parseYamlScript } from '@/yaml/index';
-import {
-  MIDSCENE_USE_VLM_UI_TARS,
-  getAIConfigInBoolean,
-  vlLocateMode,
-} from '@midscene/core/env';
+import { vlLocateMode } from '@midscene/core/env';
 import {
   groupedActionDumpFileExt,
   reportHTMLContent,
@@ -286,7 +282,7 @@ export class PageAgent<PageType extends WebPage = WebPage> {
   }
 
   async aiAction(taskPrompt: string) {
-    const { executor } = await (getAIConfigInBoolean(MIDSCENE_USE_VLM_UI_TARS)
+    const { executor } = await (vlLocateMode() === 'vlm-ui-tars'
       ? this.taskExecutor.actionToGoal(taskPrompt)
       : this.taskExecutor.action(taskPrompt, this.opts.aiActionContext));
 
