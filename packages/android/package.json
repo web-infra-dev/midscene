@@ -4,7 +4,7 @@
   "description": "Android automation library for Midscene",
   "main": "./dist/lib/index.js",
   "types": "./dist/types/index.d.ts",
-  "files": ["dist", "README.md"],
+  "files": ["bin", "dist", "README.md"],
   "exports": {
     ".": {
       "types": "./dist/types/index.d.ts",
