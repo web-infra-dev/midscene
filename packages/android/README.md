@@ -1,14 +1,9 @@
-## Android prerequisites
+## Documentation
 
-Android is driven by adb, so you need install adb first:
-- [CLI](https://developer.android.com/tools/adb)
+Automate UI actions, extract data, and perform assertions using AI. It offers JavaScript SDK, Chrome extension, and support for scripting in YAML.
 
-```bash
-npm run test:ai -- setting.test.ts
-```
+See https://midscenejs.com/ for details.
 
-or 
+## License
 
-```bash
-npm run test:ai -- todo.test.ts
-```
+Midscene is MIT licensed.

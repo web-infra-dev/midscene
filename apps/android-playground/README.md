@@ -1,4 +1,5 @@
 # Midscene Android Playground
 
-Playground Frontend for Android cli @midscene/android.
+Playground tool for Android cli @midscene/android.
 
+See https://midscenejs.com/ for details.
