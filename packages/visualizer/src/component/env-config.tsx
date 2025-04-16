@@ -8,8 +8,6 @@ export function EnvConfig() {
   const { config, configString, loadConfig } = useEnvConfig();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [tempConfigString, setTempConfigString] = useState(configString);
-
-  const popupTab = useEnvConfig((state) => state.popupTab);
   const showModal = (e: React.MouseEvent) => {
     setIsModalOpen(true);
     e.preventDefault();
@@ -67,12 +65,11 @@ export function EnvConfig() {
     <div
       style={{
         display: 'flex',
-        justifyContent: 'space-between',
+        justifyContent: 'flex-end',
         alignItems: 'center',
         width: '100%',
       }}
     >
-      <div style={{ marginRight: '8px' }}>{configTip}</div>
       <Tooltip
         title="Please set up your environment variables before using."
         placement="bottom"
