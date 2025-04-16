@@ -129,20 +129,16 @@ ${Object.keys(size)
       ) {
         // If it's a URI with scheme
         await adb.startUri(uri);
-      } else {
+      } else if (uri.includes('/')) {
         // If it's in format like 'com.android/settings.Settings'
         const [appPackage, appActivity] = uri.split('/');
-
-        if (!appPackage || !appActivity) {
-          throw new Error(
-            `Invalid URI format: ${uri}, expected format: com.android/settings.Settings`,
-          );
-        }
-
         await adb.startApp({
           pkg: appPackage,
           activity: appActivity,
         });
+      } else {
+        // Assume it's just a package name
+        await adb.activateApp(uri);
       }
       debugPage(`Successfully launched: ${uri}`);
     } catch (error: any) {
@@ -280,7 +276,6 @@ ${Object.keys(size)
 
     try {
       screenshotBuffer = await adb.takeScreenshot(null);
-      console.log('screenshotBuffer', screenshotBuffer.toString());
 
       // make sure screenshotBuffer is not null
       if (!screenshotBuffer) {

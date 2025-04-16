@@ -163,7 +163,7 @@ function launch(uri: string): Promise<void>;
 ```
 
 * 参数：
-  * `uri: string` - 要打开的 uri
+  * `uri: string` - 要打开的 uri，可以是网页 url 或原生 app 的 package name 或 activity name，如果存在 activity name，则以 / 分隔（例如：com.android.settings/.Settings）
 
 * 返回值：
   * `Promise<void>`
