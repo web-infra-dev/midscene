@@ -411,6 +411,16 @@ export default function App() {
                           replayCounter={replayCounter}
                           loadingProgressText={loadingProgressText}
                           verticalMode={false}
+                          notReadyMessage={
+                            <span>
+                              Don&apos;t worry, just one more step to launch the
+                              playground server.
+                              <br />
+                              <strong>
+                                npx --yes @midscene/android-playground
+                              </strong>
+                            </span>
+                          }
                         />
                       </div>
                     </div>

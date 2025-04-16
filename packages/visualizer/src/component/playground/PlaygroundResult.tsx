@@ -16,6 +16,7 @@ interface PlaygroundResultProps {
   replayCounter: number;
   loadingProgressText: string;
   verticalMode?: boolean;
+  notReadyMessage?: React.ReactNode | string;
 }
 
 export const PlaygroundResultView: React.FC<PlaygroundResultProps> = ({
@@ -27,6 +28,7 @@ export const PlaygroundResultView: React.FC<PlaygroundResultProps> = ({
   replayCounter,
   loadingProgressText,
   verticalMode = false,
+  notReadyMessage,
 }) => {
   let resultWrapperClassName = 'result-wrapper';
   if (verticalMode) {
@@ -39,7 +41,7 @@ export const PlaygroundResultView: React.FC<PlaygroundResultProps> = ({
   let resultDataToShow: React.ReactNode = emptyResultTip;
 
   if (!serverValid && serviceMode === 'Server') {
-    resultDataToShow = serverLaunchTip;
+    resultDataToShow = serverLaunchTip(notReadyMessage);
   } else if (loading) {
     resultDataToShow = (
       <div className="loading-container">
