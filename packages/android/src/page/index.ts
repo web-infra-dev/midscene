@@ -280,6 +280,14 @@ ${Object.keys(size)
 
     try {
       screenshotBuffer = await adb.takeScreenshot(null);
+      debugPage('screenshotBuffer', screenshotBuffer);
+
+      // ensure screenshotBuffer is not null, otherwise throw a clear error
+      if (!screenshotBuffer) {
+        throw new Error(
+          'Failed to capture screenshot: screenshotBuffer is null',
+        );
+      }
     } catch (error) {
       const screenshotPath = getTmpFile('png')!;
 
