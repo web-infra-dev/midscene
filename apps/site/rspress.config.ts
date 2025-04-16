@@ -151,6 +151,10 @@ export default defineConfig({
             //   link: '/blog-support-android-automation',
             // },
             {
+              text: 'Support Android Automation',
+              link: '/blog-support-android-automation',
+            },
+            {
               text: 'Introducing Instant Actions and Deep Think',
               link: '/blog-introducing-instant-actions-and-deep-think',
             },
@@ -255,6 +259,10 @@ export default defineConfig({
             //   text: '支持 Android 自动化',
             //   link: '/zh/blog-support-android-automation',
             // },
+            {
+              text: '支持 Android 自动化',
+              link: '/zh/blog-support-android-automation',
+            },
             {
               text: '即时操作和深度思考',
               link: '/zh/blog-introducing-instant-actions-and-deep-think',
