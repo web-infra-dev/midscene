@@ -384,9 +384,6 @@ importers:
       '@modelcontextprotocol/sdk':
         specifier: 1.9.0
         version: 1.9.0
-      dotenv:
-        specifier: 16.4.5
-        version: 16.4.5
       puppeteer:
         specifier: 24.2.0
         version: 24.2.0(typescript@5.8.3)
@@ -400,6 +397,9 @@ importers:
       '@types/node':
         specifier: ^18.0.0
         version: 18.19.62
+      dotenv:
+        specifier: 16.4.5
+        version: 16.4.5
       typescript:
         specifier: ^5.8.2
         version: 5.8.3
