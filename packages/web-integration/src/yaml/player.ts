@@ -23,7 +23,7 @@ import type {
   ScriptPlayerStatusValue,
   ScriptPlayerTaskStatus,
 } from '@midscene/core';
-import { getMidsceneRunPathOfType } from '@midscene/shared/fs';
+import { getMidsceneRunSubDir } from '@midscene/shared/common';
 
 export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
   public currentTaskIndex?: number;
@@ -51,10 +51,7 @@ export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
     } else if (script.target?.output) {
       this.output = resolve(process.cwd(), script.target.output);
     } else {
-      this.output = join(
-        getMidsceneRunPathOfType('output'),
-        `${process.pid}.json`,
-      );
+      this.output = join(getMidsceneRunSubDir('output'), `${process.pid}.json`);
     }
 
     this.taskStatusList = (script.tasks || []).map((task, taskIndex) => ({
