@@ -1,23 +1,13 @@
-# Rslib project
+# Midscene MCP
 
-## Setup
-
-Install the dependencies:
+## Inspect the MCP server
 
 ```bash
-pnpm install
+# before run this command, you need to build the library first
+pnpm run inspect
 ```
 
-## Get started
+> [!NOTE]
 
-Build the library:
+Starting multiple inspect pages may cause the /message sse link error to occur in MTP
 
-```bash
-pnpm build
-```
-
-Build the library in watch mode:
-
-```bash
-pnpm dev
-```

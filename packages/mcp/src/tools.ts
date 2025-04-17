@@ -3,7 +3,7 @@ import type { Tool } from '@modelcontextprotocol/sdk/types.js';
 // Define the tools once to avoid repetition
 export const TOOLS: Tool[] = [
   {
-    name: 'puppeteer_navigate',
+    name: 'midscene_navigate',
     description: 'Navigate to a URL',
     inputSchema: {
       type: 'object',
@@ -24,16 +24,12 @@ export const TOOLS: Tool[] = [
     },
   },
   {
-    name: 'puppeteer_screenshot',
+    name: 'midscene_screenshot',
     description: 'Take a screenshot of the current page or a specific element',
     inputSchema: {
       type: 'object',
       properties: {
         name: { type: 'string', description: 'Name for the screenshot' },
-        selector: {
-          type: 'string',
-          description: 'CSS selector for element to screenshot',
-        },
         width: {
           type: 'number',
           description: 'Width in pixels (default: 800)',
@@ -47,65 +43,79 @@ export const TOOLS: Tool[] = [
     },
   },
   {
-    name: 'puppeteer_click',
-    description: 'Click an element on the page',
+    name: 'midscene_achieve_goal',
+    description:
+      'Automatically achieve a goal using natural language instructions',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        goal: {
+          type: 'string',
+          description: 'Describe your target goal in natural language',
+        },
+        width: {
+          type: 'number',
+          description: 'Width in pixels (default: 800)',
+        },
+        height: {
+          type: 'number',
+          description: 'Height in pixels (default: 600)',
+        },
+      },
+      required: ['goal'],
+    },
+  },
+  {
+    name: 'midscene_click',
+    description:
+      'Describe the element to click using natural language for automatic clicking.',
     inputSchema: {
       type: 'object',
       properties: {
         selector: {
           type: 'string',
-          description: 'CSS selector for element to click',
+          description:
+            'Describe in natural language the position of the element to be clicked',
         },
       },
       required: ['selector'],
     },
   },
   {
-    name: 'puppeteer_fill',
-    description: 'Fill out an input field',
+    name: 'midscene_input',
+    description:
+      'Describe the input field using natural language to automatically fill it with the provided value.',
     inputSchema: {
       type: 'object',
       properties: {
         selector: {
           type: 'string',
-          description: 'CSS selector for input field',
+          description:
+            'Describe the element to be filled using natural language',
         },
-        value: { type: 'string', description: 'Value to fill' },
+        value: { type: 'string', description: 'The value to be entered' },
       },
       required: ['selector', 'value'],
     },
   },
   {
-    name: 'puppeteer_select',
-    description: 'Select an element on the page with Select tag',
+    name: 'midscene_hover',
+    description:
+      'Describe the element using natural language to automatically hover over it.',
     inputSchema: {
       type: 'object',
       properties: {
         selector: {
           type: 'string',
-          description: 'CSS selector for element to select',
-        },
-        value: { type: 'string', description: 'Value to select' },
-      },
-      required: ['selector', 'value'],
-    },
-  },
-  {
-    name: 'puppeteer_hover',
-    description: 'Hover an element on the page',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        selector: {
-          type: 'string',
-          description: 'CSS selector for element to hover',
+          description:
+            'Describe in natural language the position of the element to be hovered',
         },
       },
       required: ['selector'],
     },
   },
   {
-    name: 'puppeteer_evaluate',
+    name: 'midscene_evaluate',
     description: 'Execute JavaScript in the browser console',
     inputSchema: {
       type: 'object',

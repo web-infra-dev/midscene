@@ -2,4 +2,4 @@ import { AgentOverChromeBridge } from './agent-cli-side';
 
 export { AgentOverChromeBridge };
 
-export { overrideAIConfig } from '@midscene/core/env';
+export { overrideAIConfig, allAIConfig } from '@midscene/core/env';

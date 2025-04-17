@@ -1,25 +1,14 @@
-import fs from 'node:fs';
-import path from 'node:path';
-import { AgentOverChromeBridge } from '@midscene/web/bridge-mode';
+import {
+  AgentOverChromeBridge,
+  allAIConfig,
+  overrideAIConfig,
+} from '@midscene/web/bridge-mode';
 import type { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import type {
   CallToolResult,
   ImageContent,
   TextContent,
 } from '@modelcontextprotocol/sdk/types.js';
-import puppeteer, { type Browser, type Page } from 'puppeteer';
-import { deepMerge } from './utils.js';
-
-const DANGEROUS_ARGS = [
-  '--no-sandbox',
-  '--disable-setuid-sandbox',
-  '--single-process',
-  '--disable-web-security',
-  '--ignore-certificate-errors',
-  '--disable-features=IsolateOrigins',
-  '--disable-site-isolation-trials',
-  '--allow-running-insecure-content',
-];
 
 declare global {
   interface Window {
@@ -30,17 +19,23 @@ declare global {
   }
 }
 
-export class PuppeteerManager {
-  private browser: Browser | null = null;
-  private page: Page | null = null;
+export class MidsceneManager {
   private consoleLogs: string[] = [];
   private screenshots = new Map<string, string>();
-  private previousLaunchOptions: any = null;
   private server: Server<any, any>; // Add server instance
   private agent: AgentOverChromeBridge;
   constructor(server: Server<any, any>) {
     this.server = server;
     this.agent = new AgentOverChromeBridge();
+    const keys = Object.keys(allAIConfig());
+    const envOverrides: { [key: string]: string } = {};
+    for (const key of keys) {
+      const value = process.env[key];
+      if (value !== undefined) {
+        envOverrides[key] = value;
+      }
+    }
+    overrideAIConfig(envOverrides);
   }
 
   public async handleToolCall(
@@ -48,7 +43,7 @@ export class PuppeteerManager {
     args: any,
   ): Promise<CallToolResult> {
     switch (name) {
-      case 'puppeteer_navigate':
+      case 'midscene_navigate':
         // await page.goto(args.url);
         await this.agent.connectNewTabWithUrl(args.url);
         return {
@@ -61,8 +56,7 @@ export class PuppeteerManager {
           isError: false,
         };
 
-      case 'puppeteer_screenshot': {
-        await this.agent.connectCurrentTab();
+      case 'midscene_screenshot': {
         const screenshot = await this.agent.page.screenshotBase64();
         // Remove the data URL prefix if present
         const base64Data = screenshot.replace(/^data:image\/\w+;base64,/, '');
@@ -88,7 +82,102 @@ export class PuppeteerManager {
         };
       }
 
-      case 'puppeteer_evaluate':
+      case 'midscene_click':
+        try {
+          await this.agent.aiTap(args.selector);
+          return {
+            content: [
+              {
+                type: 'text',
+                text: `Clicked: ${args.selector}`,
+              },
+            ],
+            isError: false,
+          };
+        } catch (error) {
+          return {
+            content: [
+              {
+                type: 'text',
+                text: `Failed to click ${args.selector}: ${(error as Error).message}`,
+              },
+            ],
+            isError: true,
+          };
+        }
+      case 'midscene_achieve_goal':
+        try {
+          await this.agent.aiAction(args.goal);
+          return {
+            content: [
+              {
+                type: 'text',
+                text: `Planned to goal: ${args.goal}`,
+              },
+            ],
+            isError: false,
+          };
+        } catch (error) {
+          return {
+            content: [
+              {
+                type: 'text',
+                text: `Failed to plan to goal: ${(error as Error).message}`,
+              },
+            ],
+            isError: true,
+          };
+        }
+
+      case 'midscene_input':
+        try {
+          await this.agent.aiInput(args.value, args.selector);
+          return {
+            content: [
+              {
+                type: 'text',
+                text: `Filled ${args.selector} with: ${args.value}`,
+              },
+            ],
+            isError: false,
+          };
+        } catch (error) {
+          return {
+            content: [
+              {
+                type: 'text',
+                text: `Failed to fill ${args.selector}: ${(error as Error).message}`,
+              },
+            ],
+            isError: true,
+          };
+        }
+
+      case 'midscene_hover':
+        try {
+          await this.agent.aiHover(args.selector);
+          return {
+            content: [
+              {
+                type: 'text',
+                text: `Hovered ${args.selector}`,
+              },
+            ],
+            isError: false,
+          };
+        } catch (error) {
+          return {
+            content: [
+              {
+                type: 'text',
+                text: `Failed to hover ${args.selector}: ${(error as Error).message}`,
+              },
+            ],
+            isError: true,
+          };
+        }
+
+      case 'midscene_evaluate':
         try {
           await this.agent.connectCurrentTab();
           await this.agent.page.evaluate(`(function() {

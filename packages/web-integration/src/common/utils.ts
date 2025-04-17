@@ -112,7 +112,8 @@ export function reportFileName(tag = 'web') {
 }
 
 export function printReportMsg(filepath: string) {
-  console.log('Midscene - report file updated:', filepath);
+  //mcp need use obj format to console msg: https://github.com/modelcontextprotocol/typescript-sdk/issues/244
+  console.log(`{"midscene-report-file-updated": "${filepath}"}`);
 }
 
 /**

@@ -8,7 +8,7 @@ import {
   ListToolsRequestSchema,
   ReadResourceRequestSchema,
 } from '@modelcontextprotocol/sdk/types.js';
-import { PuppeteerManager } from './puppeteer.js';
+import { MidsceneManager } from './midscene.js';
 import { TOOLS } from './tools.js';
 
 declare const __VERSION__: string;
@@ -17,6 +17,8 @@ const server = new Server(
   {
     name: '@midscene/mcp',
     version: __VERSION__,
+    description:
+      'Midscene MCP Server: Control the browser using natural language commands for navigation, clicking, input, hovering, and achieving goals. Also supports screenshots and JavaScript execution.',
   },
   {
     capabilities: {
@@ -26,7 +28,7 @@ const server = new Server(
   },
 );
 
-const puppeteerManager = new PuppeteerManager(server);
+const midsceneManager = new MidsceneManager(server);
 
 server.setRequestHandler(ListResourcesRequestSchema, async () => ({
   resources: [
@@ -35,7 +37,7 @@ server.setRequestHandler(ListResourcesRequestSchema, async () => ({
       mimeType: 'text/plain',
       name: 'Browser console logs',
     },
-    ...puppeteerManager.listScreenshotNames().map((name) => ({
+    ...midsceneManager.listScreenshotNames().map((name) => ({
       uri: `screenshot://${name}`,
       mimeType: 'image/png',
       name: `Screenshot: ${name}`,
@@ -52,7 +54,7 @@ server.setRequestHandler(ReadResourceRequestSchema, async (request) => {
         {
           uri,
           mimeType: 'text/plain',
-          text: puppeteerManager.getConsoleLogs(),
+          text: midsceneManager.getConsoleLogs(),
         },
       ],
     };
@@ -60,7 +62,7 @@ server.setRequestHandler(ReadResourceRequestSchema, async (request) => {
 
   if (uri.startsWith('screenshot://')) {
     const name = uri.split('://')[1];
-    const screenshot = puppeteerManager.getScreenshot(name);
+    const screenshot = midsceneManager.getScreenshot(name);
     if (screenshot) {
       return {
         contents: [
@@ -82,7 +84,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
 }));
 
 server.setRequestHandler(CallToolRequestSchema, async (request) =>
-  puppeteerManager.handleToolCall(
+  midsceneManager.handleToolCall(
     request.params.name,
     request.params.arguments ?? {},
   ),
@@ -96,7 +98,7 @@ async function runServer() {
 runServer().catch(console.error);
 
 process.stdin.on('close', () => {
-  console.error('Puppeteer MCP Server closing, cleaning up browser...');
-  puppeteerManager.closeBrowser().catch(console.error);
+  console.error('Midscene MCP Server closing, cleaning up browser...');
+  midsceneManager.closeBrowser().catch(console.error);
   server.close();
 });

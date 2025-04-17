@@ -384,13 +384,16 @@ importers:
       '@modelcontextprotocol/sdk':
         specifier: 1.9.0
         version: 1.9.0
+      dotenv:
+        specifier: 16.4.5
+        version: 16.4.5
       puppeteer:
         specifier: 24.2.0
         version: 24.2.0(typescript@5.8.3)
     devDependencies:
       '@modelcontextprotocol/inspector':
-        specifier: 0.8.2
-        version: 0.8.2(@types/node@18.19.62)(@types/react-dom@18.3.5(@types/react@18.3.18))(@types/react@18.3.18)(typescript@5.8.3)
+        specifier: 0.9.0
+        version: 0.9.0(@types/node@18.19.62)(@types/react-dom@18.3.5(@types/react@18.3.18))(@types/react@18.3.18)(typescript@5.8.3)
       '@rslib/core':
         specifier: ^0.6.2
         version: 0.6.2(typescript@5.8.3)
@@ -2885,16 +2888,16 @@ packages:
     peerDependencies:
       react: '>=16'
 
-  '@modelcontextprotocol/inspector-client@0.8.2':
-    resolution: {integrity: sha512-eqsrA4eOXBadVTU8qFr2IYnxyY97+DfMDhl9LYuEHMIuEWjRObNGI/H3JFwDFpCkV4GOgWSBjfdIQ5yzUy7LKA==}
+  '@modelcontextprotocol/inspector-client@0.9.0':
+    resolution: {integrity: sha512-D5zLY0mVfewwCtRU3JdBKqopB1GG+1uDEeSVK6N8EeY/9ZU6OUkSER12J4vt/dXX00ZAAgoDqx/US7mDXa19zw==}
     hasBin: true
 
-  '@modelcontextprotocol/inspector-server@0.8.2':
-    resolution: {integrity: sha512-1gSgWAO20nT8YSdNi/3b4czELYWoc+Sur5+v2tX9ru1UIXQ10y3YMGDtmxm1hd3U5SXkuzeg6toXQyGTzcvvAQ==}
+  '@modelcontextprotocol/inspector-server@0.9.0':
+    resolution: {integrity: sha512-GJPE3K78FLBbBpL/TXKxSflbW0eDiy6uJ4/QcB14YpHctm672ThMwen5EDl/mZU8MXCk7vGhVPmjiys1Uoit2Q==}
     hasBin: true
 
-  '@modelcontextprotocol/inspector@0.8.2':
-    resolution: {integrity: sha512-ewowTh84QVUrVnIVJLx5Jhh2yJrgWa/LrcVlNhtm8Y2Uk2bgW0y0catXyeyR6dqqyDadMXq1hbPRq0Lo1zPFnQ==}
+  '@modelcontextprotocol/inspector@0.9.0':
+    resolution: {integrity: sha512-8sHdPGuGVldHqIbqyB0TKdrtm6AQjTMH7x2gTromdsZX3J8AStOW75Pe6b9GeIobI5DzlU1JkYKJMBEWHhq8LA==}
     hasBin: true
 
   '@modelcontextprotocol/sdk@1.9.0':
@@ -4762,9 +4765,6 @@ packages:
 
   '@types/polka@0.5.7':
     resolution: {integrity: sha512-TH8CDXM8zoskPCNmWabtK7ziGv9Q21s4hMZLVYK5HFEfqmGXBqq/Wgi7jNELWXftZK/1J/9CezYa06x1RKeQ+g==}
-
-  '@types/prismjs@1.26.5':
-    resolution: {integrity: sha512-AUZTa7hQ2KY5L7AmtSiqxlhWxb4ina0yd8hNbl4TWuqnv/pFP0nDMb3YrfSBf4hJVGLh2YEIBfKaBW/9UEl6IQ==}
 
   '@types/prop-types@15.7.13':
     resolution: {integrity: sha512-hCZTSvwbzWGvhqxp/RqVqwU999pBf2vp7hzIjiYOsl8wqOmUxkQ6ddw1cV3l8811+kdUFus/q4d1Y3E3SyEifA==}
@@ -14432,7 +14432,7 @@ snapshots:
       '@types/react': 18.3.18
       react: 18.3.1
 
-  '@modelcontextprotocol/inspector-client@0.8.2(@types/react-dom@18.3.5(@types/react@18.3.18))(@types/react@18.3.18)':
+  '@modelcontextprotocol/inspector-client@0.9.0(@types/react-dom@18.3.5(@types/react@18.3.18))(@types/react@18.3.18)':
     dependencies:
       '@modelcontextprotocol/sdk': 1.9.0
       '@radix-ui/react-checkbox': 1.1.5(@types/react-dom@18.3.5(@types/react@18.3.18))(@types/react@18.3.18)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
@@ -14445,7 +14445,6 @@ snapshots:
       '@radix-ui/react-tabs': 1.1.4(@types/react-dom@18.3.5(@types/react@18.3.18))(@types/react@18.3.18)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@radix-ui/react-toast': 1.2.7(@types/react-dom@18.3.5(@types/react@18.3.18))(@types/react@18.3.18)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@radix-ui/react-tooltip': 1.2.0(@types/react-dom@18.3.5(@types/react@18.3.18))(@types/react@18.3.18)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
-      '@types/prismjs': 1.26.5
       class-variance-authority: 0.7.1
       clsx: 2.1.1
       cmdk: 1.1.1(@types/react-dom@18.3.5(@types/react@18.3.18))(@types/react@18.3.18)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
@@ -14465,7 +14464,7 @@ snapshots:
       - supports-color
       - tailwindcss
 
-  '@modelcontextprotocol/inspector-server@0.8.2':
+  '@modelcontextprotocol/inspector-server@0.9.0':
     dependencies:
       '@modelcontextprotocol/sdk': 1.9.0
       cors: 2.8.5
@@ -14477,10 +14476,10 @@ snapshots:
       - supports-color
       - utf-8-validate
 
-  '@modelcontextprotocol/inspector@0.8.2(@types/node@18.19.62)(@types/react-dom@18.3.5(@types/react@18.3.18))(@types/react@18.3.18)(typescript@5.8.3)':
+  '@modelcontextprotocol/inspector@0.9.0(@types/node@18.19.62)(@types/react-dom@18.3.5(@types/react@18.3.18))(@types/react@18.3.18)(typescript@5.8.3)':
     dependencies:
-      '@modelcontextprotocol/inspector-client': 0.8.2(@types/react-dom@18.3.5(@types/react@18.3.18))(@types/react@18.3.18)
-      '@modelcontextprotocol/inspector-server': 0.8.2
+      '@modelcontextprotocol/inspector-client': 0.9.0(@types/react-dom@18.3.5(@types/react@18.3.18))(@types/react@18.3.18)
+      '@modelcontextprotocol/inspector-server': 0.9.0
       concurrently: 9.1.2
       shell-quote: 1.8.2
       spawn-rx: 5.1.2
@@ -17215,8 +17214,6 @@ snapshots:
       '@types/express-serve-static-core': 5.0.1
       '@types/node': 18.19.62
       '@types/trouter': 3.1.4
-
-  '@types/prismjs@1.26.5': {}
 
   '@types/prop-types@15.7.13': {}
 

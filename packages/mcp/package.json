@@ -20,11 +20,11 @@
     "build": "rslib build",
     "dev": "rslib build --watch",
     "test": "vitest run",
-    "inspect": "mcp-inspector node ./dist/index.cjs",
+    "inspect": "node scripts/inspect.mjs",
     "inspect2": "mcp-inspector node ./dist/test2.cjs"
   },
   "devDependencies": {
-    "@modelcontextprotocol/inspector": "0.8.2",
+    "@modelcontextprotocol/inspector": "0.9.0",
     "@rslib/core": "^0.6.2",
     "@types/node": "^18.0.0",
     "typescript": "^5.8.2",
@@ -33,6 +33,7 @@
   "dependencies": {
     "@midscene/web": "workspace:*",
     "@modelcontextprotocol/sdk": "1.9.0",
-    "puppeteer": "24.2.0"
+    "puppeteer": "24.2.0",
+    "dotenv": "16.4.5"
   }
 }
