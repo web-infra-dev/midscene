@@ -12,8 +12,7 @@ dotenv.config({
 });
 
 const aiTestType = process.env.AI_TEST_TYPE;
-// const unitTests = ['tests/unit-test/**/*.test.ts'];
-const unitTests = ['tests/ai/web/puppeteer/test-login.test.ts'];
+const unitTests = ['tests/unit-test/**/*.test.ts'];
 const aiWebTests = [
   'tests/ai/web/**/*.test.ts',
   'tests/ai/bridge/**/*.test.ts',
