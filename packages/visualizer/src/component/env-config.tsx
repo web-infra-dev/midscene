@@ -8,6 +8,7 @@ export function EnvConfig() {
   const { config, configString, loadConfig } = useEnvConfig();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [tempConfigString, setTempConfigString] = useState(configString);
+  const midsceneModelName = config.MIDSCENE_MODEL_NAME;
   const showModal = (e: React.MouseEvent) => {
     setIsModalOpen(true);
     e.preventDefault();
@@ -22,54 +23,19 @@ export function EnvConfig() {
     setIsModalOpen(false);
   };
 
-  const configTip =
-    Object.keys(config).length === 0 ? (
-      <div>
-        <Tooltip title="No Config">{iconForStatus('failed')}</Tooltip>
-      </div>
-    ) : (
-      <div>
-        <Tooltip
-          overlayInnerStyle={{
-            width: 'fit-content',
-          }}
-          title={
-            <div>
-              {Object.entries(config).map(([key, value]) => (
-                <div
-                  key={key}
-                  style={{
-                    lineHeight: '1.8',
-                    display: 'flex',
-                    alignItems: 'center',
-                    marginBottom: '5px',
-                  }}
-                >
-                  <span style={{ color: '#52c41a', marginRight: '8px' }}>
-                    {iconForStatus('success')}
-                  </span>
-                  <span style={{ whiteSpace: 'nowrap' }}>
-                    {key}: {key === 'MIDSCENE_MODEL_NAME' ? value : '***'}
-                  </span>
-                </div>
-              ))}
-            </div>
-          }
-        >
-          {iconForStatus('success')}
-        </Tooltip>
-      </div>
-    );
-
   return (
     <div
       style={{
         display: 'flex',
         justifyContent: 'flex-end',
+        gap: '10px',
         alignItems: 'center',
         width: '100%',
+        height: '100%',
+        minHeight: '32px',
       }}
     >
+      {midsceneModelName}
       <Tooltip
         title="Please set up your environment variables before using."
         placement="bottom"
