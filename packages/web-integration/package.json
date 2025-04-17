@@ -35,6 +35,10 @@
       "types": "./dist/types/puppeteer.d.ts",
       "default": "./dist/lib/puppeteer.js"
     },
+    "./puppeteer-agent-launcher": {
+      "types": "./dist/types/puppeteer-agent-launcher.d.ts",
+      "default": "./dist/lib/puppeteer-agent-launcher.js"
+    },
     "./playwright": {
       "types": "./dist/types/playwright.d.ts",
       "default": "./dist/lib/playwright.js"
@@ -72,6 +76,9 @@
       "utils": ["./dist/types/utils.d.ts"],
       "ui-utils": ["./dist/types/ui-utils.d.ts"],
       "puppeteer": ["./dist/types/puppeteer.d.ts"],
+      "puppeteer-agent-launcher": [
+        "./dist/types/puppeteer-agent-launcher.d.ts"
+      ],
       "playwright": ["./dist/types/playwright.d.ts"],
       "playwright-report": ["./dist/types/playwright-report.d.ts"],
       "playground": ["./dist/types/playground.d.ts"],

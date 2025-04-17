@@ -36,6 +36,7 @@ export default defineConfig({
       utils: 'src/common/utils.ts',
       'ui-utils': 'src/common/ui-utils.ts',
       puppeteer: 'src/puppeteer/index.ts',
+      'puppeteer-agent-launcher': 'src/puppeteer/agent-launcher.ts',
       playwright: 'src/playwright/index.ts',
       playground: 'src/playground/index.ts',
       'midscene-playground': 'src/playground/bin.ts',

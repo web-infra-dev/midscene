@@ -13,9 +13,9 @@ import { TTYWindowRenderer } from './tty-renderer';
 
 import assert from 'node:assert';
 import { agentFromAdbDevice } from '@midscene/android';
-import type { FreeFn, MidsceneYamlScriptWebEnv } from '@midscene/core';
+import type { FreeFn } from '@midscene/core';
 import { AgentOverChromeBridge } from '@midscene/web/bridge-mode';
-import { puppeteerAgentForTarget } from '@midscene/web/puppeteer';
+import { puppeteerAgentForTarget } from '@midscene/web/puppeteer-agent-launcher';
 
 export const launchServer = async (
   dir: string,
@@ -143,7 +143,9 @@ export async function playYamlFiles(
         const androidTarget = script.android;
         const agent = await agentFromAdbDevice(androidTarget.deviceId);
 
-        await agent.launch(androidTarget.launch);
+        if (androidTarget.launch) {
+          await agent.launch(androidTarget.launch);
+        }
 
         freeFn.push({
           name: 'destroy_android_agent',
