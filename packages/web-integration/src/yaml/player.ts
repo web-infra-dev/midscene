@@ -1,5 +1,5 @@
 import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
-import { dirname, join } from 'node:path';
+import { dirname, join, resolve } from 'node:path';
 import { assert } from '@midscene/shared/utils';
 
 import type { PageAgent } from '@/common/agent';
@@ -90,7 +90,7 @@ export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
 
   private flushResult() {
     if (Object.keys(this.result).length && this.output) {
-      const output = join(process.cwd(), this.output);
+      const output = resolve(process.cwd(), this.output);
       const outputDir = dirname(output);
       if (!existsSync(outputDir)) {
         mkdirSync(outputDir, { recursive: true });
