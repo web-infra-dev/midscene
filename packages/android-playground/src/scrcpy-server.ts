@@ -57,7 +57,7 @@ export default class ScrcpyServer {
   // setup API routes
   private setupApiRoutes() {
     // get devices list API
-    this.app.get('/api/devices', async (req, res) => {
+    this.app.get('/api/devices', async (_req, res) => {
       try {
         const devices = await this.getDevicesList();
         res.json({ devices, currentDeviceId: this.currentDeviceId });
@@ -501,14 +501,17 @@ export default class ScrcpyServer {
 
   // close server
   close() {
-    // 停止设备监控
+    // stop device monitoring
     if (this.devicePollInterval) {
       clearInterval(this.devicePollInterval);
       this.devicePollInterval = null;
+      return;
     }
 
     if (this.httpServer) {
       return this.httpServer.close();
     }
+
+    return;
   }
 }

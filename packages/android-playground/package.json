@@ -2,9 +2,9 @@
   "name": "@midscene/android-playground",
   "version": "0.14.3",
   "description": "Android playground for Midscene",
-  "main": "./dist/lib/index.js",
+  "main": "./lib/index.js",
   "types": "./dist/types/index.d.ts",
-  "files": ["dist", "static", "bin", "README.md"],
+  "files": ["dist", "static", "bin", "README.md", "lib"],
   "bin": {
     "midscene-android-playground": "./bin/android-playground",
     "@midscene/android-playground": "./bin/android-playground"
@@ -13,8 +13,11 @@
     "postinstall": "fetch-scrcpy-server 3.1",
     "dev": "modern dev",
     "dev:server": "npm run build && ./bin/playground",
-    "build": "modern build -c ./modern.config.ts",
-    "build:watch": "modern build -w -c ./modern.config.ts"
+    "build": "rm -rf dist lib && npm run build:cjs && npm run build:esm && rm -rf dist/*.tsbuildinfo && npm run ncc",
+    "build:cjs": "tsc --project tsconfig.build-cjs.json",
+    "build:esm": "tsc --project tsconfig.build-esm.json",
+    "build:watch": "tsc --project tsconfig.build-cjs.json -w",
+    "ncc": "npx @vercel/ncc build src/cli.js -o lib -e typescript -e @midscene/core"
   },
   "dependencies": {
     "@midscene/android": "workspace:*",
@@ -28,7 +31,6 @@
     "@yume-chan/stream-extra": "^1.0.0",
     "cors": "2.8.5",
     "express": "^4.21.2",
-    "open": "10.1.0",
     "socket.io": "^4.8.1"
   },
   "devDependencies": {
@@ -36,7 +38,9 @@
     "@types/cors": "2.8.12",
     "@types/express": "^4.17.21",
     "@types/node": "^18.0.0",
+    "@vercel/ncc": "^0.36.1",
     "typescript": "^5.8.2"
   },
-  "license": "MIT"
+  "license": "MIT",
+  "type": "commonjs"
 }

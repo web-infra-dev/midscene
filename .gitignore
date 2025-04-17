@@ -76,6 +76,7 @@ common/autoinstallers/*/.npmrc
 
 dist
 dist-script
+lib
 doc_build
 build_cn
 
