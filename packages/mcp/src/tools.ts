@@ -53,14 +53,6 @@ export const TOOLS: Tool[] = [
           type: 'string',
           description: 'Describe your target goal in natural language',
         },
-        width: {
-          type: 'number',
-          description: 'Width in pixels (default: 800)',
-        },
-        height: {
-          type: 'number',
-          description: 'Height in pixels (default: 600)',
-        },
       },
       required: ['goal'],
     },
