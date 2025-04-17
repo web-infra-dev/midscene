@@ -124,7 +124,7 @@ export default class ScrcpyServer {
         debugPage('initialize adb client');
         this.adbClient = new AdbServerClient(
           new AdbServerNodeTcpConnector({
-            host: 'localhost',
+            host: '127.0.0.1',
             port: 5037,
           }),
         );
