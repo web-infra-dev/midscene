@@ -166,7 +166,7 @@ export const getAIConfigInJson = (configKey: keyof typeof globalConfig) => {
 
 export const overrideAIConfig = (
   newConfig: Partial<ReturnType<typeof allConfigFromEnv>>,
-  extendMode = true, // true: merge with global config, false: override global config
+  extendMode = false, // true: merge with global config, false: override global config
 ) => {
   for (const key in newConfig) {
     if (typeof key !== 'string') {
