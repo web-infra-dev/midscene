@@ -199,6 +199,11 @@ export function warnGPT4oSizeLimit(size: Size) {
       console.warn(warningMsg);
       warned = true;
     }
+  } else if (size.width > 1800 || size.height > 1800) {
+    console.warn(
+      `The image size seems too large (${size.width}x${size.height}). It may lead to more token usage, slower response, and inaccurate result.`,
+    );
+    warned = true;
   }
 }
 
