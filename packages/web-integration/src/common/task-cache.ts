@@ -7,11 +7,8 @@ import type {
 } from '@midscene/core';
 import type { vlmPlanning } from '@midscene/core/ai-model';
 import { getAIConfigInBoolean } from '@midscene/core/env';
-import {
-  getLogDirByType,
-  stringifyDumpData,
-  writeLogFile,
-} from '@midscene/core/utils';
+import { stringifyDumpData, writeLogFile } from '@midscene/core/utils';
+import { getMidsceneRunSubDir } from '@midscene/shared/common';
 import { getRunningPkgInfo } from '@midscene/shared/fs';
 import { getDebug } from '@midscene/shared/logger';
 import { ifInBrowser } from '@midscene/shared/utils';
@@ -298,7 +295,10 @@ export class TaskCache {
     if (ifInBrowser || !this.cacheId) {
       return undefined;
     }
-    const cacheFile = join(getLogDirByType('cache'), `${this.cacheId}.json`);
+    const cacheFile = join(
+      getMidsceneRunSubDir('cache'),
+      `${this.cacheId}.json`,
+    );
     if (!getAIConfigInBoolean('MIDSCENE_CACHE')) {
       return undefined;
     }
