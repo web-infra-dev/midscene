@@ -46,8 +46,7 @@ export const HistorySelector: React.FC<HistorySelectorProps> = ({
     <div className="history-selector">
       <Dropdown menu={{ items }}>
         <Space>
-          <HistoryOutlined />
-          history
+          <HistoryOutlined style={{ fontSize: 14 }} />
         </Space>
       </Dropdown>
     </div>

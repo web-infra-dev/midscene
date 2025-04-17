@@ -108,7 +108,7 @@ export function StandardPlayground({
 
   // Override AI configuration
   useEffect(() => {
-    overrideAIConfig(config as any);
+    overrideAIConfig(config);
   }, [config]);
 
   // Initialize context preview
@@ -275,7 +275,7 @@ export function StandardPlayground({
           defaultSize={32}
           maxSize={60}
           minSize={20}
-          className="playground-left-panel"
+          style={{ paddingRight: '24px' }}
         >
           <Logo hideLogo={hideLogo} />
           {formSection}

@@ -164,7 +164,7 @@ function launch(uri: string): Promise<void>;
 ```
 
 * Parameters:
-  * `uri: string` - The uri to open.
+  * `uri: string` - The uri to open, can be a webpage url or a native app's package name or activity name, if the activity name exists, it should be separated by / (e.g. com.android.settings/.Settings).
 
 * Return Value:
   * Returns a Promise that resolves to void when the page is opened.

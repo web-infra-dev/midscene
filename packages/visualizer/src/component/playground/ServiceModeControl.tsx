@@ -5,7 +5,6 @@ import { useEffect } from 'react';
 import { EnvConfig } from '../env-config';
 import { iconForStatus } from '../misc';
 import { useEnvConfig } from '../store/store';
-import type { ServiceModeType } from './playground-types';
 import { useServerValid } from './useServerValid';
 
 interface ServiceModeControlProps {
@@ -15,7 +14,7 @@ interface ServiceModeControlProps {
 // Centralized text constants
 const TITLE_TEXT = {
   Server: 'Server Status',
-  'In-Browser': 'In-Browser Request Config',
+  'In-Browser': 'In-Browser',
 };
 
 const SWITCH_BUTTON_TEXT = {
@@ -82,8 +81,25 @@ export const ServiceModeControl: React.FC<ServiceModeControlProps> = ({
 
   return (
     <>
-      <h3>{title}</h3>
-      {statusContent}
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '10px',
+        }}
+      >
+        <h3
+          style={{
+            whiteSpace: 'nowrap',
+            margin: 0,
+            flexShrink: 0,
+          }}
+        >
+          {title}
+        </h3>
+        {statusContent}
+      </div>
+
       <div className="switch-btn-wrapper">{renderSwitchButton()}</div>
     </>
   );

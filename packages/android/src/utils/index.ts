@@ -1,5 +1,6 @@
 import { ADB, type Device } from 'appium-adb';
 import { debugPage } from '../page';
+
 export async function getConnectedDevices(): Promise<Device[]> {
   try {
     const adb = await ADB.createADB({

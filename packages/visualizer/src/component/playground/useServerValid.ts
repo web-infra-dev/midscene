@@ -3,7 +3,7 @@ import { useEnvConfig } from '../store/store';
 import { checkServerStatus } from './playground-utils';
 
 export const useServerValid = (shouldRun = true) => {
-  const [serverValid, setServerValid] = useState(false);
+  const [serverValid, setServerValid] = useState(true);
   const { serviceMode } = useEnvConfig();
 
   useEffect(() => {

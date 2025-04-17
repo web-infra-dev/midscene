@@ -5,6 +5,7 @@ import {
   base64Encoded,
   imageInfo,
   imageInfoOfBase64,
+  isValidPNGImageBuffer,
   resizeImg,
   resizeImgBase64,
 } from 'src/img';
@@ -158,6 +159,28 @@ describe('image utils', () => {
     });
     console.log('cropped image saved to', tmpFile);
   });
+
+  it('isValidPNGImageBuffer', () => {
+    const buffer = readFileSync(getFixture('icon.png'));
+    const isValid = isValidPNGImageBuffer(buffer);
+    expect(isValid).toBe(true);
+  });
+
+  it('isValidPNGImageBuffer, invalid', () => {
+    const buffer = readFileSync(getFixture('heytea.jpeg'));
+    const isValid = isValidPNGImageBuffer(buffer);
+    expect(isValid).toBe(false);
+  });
+
+  it('isValidPNGImageBuffer, invalid buffer', () => {
+    const isValid = isValidPNGImageBuffer(
+      Buffer.from(
+        '<Buffer 49 6e 76 61 6c 69 64 20 64 69 73 70 6c 61 79 20 49 44 3a 20 4f 75 74 20 6f 66 20 72 61 6e 67 65 20 5b 30 2c 20 32 5e 36 34 29 2e 0a>',
+      ),
+    );
+    expect(isValid).toBe(false);
+  });
+
   // it(
   //   'profile',
   //   async () => {

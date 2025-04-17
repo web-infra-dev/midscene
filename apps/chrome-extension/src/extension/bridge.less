@@ -1,14 +1,14 @@
 @import './common.less';
 
 .bridge-status-bar {
-  height: 56px;
-  line-height: 56px;
+  height: 50px;
+  line-height: 50px;
   display: flex;
   flex-direction: row;
   justify-content: space-between;
   box-sizing: border-box;
   padding: 0 10px;
-  border: 1px solid @footer-text;
+  border: 1px solid #e5e5e5;
   border-radius: 5px;
 
   .bridge-status-text {
@@ -39,6 +39,16 @@
 
 .bridge-log-container {
   flex-grow: 1;
+  flex-shrink: 1;
+  flex-basis: 0;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  margin-top: 10px;
+  min-height: 0;
+  border: 1px solid #f0f0f0;
+  padding: 10px;
+  border-radius: 4px;
 
   .bridge-log-item-content {
     word-break: break-all;
@@ -46,5 +56,76 @@
     text-overflow: ellipsis;
     width: 100%;
     overflow: hidden;
+    font-size: 13px;
+    line-height: 1.5;
   }
-} 
+
+  >p {
+    color: #999;
+    text-align: center;
+    margin-top: 40px;
+  }
+}
+
+.bridge-log-item {
+  margin-bottom: 6px;
+  padding: 4px 0;
+}
+
+.popup-bridge-container {
+  >div {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+
+    >p {
+      margin-top: 0;
+      margin-bottom: 15px;
+      font-size: 13px;
+      line-height: 1.5;
+      color: #666;
+
+      a {
+        color: #1677ff;
+      }
+    }
+  }
+
+  .playground-form-container {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  .form-part {
+    margin-bottom: 10px;
+    min-height: 0;
+
+    &:nth-child(2) {
+      flex: 1 1 auto;
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+    }
+
+    h3 {
+      margin-top: 0;
+      margin-bottom: 8px;
+      font-size: 15px;
+      display: flex;
+      align-items: center;
+
+      button {
+        padding: 2px 8px;
+        font-size: 12px;
+        height: auto;
+        line-height: 1.5;
+      }
+    }
+  }
+}

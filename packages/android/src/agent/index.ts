@@ -4,6 +4,8 @@ import { AndroidDevice } from '../page';
 import { vlLocateMode } from '@midscene/core/env';
 import { getConnectedDevices } from '../utils';
 
+import { debugPage } from '../page';
+
 export class AndroidAgent extends PageAgent<AndroidDevice> {
   constructor(page: AndroidDevice, opts?: PageAgentOpt) {
     super(page, opts);
@@ -29,6 +31,11 @@ export async function agentFromAdbDevice(
     const devices = await getConnectedDevices();
 
     deviceId = devices[0].udid;
+
+    debugPage(
+      'deviceId not specified, will use the first device (id = %s)',
+      deviceId,
+    );
   }
 
   const page = new AndroidDevice(deviceId);
