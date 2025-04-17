@@ -10,7 +10,7 @@ import {
   LoadingOutlined,
 } from '@ant-design/icons';
 import type { BaseElement, Rect } from '@midscene/core';
-import { Button, Spin } from 'antd';
+import { Spin } from 'antd';
 import { rectMarkForItem } from './blackboard';
 import { getTextureFromCache, loadTexture } from './pixi-loader';
 import type {
@@ -127,13 +127,10 @@ export function Player(props?: {
   const scripts = props?.replayScripts;
   const imageWidth = props?.imageWidth || 1920;
   const imageHeight = props?.imageHeight || 1080;
-  const canvasWidth = imageWidth + canvasPaddingLeft * 2;
-  const canvasHeight = imageHeight + canvasPaddingTop * 2;
   const currentImg = useRef<string | null>(scripts?.[0]?.img || null);
 
   const divContainerRef = useRef<HTMLDivElement>(null);
   const app = useMemo<PIXI.Application>(() => new PIXI.Application(), []);
-  const imgSpriteMap = useRef<Map<string, PIXI.Sprite>>(new Map());
 
   const pointerSprite = useRef<PIXI.Sprite | null>(null);
   const spinningPointerSprite = useRef<PIXI.Sprite | null>(null);

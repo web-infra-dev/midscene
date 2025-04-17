@@ -340,8 +340,12 @@ export class PageAgent<PageType extends WebPage = WebPage> {
       return this.aiAssert(taskPrompt);
     }
 
+    if (type === 'tap') {
+      return this.aiTap(taskPrompt);
+    }
+
     throw new Error(
-      `Unknown type: ${type}, only support 'action', 'query', 'assert'`,
+      `Unknown type: ${type}, only support 'action', 'query', 'assert', 'tap'`,
     );
   }
 

@@ -1,8 +1,4 @@
-import {
-  ArrowUpOutlined,
-  BorderOutlined,
-  SendOutlined,
-} from '@ant-design/icons';
+import { BorderOutlined, SendOutlined } from '@ant-design/icons';
 import { Button, Form, Input, Radio, Space, Tooltip } from 'antd';
 import { useCallback, useEffect, useState } from 'react';
 import type React from 'react';
@@ -179,6 +175,11 @@ export const PromptInput: React.FC<PromptInputProps> = ({
                 {actionNameForType('aiAssert')}
               </Radio.Button>
             </Tooltip>
+            <Tooltip title="Instant Action: click something">
+              <Radio.Button value="aiTap">
+                {actionNameForType('aiTap')}
+              </Radio.Button>
+            </Tooltip>
           </Radio.Group>
         </Form.Item>
         <HistorySelector onSelect={handleSelectHistory} />
@@ -205,7 +206,10 @@ export const PromptInput: React.FC<PromptInputProps> = ({
             onMouseEnter={handleMouseEnter}
             onMouseLeave={handleMouseLeave}
           >
-            <ConfigSelector serviceMode={serviceMode} />
+            <ConfigSelector
+              enableTracking={serviceMode === 'In-Browser-Extension'}
+              enableDeepThink={selectedType === 'aiTap'}
+            />
           </div>
           {renderActionButton()}
         </div>
