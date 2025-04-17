@@ -2,7 +2,7 @@ import { existsSync, mkdirSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 
-const runDirName = 'midscene_run';
+export const runDirName = 'midscene_run';
 // Define locally for now to avoid import issues
 export const isNodeEnv =
   typeof process !== 'undefined' &&

@@ -3,7 +3,11 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import * as path from 'node:path';
 import { dirname } from 'node:path';
-import { getMidsceneRunSubDir, logDir } from '@midscene/shared/common';
+import {
+  getMidsceneRunSubDir,
+  logDir,
+  runDirName,
+} from '@midscene/shared/common';
 import { getRunningPkgInfo } from '@midscene/shared/fs';
 import { assert, getGlobalScope } from '@midscene/shared/utils';
 import { ifInBrowser, uuid } from '@midscene/shared/utils';
@@ -170,11 +174,10 @@ export function writeLogFile(opts: {
     }
 
     // ignore the log folder
-    const logDirName = path.basename(logDir);
-    if (!gitIgnoreContent.includes(`${logDirName}/`)) {
+    if (!gitIgnoreContent.includes(`${runDirName}/`)) {
       writeFileSync(
         gitIgnorePath,
-        `${gitIgnoreContent}\n# Midscene.js dump files\n${logDirName}/report\n${logDirName}/tmp\n`,
+        `${gitIgnoreContent}\n# Midscene.js dump files\n${runDirName}/dump\n${runDirName}/report\n${runDirName}/tmp\n${runDirName}/log\n`,
         'utf-8',
       );
     }
