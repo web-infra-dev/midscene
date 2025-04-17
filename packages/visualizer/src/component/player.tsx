@@ -10,7 +10,7 @@ import {
   LoadingOutlined,
 } from '@ant-design/icons';
 import type { BaseElement, Rect } from '@midscene/core';
-import { Button, ConfigProvider, Spin } from 'antd';
+import { Button, Spin } from 'antd';
 import { rectMarkForItem } from './blackboard';
 import { getTextureFromCache, loadTexture } from './pixi-loader';
 import type {
@@ -197,8 +197,11 @@ export function Player(props?: {
     }
     sprite.label = mainImgLabel;
     sprite.zIndex = LAYER_ORDER_IMG;
+
+    // use original size, keep image quality
     sprite.width = imageWidth;
     sprite.height = imageHeight;
+
     windowContentContainer.addChild(sprite);
   };
 
@@ -534,12 +537,18 @@ export function Player(props?: {
   const init = async (): Promise<void> => {
     if (!divContainerRef.current || !scripts) return;
 
+    // use original image size for initialization
+    // this can keep the original image quality, then scale the canvas with CSS
     await app.init({
-      width: canvasWidth,
-      height: canvasHeight,
+      width: imageWidth,
+      height: imageHeight,
       background: 0xf4f4f4,
+      autoDensity: true,
+      antialias: true,
     });
-    divContainerRef.current.appendChild(app.canvas); // Ensure app.view is appended
+
+    if (!divContainerRef.current) return;
+    divContainerRef.current.appendChild(app.canvas);
 
     windowContentContainer.x = 0;
     windowContentContainer.y = 0;
@@ -714,82 +723,64 @@ export function Player(props?: {
   }, [canReplayNow]);
 
   let statusIconElement;
-  const statusStyle: React.CSSProperties = {};
   let statusOnClick: () => void = () => {};
   if (animationProgress < 1) {
     statusIconElement = (
-      <Spin indicator={<LoadingOutlined spin />} size="default" />
+      <Spin indicator={<LoadingOutlined spin color="#333" />} size="default" />
     );
   } else if (mouseOverStatusIcon) {
     statusIconElement = (
-      <Spin indicator={<CaretRightOutlined />} size="default" />
+      <Spin indicator={<CaretRightOutlined color="#333" />} size="default" />
     );
-    statusStyle.cursor = 'pointer';
-    statusStyle.background = '#888';
     statusOnClick = () => setReplayMark(Date.now());
   } else {
     statusIconElement = (
       // <Spin indicator={<CheckCircleOutlined />} size="default" />
-      <Spin indicator={<CaretRightOutlined />} size="default" />
+      <Spin indicator={<CaretRightOutlined color="#333" />} size="default" />
     );
   }
-
-  const playerTopToolbar = props?.reportFileContent ? (
-    <div className="player-tools-right">
-      <div className="player-tools-item">
-        <Button
-          color="primary"
-          variant="link"
-          size="small"
-          icon={<DownloadOutlined />}
-          onClick={() => downloadReport(props.reportFileContent!)}
-        >
-          Report File
-        </Button>
-      </div>
-    </div>
-  ) : null;
 
   return (
     <div className="player-container">
       <div className="canvas-container" ref={divContainerRef} />
-      <div className="player-timeline">
-        <div
-          className="player-timeline-progress"
-          style={{
-            width: `${progressString}%`,
-            transition: transitionStyle,
-          }}
-        />
-      </div>
-      <div className="player-tools">
-        <div className="player-control">
+      <div className="player-timeline-wrapper">
+        <div className="player-timeline">
           <div
-            className="status-icon"
-            onMouseEnter={() => setMouseOverStatusIcon(true)}
-            onMouseLeave={() => setMouseOverStatusIcon(false)}
-            style={statusStyle}
-            onClick={statusOnClick}
-          >
-            <ConfigProvider
-              theme={{
-                components: {
-                  Spin: {
-                    dotSize: 24,
-                    colorPrimary: 'rgb(6,177,171)',
-                  },
-                },
-              }}
+            className="player-timeline-progress"
+            style={{
+              width: `${progressString}%`,
+              transition: transitionStyle,
+            }}
+          />
+        </div>
+      </div>
+      <div className="player-tools-wrapper">
+        <div className="player-tools">
+          <div className="player-control">
+            <div className="status-text">
+              <div className="title">{titleText}</div>
+              <div className="subtitle">{subTitleText}</div>
+            </div>
+            <div
+              className="status-icon"
+              onMouseEnter={() => setMouseOverStatusIcon(true)}
+              onMouseLeave={() => setMouseOverStatusIcon(false)}
+              onClick={statusOnClick}
             >
               {statusIconElement}
-            </ConfigProvider>
-          </div>
-          <div className="status-text">
-            <div className="title">{titleText}</div>
-            <div className="subtitle">{subTitleText}</div>
+            </div>
+            {props?.reportFileContent ? (
+              <div
+                className="status-icon"
+                onMouseEnter={() => setMouseOverStatusIcon(true)}
+                onMouseLeave={() => setMouseOverStatusIcon(false)}
+                onClick={() => downloadReport(props.reportFileContent!)}
+              >
+                <DownloadOutlined color="#333" />
+              </div>
+            ) : null}
           </div>
         </div>
-        {playerTopToolbar}
       </div>
     </div>
   );

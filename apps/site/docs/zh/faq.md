@@ -40,9 +40,11 @@ Midscene 会发送页面截图到 AI 模型。在使用了 GPT-4o 时，你的�
 
 在 Midscene.js 中使用通用大模型时，由于每次进行规划（Planning）和查询（Query）时都会调用 AI，其运行耗时可能比传统 Playwright 用例增加 3 到 10 倍，比如从 5 秒变成 20秒。为了让结果更可靠，token 和时间成本是不可避免的。
 
-有两种方法可以提高运行效率：
-1. 使用专用的模型并自行部署，比如 UI-TARS。这是推荐的做法。更多详情请参阅 [选择 AI 模型](./choose-a-model)。
-2. 使用缓存来减少 token 消耗。更多详情请参阅 [缓存](./caching)。
+有几种方法可以提高运行效率：
+1. 使用即时操作接口，如 `agent.aiTap('Login Button')` 代替 `agent.ai('Click Login Button')`。更多详情请参阅 [API](./API)。
+2. 使用专用的模型并自行部署，比如 UI-TARS。这是推荐的做法。更多详情请参阅 [选择 AI 模型](./choose-a-model)。
+3. 使用较低的分辨率。
+4. 使用缓存来加速调试过程。更多详情请参阅 [缓存](./caching)。
 
 ## 浏览器界面持续闪动
 

@@ -1,6 +1,6 @@
 import {
   AgentOverChromeBridge,
-  allAIConfig,
+  allConfigFromEnv,
   overrideAIConfig,
 } from '@midscene/web/bridge-mode';
 import type { Server } from '@modelcontextprotocol/sdk/server/index.js';
@@ -27,7 +27,7 @@ export class MidsceneManager {
   constructor(server: Server<any, any>) {
     this.server = server;
     this.agent = new AgentOverChromeBridge();
-    const keys = Object.keys(allAIConfig());
+    const keys = Object.keys(allConfigFromEnv());
     const envOverrides: { [key: string]: string } = {};
     for (const key of keys) {
       const value = process.env[key];

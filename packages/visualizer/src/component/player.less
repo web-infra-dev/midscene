@@ -3,121 +3,157 @@
 @player-spacing: 12px;
 @player-vertical-spacing: 15px; // ~=12 * 1.2
 @border-color: #979797;
-@radius: 6px;
+@radius: 8px;
 @player-control-bg: #666;
+@timeline-height: 4px;
+@tools-height: 42px;
+@tools-margin: 15px;
+
 .player-container {
-  width: fit-content;
+  width: 100%;
+  height: 100%;
   max-width: 100%;
   max-height: 100%;
-  padding: @player-spacing 0;
-  padding-bottom: 0;
-  background: #434443DD;
+  padding: 8px;
+  background: #fff;
   box-sizing: border-box;
-  border: 1px solid @border-color;
+  border: 1px solid #0000000F;
   border-radius: @radius;
   line-height: 100%;
   margin: 0 auto;
   display: flex;
   flex-direction: column;
-  overflow: hidden;
+  overflow: visible;
+  min-height: 300px;
+  position: relative;
 
   .canvas-container {
-    flex-grow: 1;
+    flex: 1;
+    min-height: 200px;
     display: flex;
-    align-items: center;
     justify-content: center;
+    align-items: center;
     overflow: hidden;
-    padding: 0 @player-spacing;
+    padding: 8px;
+    margin-bottom: @player-spacing;
+    position: relative;
+    background-color: #F5F5F5;
+    border-radius: inherit;
+
     canvas {
       max-width: 100%;
       max-height: 100%;
       box-sizing: border-box;
       display: block;
       margin: 0 auto;
-    }  
+      object-fit: contain;
+    }
+  }
+
+  .player-timeline-wrapper {
+    width: 100%;
+    height: @timeline-height;
+    flex: none;
+    margin-bottom: 2px;
+    position: relative;
   }
 
   .player-timeline {
     width: 100%;
-    height: 4px;
+    height: @timeline-height;
     background: @player-control-bg;
     position: relative;
-    margin-top: -2px;
-    
+    flex-shrink: 0;
+
     .player-timeline-progress {
       transition-timing-function: linear;
       position: absolute;
       top: 0;
       left: 0;
-      height: 4px;
+      height: @timeline-height;
       background: @primary-color;
     }
   }
 
+  .player-tools-wrapper {
+    width: 100%;
+    height: @tools-height + @player-vertical-spacing * 2;
+    flex: none;
+    position: relative;
+    padding-top: @player-vertical-spacing;
+    padding-bottom: @player-vertical-spacing;
+    box-sizing: border-box;
+  }
+
   .player-tools {
-    margin-top: @player-vertical-spacing;
-    margin-bottom: @player-vertical-spacing;
+    width: 100%;
+    height: @tools-height;
     max-width: 100%;
     overflow: hidden;
-    color: #FFF;
-    font-size: 16px;
+    color: #000;
+    font-size: 14px;
     box-sizing: border-box;
     display: flex;
     flex-direction: row;
-    padding: 0 @player-spacing;
     justify-content: space-between;
-    height: 40px;
     flex-shrink: 0;
+
+    .ant-spin {
+      color: #333;
+    }
 
     .player-control {
       flex-grow: 1;
       display: flex;
       flex-direction: row;
-      align-items: left;
+      align-items: center;
+      overflow: hidden;
     }
-    
+
     .status-icon {
       transition: .2s;
-      width: 40px;
-      height: 40px;
-      margin-right: @player-spacing;
-      background: @player-control-bg;
+      width: 32px;
+      height: 32px;
       border-radius: @radius;
       display: flex;
       align-items: center;
       justify-content: center;
       flex-shrink: 0;
+      margin-left: 10px;
+
+      &:hover {
+        cursor: pointer;
+        background: #F0f0f0;
+      }
     }
 
     .status-text {
       flex-grow: 1;
+      flex-shrink: 1;
+      min-width: 0;
       overflow: hidden;
       position: relative;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
     }
 
     .title {
       font-weight: bold;
-      height: 20px;
       line-height: 20px;
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
-      position: absolute;
-      top: 0;
-      left: 0;
       width: 100%;
     }
 
     .subtitle {
-      height: 20px;
       line-height: 20px;
       width: 100%;
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
-      position: absolute;
-      top: 18px;
-      left: 0;
     }
 
     .player-tools-item {
@@ -125,10 +161,6 @@
       display: flex;
       flex-direction: column;
       justify-content: center;
-
-      .ant-btn-variant-link {
-        color: #FFF;
-      }
     }
   }
 }

@@ -40,9 +40,11 @@ The screenshot will be sent to the AI model. If you are using GPT-4o, some key i
 
 When using general-purpose LLM in Midscene.js, the running time may increase by a factor of 3 to 10 compared to traditional Playwright scripts, for instance from 5 seconds to 20 seconds. To make the result more stable, the token and time cost is inevitable.
 
-There are two ways to improve the running time:
-1. Use a dedicated model and deploy it yourself, like UI-TARS. This is the recommended way. Read more about it in [Choose a model](./choose-a-model).
-2. Use caching to reduce the token cost. Read more about it in [Caching](./caching).
+There are several ways to improve the running time:
+1. Use instant action interface like `agent.aiTap('Login Button')` instead of `agent.ai('Click Login Button')`. Read more about it in [API](./API).
+2. Use a dedicated model and deploy it yourself, like UI-TARS. This is the recommended way. Read more about it in [Choose a model](./choose-a-model).
+3. Use a lower resolution if possible.
+4. Use caching to accelerate the debug process. Read more about it in [Caching](./caching).
 
 ## The webpage continues to flash when running in headed mode
 

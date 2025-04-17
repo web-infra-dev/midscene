@@ -10,7 +10,10 @@ describe(
   async () => {
     await it('Android settings page demo for scroll', async () => {
       const devices = await getConnectedDevices();
-      const agent = await agentFromAdbDevice(devices[0].udid);
+      const agent = await agentFromAdbDevice(devices[0].udid, {
+        aiActionContext:
+          'If any location, permission, user agreement, etc. popup, click agree. If login page pops up, close it.',
+      });
 
       await agent.launch('com.android.settings/.Settings');
 

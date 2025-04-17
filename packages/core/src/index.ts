@@ -1,6 +1,6 @@
 import { Executor } from './ai-model/action-executor';
 import Insight from './insight/index';
-import { getLogDirByType, getVersion, setLogDir } from './utils';
+import { getVersion } from './utils';
 
 export {
   plan,
@@ -13,7 +13,7 @@ export { getAIConfig, MIDSCENE_MODEL_NAME } from './env';
 
 export type * from './types';
 export default Insight;
-export { Executor, setLogDir, getLogDirByType, Insight, getVersion };
+export { Executor, Insight, getVersion };
 
 export type {
   MidsceneYamlScript,

@@ -1,12 +1,3 @@
 packages:
-  - apps/site
-  - apps/chrome-extension
-  - apps/report
-  - packages/cli
-  - packages/shared
-  - packages/mcp
-  - packages/core
-  - packages/visualizer
-  - packages/web-integration
-  - packages/evaluation
-  - packages/android
+  - apps/*
+  - packages/*

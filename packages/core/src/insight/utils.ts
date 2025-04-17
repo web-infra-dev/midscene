@@ -1,31 +1,20 @@
-import {
-  MIDSCENE_MODEL_NAME,
-  MIDSCENE_USE_VLM_UI_TARS,
-  getAIConfig,
-  getAIConfigInBoolean,
-  vlLocateMode,
-} from '@/env';
+import { MIDSCENE_MODEL_NAME, getAIConfig, vlLocateMode } from '@/env';
 import type {
   DumpMeta,
   DumpSubscriber,
   InsightDump,
   PartialInsightDumpFromSDK,
 } from '@/types';
-import { getLogDir, getVersion } from '@/utils';
-import { assert } from '@midscene/shared/utils';
+import { getVersion } from '@/utils';
 import { uuid } from '@midscene/shared/utils';
 
 export function emitInsightDump(
   data: PartialInsightDumpFromSDK,
   dumpSubscriber?: DumpSubscriber,
 ) {
-  const logDir = getLogDir();
-  assert(logDir, 'logDir should be set before writing dump file');
-
   let modelDescription = '';
-  if (getAIConfigInBoolean(MIDSCENE_USE_VLM_UI_TARS)) {
-    modelDescription = 'vlm-ui-tars mode';
-  } else if (vlLocateMode()) {
+
+  if (vlLocateMode()) {
     modelDescription = `${vlLocateMode()} mode`;
   }
 

@@ -3,7 +3,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
   AgentOverChromeBridge,
-  allAIConfig,
+  allConfigFromEnv,
   overrideAIConfig,
 } from '@midscene/web/bridge-mode';
 import dotenv from 'dotenv';
@@ -33,7 +33,7 @@ if (configResult.error) {
 
 // Prepare the command and arguments
 const command = 'npx';
-const keys = Object.keys(allAIConfig());
+const keys = Object.keys(allConfigFromEnv());
 const envOverrides = {};
 for (const key of keys) {
   const value = process.env[key];

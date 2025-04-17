@@ -3,6 +3,7 @@ import { Spin } from 'antd';
 import type React from 'react';
 import { Player } from '../player';
 import type { ReplayScriptsInfo } from '../replay-scripts';
+import ShinyText from '../shiny-text';
 import { emptyResultTip, serverLaunchTip } from './playground-constants';
 import type { PlaygroundResult as PlaygroundResultType } from './playground-types';
 import type { ServiceModeType } from './playground-types';
@@ -16,6 +17,7 @@ interface PlaygroundResultProps {
   replayCounter: number;
   loadingProgressText: string;
   verticalMode?: boolean;
+  notReadyMessage?: React.ReactNode | string;
 }
 
 export const PlaygroundResultView: React.FC<PlaygroundResultProps> = ({
@@ -27,6 +29,7 @@ export const PlaygroundResultView: React.FC<PlaygroundResultProps> = ({
   replayCounter,
   loadingProgressText,
   verticalMode = false,
+  notReadyMessage,
 }) => {
   let resultWrapperClassName = 'result-wrapper';
   if (verticalMode) {
@@ -39,13 +42,13 @@ export const PlaygroundResultView: React.FC<PlaygroundResultProps> = ({
   let resultDataToShow: React.ReactNode = emptyResultTip;
 
   if (!serverValid && serviceMode === 'Server') {
-    resultDataToShow = serverLaunchTip;
+    resultDataToShow = serverLaunchTip(notReadyMessage);
   } else if (loading) {
     resultDataToShow = (
       <div className="loading-container">
         <Spin spinning={loading} indicator={<LoadingOutlined spin />} />
         <div className="loading-progress-text loading-progress-text-progress">
-          {loadingProgressText}
+          <ShinyText text={loadingProgressText} speed={3} />
         </div>
       </div>
     );
@@ -57,7 +60,9 @@ export const PlaygroundResultView: React.FC<PlaygroundResultProps> = ({
         imageWidth={replayScriptsInfo.width}
         imageHeight={replayScriptsInfo.height}
         reportFileContent={
-          serviceMode === 'In-Browser-Extension' && result?.reportHTML
+          (serviceMode === 'In-Browser-Extension' ||
+            serviceMode === 'Server') &&
+          result?.reportHTML
             ? result?.reportHTML
             : null
         }
@@ -74,5 +79,17 @@ export const PlaygroundResultView: React.FC<PlaygroundResultProps> = ({
     resultDataToShow = <pre>{result?.error}</pre>;
   }
 
-  return <div className={resultWrapperClassName}>{resultDataToShow}</div>;
+  return (
+    <div
+      className={resultWrapperClassName}
+      style={{
+        height: '100%',
+        display: 'flex',
+        flexDirection: 'column',
+        flex: '1 1 auto',
+      }}
+    >
+      {resultDataToShow}
+    </div>
+  );
 };

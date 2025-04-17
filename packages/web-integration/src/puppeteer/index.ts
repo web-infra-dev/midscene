@@ -30,4 +30,5 @@ export class PuppeteerAgent extends PageAgent {
 
 export { overrideAIConfig } from '@midscene/core/env';
 
-export { puppeteerAgentForTarget } from './agent-launcher';
+// Do NOT export this since it requires puppeteer
+// export { puppeteerAgentForTarget } from './agent-launcher';

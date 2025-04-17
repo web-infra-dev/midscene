@@ -6,13 +6,32 @@ import {
   systemPromptToTaskPlanning,
 } from '@/ai-model/prompt/llm-planning';
 import { systemPromptToLocateSection } from '@/ai-model/prompt/llm-section-locator';
-import { describe, expect, it } from 'vitest';
+import { uiTarsPlanningPrompt } from '@/ai-model/prompt/ui-tars-planning';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 describe('system prompts', () => {
+  // Store original env values
+  const originalEnvValues = {
+    MIDSCENE_USE_QWEN_VL: process.env.MIDSCENE_USE_QWEN_VL,
+    MIDSCENE_USE_DOUBAO_VISION: process.env.MIDSCENE_USE_DOUBAO_VISION,
+    MIDSCENE_USE_VLM_UI_TARS: process.env.MIDSCENE_USE_VLM_UI_TARS,
+  };
+
+  beforeEach(() => {
+    // Set all configs to false before each test
+    Object.keys(originalEnvValues).forEach((key) => {
+      process.env[key] = 'false';
+    });
+  });
+
+  afterEach(() => {
+    // Restore original values after each test
+    Object.entries(originalEnvValues).forEach(([key, value]) => {
+      process.env[key] = value ?? 'false';
+    });
+  });
+
   it('planning - 4o', async () => {
-    // TODO: restore config
-    process.env.MIDSCENE_USE_QWEN_VL = 'false';
-    process.env.MIDSCENE_USE_DOUBAO_VISION = 'false';
     const prompt = await systemPromptToTaskPlanning();
     expect(prompt).toMatchSnapshot();
   });
@@ -38,8 +57,6 @@ describe('system prompts', () => {
   });
 
   it('planning - user prompt - 4o', async () => {
-    process.env.MIDSCENE_USE_QWEN_VL = 'false';
-    process.env.MIDSCENE_USE_DOUBAO_VISION = 'false';
     const prompt = automationUserPrompt();
     const result = await prompt.format({
       pageDescription: 'THIS IS PAGE DESCRIPTION',
@@ -70,7 +87,13 @@ describe('system prompts', () => {
   });
 
   it('locator - qwen', () => {
+    process.env.MIDSCENE_USE_QWEN_VL = 'true';
     const prompt = systemPromptToLocateElement(true);
+    expect(prompt).toMatchSnapshot();
+  });
+
+  it('ui-tars planning', () => {
+    const prompt = uiTarsPlanningPrompt;
     expect(prompt).toMatchSnapshot();
   });
 });

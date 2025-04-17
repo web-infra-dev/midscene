@@ -3,6 +3,11 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import * as path from 'node:path';
 import { dirname } from 'node:path';
+import {
+  getMidsceneRunSubDir,
+  logDir,
+  runDirName,
+} from '@midscene/shared/common';
 import { getRunningPkgInfo } from '@midscene/shared/fs';
 import { assert, getGlobalScope } from '@midscene/shared/utils';
 import { ifInBrowser, uuid } from '@midscene/shared/utils';
@@ -14,27 +19,12 @@ import {
 } from './env';
 import type { Rect, ReportDumpWithAttributes } from './types';
 
-let logDir = path.join(process.cwd(), './midscene_run/');
 let logEnvReady = false;
+
 export const groupedActionDumpFileExt = 'web-dump.json';
 
 export function getLogDir() {
   return logDir;
-}
-
-export function setLogDir(dir: string) {
-  logDir = dir;
-}
-
-export function getLogDirByType(type: 'dump' | 'cache' | 'report' | 'tmp') {
-  if (ifInBrowser) {
-    return '';
-  }
-  const dir = path.join(getLogDir(), type);
-  if (!existsSync(dir)) {
-    mkdirSync(dir, { recursive: true });
-  }
-  return dir;
 }
 
 let reportTpl: string | null = null;
@@ -54,7 +44,7 @@ function getReportTpl() {
   }
 
   const __dirname = dirname(__filename);
-  if (!reportTpl) {
+  if (!reportTpl && !ifInBrowser) {
     const possiblePaths = [
       path.join(__dirname, '../../report/index.html'),
       path.join(__dirname, '../report/index.html'),
@@ -146,7 +136,10 @@ export function writeDumpReport(
     return null;
   }
 
-  const reportPath = path.join(getLogDirByType('report'), `${fileName}.html`);
+  const reportPath = path.join(
+    getMidsceneRunSubDir('report'),
+    `${fileName}.html`,
+  );
   const reportContent = reportHTMLContent(dumpData);
   if (!reportContent) {
     console.warn('reportContent is empty, will not write report');
@@ -168,7 +161,7 @@ export function writeLogFile(opts: {
     return '/mock/report.html';
   }
   const { fileName, fileExt, fileContent, type = 'dump' } = opts;
-  const targetDir = getLogDirByType(type);
+  const targetDir = getMidsceneRunSubDir(type);
   // Ensure directory exists
   if (!logEnvReady) {
     assert(targetDir, 'logDir should be set before writing dump file');
@@ -181,11 +174,10 @@ export function writeLogFile(opts: {
     }
 
     // ignore the log folder
-    const logDirName = path.basename(logDir);
-    if (!gitIgnoreContent.includes(`${logDirName}/`)) {
+    if (!gitIgnoreContent.includes(`${runDirName}/`)) {
       writeFileSync(
         gitIgnorePath,
-        `${gitIgnoreContent}\n# Midscene.js dump files\n${logDirName}/report\n${logDirName}/tmp\n`,
+        `${gitIgnoreContent}\n# Midscene.js dump files\n${runDirName}/dump\n${runDirName}/report\n${runDirName}/tmp\n${runDirName}/log\n`,
         'utf-8',
       );
     }
@@ -196,11 +188,6 @@ export function writeLogFile(opts: {
 
   if (type !== 'dump') {
     // do not write dump file any more
-    const outputResourceDir = path.dirname(filePath);
-    if (!existsSync(outputResourceDir)) {
-      mkdirSync(outputResourceDir, { recursive: true });
-    }
-
     writeFileSync(filePath, fileContent);
   }
 
