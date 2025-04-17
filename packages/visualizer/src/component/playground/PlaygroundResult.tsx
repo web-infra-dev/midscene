@@ -3,6 +3,7 @@ import { Spin } from 'antd';
 import type React from 'react';
 import { Player } from '../player';
 import type { ReplayScriptsInfo } from '../replay-scripts';
+import ShinyText from '../shiny-text';
 import { emptyResultTip, serverLaunchTip } from './playground-constants';
 import type { PlaygroundResult as PlaygroundResultType } from './playground-types';
 import type { ServiceModeType } from './playground-types';
@@ -47,7 +48,7 @@ export const PlaygroundResultView: React.FC<PlaygroundResultProps> = ({
       <div className="loading-container">
         <Spin spinning={loading} indicator={<LoadingOutlined spin />} />
         <div className="loading-progress-text loading-progress-text-progress">
-          {loadingProgressText}
+          <ShinyText text={loadingProgressText} speed={3} />
         </div>
       </div>
     );
