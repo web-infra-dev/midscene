@@ -10,7 +10,7 @@ English | [简体中文](./README.zh.md)
 </div>
 
 <p align="center">
-  Let AI be your browser operator.
+  Your AI Operator for Web, Mobile, Automation & Testing
 </p>
 
 <p align="center">
@@ -22,7 +22,7 @@ English | [简体中文](./README.zh.md)
   <a href="https://x.com/midscene_ai"><img src="https://img.shields.io/twitter/follow/midscene_ai?style=flat-square" alt="twitter" /></a>
 </p>
 
-Midscene.js lets AI be your browser operator 🤖.Just describe what you want to do in natural language, and it will help you operate web pages, validate content, and extract data. Whether you want a quick experience or deep development, you can get started easily.
+Midscene.js lets AI be your browser and Android operator 🤖.Just describe what you want to do in natural language, and it will help you operate web pages, validate content, and extract data. Whether you want a quick experience or deep development, you can get started easily.
 
 
 ## Showcases
@@ -34,10 +34,13 @@ The following recorded example video is based on the [UI-TARS 7B SFT](https://hu
 | Post a Tweet      |    <video src="https://github.com/user-attachments/assets/bb3d695a-fbff-4af1-b6cc-5e967c07ccee" height="300" />    |
 | Use JS code to drive task orchestration, collect information about Jay Chou's concert, and write it into Google Docs   | <video src="https://github.com/user-attachments/assets/75474138-f51f-4c54-b3cf-46d61d059999" height="300" />        |
 
+## 📢 2025 Apr: Support Android Automation
 
-## 📢 New open-source model choice - UI-TARS and Qwen2.5-VL
+You can now use visual-language AI models to control Android devices, with all the power of Midscene.js. Only `adb` is required to achieve this. Read more about it in [Blog: Support Android Automation](https://midscenejs.com/blog-support-android-automation.html).
 
-Besides the default model *GPT-4o*, we have added two new recommended open-source models to Midscene.js: *UI-TARS* and *Qwen2.5-VL*. (Yes, Open Source !) They are dedicated models for image recognition and UI automation, which are known for performing well in UI automation scenarios. Read more about it in [Choose a model](https://midscenejs.com/choose-a-model).
+## 📢 2025 Feb: New open-source model choice - UI-TARS and Qwen2.5-VL
+
+Besides the default model *GPT-4o*, we have added two new recommended open-source models to Midscene.js: *UI-TARS* and *Qwen2.5-VL*. (Yes, Open Source models !) They are dedicated models for image recognition and UI automation, which are known for performing well in UI automation scenarios. Read more about it in [Choose a model](https://midscenejs.com/choose-a-model).
 
 ## 💡 Features
 - **Natural Language Interaction 👆**: Just describe your goals and steps, and Midscene will plan and operate the user interface for you.

@@ -22,21 +22,37 @@ Behind the scenes, we utilize the visual grounding capabilities of vl-model to l
 
 When using Midscene to do web automation, our users loves the tools like playgrounds and reports. Now, we bring the same power to Android automation!
 
-You can use the playground to run automation without any code:
+### Use the playground to run automation without any code
 
 _____________
 
-Use the report to replay the whole process:
+### Use the report to replay the whole process
 
 _____________
 
-To write the automation scripts by yaml file:
+### Write the automation scripts by yaml file
 
 _____________
 
-Or use the javascript SDK:
+### Use the javascript SDK
 
 _____________
+
+### Two style APIs to do interaction
+
+The auto-planning style:
+
+```javascript
+
+```
+
+The instant action style:
+
+```javascript
+
+```
+
+### Demo projects
 
 We have prepared a demo project for javascript SDK:
 
@@ -49,5 +65,6 @@ _____________
 ## Limitations
 
 1. Caching feature for element locator is not supported. Since no view-hierarchy is collected, we cannot cache the element identifier and reuse it.
-2. LLMs like gpt-4o is not supported. Only some known vl models with visual grounding ability are supported for now. If you want to introduce other vl models, please let us know.
+2. LLMs like gpt-4o or deepseek are not supported. Only some known vl models with visual grounding ability are supported for now. If you want to introduce other vl models, please let us know.
 3. The performance is not good enough for now. We are still working on it.
+4. The vl model may not perform well on `.aiQuery` and `.aiAssert`. We will give a way to switch model for different kinds of tasks.
