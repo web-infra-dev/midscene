@@ -96,7 +96,7 @@ export function StandardPlayground({
 
   // Form and environment configuration
   const [form] = Form.useForm();
-  const { config } = useEnvConfig();
+  const { config, deepThink } = useEnvConfig();
 
   const currentAgentRef = useRef<any>(null);
   const currentRunningIdRef = useRef<number | null>(0);
@@ -140,6 +140,7 @@ export function StandardPlayground({
     setLoading(true);
     setResult(null);
     let result: PlaygroundResult = { ...blankResult };
+    console.log('result: ', result);
 
     const activeAgent = getAgent();
     const thisRunningId = Date.now();
@@ -173,6 +174,10 @@ export function StandardPlayground({
         } else if (value.type === 'aiAssert') {
           result.result = await activeAgent?.aiAssert(value.prompt, undefined, {
             keepRawResponse: true,
+          });
+        } else if (value.type === 'aiTap') {
+          result.result = await activeAgent?.aiTap(value.prompt, {
+            deepThink,
           });
         }
       }
@@ -209,7 +214,7 @@ export function StandardPlayground({
     currentAgentRef.current = null;
     setResult(result);
     setLoading(false);
-    if (value.type === 'aiAction' && result?.dump) {
+    if (result?.dump) {
       const info = allScriptsFromDump(result.dump);
       setReplayScriptsInfo(info);
       setReplayCounter((c) => c + 1);

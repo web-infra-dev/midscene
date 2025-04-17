@@ -31,6 +31,7 @@ const SERVER_URL = `http://localhost:${SCRCPY_SERVER_PORT}`;
 
 export default function App() {
   const [form] = Form.useForm();
+  const selectedType = Form.useWatch('type', form);
   const [loading, setLoading] = useState(false);
   const [selectedDeviceId, setSelectedDeviceId] = useState<string | null>(null);
   const [connectToDevice, setConnectToDevice] = useState(false);
@@ -50,7 +51,7 @@ export default function App() {
   const [replayCounter, setReplayCounter] = useState(0);
   const [replayScriptsInfo, setReplayScriptsInfo] =
     useState<ReplayScriptsInfo | null>(null);
-  const { config } = useEnvConfig();
+  const { config, deepThink } = useEnvConfig();
   const [loadingProgressText, setLoadingProgressText] = useState('');
   const currentRequestIdRef = useRef<string | null>(null);
   const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -304,6 +305,7 @@ export default function App() {
         type,
         prompt,
         requestId,
+        deepThink,
       );
 
       // stop polling
@@ -317,7 +319,7 @@ export default function App() {
       }
 
       // handle the special case of aiAction type, extract script information
-      if (type === 'aiAction' && res?.dump) {
+      if (res?.dump) {
         const info = allScriptsFromDump(res.dump);
         setReplayScriptsInfo(info);
         setReplayCounter((c) => c + 1);
@@ -386,7 +388,7 @@ export default function App() {
                           }
                           form={form}
                           serviceMode="Server"
-                          selectedType="aiAction"
+                          selectedType={selectedType}
                           dryMode={false}
                           stoppable={loading}
                           loading={loading}
