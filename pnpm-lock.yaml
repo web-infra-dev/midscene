@@ -4,6 +4,11 @@ settings:
   autoInstallPeers: true
   excludeLinksFromLockfile: false
 
+patchedDependencies:
+  '@yume-chan/async':
+    hash: k2a2rtwps5wqh7srfsu4dpx6ry
+    path: patches/@yume-chan__async.patch
+
 importers:
 
   .:
@@ -16550,7 +16555,7 @@ snapshots:
   '@yume-chan/adb-scrcpy@1.1.0':
     dependencies:
       '@yume-chan/adb': 1.1.0
-      '@yume-chan/async': 4.1.1
+      '@yume-chan/async': 4.1.1(patch_hash=k2a2rtwps5wqh7srfsu4dpx6ry)
       '@yume-chan/event': 1.0.0
       '@yume-chan/scrcpy': 1.1.0
       '@yume-chan/stream-extra': 1.0.0
@@ -16559,23 +16564,23 @@ snapshots:
   '@yume-chan/adb-server-node-tcp@1.1.0':
     dependencies:
       '@yume-chan/adb': 1.1.0
-      '@yume-chan/async': 4.1.1
+      '@yume-chan/async': 4.1.1(patch_hash=k2a2rtwps5wqh7srfsu4dpx6ry)
       '@yume-chan/stream-extra': 1.0.0
       '@yume-chan/struct': 1.0.0
 
   '@yume-chan/adb@1.1.0':
     dependencies:
-      '@yume-chan/async': 4.1.1
+      '@yume-chan/async': 4.1.1(patch_hash=k2a2rtwps5wqh7srfsu4dpx6ry)
       '@yume-chan/event': 1.0.0
       '@yume-chan/no-data-view': 1.0.0
       '@yume-chan/stream-extra': 1.0.0
       '@yume-chan/struct': 1.0.0
 
-  '@yume-chan/async@4.1.1': {}
+  '@yume-chan/async@4.1.1(patch_hash=k2a2rtwps5wqh7srfsu4dpx6ry)': {}
 
   '@yume-chan/event@1.0.0':
     dependencies:
-      '@yume-chan/async': 4.1.1
+      '@yume-chan/async': 4.1.1(patch_hash=k2a2rtwps5wqh7srfsu4dpx6ry)
 
   '@yume-chan/fetch-scrcpy-server@1.0.0':
     dependencies:
@@ -16585,7 +16590,7 @@ snapshots:
 
   '@yume-chan/scrcpy-decoder-tinyh264@1.1.0':
     dependencies:
-      '@yume-chan/async': 4.1.1
+      '@yume-chan/async': 4.1.1(patch_hash=k2a2rtwps5wqh7srfsu4dpx6ry)
       '@yume-chan/event': 1.0.0
       '@yume-chan/scrcpy': 1.1.0
       '@yume-chan/stream-extra': 1.0.0
@@ -16595,7 +16600,7 @@ snapshots:
 
   '@yume-chan/scrcpy-decoder-webcodecs@1.1.0':
     dependencies:
-      '@yume-chan/async': 4.1.1
+      '@yume-chan/async': 4.1.1(patch_hash=k2a2rtwps5wqh7srfsu4dpx6ry)
       '@yume-chan/event': 1.0.0
       '@yume-chan/no-data-view': 1.0.0
       '@yume-chan/scrcpy': 1.1.0
@@ -16604,19 +16609,19 @@ snapshots:
 
   '@yume-chan/scrcpy@1.1.0':
     dependencies:
-      '@yume-chan/async': 4.1.1
+      '@yume-chan/async': 4.1.1(patch_hash=k2a2rtwps5wqh7srfsu4dpx6ry)
       '@yume-chan/no-data-view': 1.0.0
       '@yume-chan/stream-extra': 1.0.0
       '@yume-chan/struct': 1.0.0
 
   '@yume-chan/stream-extra@1.0.0':
     dependencies:
-      '@yume-chan/async': 4.1.1
+      '@yume-chan/async': 4.1.1(patch_hash=k2a2rtwps5wqh7srfsu4dpx6ry)
       '@yume-chan/struct': 1.0.0
 
   '@yume-chan/struct@1.0.0':
     dependencies:
-      '@yume-chan/async': 4.1.1
+      '@yume-chan/async': 4.1.1(patch_hash=k2a2rtwps5wqh7srfsu4dpx6ry)
       '@yume-chan/no-data-view': 1.0.0
 
   '@zkochan/js-yaml@0.0.7':
