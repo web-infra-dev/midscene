@@ -1,0 +1,12 @@
+diff --git a/package.json b/package.json
+index daf363655c97bf0cb2af5581cb9653c962f9bdb3..0c85add312b214425c9b2571e3ac4b2cae8aab9b 100644
+--- a/package.json
++++ b/package.json
+@@ -1,6 +1,7 @@
+ {
+     "name": "@yume-chan/async",
+     "version": "4.1.1",
++    "type": "module",
+     "description": "Utils for async programming.",
+     "keywords": [
+         "async",

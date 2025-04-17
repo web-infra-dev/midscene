@@ -1,5 +1,9 @@
-import { BorderOutlined, SendOutlined } from '@ant-design/icons';
-import { Button, Form, Input, Radio, Tooltip } from 'antd';
+import {
+  ArrowUpOutlined,
+  BorderOutlined,
+  SendOutlined,
+} from '@ant-design/icons';
+import { Button, Form, Input, Radio, Space, Tooltip } from 'antd';
 import { useCallback, useEffect, useState } from 'react';
 import type React from 'react';
 import type { HistoryItem } from '../store/history';
@@ -109,6 +113,7 @@ export const PromptInput: React.FC<PromptInputProps> = ({
       <Button
         type="primary"
         icon={<SendOutlined />}
+        style={{ borderRadius: 20 }}
         onClick={handleRunWithHistory}
         disabled={!runButtonEnabled}
         loading={loading}
@@ -129,7 +134,11 @@ export const PromptInput: React.FC<PromptInputProps> = ({
 
     if (stoppable) {
       return (
-        <Button icon={<BorderOutlined />} onClick={onStop}>
+        <Button
+          icon={<BorderOutlined />}
+          onClick={onStop}
+          style={{ borderRadius: 20 }}
+        >
           Stop
         </Button>
       );
@@ -148,23 +157,36 @@ export const PromptInput: React.FC<PromptInputProps> = ({
 
   return (
     <div className="form-part input-wrapper">
-      <h3>Run</h3>
-      <Form.Item name="type">
-        <Radio.Group buttonStyle="solid" disabled={!runButtonEnabled}>
-          <Radio.Button value="aiAction">
-            {actionNameForType('aiAction')}
-          </Radio.Button>
-          <Radio.Button value="aiQuery">
-            {actionNameForType('aiQuery')}
-          </Radio.Button>
-          <Radio.Button value="aiAssert">
-            {actionNameForType('aiAssert')}
-          </Radio.Button>
-        </Radio.Group>
-      </Form.Item>
+      <Space className="mode-radio-group-wrapper">
+        <Form.Item name="type" style={{ margin: 0 }}>
+          <Radio.Group
+            buttonStyle="solid"
+            disabled={!runButtonEnabled}
+            className="mode-radio-group"
+          >
+            <Tooltip title="Auto Planning: plan the steps and execute">
+              <Radio.Button value="aiAction">
+                {actionNameForType('aiAction')}
+              </Radio.Button>
+            </Tooltip>
+            <Tooltip title="Extract data directly from the UI">
+              <Radio.Button value="aiQuery">
+                {actionNameForType('aiQuery')}
+              </Radio.Button>
+            </Tooltip>
+            <Tooltip title="Understand the UI and determine if the assertion is true">
+              <Radio.Button value="aiAssert">
+                {actionNameForType('aiAssert')}
+              </Radio.Button>
+            </Tooltip>
+          </Radio.Group>
+        </Form.Item>
+        <HistorySelector onSelect={handleSelectHistory} />
+      </Space>
       <div className="main-side-console-input">
-        <Form.Item name="prompt">
+        <Form.Item name="prompt" style={{ margin: 0 }}>
           <TextArea
+            className="main-side-console-input-textarea"
             disabled={!runButtonEnabled}
             rows={4}
             placeholder={placeholder}
@@ -183,7 +205,6 @@ export const PromptInput: React.FC<PromptInputProps> = ({
             onMouseEnter={handleMouseEnter}
             onMouseLeave={handleMouseLeave}
           >
-            <HistorySelector onSelect={handleSelectHistory} />
             <ConfigSelector serviceMode={serviceMode} />
           </div>
           {renderActionButton()}

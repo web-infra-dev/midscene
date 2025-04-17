@@ -1,9 +1,10 @@
+import { overrideAIConfig } from '@midscene/core/env';
 import { Button, Tooltip } from 'antd';
 import type React from 'react';
+import { useEffect } from 'react';
 import { EnvConfig } from '../env-config';
 import { iconForStatus } from '../misc';
 import { useEnvConfig } from '../store/store';
-import type { ServiceModeType } from './playground-types';
 import { useServerValid } from './useServerValid';
 
 interface ServiceModeControlProps {
@@ -13,7 +14,7 @@ interface ServiceModeControlProps {
 // Centralized text constants
 const TITLE_TEXT = {
   Server: 'Server Status',
-  'In-Browser': 'In-Browser Request Config',
+  'In-Browser': 'In-Browser',
 };
 
 const SWITCH_BUTTON_TEXT = {
@@ -24,7 +25,7 @@ const SWITCH_BUTTON_TEXT = {
 export const ServiceModeControl: React.FC<ServiceModeControlProps> = ({
   serviceMode,
 }) => {
-  const { setServiceMode } = useEnvConfig();
+  const { setServiceMode, config } = useEnvConfig();
   const serverValid = useServerValid(serviceMode === 'Server');
 
   // Render server tip based on connection status
@@ -69,6 +70,10 @@ export const ServiceModeControl: React.FC<ServiceModeControlProps> = ({
     );
   };
 
+  useEffect(() => {
+    overrideAIConfig(config);
+  }, [config]);
+
   // Determine content based on service mode
   const statusContent =
     serviceMode === 'Server' ? renderServerTip() : <EnvConfig />;
@@ -76,8 +81,25 @@ export const ServiceModeControl: React.FC<ServiceModeControlProps> = ({
 
   return (
     <>
-      <h3>{title}</h3>
-      {statusContent}
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '10px',
+        }}
+      >
+        <h3
+          style={{
+            whiteSpace: 'nowrap',
+            margin: 0,
+            flexShrink: 0,
+          }}
+        >
+          {title}
+        </h3>
+        {statusContent}
+      </div>
+
       <div className="switch-btn-wrapper">{renderSwitchButton()}</div>
     </>
   );

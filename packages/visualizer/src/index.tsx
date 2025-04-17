@@ -26,3 +26,17 @@ export { ServiceModeControl } from './component/playground/ServiceModeControl';
 export { ContextPreview } from './component/playground/ContextPreview';
 export { PromptInput } from './component/playground/PromptInput';
 export { Player } from './component/player';
+export { Blackboard } from './component/blackboard';
+
+// Export playground utilities
+export {
+  requestPlaygroundServer,
+  overrideServerConfig,
+  getTaskProgress,
+  checkServerStatus,
+  actionNameForType,
+  staticAgentFromContext,
+  formatErrorMessage,
+  getPlaceholderForType,
+  blankResult,
+} from './component/playground/playground-utils';

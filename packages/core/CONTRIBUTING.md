@@ -1,5 +1,5 @@
 It's all driven by tests:
 
-```shell
+```bash
 npx vitest ./tests/
 ```

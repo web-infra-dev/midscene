@@ -6,10 +6,10 @@
       "multi": false,
       "annotation_index_id": 1,
       "response_rect": {
-        "left": 186,
-        "top": 275,
-        "width": 78,
-        "height": 18
+        "left": 187,
+        "top": 276,
+        "width": 83,
+        "height": 19
       },
       "response_element": {
         "id": "eabha",
@@ -24,7 +24,7 @@
         "left": 324,
         "top": 801,
         "width": 62,
-        "height": 14
+        "height": 16
       },
       "response_element": {
         "id": "kmdfd",
@@ -36,14 +36,14 @@
       "multi": false,
       "annotation_index_id": 3,
       "response_rect": {
-        "left": 187,
-        "top": 739,
-        "width": 102,
+        "left": 189,
+        "top": 802,
+        "width": 40,
         "height": 15
       },
       "response_element": {
-        "id": "mjdkp",
-        "indexId": 37
+        "id": "eommc",
+        "indexId": 38
       }
     },
     {
@@ -51,10 +51,10 @@
       "multi": false,
       "annotation_index_id": 4,
       "response_rect": {
-        "left": 5,
+        "left": 6,
         "top": 382,
-        "width": 35,
-        "height": 14
+        "width": 34,
+        "height": 13
       },
       "response_element": {
         "id": "lalae",

@@ -5,8 +5,8 @@ import { samplePageDescription } from './util';
 
 // Note: put the log field first to trigger the CoT
 const vlCoTLog = `"what_the_user_wants_to_do_next_by_instruction": string, // What the user wants to do according to the instruction and previous logs. `;
-const vlCurrentLog = `"log": string, // Log what the next one action (ONLY ONE!) you can do according to the screenshot and the instruction. The typical log looks like "I will use action {{ action-type }} to do .. first". If no action should be done, log the reason. ". Use the same language as the user's instruction.`;
-const llmCurrentLog = `"log": string, // Log what the next actions you can do according to the screenshot and the instruction. The typical log looks like "I will use action {{ action-type }} to do ..". If no action should be done, log the reason. ". Use the same language as the user's instruction.`;
+const vlCurrentLog = `"log": string, // Log what the next one action (ONLY ONE!) you can do according to the screenshot and the instruction. The typical log looks like "Now i want to use action '{{ action-type }}' to do .. first". If no action should be done, log the reason. ". Use the same language as the user's instruction.`;
+const llmCurrentLog = `"log": string, // Log what the next actions you can do according to the screenshot and the instruction. The typical log looks like "Now i want to use action '{{ action-type }}' to do ..". If no action should be done, log the reason. ". Use the same language as the user's instruction.`;
 
 const commonOutputFields = `"error"?: string, // Error messages about unexpected situations, if any. Only think it is an error when the situation is not expected according to the instruction. Use the same language as the user's instruction.
   "more_actions_needed_by_instruction": boolean, // Consider if there is still more action(s) to do after the action in "Log" is done, according to the instruction. If so, set this field to true. Otherwise, set it to false.`;
@@ -43,6 +43,23 @@ Return in JSON format:
     } | null,
   ,
   "sleep"?: number, // The sleep time after the action, in milliseconds.
+}
+
+For example, when the instruction is "click 'Confirm' button, and click 'Yes' in popup" and the log is "I will use action Tap to click 'Confirm' button", by viewing the screenshot and previous logs, you should consider: We have already clicked the 'Confirm' button, so next we should find and click 'Yes' in popup.
+
+this and output the JSON:
+
+{
+  "what_the_user_wants_to_do_next_by_instruction": "We have already clicked the 'Confirm' button, so next we should find and click 'Yes' in popup",
+  "log": "I will use action Tap to click 'Yes' in popup",
+  "more_actions_needed_by_instruction": false,
+  "action": {
+    "type": "Tap",
+    "locate": {
+      "bbox": [100, 100, 200, 200],
+      "prompt": "The 'Yes' button in popup"
+    }
+  }
 }
 `;
 

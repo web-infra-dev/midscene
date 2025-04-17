@@ -20,7 +20,6 @@ import {
   getTmpFile,
   overlapped,
   reportHTMLContent,
-  setLogDir,
   writeDumpReport,
 } from '@/utils';
 import { describe, expect, it } from 'vitest';
@@ -37,10 +36,6 @@ describe('utils', () => {
   it('log dir', () => {
     const dumpDir = getLogDir();
     expect(dumpDir).toBeTruthy();
-
-    setLogDir(tmpdir());
-    const dumpDir2 = getLogDir();
-    expect(dumpDir2).toBe(tmpdir());
   });
 
   it('write report file', () => {

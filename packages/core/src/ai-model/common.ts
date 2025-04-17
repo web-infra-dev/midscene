@@ -92,7 +92,7 @@ export function adaptQwenBbox(
 }
 
 export function adaptDoubaoBbox(
-  bbox: number[],
+  bbox: number[] | string,
   width: number,
   height: number,
   errorMsg?: string,
@@ -101,6 +101,23 @@ export function adaptDoubaoBbox(
     width > 0 && height > 0,
     'width and height must be greater than 0 in doubao mode',
   );
+
+  if (typeof bbox === 'string') {
+    assert(
+      /^(\d+)\s(\d+)\s(\d+)\s(\d+)$/.test(bbox.trim()),
+      `invalid bbox data string for doubao-vision mode: ${bbox}`,
+    );
+    const splitted = bbox.split(' ');
+    if (splitted.length === 4) {
+      return [
+        Math.round((Number(splitted[0]) * width) / 1000),
+        Math.round((Number(splitted[1]) * height) / 1000),
+        Math.round((Number(splitted[2]) * width) / 1000),
+        Math.round((Number(splitted[3]) * height) / 1000),
+      ];
+    }
+    throw new Error(`invalid bbox data string for doubao-vision mode: ${bbox}`);
+  }
 
   if (bbox.length === 4 || bbox.length === 5) {
     return [
@@ -153,7 +170,7 @@ export function adaptBbox(
   height: number,
   errorMsg?: string,
 ): [number, number, number, number] {
-  if (vlLocateMode() === 'doubao-vision') {
+  if (vlLocateMode() === 'doubao-vision' || vlLocateMode() === 'vlm-ui-tars') {
     return adaptDoubaoBbox(bbox, width, height, errorMsg);
   }
 
@@ -199,6 +216,11 @@ export function warnGPT4oSizeLimit(size: Size) {
       console.warn(warningMsg);
       warned = true;
     }
+  } else if (size.width > 1800 || size.height > 1800) {
+    console.warn(
+      `The image size seems too large (${size.width}x${size.height}). It may lead to more token usage, slower response, and inaccurate result.`,
+    );
+    warned = true;
   }
 }
 

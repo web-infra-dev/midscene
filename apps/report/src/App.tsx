@@ -1,4 +1,4 @@
-import './App.css';
+import './App.less';
 import './index.less';
 
 import { CaretRightOutlined } from '@ant-design/icons';

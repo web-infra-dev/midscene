@@ -1,4 +1,4 @@
-# 集成到 Android
+# 与 Android(adb) 集成
 
 Midscene 支持使用视觉语言（VL）模型来控制 Android 设备。
 
@@ -12,16 +12,22 @@ import { PackageManagerTabs } from '@theme';
 
 ## 准备工作
 
-### 配置 OpenAI API Key
+### 配置 API Key
 
-配置 OpenAI API Key，或 [自定义模型和服务商](./model-provider)
+配置 VL 模型的 API Key。如果使用 qwen-2.5-vl，可以配置如下：
 
 ```bash
-# 更新为你自己的 Key
-export OPENAI_API_KEY="sk-abcdefghijklmnopqrstuvwxyz"
+OPENAI_BASE_URL="https://dashscope.aliyuncs.com/compatible-mode/v1"
+OPENAI_API_KEY="......"
+MIDSCENE_MODEL_NAME="qwen-vl-max-latest"
+MIDSCENE_USE_QWEN_VL=1
 ```
 
+控制 Android 设备时，你只能使用 VL 模型。更多详情请参考 [选择模型](./choose-a-model)。
+
 ### 准备 adb 环境
+
+`adb` 是一个命令行工具，允许你与 Android 设备通信。
 
 - 方式一：使用 [Android Studio](https://developer.android.com/studio?hl=zh-cn) 安装
 - 方式二：使用 [Android command-line tools](https://developer.android.com/studio#command-line-tools-only) 安装
@@ -43,7 +49,11 @@ Running on Darwin 24.3.0 (arm64)
 
 ### 使用 adb 连接 Android 设备
 
-打开安卓设备的 USB 调试，接着使用数据线连接一台安卓设备
+在系统设置的开发者选项中，开启安卓设备的『USB 调试』，如果存在『USB 调试（安全设置）』，也需要开启，接着使用数据线连接一台安卓设备
+
+<p align="center">
+  <img src="/android-usb-debug.png" alt="android usb debug" width="400"/>
+</p>
 
 通过下面命令确认已经连接：
 
@@ -153,7 +163,7 @@ function launch(uri: string): Promise<void>;
 ```
 
 * 参数：
-  * `uri: string` - 要打开的 uri
+  * `uri: string` - 要打开的 uri，可以是网页 url 或原生 app 的 package name 或 activity name，如果存在 activity name，则以 / 分隔（例如：com.android.settings/.Settings）
 
 * 返回值：
   * `Promise<void>`
@@ -236,3 +246,17 @@ const agent = await agentFromAdbDevice(devices[0].udid);
 
 * 更多 Agent 上的 API 接口请参考 [API 参考](./API)。
 * 更多关于提示词的技巧请参考 [提示词技巧](./prompting-tips)
+
+## FAQ
+
+### 为什么我连接了设备，但是通过 adb 仍然无法控制？
+
+请检查是否在系统设置的开发者选项中，如果存在『USB 调试（安全设置）』，也需要开启。
+
+<p align="center">
+  <img src="/android-usb-debug.png" alt="android usb debug" width="400"/>
+</p>
+
+### 为什么我连接了设备，但是通过 `adb devices -l` 命令看不到设备？
+
+[连接设备](./integrate-with-android#使用-adb-连接-android-设备) 时，请确保设备处于解锁状态。

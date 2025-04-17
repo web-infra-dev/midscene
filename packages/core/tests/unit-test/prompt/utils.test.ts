@@ -1,9 +1,18 @@
 import { describeUserPage } from '@/ai-model/prompt/util';
 import { vlLocateMode } from '@/env';
 import { getContextFromFixture } from 'tests/evaluation';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
-describe('prompt utils', () => {
+// Mock vlLocateMode to return false during tests
+vi.mock('@/env', async () => {
+  const actual = await vi.importActual('@/env');
+  return {
+    ...actual,
+    vlLocateMode: () => false,
+  };
+});
+
+describe.skipIf(vlLocateMode())('prompt utils', () => {
   let lengthOfDescription: number;
   it('describe context', async () => {
     const context = await getContextFromFixture('taobao');

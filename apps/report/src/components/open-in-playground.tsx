@@ -1,13 +1,13 @@
 import { PlayCircleOutlined } from '@ant-design/icons';
 import type { UIContext } from '@midscene/core';
 import { useStaticPageAgent } from '@midscene/visualizer';
-import { StandardPlayground } from './playground';
-import '@midscene/visualizer/index.css';
+import type { WebUIContext } from '@midscene/web/utils';
 import { Button, Drawer, Tooltip } from 'antd';
 import { useEffect, useState } from 'react';
+import { StandardPlayground } from './playground';
 import { useEnvConfig } from './store';
-import './open-in-playground.less';
-import type { WebUIContext } from '@midscene/web/utils';
+
+import '@midscene/visualizer/index.css';
 
 declare const __VERSION__: string;
 
@@ -116,6 +116,7 @@ export default function OpenInPlayground(props?: { context?: UIContext }) {
         width="90%"
         styles={{
           header: { padding: '16px' },
+          body: { padding: '24px' },
         }}
         className="playground-drawer"
       >

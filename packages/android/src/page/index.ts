@@ -4,7 +4,7 @@ import path from 'node:path';
 import type { Point, Size } from '@midscene/core';
 import { getTmpFile } from '@midscene/core/utils';
 import type { ElementInfo } from '@midscene/shared/extractor';
-import { resizeImg } from '@midscene/shared/img';
+import { isValidPNGImageBuffer, resizeImg } from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
 import type { AndroidDevicePage } from '@midscene/web';
 import { ADB } from 'appium-adb';
@@ -34,12 +34,12 @@ export class AndroidDevice implements AndroidDevicePage {
   public async getAdb(): Promise<ADB> {
     // if already has ADB instance, return it
     if (this.adb) {
-      return this.adb;
+      return this.createAdbProxy(this.adb);
     }
 
     // If already connecting, wait for connection to complete
     if (this.connectingAdb) {
-      return this.connectingAdb;
+      return this.connectingAdb.then((adb) => this.createAdbProxy(adb));
     }
 
     // Create new connection Promise
@@ -83,6 +83,41 @@ ${Object.keys(size)
     return this.connectingAdb;
   }
 
+  private createAdbProxy(adb: ADB): ADB {
+    // create ADB proxy object, intercept all method calls
+    return new Proxy(adb, {
+      get: (target, prop) => {
+        const originalMethod = target[prop as keyof typeof target];
+
+        // if the property is not a function, return the original value
+        if (typeof originalMethod !== 'function') {
+          return originalMethod;
+        }
+
+        // return the proxied method
+        return async (...args: any[]) => {
+          try {
+            return await originalMethod.apply(target, args);
+          } catch (error: any) {
+            const methodName = String(prop);
+            const deviceId = this.deviceId;
+            debugPage(
+              `ADB error with device ${deviceId} when calling ${methodName}: ${error}`,
+            );
+
+            // throw the error again
+            throw new Error(
+              `ADB error with device ${deviceId} when calling ${methodName}, please check https://midscenejs.com/integrate-with-android.html#faq : ${error.message}`,
+              {
+                cause: error,
+              },
+            );
+          }
+        };
+      },
+    });
+  }
+
   public async launch(uri: string): Promise<AndroidDevice> {
     const adb = await this.getAdb();
 
@@ -103,14 +138,14 @@ ${Object.keys(size)
         });
       } else {
         // Assume it's just a package name
-        await adb.startApp({
-          pkg: uri,
-        });
+        await adb.activateApp(uri);
       }
       debugPage(`Successfully launched: ${uri}`);
-    } catch (error) {
+    } catch (error: any) {
       debugPage(`Error launching ${uri}: ${error}`);
-      throw new Error(`Failed to launch ${uri}: ${error}`, { cause: error });
+      throw new Error(`Failed to launch ${uri}: ${error.message}`, {
+        cause: error,
+      });
     }
 
     return this;
@@ -241,6 +276,21 @@ ${Object.keys(size)
 
     try {
       screenshotBuffer = await adb.takeScreenshot(null);
+
+      // make sure screenshotBuffer is not null
+      if (!screenshotBuffer) {
+        throw new Error(
+          'Failed to capture screenshot: screenshotBuffer is null',
+        );
+      }
+
+      // check if the buffer is a valid PNG image, it might be a error string
+      if (!isValidPNGImageBuffer(screenshotBuffer)) {
+        debugPage('Invalid image buffer detected: not a valid image format');
+        throw new Error(
+          'Screenshot buffer has invalid format: could not find valid image signature',
+        );
+      }
     } catch (error) {
       const screenshotPath = getTmpFile('png')!;
 

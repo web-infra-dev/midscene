@@ -409,7 +409,7 @@ export function safeParseJson(input: string) {
     return dJSON.parse(cleanJsonString);
   } catch (e) {}
 
-  if (vlLocateMode() === 'doubao-vision') {
+  if (vlLocateMode() === 'doubao-vision' || vlLocateMode() === 'vlm-ui-tars') {
     const jsonString = preprocessDoubaoBboxJson(cleanJsonString);
     return dJSON.parse(jsonString);
   }

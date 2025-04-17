@@ -91,19 +91,26 @@ const allConfigFromEnv = () => {
   };
 };
 
-let userConfig: Partial<ReturnType<typeof allConfigFromEnv>> = {};
+let globalConfig: Partial<ReturnType<typeof allConfigFromEnv>> =
+  allConfigFromEnv();
 
 export const vlLocateMode = ():
   | 'qwen-vl'
   | 'doubao-vision'
-  | 'vl-model'
+  | 'vl-model' // not actually in use
+  | 'vlm-ui-tars'
   | false => {
-  if (
+  const enabledModes = [
     getAIConfigInBoolean(MIDSCENE_USE_DOUBAO_VISION) &&
-    getAIConfigInBoolean(MIDSCENE_USE_QWEN_VL)
-  ) {
+      'MIDSCENE_USE_DOUBAO_VISION',
+    getAIConfigInBoolean(MIDSCENE_USE_QWEN_VL) && 'MIDSCENE_USE_QWEN_VL',
+    getAIConfigInBoolean(MIDSCENE_USE_VLM_UI_TARS) &&
+      'MIDSCENE_USE_VLM_UI_TARS',
+  ].filter(Boolean);
+
+  if (enabledModes.length > 1) {
     throw new Error(
-      'MIDSCENE_USE_DOUBAO_VISION and MIDSCENE_USE_QWEN_VL cannot be true at the same time',
+      `Only one vision mode can be enabled at a time. Currently enabled modes: ${enabledModes.join(', ')}. Please disable all but one mode.`,
     );
   }
 
@@ -119,11 +126,15 @@ export const vlLocateMode = ():
     return 'vl-model';
   }
 
+  if (getAIConfigInBoolean(MIDSCENE_USE_VLM_UI_TARS)) {
+    return 'vlm-ui-tars';
+  }
+
   return false;
 };
 
 export const getAIConfig = (
-  configKey: keyof typeof userConfig,
+  configKey: keyof typeof globalConfig,
 ): string | undefined => {
   if (configKey === MATCH_BY_POSITION) {
     throw new Error(
@@ -131,21 +142,15 @@ export const getAIConfig = (
     );
   }
 
-  if (typeof userConfig[configKey] !== 'undefined') {
-    if (typeof userConfig[configKey] === 'string') {
-      return userConfig[configKey]?.trim();
-    }
-    return userConfig[configKey];
-  }
-  return allConfigFromEnv()[configKey]?.trim();
+  return globalConfig[configKey]?.trim();
 };
 
-export const getAIConfigInBoolean = (configKey: keyof typeof userConfig) => {
+export const getAIConfigInBoolean = (configKey: keyof typeof globalConfig) => {
   const config = getAIConfig(configKey) || '';
   return /^(true|1)$/i.test(config);
 };
 
-export const getAIConfigInJson = (configKey: keyof typeof userConfig) => {
+export const getAIConfigInJson = (configKey: keyof typeof globalConfig) => {
   const config = getAIConfig(configKey);
   try {
     return config ? JSON.parse(config) : undefined;
@@ -159,13 +164,9 @@ export const getAIConfigInJson = (configKey: keyof typeof userConfig) => {
   }
 };
 
-export const allAIConfig = () => {
-  return { ...allConfigFromEnv(), ...userConfig };
-};
-
 export const overrideAIConfig = (
   newConfig: Partial<ReturnType<typeof allConfigFromEnv>>,
-  extendMode?: boolean,
+  extendMode = false, // true: merge with global config, false: override global config
 ) => {
   for (const key in newConfig) {
     if (typeof key !== 'string') {
@@ -178,5 +179,7 @@ export const overrideAIConfig = (
     }
   }
 
-  userConfig = extendMode ? { ...userConfig, ...newConfig } : { ...newConfig };
+  globalConfig = extendMode
+    ? { ...globalConfig, ...newConfig }
+    : { ...newConfig };
 };

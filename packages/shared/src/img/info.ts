@@ -88,3 +88,23 @@ export function base64Encoded(image: string, withHeader = true) {
   }
   throw new Error('unsupported image type');
 }
+
+/**
+ * Check if the Buffer is a valid PNG image
+ * @param buffer The Buffer to check
+ * @returns true if the Buffer is a valid PNG image, otherwise false
+ */
+export function isValidPNGImageBuffer(buffer: Buffer): boolean {
+  if (!buffer || buffer.length < 8) {
+    return false;
+  }
+
+  // Check if the Buffer is a valid PNG image (signature: 89 50 4E 47...)
+  const isPNG =
+    buffer[0] === 0x89 &&
+    buffer[1] === 0x50 &&
+    buffer[2] === 0x4e &&
+    buffer[3] === 0x47;
+
+  return isPNG;
+}

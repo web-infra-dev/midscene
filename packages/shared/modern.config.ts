@@ -13,6 +13,7 @@ export default defineConfig({
       fs: './src/node/fs.ts',
       utils: './src/utils.ts',
       logger: './src/logger.ts',
+      common: './src/common.ts',
       'us-keyboard-layout': './src/us-keyboard-layout.ts',
     },
     target: 'es2020',
