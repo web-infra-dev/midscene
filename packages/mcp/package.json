@@ -1,0 +1,39 @@
+{
+  "name": "@midscene/mcp",
+  "version": "0.14.3",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "bin": {
+    "mcp-server-midscene": "dist/index.cjs"
+  },
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": ["dist"],
+  "scripts": {
+    "build": "rslib build",
+    "dev": "rslib build --watch",
+    "test": "vitest run",
+    "inspect": "node scripts/inspect.mjs",
+    "inspect2": "mcp-inspector node ./dist/test2.cjs"
+  },
+  "devDependencies": {
+    "@modelcontextprotocol/inspector": "0.9.0",
+    "@rslib/core": "^0.6.2",
+    "@types/node": "^18.0.0",
+    "typescript": "^5.8.2",
+    "vitest": "3.0.5",
+    "dotenv": "16.4.5"
+  },
+  "dependencies": {
+    "@midscene/web": "workspace:*",
+    "@modelcontextprotocol/sdk": "1.9.0",
+    "puppeteer": "24.2.0"
+  }
+}

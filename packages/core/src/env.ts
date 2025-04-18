@@ -41,7 +41,7 @@ export const ANTHROPIC_API_KEY = 'ANTHROPIC_API_KEY';
 // @deprecated
 export const OPENAI_USE_AZURE = 'OPENAI_USE_AZURE';
 
-const allConfigFromEnv = () => {
+export const allConfigFromEnv = () => {
   return {
     [MIDSCENE_OPENAI_INIT_CONFIG_JSON]:
       process.env[MIDSCENE_OPENAI_INIT_CONFIG_JSON] || undefined,
