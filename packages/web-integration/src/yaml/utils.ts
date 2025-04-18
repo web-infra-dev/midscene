@@ -21,8 +21,15 @@ export function parseYamlScript(
   const interpolatedContent = interpolateEnvVars(content);
   const obj = yaml.load(interpolatedContent) as MidsceneYamlScript;
   const pathTip = filePath ? `, failed to load ${filePath}` : '';
-  const web = obj.web || obj.target;
-  const android = obj.android;
+  const android =
+    typeof obj.android !== 'undefined'
+      ? Object.assign({}, obj.android || {})
+      : undefined;
+  const webConfig = obj.web || obj.target; // no need to handle null case, because web has required parameters url
+  const web =
+    typeof webConfig !== 'undefined'
+      ? Object.assign({}, webConfig || {})
+      : undefined;
 
   if (!ignoreCheckingTarget) {
     // make sure at least one of target/web/android is provided

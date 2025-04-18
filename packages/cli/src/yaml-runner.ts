@@ -55,8 +55,8 @@ export async function playYamlFiles(
       const webTarget = script.web || script.target;
 
       // handle new web config
-      if (webTarget) {
-        if (script.target) {
+      if (typeof webTarget !== 'undefined') {
+        if (typeof script.target !== 'undefined') {
           console.warn(
             'target is deprecated, please use web instead. See https://midscenejs.com/automate-with-scripts-in-yaml for more information. Sorry for the inconvenience.',
           );
@@ -139,11 +139,11 @@ export async function playYamlFiles(
       }
 
       // handle android
-      if (script.android) {
+      if (typeof script.android !== 'undefined') {
         const androidTarget = script.android;
-        const agent = await agentFromAdbDevice(androidTarget.deviceId);
+        const agent = await agentFromAdbDevice(androidTarget?.deviceId);
 
-        if (androidTarget.launch) {
+        if (androidTarget?.launch) {
           await agent.launch(androidTarget.launch);
         }
 
