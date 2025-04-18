@@ -25,8 +25,13 @@ export const requestPlaygroundServer = async (
   context: UIContext | string,
   type: string,
   prompt: string,
-  requestId?: string,
-  deepThink?: boolean,
+  {
+    requestId,
+    deepThink,
+  }: {
+    requestId?: string;
+    deepThink?: boolean;
+  } = {},
 ) => {
   const payload: any = { context, type, prompt };
 

@@ -9,6 +9,7 @@ import {
   type ReplayScriptsInfo,
   ServiceModeControl,
   allScriptsFromDump,
+  requestPlaygroundServer,
   useEnvConfig,
   useServerValid,
 } from '@midscene/visualizer';
@@ -38,21 +39,6 @@ const formatErrorMessage = (e: any): string => {
     return errorMessage;
   }
   return 'Unknown error';
-};
-
-const requestPlaygroundServer = async (
-  context: UIContext,
-  type: string,
-  prompt: string,
-) => {
-  const res = await fetch(`${serverBase}/execute`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({ context, type, prompt }),
-  });
-  return res.json();
 };
 
 // Utility function to determine if the run button should be enabled
@@ -99,8 +85,8 @@ export function StandardPlayground({
   const { config, deepThink } = useEnvConfig();
 
   const currentAgentRef = useRef<any>(null);
-  const currentRunningIdRef = useRef<number | null>(0);
-  const interruptedFlagRef = useRef<Record<number, boolean>>({});
+  const currentRunningIdRef = useRef<string | null>(null);
+  const interruptedFlagRef = useRef<Record<string, boolean>>({});
 
   // Environment configuration check
   const configAlreadySet = Object.keys(config || {}).length >= 1;
@@ -142,7 +128,7 @@ export function StandardPlayground({
     let result: PlaygroundResult = { ...blankResult };
 
     const activeAgent = getAgent();
-    const thisRunningId = Date.now();
+    const thisRunningId = Date.now().toString();
     try {
       if (!activeAgent) {
         throw new Error('No agent found');
@@ -164,6 +150,10 @@ export function StandardPlayground({
           uiContext!,
           value.type,
           value.prompt,
+          {
+            requestId: thisRunningId,
+            deepThink,
+          },
         );
       } else {
         if (value.type === 'aiAction') {
@@ -221,7 +211,7 @@ export function StandardPlayground({
       setReplayScriptsInfo(null);
     }
     console.log(`time taken: ${Date.now() - startTime}ms`);
-  }, [form, getAgent, serviceMode]);
+  }, [form, getAgent, serviceMode, deepThink]);
 
   // Dummy handleStop for Standard mode (no real stopping functionality)
   const handleStop = async () => {
