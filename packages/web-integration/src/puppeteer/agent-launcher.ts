@@ -97,10 +97,11 @@ export async function launchPuppeteerPage(
   ];
 
   launcherDebug(
-    'launching browser with viewport, headed: %s, viewport: %j, args: %j',
+    'launching browser with viewport, headed: %s, viewport: %j, args: %j, preference: %j',
     headed,
     viewportConfig,
     args,
+    preference,
   );
   const browser = await puppeteer.launch({
     headless: !headed,
