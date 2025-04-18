@@ -91,7 +91,7 @@ export default defineConfig({
           text: 'Android Automation',
           items: [
             {
-              text: 'Quick Experience',
+              text: 'Quick Experience by Android Playground',
               link: '/quick-experience-with-android',
             },
             {
@@ -146,10 +146,10 @@ export default defineConfig({
         {
           text: 'Blog',
           items: [
-            {
-              text: 'Support Android Automation',
-              link: '/blog-support-android-automation',
-            },
+            // {
+            //   text: 'Support Android Automation',
+            //   link: '/blog-support-android-automation',
+            // },
             {
               text: 'Introducing Instant Actions and Deep Think',
               link: '/blog-introducing-instant-actions-and-deep-think',
@@ -196,7 +196,7 @@ export default defineConfig({
           text: 'Android 自动化',
           items: [
             {
-              text: '快速体验',
+              text: '使用 Android Playground 快速体验',
               link: '/zh/quick-experience-with-android',
             },
             {
@@ -251,10 +251,10 @@ export default defineConfig({
         {
           text: 'Blog',
           items: [
-            {
-              text: '支持 Android 自动化',
-              link: '/zh/blog-support-android-automation',
-            },
+            // {
+            //   text: '支持 Android 自动化',
+            //   link: '/zh/blog-support-android-automation',
+            // },
             {
               text: '即时操作和深度思考',
               link: '/zh/blog-introducing-instant-actions-and-deep-think',

@@ -68,3 +68,12 @@ _____________
 2. LLMs like gpt-4o or deepseek are not supported. Only some known vl models with visual grounding ability are supported for now. If you want to introduce other vl models, please let us know.
 3. The performance is not good enough for now. We are still working on it.
 4. The vl model may not perform well on `.aiQuery` and `.aiAssert`. We will give a way to switch model for different kinds of tasks.
+
+## Credits
+
+We would like to thank the following projects:
+
+- [scrcpy](https://github.com/Genymobile/scrcpy) and [yume-chan](https://github.com/yume-chan) allow us to control Android devices with browser.
+- [appium-adb](https://github.com/appium/appium-adb) for the javascript bridge of adb.
+- [YADB](https://github.com/ysbing/YADB) for the yadb tool which improves the performance of text input.
+

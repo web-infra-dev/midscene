@@ -10,7 +10,7 @@ English | [简体中文](./README.zh.md)
 </div>
 
 <p align="center">
-  Your AI Operator for Web, Mobile, Automation & Testing
+  Your AI Operator for Web, Android, Automation & Testing.
 </p>
 
 <p align="center">
@@ -22,8 +22,7 @@ English | [简体中文](./README.zh.md)
   <a href="https://x.com/midscene_ai"><img src="https://img.shields.io/twitter/follow/midscene_ai?style=flat-square" alt="twitter" /></a>
 </p>
 
-Midscene.js lets AI be your browser and Android operator 🤖.Just describe what you want to do in natural language, and it will help you operate web pages, validate content, and extract data. Whether you want a quick experience or deep development, you can get started easily.
-
+Midscene.js allows AI to serve as your web and Android operator 🤖. Simply describe what you want to achieve in natural language, and it will assist you in operating the interface, validating content, and extracting data. Whether you seek a quick experience or in-depth development, you'll find it easy to get started.
 
 ## Showcases
 
@@ -44,7 +43,7 @@ Besides the default model *GPT-4o*, we have added two new recommended open-sourc
 
 ## 💡 Features
 - **Natural Language Interaction 👆**: Just describe your goals and steps, and Midscene will plan and operate the user interface for you.
-- **Chrome Extension Experience 🖥️**: Start experiencing immediately through the Chrome extension, no coding required.
+- **Chrome Extension Experience 🖥️**: Start in-browser experience immediately through the Chrome extension, no coding required.
 - **Puppeteer/Playwright Integration 🔧**: Supports Puppeteer and Playwright integration, allowing you to combine AI capabilities with these powerful automation tools for easy automation.
 - **Support Open-Source Models 🤖**: Supports private deployment of [`UI-TARS`](https://github.com/bytedance/ui-tars) and [`Qwen2.5-VL`](https://github.com/QwenLM/Qwen2.5-VL), which outperforms closed-source models like GPT-4o and Claude in UI automation scenarios while better protecting data security.
 - **Support General Models 🌟**: Supports general large models like GPT-4o and Claude, adapting to various scenario needs.
@@ -73,12 +72,15 @@ There are so many UI automation tools out there, and each one seems to be all-po
 ## 📄 Resources 
 
 * [Home Page: https://midscenejs.com](https://midscenejs.com/)
-* [Quick Experience By Chrome Extension](https://midscenejs.com/quick-experience.html), this is where you should get started 
-* Integration
+* Web Browser Automation
+  * [Quick Experience By Chrome Extension](https://midscenejs.com/quick-experience.html), this is where you should get started 
   * [Automate with Scripts in YAML](https://midscenejs.com/automate-with-scripts-in-yaml.html), use this if you prefer to write YAML file instead of code
   * [Bridge Mode by Chrome Extension](https://midscenejs.com/bridge-mode-by-chrome-extension.html), use this to control the desktop Chrome by scripts
   * [Integrate with Puppeteer](https://midscenejs.com/integrate-with-puppeteer.html)
   * [Integrate with Playwright](https://midscenejs.com/integrate-with-playwright.html)
+* Android Automation
+  * [Quick Experience by Android Playground](https://midscenejs.com/quick-experience-with-android.html)
+  * [Integrate with Android(adb)](https://midscenejs.com/integrate-with-android.html)
 * [API Reference](https://midscenejs.com/api.html)
 * [Choose a model](https://midscenejs.com/choose-a-model.html)
 * [Config Model and Provider](https://midscenejs.com/model-provider.html)
@@ -89,6 +91,17 @@ There are so many UI automation tools out there, and each one seems to be all-po
 * [Follow us on X](https://x.com/midscene_ai)
 * [Lark Group](https://applink.larkoffice.com/client/chat/chatter/add_by_link?link_token=291q2b25-e913-411a-8c51-191e59aab14d)
 
+
+## 📝 Credits
+
+We would like to thank the following projects:
+
+- [Rsbuild](https://github.com/web-infra-dev/rsbuild) for the build tool.
+- [UI-TARS](https://github.com/bytedance/ui-tars) for the open-source agent model UI-TARS.
+- [Qwen2.5-VL](https://github.com/QwenLM/Qwen2.5-VL) for the open-source VL model Qwen2.5-VL.
+- [scrcpy](https://github.com/Genymobile/scrcpy) and [yume-chan](https://github.com/yume-chan) allow us to control Android devices with browser.
+- [appium-adb](https://github.com/appium/appium-adb) for the javascript bridge of adb.
+- [YADB](https://github.com/ysbing/YADB) for the yadb tool which improves the performance of text input.
 
 ## Citation
 

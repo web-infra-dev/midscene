@@ -265,7 +265,7 @@ export async function call(
       `model, ${model}, mode, ${vlLocateMode() || 'default'}, prompt-tokens, ${result.usage?.prompt_tokens || ''}, completion-tokens, ${result.usage?.completion_tokens || ''}, total-tokens, ${result.usage?.total_tokens || ''}, cost-ms, ${Date.now() - startTime}, requestId, ${result._request_id || ''}`,
     );
 
-    debugProfileDetail('model usage detail: %s', JSON.stringify(result.usage));
+    debugProfileDetail(`model usage detail: ${JSON.stringify(result.usage)}`);
 
     assert(
       result.choices,

@@ -10,7 +10,7 @@
 </div>
 
 <p align="center">
-  让 AI 成为你的浏览器操作员
+  你的 AI 操作助手，适用于 Web、Android、自动化和测试
 </p>
 
 <p align="center">
@@ -22,7 +22,7 @@
   <a href="https://x.com/midscene_ai"><img src="https://img.shields.io/twitter/follow/midscene_ai?style=flat-square" alt="twitter" /></a>
 </p>
 
-Midscene.js 让 AI 成为你的浏览器操作员 🤖。只需用自然语言描述你想做什么，它就能帮你操作网页、验证内容，并提取数据。无论你是想快速体验还是深度开发，都可以轻松上手。如果您在项目中使用了 Midscene.js，可以加入我们的 [社区](https://github.com/web-infra-dev/midscene?tab=readme-ov-file#-community) 来与我们交流和分享。
+Midscene.js 是一个 AI 操作助手，适用于 Web、Android、自动化和测试。只需用自然语言描述你想做什么，它就能帮你操作网页、验证内容，并提取数据。无论你是想快速体验还是深度开发，都可以轻松上手。
 
 ## 案例
 
@@ -70,12 +70,15 @@ Midscene.js 让 AI 成为你的浏览器操作员 🤖。只需用自然语言�
 ## 📄 资源
 
 * [官网首页: https://midscenejs.com](https://midscenejs.com/zh)
-* [使用 Chrome 插件体验](https://midscenejs.com/zh/quick-experience.html)，请从这里开始体验 Midscene 
-* 集成方案
+* Web 浏览器自动化
+  * [使用 Chrome 插件体验](https://midscenejs.com/zh/quick-experience.html)，请从这里开始体验 Midscene 
   * [使用 YAML 格式的自动化脚本](https://midscenejs.com/zh/automate-with-scripts-in-yaml.html), 如果你更喜欢写 YAML 文件而不是代码
   * [使用 Chrome 插件桥接模式（Bridge Mode）](https://midscenejs.com/zh/bridge-mode-by-chrome-extension.html), 使用 Midscene 来控制桌面端 Chrome 
   * [与 Puppeteer 集成](https://midscenejs.com/zh/integrate-with-puppeteer.html)
   * [与 Playwright 集成](https://midscenejs.com/zh/integrate-with-playwright.html)
+* Android 自动化
+  * [使用 Android Playground 快速体验](https://midscenejs.com/zh/quick-experience-with-android.html)
+  * [与 Android(adb) 集成](https://midscenejs.com/zh/integrate-with-android.html)
 * [API 文档](https://midscenejs.com/zh/api.html)
 * [选择 AI 模型](https://midscenejs.com/zh/choose-a-model.html)
 * [配置模型和服务商（e.g. 使用千问模型）](https://midscenejs.com/zh/model-provider.html)
