@@ -20,6 +20,7 @@ export class AndroidDevice implements AndroidDevicePage {
   private adb: ADB | null = null;
   private connectingAdb: Promise<ADB> | null = null;
   pageType = 'android';
+  uri: string | undefined;
 
   constructor(deviceId: string) {
     assert(deviceId, 'deviceId is required for AndroidDevice');
@@ -120,6 +121,7 @@ ${Object.keys(size)
 
   public async launch(uri: string): Promise<AndroidDevice> {
     const adb = await this.getAdb();
+    this.uri = uri;
 
     try {
       if (
@@ -368,11 +370,7 @@ ${Object.keys(size)
   }
 
   async url(): Promise<string> {
-    const adb = await this.getAdb();
-
-    const { appPackage, appActivity } =
-      await adb.getFocusedPackageAndActivity();
-    return `${appPackage}/${appActivity}`;
+    return '';
   }
 
   async scrollUntilTop(startPoint?: Point): Promise<void> {

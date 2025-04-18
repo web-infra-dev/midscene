@@ -28,7 +28,7 @@ html {
   width: 100%;
   height: 100%;
   box-sizing: border-box;
-  padding: @layout-extension-space-vertical 0;
+  padding: @layout-extension-space-vertical 25px 0 25px;
   background: #FFF;
   display: flex;
   flex-direction: column;
@@ -41,7 +41,7 @@ html {
   }
 
   .ant-tabs-nav {
-    padding: 0 @layout-extension-space-horizontal;
+    margin: 0 0 24px 0;
     box-sizing: border-box;
   }
 
@@ -110,10 +110,6 @@ html {
     /* 向左退出效果 */
     visibility: hidden;
     transition: opacity 0.15s cubic-bezier(0.4, 0, 0.2, 1), transform 0.15s cubic-bezier(0.4, 0, 0.2, 1), visibility 0s linear 0.15s;
-  }
-
-  .popup-header {
-    padding: 0 @layout-extension-space-horizontal;
   }
 
   .hr {
