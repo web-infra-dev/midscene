@@ -129,7 +129,7 @@ export default class PlaygroundServer {
       '/execute',
       express.json({ limit: '30mb' }),
       async (req, res) => {
-        const { context, type, prompt, requestId } = req.body;
+        const { context, type, prompt, requestId, deepThink } = req.body;
         assert(context, 'context is required');
         assert(type, 'type is required');
         assert(prompt, 'prompt is required');
@@ -169,6 +169,10 @@ export default class PlaygroundServer {
           } else if (type === 'aiAssert') {
             response.result = await agent.aiAssert(prompt, undefined, {
               keepRawResponse: true,
+            });
+          } else if (type === 'aiTap') {
+            response.result = await agent.aiTap(prompt, {
+              deepThink,
             });
           } else {
             response.error = `Unknown type: ${type}`;

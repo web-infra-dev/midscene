@@ -17,9 +17,7 @@ import type {
   MidsceneYamlFlowItemEvaluateJavaScript,
   MidsceneYamlFlowItemSleep,
   MidsceneYamlScript,
-  MidsceneYamlScriptAndroidEnv,
   MidsceneYamlScriptEnv,
-  MidsceneYamlScriptWebEnv,
   ScriptPlayerStatusValue,
   ScriptPlayerTaskStatus,
 } from '@midscene/core';

@@ -26,12 +26,17 @@ export const requestPlaygroundServer = async (
   type: string,
   prompt: string,
   requestId?: string,
+  deepThink?: boolean,
 ) => {
   const payload: any = { context, type, prompt };
 
   // If requestId is provided, add it to the request
   if (requestId) {
     payload.requestId = requestId;
+  }
+
+  if (deepThink) {
+    payload.deepThink = deepThink;
   }
 
   const res = await fetch(`${serverBase}/execute`, {
@@ -71,6 +76,7 @@ export const actionNameForType = (type: string) => {
   if (type === 'aiAction') return 'Action';
   if (type === 'aiQuery') return 'Query';
   if (type === 'aiAssert') return 'Assert';
+  if (type === 'aiTap') return 'Tap';
   return type;
 };
 

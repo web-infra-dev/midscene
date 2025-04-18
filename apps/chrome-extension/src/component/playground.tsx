@@ -2,7 +2,6 @@ import type { UIContext } from '@midscene/core';
 import { overrideAIConfig } from '@midscene/core/env';
 import {
   ContextPreview,
-  EnvConfig,
   type PlaygroundResult,
   PlaygroundResultView,
   PromptInput,
@@ -60,7 +59,7 @@ export function BrowserExtensionPlayground({
 
   // Form and environment configuration
   const [form] = Form.useForm();
-  const { config } = useEnvConfig();
+  const { config, deepThink } = useEnvConfig();
   const forceSameTabNavigation = useEnvConfig(
     (state) => state.forceSameTabNavigation,
   );
@@ -156,6 +155,10 @@ export function BrowserExtensionPlayground({
         result.result = await activeAgent?.aiAssert(value.prompt, undefined, {
           keepRawResponse: true,
         });
+      } else if (value.type === 'aiTap') {
+        result.result = await activeAgent?.aiTap(value.prompt, {
+          deepThink,
+        });
       }
     } catch (e: any) {
       result.error = formatErrorMessage(e);
@@ -189,7 +192,7 @@ export function BrowserExtensionPlayground({
     currentAgentRef.current = null;
     setResult(result);
     setLoading(false);
-    if (value.type === 'aiAction' && result?.dump) {
+    if (result?.dump) {
       const info = allScriptsFromDump(result.dump);
       setReplayScriptsInfo(info);
       setReplayCounter((c) => c + 1);

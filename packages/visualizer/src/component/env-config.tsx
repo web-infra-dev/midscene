@@ -1,7 +1,6 @@
 import { SettingOutlined } from '@ant-design/icons';
 import { Input, Modal, Tooltip } from 'antd';
 import { useState } from 'react';
-import { iconForStatus } from './misc';
 import { useEnvConfig } from './store/store';
 
 export function EnvConfig() {
