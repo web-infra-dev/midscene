@@ -236,6 +236,10 @@ tasks:
       # sleep for a number of milliseconds
       - sleep: <ms>
 
+      # evaluate a javascript expression in web page context
+      - javascript: <javascript>
+        name: <name> # assign a name to the return value, will be used as the key in the output json, optional
+
   - name: <name>
     flow:
       # ...

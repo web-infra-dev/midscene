@@ -48,6 +48,10 @@ export class Page<
     this.pageType = pageType;
   }
 
+  async evaluateJavaScript<T = any>(script: string): Promise<T> {
+    return this.evaluate(script);
+  }
+
   async waitForNavigation() {
     // issue: https://github.com/puppeteer/puppeteer/issues/3323
     if (this.pageType === 'puppeteer' || this.pageType === 'playwright') {

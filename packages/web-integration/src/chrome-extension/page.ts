@@ -282,6 +282,12 @@ export default class ChromeExtensionProxyPage implements AbstractPage {
     };
   }
 
+  public async evaluateJavaScript(script: string) {
+    return this.sendCommandToDebugger('Runtime.evaluate', {
+      expression: script,
+    });
+  }
+
   // current implementation is wait until domReadyState is complete
   public async waitUntilNetworkIdle() {
     const timeout = 10000;
