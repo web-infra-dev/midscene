@@ -1,7 +1,9 @@
 import { Alert } from 'antd';
-import React from 'react';
+import type React from 'react';
 
-// 服务器未就绪错误信息
+import './index.less';
+
+// server not ready error message
 export const errorMessageServerNotReady = (
   <span>
     Don&apos;t worry, just one more step to launch the playground server.
@@ -14,23 +16,28 @@ export const errorMessageServerNotReady = (
   </span>
 );
 
-// 服务器启动提示
+// server launch tip
 export const serverLaunchTip = (
+  notReadyMessage: React.ReactNode | string = errorMessageServerNotReady,
+) => (
   <div className="server-tip">
     <Alert
       message="Playground Server Not Ready"
-      description={errorMessageServerNotReady}
+      description={notReadyMessage}
       type="warning"
     />
   </div>
 );
 
-// 空结果提示
+// empty result tip
 export const emptyResultTip = (
-  <div className="result-empty-tip">
+  <div className="result-empty-tip" style={{}}>
     <span>The result will be shown here</span>
   </div>
 );
 
-// 跟踪弹出窗口提示
+// tracking popup tip
 export const trackingTip = 'limit popup to current tab';
+
+// deep think tip
+export const deepThinkTip = 'deep think';

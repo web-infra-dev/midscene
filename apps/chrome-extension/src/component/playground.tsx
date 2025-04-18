@@ -2,7 +2,6 @@ import type { UIContext } from '@midscene/core';
 import { overrideAIConfig } from '@midscene/core/env';
 import {
   ContextPreview,
-  EnvConfig,
   type PlaygroundResult,
   PlaygroundResultView,
   PromptInput,
@@ -60,7 +59,7 @@ export function BrowserExtensionPlayground({
 
   // Form and environment configuration
   const [form] = Form.useForm();
-  const { config } = useEnvConfig();
+  const { config, deepThink } = useEnvConfig();
   const forceSameTabNavigation = useEnvConfig(
     (state) => state.forceSameTabNavigation,
   );
@@ -90,7 +89,7 @@ export function BrowserExtensionPlayground({
 
   // Override AI configuration
   useEffect(() => {
-    overrideAIConfig(config as any);
+    overrideAIConfig(config);
   }, [config]);
 
   // Initialize context preview
@@ -156,6 +155,10 @@ export function BrowserExtensionPlayground({
         result.result = await activeAgent?.aiAssert(value.prompt, undefined, {
           keepRawResponse: true,
         });
+      } else if (value.type === 'aiTap') {
+        result.result = await activeAgent?.aiTap(value.prompt, {
+          deepThink,
+        });
       }
     } catch (e: any) {
       result.error = formatErrorMessage(e);
@@ -189,7 +192,7 @@ export function BrowserExtensionPlayground({
     currentAgentRef.current = null;
     setResult(result);
     setLoading(false);
-    if (value.type === 'aiAction' && result?.dump) {
+    if (result?.dump) {
       const info = allScriptsFromDump(result.dump);
       setReplayScriptsInfo(info);
       setReplayCounter((c) => c + 1);
@@ -221,44 +224,41 @@ export function BrowserExtensionPlayground({
 
   return (
     <div className="playground-container vertical-mode">
-      <Form form={form} onFinish={handleRun}>
-        <div className="playground-form-container">
-          <div className="form-part">
-            <h3>In-Browser Request Config</h3>
-            <EnvConfig />
+      <Form form={form} onFinish={handleRun} className="command-form">
+        <div className="form-content">
+          <div>
+            <ContextPreview
+              uiContextPreview={uiContextPreview}
+              setUiContextPreview={setUiContextPreview}
+              showContextPreview={showContextPreview}
+            />
+
+            <PromptInput
+              runButtonEnabled={runButtonEnabled}
+              form={form}
+              serviceMode={'In-Browser-Extension'}
+              selectedType={selectedType}
+              dryMode={dryMode}
+              stoppable={stoppable}
+              loading={loading}
+              onRun={handleRun}
+              onStop={handleStop}
+            />
           </div>
-
-          <ContextPreview
-            uiContextPreview={uiContextPreview}
-            setUiContextPreview={setUiContextPreview}
-            showContextPreview={showContextPreview}
-          />
-
-          <PromptInput
-            runButtonEnabled={runButtonEnabled}
-            form={form}
-            serviceMode={'In-Browser-Extension'}
-            selectedType={selectedType}
-            dryMode={dryMode}
-            stoppable={stoppable}
-            loading={loading}
-            onRun={handleRun}
-            onStop={handleStop}
-          />
+          <div className="form-part result-container">
+            <PlaygroundResultView
+              result={result}
+              loading={loading}
+              serviceMode={'In-Browser-Extension'}
+              replayScriptsInfo={replayScriptsInfo}
+              replayCounter={replayCounter}
+              loadingProgressText={loadingProgressText}
+              verticalMode={verticalMode}
+            />
+            <div ref={runResultRef} />
+          </div>
         </div>
       </Form>
-      <div className="form-part">
-        <PlaygroundResultView
-          result={result}
-          loading={loading}
-          serviceMode={'In-Browser-Extension'}
-          replayScriptsInfo={replayScriptsInfo}
-          replayCounter={replayCounter}
-          loadingProgressText={loadingProgressText}
-          verticalMode={verticalMode}
-        />
-        <div ref={runResultRef} />
-      </div>
     </div>
   );
 }

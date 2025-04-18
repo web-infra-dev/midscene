@@ -3,6 +3,7 @@ export {
   imageInfoOfBase64,
   bufferFromBase64,
   base64Encoded,
+  isValidPNGImageBuffer,
 } from './info';
 export {
   trimImage,

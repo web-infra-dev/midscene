@@ -1,14 +1,13 @@
-import { Button, Input, Modal, Tooltip } from 'antd';
+import { SettingOutlined } from '@ant-design/icons';
+import { Input, Modal, Tooltip } from 'antd';
 import { useState } from 'react';
-import { iconForStatus } from './misc';
 import { useEnvConfig } from './store/store';
 
 export function EnvConfig() {
   const { config, configString, loadConfig } = useEnvConfig();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [tempConfigString, setTempConfigString] = useState(configString);
-
-  const popupTab = useEnvConfig((state) => state.popupTab);
+  const midsceneModelName = config.MIDSCENE_MODEL_NAME;
   const showModal = (e: React.MouseEvent) => {
     setIsModalOpen(true);
     e.preventDefault();
@@ -23,52 +22,29 @@ export function EnvConfig() {
     setIsModalOpen(false);
   };
 
-  const editBtn = (
-    <Button type="link" size="small" onClick={showModal}>
-      Edit
-    </Button>
-  );
-
-  const [showEditButton, setShowEditButton] = useState(false);
-
-  const configTip =
-    Object.keys(config).length === 0 ? (
-      <div>
-        {iconForStatus('failed')} No config
-        <p>
-          <Tooltip
-            title="Please set up your environment variables before using."
-            placement="right"
-            open={!isModalOpen && popupTab === 'playground'}
-          >
-            <Button type="primary" onClick={showModal}>
-              Click to set up
-            </Button>
-          </Tooltip>
-        </p>
-      </div>
-    ) : (
-      <div
-        onMouseEnter={() => setShowEditButton(true)}
-        onMouseLeave={() => setShowEditButton(false)}
-      >
-        {Object.entries(config).map(([key, value]) => (
-          <div key={key} style={{ lineHeight: '1.8' }}>
-            <span>
-              {iconForStatus('success')} {key}:{' '}
-              {key === 'MIDSCENE_MODEL_NAME' ? value : '***'}{' '}
-              {showEditButton && editBtn}
-            </span>
-          </div>
-        ))}
-      </div>
-    );
-
   return (
-    <div>
-      {configTip}
+    <div
+      style={{
+        display: 'flex',
+        justifyContent: 'flex-end',
+        gap: '10px',
+        alignItems: 'center',
+        width: '100%',
+        height: '100%',
+        minHeight: '32px',
+      }}
+    >
+      {midsceneModelName}
+      <Tooltip
+        title="Please set up your environment variables before using."
+        placement="bottom"
+        align={{ offset: [-10, 5] }}
+        open={Object.keys(config).length === 0}
+      >
+        <SettingOutlined onClick={showModal} />
+      </Tooltip>
       <Modal
-        title="Env Config"
+        title="Model Env Config"
         open={isModalOpen}
         onOk={handleOk}
         onCancel={handleCancel}

@@ -34,7 +34,11 @@ export function getDebug(topic: string): DebugFunction {
   return (...args: unknown[]): void => {
     const message = args
       .map((arg) =>
-        typeof arg === 'object' ? JSON.stringify(arg) : String(arg),
+        typeof arg === 'object'
+          ? JSON.stringify(arg, (key, value) =>
+              typeof value === 'bigint' ? `${value.toString()}n` : value,
+            )
+          : String(arg),
       )
       .join(' ');
 

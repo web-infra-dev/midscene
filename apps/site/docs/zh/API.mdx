@@ -384,6 +384,29 @@ function setAIActionContext(actionContext: string): void;
 await agent.setAIActionContext('如果 “使用cookie” 对话框存在，先关闭它');
 ```
 
+### `agent.evaluateJavaScript()`
+
+这个方法允许你在 web 页面上下文中执行一段 JavaScript 代码，并返回执行结果。
+
+* 类型
+
+```typescript
+function evaluateJavaScript(script: string): Promise<any>;
+```
+
+* 参数：
+  * `script: string` - 要执行的 JavaScript 代码。
+
+* 返回值：
+  * 返回执行结果。
+
+* 示例：
+
+```typescript
+const result = await agent.evaluateJavaScript('document.title');
+console.log(result);
+```
+
 ## 属性
 
 ### `.reportFile`

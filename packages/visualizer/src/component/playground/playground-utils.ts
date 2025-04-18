@@ -1,4 +1,5 @@
 import type { UIContext } from '@midscene/core';
+import { PLAYGROUND_SERVER_PORT } from '@midscene/shared/constants';
 import {
   ERROR_CODE_NOT_IMPLEMENTED_AS_DESIGNED,
   StaticPage,
@@ -7,7 +8,7 @@ import {
 import type { WebUIContext } from '@midscene/web/utils';
 
 // Server base URL
-export const serverBase = 'http://localhost:5800';
+export const serverBase = `http://localhost:${PLAYGROUND_SERVER_PORT}`;
 
 // Check server status
 export const checkServerStatus = async () => {
@@ -21,18 +22,53 @@ export const checkServerStatus = async () => {
 
 // Send request to server
 export const requestPlaygroundServer = async (
-  context: UIContext,
+  context: UIContext | string,
   type: string,
   prompt: string,
+  requestId?: string,
+  deepThink?: boolean,
 ) => {
+  const payload: any = { context, type, prompt };
+
+  // If requestId is provided, add it to the request
+  if (requestId) {
+    payload.requestId = requestId;
+  }
+
+  if (deepThink) {
+    payload.deepThink = deepThink;
+  }
+
   const res = await fetch(`${serverBase}/execute`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({ context, type, prompt }),
+    body: JSON.stringify(payload),
   });
   return res.json();
+};
+
+// Send configuration to server
+export const overrideServerConfig = async (aiConfig: any) => {
+  return fetch(`${serverBase}/config`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ aiConfig }),
+  });
+};
+
+// Get task progress
+export const getTaskProgress = async (requestId: string) => {
+  try {
+    const response = await fetch(`${serverBase}/task-progress/${requestId}`);
+    return await response.json();
+  } catch (error) {
+    console.error('Failed to poll task progress:', error);
+    return { tip: null };
+  }
 };
 
 // Get action name based on type
@@ -40,6 +76,7 @@ export const actionNameForType = (type: string) => {
   if (type === 'aiAction') return 'Action';
   if (type === 'aiQuery') return 'Query';
   if (type === 'aiAssert') return 'Assert';
+  if (type === 'aiTap') return 'Tap';
   return type;
 };
 

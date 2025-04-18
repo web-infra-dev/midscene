@@ -9,10 +9,9 @@ import {
   VideoCameraOutlined,
 } from '@ant-design/icons';
 import type { ExecutionTaskPlanning } from '@midscene/core';
-import { Player } from '@midscene/visualizer';
+import { Blackboard, Player } from '@midscene/visualizer';
 import { ConfigProvider, Segmented } from 'antd';
 import { useEffect, useState } from 'react';
-import Blackboard from './blackboard';
 import OpenInPlayground from './open-in-playground';
 
 const ScreenshotItem = (props: { time: string; img: string }) => {

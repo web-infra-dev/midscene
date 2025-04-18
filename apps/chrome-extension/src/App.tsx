@@ -1,5 +1,5 @@
 import React from 'react';
-import './App.css';
+import './App.less';
 import { PlaygroundPopup } from './extension/popup';
 
 export default function App() {

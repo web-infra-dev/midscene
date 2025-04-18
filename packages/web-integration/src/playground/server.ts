@@ -3,18 +3,19 @@ import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import type { Server } from 'node:http';
 import { join } from 'node:path';
 import { ERROR_CODE_NOT_IMPLEMENTED_AS_DESIGNED } from '@/common/utils';
+import { overrideAIConfig } from '@midscene/core/env';
 import { getTmpDir } from '@midscene/core/utils';
+import { PLAYGROUND_SERVER_PORT } from '@midscene/shared/constants';
 import { assert } from '@midscene/shared/utils';
 import { ifInBrowser } from '@midscene/shared/utils';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import express from 'express';
-import { StaticPageAgent } from './agent';
-import StaticPage from './static-page';
+import type { PageAgent } from '../common/agent';
+import type { AbstractPage } from '../page';
 
-const defaultPort = 5800;
+const defaultPort = PLAYGROUND_SERVER_PORT;
 // const staticPath = join(__dirname, '../../static');
-let agentRequestCount = 1;
 
 const errorHandler = (err: any, req: any, res: any, next: any) => {
   console.error(err);
@@ -34,9 +35,26 @@ export default class PlaygroundServer {
   tmpDir: string;
   server?: Server;
   port?: number | null;
-  constructor() {
+  pageClass: new (
+    ...args: any[]
+  ) => AbstractPage;
+  agentClass: new (
+    ...args: any[]
+  ) => PageAgent;
+  staticPath?: string;
+  taskProgressTips: Record<string, string>;
+
+  constructor(
+    pageClass: new (...args: any[]) => AbstractPage,
+    agentClass: new (...args: any[]) => PageAgent,
+    staticPath?: string,
+  ) {
     this.app = express();
     this.tmpDir = getTmpDir()!;
+    this.pageClass = pageClass;
+    this.agentClass = agentClass;
+    this.staticPath = staticPath;
+    this.taskProgressTips = {};
     setup();
   }
 
@@ -51,7 +69,8 @@ export default class PlaygroundServer {
     return tmpFile;
   }
 
-  async launch() {
+  async launch(port?: number) {
+    this.port = port || defaultPort;
     this.app.use(errorHandler);
 
     this.app.use(
@@ -68,11 +87,6 @@ export default class PlaygroundServer {
       });
     });
 
-    // Serve index.html for the root route
-    // this.app.get('/', (req, res) => {
-    //   res.sendFile(join(staticPath, 'index.html'));
-    // });
-
     // this.app.get('/playground/:uuid', async (req, res) => {
     //   res.sendFile(join(staticPath, 'index.html'));
     // });
@@ -84,6 +98,13 @@ export default class PlaygroundServer {
       const context = readFileSync(contextFile, 'utf8');
       res.json({
         context,
+      });
+    });
+
+    this.app.get('/task-progress/:requestId', cors(), async (req, res) => {
+      const { requestId } = req.params;
+      res.json({
+        tip: this.taskProgressTips[requestId] || '',
       });
     });
 
@@ -108,25 +129,35 @@ export default class PlaygroundServer {
       '/execute',
       express.json({ limit: '30mb' }),
       async (req, res) => {
-        const { context, type, prompt } = req.body;
+        const { context, type, prompt, requestId, deepThink } = req.body;
         assert(context, 'context is required');
         assert(type, 'type is required');
         assert(prompt, 'prompt is required');
-        const requestId = agentRequestCount++;
-        console.log(`handle request: #${requestId}, ${type}, ${prompt}`);
+        assert(requestId, 'requestId is required');
+
+        this.taskProgressTips[requestId] = '';
 
         // build an agent with context
-        const page = new StaticPage(context);
-        const agent = new StaticPageAgent(page);
+        const page = new this.pageClass(context);
+        const agent = new this.agentClass(page);
+
+        agent.onTaskStartTip = (tip: string) => {
+          console.log(`task start tip: ${tip}`);
+          this.taskProgressTips[requestId] = tip;
+        };
 
         const response: {
           result: any;
           dump: string | null;
           error: string | null;
+          requestId: string;
+          reportHTML: string | null;
         } = {
           result: null,
           dump: null,
           error: null,
+          requestId,
+          reportHTML: null,
         };
 
         const startTime = Date.now();
@@ -139,6 +170,10 @@ export default class PlaygroundServer {
             response.result = await agent.aiAssert(prompt, undefined, {
               keepRawResponse: true,
             });
+          } else if (type === 'aiTap') {
+            response.result = await agent.aiTap(prompt, {
+              deepThink,
+            });
           } else {
             response.error = `Unknown type: ${type}`;
           }
@@ -150,12 +185,18 @@ export default class PlaygroundServer {
 
         try {
           response.dump = JSON.parse(agent.dumpDataString());
+          response.reportHTML = agent.reportHTMLString() || null;
+
           agent.writeOutActionDumps();
         } catch (error: any) {
           console.error(
             `write out dump failed: #${requestId}, ${error.message}`,
           );
         }
+
+        setTimeout(() => {
+          delete this.taskProgressTips[requestId];
+        }, 60 * 1000);
 
         res.send(response);
         const timeCost = Date.now() - startTime;
@@ -170,10 +211,49 @@ export default class PlaygroundServer {
       },
     );
 
+    this.app.post(
+      '/config',
+      express.json({ limit: '1mb' }),
+      async (req, res) => {
+        const { aiConfig } = req.body;
+
+        if (!aiConfig || typeof aiConfig !== 'object') {
+          return res.status(400).json({
+            error: 'aiConfig is required and must be an object',
+          });
+        }
+
+        try {
+          overrideAIConfig(aiConfig);
+
+          return res.json({
+            status: 'ok',
+            message: 'AI config updated successfully',
+          });
+        } catch (error: any) {
+          console.error(`Failed to update AI config: ${error.message}`);
+          return res.status(500).json({
+            error: `Failed to update AI config: ${error.message}`,
+          });
+        }
+      },
+    );
+
+    // Set up static file serving after all API routes are defined
+    if (this.staticPath) {
+      this.app.get('*', (req, res) => {
+        const requestedPath = join(this.staticPath!, req.path);
+        if (existsSync(requestedPath)) {
+          res.sendFile(requestedPath);
+        } else {
+          res.sendFile(join(this.staticPath!, 'index.html'));
+        }
+      });
+    }
+
     return new Promise((resolve, reject) => {
-      const port = this.port || defaultPort;
+      const port = this.port;
       this.server = this.app.listen(port, () => {
-        this.port = port;
         resolve(this);
       });
     });

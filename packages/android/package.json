@@ -4,7 +4,7 @@
   "description": "Android automation library for Midscene",
   "main": "./dist/lib/index.js",
   "types": "./dist/types/index.d.ts",
-  "files": ["dist", "bin", "README.md"],
+  "files": ["bin", "dist", "README.md"],
   "exports": {
     ".": {
       "types": "./dist/types/index.d.ts",
@@ -12,15 +12,17 @@
     }
   },
   "scripts": {
+    "dev": "modern dev",
     "build": "modern build -c ./modern.config.ts",
+    "build:watch": "modern build -w -c ./modern.config.ts",
     "test": "vitest --run",
     "test:u": "vitest --run -u",
     "test:ai": "MIDSCENE_CACHE=true npm run test"
   },
   "dependencies": {
-    "@midscene/web": "workspace:*",
     "@midscene/core": "workspace:*",
     "@midscene/shared": "workspace:*",
+    "@midscene/web": "workspace:*",
     "appium-adb": "12.12.1"
   },
   "devDependencies": {

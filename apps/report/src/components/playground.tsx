@@ -96,7 +96,7 @@ export function StandardPlayground({
 
   // Form and environment configuration
   const [form] = Form.useForm();
-  const { config } = useEnvConfig();
+  const { config, deepThink } = useEnvConfig();
 
   const currentAgentRef = useRef<any>(null);
   const currentRunningIdRef = useRef<number | null>(0);
@@ -108,7 +108,7 @@ export function StandardPlayground({
 
   // Override AI configuration
   useEffect(() => {
-    overrideAIConfig(config as any);
+    overrideAIConfig(config);
   }, [config]);
 
   // Initialize context preview
@@ -174,6 +174,10 @@ export function StandardPlayground({
           result.result = await activeAgent?.aiAssert(value.prompt, undefined, {
             keepRawResponse: true,
           });
+        } else if (value.type === 'aiTap') {
+          result.result = await activeAgent?.aiTap(value.prompt, {
+            deepThink,
+          });
         }
       }
     } catch (e: any) {
@@ -209,7 +213,7 @@ export function StandardPlayground({
     currentAgentRef.current = null;
     setResult(result);
     setLoading(false);
-    if (value.type === 'aiAction' && result?.dump) {
+    if (result?.dump) {
       const info = allScriptsFromDump(result.dump);
       setReplayScriptsInfo(info);
       setReplayCounter((c) => c + 1);
@@ -275,7 +279,7 @@ export function StandardPlayground({
           defaultSize={32}
           maxSize={60}
           minSize={20}
-          className="playground-left-panel"
+          style={{ paddingRight: '24px' }}
         >
           <Logo hideLogo={hideLogo} />
           {formSection}

@@ -1,3 +1,4 @@
+import { StaticPage, StaticPageAgent } from '@/playground';
 import PlaygroundServer from '@/playground/server';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
@@ -5,7 +6,7 @@ describe('Playground Server', () => {
   let server: PlaygroundServer;
   let serverBase: string;
   beforeAll(async () => {
-    server = new PlaygroundServer();
+    server = new PlaygroundServer(StaticPage, StaticPageAgent);
     await server.launch();
     serverBase = `http://localhost:${server.port}`;
   });

@@ -35,6 +35,10 @@
       "types": "./dist/types/puppeteer.d.ts",
       "default": "./dist/lib/puppeteer.js"
     },
+    "./puppeteer-agent-launcher": {
+      "types": "./dist/types/puppeteer-agent-launcher.d.ts",
+      "default": "./dist/lib/puppeteer-agent-launcher.js"
+    },
     "./playwright": {
       "types": "./dist/types/playwright.d.ts",
       "default": "./dist/lib/playwright.js"
@@ -50,6 +54,10 @@
     "./midscene-playground": {
       "types": "./dist/types/midscene-playground.d.ts",
       "default": "./dist/lib/midscene-playground.js"
+    },
+    "./midscene-server": {
+      "types": "./dist/types/midscene-server.d.ts",
+      "default": "./dist/lib/midscene-server.js"
     },
     "./chrome-extension": {
       "types": "./dist/types/chrome-extension.d.ts",
@@ -72,17 +80,28 @@
       "utils": ["./dist/types/utils.d.ts"],
       "ui-utils": ["./dist/types/ui-utils.d.ts"],
       "puppeteer": ["./dist/types/puppeteer.d.ts"],
+      "puppeteer-agent-launcher": [
+        "./dist/types/puppeteer-agent-launcher.d.ts"
+      ],
       "playwright": ["./dist/types/playwright.d.ts"],
       "playwright-report": ["./dist/types/playwright-report.d.ts"],
       "playground": ["./dist/types/playground.d.ts"],
       "midscene-playground": ["./dist/types/midscene-playground.d.ts"],
+      "midscene-server": ["./dist/types/midscene-server.d.ts"],
       "chrome-extension": ["./dist/types/chrome-extension.d.ts"],
       "yaml": ["./dist/types/yaml.d.ts"],
       "agent": ["./dist/types/agent.d.ts"]
     }
   },
+  "watch": {
+    "build": {
+      "patterns": ["src"],
+      "extensions": "tsx,less,scss,css,js,jsx,ts",
+      "quiet": false
+    }
+  },
   "scripts": {
-    "dev": "modern dev",
+    "dev": "npm run build && npx npm-watch",
     "dev:server": "npm run build && ./bin/midscene-playground",
     "build": "modern build -c ./modern.config.ts",
     "postbuild": "node scripts/check-exports.js",
@@ -110,14 +129,14 @@
     "dayjs": "1.11.11",
     "devtools-protocol": "0.0.1380148",
     "dotenv": "16.4.5",
-    "express": "4.21.1",
+    "express": "^4.21.2",
     "fs-extra": "11.2.0",
     "http-server": "14.1.1",
     "inquirer": "10.1.5",
     "js-sha256": "0.11.0",
     "js-yaml": "4.1.0",
     "openai": "4.81.0",
-    "socket.io": "4.8.1",
+    "socket.io": "^4.8.1",
     "socket.io-client": "4.8.1"
   },
   "devDependencies": {
@@ -125,7 +144,7 @@
     "@playwright/test": "^1.44.1",
     "@types/chrome": "0.0.279",
     "@types/cors": "2.8.12",
-    "@types/express": "4.17.14",
+    "@types/express": "^4.17.21",
     "@types/fs-extra": "11.0.4",
     "@types/js-yaml": "4.0.9",
     "@types/node": "^18.0.0",

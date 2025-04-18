@@ -41,7 +41,7 @@ export const ANTHROPIC_API_KEY = 'ANTHROPIC_API_KEY';
 // @deprecated
 export const OPENAI_USE_AZURE = 'OPENAI_USE_AZURE';
 
-const allConfigFromEnv = () => {
+export const allConfigFromEnv = () => {
   return {
     [MIDSCENE_OPENAI_INIT_CONFIG_JSON]:
       process.env[MIDSCENE_OPENAI_INIT_CONFIG_JSON] || undefined,
@@ -91,7 +91,8 @@ const allConfigFromEnv = () => {
   };
 };
 
-let userConfig: Partial<ReturnType<typeof allConfigFromEnv>> = {};
+let globalConfig: Partial<ReturnType<typeof allConfigFromEnv>> =
+  allConfigFromEnv();
 
 export const vlLocateMode = ():
   | 'qwen-vl'
@@ -133,7 +134,7 @@ export const vlLocateMode = ():
 };
 
 export const getAIConfig = (
-  configKey: keyof typeof userConfig,
+  configKey: keyof typeof globalConfig,
 ): string | undefined => {
   if (configKey === MATCH_BY_POSITION) {
     throw new Error(
@@ -141,21 +142,15 @@ export const getAIConfig = (
     );
   }
 
-  if (typeof userConfig[configKey] !== 'undefined') {
-    if (typeof userConfig[configKey] === 'string') {
-      return userConfig[configKey]?.trim();
-    }
-    return userConfig[configKey];
-  }
-  return allConfigFromEnv()[configKey]?.trim();
+  return globalConfig[configKey]?.trim();
 };
 
-export const getAIConfigInBoolean = (configKey: keyof typeof userConfig) => {
+export const getAIConfigInBoolean = (configKey: keyof typeof globalConfig) => {
   const config = getAIConfig(configKey) || '';
   return /^(true|1)$/i.test(config);
 };
 
-export const getAIConfigInJson = (configKey: keyof typeof userConfig) => {
+export const getAIConfigInJson = (configKey: keyof typeof globalConfig) => {
   const config = getAIConfig(configKey);
   try {
     return config ? JSON.parse(config) : undefined;
@@ -169,13 +164,9 @@ export const getAIConfigInJson = (configKey: keyof typeof userConfig) => {
   }
 };
 
-export const allAIConfig = () => {
-  return { ...allConfigFromEnv(), ...userConfig };
-};
-
 export const overrideAIConfig = (
   newConfig: Partial<ReturnType<typeof allConfigFromEnv>>,
-  extendMode?: boolean,
+  extendMode = false, // true: merge with global config, false: override global config
 ) => {
   for (const key in newConfig) {
     if (typeof key !== 'string') {
@@ -188,5 +179,7 @@ export const overrideAIConfig = (
     }
   }
 
-  userConfig = extendMode ? { ...userConfig, ...newConfig } : { ...newConfig };
+  globalConfig = extendMode
+    ? { ...globalConfig, ...newConfig }
+    : { ...newConfig };
 };

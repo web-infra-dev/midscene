@@ -282,11 +282,12 @@ export class PageAgent<PageType extends WebPage = WebPage> {
   }
 
   async aiAction(taskPrompt: string) {
-    const { executor } = await (vlLocateMode() === 'vlm-ui-tars'
+    const { output, executor } = await (vlLocateMode() === 'vlm-ui-tars'
       ? this.taskExecutor.actionToGoal(taskPrompt)
       : this.taskExecutor.action(taskPrompt, this.opts.aiActionContext));
 
     this.afterTaskRunning(executor);
+    return output;
   }
 
   async aiQuery(demand: any) {
@@ -339,8 +340,12 @@ export class PageAgent<PageType extends WebPage = WebPage> {
       return this.aiAssert(taskPrompt);
     }
 
+    if (type === 'tap') {
+      return this.aiTap(taskPrompt);
+    }
+
     throw new Error(
-      `Unknown type: ${type}, only support 'action', 'query', 'assert'`,
+      `Unknown type: ${type}, only support 'action', 'query', 'assert', 'tap'`,
     );
   }
 
@@ -366,6 +371,14 @@ export class PageAgent<PageType extends WebPage = WebPage> {
     return {
       result: player.result,
     };
+  }
+
+  async evaluateJavaScript(script: string) {
+    assert(
+      this.page.evaluateJavaScript,
+      'evaluateJavaScript is not supported in current agent',
+    );
+    return this.page.evaluateJavaScript(script);
   }
 
   async destroy() {

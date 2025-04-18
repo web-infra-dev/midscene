@@ -4,7 +4,7 @@ import path from 'node:path';
 import type { Point, Size } from '@midscene/core';
 import { getTmpFile } from '@midscene/core/utils';
 import type { ElementInfo } from '@midscene/shared/extractor';
-import { resizeImg } from '@midscene/shared/img';
+import { isValidPNGImageBuffer, resizeImg } from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
 import type { AndroidDevicePage } from '@midscene/web';
 import { ADB } from 'appium-adb';
@@ -20,6 +20,7 @@ export class AndroidDevice implements AndroidDevicePage {
   private adb: ADB | null = null;
   private connectingAdb: Promise<ADB> | null = null;
   pageType = 'android';
+  uri: string | undefined;
 
   constructor(deviceId: string) {
     assert(deviceId, 'deviceId is required for AndroidDevice');
@@ -120,6 +121,7 @@ ${Object.keys(size)
 
   public async launch(uri: string): Promise<AndroidDevice> {
     const adb = await this.getAdb();
+    this.uri = uri;
 
     try {
       if (
@@ -138,9 +140,7 @@ ${Object.keys(size)
         });
       } else {
         // Assume it's just a package name
-        await adb.startApp({
-          pkg: uri,
-        });
+        await adb.activateApp(uri);
       }
       debugPage(`Successfully launched: ${uri}`);
     } catch (error: any) {
@@ -278,6 +278,21 @@ ${Object.keys(size)
 
     try {
       screenshotBuffer = await adb.takeScreenshot(null);
+
+      // make sure screenshotBuffer is not null
+      if (!screenshotBuffer) {
+        throw new Error(
+          'Failed to capture screenshot: screenshotBuffer is null',
+        );
+      }
+
+      // check if the buffer is a valid PNG image, it might be a error string
+      if (!isValidPNGImageBuffer(screenshotBuffer)) {
+        debugPage('Invalid image buffer detected: not a valid image format');
+        throw new Error(
+          'Screenshot buffer has invalid format: could not find valid image signature',
+        );
+      }
     } catch (error) {
       const screenshotPath = getTmpFile('png')!;
 
@@ -355,11 +370,7 @@ ${Object.keys(size)
   }
 
   async url(): Promise<string> {
-    const adb = await this.getAdb();
-
-    const { appPackage, appActivity } =
-      await adb.getFocusedPackageAndActivity();
-    return `${appPackage}/${appActivity}`;
+    return '';
   }
 
   async scrollUntilTop(startPoint?: Point): Promise<void> {

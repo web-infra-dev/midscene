@@ -113,3 +113,5 @@ midscene_run/dump
 
 extension_output
 .cursor
+android-playground/static/
+.cursor
