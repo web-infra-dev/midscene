@@ -40,4 +40,4 @@ export const emptyResultTip = (
 export const trackingTip = 'limit popup to current tab';
 
 // deep think tip
-export const deepThinkTip = 'enable deep think';
+export const deepThinkTip = 'deep think';

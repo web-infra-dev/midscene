@@ -144,6 +144,9 @@ importers:
       '@midscene/core':
         specifier: workspace:*
         version: link:../../packages/core
+      '@midscene/report':
+        specifier: workspace:*
+        version: link:../report
       '@midscene/visualizer':
         specifier: workspace:*
         version: link:../../packages/visualizer
