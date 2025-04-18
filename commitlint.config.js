@@ -7,6 +7,7 @@ module.exports = {
       'always', // Apply rule always
       [
         // Allowed scopes
+        'core',
         'workflow',
         'android',
         'llm',
