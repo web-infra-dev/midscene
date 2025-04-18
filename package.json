@@ -55,10 +55,5 @@
     "pretty-quick": "3.1.3",
     "semver": "7.3.7",
     "simple-git-hooks": "^2.11.1"
-  },
-  "pnpm": {
-    "patchedDependencies": {
-      "@yume-chan/async": "patches/@yume-chan__async.patch"
-    }
   }
 }
