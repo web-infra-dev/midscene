@@ -184,7 +184,9 @@ export const PromptInput: React.FC<PromptInputProps> = ({
         </Form.Item>
         <HistorySelector onSelect={handleSelectHistory} />
       </Space>
-      <div className="main-side-console-input">
+      <div
+        className={`main-side-console-input ${!runButtonEnabled ? 'disabled' : ''}`}
+      >
         <Form.Item name="prompt" style={{ margin: 0 }}>
           <TextArea
             className="main-side-console-input-textarea"
