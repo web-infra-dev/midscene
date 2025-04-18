@@ -269,6 +269,11 @@ export default class PlaygroundServer {
 
     // Set up static file serving after all API routes are defined
     if (this.staticPath) {
+      this.app.get('/', (req, res) => {
+        // compatible with windows
+        res.redirect('/index.html');
+      });
+
       this.app.get('*', (req, res) => {
         const requestedPath = join(this.staticPath!, req.path);
         if (existsSync(requestedPath)) {

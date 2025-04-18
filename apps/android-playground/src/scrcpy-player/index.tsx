@@ -785,7 +785,7 @@ export const ScrcpyPlayer = forwardRef<ScrcpyRefMethods, ScrcpyProps>(
               <div className="video-section">
                 <div ref={videoContainerRef} className="video-container">
                   <div className="canvas-wrapper" />
-                  {!connected && serverValid ? (
+                  {!connected && serverValid && (
                     <div className="empty-state">
                       <div className="empty-state-icon">📱</div>
                       <div className="empty-state-text">
@@ -809,7 +809,8 @@ export const ScrcpyPlayer = forwardRef<ScrcpyRefMethods, ScrcpyProps>(
                         </div>
                       )}
                     </div>
-                  ) : (
+                  )}
+                  {!serverValid && (
                     <span>Please launch playground server!</span>
                   )}
                 </div>
