@@ -10,7 +10,7 @@ import {
   LoadingOutlined,
 } from '@ant-design/icons';
 import type { BaseElement, Rect } from '@midscene/core';
-import { Spin } from 'antd';
+import { Spin, Tooltip } from 'antd';
 import { rectMarkForItem } from './blackboard';
 import { getTextureFromCache, loadTexture } from './pixi-loader';
 import type {
@@ -756,7 +756,9 @@ export function Player(props?: {
           <div className="player-control">
             <div className="status-text">
               <div className="title">{titleText}</div>
-              <div className="subtitle">{subTitleText}</div>
+              <Tooltip title={subTitleText}>
+                <div className="subtitle">{subTitleText}</div>
+              </Tooltip>
             </div>
             <div
               className="status-icon"

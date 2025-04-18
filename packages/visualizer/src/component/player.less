@@ -108,6 +108,7 @@
       flex-direction: row;
       align-items: center;
       overflow: hidden;
+      max-width: calc(100% - 50px);
     }
 
     .status-icon {
@@ -137,23 +138,15 @@
       display: flex;
       flex-direction: column;
       justify-content: space-between;
+      width: 0;
     }
 
-    .title {
-      font-weight: bold;
-      line-height: 20px;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-      width: 100%;
-    }
-
+    .title,
     .subtitle {
-      line-height: 20px;
-      width: 100%;
-      overflow: hidden;
       text-overflow: ellipsis;
+      overflow: hidden;
       white-space: nowrap;
+      width: 100%;
     }
 
     .player-tools-item {
