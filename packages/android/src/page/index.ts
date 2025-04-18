@@ -98,7 +98,8 @@ ${Object.keys(size)
         // return the proxied method
         return async (...args: any[]) => {
           try {
-            return await originalMethod.apply(target, args);
+            debugPage(`adb ${String(prop)} ${args.join(' ')}`);
+            return originalMethod.apply(target, args);
           } catch (error: any) {
             const methodName = String(prop);
             const deviceId = this.deviceId;
