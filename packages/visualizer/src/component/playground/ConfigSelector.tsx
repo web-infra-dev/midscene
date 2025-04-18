@@ -1,16 +1,16 @@
-import { SettingOutlined } from '@ant-design/icons';
+import { AimOutlined } from '@ant-design/icons';
 import { Checkbox, Dropdown, type MenuProps, Space } from 'antd';
 import type React from 'react';
 import { useEnvConfig } from '../store/store';
 import { deepThinkTip, trackingTip } from './playground-constants';
 
 interface ConfigSelectorProps {
-  enableDeepThink: boolean;
+  showDeepThinkOption: boolean;
   enableTracking: boolean;
 }
 
 export const ConfigSelector: React.FC<ConfigSelectorProps> = ({
-  enableDeepThink = false,
+  showDeepThinkOption = false,
   enableTracking = false,
 }) => {
   const forceSameTabNavigation = useEnvConfig(
@@ -22,7 +22,7 @@ export const ConfigSelector: React.FC<ConfigSelectorProps> = ({
   const deepThink = useEnvConfig((state) => state.deepThink);
   const setDeepThink = useEnvConfig((state) => state.setDeepThink);
 
-  if (!enableTracking && !enableDeepThink) {
+  if (!enableTracking && !showDeepThinkOption) {
     return null;
   }
 
@@ -32,7 +32,7 @@ export const ConfigSelector: React.FC<ConfigSelectorProps> = ({
     <div className="config-selector">
       <Dropdown menu={{ items: configItems }}>
         <Space>
-          <SettingOutlined />
+          <AimOutlined />
           {renderSettingsDisplay()}
         </Space>
       </Dropdown>
@@ -56,7 +56,7 @@ export const ConfigSelector: React.FC<ConfigSelectorProps> = ({
       });
     }
 
-    if (enableDeepThink) {
+    if (showDeepThinkOption) {
       items.push({
         label: (
           <Checkbox
@@ -85,13 +85,12 @@ export const ConfigSelector: React.FC<ConfigSelectorProps> = ({
       displayParts.push(trackingText);
     }
 
-    if (enableTracking && enableDeepThink) {
-      displayParts.push('/');
+    if (showDeepThinkOption && deepThink) {
+      displayParts.push(deepThinkTip);
     }
 
-    if (enableDeepThink) {
-      const deepThinkText = deepThink ? deepThinkTip : 'disable deep think';
-      displayParts.push(deepThinkText);
+    if (displayParts.length === 2) {
+      displayParts.splice(1, 0, '/');
     }
 
     return displayParts.join(' ');
