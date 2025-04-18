@@ -139,11 +139,11 @@ export async function playYamlFiles(
       }
 
       // handle android
-      if (script.android) {
+      if (script.android !== undefined) {
         const androidTarget = script.android;
-        const agent = await agentFromAdbDevice(androidTarget.deviceId);
+        const agent = await agentFromAdbDevice(androidTarget?.deviceId);
 
-        if (androidTarget.launch) {
+        if (androidTarget?.launch) {
           await agent.launch(androidTarget.launch);
         }
 
