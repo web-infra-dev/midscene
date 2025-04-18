@@ -185,10 +185,16 @@ body {
     margin-top: 10px;
 
     .main-side-console-input-textarea {
-      height: 90px;
       border-radius: 12px;
       border: 1px solid rgba(0, 0, 0, 0.12);
       padding: 12px 16px;
+      transition: background-color 0.2s ease;
+    }
+
+    &.disabled {
+      .form-controller-wrapper {
+        background-color: transparent;
+      }
     }
   }
 
@@ -198,16 +204,19 @@ body {
 
   .form-controller-wrapper {
     position: absolute;
-    bottom: 8px;
-    padding: 0 12px;
-    left: 0px;
     display: flex;
     flex-direction: row;
     justify-content: space-between;
-    width: 100%;
+    width: calc(100% - 32px);
     box-sizing: border-box;
     align-items: flex-end;
     gap: 8px;
+    background-color: #FFF;
+    left: 16px;
+    bottom: 0.5px;
+    padding: 8px 0;
+    line-height: 32px;
+    transition: background-color 0.2s ease;
   }
 
   .settings-wrapper {
