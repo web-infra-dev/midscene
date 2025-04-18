@@ -46,6 +46,10 @@ export class BridgeServer {
         timeout > 3000
           ? setTimeout(() => {
               console.log('waiting for bridge to connect...');
+              // For MCP
+              // console.log(
+              //   `{"connection-tip": "waiting for bridge to connect..."}`,
+              // );
             }, 2000)
           : null;
 
@@ -74,6 +78,10 @@ export class BridgeServer {
           console.log(
             `Bridge connected, cli-side version v${__VERSION__}, browser-side version v${clientVersion}`,
           );
+          // For MCP
+          // console.log(
+          //   `{"version-info": "Bridge connected, cli-side version v${__VERSION__}, browser-side version v${clientVersion}"}`,
+          // );
 
           socket.on(BridgeEvent.CallResponse, (params: BridgeCallResponse) => {
             const id = params.id;

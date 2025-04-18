@@ -1,5 +1,3 @@
-import { AiAssert } from '@midscene/core/.';
-import { expect } from 'playwright/test';
 import { test } from './fixture';
 
 test.beforeEach(async ({ page }) => {
@@ -33,8 +31,7 @@ test('ai shop', async ({
   // add to cart
   await aiTap('"add to cart" for black t-shirt products');
 
-  await aiTap({
-    prompt: 'click right top cart icon',
+  await aiTap('click right top cart icon', {
     deepThink: true,
   });
 });

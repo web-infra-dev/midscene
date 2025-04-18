@@ -20,6 +20,7 @@ export const useBlackboardPreference = create<{
 const CONFIG_KEY = 'midscene-env-config';
 const SERVICE_MODE_KEY = 'midscene-service-mode';
 const TRACKING_ACTIVE_TAB_KEY = 'midscene-tracking-active-tab';
+const DEEP_THINK_KEY = 'midscene-deep-think';
 const getConfigStringFromLocalStorage = () => {
   const configString = localStorage.getItem(CONFIG_KEY);
   return configString || '';
@@ -71,6 +72,8 @@ export const useEnvConfig = create<{
   loadConfig: (configString: string) => void;
   forceSameTabNavigation: boolean;
   setForceSameTabNavigation: (forceSameTabNavigation: boolean) => void;
+  deepThink: boolean;
+  setDeepThink: (deepThink: boolean) => void;
   popupTab: 'playground' | 'bridge';
   setPopupTab: (tab: 'playground' | 'bridge') => void;
 }>((set, get) => {
@@ -82,6 +85,7 @@ export const useEnvConfig = create<{
   ) as ServiceModeType | null;
   const savedForceSameTabNavigation =
     localStorage.getItem(TRACKING_ACTIVE_TAB_KEY) !== 'false';
+  const savedDeepThink = localStorage.getItem(DEEP_THINK_KEY) === 'true';
   return {
     serviceMode: ifInExtension
       ? 'In-Browser-Extension'
@@ -107,6 +111,11 @@ export const useEnvConfig = create<{
         TRACKING_ACTIVE_TAB_KEY,
         forceSameTabNavigation.toString(),
       );
+    },
+    deepThink: savedDeepThink,
+    setDeepThink: (deepThink: boolean) => {
+      set({ deepThink });
+      localStorage.setItem(DEEP_THINK_KEY, deepThink.toString());
     },
     popupTab: 'playground',
     setPopupTab: (tab: 'playground' | 'bridge') => {

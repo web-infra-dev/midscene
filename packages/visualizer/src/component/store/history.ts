@@ -6,7 +6,7 @@ const { create } = Z;
 const HISTORY_KEY = 'midscene-prompt-history';
 
 export interface HistoryItem {
-  type: 'aiAction' | 'aiQuery' | 'aiAssert';
+  type: 'aiAction' | 'aiQuery' | 'aiAssert' | 'aiTap';
   prompt: string;
   timestamp: number;
 }

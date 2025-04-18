@@ -2,9 +2,8 @@ import type { GroupedActionDump, UIContext } from '@midscene/core';
 import type { ChromeExtensionProxyPageAgent } from '@midscene/web/chrome-extension';
 import type { StaticPageAgent } from '@midscene/web/playground';
 import type { WebUIContext } from '@midscene/web/utils';
-import type { ReplayScriptsInfo } from '../replay-scripts';
 
-// 运行结果类型
+// result type
 export interface PlaygroundResult {
   result: any;
   dump: GroupedActionDump | null;
@@ -12,7 +11,7 @@ export interface PlaygroundResult {
   error: string | null;
 }
 
-// Playground组件的props类型
+// Playground component props type
 export interface PlaygroundProps {
   getAgent: (
     forceSameTabNavigation?: boolean,
@@ -22,13 +21,13 @@ export interface PlaygroundProps {
   dryMode?: boolean;
 }
 
-// 静态Playground组件的props类型
+// static playground component props type
 export interface StaticPlaygroundProps {
   context: WebUIContext | null;
 }
 
-// 服务模式类型
+// service mode type
 export type ServiceModeType = 'Server' | 'In-Browser' | 'In-Browser-Extension';
 
-// 运行类型
-export type RunType = 'aiAction' | 'aiQuery' | 'aiAssert';
+// run type
+export type RunType = 'aiAction' | 'aiQuery' | 'aiAssert' | 'aiTap';

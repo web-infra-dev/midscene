@@ -93,8 +93,15 @@
       "agent": ["./dist/types/agent.d.ts"]
     }
   },
+  "watch": {
+    "build": {
+      "patterns": ["src"],
+      "extensions": "tsx,less,scss,css,js,jsx,ts",
+      "quiet": false
+    }
+  },
   "scripts": {
-    "dev": "modern dev",
+    "dev": "npm run build && npx npm-watch",
     "dev:server": "npm run build && ./bin/midscene-playground",
     "build": "modern build -c ./modern.config.ts",
     "postbuild": "node scripts/check-exports.js",
