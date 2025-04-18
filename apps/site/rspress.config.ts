@@ -146,10 +146,6 @@ export default defineConfig({
         {
           text: 'Blog',
           items: [
-            // {
-            //   text: 'Support Android Automation',
-            //   link: '/blog-support-android-automation',
-            // },
             {
               text: 'Support Android Automation',
               link: '/blog-support-android-automation',
@@ -255,10 +251,6 @@ export default defineConfig({
         {
           text: 'Blog',
           items: [
-            // {
-            //   text: '支持 Android 自动化',
-            //   link: '/zh/blog-support-android-automation',
-            // },
             {
               text: '支持 Android 自动化',
               link: '/zh/blog-support-android-automation',
