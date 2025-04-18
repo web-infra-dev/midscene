@@ -180,7 +180,7 @@ export class MidsceneManager {
       case 'midscene_evaluate':
         try {
           await this.agent.connectCurrentTab();
-          await this.agent.page.evaluate(`(function() {
+          await this.agent.page.evaluateJavaScript(`(function() {
             window.mcpHelper = {
               logs: [],
               originalConsole: { ...console },
@@ -194,9 +194,9 @@ export class MidsceneManager {
             return window.mcpHelper;
           })()`);
 
-          const result = await this.agent.page.evaluate(args.script);
+          const result = await this.agent.page.evaluateJavaScript(args.script);
 
-          const logs = await this.agent.page.evaluate(`(function() {
+          const logs = await this.agent.page.evaluateJavaScript(`(function() {
             Object.assign(console, window.mcpHelper.originalConsole);
             const logs = window.mcpHelper.logs;
             window.mcpHelper = undefined;

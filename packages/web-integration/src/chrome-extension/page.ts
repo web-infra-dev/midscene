@@ -282,15 +282,10 @@ export default class ChromeExtensionProxyPage implements AbstractPage {
     };
   }
 
-  public async evaluate(script: string) {
-    const value = await this.sendCommandToDebugger<
-      CDPTypes.Runtime.EvaluateResponse,
-      CDPTypes.Runtime.EvaluateRequest
-    >('Runtime.evaluate', {
+  public async evaluateJavaScript(script: string) {
+    return this.sendCommandToDebugger('Runtime.evaluate', {
       expression: script,
-      returnByValue: true,
     });
-    return JSON.stringify(value);
   }
 
   // current implementation is wait until domReadyState is complete

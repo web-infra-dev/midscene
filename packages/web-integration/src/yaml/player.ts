@@ -1,6 +1,6 @@
 import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
-import { assert } from '@midscene/shared/utils';
+import { assert, ifInBrowser } from '@midscene/shared/utils';
 
 import type { PageAgent } from '@/common/agent';
 import type {
@@ -14,6 +14,7 @@ import type {
   MidsceneYamlFlowItemAIScroll,
   MidsceneYamlFlowItemAITap,
   MidsceneYamlFlowItemAIWaitFor,
+  MidsceneYamlFlowItemEvaluateJavaScript,
   MidsceneYamlFlowItemSleep,
   MidsceneYamlScript,
   MidsceneYamlScriptAndroidEnv,
@@ -22,6 +23,7 @@ import type {
   ScriptPlayerStatusValue,
   ScriptPlayerTaskStatus,
 } from '@midscene/core';
+import { getMidsceneRunSubDir } from '@midscene/shared/common';
 
 export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
   public currentTaskIndex?: number;
@@ -43,13 +45,31 @@ export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
     public onTaskStatusChange?: (taskStatus: ScriptPlayerTaskStatus) => void,
   ) {
     this.result = {};
-    this.output = script.target?.output;
+
+    if (ifInBrowser) {
+      this.output = undefined;
+    } else if (script.target?.output) {
+      this.output = resolve(process.cwd(), script.target.output);
+    } else {
+      this.output = join(getMidsceneRunSubDir('output'), `${process.pid}.json`);
+    }
+
     this.taskStatusList = (script.tasks || []).map((task, taskIndex) => ({
       ...task,
       index: taskIndex,
       status: 'init',
       totalSteps: task.flow?.length || 0,
     }));
+  }
+
+  private setResult(key: string | undefined, value: any) {
+    const keyToUse = key || this.unnamedResultIndex++;
+    if (this.result[keyToUse]) {
+      console.warn(`result key ${keyToUse} already exists, will overwrite`);
+    }
+    this.result[keyToUse] = value;
+
+    this.flushResult();
   }
 
   private setPlayerStatus(status: ScriptPlayerStatusValue, error?: Error) {
@@ -137,15 +157,7 @@ export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
           'prompt for aiQuery must be a string',
         );
         const queryResult = await agent.aiQuery(prompt);
-        const resultKey = queryTask.name || this.unnamedResultIndex++;
-        if (this.result[resultKey]) {
-          console.warn(
-            `result key ${resultKey} already exists, will overwrite`,
-          );
-        }
-
-        this.result[resultKey] = queryResult;
-        this.flushResult();
+        this.setResult(queryTask.name, queryResult);
       } else if ((flowItem as MidsceneYamlFlowItemAIWaitFor).aiWaitFor) {
         const waitForTask = flowItem as MidsceneYamlFlowItemAIWaitFor;
         const prompt = waitForTask.aiWaitFor;
@@ -193,6 +205,17 @@ export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
       ) {
         const scrollTask = flowItem as MidsceneYamlFlowItemAIScroll;
         await agent.aiScroll(scrollTask, scrollTask.locate, scrollTask);
+      } else if (
+        typeof (flowItem as MidsceneYamlFlowItemEvaluateJavaScript)
+          .javascript !== 'undefined'
+      ) {
+        const evaluateJavaScriptTask =
+          flowItem as MidsceneYamlFlowItemEvaluateJavaScript;
+
+        const result = await agent.evaluateJavaScript(
+          evaluateJavaScriptTask.javascript,
+        );
+        this.setResult(evaluateJavaScriptTask.name, result);
       } else {
         throw new Error(`unknown flowItem: ${JSON.stringify(flowItem)}`);
       }

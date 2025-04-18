@@ -369,6 +369,14 @@ export class PageAgent<PageType extends WebPage = WebPage> {
     };
   }
 
+  async evaluateJavaScript(script: string) {
+    assert(
+      this.page.evaluateJavaScript,
+      'evaluateJavaScript is not supported in current agent',
+    );
+    return this.page.evaluateJavaScript(script);
+  }
+
   async destroy() {
     await this.page.destroy();
   }
