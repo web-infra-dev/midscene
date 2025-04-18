@@ -5,6 +5,7 @@ import { useEffect } from 'react';
 import { EnvConfig } from '../env-config';
 import { iconForStatus } from '../misc';
 import { useEnvConfig } from '../store/store';
+import { overrideServerConfig } from './playground-utils';
 import { useServerValid } from './useServerValid';
 
 interface ServiceModeControlProps {
@@ -32,13 +33,15 @@ export const ServiceModeControl: React.FC<ServiceModeControlProps> = ({
   const renderServerTip = () => {
     if (serverValid) {
       return (
-        <div className="server-tip">{iconForStatus('connected')} Connected</div>
+        <Tooltip title="Connected">
+          <div className="server-tip">{iconForStatus('connected')}</div>
+        </Tooltip>
       );
     }
     return (
-      <div className="server-tip">
-        {iconForStatus('failed')} Connection failed
-      </div>
+      <Tooltip title="Connection failed">
+        <div className="server-tip">{iconForStatus('failed')}</div>
+      </Tooltip>
     );
   };
 
@@ -72,11 +75,13 @@ export const ServiceModeControl: React.FC<ServiceModeControlProps> = ({
 
   useEffect(() => {
     overrideAIConfig(config);
+    if (serviceMode === 'Server') {
+      overrideServerConfig(config);
+    }
   }, [config]);
 
   // Determine content based on service mode
-  const statusContent =
-    serviceMode === 'Server' ? renderServerTip() : <EnvConfig />;
+  const statusContent = serviceMode === 'Server' && renderServerTip();
   const title = TITLE_TEXT[serviceMode];
 
   return (
@@ -98,6 +103,7 @@ export const ServiceModeControl: React.FC<ServiceModeControlProps> = ({
           {title}
         </h3>
         {statusContent}
+        <EnvConfig showTooltipWhenEmpty={serviceMode !== 'Server'} />
       </div>
 
       <div className="switch-btn-wrapper">{renderSwitchButton()}</div>

@@ -1,13 +1,20 @@
 import { SettingOutlined } from '@ant-design/icons';
 import { Input, Modal, Tooltip } from 'antd';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useEnvConfig } from './store/store';
 
-export function EnvConfig() {
+export function EnvConfig({
+  showTooltipWhenEmpty = true,
+  tooltipPlacement = 'bottom',
+}: {
+  showTooltipWhenEmpty?: boolean;
+  tooltipPlacement?: 'bottom' | 'top';
+}) {
   const { config, configString, loadConfig } = useEnvConfig();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [tempConfigString, setTempConfigString] = useState(configString);
   const midsceneModelName = config.MIDSCENE_MODEL_NAME;
+  const componentRef = useRef<HTMLDivElement>(null);
   const showModal = (e: React.MouseEvent) => {
     setIsModalOpen(true);
     e.preventDefault();
@@ -33,13 +40,18 @@ export function EnvConfig() {
         height: '100%',
         minHeight: '32px',
       }}
+      ref={componentRef}
     >
       {midsceneModelName}
       <Tooltip
         title="Please set up your environment variables before using."
-        placement="bottom"
+        placement={tooltipPlacement}
         align={{ offset: [-10, 5] }}
-        open={Object.keys(config).length === 0}
+        open={
+          // undefined for default behavior of tooltip, hover for show
+          showTooltipWhenEmpty ? Object.keys(config).length === 0 : undefined
+        }
+        getPopupContainer={() => componentRef.current!}
       >
         <SettingOutlined onClick={showModal} />
       </Tooltip>

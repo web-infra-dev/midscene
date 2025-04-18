@@ -54,7 +54,7 @@ export default function App() {
   const { config, deepThink } = useEnvConfig();
   const [loadingProgressText, setLoadingProgressText] = useState('');
   const currentRequestIdRef = useRef<string | null>(null);
-  const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const pollIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const configAlreadySet = Object.keys(config || {}).length >= 1;
   const serverValid = useServerValid(true);
 

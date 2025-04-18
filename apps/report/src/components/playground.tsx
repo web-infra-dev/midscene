@@ -247,7 +247,9 @@ export function StandardPlayground({
     <Form form={form} onFinish={handleRun}>
       <div className="playground-form-container">
         <div className="form-part">
-          <ServiceModeControl serviceMode={serviceMode} />
+          <ServiceModeControl
+            serviceMode={serviceMode as 'Server' | 'In-Browser'}
+          />
         </div>
 
         <ContextPreview
