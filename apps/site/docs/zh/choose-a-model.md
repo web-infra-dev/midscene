@@ -120,12 +120,13 @@ MIDSCENE_USE_VLM_UI_TARS=1 # 别忘了配置这项用于 UI-TARS 模式！
 
 **使用火山云提供的版本**
 
-在火山云平台上，有一个已经部署完成的 `doubao-1.5-ui-tars` 模型，开发者无需自行部署，即可发起 API 调用。模型文档帮助： https://www.volcengine.com/docs/82379/1536429
+在火山云平台上，有一个已经部署完成的 `doubao-1.5-ui-tars` 模型，开发者可以通过 API 调用、按使用量付费。模型文档帮助： https://www.volcengine.com/docs/82379/1536429
 
 在使用火山云版本模型时，需要创建推理点（形如 `ep-2025...`）。集齐 API Key 和推理点信息后，配置文件类似如下：
 
 ```bash
-OPENAI_BASE_URL="https://ark.cn-beijing.volces.com/api/v3"
+# 注意 URL 最后填写到 /v3 结束即可
+OPENAI_BASE_URL="https://ark.cn-beijing.volces.com/api/v3" 
 OPENAI_API_KEY="...."
 MIDSCENE_MODEL_NAME="ep-2025..."
 MIDSCENE_USE_VLM_UI_TARS=1
