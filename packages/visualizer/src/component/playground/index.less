@@ -187,8 +187,23 @@ body {
     .main-side-console-input-textarea {
       border-radius: 12px;
       border: 1px solid rgba(0, 0, 0, 0.12);
-      padding: 12px 16px;
+      padding: 12px 16px 52px 16px;
       transition: background-color 0.2s ease;
+      overflow-y: auto;
+      white-space: pre-wrap;
+      line-height: 21px;
+      max-height: 150px;
+
+      scrollbar-width: thin;
+
+      &::-webkit-scrollbar {
+        width: 6px;
+      }
+
+      &::-webkit-scrollbar-thumb {
+        background-color: rgba(0, 0, 0, 0.2);
+        border-radius: 3px;
+      }
     }
 
     &.disabled {
