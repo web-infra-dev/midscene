@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-
+import { setIsMcp } from '@midscene/shared/utils';
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import {
@@ -12,6 +12,8 @@ import { MidsceneManager } from './midscene.js';
 import { TOOLS } from './tools.js';
 
 declare const __VERSION__: string;
+
+setIsMcp(true);
 
 const server = new Server(
   {
