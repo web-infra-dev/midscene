@@ -1,4 +1,4 @@
-import type { WebPage } from '@/common/page';
+import type { AndroidDevicePage, WebPage } from '@/common/page';
 import type { PuppeteerWebPage } from '@/puppeteer';
 import {
   type AIUsageInfo,
@@ -45,6 +45,10 @@ interface ExecutionResult<OutputType = any> {
 }
 
 const replanningCountLimit = 10;
+
+const isAndroidPage = (page: WebPage): page is AndroidDevicePage => {
+  return page.pageType === 'android';
+};
 
 export class PageTaskExecutor {
   page: WebPage;
@@ -485,6 +489,51 @@ export class PageTaskExecutor {
           executor: async (param) => {},
         };
         tasks.push(taskActionFinished);
+      } else if (plan.type === 'Back') {
+        const taskActionBack: ExecutionTaskActionApply<null> = {
+          type: 'Action',
+          subType: 'Back',
+          param: null,
+          thought: plan.thought,
+          locate: plan.locate,
+          executor: async (param) => {
+            // Check if the page has back method (Android devices)
+            if (isAndroidPage(this.page)) {
+              await this.page.back();
+            }
+          },
+        };
+        tasks.push(taskActionBack);
+      } else if (plan.type === 'Home') {
+        const taskActionHome: ExecutionTaskActionApply<null> = {
+          type: 'Action',
+          subType: 'Home',
+          param: null,
+          thought: plan.thought,
+          locate: plan.locate,
+          executor: async (param) => {
+            // Check if the page has home method (Android devices)
+            if (isAndroidPage(this.page)) {
+              await this.page.home();
+            }
+          },
+        };
+        tasks.push(taskActionHome);
+      } else if (plan.type === 'Menu') {
+        const taskActionMenu: ExecutionTaskActionApply<null> = {
+          type: 'Action',
+          subType: 'Menu',
+          param: null,
+          thought: plan.thought,
+          locate: plan.locate,
+          executor: async (param) => {
+            // Check if the page has menu method (Android devices)
+            if (isAndroidPage(this.page)) {
+              await this.page.menu();
+            }
+          },
+        };
+        tasks.push(taskActionMenu);
       } else {
         throw new Error(`Unknown or unsupported task type: ${plan.type}`);
       }

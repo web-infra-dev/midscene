@@ -13,7 +13,10 @@ type ActionType =
   | 'hotkey'
   | 'finished'
   | 'scroll'
-  | 'wait';
+  | 'wait'
+  | 'back'
+  | 'home'
+  | 'menu';
 
 const bboxSize = 10;
 const pointToBbox = (
@@ -142,6 +145,27 @@ export async function vlmPlanning(options: {
         param: {
           timeMs: 1000,
         },
+        locate: null,
+        thought: action.thought || '',
+      });
+    } else if (action.action_type === 'back') {
+      transformActions.push({
+        type: 'Back',
+        param: {},
+        locate: null,
+        thought: action.thought || '',
+      });
+    } else if (action.action_type === 'home') {
+      transformActions.push({
+        type: 'Home',
+        param: {},
+        locate: null,
+        thought: action.thought || '',
+      });
+    } else if (action.action_type === 'menu') {
+      transformActions.push({
+        type: 'Menu',
+        param: {},
         locate: null,
         thought: action.thought || '',
       });

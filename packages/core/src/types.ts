@@ -271,7 +271,10 @@ export interface PlanningAction<ParamType = any> {
     | 'Assert'
     | 'AssertWithoutThrow'
     | 'Sleep'
-    | 'Finished';
+    | 'Finished'
+    | 'Back'
+    | 'Home'
+    | 'Menu';
   param: ParamType;
   locate?: PlanningLocateParam | null;
 }
