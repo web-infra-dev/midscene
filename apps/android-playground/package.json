@@ -4,9 +4,7 @@
   "version": "0.12.4",
   "type": "module",
   "scripts": {
-    "build": "rsbuild build && npm run copy-static && npm run copy-favicon",
-    "copy-static": "mkdir -p ../../packages/android-playground/static && cp -r dist/* ../../packages/android-playground/static/",
-    "copy-favicon": "cp ./src/favicon.ico ../../packages/android-playground/static/favicon.ico",
+    "build": "rsbuild build",
     "dev": "rsbuild dev --open",
     "preview": "rsbuild preview"
   },
