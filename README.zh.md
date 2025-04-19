@@ -36,8 +36,8 @@ Midscene.js 是一个 AI 操作助手，适用于 Web、Android、自动化和�
 
 ## 📢 新增支持开源模型 - UI-TARS 和 Qwen2.5-VL（千问）
 
-- 🌟 2025.04.16: UI-TARS 发布了 1.5 版本，它在游戏和执行 GUI 任务上表现出色，性能超越绝大多数开源和闭源模型，你可以结合 Midscene.js 来充分发挥它的能力。
-- ✨ 2025.02.21: 除了默认的 `gpt-4o` 模型，我们还支持了两个新的开源模型：`UI-TARS` 和 `Qwen2.5-VL`。（是的，开源模型！）它们是专为 UI 自动化和图像识别设计的模型，在 UI 自动化场景下表现出色。更多信息请查看 [选择 AI 模型](https://midscenejs.com/zh/choose-a-model)。
+除了默认的 *GPT-4o* 模型之外，我们还为 Midscene.js 添加了两个全新推荐的开源模型：*UI-TARS* 和 *Qwen2.5-VL*。（没错，全都是开源模型！）它们是专门用于图像识别和 UI 自动化的模型，在 UI 自动化场景中表现尤为出色。了解更多详情，请阅读 [选择模型](https://midscenejs.com/choose-a-model)。
+
 
 ## 💡 特性
 
