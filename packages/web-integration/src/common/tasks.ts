@@ -160,6 +160,12 @@ export class PageTaskExecutor {
             const dumpCollector: DumpSubscriber = (dump) => {
               insightDump = dump;
               usage = dump?.taskInfo?.usage;
+
+              task.log = {
+                dump: insightDump,
+              };
+
+              task.usage = usage;
             };
             this.insight.onceDumpUpdatedFn = dumpCollector;
             const shotTime = Date.now();
@@ -170,6 +176,7 @@ export class PageTaskExecutor {
               screenshot: pageContext.screenshotBase64,
               timing: 'before locate',
             };
+            task.recorder = [recordItem];
 
             const cachePrompt = param.prompt;
             const locateCache = cacheGroup?.matchCache(
@@ -218,9 +225,6 @@ export class PageTaskExecutor {
               });
             }
             if (!element) {
-              task.log = {
-                dump: insightDump,
-              };
               throw new Error(`Element not found: ${param.prompt}`);
             }
 
@@ -229,15 +233,10 @@ export class PageTaskExecutor {
                 element,
               },
               pageContext,
-              log: {
-                dump: insightDump,
-              },
               cache: {
                 hit: cacheHitFlag,
               },
-              recorder: [recordItem],
               aiCost,
-              usage,
             };
           },
         };
@@ -826,7 +825,6 @@ export class PageTaskExecutor {
         logList.push(planResult.log);
       }
 
-      // console.log('planningResult is', planResult);
       if (!planResult.more_actions_needed_by_instruction) {
         planningTask = null;
         break;

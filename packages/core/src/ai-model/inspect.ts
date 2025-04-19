@@ -202,38 +202,45 @@ export async function AiLocateElement<
     'elements' in res.content ? res.content.elements : [];
   let errors: AIElementLocatorResponse['errors'] | undefined =
     'errors' in res.content ? res.content.errors : [];
-  if ('bbox' in res.content && Array.isArray(res.content.bbox)) {
-    const errorMsg = res.content.errors?.length
-      ? `Failed to parse bbox: ${res.content.errors?.join(',')}`
-      : '';
+  try {
+    if ('bbox' in res.content && Array.isArray(res.content.bbox)) {
+      resRect = adaptBboxToRect(
+        res.content.bbox,
+        options.searchConfig?.rect?.width || context.size.width,
+        options.searchConfig?.rect?.height || context.size.height,
+        options.searchConfig?.rect?.left,
+        options.searchConfig?.rect?.top,
+      );
+      debugInspect('resRect', resRect);
 
-    resRect = adaptBboxToRect(
-      res.content.bbox,
-      options.searchConfig?.rect?.width || context.size.width,
-      options.searchConfig?.rect?.height || context.size.height,
-      options.searchConfig?.rect?.left,
-      options.searchConfig?.rect?.top,
-      errorMsg,
-    );
-    debugInspect('resRect', resRect);
+      const rectCenter = {
+        x: resRect.left + resRect.width / 2,
+        y: resRect.top + resRect.height / 2,
+      };
+      let element = elementByPositionWithElementInfo(context.tree, rectCenter);
 
-    const rectCenter = {
-      x: resRect.left + resRect.width / 2,
-      y: resRect.top + resRect.height / 2,
-    };
-    let element = elementByPositionWithElementInfo(context.tree, rectCenter);
+      const distanceToCenter = element
+        ? distance({ x: element.center[0], y: element.center[1] }, rectCenter)
+        : 0;
 
-    const distanceToCenter = element
-      ? distance({ x: element.center[0], y: element.center[1] }, rectCenter)
-      : 0;
+      if (!element || distanceToCenter > distanceThreshold) {
+        element = insertElementByPosition(rectCenter);
+      }
 
-    if (!element || distanceToCenter > distanceThreshold) {
-      element = insertElementByPosition(rectCenter);
+      if (element) {
+        matchedElements = [element];
+        errors = [];
+      }
     }
-
-    if (element) {
-      matchedElements = [element];
-      errors = [];
+  } catch (e) {
+    const msg =
+      e instanceof Error
+        ? `Failed to parse bbox: ${e.message}`
+        : 'unknown error in locate';
+    if (!errors || errors?.length === 0) {
+      errors = [msg];
+    } else {
+      errors.push(`(${msg})`);
     }
   }
 
