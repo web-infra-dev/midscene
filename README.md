@@ -15,7 +15,7 @@ English | [简体中文](./README.zh.md)
 
 <p align="center">
   <a href="https://www.npmjs.com/package/@midscene/web"><img src="https://img.shields.io/npm/v/@midscene/web?style=flat-square&color=00a8f0" alt="npm version" /></a>
-  <a href="https://huggingface.co/bytedance-research/UI-TARS-7B-SFT"><img src="https://img.shields.io/badge/%F0%9F%A4%97-UI%20TARS%20Models-yellow" alt="huagging face model" /></a>
+  <a href="https://huggingface.co/ByteDance-Seed/UI-TARS-1.5-7B"><img src="https://img.shields.io/badge/%F0%9F%A4%97-UI%20TARS%20Models-yellow" alt="huagging face model" /></a>
   <a href="https://npm-compare.com/@midscene/web/#timeRange=THREE_YEARS"><img src="https://img.shields.io/npm/dm/@midscene/web.svg?style=flat-square&color=00a8f0" alt="downloads" /></a>
   <img src="https://img.shields.io/badge/License-MIT-blue.svg?style=flat-square&color=00a8f0" alt="License" />
   <a href="https://discord.gg/2JyBHxszE4"><img src="https://img.shields.io/discord/1328277792730779648?style=flat-square&color=7289DA&label=Discord&logo=discord&logoColor=white" alt="discord" /></a>
@@ -27,7 +27,7 @@ Midscene.js lets AI be your browser operator 🤖.Just describe what you want to
 
 ## Showcases
 
-The following recorded example video is based on the [UI-TARS 7B SFT](https://huggingface.co/bytedance-research/UI-TARS-7B-SFT) model, and the video has not been sped up at all~
+The following recorded example video is based on the [UI-TARS-1.5-7B](https://huggingface.co/ByteDance-Seed/UI-TARS-1.5-7B) model, and the video has not been sped up at all~
 
 | Instruction  | Video |
 | :---:  | :---: |
@@ -37,7 +37,9 @@ The following recorded example video is based on the [UI-TARS 7B SFT](https://hu
 
 ## 📢 New open-source model choice - UI-TARS and Qwen2.5-VL
 
-Besides the default model *GPT-4o*, we have added two new recommended open-source models to Midscene.js: *UI-TARS* and *Qwen2.5-VL*. (Yes, Open Source !) They are dedicated models for image recognition and UI automation, which are known for performing well in UI automation scenarios. Read more about it in [Choose a model](https://midscenejs.com/choose-a-model).
+- 🌟 2025.04.16: UI-TARS released version 1.5. It excels in gaming and executing GUI tasks, outperforming most open-source and closed-source models. You can combine it with Midscene.js to fully leverage its capabilities.
+- ✨ 2025.02.21: In addition to the default `gpt-4o` model, we now support two new open-source models: `UI-TARS` and `Qwen2.5-VL`. (Yes, open-source models!) They are models specifically designed for UI automation and image recognition, performing exceptionally well in UI automation scenarios. For more information, please see [Choosing an AI Model](https://midscenejs.com/zh/choose-a-model).
+
 
 ## 💡 Features
 - **Natural Language Interaction 👆**: Just describe your goals and steps, and Midscene will plan and operate the user interface for you.

@@ -15,7 +15,7 @@
 
 <p align="center">
   <a href="https://www.npmjs.com/package/@midscene/web"><img src="https://img.shields.io/npm/v/@midscene/web?style=flat-square&color=00a8f0" alt="npm version" /></a>
-  <a href="https://huggingface.co/bytedance-research/UI-TARS-7B-SFT"><img src="https://img.shields.io/badge/%F0%9F%A4%97-UI%20TARS%20Models-yellow" alt="huagging face model" /></a>
+  <a href="https://huggingface.co/ByteDance-Seed/UI-TARS-1.5-7B"><img src="https://img.shields.io/badge/%F0%9F%A4%97-UI%20TARS%20Models-yellow" alt="huagging face model" /></a>
   <a href="https://npm-compare.com/@midscene/web/#timeRange=THREE_YEARS"><img src="https://img.shields.io/npm/dm/@midscene/web.svg?style=flat-square&color=00a8f0" alt="downloads" /></a>
   <img src="https://img.shields.io/badge/License-MIT-blue.svg?style=flat-square&color=00a8f0" alt="License" />
   <a href="https://discord.gg/2JyBHxszE4"><img src="https://img.shields.io/discord/1328277792730779648?style=flat-square&color=7289DA&label=Discord&logo=discord&logoColor=white" alt="discord" /></a>
@@ -26,7 +26,7 @@ Midscene.js 让 AI 成为你的浏览器操作员 🤖。只需用自然语言�
 
 ## 案例
 
-下面的录制 example 视频基于 [UI-TARS 7B SFT](https://huggingface.co/bytedance-research/UI-TARS-7B-SFT) 模型，视频没有任何加速～
+下面的录制 example 视频基于 [UI-TARS-1.5-7B](https://huggingface.co/ByteDance-Seed/UI-TARS-1.5-7B) 模型，视频没有任何加速～
 
 | 指令  | 视频 |
 | :---:  | :---: |
@@ -36,7 +36,8 @@ Midscene.js 让 AI 成为你的浏览器操作员 🤖。只需用自然语言�
 
 ## 📢 新增支持开源模型 - UI-TARS 和 Qwen2.5-VL（千问）
 
-除了默认的 `gpt-4o` 模型，我们还支持了两个新的开源模型：`UI-TARS` 和 `Qwen2.5-VL`。（是的，开源模型！）它们是专为 UI 自动化和图像识别设计的模型，在 UI 自动化场景下表现出色。更多信息请查看 [选择 AI 模型](https://midscenejs.com/zh/choose-a-model)。
+- 🌟 2025.04.16: UI-TARS 发布了 1.5 版本，它在游戏和执行 GUI 任务上表现出色，性能超越绝大多数开源和闭源模型，你可以结合 Midscene.js 来充分发挥它的能力。
+- ✨ 2025.02.21: 除了默认的 `gpt-4o` 模型，我们还支持了两个新的开源模型：`UI-TARS` 和 `Qwen2.5-VL`。（是的，开源模型！）它们是专为 UI 自动化和图像识别设计的模型，在 UI 自动化场景下表现出色。更多信息请查看 [选择 AI 模型](https://midscenejs.com/zh/choose-a-model)。
 
 ## 💡 特性
 
