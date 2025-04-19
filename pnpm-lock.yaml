@@ -521,6 +521,9 @@ importers:
 
   packages/mcp:
     dependencies:
+      '@midscene/shared':
+        specifier: workspace:*
+        version: link:../shared
       '@midscene/web':
         specifier: workspace:*
         version: link:../web-integration

@@ -74,3 +74,16 @@ export function getGlobalScope(): GlobalScope {
   }
   return undefined;
 }
+
+let isMcp = false;
+
+export function setIsMcp(value: boolean) {
+  isMcp = value;
+}
+
+//mcp need use obj format to console msg: https://github.com/modelcontextprotocol/typescript-sdk/issues/244
+export function logMsg(...message: Parameters<typeof console.log>) {
+  if (!isMcp) {
+    console.log(...message);
+  }
+}

@@ -15,7 +15,7 @@ import { NodeType } from '@midscene/shared/constants';
 import type { ElementInfo } from '@midscene/shared/extractor';
 import { traverseTree, treeToList } from '@midscene/shared/extractor';
 import { compositeElementInfoImg, resizeImgBase64 } from '@midscene/shared/img';
-import { assert, uuid } from '@midscene/shared/utils';
+import { assert, logMsg, uuid } from '@midscene/shared/utils';
 import dayjs from 'dayjs';
 import { WebElementInfo } from '../web-element';
 import type { WebPage } from './page';
@@ -112,10 +112,10 @@ export function reportFileName(tag = 'web') {
 }
 
 export function printReportMsg(filepath: string) {
-  //mcp need use obj format to console msg: https://github.com/modelcontextprotocol/typescript-sdk/issues/244
-  console.log('Midscene - report file updated:', filepath);
+  // console.log('Midscene - report file updated:', filepath);
   // For MCP
   // console.log(`{"midscene-report-file-updated": "${filepath}"}`);
+  logMsg(`Midscene - report file updated: ${filepath}`);
 }
 
 /**

@@ -1,3 +1,4 @@
+import { logMsg } from '@midscene/shared/utils';
 import { Server, type Socket as ServerSocket } from 'socket.io';
 import {
   type BridgeCall,
@@ -45,11 +46,7 @@ export class BridgeServer {
       this.connectionTipTimer =
         timeout > 3000
           ? setTimeout(() => {
-              console.log('waiting for bridge to connect...');
-              // For MCP
-              // console.log(
-              //   `{"connection-tip": "waiting for bridge to connect..."}`,
-              // );
+              logMsg('waiting for bridge to connect...');
             }, 2000)
           : null;
 
@@ -71,17 +68,13 @@ export class BridgeServer {
         }
 
         try {
-          // console.log('one client connected');
+          logMsg('one client connected');
           this.socket = socket;
 
           const clientVersion = socket.handshake.query.version;
-          console.log(
+          logMsg(
             `Bridge connected, cli-side version v${__VERSION__}, browser-side version v${clientVersion}`,
           );
-          // For MCP
-          // console.log(
-          //   `{"version-info": "Bridge connected, cli-side version v${__VERSION__}, browser-side version v${clientVersion}"}`,
-          // );
 
           socket.on(BridgeEvent.CallResponse, (params: BridgeCallResponse) => {
             const id = params.id;
