@@ -7,6 +7,7 @@ module.exports = {
       'always', // Apply rule always
       [
         // Allowed scopes
+        'core',
         'workflow',
         'android',
         'llm',
@@ -14,6 +15,7 @@ module.exports = {
         'puppeteer',
         'mcp',
         'bridge',
+        'shared',
         // Add other relevant scopes for your project if needed
       ],
     ],

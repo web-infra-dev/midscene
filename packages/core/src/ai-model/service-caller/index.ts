@@ -1,4 +1,4 @@
-import { AIElementResponse, AIResponseFormat, type AIUsageInfo } from '@/types';
+import { AIResponseFormat, type AIUsageInfo } from '@/types';
 import { Anthropic } from '@anthropic-ai/sdk';
 import {
   DefaultAzureCredential,
@@ -52,31 +52,40 @@ export function checkAIConfig() {
   return Boolean(getAIConfig(MIDSCENE_OPENAI_INIT_CONFIG_JSON));
 }
 
-const debugProfileStats = getDebug('ai:profile:stats');
-const debugProfileDetail = getDebug('ai:profile:detail');
-const debugCall = getDebug('ai:call');
+// if debug config is initialized
+let debugConfigInitialized = false;
 
-const shouldPrintTiming = getAIConfigInBoolean(MIDSCENE_DEBUG_AI_PROFILE);
-let debugConfig = '';
-if (shouldPrintTiming) {
-  console.warn(
-    'MIDSCENE_DEBUG_AI_PROFILE is deprecated, use DEBUG=midscene:ai:profile instead',
-  );
-  debugConfig = 'ai:profile';
-}
-const shouldPrintAIResponse = getAIConfigInBoolean(MIDSCENE_DEBUG_AI_RESPONSE);
-if (shouldPrintAIResponse) {
-  console.warn(
-    'MIDSCENE_DEBUG_AI_RESPONSE is deprecated, use DEBUG=midscene:ai:response instead',
-  );
-  if (debugConfig) {
-    debugConfig = 'ai:*';
-  } else {
-    debugConfig = 'ai:call';
+function initDebugConfig() {
+  // if debug config is initialized, return
+  if (debugConfigInitialized) return;
+
+  const shouldPrintTiming = getAIConfigInBoolean(MIDSCENE_DEBUG_AI_PROFILE);
+  let debugConfig = '';
+  if (shouldPrintTiming) {
+    console.warn(
+      'MIDSCENE_DEBUG_AI_PROFILE is deprecated, use DEBUG=midscene:ai:profile instead',
+    );
+    debugConfig = 'ai:profile';
   }
-}
-if (debugConfig) {
-  enableDebug(debugConfig);
+  const shouldPrintAIResponse = getAIConfigInBoolean(
+    MIDSCENE_DEBUG_AI_RESPONSE,
+  );
+  if (shouldPrintAIResponse) {
+    console.warn(
+      'MIDSCENE_DEBUG_AI_RESPONSE is deprecated, use DEBUG=midscene:ai:response instead',
+    );
+    if (debugConfig) {
+      debugConfig = 'ai:*';
+    } else {
+      debugConfig = 'ai:call';
+    }
+  }
+  if (debugConfig) {
+    enableDebug(debugConfig);
+  }
+
+  // mark as initialized
+  debugConfigInitialized = true;
 }
 
 // default model
@@ -98,6 +107,7 @@ async function createChatClient({
   completion: OpenAI.Chat.Completions;
   style: 'openai' | 'anthropic';
 }> {
+  initDebugConfig();
   let openai: OpenAI | AzureOpenAI | undefined;
   const extraConfig = getAIConfigInJson(MIDSCENE_OPENAI_INIT_CONFIG_JSON);
 
@@ -223,6 +233,9 @@ export async function call(
   });
 
   const maxTokens = getAIConfig(OPENAI_MAX_TOKENS);
+  const debugCall = getDebug('ai:call');
+  const debugProfileStats = getDebug('ai:profile:stats');
+  const debugProfileDetail = getDebug('ai:profile:detail');
 
   const startTime = Date.now();
   const model = getModelName();

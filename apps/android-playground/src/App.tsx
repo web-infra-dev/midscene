@@ -19,7 +19,6 @@ import {
 import { Col, ConfigProvider, Form, Layout, Row, message } from 'antd';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { type Socket, io } from 'socket.io-client';
-import { v4 as uuidv4 } from 'uuid';
 import AdbDevice from './adb-device';
 import ScrcpyPlayer, { type ScrcpyRefMethods } from './scrcpy-player';
 
@@ -54,7 +53,7 @@ export default function App() {
   const { config, deepThink } = useEnvConfig();
   const [loadingProgressText, setLoadingProgressText] = useState('');
   const currentRequestIdRef = useRef<string | null>(null);
-  const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const pollIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const configAlreadySet = Object.keys(config || {}).length >= 1;
   const serverValid = useServerValid(true);
 
@@ -292,20 +291,22 @@ export default function App() {
 
     const { type, prompt } = form.getFieldsValue();
 
-    // generate request ID
-    const requestId = uuidv4();
-    currentRequestIdRef.current = requestId;
+    const thisRunningId = Date.now().toString();
+
+    currentRequestIdRef.current = thisRunningId;
 
     // start polling progress immediately
-    startPollingProgress(requestId);
+    startPollingProgress(thisRunningId);
 
     try {
       const res = await requestPlaygroundServer(
         selectedDeviceId,
         type,
         prompt,
-        requestId,
-        deepThink,
+        {
+          requestId: thisRunningId,
+          deepThink,
+        },
       );
 
       // stop polling
@@ -342,6 +343,7 @@ export default function App() {
     form,
     startPollingProgress,
     clearPollingInterval,
+    deepThink,
   ]);
 
   const resetResult = () => {

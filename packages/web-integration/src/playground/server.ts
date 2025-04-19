@@ -6,7 +6,6 @@ import { ERROR_CODE_NOT_IMPLEMENTED_AS_DESIGNED } from '@/common/utils';
 import { overrideAIConfig } from '@midscene/core/env';
 import { getTmpDir } from '@midscene/core/utils';
 import { PLAYGROUND_SERVER_PORT } from '@midscene/shared/constants';
-import { assert } from '@midscene/shared/utils';
 import { ifInBrowser } from '@midscene/shared/utils';
 import cors from 'cors';
 import dotenv from 'dotenv';
@@ -26,7 +25,11 @@ const errorHandler = (err: any, req: any, res: any, next: any) => {
 
 const setup = async () => {
   if (!ifInBrowser) {
-    dotenv.config();
+    const { parsed } = dotenv.config();
+
+    if (parsed) {
+      overrideAIConfig(parsed);
+    }
   }
 };
 
@@ -94,7 +97,13 @@ export default class PlaygroundServer {
     this.app.get('/context/:uuid', async (req, res) => {
       const { uuid } = req.params;
       const contextFile = this.filePathForUuid(uuid);
-      assert(existsSync(contextFile), 'Context not found');
+
+      if (!existsSync(contextFile)) {
+        return res.status(404).json({
+          error: 'Context not found',
+        });
+      }
+
       const context = readFileSync(contextFile, 'utf8');
       res.json({
         context,
@@ -115,7 +124,13 @@ export default class PlaygroundServer {
       express.json({ limit: '50mb' }),
       async (req, res) => {
         const context = req.body.context;
-        assert(context, 'context is required');
+
+        if (!context) {
+          return res.status(400).json({
+            error: 'context is required',
+          });
+        }
+
         const uuid = randomUUID();
         this.saveContextFile(uuid, context);
         return res.json({
@@ -130,34 +145,49 @@ export default class PlaygroundServer {
       express.json({ limit: '30mb' }),
       async (req, res) => {
         const { context, type, prompt, requestId, deepThink } = req.body;
-        assert(context, 'context is required');
-        assert(type, 'type is required');
-        assert(prompt, 'prompt is required');
-        assert(requestId, 'requestId is required');
 
-        this.taskProgressTips[requestId] = '';
+        if (!context) {
+          return res.status(400).json({
+            error: 'context is required',
+          });
+        }
+
+        if (!type) {
+          return res.status(400).json({
+            error: 'type is required',
+          });
+        }
+
+        if (!prompt) {
+          return res.status(400).json({
+            error: 'prompt is required',
+          });
+        }
 
         // build an agent with context
         const page = new this.pageClass(context);
         const agent = new this.agentClass(page);
 
-        agent.onTaskStartTip = (tip: string) => {
-          console.log(`task start tip: ${tip}`);
-          this.taskProgressTips[requestId] = tip;
-        };
+        if (requestId) {
+          this.taskProgressTips[requestId] = '';
+
+          agent.onTaskStartTip = (tip: string) => {
+            this.taskProgressTips[requestId] = tip;
+          };
+        }
 
         const response: {
           result: any;
           dump: string | null;
           error: string | null;
-          requestId: string;
           reportHTML: string | null;
+          requestId?: string;
         } = {
           result: null,
           dump: null,
           error: null,
-          requestId,
           reportHTML: null,
+          requestId,
         };
 
         const startTime = Date.now();
@@ -190,23 +220,21 @@ export default class PlaygroundServer {
           agent.writeOutActionDumps();
         } catch (error: any) {
           console.error(
-            `write out dump failed: #${requestId}, ${error.message}`,
+            `write out dump failed: requestId: ${requestId}, ${error.message}`,
           );
         }
-
-        setTimeout(() => {
-          delete this.taskProgressTips[requestId];
-        }, 60 * 1000);
 
         res.send(response);
         const timeCost = Date.now() - startTime;
 
         if (response.error) {
           console.error(
-            `handle request failed after ${timeCost}ms: #${requestId}, ${response.error}`,
+            `handle request failed after ${timeCost}ms: requestId: ${requestId}, ${response.error}`,
           );
         } else {
-          console.log(`handle request done after ${timeCost}ms: #${requestId}`);
+          console.log(
+            `handle request done after ${timeCost}ms: requestId: ${requestId}`,
+          );
         }
       },
     );
@@ -241,6 +269,11 @@ export default class PlaygroundServer {
 
     // Set up static file serving after all API routes are defined
     if (this.staticPath) {
+      this.app.get('/', (req, res) => {
+        // compatible with windows
+        res.redirect('/index.html');
+      });
+
       this.app.get('*', (req, res) => {
         const requestedPath = join(this.staticPath!, req.path);
         if (existsSync(requestedPath)) {

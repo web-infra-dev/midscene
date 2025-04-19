@@ -30,14 +30,6 @@ export const TOOLS: Tool[] = [
       type: 'object',
       properties: {
         name: { type: 'string', description: 'Name for the screenshot' },
-        width: {
-          type: 'number',
-          description: 'Width in pixels (default: 800)',
-        },
-        height: {
-          type: 'number',
-          description: 'Height in pixels (default: 600)',
-        },
       },
       required: ['name'],
     },

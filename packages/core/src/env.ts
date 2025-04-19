@@ -91,8 +91,14 @@ export const allConfigFromEnv = () => {
   };
 };
 
-let globalConfig: Partial<ReturnType<typeof allConfigFromEnv>> =
-  allConfigFromEnv();
+let globalConfig: Partial<ReturnType<typeof allConfigFromEnv>> | null = null;
+
+const getGlobalConfig = () => {
+  if (globalConfig === null) {
+    globalConfig = allConfigFromEnv();
+  }
+  return globalConfig;
+};
 
 export const vlLocateMode = ():
   | 'qwen-vl'
@@ -134,7 +140,7 @@ export const vlLocateMode = ():
 };
 
 export const getAIConfig = (
-  configKey: keyof typeof globalConfig,
+  configKey: keyof ReturnType<typeof allConfigFromEnv>,
 ): string | undefined => {
   if (configKey === MATCH_BY_POSITION) {
     throw new Error(
@@ -142,15 +148,19 @@ export const getAIConfig = (
     );
   }
 
-  return globalConfig[configKey]?.trim();
+  return getGlobalConfig()[configKey]?.trim();
 };
 
-export const getAIConfigInBoolean = (configKey: keyof typeof globalConfig) => {
+export const getAIConfigInBoolean = (
+  configKey: keyof ReturnType<typeof allConfigFromEnv>,
+) => {
   const config = getAIConfig(configKey) || '';
   return /^(true|1)$/i.test(config);
 };
 
-export const getAIConfigInJson = (configKey: keyof typeof globalConfig) => {
+export const getAIConfigInJson = (
+  configKey: keyof ReturnType<typeof allConfigFromEnv>,
+) => {
   const config = getAIConfig(configKey);
   try {
     return config ? JSON.parse(config) : undefined;
@@ -179,7 +189,8 @@ export const overrideAIConfig = (
     }
   }
 
+  const currentConfig = getGlobalConfig();
   globalConfig = extendMode
-    ? { ...globalConfig, ...newConfig }
+    ? { ...currentConfig, ...newConfig }
     : { ...newConfig };
 };
