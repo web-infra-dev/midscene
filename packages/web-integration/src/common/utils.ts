@@ -112,9 +112,6 @@ export function reportFileName(tag = 'web') {
 }
 
 export function printReportMsg(filepath: string) {
-  // console.log('Midscene - report file updated:', filepath);
-  // For MCP
-  // console.log(`{"midscene-report-file-updated": "${filepath}"}`);
   logMsg(`Midscene - report file updated: ${filepath}`);
 }
 

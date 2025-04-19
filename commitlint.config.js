@@ -14,6 +14,7 @@ module.exports = {
         'puppeteer',
         'mcp',
         'bridge',
+        'shared'
         // Add other relevant scopes for your project if needed
       ],
     ],
