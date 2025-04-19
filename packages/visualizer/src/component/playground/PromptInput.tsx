@@ -1,6 +1,6 @@
 import { BorderOutlined, SendOutlined } from '@ant-design/icons';
 import { Button, Form, Input, Radio, Space, Tooltip } from 'antd';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type React from 'react';
 import type { HistoryItem } from '../store/history';
 import { useHistoryStore } from '../store/history';
@@ -37,6 +37,7 @@ export const PromptInput: React.FC<PromptInputProps> = ({
 }) => {
   const [hoveringSettings, setHoveringSettings] = useState(false);
   const placeholder = getPlaceholderForType(selectedType);
+  const textAreaRef = useRef<any>(null);
 
   // Get history from store
   const history = useHistoryStore((state) => state.history);
@@ -93,6 +94,16 @@ export const PromptInput: React.FC<PromptInputProps> = ({
     },
     [handleRunWithHistory],
   );
+
+  // handle input change, auto scroll to bottom
+  const handleChange = useCallback(() => {
+    setTimeout(() => {
+      if (textAreaRef.current) {
+        const textarea = textAreaRef.current.resizableTextArea.textArea;
+        textarea.scrollTop = textarea.scrollHeight;
+      }
+    }, 0);
+  }, []);
 
   // Handle settings hover state
   const handleMouseEnter = useCallback(() => {
@@ -184,15 +195,19 @@ export const PromptInput: React.FC<PromptInputProps> = ({
         </Form.Item>
         <HistorySelector onSelect={handleSelectHistory} />
       </Space>
-      <div className="main-side-console-input">
+      <div
+        className={`main-side-console-input ${!runButtonEnabled ? 'disabled' : ''}`}
+      >
         <Form.Item name="prompt" style={{ margin: 0 }}>
           <TextArea
             className="main-side-console-input-textarea"
             disabled={!runButtonEnabled}
-            rows={4}
+            rows={2}
             placeholder={placeholder}
             autoFocus
             onKeyDown={handleKeyDown}
+            onChange={handleChange}
+            ref={textAreaRef}
           />
         </Form.Item>
 
