@@ -35,14 +35,23 @@ Promise.resolve(
       process.exit(1);
     }
 
+    const keepWindow = options['keep-window'] || false;
     const success = await playYamlFiles(files, {
       headed: !!options.headed,
-      keepWindow: !!options['keep-window'],
+      keepWindow,
     });
-    if (!success) {
-      process.exit(1);
+
+    if (keepWindow) {
+      // hang the process to keep the browser window open
+      setInterval(() => {
+        console.log('browser is still running, use ctrl+c to stop it');
+      }, 5000);
+    } else {
+      if (!success) {
+        process.exit(1);
+      }
+      process.exit(0);
     }
-    process.exit(0);
   })().catch((e) => {
     console.error(e);
     process.exit(1);
