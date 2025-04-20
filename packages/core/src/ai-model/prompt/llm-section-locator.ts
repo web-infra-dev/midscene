@@ -1,6 +1,10 @@
+import type { vlLocateMode } from '@/env';
 import { PromptTemplate } from '@langchain/core/prompts';
+import { bboxDescription } from './common';
 
-export function systemPromptToLocateSection() {
+export function systemPromptToLocateSection(
+  vlMode: ReturnType<typeof vlLocateMode>,
+) {
   return `
 You goal is to find out one section containing the target element in the screenshot, put it in the \`bbox\` field. If the user describe the target element with some reference elements, you should also find the section containing the reference elements, put it in the \`references_bbox\` field.
 
@@ -19,7 +23,7 @@ return in this JSON format:
 }
 \`\`\`
 
-In which, all the numbers in the \`bbox\` means the distance to the left, top, right, bottom of the page.
+In which, all the numbers in the \`bbox\` and \`references_bbox\` represent ${bboxDescription(vlMode)}.
 
 For example, if the user describe the target element as "the delete button on the second row with title 'Peter'", you should put the bounding box of the delete button in the \`bbox\` field, and the bounding box of the second row in the \`references_bbox\` field.
 

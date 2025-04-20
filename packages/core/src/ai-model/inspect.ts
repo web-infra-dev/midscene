@@ -263,7 +263,7 @@ export async function AiLocateSection(options: {
   const { context, sectionDescription } = options;
   const { screenshotBase64 } = context;
 
-  const systemPrompt = systemPromptToLocateSection();
+  const systemPrompt = systemPromptToLocateSection(vlLocateMode());
   const sectionLocatorInstructionText = await sectionLocatorInstruction.format({
     sectionDescription,
   });

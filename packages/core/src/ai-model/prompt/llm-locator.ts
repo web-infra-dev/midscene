@@ -1,15 +1,12 @@
 import { PromptTemplate } from '@langchain/core/prompts';
 import type { ResponseFormatJSONSchema } from 'openai/resources';
 import type { vlLocateMode } from '../../env';
-
+import { bboxDescription } from './common';
 export function systemPromptToLocateElement(
   vlMode: ReturnType<typeof vlLocateMode>,
 ) {
   if (vlMode) {
-    const bboxDescription =
-      vlMode === 'gemini'
-        ? '2d bounding box, [ymin, xmin, ymax, xmax]'
-        : '2d bounding box, [xmin, ymin, xmax, ymax]';
+    const bboxComment = bboxDescription(vlMode);
     return `
 ## Role:
 You are an expert in software testing.
@@ -21,7 +18,7 @@ You are an expert in software testing.
 ## Output Format:
 \`\`\`json
 {
-  "bbox": [number, number, number, number],  // ${bboxDescription}
+  "bbox": [number, number, number, number],  // ${bboxComment}
   "errors"?: string[]
 }
 \`\`\`

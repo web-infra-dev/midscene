@@ -59,8 +59,13 @@ describe('system prompts', () => {
     expect(result).toMatchSnapshot();
   });
 
-  it('section locator', () => {
-    const prompt = systemPromptToLocateSection();
+  it('section locator - gemini', () => {
+    const prompt = systemPromptToLocateSection('gemini');
+    expect(prompt).toMatchSnapshot();
+  });
+
+  it('section locator - qwen', () => {
+    const prompt = systemPromptToLocateSection('qwen-vl');
     expect(prompt).toMatchSnapshot();
   });
 
