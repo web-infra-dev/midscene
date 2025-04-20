@@ -29,7 +29,7 @@ export async function plan(
   const { screenshotBase64, screenshotBase64WithElementMarker, size } = context;
   const { description: pageDescription } = await describeUserPage(context);
 
-  const systemPrompt = await systemPromptToTaskPlanning();
+  const systemPrompt = await systemPromptToTaskPlanning(vlLocateMode());
   const taskBackgroundContextText = generateTaskBackgroundContext(
     userInstruction,
     opts.log,

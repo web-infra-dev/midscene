@@ -1,9 +1,9 @@
 import { randomUUID } from 'node:crypto';
 import { readFileSync } from 'node:fs';
-import { tmpdir } from 'node:os';
 import {
   adaptBboxToRect,
   adaptDoubaoBbox,
+  adaptGeminiBbox,
   adaptQwenBbox,
   expandSearchArea,
   mergeRects,
@@ -217,6 +217,20 @@ describe('qwen-vl', () => {
         "top": 260,
         "width": 200,
       }
+    `);
+  });
+});
+
+describe('gemini', () => {
+  it('adaptGeminiBbox', () => {
+    const result = adaptGeminiBbox([100, 200, 300, 400], 400, 900);
+    expect(result).toMatchInlineSnapshot(`
+      [
+        80,
+        90,
+        160,
+        270,
+      ]
     `);
   });
 });

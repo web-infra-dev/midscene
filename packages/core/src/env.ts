@@ -20,6 +20,7 @@ export const MIDSCENE_CACHE = 'MIDSCENE_CACHE';
 export const MIDSCENE_USE_VLM_UI_TARS = 'MIDSCENE_USE_VLM_UI_TARS';
 export const MIDSCENE_USE_QWEN_VL = 'MIDSCENE_USE_QWEN_VL';
 export const MIDSCENE_USE_DOUBAO_VISION = 'MIDSCENE_USE_DOUBAO_VISION';
+export const MIDSCENE_USE_GEMINI = 'MIDSCENE_USE_GEMINI';
 export const MIDSCENE_USE_VL_MODEL = 'MIDSCENE_USE_VL_MODEL';
 export const MATCH_BY_POSITION = 'MATCH_BY_POSITION';
 export const MIDSCENE_API_TYPE = 'MIDSCENE-API-TYPE';
@@ -80,6 +81,7 @@ export const allConfigFromEnv = () => {
     [MIDSCENE_USE_QWEN_VL]: process.env[MIDSCENE_USE_QWEN_VL] || undefined,
     [MIDSCENE_USE_DOUBAO_VISION]:
       process.env[MIDSCENE_USE_DOUBAO_VISION] || undefined,
+    [MIDSCENE_USE_GEMINI]: process.env[MIDSCENE_USE_GEMINI] || undefined,
     [MIDSCENE_USE_VL_MODEL]: process.env[MIDSCENE_USE_VL_MODEL] || undefined,
     [ANTHROPIC_API_KEY]: process.env[ANTHROPIC_API_KEY] || undefined,
     [AZURE_OPENAI_ENDPOINT]: process.env[AZURE_OPENAI_ENDPOINT] || undefined,
@@ -103,6 +105,7 @@ const getGlobalConfig = () => {
 export const vlLocateMode = ():
   | 'qwen-vl'
   | 'doubao-vision'
+  | 'gemini'
   | 'vl-model' // not actually in use
   | 'vlm-ui-tars'
   | false => {
@@ -112,6 +115,7 @@ export const vlLocateMode = ():
     getAIConfigInBoolean(MIDSCENE_USE_QWEN_VL) && 'MIDSCENE_USE_QWEN_VL',
     getAIConfigInBoolean(MIDSCENE_USE_VLM_UI_TARS) &&
       'MIDSCENE_USE_VLM_UI_TARS',
+    getAIConfigInBoolean(MIDSCENE_USE_GEMINI) && 'MIDSCENE_USE_GEMINI',
   ].filter(Boolean);
 
   if (enabledModes.length > 1) {
@@ -126,6 +130,10 @@ export const vlLocateMode = ():
 
   if (getAIConfigInBoolean(MIDSCENE_USE_DOUBAO_VISION)) {
     return 'doubao-vision';
+  }
+
+  if (getAIConfigInBoolean(MIDSCENE_USE_GEMINI)) {
+    return 'gemini';
   }
 
   if (getAIConfigInBoolean(MIDSCENE_USE_VL_MODEL)) {

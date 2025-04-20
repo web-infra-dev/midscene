@@ -151,7 +151,7 @@ export async function AiLocateElement<
     pageDescription: description,
     targetElementDescription,
   });
-  const systemPrompt = systemPromptToLocateElement(!!vlLocateMode());
+  const systemPrompt = systemPromptToLocateElement(vlLocateMode());
 
   let imagePayload = screenshotBase64WithElementMarker || screenshotBase64;
 

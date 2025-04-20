@@ -7,32 +7,11 @@ import {
 } from '@/ai-model/prompt/llm-planning';
 import { systemPromptToLocateSection } from '@/ai-model/prompt/llm-section-locator';
 import { uiTarsPlanningPrompt } from '@/ai-model/prompt/ui-tars-planning';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'vitest';
 
 describe('system prompts', () => {
-  // Store original env values
-  const originalEnvValues = {
-    MIDSCENE_USE_QWEN_VL: process.env.MIDSCENE_USE_QWEN_VL,
-    MIDSCENE_USE_DOUBAO_VISION: process.env.MIDSCENE_USE_DOUBAO_VISION,
-    MIDSCENE_USE_VLM_UI_TARS: process.env.MIDSCENE_USE_VLM_UI_TARS,
-  };
-
-  beforeEach(() => {
-    // Set all configs to false before each test
-    Object.keys(originalEnvValues).forEach((key) => {
-      process.env[key] = 'false';
-    });
-  });
-
-  afterEach(() => {
-    // Restore original values after each test
-    Object.entries(originalEnvValues).forEach(([key, value]) => {
-      process.env[key] = value ?? 'false';
-    });
-  });
-
   it('planning - 4o', async () => {
-    const prompt = await systemPromptToTaskPlanning();
+    const prompt = await systemPromptToTaskPlanning(false);
     expect(prompt).toMatchSnapshot();
   });
 
@@ -42,8 +21,12 @@ describe('system prompts', () => {
   });
 
   it('planning - qwen', async () => {
-    process.env.MIDSCENE_USE_QWEN_VL = 'true';
-    const prompt = await systemPromptToTaskPlanning();
+    const prompt = await systemPromptToTaskPlanning('qwen-vl');
+    expect(prompt).toMatchSnapshot();
+  });
+
+  it('planning - gemini', async () => {
+    const prompt = await systemPromptToTaskPlanning('gemini');
     expect(prompt).toMatchSnapshot();
   });
 
@@ -87,8 +70,12 @@ describe('system prompts', () => {
   });
 
   it('locator - qwen', () => {
-    process.env.MIDSCENE_USE_QWEN_VL = 'true';
-    const prompt = systemPromptToLocateElement(true);
+    const prompt = systemPromptToLocateElement('qwen-vl');
+    expect(prompt).toMatchSnapshot();
+  });
+
+  it('locator - gemini', () => {
+    const prompt = systemPromptToLocateElement('gemini');
     expect(prompt).toMatchSnapshot();
   });
 

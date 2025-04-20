@@ -205,8 +205,10 @@ Reason:
 * Since the option button is not shown in the screenshot, there are still more actions to be done, so the \`more_actions_needed_by_instruction\` field should be true
 `;
 
-export async function systemPromptToTaskPlanning() {
-  if (vlLocateMode()) {
+export async function systemPromptToTaskPlanning(
+  vlMode: ReturnType<typeof vlLocateMode>,
+) {
+  if (vlMode) {
     return systemTemplateOfVLPlanning;
   }
 

@@ -174,7 +174,24 @@ export function adaptBbox(
     return adaptDoubaoBbox(bbox, width, height, errorMsg);
   }
 
+  if (vlLocateMode() === 'gemini') {
+    return adaptGeminiBbox(bbox, width, height, errorMsg);
+  }
+
   return adaptQwenBbox(bbox, errorMsg);
+}
+
+export function adaptGeminiBbox(
+  bbox: number[],
+  width: number,
+  height: number,
+  errorMsg?: string,
+): [number, number, number, number] {
+  const left = Math.round((bbox[1] * width) / 1000);
+  const top = Math.round((bbox[0] * height) / 1000);
+  const right = Math.round((bbox[3] * width) / 1000);
+  const bottom = Math.round((bbox[2] * height) / 1000);
+  return [left, top, right, bottom];
 }
 
 export function adaptBboxToRect(
