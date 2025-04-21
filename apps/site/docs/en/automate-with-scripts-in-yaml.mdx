@@ -1,3 +1,5 @@
+import SetupEnv from './common/setup-env.mdx';
+
 # Automate with Scripts in YAML
 
 In most cases, developers write automation just to perform some smoke tests, like checking the appearance of some content, or verifying that the key user path is accessible. Maintaining a large test project is unnecessary in this situation.
@@ -30,24 +32,15 @@ You can find the demo project with YAML scripts
 
 :::
 
-## Preparation
+<SetupEnv />
 
-Config the OpenAI API key in the environment variable
-
-```bash
-# replace with your own
-export OPENAI_API_KEY="sk-abcdefghijklmnopqrstuvwxyz"
-```
-
-or you can use a `.env` file to store the configuration, Midscene command line tool will automatically load it when running yaml scripts.
+or you can use a `.env` file locate at the same directory as you run the command to store the configuration, Midscene command line tool will automatically load it.
 
 ```env filename=.env
 OPENAI_API_KEY="sk-abcdefghijklmnopqrstuvwxyz"
 ```
 
-For more details about model and provider, see [config model and provider](./model-provider)
-
-## Start
+## Install Command Line Tool
 
 Install `@midscene/cli` globally
 
@@ -57,7 +50,7 @@ npm i -g @midscene/cli
 npm i @midscene/cli --save-dev
 ```
 
-Write a yaml file to `bing-search.yaml`
+Write a yaml file to `bing-search.yaml` to automate in web browser :
 
 ```yaml
 web:
@@ -71,7 +64,7 @@ tasks:
       - aiAssert: the result shows the weather info
 ```
 
-or 
+or to automate in Android device connected by adb :
 
 ```yaml
 android:
@@ -118,9 +111,9 @@ midscene /dir/**/yaml/
 
 There are two parts in a `.yaml` file, the `web/android` and the `tasks`.
 
-### `web/android` part
+The `web/android` part defines the basic of a task. Use `web` parameter (also named as `target`) for web browser automation, and use `android` parameter for Android device automation. They are mutually exclusive.
 
-The `web/android` part defines the basic of a task, `web` scenario uses `web` parameter, and `android` scenario uses `android` parameter, they are mutually exclusive.
+### The `web` part
 
 ```yaml
 web:
@@ -171,7 +164,7 @@ web:
   aiActionContext: <string>
 ```
 
-or
+### The `android` part
 
 ```yaml
 android:
@@ -181,6 +174,8 @@ android:
   # The url to launch, optional, default is the current page
   launch: <url>
 ```
+
+### The `tasks` part
 
 The `tasks` part is an array indicates the tasks to do. Remember to write a `-` before each item which means an array item.
 
