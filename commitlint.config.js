@@ -8,6 +8,7 @@ module.exports = {
       [
         // Allowed scopes
         'core',
+        'cli',
         'workflow',
         'android',
         'llm',
