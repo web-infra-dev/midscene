@@ -113,6 +113,19 @@ export AZURE_OPENAI_API_VERSION="2024-05-01-preview"
 export AZURE_OPENAI_DEPLOYMENT="gpt-4o"
 ```
 
+## Set Config by Javascript
+
+You can also override the config by javascript. Remember to call this before running Midscene codes.
+
+```typescript
+import { overrideAIConfig } from "@midscene/core/env";
+
+overrideAIConfig({
+  MIDSCENE_MODEL_NAME: "...",
+  // ...
+});
+```
+
 ## Example: Using `gpt-4o` from OpenAI
 
 Configure the environment variables:

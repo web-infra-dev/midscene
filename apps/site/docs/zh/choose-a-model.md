@@ -44,7 +44,7 @@ GPT-4o 是 OpenAI 提供的通用 LLM 模型，支持图像输入。这是 Midsc
 
 ```bash
 OPENAI_API_KEY="......"
-OPENAI_BASE_URL="https://dashscope.aliyuncs.com/compatible-mode/v1" # 可选，如果你想要使用一个不同于 OpenAI 官方的接入点
+OPENAI_BASE_URL="https://custom-endpoint.com/compatible-mode/v1" # 可选，如果你想要使用一个不同于 OpenAI 官方的接入点
 MIDSCENE_MODEL_NAME="gpt-4o-2024-11-20" # 可选，默认是 "gpt-4o"。
 ```
 
