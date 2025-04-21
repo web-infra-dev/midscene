@@ -86,12 +86,22 @@ export async function plan(
   if (vlLocateMode()) {
     actions.forEach((action) => {
       if (action.locate) {
-        action.locate = fillLocateParam(
-          action.locate,
-          size.width,
-          size.height,
-          planFromAI.error,
-        );
+        try {
+          action.locate = fillLocateParam(
+            action.locate,
+            size.width,
+            size.height,
+          );
+        } catch (e) {
+          throw new Error(
+            `Failed to fill locate param: ${planFromAI.error} (${
+              e instanceof Error ? e.message : 'unknown error'
+            })`,
+            {
+              cause: e,
+            },
+          );
+        }
       }
     });
     // in Qwen-VL, error means error. In GPT-4o, error may mean more actions are needed.

@@ -51,7 +51,6 @@ export function fillLocateParam(
   locate: PlanningLocateParam,
   width: number,
   height: number,
-  errorMsg?: string,
 ) {
   // The Qwen model might have hallucinations of naming bbox as bbox_2d.
   if ((locate as any).bbox_2d && !locate?.bbox) {
@@ -61,7 +60,7 @@ export function fillLocateParam(
   }
 
   if (locate?.bbox) {
-    locate.bbox = adaptBbox(locate.bbox, width, height, errorMsg);
+    locate.bbox = adaptBbox(locate.bbox, width, height);
   }
 
   return locate;
@@ -69,12 +68,9 @@ export function fillLocateParam(
 
 export function adaptQwenBbox(
   bbox: number[],
-  errorMsg?: string,
 ): [number, number, number, number] {
   if (bbox.length < 2) {
-    const msg =
-      errorMsg ||
-      `invalid bbox data for qwen-vl mode: ${JSON.stringify(bbox)} `;
+    const msg = `invalid bbox data for qwen-vl mode: ${JSON.stringify(bbox)} `;
     throw new Error(msg);
   }
 
@@ -95,7 +91,6 @@ export function adaptDoubaoBbox(
   bbox: number[] | string,
   width: number,
   height: number,
-  errorMsg?: string,
 ): [number, number, number, number] {
   assert(
     width > 0 && height > 0,
@@ -158,9 +153,7 @@ export function adaptDoubaoBbox(
     ];
   }
 
-  const msg =
-    errorMsg ||
-    `invalid bbox data for doubao-vision mode: ${JSON.stringify(bbox)} `;
+  const msg = `invalid bbox data for doubao-vision mode: ${JSON.stringify(bbox)} `;
   throw new Error(msg);
 }
 
@@ -168,13 +161,12 @@ export function adaptBbox(
   bbox: number[],
   width: number,
   height: number,
-  errorMsg?: string,
 ): [number, number, number, number] {
   if (vlLocateMode() === 'doubao-vision' || vlLocateMode() === 'vlm-ui-tars') {
-    return adaptDoubaoBbox(bbox, width, height, errorMsg);
+    return adaptDoubaoBbox(bbox, width, height);
   }
 
-  return adaptQwenBbox(bbox, errorMsg);
+  return adaptQwenBbox(bbox);
 }
 
 export function adaptBboxToRect(
@@ -183,18 +175,9 @@ export function adaptBboxToRect(
   height: number,
   offsetX = 0,
   offsetY = 0,
-  errorMsg?: string,
 ): Rect {
-  debugInspectUtils(
-    'adaptBboxToRect',
-    bbox,
-    width,
-    height,
-    offsetX,
-    offsetY,
-    errorMsg || '',
-  );
-  const [left, top, right, bottom] = adaptBbox(bbox, width, height, errorMsg);
+  debugInspectUtils('adaptBboxToRect', bbox, width, height, offsetX, offsetY);
+  const [left, top, right, bottom] = adaptBbox(bbox, width, height);
   return {
     left: left + offsetX,
     top: top + offsetY,

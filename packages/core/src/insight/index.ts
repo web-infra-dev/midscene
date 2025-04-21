@@ -138,7 +138,7 @@ export default class Insight<
         quickAnswer: opt?.quickAnswer,
         searchConfig: searchAreaResponse,
       });
-    // const parseResult = await this.aiVendorFn<AIElementParseResponse>(msgs);
+
     const timeCost = Date.now() - startTime;
     const taskInfo: InsightTaskInfo = {
       ...(this.taskInfo ? this.taskInfo : {}),
@@ -153,7 +153,7 @@ export default class Insight<
 
     let errorLog: string | undefined;
     if (parseResult.errors?.length) {
-      errorLog = `locate - AI response error: \n${parseResult.errors.join('\n')}`;
+      errorLog = `AI model failed to locate: \n${parseResult.errors.join('\n')}`;
     }
 
     const dumpData: PartialInsightDumpFromSDK = {
