@@ -92,6 +92,19 @@ Midscene.js 是一个 AI 操作助手，适用于 Web、Android、自动化和�
 
   <img src="https://github.com/user-attachments/assets/211b05c9-3ccd-4f52-b798-f3a7f51330ed" alt="lark group link" width="300" />
 
+## 📝 Credits
+
+我们衷心感谢以下项目：
+
+- [Rsbuild](https://github.com/web-infra-dev/rsbuild) 用于构建工具。
+- [UI-TARS](https://github.com/bytedance/ui-tars) 用于开源代理模型 UI-TARS。
+- [Qwen2.5-VL](https://github.com/QwenLM/Qwen2.5-VL) 用于开源视觉语言模型 Qwen2.5-VL。
+- [scrcpy](https://github.com/Genymobile/scrcpy) 和 [yume-chan](https://github.com/yume-chan) 使我们能够通过浏览器控制 Android 设备。
+- [appium-adb](https://github.com/appium/appium-adb) 用于 ADB 的 JavaScript 桥接。
+- [YADB](https://github.com/ysbing/YADB) 用于 YADB 工具，提高了文本输入的性能。
+- [Puppeteer](https://github.com/puppeteer/puppeteer) 用于浏览器自动化与控制。
+- [Playwright](https://github.com/microsoft/playwright) 用于浏览器自动化与控制。
+
 ## 引用
 
 如果您在研究或项目中使用了 Midscene.js，请引用：
