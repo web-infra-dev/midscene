@@ -12,13 +12,25 @@ Detailed descriptions and examples are always welcome.
 
 For example: 
 
-Bad ❌: "Search 'headphone'"
+❌ Don't
+```log
+Search 'headphone'
+```
 
-Good ✅: "Click the search box (it should be along with a region switch, such as 'domestic' or 'international'), type 'headphone', and hit Enter."
+✅ Do
+```log
+Click the search box (it should be along with a region switch, such as 'domestic' or 'international'), type 'headphone', and hit Enter.
+```
 
-Bad ❌: "Assert: food delivery service is in normal state"
+❌ Don't
+```log
+Assert: food delivery service is in normal state
+```
 
-Good ✅: "Assert: There is a 'food delivery service' on page, and is in normal state"
+✅ Do
+```log
+Assert: There is a 'food delivery service' on page, and is in normal state
+```
 
 ### Use instant action interface if you are sure about what you want to do
 
@@ -45,21 +57,33 @@ When you see the steps are not as expected (more steps or less steps), it means 
 
 For example:
 
-⚠️ Select "include" in the "range" dropdown menu
+❌ Don't
+```log
+Select "include" in the "range" dropdown menu
+```
 
 You can try:
 
-✅ Click the "range" dropdown menu, and select "include"
+✅ Do
+```log
+Click the "range" dropdown menu, and select "include"
+```
 
 When you see the locating result is not as expected (wrong element or biased coordinates), try to give more details in the locate parameter.
 
 For example:
 
-⚠️ Click the "Add" button
+❌ Don't
+```log
+Click the "Add" button
+```
 
 You can try:
 
-✅ Click the "Add" button on the top-right corner, it's on the right side of the "range" dropdown menu
+✅ Do
+```log
+Click the "Add" button on the top-right corner, it's on the right side of the "range" dropdown menu
+```
 
 **Other ways to improve**
 
@@ -70,25 +94,38 @@ You can try:
 
 Use `.ai` each time to do one task. Although Midscene has an auto-replanning strategy, it's still preferable to keep the prompt concise. Otherwise the LLM output will likely be messy. The token cost between a long prompt and a short prompt is almost the same.
 
-Bad ❌: "Click Login button, then click Sign up button, fill the form with 'test@test.com' in the email field, 'test' in the password field, and click Sign up button"
+❌ Don't
+```log
+Click Login button, then click Sign up button, fill the form with 'test@test.com' in the email field, 'test' in the password field, and click Sign up button
+```
 
-Good ✅: Split the task into the following steps:
-
-"Click Login Button"
-"Click Sign up button"
-"Fill the form with 'test@test.com' in the email field"
-"Fill the form with 'test' in the password field"
-"Click Sign up button"
+✅ Split the task into the following steps into multiple `.ai` calls
+```log
+Click Login Button
+Click Sign up button
+Fill the form with 'test@test.com' in the email field
+Fill the form with 'test' in the password field
+Click Sign up button
+```
 
 ### LLMs can NOT tell the exact number like coords or hex-style color, give it some choices
 
 For example:
 
-Good ✅: "string, color of text, one of blue / red / yellow / green / white / black / others"
+❌ Don't
+```log
+string, hex value of text color
+```
 
-Bad ❌: "string, hex value of text color"
+❌ Don't
+```log
+[number, number], the [x, y] coords of the main button
+```
 
-Bad ❌: "[number, number], the [x, y] coords of the main button"
+✅ Do
+```log
+string, color of text, one of blue / red / yellow / green / white / black / others
+```
 
 ## Use report file and playground tool to debug
 
@@ -105,13 +142,25 @@ npx --yes @midscene/web
 
 All the data sent to the LLM is in the form of screenshots and element coordinates. The DOM and the browser instance are almost invisible to the LLM. Therefore, ensure everything you expect is visible on the screen.
 
-Good ✅: The title is blue
+❌ Don't
+```log
+The title has a `test-id-size` property
+```
 
-Bad ❌: The title has a `test-id-size` property
+❌ Don't
+```log
+The browser has two active tabs
+```
 
-Bad ❌: The browser has two active tabs
+❌ Don't
+```log
+The request has finished.
+```
 
-Bad ❌: The request has finished.
+✅ Do
+```log
+The title is blue
+```
 
 ## Cross-check the result using assertion
 
@@ -132,4 +181,7 @@ expect(taskList[0]).toBe('Learning AI the day after tomorrow');
 
 Since most AI models can understand many languages, feel free to write the prompt in any language you prefer. It usually works even if the prompt is in a language different from the page's language.
 
-Good ✅: "点击顶部左侧导航栏中的“首页”链接"
+✅ Good
+```log
+点击顶部左侧导航栏中的“首页”链接
+```
