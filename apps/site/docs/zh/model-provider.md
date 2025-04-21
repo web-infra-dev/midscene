@@ -18,17 +18,23 @@ Midscene 默认集成了 OpenAI SDK 调用 AI 服务。使用这个 SDK 限定�
 | `OPENAI_BASE_URL` | 可选。API 的接入 URL。常用于切换到其他模型服务，如 `https://some_service_name.com/v1` |
 | `MIDSCENE_MODEL_NAME` | 可选。指定一个不同的模型名称 (默认是 gpt-4o)。常用于切换到其他模型服务|
 
-使用 `Qwen 2.5 VL` 模型：
+使用 `Qwen 2.5 VL` 模型的额外配置：
 
 | 名称 | 描述 |
 |------|-------------|
-| `MIDSCENE_USE_QWEN_VL` | 可选。设置为 "1" 以使用 Qwen 2.5 VL 模型 |
+| `MIDSCENE_USE_QWEN_VL` | 可选。设置为 "1" 以适配 Qwen 2.5 VL 模型 |
 
-使用 `UI-TARS` 模型：
+使用 `UI-TARS` 模型的额外配置：
 
 | 名称 | 描述 |
 |------|-------------|
-| `MIDSCENE_USE_VLM_UI_TARS` | 可选。设置为 "1" 以使用 UI-TARS 模型 |
+| `MIDSCENE_USE_VLM_UI_TARS` | 可选。设置为 "1" 以适配 UI-TARS 模型 |
+
+使用 `Gemini 2.5 Pro` 模型的额外配置：
+
+| 名称 | 描述 |
+|------|-------------|
+| `MIDSCENE_USE_GEMINI` | 可选。设置为 "1" 以适配 Gemini 2.5 Pro 模型 |
 
 关于模型的更多信息，请参阅 [选择 AI 模型](./choose-a-model)。
 

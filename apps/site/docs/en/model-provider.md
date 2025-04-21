@@ -15,17 +15,23 @@ These are the most common configs, in which `OPENAI_API_KEY` is required.
 | `OPENAI_BASE_URL` | Optional. Custom endpoint URL for API endpoint. Use it to switch to a provider other than OpenAI (e.g. "https://some_service_name.com/v1") |
 | `MIDSCENE_MODEL_NAME` | Optional. Specify a different model name other than `gpt-4o` |
 
-Config to use `Qwen 2.5 VL` model:
+Extra configs to use `Qwen 2.5 VL` model:
 
 | Name | Description |
 |------|-------------|
-| `MIDSCENE_USE_QWEN_VL` | Optional. Set to "1" to use Qwen 2.5 VL model |
+| `MIDSCENE_USE_QWEN_VL` | Optional. Set to "1" to use the adapter of Qwen 2.5 VL model |
 
-Config to use `UI-TARS` model:
+Extra configs to use `UI-TARS` model:
 
 | Name | Description |
 |------|-------------|
-| `MIDSCENE_USE_VLM_UI_TARS` | Optional. Set to "1" to use UI-TARS model |
+| `MIDSCENE_USE_VLM_UI_TARS` | Optional. Set to "1" to use the adapter of UI-TARS model |
+
+Extra configs to use `Gemini 2.5 Pro` model:
+
+| Name | Description |
+|------|-------------|
+| `MIDSCENE_USE_GEMINI` | Optional. Set to "1" to use the adapter of Gemini 2.5 Pro model |
 
 For more information about the models, see [Choose a model](./choose-a-model).
 

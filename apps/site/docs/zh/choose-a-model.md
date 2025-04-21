@@ -2,23 +2,77 @@
 
 在这篇文章中，我们将讨论如何为 Midscene.js 选择 AI 模型，以及这些模型各自的特点。
 
-## 两种模型类型
+## 快速开始
+
+选择一个模型，获取 API 密钥，完成配置，你就可以开始使用 Midscene.js 了。如果你是刚开始使用，选择最容易获得的模型服务即可。
+
+如果你想了解更多关于模型服务的配置项，请查看 [配置模型和服务商](./model-provider)。
+
+### GPT-4o （无法在 Android 自动化中使用）
+
+```bash
+OPENAI_API_KEY="......"
+OPENAI_BASE_URL="https://dashscope.aliyuncs.com/compatible-mode/v1" # 可选，如果你想要使用一个不同于 OpenAI 官方的接入点
+MIDSCENE_MODEL_NAME="gpt-4o-2024-11-20" # 可选，默认是 "gpt-4o"。
+```
+
+### 阿里云或 openrouter.ai 上的 Qwen-2.5-VL
+
+在阿里云（aliyun.com）或 openrouter.ai 上申请 API 密钥后，你可以使用以下配置：
+
+```bash
+# openrouter.ai
+OPENAI_BASE_URL="https://openrouter.ai/api/v1"
+OPENAI_API_KEY="......"
+MIDSCENE_MODEL_NAME="qwen/qwen2.5-vl-72b-instruct"
+MIDSCENE_USE_QWEN_VL=1
+
+# 或使用阿里云的 OpenAI 兼容接入点
+OPENAI_BASE_URL="https://dashscope.aliyuncs.com/compatible-mode/v1"
+OPENAI_API_KEY="......"
+MIDSCENE_MODEL_NAME="qwen-vl-max-latest"
+MIDSCENE_USE_QWEN_VL=1
+```
+
+### 火山引擎上的 UI-TARS
+
+你可以在火山引擎（volcengine.com）上使用 `doubao-1.5-ui-tars` 模型，在火山引擎上申请 API 密钥后，你可以使用以下配置：
+
+```bash
+OPENAI_BASE_URL="https://ark.cn-beijing.volces.com/api/v3" 
+OPENAI_API_KEY="...."
+MIDSCENE_MODEL_NAME="ep-2025..." # 火山引擎的推理点名称
+MIDSCENE_USE_VLM_UI_TARS=1
+```
+
+### Google 提供的 Gemini 2.5 Pro
+
+在 Google Cloud 上申请 API 密钥后，你可以使用以下配置：
+
+```bash
+OPENAI_BASE_URL="https://generativelanguage.googleapis.com/v1beta/openai/"
+OPENAI_API_KEY="...."
+MIDSCENE_MODEL_NAME="gemini-2.5-pro-preview-03-25"
+MIDSCENE_USE_GEMINI=1
+```
+
+## 模型选择详解
 
 Midscene.js 支持两种类型的 AI 模型：
 
-1. **通用多模态 LLM**：*GPT-4o* 是这种类型模型的代表。
-2. **支持视觉定位（Visual Grounding）的 VL 模型**：*Qwen-2.5-VL* 和 *UI-TARS* 是这种类型的模型。
+1. **通用多模态 LLM**：接受文本和图像输入的模型。*GPT-4o* 是这种类型模型的代表。
+2. **支持视觉定位的 VL 模型**：除了接受文本和图像输入外，这些模型还可以给出指定元素的坐标信息（Visual Grounding）。Midscene 已经适配了 *Qwen-2.5-VL*, *Gemini-2.5-Pro* 和 *UI-TARS* 作为这种类型的模型。
 
-:::info 什么是视觉定位（Visual Grounding）？
-视觉定位（Visual Grounding）是模型能够准确返回指定元素的坐标信息的能力。
-:::
+在 Midscene.js 中，我们主要关注模型的两个特性：
 
-:::info 我该从哪个模型开始上手？
-不必在项目启动时纠结模型，直接选用身边最容易获得的模型服务即可。
-在完成脚本编写并产生更具体的优化需求后，你可以再尝试比较其他模型。
-:::
+1. 理解截图和 *规划* 操作步骤的能力。
+2. 给出指定元素的坐标信息（Visual Grounding）的能力。
 
-如果你想了解更多关于模型服务的配置项，请查看 [配置模型和服务商](./model-provider)。
+不同模型的主要区别在于它们在处理视觉定位（Visual Grounding）上的方案。
+
+在使用 LLM 模型时，视觉定位是通过模型对 UI 层级树和截图中的标记（markup）的理解来实现的，这会消耗更多的 token ，并且不一定总能得到准确的结果。相比之下，使用 VL 模型时，视觉定位是通过模型的原生视觉定位能力来实现的，这在复杂情况下提供了更原生和可靠的解决方案。
+
+在 Android 自动化场景中，我们决定使用 VL 模型，因为现实场景中的 Android 应用的 UI 结构非常复杂，我们不想再在应用的 UI 技术栈上做适配工作。VL 模型可以提供更可靠的结果，并且应该是一种更好的解决方案。
 
 ## 推荐模型详解
 
@@ -89,6 +143,7 @@ MIDSCENE_USE_QWEN_VL=1 # 别忘了配置这项，用于启用 Qwen 2.5 模式！
 - [Qwen 2.5 on 🤗 HuggingFace](https://huggingface.co/Qwen/Qwen2.5-VL-72B-Instruct)
 - [Qwen 2.5 on Github](https://github.com/QwenLM/Qwen2.5-VL)
 - [Qwen 2.5 - 阿里云百炼](https://bailian.console.aliyun.com/#/model-market/detail/qwen-vl-max-latest)
+- [Qwen 2.5 - openrouter.ai](https://openrouter.ai/models/Qwen/Qwen2.5-VL-72B-Instruct)
 
 ### UI-TARS
 
@@ -117,12 +172,33 @@ OPENAI_API_KEY="......"
 MIDSCENE_MODEL_NAME="ui-tars-7b-sft"
 MIDSCENE_USE_VLM_UI_TARS=1 # 别忘了配置这项用于 UI-TARS 模式！
 ```
+Cloud](https://cloud.google.com/gemini-api/docs/gemini-25-overview)
 
 **资源**
 
 - [UI-TARS on 🤗 HuggingFace](https://huggingface.co/bytedance-research/UI-TARS-72B-SFT)
 - [UI-TARS on Github](https://github.com/bytedance/ui-tars)
 - [UI-TARS - 模型部署指南](https://juniper-switch-f10.notion.site/UI-TARS-Model-Deployment-Guide-17b5350241e280058e98cea60317de71)
+
+
+### Gemini-2.5-Pro
+
+Gemini-2.5-Pro 是 Google Cloud 提供的模型。它和 Qwen-2.5-VL 类似，但它是闭源的。
+
+Midscene.js 从 v0.15.1 版本开始支持 Gemini-2.5-Pro 模型。
+
+**配置**
+
+```bash
+OPENAI_BASE_URL="https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent?key=......"
+OPENAI_API_KEY="......"
+MIDSCENE_MODEL_NAME="gemini-2.5-pro"
+MIDSCENE_USE_GEMINI=1
+```
+
+**资源**
+
+- [Gemini 2.5 on Google Cloud](https://cloud.google.com/gemini-api/docs/gemini-25-overview)
 
 ## 选择其他通用 LLM 模型
 
