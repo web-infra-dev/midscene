@@ -1,3 +1,5 @@
+import SetupEnv from './common/setup-env.mdx';
+
 # 使用 YAML 格式的自动化脚本
 
 在大多数情况下，开发者编写自动化脚本只是为了执行一些冒烟测试，比如检查某些内容是否出现，或者验证某个关键用户路径是否可用。在这种情况下，维护一个大型测试项目会显得毫无必要。
@@ -29,24 +31,16 @@ tasks:
 
 :::
 
-## 准备工作
-
-配置 OpenAI API Key
-
-```bash
-# 更新为你自己的 Key
-export OPENAI_API_KEY="sk-abcdefghijklmnopqrstuvwxyz"
+<SetupEnv />
 ```
 
-或使用 `.env` 文件存储配置，Midscene 命令行工具在运行 yaml 脚本时会自动加载它
+或使用当前命令运行目录下的 `.env` 文件存储配置，Midscene 命令行工具在运行 yaml 脚本时会自动加载它
 
 ```env filename=.env
 OPENAI_API_KEY="sk-abcdefghijklmnopqrstuvwxyz"
 ```
 
-更多关于模型和服务商的配置，请参阅 [自定义模型和服务商](./model-provider)
-
-## 开始
+## 安装命令行工具
 
 全局安装 `@midscene/cli` 
 
@@ -56,7 +50,7 @@ npm i -g @midscene/cli
 npm i @midscene/cli --save-dev
 ```
 
-编写一个名为 `bing-search.yaml` 的文件
+编写一个名为 `bing-search.yaml` 的文件来驱动 web 浏览器的自动化任务
 
 ```yaml
 web:
@@ -70,7 +64,7 @@ tasks:
       - aiAssert: 结果显示天气信息
 ```
 
-or
+或者驱动安卓设备的自动化任务（需要使用 adb 连接安卓设备）
 
 ```yaml 
 android:
@@ -117,10 +111,10 @@ midscene /dir/**/yaml/
 
 在 `.yaml` 文件中，有两个部分：`web/android` 和 `tasks`。
 
-### `web/android` 部分
-> 原来的 `target` 参数即将废弃，该参数已经改为 `web` 参数
+`web/android` 部分定义了任务的基本信息，浏览器下的自动化使用 `web` 参数（曾用参数名 `target`），安卓设备下的自动化使用 `android` 参数，二者是互斥的。
 
-`web/android` 部分定义了任务的基本信息，`web` 场景使用 `web` 参数，`android` 场景使用 `android` 参数，二者是互斥的。
+### `web` 部分
+
 
 ```yaml
 web:
@@ -171,7 +165,7 @@ web:
   aiActionContext: <string>
 ```
 
-or
+### `android` 部分
 
 ```yaml
 android:
