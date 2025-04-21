@@ -10,7 +10,7 @@ English | [简体中文](./README.zh.md)
 </div>
 
 <p align="center">
-  Your AI Operator for Web, Android, Automation & Testing.
+  Your AI Operator for Web, Android, Automation & Testing
 </p>
 
 <p align="center">
@@ -32,8 +32,7 @@ The following recorded example video is based on the [UI-TARS-1.5-7B](https://hu
 | :---:  | :---: |
 | Post a Tweet      |    <video src="https://github.com/user-attachments/assets/bb3d695a-fbff-4af1-b6cc-5e967c07ccee" height="300" />    |
 | Use JS code to drive task orchestration, collect information about Jay Chou's concert, and write it into Google Docs   | <video src="https://github.com/user-attachments/assets/75474138-f51f-4c54-b3cf-46d61d059999" height="300" />        |
-| Control Maps App on Android    | <video src="https://lf3-static.bytednsdoc.com/obj/eden-cn/nupipfups/Midscene/android-maps.mp4" height="300" />        |
-
+| Control Maps App on Android    | <video src="https://github.com/user-attachments/assets/1f5bab0e-4c28-44e1-b378-a38809b05a00" height="300" />        |
 
 ## 📢 2025 Apr: Support Android Automation
 
@@ -45,10 +44,10 @@ Besides the default model *GPT-4o*, we have added two new recommended open-sourc
 
 ## 💡 Features
 - **Natural Language Interaction 👆**: Just describe your goals and steps, and Midscene will plan and operate the user interface for you.
-- **For Web Automation**:
+- **For Web Automation 🖥️**
   - **Chrome Extension Experience 🖥️**: Start in-browser experience immediately through [the Chrome extension](https://midscenejs.com/quick-experience.html), no coding required.
   - **Puppeteer/Playwright Integration 🔧**: Supports [Puppeteer](https://midscenejs.com/integrate-with-puppeteer.html) and [Playwright](https://midscenejs.com/integrate-with-playwright.html) integration, allowing you to combine AI capabilities with these powerful automation tools for easy automation.
-- **For Android Automation**:
+- **For Android Automation 📱**
   - **Android Playground 📱**: Start experience immediately through [the Android playground](https://midscenejs.com/quick-experience-with-android.html), no coding required.
   - **Integrate with adb 🔧**: Only `adb` is required to achieve this. Read more about it in [Integrate with Android(adb)](https://midscenejs.com/integrate-with-android.html).
 - **Visual Reports for Debugging 🎞️**: Through our test reports and Playground, you can easily understand, replay and debug the entire process.
