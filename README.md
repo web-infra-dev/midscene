@@ -33,10 +33,6 @@ The following recorded example video is based on the [UI-TARS-1.5-7B](https://hu
 | Post a Tweet      |    <video src="https://github.com/user-attachments/assets/bb3d695a-fbff-4af1-b6cc-5e967c07ccee" height="300" />    |
 | Use JS code to drive task orchestration, collect information about Jay Chou's concert, and write it into Google Docs   | <video src="https://github.com/user-attachments/assets/75474138-f51f-4c54-b3cf-46d61d059999" height="300" />        |
 
-## 📢 2025 Apr: Support Android Automation
-
-You can now use visual-language AI models to control Android devices, with all the power of Midscene.js. Only `adb` is required to achieve this. Read more about it in [Blog: Support Android Automation](https://midscenejs.com/blog-support-android-automation.html).
-
 ## 📢 2025 Feb: New open-source model choice - UI-TARS and Qwen2.5-VL
 
 Besides the default model *GPT-4o*, we have added two new recommended open-source models to Midscene.js: *UI-TARS* and *Qwen2.5-VL*. (Yes, Open Source models !) They are dedicated models for image recognition and UI automation, which are known for performing well in UI automation scenarios. Read more about it in [Choose a model](https://midscenejs.com/choose-a-model).
