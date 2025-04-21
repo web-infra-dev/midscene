@@ -6,7 +6,7 @@ In this article, we will talk about what kind of models are supported by Midscen
 
 Midscene supports two types of models, which are:
 
-1. **general-purpose multimodal LLMs**: *GPT-4o* is this kind of model.
+1. **multimodal LLMs**: *GPT-4o* is this kind of model.
 2. **visual-language (VL) models with visual grounding capabilities**: *Qwen-2.5-VL* and *UI-TARS* are this kind of model.
 
 :::info What is 'visual grounding'?

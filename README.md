@@ -32,6 +32,8 @@ The following recorded example video is based on the [UI-TARS-1.5-7B](https://hu
 | :---:  | :---: |
 | Post a Tweet      |    <video src="https://github.com/user-attachments/assets/bb3d695a-fbff-4af1-b6cc-5e967c07ccee" height="300" />    |
 | Use JS code to drive task orchestration, collect information about Jay Chou's concert, and write it into Google Docs   | <video src="https://github.com/user-attachments/assets/75474138-f51f-4c54-b3cf-46d61d059999" height="300" />        |
+| Control Maps App on Android    | <video src="https://lf3-static.bytednsdoc.com/obj/eden-cn/nupipfups/Midscene/android-maps.mp4" height="300" />        |
+
 
 ## 📢 2025 Apr: Support Android Automation
 
@@ -41,13 +43,14 @@ You can now use visual-language AI models to control Android devices, with all t
 
 Besides the default model *GPT-4o*, we have added two new recommended open-source models to Midscene.js: *UI-TARS* and *Qwen2.5-VL*. (Yes, Open Source models !) They are dedicated models for image recognition and UI automation, which are known for performing well in UI automation scenarios. Read more about it in [Choose a model](https://midscenejs.com/choose-a-model).
 
-
 ## 💡 Features
 - **Natural Language Interaction 👆**: Just describe your goals and steps, and Midscene will plan and operate the user interface for you.
-- **Chrome Extension Experience 🖥️**: Start in-browser experience immediately through the Chrome extension, no coding required.
-- **Puppeteer/Playwright Integration 🔧**: Supports Puppeteer and Playwright integration, allowing you to combine AI capabilities with these powerful automation tools for easy automation.
-- **Support Open-Source Models 🤖**: Supports private deployment of [`UI-TARS`](https://github.com/bytedance/ui-tars) and [`Qwen2.5-VL`](https://github.com/QwenLM/Qwen2.5-VL), which outperforms closed-source models like GPT-4o and Claude in UI automation scenarios while better protecting data security.
-- **Support General Models 🌟**: Supports general large models like GPT-4o and Claude, adapting to various scenario needs.
+- **For Web Automation**:
+  - **Chrome Extension Experience 🖥️**: Start in-browser experience immediately through [the Chrome extension](https://midscenejs.com/quick-experience.html), no coding required.
+  - **Puppeteer/Playwright Integration 🔧**: Supports [Puppeteer](https://midscenejs.com/integrate-with-puppeteer.html) and [Playwright](https://midscenejs.com/integrate-with-playwright.html) integration, allowing you to combine AI capabilities with these powerful automation tools for easy automation.
+- **For Android Automation**:
+  - **Android Playground 📱**: Start experience immediately through [the Android playground](https://midscenejs.com/quick-experience-with-android.html), no coding required.
+  - **Integrate with adb 🔧**: Only `adb` is required to achieve this. Read more about it in [Integrate with Android(adb)](https://midscenejs.com/integrate-with-android.html).
 - **Visual Reports for Debugging 🎞️**: Through our test reports and Playground, you can easily understand, replay and debug the entire process.
 - **Support Caching 🔄**: The first time you execute a task through AI, it will be cached, and subsequent executions of the same task will significantly improve execution efficiency.
 - **Completely Open Source 🔥**: Experience a whole new automation development experience, enjoy!
@@ -56,8 +59,8 @@ Besides the default model *GPT-4o*, we have added two new recommended open-sourc
 
 ## ✨ Model Choices
 
-- You can use general-purpose LLMs like `gpt-4o`, it works well for most cases. And also, `gemini-1.5-pro`, `qwen-vl-max-latest` are supported.
-- You can also use [`UI-TARS`](https://github.com/bytedance/ui-tars) model, which is an **open-source model** dedicated for UI automation. You can deploy it on your own server, and it will dramatically improve the performance and data privacy. 
+- You can use multimodal LLMs like `gpt-4o`, or visual-language models like `Qwen2.5-VL`, `gemini-2.5-pro`.
+- You can also use [`UI-TARS`](https://github.com/bytedance/ui-tars) model, which is an **open-source model** dedicated for UI automation.
 - Read more about [Choose a model](https://midscenejs.com/choose-a-model)
 
 ## 👀 Comparing to ...
