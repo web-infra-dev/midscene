@@ -2,11 +2,31 @@
 
 配置完成后，你可以立即开始使用 Midscene。它一共有三个关键操作 Tab：
 
-- **Action**: 与网页进行交互，如 "在搜索框中输入 Midscene" 或 "点击登录按钮"。
-- **Query**: 从界面中提取 JSON 数据，如 "提取页面中的用户 ID，返回 \{ id: string \}"。
-- **Assert**: 执行断言，如 "页面标题是 Midscene"。
+- **Action**: 与网页进行交互，这就是所谓的自动规划（Auto Planning）。比如
+```
+在搜索框中输入 Midscene
+点击登录按钮
+```
+
+- **Query**: 从界面中提取 JSON 数据
+```
+提取页面中的用户 ID，返回 \{ id: string \}
+```
+
+- **Assert**: 验证页面
+
+```
+页面标题是 Midscene
+```
+
+- **Tap**: 在某个元素上点击，这就是所谓的即时操作（Instant Action）。
+```
+登录按钮
+```
 
 快来试试吧！
+
+> 关于自动规划（Auto Planning）和即时操作（Instant Action）的区别，请参考 [API](./API.html) 文档。
 
 ## 想将 Midscene 集成到代码？
 
