@@ -1,4 +1,4 @@
-import type { WebPage } from '@/common/page';
+import type { AndroidDevicePage, WebPage } from '@/common/page';
 import type { PuppeteerWebPage } from '@/puppeteer';
 import {
   type AIUsageInfo,
@@ -45,6 +45,10 @@ interface ExecutionResult<OutputType = any> {
 }
 
 const replanningCountLimit = 10;
+
+const isAndroidPage = (page: WebPage): page is AndroidDevicePage => {
+  return page.pageType === 'android';
+};
 
 export class PageTaskExecutor {
   page: WebPage;
@@ -484,6 +488,30 @@ export class PageTaskExecutor {
           executor: async (param) => {},
         };
         tasks.push(taskActionFinished);
+      } else if (plan.type === 'AndroidSystemButton') {
+        const button = plan.param?.button;
+        const taskActionAndroidSystemButton: ExecutionTaskActionApply<null> = {
+          type: 'Action',
+          subType: 'AndroidSystemButton',
+          param: null,
+          thought: plan.thought,
+          locate: plan.locate,
+          executor: async (param) => {
+            // Check if the page has back method (Android devices)
+            if (isAndroidPage(this.page)) {
+              if (button === 'Back') {
+                await this.page.back();
+              } else if (button === 'Home') {
+                await this.page.home();
+              } else if (button === 'RecentApp') {
+                await this.page.recentApp();
+              } else {
+                throw new Error(`Unknown Android system button: ${button}`);
+              }
+            }
+          },
+        };
+        tasks.push(taskActionAndroidSystemButton);
       } else {
         throw new Error(`Unknown or unsupported task type: ${plan.type}`);
       }

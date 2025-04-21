@@ -26,6 +26,9 @@ export interface AndroidDevicePage extends AbstractPage {
   scrollDown(distance?: number, startingPoint?: Point): Promise<void>;
   scrollLeft(distance?: number, startingPoint?: Point): Promise<void>;
   scrollRight(distance?: number): Promise<void>;
+  back(): Promise<void>;
+  home(): Promise<void>;
+  recentApp(): Promise<void>;
 }
 
 export type WebPage =

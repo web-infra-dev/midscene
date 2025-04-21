@@ -631,4 +631,19 @@ ${Object.keys(size)
       console.error('Error during cleanup:', error);
     }
   }
+
+  async back(): Promise<void> {
+    const adb = await this.getAdb();
+    await adb.shell('input keyevent 4');
+  }
+
+  async home(): Promise<void> {
+    const adb = await this.getAdb();
+    await adb.shell('input keyevent 3');
+  }
+
+  async recentApp(): Promise<void> {
+    const adb = await this.getAdb();
+    await adb.shell('input keyevent 82');
+  }
 }

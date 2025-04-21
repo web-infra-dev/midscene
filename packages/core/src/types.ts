@@ -271,7 +271,8 @@ export interface PlanningAction<ParamType = any> {
     | 'Assert'
     | 'AssertWithoutThrow'
     | 'Sleep'
-    | 'Finished';
+    | 'Finished'
+    | 'AndroidSystemButton';
   param: ParamType;
   locate?: PlanningLocateParam | null;
 }
@@ -377,7 +378,7 @@ export interface ExecutionTaskApply<
     param: TaskParam,
     context: ExecutorContext,
   ) => // biome-ignore lint/suspicious/noConfusingVoidType: <explanation>
-    | Promise<ExecutionTaskReturn<TaskOutput, TaskLog> | undefined | void>
+  | Promise<ExecutionTaskReturn<TaskOutput, TaskLog> | undefined | void>
     | undefined
     | void;
 }

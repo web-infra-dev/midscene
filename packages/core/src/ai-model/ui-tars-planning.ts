@@ -13,7 +13,8 @@ type ActionType =
   | 'hotkey'
   | 'finished'
   | 'scroll'
-  | 'wait';
+  | 'wait'
+  | 'androidSystemButton';
 
 const bboxSize = 10;
 const pointToBbox = (
@@ -141,6 +142,15 @@ export async function vlmPlanning(options: {
         type: 'Sleep',
         param: {
           timeMs: 1000,
+        },
+        locate: null,
+        thought: action.thought || '',
+      });
+    } else if (action.action_type === 'androidSystemButton') {
+      transformActions.push({
+        type: 'AndroidSystemButton',
+        param: {
+          type: action.action_inputs.button,
         },
         locate: null,
         thought: action.thought || '',
