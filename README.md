@@ -10,7 +10,7 @@ English | [简体中文](./README.zh.md)
 </div>
 
 <p align="center">
-  Let AI be your browser operator.
+  Your AI Operator for Web, Android, Automation & Testing.
 </p>
 
 <p align="center">
@@ -22,8 +22,7 @@ English | [简体中文](./README.zh.md)
   <a href="https://x.com/midscene_ai"><img src="https://img.shields.io/twitter/follow/midscene_ai?style=flat-square" alt="twitter" /></a>
 </p>
 
-Midscene.js lets AI be your browser operator 🤖.Just describe what you want to do in natural language, and it will help you operate web pages, validate content, and extract data. Whether you want a quick experience or deep development, you can get started easily.
-
+Midscene.js allows AI to serve as your web and Android operator 🤖. Simply describe what you want to achieve in natural language, and it will assist you in operating the interface, validating content, and extracting data. Whether you seek a quick experience or in-depth development, you'll find it easy to get started.
 
 ## Showcases
 
@@ -34,16 +33,18 @@ The following recorded example video is based on the [UI-TARS-1.5-7B](https://hu
 | Post a Tweet      |    <video src="https://github.com/user-attachments/assets/bb3d695a-fbff-4af1-b6cc-5e967c07ccee" height="300" />    |
 | Use JS code to drive task orchestration, collect information about Jay Chou's concert, and write it into Google Docs   | <video src="https://github.com/user-attachments/assets/75474138-f51f-4c54-b3cf-46d61d059999" height="300" />        |
 
+## 📢 2025 Apr: Support Android Automation
 
-## 📢 New open-source model choice - UI-TARS and Qwen2.5-VL
+You can now use visual-language AI models to control Android devices, with all the power of Midscene.js. Only `adb` is required to achieve this. Read more about it in [Blog: Support Android Automation](https://midscenejs.com/blog-support-android-automation.html).
 
-- 🌟 2025.04.16: UI-TARS released version 1.5. It excels in gaming and executing GUI tasks, outperforming most open-source and closed-source models. You can combine it with Midscene.js to fully leverage its capabilities.
-- ✨ 2025.02.21: In addition to the default `gpt-4o` model, we now support two new open-source models: `UI-TARS` and `Qwen2.5-VL`. (Yes, open-source models!) They are models specifically designed for UI automation and image recognition, performing exceptionally well in UI automation scenarios. For more information, please see [Choosing an AI Model](https://midscenejs.com/zh/choose-a-model).
+## 📢 2025 Feb: New open-source model choice - UI-TARS and Qwen2.5-VL
+
+Besides the default model *GPT-4o*, we have added two new recommended open-source models to Midscene.js: *UI-TARS* and *Qwen2.5-VL*. (Yes, Open Source models !) They are dedicated models for image recognition and UI automation, which are known for performing well in UI automation scenarios. Read more about it in [Choose a model](https://midscenejs.com/choose-a-model).
 
 
 ## 💡 Features
 - **Natural Language Interaction 👆**: Just describe your goals and steps, and Midscene will plan and operate the user interface for you.
-- **Chrome Extension Experience 🖥️**: Start experiencing immediately through the Chrome extension, no coding required.
+- **Chrome Extension Experience 🖥️**: Start in-browser experience immediately through the Chrome extension, no coding required.
 - **Puppeteer/Playwright Integration 🔧**: Supports Puppeteer and Playwright integration, allowing you to combine AI capabilities with these powerful automation tools for easy automation.
 - **Support Open-Source Models 🤖**: Supports private deployment of [`UI-TARS`](https://github.com/bytedance/ui-tars) and [`Qwen2.5-VL`](https://github.com/QwenLM/Qwen2.5-VL), which outperforms closed-source models like GPT-4o and Claude in UI automation scenarios while better protecting data security.
 - **Support General Models 🌟**: Supports general large models like GPT-4o and Claude, adapting to various scenario needs.
@@ -72,12 +73,15 @@ There are so many UI automation tools out there, and each one seems to be all-po
 ## 📄 Resources 
 
 * [Home Page: https://midscenejs.com](https://midscenejs.com/)
-* [Quick Experience By Chrome Extension](https://midscenejs.com/quick-experience.html), this is where you should get started 
-* Integration
+* Web Browser Automation
+  * [Quick Experience By Chrome Extension](https://midscenejs.com/quick-experience.html), this is where you should get started 
   * [Automate with Scripts in YAML](https://midscenejs.com/automate-with-scripts-in-yaml.html), use this if you prefer to write YAML file instead of code
   * [Bridge Mode by Chrome Extension](https://midscenejs.com/bridge-mode-by-chrome-extension.html), use this to control the desktop Chrome by scripts
   * [Integrate with Puppeteer](https://midscenejs.com/integrate-with-puppeteer.html)
   * [Integrate with Playwright](https://midscenejs.com/integrate-with-playwright.html)
+* Android Automation
+  * [Quick Experience by Android Playground](https://midscenejs.com/quick-experience-with-android.html)
+  * [Integrate with Android(adb)](https://midscenejs.com/integrate-with-android.html)
 * [API Reference](https://midscenejs.com/api.html)
 * [Choose a model](https://midscenejs.com/choose-a-model.html)
 * [Config Model and Provider](https://midscenejs.com/model-provider.html)
@@ -88,6 +92,17 @@ There are so many UI automation tools out there, and each one seems to be all-po
 * [Follow us on X](https://x.com/midscene_ai)
 * [Lark Group](https://applink.larkoffice.com/client/chat/chatter/add_by_link?link_token=291q2b25-e913-411a-8c51-191e59aab14d)
 
+
+## 📝 Credits
+
+We would like to thank the following projects:
+
+- [Rsbuild](https://github.com/web-infra-dev/rsbuild) for the build tool.
+- [UI-TARS](https://github.com/bytedance/ui-tars) for the open-source agent model UI-TARS.
+- [Qwen2.5-VL](https://github.com/QwenLM/Qwen2.5-VL) for the open-source VL model Qwen2.5-VL.
+- [scrcpy](https://github.com/Genymobile/scrcpy) and [yume-chan](https://github.com/yume-chan) allow us to control Android devices with browser.
+- [appium-adb](https://github.com/appium/appium-adb) for the javascript bridge of adb.
+- [YADB](https://github.com/ysbing/YADB) for the yadb tool which improves the performance of text input.
 
 ## Citation
 
