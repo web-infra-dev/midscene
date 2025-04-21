@@ -23,7 +23,7 @@ If you want to see the detailed configuration of model services, see [Config Mod
 
 ### GPT-4o
 
-GPT-4o is a general-purpose LLM by OpenAI, which supports image input. This is the default model for Midscene.js. When using GPT-4o, a step-by-step prompting is preferred.
+GPT-4o is a multimodal LLM by OpenAI, which supports image input. This is the default model for Midscene.js. When using GPT-4o, a step-by-step prompting is preferred.
 
 **Features**
 
@@ -120,7 +120,7 @@ Links:
 - [UI-TARS on Github](https://github.com/bytedance/ui-tars)
 - [UI-TARS - Model Deployment Guide](https://juniper-switch-f10.notion.site/UI-TARS-Model-Deployment-Guide-17b5350241e280058e98cea60317de71)
 
-## Choose other general-purpose LLMs
+## Choose other multimodal LLMs
 
 Other models are also supported by Midscene.js. Midscene will use the same prompt and strategy as GPT-4o for these models. If you want to use other models, please follow these steps:
 
@@ -131,7 +131,7 @@ Other models are also supported by Midscene.js. Midscene will use the same promp
 1. Remember to follow the terms of use of each model and provider.
 1. Don't include the `MIDSCENE_USE_VLM_UI_TARS` and `MIDSCENE_USE_QWEN_VL` config unless you know what you are doing.
 
-### Known supported general-purpose models
+### Known supported multimodal models
 
 These models are known to be supported by Midscene.js. They may perform differently in different cases.
 

@@ -38,7 +38,7 @@ The screenshot will be sent to the AI model. If you are using GPT-4o, some key i
 
 ## The automation process is running more slowly than the traditional one
 
-When using general-purpose LLM in Midscene.js, the running time may increase by a factor of 3 to 10 compared to traditional Playwright scripts, for instance from 5 seconds to 20 seconds. To make the result more stable, the token and time cost is inevitable.
+When using multimodal LLM in Midscene.js, the running time may increase by a factor of 3 to 10 compared to traditional Playwright scripts, for instance from 5 seconds to 20 seconds. To make the result more stable, the token and time cost is inevitable.
 
 There are several ways to improve the running time:
 1. Use instant action interface like `agent.aiTap('Login Button')` instead of `agent.ai('Click Login Button')`. Read more about it in [API](./API).
