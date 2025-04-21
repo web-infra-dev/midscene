@@ -100,7 +100,7 @@ We would like to thank the following projects:
 - [appium-adb](https://github.com/appium/appium-adb) for the javascript bridge of adb.
 - [YADB](https://github.com/ysbing/YADB) for the yadb tool which improves the performance of text input.
 - [Puppeteer](https://github.com/puppeteer/puppeteer) for browser automation and control.
-- [Playwright](https://github.com/microsoft/playwright) for browser automation and control.
+- [Playwright](https://github.com/microsoft/playwright) for browser automation and control and testing.
 
 ## Citation
 

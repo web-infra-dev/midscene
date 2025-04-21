@@ -103,7 +103,7 @@ Midscene.js 是一个 AI 操作助手，适用于 Web、Android、自动化和�
 - [appium-adb](https://github.com/appium/appium-adb) 用于 ADB 的 JavaScript 桥接。
 - [YADB](https://github.com/ysbing/YADB) 用于 YADB 工具，提高了文本输入的性能。
 - [Puppeteer](https://github.com/puppeteer/puppeteer) 用于浏览器自动化与控制。
-- [Playwright](https://github.com/microsoft/playwright) 用于浏览器自动化与控制。
+- [Playwright](https://github.com/microsoft/playwright) 用于浏览器自动化与控制和测试。
 
 ## 引用
 
