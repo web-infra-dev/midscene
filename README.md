@@ -53,9 +53,9 @@ Besides the default model *GPT-4o*, we have added two new recommended open-sourc
 
 ## ✨ Model Choices
 
-- You can use multimodal LLMs like `gpt-4o`, or visual-language models like `Qwen2.5-VL`, `gemini-2.5-pro`.
-- You can also use [`UI-TARS`](https://github.com/bytedance/ui-tars) model, which is an **open-source model** dedicated for UI automation.
-- Read more about [Choose a model](https://midscenejs.com/choose-a-model)
+You can use multimodal LLMs like `gpt-4o`, or visual-language models like `Qwen2.5-VL`, `gemini-2.5-pro` and `UI-TARS`. In which `UI-TARS` is an open-source model dedicated for UI automation.
+
+Read more about [Choose a model](https://midscenejs.com/choose-a-model)
 
 ## 👀 Comparing to ...
 
