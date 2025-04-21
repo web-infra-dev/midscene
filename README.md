@@ -110,8 +110,8 @@ If you use Midscene.js in your research or project, please cite:
 
 ```bibtex
 @software{Midscene.js,
-  author = {Zhou, Xiao and Yu, Tao},
-  title = {Midscene.js: Let AI be your browser operator.},
+  author = {Xiao Zhou, Tao Yu, YiBing Lin},
+  title = {Midscene.js: Your AI Operator for Web, Android, Automation & Testing.},
   year = {2025},
   publisher = {GitHub},
   url = {https://github.com/web-infra-dev/midscene}

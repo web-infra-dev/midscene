@@ -98,8 +98,8 @@ Midscene.js 是一个 AI 操作助手，适用于 Web、Android、自动化和�
 
 ```bibtex
 @software{Midscene.js,
-  author = {Zhou, Xiao and Yu, Tao},
-  title = {Midscene.js: Assign AI as your web operator.},
+  author = {Xiao Zhou, Tao Yu, YiBing Lin},
+  title = {Midscene.js: Your AI Operator for Web, Android, Automation & Testing.},
   year = {2025},
   publisher = {GitHub},
   url = {https://github.com/web-infra-dev/midscene}
