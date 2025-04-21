@@ -8,6 +8,7 @@ export const MIDSCENE_DEBUG_AI_RESPONSE = 'MIDSCENE_DEBUG_AI_RESPONSE';
 export const MIDSCENE_DANGEROUSLY_PRINT_ALL_CONFIG =
   'MIDSCENE_DANGEROUSLY_PRINT_ALL_CONFIG';
 export const MIDSCENE_DEBUG_MODE = 'MIDSCENE_DEBUG_MODE';
+export const MIDSCENE_USE_BRIDGE_MODE = 'MIDSCENE_USE_BRIDGE_MODE';
 
 export const MIDSCENE_FORCE_DEEP_THINK = 'MIDSCENE_FORCE_DEEP_THINK';
 
@@ -88,6 +89,8 @@ export const allConfigFromEnv = () => {
       process.env[AZURE_OPENAI_API_VERSION] || undefined,
     [AZURE_OPENAI_DEPLOYMENT]:
       process.env[AZURE_OPENAI_DEPLOYMENT] || undefined,
+    [MIDSCENE_USE_BRIDGE_MODE]:
+      process.env[MIDSCENE_USE_BRIDGE_MODE] || undefined,
   };
 };
 

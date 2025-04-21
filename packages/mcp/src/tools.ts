@@ -9,6 +9,10 @@ export const TOOLS: Tool[] = [
       type: 'object',
       properties: {
         url: { type: 'string', description: 'URL to navigate to' },
+        openNewTab: {
+          type: 'boolean',
+          description: 'Open the URL in a new tab',
+        },
         launchOptions: {
           type: 'object',
           description:
@@ -66,6 +70,27 @@ export const TOOLS: Tool[] = [
     },
   },
   {
+    name: 'midscene_scroll',
+    description:
+      'Scroll the page or a specific element based on natural language instructions.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        value: {
+          type: 'string',
+          description:
+            "Specify the scroll direction and amount (e.g., 'up', 'down', 'to the bottom', 'to the top', 'down 800px') or describe the element to scroll to in natural language.",
+        },
+        selector: {
+          type: 'string',
+          description:
+            'Optional. Describe the container element to scroll within using natural language. If omitted, the entire page will be scrolled.',
+        },
+      },
+      required: ['value'],
+    },
+  },
+  {
     name: 'midscene_input',
     description:
       'Describe the input field using natural language to automatically fill it with the provided value.',
@@ -107,6 +132,16 @@ export const TOOLS: Tool[] = [
         script: { type: 'string', description: 'JavaScript code to execute' },
       },
       required: ['script'],
+    },
+  },
+  {
+    name: 'midscene_get_tabs',
+    description:
+      'Get a list of currently open browser tabs with their IDs and titles/URLs.',
+    inputSchema: {
+      type: 'object',
+      properties: {},
+      required: [],
     },
   },
 ];

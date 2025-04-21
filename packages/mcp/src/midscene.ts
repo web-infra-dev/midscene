@@ -3,12 +3,15 @@ import {
   allConfigFromEnv,
   overrideAIConfig,
 } from '@midscene/web/bridge-mode';
+import { PuppeteerAgent } from '@midscene/web/puppeteer';
 import type { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import type {
   CallToolResult,
   ImageContent,
   TextContent,
 } from '@modelcontextprotocol/sdk/types.js';
+import type { Browser, Page } from 'puppeteer';
+import { ensureBrowser } from './puppeteer';
 
 declare global {
   interface Window {
@@ -23,10 +26,12 @@ export class MidsceneManager {
   private consoleLogs: string[] = [];
   private screenshots = new Map<string, string>();
   private server: Server<any, any>; // Add server instance
-  private agent: AgentOverChromeBridge;
+  private agent?: AgentOverChromeBridge | PuppeteerAgent;
+  private page?: Page; // Represents the primary page in puppeteer mode
+  private browser?: Browser; // Store browser instance for puppeteer mode
+  private bridgeMode = process.env.MIDSCENE_USE_BRIDGE_MODE === 'true';
   constructor(server: Server<any, any>) {
     this.server = server;
-    this.agent = new AgentOverChromeBridge();
     const keys = Object.keys(allConfigFromEnv());
     const envOverrides: { [key: string]: string } = {};
     for (const key of keys) {
@@ -38,14 +43,46 @@ export class MidsceneManager {
     overrideAIConfig(envOverrides);
   }
 
+  private async initAgent() {
+    if (this.agent) {
+      return;
+    }
+    if (this.bridgeMode) {
+      this.agent = new AgentOverChromeBridge();
+    } else {
+      // Store the browser instance when using puppeteer
+      const { browser, pages } = await ensureBrowser({});
+      this.browser = browser;
+      this.agent = new PuppeteerAgent(pages[0]);
+      this.page = pages[0];
+      pages[0].on('console', (msg) => {
+        const logEntry = `[${msg.type()}] ${msg.text()}`;
+        this.consoleLogs.push(logEntry);
+        this.server.notification({
+          method: 'notifications/resources/updated',
+          params: { uri: 'console://logs' },
+        });
+      });
+    }
+  }
+
   public async handleToolCall(
     name: string,
     args: any,
   ): Promise<CallToolResult> {
+    await this.initAgent();
+    if (!this.agent) {
+      throw new Error('Agent not initialized');
+    }
     switch (name) {
       case 'midscene_navigate':
-        // await page.goto(args.url);
-        await this.agent.connectNewTabWithUrl(args.url);
+        if (this.bridgeMode) {
+          await (this.agent as AgentOverChromeBridge).connectNewTabWithUrl(
+            args.url,
+          );
+        } else {
+          await (this.agent as PuppeteerAgent).page.navigate(args.url);
+        }
         return {
           content: [
             {
@@ -100,6 +137,32 @@ export class MidsceneManager {
               {
                 type: 'text',
                 text: `Failed to click ${args.selector}: ${(error as Error).message}`,
+              },
+            ],
+            isError: true,
+          };
+        }
+      case 'midscene_scroll':
+        try {
+          await this.agent.aiScroll(args.value, args.selector);
+          const scrollTarget = args.selector
+            ? `element described as "${args.selector}"`
+            : 'the page';
+          return {
+            content: [
+              {
+                type: 'text',
+                text: `Scrolled ${scrollTarget}: ${args.value}`,
+              },
+            ],
+            isError: false,
+          };
+        } catch (error) {
+          return {
+            content: [
+              {
+                type: 'text',
+                text: `Failed to scroll ${args.selector}: ${(error as Error).message}`,
               },
             ],
             isError: true,
@@ -179,27 +242,26 @@ export class MidsceneManager {
 
       case 'midscene_evaluate':
         try {
-          await this.agent.connectCurrentTab();
           await this.agent.page.evaluateJavaScript(`(function() {
-            window.mcpHelper = {
+            window.midsceneMcpHelper = {
               logs: [],
               originalConsole: { ...console },
             };
             ['log', 'info', 'warn', 'error'].forEach((method) => {
               console[method] = (...args) => {
-                window.mcpHelper.logs.push('['+method +']' + args.join(' '));
-                window.mcpHelper.originalConsole[method](...args);
+                window.midsceneMcpHelper.logs.push('['+method +']' + args.join(' '));
+                window.midsceneMcpHelper.originalConsole[method](...args);
               };
             });
-            return window.mcpHelper;
+            return window.midsceneMcpHelper;
           })()`);
 
           const result = await this.agent.page.evaluateJavaScript(args.script);
 
           const logs = await this.agent.page.evaluateJavaScript(`(function() {
-            Object.assign(console, window.mcpHelper.originalConsole);
-            const logs = window.mcpHelper.logs;
-            window.mcpHelper = undefined;
+            Object.assign(console, window.midsceneMcpHelper.originalConsole);
+            const logs = window.midsceneMcpHelper.logs;
+            window.midsceneMcpHelper = undefined;
             return logs;
           })()`);
 
@@ -218,6 +280,57 @@ export class MidsceneManager {
               {
                 type: 'text',
                 text: `Script execution failed: ${(error as Error).message}`,
+              },
+            ],
+            isError: true,
+          };
+        }
+
+      case 'midscene_get_tabs':
+        try {
+          let tabsInfo: { id: string; title: string; url: string }[] = [];
+          if (this.bridgeMode) {
+            // TODO: Implement tab listing for bridge mode
+            // Currently, AgentOverChromeBridge doesn't expose a direct way to list all tabs.
+            // This would likely involve interacting with the underlying Chrome Debugging Protocol
+            // or specific bridge functionalities if they exist.
+            throw new Error(
+              'Listing tabs is not currently supported in bridge mode.',
+            );
+          }
+
+          // If not bridge mode, must be puppeteer mode (and browser should be initialized)
+          if (!this.browser) {
+            throw new Error(
+              'Browser instance not available in Puppeteer mode.',
+            );
+          }
+
+          // Get pages from the stored browser instance in puppeteer mode
+          const currentPages = await this.browser.pages();
+          tabsInfo = await Promise.all(
+            currentPages.map(async (p, index) => ({
+              id: `page-${index}`, // Use index as a simple ID
+              url: p.url(),
+              title: await p.title(),
+            })),
+          );
+
+          return {
+            content: [
+              {
+                type: 'text',
+                text: `Current Tabs:\n${JSON.stringify(tabsInfo, null, 2)}`,
+              },
+            ],
+            isError: false,
+          };
+        } catch (error) {
+          return {
+            content: [
+              {
+                type: 'text',
+                text: `Failed to get tabs: ${(error as Error).message}`,
               },
             ],
             isError: true,
@@ -251,6 +364,6 @@ export class MidsceneManager {
   }
 
   public async closeBrowser(): Promise<void> {
-    await this.agent.destroy();
+    await this.agent?.destroy();
   }
 }
