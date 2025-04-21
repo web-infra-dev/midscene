@@ -163,20 +163,6 @@ export ANTHROPIC_API_KEY="....."
 export MIDSCENE_MODEL_NAME="claude-3-opus-20240229"
 ```
 
-## Example: Using `doubao-vision-pro-32k` from Volcengine
-
-Create a inference point first: https://console.volcengine.com/ark/region:ark+cn-beijing/endpoint
-
-In the inference point interface, find an ID like `ep-202...` as the model name.
-
-Configure the environment variables:
-
-```bash
-export OPENAI_BASE_URL="https://ark.cn-beijing.volces.com/api/v3"
-export OPENAI_API_KEY="..."
-export MIDSCENE_MODEL_NAME="ep-202....."
-```
-
 ## Example: config request headers (like for openrouter)
 
 ```bash
@@ -184,16 +170,6 @@ export OPENAI_BASE_URL="https://openrouter.ai/api/v1"
 export OPENAI_API_KEY="..."
 export MIDSCENE_MODEL_NAME="..."
 export MIDSCENE_OPENAI_INIT_CONFIG_JSON='{"defaultHeaders":{"HTTP-Referer":"...","X-Title":"..."}}'
-```
-
-## Example: Using `gemini-1.5-pro` from Google
-
-Configure the environment variables:
-
-```bash
-export OPENAI_BASE_URL="https://generativelanguage.googleapis.com/v1beta/openai"
-export OPENAI_API_KEY="....."
-export MIDSCENE_MODEL_NAME="gemini-1.5-pro"
 ```
 
 ## Troubleshooting LLM Service Connectivity Issues

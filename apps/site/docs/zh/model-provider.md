@@ -163,31 +163,6 @@ export ANTHROPIC_API_KEY="....."
 export MIDSCENE_MODEL_NAME="claude-3-opus-20240229"
 ```
 
-
-## 示例：使用火山云的豆包 `doubao-vision-pro-32k` 模型
-
-调用前需要配置推理点：https://console.volcengine.com/ark/region:ark+cn-beijing/endpoint
-
-在推理点界面中，寻找一个如 `ep-202...` 形式的 ID 作为模型名称。
-
-配置环境变量：
-
-```bash
-export OPENAI_BASE_URL="https://ark.cn-beijing.volces.com/api/v3"
-export OPENAI_API_KEY="..."
-export MIDSCENE_MODEL_NAME="ep-202....."
-```
-
-## 示例：使用 Google 的 `gemini-1.5-pro` 模型
-
-配置环境变量：
-
-```bash
-export OPENAI_BASE_URL="https://generativelanguage.googleapis.com/v1beta/openai"
-export OPENAI_API_KEY="....."
-export MIDSCENE_MODEL_NAME="gemini-1.5-pro"
-```
-
 ## 调试 LLM 服务连接问题
 
 如果你想要调试 LLM 服务连接问题，可以使用示例项目中的 `connectivity-test` 目录：[https://github.com/web-infra-dev/midscene-example/tree/main/connectivity-test](https://github.com/web-infra-dev/midscene-example/tree/main/connectivity-test)
