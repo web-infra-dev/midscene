@@ -183,7 +183,7 @@ export default defineConfig({
               link: '/zh/integrate-with-puppeteer',
             },
             {
-              text: '使用 Chrome 插件的桥接模式（Bridge Mode）',
+              text: 'Chrome 桥接模式（Bridge Mode）',
               link: '/zh/bridge-mode-by-chrome-extension',
             },
             {
