@@ -26,13 +26,11 @@ Midscene.js allows AI to serve as your web and Android operator 🤖. Simply des
 
 ## Showcases
 
-The following recorded example video is based on the [UI-TARS-1.5-7B](https://huggingface.co/ByteDance-Seed/UI-TARS-1.5-7B) model, and the video has not been sped up at all~
-
 | Instruction  | Video |
 | :---:  | :---: |
-| Post a Tweet      |    <video src="https://github.com/user-attachments/assets/bb3d695a-fbff-4af1-b6cc-5e967c07ccee" height="300" />    |
-| Use JS code to drive task orchestration, collect information about Jay Chou's concert, and write it into Google Docs   | <video src="https://github.com/user-attachments/assets/75474138-f51f-4c54-b3cf-46d61d059999" height="300" />        |
-| Control Maps App on Android    | <video src="https://github.com/user-attachments/assets/1f5bab0e-4c28-44e1-b378-a38809b05a00" height="300" />        |
+| Post a Tweet (By UI-TARS model)      |    <video src="https://github.com/user-attachments/assets/bb3d695a-fbff-4af1-b6cc-5e967c07ccee" height="300" />    |
+| Use JS code to drive task orchestration, collect information about Jay Chou's concert, and write it into Google Docs (By UI-TARS model)   | <video src="https://github.com/user-attachments/assets/75474138-f51f-4c54-b3cf-46d61d059999" height="300" />        |
+| Control Maps App on Android (By Qwen-2.5-VL model)   | <video src="https://github.com/user-attachments/assets/1f5bab0e-4c28-44e1-b378-a38809b05a00" height="300" />        |
 
 ## 📢 2025 Apr: Support Android Automation
 
@@ -44,12 +42,9 @@ Besides the default model *GPT-4o*, we have added two new recommended open-sourc
 
 ## 💡 Features
 - **Natural Language Interaction 👆**: Just describe your goals and steps, and Midscene will plan and operate the user interface for you.
-- **For Web Automation 🖥️**
-  - **Chrome Extension Experience 🖥️**: Start in-browser experience immediately through [the Chrome extension](https://midscenejs.com/quick-experience.html), no coding required.
-  - **Puppeteer/Playwright Integration 🔧**: Supports [Puppeteer](https://midscenejs.com/integrate-with-puppeteer.html) and [Playwright](https://midscenejs.com/integrate-with-playwright.html) integration, allowing you to combine AI capabilities with these powerful automation tools for easy automation.
-- **For Android Automation 📱**
-  - **Android Playground 📱**: Start experience immediately through [the Android playground](https://midscenejs.com/quick-experience-with-android.html), no coding required.
-  - **Integrate with adb 🔧**: Only `adb` is required to achieve this. Read more about it in [Integrate with Android(adb)](https://midscenejs.com/integrate-with-android.html).
+- **UI Automation 🤖**
+  - **Web Automation 🖥️**: Start in-browser experience immediately through [the Chrome extension](https://midscenejs.com/quick-experience.html), or integrate with [Puppeteer](https://midscenejs.com/integrate-with-puppeteer.html) and [Playwright](https://midscenejs.com/integrate-with-playwright.html).
+  - **Android Automation 📱**: Use [the Android playground](https://midscenejs.com/quick-experience-with-android.html) to start experience immediately, or integrate javascript SDK with [adb](https://midscenejs.com/integrate-with-android.html).
 - **Visual Reports for Debugging 🎞️**: Through our test reports and Playground, you can easily understand, replay and debug the entire process.
 - **Support Caching 🔄**: The first time you execute a task through AI, it will be cached, and subsequent executions of the same task will significantly improve execution efficiency.
 - **Completely Open Source 🔥**: Experience a whole new automation development experience, enjoy!
@@ -76,9 +71,9 @@ There are so many UI automation tools out there, and each one seems to be all-po
 
 * [Home Page: https://midscenejs.com](https://midscenejs.com/)
 * Web Browser Automation
-  * [Quick Experience By Chrome Extension](https://midscenejs.com/quick-experience.html), this is where you should get started 
-  * [Automate with Scripts in YAML](https://midscenejs.com/automate-with-scripts-in-yaml.html), use this if you prefer to write YAML file instead of code
-  * [Bridge Mode by Chrome Extension](https://midscenejs.com/bridge-mode-by-chrome-extension.html), use this to control the desktop Chrome by scripts
+  * [Quick Experience By Chrome Extension](https://midscenejs.com/quick-experience.html)
+  * [Automate with Scripts in YAML](https://midscenejs.com/automate-with-scripts-in-yaml.html)
+  * [Bridge Mode by Chrome Extension](https://midscenejs.com/bridge-mode-by-chrome-extension.html)
   * [Integrate with Puppeteer](https://midscenejs.com/integrate-with-puppeteer.html)
   * [Integrate with Playwright](https://midscenejs.com/integrate-with-playwright.html)
 * Android Automation
