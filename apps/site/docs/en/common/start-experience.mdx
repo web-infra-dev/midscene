@@ -2,11 +2,33 @@
 
 After the configuration, you can immediately experience Midscene. There are three main tabs in the extension:
 
-- **Action**: use action to interact with the web page, like "type Midscene in the search box" or "click the login button".
-- **Query**: use query to extract JSON data from the web page, like "extract the user id from the page, return in \{ id: string \}".
-- **Assert**: use assert to validate the web page, like "the page title is "Midscene"".
+- **Action**: interact with the web page. This is also known as "Auto Planning". For example:
+```
+type Midscene in the search box
+click the login button
+```
+
+- **Query**: extract JSON data from the web page
+
+```
+extract the user id from the page, return in \{ id: string \}
+```
+
+- **Assert**: validate the page
+
+```
+the page title is "Midscene"
+```
+
+- **Tap**: perform a single tap on the element where you want to click. This is also known as "Instant Action". 
+
+```
+the login button
+```
 
 Enjoy !
+
+> For the different between "Auto Planning" and "Instant Action", please refer to the [API](./API.html) document.
 
 ## Want to write some code ?
 

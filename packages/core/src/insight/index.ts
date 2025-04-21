@@ -1,4 +1,4 @@
-import { callAiFn, expandSearchArea } from '@/ai-model/common';
+import { callAiFn } from '@/ai-model/common';
 import { AiExtractElementInfo, AiLocateElement } from '@/ai-model/index';
 import { AiAssert, AiLocateSection } from '@/ai-model/inspect';
 import {
@@ -100,7 +100,7 @@ export default class Insight<
 
     if (searchAreaPrompt && !vlLocateMode()) {
       console.warn(
-        'The "deepThink" feature is not supported with general purposed LLM. Please config VL model for Midscene. https://midscenejs.com/choose-a-model',
+        'The "deepThink" feature is not supported with multimodal LLM. Please config VL model for Midscene. https://midscenejs.com/choose-a-model',
       );
       searchAreaPrompt = undefined;
     }
