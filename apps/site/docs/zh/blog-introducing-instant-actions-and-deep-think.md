@@ -10,7 +10,7 @@
 await agent.ai('在搜索框中输入 "Headphones"，按下回车键');
 ```
 
-在接口的背后，Midscene 会调用 LLM 来规划步骤并执行它们。你可以在报告中看到整个过程。这是一个非常常见的 AI Agent运行模式。
+在接口的背后，Midscene 会调用 LLM 来规划步骤并执行它们。你可以在报告中看到整个过程。这是一个非常常见的 AI Agent 运行模式。
 
 ![](/blog/report-planning.png)
 

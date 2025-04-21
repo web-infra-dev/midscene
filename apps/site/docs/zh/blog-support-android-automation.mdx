@@ -1,0 +1,143 @@
+# 支持 Android 自动化
+
+我们很高兴地宣布：从 Midscene v0.15.0 开始，我们开始支持 Android 自动化！
+
+## Demo
+
+这里有一些 Demo，展示了 Midscene 驱动下的 Android 自动化：
+
+### 地图导航到景点
+
+<video src="https://lf3-static.bytednsdoc.com/obj/eden-cn/nupipfups/Midscene/android-maps.mp4" controls/>
+
+### Twitter 自动点赞
+
+<video src="https://lf3-static.bytednsdoc.com/obj/eden-cn/nupipfups/Midscene/android-twitter.mp4" controls/>
+
+## 适配所有的应用
+
+对于我们的开发者来说，你只需要 adb 和一个视觉语言（visual language, VL）模型服务。所有的准备工作就做好了！
+
+在运行期，我们利用 VL 模型的视觉定位能力来定位屏幕上的目标元素。因此，无论是原生 App 还是 Hybrid App 中的 webview，它都无关紧要。开发者可以编写自动化脚本，而无需担心 App 本身的技术栈。
+
+## 引入 Midscene 的全部特性
+
+当使用 Midscene 进行 Web 自动化时，我们的用户喜欢使用我们的 Playground 和运行报告能力。现在，我们已经将这些特性引入到 Android 自动化中！
+
+### 使用 Playground 来试用 Android 自动化，而不需要写任何代码
+
+<video src="https://lf3-static.bytednsdoc.com/obj/eden-cn/nupipfups/Midscene/android-playground-lark-en.mp4" poster="/blog/android-playground-lark-poster-en.png" controls/>
+
+### 使用报告重放整个过程
+
+<video src="https://lf3-static.bytednsdoc.com/obj/eden-cn/nupipfups/Midscene/android-ebay.mp4" controls/>
+
+### 使用 YAML 文件编写自动化脚本
+
+```yaml 
+# search headphone on ebay, extract the items info into a json file, and assert the shopping cart icon
+
+android:
+  deviceId: s4ey59ytbitot4yp
+
+tasks:
+  - name: search headphones
+    flow:
+      - aiAction: open browser and navigate to ebay.com
+      - aiAction: type 'Headphones' in ebay search box, hit Enter
+      - sleep: 5000
+      - aiAction: scroll down the page for 800px
+
+  - name: extract headphones info
+    flow:
+      - aiQuery: >
+          {name: string, price: number, subTitle: string}[], return item name, price and the subTitle on the lower right corner of each item
+        name: headphones
+
+  - name: assert Filter button
+    flow:
+      - aiAssert: There is a Filter button on the page
+```
+
+### 使用 JavaScript SDK 来编写自动化脚本
+
+```ts 
+import { AndroidAgent, AndroidDevice, getConnectedDevices } from '@midscene/android';
+import "dotenv/config"; // read environment variables from .env file
+
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+Promise.resolve(
+  (async () => {
+    const devices = await getConnectedDevices();
+    const page = new AndroidDevice(devices[0].udid);
+
+    // 👀 init Midscene agent
+    const agent = new AndroidAgent(page,{
+      aiActionContext:
+        'If any location, permission, user agreement, etc. popup, click agree. If login page pops up, close it.',
+    });
+    await page.connect();
+    await page.launch('https://www.ebay.com');
+
+    await sleep(5000);
+
+    // 👀 type keywords, perform a search
+    await agent.aiAction('type "Headphones" in search box, hit Enter');
+
+    // 👀 wait for the loading
+    await agent.aiWaitFor("there is at least one headphone item on page");
+    // or you may use a plain sleep:
+    // await sleep(5000);
+
+    // 👀 understand the page content, find the items
+    const items = await agent.aiQuery(
+      "{itemTitle: string, price: Number}[], find item in list and corresponding price"
+    );
+    console.log("headphones in stock", items);
+
+    // 👀 assert by AI
+    await agent.aiAssert("There is a category filter on the left");
+  })()
+);
+
+```
+
+### 使用两种风格的 API 来执行交互
+
+自动规划（Auto-planning）风格：
+
+```javascript
+await agent.ai('input "Headphones" in search box, hit Enter');
+```
+
+即时操作（Instant Actions）风格：
+
+```javascript
+await agent.aiInput('Headphones', 'search box');
+await agent.aiKeyboardPress('Enter');
+```
+
+### 示例项目
+
+我们为 JavaScript SDK 准备了一个示例项目：
+
+[JavaScript 示例项目](https://github.com/web-infra-dev/midscene-example/blob/main/android-demo/README.md)
+
+如果你想要使用自动化进行测试，你可以使用 JavaScript 和 vitest。我们为你准备了一个示例项目，来看看它是如何工作的：
+
+[Vitest demo project](https://github.com/web-infra-dev/midscene-example/blob/main/android-with-vitest-demo/README.md)
+
+## 限制
+
+1. 无法使用元素定位的缓存功能。由于没有收集视图树，我们无法缓存元素标识符并重用它。
+2. 目前只支持一些已知的 VL 模型。如果你想要引入其他 VL 模型，请让我们知道。
+3. 运行性能还不够好。我们还在努力改进它。
+4. VL 模型在 `.aiQuery` 和 `.aiAssert` 中表现不佳。我们将在未来提供一种方法来切换模型以适应不同的任务。
+
+## 致谢
+
+我们想要感谢以下项目：
+
+- [scrcpy](https://github.com/Genymobile/scrcpy) 和 [yume-chan](https://github.com/yume-chan) 允许我们使用浏览器控制 Android 设备。
+- [appium-adb](https://github.com/appium/appium-adb) 为 adb 提供了 javascript 桥接。
+- [YADB](https://github.com/ysbing/YADB) 为文本输入提供了性能提升。

@@ -1,0 +1,145 @@
+# Support Android Automation
+
+From Midscene v0.15.0, we are happy to announce the support for Android automation!
+
+## Demos first
+
+Here are some demos to show you the power of the automation:
+
+### Maps navigation to attraction
+
+<video src="https://lf3-static.bytednsdoc.com/obj/eden-cn/nupipfups/Midscene/android-maps.mp4" controls/>
+
+### Twitter auto-like
+
+<video src="https://lf3-static.bytednsdoc.com/obj/eden-cn/nupipfups/Midscene/android-twitter.mp4" controls/>
+
+
+## Suitable for ALL apps
+
+For our developers, all you need is the adb connection and a visual-language model (vl-model) service. Everything is ready!
+
+Behind the scenes, we utilize the visual grounding capabilities of vl-model to locate target elements on the screen. So, regardless of whether it's a native app or a hybrid app with a webview, it makes no difference. Developers can write automation scripts without the burden of worrying about the technology stack of the app.
+
+## With ALL the power of Midscene
+
+When using Midscene to do web automation, our users loves the tools like playgrounds and reports. Now, we bring the same power to Android automation!
+
+### Use the playground to run automation without any code
+
+<video src="https://lf3-static.bytednsdoc.com/obj/eden-cn/nupipfups/Midscene/android-playground-lark-en.mp4" poster="/blog/android-playground-lark-poster-en.png" controls/>
+
+### Use the report to replay the whole process
+
+<video src="https://lf3-static.bytednsdoc.com/obj/eden-cn/nupipfups/Midscene/android-ebay.mp4" controls/>
+
+### Write the automation scripts by yaml file
+
+```yaml 
+# search headphone on ebay, extract the items info into a json file, and assert the shopping cart icon
+
+android:
+  deviceId: s4ey59ytbitot4yp
+
+tasks:
+  - name: search headphones
+    flow:
+      - aiAction: open browser and navigate to ebay.com
+      - aiAction: type 'Headphones' in ebay search box, hit Enter
+      - sleep: 5000
+      - aiAction: scroll down the page for 800px
+
+  - name: extract headphones info
+    flow:
+      - aiQuery: >
+          {name: string, price: number, subTitle: string}[], return item name, price and the subTitle on the lower right corner of each item
+        name: headphones
+
+  - name: assert Filter button
+    flow:
+      - aiAssert: There is a Filter button on the page
+```
+
+### Use the javascript SDK
+
+```ts 
+import { AndroidAgent, AndroidDevice, getConnectedDevices } from '@midscene/android';
+import "dotenv/config"; // read environment variables from .env file
+
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+Promise.resolve(
+  (async () => {
+    const devices = await getConnectedDevices();
+    const page = new AndroidDevice(devices[0].udid);
+
+    // 👀 init Midscene agent
+    const agent = new AndroidAgent(page,{
+      aiActionContext:
+        'If any location, permission, user agreement, etc. popup, click agree. If login page pops up, close it.',
+    });
+    await page.connect();
+    await page.launch('https://www.ebay.com');
+
+    await sleep(5000);
+
+    // 👀 type keywords, perform a search
+    await agent.aiAction('type "Headphones" in search box, hit Enter');
+
+    // 👀 wait for the loading
+    await agent.aiWaitFor("there is at least one headphone item on page");
+    // or you may use a plain sleep:
+    // await sleep(5000);
+
+    // 👀 understand the page content, find the items
+    const items = await agent.aiQuery(
+      "{itemTitle: string, price: Number}[], find item in list and corresponding price"
+    );
+    console.log("headphones in stock", items);
+
+    // 👀 assert by AI
+    await agent.aiAssert("There is a category filter on the left");
+  })()
+);
+
+```
+
+### Two style APIs to do interaction
+
+The auto-planning style:
+
+```javascript
+await agent.ai('input "Headphones" in search box, hit Enter');
+```
+
+The instant action style:
+
+```javascript
+await agent.aiInput('Headphones', 'search box');
+await agent.aiKeyboardPress('Enter');
+```
+
+### Demo projects
+
+We have prepared a demo project for javascript SDK:
+
+[JavaScript demo project](https://github.com/web-infra-dev/midscene-example/blob/main/android-demo/README.md)
+
+If you want to use the automation for testing purpose, you can use the javascript with vitest. We have setup a demo project for you to see how it works:
+
+[Vitest demo project](https://github.com/web-infra-dev/midscene-example/blob/main/android-with-vitest-demo/README.md)
+
+## Limitations
+
+1. Caching feature for element locator is not supported. Since no view-hierarchy is collected, we cannot cache the element identifier and reuse it.
+2. LLMs like gpt-4o or deepseek are not supported. Only some known vl models with visual grounding ability are supported for now. If you want to introduce other vl models, please let us know.
+3. The performance is not good enough for now. We are still working on it.
+4. The vl model may not perform well on `.aiQuery` and `.aiAssert`. We will give a way to switch model for different kinds of tasks.
+
+## Credits
+
+We would like to thank the following projects:
+
+- [scrcpy](https://github.com/Genymobile/scrcpy) and [yume-chan](https://github.com/yume-chan) allow us to control Android devices with browser.
+- [appium-adb](https://github.com/appium/appium-adb) for the javascript bridge of adb.
+- [YADB](https://github.com/ysbing/YADB) for the yadb tool which improves the performance of text input.
+
