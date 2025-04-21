@@ -114,6 +114,19 @@ export AZURE_OPENAI_API_VERSION="2024-05-01-preview"
 export AZURE_OPENAI_DEPLOYMENT="gpt-4o"
 ```
 
+## 使用 Javascript 配置 AI 服务
+
+你也可以在运行 Midscene 代码之前，使用 Javascript 来配置 AI 服务。
+
+```typescript
+import { overrideAIConfig } from "@midscene/core/env";
+
+overrideAIConfig({
+  MIDSCENE_MODEL_NAME: "...",
+  // ...
+});
+```
+
 ## 示例：使用 OpenAI 的 `gpt-4o` 模型
 
 配置环境变量：
