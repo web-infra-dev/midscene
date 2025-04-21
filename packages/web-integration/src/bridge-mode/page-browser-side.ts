@@ -46,6 +46,14 @@ export class ExtensionBridgePageBrowserSide extends ChromeExtensionProxyPage {
           );
         }
 
+        if (method === BridgeEvent.GetBrowserTabList) {
+          return this.getBrowserTabList.apply(this, args as any);
+        }
+
+        if (method === BridgeEvent.SetActiveTabId) {
+          return this.setActiveTabId.apply(this, args as any);
+        }
+
         if (method === BridgeEvent.ConnectCurrentTab) {
           return this.connectCurrentTab.apply(this, args as any);
         }

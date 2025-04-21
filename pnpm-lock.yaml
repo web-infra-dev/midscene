@@ -518,6 +518,9 @@ importers:
 
   packages/mcp:
     dependencies:
+      '@midscene/core':
+        specifier: workspace:*
+        version: link:../core
       '@midscene/shared':
         specifier: workspace:*
         version: link:../shared

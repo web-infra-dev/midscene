@@ -4,14 +4,16 @@ import type { Tool } from '@modelcontextprotocol/sdk/types.js';
 export const TOOLS: Tool[] = [
   {
     name: 'midscene_navigate',
-    description: 'Navigate to a URL',
+    description:
+      'Navigate the current tab to a URL or open a URL in a new tab.',
     inputSchema: {
       type: 'object',
       properties: {
         url: { type: 'string', description: 'URL to navigate to' },
         openNewTab: {
           type: 'boolean',
-          description: 'Open the URL in a new tab',
+          description:
+            'Optional. If true, open the URL in a new tab. Defaults to false (navigate current tab).',
         },
         launchOptions: {
           type: 'object',
@@ -28,14 +30,28 @@ export const TOOLS: Tool[] = [
     },
   },
   {
-    name: 'midscene_screenshot',
-    description: 'Take a screenshot of the current page or a specific element',
+    name: 'midscene_get_tabs',
+    description:
+      'Get a list of currently open browser tabs, each including its ID, title, and URL.',
+    inputSchema: {
+      type: 'object',
+      properties: {},
+      required: [],
+    },
+  },
+  {
+    name: 'midscene_set_active_tab',
+    description: 'Set the active tab to the tab with the given ID.',
     inputSchema: {
       type: 'object',
       properties: {
-        name: { type: 'string', description: 'Name for the screenshot' },
+        tabId: {
+          type: 'string',
+          description:
+            'ID of the tab to set as active. Obtain the ID from the `midscene_get_tabs` tool.',
+        },
       },
-      required: ['name'],
+      required: ['tabId'],
     },
   },
   {
@@ -51,6 +67,17 @@ export const TOOLS: Tool[] = [
         },
       },
       required: ['goal'],
+    },
+  },
+  {
+    name: 'midscene_screenshot',
+    description: 'Take a screenshot of the current page or a specific element',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        name: { type: 'string', description: 'Name for the screenshot' },
+      },
+      required: ['name'],
     },
   },
   {
@@ -132,16 +159,6 @@ export const TOOLS: Tool[] = [
         script: { type: 'string', description: 'JavaScript code to execute' },
       },
       required: ['script'],
-    },
-  },
-  {
-    name: 'midscene_get_tabs',
-    description:
-      'Get a list of currently open browser tabs with their IDs and titles/URLs.',
-    inputSchema: {
-      type: 'object',
-      properties: {},
-      required: [],
     },
   },
 ];
