@@ -1,3 +1,5 @@
+import SetupEnv from './common/setup-env.mdx';
+
 # Bridge Mode by Chrome Extension
 
 import { PackageManagerTabs } from '@theme';
@@ -12,22 +14,19 @@ Using the desktop version of Chrome allows you to reuse all cookies, plugins, pa
 you can check the demo project of bridge mode here: [https://github.com/web-infra-dev/midscene-example/blob/main/bridge-mode-demo](https://github.com/web-infra-dev/midscene-example/blob/main/bridge-mode-demo)
 :::
 
-## Preparation
+<SetupEnv />
 
-1. Config the OpenAI API key, or [Choose a model](./choose-a-model)
+> In bridge mode, the AI models configs should be set in the Node.js side instead of the browser side.
 
-```bash
-# replace with your own
-export OPENAI_API_KEY="sk-abcdefghijklmnopqrstuvwxyz"
-```
+## Step 1. Install Midscene extension from Chrome web store
 
-2. Install [Midscene extension from Chrome web store](https://chromewebstore.google.com/detail/midscene/gbldofcpkknbggpkmbdaefngejllnief)
+Install [Midscene extension from Chrome web store](https://chromewebstore.google.com/detail/midscene/gbldofcpkknbggpkmbdaefngejllnief)
 
-## Step 1. install dependencies
+## Step 2. install dependencies
 
 <PackageManagerTabs command="install @midscene/web tsx --save-dev" />
 
-## Step 2. write scripts
+## Step 3. write scripts
 
 Write and save the following code as `./demo-new-tab.ts`.
 
@@ -53,7 +52,7 @@ Promise.resolve(
 );
 ```
 
-## Step 3. start the chrome extension
+## Step 4. start the chrome extension
 
 Start the chrome extension and switch to 'Bridge Mode' tab. Click "Allow connection".
 
@@ -61,7 +60,7 @@ Start the chrome extension and switch to 'Bridge Mode' tab. Click "Allow connect
   <img src="/bridge_in_extension.jpg" alt="bridge in extension" width="400"/>
 </p>
 
-## Step 4. run the script
+## Step 5. run the script
 
 Run your scripts
 
