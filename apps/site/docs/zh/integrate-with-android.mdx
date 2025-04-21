@@ -1,72 +1,22 @@
+import PrepareAndroid from './common/prepare-android.mdx';
+import SetupEnv from './common/setup-env.mdx';
+
 # 与 Android(adb) 集成
 
-Midscene 支持使用视觉语言（VL）模型来控制 Android 设备。
+在使用 adb 连接 Android 设备后，你可以使用 Midscene javascript SDK 来控制 Android 设备。
 
 import { PackageManagerTabs } from '@theme';
 
 :::info 样例项目
-你可以在这里看到向 Android 集成的样例项目：[https://github.com/web-infra-dev/midscene-example/blob/main/android-demo](https://github.com/web-infra-dev/midscene-example/blob/main/android-demo)
+你可以在这里看到向 Android 集成的样例项目：[https://github.com/web-infra-dev/midscene-example/blob/main/android/javascript-sdk-demo](https://github.com/web-infra-dev/midscene-example/blob/main/android/javascript-sdk-demo)
 
-这里还有一个 Android 和 Vitest 结合的样例项目：[https://github.com/web-infra-dev/midscene-example/tree/main/android-with-vitest-demo](https://github.com/web-infra-dev/midscene-example/tree/main/android-with-vitest-demo)
+这里还有一个 Android 和 Vitest 结合的样例项目：[https://github.com/web-infra-dev/midscene-example/tree/main/android/vitest-demo](https://github.com/web-infra-dev/midscene-example/tree/main/android/vitest-demo)
 :::
 
-## 准备工作
+<PrepareAndroid />
 
-### 配置 API Key
+<SetupEnv />
 
-配置 VL 模型的 API Key。如果使用 qwen-2.5-vl，可以配置如下：
-
-```bash
-OPENAI_BASE_URL="https://dashscope.aliyuncs.com/compatible-mode/v1"
-OPENAI_API_KEY="......"
-MIDSCENE_MODEL_NAME="qwen-vl-max-latest"
-MIDSCENE_USE_QWEN_VL=1
-```
-
-控制 Android 设备时，你只能使用 VL 模型。更多详情请参考 [选择模型](./choose-a-model)。
-
-### 准备 adb 环境
-
-`adb` 是一个命令行工具，允许你与 Android 设备通信。
-
-- 方式一：使用 [Android Studio](https://developer.android.com/studio?hl=zh-cn) 安装
-- 方式二：使用 [Android command-line tools](https://developer.android.com/studio#command-line-tools-only) 安装
-
-验证 adb 是否安装成功：
-
-```bash
-adb --version
-```
-
-当你看到如下输出，说明 adb 已经安装成功：
-
-```log
-Android Debug Bridge version 1.0.41
-Version 34.0.4-10411341
-Installed as /usr/local/bin//adb
-Running on Darwin 24.3.0 (arm64)
-```
-
-### 使用 adb 连接 Android 设备
-
-在系统设置的开发者选项中，开启安卓设备的『USB 调试』，如果存在『USB 调试（安全设置）』，也需要开启，接着使用数据线连接一台安卓设备
-
-<p align="center">
-  <img src="/android-usb-debug.png" alt="android usb debug" width="400"/>
-</p>
-
-通过下面命令确认已经连接：
-
-```bash
-adb devices -l
-```
-
-当你看到如下输出，说明连接成功：
-
-```log
-List of devices attached
-s4ey59	device usb:34603008X product:cezanne model:M2006J device:cezan transport_id:3
-```
 
 ## 第一步：安装依赖
 
@@ -256,7 +206,3 @@ const agent = await agentFromAdbDevice(devices[0].udid);
 <p align="center">
   <img src="/android-usb-debug.png" alt="android usb debug" width="400"/>
 </p>
-
-### 为什么我连接了设备，但是通过 `adb devices -l` 命令看不到设备？
-
-[连接设备](./integrate-with-android#使用-adb-连接-android-设备) 时，请确保设备处于解锁状态。
