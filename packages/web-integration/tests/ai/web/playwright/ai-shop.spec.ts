@@ -13,14 +13,14 @@ test('ai shop', async ({
   aiAssert,
   aiQuery,
   aiTap,
-  generateMidsceneAgent,
+  agentForPage,
   page,
 }) => {
   if (CACHE_TIME_OUT) {
     test.setTimeout(1000 * 1000);
   }
   // login
-  const agent = await generateMidsceneAgent(page);
+  const agent = await agentForPage(page);
   await aiInput('standard_user', 'in user name input');
   await aiInput('secret_sauce', 'in password input');
   await agent.aiTap('Login Button');
