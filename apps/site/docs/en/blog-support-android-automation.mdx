@@ -1,16 +1,20 @@
 # Support Android Automation
 
-From Midscene v0.15.0, we are happy to announce the support for Android automation!
+From Midscene v0.15, we are happy to announce the support for Android automation. The era for AI-driven Android automation is here!
 
-## Demos first
+## Showcases
 
 Here are some demos to show you the power of the automation:
 
-### Maps navigation to attraction
+### Navigation to attraction
+
+Open Maps, search for a destination, and navigate to it.
 
 <video src="https://lf3-static.bytednsdoc.com/obj/eden-cn/nupipfups/Midscene/android-maps.mp4" controls/>
 
-### Twitter auto-like
+### Auto-like tweets
+
+Open Twitter, auto-like the first tweet by [@midscene_ai](https://x.com/midscene_ai).
 
 <video src="https://lf3-static.bytednsdoc.com/obj/eden-cn/nupipfups/Midscene/android-twitter.mp4" controls/>
 
@@ -35,11 +39,13 @@ When using Midscene to do web automation, our users loves the tools like playgro
 
 ### Write the automation scripts by yaml file
 
+Connect to the device, open ebay.com, and get some items info.
+
 ```yaml 
 # search headphone on ebay, extract the items info into a json file, and assert the shopping cart icon
 
 android:
-  deviceId: s4ey59ytbitot4yp
+  deviceId: s4ey59
 
 tasks:
   - name: search headphones
@@ -61,6 +67,8 @@ tasks:
 ```
 
 ### Use the javascript SDK
+
+Use the javascript SDK to do the automation by code.
 
 ```ts 
 import { AndroidAgent, AndroidDevice, getConnectedDevices } from '@midscene/android';
@@ -118,7 +126,7 @@ await agent.aiInput('Headphones', 'search box');
 await agent.aiKeyboardPress('Enter');
 ```
 
-### Demo projects
+## Demo projects
 
 We have prepared a demo project for javascript SDK:
 
@@ -138,6 +146,7 @@ You can also write the automation scripts by yaml file:
 2. LLMs like gpt-4o or deepseek are not supported. Only some known vl models with visual grounding ability are supported for now. If you want to introduce other vl models, please let us know.
 3. The performance is not good enough for now. We are still working on it.
 4. The vl model may not perform well on `.aiQuery` and `.aiAssert`. We will give a way to switch model for different kinds of tasks.
+5. Due to some security restrictions, you may got a blank screenshot for the password input and Midscene will not be able to work for that.
 
 ## Credits
 

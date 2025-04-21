@@ -123,7 +123,7 @@ function launch(uri: string): Promise<void>;
 ```typescript
 import { AndroidAgent, AndroidDevice } from '@midscene/android';
 
-const page = new AndroidDevice('s4ey59ytbitot4yp');
+const page = new AndroidDevice('s4ey59');
 const agent = new AndroidAgent(page);
 
 await agent.launch('https://www.ebay.com'); // 打开网页
@@ -153,7 +153,7 @@ function agentFromAdbDevice(deviceId?: string, opts?: PageAgentOpt): Promise<And
 ```typescript
 import { agentFromAdbDevice } from '@midscene/android';
 
-const agent = await agentFromAdbDevice('s4ey59ytbitot4yp'); // 传入 deviceId
+const agent = await agentFromAdbDevice('s4ey59'); // 传入 deviceId
 const agent = await agentFromAdbDevice(); // 不传入 deviceId，则使用第一个连接的设备
 ```
 

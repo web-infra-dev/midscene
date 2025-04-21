@@ -1,10 +1,10 @@
 # 支持 Android 自动化
 
-我们很高兴地宣布：从 Midscene v0.15.0 开始，我们开始支持 Android 自动化！
+我们很高兴地宣布：从 Midscene v0.15 开始，我们开始支持 Android 自动化。AI 驱动的 Android 自动化时代已经到来！
 
-## Demo
+## 案例展示
 
-这里有一些 Demo，展示了 Midscene 驱动下的 Android 自动化：
+这里有一些案例，展示了 Midscene 驱动下的 Android 自动化：
 
 ### 地图导航到景点
 
@@ -38,7 +38,7 @@
 # search headphone on ebay, extract the items info into a json file, and assert the shopping cart icon
 
 android:
-  deviceId: s4ey59ytbitot4yp
+  deviceId: s4ey59
 
 tasks:
   - name: search headphones
@@ -137,6 +137,7 @@ await agent.aiKeyboardPress('Enter');
 2. 目前只支持一些已知的 VL 模型。如果你想要引入其他 VL 模型，请让我们知道。
 3. 运行性能还不够好。我们还在努力改进它。
 4. VL 模型在 `.aiQuery` 和 `.aiAssert` 中表现不佳。我们将在未来提供一种方法来切换模型以适应不同的任务。
+5. 由于某些安全限制，你可能会在密码输入时得到一个空白截图，Midscene 此时将无法工作。
 
 ## 致谢
 
