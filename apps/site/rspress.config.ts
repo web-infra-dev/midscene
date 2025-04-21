@@ -87,19 +87,19 @@ export default defineConfig({
             },
           ],
         },
-        // {
-        //   text: 'Android Automation',
-        //   items: [
-        //     {
-        //       text: 'Quick Experience',
-        //       link: '/quick-experience-with-android',
-        //     },
-        //     {
-        //       text: 'Integrate with Android(adb)',
-        //       link: '/integrate-with-android',
-        //     },
-        //   ],
-        // },
+        {
+          text: 'Android Automation',
+          items: [
+            {
+              text: 'Quick Experience by Android Playground',
+              link: '/quick-experience-with-android',
+            },
+            {
+              text: 'Integrate with Android(adb)',
+              link: '/integrate-with-android',
+            },
+          ],
+        },
         {
           text: 'API and Usage',
           items: [
@@ -146,6 +146,10 @@ export default defineConfig({
         {
           text: 'Blog',
           items: [
+            // {
+            //   text: 'Support Android Automation',
+            //   link: '/blog-support-android-automation',
+            // },
             {
               text: 'Introducing Instant Actions and Deep Think',
               link: '/blog-introducing-instant-actions-and-deep-think',
@@ -188,19 +192,19 @@ export default defineConfig({
             },
           ],
         },
-        // {
-        //   text: 'Android 自动化',
-        //   items: [
-        //     {
-        //       text: '快速体验',
-        //       link: '/zh/quick-experience-with-android',
-        //     },
-        //     {
-        //       text: '与 Android(adb) 集成',
-        //       link: '/zh/integrate-with-android',
-        //     },
-        //   ],
-        // },
+        {
+          text: 'Android 自动化',
+          items: [
+            {
+              text: '使用 Android Playground 快速体验',
+              link: '/zh/quick-experience-with-android',
+            },
+            {
+              text: '与 Android(adb) 集成',
+              link: '/zh/integrate-with-android',
+            },
+          ],
+        },
         {
           text: 'API 和用法',
           items: [
@@ -247,6 +251,10 @@ export default defineConfig({
         {
           text: 'Blog',
           items: [
+            // {
+            //   text: '支持 Android 自动化',
+            //   link: '/zh/blog-support-android-automation',
+            // },
             {
               text: '即时操作和深度思考',
               link: '/zh/blog-introducing-instant-actions-and-deep-think',
