@@ -1,3 +1,5 @@
+import SetupEnv from './common/setup-env.mdx';
+
 # Automate with Scripts in YAML
 
 In most cases, developers write automation just to perform some smoke tests, like checking the appearance of some content, or verifying that the key user path is accessible. Maintaining a large test project is unnecessary in this situation.
@@ -7,7 +9,7 @@ In most cases, developers write automation just to perform some smoke tests, lik
 Here is an example of `.yaml` script, you may have already understood how it works by reading its content.
 
 ```yaml
-target:
+web:
   url: https://www.bing.com
 
 tasks:
@@ -22,27 +24,23 @@ tasks:
 ```
 
 :::info Demo Project
-You can find the demo project with YAML scripts [https://github.com/web-infra-dev/midscene-example/tree/main/yaml-scripts-demo](https://github.com/web-infra-dev/midscene-example/tree/main/yaml-scripts-demo)
+
+You can find the demo project with YAML scripts
+[https://github.com/web-infra-dev/midscene-example/tree/main/yaml-scripts-demo](https://github.com/web-infra-dev/midscene-example/tree/main/yaml-scripts-demo)
+- [Web](https://github.com/web-infra-dev/midscene-example/tree/main/yaml-scripts-demo)
+- [Android](https://github.com/web-infra-dev/midscene-example/tree/main/android/yaml-scripts-demo)
+
 :::
 
-## Preparation
+<SetupEnv />
 
-Config the OpenAI API key in the environment variable
-
-```bash
-# replace with your own
-export OPENAI_API_KEY="sk-abcdefghijklmnopqrstuvwxyz"
-```
-
-or you can use a `.env` file to store the configuration, Midscene command line tool will automatically load it when running yaml scripts.
+or you can use a `.env` file locate at the same directory as you run the command to store the configuration, Midscene command line tool will automatically load it.
 
 ```env filename=.env
 OPENAI_API_KEY="sk-abcdefghijklmnopqrstuvwxyz"
 ```
 
-For more details about model and provider, see [config model and provider](./model-provider)
-
-## Start
+## Install Command Line Tool
 
 Install `@midscene/cli` globally
 
@@ -52,15 +50,31 @@ npm i -g @midscene/cli
 npm i @midscene/cli --save-dev
 ```
 
-Write a yaml file to `bing-search.yaml`
+Write a yaml file to `bing-search.yaml` to automate in web browser :
 
 ```yaml
-target:
+web:
   url: https://www.bing.com
 
 tasks:
   - name: search weather
     flow:
+      - ai: search for 'weather today'
+      - sleep: 3000
+      - aiAssert: the result shows the weather info
+```
+
+or to automate in Android device connected by adb :
+
+```yaml
+android:
+  # launch: https://www.bing.com
+  deviceId: s4ey59
+
+tasks:
+  - name: search weather
+    flow:
+      - ai: open browser and navigate to bing.com
       - ai: search for 'weather today'
       - sleep: 3000
       - aiAssert: the result shows the weather info
@@ -93,32 +107,16 @@ midscene /dir/of/yaml/
 midscene /dir/**/yaml/
 ```
 
-### Debug in headed mode
-
-'headed mode' means the browser will be visible. The default behavior is to run in headless mode.
-
-To turn on headed mode, you can use `--headed` option. Besides, if you want to keep the browser window open after the script finishes, you can use `--keep-window` option. `--keep-window` implies `--headed`.
-
-When running in headed mode, it will consume more resources, so we recommend you to use it locally only when needed.
-
-```bash
-# run in headed mode
-midscene /path/to/yaml --headed
-
-# run in headed mode and keep the browser window open after the script finishes
-midscene /path/to/yaml --keep-window
-```
-
 ## YAML file schema
 
-There are two parts in a `.yaml` file, the `target` and the `tasks`.
+There are two parts in a `.yaml` file, the `web/android` and the `tasks`.
 
-### `target` part
+The `web/android` part defines the basic of a task. Use `web` parameter (also previously named as `target`) for web browser automation, and use `android` parameter for Android device automation. They are mutually exclusive.
 
-The `target` part defines the basic of a task
+### The `web` part
 
 ```yaml
-target:
+web:
   # The URL to visit, required. If `serve` is provided, provide the path to the file to visit
   url: <url>
 
@@ -166,7 +164,18 @@ target:
   aiActionContext: <string>
 ```
 
-### `tasks` part
+### The `android` part
+
+```yaml
+android:
+  # The device id to use, optional, default is the first connected device
+  deviceId: <device-id>
+
+  # The url to launch, optional, default is the current page
+  launch: <url>
+```
+
+### The `tasks` part
 
 The `tasks` part is an array indicates the tasks to do. Remember to write a `-` before each item which means an array item.
 
@@ -265,14 +274,31 @@ You can use the environment variable in the `.yaml` file like this:
 #...
 ```
 
-### Use bridge mode
+### Debug in headed mode
+> `web` scenario only
 
+'headed mode' means the browser will be visible. The default behavior is to run in headless mode.
+
+To turn on headed mode, you can use `--headed` option. Besides, if you want to keep the browser window open after the script finishes, you can use `--keep-window` option. `--keep-window` implies `--headed`.
+
+When running in headed mode, it will consume more resources, so we recommend you to use it locally only when needed.
+
+```bash
+# run in headed mode
+midscene /path/to/yaml --headed
+
+# run in headed mode and keep the browser window open after the script finishes
+midscene /path/to/yaml --keep-window
+```
+
+### Use bridge mode
+> `web` scenario only
 By using bridge mode, you can utilize YAML scripts to automate the web browser on your desktop. This is particularly useful if you want to reuse cookies, plugins, and page states, or if you want to manually interact with automation scripts.
 
 To use bridge mode, you should install the Chrome extension first, and use this configuration in the `target` section:
 
 ```diff
-target:
+web:
   url: https://www.bing.com
 + bridgeMode: newTabWithUrl
 ```

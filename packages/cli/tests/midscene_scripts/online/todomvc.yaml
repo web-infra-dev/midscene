@@ -3,7 +3,7 @@ target:
 
 # android:
 #   launch: https://todomvc.com/
-#   deviceId: s4ey59ytbitot4yp
+#   deviceId: s4ey59
 
 tasks:
   - name: scroll to bottom

@@ -79,7 +79,7 @@ In the Android automation scenario, we decided to use the VL models since the in
 
 ### GPT-4o
 
-GPT-4o is a general-purpose LLM by OpenAI, which supports image input. This is the default model for Midscene.js. When using GPT-4o, a step-by-step prompting is preferred.
+GPT-4o is a multimodal LLM by OpenAI, which supports image input. This is the default model for Midscene.js. When using GPT-4o, a step-by-step prompting is preferred.
 
 **Features**
 
@@ -195,7 +195,7 @@ Links:
 - [UI-TARS on Github](https://github.com/bytedance/ui-tars)
 - [UI-TARS - Model Deployment Guide](https://juniper-switch-f10.notion.site/UI-TARS-Model-Deployment-Guide-17b5350241e280058e98cea60317de71)
 
-## Choose other general-purpose LLMs
+## Choose other multimodal LLMs
 
 Other models are also supported by Midscene.js. Midscene will use the same prompt and strategy as GPT-4o for these models. If you want to use other models, please follow these steps:
 
