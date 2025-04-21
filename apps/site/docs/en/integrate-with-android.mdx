@@ -1,3 +1,6 @@
+import PrepareAndroid from './common/prepare-android.mdx';
+import SetupEnv from './common/setup-env.mdx';
+
 # Integrate with Android (adb)
 
 After connecting the Android device with adb, you can use Midscene javascript SDK to control Android devices.
@@ -10,68 +13,16 @@ Control Android devices with javascript: [https://github.com/web-infra-dev/midsc
 Control Android devices with javascript and Vitest: [https://github.com/web-infra-dev/midscene-example/tree/main/android-with-vitest-demo](https://github.com/web-infra-dev/midscene-example/tree/main/android-with-vitest-demo)
 :::
 
-## Preparation
 
-### Config API Key
+<PrepareAndroid />
 
-Android devices can be only be controlled by visual-language (VL) models. For more details, please refer to [choose a model](./choose-a-model).
+<SetupEnv />
 
-```bash
-# replace with your own
-OPENAI_BASE_URL="https://dashscope.aliyuncs.com/compatible-mode/v1"
-OPENAI_API_KEY="......"
-MIDSCENE_MODEL_NAME="qwen-vl-max-latest"
-MIDSCENE_USE_QWEN_VL=1
-```
-
-### Adb environment
-
-`adb` is a command-line tool that allows you to communicate with an Android device.
-
-- way 1: use [Android Studio](https://developer.android.com/studio?hl=zh-cn) to install
-- way 2: use [Android command-line tools](https://developer.android.com/studio#command-line-tools-only) to install
-
-Verify adb is installed successfully:
-
-```bash
-adb --version
-```
-
-When you see the following output, adb is installed successfully:
-
-```log
-Android Debug Bridge version 1.0.41
-Version 34.0.4-10411341
-Installed as /usr/local/bin//adb
-Running on Darwin 24.3.0 (arm64)
-```
-
-### Connect Android device with adb
-
-In the developer options of the system settings, enable the 'USB debugging' of the Android device, if the 'USB debugging (secure settings)' exists, also enable it, then connect the Android device with a USB cable
-
-<p align="center">
-  <img src="/android-usb-debug-en.png" alt="android usb debug" width="400"/>
-</p>
-
-Verify the connection:
-
-```bash
-adb devices -l
-```
-
-When you see the following output, the connection is successful:
-
-```log
-List of devices attached
-s4ey59	device usb:34603008X product:cezanne model:M2006J device:cezan transport_id:3
-```
-
-## Step 1. Install dependencies
+## Step 1. install dependencies
 
 <PackageManagerTabs command="install @midscene/android --save-dev" />
 
-## Step 2. Write scripts
+## Step 2. write scripts
 
 Let's take a simple example: search for headphones on eBay using the browser in the Android device. （Of course, you can also use any other apps on the Android device.）
 
@@ -256,6 +207,3 @@ Please check if the device is unlocked in the developer options of the system se
   <img src="/android-usb-debug-en.png" alt="android usb debug" width="400"/>
 </p>
 
-### Why can't I see the device even though I've connected it?
-
-[Connect device](./integrate-with-android#connect-android-device-with-adb) , please ensure that the device is unlocked.

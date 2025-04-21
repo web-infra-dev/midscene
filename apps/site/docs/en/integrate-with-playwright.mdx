@@ -1,3 +1,5 @@
+import SetupEnv from './common/setup-env.mdx';
+
 # Integrate with Playwright
 
 import { PackageManagerTabs } from '@theme';
@@ -10,16 +12,9 @@ Here we assume you already have a repository with Playwright integration.
 You can find an example project of Playwright integration here: [https://github.com/web-infra-dev/midscene-example/blob/main/playwright-demo](https://github.com/web-infra-dev/midscene-example/blob/main/playwright-demo)
 :::
 
-## Prerequisites
+<SetupEnv />
 
-Configure OpenAI API Key, or [Custom Model and Provider](./model-provider)
-
-```bash
-# Update with your own Key
-export OPENAI_API_KEY="sk-abcdefghijklmnopqrstuvwxyz"
-```
-
-## Step 1: Add Dependencies and Update Configuration
+## Step 1: add dependencies and update configuration
 
 Add dependencies
 
@@ -35,7 +30,7 @@ export default defineConfig({
 });
 ```
 
-## Step 2: Extend the `test` Instance
+## Step 2: extend the `test` instance
 
 Save the following code as `./e2e/fixture.ts`:
 
@@ -47,7 +42,7 @@ import { PlaywrightAiFixture } from '@midscene/web/playwright';
 export const test = base.extend<PlayWrightAiFixtureType>(PlaywrightAiFixture());
 ```
 
-## Step 3: Write Test Cases
+## Step 3: write test cases
 
 ### Basic AI Operation APIs
 
@@ -122,13 +117,13 @@ test("search headphone on ebay", async ({
 
 For more Agent API details, please refer to [API Reference](./API).
 
-## Step 4. Run Test Cases
+## Step 4. run test cases
 
 ```bash
 npx playwright test ./e2e/ebay-search.spec.ts
 ```
 
-## Step 5. View Test Report
+## Step 5. view test report
 
 After the command executes successfully, it will output: `Midscene - report file updated: ./current_cwd/midscene_run/report/some_id.html`. Open this file in your browser to view the report.
 
