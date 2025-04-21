@@ -1,6 +1,6 @@
 # Integrate with Android (adb)
 
-After connecting the Android device with adb, you can use Midscene to control Android devices with visual-language (VL) models.
+After connecting the Android device with adb, you can use Midscene javascript SDK to control Android devices.
 
 import { PackageManagerTabs } from '@theme';
 
@@ -14,7 +14,7 @@ Control Android devices with javascript and Vitest: [https://github.com/web-infr
 
 ### Config API Key
 
-Config the API key for VL model. For example, if you use qwen-2.5-vl, you can config the API key like this:
+Android devices can be only be controlled by visual-language (VL) models. For more details, please refer to [choose a model](./choose-a-model).
 
 ```bash
 # replace with your own
@@ -23,8 +23,6 @@ OPENAI_API_KEY="......"
 MIDSCENE_MODEL_NAME="qwen-vl-max-latest"
 MIDSCENE_USE_QWEN_VL=1
 ```
-
-Android devices can be only be controlled by visual-language (VL) models. For more details, please refer to [choose a model](./choose-a-model).
 
 ### Adb environment
 
