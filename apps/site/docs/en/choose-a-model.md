@@ -18,7 +18,7 @@ MIDSCENE_MODEL_NAME="gpt-4o-2024-11-20" # optional. The default is "gpt-4o".
 
 ### Qwen-2.5-VL on openrouter.ai or Aliyun.com
 
-After applying for the API key on https://openrouter.ai or Aliyun.com, you can use the following config:
+After applying for the API key on [openrouter.ai](https://openrouter.ai) or [Aliyun.com](https://aliyun.com), you can use the following config:
 
 ```bash
 # openrouter.ai
@@ -37,7 +37,7 @@ MIDSCENE_USE_QWEN_VL=1
 
 ### Gemini-2.5-Pro on Google Gemini
 
-After applying for the API key on Google Gemini ( https://gemini.google.com/ ), you can use the following config:
+After applying for the API key on [Google Gemini](https://gemini.google.com/), you can use the following config:
 
 ```bash
 OPENAI_BASE_URL="https://generativelanguage.googleapis.com/v1beta/openai/"
@@ -48,7 +48,7 @@ MIDSCENE_USE_GEMINI=1
 
 ### UI-TARS on volcengine.com
 
-YOu can use `doubao-1.5-ui-tars` on https://www.volcengine.com :
+You can use `doubao-1.5-ui-tars` on [Volcengine](https://www.volcengine.com):
 
 ```bash
 OPENAI_BASE_URL="https://ark.cn-beijing.volces.com/api/v3" 

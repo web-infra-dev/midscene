@@ -4,7 +4,7 @@
 
 ## 快速开始
 
-选择一个模型，获取 API 密钥，完成配置，你就可以开始使用 Midscene.js 了。如果你是刚开始使用，选择最容易获得的模型服务即可。
+选择一个模型、获取 API 密钥并完成配置，你就可以开始使用 Midscene.js 了。如果你是刚开始使用，选择最容易获得的模型服务即可。
 
 如果你想了解更多关于模型服务的配置项，请查看 [配置模型和服务商](./model-provider)。
 
@@ -18,7 +18,7 @@ MIDSCENE_MODEL_NAME="gpt-4o-2024-11-20" # 可选，默认是 "gpt-4o"。
 
 ### 阿里云或 openrouter.ai 上的 Qwen-2.5-VL
 
-在阿里云（aliyun.com）或 openrouter.ai 上申请 API 密钥后，你可以使用以下配置：
+在[阿里云（aliyun.com）](https://aliyun.com)或[openrouter.ai](https://openrouter.ai)上申请 API 密钥后，你可以使用以下配置：
 
 ```bash
 # openrouter.ai
@@ -36,7 +36,7 @@ MIDSCENE_USE_QWEN_VL=1
 
 ### 火山引擎上的 UI-TARS
 
-你可以在火山引擎（volcengine.com）上使用 `doubao-1.5-ui-tars` 模型，在火山引擎上申请 API 密钥后，你可以使用以下配置：
+你可以在[火山引擎（volcengine.com）](https://volcengine.com)上使用 `doubao-1.5-ui-tars` 模型，在火山引擎上申请 API 密钥后，你可以使用以下配置：
 
 ```bash
 OPENAI_BASE_URL="https://ark.cn-beijing.volces.com/api/v3" 
@@ -60,8 +60,8 @@ MIDSCENE_USE_GEMINI=1
 
 Midscene.js 支持两种类型的 AI 模型：
 
-1. **通用多模态 LLM**：接受文本和图像输入的模型。*GPT-4o* 是这种类型模型的代表。
-2. **支持视觉定位的 VL 模型**：除了接受文本和图像输入外，这些模型还可以给出指定元素的坐标信息（Visual Grounding）。Midscene 已经适配了 *Qwen-2.5-VL*, *Gemini-2.5-Pro* 和 *UI-TARS* 作为这种类型的模型。
+1. 通用多模态 LLM：接受文本和图像输入的模型。*GPT-4o* 是这种类型模型的代表。
+2. 支持视觉定位的 VL 模型：除了接受文本和图像输入外，这些模型还可以给出指定元素的坐标信息（Visual Grounding）。Midscene 已经适配了 *Qwen-2.5-VL*, *Gemini-2.5-Pro* 和 *UI-TARS* 作为这种类型的模型。
 
 在 Midscene.js 中，我们主要关注模型的两个特性：
 
@@ -74,7 +74,7 @@ Midscene.js 支持两种类型的 AI 模型：
 
 在 Android 自动化场景中，我们决定使用 VL 模型，因为现实场景中的 Android 应用的 UI 结构非常复杂，我们不想再在应用的 UI 技术栈上做适配工作。VL 模型可以提供更可靠的结果，并且应该是一种更好的解决方案。
 
-## 推荐模型详解
+## 推荐模型
 
 ### GPT-4o
 
