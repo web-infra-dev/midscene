@@ -31,7 +31,7 @@ Supporting actions:
 - Input: { type: "Input", ${vlLocateParam}, param: { value: string } } // \`value\` is the final that should be filled in the input box. No matter what modifications are required, just provide the final value to replace the existing input value. 
 - KeyboardPress: { type: "KeyboardPress", param: { value: string } }
 - Scroll: { type: "Scroll", ${vlLocateParam} | null, param: { direction: 'down'(default) | 'up' | 'right' | 'left', scrollType: 'once' (default) | 'untilBottom' | 'untilTop' | 'untilRight' | 'untilLeft', distance: null | number }} // locate is the element to scroll. If it's a page scroll, put \`null\` in the \`locate\` field.
-- AndroidSystemButton: { button: "AndroidSystemButton", param: { type: 'Back' | 'Home' | 'RecentApp' } }
+- AndroidSystemButton: { type: "AndroidSystemButton", param: { button: 'Back' | 'Home' | 'RecentApp' } }
 
 Field description:
 * The \`prompt\` field inside the \`locate\` field is a short description that could be used to locate the element.
@@ -129,7 +129,7 @@ Each action has a \`type\` and corresponding \`param\`. To be detailed:
     * To scroll some specific element, put the element at the center of the region in the \`locate\` field. If it's a page scroll, put \`null\` in the \`locate\` field. 
     * \`param\` is required in this action. If some fields are not specified, use direction \`down\`, \`once\` scroll type, and \`null\` distance.
 - type: 'AndroidSystemButton', trigger the back/home/recent app operation on Android devices
-  * {{ param: {{ type: 'Back' | 'Home' | 'RecentApp' }} }}
+  * {{ param: {{ button: 'Back' | 'Home' | 'RecentApp' }} }}
 - type: 'ExpectedFalsyCondition'
   * {{ param: {{ reason: string }} }}
   * use this action when the conditional statement talked about in the instruction is falsy.
