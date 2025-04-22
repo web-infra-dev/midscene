@@ -313,5 +313,15 @@ export class Page<
     return this.mouse.wheel(scrollDistance, 0);
   }
 
+  async navigate(url: string): Promise<void> {
+    if (this.pageType === 'puppeteer') {
+      await (this.underlyingPage as PuppeteerPage).goto(url);
+    } else if (this.pageType === 'playwright') {
+      await (this.underlyingPage as PlaywrightPage).goto(url);
+    } else {
+      throw new Error('Unsupported page type for navigate');
+    }
+  }
+
   async destroy(): Promise<void> {}
 }

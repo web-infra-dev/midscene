@@ -52,11 +52,35 @@ export default class ChromeExtensionProxyPage implements AbstractPage {
         `Active tab id is already set, which is ${this.activeTabId}, cannot set it to ${tabId}`,
       );
     }
+    await chrome.tabs.update(tabId, { active: true });
     this.activeTabId = tabId;
   }
 
   public async getActiveTabId() {
     return this.activeTabId;
+  }
+
+  /**
+   * Get a list of current tabs
+   * @returns {Promise<Array<{id: number, title: string, url: string}>>}
+   */
+  public async getBrowserTabList(): Promise<
+    { id: string; title: string; url: string; currentActiveTab: boolean }[]
+  > {
+    const tabs = await chrome.tabs.query({ currentWindow: true });
+    return tabs
+      .map((tab) => ({
+        id: `${tab.id}`,
+        title: tab.title,
+        url: tab.url,
+        currentActiveTab: tab.active,
+      }))
+      .filter((tab) => tab.id && tab.title && tab.url) as {
+      id: string;
+      title: string;
+      url: string;
+      currentActiveTab: boolean;
+    }[];
   }
 
   public async getTabIdOrConnectToCurrentTab() {

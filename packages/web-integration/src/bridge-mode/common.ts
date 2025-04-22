@@ -11,7 +11,9 @@ export enum BridgeEvent {
   Refused = 'bridge-refused',
   ConnectNewTabWithUrl = 'connectNewTabWithUrl',
   ConnectCurrentTab = 'connectCurrentTab',
+  GetBrowserTabList = 'getBrowserTabList',
   SetDestroyOptions = 'setDestroyOptions',
+  SetActiveTabId = 'setActiveTabId',
 }
 
 export interface BridgeConnectTabOptions {
