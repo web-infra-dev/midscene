@@ -68,17 +68,44 @@ export class MidsceneManager {
     overrideAIConfig(envOverrides);
   }
 
-  private async initAgent() {
+  // Asynchronously initializes or re-initializes the browser agent.
+  // Accepts an optional 'reInit' flag (default: false). If true, forces re-creation of the agent.
+  private async initAgent(reInit = false) {
+    // Check if an agent instance already exists.
     if (this.agent) {
-      return this.agent;
+      // If 'reInit' is requested,
+      if (reInit) {
+        // Properly clean up the existing agent resources.
+        await this.agent.destroy();
+        // Clear the existing agent instance.
+        this.agent = undefined;
+      } else {
+        // If an agent exists and re-initialization is not requested, return the existing one.
+        return this.agent;
+      }
     }
+
+    // Check if running in bridge mode (connecting to an existing Chrome instance).
     if (this.bridgeMode) {
+      // Create a new agent instance designed for bridge mode.
       this.agent = new AgentOverChromeBridge();
+      // If this is the first initialization (not re-init),
+      if (!reInit) {
+        // Connect the agent to the currently active tab in the browser.
+        await this.agent.connectCurrentTab();
+      }
     } else {
-      // Store the browser instance when using puppeteer
+      // If not in bridge mode, use Puppeteer to control a browser instance.
+      // Ensure a Puppeteer browser instance is running and get its details.
       const { browser, pages } = await ensureBrowser({});
-      this.agent = new PuppeteerBrowserAgent(browser, pages[0]);
+      // Create a new, blank page (tab) in the browser.
+      const newPage = await browser.newPage();
+      // Navigate the new page to Google as a starting point.
+      await newPage.goto('https://google.com');
+      // Create a new Puppeteer-specific agent instance, controlling the browser and the new page.
+      this.agent = new PuppeteerBrowserAgent(browser, newPage);
     }
+    // Return the newly created or re-initialized agent instance.
     return this.agent;
   }
 
@@ -88,7 +115,7 @@ export class MidsceneManager {
       'Navigates the browser to the specified URL. Always opens in the current tab.',
       { url: z.string().describe('URL to navigate to') },
       async ({ url }) => {
-        const agent = await this.initAgent();
+        const agent = await this.initAgent(true);
         await agent.connectNewTabWithUrl(url);
         return {
           content: [{ type: 'text', text: `Navigated to ${url}` }],
@@ -103,11 +130,16 @@ export class MidsceneManager {
       async () => {
         const agent = await this.initAgent();
         const tabsInfo = await agent.getBrowserTabList();
+        const reportFile = agent.reportFile;
         return {
           content: [
             {
               type: 'text',
               text: `Current Tabs:\n${JSON.stringify(tabsInfo, null, 2)}`,
+            },
+            {
+              type: 'text',
+              text: `report file: ${reportFile}`,
             },
           ],
           isError: false,
