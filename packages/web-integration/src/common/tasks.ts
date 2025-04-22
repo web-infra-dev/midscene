@@ -584,6 +584,7 @@ export class PageTaskExecutor {
             context: pageContext,
             log: param.log,
             actionContext,
+            pageType: this.page.pageType,
           });
         }
 

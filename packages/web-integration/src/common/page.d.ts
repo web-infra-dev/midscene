@@ -9,7 +9,7 @@ import type { PlaywrightWebPage } from '../playwright';
 import type { PuppeteerWebPage } from '../puppeteer';
 
 export interface AndroidDevicePage extends AbstractPage {
-  pageType: string;
+  pageType: 'android';
   connect(): Promise<any>;
   launch(uri: string): Promise<any>;
 

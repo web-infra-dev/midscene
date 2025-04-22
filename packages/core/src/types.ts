@@ -519,3 +519,10 @@ export interface GroupedActionDump {
   groupDescription?: string;
   executions: ExecutionDump[];
 }
+
+export type PageType =
+  | 'puppeteer'
+  | 'playwright'
+  | 'static'
+  | 'chrome-extension-proxy'
+  | 'android';
