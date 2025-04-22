@@ -45,12 +45,23 @@ MIDSCENE_MODEL_NAME="ep-2025..." # 火山引擎的推理点名称
 MIDSCENE_USE_VLM_UI_TARS=1
 ```
 
+### Google 提供的 Gemini 2.5 Pro
+
+在 Google Cloud 上申请 API 密钥后，你可以使用以下配置：
+
+```bash
+OPENAI_BASE_URL="https://generativelanguage.googleapis.com/v1beta/openai/"
+OPENAI_API_KEY="...."
+MIDSCENE_MODEL_NAME="gemini-2.5-pro-preview-03-25"
+MIDSCENE_USE_GEMINI=1
+```
+
 ## 模型选择详解
 
 Midscene.js 支持两种类型的 AI 模型：
 
 1. 通用多模态 LLM：接受文本和图像输入的模型。*GPT-4o* 是这种类型模型的代表。
-2. 支持视觉定位的 VL 模型：除了接受文本和图像输入外，这些模型还可以给出指定元素的坐标信息（Visual Grounding）。Midscene 已经适配了 *Qwen-2.5-VL* 和 *UI-TARS* 作为这种类型的模型。
+2. 支持视觉定位的 VL 模型：除了接受文本和图像输入外，这些模型还可以给出指定元素的坐标信息（Visual Grounding）。Midscene 已经适配了 *Qwen-2.5-VL*, *Gemini-2.5-Pro* 和 *UI-TARS* 作为这种类型的模型。
 
 在 Midscene.js 中，我们主要关注模型的两个特性：
 
@@ -161,6 +172,7 @@ OPENAI_API_KEY="......"
 MIDSCENE_MODEL_NAME="ui-tars-7b-sft"
 MIDSCENE_USE_VLM_UI_TARS=1 # 别忘了配置这项用于 UI-TARS 模式！
 ```
+Cloud](https://cloud.google.com/gemini-api/docs/gemini-25-overview)
 
 **使用火山云提供的版本**
 
@@ -181,6 +193,26 @@ MIDSCENE_USE_VLM_UI_TARS=1
 - [UI-TARS on 🤗 HuggingFace](https://huggingface.co/bytedance-research/UI-TARS-72B-SFT)
 - [UI-TARS on Github](https://github.com/bytedance/ui-tars)
 - [UI-TARS - 模型部署指南](https://juniper-switch-f10.notion.site/UI-TARS-Model-Deployment-Guide-17b5350241e280058e98cea60317de71)
+
+
+### Gemini-2.5-Pro
+
+Gemini-2.5-Pro 是 Google Cloud 提供的模型。它和 Qwen-2.5-VL 类似，但它是闭源的。
+
+Midscene.js 从 v0.15.1 版本开始支持 Gemini-2.5-Pro 模型。
+
+**配置**
+
+```bash
+OPENAI_BASE_URL="https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent?key=......"
+OPENAI_API_KEY="......"
+MIDSCENE_MODEL_NAME="gemini-2.5-pro"
+MIDSCENE_USE_GEMINI=1
+```
+
+**资源**
+
+- [Gemini 2.5 on Google Cloud](https://cloud.google.com/gemini-api/docs/gemini-25-overview)
 
 ## 选择其他通用 LLM 模型
 

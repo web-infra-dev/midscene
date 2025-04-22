@@ -1,8 +1,12 @@
 import { PromptTemplate } from '@langchain/core/prompts';
 import type { ResponseFormatJSONSchema } from 'openai/resources';
-
-export function systemPromptToLocateElement(vlMode: boolean) {
+import type { vlLocateMode } from '../../env';
+import { bboxDescription } from './common';
+export function systemPromptToLocateElement(
+  vlMode: ReturnType<typeof vlLocateMode>,
+) {
   if (vlMode) {
+    const bboxComment = bboxDescription(vlMode);
     return `
 ## Role:
 You are an expert in software testing.
@@ -14,7 +18,7 @@ You are an expert in software testing.
 ## Output Format:
 \`\`\`json
 {
-  "bbox": [number, number, number, number],  // left, top, right, bottom
+  "bbox": [number, number, number, number],  // ${bboxComment}
   "errors"?: string[]
 }
 \`\`\`

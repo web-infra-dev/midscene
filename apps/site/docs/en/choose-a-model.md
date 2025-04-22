@@ -34,6 +34,18 @@ MIDSCENE_MODEL_NAME="qwen-vl-max-latest"
 MIDSCENE_USE_QWEN_VL=1
 ```
 
+
+### Gemini-2.5-Pro on Google Gemini
+
+After applying for the API key on [Google Gemini](https://gemini.google.com/), you can use the following config:
+
+```bash
+OPENAI_BASE_URL="https://generativelanguage.googleapis.com/v1beta/openai/"
+OPENAI_API_KEY="......"
+MIDSCENE_MODEL_NAME="gemini-2.5-pro-preview-03-25"
+MIDSCENE_USE_GEMINI=1
+```
+
 ### UI-TARS on volcengine.com
 
 You can use `doubao-1.5-ui-tars` on [Volcengine](https://www.volcengine.com):
@@ -50,7 +62,7 @@ MIDSCENE_USE_VLM_UI_TARS=1
 Midscene supports two types of models, which are:
 
 1. **general-purpose multimodal LLMs**: Models that can understand text and image input. *GPT-4o* is this kind of model.
-2. **models with visual grounding capabilities (VL models)**: Besides the ability to understand text and image input, these models can also return the coordinates of target elements on the page. We have adapted *Qwen-2.5-VL-72B* and *UI-TARS* as VL models.
+2. **models with visual grounding capabilities (VL models)**: Besides the ability to understand text and image input, these models can also return the coordinates of target elements on the page. We have adapted *Qwen-2.5-VL-72B*, *Gemini-2.5-Pro* and *UI-TARS* as VL models.
 
 And we are primarily concerned with two features of the model:
 
@@ -130,6 +142,24 @@ In short, if you want to use the Aliyun service, use `qwen-vl-max-latest`.
 - [Qwen 2.5 on Github](https://github.com/QwenLM/Qwen2.5-VL)
 - [Qwen 2.5 on Aliyun](https://bailian.console.aliyun.com/#/model-market/detail/qwen-vl-max-latest)
 - [Qwen 2.5 on openrouter.ai](https://openrouter.ai/qwen/qwen2.5-vl-72b-instruct)
+
+### Gemini-2.5-Pro
+
+Gemini-2.5-Pro is a model provided by Google Cloud. It works somehow similar to Qwen-2.5-VL, but it's not open-source.
+
+From 0.15.1 version, Midscene.js supports Gemini-2.5-Pro model.
+
+When using Gemini-2.5-Pro, you should use the `MIDSCENE_USE_GEMINI=1` config to turn on the Gemini-2.5-Pro mode. 
+
+```bash
+OPENAI_BASE_URL="https://generativelanguage.googleapis.com/v1beta/openai/"
+OPENAI_API_KEY="......"
+MIDSCENE_MODEL_NAME="gemini-2.5-pro"
+MIDSCENE_USE_GEMINI=1
+```
+
+**Links**
+- [Gemini 2.5 on Google Cloud](https://cloud.google.com/gemini-api/docs/gemini-25-overview)
 
 ### UI-TARS
 

@@ -1,6 +1,7 @@
 import { vlLocateMode } from '@/env';
 import { PromptTemplate } from '@langchain/core/prompts';
 import type { ResponseFormatJSONSchema } from 'openai/resources';
+import { bboxDescription } from './common';
 import { samplePageDescription } from './util';
 
 // Note: put the log field first to trigger the CoT
@@ -13,14 +14,16 @@ const commonOutputFields = `"error"?: string, // Error messages about unexpected
 const vlLocateParam =
   'locate: {bbox: [number, number, number, number], prompt: string }';
 
-const systemTemplateOfVLPlanning = `
+const systemTemplateOfVLPlanning = (
+  vlMode: ReturnType<typeof vlLocateMode>,
+) => `
 Target: User will give you a screenshot, an instruction and some previous logs indicating what have been done. Please tell what the next one action is (or null if no action should be done) to do the tasks the instruction requires. 
 
 Restriction:
 - Don't give extra actions or plans beyond the instruction. ONLY plan for what the instruction requires. For example, don't try to submit the form if the instruction is only to fill something.
 - Always give ONLY ONE action in \`log\` field (or null if no action should be done), instead of multiple actions. Supported actions are Tap, Hover, Input, KeyboardPress, Scroll.
 - Don't repeat actions in the previous logs.
-- Bbox is the bounding box of the element to be located. It's an array of 4 numbers, representing the top-left x, top-left y, bottom-right x, bottom-right y of the element.
+- Bbox is the bounding box of the element to be located. It's an array of 4 numbers, representing ${bboxDescription(vlMode)}.
 
 Supporting actions:
 - Tap: { type: "Tap", ${vlLocateParam} }
@@ -205,9 +208,11 @@ Reason:
 * Since the option button is not shown in the screenshot, there are still more actions to be done, so the \`more_actions_needed_by_instruction\` field should be true
 `;
 
-export async function systemPromptToTaskPlanning() {
-  if (vlLocateMode()) {
-    return systemTemplateOfVLPlanning;
+export async function systemPromptToTaskPlanning(
+  vlMode: ReturnType<typeof vlLocateMode>,
+) {
+  if (vlMode) {
+    return systemTemplateOfVLPlanning(vlMode);
   }
 
   const promptTemplate = new PromptTemplate({
