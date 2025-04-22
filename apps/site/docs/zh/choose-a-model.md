@@ -2,25 +2,68 @@
 
 在这篇文章中，我们将讨论如何为 Midscene.js 选择 AI 模型，以及这些模型各自的特点。
 
-## 两种模型类型
+## 快速开始
 
-Midscene.js 支持两种类型的 AI 模型：
-
-1. **通用多模态 LLM**：*GPT-4o* 是这种类型模型的代表。
-2. **支持视觉定位（Visual Grounding）的 VL 模型**：*Qwen-2.5-VL* 和 *UI-TARS* 是这种类型的模型。
-
-:::info 什么是视觉定位（Visual Grounding）？
-视觉定位（Visual Grounding）是模型能够准确返回指定元素的坐标信息的能力。
-:::
-
-:::info 我该从哪个模型开始上手？
-不必在项目启动时纠结模型，直接选用身边最容易获得的模型服务即可。
-在完成脚本编写并产生更具体的优化需求后，你可以再尝试比较其他模型。
-:::
+选择一个模型、获取 API 密钥并完成配置，你就可以开始使用 Midscene.js 了。如果你是刚开始使用，选择最容易获得的模型服务即可。
 
 如果你想了解更多关于模型服务的配置项，请查看 [配置模型和服务商](./model-provider)。
 
-## 推荐模型详解
+### GPT-4o （无法在 Android 自动化中使用）
+
+```bash
+OPENAI_API_KEY="......"
+OPENAI_BASE_URL="https://dashscope.aliyuncs.com/compatible-mode/v1" # 可选，如果你想要使用一个不同于 OpenAI 官方的接入点
+MIDSCENE_MODEL_NAME="gpt-4o-2024-11-20" # 可选，默认是 "gpt-4o"。
+```
+
+### 阿里云或 openrouter.ai 上的 Qwen-2.5-VL
+
+在[阿里云（aliyun.com）](https://aliyun.com)或[openrouter.ai](https://openrouter.ai)上申请 API 密钥后，你可以使用以下配置：
+
+```bash
+# openrouter.ai
+OPENAI_BASE_URL="https://openrouter.ai/api/v1"
+OPENAI_API_KEY="......"
+MIDSCENE_MODEL_NAME="qwen/qwen2.5-vl-72b-instruct"
+MIDSCENE_USE_QWEN_VL=1
+
+# 或使用阿里云的 OpenAI 兼容接入点
+OPENAI_BASE_URL="https://dashscope.aliyuncs.com/compatible-mode/v1"
+OPENAI_API_KEY="......"
+MIDSCENE_MODEL_NAME="qwen-vl-max-latest"
+MIDSCENE_USE_QWEN_VL=1
+```
+
+### 火山引擎上的 UI-TARS
+
+你可以在[火山引擎（volcengine.com）](https://volcengine.com)上使用 `doubao-1.5-ui-tars` 模型，在火山引擎上申请 API 密钥后，你可以使用以下配置：
+
+```bash
+OPENAI_BASE_URL="https://ark.cn-beijing.volces.com/api/v3" 
+OPENAI_API_KEY="...."
+MIDSCENE_MODEL_NAME="ep-2025..." # 火山引擎的推理点名称
+MIDSCENE_USE_VLM_UI_TARS=1
+```
+
+## 模型选择详解
+
+Midscene.js 支持两种类型的 AI 模型：
+
+1. 通用多模态 LLM：接受文本和图像输入的模型。*GPT-4o* 是这种类型模型的代表。
+2. 支持视觉定位的 VL 模型：除了接受文本和图像输入外，这些模型还可以给出指定元素的坐标信息（Visual Grounding）。Midscene 已经适配了 *Qwen-2.5-VL* 和 *UI-TARS* 作为这种类型的模型。
+
+在 Midscene.js 中，我们主要关注模型的两个特性：
+
+1. 理解截图和 *规划* 操作步骤的能力。
+2. 给出指定元素的坐标信息（Visual Grounding）的能力。
+
+不同模型的主要区别在于它们在处理视觉定位（Visual Grounding）上的方案。
+
+在使用 LLM 模型时，视觉定位是通过模型对 UI 层级树和截图中的标记（markup）的理解来实现的，这会消耗更多的 token ，并且不一定总能得到准确的结果。相比之下，使用 VL 模型时，视觉定位是通过模型的原生视觉定位能力来实现的，这在复杂情况下提供了更原生和可靠的解决方案。
+
+在 Android 自动化场景中，我们决定使用 VL 模型，因为现实场景中的 Android 应用的 UI 结构非常复杂，我们不想再在应用的 UI 技术栈上做适配工作。VL 模型可以提供更可靠的结果，并且应该是一种更好的解决方案。
+
+## 推荐模型
 
 ### GPT-4o
 
@@ -89,6 +132,7 @@ MIDSCENE_USE_QWEN_VL=1 # 别忘了配置这项，用于启用 Qwen 2.5 模式！
 - [Qwen 2.5 on 🤗 HuggingFace](https://huggingface.co/Qwen/Qwen2.5-VL-72B-Instruct)
 - [Qwen 2.5 on Github](https://github.com/QwenLM/Qwen2.5-VL)
 - [Qwen 2.5 - 阿里云百炼](https://bailian.console.aliyun.com/#/model-market/detail/qwen-vl-max-latest)
+- [Qwen 2.5 - openrouter.ai](https://openrouter.ai/models/Qwen/Qwen2.5-VL-72B-Instruct)
 
 ### UI-TARS
 
@@ -147,15 +191,6 @@ Midscene 也支持其他通用 LLM 模型。Midscene 会使用和 `gpt-4o` 模�
 1. 如果发现使用新模型后效果不佳，可以尝试使用一些简短且清晰的提示词（或回滚到之前的模型）。更多详情请参阅 [编写提示词（指令）的技巧](./prompting-tips)。
 1. 请遵守各模型和服务商的使用条款。
 1. 不要包含 `MIDSCENE_USE_VLM_UI_TARS` 和 `MIDSCENE_USE_QWEN_VL` 配置，除非你知道自己在做什么。
-
-### 已知支持的通用 LLM 模型
-
-我们已知支持以下模型，它们在不同场景下可能表现各异：
-
-- `claude-3-opus-20240229`
-- `gemini-1.5-pro`
-- `qwen-vl-max-latest`（千问）
-- `doubao-vision-pro-32k`（豆包）
 
 ### 配置
 
