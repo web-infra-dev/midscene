@@ -33,7 +33,7 @@ export const PlaywrightAiFixture = (options?: {
 }) => {
   const { forceSameTabNavigation = true } = options ?? {};
   const pageAgentMap: Record<string, PageAgent> = {};
-  const agentForPage = (
+  const createOrReuseAgentForPage = (
     page: OriginPlaywrightPage,
     testInfo: TestInfo, // { testId: string; taskFile: string; taskTitle: string },
     opts?: PageAgentOpt,
@@ -74,7 +74,7 @@ export const PlaywrightAiFixture = (options?: {
       | 'aiWaitFor';
   }) {
     const { page, testInfo, use, aiActionType } = options;
-    const agent = agentForPage(page, testInfo);
+    const agent = createOrReuseAgentForPage(page, testInfo);
     await use(async (taskPrompt: string, ...args: any[]) => {
       return new Promise((resolve, reject) => {
         test.step(`ai-${aiActionType} - ${JSON.stringify(taskPrompt)}`, async () => {
@@ -113,7 +113,7 @@ export const PlaywrightAiFixture = (options?: {
   };
 
   return {
-    generateMidsceneAgent: async (
+    agentForPage: async (
       { page }: { page: OriginPlaywrightPage },
       use: any,
       testInfo: TestInfo,
@@ -123,7 +123,11 @@ export const PlaywrightAiFixture = (options?: {
           propsPage?: OriginPlaywrightPage | undefined,
           opts?: PageAgentOpt,
         ) => {
-          const agent = agentForPage(propsPage || page, testInfo, opts);
+          const agent = createOrReuseAgentForPage(
+            propsPage || page,
+            testInfo,
+            opts,
+          );
           return agent;
         },
       );
@@ -252,7 +256,7 @@ export const PlaywrightAiFixture = (options?: {
 };
 
 export type PlayWrightAiFixtureType = {
-  generateMidsceneAgent: (page?: any, opts?: any) => Promise<PageAgent>;
+  agentForPage: (page?: any, opts?: any) => Promise<PageAgent>;
   ai: <T = any>(prompt: string) => Promise<T>;
   aiAction: (taskPrompt: string) => ReturnType<PageAgent['aiAction']>;
   aiTap: (
