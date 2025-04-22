@@ -18,7 +18,7 @@ MIDSCENE_MODEL_NAME="gpt-4o-2024-11-20" # 可选，默认是 "gpt-4o"。
 
 ### 阿里云或 openrouter.ai 上的 Qwen-2.5-VL
 
-在[阿里云（aliyun.com）](https://aliyun.com)或[openrouter.ai](https://openrouter.ai)上申请 API 密钥后，你可以使用以下配置：
+在[阿里云](https://aliyun.com)或 [openrouter.ai](https://openrouter.ai) 上申请 API 密钥后，你可以使用以下配置：
 
 ```bash
 # openrouter.ai
@@ -36,7 +36,7 @@ MIDSCENE_USE_QWEN_VL=1
 
 ### 火山引擎上的 UI-TARS
 
-你可以在[火山引擎（volcengine.com）](https://volcengine.com)上使用 `doubao-1.5-ui-tars` 模型，在火山引擎上申请 API 密钥后，你可以使用以下配置：
+你可以在 [火山引擎](https://volcengine.com)上使用 `doubao-1.5-ui-tars` 模型，在火山引擎上申请 API 密钥后，你可以使用以下配置：
 
 ```bash
 OPENAI_BASE_URL="https://ark.cn-beijing.volces.com/api/v3" 

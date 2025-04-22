@@ -16,9 +16,9 @@ OPENAI_BASE_URL="https://custom-endpoint.com/compatible-mode/v1" # optional, if 
 MIDSCENE_MODEL_NAME="gpt-4o-2024-11-20" # optional. The default is "gpt-4o".
 ```
 
-### Qwen-2.5-VL on openrouter.ai or Aliyun.com
+### Qwen-2.5-VL on Openrouter or Aliyun
 
-After applying for the API key on [openrouter.ai](https://openrouter.ai) or [Aliyun.com](https://aliyun.com), you can use the following config:
+After applying for the API key on [Openrouter](https://openrouter.ai) or [Aliyun](https://aliyun.com), you can use the following config:
 
 ```bash
 # openrouter.ai
