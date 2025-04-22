@@ -449,7 +449,7 @@ importers:
         version: 4.5.0
       '@langchain/core':
         specifier: 0.3.26
-        version: 0.3.26(openai@4.81.0(ws@8.18.1)(zod@3.24.1))
+        version: 0.3.26(openai@4.81.0(ws@8.18.1)(zod@3.24.3))
       '@midscene/shared':
         specifier: workspace:*
         version: link:../shared
@@ -464,10 +464,10 @@ importers:
         version: 16.4.5
       langsmith:
         specifier: 0.3.7
-        version: 0.3.7(openai@4.81.0(ws@8.18.1)(zod@3.24.1))
+        version: 0.3.7(openai@4.81.0(ws@8.18.1)(zod@3.24.3))
       openai:
         specifier: 4.81.0
-        version: 4.81.0(ws@8.18.1)(zod@3.24.1)
+        version: 4.81.0(ws@8.18.1)(zod@3.24.3)
       socks-proxy-agent:
         specifier: 8.0.4
         version: 8.0.4
@@ -528,11 +528,14 @@ importers:
         specifier: workspace:*
         version: link:../web-integration
       '@modelcontextprotocol/sdk':
-        specifier: 1.9.0
-        version: 1.9.0
+        specifier: 1.10.1
+        version: 1.10.1
       puppeteer:
         specifier: 24.2.0
         version: 24.2.0(typescript@5.8.3)
+      zod:
+        specifier: 3.24.3
+        version: 3.24.3
     devDependencies:
       '@modelcontextprotocol/inspector':
         specifier: 0.9.0
@@ -3126,8 +3129,8 @@ packages:
     resolution: {integrity: sha512-8sHdPGuGVldHqIbqyB0TKdrtm6AQjTMH7x2gTromdsZX3J8AStOW75Pe6b9GeIobI5DzlU1JkYKJMBEWHhq8LA==}
     hasBin: true
 
-  '@modelcontextprotocol/sdk@1.9.0':
-    resolution: {integrity: sha512-Jq2EUCQpe0iyO5FGpzVYDNFR6oR53AIrwph9yWl7uSc7IWUMsrmpmSaTGra5hQNunXpM+9oit85p924jWuHzUA==}
+  '@modelcontextprotocol/sdk@1.10.1':
+    resolution: {integrity: sha512-xNYdFdkJqEfIaTVP1gPKoEvluACHZsHZegIoICX8DM1o6Qf3G5u2BQJHmgd0n4YgRPqqK/u1ujQvrgAxxSJT9w==}
     engines: {node: '>=18'}
 
   '@modern-js-reduck/plugin-auto-actions@1.1.11':
@@ -8873,10 +8876,6 @@ packages:
     resolution: {integrity: sha512-sPU4uV7dYlvtWJxwwxHD0PuihVNiE7TyAbQ5SWxDCB9mUYvOgroQOwYQQOKPJ8CIbE+1ETVlOoK1UC2nU3gYvg==}
     engines: {node: '>= 0.6'}
 
-  mime-db@1.53.0:
-    resolution: {integrity: sha512-oHlN/w+3MQ3rba9rqFr6V/ypF10LSkdwUysQL7GkXoTgIWeV+tcXGA852TBxH+gsh8UWoyhR1hKcoMJTuWflpg==}
-    engines: {node: '>= 0.6'}
-
   mime-db@1.54.0:
     resolution: {integrity: sha512-aU5EJuIN2WDemCcAp2vFBfp/m4EAhWJnUNSSw0ixs7/kXbd6Pg64EmwJkNdFhB8aWt1sH2CTXrLxo/iAGV3oPQ==}
     engines: {node: '>= 0.6'}
@@ -12510,9 +12509,6 @@ packages:
     peerDependencies:
       zod: ^3.18.0
 
-  zod@3.24.1:
-    resolution: {integrity: sha512-muH7gBL9sI1nciMZV67X5fTKKBLtwpZ5VBp1vsOQzj1MhrBZ4wlVCm3gedKZWLp0Oyel8sIGfeiz54Su+OVT+A==}
-
   zod@3.24.3:
     resolution: {integrity: sha512-HhY1oqzWCQWuUqvBFnsyrtZRhyPeR7SUGv+C4+MsisMuVfSPx8HpwWqH8tRahSlt6M3PiFAcoeFhZAqIXTxoSg==}
 
@@ -15713,20 +15709,20 @@ snapshots:
     dependencies:
       tslib: 2.8.1
 
-  '@langchain/core@0.3.26(openai@4.81.0(ws@8.18.1)(zod@3.24.1))':
+  '@langchain/core@0.3.26(openai@4.81.0(ws@8.18.1)(zod@3.24.3))':
     dependencies:
       '@cfworker/json-schema': 4.0.3
       ansi-styles: 5.2.0
       camelcase: 6.3.0
       decamelize: 1.2.0
       js-tiktoken: 1.0.16
-      langsmith: 0.2.15(openai@4.81.0(ws@8.18.1)(zod@3.24.1))
+      langsmith: 0.2.15(openai@4.81.0(ws@8.18.1)(zod@3.24.3))
       mustache: 4.2.0
       p-queue: 6.6.2
       p-retry: 4.6.2
       uuid: 10.0.0
-      zod: 3.24.1
-      zod-to-json-schema: 3.24.1(zod@3.24.1)
+      zod: 3.24.3
+      zod-to-json-schema: 3.24.1(zod@3.24.3)
     transitivePeerDependencies:
       - openai
 
@@ -15845,7 +15841,7 @@ snapshots:
 
   '@modelcontextprotocol/inspector-client@0.9.0(@types/react-dom@18.3.5(@types/react@18.3.18))(@types/react@18.3.18)':
     dependencies:
-      '@modelcontextprotocol/sdk': 1.9.0
+      '@modelcontextprotocol/sdk': 1.10.1
       '@radix-ui/react-checkbox': 1.1.5(@types/react-dom@18.3.5(@types/react@18.3.18))(@types/react@18.3.18)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@radix-ui/react-dialog': 1.1.7(@types/react-dom@18.3.5(@types/react@18.3.18))(@types/react@18.3.18)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@radix-ui/react-icons': 1.3.2(react@18.3.1)
@@ -15868,7 +15864,7 @@ snapshots:
       serve-handler: 6.1.6
       tailwind-merge: 2.6.0
       tailwindcss-animate: 1.0.7
-      zod: 3.24.1
+      zod: 3.24.3
     transitivePeerDependencies:
       - '@types/react'
       - '@types/react-dom'
@@ -15877,11 +15873,11 @@ snapshots:
 
   '@modelcontextprotocol/inspector-server@0.9.0':
     dependencies:
-      '@modelcontextprotocol/sdk': 1.9.0
+      '@modelcontextprotocol/sdk': 1.10.1
       cors: 2.8.5
       express: 4.21.2
       ws: 8.18.0
-      zod: 3.24.1
+      zod: 3.24.3
     transitivePeerDependencies:
       - bufferutil
       - supports-color
@@ -15907,7 +15903,7 @@ snapshots:
       - typescript
       - utf-8-validate
 
-  '@modelcontextprotocol/sdk@1.9.0':
+  '@modelcontextprotocol/sdk@1.10.1':
     dependencies:
       content-type: 1.0.5
       cors: 2.8.5
@@ -15917,8 +15913,8 @@ snapshots:
       express-rate-limit: 7.5.0(express@5.1.0)
       pkce-challenge: 5.0.0
       raw-body: 3.0.0
-      zod: 3.24.1
-      zod-to-json-schema: 3.24.1(zod@3.24.1)
+      zod: 3.24.3
+      zod-to-json-schema: 3.24.1(zod@3.24.3)
     transitivePeerDependencies:
       - supports-color
 
@@ -16152,8 +16148,8 @@ snapshots:
       source-map: 0.7.4
       webpack: 5.95.0
       webpack-sources: 3.2.3
-      zod: 3.24.1
-      zod-validation-error: 1.2.0(zod@3.24.1)
+      zod: 3.24.3
+      zod-validation-error: 1.2.0(zod@3.24.3)
     transitivePeerDependencies:
       - '@swc/core'
       - '@types/express'
@@ -18116,8 +18112,8 @@ snapshots:
       util: 0.12.5
       watchpack: 2.4.2
       webpack-sources: 3.2.3
-      zod: 3.24.1
-      zod-validation-error: 1.2.0(zod@3.24.1)
+      zod: 3.24.3
+      zod-validation-error: 1.2.0(zod@3.24.3)
     transitivePeerDependencies:
       - '@types/webpack'
       - sockjs-client
@@ -18143,8 +18139,8 @@ snapshots:
       util: 0.12.5
       watchpack: 2.4.2
       webpack-sources: 3.2.3
-      zod: 3.24.1
-      zod-validation-error: 1.2.0(zod@3.24.1)
+      zod: 3.24.3
+      zod-validation-error: 1.2.0(zod@3.24.3)
     transitivePeerDependencies:
       - '@types/webpack'
       - sockjs-client
@@ -20065,7 +20061,7 @@ snapshots:
     dependencies:
       devtools-protocol: 0.0.1402036
       mitt: 3.0.1
-      zod: 3.24.1
+      zod: 3.24.3
 
   ci-info@3.9.0: {}
 
@@ -20247,7 +20243,7 @@ snapshots:
 
   compressible@2.0.18:
     dependencies:
-      mime-db: 1.53.0
+      mime-db: 1.54.0
 
   compression@1.7.4:
     dependencies:
@@ -21070,7 +21066,7 @@ snapshots:
       is-string: 1.0.7
       is-typed-array: 1.1.13
       is-weakref: 1.0.2
-      object-inspect: 1.13.2
+      object-inspect: 1.13.4
       object-keys: 1.1.1
       object.assign: 4.1.5
       regexp.prototype.flags: 1.5.3
@@ -22493,7 +22489,7 @@ snapshots:
     dependencies:
       es-errors: 1.3.0
       hasown: 2.0.2
-      side-channel: 1.0.6
+      side-channel: 1.1.0
 
   invariant@2.2.4:
     dependencies:
@@ -22973,7 +22969,7 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  langsmith@0.2.15(openai@4.81.0(ws@8.18.1)(zod@3.24.1)):
+  langsmith@0.2.15(openai@4.81.0(ws@8.18.1)(zod@3.24.3)):
     dependencies:
       '@types/uuid': 10.0.0
       commander: 10.0.1
@@ -22982,9 +22978,9 @@ snapshots:
       semver: 7.7.1
       uuid: 10.0.0
     optionalDependencies:
-      openai: 4.81.0(ws@8.18.1)(zod@3.24.1)
+      openai: 4.81.0(ws@8.18.1)(zod@3.24.3)
 
-  langsmith@0.3.7(openai@4.81.0(ws@8.18.1)(zod@3.24.1)):
+  langsmith@0.3.7(openai@4.81.0(ws@8.18.1)(zod@3.24.3)):
     dependencies:
       '@types/uuid': 10.0.0
       chalk: 4.1.2
@@ -22994,7 +22990,7 @@ snapshots:
       semver: 7.7.1
       uuid: 10.0.0
     optionalDependencies:
-      openai: 4.81.0(ws@8.18.1)(zod@3.24.1)
+      openai: 4.81.0(ws@8.18.1)(zod@3.24.3)
 
   lazy-cache@0.2.7: {}
 
@@ -23750,8 +23746,6 @@ snapshots:
 
   mime-db@1.52.0: {}
 
-  mime-db@1.53.0: {}
-
   mime-db@1.54.0: {}
 
   mime-types@2.1.18:
@@ -24088,21 +24082,6 @@ snapshots:
       define-lazy-prop: 2.0.0
       is-docker: 2.2.1
       is-wsl: 2.2.0
-
-  openai@4.81.0(ws@8.18.1)(zod@3.24.1):
-    dependencies:
-      '@types/node': 18.19.62
-      '@types/node-fetch': 2.6.11
-      abort-controller: 3.0.0
-      agentkeepalive: 4.5.0
-      form-data-encoder: 1.7.2
-      formdata-node: 4.4.1
-      node-fetch: 2.7.0
-    optionalDependencies:
-      ws: 8.18.1
-      zod: 3.24.1
-    transitivePeerDependencies:
-      - encoding
 
   openai@4.81.0(ws@8.18.1)(zod@3.24.3):
     dependencies:
@@ -27831,19 +27810,13 @@ snapshots:
       compress-commons: 6.0.2
       readable-stream: 4.5.2
 
-  zod-to-json-schema@3.24.1(zod@3.24.1):
+  zod-to-json-schema@3.24.1(zod@3.24.3):
     dependencies:
-      zod: 3.24.1
-
-  zod-validation-error@1.2.0(zod@3.24.1):
-    dependencies:
-      zod: 3.24.1
+      zod: 3.24.3
 
   zod-validation-error@1.2.0(zod@3.24.3):
     dependencies:
       zod: 3.24.3
-
-  zod@3.24.1: {}
 
   zod@3.24.3: {}
 

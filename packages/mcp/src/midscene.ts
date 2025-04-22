@@ -5,11 +5,13 @@ import {
   overrideAIConfig,
 } from '@midscene/web/bridge-mode';
 import type { Server } from '@modelcontextprotocol/sdk/server/index.js';
+import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import type {
   CallToolResult,
   ImageContent,
   TextContent,
 } from '@modelcontextprotocol/sdk/types.js';
+import { z } from 'zod';
 import { PuppeteerBrowserAgent, ensureBrowser } from './puppeteer';
 declare global {
   interface Window {
@@ -20,14 +22,40 @@ declare global {
   }
 }
 
+type AddWrapType = (
+  fn: (args: any) => Promise<any>,
+) => (args: any) => Promise<any>;
+
+const wrapError: AddWrapType =
+  (fn: (args: any) => Promise<any>) => async (args: any) => {
+    try {
+      return await fn(args);
+    } catch (err: any) {
+      return {
+        isError: true,
+        content: [{ type: 'text' as const, text: String(err.message) }],
+      };
+    }
+  };
+
+type MidsceneNavigateArgs = {
+  url: string;
+  openNewTab?: boolean;
+};
+
 export class MidsceneManager {
   private consoleLogs: string[] = [];
   private screenshots = new Map<string, string>();
-  private server: Server<any, any>; // Add server instance
+  private server: McpServer; // Add server instance
   private agent?: AgentOverChromeBridge | PuppeteerBrowserAgent;
   private bridgeMode = getAIConfig('MIDSCENE_USE_BRIDGE_MODE') === '1';
-  constructor(server: Server<any, any>) {
+  constructor(server: McpServer) {
     this.server = server;
+    this.initEnv();
+    this.registerTools();
+  }
+
+  private initEnv() {
     const keys = Object.keys(allConfigFromEnv());
     const envOverrides: { [key: string]: string } = {};
     for (const key of keys) {
@@ -41,7 +69,7 @@ export class MidsceneManager {
 
   private async initAgent() {
     if (this.agent) {
-      return;
+      return this.agent;
     }
     if (this.bridgeMode) {
       this.agent = new AgentOverChromeBridge();
@@ -50,116 +78,90 @@ export class MidsceneManager {
       const { browser, pages } = await ensureBrowser({});
       this.agent = new PuppeteerBrowserAgent(browser, pages[0]);
     }
+    return this.agent;
   }
 
-  public async handleToolCall(
-    name: string,
-    args: any,
-  ): Promise<CallToolResult> {
-    await this.initAgent();
-    if (!this.agent) {
-      throw new Error('Agent not initialized');
-    }
-    switch (name) {
-      case 'midscene_navigate':
-        await this.agent.connectNewTabWithUrl(args.url);
+  private registerTools() {
+    this.server.tool(
+      'midscene_navigate',
+      'Navigates the browser to the specified URL. Always opens in the current tab.',
+      { url: z.string().describe('URL to navigate to') },
+      async ({ url }) => {
+        const agent = await this.initAgent();
+        await agent.connectNewTabWithUrl(url);
+        return {
+          content: [{ type: 'text', text: `Navigated to ${url}` }],
+          isError: false,
+        };
+      },
+    );
+    this.server.tool(
+      'midscene_get_tabs',
+      'Retrieves a list of all open browser tabs, including their ID, title, and URL.',
+      {},
+      async () => {
+        const agent = await this.initAgent();
+        const tabsInfo = await agent.getBrowserTabList();
         return {
           content: [
             {
               type: 'text',
-              text: `Navigated to ${args.url}`,
+              text: `Current Tabs:\n${JSON.stringify(tabsInfo, null, 2)}`,
             },
           ],
           isError: false,
         };
-
-      case 'midscene_get_tabs':
-        try {
-          const tabsInfo = await this.agent.getBrowserTabList();
-
-          return {
-            content: [
-              {
-                type: 'text',
-                text: `Current Tabs:\n${JSON.stringify(tabsInfo, null, 2)}`,
-              },
-            ],
-            isError: false,
-          };
-        } catch (error) {
-          return {
-            content: [
-              {
-                type: 'text',
-                text: `Failed to get tabs: ${(error as Error).message}`,
-              },
-            ],
-            isError: true,
-          };
-        }
-
-      case 'midscene_set_active_tab':
-        try {
-          await this.agent.setActiveTabId(args.tabId);
-          return {
-            content: [
-              {
-                type: 'text',
-                text: `Set active tab to ${args.tabId}`,
-              },
-            ],
-            isError: false,
-          };
-        } catch (error) {
-          return {
-            content: [
-              {
-                type: 'text',
-                text: `Failed to set active tab to ${args.tabId}: ${(error as Error).message}`,
-              },
-            ],
-            isError: true,
-          };
-        }
-
-      case 'midscene_achieve_goal':
-        try {
-          await this.agent.aiAction(args.goal);
-          return {
-            content: [
-              {
-                type: 'text',
-                text: `Planned to goal: ${args.goal}`,
-              },
-            ],
-            isError: false,
-          };
-        } catch (error) {
-          return {
-            content: [
-              {
-                type: 'text',
-                text: `Failed to plan to goal: ${(error as Error).message}`,
-              },
-            ],
-            isError: true,
-          };
-        }
-      case 'midscene_screenshot': {
-        const screenshot = await this.agent.page.screenshotBase64();
+      },
+    );
+    this.server.tool(
+      'midscene_set_active_tab',
+      "Switches the browser's focus to the tab specified by its ID. Use midscene_get_tabs first to find the correct tab ID.",
+      { tabId: z.string().describe('The ID of the tab to set as active.') },
+      async ({ tabId }) => {
+        const agent = await this.initAgent();
+        await agent.setActiveTabId(tabId);
+        return {
+          content: [{ type: 'text', text: `Set active tab to ${tabId}` }],
+          isError: false,
+        };
+      },
+    );
+    this.server.tool(
+      'midscene_achieve_goal',
+      'Performs a sequence of browser actions (clicks, inputs, scrolls, navigation) based on a natural language goal description.',
+      {
+        goal: z
+          .string()
+          .describe('Describe your target goal in natural language'),
+      },
+      async ({ goal }) => {
+        const agent = await this.initAgent();
+        await agent.aiAction(goal);
+        return {
+          content: [{ type: 'text', text: `Planned to goal: ${goal}` }],
+          isError: false,
+        };
+      },
+    );
+    this.server.tool(
+      'midscene_screenshot',
+      'Captures a screenshot of the currently active browser tab and saves it with the given name.',
+      {
+        name: z.string().describe('Name for the screenshot'),
+      },
+      async ({ name }) => {
+        const agent = await this.initAgent();
+        const screenshot = await agent.page.screenshotBase64();
         // Remove the data URL prefix if present
         const base64Data = screenshot.replace(/^data:image\/\w+;base64,/, '');
 
-        this.screenshots.set(args.name, screenshot as string);
-        this.server.notification({
-          method: 'notifications/resources/list_changed',
-        });
+        this.screenshots.set(name, screenshot as string);
 
         return {
           content: [
             {
               type: 'text',
-              text: `Screenshot '${args.name}' taken at 1200x800`,
+              text: `Screenshot '${name}' taken at 1200x800`,
             } as TextContent,
             {
               type: 'image',
@@ -169,164 +171,113 @@ export class MidsceneManager {
           ],
           isError: false,
         };
-      }
-
-      case 'midscene_click':
-        try {
-          await this.agent.aiTap(args.selector);
-          return {
-            content: [
-              {
-                type: 'text',
-                text: `Clicked: ${args.selector}`,
-              },
-            ],
-            isError: false,
-          };
-        } catch (error) {
-          return {
-            content: [
-              {
-                type: 'text',
-                text: `Failed to click ${args.selector}: ${(error as Error).message}`,
-              },
-            ],
-            isError: true,
-          };
-        }
-      case 'midscene_scroll':
-        try {
-          await this.agent.aiScroll(args.value, args.selector);
-          const scrollTarget = args.selector
-            ? `element described as "${args.selector}"`
-            : 'the page';
-          return {
-            content: [
-              {
-                type: 'text',
-                text: `Scrolled ${scrollTarget}: ${args.value}`,
-              },
-            ],
-            isError: false,
-          };
-        } catch (error) {
-          return {
-            content: [
-              {
-                type: 'text',
-                text: `Failed to scroll ${args.selector}: ${(error as Error).message}`,
-              },
-            ],
-            isError: true,
-          };
-        }
-
-      case 'midscene_input':
-        try {
-          await this.agent.aiInput(args.value, args.selector);
-          return {
-            content: [
-              {
-                type: 'text',
-                text: `Filled ${args.selector} with: ${args.value}`,
-              },
-            ],
-            isError: false,
-          };
-        } catch (error) {
-          return {
-            content: [
-              {
-                type: 'text',
-                text: `Failed to fill ${args.selector}: ${(error as Error).message}`,
-              },
-            ],
-            isError: true,
-          };
-        }
-
-      case 'midscene_hover':
-        try {
-          await this.agent.aiHover(args.selector);
-          return {
-            content: [
-              {
-                type: 'text',
-                text: `Hovered ${args.selector}`,
-              },
-            ],
-            isError: false,
-          };
-        } catch (error) {
-          return {
-            content: [
-              {
-                type: 'text',
-                text: `Failed to hover ${args.selector}: ${(error as Error).message}`,
-              },
-            ],
-            isError: true,
-          };
-        }
-
-      case 'midscene_evaluate':
-        try {
-          await this.agent.page.evaluateJavaScript(`(function() {
-            window.midsceneMcpHelper = {
-              logs: [],
-              originalConsole: { ...console },
-            };
-            ['log', 'info', 'warn', 'error'].forEach((method) => {
-              console[method] = (...args) => {
-                window.midsceneMcpHelper.logs.push('['+method +']' + args.join(' '));
-                window.midsceneMcpHelper.originalConsole[method](...args);
-              };
-            });
-            return window.midsceneMcpHelper;
-          })()`);
-
-          const result = await this.agent.page.evaluateJavaScript(args.script);
-
-          const logs = await this.agent.page.evaluateJavaScript(`(function() {
-            Object.assign(console, window.midsceneMcpHelper.originalConsole);
-            const logs = window.midsceneMcpHelper.logs;
-            window.midsceneMcpHelper = undefined;
-            return logs;
-          })()`);
-
-          return {
-            content: [
-              {
-                type: 'text',
-                text: `Execution result:\n${JSON.stringify(result, null, 2)}\n\nConsole output:\n${JSON.stringify(logs, null, 2)}`,
-              },
-            ],
-            isError: false,
-          };
-        } catch (error) {
-          return {
-            content: [
-              {
-                type: 'text',
-                text: `Script execution failed: ${(error as Error).message}`,
-              },
-            ],
-            isError: true,
-          };
-        }
-
-      default:
-        // This case should ideally not be reached if called correctly from index.ts
+      },
+    );
+    this.server.tool(
+      'midscene_click',
+      'Locates and clicks an element on the current page based on a natural language description (selector).',
+      { selector: z.string().describe('Describe the element to click') },
+      async ({ selector }) => {
+        const agent = await this.initAgent();
+        await agent.aiTap(selector);
+        return {
+          content: [{ type: 'text', text: `Clicked on ${selector}` }],
+          isError: false,
+        };
+      },
+    );
+    this.server.tool(
+      'midscene_scroll',
+      'Scrolls the page or a specified element. Can scroll by a fixed amount or until an edge is reached.',
+      {
+        direction: z
+          .enum(['up', 'down', 'left', 'right'])
+          .describe('The direction to scroll.'),
+        scrollType: z
+          .enum(['once', 'untilBottom', 'untilTop', 'untilLeft', 'untilRight'])
+          .optional()
+          .default('once')
+          .describe(
+            "Type of scroll: 'once' for a fixed distance, or until reaching an edge.",
+          ),
+        distance: z
+          .number()
+          .optional()
+          .describe(
+            "The distance to scroll in pixels (used with scrollType 'once').",
+          ),
+        locate: z
+          .string()
+          .optional()
+          .describe(
+            'Optional natural language description of the element to scroll. If not provided, scrolls based on current mouse position.',
+          ),
+        deepThink: z
+          .boolean()
+          .optional()
+          .default(false)
+          .describe(
+            "If true and 'locate' is provided, uses a two-step AI call to precisely locate the element.",
+          ),
+      },
+      async ({ direction, scrollType, distance, locate, deepThink }) => {
+        const agent = await this.initAgent();
+        const scrollParam = { direction, scrollType, distance };
+        await agent.aiScroll(scrollParam, locate, { deepThink });
+        const targetDesc = locate
+          ? ` element described by: "${locate}"`
+          : ' the page';
         return {
           content: [
-            {
-              type: 'text',
-              text: `Unknown Puppeteer tool: ${name}`,
-            },
+            { type: 'text', text: `Scrolled${targetDesc} ${direction}.` },
           ],
-          isError: true,
         };
-    }
+      },
+    );
+    this.server.tool(
+      'midscene_input',
+      'Inputs text into a specified form field or element identified by a natural language selector.',
+      {
+        value: z.string().describe('The text to input'),
+        selector: z
+          .string()
+          .describe('Describe the element to input text into'),
+      },
+      async ({ value, selector }) => {
+        const agent = await this.initAgent();
+        await agent.aiInput(value, selector);
+        return {
+          content: [
+            { type: 'text', text: `Inputted ${value} into ${selector}` },
+          ],
+          isError: false,
+        };
+      },
+    );
+    this.server.tool(
+      'midscene_hover',
+      'Moves the mouse cursor to hover over an element identified by a natural language selector.',
+      { selector: z.string() },
+      async ({ selector }) => {
+        const agent = await this.initAgent();
+        await agent.aiHover(selector);
+        return {
+          content: [{ type: 'text', text: `Hovered over ${selector}` }],
+          isError: false,
+        };
+      },
+    );
+    this.server.tool(
+      'midscene_evaluate',
+      'Executes arbitrary JavaScript code within the context of the current page and returns the result.',
+      { script: z.string() },
+      async ({ script }) => {
+        const agent = await this.initAgent();
+        const res = await agent.evaluateJavaScript(script);
+        const text = typeof res === 'string' ? res : JSON.stringify(res);
+        return { content: [{ type: 'text', text }] };
+      },
+    );
   }
 
   public getConsoleLogs(): string {
