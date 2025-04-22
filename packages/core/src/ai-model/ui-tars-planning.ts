@@ -1,3 +1,4 @@
+import { uiTarsModelVersion, vlLocateMode } from '@/env';
 import type { PlanningAction } from '@/types';
 import { transformHotkeyInput } from '@midscene/shared/keyboard-layout';
 import { assert } from '@midscene/shared/utils';
@@ -52,9 +53,16 @@ export async function vlmPlanning(options: {
     AIActionType.INSPECT_ELEMENT,
   );
   const convertedText = convertBboxToCoordinates(res.content);
+
+  const modelVer = uiTarsModelVersion();
   const { parsed } = actionParser({
     prediction: convertedText,
-    factor: 1000,
+    factor: [1000, 1000],
+    screenContext: {
+      width: size.width,
+      height: size.height,
+    },
+    modelVer,
   });
   const transformActions: PlanningAction[] = [];
   parsed.forEach((action) => {

@@ -207,29 +207,46 @@ describe('qwen-vl', () => {
   it('adaptQwenBbox with invalid bbox data', () => {
     expect(() => adaptQwenBbox([100])).toThrow();
   });
-
-  it.skipIf(vlLocateMode() !== 'qwen-vl')('adaptBboxToRect', () => {
-    const result = adaptBboxToRect([100, 200, 300, 400], 400, 900, 30, 60);
-    expect(result).toMatchInlineSnapshot(`
-      {
-        "height": 200,
-        "left": 130,
-        "top": 260,
-        "width": 200,
-      }
-    `);
-  });
 });
 
-describe('gemini', () => {
-  it('adaptGeminiBbox', () => {
-    const result = adaptGeminiBbox([100, 200, 300, 400], 400, 900);
+describe('doubao-vision', () => {
+  it('adaptDoubaoBbox', () => {
+    const result = adaptDoubaoBbox([100, 200, 300, 400], 400, 900);
     expect(result).toMatchInlineSnapshot(`
       [
-        80,
-        90,
-        160,
-        270,
+        40,
+        180,
+        120,
+        360,
+      ]
+    `);
+  });
+  it('adaptDoubaoBbox', () => {
+    const result = adaptDoubaoBbox([[100, 200, 300, 400]] as any, 400, 900);
+    expect(result).toMatchInlineSnapshot(`
+      [
+        40,
+        180,
+        120,
+        360,
+      ]
+    `);
+  });
+  it('adaptDoubaoBbox', () => {
+    const result = adaptDoubaoBbox(
+      [
+        [100, 200, 300, 400],
+        [100, 200, 300, 400],
+      ] as any,
+      400,
+      900,
+    );
+    expect(result).toMatchInlineSnapshot(`
+      [
+        40,
+        180,
+        120,
+        360,
       ]
     `);
   });
