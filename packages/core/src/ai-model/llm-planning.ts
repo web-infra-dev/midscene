@@ -39,7 +39,9 @@ export async function plan(
     opts.log,
     opts.actionContext,
   );
-  const userInstructionPrompt = await automationUserPrompt().format({
+  const userInstructionPrompt = await automationUserPrompt(
+    vlLocateMode(),
+  ).format({
     pageDescription,
     taskBackgroundContext: taskBackgroundContextText,
   });

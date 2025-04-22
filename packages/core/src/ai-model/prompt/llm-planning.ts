@@ -397,8 +397,10 @@ Here is the user's instruction:
 `;
 };
 
-export const automationUserPrompt = () => {
-  if (vlLocateMode()) {
+export const automationUserPrompt = (
+  vlMode: ReturnType<typeof vlLocateMode>,
+) => {
+  if (vlMode) {
     return new PromptTemplate({
       template: '{taskBackgroundContext}',
       inputVariables: ['taskBackgroundContext'],

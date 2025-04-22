@@ -715,7 +715,15 @@ this and output the JSON:
 "
 `;
 
-exports[`system prompts > planning - user prompt - 4o 1`] = `"THIS IS BACKGROUND CONTEXT"`;
+exports[`system prompts > planning - user prompt - 4o 1`] = `
+"
+pageDescription:
+=====================================
+THIS IS PAGE DESCRIPTION
+=====================================
+
+THIS IS BACKGROUND CONTEXT"
+`;
 
 exports[`system prompts > planning - user prompt - qwen 1`] = `"THIS IS BACKGROUND CONTEXT"`;
 

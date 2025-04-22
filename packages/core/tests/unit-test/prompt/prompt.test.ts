@@ -57,7 +57,7 @@ describe('system prompts', () => {
   });
 
   it('planning - user prompt - 4o', async () => {
-    const prompt = automationUserPrompt();
+    const prompt = automationUserPrompt(false);
     const result = await prompt.format({
       pageDescription: 'THIS IS PAGE DESCRIPTION',
       taskBackgroundContext: 'THIS IS BACKGROUND CONTEXT',
@@ -67,8 +67,7 @@ describe('system prompts', () => {
   });
 
   it('planning - user prompt - qwen', async () => {
-    process.env.MIDSCENE_USE_QWEN_VL = 'true';
-    const prompt = automationUserPrompt();
+    const prompt = automationUserPrompt('qwen-vl');
     const result = await prompt.format({
       pageDescription: 'THIS IS PAGE DESCRIPTION',
       taskBackgroundContext: 'THIS IS BACKGROUND CONTEXT',
