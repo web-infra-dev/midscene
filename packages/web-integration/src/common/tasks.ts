@@ -498,9 +498,11 @@ export class PageTaskExecutor {
           locate: plan.locate,
           executor: async (param) => {
             // Check if the page has back method (Android devices)
-            if (isAndroidPage(this.page)) {
-              await this.page.home();
-            }
+            assert(
+              isAndroidPage(this.page),
+              'Cannot use home button on non-Android devices',
+            );
+            await this.page.home();
           },
         };
         tasks.push(taskActionAndroidHomeButton);
@@ -512,9 +514,11 @@ export class PageTaskExecutor {
           thought: plan.thought,
           locate: plan.locate,
           executor: async (param) => {
-            if (isAndroidPage(this.page)) {
-              await this.page.back();
-            }
+            assert(
+              isAndroidPage(this.page),
+              'Cannot use back button on non-Android devices',
+            );
+            await this.page.back();
           },
         };
         tasks.push(taskActionAndroidBackButton);
@@ -527,9 +531,11 @@ export class PageTaskExecutor {
             thought: plan.thought,
             locate: plan.locate,
             executor: async (param) => {
-              if (isAndroidPage(this.page)) {
-                await this.page.recentApps();
-              }
+              assert(
+                isAndroidPage(this.page),
+                'Cannot use recent apps button on non-Android devices',
+              );
+              await this.page.recentApps();
             },
           };
         tasks.push(taskActionAndroidRecentAppsButton);

@@ -42,7 +42,7 @@ describe('system prompts', () => {
   it('planning - android', async () => {
     const prompt = await systemPromptToTaskPlanning({
       pageType: 'android',
-      vlMode: false,
+      vlMode: 'qwen-vl',
     });
     expect(prompt).toMatchSnapshot();
   });
