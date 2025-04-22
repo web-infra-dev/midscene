@@ -1,4 +1,4 @@
-import type { WebPage } from '@/common/page';
+import type { AndroidDevicePage, WebPage } from '@/common/page';
 import type { PuppeteerWebPage } from '@/puppeteer';
 import {
   type AIUsageInfo,
@@ -15,6 +15,7 @@ import {
   type InsightAssertionResponse,
   type InsightDump,
   type InsightExtractParam,
+  type PageType,
   type PlanningAIResponse,
   type PlanningAction,
   type PlanningActionParamAssert,
@@ -45,6 +46,10 @@ interface ExecutionResult<OutputType = any> {
 }
 
 const replanningCountLimit = 10;
+
+const isAndroidPage = (page: WebPage): page is AndroidDevicePage => {
+  return page.pageType === 'android';
+};
 
 export class PageTaskExecutor {
   page: WebPage;
@@ -484,6 +489,56 @@ export class PageTaskExecutor {
           executor: async (param) => {},
         };
         tasks.push(taskActionFinished);
+      } else if (plan.type === 'AndroidHomeButton') {
+        const taskActionAndroidHomeButton: ExecutionTaskActionApply<null> = {
+          type: 'Action',
+          subType: 'AndroidHomeButton',
+          param: null,
+          thought: plan.thought,
+          locate: plan.locate,
+          executor: async (param) => {
+            // Check if the page has back method (Android devices)
+            assert(
+              isAndroidPage(this.page),
+              'Cannot use home button on non-Android devices',
+            );
+            await this.page.home();
+          },
+        };
+        tasks.push(taskActionAndroidHomeButton);
+      } else if (plan.type === 'AndroidBackButton') {
+        const taskActionAndroidBackButton: ExecutionTaskActionApply<null> = {
+          type: 'Action',
+          subType: 'AndroidBackButton',
+          param: null,
+          thought: plan.thought,
+          locate: plan.locate,
+          executor: async (param) => {
+            assert(
+              isAndroidPage(this.page),
+              'Cannot use back button on non-Android devices',
+            );
+            await this.page.back();
+          },
+        };
+        tasks.push(taskActionAndroidBackButton);
+      } else if (plan.type === 'AndroidRecentAppsButton') {
+        const taskActionAndroidRecentAppsButton: ExecutionTaskActionApply<null> =
+          {
+            type: 'Action',
+            subType: 'AndroidRecentAppsButton',
+            param: null,
+            thought: plan.thought,
+            locate: plan.locate,
+            executor: async (param) => {
+              assert(
+                isAndroidPage(this.page),
+                'Cannot use recent apps button on non-Android devices',
+              );
+              await this.page.recentApps();
+            },
+          };
+        tasks.push(taskActionAndroidRecentAppsButton);
       } else {
         throw new Error(`Unknown or unsupported task type: ${plan.type}`);
       }
@@ -556,6 +611,7 @@ export class PageTaskExecutor {
             context: pageContext,
             log: param.log,
             actionContext,
+            pageType: this.page.pageType as PageType,
           });
         }
 

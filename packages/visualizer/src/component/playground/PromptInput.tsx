@@ -90,20 +90,28 @@ export const PromptInput: React.FC<PromptInputProps> = ({
         handleRunWithHistory();
         e.preventDefault();
         e.stopPropagation();
+      } else if (e.key === 'Enter') {
+        setTimeout(() => {
+          if (textAreaRef.current) {
+            const textarea = textAreaRef.current.resizableTextArea.textArea;
+            const selectionStart = textarea.selectionStart;
+            const value = textarea.value;
+
+            // check if cursor is at the end of the text
+            const lastNewlineIndex = value.lastIndexOf('\n');
+            const isAtLastLine =
+              lastNewlineIndex === -1 || selectionStart > lastNewlineIndex;
+
+            // only scroll to bottom when cursor is at the end of the text
+            if (isAtLastLine) {
+              textarea.scrollTop = textarea.scrollHeight;
+            }
+          }
+        }, 0);
       }
     },
     [handleRunWithHistory],
   );
-
-  // handle input change, auto scroll to bottom
-  const handleChange = useCallback(() => {
-    setTimeout(() => {
-      if (textAreaRef.current) {
-        const textarea = textAreaRef.current.resizableTextArea.textArea;
-        textarea.scrollTop = textarea.scrollHeight;
-      }
-    }, 0);
-  }, []);
 
   // Handle settings hover state
   const handleMouseEnter = useCallback(() => {
@@ -206,7 +214,6 @@ export const PromptInput: React.FC<PromptInputProps> = ({
             placeholder={placeholder}
             autoFocus
             onKeyDown={handleKeyDown}
-            onChange={handleChange}
             ref={textAreaRef}
           />
         </Form.Item>

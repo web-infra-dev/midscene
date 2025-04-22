@@ -271,7 +271,11 @@ export interface PlanningAction<ParamType = any> {
     | 'Assert'
     | 'AssertWithoutThrow'
     | 'Sleep'
-    | 'Finished';
+    | 'Finished'
+    | 'AndroidBackButton'
+    | 'AndroidHomeButton'
+    | 'AndroidRecentAppsButton';
+
   param: ParamType;
   locate?: PlanningLocateParam | null;
 }
@@ -518,3 +522,10 @@ export interface GroupedActionDump {
   groupDescription?: string;
   executions: ExecutionDump[];
 }
+
+export type PageType =
+  | 'puppeteer'
+  | 'playwright'
+  | 'static'
+  | 'chrome-extension-proxy'
+  | 'android';
