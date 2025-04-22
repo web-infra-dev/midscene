@@ -53,6 +53,7 @@ export class MidsceneManager {
     this.server = server;
     this.initEnv();
     this.registerTools();
+    this.initAgent();
   }
 
   private initEnv() {
