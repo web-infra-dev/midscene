@@ -18,7 +18,7 @@ MIDSCENE_MODEL_NAME="gpt-4o-2024-11-20" # 可选，默认是 "gpt-4o"。
 
 ### 阿里云或 openrouter.ai 上的 Qwen-2.5-VL
 
-在[阿里云（aliyun.com）](https://aliyun.com)或[openrouter.ai](https://openrouter.ai)上申请 API 密钥后，你可以使用以下配置：
+在[阿里云](https://aliyun.com)或 [openrouter.ai](https://openrouter.ai) 上申请 API 密钥后，你可以使用以下配置：
 
 ```bash
 # openrouter.ai
@@ -36,7 +36,7 @@ MIDSCENE_USE_QWEN_VL=1
 
 ### 火山引擎上的 UI-TARS
 
-你可以在[火山引擎（volcengine.com）](https://volcengine.com)上使用 `doubao-1.5-ui-tars` 模型，在火山引擎上申请 API 密钥后，你可以使用以下配置：
+你可以在 [火山引擎](https://volcengine.com)上使用 `doubao-1.5-ui-tars` 模型，在火山引擎上申请 API 密钥后，你可以使用以下配置：
 
 ```bash
 OPENAI_BASE_URL="https://ark.cn-beijing.volces.com/api/v3" 
@@ -223,15 +223,6 @@ Midscene 也支持其他通用 LLM 模型。Midscene 会使用和 `gpt-4o` 模�
 1. 如果发现使用新模型后效果不佳，可以尝试使用一些简短且清晰的提示词（或回滚到之前的模型）。更多详情请参阅 [编写提示词（指令）的技巧](./prompting-tips)。
 1. 请遵守各模型和服务商的使用条款。
 1. 不要包含 `MIDSCENE_USE_VLM_UI_TARS` 和 `MIDSCENE_USE_QWEN_VL` 配置，除非你知道自己在做什么。
-
-### 已知支持的通用 LLM 模型
-
-我们已知支持以下模型，它们在不同场景下可能表现各异：
-
-- `claude-3-opus-20240229`
-- `gemini-1.5-pro`
-- `qwen-vl-max-latest`（千问）
-- `doubao-vision-pro-32k`（豆包）
 
 ### 配置
 
