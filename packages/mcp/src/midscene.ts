@@ -128,7 +128,7 @@ export class MidsceneManager {
       },
     );
     this.server.tool(
-      'midscene_achieve_goal',
+      'midscene_ai_achieve_goal',
       'Performs a sequence of browser actions (clicks, inputs, scrolls, navigation) based on a natural language goal description.',
       {
         goal: z
@@ -141,6 +141,60 @@ export class MidsceneManager {
         return {
           content: [{ type: 'text', text: `Planned to goal: ${goal}` }],
           isError: false,
+        };
+      },
+    );
+
+    this.server.tool(
+      'midscene_ai_query',
+      'Uses multimodal AI reasoning to extract structured data from the current page view. Specify the desired data and format in the dataShape parameter.',
+      {
+        dataShape: z
+          .string()
+          .describe(
+            'Specify the data to extract and its desired format. \nExamples:\n- "current date and time as a string"\n- "user information as {name: string}"\n- "list of task names as string[]"\n- "table data as {name: string, age: number}[]"',
+          ),
+      },
+      async ({ dataShape }) => {
+        const agent = await this.initAgent();
+        const res = await agent.aiQuery(dataShape);
+        // Attempt to stringify complex results for display, keep strings as is.
+        const text =
+          typeof res === 'string' ? res : JSON.stringify(res, null, 2);
+        return { content: [{ type: 'text', text }] };
+      },
+    );
+
+    this.server.tool(
+      'midscene_ai_wait_for',
+      'Waits until a specified condition, described in natural language, becomes true on the page. Polls the condition using AI.',
+      {
+        assertion: z
+          .string()
+          .describe(
+            'Condition to monitor on the page, described in natural language.',
+          ),
+        timeoutMs: z
+          .number()
+          .optional()
+          .default(15000)
+          .describe('Maximum time to wait (ms).\nDefault: 15000'),
+        checkIntervalMs: z
+          .number()
+          .optional()
+          .default(3000)
+          .describe('How often to check the condition (ms).\nDefault: 3000'),
+      },
+      async ({ assertion, timeoutMs, checkIntervalMs }) => {
+        const agent = await this.initAgent();
+        await agent.aiWaitFor(assertion, {
+          timeoutMs,
+          checkIntervalMs,
+        });
+        return {
+          content: [
+            { type: 'text', text: `Wait condition met: "${assertion}"` },
+          ],
         };
       },
     );
@@ -271,7 +325,7 @@ export class MidsceneManager {
     this.server.tool(
       'midscene_evaluate',
       'Executes arbitrary JavaScript code within the context of the current page and returns the result.',
-      { script: z.string() },
+      { script: z.string().describe('The JavaScript code string to execute.') },
       async ({ script }) => {
         const agent = await this.initAgent();
         const res = await agent.evaluateJavaScript(script);
