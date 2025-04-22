@@ -15,6 +15,7 @@ import {
   type InsightAssertionResponse,
   type InsightDump,
   type InsightExtractParam,
+  type PageType,
   type PlanningAIResponse,
   type PlanningAction,
   type PlanningActionParamAssert,
@@ -488,30 +489,50 @@ export class PageTaskExecutor {
           executor: async (param) => {},
         };
         tasks.push(taskActionFinished);
-      } else if (plan.type === 'AndroidSystemButton') {
-        const button = plan.param?.button;
-        const taskActionAndroidSystemButton: ExecutionTaskActionApply<null> = {
+      } else if (plan.type === 'AndroidHomeButton') {
+        const taskActionAndroidHomeButton: ExecutionTaskActionApply<null> = {
           type: 'Action',
-          subType: 'AndroidSystemButton',
+          subType: 'AndroidHomeButton',
           param: null,
           thought: plan.thought,
           locate: plan.locate,
           executor: async (param) => {
             // Check if the page has back method (Android devices)
             if (isAndroidPage(this.page)) {
-              if (button === 'Back') {
-                await this.page.back();
-              } else if (button === 'Home') {
-                await this.page.home();
-              } else if (button === 'RecentApp') {
-                await this.page.recentApp();
-              } else {
-                throw new Error(`Unknown Android system button: ${button}`);
-              }
+              await this.page.home();
             }
           },
         };
-        tasks.push(taskActionAndroidSystemButton);
+        tasks.push(taskActionAndroidHomeButton);
+      } else if (plan.type === 'AndroidBackButton') {
+        const taskActionAndroidBackButton: ExecutionTaskActionApply<null> = {
+          type: 'Action',
+          subType: 'AndroidBackButton',
+          param: null,
+          thought: plan.thought,
+          locate: plan.locate,
+          executor: async (param) => {
+            if (isAndroidPage(this.page)) {
+              await this.page.back();
+            }
+          },
+        };
+        tasks.push(taskActionAndroidBackButton);
+      } else if (plan.type === 'AndroidRecentAppsButton') {
+        const taskActionAndroidRecentAppsButton: ExecutionTaskActionApply<null> =
+          {
+            type: 'Action',
+            subType: 'AndroidRecentAppsButton',
+            param: null,
+            thought: plan.thought,
+            locate: plan.locate,
+            executor: async (param) => {
+              if (isAndroidPage(this.page)) {
+                await this.page.recentApps();
+              }
+            },
+          };
+        tasks.push(taskActionAndroidRecentAppsButton);
       } else {
         throw new Error(`Unknown or unsupported task type: ${plan.type}`);
       }
@@ -584,7 +605,7 @@ export class PageTaskExecutor {
             context: pageContext,
             log: param.log,
             actionContext,
-            pageType: this.page.pageType,
+            pageType: this.page.pageType as PageType,
           });
         }
 

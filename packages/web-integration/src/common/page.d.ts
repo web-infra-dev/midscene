@@ -28,7 +28,7 @@ export interface AndroidDevicePage extends AbstractPage {
   scrollRight(distance?: number): Promise<void>;
   back(): Promise<void>;
   home(): Promise<void>;
-  recentApp(): Promise<void>;
+  recentApps(): Promise<void>;
 }
 
 export type WebPage =

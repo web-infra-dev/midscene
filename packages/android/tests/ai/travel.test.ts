@@ -29,9 +29,8 @@ describe('Test todo list', () => {
       await agent.aiAction(
         'if there is one day without rain on screen, click Android System Button "Home" to return to Home Screen',
       );
-      await agent.aiAction('open Maps app, search "West Lake"');
       await agent.aiAction(
-        'click the first search result, enter the attraction details page',
+        'open Maps app, search "West Lake", click the search button',
       );
       await agent.aiAction(
         'click "Directions" button, enter the route planning page',

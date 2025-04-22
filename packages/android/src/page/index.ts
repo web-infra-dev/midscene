@@ -642,7 +642,7 @@ ${Object.keys(size)
     await adb.shell('input keyevent 3');
   }
 
-  async recentApp(): Promise<void> {
+  async recentApps(): Promise<void> {
     const adb = await this.getAdb();
     await adb.shell('input keyevent 82');
   }
