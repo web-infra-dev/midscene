@@ -1,4 +1,4 @@
-import { vlLocateMode } from '@/env';
+import type { vlLocateMode } from '@/env';
 import type { PageType } from '@/types';
 import { PromptTemplate } from '@langchain/core/prompts';
 import type { ResponseFormatJSONSchema } from 'openai/resources';
