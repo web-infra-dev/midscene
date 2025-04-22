@@ -11,7 +11,10 @@ import { describe, expect, it } from 'vitest';
 
 describe('system prompts', () => {
   it('planning - 4o', async () => {
-    const prompt = await systemPromptToTaskPlanning(false);
+    const prompt = await systemPromptToTaskPlanning({
+      pageType: 'puppeteer',
+      vlMode: false,
+    });
     expect(prompt).toMatchSnapshot();
   });
 
@@ -21,12 +24,26 @@ describe('system prompts', () => {
   });
 
   it('planning - qwen', async () => {
-    const prompt = await systemPromptToTaskPlanning('qwen-vl');
+    const prompt = await systemPromptToTaskPlanning({
+      pageType: 'puppeteer',
+      vlMode: 'qwen-vl',
+    });
     expect(prompt).toMatchSnapshot();
   });
 
   it('planning - gemini', async () => {
-    const prompt = await systemPromptToTaskPlanning('gemini');
+    const prompt = await systemPromptToTaskPlanning({
+      pageType: 'puppeteer',
+      vlMode: 'gemini',
+    });
+    expect(prompt).toMatchSnapshot();
+  });
+
+  it('planning - android', async () => {
+    const prompt = await systemPromptToTaskPlanning({
+      pageType: 'android',
+      vlMode: false,
+    });
     expect(prompt).toMatchSnapshot();
   });
 
