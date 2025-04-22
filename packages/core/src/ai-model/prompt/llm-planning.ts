@@ -1,9 +1,9 @@
 import { vlLocateMode } from '@/env';
+import type { PageType } from '@/types';
 import { PromptTemplate } from '@langchain/core/prompts';
 import type { ResponseFormatJSONSchema } from 'openai/resources';
 import { bboxDescription } from './common';
 import { samplePageDescription } from './util';
-import type { PageType } from '@/types';
 // Note: put the log field first to trigger the CoT
 const vlCoTLog = `"what_the_user_wants_to_do_next_by_instruction": string, // What the user wants to do according to the instruction and previous logs. `;
 const vlCurrentLog = `"log": string, // Log what the next one action (ONLY ONE!) you can do according to the screenshot and the instruction. The typical log looks like "Now i want to use action '{{ action-type }}' to do .. first". If no action should be done, log the reason. ". Use the same language as the user's instruction.`;
@@ -296,6 +296,12 @@ export const planSchema: ResponseFormatJSONSchema = {
                     type: 'object',
                     properties: { reason: { type: 'string' } },
                     required: ['reason'],
+                    additionalProperties: false,
+                  },
+                  {
+                    type: 'object',
+                    properties: { button: { type: 'string' } },
+                    required: ['button'],
                     additionalProperties: false,
                   },
                 ],
