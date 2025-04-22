@@ -68,16 +68,23 @@ export class MidsceneManager {
     overrideAIConfig(envOverrides);
   }
 
-  private async initAgent() {
+  private async initAgent(reInit = false) {
     if (this.agent) {
-      return this.agent;
+      if (reInit) {
+        await this.agent.destroy();
+        this.agent = undefined;
+      } else {
+        return this.agent;
+      }
     }
+
     if (this.bridgeMode) {
       this.agent = new AgentOverChromeBridge();
     } else {
       // Store the browser instance when using puppeteer
       const { browser, pages } = await ensureBrowser({});
-      this.agent = new PuppeteerBrowserAgent(browser, pages[0]);
+      const newPage = await browser.newPage();
+      this.agent = new PuppeteerBrowserAgent(browser, newPage);
     }
     return this.agent;
   }
@@ -88,7 +95,7 @@ export class MidsceneManager {
       'Navigates the browser to the specified URL. Always opens in the current tab.',
       { url: z.string().describe('URL to navigate to') },
       async ({ url }) => {
-        const agent = await this.initAgent();
+        const agent = await this.initAgent(true);
         await agent.connectNewTabWithUrl(url);
         return {
           content: [{ type: 'text', text: `Navigated to ${url}` }],
