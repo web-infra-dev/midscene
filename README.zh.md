@@ -26,26 +26,26 @@ Midscene.js 是一个 AI 操作助手，适用于 Web、Android、自动化和�
 
 ## 案例
 
-下面的录制 example 视频基于 [UI-TARS-1.5-7B](https://huggingface.co/ByteDance-Seed/UI-TARS-1.5-7B) 模型，视频没有任何加速～
-
 | 指令  | 视频 |
 | :---:  | :---: |
 | 发布一条 Twitter      |    <video src="https://github.com/user-attachments/assets/bb3d695a-fbff-4af1-b6cc-5e967c07ccee" height="300" />    |
 | 用 JS 代码驱动编排任务，搜集周杰伦演唱会的信息，并写入 Google Docs   | <video src="https://github.com/user-attachments/assets/75474138-f51f-4c54-b3cf-46d61d059999" height="300" />        |
+| 控制地图 App 在 Android 上导航到目的地   | <video src="https://github.com/user-attachments/assets/1f5bab0e-4c28-44e1-b378-a38809b05a00" height="300" />        |
 
+## 📢 2025 年 4 月：新增支持 Android 自动化
+
+你可以在 Android 设备上使用视觉语言 AI 模型来控制设备，并利用 Midscene.js 的强大功能。只需连接 adb 即可实现这一功能。了解更多详情，请阅读 [博客：支持 Android 自动化](https://midscenejs.com/zh/blog-support-android-automation.html)。
 
 ## 📢 新增支持开源模型 - UI-TARS 和 Qwen2.5-VL（千问）
 
 除了默认的 *GPT-4o* 模型之外，我们还为 Midscene.js 添加了两个全新推荐的开源模型：*UI-TARS* 和 *Qwen2.5-VL*。（没错，全都是开源模型！）它们是专门用于图像识别和 UI 自动化的模型，在 UI 自动化场景中表现尤为出色。了解更多详情，请阅读 [选择模型](https://midscenejs.com/choose-a-model)。
 
-
 ## 💡 特性
 
 - **自然语言互动 👆**：只需描述你的目标和步骤，Midscene 会为你规划和操作用户界面。
-- **Chrome 插件体验 🖥️**：通过 Chrome 插件，你可以立即开始体验，无需编写代码。
-- **Puppeteer/Playwright 集成 🔧**：支持 Puppeteer 和 Playwright 集成，让你能够结合 AI 能力和这些自动化工具的强大功能，轻松实现自动化操作。
-- **支持开源模型 🤖**：支持开源模型 [`UI-TARS`](https://github.com/bytedance/ui-tars) 和 [千问 `Qwen2.5-VL`](https://github.com/QwenLM/Qwen2.5-VL)，相比 GPT-4o、Claude 等闭源模型，不仅在 UI 自动化场景下表现更加出色，还能更好地保护数据安全。
-- **支持通用模型 🌟**：支持 GPT-4o、Claude 等通用大模型，适配多种场景需求。
+- **UI 自动化 🤖**
+  - **Web 自动化 🖥️**：通过 [Chrome 插件](https://midscenejs.com/zh/quick-experience.html)，你可以立即开始体验，无需编写代码。
+  - **Android 自动化 📱**：使用 [Android Playground](https://midscenejs.com/zh/quick-experience-with-android.html) 快速体验，或使用 javascript SDK 与 [adb](https://midscenejs.com/zh/integrate-with-android.html) 集成。
 - **用可视化报告来调试 🎞️**：通过我们的测试报告和 Playground，你可以轻松理解、回放和调试整个过程。
 - **支持缓存 🔄**：首次通过 AI 执行后任务会被缓存，后续执行相同任务时可显著提升执行效率。
 - **完全开源 🔥**：体验全新的自动化开发体验，尽情享受吧！
@@ -54,9 +54,9 @@ Midscene.js 是一个 AI 操作助手，适用于 Web、Android、自动化和�
 
 ## ✨ 选择 AI 模型 
 
-- 你可以使用通用的 LLM 模型，如 `gpt-4o`，它适用于大多数情况。同时，`gemini-1.5-pro` 和 `qwen-vl-max-latest`（千问）也是支持的。
-- 你也可以使用 [`UI-TARS` 模型](https://github.com/bytedance/ui-tars) ，这是一个专为 UI 自动化设计的大模型。你可以私有化部署，以提高性能和数据隐私。
-- 更多信息请查看 [选择 AI 模型](https://midscenejs.com/zh/choose-a-model)。
+你可以使用多模态 LLM 模型，如 `gpt-4o`，或者视觉语言模型，如 `Qwen2.5-VL`，`gemini-2.5-pro` 和 `UI-TARS`。其中 `UI-TARS` 是一个专为 UI 自动化设计的大模型。
+
+更多信息请查看 [选择 AI 模型](https://midscenejs.com/zh/choose-a-model)。
 
 ## 👀 与其他工具比较
 
@@ -72,9 +72,9 @@ Midscene.js 是一个 AI 操作助手，适用于 Web、Android、自动化和�
 
 * [官网首页: https://midscenejs.com](https://midscenejs.com/zh)
 * Web 浏览器自动化
-  * [使用 Chrome 插件体验](https://midscenejs.com/zh/quick-experience.html)，请从这里开始体验 Midscene 
-  * [使用 YAML 格式的自动化脚本](https://midscenejs.com/zh/automate-with-scripts-in-yaml.html), 如果你更喜欢写 YAML 文件而不是代码
-  * [使用 Chrome 插件桥接模式（Bridge Mode）](https://midscenejs.com/zh/bridge-mode-by-chrome-extension.html), 使用 Midscene 来控制桌面端 Chrome 
+  * [使用 Chrome 插件体验](https://midscenejs.com/zh/quick-experience.html)
+  * [使用 YAML 格式的自动化脚本](https://midscenejs.com/zh/automate-with-scripts-in-yaml.html)
+  * [使用 Chrome 插件桥接模式（Bridge Mode）](https://midscenejs.com/zh/bridge-mode-by-chrome-extension.html)
   * [与 Puppeteer 集成](https://midscenejs.com/zh/integrate-with-puppeteer.html)
   * [与 Playwright 集成](https://midscenejs.com/zh/integrate-with-playwright.html)
 * Android 自动化
@@ -105,14 +105,25 @@ Midscene.js 是一个 AI 操作助手，适用于 Web、Android、自动化和�
 - [Puppeteer](https://github.com/puppeteer/puppeteer) 用于浏览器自动化与控制。
 - [Playwright](https://github.com/microsoft/playwright) 用于浏览器自动化与控制和测试。
 
+## 📝 致谢
+
+我们感谢以下项目：
+
+- [Rsbuild](https://github.com/web-infra-dev/rsbuild) 用于构建工具。
+- [UI-TARS](https://github.com/bytedance/ui-tars) 用于开源的 AI 模型 UI-TARS。
+- [Qwen2.5-VL](https://github.com/QwenLM/Qwen2.5-VL) 用于开源的视觉语言模型 Qwen2.5-VL。
+- [scrcpy](https://github.com/Genymobile/scrcpy) 和 [yume-chan](https://github.com/yume-chan) 允许我们使用浏览器控制 Android 设备。
+- [appium-adb](https://github.com/appium/appium-adb) 用于 javascript 桥接 adb。
+- [YADB](https://github.com/ysbing/YADB) 用于提高文本输入的兼容性。
+
 ## 引用
 
 如果您在研究或项目中使用了 Midscene.js，请引用：
 
 ```bibtex
 @software{Midscene.js,
-  author = {Zhou, Xiao and Yu, Tao},
-  title = {Midscene.js: Assign AI as your web operator.},
+  author = {Xiao Zhou, Tao Yu, YiBing Lin},
+  title = {Midscene.js: Your AI Operator for Web, Android, Automation & Testing.},
   year = {2025},
   publisher = {GitHub},
   url = {https://github.com/web-infra-dev/midscene}

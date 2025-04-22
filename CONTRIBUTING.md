@@ -13,7 +13,7 @@ own GitHub account and then [clone](https://help.github.com/articles/cloning-a-r
 
 ### Install Node.js
 
-We recommend using Node.js 18.19.0. You can check your currently used Node.js version with the following command:
+We recommend using Node.js 20.9.0. You can check your currently used Node.js version with the following command:
 
 ```bash
 node -v
@@ -21,17 +21,17 @@ node -v
 
 If you do not have Node.js installed in your current environment, you can use [nvm](https://github.com/nvm-sh/nvm) or [fnm](https://github.com/Schniz/fnm) to install it.
 
-Here is an example of how to install the Node.js 18.19.0 version via nvm:
+Here is an example of how to install the Node.js 20.9.0 version via nvm:
 
 ```bash
 # Install the LTS version of Node.js 20
-nvm install 18.19.0 --lts
+nvm install 20.9.0 --lts
 
 # Make the newly installed Node.js 20 as the default version
-nvm alias default 18.19.0
+nvm alias default 20.9.0
 
 # Switch to the newly installed Node.js 20
-nvm use 18.19.0
+nvm use 20.9.0
 ```
 
 ### Install Dependencies
@@ -224,12 +224,12 @@ We use [Conventional Commits](https://www.conventionalcommits.org/) for PR title
 Every commit **must** include a scope. The scope must be one of the following:
 
 *   `workflow`
-*   `android`
 *   `llm`
 *   `playwright`
 *   `puppeteer`
 *   `mcp`
 *   `bridge`
+*   *(All top-level directories in the apps and packages directories)*
 *   *(Consider adding other relevant top-level packages or areas here if needed)*
 
 **Examples:**
@@ -266,7 +266,7 @@ Here are the steps to publish (we generally use CI for releases and avoid publis
 ```
 midscene/
 ├── apps/
-│   ├── chrome-extension/     # Chrome extension application
+│   ├── chrome-extension/    # Chrome extension application
 │   │   ├── dist/            # Build output directory
 │   │   ├── extension/       # Packaged Chrome extension directory
 │   │   ├── scripts/         # Build and utility scripts

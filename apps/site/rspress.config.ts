@@ -146,10 +146,10 @@ export default defineConfig({
         {
           text: 'Blog',
           items: [
-            // {
-            //   text: 'Support Android Automation',
-            //   link: '/blog-support-android-automation',
-            // },
+            {
+              text: 'Support Android Automation',
+              link: '/blog-support-android-automation',
+            },
             {
               text: 'Introducing Instant Actions and Deep Think',
               link: '/blog-introducing-instant-actions-and-deep-think',
@@ -183,7 +183,7 @@ export default defineConfig({
               link: '/zh/integrate-with-puppeteer',
             },
             {
-              text: '使用 Chrome 插件的桥接模式（Bridge Mode）',
+              text: 'Chrome 桥接模式（Bridge Mode）',
               link: '/zh/bridge-mode-by-chrome-extension',
             },
             {
@@ -251,10 +251,10 @@ export default defineConfig({
         {
           text: 'Blog',
           items: [
-            // {
-            //   text: '支持 Android 自动化',
-            //   link: '/zh/blog-support-android-automation',
-            // },
+            {
+              text: '支持 Android 自动化',
+              link: '/zh/blog-support-android-automation',
+            },
             {
               text: '即时操作和深度思考',
               link: '/zh/blog-introducing-instant-actions-and-deep-think',

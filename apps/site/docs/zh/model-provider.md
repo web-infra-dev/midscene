@@ -18,17 +18,23 @@ Midscene 默认集成了 OpenAI SDK 调用 AI 服务。使用这个 SDK 限定�
 | `OPENAI_BASE_URL` | 可选。API 的接入 URL。常用于切换到其他模型服务，如 `https://some_service_name.com/v1` |
 | `MIDSCENE_MODEL_NAME` | 可选。指定一个不同的模型名称 (默认是 gpt-4o)。常用于切换到其他模型服务|
 
-使用 `Qwen 2.5 VL` 模型：
+使用 `Qwen 2.5 VL` 模型的额外配置：
 
 | 名称 | 描述 |
 |------|-------------|
-| `MIDSCENE_USE_QWEN_VL` | 可选。设置为 "1" 以使用 Qwen 2.5 VL 模型 |
+| `MIDSCENE_USE_QWEN_VL` | 可选。设置为 "1" 以适配 Qwen 2.5 VL 模型 |
 
-使用 `UI-TARS` 模型：
+使用 `UI-TARS` 模型的额外配置：
 
 | 名称 | 描述 |
 |------|-------------|
-| `MIDSCENE_USE_VLM_UI_TARS` | 可选。设置为 "1" 以使用 UI-TARS 模型 |
+| `MIDSCENE_USE_VLM_UI_TARS` | 可选。设置为 "1" 以适配 UI-TARS 模型 |
+
+使用 `Gemini 2.5 Pro` 模型的额外配置：
+
+| 名称 | 描述 |
+|------|-------------|
+| `MIDSCENE_USE_GEMINI` | 可选。设置为 "1" 以适配 Gemini 2.5 Pro 模型 |
 
 关于模型的更多信息，请参阅 [选择 AI 模型](./choose-a-model)。
 
@@ -114,6 +120,19 @@ export AZURE_OPENAI_API_VERSION="2024-05-01-preview"
 export AZURE_OPENAI_DEPLOYMENT="gpt-4o"
 ```
 
+## 使用 Javascript 配置 AI 服务
+
+你也可以在运行 Midscene 代码之前，使用 Javascript 来配置 AI 服务。
+
+```typescript
+import { overrideAIConfig } from "@midscene/core/env";
+
+overrideAIConfig({
+  MIDSCENE_MODEL_NAME: "...",
+  // ...
+});
+```
+
 ## 示例：使用 OpenAI 的 `gpt-4o` 模型
 
 配置环境变量：
@@ -155,31 +174,6 @@ export MIDSCENE_USE_VLM_UI_TARS=1
 export MIDSCENE_USE_ANTHROPIC_SDK=1
 export ANTHROPIC_API_KEY="....."
 export MIDSCENE_MODEL_NAME="claude-3-opus-20240229"
-```
-
-
-## 示例：使用火山云的豆包 `doubao-vision-pro-32k` 模型
-
-调用前需要配置推理点：https://console.volcengine.com/ark/region:ark+cn-beijing/endpoint
-
-在推理点界面中，寻找一个如 `ep-202...` 形式的 ID 作为模型名称。
-
-配置环境变量：
-
-```bash
-export OPENAI_BASE_URL="https://ark.cn-beijing.volces.com/api/v3"
-export OPENAI_API_KEY="..."
-export MIDSCENE_MODEL_NAME="ep-202....."
-```
-
-## 示例：使用 Google 的 `gemini-1.5-pro` 模型
-
-配置环境变量：
-
-```bash
-export OPENAI_BASE_URL="https://generativelanguage.googleapis.com/v1beta/openai"
-export OPENAI_API_KEY="....."
-export MIDSCENE_MODEL_NAME="gemini-1.5-pro"
 ```
 
 ## 调试 LLM 服务连接问题

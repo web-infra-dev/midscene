@@ -151,7 +151,7 @@ export async function AiLocateElement<
     pageDescription: description,
     targetElementDescription,
   });
-  const systemPrompt = systemPromptToLocateElement(!!vlLocateMode());
+  const systemPrompt = systemPromptToLocateElement(vlLocateMode());
 
   let imagePayload = screenshotBase64WithElementMarker || screenshotBase64;
 
@@ -270,7 +270,7 @@ export async function AiLocateSection(options: {
   const { context, sectionDescription } = options;
   const { screenshotBase64 } = context;
 
-  const systemPrompt = systemPromptToLocateSection();
+  const systemPrompt = systemPromptToLocateSection(vlLocateMode());
   const sectionLocatorInstructionText = await sectionLocatorInstruction.format({
     sectionDescription,
   });
