@@ -355,8 +355,6 @@ ${Object.keys(size)
     await adb.shell(
       'app_process -Djava.class.path=/data/local/tmp/yadb /data/local/tmp com.ysbing.yadb.Main -keyboard "~CLEAR~"',
     );
-
-    await this.mouse.click(element.center[0], element.center[1]);
   }
 
   private async forceScreenshot(path: string): Promise<void> {
@@ -495,11 +493,13 @@ ${Object.keys(size)
     // for pure ASCII characters, directly use inputText
     if (!isChinese) {
       await adb.inputText(text);
+      await adb.hideKeyboard();
       return;
     }
 
     // for non-ASCII characters, use yadb
     await this.execYadb(text);
+    await adb.hideKeyboard();
   }
 
   private async keyboardPress(key: string): Promise<void> {
