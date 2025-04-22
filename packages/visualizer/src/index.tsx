@@ -27,6 +27,7 @@ export { ContextPreview } from './component/playground/ContextPreview';
 export { PromptInput } from './component/playground/PromptInput';
 export { Player } from './component/player';
 export { Blackboard } from './component/blackboard';
+export { GithubStar } from './component/github-star';
 
 // Export playground utilities
 export {

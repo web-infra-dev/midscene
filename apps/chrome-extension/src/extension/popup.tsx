@@ -1,7 +1,8 @@
 /// <reference types="chrome" />
-import { ApiOutlined, SendOutlined } from '@ant-design/icons';
+import { ApiOutlined, HomeOutlined, SendOutlined } from '@ant-design/icons';
 import {
   EnvConfig,
+  GithubStar,
   Logo,
   globalThemeConfig,
   useEnvConfig,
@@ -61,8 +62,31 @@ export function PlaygroundPopup() {
     <ConfigProvider theme={globalThemeConfig()}>
       <div className="popup-wrapper">
         <div className="popup-header">
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <Logo withGithubStar={true} />
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '10px',
+            }}
+          >
+            <a
+              style={{
+                color: 'unset',
+              }}
+              href="https://midscenejs.com/"
+              target="_blank"
+              rel="noreferrer"
+            >
+              <HomeOutlined
+                style={{
+                  fontSize: '20px',
+                  cursor: 'pointer',
+                  textDecoration: 'none',
+                }}
+              />
+            </a>
+            <GithubStar />
             <EnvConfig />
           </div>
           <p>
