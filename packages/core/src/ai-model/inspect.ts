@@ -17,7 +17,6 @@ import type {
   ElementById,
   ElementTreeNode,
   Rect,
-  Size,
   UIContext,
 } from '@/types';
 import { cropByRect, paddingToMatchBlockByBase64 } from '@midscene/shared/img';

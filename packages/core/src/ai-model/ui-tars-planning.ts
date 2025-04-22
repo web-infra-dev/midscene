@@ -62,7 +62,7 @@ export async function vlmPlanning(options: {
       width: size.width,
       height: size.height,
     },
-    modelVer,
+    modelVer: modelVer || undefined,
   });
   const transformActions: PlanningAction[] = [];
   parsed.forEach((action) => {

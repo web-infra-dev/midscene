@@ -19,19 +19,19 @@ Extra configs to use `Qwen 2.5 VL` model:
 
 | Name | Description |
 |------|-------------|
-| `MIDSCENE_USE_QWEN_VL` | Optional. Set to "1" to use the adapter of Qwen 2.5 VL model |
+| `MIDSCENE_USE_QWEN_VL` | Set to "1" to use the adapter of Qwen 2.5 VL model |
 
 Extra configs to use `UI-TARS` model:
 
 | Name | Description |
 |------|-------------|
-| `MIDSCENE_USE_VLM_UI_TARS` | Optional. Set to "1" to use the adapter of UI-TARS model |
+| `MIDSCENE_USE_VLM_UI_TARS` | Version of UI-TARS model, supported values are `1.0` `1.5` `DOUBAO` (volcengine version) |
 
 Extra configs to use `Gemini 2.5 Pro` model:
 
 | Name | Description |
 |------|-------------|
-| `MIDSCENE_USE_GEMINI` | Optional. Set to "1" to use the adapter of Gemini 2.5 Pro model |
+| `MIDSCENE_USE_GEMINI` | Set to "1" to use the adapter of Gemini 2.5 Pro model |
 
 For more information about the models, see [Choose a model](./choose-a-model).
 

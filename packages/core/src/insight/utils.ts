@@ -1,4 +1,9 @@
-import { MIDSCENE_MODEL_NAME, getAIConfig, vlLocateMode } from '@/env';
+import {
+  MIDSCENE_MODEL_NAME,
+  getAIConfig,
+  uiTarsModelVersion,
+  vlLocateMode,
+} from '@/env';
 import type {
   DumpMeta,
   DumpSubscriber,
@@ -15,7 +20,12 @@ export function emitInsightDump(
   let modelDescription = '';
 
   if (vlLocateMode()) {
-    modelDescription = `${vlLocateMode()} mode`;
+    const uiTarsModelVer = uiTarsModelVersion();
+    if (uiTarsModelVer) {
+      modelDescription = `UI-TARS=${uiTarsModelVer}`;
+    } else {
+      modelDescription = `${vlLocateMode()} mode`;
+    }
   }
 
   const baseData: DumpMeta = {

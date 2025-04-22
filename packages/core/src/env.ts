@@ -107,8 +107,15 @@ const getGlobalConfig = () => {
   return globalConfig;
 };
 
-export const uiTarsModelVersion = (): UITarsModelVersion => {
+export const uiTarsModelVersion = (): UITarsModelVersion | false => {
+  if (vlLocateMode() !== 'vlm-ui-tars') {
+    return false;
+  }
+
   const versionConfig = getAIConfigInJson(MIDSCENE_USE_VLM_UI_TARS);
+  if (versionConfig === '1' || versionConfig === 1) {
+    return UITarsModelVersion.V1_0;
+  }
   if (versionConfig === 'DOUBAO-1.5') {
     return UITarsModelVersion.DOUBAO_1_5_20B;
   }
