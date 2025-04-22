@@ -4,7 +4,7 @@ import { WebPage as PuppeteerWebPage } from './page';
 
 export { WebPage as PuppeteerWebPage } from './page';
 
-export class PuppeteerAgent extends PageAgent {
+export class PuppeteerAgent extends PageAgent<PuppeteerWebPage> {
   constructor(page: PuppeteerPage, opts?: PageAgentOpt) {
     const webPage = new PuppeteerWebPage(page);
     super(webPage, opts);

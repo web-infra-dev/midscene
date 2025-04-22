@@ -7,7 +7,7 @@ export { PlaywrightAiFixture } from './ai-fixture';
 export { overrideAIConfig } from '@midscene/core/env';
 export { WebPage as PlaywrightWebPage } from './page';
 
-export class PlaywrightAgent extends PageAgent {
+export class PlaywrightAgent extends PageAgent<PlaywrightWebPage> {
   constructor(page: PlaywrightPage, opts?: PageAgentOpt) {
     const webPage = new PlaywrightWebPage(page);
     super(webPage, opts);

@@ -123,6 +123,14 @@ export class AgentOverChromeBridge extends PageAgent<ChromeExtensionPageCliSide>
     await this.setDestroyOptionsAfterConnect();
   }
 
+  async getBrowserTabList() {
+    return await this.page.getBrowserTabList();
+  }
+
+  async setActiveTabId(tabId: string) {
+    return await this.page.setActiveTabId(Number.parseInt(tabId));
+  }
+
   async connectCurrentTab(options?: BridgeConnectTabOptions) {
     await this.page.connectCurrentTab(options);
     await sleep(500);

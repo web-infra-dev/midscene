@@ -4,11 +4,17 @@ import type { Tool } from '@modelcontextprotocol/sdk/types.js';
 export const TOOLS: Tool[] = [
   {
     name: 'midscene_navigate',
-    description: 'Navigate to a URL',
+    description:
+      'Navigate the current tab to a URL or open a URL in a new tab.',
     inputSchema: {
       type: 'object',
       properties: {
         url: { type: 'string', description: 'URL to navigate to' },
+        openNewTab: {
+          type: 'boolean',
+          description:
+            'Optional. If true, open the URL in a new tab. Defaults to false (navigate current tab).',
+        },
         launchOptions: {
           type: 'object',
           description:
@@ -24,14 +30,28 @@ export const TOOLS: Tool[] = [
     },
   },
   {
-    name: 'midscene_screenshot',
-    description: 'Take a screenshot of the current page or a specific element',
+    name: 'midscene_get_tabs',
+    description:
+      'Get a list of currently open browser tabs, each including its ID, title, and URL.',
+    inputSchema: {
+      type: 'object',
+      properties: {},
+      required: [],
+    },
+  },
+  {
+    name: 'midscene_set_active_tab',
+    description: 'Set the active tab to the tab with the given ID.',
     inputSchema: {
       type: 'object',
       properties: {
-        name: { type: 'string', description: 'Name for the screenshot' },
+        tabId: {
+          type: 'string',
+          description:
+            'ID of the tab to set as active. Obtain the ID from the `midscene_get_tabs` tool.',
+        },
       },
-      required: ['name'],
+      required: ['tabId'],
     },
   },
   {
@@ -50,6 +70,17 @@ export const TOOLS: Tool[] = [
     },
   },
   {
+    name: 'midscene_screenshot',
+    description: 'Take a screenshot of the current page or a specific element',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        name: { type: 'string', description: 'Name for the screenshot' },
+      },
+      required: ['name'],
+    },
+  },
+  {
     name: 'midscene_click',
     description:
       'Describe the element to click using natural language for automatic clicking.',
@@ -63,6 +94,27 @@ export const TOOLS: Tool[] = [
         },
       },
       required: ['selector'],
+    },
+  },
+  {
+    name: 'midscene_scroll',
+    description:
+      'Scroll the page or a specific element based on natural language instructions.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        value: {
+          type: 'string',
+          description:
+            "Specify the scroll direction and amount (e.g., 'up', 'down', 'to the bottom', 'to the top', 'down 800px') or describe the element to scroll to in natural language.",
+        },
+        selector: {
+          type: 'string',
+          description:
+            'Optional. Describe the container element to scroll within using natural language. If omitted, the entire page will be scrolled.',
+        },
+      },
+      required: ['value'],
     },
   },
   {
