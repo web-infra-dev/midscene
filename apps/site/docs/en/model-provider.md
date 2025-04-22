@@ -15,17 +15,23 @@ These are the most common configs, in which `OPENAI_API_KEY` is required.
 | `OPENAI_BASE_URL` | Optional. Custom endpoint URL for API endpoint. Use it to switch to a provider other than OpenAI (e.g. "https://some_service_name.com/v1") |
 | `MIDSCENE_MODEL_NAME` | Optional. Specify a different model name other than `gpt-4o` |
 
-Config to use `Qwen 2.5 VL` model:
+Extra configs to use `Qwen 2.5 VL` model:
 
 | Name | Description |
 |------|-------------|
-| `MIDSCENE_USE_QWEN_VL` | Optional. Set to "1" to use Qwen 2.5 VL model |
+| `MIDSCENE_USE_QWEN_VL` | Optional. Set to "1" to use the adapter of Qwen 2.5 VL model |
 
-Config to use `UI-TARS` model:
+Extra configs to use `UI-TARS` model:
 
 | Name | Description |
 |------|-------------|
-| `MIDSCENE_USE_VLM_UI_TARS` | Optional. Set to "1" to use UI-TARS model |
+| `MIDSCENE_USE_VLM_UI_TARS` | Optional. Set to "1" to use the adapter of UI-TARS model |
+
+Extra configs to use `Gemini 2.5 Pro` model:
+
+| Name | Description |
+|------|-------------|
+| `MIDSCENE_USE_GEMINI` | Optional. Set to "1" to use the adapter of Gemini 2.5 Pro model |
 
 For more information about the models, see [Choose a model](./choose-a-model).
 
@@ -170,20 +176,6 @@ export ANTHROPIC_API_KEY="....."
 export MIDSCENE_MODEL_NAME="claude-3-opus-20240229"
 ```
 
-## Example: Using `doubao-vision-pro-32k` from Volcengine
-
-Create a inference point first: https://console.volcengine.com/ark/region:ark+cn-beijing/endpoint
-
-In the inference point interface, find an ID like `ep-202...` as the model name.
-
-Configure the environment variables:
-
-```bash
-export OPENAI_BASE_URL="https://ark.cn-beijing.volces.com/api/v3"
-export OPENAI_API_KEY="..."
-export MIDSCENE_MODEL_NAME="ep-202....."
-```
-
 ## Example: config request headers (like for openrouter)
 
 ```bash
@@ -191,16 +183,6 @@ export OPENAI_BASE_URL="https://openrouter.ai/api/v1"
 export OPENAI_API_KEY="..."
 export MIDSCENE_MODEL_NAME="..."
 export MIDSCENE_OPENAI_INIT_CONFIG_JSON='{"defaultHeaders":{"HTTP-Referer":"...","X-Title":"..."}}'
-```
-
-## Example: Using `gemini-1.5-pro` from Google
-
-Configure the environment variables:
-
-```bash
-export OPENAI_BASE_URL="https://generativelanguage.googleapis.com/v1beta/openai"
-export OPENAI_API_KEY="....."
-export MIDSCENE_MODEL_NAME="gemini-1.5-pro"
 ```
 
 ## Troubleshooting LLM Service Connectivity Issues
