@@ -28,9 +28,9 @@ export class WebPage extends BasePage<'puppeteer', PuppeteerPageType> {
   }
 
   async waitUntilNetworkIdle(options?: {
-    idleTime?: number; // 500ms -> 100ms
-    concurrency?: number; // 0 -> 2
-    timeout?: number; // 30000ms -> 800
+    idleTime?: number;
+    concurrency?: number;
+    timeout?: number;
   }): Promise<void> {
     await this.underlyingPage.waitForNetworkIdle({
       idleTime: options?.idleTime || DEFAULT_WAIT_FOR_NETWORK_IDLE_TIME,
