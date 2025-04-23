@@ -1,11 +1,11 @@
-import type { Page as PuppeteerPageType } from 'puppeteer';
-import { Page as BasePage } from './base-page';
 import {
   DEFAULT_WAIT_FOR_NAVIGATION_TIMEOUT,
-  DEFAULT_WAIT_FOR_NETWORK_IDLE_TIMEOUT,
-  DEFAULT_WAIT_FOR_NETWORK_IDLE_TIME,
   DEFAULT_WAIT_FOR_NETWORK_IDLE_CONCURRENCY,
+  DEFAULT_WAIT_FOR_NETWORK_IDLE_TIME,
+  DEFAULT_WAIT_FOR_NETWORK_IDLE_TIMEOUT,
 } from '@midscene/shared/constants';
+import type { Page as PuppeteerPageType } from 'puppeteer';
+import { Page as BasePage } from './base-page';
 
 export class WebPage extends BasePage<'puppeteer', PuppeteerPageType> {
   waitForNavigationTimeout: number;

@@ -63,3 +63,14 @@ The report files are saved in `./midscene-run/report/` by default.
 ## How can I learn about Midscene's working process?
 
 ⁠By reviewing the report file after running the script, you can gain an overview of how Midscene works. 
+
+## Customize the network timeout
+
+When executing an operation, Midscene waits for the network to be idle. Currently, there are two scenarios:
+
+1. If it's a page navigation, the default timeout is 5000ms
+2. If it's a click, input, etc., the default timeout is 2000ms
+
+- Customize the default timeout by using the `waitForNetworkIdleTimeout` and `waitForNavigationTimeout` parameters in [Agent](/api.html#constructors) or [PlaywrightAiFixture](/integrate-with-playwright.html#step-2-extend-the-test-instance).
+- Customize the timeout by using the `waitForNetworkIdle` parameter in [Yaml](/automate-with-scripts-in-yaml.html#the-web-part).
+- Customize the timeout by using the `waitForNetworkIdle` parameter in [Yaml](/automate-with-scripts-in-yaml.html#the-web-part).

@@ -1,5 +1,6 @@
 import type { ElementTreeNode, Point, Size } from '@midscene/core';
 import { sleep } from '@midscene/core/utils';
+import { DEFAULT_WAIT_FOR_NAVIGATION_TIMEOUT } from '@midscene/shared/constants';
 import type { ElementInfo } from '@midscene/shared/extractor';
 import { treeToList } from '@midscene/shared/extractor';
 import { getExtraReturnLogic } from '@midscene/shared/fs';
@@ -10,7 +11,6 @@ import type { Page as PuppeteerPage } from 'puppeteer';
 import type { WebKeyInput } from '../common/page';
 import type { AbstractPage } from '../page';
 import type { MouseButton } from '../page';
-import { DEFAULT_WAIT_FOR_NAVIGATION_TIMEOUT } from '@midscene/shared/constants';
 
 const debugPage = getDebug('web:page');
 
@@ -75,7 +75,7 @@ export class Page<
       } catch (error) {
         // Ignore timeout error, continue execution
         console.warn(
-          `[Warning:Midscene] Wait for navigation timeout: current timeout is ${this.waitForNavigationTimeout}ms, custom timeout please check https://midscenejs.com/faq.html#network-timeout`,
+          `[Warning:Midscene] Wait for navigation timeout: current timeout is ${this.waitForNavigationTimeout}ms, custom timeout please check https://midscenejs.com/faq.html#customize-the-network-timeout`,
           error,
         );
       }

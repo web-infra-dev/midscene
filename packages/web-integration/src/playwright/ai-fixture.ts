@@ -2,9 +2,9 @@ import { randomUUID } from 'node:crypto';
 import type { PageAgent, PageAgentOpt } from '@/common/agent';
 import { PlaywrightAgent } from '@/playwright/index';
 import type { AgentWaitForOpt } from '@midscene/core';
+import { getDebug } from '@midscene/shared/logger';
 import { type TestInfo, type TestType, test } from '@playwright/test';
 import type { Page as OriginPlaywrightPage } from 'playwright';
-import { getDebug } from '@midscene/shared/logger';
 
 export type APITestType = Pick<TestType<any, any>, 'step'>;
 
@@ -90,7 +90,7 @@ export const PlaywrightAiFixture = (options?: {
             await waitForNetworkIdle(page, waitForNetworkIdleTimeout);
           } catch (error) {
             console.warn(
-              `[Warning:Midscene] Network idle timeout: current timeout is ${waitForNetworkIdleTimeout}ms, custom timeout please check https://midscenejs.com/faq.html#network-timeout`,
+              `[Warning:Midscene] Network idle timeout: current timeout is ${waitForNetworkIdleTimeout}ms, custom timeout please check https://midscenejs.com/faq.html#customize-the-network-timeout`,
             );
           }
           try {

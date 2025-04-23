@@ -17,10 +17,11 @@ These Agents share some common constructor parameters:
 * `cacheId: string | undefined`: If provided, this cacheId will be used to save or match the cache. (Default: undefined, means cache feature is disabled)
 * `actionContext: string`: Some background knowledge that should be sent to the AI model when calling `agent.aiAction()`, like 'close the cookie consent dialog first if it exists' (Default: undefined)
 
-In Puppeteer, there is an additional parameter:
+In Puppeteer, there are 3 additional parameters:
 
 * `forceSameTabNavigation: boolean`: If true, page navigation is restricted to the current tab. (Default: true)
-
+* `waitForNetworkIdleTimeout: number`: The timeout for waiting for network idle. (Default: 2000ms)
+* `waitForNavigationTimeout: number`: The timeout for waiting for navigation. (Default: 5000ms)
 
 ## Interaction Methods
 

@@ -59,3 +59,16 @@ await page.setViewport({
 ## 如何了解 Midscene 的运行原理？
 
 在运行脚本后，通过查看报告文件，你可以了解 Midscene 的大致运行原理。
+
+## 自定义网络超时
+
+当执行某个操作后，Midscene 会等待网络空闲，目前有以下两种情形
+
+1. 如果是页面跳转，则等待页面加载完成，默认超时时间为 5000ms
+2. 如果是点击、输入等操作，则等待网络空闲，默认超时时间为 2000ms
+
+当然，你可以通过配置参数修改默认超时时间
+
+- 使用 [Agent](/zh/api.html#%E6%9E%84%E9%80%A0%E5%99%A8) 上的 `waitForNetworkIdleTimeout` 和 `waitForNavigationTimeout` 参数
+- 使用 [PlaywrightAiFixture](/zh/integrate-with-playwright.html#%E7%AC%AC%E4%BA%8C%E6%AD%A5%E6%89%A9%E5%B1%95-test-%E5%AE%9E%E4%BE%8B) 的 `waitForNetworkIdleTimeout` 和 `waitForNavigationTimeout` 参数
+- 使用 [Yaml](/zh/automate-with-scripts-in-yaml.html#web-%E9%83%A8%E5%88%86) 脚本中的 `waitForNetworkIdle` 参数

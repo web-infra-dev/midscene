@@ -39,7 +39,10 @@ import { test as base } from '@playwright/test';
 import type { PlayWrightAiFixtureType } from '@midscene/web/playwright';
 import { PlaywrightAiFixture } from '@midscene/web/playwright';
 
-export const test = base.extend<PlayWrightAiFixtureType>(PlaywrightAiFixture());
+export const test = base.extend<PlayWrightAiFixtureType>(PlaywrightAiFixture({
+  waitForNetworkIdleTimeout: 2000, // optional, default is 2000ms
+  waitForNavigationTimeout: 5000, // optional, default is 5000ms
+}));
 ```
 
 ## Step 3: write test cases

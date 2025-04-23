@@ -21,13 +21,14 @@ import {
   stringifyDumpData,
   writeLogFile,
 } from '@midscene/core/utils';
-import { getDebug } from '@midscene/shared/logger';
-import { assert } from '@midscene/shared/utils';
 import {
   DEFAULT_WAIT_FOR_NAVIGATION_TIMEOUT,
   DEFAULT_WAIT_FOR_NETWORK_IDLE_TIMEOUT,
 } from '@midscene/shared/constants';
+import { getDebug } from '@midscene/shared/logger';
+import { assert } from '@midscene/shared/utils';
 import { PageTaskExecutor } from '../common/tasks';
+import type { PuppeteerWebPage } from '../puppeteer';
 import type { WebElementInfo } from '../web-element';
 import { buildPlans } from './plan-builder';
 import type { AiTaskCache } from './task-cache';
@@ -40,7 +41,6 @@ import {
 } from './ui-utils';
 import { printReportMsg, reportFileName } from './utils';
 import { type WebUIContext, parseContextFromWebPage } from './utils';
-import type { PuppeteerWebPage } from '../puppeteer';
 
 const debug = getDebug('web-integration');
 
