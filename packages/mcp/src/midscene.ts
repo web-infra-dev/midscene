@@ -25,27 +25,6 @@ declare global {
   }
 }
 
-type AddWrapType = (
-  fn: (args: any) => Promise<any>,
-) => (args: any) => Promise<any>;
-
-const wrapError: AddWrapType =
-  (fn: (args: any) => Promise<any>) => async (args: any) => {
-    try {
-      return await fn(args);
-    } catch (err: any) {
-      return {
-        isError: true,
-        content: [{ type: 'text' as const, text: String(err.message) }],
-      };
-    }
-  };
-
-type MidsceneNavigateArgs = {
-  url: string;
-  openNewTab?: boolean;
-};
-
 export class MidsceneManager {
   private consoleLogs: string[] = [];
   private screenshots = new Map<string, string>();
@@ -121,7 +100,10 @@ export class MidsceneManager {
         const agent = await this.initAgent(true);
         await agent.connectNewTabWithUrl(url);
         return {
-          content: [{ type: 'text', text: `Navigated to ${url}` }],
+          content: [
+            { type: 'text', text: `Navigated to ${url}` },
+            { type: 'text', text: `report file: ${agent.reportFile}` },
+          ],
           isError: false,
         };
       },
