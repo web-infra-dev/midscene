@@ -4,17 +4,11 @@ import type {
   PlaywrightParserOpt,
   UIContext,
 } from '@midscene/core';
-import {
-  MIDSCENE_REPORT_TAG_NAME,
-  MIDSCENE_USE_VLM_UI_TARS,
-  getAIConfig,
-  getAIConfigInBoolean,
-} from '@midscene/core/env';
+import { MIDSCENE_REPORT_TAG_NAME, getAIConfig } from '@midscene/core/env';
 import { uploadTestInfoToServer } from '@midscene/core/utils';
-import { NodeType } from '@midscene/shared/constants';
 import type { ElementInfo } from '@midscene/shared/extractor';
 import { traverseTree, treeToList } from '@midscene/shared/extractor';
-import { compositeElementInfoImg, resizeImgBase64 } from '@midscene/shared/img';
+import { resizeImgBase64 } from '@midscene/shared/img';
 import { assert, logMsg, uuid } from '@midscene/shared/utils';
 import dayjs from 'dayjs';
 import { WebElementInfo } from '../web-element';
@@ -58,19 +52,9 @@ export async function parseContextFromWebPage(
     });
   });
 
-  const elementsInfo = treeToList(webTree);
-
   assert(screenshotBase64!, 'screenshotBase64 is required');
 
-  const elementsPositionInfoWithoutText = elementsInfo!.filter(
-    (elementInfo) => {
-      if (elementInfo.attributes.nodeType === NodeType.TEXT) {
-        return false;
-      }
-      return true;
-    },
-  );
-
+  const elementsInfo = treeToList(webTree);
   const size = await page.size();
 
   if (size.dpr && size.dpr > 1) {
@@ -82,25 +66,11 @@ export async function parseContextFromWebPage(
     // console.timeEnd('resizeImgBase64');
   }
 
-  let screenshotBase64WithElementMarker = screenshotBase64;
-  if (!getAIConfigInBoolean(MIDSCENE_USE_VLM_UI_TARS)) {
-    if (_opt?.ignoreMarker) {
-      screenshotBase64WithElementMarker = screenshotBase64;
-    } else {
-      screenshotBase64WithElementMarker = await compositeElementInfoImg({
-        inputImgBase64: screenshotBase64,
-        elementsPositionInfo: elementsPositionInfoWithoutText,
-        size,
-      });
-    }
-  }
-
   return {
     content: elementsInfo!,
     tree: webTree,
     size,
     screenshotBase64: screenshotBase64!,
-    screenshotBase64WithElementMarker: screenshotBase64WithElementMarker,
     url,
   };
 }

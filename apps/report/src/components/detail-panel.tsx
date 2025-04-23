@@ -33,12 +33,12 @@ const VIEW_TYPE_JSON = 'json';
 const DetailPanel = (): JSX.Element => {
   const insightDump = useExecutionDump((store) => store.insightDump);
   const dumpId = useExecutionDump((store) => store._insightDumpLoadId);
-  const blackboardViewAvailable = Boolean(insightDump);
   const activeExecution = useExecutionDump((store) => store.activeExecution);
   const activeExecutionId = useExecutionDump(
     (store) => store._executionDumpLoadId,
   );
   const activeTask = useExecutionDump((store) => store.activeTask);
+  const blackboardViewAvailable = Boolean(activeTask?.pageContext);
   const [preferredViewType, setViewType] = useState(VIEW_TYPE_REPLAY);
   const animationScripts = useExecutionDump(
     (store) => store.activeExecutionAnimation,
@@ -89,7 +89,7 @@ const DetailPanel = (): JSX.Element => {
     if (blackboardViewAvailable) {
       content = (
         <Blackboard
-          uiContext={insightDump!.context}
+          uiContext={activeTask.pageContext}
           highlightElements={insightDump!.matchedElement}
           highlightRect={insightDump!.taskInfo?.searchArea}
           key={`${dumpId}`}

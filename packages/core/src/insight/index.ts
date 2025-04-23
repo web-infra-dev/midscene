@@ -158,7 +158,6 @@ export default class Insight<
 
     const dumpData: PartialInsightDumpFromSDK = {
       type: 'locate',
-      context,
       userQuery: {
         element: queryPrompt,
       },
@@ -256,7 +255,6 @@ export default class Insight<
 
     const dumpData: PartialInsightDumpFromSDK = {
       type: 'extract',
-      context,
       userQuery: {
         dataDemand,
       },
@@ -314,7 +312,6 @@ export default class Insight<
     const { thought, pass } = assertResult.content;
     const dumpData: PartialInsightDumpFromSDK = {
       type: 'assert',
-      context,
       userQuery: {
         assertion,
       },

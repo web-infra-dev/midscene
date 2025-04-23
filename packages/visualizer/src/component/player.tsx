@@ -619,7 +619,7 @@ export function Player(props?: {
             currentImg.current = item.img;
             await repaintImage();
 
-            const elements = item.insightDump.context.content;
+            const elements = item.context?.content || [];
             const highlightElements = item.insightDump.matchedElement;
             await insightElementsAnimation(
               elements,

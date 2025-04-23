@@ -32,6 +32,7 @@ import {
   adaptBboxToRect,
   callAiFn,
   expandSearchArea,
+  markupImageForLLM,
   mergeRects,
 } from './common';
 import { systemPromptToAssert } from './prompt/assertion';
@@ -128,7 +129,7 @@ export async function AiLocateElement<
   usage?: AIUsageInfo;
 }> {
   const { context, targetElementDescription, callAI } = options;
-  const { screenshotBase64, screenshotBase64WithElementMarker } = context;
+  const { screenshotBase64 } = context;
   const { description, elementById, insertElementByPosition, size } =
     await describeUserPage(context);
   // meet quick answer
@@ -153,7 +154,7 @@ export async function AiLocateElement<
   });
   const systemPrompt = systemPromptToLocateElement(vlLocateMode());
 
-  let imagePayload = screenshotBase64WithElementMarker || screenshotBase64;
+  let imagePayload = screenshotBase64;
 
   if (options.searchConfig) {
     assert(
@@ -166,8 +167,14 @@ export async function AiLocateElement<
     );
 
     imagePayload = options.searchConfig.imageBase64;
-  } else if (getAIConfigInBoolean(MIDSCENE_USE_QWEN_VL)) {
+  } else if (vlLocateMode() === 'qwen-vl') {
     imagePayload = await paddingToMatchBlockByBase64(imagePayload);
+  } else if (!vlLocateMode()) {
+    imagePayload = await markupImageForLLM(
+      screenshotBase64,
+      context.tree,
+      context.size,
+    );
   }
 
   const msgs: AIArgs = [

@@ -146,6 +146,14 @@ export function writeDumpReport(
     return null;
   }
   writeFileSync(reportPath, reportContent);
+  if (process.env.MIDSCENE_DEBUG_LOG_JSON) {
+    writeFileSync(
+      `${reportPath}.json`,
+      typeof dumpData === 'string'
+        ? dumpData
+        : JSON.stringify(dumpData, null, 2),
+    );
+  }
 
   return reportPath;
 }
