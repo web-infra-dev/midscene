@@ -10,7 +10,7 @@
     }
   },
   "bin": {
-    "mcp-server-midscene": "dist/index.cjs"
+    "midscene-mcp": "dist/index.cjs"
   },
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",
