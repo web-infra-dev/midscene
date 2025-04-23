@@ -16,7 +16,6 @@ const unitTests = ['tests/unit-test/**/*.test.ts'];
 const aiWebTests = [
   'tests/ai/web/**/*.test.ts',
   'tests/ai/bridge/**/*.test.ts',
-  'tests/ai/web/puppeteer/**/*.test.ts',
 ];
 
 const testFiles = (() => {

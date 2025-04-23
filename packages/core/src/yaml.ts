@@ -45,7 +45,7 @@ export interface MidsceneYamlScriptWebEnv extends MidsceneYamlScriptEnvBase {
   viewportHeight?: number;
   viewportScale?: number;
   waitForNetworkIdle?: {
-    timeout?: number; // ms, 6000 for default, set to 0 to disable
+    timeout?: number;
     continueOnNetworkIdleError?: boolean; // should continue if failed to wait for network idle, true for default
   };
   cookie?: string;

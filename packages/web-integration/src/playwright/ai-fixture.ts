@@ -90,7 +90,7 @@ export const PlaywrightAiFixture = (options?: {
             await waitForNetworkIdle(page, waitForNetworkIdleTimeout);
           } catch (error) {
             console.warn(
-              `Network idle timeout exceeded, you can set waitForNetworkIdleTimeout of PlaywrightAiFixture method to 0 to disable it or specify a larger value: ${error instanceof Error ? error.message : String(error)}`,
+              `[Warning:Midscene] Network idle timeout: current timeout is ${waitForNetworkIdleTimeout}ms, custom timeout please check https://midscenejs.com/faq.html#network-timeout`,
             );
           }
           try {

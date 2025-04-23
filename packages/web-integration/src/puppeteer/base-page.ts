@@ -75,7 +75,7 @@ export class Page<
       } catch (error) {
         // Ignore timeout error, continue execution
         console.warn(
-          'waitForNavigation timeout, you can set waitForNavigationTimeout options of Agent to 0 to disable it or specify a larger value: ',
+          `[Warning:Midscene] Wait for navigation timeout: current timeout is ${this.waitForNavigationTimeout}ms, custom timeout please check https://midscenejs.com/faq.html#network-timeout`,
           error,
         );
       }
