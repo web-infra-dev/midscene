@@ -21,6 +21,7 @@ import {
   stringifyDumpData,
   writeLogFile,
 } from '@midscene/core/utils';
+import { getDebug } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
 import { PageTaskExecutor } from '../common/tasks';
 import type { WebElementInfo } from '../web-element';
@@ -35,6 +36,8 @@ import {
 } from './ui-utils';
 import { printReportMsg, reportFileName } from './utils';
 import { type WebUIContext, parseContextFromWebPage } from './utils';
+
+const debug = getDebug('web-integration');
 
 export interface PageAgentOpt {
   forceSameTabNavigation?: boolean /* if limit the new tab to the current page, default true */;
@@ -155,7 +158,7 @@ export class PageAgent<PageType extends WebPage = WebPage> {
       type: 'dump',
       generateReport,
     });
-
+    debug('writeOutActionDumps', this.reportFile);
     if (generateReport && autoPrintReportMsg && this.reportFile) {
       printReportMsg(this.reportFile);
     }
