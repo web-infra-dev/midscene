@@ -10,6 +10,7 @@ import type { Page as PuppeteerPage } from 'puppeteer';
 import type { WebKeyInput } from '../common/page';
 import type { AbstractPage } from '../page';
 import type { MouseButton } from '../page';
+import { DEFAULT_WAIT_FOR_NAVIGATION_TIMEOUT } from '@midscene/shared/constants';
 
 const debugPage = getDebug('web:page');
 
@@ -19,7 +20,9 @@ export class Page<
 > implements AbstractPage
 {
   protected underlyingPage: PageType;
+  protected waitForNavigationTimeout: number;
   private viewportSize?: Size;
+
   pageType: AgentType;
 
   private async evaluate<R>(
@@ -43,9 +46,17 @@ export class Page<
     return result;
   }
 
-  constructor(underlyingPage: PageType, pageType: AgentType) {
+  constructor(
+    underlyingPage: PageType,
+    pageType: AgentType,
+    opts?: {
+      waitForNavigationTimeout?: number;
+    },
+  ) {
     this.underlyingPage = underlyingPage;
     this.pageType = pageType;
+    this.waitForNavigationTimeout =
+      opts?.waitForNavigationTimeout || DEFAULT_WAIT_FOR_NAVIGATION_TIMEOUT;
   }
 
   async evaluateJavaScript<T = any>(script: string): Promise<T> {
@@ -56,13 +67,17 @@ export class Page<
     // issue: https://github.com/puppeteer/puppeteer/issues/3323
     if (this.pageType === 'puppeteer' || this.pageType === 'playwright') {
       debugPage('waitForNavigation begin');
+      debugPage(`waitForNavigation timeout: ${this.waitForNavigationTimeout}`);
       try {
-        const maxWaitTime = 5000; // 5 seconds maximum wait time
         await (this.underlyingPage as PuppeteerPage).waitForSelector('html', {
-          timeout: maxWaitTime,
+          timeout: this.waitForNavigationTimeout,
         });
       } catch (error) {
         // Ignore timeout error, continue execution
+        console.warn(
+          'waitForNavigation timeout, you can set waitForNavigationTimeout options of Agent to 0 to disable it or specify a larger value: ',
+          error,
+        );
       }
       debugPage('waitForNavigation end');
     }

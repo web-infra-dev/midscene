@@ -186,6 +186,9 @@ export function writeLogFile(opts: {
 
   const filePath = path.join(targetDir, `${fileName}.${fileExt}`);
 
+  // make sure the directory exists
+  mkdirSync(dirname(filePath), { recursive: true });
+
   if (type !== 'dump') {
     // do not write dump file any more
     writeFileSync(filePath, fileContent);

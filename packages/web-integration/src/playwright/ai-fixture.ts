@@ -4,8 +4,11 @@ import { PlaywrightAgent } from '@/playwright/index';
 import type { AgentWaitForOpt } from '@midscene/core';
 import { type TestInfo, type TestType, test } from '@playwright/test';
 import type { Page as OriginPlaywrightPage } from 'playwright';
+import { getDebug } from '@midscene/shared/logger';
 
 export type APITestType = Pick<TestType<any, any>, 'step'>;
+
+const debugPage = getDebug('web:playwright:ai-fixture');
 
 const groupAndCaseForTest = (testInfo: TestInfo) => {
   let taskFile: string;
@@ -30,8 +33,10 @@ export const midsceneDumpAnnotationId = 'MIDSCENE_DUMP_ANNOTATION';
 
 export const PlaywrightAiFixture = (options?: {
   forceSameTabNavigation?: boolean;
+  waitForNetworkIdleTimeout?: number;
 }) => {
-  const { forceSameTabNavigation = true } = options ?? {};
+  const { forceSameTabNavigation = true, waitForNetworkIdleTimeout = 1000 } =
+    options ?? {};
   const pageAgentMap: Record<string, PageAgent> = {};
   const createOrReuseAgentForPage = (
     page: OriginPlaywrightPage,
@@ -78,7 +83,16 @@ export const PlaywrightAiFixture = (options?: {
     await use(async (taskPrompt: string, ...args: any[]) => {
       return new Promise((resolve, reject) => {
         test.step(`ai-${aiActionType} - ${JSON.stringify(taskPrompt)}`, async () => {
-          await waitForNetworkIdle(page);
+          try {
+            debugPage(
+              `waitForNetworkIdle timeout: ${waitForNetworkIdleTimeout}`,
+            );
+            await waitForNetworkIdle(page, waitForNetworkIdleTimeout);
+          } catch (error) {
+            console.warn(
+              `Network idle timeout exceeded, you can set waitForNetworkIdleTimeout of PlaywrightAiFixture method to 0 to disable it or specify a larger value: ${error instanceof Error ? error.message : String(error)}`,
+            );
+          }
           try {
             type AgentMethod = (
               prompt: string,
@@ -283,12 +297,6 @@ export type PlayWrightAiFixtureType = {
   aiWaitFor: (assertion: string, opt?: AgentWaitForOpt) => Promise<void>;
 };
 
-async function waitForNetworkIdle(page: OriginPlaywrightPage, timeout = 10000) {
-  try {
-    await page.waitForLoadState('networkidle', { timeout });
-  } catch (error: any) {
-    console.warn(
-      `Network idle timeout exceeded: ${error instanceof Error ? error.message : String(error)}`,
-    );
-  }
+async function waitForNetworkIdle(page: OriginPlaywrightPage, timeout = 1000) {
+  await page.waitForLoadState('networkidle', { timeout });
 }
