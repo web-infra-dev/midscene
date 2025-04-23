@@ -66,10 +66,12 @@ The report files are saved in `./midscene-run/report/` by default.
 
 ## Customize the network timeout
 
-When executing an operation, Midscene waits for the network to be idle. Currently, there are two scenarios:
+When doing interaction or navigation on web page, Midscene automatically waits for the network to be idle. It's a strategy to ensure the stability of the automation. Nothing would happen if the waiting process is timeout. 
 
-1. If it's a page navigation, the default timeout is 5000ms
-2. If it's a click, input, etc., the default timeout is 2000ms
+The default timeout is configured as follows:
+
+1. If it's a page navigation, the default wait timeout is 5000ms (the `waitForNavigationTimeout`)
+2. If it's a click, input, etc., the default wait timeout is 2000ms (the `waitForNetworkIdleTimeout`)
 
 You can also customize the timeout by options
 
