@@ -1,6 +1,7 @@
 import {
   MIDSCENE_MCP_USE_PUPPETEER_MODE,
   getAIConfig,
+  getAIConfigInBoolean,
 } from '@midscene/core/env';
 import {
   AgentOverChromeBridge,
@@ -30,7 +31,7 @@ export class MidsceneManager {
   private screenshots = new Map<string, string>();
   private server: McpServer; // Add server instance
   private agent?: AgentOverChromeBridge | PuppeteerBrowserAgent;
-  private puppeteerMode = getAIConfig(MIDSCENE_MCP_USE_PUPPETEER_MODE) === '1';
+  private puppeteerMode = getAIConfigInBoolean(MIDSCENE_MCP_USE_PUPPETEER_MODE);
   constructor(server: McpServer) {
     this.server = server;
     this.initEnv();
