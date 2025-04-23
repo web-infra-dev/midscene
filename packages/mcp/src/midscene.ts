@@ -13,6 +13,7 @@ import type {
 } from '@modelcontextprotocol/sdk/types.js';
 import { z } from 'zod';
 import { PuppeteerBrowserAgent, ensureBrowser } from './puppeteer';
+
 declare global {
   interface Window {
     mcpHelper?: {
@@ -130,16 +131,11 @@ export class MidsceneManager {
       async () => {
         const agent = await this.initAgent();
         const tabsInfo = await agent.getBrowserTabList();
-        const reportFile = agent.reportFile;
         return {
           content: [
             {
               type: 'text',
               text: `Current Tabs:\n${JSON.stringify(tabsInfo, null, 2)}`,
-            },
-            {
-              type: 'text',
-              text: `report file: ${reportFile}`,
             },
           ],
           isError: false,
@@ -171,7 +167,10 @@ export class MidsceneManager {
         const agent = await this.initAgent();
         await agent.aiAction(goal);
         return {
-          content: [{ type: 'text', text: `Planned to goal: ${goal}` }],
+          content: [
+            { type: 'text', text: `Planned to goal: ${goal}` },
+            { type: 'text', text: `report file: ${agent.reportFile}` },
+          ],
           isError: false,
         };
       },
@@ -268,7 +267,10 @@ export class MidsceneManager {
         const agent = await this.initAgent();
         await agent.aiTap(selector);
         return {
-          content: [{ type: 'text', text: `Clicked on ${selector}` }],
+          content: [
+            { type: 'text', text: `Clicked on ${selector}` },
+            { type: 'text', text: `report file: ${agent.reportFile}` },
+          ],
           isError: false,
         };
       },
@@ -317,6 +319,7 @@ export class MidsceneManager {
         return {
           content: [
             { type: 'text', text: `Scrolled${targetDesc} ${direction}.` },
+            { type: 'text', text: `report file: ${agent.reportFile}` },
           ],
         };
       },
@@ -336,6 +339,7 @@ export class MidsceneManager {
         return {
           content: [
             { type: 'text', text: `Inputted ${value} into ${selector}` },
+            { type: 'text', text: `report file: ${agent.reportFile}` },
           ],
           isError: false,
         };
@@ -349,7 +353,10 @@ export class MidsceneManager {
         const agent = await this.initAgent();
         await agent.aiHover(selector);
         return {
-          content: [{ type: 'text', text: `Hovered over ${selector}` }],
+          content: [
+            { type: 'text', text: `Hovered over ${selector}` },
+            { type: 'text', text: `report file: ${agent.reportFile}` },
+          ],
           isError: false,
         };
       },
@@ -362,7 +369,10 @@ export class MidsceneManager {
         const agent = await this.initAgent();
         const res = await agent.evaluateJavaScript(script);
         const text = typeof res === 'string' ? res : JSON.stringify(res);
-        return { content: [{ type: 'text', text }] };
+        return {
+          content: [{ type: 'text', text }],
+          isError: false,
+        };
       },
     );
   }
