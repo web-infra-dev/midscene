@@ -7,6 +7,13 @@ settings:
 importers:
 
   .:
+    dependencies:
+      puppeteer:
+        specifier: 24.2.0
+        version: 24.2.0(typescript@5.8.3)
+      tsx:
+        specifier: 4.19.2
+        version: 4.19.2
     devDependencies:
       '@biomejs/biome':
         specifier: 1.9.4
@@ -24822,7 +24829,7 @@ snapshots:
       debug: 4.4.0(supports-color@5.5.0)
       devtools-protocol: 0.0.1402036
       typed-query-selector: 2.12.0
-      ws: 8.18.0
+      ws: 8.18.1
     transitivePeerDependencies:
       - bufferutil
       - supports-color
