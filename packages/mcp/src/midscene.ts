@@ -48,7 +48,7 @@ export class MidsceneManager {
   private screenshots = new Map<string, string>();
   private server: McpServer; // Add server instance
   private agent?: AgentOverChromeBridge | PuppeteerBrowserAgent;
-  private bridgeMode = getAIConfig('MIDSCENE_USE_BRIDGE_MODE') === '1';
+  private puppeteerMode = getAIConfig(MIDSCENE_MCP_USE_PUPPETEER_MODE) === '1';
   constructor(server: McpServer) {
     this.server = server;
     this.initEnv();
@@ -86,7 +86,7 @@ export class MidsceneManager {
     }
 
     // Check if running in bridge mode (connecting to an existing Chrome instance).
-    if (this.bridgeMode) {
+    if (!this.puppeteerMode) {
       // Create a new agent instance designed for bridge mode.
       this.agent = new AgentOverChromeBridge();
       // If this is the first initialization (not re-init),
