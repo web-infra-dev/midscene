@@ -173,6 +173,6 @@ export function generateCacheId(fileName?: string): string {
 export const ERROR_CODE_NOT_IMPLEMENTED_AS_DESIGNED =
   'NOT_IMPLEMENTED_AS_DESIGNED';
 
-export function replaceIllegalPathChars(str: string) {
-  return str.replace(/[/\\:*?"<>|]/g, '-');
+export function replaceIllegalPathCharsAndSpace(str: string) {
+  return str.replace(/[/\\:*?"<>| ]/g, '-');
 }

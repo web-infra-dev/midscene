@@ -1,6 +1,6 @@
 import {
   printReportMsg,
-  replaceIllegalPathChars,
+  replaceIllegalPathCharsAndSpace,
   reportFileName,
 } from '@/common/utils';
 import type { ReportDumpWithAttributes } from '@midscene/core';
@@ -28,7 +28,7 @@ function getStableFilename(testTitle: string): string {
   if (!testTitleToFilename.has(testTitle)) {
     // use reportFileName to generate the base filename
     // only replace the illegal characters in the file system: /, \, :, *, ?, ", <, >, |
-    const baseTag = `playwright-${replaceIllegalPathChars(testTitle)}`;
+    const baseTag = `playwright-${replaceIllegalPathCharsAndSpace(testTitle)}`;
     const generatedFilename = reportFileName(baseTag);
     testTitleToFilename.set(testTitle, generatedFilename);
   }
@@ -47,6 +47,7 @@ function updateReport(mode: 'merged' | 'separate', testId?: string) {
       const stableFilename = getStableFilename(
         testData.attributes?.playwright_test_title,
       );
+
       const reportPath = writeDumpReport(stableFilename, [testData]);
       reportPath && printReportMsg(reportPath);
     }
@@ -100,12 +101,13 @@ class MidsceneReporter implements Reporter {
       return annotation.type === 'MIDSCENE_DUMP_ANNOTATION';
     });
     if (!dumpAnnotation?.description) return;
-
+    const retry = result.retry ? `(retry #${result.retry})` : '';
+    const testId = `${test.id}${retry}`;
     const testData: ReportDumpWithAttributes = {
       dumpString: dumpAnnotation.description,
       attributes: {
-        playwright_test_id: test.id,
-        playwright_test_title: test.title,
+        playwright_test_id: testId,
+        playwright_test_title: `${test.title}${retry}`,
         playwright_test_status: result.status,
         playwright_test_duration: result.duration,
       },
@@ -113,7 +115,7 @@ class MidsceneReporter implements Reporter {
 
     testDataList.push(testData);
 
-    updateReport(this.mode!, test.id);
+    updateReport(this.mode!, testId);
 
     test.annotations = test.annotations.filter(
       (annotation) => annotation.type !== 'MIDSCENE_DUMP_ANNOTATION',
