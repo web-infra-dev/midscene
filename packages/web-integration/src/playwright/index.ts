@@ -29,4 +29,8 @@ export class PlaywrightAgent extends PageAgent<PlaywrightWebPage> {
       });
     }
   }
+
+  async waitForNetworkIdle(timeout = 1000) {
+    await this.page.underlyingPage.waitForLoadState('networkidle', { timeout });
+  }
 }

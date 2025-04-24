@@ -21,9 +21,14 @@ import {
   stringifyDumpData,
   writeLogFile,
 } from '@midscene/core/utils';
+import {
+  DEFAULT_WAIT_FOR_NAVIGATION_TIMEOUT,
+  DEFAULT_WAIT_FOR_NETWORK_IDLE_TIMEOUT,
+} from '@midscene/shared/constants';
 import { getDebug } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
 import { PageTaskExecutor } from '../common/tasks';
+import type { PuppeteerWebPage } from '../puppeteer';
 import type { WebElementInfo } from '../web-element';
 import { buildPlans } from './plan-builder';
 import type { AiTaskCache } from './task-cache';
@@ -52,6 +57,8 @@ export interface PageAgentOpt {
   autoPrintReportMsg?: boolean;
   onTaskStartTip?: OnTaskStartTip;
   aiActionContext?: string;
+  waitForNavigationTimeout?: number;
+  waitForNetworkIdleTimeout?: number;
 }
 
 export class PageAgent<PageType extends WebPage = WebPage> {
@@ -87,6 +94,18 @@ export class PageAgent<PageType extends WebPage = WebPage> {
       },
       opts || {},
     );
+
+    if (
+      this.page.pageType === 'puppeteer' ||
+      this.page.pageType === 'playwright'
+    ) {
+      (this.page as PuppeteerWebPage).waitForNavigationTimeout =
+        this.opts.waitForNavigationTimeout ||
+        DEFAULT_WAIT_FOR_NAVIGATION_TIMEOUT;
+      (this.page as PuppeteerWebPage).waitForNetworkIdleTimeout =
+        this.opts.waitForNetworkIdleTimeout ||
+        DEFAULT_WAIT_FOR_NETWORK_IDLE_TIMEOUT;
+    }
 
     this.onTaskStartTip = this.opts.onTaskStartTip;
     // get the parent browser of the puppeteer page

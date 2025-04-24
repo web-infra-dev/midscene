@@ -111,10 +111,7 @@ export class PageTaskExecutor {
               await sleep(100);
               if ((this.page as PuppeteerWebPage).waitUntilNetworkIdle) {
                 try {
-                  await (this.page as PuppeteerWebPage).waitUntilNetworkIdle({
-                    idleTime: 100,
-                    timeout: 800,
-                  });
+                  await (this.page as PuppeteerWebPage).waitUntilNetworkIdle();
                 } catch (error) {
                   // console.error('waitUntilNetworkIdle error', error);
                 }

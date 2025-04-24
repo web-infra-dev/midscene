@@ -108,7 +108,7 @@
     "build:watch": "modern build -w -c ./modern.config.ts",
     "test": "vitest --run",
     "test:u": "vitest --run -u",
-    "test:ai": "npm run test",
+    "test:ai": "AI_TEST_TYPE=web npm run test",
     "test:ai:temp": "MIDSCENE_CACHE=true BRIDGE_MODE=true vitest --run tests/ai/bridge/open-new-tab.test.ts",
     "test:ai:bridge": "MIDSCENE_CACHE=true BRIDGE_MODE=true npm run test --inspect tests/ai/bridge/temp.test.ts",
     "test:ai:cache": "MIDSCENE_CACHE=true npm run test",
