@@ -1,5 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import { getMidsceneRunSubDir } from '@midscene/shared/common';
 import inquirer from 'inquirer';
 
 interface Task {
@@ -57,7 +58,7 @@ const formatTasks = (tasks: Task[]): string => {
 
 // Main function
 export const getTask = async (): Promise<void> => {
-  const targetDir = path.join(process.cwd(), 'midscene_run/cache');
+  const targetDir = getMidsceneRunSubDir('cache');
   const jsonFiles = getJsonFiles(targetDir);
 
   if (jsonFiles.length === 0) {

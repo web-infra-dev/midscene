@@ -1,20 +1,38 @@
 import { existsSync, mkdirSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import path from 'node:path';
+import path, { isAbsolute } from 'node:path';
+import { MIDSCENE_REPORT_RUN_DIR, MIDSCENE_USE_REPORT_TMP_DIR } from './env';
+import { getAIConfig } from './env';
 
-export const runDirName = 'midscene_run';
+export const defaultRunDirName = 'midscene_run';
 // Define locally for now to avoid import issues
 export const isNodeEnv =
   typeof process !== 'undefined' &&
   process.versions != null &&
   process.versions.node != null;
 
+export const getMidsceneRunDir = () => {
+  if (!isNodeEnv) {
+    return '';
+  }
+
+  return getAIConfig(MIDSCENE_REPORT_RUN_DIR) || defaultRunDirName;
+};
+
 export const getMidsceneRunBaseDir = () => {
   if (!isNodeEnv) {
     return '';
   }
 
-  let basePath = path.join(process.cwd(), runDirName);
+  let basePath;
+
+  if (isAbsolute(getMidsceneRunDir())) {
+    basePath = getMidsceneRunDir();
+  } else if (getAIConfig(MIDSCENE_USE_REPORT_TMP_DIR)) {
+    basePath = path.join(tmpdir(), getMidsceneRunDir());
+  } else {
+    basePath = path.join(process.cwd(), defaultRunDirName);
+  }
 
   // Create a base directory
   if (!existsSync(basePath)) {
@@ -22,7 +40,7 @@ export const getMidsceneRunBaseDir = () => {
       mkdirSync(basePath, { recursive: true });
     } catch (error) {
       // console.error(`Failed to create ${runDirName} directory: ${error}`);
-      basePath = path.join(tmpdir(), runDirName);
+      basePath = path.join(tmpdir(), defaultRunDirName);
       mkdirSync(basePath, { recursive: true });
     }
   }

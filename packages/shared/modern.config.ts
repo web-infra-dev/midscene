@@ -15,6 +15,7 @@ export default defineConfig({
       logger: './src/logger.ts',
       common: './src/common.ts',
       'us-keyboard-layout': './src/us-keyboard-layout.ts',
+      env: './src/env.ts',
     },
     target: 'es2020',
     dts: {
