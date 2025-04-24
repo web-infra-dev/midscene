@@ -5,6 +5,8 @@
   "scripts": {
     "dev": "rsbuild dev",
     "build": "rsbuild build",
+    "dev:rsdoctor": "RSDOCTOR=true rsbuild dev",
+    "build:rsdoctor": "RSDOCTOR=true rsbuild build",
     "preview": "rsbuild preview",
     "e2e": "node ../../packages/cli/bin/midscene ./e2e/"
   },
@@ -27,6 +29,8 @@
     "zustand": "4.5.2"
   },
   "devDependencies": {
+    "@rsbuild/plugin-node-polyfill": "1.3.0",
+    "@rsdoctor/rspack-plugin": "1.0.2",
     "@types/react": "^18.3.18",
     "@types/react-dom": "^18.3.5",
     "less": "^4.2.0",
