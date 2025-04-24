@@ -27,7 +27,7 @@ import { PackageManagerTabs } from '@theme';
 export default defineConfig({
   testDir: './e2e',
 + timeout: 90 * 1000,
-+ reporter: [["list"], ["@midscene/web/playwright-report", { type: "single" }]], // type 可选, 默认值为 "single"，表示多个测试用例生成一个报告，可选值为 "multiple"，表示为每个测试用例一个报告
++ reporter: [["list"], ["@midscene/web/playwright-report", { type: "merged" }]], // type 可选, 默认值为 "merged"，表示多个测试用例生成一个报告，可选值为 "separate"，表示为每个测试用例一个报告
 });
 ```
 

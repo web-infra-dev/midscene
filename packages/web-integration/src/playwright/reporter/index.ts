@@ -30,9 +30,9 @@ function getStableFilename(testTitle: string): string {
   return testTitleToFilename.get(testTitle)!;
 }
 
-function updateReport(mode: 'merged' | 'split', testId?: string) {
-  if (mode === 'split' && testId) {
-    // in split mode, find the data for the corresponding testID and generate a separate report
+function updateReport(mode: 'merged' | 'separate', testId?: string) {
+  if (mode === 'separate' && testId) {
+    // in separate mode, find the data for the corresponding testID and generate a separate report
     const testData = testDataList.find(
       (data) => data.attributes?.playwright_test_id === testId,
     );
@@ -61,21 +61,17 @@ function getMode(reporterType: string) {
     return 'merged';
   }
 
-  if (reporterType === 'single') {
-    return 'merged';
+  if (reporterType !== 'merged' && reporterType !== 'separate') {
+    throw new Error(
+      `Unknown reporter type in playwright config: ${reporterType}, only support 'merged' or 'separate'`,
+    );
   }
 
-  if (reporterType === 'multiple') {
-    return 'split';
-  }
-
-  throw new Error(
-    `Unknown reporter type in playwright config: ${reporterType}, only support 'single' or 'multiple'`,
-  );
+  return reporterType;
 }
 
 class MidsceneReporter implements Reporter {
-  mode?: 'merged' | 'split';
+  mode?: 'merged' | 'separate';
 
   async onBegin(config: FullConfig, suite: Suite) {
     const reporterType = config.reporter?.[1]?.[1]?.type;
