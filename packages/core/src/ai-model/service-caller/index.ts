@@ -340,7 +340,11 @@ export async function callToGetJSONObject<T>(
 
   const model = getModelName();
 
+<<<<<<< HEAD
   if (model.includes('gpt-4')) {
+=======
+  if (model.includes('gpt-4o') || model.includes('gpt-4.1')) {
+>>>>>>> main
     switch (AIActionTypeValue) {
       case AIActionType.ASSERT:
         responseFormat = assertSchema;
