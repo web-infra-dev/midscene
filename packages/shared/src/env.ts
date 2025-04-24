@@ -42,7 +42,6 @@ export const MIDSCENE_USE_ANTHROPIC_SDK = 'MIDSCENE_USE_ANTHROPIC_SDK';
 export const ANTHROPIC_API_KEY = 'ANTHROPIC_API_KEY';
 
 export const MIDSCENE_REPORT_RUN_DIR = 'MIDSCENE_REPORT_RUN_DIR';
-export const MIDSCENE_USE_REPORT_TMP_DIR = 'MIDSCENE_USE_REPORT_TMP_DIR';
 
 // @deprecated
 export const OPENAI_USE_AZURE = 'OPENAI_USE_AZURE';
@@ -99,8 +98,6 @@ export const allConfigFromEnv = () => {
       process.env[MIDSCENE_MCP_USE_PUPPETEER_MODE] || undefined,
     [MIDSCENE_REPORT_RUN_DIR]:
       process.env[MIDSCENE_REPORT_RUN_DIR] || undefined,
-    [MIDSCENE_USE_REPORT_TMP_DIR]:
-      process.env[MIDSCENE_USE_REPORT_TMP_DIR] || undefined,
   };
 };
 
