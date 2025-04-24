@@ -7,6 +7,7 @@ import {
   type AIArgs,
   callAiFn,
   fillLocateParam,
+  markupImageForLLM,
   warnGPT4oSizeLimit,
 } from './common';
 import {
@@ -27,7 +28,7 @@ export async function plan(
   },
 ): Promise<PlanningAIResponse> {
   const { callAI, context } = opts || {};
-  const { screenshotBase64, screenshotBase64WithElementMarker, size } = context;
+  const { screenshotBase64, size } = context;
   const { description: pageDescription } = await describeUserPage(context);
 
   const systemPrompt = await systemPromptToTaskPlanning({
@@ -46,9 +47,15 @@ export async function plan(
     taskBackgroundContext: taskBackgroundContextText,
   });
 
-  let imagePayload = screenshotBase64WithElementMarker || screenshotBase64;
+  let imagePayload = screenshotBase64;
   if (vlLocateMode() === 'qwen-vl') {
     imagePayload = await paddingToMatchBlockByBase64(imagePayload);
+  } else if (!vlLocateMode()) {
+    imagePayload = await markupImageForLLM(
+      screenshotBase64,
+      context.tree,
+      context.size,
+    );
   }
 
   warnGPT4oSizeLimit(size);
