@@ -4,7 +4,7 @@ import { WebPage as PlaywrightWebPage } from './page';
 
 export type { PlayWrightAiFixtureType } from './ai-fixture';
 export { PlaywrightAiFixture } from './ai-fixture';
-export { overrideAIConfig } from '@midscene/core/env';
+export { overrideAIConfig } from '@midscene/shared/env';
 export { WebPage as PlaywrightWebPage } from './page';
 
 export class PlaywrightAgent extends PageAgent<PlaywrightWebPage> {

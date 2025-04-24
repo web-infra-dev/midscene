@@ -4,13 +4,6 @@ import {
   DefaultAzureCredential,
   getBearerTokenProvider,
 } from '@azure/identity';
-import { enableDebug, getDebug } from '@midscene/shared/logger';
-import { assert } from '@midscene/shared/utils';
-import { ifInBrowser } from '@midscene/shared/utils';
-import dJSON from 'dirty-json';
-import OpenAI, { AzureOpenAI } from 'openai';
-import type { ChatCompletionMessageParam } from 'openai/resources';
-import { SocksProxyAgent } from 'socks-proxy-agent';
 import {
   ANTHROPIC_API_KEY,
   AZURE_OPENAI_API_VERSION,
@@ -38,7 +31,14 @@ import {
   getAIConfigInBoolean,
   getAIConfigInJson,
   vlLocateMode,
-} from '../../env';
+} from '@midscene/shared/env';
+import { enableDebug, getDebug } from '@midscene/shared/logger';
+import { assert } from '@midscene/shared/utils';
+import { ifInBrowser } from '@midscene/shared/utils';
+import dJSON from 'dirty-json';
+import OpenAI, { AzureOpenAI } from 'openai';
+import type { ChatCompletionMessageParam } from 'openai/resources';
+import { SocksProxyAgent } from 'socks-proxy-agent';
 import { AIActionType } from '../common';
 import { assertSchema } from '../prompt/assertion';
 import { locatorSchema } from '../prompt/llm-locator';

@@ -125,7 +125,10 @@ export AZURE_OPENAI_DEPLOYMENT="gpt-4o"
 你也可以在运行 Midscene 代码之前，使用 Javascript 来配置 AI 服务。
 
 ```typescript
-import { overrideAIConfig } from "@midscene/core/env";
+import { overrideAIConfig } from "@midscene/web/puppeteer";
+// 或者 import { overrideAIConfig } from "@midscene/web/playwright";
+// 或者 import { overrideAIConfig } from "@midscene/android";
+
 
 overrideAIConfig({
   MIDSCENE_MODEL_NAME: "...",

@@ -150,6 +150,9 @@ importers:
       '@midscene/report':
         specifier: workspace:*
         version: link:../report
+      '@midscene/shared':
+        specifier: workspace:*
+        version: link:../../packages/shared
       '@midscene/visualizer':
         specifier: workspace:*
         version: link:../../packages/visualizer
@@ -211,6 +214,9 @@ importers:
       '@midscene/core':
         specifier: workspace:*
         version: link:../../packages/core
+      '@midscene/shared':
+        specifier: workspace:*
+        version: link:../../packages/shared
       '@midscene/visualizer':
         specifier: workspace:*
         version: link:../../packages/visualizer
@@ -16245,7 +16251,7 @@ snapshots:
       '@modern-js/utils': 2.32.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@rspack/core': 0.2.12(type-fest@3.13.1)(webpack@5.99.5)
       '@rspack/dev-client': 0.2.12(react-refresh@0.14.0)(type-fest@3.13.1)(webpack@5.99.5)
-      '@rspack/plugin-html': 0.2.12(@rspack/core@0.2.12(type-fest@3.13.1)(webpack@5.99.5))
+      '@rspack/plugin-html': 0.2.12(@rspack/core@0.2.12(type-fest@3.13.1)(webpack@5.95.0))
       '@swc/helpers': 0.5.1
       caniuse-lite: 1.0.30001714
       core-js: 3.30.2
@@ -18492,16 +18498,6 @@ snapshots:
       tapable: 2.2.1
     optionalDependencies:
       '@rspack/core': 0.2.12(type-fest@3.13.1)(webpack@5.95.0)
-
-  '@rspack/plugin-html@0.2.12(@rspack/core@0.2.12(type-fest@3.13.1)(webpack@5.99.5))':
-    dependencies:
-      '@types/html-minifier-terser': 7.0.0
-      html-minifier-terser: 7.0.0
-      lodash.template: 4.5.0
-      parse5: 7.1.1
-      tapable: 2.2.1
-    optionalDependencies:
-      '@rspack/core': 0.2.12(type-fest@3.13.1)(webpack@5.99.5)
 
   '@rspack/plugin-react-refresh@1.0.1(react-refresh@0.16.0)':
     dependencies:

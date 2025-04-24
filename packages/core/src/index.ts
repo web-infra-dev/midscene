@@ -9,7 +9,7 @@ export {
   AiAssert,
 } from './ai-model/index';
 
-export { getAIConfig, MIDSCENE_MODEL_NAME } from './env';
+export { getAIConfig, MIDSCENE_MODEL_NAME } from '@midscene/shared/env';
 
 export type * from './types';
 export default Insight;

@@ -1,7 +1,7 @@
-import { vlLocateMode } from '@/env';
 import { imageInfoOfBase64 } from '@/image/index';
 import type { BaseElement, ElementTreeNode, Size, UIContext } from '@/types';
 import { NodeType } from '@midscene/shared/constants';
+import { vlLocateMode } from '@midscene/shared/env';
 import { descriptionOfTree, treeToList } from '@midscene/shared/extractor';
 import { assert } from '@midscene/shared/utils';
 import { generateHashId } from '@midscene/shared/utils';

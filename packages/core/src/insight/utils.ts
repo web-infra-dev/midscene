@@ -1,4 +1,3 @@
-import { MIDSCENE_MODEL_NAME, getAIConfig, vlLocateMode } from '@/env';
 import type {
   DumpMeta,
   DumpSubscriber,
@@ -6,6 +5,11 @@ import type {
   PartialInsightDumpFromSDK,
 } from '@/types';
 import { getVersion } from '@/utils';
+import {
+  MIDSCENE_MODEL_NAME,
+  getAIConfig,
+  vlLocateMode,
+} from '@midscene/shared/env';
 import { uuid } from '@midscene/shared/utils';
 
 export function emitInsightDump(

@@ -14,7 +14,6 @@ import {
 } from '@midscene/core';
 
 import { ScriptPlayer, parseYamlScript } from '@/yaml/index';
-import { vlLocateMode } from '@midscene/core/env';
 import {
   groupedActionDumpFileExt,
   reportHTMLContent,
@@ -25,6 +24,7 @@ import {
   DEFAULT_WAIT_FOR_NAVIGATION_TIMEOUT,
   DEFAULT_WAIT_FOR_NETWORK_IDLE_TIMEOUT,
 } from '@midscene/shared/constants';
+import { vlLocateMode } from '@midscene/shared/env';
 import { getDebug } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
 import { PageTaskExecutor } from '../common/tasks';

@@ -10,7 +10,7 @@ import {
   getAIConfigInJson,
   overrideAIConfig,
   vlLocateMode,
-} from '@/env';
+} from '@midscene/shared/env';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 describe('env', () => {

@@ -2,7 +2,7 @@ import {
   MIDSCENE_MCP_USE_PUPPETEER_MODE,
   getAIConfig,
   getAIConfigInBoolean,
-} from '@midscene/core/env';
+} from '@midscene/shared/env';
 import {
   AgentOverChromeBridge,
   allConfigFromEnv,

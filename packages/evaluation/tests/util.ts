@@ -1,7 +1,7 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import type { PlanningAIResponse, Rect } from '@midscene/core';
-import { vlLocateMode } from '@midscene/core/env';
+import { vlLocateMode } from '@midscene/shared/env';
 import {
   base64Encoded,
   compositeElementInfoImg,

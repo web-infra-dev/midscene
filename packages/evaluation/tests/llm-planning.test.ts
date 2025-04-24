@@ -7,8 +7,8 @@ import {
   plan,
 } from '@midscene/core';
 import { adaptBboxToRect } from '@midscene/core/ai-model';
-import { vlLocateMode } from '@midscene/core/env';
 import { sleep } from '@midscene/core/utils';
+import { vlLocateMode } from '@midscene/shared/env';
 import { saveBase64Image } from '@midscene/shared/img';
 import dotenv from 'dotenv';
 import { describe, expect, test } from 'vitest';

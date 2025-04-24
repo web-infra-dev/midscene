@@ -1,7 +1,7 @@
 import { existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
-import { vlLocateMode } from '@/env';
 import { describeUserPage } from '@/index';
+import { vlLocateMode } from '@midscene/shared/env';
 import { base64Encoded, imageInfoOfBase64 } from '@midscene/shared/img';
 
 export async function buildContext(targetDir: string): Promise<{

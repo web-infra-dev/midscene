@@ -17,9 +17,9 @@ import {
   getModelName,
 } from './service-caller/index';
 
-import { vlLocateMode } from '@/env';
 import type { PlanningLocateParam } from '@/types';
 import { NodeType } from '@midscene/shared/constants';
+import { vlLocateMode } from '@midscene/shared/env';
 import { treeToList } from '@midscene/shared/extractor';
 import { compositeElementInfoImg } from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
