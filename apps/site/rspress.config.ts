@@ -117,7 +117,7 @@ export default defineConfig({
           text: 'AI Model',
           items: [
             {
-              text: 'Choose a Model',
+              text: 'Choose a Model 🔥',
               link: '/choose-a-model',
             },
             {
@@ -222,7 +222,7 @@ export default defineConfig({
           text: 'AI 模型',
           items: [
             {
-              text: '选择 AI 模型',
+              text: '选择 AI 模型 🔥',
               link: '/zh/choose-a-model',
             },
             {
