@@ -1,16 +1,10 @@
 #!/usr/bin/env node
 import { setIsMcp } from '@midscene/shared/utils';
-import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
-import {
-  CallToolRequestSchema,
-  ListResourcesRequestSchema,
-  ListToolsRequestSchema,
-  ReadResourceRequestSchema,
-} from '@modelcontextprotocol/sdk/types.js';
+import { z } from 'zod';
 import { MidsceneManager } from './midscene.js';
-import { TOOLS } from './tools.js';
+import { PROMPTS } from './prompts.js';
 
 declare const __VERSION__: string;
 
@@ -22,6 +16,31 @@ const server = new McpServer({
   description:
     'Midscene MCP Server: Control the browser using natural language commands for navigation, clicking, input, hovering, and achieving goals. Also supports screenshots and JavaScript execution.',
 });
+
+server.resource(
+  'playwright-example',
+  'generate-code://playwright-example',
+  async (uri) => ({
+    contents: [
+      {
+        uri: uri.href,
+        text: PROMPTS.PLAYWRIGHT_CODE_EXAMPLE,
+      },
+    ],
+  }),
+);
+server.resource(
+  'midscene-api-docs',
+  'generate-code://midscene-api-docs',
+  async (uri) => ({
+    contents: [
+      {
+        uri: uri.href,
+        text: PROMPTS.MIDSCENE_API_DOCS,
+      },
+    ],
+  }),
+);
 
 const midsceneManager = new MidsceneManager(server);
 
