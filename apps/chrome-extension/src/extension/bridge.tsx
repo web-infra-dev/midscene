@@ -62,7 +62,6 @@ class BridgeConnector {
         try {
           activeBridgePage = new ExtensionBridgePageBrowserSide(() => {
             if (this.status !== 'closed') {
-              this.activeBridgePage?.destroy();
               this.setStatus('disconnected');
               this.activeBridgePage = null;
             }
