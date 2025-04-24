@@ -5,7 +5,7 @@ import type { AgentWaitForOpt } from '@midscene/core';
 import { getDebug } from '@midscene/shared/logger';
 import { type TestInfo, type TestType, test } from '@playwright/test';
 import type { Page as OriginPlaywrightPage } from 'playwright';
-
+import { replaceIllegalPathChars } from '@/common/utils';
 export type APITestType = Pick<TestType<any, any>, 'step'>;
 
 const debugPage = getDebug('web:playwright:ai-fixture');
@@ -25,7 +25,7 @@ const groupAndCaseForTest = (testInfo: TestInfo) => {
     taskTitle = 'unnamed';
     taskFile = 'unnamed';
   }
-  return { taskFile, taskTitle };
+  return { taskFile, taskTitle: replaceIllegalPathChars(taskTitle) };
 };
 
 const midsceneAgentKeyId = '_midsceneAgentId';

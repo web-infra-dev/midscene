@@ -1,4 +1,8 @@
-import { printReportMsg, reportFileName } from '@/common/utils';
+import {
+  printReportMsg,
+  replaceIllegalPathChars,
+  reportFileName,
+} from '@/common/utils';
 import type { ReportDumpWithAttributes } from '@midscene/core';
 import { writeDumpReport } from '@midscene/core/utils';
 import type {
@@ -24,7 +28,7 @@ function getStableFilename(testTitle: string): string {
   if (!testTitleToFilename.has(testTitle)) {
     // use reportFileName to generate the base filename
     // only replace the illegal characters in the file system: /, \, :, *, ?, ", <, >, |
-    const baseTag = `playwright-${testTitle.replace(/[/\\:*?"<>|]/g, '-')}`;
+    const baseTag = `playwright-${replaceIllegalPathChars(testTitle)}`;
     const generatedFilename = reportFileName(baseTag);
     testTitleToFilename.set(testTitle, generatedFilename);
   }
@@ -32,7 +36,7 @@ function getStableFilename(testTitle: string): string {
 }
 
 function updateReport(mode: 'merged' | 'separate', testId?: string) {
-  if (mode === 'separate' && testId) {
+  if (mode === 'separate') {
     // in separate mode, find the data for the corresponding testID and generate a separate report
     const testData = testDataList.find(
       (data) => data.attributes?.playwright_test_id === testId,
