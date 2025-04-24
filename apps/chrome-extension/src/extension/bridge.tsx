@@ -62,6 +62,7 @@ class BridgeConnector {
         try {
           activeBridgePage = new ExtensionBridgePageBrowserSide(() => {
             if (this.status !== 'closed') {
+              this.activeBridgePage?.destroy();
               this.setStatus('disconnected');
               this.activeBridgePage = null;
             }
@@ -97,7 +98,7 @@ class BridgeConnector {
 }
 
 export default function Bridge() {
-  const [bridgeStatus, setBridgeStatus] = useState<BridgeStatus>('closed');
+  const bridgeStatusRef = useRef<BridgeStatus>('closed');
   const [taskStatus, setTaskStatus] = useState<string>('');
 
   const [bridgeLog, setBridgeLog] = useState<BridgeLogItem[]>([]);
@@ -124,10 +125,10 @@ export default function Bridge() {
       (status) => {
         console.log('status changed event', status);
         setTaskStatus('');
-        setBridgeStatus(status);
-        if (status !== 'connected') {
+        if (status !== 'connected' && bridgeStatusRef.current !== status) {
           appendBridgeLog(`Bridge status changed to ${status}`);
         }
+        bridgeStatusRef.current = status;
       },
     ),
   );
@@ -149,7 +150,7 @@ export default function Bridge() {
   let statusIcon: any;
   let statusTip: string;
   let statusBtn: any;
-  if (bridgeStatus === 'closed') {
+  if (bridgeStatusRef.current === 'closed') {
     statusIcon = iconForStatus('closed');
     statusTip = 'Closed';
     statusBtn = (
@@ -162,7 +163,7 @@ export default function Bridge() {
         Allow connection
       </Button>
     );
-  } else if (bridgeStatus === 'listening' || bridgeStatus === 'disconnected') {
+  } else if (bridgeStatusRef.current === 'listening' || bridgeStatusRef.current === 'disconnected') {
     statusIcon = (
       <Spin
         className="bridge-status-icon"
@@ -171,11 +172,11 @@ export default function Bridge() {
       />
     );
     statusTip =
-      bridgeStatus === 'listening'
+      bridgeStatusRef.current === 'listening'
         ? 'Listening for connection...'
         : 'Disconnected, listening for a new connection...';
     statusBtn = <Button onClick={stopConnection}>Stop</Button>;
-  } else if (bridgeStatus === 'connected') {
+  } else if (bridgeStatusRef.current === 'connected') {
     statusIcon = iconForStatus('connected');
     statusTip = taskStatus ? `Connected - ${taskStatus}` : 'Connected';
 
@@ -190,7 +191,7 @@ export default function Bridge() {
     );
   } else {
     statusIcon = iconForStatus('failed');
-    statusTip = `Unknown Status - ${bridgeStatus}`;
+    statusTip = `Unknown Status - ${bridgeStatusRef.current}`;
     statusBtn = null;
   }
 
