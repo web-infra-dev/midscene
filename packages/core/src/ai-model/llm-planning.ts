@@ -1,5 +1,5 @@
-import { vlLocateMode } from '@/env';
 import type { PageType, PlanningAIResponse, UIContext } from '@/types';
+import { vlLocateMode } from '@midscene/shared/env';
 import { paddingToMatchBlockByBase64 } from '@midscene/shared/img';
 import { assert } from '@midscene/shared/utils';
 import {

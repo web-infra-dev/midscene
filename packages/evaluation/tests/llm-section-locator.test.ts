@@ -1,8 +1,8 @@
 import { writeFileSync } from 'node:fs';
 import { MIDSCENE_MODEL_NAME, type Rect, getAIConfig } from '@midscene/core';
 import { AiLocateSection } from '@midscene/core/ai-model';
-import { vlLocateMode } from '@midscene/core/env';
 import { sleep } from '@midscene/core/utils';
+import { vlLocateMode } from '@midscene/shared/env';
 import { saveBase64Image } from '@midscene/shared/img';
 import dotenv from 'dotenv';
 import { afterAll, expect, test } from 'vitest';

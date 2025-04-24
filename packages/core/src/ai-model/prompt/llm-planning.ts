@@ -1,6 +1,6 @@
-import type { vlLocateMode } from '@/env';
 import type { PageType } from '@/types';
 import { PromptTemplate } from '@langchain/core/prompts';
+import type { vlLocateMode } from '@midscene/shared/env';
 import type { ResponseFormatJSONSchema } from 'openai/resources';
 import { bboxDescription } from './common';
 import { samplePageDescription } from './util';

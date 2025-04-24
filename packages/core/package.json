@@ -10,7 +10,6 @@
   "files": ["dist", "report", "README.md"],
   "exports": {
     ".": "./dist/lib/index.js",
-    "./env": "./dist/lib/env.js",
     "./utils": "./dist/lib/utils.js",
     "./ai-model": "./dist/lib/ai-model.js",
     "./tree": "./dist/lib/tree.js"
@@ -18,7 +17,6 @@
   "typesVersions": {
     "*": {
       ".": ["./dist/types/index.d.ts"],
-      "env": ["./dist/types/env.d.ts"],
       "utils": ["./dist/types/utils.d.ts"],
       "ai-model": ["./dist/types/ai-model.d.ts"],
       "tree": ["./dist/types/tree.d.ts"]

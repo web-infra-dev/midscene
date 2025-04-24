@@ -1,11 +1,6 @@
 import { callAiFn } from '@/ai-model/common';
 import { AiExtractElementInfo, AiLocateElement } from '@/ai-model/index';
 import { AiAssert, AiLocateSection } from '@/ai-model/inspect';
-import {
-  MIDSCENE_FORCE_DEEP_THINK,
-  getAIConfigInBoolean,
-  vlLocateMode,
-} from '@/env';
 import type {
   AIElementResponse,
   AISingleElementResponse,
@@ -23,6 +18,11 @@ import type {
   Rect,
   UIContext,
 } from '@/types';
+import {
+  MIDSCENE_FORCE_DEEP_THINK,
+  getAIConfigInBoolean,
+  vlLocateMode,
+} from '@midscene/shared/env';
 import { getDebug } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
 import { emitInsightDump } from './utils';

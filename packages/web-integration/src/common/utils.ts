@@ -4,8 +4,8 @@ import type {
   PlaywrightParserOpt,
   UIContext,
 } from '@midscene/core';
-import { MIDSCENE_REPORT_TAG_NAME, getAIConfig } from '@midscene/core/env';
 import { uploadTestInfoToServer } from '@midscene/core/utils';
+import { MIDSCENE_REPORT_TAG_NAME, getAIConfig } from '@midscene/shared/env';
 import type { ElementInfo } from '@midscene/shared/extractor';
 import { traverseTree, treeToList } from '@midscene/shared/extractor';
 import { resizeImgBase64 } from '@midscene/shared/img';

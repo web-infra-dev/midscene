@@ -4,19 +4,19 @@ import { tmpdir } from 'node:os';
 import * as path from 'node:path';
 import { dirname } from 'node:path';
 import {
+  defaultRunDirName,
   getMidsceneRunSubDir,
   logDir,
-  runDirName,
 } from '@midscene/shared/common';
-import { getRunningPkgInfo } from '@midscene/shared/fs';
-import { assert, getGlobalScope } from '@midscene/shared/utils';
-import { ifInBrowser, uuid } from '@midscene/shared/utils';
 import {
   MIDSCENE_DEBUG_MODE,
   MIDSCENE_OPENAI_INIT_CONFIG_JSON,
   getAIConfig,
   getAIConfigInJson,
-} from './env';
+} from '@midscene/shared/env';
+import { getRunningPkgInfo } from '@midscene/shared/fs';
+import { assert, getGlobalScope } from '@midscene/shared/utils';
+import { ifInBrowser, uuid } from '@midscene/shared/utils';
 import type { Rect, ReportDumpWithAttributes } from './types';
 
 let logEnvReady = false;
@@ -176,19 +176,25 @@ export function writeLogFile(opts: {
 
     // gitIgnore in the parent directory
     const gitIgnorePath = path.join(targetDir, '../../.gitignore');
+    const gitPath = path.join(targetDir, '../../.git');
     let gitIgnoreContent = '';
-    if (existsSync(gitIgnorePath)) {
-      gitIgnoreContent = readFileSync(gitIgnorePath, 'utf-8');
+
+    if (existsSync(gitPath)) {
+      // if the git path exists, we need to add the log folder to the git ignore file
+      if (existsSync(gitIgnorePath)) {
+        gitIgnoreContent = readFileSync(gitIgnorePath, 'utf-8');
+      }
+
+      // ignore the log folder
+      if (!gitIgnoreContent.includes(`${defaultRunDirName}/`)) {
+        writeFileSync(
+          gitIgnorePath,
+          `${gitIgnoreContent}\n# Midscene.js dump files\n${defaultRunDirName}/dump\n${defaultRunDirName}/report\n${defaultRunDirName}/tmp\n${defaultRunDirName}/log\n`,
+          'utf-8',
+        );
+      }
     }
 
-    // ignore the log folder
-    if (!gitIgnoreContent.includes(`${runDirName}/`)) {
-      writeFileSync(
-        gitIgnorePath,
-        `${gitIgnoreContent}\n# Midscene.js dump files\n${runDirName}/dump\n${runDirName}/report\n${runDirName}/tmp\n${runDirName}/log\n`,
-        'utf-8',
-      );
-    }
     logEnvReady = true;
   }
 

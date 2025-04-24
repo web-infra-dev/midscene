@@ -32,6 +32,22 @@ Installed as /usr/local/bin//adb
 Running on Darwin 24.3.0 (arm64) 
 ```
 
+### 设置环境 ANDROID_HOME 变量
+
+参考[Android 环境变量](https://developer.android.com/tools/variables?hl=zh-cn)，设置环境变量 `ANDROID_HOME`。
+
+验证 `ANDROID_HOME` 变量是否设置成功：
+
+```bash
+echo $ANDROID_HOME
+```
+
+当上述命令有输出时，表示 `ANDROID_HOME` 变量设置成功：
+
+```log
+/Users/your_username/Library/Android/sdk
+```
+
 ### 连接 Android 设备
 
 在 Android 设备的开发者选项中，启用 'USB 调试'，如果存在 'USB 调试（安全设置）'，也启用它，然后使用 USB 线连接 Android 设备。

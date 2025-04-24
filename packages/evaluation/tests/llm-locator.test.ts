@@ -4,8 +4,8 @@ import Insight, {
   MIDSCENE_MODEL_NAME,
   getAIConfig,
 } from '@midscene/core';
-import { vlLocateMode } from '@midscene/core/env';
 import { sleep } from '@midscene/core/utils';
+import { vlLocateMode } from '@midscene/shared/env';
 import { saveBase64Image } from '@midscene/shared/img';
 import dotenv from 'dotenv';
 import { afterEach, expect, test } from 'vitest';

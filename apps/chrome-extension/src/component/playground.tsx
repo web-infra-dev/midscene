@@ -1,5 +1,5 @@
 import type { UIContext } from '@midscene/core';
-import { overrideAIConfig } from '@midscene/core/env';
+import { overrideAIConfig } from '@midscene/shared/env';
 import {
   ContextPreview,
   type PlaygroundResult,

@@ -16,7 +16,8 @@
     "./extractor-debug": "./dist/lib/extractor-debug.js",
     "./keyboard-layout": "./dist/lib/us-keyboard-layout.js",
     "./logger": "./dist/lib/logger.js",
-    "./common": "./dist/lib/common.js"
+    "./common": "./dist/lib/common.js",
+    "./env": "./dist/lib/env.js"
   },
   "typesVersions": {
     "*": {
@@ -29,7 +30,8 @@
       "extractor-debug": ["./dist/types/extractor-debug.d.ts"],
       "keyboard-layout": ["./dist/types/us-keyboard-layout.d.ts"],
       "logger": ["./dist/types/logger.d.ts"],
-      "common": ["./dist/types/common.d.ts"]
+      "common": ["./dist/types/common.d.ts"],
+      "env": ["./dist/types/env.d.ts"]
     }
   },
   "files": ["dist", "src", "README.md"],

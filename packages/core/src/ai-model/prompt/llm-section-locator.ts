@@ -1,5 +1,5 @@
-import type { vlLocateMode } from '@/env';
 import { PromptTemplate } from '@langchain/core/prompts';
+import type { vlLocateMode } from '@midscene/shared/env';
 import { bboxDescription } from './common';
 
 export function systemPromptToLocateSection(

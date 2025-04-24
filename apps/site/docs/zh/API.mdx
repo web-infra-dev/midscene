@@ -439,6 +439,14 @@ overrideAIConfig({
 export MIDSCENE_DEBUG_AI_PROFILE=1
 ```
 
+### 自定义运行产物目录
+
+设置 `MIDSCENE_RUN_DIR` 变量，你可以自定义运行产物目录。
+
+```bash
+export MIDSCENE_RUN_DIR=midscene_run # 默认值为当前运行目录下的 midscene_run 目录，支持设置为绝对路径或者相对于当前目录的相对路径
+```
+
 ### 使用 LangSmith
 
 LangSmith 是一个用于调试大语言模型的平台。想要集成 LangSmith，请按以下步骤操作：

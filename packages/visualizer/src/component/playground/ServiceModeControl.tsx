@@ -1,4 +1,4 @@
-import { overrideAIConfig } from '@midscene/core/env';
+import { overrideAIConfig } from '@midscene/shared/env';
 import { Button, Tooltip } from 'antd';
 import type React from 'react';
 import { useEffect } from 'react';

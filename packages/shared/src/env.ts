@@ -41,6 +41,8 @@ export const AZURE_OPENAI_DEPLOYMENT = 'AZURE_OPENAI_DEPLOYMENT';
 export const MIDSCENE_USE_ANTHROPIC_SDK = 'MIDSCENE_USE_ANTHROPIC_SDK';
 export const ANTHROPIC_API_KEY = 'ANTHROPIC_API_KEY';
 
+export const MIDSCENE_RUN_DIR = 'MIDSCENE_RUN_DIR';
+
 // @deprecated
 export const OPENAI_USE_AZURE = 'OPENAI_USE_AZURE';
 
@@ -94,6 +96,7 @@ export const allConfigFromEnv = () => {
       process.env[AZURE_OPENAI_DEPLOYMENT] || undefined,
     [MIDSCENE_MCP_USE_PUPPETEER_MODE]:
       process.env[MIDSCENE_MCP_USE_PUPPETEER_MODE] || undefined,
+    [MIDSCENE_RUN_DIR]: process.env[MIDSCENE_RUN_DIR] || undefined,
   };
 };
 

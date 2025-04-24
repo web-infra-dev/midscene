@@ -6,9 +6,9 @@ import type {
   PlanningAIResponse,
 } from '@midscene/core';
 import type { vlmPlanning } from '@midscene/core/ai-model';
-import { getAIConfigInBoolean } from '@midscene/core/env';
 import { stringifyDumpData, writeLogFile } from '@midscene/core/utils';
 import { getMidsceneRunSubDir } from '@midscene/shared/common';
+import { getAIConfigInBoolean } from '@midscene/shared/env';
 import { getRunningPkgInfo } from '@midscene/shared/fs';
 import { getDebug } from '@midscene/shared/logger';
 import { ifInBrowser } from '@midscene/shared/utils';

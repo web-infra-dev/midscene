@@ -1,9 +1,3 @@
-import {
-  MIDSCENE_USE_QWEN_VL,
-  MIDSCENE_USE_VLM_UI_TARS,
-  getAIConfigInBoolean,
-  vlLocateMode,
-} from '@/env';
 import type {
   AIAssertionResponse,
   AIDataExtractionResponse,
@@ -20,6 +14,12 @@ import type {
   Size,
   UIContext,
 } from '@/types';
+import {
+  MIDSCENE_USE_QWEN_VL,
+  MIDSCENE_USE_VLM_UI_TARS,
+  getAIConfigInBoolean,
+  vlLocateMode,
+} from '@midscene/shared/env';
 import { cropByRect, paddingToMatchBlockByBase64 } from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
