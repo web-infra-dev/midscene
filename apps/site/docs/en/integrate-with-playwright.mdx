@@ -26,7 +26,7 @@ Update playwright.config.ts
 export default defineConfig({
   testDir: './e2e',
 + timeout: 90 * 1000,
-+ reporter: [["list"], ["@midscene/web/playwright-report"]],
++ reporter: [["list"], ["@midscene/web/playwright-report", { type: "single" }]], // type optional, default is "single", means multiple test cases generate one report, optional value is "multiple", means one report for each test case
 });
 ```
 

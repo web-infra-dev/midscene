@@ -107,8 +107,10 @@ export async function parseContextFromWebPage(
 
 export function reportFileName(tag = 'web') {
   const reportTagName = getAIConfig(MIDSCENE_REPORT_TAG_NAME);
-  const dateTimeInFileName = dayjs().format('YYYY-MM-DD_HH-mm-ss-SSS');
-  return `${reportTagName || tag}-${dateTimeInFileName}`;
+  const dateTimeInFileName = dayjs().format('YYYY-MM-DD_HH-mm-ss');
+  // ensure uniqueness at the same time
+  const uniqueId = uuid().substring(0, 8);
+  return `${reportTagName || tag}-${dateTimeInFileName}-${uniqueId}`;
 }
 
 export function printReportMsg(filepath: string) {
