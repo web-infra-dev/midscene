@@ -23,7 +23,8 @@ const testTitleToFilename: Map<string, string> = new Map();
 function getStableFilename(testTitle: string): string {
   if (!testTitleToFilename.has(testTitle)) {
     // use reportFileName to generate the base filename
-    const baseTag = `playwright-${testTitle.replace(/[^a-zA-Z0-9-]/g, '-')}`;
+    // only replace the illegal characters in the file system: /, \, :, *, ?, ", <, >, |
+    const baseTag = `playwright-${testTitle.replace(/[/\\:*?"<>|]/g, '-')}`;
     const generatedFilename = reportFileName(baseTag);
     testTitleToFilename.set(testTitle, generatedFilename);
   }
@@ -53,6 +54,10 @@ function updateReport(mode: 'merged' | 'separate', testId?: string) {
 
     const reportPath = writeDumpReport(mergedFilename, testDataList);
     reportPath && printReportMsg(reportPath);
+  } else {
+    throw new Error(
+      `Unknown reporter type in playwright config: ${mode}, only support 'merged' or 'separate'`,
+    );
   }
 }
 
