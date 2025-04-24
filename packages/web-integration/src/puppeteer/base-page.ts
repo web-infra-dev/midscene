@@ -19,7 +19,7 @@ export class Page<
   PageType extends PuppeteerPage | PlaywrightPage,
 > implements AbstractPage
 {
-  protected underlyingPage: PageType;
+  underlyingPage: PageType;
   protected waitForNavigationTimeout: number;
   private viewportSize?: Size;
 

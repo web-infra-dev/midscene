@@ -81,8 +81,6 @@ export const PlaywrightAiFixture = (options?: {
     const { page, testInfo, use, aiActionType } = options;
     const agent = createOrReuseAgentForPage(page, testInfo) as PlaywrightAgent;
 
-    agent.waitForNetworkIdle = waitForNetworkIdle;
-
     await use(async (taskPrompt: string, ...args: any[]) => {
       return new Promise((resolve, reject) => {
         test.step(`ai-${aiActionType} - ${JSON.stringify(taskPrompt)}`, async () => {
@@ -90,7 +88,7 @@ export const PlaywrightAiFixture = (options?: {
             debugPage(
               `waitForNetworkIdle timeout: ${waitForNetworkIdleTimeout}`,
             );
-            await agent.waitForNetworkIdle?.(page, waitForNetworkIdleTimeout);
+            await agent.waitForNetworkIdle(waitForNetworkIdleTimeout);
           } catch (error) {
             console.warn(
               `[Warning:Midscene] Network idle timeout: current timeout is ${waitForNetworkIdleTimeout}ms, custom timeout please check https://midscenejs.com/faq.html#customize-the-network-timeout`,
@@ -299,7 +297,3 @@ export type PlayWrightAiFixtureType = {
   ) => ReturnType<PageAgent['aiAssert']>;
   aiWaitFor: (assertion: string, opt?: AgentWaitForOpt) => Promise<void>;
 };
-
-async function waitForNetworkIdle(page: OriginPlaywrightPage, timeout = 1000) {
-  await page.waitForLoadState('networkidle', { timeout });
-}

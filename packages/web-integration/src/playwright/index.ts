@@ -8,11 +8,6 @@ export { overrideAIConfig } from '@midscene/core/env';
 export { WebPage as PlaywrightWebPage } from './page';
 
 export class PlaywrightAgent extends PageAgent<PlaywrightWebPage> {
-  waitForNetworkIdle?: (
-    page: PlaywrightPage,
-    timeout?: number,
-  ) => Promise<void>;
-
   constructor(page: PlaywrightPage, opts?: PageAgentOpt) {
     const webPage = new PlaywrightWebPage(page);
     super(webPage, opts);
@@ -33,5 +28,9 @@ export class PlaywrightAgent extends PageAgent<PlaywrightWebPage> {
         await page.goto(url);
       });
     }
+  }
+
+  async waitForNetworkIdle(timeout = 1000) {
+    await this.page.underlyingPage.waitForLoadState('networkidle', { timeout });
   }
 }
