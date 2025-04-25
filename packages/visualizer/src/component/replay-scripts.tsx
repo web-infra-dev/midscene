@@ -268,6 +268,10 @@ export const generateAnimationScripts = (
   tasksIncluded.forEach((task, index) => {
     if (errorStateFlag) return;
 
+    if (index === 0) {
+      initSubTitle = paramStr(task);
+    }
+
     if (task.type === 'Planning') {
       const planningTask = task as ExecutionTaskPlanning;
       if (planningTask.recorder && planningTask.recorder.length > 0) {
@@ -279,7 +283,6 @@ export const generateAnimationScripts = (
           title: typeStr(task),
           subTitle: paramStr(task),
         });
-        initSubTitle = paramStr(task);
       }
     } else if (task.type === 'Insight' && task.subType === 'Locate') {
       const insightTask = task as ExecutionTaskInsightLocate;
