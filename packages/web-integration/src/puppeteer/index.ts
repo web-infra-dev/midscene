@@ -21,8 +21,17 @@ export class PuppeteerAgent extends PageAgent<PuppeteerWebPage> {
         }
         const url = await popup.url();
         console.log(`Popup opened: ${url}`);
-        await popup.close(); // Close the newly opened TAB
-        await page.goto(url);
+        if (popup.isClosed() !== true) {
+          await popup.close(); // Close the newly opened TAB
+        } else {
+          console.warn(`popup is already closed, skip close ${url}`);
+        }
+
+        if (page.isClosed() !== true) {
+          await page.goto(url);
+        } else {
+          console.warn(`page is already closed, skip goto ${url}`);
+        }
       });
     }
   }
