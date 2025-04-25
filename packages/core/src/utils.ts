@@ -111,10 +111,28 @@ export function reportHTMLContent(
         '\n</script>'
       );
     });
+
+    // use Buffer to handle large data, avoid string length limit
+    // add newline between each element
+    const newLine = Buffer.from('\n');
+    const buffersWithNewlines: Buffer[] = [];
+
+    // create an array of buffers that alternate between data and newlines
+    dumps.forEach((dump, index) => {
+      buffersWithNewlines.push(Buffer.from(dump));
+      if (index < dumps.length - 1) {
+        buffersWithNewlines.push(newLine);
+      }
+    });
+
+    // merge all buffers
+    const combinedBuffer = Buffer.concat(buffersWithNewlines);
+    const dumpsContent = combinedBuffer.toString('utf-8');
+
     reportContent = replaceStringWithFirstAppearance(
       tpl,
       '{{dump}}',
-      dumps.join('\n'),
+      dumpsContent,
     );
   }
   return reportContent;
