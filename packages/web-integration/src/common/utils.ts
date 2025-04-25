@@ -169,7 +169,7 @@ export function forceClosePopup(
         debug(`failed to close popup ${url}, error: ${error}`);
       }
     } else {
-      console.warn(`popup is already closed, skip close ${url}`);
+      debug(`popup is already closed, skip close ${url}`);
     }
 
     if (!page.isClosed()) {
@@ -179,7 +179,7 @@ export function forceClosePopup(
         debug(`failed to goto ${url}, error: ${error}`);
       }
     } else {
-      console.warn(`page is already closed, skip goto ${url}`);
+      debug(`page is already closed, skip goto ${url}`);
     }
   });
 }
