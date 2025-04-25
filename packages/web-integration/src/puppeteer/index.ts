@@ -1,6 +1,9 @@
 import { PageAgent, type PageAgentOpt } from '@/common/agent';
+import { forceCloseTab } from '@/common/utils';
+import { getDebug } from '@midscene/shared/logger';
 import type { Page as PuppeteerPage } from 'puppeteer';
 import { WebPage as PuppeteerWebPage } from './page';
+const debug = getDebug('puppeteer:agent');
 
 export { WebPage as PuppeteerWebPage } from './page';
 
@@ -12,27 +15,7 @@ export class PuppeteerAgent extends PageAgent<PuppeteerWebPage> {
     const { forceSameTabNavigation = true } = opts ?? {};
 
     if (forceSameTabNavigation) {
-      page.on('popup', async (popup) => {
-        if (!popup) {
-          console.warn(
-            'got a popup event, but the popup is not ready yet, skip',
-          );
-          return;
-        }
-        const url = await popup.url();
-        console.log(`Popup opened: ${url}`);
-        if (popup.isClosed() !== true) {
-          await popup.close(); // Close the newly opened TAB
-        } else {
-          console.warn(`popup is already closed, skip close ${url}`);
-        }
-
-        if (page.isClosed() !== true) {
-          await page.goto(url);
-        } else {
-          console.warn(`page is already closed, skip goto ${url}`);
-        }
-      });
+      forceCloseTab(page, debug);
     }
   }
 }
