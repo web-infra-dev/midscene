@@ -6,7 +6,7 @@ export type { PlayWrightAiFixtureType } from './ai-fixture';
 export { PlaywrightAiFixture } from './ai-fixture';
 export { overrideAIConfig } from '@midscene/shared/env';
 export { WebPage as PlaywrightWebPage } from './page';
-import { forceCloseTab } from '@/common/utils';
+import { forceClosePopup } from '@/common/utils';
 import { getDebug } from '@midscene/shared/logger';
 
 const debug = getDebug('playwright:agent');
@@ -19,7 +19,7 @@ export class PlaywrightAgent extends PageAgent<PlaywrightWebPage> {
     const { forceSameTabNavigation = true } = opts ?? {};
 
     if (forceSameTabNavigation) {
-      forceCloseTab(page, debug);
+      forceClosePopup(page, debug);
     }
   }
 

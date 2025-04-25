@@ -1,5 +1,5 @@
 import { PageAgent, type PageAgentOpt } from '@/common/agent';
-import { forceCloseTab } from '@/common/utils';
+import { forceClosePopup } from '@/common/utils';
 import { getDebug } from '@midscene/shared/logger';
 import type { Page as PuppeteerPage } from 'puppeteer';
 import { WebPage as PuppeteerWebPage } from './page';
@@ -15,7 +15,7 @@ export class PuppeteerAgent extends PageAgent<PuppeteerWebPage> {
     const { forceSameTabNavigation = true } = opts ?? {};
 
     if (forceSameTabNavigation) {
-      forceCloseTab(page, debug);
+      forceClosePopup(page, debug);
     }
   }
 }

@@ -151,7 +151,7 @@ export function replaceIllegalPathCharsAndSpace(str: string) {
   return str.replace(/[/\\:*?"<>| ]/g, '-');
 }
 
-export function forceCloseTab(
+export function forceClosePopup(
   page: PuppeteerPage | PlaywrightPage,
   debug: DebugFunction,
 ) {
@@ -162,7 +162,7 @@ export function forceCloseTab(
     }
     const url = await (popup as PuppeteerPage).url();
     console.log(`Popup opened: ${url}`);
-    if ((popup as PuppeteerPage).isClosed() !== true) {
+    if (!(popup as PuppeteerPage).isClosed()) {
       try {
         await (popup as PuppeteerPage).close(); // Close the newly opened TAB
       } catch (error) {
@@ -172,7 +172,7 @@ export function forceCloseTab(
       console.warn(`popup is already closed, skip close ${url}`);
     }
 
-    if (page.isClosed() !== true) {
+    if (!page.isClosed()) {
       try {
         await page.goto(url);
       } catch (error) {
