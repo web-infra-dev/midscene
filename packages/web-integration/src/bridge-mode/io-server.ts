@@ -217,10 +217,12 @@ export class BridgeServer {
     });
   }
 
-  close() {
+  async close() {
     this.listeningTimeoutId && clearTimeout(this.listeningTimeoutId);
     this.connectionTipTimer && clearTimeout(this.connectionTipTimer);
-    this.io?.close();
+    const closeProcess = this.io?.close();
     this.io = null;
+
+    return closeProcess;
   }
 }
