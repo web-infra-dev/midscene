@@ -162,7 +162,10 @@ export default function Bridge() {
         Allow connection
       </Button>
     );
-  } else if (bridgeStatusRef.current === 'listening' || bridgeStatusRef.current === 'disconnected') {
+  } else if (
+    bridgeStatusRef.current === 'listening' ||
+    bridgeStatusRef.current === 'disconnected'
+  ) {
     statusIcon = (
       <Spin
         className="bridge-status-icon"
