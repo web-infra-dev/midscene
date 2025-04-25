@@ -38,7 +38,7 @@ const DetailPanel = (): JSX.Element => {
     (store) => store._executionDumpLoadId,
   );
   const activeTask = useExecutionDump((store) => store.activeTask);
-  const blackboardViewAvailable = Boolean(activeTask?.pageContext);
+  const blackboardViewAvailable = Boolean(activeTask?.pageContext) && insightDump;
   const [preferredViewType, setViewType] = useState(VIEW_TYPE_REPLAY);
   const animationScripts = useExecutionDump(
     (store) => store.activeExecutionAnimation,
@@ -86,11 +86,11 @@ const DetailPanel = (): JSX.Element => {
       </div>
     );
   } else if (viewType === VIEW_TYPE_BLACKBOARD) {
-    if (blackboardViewAvailable) {
+    if (blackboardViewAvailable && insightDump) {
       content = (
         <Blackboard
           uiContext={activeTask.pageContext}
-          highlightElements={insightDump!.matchedElement}
+          highlightElements={insightDump.matchedElement}
           highlightRect={insightDump!.taskInfo?.searchArea}
           key={`${dumpId}`}
         />
@@ -198,7 +198,6 @@ const DetailPanel = (): JSX.Element => {
 
           <OpenInPlayground
             context={
-              insightDump?.context ||
               (activeTask as ExecutionTaskPlanning)?.pageContext
             }
           />

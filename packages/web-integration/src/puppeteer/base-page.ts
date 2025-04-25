@@ -75,8 +75,7 @@ export class Page<
       } catch (error) {
         // Ignore timeout error, continue execution
         console.warn(
-          `[Warning:Midscene] Wait for navigation timeout: current timeout is ${this.waitForNavigationTimeout}ms, custom timeout please check https://midscenejs.com/faq.html#customize-the-network-timeout`,
-          error,
+          '[midscene:warning] Waiting for the navigation has timed out, but Midscene will continue execution. Please check https://midscenejs.com/faq.html#customize-the-network-timeout for more information on customizing the network timeout'
         );
       }
       debugPage('waitForNavigation end');

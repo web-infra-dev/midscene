@@ -96,7 +96,7 @@ export const PlaywrightAiFixture = (options?: {
             await agent.waitForNetworkIdle(waitForNetworkIdleTimeout);
           } catch (error) {
             console.warn(
-              `[Warning:Midscene] Network idle timeout: current timeout is ${waitForNetworkIdleTimeout}ms, custom timeout please check https://midscenejs.com/faq.html#customize-the-network-timeout`,
+              '[midscene:warning] Waiting for network idle has timed out, but Midscene will continue execution. Please check https://midscenejs.com/faq.html#customize-the-network-timeout for more information on customizing the network timeout',
             );
           }
           try {

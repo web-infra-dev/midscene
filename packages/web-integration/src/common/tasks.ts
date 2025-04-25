@@ -204,7 +204,7 @@ export class PageTaskExecutor {
             });
             const aiCost = Date.now() - startTime;
 
-            if (element && element.id === quickAnswerId) {
+            if (element && element.id === quickAnswerId && idInCache) {
               cacheHitFlag = true;
             }
 

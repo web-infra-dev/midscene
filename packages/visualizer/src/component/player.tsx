@@ -576,7 +576,7 @@ export function Player(props?: {
           .map((item) => item.img!);
 
         // Load and display the image
-        await Promise.all([...allImages, mouseLoading].map(loadTexture));
+        await Promise.all([...allImages, mouseLoading, mousePointer].map(loadTexture));
 
         // pointer on top
         insightMarkContainer.removeChildren();
