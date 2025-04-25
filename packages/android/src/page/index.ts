@@ -356,6 +356,9 @@ ${Object.keys(size)
     await adb.shell(
       'app_process -Djava.class.path=/data/local/tmp/yadb /data/local/tmp com.ysbing.yadb.Main -keyboard "~CLEAR~"',
     );
+
+    await this.mouse.click(element.center[0], element.center[1]);
+    await this.keyboardPress('Backspace'); // last line's operation may cause a new input character to be input, so click again
   }
 
   private async forceScreenshot(path: string): Promise<void> {
