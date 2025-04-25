@@ -9,10 +9,14 @@ import { MIDSCENE_REPORT_TAG_NAME, getAIConfig } from '@midscene/shared/env';
 import type { ElementInfo } from '@midscene/shared/extractor';
 import { traverseTree, treeToList } from '@midscene/shared/extractor';
 import { resizeImgBase64 } from '@midscene/shared/img';
+import type { DebugFunction } from '@midscene/shared/logger';
 import { assert, logMsg, uuid } from '@midscene/shared/utils';
 import dayjs from 'dayjs';
+import type { Page as PlaywrightPage } from 'playwright';
+import type { Page as PuppeteerPage } from 'puppeteer';
 import { WebElementInfo } from '../web-element';
 import type { WebPage } from './page';
+
 export type WebUIContext = UIContext<WebElementInfo> & {
   url: string;
 };
@@ -145,4 +149,37 @@ export const ERROR_CODE_NOT_IMPLEMENTED_AS_DESIGNED =
 
 export function replaceIllegalPathCharsAndSpace(str: string) {
   return str.replace(/[/\\:*?"<>| ]/g, '-');
+}
+
+export function forceClosePopup(
+  page: PuppeteerPage | PlaywrightPage,
+  debug: DebugFunction,
+) {
+  page.on('popup', async (popup) => {
+    if (!popup) {
+      console.warn('got a popup event, but the popup is not ready yet, skip');
+      return;
+    }
+    const url = await (popup as PuppeteerPage).url();
+    console.log(`Popup opened: ${url}`);
+    if (!(popup as PuppeteerPage).isClosed()) {
+      try {
+        await (popup as PuppeteerPage).close(); // Close the newly opened TAB
+      } catch (error) {
+        debug(`failed to close popup ${url}, error: ${error}`);
+      }
+    } else {
+      debug(`popup is already closed, skip close ${url}`);
+    }
+
+    if (!page.isClosed()) {
+      try {
+        await page.goto(url);
+      } catch (error) {
+        debug(`failed to goto ${url}, error: ${error}`);
+      }
+    } else {
+      debug(`page is already closed, skip goto ${url}`);
+    }
+  });
 }
