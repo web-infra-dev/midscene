@@ -38,7 +38,8 @@ const DetailPanel = (): JSX.Element => {
     (store) => store._executionDumpLoadId,
   );
   const activeTask = useExecutionDump((store) => store.activeTask);
-  const blackboardViewAvailable = Boolean(activeTask?.pageContext) && insightDump;
+  const blackboardViewAvailable =
+    Boolean(activeTask?.pageContext) && insightDump;
   const [preferredViewType, setViewType] = useState(VIEW_TYPE_REPLAY);
   const animationScripts = useExecutionDump(
     (store) => store.activeExecutionAnimation,
@@ -197,9 +198,7 @@ const DetailPanel = (): JSX.Element => {
           />
 
           <OpenInPlayground
-            context={
-              (activeTask as ExecutionTaskPlanning)?.pageContext
-            }
+            context={(activeTask as ExecutionTaskPlanning)?.pageContext}
           />
         </ConfigProvider>
       </div>

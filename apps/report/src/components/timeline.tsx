@@ -71,7 +71,10 @@ const TimelineWidget = (props: {
   let maxTime = 500;
 
   if (allScreenshots.length >= 2) {
-    maxTime = Math.max(allScreenshots[allScreenshots.length - 1].timeOffset, maxTime);
+    maxTime = Math.max(
+      allScreenshots[allScreenshots.length - 1].timeOffset,
+      maxTime,
+    );
   }
 
   const sizeRatio = 2;
