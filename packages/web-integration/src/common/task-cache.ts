@@ -12,7 +12,7 @@ import { getAIConfigInBoolean } from '@midscene/shared/env';
 import { getRunningPkgInfo } from '@midscene/shared/fs';
 import { getDebug } from '@midscene/shared/logger';
 import { ifInBrowser } from '@midscene/shared/utils';
-import type { WebUIContext } from './utils';
+import { type WebUIContext, replaceIllegalPathCharsAndSpace } from './utils';
 
 const debug = getDebug('cache');
 
@@ -89,7 +89,7 @@ export class TaskCache {
 
   constructor(opts?: { cacheId?: string }) {
     this.midscenePkgInfo = getRunningPkgInfo();
-    this.cacheId = opts?.cacheId || '';
+    this.cacheId = replaceIllegalPathCharsAndSpace(opts?.cacheId || '');
     this.cache = this.readCacheFromFile() || {
       aiTasks: [],
     };
