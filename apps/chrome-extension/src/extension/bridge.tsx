@@ -71,6 +71,7 @@ class BridgeConnector {
 
           this.setStatus('connected');
         } catch (e) {
+          this.activeBridgePage?.destroy();
           this.activeBridgePage = null;
           console.warn('failed to setup connection', e);
           await new Promise((resolve) =>

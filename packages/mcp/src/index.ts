@@ -19,7 +19,7 @@ const server = new McpServer({
 
 server.resource(
   'playwright-example',
-  'file:///playwright-example.txt',
+  'file:///playwright-example.mdx',
   async (uri) => ({
     contents: [
       {
@@ -30,9 +30,10 @@ server.resource(
     ],
   }),
 );
+
 server.resource(
   'midscene-api-docs',
-  'file:///midscene-api-docs.txt',
+  'file:///midscene-api-docs.mdx',
   async (uri) => ({
     contents: [
       {
