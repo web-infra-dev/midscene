@@ -19,24 +19,26 @@ const server = new McpServer({
 
 server.resource(
   'playwright-example',
-  'generate-code://playwright-example',
+  'file:///playwright-example.txt',
   async (uri) => ({
     contents: [
       {
         uri: uri.href,
         text: PROMPTS.PLAYWRIGHT_CODE_EXAMPLE,
+        mimeType: 'text/plain',
       },
     ],
   }),
 );
 server.resource(
   'midscene-api-docs',
-  'generate-code://midscene-api-docs',
+  'file:///midscene-api-docs.txt',
   async (uri) => ({
     contents: [
       {
         uri: uri.href,
         text: PROMPTS.MIDSCENE_API_DOCS,
+        mimeType: 'text/plain',
       },
     ],
   }),
