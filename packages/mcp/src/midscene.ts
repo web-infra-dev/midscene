@@ -349,16 +349,18 @@ export class MidsceneManager {
       'Inputs text into a specified form field or element identified by a natural language selector.',
       {
         value: z.string().describe('The text to input'),
-        selector: z
+        locate: z
           .string()
-          .describe('Describe the element to input text into'),
+          .describe(
+            'Describe the element to input text into, use natural language',
+          ),
       },
-      async ({ value, selector }) => {
+      async ({ value, locate }) => {
         const agent = await this.initAgent();
-        await agent.aiInput(value, selector);
+        await agent.aiInput(value, locate);
         return {
           content: [
-            { type: 'text', text: `Inputted ${value} into ${selector}` },
+            { type: 'text', text: `Inputted ${value} into ${locate}` },
             { type: 'text', text: `report file: ${agent.reportFile}` },
           ],
           isError: false,
@@ -369,13 +371,17 @@ export class MidsceneManager {
     this.mcpServer.tool(
       'midscene_aiHover',
       'Moves the mouse cursor to hover over an element identified by a natural language selector.',
-      { selector: z.string() },
-      async ({ selector }) => {
+      {
+        locate: z
+          .string()
+          .describe('Use natural language describe the element to hover over'),
+      },
+      async ({ locate }) => {
         const agent = await this.initAgent();
-        await agent.aiHover(selector);
+        await agent.aiHover(locate);
         return {
           content: [
-            { type: 'text', text: `Hovered over ${selector}` },
+            { type: 'text', text: `Hovered over ${locate}` },
             { type: 'text', text: `report file: ${agent.reportFile}` },
           ],
           isError: false,
