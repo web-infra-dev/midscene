@@ -1,5 +1,5 @@
-import { uiTarsModelVersion, vlLocateMode } from '@/env';
 import type { PlanningAction } from '@/types';
+import { uiTarsModelVersion } from '@midscene/shared/env';
 import { transformHotkeyInput } from '@midscene/shared/keyboard-layout';
 import { assert } from '@midscene/shared/utils';
 import { actionParser } from '@ui-tars/action-parser';
