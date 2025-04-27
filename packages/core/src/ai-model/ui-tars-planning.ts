@@ -1,6 +1,7 @@
 import type { PlanningAction } from '@/types';
 import { uiTarsModelVersion } from '@midscene/shared/env';
 import { transformHotkeyInput } from '@midscene/shared/keyboard-layout';
+import { getDebug } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
 import { actionParser } from '@ui-tars/action-parser';
 import type { ChatCompletionMessageParam } from 'openai/resources';
@@ -19,6 +20,7 @@ type ActionType =
   | 'androidHomeButton'
   | 'androidRecentAppsButton';
 
+const debug = getDebug('ui-tars-planning');
 const bboxSize = 10;
 const pointToBbox = (
   point: { x: number; y: number },
@@ -58,6 +60,7 @@ export async function vlmPlanning(options: {
   const convertedText = convertBboxToCoordinates(res.content);
 
   const modelVer = uiTarsModelVersion();
+
   const { parsed } = actionParser({
     prediction: convertedText,
     factor: [1000, 1000],
@@ -67,6 +70,9 @@ export async function vlmPlanning(options: {
     },
     modelVer: modelVer || undefined,
   });
+
+  debug('modelVer', modelVer, 'parsed', JSON.stringify(parsed));
+
   const transformActions: PlanningAction[] = [];
   parsed.forEach((action) => {
     if (action.action_type === 'click') {

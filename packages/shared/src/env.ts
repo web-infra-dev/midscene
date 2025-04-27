@@ -129,7 +129,7 @@ export const uiTarsModelVersion = (): UITarsModelVersion | false => {
   if (versionConfig === 'DOUBAO-1.5') {
     return UITarsModelVersion.DOUBAO_1_5_20B;
   }
-  return versionConfig as UITarsModelVersion;
+  return `${versionConfig}` as UITarsModelVersion;
 };
 
 export const vlLocateMode = ():
@@ -193,7 +193,13 @@ export const getAIConfigInBoolean = (
   configKey: keyof ReturnType<typeof allConfigFromEnv>,
 ) => {
   const config = getAIConfig(configKey) || '';
-  return /^(true|1)$/i.test(config);
+  if (/^(true|1)$/i.test(config)) {
+    return true;
+  }
+  if (/^(false|0)$/i.test(config)) {
+    return false;
+  }
+  return !!config.trim();
 };
 
 export const getAIConfigInJson = (

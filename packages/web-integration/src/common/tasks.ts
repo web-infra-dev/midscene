@@ -33,7 +33,16 @@ import {
   vlmPlanning,
 } from '@midscene/core/ai-model';
 import { sleep } from '@midscene/core/utils';
+import { UITarsModelVersion } from '@midscene/shared/env';
+import { uiTarsModelVersion } from '@midscene/shared/env';
+import { vlLocateMode } from '@midscene/shared/env';
 import type { ElementInfo } from '@midscene/shared/extractor';
+import {
+  imageInfo,
+  imageInfoOfBase64,
+  resizeImgBase64,
+} from '@midscene/shared/img';
+import { getDebug } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
 import type { WebElementInfo } from '../web-element';
 import { TaskCache } from './task-cache';
@@ -44,6 +53,8 @@ interface ExecutionResult<OutputType = any> {
   output: OutputType;
   executor: Executor;
 }
+
+const debug = getDebug('page-task-executor');
 
 const replanningCountLimit = 10;
 
@@ -736,13 +747,43 @@ export class PageTaskExecutor {
         };
         executorContext.task.recorder = [recordItem];
         (executorContext.task as any).pageContext = pageContext;
+
+        let imagePayload = pageContext.screenshotBase64;
+        if (
+          vlLocateMode() === 'vlm-ui-tars' &&
+          uiTarsModelVersion() === UITarsModelVersion.V1_5
+        ) {
+          const size = pageContext.size;
+          // const imageInfo = await imageInfoOfBase64(imagePayload);
+          debug('ui-tars-v1.5, will check image size', size);
+          const currentPixels = size.width * size.height;
+          const maxPixels = 16384 * 28 * 28; //
+          if (currentPixels > maxPixels) {
+            const resizeFactor = Math.sqrt(maxPixels / currentPixels);
+            const newWidth = Math.floor(size.width * resizeFactor);
+            const newHeight = Math.floor(size.height * resizeFactor);
+            debug(
+              'resize image',
+              imageInfo,
+              'new width',
+              newWidth,
+              'new height',
+              newHeight,
+            );
+            imagePayload = await resizeImgBase64(imagePayload, {
+              width: newWidth,
+              height: newHeight,
+            });
+          }
+        }
+
         this.appendConversationHistory({
           role: 'user',
           content: [
             {
               type: 'image_url',
               image_url: {
-                url: pageContext.screenshotBase64,
+                url: imagePayload,
               },
             },
           ],
