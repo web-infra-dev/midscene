@@ -18,7 +18,6 @@ test.beforeEach(async ({ page }) => {
 });
 
 test('ai shop', async ({
-  ai,
   aiInput,
   aiAssert,
   aiQuery,
@@ -29,13 +28,27 @@ test('ai shop', async ({
   page,
 }) => {
   // login
+  await aiAssert('The page shows the login interface');
   await aiInput('user_name', 'in user name input');
   await aiInput('password', 'in password input');
   await aiKeyboardPress('Enter', 'Login Button');
 
   // check the login success
-  await aiAssert('the page title is "xxx"');
+  await aiWaitFor('The page shows that the loading is complete');
+  await aiAssert('The current page shows the product detail page');
+
+  // check the product info
+  const dataA = await aiQuery({
+    userInfo: 'User information in the format {name: string}',
+    theFirstProductInfo: 'The first product info in the format {name: string, price: number}',
+  });
+  expect(dataA.theFirstProductInfo.name).toBe('xxx');
+  expect(dataA.theFirstProductInfo.price).toBe(100);
+
 
   // add to cart
+  await aiTap('click add to cart button');
+  
   await aiTap('click right top cart icon');
+  await aiAssert('The cart icon shows the number 1');
 });
