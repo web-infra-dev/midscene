@@ -101,9 +101,9 @@ export function reportHTMLContent(
   // helper function: decide to write to file or append to resultContent
   const appendOrWrite = (content: string): void => {
     if (writeToFile) {
-      // writeFileSync(reportPath!, `${content}\n`, {
-      //   flag: 'a',
-      // });
+      writeFileSync(reportPath!, `${content}\n`, {
+        flag: 'a',
+      });
     } else {
       resultContent += `${content}\n`;
     }
@@ -111,7 +111,7 @@ export function reportHTMLContent(
 
   // if writeToFile is true, write the first part to file, otherwise set the first part to the initial value of resultContent
   if (writeToFile) {
-    // writeFileSync(reportPath!, firstPart, { flag: 'w' }); // use 'w' flag to overwrite the existing file
+    writeFileSync(reportPath!, firstPart, { flag: 'w' }); // use 'w' flag to overwrite the existing file
   } else {
     resultContent = firstPart;
   }
@@ -128,15 +128,12 @@ export function reportHTMLContent(
   }
   // handle string type dumpData
   else if (typeof dumpData === 'string') {
-    try {
-      // Verify if the dumpData is valid JSON
-      const dumpContent = `<script type="midscene_web_dump" type="application/json">${dumpData}</script>`;
-      appendOrWrite(dumpContent);
-    } catch (e) {
-      // if the dumpData is not valid JSON, use the original processing方式
-      const dumpContent = `<script type="midscene_web_dump" type="application/json">\n${dumpData}\n</script>`;
-      appendOrWrite(dumpContent);
-    }
+    const dumpContent =
+      // biome-ignore lint/style/useTemplate: <explanation> do not use template string here, will cause bundle error
+      '<script type="midscene_web_dump" type="application/json">' +
+      dumpData +
+      '</script>';
+    appendOrWrite(dumpContent);
   }
   // handle array type dumpData
   else {
@@ -147,14 +144,20 @@ export function reportHTMLContent(
         return `${key}="${encodeURIComponent(attributes![key])}"`;
       });
 
-      const dumpContent = `<script type="midscene_web_dump" type="application/json" ${attributesArr.join(' ')}>\n${dumpString}\n</script>`;
+      const dumpContent =
+        // biome-ignore lint/style/useTemplate: <explanation> do not use template string here, will cause bundle error
+        '<script type="midscene_web_dump" type="application/json" ' +
+        attributesArr.join(' ') +
+        '>\n' +
+        dumpString +
+        '\n</script>';
       appendOrWrite(dumpContent);
     }
   }
 
   // add the second part
   if (writeToFile) {
-    // writeFileSync(reportPath!, secondPart, { flag: 'a' });
+    writeFileSync(reportPath!, secondPart, { flag: 'a' });
     return reportPath!;
   }
 
