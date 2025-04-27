@@ -136,17 +136,22 @@ export async function vlmPlanning(options: {
         thought: action.thought || '',
       });
     } else if (action.action_type === 'hotkey') {
-      assert(action.action_inputs.key, 'key is required');
-      const keys = transformHotkeyInput(action.action_inputs.key);
+      if (!action.action_inputs.key) {
+        console.warn(
+          'No key found in action: hotkey. Will not perform action.',
+        );
+      } else {
+        const keys = transformHotkeyInput(action.action_inputs.key);
 
-      transformActions.push({
-        type: 'KeyboardPress',
-        param: {
-          value: keys,
-        },
-        locate: null,
-        thought: action.thought || '',
-      });
+        transformActions.push({
+          type: 'KeyboardPress',
+          param: {
+            value: keys,
+          },
+          locate: null,
+          thought: action.thought || '',
+        });
+      }
     } else if (action.action_type === 'wait') {
       transformActions.push({
         type: 'Sleep',
