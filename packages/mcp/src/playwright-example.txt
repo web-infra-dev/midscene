@@ -28,7 +28,7 @@ test('ai shop', async ({
   page,
 }) => {
   // login
-  await aiAction('The page shows the login interface');
+  await aiAssert('The page shows the login interface');
   await aiInput('user_name', 'in user name input');
   await aiInput('password', 'in password input');
   await aiKeyboardPress('Enter', 'Login Button');
