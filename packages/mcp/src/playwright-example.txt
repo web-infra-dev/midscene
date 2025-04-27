@@ -1,0 +1,41 @@
+// examples:
+// Reference the following code to generate Midscene test cases
+// The following is test code for Midscene AI, for reference
+// The following is Playwright syntax, you can use Playwright to assist in test generation
+import { test as base } from '@playwright/test';
+import type { PlayWrightAiFixtureType } from '@midscene/web/playwright';
+import { PlaywrightAiFixture } from '@midscene/web/playwright';
+
+export const test = base.extend<PlayWrightAiFixtureType>(PlaywrightAiFixture({
+  waitForNetworkIdleTimeout: 2000, // optional, the timeout for waiting for network idle between each action, default is 2000ms
+  waitForNavigationTimeout: 5000, // optional, the timeout for waiting for navigation finished, default is 5000ms
+}));
+
+
+test.beforeEach(async ({ page }) => {
+  await page.goto('https://www.xxx.com/');
+  await page.setViewportSize({ width: 1920, height: 1080 });
+});
+
+test('ai shop', async ({
+  ai,
+  aiInput,
+  aiAssert,
+  aiQuery,
+  aiKeyboardPress,
+  aiHover,
+  aiTap,
+  agentForPage,
+  page,
+}) => {
+  // login
+  await aiInput('user_name', 'in user name input');
+  await aiInput('password', 'in password input');
+  await aiKeyboardPress('Enter', 'Login Button');
+
+  // check the login success
+  await aiAssert('the page title is "xxx"');
+
+  // add to cart
+  await aiTap('click right top cart icon');
+});

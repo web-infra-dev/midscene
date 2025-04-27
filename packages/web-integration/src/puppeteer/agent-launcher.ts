@@ -4,6 +4,7 @@ import { assert } from '@midscene/shared/utils';
 
 import { PuppeteerAgent } from '@/puppeteer/index';
 import type { MidsceneYamlScriptWebEnv } from '@midscene/core';
+import { DEFAULT_WAIT_FOR_NETWORK_IDLE_TIMEOUT } from '@midscene/shared/constants';
 import puppeteer from 'puppeteer';
 
 export const defaultUA =
@@ -11,7 +12,8 @@ export const defaultUA =
 export const defaultViewportWidth = 1440;
 export const defaultViewportHeight = 768;
 export const defaultViewportScale = process.platform === 'darwin' ? 2 : 1;
-export const defaultWaitForNetworkIdleTimeout = 6 * 1000;
+export const defaultWaitForNetworkIdleTimeout =
+  DEFAULT_WAIT_FOR_NETWORK_IDLE_TIMEOUT;
 
 interface FreeFn {
   name: string;

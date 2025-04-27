@@ -2,6 +2,7 @@ import assert from 'node:assert';
 import fs from 'node:fs';
 import path from 'node:path';
 import type { Point, Size } from '@midscene/core';
+import type { PageType } from '@midscene/core';
 import { getTmpFile } from '@midscene/core/utils';
 import type { ElementInfo } from '@midscene/shared/extractor';
 import { isValidPNGImageBuffer, resizeImg } from '@midscene/shared/img';
@@ -19,7 +20,7 @@ export class AndroidDevice implements AndroidDevicePage {
   private deviceRatio = 1;
   private adb: ADB | null = null;
   private connectingAdb: Promise<ADB> | null = null;
-  pageType = 'android';
+  pageType: PageType = 'android';
   uri: string | undefined;
 
   constructor(deviceId: string) {
@@ -355,6 +356,12 @@ ${Object.keys(size)
     await adb.shell(
       'app_process -Djava.class.path=/data/local/tmp/yadb /data/local/tmp com.ysbing.yadb.Main -keyboard "~CLEAR~"',
     );
+
+    if (await adb.isSoftKeyboardPresent()) {
+      return;
+    }
+
+    await this.mouse.click(element.center[0], element.center[1]);
   }
 
   private async forceScreenshot(path: string): Promise<void> {
@@ -630,5 +637,20 @@ ${Object.keys(size)
     } catch (error) {
       console.error('Error during cleanup:', error);
     }
+  }
+
+  async back(): Promise<void> {
+    const adb = await this.getAdb();
+    await adb.shell('input keyevent 4');
+  }
+
+  async home(): Promise<void> {
+    const adb = await this.getAdb();
+    await adb.shell('input keyevent 3');
+  }
+
+  async recentApps(): Promise<void> {
+    const adb = await this.getAdb();
+    await adb.shell('input keyevent 82');
   }
 }

@@ -95,11 +95,6 @@ async function ensureBrowser({ launchOptions, allowDangerous }: any) {
   }
 
   if (!browser) {
-    console.log(
-      JSON.stringify({
-        'Launching new browser with options': currentLaunchOptions,
-      }),
-    );
     previousLaunchOptions = currentLaunchOptions;
     browser = await puppeteer.launch(currentLaunchOptions);
     const pages = await browser.pages();

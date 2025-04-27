@@ -1,5 +1,6 @@
 import type { ElementTreeNode, Point, Size } from '@midscene/core';
 import { sleep } from '@midscene/core/utils';
+import { DEFAULT_WAIT_FOR_NAVIGATION_TIMEOUT } from '@midscene/shared/constants';
 import type { ElementInfo } from '@midscene/shared/extractor';
 import { treeToList } from '@midscene/shared/extractor';
 import { getExtraReturnLogic } from '@midscene/shared/fs';
@@ -18,8 +19,10 @@ export class Page<
   PageType extends PuppeteerPage | PlaywrightPage,
 > implements AbstractPage
 {
-  protected underlyingPage: PageType;
+  underlyingPage: PageType;
+  protected waitForNavigationTimeout: number;
   private viewportSize?: Size;
+
   pageType: AgentType;
 
   private async evaluate<R>(
@@ -43,9 +46,17 @@ export class Page<
     return result;
   }
 
-  constructor(underlyingPage: PageType, pageType: AgentType) {
+  constructor(
+    underlyingPage: PageType,
+    pageType: AgentType,
+    opts?: {
+      waitForNavigationTimeout?: number;
+    },
+  ) {
     this.underlyingPage = underlyingPage;
     this.pageType = pageType;
+    this.waitForNavigationTimeout =
+      opts?.waitForNavigationTimeout || DEFAULT_WAIT_FOR_NAVIGATION_TIMEOUT;
   }
 
   async evaluateJavaScript<T = any>(script: string): Promise<T> {
@@ -56,13 +67,16 @@ export class Page<
     // issue: https://github.com/puppeteer/puppeteer/issues/3323
     if (this.pageType === 'puppeteer' || this.pageType === 'playwright') {
       debugPage('waitForNavigation begin');
+      debugPage(`waitForNavigation timeout: ${this.waitForNavigationTimeout}`);
       try {
-        const maxWaitTime = 5000; // 5 seconds maximum wait time
         await (this.underlyingPage as PuppeteerPage).waitForSelector('html', {
-          timeout: maxWaitTime,
+          timeout: this.waitForNavigationTimeout,
         });
       } catch (error) {
         // Ignore timeout error, continue execution
+        console.warn(
+          '[midscene:warning] Waiting for the navigation has timed out, but Midscene will continue execution. Please check https://midscenejs.com/faq.html#customize-the-network-timeout for more information on customizing the network timeout',
+        );
       }
       debugPage('waitForNavigation end');
     }
@@ -122,7 +136,7 @@ export class Page<
       const buffer = await (this.underlyingPage as PlaywrightPage).screenshot({
         type: imgType,
         quality,
-        timeout: 3 * 1000,
+        timeout: 10 * 1000,
       });
       base64 = `data:image/jpeg;base64,${buffer.toString('base64')}`;
     } else {

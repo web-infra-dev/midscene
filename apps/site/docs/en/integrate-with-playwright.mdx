@@ -26,7 +26,7 @@ Update playwright.config.ts
 export default defineConfig({
   testDir: './e2e',
 + timeout: 90 * 1000,
-+ reporter: [["list"], ["@midscene/web/playwright-report"]],
++ reporter: [["list"], ["@midscene/web/playwright-report", { type: "merged" }]], // type optional, default is "merged", means multiple test cases generate one report, optional value is "separate", means one report for each test case
 });
 ```
 
@@ -39,7 +39,10 @@ import { test as base } from '@playwright/test';
 import type { PlayWrightAiFixtureType } from '@midscene/web/playwright';
 import { PlaywrightAiFixture } from '@midscene/web/playwright';
 
-export const test = base.extend<PlayWrightAiFixtureType>(PlaywrightAiFixture());
+export const test = base.extend<PlayWrightAiFixtureType>(PlaywrightAiFixture({
+  waitForNetworkIdleTimeout: 2000, // optional, the timeout for waiting for network idle between each action, default is 2000ms
+  waitForNavigationTimeout: 5000, // optional, the timeout for waiting for navigation finished, default is 5000ms
+}));
 ```
 
 ## Step 3: write test cases

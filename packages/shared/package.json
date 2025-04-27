@@ -1,74 +1,103 @@
 {
-  "name": "@midscene/shared",
-  "version": "0.15.1",
-  "repository": "https://github.com/web-infra-dev/midscene",
-  "homepage": "https://midscenejs.com/",
-  "types": "./dist/types/index.d.ts",
-  "main": "./dist/lib/index.js",
-  "module": "./dist/es/index.js",
-  "exports": {
-    ".": "./dist/lib/index.js",
-    "./constants": "./dist/lib/constants.js",
-    "./fs": "./dist/lib/fs.js",
-    "./img": "./dist/lib/img.js",
-    "./utils": "./dist/lib/utils.js",
-    "./extractor": "./dist/lib/extractor.js",
-    "./extractor-debug": "./dist/lib/extractor-debug.js",
-    "./keyboard-layout": "./dist/lib/us-keyboard-layout.js",
-    "./logger": "./dist/lib/logger.js",
-    "./common": "./dist/lib/common.js"
-  },
-  "typesVersions": {
-    "*": {
-      ".": ["./dist/types/index.d.ts"],
-      "constants": ["./dist/types/constants.d.ts"],
-      "img": ["./dist/types/img.d.ts"],
-      "fs": ["./dist/types/fs.d.ts"],
-      "utils": ["./dist/types/utils.d.ts"],
-      "extractor": ["./dist/types/extractor.d.ts"],
-      "extractor-debug": ["./dist/types/extractor-debug.d.ts"],
-      "keyboard-layout": ["./dist/types/us-keyboard-layout.d.ts"],
-      "logger": ["./dist/types/logger.d.ts"],
-      "common": ["./dist/types/common.d.ts"]
+    "name": "@midscene/shared",
+    "version": "0.15.5",
+    "repository": "https://github.com/web-infra-dev/midscene",
+    "homepage": "https://midscenejs.com/",
+    "types": "./dist/types/index.d.ts",
+    "main": "./dist/lib/index.js",
+    "module": "./dist/es/index.js",
+    "exports": {
+        ".": "./dist/lib/index.js",
+        "./constants": "./dist/lib/constants.js",
+        "./fs": "./dist/lib/fs.js",
+        "./img": "./dist/lib/img.js",
+        "./utils": "./dist/lib/utils.js",
+        "./extractor": "./dist/lib/extractor.js",
+        "./extractor-debug": "./dist/lib/extractor-debug.js",
+        "./keyboard-layout": "./dist/lib/us-keyboard-layout.js",
+        "./logger": "./dist/lib/logger.js",
+        "./common": "./dist/lib/common.js",
+        "./env": "./dist/lib/env.js"
+    },
+    "typesVersions": {
+        "*": {
+            ".": [
+                "./dist/types/index.d.ts"
+            ],
+            "constants": [
+                "./dist/types/constants.d.ts"
+            ],
+            "img": [
+                "./dist/types/img.d.ts"
+            ],
+            "fs": [
+                "./dist/types/fs.d.ts"
+            ],
+            "utils": [
+                "./dist/types/utils.d.ts"
+            ],
+            "extractor": [
+                "./dist/types/extractor.d.ts"
+            ],
+            "extractor-debug": [
+                "./dist/types/extractor-debug.d.ts"
+            ],
+            "keyboard-layout": [
+                "./dist/types/us-keyboard-layout.d.ts"
+            ],
+            "logger": [
+                "./dist/types/logger.d.ts"
+            ],
+            "common": [
+                "./dist/types/common.d.ts"
+            ],
+            "env": [
+                "./dist/types/env.d.ts"
+            ]
+        }
+    },
+    "files": [
+        "dist",
+        "src",
+        "README.md"
+    ],
+    "scripts": {
+        "dev": "modern dev",
+        "build": "npm run build:pkg && npm run build:script",
+        "build:pkg": "modern build -c ./modern.config.ts",
+        "build:script": "modern build -c ./modern.inspect.config.ts",
+        "build:watch": "modern build -w",
+        "reset": "rimraf ./**/node_modules",
+        "lint": "modern lint",
+        "bump": "modern bump",
+        "pre": "modern pre",
+        "change-status": "modern change-status",
+        "gen-release-note": "modern gen-release-note",
+        "release": "modern release",
+        "new": "modern new",
+        "upgrade": "modern upgrade",
+        "prepublishOnly": "npm run build",
+        "test": "vitest --run",
+        "test:ai": "AITEST=true npm run test"
+    },
+    "dependencies": {
+        "debug": "4.4.0",
+        "jimp": "0.22.12",
+        "js-sha256": "0.11.0"
+    },
+    "devDependencies": {
+        "@modern-js/module-tools": "2.60.6",
+        "@types/debug": "4.1.12",
+        "@types/node": "^18.0.0",
+        "@ui-tars/shared": "1.2.0",
+        "dotenv": "16.4.5",
+        "rimraf": "~3.0.2",
+        "typescript": "^5.8.2",
+        "vitest": "3.0.5"
+    },
+    "sideEffects": [],
+    "publishConfig": {
+        "access": "public",
+        "registry": "https://registry.npmjs.org/"
     }
-  },
-  "files": ["dist", "src", "README.md"],
-  "scripts": {
-    "dev": "modern dev",
-    "build": "npm run build:pkg && npm run build:script",
-    "build:pkg": "modern build -c ./modern.config.ts",
-    "build:script": "modern build -c ./modern.inspect.config.ts",
-    "build:watch": "modern build -w",
-    "reset": "rimraf ./**/node_modules",
-    "lint": "modern lint",
-    "bump": "modern bump",
-    "pre": "modern pre",
-    "change-status": "modern change-status",
-    "gen-release-note": "modern gen-release-note",
-    "release": "modern release",
-    "new": "modern new",
-    "upgrade": "modern upgrade",
-    "prepublishOnly": "npm run build",
-    "test": "vitest --run",
-    "test:ai": "AITEST=true npm run test"
-  },
-  "dependencies": {
-    "debug": "4.4.0",
-    "jimp": "0.22.12",
-    "js-sha256": "0.11.0"
-  },
-  "devDependencies": {
-    "@modern-js/module-tools": "2.60.6",
-    "@types/debug": "4.1.12",
-    "@types/node": "^18.0.0",
-    "dotenv": "16.4.5",
-    "rimraf": "~3.0.2",
-    "typescript": "^5.8.2",
-    "vitest": "3.0.5"
-  },
-  "sideEffects": [],
-  "publishConfig": {
-    "access": "public",
-    "registry": "https://registry.npmjs.org/"
-  }
 }

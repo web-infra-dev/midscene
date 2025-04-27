@@ -124,7 +124,10 @@ export AZURE_OPENAI_DEPLOYMENT="gpt-4o"
 You can also override the config by javascript. Remember to call this before running Midscene codes.
 
 ```typescript
-import { overrideAIConfig } from "@midscene/core/env";
+import { overrideAIConfig } from "@midscene/web/puppeteer";
+// or import { overrideAIConfig } from "@midscene/web/playwright";
+// or import { overrideAIConfig } from "@midscene/android";
+
 
 overrideAIConfig({
   MIDSCENE_MODEL_NAME: "...",

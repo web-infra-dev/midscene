@@ -1,7 +1,7 @@
 import { distance } from '@/ai-model/prompt/util';
-import { vlLocateMode } from '@/env';
 import Insight from '@/insight';
 import { sleep } from '@/utils';
+import { vlLocateMode } from '@midscene/shared/env';
 import { getContextFromFixture } from 'tests/evaluation';
 import { describe, expect, test, vi } from 'vitest';
 

@@ -6,12 +6,12 @@ import { paramStr, typeStr } from '@midscene/web/ui-utils';
 import type {
   ExecutionDump,
   ExecutionTask,
-  ExecutionTaskApply,
   ExecutionTaskInsightLocate,
   ExecutionTaskPlanning,
   GroupedActionDump,
   InsightDump,
   Rect,
+  UIContext,
 } from '@midscene/core';
 
 export interface CameraState {
@@ -39,6 +39,7 @@ export interface AnimationScript {
   img?: string;
   camera?: TargetCameraState;
   insightDump?: InsightDump;
+  context?: UIContext;
   duration: number;
   insightCameraDuration?: number;
   title?: string;
@@ -267,6 +268,10 @@ export const generateAnimationScripts = (
   tasksIncluded.forEach((task, index) => {
     if (errorStateFlag) return;
 
+    if (index === 0) {
+      initSubTitle = paramStr(task);
+    }
+
     if (task.type === 'Planning') {
       const planningTask = task as ExecutionTaskPlanning;
       if (planningTask.recorder && planningTask.recorder.length > 0) {
@@ -278,9 +283,8 @@ export const generateAnimationScripts = (
           title: typeStr(task),
           subTitle: paramStr(task),
         });
-        initSubTitle = paramStr(task);
       }
-    } else if (task.type === 'Insight') {
+    } else if (task.type === 'Insight' && task.subType === 'Locate') {
       const insightTask = task as ExecutionTaskInsightLocate;
       const resultElement = insightTask.output?.element;
       const title = typeStr(task);
@@ -292,18 +296,16 @@ export const generateAnimationScripts = (
           pointerTop: resultElement.center[1],
         };
       }
-      if (insightTask.log?.dump) {
+      const context = insightTask.pageContext;
+      if (insightTask.log?.dump && context?.screenshotBase64) {
         const insightDump = insightTask.log.dump;
-        if (!insightDump?.context?.screenshotBase64) {
-          throw new Error('insight dump is required');
-        }
-        const insightContentLength = insightDump.context.content.length;
+        const insightContentLength = context.content.length;
 
-        if (insightDump.context.screenshotBase64WithElementMarker) {
+        if (context.screenshotBase64) {
           // show the original screenshot first
           scripts.push({
             type: 'img',
-            img: insightDump.context.screenshotBase64,
+            img: context.screenshotBase64,
             duration: stillAfterInsightDuration,
             title,
             subTitle,
@@ -324,9 +326,8 @@ export const generateAnimationScripts = (
 
         scripts.push({
           type: 'insight',
-          img:
-            insightDump.context.screenshotBase64WithElementMarker ||
-            insightDump.context.screenshotBase64,
+          img: context.screenshotBase64,
+          context: context,
           insightDump: insightDump,
           camera: cameraState,
           duration:
@@ -435,7 +436,7 @@ export const generateAnimationScripts = (
     });
   }
 
-  // console.log('replayscripts');
+  // console.log('replay scripts');
   // console.log(scripts, tasksIncluded);
 
   return scripts;

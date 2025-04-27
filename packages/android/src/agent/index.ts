@@ -1,7 +1,7 @@
 import { PageAgent, type PageAgentOpt } from '@midscene/web/agent';
 import { AndroidDevice } from '../page';
 
-import { vlLocateMode } from '@midscene/core/env';
+import { vlLocateMode } from '@midscene/shared/env';
 import { getConnectedDevices } from '../utils';
 
 import { debugPage } from '../page';

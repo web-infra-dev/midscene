@@ -1,11 +1,14 @@
 import { randomUUID } from 'node:crypto';
 import type { PageAgent, PageAgentOpt } from '@/common/agent';
+import { replaceIllegalPathCharsAndSpace } from '@/common/utils';
 import { PlaywrightAgent } from '@/playwright/index';
 import type { AgentWaitForOpt } from '@midscene/core';
+import { getDebug } from '@midscene/shared/logger';
 import { type TestInfo, type TestType, test } from '@playwright/test';
 import type { Page as OriginPlaywrightPage } from 'playwright';
-
 export type APITestType = Pick<TestType<any, any>, 'step'>;
+
+const debugPage = getDebug('web:playwright:ai-fixture');
 
 const groupAndCaseForTest = (testInfo: TestInfo) => {
   let taskFile: string;
@@ -22,7 +25,12 @@ const groupAndCaseForTest = (testInfo: TestInfo) => {
     taskTitle = 'unnamed';
     taskFile = 'unnamed';
   }
-  return { taskFile, taskTitle };
+  return {
+    taskFile,
+    taskTitle: replaceIllegalPathCharsAndSpace(
+      `${taskTitle}${testInfo.retry ? `(retry #${testInfo.retry})` : ''}`,
+    ),
+  };
 };
 
 const midsceneAgentKeyId = '_midsceneAgentId';
@@ -30,8 +38,10 @@ export const midsceneDumpAnnotationId = 'MIDSCENE_DUMP_ANNOTATION';
 
 export const PlaywrightAiFixture = (options?: {
   forceSameTabNavigation?: boolean;
+  waitForNetworkIdleTimeout?: number;
 }) => {
-  const { forceSameTabNavigation = true } = options ?? {};
+  const { forceSameTabNavigation = true, waitForNetworkIdleTimeout = 1000 } =
+    options ?? {};
   const pageAgentMap: Record<string, PageAgent> = {};
   const createOrReuseAgentForPage = (
     page: OriginPlaywrightPage,
@@ -74,11 +84,21 @@ export const PlaywrightAiFixture = (options?: {
       | 'aiWaitFor';
   }) {
     const { page, testInfo, use, aiActionType } = options;
-    const agent = createOrReuseAgentForPage(page, testInfo);
+    const agent = createOrReuseAgentForPage(page, testInfo) as PlaywrightAgent;
+
     await use(async (taskPrompt: string, ...args: any[]) => {
       return new Promise((resolve, reject) => {
         test.step(`ai-${aiActionType} - ${JSON.stringify(taskPrompt)}`, async () => {
-          await waitForNetworkIdle(page);
+          try {
+            debugPage(
+              `waitForNetworkIdle timeout: ${waitForNetworkIdleTimeout}`,
+            );
+            await agent.waitForNetworkIdle(waitForNetworkIdleTimeout);
+          } catch (error) {
+            console.warn(
+              '[midscene:warning] Waiting for network idle has timed out, but Midscene will continue execution. Please check https://midscenejs.com/faq.html#customize-the-network-timeout for more information on customizing the network timeout',
+            );
+          }
           try {
             type AgentMethod = (
               prompt: string,
@@ -282,13 +302,3 @@ export type PlayWrightAiFixtureType = {
   ) => ReturnType<PageAgent['aiAssert']>;
   aiWaitFor: (assertion: string, opt?: AgentWaitForOpt) => Promise<void>;
 };
-
-async function waitForNetworkIdle(page: OriginPlaywrightPage, timeout = 10000) {
-  try {
-    await page.waitForLoadState('networkidle', { timeout });
-  } catch (error: any) {
-    console.warn(
-      `Network idle timeout exceeded: ${error instanceof Error ? error.message : String(error)}`,
-    );
-  }
-}

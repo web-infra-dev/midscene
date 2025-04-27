@@ -1,27 +1,28 @@
 import assert from 'node:assert';
 import type Jimp from 'jimp';
-import type { NodeType } from '../constants';
-import type { Rect } from '../types';
+import type { BaseElement } from '../types';
 import getJimp from './get-jimp';
 import { bufferFromBase64, imageInfoOfBase64 } from './index';
 
-// Define picture path
-type ElementType = {
-  locator?: string;
-  rect: Rect;
-  center?: [number, number];
-  id?: string;
-  indexId: number;
-  attributes?: {
-    nodeType: NodeType;
-    [key: string]: string;
-  };
-};
-
 let cachedFont: any = null;
 
+const loadFonts = async () => {
+  const Jimp = await getJimp();
+
+  try {
+    const fonts = await Jimp.loadFont(Jimp.FONT_SANS_16_WHITE);
+    return fonts;
+  } catch (error) {
+    console.warn('Error loading font, will try to load online fonts', error);
+    const onlineFonts =
+      'https://cdn.jsdelivr.net/npm/jimp-compact@0.16.1-2/fonts/open-sans/open-sans-16-white/open-sans-16-white.fnt';
+    const fonts = await Jimp.loadFont(onlineFonts);
+    return fonts;
+  }
+};
+
 const createSvgOverlay = async (
-  elements: Array<ElementType>,
+  elements: Array<BaseElement>,
   imageWidth: number,
   imageHeight: number,
   boxPadding = 5,
@@ -78,7 +79,11 @@ const createSvgOverlay = async (
     );
 
     // Calculate text position
-    const textWidth = element.indexId.toString().length * 8;
+    const indexId = element.indexId;
+    if (typeof indexId !== 'number') {
+      continue;
+    }
+    const textWidth = indexId.toString().length * 8;
     const textHeight = 12;
     const rectWidth = textWidth + 5;
     const rectHeight = textHeight + 4;
@@ -164,7 +169,7 @@ const createSvgOverlay = async (
     );
     // Draw text (simplified, as Jimp doesn't have built-in text drawing)
     try {
-      cachedFont = cachedFont || (await Jimp.loadFont(Jimp.FONT_SANS_16_WHITE));
+      cachedFont = cachedFont || (await loadFonts());
     } catch (error) {
       console.error('Error loading font', error);
     }
@@ -173,7 +178,7 @@ const createSvgOverlay = async (
       rectX,
       rectY,
       {
-        text: element.indexId.toString(),
+        text: indexId.toString(),
         alignmentX: Jimp.HORIZONTAL_ALIGN_CENTER,
         alignmentY: Jimp.VERTICAL_ALIGN_MIDDLE,
       },
@@ -187,7 +192,7 @@ const createSvgOverlay = async (
 
 export const compositeElementInfoImg = async (options: {
   inputImgBase64: string;
-  elementsPositionInfo: Array<ElementType>;
+  elementsPositionInfo: Array<BaseElement>;
   size?: { width: number; height: number };
   annotationPadding?: number;
 }) => {
@@ -255,8 +260,8 @@ export const compositeElementInfoImg = async (options: {
 
 export const processImageElementInfo = async (options: {
   inputImgBase64: string;
-  elementsPositionInfo: Array<ElementType>;
-  elementsPositionInfoWithoutText: Array<ElementType>;
+  elementsPositionInfo: Array<BaseElement>;
+  elementsPositionInfoWithoutText: Array<BaseElement>;
 }) => {
   // Get the size of the original image
   const base64Image = options.inputImgBase64.split(';base64,').pop();

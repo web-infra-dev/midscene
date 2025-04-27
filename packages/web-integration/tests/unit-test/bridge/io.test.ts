@@ -38,8 +38,21 @@ describe('bridge-io', () => {
     );
     await expect(client2.connect()).rejects.toThrow();
 
-    server.close();
+    await server.close();
     client.disconnect();
+  });
+
+  it('server start, client connect, server restart on same port', async () => {
+    //
+    const port = testPort++;
+    const server = new BridgeServer(port);
+    server.listen();
+    await new Promise((resolve) => setTimeout(resolve, 500));
+    await server.close();
+
+    const server2 = new BridgeServer(port);
+    server2.listen();
+    await server2.close();
   });
 
   it('server listen timeout', async () => {
@@ -207,7 +220,7 @@ describe('bridge-io', () => {
     await expect(callPromise).rejects.toThrow(/Connection lost/);
   });
 
-  it('multiple server', async () => {
+  it('server restart on same port', async () => {
     const commonPort = testPort++;
     const server1 = new BridgeServer(commonPort);
     server1.listen();
@@ -219,10 +232,10 @@ describe('bridge-io', () => {
       },
     );
     await client.connect();
-    await new Promise((resolve) => setTimeout(resolve, 1000));
+    await new Promise((resolve) => setTimeout(resolve, 500));
     await client.disconnect();
     // server port should be closed at this time
-    await new Promise((resolve) => setTimeout(resolve, 1000));
+    await new Promise((resolve) => setTimeout(resolve, 500));
 
     const server2 = new BridgeServer(commonPort);
     server2.listen();

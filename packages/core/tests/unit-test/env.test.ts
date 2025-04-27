@@ -10,7 +10,7 @@ import {
   getAIConfigInJson,
   overrideAIConfig,
   vlLocateMode,
-} from '@/env';
+} from '@midscene/shared/env';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 describe('env', () => {
@@ -100,9 +100,9 @@ describe('env', () => {
   });
 
   describe('overrideAIConfig', () => {
-    it('should extend global config by default', () => {
+    it('should extend global config when extendMode is true', () => {
       overrideAIConfig({ [MIDSCENE_MODEL_NAME]: 'model-1' });
-      overrideAIConfig({ [MIDSCENE_USE_QWEN_VL]: 'true' });
+      overrideAIConfig({ [MIDSCENE_USE_QWEN_VL]: 'true' }, true);
 
       expect(getAIConfig(MIDSCENE_MODEL_NAME)).toBe('model-1');
       expect(getAIConfigInBoolean(MIDSCENE_USE_QWEN_VL)).toBe(true);

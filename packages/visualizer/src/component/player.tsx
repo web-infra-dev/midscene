@@ -576,7 +576,9 @@ export function Player(props?: {
           .map((item) => item.img!);
 
         // Load and display the image
-        await Promise.all([...allImages, mouseLoading].map(loadTexture));
+        await Promise.all(
+          [...allImages, mouseLoading, mousePointer].map(loadTexture),
+        );
 
         // pointer on top
         insightMarkContainer.removeChildren();
@@ -619,7 +621,7 @@ export function Player(props?: {
             currentImg.current = item.img;
             await repaintImage();
 
-            const elements = item.insightDump.context.content;
+            const elements = item.context?.content || [];
             const highlightElements = item.insightDump.matchedElement;
             await insightElementsAnimation(
               elements,

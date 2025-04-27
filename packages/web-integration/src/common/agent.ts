@@ -14,15 +14,21 @@ import {
 } from '@midscene/core';
 
 import { ScriptPlayer, parseYamlScript } from '@/yaml/index';
-import { vlLocateMode } from '@midscene/core/env';
 import {
   groupedActionDumpFileExt,
   reportHTMLContent,
   stringifyDumpData,
   writeLogFile,
 } from '@midscene/core/utils';
+import {
+  DEFAULT_WAIT_FOR_NAVIGATION_TIMEOUT,
+  DEFAULT_WAIT_FOR_NETWORK_IDLE_TIMEOUT,
+} from '@midscene/shared/constants';
+import { vlLocateMode } from '@midscene/shared/env';
+import { getDebug } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
 import { PageTaskExecutor } from '../common/tasks';
+import type { PuppeteerWebPage } from '../puppeteer';
 import type { WebElementInfo } from '../web-element';
 import { buildPlans } from './plan-builder';
 import type { AiTaskCache } from './task-cache';
@@ -35,6 +41,8 @@ import {
 } from './ui-utils';
 import { printReportMsg, reportFileName } from './utils';
 import { type WebUIContext, parseContextFromWebPage } from './utils';
+
+const debug = getDebug('web-integration');
 
 export interface PageAgentOpt {
   forceSameTabNavigation?: boolean /* if limit the new tab to the current page, default true */;
@@ -49,6 +57,8 @@ export interface PageAgentOpt {
   autoPrintReportMsg?: boolean;
   onTaskStartTip?: OnTaskStartTip;
   aiActionContext?: string;
+  waitForNavigationTimeout?: number;
+  waitForNetworkIdleTimeout?: number;
 }
 
 export class PageAgent<PageType extends WebPage = WebPage> {
@@ -84,6 +94,18 @@ export class PageAgent<PageType extends WebPage = WebPage> {
       },
       opts || {},
     );
+
+    if (
+      this.page.pageType === 'puppeteer' ||
+      this.page.pageType === 'playwright'
+    ) {
+      (this.page as PuppeteerWebPage).waitForNavigationTimeout =
+        this.opts.waitForNavigationTimeout ||
+        DEFAULT_WAIT_FOR_NAVIGATION_TIMEOUT;
+      (this.page as PuppeteerWebPage).waitForNetworkIdleTimeout =
+        this.opts.waitForNetworkIdleTimeout ||
+        DEFAULT_WAIT_FOR_NETWORK_IDLE_TIMEOUT;
+    }
 
     this.onTaskStartTip = this.opts.onTaskStartTip;
     // get the parent browser of the puppeteer page
@@ -155,7 +177,7 @@ export class PageAgent<PageType extends WebPage = WebPage> {
       type: 'dump',
       generateReport,
     });
-
+    debug('writeOutActionDumps', this.reportFile);
     if (generateReport && autoPrintReportMsg && this.reportFile) {
       printReportMsg(this.reportFile);
     }

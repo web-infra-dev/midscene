@@ -69,7 +69,7 @@ export const Blackboard = (props: {
   const highlightRect = props.highlightRect;
 
   const context = props.uiContext!;
-  const { size, screenshotBase64, screenshotBase64WithElementMarker } = context;
+  const { size, screenshotBase64 } = context;
 
   const screenWidth = size.width;
   const screenHeight = size.height;
@@ -87,8 +87,6 @@ export const Blackboard = (props: {
   const pixiBgRef = useRef<PIXI.Sprite>();
   const { markerVisible, setMarkerVisible, elementsVisible, setTextsVisible } =
     useBlackboardPreference();
-
-  const ifMarkerAvailable = !!screenshotBase64WithElementMarker;
 
   useEffect(() => {
     Promise.resolve(
@@ -147,25 +145,6 @@ export const Blackboard = (props: {
       backgroundSprite.width = screenWidth;
       backgroundSprite.height = screenHeight;
       app.stage.addChildAt(backgroundSprite, 0);
-
-      if (ifMarkerAvailable) {
-        const markerImg = new Image();
-        markerImg.onload = () => {
-          const markerTexture = PIXI.Texture.from(markerImg);
-          const markerSprite = new PIXI.Sprite(markerTexture);
-          markerSprite.x = 0;
-          markerSprite.y = 0;
-          markerSprite.width = screenWidth;
-          markerSprite.height = screenHeight;
-          app.stage.addChildAt(markerSprite, 1);
-          pixiBgRef.current = markerSprite;
-          markerSprite.visible = markerVisible;
-        };
-        markerImg.onerror = (e) => {
-          console.error('load marker failed', e);
-        };
-        markerImg.src = screenshotBase64WithElementMarker;
-      }
     };
     img.onerror = (e) => {
       console.error('load screenshot failed', e);
@@ -268,13 +247,6 @@ export const Blackboard = (props: {
         style={{ display: props.hideController ? 'none' : 'block' }}
       >
         <div className="overlay-control">
-          <Checkbox
-            checked={markerVisible}
-            onChange={onSetMarkerVisible}
-            disabled={!ifMarkerAvailable}
-          >
-            Marker
-          </Checkbox>
           <Checkbox checked={elementsVisible} onChange={onSetElementsVisible}>
             Elements
           </Checkbox>

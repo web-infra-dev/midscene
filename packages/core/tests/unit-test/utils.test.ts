@@ -13,7 +13,6 @@ import {
   preprocessDoubaoBboxJson,
   safeParseJson,
 } from '@/ai-model/service-caller';
-import { getAIConfig, overrideAIConfig, vlLocateMode } from '@/env';
 import {
   getLogDir,
   getTmpDir,
@@ -22,6 +21,11 @@ import {
   reportHTMLContent,
   writeDumpReport,
 } from '@/utils';
+import {
+  getAIConfig,
+  overrideAIConfig,
+  vlLocateMode,
+} from '@midscene/shared/env';
 import { describe, expect, it } from 'vitest';
 
 describe('utils', () => {

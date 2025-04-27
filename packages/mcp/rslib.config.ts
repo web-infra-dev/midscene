@@ -1,6 +1,6 @@
+import path from 'node:path';
 import { defineConfig } from '@rslib/core';
 import { version } from './package.json';
-
 export default defineConfig({
   source: {
     define: {
@@ -9,6 +9,12 @@ export default defineConfig({
     entry: {
       index: './src/index.ts',
     },
+  },
+  output: {
+    copy: [
+      { from: path.join(__dirname, '../../apps/site/docs/en/API.mdx') },
+      { from: path.join(__dirname, './src/playwright-example.txt') },
+    ],
   },
   lib: [
     {

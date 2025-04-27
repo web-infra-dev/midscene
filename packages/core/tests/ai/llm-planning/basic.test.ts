@@ -1,5 +1,5 @@
 import { plan } from '@/ai-model';
-import { vlLocateMode } from '@/env';
+import { vlLocateMode } from '@midscene/shared/env';
 import { getContextFromFixture } from 'tests/evaluation';
 /* eslint-disable max-lines-per-function */
 import { describe, expect, it, vi } from 'vitest';

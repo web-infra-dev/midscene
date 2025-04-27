@@ -14,7 +14,10 @@ type ActionType =
   | 'hotkey'
   | 'finished'
   | 'scroll'
-  | 'wait';
+  | 'wait'
+  | 'androidBackButton'
+  | 'androidHomeButton'
+  | 'androidRecentAppsButton';
 
 const bboxSize = 10;
 const pointToBbox = (
@@ -152,6 +155,25 @@ export async function vlmPlanning(options: {
         },
         locate: null,
         thought: action.thought || '',
+      });
+    } else if (action.action_type === 'androidBackButton') {
+      transformActions.push({
+        type: 'AndroidBackButton',
+        param: {},
+        locate: null,
+        thought: action.thought || '',
+      });
+    } else if (action.action_type === 'androidHomeButton') {
+      transformActions.push({
+        type: 'AndroidHomeButton',
+        param: {},
+        locate: null,
+        thought: action.thought || '',
+      });
+    } else if (action.action_type === 'androidRecentAppsButton') {
+      transformActions.push({
+        type: 'AndroidRecentAppsButton',
+        param: {},
       });
     }
   });

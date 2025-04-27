@@ -1,4 +1,10 @@
-import type { AIUsageInfo, Rect, Size } from '@/types';
+import type {
+  AIUsageInfo,
+  BaseElement,
+  ElementTreeNode,
+  Rect,
+  Size,
+} from '@/types';
 import { assert } from '@midscene/shared/utils';
 
 import type {
@@ -11,8 +17,11 @@ import {
   getModelName,
 } from './service-caller/index';
 
-import { vlLocateMode } from '@/env';
 import type { PlanningLocateParam } from '@/types';
+import { NodeType } from '@midscene/shared/constants';
+import { vlLocateMode } from '@midscene/shared/env';
+import { treeToList } from '@midscene/shared/extractor';
+import { compositeElementInfoImg } from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
 
 export type AIArgs = [
@@ -266,4 +275,27 @@ export function expandSearchArea(rect: Rect, screenSize: Size) {
     screenSize.height - rect.top,
   );
   return rect;
+}
+
+export async function markupImageForLLM(
+  screenshotBase64: string,
+  tree: ElementTreeNode<BaseElement>,
+  size: Size,
+) {
+  const elementsInfo = treeToList(tree);
+  const elementsPositionInfoWithoutText = elementsInfo!.filter(
+    (elementInfo) => {
+      if (elementInfo.attributes.nodeType === NodeType.TEXT) {
+        return false;
+      }
+      return true;
+    },
+  );
+
+  const imagePayload = await compositeElementInfoImg({
+    inputImgBase64: screenshotBase64,
+    elementsPositionInfo: elementsPositionInfoWithoutText as any,
+    size,
+  });
+  return imagePayload;
 }

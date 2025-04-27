@@ -1,5 +1,5 @@
-import { vlLocateMode } from '@/env';
-import type { PlanningAIResponse, UIContext } from '@/types';
+import type { PageType, PlanningAIResponse, UIContext } from '@/types';
+import { vlLocateMode } from '@midscene/shared/env';
 import { paddingToMatchBlockByBase64 } from '@midscene/shared/img';
 import { assert } from '@midscene/shared/utils';
 import {
@@ -7,6 +7,7 @@ import {
   type AIArgs,
   callAiFn,
   fillLocateParam,
+  markupImageForLLM,
   warnGPT4oSizeLimit,
 } from './common';
 import {
@@ -19,30 +20,42 @@ import { describeUserPage } from './prompt/util';
 export async function plan(
   userInstruction: string,
   opts: {
+    context: UIContext;
+    pageType: PageType;
+    callAI?: typeof callAiFn<PlanningAIResponse>;
     log?: string;
     actionContext?: string;
-    context: UIContext;
-    callAI?: typeof callAiFn<PlanningAIResponse>;
   },
 ): Promise<PlanningAIResponse> {
   const { callAI, context } = opts || {};
-  const { screenshotBase64, screenshotBase64WithElementMarker, size } = context;
+  const { screenshotBase64, size } = context;
   const { description: pageDescription } = await describeUserPage(context);
 
-  const systemPrompt = await systemPromptToTaskPlanning(vlLocateMode());
+  const systemPrompt = await systemPromptToTaskPlanning({
+    pageType: opts.pageType,
+    vlMode: vlLocateMode(),
+  });
   const taskBackgroundContextText = generateTaskBackgroundContext(
     userInstruction,
     opts.log,
     opts.actionContext,
   );
-  const userInstructionPrompt = await automationUserPrompt().format({
+  const userInstructionPrompt = await automationUserPrompt(
+    vlLocateMode(),
+  ).format({
     pageDescription,
     taskBackgroundContext: taskBackgroundContextText,
   });
 
-  let imagePayload = screenshotBase64WithElementMarker || screenshotBase64;
+  let imagePayload = screenshotBase64;
   if (vlLocateMode() === 'qwen-vl') {
     imagePayload = await paddingToMatchBlockByBase64(imagePayload);
+  } else if (!vlLocateMode()) {
+    imagePayload = await markupImageForLLM(
+      screenshotBase64,
+      context.tree,
+      context.size,
+    );
   }
 
   warnGPT4oSizeLimit(size);

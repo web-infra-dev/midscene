@@ -1,11 +1,6 @@
 import { callAiFn } from '@/ai-model/common';
 import { AiExtractElementInfo, AiLocateElement } from '@/ai-model/index';
 import { AiAssert, AiLocateSection } from '@/ai-model/inspect';
-import {
-  MIDSCENE_FORCE_DEEP_THINK,
-  getAIConfigInBoolean,
-  vlLocateMode,
-} from '@/env';
 import type {
   AIElementResponse,
   AISingleElementResponse,
@@ -23,6 +18,11 @@ import type {
   Rect,
   UIContext,
 } from '@/types';
+import {
+  MIDSCENE_FORCE_DEEP_THINK,
+  getAIConfigInBoolean,
+  vlLocateMode,
+} from '@midscene/shared/env';
 import { getDebug } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
 import { emitInsightDump } from './utils';
@@ -158,7 +158,6 @@ export default class Insight<
 
     const dumpData: PartialInsightDumpFromSDK = {
       type: 'locate',
-      context,
       userQuery: {
         element: queryPrompt,
       },
@@ -256,7 +255,6 @@ export default class Insight<
 
     const dumpData: PartialInsightDumpFromSDK = {
       type: 'extract',
-      context,
       userQuery: {
         dataDemand,
       },
@@ -314,7 +312,6 @@ export default class Insight<
     const { thought, pass } = assertResult.content;
     const dumpData: PartialInsightDumpFromSDK = {
       type: 'assert',
-      context,
       userQuery: {
         assertion,
       },

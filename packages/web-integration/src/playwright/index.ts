@@ -4,8 +4,12 @@ import { WebPage as PlaywrightWebPage } from './page';
 
 export type { PlayWrightAiFixtureType } from './ai-fixture';
 export { PlaywrightAiFixture } from './ai-fixture';
-export { overrideAIConfig } from '@midscene/core/env';
+export { overrideAIConfig } from '@midscene/shared/env';
 export { WebPage as PlaywrightWebPage } from './page';
+import { forceClosePopup } from '@/common/utils';
+import { getDebug } from '@midscene/shared/logger';
+
+const debug = getDebug('playwright:agent');
 
 export class PlaywrightAgent extends PageAgent<PlaywrightWebPage> {
   constructor(page: PlaywrightPage, opts?: PageAgentOpt) {
@@ -15,18 +19,11 @@ export class PlaywrightAgent extends PageAgent<PlaywrightWebPage> {
     const { forceSameTabNavigation = true } = opts ?? {};
 
     if (forceSameTabNavigation) {
-      page.on('popup', async (popup) => {
-        if (!popup) {
-          console.warn(
-            'got a popup event, but the popup is not ready yet, skip',
-          );
-          return;
-        }
-        const url = await popup.url();
-        console.log(`Popup opened: ${url}`);
-        await popup.close(); // Close the newly opened TAB
-        await page.goto(url);
-      });
+      forceClosePopup(page, debug);
     }
+  }
+
+  async waitForNetworkIdle(timeout = 1000) {
+    await this.page.underlyingPage.waitForLoadState('networkidle', { timeout });
   }
 }

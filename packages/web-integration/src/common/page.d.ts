@@ -1,5 +1,5 @@
 import type { ElementTreeNode } from '@midscene/core';
-import type { Point, Size } from '@midscene/core';
+import type { PageType, Point, Size } from '@midscene/core';
 import type { ElementInfo } from '@midscene/shared/extractor';
 import type { KeyInput } from 'puppeteer';
 import type ChromeExtensionProxyPage from '../chrome-extension/page';
@@ -9,7 +9,7 @@ import type { PlaywrightWebPage } from '../playwright';
 import type { PuppeteerWebPage } from '../puppeteer';
 
 export interface AndroidDevicePage extends AbstractPage {
-  pageType: string;
+  pageType: PageType;
   connect(): Promise<any>;
   launch(uri: string): Promise<any>;
 
@@ -26,6 +26,9 @@ export interface AndroidDevicePage extends AbstractPage {
   scrollDown(distance?: number, startingPoint?: Point): Promise<void>;
   scrollLeft(distance?: number, startingPoint?: Point): Promise<void>;
   scrollRight(distance?: number): Promise<void>;
+  back(): Promise<void>;
+  home(): Promise<void>;
+  recentApps(): Promise<void>;
 }
 
 export type WebPage =

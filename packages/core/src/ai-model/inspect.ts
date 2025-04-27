@@ -1,9 +1,3 @@
-import {
-  MIDSCENE_USE_QWEN_VL,
-  MIDSCENE_USE_VLM_UI_TARS,
-  getAIConfigInBoolean,
-  vlLocateMode,
-} from '@/env';
 import type {
   AIAssertionResponse,
   AIDataExtractionResponse,
@@ -19,6 +13,12 @@ import type {
   Rect,
   UIContext,
 } from '@/types';
+import {
+  MIDSCENE_USE_QWEN_VL,
+  MIDSCENE_USE_VLM_UI_TARS,
+  getAIConfigInBoolean,
+  vlLocateMode,
+} from '@midscene/shared/env';
 import { cropByRect, paddingToMatchBlockByBase64 } from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
@@ -31,6 +31,7 @@ import {
   adaptBboxToRect,
   callAiFn,
   expandSearchArea,
+  markupImageForLLM,
   mergeRects,
 } from './common';
 import { systemPromptToAssert } from './prompt/assertion';
@@ -127,7 +128,7 @@ export async function AiLocateElement<
   usage?: AIUsageInfo;
 }> {
   const { context, targetElementDescription, callAI } = options;
-  const { screenshotBase64, screenshotBase64WithElementMarker } = context;
+  const { screenshotBase64 } = context;
   const { description, elementById, insertElementByPosition, size } =
     await describeUserPage(context);
   // meet quick answer
@@ -152,7 +153,7 @@ export async function AiLocateElement<
   });
   const systemPrompt = systemPromptToLocateElement(vlLocateMode());
 
-  let imagePayload = screenshotBase64WithElementMarker || screenshotBase64;
+  let imagePayload = screenshotBase64;
 
   if (options.searchConfig) {
     assert(
@@ -165,8 +166,14 @@ export async function AiLocateElement<
     );
 
     imagePayload = options.searchConfig.imageBase64;
-  } else if (getAIConfigInBoolean(MIDSCENE_USE_QWEN_VL)) {
+  } else if (vlLocateMode() === 'qwen-vl') {
     imagePayload = await paddingToMatchBlockByBase64(imagePayload);
+  } else if (!vlLocateMode()) {
+    imagePayload = await markupImageForLLM(
+      screenshotBase64,
+      context.tree,
+      context.size,
+    );
   }
 
   const msgs: AIArgs = [

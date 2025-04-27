@@ -7,7 +7,7 @@ import type {
   plan,
 } from '@midscene/core';
 import type { AiLocateSection } from '@midscene/core/ai-model';
-import { vlLocateMode } from '@midscene/core/env';
+import { vlLocateMode } from '@midscene/shared/env';
 import type { TestCase } from '../tests/util';
 
 type ActualResult =

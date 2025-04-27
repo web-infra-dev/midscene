@@ -1,6 +1,6 @@
 import './App.less';
-import { overrideAIConfig } from '@midscene/core/env';
 import { SCRCPY_SERVER_PORT } from '@midscene/shared/constants';
+import { overrideAIConfig } from '@midscene/shared/env';
 import {
   EnvConfig,
   Logo,

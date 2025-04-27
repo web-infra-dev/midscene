@@ -27,7 +27,7 @@ import { PackageManagerTabs } from '@theme';
 export default defineConfig({
   testDir: './e2e',
 + timeout: 90 * 1000,
-+ reporter: [["list"], ["@midscene/web/playwright-report"]],
++ reporter: [["list"], ["@midscene/web/playwright-report", { type: "merged" }]], // type 可选, 默认值为 "merged"，表示多个测试用例生成一个报告，可选值为 "separate"，表示为每个测试用例一个报告
 });
 ```
 
@@ -40,7 +40,10 @@ import { test as base } from '@playwright/test';
 import type { PlayWrightAiFixtureType } from '@midscene/web/playwright';
 import { PlaywrightAiFixture } from '@midscene/web/playwright';
 
-export const test = base.extend<PlayWrightAiFixtureType>(PlaywrightAiFixture());
+export const test = base.extend<PlayWrightAiFixtureType>(PlaywrightAiFixture({
+  waitForNetworkIdleTimeout: 2000, // 可选, 交互过程中等待网络空闲的超时时间, 默认值为 2000ms
+  waitForNavigationTimeout: 5000, // 可选, 页面跳转过程中等待页面加载完成的超时时间, 默认值为 5000ms
+}));
 ```
 
 ## 第三步：编写测试用例

@@ -5,7 +5,7 @@ import { pluginLess } from '@rsbuild/plugin-less';
 import { pluginNodePolyfill } from '@rsbuild/plugin-node-polyfill';
 import { pluginReact } from '@rsbuild/plugin-react';
 
-const testDataPath = path.join(__dirname, 'test-data', 'online-order.json');
+const testDataPath = path.join(__dirname, 'test-data', 'swag-lab.json');
 const testData = JSON.parse(fs.readFileSync(testDataPath, 'utf-8'));
 
 const copyReportTemplate = () => ({

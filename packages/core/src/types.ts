@@ -119,8 +119,6 @@ export interface AIAssertionResponse {
 export abstract class UIContext<ElementType extends BaseElement = BaseElement> {
   abstract screenshotBase64: string;
 
-  abstract screenshotBase64WithElementMarker?: string;
-
   // @deprecated('use tree instead')
   abstract content: ElementType[];
 
@@ -193,7 +191,6 @@ export interface ReportDumpWithAttributes {
 export interface InsightDump extends DumpMeta {
   type: 'locate' | 'extract' | 'assert';
   logId: string;
-  context: UIContext;
   userQuery: {
     element?: string;
     dataDemand?: InsightExtractParam;
@@ -271,7 +268,11 @@ export interface PlanningAction<ParamType = any> {
     | 'Assert'
     | 'AssertWithoutThrow'
     | 'Sleep'
-    | 'Finished';
+    | 'Finished'
+    | 'AndroidBackButton'
+    | 'AndroidHomeButton'
+    | 'AndroidRecentAppsButton';
+
   param: ParamType;
   locate?: PlanningLocateParam | null;
 }
@@ -518,3 +519,10 @@ export interface GroupedActionDump {
   groupDescription?: string;
   executions: ExecutionDump[];
 }
+
+export type PageType =
+  | 'puppeteer'
+  | 'playwright'
+  | 'static'
+  | 'chrome-extension-proxy'
+  | 'android';

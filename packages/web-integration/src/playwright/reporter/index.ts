@@ -1,4 +1,8 @@
-import { printReportMsg, reportFileName } from '@/common/utils';
+import {
+  printReportMsg,
+  replaceIllegalPathCharsAndSpace,
+  reportFileName,
+} from '@/common/utils';
 import type { ReportDumpWithAttributes } from '@midscene/core';
 import { writeDumpReport } from '@midscene/core/utils';
 import type {
@@ -17,17 +21,73 @@ function logger(...message: any[]) {
 }
 
 const testDataList: Array<ReportDumpWithAttributes> = [];
-let filename: string;
-function updateReport() {
-  const reportPath = writeDumpReport(filename, testDataList);
-  reportPath && printReportMsg(reportPath);
+let mergedFilename: string;
+const testTitleToFilename: Map<string, string> = new Map();
+
+function getStableFilename(testTitle: string): string {
+  if (!testTitleToFilename.has(testTitle)) {
+    // use reportFileName to generate the base filename
+    // only replace the illegal characters in the file system: /, \, :, *, ?, ", <, >, |
+    const baseTag = `playwright-${replaceIllegalPathCharsAndSpace(testTitle)}`;
+    const generatedFilename = reportFileName(baseTag);
+    testTitleToFilename.set(testTitle, generatedFilename);
+  }
+  return testTitleToFilename.get(testTitle)!;
+}
+
+function updateReport(mode: 'merged' | 'separate', testId?: string) {
+  if (mode === 'separate') {
+    // in separate mode, find the data for the corresponding testID and generate a separate report
+    const testData = testDataList.find(
+      (data) => data.attributes?.playwright_test_id === testId,
+    );
+
+    if (testData) {
+      // use the stable filename
+      const stableFilename = getStableFilename(
+        testData.attributes?.playwright_test_title,
+      );
+
+      const reportPath = writeDumpReport(stableFilename, [testData]);
+      reportPath && printReportMsg(reportPath);
+    }
+  } else if (mode === 'merged') {
+    // in merged mode, write all test data into one file
+    if (!mergedFilename) {
+      mergedFilename = reportFileName('playwright-merged');
+    }
+
+    const reportPath = writeDumpReport(mergedFilename, testDataList);
+    reportPath && printReportMsg(reportPath);
+  } else {
+    throw new Error(
+      `Unknown reporter type in playwright config: ${mode}, only support 'merged' or 'separate'`,
+    );
+  }
+}
+
+function getMode(reporterType: string) {
+  if (!reporterType) {
+    return 'merged';
+  }
+
+  if (reporterType !== 'merged' && reporterType !== 'separate') {
+    throw new Error(
+      `Unknown reporter type in playwright config: ${reporterType}, only support 'merged' or 'separate'`,
+    );
+  }
+
+  return reporterType;
 }
 
 class MidsceneReporter implements Reporter {
+  mode?: 'merged' | 'separate';
+
   async onBegin(config: FullConfig, suite: Suite) {
-    if (!filename) {
-      filename = reportFileName('playwright-merged');
-    }
+    const reporterType = config.reporter?.[1]?.[1]?.type;
+
+    this.mode = getMode(reporterType);
+
     // const suites = suite.allTests();
     // logger(`Starting the run with ${suites.length} tests`);
   }
@@ -41,25 +101,29 @@ class MidsceneReporter implements Reporter {
       return annotation.type === 'MIDSCENE_DUMP_ANNOTATION';
     });
     if (!dumpAnnotation?.description) return;
-    testDataList.push({
+    const retry = result.retry ? `(retry #${result.retry})` : '';
+    const testId = `${test.id}${retry}`;
+    const testData: ReportDumpWithAttributes = {
       dumpString: dumpAnnotation.description,
       attributes: {
-        playwright_test_id: test.id,
-        playwright_test_title: test.title,
+        playwright_test_id: testId,
+        playwright_test_title: `${test.title}${retry}`,
         playwright_test_status: result.status,
         playwright_test_duration: result.duration,
       },
-    });
+    };
+
+    testDataList.push(testData);
+
+    updateReport(this.mode!, testId);
 
     test.annotations = test.annotations.filter(
       (annotation) => annotation.type !== 'MIDSCENE_DUMP_ANNOTATION',
     );
-
-    updateReport();
   }
 
   onEnd(result: FullResult) {
-    updateReport();
+    updateReport(this.mode!);
 
     logger(`Finished the run: ${result.status}`);
   }

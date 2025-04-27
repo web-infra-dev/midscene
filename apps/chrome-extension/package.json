@@ -16,6 +16,7 @@
     "@midscene/web": "workspace:*",
     "@midscene/core": "workspace:*",
     "@midscene/report": "workspace:*",
+    "@midscene/shared": "workspace:*",
     "antd": "^5.21.6",
     "dayjs": "1.11.11",
     "react": "^18.3.1",
