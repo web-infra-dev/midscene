@@ -43,7 +43,7 @@ class BridgeConnector {
 
     this.setStatus('listening');
 
-    Promise.resolve().then(async () => {
+    (async () => {
       while (true) {
         if (this.status === 'connected') {
           await new Promise((resolve) => setTimeout(resolve, 1000));
@@ -79,7 +79,7 @@ class BridgeConnector {
           );
         }
       }
-    });
+    })();
   }
 
   async stopConnection() {
