@@ -1,0 +1,44 @@
+import StartExperience from '../common/start-experience.mdx';
+import PrepareKeyForFurtherUse from '../common/prepare-key-for-further-use.mdx';
+
+# 通过 Chrome 插件快速体验
+
+通过使用 Midscene.js Chrome 插件，你可以快速在任意网页上体验 Midscene 的主要功能，而无需编写任何代码。
+
+该扩展与 npm `@midscene/web` 包共享了相同的代码，因此你可以将其视为 Midscene 的一个 Playground 或调试工具。
+
+![](/midscene-extension.jpg)
+
+
+## 准备工作
+
+<PrepareKeyForFurtherUse />
+
+## 安装与配置
+
+前往 Chrome 扩展商店安装 Midscene 扩展：[Midscene](https://chromewebstore.google.com/detail/midscene/gbldofcpkknbggpkmbdaefngejllnief)
+
+启动扩展（可能默认折叠在 Chrome 扩展列表中），通过粘贴 Key=Value 格式配置插件环境：
+
+```bash
+OPENAI_API_KEY="sk-replace-by-your-own"
+# ...可能还有其他配置项，一并贴入
+```
+
+<StartExperience />
+
+* [使用 Chrome 插件的桥接模式](./bridge-mode-by-chrome-extension)
+* [与 Puppeteer 集成](./integrate-with-puppeteer)
+* [与 Playwright 集成](./integrate-with-playwright)
+
+## FAQ
+
+* 插件运行失败，提示 'Cannot access a chrome-extension:// URL of different extension'
+
+这一般是与其他插件冲突所致，如页面已经被其他插件注入了 `<iframe />` 或 `<script />`。
+
+找到可疑插件：
+
+1. 打开页面的调试器，找到被其他插件注入的 `<iframe />` 或 `<script />`，一般 URL 是 `chrome-extension://{这串就是ID}/...` 格式，复制其 ID。
+2. 打开 `chrome://extensions/` ，用 cmd+f 找到相同 ID 的插件，禁用它。
+3. 刷新页面，再次尝试。

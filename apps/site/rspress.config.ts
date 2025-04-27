@@ -1,4 +1,5 @@
 import * as path from 'node:path';
+import { pluginClientRedirects } from '@rspress/plugin-client-redirects';
 import { defineConfig } from 'rspress/config';
 
 export default defineConfig({
@@ -51,218 +52,6 @@ export default defineConfig({
         label: '大纲',
       },
     ],
-    sidebar: {
-      '/': [
-        {
-          text: 'Getting Started',
-          items: [
-            {
-              text: 'Introduction',
-              link: '/',
-            },
-            {
-              text: 'Quick Experience by Chrome Extension',
-              link: '/quick-experience',
-            },
-          ],
-        },
-        {
-          text: 'Web Browser Automation',
-          items: [
-            {
-              text: 'Integrate with Playwright',
-              link: '/integrate-with-playwright',
-            },
-            {
-              text: 'Integrate with Puppeteer',
-              link: '/integrate-with-puppeteer',
-            },
-            {
-              text: 'Bridge Mode by Chrome Extension',
-              link: '/bridge-mode-by-chrome-extension',
-            },
-            {
-              text: 'Caching',
-              link: '/caching',
-            },
-          ],
-        },
-        {
-          text: 'Android Automation',
-          items: [
-            {
-              text: 'Quick Experience by Android Playground',
-              link: '/quick-experience-with-android',
-            },
-            {
-              text: 'Integrate with Android(adb)',
-              link: '/integrate-with-android',
-            },
-          ],
-        },
-        {
-          text: 'API and Usage',
-          items: [
-            {
-              text: 'Automate with Scripts in YAML',
-              link: '/automate-with-scripts-in-yaml',
-            },
-            {
-              text: 'API Reference',
-              link: '/api',
-            },
-          ],
-        },
-        {
-          text: 'AI Model',
-          items: [
-            {
-              text: 'Choose a Model 🔥',
-              link: '/choose-a-model',
-            },
-            {
-              text: 'Config Model and Provider',
-              link: '/model-provider',
-            },
-            {
-              text: 'Prompting Tips',
-              link: '/prompting-tips',
-            },
-          ],
-        },
-        {
-          text: 'More',
-          items: [
-            {
-              text: 'FAQ',
-              link: '/faq',
-            },
-            {
-              text: 'Data Privacy',
-              link: '/data-privacy',
-            },
-          ],
-        },
-        {
-          text: 'Blog',
-          items: [
-            {
-              text: 'Support Android Automation',
-              link: '/blog-support-android-automation',
-            },
-            {
-              text: 'Introducing Instant Actions and Deep Think',
-              link: '/blog-introducing-instant-actions-and-deep-think',
-            },
-          ],
-        },
-      ],
-      '/zh': [
-        {
-          text: '快速开始',
-          items: [
-            {
-              text: '介绍',
-              link: '/zh/index',
-            },
-            {
-              text: '通过 Chrome 插件快速体验',
-              link: '/zh/quick-experience',
-            },
-          ],
-        },
-        {
-          text: 'Web 浏览器自动化',
-          items: [
-            {
-              text: '集成到 Playwright',
-              link: '/zh/integrate-with-playwright',
-            },
-            {
-              text: '集成到 Puppeteer',
-              link: '/zh/integrate-with-puppeteer',
-            },
-            {
-              text: 'Chrome 桥接模式（Bridge Mode）',
-              link: '/zh/bridge-mode-by-chrome-extension',
-            },
-            {
-              text: '缓存',
-              link: '/zh/caching',
-            },
-          ],
-        },
-        {
-          text: 'Android 自动化',
-          items: [
-            {
-              text: '使用 Android Playground 快速体验',
-              link: '/zh/quick-experience-with-android',
-            },
-            {
-              text: '与 Android(adb) 集成',
-              link: '/zh/integrate-with-android',
-            },
-          ],
-        },
-        {
-          text: 'API 和用法',
-          items: [
-            {
-              text: '使用 YAML 格式的自动化脚本',
-              link: '/zh/automate-with-scripts-in-yaml',
-            },
-            {
-              text: 'API 参考',
-              link: '/zh/api',
-            },
-          ],
-        },
-        {
-          text: 'AI 模型',
-          items: [
-            {
-              text: '选择 AI 模型 🔥',
-              link: '/zh/choose-a-model',
-            },
-            {
-              text: '配置模型和服务商',
-              link: '/zh/model-provider',
-            },
-            {
-              text: '编写提示词（指令）的技巧',
-              link: '/zh/prompting-tips',
-            },
-          ],
-        },
-        {
-          text: '更多',
-          items: [
-            {
-              text: '常见问题 FAQ',
-              link: '/zh/faq',
-            },
-            {
-              text: '数据隐私',
-              link: '/zh/data-privacy',
-            },
-          ],
-        },
-        {
-          text: 'Blog',
-          items: [
-            {
-              text: '支持 Android 自动化',
-              link: '/zh/blog-support-android-automation',
-            },
-            {
-              text: '即时操作和深度思考',
-              link: '/zh/blog-introducing-instant-actions-and-deep-think',
-            },
-          ],
-        },
-      ],
-    },
   },
   globalStyles: path.join(__dirname, 'styles/index.css'),
   locales: [
@@ -289,4 +78,22 @@ export default defineConfig({
     },
   },
   lang: 'en',
+  plugins: [
+    pluginClientRedirects({
+      redirects: [
+        {
+          from: '^/zh/index.html',
+          to: '/zh/guide/start/index.html',
+        },
+        {
+          from: '^/index.html',
+          to: '/guide/start/index.html',
+        },
+        {
+          from: '^/$',
+          to: '/guide/start/index.html',
+        },
+      ],
+    }),
+  ],
 });

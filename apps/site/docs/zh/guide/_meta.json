@@ -1,0 +1,32 @@
+[
+  {
+    "type": "dir",
+    "name": "start",
+    "label": "快速开始"
+  },
+  {
+    "type": "dir",
+    "name": "browser",
+    "label": "Web 浏览器自动化"
+  },
+  {
+    "type": "dir",
+    "name": "android",
+    "label": "Android 自动化"
+  },
+  {
+    "type": "dir",
+    "name": "api",
+    "label": "API 和用法"
+  },
+  {
+    "type": "dir",
+    "name": "llm",
+    "label": "AI 模型"
+  },
+  {
+    "type": "dir",
+    "name": "faq",
+    "label": "更多"
+  }
+]

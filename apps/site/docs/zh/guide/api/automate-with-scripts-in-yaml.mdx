@@ -1,0 +1,323 @@
+import SetupEnv from '../common/setup-env.mdx';
+
+# 使用 YAML 格式的自动化脚本
+
+在大多数情况下，开发者编写自动化脚本只是为了执行一些冒烟测试，比如检查某些内容是否出现，或者验证某个关键用户路径是否可用。在这种情况下，维护一个大型测试项目会显得毫无必要。
+
+⁠Midscene 提供了一种基于 `.yaml` 文件的自动化测试方法，这有助于你专注于脚本本身，而不是测试框架。以此，任何团队内的成员都可以编写自动化脚本，而无需学习任何 API。
+
+这里有一个示例，通过阅读它的内容，你应该已经理解了它的工作原理。
+
+```yaml
+web:
+  url: https://www.bing.com
+
+tasks:
+  - name: 搜索天气
+    flow:
+      - ai: 搜索 "今日天气"
+      - sleep: 3000
+
+  - name: 检查结果
+    flow:
+      - aiAssert: 结果中展示了天气信息
+```
+
+:::info 样例项目
+
+你可以在这里找到使用 YAML 脚本做自动化的样例项目
+- [Web](https://github.com/web-infra-dev/midscene-example/tree/main/yaml-scripts-demo)
+- [Android](https://github.com/web-infra-dev/midscene-example/tree/main/android/yaml-scripts-demo)
+
+:::
+
+<SetupEnv />
+
+或使用当前命令运行目录下的 `.env` 文件存储配置，Midscene 命令行工具在运行 yaml 脚本时会自动加载它
+
+```env filename=.env
+OPENAI_API_KEY="sk-abcdefghijklmnopqrstuvwxyz"
+```
+
+## 安装命令行工具
+
+全局安装 `@midscene/cli` 
+
+```bash
+npm i -g @midscene/cli
+# 或在项目中安装
+npm i @midscene/cli --save-dev
+```
+
+编写一个名为 `bing-search.yaml` 的文件来驱动 web 浏览器的自动化任务
+
+```yaml
+web:
+  url: https://www.bing.com
+
+tasks:
+  - name: 搜索天气
+    flow:
+      - ai: 搜索 "今日天气"
+      - sleep: 3000
+      - aiAssert: 结果显示天气信息
+```
+
+或者驱动安卓设备的自动化任务（需要使用 adb 连接安卓设备）
+
+```yaml 
+android:
+  # launch: https://www.bing.com
+  deviceId: s4ey59
+
+tasks:
+  - name: 搜索天气
+    flow:
+      - ai: 打开浏览器并导航到 bing.com
+      - ai: 搜索 "今日天气"
+      - sleep: 3000
+      - aiAssert: 结果显示天气信息
+```
+
+运行脚本
+
+```bash
+midscene ./bing-search.yaml
+# 或者如果你在项目中安装了 midscene
+npx midscene ./bing-search.yaml
+```
+
+你应该会看到脚本的执行进度和可视化运行报告文件。
+
+## 命令行工具使用方法
+
+### 运行单个 `.yaml` 文件
+
+```bash
+midscene /path/to/yaml
+```
+
+### 运行一个文件夹下的所有 `.yaml` 文件
+
+```bash
+midscene /dir/of/yaml/
+
+# 支持 glob 语法
+midscene /dir/**/yaml/
+```
+
+## `.yaml` 文件结构
+
+在 `.yaml` 文件中，有两个部分：`web/android` 和 `tasks`。
+
+`web/android` 部分定义了任务的基本信息，浏览器下的自动化使用 `web` 参数（曾用参数名 `target`），安卓设备下的自动化使用 `android` 参数，二者是互斥的。
+
+### `web` 部分
+
+
+```yaml
+web:
+  # 访问的 URL，必填。如果提供了 `serve` 参数，则提供相对路径
+  url: <url>
+
+  # 在本地路径下启动一个静态服务，可选
+  serve: <root-directory>
+
+  # 浏览器 UA，可选
+  userAgent: <ua>
+
+  # 浏览器视口宽度，可选，默认 1280
+  viewportWidth: <width>
+
+  # 浏览器视口高度，可选，默认 960
+  viewportHeight: <height>
+
+  # 浏览器设备像素比，可选，默认 1
+  deviceScaleFactor: <scale>
+
+  # JSON 格式的浏览器 Cookie 文件路径，可选
+  cookie: <path-to-cookie-file>
+
+  # 等待网络空闲的策略，可选
+  waitForNetworkIdle:
+    # 等待超时时间，可选，默认 2000ms
+    timeout: <ms>
+    # 是否在等待超时后继续，可选，默认 true
+    continueOnNetworkIdleError: <boolean>
+
+  # 输出 aiQuery 结果的 JSON 文件路径，可选
+  output: <path-to-output-file>
+
+  # 是否限制页面在当前 tab 打开，可选，默认 true
+  forceSameTabNavigation: <boolean>
+
+  # 桥接模式，可选，默认 false，可以为 'newTabWithUrl' 或 'currentTab'。更多详情请参阅后文
+  bridgeMode: false | 'newTabWithUrl' | 'currentTab'
+
+  # 是否在桥接断开时关闭新创建的标签页，可选，默认 false
+  closeNewTabsAfterDisconnect: <boolean>
+
+  # 是否忽略 HTTPS 证书错误，可选，默认 false
+  acceptInsecureCerts: <boolean>
+
+  # 在调用 aiAction 时发送给 AI 模型的背景知识，可选
+  aiActionContext: <string>
+```
+
+### `android` 部分
+
+```yaml
+android:
+  # 设备 ID，可选，默认使用第一个连接的设备
+  deviceId: <device-id>
+
+  # 启动 URL，可选，默认使用设备当前页面
+  launch: <url>
+```
+
+### `tasks` 部分
+
+`tasks` 部分是一个数组，定义了脚本执行的步骤。记得在每个步骤前添加 `-` 符号，表明这些步骤是个数组。
+
+`flow` 部分的接口与 [API](./api.html) 几乎相同，除了一些参数的嵌套层级。
+
+```yaml
+tasks:
+  - name: <name>
+    continueOnError: <boolean> # 可选，错误时是否继续执行下一个任务，默认 false
+    flow:
+
+      # 自动规划(Auto Planning, .ai)
+      # ----------------
+
+      # 执行一个交互，`ai` 是 `aiAction` 的简写方式
+      - ai: <prompt>
+
+      # 这种用法与 `ai` 相同
+      - aiAction: <prompt>
+
+      # 即时操作(Instant Action, .aiTap, .aiHover, .aiInput, .aiKeyboardPress, .aiScroll)
+      # ----------------
+
+      # 点击一个元素，用 prompt 描述元素位置
+      - aiTap: <prompt>
+        deepThink: <boolean> # 可选，是否使用深度思考（deepThink）来精确定位元素
+
+      # 鼠标悬停一个元素，用 prompt 描述元素位置
+      - aiHover: <prompt>
+        deepThink: <boolean> # 可选，是否使用深度思考（deepThink）来精确定位元素
+
+      # 输入文本到一个元素，用 prompt 描述元素位置
+      - aiInput: <输入框的最终文本内容>
+        locate: <prompt>
+        deepThink: <boolean> # 可选，是否使用深度思考（deepThink）来精确定位元素
+
+      # 在元素上按下某个按键（如 Enter，Tab，Escape 等），用 prompt 描述元素位置
+      - aiKeyboardPress: <按键>
+        locate: <prompt>
+        deepThink: <boolean> # 可选，是否使用深度思考（deepThink）来精确定位元素
+
+      # 全局滚动，或滚动 prompt 描述的元素
+      - aiScroll:
+        direction: 'up' # 或 'down' | 'left' | 'right'
+        scrollType: 'once' # 或 'untilTop' | 'untilBottom' | 'untilLeft' | 'untilRight'
+        distance: <number> # 可选，滚动距离，单位为像素
+        locate: <prompt> # 可选，执行滚动的元素
+        deepThink: <boolean> # 可选，是否使用深度思考（deepThink）来精确定位元素
+
+      # 数据提取
+      # ----------------
+
+      # 执行一个查询，返回一个 JSON 对象
+      - aiQuery: <prompt> # 记得在提示词中描述输出结果的格式
+        name: <name> # 查询结果在 JSON 输出中的 key
+
+
+      # 更多 API
+      # ----------------
+
+      # 等待某个条件满足，并设置超时时间(ms，可选，默认 30000)
+      - aiWaitFor: <prompt>
+        timeout: <ms>
+
+      # 执行一个断言
+      - aiAssert: <prompt>
+
+      # 等待一定时间
+      - sleep: <ms>
+
+      # 在 web 页面上下文中执行一段 JavaScript 代码
+      - javascript: <javascript>
+        name: <name> # 可选，给返回值一个名称，会在 JSON 输出中作为 key 使用
+
+  - name: <name>
+    flow:
+      # ...
+```
+
+## 更多特性
+
+### 在 `.yaml` 文件中使用环境变量
+
+你可以在 `.yaml` 文件中使用环境变量，通过 `${variable-name}` 的方式。
+
+例如，如果你有一个 `.env` 文件，内容如下：
+
+```env filename=.env
+topic=weather today
+```
+
+你可以在 `.yaml` 文件中使用环境变量，如下所示：
+
+```yaml
+#...
+ - ai: type ${topic} in input box
+#...
+```
+
+### 运行在有界面(Headed)模式下
+> 仅 `web` 场景下支持
+
+'headed' 模式意味着浏览器窗口是可见的。默认情况下，脚本会在无界面模式下运行。
+
+如果你想运行在有界面模式下，你可以使用 `--headed` 选项。此外，如果你想在脚本运行结束后保持浏览器窗口打开，你可以使用 `--keep-window` 选项。`--keep-window` 选项会自动开启 `--headed` 模式。
+
+headed 模式会消耗更多资源，所以建议你仅在本地使用。
+
+```bash
+# 运行在有界面模式下
+midscene /path/to/yaml --headed
+
+# 运行在有界面模式下，并在结束后保持浏览器窗口打开
+midscene /path/to/yaml --keep-window
+```
+
+### 使用桥接模式
+> 仅 `web` 场景下支持
+
+通过使用桥接模式，你可以利用 YAML 脚本在已有的桌面浏览器上执行自动化。这对于需要复用 Cookies、插件和页面状态，或者需要人工与自动化脚本交互的情况非常有用。
+
+使用桥接模式，你需要先安装 Chrome 扩展，然后在 `target` 部分使用以下配置：
+
+```diff
+web:
+  url: https://www.bing.com
++ bridgeMode: newTabWithUrl
+```
+
+请参阅 [通过 Chrome 扩展桥接模式](./bridge-mode-by-chrome-extension) 了解更多详细信息。
+
+### 使用 JavaScript 运行 YAML 脚本
+
+你也可以使用 JavaScript 运行 YAML 脚本，调用 Agent 上的 [`runYaml`](./api.html#runyaml) 方法即可。注意，这种方法只会执行 YAML 脚本中的 `tasks` 部分。
+
+
+## FAQ
+
+**如何从 Chrome 中获取 JSON 格式的 Cookies？**
+
+你可以使用这个 [Chrome 扩展](https://chromewebstore.google.com/detail/get-cookiestxt-locally/cclelndahbckbenkjhflpdbgdldlbecc) 来导出 Cookies 为 JSON 格式。
+
+## 更多
+
+你可能还想了解 [提示词技巧](./prompting-tips)

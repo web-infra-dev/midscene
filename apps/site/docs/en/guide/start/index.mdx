@@ -1,0 +1,99 @@
+# Midscene.js - Joyful Automation by AI
+
+Your AI Operator for Web, Android, Automation & Testing
+
+
+<div style={{"width": "100%", "display": "flex", justifyContent: "center"}}>
+  <iframe
+    style={{"maxWidth": "100%", "width": "800px", "height": "450px"}}
+    src="https://www.youtube.com/embed/lrF0lPfrwag?vq=hd1080" 
+    frameBorder="0"
+    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+    allowFullScreen
+    title="Embedded youtube"
+  ></iframe>
+</div>
+
+## Interact, query and assert by natural language
+
+There are three main capabilities: **action**, **query**, **assert**.
+
+* Use **action (`.ai`, `.aiAction`)** to execute a series of actions by describing the steps
+* Use **query (`.aiQuery`)** to extract customized data from the UI. Describe the JSON format you want, and AI will give the answer based on its "understanding" of the page
+* Use **assert (`.aiAssert`)** to perform assertions on the page.
+
+All these methods accept natural language prompt as param. Obviously, the cost of script maintenance will be greatly decreased.
+
+## Start with Chrome extension
+
+To quickly experience the main features of Midscene, you can use the Midscene Chrome extension. It allows you to use Midscene on any webpage without writing any code.
+
+Click [here](https://chromewebstore.google.com/detail/midscene/gbldofcpkknbggpkmbdaefngejllnief) to install Midscene extension from Chrome Web Store.
+
+For instructions, please refer to [Quick Experience](./quick-experience).
+
+## Multiple ways to integrate
+
+Maintaining automation scripts by Midscene could be a brand new experience. For example, to search for headphones on a website, you can do this:
+
+```typescript
+// 👀 type keywords, perform a search
+await ai('type "Headphones" in search box, hit Enter');
+
+// 👀 find the items, return in JSON
+const items = await aiQuery(
+  "{itemTitle: string, price: Number}[], find item in list and corresponding price"
+);
+
+console.log("headphones in stock", items);
+
+// 👀 assert by natural language
+await aiAssert("There is a category filter on the left");
+```
+
+There are several ways to integrate Midscene into your code project:
+
+* [Automate with Scripts in YAML](./automate-with-scripts-in-yaml), use this if you prefer to write YAML file instead of code
+* [Bridge Mode by Chrome Extension](./bridge-mode-by-chrome-extension), use this to control the desktop Chrome by scripts
+* [Integrate with Puppeteer](./integrate-with-puppeteer)
+* [Integrate with Playwright](./integrate-with-playwright)
+* [Integrate with Android](./integrate-with-android)
+
+## Visualized report
+
+Midscene wants to provide a way to make automation more stable and easier to debug, so we provide a visual report after each run. With this report, you can review the animated replay and view the details of each step in the process. 
+
+What's more, there is a playground in the report file for you to adjust your prompt without re-running all your scripts.
+
+<p align="center">
+  <img src="/report.gif" alt="visualized report" loading="lazy" />
+</p>
+
+
+## ✨ Model Choices
+
+You can use multimodal LLMs like `gpt-4o`, or visual-language models like `Qwen2.5-VL`, `gemini-2.5-pro` and `UI-TARS`. In which `UI-TARS` is an open-source model dedicated for UI automation.
+
+Read more about [Choose a model](https://midscenejs.com/choose-a-model)
+## 👀 Comparing to ...
+
+There are so many UI automation tools out there, and each one seems to be all-powerful. What's special about Midscene.js?
+
+* Debugging Experience: You will soon realize that debugging and maintaining automation scripts is the real challenge. No matter how magical the demo looks, ensuring stability over time requires careful debugging. Midscene.js offers a visualized report file, a built-in playground, and a Chrome Extension to simplify the debugging process. These are the tools most developers truly need, and we’re continually working to improve the debugging experience.
+
+* Open Source, Free, Deploy as you want: Midscene.js is an open-source project. It's decoupled from any cloud service and model provider, you can choose either public or private deployment. There is always a suitable plan for your business.
+
+* Integrate with Javascript: You can always bet on Javascript 😎
+
+## Just you and model provider, no third-party services
+
+All data gathered from pages will be sent directly to OpenAI or the custom model provider according to your configuration. Therefore, no third-party platform will access the data.
+
+For more details, please refer to [Data Privacy](./data-privacy).
+
+## Follow us
+
+* [GitHub - give us a star if you like it!](https://github.com/web-infra-dev/midscene)
+* [Twitter](https://x.com/midscene_ai)
+* [Discord](https://discord.gg/2JyBHxszE4)
+* [Lark](https://applink.larkoffice.com/client/chat/chatter/add_by_link?link_token=291q2b25-e913-411a-8c51-191e59aab14d)

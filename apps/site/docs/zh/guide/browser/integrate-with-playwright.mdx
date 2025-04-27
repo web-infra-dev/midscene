@@ -1,0 +1,137 @@
+import SetupEnv from '../common/setup-env.mdx';
+
+# 集成到 Playwright
+
+import { PackageManagerTabs } from '@theme';
+
+[Playwright.js](https://playwright.com/) 是由微软开发的一个开源自动化库，主要用于对网络应用程序进行端到端测试（end-to-end test）和网页抓取。
+
+这里我们假设你已经拥有一个集成了 Playwright 的仓库。
+
+:::info 样例项目
+你可以在这里看到向 Playwright 集成的样例项目：[https://github.com/web-infra-dev/midscene-example/blob/main/playwright-demo](https://github.com/web-infra-dev/midscene-example/blob/main/playwright-demo)
+:::
+
+
+<SetupEnv />
+
+## 第一步：新增依赖，更新配置文件
+
+新增依赖
+
+<PackageManagerTabs command="install @midscene/web --save-dev" />
+
+更新 playwright.config.ts
+
+```diff
+export default defineConfig({
+  testDir: './e2e',
++ timeout: 90 * 1000,
++ reporter: [["list"], ["@midscene/web/playwright-report", { type: "merged" }]], // type 可选, 默认值为 "merged"，表示多个测试用例生成一个报告，可选值为 "separate"，表示为每个测试用例一个报告
+});
+```
+
+## 第二步：扩展 `test` 实例
+
+把下方代码保存为 `./e2e/fixture.ts`;
+
+```typescript
+import { test as base } from '@playwright/test';
+import type { PlayWrightAiFixtureType } from '@midscene/web/playwright';
+import { PlaywrightAiFixture } from '@midscene/web/playwright';
+
+export const test = base.extend<PlayWrightAiFixtureType>(PlaywrightAiFixture({
+  waitForNetworkIdleTimeout: 2000, // 可选, 交互过程中等待网络空闲的超时时间, 默认值为 2000ms
+  waitForNavigationTimeout: 5000, // 可选, 页面跳转过程中等待页面加载完成的超时时间, 默认值为 5000ms
+}));
+```
+
+## 第三步：编写测试用例
+
+### 基础 AI 操作
+
+* `ai` 或 `aiAction` - 通用 AI 交互
+* `aiTap` - 点击操作
+* `aiHover` - 悬停操作
+* `aiInput` - 输入操作
+* `aiKeyboardPress` - 键盘操作
+* `aiScroll` - 滚动操作
+
+### 查询
+
+* `aiQuery` - 数据查询
+
+### 更多 API
+
+* `aiAssert` - 断言
+* `aiWaitFor` - 等待
+
+更多 API 请参考 [API 参考](./API)。
+
+### 示例代码
+
+```typescript title="./e2e/ebay-search.spec.ts"
+import { expect } from "@playwright/test";
+import { test } from "./fixture";
+
+test.beforeEach(async ({ page }) => {
+  page.setViewportSize({ width: 400, height: 905 });
+  await page.goto("https://www.ebay.com");
+  await page.waitForLoadState("networkidle");
+});
+
+test("search headphone on ebay", async ({ 
+  ai, 
+  aiQuery, 
+  aiAssert,
+  aiInput,
+  aiTap,
+  aiScroll 
+}) => {
+  // 使用 aiInput 输入搜索关键词
+  await aiInput('Headphones', '搜索框');
+  
+  // 使用 aiTap 点击搜索按钮
+  await aiTap('搜索按钮');
+  
+  // 等待搜索结果加载
+  await aiWaitFor('搜索结果列表已加载', { timeoutMs: 5000 });
+  
+  // 使用 aiScroll 滚动到页面底部
+  await aiScroll(
+    { 
+      direction: 'down',
+      scrollType: 'untilBottom'
+    },
+    '搜索结果列表'
+  );
+  
+  // 使用 aiQuery 获取商品信息
+  const items = await aiQuery<Array<{title: string, price: number}>>(
+    '获取搜索结果中的商品标题和价格'
+  );
+  
+  console.log("headphones in stock", items);
+  expect(items?.length).toBeGreaterThan(0);
+  
+  // 使用 aiAssert 验证筛选功能
+  await aiAssert("界面左侧有类目筛选功能");
+});
+```
+
+更多 Agent 的 API 讲解请参考 [API 参考](./API)。
+
+## Step 4. 运行测试用例
+
+```bash
+npx playwright test ./e2e/ebay-search.spec.ts
+```
+
+## Step 5. 查看测试报告
+
+当上面的命令执行成功后，会在控制台输出：`Midscene - report file updated: ./current_cwd/midscene_run/report/some_id.html`，通过浏览器打开该文件即可看到报告。
+
+## 更多
+
+* 更多 Agent 上的 API 接口请参考 [API 参考](./API)。
+* 更多关于提示词的技巧请参考 [提示词技巧](./prompting-tips)

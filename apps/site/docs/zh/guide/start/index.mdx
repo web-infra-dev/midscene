@@ -1,0 +1,87 @@
+# Midscene.js - AI 驱动，带来愉悦的 UI 自动化体验
+
+Your AI Operator for Web, Android, Automation & Testing
+
+
+<video src="https://lf3-static.bytednsdoc.com/obj/eden-cn/ozpmyhn_lm_hymuPild/ljhwZthlaukjlkulzlp/midscene/Midscene.mp4" controls/>
+
+## 通过 AI 执行交互、提取数据和断言
+
+Midscene 提供了三种关键方法：交互（`.ai`, `.aiAction`), 提取 (`.aiQuery`), 断言 (`.aiAssert`)。
+
+* 交互 - 用 `.ai` 方法描述步骤并执行交互
+* 提取 - 用 `.aiQuery` 从 UI 中“理解”并提取数据，返回值是 JSON 格式，你可以尽情描述想要的数据结构
+* 断言 - 用 `.aiAssert` 来执行断言
+
+## 从 Chrome 插件开始快速体验
+
+通过使用 Midscene.js Chrome 插件，你可以快速在任意网页上体验 Midscene 的主要功能，而无需编写任何代码。
+
+点击 [这里](https://chromewebstore.google.com/detail/midscene/gbldofcpkknbggpkmbdaefngejllnief) 从 Chrome Web Store 安装 Midscene 插件。
+
+请参照文档 [通过 Chrome 插件快速体验](./quick-experience) 进行安装和配置。
+
+## 多种代码集成形式
+
+维护 Midscene 自动化脚本是一种全新的编码体验。例如，在网页上搜索耳机，你可以这样做：
+
+```typescript
+// 👀 输入关键字，执行搜索
+await ai('在搜索框输入 "Headphones" ，敲回车');
+
+// 👀 找到列表里耳机相关的信息
+const items = await aiQuery(
+  '{itemTitle: string, price: Number}[], 找到列表里的商品标题和价格'
+);
+
+console.log("headphones in stock", items);
+```
+
+有多种形式可以将 Midscene 集成到代码项目中：
+
+* [使用 YAML 格式的自动化脚本](./automate-with-scripts-in-yaml)，如果你更喜欢写 YAML 文件而不是 Javascript 代码
+* [使用 Chrome 插件的桥接模式](./bridge-mode-by-chrome-extension)，用它来通过脚本控制桌面 Chrome
+* [与 Puppeteer 集成](./integrate-with-puppeteer)
+* [与 Playwright 集成](./integrate-with-playwright)
+* [与 Android 集成](./integrate-with-android)
+
+## 可视化报告
+
+Midscene 希望让自动化脚本变得更稳定、更易于调试，因此我们提供了一个可视化报告。通过这个报告，你可以回顾动画回放，并查看每个步骤的详细信息。
+
+此外，Midscene 报告里还集成了一个 Playground，用以在报告中重新运行 Prompt 并进行调优。
+
+<p align="center">
+  <img src="/report.gif" alt="visualized report" loading="lazy" />
+</p>
+
+
+## ✨ 选择 AI 模型 
+
+你可以使用多模态 LLM 模型，如 `gpt-4o`，或者视觉语言模型，如 `Qwen2.5-VL`，`gemini-2.5-pro` 和 `UI-TARS`。其中 `UI-TARS` 是一个专为 UI 自动化设计的大模型。
+
+更多信息请查看 [选择 AI 模型](https://midscenejs.com/zh/choose-a-model)。
+
+
+## 与其他工具比较
+
+业界的 UI 自动化工具层出不穷，每个 Demo 都看起来很科幻。Midscene.js 有什么特别之处？
+
+* 调试体验：你很快就会发现，调试和维护自动化脚本才是真正的痛点。无论模型多么强大，你仍然需要调试过程以确保其保持长期稳定。Midscene.js 提供了可视化报告、内置的 Playground 和 Chrome 插件，以调试整个运行过程。这是大多数开发者真正需要的特性，我们也在持续努力改进调试体验。
+
+* 开源、免费、部署灵活：Midscene.js 是一个开源项目。它与云服务和模型提供商解耦，你可以选择公共或私有部署。总会有一个适合你的计划。
+
+* 与 Javascript 集成：你可以永远相信 Javascript 😎
+
+## 直连模型端，无需三方服务
+
+Midscene 运行在用户的自有环境中，所有从页面收集的数据会依照用户的配置，直接传送到 OpenAI 或指定的自定义模型。因此，任何第三方平台均无法获取这些数据。
+
+更多详情请参考 [数据隐私](./data-privacy)。
+
+## 关注我们
+
+* [GitHub - 如果喜欢，请给我们点个 star](https://github.com/web-infra-dev/midscene)
+* [Twitter](https://x.com/midscene_ai)
+* [Discord](https://discord.gg/2JyBHxszE4)
+* [飞书交流群](https://applink.larkoffice.com/client/chat/chatter/add_by_link?link_token=291q2b25-e913-411a-8c51-191e59aab14d)

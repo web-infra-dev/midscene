@@ -1,0 +1,43 @@
+import StartExperience from '../common/start-experience.mdx';
+import PrepareKeyForFurtherUse from '../common/prepare-key-for-further-use.mdx';
+
+# Quick Experience by Chrome Extension
+
+Midscene.js provides a Chrome extension. By using it, you can quickly experience the main features of Midscene on any webpage, without needing to set up a code project.
+
+⁠The extension shares the same code as the npm `@midscene/web` packages, so you can think of it as a playground or a way to debug with Midscene.
+
+![](/midscene-extension.jpg)
+
+## Preparation
+
+<PrepareKeyForFurtherUse />
+
+## Install and config
+
+Install Midscene extension from chrome web store: [Midscene](https://chromewebstore.google.com/detail/midscene/gbldofcpkknbggpkmbdaefngejllnief)
+
+Start the extension (may be folded by Chrome extension icon), setup the config by pasting the config in the K=V format:
+
+```bash
+OPENAI_API_KEY="sk-replace-by-your-own"
+# ...all other configs here (if any)
+```
+
+<StartExperience />
+
+* [Bridge Mode by Chrome Extension](./bridge-mode-by-chrome-extension)
+* [Integrate with Puppeteer](./integrate-with-puppeteer)
+* [Integrate with Playwright](./integrate-with-playwright)
+
+## FAQ
+
+### Extension fails to run and shows 'Cannot access a chrome-extension:// URL of different extension'
+
+It's mainly due to conflicts with other extensions injecting `<iframe />` or `<script />` into the page. Try disabling the suspicious plugins and refresh. 
+
+To find the suspicious plugins:
+ 
+1. Open the Devtools of the page, find the `<script>` or `<iframe>` with a url like `chrome-extension://{ID-of-the-suspicious-plugin}/...`.
+2. Copy the ID from the url, open `chrome://extensions/` , use cmd+f to find the plugin with the same ID, disable it.
+3. Refresh the page, try again.

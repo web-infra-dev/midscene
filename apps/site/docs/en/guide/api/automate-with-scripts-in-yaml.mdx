@@ -1,0 +1,321 @@
+import SetupEnv from '../common/setup-env.mdx';
+
+# Automate with Scripts in YAML
+
+In most cases, developers write automation just to perform some smoke tests, like checking the appearance of some content, or verifying that the key user path is accessible. Maintaining a large test project is unnecessary in this situation.
+
+⁠Midscene offers a way to do this kind of automation with `.yaml` files, which helps you to focus on the script itself instead of the test infrastructure. Any team member can write an automation script without learning any API.
+
+Here is an example of `.yaml` script, you may have already understood how it works by reading its content.
+
+```yaml
+web:
+  url: https://www.bing.com
+
+tasks:
+  - name: search weather
+    flow:
+      - ai: search for 'weather today'
+      - sleep: 3000
+
+  - name: check result
+    flow:
+      - aiAssert: the result shows the weather info
+```
+
+:::info Demo Project
+
+You can find the demo project with YAML scripts
+[https://github.com/web-infra-dev/midscene-example/tree/main/yaml-scripts-demo](https://github.com/web-infra-dev/midscene-example/tree/main/yaml-scripts-demo)
+- [Web](https://github.com/web-infra-dev/midscene-example/tree/main/yaml-scripts-demo)
+- [Android](https://github.com/web-infra-dev/midscene-example/tree/main/android/yaml-scripts-demo)
+
+:::
+
+<SetupEnv />
+
+or you can use a `.env` file locate at the same directory as you run the command to store the configuration, Midscene command line tool will automatically load it.
+
+```env filename=.env
+OPENAI_API_KEY="sk-abcdefghijklmnopqrstuvwxyz"
+```
+
+## Install Command Line Tool
+
+Install `@midscene/cli` globally
+
+```bash
+npm i -g @midscene/cli
+# or if you prefer a project-wide installation
+npm i @midscene/cli --save-dev
+```
+
+Write a yaml file to `bing-search.yaml` to automate in web browser :
+
+```yaml
+web:
+  url: https://www.bing.com
+
+tasks:
+  - name: search weather
+    flow:
+      - ai: search for 'weather today'
+      - sleep: 3000
+      - aiAssert: the result shows the weather info
+```
+
+or to automate in Android device connected by adb :
+
+```yaml
+android:
+  # launch: https://www.bing.com
+  deviceId: s4ey59
+
+tasks:
+  - name: search weather
+    flow:
+      - ai: open browser and navigate to bing.com
+      - ai: search for 'weather today'
+      - sleep: 3000
+      - aiAssert: the result shows the weather info
+```
+
+Run this script
+
+```bash
+midscene ./bing-search.yaml
+# or if you installed midscene inside the project
+npx midscene ./bing-search.yaml
+```
+
+You should see that the output shows the progress of the running process and the report file.
+
+## Command line usage
+
+### Run single `.yaml` file
+
+```bash
+midscene /path/to/yaml
+```
+
+### Run all `.yaml` files under a folder
+
+```bash
+midscene /dir/of/yaml/
+
+# glob is also supported
+midscene /dir/**/yaml/
+```
+
+## YAML file schema
+
+There are two parts in a `.yaml` file, the `web/android` and the `tasks`.
+
+The `web/android` part defines the basic of a task. Use `web` parameter (also previously named as `target`) for web browser automation, and use `android` parameter for Android device automation. They are mutually exclusive.
+
+### The `web` part
+
+```yaml
+web:
+  # The URL to visit, required. If `serve` is provided, provide the path to the file to visit
+  url: <url>
+
+  # Serve the local path as a static server, optional
+  serve: <root-directory>
+
+  # The user agent to use, optional
+  userAgent: <ua>
+
+  # number, the viewport width, default is 1280, optional
+  viewportWidth: <width>
+
+  # number, the viewport height, default is 960, optional
+  viewportHeight: <height>
+
+  # number, the device scale factor (dpr), default is 1, optional
+  deviceScaleFactor: <scale>
+
+  # string, the path to the json format cookie file, optional
+  cookie: <path-to-cookie-file>
+  
+  # object, the strategy to wait for network idle, optional
+  waitForNetworkIdle:
+    # number, the timeout in milliseconds, 2000ms for default, optional
+    timeout: <ms>
+    # boolean, continue on network idle error, true for default
+    continueOnNetworkIdleError: <boolean>
+  
+  # string, the path to save the aiQuery result, optional
+  output: <path-to-output-file>
+
+  # boolean, if limit the popup to the current page, true for default in yaml script
+  forceSameTabNavigation: <boolean>
+
+  # string, the bridge mode to use, optional, default is false, can be 'newTabWithUrl' or 'currentTab'. More details see the following section
+  bridgeMode: false | 'newTabWithUrl' | 'currentTab'
+
+  # boolean, if close the new tabs after the bridge is disconnected, optional, default is false
+  closeNewTabsAfterDisconnect: <boolean>
+
+  # boolean, if allow insecure https certs, optional, default is false
+  acceptInsecureCerts: <boolean>
+
+  # string, the background knowledge to send to the AI model when calling aiAction, optional
+  aiActionContext: <string>
+```
+
+### The `android` part
+
+```yaml
+android:
+  # The device id to use, optional, default is the first connected device
+  deviceId: <device-id>
+
+  # The url to launch, optional, default is the current page
+  launch: <url>
+```
+
+### The `tasks` part
+
+The `tasks` part is an array indicates the tasks to do. Remember to write a `-` before each item which means an array item.
+
+The interfaces of the `flow` part are almost the same as the [API](./API.html), except for some parameter levels.
+
+```yaml
+tasks:
+  - name: <name>
+    continueOnError: <boolean> # optional, default is false
+    flow:
+      # Auto Planning (.ai)
+      # ----------------
+
+      # perform an action, this is the shortcut for aiAction
+      - ai: <prompt>
+
+      # this is the same as ai
+      - aiAction: <prompt>
+
+      # Instant Action(.aiTap, .aiHover, .aiInput, .aiKeyboardPress, .aiScroll)
+      # ----------------
+
+      # tap an element located by prompt
+      - aiTap: <prompt>
+        deepThink: <boolean> # optional, whether to use deepThink to precisely locate the element
+
+      # hover an element located by prompt
+      - aiHover: <prompt>
+        deepThink: <boolean> # optional, whether to use deepThink to precisely locate the element
+
+      # input text into an element located by prompt
+      - aiInput: <final text content of the input>
+        locate: <prompt>
+        deepThink: <boolean> # optional, whether to use deepThink to precisely locate the element
+
+      # press a key (like Enter, Tab, Escape, etc.) on an element located by prompt
+      - aiKeyboardPress: <key>
+        locate: <prompt>
+        deepThink: <boolean> # optional, whether to use deepThink to precisely locate the element
+
+
+      # scroll globally or on an element located by prompt
+      - aiScroll:
+        direction: 'up' # or 'down' | 'left' | 'right'
+        scrollType: 'once' # or 'untilTop' | 'untilBottom' | 'untilLeft' | 'untilRight'
+        distance: <number> # optional, distance to scroll in px
+        locate: <prompt> # optional, the element to scroll on
+        deepThink: <boolean> # optional, whether to use deepThink to precisely locate the element
+
+      # Data Extraction
+      # ----------------
+
+      # perform a query, return a json object
+      - aiQuery: <prompt> # remember to describe the format of the result in the prompt
+        name: <name> # the name of the result, will be used as the key in the output json
+
+      # More APIs
+      # ----------------
+
+      # wait for a condition to be met with a timeout (ms, optional, default 30000)
+      - aiWaitFor: <prompt>
+        timeout: <ms>
+
+      # perform an assertion
+      - aiAssert: <prompt>
+
+      # sleep for a number of milliseconds
+      - sleep: <ms>
+
+      # evaluate a javascript expression in web page context
+      - javascript: <javascript>
+        name: <name> # assign a name to the return value, will be used as the key in the output json, optional
+
+  - name: <name>
+    flow:
+      # ...
+```
+
+## More features
+
+### Use environment variables in `.yaml` file
+
+You can use environment variables in `.yaml` file by `${variable-name}`.
+
+For example, if you have a `.env` file with the following content:
+
+```env filename=.env
+topic=weather today
+```
+
+You can use the environment variable in the `.yaml` file like this:
+
+```yaml
+#...
+ - ai: type ${topic} in input box
+#...
+```
+
+### Debug in headed mode
+> `web` scenario only
+
+'headed mode' means the browser will be visible. The default behavior is to run in headless mode.
+
+To turn on headed mode, you can use `--headed` option. Besides, if you want to keep the browser window open after the script finishes, you can use `--keep-window` option. `--keep-window` implies `--headed`.
+
+When running in headed mode, it will consume more resources, so we recommend you to use it locally only when needed.
+
+```bash
+# run in headed mode
+midscene /path/to/yaml --headed
+
+# run in headed mode and keep the browser window open after the script finishes
+midscene /path/to/yaml --keep-window
+```
+
+### Use bridge mode
+> `web` scenario only
+By using bridge mode, you can utilize YAML scripts to automate the web browser on your desktop. This is particularly useful if you want to reuse cookies, plugins, and page states, or if you want to manually interact with automation scripts.
+
+To use bridge mode, you should install the Chrome extension first, and use this configuration in the `target` section:
+
+```diff
+web:
+  url: https://www.bing.com
++ bridgeMode: newTabWithUrl
+```
+
+See [Bridge Mode by Chrome Extension](./bridge-mode-by-chrome-extension) for more details.
+
+### Run yaml script with javascript
+
+You can also run a yaml script with javascript by using the [`runYaml`](./api.html#runyaml) method of the Midscene agent. Only the `tasks` part of the yaml script will be executed.
+
+
+## FAQ
+
+**How to get cookies in JSON format from Chrome?**
+
+You can use this [chrome extension](https://chromewebstore.google.com/detail/get-cookiestxt-locally/cclelndahbckbenkjhflpdbgdldlbecc) to export cookies in JSON format.
+
+## More
+
+You may also be interested in [Prompting Tips](./prompting-tips)

@@ -1,0 +1,32 @@
+[
+  {
+    "type": "dir",
+    "name": "start",
+    "label": "Getting Started"
+  },
+  {
+    "type": "dir",
+    "name": "browser",
+    "label": "Web Browser Automation"
+  },
+  {
+    "type": "dir",
+    "name": "android",
+    "label": "Android Automation"
+  },
+  {
+    "type": "dir",
+    "name": "api",
+    "label": "API and Usage"
+  },
+  {
+    "type": "dir",
+    "name": "llm",
+    "label": "AI Model"
+  },
+  {
+    "type": "dir",
+    "name": "faq",
+    "label": "More"
+  }
+]

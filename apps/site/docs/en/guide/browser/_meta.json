@@ -1,0 +1,6 @@
+[
+  "integrate-with-playwright",
+  "integrate-with-puppeteer",
+  "bridge-mode-by-chrome-extension",
+  "caching"
+]

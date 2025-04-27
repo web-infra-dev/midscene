@@ -16,9 +16,10 @@
     "querystring": "0.2.1",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
-    "rspress": "^1.41.0"
+    "rspress": "1.41.0"
   },
   "devDependencies": {
+    "@rspress/plugin-client-redirects": "1.41.0",
     "@types/node": "^18.0.0"
   }
 }

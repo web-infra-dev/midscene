@@ -1,0 +1,12 @@
+[
+  {
+    "text": "指南",
+    "link": "/guide/start/",
+    "activeMatch": "/guide/"
+  },
+  {
+    "text": "博客",
+    "link": "/blog",
+    "activeMatch": "/blog/"
+  }
+]
