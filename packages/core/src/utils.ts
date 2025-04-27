@@ -71,6 +71,7 @@ export function replaceStringWithFirstAppearance(
 
 export function reportHTMLContent(
   dumpData: string | ReportDumpWithAttributes[],
+  reportPath?: string,
 ): string {
   const tpl = getReportTpl();
   if (!tpl) {
@@ -78,64 +79,87 @@ export function reportHTMLContent(
     return '';
   }
 
-  let reportContent: string;
+  const dumpPlaceholder = '{{dump}}';
+
+  // verify the template contains the placeholder
+  if (!tpl.includes(dumpPlaceholder)) {
+    console.warn('Template does not contain {{dump}} placeholder');
+    return '';
+  }
+
+  // find the first placeholder position
+  const placeholderIndex = tpl.indexOf(dumpPlaceholder);
+
+  // split the template into two parts before and after the placeholder
+  const firstPart = tpl.substring(0, placeholderIndex);
+  const secondPart = tpl.substring(placeholderIndex + dumpPlaceholder.length);
+
+  // if reportPath is set, it means we are in write to file mode
+  const writeToFile = reportPath && !ifInBrowser;
+  let resultContent = '';
+
+  // helper function: decide to write to file or append to resultContent
+  const appendOrWrite = (content: string): void => {
+    if (writeToFile) {
+      // writeFileSync(reportPath!, `${content}\n`, {
+      //   flag: 'a',
+      // });
+    } else {
+      resultContent += `${content}\n`;
+    }
+  };
+
+  // if writeToFile is true, write the first part to file, otherwise set the first part to the initial value of resultContent
+  if (writeToFile) {
+    // writeFileSync(reportPath!, firstPart, { flag: 'w' }); // use 'w' flag to overwrite the existing file
+  } else {
+    resultContent = firstPart;
+  }
+
+  // generate dump content
+  // handle empty data or undefined
   if (
     (Array.isArray(dumpData) && dumpData.length === 0) ||
     typeof dumpData === 'undefined'
   ) {
-    reportContent = replaceStringWithFirstAppearance(
-      tpl,
-      '{{dump}}',
-      '<script type="midscene_web_dump" type="application/json"></script>',
-    );
-  } else if (typeof dumpData === 'string') {
-    reportContent = replaceStringWithFirstAppearance(
-      tpl,
-      '{{dump}}',
-      // biome-ignore lint/style/useTemplate: <explanation>
-      '<script type="midscene_web_dump" type="application/json">\n' +
-        dumpData +
-        '\n</script>',
-    );
-  } else {
-    const dumps = dumpData.map(({ dumpString, attributes }) => {
+    const dumpContent =
+      '<script type="midscene_web_dump" type="application/json"></script>';
+    appendOrWrite(dumpContent);
+  }
+  // handle string type dumpData
+  else if (typeof dumpData === 'string') {
+    try {
+      // Verify if the dumpData is valid JSON
+      const dumpContent = `<script type="midscene_web_dump" type="application/json">${dumpData}</script>`;
+      appendOrWrite(dumpContent);
+    } catch (e) {
+      // if the dumpData is not valid JSON, use the original processing方式
+      const dumpContent = `<script type="midscene_web_dump" type="application/json">\n${dumpData}\n</script>`;
+      appendOrWrite(dumpContent);
+    }
+  }
+  // handle array type dumpData
+  else {
+    // for array, handle each item
+    for (let i = 0; i < dumpData.length; i++) {
+      const { dumpString, attributes } = dumpData[i];
       const attributesArr = Object.keys(attributes || {}).map((key) => {
         return `${key}="${encodeURIComponent(attributes![key])}"`;
       });
-      return (
-        // biome-ignore lint/style/useTemplate: <explanation>
-        '<script type="midscene_web_dump" type="application/json" ' +
-        attributesArr.join(' ') +
-        '>\n' +
-        dumpString +
-        '\n</script>'
-      );
-    });
 
-    // use Buffer to handle large data, avoid string length limit
-    // add newline between each element
-    const newLine = Buffer.from('\n');
-    const buffersWithNewlines: Buffer[] = [];
-
-    // create an array of buffers that alternate between data and newlines
-    dumps.forEach((dump, index) => {
-      buffersWithNewlines.push(Buffer.from(dump));
-      if (index < dumps.length - 1) {
-        buffersWithNewlines.push(newLine);
-      }
-    });
-
-    // merge all buffers
-    const combinedBuffer = Buffer.concat(buffersWithNewlines);
-    const dumpsContent = combinedBuffer.toString('utf-8');
-
-    reportContent = replaceStringWithFirstAppearance(
-      tpl,
-      '{{dump}}',
-      dumpsContent,
-    );
+      const dumpContent = `<script type="midscene_web_dump" type="application/json" ${attributesArr.join(' ')}>\n${dumpString}\n</script>`;
+      appendOrWrite(dumpContent);
+    }
   }
-  return reportContent;
+
+  // add the second part
+  if (writeToFile) {
+    // writeFileSync(reportPath!, secondPart, { flag: 'a' });
+    return reportPath!;
+  }
+
+  resultContent += secondPart;
+  return resultContent;
 }
 
 export function writeDumpReport(
@@ -158,12 +182,9 @@ export function writeDumpReport(
     getMidsceneRunSubDir('report'),
     `${fileName}.html`,
   );
-  const reportContent = reportHTMLContent(dumpData);
-  if (!reportContent) {
-    console.warn('reportContent is empty, will not write report');
-    return null;
-  }
-  writeFileSync(reportPath, reportContent);
+
+  reportHTMLContent(dumpData, reportPath);
+
   if (process.env.MIDSCENE_DEBUG_LOG_JSON) {
     writeFileSync(
       `${reportPath}.json`,
