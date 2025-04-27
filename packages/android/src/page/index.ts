@@ -356,6 +356,12 @@ ${Object.keys(size)
     await adb.shell(
       'app_process -Djava.class.path=/data/local/tmp/yadb /data/local/tmp com.ysbing.yadb.Main -keyboard "~CLEAR~"',
     );
+
+    if (await adb.isSoftKeyboardPresent()) {
+      return;
+    }
+
+    await this.mouse.click(element.center[0], element.center[1]);
   }
 
   private async forceScreenshot(path: string): Promise<void> {
