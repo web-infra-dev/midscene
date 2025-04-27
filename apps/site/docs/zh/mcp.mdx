@@ -2,11 +2,10 @@ import SetupEnv from './common/setup-env.mdx';
 
 # 集成到 MCP
 
-Midscene 提供与模型上下文协议（[MCP](https://modelcontextprotocol.io/introduction)）的集成，允许 AI 助手通过自然语言命令控制浏览器并自动化网页任务。
+Midscene 提供了 MCP 服务，允许 AI 助手通过自然语言命令控制浏览器，自动化执行 UI 任务，以及生成 Midscene 自动化脚本。
 
-
-:::info MCP 介绍
-MCP 是一种标准化的方式，使 AI 模型能够与外部工具和功能进行交互。MCP 服务器暴露一组工具，AI 模型可以调用这些工具来执行各种任务。对于 Midscene 来说，这些工具允许 AI 模型控制浏览器、导航网页、与 UI 元素交互等等。
+:::info 什么是 MCP
+[MCP](https://modelcontextprotocol.io/introduction) 是一种标准化的方式，使 AI 模型能够与外部工具和功能进行交互。MCP 服务器暴露一组工具后，AI 模型可以调用这些工具来执行各种任务。对于 Midscene 来说，这些工具允许 AI 模型控制浏览器、导航网页、与 UI 元素交互等等。
 :::
 
 ## 使用场景
@@ -14,7 +13,11 @@ MCP 是一种标准化的方式，使 AI 模型能够与外部工具和功能进
 * 控制浏览器执行自动化任务
 * 生成 Midscene 的自动化脚本
 
+### 使用示例
 
+> 给 Sauce Demo 站点生成 Midscene 测试用例
+
+<video src="https://lf3-static.bytednsdoc.com/obj/eden-cn/ozpmyhn_lm_hymuPild/ljhwZthlaukjlkulzlp/midscene/midscene-mcp-Sauce-Demo.mp4" controls/>
 
 ## 设置 Midscene MCP
 
@@ -156,15 +159,6 @@ Midscene MCP 提供以下资源，可以帮助你结合 AI 助手对于 Midscene
 |---------|-----|------|
 | **playwright-example** | file:///playwright-example.mdx | Playwright 自动化测试代码示例，展示如何使用 Playwright 进行浏览器自动化 |
 | **midscene-api-docs** | file:///midscene-api-docs.mdx | Midscene API 文档，详细介绍 Midscene 的 API 和使用方法 |
-
-
-## 使用示例
-
-> 给 Sauce Demo 站点生成 Midscene 测试用例
-
-
-<video src="https://lf3-static.bytednsdoc.com/obj/eden-cn/ozpmyhn_lm_hymuPild/ljhwZthlaukjlkulzlp/midscene/midscene-mcp-Sauce-Demo.mp4" controls/>
-
 
 ## 常见问题
 

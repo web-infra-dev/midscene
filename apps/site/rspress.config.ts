@@ -70,8 +70,8 @@ export default defineConfig({
           text: 'Web Browser Automation',
           items: [
             {
-              text: 'Integrate MCP',
-              link: '/integrate-mcp',
+              text: 'MCP',
+              link: '/mcp',
             },
             {
               text: 'Integrate with Playwright',
@@ -179,8 +179,8 @@ export default defineConfig({
           text: 'Web 浏览器自动化',
           items: [
             {
-              text: '集成到 MCP',
-              link: '/zh/integrate-mcp',
+              text: 'MCP',
+              link: '/zh/mcp',
             },
             {
               text: '集成到 Playwright',
