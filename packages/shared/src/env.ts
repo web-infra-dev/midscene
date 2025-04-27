@@ -1,5 +1,3 @@
-import { UITarsModelVersion } from '@ui-tars/shared/constants';
-
 // config keys
 export const MIDSCENE_OPENAI_INIT_CONFIG_JSON =
   'MIDSCENE_OPENAI_INIT_CONFIG_JSON';
@@ -110,6 +108,14 @@ const getGlobalConfig = () => {
   }
   return globalConfig;
 };
+
+// import { UITarsModelVersion } from '@ui-tars/shared/constants';
+export enum UITarsModelVersion {
+  V1_0 = '1.0',
+  V1_5 = '1.5',
+  DOUBAO_1_5_15B = 'doubao-1.5-15B',
+  DOUBAO_1_5_20B = 'doubao-1.5-20B',
+}
 
 export const uiTarsModelVersion = (): UITarsModelVersion | false => {
   if (vlLocateMode() !== 'vlm-ui-tars') {
