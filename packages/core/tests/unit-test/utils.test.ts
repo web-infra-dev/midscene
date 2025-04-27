@@ -96,6 +96,62 @@ describe('utils', () => {
       `<script type="midscene_web_dump" type="application/json">\n${content}\n</script>`,
     );
   });
+
+  it('reportHTMLContent with reportPath', () => {
+    const tmpFile = getTmpFile('html');
+    expect(tmpFile).toBeTruthy();
+
+    if (!tmpFile) {
+      return;
+    }
+
+    // test empty array
+    const reportPathA = reportHTMLContent([], tmpFile);
+    expect(reportPathA).toBe(tmpFile);
+    const fileContentA = readFileSync(tmpFile, 'utf-8');
+    expect(fileContentA).toContain(
+      '<script type="midscene_web_dump" type="application/json"></script>',
+    );
+
+    // test string content
+    const content = JSON.stringify({ test: randomUUID() });
+    const reportPathB = reportHTMLContent(content, tmpFile);
+    expect(reportPathB).toBe(tmpFile);
+    const fileContentB = readFileSync(tmpFile, 'utf-8');
+    expect(fileContentB).toContain(
+      `<script type="midscene_web_dump" type="application/json">\n${content}\n</script>`,
+    );
+
+    // test array with attributes
+    const uuid1 = randomUUID();
+    const uuid2 = randomUUID();
+    const dumpArray = [
+      {
+        dumpString: JSON.stringify({ id: uuid1 }),
+        attributes: {
+          test_attr: 'test_value',
+          another_attr: 'another_value',
+        },
+      },
+      {
+        dumpString: JSON.stringify({ id: uuid2 }),
+        attributes: {
+          test_attr2: 'test_value2',
+        },
+      },
+    ];
+
+    const reportPathC = reportHTMLContent(dumpArray, tmpFile);
+    expect(reportPathC).toBe(tmpFile);
+    const fileContentC = readFileSync(tmpFile, 'utf-8');
+
+    // verify the file content contains attributes and data
+    expect(fileContentC).toContain('test_attr="test_value"');
+    expect(fileContentC).toContain('another_attr="another_value"');
+    expect(fileContentC).toContain('test_attr2="test_value2"');
+    expect(fileContentC).toContain(uuid1);
+    expect(fileContentC).toContain(uuid2);
+  });
 });
 
 describe('extractJSONFromCodeBlock', () => {

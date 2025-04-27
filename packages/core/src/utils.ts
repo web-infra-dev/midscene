@@ -130,9 +130,9 @@ export function reportHTMLContent(
   else if (typeof dumpData === 'string') {
     const dumpContent =
       // biome-ignore lint/style/useTemplate: <explanation> do not use template string here, will cause bundle error
-      '<script type="midscene_web_dump" type="application/json">' +
+      '<script type="midscene_web_dump" type="application/json">\n' +
       dumpData +
-      '</script>';
+      '\n</script>';
     appendOrWrite(dumpContent);
   }
   // handle array type dumpData
