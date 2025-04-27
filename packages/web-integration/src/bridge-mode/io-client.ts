@@ -33,7 +33,7 @@ export class BridgeClient {
           this.socket?.offAny();
           this.socket?.close();
         } catch (e) {
-          console.warn('got error when closing socket', e);
+          console.warn('got error when offing socket', e);
         }
         this.socket = null;
         reject(new Error('failed to connect to bridge server after timeout'));
@@ -46,23 +46,32 @@ export class BridgeClient {
         this.onDisconnect?.();
       });
 
+      this.socket.on('connect_error', (e: any) => {
+        console.error('bridge-connect-error', e);
+        reject(new Error(e || 'bridge connect error'));
+      });
+
       this.socket.on(
         BridgeEvent.Connected,
         (payload: BridgeConnectedEventPayload) => {
           clearTimeout(timeout);
-          // console.log('bridge-connected');
           this.serverVersion = payload?.version || 'unknown';
           resolve(this.socket);
         },
       );
       this.socket.on(BridgeEvent.Refused, (e: any) => {
         console.error('bridge-refused', e);
+        try {
+          this.socket?.disconnect();
+        } catch (e) {
+          // console.warn('got error when disconnecting socket', e);
+        }
         reject(new Error(e || 'bridge refused'));
       });
       this.socket.on(BridgeEvent.Call, (call: BridgeCallRequest) => {
         const id = call.id;
         assert(typeof id !== 'undefined', 'call id is required');
-        Promise.resolve().then(async () => {
+        (async () => {
           let response: any;
           try {
             response = await this.onBridgeCall(call.method, call.args);
@@ -78,7 +87,7 @@ export class BridgeClient {
             id,
             response,
           } as BridgeCallResponse);
-        });
+        })();
       });
     });
   }

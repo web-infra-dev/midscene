@@ -53,6 +53,14 @@ export class BridgeServer {
       this.io = new Server(this.port, {
         maxHttpBufferSize: 100 * 1024 * 1024, // 100MB
       });
+
+      this.io.use((socket, next) => {
+        if (this.socket) {
+          next(new Error('server already connected by another client'));
+        }
+        next();
+      });
+
       this.io.on('connection', (socket) => {
         this.connectionLost = false;
         this.connectionLostReason = '';
@@ -62,6 +70,9 @@ export class BridgeServer {
         this.connectionTipTimer = null;
         if (this.socket) {
           socket.emit(BridgeEvent.Refused);
+          // close the socket
+          socket.disconnect();
+
           return reject(
             new Error('server already connected by another client'),
           );
