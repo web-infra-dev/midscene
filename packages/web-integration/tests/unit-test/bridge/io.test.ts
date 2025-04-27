@@ -30,16 +30,21 @@ describe('bridge-io', () => {
     );
     await client.connect();
 
+    // client should be closed automatically
+    // client.disconnect();
+
+    const onDisconnect = vi.fn();
     const client2 = new BridgeClient(
       `ws://localhost:${port}`,
       (method, args) => {
         return Promise.resolve('ok');
       },
+      onDisconnect,
     );
     await expect(client2.connect()).rejects.toThrow();
+    expect(onDisconnect).not.toHaveBeenCalled();
 
     await server.close();
-    client.disconnect();
   });
 
   it('server start, client connect, server restart on same port', async () => {
