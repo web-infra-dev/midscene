@@ -12,7 +12,9 @@ export default defineConfig({
   },
   output: {
     copy: [
-      { from: path.join(__dirname, '../../apps/site/docs/en/API.mdx') },
+      {
+        from: path.join(__dirname, '../../apps/site/docs/en/guide/api/API.mdx'),
+      },
       { from: path.join(__dirname, './src/playwright-example.txt') },
     ],
   },
