@@ -40,7 +40,6 @@
     "@azure/identity": "4.5.0",
     "@langchain/core": "0.3.26",
     "@midscene/shared": "workspace:*",
-    "@ui-tars/action-parser": "1.2.0",
     "openai": "4.81.0",
     "socks-proxy-agent": "8.0.4",
     "dirty-json": "0.9.2",
@@ -48,6 +47,7 @@
     "langsmith": "0.3.7"
   },
   "devDependencies": {
+    "@ui-tars/action-parser": "1.2.0",
     "@modern-js/module-tools": "2.60.6",
     "@types/node": "^18.0.0",
     "@types/node-fetch": "2.6.11",
