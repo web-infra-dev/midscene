@@ -1,5 +1,9 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
+exports[`extract element > extract element by object 1`] = `"return in key-value style object, keys are title,description"`;
+
+exports[`extract element > extract element by string 1`] = `"return in key-value style object, key is result"`;
+
 exports[`system prompts > locator - 4o 1`] = `
 "
 ## Role:

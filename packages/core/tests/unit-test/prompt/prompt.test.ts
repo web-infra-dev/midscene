@@ -8,6 +8,7 @@ import {
 import { systemPromptToLocateSection } from '@/ai-model/prompt/llm-section-locator';
 import { uiTarsPlanningPrompt } from '@/ai-model/prompt/ui-tars-planning';
 import { describe, expect, it } from 'vitest';
+import { extractElementInfoPrompt } from '../../../src/ai-model/prompt/llm-locator';
 
 describe('system prompts', () => {
   it('planning - 4o', async () => {
@@ -102,6 +103,21 @@ describe('system prompts', () => {
 
   it('ui-tars planning', () => {
     const prompt = uiTarsPlanningPrompt;
+    expect(prompt).toMatchSnapshot();
+  });
+});
+
+describe('extract element', () => {
+  it('extract element by string', () => {
+    const prompt = extractElementInfoPrompt('todo title, string');
+    expect(prompt).toMatchSnapshot();
+  });
+
+  it('extract element by object', () => {
+    const prompt = extractElementInfoPrompt({
+      title: 'todo title, string',
+      description: 'todo description, string',
+    });
     expect(prompt).toMatchSnapshot();
   });
 });

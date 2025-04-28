@@ -37,6 +37,7 @@ import {
 import { systemPromptToAssert } from './prompt/assertion';
 import { extractDataPrompt, systemPromptToExtract } from './prompt/extraction';
 import {
+  extractElementInfoPrompt,
   findElementPrompt,
   systemPromptToLocateElement,
 } from './prompt/llm-locator';
@@ -372,12 +373,16 @@ export async function AiExtractElementInfo<
   let dataQueryText = '';
 
   if (typeof dataQuery === 'string') {
-    dataKeys = 'return only the value describe in result key';
-    dataQueryText = JSON.stringify({
-      result: dataQuery,
-    });
+    dataKeys = extractElementInfoPrompt(dataQuery);
+    dataQueryText = JSON.stringify(
+      {
+        result: dataQuery,
+      },
+      null,
+      2,
+    );
   } else {
-    dataKeys = `return in key-value style object, keys are ${Object.keys(dataQuery).join(',')}`;
+    dataKeys = extractElementInfoPrompt(dataQuery);
     dataQueryText = JSON.stringify(dataQuery, null, 2);
   }
 
@@ -411,6 +416,10 @@ export async function AiExtractElementInfo<
     msgs,
     AIActionType.EXTRACT_DATA,
   );
+
+  if (typeof dataQuery === 'string') {
+    result.content.data = (result.content.data as any)?.result;
+  }
 
   return {
     parseResult: result.content,

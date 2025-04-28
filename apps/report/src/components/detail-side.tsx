@@ -337,14 +337,15 @@ const DetailSide = (): JSX.Element => {
     />
   ) : null;
 
-  const dataCard = dump?.data ? (
-    <Card
-      liteMode={true}
-      onMouseEnter={noop}
-      onMouseLeave={noop}
-      content={<pre>{JSON.stringify(dump.data, undefined, 2)}</pre>}
-    />
-  ) : null;
+  const dataCard =
+    dump?.data !== undefined ? (
+      <Card
+        liteMode={true}
+        onMouseEnter={noop}
+        onMouseLeave={noop}
+        content={<pre>{JSON.stringify(dump.data, undefined, 2)}</pre>}
+      />
+    ) : null;
 
   let assertionCard: JSX.Element | null = null;
   if (task?.type === 'Insight' && task.subType === 'Assert') {
