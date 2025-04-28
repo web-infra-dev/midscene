@@ -7,7 +7,6 @@ import { MidsceneManager } from './midscene.js';
 import { PROMPTS } from './prompts.js';
 
 declare const __VERSION__: string;
-process.env.IN_MIDSCENE_MCP = 'true';
 
 setIsMcp(true);
 

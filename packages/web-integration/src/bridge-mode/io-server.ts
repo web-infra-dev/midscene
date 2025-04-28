@@ -29,20 +29,18 @@ export class BridgeServer {
     public onDisconnect?: (reason: string) => void,
   ) {}
 
-  async listen(timeout = 30000): Promise<void> {
+  async listen(timeout = 30000 * 10000): Promise<void> {
     return new Promise((resolve, reject) => {
       if (this.listeningTimeoutId) {
         return reject(new Error('already listening'));
       }
 
       this.listeningTimeoutId = setTimeout(() => {
-        if (!process.env.IN_MIDSCENE_MCP) {
-          reject(
-            new Error(
-              `no extension connected after ${timeout}ms (${BridgeErrorCodeNoClientConnected})`,
-            ),
-          );
-        }
+        reject(
+          new Error(
+            `no extension connected after ${timeout}ms (${BridgeErrorCodeNoClientConnected})`,
+          ),
+        );
       }, timeout);
 
       this.connectionTipTimer =
@@ -200,10 +198,7 @@ export class BridgeServer {
 
     return new Promise((resolve, reject) => {
       const timeoutId = setTimeout(() => {
-        console.log(
-          `bridge call timeout, id=${id}, method=${method}, args=`,
-          args,
-        );
+        logMsg(`bridge call timeout, id=${id}, method=${method}, args=`, args);
         this.calls[id].error = new Error(
           `Bridge call timeout after ${timeout}ms: ${method}`,
         );

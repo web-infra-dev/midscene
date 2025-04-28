@@ -71,29 +71,46 @@ export class MidsceneManager {
 
     // Check if running in bridge mode (connecting to an existing Chrome instance).
     if (!this.puppeteerMode) {
-      // Create a new agent instance designed for bridge mode.
-      this.agent = new AgentOverChromeBridge();
-      // If this is the first initialization (not re-init),
-      if (!reInit) {
-        // Connect the agent to the currently active tab in the browser.
-        await this.agent.connectCurrentTab();
-        const tabsInfo = await this.agent.getBrowserTabList();
-        // Send active tab information in a well-structured format
-        this.sendActiveTabInfo(tabsInfo);
-      }
+      this.agent = await this.initAgentByBridgeMode(reInit);
     } else {
-      // If not in bridge mode, use Puppeteer to control a browser instance.
-      // Ensure a Puppeteer browser instance is running and get its details.
-      const { browser, pages } = await ensureBrowser({});
-      // Create a new, blank page (tab) in the browser.
-      const newPage = await browser.newPage();
-      // Navigate the new page to Google as a starting point.
-      await newPage.goto('https://google.com');
-      // Create a new Puppeteer-specific agent instance, controlling the browser and the new page.
-      this.agent = new PuppeteerBrowserAgent(browser, newPage);
+      this.agent = await this.initPuppeteerAgent();
     }
     // Return the newly created or re-initialized agent instance.
     return this.agent;
+  }
+
+  private async initAgentByBridgeMode(
+    reInit: boolean,
+  ): Promise<AgentOverChromeBridge> {
+    try {
+      // Create a new agent instance designed for bridge mode.
+      const agent = new AgentOverChromeBridge();
+      // If this is the first initialization (not re-init),
+      if (!reInit) {
+        // Connect the agent to the currently active tab in the browser.
+        await agent.connectCurrentTab();
+        const tabsInfo = await agent.getBrowserTabList();
+        // Send active tab information in a well-structured format
+        this.sendActiveTabInfo(tabsInfo);
+      }
+      return agent;
+    } catch (err) {
+      const agent = await this.initAgentByBridgeMode(reInit);
+      return agent;
+    }
+  }
+
+  private async initPuppeteerAgent() {
+    // If not in bridge mode, use Puppeteer to control a browser instance.
+    // Ensure a Puppeteer browser instance is running and get its details.
+    const { browser } = await ensureBrowser({});
+    // Create a new, blank page (tab) in the browser.
+    const newPage = await browser.newPage();
+    // Navigate the new page to Google as a starting point.
+    await newPage.goto('https://google.com');
+    // Create a new Puppeteer-specific agent instance, controlling the browser and the new page.
+    const agent = new PuppeteerBrowserAgent(browser, newPage);
+    return agent;
   }
 
   private registerTools() {
