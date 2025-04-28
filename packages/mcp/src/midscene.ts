@@ -72,7 +72,9 @@ export class MidsceneManager {
     // Check if running in bridge mode (connecting to an existing Chrome instance).
     if (!this.puppeteerMode) {
       // Create a new agent instance designed for bridge mode.
-      this.agent = new AgentOverChromeBridge();
+      this.agent = new AgentOverChromeBridge({
+        serverListeningTimeout: false,
+      });
       // If this is the first initialization (not re-init),
       if (!reInit) {
         // Connect the agent to the currently active tab in the browser.
