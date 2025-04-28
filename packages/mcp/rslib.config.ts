@@ -34,6 +34,27 @@ const copyReportTemplate = () => ({
         'utf-8',
       );
     });
+    api.onAfterBuild(({ compiler }) => {
+      const shebang = '#!/usr/bin/env node\n';
+
+      // Add shebang to index.cjs
+      const cjsPath = path.join(__dirname, 'dist', 'index.cjs');
+      if (fs.existsSync(cjsPath)) {
+        const content = fs.readFileSync(cjsPath, 'utf-8');
+        if (!content.startsWith(shebang)) {
+          fs.writeFileSync(cjsPath, shebang + content);
+        }
+      }
+
+      // Add shebang to index.js
+      const jsPath = path.join(__dirname, 'dist', 'index.js');
+      if (fs.existsSync(jsPath)) {
+        const content = fs.readFileSync(jsPath, 'utf-8');
+        if (!content.startsWith(shebang)) {
+          fs.writeFileSync(jsPath, shebang + content);
+        }
+      }
+    });
   },
 });
 
