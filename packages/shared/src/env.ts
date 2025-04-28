@@ -14,6 +14,7 @@ export const MIDSCENE_MCP_USE_PUPPETEER_MODE =
 export const MIDSCENE_FORCE_DEEP_THINK = 'MIDSCENE_FORCE_DEEP_THINK';
 
 export const MIDSCENE_OPENAI_SOCKS_PROXY = 'MIDSCENE_OPENAI_SOCKS_PROXY';
+export const MIDSCENE_OPENAI_HTTPS_PROXY = 'MIDSCENE_OPENAI_HTTPS_PROXY';
 export const OPENAI_API_KEY = 'OPENAI_API_KEY';
 export const OPENAI_BASE_URL = 'OPENAI_BASE_URL';
 export const OPENAI_MAX_TOKENS = 'OPENAI_MAX_TOKENS';
@@ -72,6 +73,8 @@ export const allConfigFromEnv = () => {
       process.env[MIDSCENE_REPORT_TAG_NAME] || undefined,
     [MIDSCENE_OPENAI_SOCKS_PROXY]:
       process.env[MIDSCENE_OPENAI_SOCKS_PROXY] || undefined,
+    [MIDSCENE_OPENAI_HTTPS_PROXY]:
+      process.env[MIDSCENE_OPENAI_HTTPS_PROXY] || undefined,
     [MIDSCENE_USE_AZURE_OPENAI]:
       process.env[MIDSCENE_USE_AZURE_OPENAI] || undefined,
     [MIDSCENE_AZURE_OPENAI_SCOPE]:
@@ -141,10 +144,10 @@ export const vlLocateMode = ():
   | false => {
   const enabledModes = [
     getAIConfigInBoolean(MIDSCENE_USE_DOUBAO_VISION) &&
-      'MIDSCENE_USE_DOUBAO_VISION',
+    'MIDSCENE_USE_DOUBAO_VISION',
     getAIConfigInBoolean(MIDSCENE_USE_QWEN_VL) && 'MIDSCENE_USE_QWEN_VL',
     getAIConfigInBoolean(MIDSCENE_USE_VLM_UI_TARS) &&
-      'MIDSCENE_USE_VLM_UI_TARS',
+    'MIDSCENE_USE_VLM_UI_TARS',
     getAIConfigInBoolean(MIDSCENE_USE_GEMINI) && 'MIDSCENE_USE_GEMINI',
   ].filter(Boolean);
 

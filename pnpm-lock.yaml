@@ -474,6 +474,9 @@ importers:
       dotenv:
         specifier: 16.4.5
         version: 16.4.5
+      https-proxy-agent:
+        specifier: 7.0.6
+        version: 7.0.6
       langsmith:
         specifier: 0.3.7
         version: 0.3.7(openai@4.81.0(ws@8.18.1)(zod@3.24.3))
