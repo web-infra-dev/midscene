@@ -3,7 +3,7 @@ import { assert } from '@midscene/shared/utils';
 
 import { randomUUID } from 'node:crypto';
 import { existsSync } from 'node:fs';
-import { puppeteerAgentForTarget } from '@/puppeteer';
+import { puppeteerAgentForTarget } from '@/puppeteer/agent-launcher';
 import { ScriptPlayer, buildYaml, parseYamlScript } from '@/yaml';
 import type { MidsceneYamlScriptWebEnv } from '@midscene/core';
 import { describe, expect, test, vi } from 'vitest';
