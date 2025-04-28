@@ -301,8 +301,6 @@ const DetailSide = (): JSX.Element => {
         const elementKV = kv(
           objectWithoutKeys(element as any, [
             'content',
-            // 'rect',
-            // 'center',
             'left',
             'top',
             'right',
@@ -445,7 +443,7 @@ const DetailSide = (): JSX.Element => {
       <PanelTitle title="Param" />
       {taskParam}
       {/* Response */}
-      <PanelTitle title="Output" />
+      <PanelTitle title={task?.subType === 'Locate' ? 'Element' : 'Output'} />
       <div className="item-list item-list-space-up">
         {errorSection}
         {dataCard}
