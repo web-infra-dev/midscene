@@ -13,7 +13,6 @@ export default defineConfig({
       utils: 'src/utils.ts',
       tree: 'src/tree.ts',
       'ai-model': 'src/ai-model/index.ts',
-      'report-tpl': 'src/report-tpl.ts',
     },
     externals: ['langsmith'],
     target: 'es2020',
