@@ -37,7 +37,6 @@ import {
 import { systemPromptToAssert } from './prompt/assertion';
 import { extractDataPrompt, systemPromptToExtract } from './prompt/extraction';
 import {
-  extractElementInfoPrompt,
   findElementPrompt,
   systemPromptToLocateElement,
 } from './prompt/llm-locator';
