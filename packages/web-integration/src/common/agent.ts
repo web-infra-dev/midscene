@@ -318,6 +318,35 @@ export class PageAgent<PageType extends WebPage = WebPage> {
     return output;
   }
 
+  async aiBoolean(prompt: string) {
+    const { output, executor } = await this.taskExecutor.boolean(prompt);
+    this.afterTaskRunning(executor);
+    return output.target;
+  }
+
+  async aiNumber(prompt: string) {
+    const { output, executor } = await this.taskExecutor.number(prompt);
+    this.afterTaskRunning(executor);
+    return output.target;
+  }
+
+  async aiString(prompt: string) {
+    const { output, executor } = await this.taskExecutor.string(prompt);
+    this.afterTaskRunning(executor);
+    return output.target;
+  }
+
+  async aiLocate(prompt: string, opt?: LocateOption) {
+    const detailedLocateParam = this.buildDetailedLocateParam(prompt, opt);
+    const plans = buildPlans('Locate', detailedLocateParam);
+    const { executor, output } = await this.taskExecutor.runPlans(
+      taskTitleStr('Locate', locateParamStr(detailedLocateParam)),
+      plans,
+    );
+    this.afterTaskRunning(executor);
+    return output;
+  }
+
   async aiAssert(assertion: string, msg?: string, opt?: AgentAssertOpt) {
     const { output, executor } = await this.taskExecutor.assert(assertion);
     this.afterTaskRunning(executor, true);

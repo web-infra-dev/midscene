@@ -33,6 +33,7 @@ import {
   vlmPlanning,
 } from '@midscene/core/ai-model';
 import { sleep } from '@midscene/core/utils';
+
 import { UITarsModelVersion } from '@midscene/shared/env';
 import { uiTarsModelVersion } from '@midscene/shared/env';
 import { vlLocateMode } from '@midscene/shared/env';
@@ -995,15 +996,19 @@ export class PageTaskExecutor {
     };
   }
 
-  async query(demand: InsightExtractParam): Promise<ExecutionResult> {
+  private async createTypeQueryTask<T>(
+    type: 'Query' | 'Boolean' | 'Number' | 'String',
+    demand: InsightExtractParam,
+  ): Promise<ExecutionResult<T>> {
     const description =
       typeof demand === 'string' ? demand : JSON.stringify(demand);
-    const taskExecutor = new Executor(taskTitleStr('Query', description), {
+    const taskExecutor = new Executor(taskTitleStr(type, description), {
       onTaskStart: this.onTaskStartCallback,
     });
+
     const queryTask: ExecutionTaskInsightQueryApply = {
       type: 'Insight',
-      subType: 'Query',
+      subType: type === 'Query' ? 'Query' : type,
       locate: null,
       param: {
         dataDemand: demand,
@@ -1031,6 +1036,25 @@ export class PageTaskExecutor {
       output,
       executor: taskExecutor,
     };
+  }
+
+  async query(demand: InsightExtractParam): Promise<ExecutionResult> {
+    return this.createTypeQueryTask('Query', demand);
+  }
+
+  async boolean(prompt: string): Promise<ExecutionResult<{ target: boolean }>> {
+    const demand = `${prompt}, boolean`;
+    return this.createTypeQueryTask<{ target: boolean }>('Boolean', demand);
+  }
+
+  async number(prompt: string): Promise<ExecutionResult<{ target: number }>> {
+    const demand = `${prompt}, number`;
+    return this.createTypeQueryTask<{ target: number }>('Number', demand);
+  }
+
+  async string(prompt: string): Promise<ExecutionResult<{ target: string }>> {
+    const demand = `${prompt}, string`;
+    return this.createTypeQueryTask<{ target: string }>('String', demand);
   }
 
   async assert(

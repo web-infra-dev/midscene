@@ -65,7 +65,11 @@ export function taskTitleStr(
     | 'Action'
     | 'Query'
     | 'Assert'
-    | 'WaitFor',
+    | 'WaitFor'
+    | 'Locate'
+    | 'Boolean'
+    | 'Number'
+    | 'String',
   prompt: string,
 ) {
   if (prompt) {
