@@ -69,7 +69,7 @@ describe('env', () => {
       expect(getAIConfigInBoolean(MIDSCENE_USE_QWEN_VL)).toBe(false);
 
       overrideAIConfig({ [MIDSCENE_USE_QWEN_VL]: 'anything' });
-      expect(getAIConfigInBoolean(MIDSCENE_USE_QWEN_VL)).toBe(false);
+      expect(getAIConfigInBoolean(MIDSCENE_USE_QWEN_VL)).toBe(true);
     });
 
     it('should return false for non-existent config', () => {

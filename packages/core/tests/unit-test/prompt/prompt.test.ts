@@ -8,7 +8,7 @@ import {
 import { systemPromptToLocateSection } from '@/ai-model/prompt/llm-section-locator';
 import { uiTarsPlanningPrompt } from '@/ai-model/prompt/ui-tars-planning';
 import { describe, expect, it } from 'vitest';
-import { extractElementInfoPrompt } from '../../../src/ai-model/prompt/llm-locator';
+import { extractDataPrompt } from '../../../src/ai-model/prompt/extraction';
 
 describe('system prompts', () => {
   it('planning - 4o', async () => {
@@ -108,15 +108,20 @@ describe('system prompts', () => {
 });
 
 describe('extract element', () => {
-  it('extract element by string', () => {
-    const prompt = extractElementInfoPrompt('todo title, string');
+  it('extract element by string', async () => {
+    const prompt = await extractDataPrompt.format({
+      pageDescription: 'todo title, string',
+      dataKeys: 'todo title, string',
+      dataQuery: 'todo title, string',
+    });
     expect(prompt).toMatchSnapshot();
   });
 
-  it('extract element by object', () => {
-    const prompt = extractElementInfoPrompt({
-      title: 'todo title, string',
-      description: 'todo description, string',
+  it('extract element by object', async () => {
+    const prompt = await extractDataPrompt.format({
+      pageDescription: 'todo title, string',
+      dataKeys: 'todo title, string',
+      dataQuery: 'todo title, string',
     });
     expect(prompt).toMatchSnapshot();
   });

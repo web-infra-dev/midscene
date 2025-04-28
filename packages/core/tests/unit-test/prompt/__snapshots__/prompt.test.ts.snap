@@ -1,8 +1,34 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
-exports[`extract element > extract element by object 1`] = `"return in key-value style object, keys are title,description"`;
+exports[`extract element > extract element by object 1`] = `
+"
+pageDescription: todo title, string
 
-exports[`extract element > extract element by string 1`] = `"return in key-value style object, key is result"`;
+Use your extract_data_from_UI skill to find the following data, placing it in the \`data\` field
+DATA_DEMAND start:
+=====================================
+todo title, string
+
+todo title, string
+=====================================
+DATA_DEMAND ends.
+  "
+`;
+
+exports[`extract element > extract element by string 1`] = `
+"
+pageDescription: todo title, string
+
+Use your extract_data_from_UI skill to find the following data, placing it in the \`data\` field
+DATA_DEMAND start:
+=====================================
+todo title, string
+
+todo title, string
+=====================================
+DATA_DEMAND ends.
+  "
+`;
 
 exports[`system prompts > locator - 4o 1`] = `
 "
