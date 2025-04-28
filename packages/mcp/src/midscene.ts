@@ -82,11 +82,12 @@ export class MidsceneManager {
   private async initAgentByBridgeMode(
     reInit: boolean,
   ): Promise<AgentOverChromeBridge> {
-    // Create a new agent instance designed for bridge mode.
-    const agent = new AgentOverChromeBridge({
-      serverListeningTimeout: false,
-    });
+    let agent: AgentOverChromeBridge;
     try {
+      // Create a new agent instance designed for bridge mode.
+      agent = new AgentOverChromeBridge({
+        serverListeningTimeout: false,
+      });
       // If this is the first initialization (not re-init),
       if (!reInit) {
         // Connect the agent to the currently active tab in the browser.
@@ -97,7 +98,10 @@ export class MidsceneManager {
       }
       return agent;
     } catch (err) {
-      await agent.destroy();
+      //@ts-ignore
+      if (agent) {
+        await agent.destroy();
+      }
       return await this.initAgentByBridgeMode(reInit);
     }
   }
