@@ -1,6 +1,6 @@
 import SetupEnv from './common/setup-env.mdx';
 
-# Integrating with MCP
+# MCP Server
 
 Midscene provides a MCP server that allows AI assistants to control browsers, automate web tasks and write automation scripts for Midscene.
 
@@ -40,7 +40,6 @@ Add the Midscene MCP server to your MCP configuration:
       "command": "npx",
       "args": ["-y", "@midscene/mcp"],
       "env": {
-        "MIDSCENE_OPENAI_INIT_CONFIG_JSON": "REPLACE_WITH_YOUR_OPENAI_INIT_CONFIG_JSON",
         "MIDSCENE_MODEL_NAME": "REPLACE_WITH_YOUR_MODEL_NAME",
         "OPENAI_API_KEY": "REPLACE_WITH_YOUR_OPENAI_API_KEY",
         "MCP_SERVER_REQUEST_TIMEOUT": "800000"

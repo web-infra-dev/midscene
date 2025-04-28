@@ -25,7 +25,7 @@ Extra configs to use `UI-TARS` model:
 
 | Name | Description |
 |------|-------------|
-| `MIDSCENE_USE_VLM_UI_TARS` | Version of UI-TARS model, supported values are `1.0` `1.5` `DOUBAO` (volcengine version) |
+| `MIDSCENE_USE_VLM_UI_TARS` | Version of UI-TARS model, supported values are `1.0` `1.5` `DOUBAO-1.5` (volcengine version) |
 
 Extra configs to use `Gemini 2.5 Pro` model:
 

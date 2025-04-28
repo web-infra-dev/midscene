@@ -1,6 +1,6 @@
 import SetupEnv from './common/setup-env.mdx';
 
-# 集成到 MCP
+# MCP 服务
 
 Midscene 提供了 MCP 服务，允许 AI 助手通过自然语言命令控制浏览器，自动化执行 UI 任务，以及生成 Midscene 自动化脚本。
 
@@ -39,7 +39,6 @@ Midscene 提供了 MCP 服务，允许 AI 助手通过自然语言命令控制�
       "command": "npx",
       "args": ["-y", "@midscene/mcp"],
       "env": {
-        "MIDSCENE_OPENAI_INIT_CONFIG_JSON": "REPLACE_WITH_YOUR_OPENAI_INIT_CONFIG_JSON",
         "MIDSCENE_MODEL_NAME": "REPLACE_WITH_YOUR_MODEL_NAME",
         "OPENAI_API_KEY": "REPLACE_WITH_YOUR_OPENAI_API_KEY",
         "MCP_SERVER_REQUEST_TIMEOUT": "800000"

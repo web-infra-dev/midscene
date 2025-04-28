@@ -54,7 +54,7 @@ You can use `doubao-1.5-ui-tars` on [Volcengine](https://www.volcengine.com):
 OPENAI_BASE_URL="https://ark.cn-beijing.volces.com/api/v3" 
 OPENAI_API_KEY="...."
 MIDSCENE_MODEL_NAME="ep-2025..."
-MIDSCENE_USE_VLM_UI_TARS=DOUBAO
+MIDSCENE_USE_VLM_UI_TARS=DOUBAO-1.5
 ```
 
 ## Models in Depth
@@ -92,6 +92,7 @@ GPT-4o is a multimodal LLM by OpenAI, which supports image input. This is the de
 - **Content limitation**: it will not work if the target element is inside a cross-origin `<iframe />` or `<canvas />`.
 - **Low resolution support**: the upper limit of the resolution is 2000 x 768. For images larger than this, the output quality will be lower.
 - **Not good at small icon recognition**: it may not work well if the target element is a small icon.
+- **Not supported for Android automation**: it does not support Android automation.
 
 **Config**
 
@@ -105,7 +106,7 @@ MIDSCENE_MODEL_NAME="gpt-4o-2024-11-20" # optional. The default is "gpt-4o".
 
 From 0.12.0 version, Midscene.js supports Qwen-2.5-VL-72B-Instruct model.
 
-Qwen-2.5-VL is an open-source model published by Alibaba. It provides Visual Grounding ability, which can accurately return the coordinates of target elements on the page. In most of the cases, it performs as good as (or sometimes better than) GPT-4o. We recommend using the largest version (72B) for reliable output.
+Qwen-2.5-VL is an open-source model published by Alibaba. It provides Visual Grounding ability, which can accurately return the coordinates of target elements on the page. When using it for interaction, assertion and query, it performs quite well. We recommend using the largest version (72B) for reliable output.
 
 Qwen-2.5-VL indeed has an action planning feature to control the application, but we still recommend using detailed prompts to provide a more stable and reliable result.
 
@@ -117,7 +118,7 @@ Qwen-2.5-VL indeed has an action planning feature to control the application, bu
 
 **Limitations when used in Midscene.js**
 
-- **Not good at small icon recognition**: like GPT-4o, it may be hard to describe the target element if it's a very small icon.
+- **Not good at small icon recognition**: to recognize small icons, you may need to [enable the `deepThink` parameter](./blog-introducing-instant-actions-and-deep-think) and optimize the description, otherwise the recognition result may not be accurate.
 - **Perform not that good on assertion**: it may not work as well as GPT-4o on assertion. 
 
 **Config**
@@ -169,15 +170,15 @@ When using UI-TARS, you can use target-driven style prompts, like "Login with us
 
 **Features**
 
-- **Speed**: A private-deployed UI-TARS model can be 5x faster than GPT-4o. Each step of `.ai` call can be processed in 1-2 seconds on a high-performance GPU server.
+- **Exploratory**: it performs well on exploratory tasks, like "Help me send a tweet". It can try different paths to achieve the goal.
+- **Speed**: Take the `doubao-1.5-ui-tars` deployed on volcengine as an example, its response time is obviously faster than other models.
 - **Native image recognition**: Like Qwen-2.5-VL, UI-TARS can recognize the image directly from the screenshot, so Midscene.js does not need to extract the dom tree.
 - **Open-source**: you can deploy it on your own server and your data will no longer be sent to the cloud.
-- **More stable with short prompt**: ⁠UI-TARS is optimized for UI automation and is capable of handling more complex tasks with target-driven prompts. It performs better than GPT-4o and Qwen-2.5-VL on short prompts.
 
 **Limitations when used in Midscene.js**
 
 - **Perform not good on assertion**: it may not work as well as GPT-4o and Qwen 2.5 on assertion and query.
-- **Need to deploy yourself**: you need to deploy the model by yourself
+- **Not stable on action path**: It may try different paths to achieve the goal, so the action path is not stable each time you call it.
 
 **Config**
 
