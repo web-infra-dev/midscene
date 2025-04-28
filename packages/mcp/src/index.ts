@@ -34,34 +34,6 @@ server.tool(
   },
 );
 
-server.resource(
-  'playwright-example',
-  'file:///playwright-example.mdx',
-  async (uri) => ({
-    contents: [
-      {
-        uri: uri.href,
-        text: PROMPTS.PLAYWRIGHT_CODE_EXAMPLE,
-        mimeType: 'text/plain',
-      },
-    ],
-  }),
-);
-
-server.resource(
-  'midscene-api-docs',
-  'file:///midscene-api-docs.mdx',
-  async (uri) => ({
-    contents: [
-      {
-        uri: uri.href,
-        text: PROMPTS.MIDSCENE_API_DOCS,
-        mimeType: 'text/plain',
-      },
-    ],
-  }),
-);
-
 const midsceneManager = new MidsceneManager(server);
 
 async function runServer() {
