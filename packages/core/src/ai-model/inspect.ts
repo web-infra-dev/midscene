@@ -11,7 +11,6 @@ import type {
   ElementById,
   ElementTreeNode,
   Rect,
-  Size,
   UIContext,
 } from '@/types';
 import {

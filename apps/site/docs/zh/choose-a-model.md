@@ -42,7 +42,7 @@ MIDSCENE_USE_QWEN_VL=1
 OPENAI_BASE_URL="https://ark.cn-beijing.volces.com/api/v3" 
 OPENAI_API_KEY="...."
 MIDSCENE_MODEL_NAME="ep-2025..." # 火山引擎的推理点名称
-MIDSCENE_USE_VLM_UI_TARS=1
+MIDSCENE_USE_VLM_UI_TARS=DOUBAO
 ```
 
 ### Google 提供的 Gemini 2.5 Pro
@@ -164,15 +164,14 @@ UI-TARS 是一个专为 UI 自动化设计的开源模型。它仅以截图作�
 
 **配置**
 
-除了常规配置，你还需要包含 `MIDSCENE_USE_VLM_UI_TARS=1` 配置来启用 UI-TARS 模式。否则，你会遇到一些 JSON 解析错误。
+除了常规配置，你还需要包含 `MIDSCENE_USE_VLM_UI_TARS` 参数来指定 UI-TARS 版本，支持的值为 `1.0` `1.5` `DOUBAO`（火山云版本）。否则，你会遇到一些 JSON 解析错误。
 
 ```bash
 OPENAI_BASE_URL="....."
 OPENAI_API_KEY="......" 
 MIDSCENE_MODEL_NAME="ui-tars-7b-sft"
-MIDSCENE_USE_VLM_UI_TARS=1 # 别忘了配置这项用于 UI-TARS 模式！
+MIDSCENE_USE_VLM_UI_TARS=DOUBAO # 别忘了配置这项用于 UI-TARS 模式！
 ```
-Cloud](https://cloud.google.com/gemini-api/docs/gemini-25-overview)
 
 **使用火山云提供的版本**
 

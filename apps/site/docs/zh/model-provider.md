@@ -22,19 +22,19 @@ Midscene 默认集成了 OpenAI SDK 调用 AI 服务。使用这个 SDK 限定�
 
 | 名称 | 描述 |
 |------|-------------|
-| `MIDSCENE_USE_QWEN_VL` | 可选。设置为 "1" 以适配 Qwen 2.5 VL 模型 |
+| `MIDSCENE_USE_QWEN_VL` | 设置为 "1" 以适配 Qwen 2.5 VL 模型 |
 
 使用 `UI-TARS` 模型的额外配置：
 
 | 名称 | 描述 |
 |------|-------------|
-| `MIDSCENE_USE_VLM_UI_TARS` | 可选。设置为 "1" 以适配 UI-TARS 模型 |
+| `MIDSCENE_USE_VLM_UI_TARS` | 指定 UI-TARS 版本，支持的值为 `1.0` `1.5` `DOUBAO`（火山云版本） |
 
 使用 `Gemini 2.5 Pro` 模型的额外配置：
 
 | 名称 | 描述 |
 |------|-------------|
-| `MIDSCENE_USE_GEMINI` | 可选。设置为 "1" 以适配 Gemini 2.5 Pro 模型 |
+| `MIDSCENE_USE_GEMINI` | 设置为 "1" 以适配 Gemini 2.5 Pro 模型 |
 
 关于模型的更多信息，请参阅 [选择 AI 模型](./choose-a-model)。
 

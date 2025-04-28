@@ -54,7 +54,7 @@ You can use `doubao-1.5-ui-tars` on [Volcengine](https://www.volcengine.com):
 OPENAI_BASE_URL="https://ark.cn-beijing.volces.com/api/v3" 
 OPENAI_API_KEY="...."
 MIDSCENE_MODEL_NAME="ep-2025..."
-MIDSCENE_USE_VLM_UI_TARS=1
+MIDSCENE_USE_VLM_UI_TARS=DOUBAO
 ```
 
 ## Models in Depth
@@ -181,13 +181,13 @@ When using UI-TARS, you can use target-driven style prompts, like "Login with us
 
 **Config**
 
-Except for the regular config, you need to include the `MIDSCENE_USE_VLM_UI_TARS=1` config to turn on UI-TARS mode. Otherwise, you will get some JSON parsing error.
+Except for the regular config, you need to include the `MIDSCENE_USE_VLM_UI_TARS` parameter to specify the UI-TARS version, supported values are `1.0` `1.5` `DOUBAO` (volcengine version). Otherwise, you will get some JSON parsing error.
 
 ```bash
 OPENAI_BASE_URL="....."
 OPENAI_API_KEY="......" 
 MIDSCENE_MODEL_NAME="ui-tars-72b-sft"
-MIDSCENE_USE_VLM_UI_TARS=1 # remember to include this for UI-TARS mode !
+MIDSCENE_USE_VLM_UI_TARS=DOUBAO # remember to include this for UI-TARS mode !
 ```
 
 Links:

@@ -1,5 +1,7 @@
 import type { PlanningAction } from '@/types';
+import { uiTarsModelVersion } from '@midscene/shared/env';
 import { transformHotkeyInput } from '@midscene/shared/keyboard-layout';
+import { getDebug } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
 import { actionParser } from '@ui-tars/action-parser';
 import type { ChatCompletionMessageParam } from 'openai/resources';
@@ -18,6 +20,7 @@ type ActionType =
   | 'androidHomeButton'
   | 'androidRecentAppsButton';
 
+const debug = getDebug('ui-tars-planning');
 const bboxSize = 10;
 const pointToBbox = (
   point: { x: number; y: number },
@@ -55,10 +58,21 @@ export async function vlmPlanning(options: {
     AIActionType.INSPECT_ELEMENT,
   );
   const convertedText = convertBboxToCoordinates(res.content);
+
+  const modelVer = uiTarsModelVersion();
+
   const { parsed } = actionParser({
     prediction: convertedText,
-    factor: 1000,
+    factor: [1000, 1000],
+    screenContext: {
+      width: size.width,
+      height: size.height,
+    },
+    modelVer: modelVer || undefined,
   });
+
+  debug('modelVer', modelVer, 'parsed', JSON.stringify(parsed));
+
   const transformActions: PlanningAction[] = [];
   parsed.forEach((action) => {
     if (action.action_type === 'click') {
@@ -128,17 +142,22 @@ export async function vlmPlanning(options: {
         thought: action.thought || '',
       });
     } else if (action.action_type === 'hotkey') {
-      assert(action.action_inputs.key, 'key is required');
-      const keys = transformHotkeyInput(action.action_inputs.key);
+      if (!action.action_inputs.key) {
+        console.warn(
+          'No key found in action: hotkey. Will not perform action.',
+        );
+      } else {
+        const keys = transformHotkeyInput(action.action_inputs.key);
 
-      transformActions.push({
-        type: 'KeyboardPress',
-        param: {
-          value: keys,
-        },
-        locate: null,
-        thought: action.thought || '',
-      });
+        transformActions.push({
+          type: 'KeyboardPress',
+          param: {
+            value: keys,
+          },
+          locate: null,
+          thought: action.thought || '',
+        });
+      }
     } else if (action.action_type === 'wait') {
       transformActions.push({
         type: 'Sleep',
