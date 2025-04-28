@@ -451,7 +451,7 @@ export type ExecutionTaskInsightLocate =
 task - insight-query
 */
 export interface ExecutionTaskInsightQueryParam {
-  dataDemand: InsightExtractParam | string;
+  dataDemand: InsightExtractParam;
 }
 
 export interface ExecutionTaskInsightQueryOutput {

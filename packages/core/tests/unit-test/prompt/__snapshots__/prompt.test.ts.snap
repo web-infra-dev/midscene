@@ -1,21 +1,6 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
-exports[`extract element > extract element by object 1`] = `
-"
-pageDescription: todo title, string
-
-Use your extract_data_from_UI skill to find the following data, placing it in the \`data\` field
-DATA_DEMAND start:
-=====================================
-todo title, string
-
-todo title, string
-=====================================
-DATA_DEMAND ends.
-  "
-`;
-
-exports[`extract element > extract element by string 1`] = `
+exports[`extract element > extract element by extractDataPrompt 1`] = `
 "
 pageDescription: todo title, string
 
