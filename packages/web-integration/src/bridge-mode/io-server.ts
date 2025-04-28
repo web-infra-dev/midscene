@@ -202,10 +202,7 @@ export class BridgeServer {
 
     return new Promise((resolve, reject) => {
       const timeoutId = setTimeout(() => {
-        console.log(
-          `bridge call timeout, id=${id}, method=${method}, args=`,
-          args,
-        );
+        logMsg(`bridge call timeout, id=${id}, method=${method}, args=`, args);
         this.calls[id].error = new Error(
           `Bridge call timeout after ${timeout}ms: ${method}`,
         );
