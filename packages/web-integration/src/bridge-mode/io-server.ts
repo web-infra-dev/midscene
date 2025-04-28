@@ -36,11 +36,13 @@ export class BridgeServer {
       }
 
       this.listeningTimeoutId = setTimeout(() => {
-        reject(
-          new Error(
-            `no extension connected after ${timeout}ms (${BridgeErrorCodeNoClientConnected})`,
-          ),
-        );
+        if (!process.env.IN_MIDSCENE_MCP) {
+          reject(
+            new Error(
+              `no extension connected after ${timeout}ms (${BridgeErrorCodeNoClientConnected})`,
+            ),
+          );
+        }
       }, timeout);
 
       this.connectionTipTimer =
