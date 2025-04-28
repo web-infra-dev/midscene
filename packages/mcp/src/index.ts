@@ -56,6 +56,6 @@ runServer().catch(console.error);
 
 process.stdin.on('close', () => {
   console.error('Midscene MCP Server closing, cleaning up browser...');
-  midsceneManager.closeBrowser().catch(console.error);
   server.close();
+  midsceneManager.closeBrowser().catch(console.error);
 });

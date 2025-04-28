@@ -9,9 +9,7 @@
       "require": "./dist/index.cjs"
     }
   },
-  "bin": {
-    "midscene-mcp": "dist/index.cjs"
-  },
+  "bin": "dist/index.cjs",
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
