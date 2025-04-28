@@ -184,7 +184,8 @@ FOR /F "tokens=5" %i IN ('netstat -ano ^| findstr :3766') DO taskkill /F /PID %i
 在每次执行完任务后都会生成 Midscene 任务报告，可以在命令行直接打开该 html 报告
 
 ```bash
-open xxx.html
+# 将打开的地址替换为你的报告文件名
+open report_file_name.html
 ```
 
 ![image](https://lf3-static.bytednsdoc.com/obj/eden-cn/ozpmyhn_lm_hymuPild/ljhwZthlaukjlkulzlp/midscene/image.png)

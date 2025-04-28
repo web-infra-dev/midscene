@@ -185,7 +185,8 @@ FOR /F "tokens=5" %i IN ('netstat -ano ^| findstr :3766') DO taskkill /F /PID %i
 After each task execution, a Midscene task report is generated. You can open this HTML report directly from the command line:
 
 ```bash
-open xxx.html
+# Replace the opened address with your report filename
+open report_file_name.html
 ```
 
 ![image](https://lf3-static.bytednsdoc.com/obj/eden-cn/ozpmyhn_lm_hymuPild/ljhwZthlaukjlkulzlp/midscene/image.png)
