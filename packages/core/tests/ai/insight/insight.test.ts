@@ -67,8 +67,8 @@ test.skip('insight locate with search area', async () => {
   await sleep(3000);
 });
 
-describe.only('insight describe', () => {
-  test('insight describe', async () => {
+describe('insight describe', () => {
+  test('insight describe - by rect', async () => {
     const { context } = await getContextFromFixture('taobao');
     const insight = new Insight(context);
     const { description } = await insight.describe({
@@ -77,6 +77,14 @@ describe.only('insight describe', () => {
       width: 80,
       height: 30,
     });
+
+    expect(description).toBeDefined();
+  });
+
+  test('insight describe - by center point', async () => {
+    const { context } = await getContextFromFixture('taobao');
+    const insight = new Insight(context);
+    const { description } = await insight.describe([580, 140]);
 
     expect(description).toBeDefined();
   });
