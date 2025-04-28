@@ -1,6 +1,6 @@
 {
   "name": "@midscene/android",
-  "version": "0.16.1",
+  "version": "0.16.2",
   "description": "Android automation library for Midscene",
   "main": "./dist/lib/index.js",
   "types": "./dist/types/index.d.ts",
