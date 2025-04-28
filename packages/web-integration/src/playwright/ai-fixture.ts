@@ -81,7 +81,11 @@ export const PlaywrightAiFixture = (options?: {
       | 'aiTap'
       | 'aiQuery'
       | 'aiAssert'
-      | 'aiWaitFor';
+      | 'aiWaitFor'
+      | 'aiLocate'
+      | 'aiNumber'
+      | 'aiString'
+      | 'aiBoolean';
   }) {
     const { page, testInfo, use, aiActionType } = options;
     const agent = createOrReuseAgentForPage(page, testInfo) as PlaywrightAgent;
@@ -272,6 +276,54 @@ export const PlaywrightAiFixture = (options?: {
         aiActionType: 'aiWaitFor',
       });
     },
+    aiLocate: async (
+      { page }: { page: OriginPlaywrightPage },
+      use: any,
+      testInfo: TestInfo,
+    ) => {
+      await generateAiFunction({
+        page,
+        testInfo,
+        use,
+        aiActionType: 'aiLocate',
+      });
+    },
+    aiNumber: async (
+      { page }: { page: OriginPlaywrightPage },
+      use: any,
+      testInfo: TestInfo,
+    ) => {
+      await generateAiFunction({
+        page,
+        testInfo,
+        use,
+        aiActionType: 'aiNumber',
+      });
+    },
+    aiString: async (
+      { page }: { page: OriginPlaywrightPage },
+      use: any,
+      testInfo: TestInfo,
+    ) => {
+      await generateAiFunction({
+        page,
+        testInfo,
+        use,
+        aiActionType: 'aiString',
+      });
+    },
+    aiBoolean: async (
+      { page }: { page: OriginPlaywrightPage },
+      use: any,
+      testInfo: TestInfo,
+    ) => {
+      await generateAiFunction({
+        page,
+        testInfo,
+        use,
+        aiActionType: 'aiBoolean',
+      });
+    },
   };
 };
 
@@ -301,4 +353,16 @@ export type PlayWrightAiFixtureType = {
     ...args: Parameters<PageAgent['aiAssert']>
   ) => ReturnType<PageAgent['aiAssert']>;
   aiWaitFor: (assertion: string, opt?: AgentWaitForOpt) => Promise<void>;
+  aiLocate: (
+    ...args: Parameters<PageAgent['aiLocate']>
+  ) => ReturnType<PageAgent['aiLocate']>;
+  aiNumber: (
+    ...args: Parameters<PageAgent['aiNumber']>
+  ) => ReturnType<PageAgent['aiNumber']>;
+  aiString: (
+    ...args: Parameters<PageAgent['aiString']>
+  ) => ReturnType<PageAgent['aiString']>;
+  aiBoolean: (
+    ...args: Parameters<PageAgent['aiBoolean']>
+  ) => ReturnType<PageAgent['aiBoolean']>;
 };

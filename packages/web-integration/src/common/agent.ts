@@ -345,10 +345,12 @@ export class PageAgent<PageType extends WebPage = WebPage> {
       plans,
     );
     this.afterTaskRunning(executor);
-    const { rect, center } = output;
+
+    const { element } = output;
+
     return {
-      rect,
-      center,
+      rect: element?.rect,
+      center: element?.center,
     } as Pick<LocateResultElement, 'rect' | 'center'>;
   }
 
