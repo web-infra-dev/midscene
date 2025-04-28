@@ -9,6 +9,7 @@ import {
   Insight,
   type InsightAction,
   type LocateOption,
+  type LocateResultElement,
   type OnTaskStartTip,
   type PlanningActionParamScroll,
 } from '@midscene/core';
@@ -344,7 +345,11 @@ export class PageAgent<PageType extends WebPage = WebPage> {
       plans,
     );
     this.afterTaskRunning(executor);
-    return output;
+    const { rect, center } = output;
+    return {
+      rect,
+      center,
+    } as Pick<LocateResultElement, 'rect' | 'center'>;
   }
 
   async aiAssert(assertion: string, msg?: string, opt?: AgentAssertOpt) {
