@@ -6,9 +6,10 @@ import {
   systemPromptToTaskPlanning,
 } from '@/ai-model/prompt/llm-planning';
 import { systemPromptToLocateSection } from '@/ai-model/prompt/llm-section-locator';
-import { uiTarsPlanningPrompt } from '@/ai-model/prompt/ui-tars-planning';
-import { describe, expect, it } from 'vitest';
+import { getUiTarsPlanningPrompt } from '@/ai-model/prompt/ui-tars-planning';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { extractDataPrompt } from '../../../src/ai-model/prompt/extraction';
+import { mockNonChinaTimeZone, restoreIntl } from '../mocks/intl-mock';
 
 describe('system prompts', () => {
   it('planning - 4o', async () => {
@@ -102,8 +103,14 @@ describe('system prompts', () => {
   });
 
   it('ui-tars planning', () => {
-    const prompt = uiTarsPlanningPrompt;
+    // Mock Intl to ensure non-China timezone
+    mockNonChinaTimeZone();
+
+    const prompt = getUiTarsPlanningPrompt();
     expect(prompt).toMatchSnapshot();
+
+    // Restore original Intl
+    restoreIntl();
   });
 });
 
