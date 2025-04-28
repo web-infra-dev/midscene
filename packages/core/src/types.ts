@@ -112,6 +112,11 @@ export interface AIAssertionResponse {
   thought: string;
 }
 
+export interface AIDescribeElementResponse {
+  description: string;
+  error?: string;
+}
+
 /**
  * context
  */
@@ -150,7 +155,7 @@ export interface InsightOptions {
 
 export type EnsureObject<T> = { [K in keyof T]: any };
 
-export type InsightAction = 'locate' | 'extract' | 'assert';
+export type InsightAction = 'locate' | 'extract' | 'assert' | 'describe';
 
 export type InsightExtractParam = string | Record<string, string>;
 
@@ -378,7 +383,7 @@ export interface ExecutionTaskApply<
     param: TaskParam,
     context: ExecutorContext,
   ) => // biome-ignore lint/suspicious/noConfusingVoidType: <explanation>
-    | Promise<ExecutionTaskReturn<TaskOutput, TaskLog> | undefined | void>
+  | Promise<ExecutionTaskReturn<TaskOutput, TaskLog> | undefined | void>
     | undefined
     | void;
 }

@@ -34,6 +34,7 @@ export enum AIActionType {
   INSPECT_ELEMENT = 1,
   EXTRACT_DATA = 2,
   PLAN = 3,
+  DESCRIBE_ELEMENT = 4,
 }
 
 export async function callAiFn<T>(

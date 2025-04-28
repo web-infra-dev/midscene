@@ -66,3 +66,18 @@ test.skip('insight locate with search area', async () => {
   console.log(element, rect);
   await sleep(3000);
 });
+
+describe.only('insight describe', () => {
+  test('insight describe', async () => {
+    const { context } = await getContextFromFixture('taobao');
+    const insight = new Insight(context);
+    const { description } = await insight.describe({
+      left: 580,
+      top: 140,
+      width: 80,
+      height: 30,
+    });
+
+    expect(description).toBeDefined();
+  });
+});

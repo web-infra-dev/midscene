@@ -1,7 +1,13 @@
-import { callAiFn } from '@/ai-model/common';
-import { AiExtractElementInfo, AiLocateElement } from '@/ai-model/index';
+import { AIActionType, type AIArgs, callAiFn } from '@/ai-model/common';
+import {
+  AiExtractElementInfo,
+  AiLocateElement,
+  callToGetJSONObject,
+} from '@/ai-model/index';
 import { AiAssert, AiLocateSection } from '@/ai-model/inspect';
+import { elementDescriberInstruction } from '@/ai-model/prompt/describe';
 import type {
+  AIDescribeElementResponse,
   AIElementResponse,
   AISingleElementResponse,
   AIUsageInfo,
@@ -23,6 +29,7 @@ import {
   getAIConfigInBoolean,
   vlLocateMode,
 } from '@midscene/shared/env';
+import { compositeElementInfoImg } from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
 import { emitInsightDump } from './utils';
@@ -329,5 +336,52 @@ export default class Insight<
       thought,
       usage: assertResult.usage,
     };
+  }
+
+  async describe(
+    target: Rect,
+  ): Promise<Pick<AIDescribeElementResponse, 'description'>> {
+    assert(target, 'target is required for insight.describe');
+    const context = await this.contextRetrieverFn('describe');
+    const { screenshotBase64 } = context;
+    assert(screenshotBase64, 'screenshot is required for insight.describe');
+
+    const systemPrompt = elementDescriberInstruction();
+
+    const imageMarkedBase64 = await compositeElementInfoImg({
+      inputImgBase64: screenshotBase64,
+      elementsPositionInfo: [
+        {
+          rect: target,
+        },
+      ],
+      borderThickness: 3,
+    });
+
+    const msgs: AIArgs = [
+      { role: 'system', content: systemPrompt },
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'image_url',
+            image_url: {
+              url: imageMarkedBase64,
+              detail: 'high',
+            },
+          },
+        ],
+      },
+    ];
+
+    const callAIFn =
+      this.aiVendorFn || callToGetJSONObject<AIDescribeElementResponse>;
+
+    const res = await callAIFn(msgs, AIActionType.DESCRIBE_ELEMENT);
+
+    const { content } = res;
+    assert(!content.error, `describe failed: ${content.error}`);
+    assert(content.description, 'failed to describe the element');
+    return content;
   }
 }

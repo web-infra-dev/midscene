@@ -1,6 +1,6 @@
 import assert from 'node:assert';
 import type Jimp from 'jimp';
-import type { BaseElement } from '../types';
+import type { BaseElement, Rect } from '../types';
 import getJimp from './get-jimp';
 import { bufferFromBase64, imageInfoOfBase64 } from './index';
 
@@ -21,11 +21,17 @@ const loadFonts = async () => {
   }
 };
 
+interface ElementForOverlay {
+  rect: Rect;
+  indexId?: number;
+}
+
 const createSvgOverlay = async (
-  elements: Array<BaseElement>,
+  elements: Array<ElementForOverlay>,
   imageWidth: number,
   imageHeight: number,
   boxPadding = 5,
+  borderThickness = 2,
 ): Promise<Jimp> => {
   const Jimp = await getJimp();
   const image = new Jimp(imageWidth, imageHeight, 0x00000000);
@@ -65,10 +71,12 @@ const createSvgOverlay = async (
       paddedRect.height,
       (x: number, y: number, idx: number): void => {
         if (
-          x === paddedRect.left ||
-          x === paddedRect.left + paddedRect.width - 1 ||
-          y === paddedRect.top ||
-          y === paddedRect.top + paddedRect.height - 1
+          (x >= paddedRect.left && x < paddedRect.left + borderThickness) || // Left border
+          (x <= paddedRect.left + paddedRect.width - 1 &&
+            x > paddedRect.left + paddedRect.width - borderThickness) || // Right border
+          (y >= paddedRect.top && y < paddedRect.top + borderThickness) || // Top border
+          (y <= paddedRect.top + paddedRect.height - 1 &&
+            y > paddedRect.top + paddedRect.height - borderThickness) // Bottom border
         ) {
           image.bitmap.data[idx + 0] = (color.rect >> 24) & 0xff; // R
           image.bitmap.data[idx + 1] = (color.rect >> 16) & 0xff; // G
@@ -192,9 +200,10 @@ const createSvgOverlay = async (
 
 export const compositeElementInfoImg = async (options: {
   inputImgBase64: string;
-  elementsPositionInfo: Array<BaseElement>;
+  elementsPositionInfo: Array<ElementForOverlay>;
   size?: { width: number; height: number };
   annotationPadding?: number;
+  borderThickness?: number;
 }) => {
   assert(options.inputImgBase64, 'inputImgBase64 is required');
   let width = 0;
@@ -237,6 +246,7 @@ export const compositeElementInfoImg = async (options: {
         width,
         height,
         options.annotationPadding,
+        options.borderThickness,
       );
       const svgImage = await Jimp.read(svgOverlay);
       const compositeImage = await image.composite(svgImage, 0, 0, {

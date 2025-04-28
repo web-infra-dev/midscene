@@ -1,7 +1,6 @@
 import type { ResponseFormatJSONSchema } from 'openai/resources';
-import { getTimeZoneInfo } from './ui-tars-planning';
+import { preferredLanguage } from './common';
 
-export const language = getTimeZoneInfo().isChina ? 'Chinese' : 'English';
 const defaultAssertionPrompt =
   'You are a senior testing engineer. User will give an assertion and a screenshot of a page. By carefully viewing the screenshot, please tell whether the assertion is truthy.';
 
@@ -21,7 +20,7 @@ const uiTarsAssertionResponseJsonFormat = `## Output Json String Format
 
 ## Rules **MUST** follow
 - Make sure to return **only** the JSON, with **no additional** text or explanations.
-- Use ${language} in \`thought\` part.
+- Use ${preferredLanguage} in \`thought\` part.
 - You **MUST** strictly follow up the **Output Json String Format**.`;
 
 export function systemPromptToAssert(model: { isUITars: boolean }) {

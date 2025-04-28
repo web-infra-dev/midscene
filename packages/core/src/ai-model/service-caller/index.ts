@@ -242,13 +242,13 @@ export async function call(
   let content: string | undefined;
   let usage: OpenAI.CompletionUsage | undefined;
   const commonConfig = {
-    temperature: getAIConfigInBoolean(MIDSCENE_USE_VLM_UI_TARS) ? 0.0 : 0.1,
+    temperature: vlLocateMode() === 'vlm-ui-tars' ? 0.0 : 0.1,
     stream: false,
     max_tokens:
       typeof maxTokens === 'number'
         ? maxTokens
         : Number.parseInt(maxTokens || '2048', 10),
-    ...(getAIConfigInBoolean(MIDSCENE_USE_QWEN_VL) // qwen specific config
+    ...(vlLocateMode() === 'qwen-vl' // qwen specific config
       ? {
           vl_high_resolution_images: true,
         }
@@ -348,13 +348,12 @@ export async function callToGetJSONObject<T>(
       case AIActionType.INSPECT_ELEMENT:
         responseFormat = locatorSchema;
         break;
-      case AIActionType.EXTRACT_DATA:
-        //TODO: Currently the restriction type can only be a json subset of the constraint, and the way the extract api is used needs to be adjusted to limit the user's data to this as well
-        // targetResponseFormat = extractDataSchema;
-        responseFormat = { type: AIResponseFormat.JSON };
-        break;
       case AIActionType.PLAN:
         responseFormat = planSchema;
+        break;
+      case AIActionType.EXTRACT_DATA:
+      case AIActionType.DESCRIBE_ELEMENT:
+        responseFormat = { type: AIResponseFormat.JSON };
         break;
     }
   }
