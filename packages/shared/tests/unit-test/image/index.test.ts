@@ -24,7 +24,20 @@ describe('image utils', () => {
   const image = getFixture('icon.png');
   it('imageInfo', async () => {
     const info = await imageInfo(image);
-    expect(info).toMatchSnapshot();
+
+    // test basic properties of ImageInfo
+    expect(info.width).toMatchSnapshot();
+    expect(info.height).toMatchSnapshot();
+
+    // test basic properties of jimpImage
+    expect(typeof info.jimpImage.getBuffer).toBe('function');
+    expect(typeof info.jimpImage.getBufferAsync).toBe('function');
+    expect(typeof info.jimpImage.getPixelColour).toBe('function');
+    expect(typeof info.jimpImage.setPixelColour).toBe('function');
+    expect(typeof info.jimpImage.writeAsync).toBe('function');
+
+    // shapeMode is inconsistent across environments
+    expect(info.jimpImage.bitmap).toMatchSnapshot();
   });
 
   it('base64Encoded', () => {
