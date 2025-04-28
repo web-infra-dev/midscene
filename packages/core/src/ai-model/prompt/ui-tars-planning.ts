@@ -8,9 +8,14 @@ export function getTimeZoneInfo(): { timezone: string; isChina: boolean } {
   };
 }
 
-export const language = getTimeZoneInfo().isChina ? 'Chinese' : 'English';
+export function getLanguage(): string {
+  return getTimeZoneInfo().isChina ? 'Chinese' : 'English';
+}
 
-export const uiTarsPlanningPrompt = `
+export function getUiTarsPlanningPrompt(): string {
+  const language = getLanguage();
+
+  return `
 You are a GUI agent. You are given a task and your action history, with screenshots. You need to perform the next action to complete the task. 
 
 ## Output Format
@@ -38,6 +43,7 @@ finished(content='xxx') # Use escape characters \\', \\", and \\n in content par
 
 ## User Instruction
 `;
+}
 
 export const getSummary = (prediction: string) =>
   prediction
