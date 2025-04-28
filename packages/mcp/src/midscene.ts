@@ -105,10 +105,7 @@ export class MidsceneManager {
         const agent = await this.initAgent(true);
         await agent.connectNewTabWithUrl(url);
         return {
-          content: [
-            { type: 'text', text: `Navigated to ${url}` },
-            { type: 'text', text: `report file: ${agent.reportFile}` },
-          ],
+          content: [{ type: 'text', text: `Navigated to ${url}` }],
           isError: false,
         };
       },

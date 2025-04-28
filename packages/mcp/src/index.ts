@@ -17,6 +17,23 @@ const server = new McpServer({
     'Midscene MCP Server: Control the browser using natural language commands for navigation, clicking, input, hovering, and achieving goals. Also supports screenshots and JavaScript execution.',
 });
 
+server.tool(
+  'midscene_playwright_example',
+  'Provides Playwright code examples for Midscene. If users need to generate Midscene test cases, they can call this method to get sample Midscene Playwright test cases for generating end-user test cases. Each step must first be verified using the mcp method, and then the final test case is generated based on the playwright example according to the steps executed by mcp',
+  {},
+  async () => {
+    return {
+      content: [
+        {
+          type: 'text',
+          text: PROMPTS.PLAYWRIGHT_CODE_EXAMPLE,
+        },
+      ],
+      isError: false,
+    };
+  },
+);
+
 server.resource(
   'playwright-example',
   'file:///playwright-example.mdx',
@@ -56,6 +73,6 @@ runServer().catch(console.error);
 
 process.stdin.on('close', () => {
   console.error('Midscene MCP Server closing, cleaning up browser...');
-  midsceneManager.closeBrowser().catch(console.error);
   server.close();
+  midsceneManager.closeBrowser().catch(console.error);
 });
