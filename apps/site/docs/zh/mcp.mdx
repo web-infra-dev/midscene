@@ -17,7 +17,7 @@ Midscene 提供了 MCP 服务，允许 AI 助手通过自然语言命令控制�
 
 > 给 Sauce Demo 站点生成 Midscene 测试用例
 
-<video src="https://lf3-static.bytednsdoc.com/obj/eden-cn/ozpmyhn_lm_hymuPild/ljhwZthlaukjlkulzlp/midscene/midscene-mcp-Sauce-Demo.mp4" controls/>
+<video src="https://lf3-static.bytednsdoc.com/obj/eden-cn/ozpmyhn_lm_hymuPild/ljhwZthlaukjlkulzlp/midscene/en-midscene-mcp-Sauce-Demo.mp4" controls/>
 
 ## 设置 Midscene MCP
 
@@ -67,6 +67,7 @@ Midscene MCP 提供以下浏览器自动化工具：
 | **验证和观察** | midscene_aiWaitFor | 等待页面上的条件为真 |
 | | midscene_aiAssert | 断言页面上的条件为真 |
 | | midscene_screenshot | 对当前页面截图 |
+| **Playwright 代码示例** | midscene_playwright_example | 提供了 Midscene 的 Playwright 代码示例 |
 
 ### 导航
 
@@ -150,15 +151,6 @@ Midscene MCP 提供以下浏览器自动化工具：
   - name：截图的名称
   ```
 
-## 可用资源
-
-Midscene MCP 提供以下资源，可以帮助你结合 AI 助手对于 Midscene API 和测试用例的理解，从而能够自动生成测试用例：
-
-| 资源名称 | URI | 描述 |
-|---------|-----|------|
-| **playwright-example** | file:///playwright-example.mdx | Playwright 自动化测试代码示例，展示如何使用 Playwright 进行浏览器自动化 |
-| **midscene-api-docs** | file:///midscene-api-docs.mdx | Midscene API 文档，详细介绍 Midscene 的 API 和使用方法 |
-
 ## 常见问题
 
 ### Midscene MCP 对比其他浏览器 MCP 有什么优势？
@@ -180,6 +172,19 @@ Midscene MCP 提供以下资源，可以帮助你结合 AI 助手对于 Midscene
 - 执行命令
 
 ```bash
+# For macOS/Linux:
 lsof -i:3766 | awk 'NR>1 {print $2}' | xargs -r kill -9
+
+# For Windows:
+FOR /F "tokens=5" %i IN ('netstat -ano ^| findstr :3766') DO taskkill /F /PID %i
 ```
 
+### 如何获取 Midscene 执行的报告
+
+在每次执行完任务后都会生成 Midscene 任务报告，可以在命令行直接打开该 html 报告
+
+```bash
+open xxx.html
+```
+
+![image](https://lf3-static.bytednsdoc.com/obj/eden-cn/ozpmyhn_lm_hymuPild/ljhwZthlaukjlkulzlp/midscene/image.png)
