@@ -537,6 +537,9 @@ importers:
       '@midscene/core':
         specifier: workspace:*
         version: link:../core
+      '@midscene/report':
+        specifier: workspace:*
+        version: link:../../apps/report
       '@midscene/shared':
         specifier: workspace:*
         version: link:../shared
