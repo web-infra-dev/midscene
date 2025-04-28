@@ -321,19 +321,19 @@ export class PageAgent<PageType extends WebPage = WebPage> {
   async aiBoolean(prompt: string) {
     const { output, executor } = await this.taskExecutor.boolean(prompt);
     this.afterTaskRunning(executor);
-    return output.target;
+    return output;
   }
 
   async aiNumber(prompt: string) {
     const { output, executor } = await this.taskExecutor.number(prompt);
     this.afterTaskRunning(executor);
-    return output.target;
+    return output;
   }
 
   async aiString(prompt: string) {
     const { output, executor } = await this.taskExecutor.string(prompt);
     this.afterTaskRunning(executor);
-    return output.target;
+    return output;
   }
 
   async aiLocate(prompt: string, opt?: LocateOption) {

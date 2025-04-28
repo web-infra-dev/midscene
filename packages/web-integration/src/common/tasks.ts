@@ -1008,7 +1008,7 @@ export class PageTaskExecutor {
 
     const queryTask: ExecutionTaskInsightQueryApply = {
       type: 'Insight',
-      subType: type === 'Query' ? 'Query' : type,
+      subType: type,
       locate: null,
       param: {
         dataDemand: demand,
@@ -1042,19 +1042,19 @@ export class PageTaskExecutor {
     return this.createTypeQueryTask('Query', demand);
   }
 
-  async boolean(prompt: string): Promise<ExecutionResult<{ target: boolean }>> {
+  async boolean(prompt: string): Promise<ExecutionResult<boolean>> {
     const demand = `${prompt}, boolean`;
-    return this.createTypeQueryTask<{ target: boolean }>('Boolean', demand);
+    return this.createTypeQueryTask<boolean>('Boolean', demand);
   }
 
-  async number(prompt: string): Promise<ExecutionResult<{ target: number }>> {
+  async number(prompt: string): Promise<ExecutionResult<number>> {
     const demand = `${prompt}, number`;
-    return this.createTypeQueryTask<{ target: number }>('Number', demand);
+    return this.createTypeQueryTask<number>('Number', demand);
   }
 
-  async string(prompt: string): Promise<ExecutionResult<{ target: string }>> {
+  async string(prompt: string): Promise<ExecutionResult<string>> {
     const demand = `${prompt}, string`;
-    return this.createTypeQueryTask<{ target: string }>('String', demand);
+    return this.createTypeQueryTask<string>('String', demand);
   }
 
   async assert(
