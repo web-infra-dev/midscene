@@ -1,10 +1,20 @@
 import { DownOutlined, SearchOutlined } from '@ant-design/icons';
 import type { GroupedActionDump } from '@midscene/core';
 import { iconForStatus, timeCostStrElement } from '@midscene/visualizer';
-import { Dropdown, Input } from 'antd';
+import { Dropdown, Input, Select, Space } from 'antd';
 import type React from 'react';
 import { useMemo, useState } from 'react';
 import type { ExecutionDumpWithPlaywrightAttributes } from '../types';
+
+// define all possible test statuses
+const TEST_STATUS_OPTIONS = [
+  { value: 'all', label: 'All' },
+  { value: 'passed', label: 'Passed' },
+  { value: 'failed', label: 'Failed' },
+  { value: 'skipped', label: 'Skipped' },
+  { value: 'timedOut', label: 'Timed Out' },
+  { value: 'interrupted', label: 'Interrupted' },
+];
 
 interface PlaywrightCaseSelectorProps {
   dumps?: ExecutionDumpWithPlaywrightAttributes[];
@@ -20,6 +30,7 @@ export function PlaywrightCaseSelector({
   if (!dumps || dumps.length <= 1) return null;
 
   const [searchText, setSearchText] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
   const [dropdownVisible, setDropdownVisible] = useState(false);
 
   const nameForDump = (dump: GroupedActionDump) =>
@@ -49,11 +60,24 @@ export function PlaywrightCaseSelector({
   };
 
   const filteredDumps = useMemo(() => {
-    if (!searchText) return dumps || [];
-    return (dumps || []).filter((dump) =>
-      nameForDump(dump).toLowerCase().includes(searchText.toLowerCase()),
-    );
-  }, [dumps, searchText]);
+    let result = dumps || [];
+
+    // apply text filter
+    if (searchText) {
+      result = result.filter((dump) =>
+        nameForDump(dump).toLowerCase().includes(searchText.toLowerCase()),
+      );
+    }
+
+    // apply status filter
+    if (statusFilter !== 'all') {
+      result = result.filter(
+        (dump) => dump.attributes?.playwright_test_status === statusFilter,
+      );
+    }
+
+    return result;
+  }, [dumps, searchText, statusFilter]);
 
   const items = filteredDumps.map((dump, index) => {
     return {
@@ -85,17 +109,30 @@ export function PlaywrightCaseSelector({
     setSearchText(e.target.value);
   };
 
+  const handleStatusChange = (value: string) => {
+    setStatusFilter(value);
+  };
+
   const dropdownRender = (menu: React.ReactNode) => (
     <div>
       <div style={{ padding: '8px' }}>
-        <Input
-          placeholder="Search test case"
-          value={searchText}
-          onChange={handleSearchChange}
-          prefix={<SearchOutlined />}
-          allowClear
-          autoFocus
-        />
+        <Space style={{ width: '100%' }}>
+          <Input
+            placeholder="Search test case"
+            value={searchText}
+            onChange={handleSearchChange}
+            prefix={<SearchOutlined />}
+            allowClear
+            autoFocus
+            style={{ flex: 1 }}
+          />
+          <Select
+            value={statusFilter}
+            onChange={handleStatusChange}
+            style={{ width: 120 }}
+            options={TEST_STATUS_OPTIONS}
+          />
+        </Space>
       </div>
       {menu}
     </div>

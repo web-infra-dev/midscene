@@ -5,8 +5,19 @@ import { pluginLess } from '@rsbuild/plugin-less';
 import { pluginNodePolyfill } from '@rsbuild/plugin-node-polyfill';
 import { pluginReact } from '@rsbuild/plugin-react';
 
-const testDataPath = path.join(__dirname, 'test-data', 'swag-lab.json');
-const testData = JSON.parse(fs.readFileSync(testDataPath, 'utf-8'));
+// Read all JSON files from test-data directory
+const testDataDir = path.join(__dirname, 'test-data');
+const jsonFiles = fs
+  .readdirSync(testDataDir)
+  .filter((file) => file.endsWith('.json'));
+const allTestData = jsonFiles.map((file) => {
+  const filePath = path.join(testDataDir, file);
+  const data = JSON.parse(fs.readFileSync(filePath, 'utf-8'));
+  return {
+    fileName: file,
+    data,
+  };
+});
 
 const copyReportTemplate = () => ({
   name: 'copy-report-template',
@@ -34,21 +45,19 @@ export default defineConfig({
     inject: 'body',
     tags:
       process.env.NODE_ENV === 'development'
-        ? [
-            {
-              tag: 'script',
-              attrs: {
-                type: 'midscene_web_dump',
-                playwright_test_name: testData.groupName,
-                playwright_test_description: testData.groupDescription,
-                playwright_test_id: '8465e854a4d9a753cc87-1f096ece43c67754f95a',
-                playwright_test_title: 'test open new tab',
-                playwright_test_status: 'passed',
-                playwright_test_duration: '44274',
-              },
-              children: JSON.stringify(testData),
+        ? allTestData.map((item) => ({
+            tag: 'script',
+            attrs: {
+              type: 'midscene_web_dump',
+              playwright_test_name: item.data.groupName,
+              playwright_test_description: item.data.groupDescription,
+              playwright_test_id: '8465e854a4d9a753cc87-1f096ece43c67754f95a',
+              playwright_test_title: 'test open new tab',
+              playwright_test_status: 'passed',
+              playwright_test_duration: '44274',
             },
-          ]
+            children: JSON.stringify(item.data),
+          }))
         : [],
   },
   resolve: {
