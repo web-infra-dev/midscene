@@ -337,9 +337,8 @@ export default class Insight<
       usage: assertResult.usage,
     };
   }
-
   async describe(
-    target: Rect,
+    target: Rect | [number, number],
   ): Promise<Pick<AIDescribeElementResponse, 'description'>> {
     assert(target, 'target is required for insight.describe');
     const context = await this.contextRetrieverFn('describe');
@@ -348,11 +347,22 @@ export default class Insight<
 
     const systemPrompt = elementDescriberInstruction();
 
+    // Convert [x,y] center point to Rect if needed
+    const defaultRectSize = 50;
+    const targetRect: Rect = Array.isArray(target)
+      ? {
+          left: target[0] - defaultRectSize / 2,
+          top: target[1] - defaultRectSize / 2,
+          width: defaultRectSize,
+          height: defaultRectSize,
+        }
+      : target;
+
     const imageMarkedBase64 = await compositeElementInfoImg({
       inputImgBase64: screenshotBase64,
       elementsPositionInfo: [
         {
-          rect: target,
+          rect: targetRect,
         },
       ],
       borderThickness: 3,
