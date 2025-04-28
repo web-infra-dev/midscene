@@ -17,6 +17,7 @@ import {
 import { getRunningPkgInfo } from '@midscene/shared/fs';
 import { assert, getGlobalScope } from '@midscene/shared/utils';
 import { ifInBrowser, uuid } from '@midscene/shared/utils';
+import { MIDSCENE_REPORT_TPL } from './report-tpl';
 import type { Rect, ReportDumpWithAttributes } from './types';
 
 let logEnvReady = false;
@@ -43,21 +44,7 @@ function getReportTpl() {
     return reportTpl;
   }
 
-  const __dirname = dirname(__filename);
-  if (!reportTpl && !ifInBrowser) {
-    const possiblePaths = [
-      path.join(__dirname, '../../report/index.html'),
-      path.join(__dirname, '../report/index.html'),
-    ];
-
-    for (const reportPath of possiblePaths) {
-      if (existsSync(reportPath)) {
-        reportTpl = readFileSync(reportPath, 'utf-8');
-        break;
-      }
-    }
-  }
-  return reportTpl;
+  return JSON.parse(MIDSCENE_REPORT_TPL);
 }
 
 export function replaceStringWithFirstAppearance(
