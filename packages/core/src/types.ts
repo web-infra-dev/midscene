@@ -205,6 +205,7 @@ export interface InsightDump extends DumpMeta {
   assertionThought?: string;
   taskInfo: InsightTaskInfo;
   error?: string;
+  output?: any;
 }
 
 export type PartialInsightDumpFromSDK = Omit<
@@ -450,7 +451,7 @@ export type ExecutionTaskInsightLocate =
 task - insight-query
 */
 export interface ExecutionTaskInsightQueryParam {
-  dataDemand: InsightExtractParam;
+  dataDemand: InsightExtractParam | string;
 }
 
 export interface ExecutionTaskInsightQueryOutput {

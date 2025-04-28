@@ -370,21 +370,13 @@ export async function AiExtractElementInfo<
 
   let dataKeys = '';
   let dataQueryText = '';
-
   if (typeof dataQuery === 'string') {
-    dataKeys = 'return in key-value style object, key is result';
-    dataQueryText = JSON.stringify(
-      {
-        result: dataQuery,
-      },
-      null,
-      2,
-    );
+    dataKeys = '';
+    dataQueryText = dataQuery;
   } else {
     dataKeys = `return in key-value style object, keys are ${Object.keys(dataQuery).join(',')}`;
     dataQueryText = JSON.stringify(dataQuery, null, 2);
   }
-
   const extractDataPromptText = await extractDataPrompt.format({
     pageDescription: description,
     dataKeys,
@@ -415,11 +407,6 @@ export async function AiExtractElementInfo<
     msgs,
     AIActionType.EXTRACT_DATA,
   );
-
-  if (typeof dataQuery === 'string') {
-    result.content.data = (result.content.data as any)?.result;
-  }
-
   return {
     parseResult: result.content,
     elementById,

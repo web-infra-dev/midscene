@@ -1,5 +1,5 @@
-import { getRunningPkgInfo } from '@/fs';
 import { describe, expect, it } from 'vitest';
+import { getRunningPkgInfo } from '../../src/node/fs';
 
 describe('fs', () => {
   it('getRunningPkgInfo', () => {
