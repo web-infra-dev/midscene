@@ -238,13 +238,3 @@ Here is the item user want to find:
   `,
   inputVariables: ['pageDescription', 'targetElementDescription'],
 });
-
-export const extractElementInfoPrompt = (
-  dataQuery: string | Record<string, string>,
-) => {
-  if (typeof dataQuery === 'string') {
-    return 'return in key-value style object, key is result';
-  }
-
-  return `return in key-value style object, keys are ${Object.keys(dataQuery).join(',')}`;
-};

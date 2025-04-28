@@ -373,7 +373,7 @@ export async function AiExtractElementInfo<
   let dataQueryText = '';
 
   if (typeof dataQuery === 'string') {
-    dataKeys = extractElementInfoPrompt(dataQuery);
+    dataKeys = 'return in key-value style object, key is result';
     dataQueryText = JSON.stringify(
       {
         result: dataQuery,
@@ -382,7 +382,7 @@ export async function AiExtractElementInfo<
       2,
     );
   } else {
-    dataKeys = extractElementInfoPrompt(dataQuery);
+    dataKeys = `return in key-value style object, keys are ${Object.keys(dataQuery).join(',')}`;
     dataQueryText = JSON.stringify(dataQuery, null, 2);
   }
 
