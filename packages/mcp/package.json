@@ -27,14 +27,14 @@
     "@types/node": "^18.0.0",
     "typescript": "^5.8.2",
     "vitest": "3.0.5",
-    "dotenv": "16.4.5"
-  },
-  "dependencies": {
+    "dotenv": "16.4.5",
     "@midscene/web": "workspace:*",
     "@midscene/core": "workspace:*",
     "@midscene/shared": "workspace:*",
     "@modelcontextprotocol/sdk": "1.10.1",
-    "puppeteer": "24.2.0",
     "zod": "3.24.3"
+  },
+  "dependencies": {
+    "puppeteer": "24.2.0"
   }
 }
