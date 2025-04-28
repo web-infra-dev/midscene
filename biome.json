@@ -12,6 +12,7 @@
       ".nx",
       "**/dist",
       "test-data/**",
+      "**/inject-tp.js",
       "dist",
       "__ai_responses__",
       "ai-data/**",
