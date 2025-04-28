@@ -338,12 +338,14 @@ const DetailSide = (): JSX.Element => {
   ) : null;
 
   const dataCard =
-    dump?.data !== undefined ? (
+    (task?.output || dump?.data) !== undefined ? (
       <Card
         liteMode={true}
         onMouseEnter={noop}
         onMouseLeave={noop}
-        content={<pre>{JSON.stringify(dump.data, undefined, 2)}</pre>}
+        content={
+          <pre>{JSON.stringify(task?.output || dump?.data, undefined, 2)}</pre>
+        }
       />
     ) : null;
 

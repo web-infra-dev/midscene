@@ -108,16 +108,7 @@ describe('system prompts', () => {
 });
 
 describe('extract element', () => {
-  it('extract element by string', async () => {
-    const prompt = await extractDataPrompt.format({
-      pageDescription: 'todo title, string',
-      dataKeys: 'todo title, string',
-      dataQuery: 'todo title, string',
-    });
-    expect(prompt).toMatchSnapshot();
-  });
-
-  it('extract element by object', async () => {
+  it('extract element by extractDataPrompt', async () => {
     const prompt = await extractDataPrompt.format({
       pageDescription: 'todo title, string',
       dataKeys: 'todo title, string',

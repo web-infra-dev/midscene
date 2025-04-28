@@ -38,11 +38,7 @@ import { UITarsModelVersion } from '@midscene/shared/env';
 import { uiTarsModelVersion } from '@midscene/shared/env';
 import { vlLocateMode } from '@midscene/shared/env';
 import type { ElementInfo } from '@midscene/shared/extractor';
-import {
-  imageInfo,
-  imageInfoOfBase64,
-  resizeImgBase64,
-} from '@midscene/shared/img';
+import { imageInfo, resizeImgBase64 } from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
 import type { WebElementInfo } from '../web-element';
@@ -999,19 +995,21 @@ export class PageTaskExecutor {
   private async createTypeQueryTask<T>(
     type: 'Query' | 'Boolean' | 'Number' | 'String',
     demand: InsightExtractParam,
+    prompt?: string,
   ): Promise<ExecutionResult<T>> {
-    const description =
-      typeof demand === 'string' ? demand : JSON.stringify(demand);
-    const taskExecutor = new Executor(taskTitleStr(type, description), {
-      onTaskStart: this.onTaskStartCallback,
-    });
+    const taskExecutor = new Executor(
+      taskTitleStr(type, prompt || JSON.stringify(demand)),
+      {
+        onTaskStart: this.onTaskStartCallback,
+      },
+    );
 
     const queryTask: ExecutionTaskInsightQueryApply = {
       type: 'Insight',
       subType: type,
       locate: null,
       param: {
-        dataDemand: demand,
+        dataDemand: prompt || demand, // for user param presentation in report right sidebar
       },
       executor: async (param) => {
         let insightDump: InsightDump | undefined;
@@ -1019,11 +1017,10 @@ export class PageTaskExecutor {
           insightDump = dump;
         };
         this.insight.onceDumpUpdatedFn = dumpCollector;
-        const { data, usage } = await this.insight.extract<any>(
-          param.dataDemand,
-        );
+        const { output, usage } = await this.insight.extract<any>(demand);
+
         return {
-          output: data,
+          output,
           log: { dump: insightDump },
           usage,
         };
@@ -1043,18 +1040,24 @@ export class PageTaskExecutor {
   }
 
   async boolean(prompt: string): Promise<ExecutionResult<boolean>> {
-    const demand = `${prompt}, boolean`;
-    return this.createTypeQueryTask<boolean>('Boolean', demand);
+    const demand = {
+      result: `${prompt}, boolean`,
+    };
+    return this.createTypeQueryTask<boolean>('Boolean', demand, prompt);
   }
 
   async number(prompt: string): Promise<ExecutionResult<number>> {
-    const demand = `${prompt}, number`;
-    return this.createTypeQueryTask<number>('Number', demand);
+    const demand = {
+      result: `${prompt}, number`,
+    };
+    return this.createTypeQueryTask<number>('Number', demand, prompt);
   }
 
   async string(prompt: string): Promise<ExecutionResult<string>> {
-    const demand = `${prompt}, string`;
-    return this.createTypeQueryTask<string>('String', demand);
+    const demand = {
+      result: `${prompt}, string`,
+    };
+    return this.createTypeQueryTask<string>('String', demand, prompt);
   }
 
   async assert(

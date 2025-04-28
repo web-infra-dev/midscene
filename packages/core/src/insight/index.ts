@@ -219,13 +219,22 @@ export default class Insight<
     };
   }
 
-  async extract<T = any>(input: string): Promise<T>;
+  async extract<T = any>(
+    input: string,
+    type?: 'Query' | 'Boolean' | 'Number' | 'String',
+  ): Promise<T>;
   async extract<T extends Record<string, string>>(
     input: T,
+    type?: 'Query' | 'Boolean' | 'Number' | 'String',
   ): Promise<Record<keyof T, any>>;
-  async extract<T extends object>(input: Record<keyof T, string>): Promise<T>;
-
-  async extract<T>(dataDemand: InsightExtractParam): Promise<any> {
+  async extract<T extends object>(
+    input: Record<keyof T, string>,
+    type?: 'Query' | 'Boolean' | 'Number' | 'String',
+  ): Promise<T>;
+  async extract<T>(
+    dataDemand: InsightExtractParam,
+    type?: 'Query' | 'Boolean' | 'Number' | 'String',
+  ): Promise<any> {
     assert(
       typeof dataDemand === 'object' || typeof dataDemand === 'string',
       `dataDemand should be object or string, but get ${typeof dataDemand}`,
@@ -265,12 +274,17 @@ export default class Insight<
     };
 
     const { data } = parseResult || {};
+    let output;
+
+    if (type !== 'Query') {
+      output = (data as any).result;
+    }
 
     // 4
     emitInsightDump(
       {
         ...dumpData,
-        data,
+        output, // for report output presentation
       },
       dumpSubscriber,
     );
@@ -281,6 +295,7 @@ export default class Insight<
 
     return {
       data,
+      output,
       usage,
     };
   }
