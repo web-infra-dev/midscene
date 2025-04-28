@@ -92,6 +92,17 @@ export function buildPlans(
     returnPlans = [sleepPlan];
   }
 
+  if (type === 'Locate') {
+    assert(locateParam, `missing locate info for action "${type}"`);
+    const locatePlan: PlanningAction<PlanningLocateParam> = {
+      type,
+      param: locateParam as PlanningLocateParam,
+      locate: locateParam,
+      thought: '',
+    };
+    returnPlans = [locatePlan];
+  }
+
   if (returnPlans) {
     debug('buildPlans', returnPlans);
     return returnPlans;

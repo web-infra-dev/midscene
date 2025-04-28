@@ -301,8 +301,8 @@ const DetailSide = (): JSX.Element => {
         const elementKV = kv(
           objectWithoutKeys(element as any, [
             'content',
-            'rect',
-            'center',
+            // 'rect',
+            // 'center',
             'left',
             'top',
             'right',
