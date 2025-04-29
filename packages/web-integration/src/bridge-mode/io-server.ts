@@ -1,5 +1,5 @@
 import { logMsg } from '@midscene/shared/utils';
-import killPort from 'kill-port';
+import fkill from 'fkill';
 import { Server, type Socket as ServerSocket } from 'socket.io';
 import {
   type BridgeCall,
@@ -170,7 +170,7 @@ export class BridgeServer {
     if (!this.listeningTimerFlag) {
       // kill the port if it is already occupied
       try {
-        await killPort(this.port, 'tcp');
+        await fkill(this.port);
       } catch (e) {}
     }
   }
