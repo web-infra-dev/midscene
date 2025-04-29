@@ -74,28 +74,58 @@
   },
   "typesVersions": {
     "*": {
-      ".": ["./dist/types/index.d.ts"],
-      "bridge-mode": ["./dist/types/bridge-mode.d.ts"],
-      "bridge-mode-browser": ["./dist/types/bridge-mode-browser.d.ts"],
-      "utils": ["./dist/types/utils.d.ts"],
-      "ui-utils": ["./dist/types/ui-utils.d.ts"],
-      "puppeteer": ["./dist/types/puppeteer.d.ts"],
+      ".": [
+        "./dist/types/index.d.ts"
+      ],
+      "bridge-mode": [
+        "./dist/types/bridge-mode.d.ts"
+      ],
+      "bridge-mode-browser": [
+        "./dist/types/bridge-mode-browser.d.ts"
+      ],
+      "utils": [
+        "./dist/types/utils.d.ts"
+      ],
+      "ui-utils": [
+        "./dist/types/ui-utils.d.ts"
+      ],
+      "puppeteer": [
+        "./dist/types/puppeteer.d.ts"
+      ],
       "puppeteer-agent-launcher": [
         "./dist/types/puppeteer-agent-launcher.d.ts"
       ],
-      "playwright": ["./dist/types/playwright.d.ts"],
-      "playwright-report": ["./dist/types/playwright-report.d.ts"],
-      "playground": ["./dist/types/playground.d.ts"],
-      "midscene-playground": ["./dist/types/midscene-playground.d.ts"],
-      "midscene-server": ["./dist/types/midscene-server.d.ts"],
-      "chrome-extension": ["./dist/types/chrome-extension.d.ts"],
-      "yaml": ["./dist/types/yaml.d.ts"],
-      "agent": ["./dist/types/agent.d.ts"]
+      "playwright": [
+        "./dist/types/playwright.d.ts"
+      ],
+      "playwright-report": [
+        "./dist/types/playwright-report.d.ts"
+      ],
+      "playground": [
+        "./dist/types/playground.d.ts"
+      ],
+      "midscene-playground": [
+        "./dist/types/midscene-playground.d.ts"
+      ],
+      "midscene-server": [
+        "./dist/types/midscene-server.d.ts"
+      ],
+      "chrome-extension": [
+        "./dist/types/chrome-extension.d.ts"
+      ],
+      "yaml": [
+        "./dist/types/yaml.d.ts"
+      ],
+      "agent": [
+        "./dist/types/agent.d.ts"
+      ]
     }
   },
   "watch": {
     "build": {
-      "patterns": ["src"],
+      "patterns": [
+        "src"
+      ],
       "extensions": "tsx,less,scss,css,js,jsx,ts",
       "quiet": false
     }
@@ -120,7 +150,13 @@
     "e2e:ui": "playwright test --config=tests/playwright.config.ts --ui",
     "e2e:ui:cache": "MIDSCENE_CACHE=true playwright test --config=tests/playwright.config.ts --ui"
   },
-  "files": ["static", "dist", "iife-script", "README.md", "bin"],
+  "files": [
+    "static",
+    "dist",
+    "iife-script",
+    "README.md",
+    "bin"
+  ],
   "dependencies": {
     "@midscene/core": "workspace:*",
     "@midscene/shared": "workspace:*",
@@ -135,6 +171,7 @@
     "inquirer": "10.1.5",
     "js-sha256": "0.11.0",
     "js-yaml": "4.1.0",
+    "kill-port": "2.0.1",
     "openai": "4.81.0",
     "socket.io": "^4.8.1",
     "socket.io-client": "4.8.1"
@@ -147,6 +184,7 @@
     "@types/express": "^4.17.21",
     "@types/fs-extra": "11.0.4",
     "@types/js-yaml": "4.0.9",
+    "@types/kill-port": "2.0.3",
     "@types/node": "^18.0.0",
     "playwright": "1.44.1",
     "puppeteer": "24.2.0",
