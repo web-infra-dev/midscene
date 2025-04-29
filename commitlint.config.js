@@ -36,8 +36,9 @@ const uniqueScopes = [...new Set(allScopes)];
 module.exports = {
   extends: ['@commitlint/config-conventional'],
   rules: {
-    'scope-empty': [0, 'never'],   // allow empty scope
-    'type-empty':  [0, 'never'],   // allow empty type
-    'scope-enum':  [0, 'always'],  // no scope whitelist
+    'scope-empty':   [0, 'never'],
+    'type-empty':    [0, 'never'],
+    'scope-enum':    [0, 'always'],
+    'subject-empty': [0, 'never'],   // ← add this line
   },
 };
