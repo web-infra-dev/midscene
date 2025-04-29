@@ -337,14 +337,26 @@ const DetailSide = (): JSX.Element => {
     />
   ) : null;
 
+  let data;
+
+  if (task?.output !== undefined) {
+    data = task.output;
+  } else if (dump?.data !== undefined) {
+    data = dump.data;
+  }
+
   const dataCard =
-    (task?.output || dump?.data) !== undefined ? (
+    data !== undefined ? (
       <Card
         liteMode={true}
         onMouseEnter={noop}
         onMouseLeave={noop}
         content={
-          <pre>{JSON.stringify(task?.output || dump?.data, undefined, 2)}</pre>
+          <pre>
+            {typeof data === 'object'
+              ? JSON.stringify(data, undefined, 2)
+              : data}
+          </pre>
         }
       />
     ) : null;
