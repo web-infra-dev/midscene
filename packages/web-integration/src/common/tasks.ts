@@ -1032,7 +1032,7 @@ export class PageTaskExecutor {
 
         let outputResult = data;
         if (ifTypeRestricted) {
-          assert(data?.result, 'No result in query data');
+          assert(data?.result !== undefined, 'No result in query data');
           outputResult = (data as any).result;
         }
 
