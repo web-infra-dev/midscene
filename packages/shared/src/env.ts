@@ -122,11 +122,11 @@ export const uiTarsModelVersion = (): UITarsModelVersion | false => {
     return false;
   }
 
-  const versionConfig = getAIConfigInJson(MIDSCENE_USE_VLM_UI_TARS);
+  const versionConfig: any = getAIConfig(MIDSCENE_USE_VLM_UI_TARS);
   if (versionConfig === '1' || versionConfig === 1) {
     return UITarsModelVersion.V1_0;
   }
-  if (versionConfig === 'DOUBAO-1.5') {
+  if (versionConfig === 'DOUBAO' || versionConfig === 'DOUBAO-1.5') {
     return UITarsModelVersion.DOUBAO_1_5_20B;
   }
   return `${versionConfig}` as UITarsModelVersion;
