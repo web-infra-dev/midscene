@@ -348,7 +348,7 @@ export default class Insight<
     const systemPrompt = elementDescriberInstruction();
 
     // Convert [x,y] center point to Rect if needed
-    const defaultRectSize = 50;
+    const defaultRectSize = 30;
     const targetRect: Rect = Array.isArray(target)
       ? {
           left: target[0] - defaultRectSize / 2,
