@@ -142,12 +142,14 @@ export class MidsceneManager {
       },
       async ({ url, forceCloseOtherServers }) => {
         try {
-
           if (forceCloseOtherServers) {
             await forceKillPort();
           }
         } catch (e) {
-          console.error('Failed to force close other Midscene bridge servers', e);
+          console.error(
+            'Failed to force close other Midscene bridge servers',
+            e,
+          );
         }
         await this.initAgent(url);
         return {
