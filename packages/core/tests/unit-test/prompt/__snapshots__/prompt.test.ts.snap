@@ -4,7 +4,7 @@ exports[`extract element > extract element by extractDataPrompt 1`] = `
 "
 pageDescription: todo title, string
 
-Use your extract_data_from_UI skill to find the following data, placing it in the \`data\` field
+Extract the following data and place it in the \`data\` field. If a key specifies a JSON data type (such as Number, String, Boolean, Object, Array), ensure the returned value strictly matches that data type.
 DATA_DEMAND start:
 =====================================
 todo title, string
