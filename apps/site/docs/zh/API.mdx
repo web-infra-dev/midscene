@@ -530,10 +530,10 @@ overrideAIConfig({
 
 ### 打印 AI 性能信息
 
-设置 `MIDSCENE_DEBUG_AI_PROFILE` 变量，你可以看到每次调用 AI 的时间和 token 数量。
+设置 `DEBUG=midscene:ai:profile:stats` 环境变量，你可以看到每次调用 AI 的时间和 token 数量。
 
 ```bash
-export MIDSCENE_DEBUG_AI_PROFILE=1
+export DEBUG=midscene:ai:profile:stats
 ```
 
 ### 自定义运行产物目录

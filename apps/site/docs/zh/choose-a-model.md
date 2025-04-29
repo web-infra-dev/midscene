@@ -239,7 +239,7 @@ OPENAI_API_KEY="......"
 
 ### 如何确认模型的 token 使用情况？
 
-通过设置 `MIDSCENE_DEBUG_AI_PROFILE=1` 环境变量，你可以打印模型的使用情况和响应时间。
+通过设置 `DEBUG=midscene:ai:profile:stats` 环境变量，你可以打印模型的使用情况和响应时间。
 
 ## 更多
 
