@@ -5,6 +5,7 @@ import {
 } from '@midscene/shared/env';
 import {
   AgentOverChromeBridge,
+  DefaultBridgeServerPort,
   allConfigFromEnv,
   overrideAIConfig,
 } from '@midscene/web/bridge-mode';
@@ -15,6 +16,7 @@ import type {
   ImageContent,
   TextContent,
 } from '@modelcontextprotocol/sdk/types.js';
+import killPort from 'kill-port';
 import { z } from 'zod';
 import { PuppeteerBrowserAgent, ensureBrowser } from './puppeteer';
 
@@ -33,10 +35,12 @@ export class MidsceneManager {
   private mcpServer: McpServer; // Add server instance
   private agent?: AgentOverChromeBridge | PuppeteerBrowserAgent;
   private puppeteerMode = getAIConfigInBoolean(MIDSCENE_MCP_USE_PUPPETEER_MODE);
+  private initKillPort: Promise<void>;
   constructor(server: McpServer) {
     this.mcpServer = server;
     this.initEnv();
     this.registerTools();
+    this.initKillPort = this.killPort();
   }
 
   private initEnv() {
@@ -49,6 +53,14 @@ export class MidsceneManager {
       }
     }
     overrideAIConfig(envOverrides);
+  }
+
+  private async killPort() {
+    // Avoid existing bridge-mode servers that haven't exited occupying ports, which would cause new mcp server connections to take a long time
+    // And the killPort operation may take a long time
+    try {
+      await killPort(DefaultBridgeServerPort, 'tcp');
+    } catch (e) {}
   }
 
   // Asynchronously initializes or re-initializes the browser agent.
@@ -80,6 +92,7 @@ export class MidsceneManager {
   private async initAgentByBridgeMode(
     openNewTabWithUrl?: string,
   ): Promise<AgentOverChromeBridge> {
+    await this.initKillPort;
     let agent: AgentOverChromeBridge;
     try {
       // Create a new agent instance designed for bridge mode.

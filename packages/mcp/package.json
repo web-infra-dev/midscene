@@ -33,7 +33,9 @@
     "@midscene/core": "workspace:*",
     "@midscene/shared": "workspace:*",
     "@modelcontextprotocol/sdk": "1.10.1",
-    "zod": "3.24.3"
+    "zod": "3.24.3",
+    "kill-port": "2.0.1",
+    "@types/kill-port": "2.0.3"
   },
   "dependencies": {
     "puppeteer": "24.2.0"
