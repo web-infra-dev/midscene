@@ -17,6 +17,7 @@ export class BridgeServer {
   private io: Server | null = null;
   private socket: ServerSocket | null = null;
   private listeningTimeoutId: NodeJS.Timeout | null = null;
+  private listeningTimerFlag = false;
   private connectionTipTimer: NodeJS.Timeout | null = null;
   public calls: Record<string, BridgeCall> = {};
 
@@ -29,22 +30,25 @@ export class BridgeServer {
     public onDisconnect?: (reason: string) => void,
   ) {}
 
-  async listen(timeout = 30000): Promise<void> {
+  async listen(timeout: number | false = 30000): Promise<void> {
     return new Promise((resolve, reject) => {
-      if (this.listeningTimeoutId) {
+      if (this.listeningTimerFlag) {
         return reject(new Error('already listening'));
       }
+      this.listeningTimerFlag = true;
 
-      this.listeningTimeoutId = setTimeout(() => {
-        reject(
-          new Error(
-            `no extension connected after ${timeout}ms (${BridgeErrorCodeNoClientConnected})`,
-          ),
-        );
-      }, timeout);
+      this.listeningTimeoutId = timeout
+        ? setTimeout(() => {
+            reject(
+              new Error(
+                `no extension connected after ${timeout}ms (${BridgeErrorCodeNoClientConnected})`,
+              ),
+            );
+          }, timeout)
+        : null;
 
       this.connectionTipTimer =
-        timeout > 3000
+        !timeout || timeout > 3000
           ? setTimeout(() => {
               logMsg('waiting for bridge to connect...');
             }, 2000)
@@ -198,10 +202,7 @@ export class BridgeServer {
 
     return new Promise((resolve, reject) => {
       const timeoutId = setTimeout(() => {
-        console.log(
-          `bridge call timeout, id=${id}, method=${method}, args=`,
-          args,
-        );
+        logMsg(`bridge call timeout, id=${id}, method=${method}, args=`, args);
         this.calls[id].error = new Error(
           `Bridge call timeout after ${timeout}ms: ${method}`,
         );
@@ -228,6 +229,7 @@ export class BridgeServer {
     });
   }
 
+  // do NOT restart after close
   async close() {
     this.listeningTimeoutId && clearTimeout(this.listeningTimeoutId);
     this.connectionTipTimer && clearTimeout(this.connectionTipTimer);

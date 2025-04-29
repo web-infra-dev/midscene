@@ -530,28 +530,28 @@ importers:
 
   packages/mcp:
     dependencies:
+      puppeteer:
+        specifier: 24.2.0
+        version: 24.2.0(typescript@5.8.3)
+    devDependencies:
       '@midscene/core':
         specifier: workspace:*
         version: link:../core
+      '@midscene/report':
+        specifier: workspace:*
+        version: link:../../apps/report
       '@midscene/shared':
         specifier: workspace:*
         version: link:../shared
       '@midscene/web':
         specifier: workspace:*
         version: link:../web-integration
-      '@modelcontextprotocol/sdk':
-        specifier: 1.10.1
-        version: 1.10.1
-      puppeteer:
-        specifier: 24.2.0
-        version: 24.2.0(typescript@5.8.3)
-      zod:
-        specifier: 3.24.3
-        version: 3.24.3
-    devDependencies:
       '@modelcontextprotocol/inspector':
         specifier: 0.9.0
         version: 0.9.0(@types/node@18.19.62)(@types/react-dom@18.3.5(@types/react@18.3.18))(@types/react@18.3.18)(typescript@5.8.3)
+      '@modelcontextprotocol/sdk':
+        specifier: 1.10.1
+        version: 1.10.1
       '@rslib/core':
         specifier: ^0.6.2
         version: 0.6.3(typescript@5.8.3)
@@ -567,6 +567,9 @@ importers:
       vitest:
         specifier: 3.0.5
         version: 3.0.5(@types/debug@4.1.12)(@types/node@18.19.62)(jsdom@26.1.0)(less@4.3.0)(sass-embedded@1.86.3)(terser@5.39.0)
+      zod:
+        specifier: 3.24.3
+        version: 3.24.3
 
   packages/shared:
     dependencies:
