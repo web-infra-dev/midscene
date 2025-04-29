@@ -33,15 +33,12 @@ import {
   vlmPlanning,
 } from '@midscene/core/ai-model';
 import { sleep } from '@midscene/core/utils';
+
 import { UITarsModelVersion } from '@midscene/shared/env';
 import { uiTarsModelVersion } from '@midscene/shared/env';
 import { vlLocateMode } from '@midscene/shared/env';
 import type { ElementInfo } from '@midscene/shared/extractor';
-import {
-  imageInfo,
-  imageInfoOfBase64,
-  resizeImgBase64,
-} from '@midscene/shared/img';
+import { imageInfo, resizeImgBase64 } from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
 import type { WebElementInfo } from '../web-element';
@@ -995,18 +992,26 @@ export class PageTaskExecutor {
     };
   }
 
-  async query(demand: InsightExtractParam): Promise<ExecutionResult> {
-    const description =
-      typeof demand === 'string' ? demand : JSON.stringify(demand);
-    const taskExecutor = new Executor(taskTitleStr('Query', description), {
-      onTaskStart: this.onTaskStartCallback,
-    });
+  private async createTypeQueryTask<T>(
+    type: 'Query' | 'Boolean' | 'Number' | 'String',
+    demand: InsightExtractParam,
+  ): Promise<ExecutionResult<T>> {
+    const taskExecutor = new Executor(
+      taskTitleStr(
+        type,
+        typeof demand === 'string' ? demand : JSON.stringify(demand),
+      ),
+      {
+        onTaskStart: this.onTaskStartCallback,
+      },
+    );
+
     const queryTask: ExecutionTaskInsightQueryApply = {
       type: 'Insight',
-      subType: 'Query',
+      subType: type,
       locate: null,
       param: {
-        dataDemand: demand,
+        dataDemand: demand, // for user param presentation in report right sidebar
       },
       executor: async (param) => {
         let insightDump: InsightDump | undefined;
@@ -1014,11 +1019,25 @@ export class PageTaskExecutor {
           insightDump = dump;
         };
         this.insight.onceDumpUpdatedFn = dumpCollector;
-        const { data, usage } = await this.insight.extract<any>(
-          param.dataDemand,
-        );
+
+        const ifTypeRestricted = type !== 'Query';
+        let demandInput = demand;
+        if (ifTypeRestricted) {
+          demandInput = {
+            result: `${type}, ${demand}`,
+          };
+        }
+
+        const { data, usage } = await this.insight.extract<any>(demandInput);
+
+        let outputResult = data;
+        if (ifTypeRestricted) {
+          assert(data?.result !== undefined, 'No result in query data');
+          outputResult = (data as any).result;
+        }
+
         return {
-          output: data,
+          output: outputResult,
           log: { dump: insightDump },
           usage,
         };
@@ -1031,6 +1050,22 @@ export class PageTaskExecutor {
       output,
       executor: taskExecutor,
     };
+  }
+
+  async query(demand: InsightExtractParam): Promise<ExecutionResult> {
+    return this.createTypeQueryTask('Query', demand);
+  }
+
+  async boolean(prompt: string): Promise<ExecutionResult<boolean>> {
+    return this.createTypeQueryTask<boolean>('Boolean', prompt);
+  }
+
+  async number(prompt: string): Promise<ExecutionResult<number>> {
+    return this.createTypeQueryTask<number>('Number', prompt);
+  }
+
+  async string(prompt: string): Promise<ExecutionResult<string>> {
+    return this.createTypeQueryTask<string>('String', prompt);
   }
 
   async assert(

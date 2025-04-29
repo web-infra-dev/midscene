@@ -119,7 +119,10 @@ export class Executor {
           assert(
             task.subType === 'Locate' ||
               task.subType === 'Query' ||
-              task.subType === 'Assert',
+              task.subType === 'Assert' ||
+              task.subType === 'Boolean' ||
+              task.subType === 'Number' ||
+              task.subType === 'String',
             `unsupported insight subType: ${task.subType}`,
           );
           returnValue = await task.executor(param, executorContext);

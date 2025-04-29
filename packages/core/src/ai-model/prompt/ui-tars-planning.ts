@@ -1,8 +1,9 @@
 import { getPreferredLanguage } from '@midscene/shared/env';
 
-const preferredLanguage = getPreferredLanguage();
+export function getUiTarsPlanningPrompt(): string {
+  const preferredLanguage = getPreferredLanguage();
 
-export const uiTarsPlanningPrompt = `
+  return `
 You are a GUI agent. You are given a task and your action history, with screenshots. You need to perform the next action to complete the task. 
 
 ## Output Format
@@ -30,6 +31,7 @@ finished(content='xxx') # Use escape characters \\', \\", and \\n in content par
 
 ## User Instruction
 `;
+}
 
 export const getSummary = (prediction: string) =>
   prediction

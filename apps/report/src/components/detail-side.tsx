@@ -301,8 +301,6 @@ const DetailSide = (): JSX.Element => {
         const elementKV = kv(
           objectWithoutKeys(element as any, [
             'content',
-            'rect',
-            'center',
             'left',
             'top',
             'right',
@@ -339,14 +337,29 @@ const DetailSide = (): JSX.Element => {
     />
   ) : null;
 
-  const dataCard = dump?.data ? (
-    <Card
-      liteMode={true}
-      onMouseEnter={noop}
-      onMouseLeave={noop}
-      content={<pre>{JSON.stringify(dump.data, undefined, 2)}</pre>}
-    />
-  ) : null;
+  let data;
+
+  if (task?.output !== undefined) {
+    data = task.output;
+  } else if (dump?.data !== undefined) {
+    data = dump.data;
+  }
+
+  const dataCard =
+    data !== undefined ? (
+      <Card
+        liteMode={true}
+        onMouseEnter={noop}
+        onMouseLeave={noop}
+        content={
+          <pre>
+            {typeof data === 'object'
+              ? JSON.stringify(data, undefined, 2)
+              : data}
+          </pre>
+        }
+      />
+    ) : null;
 
   let assertionCard: JSX.Element | null = null;
   if (task?.type === 'Insight' && task.subType === 'Assert') {
@@ -445,7 +458,7 @@ const DetailSide = (): JSX.Element => {
       <PanelTitle title="Param" />
       {taskParam}
       {/* Response */}
-      <PanelTitle title="Output" />
+      <PanelTitle title={task?.subType === 'Locate' ? 'Element' : 'Output'} />
       <div className="item-list item-list-space-up">
         {errorSection}
         {dataCard}

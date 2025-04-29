@@ -1,6 +1,6 @@
 {
   "name": "@midscene/shared",
-  "version": "0.16.3",
+  "version": "0.16.5",
   "repository": "https://github.com/web-infra-dev/midscene",
   "homepage": "https://midscenejs.com/",
   "types": "./dist/types/index.d.ts",
@@ -52,6 +52,7 @@
     "upgrade": "modern upgrade",
     "prepublishOnly": "npm run build",
     "test": "vitest --run",
+    "test:u": "vitest --run -u",
     "test:ai": "AITEST=true npm run test"
   },
   "dependencies": {

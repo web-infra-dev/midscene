@@ -250,6 +250,66 @@ const dataB = await agent.aiQuery('string[], list of task names');
 const dataC = await agent.aiQuery('{name: string, age: string}[], table data records');
 ```
 
+### `agent.aiBoolean()`
+
+* Type
+
+```typescript
+function aiBoolean(prompt: string): Promise<boolean>;
+```
+
+* Parameters:
+  * `prompt: string` - A natural language description of the expected value.
+
+* Return Value:
+  * Returns a `Promise<boolean>` when AI returns a boolean value.
+
+* Examples:
+
+```typescript
+const bool = await agent.aiBoolean('Whether there is a login dialog');
+```
+
+### `agent.aiNumber()`
+
+* Type
+
+```typescript
+function aiNumber(prompt: string): Promise<number>;
+```
+
+* Parameters:
+  * `prompt: string` - A natural language description of the expected value.
+
+* Return Value:
+  * Returns a `Promise<number>` when AI returns a number value.
+
+* Examples:
+
+```typescript
+const number = await agent.aiNumber('The remaining points of the account');
+```
+
+### `agent.aiString()`
+
+* Type
+
+```typescript
+function aiString(prompt: string): Promise<string>;
+```
+
+* Parameters:
+  * `prompt: string` - A natural language description of the expected value.
+
+* Return Value:
+  * Returns a `Promise<string>` when AI returns a string value.
+
+* Examples:
+
+```typescript
+const string = await agent.aiString('The first item in the list');
+```
+
 ## More APIs
 
 ### `agent.aiAssert()`
@@ -288,6 +348,39 @@ expect(onesieItem).toBeTruthy();
 expect(onesieItem.price).toBe(7.99);
 ```
 :::
+
+### `agent.aiLocate()`
+
+This method allows you to locate an element using natural language.
+
+* Type
+
+```typescript
+function aiLocate(locate: string, options?: Object): Promise<{
+  rect: {
+    left: number;
+    top: number;
+    width: number;
+    height: number;
+  };
+  center: [number, number];
+}>;
+```
+
+* Parameters:
+  * `locate: string` - A natural language description of the element to locate.
+  * `options?: Object` - Optional, a configuration object containing:
+    * `deepThink?: boolean` - If true, Midscene will call AI model twice to precisely locate the element. 
+
+* Return Value:
+  * Returns a `Promise` when the element is located parsed as an locate info object.
+
+* Examples:
+
+```typescript
+const locateInfo = await agent.aiLocate('The login button at the top of the page');
+console.log(locateInfo);
+```
 
 ### `agent.aiWaitFor()`
 

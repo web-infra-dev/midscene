@@ -6,7 +6,7 @@ import { assert } from '@midscene/shared/utils';
 import { actionParser } from '@ui-tars/action-parser';
 import type { ChatCompletionMessageParam } from 'openai/resources';
 import { AIActionType } from './common';
-import { getSummary, uiTarsPlanningPrompt } from './prompt/ui-tars-planning';
+import { getSummary, getUiTarsPlanningPrompt } from './prompt/ui-tars-planning';
 import { call } from './service-caller/index';
 type ActionType =
   | 'click'
@@ -45,7 +45,7 @@ export async function vlmPlanning(options: {
   action_summary: string;
 }> {
   const { conversationHistory, userInstruction, size } = options;
-  const systemPrompt = uiTarsPlanningPrompt + userInstruction;
+  const systemPrompt = getUiTarsPlanningPrompt() + userInstruction;
 
   const res = await call(
     [

@@ -9,7 +9,7 @@ The user will give you a screenshot, the contents of it (optional), and some dat
 
 Return in the following JSON format:
 {
-  data: any, // the extracted data from extract_data_from_UI skill. Make sure both the value and scheme meet the DATA_DEMAND. If you want to write some description in this field, use the same language as the DATA_DEMAND.
+  data: any, // the extracted data. Make sure both the value and scheme meet the DATA_DEMAND. If you want to write some description in this field, use the same language as the DATA_DEMAND.
   errors: [], // string[], error message if any
 }
 `;
@@ -19,7 +19,7 @@ export const extractDataPrompt = new PromptTemplate({
   template: `
 pageDescription: {pageDescription}
 
-Use your extract_data_from_UI skill to find the following data, placing it in the \`data\` field
+Extract the following data and place it in the \`data\` field. If a key specifies a JSON data type (such as Number, String, Boolean, Object, Array), ensure the returned value strictly matches that data type.
 DATA_DEMAND start:
 =====================================
 {dataKeys}
@@ -41,7 +41,7 @@ export const extractDataSchema: ResponseFormatJSONSchema = {
       properties: {
         data: {
           type: 'object',
-          description: 'The extracted data from extract_data_from_UI skill',
+          description: 'The extracted data',
         },
         errors: {
           type: 'array',

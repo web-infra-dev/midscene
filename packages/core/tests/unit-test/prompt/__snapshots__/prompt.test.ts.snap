@@ -1,5 +1,20 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
+exports[`extract element > extract element by extractDataPrompt 1`] = `
+"
+pageDescription: todo title, string
+
+Extract the following data and place it in the \`data\` field. If a key specifies a JSON data type (such as Number, String, Boolean, Object, Array), ensure the returned value strictly matches that data type.
+DATA_DEMAND start:
+=====================================
+todo title, string
+
+todo title, string
+=====================================
+DATA_DEMAND ends.
+  "
+`;
+
 exports[`system prompts > locator - 4o 1`] = `
 "
 ## Role:
@@ -817,7 +832,7 @@ finished(content='xxx') # Use escape characters \\', \\", and \\n in content par
 
 
 ## Note
-- Use Chinese in \`Thought\` part.
+- Use English in \`Thought\` part.
 - Write a small plan and finally summarize your next action (with its target element) in one sentence in \`Thought\` part.
 
 ## User Instruction

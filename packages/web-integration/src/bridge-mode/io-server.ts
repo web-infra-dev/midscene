@@ -1,4 +1,5 @@
 import { logMsg } from '@midscene/shared/utils';
+import fkill from 'fkill';
 import { Server, type Socket as ServerSocket } from 'socket.io';
 import {
   type BridgeCall,
@@ -30,7 +31,17 @@ export class BridgeServer {
     public onDisconnect?: (reason: string) => void,
   ) {}
 
-  async listen(timeout: number | false = 30000): Promise<void> {
+  async listen(
+    opts: {
+      timeout?: number | false;
+      forceCloseServer?: boolean;
+    } = {},
+  ): Promise<void> {
+    const { timeout = 30000, forceCloseServer = false } = opts;
+    if (forceCloseServer) {
+      await this.killPort();
+    }
+
     return new Promise((resolve, reject) => {
       if (this.listeningTimerFlag) {
         return reject(new Error('already listening'));
@@ -148,7 +159,20 @@ export class BridgeServer {
           reject(e);
         }
       });
+
+      this.io.on('close', () => {
+        this.close();
+      });
     });
+  }
+
+  async killPort() {
+    if (!this.listeningTimerFlag) {
+      // kill the port if it is already occupied
+      try {
+        await fkill(this.port);
+      } catch (e) {}
+    }
   }
 
   private connectionLostErrorMsg = () => {

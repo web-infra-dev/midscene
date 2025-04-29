@@ -9,6 +9,7 @@ import {
   Insight,
   type InsightAction,
   type LocateOption,
+  type LocateResultElement,
   type OnTaskStartTip,
   type PlanningActionParamScroll,
 } from '@midscene/core';
@@ -316,6 +317,41 @@ export class PageAgent<PageType extends WebPage = WebPage> {
     const { output, executor } = await this.taskExecutor.query(demand);
     this.afterTaskRunning(executor);
     return output;
+  }
+
+  async aiBoolean(prompt: string) {
+    const { output, executor } = await this.taskExecutor.boolean(prompt);
+    this.afterTaskRunning(executor);
+    return output;
+  }
+
+  async aiNumber(prompt: string) {
+    const { output, executor } = await this.taskExecutor.number(prompt);
+    this.afterTaskRunning(executor);
+    return output;
+  }
+
+  async aiString(prompt: string) {
+    const { output, executor } = await this.taskExecutor.string(prompt);
+    this.afterTaskRunning(executor);
+    return output;
+  }
+
+  async aiLocate(prompt: string, opt?: LocateOption) {
+    const detailedLocateParam = this.buildDetailedLocateParam(prompt, opt);
+    const plans = buildPlans('Locate', detailedLocateParam);
+    const { executor, output } = await this.taskExecutor.runPlans(
+      taskTitleStr('Locate', locateParamStr(detailedLocateParam)),
+      plans,
+    );
+    this.afterTaskRunning(executor);
+
+    const { element } = output;
+
+    return {
+      rect: element?.rect,
+      center: element?.center,
+    } as Pick<LocateResultElement, 'rect' | 'center'>;
   }
 
   async aiAssert(assertion: string, msg?: string, opt?: AgentAssertOpt) {

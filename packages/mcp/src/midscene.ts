@@ -1,6 +1,5 @@
 import {
   MIDSCENE_MCP_USE_PUPPETEER_MODE,
-  getAIConfig,
   getAIConfigInBoolean,
 } from '@midscene/shared/env';
 import {
@@ -37,7 +36,6 @@ export class MidsceneManager {
     this.mcpServer = server;
     this.initEnv();
     this.registerTools();
-    this.initAgent();
   }
 
   private initEnv() {
@@ -54,11 +52,11 @@ export class MidsceneManager {
 
   // Asynchronously initializes or re-initializes the browser agent.
   // Accepts an optional 'reInit' flag (default: false). If true, forces re-creation of the agent.
-  private async initAgent(reInit = false) {
+  private async initAgent(openNewTabWithUrl?: string) {
     // Check if an agent instance already exists.
     if (this.agent) {
       // If 'reInit' is requested,
-      if (reInit) {
+      if (openNewTabWithUrl) {
         // Properly clean up the existing agent resources.
         await this.agent.destroy();
         // Clear the existing agent instance.
@@ -71,30 +69,31 @@ export class MidsceneManager {
 
     // Check if running in bridge mode (connecting to an existing Chrome instance).
     if (!this.puppeteerMode) {
-      this.agent = await this.initAgentByBridgeMode(reInit);
+      this.agent = await this.initAgentByBridgeMode(openNewTabWithUrl);
     } else {
-      this.agent = await this.initPuppeteerAgent();
+      this.agent = await this.initPuppeteerAgent(openNewTabWithUrl);
     }
-    // Return the newly created or re-initialized agent instance.
     return this.agent;
   }
 
   private async initAgentByBridgeMode(
-    reInit: boolean,
+    openNewTabWithUrl?: string,
   ): Promise<AgentOverChromeBridge> {
     let agent: AgentOverChromeBridge;
     try {
       // Create a new agent instance designed for bridge mode.
       agent = new AgentOverChromeBridge({
-        serverListeningTimeout: false,
+        forceCloseServer: true,
       });
       // If this is the first initialization (not re-init),
-      if (!reInit) {
+      if (!openNewTabWithUrl) {
         // Connect the agent to the currently active tab in the browser.
         await agent.connectCurrentTab();
         const tabsInfo = await agent.getBrowserTabList();
         // Send active tab information in a well-structured format
         this.sendActiveTabInfo(tabsInfo);
+      } else {
+        await agent.connectNewTabWithUrl(openNewTabWithUrl);
       }
       return agent;
     } catch (err) {
@@ -102,18 +101,30 @@ export class MidsceneManager {
       if (agent) {
         await agent.destroy();
       }
-      return await this.initAgentByBridgeMode(reInit);
+      console.error('Bridge mode connection failed', err);
+      // Check if we've exceeded the maximum retry attempts
+      throw new Error(
+        'Unable to establish Bridge mode connection. Please check the following issues:\n' +
+          '1. Confirm Chrome browser is running\n' +
+          '2. Midscene extension is properly installed in Chrome\n' +
+          '3. Bridge mode is enabled in the extension settings\n' +
+          '4. No other MCP clients are using the Midscene MCP server',
+      );
     }
   }
 
-  private async initPuppeteerAgent() {
+  private async initPuppeteerAgent(openNewTabWithUrl?: string) {
     // If not in bridge mode, use Puppeteer to control a browser instance.
     // Ensure a Puppeteer browser instance is running and get its details.
     const { browser } = await ensureBrowser({});
     // Create a new, blank page (tab) in the browser.
     const newPage = await browser.newPage();
     // Navigate the new page to Google as a starting point.
-    await newPage.goto('https://google.com');
+    if (openNewTabWithUrl) {
+      await newPage.goto(openNewTabWithUrl);
+    } else {
+      await newPage.goto('https://google.com');
+    }
     // Create a new Puppeteer-specific agent instance, controlling the browser and the new page.
     const agent = new PuppeteerBrowserAgent(browser, newPage);
     return agent;
@@ -125,8 +136,7 @@ export class MidsceneManager {
       'Navigates the browser to the specified URL. Always opens in the current tab.',
       { url: z.string().describe('URL to navigate to') },
       async ({ url }) => {
-        const agent = await this.initAgent(true);
-        await agent.connectNewTabWithUrl(url);
+        await this.initAgent(url);
         return {
           content: [{ type: 'text', text: `Navigated to ${url}` }],
           isError: false,
