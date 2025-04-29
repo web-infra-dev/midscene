@@ -74,7 +74,6 @@ export class MidsceneManager {
     } else {
       this.agent = await this.initPuppeteerAgent(openNewTabWithUrl);
     }
-    // Return the newly created or re-initialized agent instance.
     return this.agent;
   }
 
