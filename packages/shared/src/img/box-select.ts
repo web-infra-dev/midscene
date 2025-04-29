@@ -50,17 +50,21 @@ const createSvgOverlay = async (
     const color = colors[index % colors.length];
 
     // Add 5px padding to the rect
+    const paddedLeft = Math.max(0, element.rect.left - boxPadding);
+    const paddedTop = Math.max(0, element.rect.top - boxPadding);
+    const paddedWidth = Math.min(
+      imageWidth - paddedLeft,
+      element.rect.width + boxPadding * 2,
+    );
+    const paddedHeight = Math.min(
+      imageHeight - paddedTop,
+      element.rect.height + boxPadding * 2,
+    );
     const paddedRect = {
-      left: Math.max(0, element.rect.left - boxPadding),
-      top: Math.max(0, element.rect.top - boxPadding),
-      width: Math.min(
-        imageWidth - element.rect.left,
-        element.rect.width + boxPadding * 2,
-      ),
-      height: Math.min(
-        imageHeight - element.rect.top,
-        element.rect.height + boxPadding * 2,
-      ),
+      left: paddedLeft,
+      top: paddedTop,
+      width: paddedWidth,
+      height: paddedHeight,
     };
 
     // Draw rectangle
