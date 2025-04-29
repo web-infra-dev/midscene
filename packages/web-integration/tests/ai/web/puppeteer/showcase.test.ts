@@ -33,6 +33,9 @@ describe(
 
       await sleep(10 * 1000);
 
+      const flag = await agent.aiBoolean('this is a login page');
+      expect(flag).toBe(true);
+
       await agent.aiAction(
         'type "standard_user" in user name input, type "secret_sauce" in password',
       );

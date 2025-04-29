@@ -1,7 +1,7 @@
 import './sidebar.less';
 import { useAllCurrentTasks, useExecutionDump } from '@/components/store';
 import { MessageOutlined, VideoCameraOutlined } from '@ant-design/icons';
-import type { ExecutionTask } from '@midscene/core';
+import type { ExecutionTask, ExecutionTaskInsightLocate } from '@midscene/core';
 import { iconForStatus, timeCostStrElement } from '@midscene/visualizer';
 import { typeStr } from '@midscene/web/ui-utils';
 import { useEffect } from 'react';

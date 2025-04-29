@@ -75,5 +75,5 @@ The default timeout is configured as follows:
 
 You can also customize the timeout by options
 
-- Use `waitForNetworkIdleTimeout` and `waitForNavigationTimeout` parameters in [Agent](/api.html#constructors) or [PlaywrightAiFixture](/integrate-with-playwright.html#step-2-extend-the-test-instance).
-- Use `waitForNetworkIdle` parameter in [Yaml](/automate-with-scripts-in-yaml.html#the-web-part).
+- Use `waitForNetworkIdleTimeout` and `waitForNavigationTimeout` parameters in [Agent](/api.html#constructors).
+- Use `waitForNetworkIdle` parameter in [Yaml](/automate-with-scripts-in-yaml.html#the-web-part) or [PlaywrightAiFixture](/integrate-with-playwright.html#step-2-extend-the-test-instance).

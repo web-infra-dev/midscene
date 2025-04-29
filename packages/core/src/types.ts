@@ -205,6 +205,7 @@ export interface InsightDump extends DumpMeta {
   assertionThought?: string;
   taskInfo: InsightTaskInfo;
   error?: string;
+  output?: any;
 }
 
 export type PartialInsightDumpFromSDK = Omit<
