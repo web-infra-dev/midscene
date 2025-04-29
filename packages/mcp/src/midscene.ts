@@ -83,7 +83,9 @@ export class MidsceneManager {
     let agent: AgentOverChromeBridge;
     try {
       // Create a new agent instance designed for bridge mode.
-      agent = new AgentOverChromeBridge();
+      agent = new AgentOverChromeBridge({
+        forceCloseServer: true,
+      });
       // If this is the first initialization (not re-init),
       if (!openNewTabWithUrl) {
         // Connect the agent to the currently active tab in the browser.

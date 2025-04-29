@@ -31,8 +31,17 @@ export class BridgeServer {
     public onDisconnect?: (reason: string) => void,
   ) {}
 
-  async listen(timeout: number | false = 30000): Promise<void> {
-    await this.killPort();
+  async listen(
+    opts: {
+      timeout?: number | false;
+      forceCloseServer?: boolean;
+    } = {},
+  ): Promise<void> {
+    const { timeout = 30000, forceCloseServer = false } = opts;
+    if (forceCloseServer) {
+      await this.killPort();
+    }
+
     return new Promise((resolve, reject) => {
       if (this.listeningTimerFlag) {
         return reject(new Error('already listening'));
