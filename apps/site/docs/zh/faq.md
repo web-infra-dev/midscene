@@ -71,5 +71,5 @@ await page.setViewport({
 
 当然，你可以通过配置参数修改默认超时时间
 
-- 使用 [Agent](/zh/api.html#%E6%9E%84%E9%80%A0%E5%99%A8) 和 [PlaywrightAiFixture](/zh/integrate-with-playwright.html#%E7%AC%AC%E4%BA%8C%E6%AD%A5%E6%89%A9%E5%B1%95-test-%E5%AE%9E%E4%BE%8B) 上的 `waitForNetworkIdleTimeout` 和 `waitForNavigationTimeout` 参数
-- 使用 [Yaml](/zh/automate-with-scripts-in-yaml.html#web-%E9%83%A8%E5%88%86) 脚本中的 `waitForNetworkIdle` 参数
+- 使用 [Agent](/zh/api.html#%E6%9E%84%E9%80%A0%E5%99%A8) 上的 `waitForNetworkIdleTimeout` 和 `waitForNavigationTimeout` 参数
+- 使用 [Yaml](/zh/automate-with-scripts-in-yaml.html#web-%E9%83%A8%E5%88%86) 脚本和 [PlaywrightAiFixture](/zh/integrate-with-playwright.html#%E7%AC%AC%E4%BA%8C%E6%AD%A5%E6%89%A9%E5%B1%95-test-%E5%AE%9E%E4%BE%8B) 中的 `waitForNetworkIdle` 参数
