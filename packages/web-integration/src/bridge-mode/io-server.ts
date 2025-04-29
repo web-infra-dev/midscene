@@ -1,3 +1,4 @@
+import { sleep } from '@midscene/core/utils';
 import { logMsg } from '@midscene/shared/utils';
 import fkill from 'fkill';
 import { Server, type Socket as ServerSocket } from 'socket.io';
@@ -8,9 +9,22 @@ import {
   type BridgeConnectedEventPayload,
   BridgeErrorCodeNoClientConnected,
   BridgeEvent,
+  DefaultBridgeServerPort,
 } from './common';
 
 declare const __VERSION__: string;
+
+export const forceKillPort = async (port?: number) => {
+  try {
+    await fkill(`:${port || DefaultBridgeServerPort}`, {
+      force: true,
+      forceAfterTimeout: 500,
+    });
+    await sleep(500);
+  } catch (e) {
+    console.error('failed to kill port', e);
+  }
+};
 
 // ws server, this is where the request is sent
 export class BridgeServer {
@@ -34,13 +48,9 @@ export class BridgeServer {
   async listen(
     opts: {
       timeout?: number | false;
-      forceCloseServer?: boolean;
     } = {},
   ): Promise<void> {
-    const { timeout = 30000, forceCloseServer = false } = opts;
-    if (forceCloseServer) {
-      await this.killPort();
-    }
+    const { timeout = 30000 } = opts;
 
     return new Promise((resolve, reject) => {
       if (this.listeningTimerFlag) {
@@ -64,9 +74,17 @@ export class BridgeServer {
               logMsg('waiting for bridge to connect...');
             }, 2000)
           : null;
-
       this.io = new Server(this.port, {
         maxHttpBufferSize: 100 * 1024 * 1024, // 100MB
+      });
+
+      // Listen for the native HTTP server 'listening' event
+      this.io.httpServer.once('listening', () => {
+        resolve();
+      });
+
+      this.io.httpServer.once('error', (err: Error) => {
+        reject(new Error(`Bridge Listening Error: ${err.message}`));
       });
 
       this.io.use((socket, next) => {
@@ -152,8 +170,6 @@ export class BridgeServer {
               }
             });
           }, 0);
-
-          resolve();
         } catch (e) {
           console.error('failed to handle connection event', e);
           reject(e);
@@ -164,15 +180,6 @@ export class BridgeServer {
         this.close();
       });
     });
-  }
-
-  async killPort() {
-    if (!this.listeningTimerFlag) {
-      // kill the port if it is already occupied
-      try {
-        await fkill(this.port);
-      } catch (e) {}
-    }
   }
 
   private connectionLostErrorMsg = () => {

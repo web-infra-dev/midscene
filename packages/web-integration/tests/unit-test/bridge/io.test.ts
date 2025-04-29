@@ -60,9 +60,14 @@ describe('bridge-io', () => {
     await server2.close();
   });
 
-  it('server listen timeout', async () => {
-    const server = new BridgeServer(testPort++);
-    await expect(server.listen(100)).rejects.toThrow();
+  it('server on same port', async () => {
+    const port = testPort++;
+    const server = new BridgeServer(port);
+    await server.listen();
+
+    const server2 = new BridgeServer(port);
+    await expect(server2.listen()).rejects.toThrow();
+    await server.close();
   });
 
   it('server and client communicate', async () => {
