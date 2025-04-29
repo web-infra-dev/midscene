@@ -995,10 +995,12 @@ export class PageTaskExecutor {
   private async createTypeQueryTask<T>(
     type: 'Query' | 'Boolean' | 'Number' | 'String',
     demand: InsightExtractParam,
-    prompt?: string,
   ): Promise<ExecutionResult<T>> {
     const taskExecutor = new Executor(
-      taskTitleStr(type, prompt || JSON.stringify(demand)),
+      taskTitleStr(
+        type,
+        typeof demand === 'string' ? demand : JSON.stringify(demand),
+      ),
       {
         onTaskStart: this.onTaskStartCallback,
       },
@@ -1009,7 +1011,7 @@ export class PageTaskExecutor {
       subType: type,
       locate: null,
       param: {
-        dataDemand: prompt || demand, // for user param presentation in report right sidebar
+        dataDemand: demand, // for user param presentation in report right sidebar
       },
       executor: async (param) => {
         let insightDump: InsightDump | undefined;
@@ -1017,10 +1019,25 @@ export class PageTaskExecutor {
           insightDump = dump;
         };
         this.insight.onceDumpUpdatedFn = dumpCollector;
-        const { output, usage } = await this.insight.extract<any>(demand);
+
+        const ifTypeRestricted = type !== 'Query';
+        let demandInput = demand;
+        if (ifTypeRestricted) {
+          demandInput = {
+            result: `${type}, ${demand}`,
+          };
+        }
+
+        const { data, usage } = await this.insight.extract<any>(demandInput);
+
+        let outputResult = data;
+        if (ifTypeRestricted) {
+          assert(data?.result, 'No result in query data');
+          outputResult = (data as any).result;
+        }
 
         return {
-          output,
+          output: outputResult,
           log: { dump: insightDump },
           usage,
         };
@@ -1040,24 +1057,15 @@ export class PageTaskExecutor {
   }
 
   async boolean(prompt: string): Promise<ExecutionResult<boolean>> {
-    const demand = {
-      result: `${prompt}, boolean`,
-    };
-    return this.createTypeQueryTask<boolean>('Boolean', demand, prompt);
+    return this.createTypeQueryTask<boolean>('Boolean', prompt);
   }
 
   async number(prompt: string): Promise<ExecutionResult<number>> {
-    const demand = {
-      result: `${prompt}, number`,
-    };
-    return this.createTypeQueryTask<number>('Number', demand, prompt);
+    return this.createTypeQueryTask<number>('Number', prompt);
   }
 
   async string(prompt: string): Promise<ExecutionResult<string>> {
-    const demand = {
-      result: `${prompt}, string`,
-    };
-    return this.createTypeQueryTask<string>('String', demand, prompt);
+    return this.createTypeQueryTask<string>('String', prompt);
   }
 
   async assert(
