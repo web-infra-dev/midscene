@@ -20,11 +20,13 @@ const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 // actually, this is a proxy to the page in browser side
 export const getBridgePageInCliSide = (
+  forceCloseServer?: boolean,
   timeout?: number | false,
 ): ChromeExtensionPageCliSide => {
   const server = new BridgeServer(DefaultBridgeServerPort);
   server.listen({
     timeout,
+    forceCloseServer,
   });
   const bridgeCaller = (method: string) => {
     return async (...args: any[]) => {
@@ -107,7 +109,10 @@ export class AgentOverChromeBridge extends PageAgent<ChromeExtensionPageCliSide>
       serverListeningTimeout?: number | false;
     },
   ) {
-    const page = getBridgePageInCliSide(opts?.serverListeningTimeout);
+    const page = getBridgePageInCliSide(
+      opts?.forceCloseServer,
+      opts?.serverListeningTimeout,
+    );
     super(
       page,
       Object.assign(opts || {}, {
