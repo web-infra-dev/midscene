@@ -1,5 +1,3 @@
-import { preferredLanguage } from './preferredLanguage';
-
 // config keys
 export const MIDSCENE_OPENAI_INIT_CONFIG_JSON =
   'MIDSCENE_OPENAI_INIT_CONFIG_JSON';
@@ -102,7 +100,7 @@ export const allConfigFromEnv = () => {
       process.env[MIDSCENE_MCP_USE_PUPPETEER_MODE] || undefined,
     [MIDSCENE_RUN_DIR]: process.env[MIDSCENE_RUN_DIR] || undefined,
     [MIDSCENE_PREFERRED_LANGUAGE]:
-      process.env[MIDSCENE_PREFERRED_LANGUAGE] || preferredLanguage,
+      process.env[MIDSCENE_PREFERRED_LANGUAGE] || undefined,
   };
 };
 
@@ -243,4 +241,14 @@ export const overrideAIConfig = (
   globalConfig = extendMode
     ? { ...currentConfig, ...newConfig }
     : { ...newConfig };
+};
+
+export const getPreferredLanguage = () => {
+  if (getAIConfig(MIDSCENE_PREFERRED_LANGUAGE)) {
+    return getAIConfig(MIDSCENE_PREFERRED_LANGUAGE);
+  }
+
+  const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  const isChina = timeZone === 'Asia/Shanghai';
+  return isChina ? 'Chinese' : 'English';
 };

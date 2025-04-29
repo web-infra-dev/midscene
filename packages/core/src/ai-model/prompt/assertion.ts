@@ -1,5 +1,7 @@
+import { getPreferredLanguage } from '@midscene/shared/env';
 import type { ResponseFormatJSONSchema } from 'openai/resources';
-import { preferredLanguage } from './common';
+
+const preferredLanguage = getPreferredLanguage();
 
 const defaultAssertionPrompt =
   'You are a senior testing engineer. User will give an assertion and a screenshot of a page. By carefully viewing the screenshot, please tell whether the assertion is truthy.';

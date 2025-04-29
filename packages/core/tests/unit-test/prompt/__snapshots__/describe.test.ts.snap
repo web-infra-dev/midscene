@@ -1,9 +1,7 @@
-import { getPreferredLanguage } from '@midscene/shared/env';
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
-const preferredLanguage = getPreferredLanguage();
-
-export const elementDescriberInstruction = () => {
-  return `Tell what is the content of the element wrapped by the read rectangle in the screenshot. Use ${preferredLanguage} in the description.
+exports[`elementDescriberInstruction > should return the correct instruction 1`] = `
+"Tell what is the content of the element wrapped by the read rectangle in the screenshot. Use English in the description.
 
 Please follow the following rules:
 1. The description should be start with a brief description, like "a button for confirming the action".
@@ -21,5 +19,5 @@ Return in JSON:
 {
   "description": "[{brief description}]: {text of the element} {image of the element} {relative position of the element} ... ",
   "error"?: "..."
-}`;
-};
+}"
+`;
