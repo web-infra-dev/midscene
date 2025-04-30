@@ -7,9 +7,13 @@ import type {
   FreeFn,
   MidsceneYamlFlowItemAIAction,
   MidsceneYamlFlowItemAIAssert,
+  MidsceneYamlFlowItemAIBoolean,
   MidsceneYamlFlowItemAIHover,
   MidsceneYamlFlowItemAIInput,
   MidsceneYamlFlowItemAIKeyboardPress,
+  MidsceneYamlFlowItemAILocate,
+  MidsceneYamlFlowItemAINString,
+  MidsceneYamlFlowItemAINumber,
   MidsceneYamlFlowItemAIQuery,
   MidsceneYamlFlowItemAIScroll,
   MidsceneYamlFlowItemAITap,
@@ -156,6 +160,46 @@ export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
         );
         const queryResult = await agent.aiQuery(prompt);
         this.setResult(queryTask.name, queryResult);
+      } else if ((flowItem as MidsceneYamlFlowItemAINumber).aiNumber) {
+        const numberTask = flowItem as MidsceneYamlFlowItemAINumber;
+        const prompt = numberTask.aiNumber;
+        assert(prompt, 'missing prompt for number');
+        assert(
+          typeof prompt === 'string',
+          'prompt for number must be a string',
+        );
+        const numberResult = await agent.aiNumber(prompt);
+        this.setResult(numberTask.name, numberResult);
+      } else if ((flowItem as MidsceneYamlFlowItemAINString).aiString) {
+        const stringTask = flowItem as MidsceneYamlFlowItemAINString;
+        const prompt = stringTask.aiString;
+        assert(prompt, 'missing prompt for string');
+        assert(
+          typeof prompt === 'string',
+          'prompt for string must be a string',
+        );
+        const stringResult = await agent.aiString(prompt);
+        this.setResult(stringTask.name, stringResult);
+      } else if ((flowItem as MidsceneYamlFlowItemAIBoolean).aiBoolean) {
+        const booleanTask = flowItem as MidsceneYamlFlowItemAIBoolean;
+        const prompt = booleanTask.aiBoolean;
+        assert(prompt, 'missing prompt for boolean');
+        assert(
+          typeof prompt === 'string',
+          'prompt for boolean must be a string',
+        );
+        const booleanResult = await agent.aiBoolean(prompt);
+        this.setResult(booleanTask.name, booleanResult);
+      } else if ((flowItem as MidsceneYamlFlowItemAILocate).aiLocate) {
+        const locateTask = flowItem as MidsceneYamlFlowItemAILocate;
+        const prompt = locateTask.aiLocate;
+        assert(prompt, 'missing prompt for aiLocate');
+        assert(
+          typeof prompt === 'string',
+          'prompt for aiLocate must be a string',
+        );
+        const locateResult = await agent.aiLocate(prompt);
+        this.setResult(locateTask.name, locateResult);
       } else if ((flowItem as MidsceneYamlFlowItemAIWaitFor).aiWaitFor) {
         const waitForTask = flowItem as MidsceneYamlFlowItemAIWaitFor;
         const prompt = waitForTask.aiWaitFor;

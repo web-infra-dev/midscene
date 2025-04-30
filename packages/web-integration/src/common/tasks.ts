@@ -825,6 +825,9 @@ export class PageTaskExecutor {
             more_actions_needed_by_instruction: true,
             log: '',
           },
+          log: {
+            rawResponse: planResult,
+          },
           cache: {
             hit: Boolean(planCache),
           },

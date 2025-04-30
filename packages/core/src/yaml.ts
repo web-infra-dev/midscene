@@ -84,6 +84,26 @@ export interface MidsceneYamlFlowItemAIQuery {
   name?: string;
 }
 
+export interface MidsceneYamlFlowItemAINumber {
+  aiNumber: string;
+  name?: string;
+}
+
+export interface MidsceneYamlFlowItemAINString {
+  aiString: string;
+  name?: string;
+}
+
+export interface MidsceneYamlFlowItemAIBoolean {
+  aiBoolean: string;
+  name?: string;
+}
+
+export interface MidsceneYamlFlowItemAILocate {
+  aiLocate: string;
+  name?: string;
+}
+
 export interface MidsceneYamlFlowItemAIWaitFor {
   aiWaitFor: string;
   timeout?: number;

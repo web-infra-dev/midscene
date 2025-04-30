@@ -355,7 +355,7 @@ const DetailSide = (): JSX.Element => {
           <pre>
             {typeof data === 'object'
               ? JSON.stringify(data, undefined, 2)
-              : data}
+              : String(data)}
           </pre>
         }
       />
