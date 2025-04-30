@@ -18,6 +18,8 @@ export const OPENAI_API_KEY = 'OPENAI_API_KEY';
 export const OPENAI_BASE_URL = 'OPENAI_BASE_URL';
 export const OPENAI_MAX_TOKENS = 'OPENAI_MAX_TOKENS';
 
+export const MIDSCENE_ADB_PATH = 'MIDSCENE_ADB_PATH';
+
 export const MIDSCENE_CACHE = 'MIDSCENE_CACHE';
 export const MIDSCENE_USE_VLM_UI_TARS = 'MIDSCENE_USE_VLM_UI_TARS';
 export const MIDSCENE_USE_QWEN_VL = 'MIDSCENE_USE_QWEN_VL';
@@ -66,6 +68,7 @@ export const allConfigFromEnv = () => {
     [OPENAI_BASE_URL]: process.env[OPENAI_BASE_URL] || undefined,
     [OPENAI_MAX_TOKENS]: process.env[OPENAI_MAX_TOKENS] || undefined,
     [OPENAI_USE_AZURE]: process.env[OPENAI_USE_AZURE] || undefined,
+    [MIDSCENE_ADB_PATH]: process.env[MIDSCENE_ADB_PATH] || undefined,
     [MIDSCENE_CACHE]: process.env[MIDSCENE_CACHE] || undefined,
     [MATCH_BY_POSITION]: process.env[MATCH_BY_POSITION] || undefined,
     [MIDSCENE_REPORT_TAG_NAME]:
