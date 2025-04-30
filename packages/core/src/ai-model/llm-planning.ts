@@ -119,6 +119,7 @@ export async function plan(
   } else {
     actions.forEach((action) => {
       if (action.locate?.id) {
+        // The model may return indexId, need to perform a query correction to avoid exceptions
         const element = elementById(action.locate.id);
         if (element) {
           action.locate.id = element.id;
