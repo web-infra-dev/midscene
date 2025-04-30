@@ -4,4 +4,4 @@ export { AgentOverChromeBridge };
 
 export { overrideAIConfig, allConfigFromEnv } from '@midscene/shared/env';
 
-export { forceKillPort } from './io-server';
+export { killRunningServer } from './io-server';

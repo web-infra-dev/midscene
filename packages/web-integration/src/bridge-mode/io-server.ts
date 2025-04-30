@@ -1,7 +1,8 @@
 import { sleep } from '@midscene/core/utils';
 import { logMsg } from '@midscene/shared/utils';
-import fkill from 'fkill';
 import { Server, type Socket as ServerSocket } from 'socket.io';
+import { io as ClientIO, type Socket as ClientSocket } from 'socket.io-client';
+
 import {
   type BridgeCall,
   type BridgeCallResponse,
@@ -9,20 +10,26 @@ import {
   type BridgeConnectedEventPayload,
   BridgeErrorCodeNoClientConnected,
   BridgeEvent,
+  BridgeSignalKill,
   DefaultBridgeServerPort,
 } from './common';
 
 declare const __VERSION__: string;
 
-export const forceKillPort = async (port?: number) => {
+export const killRunningServer = async (port?: number) => {
   try {
-    await fkill(`:${port || DefaultBridgeServerPort}`, {
-      force: true,
-      forceAfterTimeout: 500,
-    });
+    const client = ClientIO(
+      `ws://localhost:${port || DefaultBridgeServerPort}`,
+      {
+        query: {
+          [BridgeSignalKill]: 1,
+        },
+      },
+    );
     await sleep(500);
+    await client.close();
   } catch (e) {
-    console.error('failed to kill port', e);
+    // console.error('failed to kill port', e);
   }
 };
 
@@ -95,6 +102,13 @@ export class BridgeServer {
       });
 
       this.io.on('connection', (socket) => {
+        // check the connection url
+        const url = socket.handshake.url;
+        if (url.includes(BridgeSignalKill)) {
+          console.warn('kill signal received, closing bridge server');
+          return this.close();
+        }
+
         this.connectionLost = false;
         this.connectionLostReason = '';
         this.listeningTimeoutId && clearTimeout(this.listeningTimeoutId);

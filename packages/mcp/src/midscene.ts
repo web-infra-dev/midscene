@@ -6,7 +6,7 @@ import {
 import {
   AgentOverChromeBridge,
   allConfigFromEnv,
-  forceKillPort,
+  killRunningServer,
   overrideAIConfig,
 } from '@midscene/web/bridge-mode';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
@@ -143,7 +143,7 @@ export class MidsceneManager {
       async ({ url, forceCloseOtherServers }) => {
         try {
           if (forceCloseOtherServers) {
-            await forceKillPort();
+            await killRunningServer();
           }
         } catch (e) {
           console.error(

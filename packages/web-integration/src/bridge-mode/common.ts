@@ -16,6 +16,8 @@ export enum BridgeEvent {
   SetActiveTabId = 'setActiveTabId',
 }
 
+export const BridgeSignalKill = 'MIDSCENE_BRIDGE_SIGNAL_KILL';
+
 export interface BridgeConnectTabOptions {
   /**
    * If true, the page will always track the active tab.
