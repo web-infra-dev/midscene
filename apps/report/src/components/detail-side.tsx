@@ -291,79 +291,52 @@ const DetailSide = (): JSX.Element => {
     });
   }
 
-  const matchedElementsEl = elements?.length
-    ? elements.map((element, idx) => {
-        const ifHighlight = false; // highlightElements.includes(element);
-        const highlightColor = ifHighlight
-          ? highlightColorForType('element')
-          : undefined;
+  let outputDataContent = null;
+  const plans = (task as ExecutionTaskPlanning)?.output?.actions;
+  if (elements?.length) {
+    outputDataContent = elements.map((element, idx) => {
+      const ifHighlight = false; // highlightElements.includes(element);
+      const highlightColor = ifHighlight
+        ? highlightColorForType('element')
+        : undefined;
 
-        const elementKV = kv(
-          objectWithoutKeys(element as any, [
-            'content',
-            'left',
-            'top',
-            'right',
-            'bottom',
-            'locator',
-          ]),
-        );
+      const elementKV = kv(
+        objectWithoutKeys(element as any, [
+          'content',
+          'left',
+          'top',
+          'right',
+          'bottom',
+          'locator',
+        ]),
+      );
 
-        return (
-          <Card
-            title={element.content}
-            highlightWithColor={highlightColor}
-            subtitle=""
-            content={elementKV}
-            key={idx}
-          />
-        );
-      })
-    : null;
-
-  // const [showQuery, setShowQuery] = useState(false);
-
-  const errorSection = task?.error ? (
-    <Card
-      liteMode={true}
-      title="Error"
-      onMouseEnter={noop}
-      onMouseLeave={noop}
-      content={
-        <pre className="description-content" style={{ color: '#F00' }}>
-          {task.error}
-        </pre>
-      }
-    />
-  ) : null;
-
-  let data;
-
-  if (task?.output !== undefined) {
-    data = task.output;
-  } else if (dump?.data !== undefined) {
-    data = dump.data;
-  }
-
-  const dataCard =
-    data !== undefined ? (
+      return (
+        <Card
+          title={element.content}
+          highlightWithColor={highlightColor}
+          subtitle=""
+          content={elementKV}
+          key={idx}
+        />
+      );
+    });
+  } else if (task?.error) {
+    outputDataContent = (
       <Card
         liteMode={true}
+        title="Error"
         onMouseEnter={noop}
         onMouseLeave={noop}
         content={
-          <pre>
-            {typeof data === 'object'
-              ? JSON.stringify(data, undefined, 2)
-              : String(data)}
+          <pre className="description-content" style={{ color: '#F00' }}>
+            {task.error}
           </pre>
         }
       />
-    ) : null;
-
-  let assertionCard: JSX.Element | null = null;
-  if (task?.type === 'Insight' && task.subType === 'Assert') {
-    assertionCard = (
+    );
+  } else if (task?.type === 'Insight' && task.subType === 'Assert') {
+    outputDataContent = (
       <Card
         liteMode={true}
         title="Assert"
@@ -380,11 +353,8 @@ const DetailSide = (): JSX.Element => {
         }
       />
     );
-  }
-
-  const plans = (task as ExecutionTaskPlanning)?.output?.actions;
-  let timelineData: TimelineItemProps[] = [];
-  if (plans) {
+  } else if (plans) {
+    let timelineData: TimelineItemProps[] = [];
     timelineData = timelineData.concat(
       plans.map((item) => {
         const paramToShow = item.param || {};
@@ -412,6 +382,7 @@ const DetailSide = (): JSX.Element => {
         };
       }),
     );
+
     if ((task as ExecutionTaskPlanning).output?.log) {
       timelineData.push({
         color: '#06B1AB',
@@ -447,6 +418,32 @@ const DetailSide = (): JSX.Element => {
         ),
       });
     }
+
+    outputDataContent = <Timeline items={timelineData} />;
+  } else {
+    let data;
+
+    if (task?.output !== undefined) {
+      data = task.output;
+    } else if (dump?.data !== undefined) {
+      data = dump.data;
+    }
+    if (data !== undefined) {
+      outputDataContent = (
+        <Card
+          liteMode={true}
+          onMouseEnter={noop}
+          onMouseLeave={noop}
+          content={
+            <pre>
+              {typeof data === 'object'
+                ? JSON.stringify(data, undefined, 2)
+                : String(data)}
+            </pre>
+          }
+        />
+      );
+    }
   }
 
   return (
@@ -459,13 +456,7 @@ const DetailSide = (): JSX.Element => {
       {taskParam}
       {/* Response */}
       <PanelTitle title={task?.subType === 'Locate' ? 'Element' : 'Output'} />
-      <div className="item-list item-list-space-up">
-        {errorSection}
-        {dataCard}
-        {assertionCard}
-        {matchedElementsEl}
-        <Timeline items={timelineData} />
-      </div>
+      <div className="item-list item-list-space-up">{outputDataContent}</div>
     </div>
   );
 };

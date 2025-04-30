@@ -1,6 +1,10 @@
 import { AiLocateElement, AiLocateSection } from '@/ai-model';
 import { getContextFromFixture } from 'tests/evaluation';
-import { expect, test } from 'vitest';
+import { expect, test, vi } from 'vitest';
+
+vi.setConfig({
+  testTimeout: 60 * 1000,
+});
 
 test(
   'basic inspect',

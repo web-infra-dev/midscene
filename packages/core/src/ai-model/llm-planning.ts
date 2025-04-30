@@ -6,7 +6,7 @@ import {
   AIActionType,
   type AIArgs,
   callAiFn,
-  fillLocateParam,
+  fillBboxParam,
   markupImageForLLM,
   warnGPT4oSizeLimit,
 } from './common';
@@ -29,7 +29,8 @@ export async function plan(
 ): Promise<PlanningAIResponse> {
   const { callAI, context } = opts || {};
   const { screenshotBase64, size } = context;
-  const { description: pageDescription } = await describeUserPage(context);
+  const { description: pageDescription, elementById } =
+    await describeUserPage(context);
 
   const systemPrompt = await systemPromptToTaskPlanning({
     pageType: opts.pageType,
@@ -100,11 +101,7 @@ export async function plan(
     actions.forEach((action) => {
       if (action.locate) {
         try {
-          action.locate = fillLocateParam(
-            action.locate,
-            size.width,
-            size.height,
-          );
+          action.locate = fillBboxParam(action.locate, size.width, size.height);
         } catch (e) {
           throw new Error(
             `Failed to fill locate param: ${planFromAI.error} (${
@@ -119,6 +116,16 @@ export async function plan(
     });
     // in Qwen-VL, error means error. In GPT-4o, error may mean more actions are needed.
     assert(!planFromAI.error, `Failed to plan actions: ${planFromAI.error}`);
+  } else {
+    actions.forEach((action) => {
+      if (action.locate?.id) {
+        // The model may return indexId, need to perform a query correction to avoid exceptions
+        const element = elementById(action.locate.id);
+        if (element) {
+          action.locate.id = element.id;
+        }
+      }
+    });
   }
 
   if (

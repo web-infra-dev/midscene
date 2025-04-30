@@ -139,6 +139,8 @@ MIDSCENE_USE_QWEN_VL=1 # 别忘了配置这项，用于启用 Qwen 2.5 模式！
 
 所以，如果你在阿里云平台使用 Qwen-2.5-VL 模型，请使用 `qwen-vl-max-latest` 作为模型名称。
 
+另外，使用 "接口转发平台" 调用阿里云的 VL 模型时，可能造成定位精度大幅下降。
+
 **资源**
 
 - [Qwen 2.5 on 🤗 HuggingFace](https://huggingface.co/Qwen/Qwen2.5-VL-72B-Instruct)

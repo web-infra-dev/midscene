@@ -2,9 +2,9 @@
 import { setIsMcp } from '@midscene/shared/utils';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
-import { z } from 'zod';
 import { MidsceneManager } from './midscene.js';
 import { PROMPTS } from './prompts.js';
+import { tools } from './tools.js';
 
 declare const __VERSION__: string;
 
@@ -18,8 +18,8 @@ const server = new McpServer({
 });
 
 server.tool(
-  'midscene_playwright_example',
-  'Provides Playwright code examples for Midscene. If users need to generate Midscene test cases, they can call this method to get sample Midscene Playwright test cases for generating end-user test cases. Each step must first be verified using the mcp method, and then the final test case is generated based on the playwright example according to the steps executed by mcp',
+  tools.midscene_playwright_example.name,
+  tools.midscene_playwright_example.description,
   {},
   async () => {
     return {
