@@ -26,7 +26,7 @@ export const killRunningServer = async (port?: number) => {
         },
       },
     );
-    await sleep(500);
+    await sleep(100);
     await client.close();
   } catch (e) {
     // console.error('failed to kill port', e);
@@ -50,6 +50,7 @@ export class BridgeServer {
     public port: number,
     public onConnect?: () => void,
     public onDisconnect?: (reason: string) => void,
+    public closeConflictServer?: boolean,
   ) {}
 
   async listen(
@@ -58,6 +59,10 @@ export class BridgeServer {
     } = {},
   ): Promise<void> {
     const { timeout = 30000 } = opts;
+
+    if (this.closeConflictServer) {
+      await killRunningServer(this.port);
+    }
 
     return new Promise((resolve, reject) => {
       if (this.listeningTimerFlag) {

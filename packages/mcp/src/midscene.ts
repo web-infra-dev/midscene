@@ -6,7 +6,6 @@ import {
 import {
   AgentOverChromeBridge,
   allConfigFromEnv,
-  killRunningServer,
   overrideAIConfig,
 } from '@midscene/web/bridge-mode';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
@@ -80,7 +79,9 @@ export class MidsceneManager {
     let agent: AgentOverChromeBridge;
     try {
       // Create a new agent instance designed for bridge mode.
-      agent = new AgentOverChromeBridge();
+      agent = new AgentOverChromeBridge({
+        closeConflictServer: true,
+      });
       // If this is the first initialization (not re-init),
       if (!openNewTabWithUrl) {
         // Connect the agent to the currently active tab in the browser.
@@ -132,25 +133,8 @@ export class MidsceneManager {
       tools.midscene_navigate.description,
       {
         url: z.string().describe('URL to navigate to'),
-        forceCloseOtherServers: z
-          .boolean()
-          .optional()
-          .default(false)
-          .describe(
-            'Force close other Midscene bridge servers. Only set this to true if you have tried this tool before and it failed.',
-          ),
       },
-      async ({ url, forceCloseOtherServers }) => {
-        try {
-          if (forceCloseOtherServers) {
-            await killRunningServer();
-          }
-        } catch (e) {
-          console.error(
-            'Failed to force close other Midscene bridge servers',
-            e,
-          );
-        }
+      async ({ url }) => {
         await this.initAgent(url);
         return {
           content: [

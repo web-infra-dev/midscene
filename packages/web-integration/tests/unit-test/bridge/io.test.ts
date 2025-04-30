@@ -71,6 +71,16 @@ describe('bridge-io', () => {
     await server.close();
   });
 
+  it('server on same port - close conflict server', async () => {
+    const port = testPort++;
+    const server = new BridgeServer(port);
+    await server.listen();
+
+    const server2 = new BridgeServer(port, undefined, undefined, true);
+    await server2.listen();
+    await server.close();
+  });
+
   it('server kill', async () => {
     const port = testPort++;
     const server = new BridgeServer(port);
