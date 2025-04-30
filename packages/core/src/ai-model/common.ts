@@ -56,7 +56,7 @@ const defaultBboxSize = 20; // must be even number
 const debugInspectUtils = getDebug('ai:common');
 
 // transform the param of locate from qwen mode
-export function fillLocateParam(
+export function fillBboxParam(
   locate: PlanningLocateParam,
   width: number,
   height: number,
