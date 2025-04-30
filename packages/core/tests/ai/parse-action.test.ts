@@ -12,14 +12,16 @@ describe('parse action from vlm', () => {
       factor: 1000,
     });
     expect(parsed).toHaveLength(1);
-    expect(parsed[0]).toEqual({
-      reflection: '',
-      thought: '',
-      action_type: 'click',
-      action_inputs: {
-        start_box: '[0.2,0.3,0.4,0.5]',
-      },
-    });
+    expect(parsed[0]).toMatchInlineSnapshot(`
+      {
+        "action_inputs": {
+          "start_box": "[0.2,0.3,0.4,0.5]",
+        },
+        "action_type": "click",
+        "reflection": null,
+        "thought": "",
+      }
+    `);
   });
 
   it('should parse action with Thought format', () => {
@@ -31,14 +33,16 @@ describe('parse action from vlm', () => {
       factor: 1000,
     });
     expect(parsed).toHaveLength(1);
-    expect(parsed[0]).toEqual({
-      reflection: '',
-      thought: '点击登录按钮',
-      action_type: 'click',
-      action_inputs: {
-        start_box: '[0.2,0.3,0.4,0.5]',
-      },
-    });
+    expect(parsed[0]).toMatchInlineSnapshot(`
+      {
+        "action_inputs": {
+          "start_box": "[0.2,0.3,0.4,0.5]",
+        },
+        "action_type": "click",
+        "reflection": null,
+        "thought": "点击登录按钮",
+      }
+    `);
   });
 
   it('should parse action with Thought format2', () => {
@@ -51,18 +55,19 @@ Action: click(start_box='(460,452)')`;
       factor: 1000,
     });
     expect(parsed).toHaveLength(1);
-    expect(parsed[0]).toEqual({
-      reflection: '',
-      thought:
-        'To proceed with the task of opening Twitter and posting a tweet, I need to first access the Google search page. The highlighted "Google 搜索" button is the appropriate element to interact with, as it will allow me to search for Twitter and navigate to its website.\n   Click on the "Google 搜索" button to initiate a search for Twitter.',
-      action_type: 'click',
-      action_inputs: {
-        start_box: '[0.46,0.452,0.46,0.452]',
-      },
-    });
+    expect(parsed[0]).toMatchInlineSnapshot(`
+      {
+        "action_inputs": {
+          "start_box": "[0.46,0.452,0.46,0.452]",
+        },
+        "action_type": "click",
+        "reflection": null,
+        "thought": "To proceed with the task of opening Twitter and posting a tweet, I need to first access the Google search page. The highlighted "Google 搜索" button is the appropriate element to interact with, as it will allow me to search for Twitter and navigate to its website.
+         Click on the "Google 搜索" button to initiate a search for Twitter.",
+      }
+    `);
   });
   //
-
   it('should parse action with Reflection format', () => {
     const text = `Action_Summary: 输入用户名
 Action: type(content='username')`;
@@ -72,14 +77,16 @@ Action: type(content='username')`;
       factor: 1000,
     });
     expect(parsed).toHaveLength(1);
-    expect(parsed[0]).toEqual({
-      thought: '输入用户名',
-      action_type: 'type',
-      reflection: '',
-      action_inputs: {
-        content: 'username',
-      },
-    });
+    expect(parsed[0]).toMatchInlineSnapshot(`
+      {
+        "action_inputs": {
+          "content": "username",
+        },
+        "action_type": "type",
+        "reflection": null,
+        "thought": "输入用户名",
+      }
+    `);
   });
 
   it('should parse multiple actions', () => {
