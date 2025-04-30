@@ -1,15 +1,15 @@
 import assert from 'node:assert';
 import fs from 'node:fs';
 import path from 'node:path';
-import type { Point, Size } from '@midscene/core';
+import { type Point, type Size, getAIConfig } from '@midscene/core';
 import type { PageType } from '@midscene/core';
 import { getTmpFile } from '@midscene/core/utils';
+import { MIDSCENE_ADB_PATH } from '@midscene/shared/env';
 import type { ElementInfo } from '@midscene/shared/extractor';
 import { isValidPNGImageBuffer, resizeImg } from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
 import type { AndroidDevicePage } from '@midscene/web';
 import { ADB } from 'appium-adb';
-
 const androidScreenshotPath = '/data/local/tmp/midscene_screenshot.png';
 export const debugPage = getDebug('android:device');
 
@@ -50,10 +50,16 @@ export class AndroidDevice implements AndroidDevicePage {
       debugPage(`Initializing ADB with device ID: ${this.deviceId}`);
 
       try {
+        const androidAdbPath = getAIConfig(MIDSCENE_ADB_PATH);
+
         this.adb = await ADB.createADB({
           udid: this.deviceId,
           adbExecTimeout: 60000,
+          executable: androidAdbPath
+            ? { path: androidAdbPath, defaultArgs: [] }
+            : undefined,
         });
+
         const size = await this.getScreenSize();
         console.log(`
 DeviceId: ${this.deviceId}
