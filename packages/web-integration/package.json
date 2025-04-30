@@ -1,213 +1,177 @@
 {
-    "name": "@midscene/web",
-    "description": "Automate browser actions, extract data, and perform assertions using AI. It offers JavaScript SDK, Chrome extension, and support for scripting in YAML. See https://midscenejs.com/ for details.",
-    "version": "0.16.5",
-    "repository": "https://github.com/web-infra-dev/midscene",
-    "homepage": "https://midscenejs.com/",
-    "jsnext:source": "./src/index.ts",
-    "main": "./dist/lib/index.js",
-    "types": "./dist/types/index.d.ts",
-    "bin": {
-        "midscene-playground": "./bin/midscene-playground"
+  "name": "@midscene/web",
+  "description": "Automate browser actions, extract data, and perform assertions using AI. It offers JavaScript SDK, Chrome extension, and support for scripting in YAML. See https://midscenejs.com/ for details.",
+  "version": "0.16.5",
+  "repository": "https://github.com/web-infra-dev/midscene",
+  "homepage": "https://midscenejs.com/",
+  "jsnext:source": "./src/index.ts",
+  "main": "./dist/lib/index.js",
+  "types": "./dist/types/index.d.ts",
+  "bin": {
+    "midscene-playground": "./bin/midscene-playground"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/types/index.d.ts",
+      "default": "./dist/lib/index.js"
     },
-    "exports": {
-        ".": {
-            "types": "./dist/types/index.d.ts",
-            "default": "./dist/lib/index.js"
-        },
-        "./bridge-mode": {
-            "types": "./dist/types/bridge-mode.d.ts",
-            "default": "./dist/lib/bridge-mode.js"
-        },
-        "./bridge-mode-browser": {
-            "types": "./dist/types/bridge-mode-browser.d.ts",
-            "default": "./dist/lib/bridge-mode-browser.js"
-        },
-        "./utils": {
-            "types": "./dist/types/utils.d.ts",
-            "default": "./dist/lib/utils.js"
-        },
-        "./ui-utils": {
-            "types": "./dist/types/ui-utils.d.ts",
-            "default": "./dist/lib/ui-utils.js"
-        },
-        "./puppeteer": {
-            "types": "./dist/types/puppeteer.d.ts",
-            "default": "./dist/lib/puppeteer.js"
-        },
-        "./puppeteer-agent-launcher": {
-            "types": "./dist/types/puppeteer-agent-launcher.d.ts",
-            "default": "./dist/lib/puppeteer-agent-launcher.js"
-        },
-        "./playwright": {
-            "types": "./dist/types/playwright.d.ts",
-            "default": "./dist/lib/playwright.js"
-        },
-        "./playwright-report": {
-            "types": "./dist/types/playwright-report.d.ts",
-            "default": "./dist/lib/playwright-report.js"
-        },
-        "./playground": {
-            "types": "./dist/types/playground.d.ts",
-            "default": "./dist/lib/playground.js"
-        },
-        "./midscene-playground": {
-            "types": "./dist/types/midscene-playground.d.ts",
-            "default": "./dist/lib/midscene-playground.js"
-        },
-        "./midscene-server": {
-            "types": "./dist/types/midscene-server.d.ts",
-            "default": "./dist/lib/midscene-server.js"
-        },
-        "./chrome-extension": {
-            "types": "./dist/types/chrome-extension.d.ts",
-            "default": "./dist/lib/chrome-extension.js"
-        },
-        "./yaml": {
-            "types": "./dist/types/yaml.d.ts",
-            "default": "./dist/lib/yaml.js"
-        },
-        "./agent": {
-            "types": "./dist/types/agent.d.ts",
-            "default": "./dist/lib/agent.js"
-        }
+    "./bridge-mode": {
+      "types": "./dist/types/bridge-mode.d.ts",
+      "default": "./dist/lib/bridge-mode.js"
     },
-    "typesVersions": {
-        "*": {
-            ".": [
-                "./dist/types/index.d.ts"
-            ],
-            "bridge-mode": [
-                "./dist/types/bridge-mode.d.ts"
-            ],
-            "bridge-mode-browser": [
-                "./dist/types/bridge-mode-browser.d.ts"
-            ],
-            "utils": [
-                "./dist/types/utils.d.ts"
-            ],
-            "ui-utils": [
-                "./dist/types/ui-utils.d.ts"
-            ],
-            "puppeteer": [
-                "./dist/types/puppeteer.d.ts"
-            ],
-            "puppeteer-agent-launcher": [
-                "./dist/types/puppeteer-agent-launcher.d.ts"
-            ],
-            "playwright": [
-                "./dist/types/playwright.d.ts"
-            ],
-            "playwright-report": [
-                "./dist/types/playwright-report.d.ts"
-            ],
-            "playground": [
-                "./dist/types/playground.d.ts"
-            ],
-            "midscene-playground": [
-                "./dist/types/midscene-playground.d.ts"
-            ],
-            "midscene-server": [
-                "./dist/types/midscene-server.d.ts"
-            ],
-            "chrome-extension": [
-                "./dist/types/chrome-extension.d.ts"
-            ],
-            "yaml": [
-                "./dist/types/yaml.d.ts"
-            ],
-            "agent": [
-                "./dist/types/agent.d.ts"
-            ]
-        }
+    "./bridge-mode-browser": {
+      "types": "./dist/types/bridge-mode-browser.d.ts",
+      "default": "./dist/lib/bridge-mode-browser.js"
     },
-    "watch": {
-        "build": {
-            "patterns": [
-                "src"
-            ],
-            "extensions": "tsx,less,scss,css,js,jsx,ts",
-            "quiet": false
-        }
+    "./utils": {
+      "types": "./dist/types/utils.d.ts",
+      "default": "./dist/lib/utils.js"
     },
-    "scripts": {
-        "dev": "npm run build && npx npm-watch",
-        "dev:server": "npm run build && ./bin/midscene-playground",
-        "build": "modern build -c ./modern.config.ts",
-        "postbuild": "node scripts/check-exports.js",
-        "build:watch": "modern build -w -c ./modern.config.ts",
-        "test": "vitest --run",
-        "test:u": "vitest --run -u",
-        "test:ai": "AI_TEST_TYPE=web npm run test",
-        "test:ai:temp": "MIDSCENE_CACHE=true BRIDGE_MODE=true vitest --run tests/ai/bridge/open-new-tab.test.ts",
-        "test:ai:bridge": "MIDSCENE_CACHE=true BRIDGE_MODE=true npm run test --inspect tests/ai/bridge/temp.test.ts",
-        "test:ai:cache": "MIDSCENE_CACHE=true npm run test",
-        "upgrade": "modern upgrade",
-        "prepublishOnly": "npm run build",
-        "e2e": "playwright test --config=tests/playwright.config.ts",
-        "e2e:report": "MIDSCENE_REPORT=true playwright test --config=tests/playwright.config.ts",
-        "e2e:cache": "MIDSCENE_CACHE=true playwright test --config=tests/playwright.config.ts",
-        "e2e:ui": "playwright test --config=tests/playwright.config.ts --ui",
-        "e2e:ui:cache": "MIDSCENE_CACHE=true playwright test --config=tests/playwright.config.ts --ui"
+    "./ui-utils": {
+      "types": "./dist/types/ui-utils.d.ts",
+      "default": "./dist/lib/ui-utils.js"
     },
-    "files": [
-        "static",
-        "dist",
-        "iife-script",
-        "README.md",
-        "bin"
-    ],
-    "dependencies": {
-        "@midscene/core": "workspace:*",
-        "@midscene/shared": "workspace:*",
-        "@xmldom/xmldom": "0.8.10",
-        "cors": "2.8.5",
-        "dayjs": "1.11.11",
-        "devtools-protocol": "0.0.1380148",
-        "dotenv": "16.4.5",
-        "express": "^4.21.2",
-        "fs-extra": "11.2.0",
-        "http-server": "14.1.1",
-        "inquirer": "10.1.5",
-        "js-sha256": "0.11.0",
-        "js-yaml": "4.1.0",
-        "openai": "4.81.0",
-        "socket.io": "^4.8.1",
-        "socket.io-client": "4.8.1"
+    "./puppeteer": {
+      "types": "./dist/types/puppeteer.d.ts",
+      "default": "./dist/lib/puppeteer.js"
     },
-    "devDependencies": {
-        "@modern-js/module-tools": "2.60.6",
-        "@playwright/test": "^1.44.1",
-        "@types/chrome": "0.0.279",
-        "@types/cors": "2.8.12",
-        "@types/express": "^4.17.21",
-        "@types/fs-extra": "11.0.4",
-        "@types/js-yaml": "4.0.9",
-        "@types/node": "^18.0.0",
-        "playwright": "1.44.1",
-        "puppeteer": "24.2.0",
-        "typescript": "^5.8.2",
-        "vitest": "3.0.5"
+    "./puppeteer-agent-launcher": {
+      "types": "./dist/types/puppeteer-agent-launcher.d.ts",
+      "default": "./dist/lib/puppeteer-agent-launcher.js"
     },
-    "peerDependencies": {
-        "@playwright/test": "^1.44.1",
-        "playwright": "^1.44.1",
-        "puppeteer": ">=20.0.0"
+    "./playwright": {
+      "types": "./dist/types/playwright.d.ts",
+      "default": "./dist/lib/playwright.js"
     },
-    "peerDependenciesMeta": {
-        "@playwright/test": {
-            "optional": true
-        },
-        "puppeteer": {
-            "optional": true
-        }
+    "./playwright-report": {
+      "types": "./dist/types/playwright-report.d.ts",
+      "default": "./dist/lib/playwright-report.js"
     },
-    "engines": {
-        "node": ">=18.0.0"
+    "./playground": {
+      "types": "./dist/types/playground.d.ts",
+      "default": "./dist/lib/playground.js"
     },
-    "publishConfig": {
-        "access": "public",
-        "registry": "https://registry.npmjs.org"
+    "./midscene-playground": {
+      "types": "./dist/types/midscene-playground.d.ts",
+      "default": "./dist/lib/midscene-playground.js"
     },
-    "license": "MIT"
+    "./midscene-server": {
+      "types": "./dist/types/midscene-server.d.ts",
+      "default": "./dist/lib/midscene-server.js"
+    },
+    "./chrome-extension": {
+      "types": "./dist/types/chrome-extension.d.ts",
+      "default": "./dist/lib/chrome-extension.js"
+    },
+    "./yaml": {
+      "types": "./dist/types/yaml.d.ts",
+      "default": "./dist/lib/yaml.js"
+    },
+    "./agent": {
+      "types": "./dist/types/agent.d.ts",
+      "default": "./dist/lib/agent.js"
+    }
+  },
+  "typesVersions": {
+    "*": {
+      ".": ["./dist/types/index.d.ts"],
+      "bridge-mode": ["./dist/types/bridge-mode.d.ts"],
+      "bridge-mode-browser": ["./dist/types/bridge-mode-browser.d.ts"],
+      "utils": ["./dist/types/utils.d.ts"],
+      "ui-utils": ["./dist/types/ui-utils.d.ts"],
+      "puppeteer": ["./dist/types/puppeteer.d.ts"],
+      "puppeteer-agent-launcher": [
+        "./dist/types/puppeteer-agent-launcher.d.ts"
+      ],
+      "playwright": ["./dist/types/playwright.d.ts"],
+      "playwright-report": ["./dist/types/playwright-report.d.ts"],
+      "playground": ["./dist/types/playground.d.ts"],
+      "midscene-playground": ["./dist/types/midscene-playground.d.ts"],
+      "midscene-server": ["./dist/types/midscene-server.d.ts"],
+      "chrome-extension": ["./dist/types/chrome-extension.d.ts"],
+      "yaml": ["./dist/types/yaml.d.ts"],
+      "agent": ["./dist/types/agent.d.ts"]
+    }
+  },
+  "watch": {
+    "build": {
+      "patterns": ["src"],
+      "extensions": "tsx,less,scss,css,js,jsx,ts",
+      "quiet": false
+    }
+  },
+  "scripts": {
+    "dev": "npm run build && npx npm-watch",
+    "dev:server": "npm run build && ./bin/midscene-playground",
+    "build": "modern build -c ./modern.config.ts",
+    "postbuild": "node scripts/check-exports.js",
+    "build:watch": "modern build -w -c ./modern.config.ts",
+    "test": "vitest --run",
+    "test:u": "vitest --run -u",
+    "test:ai": "AI_TEST_TYPE=web npm run test",
+    "test:ai:temp": "MIDSCENE_CACHE=true BRIDGE_MODE=true vitest --run tests/ai/bridge/open-new-tab.test.ts",
+    "test:ai:bridge": "MIDSCENE_CACHE=true BRIDGE_MODE=true npm run test --inspect tests/ai/bridge/temp.test.ts",
+    "test:ai:cache": "MIDSCENE_CACHE=true npm run test",
+    "upgrade": "modern upgrade",
+    "prepublishOnly": "npm run build",
+    "e2e": "playwright test --config=tests/playwright.config.ts",
+    "e2e:report": "MIDSCENE_REPORT=true playwright test --config=tests/playwright.config.ts",
+    "e2e:cache": "MIDSCENE_CACHE=true playwright test --config=tests/playwright.config.ts",
+    "e2e:ui": "playwright test --config=tests/playwright.config.ts --ui",
+    "e2e:ui:cache": "MIDSCENE_CACHE=true playwright test --config=tests/playwright.config.ts --ui"
+  },
+  "files": ["static", "dist", "iife-script", "README.md", "bin"],
+  "dependencies": {
+    "@midscene/core": "workspace:*",
+    "@midscene/shared": "workspace:*",
+    "@xmldom/xmldom": "0.8.10",
+    "cors": "2.8.5",
+    "dayjs": "1.11.11",
+    "devtools-protocol": "0.0.1380148",
+    "dotenv": "16.4.5",
+    "express": "^4.21.2",
+    "fs-extra": "11.2.0",
+    "http-server": "14.1.1",
+    "inquirer": "10.1.5",
+    "js-sha256": "0.11.0",
+    "js-yaml": "4.1.0",
+    "openai": "4.81.0",
+    "socket.io": "^4.8.1",
+    "socket.io-client": "4.8.1"
+  },
+  "devDependencies": {
+    "@modern-js/module-tools": "2.60.6",
+    "@playwright/test": "^1.44.1",
+    "@types/chrome": "0.0.279",
+    "@types/cors": "2.8.12",
+    "@types/express": "^4.17.21",
+    "@types/fs-extra": "11.0.4",
+    "@types/js-yaml": "4.0.9",
+    "@types/node": "^18.0.0",
+    "playwright": "1.44.1",
+    "puppeteer": "24.2.0",
+    "typescript": "^5.8.2",
+    "vitest": "3.0.5"
+  },
+  "peerDependencies": {
+    "@playwright/test": "^1.44.1",
+    "playwright": "^1.44.1",
+    "puppeteer": ">=20.0.0"
+  },
+  "peerDependenciesMeta": {
+    "@playwright/test": {
+      "optional": true
+    },
+    "puppeteer": {
+      "optional": true
+    }
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org"
+  },
+  "license": "MIT"
 }
