@@ -149,9 +149,9 @@ export async function describeUserPage<
 
   return {
     description: pageDescription,
-    elementById(id: string) {
-      assert(typeof id !== 'undefined', 'id is required for query');
-      const item = idElementMap[`${id}`];
+    elementById(idOrIndexId: string) {
+      assert(typeof idOrIndexId !== 'undefined', 'id is required for query');
+      const item = idElementMap[`${idOrIndexId}`];
       return item;
     },
     elementByPosition(
