@@ -1,5 +1,5 @@
 /// <reference types="chrome" />
-import { ApiOutlined, HomeOutlined, SendOutlined } from '@ant-design/icons';
+import { ApiOutlined, HomeOutlined, SendOutlined, MessageOutlined } from '@ant-design/icons';
 import {
   EnvConfig,
   GithubStar,
@@ -9,14 +9,15 @@ import {
 } from '@midscene/visualizer';
 import '@midscene/visualizer/index.css';
 import { ConfigProvider, Tabs } from 'antd';
-import { BrowserExtensionPlayground } from '../component/playground';
 import { getExtensionVersion } from '../utils';
 import Bridge from './bridge';
+import { SeniorShoppingApp } from './senior/SeniorShoppingApp';
 import './popup.less';
 import {
   ChromeExtensionProxyPage,
   ChromeExtensionProxyPageAgent,
 } from '@midscene/web/chrome-extension';
+import { AIChatBox } from './components/AIChatBox';
 
 // remember to destroy the agent when the tab is destroyed: agent.page.destroy()
 const extensionAgentForTab = (forceSameTabNavigation = true) => {
@@ -33,29 +34,24 @@ export function PlaygroundPopup() {
   const items = [
     {
       key: 'playground',
-      label: 'Playground',
+      label: 'Shopping Helper',
       icon: <SendOutlined />,
       children: (
         <div className="popup-playground-container">
-          <BrowserExtensionPlayground
-            getAgent={(forceSameTabNavigation?: boolean) => {
-              return extensionAgentForTab(forceSameTabNavigation);
-            }}
-            showContextPreview={false}
-          />
+          <SeniorShoppingApp />
         </div>
       ),
     },
     {
-      key: 'bridge',
-      label: 'Bridge Mode',
+      key: 'chat',
+      label: 'Chatbox',
+      icon: <MessageOutlined />,
       children: (
-        <div className="popup-bridge-container">
-          <Bridge />
+        <div className="popup-chat-container">
+          <AIChatBox systemPrompt="You are a professional shopping assistant, and your service targets people with cognitive impairments. Please explain online shopping-related questions to them in easy-to-understand and short language. When you receive screenshots, please analyze the screenshots and give suggestions based on the user's questions." />
         </div>
       ),
-      icon: <ApiOutlined />,
-    },
+    }
   ];
 
   return (

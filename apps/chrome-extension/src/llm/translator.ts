@@ -26,7 +26,7 @@ const EXAMPLES: Array<{input: string; output: TranslatorResponse}> = [
   },
   // Key example: User searches for milk, then specifies a brand
   {
-    input: "买牛奶",
+    input: "我要买牛奶",
     output: {
       goal: "买牛奶",
       midscene_prompt: "type \"牛奶\" in search box, press Enter",

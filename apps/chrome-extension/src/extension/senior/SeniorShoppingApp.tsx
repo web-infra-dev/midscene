@@ -255,6 +255,16 @@ export const SeniorShoppingApp: React.FC<{}> = () => {
     window.speechSynthesis.speak(utterance);
   };
 
+  // 播放并显示搜索完成后的提示
+  const showSearchCompletePrompt = () => {
+    console.log('hint available');
+    const promptText = '屏幕上展现的是各种商品品类，请过目并用鼠标选择您喜欢的。';
+    if (voiceEnabled) {
+      speakText(promptText);
+    }
+    message.success(promptText);
+  };
+
   // Handle user input submission
   const handleInputSubmit = async () => {
     if (!userInput.trim()) {
@@ -319,9 +329,9 @@ export const SeniorShoppingApp: React.FC<{}> = () => {
       // Log task completion
       logEvent('task_done', { success: true });
       
-      // Optional: Speak confirmation
-      if (voiceEnabled) {
-        speakText('已完成');
+      // 如果是搜索操作，显示搜索完成提示
+      if (translatedGoal.midscene_prompt.includes('type') && translatedGoal.midscene_prompt.includes('search box')) {
+        showSearchCompletePrompt();
       }
     } catch (error) {
       console.error('Error executing action:', error);
