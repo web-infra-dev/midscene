@@ -117,6 +117,23 @@ export interface AIDescribeElementResponse {
   error?: string;
 }
 
+export interface LocatorValidatorOption {
+  centerDistanceThreshold?: number;
+}
+
+export interface LocateValidatorResult {
+  pass: boolean;
+  rect: Rect;
+  center: [number, number];
+  centerDistance?: number;
+}
+
+export interface AgentDescribeElementAtPointResult {
+  prompt: string;
+  deepThink: boolean;
+  verifyResult?: LocateValidatorResult;
+}
+
 /**
  * context
  */
@@ -384,7 +401,7 @@ export interface ExecutionTaskApply<
     param: TaskParam,
     context: ExecutorContext,
   ) => // biome-ignore lint/suspicious/noConfusingVoidType: <explanation>
-    | Promise<ExecutionTaskReturn<TaskOutput, TaskLog> | undefined | void>
+  | Promise<ExecutionTaskReturn<TaskOutput, TaskLog> | undefined | void>
     | undefined
     | void;
 }

@@ -159,6 +159,18 @@ describe(
       3 * 60 * 1000,
     );
 
+    it('element describer', async () => {
+      const { originPage, reset } = await launchPage('https://www.baidu.com/');
+      resetFn = reset;
+      const agent = new PuppeteerAgent(originPage);
+
+      const { center } = await agent.aiLocate('the search bar input');
+      const describeResult = await agent.describeElementAtPoint(center);
+      expect(describeResult.verifyResult?.pass).toBe(true);
+      expect(describeResult.verifyResult?.rect).toBeTruthy();
+      expect(describeResult.verifyResult?.center).toBeTruthy();
+    });
+
     it('scroll', async () => {
       const htmlPath = path.join(__dirname, 'scroll.html');
       const { originPage, reset } = await launchPage(`file://${htmlPath}`);
