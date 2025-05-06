@@ -2,6 +2,7 @@ import type { UIContext } from '@midscene/core';
 import { overrideAIConfig } from '@midscene/shared/env';
 import {
   ContextPreview,
+  Describer,
   Logo,
   type PlaygroundResult,
   PlaygroundResultView,
@@ -274,6 +275,7 @@ export function StandardPlayground({
           style={{ paddingRight: '24px' }}
         >
           <Logo hideLogo={hideLogo} />
+          {/* {uiContextPreview && <Describer uiContext={uiContextPreview} />} */}
           {formSection}
         </Panel>
         <PanelResizeHandle className="panel-resize-handle" />

@@ -337,6 +337,12 @@ export class PageAgent<PageType extends WebPage = WebPage> {
     return output;
   }
 
+  async aiDescribe(center: [number, number]): Promise<string> {
+    const text = await this.insight.describe(center);
+    assert(text.description, `failed to describe element at [${center}]`);
+    return text.description;
+  }
+
   async aiLocate(prompt: string, opt?: LocateOption) {
     const detailedLocateParam = this.buildDetailedLocateParam(prompt, opt);
     const plans = buildPlans('Locate', detailedLocateParam);
