@@ -1,5 +1,6 @@
+import { BridgeSignalKill } from '@/bridge-mode/common';
 import { BridgeClient } from '@/bridge-mode/io-client';
-import { BridgeServer } from '@/bridge-mode/io-server';
+import { BridgeServer, killRunningServer } from '@/bridge-mode/io-server';
 import { describe, expect, it, vi } from 'vitest';
 
 let testPort = 1234;
@@ -60,9 +61,41 @@ describe('bridge-io', () => {
     await server2.close();
   });
 
-  it('server listen timeout', async () => {
-    const server = new BridgeServer(testPort++);
-    await expect(server.listen(100)).rejects.toThrow();
+  it('server on same port', async () => {
+    const port = testPort++;
+    const server = new BridgeServer(port);
+    await server.listen();
+
+    const server2 = new BridgeServer(port);
+    await expect(server2.listen()).rejects.toThrow();
+    await server.close();
+  });
+
+  it('server on same port - close conflict server', async () => {
+    const port = testPort++;
+    const server = new BridgeServer(port);
+    await server.listen();
+
+    const server2 = new BridgeServer(port, undefined, undefined, true);
+    await server2.listen();
+    await server.close();
+  });
+
+  it('server kill', async () => {
+    const port = testPort++;
+    const server = new BridgeServer(port);
+    await server.listen();
+
+    const client = new BridgeClient(
+      `ws://localhost:${port}`,
+      (method, args) => {
+        return Promise.resolve('ok');
+      },
+    );
+    await client.connect();
+    await server.call('test', ['a', 'b']);
+    await killRunningServer(port);
+    expect(server.call('test2', ['a', 'b'])).rejects.toThrow();
   });
 
   it('server and client communicate', async () => {

@@ -54,7 +54,7 @@ You can use `doubao-1.5-ui-tars` on [Volcengine](https://www.volcengine.com):
 OPENAI_BASE_URL="https://ark.cn-beijing.volces.com/api/v3" 
 OPENAI_API_KEY="...."
 MIDSCENE_MODEL_NAME="ep-2025..."
-MIDSCENE_USE_VLM_UI_TARS=DOUBAO-1.5
+MIDSCENE_USE_VLM_UI_TARS=DOUBAO
 ```
 
 ## Models in Depth

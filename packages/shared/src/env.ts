@@ -18,6 +18,8 @@ export const OPENAI_API_KEY = 'OPENAI_API_KEY';
 export const OPENAI_BASE_URL = 'OPENAI_BASE_URL';
 export const OPENAI_MAX_TOKENS = 'OPENAI_MAX_TOKENS';
 
+export const MIDSCENE_ADB_PATH = 'MIDSCENE_ADB_PATH';
+
 export const MIDSCENE_CACHE = 'MIDSCENE_CACHE';
 export const MIDSCENE_USE_VLM_UI_TARS = 'MIDSCENE_USE_VLM_UI_TARS';
 export const MIDSCENE_USE_QWEN_VL = 'MIDSCENE_USE_QWEN_VL';
@@ -68,6 +70,7 @@ export const allConfigFromEnv = () => {
     [OPENAI_BASE_URL]: process.env[OPENAI_BASE_URL] || undefined,
     [OPENAI_MAX_TOKENS]: process.env[OPENAI_MAX_TOKENS] || undefined,
     [OPENAI_USE_AZURE]: process.env[OPENAI_USE_AZURE] || undefined,
+    [MIDSCENE_ADB_PATH]: process.env[MIDSCENE_ADB_PATH] || undefined,
     [MIDSCENE_CACHE]: process.env[MIDSCENE_CACHE] || undefined,
     [MATCH_BY_POSITION]: process.env[MATCH_BY_POSITION] || undefined,
     [MIDSCENE_REPORT_TAG_NAME]:
@@ -126,11 +129,11 @@ export const uiTarsModelVersion = (): UITarsModelVersion | false => {
     return false;
   }
 
-  const versionConfig = getAIConfigInJson(MIDSCENE_USE_VLM_UI_TARS);
+  const versionConfig: any = getAIConfig(MIDSCENE_USE_VLM_UI_TARS);
   if (versionConfig === '1' || versionConfig === 1) {
     return UITarsModelVersion.V1_0;
   }
-  if (versionConfig === 'DOUBAO-1.5') {
+  if (versionConfig === 'DOUBAO' || versionConfig === 'DOUBAO-1.5') {
     return UITarsModelVersion.DOUBAO_1_5_20B;
   }
   return `${versionConfig}` as UITarsModelVersion;

@@ -1,4 +1,4 @@
-import { fillLocateParam } from '@/ai-model/common';
+import { fillBboxParam } from '@/ai-model/common';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 describe('llm planning - qwen', () => {
@@ -23,7 +23,7 @@ describe('llm planning - qwen', () => {
       bbox_2d: [100, 100, 200, 200] as [number, number, number, number],
     };
 
-    const filledLocate = fillLocateParam(locate, 1000, 1000);
+    const filledLocate = fillBboxParam(locate, 1000, 1000);
     expect(filledLocate).toEqual({
       id: 'test',
       prompt: 'test',
@@ -38,7 +38,7 @@ describe('llm planning - qwen', () => {
       bbox_2d: [100, 100] as unknown as [number, number, number, number],
     };
 
-    const filledLocate = fillLocateParam(locate, 1000, 1000);
+    const filledLocate = fillBboxParam(locate, 1000, 1000);
     expect(filledLocate).toEqual({
       id: 'test',
       prompt: 'test',
@@ -69,7 +69,7 @@ describe('llm planning - doubao', () => {
       bbox_2d: [923, 123, 123, 123] as [number, number, number, number],
     };
 
-    const filledLocate = fillLocateParam(locate, 1000, 1000);
+    const filledLocate = fillBboxParam(locate, 1000, 1000);
     expect(filledLocate).toEqual({
       id: 'test',
       prompt: 'test',

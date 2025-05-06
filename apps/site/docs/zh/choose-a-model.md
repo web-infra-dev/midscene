@@ -42,7 +42,7 @@ MIDSCENE_USE_QWEN_VL=1
 OPENAI_BASE_URL="https://ark.cn-beijing.volces.com/api/v3" 
 OPENAI_API_KEY="...."
 MIDSCENE_MODEL_NAME="ep-2025..." # 火山引擎的推理点名称
-MIDSCENE_USE_VLM_UI_TARS=DOUBAO-1.5
+MIDSCENE_USE_VLM_UI_TARS=DOUBAO
 ```
 
 ### Google 提供的 Gemini 2.5 Pro
@@ -138,6 +138,8 @@ MIDSCENE_USE_QWEN_VL=1 # 别忘了配置这项，用于启用 Qwen 2.5 模式！
 虽然开源版本的 Qwen-2.5-VL (72B) 被命名为 `qwen2.5-vl-72b-instruct`，但阿里云平台实际还部署了更稳定的增强版本，名为 `qwen-vl-max-latest`。在使用后者时，输入 token 单价仅为开源版本的 19%，可以大幅缩减成本。
 
 所以，如果你在阿里云平台使用 Qwen-2.5-VL 模型，请使用 `qwen-vl-max-latest` 作为模型名称。
+
+另外，使用 "接口转发平台" 调用阿里云的 VL 模型时，可能造成定位精度大幅下降。
 
 **资源**
 
@@ -239,7 +241,7 @@ OPENAI_API_KEY="......"
 
 ### 如何确认模型的 token 使用情况？
 
-通过设置 `MIDSCENE_DEBUG_AI_PROFILE=1` 环境变量，你可以打印模型的使用情况和响应时间。
+通过设置 `DEBUG=midscene:ai:profile:stats` 环境变量，你可以打印模型的使用情况和响应时间。
 
 ## 更多
 

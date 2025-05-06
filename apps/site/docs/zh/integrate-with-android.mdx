@@ -206,3 +206,11 @@ const agent = await agentFromAdbDevice(devices[0].udid);
 <p align="center">
   <img src="/android-usb-debug.png" alt="android usb debug" width="400"/>
 </p>
+
+### 如何使用自定义的 adb 路径？
+
+你可以使用 `MIDSCENE_ADB_PATH` 环境变量来指定 adb 可执行文件的路径。
+
+```bash
+export MIDSCENE_ADB_PATH=/path/to/adb
+```
