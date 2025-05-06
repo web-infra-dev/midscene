@@ -53,14 +53,16 @@ export class AndroidDevice implements AndroidDevicePage {
         const androidAdbPath = getAIConfig(MIDSCENE_ADB_PATH);
 
         // If `androidAdbPath` exists, use `newADB()`
-        this.adb = androidAdbPath ? this.adb = await new ADB({
-          udid: this.deviceId,
-          adbExecTimeout: 60000,
-          executable: { path: androidAdbPath, defaultArgs: [] }
-        }) : await ADB.createADB({
-          udid: this.deviceId,
-          adbExecTimeout: 60000,
-        })
+        this.adb = androidAdbPath
+          ? await new ADB({
+              udid: this.deviceId,
+              adbExecTimeout: 60000,
+              executable: { path: androidAdbPath, defaultArgs: [] },
+            })
+          : await ADB.createADB({
+              udid: this.deviceId,
+              adbExecTimeout: 60000,
+            });
 
         const size = await this.getScreenSize();
         console.log(`
