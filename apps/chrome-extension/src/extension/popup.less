@@ -25,127 +25,51 @@ html {
 @footer-height: 40px;
 
 .popup-wrapper {
-  width: 100%;
-  height: 100%;
-  box-sizing: border-box;
-  padding: @layout-extension-space-vertical 25px 0 25px;
-  background: #FFF;
+  width: 500px;
+  min-height: 600px;
   display: flex;
   flex-direction: column;
+  background: #fff;
 
-  .tabs-container {
-    flex-grow: 1;
-    min-height: 0;
-    display: flex;
-    flex-direction: column;
+  .popup-header {
+    padding: 16px;
+    background: #f0f9ff;
+    border-bottom: 1px solid #e6f7ff;
+    text-align: center;
+
+    p {
+      margin: 8px 0 0;
+      color: #666;
+      font-size: 14px;
+
+      a {
+        color: #1890ff;
+        text-decoration: none;
+
+        &:hover {
+          text-decoration: underline;
+        }
+      }
+    }
   }
 
-  .ant-tabs-nav {
-    margin: 0 0 24px 0;
-    box-sizing: border-box;
-  }
-
-  .ant-tabs {
-    display: flex;
-    flex-direction: column;
-    height: 100%;
-  }
-
-  .ant-tabs-content-holder {
+  .popup-content {
     flex: 1;
-    min-height: 0;
-    position: relative;
-    overflow: hidden;
-  }
-
-  .ant-tabs-content {
-    height: 100%;
-    width: 100%;
-    position: relative;
-  }
-
-  .ant-tabs-tabpane {
-    /* 基础样式 */
-    flex: 1;
-    display: flex;
-    width: 100%;
-    height: 100%;
-    position: absolute;
-    top: 0;
-    left: 0;
-
-    /* 非活动标签动画效果 */
-    visibility: hidden;
-    opacity: 0;
-    transform: translateX(8px);
-    /* 稍微右移的起始位置 */
-    /* 较快的褪色和移动动画 */
-    transition: opacity 0.15s cubic-bezier(0.4, 0, 0.2, 1), transform 0.15s cubic-bezier(0.4, 0, 0.2, 1),
-      /* 延迟visibility变化，避免动画中途隐藏内容 */
-      visibility 0s linear 0.15s;
-    z-index: 0;
-    pointer-events: none;
-    /* 非活动时不响应交互 */
-  }
-
-  .ant-tabs-tabpane-active {
-    /* 活动标签动画效果 */
-    visibility: visible;
-    opacity: 1;
-    transform: translateX(0);
-    /* 无位移 */
-    /* 平滑的淡入和移动效果 */
-    transition: opacity 0.15s cubic-bezier(0.4, 0, 0.2, 1), transform 0.15s cubic-bezier(0.4, 0, 0.2, 1),
-      /* 立即改变visibility确保内容可见 */
-      visibility 0s linear;
-    z-index: 1;
-    pointer-events: auto;
-    /* 活动时可交互 */
-  }
-
-  /* 刚刚失去活动状态的标签页，向左退出 */
-  .ant-tabs-tabpane-inactive {
-    opacity: 0;
-    transform: translateX(-8px);
-    /* 向左退出效果 */
-    visibility: hidden;
-    transition: opacity 0.15s cubic-bezier(0.4, 0, 0.2, 1), transform 0.15s cubic-bezier(0.4, 0, 0.2, 1), visibility 0s linear 0.15s;
-  }
-
-  .hr {
-    border-top: 1px solid @border-color;
-    margin-bottom: 15px;
-    width: 100%;
-    padding: 0 @layout-extension-space-horizontal;
-    box-sizing: border-box;
-  }
-
-  .popup-playground-container,
-  .popup-bridge-container {
-    flex-grow: 1;
-    display: flex;
-    height: 100%;
-    width: 100%;
-    overflow: hidden;
-    min-height: 0;
-  }
-
-  .popup-bridge-container {
-    box-sizing: border-box;
+    padding: 0;
+    overflow-y: auto;
+    background: #fff;
   }
 
   .popup-footer {
-    color: @footer-text;
+    padding: 12px;
+    background: #f0f9ff;
+    border-top: 1px solid #e6f7ff;
     text-align: center;
-    width: 100%;
-  }
 
-  .popup-chat-container {
-    height: 500px;
-    width: 400px;
-    padding: 0;
-    overflow: hidden;
-    display: flex;
-    flex-direction: column;
+    p {
+      margin: 0;
+      color: #666;
+      font-size: 12px;
+    }
   }
 }

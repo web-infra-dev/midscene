@@ -1,0 +1,71 @@
+.senior-shopping-app {
+  padding: 20px;
+
+  .input-container {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    max-width: 600px;
+    margin: 0 auto;
+
+    .ant-input {
+      font-size: 16px;
+      padding: 12px;
+      border-radius: 8px;
+      
+      &:focus {
+        border-color: #1890ff;
+        box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.2);
+      }
+    }
+
+    .button-container {
+      display: flex;
+      justify-content: flex-end;
+      gap: 12px;
+
+      .ant-btn {
+        height: 40px;
+        padding: 0 20px;
+        font-size: 16px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        border-radius: 20px;
+        transition: all 0.3s ease;
+
+        &.listening {
+          background-color: #ff4d4f;
+          border-color: #ff4d4f;
+          color: white;
+          animation: pulse 1.5s infinite;
+
+          .anticon {
+            color: white;
+          }
+        }
+
+        .anticon {
+          font-size: 18px;
+        }
+
+        &:hover {
+          transform: translateY(-1px);
+          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+      }
+    }
+  }
+}
+
+@keyframes pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(255, 77, 79, 0.4);
+  }
+  70% {
+    box-shadow: 0 0 0 10px rgba(255, 77, 79, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(255, 77, 79, 0);
+  }
+} 

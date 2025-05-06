@@ -1,23 +1,20 @@
 /// <reference types="chrome" />
-import { ApiOutlined, HomeOutlined, SendOutlined, MessageOutlined } from '@ant-design/icons';
+import { HomeOutlined } from '@ant-design/icons';
 import {
   EnvConfig,
   GithubStar,
-  Logo,
   globalThemeConfig,
   useEnvConfig,
 } from '@midscene/visualizer';
 import '@midscene/visualizer/index.css';
-import { ConfigProvider, Tabs } from 'antd';
+import { ConfigProvider } from 'antd';
+import { SeniorShopper } from '../component/SeniorShopper';
 import { getExtensionVersion } from '../utils';
-import Bridge from './bridge';
-import { SeniorShoppingApp } from './senior/SeniorShoppingApp';
 import './popup.less';
 import {
   ChromeExtensionProxyPage,
   ChromeExtensionProxyPageAgent,
 } from '@midscene/web/chrome-extension';
-import { AIChatBox } from './components/AIChatBox';
 
 // remember to destroy the agent when the tab is destroyed: agent.page.destroy()
 const extensionAgentForTab = (forceSameTabNavigation = true) => {
@@ -29,30 +26,6 @@ declare const __SDK_VERSION__: string;
 
 export function PlaygroundPopup() {
   const extensionVersion = getExtensionVersion();
-  const { popupTab, setPopupTab } = useEnvConfig();
-
-  const items = [
-    {
-      key: 'playground',
-      label: 'Shopping Helper',
-      icon: <SendOutlined />,
-      children: (
-        <div className="popup-playground-container">
-          <SeniorShoppingApp />
-        </div>
-      ),
-    },
-    {
-      key: 'chat',
-      label: 'Chatbox',
-      icon: <MessageOutlined />,
-      children: (
-        <div className="popup-chat-container">
-          <AIChatBox systemPrompt="You are a professional shopping assistant, and your service targets people with cognitive impairments. Please explain online shopping-related questions to them in easy-to-understand and short language. When you receive screenshots, please analyze the screenshots and give suggestions based on the user's questions." />
-        </div>
-      ),
-    }
-  ];
 
   return (
     <ConfigProvider theme={globalThemeConfig()}>
@@ -83,28 +56,28 @@ export function PlaygroundPopup() {
               />
             </a>
             <GithubStar />
-            <EnvConfig showTooltipWhenEmpty={popupTab === 'playground'} />
+            <EnvConfig showTooltipWhenEmpty={true} />
           </div>
           <p>
-            AI-Driven Browser Automation with Chrome Extensions, JavaScript, and
-            YAML Scripts.{' '}
+            AI Shopping Assistant for Seniors.{' '}
             <a href="https://midscenejs.com/" target="_blank" rel="noreferrer">
               Learn more
             </a>
           </p>
         </div>
-        <div className="tabs-container">
-          <Tabs
-            defaultActiveKey="playground"
-            activeKey={popupTab}
-            items={items}
-            onChange={(key) => setPopupTab(key as 'playground' | 'bridge')}
+
+        <div className="popup-content">
+          <SeniorShopper
+            getAgent={(forceSameTabNavigation?: boolean) => {
+              return extensionAgentForTab(forceSameTabNavigation);
+            }}
+            showContextPreview={false}
           />
         </div>
 
         <div className="popup-footer">
           <p>
-            Midscene.js Chrome Extension v{extensionVersion} (SDK v
+            SeniorShopper Extension v{extensionVersion} (SDK v
             {__SDK_VERSION__})
           </p>
         </div>

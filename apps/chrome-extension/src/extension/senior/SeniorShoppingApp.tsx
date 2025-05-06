@@ -215,7 +215,7 @@ export const SeniorShoppingApp: React.FC<{}> = () => {
       console.error('Error checking microphone permissions:', e);
     }
 
-    // Create recogniser on-demand
+    // Create recognizer on-demand
     if (!speechRecognition.current && !initSpeechRecognition()) return;
 
     // Toggle start/stop
@@ -227,8 +227,6 @@ export const SeniorShoppingApp: React.FC<{}> = () => {
         console.error('Error stopping speech recognition:', e);
       }
       setIsListening(false);
-
-      // Keep current text - no changes needed
     } else {
       // Starting speech recognition
       try {
@@ -249,20 +247,22 @@ export const SeniorShoppingApp: React.FC<{}> = () => {
   const speakText = (text: string) => {
     if (!voiceEnabled) return;
 
+    // Cancel any ongoing speech
+    window.speechSynthesis.cancel();
+
     const utterance = new SpeechSynthesisUtterance(text);
     utterance.lang = 'zh-CN';
     utterance.rate = 0.9; // Slightly slower for elderly users
-    window.speechSynthesis.speak(utterance);
-  };
+    utterance.pitch = 1.0;
+    utterance.volume = 1.0;
 
-  // 播放并显示搜索完成后的提示
-  const showSearchCompletePrompt = () => {
-    console.log('hint available');
-    const promptText = '屏幕上展现的是各种商品品类，请过目并用鼠标选择您喜欢的。';
-    if (voiceEnabled) {
-      speakText(promptText);
-    }
-    message.success(promptText);
+    // Handle errors
+    utterance.onerror = (event) => {
+      console.error('Speech synthesis error:', event);
+      message.error('语音播放失败');
+    };
+
+    window.speechSynthesis.speak(utterance);
   };
 
   // Handle user input submission
@@ -306,54 +306,78 @@ export const SeniorShoppingApp: React.FC<{}> = () => {
     logEvent('button_click', { button: 'proceed' });
 
     setPhase(Phase.Running);
-    try {
-      // Make sure the AI config is applied before executing
-      overrideAIConfig(config);
-      
-      // Create the agent
-      const agent = extensionAgentForTab(true);
-      currentAgentRef.current = agent; // Store reference
-      
-      // Start animation to show automation is running
-      (window as any).midsceneWaterFlowAnimation?.enable();
-      
-      // Execute the midscene prompt
-      await agent.aiAction(translatedGoal.midscene_prompt);
-      
-      // Store current goal for potential future reference
-      setPreviousGoal(translatedGoal.goal);
-      
-      // Move to outcome phase
-      setPhase(Phase.Outcome);
-      
-      // Log task completion
-      logEvent('task_done', { success: true });
-      
-      // 如果是搜索操作，显示搜索完成提示
-      if (translatedGoal.midscene_prompt.includes('type') && translatedGoal.midscene_prompt.includes('search box')) {
-        showSearchCompletePrompt();
-      }
-    } catch (error) {
-      console.error('Error executing action:', error);
-      message.error('执行任务失败');
-      
-      // Log error
-      logEvent('task_done', { success: false, error: String(error) });
-      
-      setPhase(Phase.Compose);
-    } finally {
-      // Clean up the agent - THIS IS THE CRITICAL FIX
+    let retryCount = 0;
+    const maxRetries = 3;
+    let currentGoal = translatedGoal;
+
+    while (retryCount < maxRetries) {
       try {
-        if (currentAgentRef.current?.page) {
-          await currentAgentRef.current.page.destroy();
-          currentAgentRef.current = null;
+        // Make sure the AI config is applied before executing
+        overrideAIConfig(config);
+        
+        // Create the agent
+        const agent = extensionAgentForTab(true);
+        currentAgentRef.current = agent; // Store reference
+        
+        // Start animation to show automation is running
+        (window as any).midsceneWaterFlowAnimation?.enable();
+        
+        // Execute the midscene prompt
+        await agent.aiAction(currentGoal.midscene_prompt);
+        
+        // Store current goal for potential future reference
+        setPreviousGoal(currentGoal.goal);
+        
+        // Move to outcome phase
+        setPhase(Phase.Outcome);
+        
+        // Log task completion
+        logEvent('task_done', { success: true });
+        
+        // Optional: Speak confirmation
+        if (voiceEnabled) {
+          speakText('已完成');
         }
-      } catch (e) {
-        console.error('Error destroying agent:', e);
+        break; // Success, exit the retry loop
+      } catch (error) {
+        console.error('Error executing action:', error);
+        
+        // Clean up the current agent
+        try {
+          if (currentAgentRef.current?.page) {
+            await currentAgentRef.current.page.destroy();
+            currentAgentRef.current = null;
+          }
+        } catch (e) {
+          console.error('Error destroying agent:', e);
+        }
+        
+        retryCount++;
+        
+        if (retryCount < maxRetries) {
+          // Try alternative action based on the error
+          try {
+            const alternativeResponse = await translateUserGoal(
+              retryCount === 1 
+                ? "try different sorting options" 
+                : "try searching again with different terms"
+            );
+            currentGoal = alternativeResponse;
+            message.info('Trying alternative approach...');
+            continue;
+          } catch (e) {
+            console.error('Error generating alternative action:', e);
+          }
+        }
+        
+        // If we've exhausted all retries or failed to generate alternative action
+        message.error('执行任务失败');
+        logEvent('task_done', { success: false, error: String(error) });
+        setPhase(Phase.Compose);
+      } finally {
+        // Stop animation
+        (window as any).midsceneWaterFlowAnimation?.disable();
       }
-      
-      // Stop animation
-      (window as any).midsceneWaterFlowAnimation?.disable();
     }
   };
 
@@ -462,36 +486,38 @@ export const SeniorShoppingApp: React.FC<{}> = () => {
 
   // Render the composer UI
   const renderComposer = () => (
-    <div className="senior-composer">
+    <div className="composer-container">
+      <Title level={2}>SeniorShopper Assistant</Title>
+      <Text>What would you like to shop for?</Text>
       <div className="input-container">
         <TextArea
-          ref={textAreaRef}
           value={userInput}
-          onChange={handleKeyboardInput} // Use our custom handler
-          placeholder="请告诉我您需要什么帮助，例如：我要买牛奶"
-          autoSize={{ minRows: 2, maxRows: 4 }}
-          disabled={loading}
+          onChange={handleKeyboardInput}
+          placeholder="Describe what you want to buy or find on this shopping website..."
+          autoSize={{ minRows: 3, maxRows: 6 }}
+          ref={textAreaRef}
         />
-        <div className="input-actions">
-          <Button
-            type={isListening ? "primary" : "default"}
-            icon={<AudioOutlined style={isListening ? { color: "white" } : {}} />}
-            onClick={toggleListening}
-            className={isListening ? 'listening' : ''}
-            danger={isListening}
-            disabled={loading}
-          >
-            {isListening ? "正在聆听..." : "语音输入"}
-          </Button>
-          <Button
-            type="primary"
-            icon={<SendOutlined />}
-            onClick={handleInputSubmit}
-            loading={loading}
-            disabled={!userInput.trim()}
-          >
-            发送
-          </Button>
+        <div className="button-container">
+          <Space>
+            <Button
+              icon={<AudioOutlined style={{ fontSize: '18px' }} />}
+              onClick={toggleListening}
+              type={isListening ? 'primary' : 'default'}
+              className={isListening ? 'listening' : ''}
+              size="large"
+            >
+              {isListening ? '停止语音' : '语音输入'}
+            </Button>
+            <Button
+              type="primary"
+              icon={<SendOutlined />}
+              onClick={handleInputSubmit}
+              disabled={!userInput.trim()}
+              size="large"
+            >
+              开始购物
+            </Button>
+          </Space>
         </div>
       </div>
     </div>
@@ -624,13 +650,25 @@ export const SeniorShoppingApp: React.FC<{}> = () => {
           </div>
           <div className="header-right">
             <EnvConfig /> {/* This preserves the API key configuration UI */}
-            {/* <div className="voice-toggle">
+            <div className="voice-toggle">
               <Button 
                 type="text" 
-                icon={voiceEnabled ? <AudioOutlined /> : <AudioOutlined style={{ opacity: 0.5 }} />} 
-                onClick={() => setVoiceEnabled(!voiceEnabled)}
+                icon={<AudioOutlined style={{ 
+                  fontSize: '20px',
+                  color: voiceEnabled ? '#1890ff' : '#d9d9d9'
+                }} />} 
+                onClick={() => {
+                  // If turning off voice while listening, stop listening
+                  if (!voiceEnabled && isListening && speechRecognition.current) {
+                    speechRecognition.current.stop();
+                    setIsListening(false);
+                  }
+                  setVoiceEnabled(!voiceEnabled);
+                  message.info(voiceEnabled ? '语音功能已关闭' : '语音功能已开启');
+                }}
+                title={voiceEnabled ? '关闭语音功能' : '开启语音功能'}
               />
-            </div> */}
+            </div>
           </div>
         </div>
         <div className="senior-app-container">

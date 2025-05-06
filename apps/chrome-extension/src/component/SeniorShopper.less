@@ -1,0 +1,131 @@
+.senior-shopper-container {
+  padding: 16px;
+  max-width: 500px;
+  margin: 0 auto;
+
+  .shopper-card {
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    border: 1px solid #e6f7ff;
+
+    :global {
+      .ant-card-head {
+        border-bottom: 1px solid #e6f7ff;
+        padding: 16px 24px;
+        background: #f0f9ff;
+        border-radius: 12px 12px 0 0;
+      }
+
+      .ant-card-head-title {
+        color: #1890ff;
+        font-size: 20px;
+        font-weight: 600;
+        padding: 0;
+      }
+
+      .ant-card-body {
+        padding: 24px;
+      }
+
+      .ant-btn {
+        height: 40px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        border-radius: 20px;
+        padding: 0 20px;
+        transition: all 0.3s ease;
+
+        &.listening {
+          background-color: #ff4d4f;
+          border-color: #ff4d4f;
+          color: white;
+          animation: pulse 1.5s infinite;
+
+          .anticon {
+            color: white;
+          }
+        }
+
+        .anticon {
+          font-size: 18px;
+        }
+
+        &:hover {
+          transform: translateY(-1px);
+          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+      }
+    }
+  }
+
+  .loading-indicator {
+    margin: 16px 0;
+    padding: 12px 16px;
+    background: #f0f9ff;
+    border-radius: 6px;
+    color: #1890ff;
+    border: 1px solid #e6f7ff;
+  }
+
+  .result-section {
+    margin-top: 24px;
+    border-top: 1px solid #e6f7ff;
+    padding-top: 16px;
+  }
+
+  :global {
+    .ant-form-item {
+      margin-bottom: 20px;
+    }
+
+    .ant-form-item-label > label {
+      color: #1890ff;
+      font-weight: 500;
+    }
+
+    .ant-input-textarea {
+      resize: vertical;
+      border-radius: 6px;
+      border: 1px solid #e6f7ff;
+      
+      &:focus, &:hover {
+        border-color: #1890ff;
+        box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.2);
+      }
+    }
+
+    .ant-btn-primary {
+      background: #1890ff;
+      border-color: #1890ff;
+      border-radius: 6px;
+      padding: 8px 24px;
+      height: auto;
+      font-weight: 500;
+
+      &:hover {
+        background: #40a9ff;
+        border-color: #40a9ff;
+      }
+    }
+
+    .ant-btn-default {
+      border-radius: 6px;
+      padding: 8px 24px;
+      height: auto;
+    }
+  }
+}
+
+@keyframes pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(255, 77, 79, 0.4);
+  }
+  70% {
+    box-shadow: 0 0 0 10px rgba(255, 77, 79, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(255, 77, 79, 0);
+  }
+} 

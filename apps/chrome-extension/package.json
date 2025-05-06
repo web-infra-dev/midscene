@@ -12,14 +12,13 @@
   },
   "dependencies": {
     "@ant-design/icons": "^5.3.1",
+    "@midscene/visualizer": "workspace:*",
+    "@midscene/web": "workspace:*",
     "@midscene/core": "workspace:*",
     "@midscene/report": "workspace:*",
     "@midscene/shared": "workspace:*",
-    "@midscene/visualizer": "workspace:*",
-    "@midscene/web": "workspace:*",
     "antd": "^5.21.6",
     "dayjs": "1.11.11",
-    "openai": "4.81.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "zustand": "4.5.2"
@@ -32,8 +31,8 @@
     "@types/chrome": "0.0.279",
     "@types/react": "^18.3.18",
     "@types/react-dom": "^18.3.5",
-    "archiver": "^6.0.0",
     "less": "^4.2.0",
-    "typescript": "^5.8.2"
+    "typescript": "^5.8.2",
+    "archiver": "^6.0.0"
   }
 }

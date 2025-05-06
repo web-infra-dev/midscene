@@ -45,7 +45,25 @@
     gap: 12px;
     
     .voice-toggle {
-      margin-left: 8px;
+      margin-left: 12px;
+      
+      .ant-btn {
+        width: 40px;
+        height: 40px;
+        border-radius: 20px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.3s ease;
+
+        &:hover {
+          background-color: rgba(24, 144, 255, 0.1);
+        }
+
+        .anticon {
+          transition: all 0.3s ease;
+        }
+      }
     }
   }
 }
@@ -219,4 +237,93 @@
   height: 48px;
   padding: 8px 16px;
   font-size: 18px;
+}
+
+.composer-container {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 24px;
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+
+  h2.ant-typography {
+    margin-bottom: 8px;
+  }
+
+  .input-container {
+    position: relative;
+    margin-top: 16px;
+
+    .ant-input {
+      border-radius: 12px;
+      padding: 12px 16px;
+      font-size: 16px;
+      resize: none;
+      border: 1px solid rgba(0, 0, 0, 0.1);
+      transition: all 0.3s ease;
+
+      &:focus {
+        border-color: #1890ff;
+        box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.1);
+      }
+    }
+
+    .button-container {
+      display: flex;
+      justify-content: flex-end;
+      margin-top: 16px;
+      gap: 12px;
+
+      .ant-btn {
+        border-radius: 20px;
+        height: 44px;
+        padding: 0 24px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 16px;
+        transition: all 0.3s ease;
+
+        &.listening {
+          background-color: #ff4d4f;
+          border-color: #ff4d4f;
+          color: white;
+          animation: pulse 1.5s infinite;
+
+          .anticon {
+            color: white;
+          }
+        }
+
+        .anticon {
+          font-size: 18px;
+        }
+
+        &:hover {
+          transform: translateY(-1px);
+          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+      }
+    }
+  }
+}
+
+@keyframes pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(255, 77, 79, 0.4);
+  }
+  70% {
+    box-shadow: 0 0 0 10px rgba(255, 77, 79, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(255, 77, 79, 0);
+  }
+}
+
+.senior-shopping-app {
+  padding: 20px;
+  max-width: 500px;
+  margin: 0 auto;
 }
