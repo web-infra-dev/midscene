@@ -160,11 +160,11 @@ describe(
     );
 
     it('element describer', async () => {
-      const { originPage, reset } = await launchPage('https://www.baidu.com/');
+      const { originPage, reset } = await launchPage('https://www.taobao.com/');
       resetFn = reset;
       const agent = new PuppeteerAgent(originPage);
 
-      const { center } = await agent.aiLocate('the search bar input');
+      const { center } = await agent.aiLocate('the search bar');
       const describeResult = await agent.describeElementAtPoint(center);
       expect(describeResult.verifyResult?.pass).toBe(true);
       expect(describeResult.verifyResult?.rect).toBeTruthy();

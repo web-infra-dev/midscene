@@ -355,23 +355,50 @@ export class PageAgent<PageType extends WebPage = WebPage> {
 
   async describeElementAtPoint(
     center: [number, number],
-    opt?: { verifyPrompt?: boolean } & LocatorValidatorOption,
+    opt?: {
+      verifyPrompt?: boolean;
+      retryLimit?: number;
+    } & LocatorValidatorOption,
   ): Promise<AgentDescribeElementAtPointResult> {
-    const { verifyPrompt = true, centerDistanceThreshold = 20 } = opt || {};
+    const { verifyPrompt = true, retryLimit = 3 } = opt || {};
 
-    debug('aiDescribe', center, 'verifyPrompt', verifyPrompt);
-    const text = await this.insight.describe(center);
-    debug('aiDescribe text', text);
-    assert(text.description, `failed to describe element at [${center}]`);
-    const resultPrompt = text.description;
+    let success = false;
+    let retryCount = 0;
+    let resultPrompt = '';
+    let deepThink = false;
+    let verifyResult: LocateValidatorResult | undefined;
 
-    const deepThink = false;
-    const verifyResult = await this.verifyLocator(
-      resultPrompt,
-      undefined,
-      center,
-      opt,
-    );
+    while (!success && retryCount < retryLimit) {
+      if (retryCount >= 2) {
+        deepThink = true;
+      }
+      debug(
+        'aiDescribe',
+        center,
+        'verifyPrompt',
+        verifyPrompt,
+        'retryCount',
+        retryCount,
+        'deepThink',
+        deepThink,
+      );
+      const text = await this.insight.describe(center);
+      debug('aiDescribe text', text);
+      assert(text.description, `failed to describe element at [${center}]`);
+      resultPrompt = text.description;
+
+      verifyResult = await this.verifyLocator(
+        resultPrompt,
+        deepThink ? { deepThink: true } : undefined,
+        center,
+        opt,
+      );
+      if (verifyResult.pass) {
+        success = true;
+      } else {
+        retryCount++;
+      }
+    }
 
     return {
       prompt: resultPrompt,
