@@ -28,7 +28,7 @@ Midscene 默认集成了 OpenAI SDK 调用 AI 服务。使用这个 SDK 限定�
 
 | 名称 | 描述 |
 |------|-------------|
-| `MIDSCENE_USE_VLM_UI_TARS` | 指定 UI-TARS 版本，支持的值为 `1.0` `1.5` `DOUBAO`（火山云版本） |
+| `MIDSCENE_USE_VLM_UI_TARS` | 指定 UI-TARS 版本，支持的值为 `1.0` `1.5` `DOUBAO`（火山引擎版本） |
 
 使用 `Gemini 2.5 Pro` 模型的额外配置：
 

@@ -36,12 +36,12 @@ MIDSCENE_USE_QWEN_VL=1
 
 ### 火山引擎上的 UI-TARS
 
-你可以在 [火山引擎](https://volcengine.com)上使用 `doubao-1.5-ui-tars` 模型，在火山引擎上申请 API 密钥后，你可以使用以下配置：
+你可以在[火山引擎](https://volcengine.com)上使用 `doubao-1.5-ui-tars` 模型，在火山引擎上申请 API 密钥后，你可以使用以下配置：
 
 ```bash
 OPENAI_BASE_URL="https://ark.cn-beijing.volces.com/api/v3" 
 OPENAI_API_KEY="...."
-MIDSCENE_MODEL_NAME="ep-2025..." # 火山引擎的推理点名称
+MIDSCENE_MODEL_NAME="ep-2025..." # 火山引擎的推理接入点ID
 MIDSCENE_USE_VLM_UI_TARS=DOUBAO
 ```
 
@@ -157,7 +157,7 @@ UI-TARS 是一个专为 UI 自动化设计的开源模型。它仅以截图作�
 **特性**
 
 - **适用于探索性场景**：UI-TARS 在开放性任务场景中表现出色，例如 “帮我发一条微博”，它能多次进行尝试，直到找到正确的操作步骤。
-- **速度**：以火山云部署的 `doubao-1.5-ui-tars` 作为基准，它的返回速度快于其他模型。
+- **速度**：以火山引擎部署的 `doubao-1.5-ui-tars` 作为基准，它的返回速度快于其他模型。
 - **原生图像识别**：UI-TARS 有视觉定位（Visual Grounding）的能力，和 Qwen-2.5-VL 一样，在使用 UI-TARS 时， Midscene.js 不需要发送 DOM 树。
 - **开源**：UI-TARS 是一个开源模型，因此你可以选择部署到你自己的服务器上，你的数据将不再发送到云端。
 
@@ -168,27 +168,27 @@ UI-TARS 是一个专为 UI 自动化设计的开源模型。它仅以截图作�
 
 **配置**
 
-除了常规配置，你还需要包含 `MIDSCENE_USE_VLM_UI_TARS` 参数来指定 UI-TARS 版本，支持的值为 `1.0` `1.5` `DOUBAO`（火山云版本）。否则，你会遇到一些 JSON 解析错误。
+除了常规配置，你还需要包含 `MIDSCENE_USE_VLM_UI_TARS` 参数来指定 UI-TARS 版本，支持的值为 `1.0` `1.5` `DOUBAO`（火山引擎版本）。否则，你会遇到一些 JSON 解析错误。
 
 ```bash
 OPENAI_BASE_URL="....."
 OPENAI_API_KEY="......" 
-MIDSCENE_MODEL_NAME="ui-tars-7b-sft"
-MIDSCENE_USE_VLM_UI_TARS=DOUBAO # 别忘了配置这项用于 UI-TARS 模式！
+MIDSCENE_MODEL_NAME="ui-tars-72b-sft"
+MIDSCENE_USE_VLM_UI_TARS=1 # 别忘了配置这项用于 UI-TARS 模式！
 ```
 
-**使用火山云提供的版本**
+**使用火山引擎提供的版本**
 
-在火山云平台上，有一个已经部署完成的 `doubao-1.5-ui-tars` 模型，开发者可以通过 API 调用、按使用量付费。模型文档帮助： https://www.volcengine.com/docs/82379/1536429
+在火山引擎平台上，有一个已经部署完成的 `doubao-1.5-ui-tars` 模型，开发者可以通过 API 调用、按使用量付费。模型文档帮助：https://www.volcengine.com/docs/82379/1536429
 
-在使用火山云版本模型时，需要创建推理点（形如 `ep-2025...`）。集齐 API Key 和推理点信息后，配置文件类似如下：
+在使用火山引擎版本模型时，需要创建推理接入点（形如 `ep-2025...`）。集齐 API Key 和推理点信息后，配置文件类似如下：
 
 ```bash
 # 注意 URL 最后填写到 /v3 结束即可
 OPENAI_BASE_URL="https://ark.cn-beijing.volces.com/api/v3" 
 OPENAI_API_KEY="...."
 MIDSCENE_MODEL_NAME="ep-2025..."
-MIDSCENE_USE_VLM_UI_TARS=1
+MIDSCENE_USE_VLM_UI_TARS=DOUBAO
 ```
 
 **资源**
