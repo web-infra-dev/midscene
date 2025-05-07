@@ -9,8 +9,9 @@ import type { WebUIContext } from '@midscene/web/utils';
 import { useEffect, useRef, useState } from 'react';
 import { useStaticPageAgent } from './playground/useStaticPageAgent';
 import './describer.less';
-import { Spin } from 'antd';
+import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
 import { Blackboard } from './blackboard';
+import { PlaygroundResultView } from './playground/PlaygroundResult';
 
 export const Describer = (props: { uiContext: UIContext }): JSX.Element => {
   const { uiContext } = props;
@@ -80,43 +81,64 @@ export const Describer = (props: { uiContext: UIContext }): JSX.Element => {
     }
   };
 
-  let resultClass;
-  let resultText;
+  let resultText = '';
   if (error) {
-    resultClass = 'error';
     resultText = error;
   } else if (result && !result.verifyResult?.pass) {
-    resultClass = 'error';
     resultText = `Locate failed with prompt: ${result.prompt}`;
   } else if (result) {
-    resultClass = 'success';
     resultText = result.prompt;
   } else if (loading) {
-    resultClass = 'loading';
     resultText = 'Loading...';
   }
 
   return (
     <div className="image-describer">
-      <Blackboard
-        uiContext={{
-          ...uiContext,
-          content: [], // remove all contents
-          tree: {
-            node: null,
-            children: [],
-          },
-        }}
-        highlightPoints={highlightPoints}
-        highlightRect={highlightRect}
-        onCanvasClick={handleClick}
-        hideController={true}
-      />
-      {(result || loading) && (
-        <Spin spinning={loading}>
-          <div className={`describe-text ${resultClass}`}>{resultText}</div>
-        </Spin>
-      )}
+      <PanelGroup autoSaveId="describer-layout" direction="horizontal">
+        <Panel
+          defaultSize={32}
+          maxSize={60}
+          minSize={20}
+          style={{ paddingRight: '24px' }}
+        >
+          <div className="form-part context-panel">
+            <h3>Screenshot</h3>
+            <div className="form-sub-title">
+              Click on the screenshot, Midscene will help you describe the
+              element at the clicked point.
+            </div>
+            <Blackboard
+              uiContext={{
+                ...uiContext,
+                content: [], // remove all contents
+                tree: {
+                  node: null,
+                  children: [],
+                },
+              }}
+              highlightPoints={highlightPoints}
+              highlightRect={highlightRect}
+              onCanvasClick={handleClick}
+              hideController={true}
+            />
+          </div>
+        </Panel>
+        <PanelResizeHandle className="panel-resize-handle" />
+        <Panel>
+          <PlaygroundResultView
+            result={{
+              result: resultText,
+              error: error || null,
+            }}
+            loading={loading}
+            serverValid={true}
+            serviceMode={'In-Browser'}
+            replayScriptsInfo={null}
+            replayCounter={0}
+            loadingProgressText={''}
+          />
+        </Panel>
+      </PanelGroup>
     </div>
   );
 };
