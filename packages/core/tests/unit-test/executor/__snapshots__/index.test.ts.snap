@@ -15,6 +15,7 @@ exports[`executor > insight - basic run 1`] = `
       "top": 200,
       "width": 100,
     },
+    "xpaths": [],
   },
 }
 `;
