@@ -25,7 +25,7 @@ describe.skipIf(!vlMode)('insight locate with deep think', () => {
     await sleep(3000);
   });
 
-  test('insight locate with search area and think twice', async () => {
+  test('insight locate with search area - deep think', async () => {
     const { context } = await getContextFromFixture('taobao');
 
     const insight = new Insight(context);
