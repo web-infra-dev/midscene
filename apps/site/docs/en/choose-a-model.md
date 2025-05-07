@@ -188,7 +188,20 @@ Except for the regular config, you need to include the `MIDSCENE_USE_VLM_UI_TARS
 OPENAI_BASE_URL="....."
 OPENAI_API_KEY="......" 
 MIDSCENE_MODEL_NAME="ui-tars-72b-sft"
-MIDSCENE_USE_VLM_UI_TARS=DOUBAO # remember to include this for UI-TARS mode !
+MIDSCENE_USE_VLM_UI_TARS=1 # remember to include this for UI-TARS mode !
+```
+
+**Use the version provided by Volcengine**
+
+On the Volcengine, there is a `doubao-1.5-ui-tars` model that has been deployed. Developers can access the model directly via API calls and pay based on usage. Docs link: https://www.volcengine.com/docs/82379/1536429
+
+When using the Volcengine version of the model, you need to create an inference access point(like `ep-2025...`). After collecting the API Key and inference access point ID, configure should look like this:
+
+```bash
+OPENAI_BASE_URL="https://ark.cn-beijing.volces.com/api/v3" 
+OPENAI_API_KEY="...."
+MIDSCENE_MODEL_NAME="ep-2025..."
+MIDSCENE_USE_VLM_UI_TARS=DOUBAO
 ```
 
 Links:
