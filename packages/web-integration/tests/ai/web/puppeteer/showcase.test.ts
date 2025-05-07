@@ -171,6 +171,20 @@ describe(
       expect(describeResult.verifyResult?.center).toBeTruthy();
     });
 
+    it('element describer - deep think', async () => {
+      const { originPage, reset } = await launchPage('https://www.taobao.com/');
+      resetFn = reset;
+      const agent = new PuppeteerAgent(originPage);
+
+      const { center } = await agent.aiLocate('the "search" button');
+      const describeResult = await agent.describeElementAtPoint(center, {
+        deepThink: true,
+      });
+      expect(describeResult.verifyResult?.pass).toBe(true);
+      expect(describeResult.verifyResult?.rect).toBeTruthy();
+      expect(describeResult.verifyResult?.center).toBeTruthy();
+    });
+
     it('scroll', async () => {
       const htmlPath = path.join(__dirname, 'scroll.html');
       const { originPage, reset } = await launchPage(`file://${htmlPath}`);

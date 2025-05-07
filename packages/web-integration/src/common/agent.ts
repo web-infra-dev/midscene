@@ -358,6 +358,7 @@ export class PageAgent<PageType extends WebPage = WebPage> {
     opt?: {
       verifyPrompt?: boolean;
       retryLimit?: number;
+      deepThink?: boolean;
     } & LocatorValidatorOption,
   ): Promise<AgentDescribeElementAtPointResult> {
     const { verifyPrompt = true, retryLimit = 3 } = opt || {};
@@ -365,7 +366,7 @@ export class PageAgent<PageType extends WebPage = WebPage> {
     let success = false;
     let retryCount = 0;
     let resultPrompt = '';
-    let deepThink = false;
+    let deepThink = opt?.deepThink || false;
     let verifyResult: LocateValidatorResult | undefined;
 
     while (!success && retryCount < retryLimit) {
@@ -382,7 +383,7 @@ export class PageAgent<PageType extends WebPage = WebPage> {
         'deepThink',
         deepThink,
       );
-      const text = await this.insight.describe(center);
+      const text = await this.insight.describe(center, { deepThink });
       debug('aiDescribe text', text);
       assert(text.description, `failed to describe element at [${center}]`);
       resultPrompt = text.description;

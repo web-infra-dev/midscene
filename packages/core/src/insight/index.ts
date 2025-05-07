@@ -1,4 +1,9 @@
-import { AIActionType, type AIArgs, callAiFn } from '@/ai-model/common';
+import {
+  AIActionType,
+  type AIArgs,
+  callAiFn,
+  expandSearchArea,
+} from '@/ai-model/common';
 import {
   AiExtractElementInfo,
   AiLocateElement,
@@ -26,10 +31,11 @@ import type {
 } from '@/types';
 import {
   MIDSCENE_FORCE_DEEP_THINK,
+  MIDSCENE_USE_QWEN_VL,
   getAIConfigInBoolean,
   vlLocateMode,
 } from '@midscene/shared/env';
-import { compositeElementInfoImg } from '@midscene/shared/img';
+import { compositeElementInfoImg, cropByRect } from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
 import { emitInsightDump } from './utils';
@@ -339,6 +345,9 @@ export default class Insight<
   }
   async describe(
     target: Rect | [number, number],
+    opt?: {
+      deepThink?: boolean;
+    },
   ): Promise<Pick<AIDescribeElementResponse, 'description'>> {
     assert(target, 'target is required for insight.describe');
     const context = await this.contextRetrieverFn('describe');
@@ -351,14 +360,14 @@ export default class Insight<
     const defaultRectSize = 30;
     const targetRect: Rect = Array.isArray(target)
       ? {
-          left: target[0] - defaultRectSize / 2,
-          top: target[1] - defaultRectSize / 2,
+          left: Math.floor(target[0] - defaultRectSize / 2),
+          top: Math.floor(target[1] - defaultRectSize / 2),
           width: defaultRectSize,
           height: defaultRectSize,
         }
       : target;
 
-    const imageMarkedBase64 = await compositeElementInfoImg({
+    let imagePayload = await compositeElementInfoImg({
       inputImgBase64: screenshotBase64,
       elementsPositionInfo: [
         {
@@ -368,6 +377,16 @@ export default class Insight<
       borderThickness: 3,
     });
 
+    if (opt?.deepThink) {
+      const searchArea = expandSearchArea(targetRect, context.size);
+      debug('describe: set searchArea', searchArea);
+      imagePayload = await cropByRect(
+        imagePayload,
+        searchArea,
+        getAIConfigInBoolean(MIDSCENE_USE_QWEN_VL),
+      );
+    }
+
     const msgs: AIArgs = [
       { role: 'system', content: systemPrompt },
       {
@@ -376,7 +395,7 @@ export default class Insight<
           {
             type: 'image_url',
             image_url: {
-              url: imageMarkedBase64,
+              url: imagePayload,
               detail: 'high',
             },
           },
