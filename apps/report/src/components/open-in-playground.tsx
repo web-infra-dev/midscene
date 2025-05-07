@@ -91,30 +91,6 @@ export default function OpenInPlayground(props?: { context?: UIContext }) {
   };
   const agent = useStaticPageAgent(context as WebUIContext);
 
-  if (!ifPlaygroundValid) {
-    return (
-      <Tooltip
-        title={
-          <pre
-            style={{
-              whiteSpace: 'pre-wrap',
-              wordWrap: 'break-word',
-              margin: 0,
-              padding: 0,
-            }}
-          >
-            {invalidReason}
-          </pre>
-        }
-        overlayInnerStyle={{ width: '380px' }}
-      >
-        <Button disabled icon={<PlayCircleOutlined />}>
-          Open in Playground
-        </Button>
-      </Tooltip>
-    );
-  }
-
   const tabItems: TabsProps['items'] = [
     {
       key: tabKeys.PLAYGROUND,
@@ -171,6 +147,30 @@ export default function OpenInPlayground(props?: { context?: UIContext }) {
       />
     </ConfigProvider>
   );
+
+  if (!ifPlaygroundValid) {
+    return (
+      <Tooltip
+        title={
+          <pre
+            style={{
+              whiteSpace: 'pre-wrap',
+              wordWrap: 'break-word',
+              margin: 0,
+              padding: 0,
+            }}
+          >
+            {invalidReason}
+          </pre>
+        }
+        overlayInnerStyle={{ width: '380px' }}
+      >
+        <Button disabled icon={<PlayCircleOutlined />}>
+          Open in Playground
+        </Button>
+      </Tooltip>
+    );
+  }
 
   return (
     <>

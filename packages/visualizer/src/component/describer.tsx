@@ -87,7 +87,11 @@ export const Describer = (props: { uiContext: UIContext }): JSX.Element => {
   } else if (result && !result.verifyResult?.pass) {
     resultText = `Locate failed with prompt: ${result.prompt}`;
   } else if (result) {
-    resultText = result.prompt;
+    if (result.deepThink) {
+      resultText = `Deep think: ${result.prompt}`;
+    } else {
+      resultText = result.prompt;
+    }
   } else if (loading) {
     resultText = 'Loading...';
   }
