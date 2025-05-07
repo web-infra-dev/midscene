@@ -12,6 +12,8 @@ import { getAIConfigInBoolean } from '@midscene/shared/env';
 import { getRunningPkgInfo } from '@midscene/shared/fs';
 import { getDebug } from '@midscene/shared/logger';
 import { ifInBrowser } from '@midscene/shared/utils';
+import type { PuppeteerWebPage } from '../puppeteer';
+import type { WebPage } from './page';
 import { type WebUIContext, replaceIllegalPathCharsAndSpace } from './utils';
 
 const debug = getDebug('cache');
@@ -70,15 +72,19 @@ export type CacheGroup = {
     pageContext: WebUIContext,
     type: T,
     actionPrompt: string,
-  ) => T extends 'plan'
-    ? PlanTask['response']
-    : T extends 'locate'
-      ? LocateTask['response']
-      : UITarsPlanTask['response'];
+  ) => Promise<
+    T extends 'plan'
+      ? PlanTask['response']
+      : T extends 'locate'
+        ? LocateTask['response']
+        : UITarsPlanTask['response']
+  >;
   saveCache: (cache: UITarsPlanTask | PlanTask | LocateTask) => void;
 };
 
 export class TaskCache {
+  page: WebPage;
+
   cache: AiTaskCache;
 
   cacheId: string;
@@ -87,9 +93,10 @@ export class TaskCache {
 
   midscenePkgInfo: ReturnType<typeof getRunningPkgInfo> | null;
 
-  constructor(opts?: { cacheId?: string }) {
+  constructor(page: WebPage, opts?: { cacheId?: string }) {
     this.midscenePkgInfo = getRunningPkgInfo();
     this.cacheId = replaceIllegalPathCharsAndSpace(opts?.cacheId || '');
+    this.page = page;
     this.cache = this.readCacheFromFile() || {
       aiTasks: [],
     };
@@ -107,7 +114,7 @@ export class TaskCache {
       tasks: newCacheGroup,
     });
     return {
-      matchCache: <T extends 'plan' | 'locate' | 'ui-tars-plan'>(
+      matchCache: async <T extends 'plan' | 'locate' | 'ui-tars-plan'>(
         pageContext: WebUIContext,
         type: T,
         actionPrompt: string,
@@ -121,7 +128,7 @@ export class TaskCache {
             type,
             actionPrompt,
             aiTasks[index].tasks,
-          ) as PlanTask['response'];
+          ) as Promise<PlanTask['response']>;
         }
         if (type === 'ui-tars-plan') {
           return this.matchCache(
@@ -129,7 +136,7 @@ export class TaskCache {
             type,
             actionPrompt,
             aiTasks[index].tasks,
-          ) as UITarsPlanTask['response'];
+          ) as Promise<UITarsPlanTask['response']>;
         }
 
         return this.matchCache(
@@ -137,11 +144,13 @@ export class TaskCache {
           type,
           actionPrompt,
           aiTasks[index].tasks,
-        ) as T extends 'plan'
-          ? PlanTask['response']
-          : T extends 'locate'
-            ? LocateTask['response']
-            : UITarsPlanTask['response'];
+        ) as Promise<
+          T extends 'plan'
+            ? PlanTask['response']
+            : T extends 'locate'
+              ? LocateTask['response']
+              : UITarsPlanTask['response']
+        >;
       },
       saveCache: (cache: PlanTask | LocateTask | UITarsPlanTask) => {
         newCacheGroup.push(cache);
@@ -171,34 +180,35 @@ export class TaskCache {
    * @param userPrompt String type, representing user prompt information
    * @return Returns a Promise object that resolves to a boolean or object
    */
-  matchCache(
+  async matchCache(
     pageContext: WebUIContext,
     type: 'plan',
     userPrompt: string,
     cacheGroup: AiTasks,
-  ): PlanTask['response'];
-  matchCache(
+  ): Promise<PlanTask['response']>;
+  async matchCache(
     pageContext: WebUIContext,
     type: 'ui-tars-plan',
     userPrompt: string,
     cacheGroup: AiTasks,
-  ): UITarsPlanTask['response'];
-  matchCache(
+  ): Promise<UITarsPlanTask['response']>;
+  async matchCache(
     pageContext: WebUIContext,
     type: 'locate',
     userPrompt: string,
     cacheGroup: AiTasks,
-  ): LocateTask['response'];
-  matchCache(
+  ): Promise<LocateTask['response']>;
+  async matchCache(
     pageContext: WebUIContext,
     type: 'plan' | 'locate' | 'ui-tars-plan',
     userPrompt: string,
     cacheGroup: AiTasks,
-  ):
+  ): Promise<
     | PlanTask['response']
     | LocateTask['response']
     | UITarsPlanTask['response']
-    | false {
+    | false
+  > {
     debug(
       'will read cache, type: %s, prompt: %s, cacheGroupLength: %s',
       type,
@@ -223,23 +233,55 @@ export class TaskCache {
 
       // The corresponding element cannot be found in the new context
       if (taskRes?.type === 'locate') {
-        const id = taskRes.response?.elements[0].id;
-        if (!id) {
-          debug('no id in cached response');
+        const xpaths = taskRes.response?.elements[0].xpaths;
+
+        if (!xpaths || !xpaths.length) {
+          debug('no xpaths in cached response');
           return false;
         }
 
-        const foundInContext = pageContext.content.find(
-          (contentElement) => contentElement.id === id,
-        );
-        if (!foundInContext) {
+        for (const xpath of xpaths) {
+          if (this.page.pageType === 'playwright') {
+            try {
+              const playwrightPage = (this.page as any).underlyingPage;
+              const xpathLocator = playwrightPage.locator(`xpath=${xpath}`);
+              const xpathCount = await xpathLocator.count();
+              if (xpathCount > 0) {
+                debug(
+                  'cache hit, type: %s, prompt: %s, xpath: %s',
+                  type,
+                  userPrompt,
+                  xpath,
+                );
+                return taskRes.response;
+              }
+            } catch (error) {
+              debug('playwright xpath locator error', error);
+            }
+          } else if (this.page.pageType === 'puppeteer') {
+            try {
+              const puppeteerPage = (this.page as PuppeteerWebPage)
+                .underlyingPage;
+              const xpathElements = await puppeteerPage.$$(`xpath=${xpath}`);
+              if (xpathElements && xpathElements.length > 0) {
+                debug(
+                  'cache hit, type: %s, prompt: %s, xpath: %s',
+                  type,
+                  userPrompt,
+                  xpath,
+                );
+                return taskRes.response;
+              }
+            } catch (error) {
+              debug('puppeteer xpath locator error', error);
+            }
+          }
+
           debug('cannot match element with same id in current page', {
             element: taskRes.element,
           });
           return false;
         }
-
-        return taskRes.response;
       }
 
       if (taskRes && taskRes.type === type && taskRes.prompt === userPrompt) {

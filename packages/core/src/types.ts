@@ -3,7 +3,6 @@
 import type { NodeType } from '@midscene/shared/constants';
 import type { ChatCompletionMessageParam } from 'openai/resources';
 import type { DetailedLocateParam, scrollParam } from './yaml';
-
 export * from './yaml';
 
 export interface Point {
@@ -36,6 +35,8 @@ export abstract class BaseElement {
   abstract center: [number, number];
 
   abstract locator?: string;
+
+  abstract xpaths?: string[];
 }
 
 export interface ElementTreeNode<
@@ -64,6 +65,7 @@ export type AISingleElementResponseById = {
   id: string;
   reason?: string;
   text?: string;
+  xpaths?: string[];
 };
 
 export type AISingleElementResponseByPosition = {
@@ -82,6 +84,7 @@ export interface AIElementLocatorResponse {
     id: string;
     reason?: string;
     text?: string;
+    xpaths?: string[];
   }[];
   bbox?: [number, number, number, number];
   errors?: string[];
@@ -159,6 +162,7 @@ export type LocateResultElement = {
   indexId?: number;
   center: [number, number];
   rect: Rect;
+  xpaths: string[];
 };
 
 export interface LocateResult {

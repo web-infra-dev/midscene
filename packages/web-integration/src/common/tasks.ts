@@ -38,6 +38,7 @@ import { UITarsModelVersion } from '@midscene/shared/env';
 import { uiTarsModelVersion } from '@midscene/shared/env';
 import { vlLocateMode } from '@midscene/shared/env';
 import type { ElementInfo } from '@midscene/shared/extractor';
+import { getElementInfosScriptContent } from '@midscene/shared/fs';
 import { imageInfo, resizeImgBase64 } from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
@@ -81,7 +82,7 @@ export class PageTaskExecutor {
     this.page = page;
     this.insight = insight;
 
-    this.taskCache = new TaskCache({
+    this.taskCache = new TaskCache(page, {
       cacheId: opts?.cacheId,
     });
 
@@ -189,7 +190,7 @@ export class PageTaskExecutor {
             task.recorder = [recordItem];
 
             const cachePrompt = param.prompt;
-            const locateCache = cacheGroup?.matchCache(
+            const locateCache = await cacheGroup?.matchCache(
               pageContext,
               'locate',
               cachePrompt,
@@ -217,6 +218,17 @@ export class PageTaskExecutor {
             }
 
             if (element) {
+              let xpaths;
+              try {
+                const elementInfosScriptContent =
+                  getElementInfosScriptContent();
+                xpaths = await this.page.evaluateJavaScript?.(
+                  `${elementInfosScriptContent}midscene_element_inspector.getXpathsById('${element.id}')`,
+                );
+              } catch (error) {
+                debug('getXpathsById error: ', error);
+              }
+
               cacheGroup?.saveCache({
                 type: 'locate',
                 pageContext: {
@@ -228,6 +240,7 @@ export class PageTaskExecutor {
                   elements: [
                     {
                       id: element.id,
+                      xpaths,
                     },
                   ],
                 },
@@ -304,7 +317,7 @@ export class PageTaskExecutor {
             locate: plan.locate,
             executor: async (taskParam, { element }) => {
               if (element) {
-                await this.page.clearInput(element as ElementInfo);
+                await this.page.clearInput(element as unknown as ElementInfo);
 
                 if (!taskParam || !taskParam.value) {
                   return;
@@ -593,7 +606,7 @@ export class PageTaskExecutor {
         (executorContext.task as any).pageContext = pageContext;
 
         const cachePrompt = `${param.userInstruction} @ ${param.log || ''}`;
-        const planCache = cacheGroup.matchCache(
+        const planCache = await cacheGroup.matchCache(
           pageContext,
           'plan',
           cachePrompt,
@@ -787,7 +800,7 @@ export class PageTaskExecutor {
         });
         const startTime = Date.now();
 
-        const planCache = cacheGroup.matchCache(
+        const planCache = await cacheGroup.matchCache(
           pageContext,
           'ui-tars-plan',
           userInstruction,

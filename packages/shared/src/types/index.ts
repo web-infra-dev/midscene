@@ -1,4 +1,5 @@
 import type { NodeType } from '../constants';
+import type { ElementInfo } from '../extractor';
 
 export interface Point {
   left: number;
@@ -37,4 +38,10 @@ export interface ElementTreeNode<
 > {
   node: ElementType | null;
   children: ElementTreeNode<ElementType>[];
+}
+
+export interface WebElementInfo extends ElementInfo {
+  zoom: number;
+  screenWidth?: number;
+  screenHeight?: number;
 }
