@@ -28,4 +28,6 @@ export { extractTreeNode as webExtractNodeTree } from './web-extractor';
 
 export { extractTreeNodeAsString as webExtractNodeTreeAsString } from './web-extractor';
 
-export { getXpathsById } from './util';
+export { setNodeHashCacheListOnWindow } from './util';
+
+export { getXpathsById } from './locator';

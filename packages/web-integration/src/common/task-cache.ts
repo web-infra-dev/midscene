@@ -12,10 +12,10 @@ import { getAIConfigInBoolean } from '@midscene/shared/env';
 import { getRunningPkgInfo } from '@midscene/shared/fs';
 import { getDebug } from '@midscene/shared/logger';
 import { ifInBrowser } from '@midscene/shared/utils';
+import semver from 'semver';
 import type { PuppeteerWebPage } from '../puppeteer';
 import type { WebPage } from './page';
 import { type WebUIContext, replaceIllegalPathCharsAndSpace } from './utils';
-
 const debug = getDebug('cache');
 
 export type PlanTask = {
@@ -233,7 +233,7 @@ export class TaskCache {
 
       // The corresponding element cannot be found in the new context
       if (taskRes?.type === 'locate') {
-        const xpaths = taskRes.response?.elements[0].xpaths;
+        const xpaths = taskRes.response?.elements?.[0]?.xpaths;
 
         if (!xpaths || !xpaths.length) {
           debug('no xpaths in cached response');
@@ -246,13 +246,14 @@ export class TaskCache {
               const playwrightPage = (this.page as any).underlyingPage;
               const xpathLocator = playwrightPage.locator(`xpath=${xpath}`);
               const xpathCount = await xpathLocator.count();
-              if (xpathCount > 0) {
+              if (xpathCount === 1) {
                 debug(
                   'cache hit, type: %s, prompt: %s, xpath: %s',
                   type,
                   userPrompt,
                   xpath,
                 );
+                await xpathLocator.first().scrollIntoViewIfNeeded();
                 return taskRes.response;
               }
             } catch (error) {
@@ -263,13 +264,14 @@ export class TaskCache {
               const puppeteerPage = (this.page as PuppeteerWebPage)
                 .underlyingPage;
               const xpathElements = await puppeteerPage.$$(`xpath=${xpath}`);
-              if (xpathElements && xpathElements.length > 0) {
+              if (xpathElements && xpathElements.length === 1) {
                 debug(
                   'cache hit, type: %s, prompt: %s, xpath: %s',
                   type,
                   userPrompt,
                   xpath,
                 );
+                await xpathElements[0].scrollIntoView();
                 return taskRes.response;
               }
             } catch (error) {
@@ -356,15 +358,14 @@ export class TaskCache {
         if (!this.midscenePkgInfo) {
           return undefined;
         }
-        const jsonDataPkgVersion = jsonData.pkgVersion.split('.');
-        const midscenePkgInfoPkgVersion =
-          this.midscenePkgInfo.version.split('.');
-        if (
-          jsonDataPkgVersion[0] !== midscenePkgInfoPkgVersion[0] ||
-          jsonDataPkgVersion[1] !== midscenePkgInfoPkgVersion[1]
-        ) {
+
+        if (semver.lt(jsonData.pkgVersion, '0.17.0')) {
+          console.warn(
+            'You are using an old version of Midscene cache file, and we cannot match any info from it. Starting from Midscene v0.17, we changed our strategy to use xpath for cache info, providing better performance. Please delete the existing cache and rebuild it. Sorry for the inconvenience.',
+          );
           return undefined;
         }
+
         debug('read cache from file: %s', cacheFile);
         return jsonData as AiTaskCache;
       } catch (err) {

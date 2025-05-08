@@ -72,14 +72,17 @@ The results of `aiQuery` and `aiAssert` will never be cached. You can always use
 
 ### Cache hit conditions
 
-Cache will only be hit when the following conditions are met:
-1. The same `cacheId`
-2. The same major and minor version of Midscene
-3. The same page url and screen size
+Plan tasks require the following conditions to be hit cache:
 
-When using cache for locate element tasks, the following conditions are also required:
-1. A DOM element with the same position and size can be found on the page according to the cache file.
-2. If you are using VL model, there must be a DOM element matched with the coordinates. Otherwise, you will see a "POSITION NODE" in report file which means it cannot be cached.
+1. The same `cacheId`
+2. The same `prompt`
+3. The same page width and height
+
+Locate tasks require the following conditions to be hit cache:
+
+1. The same `cacheId`
+2. The same `prompt`
+3. There is an element on the page that matches the description in the cache file's [xpath](https://developer.mozilla.org/en-US/docs/Web/XML/XPath) field.
 
 ### If cache is not hit
 

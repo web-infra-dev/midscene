@@ -72,16 +72,17 @@ Midscene 不会对 `aiQuery` 和 `aiAssert` 的内容进行缓存，因此可以
 
 ### 缓存命中的条件
 
-缓存命中需要同时满足以下条件：
+Plan 任务缓存命中需要同时满足以下条件：
 
 1. 相同的 `cacheId`
-2. midscene 版本的 major 和 minor 版本号相同
-3. 相同的页面 URL 和页面宽高
+2. 相同的 `prompt`
+3. 相同的页面宽高
 
-当使用缓存进行元素定位时，还需要满足以下条件：
+Locate 任务缓存命中需要同时满足以下条件：
 
-1. 页面中存在与缓存文件中描述的位置和大小均一致的元素
-2. 如果使用 VL 模型，则页面中必须有 DOM 元素与缓存文件中描述的坐标相对应。否则，你会在报告中看到 "POSITION NODE" 的元素信息，这些元素并不会被缓存。
+1. 相同的 `cacheId`
+2. 相同的 `prompt`
+3. 页面中存在与缓存文件中 [xpath](https://developer.mozilla.org/en-US/docs/Web/XML/XPath) 字段描述的元素
 
 ### 未命中缓存时，会发生什么？
 
