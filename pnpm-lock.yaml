@@ -300,6 +300,9 @@ importers:
       rspress:
         specifier: 2.0.0-beta.4
         version: 2.0.0-beta.4(@types/react@18.3.18)(acorn@8.14.1)(webpack@5.99.5)
+      rspress-plugin-sitemap:
+        specifier: 1.1.2
+        version: 1.1.2
 
   packages/android:
     dependencies:
@@ -11117,6 +11120,9 @@ packages:
 
   rspack-plugin-virtual-module@0.1.7:
     resolution: {integrity: sha512-8LFxQ+YI0KeveA5Vl7SWMB9LRq8pBnrtmzF6klOU3pNfWFWsaRf+D8OnDRHHlrYUq6l+1Q8yTlZB/HgqksRD9Q==}
+
+  rspress-plugin-sitemap@1.1.2:
+    resolution: {integrity: sha512-dvmEbBUnyU3qkapjBz4WcpP0BIkJdljORFiuJ92wr0Vt/b/ff7cFlaRcAYtKq/g1y7JAdA+qzy3gjnNg0TqNow==}
 
   rspress@2.0.0-beta.4:
     resolution: {integrity: sha512-/6ge5lD0pVD7UYxSsQEcUl9pfiyD5ehBgHxxzEy9+y/1891c0NzhwVAXZ8tv92y41YLj6lBkOK90HW4iryMS5Q==}
@@ -27052,6 +27058,8 @@ snapshots:
   rspack-plugin-virtual-module@0.1.7:
     dependencies:
       fs-extra: 11.2.0
+
+  rspress-plugin-sitemap@1.1.2: {}
 
   rspress@2.0.0-beta.4(@types/react@18.3.18)(acorn@8.14.1)(webpack@5.99.5):
     dependencies:
