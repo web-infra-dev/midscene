@@ -61,6 +61,9 @@ export type LocateTask = {
 export type AiTasks = Array<PlanTask | LocateTask | UITarsPlanTask>;
 
 export type AiTaskCache = {
+  pkgName: string;
+  pkgVersion: string;
+  cacheId: string;
   aiTasks: Array<{
     prompt: string;
     tasks: AiTasks;
@@ -98,9 +101,15 @@ export class TaskCache {
     this.cacheId = replaceIllegalPathCharsAndSpace(opts?.cacheId || '');
     this.page = page;
     this.cache = this.readCacheFromFile() || {
+      pkgName: '',
+      pkgVersion: '',
+      cacheId: '',
       aiTasks: [],
     };
     this.newCache = {
+      pkgName: this.midscenePkgInfo?.name || '',
+      pkgVersion: this.midscenePkgInfo?.version || '',
+      cacheId: this.cacheId,
       aiTasks: [],
     };
   }
@@ -271,7 +280,9 @@ export class TaskCache {
                   userPrompt,
                   xpath,
                 );
-                await xpathElements[0].scrollIntoView();
+                await xpathElements[0].evaluate((element) => {
+                  element.scrollIntoView();
+                });
                 return taskRes.response;
               }
             } catch (error) {
@@ -354,7 +365,7 @@ export class TaskCache {
     if (existsSync(cacheFile)) {
       try {
         const data = readFileSync(cacheFile, 'utf8');
-        const jsonData = JSON.parse(data);
+        const jsonData = JSON.parse(data) as AiTaskCache;
         if (!this.midscenePkgInfo) {
           debug('no midscene pkg info, will not read cache from file');
           return undefined;
@@ -368,7 +379,7 @@ export class TaskCache {
         }
 
         debug('read cache from file: %s', cacheFile);
-        return jsonData as AiTaskCache;
+        return jsonData;
       } catch (err) {
         debug(
           'cache file exists but parse failed, path: %s, error: %s',
@@ -398,15 +409,7 @@ export class TaskCache {
       writeLogFile({
         fileName: `${this.cacheId}`,
         fileExt: 'json',
-        fileContent: stringifyDumpData(
-          {
-            pkgName: midscenePkgInfo.name,
-            pkgVersion: midscenePkgInfo.version,
-            cacheId: this.cacheId,
-            ...this.newCache,
-          },
-          2,
-        ),
+        fileContent: stringifyDumpData(this.newCache, 2),
         type: 'cache',
       });
     }
