@@ -42,6 +42,4 @@ export interface ElementTreeNode<
 
 export interface WebElementInfo extends ElementInfo {
   zoom: number;
-  screenWidth?: number;
-  screenHeight?: number;
 }

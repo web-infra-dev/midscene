@@ -109,8 +109,6 @@ function collectElementInfo(
         Math.round(rect.top + rect.height / 2),
       ],
       zoom: rect.zoom,
-      screenWidth: currentWindow.innerWidth,
-      screenHeight: currentWindow.innerHeight,
     };
     return elementInfo;
   }
@@ -139,8 +137,6 @@ function collectElementInfo(
         Math.round(rect.top + rect.height / 2),
       ],
       zoom: rect.zoom,
-      screenWidth: currentWindow.innerWidth,
-      screenHeight: currentWindow.innerHeight,
     };
     return elementInfo;
   }
@@ -172,8 +168,6 @@ function collectElementInfo(
         Math.round(rect.top + rect.height / 2),
       ],
       zoom: rect.zoom,
-      screenWidth: currentWindow.innerWidth,
-      screenHeight: currentWindow.innerHeight,
     };
     return elementInfo;
   }
@@ -208,8 +202,6 @@ function collectElementInfo(
       content: text,
       rect,
       zoom: rect.zoom,
-      screenWidth: currentWindow.innerWidth,
-      screenHeight: currentWindow.innerHeight,
     };
     return elementInfo;
   }
@@ -237,8 +229,6 @@ function collectElementInfo(
         Math.round(rect.top + rect.height / 2),
       ],
       zoom: rect.zoom,
-      screenWidth: currentWindow.innerWidth,
-      screenHeight: currentWindow.innerHeight,
     };
     return elementInfo;
   }
