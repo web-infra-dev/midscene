@@ -47,6 +47,7 @@ Midscene 默认集成了 OpenAI SDK 调用 AI 服务。使用这个 SDK 限定�
 | `OPENAI_USE_AZURE` | 可选。设置为 "true" 以使用 Azure OpenAI Service。更多详情请参阅后文 |
 | `MIDSCENE_OPENAI_INIT_CONFIG_JSON` | 可选。OpenAI SDK 的初始化配置 JSON |
 | `MIDSCENE_OPENAI_SOCKS_PROXY` | 可选。代理配置 (如 "socks5://127.0.0.1:1080") |
+| `MIDSCENE_PREFERRED_LANGUAGE` | 可选。模型响应的语言。如果当前时区是 GMT+8 则默认是 `Chinese`，否则是 `English` |
 | `OPENAI_MAX_TOKENS` | 可选。模型响应的 max_tokens 数 |
 
 ### 调试配置
