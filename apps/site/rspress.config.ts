@@ -67,17 +67,13 @@ export default defineConfig({
               text: 'Quick Experience by Chrome Extension',
               link: '/quick-experience',
             },
-            {
-              text: 'LLMs.txt',
-              link: '/llm-txt',
-            },
           ],
         },
         {
           text: 'Web Browser Automation',
           items: [
             {
-              text: 'MCP',
+              text: 'MCP Server',
               link: '/mcp',
             },
             {
@@ -149,6 +145,10 @@ export default defineConfig({
               link: '/faq',
             },
             {
+              text: 'LLMs.txt',
+              link: '/llm-txt',
+            },
+            {
               text: 'Data Privacy',
               link: '/data-privacy',
             },
@@ -180,17 +180,13 @@ export default defineConfig({
               text: '通过 Chrome 插件快速体验',
               link: '/zh/quick-experience',
             },
-            {
-              text: 'LLMs.txt',
-              link: '/zh/llm-txt',
-            },
           ],
         },
         {
           text: 'Web 浏览器自动化',
           items: [
             {
-              text: 'MCP',
+              text: 'MCP 服务',
               link: '/zh/mcp',
             },
             {
@@ -260,6 +256,10 @@ export default defineConfig({
             {
               text: '常见问题 FAQ',
               link: '/zh/faq',
+            },
+            {
+              text: 'LLMs.txt',
+              link: '/zh/llm-txt',
             },
             {
               text: '数据隐私',
