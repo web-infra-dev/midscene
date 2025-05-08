@@ -1,14 +1,10 @@
 import * as path from 'node:path';
+import { pluginLlms } from '@rspress/plugin-llms';
 import sitemap from 'rspress-plugin-sitemap';
 import { defineConfig } from 'rspress/config';
 
 export default defineConfig({
   root: path.join(__dirname, 'docs'),
-  plugins: [
-    sitemap({
-      domain: 'https://midscenejs.com',
-    }),
-  ],
   title:
     '(AI UI Automation, AI Testing, Computer Use, Browser Use, Android Use)',
   search: {
@@ -77,7 +73,7 @@ export default defineConfig({
           text: 'Web Browser Automation',
           items: [
             {
-              text: 'MCP',
+              text: 'MCP Server',
               link: '/mcp',
             },
             {
@@ -149,6 +145,10 @@ export default defineConfig({
               link: '/faq',
             },
             {
+              text: 'LLMs.txt',
+              link: '/llm-txt',
+            },
+            {
               text: 'Data Privacy',
               link: '/data-privacy',
             },
@@ -186,7 +186,7 @@ export default defineConfig({
           text: 'Web 浏览器自动化',
           items: [
             {
-              text: 'MCP',
+              text: 'MCP 服务',
               link: '/zh/mcp',
             },
             {
@@ -258,6 +258,10 @@ export default defineConfig({
               link: '/zh/faq',
             },
             {
+              text: 'LLMs.txt',
+              link: '/zh/llm-txt',
+            },
+            {
               text: '数据隐私',
               link: '/zh/data-privacy',
             },
@@ -325,4 +329,10 @@ export default defineConfig({
     },
   },
   lang: 'en',
+  plugins: [
+    pluginLlms(),
+    sitemap({
+      domain: 'https://midscenejs.com',
+    }),
+  ],
 });
