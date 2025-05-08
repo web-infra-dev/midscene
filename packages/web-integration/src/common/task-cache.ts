@@ -275,6 +275,10 @@ export class TaskCache {
             } catch (error) {
               debug('puppeteer xpath locator error', error);
             }
+          } else {
+            debug('unknown page type, will not match cache', {
+              pageType: this.page.pageType,
+            });
           }
 
           debug('cannot match element with same id in current page', {
