@@ -1,4 +1,5 @@
 import * as path from 'node:path';
+import { pluginLlms } from '@rspress/plugin-llms';
 import { defineConfig } from 'rspress/config';
 
 export default defineConfig({
@@ -63,6 +64,10 @@ export default defineConfig({
             {
               text: 'Quick Experience by Chrome Extension',
               link: '/quick-experience',
+            },
+            {
+              text: 'LLMs.txt',
+              link: '/llm-txt',
             },
           ],
         },
@@ -172,6 +177,10 @@ export default defineConfig({
             {
               text: '通过 Chrome 插件快速体验',
               link: '/zh/quick-experience',
+            },
+            {
+              text: 'LLMs.txt',
+              link: '/zh/llm-txt',
             },
           ],
         },
@@ -297,4 +306,5 @@ export default defineConfig({
     },
   },
   lang: 'en',
+  plugins: [pluginLlms()],
 });
