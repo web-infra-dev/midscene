@@ -16,7 +16,6 @@ chrome-extension/
 ├── extension/            # Packaged Chrome extension
 │   └── midscene-extension-v{version}.zip    # Compressed extension
 ├── scripts/              # Build and utility scripts
-│   ├── build-report-template.js   # Generate report template
 │   └── pack-extension.js          # Package Chrome extension
 ├── src/                  # Source code
 │   ├── extension/        # Chrome extension-related components
@@ -110,14 +109,6 @@ For publishing or sharing:
 3. Find the Midscene scripts in the "Content scripts" section under the "Sources" panel
 
 ### Feature Description
-
-#### Report Template
-
-The Chrome extension uses the HTML report template from the `@midscene/visualizer` package. During the build process, it:
-- Reads `packages/visualizer/dist/report/index.html`
-- Converts its content to a JavaScript string
-- Creates a JS file containing the `get_midscene_report_tpl()` function
-- Saves it to `static/scripts/report-template.js`
 
 #### Bridge Mode
 

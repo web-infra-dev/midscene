@@ -1,65 +1,76 @@
 {
-  "name": "@midscene/core",
-  "description": "Automate browser actions, extract data, and perform assertions using AI. It offers JavaScript SDK, Chrome extension, and support for scripting in YAML. See https://midscenejs.com/ for details.",
-  "version": "0.16.8",
-  "repository": "https://github.com/web-infra-dev/midscene",
-  "homepage": "https://midscenejs.com/",
-  "jsnext:source": "./src/index.ts",
-  "main": "./dist/lib/index.js",
-  "types": "./dist/types/index.d.ts",
-  "files": ["dist", "report", "README.md"],
-  "exports": {
-    ".": "./dist/lib/index.js",
-    "./utils": "./dist/lib/utils.js",
-    "./ai-model": "./dist/lib/ai-model.js",
-    "./tree": "./dist/lib/tree.js"
-  },
-  "typesVersions": {
-    "*": {
-      ".": ["./dist/types/index.d.ts"],
-      "utils": ["./dist/types/utils.d.ts"],
-      "ai-model": ["./dist/types/ai-model.d.ts"],
-      "tree": ["./dist/types/tree.d.ts"]
-    }
-  },
-  "scripts": {
-    "dev": "modern dev",
-    "build": "modern build",
-    "build:watch": "modern build -w",
-    "new": "modern new",
-    "upgrade": "modern upgrade",
-    "test": "vitest --run",
-    "test:u": "vitest --run -u",
-    "test:ai": "AITEST=true npm run test",
-    "computer": "TEST_COMPUTER=true npm run test:ai -- tests/ai/evaluate/computer.test.ts",
-    "test:parse-action": "npm run test:ai -- tests/ai/parse-action.test.ts",
-    "prepublishOnly": "npm run build"
-  },
-  "dependencies": {
-    "@anthropic-ai/sdk": "0.33.1",
-    "@azure/identity": "4.5.0",
-    "@langchain/core": "0.3.26",
-    "@midscene/shared": "workspace:*",
-    "@ui-tars/action-parser": "1.2.0",
-    "openai": "4.81.0",
-    "socks-proxy-agent": "8.0.4",
-    "dirty-json": "0.9.2",
-    "dotenv": "16.4.5",
-    "langsmith": "0.3.7"
-  },
-  "devDependencies": {
-    "@modern-js/module-tools": "2.60.6",
-    "@types/node": "^18.0.0",
-    "@types/node-fetch": "2.6.11",
-    "typescript": "^5.8.2",
-    "vitest": "3.0.5"
-  },
-  "engines": {
-    "node": ">=18.0.0"
-  },
-  "publishConfig": {
-    "access": "public",
-    "registry": "https://registry.npmjs.org"
-  },
-  "license": "MIT"
+    "name": "@midscene/core",
+    "description": "Automate browser actions, extract data, and perform assertions using AI. It offers JavaScript SDK, Chrome extension, and support for scripting in YAML. See https://midscenejs.com/ for details.",
+    "version": "0.16.8",
+    "repository": "https://github.com/web-infra-dev/midscene",
+    "homepage": "https://midscenejs.com/",
+    "jsnext:source": "./src/index.ts",
+    "main": "./dist/lib/index.js",
+    "types": "./dist/types/index.d.ts",
+    "files": [
+        "dist",
+        "README.md"
+    ],
+    "exports": {
+        ".": "./dist/lib/index.js",
+        "./utils": "./dist/lib/utils.js",
+        "./ai-model": "./dist/lib/ai-model.js",
+        "./tree": "./dist/lib/tree.js"
+    },
+    "typesVersions": {
+        "*": {
+            ".": [
+                "./dist/types/index.d.ts"
+            ],
+            "utils": [
+                "./dist/types/utils.d.ts"
+            ],
+            "ai-model": [
+                "./dist/types/ai-model.d.ts"
+            ],
+            "tree": [
+                "./dist/types/tree.d.ts"
+            ]
+        }
+    },
+    "scripts": {
+        "dev": "modern dev",
+        "build": "modern build",
+        "build:watch": "modern build -w",
+        "new": "modern new",
+        "upgrade": "modern upgrade",
+        "test": "vitest --run",
+        "test:u": "vitest --run -u",
+        "test:ai": "AITEST=true npm run test",
+        "computer": "TEST_COMPUTER=true npm run test:ai -- tests/ai/evaluate/computer.test.ts",
+        "test:parse-action": "npm run test:ai -- tests/ai/parse-action.test.ts",
+        "prepublishOnly": "npm run build"
+    },
+    "dependencies": {
+        "@anthropic-ai/sdk": "0.33.1",
+        "@azure/identity": "4.5.0",
+        "@langchain/core": "0.3.26",
+        "@midscene/shared": "workspace:*",
+        "@ui-tars/action-parser": "1.2.0",
+        "openai": "4.81.0",
+        "socks-proxy-agent": "8.0.4",
+        "dirty-json": "0.9.2",
+        "dotenv": "16.4.5",
+        "langsmith": "0.3.7"
+    },
+    "devDependencies": {
+        "@modern-js/module-tools": "2.60.6",
+        "@types/node": "^18.0.0",
+        "@types/node-fetch": "2.6.11",
+        "typescript": "^5.8.2",
+        "vitest": "3.0.5"
+    },
+    "engines": {
+        "node": ">=18.0.0"
+    },
+    "publishConfig": {
+        "access": "public",
+        "registry": "https://registry.npmjs.org"
+    },
+    "license": "MIT"
 }
