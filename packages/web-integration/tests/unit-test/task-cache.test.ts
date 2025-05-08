@@ -283,7 +283,7 @@ describe(
       const mockLocator = {
         count: vi.fn().mockResolvedValue(1),
         first: vi.fn().mockReturnValue({
-          scrollIntoViewIfNeeded: vi.fn(),
+          evaluate: vi.fn(),
         }),
       };
       (taskCache.page as any).underlyingPage = {
