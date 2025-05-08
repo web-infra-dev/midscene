@@ -195,12 +195,28 @@ export class PageTaskExecutor {
               'locate',
               cachePrompt,
             );
-            const idInCache = locateCache?.elements?.[0]?.id;
+            let elementInfo: ElementInfo | null = null;
+            const oldId = locateCache?.elements?.[0]?.id;
+            let newId = null;
+            try {
+              if (oldId) {
+                // hit cache, use new id
+                const elementInfosScriptContent =
+                  getElementInfosScriptContent();
+                elementInfo = await this.page.evaluateJavaScript?.(
+                  `${elementInfosScriptContent}midscene_element_inspector.getElementInfoByNode(document.querySelector('[data-midscene="cache-hit"]'))`,
+                );
+                newId = elementInfo?.id;
+                debug('get new id by node', newId);
+              }
+            } catch (error) {
+              debug('get element info by node error: ', error);
+            }
             let cacheHitFlag = false;
 
             let quickAnswerId = param?.id;
-            if (!quickAnswerId && idInCache) {
-              quickAnswerId = idInCache;
+            if (!quickAnswerId && newId) {
+              quickAnswerId = newId;
             }
 
             const quickAnswer = {
@@ -213,7 +229,7 @@ export class PageTaskExecutor {
             });
             const aiCost = Date.now() - startTime;
 
-            if (element && element.id === quickAnswerId && idInCache) {
+            if (element && element.id === quickAnswerId && newId) {
               cacheHitFlag = true;
             }
 
@@ -239,7 +255,7 @@ export class PageTaskExecutor {
                 response: {
                   elements: [
                     {
-                      id: element.id,
+                      id: newId || element.id,
                       xpaths,
                     },
                   ],

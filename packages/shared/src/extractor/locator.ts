@@ -1,5 +1,7 @@
+import type { ElementInfo } from '.';
 import { isTextElement } from './dom-util';
 import { getNodeFromCacheList } from './util';
+import { collectElementInfo } from './web-extractor';
 
 const getElementIndex = (element: Element): number => {
   let index = 1;
@@ -108,4 +110,8 @@ export function getXpathsById(id: string): string[] | null {
   }
 
   return generateXPaths(node);
+}
+
+export function getElementInfoByNode(node: Node): ElementInfo | null {
+  return collectElementInfo(node, window, document);
 }

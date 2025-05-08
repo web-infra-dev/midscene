@@ -41,7 +41,7 @@ function tagNameOfNode(node: globalThis.Node): string {
   return tagName ? `<${tagName}>` : '';
 }
 
-function collectElementInfo(
+export function collectElementInfo(
   node: Node,
   currentWindow: typeof window,
   currentDocument: typeof document,

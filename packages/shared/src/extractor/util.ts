@@ -1,3 +1,4 @@
+import type { Rect } from '../types';
 import { generateHashId } from '../utils';
 import { extractTextWithPosition } from './web-extractor';
 
@@ -443,7 +444,7 @@ export function getNodeAttributes(
 export function midsceneGenerateHash(
   node: globalThis.Node | null,
   content: string,
-  rect: any,
+  rect: Rect,
 ): string {
   const slicedHash = generateHashId(rect, content);
 

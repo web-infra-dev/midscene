@@ -13,6 +13,7 @@ import { getRunningPkgInfo } from '@midscene/shared/fs';
 import { getDebug } from '@midscene/shared/logger';
 import { ifInBrowser } from '@midscene/shared/utils';
 import semver from 'semver';
+import type { PlaywrightWebPage } from '../playwright';
 import type { PuppeteerWebPage } from '../puppeteer';
 import type { WebPage } from './page';
 import { type WebUIContext, replaceIllegalPathCharsAndSpace } from './utils';
@@ -252,7 +253,8 @@ export class TaskCache {
         for (const xpath of xpaths) {
           if (this.page.pageType === 'playwright') {
             try {
-              const playwrightPage = (this.page as any).underlyingPage;
+              const playwrightPage = (this.page as PlaywrightWebPage)
+                .underlyingPage;
               const xpathLocator = playwrightPage.locator(`xpath=${xpath}`);
               const xpathCount = await xpathLocator.count();
               if (xpathCount === 1) {
@@ -262,7 +264,11 @@ export class TaskCache {
                   userPrompt,
                   xpath,
                 );
-                await xpathLocator.first().scrollIntoViewIfNeeded();
+                const xpathElement = await xpathLocator.first();
+                await xpathElement.evaluate((element) => {
+                  element.setAttribute('data-midscene', 'cache-hit');
+                  element.scrollIntoView();
+                });
                 return taskRes.response;
               }
             } catch (error) {
@@ -281,6 +287,7 @@ export class TaskCache {
                   xpath,
                 );
                 await xpathElements[0].evaluate((element) => {
+                  element.setAttribute('data-midscene', 'cache-hit');
                   element.scrollIntoView();
                 });
                 return taskRes.response;
@@ -371,7 +378,10 @@ export class TaskCache {
           return undefined;
         }
 
-        if (semver.lt(jsonData.pkgVersion, '0.17.0')) {
+        if (
+          semver.lt(jsonData.pkgVersion, '0.17.0') ||
+          jsonData.pkgVersion.includes('beta') // for internal test
+        ) {
           console.warn(
             `You are using an old version of Midscene cache file, and we cannot match any info from it. Starting from Midscene v0.17, we changed our strategy to use xpath for cache info, providing better performance. Please delete the existing cache and rebuild it. Sorry for the inconvenience.\ncache file: ${cacheFile}`,
           );
