@@ -319,12 +319,12 @@ export default defineConfig({
         c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
         t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;
         y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
-    })(window, document, "clarity", "script", "rfu9b2oq0s");`,
+    })(window, document, "clarity", "script", "rg8ztmkti8");`,
         },
       ],
       meta: {
         'google-site-verification':
-          'qixuGdfVEzpek3cuidJyrWRocTNo3QDGUdooQBG4PqU',
+          'knm1l2oVU9IkHaYjq9q-FnyiEMVkt1b6i2El54Hphdw',
       },
     },
   },
