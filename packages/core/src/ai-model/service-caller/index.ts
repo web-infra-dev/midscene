@@ -17,9 +17,9 @@ import {
   MIDSCENE_DEBUG_AI_RESPONSE,
   MIDSCENE_LANGSMITH_DEBUG,
   MIDSCENE_MODEL_NAME,
+  MIDSCENE_OPENAI_HTTP_PROXY,
   MIDSCENE_OPENAI_INIT_CONFIG_JSON,
   MIDSCENE_OPENAI_SOCKS_PROXY,
-  MIDSCENE_OPENAI_HTTP_PROXY,
   MIDSCENE_USE_ANTHROPIC_SDK,
   MIDSCENE_USE_AZURE_OPENAI,
   MIDSCENE_USE_QWEN_VL,
@@ -37,10 +37,10 @@ import { enableDebug, getDebug } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
 import { ifInBrowser } from '@midscene/shared/utils';
 import dJSON from 'dirty-json';
+import { HttpsProxyAgent } from 'https-proxy-agent';
 import OpenAI, { AzureOpenAI } from 'openai';
 import type { ChatCompletionMessageParam } from 'openai/resources';
 import { SocksProxyAgent } from 'socks-proxy-agent';
-import { HttpsProxyAgent } from 'https-proxy-agent';
 import { AIActionType } from '../common';
 import { assertSchema } from '../prompt/assertion';
 import { locatorSchema } from '../prompt/llm-locator';
