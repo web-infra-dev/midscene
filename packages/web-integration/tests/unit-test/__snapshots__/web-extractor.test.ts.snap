@@ -242,6 +242,7 @@ exports[`extractor > basic 1`] = `
   },
   {
     "attributes": {
+      "for": "name",
       "htmlTagName": "<label>",
       "nodeType": "TEXT Node",
     },
@@ -320,6 +321,7 @@ exports[`extractor > basic 1`] = `
   },
   {
     "attributes": {
+      "for": "options",
       "htmlTagName": "<label>",
       "nodeType": "TEXT Node",
     },
@@ -338,6 +340,7 @@ exports[`extractor > basic 1`] = `
     "attributes": {
       "htmlTagName": "<div>",
       "nodeType": "TEXT Node",
+      "style": "width: 160px;height: 40px;background-color: #ccc;zoom: 1.5;",
     },
     "content": "This is zoomed content",
   },
@@ -345,8 +348,10 @@ exports[`extractor > basic 1`] = `
     "attributes": {
       "htmlTagName": "<div>",
       "nodeType": "TEXT Node",
+      "style": "zoom: 1.2;width: 200px;height: 40px;",
     },
-    "content": "Something Else",
+    "content": "This is zoomed content
+Something Else",
   },
   {
     "attributes": {
@@ -359,6 +364,8 @@ exports[`extractor > basic 1`] = `
   },
   {
     "attributes": {
+      "class": ".gh-ar-hdn",
+      "for": "gh-ac",
       "htmlTagName": "<label>",
       "nodeType": "TEXT Node",
     },
@@ -421,7 +428,48 @@ exports[`extractor > basic 1`] = `
       "htmlTagName": "<body>",
       "nodeType": "TEXT Node",
     },
-    "content": "phrase "The quick brown fox jumps over the lazy dog" is a well-known English-language pangram, meaning it contains every letter of the alphabet at least once. This sentence has become a standard tool for various applications, particularly     in typing practice, font display, and keyboard testing. The phrase has permeated popular culture and is referenced in various media, including literature and film. Its simplicity and utility have made it a staple in educational contexts and beyond.     For instance, it was famously used as the first message sent over the Moscow–Washington hotline in 19634.",
+    "content": "Data Record
+1970-01-01 19:25:01
+User Name: Stella
+ID	Field 2	Field 3	Field 4	Field 5
+30S	Kace Cervantes	Aylin Sawyer	Jefferson Kirby	Skyla Jefferson
+70U	Florence Davenport	Dariel Acevedo	Ashlynn Delacruz	Memphis Leal
+3AY	Crystal Newman	Anderson Brown	Charlotte Griffith	Franklin Everett
+YPG	Kori Payne	Edward Blevins	Aila Gill	Matthias Reed
+ZEN	Magnolia Duke	Kalel Glover	Alessia Barton	Cassius Peck
+Form
+Name:   Click Me Shape 
+ 
+English
+中文
+Tiếng Việt
+Choose an option: 
+Option 1
+Option 2
+This is zoomed content
+Something Else
+输入搜索关键词 
+ 
+phrase "The quick brown fox jumps over the lazy dog" is a well-known English-language pangram, meaning it contains every letter of the alphabet at least once. This sentence has become a standard tool for various applications, particularly in typing practice, font display, and keyboard testing. The phrase has permeated popular culture and is referenced in various media, including literature and film. Its simplicity and utility have made it a staple in educational contexts and beyond. For instance, it was famously used as the first message sent over the Moscow–Washington hotline in 19634.  
+content 000
+content AAA
+content BBBB
+ long-style-content
+Click me
+Content 1
+Content 2
+Nested Content 3
+x 
+hidden label
+i am fixed child content
+abcd efg
+content editable div content. We should collect the parent.
+absolute child content
+content Left
+content Right
+AAA
+BBB
+This should be collected",
   },
   {
     "attributes": {
@@ -438,6 +486,7 @@ exports[`extractor > basic 1`] = `
     "attributes": {
       "htmlTagName": "<div>",
       "nodeType": "TEXT Node",
+      "style": "height: 30px",
     },
     "content": "content 000",
   },
@@ -453,6 +502,7 @@ exports[`extractor > basic 1`] = `
     "attributes": {
       "htmlTagName": "<div>",
       "nodeType": "TEXT Node",
+      "style": "height: 120px",
     },
     "content": "content AAA",
   },
@@ -474,8 +524,11 @@ exports[`extractor > basic 1`] = `
   },
   {
     "attributes": {
+      "aria-label": "Click me",
+      "class": ".widget",
       "htmlTagName": "<div>",
       "nodeType": "TEXT Node",
+      "role": "button",
     },
     "content": "Click me",
   },
@@ -499,6 +552,7 @@ exports[`extractor > basic 1`] = `
   },
   {
     "attributes": {
+      "class": ".child-container",
       "htmlTagName": "<div>",
       "nodeType": "TEXT Node",
     },
@@ -577,6 +631,7 @@ exports[`extractor > basic 1`] = `
     "attributes": {
       "htmlTagName": "<div>",
       "nodeType": "TEXT Node",
+      "style": "position: absolute; left: 0px; bottom: 0; width: 100%; height: 50px; background-color: #EEE;",
     },
     "content": "content editable div content. We should collect the parent.",
   },
@@ -591,6 +646,7 @@ exports[`extractor > basic 1`] = `
     "attributes": {
       "htmlTagName": "<div>",
       "nodeType": "TEXT Node",
+      "style": "position: absolute; top: 0px; left: 0; width: 100%;text-align: right;",
     },
     "content": "content Right",
   },
@@ -606,6 +662,7 @@ exports[`extractor > basic 1`] = `
     "attributes": {
       "htmlTagName": "<div>",
       "nodeType": "TEXT Node",
+      "style": "width: 120px; height: 120px; background-color: #EEE;",
     },
     "content": "AAA",
   },
@@ -613,6 +670,7 @@ exports[`extractor > basic 1`] = `
     "attributes": {
       "htmlTagName": "<div>",
       "nodeType": "TEXT Node",
+      "style": "position: absolute; bottom: 200px; right: 0; width: 120px; height: 120px; background-color: #CCC;",
     },
     "content": "This should be collected",
   },
@@ -1458,6 +1516,7 @@ exports[`extractor > basic 2`] = `
                   "children": [],
                   "node": {
                     "attributes": {
+                      "for": "name",
                       "htmlTagName": "<label>",
                       "nodeType": "TEXT Node",
                     },
@@ -1757,6 +1816,7 @@ exports[`extractor > basic 2`] = `
                   "children": [],
                   "node": {
                     "attributes": {
+                      "for": "options",
                       "htmlTagName": "<label>",
                       "nodeType": "TEXT Node",
                     },
@@ -1825,6 +1885,7 @@ exports[`extractor > basic 2`] = `
                     "attributes": {
                       "htmlTagName": "<div>",
                       "nodeType": "TEXT Node",
+                      "style": "width: 160px;height: 40px;background-color: #ccc;zoom: 1.5;",
                     },
                     "content": "This is zoomed content",
                     "indexId": 46,
@@ -1839,8 +1900,10 @@ exports[`extractor > basic 2`] = `
                 "attributes": {
                   "htmlTagName": "<div>",
                   "nodeType": "TEXT Node",
+                  "style": "zoom: 1.2;width: 200px;height: 40px;",
                 },
-                "content": "Something Else",
+                "content": "This is zoomed content
+Something Else",
                 "indexId": 47,
               },
             },
@@ -1909,6 +1972,8 @@ exports[`extractor > basic 2`] = `
                   "children": [],
                   "node": {
                     "attributes": {
+                      "class": ".gh-ar-hdn",
+                      "for": "gh-ac",
                       "htmlTagName": "<label>",
                       "nodeType": "TEXT Node",
                     },
@@ -2130,7 +2195,48 @@ exports[`extractor > basic 2`] = `
               "htmlTagName": "<body>",
               "nodeType": "TEXT Node",
             },
-            "content": "phrase "The quick brown fox jumps over the lazy dog" is a well-known English-language pangram, meaning it contains every letter of the alphabet at least once. This sentence has become a standard tool for various applications, particularly     in typing practice, font display, and keyboard testing. The phrase has permeated popular culture and is referenced in various media, including literature and film. Its simplicity and utility have made it a staple in educational contexts and beyond.     For instance, it was famously used as the first message sent over the Moscow–Washington hotline in 19634.",
+            "content": "Data Record
+1970-01-01 19:25:01
+User Name: Stella
+ID	Field 2	Field 3	Field 4	Field 5
+30S	Kace Cervantes	Aylin Sawyer	Jefferson Kirby	Skyla Jefferson
+70U	Florence Davenport	Dariel Acevedo	Ashlynn Delacruz	Memphis Leal
+3AY	Crystal Newman	Anderson Brown	Charlotte Griffith	Franklin Everett
+YPG	Kori Payne	Edward Blevins	Aila Gill	Matthias Reed
+ZEN	Magnolia Duke	Kalel Glover	Alessia Barton	Cassius Peck
+Form
+Name:   Click Me Shape 
+ 
+English
+中文
+Tiếng Việt
+Choose an option: 
+Option 1
+Option 2
+This is zoomed content
+Something Else
+输入搜索关键词 
+ 
+phrase "The quick brown fox jumps over the lazy dog" is a well-known English-language pangram, meaning it contains every letter of the alphabet at least once. This sentence has become a standard tool for various applications, particularly in typing practice, font display, and keyboard testing. The phrase has permeated popular culture and is referenced in various media, including literature and film. Its simplicity and utility have made it a staple in educational contexts and beyond. For instance, it was famously used as the first message sent over the Moscow–Washington hotline in 19634.  
+content 000
+content AAA
+content BBBB
+ long-style-content
+Click me
+Content 1
+Content 2
+Nested Content 3
+x 
+hidden label
+i am fixed child content
+abcd efg
+content editable div content. We should collect the parent.
+absolute child content
+content Left
+content Right
+AAA
+BBB
+This should be collected",
             "indexId": 54,
           },
         },
@@ -2196,6 +2302,7 @@ exports[`extractor > basic 2`] = `
                     "attributes": {
                       "htmlTagName": "<div>",
                       "nodeType": "TEXT Node",
+                      "style": "height: 30px",
                     },
                     "content": "content 000",
                     "indexId": 56,
@@ -2232,6 +2339,7 @@ exports[`extractor > basic 2`] = `
                     "attributes": {
                       "htmlTagName": "<div>",
                       "nodeType": "TEXT Node",
+                      "style": "height: 120px",
                     },
                     "content": "content AAA",
                     "indexId": 58,
@@ -2344,8 +2452,11 @@ exports[`extractor > basic 2`] = `
               "children": [],
               "node": {
                 "attributes": {
+                  "aria-label": "Click me",
+                  "class": ".widget",
                   "htmlTagName": "<div>",
                   "nodeType": "TEXT Node",
+                  "role": "button",
                 },
                 "content": "Click me",
                 "indexId": 61,
@@ -2425,6 +2536,7 @@ exports[`extractor > basic 2`] = `
                   "children": [],
                   "node": {
                     "attributes": {
+                      "class": ".child-container",
                       "htmlTagName": "<div>",
                       "nodeType": "TEXT Node",
                     },
@@ -2801,6 +2913,7 @@ exports[`extractor > basic 2`] = `
                     "attributes": {
                       "htmlTagName": "<div>",
                       "nodeType": "TEXT Node",
+                      "style": "position: absolute; left: 0px; bottom: 0; width: 100%; height: 50px; background-color: #EEE;",
                     },
                     "content": "content editable div content. We should collect the parent.",
                     "indexId": 74,
@@ -2896,6 +3009,7 @@ exports[`extractor > basic 2`] = `
                     "attributes": {
                       "htmlTagName": "<div>",
                       "nodeType": "TEXT Node",
+                      "style": "position: absolute; top: 0px; left: 0; width: 100%;text-align: right;",
                     },
                     "content": "content Right",
                     "indexId": 76,
@@ -2966,6 +3080,7 @@ exports[`extractor > basic 2`] = `
                     "attributes": {
                       "htmlTagName": "<div>",
                       "nodeType": "TEXT Node",
+                      "style": "width: 120px; height: 120px; background-color: #EEE;",
                     },
                     "content": "AAA",
                     "indexId": 78,
@@ -2999,6 +3114,7 @@ exports[`extractor > basic 2`] = `
                     "attributes": {
                       "htmlTagName": "<div>",
                       "nodeType": "TEXT Node",
+                      "style": "position: absolute; bottom: 200px; right: 0; width: 120px; height: 120px; background-color: #CCC;",
                     },
                     "content": "This should be collected",
                     "indexId": 79,

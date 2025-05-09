@@ -186,16 +186,28 @@ function collectElementInfo(
 
   if (isTextElement(node)) {
     const text = node.textContent?.trim().replace(/\n+/g, ' ');
+
     if (!text) {
       return null;
     }
-    const attributes = getNodeAttributes(node, currentWindow);
-    const attributeKeys = Object.keys(attributes);
-    if (!text.trim() && attributeKeys.length === 0) {
+
+    const parentNode = node.parentElement;
+
+    if (!parentNode) {
       return null;
     }
-    const nodeHashId = midsceneGenerateHash(node, text, rect);
-    const selector = setDataForNode(node, nodeHashId, true, currentWindow);
+
+    const attributes = getNodeAttributes(parentNode, currentWindow);
+    const pseudo = getPseudoElementContent(parentNode, currentWindow);
+    const content = parentNode.innerText || pseudo.before || pseudo.after || '';
+
+    const nodeHashId = midsceneGenerateHash(parentNode, content, rect);
+    const selector = setDataForNode(
+      parentNode,
+      nodeHashId,
+      true,
+      currentWindow,
+    );
     const elementInfo: WebElementInfo = {
       id: nodeHashId,
       indexId: indexId++,
@@ -212,7 +224,7 @@ function collectElementInfo(
         Math.round(rect.top + rect.height / 2),
       ],
       // attributes,
-      content: text,
+      content,
       rect,
       zoom: rect.zoom,
       screenWidth: currentWindow.innerWidth,
