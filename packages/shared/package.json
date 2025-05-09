@@ -50,7 +50,6 @@
     "release": "modern release",
     "new": "modern new",
     "upgrade": "modern upgrade",
-    "prepublishOnly": "npm run build",
     "test": "vitest --run",
     "test:u": "vitest --run -u",
     "test:ai": "AITEST=true npm run test"
