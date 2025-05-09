@@ -25,7 +25,7 @@ describe.skipIf(!vlMode)('insight locate with deep think', () => {
     await sleep(3000);
   });
 
-  test('insight locate with search area and think twice', async () => {
+  test('insight locate with search area - deep think', async () => {
     const { context } = await getContextFromFixture('taobao');
 
     const insight = new Insight(context);
@@ -65,4 +65,27 @@ test.skip('insight locate with search area', async () => {
   });
   console.log(element, rect);
   await sleep(3000);
+});
+
+describe('insight describe', () => {
+  test('insight describe - by rect', async () => {
+    const { context } = await getContextFromFixture('taobao');
+    const insight = new Insight(context);
+    const { description } = await insight.describe({
+      left: 580,
+      top: 140,
+      width: 80,
+      height: 30,
+    });
+
+    expect(description).toBeDefined();
+  });
+
+  test('insight describe - by center point', async () => {
+    const { context } = await getContextFromFixture('taobao');
+    const insight = new Insight(context);
+    const { description } = await insight.describe([580, 140]);
+
+    expect(description).toBeDefined();
+  });
 });

@@ -5,9 +5,9 @@
       "prompt": "左下角暂停按钮",
       "annotation_index_id": 1,
       "response_rect": {
-        "left": 17,
+        "left": 8,
         "top": 769,
-        "width": 15,
+        "width": 27,
         "height": 15
       },
       "response_element": {
@@ -19,70 +19,65 @@
       "prompt": "点赞（爱心）按钮",
       "annotation_index_id": 2,
       "response_rect": {
-        "left": 1204,
-        "top": 352,
-        "width": 23,
-        "height": 19
+        "left": 1348,
+        "top": 569,
+        "width": 24,
+        "height": 21
       },
       "response_element": {
-        "id": "ebgie",
-        "indexId": 23
+        "id": "bomgc"
       }
     },
     {
       "prompt": "评论按钮",
       "annotation_index_id": 3,
       "response_rect": {
-        "left": 1205,
-        "top": 426,
-        "width": 22,
-        "height": 17
+        "left": 1346,
+        "top": 578,
+        "width": 46,
+        "height": 42
       },
       "response_element": {
-        "id": "cjmim",
-        "indexId": 25
+        "id": "hiono"
       }
     },
     {
       "prompt": "书签收藏按钮",
       "annotation_index_id": 4,
       "response_rect": {
-        "left": 1203,
-        "top": 498,
-        "width": 27,
-        "height": 22
+        "left": -1,
+        "top": -3598647,
+        "width": 1285,
+        "height": 3599459
       },
       "response_element": {
-        "id": "moimk",
-        "indexId": 27
+        "id": "fkleb"
       }
     },
     {
       "prompt": "分享按钮",
       "annotation_index_id": 5,
       "response_rect": {
-        "left": 1203,
-        "top": 576,
-        "width": 25,
-        "height": 18
+        "left": -3568497,
+        "top": -3568497,
+        "width": 0,
+        "height": 0
       },
       "response_element": {
-        "id": "mgcne",
-        "indexId": 29
+        "id": "dcppg"
       }
     },
     {
       "prompt": "右下角区域声音按钮",
       "annotation_index_id": 6,
       "response_rect": {
-        "left": 1203,
-        "top": 769,
-        "width": 22,
-        "height": 15
+        "left": 1176,
+        "top": 768,
+        "width": 27,
+        "height": 26
       },
       "response_element": {
-        "id": "djknm",
-        "indexId": 10
+        "id": "eodda"
       }
     }
   ]
