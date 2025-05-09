@@ -1,7 +1,6 @@
 import { type LocateTask, type PlanTask, TaskCache } from '@/common/task-cache';
 import type { WebUIContext } from '@/common/utils';
 import type { WebElementInfo } from '@/web-element';
-import type { AIElementLocatorResponse } from '@midscene/core';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { launchPage } from '../ai/web/puppeteer/utils';
 
@@ -77,8 +76,8 @@ describe(
                 prompt: 'test prompt',
                 pageContext,
                 response: {
-                  elements: [{ id: 'element3' }],
-                } as AIElementLocatorResponse,
+                  xpaths: [],
+                },
                 element: {
                   id: 'element3',
                   rect: {
@@ -184,13 +183,8 @@ describe(
       };
 
       const locateResponse = {
-        elements: [
-          {
-            id: 'element1',
-            xpaths: ['/html/body/div[1]', '//*[@id="content"]'],
-          },
-        ],
-      } as AIElementLocatorResponse;
+        xpaths: ['/html/body/div[1]', '//*[@id="content"]'],
+      };
 
       taskCache.cache = {
         pkgName: 'test',
@@ -249,8 +243,8 @@ describe(
                 prompt: 'test prompt',
                 pageContext,
                 response: {
-                  elements: [{ id: 'element2' }],
-                } as AIElementLocatorResponse,
+                  xpaths: [],
+                },
                 element: {
                   id: 'element2',
                   rect: {
@@ -291,13 +285,8 @@ describe(
       };
 
       const locateResponse = {
-        elements: [
-          {
-            id: 'element1',
-            xpaths: ['/html/body/div[1]'],
-          },
-        ],
-      } as AIElementLocatorResponse;
+        xpaths: ['/html/body/div[1]'],
+      };
 
       taskCache.cache = {
         pkgName: 'test',
@@ -348,13 +337,8 @@ describe(
       const realTaskCache = new TaskCache(realPage);
       const existingXpath = '/html/body/div/h1';
       const locateResponse = {
-        elements: [
-          {
-            id: 'example-heading',
-            xpaths: [existingXpath],
-          },
-        ],
-      } as AIElementLocatorResponse;
+        xpaths: [existingXpath],
+      };
 
       realTaskCache.cache = {
         pkgName: 'test',

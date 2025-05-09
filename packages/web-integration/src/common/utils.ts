@@ -14,6 +14,8 @@ import { assert, logMsg, uuid } from '@midscene/shared/utils';
 import dayjs from 'dayjs';
 import type { Page as PlaywrightPage } from 'playwright';
 import type { Page as PuppeteerPage } from 'puppeteer';
+import type { PlaywrightWebPage } from '../playwright';
+import type { PuppeteerWebPage } from '../puppeteer';
 import { WebElementInfo } from '../web-element';
 import type { WebPage } from './page';
 
@@ -182,4 +184,77 @@ export function forceClosePopup(
       debug(`page is already closed, skip goto ${url}`);
     }
   });
+}
+
+function replaceTextInXPath(xpath: string) {
+  return xpath.replace('/text()', ''); // /text() can't get locator
+}
+
+export async function checkElementExistsByXPath(
+  page: WebPage,
+  xpaths: string[],
+  logData: {
+    type: string;
+    userPrompt: string;
+    debug: (...args: any[]) => void;
+  },
+): Promise<boolean> {
+  const { type, userPrompt, debug } = logData;
+
+  for (const xpath of xpaths) {
+    if (page.pageType === 'playwright') {
+      try {
+        const playwrightPage = (page as PlaywrightWebPage).underlyingPage;
+        const xpathLocator = playwrightPage.locator(
+          `xpath=${replaceTextInXPath(xpath)}`,
+        );
+        const xpathCount = await xpathLocator.count();
+        if (xpathCount === 1) {
+          debug(
+            'cache hit, type: %s, prompt: %s, xpath: %s',
+            type,
+            userPrompt,
+            xpath,
+          );
+          const xpathElement = await xpathLocator.first();
+          await xpathElement.evaluate((element: Element) => {
+            element.scrollIntoView();
+            element.setAttribute('data-midscene', 'cache-hit');
+          });
+          return true;
+        }
+      } catch (error) {
+        debug('playwright xpath locator error', error);
+      }
+    } else if (page.pageType === 'puppeteer') {
+      try {
+        const puppeteerPage = (page as PuppeteerWebPage).underlyingPage;
+        const xpathElements = await puppeteerPage.$$(
+          `xpath=${replaceTextInXPath(xpath)}`,
+        );
+        if (xpathElements && xpathElements.length === 1) {
+          debug(
+            'cache hit, type: %s, prompt: %s, xpath: %s',
+            type,
+            userPrompt,
+            xpath,
+          );
+          await xpathElements[0].evaluate((element: Element) => {
+            element.scrollIntoView();
+            element.setAttribute('data-midscene', 'cache-hit');
+          });
+          return true;
+        }
+      } catch (error) {
+        debug('puppeteer xpath locator error', error);
+      }
+    } else {
+      debug('unknown page type, will not match cache', {
+        pageType: page.pageType,
+      });
+    }
+  }
+
+  debug('cannot match element with same id in current page');
+  return false;
 }

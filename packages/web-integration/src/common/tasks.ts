@@ -196,21 +196,21 @@ export class PageTaskExecutor {
               cachePrompt,
             );
             let elementInfo: ElementInfo | null = null;
-            const oldId = locateCache?.elements?.[0]?.id;
+            const xpaths = locateCache?.xpaths;
             let newId = null;
             try {
-              if (oldId) {
+              if (xpaths?.length) {
                 // hit cache, use new id
                 const elementInfosScriptContent =
                   getElementInfosScriptContent();
                 elementInfo = await this.page.evaluateJavaScript?.(
-                  `${elementInfosScriptContent}midscene_element_inspector.getElementInfoByNode(document.querySelector('[data-midscene="cache-hit"]'))`,
+                  `${elementInfosScriptContent}midscene_element_inspector.getElementInfoByXpath('${xpaths[0]}')`,
                 );
                 newId = elementInfo?.id;
-                debug('get new id by node', newId);
+                debug('get new id by xpath', elementInfo?.id);
               }
             } catch (error) {
-              debug('get element info by node error: ', error);
+              debug('get element info by xpath error: ', error);
             }
             let cacheHitFlag = false;
 
@@ -253,12 +253,7 @@ export class PageTaskExecutor {
                 },
                 prompt: cachePrompt,
                 response: {
-                  elements: [
-                    {
-                      id: newId || element.id,
-                      xpaths,
-                    },
-                  ],
+                  xpaths,
                 },
                 element,
               });

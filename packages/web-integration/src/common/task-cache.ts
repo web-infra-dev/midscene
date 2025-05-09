@@ -1,10 +1,6 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import type {
-  AIElementLocatorResponse,
-  LocateResultElement,
-  PlanningAIResponse,
-} from '@midscene/core';
+import type { LocateResultElement, PlanningAIResponse } from '@midscene/core';
 import type { vlmPlanning } from '@midscene/core/ai-model';
 import { stringifyDumpData, writeLogFile } from '@midscene/core/utils';
 import { getMidsceneRunSubDir } from '@midscene/shared/common';
@@ -13,10 +9,12 @@ import { getRunningPkgInfo } from '@midscene/shared/fs';
 import { getDebug } from '@midscene/shared/logger';
 import { ifInBrowser } from '@midscene/shared/utils';
 import semver from 'semver';
-import type { PlaywrightWebPage } from '../playwright';
-import type { PuppeteerWebPage } from '../puppeteer';
 import type { WebPage } from './page';
-import { type WebUIContext, replaceIllegalPathCharsAndSpace } from './utils';
+import {
+  type WebUIContext,
+  checkElementExistsByXPath,
+  replaceIllegalPathCharsAndSpace,
+} from './utils';
 const debug = getDebug('cache');
 
 export type PlanTask = {
@@ -55,7 +53,9 @@ export type LocateTask = {
       height: number;
     };
   };
-  response: AIElementLocatorResponse;
+  response: {
+    xpaths: string[];
+  };
   element: LocateResultElement;
 };
 
@@ -192,24 +192,6 @@ export class TaskCache {
    */
   async matchCache(
     pageContext: WebUIContext,
-    type: 'plan',
-    userPrompt: string,
-    cacheGroup: AiTasks,
-  ): Promise<PlanTask['response']>;
-  async matchCache(
-    pageContext: WebUIContext,
-    type: 'ui-tars-plan',
-    userPrompt: string,
-    cacheGroup: AiTasks,
-  ): Promise<UITarsPlanTask['response']>;
-  async matchCache(
-    pageContext: WebUIContext,
-    type: 'locate',
-    userPrompt: string,
-    cacheGroup: AiTasks,
-  ): Promise<LocateTask['response']>;
-  async matchCache(
-    pageContext: WebUIContext,
     type: 'plan' | 'locate' | 'ui-tars-plan',
     userPrompt: string,
     cacheGroup: AiTasks,
@@ -243,69 +225,24 @@ export class TaskCache {
 
       // The corresponding element cannot be found in the new context
       if (taskRes?.type === 'locate') {
-        const xpaths = taskRes.response?.elements?.[0]?.xpaths;
+        const xpaths = taskRes.response?.xpaths;
 
         if (!xpaths || !xpaths.length) {
           debug('no xpaths in cached response');
           return false;
         }
 
-        for (const xpath of xpaths) {
-          if (this.page.pageType === 'playwright') {
-            try {
-              const playwrightPage = (this.page as PlaywrightWebPage)
-                .underlyingPage;
-              const xpathLocator = playwrightPage.locator(`xpath=${xpath}`);
-              const xpathCount = await xpathLocator.count();
-              if (xpathCount === 1) {
-                debug(
-                  'cache hit, type: %s, prompt: %s, xpath: %s',
-                  type,
-                  userPrompt,
-                  xpath,
-                );
-                const xpathElement = await xpathLocator.first();
-                await xpathElement.evaluate((element) => {
-                  element.setAttribute('data-midscene', 'cache-hit');
-                  element.scrollIntoView();
-                });
-                return taskRes.response;
-              }
-            } catch (error) {
-              debug('playwright xpath locator error', error);
-            }
-          } else if (this.page.pageType === 'puppeteer') {
-            try {
-              const puppeteerPage = (this.page as PuppeteerWebPage)
-                .underlyingPage;
-              const xpathElements = await puppeteerPage.$$(`xpath=${xpath}`);
-              if (xpathElements && xpathElements.length === 1) {
-                debug(
-                  'cache hit, type: %s, prompt: %s, xpath: %s',
-                  type,
-                  userPrompt,
-                  xpath,
-                );
-                await xpathElements[0].evaluate((element) => {
-                  element.setAttribute('data-midscene', 'cache-hit');
-                  element.scrollIntoView();
-                });
-                return taskRes.response;
-              }
-            } catch (error) {
-              debug('puppeteer xpath locator error', error);
-            }
-          } else {
-            debug('unknown page type, will not match cache', {
-              pageType: this.page.pageType,
-            });
-          }
+        const elementExists = await checkElementExistsByXPath(
+          this.page,
+          xpaths,
+          { type, userPrompt, debug },
+        );
 
-          debug('cannot match element with same id in current page', {
-            element: taskRes.element,
-          });
-          return false;
+        if (elementExists) {
+          return taskRes.response;
         }
+
+        return false;
       }
 
       if (taskRes && taskRes.type === type && taskRes.prompt === userPrompt) {

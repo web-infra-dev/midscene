@@ -1,6 +1,6 @@
 import { PuppeteerAgent } from '@/puppeteer';
 import { sleep } from '@midscene/core/utils';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, it, vi } from 'vitest';
 import { launchPage } from './utils';
 
 vi.setConfig({
@@ -16,7 +16,9 @@ describe('agent with forceSameTabNavigation', () => {
   });
 
   it('open new tab', async () => {
-    const { originPage, reset } = await launchPage('https://www.bing.com/');
+    const { originPage, reset } = await launchPage('https://www.bing.com/', {
+      headless: false,
+    });
     resetFn = reset;
     const agent = new PuppeteerAgent(originPage, {
       cacheId: 'puppeteer-open-new-tab',
