@@ -11,6 +11,8 @@ import {
   preprocessDoubaoBboxJson,
   safeParseJson,
 } from '@/ai-model/service-caller';
+import { getAIConfig, overrideAIConfig } from '@midscene/shared/env';
+import { describe, expect, it } from 'vitest';
 import {
   getLogDir,
   getTmpDir,
@@ -18,13 +20,7 @@ import {
   overlapped,
   reportHTMLContent,
   writeDumpReport,
-} from '@/utils';
-import {
-  getAIConfig,
-  overrideAIConfig,
-  vlLocateMode,
-} from '@midscene/shared/env';
-import { describe, expect, it } from 'vitest';
+} from '../../dist/es/utils'; // use modules from dist, otherwise we will miss the template file
 
 describe('utils', () => {
   it('tmpDir', () => {
