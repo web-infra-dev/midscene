@@ -19,6 +19,7 @@ import {
   MIDSCENE_MODEL_NAME,
   MIDSCENE_OPENAI_INIT_CONFIG_JSON,
   MIDSCENE_OPENAI_SOCKS_PROXY,
+  MIDSCENE_OPENAI_HTTP_PROXY,
   MIDSCENE_USE_ANTHROPIC_SDK,
   MIDSCENE_USE_AZURE_OPENAI,
   MIDSCENE_USE_QWEN_VL,
@@ -39,6 +40,7 @@ import dJSON from 'dirty-json';
 import OpenAI, { AzureOpenAI } from 'openai';
 import type { ChatCompletionMessageParam } from 'openai/resources';
 import { SocksProxyAgent } from 'socks-proxy-agent';
+import { HttpsProxyAgent } from 'https-proxy-agent';
 import { AIActionType } from '../common';
 import { assertSchema } from '../prompt/assertion';
 import { locatorSchema } from '../prompt/llm-locator';
@@ -112,14 +114,21 @@ async function createChatClient({
   const extraConfig = getAIConfigInJson(MIDSCENE_OPENAI_INIT_CONFIG_JSON);
 
   const socksProxy = getAIConfig(MIDSCENE_OPENAI_SOCKS_PROXY);
-  const socksAgent = socksProxy ? new SocksProxyAgent(socksProxy) : undefined;
+  const httpProxy = getAIConfig(MIDSCENE_OPENAI_HTTP_PROXY);
+
+  let proxyAgent = undefined;
+  if (httpProxy) {
+    proxyAgent = new HttpsProxyAgent(httpProxy);
+  } else if (socksProxy) {
+    proxyAgent = new SocksProxyAgent(socksProxy);
+  }
 
   if (getAIConfig(OPENAI_USE_AZURE)) {
     // this is deprecated
     openai = new AzureOpenAI({
       baseURL: getAIConfig(OPENAI_BASE_URL),
       apiKey: getAIConfig(OPENAI_API_KEY),
-      httpAgent: socksAgent,
+      httpAgent: proxyAgent,
       ...extraConfig,
       dangerouslyAllowBrowser: true,
     }) as OpenAI;
@@ -175,7 +184,7 @@ async function createChatClient({
     openai = new OpenAI({
       baseURL: getAIConfig(OPENAI_BASE_URL),
       apiKey: getAIConfig(OPENAI_API_KEY),
-      httpAgent: socksAgent,
+      httpAgent: proxyAgent,
       ...extraConfig,
       defaultHeaders: {
         ...(extraConfig?.defaultHeaders || {}),
@@ -207,6 +216,7 @@ async function createChatClient({
     assert(apiKey, 'ANTHROPIC_API_KEY is required');
     openai = new Anthropic({
       apiKey,
+      httpAgent: proxyAgent,
       dangerouslyAllowBrowser: true,
     }) as any;
   }
