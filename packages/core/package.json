@@ -32,8 +32,7 @@
     "test:u": "vitest --run -u",
     "test:ai": "AITEST=true npm run test",
     "computer": "TEST_COMPUTER=true npm run test:ai -- tests/ai/evaluate/computer.test.ts",
-    "test:parse-action": "npm run test:ai -- tests/ai/parse-action.test.ts",
-    "prepublishOnly": "npm run build"
+    "test:parse-action": "npm run test:ai -- tests/ai/parse-action.test.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "0.33.1",
