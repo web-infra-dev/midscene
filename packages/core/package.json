@@ -7,7 +7,7 @@
   "jsnext:source": "./src/index.ts",
   "main": "./dist/lib/index.js",
   "types": "./dist/types/index.d.ts",
-  "files": ["dist", "report", "README.md"],
+  "files": ["dist", "README.md"],
   "exports": {
     ".": "./dist/lib/index.js",
     "./utils": "./dist/lib/utils.js",
