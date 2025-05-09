@@ -17,6 +17,7 @@ import {
   MIDSCENE_DEBUG_AI_RESPONSE,
   MIDSCENE_LANGSMITH_DEBUG,
   MIDSCENE_MODEL_NAME,
+  MIDSCENE_OPENAI_HTTP_PROXY,
   MIDSCENE_OPENAI_INIT_CONFIG_JSON,
   MIDSCENE_OPENAI_SOCKS_PROXY,
   MIDSCENE_USE_ANTHROPIC_SDK,
@@ -36,6 +37,7 @@ import { enableDebug, getDebug } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
 import { ifInBrowser } from '@midscene/shared/utils';
 import dJSON from 'dirty-json';
+import { HttpsProxyAgent } from 'https-proxy-agent';
 import OpenAI, { AzureOpenAI } from 'openai';
 import type { ChatCompletionMessageParam } from 'openai/resources';
 import { SocksProxyAgent } from 'socks-proxy-agent';
@@ -112,14 +114,21 @@ async function createChatClient({
   const extraConfig = getAIConfigInJson(MIDSCENE_OPENAI_INIT_CONFIG_JSON);
 
   const socksProxy = getAIConfig(MIDSCENE_OPENAI_SOCKS_PROXY);
-  const socksAgent = socksProxy ? new SocksProxyAgent(socksProxy) : undefined;
+  const httpProxy = getAIConfig(MIDSCENE_OPENAI_HTTP_PROXY);
+
+  let proxyAgent = undefined;
+  if (httpProxy) {
+    proxyAgent = new HttpsProxyAgent(httpProxy);
+  } else if (socksProxy) {
+    proxyAgent = new SocksProxyAgent(socksProxy);
+  }
 
   if (getAIConfig(OPENAI_USE_AZURE)) {
     // this is deprecated
     openai = new AzureOpenAI({
       baseURL: getAIConfig(OPENAI_BASE_URL),
       apiKey: getAIConfig(OPENAI_API_KEY),
-      httpAgent: socksAgent,
+      httpAgent: proxyAgent,
       ...extraConfig,
       dangerouslyAllowBrowser: true,
     }) as OpenAI;
@@ -175,7 +184,7 @@ async function createChatClient({
     openai = new OpenAI({
       baseURL: getAIConfig(OPENAI_BASE_URL),
       apiKey: getAIConfig(OPENAI_API_KEY),
-      httpAgent: socksAgent,
+      httpAgent: proxyAgent,
       ...extraConfig,
       defaultHeaders: {
         ...(extraConfig?.defaultHeaders || {}),
@@ -207,6 +216,7 @@ async function createChatClient({
     assert(apiKey, 'ANTHROPIC_API_KEY is required');
     openai = new Anthropic({
       apiKey,
+      httpAgent: proxyAgent,
       dangerouslyAllowBrowser: true,
     }) as any;
   }
