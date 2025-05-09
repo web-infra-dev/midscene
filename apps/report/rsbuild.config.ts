@@ -22,6 +22,7 @@ const allTestData = jsonFiles.map((file) => {
 
 // put back the report template to the core package
 // this is a workaround for the circular dependency issue
+// ERROR: This repository uses pkg in bundler mode. It is necessary to declare @midscene/report in the dependency; otherwise, it may cause packaging order issues and thus lead to the failure of report injection
 const copyReportTemplate = () => ({
   name: 'copy-report-template',
   setup(api) {
