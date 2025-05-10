@@ -1,9 +1,9 @@
-import type { ElementInfo } from '.';
 import {
   CONTAINER_MINI_HEIGHT,
   CONTAINER_MINI_WIDTH,
   NodeType,
 } from '../constants/index';
+import type { WebElementInfo } from '../types';
 import type { Point } from '../types';
 import {
   isButtonElement,
@@ -25,12 +25,6 @@ import {
   visibleRect,
 } from './util';
 
-interface WebElementInfo extends ElementInfo {
-  zoom: number;
-  screenWidth?: number;
-  screenHeight?: number;
-}
-
 let indexId = 0;
 
 function tagNameOfNode(node: globalThis.Node): string {
@@ -47,7 +41,7 @@ function tagNameOfNode(node: globalThis.Node): string {
   return tagName ? `<${tagName}>` : '';
 }
 
-function collectElementInfo(
+export function collectElementInfo(
   node: Node,
   currentWindow: typeof window,
   currentDocument: typeof document,
@@ -115,8 +109,6 @@ function collectElementInfo(
         Math.round(rect.top + rect.height / 2),
       ],
       zoom: rect.zoom,
-      screenWidth: currentWindow.innerWidth,
-      screenHeight: currentWindow.innerHeight,
     };
     return elementInfo;
   }
@@ -145,8 +137,6 @@ function collectElementInfo(
         Math.round(rect.top + rect.height / 2),
       ],
       zoom: rect.zoom,
-      screenWidth: currentWindow.innerWidth,
-      screenHeight: currentWindow.innerHeight,
     };
     return elementInfo;
   }
@@ -178,8 +168,6 @@ function collectElementInfo(
         Math.round(rect.top + rect.height / 2),
       ],
       zoom: rect.zoom,
-      screenWidth: currentWindow.innerWidth,
-      screenHeight: currentWindow.innerHeight,
     };
     return elementInfo;
   }
@@ -211,12 +199,9 @@ function collectElementInfo(
         Math.round(rect.left + rect.width / 2),
         Math.round(rect.top + rect.height / 2),
       ],
-      // attributes,
       content: text,
       rect,
       zoom: rect.zoom,
-      screenWidth: currentWindow.innerWidth,
-      screenHeight: currentWindow.innerHeight,
     };
     return elementInfo;
   }
@@ -244,8 +229,6 @@ function collectElementInfo(
         Math.round(rect.top + rect.height / 2),
       ],
       zoom: rect.zoom,
-      screenWidth: currentWindow.innerWidth,
-      screenHeight: currentWindow.innerHeight,
     };
     return elementInfo;
   }

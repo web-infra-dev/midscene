@@ -38,6 +38,7 @@ import { UITarsModelVersion } from '@midscene/shared/env';
 import { uiTarsModelVersion } from '@midscene/shared/env';
 import { vlLocateMode } from '@midscene/shared/env';
 import type { ElementInfo } from '@midscene/shared/extractor';
+import { getElementInfosScriptContent } from '@midscene/shared/fs';
 import { imageInfo, resizeImgBase64 } from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
@@ -81,7 +82,7 @@ export class PageTaskExecutor {
     this.page = page;
     this.insight = insight;
 
-    this.taskCache = new TaskCache({
+    this.taskCache = new TaskCache(page, {
       cacheId: opts?.cacheId,
     });
 
@@ -189,17 +190,33 @@ export class PageTaskExecutor {
             task.recorder = [recordItem];
 
             const cachePrompt = param.prompt;
-            const locateCache = cacheGroup?.matchCache(
+            const locateCache = await cacheGroup?.matchCache(
               pageContext,
               'locate',
               cachePrompt,
             );
-            const idInCache = locateCache?.elements?.[0]?.id;
+            let elementInfo: ElementInfo | null = null;
+            const xpaths = locateCache?.xpaths;
+            let newId = null;
+            try {
+              if (xpaths?.length) {
+                // hit cache, use new id
+                const elementInfosScriptContent =
+                  getElementInfosScriptContent();
+                elementInfo = await this.page.evaluateJavaScript?.(
+                  `${elementInfosScriptContent}midscene_element_inspector.getElementInfoByXpath('${xpaths[0]}')`,
+                );
+                newId = elementInfo?.id;
+                debug('get new id by xpath', elementInfo?.id);
+              }
+            } catch (error) {
+              debug('get element info by xpath error: ', error);
+            }
             let cacheHitFlag = false;
 
             let quickAnswerId = param?.id;
-            if (!quickAnswerId && idInCache) {
-              quickAnswerId = idInCache;
+            if (!quickAnswerId && newId) {
+              quickAnswerId = newId;
             }
 
             const quickAnswer = {
@@ -212,11 +229,22 @@ export class PageTaskExecutor {
             });
             const aiCost = Date.now() - startTime;
 
-            if (element && element.id === quickAnswerId && idInCache) {
+            if (element && element.id === quickAnswerId && newId) {
               cacheHitFlag = true;
             }
 
             if (element) {
+              let xpaths;
+              try {
+                const elementInfosScriptContent =
+                  getElementInfosScriptContent();
+                xpaths = await this.page.evaluateJavaScript?.(
+                  `${elementInfosScriptContent}midscene_element_inspector.getXpathsById('${element.id}')`,
+                );
+              } catch (error) {
+                debug('getXpathsById error: ', error);
+              }
+
               cacheGroup?.saveCache({
                 type: 'locate',
                 pageContext: {
@@ -225,11 +253,7 @@ export class PageTaskExecutor {
                 },
                 prompt: cachePrompt,
                 response: {
-                  elements: [
-                    {
-                      id: element.id,
-                    },
-                  ],
+                  xpaths,
                 },
                 element,
               });
@@ -304,7 +328,7 @@ export class PageTaskExecutor {
             locate: plan.locate,
             executor: async (taskParam, { element }) => {
               if (element) {
-                await this.page.clearInput(element as ElementInfo);
+                await this.page.clearInput(element as unknown as ElementInfo);
 
                 if (!taskParam || !taskParam.value) {
                   return;
@@ -593,7 +617,7 @@ export class PageTaskExecutor {
         (executorContext.task as any).pageContext = pageContext;
 
         const cachePrompt = `${param.userInstruction} @ ${param.log || ''}`;
-        const planCache = cacheGroup.matchCache(
+        const planCache = await cacheGroup.matchCache(
           pageContext,
           'plan',
           cachePrompt,
@@ -787,7 +811,7 @@ export class PageTaskExecutor {
         });
         const startTime = Date.now();
 
-        const planCache = cacheGroup.matchCache(
+        const planCache = await cacheGroup.matchCache(
           pageContext,
           'ui-tars-plan',
           userInstruction,

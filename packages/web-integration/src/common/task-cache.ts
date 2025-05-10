@@ -1,10 +1,6 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import type {
-  AIElementLocatorResponse,
-  LocateResultElement,
-  PlanningAIResponse,
-} from '@midscene/core';
+import type { LocateResultElement, PlanningAIResponse } from '@midscene/core';
 import type { vlmPlanning } from '@midscene/core/ai-model';
 import { stringifyDumpData, writeLogFile } from '@midscene/core/utils';
 import { getMidsceneRunSubDir } from '@midscene/shared/common';
@@ -12,8 +8,13 @@ import { getAIConfigInBoolean } from '@midscene/shared/env';
 import { getRunningPkgInfo } from '@midscene/shared/fs';
 import { getDebug } from '@midscene/shared/logger';
 import { ifInBrowser } from '@midscene/shared/utils';
-import { type WebUIContext, replaceIllegalPathCharsAndSpace } from './utils';
-
+import semver from 'semver';
+import type { WebPage } from './page';
+import {
+  type WebUIContext,
+  checkElementExistsByXPath,
+  replaceIllegalPathCharsAndSpace,
+} from './utils';
 const debug = getDebug('cache');
 
 export type PlanTask = {
@@ -52,13 +53,18 @@ export type LocateTask = {
       height: number;
     };
   };
-  response: AIElementLocatorResponse;
+  response: {
+    xpaths: string[];
+  };
   element: LocateResultElement;
 };
 
 export type AiTasks = Array<PlanTask | LocateTask | UITarsPlanTask>;
 
 export type AiTaskCache = {
+  pkgName: string;
+  pkgVersion: string;
+  cacheId: string;
   aiTasks: Array<{
     prompt: string;
     tasks: AiTasks;
@@ -70,15 +76,19 @@ export type CacheGroup = {
     pageContext: WebUIContext,
     type: T,
     actionPrompt: string,
-  ) => T extends 'plan'
-    ? PlanTask['response']
-    : T extends 'locate'
-      ? LocateTask['response']
-      : UITarsPlanTask['response'];
+  ) => Promise<
+    T extends 'plan'
+      ? PlanTask['response']
+      : T extends 'locate'
+        ? LocateTask['response']
+        : UITarsPlanTask['response']
+  >;
   saveCache: (cache: UITarsPlanTask | PlanTask | LocateTask) => void;
 };
 
 export class TaskCache {
+  page: WebPage;
+
   cache: AiTaskCache;
 
   cacheId: string;
@@ -87,13 +97,20 @@ export class TaskCache {
 
   midscenePkgInfo: ReturnType<typeof getRunningPkgInfo> | null;
 
-  constructor(opts?: { cacheId?: string }) {
+  constructor(page: WebPage, opts?: { cacheId?: string }) {
     this.midscenePkgInfo = getRunningPkgInfo();
     this.cacheId = replaceIllegalPathCharsAndSpace(opts?.cacheId || '');
+    this.page = page;
     this.cache = this.readCacheFromFile() || {
+      pkgName: '',
+      pkgVersion: '',
+      cacheId: '',
       aiTasks: [],
     };
     this.newCache = {
+      pkgName: this.midscenePkgInfo?.name || '',
+      pkgVersion: this.midscenePkgInfo?.version || '',
+      cacheId: this.cacheId,
       aiTasks: [],
     };
   }
@@ -107,7 +124,7 @@ export class TaskCache {
       tasks: newCacheGroup,
     });
     return {
-      matchCache: <T extends 'plan' | 'locate' | 'ui-tars-plan'>(
+      matchCache: async <T extends 'plan' | 'locate' | 'ui-tars-plan'>(
         pageContext: WebUIContext,
         type: T,
         actionPrompt: string,
@@ -121,7 +138,7 @@ export class TaskCache {
             type,
             actionPrompt,
             aiTasks[index].tasks,
-          ) as PlanTask['response'];
+          ) as Promise<PlanTask['response']>;
         }
         if (type === 'ui-tars-plan') {
           return this.matchCache(
@@ -129,7 +146,7 @@ export class TaskCache {
             type,
             actionPrompt,
             aiTasks[index].tasks,
-          ) as UITarsPlanTask['response'];
+          ) as Promise<UITarsPlanTask['response']>;
         }
 
         return this.matchCache(
@@ -137,11 +154,13 @@ export class TaskCache {
           type,
           actionPrompt,
           aiTasks[index].tasks,
-        ) as T extends 'plan'
-          ? PlanTask['response']
-          : T extends 'locate'
-            ? LocateTask['response']
-            : UITarsPlanTask['response'];
+        ) as Promise<
+          T extends 'plan'
+            ? PlanTask['response']
+            : T extends 'locate'
+              ? LocateTask['response']
+              : UITarsPlanTask['response']
+        >;
       },
       saveCache: (cache: PlanTask | LocateTask | UITarsPlanTask) => {
         newCacheGroup.push(cache);
@@ -171,34 +190,17 @@ export class TaskCache {
    * @param userPrompt String type, representing user prompt information
    * @return Returns a Promise object that resolves to a boolean or object
    */
-  matchCache(
-    pageContext: WebUIContext,
-    type: 'plan',
-    userPrompt: string,
-    cacheGroup: AiTasks,
-  ): PlanTask['response'];
-  matchCache(
-    pageContext: WebUIContext,
-    type: 'ui-tars-plan',
-    userPrompt: string,
-    cacheGroup: AiTasks,
-  ): UITarsPlanTask['response'];
-  matchCache(
-    pageContext: WebUIContext,
-    type: 'locate',
-    userPrompt: string,
-    cacheGroup: AiTasks,
-  ): LocateTask['response'];
-  matchCache(
+  async matchCache(
     pageContext: WebUIContext,
     type: 'plan' | 'locate' | 'ui-tars-plan',
     userPrompt: string,
     cacheGroup: AiTasks,
-  ):
+  ): Promise<
     | PlanTask['response']
     | LocateTask['response']
     | UITarsPlanTask['response']
-    | false {
+    | false
+  > {
     debug(
       'will read cache, type: %s, prompt: %s, cacheGroupLength: %s',
       type,
@@ -223,23 +225,24 @@ export class TaskCache {
 
       // The corresponding element cannot be found in the new context
       if (taskRes?.type === 'locate') {
-        const id = taskRes.response?.elements[0].id;
-        if (!id) {
-          debug('no id in cached response');
+        const xpaths = taskRes.response?.xpaths;
+
+        if (!xpaths || !xpaths.length) {
+          debug('no xpaths in cached response');
           return false;
         }
 
-        const foundInContext = pageContext.content.find(
-          (contentElement) => contentElement.id === id,
+        const elementExists = await checkElementExistsByXPath(
+          this.page,
+          xpaths,
+          { type, userPrompt, debug },
         );
-        if (!foundInContext) {
-          debug('cannot match element with same id in current page', {
-            element: taskRes.element,
-          });
-          return false;
+
+        if (elementExists) {
+          return taskRes.response;
         }
 
-        return taskRes.response;
+        return false;
       }
 
       if (taskRes && taskRes.type === type && taskRes.prompt === userPrompt) {
@@ -306,21 +309,24 @@ export class TaskCache {
     if (existsSync(cacheFile)) {
       try {
         const data = readFileSync(cacheFile, 'utf8');
-        const jsonData = JSON.parse(data);
+        const jsonData = JSON.parse(data) as AiTaskCache;
         if (!this.midscenePkgInfo) {
+          debug('no midscene pkg info, will not read cache from file');
           return undefined;
         }
-        const jsonDataPkgVersion = jsonData.pkgVersion.split('.');
-        const midscenePkgInfoPkgVersion =
-          this.midscenePkgInfo.version.split('.');
+
         if (
-          jsonDataPkgVersion[0] !== midscenePkgInfoPkgVersion[0] ||
-          jsonDataPkgVersion[1] !== midscenePkgInfoPkgVersion[1]
+          semver.lt(jsonData.pkgVersion, '0.17.0') ||
+          jsonData.pkgVersion.includes('beta') // for internal test
         ) {
+          console.warn(
+            `You are using an old version of Midscene cache file, and we cannot match any info from it. Starting from Midscene v0.17, we changed our strategy to use xpath for cache info, providing better performance. Please delete the existing cache and rebuild it. Sorry for the inconvenience.\ncache file: ${cacheFile}`,
+          );
           return undefined;
         }
+
         debug('read cache from file: %s', cacheFile);
-        return jsonData as AiTaskCache;
+        return jsonData;
       } catch (err) {
         debug(
           'cache file exists but parse failed, path: %s, error: %s',
@@ -350,15 +356,7 @@ export class TaskCache {
       writeLogFile({
         fileName: `${this.cacheId}`,
         fileExt: 'json',
-        fileContent: stringifyDumpData(
-          {
-            pkgName: midscenePkgInfo.name,
-            pkgVersion: midscenePkgInfo.version,
-            cacheId: this.cacheId,
-            ...this.newCache,
-          },
-          2,
-        ),
+        fileContent: stringifyDumpData(this.newCache, 2),
         type: 'cache',
       });
     }

@@ -173,7 +173,7 @@ export default class Insight<
     const elements: BaseElement[] = [];
     (parseResult.elements || []).forEach((item) => {
       if ('id' in item) {
-        const element = elementById(item.id);
+        const element = elementById(item?.id);
 
         if (!element) {
           console.warn(
@@ -209,6 +209,7 @@ export default class Insight<
           indexId: elements[0]!.indexId,
           center: elements[0]!.center,
           rect: elements[0]!.rect,
+          xpaths: elements[0]!.xpaths || [],
         },
         rect,
       };

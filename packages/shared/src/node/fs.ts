@@ -60,16 +60,24 @@ export function findNearestPackageJson(dir: string): string | null {
   return findNearestPackageJson(parentDir);
 }
 
-export async function getExtraReturnLogic(tree = false) {
-  if (ifInBrowser) {
-    return null;
-  }
+export function getElementInfosScriptContent() {
   // Get __dirname equivalent in Node.js environment
   const currentFilePath = __filename;
   const pathDir = findNearestPackageJson(dirname(currentFilePath));
   assert(pathDir, `can't find pathDir, with ${dirname}`);
   const scriptPath = path.join(pathDir, './dist/script/htmlElement.js');
   const elementInfosScriptContent = readFileSync(scriptPath, 'utf-8');
+
+  return elementInfosScriptContent;
+}
+
+export async function getExtraReturnLogic(tree = false) {
+  if (ifInBrowser) {
+    return null;
+  }
+
+  const elementInfosScriptContent = `${getElementInfosScriptContent()}midscene_element_inspector.setNodeHashCacheListOnWindow();`;
+
   if (tree) {
     return `${elementInfosScriptContent}midscene_element_inspector.webExtractNodeTree()`;
   }

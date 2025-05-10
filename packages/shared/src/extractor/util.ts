@@ -1,7 +1,7 @@
+import type { Rect } from '../types';
 import { generateHashId } from '../utils';
 import { extractTextWithPosition } from './web-extractor';
 
-// import { TEXT_MAX_SIZE } from './constants';
 const MAX_VALUE_LENGTH = 300;
 let debugMode = false;
 
@@ -444,12 +444,41 @@ export function getNodeAttributes(
 export function midsceneGenerateHash(
   node: globalThis.Node | null,
   content: string,
-  rect: any,
+  rect: Rect,
 ): string {
   const slicedHash = generateHashId(rect, content);
 
+  if (node) {
+    if (!(window as any).midsceneNodeHashCacheList) {
+      setNodeHashCacheListOnWindow();
+    }
+
+    setNodeToCacheList(node, slicedHash);
+  }
+
   // Returns the first 10 characters as a short hash
   return slicedHash;
+}
+
+export function setNodeHashCacheListOnWindow() {
+  if (typeof window !== 'undefined') {
+    (window as any).midsceneNodeHashCacheList = [];
+  }
+}
+
+export function setNodeToCacheList(node: globalThis.Node, id: string) {
+  if (typeof window !== 'undefined') {
+    (window as any).midsceneNodeHashCacheList.push({ node, id });
+  }
+}
+
+export function getNodeFromCacheList(id: string) {
+  if (typeof window !== 'undefined') {
+    return (window as any).midsceneNodeHashCacheList.find(
+      (item: { node: Node; id: string }) => item.id === id,
+    )?.node;
+  }
+  return null;
 }
 
 export function generateId(numberId: number) {
