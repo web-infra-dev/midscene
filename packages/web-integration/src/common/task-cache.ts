@@ -56,7 +56,6 @@ export type LocateTask = {
   response: {
     xpaths: string[];
   };
-  element: LocateResultElement;
 };
 
 export type AiTasks = Array<PlanTask | LocateTask | UITarsPlanTask>;

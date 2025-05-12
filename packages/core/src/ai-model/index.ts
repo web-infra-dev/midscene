@@ -1,6 +1,9 @@
 export { callToGetJSONObject } from './service-caller/index';
 export { systemPromptToLocateElement } from './prompt/llm-locator';
-export { describeUserPage } from './prompt/util';
+export {
+  describeUserPage,
+  elementByPositionWithElementInfo,
+} from './prompt/util';
 
 export type { ChatCompletionMessageParam } from 'openai/resources';
 

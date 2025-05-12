@@ -210,6 +210,7 @@ export default class Insight<
           center: elements[0]!.center,
           rect: elements[0]!.rect,
           xpaths: elements[0]!.xpaths || [],
+          attributes: elements[0]!.attributes,
         },
         rect,
       };

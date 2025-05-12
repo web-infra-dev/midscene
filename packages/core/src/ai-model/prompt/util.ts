@@ -36,6 +36,7 @@ export function elementByPositionWithElementInfo(
     x: number;
     y: number;
   },
+  strict = true,
 ) {
   assert(typeof position !== 'undefined', 'position is required for query');
 
@@ -77,7 +78,11 @@ export function elementByPositionWithElementInfo(
     position,
   );
 
-  return distanceToCenter <= distanceThreshold ? element : undefined;
+  if (strict) {
+    return distanceToCenter <= distanceThreshold ? element : undefined;
+  }
+
+  return element;
 }
 
 export const distanceThreshold = 16;

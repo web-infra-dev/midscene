@@ -31,6 +31,7 @@ import {
 import {
   type ChatCompletionMessageParam,
   vlmPlanning,
+  elementByPositionWithElementInfo,
 } from '@midscene/core/ai-model';
 import { sleep } from '@midscene/core/utils';
 
@@ -46,6 +47,7 @@ import type { WebElementInfo } from '../web-element';
 import { TaskCache } from './task-cache';
 import { getKeyCommands, taskTitleStr } from './ui-utils';
 import type { WebUIContext } from './utils';
+import { NodeType } from '@midscene/shared/constants';
 
 interface ExecutionResult<OutputType = any> {
   output: OutputType;
@@ -227,6 +229,23 @@ export class PageTaskExecutor {
             const { element } = await this.insight.locate(param, {
               quickAnswer,
             });
+            let elementXpaths = element?.xpaths || [];
+            let elementId = element?.id;
+
+            if (element?.attributes?.nodeType === NodeType.POSITION) {
+              const pageContext =
+                await this.insight.contextRetrieverFn('locate');
+              const info = elementByPositionWithElementInfo(
+                pageContext.tree,
+                {
+                  x: element.center[0],
+                  y: element.center[1],
+                },
+                false,
+              );
+              elementId = info?.id;
+            }
+
             const aiCost = Date.now() - startTime;
 
             if (element && element.id === quickAnswerId && newId) {
@@ -237,8 +256,8 @@ export class PageTaskExecutor {
               try {
                 const elementInfosScriptContent =
                   getElementInfosScriptContent();
-                element.xpaths = await this.page.evaluateJavaScript?.(
-                  `${elementInfosScriptContent}midscene_element_inspector.getXpathsById('${element.id}')`,
+                elementXpaths = await this.page.evaluateJavaScript?.(
+                  `${elementInfosScriptContent}midscene_element_inspector.getXpathsById('${elementId}')`,
                 );
               } catch (error) {
                 debug('getXpathsById error: ', error);
@@ -252,9 +271,8 @@ export class PageTaskExecutor {
                 },
                 prompt: cachePrompt,
                 response: {
-                  xpaths: element.xpaths,
+                  xpaths: elementXpaths,
                 },
-                element,
               });
             }
             if (!element) {

@@ -129,7 +129,7 @@ export async function AiLocateElement<
 }> {
   const { context, targetElementDescription, callAI } = options;
   const { screenshotBase64 } = context;
-  const { description, elementById, insertElementByPosition, size } =
+  const { description, elementById, insertElementByPosition } =
     await describeUserPage(context);
   // meet quick answer
   const quickAnswer = matchQuickAnswer(

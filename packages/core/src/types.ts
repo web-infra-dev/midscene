@@ -163,6 +163,10 @@ export type LocateResultElement = {
   center: [number, number];
   rect: Rect;
   xpaths: string[];
+  attributes: {
+    nodeType: NodeType;
+    [key: string]: string;
+  };
 };
 
 export interface LocateResult {
@@ -383,7 +387,7 @@ export interface ExecutionTaskApply<
     param: TaskParam,
     context: ExecutorContext,
   ) => // biome-ignore lint/suspicious/noConfusingVoidType: <explanation>
-    | Promise<ExecutionTaskReturn<TaskOutput, TaskLog> | undefined | void>
+  | Promise<ExecutionTaskReturn<TaskOutput, TaskLog> | undefined | void>
     | undefined
     | void;
 }
