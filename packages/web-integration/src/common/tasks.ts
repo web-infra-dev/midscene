@@ -30,11 +30,12 @@ import {
 } from '@midscene/core';
 import {
   type ChatCompletionMessageParam,
-  vlmPlanning,
   elementByPositionWithElementInfo,
+  vlmPlanning,
 } from '@midscene/core/ai-model';
 import { sleep } from '@midscene/core/utils';
 
+import { NodeType } from '@midscene/shared/constants';
 import { UITarsModelVersion } from '@midscene/shared/env';
 import { uiTarsModelVersion } from '@midscene/shared/env';
 import { vlLocateMode } from '@midscene/shared/env';
@@ -47,7 +48,6 @@ import type { WebElementInfo } from '../web-element';
 import { TaskCache } from './task-cache';
 import { getKeyCommands, taskTitleStr } from './ui-utils';
 import type { WebUIContext } from './utils';
-import { NodeType } from '@midscene/shared/constants';
 
 interface ExecutionResult<OutputType = any> {
   output: OutputType;
