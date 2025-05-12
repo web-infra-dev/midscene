@@ -177,10 +177,9 @@ describe(
     });
 
     it('should return cached response if xpaths matching elements are found', async () => {
-      taskCache.page.pageType = 'puppeteer';
-      (taskCache.page as any).underlyingPage = {
-        $$: vi.fn().mockResolvedValue([{ id: 'element1', evaluate: vi.fn() }]),
-      };
+      taskCache.page.evaluateJavaScript = vi
+        .fn()
+        .mockResolvedValue({ id: 'element1' });
 
       const locateResponse = {
         xpaths: ['/html/body/div[1]', '//*[@id="content"]'],
@@ -224,8 +223,9 @@ describe(
       );
 
       expect(result).toEqual(locateResponse);
-      expect((taskCache.page as any).underlyingPage.$$).toHaveBeenCalledWith(
-        'xpath=/html/body/div[1]',
+      expect(taskCache.page.evaluateJavaScript).toHaveBeenCalled();
+      expect(taskCache.page.evaluateJavaScript).toHaveBeenCalledWith(
+        expect.stringContaining("getNodeInfoByXpath('/html/body/div[1]')"),
       );
     });
 
@@ -270,66 +270,6 @@ describe(
       );
 
       expect(result).toBe(false);
-    });
-
-    it('should return cached response if xpaths matching elements are found in playwright', async () => {
-      taskCache.page.pageType = 'playwright';
-      const mockLocator = {
-        count: vi.fn().mockResolvedValue(1),
-        first: vi.fn().mockReturnValue({
-          evaluate: vi.fn(),
-        }),
-      };
-      (taskCache.page as any).underlyingPage = {
-        locator: vi.fn().mockReturnValue(mockLocator),
-      };
-
-      const locateResponse = {
-        xpaths: ['/html/body/div[1]'],
-      };
-
-      taskCache.cache = {
-        pkgName: 'test',
-        pkgVersion: '0.17.1',
-        cacheId: 'test',
-        aiTasks: [
-          {
-            prompt: 'test prompt',
-            tasks: [
-              {
-                type: 'locate',
-                prompt: 'test prompt',
-                pageContext,
-                response: locateResponse,
-                element: {
-                  id: 'element1',
-                  rect: {
-                    left: 100,
-                    top: 100,
-                    width: 100,
-                    height: 100,
-                  },
-                  center: [100, 100],
-                  xpaths: ['/html/body/div[1]'],
-                },
-              },
-            ],
-          },
-        ],
-      };
-
-      const cacheGroup = taskCache.getCacheGroupByPrompt('test prompt');
-      const result = await cacheGroup.matchCache(
-        formalPageContext,
-        'locate',
-        'test prompt',
-      );
-
-      expect(result).toEqual(locateResponse);
-      expect(
-        (taskCache.page as any).underlyingPage.locator,
-      ).toHaveBeenCalledWith('xpath=/html/body/div[1]');
-      expect(mockLocator.count).toHaveBeenCalled();
     });
 
     it('should correctly handle xpaths cache matching with real page objects', async () => {
