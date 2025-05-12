@@ -317,7 +317,7 @@ export function extractTreeNode(
       node: elementInfo,
       children: [],
     };
-    // stop collecting if the node is a Button or Image
+    // stop collecting if the node is a Button/Image/Text/FormItem/Container
     if (
       elementInfo?.nodeType === NodeType.BUTTON ||
       elementInfo?.nodeType === NodeType.IMG ||

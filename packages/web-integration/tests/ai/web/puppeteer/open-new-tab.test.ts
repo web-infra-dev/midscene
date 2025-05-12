@@ -16,9 +16,7 @@ describe('agent with forceSameTabNavigation', () => {
   });
 
   it('open new tab', async () => {
-    const { originPage, reset } = await launchPage('https://www.bing.com/', {
-      headless: false,
-    });
+    const { originPage, reset } = await launchPage('https://www.bing.com/');
     resetFn = reset;
     const agent = new PuppeteerAgent(originPage, {
       cacheId: 'puppeteer-open-new-tab',

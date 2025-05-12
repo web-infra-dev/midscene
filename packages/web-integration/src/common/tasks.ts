@@ -234,11 +234,10 @@ export class PageTaskExecutor {
             }
 
             if (element) {
-              let xpaths;
               try {
                 const elementInfosScriptContent =
                   getElementInfosScriptContent();
-                xpaths = await this.page.evaluateJavaScript?.(
+                element.xpaths = await this.page.evaluateJavaScript?.(
                   `${elementInfosScriptContent}midscene_element_inspector.getXpathsById('${element.id}')`,
                 );
               } catch (error) {
@@ -253,7 +252,7 @@ export class PageTaskExecutor {
                 },
                 prompt: cachePrompt,
                 response: {
-                  xpaths,
+                  xpaths: element.xpaths,
                 },
                 element,
               });

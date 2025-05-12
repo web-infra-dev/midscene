@@ -1,5 +1,4 @@
 import type { ElementInfo } from '.';
-import { isTextElement } from './dom-util';
 import { getNodeFromCacheList } from './util';
 import { collectElementInfo } from './web-extractor';
 
@@ -32,9 +31,9 @@ const findFirstAncestorWithId = (element: Element): Element | null => {
 };
 
 const getElementXPath = (element: Node): string => {
-  // 处理文本节点
+  // deal with text node
   if (element.nodeType === Node.TEXT_NODE) {
-    // 获取父元素的 XPath
+    // get parent node xpath
     const parentNode = element.parentNode;
     if (parentNode && parentNode.nodeType === Node.ELEMENT_NODE) {
       const parentXPath = getElementXPath(parentNode);
@@ -119,11 +118,7 @@ export function getXpathsById(id: string): string[] | null {
   return generateXPaths(node);
 }
 
-export function getElementInfoByNode(node: Node): ElementInfo | null {
-  return collectElementInfo(node, window, document);
-}
-
-export function getElementInfoByXpath(xpath: string): ElementInfo | null {
+export function getNodeInfoByXpath(xpath: string): Node | null {
   const xpathResult = document.evaluate(
     xpath,
     document,
@@ -137,6 +132,12 @@ export function getElementInfoByXpath(xpath: string): ElementInfo | null {
   }
 
   const node = xpathResult.snapshotItem(0);
+
+  return node;
+}
+
+export function getElementInfoByXpath(xpath: string): ElementInfo | null {
+  const node = getNodeInfoByXpath(xpath);
 
   if (!node) {
     return null;
