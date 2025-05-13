@@ -28,6 +28,7 @@ import { assert } from '@midscene/shared/utils';
 import { emitInsightDump } from './utils';
 
 export interface LocateOpts {
+  context?: UIContext<BaseElement>;
   callAI?: typeof callAiFn<AIElementResponse>;
   quickAnswer?: Partial<AISingleElementResponse>; // preset answer for locate
 }
@@ -105,7 +106,7 @@ export default class Insight<
       searchAreaPrompt = undefined;
     }
 
-    const context = await this.contextRetrieverFn('locate');
+    const context = opt?.context || (await this.contextRetrieverFn('locate'));
 
     let searchArea: Rect | undefined = undefined;
     let searchAreaRawResponse: string | undefined = undefined;

@@ -260,6 +260,7 @@ export class PageTaskExecutor {
 
             const startTime = Date.now();
             const { element } = await this.insight.locate(param, {
+              context: pageContext,
               quickAnswer,
             });
 
