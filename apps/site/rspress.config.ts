@@ -165,6 +165,10 @@ export default defineConfig({
               text: 'Introducing Instant Actions and Deep Think',
               link: '/blog-introducing-instant-actions-and-deep-think',
             },
+            {
+              text: 'Using Structured API to Optimize Automation Code',
+              link: '/blog-programming-practice-using-structured-api',
+            },
           ],
         },
       ],
