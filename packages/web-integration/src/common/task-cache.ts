@@ -100,6 +100,11 @@ export class TaskCache {
 
   private usedCacheItems: Map<string, Set<number>> = new Map();
 
+  private currentCycleCacheState: Map<
+    string,
+    { count: number; usedIndices: number[] }
+  > = new Map();
+
   constructor(page: WebPage, opts?: { cacheId?: string }) {
     this.midscenePkgInfo = getRunningPkgInfo();
     this.cacheId = replaceIllegalPathCharsAndSpace(opts?.cacheId || '');
@@ -116,7 +121,7 @@ export class TaskCache {
       pkgName: this.midscenePkgInfo?.name || '',
       pkgVersion: this.midscenePkgInfo?.version || '',
       cacheId: this.cacheId,
-      aiTasks: [],
+      aiTasks: JSON.parse(JSON.stringify(this.cache.aiTasks || [])),
     };
   }
 
@@ -126,12 +131,27 @@ export class TaskCache {
     }
 
     const usedIndices = this.usedCacheItems.get(aiActionPrompt)!;
-    const currentCount = usedIndices.size;
     const { aiTasks = [] } = this.cache || { aiTasks: [] };
+
+    // 初始化或获取当前循环状态
+    if (!this.currentCycleCacheState.has(aiActionPrompt)) {
+      this.currentCycleCacheState.set(aiActionPrompt, {
+        count: 0,
+        usedIndices: [],
+      });
+    }
+
+    // 获取并更新计数
+    const cacheState = this.currentCycleCacheState.get(aiActionPrompt)!;
+    const currentCount = cacheState.count;
+    cacheState.count++;
+
+    debug('current prompt [%s] count: %d', aiActionPrompt, currentCount + 1);
 
     let matchIndex = -1;
     let matchItem = null;
 
+    // find unused cache item in order
     for (let i = 0; i < aiTasks.length; i++) {
       const item = aiTasks[i];
       if (item.prompt === aiActionPrompt) {
@@ -139,17 +159,76 @@ export class TaskCache {
           matchIndex = i;
           matchItem = item;
           usedIndices.add(i);
-          debug('找到未使用的缓存项: %s, 索引: %d', aiActionPrompt, i);
+          debug('find unused cache item: %s, index: %d', aiActionPrompt, i);
           break;
         }
       }
     }
 
-    const newCacheGroup: AiTasks = [];
-    this.newCache.aiTasks.push({
-      prompt: aiActionPrompt,
-      tasks: newCacheGroup,
-    });
+    // get all cache groups with same prompt in new cache
+    const promptGroups = this.newCache.aiTasks.filter(
+      (item) => item.prompt === aiActionPrompt,
+    );
+
+    const usedGroupIndices = cacheState.usedIndices;
+    let targetGroupIndex: number;
+    let newCacheGroup: AiTasks;
+
+    // if current count is less than the number of existing cache groups, use the corresponding index cache group
+    if (currentCount < promptGroups.length) {
+      // find the index of promptGroups[currentCount] in newCache.aiTasks
+      targetGroupIndex = this.newCache.aiTasks.findIndex(
+        (item, index) =>
+          item.prompt === aiActionPrompt &&
+          !usedGroupIndices.includes(index) && // if the index is not used
+          usedGroupIndices.length === currentCount, // if the index is the index in current cycle, ensure the order of used cache groups
+      );
+
+      if (targetGroupIndex === -1) {
+        debug(
+          'no suitable cache group, create new cache group: prompt [%s], current count: %d',
+          aiActionPrompt,
+          currentCount + 1,
+        );
+        this.newCache.aiTasks.push({
+          prompt: aiActionPrompt,
+          tasks: [],
+        });
+        targetGroupIndex = this.newCache.aiTasks.length - 1;
+        usedGroupIndices.push(targetGroupIndex);
+        newCacheGroup = this.newCache.aiTasks[targetGroupIndex].tasks;
+        debug(
+          'create new cache group as fallback: prompt [%s], index: %d, current count: %d',
+          aiActionPrompt,
+          targetGroupIndex,
+          currentCount + 1,
+        );
+      } else {
+        usedGroupIndices.push(targetGroupIndex);
+        newCacheGroup = this.newCache.aiTasks[targetGroupIndex].tasks;
+        debug(
+          'use existing cache group: prompt [%s], index: %d, current count: %d',
+          aiActionPrompt,
+          targetGroupIndex,
+          currentCount + 1,
+        );
+      }
+    } else {
+      // if current count is greater than the number of existing cache groups, create a new cache group
+      this.newCache.aiTasks.push({
+        prompt: aiActionPrompt,
+        tasks: [],
+      });
+      targetGroupIndex = this.newCache.aiTasks.length - 1;
+      usedGroupIndices.push(targetGroupIndex);
+      newCacheGroup = this.newCache.aiTasks[targetGroupIndex].tasks;
+      debug(
+        'create new cache group: prompt [%s], index: %d, current count: %d',
+        aiActionPrompt,
+        targetGroupIndex,
+        currentCount + 1,
+      );
+    }
 
     return {
       matchCache: async <T extends 'plan' | 'locate' | 'ui-tars-plan'>(
@@ -194,10 +273,11 @@ export class TaskCache {
       saveCache: (cache: PlanTask | LocateTask | UITarsPlanTask) => {
         newCacheGroup.push(cache);
         debug(
-          'saving cache to file, type: %s, cacheId: %s, index: %d',
+          'save cache to file, type: %s, cacheId: %s, prompt index: %d, current count: %d',
           cache.type,
           this.cacheId,
-          currentCount,
+          targetGroupIndex,
+          currentCount + 1,
         );
         this.writeCacheToFile();
       },

@@ -986,7 +986,6 @@ export class PageTaskExecutor {
       );
       replanCount++;
     }
-
     return {
       output: result,
       executor: taskExecutor,
