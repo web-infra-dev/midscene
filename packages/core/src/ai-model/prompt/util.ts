@@ -29,6 +29,7 @@ export function describeElement(
     )
     .join('\n');
 }
+export const distanceThreshold = 16;
 
 export function elementByPositionWithElementInfo(
   treeRoot: ElementTreeNode<BaseElement>,
@@ -85,7 +86,6 @@ export function elementByPositionWithElementInfo(
   return element;
 }
 
-export const distanceThreshold = 16;
 export function distance(
   point1: { x: number; y: number },
   point2: { x: number; y: number },

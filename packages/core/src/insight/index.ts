@@ -29,7 +29,7 @@ import { emitInsightDump } from './utils';
 
 export interface LocateOpts {
   callAI?: typeof callAiFn<AIElementResponse>;
-  quickAnswer?: Partial<AISingleElementResponse>;
+  quickAnswer?: Partial<AISingleElementResponse>; // preset answer for locate
 }
 
 export type AnyValue<T> = {
