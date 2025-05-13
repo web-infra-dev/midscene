@@ -69,6 +69,7 @@ export type AiTaskCache = {
   aiTasks: Array<{
     prompt: string;
     tasks: AiTasks;
+    _usedCount?: number;
   }>;
 };
 
@@ -98,12 +99,7 @@ export class TaskCache {
 
   midscenePkgInfo: ReturnType<typeof getRunningPkgInfo> | null;
 
-  private usedCacheItems: Map<string, Set<number>> = new Map();
-
-  private currentCycleCacheState: Map<
-    string,
-    { count: number; usedIndices: number[] }
-  > = new Map();
+  private usedCacheItems: Map<string, number[]> = new Map();
 
   constructor(page: WebPage, opts?: { cacheId?: string }) {
     this.midscenePkgInfo = getRunningPkgInfo();
@@ -126,109 +122,48 @@ export class TaskCache {
   }
 
   getCacheGroupByPrompt(aiActionPrompt: string): CacheGroup {
-    if (!this.usedCacheItems.has(aiActionPrompt)) {
-      this.usedCacheItems.set(aiActionPrompt, new Set());
-    }
-
-    const usedIndices = this.usedCacheItems.get(aiActionPrompt)!;
     const { aiTasks = [] } = this.cache || { aiTasks: [] };
 
-    // 初始化或获取当前循环状态
-    if (!this.currentCycleCacheState.has(aiActionPrompt)) {
-      this.currentCycleCacheState.set(aiActionPrompt, {
-        count: 0,
-        usedIndices: [],
-      });
+    if (!this.usedCacheItems.has(aiActionPrompt)) {
+      this.usedCacheItems.set(aiActionPrompt, []);
+    }
+    const usedIndices = this.usedCacheItems.get(aiActionPrompt)!;
+
+    let promptGroup = this.newCache.aiTasks.find(
+      (item) => item.prompt === aiActionPrompt,
+    );
+
+    if (!promptGroup) {
+      promptGroup = {
+        prompt: aiActionPrompt,
+        tasks: [],
+        _usedCount: 0,
+      };
+      this.newCache.aiTasks.push(promptGroup);
+    } else if (!promptGroup._usedCount) {
+      promptGroup._usedCount = 0;
     }
 
-    // 获取并更新计数
-    const cacheState = this.currentCycleCacheState.get(aiActionPrompt)!;
-    const currentCount = cacheState.count;
-    cacheState.count++;
+    const currentCount = promptGroup._usedCount || 0;
 
-    debug('current prompt [%s] count: %d', aiActionPrompt, currentCount + 1);
+    promptGroup._usedCount = currentCount + 1;
 
-    let matchIndex = -1;
-    let matchItem = null;
-
-    // find unused cache item in order
-    for (let i = 0; i < aiTasks.length; i++) {
-      const item = aiTasks[i];
-      if (item.prompt === aiActionPrompt) {
-        if (!usedIndices.has(i) && item.tasks && item.tasks.length > 0) {
-          matchIndex = i;
-          matchItem = item;
-          usedIndices.add(i);
-          debug('find unused cache item: %s, index: %d', aiActionPrompt, i);
-          break;
-        }
-      }
-    }
-
-    // get all cache groups with same prompt in new cache
     const promptGroups = this.newCache.aiTasks.filter(
       (item) => item.prompt === aiActionPrompt,
     );
 
-    const usedGroupIndices = cacheState.usedIndices;
-    let targetGroupIndex: number;
-    let newCacheGroup: AiTasks;
+    debug('current prompt [%s] count: %d', aiActionPrompt, currentCount + 1);
 
-    // if current count is less than the number of existing cache groups, use the corresponding index cache group
-    if (currentCount < promptGroups.length) {
-      // find the index of promptGroups[currentCount] in newCache.aiTasks
-      targetGroupIndex = this.newCache.aiTasks.findIndex(
-        (item, index) =>
-          item.prompt === aiActionPrompt &&
-          !usedGroupIndices.includes(index) && // if the index is not used
-          usedGroupIndices.length === currentCount, // if the index is the index in current cycle, ensure the order of used cache groups
-      );
-
-      if (targetGroupIndex === -1) {
-        debug(
-          'no suitable cache group, create new cache group: prompt [%s], current count: %d',
-          aiActionPrompt,
-          currentCount + 1,
-        );
-        this.newCache.aiTasks.push({
-          prompt: aiActionPrompt,
-          tasks: [],
-        });
-        targetGroupIndex = this.newCache.aiTasks.length - 1;
-        usedGroupIndices.push(targetGroupIndex);
-        newCacheGroup = this.newCache.aiTasks[targetGroupIndex].tasks;
-        debug(
-          'create new cache group as fallback: prompt [%s], index: %d, current count: %d',
-          aiActionPrompt,
-          targetGroupIndex,
-          currentCount + 1,
-        );
-      } else {
-        usedGroupIndices.push(targetGroupIndex);
-        newCacheGroup = this.newCache.aiTasks[targetGroupIndex].tasks;
-        debug(
-          'use existing cache group: prompt [%s], index: %d, current count: %d',
-          aiActionPrompt,
-          targetGroupIndex,
-          currentCount + 1,
-        );
-      }
-    } else {
-      // if current count is greater than the number of existing cache groups, create a new cache group
-      this.newCache.aiTasks.push({
-        prompt: aiActionPrompt,
-        tasks: [],
-      });
-      targetGroupIndex = this.newCache.aiTasks.length - 1;
-      usedGroupIndices.push(targetGroupIndex);
-      newCacheGroup = this.newCache.aiTasks[targetGroupIndex].tasks;
-      debug(
-        'create new cache group: prompt [%s], index: %d, current count: %d',
-        aiActionPrompt,
-        targetGroupIndex,
-        currentCount + 1,
-      );
-    }
+    const { matchIndex, matchItem } = this.findUnusedCacheItem(
+      aiTasks,
+      aiActionPrompt,
+      usedIndices,
+    );
+    const newCacheGroup = this.getOrCreateCacheGroup(
+      aiActionPrompt,
+      currentCount,
+      promptGroups,
+    );
 
     return {
       matchCache: async <T extends 'plan' | 'locate' | 'ui-tars-plan'>(
@@ -273,11 +208,9 @@ export class TaskCache {
       saveCache: (cache: PlanTask | LocateTask | UITarsPlanTask) => {
         newCacheGroup.push(cache);
         debug(
-          'save cache to file, type: %s, cacheId: %s, prompt index: %d, current count: %d',
+          'save cache to file, type: %s, cacheId: %s',
           cache.type,
           this.cacheId,
-          targetGroupIndex,
-          currentCount + 1,
         );
         this.writeCacheToFile();
       },
@@ -461,12 +394,139 @@ export class TaskCache {
     }
 
     if (!ifInBrowser) {
+      const cacheCopy = {
+        ...this.newCache,
+        aiTasks: this.newCache.aiTasks.map((task) => ({
+          prompt: task.prompt,
+          tasks: task.tasks,
+        })),
+      };
+
       writeLogFile({
         fileName: `${this.cacheId}`,
         fileExt: 'json',
-        fileContent: stringifyDumpData(this.newCache, 2),
+        fileContent: stringifyDumpData(cacheCopy, 2),
         type: 'cache',
       });
     }
+  }
+
+  /**
+   * Get or create a cache group based on the current count and prompt groups
+   * @param aiActionPrompt The action prompt for the cache
+   * @param currentCount The current count of usages for this prompt
+   * @param promptGroups The filtered prompt groups matching the action prompt
+   * @returns Object containing the target group index and the cache group
+   * @private
+   */
+  private getOrCreateCacheGroup(
+    aiActionPrompt: string,
+    currentCount: number,
+    promptGroups: Array<{
+      prompt: string;
+      tasks: AiTasks;
+      _usedCount?: number;
+    }>,
+  ): AiTasks {
+    let targetGroupIndex: number;
+    let newCacheGroup: AiTasks;
+
+    // if current count is less than the number of existing cache groups, use the corresponding index cache group
+    if (currentCount < promptGroups.length) {
+      // find the index of the cache group that should be used
+      targetGroupIndex = this.newCache.aiTasks.findIndex((item, index) => {
+        // ensure the group is the same prompt
+        if (item.prompt !== aiActionPrompt) return false;
+
+        // ensure the group is the sequence number of the current prompt
+        const beforeCount = this.newCache.aiTasks
+          .slice(0, index)
+          .filter((g) => g.prompt === aiActionPrompt).length;
+
+        return beforeCount === currentCount;
+      });
+
+      if (targetGroupIndex === -1) {
+        debug(
+          'no suitable cache group, create new cache group: prompt [%s], current count: %d',
+          aiActionPrompt,
+          currentCount + 1,
+        );
+        const newGroup = {
+          prompt: aiActionPrompt,
+          tasks: [],
+        };
+        this.newCache.aiTasks.push(newGroup);
+        targetGroupIndex = this.newCache.aiTasks.length - 1;
+        newCacheGroup = this.newCache.aiTasks[targetGroupIndex].tasks;
+        debug(
+          'create new cache group as fallback: prompt [%s], index: %d, current count: %d',
+          aiActionPrompt,
+          targetGroupIndex,
+          currentCount + 1,
+        );
+      } else {
+        newCacheGroup = this.newCache.aiTasks[targetGroupIndex].tasks;
+        debug(
+          'use existing cache group: prompt [%s], index: %d, current count: %d',
+          aiActionPrompt,
+          targetGroupIndex,
+          currentCount + 1,
+        );
+      }
+    } else {
+      // if current count is greater than the number of existing cache groups, create a new cache group
+      const newGroup = {
+        prompt: aiActionPrompt,
+        tasks: [],
+      };
+      this.newCache.aiTasks.push(newGroup);
+      targetGroupIndex = this.newCache.aiTasks.length - 1;
+      newCacheGroup = this.newCache.aiTasks[targetGroupIndex].tasks;
+      debug(
+        'create new cache group: prompt [%s], index: %d, current count: %d',
+        aiActionPrompt,
+        targetGroupIndex,
+        currentCount + 1,
+      );
+    }
+
+    return newCacheGroup;
+  }
+
+  /**
+   * Find an unused cache item matching the given prompt
+   * @param aiTasks Array of AI tasks to search through
+   * @param aiActionPrompt The action prompt to match
+   * @param usedIndices Array of indices that have already been used
+   * @returns Object containing the match index and match item if found
+   * @private
+   */
+  private findUnusedCacheItem(
+    aiTasks: Array<{ prompt: string; tasks: AiTasks }>,
+    aiActionPrompt: string,
+    usedIndices: number[],
+  ): {
+    matchIndex: number;
+    matchItem: { prompt: string; tasks: AiTasks } | null;
+  } {
+    let matchIndex = -1;
+    let matchItem = null;
+
+    // find unused cache items
+    for (let i = 0; i < aiTasks.length; i++) {
+      const item = aiTasks[i];
+      if (item.prompt === aiActionPrompt) {
+        if (!usedIndices.includes(i) && item.tasks && item.tasks.length > 0) {
+          matchIndex = i;
+          matchItem = item;
+          usedIndices.push(i);
+          debug('find unused cache item: %s, index: %d', aiActionPrompt, i);
+          break;
+        }
+      }
+    }
+
+    return { matchIndex, matchItem };
   }
 }
