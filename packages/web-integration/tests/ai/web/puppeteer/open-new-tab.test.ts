@@ -21,10 +21,10 @@ describe('agent with forceSameTabNavigation', () => {
     const agent = new PuppeteerAgent(originPage, {
       cacheId: 'puppeteer-open-new-tab',
     });
-    await agent.aiAction('向下滚动一屏');
-    await agent.aiAction('点击搜索框');
-    await agent.aiAction('向下滚动一屏');
-    // await agent.aiAction('向下滚动一屏');
+    await agent.aiAction(
+      'type "midscene github" in search box, and press Enter, sleep 5 seconds, and click the result about "midscene" project',
+    );
     await sleep(5000);
+    await agent.aiAssert('the page is about "midscene" project');
   });
 });

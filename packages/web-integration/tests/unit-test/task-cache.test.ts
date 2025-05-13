@@ -310,6 +310,330 @@ describe(
       );
       expect(result).toBe(false);
     });
+
+    it('should update an existing cache entry instead of overwriting it', () => {
+      // set initial cache
+      taskCache.cache = {
+        pkgName: 'test',
+        pkgVersion: '0.2.1',
+        midsceneVersion: '0.17.1',
+        cacheId: 'test',
+        aiTasks: [
+          {
+            prompt: 'test prompt',
+            tasks: [
+              {
+                type: 'plan',
+                prompt: 'test prompt',
+                pageContext,
+                response: {
+                  actions: [
+                    {
+                      type: 'Locate',
+                      thought: 'initial',
+                      param: {},
+                      locate: null,
+                    },
+                  ],
+                  more_actions_needed_by_instruction: false,
+                  log: '',
+                },
+              },
+            ],
+          },
+        ],
+      };
+
+      // copy initial cache to new cache
+      taskCache.newCache = JSON.parse(JSON.stringify(taskCache.cache));
+
+      // update cache with the same prompt
+      const cacheGroup = taskCache.getCacheGroupByPrompt('test prompt');
+      const updatedCache: PlanTask = {
+        type: 'plan',
+        prompt: 'test prompt',
+        pageContext,
+        response: {
+          actions: [
+            { type: 'Locate', thought: 'updated', param: {}, locate: null },
+          ],
+          more_actions_needed_by_instruction: false,
+          log: '',
+        },
+      };
+
+      // save updated cache
+      cacheGroup.saveCache(updatedCache);
+
+      // verify cache is updated instead of overwritten
+      expect(taskCache.newCache.aiTasks[0].tasks).toContain(updatedCache);
+      expect(taskCache.newCache.aiTasks[0].tasks.length).toBe(2); // initial task + new task
+    });
+
+    it('should find and update cache by prompt', () => {
+      // set initial cache, containing two different prompt groups
+      taskCache.cache = {
+        pkgName: 'test',
+        pkgVersion: '0.2.1',
+        midsceneVersion: '0.17.1',
+        cacheId: 'test',
+        aiTasks: [
+          {
+            prompt: 'first prompt',
+            tasks: [
+              {
+                type: 'plan',
+                prompt: 'first prompt',
+                pageContext,
+                response: {
+                  actions: [],
+                  more_actions_needed_by_instruction: false,
+                  log: '',
+                },
+              },
+            ],
+          },
+          {
+            prompt: 'second prompt',
+            tasks: [
+              {
+                type: 'plan',
+                prompt: 'second prompt',
+                pageContext,
+                response: {
+                  actions: [],
+                  more_actions_needed_by_instruction: false,
+                  log: '',
+                },
+              },
+            ],
+          },
+        ],
+      };
+
+      // copy initial cache to new cache
+      taskCache.newCache = JSON.parse(JSON.stringify(taskCache.cache));
+
+      // update second prompt group
+      const cacheGroup = taskCache.getCacheGroupByPrompt('second prompt');
+      const newCache: PlanTask = {
+        type: 'plan',
+        prompt: 'second prompt',
+        pageContext,
+        response: {
+          actions: [
+            { type: 'Locate', thought: 'new', param: {}, locate: null },
+          ],
+          more_actions_needed_by_instruction: false,
+          log: '',
+        },
+      };
+
+      cacheGroup.saveCache(newCache);
+
+      // verify only the target prompt group is updated
+      expect(taskCache.newCache.aiTasks[1].tasks).toContain(newCache);
+      expect(taskCache.newCache.aiTasks[0].tasks.length).toBe(1); // first group remains unchanged
+      expect(taskCache.newCache.aiTasks[1].tasks.length).toBe(2); // second group has one more task
+    });
+
+    it('should update multiple entries with the same prompt in sequence', () => {
+      taskCache.cache = {
+        pkgName: 'test',
+        pkgVersion: '0.2.1',
+        midsceneVersion: '0.17.1',
+        cacheId: 'test',
+        aiTasks: [],
+      };
+
+      taskCache.newCache = JSON.parse(JSON.stringify(taskCache.cache));
+
+      // get cache groups with the same prompt, and update them in sequence
+      const cacheGroup1 = taskCache.getCacheGroupByPrompt('same prompt');
+      const cacheGroup2 = taskCache.getCacheGroupByPrompt('same prompt');
+      const cacheGroup3 = taskCache.getCacheGroupByPrompt('same prompt');
+
+      // add three cache items
+      const cache1: PlanTask = {
+        type: 'plan',
+        prompt: 'same prompt',
+        pageContext,
+        response: {
+          actions: [
+            { type: 'Locate', thought: 'first', param: {}, locate: null },
+          ],
+          more_actions_needed_by_instruction: false,
+          log: '',
+        },
+      };
+
+      const cache2: PlanTask = {
+        type: 'plan',
+        prompt: 'same prompt',
+        pageContext,
+        response: {
+          actions: [
+            { type: 'Locate', thought: 'second', param: {}, locate: null },
+          ],
+          more_actions_needed_by_instruction: false,
+          log: '',
+        },
+      };
+
+      const cache3: PlanTask = {
+        type: 'plan',
+        prompt: 'same prompt',
+        pageContext,
+        response: {
+          actions: [
+            { type: 'Locate', thought: 'third', param: {}, locate: null },
+          ],
+          more_actions_needed_by_instruction: false,
+          log: '',
+        },
+      };
+
+      cacheGroup1.saveCache(cache1);
+      cacheGroup2.saveCache(cache2);
+      cacheGroup3.saveCache(cache3);
+
+      // verify cache is updated in sequence
+      const samePropGroups = taskCache.newCache.aiTasks.filter(
+        (group) => group.prompt === 'same prompt',
+      );
+      expect(samePropGroups.length).toBe(3); // create 3 cache groups with the same prompt
+
+      // check each cache group contains only one task
+      expect(samePropGroups[0].tasks.length).toBe(1);
+      expect(samePropGroups[1].tasks.length).toBe(1);
+      expect(samePropGroups[2].tasks.length).toBe(1);
+
+      // check each task content is as expected
+      expect(samePropGroups[0].tasks[0]).toEqual(cache1);
+      expect(samePropGroups[1].tasks[0]).toEqual(cache2);
+      expect(samePropGroups[2].tasks[0]).toEqual(cache3);
+    });
+
+    it('should load multiple entries with the same prompt in sequence', async () => {
+      // simulate three cache items with the same prompt, but in three different cache groups
+      const cachedResponses = [
+        {
+          actions: [
+            {
+              type: 'Locate' as const,
+              thought: 'first',
+              param: {},
+              locate: null,
+            },
+          ],
+          more_actions_needed_by_instruction: false,
+          log: '',
+        },
+        {
+          actions: [
+            {
+              type: 'Locate' as const,
+              thought: 'second',
+              param: {},
+              locate: null,
+            },
+          ],
+          more_actions_needed_by_instruction: false,
+          log: '',
+        },
+        {
+          actions: [
+            {
+              type: 'Locate' as const,
+              thought: 'third',
+              param: {},
+              locate: null,
+            },
+          ],
+          more_actions_needed_by_instruction: false,
+          log: '',
+        },
+      ];
+
+      taskCache.cache = {
+        pkgName: 'test',
+        pkgVersion: '0.2.1',
+        midsceneVersion: '0.17.1',
+        cacheId: 'test',
+        aiTasks: [
+          {
+            prompt: 'sequence prompt',
+            tasks: [
+              {
+                type: 'plan',
+                prompt: 'sequence prompt',
+                pageContext,
+                response: cachedResponses[0],
+              },
+            ],
+          },
+          {
+            prompt: 'sequence prompt',
+            tasks: [
+              {
+                type: 'plan',
+                prompt: 'sequence prompt',
+                pageContext,
+                response: cachedResponses[1],
+              },
+            ],
+          },
+          {
+            prompt: 'sequence prompt',
+            tasks: [
+              {
+                type: 'plan',
+                prompt: 'sequence prompt',
+                pageContext,
+                response: cachedResponses[2],
+              },
+            ],
+          },
+        ],
+      };
+
+      // get cache groups and match cache in sequence
+      const cacheGroup1 = taskCache.getCacheGroupByPrompt('sequence prompt');
+      const result1 = await cacheGroup1.matchCache(
+        formalPageContext,
+        'plan',
+        'sequence prompt',
+      );
+
+      const cacheGroup2 = taskCache.getCacheGroupByPrompt('sequence prompt');
+      const result2 = await cacheGroup2.matchCache(
+        formalPageContext,
+        'plan',
+        'sequence prompt',
+      );
+
+      const cacheGroup3 = taskCache.getCacheGroupByPrompt('sequence prompt');
+      const result3 = await cacheGroup3.matchCache(
+        formalPageContext,
+        'plan',
+        'sequence prompt',
+      );
+
+      // verify cache results are returned in sequence
+      expect(result1).toEqual(cachedResponses[0]);
+      expect(result2).toEqual(cachedResponses[1]);
+      expect(result3).toEqual(cachedResponses[2]);
+
+      // confirm that when all cache items are used, the cache will return false
+      const cacheGroup4 = taskCache.getCacheGroupByPrompt('sequence prompt');
+      const result4 = await cacheGroup4.matchCache(
+        formalPageContext,
+        'plan',
+        'sequence prompt',
+      );
+
+      expect(result4).toBe(false);
+    });
   },
   { timeout: 20000 },
 );
