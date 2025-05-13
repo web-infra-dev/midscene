@@ -15,6 +15,7 @@ import {
   type InsightAssertionResponse,
   type InsightDump,
   type InsightExtractParam,
+  type LocateResultElement,
   type PageType,
   type PlanningAIResponse,
   type PlanningAction,
@@ -36,7 +37,7 @@ import {
 import { sleep } from '@midscene/core/utils';
 
 import { NodeType } from '@midscene/shared/constants';
-import { UITarsModelVersion } from '@midscene/shared/env';
+import { UITarsModelVersion, getAIConfigInBoolean } from '@midscene/shared/env';
 import { uiTarsModelVersion } from '@midscene/shared/env';
 import { vlLocateMode } from '@midscene/shared/env';
 import type { ElementInfo } from '@midscene/shared/extractor';
@@ -69,6 +70,8 @@ export class PageTaskExecutor {
 
   taskCache: TaskCache;
 
+  ifMatchCache: boolean = getAIConfigInBoolean('MIDSCENE_CACHE');
+
   conversationHistory: ChatCompletionMessageParam[] = [];
 
   onTaskStartCallback?: ExecutionTaskProgressOptions['onTaskStart'];
@@ -100,6 +103,41 @@ export class PageTaskExecutor {
       timing,
     };
     return item;
+  }
+
+  private async getElementXpath(
+    pageContext: WebUIContext,
+    element: LocateResultElement,
+  ): Promise<string[] | undefined> {
+    let elementId = element?.id;
+    // find the nearest xpath for the element
+    if (element?.attributes?.nodeType === NodeType.POSITION) {
+      await this.insight.contextRetrieverFn('locate');
+      const info = elementByPositionWithElementInfo(
+        pageContext.tree,
+        {
+          x: element.center[0],
+          y: element.center[1],
+        },
+        false,
+      );
+      if (info?.id) {
+        elementId = info.id;
+      }
+    }
+
+    if (!elementId) {
+      return undefined;
+    }
+    try {
+      const elementInfosScriptContent = getElementInfosScriptContent();
+      const result = await this.page.evaluateJavaScript?.(
+        `${elementInfosScriptContent}midscene_element_inspector.getXpathsById('${elementId}')`,
+      );
+      return result;
+    } catch (error) {
+      debug('getXpathsById error: ', error);
+    }
   }
 
   private prependExecutorWithScreenshot(
@@ -191,89 +229,64 @@ export class PageTaskExecutor {
             };
             task.recorder = [recordItem];
 
+            // try matching cache
+            let cacheHitFlag = false;
             const cachePrompt = param.prompt;
-            const locateCache = await cacheGroup?.matchCache(
-              pageContext,
-              'locate',
-              cachePrompt,
-            );
-            let elementInfo: ElementInfo | null = null;
+            const locateCache = this.ifMatchCache
+              ? await cacheGroup?.matchCache(pageContext, 'locate', cachePrompt)
+              : undefined;
             const xpaths = locateCache?.xpaths;
-            let newId = null;
+            let elementIdFromCache = null;
             try {
               if (xpaths?.length) {
                 // hit cache, use new id
                 const elementInfosScriptContent =
                   getElementInfosScriptContent();
-                elementInfo = await this.page.evaluateJavaScript?.(
+                const element = await this.page.evaluateJavaScript?.(
                   `${elementInfosScriptContent}midscene_element_inspector.getElementInfoByXpath('${xpaths[0]}')`,
                 );
-                newId = elementInfo?.id;
-                debug('get new id by xpath', elementInfo?.id);
+                elementIdFromCache = element?.id;
+                debug('get new id by xpath', element?.id);
               }
             } catch (error) {
               debug('get element info by xpath error: ', error);
             }
-            let cacheHitFlag = false;
 
-            let quickAnswerId = param?.id;
-            if (!quickAnswerId && newId) {
-              quickAnswerId = newId;
-            }
-
+            const quickAnswerId = param?.id || elementIdFromCache || undefined;
             const quickAnswer = {
               id: quickAnswerId,
               bbox: param?.bbox,
             };
+
             const startTime = Date.now();
             const { element } = await this.insight.locate(param, {
               quickAnswer,
             });
-            let elementXpaths = element?.xpaths || [];
-            let elementId = element?.id;
-
-            if (element?.attributes?.nodeType === NodeType.POSITION) {
-              const pageContext =
-                await this.insight.contextRetrieverFn('locate');
-              const info = elementByPositionWithElementInfo(
-                pageContext.tree,
-                {
-                  x: element.center[0],
-                  y: element.center[1],
-                },
-                false,
-              );
-              elementId = info?.id;
-            }
 
             const aiCost = Date.now() - startTime;
-
-            if (element && element.id === quickAnswerId && newId) {
+            if (element && element.id === quickAnswerId && elementIdFromCache) {
               cacheHitFlag = true;
             }
 
+            // update cache
             if (element) {
-              try {
-                const elementInfosScriptContent =
-                  getElementInfosScriptContent();
-                elementXpaths = await this.page.evaluateJavaScript?.(
-                  `${elementInfosScriptContent}midscene_element_inspector.getXpathsById('${elementId}')`,
-                );
-              } catch (error) {
-                debug('getXpathsById error: ', error);
+              const elementXpaths = await this.getElementXpath(
+                pageContext,
+                element,
+              );
+              if (elementXpaths) {
+                cacheGroup?.saveCache({
+                  type: 'locate',
+                  pageContext: {
+                    url: pageContext.url,
+                    size: pageContext.size,
+                  },
+                  prompt: cachePrompt,
+                  response: {
+                    xpaths: elementXpaths,
+                  },
+                });
               }
-
-              cacheGroup?.saveCache({
-                type: 'locate',
-                pageContext: {
-                  url: pageContext.url,
-                  size: pageContext.size,
-                },
-                prompt: cachePrompt,
-                response: {
-                  xpaths: elementXpaths,
-                },
-              });
             }
             if (!element) {
               throw new Error(`Element not found: ${param.prompt}`);
@@ -634,11 +647,9 @@ export class PageTaskExecutor {
         (executorContext.task as any).pageContext = pageContext;
 
         const cachePrompt = `${param.userInstruction} @ ${param.log || ''}`;
-        const planCache = await cacheGroup.matchCache(
-          pageContext,
-          'plan',
-          cachePrompt,
-        );
+        const planCache = this.ifMatchCache
+          ? await cacheGroup.matchCache(pageContext, 'plan', cachePrompt)
+          : undefined;
         let planResult: Awaited<ReturnType<typeof plan>>;
         if (planCache) {
           if ('actions' in planCache && Array.isArray(planCache.actions)) {
@@ -828,11 +839,13 @@ export class PageTaskExecutor {
         });
         const startTime = Date.now();
 
-        const planCache = await cacheGroup.matchCache(
-          pageContext,
-          'ui-tars-plan',
-          userInstruction,
-        );
+        const planCache = this.ifMatchCache
+          ? await cacheGroup.matchCache(
+              pageContext,
+              'ui-tars-plan',
+              userInstruction,
+            )
+          : undefined;
         let planResult: Awaited<ReturnType<typeof vlmPlanning>>;
         if (planCache) {
           planResult = planCache;
