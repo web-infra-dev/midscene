@@ -1,4 +1,5 @@
 import { fillBboxParam } from '@/ai-model/common';
+import { buildYamlFlowFromPlans } from '@/ai-model/llm-planning';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 describe('llm planning - qwen', () => {
@@ -75,5 +76,52 @@ describe('llm planning - doubao', () => {
       prompt: 'test',
       bbox: [923, 123, 123, 123],
     });
+  });
+});
+
+describe('llm planning - build yaml flow', () => {
+  it('build yaml flow', () => {
+    const flow = buildYamlFlowFromPlans([
+      {
+        type: 'Input',
+        locate: {
+          bbox: [512, 127, 1068, 198],
+          prompt: 'The input box for adding a new todo',
+        },
+        param: {
+          value: 'hello',
+        },
+      },
+      {
+        type: 'Hover',
+        locate: {
+          bbox: [521, 273, 692, 294],
+          prompt: "The second item 'Learn Rust' in the task list",
+        },
+        param: null,
+      },
+      {
+        type: 'Tap',
+        locate: {
+          bbox: [512, 127, 1068, 197],
+          prompt: "The input box labeled 'What needs to be done?'",
+        },
+        param: null,
+      },
+      {
+        locate: {
+          id: 'button',
+          prompt: 'some button',
+        },
+        param: {
+          direction: 'down',
+          distance: 500,
+          scrollType: 'once',
+        },
+        thought: 'Scroll down the page by 500px to view more content.',
+        type: 'Scroll',
+      },
+    ]);
+    expect(flow).toMatchSnapshot();
   });
 });

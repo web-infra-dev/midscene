@@ -2,7 +2,11 @@
 
 import type { NodeType } from '@midscene/shared/constants';
 import type { ChatCompletionMessageParam } from 'openai/resources';
-import type { DetailedLocateParam, scrollParam } from './yaml';
+import type {
+  DetailedLocateParam,
+  MidsceneYamlFlowItem,
+  scrollParam,
+} from './yaml';
 export * from './yaml';
 
 export interface Point {
@@ -295,6 +299,7 @@ export interface PlanningAIResponse {
   error?: string;
   usage?: AIUsageInfo;
   rawResponse?: string;
+  yamlFlow?: MidsceneYamlFlowItem[];
 }
 
 // export interface PlanningFurtherPlan {
@@ -387,7 +392,7 @@ export interface ExecutionTaskApply<
     param: TaskParam,
     context: ExecutorContext,
   ) => // biome-ignore lint/suspicious/noConfusingVoidType: <explanation>
-    | Promise<ExecutionTaskReturn<TaskOutput, TaskLog> | undefined | void>
+  | Promise<ExecutionTaskReturn<TaskOutput, TaskLog> | undefined | void>
     | undefined
     | void;
 }
