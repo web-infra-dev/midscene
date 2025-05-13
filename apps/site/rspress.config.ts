@@ -279,7 +279,7 @@ export default defineConfig({
               link: '/zh/blog-introducing-instant-actions-and-deep-think',
             },
             {
-              text: '使用结构化 API 的编程实践',
+              text: '使用结构化 API 优化自动化代码',
               link: '/zh/blog-programming-practice-using-structured-api',
             },
           ],
