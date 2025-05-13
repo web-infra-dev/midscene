@@ -184,35 +184,3 @@ export function forceClosePopup(
     }
   });
 }
-
-export async function checkElementExistsByXPath(
-  page: WebPage,
-  xpaths: string[],
-  logData: {
-    type: string;
-    userPrompt: string;
-    debug: (...args: any[]) => void;
-  },
-): Promise<boolean> {
-  const { type, userPrompt, debug } = logData;
-
-  for (const xpath of xpaths) {
-    const elementInfosScriptContent = getElementInfosScriptContent();
-    const node = await page.evaluateJavaScript?.(
-      `${elementInfosScriptContent}midscene_element_inspector.getNodeInfoByXpath('${xpath}')`,
-    );
-
-    if (node) {
-      debug(
-        'cache hit, type: %s, prompt: %s, xpath: %s',
-        type,
-        userPrompt,
-        xpath,
-      );
-      return true;
-    }
-  }
-
-  debug('cannot match element with same id in current page');
-  return false;
-}

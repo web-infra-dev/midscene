@@ -10,11 +10,7 @@ import { ifInBrowser } from '@midscene/shared/utils';
 import semver from 'semver';
 import { version } from '../../package.json';
 import type { WebPage } from './page';
-import {
-  type WebUIContext,
-  checkElementExistsByXPath,
-  replaceIllegalPathCharsAndSpace,
-} from './utils';
+import { type WebUIContext, replaceIllegalPathCharsAndSpace } from './utils';
 
 const debug = getDebug('cache');
 
@@ -275,17 +271,7 @@ export class TaskCache {
           return false;
         }
 
-        const elementExists = await checkElementExistsByXPath(
-          this.page,
-          xpaths,
-          { type, userPrompt, debug },
-        );
-
-        if (elementExists) {
-          return taskRes.response;
-        }
-
-        return false;
+        return taskRes.response;
       }
 
       if (taskRes && taskRes.type === type && taskRes.prompt === userPrompt) {
