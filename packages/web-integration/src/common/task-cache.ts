@@ -99,6 +99,8 @@ export class TaskCache {
 
   midscenePkgInfo: ReturnType<typeof getRunningPkgInfo> | null;
 
+  private usedCacheItems: Map<string, Set<number>> = new Map();
+
   constructor(page: WebPage, opts?: { cacheId?: string }) {
     this.midscenePkgInfo = getRunningPkgInfo();
     this.cacheId = replaceIllegalPathCharsAndSpace(opts?.cacheId || '');
@@ -120,28 +122,52 @@ export class TaskCache {
   }
 
   getCacheGroupByPrompt(aiActionPrompt: string): CacheGroup {
+    if (!this.usedCacheItems.has(aiActionPrompt)) {
+      this.usedCacheItems.set(aiActionPrompt, new Set());
+    }
+
+    const usedIndices = this.usedCacheItems.get(aiActionPrompt)!;
+    const currentCount = usedIndices.size;
     const { aiTasks = [] } = this.cache || { aiTasks: [] };
-    const index = aiTasks.findIndex((item) => item.prompt === aiActionPrompt);
+
+    let matchIndex = -1;
+    let matchItem = null;
+
+    for (let i = 0; i < aiTasks.length; i++) {
+      const item = aiTasks[i];
+      if (item.prompt === aiActionPrompt) {
+        if (!usedIndices.has(i) && item.tasks && item.tasks.length > 0) {
+          matchIndex = i;
+          matchItem = item;
+          usedIndices.add(i);
+          debug('找到未使用的缓存项: %s, 索引: %d', aiActionPrompt, i);
+          break;
+        }
+      }
+    }
+
     const newCacheGroup: AiTasks = [];
     this.newCache.aiTasks.push({
       prompt: aiActionPrompt,
       tasks: newCacheGroup,
     });
+
     return {
       matchCache: async <T extends 'plan' | 'locate' | 'ui-tars-plan'>(
         pageContext: WebUIContext,
         type: T,
         actionPrompt: string,
       ) => {
-        if (index === -1) {
+        if (matchIndex === -1 || !matchItem) {
           return false as any;
         }
+
         if (type === 'plan') {
           return this.matchCache(
             pageContext,
             type,
             actionPrompt,
-            aiTasks[index].tasks,
+            matchItem.tasks,
           ) as Promise<PlanTask['response']>;
         }
         if (type === 'ui-tars-plan') {
@@ -149,7 +175,7 @@ export class TaskCache {
             pageContext,
             type,
             actionPrompt,
-            aiTasks[index].tasks,
+            matchItem.tasks,
           ) as Promise<UITarsPlanTask['response']>;
         }
 
@@ -157,7 +183,7 @@ export class TaskCache {
           pageContext,
           type,
           actionPrompt,
-          aiTasks[index].tasks,
+          matchItem.tasks,
         ) as Promise<
           T extends 'plan'
             ? PlanTask['response']
@@ -169,9 +195,10 @@ export class TaskCache {
       saveCache: (cache: PlanTask | LocateTask | UITarsPlanTask) => {
         newCacheGroup.push(cache);
         debug(
-          'saving cache to file, type: %s, cacheId: %s',
+          'saving cache to file, type: %s, cacheId: %s, index: %d',
           cache.type,
           this.cacheId,
+          currentCount,
         );
         this.writeCacheToFile();
       },
@@ -219,7 +246,7 @@ export class TaskCache {
         return false;
       }
 
-      const taskRes = cacheGroup.splice(index, 1)[0];
+      const taskRes = cacheGroup[index];
       debug(
         'found cache with same prompt, type: %s, prompt: %s, cached response is %j',
         type,
