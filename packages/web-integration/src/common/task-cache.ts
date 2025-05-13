@@ -314,14 +314,15 @@ export class TaskCache {
       try {
         const data = readFileSync(cacheFile, 'utf8');
         const jsonData = JSON.parse(data) as AiTaskCache;
+
         if (!this.midscenePkgInfo) {
           debug('no midscene pkg info, will not read cache from file');
           return undefined;
         }
 
         if (
-          semver.lt(jsonData.midsceneVersion, '0.17.0') ||
-          jsonData.midsceneVersion.includes('beta') // for internal test
+          semver.lt(jsonData.midsceneVersion, '0.17.0') &&
+          !jsonData.midsceneVersion.includes('beta') // for internal test
         ) {
           console.warn(
             `You are using an old version of Midscene cache file, and we cannot match any info from it. Starting from Midscene v0.17, we changed our strategy to use xpath for cache info, providing better performance. Please delete the existing cache and rebuild it. Sorry for the inconvenience.\ncache file: ${cacheFile}`,
