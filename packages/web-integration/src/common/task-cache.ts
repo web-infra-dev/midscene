@@ -1,6 +1,6 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import type { LocateResultElement, PlanningAIResponse } from '@midscene/core';
+import type { PlanningAIResponse } from '@midscene/core';
 import type { vlmPlanning } from '@midscene/core/ai-model';
 import { stringifyDumpData, writeLogFile } from '@midscene/core/utils';
 import { getMidsceneRunSubDir } from '@midscene/shared/common';
@@ -9,12 +9,14 @@ import { getRunningPkgInfo } from '@midscene/shared/fs';
 import { getDebug } from '@midscene/shared/logger';
 import { ifInBrowser } from '@midscene/shared/utils';
 import semver from 'semver';
+import { version } from '../../package.json';
 import type { WebPage } from './page';
 import {
   type WebUIContext,
   checkElementExistsByXPath,
   replaceIllegalPathCharsAndSpace,
 } from './utils';
+
 const debug = getDebug('cache');
 
 export type PlanTask = {
@@ -61,6 +63,7 @@ export type LocateTask = {
 export type AiTasks = Array<PlanTask | LocateTask | UITarsPlanTask>;
 
 export type AiTaskCache = {
+  midsceneVersion: string;
   pkgName: string;
   pkgVersion: string;
   cacheId: string;
@@ -101,12 +104,14 @@ export class TaskCache {
     this.cacheId = replaceIllegalPathCharsAndSpace(opts?.cacheId || '');
     this.page = page;
     this.cache = this.readCacheFromFile() || {
+      midsceneVersion: '',
       pkgName: '',
       pkgVersion: '',
       cacheId: '',
       aiTasks: [],
     };
     this.newCache = {
+      midsceneVersion: version,
       pkgName: this.midscenePkgInfo?.name || '',
       pkgVersion: this.midscenePkgInfo?.version || '',
       cacheId: this.cacheId,
@@ -315,8 +320,8 @@ export class TaskCache {
         }
 
         if (
-          semver.lt(jsonData.pkgVersion, '0.17.0') ||
-          jsonData.pkgVersion.includes('beta') // for internal test
+          semver.lt(jsonData.midsceneVersion, '0.17.0') ||
+          jsonData.midsceneVersion.includes('beta') // for internal test
         ) {
           console.warn(
             `You are using an old version of Midscene cache file, and we cannot match any info from it. Starting from Midscene v0.17, we changed our strategy to use xpath for cache info, providing better performance. Please delete the existing cache and rebuild it. Sorry for the inconvenience.\ncache file: ${cacheFile}`,

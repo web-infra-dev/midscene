@@ -65,7 +65,8 @@ describe(
     it('should return false if the element cannot be found in the new context', async () => {
       taskCache.cache = {
         pkgName: 'test',
-        pkgVersion: '0.17.1',
+        pkgVersion: '0.0.1',
+        midsceneVersion: '0.17.1',
         cacheId: 'test',
         aiTasks: [
           {
@@ -76,17 +77,6 @@ describe(
                 prompt: 'test prompt',
                 pageContext,
                 response: {
-                  xpaths: [],
-                },
-                element: {
-                  id: 'element3',
-                  rect: {
-                    left: 100,
-                    top: 100,
-                    width: 100,
-                    height: 100,
-                  },
-                  center: [100, 100],
                   xpaths: [],
                 },
               },
@@ -111,7 +101,8 @@ describe(
       };
       taskCache.cache = {
         pkgName: 'test',
-        pkgVersion: '0.17.1',
+        pkgVersion: '0.2.1',
+        midsceneVersion: '0.17.1',
         cacheId: 'test',
         aiTasks: [
           {
@@ -187,7 +178,8 @@ describe(
 
       taskCache.cache = {
         pkgName: 'test',
-        pkgVersion: '0.17.1',
+        pkgVersion: '0.2.1',
+        midsceneVersion: '0.17.1',
         cacheId: 'test',
         aiTasks: [
           {
@@ -198,17 +190,6 @@ describe(
                 prompt: 'test prompt',
                 pageContext,
                 response: locateResponse,
-                element: {
-                  id: 'element1',
-                  rect: {
-                    left: 100,
-                    top: 100,
-                    width: 100,
-                    height: 100,
-                  },
-                  center: [100, 100],
-                  xpaths: ['/html/body/div[1]', '//*[@id="content"]'],
-                },
               },
             ],
           },
@@ -232,7 +213,8 @@ describe(
     it('should return false if no xpaths are provided in the cached response', async () => {
       taskCache.cache = {
         pkgName: 'test',
-        pkgVersion: '0.17.0',
+        pkgVersion: '0.2.1',
+        midsceneVersion: '0.17.1',
         cacheId: 'test',
         aiTasks: [
           {
@@ -243,17 +225,6 @@ describe(
                 prompt: 'test prompt',
                 pageContext,
                 response: {
-                  xpaths: [],
-                },
-                element: {
-                  id: 'element2',
-                  rect: {
-                    left: 100,
-                    top: 100,
-                    width: 100,
-                    height: 100,
-                  },
-                  center: [100, 100],
                   xpaths: [],
                 },
               },
@@ -282,7 +253,8 @@ describe(
 
       realTaskCache.cache = {
         pkgName: 'test',
-        pkgVersion: '0.17.1',
+        pkgVersion: '0.1.1',
+        midsceneVersion: '0.17.1',
         cacheId: 'test',
         aiTasks: [
           {
@@ -296,17 +268,6 @@ describe(
                   size: { width: 1024, height: 768 },
                 },
                 response: locateResponse,
-                element: {
-                  id: 'example-heading',
-                  rect: {
-                    left: 100,
-                    top: 100,
-                    width: 100,
-                    height: 100,
-                  },
-                  center: [100, 100],
-                  xpaths: [existingXpath],
-                },
               },
             ],
           },
