@@ -10,7 +10,12 @@ import { isValidPNGImageBuffer, resizeImg } from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
 import type { AndroidDevicePage } from '@midscene/web';
 import { ADB } from 'appium-adb';
+import { repeat } from '@midscene/shared/utils';
+
 const androidScreenshotPath = '/data/local/tmp/midscene_screenshot.png';
+// only for Android, because it's impossible to scroll to the bottom, so we need to set a default scroll times
+const defaultScrollUntilTimes = 10;
+
 export const debugPage = getDebug('android:device');
 
 export class AndroidDevice implements AndroidDevicePage {
@@ -397,7 +402,10 @@ ${Object.keys(size)
       await this.mouseDrag(start, end);
       return;
     }
-    await this.mouseWheel(0, 9999999, 100);
+
+    await repeat(defaultScrollUntilTimes, () =>
+      this.mouseWheel(0, 9999999, 100),
+    );
   }
 
   async scrollUntilBottom(startPoint?: Point): Promise<void> {
@@ -408,7 +416,10 @@ ${Object.keys(size)
       await this.mouseDrag(start, end);
       return;
     }
-    await this.mouseWheel(0, -9999999, 100);
+
+    await repeat(defaultScrollUntilTimes, () =>
+      this.mouseWheel(0, -9999999, 100),
+    );
   }
 
   async scrollUntilLeft(startPoint?: Point): Promise<void> {
@@ -418,7 +429,10 @@ ${Object.keys(size)
       await this.mouseDrag(start, end);
       return;
     }
-    await this.mouseWheel(9999999, 0, 100);
+
+    await repeat(defaultScrollUntilTimes, () =>
+      this.mouseWheel(9999999, 0, 100),
+    );
   }
 
   async scrollUntilRight(startPoint?: Point): Promise<void> {
@@ -429,7 +443,10 @@ ${Object.keys(size)
       await this.mouseDrag(start, end);
       return;
     }
-    await this.mouseWheel(-9999999, 0, 100);
+
+    await repeat(defaultScrollUntilTimes, () =>
+      this.mouseWheel(-9999999, 0, 100),
+    );
   }
 
   async scrollUp(distance?: number, startPoint?: Point): Promise<void> {
