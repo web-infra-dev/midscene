@@ -3,7 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { type Point, type Size, getAIConfig } from '@midscene/core';
 import type { PageType } from '@midscene/core';
-import { getTmpFile } from '@midscene/core/utils';
+import { getTmpFile, sleep } from '@midscene/core/utils';
 import { MIDSCENE_ADB_PATH } from '@midscene/shared/env';
 import type { ElementInfo } from '@midscene/shared/extractor';
 import { isValidPNGImageBuffer, resizeImg } from '@midscene/shared/img';
@@ -15,6 +15,7 @@ import { ADB } from 'appium-adb';
 const androidScreenshotPath = '/data/local/tmp/midscene_screenshot.png';
 // only for Android, because it's impossible to scroll to the bottom, so we need to set a default scroll times
 const defaultScrollUntilTimes = 10;
+const defaultScrollUntilDuration = 100;
 
 export const debugPage = getDebug('android:device');
 
@@ -404,8 +405,9 @@ ${Object.keys(size)
     }
 
     await repeat(defaultScrollUntilTimes, () =>
-      this.mouseWheel(0, 9999999, 100),
+      this.mouseWheel(0, 9999999, defaultScrollUntilDuration),
     );
+    await sleep(1000);
   }
 
   async scrollUntilBottom(startPoint?: Point): Promise<void> {
@@ -418,8 +420,9 @@ ${Object.keys(size)
     }
 
     await repeat(defaultScrollUntilTimes, () =>
-      this.mouseWheel(0, -9999999, 100),
+      this.mouseWheel(0, -9999999, defaultScrollUntilDuration),
     );
+    await sleep(1000);
   }
 
   async scrollUntilLeft(startPoint?: Point): Promise<void> {
@@ -431,8 +434,9 @@ ${Object.keys(size)
     }
 
     await repeat(defaultScrollUntilTimes, () =>
-      this.mouseWheel(9999999, 0, 100),
+      this.mouseWheel(9999999, 0, defaultScrollUntilDuration),
     );
+    await sleep(1000);
   }
 
   async scrollUntilRight(startPoint?: Point): Promise<void> {
@@ -445,8 +449,9 @@ ${Object.keys(size)
     }
 
     await repeat(defaultScrollUntilTimes, () =>
-      this.mouseWheel(-9999999, 0, 100),
+      this.mouseWheel(-9999999, 0, defaultScrollUntilDuration),
     );
+    await sleep(1000);
   }
 
   async scrollUp(distance?: number, startPoint?: Point): Promise<void> {
