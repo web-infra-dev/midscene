@@ -145,8 +145,10 @@ export async function launchPuppeteerPage(
       : defaultWaitForNetworkIdleTimeout;
 
   try {
+    launcherDebug('goto', target.url);
     await page.goto(target.url);
     if (waitForNetworkIdleTimeout > 0) {
+      launcherDebug('waitForNetworkIdle', waitForNetworkIdleTimeout);
       await page.waitForNetworkIdle({
         timeout: waitForNetworkIdleTimeout,
       });

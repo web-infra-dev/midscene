@@ -17,7 +17,6 @@ import {
   type InsightExtractParam,
   type LocateResultElement,
   type MidsceneYamlFlowItem,
-  MidsceneYamlScript,
   type PageType,
   type PlanningAIResponse,
   type PlanningAction,
@@ -37,7 +36,6 @@ import {
   vlmPlanning,
 } from '@midscene/core/ai-model';
 import { sleep } from '@midscene/core/utils';
-import yaml from 'js-yaml';
 
 import { NodeType } from '@midscene/shared/constants';
 import { UITarsModelVersion, getAIConfigInBoolean } from '@midscene/shared/env';
@@ -228,11 +226,12 @@ export class PageTaskExecutor {
             // try matching cache
             let cacheHitFlag = false;
             const cachePrompt = param.prompt;
-            const locateCache = this.taskCache?.matchLocateCache(cachePrompt);
-            const xpaths = locateCache?.cacheContent?.xpaths;
+            const locateCacheRecord =
+              this.taskCache?.matchLocateCache(cachePrompt);
+            const xpaths = locateCacheRecord?.cacheContent?.xpaths;
             let elementIdFromCache = null;
             try {
-              if (xpaths?.length) {
+              if (xpaths?.length && this.taskCache?.isCacheResultUsed) {
                 // hit cache, use new id
                 const elementInfosScriptContent =
                   getElementInfosScriptContent();
@@ -275,17 +274,14 @@ export class PageTaskExecutor {
                 element,
               );
               if (elementXpaths) {
-                if (locateCache) {
-                  locateCache.updateFn((cache) => {
-                    cache.xpaths = elementXpaths;
-                  });
-                } else {
-                  this.taskCache?.appendCache({
+                this.taskCache.updateOrAppendCacheRecord(
+                  {
                     type: 'locate',
                     prompt: cachePrompt,
                     xpaths: elementXpaths,
-                  });
-                }
+                  },
+                  locateCacheRecord,
+                );
               } else {
                 debug('no xpaths found, will not update cache', cachePrompt);
               }
@@ -869,19 +865,23 @@ export class PageTaskExecutor {
   async action(
     userPrompt: string,
     actionContext?: string,
-  ): Promise<ExecutionResult> {
+  ): Promise<
+    ExecutionResult<
+      | {
+          yamlFlow?: MidsceneYamlFlowItem[]; // for cache use
+        }
+      | undefined
+    >
+  > {
     const taskExecutor = new Executor(taskTitleStr('Action', userPrompt), {
       onTaskStart: this.onTaskStartCallback,
     });
 
     let planningTask: ExecutionTaskPlanningApply | null =
       this.planningTaskFromPrompt(userPrompt, undefined, actionContext);
-    let result: any;
     let replanCount = 0;
     const logList: string[] = [];
 
-    // TODO
-    const planningCacheRecord = this.taskCache?.matchPlanCache(userPrompt);
     const yamlFlow: MidsceneYamlFlowItem[] = [];
     while (planningTask) {
       if (replanCount > replanningCountLimit) {
@@ -917,10 +917,10 @@ export class PageTaskExecutor {
         );
       }
 
-      result = await taskExecutor.flush();
+      await taskExecutor.flush();
       if (taskExecutor.isInErrorState()) {
         return {
-          output: result,
+          output: undefined,
           executor: taskExecutor,
         };
       }
@@ -940,32 +940,10 @@ export class PageTaskExecutor {
       replanCount++;
     }
 
-    if (this.taskCache && yamlFlow.length > 0) {
-      const yamlContent: MidsceneYamlScript = {
-        tasks: [
-          {
-            name: userPrompt,
-            flow: yamlFlow,
-          },
-        ],
-      };
-      const yamlFlowStr = yaml.dump(yamlContent);
-      debug('save yaml flow to cache, yamlFlow: %s', yamlFlowStr);
-      if (planningCacheRecord) {
-        planningCacheRecord.updateFn((cache) => {
-          cache.yamlWorkflow = yamlFlowStr;
-        });
-      } else {
-        this.taskCache.appendCache({
-          type: 'plan',
-          prompt: userPrompt,
-          yamlWorkflow: yamlFlowStr,
-        });
-      }
-    }
-
     return {
-      output: result,
+      output: {
+        yamlFlow,
+      },
       executor: taskExecutor,
     };
   }

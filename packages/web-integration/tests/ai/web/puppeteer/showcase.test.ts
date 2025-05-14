@@ -40,7 +40,7 @@ describe(
         'type "standard_user" in user name input, type "secret_sauce" in password, type Login',
       );
 
-      // await agent.aiTap('Login');
+      await agent.aiTap('the first "Add to cart" button');
 
       // expect(onTaskStartTip.mock.calls.length).toBeGreaterThan(1);
 

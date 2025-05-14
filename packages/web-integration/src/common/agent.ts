@@ -10,9 +10,12 @@ import {
   type InsightAction,
   type LocateOption,
   type LocateResultElement,
+  type MidsceneYamlScript,
   type OnTaskStartTip,
   type PlanningActionParamScroll,
 } from '@midscene/core';
+
+import yaml from 'js-yaml';
 
 import { ScriptPlayer, parseYamlScript } from '@/yaml/index';
 import {
@@ -314,7 +317,7 @@ export class PageAgent<PageType extends WebPage = WebPage> {
 
   async aiAction(taskPrompt: string) {
     const matchedCache = this.taskCache?.matchPlanCache(taskPrompt);
-    if (matchedCache) {
+    if (matchedCache && this.taskCache?.isCacheResultUsed) {
       debug('matched cache, will call .runYaml to run the action');
       const yaml = matchedCache.cacheContent?.yamlWorkflow;
       return this.runYaml(yaml);
@@ -323,6 +326,27 @@ export class PageAgent<PageType extends WebPage = WebPage> {
     const { output, executor } = await (vlLocateMode() === 'vlm-ui-tars'
       ? this.taskExecutor.actionToGoal(taskPrompt)
       : this.taskExecutor.action(taskPrompt, this.opts.aiActionContext));
+
+    // update cache
+    if (this.taskCache && output?.yamlFlow) {
+      const yamlContent: MidsceneYamlScript = {
+        tasks: [
+          {
+            name: taskPrompt,
+            flow: output.yamlFlow,
+          },
+        ],
+      };
+      const yamlFlowStr = yaml.dump(yamlContent);
+      this.taskCache.updateOrAppendCacheRecord(
+        {
+          type: 'plan',
+          prompt: taskPrompt,
+          yamlWorkflow: yamlFlowStr,
+        },
+        matchedCache,
+      );
+    }
 
     this.afterTaskRunning(executor);
     return output;

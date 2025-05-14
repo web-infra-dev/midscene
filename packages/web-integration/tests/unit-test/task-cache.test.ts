@@ -20,21 +20,37 @@ describe(
       expect(
         readFileSync(cache.cacheFilePath!, 'utf-8').replace(cacheId, 'cacheId'),
       ).toMatchSnapshot();
+
+      expect(cache.isCacheResultUsed).toBe(true);
     });
 
-    it('toggle matching', () => {
-      const cache = new TaskCache(uuid(), false);
-      cache.appendCache({
-        type: 'plan',
-        prompt: 'test',
-        yamlWorkflow: 'test',
-      });
-      const result = cache.matchPlanCache('test');
-      expect(result).toBeUndefined();
+    it('update or append cache record', () => {
+      const cacheId = uuid();
+      const cache = new TaskCache(cacheId, true);
 
-      cache.enableMatching = true;
-      const result2 = cache.matchPlanCache('test');
-      expect(result2).toBeDefined();
+      cache.updateOrAppendCacheRecord({
+        type: 'plan',
+        prompt: 'test-prompt',
+        yamlWorkflow: 'test-yaml-workflow',
+      });
+
+      expect(cache.cache.caches.length).toBe(1);
+      expect(cache.cache.caches).toMatchSnapshot();
+
+      const existingRecord = cache.matchPlanCache('test-prompt');
+      expect(existingRecord).toBeDefined();
+
+      cache.updateOrAppendCacheRecord(
+        {
+          type: 'plan',
+          prompt: 'test-prompt',
+          yamlWorkflow: 'test-yaml-workflow-2',
+        },
+        existingRecord,
+      );
+
+      expect(cache.cache.caches.length).toBe(1);
+      expect(cache.cache.caches).toMatchSnapshot();
     });
 
     let cacheFilePath: string;

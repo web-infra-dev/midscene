@@ -43,11 +43,11 @@ export class TaskCache {
 
   cache: CacheFileContent;
 
-  enableMatching: boolean;
+  isCacheResultUsed: boolean; // a flag to indicate if the cache result should be used
 
   constructor(
     cacheId: string,
-    enableMatching: boolean,
+    isCacheResultUsed: boolean,
     cacheFilePath?: string,
   ) {
     assert(cacheId, 'cacheId is required');
@@ -70,18 +70,13 @@ export class TaskCache {
       };
     }
     this.cache = cacheContent;
-    this.enableMatching = enableMatching;
+    this.isCacheResultUsed = isCacheResultUsed;
   }
 
   matchCache(
     prompt: string,
     type: 'plan' | 'locate',
   ): MatchCacheResult<PlanningCache | LocateCache> | undefined {
-    if (!this.enableMatching) {
-      debug('matching is disabled, will not match cache');
-      return undefined;
-    }
-
     const cache = this.cache.caches.find((item) => {
       return item.type === type && item.prompt === prompt;
     });
@@ -193,6 +188,26 @@ export class TaskCache {
         this.cacheFilePath,
         err,
       );
+    }
+  }
+
+  updateOrAppendCacheRecord(
+    newRecord: PlanningCache | LocateCache,
+    cachedRecord?: MatchCacheResult<PlanningCache | LocateCache>,
+  ) {
+    if (cachedRecord) {
+      // update existing record
+      if (newRecord.type === 'plan') {
+        cachedRecord.updateFn((cache) => {
+          (cache as PlanningCache).yamlWorkflow = newRecord.yamlWorkflow;
+        });
+      } else {
+        cachedRecord.updateFn((cache) => {
+          (cache as LocateCache).xpaths = newRecord.xpaths;
+        });
+      }
+    } else {
+      this.appendCache(newRecord);
     }
   }
 }
