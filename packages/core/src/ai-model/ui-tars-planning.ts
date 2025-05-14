@@ -1,11 +1,11 @@
-import type { PlanningAction } from '@/types';
+import type { MidsceneYamlFlowItem, PlanningAction } from '@/types';
 import { uiTarsModelVersion } from '@midscene/shared/env';
 import { transformHotkeyInput } from '@midscene/shared/keyboard-layout';
 import { getDebug } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
 import { actionParser } from '@ui-tars/action-parser';
 import type { ChatCompletionMessageParam } from 'openai/resources';
-import { AIActionType } from './common';
+import { AIActionType, buildYamlFlowFromPlans } from './common';
 import { getSummary, getUiTarsPlanningPrompt } from './prompt/ui-tars-planning';
 import { call } from './service-caller/index';
 type ActionType =
@@ -41,8 +41,9 @@ export async function vlmPlanning(options: {
   size: { width: number; height: number };
 }): Promise<{
   actions: PlanningAction<any>[];
-  realActions: ReturnType<typeof actionParser>['parsed'];
+  actionsFromModel: ReturnType<typeof actionParser>['parsed'];
   action_summary: string;
+  yamlFlow: MidsceneYamlFlowItem[];
 }> {
   const { conversationHistory, userInstruction, size } = options;
   const systemPrompt = getUiTarsPlanningPrompt() + userInstruction;
@@ -200,8 +201,9 @@ export async function vlmPlanning(options: {
 
   return {
     actions: transformActions,
-    realActions: parsed,
+    actionsFromModel: parsed,
     action_summary: getSummary(res.content),
+    yamlFlow: buildYamlFlowFromPlans(transformActions),
   };
 }
 

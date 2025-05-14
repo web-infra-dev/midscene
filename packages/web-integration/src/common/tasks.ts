@@ -808,16 +808,7 @@ export class PageTaskExecutor {
           conversationHistory: this.conversationHistory,
           size: pageContext.size,
         });
-        // TODO: save yaml cache
-        // cacheGroup.saveCache({
-        //   type: 'ui-tars-plan',
-        //   pageContext: {
-        //     url: pageContext.url,
-        //     size: pageContext.size,
-        //   },
-        //   prompt: userInstruction,
-        //   response: planResult,
-        // });
+
         const aiCost = Date.now() - startTime;
         const { actions, action_summary } = planResult;
         this.appendConversationHistory({
@@ -831,6 +822,7 @@ export class PageTaskExecutor {
             actionType: actions[0].type,
             more_actions_needed_by_instruction: true,
             log: '',
+            yamlFlow: planResult.yamlFlow,
           },
           log: {
             rawResponse: planResult,
@@ -948,7 +940,14 @@ export class PageTaskExecutor {
     };
   }
 
-  async actionToGoal(userPrompt: string) {
+  async actionToGoal(userPrompt: string): Promise<
+    ExecutionResult<
+      | {
+          yamlFlow?: MidsceneYamlFlowItem[]; // for cache use
+        }
+      | undefined
+    >
+  > {
     const taskExecutor = new Executor(taskTitleStr('Action', userPrompt), {
       onTaskStart: this.onTaskStartCallback,
     });
@@ -957,6 +956,7 @@ export class PageTaskExecutor {
     let currentActionNumber = 0;
     const maxActionNumber = 40;
 
+    const yamlFlow: MidsceneYamlFlowItem[] = [];
     while (!isCompleted && currentActionNumber < maxActionNumber) {
       currentActionNumber++;
       const planningTask: ExecutionTaskPlanningApply =
@@ -965,11 +965,12 @@ export class PageTaskExecutor {
       const output = await taskExecutor.flush();
       if (taskExecutor.isInErrorState()) {
         return {
-          output: output,
+          output: undefined,
           executor: taskExecutor,
         };
       }
       const plans = output.actions;
+      yamlFlow.push(...(output.yamlFlow || []));
       let executables: Awaited<ReturnType<typeof this.convertPlanToExecutable>>;
       try {
         executables = await this.convertPlanToExecutable(plans);
@@ -987,7 +988,7 @@ export class PageTaskExecutor {
 
       if (taskExecutor.isInErrorState()) {
         return {
-          output: result,
+          output: undefined,
           executor: taskExecutor,
         };
       }
@@ -997,7 +998,9 @@ export class PageTaskExecutor {
       }
     }
     return {
-      output: {},
+      output: {
+        yamlFlow,
+      },
       executor: taskExecutor,
     };
   }

@@ -20,7 +20,7 @@ describe(
       }
     });
 
-    it.only('Sauce Demo by Swag Lab', async () => {
+    it('Sauce Demo by Swag Lab', async () => {
       const { originPage, reset } = await launchPage(
         'https://www.saucedemo.com/',
       );
@@ -33,31 +33,31 @@ describe(
 
       await sleep(10 * 1000);
 
-      // const flag = await agent.aiBoolean('this is a login page');
-      // expect(flag).toBe(true);
+      const flag = await agent.aiBoolean('this is a login page');
+      expect(flag).toBe(true);
 
       await agent.aiAction(
-        'type "standard_user" in user name input, type "secret_sauce" in password, type Login',
+        'type "standard_user" in user name input, type "secret_sauce" in password',
       );
 
-      await agent.aiTap('the first "Add to cart" button');
+      await agent.aiTap('Login');
 
-      // expect(onTaskStartTip.mock.calls.length).toBeGreaterThan(1);
+      expect(onTaskStartTip.mock.calls.length).toBeGreaterThan(1);
 
-      // await expect(async () => {
-      //   await agent.aiWaitFor('there is a cookie prompt in the UI', {
-      //     timeoutMs: 10 * 1000,
-      //   });
-      // }).rejects.toThrowError();
+      await expect(async () => {
+        await agent.aiWaitFor('there is a cookie prompt in the UI', {
+          timeoutMs: 10 * 1000,
+        });
+      }).rejects.toThrowError();
 
-      // // find the items
-      // const items = await agent.aiQuery(
-      //   '"{name: string, price: number, actionBtnName: string}[], return item name, price and the action button name on the lower right corner of each item (like "Remove")',
-      // );
-      // console.log('item list', items);
-      // expect(items.length).toBeGreaterThanOrEqual(2);
+      // find the items
+      const items = await agent.aiQuery(
+        '"{name: string, price: number, actionBtnName: string}[], return item name, price and the action button name on the lower right corner of each item (like "Remove")',
+      );
+      console.log('item list', items);
+      expect(items.length).toBeGreaterThanOrEqual(2);
 
-      // await agent.aiAssert('The price of "Sauce Labs Backpack" is 29.99');
+      await agent.aiAssert('The price of "Sauce Labs Backpack" is 29.99');
     });
 
     it('extract the Github service status', async () => {

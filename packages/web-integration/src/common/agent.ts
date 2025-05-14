@@ -2,6 +2,7 @@ import type { WebPage } from '@/common/page';
 import {
   type AgentAssertOpt,
   type AgentWaitForOpt,
+  type DetailedLocateParam,
   type ExecutionDump,
   type ExecutionTask,
   type Executor,
@@ -198,6 +199,7 @@ export class PageAgent<PageType extends WebPage = WebPage> {
   private async callbackOnTaskStartTip(task: ExecutionTask) {
     const param = paramStr(task);
     const tip = param ? `${typeStr(task)} - ${param}` : typeStr(task);
+
     if (this.onTaskStartTip) {
       await this.onTaskStartTip(tip);
     }
@@ -213,12 +215,17 @@ export class PageAgent<PageType extends WebPage = WebPage> {
     }
   }
 
-  private buildDetailedLocateParam(locatePrompt: string, opt?: LocateOption) {
+  private buildDetailedLocateParam(
+    locatePrompt: string,
+    opt?: LocateOption,
+  ): DetailedLocateParam {
     assert(locatePrompt, 'missing locate prompt');
     if (typeof opt === 'object') {
+      const prompt = opt.prompt || locatePrompt;
+      const deepThink = opt.deepThink || false;
       return {
-        prompt: locatePrompt,
-        ...opt,
+        prompt,
+        deepThink,
       };
     }
     return {
