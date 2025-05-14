@@ -8,9 +8,9 @@ import { MIDSCENE_ADB_PATH } from '@midscene/shared/env';
 import type { ElementInfo } from '@midscene/shared/extractor';
 import { isValidPNGImageBuffer, resizeImg } from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
+import { repeat } from '@midscene/shared/utils';
 import type { AndroidDevicePage } from '@midscene/web';
 import { ADB } from 'appium-adb';
-import { repeat } from '@midscene/shared/utils';
 
 const androidScreenshotPath = '/data/local/tmp/midscene_screenshot.png';
 // only for Android, because it's impossible to scroll to the bottom, so we need to set a default scroll times
