@@ -1,47 +1,39 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
 exports[`TaskCache > save and retrieve cache 1`] = `
-{
-  "cacheId": "4r99v6vrmrs",
-  "caches": [
-    {
-      "prompt": "test",
-      "type": "plan",
-      "yamlWorkflow": "test-yaml-workflow",
-    },
-    {
-      "prompt": "test-locate",
-      "type": "locate",
-      "xpaths": [
-        "test-xpath-1",
-        "test-xpath-2",
-      ],
-    },
-  ],
-  "midsceneVersion": "0.16.10",
-}
+[
+  {
+    "prompt": "test",
+    "type": "plan",
+    "yamlWorkflow": "test-yaml-workflow",
+  },
+  {
+    "prompt": "test-locate",
+    "type": "locate",
+    "xpaths": [
+      "test-xpath-1",
+      "test-xpath-2",
+    ],
+  },
+]
 `;
 
 exports[`TaskCache > save and retrieve cache 2`] = `
-{
-  "cacheId": "4r99v6vrmrs",
-  "caches": [
-    {
-      "prompt": "test",
-      "type": "plan",
-      "yamlWorkflow": "test-yaml-workflow",
-    },
-    {
-      "prompt": "test-locate",
-      "type": "locate",
-      "xpaths": [
-        "test-xpath-3",
-        "test-xpath-4",
-      ],
-    },
-  ],
-  "midsceneVersion": "0.16.10",
-}
+[
+  {
+    "prompt": "test",
+    "type": "plan",
+    "yamlWorkflow": "test-yaml-workflow",
+  },
+  {
+    "prompt": "test-locate",
+    "type": "locate",
+    "xpaths": [
+      "test-xpath-3",
+      "test-xpath-4",
+    ],
+  },
+]
 `;
 
 exports[`TaskCache > save and retrieve cache 3`] = `

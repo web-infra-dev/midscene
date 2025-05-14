@@ -53,10 +53,24 @@ describe(
       expect(cache.cache.caches).toMatchSnapshot();
     });
 
+    it('one cache record can only be matched once', () => {
+      const cacheId = uuid();
+      const cache = new TaskCache(cacheId, true);
+
+      cache.appendCache({
+        type: 'plan',
+        prompt: 'test-prompt',
+        yamlWorkflow: 'test-yaml-workflow',
+      });
+
+      expect(cache.matchPlanCache('test-prompt')).toBeDefined();
+      expect(cache.matchPlanCache('test-prompt')).toBeUndefined();
+    });
+
     let cacheFilePath: string;
     it('save and retrieve cache', () => {
       const cacheId = uuid();
-      const cache = new TaskCache(cacheId, true);
+      const taskCache = new TaskCache(cacheId, true);
 
       const planningCachedPrompt = 'test';
       const planningCachedYamlWorkflow = 'test-yaml-workflow';
@@ -64,26 +78,26 @@ describe(
       const locateCachedPrompt = 'test-locate';
       const locateCachedXpaths = ['test-xpath-1', 'test-xpath-2'];
 
-      cache.appendCache({
+      taskCache.appendCache({
         type: 'plan',
         prompt: planningCachedPrompt,
         yamlWorkflow: planningCachedYamlWorkflow,
       });
 
-      cache.appendCache({
+      taskCache.appendCache({
         type: 'locate',
         prompt: locateCachedPrompt,
         xpaths: locateCachedXpaths,
       });
 
-      const cachedPlanCache = cache.matchPlanCache(planningCachedPrompt);
+      const cachedPlanCache = taskCache.matchPlanCache(planningCachedPrompt);
       const { cacheContent: cachedPlanCacheContent } = cachedPlanCache!;
       expect(cachedPlanCacheContent.prompt).toBe(planningCachedPrompt);
       expect(cachedPlanCacheContent.yamlWorkflow).toBe(
         planningCachedYamlWorkflow,
       );
 
-      const cachedLocateCache = cache.matchLocateCache(locateCachedPrompt);
+      const cachedLocateCache = taskCache.matchLocateCache(locateCachedPrompt);
       const {
         cacheContent: cachedLocateCacheContent,
         updateFn: cachedLocateCacheUpdateFn,
@@ -91,17 +105,20 @@ describe(
       expect(cachedLocateCacheContent.prompt).toBe(locateCachedPrompt);
       expect(cachedLocateCacheContent.xpaths).toEqual(locateCachedXpaths);
 
-      cacheFilePath = cache.cacheFilePath!;
+      cacheFilePath = taskCache.cacheFilePath!;
 
-      expect(cache.cache).toMatchSnapshot();
+      expect(taskCache.cache.caches).toMatchSnapshot();
 
       cachedLocateCacheUpdateFn((cache) => {
         cache.xpaths = ['test-xpath-3', 'test-xpath-4'];
       });
 
-      expect(cache.cache).toMatchSnapshot();
+      expect(taskCache.cache.caches).toMatchSnapshot();
       expect(
-        readFileSync(cache.cacheFilePath!, 'utf-8').replace(cacheId, 'cacheId'),
+        readFileSync(taskCache.cacheFilePath!, 'utf-8').replace(
+          cacheId,
+          'cacheId',
+        ),
       ).toMatchSnapshot();
     });
 

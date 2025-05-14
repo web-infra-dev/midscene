@@ -45,6 +45,8 @@ export class TaskCache {
 
   isCacheResultUsed: boolean; // a flag to indicate if the cache result should be used
 
+  private matchedCacheIndices: Set<string> = new Set(); // Track matched records
+
   constructor(
     cacheId: string,
     isCacheResultUsed: boolean,
@@ -77,32 +79,45 @@ export class TaskCache {
     prompt: string,
     type: 'plan' | 'locate',
   ): MatchCacheResult<PlanningCache | LocateCache> | undefined {
-    const cache = this.cache.caches.find((item) => {
-      return item.type === type && item.prompt === prompt;
-    });
-    if (!cache) {
-      debug('no cache found, type: %s, prompt: %s', type, prompt);
-      return undefined;
+    // Find the first unused matching cache
+    for (let i = 0; i < this.cache.caches.length; i++) {
+      const item = this.cache.caches[i];
+      const key = `${type}:${prompt}:${i}`;
+      if (
+        item.type === type &&
+        item.prompt === prompt &&
+        !this.matchedCacheIndices.has(key)
+      ) {
+        this.matchedCacheIndices.add(key);
+        debug(
+          'cache found and marked as used, type: %s, prompt: %s, index: %d',
+          type,
+          prompt,
+          i,
+        );
+        return {
+          cacheContent: item,
+          updateFn: (cb: (cache: PlanningCache | LocateCache) => void) => {
+            debug(
+              'will call updateFn to update cache, type: %s, prompt: %s, index: %d',
+              type,
+              prompt,
+              i,
+            );
+            cb(item);
+            debug(
+              'cache updated, will flush to file, type: %s, prompt: %s, index: %d',
+              type,
+              prompt,
+              i,
+            );
+            this.flushCacheToFile();
+          },
+        };
+      }
     }
-
-    debug('cache found, type: %s, prompt: %s', type, prompt);
-    return {
-      cacheContent: cache,
-      updateFn: (cb: (cache: PlanningCache | LocateCache) => void) => {
-        debug(
-          'will call updateFn to update cache, type: %s, prompt: %s',
-          type,
-          prompt,
-        );
-        cb(cache);
-        debug(
-          'cache updated, will flush to file, type: %s, prompt: %s',
-          type,
-          prompt,
-        );
-        this.flushCacheToFile();
-      },
-    };
+    debug('no unused cache found, type: %s, prompt: %s', type, prompt);
+    return undefined;
   }
 
   matchPlanCache(prompt: string): MatchCacheResult<PlanningCache> | undefined {

@@ -325,6 +325,14 @@ export class PageAgent<PageType extends WebPage = WebPage> {
   async aiAction(taskPrompt: string) {
     const matchedCache = this.taskCache?.matchPlanCache(taskPrompt);
     if (matchedCache && this.taskCache?.isCacheResultUsed) {
+      // log into report file
+      const { executor } = await this.taskExecutor.loadYamlFlowAsPlanning(
+        taskPrompt,
+        matchedCache.cacheContent?.yamlWorkflow,
+      );
+
+      await this.afterTaskRunning(executor);
+
       debug('matched cache, will call .runYaml to run the action');
       const yaml = matchedCache.cacheContent?.yamlWorkflow;
       return this.runYaml(yaml);

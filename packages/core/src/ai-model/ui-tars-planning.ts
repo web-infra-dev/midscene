@@ -1,5 +1,10 @@
-import type { MidsceneYamlFlowItem, PlanningAction } from '@/types';
-import { uiTarsModelVersion } from '@midscene/shared/env';
+import type { MidsceneYamlFlowItem, PlanningAction, Size } from '@/types';
+import {
+  UITarsModelVersion,
+  uiTarsModelVersion,
+  vlLocateMode,
+} from '@midscene/shared/env';
+import { resizeImgBase64 } from '@midscene/shared/img';
 import { transformHotkeyInput } from '@midscene/shared/keyboard-layout';
 import { getDebug } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
@@ -310,3 +315,30 @@ export type Action =
   | ScrollAction
   | FinishedAction
   | WaitAction;
+
+export async function resizeImageForUiTars(imageBase64: string, size: Size) {
+  if (
+    vlLocateMode() === 'vlm-ui-tars' &&
+    uiTarsModelVersion() === UITarsModelVersion.V1_5
+  ) {
+    debug('ui-tars-v1.5, will check image size', size);
+    const currentPixels = size.width * size.height;
+    const maxPixels = 16384 * 28 * 28; //
+    if (currentPixels > maxPixels) {
+      const resizeFactor = Math.sqrt(maxPixels / currentPixels);
+      const newWidth = Math.floor(size.width * resizeFactor);
+      const newHeight = Math.floor(size.height * resizeFactor);
+      debug(
+        'resize image for ui-tars, new width: %s, new height: %s',
+        newWidth,
+        newHeight,
+      );
+      const resizedImage = await resizeImgBase64(imageBase64, {
+        width: newWidth,
+        height: newHeight,
+      });
+      return resizedImage;
+    }
+  }
+  return imageBase64;
+}

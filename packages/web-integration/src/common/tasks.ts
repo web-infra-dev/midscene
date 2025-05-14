@@ -8,9 +8,11 @@ import {
   type ExecutionTaskApply,
   type ExecutionTaskInsightLocateApply,
   type ExecutionTaskInsightQueryApply,
+  type ExecutionTaskPlanning,
   type ExecutionTaskPlanningApply,
   type ExecutionTaskProgressOptions,
   Executor,
+  type ExecutorContext,
   type Insight,
   type InsightAssertionResponse,
   type InsightDump,
@@ -33,6 +35,7 @@ import {
 import {
   type ChatCompletionMessageParam,
   elementByPositionWithElementInfo,
+  resizeImageForUiTars,
   vlmPlanning,
 } from '@midscene/core/ai-model';
 import { sleep } from '@midscene/core/utils';
@@ -618,6 +621,60 @@ export class PageTaskExecutor {
     };
   }
 
+  private async setupPlanningContext(executorContext: ExecutorContext) {
+    const shotTime = Date.now();
+    const pageContext = await this.insight.contextRetrieverFn('locate');
+    const recordItem: ExecutionRecorderItem = {
+      type: 'screenshot',
+      ts: shotTime,
+      screenshot: pageContext.screenshotBase64,
+      timing: 'before planning',
+    };
+
+    executorContext.task.recorder = [recordItem];
+    (executorContext.task as ExecutionTaskPlanning).pageContext = pageContext;
+
+    return {
+      pageContext,
+    };
+  }
+
+  async loadYamlFlowAsPlanning(userInstruction: string, yamlString: string) {
+    const taskExecutor = new Executor(taskTitleStr('Action', userInstruction), {
+      onTaskStart: this.onTaskStartCallback,
+    });
+
+    const task: ExecutionTaskPlanningApply = {
+      type: 'Planning',
+      subType: 'LoadYaml',
+      locate: null,
+      param: {
+        userInstruction,
+      },
+      executor: async (param, executorContext) => {
+        await this.setupPlanningContext(executorContext);
+        return {
+          output: {
+            actions: [],
+            more_actions_needed_by_instruction: false,
+            log: '',
+            yamlString,
+          },
+          cache: {
+            hit: true,
+          },
+        };
+      },
+    };
+
+    await taskExecutor.append(task);
+    await taskExecutor.flush();
+
+    return {
+      executor: taskExecutor,
+    };
+  }
+
   private planningTaskFromPrompt(
     userInstruction: string,
     log?: string,
@@ -625,23 +682,16 @@ export class PageTaskExecutor {
   ) {
     const task: ExecutionTaskPlanningApply = {
       type: 'Planning',
+      subType: 'Plan',
       locate: null,
       param: {
         userInstruction,
         log,
       },
       executor: async (param, executorContext) => {
-        const shotTime = Date.now();
-        const pageContext = await this.insight.contextRetrieverFn('locate');
-        const recordItem: ExecutionRecorderItem = {
-          type: 'screenshot',
-          ts: shotTime,
-          screenshot: pageContext.screenshotBase64,
-          timing: 'before planning',
-        };
-
-        executorContext.task.recorder = [recordItem];
-        (executorContext.task as any).pageContext = pageContext;
+        const startTime = Date.now();
+        const { pageContext } =
+          await this.setupPlanningContext(executorContext);
 
         const planResult = await plan(param.userInstruction, {
           context: pageContext,
@@ -702,7 +752,7 @@ export class PageTaskExecutor {
 
         if (sleep) {
           const timeNow = Date.now();
-          const timeRemaining = sleep - (timeNow - shotTime);
+          const timeRemaining = sleep - (timeNow - startTime);
           if (timeRemaining > 0) {
             finalActions.push({
               type: 'Sleep',
@@ -734,7 +784,6 @@ export class PageTaskExecutor {
             hit: false,
           },
           pageContext,
-          recorder: [recordItem],
           usage,
           rawResponse,
         };
@@ -747,48 +796,19 @@ export class PageTaskExecutor {
   private planningTaskToGoal(userInstruction: string) {
     const task: ExecutionTaskPlanningApply = {
       type: 'Planning',
+      subType: 'Plan',
       locate: null,
       param: {
         userInstruction,
       },
       executor: async (param, executorContext) => {
-        const shotTime = Date.now();
-        const pageContext = await this.insight.contextRetrieverFn('locate');
-        const recordItem: ExecutionRecorderItem = {
-          type: 'screenshot',
-          ts: shotTime,
-          screenshot: pageContext.screenshotBase64,
-          timing: 'before planning',
-        };
-        executorContext.task.recorder = [recordItem];
-        (executorContext.task as any).pageContext = pageContext;
+        const { pageContext } =
+          await this.setupPlanningContext(executorContext);
 
-        let imagePayload = pageContext.screenshotBase64;
-        if (
-          vlLocateMode() === 'vlm-ui-tars' &&
-          uiTarsModelVersion() === UITarsModelVersion.V1_5
-        ) {
-          const size = pageContext.size;
-          // const imageInfo = await imageInfoOfBase64(imagePayload);
-          debug('ui-tars-v1.5, will check image size', size);
-          const currentPixels = size.width * size.height;
-          const maxPixels = 16384 * 28 * 28; //
-          if (currentPixels > maxPixels) {
-            const resizeFactor = Math.sqrt(maxPixels / currentPixels);
-            const newWidth = Math.floor(size.width * resizeFactor);
-            const newHeight = Math.floor(size.height * resizeFactor);
-            debug(
-              'resize image, imageInfo: %s, new width: %s, new height: %s',
-              imageInfo,
-              newWidth,
-              newHeight,
-            );
-            imagePayload = await resizeImgBase64(imagePayload, {
-              width: newWidth,
-              height: newHeight,
-            });
-          }
-        }
+        const imagePayload = await resizeImageForUiTars(
+          pageContext.screenshotBase64,
+          pageContext.size,
+        );
 
         this.appendConversationHistory({
           role: 'user',
@@ -984,7 +1004,7 @@ export class PageTaskExecutor {
         );
       }
 
-      const result = await taskExecutor.flush();
+      await taskExecutor.flush();
 
       if (taskExecutor.isInErrorState()) {
         return {

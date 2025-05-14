@@ -300,6 +300,7 @@ export interface PlanningAIResponse {
   usage?: AIUsageInfo;
   rawResponse?: string;
   yamlFlow?: MidsceneYamlFlowItem[];
+  yamlString?: string;
 }
 
 // export interface PlanningFurtherPlan {
