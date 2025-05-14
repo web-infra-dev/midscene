@@ -1,314 +1,99 @@
-import { type LocateTask, type PlanTask, TaskCache } from '@/common/task-cache';
-import type { WebUIContext } from '@/common/utils';
-import type { WebElementInfo } from '@/web-element';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { launchPage } from '../ai/web/puppeteer/utils';
+import { existsSync, readFileSync } from 'node:fs';
+import { TaskCache } from '@/common/task-cache';
+import { uuid } from '@midscene/shared/utils';
+import { describe, expect, it } from 'vitest';
 
 describe(
   'TaskCache',
   () => {
-    let taskCache: TaskCache;
-    let formalPageContext: WebUIContext;
-    let pageContext: LocateTask['pageContext'];
+    it('should create cache file', () => {
+      const cacheId = uuid();
+      const cache = new TaskCache(cacheId, true);
+      expect(cache.cacheFilePath).toBeDefined();
 
-    beforeEach(async () => {
-      const { page } = await launchPage('https://example.com');
-      taskCache = new TaskCache(page);
-      pageContext = {
-        url: 'https://example.com',
-        size: { width: 1024, height: 768 },
-      };
-      formalPageContext = {
-        ...pageContext,
-        screenshotBase64: '',
-        content: [{ id: 'element1' } as WebElementInfo],
-      } as any;
-    });
-
-    it('should return false if no cache is available', async () => {
-      const cacheGroup = taskCache.getCacheGroupByPrompt('test prompt');
-      const result = await cacheGroup.matchCache(
-        formalPageContext,
-        'plan',
-        'test prompt',
-      );
-      expect(result).toBe(false);
-    });
-
-    it('should return false if the prompt does not match', async () => {
-      taskCache.cache.aiTasks = [
-        {
-          prompt: 'different prompt',
-          tasks: [
-            {
-              type: 'plan',
-              prompt: 'different prompt',
-              pageContext,
-              response: {
-                actions: [],
-                log: '',
-                more_actions_needed_by_instruction: false,
-              },
-            },
-          ],
-        },
-      ];
-      const cacheGroup = taskCache.getCacheGroupByPrompt('test prompt');
-      const result = await cacheGroup.matchCache(
-        formalPageContext,
-        'plan',
-        'test prompt',
-      );
-      expect(result).toBe(false);
-    });
-
-    it('should return false if the element cannot be found in the new context', async () => {
-      taskCache.cache = {
-        pkgName: 'test',
-        pkgVersion: '0.0.1',
-        midsceneVersion: '0.17.1',
-        cacheId: 'test',
-        aiTasks: [
-          {
-            prompt: 'test prompt',
-            tasks: [
-              {
-                type: 'locate',
-                prompt: 'test prompt',
-                pageContext,
-                response: {
-                  xpaths: [],
-                },
-              },
-            ],
-          },
-        ],
-      };
-      const cacheGroup = taskCache.getCacheGroupByPrompt('test prompt');
-      const result = await cacheGroup.matchCache(
-        formalPageContext,
-        'locate',
-        'test prompt',
-      );
-      expect(result).toBe(false);
-    });
-
-    it('should return cached response if the conditions match', async () => {
-      const cachedResponse = {
-        plans: [{ type: 'Locate', thought: '', param: {} }],
-        more_actions_needed_by_instruction: false,
-        log: '',
-      };
-      taskCache.cache = {
-        pkgName: 'test',
-        pkgVersion: '0.2.1',
-        midsceneVersion: '0.17.1',
-        cacheId: 'test',
-        aiTasks: [
-          {
-            prompt: 'test prompt',
-            tasks: [
-              {
-                type: 'plan',
-                prompt: 'test prompt',
-                pageContext,
-                response: cachedResponse,
-              },
-            ],
-          },
-        ],
-      };
-
-      const cacheGroup = taskCache.getCacheGroupByPrompt('test prompt');
-      const result = await cacheGroup.matchCache(
-        formalPageContext,
-        'plan',
-        'test prompt',
-      );
-      expect(result).toEqual(cachedResponse);
-    });
-
-    it('should save cache correctly', () => {
-      const cacheGroup = taskCache.getCacheGroupByPrompt('test prompt');
-      const newCache: PlanTask = {
+      cache.appendCache({
         type: 'plan',
-        prompt: 'new prompt',
-        pageContext,
-        response: {
-          actions: [{ type: 'Locate', thought: '', param: {}, locate: null }],
-          more_actions_needed_by_instruction: false,
-          log: '',
-        },
-      };
-      cacheGroup.saveCache(newCache);
-      expect(taskCache.newCache.aiTasks[0].tasks).toContain(newCache);
+        prompt: 'test',
+        yamlWorkflow: 'test',
+      });
+      expect(existsSync(cache.cacheFilePath!)).toBe(true);
+      expect(
+        readFileSync(cache.cacheFilePath!, 'utf-8').replace(cacheId, 'cacheId'),
+      ).toMatchSnapshot();
     });
 
-    it('should check page context equality correctly', () => {
-      const isEqual = taskCache.pageContextEqual(
-        pageContext,
-        formalPageContext,
-      );
-      expect(isEqual).toBe(true);
+    it('toggle matching', () => {
+      const cache = new TaskCache(uuid(), false);
+      cache.appendCache({
+        type: 'plan',
+        prompt: 'test',
+        yamlWorkflow: 'test',
+      });
+      const result = cache.matchPlanCache('test');
+      expect(result).toBeUndefined();
 
-      const differentContext = {
-        ...formalPageContext,
-        size: { width: 800, height: 600 },
-      };
-      const isNotEqual = taskCache.pageContextEqual(
-        pageContext,
-        differentContext,
-      );
-      expect(isNotEqual).toBe(false);
+      cache.enableMatching = true;
+      const result2 = cache.matchPlanCache('test');
+      expect(result2).toBeDefined();
     });
 
-    it('should generate task cache correctly', () => {
-      const generatedCache = taskCache.generateTaskCache();
-      expect(generatedCache).toEqual(taskCache.newCache);
+    let cacheFilePath: string;
+    it('save and retrieve cache', () => {
+      const cacheId = uuid();
+      const cache = new TaskCache(cacheId, true);
+
+      const planningCachedPrompt = 'test';
+      const planningCachedYamlWorkflow = 'test-yaml-workflow';
+
+      const locateCachedPrompt = 'test-locate';
+      const locateCachedXpaths = ['test-xpath-1', 'test-xpath-2'];
+
+      cache.appendCache({
+        type: 'plan',
+        prompt: planningCachedPrompt,
+        yamlWorkflow: planningCachedYamlWorkflow,
+      });
+
+      cache.appendCache({
+        type: 'locate',
+        prompt: locateCachedPrompt,
+        xpaths: locateCachedXpaths,
+      });
+
+      const cachedPlanCache = cache.matchPlanCache(planningCachedPrompt);
+      const { cacheContent: cachedPlanCacheContent } = cachedPlanCache!;
+      expect(cachedPlanCacheContent.prompt).toBe(planningCachedPrompt);
+      expect(cachedPlanCacheContent.yamlWorkflow).toBe(
+        planningCachedYamlWorkflow,
+      );
+
+      const cachedLocateCache = cache.matchLocateCache(locateCachedPrompt);
+      const {
+        cacheContent: cachedLocateCacheContent,
+        updateFn: cachedLocateCacheUpdateFn,
+      } = cachedLocateCache!;
+      expect(cachedLocateCacheContent.prompt).toBe(locateCachedPrompt);
+      expect(cachedLocateCacheContent.xpaths).toEqual(locateCachedXpaths);
+
+      cacheFilePath = cache.cacheFilePath!;
+
+      expect(cache.cache).toMatchSnapshot();
+
+      cachedLocateCacheUpdateFn((cache) => {
+        cache.xpaths = ['test-xpath-3', 'test-xpath-4'];
+      });
+
+      expect(cache.cache).toMatchSnapshot();
+      expect(
+        readFileSync(cache.cacheFilePath!, 'utf-8').replace(cacheId, 'cacheId'),
+      ).toMatchSnapshot();
     });
 
-    it('should return cached response if xpaths matching elements are found', async () => {
-      taskCache.page.evaluateJavaScript = vi
-        .fn()
-        .mockResolvedValue({ id: 'element1' });
-
-      const locateResponse = {
-        xpaths: ['/html/body/div[1]', '//*[@id="content"]'],
-      };
-
-      taskCache.cache = {
-        pkgName: 'test',
-        pkgVersion: '0.2.1',
-        midsceneVersion: '0.17.1',
-        cacheId: 'test',
-        aiTasks: [
-          {
-            prompt: 'test prompt',
-            tasks: [
-              {
-                type: 'locate',
-                prompt: 'test prompt',
-                pageContext,
-                response: locateResponse,
-              },
-            ],
-          },
-        ],
-      };
-
-      const cacheGroup = taskCache.getCacheGroupByPrompt('test prompt');
-      const result = await cacheGroup.matchCache(
-        formalPageContext,
-        'locate',
-        'test prompt',
-      );
-
-      expect(result).toEqual(locateResponse);
-      expect(taskCache.page.evaluateJavaScript).toHaveBeenCalled();
-      expect(taskCache.page.evaluateJavaScript).toHaveBeenCalledWith(
-        expect.stringContaining("getNodeInfoByXpath('/html/body/div[1]')"),
-      );
-    });
-
-    it('should return false if no xpaths are provided in the cached response', async () => {
-      taskCache.cache = {
-        pkgName: 'test',
-        pkgVersion: '0.2.1',
-        midsceneVersion: '0.17.1',
-        cacheId: 'test',
-        aiTasks: [
-          {
-            prompt: 'test prompt',
-            tasks: [
-              {
-                type: 'locate',
-                prompt: 'test prompt',
-                pageContext,
-                response: {
-                  xpaths: [],
-                },
-              },
-            ],
-          },
-        ],
-      };
-
-      const cacheGroup = taskCache.getCacheGroupByPrompt('test prompt');
-      const result = await cacheGroup.matchCache(
-        formalPageContext,
-        'locate',
-        'test prompt',
-      );
-
-      expect(result).toBe(false);
-    });
-
-    it('should correctly handle xpaths cache matching with real page objects', async () => {
-      const { page: realPage, reset } = await launchPage('https://example.com');
-      const realTaskCache = new TaskCache(realPage);
-      const existingXpath = '/html/body/div/h1';
-      const locateResponse = {
-        xpaths: [existingXpath],
-      };
-
-      realTaskCache.cache = {
-        pkgName: 'test',
-        pkgVersion: '0.1.1',
-        midsceneVersion: '0.17.1',
-        cacheId: 'test',
-        aiTasks: [
-          {
-            prompt: 'find heading',
-            tasks: [
-              {
-                type: 'locate',
-                prompt: 'find heading',
-                pageContext: {
-                  url: 'https://example.com',
-                  size: { width: 1024, height: 768 },
-                },
-                response: locateResponse,
-              },
-            ],
-          },
-        ],
-      };
-
-      const realPageContext = {
-        url: 'https://example.com',
-        size: { width: 1024, height: 768 },
-        screenshotBase64: '',
-        content: [],
-      } as any;
-
-      const cacheGroup = realTaskCache.getCacheGroupByPrompt('find heading');
-      const result = await cacheGroup.matchCache(
-        realPageContext,
-        'locate',
-        'find heading',
-      );
-
-      // if the page structure changes, this test may fail, but this is the purpose of the test - to ensure that the cache hit logic can correctly handle the actual page
-      if (result) {
-        expect(result).toEqual(locateResponse);
-      } else {
-        // because we are using a real page, if the page structure changes, it may fail to find the element
-        // in this case, we only need to verify that the return value is false
-        expect(result).toBe(false);
-      }
-
-      await reset();
-    });
-
-    it('should return false if the pkgVersion is less than 0.17.0', async () => {
-      taskCache.cache.pkgVersion = '0.16.8';
-      const cacheGroup = taskCache.getCacheGroupByPrompt('test prompt');
-      const result = await cacheGroup.matchCache(
-        formalPageContext,
-        'locate',
-        'test prompt',
-      );
-      expect(result).toBe(false);
+    it('load cache from file', () => {
+      const cache = new TaskCache(uuid(), true, cacheFilePath);
+      expect(cache.cacheFilePath).toBe(cacheFilePath);
+      expect(cache.cache).toBeDefined();
+      expect(cache.cache.caches.length).toBe(2);
     });
   },
   { timeout: 20000 },
