@@ -37,39 +37,28 @@ exports[`TaskCache > save and retrieve cache 2`] = `
 `;
 
 exports[`TaskCache > save and retrieve cache 3`] = `
-"{
-  "midsceneVersion": "0.16.10",
-  "cacheId": "cacheId",
-  "caches": [
-    {
-      "type": "plan",
-      "prompt": "test",
-      "yamlWorkflow": "test-yaml-workflow"
-    },
-    {
-      "type": "locate",
-      "prompt": "test-locate",
-      "xpaths": [
-        "test-xpath-3",
-        "test-xpath-4"
-      ]
-    }
-  ]
-}"
+"midsceneVersion: 0.16.10
+cacheId: cacheId
+caches:
+  - type: plan
+    prompt: test
+    yamlWorkflow: test-yaml-workflow
+  - type: locate
+    prompt: test-locate
+    xpaths:
+      - test-xpath-3
+      - test-xpath-4
+"
 `;
 
 exports[`TaskCache > should create cache file 1`] = `
-"{
-  "midsceneVersion": "0.16.10",
-  "cacheId": "cacheId",
-  "caches": [
-    {
-      "type": "plan",
-      "prompt": "test",
-      "yamlWorkflow": "test"
-    }
-  ]
-}"
+"midsceneVersion: 0.16.10
+cacheId: cacheId
+caches:
+  - type: plan
+    prompt: test
+    yamlWorkflow: test
+"
 `;
 
 exports[`TaskCache > update or append cache record 1`] = `

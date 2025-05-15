@@ -1,5 +1,5 @@
 import { fillBboxParam } from '@/ai-model/common';
-import { buildYamlFlowFromPlans } from '@/ai-model/llm-planning';
+import { buildYamlFlowFromPlans } from '@/ai-model/common';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 describe('llm planning - qwen', () => {
