@@ -46,6 +46,17 @@ MIDSCENE_MODEL_NAME="gemini-2.5-pro-preview-03-25"
 MIDSCENE_USE_GEMINI=1
 ```
 
+### Doubao-1.5-thinking-vision-pro on Volcano Engine
+
+You can use the `Doubao-1.5-thinking-vision-pro` model on [Volcano Engine](https://volcengine.com). After obtaining an API key from Volcano Engine, you can use the following configuration:
+
+```bash
+OPENAI_BASE_URL="https://ark.cn-beijing.volces.com/api/v3" 
+OPENAI_API_KEY="...."
+MIDSCENE_MODEL_NAME="ep-..." # Inference endpoint ID from Volcano Engine
+MIDSCENE_USE_DOUBAO_VISION=1
+```
+
 ### UI-TARS on volcengine.com
 
 You can use `doubao-1.5-ui-tars` on [Volcengine](https://www.volcengine.com):
