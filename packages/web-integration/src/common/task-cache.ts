@@ -1,7 +1,6 @@
 import assert from 'node:assert';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { stringifyDumpData } from '@midscene/core/utils';
 import { getMidsceneRunSubDir } from '@midscene/shared/common';
 import { getDebug } from '@midscene/shared/logger';
 import { ifInBrowser } from '@midscene/shared/utils';
@@ -62,6 +61,8 @@ export class TaskCache {
       : cacheFilePath ||
         join(getMidsceneRunSubDir('cache'), `${this.cacheId}${cacheFileExt}`);
 
+    this.isCacheResultUsed = isCacheResultUsed;
+
     let cacheContent;
     if (this.cacheFilePath) {
       cacheContent = this.loadCacheFromFile();
@@ -74,7 +75,6 @@ export class TaskCache {
       };
     }
     this.cache = cacheContent;
-    this.isCacheResultUsed = isCacheResultUsed;
   }
 
   matchCache(
@@ -149,6 +149,15 @@ export class TaskCache {
       return undefined;
     }
 
+    // detect old cache file
+    const jsonTypeCacheFile = cacheFile.replace(cacheFileExt, '.json');
+    if (existsSync(jsonTypeCacheFile) && this.isCacheResultUsed) {
+      console.warn(
+        `An outdated cache file from an earlier version of Midscene has been detected. Since version 0.17, we have implemented an improved caching strategy. Please delete the old file located at: ${jsonTypeCacheFile}.`,
+      );
+      return undefined;
+    }
+
     try {
       const data = readFileSync(cacheFile, 'utf8');
       const jsonData = yaml.load(data) as CacheFileContent;
@@ -158,15 +167,15 @@ export class TaskCache {
         return undefined;
       }
 
-      if (
-        semver.lt(jsonData.midsceneVersion, lowestSupportedMidsceneVersion) &&
-        !jsonData.midsceneVersion.includes('beta') // for internal test
-      ) {
-        console.warn(
-          `You are using an old version of Midscene cache file, and we cannot match any info from it. Starting from Midscene v0.17, we changed our strategy to use xpath for cache info, providing better performance.\nPlease delete the existing cache and rebuild it. Sorry for the inconvenience.\ncache file: ${cacheFile}`,
-        );
-        return undefined;
-      }
+      // if (
+      //   semver.lt(jsonData.midsceneVersion, lowestSupportedMidsceneVersion) &&
+      //   !jsonData.midsceneVersion.includes('beta') // for internal test
+      // ) {
+      //   console.warn(
+      //     `You are using an old version of Midscene cache file, and we cannot match any info from it. Starting from Midscene v0.17, we changed our strategy to use xpath for cache info, providing better performance.\nPlease delete the existing cache and rebuild it. Sorry for the inconvenience.\ncache file: ${cacheFile}`,
+      //   );
+      //   return undefined;
+      // }
 
       debug(
         'cache loaded from file, path: %s, cache version: %s, record length: %s',
