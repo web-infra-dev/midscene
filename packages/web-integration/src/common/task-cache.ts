@@ -167,15 +167,15 @@ export class TaskCache {
         return undefined;
       }
 
-      // if (
-      //   semver.lt(jsonData.midsceneVersion, lowestSupportedMidsceneVersion) &&
-      //   !jsonData.midsceneVersion.includes('beta') // for internal test
-      // ) {
-      //   console.warn(
-      //     `You are using an old version of Midscene cache file, and we cannot match any info from it. Starting from Midscene v0.17, we changed our strategy to use xpath for cache info, providing better performance.\nPlease delete the existing cache and rebuild it. Sorry for the inconvenience.\ncache file: ${cacheFile}`,
-      //   );
-      //   return undefined;
-      // }
+      if (
+        semver.lt(jsonData.midsceneVersion, lowestSupportedMidsceneVersion) &&
+        !jsonData.midsceneVersion.includes('beta') // for internal test
+      ) {
+        console.warn(
+          `You are using an old version of Midscene cache file, and we cannot match any info from it. Starting from Midscene v0.17, we changed our strategy to use xpath for cache info, providing better performance.\nPlease delete the existing cache and rebuild it. Sorry for the inconvenience.\ncache file: ${cacheFile}`,
+        );
+        return undefined;
+      }
 
       debug(
         'cache loaded from file, path: %s, cache version: %s, record length: %s',

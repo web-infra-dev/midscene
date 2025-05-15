@@ -17,9 +17,10 @@ describe(
         yamlWorkflow: 'test',
       });
       expect(existsSync(cache.cacheFilePath!)).toBe(true);
-      expect(
-        readFileSync(cache.cacheFilePath!, 'utf-8').replace(cacheId, 'cacheId'),
-      ).toMatchSnapshot();
+      const cacheContent = readFileSync(cache.cacheFilePath!, 'utf-8')
+        .replace(cacheId, 'cacheId')
+        .replace(/-beta-[0-9.]+/, ''); // because the release ci first bump the version, so we need to replace the beta version
+      expect(cacheContent).toMatchSnapshot();
 
       expect(cache.isCacheResultUsed).toBe(true);
     });
@@ -114,12 +115,14 @@ describe(
       });
 
       expect(taskCache.cache.caches).toMatchSnapshot();
-      expect(
-        readFileSync(taskCache.cacheFilePath!, 'utf-8').replace(
-          cacheId,
-          'cacheId',
-        ),
-      ).toMatchSnapshot();
+      const cacheFileContent = readFileSync(taskCache.cacheFilePath!, 'utf-8')
+        .replace(cacheId, 'cacheId')
+        // 替换版本号，以支持 beta 版本
+        .replace(
+          /midsceneVersion: [0-9]+\.[0-9]+\.[0-9]+(-beta-[0-9.]+)?/,
+          'midsceneVersion: 0.16.10',
+        );
+      expect(cacheFileContent).toMatchSnapshot();
     });
 
     it('load cache from file', () => {
