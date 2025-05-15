@@ -97,7 +97,7 @@ export function adaptQwenBbox(
 }
 
 export function adaptDoubaoBbox(
-  bbox: number[] | string,
+  bbox: string[] | number[] | string,
   width: number,
   height: number,
 ): [number, number, number, number] {
@@ -127,42 +127,65 @@ export function adaptDoubaoBbox(
     bbox = bbox[0];
   }
 
-  if (bbox.length === 4 || bbox.length === 5) {
+  let bboxList: number[] = [];
+  if (Array.isArray(bbox) && typeof bbox[0] === 'string') {
+    bbox.forEach((item) => {
+      if (typeof item === 'string' && item.includes(',')) {
+        const [x, y] = item.split(',');
+        bboxList.push(Number(x.trim()), Number(y.trim()));
+      } else if (typeof item === 'string' && item.includes(' ')) {
+        const [x, y] = item.split(' ');
+        bboxList.push(Number(x.trim()), Number(y.trim()));
+      } else {
+        bboxList.push(Number(item));
+      }
+    });
+  } else {
+    bboxList = bbox as any;
+  }
+
+  if (bboxList.length === 4 || bboxList.length === 5) {
     return [
-      Math.round((bbox[0] * width) / 1000),
-      Math.round((bbox[1] * height) / 1000),
-      Math.round((bbox[2] * width) / 1000),
-      Math.round((bbox[3] * height) / 1000),
+      Math.round((bboxList[0] * width) / 1000),
+      Math.round((bboxList[1] * height) / 1000),
+      Math.round((bboxList[2] * width) / 1000),
+      Math.round((bboxList[3] * height) / 1000),
     ];
   }
 
   // treat the bbox as a center point
   if (
-    bbox.length === 6 ||
-    bbox.length === 2 ||
-    bbox.length === 3 ||
-    bbox.length === 7
+    bboxList.length === 6 ||
+    bboxList.length === 2 ||
+    bboxList.length === 3 ||
+    bboxList.length === 7
   ) {
     return [
-      Math.max(0, Math.round((bbox[0] * width) / 1000) - defaultBboxSize / 2),
-      Math.max(0, Math.round((bbox[1] * height) / 1000) - defaultBboxSize / 2),
+      Math.max(
+        0,
+        Math.round((bboxList[0] * width) / 1000) - defaultBboxSize / 2,
+      ),
+      Math.max(
+        0,
+        Math.round((bboxList[1] * height) / 1000) - defaultBboxSize / 2,
+      ),
       Math.min(
         width,
-        Math.round((bbox[0] * width) / 1000) + defaultBboxSize / 2,
+        Math.round((bboxList[0] * width) / 1000) + defaultBboxSize / 2,
       ),
       Math.min(
         height,
-        Math.round((bbox[1] * height) / 1000) + defaultBboxSize / 2,
+        Math.round((bboxList[1] * height) / 1000) + defaultBboxSize / 2,
       ),
     ];
   }
 
   if (bbox.length === 8) {
     return [
-      Math.round((bbox[0] * width) / 1000),
-      Math.round((bbox[1] * height) / 1000),
-      Math.round((bbox[4] * width) / 1000),
-      Math.round((bbox[5] * height) / 1000),
+      Math.round((bboxList[0] * width) / 1000),
+      Math.round((bboxList[1] * height) / 1000),
+      Math.round((bboxList[4] * width) / 1000),
+      Math.round((bboxList[5] * height) / 1000),
     ];
   }
 

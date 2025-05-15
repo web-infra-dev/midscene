@@ -31,6 +31,7 @@ import {
   getAIConfig,
   getAIConfigInBoolean,
   getAIConfigInJson,
+  uiTarsModelVersion,
   vlLocateMode,
 } from '@midscene/shared/env';
 import { enableDebug, getDebug } from '@midscene/shared/logger';
@@ -285,7 +286,7 @@ export async function call(
     }
 
     debugProfileStats(
-      `model, ${model}, mode, ${vlLocateMode() || 'default'}, prompt-tokens, ${result.usage?.prompt_tokens || ''}, completion-tokens, ${result.usage?.completion_tokens || ''}, total-tokens, ${result.usage?.total_tokens || ''}, cost-ms, ${Date.now() - startTime}, requestId, ${result._request_id || ''}`,
+      `model, ${model}, mode, ${vlLocateMode() || 'default'}, ui-tars-version, ${uiTarsModelVersion()}, prompt-tokens, ${result.usage?.prompt_tokens || ''}, completion-tokens, ${result.usage?.completion_tokens || ''}, total-tokens, ${result.usage?.total_tokens || ''}, cost-ms, ${Date.now() - startTime}, requestId, ${result._request_id || ''}`,
     );
 
     debugProfileDetail(`model usage detail: ${JSON.stringify(result.usage)}`);
