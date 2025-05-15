@@ -143,5 +143,19 @@ export function getElementInfoByXpath(xpath: string): ElementInfo | null {
     return null;
   }
 
-  return collectElementInfo(node, window, document);
+  if (node instanceof HTMLElement) {
+    node.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+
+  return collectElementInfo(
+    node,
+    window,
+    document,
+    1,
+    {
+      left: 0,
+      top: 0,
+    },
+    false,
+  );
 }

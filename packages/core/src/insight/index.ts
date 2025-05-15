@@ -30,7 +30,6 @@ import { emitInsightDump } from './utils';
 export interface LocateOpts {
   context?: UIContext<BaseElement>;
   callAI?: typeof callAiFn<AIElementResponse>;
-  quickAnswer?: Partial<AISingleElementResponse>; // preset answer for locate
 }
 
 export type AnyValue<T> = {
@@ -79,10 +78,7 @@ export default class Insight<
   ): Promise<LocateResult> {
     const { callAI } = opt || {};
     const queryPrompt = typeof query === 'string' ? query : query.prompt;
-    assert(
-      queryPrompt || opt?.quickAnswer,
-      'query or quickAnswer is required for locate',
-    );
+    assert(queryPrompt, 'query is required for locate');
     const dumpSubscriber = this.onceDumpUpdatedFn;
     this.onceDumpUpdatedFn = undefined;
 
@@ -136,7 +132,6 @@ export default class Insight<
         callAI: callAI || this.aiVendorFn,
         context,
         targetElementDescription: queryPrompt,
-        quickAnswer: opt?.quickAnswer,
         searchConfig: searchAreaResponse,
       });
 
@@ -162,7 +157,6 @@ export default class Insight<
       userQuery: {
         element: queryPrompt,
       },
-      quickAnswer: opt?.quickAnswer,
       matchedElement: [],
       matchedRect: rect,
       data: null,

@@ -260,6 +260,7 @@ export function visibleRect(
   currentWindow: typeof globalThis.window,
   currentDocument: typeof globalThis.document,
   baseZoom = 1,
+  needVisible = true,
 ):
   | { left: number; top: number; width: number; height: number; zoom: number }
   | false {
@@ -311,11 +312,9 @@ export function visibleRect(
   const viewportHeight =
     currentWindow.innerHeight || currentDocument.documentElement.clientHeight;
 
-  const isPartiallyInViewport = isElementPartiallyInViewport(
-    rect,
-    currentWindow,
-    currentDocument,
-  );
+  const isPartiallyInViewport = needVisible
+    ? isElementPartiallyInViewport(rect, currentWindow, currentDocument)
+    : true;
 
   if (!isPartiallyInViewport) {
     logger(el, 'Element is completely outside the viewport', {
@@ -468,6 +467,9 @@ export function setNodeHashCacheListOnWindow() {
 
 export function setNodeToCacheList(node: globalThis.Node, id: string) {
   if (typeof window !== 'undefined') {
+    if (getNodeFromCacheList(id)) {
+      return;
+    }
     (window as any).midsceneNodeHashCacheList.push({ node, id });
   }
 }

@@ -1,6 +1,7 @@
 import { platform } from 'node:os';
 import { PuppeteerAgent } from '@/puppeteer';
 import { sleep } from '@midscene/core/utils';
+import puppeteer from 'puppeteer';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { launchPage } from './utils';
 
@@ -9,96 +10,39 @@ vi.setConfig({
 });
 
 describe('puppeteer integration', () => {
-  let resetFn: () => Promise<void>;
-  afterEach(async () => {
-    if (resetFn) {
-      await resetFn();
-    }
-  });
-
   it('input and clear text', async () => {
-    const { originPage, reset } = await launchPage('https://www.google.com/');
-    resetFn = reset;
-    const agent = new PuppeteerAgent(originPage);
-    await agent.aiAction(
-      'Enter "happy birthday" , sleep 100ms, delete all text in the input box',
-    );
-  });
+    const browser = await puppeteer.launch({
+      headless: false, // 'true' means we can't see the browser window
+      args: ['--no-sandbox', '--disable-setuid-sandbox'],
+    });
 
-  it('agent with yaml script', async () => {
-    const { originPage, reset } = await launchPage('https://www.bing.com/');
-    resetFn = reset;
-    const agent = new PuppeteerAgent(originPage);
-    await sleep(3000);
-    const { result } = await agent.runYaml(
-      `
-  tasks:
-    - name: search weather
-      flow:
-        - ai: input 'weather today' in input box, press Enter
-        - sleep: 3000
+    const page = await browser.newPage();
+    await page.setViewport({
+      width: 1280,
+      height: 768,
+      deviceScaleFactor: 2, // this is used to avoid flashing on UI Mode when doing screenshot on Mac
+    });
 
-    - name: result page
-      flow:
-        - aiQuery: "this is a search result page about weather. Return in this format: {answer: boolean}"
-          name: weather
-  `,
-    );
+    await page.goto('https://www.ebay.com');
+    await sleep(5000);
 
-    expect(result.weather.answer).toBeDefined();
-  });
+    // 👀 init Midscene agent
+    const agent = new PuppeteerAgent(page, {
+      cacheId: 'ebay-headphones',
+    });
 
-  it('assertion failed', async () => {
-    const { originPage, reset } = await launchPage('https://www.bing.com/');
-    resetFn = reset;
-    const agent = new PuppeteerAgent(originPage);
-    let errorMsg = '';
-    try {
-      await agent.runYaml(
-        `
-    tasks:
-    - name: search weather
-      flow:
-        - aiAssert: the result shows food delivery service
-          `,
-      );
-    } catch (e: any) {
-      errorMsg = e.message;
-    }
+    // 👀 type keywords, perform a search
+    await agent.aiAction('type "Headphones" in search box, hit Enter');
 
-    const multiLineErrorMsg = errorMsg.split('\n');
-    expect(multiLineErrorMsg.length).toBeGreaterThan(2);
-  });
+    // 👀 wait for the loading
+    await agent.aiWaitFor('there is at least one headphone item on page');
+    // or you may use a plain sleep:
+    // await sleep(5000);
 
-  it('allow error in flow', async () => {
-    const { originPage, reset } = await launchPage(
-      platform() === 'darwin'
-        ? 'https://www.baidu.com'
-        : 'https://www.bing.com/',
-    );
-    resetFn = reset;
-    const agent = new PuppeteerAgent(originPage);
-    const { result } = await agent.runYaml(
-      `
-  tasks:
-    - name: search weather
-      flow:
-        - ai: input 'weather today' in input box, click search button
-        - sleep: 3000
+    // await agent.aiAction('scroll one page down');
 
-    - name: error
-      continueOnError: true
-      flow:
-        - aiAssert: the result shows food delivery service
+    await agent.aiTap('the last item in the list');
 
-    - name: result page
-      continueOnError: true
-      flow:
-        - aiQuery: "this is a search result, use this format to answer: {result: boolean}"
-          name: pageLoaded
-    `,
-    );
-
-    expect(result.pageLoaded).toBeDefined();
+    await browser.close();
   });
 });

@@ -208,7 +208,6 @@ export interface InsightDump extends DumpMeta {
     dataDemand?: InsightExtractParam;
     assertion?: string;
   };
-  quickAnswer?: Partial<AISingleElementResponse> | null;
   matchedElement: BaseElement[];
   matchedRect?: Rect;
   deepThink?: boolean;
@@ -387,7 +386,6 @@ export interface ExecutionTaskApply<
   param?: TaskParam;
   thought?: string;
   locate?: PlanningLocateParam | null;
-  quickAnswer?: AISingleElementResponse | null;
   pageContext?: UIContext;
   executor: (
     param: TaskParam,

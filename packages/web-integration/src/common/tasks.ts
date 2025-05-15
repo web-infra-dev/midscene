@@ -115,7 +115,10 @@ export class PageTaskExecutor {
           x: element.center[0],
           y: element.center[1],
         },
-        false,
+        {
+          requireStrictDistance: false,
+          filterPositionElements: true,
+        },
       );
       if (info?.id) {
         elementId = info.id;
@@ -228,7 +231,7 @@ export class PageTaskExecutor {
             const locateCacheRecord =
               this.taskCache?.matchLocateCache(cachePrompt);
             const xpaths = locateCacheRecord?.cacheContent?.xpaths;
-            let elementIdFromCache = null;
+            let elementFromCache = null;
             try {
               if (xpaths?.length && this.taskCache?.isCacheResultUsed) {
                 // hit cache, use new id
@@ -237,7 +240,9 @@ export class PageTaskExecutor {
                 const element = await this.page.evaluateJavaScript?.(
                   `${elementInfosScriptContent}midscene_element_inspector.getElementInfoByXpath('${xpaths[0]}')`,
                 );
-                elementIdFromCache = element?.id;
+                elementFromCache = element;
+                debug('cache hit, prompt: %s', cachePrompt);
+                cacheHitFlag = true;
                 debug(
                   'found a new new element with same xpath, xpath: %s, id: %s',
                   xpaths[0],
@@ -248,23 +253,16 @@ export class PageTaskExecutor {
               debug('get element info by xpath error: ', error);
             }
 
-            const quickAnswerId = param?.id || elementIdFromCache || undefined;
-            const quickAnswer = {
-              id: quickAnswerId,
-              bbox: param?.bbox,
-            };
-
             const startTime = Date.now();
-            const { element } = await this.insight.locate(param, {
-              context: pageContext,
-              quickAnswer,
-            });
+            const element =
+              elementFromCache ||
+              (
+                await this.insight.locate(param, {
+                  context: pageContext,
+                })
+              ).element;
 
             const aiCost = Date.now() - startTime;
-            if (element && element.id === quickAnswerId && elementIdFromCache) {
-              debug('cache hit, prompt: %s', cachePrompt);
-              cacheHitFlag = true;
-            }
 
             // update cache
             if (element && this.taskCache && !cacheHitFlag) {

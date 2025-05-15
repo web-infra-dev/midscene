@@ -37,8 +37,14 @@ export function elementByPositionWithElementInfo(
     x: number;
     y: number;
   },
-  strict = true,
+  options?: {
+    requireStrictDistance?: boolean;
+    filterPositionElements?: boolean;
+  },
 ) {
+  const requireStrictDistance = options?.requireStrictDistance ?? true;
+  const filterPositionElements = options?.filterPositionElements ?? false;
+
   assert(typeof position !== 'undefined', 'position is required for query');
 
   const matchingElements: BaseElement[] = [];
@@ -52,6 +58,14 @@ export function elementByPositionWithElementInfo(
         item.rect.top <= position.y &&
         position.y <= item.rect.top + item.rect.height
       ) {
+        if (
+          filterPositionElements &&
+          item.attributes?.nodeType === NodeType.POSITION
+        ) {
+          // Skip POSITION elements if filterPositionElements is true
+          return;
+        }
+
         matchingElements.push(item);
       }
     }
@@ -79,7 +93,7 @@ export function elementByPositionWithElementInfo(
     position,
   );
 
-  if (strict) {
+  if (requireStrictDistance) {
     return distanceToCenter <= distanceThreshold ? element : undefined;
   }
 

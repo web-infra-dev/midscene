@@ -65,60 +65,12 @@ const liteContextConfig = {
 const debugInspect = getDebug('ai:inspect');
 const debugSection = getDebug('ai:section');
 
-function matchQuickAnswer(
-  quickAnswer:
-    | Partial<AISingleElementResponse>
-    | Partial<AISingleElementResponseByPosition>
-    | undefined,
-  tree: ElementTreeNode<BaseElement>,
-  elementById: ElementById,
-  insertElementByPosition: (position: { x: number; y: number }) => BaseElement,
-): Awaited<ReturnType<typeof AiLocateElement>> | undefined {
-  if (!quickAnswer) {
-    return undefined;
-  }
-  if ('id' in quickAnswer && quickAnswer.id && elementById(quickAnswer.id)) {
-    return {
-      parseResult: {
-        elements: [quickAnswer as AISingleElementResponse],
-        errors: [],
-      },
-      rawResponse: JSON.stringify(quickAnswer),
-      elementById,
-    };
-  }
-
-  if ('bbox' in quickAnswer && quickAnswer.bbox) {
-    const centerPosition = {
-      x: Math.floor((quickAnswer.bbox[0] + quickAnswer.bbox[2]) / 2),
-      y: Math.floor((quickAnswer.bbox[1] + quickAnswer.bbox[3]) / 2),
-    };
-    let element = elementByPositionWithElementInfo(tree, centerPosition);
-    if (!element) {
-      element = insertElementByPosition(centerPosition);
-    }
-    return {
-      parseResult: {
-        elements: [element],
-        errors: [],
-      },
-      rawResponse: quickAnswer,
-      elementById,
-    } as any;
-  }
-
-  return undefined;
-}
-
 export async function AiLocateElement<
   ElementType extends BaseElement = BaseElement,
 >(options: {
   context: UIContext<ElementType>;
   targetElementDescription: string;
   callAI?: typeof callAiFn<AIElementResponse | [number, number]>;
-  quickAnswer?: Partial<
-    AISingleElementResponse | AISingleElementResponseByPosition
-  >;
   searchConfig?: Awaited<ReturnType<typeof AiLocateSection>>;
 }): Promise<{
   parseResult: AIElementLocatorResponse;
@@ -131,16 +83,6 @@ export async function AiLocateElement<
   const { screenshotBase64 } = context;
   const { description, elementById, insertElementByPosition } =
     await describeUserPage(context);
-  // meet quick answer
-  const quickAnswer = matchQuickAnswer(
-    options.quickAnswer,
-    context.tree,
-    elementById,
-    insertElementByPosition,
-  );
-  if (quickAnswer) {
-    return quickAnswer;
-  }
 
   assert(
     targetElementDescription,

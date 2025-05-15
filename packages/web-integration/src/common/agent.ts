@@ -323,7 +323,11 @@ export class PageAgent<PageType extends WebPage = WebPage> {
   }
 
   async aiAction(taskPrompt: string) {
-    const matchedCache = this.taskCache?.matchPlanCache(taskPrompt);
+    // if vlm-ui-tars, plan cache is not used
+    const isVlmUiTars = vlLocateMode() === 'vlm-ui-tars';
+    const matchedCache = isVlmUiTars
+      ? undefined
+      : this.taskCache?.matchPlanCache(taskPrompt);
     if (matchedCache && this.taskCache?.isCacheResultUsed) {
       // log into report file
       const { executor } = await this.taskExecutor.loadYamlFlowAsPlanning(
@@ -338,7 +342,7 @@ export class PageAgent<PageType extends WebPage = WebPage> {
       return this.runYaml(yaml);
     }
 
-    const { output, executor } = await (vlLocateMode() === 'vlm-ui-tars'
+    const { output, executor } = await (isVlmUiTars
       ? this.taskExecutor.actionToGoal(taskPrompt)
       : this.taskExecutor.action(taskPrompt, this.opts.aiActionContext));
 

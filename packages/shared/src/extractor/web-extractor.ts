@@ -47,15 +47,27 @@ export function collectElementInfo(
   currentDocument: typeof document,
   baseZoom = 1,
   basePoint: Point = { left: 0, top: 0 },
-): WebElementInfo | null {
-  const rect = visibleRect(node, currentWindow, currentDocument, baseZoom);
+  needVisible = true,
+): WebElementInfo | null | any {
+  const rect = visibleRect(
+    node,
+    currentWindow,
+    currentDocument,
+    baseZoom,
+    needVisible,
+  );
+
+  if (!rect) {
+    return null;
+  }
+
   if (
-    !rect ||
-    rect.width < CONTAINER_MINI_WIDTH ||
-    rect.height < CONTAINER_MINI_HEIGHT
+    needVisible &&
+    (rect.width < CONTAINER_MINI_WIDTH || rect.height < CONTAINER_MINI_HEIGHT)
   ) {
     return null;
   }
+
   if (basePoint.left !== 0 || basePoint.top !== 0) {
     rect.left += basePoint.left;
     rect.top += basePoint.top;
