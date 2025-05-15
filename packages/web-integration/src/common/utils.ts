@@ -8,7 +8,6 @@ import { uploadTestInfoToServer } from '@midscene/core/utils';
 import { MIDSCENE_REPORT_TAG_NAME, getAIConfig } from '@midscene/shared/env';
 import type { ElementInfo } from '@midscene/shared/extractor';
 import { traverseTree, treeToList } from '@midscene/shared/extractor';
-import { getElementInfosScriptContent } from '@midscene/shared/fs';
 import { resizeImgBase64 } from '@midscene/shared/img';
 import type { DebugFunction } from '@midscene/shared/logger';
 import { assert, logMsg, uuid } from '@midscene/shared/utils';

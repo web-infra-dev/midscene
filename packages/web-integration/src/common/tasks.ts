@@ -41,12 +41,8 @@ import {
 import { sleep } from '@midscene/core/utils';
 
 import { NodeType } from '@midscene/shared/constants';
-import { UITarsModelVersion, getAIConfigInBoolean } from '@midscene/shared/env';
-import { uiTarsModelVersion } from '@midscene/shared/env';
-import { vlLocateMode } from '@midscene/shared/env';
 import type { ElementInfo } from '@midscene/shared/extractor';
 import { getElementInfosScriptContent } from '@midscene/shared/fs';
-import { imageInfo, resizeImgBase64 } from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
 import type { WebElementInfo } from '../web-element';

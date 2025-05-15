@@ -5,6 +5,7 @@ import { stringifyDumpData } from '@midscene/core/utils';
 import { getMidsceneRunSubDir } from '@midscene/shared/common';
 import { getDebug } from '@midscene/shared/logger';
 import { ifInBrowser } from '@midscene/shared/utils';
+import yaml from 'js-yaml';
 import semver from 'semver';
 import { version } from '../../package.json';
 import { replaceIllegalPathCharsAndSpace } from './utils';
@@ -35,6 +36,7 @@ export type CacheFileContent = {
 };
 
 const lowestSupportedMidsceneVersion = '0.16.10';
+const cacheFileExt = '.cache.yaml';
 
 export class TaskCache {
   cacheId: string;
@@ -58,7 +60,7 @@ export class TaskCache {
     this.cacheFilePath = ifInBrowser
       ? undefined
       : cacheFilePath ||
-        join(getMidsceneRunSubDir('cache'), `${this.cacheId}.json`);
+        join(getMidsceneRunSubDir('cache'), `${this.cacheId}${cacheFileExt}`);
 
     let cacheContent;
     if (this.cacheFilePath) {
@@ -149,7 +151,7 @@ export class TaskCache {
 
     try {
       const data = readFileSync(cacheFile, 'utf8');
-      const jsonData = JSON.parse(data) as CacheFileContent;
+      const jsonData = yaml.load(data) as CacheFileContent;
 
       if (!version) {
         debug('no midscene version info, will not read cache from file');
@@ -196,7 +198,8 @@ export class TaskCache {
     }
 
     try {
-      writeFileSync(this.cacheFilePath, stringifyDumpData(this.cache, 2));
+      const yamlData = yaml.dump(this.cache);
+      writeFileSync(this.cacheFilePath, yamlData);
     } catch (err) {
       debug(
         'write cache to file failed, path: %s, error: %s',
