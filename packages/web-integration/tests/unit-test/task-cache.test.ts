@@ -1,11 +1,27 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { TaskCache } from '@/common/task-cache';
 import { uuid } from '@midscene/shared/utils';
-import { describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
+
+// Mock package.json 版本号
+vi.mock('../../package.json', () => {
+  return {
+    version: '0.16.11',
+  };
+});
 
 describe(
   'TaskCache',
   () => {
+    beforeAll(() => {
+      // 确保测试使用固定的版本号
+      vi.resetModules();
+    });
+
+    afterAll(() => {
+      vi.restoreAllMocks();
+    });
+
     it('should create cache file', () => {
       const cacheId = uuid();
       const cache = new TaskCache(cacheId, true);
@@ -17,9 +33,10 @@ describe(
         yamlWorkflow: 'test',
       });
       expect(existsSync(cache.cacheFilePath!)).toBe(true);
-      const cacheContent = readFileSync(cache.cacheFilePath!, 'utf-8')
-        .replace(cacheId, 'cacheId')
-        .replace(/-beta-[0-9.]+/, ''); // because the release ci first bump the version, so we need to replace the beta version
+      const cacheContent = readFileSync(cache.cacheFilePath!, 'utf-8').replace(
+        cacheId,
+        'cacheId',
+      );
       expect(cacheContent).toMatchSnapshot();
 
       expect(cache.isCacheResultUsed).toBe(true);
@@ -115,13 +132,10 @@ describe(
       });
 
       expect(taskCache.cache.caches).toMatchSnapshot();
-      const cacheFileContent = readFileSync(taskCache.cacheFilePath!, 'utf-8')
-        .replace(cacheId, 'cacheId')
-        // 替换版本号，以支持 beta 版本
-        .replace(
-          /midsceneVersion: [0-9]+\.[0-9]+\.[0-9]+(-beta-[0-9.]+)?/,
-          'midsceneVersion: 0.16.10',
-        );
+      const cacheFileContent = readFileSync(
+        taskCache.cacheFilePath!,
+        'utf-8',
+      ).replace(cacheId, 'cacheId');
       expect(cacheFileContent).toMatchSnapshot();
     });
 
