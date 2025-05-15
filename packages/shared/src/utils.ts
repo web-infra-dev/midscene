@@ -87,3 +87,12 @@ export function logMsg(...message: Parameters<typeof console.log>) {
     console.log(...message);
   }
 }
+
+export async function repeat(
+  times: number,
+  fn: (index: number) => Promise<void>,
+) {
+  for (let i = 0; i < times; i++) {
+    await fn(i);
+  }
+}

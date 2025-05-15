@@ -192,7 +192,7 @@ export const getAIConfig = (
     );
   }
 
-  return getGlobalConfig()[configKey]?.trim();
+  return getGlobalConfig()[configKey]?.trim?.();
 };
 
 export const getAIConfigInBoolean = (
