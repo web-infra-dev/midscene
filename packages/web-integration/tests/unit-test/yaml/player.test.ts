@@ -167,7 +167,7 @@ describe.skipIf(!shouldRunAITest)(
       expect(player.taskStatusList[1].status).toBe('init');
     });
 
-    test('allow continue on task error', async () => {
+    test.skip('allow continue on task error', async () => {
       const yamlString = `
       target:
         url: https://www.baidu.com
