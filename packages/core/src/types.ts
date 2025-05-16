@@ -2,8 +2,11 @@
 
 import type { NodeType } from '@midscene/shared/constants';
 import type { ChatCompletionMessageParam } from 'openai/resources';
-import type { DetailedLocateParam, scrollParam } from './yaml';
-
+import type {
+  DetailedLocateParam,
+  MidsceneYamlFlowItem,
+  scrollParam,
+} from './yaml';
 export * from './yaml';
 
 export interface Point {
@@ -36,6 +39,8 @@ export abstract class BaseElement {
   abstract center: [number, number];
 
   abstract locator?: string;
+
+  abstract xpaths?: string[];
 }
 
 export interface ElementTreeNode<
@@ -64,6 +69,7 @@ export type AISingleElementResponseById = {
   id: string;
   reason?: string;
   text?: string;
+  xpaths?: string[];
 };
 
 export type AISingleElementResponseByPosition = {
@@ -82,6 +88,7 @@ export interface AIElementLocatorResponse {
     id: string;
     reason?: string;
     text?: string;
+    xpaths?: string[];
   }[];
   bbox?: [number, number, number, number];
   errors?: string[];
@@ -159,6 +166,11 @@ export type LocateResultElement = {
   indexId?: number;
   center: [number, number];
   rect: Rect;
+  xpaths: string[];
+  attributes: {
+    nodeType: NodeType;
+    [key: string]: string;
+  };
 };
 
 export interface LocateResult {
@@ -196,7 +208,6 @@ export interface InsightDump extends DumpMeta {
     dataDemand?: InsightExtractParam;
     assertion?: string;
   };
-  quickAnswer?: Partial<AISingleElementResponse> | null;
   matchedElement: BaseElement[];
   matchedRect?: Rect;
   deepThink?: boolean;
@@ -287,6 +298,8 @@ export interface PlanningAIResponse {
   error?: string;
   usage?: AIUsageInfo;
   rawResponse?: string;
+  yamlFlow?: MidsceneYamlFlowItem[];
+  yamlString?: string;
 }
 
 // export interface PlanningFurtherPlan {
@@ -373,7 +386,6 @@ export interface ExecutionTaskApply<
   param?: TaskParam;
   thought?: string;
   locate?: PlanningLocateParam | null;
-  quickAnswer?: AISingleElementResponse | null;
   pageContext?: UIContext;
   executor: (
     param: TaskParam,

@@ -1,5 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import util from 'node:util';
 import debug from 'debug';
 import { isNodeEnv, logDir } from './common';
 
@@ -32,17 +33,8 @@ export type DebugFunction = (...args: unknown[]) => void;
 export function getDebug(topic: string): DebugFunction {
   // Create a wrapper function that handles both file logging and debug output
   return (...args: unknown[]): void => {
-    const message = args
-      .map((arg) =>
-        typeof arg === 'object'
-          ? JSON.stringify(arg, (key, value) =>
-              typeof value === 'bigint' ? `${value.toString()}n` : value,
-            )
-          : String(arg),
-      )
-      .join(' ');
-
     if (isNodeEnv) {
+      const message = util.format(...args);
       writeLogToFile(topic, message);
     }
 

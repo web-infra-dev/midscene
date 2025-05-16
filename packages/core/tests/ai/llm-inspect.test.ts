@@ -42,11 +42,6 @@ test('use quick answer', async () => {
   const { parseResult } = await AiLocateElement({
     context,
     targetElementDescription: 'never mind',
-    quickAnswer: {
-      id: context.content[0].id,
-      reason: 'never mind',
-      text: 'never mind',
-    },
   });
   console.log('parseResult', parseResult);
   const endTime = Date.now();

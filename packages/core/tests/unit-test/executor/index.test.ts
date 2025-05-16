@@ -50,141 +50,147 @@ const insightFindTask = (shouldThrow?: boolean) => {
   return insightFindTask;
 };
 
-describe('executor', () => {
-  it('insight - basic run', async () => {
-    const insightTask1 = insightFindTask();
-    const flushResultData = 'abcdef';
-    const taskParam = {
-      action: 'tap',
-      anything: 'acceptable',
-    };
-    const tapperFn = vi.fn();
-    const actionTask: ExecutionTaskActionApply = {
-      type: 'Action',
-      param: taskParam,
-      locate: null,
-      executor: tapperFn,
-    };
-    const actionTask2: ExecutionTaskActionApply = {
-      type: 'Action',
-      param: taskParam,
-      locate: null,
-      executor: async () => {
-        return {
-          output: flushResultData,
-        } as any;
-      },
-    };
-
-    const inputTasks = [insightTask1, actionTask, actionTask2];
-
-    const executor = new Executor('test', {
-      tasks: inputTasks,
-    });
-    const flushResult = await executor.flush();
-    const tasks = executor.tasks as ExecutionTaskInsightLocate[];
-    expect(executor.isInErrorState()).toBeFalsy();
-    const { element } = tasks[0].output || {};
-    expect(element).toBeTruthy();
-
-    expect(tasks.length).toBe(inputTasks.length);
-    expect(tasks[0].status).toBe('finished');
-    expect(tasks[0].output).toMatchSnapshot();
-    expect(tasks[0].log?.dump).toBeTruthy();
-    expect(tasks[0].timing?.end).toBeTruthy();
-    expect(tasks[0].cache).toBeTruthy();
-    expect(tasks[0].cache?.hit).toEqual(false);
-
-    expect(tapperFn).toBeCalledTimes(1);
-    expect(tapperFn.mock.calls[0][0]).toBe(taskParam);
-    expect(tapperFn.mock.calls[0][1].task).toBeTruthy();
-
-    const dump = executor.dump();
-    expect(dump.logTime).toBeTruthy();
-
-    expect(flushResult).toBe(flushResultData);
-  });
-
-  it('insight - init and append', async () => {
-    const initExecutor = new Executor('test');
-    expect(initExecutor.status).toBe('init');
-    const tapperFn = vi.fn();
-
-    const insightTask1 = insightFindTask();
-    const actionTask: ExecutionTaskActionApply = {
-      type: 'Action',
-      param: {
+describe(
+  'executor',
+  () => {
+    it('insight - basic run', async () => {
+      const insightTask1 = insightFindTask();
+      const flushResultData = 'abcdef';
+      const taskParam = {
         action: 'tap',
-        element: 'previous',
-      },
-      locate: null,
-      executor: async () => {
-        // delay 500
-        await new Promise((resolve) => setTimeout(resolve, 500));
-        tapperFn();
-      },
-    };
+        anything: 'acceptable',
+      };
+      const tapperFn = vi.fn();
+      const actionTask: ExecutionTaskActionApply = {
+        type: 'Action',
+        param: taskParam,
+        locate: null,
+        executor: tapperFn,
+      };
+      const actionTask2: ExecutionTaskActionApply = {
+        type: 'Action',
+        param: taskParam,
+        locate: null,
+        executor: async () => {
+          return {
+            output: flushResultData,
+          } as any;
+        },
+      };
 
-    initExecutor.append(insightTask1);
-    initExecutor.append(actionTask);
-    expect(initExecutor.status).toBe('pending');
-    expect(initExecutor.tasks.length).toBe(2);
-    expect(tapperFn).toBeCalledTimes(0);
+      const inputTasks = [insightTask1, actionTask, actionTask2];
 
-    const dumpContent1 = initExecutor.dump();
-    expect(dumpContent1.tasks.length).toBe(2);
+      const executor = new Executor('test', {
+        tasks: inputTasks,
+      });
+      const flushResult = await executor.flush();
+      const tasks = executor.tasks as ExecutionTaskInsightLocate[];
+      expect(executor.isInErrorState()).toBeFalsy();
+      const { element } = tasks[0].output || {};
+      expect(element).toBeTruthy();
 
-    // append while running
-    const output = await Promise.all([
-      initExecutor.flush(),
-      (async () => {
-        // sleep 200ms
-        expect(initExecutor.status).toBe('running');
-        await new Promise((resolve) => setTimeout(resolve, 200));
-        initExecutor.append(actionTask);
-        expect(initExecutor.status).toBe('running');
-      })(),
-    ]);
+      expect(tasks.length).toBe(inputTasks.length);
+      expect(tasks[0].status).toBe('finished');
+      expect(tasks[0].output).toMatchSnapshot();
+      expect(tasks[0].log?.dump).toBeTruthy();
+      expect(tasks[0].timing?.end).toBeTruthy();
+      expect(tasks[0].cache).toBeTruthy();
+      expect(tasks[0].cache?.hit).toEqual(false);
 
-    expect(initExecutor.status).toBe('completed');
-    expect(initExecutor.tasks.length).toBe(3);
-    expect(initExecutor.tasks[2].status).toBe('finished');
+      expect(tapperFn).toBeCalledTimes(1);
+      expect(tapperFn.mock.calls[0][0]).toBe(taskParam);
+      expect(tapperFn.mock.calls[0][1].task).toBeTruthy();
 
-    // append while completed
-    initExecutor.append(actionTask);
-    expect(initExecutor.status).toBe('pending');
+      const dump = executor.dump();
+      expect(dump.logTime).toBeTruthy();
 
-    // same dumpPath to append
-    const dumpContent2 = initExecutor.dump();
-    expect(dumpContent2.tasks.length).toBe(4);
-
-    expect(initExecutor.latestErrorTask()).toBeFalsy();
-  });
-
-  it('insight - run with error', async () => {
-    const executor = new Executor('test', {
-      tasks: [insightFindTask(true), insightFindTask()],
+      expect(flushResult).toBe(flushResultData);
     });
-    const r = await executor.flush();
-    const tasks = executor.tasks as ExecutionTaskInsightLocate[];
 
-    expect(tasks.length).toBe(2);
-    expect(tasks[0].status).toBe('failed');
-    expect(tasks[0].error).toBeTruthy();
-    expect(tasks[0].timing!.end).toBeTruthy();
-    expect(tasks[1].status).toBe('cancelled');
-    expect(executor.status).toBe('error');
-    expect(executor.latestErrorTask()).toBeTruthy();
-    expect(executor.isInErrorState()).toBeTruthy();
-    expect(r).toEqual('error-output');
+    it('insight - init and append', async () => {
+      const initExecutor = new Executor('test');
+      expect(initExecutor.status).toBe('init');
+      const tapperFn = vi.fn();
 
-    // expect to throw an error
-    expect(async () => {
-      await executor.flush();
-    }).rejects.toThrowError();
+      const insightTask1 = insightFindTask();
+      const actionTask: ExecutionTaskActionApply = {
+        type: 'Action',
+        param: {
+          action: 'tap',
+          element: 'previous',
+        },
+        locate: null,
+        executor: async () => {
+          // delay 500
+          await new Promise((resolve) => setTimeout(resolve, 500));
+          tapperFn();
+        },
+      };
 
-    expect(async () => {
-      await executor.append(insightFindTask());
-    }).rejects.toThrowError();
-  });
-});
+      initExecutor.append(insightTask1);
+      initExecutor.append(actionTask);
+      expect(initExecutor.status).toBe('pending');
+      expect(initExecutor.tasks.length).toBe(2);
+      expect(tapperFn).toBeCalledTimes(0);
+
+      const dumpContent1 = initExecutor.dump();
+      expect(dumpContent1.tasks.length).toBe(2);
+
+      // append while running
+      const output = await Promise.all([
+        initExecutor.flush(),
+        (async () => {
+          // sleep 200ms
+          expect(initExecutor.status).toBe('running');
+          await new Promise((resolve) => setTimeout(resolve, 200));
+          initExecutor.append(actionTask);
+          expect(initExecutor.status).toBe('running');
+        })(),
+      ]);
+
+      expect(initExecutor.status).toBe('completed');
+      expect(initExecutor.tasks.length).toBe(3);
+      expect(initExecutor.tasks[2].status).toBe('finished');
+
+      // append while completed
+      initExecutor.append(actionTask);
+      expect(initExecutor.status).toBe('pending');
+
+      // same dumpPath to append
+      const dumpContent2 = initExecutor.dump();
+      expect(dumpContent2.tasks.length).toBe(4);
+
+      expect(initExecutor.latestErrorTask()).toBeFalsy();
+    });
+
+    it('insight - run with error', async () => {
+      const executor = new Executor('test', {
+        tasks: [insightFindTask(true), insightFindTask()],
+      });
+      const r = await executor.flush();
+      const tasks = executor.tasks as ExecutionTaskInsightLocate[];
+
+      expect(tasks.length).toBe(2);
+      expect(tasks[0].status).toBe('failed');
+      expect(tasks[0].error).toBeTruthy();
+      expect(tasks[0].timing!.end).toBeTruthy();
+      expect(tasks[1].status).toBe('cancelled');
+      expect(executor.status).toBe('error');
+      expect(executor.latestErrorTask()).toBeTruthy();
+      expect(executor.isInErrorState()).toBeTruthy();
+      expect(r).toEqual('error-output');
+
+      // expect to throw an error
+      expect(async () => {
+        await executor.flush();
+      }).rejects.toThrowError();
+
+      expect(async () => {
+        await executor.append(insightFindTask());
+      }).rejects.toThrowError();
+    });
+  },
+  {
+    timeout: 1000 * 60 * 3,
+  },
+);

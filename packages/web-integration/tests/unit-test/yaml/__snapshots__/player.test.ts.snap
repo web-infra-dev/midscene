@@ -2,7 +2,7 @@
 
 exports[`yaml utils > basic build && load 1`] = `
 "target:
-  url: https://www.baidu.com
+  url: https://bing.com
   waitForNetworkIdle:
     timeout: 1000
     continueOnNetworkIdleError: true
@@ -16,7 +16,7 @@ tasks:
 exports[`yaml utils > basic build && load 2`] = `
 {
   "target": {
-    "url": "https://www.baidu.com",
+    "url": "https://bing.com",
     "waitForNetworkIdle": {
       "continueOnNetworkIdleError": true,
       "timeout": 1000,

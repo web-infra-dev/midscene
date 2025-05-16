@@ -1,7 +1,7 @@
+import type { Rect } from '../types';
 import { generateHashId } from '../utils';
 import { extractTextWithPosition } from './web-extractor';
 
-// import { TEXT_MAX_SIZE } from './constants';
 const MAX_VALUE_LENGTH = 300;
 let debugMode = false;
 
@@ -255,11 +255,12 @@ const isElementCovered = (
   // return topElement !== el && !el.contains(topElement);
 };
 
-export function visibleRect(
+export function elementRect(
   el: globalThis.HTMLElement | globalThis.Node | null,
   currentWindow: typeof globalThis.window,
   currentDocument: typeof globalThis.document,
   baseZoom = 1,
+  visibleOnly = true,
 ):
   | { left: number; top: number; width: number; height: number; zoom: number }
   | false {
@@ -311,11 +312,9 @@ export function visibleRect(
   const viewportHeight =
     currentWindow.innerHeight || currentDocument.documentElement.clientHeight;
 
-  const isPartiallyInViewport = isElementPartiallyInViewport(
-    rect,
-    currentWindow,
-    currentDocument,
-  );
+  const isPartiallyInViewport = visibleOnly
+    ? isElementPartiallyInViewport(rect, currentWindow, currentDocument)
+    : true;
 
   if (!isPartiallyInViewport) {
     logger(el, 'Element is completely outside the viewport', {
@@ -444,12 +443,44 @@ export function getNodeAttributes(
 export function midsceneGenerateHash(
   node: globalThis.Node | null,
   content: string,
-  rect: any,
+  rect: Rect,
 ): string {
   const slicedHash = generateHashId(rect, content);
 
+  if (node) {
+    if (!(window as any).midsceneNodeHashCacheList) {
+      setNodeHashCacheListOnWindow();
+    }
+
+    setNodeToCacheList(node, slicedHash);
+  }
+
   // Returns the first 10 characters as a short hash
   return slicedHash;
+}
+
+export function setNodeHashCacheListOnWindow() {
+  if (typeof window !== 'undefined') {
+    (window as any).midsceneNodeHashCacheList = [];
+  }
+}
+
+export function setNodeToCacheList(node: globalThis.Node, id: string) {
+  if (typeof window !== 'undefined') {
+    if (getNodeFromCacheList(id)) {
+      return;
+    }
+    (window as any).midsceneNodeHashCacheList.push({ node, id });
+  }
+}
+
+export function getNodeFromCacheList(id: string) {
+  if (typeof window !== 'undefined') {
+    return (window as any).midsceneNodeHashCacheList.find(
+      (item: { node: Node; id: string }) => item.id === id,
+    )?.node;
+  }
+  return null;
 }
 
 export function generateId(numberId: number) {
@@ -469,7 +500,7 @@ export function setGenerateHashOnWindow() {
 
 export function setMidsceneVisibleRectOnWindow() {
   if (typeof window !== 'undefined') {
-    (window as any).midsceneVisibleRect = visibleRect;
+    (window as any).midsceneVisibleRect = elementRect;
   }
 }
 

@@ -10,7 +10,9 @@ import type {
 } from '@midscene/core';
 
 export function typeStr(task: ExecutionTask) {
-  return task.subType ? `${task.type} / ${task.subType || ''}` : task.type;
+  return task.subType && task.subType !== 'Plan'
+    ? `${task.type} / ${task.subType || ''}`
+    : task.type;
 }
 
 export function getKeyCommands(
