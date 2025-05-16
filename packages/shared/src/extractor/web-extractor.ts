@@ -14,6 +14,7 @@ import {
 } from './dom-util';
 import { descriptionOfTree } from './tree';
 import {
+  elementRect,
   getNodeAttributes,
   getPseudoElementContent,
   getRect,
@@ -22,7 +23,6 @@ import {
   midsceneGenerateHash,
   setDataForNode,
   setDebugMode,
-  visibleRect,
 } from './util';
 
 let indexId = 0;
@@ -47,14 +47,14 @@ export function collectElementInfo(
   currentDocument: typeof document,
   baseZoom = 1,
   basePoint: Point = { left: 0, top: 0 },
-  needVisible = true,
+  visibleOnly = true,
 ): WebElementInfo | null | any {
-  const rect = visibleRect(
+  const rect = elementRect(
     node,
     currentWindow,
     currentDocument,
     baseZoom,
-    needVisible,
+    visibleOnly,
   );
 
   if (!rect) {
@@ -62,7 +62,7 @@ export function collectElementInfo(
   }
 
   if (
-    needVisible &&
+    visibleOnly &&
     (rect.width < CONTAINER_MINI_WIDTH || rect.height < CONTAINER_MINI_HEIGHT)
   ) {
     return null;

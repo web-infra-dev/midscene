@@ -255,12 +255,12 @@ const isElementCovered = (
   // return topElement !== el && !el.contains(topElement);
 };
 
-export function visibleRect(
+export function elementRect(
   el: globalThis.HTMLElement | globalThis.Node | null,
   currentWindow: typeof globalThis.window,
   currentDocument: typeof globalThis.document,
   baseZoom = 1,
-  needVisible = true,
+  visibleOnly = true,
 ):
   | { left: number; top: number; width: number; height: number; zoom: number }
   | false {
@@ -312,7 +312,7 @@ export function visibleRect(
   const viewportHeight =
     currentWindow.innerHeight || currentDocument.documentElement.clientHeight;
 
-  const isPartiallyInViewport = needVisible
+  const isPartiallyInViewport = visibleOnly
     ? isElementPartiallyInViewport(rect, currentWindow, currentDocument)
     : true;
 
@@ -498,9 +498,9 @@ export function setGenerateHashOnWindow() {
   }
 }
 
-export function setMidsceneVisibleRectOnWindow() {
+export function setMidsceneelementRectOnWindow() {
   if (typeof window !== 'undefined') {
-    (window as any).midsceneVisibleRect = visibleRect;
+    (window as any).midsceneelementRect = elementRect;
   }
 }
 
