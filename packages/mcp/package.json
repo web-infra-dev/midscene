@@ -1,6 +1,6 @@
 {
   "name": "@midscene/mcp",
-  "version": "0.16.10",
+  "version": "0.17.0",
   "type": "module",
   "exports": {
     ".": {
