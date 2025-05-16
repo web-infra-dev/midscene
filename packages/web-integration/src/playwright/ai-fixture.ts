@@ -25,11 +25,13 @@ const groupAndCaseForTest = (testInfo: TestInfo) => {
     taskTitle = 'unnamed';
     taskFile = 'unnamed';
   }
+
+  const taskTitleWithRetry = `${taskTitle}${testInfo.retry ? `(retry #${testInfo.retry})` : ''}`;
+
   return {
-    taskFile,
-    taskTitle: replaceIllegalPathCharsAndSpace(
-      `${taskTitle}${testInfo.retry ? `(retry #${testInfo.retry})` : ''}`,
-    ),
+    file: taskFile,
+    id: replaceIllegalPathCharsAndSpace(`${taskFile}-${taskTitle}`),
+    title: replaceIllegalPathCharsAndSpace(taskTitleWithRetry),
   };
 };
 
@@ -53,13 +55,13 @@ export const PlaywrightAiFixture = (options?: {
       idForPage = randomUUID();
       (page as any)[midsceneAgentKeyId] = idForPage;
       const { testId } = testInfo;
-      const { taskFile, taskTitle } = groupAndCaseForTest(testInfo);
+      const { file, id, title } = groupAndCaseForTest(testInfo);
       pageAgentMap[idForPage] = new PlaywrightAgent(page, {
         testId: `playwright-${testId}-${idForPage}`,
         forceSameTabNavigation,
-        cacheId: `${taskFile}(${taskTitle})`,
-        groupName: taskTitle,
-        groupDescription: taskFile,
+        cacheId: id,
+        groupName: title,
+        groupDescription: file,
         generateReport: false, // we will generate it in the reporter
         ...opts,
       });

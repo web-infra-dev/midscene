@@ -38,7 +38,7 @@ exports[`TaskCache > save and retrieve cache from file 2`] = `
 
 exports[`TaskCache > save and retrieve cache from file 3`] = `
 "midsceneVersion: 0.16.11
-cacheId: u8xgmido77h
+cacheId: ugr0bd9zrp
 caches:
   - type: plan
     prompt: test
