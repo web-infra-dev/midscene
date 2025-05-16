@@ -38,8 +38,7 @@ const DetailPanel = (): JSX.Element => {
     (store) => store._executionDumpLoadId,
   );
   const activeTask = useExecutionDump((store) => store.activeTask);
-  const blackboardViewAvailable =
-    Boolean(activeTask?.pageContext) && insightDump;
+  const blackboardViewAvailable = Boolean(activeTask?.pageContext);
   const [preferredViewType, setViewType] = useState(VIEW_TYPE_REPLAY);
   const animationScripts = useExecutionDump(
     (store) => store.activeExecutionAnimation,
@@ -87,12 +86,21 @@ const DetailPanel = (): JSX.Element => {
       </div>
     );
   } else if (viewType === VIEW_TYPE_BLACKBOARD) {
-    if (blackboardViewAvailable && insightDump) {
+    if (blackboardViewAvailable) {
+      let highlightElements;
+
+      if (insightDump?.matchedElement) {
+        highlightElements = insightDump?.matchedElement;
+      } else {
+        highlightElements = activeTask.output.element // hit cache
+          ? [activeTask.output.element]
+          : [];
+      }
       content = (
         <Blackboard
           uiContext={activeTask.pageContext}
-          highlightElements={insightDump.matchedElement}
-          highlightRect={insightDump!.taskInfo?.searchArea}
+          highlightElements={highlightElements}
+          highlightRect={insightDump?.taskInfo?.searchArea}
           key={`${dumpId}`}
         />
       );
