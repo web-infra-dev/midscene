@@ -45,6 +45,7 @@ export class TaskCache {
   cache: CacheFileContent;
 
   isCacheResultUsed: boolean; // a flag to indicate if the cache result should be used
+  cacheOriginalLength: number;
 
   private matchedCacheIndices: Set<string> = new Set(); // Track matched records
 
@@ -75,6 +76,7 @@ export class TaskCache {
       };
     }
     this.cache = cacheContent;
+    this.cacheOriginalLength = this.cache.caches.length;
   }
 
   matchCache(
@@ -82,7 +84,7 @@ export class TaskCache {
     type: 'plan' | 'locate',
   ): MatchCacheResult<PlanningCache | LocateCache> | undefined {
     // Find the first unused matching cache
-    for (let i = 0; i < this.cache.caches.length; i++) {
+    for (let i = 0; i < this.cacheOriginalLength; i++) {
       const item = this.cache.caches[i];
       const key = `${type}:${prompt}:${i}`;
       if (

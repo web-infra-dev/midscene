@@ -1,6 +1,6 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
-exports[`TaskCache > save and retrieve cache 1`] = `
+exports[`TaskCache > save and retrieve cache from file 1`] = `
 [
   {
     "prompt": "test",
@@ -18,7 +18,7 @@ exports[`TaskCache > save and retrieve cache 1`] = `
 ]
 `;
 
-exports[`TaskCache > save and retrieve cache 2`] = `
+exports[`TaskCache > save and retrieve cache from file 2`] = `
 [
   {
     "prompt": "test",
@@ -36,7 +36,7 @@ exports[`TaskCache > save and retrieve cache 2`] = `
 ]
 `;
 
-exports[`TaskCache > save and retrieve cache 3`] = `
+exports[`TaskCache > save and retrieve cache from file 3`] = `
 "midsceneVersion: 0.16.11
 cacheId: cacheId
 caches:
@@ -61,18 +61,13 @@ caches:
 "
 `;
 
-exports[`TaskCache > update or append cache record 1`] = `
+exports[`TaskCache > update or append cache record - should not match cache added in same run 1`] = `
 [
   {
     "prompt": "test-prompt",
     "type": "plan",
     "yamlWorkflow": "test-yaml-workflow",
   },
-]
-`;
-
-exports[`TaskCache > update or append cache record 2`] = `
-[
   {
     "prompt": "test-prompt",
     "type": "plan",
