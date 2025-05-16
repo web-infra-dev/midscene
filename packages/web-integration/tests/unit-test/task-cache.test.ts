@@ -13,8 +13,11 @@ vi.mock('../../package.json', () => {
   };
 });
 
-const prepareCache = (caches: (PlanningCache | LocateCache)[]) => {
-  const cache = new TaskCache(uuid(), true);
+const prepareCache = (
+  caches: (PlanningCache | LocateCache)[],
+  cacheId?: string,
+) => {
+  const cache = new TaskCache(cacheId ?? uuid(), true);
 
   caches.map((data: PlanningCache | LocateCache) => {
     cache.appendCache(data);
@@ -164,26 +167,30 @@ describe(
     });
 
     it('save and retrieve cache from file', () => {
+      const cacheId = uuid();
       const planningCachedPrompt = 'test';
       const planningCachedYamlWorkflow = 'test-yaml-workflow';
 
       const locateCachedPrompt = 'test-locate';
       const locateCachedXpaths = ['test-xpath-1', 'test-xpath-2'];
 
-      const cacheFilePath = prepareCache([
-        {
-          type: 'plan',
-          prompt: planningCachedPrompt,
-          yamlWorkflow: planningCachedYamlWorkflow,
-        },
-        {
-          type: 'locate',
-          prompt: locateCachedPrompt,
-          xpaths: locateCachedXpaths,
-        },
-      ]);
+      const cacheFilePath = prepareCache(
+        [
+          {
+            type: 'plan',
+            prompt: planningCachedPrompt,
+            yamlWorkflow: planningCachedYamlWorkflow,
+          },
+          {
+            type: 'locate',
+            prompt: locateCachedPrompt,
+            xpaths: locateCachedXpaths,
+          },
+        ],
+        cacheId,
+      );
 
-      const newTaskCache = new TaskCache(uuid(), true, cacheFilePath);
+      const newTaskCache = new TaskCache(cacheId, true, cacheFilePath);
 
       // should be able to match all cache records
       const cachedPlanCache = newTaskCache.matchPlanCache(planningCachedPrompt);
