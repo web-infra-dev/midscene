@@ -3,7 +3,7 @@ import { describe, expect, test } from 'vitest';
 
 describe('utils', () => {
   test('build yaml', () => {
-    const yaml = buildYaml({ url: 'https://www.baidu.com' }, []);
+    const yaml = buildYaml({ url: 'https://www.example.com' }, []);
     expect(yaml).toMatchSnapshot();
   });
 
@@ -20,7 +20,7 @@ tasks:
 `;
 
       const result = parseYamlScript(yamlContent);
-      expect(result.target.url).toBe('https://example.com/test/path');
+      expect(result.target?.url).toBe('https://example.com/test/path');
     });
 
     test('throws error for undefined environment variables', () => {
