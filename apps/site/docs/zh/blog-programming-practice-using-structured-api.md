@@ -1,8 +1,8 @@
 # 使用结构化 API 优化自动化代码
 
-许多开发者在使用 `aiAction` 时会陷入一个误区：试图用单个自然语言指令描述所有复杂逻辑。虽然这看起来很"智能"，但实际上会带来一系列问题。
+许多开发者喜欢使用 `aiAction` 来编写自动化代码，甚至将所有复杂逻辑描述在一个自然语言指令中。虽然这看起来很"智能"，但实际上会带来一系列问题，甚至困在 Prompt 反复调优的怪圈中。
 
-最常见的错误是编写大段逻辑风暴，如：
+最常见的典型错误是编写大段逻辑风暴，如：
 
 ```javascript
 aiAction(`
@@ -13,73 +13,77 @@ aiAction(`
 `)
 ```
 
+另一个常见错误是，企图使用 `aiAction` 方法做复杂的流程控制。和传统的 JavaScript 相比，这些复杂 Prompt 的可靠性可能非常差。例如：
+
 ```javascript
-await agent.aiAction('获取商品列表页的所有价格，然后去到购物车页面，选择价格最低的那个商品')
+aiAction('逐条点击所有记录，如果一个记录包含“已完成”，则跳过')
 ```
 
-这种写法会把所有操作指令都汇总在一个 Prompt 中，实际运行时，它对 AI 模型的理解力、稳定性有极高要求，任何步骤出错都可能导致流程失败。开发者可能也会迷失在 Prompt 反复调优的怪圈中。
+## 使用结构化 API 编写自动化脚本
 
-另一个误区是，将代码拆分成多个 `aiAction` 方法，虽然降低了单个 Prompt 的复杂度，但多个 `aiAction` 方法之间仍然存在上下文关系，而 `aiAction` 又无法将上下文传递给下一个 `aiAction`，从而导致一样的问题。
+从 v0.16.10 开始，Midscene 提供了数据提取方法，如 `aiBoolean` `aiString` `aiNumber`，可以用于控制流程。
 
-```javascript
-aiAction('点击第一个用户')
-aiAction('点击主页右侧的聊天气泡')
-aiAction('如果我曾经给他发过消息，就返回上一级')
-aiAction('如果我没有发过消息，就输入一段打招呼文本，并点击发送')
-```
+结合这些方法和即时操作方法，如 `aiTap` `aiInput` `aiScroll` `aiHover` 等，可以将复杂逻辑拆分为多个步骤，以提升自动化代码的稳定性。
 
-## 使用结构化 API 优化代码
-
-Midscene 提供了 `aiBoolean` `aiString` `aiNumber` 等数据提取方法，利用这些方法，你可以将复杂逻辑拆分为多个步骤，以提升自动化代码的稳定性。
-
-以上面几个案例为例，可以将自然语言转换为这种代码形式：
+让我们以第一个错误案例为例，将 `.aiAction` 方法转换为结构化 API 调用：
 
 ```javascript
-aiAction('点击第一个用户')
-aiAction('点击主页右侧的聊天气泡')
+// 原始提示
+// 逐条点击所有记录，如果一个记录包含“已完成”，则跳过
 
-const hasAlreadyChat = await agent.aiBoolean('当前聊天页面上，我是否给他发过消息');
-
-if (hasAlreadyChat) {
-  aiAction(`返回上一级`)
-} else {
-  aiAction(`输入一段打招呼文本，并点击发送`)
+// 转换后的代码
+const recordList = await agent.aiQuery('string[], the record list')
+for (const record of recordList) {
+  const hasCompleted = await agent.aiBoolean(`check if the record contains the text "completed"`)
+  if (!hasCompleted) {
+    await agent.aiTap(record)
+  }
 }
 ```
 
-使用这种方式编写的自动化代码，可以将对 AI 模型的依赖降到最低，从而提升流程的稳定性。
+修改代码风格后，整个过程可以更可靠和易于维护。
 
-再举一个例子：
+## 一个更复杂的例子
+
+以下是修改前的代码：
 
 ```javascript
 aiAction(`
-1. 点击列表里的第一个用户，进入用户主页
+1. 点击第一个未关注用户，进入用户主页
 2. 点击关注按钮
 3. 返回上一级
-4. 如果所有用户都已关注，则往下滚动一屏
+4. 如果所有用户都已关注，则向下滚动一屏
 5. 重复上述步骤，直到所有用户都已关注
 `)
 ```
 
-可以转换为：
+使用结构化 API 后，开发者可以轻松地逐步调试它：
 
 ```javascript
-let user = await agent.aiQuery('string[], 列表中的用户名');
-let currentUserIndex = 0;
+let user = await agent.aiQuery('string[], 列表中所有未关注用户')
+let currentUserIndex = 0
 
-while (true) {
-  await agent.aiAction(
-    `点击列表里的「${user[currentUserIndex]}」用户名，进入用户主页`,
-  );
-  await agent.aiTap('关注按钮');
-  await agent.aiAction('返回上一级');
+while (user.length > 0) {
+  console.log('当前用户是', user[currentUserIndex])
+  await agent.aiTap(user[currentUserIndex])
+  try {
+    await agent.aiTap('关注按钮')
+  } catch (e) {
+    // 忽略错误
+  }
+  // 返回上一级
+  await agent.aiTap('返回按钮')
+  
+  currentUserIndex++
 
-  if (currentUserIndex === user.length - 1) {
-    await agent.aiAction('往下滚动一屏');
-    user = await agent.aiQuery('string[], 列表中的用户名');
-    currentUserIndex = 0;
-  } else {
-    currentUserIndex++;
+  // 检查是否已经遍历了当前列表中的所有用户
+  if (currentUserIndex >= user.length) {
+    // 向下滚动一屏
+    await agent.aiScroll('向下滚动一屏')
+    
+    // 获取更新后的用户列表
+    user = await agent.aiQuery('string[], 列表中所有未关注用户')
+    currentUserIndex = 0
   }
 }
 ```

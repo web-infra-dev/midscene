@@ -1,10 +1,11 @@
-# Use Structured API to Optimize Automation Code
+# Use Structured API to Optimize Automation Workflow
 
-Many developers using `aiAction` will fall into a misconception: trying to describe all complex logic in a single natural language instruction. Although it looks "smart", in practice, it will bring a series of problems.
+Many developers love using `ai` or `aiAction` to write automation code, and even describe all complex logic in a single natural language instruction. Although it may seem 'intelligent', in practice, this approach may not provide a reliable and efficient experience, and results in an endless loop of Prompt tuning.
 
-The most common mistake is writing a large logic storm with long descriptions, such as:
+Here is a typical example, developers may write a large logic storm with long descriptions, such as:
 
 ```javascript
+// complex tasks
 aiAction(`
 1. click the first user
 2. click the chat bubble on the right side of the user page
@@ -13,76 +14,85 @@ aiAction(`
 `)
 ```
 
+Another common misconception is that the complex workflow can be effectively controlled using `aiAction` methods. These prompts are far from reliable when compared to traditional JavaScript. For example:
+
 ```javascript
-await agent.aiAction('get all prices on the product list page, then go to the shopping cart page, and select the product with the lowest price')
+// not stable !
+aiAction('click all the records one by one. If one record contains the text "completed", skip it')
 ```
 
-This kind of writing will gather all operation instructions into a single Prompt, which actually has very high requirements for the understanding and stability of the AI model. Any step failure may cause the whole process to fail. Developers may also be lost in the circle of Prompt tuning.
+## Use Structured API to Write Automation Scripts
 
-Another misconception is to split the code into multiple `aiAction` methods, while the multiple `aiAction` methods still have context relationships, but `aiAction` cannot pass context to the next `aiAction`, so the same problem will occur.
+From v0.16.10, Midscene provides data extraction methods like `aiBoolean` `aiString` `aiNumber`, which can be used to control the workflow. 
 
-```javascript
-aiAction('click the first user')
-aiAction('click the chat bubble on the right side of the user page')
-aiAction('if I have already sent a message to him/her, go back to the previous page')
-aiAction('if I have not sent a message to him/her, input a greeting text and click send')
-```
+Combining them with the instant action methods, like `aiTap`, `aiInput`, `aiScroll`, `aiHover`, etc., you can split complex logic into multiple steps to improve the stability of the automation code.
 
-## Use Structured API to Optimize Code
-
-Midscene provides `aiBoolean` `aiString` `aiNumber` and other data extraction methods, which can be used to split complex logic into multiple steps to improve the stability of the automation code.
-
-For the above examples, you can convert the natural language into this code form:
+Let's take the first bad case above, you can convert the `.aiAction` method into a structured API call:
 
 ```javascript
-aiAction('click the first user')
-aiAction('click the chat bubble on the right side of the user page')
+// original prompt
+// click all the records one by one. If one record contains the text "completed", skip it
 
-const hasAlreadyChat = await agent.aiBoolean('check if I have already sent a message to him/her')
-
-if (hasAlreadyChat) {
-  aiAction('go back to the previous page')
-} else {
-  aiAction('input a greeting text and click send')
+// converted code
+const recordList = await agent.aiQuery('string[], the record list')
+for (const record of recordList) {
+  const hasCompleted = await agent.aiBoolean(`check if the record contains the text "completed"`)
+  if (!hasCompleted) {
+    await agent.aiTap(record)
+  }
 }
 ```
 
-Use this way to write automation code, can reduce the dependency on AI model, and improve the stability of the code.
+After modifying the coding style, the whole process can be much more reliable and easier to maintain.
 
-Another example:
+## A More Complex Example
+
+Here is another example, this is what it looks like before rewriting: 
 
 ```javascript
 aiAction(`
-1. click the first user, enter the user's homepage
+1. click the first unfollowed user, enter the user's homepage
 2. click the follow button
 3. go back to the previous page
 4. if all users are followed, scroll down one screen
 5. repeat the above steps until all users are followed
 `)
+```
 
-
-can be converted to:
+After using the structured APIs, developers can easily debug it step by step.
 
 ```javascript
-let user = await agent.aiQuery('string[], the user names in the list')
+let user = await agent.aiQuery('string[], the unfollowed user names in the list')
 let currentUserIndex = 0
 
-while (true) {
-  await agent.aiAction(`click the first user, enter the user's homepage`)
-  await agent.aiTap('follow button')
-  await agent.aiAction('go back to the previous page')
-
-  if (currentUserIndex === user.length - 1) {
-    await agent.aiAction('scroll down one screen')
-    user = await agent.aiQuery('string[], the user names in the list')
+while (user.length > 0) {
+  console.log('current user is', user[currentUserIndex])
+  await agent.aiTap(user[currentUserIndex])
+  try {
+    await agent.aiTap('follow button')
+  } catch (e) {
+    // ignore if error
+  }
+  // Go back to the previous page
+  await agent.aiTap('back button')
+  
+  currentUserIndex++
+  
+  // Check if we've gone through all users in the current list
+  if (currentUserIndex >= user.length) {
+    // Scroll down to load more users
+    await agent.aiScroll('scroll down one screen')
+    
+    // Get the updated user list
+    user = await agent.aiQuery('string[], the unfollowed user names in the list')
     currentUserIndex = 0
-  } else {
-    currentUserIndex++
   }
 }
 ```
 
-## Common Structured API Methods
+## Commonly-used Structured API Methods
+
+Here are some commonly-used structured API methods:
 
 ### `aiBoolean` - Conditional Decision
 
@@ -120,3 +130,33 @@ for (let i = 0; i < unreadCount; i++) {
   // ...
 }
 ```
+
+### `aiQuery` - General Data Extraction
+
+* Use Case: Extract any data type
+* Advantage: Flexible Data Type Handling
+
+Example:
+```javascript
+const userList = await agent.aiQuery('string[], the user list')
+```
+
+And also, Midscene provides some instant action methods, like `aiTap`, `aiInput`, `aiScroll`, `aiHover`, etc., you can check them in the [API](./API) page.
+
+## Want to Write Structured Code Easily ?
+
+Use your AI IDE to index the following documents:
+
+- https://midscenejs.com/blog-programming-practice-using-structured-api.md
+- https://midscenejs.com/API.md
+
+And use this prompt:
+
+```
+According to the tips and APIs mentioned in Midscene documents, please help me convert the following instructions into structured javascript code:
+
+<your prompt>
+```
+
+And the magic would happen.
+Enjoy it!
