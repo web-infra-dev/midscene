@@ -498,9 +498,9 @@ export function setGenerateHashOnWindow() {
   }
 }
 
-export function setMidsceneelementRectOnWindow() {
+export function setMidsceneVisibleRectOnWindow() {
   if (typeof window !== 'undefined') {
-    (window as any).midsceneelementRect = elementRect;
+    (window as any).midsceneVisibleRect = elementRect;
   }
 }
 
