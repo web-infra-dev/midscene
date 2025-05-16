@@ -6,10 +6,10 @@
       "multi": false,
       "annotation_index_id": 1,
       "response_rect": {
-        "left": 17,
-        "top": 20,
-        "width": 22,
-        "height": 16
+        "left": 9,
+        "top": 18,
+        "width": 34,
+        "height": 39
       },
       "response_element": {
         "id": "amjle",
@@ -21,14 +21,13 @@
       "multi": false,
       "annotation_index_id": 2,
       "response_rect": {
-        "left": 58,
-        "top": 16,
-        "width": 66,
-        "height": 23
+        "left": 95,
+        "top": 34,
+        "width": 83,
+        "height": 6
       },
       "response_element": {
-        "id": "kfmhg",
-        "indexId": 1
+        "id": "mbdlb"
       }
     },
     {
@@ -36,10 +35,10 @@
       "multi": false,
       "annotation_index_id": 3,
       "response_rect": {
-        "left": 352,
-        "top": 19,
-        "width": 20,
-        "height": 17
+        "left": 354,
+        "top": 18,
+        "width": 18,
+        "height": 21
       },
       "response_element": {
         "id": "podpa",
@@ -51,14 +50,13 @@
       "multi": false,
       "annotation_index_id": 4,
       "response_rect": {
-        "left": 190,
-        "top": 724,
-        "width": 38,
-        "height": 19
+        "left": 348,
+        "top": 759,
+        "width": 14,
+        "height": 8
       },
       "response_element": {
-        "id": "dmggl",
-        "indexId": 20
+        "id": "eagmn"
       }
     },
     {
@@ -66,10 +64,10 @@
       "multi": false,
       "annotation_index_id": 5,
       "response_rect": {
-        "left": 301,
-        "top": 864,
-        "width": 86,
-        "height": 18
+        "left": 304,
+        "top": 859,
+        "width": 83,
+        "height": 23
       },
       "response_element": {
         "id": "cdmma",
@@ -81,14 +79,13 @@
       "multi": false,
       "annotation_index_id": 6,
       "response_rect": {
-        "left": 369,
-        "top": 825,
-        "width": 21,
-        "height": 16
+        "left": -348,
+        "top": -579,
+        "width": 87,
+        "height": 271
       },
       "response_element": {
-        "id": "ddeal",
-        "indexId": 27
+        "id": "dcppg"
       }
     }
   ]

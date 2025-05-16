@@ -6,14 +6,13 @@
       "multi": false,
       "annotation_index_id": 1,
       "response_rect": {
-        "left": 512,
-        "top": 127,
-        "width": 556,
-        "height": 71
+        "left": 548,
+        "top": 179,
+        "width": 55,
+        "height": 21
       },
       "response_element": {
-        "id": "okgbn",
-        "indexId": 18
+        "id": "lbjjf"
       }
     },
     {
@@ -21,14 +20,13 @@
       "multi": false,
       "annotation_index_id": 2,
       "response_rect": {
-        "left": 512,
-        "top": 127,
-        "width": 556,
-        "height": 71
+        "left": -498,
+        "top": -576,
+        "width": 1701,
+        "height": 1304
       },
       "response_element": {
-        "id": "okgbn",
-        "indexId": 18
+        "id": "ffncc"
       }
     },
     {
@@ -36,14 +34,13 @@
       "multi": false,
       "annotation_index_id": 3,
       "response_rect": {
-        "left": 574,
-        "top": 276,
-        "width": 117,
-        "height": 17
+        "left": 587,
+        "top": 274,
+        "width": 376,
+        "height": 24
       },
       "response_element": {
-        "id": "idmhb",
-        "indexId": 24
+        "id": "micif"
       }
     },
     {
@@ -51,10 +48,10 @@
       "multi": false,
       "annotation_index_id": 4,
       "response_rect": {
-        "left": 1028,
-        "top": 279,
-        "width": 15,
-        "height": 12
+        "left": 987,
+        "top": 254,
+        "width": 76,
+        "height": 46
       },
       "response_element": {
         "id": "jicbk",
@@ -66,10 +63,10 @@
       "multi": false,
       "annotation_index_id": 5,
       "response_rect": {
-        "left": 521,
-        "top": 334,
-        "width": 33,
-        "height": 26
+        "left": 527,
+        "top": 340,
+        "width": 21,
+        "height": 21
       },
       "response_element": {
         "id": "kjccf",
@@ -81,10 +78,10 @@
       "multi": false,
       "annotation_index_id": 6,
       "response_rect": {
-        "left": 802,
+        "left": 804,
         "top": 391,
-        "width": 69,
-        "height": 12
+        "width": 68,
+        "height": 14
       },
       "response_element": {
         "id": "ddapc",

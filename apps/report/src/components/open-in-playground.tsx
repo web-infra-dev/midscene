@@ -1,8 +1,15 @@
 import { PlayCircleOutlined } from '@ant-design/icons';
 import type { UIContext } from '@midscene/core';
-import { useStaticPageAgent } from '@midscene/visualizer';
+import { Describer, useStaticPageAgent } from '@midscene/visualizer';
 import type { WebUIContext } from '@midscene/web/utils';
-import { Button, Drawer, Tooltip } from 'antd';
+import {
+  Button,
+  ConfigProvider,
+  Drawer,
+  Tabs,
+  type TabsProps,
+  Tooltip,
+} from 'antd';
 import { useEffect, useState } from 'react';
 import { StandardPlayground } from './playground';
 import { useEnvConfig } from './store';
@@ -24,6 +31,11 @@ const checkServerStatus = async () => {
   } catch (e) {
     return false;
   }
+};
+
+const tabKeys = {
+  PLAYGROUND: 'playground',
+  ELEMENT_DESCRIBER: 'element-describer',
 };
 
 export const useServerValid = (shouldRun = true) => {
@@ -79,6 +91,63 @@ export default function OpenInPlayground(props?: { context?: UIContext }) {
   };
   const agent = useStaticPageAgent(context as WebUIContext);
 
+  const tabItems: TabsProps['items'] = [
+    {
+      key: tabKeys.PLAYGROUND,
+      label: 'Playground',
+    },
+    ...(location.href.indexOf('beta') >= 0
+      ? [
+          {
+            key: tabKeys.ELEMENT_DESCRIBER,
+            label: 'Element Describer (Beta)',
+          },
+        ]
+      : []),
+  ];
+
+  const [activeTab, setActiveTab] = useState(tabKeys.PLAYGROUND);
+
+  let toolContent: React.ReactNode;
+  if (activeTab === tabKeys.PLAYGROUND) {
+    toolContent = (
+      <StandardPlayground
+        getAgent={() => {
+          return agent;
+        }}
+        dryMode={true}
+        hideLogo={true}
+        key={contextLoadingCounter}
+      />
+    );
+  } else if (activeTab === tabKeys.ELEMENT_DESCRIBER) {
+    if (context) {
+      toolContent = (
+        <Describer uiContext={context} key={contextLoadingCounter} />
+      );
+    } else {
+      toolContent = <div>No context found</div>;
+    }
+  }
+
+  const tabComponent = (
+    <ConfigProvider
+      theme={{
+        components: {
+          Tabs: {
+            horizontalMargin: '0 0 -1px 10px',
+          },
+        },
+      }}
+    >
+      <Tabs
+        defaultActiveKey={activeTab}
+        items={tabItems}
+        onChange={setActiveTab}
+      />
+    </ConfigProvider>
+  );
+
   if (!ifPlaygroundValid) {
     return (
       <Tooltip
@@ -109,25 +178,18 @@ export default function OpenInPlayground(props?: { context?: UIContext }) {
         Open in Playground
       </Button>
       <Drawer
-        title="Playground"
+        title={tabComponent}
         placement="right"
         onClose={handleClose}
         open={isDrawerVisible}
         width="90%"
         styles={{
-          header: { padding: '16px' },
+          header: { padding: '0 16px' },
           body: { padding: '24px' },
         }}
         className="playground-drawer"
       >
-        <StandardPlayground
-          getAgent={() => {
-            return agent;
-          }}
-          dryMode={true}
-          hideLogo={true}
-          key={contextLoadingCounter}
-        />
+        {toolContent}
       </Drawer>
     </>
   );

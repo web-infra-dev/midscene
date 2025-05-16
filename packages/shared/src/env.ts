@@ -31,6 +31,8 @@ export const MATCH_BY_POSITION = 'MATCH_BY_POSITION';
 export const MIDSCENE_API_TYPE = 'MIDSCENE-API-TYPE';
 export const MIDSCENE_REPORT_TAG_NAME = 'MIDSCENE_REPORT_TAG_NAME';
 
+export const MIDSCENE_PREFERRED_LANGUAGE = 'MIDSCENE_PREFERRED_LANGUAGE';
+
 export const MIDSCENE_USE_AZURE_OPENAI = 'MIDSCENE_USE_AZURE_OPENAI';
 export const MIDSCENE_AZURE_OPENAI_SCOPE = 'MIDSCENE_AZURE_OPENAI_SCOPE';
 export const MIDSCENE_AZURE_OPENAI_INIT_CONFIG_JSON =
@@ -103,6 +105,8 @@ export const allConfigFromEnv = () => {
     [MIDSCENE_MCP_USE_PUPPETEER_MODE]:
       process.env[MIDSCENE_MCP_USE_PUPPETEER_MODE] || undefined,
     [MIDSCENE_RUN_DIR]: process.env[MIDSCENE_RUN_DIR] || undefined,
+    [MIDSCENE_PREFERRED_LANGUAGE]:
+      process.env[MIDSCENE_PREFERRED_LANGUAGE] || undefined,
   };
 };
 
@@ -243,4 +247,14 @@ export const overrideAIConfig = (
   globalConfig = extendMode
     ? { ...currentConfig, ...newConfig }
     : { ...newConfig };
+};
+
+export const getPreferredLanguage = () => {
+  if (getAIConfig(MIDSCENE_PREFERRED_LANGUAGE)) {
+    return getAIConfig(MIDSCENE_PREFERRED_LANGUAGE);
+  }
+
+  const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  const isChina = timeZone === 'Asia/Shanghai';
+  return isChina ? 'Chinese' : 'English';
 };

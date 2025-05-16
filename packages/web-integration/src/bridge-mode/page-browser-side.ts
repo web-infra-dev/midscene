@@ -144,7 +144,6 @@ export class ExtensionBridgePageBrowserSide extends ChromeExtensionProxyPage {
     },
   ) {
     const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
-    console.log('current tab', tabs);
     const tabId = tabs[0]?.id;
     assert(tabId, 'failed to get tabId');
 

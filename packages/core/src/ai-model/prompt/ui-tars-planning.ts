@@ -1,19 +1,7 @@
-export function getTimeZoneInfo(): { timezone: string; isChina: boolean } {
-  const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-  const offset = -new Date().getTimezoneOffset() / 60;
-
-  return {
-    timezone: `UTC${offset >= 0 ? '+' : ''}${offset}`,
-    isChina: timeZone === 'Asia/Shanghai',
-  };
-}
-
-export function getLanguage(): string {
-  return getTimeZoneInfo().isChina ? 'Chinese' : 'English';
-}
+import { getPreferredLanguage } from '@midscene/shared/env';
 
 export function getUiTarsPlanningPrompt(): string {
-  const language = getLanguage();
+  const preferredLanguage = getPreferredLanguage();
 
   return `
 You are a GUI agent. You are given a task and your action history, with screenshots. You need to perform the next action to complete the task. 
@@ -38,7 +26,7 @@ finished(content='xxx') # Use escape characters \\', \\", and \\n in content par
 
 
 ## Note
-- Use ${language} in \`Thought\` part.
+- Use ${preferredLanguage} in \`Thought\` part.
 - Write a small plan and finally summarize your next action (with its target element) in one sentence in \`Thought\` part.
 
 ## User Instruction
