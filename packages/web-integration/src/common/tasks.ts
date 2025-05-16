@@ -39,7 +39,6 @@ import {
   vlmPlanning,
 } from '@midscene/core/ai-model';
 import { sleep } from '@midscene/core/utils';
-
 import { NodeType } from '@midscene/shared/constants';
 import type { ElementInfo } from '@midscene/shared/extractor';
 import { getElementInfosScriptContent } from '@midscene/shared/fs';
@@ -48,7 +47,7 @@ import { assert } from '@midscene/shared/utils';
 import type { WebElementInfo } from '../web-element';
 import type { TaskCache } from './task-cache';
 import { getKeyCommands, taskTitleStr } from './ui-utils';
-import type { WebUIContext } from './utils';
+import { matchElementFromPlan, type WebUIContext } from './utils';
 
 interface ExecutionResult<OutputType = any> {
   output: OutputType;
@@ -255,7 +254,8 @@ export class PageTaskExecutor {
 
             const startTime = Date.now();
             const element =
-              elementFromCache ||
+              elementFromCache || // try to match element from cache
+              matchElementFromPlan(param, pageContext.tree) || // try to match element from plan
               (
                 await this.insight.locate(param, {
                   context: pageContext,

@@ -1,3 +1,6 @@
+import { NodeType } from '../constants';
+import { generateHashId } from '../utils';
+
 export function isFormElement(node: globalThis.Node) {
   return (
     node instanceof HTMLElement &&
@@ -97,4 +100,23 @@ function includeBaseElement(node: globalThis.Node) {
   }
 
   return false;
+}
+
+export function generateElementByPosition(position: { x: number; y: number }) {
+  const rect = {
+    left: Math.max(position.x - 4, 0),
+    top: Math.max(position.y - 4, 0),
+    width: 8,
+    height: 8,
+  };
+  const id = generateHashId(rect);
+  const element = {
+    id,
+    attributes: { nodeType: NodeType.POSITION },
+    rect,
+    content: '',
+    center: [position.x, position.y],
+  };
+
+  return element;
 }

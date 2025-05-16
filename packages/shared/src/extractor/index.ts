@@ -1,4 +1,5 @@
 import type { NodeType } from '../constants/index';
+
 export interface ElementInfo {
   id: string;
   indexId: number;
@@ -28,10 +29,12 @@ export { extractTreeNode as webExtractNodeTree } from './web-extractor';
 
 export { extractTreeNodeAsString as webExtractNodeTreeAsString } from './web-extractor';
 
-export { setNodeHashCacheListOnWindow } from './util';
+export { setNodeHashCacheListOnWindow, getNodeFromCacheList } from './util';
 
 export {
   getXpathsById,
   getNodeInfoByXpath,
   getElementInfoByXpath,
 } from './locator';
+
+export { generateElementByPosition } from './dom-util';
