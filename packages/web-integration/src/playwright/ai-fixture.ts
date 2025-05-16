@@ -30,7 +30,7 @@ const groupAndCaseForTest = (testInfo: TestInfo) => {
 
   return {
     file: taskFile,
-    id: replaceIllegalPathCharsAndSpace(`${taskFile}-${taskTitle}`),
+    id: replaceIllegalPathCharsAndSpace(`${taskFile}(${taskTitle})`),
     title: replaceIllegalPathCharsAndSpace(taskTitleWithRetry),
   };
 };
