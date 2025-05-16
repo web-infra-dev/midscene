@@ -1,20 +1,32 @@
 import { existsSync, readFileSync } from 'node:fs';
-import { TaskCache } from '@/common/task-cache';
+import {
+  TaskCache,
+  type LocateCache,
+  type PlanningCache,
+} from '@/common/task-cache';
 import { uuid } from '@midscene/shared/utils';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 
-// Mock package.json 版本号
 vi.mock('../../package.json', () => {
   return {
     version: '0.16.11',
   };
 });
 
+const prepareCache = (caches: (PlanningCache | LocateCache)[]) => {
+  const cache = new TaskCache(uuid(), true);
+
+  caches.map((data: PlanningCache | LocateCache) => {
+    cache.appendCache(data);
+  });
+
+  return cache.cacheFilePath;
+};
+
 describe(
   'TaskCache',
   () => {
     beforeAll(() => {
-      // 确保测试使用固定的版本号
       vi.resetModules();
     });
 
@@ -32,6 +44,7 @@ describe(
         prompt: 'test',
         yamlWorkflow: 'test',
       });
+
       expect(existsSync(cache.cacheFilePath!)).toBe(true);
       const cacheContent = readFileSync(cache.cacheFilePath!, 'utf-8').replace(
         cacheId,
@@ -69,19 +82,15 @@ describe(
     });
 
     it('one cache record can only be matched once - when loaded from file', () => {
-      const cacheId = uuid();
-      const cache = new TaskCache(cacheId, true);
+      const cacheFilePath = prepareCache([
+        {
+          type: 'plan',
+          prompt: 'test-prompt',
+          yamlWorkflow: 'test-yaml-workflow',
+        },
+      ]);
 
-      // add a cache record
-      cache.appendCache({
-        type: 'plan',
-        prompt: 'test-prompt',
-        yamlWorkflow: 'test-yaml-workflow',
-      });
-
-      // create a new TaskCache instance to simulate loading cache from file
-      const cacheFilePath = cache.cacheFilePath!;
-      const newCache = new TaskCache(cacheId, true, cacheFilePath);
+      const newCache = new TaskCache(uuid(), true, cacheFilePath);
 
       // should be able to match cache record
       expect(newCache.matchPlanCache('test-prompt')).toBeDefined();
@@ -90,25 +99,19 @@ describe(
     });
 
     it('same prompt with same type cache record can be matched twice - when loaded from file', () => {
-      const cacheId = uuid();
-      const cache = new TaskCache(cacheId, true);
-
-      // add two cache records with the same prompt
-      cache.appendCache({
-        type: 'plan',
-        prompt: 'test-prompt',
-        yamlWorkflow: 'test-yaml-workflow-1',
-      });
-
-      cache.appendCache({
-        type: 'plan',
-        prompt: 'test-prompt',
-        yamlWorkflow: 'test-yaml-workflow-2',
-      });
-
-      // create a new TaskCache instance to simulate loading cache from file
-      const cacheFilePath = cache.cacheFilePath!;
-      const newCache = new TaskCache(cacheId, true, cacheFilePath);
+      const cacheFilePath = prepareCache([
+        {
+          type: 'plan',
+          prompt: 'test-prompt',
+          yamlWorkflow: 'test-yaml-workflow-1',
+        },
+        {
+          type: 'plan',
+          prompt: 'test-prompt',
+          yamlWorkflow: 'test-yaml-workflow-2',
+        },
+      ]);
+      const newCache = new TaskCache(uuid(), true, cacheFilePath);
 
       // should be able to match the first record
       const firstMatch = newCache.matchPlanCache('test-prompt');
@@ -161,32 +164,26 @@ describe(
     });
 
     it('save and retrieve cache from file', () => {
-      const cacheId = uuid();
-      const taskCache = new TaskCache(cacheId, true);
-
       const planningCachedPrompt = 'test';
       const planningCachedYamlWorkflow = 'test-yaml-workflow';
 
       const locateCachedPrompt = 'test-locate';
       const locateCachedXpaths = ['test-xpath-1', 'test-xpath-2'];
 
-      // add two cache records
-      taskCache.appendCache({
-        type: 'plan',
-        prompt: planningCachedPrompt,
-        yamlWorkflow: planningCachedYamlWorkflow,
-      });
+      const cacheFilePath = prepareCache([
+        {
+          type: 'plan',
+          prompt: planningCachedPrompt,
+          yamlWorkflow: planningCachedYamlWorkflow,
+        },
+        {
+          type: 'locate',
+          prompt: locateCachedPrompt,
+          xpaths: locateCachedXpaths,
+        },
+      ]);
 
-      taskCache.appendCache({
-        type: 'locate',
-        prompt: locateCachedPrompt,
-        xpaths: locateCachedXpaths,
-      });
-
-      const cacheFilePath = taskCache.cacheFilePath;
-
-      // create a new TaskCache instance to simulate loading cache from file
-      const newTaskCache = new TaskCache(cacheId, true, cacheFilePath);
+      const newTaskCache = new TaskCache(uuid(), true, cacheFilePath);
 
       // should be able to match all cache records
       const cachedPlanCache = newTaskCache.matchPlanCache(planningCachedPrompt);
@@ -216,7 +213,7 @@ describe(
       const cacheFileContent = readFileSync(
         newTaskCache.cacheFilePath!,
         'utf-8',
-      ).replace(cacheId, 'cacheId');
+      ).replace(newTaskCache.cacheId, 'cacheId');
       expect(cacheFileContent).toMatchSnapshot();
     });
   },
