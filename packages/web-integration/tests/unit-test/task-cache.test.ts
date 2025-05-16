@@ -1,8 +1,8 @@
 import { existsSync, readFileSync } from 'node:fs';
 import {
-  TaskCache,
   type LocateCache,
   type PlanningCache,
+  TaskCache,
 } from '@/common/task-cache';
 import { uuid } from '@midscene/shared/utils';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';

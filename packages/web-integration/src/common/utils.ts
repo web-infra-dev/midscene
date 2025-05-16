@@ -6,6 +6,7 @@ import type {
   PlaywrightParserOpt,
   UIContext,
 } from '@midscene/core';
+import { elementByPositionWithElementInfo } from '@midscene/core/ai-model';
 import { uploadTestInfoToServer } from '@midscene/core/utils';
 import { MIDSCENE_REPORT_TAG_NAME, getAIConfig } from '@midscene/shared/env';
 import type { ElementInfo } from '@midscene/shared/extractor';
@@ -23,7 +24,6 @@ import type { Page as PlaywrightPage } from 'playwright';
 import type { Page as PuppeteerPage } from 'puppeteer';
 import { WebElementInfo } from '../web-element';
 import type { WebPage } from './page';
-import { elementByPositionWithElementInfo } from '@midscene/core/ai-model';
 
 export type WebUIContext = UIContext<WebElementInfo> & {
   url: string;

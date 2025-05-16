@@ -47,7 +47,7 @@ import { assert } from '@midscene/shared/utils';
 import type { WebElementInfo } from '../web-element';
 import type { TaskCache } from './task-cache';
 import { getKeyCommands, taskTitleStr } from './ui-utils';
-import { matchElementFromPlan, type WebUIContext } from './utils';
+import { type WebUIContext, matchElementFromPlan } from './utils';
 
 interface ExecutionResult<OutputType = any> {
   output: OutputType;

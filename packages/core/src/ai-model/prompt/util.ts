@@ -4,8 +4,8 @@ import { NodeType } from '@midscene/shared/constants';
 import { vlLocateMode } from '@midscene/shared/env';
 import {
   descriptionOfTree,
-  treeToList,
   generateElementByPosition,
+  treeToList,
 } from '@midscene/shared/extractor';
 import { assert } from '@midscene/shared/utils';
 
