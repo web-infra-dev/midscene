@@ -19,13 +19,10 @@ export function parseYamlScript(
   ignoreCheckingTarget?: boolean,
 ): MidsceneYamlScript {
   const interpolatedContent = interpolateEnvVars(content);
-  // const obj = yaml.load(interpolatedContent) as MidsceneYamlScript;
-  // 使用 schema 选项确保不自动转换类型
   const obj = yaml.load(interpolatedContent, {
-    schema: yaml.JSON_SCHEMA
+    schema: yaml.JSON_SCHEMA,
   }) as MidsceneYamlScript;
 
-  // 确保 deviceId 是字符串类型
   if (obj.android && typeof obj.android.deviceId !== 'undefined') {
     obj.android.deviceId = String(obj.android.deviceId);
   }
