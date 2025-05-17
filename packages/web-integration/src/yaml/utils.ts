@@ -4,7 +4,7 @@ import yaml from 'js-yaml';
 import type { MidsceneYamlScript } from '@midscene/core';
 
 function interpolateEnvVars(content: string): string {
-  return content.replace(/\$\{([^}]+)\}/g, (_, envVar) => {
+  return content.replace(/\$\{([^}]+)}/g, (_, envVar) => {
     const value = process.env[envVar.trim()];
     if (value === undefined) {
       throw new Error(`Environment variable "${envVar.trim()}" is not defined`);
@@ -19,7 +19,16 @@ export function parseYamlScript(
   ignoreCheckingTarget?: boolean,
 ): MidsceneYamlScript {
   const interpolatedContent = interpolateEnvVars(content);
-  const obj = yaml.load(interpolatedContent) as MidsceneYamlScript;
+  // const obj = yaml.load(interpolatedContent) as MidsceneYamlScript;
+  // 使用 schema 选项确保不自动转换类型
+  const obj = yaml.load(interpolatedContent, {
+    schema: yaml.JSON_SCHEMA
+  }) as MidsceneYamlScript;
+
+  // 确保 deviceId 是字符串类型
+  if (obj.android && typeof obj.android.deviceId !== 'undefined') {
+    obj.android.deviceId = String(obj.android.deviceId);
+  }
   const pathTip = filePath ? `, failed to load ${filePath}` : '';
   const android =
     typeof obj.android !== 'undefined'
