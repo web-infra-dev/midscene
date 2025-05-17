@@ -34,6 +34,17 @@ MIDSCENE_MODEL_NAME="qwen-vl-max-latest"
 MIDSCENE_USE_QWEN_VL=1
 ```
 
+### 火山引擎上的 Doubao-1.5-thinking-vision-pro
+
+你可以在[火山引擎](https://volcengine.com)上使用 `Doubao-1.5-thinking-vision-pro` 模型，在火山引擎上申请 API 密钥后，你可以使用以下配置：
+
+```bash
+OPENAI_BASE_URL="https://ark.cn-beijing.volces.com/api/v3" 
+OPENAI_API_KEY="...."
+MIDSCENE_MODEL_NAME="ep-..." # 火山引擎的推理接入点ID
+MIDSCENE_USE_DOUBAO_VISION=1
+```
+
 ### 火山引擎上的 UI-TARS
 
 你可以在[火山引擎](https://volcengine.com)上使用 `doubao-1.5-ui-tars` 模型，在火山引擎上申请 API 密钥后，你可以使用以下配置：

@@ -4,6 +4,18 @@ Midscene uses the OpenAI SDK to call AI services. Using this SDK limits the inpu
 
 In this article, we will show you how to config AI service provider and how to choose a different model. You may read [Choose a model](./choose-a-model) first to learn more about how to choose a model.
 
+
+## Model Comparison
+
+| Model | Features | Advantages | Limitations | Use Cases | Cost | Recommendation |
+|-------|----------|------------|------------|-----------|------|----------------|
+| Doubao-1.5-thinking-vision-pro | Reasoning VL model with visual grounding | - Excellent in exploratory scenarios<br/>- Reasoning model with more stable results<br/>- Native image recognition<br/>- SOTA performance on GUI benchmarks | - Slow inference speed<br/> | - Exploratory tasks<br/> - Stable execution tasks<br/> - Speed-insensitive scenarios | Medium | ★★★★ |
+| Qwen-2.5-VL | VL model with visual grounding | - Low cost (saves 30-50% tokens)<br/>- High resolution support<br/>- Open source and self-deployable<br/>- Strong visual grounding capabilities | - Small icon recognition requires tuning<br/>- Relatively weak assertion capabilities | - Web automation<br/>- Android automation<br/>- Scenarios requiring visual grounding | Medium | ★★★★ |
+| UI-TARS | Designed specifically for UI automation | - Great performance in exploratory scenarios<br/>- Fast response speed<br/>- Native image recognition<br/>- Open source and self-deployable | - Weak assertion capabilities<br/>- Inconsistent operation paths | - Exploratory tasks<br/>- Scenarios requiring fast responses | Medium | ★★★ |
+| Gemini-2.5-Pro | VL model with visual grounding | - Similar capabilities to Qwen-2.5-VL<br/>- Official Google support | - Closed source<br/>- Relatively new | - Web automation<br/>- Android automation | Medium | ★★★ |
+| GPT-4o | General multimodal LLM | - Balanced capabilities in interaction, assertion, and querying | - Cannot handle iframe content<br/>- Poor small icon recognition<br/>- Does not support Android automation | - Web automation<br/> | High | ★ |
+
+
 ## Configs
 
 ### Common configs
@@ -154,6 +166,19 @@ export OPENAI_API_KEY="sk-..."
 export OPENAI_BASE_URL="https://dashscope.aliyuncs.com/compatible-mode/v1"
 export MIDSCENE_MODEL_NAME="qwen-vl-max-latest"
 export MIDSCENE_USE_QWEN_VL=1
+```
+
+
+## Example: Using `Doubao-1.5-thinking-vision-pro` from Volcano Engine
+
+Configure the environment variables:
+
+
+```bash
+export OPENAI_BASE_URL="https://ark-cn-beijing.bytedance.net/api/v3"
+export OPENAI_API_KEY="..."
+export MIDSCENE_MODEL_NAME='ep-...'
+export MIDSCENE_USE_DOUBAO_VISION=1
 ```
 
 ## Example: Using `ui-tars-72b-sft` hosted by yourself
