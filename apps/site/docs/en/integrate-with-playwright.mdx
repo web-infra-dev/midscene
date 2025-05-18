@@ -84,7 +84,8 @@ test("search headphone on ebay", async ({
   aiAssert,
   aiInput,
   aiTap,
-  aiScroll 
+  aiScroll,
+  aiWaitFor
 }) => {
   // Use aiInput to enter search keyword
   await aiInput('Headphones', 'search box');
