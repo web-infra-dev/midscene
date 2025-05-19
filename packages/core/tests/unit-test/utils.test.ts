@@ -11,6 +11,8 @@ import {
   preprocessDoubaoBboxJson,
   safeParseJson,
 } from '@/ai-model/service-caller';
+import { getAIConfig, overrideAIConfig } from '@midscene/shared/env';
+import { describe, expect, it } from 'vitest';
 import {
   getLogDir,
   getTmpDir,
@@ -18,13 +20,7 @@ import {
   overlapped,
   reportHTMLContent,
   writeDumpReport,
-} from '@/utils';
-import {
-  getAIConfig,
-  overrideAIConfig,
-  vlLocateMode,
-} from '@midscene/shared/env';
-import { describe, expect, it } from 'vitest';
+} from '../../dist/es/utils'; // use modules from dist, otherwise we will miss the template file
 
 describe('utils', () => {
   it('tmpDir', () => {
@@ -389,6 +385,30 @@ describe('doubao-vision', () => {
       ]
     `);
   });
+
+  it('adaptDoubaoBbox with string bbox', () => {
+    const result = adaptDoubaoBbox(['123 222', '789 100'], 1000, 2000);
+    expect(result).toMatchInlineSnapshot(`
+      [
+        123,
+        444,
+        789,
+        200,
+      ]
+    `);
+  });
+
+  it('adaptDoubaoBbox with string bbox', () => {
+    const result = adaptDoubaoBbox(['123,222', '789, 100'], 1000, 2000);
+    expect(result).toMatchInlineSnapshot(`
+      [
+        123,
+        444,
+        789,
+        200,
+      ]
+    `);
+  });
 });
 
 describe('doubao-vision', () => {
@@ -419,6 +439,32 @@ describe('doubao-vision', () => {
     const input6 = '123 345 11111';
     const result6 = preprocessDoubaoBboxJson(input6);
     expect(result6).toMatchInlineSnapshot(`"123 345 11111"`);
+
+    const input7 = `
+{
+  "bbox": [
+    "550 216",
+    "550 216",
+    "550 216",
+    "550 216"
+  ],
+  "errors": []
+}
+    `;
+    const result7 = preprocessDoubaoBboxJson(input7);
+    expect(result7).toMatchInlineSnapshot(`
+      "
+      {
+        "bbox": [
+          "550,216",
+          "550,216",
+          "550,216",
+          "550,216"
+        ],
+        "errors": []
+      }
+          "
+    `);
   });
 
   it('adaptDoubaoBbox with 2 points', () => {

@@ -8,13 +8,17 @@ import {
   type ExecutionTaskApply,
   type ExecutionTaskInsightLocateApply,
   type ExecutionTaskInsightQueryApply,
+  type ExecutionTaskPlanning,
   type ExecutionTaskPlanningApply,
   type ExecutionTaskProgressOptions,
   Executor,
+  type ExecutorContext,
   type Insight,
   type InsightAssertionResponse,
   type InsightDump,
   type InsightExtractParam,
+  type LocateResultElement,
+  type MidsceneYamlFlowItem,
   type PageType,
   type PlanningAIResponse,
   type PlanningAction,
@@ -30,21 +34,20 @@ import {
 } from '@midscene/core';
 import {
   type ChatCompletionMessageParam,
+  elementByPositionWithElementInfo,
+  resizeImageForUiTars,
   vlmPlanning,
 } from '@midscene/core/ai-model';
 import { sleep } from '@midscene/core/utils';
-
-import { UITarsModelVersion } from '@midscene/shared/env';
-import { uiTarsModelVersion } from '@midscene/shared/env';
-import { vlLocateMode } from '@midscene/shared/env';
+import { NodeType } from '@midscene/shared/constants';
 import type { ElementInfo } from '@midscene/shared/extractor';
-import { imageInfo, resizeImgBase64 } from '@midscene/shared/img';
+import { getElementInfosScriptContent } from '@midscene/shared/fs';
 import { getDebug } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
 import type { WebElementInfo } from '../web-element';
-import { TaskCache } from './task-cache';
+import type { TaskCache } from './task-cache';
 import { getKeyCommands, taskTitleStr } from './ui-utils';
-import type { WebUIContext } from './utils';
+import { type WebUIContext, matchElementFromPlan } from './utils';
 
 interface ExecutionResult<OutputType = any> {
   output: OutputType;
@@ -64,7 +67,7 @@ export class PageTaskExecutor {
 
   insight: Insight<WebElementInfo, WebUIContext>;
 
-  taskCache: TaskCache;
+  taskCache?: TaskCache;
 
   conversationHistory: ChatCompletionMessageParam[] = [];
 
@@ -74,16 +77,14 @@ export class PageTaskExecutor {
     page: WebPage,
     insight: Insight<WebElementInfo, WebUIContext>,
     opts: {
-      cacheId: string | undefined;
+      taskCache?: TaskCache;
       onTaskStart?: ExecutionTaskProgressOptions['onTaskStart'];
     },
   ) {
     this.page = page;
     this.insight = insight;
 
-    this.taskCache = new TaskCache({
-      cacheId: opts?.cacheId,
-    });
+    this.taskCache = opts.taskCache;
 
     this.onTaskStartCallback = opts?.onTaskStart;
   }
@@ -97,6 +98,44 @@ export class PageTaskExecutor {
       timing,
     };
     return item;
+  }
+
+  private async getElementXpath(
+    pageContext: WebUIContext,
+    element: LocateResultElement,
+  ): Promise<string[] | undefined> {
+    let elementId = element?.id;
+    // find the nearest xpath for the element
+    if (element?.attributes?.nodeType === NodeType.POSITION) {
+      await this.insight.contextRetrieverFn('locate');
+      const info = elementByPositionWithElementInfo(
+        pageContext.tree,
+        {
+          x: element.center[0],
+          y: element.center[1],
+        },
+        {
+          requireStrictDistance: false,
+          filterPositionElements: true,
+        },
+      );
+      if (info?.id) {
+        elementId = info.id;
+      }
+    }
+
+    if (!elementId) {
+      return undefined;
+    }
+    try {
+      const elementInfosScriptContent = getElementInfosScriptContent();
+      const result = await this.page.evaluateJavaScript?.(
+        `${elementInfosScriptContent}midscene_element_inspector.getXpathsById('${elementId}')`,
+      );
+      return result;
+    } catch (error) {
+      debug('getXpathsById error: ', error);
+    }
   }
 
   private prependExecutorWithScreenshot(
@@ -138,10 +177,7 @@ export class PageTaskExecutor {
     return taskWithScreenshot;
   }
 
-  private async convertPlanToExecutable(
-    plans: PlanningAction[],
-    cacheGroup?: ReturnType<TaskCache['getCacheGroupByPrompt']>,
-  ) {
+  private async convertPlanToExecutable(plans: PlanningAction[]) {
     const tasks: ExecutionTaskApply[] = [];
     plans.forEach((plan) => {
       if (plan.type === 'Locate') {
@@ -188,51 +224,64 @@ export class PageTaskExecutor {
             };
             task.recorder = [recordItem];
 
-            const cachePrompt = param.prompt;
-            const locateCache = cacheGroup?.matchCache(
-              pageContext,
-              'locate',
-              cachePrompt,
-            );
-            const idInCache = locateCache?.elements?.[0]?.id;
+            // try matching cache
             let cacheHitFlag = false;
-
-            let quickAnswerId = param?.id;
-            if (!quickAnswerId && idInCache) {
-              quickAnswerId = idInCache;
+            const cachePrompt = param.prompt;
+            const locateCacheRecord =
+              this.taskCache?.matchLocateCache(cachePrompt);
+            const xpaths = locateCacheRecord?.cacheContent?.xpaths;
+            let elementFromCache = null;
+            try {
+              if (xpaths?.length && this.taskCache?.isCacheResultUsed) {
+                // hit cache, use new id
+                const elementInfosScriptContent =
+                  getElementInfosScriptContent();
+                const element = await this.page.evaluateJavaScript?.(
+                  `${elementInfosScriptContent}midscene_element_inspector.getElementInfoByXpath('${xpaths[0]}')`,
+                );
+                elementFromCache = element;
+                debug('cache hit, prompt: %s', cachePrompt);
+                cacheHitFlag = true;
+                debug(
+                  'found a new new element with same xpath, xpath: %s, id: %s',
+                  xpaths[0],
+                  element?.id,
+                );
+              }
+            } catch (error) {
+              debug('get element info by xpath error: ', error);
             }
 
-            const quickAnswer = {
-              id: quickAnswerId,
-              bbox: param?.bbox,
-            };
             const startTime = Date.now();
-            const { element } = await this.insight.locate(param, {
-              quickAnswer,
-            });
+            const element =
+              elementFromCache || // try to match element from cache
+              matchElementFromPlan(param, pageContext.tree) || // try to match element from plan
+              (
+                await this.insight.locate(param, {
+                  context: pageContext,
+                })
+              ).element;
+
             const aiCost = Date.now() - startTime;
 
-            if (element && element.id === quickAnswerId && idInCache) {
-              cacheHitFlag = true;
-            }
-
-            if (element) {
-              cacheGroup?.saveCache({
-                type: 'locate',
-                pageContext: {
-                  url: pageContext.url,
-                  size: pageContext.size,
-                },
-                prompt: cachePrompt,
-                response: {
-                  elements: [
-                    {
-                      id: element.id,
-                    },
-                  ],
-                },
+            // update cache
+            if (element && this.taskCache && !cacheHitFlag) {
+              const elementXpaths = await this.getElementXpath(
+                pageContext,
                 element,
-              });
+              );
+              if (elementXpaths) {
+                this.taskCache.updateOrAppendCacheRecord(
+                  {
+                    type: 'locate',
+                    prompt: cachePrompt,
+                    xpaths: elementXpaths,
+                  },
+                  locateCacheRecord,
+                );
+              } else {
+                debug('no xpaths found, will not update cache', cachePrompt);
+              }
             }
             if (!element) {
               throw new Error(`Element not found: ${param.prompt}`);
@@ -304,7 +353,7 @@ export class PageTaskExecutor {
             locate: plan.locate,
             executor: async (taskParam, { element }) => {
               if (element) {
-                await this.page.clearInput(element as ElementInfo);
+                await this.page.clearInput(element as unknown as ElementInfo);
 
                 if (!taskParam || !taskParam.value) {
                   return;
@@ -566,59 +615,84 @@ export class PageTaskExecutor {
     };
   }
 
+  private async setupPlanningContext(executorContext: ExecutorContext) {
+    const shotTime = Date.now();
+    const pageContext = await this.insight.contextRetrieverFn('locate');
+    const recordItem: ExecutionRecorderItem = {
+      type: 'screenshot',
+      ts: shotTime,
+      screenshot: pageContext.screenshotBase64,
+      timing: 'before planning',
+    };
+
+    executorContext.task.recorder = [recordItem];
+    (executorContext.task as ExecutionTaskPlanning).pageContext = pageContext;
+
+    return {
+      pageContext,
+    };
+  }
+
+  async loadYamlFlowAsPlanning(userInstruction: string, yamlString: string) {
+    const taskExecutor = new Executor(taskTitleStr('Action', userInstruction), {
+      onTaskStart: this.onTaskStartCallback,
+    });
+
+    const task: ExecutionTaskPlanningApply = {
+      type: 'Planning',
+      subType: 'LoadYaml',
+      locate: null,
+      param: {
+        userInstruction,
+      },
+      executor: async (param, executorContext) => {
+        await this.setupPlanningContext(executorContext);
+        return {
+          output: {
+            actions: [],
+            more_actions_needed_by_instruction: false,
+            log: '',
+            yamlString,
+          },
+          cache: {
+            hit: true,
+          },
+        };
+      },
+    };
+
+    await taskExecutor.append(task);
+    await taskExecutor.flush();
+
+    return {
+      executor: taskExecutor,
+    };
+  }
+
   private planningTaskFromPrompt(
     userInstruction: string,
-    cacheGroup: ReturnType<TaskCache['getCacheGroupByPrompt']>,
     log?: string,
     actionContext?: string,
   ) {
     const task: ExecutionTaskPlanningApply = {
       type: 'Planning',
+      subType: 'Plan',
       locate: null,
       param: {
         userInstruction,
         log,
       },
       executor: async (param, executorContext) => {
-        const shotTime = Date.now();
-        const pageContext = await this.insight.contextRetrieverFn('locate');
-        const recordItem: ExecutionRecorderItem = {
-          type: 'screenshot',
-          ts: shotTime,
-          screenshot: pageContext.screenshotBase64,
-          timing: 'before planning',
-        };
+        const startTime = Date.now();
+        const { pageContext } =
+          await this.setupPlanningContext(executorContext);
 
-        executorContext.task.recorder = [recordItem];
-        (executorContext.task as any).pageContext = pageContext;
-
-        const cachePrompt = `${param.userInstruction} @ ${param.log || ''}`;
-        const planCache = cacheGroup.matchCache(
-          pageContext,
-          'plan',
-          cachePrompt,
-        );
-        let planResult: Awaited<ReturnType<typeof plan>>;
-        if (planCache) {
-          if ('actions' in planCache && Array.isArray(planCache.actions)) {
-            planCache.actions = planCache.actions.map((action) => {
-              // remove all bbox in actions cache while using
-              if (action.locate) {
-                // biome-ignore lint/performance/noDelete: intended to remove bbox
-                delete action.locate.bbox;
-              }
-              return action;
-            });
-          }
-          planResult = planCache;
-        } else {
-          planResult = await plan(param.userInstruction, {
-            context: pageContext,
-            log: param.log,
-            actionContext,
-            pageType: this.page.pageType as PageType,
-          });
-        }
+        const planResult = await plan(param.userInstruction, {
+          context: pageContext,
+          log: param.log,
+          actionContext,
+          pageType: this.page.pageType as PageType,
+        });
 
         const {
           actions,
@@ -672,7 +746,7 @@ export class PageTaskExecutor {
 
         if (sleep) {
           const timeNow = Date.now();
-          const timeRemaining = sleep - (timeNow - shotTime);
+          const timeRemaining = sleep - (timeNow - startTime);
           if (timeRemaining > 0) {
             finalActions.push({
               type: 'Sleep',
@@ -693,27 +767,17 @@ export class PageTaskExecutor {
           );
         }
 
-        cacheGroup.saveCache({
-          type: 'plan',
-          pageContext: {
-            url: pageContext.url,
-            size: pageContext.size,
-          },
-          prompt: cachePrompt,
-          response: planResult,
-        });
-
         return {
           output: {
             actions: finalActions,
             more_actions_needed_by_instruction,
             log,
+            yamlFlow: planResult.yamlFlow,
           },
           cache: {
-            hit: Boolean(planCache),
+            hit: false,
           },
           pageContext,
-          recorder: [recordItem],
           usage,
           rawResponse,
         };
@@ -723,56 +787,22 @@ export class PageTaskExecutor {
     return task;
   }
 
-  private planningTaskToGoal(
-    userInstruction: string,
-    cacheGroup: ReturnType<TaskCache['getCacheGroupByPrompt']>,
-  ) {
+  private planningTaskToGoal(userInstruction: string) {
     const task: ExecutionTaskPlanningApply = {
       type: 'Planning',
+      subType: 'Plan',
       locate: null,
       param: {
         userInstruction,
       },
       executor: async (param, executorContext) => {
-        const shotTime = Date.now();
-        const pageContext = await this.insight.contextRetrieverFn('locate');
-        const recordItem: ExecutionRecorderItem = {
-          type: 'screenshot',
-          ts: shotTime,
-          screenshot: pageContext.screenshotBase64,
-          timing: 'before planning',
-        };
-        executorContext.task.recorder = [recordItem];
-        (executorContext.task as any).pageContext = pageContext;
+        const { pageContext } =
+          await this.setupPlanningContext(executorContext);
 
-        let imagePayload = pageContext.screenshotBase64;
-        if (
-          vlLocateMode() === 'vlm-ui-tars' &&
-          uiTarsModelVersion() === UITarsModelVersion.V1_5
-        ) {
-          const size = pageContext.size;
-          // const imageInfo = await imageInfoOfBase64(imagePayload);
-          debug('ui-tars-v1.5, will check image size', size);
-          const currentPixels = size.width * size.height;
-          const maxPixels = 16384 * 28 * 28; //
-          if (currentPixels > maxPixels) {
-            const resizeFactor = Math.sqrt(maxPixels / currentPixels);
-            const newWidth = Math.floor(size.width * resizeFactor);
-            const newHeight = Math.floor(size.height * resizeFactor);
-            debug(
-              'resize image',
-              imageInfo,
-              'new width',
-              newWidth,
-              'new height',
-              newHeight,
-            );
-            imagePayload = await resizeImgBase64(imagePayload, {
-              width: newWidth,
-              height: newHeight,
-            });
-          }
-        }
+        const imagePayload = await resizeImageForUiTars(
+          pageContext.screenshotBase64,
+          pageContext.size,
+        );
 
         this.appendConversationHistory({
           role: 'user',
@@ -787,30 +817,12 @@ export class PageTaskExecutor {
         });
         const startTime = Date.now();
 
-        const planCache = cacheGroup.matchCache(
-          pageContext,
-          'ui-tars-plan',
-          userInstruction,
-        );
-        let planResult: Awaited<ReturnType<typeof vlmPlanning>>;
-        if (planCache) {
-          planResult = planCache;
-        } else {
-          planResult = await vlmPlanning({
-            userInstruction: param.userInstruction,
-            conversationHistory: this.conversationHistory,
-            size: pageContext.size,
-          });
-        }
-        cacheGroup.saveCache({
-          type: 'ui-tars-plan',
-          pageContext: {
-            url: pageContext.url,
-            size: pageContext.size,
-          },
-          prompt: userInstruction,
-          response: planResult,
+        const planResult = await vlmPlanning({
+          userInstruction: param.userInstruction,
+          conversationHistory: this.conversationHistory,
+          size: pageContext.size,
         });
+
         const aiCost = Date.now() - startTime;
         const { actions, action_summary } = planResult;
         this.appendConversationHistory({
@@ -824,12 +836,13 @@ export class PageTaskExecutor {
             actionType: actions[0].type,
             more_actions_needed_by_instruction: true,
             log: '',
+            yamlFlow: planResult.yamlFlow,
           },
           log: {
             rawResponse: planResult,
           },
           cache: {
-            hit: Boolean(planCache),
+            hit: false,
           },
           aiCost,
         };
@@ -846,8 +859,7 @@ export class PageTaskExecutor {
     const taskExecutor = new Executor(title, {
       onTaskStart: this.onTaskStartCallback,
     });
-    const cacheGroup = this.taskCache.getCacheGroupByPrompt(title);
-    const { tasks } = await this.convertPlanToExecutable(plans, cacheGroup);
+    const { tasks } = await this.convertPlanToExecutable(plans);
     await taskExecutor.append(tasks);
     const result = await taskExecutor.flush();
     return {
@@ -859,22 +871,24 @@ export class PageTaskExecutor {
   async action(
     userPrompt: string,
     actionContext?: string,
-  ): Promise<ExecutionResult> {
+  ): Promise<
+    ExecutionResult<
+      | {
+          yamlFlow?: MidsceneYamlFlowItem[]; // for cache use
+        }
+      | undefined
+    >
+  > {
     const taskExecutor = new Executor(taskTitleStr('Action', userPrompt), {
       onTaskStart: this.onTaskStartCallback,
     });
 
-    const cacheGroup = this.taskCache.getCacheGroupByPrompt(userPrompt);
     let planningTask: ExecutionTaskPlanningApply | null =
-      this.planningTaskFromPrompt(
-        userPrompt,
-        cacheGroup,
-        undefined,
-        actionContext,
-      );
-    let result: any;
+      this.planningTaskFromPrompt(userPrompt, undefined, actionContext);
     let replanCount = 0;
     const logList: string[] = [];
+
+    const yamlFlow: MidsceneYamlFlowItem[] = [];
     while (planningTask) {
       if (replanCount > replanningCountLimit) {
         const errorMsg =
@@ -894,75 +908,8 @@ export class PageTaskExecutor {
       }
 
       const plans = planResult.actions || [];
+      yamlFlow.push(...(planResult.yamlFlow || []));
 
-      let executables: Awaited<ReturnType<typeof this.convertPlanToExecutable>>;
-      try {
-        executables = await this.convertPlanToExecutable(plans, cacheGroup);
-        taskExecutor.append(executables.tasks);
-      } catch (error) {
-        return this.appendErrorPlan(
-          taskExecutor,
-          `Error converting plans to executable tasks: ${error}, plans: ${JSON.stringify(
-            plans,
-          )}`,
-        );
-      }
-
-      result = await taskExecutor.flush();
-      if (taskExecutor.isInErrorState()) {
-        return {
-          output: result,
-          executor: taskExecutor,
-        };
-      }
-      if (planResult?.log) {
-        logList.push(planResult.log);
-      }
-
-      if (!planResult.more_actions_needed_by_instruction) {
-        planningTask = null;
-        break;
-      }
-      planningTask = this.planningTaskFromPrompt(
-        userPrompt,
-        cacheGroup,
-        logList.length > 0 ? `- ${logList.join('\n- ')}` : undefined,
-        actionContext,
-      );
-      replanCount++;
-    }
-
-    return {
-      output: result,
-      executor: taskExecutor,
-    };
-  }
-
-  async actionToGoal(userPrompt: string) {
-    const taskExecutor = new Executor(taskTitleStr('Action', userPrompt), {
-      onTaskStart: this.onTaskStartCallback,
-    });
-    this.conversationHistory = [];
-    const cacheGroup = this.taskCache.getCacheGroupByPrompt(userPrompt);
-    const isCompleted = false;
-    let currentActionNumber = 0;
-    const maxActionNumber = 40;
-
-    while (!isCompleted && currentActionNumber < maxActionNumber) {
-      currentActionNumber++;
-      const planningTask: ExecutionTaskPlanningApply = this.planningTaskToGoal(
-        userPrompt,
-        cacheGroup,
-      );
-      await taskExecutor.append(planningTask);
-      const output = await taskExecutor.flush();
-      if (taskExecutor.isInErrorState()) {
-        return {
-          output: output,
-          executor: taskExecutor,
-        };
-      }
-      const plans = output.actions;
       let executables: Awaited<ReturnType<typeof this.convertPlanToExecutable>>;
       try {
         executables = await this.convertPlanToExecutable(plans);
@@ -976,11 +923,86 @@ export class PageTaskExecutor {
         );
       }
 
-      const result = await taskExecutor.flush();
+      await taskExecutor.flush();
+      if (taskExecutor.isInErrorState()) {
+        return {
+          output: undefined,
+          executor: taskExecutor,
+        };
+      }
+      if (planResult?.log) {
+        logList.push(planResult.log);
+      }
+
+      if (!planResult.more_actions_needed_by_instruction) {
+        planningTask = null;
+        break;
+      }
+      planningTask = this.planningTaskFromPrompt(
+        userPrompt,
+        logList.length > 0 ? `- ${logList.join('\n- ')}` : undefined,
+        actionContext,
+      );
+      replanCount++;
+    }
+
+    return {
+      output: {
+        yamlFlow,
+      },
+      executor: taskExecutor,
+    };
+  }
+
+  async actionToGoal(userPrompt: string): Promise<
+    ExecutionResult<
+      | {
+          yamlFlow?: MidsceneYamlFlowItem[]; // for cache use
+        }
+      | undefined
+    >
+  > {
+    const taskExecutor = new Executor(taskTitleStr('Action', userPrompt), {
+      onTaskStart: this.onTaskStartCallback,
+    });
+    this.conversationHistory = [];
+    const isCompleted = false;
+    let currentActionNumber = 0;
+    const maxActionNumber = 40;
+
+    const yamlFlow: MidsceneYamlFlowItem[] = [];
+    while (!isCompleted && currentActionNumber < maxActionNumber) {
+      currentActionNumber++;
+      const planningTask: ExecutionTaskPlanningApply =
+        this.planningTaskToGoal(userPrompt);
+      await taskExecutor.append(planningTask);
+      const output = await taskExecutor.flush();
+      if (taskExecutor.isInErrorState()) {
+        return {
+          output: undefined,
+          executor: taskExecutor,
+        };
+      }
+      const plans = output.actions;
+      yamlFlow.push(...(output.yamlFlow || []));
+      let executables: Awaited<ReturnType<typeof this.convertPlanToExecutable>>;
+      try {
+        executables = await this.convertPlanToExecutable(plans);
+        taskExecutor.append(executables.tasks);
+      } catch (error) {
+        return this.appendErrorPlan(
+          taskExecutor,
+          `Error converting plans to executable tasks: ${error}, plans: ${JSON.stringify(
+            plans,
+          )}`,
+        );
+      }
+
+      await taskExecutor.flush();
 
       if (taskExecutor.isInErrorState()) {
         return {
-          output: result,
+          output: undefined,
           executor: taskExecutor,
         };
       }
@@ -990,7 +1012,9 @@ export class PageTaskExecutor {
       }
     }
     return {
-      output: {},
+      output: {
+        yamlFlow,
+      },
       executor: taskExecutor,
     };
   }

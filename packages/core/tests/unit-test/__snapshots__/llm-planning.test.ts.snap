@@ -1,0 +1,23 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`llm planning - build yaml flow > build yaml flow 1`] = `
+[
+  {
+    "aiInput": "hello",
+    "locate": "The input box for adding a new todo",
+  },
+  {
+    "aiHover": "The second item 'Learn Rust' in the task list",
+  },
+  {
+    "aiTap": "The input box labeled 'What needs to be done?'",
+  },
+  {
+    "aiScroll": null,
+    "direction": "down",
+    "distance": 500,
+    "locate": "some button",
+    "scrollType": "once",
+  },
+]
+`;

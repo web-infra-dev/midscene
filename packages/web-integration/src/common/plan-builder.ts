@@ -1,7 +1,7 @@
 import type {
   DetailedLocateParam,
+  MidsceneYamlFlowItem,
   PlanningAction,
-  PlanningActionParamHover,
   PlanningActionParamInputOrKeyPress,
   PlanningActionParamScroll,
   PlanningActionParamSleep,

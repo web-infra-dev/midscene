@@ -1,6 +1,6 @@
 import { PuppeteerAgent } from '@/puppeteer';
 import { sleep } from '@midscene/core/utils';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, it, vi } from 'vitest';
 import { launchPage } from './utils';
 
 vi.setConfig({

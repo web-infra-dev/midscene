@@ -5,6 +5,7 @@ import { assert } from '@midscene/shared/utils';
 import {
   AIActionType,
   type AIArgs,
+  buildYamlFlowFromPlans,
   callAiFn,
   fillBboxParam,
   markupImageForLLM,
@@ -93,6 +94,7 @@ export async function plan(
     actions,
     rawResponse,
     usage,
+    yamlFlow: buildYamlFlowFromPlans(actions, planFromAI.sleep),
   };
 
   assert(planFromAI, "can't get plans from AI");

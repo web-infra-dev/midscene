@@ -39,7 +39,7 @@ describe('yaml utils', () => {
   test('basic build && load', () => {
     const script = buildYaml(
       {
-        url: 'https://www.baidu.com',
+        url: 'https://bing.com',
         waitForNetworkIdle: {
           timeout: 1000,
           continueOnNetworkIdleError: true,
@@ -151,7 +151,7 @@ describe.skipIf(!shouldRunAITest)(
     test('stop on task error', async () => {
       const yamlString = `
       target:
-        url: https://www.baidu.com
+        url: https://bing.com/
       tasks:
         - name: assert1
           flow:
@@ -170,7 +170,7 @@ describe.skipIf(!shouldRunAITest)(
     test('allow continue on task error', async () => {
       const yamlString = `
       target:
-        url: https://www.baidu.com
+        url: https://bing.com/
       tasks:
         - name: assert1
           continueOnError: true

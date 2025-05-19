@@ -2,6 +2,7 @@ import type { WebPage } from '@/common/page';
 import {
   type AgentAssertOpt,
   type AgentWaitForOpt,
+  type DetailedLocateParam,
   type ExecutionDump,
   type ExecutionTask,
   type Executor,
@@ -10,9 +11,12 @@ import {
   type InsightAction,
   type LocateOption,
   type LocateResultElement,
+  type MidsceneYamlScript,
   type OnTaskStartTip,
   type PlanningActionParamScroll,
 } from '@midscene/core';
+
+import yaml from 'js-yaml';
 
 import { ScriptPlayer, parseYamlScript } from '@/yaml/index';
 import {
@@ -25,14 +29,14 @@ import {
   DEFAULT_WAIT_FOR_NAVIGATION_TIMEOUT,
   DEFAULT_WAIT_FOR_NETWORK_IDLE_TIMEOUT,
 } from '@midscene/shared/constants';
-import { vlLocateMode } from '@midscene/shared/env';
+import { getAIConfigInBoolean, vlLocateMode } from '@midscene/shared/env';
 import { getDebug } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
 import { PageTaskExecutor } from '../common/tasks';
 import type { PuppeteerWebPage } from '../puppeteer';
 import type { WebElementInfo } from '../web-element';
 import { buildPlans } from './plan-builder';
-import type { AiTaskCache } from './task-cache';
+import { TaskCache } from './task-cache';
 import {
   locateParamStr,
   paramStr,
@@ -51,7 +55,6 @@ export interface PageAgentOpt {
   cacheId?: string;
   groupName?: string;
   groupDescription?: string;
-  cache?: AiTaskCache;
   /* if auto generate report, default true */
   generateReport?: boolean;
   /* if auto print report msg, default true */
@@ -83,6 +86,8 @@ export class PageAgent<PageType extends WebPage = WebPage> {
   dryMode = false;
 
   onTaskStartTip?: OnTaskStartTip;
+
+  taskCache?: TaskCache;
 
   constructor(page: PageType, opts?: PageAgentOpt) {
     this.page = page;
@@ -118,8 +123,15 @@ export class PageAgent<PageType extends WebPage = WebPage> {
       },
     );
 
+    if (opts?.cacheId && this.page.pageType !== 'android') {
+      this.taskCache = new TaskCache(
+        opts.cacheId,
+        getAIConfigInBoolean('MIDSCENE_CACHE'), // if we should use cache to match the element
+      );
+    }
+
     this.taskExecutor = new PageTaskExecutor(this.page, this.insight, {
-      cacheId: opts?.cacheId,
+      taskCache: this.taskCache,
       onTaskStart: this.callbackOnTaskStartTip.bind(this),
     });
     this.dump = this.resetDump();
@@ -187,6 +199,7 @@ export class PageAgent<PageType extends WebPage = WebPage> {
   private async callbackOnTaskStartTip(task: ExecutionTask) {
     const param = paramStr(task);
     const tip = param ? `${typeStr(task)} - ${param}` : typeStr(task);
+
     if (this.onTaskStartTip) {
       await this.onTaskStartTip(tip);
     }
@@ -202,12 +215,17 @@ export class PageAgent<PageType extends WebPage = WebPage> {
     }
   }
 
-  private buildDetailedLocateParam(locatePrompt: string, opt?: LocateOption) {
+  private buildDetailedLocateParam(
+    locatePrompt: string,
+    opt?: LocateOption,
+  ): DetailedLocateParam {
     assert(locatePrompt, 'missing locate prompt');
     if (typeof opt === 'object') {
+      const prompt = opt.prompt || locatePrompt;
+      const deepThink = opt.deepThink || false;
       return {
-        prompt: locatePrompt,
-        ...opt,
+        prompt,
+        deepThink,
       };
     }
     return {
@@ -305,9 +323,49 @@ export class PageAgent<PageType extends WebPage = WebPage> {
   }
 
   async aiAction(taskPrompt: string) {
-    const { output, executor } = await (vlLocateMode() === 'vlm-ui-tars'
+    // if vlm-ui-tars, plan cache is not used
+    const isVlmUiTars = vlLocateMode() === 'vlm-ui-tars';
+    const matchedCache = isVlmUiTars
+      ? undefined
+      : this.taskCache?.matchPlanCache(taskPrompt);
+    if (matchedCache && this.taskCache?.isCacheResultUsed) {
+      // log into report file
+      const { executor } = await this.taskExecutor.loadYamlFlowAsPlanning(
+        taskPrompt,
+        matchedCache.cacheContent?.yamlWorkflow,
+      );
+
+      await this.afterTaskRunning(executor);
+
+      debug('matched cache, will call .runYaml to run the action');
+      const yaml = matchedCache.cacheContent?.yamlWorkflow;
+      return this.runYaml(yaml);
+    }
+
+    const { output, executor } = await (isVlmUiTars
       ? this.taskExecutor.actionToGoal(taskPrompt)
       : this.taskExecutor.action(taskPrompt, this.opts.aiActionContext));
+
+    // update cache
+    if (this.taskCache && output?.yamlFlow) {
+      const yamlContent: MidsceneYamlScript = {
+        tasks: [
+          {
+            name: taskPrompt,
+            flow: output.yamlFlow,
+          },
+        ],
+      };
+      const yamlFlowStr = yaml.dump(yamlContent);
+      this.taskCache.updateOrAppendCacheRecord(
+        {
+          type: 'plan',
+          prompt: taskPrompt,
+          yamlWorkflow: yamlFlowStr,
+        },
+        matchedCache,
+      );
+    }
 
     this.afterTaskRunning(executor);
     return output;

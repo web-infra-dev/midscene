@@ -27,36 +27,9 @@ export function getLogDir() {
   return logDir;
 }
 
-let reportTpl: string | null = null;
-export function setReportTpl(tpl: string) {
-  reportTpl = tpl;
-}
+const reportTpl = 'REPLACE_ME_WITH_REPORT_HTML';
 
 function getReportTpl() {
-  const globalScope = getGlobalScope();
-  if (
-    !reportTpl &&
-    globalScope &&
-    typeof (globalScope as any).get_midscene_report_tpl === 'function'
-  ) {
-    reportTpl = (globalScope as any).get_midscene_report_tpl();
-    return reportTpl;
-  }
-
-  const __dirname = dirname(__filename);
-  if (!reportTpl && !ifInBrowser) {
-    const possiblePaths = [
-      path.join(__dirname, '../../report/index.html'),
-      path.join(__dirname, '../report/index.html'),
-    ];
-
-    for (const reportPath of possiblePaths) {
-      if (existsSync(reportPath)) {
-        reportTpl = readFileSync(reportPath, 'utf-8');
-        break;
-      }
-    }
-  }
   return reportTpl;
 }
 

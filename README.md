@@ -20,6 +20,9 @@ English | [简体中文](./README.zh.md)
   <img src="https://img.shields.io/badge/License-MIT-blue.svg?style=flat-square&color=00a8f0" alt="License" />
   <a href="https://discord.gg/2JyBHxszE4"><img src="https://img.shields.io/discord/1328277792730779648?style=flat-square&color=7289DA&label=Discord&logo=discord&logoColor=white" alt="discord" /></a>
   <a href="https://x.com/midscene_ai"><img src="https://img.shields.io/twitter/follow/midscene_ai?style=flat-square" alt="twitter" /></a>
+  <a href="https://deepwiki.com/web-infra-dev/midscene">
+    <img alt="Ask DeepWiki.com" src="https://devin.ai/assets/deepwiki-badge.png" style="height: 18px; vertical-align: middle;">
+  </a>
 </p>
 
 Midscene.js allows AI to serve as your web and Android operator 🤖. Simply describe what you want to achieve in natural language, and it will assist you in operating the interface, validating content, and extracting data. Whether you seek a quick experience or in-depth development, you'll find it easy to get started.
@@ -31,6 +34,7 @@ Midscene.js allows AI to serve as your web and Android operator 🤖. Simply des
 | Post a Tweet (By UI-TARS model)      |    <video src="https://github.com/user-attachments/assets/bb3d695a-fbff-4af1-b6cc-5e967c07ccee" height="300" />    |
 | Use JS code to drive task orchestration, collect information about Jay Chou's concert, and write it into Google Docs (By UI-TARS model)   | <video src="https://github.com/user-attachments/assets/75474138-f51f-4c54-b3cf-46d61d059999" height="300" />        |
 | Control Maps App on Android (By Qwen-2.5-VL model)   | <video src="https://github.com/user-attachments/assets/1f5bab0e-4c28-44e1-b378-a38809b05a00" height="300" />        |
+| Using midscene mcp to browse the page (https://www.saucedemo.com/), perform login, add products, place orders, and finally generate test cases based on mcp execution steps and playwright example | <video src="https://github.com/user-attachments/assets/5cab578d-feb3-4250-8c7e-6793fe38a5be" height="300" />        |
 
 ## 📢 2025 Feb: New open-source model choice - UI-TARS and Qwen2.5-VL
 
@@ -41,6 +45,7 @@ Besides the default model *GPT-4o*, we have added two new recommended open-sourc
 - **UI Automation 🤖**
   - **Web Automation 🖥️**: Start in-browser experience immediately through [the Chrome extension](https://midscenejs.com/quick-experience.html), or integrate with [Puppeteer](https://midscenejs.com/integrate-with-puppeteer.html) and [Playwright](https://midscenejs.com/integrate-with-playwright.html).
   - **Android Automation 📱**: Use [the Android playground](https://midscenejs.com/quick-experience-with-android.html) to start experience immediately, or integrate javascript SDK with [adb](https://midscenejs.com/integrate-with-android.html).
+- **MCP Integration 🔗**: Allows other MCP Clients to directly use Midscene's capabilities. For more details, please read [MCP Integration](https://midscenejs.com/zh/mcp.html).
 - **Visual Reports for Debugging 🎞️**: Through our test reports and Playground, you can easily understand, replay and debug the entire process.
 - **Support Caching 🔄**: The first time you execute a task through AI, it will be cached, and subsequent executions of the same task will significantly improve execution efficiency.
 - **Completely Open Source 🔥**: Experience a whole new automation development experience, enjoy!
@@ -57,7 +62,7 @@ Read more about [Choose a model](https://midscenejs.com/choose-a-model)
 
 There are so many UI automation tools out there, and each one seems to be all-powerful. What's special about Midscene.js?
 
-* Debugging Experience: You will soon realize that debugging and maintaining automation scripts is the real challenge. No matter how magical the demo looks, ensuring stability over time requires careful debugging. Midscene.js offers a visualized report file, a built-in playground, and a Chrome Extension to simplify the debugging process. These are the tools most developers truly need, and we’re continually working to improve the debugging experience.
+* Debugging Experience: You will soon realize that debugging and maintaining automation scripts is the real challenge. No matter how magical the demo looks, ensuring stability over time requires careful debugging. Midscene.js offers a visualized report file, a built-in playground, and a Chrome Extension to simplify the debugging process. These are the tools most developers truly need, and we're continually working to improve the debugging experience.
 
 * Open Source, Free, Deploy as you want: Midscene.js is an open-source project. It's decoupled from any cloud service and model provider, you can choose either public or private deployment. There is always a suitable plan for your business.
 

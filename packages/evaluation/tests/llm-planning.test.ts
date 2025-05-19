@@ -53,6 +53,7 @@ describe.skipIf(vlMode)('ai planning - by element', () => {
 
           const res = await plan(prompt, {
             context,
+            pageType: 'puppeteer',
           });
 
           if (process.env.UPDATE_ANSWER_DATA) {
@@ -118,6 +119,7 @@ describe.skipIf(!vlMode)('ai planning - by coordinates', () => {
               log: testCase.log,
               context,
               actionContext: testCase.action_context,
+              pageType: 'puppeteer',
             });
           } catch (error) {
             res = error as Error;

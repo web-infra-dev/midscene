@@ -1,9 +1,9 @@
-import type { ElementInfo } from '.';
 import {
   CONTAINER_MINI_HEIGHT,
   CONTAINER_MINI_WIDTH,
   NodeType,
 } from '../constants/index';
+import type { WebElementInfo } from '../types';
 import type { Point } from '../types';
 import {
   isButtonElement,
@@ -14,6 +14,7 @@ import {
 } from './dom-util';
 import { descriptionOfTree } from './tree';
 import {
+  elementRect,
   getNodeAttributes,
   getPseudoElementContent,
   getRect,
@@ -22,14 +23,7 @@ import {
   midsceneGenerateHash,
   setDataForNode,
   setDebugMode,
-  visibleRect,
 } from './util';
-
-interface WebElementInfo extends ElementInfo {
-  zoom: number;
-  screenWidth?: number;
-  screenHeight?: number;
-}
 
 let indexId = 0;
 
@@ -47,21 +41,33 @@ function tagNameOfNode(node: globalThis.Node): string {
   return tagName ? `<${tagName}>` : '';
 }
 
-function collectElementInfo(
+export function collectElementInfo(
   node: Node,
   currentWindow: typeof window,
   currentDocument: typeof document,
   baseZoom = 1,
   basePoint: Point = { left: 0, top: 0 },
-): WebElementInfo | null {
-  const rect = visibleRect(node, currentWindow, currentDocument, baseZoom);
+  visibleOnly = true,
+): WebElementInfo | null | any {
+  const rect = elementRect(
+    node,
+    currentWindow,
+    currentDocument,
+    baseZoom,
+    visibleOnly,
+  );
+
+  if (!rect) {
+    return null;
+  }
+
   if (
-    !rect ||
-    rect.width < CONTAINER_MINI_WIDTH ||
-    rect.height < CONTAINER_MINI_HEIGHT
+    visibleOnly &&
+    (rect.width < CONTAINER_MINI_WIDTH || rect.height < CONTAINER_MINI_HEIGHT)
   ) {
     return null;
   }
+
   if (basePoint.left !== 0 || basePoint.top !== 0) {
     rect.left += basePoint.left;
     rect.top += basePoint.top;
@@ -115,8 +121,6 @@ function collectElementInfo(
         Math.round(rect.top + rect.height / 2),
       ],
       zoom: rect.zoom,
-      screenWidth: currentWindow.innerWidth,
-      screenHeight: currentWindow.innerHeight,
     };
     return elementInfo;
   }
@@ -145,8 +149,6 @@ function collectElementInfo(
         Math.round(rect.top + rect.height / 2),
       ],
       zoom: rect.zoom,
-      screenWidth: currentWindow.innerWidth,
-      screenHeight: currentWindow.innerHeight,
     };
     return elementInfo;
   }
@@ -178,8 +180,6 @@ function collectElementInfo(
         Math.round(rect.top + rect.height / 2),
       ],
       zoom: rect.zoom,
-      screenWidth: currentWindow.innerWidth,
-      screenHeight: currentWindow.innerHeight,
     };
     return elementInfo;
   }
@@ -211,12 +211,9 @@ function collectElementInfo(
         Math.round(rect.left + rect.width / 2),
         Math.round(rect.top + rect.height / 2),
       ],
-      // attributes,
       content: text,
       rect,
       zoom: rect.zoom,
-      screenWidth: currentWindow.innerWidth,
-      screenHeight: currentWindow.innerHeight,
     };
     return elementInfo;
   }
@@ -244,8 +241,6 @@ function collectElementInfo(
         Math.round(rect.top + rect.height / 2),
       ],
       zoom: rect.zoom,
-      screenWidth: currentWindow.innerWidth,
-      screenHeight: currentWindow.innerHeight,
     };
     return elementInfo;
   }
@@ -334,7 +329,7 @@ export function extractTreeNode(
       node: elementInfo,
       children: [],
     };
-    // stop collecting if the node is a Button or Image
+    // stop collecting if the node is a Button/Image/Text/FormItem/Container
     if (
       elementInfo?.nodeType === NodeType.BUTTON ||
       elementInfo?.nodeType === NodeType.IMG ||

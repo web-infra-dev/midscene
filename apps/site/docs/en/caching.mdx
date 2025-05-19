@@ -1,10 +1,12 @@
 # Caching
 
-Midscene supports caching the planning steps and matched DOM element information of AI to reduce the call of AI models and improve the execution efficiency.
+Midscene supports caching the planning steps and DOM XPaths to reduce calls to AI models and greatly improve execution efficiency.
+
+Caching is not supported in Android automation.
 
 **Effect**
 
-After enabling the cache, the execution time is significantly reduced, for example, from 39s to 13s.
+After enabling the cache, the execution time of AI service related steps can be significantly reduced.
 
 * **before using cache, 39s**
 
@@ -18,8 +20,8 @@ After enabling the cache, the execution time is significantly reduced, for examp
 
 There are two key points to use caching:
 
-1. Set `MIDSCENE_CACHE=1` in the environment variable.
-2. Set `cacheId` to specify the cache file name. It's automatically set in Playwright and Yaml mode, but if you are using javascript SDK, you should set it manually.
+1. Set `MIDSCENE_CACHE=1` in the environment variable to enable matching cache.
+2. Set `cacheId` to specify the cache file name. It's automatically set in Playwright and Yaml mode. If you are using javascript SDK, you should set it manually.
 
 ### Playwright
 
@@ -61,39 +63,30 @@ The `cacheId` will be automatically set to the yaml filename.
 
 ## Cache strategy
 
-### Cache content
+Cache contents will be saved in the `./midscene_run/cache` directory with the `.cache.yaml` as the extension name.
 
 These two types of content will be cached:
 
-1. the results of AI's planning (i.e., the results of ai and aiAction methods)
-2. The results of AI's element locating
+1. the result of planning, like calls to `.ai` `.aiAction`
+2. The XPaths for elements located by AI, such as `.aiLocate`, `.aiTap`, etc.
 
-The results of `aiQuery` and `aiAssert` will never be cached. You can always use them to verify whether the AI's task is as expected.
+The query results like `aiBoolean`, `aiQuery`, `aiAssert` will never be cached. 
 
-### Cache hit conditions
-
-Cache will only be hit when the following conditions are met:
-1. The same `cacheId`
-2. The same major and minor version of Midscene
-3. The same page url and screen size
-
-When using cache for locate element tasks, the following conditions are also required:
-1. A DOM element with the same position and size can be found on the page according to the cache file.
-2. If you are using VL model, there must be a DOM element matched with the coordinates. Otherwise, you will see a "POSITION NODE" in report file which means it cannot be cached.
-
-### If cache is not hit
-
-If cache is not hit, Midscene will call AI model again and the result in cache file will be updated.
+If the cache is not hit, Midscene will call AI model again and the result in cache file will be updated.
 
 ## Common issues
 
+### How to check if the cache is hit?
+
+You can view the report file. If the cache is hit, you will see the `cache` tip and the time cost is obviously reduced.
+
 ### Why the cache is missed on CI?
 
-You should commit the cache file to the repository (usually in the `./midscene_run/cache` directory). And also, check the cache-hit conditions.
+You should commit the cache file to the repository (which is in the `./midscene_run/cache` directory). And also, check whether the prompt is the same as the one in the cache file.
 
 ### Does it mean that AI services are no longer needed after using cache?
 
-No. Caching is not a tool for ensuring long-term script stability. We have noticed many scenarios where the cache may miss when the page changes, such as when the element position changes slightly or the DOM structure changes. AI services are still needed to reevaluate the task when the cache miss occurs.
+No. Caching is the way to accelerate the execution, but it's not a tool for ensuring long-term script stability. We have noticed many scenarios where the cache may miss when the DOM structure changes. AI services are still needed to reevaluate the task when the cache miss occurs.
 
 ### How to manually remove the cache?
 
