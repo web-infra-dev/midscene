@@ -20,6 +20,9 @@ English | [简体中文](./README.zh.md)
   <img src="https://img.shields.io/badge/License-MIT-blue.svg?style=flat-square&color=00a8f0" alt="License" />
   <a href="https://discord.gg/2JyBHxszE4"><img src="https://img.shields.io/discord/1328277792730779648?style=flat-square&color=7289DA&label=Discord&logo=discord&logoColor=white" alt="discord" /></a>
   <a href="https://x.com/midscene_ai"><img src="https://img.shields.io/twitter/follow/midscene_ai?style=flat-square" alt="twitter" /></a>
+  <a href="https://deepwiki.com/web-infra-dev/midscene">
+    <img alt="Ask DeepWiki.com" src="https://devin.ai/assets/deepwiki-badge.png" style="height: 18px; vertical-align: middle;">
+  </a>
 </p>
 
 Midscene.js allows AI to serve as your web and Android operator 🤖. Simply describe what you want to achieve in natural language, and it will assist you in operating the interface, validating content, and extracting data. Whether you seek a quick experience or in-depth development, you'll find it easy to get started.
