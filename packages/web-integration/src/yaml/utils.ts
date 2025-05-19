@@ -18,7 +18,11 @@ export function parseYamlScript(
   filePath?: string,
   ignoreCheckingTarget?: boolean,
 ): MidsceneYamlScript {
-  const interpolatedContent = interpolateEnvVars(content);
+  const processedContent = content.replace(
+    /deviceId:\s*(\d+)/g,
+    (match, deviceId) => `deviceId: '${deviceId}'`,
+  );
+  const interpolatedContent = interpolateEnvVars(processedContent);
   const obj = yaml.load(interpolatedContent, {
     schema: yaml.JSON_SCHEMA,
   }) as MidsceneYamlScript;
