@@ -1,5 +1,6 @@
 import type { ElementInfo } from '.';
 import { getNodeFromCacheList } from './util';
+import { getRect, isElementPartiallyInViewport } from './util';
 import { collectElementInfo } from './web-extractor';
 
 const getElementIndex = (element: Element): number => {
@@ -144,7 +145,13 @@ export function getElementInfoByXpath(xpath: string): ElementInfo | null {
   }
 
   if (node instanceof HTMLElement) {
-    node.scrollIntoView({ behavior: 'instant', block: 'center' });
+    // only when the element is not completely in the viewport, call scrollIntoView
+    const rect = getRect(node, 1, window);
+    const isVisible = isElementPartiallyInViewport(rect, window, document, 1);
+
+    if (!isVisible) {
+      node.scrollIntoView({ behavior: 'instant', block: 'center' });
+    }
   }
 
   return collectElementInfo(
