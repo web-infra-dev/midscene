@@ -31,6 +31,21 @@ const findFirstAncestorWithId = (element: Element): Element | null => {
   return null;
 };
 
+// Get the index of a text node among its siblings of the same type
+const getTextNodeIndex = (textNode: Node): number => {
+  let index = 1;
+  let current = textNode.previousSibling;
+
+  while (current) {
+    if (current.nodeType === Node.TEXT_NODE) {
+      index++;
+    }
+    current = current.previousSibling;
+  }
+
+  return index;
+};
+
 const getElementXPath = (element: Node): string => {
   // deal with text node
   if (element.nodeType === Node.TEXT_NODE) {
@@ -38,7 +53,8 @@ const getElementXPath = (element: Node): string => {
     const parentNode = element.parentNode;
     if (parentNode && parentNode.nodeType === Node.ELEMENT_NODE) {
       const parentXPath = getElementXPath(parentNode);
-      return `${parentXPath}`;
+      const textIndex = getTextNodeIndex(element);
+      return `${parentXPath}/text()[${textIndex}]`;
     }
     return '';
   }
