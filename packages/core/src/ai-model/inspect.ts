@@ -316,7 +316,7 @@ export async function AiExtractElementInfo<
     dataKeys = '';
     dataQueryText = dataQuery;
   } else {
-    dataKeys = `return must in key-value style object, keys are **${Object.keys(dataQuery).join(',')}**, like {data: {result: xxx,error: []}}`;
+    dataKeys = `return in key-value style object, keys are **${Object.keys(dataQuery).join(',')}**, like {data: {result: xxx,error: []}}`;
     dataQueryText = JSON.stringify(dataQuery, null, 2);
   }
   const extractDataPromptText = await extractDataPrompt.format({
