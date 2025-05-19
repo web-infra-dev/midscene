@@ -3,23 +3,11 @@
 在这篇文章中，我们将讨论如何为 Midscene.js 选择 AI 模型，以及这些模型各自的特点。
 
 
-
-## 快速开始
+## 快速配置
 
 选择一个模型、获取 API 密钥并完成配置，你就可以开始使用 Midscene.js 了。如果你是刚开始使用，选择最容易获得的模型服务即可。
 
 如果你想了解更多关于模型服务的配置项，请查看 [配置模型和服务商](./model-provider)。
-
-### 模型对比
-
-| 模型 | 特点 | 优势 | 限制 | 适用场景 | 成本 | 推荐指数 |
-|------|------|------|------|----------|------|----------|
-| Doubao-1.5-thinking-vision-pro | 支持视觉定位的推理 VL 模型 | - 探索性场景表现好<br/>- 推理模型，结果更稳定<br/>- 原生图像识别<br/>- GUI 评测集处于 SOTA 水平 | - 推理速度慢<br/> | - 探索性任务<br/> - 稳定执行任务 <br/> - 速度不敏感场景 | 中 | ★★★★ |
-| Qwen-2.5-VL | 支持视觉定位的 VL 模型 | - 低成本（节省 30-50% token）<br/>- 高分辨率支持<br/>- 开源可自部署<br/>- 视觉定位能力强 | - 小图标识别需要调优<br/>- 断言能力相对较弱 | - Web 自动化<br/>- Android 自动化<br/>- 需要视觉定位的场景 | 中 | ★★★★ |
-| UI-TARS | 专为 UI 自动化设计 | - 探索性场景表现好<br/>- 响应速度快<br/>- 原生图像识别<br/>- 开源可自部署 | - 断言能力较弱<br/>- 操作路径不固定 | - 探索性任务<br/>- 需要快速响应的场景 | 中 | ★★★ |
-| Gemini-2.5-Pro | 支持视觉定位的 VL 模型 | - 类似 Qwen-2.5-VL 的能力<br/>- Google 官方支持 | - 闭源<br/>- 相对较新 | - Web 自动化<br/>- Android 自动化 | 中 | ★★★ |
-| GPT-4o | 通用多模态 LLM | - 交互、断言、查询能力均衡 | - 无法处理 iframe 内容 <br/>  - 小图标识别能力差 <br/> - 不支持 Android 自动化 | - Web 自动化<br/> | 高 | ★ |
-
 
 ### GPT-4o （无法在 Android 自动化中使用）
 
@@ -171,6 +159,15 @@ MIDSCENE_USE_QWEN_VL=1 # 别忘了配置这项，用于启用 Qwen 2.5 模式！
 - [Qwen 2.5 on Github](https://github.com/QwenLM/Qwen2.5-VL)
 - [Qwen 2.5 - 阿里云百炼](https://bailian.console.aliyun.com/#/model-market/detail/qwen-vl-max-latest)
 - [Qwen 2.5 - openrouter.ai](https://openrouter.ai/models/Qwen/Qwen2.5-VL-72B-Instruct)
+
+### Doubao-1.5-thinking-vision-pro
+
+Doubao-1.5-thinking-vision-pro 是火山引擎提供的模型。它在视觉定位（Visual Grounding）和断言（Assertion）方面表现较好。
+
+**资源**
+
+- [Doubao-1.5-thinking-vision-pro on Volcano Engine](https://www.volcengine.com/docs/82379/1536428)
+
 
 ### UI-TARS
 

@@ -2,23 +2,11 @@
 
 In this article, we will talk about what kind of models are supported by Midscene.js and the features of each model.
 
-## Quick Start for using Midscene.js
+## Quick Config for using Midscene.js
 
 Choose one of the following models, obtain the API key, complete the configuration, and you are ready to go. Choose the model that is easiest to obtain if you are a beginner.
 
 If you want to see the detailed configuration of model services, see [Config Model and Provider](./model-provider).
-
-
-### Model Comparison
-
-| Model | Features | Advantages | Limitations | Use Cases | Cost | Recommendation |
-|-------|----------|------------|------------|-----------|------|----------------|
-| Doubao-1.5-thinking-vision-pro | Reasoning VL model with visual grounding | - Excellent in exploratory scenarios<br/>- Reasoning model with more stable results<br/>- Native image recognition<br/>- SOTA performance on GUI benchmarks | - Slow inference speed<br/> | - Exploratory tasks<br/> - Stable execution tasks<br/> - Speed-insensitive scenarios | Medium | ★★★★ |
-| Qwen-2.5-VL | VL model with visual grounding | - Low cost (saves 30-50% tokens)<br/>- High resolution support<br/>- Open source and self-deployable<br/>- Strong visual grounding capabilities | - Small icon recognition requires tuning<br/>- Relatively weak assertion capabilities | - Web automation<br/>- Android automation<br/>- Scenarios requiring visual grounding | Medium | ★★★★ |
-| UI-TARS | Designed specifically for UI automation | - Great performance in exploratory scenarios<br/>- Fast response speed<br/>- Native image recognition<br/>- Open source and self-deployable | - Weak assertion capabilities<br/>- Inconsistent operation paths | - Exploratory tasks<br/>- Scenarios requiring fast responses | Medium | ★★★ |
-| Gemini-2.5-Pro | VL model with visual grounding | - Similar capabilities to Qwen-2.5-VL<br/>- Official Google support | - Closed source<br/>- Relatively new | - Web automation<br/>- Android automation | Medium | ★★★ |
-| GPT-4o | General multimodal LLM | - Balanced capabilities in interaction, assertion, and querying | - Cannot handle iframe content<br/>- Poor small icon recognition<br/>- Does not support Android automation | - Web automation<br/> | High | ★ |
-
 
 ### GPT-4o (can't be used in Android automation)
 
@@ -184,6 +172,15 @@ MIDSCENE_USE_GEMINI=1
 
 **Links**
 - [Gemini 2.5 on Google Cloud](https://cloud.google.com/gemini-api/docs/gemini-25-overview)
+
+
+### Doubao-1.5-thinking-vision-pro
+
+Doubao-1.5-thinking-vision-pro is a model provided by Volcano Engine. It works better on visual grounding and assertion.
+
+**Links**
+- [Doubao-1.5-thinking-vision-pro on Volcano Engine](https://www.volcengine.com/docs/82379/1536428)
+
 
 ### UI-TARS
 
