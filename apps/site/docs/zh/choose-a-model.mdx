@@ -2,7 +2,8 @@
 
 在这篇文章中，我们将讨论如何为 Midscene.js 选择 AI 模型，以及这些模型各自的特点。
 
-## 快速开始
+
+## 快速配置
 
 选择一个模型、获取 API 密钥并完成配置，你就可以开始使用 Midscene.js 了。如果你是刚开始使用，选择最容易获得的模型服务即可。
 
@@ -32,6 +33,17 @@ OPENAI_BASE_URL="https://dashscope.aliyuncs.com/compatible-mode/v1"
 OPENAI_API_KEY="......"
 MIDSCENE_MODEL_NAME="qwen-vl-max-latest"
 MIDSCENE_USE_QWEN_VL=1
+```
+
+### 火山引擎上的 Doubao-1.5-thinking-vision-pro
+
+你可以在[火山引擎](https://volcengine.com)上使用 `Doubao-1.5-thinking-vision-pro` 模型，在火山引擎上申请 API 密钥后，你可以使用以下配置：
+
+```bash
+OPENAI_BASE_URL="https://ark.cn-beijing.volces.com/api/v3" 
+OPENAI_API_KEY="...."
+MIDSCENE_MODEL_NAME="ep-..." # 火山引擎的推理接入点ID
+MIDSCENE_USE_DOUBAO_VISION=1
 ```
 
 ### 火山引擎上的 UI-TARS
@@ -147,6 +159,15 @@ MIDSCENE_USE_QWEN_VL=1 # 别忘了配置这项，用于启用 Qwen 2.5 模式！
 - [Qwen 2.5 on Github](https://github.com/QwenLM/Qwen2.5-VL)
 - [Qwen 2.5 - 阿里云百炼](https://bailian.console.aliyun.com/#/model-market/detail/qwen-vl-max-latest)
 - [Qwen 2.5 - openrouter.ai](https://openrouter.ai/models/Qwen/Qwen2.5-VL-72B-Instruct)
+
+### Doubao-1.5-thinking-vision-pro
+
+Doubao-1.5-thinking-vision-pro 是火山引擎提供的模型。它在视觉定位（Visual Grounding）和断言（Assertion）方面表现较好。
+
+**资源**
+
+- [Doubao-1.5-thinking-vision-pro on Volcano Engine](https://www.volcengine.com/docs/82379/1536428)
+
 
 ### UI-TARS
 
