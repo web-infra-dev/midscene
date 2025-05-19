@@ -37,7 +37,7 @@ const getElementXPath = (element: Node): string => {
     const parentNode = element.parentNode;
     if (parentNode && parentNode.nodeType === Node.ELEMENT_NODE) {
       const parentXPath = getElementXPath(parentNode);
-      return `${parentXPath}/text()`;
+      return `${parentXPath}`;
     }
     return '';
   }
