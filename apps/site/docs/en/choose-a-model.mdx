@@ -2,7 +2,7 @@
 
 In this article, we will talk about what kind of models are supported by Midscene.js and the features of each model.
 
-## Quick Start for using Midscene.js
+## Quick Config for using Midscene.js
 
 Choose one of the following models, obtain the API key, complete the configuration, and you are ready to go. Choose the model that is easiest to obtain if you are a beginner.
 
@@ -44,6 +44,17 @@ OPENAI_BASE_URL="https://generativelanguage.googleapis.com/v1beta/openai/"
 OPENAI_API_KEY="......"
 MIDSCENE_MODEL_NAME="gemini-2.5-pro-preview-03-25"
 MIDSCENE_USE_GEMINI=1
+```
+
+### Doubao-1.5-thinking-vision-pro on Volcano Engine
+
+You can use the `Doubao-1.5-thinking-vision-pro` model on [Volcano Engine](https://volcengine.com). After obtaining an API key from Volcano Engine, you can use the following configuration:
+
+```bash
+OPENAI_BASE_URL="https://ark.cn-beijing.volces.com/api/v3" 
+OPENAI_API_KEY="...."
+MIDSCENE_MODEL_NAME="ep-..." # Inference endpoint ID from Volcano Engine
+MIDSCENE_USE_DOUBAO_VISION=1
 ```
 
 ### UI-TARS on volcengine.com
@@ -161,6 +172,15 @@ MIDSCENE_USE_GEMINI=1
 
 **Links**
 - [Gemini 2.5 on Google Cloud](https://cloud.google.com/gemini-api/docs/gemini-25-overview)
+
+
+### Doubao-1.5-thinking-vision-pro
+
+Doubao-1.5-thinking-vision-pro is a model provided by Volcano Engine. It works better on visual grounding and assertion.
+
+**Links**
+- [Doubao-1.5-thinking-vision-pro on Volcano Engine](https://www.volcengine.com/docs/82379/1536428)
+
 
 ### UI-TARS
 
