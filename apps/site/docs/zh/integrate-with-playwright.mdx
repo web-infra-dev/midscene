@@ -85,7 +85,8 @@ test("search headphone on ebay", async ({
   aiAssert,
   aiInput,
   aiTap,
-  aiScroll 
+  aiScroll,
+  aiWaitFor
 }) => {
   // 使用 aiInput 输入搜索关键词
   await aiInput('Headphones', '搜索框');
