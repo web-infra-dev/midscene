@@ -11,6 +11,7 @@ import {
 import { createServer } from 'http-server';
 import { beforeAll, describe, expect, it } from 'vitest';
 import { launchPage } from '../ai/web/puppeteer/utils';
+import { getElementInfosScriptContent } from '@midscene/shared/fs';
 
 const pageDir = join(__dirname, './fixtures/web-extractor');
 const pagePath = join(pageDir, 'index.html');
@@ -188,6 +189,62 @@ describe(
 
       const context = await parseContextFromWebPage(page);
       expect(context).toBe(fakeContext);
+    });
+
+    it('getElementInfoByXpath from text node by evaluateJavaScript', async () => {
+      const { page, reset } = await launchPage(`http://127.0.0.1:${port}`, {
+        viewport: {
+          width: 1080,
+          height: 3000,
+          deviceScaleFactor: 1,
+        },
+      });
+
+      const elementInfosScriptContent = getElementInfosScriptContent();
+      const element = await page.evaluateJavaScript?.(
+        `${elementInfosScriptContent}midscene_element_inspector.getElementInfoByXpath('/html/body/div[2]/div/div/ul/li[2]/span/text()[0]')`,
+      );
+      expect(element.content).toBe('English');
+      expect(element.nodeType).toBe('TEXT Node');
+      expect(element.nodeHashId).toBe('emaam');
+      expect(element).toMatchSnapshot();
+      await reset();
+    });
+
+    it('getElementInfoByXpath from button node by evaluateJavaScript', async () => {
+      const { page, reset } = await launchPage(`http://127.0.0.1:${port}`, {
+        viewport: {
+          width: 1080,
+          height: 3000,
+          deviceScaleFactor: 1,
+        },
+      });
+
+      const elementInfosScriptContent = getElementInfosScriptContent();
+      const element = await page.evaluateJavaScript?.(
+        `${elementInfosScriptContent}midscene_element_inspector.getElementInfoByXpath('/html/body/button')`,
+      );
+      expect(element.nodeType).toBe('BUTTON Node');
+      expect(element.nodeHashId).toBe('kohcf');
+      expect(element).toMatchSnapshot();
+      await reset();
+    });
+
+    it('getElementInfoByXpath from container node by evaluateJavaScript', async () => {
+      const { page, reset } = await launchPage(`http://127.0.0.1:${port}`, {
+        viewport: {
+          width: 1080,
+          height: 3000,
+          deviceScaleFactor: 1,
+        },
+      });
+
+      const elementInfosScriptContent = getElementInfosScriptContent();
+      const element = await page.evaluateJavaScript?.(
+        `${elementInfosScriptContent}midscene_element_inspector.getElementInfoByXpath('/html/body/div[3]/div')`,
+      );
+      expect(element).toBe(null);
+      await reset();
     });
   },
   {
