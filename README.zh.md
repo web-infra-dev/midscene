@@ -20,6 +20,9 @@
   <img src="https://img.shields.io/badge/License-MIT-blue.svg?style=flat-square&color=00a8f0" alt="License" />
   <a href="https://discord.gg/2JyBHxszE4"><img src="https://img.shields.io/discord/1328277792730779648?style=flat-square&color=7289DA&label=Discord&logo=discord&logoColor=white" alt="discord" /></a>
   <a href="https://x.com/midscene_ai"><img src="https://img.shields.io/twitter/follow/midscene_ai?style=flat-square" alt="twitter" /></a>
+  <a href="https://deepwiki.com/web-infra-dev/midscene">
+    <img alt="Ask DeepWiki.com" src="https://devin.ai/assets/deepwiki-badge.png" style="height: 18px; vertical-align: middle;">
+  </a>
 </p>
 
 Midscene.js 是一个 AI 操作助手，适用于 Web、Android、自动化和测试。只需用自然语言描述你想做什么，它就能帮你操作网页、验证内容，并提取数据。无论你是想快速体验还是深度开发，都可以轻松上手。
