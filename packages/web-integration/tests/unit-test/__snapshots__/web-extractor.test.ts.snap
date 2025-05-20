@@ -3184,3 +3184,10 @@ exports[`extractor > getElementInfoByXpath from div node by evaluateJavaScript 1
   "zoom": 1,
 }
 `;
+
+exports[`extractor > getElementInfoByXpath from text node by evaluateJavaScript 1`] = `
+{
+  "htmlTagName": "<span>",
+  "nodeType": "TEXT Node",
+}
+`;

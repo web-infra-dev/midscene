@@ -2,6 +2,7 @@ import { join } from 'node:path';
 import { parseContextFromWebPage } from '@/common/utils';
 import StaticPage from '@/playground/static-page';
 import type { WebElementInfo } from '@/web-element';
+import { sleep } from '@midscene/core/utils';
 import { traverseTree } from '@midscene/shared/extractor';
 import { getElementInfosScriptContent } from '@midscene/shared/fs';
 import {
@@ -199,10 +200,9 @@ describe(
           deviceScaleFactor: 1,
         },
       });
-
       const elementInfosScriptContent = getElementInfosScriptContent();
       const element = await page.evaluateJavaScript?.(
-        `${elementInfosScriptContent}midscene_element_inspector.getElementInfoByXpath('/html/body/div[2]/div/div/ul/li[2]/span/text()[0]')`,
+        `${elementInfosScriptContent}midscene_element_inspector.getElementInfoByXpath('/html/body/div[2]/div/div/ul/li[1]/span/text()[1]')`,
       );
       expect(element.content).toBe('English');
       expect(element.nodeType).toBe('TEXT Node');
