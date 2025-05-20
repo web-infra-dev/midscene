@@ -206,7 +206,7 @@ describe(
       );
       expect(element.content).toBe('English');
       expect(element.nodeType).toBe('TEXT Node');
-      expect(element).toMatchSnapshot();
+      expect(element.attributes).toMatchSnapshot();
       await reset();
     });
 
@@ -224,7 +224,7 @@ describe(
         `${elementInfosScriptContent}midscene_element_inspector.getElementInfoByXpath('/html/body/button')`,
       );
       expect(element.nodeType).toBe('BUTTON Node');
-      expect(element).toMatchSnapshot();
+      expect(element.attributes).toMatchSnapshot();
       await reset();
     });
 

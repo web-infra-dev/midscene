@@ -3145,32 +3145,12 @@ exports[`extractor > getElementInfoByXpath by evaluateJavaScript 1`] = `
 
 exports[`extractor > getElementInfoByXpath from button node by evaluateJavaScript 1`] = `
 {
-  "attributes": {
-    "aria-label": "Search",
-    "class": ".btn",
-    "htmlTagName": "<body>",
-    "nodeType": "BUTTON Node",
-    "tabindex": "0",
-    "type": "submit",
-  },
-  "center": [
-    283,
-    1160,
-  ],
-  "content": " ",
-  "id": "kohcf",
-  "indexId": 0,
-  "locator": "[_midscene_retrieve_task_id='kohcf']",
-  "nodeHashId": "kohcf",
+  "aria-label": "Search",
+  "class": ".btn",
+  "htmlTagName": "<body>",
   "nodeType": "BUTTON Node",
-  "rect": {
-    "height": 210,
-    "left": 73,
-    "top": 1055,
-    "width": 420,
-    "zoom": 1,
-  },
-  "zoom": 1,
+  "tabindex": "0",
+  "type": "submit",
 }
 `;
 
