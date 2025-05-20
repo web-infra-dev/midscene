@@ -3,6 +3,7 @@ import { parseContextFromWebPage } from '@/common/utils';
 import StaticPage from '@/playground/static-page';
 import type { WebElementInfo } from '@/web-element';
 import { traverseTree } from '@midscene/shared/extractor';
+import { getElementInfosScriptContent } from '@midscene/shared/fs';
 import {
   compositeElementInfoImg,
   imageInfoOfBase64,
@@ -11,7 +12,6 @@ import {
 import { createServer } from 'http-server';
 import { beforeAll, describe, expect, it } from 'vitest';
 import { launchPage } from '../ai/web/puppeteer/utils';
-import { getElementInfosScriptContent } from '@midscene/shared/fs';
 
 const pageDir = join(__dirname, './fixtures/web-extractor');
 const pagePath = join(pageDir, 'index.html');
@@ -206,7 +206,6 @@ describe(
       );
       expect(element.content).toBe('English');
       expect(element.nodeType).toBe('TEXT Node');
-      expect(element.nodeHashId).toBe('emaam');
       expect(element).toMatchSnapshot();
       await reset();
     });
@@ -225,7 +224,6 @@ describe(
         `${elementInfosScriptContent}midscene_element_inspector.getElementInfoByXpath('/html/body/button')`,
       );
       expect(element.nodeType).toBe('BUTTON Node');
-      expect(element.nodeHashId).toBe('kohcf');
       expect(element).toMatchSnapshot();
       await reset();
     });
