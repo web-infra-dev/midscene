@@ -759,8 +759,8 @@ importers:
         specifier: 4.81.0
         version: 4.81.0(ws@8.18.1)(zod@3.24.3)
       semver:
-        specifier: 7.3.7
-        version: 7.3.7
+        specifier: 7.5.2
+        version: 7.5.2
       socket.io:
         specifier: ^4.8.1
         version: 4.8.1
@@ -11500,6 +11500,11 @@ packages:
     engines: {node: '>=10'}
     hasBin: true
 
+  semver@7.5.2:
+    resolution: {integrity: sha512-SoftuTROv/cRjCze/scjGyiDtcUyxw1rgYQSZY7XTmtR5hX+dm76iDbTH8TkLPHCQmlbQVSSbNZCPM2hb0knnQ==}
+    engines: {node: '>=10'}
+    hasBin: true
+
   semver@7.7.1:
     resolution: {integrity: sha512-hlq8tAfn0m/61p4BVRcPzIGr6LKiMwo4VM6dGi6pt4qcRkmNzTcWq6eCEjEh+qXjkMDvPlOFFSGwQjoEa6gyMA==}
     engines: {node: '>=10'}
@@ -16226,7 +16231,7 @@ snapshots:
       globby: 11.1.0
       inquirer: 7.3.3
       log-symbols: 4.1.0
-      semver: 7.3.7
+      semver: 7.5.2
 
   '@langchain/core@0.3.26(openai@4.81.0(ws@8.18.1)(zod@3.24.3))':
     dependencies:
@@ -20727,7 +20732,7 @@ snapshots:
       edit-json-file: 1.8.1
       globby: 13.2.2
       js-yaml: 4.1.0
-      semver: 7.7.1
+      semver: 7.5.2
       table: 6.9.0
       type-fest: 4.40.1
 
@@ -22417,7 +22422,7 @@ snapshots:
       minimatch: 3.1.2
       node-abort-controller: 3.1.1
       schema-utils: 3.3.0
-      semver: 7.3.7
+      semver: 7.5.2
       tapable: 2.2.1
       typescript: 5.8.2
       webpack: 5.95.0
@@ -22434,7 +22439,7 @@ snapshots:
       minimatch: 3.1.2
       node-abort-controller: 3.1.1
       schema-utils: 3.3.0
-      semver: 7.3.7
+      semver: 7.5.2
       tapable: 2.2.1
       typescript: 5.8.2
       webpack: 5.99.5
@@ -25271,7 +25276,7 @@ snapshots:
     dependencies:
       hosted-git-info: 4.1.0
       is-core-module: 2.16.1
-      semver: 7.3.7
+      semver: 7.5.2
       validate-npm-package-license: 3.0.4
 
   normalize-path@3.0.0: {}
@@ -27509,6 +27514,10 @@ snapshots:
   semver@6.3.1: {}
 
   semver@7.3.7:
+    dependencies:
+      lru-cache: 6.0.0
+
+  semver@7.5.2:
     dependencies:
       lru-cache: 6.0.0
 
