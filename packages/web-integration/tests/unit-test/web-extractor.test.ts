@@ -2,7 +2,9 @@ import { join } from 'node:path';
 import { parseContextFromWebPage } from '@/common/utils';
 import StaticPage from '@/playground/static-page';
 import type { WebElementInfo } from '@/web-element';
+import { sleep } from '@midscene/core/utils';
 import { traverseTree } from '@midscene/shared/extractor';
+import { getElementInfosScriptContent } from '@midscene/shared/fs';
 import {
   compositeElementInfoImg,
   imageInfoOfBase64,
@@ -188,6 +190,59 @@ describe(
 
       const context = await parseContextFromWebPage(page);
       expect(context).toBe(fakeContext);
+    });
+
+    it('getElementInfoByXpath from text node by evaluateJavaScript', async () => {
+      const { page, reset } = await launchPage(`http://127.0.0.1:${port}`, {
+        viewport: {
+          width: 1080,
+          height: 3000,
+          deviceScaleFactor: 1,
+        },
+      });
+      const elementInfosScriptContent = getElementInfosScriptContent();
+      const element = await page.evaluateJavaScript?.(
+        `${elementInfosScriptContent}midscene_element_inspector.getElementInfoByXpath('/html/body/div[2]/div/div/ul/li[1]/span/text()[1]')`,
+      );
+      expect(element.content).toBe('English');
+      expect(element.nodeType).toBe('TEXT Node');
+      expect(element.attributes).toMatchSnapshot();
+      await reset();
+    });
+
+    it('getElementInfoByXpath from button node by evaluateJavaScript', async () => {
+      const { page, reset } = await launchPage(`http://127.0.0.1:${port}`, {
+        viewport: {
+          width: 1080,
+          height: 3000,
+          deviceScaleFactor: 1,
+        },
+      });
+
+      const elementInfosScriptContent = getElementInfosScriptContent();
+      const element = await page.evaluateJavaScript?.(
+        `${elementInfosScriptContent}midscene_element_inspector.getElementInfoByXpath('/html/body/button')`,
+      );
+      expect(element.nodeType).toBe('BUTTON Node');
+      expect(element.attributes).toMatchSnapshot();
+      await reset();
+    });
+
+    it('getElementInfoByXpath from non form/button/image/text/container node by evaluateJavaScript', async () => {
+      const { page, reset } = await launchPage(`http://127.0.0.1:${port}`, {
+        viewport: {
+          width: 1080,
+          height: 3000,
+          deviceScaleFactor: 1,
+        },
+      });
+
+      const elementInfosScriptContent = getElementInfosScriptContent();
+      const element = await page.evaluateJavaScript?.(
+        `${elementInfosScriptContent}midscene_element_inspector.getElementInfoByXpath('/html/body/div[3]/div')`,
+      );
+      expect(element).toBe(null);
+      await reset();
     });
   },
   {

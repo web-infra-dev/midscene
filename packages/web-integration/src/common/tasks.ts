@@ -239,14 +239,17 @@ export class PageTaskExecutor {
                 const element = await this.page.evaluateJavaScript?.(
                   `${elementInfosScriptContent}midscene_element_inspector.getElementInfoByXpath('${xpaths[0]}')`,
                 );
-                elementFromCache = element;
-                debug('cache hit, prompt: %s', cachePrompt);
-                cacheHitFlag = true;
-                debug(
-                  'found a new new element with same xpath, xpath: %s, id: %s',
-                  xpaths[0],
-                  element?.id,
-                );
+
+                if (element?.id) {
+                  elementFromCache = element;
+                  debug('cache hit, prompt: %s', cachePrompt);
+                  cacheHitFlag = true;
+                  debug(
+                    'found a new new element with same xpath, xpath: %s, id: %s',
+                    xpaths[0],
+                    element?.id,
+                  );
+                }
               }
             } catch (error) {
               debug('get element info by xpath error: ', error);

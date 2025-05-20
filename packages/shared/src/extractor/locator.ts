@@ -1,5 +1,6 @@
 import type { ElementInfo } from '.';
 import { getNodeFromCacheList } from './util';
+import { getRect, isElementPartiallyInViewport } from './util';
 import { collectElementInfo } from './web-extractor';
 
 const getElementIndex = (element: Element): number => {
@@ -30,6 +31,21 @@ const findFirstAncestorWithId = (element: Element): Element | null => {
   return null;
 };
 
+// Get the index of a text node among its siblings of the same type
+const getTextNodeIndex = (textNode: Node): number => {
+  let index = 1;
+  let current = textNode.previousSibling;
+
+  while (current) {
+    if (current.nodeType === Node.TEXT_NODE) {
+      index++;
+    }
+    current = current.previousSibling;
+  }
+
+  return index;
+};
+
 const getElementXPath = (element: Node): string => {
   // deal with text node
   if (element.nodeType === Node.TEXT_NODE) {
@@ -37,7 +53,8 @@ const getElementXPath = (element: Node): string => {
     const parentNode = element.parentNode;
     if (parentNode && parentNode.nodeType === Node.ELEMENT_NODE) {
       const parentXPath = getElementXPath(parentNode);
-      return `${parentXPath}/text()`;
+      const textIndex = getTextNodeIndex(element);
+      return `${parentXPath}/text()[${textIndex}]`;
     }
     return '';
   }
@@ -144,7 +161,13 @@ export function getElementInfoByXpath(xpath: string): ElementInfo | null {
   }
 
   if (node instanceof HTMLElement) {
-    node.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    // only when the element is not completely in the viewport, call scrollIntoView
+    const rect = getRect(node, 1, window);
+    const isVisible = isElementPartiallyInViewport(rect, window, document, 1);
+
+    if (!isVisible) {
+      node.scrollIntoView({ behavior: 'instant', block: 'center' });
+    }
   }
 
   return collectElementInfo(
