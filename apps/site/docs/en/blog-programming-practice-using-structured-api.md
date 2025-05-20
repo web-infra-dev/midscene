@@ -1,6 +1,6 @@
-# Use Structured API to Optimize Automation Workflow
+# Use JavaScript to Optimize the AI Automation Code
 
-Many developers love using `ai` or `aiAction` to write automation code, and even describe all complex logic in a single natural language instruction. Although it may seem 'intelligent', in practice, this approach may not provide a reliable and efficient experience, and results in an endless loop of Prompt tuning.
+Many developers love using `ai` or `aiAction` to accomplish complex tasks, and even describe all logic in a single natural language instruction. Although it may seem 'intelligent', in practice, this approach may not provide a reliable and efficient experience, and results in an endless loop of Prompt tuning.
 
 Here is a typical example, developers may write a large logic storm with long descriptions, such as:
 
@@ -21,7 +21,7 @@ Another common misconception is that the complex workflow can be effectively con
 aiAction('click all the records one by one. If one record contains the text "completed", skip it')
 ```
 
-## Use Structured API to Write Automation Scripts
+## Use JavaScript and Structured API to Write Automation Scripts
 
 From v0.16.10, Midscene provides data extraction methods like `aiBoolean` `aiString` `aiNumber`, which can be used to control the workflow. 
 
@@ -29,11 +29,14 @@ Combining them with the instant action methods, like `aiTap`, `aiInput`, `aiScro
 
 Let's take the first bad case above, you can convert the `.aiAction` method into a structured API call:
 
-```javascript
-// original prompt
-// click all the records one by one. If one record contains the text "completed", skip it
+Original prompt:
 
-// converted code
+```
+click all the records one by one. If one record contains the text "completed", skip it
+```
+
+Converted code:
+```javascript
 const recordList = await agent.aiQuery('string[], the record list')
 for (const record of recordList) {
   const hasCompleted = await agent.aiBoolean(`check if the record contains the text "completed"`)
@@ -59,7 +62,7 @@ aiAction(`
 `)
 ```
 
-After using the structured APIs, developers can easily debug it step by step.
+After using the structured APIs, developers can easily inspect the code step by step.
 
 ```javascript
 let user = await agent.aiQuery('string[], the unfollowed user names in the list')
@@ -141,9 +144,13 @@ Example:
 const userList = await agent.aiQuery('string[], the user list')
 ```
 
-And also, Midscene provides some instant action methods, like `aiTap`, `aiInput`, `aiScroll`, `aiHover`, etc., you can check them in the [API](./API) page.
+### Instant Action Methods
+
+Midscene provides some instant action methods, like `aiTap`, `aiInput`, `aiScroll`, `aiHover`, etc., They are also commonly used in the automation code. You can check them in the [API](./API) page.
 
 ## Want to Write Structured Code Easily ?
+
+If you think the javascript code is hard to write, then this is the right time to use the AI IDE.
 
 Use your AI IDE to index the following documents:
 
@@ -160,3 +167,12 @@ According to the tips and APIs mentioned in Midscene documents, please help me c
 
 And the magic would happen.
 Enjoy it!
+
+
+## What's Next ?
+
+To achieve better performance, you can check the [Midscene caching feature](./caching) to cache the planning and xpath results.
+
+To learn more about the structured API, you can check the [API reference](./API).
+
+

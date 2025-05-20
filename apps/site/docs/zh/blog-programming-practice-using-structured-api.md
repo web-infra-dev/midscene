@@ -1,6 +1,6 @@
-# 使用结构化 API 优化自动化代码
+# 使用 JavaScript 优化 AI 自动化代码
 
-许多开发者喜欢使用 `aiAction` 来编写自动化代码，甚至将所有复杂逻辑描述在一个自然语言指令中。虽然这看起来很"智能"，但实际上会带来一系列问题，甚至困在 Prompt 反复调优的怪圈中。
+许多开发者喜欢使用 `aiAction` 接口来汇聚自动化任务，甚至将所有复杂逻辑描述在一个自然语言指令中。虽然这看起来很"智能"，但实际上会带来一系列问题，甚至困在 Prompt 反复调优的怪圈中。
 
 最常见的典型错误是编写大段逻辑风暴，如：
 
@@ -19,7 +19,7 @@ aiAction(`
 aiAction('逐条点击所有记录，如果一个记录包含“已完成”，则跳过')
 ```
 
-## 使用结构化 API 编写自动化脚本
+## 使用 JavaScript 和结构化 API 编写自动化脚本
 
 从 v0.16.10 开始，Midscene 提供了数据提取方法，如 `aiBoolean` `aiString` `aiNumber`，可以用于控制流程。
 
@@ -27,11 +27,15 @@ aiAction('逐条点击所有记录，如果一个记录包含“已完成”，�
 
 让我们以第一个错误案例为例，将 `.aiAction` 方法转换为结构化 API 调用：
 
-```javascript
-// 原始提示
-// 逐条点击所有记录，如果一个记录包含“已完成”，则跳过
+原始提示：
 
-// 转换后的代码
+```
+逐条点击所有记录，如果一个记录包含“已完成”，则跳过
+```
+
+转换后的代码：
+
+```javascript
 const recordList = await agent.aiQuery('string[], the record list')
 for (const record of recordList) {
   const hasCompleted = await agent.aiBoolean(`check if the record contains the text "completed"`)
@@ -57,7 +61,7 @@ aiAction(`
 `)
 ```
 
-使用结构化 API 后，开发者可以轻松地逐步调试它：
+使用结构化 API 后，开发者可以轻松地进行审阅和单步调试：
 
 ```javascript
 let user = await agent.aiQuery('string[], 列表中所有未关注用户')
@@ -126,3 +130,21 @@ for (let i = 0; i < unreadCount; i++) {
    // ...
 }
 ``` 
+
+### `aiQuery` - 通用数据提取
+
+* 适用场景：提取任意数据类型
+* 优势：灵活的数据类型处理
+
+举例：
+```javascript
+const userList = await agent.aiQuery('string[], 用户列表');
+```
+
+### 即时操作方法
+
+Midscene 提供了一些即时操作方法，如 `aiTap` `aiInput` `aiScroll` `aiHover` 等，它们也常用于自动化代码中。你可以在 [API](./API) 页面查看。
+
+## 想要轻松编写结构化代码？
+
+
