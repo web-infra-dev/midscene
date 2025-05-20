@@ -230,7 +230,7 @@ describe(
       await reset();
     });
 
-    it('getElementInfoByXpath from container node by evaluateJavaScript', async () => {
+    it('getElementInfoByXpath from non form/button/image/text/container node by evaluateJavaScript', async () => {
       const { page, reset } = await launchPage(`http://127.0.0.1:${port}`, {
         viewport: {
           width: 1080,
