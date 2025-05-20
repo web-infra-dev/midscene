@@ -147,4 +147,38 @@ Midscene 提供了一些即时操作方法，如 `aiTap` `aiInput` `aiScroll` `a
 
 ## 想要轻松编写结构化代码？
 
+如果你觉得上述 javascript 代码很难写，那么现在是时候使用 AI IDE 了。
+
+使用你的 AI IDE 索引以下文档：
+
+- https://midscenejs.com/blog-programming-practice-using-structured-api.md
+- https://midscenejs.com/API.md
+
+:::tip
+如何将 Midscene 文档添加到 AI IDE？
+
+请参考 [这篇文章](./llm-txt.mdx#usage)。
+:::
+
+接着使用以下提示词：
+
+```
+根据 @Use JavaScript to Optimize the Midscene Al Automation Code 和 @Midscene API 文档中的提示和 API 说明，
+
+请帮我将以下指令转换为结构化 javascript 代码：
+
+<你的提示词>
+```
+
+![](/blog/ai-ide-convert-prompt.png)
+
+然后奇迹就会发生。
+
+快去试试吧！
+
+## 接下来做什么？
+
+为了获得更好的性能，你可以检查 [Midscene 缓存功能](./caching) 来缓存规划和 xpath 定位结果。
+
+要了解更多关于结构化 API 的信息，请查看 [API 参考](./API)。
 

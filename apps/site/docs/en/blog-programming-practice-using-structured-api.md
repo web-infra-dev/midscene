@@ -157,13 +157,24 @@ Use your AI IDE to index the following documents:
 - https://midscenejs.com/blog-programming-practice-using-structured-api.md
 - https://midscenejs.com/API.md
 
-And use this prompt:
+:::tip
+How to add the Midscene documents to the AI IDE?
+
+Refer to [this article](./llm-txt.mdx#usage).
+
+:::
+
+And use this prompt with the mention of the Midscene documents:
 
 ```
-According to the tips and APIs mentioned in Midscene documents, please help me convert the following instructions into structured javascript code:
+According to the tips and APIs mentioned in @Use JavaScript to Optimize the Midscene Al Automation Code and @@Midscene API docs,
+
+please help me convert the following instructions into structured javascript code:
 
 <your prompt>
 ```
+
+![](/blog/ai-ide-convert-prompt.png)
 
 And the magic would happen.
 Enjoy it!
