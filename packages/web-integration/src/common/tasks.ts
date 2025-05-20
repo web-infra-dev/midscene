@@ -233,7 +233,11 @@ export class PageTaskExecutor {
             const xpaths = locateCacheRecord?.cacheContent?.xpaths;
             let elementFromCache = null;
             try {
-              if (xpaths?.length && this.taskCache?.isCacheResultUsed) {
+              if (
+                xpaths?.length &&
+                this.taskCache?.isCacheResultUsed &&
+                param?.cache !== false
+              ) {
                 // hit cache, use new id
                 const elementInfosScriptContent =
                   getElementInfosScriptContent();
@@ -269,7 +273,12 @@ export class PageTaskExecutor {
             const aiCost = Date.now() - startTime;
 
             // update cache
-            if (element && this.taskCache && !cacheHitFlag) {
+            if (
+              element &&
+              this.taskCache &&
+              !cacheHitFlag &&
+              param?.cache !== false
+            ) {
               const elementXpaths = await this.getElementXpath(
                 pageContext,
                 element,
