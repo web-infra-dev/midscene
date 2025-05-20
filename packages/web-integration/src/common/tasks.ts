@@ -236,7 +236,7 @@ export class PageTaskExecutor {
               if (
                 xpaths?.length &&
                 this.taskCache?.isCacheResultUsed &&
-                param?.cache !== false
+                param?.cacheable !== false
               ) {
                 // hit cache, use new id
                 const elementInfosScriptContent =
@@ -277,7 +277,7 @@ export class PageTaskExecutor {
               element &&
               this.taskCache &&
               !cacheHitFlag &&
-              param?.cache !== false
+              param?.cacheable !== false
             ) {
               const elementXpaths = await this.getElementXpath(
                 pageContext,

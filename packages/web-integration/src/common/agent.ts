@@ -223,11 +223,11 @@ export class PageAgent<PageType extends WebPage = WebPage> {
     if (typeof opt === 'object') {
       const prompt = opt.prompt || locatePrompt;
       const deepThink = opt.deepThink || false;
-      const cache = opt.cache;
+      const cacheable = opt.cacheable || true;
       return {
         prompt,
         deepThink,
-        cache,
+        cacheable,
       };
     }
     return {

@@ -3,7 +3,7 @@ import type { PlanningActionParamScroll } from './types';
 export interface LocateOption {
   prompt?: string;
   deepThink?: boolean; // only available in vl model
-  cache?: boolean; // user can set this param to false to disable the cache for a single agent api
+  cacheable?: boolean; // user can set this param to false to disable the cache for a single agent api
 }
 
 export interface DetailedLocateParam extends LocateOption {
