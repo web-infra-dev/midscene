@@ -36,8 +36,6 @@ describe(
       const flag = await agent.aiBoolean('this is a login page');
       expect(flag).toBe(true);
 
-      await agent.aiLocate('the cookie prompt');
-
       await agent.aiAction(
         'type "standard_user" in user name input, type "secret_sauce" in password',
       );
