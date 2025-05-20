@@ -1,8 +1,8 @@
+import fs from 'node:fs';
 import { join } from 'node:path';
 import { parseContextFromWebPage } from '@/common/utils';
 import StaticPage from '@/playground/static-page';
 import type { WebElementInfo } from '@/web-element';
-import { sleep } from '@midscene/core/utils';
 import { traverseTree } from '@midscene/shared/extractor';
 import { getElementInfosScriptContent } from '@midscene/shared/fs';
 import {
@@ -13,7 +13,6 @@ import {
 import { createServer } from 'http-server';
 import { beforeAll, describe, expect, it } from 'vitest';
 import { launchPage } from '../ai/web/puppeteer/utils';
-
 const pageDir = join(__dirname, './fixtures/web-extractor');
 const pagePath = join(pageDir, 'index.html');
 
@@ -242,6 +241,35 @@ describe(
         `${elementInfosScriptContent}midscene_element_inspector.getElementInfoByXpath('/html/body/div[3]/div')`,
       );
       expect(element).toBe(null);
+      await reset();
+    });
+
+    it('collectElementInfo from xss page', async () => {
+      const { page, reset } = await launchPage(
+        `http://127.0.0.1:${port}/xss.html`,
+        {
+          viewport: {
+            width: 1080,
+            height: 3000,
+            deviceScaleFactor: 1,
+          },
+        },
+      );
+
+      const xssHtmlContent = fs.readFileSync(
+        join(pageDir, 'xss.html'),
+        'utf-8',
+      );
+
+      expect(xssHtmlContent).toContain('<script>');
+      expect(xssHtmlContent).toMatchSnapshot();
+
+      const elementInfosScriptContent = getElementInfosScriptContent();
+      const element = await page.evaluateJavaScript?.(
+        `${elementInfosScriptContent}midscene_element_inspector.getElementInfoByXpath('/html/body/input')`,
+      );
+      expect(element.content).not.toContain('<script>');
+      expect(element.attributes?.value).not.toContain('<script>');
       await reset();
     });
   },

@@ -3116,6 +3116,31 @@ exports[`extractor > basic 2`] = `
 }
 `;
 
+exports[`extractor > collectElementInfo from xss page 1`] = `
+"<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Child Page</title>
+  </head>
+
+  <body>
+    <h1>XSS Injection Examples</h1>
+    <button>hello world!</button>
+    <input
+      value="<script>
+        setTimeout(() => {
+          alert('1');
+        }, 5000);
+      </script>
+      hello world!" />
+    </input>
+  </body>
+</html>
+"
+`;
+
 exports[`extractor > getElementInfoByXpath by evaluateJavaScript 1`] = `
 {
   "attributes": {

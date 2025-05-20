@@ -1,3 +1,4 @@
+import xss from 'xss';
 import type { Rect } from '../types';
 import { generateHashId } from '../utils';
 import { extractTextWithPosition } from './web-extractor';
@@ -427,7 +428,7 @@ export function getNodeAttributes(
       return [];
     }
 
-    let value = attr.value;
+    let value = xss(attr.value);
     if (value.startsWith('data:image')) {
       value = 'image';
     }

@@ -1,3 +1,4 @@
+import xss from 'xss';
 import {
   CONTAINER_MINI_HEIGHT,
   CONTAINER_MINI_WIDTH,
@@ -82,8 +83,6 @@ export function collectElementInfo(
     const attributes = getNodeAttributes(node, currentWindow);
     let valueContent =
       attributes.value || attributes.placeholder || node.textContent || '';
-    const nodeHashId = midsceneGenerateHash(node, valueContent, rect);
-    const selector = setDataForNode(node, nodeHashId, false, currentWindow);
     const tagName = (node as HTMLElement).tagName.toLowerCase();
     if ((node as HTMLElement).tagName.toLowerCase() === 'select') {
       // Get the selected option using the selectedIndex property
@@ -102,6 +101,11 @@ export function collectElementInfo(
     ) {
       valueContent = (node as HTMLInputElement).value;
     }
+
+    valueContent = xss(valueContent);
+
+    const nodeHashId = midsceneGenerateHash(node, valueContent, rect);
+    const selector = setDataForNode(node, nodeHashId, false, currentWindow);
 
     const elementInfo: WebElementInfo = {
       id: nodeHashId,
@@ -128,7 +132,10 @@ export function collectElementInfo(
   if (isButtonElement(node)) {
     const attributes = getNodeAttributes(node, currentWindow);
     const pseudo = getPseudoElementContent(node, currentWindow);
-    const content = node.innerText || pseudo.before || pseudo.after || '';
+    let content = node.innerText || pseudo.before || pseudo.after || '';
+
+    content = xss(content);
+
     const nodeHashId = midsceneGenerateHash(node, content, rect);
     const selector = setDataForNode(node, nodeHashId, false, currentWindow);
     const elementInfo: WebElementInfo = {
@@ -185,10 +192,14 @@ export function collectElementInfo(
   }
 
   if (isTextElement(node)) {
-    const text = node.textContent?.trim().replace(/\n+/g, ' ');
+    let text = node.textContent?.trim().replace(/\n+/g, ' ');
     if (!text) {
       return null;
     }
+
+    // Sanitize the text content to prevent XSS
+    text = xss(text);
+
     const attributes = getNodeAttributes(node, currentWindow);
     const attributeKeys = Object.keys(attributes);
     if (!text.trim() && attributeKeys.length === 0) {
