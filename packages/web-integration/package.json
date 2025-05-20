@@ -142,7 +142,7 @@
     "js-sha256": "0.11.0",
     "js-yaml": "4.1.0",
     "openai": "4.81.0",
-    "semver": "7.3.7",
+    "semver": "7.5.2",
     "socket.io": "^4.8.1",
     "socket.io-client": "4.8.1"
   },
