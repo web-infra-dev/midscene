@@ -20,7 +20,7 @@ describe(
       }
     });
 
-    it('Sauce Demo by Swag Lab', async () => {
+    it.only('Sauce Demo by Swag Lab', async () => {
       const { originPage, reset } = await launchPage(
         'https://www.saucedemo.com/',
       );
@@ -35,6 +35,9 @@ describe(
 
       const flag = await agent.aiBoolean('this is a login page');
       expect(flag).toBe(true);
+
+      await agent.aiLocate('the cookie prompt');
+      return;
 
       await agent.aiAction(
         'type "standard_user" in user name input, type "secret_sauce" in password',

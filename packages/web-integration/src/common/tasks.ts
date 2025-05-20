@@ -216,6 +216,7 @@ export class PageTaskExecutor {
             this.insight.onceDumpUpdatedFn = dumpCollector;
             const shotTime = Date.now();
             const pageContext = await this.insight.contextRetrieverFn('locate');
+            task.pageContext = pageContext;
             const recordItem: ExecutionRecorderItem = {
               type: 'screenshot',
               ts: shotTime,
