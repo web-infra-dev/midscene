@@ -9,15 +9,20 @@
     "update-answer-data:locator:element": "UPDATE_ANSWER_DATA=true npm run evaluate:locator && npm run format",
     "update-answer-data:planning:coord": "UPDATE_ANSWER_DATA=true MIDSCENE_EVALUATION_EXPECT_VL=1 npm run evaluate:planning && npm run format",
     "update-answer-data:planning:element": "UPDATE_ANSWER_DATA=true npm run evaluate:planning && npm run format",
+    "download-screenspot-v2": "huggingface-cli download Voxel51/ScreenSpot-v2 --repo-type dataset --local-dir ./page-data/screenspot-v2",
     "update-answer-data:assertion": "UPDATE_ANSWER_DATA=true npm run evaluate:assertion && npm run format",
     "update-answer-data:section-locator": "UPDATE_ANSWER_DATA=true npm run evaluate:section-locator && npm run format",
     "evaluate:locator": "npx vitest --run tests/llm-locator.test.ts",
+    "evaluate:locator:screenspot-v2": "SCREENSPOT_V2=true npx vitest --run tests/screenspot-v2-evaluation.test.ts",
     "evaluate:planning": "npx vitest --run tests/llm-planning.test.ts",
     "evaluate:assertion": "npx vitest --run tests/assertion.test.ts",
     "evaluate:section-locator": "npx vitest --run tests/llm-section-locator.test.ts",
     "format": "cd ../.. && npm run lint"
   },
-  "files": ["dist", "README.md"],
+  "files": [
+    "dist",
+    "README.md"
+  ],
   "type": "module",
   "dependencies": {
     "@midscene/core": "workspace:*",
@@ -25,9 +30,11 @@
     "@midscene/web": "workspace:*"
   },
   "devDependencies": {
+    "@playwright/test": "^1.44.1",
+    "cli-progress": "3.12.0",
     "dotenv": "16.4.5",
     "playwright": "1.44.1",
-    "@playwright/test": "^1.44.1",
+    "sharp": "0.34.1",
     "typescript": "^5.8.2",
     "vitest": "3.0.5"
   },
