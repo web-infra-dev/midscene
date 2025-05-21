@@ -228,7 +228,10 @@ export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
       } else if ((flowItem as MidsceneYamlFlowItemAIHover).aiHover) {
         const hoverTask = flowItem as MidsceneYamlFlowItemAIHover;
         await agent.aiHover(hoverTask.aiHover, hoverTask);
-      } else if ((flowItem as MidsceneYamlFlowItemAIInput).aiInput) {
+      } else if (
+        (flowItem as MidsceneYamlFlowItemAIInput).aiInput !== undefined
+      ) {
+        // may be input empty string ''
         const inputTask = flowItem as MidsceneYamlFlowItemAIInput;
         await agent.aiInput(inputTask.aiInput, inputTask.locate, inputTask);
       } else if (
