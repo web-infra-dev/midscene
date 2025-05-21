@@ -14,6 +14,7 @@ import GlobalHoverPreview from './components/global-hover-preview';
 import Sidebar from './components/sidebar';
 import { useExecutionDump } from './components/store';
 import Timeline from './components/timeline';
+import { antiEscapeHtml } from '@midscene/shared/utils';
 import type {
   ExecutionDumpWithPlaywrightAttributes,
   StoreState,
@@ -291,7 +292,7 @@ const App = () => {
         }
       });
 
-      const content = el.textContent;
+      const content = antiEscapeHtml(el.textContent!);
       try {
         const jsonContent = JSON.parse(content!);
         jsonContent.attributes = attributes;
