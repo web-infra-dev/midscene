@@ -199,14 +199,18 @@ describe(
 
     it('input xss content', async () => {
       const { originPage, reset } = await launchPage('https://www.baidu.com/');
-      resetFn = reset;
-      const agent = new PuppeteerAgent(originPage, {
-        forceSameTabNavigation: true,
-      });
+      const agent = new PuppeteerAgent(originPage);
       await agent.aiInput(
         '</script><script>alert("xss")</script>',
         'the search box',
       );
+      await reset();
+
+      const reportFile = agent.reportFile;
+      const reportPage = await launchPage(`file://${reportFile}`);
+      const reportAgent = new PuppeteerAgent(reportPage.originPage);
+      await reportAgent.aiAssert('there is a sidebar in the page');
+      resetFn = reportPage.reset;
     });
 
     it.skip('Playground', async () => {
