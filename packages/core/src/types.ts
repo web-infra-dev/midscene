@@ -119,6 +119,28 @@ export interface AIAssertionResponse {
   thought: string;
 }
 
+export interface AIDescribeElementResponse {
+  description: string;
+  error?: string;
+}
+
+export interface LocatorValidatorOption {
+  centerDistanceThreshold?: number;
+}
+
+export interface LocateValidatorResult {
+  pass: boolean;
+  rect: Rect;
+  center: [number, number];
+  centerDistance?: number;
+}
+
+export interface AgentDescribeElementAtPointResult {
+  prompt: string;
+  deepThink: boolean;
+  verifyResult?: LocateValidatorResult;
+}
+
 /**
  * context
  */
@@ -157,7 +179,7 @@ export interface InsightOptions {
 
 export type EnsureObject<T> = { [K in keyof T]: any };
 
-export type InsightAction = 'locate' | 'extract' | 'assert';
+export type InsightAction = 'locate' | 'extract' | 'assert' | 'describe';
 
 export type InsightExtractParam = string | Record<string, string>;
 
