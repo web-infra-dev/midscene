@@ -18,8 +18,25 @@ export function parseYamlScript(
   filePath?: string,
   ignoreCheckingTarget?: boolean,
 ): MidsceneYamlScript {
-  const interpolatedContent = interpolateEnvVars(content);
-  const obj = yaml.load(interpolatedContent) as MidsceneYamlScript;
+  let processedContent = content;
+  if (content.indexOf('android') !== -1 && content.match(/deviceId:\s*(\d+)/)) {
+    let matchedDeviceId;
+    processedContent = content.replace(
+      /deviceId:\s*(\d+)/g,
+      (match, deviceId) => {
+        matchedDeviceId = deviceId;
+        return `deviceId: '${deviceId}'`;
+      },
+    );
+    console.warn(
+      `please use string-style deviceId in yaml script, for example: deviceId: "${matchedDeviceId}"`,
+    );
+  }
+  const interpolatedContent = interpolateEnvVars(processedContent);
+  const obj = yaml.load(interpolatedContent, {
+    schema: yaml.JSON_SCHEMA,
+  }) as MidsceneYamlScript;
+
   const pathTip = filePath ? `, failed to load ${filePath}` : '';
   const android =
     typeof obj.android !== 'undefined'
