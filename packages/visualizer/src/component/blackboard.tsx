@@ -12,8 +12,24 @@ import { useBlackboardPreference } from './store/store';
 
 const itemFillAlpha = 0.4;
 const highlightAlpha = 0.4;
+const pointRadius = 10;
 const noop = () => {
   // noop
+};
+
+export const pointMarkForItem = (
+  point: [number, number],
+  type: 'highlightPoint',
+) => {
+  const [x, y] = point;
+  const themeColor = highlightColorForType('element');
+
+  const graphics = new PIXI.Graphics();
+  // draw a circle
+  graphics.beginFill(themeColor, itemFillAlpha);
+  graphics.drawCircle(x, y, pointRadius);
+  graphics.endFill();
+  return graphics;
 };
 
 export const rectMarkForItem = (
@@ -49,6 +65,9 @@ export const rectMarkForItem = (
   graphics.filters = [dropShadowFilter];
 
   const nameFontSize = 18;
+  if (!name) {
+    return [graphics];
+  }
   const texts = new PIXI.Text(name, {
     fontSize: nameFontSize,
     fill: 0x0,
@@ -62,11 +81,14 @@ export const Blackboard = (props: {
   uiContext: UIContext;
   highlightElements?: BaseElement[];
   highlightRect?: Rect;
+  highlightPoints?: [number, number][];
   hideController?: boolean;
+  onCanvasClick?: (position: [number, number]) => void;
 }): JSX.Element => {
   const highlightElements: BaseElement[] = props.highlightElements || [];
   const highlightIds = highlightElements.map((e) => e.id);
   const highlightRect = props.highlightRect;
+  const highlightPoints = props.highlightPoints;
 
   const context = props.uiContext!;
   const { size, screenshotBase64 } = context;
@@ -128,6 +150,28 @@ export const Blackboard = (props: {
     };
   }, [app, screenWidth, screenHeight]);
 
+  useEffect(() => {
+    if (!appInitialed) {
+      return;
+    }
+
+    // Enable interaction on the stage and all its children
+    app.stage.eventMode = 'static';
+    app.stage.hitArea = new PIXI.Rectangle(0, 0, screenWidth, screenHeight);
+
+    const clickHandler = (event: PIXI.FederatedPointerEvent) => {
+      console.log('pixi click', event);
+      const { x, y } = event.data.global;
+      props.onCanvasClick?.([Math.round(x), Math.round(y)]);
+    };
+
+    app.stage.on('click', clickHandler);
+
+    return () => {
+      app?.stage?.off('click');
+    };
+  }, [appInitialed, props.onCanvasClick, screenWidth, screenHeight]);
+
   // draw all texts on PIXI app
   useEffect(() => {
     if (!appInitialed) {
@@ -144,13 +188,18 @@ export const Blackboard = (props: {
       backgroundSprite.y = 0;
       backgroundSprite.width = screenWidth;
       backgroundSprite.height = screenHeight;
+
+      // Ensure the background doesn't block interactivity
+      backgroundSprite.eventMode = 'passive';
+
       app.stage.addChildAt(backgroundSprite, 0);
+      pixiBgRef.current = backgroundSprite;
     };
     img.onerror = (e) => {
       console.error('load screenshot failed', e);
     };
     img.src = screenshotBase64;
-  }, [app.stage, appInitialed]);
+  }, [app.stage, appInitialed, screenWidth, screenHeight]);
 
   const { highlightElementRects } = useMemo(() => {
     const highlightElementRects: Rect[] = [];
@@ -158,8 +207,11 @@ export const Blackboard = (props: {
     highlightContainer.removeChildren();
     elementMarkContainer.removeChildren();
 
+    // Make containers interactive but not blocking events
+    highlightContainer.eventMode = 'passive';
+    elementMarkContainer.eventMode = 'passive';
+
     if (highlightRect) {
-      console.log('highlightRect', highlightRect);
       const [graphics] = rectMarkForItem(
         highlightRect,
         'Search Area',
@@ -172,6 +224,13 @@ export const Blackboard = (props: {
       highlightElements.forEach((element) => {
         const { rect, content, id } = element;
         const [graphics] = rectMarkForItem(rect, content, 'highlight');
+        highlightContainer.addChild(graphics);
+      });
+    }
+
+    if (highlightPoints?.length) {
+      highlightPoints.forEach((point) => {
+        const graphics = pointMarkForItem(point, 'highlightPoint');
         highlightContainer.addChild(graphics);
       });
     }
@@ -200,6 +259,7 @@ export const Blackboard = (props: {
     context.content,
     hoverElement,
     highlightRect,
+    highlightPoints,
     // bgVisible,
     // elementsVisible,
   ]);
