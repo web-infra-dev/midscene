@@ -15,12 +15,16 @@ import {
   getAIConfigInJson,
 } from '@midscene/shared/env';
 import { getRunningPkgInfo } from '@midscene/shared/fs';
-import { assert, getGlobalScope } from '@midscene/shared/utils';
-import { ifInBrowser, uuid } from '@midscene/shared/utils';
+import { assert } from '@midscene/shared/utils';
+import { escapeHtml, ifInBrowser, uuid } from '@midscene/shared/utils';
+import xss from 'xss';
 import type { Rect, ReportDumpWithAttributes } from './types';
 
 let logEnvReady = false;
 
+const xssOptions = {
+  escapeHtml,
+};
 export const groupedActionDumpFileExt = 'web-dump.json';
 
 export function getLogDir() {
@@ -104,7 +108,7 @@ export function reportHTMLContent(
     const dumpContent =
       // biome-ignore lint/style/useTemplate: <explanation> do not use template string here, will cause bundle error
       '<script type="midscene_web_dump" type="application/json">\n' +
-      dumpData +
+      xss(dumpData, xssOptions) +
       '\n</script>';
     appendOrWrite(dumpContent);
   }
@@ -122,7 +126,7 @@ export function reportHTMLContent(
         '<script type="midscene_web_dump" type="application/json" ' +
         attributesArr.join(' ') +
         '>\n' +
-        dumpString +
+        xss(dumpString, xssOptions) +
         '\n</script>';
       appendOrWrite(dumpContent);
     }

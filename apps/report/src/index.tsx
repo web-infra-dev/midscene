@@ -1,8 +1,8 @@
+import { antiEscapeHtml } from '@midscene/shared/utils';
 import { Alert } from 'antd';
 import ReactDOM from 'react-dom/client';
 import { Visualizer } from './App';
 import type { ExecutionDumpWithPlaywrightAttributes } from './types';
-
 const rootEl = document.getElementById('root');
 if (rootEl) {
   const root = ReactDOM.createRoot(rootEl);
@@ -49,9 +49,9 @@ if (rootEl) {
           }
         });
 
-        const content = el.textContent;
+        const content = antiEscapeHtml(el.textContent);
         try {
-          const jsonContent = JSON.parse(content!);
+          const jsonContent = JSON.parse(content);
           jsonContent.attributes = attributes;
           reportDump.push(jsonContent);
         } catch (e) {

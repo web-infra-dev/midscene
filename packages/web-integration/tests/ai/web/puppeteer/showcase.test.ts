@@ -223,6 +223,22 @@ describe(
       await agent.aiWaitFor('There is a weather forecast in the page');
     });
 
+    it('input xss content', async () => {
+      const { originPage, reset } = await launchPage('https://www.baidu.com/');
+      const agent = new PuppeteerAgent(originPage);
+      await agent.aiInput(
+        '</script><script>alert("xss")</script>',
+        'the search box',
+      );
+      await reset();
+
+      const reportFile = agent.reportFile;
+      const reportPage = await launchPage(`file://${reportFile}`);
+      const reportAgent = new PuppeteerAgent(reportPage.originPage);
+      await reportAgent.aiAssert('there is a sidebar in the page');
+      resetFn = reportPage.reset;
+    });
+
     it('Sauce Demo by Swag Lab - aiQuery', async () => {
       const { originPage, reset } = await launchPage(
         'https://www.saucedemo.com/',

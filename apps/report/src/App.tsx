@@ -6,6 +6,7 @@ import { Button, ConfigProvider, Empty, Spin } from 'antd';
 import { useEffect, useRef, useState } from 'react';
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
 
+import { antiEscapeHtml } from '@midscene/shared/utils';
 import { Logo, Player, globalThemeConfig } from '@midscene/visualizer';
 import { PlaywrightCaseSelector } from './components/PlaywrightCaseSelector';
 import DetailPanel from './components/detail-panel';
@@ -291,9 +292,9 @@ const App = () => {
         }
       });
 
-      const content = el.textContent;
+      const content = antiEscapeHtml(el.textContent);
       try {
-        const jsonContent = JSON.parse(content!);
+        const jsonContent = JSON.parse(content);
         jsonContent.attributes = attributes;
         reportDump.push(jsonContent);
       } catch (e) {

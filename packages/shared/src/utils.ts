@@ -96,3 +96,21 @@ export async function repeat(
     await fn(i);
   }
 }
+
+const REGEXP_LT = /</g;
+const REGEXP_GT = />/g;
+const REGEXP_LT_ESCAPE = '__midscene_lt__';
+const REGEXP_GT_ESCAPE = '__midscene_gt__';
+
+export const escapeHtml = (html: string) => {
+  return html
+    .replace(REGEXP_LT, REGEXP_LT_ESCAPE)
+    .replace(REGEXP_GT, REGEXP_GT_ESCAPE);
+};
+
+export const antiEscapeHtml = (html: string) => {
+  const REGEXP_LT = new RegExp(REGEXP_LT_ESCAPE, 'g');
+  const REGEXP_GT = new RegExp(REGEXP_GT_ESCAPE, 'g');
+
+  return html.replace(REGEXP_LT, '<').replace(REGEXP_GT, '>');
+};

@@ -227,6 +227,32 @@ describe('utils', () => {
     },
     { timeout: 30000 },
   );
+
+  it('reportHTMLContent array with xss', () => {
+    const reportContent = reportHTMLContent([
+      {
+        dumpString: '<script>alert("xss")</script>',
+        attributes: {
+          'data-midscene-id': '123',
+        },
+      },
+    ]);
+    expect(reportContent).toBeTruthy();
+    expect(reportContent).toContain('data-midscene-id="123"');
+    expect(reportContent).toContain(
+      `__midscene_lt__script__midscene_gt__alert("xss")__midscene_lt__/script__midscene_gt__`,
+    );
+    expect(reportContent).not.toContain('<script>alert("xss")</script>');
+  });
+
+  it('reportHTMLContent string with xss', () => {
+    const reportContent = reportHTMLContent('<script>alert("xss")</script>');
+    expect(reportContent).toBeTruthy();
+    expect(reportContent).toContain(
+      `__midscene_lt__script__midscene_gt__alert("xss")__midscene_lt__/script__midscene_gt__`,
+    );
+    expect(reportContent).not.toContain('<script>alert("xss")</script>');
+  });
 });
 
 describe('extractJSONFromCodeBlock', () => {
