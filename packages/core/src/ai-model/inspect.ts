@@ -35,7 +35,10 @@ import {
   mergeRects,
 } from './common';
 import { systemPromptToAssert } from './prompt/assertion';
-import { extractDataPrompt, systemPromptToExtract } from './prompt/extraction';
+import {
+  extractDataQueryPrompt,
+  systemPromptToExtract,
+} from './prompt/extraction';
 import {
   findElementPrompt,
   systemPromptToLocateElement,
@@ -310,20 +313,10 @@ export async function AiExtractElementInfo<
     liteContextConfig,
   );
 
-  let dataKeys = '';
-  let dataQueryText = '';
-  if (typeof dataQuery === 'string') {
-    dataKeys = '';
-    dataQueryText = dataQuery;
-  } else {
-    dataKeys = `return in key-value style object, keys are **${Object.keys(dataQuery).join(',')}**, like {data: {result: xxx,error: []}}`;
-    dataQueryText = JSON.stringify(dataQuery, null, 2);
-  }
-  const extractDataPromptText = await extractDataPrompt.format({
-    pageDescription: description,
-    dataKeys,
-    dataQuery: dataQueryText,
-  });
+  const extractDataPromptText = await extractDataQueryPrompt(
+    description,
+    dataQuery,
+  );
 
   const msgs: AIArgs = [
     { role: 'system', content: systemPrompt },
