@@ -26,6 +26,7 @@ const createSvgOverlay = async (
   imageWidth: number,
   imageHeight: number,
   boxPadding = 5,
+  prompt?: string,
 ): Promise<Jimp> => {
   const Jimp = await getJimp();
   const image = new Jimp(imageWidth, imageHeight, 0x00000000);
@@ -38,6 +39,47 @@ const createSvgOverlay = async (
     { rect: 0x3e7b27ff, text: 0xffffffff }, // green, white
     { rect: 0x500073ff, text: 0xffffffff }, // purple, white
   ];
+
+  // Draw prompt text if provided
+  if (prompt) {
+    try {
+      cachedFont = cachedFont || (await loadFonts());
+      const promptPadding = 10;
+      const promptMargin = 20;
+      const promptHeight = 30;
+      const promptY = imageHeight - promptHeight - promptMargin;
+
+      // Draw prompt background
+      image.scan(
+        0,
+        promptY,
+        imageWidth,
+        promptHeight,
+        (x: number, y: number, idx: number): void => {
+          image.bitmap.data[idx + 0] = 0x00; // R
+          image.bitmap.data[idx + 1] = 0x00; // G
+          image.bitmap.data[idx + 2] = 0x00; // B
+          image.bitmap.data[idx + 3] = 0xcc; // A (80% opacity)
+        },
+      );
+
+      // Draw prompt text
+      image.print(
+        cachedFont,
+        promptPadding,
+        promptY,
+        {
+          text: prompt,
+          alignmentX: Jimp.HORIZONTAL_ALIGN_LEFT,
+          alignmentY: Jimp.VERTICAL_ALIGN_MIDDLE,
+        },
+        imageWidth - promptPadding * 2,
+        promptHeight,
+      );
+    } catch (error) {
+      console.error('Error drawing prompt text', error);
+    }
+  }
 
   for (let index = 0; index < elements.length; index++) {
     const element = elements[index];
@@ -195,6 +237,7 @@ export const compositeElementInfoImg = async (options: {
   elementsPositionInfo: Array<BaseElement>;
   size?: { width: number; height: number };
   annotationPadding?: number;
+  prompt?: string;
 }) => {
   assert(options.inputImgBase64, 'inputImgBase64 is required');
   let width = 0;
@@ -227,7 +270,7 @@ export const compositeElementInfoImg = async (options: {
     throw Error('Image processing failed because width or height is undefined');
   }
 
-  const { elementsPositionInfo } = options;
+  const { elementsPositionInfo, prompt } = options;
 
   const result = await Promise.resolve(jimpImage)
     .then(async (image: Jimp) => {
@@ -237,6 +280,7 @@ export const compositeElementInfoImg = async (options: {
         width,
         height,
         options.annotationPadding,
+        prompt,
       );
       const svgImage = await Jimp.read(svgOverlay);
       const compositeImage = await image.composite(svgImage, 0, 0, {

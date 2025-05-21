@@ -1,155 +1,228 @@
-import { type LocateTask, type PlanTask, TaskCache } from '@/common/task-cache';
-import type { WebUIContext } from '@/common/utils';
-import type { WebElementInfo } from '@/web-element';
-import type { AIElementLocatorResponse } from '@midscene/core';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { existsSync, readFileSync } from 'node:fs';
+import {
+  type LocateCache,
+  type PlanningCache,
+  TaskCache,
+} from '@/common/task-cache';
+import { uuid } from '@midscene/shared/utils';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 
-describe('TaskCache', () => {
-  let taskCache: TaskCache;
-  let formalPageContext: WebUIContext;
-  let pageContext: LocateTask['pageContext'];
+vi.mock('../../package.json', () => {
+  return {
+    version: '0.16.11',
+  };
+});
 
-  beforeEach(() => {
-    taskCache = new TaskCache();
-    pageContext = {
-      url: 'https://example.com',
-      size: { width: 1024, height: 768 },
-    };
-    formalPageContext = {
-      ...pageContext,
-      screenshotBase64: '',
-      content: [{ id: 'element1' } as WebElementInfo], // 示例页面内容
-    } as any;
+const prepareCache = (
+  caches: (PlanningCache | LocateCache)[],
+  cacheId?: string,
+) => {
+  const cache = new TaskCache(cacheId ?? uuid(), true);
+
+  caches.map((data: PlanningCache | LocateCache) => {
+    cache.appendCache(data);
   });
 
-  it('should return false if no cache is available', async () => {
-    const cacheGroup = taskCache.getCacheGroupByPrompt('test prompt');
-    const result = cacheGroup.matchCache(
-      formalPageContext,
-      'plan',
-      'test prompt',
-    );
-    expect(result).toBe(false);
-  });
+  return cache.cacheFilePath;
+};
 
-  it('should return false if the prompt does not match', async () => {
-    taskCache.cache.aiTasks = [
-      {
-        prompt: 'different prompt',
-        tasks: [
+describe(
+  'TaskCache',
+  () => {
+    beforeAll(() => {
+      vi.resetModules();
+    });
+
+    afterAll(() => {
+      vi.restoreAllMocks();
+    });
+
+    it('should create cache file', () => {
+      const cacheId = uuid();
+      const cache = new TaskCache(cacheId, true);
+      expect(cache.cacheFilePath).toBeDefined();
+
+      cache.appendCache({
+        type: 'plan',
+        prompt: 'test',
+        yamlWorkflow: 'test',
+      });
+
+      expect(existsSync(cache.cacheFilePath!)).toBe(true);
+      const cacheContent = readFileSync(cache.cacheFilePath!, 'utf-8').replace(
+        cacheId,
+        'cacheId',
+      );
+      expect(cacheContent).toMatchSnapshot();
+
+      expect(cache.isCacheResultUsed).toBe(true);
+    });
+
+    it('update or append cache record - should not match cache added in same run', () => {
+      const cacheId = uuid();
+      const cache = new TaskCache(cacheId, true);
+
+      cache.appendCache({
+        type: 'plan',
+        prompt: 'test-prompt',
+        yamlWorkflow: 'test-yaml-workflow',
+      });
+
+      const existingRecord = cache.matchPlanCache('test-prompt');
+      expect(existingRecord).toBeUndefined();
+
+      cache.updateOrAppendCacheRecord(
+        {
+          type: 'plan',
+          prompt: 'test-prompt',
+          yamlWorkflow: 'test-yaml-workflow-2',
+        },
+        existingRecord,
+      );
+
+      expect(cache.cache.caches.length).toBe(2);
+      expect(cache.cache.caches).toMatchSnapshot();
+    });
+
+    it('one cache record can only be matched once - when loaded from file', () => {
+      const cacheFilePath = prepareCache([
+        {
+          type: 'plan',
+          prompt: 'test-prompt',
+          yamlWorkflow: 'test-yaml-workflow',
+        },
+      ]);
+
+      const newCache = new TaskCache(uuid(), true, cacheFilePath);
+
+      // should be able to match cache record
+      expect(newCache.matchPlanCache('test-prompt')).toBeDefined();
+      // should return undefined when matching the same record again
+      expect(newCache.matchPlanCache('test-prompt')).toBeUndefined();
+    });
+
+    it('same prompt with same type cache record can be matched twice - when loaded from file', () => {
+      const cacheFilePath = prepareCache([
+        {
+          type: 'plan',
+          prompt: 'test-prompt',
+          yamlWorkflow: 'test-yaml-workflow-1',
+        },
+        {
+          type: 'plan',
+          prompt: 'test-prompt',
+          yamlWorkflow: 'test-yaml-workflow-2',
+        },
+      ]);
+      const newCache = new TaskCache(uuid(), true, cacheFilePath);
+
+      // should be able to match the first record
+      const firstMatch = newCache.matchPlanCache('test-prompt');
+      expect(firstMatch).toBeDefined();
+      expect(firstMatch?.cacheContent.yamlWorkflow).toBe(
+        'test-yaml-workflow-1',
+      );
+
+      // should be able to match the second record
+      const secondMatch = newCache.matchPlanCache('test-prompt');
+      expect(secondMatch).toBeDefined();
+      expect(secondMatch?.cacheContent.yamlWorkflow).toBe(
+        'test-yaml-workflow-2',
+      );
+
+      // should return undefined when matching the same record again
+      expect(newCache.matchPlanCache('test-prompt')).toBeUndefined();
+    });
+
+    it('should not match cache records added in the same run', () => {
+      const cacheId = uuid();
+      const cache = new TaskCache(cacheId, true);
+
+      // cache is empty, cacheOriginalLength should be 0
+      expect(cache.cacheOriginalLength).toBe(0);
+
+      // add a cache record
+      cache.appendCache({
+        type: 'plan',
+        prompt: 'test-prompt-1',
+        yamlWorkflow: 'test-yaml-workflow-1',
+      });
+
+      // add another cache record
+      cache.appendCache({
+        type: 'plan',
+        prompt: 'test-prompt-2',
+        yamlWorkflow: 'test-yaml-workflow-2',
+      });
+
+      // cache has two records
+      expect(cache.cache.caches.length).toBe(2);
+
+      // cacheOriginalLength should be 0
+      expect(cache.cacheOriginalLength).toBe(0);
+
+      // should not be able to match any record
+      expect(cache.matchPlanCache('test-prompt-1')).toBeUndefined();
+      expect(cache.matchPlanCache('test-prompt-2')).toBeUndefined();
+    });
+
+    it('save and retrieve cache from file', () => {
+      const cacheId = uuid();
+      const planningCachedPrompt = 'test';
+      const planningCachedYamlWorkflow = 'test-yaml-workflow';
+
+      const locateCachedPrompt = 'test-locate';
+      const locateCachedXpaths = ['test-xpath-1', 'test-xpath-2'];
+
+      const cacheFilePath = prepareCache(
+        [
           {
             type: 'plan',
-            prompt: 'different prompt',
-            pageContext,
-            response: {
-              actions: [],
-              log: '',
-              more_actions_needed_by_instruction: false,
-            },
+            prompt: planningCachedPrompt,
+            yamlWorkflow: planningCachedYamlWorkflow,
+          },
+          {
+            type: 'locate',
+            prompt: locateCachedPrompt,
+            xpaths: locateCachedXpaths,
           },
         ],
-      },
-    ];
-    const cacheGroup = taskCache.getCacheGroupByPrompt('test prompt');
-    const result = cacheGroup.matchCache(
-      formalPageContext,
-      'plan',
-      'test prompt',
-    );
-    expect(result).toBe(false);
-  });
+        cacheId,
+      );
 
-  it('should return false if the element cannot be found in the new context', async () => {
-    taskCache.cache = {
-      aiTasks: [
-        {
-          prompt: 'test prompt',
-          tasks: [
-            {
-              type: 'locate',
-              prompt: 'test prompt',
-              pageContext,
-              response: {
-                elements: [{ id: 'element3' }],
-              } as AIElementLocatorResponse,
-            },
-          ],
-        },
-      ],
-    };
-    const cacheGroup = taskCache.getCacheGroupByPrompt('test prompt');
-    const result = cacheGroup.matchCache(
-      formalPageContext,
-      'locate',
-      'test prompt',
-    );
-    expect(result).toBe(false);
-  });
+      const newTaskCache = new TaskCache(cacheId, true, cacheFilePath);
 
-  it('should return cached response if the conditions match', async () => {
-    const cachedResponse = {
-      plans: [{ type: 'Locate', thought: '', param: {} }],
-      more_actions_needed_by_instruction: false,
-      log: '',
-    };
-    taskCache.cache = {
-      aiTasks: [
-        {
-          prompt: 'test prompt',
-          tasks: [
-            {
-              type: 'plan',
-              prompt: 'test prompt',
-              pageContext,
-              response: cachedResponse,
-            },
-          ],
-        },
-      ],
-    };
+      // should be able to match all cache records
+      const cachedPlanCache = newTaskCache.matchPlanCache(planningCachedPrompt);
+      const { cacheContent: cachedPlanCacheContent } = cachedPlanCache!;
+      expect(cachedPlanCacheContent.prompt).toBe(planningCachedPrompt);
+      expect(cachedPlanCacheContent.yamlWorkflow).toBe(
+        planningCachedYamlWorkflow,
+      );
 
-    const cacheGroup = taskCache.getCacheGroupByPrompt('test prompt');
-    const result = cacheGroup.matchCache(
-      formalPageContext,
-      'plan',
-      'test prompt',
-    );
-    expect(result).toEqual(cachedResponse);
-  });
+      const cachedLocateCache =
+        newTaskCache.matchLocateCache(locateCachedPrompt);
+      const {
+        cacheContent: cachedLocateCacheContent,
+        updateFn: cachedLocateCacheUpdateFn,
+      } = cachedLocateCache!;
+      expect(cachedLocateCacheContent.prompt).toBe(locateCachedPrompt);
+      expect(cachedLocateCacheContent.xpaths).toEqual(locateCachedXpaths);
 
-  it('should save cache correctly', () => {
-    const cacheGroup = taskCache.getCacheGroupByPrompt('test prompt');
-    const newCache: PlanTask = {
-      type: 'plan',
-      prompt: 'new prompt',
-      pageContext,
-      response: {
-        actions: [{ type: 'Locate', thought: '', param: {}, locate: null }],
-        more_actions_needed_by_instruction: false,
-        log: '',
-      },
-    };
-    cacheGroup.saveCache(newCache);
-    expect(taskCache.newCache.aiTasks[0].tasks).toContain(newCache);
-  });
+      expect(newTaskCache.cache.caches).toMatchSnapshot();
 
-  it('should check page context equality correctly', () => {
-    const isEqual = taskCache.pageContextEqual(pageContext, formalPageContext);
-    expect(isEqual).toBe(true);
+      // test update cache
+      cachedLocateCacheUpdateFn((cache) => {
+        cache.xpaths = ['test-xpath-3', 'test-xpath-4'];
+      });
 
-    const differentContext = {
-      ...formalPageContext,
-      size: { width: 800, height: 600 },
-    };
-    const isNotEqual = taskCache.pageContextEqual(
-      pageContext,
-      differentContext,
-    );
-    expect(isNotEqual).toBe(false);
-  });
-
-  it('should generate task cache correctly', () => {
-    const generatedCache = taskCache.generateTaskCache();
-    expect(generatedCache).toEqual(taskCache.newCache);
-  });
-});
+      expect(newTaskCache.cache.caches).toMatchSnapshot();
+      const cacheFileContent = readFileSync(
+        newTaskCache.cacheFilePath!,
+        'utf-8',
+      ).replace(newTaskCache.cacheId, 'cacheId');
+      expect(cacheFileContent).toMatchSnapshot();
+    });
+  },
+  { timeout: 20000 },
+);

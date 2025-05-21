@@ -3115,3 +3115,79 @@ exports[`extractor > basic 2`] = `
   "node": null,
 }
 `;
+
+exports[`extractor > getElementInfoByXpath by evaluateJavaScript 1`] = `
+{
+  "attributes": {
+    "htmlTagName": "<span>",
+    "nodeType": "TEXT Node",
+  },
+  "center": [
+    556,
+    46,
+  ],
+  "content": "中文",
+  "id": "emaam",
+  "indexId": 0,
+  "locator": "",
+  "nodeHashId": "emaam",
+  "nodeType": "TEXT Node",
+  "rect": {
+    "height": 18,
+    "left": 540,
+    "top": 37,
+    "width": 32,
+    "zoom": 1,
+  },
+  "zoom": 1,
+}
+`;
+
+exports[`extractor > getElementInfoByXpath from button node by evaluateJavaScript 1`] = `
+{
+  "aria-label": "Search",
+  "class": ".btn",
+  "htmlTagName": "<body>",
+  "nodeType": "BUTTON Node",
+  "tabindex": "0",
+  "type": "submit",
+}
+`;
+
+exports[`extractor > getElementInfoByXpath from div node by evaluateJavaScript 1`] = `
+{
+  "attributes": {
+    "aria-label": "Search",
+    "class": ".btn",
+    "htmlTagName": "<body>",
+    "nodeType": "BUTTON Node",
+    "tabindex": "0",
+    "type": "submit",
+  },
+  "center": [
+    283,
+    1160,
+  ],
+  "content": " ",
+  "id": "kohcf",
+  "indexId": 0,
+  "locator": "[_midscene_retrieve_task_id='kohcf']",
+  "nodeHashId": "kohcf",
+  "nodeType": "BUTTON Node",
+  "rect": {
+    "height": 210,
+    "left": 73,
+    "top": 1055,
+    "width": 420,
+    "zoom": 1,
+  },
+  "zoom": 1,
+}
+`;
+
+exports[`extractor > getElementInfoByXpath from text node by evaluateJavaScript 1`] = `
+{
+  "htmlTagName": "<span>",
+  "nodeType": "TEXT Node",
+}
+`;

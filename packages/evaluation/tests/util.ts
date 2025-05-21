@@ -1,6 +1,7 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import type { PlanningAIResponse, Rect } from '@midscene/core';
+import { NodeType } from '@midscene/shared/constants';
 import { vlLocateMode } from '@midscene/shared/env';
 import {
   base64Encoded,
@@ -245,16 +246,25 @@ export async function buildContext(pageName: string) {
   return context;
 }
 
-export async function annotateRects(imgBase64: string, rects: Rect[]) {
+export async function annotateRects(
+  imgBase64: string,
+  rects: Rect[],
+  prompt?: string,
+) {
   const markedImage = await compositeElementInfoImg({
     inputImgBase64: imgBase64,
     elementsPositionInfo: rects.map((rect, index) => {
       return {
+        id: `rect-${index}`,
         rect,
         indexId: index + 1,
+        attributes: { nodeType: NodeType.CONTAINER },
+        content: '',
+        center: [rect.left + rect.width / 2, rect.top + rect.height / 2],
       };
     }),
     annotationPadding: 0,
+    prompt,
   });
   return markedImage;
 }

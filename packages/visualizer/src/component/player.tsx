@@ -9,7 +9,7 @@ import {
   DownloadOutlined,
   LoadingOutlined,
 } from '@ant-design/icons';
-import type { BaseElement, Rect } from '@midscene/core';
+import type { BaseElement, LocateResultElement, Rect } from '@midscene/core';
 import { Spin, Tooltip } from 'antd';
 import { rectMarkForItem } from './blackboard';
 import { getTextureFromCache, loadTexture } from './pixi-loader';
@@ -444,7 +444,7 @@ export function Player(props?: {
 
   const insightElementsAnimation = async (
     elements: BaseElement[],
-    highlightElements: BaseElement[],
+    highlightElements: (BaseElement | LocateResultElement)[],
     searchArea: Rect | undefined,
     duration: number,
     frame: FrameFn,
@@ -516,7 +516,7 @@ export function Player(props?: {
           highlightElements.map((element) => {
             const [insightMarkGraphic] = rectMarkForItem(
               element.rect,
-              element.content,
+              (element as BaseElement).content || '',
               'highlight',
             );
             insightMarkGraphic.alpha = 1;
@@ -615,18 +615,20 @@ export function Player(props?: {
           if (item.type === 'sleep') {
             await sleep(item.duration);
           } else if (item.type === 'insight') {
-            if (!item.insightDump || !item.img) {
-              throw new Error('insight dump or img is required');
+            if (!item.img) {
+              throw new Error('img is required');
             }
             currentImg.current = item.img;
             await repaintImage();
 
             const elements = item.context?.content || [];
-            const highlightElements = item.insightDump.matchedElement;
+            const highlightElements = item.highlightElement
+              ? [item.highlightElement]
+              : [];
             await insightElementsAnimation(
               elements,
               highlightElements,
-              item.insightDump.taskInfo?.searchArea,
+              item.searchArea,
               item.duration,
               frame,
             );

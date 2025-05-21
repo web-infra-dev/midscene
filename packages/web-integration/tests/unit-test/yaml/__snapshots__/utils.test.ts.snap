@@ -2,7 +2,7 @@
 
 exports[`utils > build yaml 1`] = `
 "target:
-  url: https://www.baidu.com
+  url: https://www.example.com
 tasks: []
 "
 `;

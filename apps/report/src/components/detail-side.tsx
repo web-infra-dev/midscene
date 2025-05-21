@@ -354,72 +354,88 @@ const DetailSide = (): JSX.Element => {
       />
     );
   } else if (plans) {
-    let timelineData: TimelineItemProps[] = [];
-    timelineData = timelineData.concat(
-      plans.map((item) => {
-        const paramToShow = item.param || {};
-        const paramStr = Object.keys(paramToShow).length
-          ? JSON.stringify(paramToShow, undefined, 2)
-          : null;
-
-        const locateStr =
-          item.type === 'Locate' && item.locate
-            ? JSON.stringify(item.locate)
+    if (task?.subType === 'LoadYaml') {
+      outputDataContent = (
+        <Card
+          liteMode={true}
+          title=""
+          onMouseEnter={noop}
+          onMouseLeave={noop}
+          content={
+            <pre className="description-content">
+              {(task as ExecutionTaskPlanning).output?.yamlString}
+            </pre>
+          }
+        />
+      );
+    } else {
+      let timelineData: TimelineItemProps[] = [];
+      timelineData = timelineData.concat(
+        plans.map((item) => {
+          const paramToShow = item.param || {};
+          const paramStr = Object.keys(paramToShow).length
+            ? JSON.stringify(paramToShow, undefined, 2)
             : null;
 
-        return {
+          const locateStr =
+            item.type === 'Locate' && item.locate
+              ? JSON.stringify(item.locate)
+              : null;
+
+          return {
+            color: '#06B1AB',
+            children: (
+              <>
+                <p>
+                  <b>{typeStr(item as any)}</b>
+                </p>
+                <p>{item.thought}</p>
+                <p>{paramStr}</p>
+                <p>{locateStr}</p>
+              </>
+            ),
+          };
+        }),
+      );
+
+      if ((task as ExecutionTaskPlanning).output?.log) {
+        timelineData.push({
           color: '#06B1AB',
           children: (
             <>
               <p>
-                <b>{typeStr(item as any)}</b>
+                <b>Log - What have been done</b>
               </p>
-              <p>{item.thought}</p>
-              <p>{paramStr}</p>
-              <p>{locateStr}</p>
+              <p>{(task as ExecutionTaskPlanning).output?.log}</p>
             </>
           ),
-        };
-      }),
-    );
+        });
+      }
 
-    if ((task as ExecutionTaskPlanning).output?.log) {
-      timelineData.push({
-        color: '#06B1AB',
-        children: (
-          <>
-            <p>
-              <b>Log - What have been done</b>
-            </p>
-            <p>{(task as ExecutionTaskPlanning).output?.log}</p>
-          </>
-        ),
-      });
+      if (
+        typeof (task as ExecutionTaskPlanning).output
+          ?.more_actions_needed_by_instruction === 'boolean'
+      ) {
+        timelineData.push({
+          color: '#06B1AB',
+          children: (
+            <>
+              <p>
+                <b>More actions needed</b>
+              </p>
+              <p>
+                {(task as ExecutionTaskPlanning).output
+                  ?.more_actions_needed_by_instruction
+                  ? 'true'
+                  : 'false'}
+              </p>
+            </>
+          ),
+        });
+      }
+
+      outputDataContent = <Timeline items={timelineData} />;
     }
-
-    if (
-      typeof (task as ExecutionTaskPlanning).output
-        ?.more_actions_needed_by_instruction === 'boolean'
-    ) {
-      timelineData.push({
-        color: '#06B1AB',
-        children: (
-          <>
-            <p>
-              <b>More actions needed</b>
-            </p>
-            <p>
-              {(task as ExecutionTaskPlanning).output
-                ?.more_actions_needed_by_instruction
-                ? 'true'
-                : 'false'}
-            </p>
-          </>
-        ),
-      });
-    }
-
-    outputDataContent = <Timeline items={timelineData} />;
   } else {
     let data;
 

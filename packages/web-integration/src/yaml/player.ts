@@ -280,12 +280,24 @@ export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
         platform as T,
       );
       agent = newAgent;
+      const originalOnTaskStartTip = agent.onTaskStartTip;
       agent.onTaskStartTip = (tip) => {
         if (this.status === 'running') {
           this.agentStatusTip = tip;
         }
+        originalOnTaskStartTip?.(tip);
       };
-      freeFn = newFreeFn;
+      freeFn = [
+        ...(newFreeFn || []),
+        {
+          name: 'restore-agent-onTaskStartTip',
+          fn: () => {
+            if (agent) {
+              agent.onTaskStartTip = originalOnTaskStartTip;
+            }
+          },
+        },
+      ];
     } catch (e) {
       this.setPlayerStatus('error', e as Error);
       return;

@@ -1,13 +1,21 @@
 import type { StaticPage } from '@/playground';
 import type {
+  BaseElement,
   ElementTreeNode,
+  PlanningLocateParam,
   PlaywrightParserOpt,
   UIContext,
 } from '@midscene/core';
+import { elementByPositionWithElementInfo } from '@midscene/core/ai-model';
 import { uploadTestInfoToServer } from '@midscene/core/utils';
 import { MIDSCENE_REPORT_TAG_NAME, getAIConfig } from '@midscene/shared/env';
 import type { ElementInfo } from '@midscene/shared/extractor';
-import { traverseTree, treeToList } from '@midscene/shared/extractor';
+import {
+  generateElementByPosition,
+  getNodeFromCacheList,
+  traverseTree,
+  treeToList,
+} from '@midscene/shared/extractor';
 import { resizeImgBase64 } from '@midscene/shared/img';
 import type { DebugFunction } from '@midscene/shared/logger';
 import { assert, logMsg, uuid } from '@midscene/shared/utils';
@@ -182,4 +190,32 @@ export function forceClosePopup(
       debug(`page is already closed, skip goto ${url}`);
     }
   });
+}
+
+export function matchElementFromPlan(
+  planLocateParam: PlanningLocateParam,
+  tree: ElementTreeNode<BaseElement>,
+) {
+  if (!planLocateParam) {
+    return undefined;
+  }
+  if (planLocateParam.id) {
+    return getNodeFromCacheList(planLocateParam.id);
+  }
+
+  if (planLocateParam.bbox) {
+    const centerPosition = {
+      x: Math.floor((planLocateParam.bbox[0] + planLocateParam.bbox[2]) / 2),
+      y: Math.floor((planLocateParam.bbox[1] + planLocateParam.bbox[3]) / 2),
+    };
+    let element = elementByPositionWithElementInfo(tree, centerPosition);
+
+    if (!element) {
+      element = generateElementByPosition(centerPosition) as BaseElement;
+    }
+
+    return element;
+  }
+
+  return undefined;
 }

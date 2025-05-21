@@ -1,6 +1,5 @@
 import type { BaseElement, Rect } from '@midscene/core';
 import type { NodeType } from '@midscene/shared/constants';
-
 export interface WebElementInfoType extends BaseElement {
   id: string;
   locator: string;
@@ -30,6 +29,8 @@ export class WebElementInfo implements BaseElement {
     [key: string]: string;
   };
 
+  xpaths?: string[];
+
   constructor({
     content,
     rect,
@@ -38,6 +39,7 @@ export class WebElementInfo implements BaseElement {
     id,
     attributes,
     indexId,
+    xpaths,
   }: {
     content: string;
     rect: Rect;
@@ -49,6 +51,7 @@ export class WebElementInfo implements BaseElement {
       [key: string]: string;
     };
     indexId: number;
+    xpaths?: string[];
   }) {
     this.content = content;
     this.rect = rect;
@@ -61,5 +64,6 @@ export class WebElementInfo implements BaseElement {
     this.id = id;
     this.attributes = attributes;
     this.indexId = indexId;
+    this.xpaths = xpaths;
   }
 }

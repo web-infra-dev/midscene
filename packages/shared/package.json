@@ -1,6 +1,6 @@
 {
   "name": "@midscene/shared",
-  "version": "0.16.10",
+  "version": "0.17.1",
   "repository": "https://github.com/web-infra-dev/midscene",
   "homepage": "https://midscenejs.com/",
   "types": "./dist/types/index.d.ts",
@@ -17,7 +17,8 @@
     "./keyboard-layout": "./dist/lib/us-keyboard-layout.js",
     "./logger": "./dist/lib/logger.js",
     "./common": "./dist/lib/common.js",
-    "./env": "./dist/lib/env.js"
+    "./env": "./dist/lib/env.js",
+    "./types": "./dist/lib/types.js"
   },
   "typesVersions": {
     "*": {
@@ -31,7 +32,8 @@
       "keyboard-layout": ["./dist/types/us-keyboard-layout.d.ts"],
       "logger": ["./dist/types/logger.d.ts"],
       "common": ["./dist/types/common.d.ts"],
-      "env": ["./dist/types/env.d.ts"]
+      "env": ["./dist/types/env.d.ts"],
+      "types": ["./dist/types/types.d.ts"]
     }
   },
   "files": ["dist", "src", "README.md"],
