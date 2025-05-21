@@ -240,7 +240,7 @@ describe('utils', () => {
     expect(reportContent).toBeTruthy();
     expect(reportContent).toContain('data-midscene-id="123"');
     expect(reportContent).toContain(
-      `&lt;script&gt;alert("xss")&lt;/script&gt;`,
+      `__midscene_lt__script__midscene_gt__alert("xss")__midscene_lt__/script__midscene_gt__`,
     );
     expect(reportContent).not.toContain('<script>alert("xss")</script>');
   });
@@ -249,7 +249,7 @@ describe('utils', () => {
     const reportContent = reportHTMLContent('<script>alert("xss")</script>');
     expect(reportContent).toBeTruthy();
     expect(reportContent).toContain(
-      `&lt;script&gt;alert("xss")&lt;/script&gt;`,
+      `__midscene_lt__script__midscene_gt__alert("xss")__midscene_lt__/script__midscene_gt__`,
     );
     expect(reportContent).not.toContain('<script>alert("xss")</script>');
   });
