@@ -42,12 +42,16 @@ Midscene 中每个 Agent 都有自己的构造函数。
 * 类型
 
 ```typescript
-function aiAction(prompt: string): Promise<void>;
+function aiAction(prompt: string, opt?: {
+  cacheable?: boolean;
+}): Promise<void>;
 function ai(prompt: string): Promise<void>; // 简写形式
 ```
 
 * 参数：
   * `prompt: string` - 用自然语言描述的操作内容
+  * `opt?: Object` - 可选，一个配置对象，包含：
+    * `cacheable?: boolean` - 是否启用缓存，未设置时默认启用，设置为 false 则禁用缓存。
 
 * 返回值：
   * 返回一个 Promise。当所有步骤执行完成时解析为 void；若执行失败，则抛出错误。
@@ -90,7 +94,7 @@ function aiTap(locate: string, options?: Object): Promise<void>;
   * `locate: string` - 用自然语言描述的元素定位。
   * `options?: Object` - 可选，一个配置对象，包含：
     * `deepThink?: boolean` - 是否开启深度思考。如果为 true，Midscene 会调用 AI 模型两次以精确定位元素。
-
+    * `cacheable?: boolean` - 是否启用缓存，未设置时默认启用，设置为 false 则禁用缓存。
 * 返回值：
   * `Promise<void>`
 
@@ -117,7 +121,7 @@ function aiHover(locate: string, options?: Object): Promise<void>;
   * `locate: string` - 用自然语言描述的元素定位。
   * `options?: Object` - 可选，一个配置对象，包含：
     * `deepThink?: boolean` - 是否开启深度思考。如果为 true，Midscene 会调用 AI 模型两次以精确定位元素。
-
+    * `cacheable?: boolean` - 是否启用缓存，未设置时默认启用，设置为 false 则禁用缓存。
 * 返回值：
   * `Promise<void>`
 
@@ -142,6 +146,7 @@ function aiInput(text: string, locate: string, options?: Object): Promise<void>;
   * `locate: string` - 用自然语言描述的元素定位。
   * `options?: Object` - 可选，一个配置对象，包含：
     * `deepThink?: boolean` - 是否开启深度思考。如果为 true，Midscene 会调用 AI 模型两次以精确定位元素。
+    * `cacheable?: boolean` - 是否启用缓存，未设置时默认启用，设置为 false 则禁用缓存。
 
 * 返回值：
   * `Promise<void>`
@@ -167,6 +172,7 @@ function aiKeyboardPress(key: string, locate?: string, options?: Object): Promis
   * `locate?: string` - 用自然语言描述的元素定位。
   * `options?: Object` - 可选，一个配置对象，包含：
     * `deepThink?: boolean` - 是否开启深度思考。如果为 true，Midscene 会调用 AI 模型两次以精确定位元素。
+    * `cacheable?: boolean` - 是否启用缓存，未设置时默认启用，设置为 false 则禁用缓存。
 
 * 返回值：
   * `Promise<void>`
@@ -195,6 +201,7 @@ function aiScroll(scrollParam: PlanningActionParamScroll, locate?: string, optio
   * `locate?: string` - 用自然语言描述的元素定位。如果未传入，Midscene 会在当前鼠标位置滚动。
   * `options?: Object` - 可选，一个配置对象，包含：
     * `deepThink?: boolean` - 是否开启深度思考。如果为 true，Midscene 会调用 AI 模型两次以精确定位元素。
+    * `cacheable?: boolean` - 是否启用缓存，未设置时默认启用，设置为 false 则禁用缓存。
 
 * 返回值：
   * `Promise<void>`
@@ -364,7 +371,9 @@ expect(onesieItem.price).toBe(7.99);
 * 类型
 
 ```typescript
-function aiLocate(locate: string, options?: Object): Promise<{
+function aiLocate(locate: string, options?: {
+  cacheable?: boolean;
+}): Promise<{
   rect: {
     left: number;
     top: number;
@@ -379,6 +388,7 @@ function aiLocate(locate: string, options?: Object): Promise<{
   * `locate: string` - 用自然语言描述的元素定位。
   * `options?: Object` - 可选，一个配置对象，包含：
     * `deepThink?: boolean` - 是否开启深度思考。如果为 true，Midscene 会调用 AI 模型两次以精确定位元素。
+    * `cacheable?: boolean` - 是否启用缓存，未设置时默认启用，设置为 false 则禁用缓存。
 
 * 返回值：
   * 返回一个 Promise。当元素定位成功时解析为元素定位信息。

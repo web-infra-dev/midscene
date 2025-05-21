@@ -324,12 +324,19 @@ export class PageAgent<PageType extends WebPage = WebPage> {
     return output;
   }
 
-  async aiAction(taskPrompt: string) {
+  async aiAction(
+    taskPrompt: string,
+    opt?: {
+      cacheable?: boolean;
+    },
+  ) {
+    const cacheable = opt?.cacheable;
     // if vlm-ui-tars, plan cache is not used
     const isVlmUiTars = vlLocateMode() === 'vlm-ui-tars';
-    const matchedCache = isVlmUiTars
-      ? undefined
-      : this.taskCache?.matchPlanCache(taskPrompt);
+    const matchedCache =
+      isVlmUiTars || cacheable === false
+        ? undefined
+        : this.taskCache?.matchPlanCache(taskPrompt);
     if (matchedCache && this.taskCache?.isCacheResultUsed) {
       // log into report file
       const { executor } = await this.taskExecutor.loadYamlFlowAsPlanning(
@@ -349,7 +356,7 @@ export class PageAgent<PageType extends WebPage = WebPage> {
       : this.taskExecutor.action(taskPrompt, this.opts.aiActionContext));
 
     // update cache
-    if (this.taskCache && output?.yamlFlow) {
+    if (this.taskCache && output?.yamlFlow && cacheable !== false) {
       const yamlContent: MidsceneYamlScript = {
         tasks: [
           {
