@@ -197,6 +197,18 @@ describe(
       await agent.aiWaitFor('There is a weather forecast in the page');
     });
 
+    it('input xss content', async () => {
+      const { originPage, reset } = await launchPage('https://www.baidu.com/');
+      resetFn = reset;
+      const agent = new PuppeteerAgent(originPage, {
+        forceSameTabNavigation: true,
+      });
+      await agent.aiInput(
+        '</script><script>alert("xss")</script>',
+        'the search box',
+      );
+    });
+
     it.skip('Playground', async () => {
       const { originPage, reset } = await launchPage('https://www.baidu.com/');
       resetFn = reset;
