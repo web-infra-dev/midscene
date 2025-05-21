@@ -292,9 +292,9 @@ const App = () => {
         }
       });
 
-      const content = antiEscapeHtml(el.textContent!);
+      const content = antiEscapeHtml(el.textContent);
       try {
-        const jsonContent = JSON.parse(content!);
+        const jsonContent = JSON.parse(content);
         jsonContent.attributes = attributes;
         reportDump.push(jsonContent);
       } catch (e) {
