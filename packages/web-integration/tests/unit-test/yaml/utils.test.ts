@@ -9,6 +9,23 @@ describe('utils', () => {
 
   describe('parseYamlScript', () => {
     test('interpolates environment variables', () => {
+      const yamlContent = `
+target:
+  url: "sample_url"
+tasks:
+  - sleep: 1000
+  - aiTap: "sample_button"
+  - aiInput: "sample_input"
+    locate: input description
+  - aiInput: 
+    locate: input description
+`;
+
+      const result = parseYamlScript(yamlContent);
+      expect(result).toMatchSnapshot();
+    });
+
+    test('interpolates environment variables', () => {
       process.env.TEST_URL = 'https://example.com';
       process.env.TEST_PATH = '/test/path';
 
