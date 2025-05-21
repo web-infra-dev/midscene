@@ -717,6 +717,11 @@ export class PageTaskExecutor {
           sleep,
         } = planResult;
 
+        executorContext.task.log = {
+          rawResponse,
+        };
+        executorContext.task.usage = usage;
+
         let stopCollecting = false;
         let bboxCollected = false;
         let planParsingError = '';
@@ -791,8 +796,6 @@ export class PageTaskExecutor {
             hit: false,
           },
           pageContext,
-          usage,
-          rawResponse,
         };
       },
     };
@@ -850,9 +853,6 @@ export class PageTaskExecutor {
             more_actions_needed_by_instruction: true,
             log: '',
             yamlFlow: planResult.yamlFlow,
-          },
-          log: {
-            rawResponse: planResult,
           },
           cache: {
             hit: false,

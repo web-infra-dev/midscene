@@ -197,6 +197,28 @@ describe(
       await agent.aiWaitFor('There is a weather forecast in the page');
     });
 
+    it('Sauce Demo by Swag Lab - aiQuery', async () => {
+      const { originPage, reset } = await launchPage(
+        'https://www.saucedemo.com/',
+      );
+      resetFn = reset;
+      const agent = new PuppeteerAgent(originPage, {
+        cacheId: 'puppeteer(Sauce Demo by Swag Lab)',
+      });
+
+      await sleep(10 * 1000);
+
+      const title = await agent.aiQuery('the page title, string');
+      const list = await agent.aiQuery('the name of input fields, string[]');
+      const button = await agent.aiQuery({
+        first_input_name: 'the name of the first input field, string',
+        login_button_name: 'the name of the login button, string',
+      });
+      expect(title).toBe('Swag Labs');
+      expect(list.length).toBeGreaterThan(0);
+      expect(button.first_input_name).toBeDefined();
+    });
+
     it.skip('Playground', async () => {
       const { originPage, reset } = await launchPage('https://www.baidu.com/');
       resetFn = reset;
