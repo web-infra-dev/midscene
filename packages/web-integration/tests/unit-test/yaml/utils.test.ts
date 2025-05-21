@@ -52,5 +52,40 @@ tasks:
         'Environment variable "UNDEFINED_ENV_VAR" is not defined',
       );
     });
+
+    test('android number-style deviceId', () => {
+      const yamlContent = `
+android:
+  deviceId: 001234567890
+tasks:
+- sleep: 1000
+`;
+
+      const result = parseYamlScript(yamlContent);
+      expect(result.android?.deviceId).toBe('001234567890');
+    });
+
+    test('illegal android deviceId', () => {
+      const yamlContent = `
+android:
+  deviceId: 0x222
+tasks:
+- sleep: 1000
+`;
+
+      expect(() => parseYamlScript(yamlContent)).toThrow();
+    });
+
+    test('legal android deviceId', () => {
+      const yamlContent = `
+android:
+  deviceId: '0aacde222'
+tasks:
+- sleep: 1000
+`;
+
+      const result = parseYamlScript(yamlContent);
+      expect(result.android?.deviceId).toBe('0aacde222');
+    });
   });
 });
