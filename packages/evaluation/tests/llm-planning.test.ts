@@ -11,7 +11,7 @@ import { sleep } from '@midscene/core/utils';
 import { vlLocateMode } from '@midscene/shared/env';
 import { saveBase64Image } from '@midscene/shared/img';
 import dotenv from 'dotenv';
-import { describe, expect, test } from 'vitest';
+import { afterEach, describe, expect, test } from 'vitest';
 import { TestResultCollector } from '../src/test-analyzer';
 import { annotateRects, buildContext, getCases } from './util';
 dotenv.config({
@@ -85,6 +85,15 @@ const vlCases = [
   'antd-tooltip-vl',
 ];
 
+const resultCollector = new TestResultCollector(
+  'planning',
+  getAIConfig(MIDSCENE_MODEL_NAME) || 'unspecified',
+);
+
+afterEach(async () => {
+  await resultCollector.printSummary();
+});
+
 describe.skipIf(!vlMode)('ai planning - by coordinates', () => {
   vlCases.forEach((source) => {
     test(
@@ -96,11 +105,6 @@ describe.skipIf(!vlMode)('ai planning - by coordinates', () => {
         );
 
         const caseGroupName = aiDataPath.split('/').pop() || '';
-
-        const resultCollector = new TestResultCollector(
-          `${caseGroupName}-planning`,
-          getAIConfig(MIDSCENE_MODEL_NAME) || 'unspecified',
-        );
 
         const annotations: Array<{
           indexId: number;
@@ -168,7 +172,6 @@ describe.skipIf(!vlMode)('ai planning - by coordinates', () => {
           );
         }
 
-        await resultCollector.printSummary();
         await resultCollector.analyze(caseGroupName, failCaseThreshold);
         await sleep(3 * 1000);
       },

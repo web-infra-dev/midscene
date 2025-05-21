@@ -159,6 +159,32 @@ describe(
       3 * 60 * 1000,
     );
 
+    it('element describer', async () => {
+      const { originPage, reset } = await launchPage('https://www.taobao.com/');
+      resetFn = reset;
+      const agent = new PuppeteerAgent(originPage);
+
+      const { center } = await agent.aiLocate('the search bar');
+      const describeResult = await agent.describeElementAtPoint(center);
+      expect(describeResult.verifyResult?.pass).toBe(true);
+      expect(describeResult.verifyResult?.rect).toBeTruthy();
+      expect(describeResult.verifyResult?.center).toBeTruthy();
+    });
+
+    it('element describer - deep think', async () => {
+      const { originPage, reset } = await launchPage('https://www.taobao.com/');
+      resetFn = reset;
+      const agent = new PuppeteerAgent(originPage);
+
+      const { center } = await agent.aiLocate('the "search" button');
+      const describeResult = await agent.describeElementAtPoint(center, {
+        deepThink: true,
+      });
+      expect(describeResult.verifyResult?.pass).toBe(true);
+      expect(describeResult.verifyResult?.rect).toBeTruthy();
+      expect(describeResult.verifyResult?.center).toBeTruthy();
+    });
+
     it('scroll', async () => {
       const htmlPath = path.join(__dirname, 'scroll.html');
       const { originPage, reset } = await launchPage(`file://${htmlPath}`);
@@ -211,6 +237,28 @@ describe(
       const reportAgent = new PuppeteerAgent(reportPage.originPage);
       await reportAgent.aiAssert('there is a sidebar in the page');
       resetFn = reportPage.reset;
+    });
+
+    it('Sauce Demo by Swag Lab - aiQuery', async () => {
+      const { originPage, reset } = await launchPage(
+        'https://www.saucedemo.com/',
+      );
+      resetFn = reset;
+      const agent = new PuppeteerAgent(originPage, {
+        cacheId: 'puppeteer(Sauce Demo by Swag Lab)',
+      });
+
+      await sleep(10 * 1000);
+
+      const title = await agent.aiQuery('the page title, string');
+      const list = await agent.aiQuery('the name of input fields, string[]');
+      const button = await agent.aiQuery({
+        first_input_name: 'the name of the first input field, string',
+        login_button_name: 'the name of the login button, string',
+      });
+      expect(title).toBe('Swag Labs');
+      expect(list.length).toBeGreaterThan(0);
+      expect(button.first_input_name).toBeDefined();
     });
 
     it.skip('Playground', async () => {

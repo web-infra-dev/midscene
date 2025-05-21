@@ -6,3 +6,27 @@ exports[`utils > build yaml 1`] = `
 tasks: []
 "
 `;
+
+exports[`utils > parseYamlScript > interpolates environment variables 1`] = `
+{
+  "target": {
+    "url": "sample_url",
+  },
+  "tasks": [
+    {
+      "sleep": 1000,
+    },
+    {
+      "aiTap": "sample_button",
+    },
+    {
+      "aiInput": "sample_input",
+      "locate": "input description",
+    },
+    {
+      "aiInput": null,
+      "locate": "input description",
+    },
+  ],
+}
+`;

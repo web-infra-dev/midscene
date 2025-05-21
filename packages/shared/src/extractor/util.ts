@@ -471,13 +471,13 @@ export function setNodeToCacheList(node: globalThis.Node, id: string) {
     if (getNodeFromCacheList(id)) {
       return;
     }
-    (window as any).midsceneNodeHashCacheList.push({ node, id });
+    (window as any).midsceneNodeHashCacheList?.push({ node, id });
   }
 }
 
 export function getNodeFromCacheList(id: string) {
   if (typeof window !== 'undefined') {
-    return (window as any).midsceneNodeHashCacheList.find(
+    return (window as any).midsceneNodeHashCacheList?.find(
       (item: { node: Node; id: string }) => item.id === id,
     )?.node;
   }

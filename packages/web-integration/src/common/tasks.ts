@@ -217,6 +217,7 @@ export class PageTaskExecutor {
             const shotTime = Date.now();
             const pageContext = await this.insight.contextRetrieverFn('locate');
             task.pageContext = pageContext;
+
             const recordItem: ExecutionRecorderItem = {
               type: 'screenshot',
               ts: shotTime,
@@ -233,7 +234,11 @@ export class PageTaskExecutor {
             const xpaths = locateCacheRecord?.cacheContent?.xpaths;
             let elementFromCache = null;
             try {
-              if (xpaths?.length && this.taskCache?.isCacheResultUsed) {
+              if (
+                xpaths?.length &&
+                this.taskCache?.isCacheResultUsed &&
+                param?.cacheable !== false
+              ) {
                 // hit cache, use new id
                 const elementInfosScriptContent =
                   getElementInfosScriptContent();
@@ -269,7 +274,12 @@ export class PageTaskExecutor {
             const aiCost = Date.now() - startTime;
 
             // update cache
-            if (element && this.taskCache && !cacheHitFlag) {
+            if (
+              element &&
+              this.taskCache &&
+              !cacheHitFlag &&
+              param?.cacheable !== false
+            ) {
               const elementXpaths = await this.getElementXpath(
                 pageContext,
                 element,
@@ -708,6 +718,11 @@ export class PageTaskExecutor {
           sleep,
         } = planResult;
 
+        executorContext.task.log = {
+          rawResponse,
+        };
+        executorContext.task.usage = usage;
+
         let stopCollecting = false;
         let bboxCollected = false;
         let planParsingError = '';
@@ -782,8 +797,6 @@ export class PageTaskExecutor {
             hit: false,
           },
           pageContext,
-          usage,
-          rawResponse,
         };
       },
     };
@@ -841,9 +854,6 @@ export class PageTaskExecutor {
             more_actions_needed_by_instruction: true,
             log: '',
             yamlFlow: planResult.yamlFlow,
-          },
-          log: {
-            rawResponse: planResult,
           },
           cache: {
             hit: false,
