@@ -18,16 +18,6 @@ export default defineConfig({
         target: 'web',
         sourceMap: true,
       },
-      html: {
-        tags: [
-          {
-            tag: 'script',
-            attrs: { src: 'scripts/report-template.js' },
-            head: true,
-            append: true,
-          },
-        ],
-      },
     },
     node: {
       source: {

@@ -16,6 +16,7 @@ export default defineConfig({
       common: './src/common.ts',
       'us-keyboard-layout': './src/us-keyboard-layout.ts',
       env: './src/env.ts',
+      types: './src/types/index.ts',
     },
     target: 'es2020',
     dts: {

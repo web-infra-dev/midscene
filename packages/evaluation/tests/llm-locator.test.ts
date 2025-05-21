@@ -69,7 +69,8 @@ testSources.forEach((source) => {
 
         const result = await insight.locate({
           prompt,
-          deepThink: testCase.deepThink,
+          deepThink:
+            vlLocateMode() === 'doubao-vision' ? undefined : testCase.deepThink,
         });
         const { element, rect } = result;
 

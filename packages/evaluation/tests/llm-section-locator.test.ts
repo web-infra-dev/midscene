@@ -72,6 +72,7 @@ testSources.forEach((source) => {
           const markedImage = await annotateRects(
             context.screenshotBase64,
             annotations.map((item) => item.rect),
+            prompt,
           );
           await saveBase64Image({
             base64Data: markedImage,

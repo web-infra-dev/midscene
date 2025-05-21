@@ -1,14 +1,17 @@
 import * as path from 'node:path';
+import { pluginLlms } from '@rspress/plugin-llms';
+import sitemap from 'rspress-plugin-sitemap';
 import { defineConfig } from 'rspress/config';
 
 export default defineConfig({
   root: path.join(__dirname, 'docs'),
-  title: 'Midscene.js',
+  title:
+    '(AI UI Automation, AI Testing, Computer Use, Browser Use, Android Use)',
   search: {
     codeBlocks: true,
   },
   description:
-    'Automate browser actions, extract data, and perform assertions using AI. It offers JavaScript SDK, Chrome extension, and support for scripting in YAML.',
+    'AI UI Automation, AI Testing, Computer Use, Browser Use, Android Use. It offers JavaScript SDK, Chrome extension, and support for scripting in YAML.',
   icon: '/midscene-icon.png',
   logo: {
     light: '/midscene_with_text_light.png',
@@ -70,7 +73,7 @@ export default defineConfig({
           text: 'Web Browser Automation',
           items: [
             {
-              text: 'MCP',
+              text: 'MCP Server',
               link: '/mcp',
             },
             {
@@ -142,6 +145,10 @@ export default defineConfig({
               link: '/faq',
             },
             {
+              text: 'LLMs.txt',
+              link: '/llm-txt',
+            },
+            {
               text: 'Data Privacy',
               link: '/data-privacy',
             },
@@ -157,6 +164,10 @@ export default defineConfig({
             {
               text: 'Introducing Instant Actions and Deep Think',
               link: '/blog-introducing-instant-actions-and-deep-think',
+            },
+            {
+              text: 'Use JavaScript to Optimize the AI Automation Code',
+              link: '/blog-programming-practice-using-structured-api',
             },
           ],
         },
@@ -179,7 +190,7 @@ export default defineConfig({
           text: 'Web 浏览器自动化',
           items: [
             {
-              text: 'MCP',
+              text: 'MCP 服务',
               link: '/zh/mcp',
             },
             {
@@ -251,6 +262,10 @@ export default defineConfig({
               link: '/zh/faq',
             },
             {
+              text: 'LLMs.txt',
+              link: '/zh/llm-txt',
+            },
+            {
               text: '数据隐私',
               link: '/zh/data-privacy',
             },
@@ -267,6 +282,10 @@ export default defineConfig({
               text: '即时操作和深度思考',
               link: '/zh/blog-introducing-instant-actions-and-deep-think',
             },
+            {
+              text: '使用 JavaScript 优化 AI 自动化代码',
+              link: '/zh/blog-programming-practice-using-structured-api',
+            },
           ],
         },
       ],
@@ -277,14 +296,16 @@ export default defineConfig({
     {
       lang: 'en',
       label: 'English',
-      title: 'Midscene.js',
-      description: 'Midscene.js',
+      title: 'Midscene.js - (AI UI Automation, AI Testing)',
+      description:
+        'Midscene.js - (AI driven UI automation framework, Computer Use, Browser Use, Android Use)',
     },
     {
       lang: 'zh',
       label: '简体中文',
-      title: 'Midscene.js',
-      description: 'Midscene.js',
+      title: 'Midscene.js - (AI UI 自动化，AI 测试)',
+      description:
+        'Midscene.js - (AI 驱动的 UI 自动化框架，Computer Use, Browser Use, Android Use)',
     },
   ],
   builderConfig: {
@@ -295,6 +316,31 @@ export default defineConfig({
         },
       },
     },
+    html: {
+      tags: [
+        {
+          tag: 'script',
+          attrs: {
+            type: 'text/javascript',
+          },
+          children: `(function(c,l,a,r,i,t,y){
+        c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
+        t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;
+        y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
+    })(window, document, "clarity", "script", "rg8ztmkti8");`,
+        },
+      ],
+      meta: {
+        'google-site-verification':
+          'knm1l2oVU9IkHaYjq9q-FnyiEMVkt1b6i2El54Hphdw',
+      },
+    },
   },
   lang: 'en',
+  plugins: [
+    pluginLlms(),
+    sitemap({
+      domain: 'https://midscenejs.com',
+    }),
+  ],
 });

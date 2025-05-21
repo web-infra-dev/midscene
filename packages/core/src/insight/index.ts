@@ -41,8 +41,8 @@ import { assert } from '@midscene/shared/utils';
 import { emitInsightDump } from './utils';
 
 export interface LocateOpts {
+  context?: UIContext<BaseElement>;
   callAI?: typeof callAiFn<AIElementResponse>;
-  quickAnswer?: Partial<AISingleElementResponse>;
 }
 
 export type AnyValue<T> = {
@@ -91,10 +91,7 @@ export default class Insight<
   ): Promise<LocateResult> {
     const { callAI } = opt || {};
     const queryPrompt = typeof query === 'string' ? query : query.prompt;
-    assert(
-      queryPrompt || opt?.quickAnswer,
-      'query or quickAnswer is required for locate',
-    );
+    assert(queryPrompt, 'query is required for locate');
     const dumpSubscriber = this.onceDumpUpdatedFn;
     this.onceDumpUpdatedFn = undefined;
 
@@ -118,7 +115,7 @@ export default class Insight<
       searchAreaPrompt = undefined;
     }
 
-    const context = await this.contextRetrieverFn('locate');
+    const context = opt?.context || (await this.contextRetrieverFn('locate'));
 
     let searchArea: Rect | undefined = undefined;
     let searchAreaRawResponse: string | undefined = undefined;
@@ -148,7 +145,6 @@ export default class Insight<
         callAI: callAI || this.aiVendorFn,
         context,
         targetElementDescription: queryPrompt,
-        quickAnswer: opt?.quickAnswer,
         searchConfig: searchAreaResponse,
       });
 
@@ -174,7 +170,6 @@ export default class Insight<
       userQuery: {
         element: queryPrompt,
       },
-      quickAnswer: opt?.quickAnswer,
       matchedElement: [],
       matchedRect: rect,
       data: null,
@@ -186,7 +181,7 @@ export default class Insight<
     const elements: BaseElement[] = [];
     (parseResult.elements || []).forEach((item) => {
       if ('id' in item) {
-        const element = elementById(item.id);
+        const element = elementById(item?.id);
 
         if (!element) {
           console.warn(
@@ -222,6 +217,8 @@ export default class Insight<
           indexId: elements[0]!.indexId,
           center: elements[0]!.center,
           rect: elements[0]!.rect,
+          xpaths: elements[0]!.xpaths || [],
+          attributes: elements[0]!.attributes,
         },
         rect,
       };

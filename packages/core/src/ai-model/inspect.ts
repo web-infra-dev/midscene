@@ -36,7 +36,10 @@ import {
   mergeRects,
 } from './common';
 import { systemPromptToAssert } from './prompt/assertion';
-import { extractDataPrompt, systemPromptToExtract } from './prompt/extraction';
+import {
+  extractDataQueryPrompt,
+  systemPromptToExtract,
+} from './prompt/extraction';
 import {
   findElementPrompt,
   systemPromptToLocateElement,
@@ -66,51 +69,6 @@ const liteContextConfig = {
 const debugInspect = getDebug('ai:inspect');
 const debugSection = getDebug('ai:section');
 
-function matchQuickAnswer(
-  quickAnswer:
-    | Partial<AISingleElementResponse>
-    | Partial<AISingleElementResponseByPosition>
-    | undefined,
-  tree: ElementTreeNode<BaseElement>,
-  elementById: ElementById,
-  insertElementByPosition: (position: { x: number; y: number }) => BaseElement,
-): Awaited<ReturnType<typeof AiLocateElement>> | undefined {
-  if (!quickAnswer) {
-    return undefined;
-  }
-  if ('id' in quickAnswer && quickAnswer.id && elementById(quickAnswer.id)) {
-    return {
-      parseResult: {
-        elements: [quickAnswer as AISingleElementResponse],
-        errors: [],
-      },
-      rawResponse: JSON.stringify(quickAnswer),
-      elementById,
-    };
-  }
-
-  if ('bbox' in quickAnswer && quickAnswer.bbox) {
-    const centerPosition = {
-      x: Math.floor((quickAnswer.bbox[0] + quickAnswer.bbox[2]) / 2),
-      y: Math.floor((quickAnswer.bbox[1] + quickAnswer.bbox[3]) / 2),
-    };
-    let element = elementByPositionWithElementInfo(tree, centerPosition);
-    if (!element) {
-      element = insertElementByPosition(centerPosition);
-    }
-    return {
-      parseResult: {
-        elements: [element],
-        errors: [],
-      },
-      rawResponse: quickAnswer,
-      elementById,
-    } as any;
-  }
-
-  return undefined;
-}
-
 export async function AiLocateElement<
   ElementType extends BaseElement = BaseElement,
 >(options: {
@@ -118,9 +76,6 @@ export async function AiLocateElement<
   targetElementDescription: string;
   referenceImage?: ReferenceImage;
   callAI?: typeof callAiFn<AIElementResponse | [number, number]>;
-  quickAnswer?: Partial<
-    AISingleElementResponse | AISingleElementResponseByPosition
-  >;
   searchConfig?: Awaited<ReturnType<typeof AiLocateSection>>;
 }): Promise<{
   parseResult: AIElementLocatorResponse;
@@ -131,18 +86,8 @@ export async function AiLocateElement<
 }> {
   const { context, targetElementDescription, callAI } = options;
   const { screenshotBase64 } = context;
-  const { description, elementById, insertElementByPosition, size } =
+  const { description, elementById, insertElementByPosition } =
     await describeUserPage(context);
-  // meet quick answer
-  const quickAnswer = matchQuickAnswer(
-    options.quickAnswer,
-    context.tree,
-    elementById,
-    insertElementByPosition,
-  );
-  if (quickAnswer) {
-    return quickAnswer;
-  }
 
   assert(
     targetElementDescription,
@@ -379,20 +324,10 @@ export async function AiExtractElementInfo<
     liteContextConfig,
   );
 
-  let dataKeys = '';
-  let dataQueryText = '';
-  if (typeof dataQuery === 'string') {
-    dataKeys = '';
-    dataQueryText = dataQuery;
-  } else {
-    dataKeys = `return in key-value style object, keys are ${Object.keys(dataQuery).join(',')}`;
-    dataQueryText = JSON.stringify(dataQuery, null, 2);
-  }
-  const extractDataPromptText = await extractDataPrompt.format({
-    pageDescription: description,
-    dataKeys,
-    dataQuery: dataQueryText,
-  });
+  const extractDataPromptText = await extractDataQueryPrompt(
+    description,
+    dataQuery,
+  );
 
   const msgs: AIArgs = [
     { role: 'system', content: systemPrompt },

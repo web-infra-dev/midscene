@@ -4,8 +4,7 @@
   "version": "0.12.4",
   "type": "module",
   "scripts": {
-    "build": "rsbuild build && npm run build:report-template && npm run pack-extension",
-    "build:report-template": "node scripts/build-report-template.js",
+    "build": "rsbuild build && npm run pack-extension",
     "dev": "rsbuild dev --open",
     "preview": "rsbuild preview",
     "pack-extension": "node scripts/pack-extension.js"

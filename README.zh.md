@@ -20,6 +20,9 @@
   <img src="https://img.shields.io/badge/License-MIT-blue.svg?style=flat-square&color=00a8f0" alt="License" />
   <a href="https://discord.gg/2JyBHxszE4"><img src="https://img.shields.io/discord/1328277792730779648?style=flat-square&color=7289DA&label=Discord&logo=discord&logoColor=white" alt="discord" /></a>
   <a href="https://x.com/midscene_ai"><img src="https://img.shields.io/twitter/follow/midscene_ai?style=flat-square" alt="twitter" /></a>
+  <a href="https://deepwiki.com/web-infra-dev/midscene">
+    <img alt="Ask DeepWiki.com" src="https://devin.ai/assets/deepwiki-badge.png" style="height: 18px; vertical-align: middle;">
+  </a>
 </p>
 
 Midscene.js 是一个 AI 操作助手，适用于 Web、Android、自动化和测试。只需用自然语言描述你想做什么，它就能帮你操作网页、验证内容，并提取数据。无论你是想快速体验还是深度开发，都可以轻松上手。
@@ -31,6 +34,7 @@ Midscene.js 是一个 AI 操作助手，适用于 Web、Android、自动化和�
 | 发布一条 Twitter      |    <video src="https://github.com/user-attachments/assets/bb3d695a-fbff-4af1-b6cc-5e967c07ccee" height="300" />    |
 | 用 JS 代码驱动编排任务，搜集周杰伦演唱会的信息，并写入 Google Docs   | <video src="https://github.com/user-attachments/assets/75474138-f51f-4c54-b3cf-46d61d059999" height="300" />        |
 | 控制地图 App 在 Android 上导航到目的地   | <video src="https://github.com/user-attachments/assets/1f5bab0e-4c28-44e1-b378-a38809b05a00" height="300" />        |
+|  使用 midscene mcp 的方法，浏览页面（ https://www.saucedemo.com/ ），进行登录，添加商品、下单商品最终根据 mcp 执行的步骤和 playwright example 生成最终的测试用例   | <video src="https://github.com/user-attachments/assets/5cab578d-feb3-4250-8c7e-6793fe38a5be" height="300" />        |
 
 ## 📢 2025 年 4 月：新增支持 Android 自动化
 
@@ -46,6 +50,7 @@ Midscene.js 是一个 AI 操作助手，适用于 Web、Android、自动化和�
 - **UI 自动化 🤖**
   - **Web 自动化 🖥️**：通过 [Chrome 插件](https://midscenejs.com/zh/quick-experience.html)，你可以立即开始体验，无需编写代码。
   - **Android 自动化 📱**：使用 [Android Playground](https://midscenejs.com/zh/quick-experience-with-android.html) 快速体验，或使用 javascript SDK 与 [adb](https://midscenejs.com/zh/integrate-with-android.html) 集成。
+- **MCP 集成 🔗**：允许其他 MCP Client 直接使用 Midscene 的能力。了解更多详情，请阅读 [MCP 集成](https://midscenejs.com/zh/mcp.html)。
 - **用可视化报告来调试 🎞️**：通过我们的测试报告和 Playground，你可以轻松理解、回放和调试整个过程。
 - **支持缓存 🔄**：首次通过 AI 执行后任务会被缓存，后续执行相同任务时可显著提升执行效率。
 - **完全开源 🔥**：体验全新的自动化开发体验，尽情享受吧！
