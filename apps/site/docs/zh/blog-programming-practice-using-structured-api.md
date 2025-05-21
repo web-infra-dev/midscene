@@ -174,6 +174,10 @@ Midscene 提供了一些即时操作方法，如 `aiTap` `aiInput` `aiScroll` `a
 
 然后奇迹就会发生。
 
+输入你的提示词后，AI IDE 会自动将你的提示词转换为结构化 javascript 代码：
+
+![](/blog/ai-ide-convert-prompt-result.png)
+
 快去试试吧！
 
 ## 接下来做什么？

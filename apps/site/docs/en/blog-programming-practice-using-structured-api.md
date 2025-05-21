@@ -177,8 +177,12 @@ please help me convert the following instructions into structured javascript cod
 ![](/blog/ai-ide-convert-prompt.png)
 
 And the magic would happen.
-Enjoy it!
 
+After you input the prompt, the AI IDE will convert the prompt into structured javascript code: 
+
+![](/blog/ai-ide-convert-prompt-result.png)
+
+Enjoy it!
 
 ## What's Next ?
 
