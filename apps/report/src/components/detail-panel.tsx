@@ -8,7 +8,10 @@ import {
   ScheduleOutlined,
   VideoCameraOutlined,
 } from '@ant-design/icons';
-import type { ExecutionTaskPlanning } from '@midscene/core';
+import type {
+  ExecutionTaskInsightLocate,
+  ExecutionTaskPlanning,
+} from '@midscene/core';
 import { Blackboard, Player } from '@midscene/visualizer';
 import { ConfigProvider, Segmented } from 'antd';
 import { useEffect, useState } from 'react';
@@ -92,7 +95,8 @@ const DetailPanel = (): JSX.Element => {
       if (insightDump?.matchedElement) {
         highlightElements = insightDump?.matchedElement;
       } else {
-        highlightElements = activeTask.output.element // hit cache
+        highlightElements = (activeTask as ExecutionTaskInsightLocate).output
+          ?.element // hit cache
           ? [activeTask.output.element]
           : [];
       }
