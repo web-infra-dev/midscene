@@ -6,6 +6,7 @@ import { Button, ConfigProvider, Empty, Spin } from 'antd';
 import { useEffect, useRef, useState } from 'react';
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
 
+import { antiEscapeHtml } from '@midscene/shared/utils';
 import { Logo, Player, globalThemeConfig } from '@midscene/visualizer';
 import { PlaywrightCaseSelector } from './components/PlaywrightCaseSelector';
 import DetailPanel from './components/detail-panel';
@@ -14,7 +15,6 @@ import GlobalHoverPreview from './components/global-hover-preview';
 import Sidebar from './components/sidebar';
 import { useExecutionDump } from './components/store';
 import Timeline from './components/timeline';
-import { antiEscapeHtml } from '@midscene/shared/utils';
 import type {
   ExecutionDumpWithPlaywrightAttributes,
   StoreState,

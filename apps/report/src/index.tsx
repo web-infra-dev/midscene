@@ -1,8 +1,8 @@
+import { antiEscapeHtml } from '@midscene/shared/utils';
 import { Alert } from 'antd';
 import ReactDOM from 'react-dom/client';
 import { Visualizer } from './App';
 import type { ExecutionDumpWithPlaywrightAttributes } from './types';
-import { antiEscapeHtml } from '@midscene/shared/utils';
 const rootEl = document.getElementById('root');
 if (rootEl) {
   const root = ReactDOM.createRoot(rootEl);

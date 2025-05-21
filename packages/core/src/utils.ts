@@ -16,7 +16,7 @@ import {
 } from '@midscene/shared/env';
 import { getRunningPkgInfo } from '@midscene/shared/fs';
 import { assert } from '@midscene/shared/utils';
-import { ifInBrowser, uuid, escapeHtml } from '@midscene/shared/utils';
+import { escapeHtml, ifInBrowser, uuid } from '@midscene/shared/utils';
 import xss from 'xss';
 import type { Rect, ReportDumpWithAttributes } from './types';
 
