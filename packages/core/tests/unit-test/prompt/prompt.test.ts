@@ -8,7 +8,10 @@ import {
 import { systemPromptToLocateSection } from '@/ai-model/prompt/llm-section-locator';
 import { getUiTarsPlanningPrompt } from '@/ai-model/prompt/ui-tars-planning';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { extractDataPrompt } from '../../../src/ai-model/prompt/extraction';
+import {
+  extractDataQueryPrompt,
+  systemPromptToExtract,
+} from '../../../src/ai-model/prompt/extraction';
 import { mockNonChinaTimeZone, restoreIntl } from '../mocks/intl-mock';
 
 describe('system prompts', () => {
@@ -115,11 +118,22 @@ describe('system prompts', () => {
 });
 
 describe('extract element', () => {
+  it('systemPromptToExtract', () => {
+    const prompt = systemPromptToExtract();
+    expect(prompt).toMatchSnapshot();
+  });
+
   it('extract element by extractDataPrompt', async () => {
-    const prompt = await extractDataPrompt.format({
-      pageDescription: 'todo title, string',
-      dataKeys: 'todo title, string',
-      dataQuery: 'todo title, string',
+    const prompt = await extractDataQueryPrompt(
+      'todo title, string',
+      'todo title, string',
+    );
+    expect(prompt).toMatchSnapshot();
+  });
+
+  it('extract element by extractDataPrompt - object', async () => {
+    const prompt = await extractDataQueryPrompt('todo title, string', {
+      foo: 'an array indicates the foo',
     });
     expect(prompt).toMatchSnapshot();
   });
