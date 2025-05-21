@@ -85,11 +85,6 @@ testSources.forEach((source) => {
               indexId,
               rect,
             });
-
-            // // biome-ignore lint/performance/noDelete: <explanation>
-            // delete (testCase as any).response_bbox;
-            // // biome-ignore lint/performance/noDelete: <explanation>
-            // delete (testCase as any).response;
           }
 
           if (element) {

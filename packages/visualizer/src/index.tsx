@@ -28,6 +28,7 @@ export { PromptInput } from './component/playground/PromptInput';
 export { Player } from './component/player';
 export { Blackboard } from './component/blackboard';
 export { GithubStar } from './component/github-star';
+export { Describer } from './component/describer';
 
 // Export playground utilities
 export {

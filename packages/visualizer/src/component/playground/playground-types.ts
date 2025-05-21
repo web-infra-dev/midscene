@@ -6,8 +6,8 @@ import type { WebUIContext } from '@midscene/web/utils';
 // result type
 export interface PlaygroundResult {
   result: any;
-  dump: GroupedActionDump | null;
-  reportHTML: string | null;
+  dump?: GroupedActionDump | null;
+  reportHTML?: string | null;
   error: string | null;
 }
 

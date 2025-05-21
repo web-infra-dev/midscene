@@ -6,9 +6,9 @@
       "multi": false,
       "annotation_index_id": 1,
       "response_rect": {
-        "left": 721,
-        "top": 245,
-        "width": 72,
+        "left": 723,
+        "top": 246,
+        "width": 86,
         "height": 15
       },
       "response_element": {
@@ -21,10 +21,10 @@
       "multi": false,
       "annotation_index_id": 2,
       "response_rect": {
-        "left": 485,
-        "top": 246,
-        "width": 72,
-        "height": 15
+        "left": 486,
+        "top": 239,
+        "width": 84,
+        "height": 28
       },
       "response_element": {
         "id": "aonmh",
@@ -36,14 +36,13 @@
       "multi": false,
       "annotation_index_id": 3,
       "response_rect": {
-        "left": 492,
-        "top": 341,
-        "width": 294,
-        "height": 49
+        "left": 493,
+        "top": 367,
+        "width": 308,
+        "height": 25
       },
       "response_element": {
-        "id": "mfodf",
-        "indexId": 10
+        "id": "aelca"
       }
     },
     {
@@ -51,14 +50,13 @@
       "multi": false,
       "annotation_index_id": 4,
       "response_rect": {
-        "left": 492,
-        "top": 418,
-        "width": 294,
-        "height": 50
+        "left": 487,
+        "top": 365,
+        "width": 303,
+        "height": 47
       },
       "response_element": {
-        "id": "nhbof",
-        "indexId": 12
+        "id": "dahmc"
       }
     },
     {
@@ -67,9 +65,9 @@
       "annotation_index_id": 5,
       "response_rect": {
         "left": 697,
-        "top": 435,
-        "width": 71,
-        "height": 14
+        "top": 438,
+        "width": 68,
+        "height": 13
       },
       "response_element": {
         "id": "kdbdc",
@@ -81,10 +79,10 @@
       "multi": false,
       "annotation_index_id": 6,
       "response_rect": {
-        "left": 492,
-        "top": 558,
-        "width": 294,
-        "height": 45
+        "left": 603,
+        "top": 574,
+        "width": 86,
+        "height": 18
       },
       "response_element": {
         "id": "bjnpl",
@@ -96,10 +94,10 @@
       "multi": false,
       "annotation_index_id": 7,
       "response_rect": {
-        "left": 845,
-        "top": 120,
-        "width": 15,
-        "height": 15
+        "left": 846,
+        "top": 123,
+        "width": 11,
+        "height": 16
       },
       "response_element": {
         "id": "aigcl",

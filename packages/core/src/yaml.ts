@@ -1,4 +1,4 @@
-import type { PlanningActionParamScroll } from './types';
+import type { PlanningActionParamScroll, Rect } from './types';
 
 export interface LocateOption {
   prompt?: string;
@@ -6,8 +6,14 @@ export interface LocateOption {
   cacheable?: boolean; // user can set this param to false to disable the cache for a single agent api
 }
 
+export interface ReferenceImage {
+  base64: string;
+  rect?: Rect;
+}
+
 export interface DetailedLocateParam extends LocateOption {
   prompt: string;
+  referenceImage?: ReferenceImage;
 }
 
 export interface scrollParam {

@@ -6,14 +6,13 @@
       "multi": false,
       "annotation_index_id": 1,
       "response_rect": {
-        "left": 187,
-        "top": 276,
-        "width": 83,
-        "height": 19
+        "left": 89,
+        "top": 167,
+        "width": 361,
+        "height": 46
       },
       "response_element": {
-        "id": "eabha",
-        "indexId": 20
+        "id": "bkggi"
       }
     },
     {
@@ -21,10 +20,10 @@
       "multi": false,
       "annotation_index_id": 2,
       "response_rect": {
-        "left": 324,
-        "top": 801,
-        "width": 62,
-        "height": 16
+        "left": 348,
+        "top": 796,
+        "width": 37,
+        "height": 25
       },
       "response_element": {
         "id": "kmdfd",
@@ -36,14 +35,13 @@
       "multi": false,
       "annotation_index_id": 3,
       "response_rect": {
-        "left": 189,
-        "top": 802,
-        "width": 40,
-        "height": 15
+        "left": 94,
+        "top": 765,
+        "width": 294,
+        "height": 37
       },
       "response_element": {
-        "id": "eommc",
-        "indexId": 38
+        "id": "lmngi"
       }
     },
     {
@@ -51,10 +49,10 @@
       "multi": false,
       "annotation_index_id": 4,
       "response_rect": {
-        "left": 6,
-        "top": 382,
-        "width": 34,
-        "height": 13
+        "left": 4,
+        "top": 385,
+        "width": 63,
+        "height": 24
       },
       "response_element": {
         "id": "lalae",

@@ -1,6 +1,7 @@
 import type { WebPage } from '@/common/page';
 import {
   type AgentAssertOpt,
+  type AgentDescribeElementAtPointResult,
   type AgentWaitForOpt,
   type DetailedLocateParam,
   type ExecutionDump,
@@ -11,9 +12,12 @@ import {
   type InsightAction,
   type LocateOption,
   type LocateResultElement,
+  type LocateValidatorResult,
+  type LocatorValidatorOption,
   type MidsceneYamlScript,
   type OnTaskStartTip,
   type PlanningActionParamScroll,
+  type Rect,
 } from '@midscene/core';
 
 import yaml from 'js-yaml';
@@ -48,6 +52,18 @@ import { printReportMsg, reportFileName } from './utils';
 import { type WebUIContext, parseContextFromWebPage } from './utils';
 
 const debug = getDebug('web-integration');
+
+const distanceOfTwoPoints = (p1: [number, number], p2: [number, number]) => {
+  const [x1, y1] = p1;
+  const [x2, y2] = p2;
+  return Math.round(Math.sqrt((x1 - x2) ** 2 + (y1 - y2) ** 2));
+};
+
+const includedInRect = (point: [number, number], rect: Rect) => {
+  const [x, y] = point;
+  const { left, top, width, height } = rect;
+  return x >= left && x <= left + width && y >= top && y <= top + height;
+};
 
 export interface PageAgentOpt {
   forceSameTabNavigation?: boolean /* if limit the new tab to the current page, default true */;
@@ -402,6 +418,88 @@ export class PageAgent<PageType extends WebPage = WebPage> {
     const { output, executor } = await this.taskExecutor.string(prompt);
     this.afterTaskRunning(executor);
     return output;
+  }
+
+  async describeElementAtPoint(
+    center: [number, number],
+    opt?: {
+      verifyPrompt?: boolean;
+      retryLimit?: number;
+      deepThink?: boolean;
+    } & LocatorValidatorOption,
+  ): Promise<AgentDescribeElementAtPointResult> {
+    const { verifyPrompt = true, retryLimit = 3 } = opt || {};
+
+    let success = false;
+    let retryCount = 0;
+    let resultPrompt = '';
+    let deepThink = opt?.deepThink || false;
+    let verifyResult: LocateValidatorResult | undefined;
+
+    while (!success && retryCount < retryLimit) {
+      if (retryCount >= 2) {
+        deepThink = true;
+      }
+      debug(
+        'aiDescribe',
+        center,
+        'verifyPrompt',
+        verifyPrompt,
+        'retryCount',
+        retryCount,
+        'deepThink',
+        deepThink,
+      );
+      const text = await this.insight.describe(center, { deepThink });
+      debug('aiDescribe text', text);
+      assert(text.description, `failed to describe element at [${center}]`);
+      resultPrompt = text.description;
+
+      verifyResult = await this.verifyLocator(
+        resultPrompt,
+        deepThink ? { deepThink: true } : undefined,
+        center,
+        opt,
+      );
+      if (verifyResult.pass) {
+        success = true;
+      } else {
+        retryCount++;
+      }
+    }
+
+    return {
+      prompt: resultPrompt,
+      deepThink,
+      verifyResult,
+    };
+  }
+
+  async verifyLocator(
+    prompt: string,
+    locateOpt: LocateOption | undefined,
+    expectCenter: [number, number],
+    verifyLocateOption?: LocatorValidatorOption,
+  ): Promise<LocateValidatorResult> {
+    debug('verifyLocator', prompt, locateOpt, expectCenter, verifyLocateOption);
+
+    const { center: verifyCenter, rect: verifyRect } = await this.aiLocate(
+      prompt,
+      locateOpt,
+    );
+    const distance = distanceOfTwoPoints(expectCenter, verifyCenter);
+    const included = includedInRect(expectCenter, verifyRect);
+    const pass =
+      distance <= (verifyLocateOption?.centerDistanceThreshold || 20) ||
+      included;
+    const verifyResult = {
+      pass,
+      rect: verifyRect,
+      center: verifyCenter,
+      centerDistance: distance,
+    };
+    debug('aiDescribe verifyResult', verifyResult);
+    return verifyResult;
   }
 
   async aiLocate(prompt: string, opt?: LocateOption) {

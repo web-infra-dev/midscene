@@ -11,6 +11,7 @@ import type {
   ElementById,
   ElementTreeNode,
   Rect,
+  ReferenceImage,
   UIContext,
 } from '@/types';
 import {
@@ -73,6 +74,7 @@ export async function AiLocateElement<
 >(options: {
   context: UIContext<ElementType>;
   targetElementDescription: string;
+  referenceImage?: ReferenceImage;
   callAI?: typeof callAiFn<AIElementResponse | [number, number]>;
   searchConfig?: Awaited<ReturnType<typeof AiLocateSection>>;
 }): Promise<{
@@ -118,6 +120,15 @@ export async function AiLocateElement<
       screenshotBase64,
       context.tree,
       context.size,
+    );
+  }
+
+  let referenceImagePayload: string | undefined;
+  if (options.referenceImage?.rect && options.referenceImage.base64) {
+    referenceImagePayload = await cropByRect(
+      options.referenceImage.base64,
+      options.referenceImage.rect,
+      getAIConfigInBoolean(MIDSCENE_USE_QWEN_VL),
     );
   }
 
