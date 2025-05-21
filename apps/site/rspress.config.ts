@@ -166,7 +166,7 @@ export default defineConfig({
               link: '/blog-introducing-instant-actions-and-deep-think',
             },
             {
-              text: 'Using Structured API to Optimize Automation Code',
+              text: 'Use JavaScript to Optimize the AI Automation Code',
               link: '/blog-programming-practice-using-structured-api',
             },
           ],
@@ -283,7 +283,7 @@ export default defineConfig({
               link: '/zh/blog-introducing-instant-actions-and-deep-think',
             },
             {
-              text: '使用结构化 API 优化自动化代码',
+              text: '使用 JavaScript 优化 AI 自动化代码',
               link: '/zh/blog-programming-practice-using-structured-api',
             },
           ],

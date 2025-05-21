@@ -24,6 +24,7 @@ const allScopes = [
   'playwright',
   'puppeteer',
   'mcp',
+  'blog',
   'bridge',
   // automatically added scopes
   ...appsScopes,
