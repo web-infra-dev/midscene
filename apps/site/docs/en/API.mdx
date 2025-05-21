@@ -52,7 +52,7 @@ function ai(prompt: string): Promise<void>; // shorthand form
 * Parameters:
   * `prompt: string` - A natural language description of the UI steps.
   * `options?: Object` - Optional, a configuration object containing:
-    * `cacheable?: boolean` - Whether cacheable when enabling [caching feature](./caching.mdx).
+    * `cacheable?: boolean` - Whether cacheable when enabling [caching feature](./caching.mdx). True by default.
 
 * Return Value:
   * Returns a Promise that resolves to void when all steps are completed; if execution fails, an error is thrown.
@@ -95,7 +95,7 @@ function aiTap(locate: string, options?: Object): Promise<void>;
   * `locate: string` - A natural language description of the element to tap.
   * `options?: Object` - Optional, a configuration object containing:
     * `deepThink?: boolean` - If true, Midscene will call AI model twice to precisely locate the element. 
-    * `cacheable?: boolean` - Whether cacheable when enabling [caching feature](./caching.mdx).
+    * `cacheable?: boolean` - Whether cacheable when enabling [caching feature](./caching.mdx). True by default.
 
 * Return Value:
   * Returns a `Promise<void>`
@@ -123,7 +123,7 @@ function aiHover(locate: string, options?: Object): Promise<void>;
   * `locate: string` - A natural language description of the element to hover over.
   * `options?: Object` - Optional, a configuration object containing:
     * `deepThink?: boolean` - If true, Midscene will call AI model twice to precisely locate the element. 
-    * `cacheable?: boolean` - Whether cacheable when enabling [caching feature](./caching.mdx).
+    * `cacheable?: boolean` - Whether cacheable when enabling [caching feature](./caching.mdx). True by default.
 
 * Return Value:
   * Returns a `Promise<void>`
@@ -149,7 +149,7 @@ function aiInput(text: string, locate: string, options?: Object): Promise<void>;
   * `locate: string` - A natural language description of the element to input text into.
   * `options?: Object` - Optional, a configuration object containing:
     * `deepThink?: boolean` - If true, Midscene will call AI model twice to precisely locate the element. 
-    * `cacheable?: boolean` - Whether cacheable when enabling [caching feature](./caching.mdx).
+    * `cacheable?: boolean` - Whether cacheable when enabling [caching feature](./caching.mdx). True by default.
 
 * Return Value:
   * Returns a `Promise<void>`
@@ -175,7 +175,7 @@ function aiKeyboardPress(key: string, locate?: string, options?: Object): Promis
   * `locate?: string` - Optional, a natural language description of the element to press the key on.
   * `options?: Object` - Optional, a configuration object containing:
     * `deepThink?: boolean` - If true, Midscene will call AI model twice to precisely locate the element. 
-    * `cacheable?: boolean` - Whether cacheable when enabling [caching feature](./caching.mdx).
+    * `cacheable?: boolean` - Whether cacheable when enabling [caching feature](./caching.mdx). True by default.
 
 * Return Value:
   * Returns a `Promise<void>`
@@ -204,7 +204,7 @@ function aiScroll(scrollParam: PlanningActionParamScroll, locate?: string, optio
   * `locate?: string` - Optional, a natural language description of the element to scroll on. If not provided, Midscene will perform scroll on the current mouse position.
   * `options?: Object` - Optional, a configuration object containing:
     * `deepThink?: boolean` - If true, Midscene will call AI model twice to precisely locate the element. 
-    * `cacheable?: boolean` - Whether cacheable when enabling [caching feature](./caching.mdx).
+    * `cacheable?: boolean` - Whether cacheable when enabling [caching feature](./caching.mdx). True by default.
 
 * Return Value:
   * Returns a `Promise<void>`
@@ -386,7 +386,7 @@ function aiLocate(locate: string, options?: Object): Promise<{
   * `locate: string` - A natural language description of the element to locate.
   * `options?: Object` - Optional, a configuration object containing:
     * `deepThink?: boolean` - If true, Midscene will call AI model twice to precisely locate the element. 
-    * `cacheable?: boolean` - Whether cacheable when enabling [caching feature](./caching.mdx).
+    * `cacheable?: boolean` - Whether cacheable when enabling [caching feature](./caching.mdx). True by default.
 
 * Return Value:
   * Returns a `Promise` when the element is located parsed as an locate info object.
