@@ -46,13 +46,13 @@ const getTextNodeIndex = (textNode: Node): number => {
   return index;
 };
 
-const getElementXPath = (element: Node): string => {
+const getElementXPath = (element: Node, fullPath = false): string => {
   // deal with text node
   if (element.nodeType === Node.TEXT_NODE) {
     // get parent node xpath
     const parentNode = element.parentNode;
     if (parentNode && parentNode.nodeType === Node.ELEMENT_NODE) {
-      const parentXPath = getElementXPath(parentNode);
+      const parentXPath = getElementXPath(parentNode, fullPath);
       const textIndex = getTextNodeIndex(element);
       return `${parentXPath}/text()[${textIndex}]`;
     }
@@ -72,14 +72,14 @@ const getElementXPath = (element: Node): string => {
     return '/html/body';
   }
 
-  // If this element has an ID, return an XPath with the ID
-  if (el.id) {
+  // If this element has an ID and we don't need a full path, return an XPath with the ID
+  if (el.id && !fullPath) {
     return `//*[@id="${el.id}"]`;
   }
 
-  const ancestorWithId = findFirstAncestorWithId(el);
+  const ancestorWithId = !fullPath ? findFirstAncestorWithId(el) : null;
 
-  if (ancestorWithId) {
+  if (ancestorWithId && !fullPath) {
     // Start from the ancestor with ID
     const ancestorPath = `//*[@id="${ancestorWithId.id}"]`;
 
@@ -100,8 +100,7 @@ const getElementXPath = (element: Node): string => {
       : ancestorPath;
   }
 
-  // If no parent node, or we need a full path and haven't returned yet,
-  // start building the full path
+  // If no parent node, return just the tag name
   if (!el.parentNode) {
     return `/${el.nodeName.toLowerCase()}`;
   }
@@ -110,7 +109,7 @@ const getElementXPath = (element: Node): string => {
   const tagName = el.nodeName.toLowerCase();
 
   if (el.parentNode) {
-    const parentXPath = getElementXPath(el.parentNode);
+    const parentXPath = getElementXPath(el.parentNode, fullPath);
     return `${parentXPath}/${tagName}[${index}]`;
   }
 
@@ -121,8 +120,9 @@ function generateXPaths(node: Node | null): string[] {
   if (!node) return [];
 
   const xPath = getElementXPath(node);
+  const fullXPath = getElementXPath(node, true);
 
-  return [xPath];
+  return [xPath, fullXPath];
 }
 
 export function getXpathsById(id: string): string[] | null {

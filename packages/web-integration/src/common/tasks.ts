@@ -242,19 +242,23 @@ export class PageTaskExecutor {
                 // hit cache, use new id
                 const elementInfosScriptContent =
                   getElementInfosScriptContent();
-                const element = await this.page.evaluateJavaScript?.(
-                  `${elementInfosScriptContent}midscene_element_inspector.getElementInfoByXpath('${xpaths[0]}')`,
-                );
 
-                if (element?.id) {
-                  elementFromCache = element;
-                  debug('cache hit, prompt: %s', cachePrompt);
-                  cacheHitFlag = true;
-                  debug(
-                    'found a new new element with same xpath, xpath: %s, id: %s',
-                    xpaths[0],
-                    element?.id,
+                for (let i = 0; i < xpaths.length; i++) {
+                  const element = await this.page.evaluateJavaScript?.(
+                    `${elementInfosScriptContent}midscene_element_inspector.getElementInfoByXpath('${xpaths[i]}')`,
                   );
+
+                  if (element?.id) {
+                    elementFromCache = element;
+                    debug('cache hit, prompt: %s', cachePrompt);
+                    cacheHitFlag = true;
+                    debug(
+                      'found a new new element with same xpath, xpath: %s, id: %s',
+                      xpaths[i],
+                      element?.id,
+                    );
+                    break;
+                  }
                 }
               }
             } catch (error) {
@@ -284,7 +288,7 @@ export class PageTaskExecutor {
                 pageContext,
                 element,
               );
-              if (elementXpaths) {
+              if (elementXpaths?.length) {
                 this.taskCache.updateOrAppendCacheRecord(
                   {
                     type: 'locate',
@@ -294,7 +298,11 @@ export class PageTaskExecutor {
                   locateCacheRecord,
                 );
               } else {
-                debug('no xpaths found, will not update cache', cachePrompt);
+                debug(
+                  'no xpaths found, will not update cache',
+                  cachePrompt,
+                  elementXpaths,
+                );
               }
             }
             if (!element) {
