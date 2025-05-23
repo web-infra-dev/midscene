@@ -71,9 +71,6 @@ jobs:
       run: |
         cd packages/web-integration
         npx puppeteer browsers install chrome
-
-    - name: Build project
-      run: pnpm run build
     
     - name: Run e2e tests
       run: pnpm run e2e
