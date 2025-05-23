@@ -323,3 +323,9 @@ Alternatively, you can use the packaged extension:
 
 For more detailed information, please refer to [Chrome DevTools README](./apps/chrome-extension/README.md).
 
+
+## FAQ
+
+### Errors like 'Template does not contain {{dump}} placeholder'
+
+Due to some issues with circular dependencies, you need to execute the full build process within the entire repository to compile the Midscene project, rather than compiling the ⁠@midscene/core package separately.
