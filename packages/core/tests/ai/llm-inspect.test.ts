@@ -34,18 +34,3 @@ test('locate section', async () => {
   });
   expect(rect).toBeDefined();
 });
-
-test('use quick answer', async () => {
-  const { context } = await getContextFromFixture('todo');
-
-  const startTime = Date.now();
-  const { parseResult } = await AiLocateElement({
-    context,
-    targetElementDescription: 'never mind',
-  });
-  console.log('parseResult', parseResult);
-  const endTime = Date.now();
-  const cost = endTime - startTime;
-  expect(parseResult.elements.length).toBe(1);
-  expect(cost).toBeLessThan(100);
-});

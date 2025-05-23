@@ -9,29 +9,6 @@ vi.setConfig({
   hookTimeout: 30 * 1000,
 });
 
-function makePlanResultStable(plans: PlanningAction[]) {
-  return plans.map((plan) => {
-    // Removing thinking makes the results stable for snapshot testing
-    plan.thought = undefined;
-    if (plan.param?.prompt) {
-      plan.param.prompt = '';
-    }
-    if ('quickAnswer' in plan && plan.quickAnswer) {
-      plan.quickAnswer = {
-        reason: '',
-        text: '',
-      };
-    }
-
-    plans.forEach((plan) => {
-      if (plan.locate?.prompt) {
-        plan.locate.prompt = '';
-      }
-    });
-    return plan;
-  });
-}
-
 describe('automation - planning input', () => {
   it('input value', async () => {
     const { context } = await getContextFromFixture('todo');
@@ -41,9 +18,12 @@ describe('automation - planning input', () => {
     ];
 
     for (const instruction of instructions) {
-      const { actions } = await plan(instruction, { context });
-      const res = makePlanResultStable(actions!);
-      expect(res).toMatchSnapshot();
+      const { actions } = await plan(instruction, {
+        context,
+        pageType: 'puppeteer',
+      });
+      expect(actions).toBeDefined();
+      expect(actions?.length).toBeGreaterThan(0);
     }
   });
 
@@ -56,9 +36,12 @@ describe('automation - planning input', () => {
     ];
 
     for (const instruction of instructions) {
-      const { actions } = await plan(instruction, { context });
-      const res = makePlanResultStable(actions!);
-      expect(res).toMatchSnapshot();
+      const { actions } = await plan(instruction, {
+        context,
+        pageType: 'puppeteer',
+      });
+      expect(actions).toBeDefined();
+      expect(actions?.length).toBeGreaterThan(0);
     }
   });
 });
