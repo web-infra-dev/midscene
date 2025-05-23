@@ -8,7 +8,7 @@ import { sleep } from '@midscene/core/utils';
 import { vlLocateMode } from '@midscene/shared/env';
 import { saveBase64Image } from '@midscene/shared/img';
 import dotenv from 'dotenv';
-import { afterEach, expect, test } from 'vitest';
+import { afterAll, expect, test } from 'vitest';
 import { TestResultCollector } from '../src/test-analyzer';
 import { annotateRects, buildContext, getCases } from './util';
 
@@ -42,7 +42,7 @@ if (process.env.MIDSCENE_EVALUATION_EXPECT_VL) {
   expect(vlLocateMode()).toBeTruthy();
 }
 
-afterEach(async () => {
+afterAll(async () => {
   await resultCollector.printSummary();
 });
 
@@ -67,11 +67,28 @@ testSources.forEach((source) => {
 
         const insight = new Insight(context);
 
-        const result = await insight.locate({
-          prompt,
-          deepThink:
-            vlLocateMode() === 'doubao-vision' ? undefined : testCase.deepThink,
-        });
+        let result: Awaited<ReturnType<typeof insight.locate>> | Error;
+        try {
+          result = await insight.locate({
+            prompt,
+            deepThink:
+              vlLocateMode() === 'doubao-vision'
+                ? undefined
+                : testCase.deepThink,
+          });
+        } catch (error) {
+          result = error as Error;
+        }
+        if (result instanceof Error) {
+          resultCollector.addResult(
+            source,
+            testCase,
+            result,
+            Date.now() - startTime,
+          );
+          continue;
+        }
+
         const { element, rect } = result;
 
         if (process.env.UPDATE_ANSWER_DATA) {
