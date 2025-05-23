@@ -9,6 +9,7 @@ export enum NodeType {
   CONTAINER = 'CONTAINER Node',
   FORM_ITEM = 'FORM_ITEM Node',
   BUTTON = 'BUTTON Node',
+  A = 'A Node',
   IMG = 'IMG Node',
   TEXT = 'TEXT Node',
   POSITION = 'POSITION Node',

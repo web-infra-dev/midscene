@@ -6,6 +6,7 @@ import {
 import type { WebElementInfo } from '../types';
 import type { Point } from '../types';
 import {
+  isAElement,
   isButtonElement,
   isContainerElement,
   isFormElement,
@@ -218,6 +219,34 @@ export function collectElementInfo(
     return elementInfo;
   }
 
+  if (isAElement(node)) {
+    const attributes = getNodeAttributes(node, currentWindow);
+    const pseudo = getPseudoElementContent(node, currentWindow);
+    const content = node.innerText || pseudo.before || pseudo.after || '';
+    const nodeHashId = midsceneGenerateHash(node, content, rect);
+    const selector = setDataForNode(node, nodeHashId, false, currentWindow);
+    const elementInfo: WebElementInfo = {
+      id: nodeHashId,
+      indexId: indexId++,
+      nodeHashId,
+      nodeType: NodeType.A,
+      locator: selector,
+      attributes: {
+        ...attributes,
+        htmlTagName: tagNameOfNode(node),
+        nodeType: NodeType.A,
+      },
+      content,
+      rect,
+      center: [
+        Math.round(rect.left + rect.width / 2),
+        Math.round(rect.top + rect.height / 2),
+      ],
+      zoom: rect.zoom,
+    };
+    return elementInfo;
+  }
+
   // else, consider as a container
   if (isContainerElement(node)) {
     const attributes = getNodeAttributes(node, currentWindow);
@@ -329,11 +358,12 @@ export function extractTreeNode(
       node: elementInfo,
       children: [],
     };
-    // stop collecting if the node is a Button/Image/Text/FormItem/Container
+    // stop collecting if the node is a Button/Image/Text/A/FormItem/Container
     if (
       elementInfo?.nodeType === NodeType.BUTTON ||
       elementInfo?.nodeType === NodeType.IMG ||
       elementInfo?.nodeType === NodeType.TEXT ||
+      elementInfo?.nodeType === NodeType.A ||
       elementInfo?.nodeType === NodeType.FORM_ITEM ||
       elementInfo?.nodeType === NodeType.CONTAINER
     ) {
