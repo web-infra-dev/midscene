@@ -98,15 +98,11 @@ You can use the `cacheable` option to disable the cache for a single API.
 
 Please refer to the documentation of the corresponding [API](./API.mdx) for details.
 
-### When will it not hit the cache?
+### Limitations of XPath in caching element location
 
-There are currently two types of caches, one is Plan (planning), and the other is Locate (element location), the former will always save and hit the cache, while the latter has cases where it will not hit.
+Midscene uses [XPath](https://developer.mozilla.org/en-US/docs/Web/XML/XPath) to cache the element location. ⁠We are using a relatively strict strategy to prevent false matches. In these situations, the cache will not be accessed.
 
-The principle of Locate (element location) caching is to save the [xpath](https://developer.mozilla.org/en-US/docs/Web/XML/XPath) of the hit element locally and use this xpath to locate the element the next time it runs.
-
-Therefore, when the xpath of the element changes, the cache will not be hit, which typically occurs in the following situations:
-
-1. The HTML tag type of the ancestor node of the hit element or the position of the relative sibling elements changes
-2. The text or HTML tag of the hit element itself changes
+1. The text content of the new element at the same XPath is different from the cached element.
+2. The DOM structure of the page is changed from the cached one.
 
 When the cache is not hit, the process will fall back to continue using AI services to find the element.
