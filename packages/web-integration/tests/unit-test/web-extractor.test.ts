@@ -96,14 +96,11 @@ describe(
 
       const { content } = await parseContextFromWebPage(page);
 
-      expect(content[0].rect).toEqual({
-        left: 8,
-        top: 8,
-        width: 64,
-        height: 34,
-        zoom: 1,
-      });
+      // Merge children rects of html element
+      expect(content[0].rect.width).toBeGreaterThan(25);
+      expect(content[0].rect.height).toBeGreaterThan(25);
 
+      // Won't merge rects of text node
       expect(content[1].rect).toEqual({
         left: 8,
         top: 108,

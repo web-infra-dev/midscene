@@ -97,3 +97,16 @@ You can remove the cache file in the `cache` directory, or edit the contents in 
 You can use the `cacheable` option to disable the cache for a single API.
 
 Please refer to the documentation of the corresponding [API](./API.mdx) for details.
+
+### When will it not hit the cache?
+
+There are currently two types of caches, one is Plan (planning), and the other is Locate (element location), the former will always save and hit the cache, while the latter has cases where it will not hit.
+
+The principle of Locate (element location) caching is to save the [xpath](https://developer.mozilla.org/en-US/docs/Web/XML/XPath) of the hit element locally and use this xpath to locate the element the next time it runs.
+
+Therefore, when the xpath of the element changes, the cache will not be hit, which typically occurs in the following situations:
+
+1. The HTML tag type of the ancestor node of the hit element or the position of the relative sibling elements changes
+2. The text or HTML tag of the hit element itself changes
+
+When the cache is not hit, the process will fall back to continue using AI services to find the element.
