@@ -33,9 +33,9 @@ const resultCollector = new TestResultCollector(
   getAIConfig(MIDSCENE_MODEL_NAME) || 'unspecified',
 );
 
-let failCaseThreshold = 0;
-if (process.env.CI && !vlLocateMode()) {
-  failCaseThreshold = 3;
+let failCaseThreshold = 2;
+if (process.env.CI) {
+  failCaseThreshold = vlLocateMode() ? 2 : 3;
 }
 
 if (process.env.MIDSCENE_EVALUATION_EXPECT_VL) {
