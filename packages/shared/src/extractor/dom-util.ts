@@ -17,6 +17,12 @@ export function isButtonElement(
   return node instanceof HTMLElement && node.tagName.toLowerCase() === 'button';
 }
 
+export function isAElement(
+  node: globalThis.Node,
+): node is globalThis.HTMLButtonElement {
+  return node instanceof HTMLElement && node.tagName.toLowerCase() === 'a';
+}
+
 export function isImgElement(
   node: globalThis.Node,
 ): node is globalThis.HTMLImageElement {
@@ -90,6 +96,7 @@ function includeBaseElement(node: globalThis.Node) {
     'select',
     'option',
     'img',
+    'a',
   ];
 
   for (const tagName of includeList) {

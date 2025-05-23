@@ -6,7 +6,7 @@ Android 自动化任务不支持缓存策略。
 
 **效果**
 
-通过引入缓存后，用例的执行时间大幅降低了，例如从51秒降低到了28秒。
+通过引入缓存后，用例的执行时间大幅降低了，例如在如下案例中，执行耗时从51秒降低到了28秒。
 
 * **before**
 
@@ -99,3 +99,12 @@ const mid = new PuppeteerAgent(originPage, {
 你可以使用 `cacheable` 选项来禁用单个 API 的缓存。
 
 具体用法请参考对应 [API](./API.mdx) 的文档。
+
+### 使用 XPath 缓存元素定位信息的局限性
+
+Midscene 使用 [XPath](https://developer.mozilla.org/en-US/docs/Web/XML/XPath) 来缓存元素定位信息。我们使用相对严格的策略来防止误匹配。在以下情况下，缓存不会命中：
+
+1. 新元素在相同的 XPath 下的文本内容与缓存元素不同。
+2. 页面的 DOM 结构与缓存时的结构不同。
+
+当缓存未命中时，Midscene 将回退到继续使用 AI 服务来查找元素。

@@ -12,9 +12,11 @@ test.beforeEach(async ({ page }) => {
 test('ai online order', async ({ ai, page, aiQuery }) => {
   await ai('点击顶部语言切换按钮(英文、中文)，在弹出的下拉列表中点击中文');
   await ai('向下滚动一屏');
+  await sleep(2000);
   await ai('点击多肉葡萄的规格按钮');
   await ai('点击不使用吸管、点击冰沙推荐、点击正常冰推荐');
   await ai('向下滚动一屏');
+  await sleep(2000);
   await ai('点击标准甜、点击绿妍（推荐）,点击标准口味');
   await ai('滚动到最下面');
   await ai('点击页面下边的“选好了”按钮');
