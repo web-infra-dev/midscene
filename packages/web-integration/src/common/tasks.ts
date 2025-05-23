@@ -121,6 +121,11 @@ export class PageTaskExecutor {
       );
       if (info?.id) {
         elementId = info.id;
+      } else {
+        debug(
+          'no element id found for position node, will not update cache',
+          element,
+        );
       }
     }
 
@@ -278,6 +283,7 @@ export class PageTaskExecutor {
             const aiCost = Date.now() - startTime;
 
             // update cache
+            let currentXpaths: string[] | undefined;
             if (
               element &&
               this.taskCache &&
@@ -289,6 +295,7 @@ export class PageTaskExecutor {
                 element,
               );
               if (elementXpaths?.length) {
+                currentXpaths = elementXpaths;
                 this.taskCache.updateOrAppendCacheRecord(
                   {
                     type: 'locate',
@@ -316,6 +323,8 @@ export class PageTaskExecutor {
               pageContext,
               cache: {
                 hit: cacheHitFlag,
+                originalXpaths: xpaths,
+                currentXpaths,
               },
               aiCost,
             };

@@ -3191,3 +3191,99 @@ exports[`extractor > getElementInfoByXpath from text node by evaluateJavaScript 
   "nodeType": "TEXT Node",
 }
 `;
+
+exports[`extractor > merge children rects of button 1`] = `
+[
+  {
+    "attributes": {
+      "htmlTagName": "<div>",
+      "nodeType": "BUTTON Node",
+      "style": "width: 20px; height: 20px",
+    },
+    "content": "Click Me(span)",
+  },
+  {
+    "attributes": {
+      "htmlTagName": "<div>",
+      "nodeType": "BUTTON Node",
+      "style": "width: 20px; height: 20px",
+    },
+    "content": "Click Me(text)",
+  },
+]
+`;
+
+exports[`extractor > merge children rects of button 2`] = `
+{
+  "children": [
+    {
+      "children": [
+        {
+          "children": [],
+          "node": null,
+        },
+        {
+          "children": [
+            {
+              "children": [],
+              "node": null,
+            },
+            {
+              "children": [],
+              "node": {
+                "attributes": {
+                  "htmlTagName": "<div>",
+                  "nodeType": "BUTTON Node",
+                  "style": "width: 20px; height: 20px",
+                },
+                "content": "Click Me(span)",
+                "indexId": 0,
+              },
+            },
+            {
+              "children": [],
+              "node": null,
+            },
+          ],
+          "node": null,
+        },
+        {
+          "children": [],
+          "node": null,
+        },
+        {
+          "children": [
+            {
+              "children": [],
+              "node": null,
+            },
+            {
+              "children": [],
+              "node": {
+                "attributes": {
+                  "htmlTagName": "<div>",
+                  "nodeType": "BUTTON Node",
+                  "style": "width: 20px; height: 20px",
+                },
+                "content": "Click Me(text)",
+                "indexId": 1,
+              },
+            },
+            {
+              "children": [],
+              "node": null,
+            },
+          ],
+          "node": null,
+        },
+        {
+          "children": [],
+          "node": null,
+        },
+      ],
+      "node": null,
+    },
+  ],
+  "node": null,
+}
+`;

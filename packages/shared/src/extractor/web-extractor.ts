@@ -127,6 +127,16 @@ export function collectElementInfo(
   }
 
   if (isButtonElement(node)) {
+    const rect = mergeElementAndChildrenRects(
+      node,
+      currentWindow,
+      currentDocument,
+      baseZoom,
+      visibleOnly,
+    );
+    if (!rect) {
+      return null;
+    }
     const attributes = getNodeAttributes(node, currentWindow);
     const pseudo = getPseudoElementContent(node, currentWindow);
     const content = node.innerText || pseudo.before || pseudo.after || '';
@@ -425,5 +435,58 @@ export function extractTreeNode(
   return {
     node: null,
     children: topChildren,
+  };
+}
+
+export function mergeElementAndChildrenRects(
+  node: Node,
+  currentWindow: typeof window,
+  currentDocument: typeof document,
+  baseZoom = 1,
+  visibleOnly = true,
+) {
+  const selfRect = elementRect(
+    node,
+    currentWindow,
+    currentDocument,
+    baseZoom,
+    visibleOnly,
+  );
+  if (!selfRect) return null;
+
+  let minLeft = selfRect.left;
+  let minTop = selfRect.top;
+  let maxRight = selfRect.left + selfRect.width;
+  let maxBottom = selfRect.top + selfRect.height;
+
+  function traverse(child: Node) {
+    for (let i = 0; i < child.childNodes.length; i++) {
+      const sub = child.childNodes[i];
+      if (sub.nodeType === 1) {
+        const rect = elementRect(
+          sub,
+          currentWindow,
+          currentDocument,
+          baseZoom,
+          visibleOnly,
+        );
+        if (rect) {
+          minLeft = Math.min(minLeft, rect.left);
+          minTop = Math.min(minTop, rect.top);
+          maxRight = Math.max(maxRight, rect.left + rect.width);
+          maxBottom = Math.max(maxBottom, rect.top + rect.height);
+        }
+        traverse(sub);
+      }
+    }
+  }
+  traverse(node);
+
+  return {
+    ...selfRect,
+    left: minLeft,
+    top: minTop,
+    width: maxRight - minLeft,
+    height: maxBottom - minTop,
   };
 }
