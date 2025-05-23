@@ -17,20 +17,6 @@ const getElementIndex = (element: Element): number => {
   return index;
 };
 
-// Find the first ancestor with an ID
-const findFirstAncestorWithId = (element: Element): Element | null => {
-  let current = element;
-
-  while (current?.parentElement) {
-    if (current.id) {
-      return current;
-    }
-    current = current.parentElement;
-  }
-
-  return null;
-};
-
 // Get the index of a text node among its siblings of the same type
 const getTextNodeIndex = (textNode: Node): number => {
   let index = 1;
@@ -46,14 +32,20 @@ const getTextNodeIndex = (textNode: Node): number => {
   return index;
 };
 
-const getElementXPath = (element: Node, fullPath = false): string => {
+const getElementXPath = (element: Node): string => {
   // deal with text node
   if (element.nodeType === Node.TEXT_NODE) {
     // get parent node xpath
     const parentNode = element.parentNode;
     if (parentNode && parentNode.nodeType === Node.ELEMENT_NODE) {
-      const parentXPath = getElementXPath(parentNode, fullPath);
+      const parentXPath = getElementXPath(parentNode);
       const textIndex = getTextNodeIndex(element);
+      const textContent = element.textContent?.trim();
+
+      // If we have text content, include it in the xpath for better matching
+      if (textContent) {
+        return `${parentXPath}/text()[${textIndex}][normalize-space()="${textContent}"]`;
+      }
       return `${parentXPath}/text()[${textIndex}]`;
     }
     return '';
@@ -72,34 +64,6 @@ const getElementXPath = (element: Node, fullPath = false): string => {
     return '/html/body';
   }
 
-  // If this element has an ID and we don't need a full path, return an XPath with the ID
-  if (el.id && !fullPath) {
-    return `//*[@id="${el.id}"]`;
-  }
-
-  const ancestorWithId = !fullPath ? findFirstAncestorWithId(el) : null;
-
-  if (ancestorWithId && !fullPath) {
-    // Start from the ancestor with ID
-    const ancestorPath = `//*[@id="${ancestorWithId.id}"]`;
-
-    // Build the path from the ancestor to this element
-    let current: Element | null = el;
-    const pathParts: string[] = [];
-
-    while (current && current !== ancestorWithId) {
-      const index = getElementIndex(current);
-      const tagName = current.nodeName.toLowerCase();
-      pathParts.unshift(`${tagName}[${index}]`);
-      current = current.parentElement;
-    }
-
-    // Combine the ancestor path with the rest of the path
-    return pathParts.length > 0
-      ? `${ancestorPath}/${pathParts.join('/')}`
-      : ancestorPath;
-  }
-
   // If no parent node, return just the tag name
   if (!el.parentNode) {
     return `/${el.nodeName.toLowerCase()}`;
@@ -109,7 +73,7 @@ const getElementXPath = (element: Node, fullPath = false): string => {
   const tagName = el.nodeName.toLowerCase();
 
   if (el.parentNode) {
-    const parentXPath = getElementXPath(el.parentNode, fullPath);
+    const parentXPath = getElementXPath(el.parentNode);
     return `${parentXPath}/${tagName}[${index}]`;
   }
 
@@ -119,10 +83,9 @@ const getElementXPath = (element: Node, fullPath = false): string => {
 function generateXPaths(node: Node | null): string[] {
   if (!node) return [];
 
-  const xPath = getElementXPath(node);
-  const fullXPath = getElementXPath(node, true);
+  const fullXPath = getElementXPath(node);
 
-  return [xPath, fullXPath];
+  return [fullXPath];
 }
 
 export function getXpathsById(id: string): string[] | null {
