@@ -284,7 +284,7 @@ exports[`extractor > basic 1`] = `
     "attributes": {
       "href": "https://www.google.com",
       "htmlTagName": "<div>",
-      "nodeType": "A Node",
+      "nodeType": "Anchor Node",
     },
     "content": "Google",
   },
@@ -292,7 +292,7 @@ exports[`extractor > basic 1`] = `
     "attributes": {
       "href": "https://www.google.com",
       "htmlTagName": "<div>",
-      "nodeType": "A Node",
+      "nodeType": "Anchor Node",
       "style": "width: 100px; height: 20px; vertical-align: middle; display: inline-block; background: #ccc;",
     },
     "content": "",
@@ -1565,7 +1565,7 @@ exports[`extractor > basic 2`] = `
                 "attributes": {
                   "href": "https://www.google.com",
                   "htmlTagName": "<div>",
-                  "nodeType": "A Node",
+                  "nodeType": "Anchor Node",
                 },
                 "content": "Google",
                 "indexId": 39,
@@ -1581,7 +1581,7 @@ exports[`extractor > basic 2`] = `
                 "attributes": {
                   "href": "https://www.google.com",
                   "htmlTagName": "<div>",
-                  "nodeType": "A Node",
+                  "nodeType": "Anchor Node",
                   "style": "width: 100px; height: 20px; vertical-align: middle; display: inline-block; background: #ccc;",
                 },
                 "content": "",
