@@ -133,10 +133,7 @@ export class PageTaskExecutor {
       return undefined;
     }
     try {
-      const elementInfosScriptContent = getElementInfosScriptContent();
-      const result = await this.page.evaluateJavaScript?.(
-        `${elementInfosScriptContent}midscene_element_inspector.getXpathsById('${elementId}')`,
-      );
+      const result = await this.page.getXpathsById(elementId);
       return result;
     } catch (error) {
       debug('getXpathsById error: ', error);
@@ -245,12 +242,10 @@ export class PageTaskExecutor {
                 param?.cacheable !== false
               ) {
                 // hit cache, use new id
-                const elementInfosScriptContent =
-                  getElementInfosScriptContent();
 
                 for (let i = 0; i < xpaths.length; i++) {
-                  const element = await this.page.evaluateJavaScript?.(
-                    `${elementInfosScriptContent}midscene_element_inspector.getElementInfoByXpath('${xpaths[i]}')`,
+                  const element = await this.page.getElementInfoByXpath(
+                    xpaths[i],
                   );
 
                   if (element?.id) {
