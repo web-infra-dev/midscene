@@ -121,6 +121,11 @@ export class PageTaskExecutor {
       );
       if (info?.id) {
         elementId = info.id;
+      } else {
+        debug(
+          'no element id found for position node, will not update cache',
+          element,
+        );
       }
     }
 
@@ -242,19 +247,23 @@ export class PageTaskExecutor {
                 // hit cache, use new id
                 const elementInfosScriptContent =
                   getElementInfosScriptContent();
-                const element = await this.page.evaluateJavaScript?.(
-                  `${elementInfosScriptContent}midscene_element_inspector.getElementInfoByXpath('${xpaths[0]}')`,
-                );
 
-                if (element?.id) {
-                  elementFromCache = element;
-                  debug('cache hit, prompt: %s', cachePrompt);
-                  cacheHitFlag = true;
-                  debug(
-                    'found a new new element with same xpath, xpath: %s, id: %s',
-                    xpaths[0],
-                    element?.id,
+                for (let i = 0; i < xpaths.length; i++) {
+                  const element = await this.page.evaluateJavaScript?.(
+                    `${elementInfosScriptContent}midscene_element_inspector.getElementInfoByXpath('${xpaths[i]}')`,
                   );
+
+                  if (element?.id) {
+                    elementFromCache = element;
+                    debug('cache hit, prompt: %s', cachePrompt);
+                    cacheHitFlag = true;
+                    debug(
+                      'found a new new element with same xpath, xpath: %s, id: %s',
+                      xpaths[i],
+                      element?.id,
+                    );
+                    break;
+                  }
                 }
               }
             } catch (error) {
@@ -274,6 +283,7 @@ export class PageTaskExecutor {
             const aiCost = Date.now() - startTime;
 
             // update cache
+            let currentXpaths: string[] | undefined;
             if (
               element &&
               this.taskCache &&
@@ -284,7 +294,8 @@ export class PageTaskExecutor {
                 pageContext,
                 element,
               );
-              if (elementXpaths) {
+              if (elementXpaths?.length) {
+                currentXpaths = elementXpaths;
                 this.taskCache.updateOrAppendCacheRecord(
                   {
                     type: 'locate',
@@ -294,7 +305,11 @@ export class PageTaskExecutor {
                   locateCacheRecord,
                 );
               } else {
-                debug('no xpaths found, will not update cache', cachePrompt);
+                debug(
+                  'no xpaths found, will not update cache',
+                  cachePrompt,
+                  elementXpaths,
+                );
               }
             }
             if (!element) {
@@ -308,6 +323,8 @@ export class PageTaskExecutor {
               pageContext,
               cache: {
                 hit: cacheHitFlag,
+                originalXpaths: xpaths,
+                currentXpaths,
               },
               aiCost,
             };
