@@ -5,11 +5,9 @@ exports[`build plans > hover 1`] = `
   {
     "locate": {
       "prompt": "OK button",
-      "searchArea": "the cookie prompt",
     },
     "param": {
       "prompt": "OK button",
-      "searchArea": "the cookie prompt",
     },
     "thought": "",
     "type": "Locate",
@@ -17,7 +15,6 @@ exports[`build plans > hover 1`] = `
   {
     "locate": {
       "prompt": "OK button",
-      "searchArea": "the cookie prompt",
     },
     "param": null,
     "thought": "",
@@ -60,6 +57,29 @@ exports[`build plans > keyboardPress 1`] = `
     },
     "thought": "",
     "type": "KeyboardPress",
+  },
+]
+`;
+
+exports[`build plans > rightClick 1`] = `
+[
+  {
+    "locate": {
+      "prompt": "context menu target",
+    },
+    "param": {
+      "prompt": "context menu target",
+    },
+    "thought": "",
+    "type": "Locate",
+  },
+  {
+    "locate": {
+      "prompt": "context menu target",
+    },
+    "param": null,
+    "thought": "",
+    "type": "RightClick",
   },
 ]
 `;
