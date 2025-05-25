@@ -80,6 +80,7 @@ export interface MidsceneYamlFlowItemAIAction {
   ai?: string; // this is the shortcut for aiAction
   aiAction?: string;
   aiActionProgressTips?: string[];
+  cacheable?: boolean;
 }
 
 export interface MidsceneYamlFlowItemAIAssert {

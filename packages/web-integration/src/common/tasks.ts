@@ -182,7 +182,10 @@ export class PageTaskExecutor {
     return taskWithScreenshot;
   }
 
-  private async convertPlanToExecutable(plans: PlanningAction[]) {
+  public async convertPlanToExecutable(
+    plans: PlanningAction[],
+    opts?: { cacheable?: boolean },
+  ) {
     const tasks: ExecutionTaskApply[] = [];
     plans.forEach((plan) => {
       if (plan.type === 'Locate') {
@@ -197,7 +200,12 @@ export class PageTaskExecutor {
         const taskFind: ExecutionTaskInsightLocateApply = {
           type: 'Insight',
           subType: 'Locate',
-          param: plan.locate || undefined,
+          param: plan.locate
+            ? {
+                ...plan.locate,
+                cacheable: opts?.cacheable,
+              }
+            : undefined,
           thought: plan.thought,
           locate: plan.locate,
           executor: async (param, taskContext) => {
@@ -886,11 +894,12 @@ export class PageTaskExecutor {
   async runPlans(
     title: string,
     plans: PlanningAction[],
+    opts?: { cacheable?: boolean },
   ): Promise<ExecutionResult> {
     const taskExecutor = new Executor(title, {
       onTaskStart: this.onTaskStartCallback,
     });
-    const { tasks } = await this.convertPlanToExecutable(plans);
+    const { tasks } = await this.convertPlanToExecutable(plans, opts);
     await taskExecutor.append(tasks);
     const result = await taskExecutor.flush();
     return {
@@ -902,6 +911,9 @@ export class PageTaskExecutor {
   async action(
     userPrompt: string,
     actionContext?: string,
+    opts?: {
+      cacheable?: boolean;
+    },
   ): Promise<
     ExecutionResult<
       | {
@@ -943,7 +955,7 @@ export class PageTaskExecutor {
 
       let executables: Awaited<ReturnType<typeof this.convertPlanToExecutable>>;
       try {
-        executables = await this.convertPlanToExecutable(plans);
+        executables = await this.convertPlanToExecutable(plans, opts);
         taskExecutor.append(executables.tasks);
       } catch (error) {
         return this.appendErrorPlan(
@@ -985,7 +997,12 @@ export class PageTaskExecutor {
     };
   }
 
-  async actionToGoal(userPrompt: string): Promise<
+  async actionToGoal(
+    userPrompt: string,
+    opts?: {
+      cacheable?: boolean;
+    },
+  ): Promise<
     ExecutionResult<
       | {
           yamlFlow?: MidsceneYamlFlowItem[]; // for cache use
@@ -1018,7 +1035,7 @@ export class PageTaskExecutor {
       yamlFlow.push(...(output.yamlFlow || []));
       let executables: Awaited<ReturnType<typeof this.convertPlanToExecutable>>;
       try {
-        executables = await this.convertPlanToExecutable(plans);
+        executables = await this.convertPlanToExecutable(plans, opts);
         taskExecutor.append(executables.tasks);
       } catch (error) {
         return this.appendErrorPlan(

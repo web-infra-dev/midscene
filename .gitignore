@@ -115,3 +115,5 @@ extension_output
 .cursor
 android-playground/static/
 .cursor
+.cursor/rules/nx-rules.mdc
+.github/instructions/nx.instructions.md
