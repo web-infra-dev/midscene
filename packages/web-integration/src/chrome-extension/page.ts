@@ -42,6 +42,8 @@ export default class ChromeExtensionProxyPage implements AbstractPage {
 
   private destroyed = false;
 
+  private isMobileEmulation: boolean | null = null;
+
   constructor(forceSameTabNavigation: boolean) {
     this.forceSameTabNavigation = forceSameTabNavigation;
   }
@@ -510,20 +512,48 @@ export default class ChromeExtensionProxyPage implements AbstractPage {
   mouse = {
     click: async (x: number, y: number) => {
       await this.mouse.move(x, y);
-      await this.sendCommandToDebugger('Input.dispatchMouseEvent', {
-        type: 'mousePressed',
-        x,
-        y,
-        button: 'left',
-        clickCount: 1,
-      });
-      await this.sendCommandToDebugger('Input.dispatchMouseEvent', {
-        type: 'mouseReleased',
-        x,
-        y,
-        button: 'left',
-        clickCount: 1,
-      });
+      // detect if the page is in mobile emulation mode
+      if (this.isMobileEmulation === null) {
+        const result = await this.sendCommandToDebugger('Runtime.evaluate', {
+          expression: `(() => {
+            return /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
+          })()`,
+          returnByValue: true,
+        });
+        this.isMobileEmulation = result?.result?.value;
+      }
+
+      if (this.isMobileEmulation) {
+        // in mobile emulation mode, directly inject click event
+        const touchPoints = [{ x: Math.round(x), y: Math.round(y) }];
+        await this.sendCommandToDebugger('Input.dispatchTouchEvent', {
+          type: 'touchStart',
+          touchPoints,
+          modifiers: 0,
+        });
+
+        await this.sendCommandToDebugger('Input.dispatchTouchEvent', {
+          type: 'touchEnd',
+          touchPoints: [],
+          modifiers: 0,
+        });
+      } else {
+        // standard mousePressed + mouseReleased
+        await this.sendCommandToDebugger('Input.dispatchMouseEvent', {
+          type: 'mousePressed',
+          x,
+          y,
+          button: 'left',
+          clickCount: 1,
+        });
+        await this.sendCommandToDebugger('Input.dispatchMouseEvent', {
+          type: 'mouseReleased',
+          x,
+          y,
+          button: 'left',
+          clickCount: 1,
+        });
+      }
     },
     wheel: async (
       deltaX: number,

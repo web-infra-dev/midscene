@@ -87,6 +87,20 @@ By viewing the screenshot and page contents, you can extract the following data:
   data: "todo list",
 }
 
+# Example 4
+If the DATA_DEMAND is:
+
+<DATA_DEMAND>
+{
+  "result": "Boolean, is it currently the SMS page?"
+}
+</DATA_DEMAND>
+
+By viewing the screenshot and page contents, you can extract the following data:
+
+{
+  data: { result: true },
+}
 "
 `;
 
