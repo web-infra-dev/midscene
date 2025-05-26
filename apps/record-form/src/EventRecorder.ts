@@ -1,3 +1,12 @@
+const DEBUG = localStorage.getItem('DEBUG') === 'true'; // 或根据 process.env.NODE_ENV 判断
+
+function debugLog(...args: any[]) {
+  if (DEBUG) {
+    // eslint-disable-next-line no-console
+    console.log(...args);
+  }
+}
+
 // 事件类型定义
 export interface RecordedEvent {
   type: 'click' | 'scroll' | 'input' | 'navigation';
@@ -155,9 +164,6 @@ export class EventRecorder {
       element: target,
       isLabelClick,
       labelInfo,
-      targetTagName: target?.tagName,
-      targetId: target?.id,
-      targetClassName: target?.className,
       isTrusted: event.isTrusted,
       detail: event.detail,
       viewportX: rect.left,
@@ -268,6 +274,17 @@ export class EventRecorder {
 
     // 如果是点击事件，直接添加
     if (event.type === 'click') {
+      // 优化：如果上一个事件是 label 点击，并且 labelInfo.htmlFor 等于当前 input 的 id，则跳过
+      const lastEvent = getLastLabelClick(events);
+      if (
+        lastEvent &&
+        lastEvent.type === 'click' &&
+        lastEvent.isLabelClick &&
+        lastEvent.labelInfo?.htmlFor === (event.element as HTMLInputElement).id
+      ) {
+        debugLog('Skip input event triggered by label click:', event.element);
+        return events;
+      }
       return [...events, event];
     }
 
@@ -280,7 +297,7 @@ export class EventRecorder {
         lastEvent.isLabelClick &&
         lastEvent.labelInfo?.htmlFor === event.targetId
       ) {
-        console.log('Skipping input event - triggered by label click:', {
+        debugLog('Skipping input event - triggered by label click:', {
           labelHtmlFor: getLastLabelClick(events)?.labelInfo?.htmlFor,
           inputId: event.targetId,
           element: event.element,
@@ -300,7 +317,7 @@ export class EventRecorder {
           value: (event.element as HTMLInputElement)?.value,
           ...event,
         };
-        console.log('Merging input event:', {
+        debugLog('Merging input event:', {
           oldValue: oldInputEvent.value,
           newValue: event.value,
           oldTimestamp: oldInputEvent.timestamp,
@@ -321,7 +338,7 @@ export class EventRecorder {
         const oldScrollEvent = events[events.length - 1];
         const newEvents = [...events];
         newEvents[events.length - 1] = event;
-        console.log('Replacing last scroll event with new scroll event:', {
+        debugLog('Replacing last scroll event with new scroll event:', {
           oldPosition: `${oldScrollEvent.x},${oldScrollEvent.y}`,
           newPosition: `${event.x},${event.y}`,
           oldTimestamp: oldScrollEvent.timestamp,
