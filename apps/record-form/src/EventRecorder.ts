@@ -20,10 +20,59 @@ export interface RecordedEvent {
   url?: string;
   viewportX?: number;
   viewportY?: number;
+  width?: number; // 元素宽度
+  height?: number; // 元素高度
 }
 
 // 事件回调函数类型
 export type EventCallback = (event: RecordedEvent) => void;
+
+// 检查是否是同一个输入目标
+const isSameInputTarget = (
+  event1: RecordedEvent,
+  event2: RecordedEvent,
+): boolean => {
+  if (event1.targetTagName !== event2.targetTagName) {
+    return false;
+  }
+  if (event1.targetId && event2.targetId) {
+    return event1.targetId === event2.targetId;
+  }
+  if (!event1.targetId && !event2.targetId) {
+    return event1.targetTagName === event2.targetTagName;
+  }
+  return false;
+};
+
+// 检查是否是同一个滚动目标
+const isSameScrollTarget = (
+  event1: RecordedEvent,
+  event2: RecordedEvent,
+): boolean => {
+  if (event1.targetTagName !== event2.targetTagName) {
+    return false;
+  }
+  if (event1.targetId && event2.targetId) {
+    return event1.targetId === event2.targetId;
+  }
+  if (!event1.targetId && !event2.targetId) {
+    return event1.targetTagName === event2.targetTagName;
+  }
+  return false;
+};
+
+// 获取最后一个 label 点击事件
+const getLastLabelClick = (
+  events: RecordedEvent[],
+): RecordedEvent | undefined => {
+  for (let i = events.length - 1; i >= 0; i--) {
+    const event = events[i];
+    if (event.type === 'click' && event.isLabelClick) {
+      return event;
+    }
+  }
+  return undefined;
+};
 
 // 事件记录器类
 export class EventRecorder {
@@ -49,12 +98,12 @@ export class EventRecorder {
     document.addEventListener('input', this.handleInput);
 
     // 添加页面加载事件
-    const navigationEvent: RecordedEvent = {
-      type: 'navigation',
-      url: window.location.href,
-      timestamp: Date.now(),
-    };
-    this.eventCallback(navigationEvent);
+    // const navigationEvent: RecordedEvent = {
+    //   type: 'navigation',
+    //   url: window.location.href,
+    //   timestamp: Date.now(),
+    // };
+    // this.eventCallback(navigationEvent);
   }
 
   // 停止记录
@@ -80,11 +129,7 @@ export class EventRecorder {
     if (!this.isRecording) return;
 
     const target = event.target as HTMLElement;
-
-    // 检查是否是 label 触发的点击
     const { isLabelClick, labelInfo } = this.checkLabelClick(target);
-
-    // 获取元素相对于 viewport 的位置
     const rect = target.getBoundingClientRect();
 
     const clickEvent: RecordedEvent = {
@@ -94,8 +139,8 @@ export class EventRecorder {
       value: '',
       timestamp: Date.now(),
       element: target,
-      isLabelClick: isLabelClick,
-      labelInfo: labelInfo,
+      isLabelClick,
+      labelInfo,
       targetTagName: target?.tagName,
       targetId: target?.id,
       targetClassName: target?.className,
@@ -103,6 +148,8 @@ export class EventRecorder {
       detail: event.detail,
       viewportX: rect.left,
       viewportY: rect.top,
+      width: rect.width, // 添加宽度
+      height: rect.height, // 添加高度
     };
 
     this.eventCallback(clickEvent);
@@ -115,13 +162,12 @@ export class EventRecorder {
     const scrollX = window.scrollX;
     const scrollY = window.scrollY;
 
-    // 只在滚动位置发生变化时收集
     if (
       this.lastViewportScroll &&
       this.lastViewportScroll.x === scrollX &&
       this.lastViewportScroll.y === scrollY
     ) {
-      return; // 没有变化，不收集
+      return;
     }
 
     this.lastViewportScroll = { x: scrollX, y: scrollY };
@@ -132,7 +178,6 @@ export class EventRecorder {
     const scrollYTarget =
       target instanceof Document ? window.scrollY : target.scrollTop;
 
-    // 始终保存最新的滚动事件
     const scrollEvent: RecordedEvent = {
       type: 'scroll',
       x: scrollXTarget,
@@ -162,8 +207,6 @@ export class EventRecorder {
     if (!this.isRecording) return;
 
     const target = event.target as HTMLInputElement | HTMLTextAreaElement;
-
-    // 获取元素相对于 viewport 的位置
     const rect = target.getBoundingClientRect();
 
     const inputEvent: RecordedEvent = {
@@ -177,6 +220,8 @@ export class EventRecorder {
       inputType: target.type || 'text',
       viewportX: rect.left,
       viewportY: rect.top,
+      width: rect.width, // 添加宽度
+      height: rect.height, // 添加高度
     };
 
     this.eventCallback(inputEvent);
@@ -192,7 +237,6 @@ export class EventRecorder {
       undefined;
 
     if (target) {
-      // 检查点击的元素本身是否是 label
       if (target.tagName === 'LABEL') {
         isLabelClick = true;
         labelInfo = {
@@ -200,7 +244,6 @@ export class EventRecorder {
           textContent: target.textContent?.trim(),
         };
       } else {
-        // 检查父元素是否是 label
         let parent = target.parentElement;
         while (parent) {
           if (parent.tagName === 'LABEL') {
@@ -222,5 +265,81 @@ export class EventRecorder {
   // 获取记录状态
   isActive(): boolean {
     return this.isRecording;
+  }
+
+  public optimizeEvent(
+    event: RecordedEvent,
+    events: RecordedEvent[],
+  ): RecordedEvent[] {
+    const lastEvent = events[events.length - 1];
+
+    // 如果是点击事件，直接添加
+    if (event.type === 'click') {
+      return [...events, event];
+    }
+
+    // 如果是输入事件，检查是否需要跳过或合并
+    if (event.type === 'input') {
+      // 检查是否需要跳过（由 label 点击触发）
+      if (
+        lastEvent &&
+        lastEvent.type === 'click' &&
+        lastEvent.isLabelClick &&
+        lastEvent.labelInfo?.htmlFor === event.targetId
+      ) {
+        console.log('Skipping input event - triggered by label click:', {
+          labelHtmlFor: getLastLabelClick(events)?.labelInfo?.htmlFor,
+          inputId: event.targetId,
+          element: event.element,
+        });
+        return events;
+      }
+
+      // 检查是否需要合并（同一个输入框的连续输入）
+      if (
+        lastEvent &&
+        lastEvent.type === 'input' &&
+        isSameInputTarget(lastEvent, event)
+      ) {
+        const oldInputEvent = events[events.length - 1];
+        const newEvents = [...events];
+        newEvents[events.length - 1] = {
+          value: (event.element as HTMLInputElement)?.value,
+          ...event,
+        };
+        console.log('Merging input event:', {
+          oldValue: oldInputEvent.value,
+          newValue: event.value,
+          oldTimestamp: oldInputEvent.timestamp,
+          newTimestamp: event.timestamp,
+          target: event.targetTagName,
+        });
+        return newEvents;
+      }
+    }
+
+    // 如果是滚动事件，检查是否需要替换
+    if (event.type === 'scroll') {
+      if (
+        lastEvent &&
+        lastEvent.type === 'scroll' &&
+        isSameScrollTarget(lastEvent, event)
+      ) {
+        const oldScrollEvent = events[events.length - 1];
+        const newEvents = [...events];
+        newEvents[events.length - 1] = event;
+        console.log('Replacing last scroll event with new scroll event:', {
+          oldPosition: `${oldScrollEvent.x},${oldScrollEvent.y}`,
+          newPosition: `${event.x},${event.y}`,
+          oldTimestamp: oldScrollEvent.timestamp,
+          newTimestamp: event.timestamp,
+          target: event.targetTagName,
+        });
+        return newEvents;
+      }
+    }
+
+    // 其他事件直接添加
+    return [...events, event];
   }
 }

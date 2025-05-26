@@ -81,3 +81,18 @@ body {
 .ant-btn-primary:hover {
   background: linear-gradient(135deg, #5a6fd8 0%, #6a4190 100%);
 }
+
+.horizontal-scroll-container {
+  overflow-x: auto;
+  white-space: nowrap;
+  padding-bottom: 8px;
+}
+.horizontal-form-row {
+  display: flex;
+  flex-direction: row;
+  gap: 24px;
+}
+.horizontal-form-row .ant-form-item {
+  min-width: 260px;
+  flex: 0 0 260px;
+}

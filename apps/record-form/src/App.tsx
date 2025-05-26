@@ -11,7 +11,6 @@ import {
 } from 'antd';
 import { useEffect, useRef, useState } from 'react';
 import './App.css';
-import { EventOptimizer } from './EventOptimizer';
 import { EventRecorder, type RecordedEvent } from './EventRecorder';
 
 const { Title } = Typography;
@@ -28,27 +27,30 @@ interface FormData {
   birthday?: any;
   address?: string;
   agreement: boolean;
+  horizontalScroll?: boolean;
 }
 
 const App: React.FC = () => {
   const [form] = Form.useForm();
-  const [optimizedEvents, setOptimizedEvents] = useState<RecordedEvent[]>([]);
+  const [optimizedEvents, setOptimizedEvents] = useState<RecordedEvent[]>([{
+    type: 'navigation',
+    url: window.location.href,
+    timestamp: Date.now(),
+  }]);
   const [rawEventsCount, setRawEventsCount] = useState(0);
   const [mergedEventsCount, setMergedEventsCount] = useState(0);
 
   const eventRecorderRef = useRef<EventRecorder | null>(null);
-  const eventOptimizerRef = useRef<EventOptimizer | null>(null);
 
   useEffect(() => {
-    eventOptimizerRef.current = new EventOptimizer();
     eventRecorderRef.current = new EventRecorder((event: RecordedEvent) => {
       setRawEventsCount((prev) => prev + 1);
-      if (eventOptimizerRef.current) {
-        const optimized = eventOptimizerRef.current.addEvent(event);
+      setOptimizedEvents((prev) => {
+        const optimized = eventRecorderRef.current?.optimizeEvent(event, prev);
         console.log('optimized', optimized)
-        setOptimizedEvents([...optimized]);
-        setMergedEventsCount(eventOptimizerRef.current.getEventCount());
-      }
+        return optimized || prev;
+      });
+      setMergedEventsCount(optimizedEvents.length);
     });
     eventRecorderRef.current.start();
     return () => {
@@ -175,6 +177,23 @@ const App: React.FC = () => {
               maxLength={200}
             />
           </Form.Item>
+
+          <div className="horizontal-scroll-container">
+            <div className="horizontal-form-row">
+              <Form.Item label="公司" name="company">
+                <Input placeholder="请输入公司名称" />
+              </Form.Item>
+              <Form.Item label="职位" name="position">
+                <Input placeholder="请输入职位" />
+              </Form.Item>
+              <Form.Item label="兴趣" name="hobby">
+                <Input placeholder="请输入兴趣爱好" />
+              </Form.Item>
+              <Form.Item label="个人简介" name="bio">
+                <Input placeholder="请输入个人简介" />
+              </Form.Item>
+            </div>
+          </div>
 
           <Form.Item
             name="agreement"
