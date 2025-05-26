@@ -525,21 +525,17 @@ export default class ChromeExtensionProxyPage implements AbstractPage {
 
       if (this.isMobile) {
         // in mobile emulation mode, directly inject click event
-        await this.sendCommandToDebugger('Runtime.evaluate', {
-          expression: `
-            (function() {
-              var el = document.elementFromPoint(${x}, ${y});
-              if (el) {
-                el.dispatchEvent(new MouseEvent('click', {
-                  bubbles: true,
-                  cancelable: true,
-                  view: window,
-                  clientX: ${x},
-                  clientY: ${y}
-                }));
-              }
-            })();
-          `,
+        const touchPoints = [{ x: Math.round(x), y: Math.round(y) }];
+        await this.sendCommandToDebugger('Input.dispatchTouchEvent', {
+          type: 'touchStart',
+          touchPoints,
+          modifiers: 0,
+        });
+
+        await this.sendCommandToDebugger('Input.dispatchTouchEvent', {
+          type: 'touchEnd',
+          touchPoints: [],
+          modifiers: 0,
         });
       } else {
         // standard mousePressed + mouseReleased
