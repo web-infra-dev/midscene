@@ -191,9 +191,11 @@ tasks:
 
       # perform an action, this is the shortcut for aiAction
       - ai: <prompt>
+        cacheable: <boolean> # optional, whether cacheable when enabling [caching feature](./caching.mdx). True by default.
 
       # this is the same as ai
       - aiAction: <prompt>
+        cacheable: <boolean> # optional, whether cacheable when enabling [caching feature](./caching.mdx). True by default.
 
       # Instant Action(.aiTap, .aiHover, .aiInput, .aiKeyboardPress, .aiScroll)
       # ----------------
@@ -201,20 +203,24 @@ tasks:
       # tap an element located by prompt
       - aiTap: <prompt>
         deepThink: <boolean> # optional, whether to use deepThink to precisely locate the element
+        cacheable: <boolean> # optional, whether cacheable when enabling [caching feature](./caching.mdx). True by default.
 
       # hover an element located by prompt
       - aiHover: <prompt>
         deepThink: <boolean> # optional, whether to use deepThink to precisely locate the element
+        cacheable: <boolean> # optional, whether cacheable when enabling [caching feature](./caching.mdx). True by default.
 
       # input text into an element located by prompt
       - aiInput: <final text content of the input>
         locate: <prompt>
         deepThink: <boolean> # optional, whether to use deepThink to precisely locate the element
+        cacheable: <boolean> # optional, whether cacheable when enabling [caching feature](./caching.mdx). True by default.
 
       # press a key (like Enter, Tab, Escape, etc.) on an element located by prompt
       - aiKeyboardPress: <key>
         locate: <prompt>
         deepThink: <boolean> # optional, whether to use deepThink to precisely locate the element
+        cacheable: <boolean> # optional, whether cacheable when enabling [caching feature](./caching.mdx). True by default.
 
 
       # scroll globally or on an element located by prompt
@@ -224,6 +230,7 @@ tasks:
         distance: <number> # optional, distance to scroll in px
         locate: <prompt> # optional, the element to scroll on
         deepThink: <boolean> # optional, whether to use deepThink to precisely locate the element
+        cacheable: <boolean> # optional, whether cacheable when enabling [caching feature](./caching.mdx). True by default.
 
       # Data Extraction
       # ----------------
