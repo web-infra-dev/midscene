@@ -8,7 +8,12 @@ import type {
   ExecutorContext,
 } from '@/types';
 import { getVersion } from '@/utils';
-import { MIDSCENE_MODEL_NAME, getAIConfig } from '@midscene/shared/env';
+import {
+  MIDSCENE_MODEL_NAME,
+  getAIConfig,
+  uiTarsModelVersion,
+  vlLocateMode,
+} from '@midscene/shared/env';
 import { assert } from '@midscene/shared/utils';
 
 export class Executor {
@@ -195,9 +200,20 @@ export class Executor {
   }
 
   dump(): ExecutionDump {
+    let modelDescription = '';
+
+    if (vlLocateMode()) {
+      const uiTarsModelVer = uiTarsModelVersion();
+      if (uiTarsModelVer) {
+        modelDescription = `UI-TARS=${uiTarsModelVer}`;
+      } else {
+        modelDescription = `${vlLocateMode()} mode`;
+      }
+    }
     const dumpData: ExecutionDump = {
       sdkVersion: getVersion(),
       model_name: getAIConfig(MIDSCENE_MODEL_NAME) || '',
+      model_description: modelDescription,
       logTime: Date.now(),
       name: this.name,
       tasks: this.tasks,
