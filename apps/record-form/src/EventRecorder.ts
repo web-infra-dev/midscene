@@ -30,9 +30,7 @@ export class EventRecorder {
   private isRecording = false;
   private eventCallback: EventCallback;
   private scrollThrottleTimer: number | null = null;
-  private lastScrollEvent: RecordedEvent | null = null;
   private scrollThrottleDelay = 1000; // 1000ms 节流
-  private events: RecordedEvent[] = [];
   private lastViewportScroll: { x: number; y: number } | null = null;
 
   constructor(eventCallback: EventCallback) {
@@ -46,9 +44,9 @@ export class EventRecorder {
     this.isRecording = true;
 
     // 添加事件监听器
-    document.addEventListener('click', this.handleClick, true);
-    document.addEventListener('scroll', this.handleScroll, true);
-    document.addEventListener('input', this.handleInput, true);
+    document.addEventListener('click', this.handleClick);
+    document.addEventListener('scroll', this.handleScroll);
+    document.addEventListener('input', this.handleInput);
 
     // 添加页面加载事件
     const navigationEvent: RecordedEvent = {
@@ -72,9 +70,9 @@ export class EventRecorder {
     }
 
     // 移除事件监听器
-    document.removeEventListener('click', this.handleClick, true);
-    document.removeEventListener('scroll', this.handleScroll, true);
-    document.removeEventListener('input', this.handleInput, true);
+    document.removeEventListener('click', this.handleClick);
+    document.removeEventListener('scroll', this.handleScroll);
+    document.removeEventListener('input', this.handleInput);
   }
 
   // 点击事件处理器
@@ -83,25 +81,11 @@ export class EventRecorder {
 
     const target = event.target as HTMLElement;
 
-    // 优化：如果上一个事件是 label 点击，并且 labelInfo.htmlFor 等于当前 input 的 id，则跳过
-    const lastEvent = this.getLastEvent();
-    if (
-      lastEvent &&
-      lastEvent.type === 'click' &&
-      lastEvent.isLabelClick &&
-      lastEvent.labelInfo?.htmlFor === target.id
-    ) {
-      console.log('Skip input event triggered by label click:', target.id);
-      return;
-    }
-
     // 检查是否是 label 触发的点击
     const { isLabelClick, labelInfo } = this.checkLabelClick(target);
 
     // 获取元素相对于 viewport 的位置
     const rect = target.getBoundingClientRect();
-    const relativeX = rect.left;
-    const relativeY = rect.top;
 
     const clickEvent: RecordedEvent = {
       type: 'click',
@@ -117,12 +101,10 @@ export class EventRecorder {
       targetClassName: target?.className,
       isTrusted: event.isTrusted,
       detail: event.detail,
-      viewportX: relativeX,
-      viewportY: relativeY,
+      viewportX: rect.left,
+      viewportY: rect.top,
     };
 
-    console.log('Click Event:', clickEvent);
-    this.events.push(clickEvent);
     this.eventCallback(clickEvent);
   };
 
@@ -151,7 +133,7 @@ export class EventRecorder {
       target instanceof Document ? window.scrollY : target.scrollTop;
 
     // 始终保存最新的滚动事件
-    this.lastScrollEvent = {
+    const scrollEvent: RecordedEvent = {
       type: 'scroll',
       x: scrollXTarget,
       y: scrollYTarget,
@@ -168,18 +150,8 @@ export class EventRecorder {
     }
 
     this.scrollThrottleTimer = window.setTimeout(() => {
-      if (this.lastScrollEvent && this.isRecording) {
-        console.log('Throttled Scroll Event:', this.lastScrollEvent);
-
-        // 优化：如有必要，替换最后一个 scroll 事件，否则 push
-        if (this.shouldReplaceScrollEvent(this.lastScrollEvent)) {
-          this.events[this.events.length - 1] = this.lastScrollEvent;
-        } else {
-          this.events.push(this.lastScrollEvent);
-        }
-
-        this.eventCallback(this.lastScrollEvent);
-        this.lastScrollEvent = null;
+      if (scrollEvent && this.isRecording) {
+        this.eventCallback(scrollEvent);
       }
       this.scrollThrottleTimer = null;
     }, this.scrollThrottleDelay);
@@ -191,22 +163,8 @@ export class EventRecorder {
 
     const target = event.target as HTMLInputElement | HTMLTextAreaElement;
 
-    // 优化：如果上一个事件是 label 点击，并且 labelInfo.htmlFor 等于当前 input 的 id，则跳过
-    const lastEvent = this.getLastEvent();
-    if (
-      lastEvent &&
-      lastEvent.type === 'click' &&
-      lastEvent.isLabelClick &&
-      lastEvent.labelInfo?.htmlFor === target.id
-    ) {
-      console.log('Skip input event triggered by label click:', target.id);
-      return;
-    }
-
     // 获取元素相对于 viewport 的位置
     const rect = target.getBoundingClientRect();
-    const relativeX = rect.left;
-    const relativeY = rect.top;
 
     const inputEvent: RecordedEvent = {
       type: 'input',
@@ -217,12 +175,10 @@ export class EventRecorder {
       targetId: target?.id,
       targetClassName: target?.className,
       inputType: target.type || 'text',
-      viewportX: relativeX,
-      viewportY: relativeY,
+      viewportX: rect.left,
+      viewportY: rect.top,
     };
 
-    console.log('Input Event:', inputEvent);
-    this.events.push(inputEvent);
     this.eventCallback(inputEvent);
   };
 
@@ -266,52 +222,5 @@ export class EventRecorder {
   // 获取记录状态
   isActive(): boolean {
     return this.isRecording;
-  }
-
-  private getLastEvent(): RecordedEvent | undefined {
-    return this.events[this.events.length - 1];
-  }
-
-  // 检查是否应该替换滚动事件
-  private shouldReplaceScrollEvent(scrollEvent: RecordedEvent): boolean {
-    const lastEvent = this.getLastEvent();
-
-    // 如果最后一个事件是滚动事件，并且是同一个元素，则替换
-    if (
-      lastEvent &&
-      lastEvent.type === 'scroll' &&
-      this.isSameScrollTarget(lastEvent, scrollEvent)
-    ) {
-      return true;
-    }
-
-    return false;
-  }
-
-  // 检查是否是同一个滚动目标
-  private isSameScrollTarget(
-    event1: RecordedEvent,
-    event2: RecordedEvent,
-  ): boolean {
-    // 比较元素标签名和ID
-    if (event1.targetTagName !== event2.targetTagName) {
-      return false;
-    }
-
-    // 如果都有ID，比较ID
-    if (event1.targetId && event2.targetId) {
-      return event1.targetId === event2.targetId;
-    }
-
-    // 如果都没有ID，比较标签名（通常是document或body）
-    if (!event1.targetId && !event2.targetId) {
-      return event1.targetTagName === event2.targetTagName;
-    }
-
-    return false;
-  }
-
-  getEvents(): RecordedEvent[] {
-    return [...this.events];
   }
 }

@@ -32,30 +32,26 @@ interface FormData {
 
 const App: React.FC = () => {
   const [form] = Form.useForm();
-  const [transformedEvents, setTransformedEvents] = useState<RecordedEvent[]>([]);
+  const [optimizedEvents, setOptimizedEvents] = useState<RecordedEvent[]>([]);
+  const [rawEventsCount, setRawEventsCount] = useState(0);
   const [mergedEventsCount, setMergedEventsCount] = useState(0);
 
   const eventRecorderRef = useRef<EventRecorder | null>(null);
   const eventOptimizerRef = useRef<EventOptimizer | null>(null);
 
   useEffect(() => {
-    // 创建事件优化器
     eventOptimizerRef.current = new EventOptimizer();
-
-    // 创建事件记录器
     eventRecorderRef.current = new EventRecorder((event: RecordedEvent) => {
+      setRawEventsCount((prev) => prev + 1);
       if (eventOptimizerRef.current) {
-        const optimizedEvents = eventOptimizerRef.current.addEvent(event);
-        setTransformedEvents(optimizedEvents);
-        console.log('All Events:', optimizedEvents);
+        const optimized = eventOptimizerRef.current.addEvent(event);
+        console.log('optimized', optimized)
+        setOptimizedEvents([...optimized]);
+        setMergedEventsCount(eventOptimizerRef.current.getEventCount());
       }
     });
-
-    // 开始记录
     eventRecorderRef.current.start();
-
     return () => {
-      // 停止记录
       if (eventRecorderRef.current) {
         eventRecorderRef.current.stop();
       }
@@ -67,10 +63,8 @@ const App: React.FC = () => {
       message.error('两次输入的密码不一致！');
       return;
     }
-
     console.log('Form Data:', values);
-    console.log('Recorded Events:', transformedEvents);
-
+    console.log('Optimized Events:', optimizedEvents);
     message.success('注册成功！');
   };
 
@@ -97,7 +91,6 @@ const App: React.FC = () => {
         >
           <Form.Item
             label="用户名"
-            htmlFor="null"
             name="username"
             rules={[
               { required: true, message: '请输入用户名!' },
@@ -207,10 +200,10 @@ const App: React.FC = () => {
 
         <div className="rr-ignore" style={{ marginTop: 20, fontSize: 12, color: '#666', padding: '10px', backgroundColor: '#f5f5f5', borderRadius: '4px' }}>
           <p style={{ margin: '4px 0' }}>📊 录制统计</p>
-          <p style={{ margin: '4px 0' }}>记录事件: {transformedEvents.length}</p>
-          <p style={{ margin: '4px 0' }}>🔄 合并事件: {mergedEventsCount}</p>
+          <p style={{ margin: '4px 0' }}>原始事件: {rawEventsCount}</p>
+          <p style={{ margin: '4px 0' }}>优化后事件: {mergedEventsCount}</p>
           <p style={{ margin: '4px 0', fontSize: '10px', color: '#999' }}>
-            优化率: {transformedEvents.length > 0 ? Math.round((mergedEventsCount / transformedEvents.length) * 100) : 0}%
+            优化率: {rawEventsCount > 0 ? Math.round((1 - mergedEventsCount / rawEventsCount) * 100) : 0}%
           </p>
         </div>
       </Card>

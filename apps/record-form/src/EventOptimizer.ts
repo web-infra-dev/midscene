@@ -12,7 +12,7 @@ export class EventOptimizer {
       return [...this.events];
     }
 
-    // 如果是输入事件，检查是否需要跳过
+    // 如果是输入事件，检查是否需要跳过或合并
     if (event.type === 'input') {
       const shouldSkip = this.shouldSkipInputEvent(event);
       if (shouldSkip) {
@@ -20,6 +20,24 @@ export class EventOptimizer {
           labelHtmlFor: this.getLastLabelClick()?.labelInfo?.htmlFor,
           inputId: event.targetId,
           element: event.element,
+        });
+        return [...this.events];
+      }
+      const shouldMerge = this.shouldMergeInputEvent(event);
+      if (shouldMerge) {
+        // 获取旧的输入事件信息用于日志
+        const oldInputEvent = this.events[this.events.length - 1];
+        // 用新的输入事件替换最后一个输入事件
+        this.events[this.events.length - 1] = {
+          value: (event.element as HTMLInputElement)?.value,
+          ...event,
+        };
+        console.log('Merging input event:', {
+          oldValue: oldInputEvent.value,
+          newValue: event.value,
+          oldTimestamp: oldInputEvent.timestamp,
+          newTimestamp: event.timestamp,
+          target: event.targetTagName,
         });
         return [...this.events];
       }
@@ -31,10 +49,8 @@ export class EventOptimizer {
       if (shouldReplace) {
         // 获取旧的滚动事件信息用于日志
         const oldScrollEvent = this.events[this.events.length - 1];
-
         // 用新的滚动事件替换最后一个滚动事件
         this.events[this.events.length - 1] = event;
-
         console.log('Replacing last scroll event with new scroll event:', {
           oldPosition: `${oldScrollEvent.x},${oldScrollEvent.y}`,
           newPosition: `${event.x},${event.y}`,
@@ -63,6 +79,45 @@ export class EventOptimizer {
       lastEvent.labelInfo?.htmlFor === inputEvent.targetId
     ) {
       return true;
+    }
+
+    return false;
+  }
+
+  // 检查是否应该合并输入事件
+  private shouldMergeInputEvent(inputEvent: RecordedEvent): boolean {
+    const lastEvent = this.getLastEvent();
+
+    // 如果上一个事件是输入事件，并且是同一个输入目标
+    if (
+      lastEvent &&
+      lastEvent.type === 'input' &&
+      this.isSameInputTarget(lastEvent, inputEvent)
+    ) {
+      return true;
+    }
+
+    return false;
+  }
+
+  // 检查是否是同一个输入目标
+  private isSameInputTarget(
+    event1: RecordedEvent,
+    event2: RecordedEvent,
+  ): boolean {
+    // 比较元素标签名和ID
+    if (event1.targetTagName !== event2.targetTagName) {
+      return false;
+    }
+
+    // 如果都有ID，比较ID
+    if (event1.targetId && event2.targetId) {
+      return event1.targetId === event2.targetId;
+    }
+
+    // 如果都没有ID，比较标签名（通常是document或body）
+    if (!event1.targetId && !event2.targetId) {
+      return event1.targetTagName === event2.targetTagName;
     }
 
     return false;
