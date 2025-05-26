@@ -146,9 +146,9 @@ export class EventRecorder {
 
     const target = event.target as HTMLElement;
     const scrollXTarget =
-      target instanceof HTMLDocument ? window.scrollX : target.scrollLeft;
+      target instanceof Document ? window.scrollX : target.scrollLeft;
     const scrollYTarget =
-      target instanceof HTMLDocument ? window.scrollY : target.scrollTop;
+      target instanceof Document ? window.scrollY : target.scrollTop;
 
     // 始终保存最新的滚动事件
     this.lastScrollEvent = {
