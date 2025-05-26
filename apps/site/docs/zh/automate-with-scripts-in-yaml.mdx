@@ -192,9 +192,11 @@ tasks:
 
       # 执行一个交互，`ai` 是 `aiAction` 的简写方式
       - ai: <prompt>
+        cacheable: <boolean> # 可选，当启用 [缓存功能](./caching.mdx) 时，是否允许缓存当前 API 调用结果。默认值为 True
 
       # 这种用法与 `ai` 相同
       - aiAction: <prompt>
+        cacheable: <boolean> # 可选，当启用 [缓存功能](./caching.mdx) 时，是否允许缓存当前 API 调用结果。默认值为 True
 
       # 即时操作(Instant Action, .aiTap, .aiHover, .aiInput, .aiKeyboardPress, .aiScroll)
       # ----------------
@@ -202,20 +204,24 @@ tasks:
       # 点击一个元素，用 prompt 描述元素位置
       - aiTap: <prompt>
         deepThink: <boolean> # 可选，是否使用深度思考（deepThink）来精确定位元素
+        cacheable: <boolean> # 可选，当启用 [缓存功能](./caching.mdx) 时，是否允许缓存当前 API 调用结果。默认值为 True
 
       # 鼠标悬停一个元素，用 prompt 描述元素位置
       - aiHover: <prompt>
         deepThink: <boolean> # 可选，是否使用深度思考（deepThink）来精确定位元素
+        cacheable: <boolean> # 可选，当启用 [缓存功能](./caching.mdx) 时，是否允许缓存当前 API 调用结果。默认值为 True
 
       # 输入文本到一个元素，用 prompt 描述元素位置
       - aiInput: <输入框的最终文本内容>
         locate: <prompt>
         deepThink: <boolean> # 可选，是否使用深度思考（deepThink）来精确定位元素
+        cacheable: <boolean> # 可选，当启用 [缓存功能](./caching.mdx) 时，是否允许缓存当前 API 调用结果。默认值为 True
 
       # 在元素上按下某个按键（如 Enter，Tab，Escape 等），用 prompt 描述元素位置
       - aiKeyboardPress: <按键>
         locate: <prompt>
         deepThink: <boolean> # 可选，是否使用深度思考（deepThink）来精确定位元素
+        cacheable: <boolean> # 可选，当启用 [缓存功能](./caching.mdx) 时，是否允许缓存当前 API 调用结果。默认值为 True
 
       # 全局滚动，或滚动 prompt 描述的元素
       - aiScroll:
@@ -224,6 +230,7 @@ tasks:
         distance: <number> # 可选，滚动距离，单位为像素
         locate: <prompt> # 可选，执行滚动的元素
         deepThink: <boolean> # 可选，是否使用深度思考（deepThink）来精确定位元素
+        cacheable: <boolean> # 可选，当启用 [缓存功能](./caching.mdx) 时，是否允许缓存当前 API 调用结果。默认值为 True
 
       # 数据提取
       # ----------------

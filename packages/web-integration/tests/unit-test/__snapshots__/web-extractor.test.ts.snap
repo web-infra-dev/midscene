@@ -282,6 +282,23 @@ exports[`extractor > basic 1`] = `
   },
   {
     "attributes": {
+      "href": "https://www.google.com",
+      "htmlTagName": "<div>",
+      "nodeType": "Anchor Node",
+    },
+    "content": "Google",
+  },
+  {
+    "attributes": {
+      "href": "https://www.google.com",
+      "htmlTagName": "<div>",
+      "nodeType": "Anchor Node",
+      "style": "width: 100px; height: 20px; vertical-align: middle; display: inline-block; background: #ccc;",
+    },
+    "content": "",
+  },
+  {
+    "attributes": {
       "htmlTagName": "<input>",
       "nodeType": "FORM_ITEM Node",
       "placeholder": "You shouldn't see this placeholder.",
@@ -1546,13 +1563,46 @@ exports[`extractor > basic 2`] = `
               "children": [],
               "node": {
                 "attributes": {
+                  "href": "https://www.google.com",
+                  "htmlTagName": "<div>",
+                  "nodeType": "Anchor Node",
+                },
+                "content": "Google",
+                "indexId": 39,
+              },
+            },
+            {
+              "children": [],
+              "node": null,
+            },
+            {
+              "children": [],
+              "node": {
+                "attributes": {
+                  "href": "https://www.google.com",
+                  "htmlTagName": "<div>",
+                  "nodeType": "Anchor Node",
+                  "style": "width: 100px; height: 20px; vertical-align: middle; display: inline-block; background: #ccc;",
+                },
+                "content": "",
+                "indexId": 40,
+              },
+            },
+            {
+              "children": [],
+              "node": null,
+            },
+            {
+              "children": [],
+              "node": {
+                "attributes": {
                   "htmlTagName": "<input>",
                   "nodeType": "FORM_ITEM Node",
                   "placeholder": "You shouldn't see this placeholder.",
                   "value": "Rectangle",
                 },
                 "content": "Rectangle",
-                "indexId": 39,
+                "indexId": 41,
               },
             },
             {
@@ -1576,7 +1626,7 @@ exports[`extractor > basic 2`] = `
                   "placeholder": "this_is_a_textarea",
                 },
                 "content": "this_is_a_textarea",
-                "indexId": 40,
+                "indexId": 42,
               },
             },
             {
@@ -1642,7 +1692,7 @@ exports[`extractor > basic 2`] = `
                                       "nodeType": "TEXT Node",
                                     },
                                     "content": "English",
-                                    "indexId": 41,
+                                    "indexId": 43,
                                   },
                                 },
                               ],
@@ -1667,7 +1717,7 @@ exports[`extractor > basic 2`] = `
                                       "nodeType": "TEXT Node",
                                     },
                                     "content": "中文",
-                                    "indexId": 42,
+                                    "indexId": 44,
                                   },
                                 },
                               ],
@@ -1692,7 +1742,7 @@ exports[`extractor > basic 2`] = `
                                       "nodeType": "TEXT Node",
                                     },
                                     "content": "Tiếng Việt",
-                                    "indexId": 43,
+                                    "indexId": 45,
                                   },
                                 },
                               ],
@@ -1761,7 +1811,7 @@ exports[`extractor > basic 2`] = `
                       "nodeType": "TEXT Node",
                     },
                     "content": "Choose an option:",
-                    "indexId": 44,
+                    "indexId": 46,
                   },
                 },
               ],
@@ -1781,7 +1831,7 @@ exports[`extractor > basic 2`] = `
                   "nodeType": "FORM_ITEM Node",
                 },
                 "content": "Option 1",
-                "indexId": 45,
+                "indexId": 47,
               },
             },
             {
@@ -1827,7 +1877,7 @@ exports[`extractor > basic 2`] = `
                       "nodeType": "TEXT Node",
                     },
                     "content": "This is zoomed content",
-                    "indexId": 46,
+                    "indexId": 48,
                   },
                 },
               ],
@@ -1841,7 +1891,7 @@ exports[`extractor > basic 2`] = `
                   "nodeType": "TEXT Node",
                 },
                 "content": "Something Else",
-                "indexId": 47,
+                "indexId": 49,
               },
             },
           ],
@@ -1869,7 +1919,7 @@ exports[`extractor > basic 2`] = `
               "style": "width:30px;height:30px;background: #AC0",
             },
             "content": "",
-            "indexId": 48,
+            "indexId": 50,
           },
         },
         {
@@ -1913,7 +1963,7 @@ exports[`extractor > basic 2`] = `
                       "nodeType": "TEXT Node",
                     },
                     "content": "输入搜索关键词",
-                    "indexId": 49,
+                    "indexId": 51,
                   },
                 },
               ],
@@ -1948,7 +1998,7 @@ exports[`extractor > basic 2`] = `
                   "type": "text",
                 },
                 "content": "搜索任何物品",
-                "indexId": 50,
+                "indexId": 52,
               },
             },
             {
@@ -1996,7 +2046,7 @@ exports[`extractor > basic 2`] = `
                   "type": "text",
                 },
                 "content": "验证码",
-                "indexId": 51,
+                "indexId": 53,
               },
             },
             {
@@ -2060,7 +2110,7 @@ exports[`extractor > basic 2`] = `
                       "nodeType": "CONTAINER Node",
                     },
                     "content": "",
-                    "indexId": 52,
+                    "indexId": 54,
                   },
                 },
                 {
@@ -2112,7 +2162,7 @@ exports[`extractor > basic 2`] = `
               "style": "width: 100px; height: 100px; background-color: #ccc;",
             },
             "content": "",
-            "indexId": 53,
+            "indexId": 55,
           },
         },
         {
@@ -2131,7 +2181,7 @@ exports[`extractor > basic 2`] = `
               "nodeType": "TEXT Node",
             },
             "content": "phrase "The quick brown fox jumps over the lazy dog" is a well-known English-language pangram, meaning it contains every letter of the alphabet at least once. This sentence has become a standard tool for various applications, particularly     in typing practice, font display, and keyboard testing. The phrase has permeated popular culture and is referenced in various media, including literature and film. Its simplicity and utility have made it a staple in educational contexts and beyond.     For instance, it was famously used as the first message sent over the Moscow–Washington hotline in 19634.",
-            "indexId": 54,
+            "indexId": 56,
           },
         },
         {
@@ -2154,7 +2204,7 @@ exports[`extractor > basic 2`] = `
               "type": "submit",
             },
             "content": " ",
-            "indexId": 55,
+            "indexId": 57,
           },
         },
         {
@@ -2198,7 +2248,7 @@ exports[`extractor > basic 2`] = `
                       "nodeType": "TEXT Node",
                     },
                     "content": "content 000",
-                    "indexId": 56,
+                    "indexId": 58,
                   },
                 },
               ],
@@ -2217,7 +2267,7 @@ exports[`extractor > basic 2`] = `
                   "style": "height: 30px;width: 100px;",
                 },
                 "content": "",
-                "indexId": 57,
+                "indexId": 59,
               },
             },
             {
@@ -2234,7 +2284,7 @@ exports[`extractor > basic 2`] = `
                       "nodeType": "TEXT Node",
                     },
                     "content": "content AAA",
-                    "indexId": 58,
+                    "indexId": 60,
                   },
                 },
               ],
@@ -2287,7 +2337,7 @@ exports[`extractor > basic 2`] = `
                   "src": "image",
                 },
                 "content": "",
-                "indexId": 59,
+                "indexId": 61,
               },
             },
             {
@@ -2303,7 +2353,7 @@ exports[`extractor > basic 2`] = `
                   "very-long-attr": "width: 100px; height: 100px; background-color: #ccc;width: 100px; height: 100px; background-color: #ccc;width: 100px; height: 100px; background-color: #ccc;width: 100px; height: 100px; background-color: #ccc;",
                 },
                 "content": "long-style-content",
-                "indexId": 60,
+                "indexId": 62,
               },
             },
             {
@@ -2348,7 +2398,7 @@ exports[`extractor > basic 2`] = `
                   "nodeType": "TEXT Node",
                 },
                 "content": "Click me",
-                "indexId": 61,
+                "indexId": 63,
               },
             },
           ],
@@ -2368,7 +2418,7 @@ exports[`extractor > basic 2`] = `
               "nodeType": "CONTAINER Node",
             },
             "content": "",
-            "indexId": 62,
+            "indexId": 64,
           },
         },
         {
@@ -2385,7 +2435,7 @@ exports[`extractor > basic 2`] = `
               "nodeType": "CONTAINER Node",
             },
             "content": "",
-            "indexId": 63,
+            "indexId": 65,
           },
         },
         {
@@ -2429,7 +2479,7 @@ exports[`extractor > basic 2`] = `
                       "nodeType": "TEXT Node",
                     },
                     "content": "Content 1",
-                    "indexId": 64,
+                    "indexId": 66,
                   },
                 },
               ],
@@ -2455,7 +2505,7 @@ exports[`extractor > basic 2`] = `
                       "style": "width: 100px; height: 100px; background-color: #ccc;",
                     },
                     "content": "",
-                    "indexId": 65,
+                    "indexId": 67,
                   },
                 },
                 {
@@ -2484,7 +2534,7 @@ exports[`extractor > basic 2`] = `
                                   "nodeType": "TEXT Node",
                                 },
                                 "content": "Content 2",
-                                "indexId": 66,
+                                "indexId": 68,
                               },
                             },
                           ],
@@ -2543,7 +2593,7 @@ exports[`extractor > basic 2`] = `
                                   "nodeType": "TEXT Node",
                                 },
                                 "content": "Nested Content 3",
-                                "indexId": 67,
+                                "indexId": 69,
                               },
                             },
                           ],
@@ -2584,7 +2634,7 @@ exports[`extractor > basic 2`] = `
                   "style": "width: 100px; height: 100px; background-color: #ccc;",
                 },
                 "content": "",
-                "indexId": 68,
+                "indexId": 70,
               },
             },
             {
@@ -2607,7 +2657,7 @@ exports[`extractor > basic 2`] = `
               "nodeType": "IMG Node",
             },
             "content": "",
-            "indexId": 69,
+            "indexId": 71,
           },
         },
         {
@@ -2633,7 +2683,7 @@ exports[`extractor > basic 2`] = `
                   "svgContent": "true",
                 },
                 "content": "",
-                "indexId": 70,
+                "indexId": 72,
               },
             },
           ],
@@ -2680,7 +2730,7 @@ exports[`extractor > basic 2`] = `
                       "nodeType": "TEXT Node",
                     },
                     "content": "hidden label",
-                    "indexId": 71,
+                    "indexId": 73,
                   },
                 },
               ],
@@ -2727,7 +2777,7 @@ exports[`extractor > basic 2`] = `
                           "nodeType": "TEXT Node",
                         },
                         "content": "i am fixed child content",
-                        "indexId": 72,
+                        "indexId": 74,
                       },
                     },
                   ],
@@ -2783,7 +2833,7 @@ exports[`extractor > basic 2`] = `
                       "nodeType": "TEXT Node",
                     },
                     "content": "abcd efg",
-                    "indexId": 73,
+                    "indexId": 75,
                   },
                 },
               ],
@@ -2803,7 +2853,7 @@ exports[`extractor > basic 2`] = `
                       "nodeType": "TEXT Node",
                     },
                     "content": "content editable div content. We should collect the parent.",
-                    "indexId": 74,
+                    "indexId": 76,
                   },
                 },
               ],
@@ -2844,7 +2894,7 @@ exports[`extractor > basic 2`] = `
                       "nodeType": "TEXT Node",
                     },
                     "content": "absolute child content",
-                    "indexId": 75,
+                    "indexId": 77,
                   },
                 },
               ],
@@ -2898,7 +2948,7 @@ exports[`extractor > basic 2`] = `
                       "nodeType": "TEXT Node",
                     },
                     "content": "content Right",
-                    "indexId": 76,
+                    "indexId": 78,
                   },
                 },
               ],
@@ -2945,7 +2995,7 @@ exports[`extractor > basic 2`] = `
               "nodeType": "CONTAINER Node",
             },
             "content": "",
-            "indexId": 77,
+            "indexId": 79,
           },
         },
         {
@@ -2968,7 +3018,7 @@ exports[`extractor > basic 2`] = `
                       "nodeType": "TEXT Node",
                     },
                     "content": "AAA",
-                    "indexId": 78,
+                    "indexId": 80,
                   },
                 },
               ],
@@ -3001,7 +3051,7 @@ exports[`extractor > basic 2`] = `
                       "nodeType": "TEXT Node",
                     },
                     "content": "This should be collected",
-                    "indexId": 79,
+                    "indexId": 81,
                   },
                 },
               ],
@@ -3037,7 +3087,7 @@ exports[`extractor > basic 2`] = `
                   "nodeType": "TEXT Node",
                 },
                 "content": "Child Page",
-                "indexId": 81,
+                "indexId": 83,
               },
             },
           ],
@@ -3057,7 +3107,7 @@ exports[`extractor > basic 2`] = `
                   "nodeType": "TEXT Node",
                 },
                 "content": "This is a child page.",
-                "indexId": 82,
+                "indexId": 84,
               },
             },
           ],
@@ -3077,7 +3127,7 @@ exports[`extractor > basic 2`] = `
                   "nodeType": "TEXT Node",
                 },
                 "content": "Click me",
-                "indexId": 83,
+                "indexId": 85,
               },
             },
           ],
@@ -3189,5 +3239,101 @@ exports[`extractor > getElementInfoByXpath from text node by evaluateJavaScript 
 {
   "htmlTagName": "<span>",
   "nodeType": "TEXT Node",
+}
+`;
+
+exports[`extractor > merge children rects of button 1`] = `
+[
+  {
+    "attributes": {
+      "htmlTagName": "<div>",
+      "nodeType": "BUTTON Node",
+      "style": "width: 20px; height: 20px",
+    },
+    "content": "Click Me(span)",
+  },
+  {
+    "attributes": {
+      "htmlTagName": "<div>",
+      "nodeType": "BUTTON Node",
+      "style": "width: 20px; height: 20px",
+    },
+    "content": "Click Me(text)",
+  },
+]
+`;
+
+exports[`extractor > merge children rects of button 2`] = `
+{
+  "children": [
+    {
+      "children": [
+        {
+          "children": [],
+          "node": null,
+        },
+        {
+          "children": [
+            {
+              "children": [],
+              "node": null,
+            },
+            {
+              "children": [],
+              "node": {
+                "attributes": {
+                  "htmlTagName": "<div>",
+                  "nodeType": "BUTTON Node",
+                  "style": "width: 20px; height: 20px",
+                },
+                "content": "Click Me(span)",
+                "indexId": 0,
+              },
+            },
+            {
+              "children": [],
+              "node": null,
+            },
+          ],
+          "node": null,
+        },
+        {
+          "children": [],
+          "node": null,
+        },
+        {
+          "children": [
+            {
+              "children": [],
+              "node": null,
+            },
+            {
+              "children": [],
+              "node": {
+                "attributes": {
+                  "htmlTagName": "<div>",
+                  "nodeType": "BUTTON Node",
+                  "style": "width: 20px; height: 20px",
+                },
+                "content": "Click Me(text)",
+                "indexId": 1,
+              },
+            },
+            {
+              "children": [],
+              "node": null,
+            },
+          ],
+          "node": null,
+        },
+        {
+          "children": [],
+          "node": null,
+        },
+      ],
+      "node": null,
+    },
+  ],
+  "node": null,
 }
 `;

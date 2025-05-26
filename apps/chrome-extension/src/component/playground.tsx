@@ -130,6 +130,8 @@ export function BrowserExtensionPlayground({
 
     const activeAgent = getAgent(forceSameTabNavigation);
     const thisRunningId = Date.now();
+    const actionType = value.type;
+
     try {
       if (!activeAgent) {
         throw new Error('No agent found');
@@ -147,15 +149,15 @@ export function BrowserExtensionPlayground({
       };
 
       // Extension mode always uses in-browser actions
-      if (value.type === 'aiAction') {
+      if (actionType === 'aiAction') {
         result.result = await activeAgent?.aiAction(value.prompt);
-      } else if (value.type === 'aiQuery') {
+      } else if (actionType === 'aiQuery') {
         result.result = await activeAgent?.aiQuery(value.prompt);
-      } else if (value.type === 'aiAssert') {
+      } else if (actionType === 'aiAssert') {
         result.result = await activeAgent?.aiAssert(value.prompt, undefined, {
           keepRawResponse: true,
         });
-      } else if (value.type === 'aiTap') {
+      } else if (actionType === 'aiTap') {
         result.result = await activeAgent?.aiTap(value.prompt, {
           deepThink,
         });
@@ -192,7 +194,7 @@ export function BrowserExtensionPlayground({
     currentAgentRef.current = null;
     setResult(result);
     setLoading(false);
-    if (result?.dump) {
+    if (result?.dump && !['aiQuery', 'aiAssert'].includes(actionType)) {
       const info = allScriptsFromDump(result.dump);
       setReplayScriptsInfo(info);
       setReplayCounter((c) => c + 1);

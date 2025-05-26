@@ -6,6 +6,7 @@ import {
 import type { WebElementInfo } from '../types';
 import type { Point } from '../types';
 import {
+  isAElement,
   isButtonElement,
   isContainerElement,
   isFormElement,
@@ -126,6 +127,16 @@ export function collectElementInfo(
   }
 
   if (isButtonElement(node)) {
+    const rect = mergeElementAndChildrenRects(
+      node,
+      currentWindow,
+      currentDocument,
+      baseZoom,
+      visibleOnly,
+    );
+    if (!rect) {
+      return null;
+    }
     const attributes = getNodeAttributes(node, currentWindow);
     const pseudo = getPseudoElementContent(node, currentWindow);
     const content = node.innerText || pseudo.before || pseudo.after || '';
@@ -213,6 +224,34 @@ export function collectElementInfo(
       ],
       content: text,
       rect,
+      zoom: rect.zoom,
+    };
+    return elementInfo;
+  }
+
+  if (isAElement(node)) {
+    const attributes = getNodeAttributes(node, currentWindow);
+    const pseudo = getPseudoElementContent(node, currentWindow);
+    const content = node.innerText || pseudo.before || pseudo.after || '';
+    const nodeHashId = midsceneGenerateHash(node, content, rect);
+    const selector = setDataForNode(node, nodeHashId, false, currentWindow);
+    const elementInfo: WebElementInfo = {
+      id: nodeHashId,
+      indexId: indexId++,
+      nodeHashId,
+      nodeType: NodeType.A,
+      locator: selector,
+      attributes: {
+        ...attributes,
+        htmlTagName: tagNameOfNode(node),
+        nodeType: NodeType.A,
+      },
+      content,
+      rect,
+      center: [
+        Math.round(rect.left + rect.width / 2),
+        Math.round(rect.top + rect.height / 2),
+      ],
       zoom: rect.zoom,
     };
     return elementInfo;
@@ -329,11 +368,12 @@ export function extractTreeNode(
       node: elementInfo,
       children: [],
     };
-    // stop collecting if the node is a Button/Image/Text/FormItem/Container
+    // stop collecting if the node is a Button/Image/Text/A/FormItem/Container
     if (
       elementInfo?.nodeType === NodeType.BUTTON ||
       elementInfo?.nodeType === NodeType.IMG ||
       elementInfo?.nodeType === NodeType.TEXT ||
+      elementInfo?.nodeType === NodeType.A ||
       elementInfo?.nodeType === NodeType.FORM_ITEM ||
       elementInfo?.nodeType === NodeType.CONTAINER
     ) {
@@ -395,5 +435,58 @@ export function extractTreeNode(
   return {
     node: null,
     children: topChildren,
+  };
+}
+
+export function mergeElementAndChildrenRects(
+  node: Node,
+  currentWindow: typeof window,
+  currentDocument: typeof document,
+  baseZoom = 1,
+  visibleOnly = true,
+) {
+  const selfRect = elementRect(
+    node,
+    currentWindow,
+    currentDocument,
+    baseZoom,
+    visibleOnly,
+  );
+  if (!selfRect) return null;
+
+  let minLeft = selfRect.left;
+  let minTop = selfRect.top;
+  let maxRight = selfRect.left + selfRect.width;
+  let maxBottom = selfRect.top + selfRect.height;
+
+  function traverse(child: Node) {
+    for (let i = 0; i < child.childNodes.length; i++) {
+      const sub = child.childNodes[i];
+      if (sub.nodeType === 1) {
+        const rect = elementRect(
+          sub,
+          currentWindow,
+          currentDocument,
+          baseZoom,
+          visibleOnly,
+        );
+        if (rect) {
+          minLeft = Math.min(minLeft, rect.left);
+          minTop = Math.min(minTop, rect.top);
+          maxRight = Math.max(maxRight, rect.left + rect.width);
+          maxBottom = Math.max(maxBottom, rect.top + rect.height);
+        }
+        traverse(sub);
+      }
+    }
+  }
+  traverse(node);
+
+  return {
+    ...selfRect,
+    left: minLeft,
+    top: minTop,
+    width: maxRight - minLeft,
+    height: maxBottom - minTop,
   };
 }

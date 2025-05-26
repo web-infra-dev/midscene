@@ -82,6 +82,36 @@ describe(
       await reset();
     });
 
+    it('merge children rects of button', async () => {
+      const { page, reset } = await launchPage(
+        `http://127.0.0.1:${port}/merge-rects.html`,
+        {
+          viewport: {
+            width: 1080,
+            height: 3000,
+            deviceScaleFactor: 1,
+          },
+        },
+      );
+
+      const { content } = await parseContextFromWebPage(page);
+
+      // Merge children rects of html element
+      expect(content[0].rect.width).toBeGreaterThan(25);
+      expect(content[0].rect.height).toBeGreaterThan(25);
+
+      // Won't merge rects of text node
+      expect(content[1].rect).toEqual({
+        left: 8,
+        top: 108,
+        width: 20,
+        height: 20,
+        zoom: 1,
+      });
+
+      await reset();
+    });
+
     it.skip('keep same id after resize', async () => {
       const { page, reset } = await launchPage(
         `file://${pagePath}?resize-after-3s=1`,
@@ -228,7 +258,7 @@ describe(
       await reset();
     });
 
-    it('getElementInfoByXpath from non form/button/image/text/container node by evaluateJavaScript', async () => {
+    it('getElementInfoByXpath from non form/button/image/text/a/container node by evaluateJavaScript', async () => {
       const { page, reset } = await launchPage(`http://127.0.0.1:${port}`, {
         viewport: {
           width: 1080,

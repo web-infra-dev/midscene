@@ -1,8 +1,6 @@
 import { getPreferredLanguage } from '@midscene/shared/env';
 import type { ResponseFormatJSONSchema } from 'openai/resources';
 
-const preferredLanguage = getPreferredLanguage();
-
 const defaultAssertionPrompt =
   'You are a senior testing engineer. User will give an assertion and a screenshot of a page. By carefully viewing the screenshot, please tell whether the assertion is truthy.';
 
@@ -12,7 +10,7 @@ const defaultAssertionResponseJsonFormat = `Return in the following JSON format:
   thought: string | null, // string, if the result is falsy, give the reason why it is falsy. Otherwise, put null.
 }`;
 
-const uiTarsAssertionResponseJsonFormat = `## Output Json String Format
+const getUiTarsAssertionResponseJsonFormat = () => `## Output Json String Format
 \`\`\`
 "{
   "pass": <<is a boolean value from the enum [true, false], true means the assertion is truthy>>, 
@@ -22,13 +20,13 @@ const uiTarsAssertionResponseJsonFormat = `## Output Json String Format
 
 ## Rules **MUST** follow
 - Make sure to return **only** the JSON, with **no additional** text or explanations.
-- Use ${preferredLanguage} in \`thought\` part.
+- Use ${getPreferredLanguage()} in \`thought\` part.
 - You **MUST** strictly follow up the **Output Json String Format**.`;
 
 export function systemPromptToAssert(model: { isUITars: boolean }) {
   return `${defaultAssertionPrompt}
 
-${model.isUITars ? uiTarsAssertionResponseJsonFormat : defaultAssertionResponseJsonFormat}`;
+${model.isUITars ? getUiTarsAssertionResponseJsonFormat() : defaultAssertionResponseJsonFormat}`;
 }
 
 export const assertSchema: ResponseFormatJSONSchema = {

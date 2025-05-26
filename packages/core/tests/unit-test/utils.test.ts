@@ -11,10 +11,10 @@ import {
   preprocessDoubaoBboxJson,
   safeParseJson,
 } from '@/ai-model/service-caller';
+import { getMidsceneRunSubDir } from '@midscene/shared/common';
 import { getAIConfig, overrideAIConfig } from '@midscene/shared/env';
 import { describe, expect, it } from 'vitest';
 import {
-  getLogDir,
   getTmpDir,
   getTmpFile,
   overlapped,
@@ -32,7 +32,7 @@ describe('utils', () => {
   });
 
   it('log dir', () => {
-    const dumpDir = getLogDir();
+    const dumpDir = getMidsceneRunSubDir('log');
     expect(dumpDir).toBeTruthy();
   });
 

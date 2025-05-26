@@ -7,7 +7,7 @@
 
 import type { WebKeyInput } from '@/common/page';
 import { limitOpenNewTabScript } from '@/common/ui-utils';
-import type { AbstractPage, ChromePageDestroyOptions } from '@/page';
+import type { AbstractPage } from '@/page';
 import type { ElementTreeNode, Point, Size } from '@midscene/core';
 import type { ElementInfo } from '@midscene/shared/extractor';
 import { treeToList } from '@midscene/shared/extractor';
@@ -272,6 +272,8 @@ export default class ChromeExtensionProxyPage implements AbstractPage {
     });
 
     const expression = () => {
+      (window as any).midscene_element_inspector.setNodeHashCacheListOnWindow();
+
       return {
         tree: (window as any).midscene_element_inspector.webExtractNodeTree(),
         size: {
@@ -336,6 +338,41 @@ export default class ChromeExtensionProxyPage implements AbstractPage {
   async getElementsInfo() {
     const tree = await this.getElementsNodeTree();
     return treeToList(tree);
+  }
+
+  async getXpathsById(id: string) {
+    const script = await getHtmlElementScript();
+
+    // check tab url
+    await this.sendCommandToDebugger<
+      CDPTypes.Runtime.EvaluateResponse,
+      CDPTypes.Runtime.EvaluateRequest
+    >('Runtime.evaluate', {
+      expression: script,
+    });
+
+    const result = await this.sendCommandToDebugger('Runtime.evaluate', {
+      expression: `window.midscene_element_inspector.getXpathsById('${id}')`,
+      returnByValue: true,
+    });
+    return result.result.value;
+  }
+
+  async getElementInfoByXpath(xpath: string) {
+    const script = await getHtmlElementScript();
+
+    // check tab url
+    await this.sendCommandToDebugger<
+      CDPTypes.Runtime.EvaluateResponse,
+      CDPTypes.Runtime.EvaluateRequest
+    >('Runtime.evaluate', {
+      expression: script,
+    });
+    const result = await this.sendCommandToDebugger('Runtime.evaluate', {
+      expression: `window.midscene_element_inspector.getElementInfoByXpath('${xpath}')`,
+      returnByValue: true,
+    });
+    return result.result.value;
   }
 
   async getElementsNodeTree() {
