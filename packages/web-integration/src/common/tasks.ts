@@ -719,6 +719,7 @@ export class PageTaskExecutor {
         } = planResult;
 
         executorContext.task.log = {
+          ...(executorContext.task.log || {}),
           rawResponse,
         };
         executorContext.task.usage = usage;

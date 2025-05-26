@@ -16,9 +16,6 @@ test(
       context,
       targetElementDescription: 'input 输入框',
     });
-    console.log('parseResult', JSON.stringify(parseResult, null, 2));
-    const endTime = Date.now();
-    const cost = endTime - startTime;
     expect(parseResult.elements.length).toBe(1);
   },
   {
