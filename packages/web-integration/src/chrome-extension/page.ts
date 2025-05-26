@@ -7,7 +7,7 @@
 
 import type { WebKeyInput } from '@/common/page';
 import { limitOpenNewTabScript } from '@/common/ui-utils';
-import type { AbstractPage, ChromePageDestroyOptions } from '@/page';
+import type { AbstractPage } from '@/page';
 import type { ElementTreeNode, Point, Size } from '@midscene/core';
 import type { ElementInfo } from '@midscene/shared/extractor';
 import { treeToList } from '@midscene/shared/extractor';

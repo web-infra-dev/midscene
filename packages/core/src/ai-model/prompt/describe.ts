@@ -1,9 +1,7 @@
 import { getPreferredLanguage } from '@midscene/shared/env';
 
-const preferredLanguage = getPreferredLanguage();
-
 export const elementDescriberInstruction = () => {
-  return `Tell what is the content of the element wrapped by the read rectangle in the screenshot. Your description is expected to be used to precisely locate the element from other similar elements on screenshot. Use ${preferredLanguage} in the description.
+  return `Tell what is the content of the element wrapped by the read rectangle in the screenshot. Your description is expected to be used to precisely locate the element from other similar elements on screenshot. Use ${getPreferredLanguage()} in the description.
 
 Please follow the following rules:
 1. The description should be start with a brief description, like "a button for confirming the action".

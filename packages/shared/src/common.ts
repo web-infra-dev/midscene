@@ -62,5 +62,3 @@ export const getMidsceneRunSubDir = (
 
   return logPath;
 };
-
-export const logDir = isNodeEnv ? getMidsceneRunSubDir('log') : '';
