@@ -33,10 +33,10 @@ export class WebPage extends BasePage<'puppeteer', PuppeteerPageType> {
     timeout?: number;
   }): Promise<void> {
     await this.underlyingPage.waitForNetworkIdle({
-      idleTime: options?.idleTime || DEFAULT_WAIT_FOR_NETWORK_IDLE_TIME,
+      idleTime: options?.idleTime ?? DEFAULT_WAIT_FOR_NETWORK_IDLE_TIME,
       concurrency:
-        options?.concurrency || DEFAULT_WAIT_FOR_NETWORK_IDLE_CONCURRENCY,
-      timeout: options?.timeout || this.waitForNetworkIdleTimeout,
+        options?.concurrency ?? DEFAULT_WAIT_FOR_NETWORK_IDLE_CONCURRENCY,
+      timeout: options?.timeout ?? this.waitForNetworkIdleTimeout,
     });
   }
 }
