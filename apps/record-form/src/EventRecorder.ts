@@ -49,16 +49,7 @@ const isSameScrollTarget = (
   event1: RecordedEvent,
   event2: RecordedEvent,
 ): boolean => {
-  if (event1.targetTagName !== event2.targetTagName) {
-    return false;
-  }
-  if (event1.targetId && event2.targetId) {
-    return event1.targetId === event2.targetId;
-  }
-  if (!event1.targetId && !event2.targetId) {
-    return event1.targetTagName === event2.targetTagName;
-  }
-  return false;
+  return event1.element === event2.element;
 };
 
 // 获取最后一个 label 点击事件
@@ -74,13 +65,35 @@ const getLastLabelClick = (
   return undefined;
 };
 
+// 获取所有可滚动的元素
+function getAllScrollableElements(): HTMLElement[] {
+  const elements: HTMLElement[] = [];
+  const all = document.querySelectorAll<HTMLElement>('body *');
+  all.forEach((el) => {
+    const style = window.getComputedStyle(el);
+    const overflowY = style.overflowY;
+    const overflowX = style.overflowX;
+    const isScrollableY =
+      (overflowY === 'auto' || overflowY === 'scroll') &&
+      el.scrollHeight > el.clientHeight;
+    const isScrollableX =
+      (overflowX === 'auto' || overflowX === 'scroll') &&
+      el.scrollWidth > el.clientWidth;
+    if (isScrollableY || isScrollableX) {
+      elements.push(el);
+    }
+  });
+  return elements;
+}
+
 // 事件记录器类
 export class EventRecorder {
   private isRecording = false;
   private eventCallback: EventCallback;
   private scrollThrottleTimer: number | null = null;
-  private scrollThrottleDelay = 1000; // 1000ms 节流
+  private scrollThrottleDelay = 200; // 1000ms 节流
   private lastViewportScroll: { x: number; y: number } | null = null;
+  private scrollTargets: HTMLElement[] = [];
 
   constructor(eventCallback: EventCallback) {
     this.eventCallback = eventCallback;
@@ -89,39 +102,40 @@ export class EventRecorder {
   // 开始记录
   start(): void {
     if (this.isRecording) return;
-
     this.isRecording = true;
+
+    // 处理滚动目标
+    this.scrollTargets = [];
+    // 如果没有指定，自动检测所有可滚动区域
+    if (this.scrollTargets.length === 0) {
+      this.scrollTargets = getAllScrollableElements();
+      // 若页面整体可滚动也监听
+
+      this.scrollTargets.push(document.body);
+    }
 
     // 添加事件监听器
     document.addEventListener('click', this.handleClick);
-    document.addEventListener('scroll', this.handleScroll);
     document.addEventListener('input', this.handleInput);
-
-    // 添加页面加载事件
-    // const navigationEvent: RecordedEvent = {
-    //   type: 'navigation',
-    //   url: window.location.href,
-    //   timestamp: Date.now(),
-    // };
-    // this.eventCallback(navigationEvent);
+    document.addEventListener('scroll', this.handleScroll, { passive: true });
+    this.scrollTargets.forEach((target) => {
+      target.addEventListener('scroll', this.handleScroll, { passive: true });
+    });
   }
 
   // 停止记录
   stop(): void {
     if (!this.isRecording) return;
-
     this.isRecording = false;
-
-    // 清理滚动节流定时器
     if (this.scrollThrottleTimer) {
       clearTimeout(this.scrollThrottleTimer);
       this.scrollThrottleTimer = null;
     }
-
-    // 移除事件监听器
     document.removeEventListener('click', this.handleClick);
-    document.removeEventListener('scroll', this.handleScroll);
     document.removeEventListener('input', this.handleInput);
+    this.scrollTargets.forEach((target) => {
+      target.removeEventListener('scroll', this.handleScroll);
+    });
   }
 
   // 点击事件处理器
@@ -159,43 +173,25 @@ export class EventRecorder {
   private handleScroll = (event: Event): void => {
     if (!this.isRecording) return;
 
-    const scrollX = window.scrollX;
-    const scrollY = window.scrollY;
-
-    if (
-      this.lastViewportScroll &&
-      this.lastViewportScroll.x === scrollX &&
-      this.lastViewportScroll.y === scrollY
-    ) {
-      return;
-    }
-
-    this.lastViewportScroll = { x: scrollX, y: scrollY };
-
     const target = event.target as HTMLElement;
     const scrollXTarget =
       target instanceof Document ? window.scrollX : target.scrollLeft;
     const scrollYTarget =
       target instanceof Document ? window.scrollY : target.scrollTop;
-
-    const scrollEvent: RecordedEvent = {
-      type: 'scroll',
-      x: scrollXTarget,
-      y: scrollYTarget,
-      value: `${scrollXTarget},${scrollYTarget}`,
-      timestamp: Date.now(),
-      element: target,
-      targetTagName: target?.tagName,
-      targetId: target?.id,
-      targetClassName: target?.className,
-    };
-
+    // 节流逻辑：每个目标单独节流（可扩展为 Map）
     if (this.scrollThrottleTimer) {
       clearTimeout(this.scrollThrottleTimer);
     }
-
     this.scrollThrottleTimer = window.setTimeout(() => {
-      if (scrollEvent && this.isRecording) {
+      if (this.isRecording) {
+        const scrollEvent: RecordedEvent = {
+          type: 'scroll',
+          x: scrollXTarget,
+          y: scrollYTarget,
+          value: `${scrollXTarget},${scrollYTarget}`,
+          timestamp: Date.now(),
+          element: target,
+        };
         this.eventCallback(scrollEvent);
       }
       this.scrollThrottleTimer = null;
@@ -214,9 +210,6 @@ export class EventRecorder {
       value: target.value,
       timestamp: Date.now(),
       element: target,
-      targetTagName: target?.tagName,
-      targetId: target?.id,
-      targetClassName: target?.className,
       inputType: target.type || 'text',
       viewportX: rect.left,
       viewportY: rect.top,
