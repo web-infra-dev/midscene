@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import util from 'node:util';
 import debug from 'debug';
-import { isNodeEnv, getMidsceneRunSubDir } from './common';
+import { getMidsceneRunSubDir, isNodeEnv } from './common';
 
 const topicPrefix = 'midscene';
 // Map to store file streams
