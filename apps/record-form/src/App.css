@@ -1,0 +1,83 @@
+body {
+  margin: 0;
+  color: #fff;
+  font-family: Inter, Avenir, Helvetica, Arial, sans-serif;
+  background-image: linear-gradient(to bottom, #020917, #101725);
+}
+
+.content {
+  display: flex;
+  min-height: 100vh;
+  line-height: 1.1;
+  text-align: center;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.content h1 {
+  font-size: 3.6rem;
+  font-weight: 700;
+}
+
+.content p {
+  font-size: 1.2rem;
+  font-weight: 400;
+  opacity: 0.5;
+}
+
+.app-container {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.form-card {
+  width: 100%;
+  max-width: 600px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.form-card .ant-card-body {
+  padding: 40px;
+}
+
+@media (max-width: 768px) {
+  .app-container {
+    padding: 10px;
+  }
+
+  .form-card .ant-card-body {
+    padding: 20px;
+  }
+}
+
+/* 自定义表单样式 */
+.ant-form-item-label > label {
+  font-weight: 500;
+  color: #333;
+}
+
+.ant-input,
+.ant-input-password,
+.ant-select-selector,
+.ant-picker {
+  border-radius: 6px;
+}
+
+.ant-btn-primary {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border: none;
+  border-radius: 6px;
+  height: 44px;
+  font-size: 16px;
+  font-weight: 500;
+}
+
+.ant-btn-primary:hover {
+  background: linear-gradient(135deg, #5a6fd8 0%, #6a4190 100%);
+}
