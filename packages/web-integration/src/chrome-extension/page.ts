@@ -42,7 +42,7 @@ export default class ChromeExtensionProxyPage implements AbstractPage {
 
   private destroyed = false;
 
-  private isMobile: boolean | null = null;
+  private isMobileEmulation: boolean | null = null;
 
   constructor(forceSameTabNavigation: boolean) {
     this.forceSameTabNavigation = forceSameTabNavigation;
@@ -513,17 +513,17 @@ export default class ChromeExtensionProxyPage implements AbstractPage {
     click: async (x: number, y: number) => {
       await this.mouse.move(x, y);
       // detect if the page is in mobile emulation mode
-      if (this.isMobile === null) {
+      if (this.isMobileEmulation === null) {
         const result = await this.sendCommandToDebugger('Runtime.evaluate', {
           expression: `(() => {
             return /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
           })()`,
           returnByValue: true,
         });
-        this.isMobile = result?.result?.value;
+        this.isMobileEmulation = result?.result?.value;
       }
 
-      if (this.isMobile) {
+      if (this.isMobileEmulation) {
         // in mobile emulation mode, directly inject click event
         await this.sendCommandToDebugger('Runtime.evaluate', {
           expression: `
