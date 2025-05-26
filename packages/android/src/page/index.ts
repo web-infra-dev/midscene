@@ -686,4 +686,12 @@ ${Object.keys(size)
     const adb = await this.getAdb();
     await adb.shell('input keyevent 82');
   }
+
+  async getXpathsById(id: string): Promise<string[]> {
+    throw new Error('Not implemented');
+  }
+
+  async getElementInfoByXpath(xpath: string): Promise<ElementInfo> {
+    throw new Error('Not implemented');
+  }
 }

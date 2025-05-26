@@ -26,6 +26,10 @@ export interface AndroidDevicePage extends AbstractPage {
   scrollDown(distance?: number, startingPoint?: Point): Promise<void>;
   scrollLeft(distance?: number, startingPoint?: Point): Promise<void>;
   scrollRight(distance?: number): Promise<void>;
+
+  getXpathsById(id: string): Promise<string[]>;
+  getElementInfoByXpath(xpath: string): Promise<ElementInfo>;
+
   back(): Promise<void>;
   home(): Promise<void>;
   recentApps(): Promise<void>;
