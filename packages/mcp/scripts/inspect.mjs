@@ -1,11 +1,7 @@
 import { spawn } from 'node:child_process';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import {
-  AgentOverChromeBridge,
-  allConfigFromEnv,
-  overrideAIConfig,
-} from '@midscene/web/bridge-mode';
+import { allConfigFromEnv } from '@midscene/web/bridge-mode';
 import dotenv from 'dotenv';
 
 // Get the directory name in ES module scope

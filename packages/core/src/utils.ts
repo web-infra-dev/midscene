@@ -6,7 +6,6 @@ import { dirname } from 'node:path';
 import {
   defaultRunDirName,
   getMidsceneRunSubDir,
-  logDir,
 } from '@midscene/shared/common';
 import {
   MIDSCENE_DEBUG_MODE,
@@ -26,10 +25,6 @@ const xssOptions = {
   escapeHtml,
 };
 export const groupedActionDumpFileExt = 'web-dump.json';
-
-export function getLogDir() {
-  return logDir;
-}
 
 const reportTpl = 'REPLACE_ME_WITH_REPORT_HTML';
 
