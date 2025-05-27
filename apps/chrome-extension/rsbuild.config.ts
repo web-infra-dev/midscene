@@ -51,6 +51,13 @@ export default defineConfig({
         ),
         to: 'scripts',
       },
+      {
+        from: path.resolve(
+          __dirname,
+          '../../packages/record/dist/record-iife.js',
+        ),
+        to: 'scripts',
+      },
     ],
   },
   source: {

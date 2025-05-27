@@ -38,9 +38,14 @@ export default defineConfig({
       dts: false,
       source: {
         entry: {
-          iife: './src/iife-index.ts',
+          'record-iife': './src/record-iife-index.ts',
         },
       },
+      // output: {
+      //   filename: {
+      //     js: 'record-[name].js',
+      //   },
+      // },
     },
   ],
   output: {
