@@ -14,7 +14,6 @@ import { elementDescriberInstruction } from '@/ai-model/prompt/describe';
 import type {
   AIDescribeElementResponse,
   AIElementResponse,
-  AISingleElementResponse,
   AIUsageInfo,
   BaseElement,
   DetailedLocateParam,

@@ -85,6 +85,7 @@ export interface MidsceneYamlFlowItemAIAction {
 
 export interface MidsceneYamlFlowItemAIAssert {
   aiAssert: string;
+  errorMessage?: string;
 }
 
 export interface MidsceneYamlFlowItemAIQuery {

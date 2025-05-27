@@ -83,7 +83,10 @@ while (user.length > 0) {
   // 检查是否已经遍历了当前列表中的所有用户
   if (currentUserIndex >= user.length) {
     // 向下滚动一屏
-    await agent.aiScroll('向下滚动一屏')
+    await agent.aiScroll({
+      direction: 'down',
+      scrollType: 'once',
+    })
     
     // 获取更新后的用户列表
     user = await agent.aiQuery('string[], 列表中所有未关注用户')
