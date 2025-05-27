@@ -176,7 +176,7 @@ export const useExecutionDump = create<{
   activeTask: ExecutionTask | null;
   setActiveTask: (task: ExecutionTask) => void;
   insightDump: InsightDump | null;
-  _insightDumpLoadId: number;
+  _contextLoadId: number;
   hoverTask: ExecutionTask | null;
   hoverTimestamp: number | null;
   setHoverTask: (task: ExecutionTask | null, timestamp?: number | null) => void;
@@ -198,7 +198,7 @@ export const useExecutionDump = create<{
     activeExecution: null,
     activeExecutionAnimation: null,
     insightDump: null,
-    _insightDumpLoadId: 0,
+    _contextLoadId: 0,
     hoverTask: null,
     hoverTimestamp: null,
     hoverPreviewConfig: null,
@@ -308,10 +308,15 @@ export const useExecutionDump = create<{
         const dump = (task as ExecutionTaskInsightLocate).log?.dump!;
         set({
           insightDump: dump,
-          _insightDumpLoadId: ++state._insightDumpLoadId,
         });
       } else {
         set({ insightDump: null });
+      }
+
+      if (task.pageContext) {
+        set({
+          _contextLoadId: ++state._contextLoadId,
+        });
       }
     },
     setHoverTask(task: ExecutionTask | null, timestamp?: number | null) {

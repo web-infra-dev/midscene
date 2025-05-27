@@ -35,7 +35,7 @@ const VIEW_TYPE_JSON = 'json';
 
 const DetailPanel = (): JSX.Element => {
   const insightDump = useExecutionDump((store) => store.insightDump);
-  const dumpId = useExecutionDump((store) => store._insightDumpLoadId);
+  const _contextLoadId = useExecutionDump((store) => store._contextLoadId);
   const activeExecution = useExecutionDump((store) => store.activeExecution);
   const activeExecutionId = useExecutionDump(
     (store) => store._executionDumpLoadId,
@@ -105,7 +105,7 @@ const DetailPanel = (): JSX.Element => {
           uiContext={activeTask.pageContext}
           highlightElements={highlightElements}
           highlightRect={insightDump?.taskInfo?.searchArea}
-          key={`${dumpId}`}
+          key={`${_contextLoadId}`}
         />
       );
     } else {
