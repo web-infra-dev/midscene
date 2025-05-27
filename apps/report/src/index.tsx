@@ -49,7 +49,7 @@ if (rootEl) {
           }
         });
 
-        const content = antiEscapeHtml(el.textContent);
+        const content = antiEscapeHtml(el.textContent || '');
         try {
           const jsonContent = JSON.parse(content);
           jsonContent.attributes = attributes;
