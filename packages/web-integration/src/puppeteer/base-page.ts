@@ -59,7 +59,7 @@ export class Page<
     this.underlyingPage = underlyingPage;
     this.pageType = pageType;
     this.waitForNavigationTimeout =
-      opts?.waitForNavigationTimeout || DEFAULT_WAIT_FOR_NAVIGATION_TIMEOUT;
+      opts?.waitForNavigationTimeout ?? DEFAULT_WAIT_FOR_NAVIGATION_TIMEOUT;
   }
 
   async evaluateJavaScript<T = any>(script: string): Promise<T> {
