@@ -47,7 +47,7 @@ const App: React.FC = () => {
       setRawEventsCount((prev) => prev + 1);
       setOptimizedEvents((prev) => {
         const optimized = eventRecorderRef.current?.optimizeEvent(event, prev);
-        console.log('optimized', optimized)
+        console.log('record', optimized)
         return optimized || prev;
       });
       setMergedEventsCount(optimizedEvents.length);

@@ -184,6 +184,15 @@ export class EventRecorder {
       target instanceof Document ? window.scrollX : target.scrollLeft;
     const scrollYTarget =
       target instanceof Document ? window.scrollY : target.scrollTop;
+    const rect =
+      target instanceof Document
+        ? {
+            left: 0,
+            top: 0,
+            width: window.innerWidth,
+            height: window.innerHeight,
+          }
+        : target.getBoundingClientRect();
     // 节流逻辑：每个目标单独节流（可扩展为 Map）
     if (this.scrollThrottleTimer) {
       clearTimeout(this.scrollThrottleTimer);
@@ -195,6 +204,8 @@ export class EventRecorder {
           x: scrollXTarget,
           y: scrollYTarget,
           value: `${scrollXTarget},${scrollYTarget}`,
+          viewportX: rect.left,
+          viewportY: rect.top,
           timestamp: Date.now(),
           element: target,
         };
