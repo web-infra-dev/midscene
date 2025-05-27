@@ -101,6 +101,7 @@ export class EventRecorder {
   private eventCallback: EventCallback;
   private scrollThrottleTimer: number | null = null;
   private scrollThrottleDelay = 200; // 1000ms 节流
+  private lastViewportScroll: { x: number; y: number } | null = null;
   private scrollTargets: HTMLElement[] = [];
 
   constructor(eventCallback: EventCallback) {

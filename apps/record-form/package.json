@@ -13,7 +13,7 @@
     "dayjs": "^1.11.10",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
-    "rrweb": "^2.0.0-alpha.11"
+    "@midscene/record": "workspace:*"
   },
   "devDependencies": {
     "@rsbuild/core": "^1.3.15",

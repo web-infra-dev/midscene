@@ -11,11 +11,21 @@ import {
 } from 'antd';
 import { useEffect, useRef, useState } from 'react';
 import './App.css';
-import { EventRecorder, type RecordedEvent } from './EventRecorder';
+import { EventRecorder, RecordTimeline, type RecordedEvent } from '@midscene/record';
+import CanvasSelector from './components/CanvasSelector';
 
 const { Title } = Typography;
 const { Option } = Select;
 const { TextArea } = Input;
+
+interface CanvasElement {
+  id: string;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  clicked: boolean;
+}
 
 interface FormData {
   username: string;
@@ -28,6 +38,7 @@ interface FormData {
   address?: string;
   agreement: boolean;
   horizontalScroll?: boolean;
+  canvasElements: CanvasElement[];
 }
 
 const App: React.FC = () => {
@@ -178,6 +189,14 @@ const App: React.FC = () => {
             />
           </Form.Item>
 
+          <Form.Item
+            label="兴趣爱好（画布）"
+            name="canvasElements"
+            tooltip="在画布上添加输入框和复选框"
+          >
+            <CanvasSelector />
+          </Form.Item>
+
           <div className="horizontal-scroll-container">
             <div className="horizontal-form-row">
               <Form.Item label="公司" name="company">
@@ -226,6 +245,7 @@ const App: React.FC = () => {
           </p>
         </div>
       </Card>
+      <RecordTimeline events={optimizedEvents} />
     </div>
   );
 };
