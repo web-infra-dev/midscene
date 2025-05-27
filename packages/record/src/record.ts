@@ -1,4 +1,4 @@
-const DEBUG = localStorage.getItem('DEBUG') === 'true'; // 或根据 process.env.NODE_ENV 判断
+const DEBUG = localStorage.getItem('DEBUG') === 'true'; // Based on process.env.NODE_ENV
 
 function debugLog(...args: any[]) {
   if (DEBUG) {
@@ -7,7 +7,7 @@ function debugLog(...args: any[]) {
   }
 }
 
-// 事件类型定义
+// Event type definition
 export interface RecordedEvent {
   type: 'click' | 'scroll' | 'input' | 'navigation';
   timestamp: number;
@@ -29,14 +29,14 @@ export interface RecordedEvent {
   url?: string;
   viewportX?: number;
   viewportY?: number;
-  width?: number; // 元素宽度
-  height?: number; // 元素高度
+  width?: number; // Element width
+  height?: number; // Element height
 }
 
-// 事件回调函数类型
+// Event callback function type
 export type EventCallback = (event: RecordedEvent) => void;
 
-// 检查是否是同一个输入目标
+// Check if it's the same input target
 const isSameInputTarget = (
   event1: RecordedEvent,
   event2: RecordedEvent,
@@ -53,7 +53,7 @@ const isSameInputTarget = (
   return false;
 };
 
-// 检查是否是同一个滚动目标
+// Check if it's the same scroll target
 const isSameScrollTarget = (
   event1: RecordedEvent,
   event2: RecordedEvent,
@@ -61,7 +61,7 @@ const isSameScrollTarget = (
   return event1.element === event2.element;
 };
 
-// 获取最后一个 label 点击事件
+// Get the last label click event
 const getLastLabelClick = (
   events: RecordedEvent[],
 ): RecordedEvent | undefined => {
@@ -74,7 +74,7 @@ const getLastLabelClick = (
   return undefined;
 };
 
-// 获取所有可滚动的元素
+// Get all scrollable elements
 function getAllScrollableElements(): HTMLElement[] {
   const elements: HTMLElement[] = [];
   const all = document.querySelectorAll<HTMLElement>('body *');
@@ -95,12 +95,12 @@ function getAllScrollableElements(): HTMLElement[] {
   return elements;
 }
 
-// 事件记录器类
+// Event recorder class
 export class EventRecorder {
   private isRecording = false;
   private eventCallback: EventCallback;
   private scrollThrottleTimer: number | null = null;
-  private scrollThrottleDelay = 200; // 1000ms 节流
+  private scrollThrottleDelay = 200; // 200ms throttle
   private lastViewportScroll: { x: number; y: number } | null = null;
   private scrollTargets: HTMLElement[] = [];
 
@@ -108,22 +108,21 @@ export class EventRecorder {
     this.eventCallback = eventCallback;
   }
 
-  // 开始记录
+  // Start recording
   start(): void {
     if (this.isRecording) return;
     this.isRecording = true;
 
-    // 处理滚动目标
+    // Handle scroll targets
     this.scrollTargets = [];
-    // 如果没有指定，自动检测所有可滚动区域
+    // If not specified, automatically detect all scrollable areas
     if (this.scrollTargets.length === 0) {
       this.scrollTargets = getAllScrollableElements();
-      // 若页面整体可滚动也监听
-
+      // Also listen to page scrolling if page is scrollable
       this.scrollTargets.push(document.body);
     }
 
-    // 添加事件监听器
+    // Add event listeners
     document.addEventListener('click', this.handleClick);
     document.addEventListener('input', this.handleInput);
     document.addEventListener('scroll', this.handleScroll, { passive: true });
@@ -132,7 +131,7 @@ export class EventRecorder {
     });
   }
 
-  // 停止记录
+  // Stop recording
   stop(): void {
     if (!this.isRecording) return;
     this.isRecording = false;
@@ -147,7 +146,7 @@ export class EventRecorder {
     });
   }
 
-  // 点击事件处理器
+  // Click event handler
   private handleClick = (event: MouseEvent): void => {
     if (!this.isRecording) return;
 
@@ -168,14 +167,14 @@ export class EventRecorder {
       detail: event.detail,
       viewportX: rect.left,
       viewportY: rect.top,
-      width: rect.width, // 添加宽度
-      height: rect.height, // 添加高度
+      width: rect.width, // Add width
+      height: rect.height, // Add height
     };
 
     this.eventCallback(clickEvent);
   };
 
-  // 滚动事件处理器
+  // Scroll event handler
   private handleScroll = (event: Event): void => {
     if (!this.isRecording) return;
 
@@ -193,7 +192,7 @@ export class EventRecorder {
             height: window.innerHeight,
           }
         : target.getBoundingClientRect();
-    // 节流逻辑：每个目标单独节流（可扩展为 Map）
+    // Throttle logic: throttle each target separately (can be extended to Map)
     if (this.scrollThrottleTimer) {
       clearTimeout(this.scrollThrottleTimer);
     }
@@ -215,7 +214,7 @@ export class EventRecorder {
     }, this.scrollThrottleDelay);
   };
 
-  // 输入事件处理器
+  // Input event handler
   private handleInput = (event: Event): void => {
     if (!this.isRecording) return;
 
@@ -230,14 +229,14 @@ export class EventRecorder {
       inputType: target.type || 'text',
       viewportX: rect.left,
       viewportY: rect.top,
-      width: rect.width, // 添加宽度
-      height: rect.height, // 添加高度
+      width: rect.width, // Add width
+      height: rect.height, // Add height
     };
 
     this.eventCallback(inputEvent);
   };
 
-  // 检查是否是 label 点击
+  // Check if it's a label click
   private checkLabelClick(target: HTMLElement): {
     isLabelClick: boolean;
     labelInfo: { htmlFor?: string; textContent?: string } | undefined;
@@ -272,7 +271,7 @@ export class EventRecorder {
     return { isLabelClick, labelInfo };
   }
 
-  // 获取记录状态
+  // Get recording status
   isActive(): boolean {
     return this.isRecording;
   }
@@ -283,9 +282,9 @@ export class EventRecorder {
   ): RecordedEvent[] {
     const lastEvent = events[events.length - 1];
 
-    // 如果是点击事件，直接添加
+    // If it's a click event, add directly
     if (event.type === 'click') {
-      // 优化：如果上一个事件是 label 点击，并且 labelInfo.htmlFor 等于当前 input 的 id，则跳过
+      // Optimization: if the previous event is a label click and labelInfo.htmlFor equals current input's id, skip
       const lastEvent = getLastLabelClick(events);
       if (
         lastEvent &&
@@ -299,9 +298,9 @@ export class EventRecorder {
       return [...events, event];
     }
 
-    // 如果是输入事件，检查是否需要跳过或合并
+    // If it's an input event, check if it should be skipped or merged
     if (event.type === 'input') {
-      // 检查是否需要跳过（由 label 点击触发）
+      // Check if it should be skipped (triggered by label click)
       if (
         lastEvent &&
         lastEvent.type === 'click' &&
@@ -316,7 +315,7 @@ export class EventRecorder {
         return events;
       }
 
-      // 检查是否需要合并（同一个输入框的连续输入）
+      // Check if it should be merged (consecutive inputs on the same input field)
       if (
         lastEvent &&
         lastEvent.type === 'input' &&
@@ -339,7 +338,7 @@ export class EventRecorder {
       }
     }
 
-    // 如果是滚动事件，检查是否需要替换
+    // If it's a scroll event, check if it should be replaced
     if (event.type === 'scroll') {
       if (
         lastEvent &&
@@ -360,7 +359,7 @@ export class EventRecorder {
       }
     }
 
-    // 其他事件直接添加
+    // Add other events directly
     return [...events, event];
   }
 }
