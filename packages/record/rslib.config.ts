@@ -13,26 +13,6 @@ export default defineConfig({
         },
       },
     },
-    // {
-    //   format: 'cjs',
-    //   syntax: ['node 18'],
-    //   source: {
-    //     entry: {
-    //       index: './src/index.tsx',
-    //     },
-    //   },
-    // },
-    // {
-    //   format: 'esm',
-    //   syntax: ['node 18'],
-    //   dts: true,
-    //   source: {
-    //     entry: {
-    //       index: './src/index.ts',
-    //     },
-    //   },
-    // },
-    //
     {
       format: 'iife',
       dts: false,
@@ -41,11 +21,6 @@ export default defineConfig({
           'record-iife': './src/record-iife-index.ts',
         },
       },
-      // output: {
-      //   filename: {
-      //     js: 'record-[name].js',
-      //   },
-      // },
     },
   ],
   output: {
