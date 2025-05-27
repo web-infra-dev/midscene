@@ -1,4 +1,4 @@
-name: AI test
+name: AI - Playwright e2e
 on:
   push:
     branches:
