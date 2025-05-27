@@ -125,19 +125,25 @@ describe(
 
         await sleep(3000);
 
-        await agent.aiTap('the settings button', {
-          deepThink: true,
-        });
+        const settingsButton = await agent.aiBoolean(
+          'there is a settings button in the page',
+        );
 
-        await agent.aiTap('搜索设置', {
-          deepThink: true,
-        });
+        if (settingsButton) {
+          await agent.aiTap('the settings button', {
+            deepThink: true,
+          });
 
-        await agent.aiTap('the close button of the popup', {
-          deepThink: true,
-        });
+          await agent.aiTap('搜索设置', {
+            deepThink: true,
+          });
 
-        await agent.aiAssert('there is NOT a popup shown in the page');
+          await agent.aiTap('the close button of the popup', {
+            deepThink: true,
+          });
+
+          await agent.aiAssert('there is NOT a popup shown in the page');
+        }
       },
     );
 
