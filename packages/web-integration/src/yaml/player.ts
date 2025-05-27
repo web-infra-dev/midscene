@@ -146,12 +146,13 @@ export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
       } else if ('aiAssert' in (flowItem as MidsceneYamlFlowItemAIAssert)) {
         const assertTask = flowItem as MidsceneYamlFlowItemAIAssert;
         const prompt = assertTask.aiAssert;
+        const msg = assertTask.errorMessage;
         assert(prompt, 'missing prompt for aiAssert');
         assert(
           typeof prompt === 'string',
           'prompt for aiAssert must be a string',
         );
-        await agent.aiAssert(prompt);
+        await agent.aiAssert(prompt, msg);
       } else if ('aiQuery' in (flowItem as MidsceneYamlFlowItemAIQuery)) {
         const queryTask = flowItem as MidsceneYamlFlowItemAIQuery;
         const prompt = queryTask.aiQuery;

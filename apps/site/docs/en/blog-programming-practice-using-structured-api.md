@@ -84,7 +84,10 @@ while (user.length > 0) {
   // Check if we've gone through all users in the current list
   if (currentUserIndex >= user.length) {
     // Scroll down to load more users
-    await agent.aiScroll('scroll down one screen')
+    await agent.aiScroll({
+      direction: 'down',
+      scrollType: 'once',
+    })
     
     // Get the updated user list
     user = await agent.aiQuery('string[], the unfollowed user names in the list')
