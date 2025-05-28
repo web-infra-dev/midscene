@@ -113,11 +113,7 @@ describe.skipIf(!shouldRunAITest)('bin', () => {
   });
 
   test('run yaml scripts when set aiAssert errorMessage', async () => {
-    const params = [
-      './tests/midscene_scripts/local/local-error-message.yml',
-      '--ai-assert-error-message',
-      'error message',
-    ];
+    const params = ['./tests/midscene_scripts/local/local-error-message.yml'];
     await expect(async () => {
       await execa(cliBin, params);
     }).rejects.toThrow(/something error when assert title/i);
