@@ -15,6 +15,7 @@
     "@midscene/web": "workspace:*",
     "@midscene/core": "workspace:*",
     "@midscene/report": "workspace:*",
+    "@midscene/record": "workspace:*",
     "@midscene/shared": "workspace:*",
     "antd": "^5.21.6",
     "dayjs": "1.11.11",
@@ -23,10 +24,10 @@
     "zustand": "4.5.2"
   },
   "devDependencies": {
-    "@rsbuild/core": "^1.3.1",
-    "@rsbuild/plugin-less": "^1.1.1",
+    "@rsbuild/core": "^1.3.22",
+    "@rsbuild/plugin-less": "^1.2.4",
     "@rsbuild/plugin-node-polyfill": "1.3.0",
-    "@rsbuild/plugin-react": "^1.1.1",
+    "@rsbuild/plugin-react": "^1.3.1",
     "@types/chrome": "0.0.279",
     "@types/react": "^18.3.18",
     "@types/react-dom": "^18.3.5",

@@ -18,6 +18,58 @@ export const useBlackboardPreference = create<{
   },
 }));
 
+// Record related types and store
+export interface RecordedEvent {
+  type: 'click' | 'scroll' | 'input' | 'navigation';
+  timestamp: number;
+  x?: number;
+  y?: number;
+  value?: string;
+  element?: HTMLElement;
+  targetTagName?: string;
+  targetId?: string;
+  targetClassName?: string;
+  isLabelClick?: boolean;
+  labelInfo?: {
+    htmlFor?: string;
+    textContent?: string;
+  };
+  isTrusted?: boolean;
+  detail?: number;
+  inputType?: string;
+  url?: string;
+  viewportX?: number;
+  viewportY?: number;
+  width?: number;
+  height?: number;
+}
+
+export const useRecordStore = create<{
+  isRecording: boolean;
+  events: RecordedEvent[];
+  setIsRecording: (recording: boolean) => void;
+  addEvent: (event: RecordedEvent) => void;
+  setEvents: (events: RecordedEvent[]) => void;
+  clearEvents: () => void;
+}>((set) => ({
+  isRecording: false,
+  events: [],
+  setIsRecording: (recording: boolean) => {
+    set({ isRecording: recording });
+  },
+  addEvent: (event: RecordedEvent) => {
+    set((state) => ({
+      events: [...state.events, event],
+    }));
+  },
+  setEvents: (events: RecordedEvent[]) => {
+    set({ events });
+  },
+  clearEvents: () => {
+    set({ events: [] });
+  },
+}));
+
 const CONFIG_KEY = 'midscene-env-config';
 const SERVICE_MODE_KEY = 'midscene-service-mode';
 const TRACKING_ACTIVE_TAB_KEY = 'midscene-tracking-active-tab';
@@ -72,8 +124,8 @@ export const useEnvConfig = create<{
   loadConfig: (configString: string) => void;
   forceSameTabNavigation: boolean;
   setForceSameTabNavigation: (forceSameTabNavigation: boolean) => void;
-  popupTab: 'playground' | 'bridge';
-  setPopupTab: (tab: 'playground' | 'bridge') => void;
+  popupTab: 'playground' | 'bridge' | 'record';
+  setPopupTab: (tab: 'playground' | 'bridge' | 'record') => void;
 }>((set, get) => {
   const configString = getConfigStringFromLocalStorage();
   const config = parseConfig(configString);
@@ -110,7 +162,7 @@ export const useEnvConfig = create<{
       );
     },
     popupTab: 'playground',
-    setPopupTab: (tab: 'playground' | 'bridge') => {
+    setPopupTab: (tab: 'playground' | 'bridge' | 'record') => {
       set({ popupTab: tab });
     },
   };

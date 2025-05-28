@@ -1,0 +1,62 @@
+.popup-record-container {
+  min-height: 500px;
+  max-height: 600px;
+  overflow-y: auto;
+  
+  .record-timeline {
+    max-height: 400px;
+    overflow-y: auto;
+    padding: 8px;
+    border: 1px solid #f0f0f0;
+    border-radius: 6px;
+    background-color: #fafafa;
+    
+    &::-webkit-scrollbar {
+      width: 6px;
+    }
+    
+    &::-webkit-scrollbar-track {
+      background: #f1f1f1;
+      border-radius: 3px;
+    }
+    
+    &::-webkit-scrollbar-thumb {
+      background: #c1c1c1;
+      border-radius: 3px;
+      
+      &:hover {
+        background: #a1a1a1;
+      }
+    }
+  }
+  
+  .record-event {
+    transition: all 0.2s ease;
+    
+    &:hover {
+      transform: translateX(2px);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+  }
+  
+  .record-controls {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    align-items: center;
+    
+    .ant-btn {
+      flex-shrink: 0;
+    }
+  }
+  
+  .current-tab-info {
+    font-size: 13px;
+    color: #666;
+    margin-bottom: 8px;
+    padding: 8px 12px;
+    background-color: #f8f9fa;
+    border-radius: 4px;
+    border-left: 3px solid #1890ff;
+  }
+} 

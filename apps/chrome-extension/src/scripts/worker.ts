@@ -19,9 +19,33 @@ const randomUUID = () => {
   return Math.random().toString(36).substring(2, 15);
 };
 const cacheMap = new Map<string, WebUIContext>();
+
+// Store connected ports for message forwarding
+const connectedPorts = new Set<chrome.runtime.Port>();
+
+// Listen for connections from extension pages
+chrome.runtime.onConnect.addListener((port) => {
+  if (port.name === 'record-events') {
+    connectedPorts.add(port);
+    
+    port.onDisconnect.addListener(() => {
+      connectedPorts.delete(port);
+    });
+  }
+});
+
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   console.log('Message received in service worker:', request);
 
+  // Forward recording events to connected extension pages
+  if (request.action === 'events' || request.action === 'event') {
+    connectedPorts.forEach(port => {
+      port.postMessage(request);
+    });
+    sendResponse({ success: true });
+    return true;
+  }
+  
   switch (request.type) {
     case workerMessageTypes.SAVE_CONTEXT: {
       const payload: WorkerRequestSaveContext = request.payload;
@@ -44,8 +68,12 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       break;
     }
     default:
-      console.log('sending response');
       sendResponse({ error: 'Unknown message type' });
       break;
   }
+  
+  // Return true to indicate we will send a response asynchronously
+  return true;
 });
+
+

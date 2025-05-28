@@ -19,7 +19,7 @@ export default defineConfig({
         sourceMap: true,
       },
     },
-    node: {
+    iife: {
       source: {
         entry: {
           worker: './src/scripts/worker.ts',
@@ -28,10 +28,10 @@ export default defineConfig({
         },
       },
       output: {
-        target: 'node',
+        target: 'web-worker',
         sourceMap: true,
         filename: {
-          js: 'scripts/[name].js',
+          js: '../../scripts/[name].js',
         },
       },
     },
@@ -56,6 +56,10 @@ export default defineConfig({
           __dirname,
           '../../packages/record/dist/record-iife.js',
         ),
+        to: 'scripts',
+      },
+      {
+        from: './src/scripts/content-script-wrapper.js',
         to: 'scripts',
       },
     ],

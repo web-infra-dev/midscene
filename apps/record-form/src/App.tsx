@@ -54,21 +54,21 @@ const App: React.FC = () => {
   const eventRecorderRef = useRef<EventRecorder | null>(null);
 
   useEffect(() => {
-    eventRecorderRef.current = new EventRecorder((event: RecordedEvent) => {
-      setRawEventsCount((prev) => prev + 1);
-      setOptimizedEvents((prev) => {
-        const optimized = eventRecorderRef.current?.optimizeEvent(event, prev);
-        console.log('record', optimized)
-        return optimized || prev;
-      });
-      setMergedEventsCount(optimizedEvents.length);
-    });
-    eventRecorderRef.current.start();
-    return () => {
-      if (eventRecorderRef.current) {
-        eventRecorderRef.current.stop();
-      }
-    };
+    // eventRecorderRef.current = new EventRecorder((event: RecordedEvent) => {
+    //   setRawEventsCount((prev) => prev + 1);
+    //   setOptimizedEvents((prev) => {
+    //     const optimized = eventRecorderRef.current?.optimizeEvent(event, prev);
+    //     console.log('record', optimized)
+    //     return optimized || prev;
+    //   });
+    //   setMergedEventsCount(optimizedEvents.length);
+    // });
+    // eventRecorderRef.current.start();
+    // return () => {
+    //   if (eventRecorderRef.current) {
+    //     eventRecorderRef.current.stop();
+    //   }
+    // };
   }, []);
 
   const onFinish = (values: FormData) => {
@@ -245,7 +245,7 @@ const App: React.FC = () => {
           </p>
         </div>
       </Card>
-      <RecordTimeline events={optimizedEvents} />
+      {/* <RecordTimeline events={optimizedEvents} /> */}
     </div>
   );
 };

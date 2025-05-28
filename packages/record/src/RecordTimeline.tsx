@@ -7,7 +7,8 @@ import {
     VerticalAlignTopOutlined
 } from '@ant-design/icons';
 import { Button, Card, Image, Space, Tag, Timeline, Typography } from 'antd';
-import type React from 'react';
+// biome-ignore lint/style/useImportType: <explanation>
+import React from 'react';
 
 const { Text, Title } = Typography;
 
@@ -31,7 +32,7 @@ interface RecordTimelineProps {
     onEventClick?: (event: RecordedEvent, index: number) => void;
 }
 
-export const RecordTimeline: React.FC<RecordTimelineProps> = ({ events, onEventClick }) => {
+export const RecordTimeline = ({ events, onEventClick }: RecordTimelineProps) => {
     const getEventIcon = (type: string) => {
         switch (type) {
             case 'click':
