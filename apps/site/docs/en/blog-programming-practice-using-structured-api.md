@@ -21,7 +21,7 @@ Another common misconception is that the complex workflow can be effectively con
 aiAction('click all the records one by one. If one record contains the text "completed", skip it')
 ```
 
-## Use JavaScript and Structured API to Write Automation Scripts
+## One Path to Optimize the Automation Code: Use JavaScript and Structured API
 
 From v0.16.10, Midscene provides data extraction methods like `aiBoolean` `aiString` `aiNumber`, which can be used to control the workflow. 
 
@@ -179,13 +179,21 @@ please help me convert the following instructions into structured javascript cod
 
 ![](/blog/ai-ide-convert-prompt.png)
 
-And the magic would happen.
-
 After you input the prompt, the AI IDE will convert the prompt into structured javascript code: 
 
 ![](/blog/ai-ide-convert-prompt-result.png)
 
 Enjoy it!
+
+## `aiAction` vs Structured Code: Which is the Best Solution ?
+
+There is no standard answer. It depends on the model's ability, the complexity of the actual business.
+
+Generally, if you encounter the following situations, you should consider abandoning the `aiAction` method:
+
+- The success rate of `aiAction` does not meet the requirements after multiple retries
+- You have already felt tired and spent too much time repeatedly tuning the `aiAction` prompt
+- You need to debug the script step by step
 
 ## What's Next ?
 
