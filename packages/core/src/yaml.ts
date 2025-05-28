@@ -23,6 +23,7 @@ export interface scrollParam {
 }
 
 export interface MidsceneYamlScript {
+  // @deprecated
   target?: MidsceneYamlScriptWebEnv;
   web?: MidsceneYamlScriptWebEnv;
   android?: MidsceneYamlScriptAndroidEnv;

@@ -111,4 +111,15 @@ describe.skipIf(!shouldRunAITest)('bin', () => {
     const params = ['--headed', './tests/midscene_scripts/online/todomvc.yaml'];
     await execa(cliBin, params);
   });
+
+  test('run yaml scripts when set aiAssert errorMessage', async () => {
+    const params = [
+      './tests/midscene_scripts/local/local-error-message.yml',
+      '--ai-assert-error-message',
+      'error message',
+    ];
+    await expect(async () => {
+      await execa(cliBin, params);
+    }).rejects.toThrow(/something error when assert title/i);
+  });
 });

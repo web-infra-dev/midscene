@@ -48,10 +48,12 @@ export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
   ) {
     this.result = {};
 
+    const target = script.target || script.web || script.android;
+
     if (ifInBrowser) {
       this.output = undefined;
-    } else if (script.target?.output) {
-      this.output = resolve(process.cwd(), script.target.output);
+    } else if (target?.output) {
+      this.output = resolve(process.cwd(), target.output);
     } else {
       this.output = join(getMidsceneRunSubDir('output'), `${process.pid}.json`);
     }
