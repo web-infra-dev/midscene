@@ -44,6 +44,99 @@ export interface RecordedEvent {
   height?: number;
 }
 
+// Recording session interface
+export interface RecordingSession {
+  id: string;
+  name: string;
+  description?: string;
+  createdAt: number;
+  updatedAt: number;
+  events: RecordedEvent[];
+  status: 'idle' | 'recording' | 'completed';
+  duration?: number; // in milliseconds
+  url?: string; // The URL where recording started
+}
+
+// Storage keys
+const RECORDING_SESSIONS_KEY = 'midscene-recording-sessions';
+const CURRENT_SESSION_ID_KEY = 'midscene-current-session-id';
+
+// Helper functions for persistence
+const loadSessionsFromStorage = (): RecordingSession[] => {
+  try {
+    const stored = localStorage.getItem(RECORDING_SESSIONS_KEY);
+    return stored ? JSON.parse(stored) : [];
+  } catch (error) {
+    console.error('Failed to load sessions from storage:', error);
+    return [];
+  }
+};
+
+const saveSessionsToStorage = (sessions: RecordingSession[]) => {
+  try {
+    localStorage.setItem(RECORDING_SESSIONS_KEY, JSON.stringify(sessions));
+  } catch (error) {
+    console.error('Failed to save sessions to storage:', error);
+  }
+};
+
+const loadCurrentSessionIdFromStorage = (): string | null => {
+  try {
+    return localStorage.getItem(CURRENT_SESSION_ID_KEY);
+  } catch (error) {
+    console.error('Failed to load current session ID from storage:', error);
+    return null;
+  }
+};
+
+const saveCurrentSessionIdToStorage = (sessionId: string | null) => {
+  try {
+    if (sessionId) {
+      localStorage.setItem(CURRENT_SESSION_ID_KEY, sessionId);
+    } else {
+      localStorage.removeItem(CURRENT_SESSION_ID_KEY);
+    }
+  } catch (error) {
+    console.error('Failed to save current session ID to storage:', error);
+  }
+};
+
+export const useRecordingSessionStore = create<{
+  sessions: RecordingSession[];
+  currentSessionId: string | null;
+  addSession: (session: RecordingSession) => void;
+  updateSession: (sessionId: string, updates: Partial<RecordingSession>) => void;
+  deleteSession: (sessionId: string) => void;
+  setCurrentSession: (sessionId: string | null) => void;
+  getCurrentSession: () => RecordingSession | null;
+}>((set, get) => ({
+  sessions: loadSessionsFromStorage(),
+  currentSessionId: loadCurrentSessionIdFromStorage(),
+  addSession: (session) => set((state) => {
+    const newSessions = [...state.sessions, session];
+    saveSessionsToStorage(newSessions);
+    return { sessions: newSessions };
+  }),
+  updateSession: (sessionId, updates) => set((state) => {
+    const newSessions = state.sessions.map(s => s.id === sessionId ? { ...s, ...updates } : s);
+    saveSessionsToStorage(newSessions);
+    return { sessions: newSessions };
+  }),
+  deleteSession: (sessionId) => set((state) => {
+    const newSessions = state.sessions.filter(s => s.id !== sessionId);
+    saveSessionsToStorage(newSessions);
+    return { sessions: newSessions };
+  }),
+  setCurrentSession: (sessionId) => {
+    saveCurrentSessionIdToStorage(sessionId);
+    set({ currentSessionId: sessionId });
+  },
+  getCurrentSession: () => {
+    const state = get();
+    return state.sessions.find(s => s.id === state.currentSessionId) || null;
+  }
+}));
+
 export const useRecordStore = create<{
   isRecording: boolean;
   events: RecordedEvent[];

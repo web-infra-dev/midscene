@@ -59,4 +59,169 @@
     border-radius: 4px;
     border-left: 3px solid #1890ff;
   }
+
+  // Session management styles
+  .session-list {
+    .ant-list-item {
+      padding: 8px 0;
+      
+      .ant-card {
+        transition: all 0.2s ease;
+        
+        &:hover {
+          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+          transform: translateY(-1px);
+        }
+        
+        &.selected-session {
+          box-shadow: 0 4px 12px rgba(24, 144, 255, 0.15);
+          
+          .ant-card-head {
+            background-color: #f0f7ff;
+          }
+        }
+        
+        .ant-card-actions {
+          background-color: #fafafa;
+          
+          .ant-btn {
+            border: none;
+            box-shadow: none;
+            
+            &:hover {
+              background-color: #e6f7ff;
+            }
+            
+            &.ant-btn-dangerous:hover {
+              background-color: #fff2f0;
+            }
+          }
+        }
+        
+        .session-meta {
+          .session-status {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 4px;
+          }
+          
+          .session-details {
+            font-size: 12px;
+            color: #999;
+            line-height: 1.4;
+          }
+        }
+      }
+    }
+  }
+
+  .session-empty {
+    text-align: center;
+    padding: 40px 20px;
+    
+    .ant-empty-description {
+      color: #999;
+    }
+  }
+
+  // Recording status indicator
+  .recording-status {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    border-radius: 4px;
+    margin-bottom: 12px;
+    
+    &.recording {
+      background-color: #fff2f0;
+      border: 1px solid #ffccc7;
+      color: #cf1322;
+      
+      &::before {
+        content: '';
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background-color: #ff4d4f;
+        animation: recording-pulse 1.5s infinite;
+      }
+    }
+    
+    &.idle {
+      background-color: #f6ffed;
+      border: 1px solid #d9f7be;
+      color: #389e0d;
+    }
+  }
+
+  @keyframes recording-pulse {
+    0% {
+      opacity: 1;
+      transform: scale(1);
+    }
+    50% {
+      opacity: 0.5;
+      transform: scale(1.2);
+    }
+    100% {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+
+  // Modal styles
+  .session-modal {
+    .ant-modal-body {
+      padding: 24px;
+    }
+    
+    .ant-form-item-label {
+      font-weight: 500;
+    }
+    
+    .ant-btn-group {
+      display: flex;
+      gap: 8px;
+    }
+  }
+
+  // Section dividers
+  .section-divider {
+    margin: 24px 0;
+    border-color: #e8e8e8;
+  }
+
+  // Events section
+  .events-section {
+    .events-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+      
+      .events-title {
+        font-weight: 600;
+        font-size: 14px;
+      }
+      
+      .events-meta {
+        font-size: 12px;
+        color: #999;
+      }
+    }
+    
+    .events-container {
+      min-height: 200px;
+      
+      &.empty {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #999;
+        font-style: italic;
+      }
+    }
+  }
 } 
