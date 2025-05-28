@@ -25,12 +25,12 @@
   },
   "dependencies": {
     "@ant-design/icons": "^5.3.1",
-    "antd": "^5.12.8",
-    "dayjs": "^1.11.10",
-    "react-dom": ">=16.9.0"
+    "antd": "^5.21.6",
+    "dayjs": "^1.11.11",
+    "react-dom": ">=19.1.0"
   },
   "peerDependencies": {
-    "react": ">=16.9.0",
-    "react-dom": ">=16.9.0"
+    "react": "^19.1.0",
+    "react-dom": ">=19.1.0"
   }
 }

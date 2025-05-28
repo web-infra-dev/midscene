@@ -9,7 +9,11 @@
   "bin": {
     "midscene": "./bin/midscene"
   },
-  "files": ["dist", "README.md", "bin"],
+  "files": [
+    "dist",
+    "README.md",
+    "bin"
+  ],
   "scripts": {
     "dev": "modern dev",
     "build": "modern build",
@@ -33,7 +37,7 @@
     "@types/minimist": "1.2.5",
     "@types/node": "^18.0.0",
     "@types/yargs": "17.0.32",
-    "typescript": "^5.8.2",
+    "typescript": "^5.8.3",
     "vitest": "3.0.5",
     "yargs": "17.7.2",
     "chalk": "4.1.2",

@@ -49,7 +49,7 @@
     "check-dependency-version-consistency": "^4.1.1",
     "commitizen": "4.2.5",
     "cspell-ban-words": "^0.0.3",
-    "dayjs": "1.11.11",
+    "dayjs": "^1.11.11",
     "husky": "9.1.7",
     "minimist": "1.2.5",
     "nano-staged": "^0.8.0",
