@@ -87,5 +87,22 @@ tasks:
       const result = parseYamlScript(yamlContent);
       expect(result.android?.deviceId).toBe('0aacde222');
     });
+
+    test('aiRightClick', () => {
+      const yamlContent = `
+target:
+  url: "sample_url"
+tasks:
+  - sleep: 1000
+  - aiTap: "sample_button"
+  - aiRightClick: "context menu trigger"
+  - aiInput:
+      locate: "email input"
+      aiInput: "test@example.com"
+`;
+
+      const result = parseYamlScript(yamlContent);
+      expect(result).toMatchSnapshot();
+    });
   });
 });

@@ -64,6 +64,29 @@ exports[`build plans > keyboardPress 1`] = `
 ]
 `;
 
+exports[`build plans > rightClick 1`] = `
+[
+  {
+    "locate": {
+      "prompt": "context menu target",
+    },
+    "param": {
+      "prompt": "context menu target",
+    },
+    "thought": "",
+    "type": "Locate",
+  },
+  {
+    "locate": {
+      "prompt": "context menu target",
+    },
+    "param": null,
+    "thought": "",
+    "type": "RightClick",
+  },
+]
+`;
+
 exports[`build plans > scroll 1`] = `
 [
   {

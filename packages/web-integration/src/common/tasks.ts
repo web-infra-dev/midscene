@@ -428,6 +428,23 @@ export class PageTaskExecutor {
             },
           };
         tasks.push(taskActionTap);
+      } else if (plan.type === 'RightClick') {
+        const taskActionRightClick: ExecutionTaskActionApply<PlanningActionParamTap> =
+          {
+            type: 'Action',
+            subType: 'RightClick',
+            thought: plan.thought,
+            locate: plan.locate,
+            executor: async (param, { element }) => {
+              assert(element, 'Element not found, cannot right click');
+              await this.page.mouse.click(
+                element.center[0],
+                element.center[1],
+                { button: 'right' },
+              );
+            },
+          };
+        tasks.push(taskActionRightClick);
       } else if (plan.type === 'Drag') {
         const taskActionDrag: ExecutionTaskActionApply<{
           start_box: { x: number; y: number };

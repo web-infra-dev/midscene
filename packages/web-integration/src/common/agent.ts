@@ -266,6 +266,20 @@ export class PageAgent<PageType extends WebPage = WebPage> {
     return output;
   }
 
+  async aiRightClick(locatePrompt: string, opt?: LocateOption) {
+    const detailedLocateParam = this.buildDetailedLocateParam(
+      locatePrompt,
+      opt,
+    );
+    const plans = buildPlans('RightClick', detailedLocateParam);
+    const { executor, output } = await this.taskExecutor.runPlans(
+      taskTitleStr('RightClick', locateParamStr(detailedLocateParam)),
+      plans,
+    );
+    this.afterTaskRunning(executor);
+    return output;
+  }
+
   async aiHover(locatePrompt: string, opt?: LocateOption) {
     const detailedLocateParam = this.buildDetailedLocateParam(
       locatePrompt,
@@ -575,8 +589,12 @@ export class PageAgent<PageType extends WebPage = WebPage> {
       return this.aiTap(taskPrompt);
     }
 
+    if (type === 'rightClick') {
+      return this.aiRightClick(taskPrompt);
+    }
+
     throw new Error(
-      `Unknown type: ${type}, only support 'action', 'query', 'assert', 'tap'`,
+      `Unknown type: ${type}, only support 'action', 'query', 'assert', 'tap', 'rightClick'`,
     );
   }
 
