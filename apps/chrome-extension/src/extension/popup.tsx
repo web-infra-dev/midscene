@@ -70,31 +70,11 @@ export function PlaygroundPopup() {
               gap: '10px',
             }}
           >
-            <a
-              style={{
-                color: 'unset',
-              }}
-              href="https://midscenejs.com/"
-              target="_blank"
-              rel="noreferrer"
-            >
-              <HomeOutlined
-                style={{
-                  fontSize: '20px',
-                  cursor: 'pointer',
-                  textDecoration: 'none',
-                }}
-              />
-            </a>
-            <GithubStar />
             <EnvConfig showTooltipWhenEmpty={popupTab === 'playground'} />
           </div>
           <p>
             AI-Driven Browser Automation with Chrome Extensions, JavaScript, and
-            YAML Scripts.{' '}
-            <a href="https://midscenejs.com/" target="_blank" rel="noreferrer">
-              Learn more
-            </a>
+            YAML Scripts.
           </p>
         </div>
         <div className="tabs-container">

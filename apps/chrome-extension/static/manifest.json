@@ -1,5 +1,5 @@
 {
-  "name": "Midscene.js",
+  "name": "Monday Quality Magician",
   "description": "Open-source SDK for automating web pages using natural language through AI.",
   "version": "0.70",
   "manifest_version": 3,
@@ -17,13 +17,13 @@
     "<all_urls>"
   ],
   "action": {
-    "default_icon": "icon128.png",
-    "default_title": "Midscene.js"
+    "default_title": "Monday Quality Magician",
+    "default_icon": "mndy.png"
   },
   "side_panel": {
     "default_path": "./index.html"
   },
   "icons": {
-    "128": "icon128.png"
+    "128": "mndy.png"
   }
 }
