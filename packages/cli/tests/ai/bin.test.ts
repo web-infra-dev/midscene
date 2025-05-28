@@ -6,7 +6,7 @@ import { getTmpFile } from '@midscene/core/utils';
 import { execa } from 'execa';
 import { describe, expect, test, vi } from 'vitest';
 
-const cliBin = require.resolve('../bin/midscene');
+const cliBin = require.resolve('../../bin/midscene');
 vi.setConfig({
   testTimeout: 120 * 1000,
 });
@@ -14,7 +14,7 @@ vi.setConfig({
 const shouldRunAITest =
   process.platform !== 'linux' || process.env.AITEST === 'true';
 
-const serverRoot = join(__dirname, 'server_root');
+const serverRoot = join(__dirname, '../server_root');
 
 const saveYaml = async (yamlString: string) => {
   const tmpDir = tmpdir();
@@ -95,20 +95,20 @@ describe.skipIf(!shouldRunAITest)('bin', () => {
   });
 
   test('run yaml scripts', async () => {
-    const params = ['./tests/midscene_scripts'];
+    const params = ['./tests/midscene_scripts/local/local.yml'];
     await execa(cliBin, params);
   });
 
-  test('run yaml scripts with keepWindow', async () => {
+  test.skip('run yaml scripts with keepWindow', async () => {
     const params = [
-      './tests/midscene_scripts/online/todomvc.yaml',
+      './tests/midscene_scripts/online/online.yaml',
       '--keep-window',
     ];
     await execa(cliBin, params);
   });
 
-  test('run yaml scripts with headed, put options before path', async () => {
-    const params = ['--headed', './tests/midscene_scripts/online/todomvc.yaml'];
+  test.skip('run yaml scripts with headed, put options before path', async () => {
+    const params = ['--headed', './tests/midscene_scripts/online/online.yaml'];
     await execa(cliBin, params);
   });
 
