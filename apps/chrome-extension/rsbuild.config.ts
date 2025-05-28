@@ -59,7 +59,7 @@ export default defineConfig({
         to: 'scripts',
       },
       {
-        from: './src/scripts/content-script-wrapper.js',
+        from: './src/scripts/event-recorder-bridge.js',
         to: 'scripts',
       },
     ],

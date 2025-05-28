@@ -138,7 +138,7 @@ export default function Record() {
             // Then inject the content script wrapper
             await chrome.scripting.executeScript({
                 target: { tabId: currentTab.id },
-                files: ['scripts/content-script-wrapper.js']
+                files: ['scripts/event-recorder-bridge.js']
             });
 
             setIsInjected(true);

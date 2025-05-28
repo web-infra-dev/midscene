@@ -1,4 +1,4 @@
-// Content Script Wrapper for Event Recording
+// Event Recorder Bridge
 // This script bridges the EventRecorder (injected via record-iife.js) with the Chrome Extension
 
 // Check if EventRecorder is available (should be injected by record-iife.js)
@@ -97,7 +97,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
 // Initialize when script loads
 document.addEventListener('DOMContentLoaded', () => {
-    console.log('Content script wrapper loaded');
+    console.log('Event recorder bridge loaded');
 });
 
 // Clean up on page unload
