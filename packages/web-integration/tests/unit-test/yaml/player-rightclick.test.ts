@@ -125,7 +125,10 @@ tasks:
         method: 'aiRightClick',
         args: ['item in menu', { aiRightClick: 'item in menu' }],
       },
-      { method: 'aiAction', args: ['select copy from context menu'] },
+      {
+        method: 'aiAction',
+        args: ['select copy from context menu', { cacheable: undefined }],
+      },
     ]);
   });
 
