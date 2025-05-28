@@ -27,6 +27,22 @@ export default function Record() {
         });
     }, []);
 
+    // Monitor tab updates (refresh, navigation, etc.)
+    useEffect(() => {
+        const handleTabUpdate = (tabId: number, changeInfo: chrome.tabs.TabChangeInfo, tab: chrome.tabs.Tab) => {
+            if (currentTab?.id === tabId && changeInfo.status === 'loading' && isRecording) {
+                // Page is being refreshed or navigating away
+                setIsRecording(false);
+                setIsInjected(false);
+                message.warning('Recording stopped due to page refresh/navigation');
+            }
+        };
+
+        chrome.tabs.onUpdated.addListener(handleTabUpdate);
+        
+        return () => chrome.tabs.onUpdated.removeListener(handleTabUpdate);
+    }, [currentTab, isRecording]);
+
     // Set up message listener for content script
     useEffect(() => {
         // Connect to service worker for receiving events
@@ -83,6 +99,27 @@ export default function Record() {
         };
     }, [addEvent, setEvents]);
 
+    // Check if content script is injected
+    const checkContentScriptInjected = async (tabId: number): Promise<boolean> => {
+        try {
+            const response = await chrome.tabs.sendMessage(tabId, { action: 'ping' });
+            return response?.success === true;
+        } catch (error) {
+            return false;
+        }
+    };
+
+    // Re-inject script if needed
+    const ensureScriptInjected = async () => {
+        if (!currentTab?.id) return false;
+        
+        const isInjected = await checkContentScriptInjected(currentTab.id);
+        if (!isInjected) {
+            await injectScript();
+        }
+        return true;
+    };
+
     // Inject content script
     const injectScript = async () => {
         if (!currentTab?.id) {
@@ -108,7 +145,15 @@ export default function Record() {
             message.success('Recording script injected successfully');
         } catch (error) {
             console.error('Failed to inject script:', error);
-            message.error('Failed to inject recording script');
+            if (error instanceof Error && error.message.includes('Cannot access')) {
+                message.error('Cannot inject script on this page (Chrome internal pages are restricted)');
+            } else if (error instanceof Error && error.message.includes('chrome-extension://')) {
+                message.error('Cannot inject script on Chrome extension pages');
+            } else if (error instanceof Error && error.message.includes('chrome://')) {
+                message.error('Cannot inject script on Chrome system pages');
+            } else {
+                message.error(`Failed to inject recording script: ${error}`);
+            }
         }
     };
 
@@ -119,9 +164,8 @@ export default function Record() {
             return;
         }
 
-        if (!isInjected) {
-            await injectScript();
-        }
+        // Always ensure script is injected before starting
+        await ensureScriptInjected();
 
         try {
             // Send message to content script to start recording
@@ -131,7 +175,7 @@ export default function Record() {
             message.success('Recording started');
         } catch (error) {
             console.error('Failed to start recording:', error);
-            message.error('Failed to start recording. Please refresh the page and try again.');
+            message.error('Failed to start recording. Please ensure you are on a regular web page (not Chrome internal pages) and try again.');
         }
     };
 
@@ -143,13 +187,28 @@ export default function Record() {
         }
 
         try {
-            // Send message to content script to stop recording
-            await chrome.tabs.sendMessage(currentTab.id, { action: 'stop' });
+            // Check if content script is still available before sending message
+            try {
+                // Send message to content script to stop recording
+                await chrome.tabs.sendMessage(currentTab.id, { action: 'stop' });
+                message.success('Recording stopped');
+            } catch (error: any) {
+                // If content script is not available, just stop recording on our side
+                if (error.message?.includes('Receiving end does not exist')) {
+                    console.warn('Content script not available, stopping recording locally');
+                    message.warning('Recording stopped (page may have been refreshed)');
+                } else {
+                    throw error;
+                }
+            }
+            
+            // Always set recording to false regardless of content script status
             setIsRecording(false);
-            message.success('Recording stopped');
         } catch (error) {
             console.error('Failed to stop recording:', error);
-            message.error('Failed to stop recording');
+            message.error(`Failed to stop recording: ${error}`);
+            // Still stop recording on our side even if there was an error
+            setIsRecording(false);
         }
     };
 

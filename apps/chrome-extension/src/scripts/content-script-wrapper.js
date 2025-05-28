@@ -41,6 +41,11 @@ function initializeRecorder() {
 
 // Listen for messages from extension popup
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+    if (message.action === 'ping') {
+        sendResponse({ success: true });
+        return true;
+    }
+    
     if (message.action === 'start') {
         if (!recorder) {
             initializeRecorder();
