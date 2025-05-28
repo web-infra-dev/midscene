@@ -443,7 +443,7 @@ exports[`system prompts > planning - 4o - response format 1`] = `
                 "type": "string",
               },
               "type": {
-                "description": "Type of action, one of "Tap", "Hover" , "Input", "KeyboardPress", "Scroll", "ExpectedFalsyCondition", "Sleep", "AndroidBackButton", "AndroidHomeButton", "AndroidRecentAppsButton"",
+                "description": "Type of action, one of "Tap", "RightClick", "Hover" , "Input", "KeyboardPress", "Scroll", "ExpectedFalsyCondition", "Sleep", "AndroidBackButton", "AndroidHomeButton", "AndroidRecentAppsButton"",
                 "type": "string",
               },
             },
@@ -531,6 +531,8 @@ type LocateParam = {
 
 Each action has a \`type\` and corresponding \`param\`. To be detailed:
 - type: 'Tap'
+  * { locate: {"id": string, "prompt": string} | null }
+- type: 'RightClick'
   * { locate: {"id": string, "prompt": string} | null }
 - type: 'Hover'
   * { locate: {"id": string, "prompt": string} | null }
@@ -647,6 +649,7 @@ Restriction:
 
 Supporting actions:
 - Tap: { type: "Tap", locate: {bbox: [number, number, number, number], prompt: string } }
+- RightClick: { type: "RightClick", locate: {bbox: [number, number, number, number], prompt: string } }
 - Hover: { type: "Hover", locate: {bbox: [number, number, number, number], prompt: string } }
 - Input: { type: "Input", locate: {bbox: [number, number, number, number], prompt: string }, param: { value: string } } // Replace the input field with a new value. \`value\` is the final that should be filled in the input box. No matter what modifications are required, just provide the final value to replace the existing input value. Giving a blank string means clear the input field.
 - KeyboardPress: { type: "KeyboardPress", param: { value: string } }
@@ -723,6 +726,7 @@ Restriction:
 
 Supporting actions:
 - Tap: { type: "Tap", locate: {bbox: [number, number, number, number], prompt: string } }
+- RightClick: { type: "RightClick", locate: {bbox: [number, number, number, number], prompt: string } }
 - Hover: { type: "Hover", locate: {bbox: [number, number, number, number], prompt: string } }
 - Input: { type: "Input", locate: {bbox: [number, number, number, number], prompt: string }, param: { value: string } } // Replace the input field with a new value. \`value\` is the final that should be filled in the input box. No matter what modifications are required, just provide the final value to replace the existing input value. Giving a blank string means clear the input field.
 - KeyboardPress: { type: "KeyboardPress", param: { value: string } }
@@ -777,6 +781,7 @@ Restriction:
 
 Supporting actions:
 - Tap: { type: "Tap", locate: {bbox: [number, number, number, number], prompt: string } }
+- RightClick: { type: "RightClick", locate: {bbox: [number, number, number, number], prompt: string } }
 - Hover: { type: "Hover", locate: {bbox: [number, number, number, number], prompt: string } }
 - Input: { type: "Input", locate: {bbox: [number, number, number, number], prompt: string }, param: { value: string } } // Replace the input field with a new value. \`value\` is the final that should be filled in the input box. No matter what modifications are required, just provide the final value to replace the existing input value. Giving a blank string means clear the input field.
 - KeyboardPress: { type: "KeyboardPress", param: { value: string } }
