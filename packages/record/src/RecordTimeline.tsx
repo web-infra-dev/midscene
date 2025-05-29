@@ -6,7 +6,7 @@ import {
     MoreOutlined,
     VerticalAlignTopOutlined
 } from '@ant-design/icons';
-import { Button, Card, Image, Space, Tag, Timeline, Typography } from 'antd';
+import { Button, Card, Image, Popover, Space, Tag, Timeline, Typography } from 'antd';
 // biome-ignore lint/style/useImportType: <explanation>
 import React from 'react';
 
@@ -25,6 +25,8 @@ interface RecordedEvent {
     url?: string;
     title?: string;
     screenshot?: string;
+    screenshotBefore?: string;
+    screenshotAfter?: string;
 }
 
 interface RecordTimelineProps {
@@ -182,14 +184,48 @@ export const RecordTimeline = ({ events, onEventClick }: RecordTimelineProps) =>
                         />
                     </Space>
                     {getEventDescription(event)}
-                    {event.screenshot && (
-                        <Image
-                            src={event.screenshot}
-                            width={60}
-                            height={40}
-                            style={{ objectFit: 'cover', borderRadius: 4 }}
-                            preview={false}
-                        />
+                    {(event.screenshot || event.screenshotBefore) && (
+                        <Popover
+                            content={
+                                <div style={{ maxWidth: '500px' }}>
+                                    <Image
+                                        src={event.screenshotBefore || event.screenshot || ''}
+                                        style={{ width: '100%', maxHeight: '400px', objectFit: 'contain' }}
+                                        preview={true}
+                                    />
+                                    <div style={{ marginTop: '8px', textAlign: 'center' }}>
+                                        <Text type="secondary">Screenshot before {event.type}</Text>
+                                    </div>
+                                </div>
+                            }
+                            title={null}
+                            trigger="hover"
+                            placement="left"
+                        >
+                            <Image
+                                src={event.screenshotBefore || event.screenshot || ''}
+                                width={60}
+                                height={40}
+                                style={{
+                                    objectFit: 'cover',
+                                    borderRadius: 4,
+                                    cursor: 'pointer',
+                                    transition: 'transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out',
+                                    border: '1px solid #f0f0f0'
+                                }}
+                                preview={false}
+                                onMouseEnter={(e) => {
+                                    const target = e.currentTarget as HTMLElement;
+                                    target.style.transform = 'scale(1.05)';
+                                    target.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.15)';
+                                }}
+                                onMouseLeave={(e) => {
+                                    const target = e.currentTarget as HTMLElement;
+                                    target.style.transform = 'scale(1)';
+                                    target.style.boxShadow = 'none';
+                                }}
+                            />
+                        </Popover>
                     )}
                     <Text type="secondary" style={{ fontSize: '12px' }}>
                         {formatTime(event.timestamp)}

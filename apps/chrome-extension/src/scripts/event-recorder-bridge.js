@@ -9,18 +9,56 @@ if (typeof window.EventRecorder === 'undefined') {
 let recorder = null;
 let events = [];
 
+// Helper function to capture screenshot
+async function captureScreenshot() {
+    try {
+        return await chrome.runtime.sendMessage({ action: 'captureScreenshot' });
+    } catch (error) {
+        console.error('Failed to capture screenshot:', error);
+        return null;
+    }
+}
+
 // Initialize recorder with callback to send events to extension
-function initializeRecorder() {
+async function initializeRecorder() {
     if (!window.EventRecorder) {
         console.error('EventRecorder class not available');
         return;
     }
 
-    recorder = new window.EventRecorder((event) => {
+    recorder = new window.EventRecorder(async (event) => {
+        // Capture screenshot before processing the event
+        const screenshotBefore = await captureScreenshot();
+        
         const optimizedEvent = recorder.optimizeEvent(event, events);
         // Add event to local array
         events = optimizedEvent;
 
+        // Add screenshots to the latest event
+        if (events.length > 0) {
+            const latestEvent = events[events.length - 1];
+            if (screenshotBefore) {
+                latestEvent.screenshotBefore = screenshotBefore;
+            }
+            
+            // Capture screenshot after the event (with a small delay to let the UI update)
+            setTimeout(async () => {
+                const screenshotAfter = await captureScreenshot();
+                if (screenshotAfter) {
+                    latestEvent.screenshotAfter = screenshotAfter;
+                }
+                
+                // Send updated events array to extension popup
+                sendEventsToExtension();
+            }, 100);
+        } else {
+            // Send events array to extension popup
+            sendEventsToExtension();
+        }
+    });
+}
+
+function sendEventsToExtension() {
         // Send events array to extension popup
         console.log('sending events to extension', events);
         chrome.runtime.sendMessage({
@@ -31,12 +69,13 @@ function initializeRecorder() {
                 x: event.x,
                 y: event.y,
                 value: event.value,
+                screenshotBefore: event.screenshotBefore,
+                screenshotAfter: event.screenshotAfter,
             }))
         }).catch(error => {
             // Silently handle errors (popup might not be open)
             console.debug('Failed to send event to extension:', error);
         });
-    });
 }
 
 // Listen for messages from extension popup

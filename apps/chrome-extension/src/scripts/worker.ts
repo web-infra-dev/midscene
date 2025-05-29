@@ -37,6 +37,24 @@ chrome.runtime.onConnect.addListener((port) => {
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   console.log('Message received in service worker:', request);
 
+  // Handle screenshot capture request
+  if (request.action === 'captureScreenshot') {
+    if (sender.tab && sender.tab.id !== undefined) {
+      chrome.tabs.captureVisibleTab(sender.tab.windowId, { format: 'png' }, (dataUrl) => {
+        if (chrome.runtime.lastError) {
+          console.error('Failed to capture screenshot:', chrome.runtime.lastError);
+          sendResponse(null);
+        } else {
+          sendResponse(dataUrl);
+        }
+      });
+      return true; // Keep the message channel open for async response
+    } else {
+      sendResponse(null);
+      return true;
+    }
+  }
+  
   // Forward recording events to connected extension pages
   if (request.action === 'events' || request.action === 'event') {
     connectedPorts.forEach(port => {

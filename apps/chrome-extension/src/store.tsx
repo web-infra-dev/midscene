@@ -35,6 +35,9 @@ export interface RecordedEvent {
     textContent?: string;
   };
   isTrusted?: boolean;
+  screenshotBefore?: string;
+  screenshotAfter?: string;
+  screenshot?: string;
   detail?: number;
   inputType?: string;
   url?: string;
@@ -42,6 +45,8 @@ export interface RecordedEvent {
   viewportY?: number;
   width?: number;
   height?: number;
+  screenshotBefore?: string; // Base64 encoded screenshot before the event
+  screenshotAfter?: string; // Base64 encoded screenshot after the event
 }
 
 // Recording session interface
