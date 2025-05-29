@@ -6,11 +6,13 @@ dotenv.config({
   path: path.join(__dirname, '../../.env'),
 });
 
+const enableAiTest = Boolean(process.env.AITEST);
+const basicTest = ['tests/unit-test/**/*.test.ts'];
+
 export default defineConfig({
   test: {
-    include: ['tests/**/*.test.ts'],
-    // bridge test is not supported in cli
-    // exclude: ['tests/bridge.test.ts'],
+    include: enableAiTest ? ['tests/ai/**/*.test.ts'] : basicTest,
+    testTimeout: 3 * 60 * 1000, // Global timeout set to 3 minutes
   },
   resolve: {
     alias: {

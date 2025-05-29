@@ -2,7 +2,7 @@ import { join } from 'node:path';
 import { matchYamlFiles } from '@/cli-utils';
 import { launchServer } from '@/yaml-runner';
 import { describe, expect, test } from 'vitest';
-const serverRoot = join(__dirname, 'server_root');
+const serverRoot = join(__dirname, '../server_root');
 
 describe('cli utils', () => {
   test('match exact file', async () => {

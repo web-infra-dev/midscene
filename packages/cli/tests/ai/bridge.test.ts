@@ -1,6 +1,6 @@
 import { execa } from 'execa';
 import { describe, test } from 'vitest';
-const cliBin = require.resolve('../bin/midscene');
+const cliBin = require.resolve('../../bin/midscene');
 
 const describeIf = process.env.BRIDGE_MODE ? describe : describe.skip;
 
@@ -11,10 +11,8 @@ describeIf(
   },
   () => {
     test('open new tab', async () => {
-      // const params = ['./tests/midscene_scripts/online/bing.yaml', '--keep-window'];
       const params = [
         './tests/midscene_scripts_bridge/new_tab/open-new-tab.yaml',
-        '--keep-window',
       ];
       await execa(cliBin, params);
     });
