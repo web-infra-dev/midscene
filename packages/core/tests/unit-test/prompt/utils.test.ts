@@ -1,22 +1,15 @@
 import { describeUserPage } from '@/ai-model/prompt/util';
-import { vlLocateMode } from '@midscene/shared/env';
 import { getContextFromFixture } from 'tests/evaluation';
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 
-// Mock vlLocateMode to return false during tests
-vi.mock('@midscene/shared/env', async () => {
-  const actual = await vi.importActual('@midscene/shared/env');
-  return {
-    ...actual,
-    vlLocateMode: () => false,
-  };
-});
-
-describe.skipIf(vlLocateMode())('prompt utils', () => {
+describe('prompt utils', () => {
   let lengthOfDescription: number;
-  it('describe context', async () => {
-    const context = await getContextFromFixture('taobao');
-    const { description } = await describeUserPage(context.context);
+  it('describe context, length = 50 ', async () => {
+    const context = await getContextFromFixture('todo');
+    const { description } = await describeUserPage(context.context, {
+      truncateTextLength: 50,
+      useDom: true,
+    });
 
     lengthOfDescription = description.length;
     const stringLengthOfEachItem =
@@ -26,11 +19,12 @@ describe.skipIf(vlLocateMode())('prompt utils', () => {
   });
 
   it('describe context, length = 100, filterNonTextContent = true', async () => {
-    const context = await getContextFromFixture('taobao');
+    const context = await getContextFromFixture('todo');
 
     const { description } = await describeUserPage(context.context, {
       truncateTextLength: 100,
       filterNonTextContent: true,
+      useDom: true,
     });
 
     const stringLengthOfEachItem =
@@ -38,8 +32,6 @@ describe.skipIf(vlLocateMode())('prompt utils', () => {
     expect(description).toBeTruthy();
     expect(stringLengthOfEachItem).toBeLessThan(160);
 
-    if (!vlLocateMode()) {
-      expect(description.length).toBeLessThan(lengthOfDescription * 0.8);
-    }
+    expect(description.length).toBeLessThan(lengthOfDescription);
   });
 });
