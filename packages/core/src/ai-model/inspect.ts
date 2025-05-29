@@ -317,7 +317,7 @@ export async function AiExtractElementInfo<
     truncateTextLength: 200,
     filterNonTextContent: false,
     visibleOnly: false,
-    useDom: extractOption?.useDom,
+    domIncluded: extractOption?.domIncluded,
   });
 
   const extractDataPromptText = await extractDataQueryPrompt(
@@ -327,7 +327,7 @@ export async function AiExtractElementInfo<
 
   const userContent: ChatCompletionUserMessageParam['content'] = [];
 
-  if (extractOption?.useScreenshot !== false) {
+  if (extractOption?.screenshotIncluded !== false) {
     userContent.push({
       type: 'image_url',
       image_url: {

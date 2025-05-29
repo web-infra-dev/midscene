@@ -7,8 +7,8 @@ export interface LocateOption {
 }
 
 export interface InsightExtractOption {
-  useDom?: boolean;
-  useScreenshot?: boolean;
+  domIncluded?: boolean;
+  screenshotIncluded?: boolean;
 }
 
 export interface ReferenceImage {

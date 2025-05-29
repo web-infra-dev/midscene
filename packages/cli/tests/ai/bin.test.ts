@@ -99,7 +99,7 @@ describe.skipIf(!shouldRunAITest)('bin', () => {
     await execa(cliBin, params);
   });
 
-  test('query with useDom', async () => {
+  test('query with domIncluded', async () => {
     const output = getTmpFile('json');
     const yamlString = `
     # login to sauce demo, extract the items info into a json file, and assert the price of 'Sauce Labs Fleece Jacket'
@@ -118,7 +118,7 @@ tasks:
       - aiQuery: >
           {name: string, price: number, actionBtnName: string, imageUrl: string}[], return item name, price and the action button name on the lower right corner of each item, and the image url of each item (like 'Remove')
         name: items
-        useDom: true
+        domIncluded: true
       - aiAssert: The price of 'Sauce Labs Fleece Jacket' is 49.99
 
   - name: run javascript code

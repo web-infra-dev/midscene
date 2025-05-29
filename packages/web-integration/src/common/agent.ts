@@ -68,8 +68,8 @@ const includedInRect = (point: [number, number], rect: Rect) => {
 };
 
 const defaultInsightExtractOption: InsightExtractOption = {
-  useDom: false,
-  useScreenshot: true,
+  domIncluded: false,
+  screenshotIncluded: true,
 };
 
 export interface PageAgentOpt {

@@ -53,7 +53,7 @@ describe(
       // find the items
       const items = await agent.aiQuery(
         '{name: string, price: number, actionBtnName: string, imageUrl: string}[], return item name, price and the action button name on the lower right corner of each item, and the image url of each item (like "Remove")',
-        { useDom: true, useScreenshot: false },
+        { domIncluded: true, screenshotIncluded: false },
       );
       console.log('item list', items);
       expect(items[0].imageUrl).toContain('/static/media/');

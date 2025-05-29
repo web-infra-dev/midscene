@@ -159,8 +159,8 @@ export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
         const queryTask = flowItem as MidsceneYamlFlowItemAIQuery;
         const prompt = queryTask.aiQuery;
         const options = {
-          useDom: queryTask.useDom,
-          useScreenshot: queryTask.useScreenshot,
+          domIncluded: queryTask.domIncluded,
+          screenshotIncluded: queryTask.screenshotIncluded,
         };
         assert(prompt, 'missing prompt for aiQuery');
         assert(
@@ -173,8 +173,8 @@ export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
         const numberTask = flowItem as MidsceneYamlFlowItemAINumber;
         const prompt = numberTask.aiNumber;
         const options = {
-          useDom: numberTask.useDom,
-          useScreenshot: numberTask.useScreenshot,
+          domIncluded: numberTask.domIncluded,
+          screenshotIncluded: numberTask.screenshotIncluded,
         };
         assert(prompt, 'missing prompt for number');
         assert(
@@ -187,8 +187,8 @@ export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
         const stringTask = flowItem as MidsceneYamlFlowItemAINString;
         const prompt = stringTask.aiString;
         const options = {
-          useDom: stringTask.useDom,
-          useScreenshot: stringTask.useScreenshot,
+          domIncluded: stringTask.domIncluded,
+          screenshotIncluded: stringTask.screenshotIncluded,
         };
         assert(prompt, 'missing prompt for string');
         assert(
@@ -201,8 +201,8 @@ export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
         const booleanTask = flowItem as MidsceneYamlFlowItemAIBoolean;
         const prompt = booleanTask.aiBoolean;
         const options = {
-          useDom: booleanTask.useDom,
-          useScreenshot: booleanTask.useScreenshot,
+          domIncluded: booleanTask.domIncluded,
+          screenshotIncluded: booleanTask.screenshotIncluded,
         };
         assert(prompt, 'missing prompt for boolean');
         assert(

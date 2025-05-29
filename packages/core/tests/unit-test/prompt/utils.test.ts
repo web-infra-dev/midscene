@@ -8,7 +8,7 @@ describe('prompt utils', () => {
     const context = await getContextFromFixture('todo');
     const { description } = await describeUserPage(context.context, {
       truncateTextLength: 50,
-      useDom: true,
+      domIncluded: true,
     });
 
     lengthOfDescription = description.length;
@@ -24,7 +24,7 @@ describe('prompt utils', () => {
     const { description } = await describeUserPage(context.context, {
       truncateTextLength: 100,
       filterNonTextContent: true,
-      useDom: true,
+      domIncluded: true,
     });
 
     const stringLengthOfEachItem =

@@ -132,7 +132,7 @@ export async function describeUserPage<
   opt?: {
     truncateTextLength?: number;
     filterNonTextContent?: boolean;
-    useDom?: boolean;
+    domIncluded?: boolean;
     visibleOnly?: boolean;
   },
 ) {
@@ -159,7 +159,7 @@ export async function describeUserPage<
   });
 
   let pageDescription = '';
-  if (opt?.useDom) {
+  if (opt?.domIncluded) {
     const contentTree = await descriptionOfTree(
       treeRoot,
       opt?.truncateTextLength,
