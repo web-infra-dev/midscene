@@ -1,18 +1,18 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import type { NodeType } from '@midscene/shared/constants';
-import type { ChatCompletionMessageParam } from 'openai/resources';
-import type {
-  DetailedLocateParam,
-  MidsceneYamlFlowItem,
-  scrollParam,
-} from './yaml';
 import type {
   BaseElement,
   ElementTreeNode,
   Rect,
   Size,
 } from '@midscene/shared/types';
+import type { ChatCompletionMessageParam } from 'openai/resources';
+import type {
+  DetailedLocateParam,
+  MidsceneYamlFlowItem,
+  scrollParam,
+} from './yaml';
 
 export type {
   ElementTreeNode,
@@ -386,7 +386,7 @@ export interface ExecutionTaskApply<
     param: TaskParam,
     context: ExecutorContext,
   ) => // biome-ignore lint/suspicious/noConfusingVoidType: <explanation>
-  | Promise<ExecutionTaskReturn<TaskOutput, TaskLog> | undefined | void>
+    | Promise<ExecutionTaskReturn<TaskOutput, TaskLog> | undefined | void>
     | undefined
     | void;
 }

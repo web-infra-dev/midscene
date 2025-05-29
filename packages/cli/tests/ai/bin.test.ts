@@ -99,6 +99,44 @@ describe.skipIf(!shouldRunAITest)('bin', () => {
     await execa(cliBin, params);
   });
 
+  test('query with useDom', async () => {
+    const output = getTmpFile('json');
+    const yamlString = `
+    # login to sauce demo, extract the items info into a json file, and assert the price of 'Sauce Labs Fleece Jacket'
+
+web:
+  url: https://www.saucedemo.com/
+  output: ${output}
+
+tasks:
+  - name: login
+    flow:
+      - aiAction: type 'standard_user' in user name input, type 'secret_sauce' in password, click 'Login'
+
+  - name: extract items info
+    flow:
+      - aiQuery: >
+          {name: string, price: number, actionBtnName: string, imageUrl: string}[], return item name, price and the action button name on the lower right corner of each item, and the image url of each item (like 'Remove')
+        name: items
+        useDom: true
+      - aiAssert: The price of 'Sauce Labs Fleece Jacket' is 49.99
+
+  - name: run javascript code
+    flow:
+      - javascript: >
+          document.title
+        name: page-title
+
+    `;
+    const path = await saveYaml(yamlString);
+    const params = [path];
+    await execa(cliBin, params);
+    const result = JSON.parse(readFileSync(output!, 'utf-8'));
+    expect(result.items.length).toBeGreaterThanOrEqual(2);
+    expect(result.items[0].imageUrl).toContain('/static/media/');
+    expect(result).toMatchSnapshot();
+  });
+
   test.skip('run yaml scripts with keepWindow', async () => {
     const params = [
       './tests/midscene_scripts/online/online.yaml',

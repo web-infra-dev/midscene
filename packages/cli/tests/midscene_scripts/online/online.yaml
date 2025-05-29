@@ -2,7 +2,7 @@
 
 web:
   url: https://www.saucedemo.com/
-  output: ./output/sauce-demo-items.json
+  output: ./midscene_output/sauce-demo-items.json
 
 tasks:
   - name: login
