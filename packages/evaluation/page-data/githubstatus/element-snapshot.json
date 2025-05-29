@@ -1,8 +1,37 @@
 [
   {
-    "id": "hcdge",
+    "id": "fpahg",
     "indexId": 0,
-    "nodeHashId": "hcdge",
+    "nodeHashId": "fpahg",
+    "nodeType": "Anchor Node",
+    "locator": "[_midscene_retrieve_task_id='fpahg']",
+    "attributes": {
+      "href": "/",
+      "class": ".text-gray-dark",
+      "aria-label": "GitHub Octicon logo",
+      "htmlTagName": "<a>",
+      "nodeType": "Anchor Node"
+    },
+    "content": "",
+    "rect": {
+      "left": 944,
+      "top": 20,
+      "width": 32,
+      "height": 32,
+      "zoom": 1,
+      "isVisible": true
+    },
+    "center": [
+      960,
+      36
+    ],
+    "zoom": 1,
+    "isVisible": true
+  },
+  {
+    "id": "fpdib",
+    "indexId": 1,
+    "nodeHashId": "fpdib",
     "locator": "",
     "attributes": {
       "svgContent": "true",
@@ -16,111 +45,238 @@
       "top": 20,
       "width": 32,
       "height": 31,
-      "zoom": 1
+      "zoom": 1,
+      "isVisible": true
     },
-    "center": [960, 36],
+    "center": [
+      960,
+      36
+    ],
     "zoom": 1,
-    "screenWidth": 1920,
-    "screenHeight": 1080
+    "isVisible": true
   },
   {
-    "id": "neica",
-    "indexId": 1,
-    "nodeHashId": "neica",
+    "id": "blhce",
+    "indexId": 2,
+    "nodeHashId": "blhce",
+    "nodeType": "Anchor Node",
+    "locator": "[_midscene_retrieve_task_id='blhce']",
+    "attributes": {
+      "class": ".mr-3.mr-lg-4.py-2",
+      "href": "https://help.github.com",
+      "htmlTagName": "<a>",
+      "nodeType": "Anchor Node"
+    },
+    "content": "Help",
+    "rect": {
+      "left": 24,
+      "top": 19,
+      "width": 34,
+      "height": 35,
+      "zoom": 1,
+      "isVisible": true
+    },
+    "center": [
+      41,
+      37
+    ],
+    "zoom": 1,
+    "isVisible": true
+  },
+  {
+    "id": "fbcif",
+    "indexId": 3,
+    "nodeHashId": "fbcif",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
       "nodeType": "TEXT Node",
       "htmlTagName": "<a>"
     },
-    "center": [41, 37],
+    "center": [
+      41,
+      37
+    ],
     "content": "Help",
     "rect": {
       "left": 24,
       "top": 27,
       "width": 34,
       "height": 19,
-      "zoom": 1
+      "zoom": 1,
+      "isVisible": true
     },
     "zoom": 1,
-    "screenWidth": 1920,
-    "screenHeight": 1080
+    "isVisible": true
   },
   {
-    "id": "glbjl",
-    "indexId": 2,
-    "nodeHashId": "glbjl",
+    "id": "oieac",
+    "indexId": 4,
+    "nodeHashId": "oieac",
+    "nodeType": "Anchor Node",
+    "locator": "[_midscene_retrieve_task_id='oieac']",
+    "attributes": {
+      "class": ".mr-3.mr-lg-4.py-2",
+      "href": "https://github.community",
+      "htmlTagName": "<a>",
+      "nodeType": "Anchor Node"
+    },
+    "content": "Community",
+    "rect": {
+      "left": 86,
+      "top": 19,
+      "width": 83,
+      "height": 35,
+      "zoom": 1,
+      "isVisible": true
+    },
+    "center": [
+      128,
+      37
+    ],
+    "zoom": 1,
+    "isVisible": true
+  },
+  {
+    "id": "hnpkd",
+    "indexId": 5,
+    "nodeHashId": "hnpkd",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
       "nodeType": "TEXT Node",
       "htmlTagName": "<a>"
     },
-    "center": [128, 37],
+    "center": [
+      128,
+      37
+    ],
     "content": "Community",
     "rect": {
       "left": 86,
       "top": 27,
       "width": 83,
       "height": 19,
-      "zoom": 1
+      "zoom": 1,
+      "isVisible": true
     },
     "zoom": 1,
-    "screenWidth": 1920,
-    "screenHeight": 1080
+    "isVisible": true
   },
   {
-    "id": "mbikf",
-    "indexId": 3,
-    "nodeHashId": "mbikf",
+    "id": "bocdm",
+    "indexId": 6,
+    "nodeHashId": "bocdm",
+    "nodeType": "Anchor Node",
+    "locator": "[_midscene_retrieve_task_id='bocdm']",
+    "attributes": {
+      "class": ".mr-3.py-2.text-gray.",
+      "href": "/",
+      "htmlTagName": "<a>",
+      "nodeType": "Anchor Node"
+    },
+    "content": "Status",
+    "rect": {
+      "left": 197,
+      "top": 19,
+      "width": 46,
+      "height": 35,
+      "zoom": 1,
+      "isVisible": true
+    },
+    "center": [
+      220,
+      37
+    ],
+    "zoom": 1,
+    "isVisible": true
+  },
+  {
+    "id": "edpgj",
+    "indexId": 7,
+    "nodeHashId": "edpgj",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
       "nodeType": "TEXT Node",
       "htmlTagName": "<a>"
     },
-    "center": [220, 37],
+    "center": [
+      220,
+      37
+    ],
     "content": "Status",
     "rect": {
       "left": 197,
       "top": 27,
       "width": 46,
       "height": 19,
-      "zoom": 1
+      "zoom": 1,
+      "isVisible": true
     },
     "zoom": 1,
-    "screenWidth": 1920,
-    "screenHeight": 1080
+    "isVisible": true
   },
   {
-    "id": "jdmek",
-    "indexId": 4,
-    "nodeHashId": "jdmek",
+    "id": "lbfkd",
+    "indexId": 8,
+    "nodeHashId": "lbfkd",
+    "nodeType": "Anchor Node",
+    "locator": "[_midscene_retrieve_task_id='lbfkd']",
+    "attributes": {
+      "class": ".py-2",
+      "href": "https://github.com",
+      "htmlTagName": "<a>",
+      "nodeType": "Anchor Node"
+    },
+    "content": "GitHub.com",
+    "rect": {
+      "left": 1622,
+      "top": 19,
+      "width": 86,
+      "height": 35,
+      "zoom": 1,
+      "isVisible": true
+    },
+    "center": [
+      1665,
+      37
+    ],
+    "zoom": 1,
+    "isVisible": true
+  },
+  {
+    "id": "ogphm",
+    "indexId": 9,
+    "nodeHashId": "ogphm",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
       "nodeType": "TEXT Node",
       "htmlTagName": "<a>"
     },
-    "center": [1665, 37],
+    "center": [
+      1665,
+      37
+    ],
     "content": "GitHub.com",
     "rect": {
       "left": 1622,
       "top": 27,
       "width": 86,
       "height": 19,
-      "zoom": 1
+      "zoom": 1,
+      "isVisible": true
     },
     "zoom": 1,
-    "screenWidth": 1920,
-    "screenHeight": 1080
+    "isVisible": true
   },
   {
-    "id": "inilf",
-    "nodeHashId": "inilf",
-    "indexId": 5,
-    "nodeType": "CONTAINER Node",
-    "locator": "[_midscene_retrieve_task_id='inilf']",
+    "id": "bfebm",
+    "indexId": 10,
+    "nodeHashId": "bfebm",
+    "nodeType": "Anchor Node",
+    "locator": "[_midscene_retrieve_task_id='bfebm']",
     "attributes": {
       "href": "#",
       "data-js-hook": "show-updates-dropdown",
@@ -130,34 +286,37 @@
       "aria-expanded": "false",
       "aria-haspopup": "dialog",
       "role": "button",
-      "nodeType": "CONTAINER Node",
-      "htmlTagName": "<div>"
+      "htmlTagName": "<a>",
+      "nodeType": "Anchor Node"
     },
-    "content": "",
+    "content": "Subscribe To Updates",
     "rect": {
       "left": 1736,
       "top": 27,
       "width": 160,
       "height": 19,
-      "zoom": 1
+      "zoom": 1,
+      "isVisible": true
     },
-    "center": [1816, 37],
+    "center": [
+      1816,
+      37
+    ],
     "zoom": 1,
-    "screenWidth": 1920,
-    "screenHeight": 1080
+    "isVisible": true
   },
   {
-    "id": "eipfo",
-    "indexId": 6,
-    "nodeHashId": "eipfo",
-    "locator": "[_midscene_retrieve_task_id='eipfo']",
+    "id": "ojjpk",
+    "indexId": 11,
+    "nodeHashId": "ojjpk",
+    "locator": "[_midscene_retrieve_task_id='ojjpk']",
     "attributes": {
       "src": "https://user-images.githubusercontent.com/19292210/60553863-044dd200-9cea-11e9-987e-7db84449f215.png",
       "class": ".illo-desktop-header",
       "style": "display: none;",
       "alt": "GitHub header",
       "nodeType": "IMG Node",
-      "htmlTagName": "<div>"
+      "htmlTagName": "<img>"
     },
     "nodeType": "IMG Node",
     "content": "",
@@ -166,964 +325,4671 @@
       "top": 73,
       "width": 1920,
       "height": 422,
-      "zoom": 1
+      "zoom": 1,
+      "isVisible": true
     },
-    "center": [960, 284],
+    "center": [
+      960,
+      284
+    ],
     "zoom": 1,
-    "screenWidth": 1920,
-    "screenHeight": 1080
+    "isVisible": true
   },
   {
-    "id": "djonb",
-    "indexId": 7,
-    "nodeHashId": "djonb",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<span>"
-    },
-    "center": [632, 427],
-    "content": "All Systems Operational",
-    "rect": {
-      "left": 522,
-      "top": 415,
-      "width": 219,
-      "height": 24,
-      "zoom": 1
-    },
-    "zoom": 1,
-    "screenWidth": 1920,
-    "screenHeight": 1080
-  },
-  {
-    "id": "aabof",
-    "indexId": 8,
-    "nodeHashId": "aabof",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<span>"
-    },
-    "center": [546, 593],
-    "content": "Git Operations",
-    "rect": {
-      "left": 492,
-      "top": 583,
-      "width": 107,
-      "height": 19,
-      "zoom": 1
-    },
-    "zoom": 1,
-    "screenWidth": 1920,
-    "screenHeight": 1080
-  },
-  {
-    "id": "fmhia",
-    "indexId": 9,
-    "nodeHashId": "fmhia",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<span>"
-    },
-    "center": [617, 592],
-    "content": "?",
-    "rect": {
-      "left": 614,
-      "top": 585,
-      "width": 6,
-      "height": 14,
-      "zoom": 1
-    },
-    "zoom": 1,
-    "screenWidth": 1920,
-    "screenHeight": 1080
-  },
-  {
-    "id": "milim",
-    "nodeHashId": "milim",
-    "indexId": 10,
-    "nodeType": "CONTAINER Node",
-    "locator": "[_midscene_retrieve_task_id='milim']",
-    "attributes": {
-      "class": ".tool.icon-indicator.fa.fa-check.tooltipstered",
-      "nodeType": "CONTAINER Node",
-      "htmlTagName": "<div>"
-    },
-    "content": "",
-    "rect": {
-      "left": 916,
-      "top": 583,
-      "width": 24,
-      "height": 24,
-      "zoom": 1
-    },
-    "center": [928, 595],
-    "zoom": 1,
-    "screenWidth": 1920,
-    "screenHeight": 1080
-  },
-  {
-    "id": "jbanm",
-    "indexId": 11,
-    "nodeHashId": "jbanm",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<span>"
-    },
-    "center": [516, 619],
-    "content": "Normal",
-    "rect": {
-      "left": 492,
-      "top": 610,
-      "width": 47,
-      "height": 17,
-      "zoom": 1
-    },
-    "zoom": 1,
-    "screenWidth": 1920,
-    "screenHeight": 1080
-  },
-  {
-    "id": "njnjm",
+    "id": "bekie",
     "indexId": 12,
-    "nodeHashId": "njnjm",
-    "nodeType": "TEXT Node",
-    "locator": "",
+    "nodeHashId": "bekie",
+    "nodeType": "Anchor Node",
+    "locator": "[_midscene_retrieve_task_id='bekie']",
     "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<span>"
+      "class": ".whitespace-pre-wrap.actual-title.with-ellipsis",
+      "href": "/incidents/67vdd3b7d1zq",
+      "htmlTagName": "<a>",
+      "nodeType": "Anchor Node"
     },
-    "center": [1020, 593],
-    "content": "Webhooks",
+    "content": "Codespaces Scheduled Maintenance",
     "rect": {
-      "left": 981,
-      "top": 583,
-      "width": 78,
-      "height": 19,
-      "zoom": 1
+      "left": 490,
+      "top": 415,
+      "width": 705,
+      "height": 29,
+      "zoom": 1,
+      "isVisible": true
     },
+    "center": [
+      843,
+      430
+    ],
     "zoom": 1,
-    "screenWidth": 1920,
-    "screenHeight": 1080
+    "isVisible": true
   },
   {
-    "id": "hjkdo",
+    "id": "hhcnf",
     "indexId": 13,
-    "nodeHashId": "hjkdo",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<span>"
-    },
-    "center": [1077, 592],
-    "content": "?",
-    "rect": {
-      "left": 1074,
-      "top": 585,
-      "width": 6,
-      "height": 14,
-      "zoom": 1
-    },
-    "zoom": 1,
-    "screenWidth": 1920,
-    "screenHeight": 1080
-  },
-  {
-    "id": "okkff",
-    "nodeHashId": "okkff",
-    "indexId": 14,
-    "nodeType": "CONTAINER Node",
-    "locator": "[_midscene_retrieve_task_id='okkff']",
-    "attributes": {
-      "class": ".tool.icon-indicator.fa.fa-check.tooltipstered",
-      "nodeType": "CONTAINER Node",
-      "htmlTagName": "<div>"
-    },
-    "content": "",
-    "rect": {
-      "left": 1405,
-      "top": 583,
-      "width": 24,
-      "height": 24,
-      "zoom": 1
-    },
-    "center": [1417, 595],
-    "zoom": 1,
-    "screenWidth": 1920,
-    "screenHeight": 1080
-  },
-  {
-    "id": "cfjbb",
-    "indexId": 15,
-    "nodeHashId": "cfjbb",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<span>"
-    },
-    "center": [1005, 619],
-    "content": "Normal",
-    "rect": {
-      "left": 981,
-      "top": 610,
-      "width": 47,
-      "height": 17,
-      "zoom": 1
-    },
-    "zoom": 1,
-    "screenWidth": 1920,
-    "screenHeight": 1080
-  },
-  {
-    "id": "ajong",
-    "indexId": 16,
-    "nodeHashId": "ajong",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<span>"
-    },
-    "center": [541, 683],
-    "content": "API Requests",
-    "rect": {
-      "left": 492,
-      "top": 673,
-      "width": 98,
-      "height": 19,
-      "zoom": 1
-    },
-    "zoom": 1,
-    "screenWidth": 1920,
-    "screenHeight": 1080
-  },
-  {
-    "id": "dkpfg",
-    "indexId": 17,
-    "nodeHashId": "dkpfg",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<span>"
-    },
-    "center": [608, 682],
-    "content": "?",
-    "rect": {
-      "left": 605,
-      "top": 675,
-      "width": 6,
-      "height": 14,
-      "zoom": 1
-    },
-    "zoom": 1,
-    "screenWidth": 1920,
-    "screenHeight": 1080
-  },
-  {
-    "id": "mnklg",
-    "nodeHashId": "mnklg",
-    "indexId": 18,
-    "nodeType": "CONTAINER Node",
-    "locator": "[_midscene_retrieve_task_id='mnklg']",
-    "attributes": {
-      "class": ".tool.icon-indicator.fa.fa-check.tooltipstered",
-      "nodeType": "CONTAINER Node",
-      "htmlTagName": "<div>"
-    },
-    "content": "",
-    "rect": {
-      "left": 916,
-      "top": 672,
-      "width": 24,
-      "height": 24,
-      "zoom": 1
-    },
-    "center": [928, 684],
-    "zoom": 1,
-    "screenWidth": 1920,
-    "screenHeight": 1080
-  },
-  {
-    "id": "clkmd",
-    "indexId": 19,
-    "nodeHashId": "clkmd",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<span>"
-    },
-    "center": [516, 709],
-    "content": "Normal",
-    "rect": {
-      "left": 492,
-      "top": 700,
-      "width": 47,
-      "height": 17,
-      "zoom": 1
-    },
-    "zoom": 1,
-    "screenWidth": 1920,
-    "screenHeight": 1080
-  },
-  {
-    "id": "ighcb",
-    "indexId": 20,
-    "nodeHashId": "ighcb",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<span>"
-    },
-    "center": [1005, 683],
-    "content": "Issues",
-    "rect": {
-      "left": 981,
-      "top": 673,
-      "width": 47,
-      "height": 19,
-      "zoom": 1
-    },
-    "zoom": 1,
-    "screenWidth": 1920,
-    "screenHeight": 1080
-  },
-  {
-    "id": "bmccf",
-    "indexId": 21,
-    "nodeHashId": "bmccf",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<span>"
-    },
-    "center": [1046, 682],
-    "content": "?",
-    "rect": {
-      "left": 1043,
-      "top": 675,
-      "width": 6,
-      "height": 14,
-      "zoom": 1
-    },
-    "zoom": 1,
-    "screenWidth": 1920,
-    "screenHeight": 1080
-  },
-  {
-    "id": "ihlll",
-    "nodeHashId": "ihlll",
-    "indexId": 22,
-    "nodeType": "CONTAINER Node",
-    "locator": "[_midscene_retrieve_task_id='ihlll']",
-    "attributes": {
-      "class": ".tool.icon-indicator.fa.fa-check.tooltipstered",
-      "nodeType": "CONTAINER Node",
-      "htmlTagName": "<div>"
-    },
-    "content": "",
-    "rect": {
-      "left": 1405,
-      "top": 672,
-      "width": 24,
-      "height": 24,
-      "zoom": 1
-    },
-    "center": [1417, 684],
-    "zoom": 1,
-    "screenWidth": 1920,
-    "screenHeight": 1080
-  },
-  {
-    "id": "hoaep",
-    "indexId": 23,
-    "nodeHashId": "hoaep",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<span>"
-    },
-    "center": [1005, 709],
-    "content": "Normal",
-    "rect": {
-      "left": 981,
-      "top": 700,
-      "width": 47,
-      "height": 17,
-      "zoom": 1
-    },
-    "zoom": 1,
-    "screenWidth": 1920,
-    "screenHeight": 1080
-  },
-  {
-    "id": "mdffp",
-    "indexId": 24,
-    "nodeHashId": "mdffp",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<span>"
-    },
-    "center": [542, 772],
-    "content": "Pull Requests",
-    "rect": {
-      "left": 492,
-      "top": 762,
-      "width": 100,
-      "height": 19,
-      "zoom": 1
-    },
-    "zoom": 1,
-    "screenWidth": 1920,
-    "screenHeight": 1080
-  },
-  {
-    "id": "klnkf",
-    "indexId": 25,
-    "nodeHashId": "klnkf",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<span>"
-    },
-    "center": [611, 771],
-    "content": "?",
-    "rect": {
-      "left": 608,
-      "top": 764,
-      "width": 6,
-      "height": 14,
-      "zoom": 1
-    },
-    "zoom": 1,
-    "screenWidth": 1920,
-    "screenHeight": 1080
-  },
-  {
-    "id": "pncmp",
-    "nodeHashId": "pncmp",
-    "indexId": 26,
-    "nodeType": "CONTAINER Node",
-    "locator": "[_midscene_retrieve_task_id='pncmp']",
-    "attributes": {
-      "class": ".tool.icon-indicator.fa.fa-check.tooltipstered",
-      "nodeType": "CONTAINER Node",
-      "htmlTagName": "<div>"
-    },
-    "content": "",
-    "rect": {
-      "left": 916,
-      "top": 762,
-      "width": 24,
-      "height": 24,
-      "zoom": 1
-    },
-    "center": [928, 774],
-    "zoom": 1,
-    "screenWidth": 1920,
-    "screenHeight": 1080
-  },
-  {
-    "id": "aomom",
-    "indexId": 27,
-    "nodeHashId": "aomom",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<span>"
-    },
-    "center": [516, 798],
-    "content": "Normal",
-    "rect": {
-      "left": 492,
-      "top": 789,
-      "width": 47,
-      "height": 17,
-      "zoom": 1
-    },
-    "zoom": 1,
-    "screenWidth": 1920,
-    "screenHeight": 1080
-  },
-  {
-    "id": "kljge",
-    "indexId": 28,
-    "nodeHashId": "kljge",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<span>"
-    },
-    "center": [1009, 772],
-    "content": "Actions",
-    "rect": {
-      "left": 981,
-      "top": 762,
-      "width": 56,
-      "height": 19,
-      "zoom": 1
-    },
-    "zoom": 1,
-    "screenWidth": 1920,
-    "screenHeight": 1080
-  },
-  {
-    "id": "gaego",
-    "indexId": 29,
-    "nodeHashId": "gaego",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<span>"
-    },
-    "center": [1055, 771],
-    "content": "?",
-    "rect": {
-      "left": 1052,
-      "top": 764,
-      "width": 6,
-      "height": 14,
-      "zoom": 1
-    },
-    "zoom": 1,
-    "screenWidth": 1920,
-    "screenHeight": 1080
-  },
-  {
-    "id": "oeipj",
-    "nodeHashId": "oeipj",
-    "indexId": 30,
-    "nodeType": "CONTAINER Node",
-    "locator": "[_midscene_retrieve_task_id='oeipj']",
-    "attributes": {
-      "class": ".tool.icon-indicator.fa.fa-check.tooltipstered",
-      "nodeType": "CONTAINER Node",
-      "htmlTagName": "<div>"
-    },
-    "content": "",
-    "rect": {
-      "left": 1405,
-      "top": 762,
-      "width": 24,
-      "height": 24,
-      "zoom": 1
-    },
-    "center": [1417, 774],
-    "zoom": 1,
-    "screenWidth": 1920,
-    "screenHeight": 1080
-  },
-  {
-    "id": "mmkjc",
-    "indexId": 31,
-    "nodeHashId": "mmkjc",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<span>"
-    },
-    "center": [1005, 798],
-    "content": "Normal",
-    "rect": {
-      "left": 981,
-      "top": 789,
-      "width": 47,
-      "height": 17,
-      "zoom": 1
-    },
-    "zoom": 1,
-    "screenWidth": 1920,
-    "screenHeight": 1080
-  },
-  {
-    "id": "fmmdn",
-    "indexId": 32,
-    "nodeHashId": "fmmdn",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<span>"
-    },
-    "center": [528, 861],
-    "content": "Packages",
-    "rect": {
-      "left": 492,
-      "top": 851,
-      "width": 71,
-      "height": 19,
-      "zoom": 1
-    },
-    "zoom": 1,
-    "screenWidth": 1920,
-    "screenHeight": 1080
-  },
-  {
-    "id": "bfnjb",
-    "indexId": 33,
-    "nodeHashId": "bfnjb",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<span>"
-    },
-    "center": [581, 861],
-    "content": "?",
-    "rect": {
-      "left": 578,
-      "top": 854,
-      "width": 6,
-      "height": 14,
-      "zoom": 1
-    },
-    "zoom": 1,
-    "screenWidth": 1920,
-    "screenHeight": 1080
-  },
-  {
-    "id": "jihpp",
-    "nodeHashId": "jihpp",
-    "indexId": 34,
-    "nodeType": "CONTAINER Node",
-    "locator": "[_midscene_retrieve_task_id='jihpp']",
-    "attributes": {
-      "class": ".tool.icon-indicator.fa.fa-check.tooltipstered",
-      "nodeType": "CONTAINER Node",
-      "htmlTagName": "<div>"
-    },
-    "content": "",
-    "rect": {
-      "left": 916,
-      "top": 851,
-      "width": 24,
-      "height": 24,
-      "zoom": 1
-    },
-    "center": [928, 863],
-    "zoom": 1,
-    "screenWidth": 1920,
-    "screenHeight": 1080
-  },
-  {
-    "id": "bfcll",
-    "indexId": 35,
-    "nodeHashId": "bfcll",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<span>"
-    },
-    "center": [516, 887],
-    "content": "Normal",
-    "rect": {
-      "left": 492,
-      "top": 878,
-      "width": 47,
-      "height": 17,
-      "zoom": 1
-    },
-    "zoom": 1,
-    "screenWidth": 1920,
-    "screenHeight": 1080
-  },
-  {
-    "id": "dmpcj",
-    "indexId": 36,
-    "nodeHashId": "dmpcj",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<span>"
-    },
-    "center": [1004, 861],
-    "content": "Pages",
-    "rect": {
-      "left": 981,
-      "top": 851,
-      "width": 45,
-      "height": 19,
-      "zoom": 1
-    },
-    "zoom": 1,
-    "screenWidth": 1920,
-    "screenHeight": 1080
-  },
-  {
-    "id": "henbe",
-    "indexId": 37,
-    "nodeHashId": "henbe",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<span>"
-    },
-    "center": [1044, 861],
-    "content": "?",
-    "rect": {
-      "left": 1041,
-      "top": 854,
-      "width": 6,
-      "height": 14,
-      "zoom": 1
-    },
-    "zoom": 1,
-    "screenWidth": 1920,
-    "screenHeight": 1080
-  },
-  {
-    "id": "fepci",
-    "nodeHashId": "fepci",
-    "indexId": 38,
-    "nodeType": "CONTAINER Node",
-    "locator": "[_midscene_retrieve_task_id='fepci']",
-    "attributes": {
-      "class": ".tool.icon-indicator.fa.fa-check.tooltipstered",
-      "nodeType": "CONTAINER Node",
-      "htmlTagName": "<div>"
-    },
-    "content": "",
-    "rect": {
-      "left": 1405,
-      "top": 851,
-      "width": 24,
-      "height": 24,
-      "zoom": 1
-    },
-    "center": [1417, 863],
-    "zoom": 1,
-    "screenWidth": 1920,
-    "screenHeight": 1080
-  },
-  {
-    "id": "ghdjg",
-    "indexId": 39,
-    "nodeHashId": "ghdjg",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<span>"
-    },
-    "center": [1005, 887],
-    "content": "Normal",
-    "rect": {
-      "left": 981,
-      "top": 878,
-      "width": 47,
-      "height": 17,
-      "zoom": 1
-    },
-    "zoom": 1,
-    "screenWidth": 1920,
-    "screenHeight": 1080
-  },
-  {
-    "id": "cnfmg",
-    "indexId": 40,
-    "nodeHashId": "cnfmg",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<span>"
-    },
-    "center": [538, 951],
-    "content": "Codespaces",
-    "rect": {
-      "left": 492,
-      "top": 941,
-      "width": 92,
-      "height": 19,
-      "zoom": 1
-    },
-    "zoom": 1,
-    "screenWidth": 1920,
-    "screenHeight": 1080
-  },
-  {
-    "id": "alice",
-    "indexId": 41,
-    "nodeHashId": "alice",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<span>"
-    },
-    "center": [602, 950],
-    "content": "?",
-    "rect": {
-      "left": 599,
-      "top": 943,
-      "width": 6,
-      "height": 14,
-      "zoom": 1
-    },
-    "zoom": 1,
-    "screenWidth": 1920,
-    "screenHeight": 1080
-  },
-  {
-    "id": "kakan",
-    "nodeHashId": "kakan",
-    "indexId": 42,
-    "nodeType": "CONTAINER Node",
-    "locator": "[_midscene_retrieve_task_id='kakan']",
-    "attributes": {
-      "class": ".tool.icon-indicator.fa.fa-check.tooltipstered",
-      "nodeType": "CONTAINER Node",
-      "htmlTagName": "<div>"
-    },
-    "content": "",
-    "rect": {
-      "left": 916,
-      "top": 940,
-      "width": 24,
-      "height": 24,
-      "zoom": 1
-    },
-    "center": [928, 952],
-    "zoom": 1,
-    "screenWidth": 1920,
-    "screenHeight": 1080
-  },
-  {
-    "id": "bhhlk",
-    "indexId": 43,
-    "nodeHashId": "bhhlk",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<span>"
-    },
-    "center": [516, 977],
-    "content": "Normal",
-    "rect": {
-      "left": 492,
-      "top": 968,
-      "width": 47,
-      "height": 17,
-      "zoom": 1
-    },
-    "zoom": 1,
-    "screenWidth": 1920,
-    "screenHeight": 1080
-  },
-  {
-    "id": "dfcol",
-    "indexId": 44,
-    "nodeHashId": "dfcol",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<span>"
-    },
-    "center": [1008, 951],
-    "content": "Copilot",
-    "rect": {
-      "left": 981,
-      "top": 941,
-      "width": 53,
-      "height": 19,
-      "zoom": 1
-    },
-    "zoom": 1,
-    "screenWidth": 1920,
-    "screenHeight": 1080
-  },
-  {
-    "id": "djklc",
-    "nodeHashId": "djklc",
-    "indexId": 45,
-    "nodeType": "CONTAINER Node",
-    "locator": "[_midscene_retrieve_task_id='djklc']",
-    "attributes": {
-      "class": ".tool.icon-indicator.fa.fa-check.tooltipstered",
-      "nodeType": "CONTAINER Node",
-      "htmlTagName": "<div>"
-    },
-    "content": "",
-    "rect": {
-      "left": 1405,
-      "top": 940,
-      "width": 24,
-      "height": 24,
-      "zoom": 1
-    },
-    "center": [1417, 952],
-    "zoom": 1,
-    "screenWidth": 1920,
-    "screenHeight": 1080
-  },
-  {
-    "id": "mejbf",
-    "indexId": 46,
-    "nodeHashId": "mejbf",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<span>"
-    },
-    "center": [1005, 977],
-    "content": "Normal",
-    "rect": {
-      "left": 981,
-      "top": 968,
-      "width": 47,
-      "height": 17,
-      "zoom": 1
-    },
-    "zoom": 1,
-    "screenWidth": 1920,
-    "screenHeight": 1080
-  },
-  {
-    "id": "jkgap",
-    "indexId": 47,
-    "nodeHashId": "jkgap",
+    "nodeHashId": "hhcnf",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
       "nodeType": "TEXT Node",
       "htmlTagName": "<a>"
     },
-    "center": [1379, 1077],
+    "center": [
+      657,
+      430
+    ],
+    "content": "Codespaces Scheduled Maintenance",
+    "rect": {
+      "left": 490,
+      "top": 418,
+      "width": 333,
+      "height": 24,
+      "zoom": 1,
+      "isVisible": true
+    },
+    "zoom": 1,
+    "isVisible": true
+  },
+  {
+    "id": "jhhka",
+    "indexId": 14,
+    "nodeHashId": "jhhka",
+    "nodeType": "Anchor Node",
+    "locator": "[_midscene_retrieve_task_id='jhhka']",
+    "attributes": {
+      "data-toggle": "modal",
+      "role": "button",
+      "class": ".subscribe",
+      "id": "btn-subscribe-modal-67vdd3b7d1zq",
+      "href": "#subscribe-modal-67vdd3b7d1zq",
+      "htmlTagName": "<a>",
+      "nodeType": "Anchor Node"
+    },
+    "content": "Subscribe",
+    "rect": {
+      "left": 1363,
+      "top": 413,
+      "width": 67,
+      "height": 29,
+      "zoom": 1,
+      "isVisible": true
+    },
+    "center": [
+      1397,
+      428
+    ],
+    "zoom": 1,
+    "isVisible": true
+  },
+  {
+    "id": "oohmc",
+    "indexId": 15,
+    "nodeHashId": "oohmc",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node",
+      "htmlTagName": "<a>"
+    },
+    "center": [
+      1397,
+      428
+    ],
+    "content": "Subscribe",
+    "rect": {
+      "left": 1363,
+      "top": 419,
+      "width": 67,
+      "height": 17,
+      "zoom": 1,
+      "isVisible": true
+    },
+    "zoom": 1,
+    "isVisible": true
+  },
+  {
+    "id": "kipal",
+    "indexId": 16,
+    "nodeHashId": "kipal",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node",
+      "htmlTagName": "<strong>"
+    },
+    "center": [
+      534,
+      489
+    ],
+    "content": "In progress",
+    "rect": {
+      "left": 491,
+      "top": 479,
+      "width": 85,
+      "height": 19,
+      "zoom": 1,
+      "isVisible": true
+    },
+    "zoom": 1,
+    "isVisible": true
+  },
+  {
+    "id": "ndffb",
+    "indexId": 17,
+    "nodeHashId": "ndffb",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node",
+      "htmlTagName": "<div>"
+    },
+    "center": [
+      584,
+      489
+    ],
+    "content": "-",
+    "rect": {
+      "left": 576,
+      "top": 479,
+      "width": 16,
+      "height": 19,
+      "zoom": 1,
+      "isVisible": true
+    },
+    "zoom": 1,
+    "isVisible": true
+  },
+  {
+    "id": "hfmeg",
+    "indexId": 18,
+    "nodeHashId": "hfmeg",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node",
+      "htmlTagName": "<span>"
+    },
+    "center": [
+      906,
+      489
+    ],
+    "content": "Scheduled maintenance is currently in progress. We will provide updates as necessary.",
+    "rect": {
+      "left": 592,
+      "top": 479,
+      "width": 627,
+      "height": 19,
+      "zoom": 1,
+      "isVisible": true
+    },
+    "zoom": 1,
+    "isVisible": true
+  },
+  {
+    "id": "edike",
+    "indexId": 19,
+    "nodeHashId": "edike",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node",
+      "htmlTagName": "<small>"
+    },
+    "center": [
+      507,
+      513
+    ],
+    "content": "May",
+    "rect": {
+      "left": 491,
+      "top": 504,
+      "width": 31,
+      "height": 17,
+      "zoom": 1,
+      "isVisible": true
+    },
+    "zoom": 1,
+    "isVisible": true
+  },
+  {
+    "id": "gllgb",
+    "indexId": 20,
+    "nodeHashId": "gllgb",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node",
+      "htmlTagName": "<var>"
+    },
+    "center": [
+      531,
+      513
+    ],
+    "content": "28",
+    "rect": {
+      "left": 522,
+      "top": 504,
+      "width": 17,
+      "height": 17,
+      "zoom": 1,
+      "isVisible": true
+    },
+    "zoom": 1,
+    "isVisible": true
+  },
+  {
+    "id": "jfinf",
+    "indexId": 21,
+    "nodeHashId": "jfinf",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node",
+      "htmlTagName": "<small>"
+    },
+    "center": [
+      543,
+      513
+    ],
+    "content": ",",
+    "rect": {
+      "left": 539,
+      "top": 504,
+      "width": 8,
+      "height": 17,
+      "zoom": 1,
+      "isVisible": true
+    },
+    "zoom": 1,
+    "isVisible": true
+  },
+  {
+    "id": "ejbld",
+    "indexId": 22,
+    "nodeHashId": "ejbld",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node",
+      "htmlTagName": "<var>"
+    },
+    "center": [
+      565,
+      513
+    ],
+    "content": "2025",
+    "rect": {
+      "left": 547,
+      "top": 504,
+      "width": 35,
+      "height": 17,
+      "zoom": 1,
+      "isVisible": true
+    },
+    "zoom": 1,
+    "isVisible": true
+  },
+  {
+    "id": "lmcmp",
+    "indexId": 23,
+    "nodeHashId": "lmcmp",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node",
+      "htmlTagName": "<small>"
+    },
+    "center": [
+      589,
+      513
+    ],
+    "content": "-",
+    "rect": {
+      "left": 582,
+      "top": 504,
+      "width": 14,
+      "height": 17,
+      "zoom": 1,
+      "isVisible": true
+    },
+    "zoom": 1,
+    "isVisible": true
+  },
+  {
+    "id": "jnicb",
+    "indexId": 24,
+    "nodeHashId": "jnicb",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node",
+      "htmlTagName": "<var>"
+    },
+    "center": [
+      615,
+      513
+    ],
+    "content": "16:30",
+    "rect": {
+      "left": 596,
+      "top": 504,
+      "width": 37,
+      "height": 17,
+      "zoom": 1,
+      "isVisible": true
+    },
+    "zoom": 1,
+    "isVisible": true
+  },
+  {
+    "id": "chiol",
+    "indexId": 25,
+    "nodeHashId": "chiol",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node",
+      "htmlTagName": "<small>"
+    },
+    "center": [
+      651,
+      513
+    ],
+    "content": "UTC",
+    "rect": {
+      "left": 634,
+      "top": 504,
+      "width": 33,
+      "height": 17,
+      "zoom": 1,
+      "isVisible": true
+    },
+    "zoom": 1,
+    "isVisible": true
+  },
+  {
+    "id": "pddfa",
+    "indexId": 26,
+    "nodeHashId": "pddfa",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node",
+      "htmlTagName": "<strong>"
+    },
+    "center": [
+      532,
+      557
+    ],
+    "content": "Scheduled",
+    "rect": {
+      "left": 491,
+      "top": 547,
+      "width": 81,
+      "height": 19,
+      "zoom": 1,
+      "isVisible": true
+    },
+    "zoom": 1,
+    "isVisible": true
+  },
+  {
+    "id": "okaif",
+    "indexId": 27,
+    "nodeHashId": "okaif",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node",
+      "htmlTagName": "<div>"
+    },
+    "center": [
+      580,
+      557
+    ],
+    "content": "-",
+    "rect": {
+      "left": 572,
+      "top": 547,
+      "width": 16,
+      "height": 19,
+      "zoom": 1,
+      "isVisible": true
+    },
+    "zoom": 1,
+    "isVisible": true
+  },
+  {
+    "id": "ffpjn",
+    "indexId": 28,
+    "nodeHashId": "ffpjn",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node",
+      "htmlTagName": "<span>"
+    },
+    "center": [
+      960,
+      581
+    ],
+    "content": "Codespaces will be undergoing global maintenance from 16:30 UTC on Wednesday, May 28 to 16:30 UTC on Thursday, May 29. Maintenance will begin in our Europe, Asia, and Australia regions. Once it is complete, maintenance will start in our US regions. Each batch of regions will take approximately three to four hours to complete.",
+    "rect": {
+      "left": 491,
+      "top": 547,
+      "width": 938,
+      "height": 67,
+      "zoom": 1,
+      "isVisible": true
+    },
+    "zoom": 1,
+    "isVisible": true
+  },
+  {
+    "id": "hljpe",
+    "indexId": 29,
+    "nodeHashId": "hljpe",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node",
+      "htmlTagName": "<span>"
+    },
+    "center": [
+      940,
+      665
+    ],
+    "content": "During this time period, users may experience intermittent connectivity issues when creating new Codespaces or accessing existing ones.",
+    "rect": {
+      "left": 491,
+      "top": 643,
+      "width": 897,
+      "height": 43,
+      "zoom": 1,
+      "isVisible": true
+    },
+    "zoom": 1,
+    "isVisible": true
+  },
+  {
+    "id": "jcham",
+    "indexId": 30,
+    "nodeHashId": "jcham",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node",
+      "htmlTagName": "<span>"
+    },
+    "center": [
+      921,
+      737
+    ],
+    "content": "To avoid disruptions, ensure that any uncommitted changes are committed and pushed before the maintenance starts. Codespaces with uncommitted changes will remain accessible as usual after the maintenance is complete.",
+    "rect": {
+      "left": 491,
+      "top": 715,
+      "width": 860,
+      "height": 43,
+      "zoom": 1,
+      "isVisible": true
+    },
+    "zoom": 1,
+    "isVisible": true
+  },
+  {
+    "id": "ikkpf",
+    "indexId": 31,
+    "nodeHashId": "ikkpf",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node",
+      "htmlTagName": "<small>"
+    },
+    "center": [
+      507,
+      773
+    ],
+    "content": "May",
+    "rect": {
+      "left": 491,
+      "top": 764,
+      "width": 31,
+      "height": 17,
+      "zoom": 1,
+      "isVisible": true
+    },
+    "zoom": 1,
+    "isVisible": true
+  },
+  {
+    "id": "cjepe",
+    "indexId": 32,
+    "nodeHashId": "cjepe",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node",
+      "htmlTagName": "<var>"
+    },
+    "center": [
+      531,
+      773
+    ],
+    "content": "28",
+    "rect": {
+      "left": 522,
+      "top": 764,
+      "width": 17,
+      "height": 17,
+      "zoom": 1,
+      "isVisible": true
+    },
+    "zoom": 1,
+    "isVisible": true
+  },
+  {
+    "id": "oiinh",
+    "indexId": 33,
+    "nodeHashId": "oiinh",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node",
+      "htmlTagName": "<small>"
+    },
+    "center": [
+      543,
+      773
+    ],
+    "content": ",",
+    "rect": {
+      "left": 539,
+      "top": 764,
+      "width": 8,
+      "height": 17,
+      "zoom": 1,
+      "isVisible": true
+    },
+    "zoom": 1,
+    "isVisible": true
+  },
+  {
+    "id": "nifjd",
+    "indexId": 34,
+    "nodeHashId": "nifjd",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node",
+      "htmlTagName": "<var>"
+    },
+    "center": [
+      565,
+      773
+    ],
+    "content": "2025",
+    "rect": {
+      "left": 547,
+      "top": 764,
+      "width": 35,
+      "height": 17,
+      "zoom": 1,
+      "isVisible": true
+    },
+    "zoom": 1,
+    "isVisible": true
+  },
+  {
+    "id": "fgklg",
+    "indexId": 35,
+    "nodeHashId": "fgklg",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node",
+      "htmlTagName": "<var>"
+    },
+    "center": [
+      605,
+      773
+    ],
+    "content": "16:30",
+    "rect": {
+      "left": 586,
+      "top": 764,
+      "width": 37,
+      "height": 17,
+      "zoom": 1,
+      "isVisible": true
+    },
+    "zoom": 1,
+    "isVisible": true
+  },
+  {
+    "id": "clenm",
+    "indexId": 36,
+    "nodeHashId": "clenm",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node",
+      "htmlTagName": "<small>"
+    },
+    "center": [
+      646,
+      773
+    ],
+    "content": "- May",
+    "rect": {
+      "left": 623,
+      "top": 764,
+      "width": 46,
+      "height": 17,
+      "zoom": 1,
+      "isVisible": true
+    },
+    "zoom": 1,
+    "isVisible": true
+  },
+  {
+    "id": "paeed",
+    "indexId": 37,
+    "nodeHashId": "paeed",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node",
+      "htmlTagName": "<var>"
+    },
+    "center": [
+      678,
+      773
+    ],
+    "content": "29",
+    "rect": {
+      "left": 669,
+      "top": 764,
+      "width": 17,
+      "height": 17,
+      "zoom": 1,
+      "isVisible": true
+    },
+    "zoom": 1,
+    "isVisible": true
+  },
+  {
+    "id": "iohnl",
+    "indexId": 38,
+    "nodeHashId": "iohnl",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node",
+      "htmlTagName": "<small>"
+    },
+    "center": [
+      690,
+      773
+    ],
+    "content": ",",
+    "rect": {
+      "left": 686,
+      "top": 764,
+      "width": 8,
+      "height": 17,
+      "zoom": 1,
+      "isVisible": true
+    },
+    "zoom": 1,
+    "isVisible": true
+  },
+  {
+    "id": "nbhfp",
+    "indexId": 39,
+    "nodeHashId": "nbhfp",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node",
+      "htmlTagName": "<var>"
+    },
+    "center": [
+      712,
+      773
+    ],
+    "content": "2025",
+    "rect": {
+      "left": 694,
+      "top": 764,
+      "width": 35,
+      "height": 17,
+      "zoom": 1,
+      "isVisible": true
+    },
+    "zoom": 1,
+    "isVisible": true
+  },
+  {
+    "id": "embem",
+    "indexId": 40,
+    "nodeHashId": "embem",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node",
+      "htmlTagName": "<var>"
+    },
+    "center": [
+      751,
+      773
+    ],
+    "content": "16:30",
+    "rect": {
+      "left": 732,
+      "top": 764,
+      "width": 37,
+      "height": 17,
+      "zoom": 1,
+      "isVisible": true
+    },
+    "zoom": 1,
+    "isVisible": true
+  },
+  {
+    "id": "gifdm",
+    "indexId": 41,
+    "nodeHashId": "gifdm",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node",
+      "htmlTagName": "<small>"
+    },
+    "center": [
+      786,
+      773
+    ],
+    "content": "UTC",
+    "rect": {
+      "left": 769,
+      "top": 764,
+      "width": 33,
+      "height": 17,
+      "zoom": 1,
+      "isVisible": true
+    },
+    "zoom": 1,
+    "isVisible": true
+  },
+  {
+    "id": "anfij",
+    "indexId": 42,
+    "nodeHashId": "anfij",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node",
+      "htmlTagName": "<span>"
+    },
+    "center": [
+      546,
+      936
+    ],
+    "content": "Git Operations",
+    "rect": {
+      "left": 492,
+      "top": 926,
+      "width": 107,
+      "height": 19,
+      "zoom": 1,
+      "isVisible": true
+    },
+    "zoom": 1,
+    "isVisible": true
+  },
+  {
+    "id": "egkop",
+    "indexId": 43,
+    "nodeHashId": "egkop",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node",
+      "htmlTagName": "<span>"
+    },
+    "center": [
+      617,
+      935
+    ],
+    "content": "?",
+    "rect": {
+      "left": 614,
+      "top": 928,
+      "width": 6,
+      "height": 14,
+      "zoom": 1,
+      "isVisible": true
+    },
+    "zoom": 1,
+    "isVisible": true
+  },
+  {
+    "id": "iokel",
+    "nodeHashId": "iokel",
+    "indexId": 44,
+    "nodeType": "CONTAINER Node",
+    "locator": "[_midscene_retrieve_task_id='iokel']",
+    "attributes": {
+      "class": ".tool.icon-indicator.fa.fa-check.tooltipstered",
+      "nodeType": "CONTAINER Node",
+      "htmlTagName": "<span>"
+    },
+    "content": "",
+    "rect": {
+      "left": 916,
+      "top": 926,
+      "width": 24,
+      "height": 24,
+      "zoom": 1,
+      "isVisible": true
+    },
+    "center": [
+      928,
+      938
+    ],
+    "zoom": 1,
+    "isVisible": true
+  },
+  {
+    "id": "mjgbe",
+    "indexId": 45,
+    "nodeHashId": "mjgbe",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node",
+      "htmlTagName": "<span>"
+    },
+    "center": [
+      516,
+      962
+    ],
+    "content": "Normal",
+    "rect": {
+      "left": 492,
+      "top": 953,
+      "width": 47,
+      "height": 17,
+      "zoom": 1,
+      "isVisible": true
+    },
+    "zoom": 1,
+    "isVisible": true
+  },
+  {
+    "id": "oeaag",
+    "indexId": 46,
+    "nodeHashId": "oeaag",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node",
+      "htmlTagName": "<span>"
+    },
+    "center": [
+      1020,
+      936
+    ],
+    "content": "Webhooks",
+    "rect": {
+      "left": 981,
+      "top": 926,
+      "width": 78,
+      "height": 19,
+      "zoom": 1,
+      "isVisible": true
+    },
+    "zoom": 1,
+    "isVisible": true
+  },
+  {
+    "id": "mfeic",
+    "indexId": 47,
+    "nodeHashId": "mfeic",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node",
+      "htmlTagName": "<span>"
+    },
+    "center": [
+      1077,
+      935
+    ],
+    "content": "?",
+    "rect": {
+      "left": 1074,
+      "top": 928,
+      "width": 6,
+      "height": 14,
+      "zoom": 1,
+      "isVisible": true
+    },
+    "zoom": 1,
+    "isVisible": true
+  },
+  {
+    "id": "gcmof",
+    "nodeHashId": "gcmof",
+    "indexId": 48,
+    "nodeType": "CONTAINER Node",
+    "locator": "[_midscene_retrieve_task_id='gcmof']",
+    "attributes": {
+      "class": ".tool.icon-indicator.fa.fa-check.tooltipstered",
+      "nodeType": "CONTAINER Node",
+      "htmlTagName": "<span>"
+    },
+    "content": "",
+    "rect": {
+      "left": 1405,
+      "top": 926,
+      "width": 24,
+      "height": 24,
+      "zoom": 1,
+      "isVisible": true
+    },
+    "center": [
+      1417,
+      938
+    ],
+    "zoom": 1,
+    "isVisible": true
+  },
+  {
+    "id": "nkhmd",
+    "indexId": 49,
+    "nodeHashId": "nkhmd",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node",
+      "htmlTagName": "<span>"
+    },
+    "center": [
+      1005,
+      962
+    ],
+    "content": "Normal",
+    "rect": {
+      "left": 981,
+      "top": 953,
+      "width": 47,
+      "height": 17,
+      "zoom": 1,
+      "isVisible": true
+    },
+    "zoom": 1,
+    "isVisible": true
+  },
+  {
+    "id": "kpcno",
+    "indexId": 50,
+    "nodeHashId": "kpcno",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node",
+      "htmlTagName": "<span>"
+    },
+    "center": [
+      541,
+      1025
+    ],
+    "content": "API Requests",
+    "rect": {
+      "left": 492,
+      "top": 1015,
+      "width": 98,
+      "height": 19,
+      "zoom": 1,
+      "isVisible": true
+    },
+    "zoom": 1,
+    "isVisible": true
+  },
+  {
+    "id": "eahfi",
+    "indexId": 51,
+    "nodeHashId": "eahfi",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node",
+      "htmlTagName": "<span>"
+    },
+    "center": [
+      608,
+      1025
+    ],
+    "content": "?",
+    "rect": {
+      "left": 605,
+      "top": 1018,
+      "width": 6,
+      "height": 14,
+      "zoom": 1,
+      "isVisible": true
+    },
+    "zoom": 1,
+    "isVisible": true
+  },
+  {
+    "id": "mkjpk",
+    "nodeHashId": "mkjpk",
+    "indexId": 52,
+    "nodeType": "CONTAINER Node",
+    "locator": "[_midscene_retrieve_task_id='mkjpk']",
+    "attributes": {
+      "class": ".tool.icon-indicator.fa.fa-check.tooltipstered",
+      "nodeType": "CONTAINER Node",
+      "htmlTagName": "<span>"
+    },
+    "content": "",
+    "rect": {
+      "left": 916,
+      "top": 1015,
+      "width": 24,
+      "height": 24,
+      "zoom": 1,
+      "isVisible": true
+    },
+    "center": [
+      928,
+      1027
+    ],
+    "zoom": 1,
+    "isVisible": true
+  },
+  {
+    "id": "lchpj",
+    "indexId": 53,
+    "nodeHashId": "lchpj",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node",
+      "htmlTagName": "<span>"
+    },
+    "center": [
+      516,
+      1051
+    ],
+    "content": "Normal",
+    "rect": {
+      "left": 492,
+      "top": 1042,
+      "width": 47,
+      "height": 17,
+      "zoom": 1,
+      "isVisible": true
+    },
+    "zoom": 1,
+    "isVisible": true
+  },
+  {
+    "id": "gfohe",
+    "indexId": 54,
+    "nodeHashId": "gfohe",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node",
+      "htmlTagName": "<span>"
+    },
+    "center": [
+      1005,
+      1025
+    ],
+    "content": "Issues",
+    "rect": {
+      "left": 981,
+      "top": 1015,
+      "width": 47,
+      "height": 19,
+      "zoom": 1,
+      "isVisible": true
+    },
+    "zoom": 1,
+    "isVisible": true
+  },
+  {
+    "id": "fiiag",
+    "indexId": 55,
+    "nodeHashId": "fiiag",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node",
+      "htmlTagName": "<span>"
+    },
+    "center": [
+      1046,
+      1025
+    ],
+    "content": "?",
+    "rect": {
+      "left": 1043,
+      "top": 1018,
+      "width": 6,
+      "height": 14,
+      "zoom": 1,
+      "isVisible": true
+    },
+    "zoom": 1,
+    "isVisible": true
+  },
+  {
+    "id": "hcdjj",
+    "nodeHashId": "hcdjj",
+    "indexId": 56,
+    "nodeType": "CONTAINER Node",
+    "locator": "[_midscene_retrieve_task_id='hcdjj']",
+    "attributes": {
+      "class": ".tool.icon-indicator.fa.fa-check.tooltipstered",
+      "nodeType": "CONTAINER Node",
+      "htmlTagName": "<span>"
+    },
+    "content": "",
+    "rect": {
+      "left": 1405,
+      "top": 1015,
+      "width": 24,
+      "height": 24,
+      "zoom": 1,
+      "isVisible": true
+    },
+    "center": [
+      1417,
+      1027
+    ],
+    "zoom": 1,
+    "isVisible": true
+  },
+  {
+    "id": "fkfio",
+    "indexId": 57,
+    "nodeHashId": "fkfio",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node",
+      "htmlTagName": "<span>"
+    },
+    "center": [
+      1005,
+      1051
+    ],
+    "content": "Normal",
+    "rect": {
+      "left": 981,
+      "top": 1042,
+      "width": 47,
+      "height": 17,
+      "zoom": 1,
+      "isVisible": true
+    },
+    "zoom": 1,
+    "isVisible": true
+  },
+  {
+    "id": "dkfgl",
+    "indexId": 58,
+    "nodeHashId": "dkfgl",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node",
+      "htmlTagName": "<span>"
+    },
+    "center": [
+      542,
+      1115
+    ],
+    "content": "Pull Requests",
+    "rect": {
+      "left": 492,
+      "top": 1105,
+      "width": 100,
+      "height": 19,
+      "zoom": 1,
+      "isVisible": false
+    },
+    "zoom": 1,
+    "isVisible": false
+  },
+  {
+    "id": "ldogc",
+    "indexId": 59,
+    "nodeHashId": "ldogc",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node",
+      "htmlTagName": "<span>"
+    },
+    "center": [
+      611,
+      1114
+    ],
+    "content": "?",
+    "rect": {
+      "left": 608,
+      "top": 1107,
+      "width": 6,
+      "height": 14,
+      "zoom": 1,
+      "isVisible": false
+    },
+    "zoom": 1,
+    "isVisible": false
+  },
+  {
+    "id": "heeal",
+    "nodeHashId": "heeal",
+    "indexId": 60,
+    "nodeType": "CONTAINER Node",
+    "locator": "[_midscene_retrieve_task_id='heeal']",
+    "attributes": {
+      "class": ".tool.icon-indicator.fa.fa-check.tooltipstered",
+      "nodeType": "CONTAINER Node",
+      "htmlTagName": "<span>"
+    },
+    "content": "",
+    "rect": {
+      "left": 916,
+      "top": 1105,
+      "width": 24,
+      "height": 24,
+      "zoom": 1,
+      "isVisible": false
+    },
+    "center": [
+      928,
+      1117
+    ],
+    "zoom": 1,
+    "isVisible": false
+  },
+  {
+    "id": "dldnn",
+    "indexId": 61,
+    "nodeHashId": "dldnn",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node",
+      "htmlTagName": "<span>"
+    },
+    "center": [
+      516,
+      1141
+    ],
+    "content": "Normal",
+    "rect": {
+      "left": 492,
+      "top": 1132,
+      "width": 47,
+      "height": 17,
+      "zoom": 1,
+      "isVisible": false
+    },
+    "zoom": 1,
+    "isVisible": false
+  },
+  {
+    "id": "jeimd",
+    "indexId": 62,
+    "nodeHashId": "jeimd",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node",
+      "htmlTagName": "<span>"
+    },
+    "center": [
+      1009,
+      1115
+    ],
+    "content": "Actions",
+    "rect": {
+      "left": 981,
+      "top": 1105,
+      "width": 56,
+      "height": 19,
+      "zoom": 1,
+      "isVisible": false
+    },
+    "zoom": 1,
+    "isVisible": false
+  },
+  {
+    "id": "oblhi",
+    "indexId": 63,
+    "nodeHashId": "oblhi",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node",
+      "htmlTagName": "<span>"
+    },
+    "center": [
+      1055,
+      1114
+    ],
+    "content": "?",
+    "rect": {
+      "left": 1052,
+      "top": 1107,
+      "width": 6,
+      "height": 14,
+      "zoom": 1,
+      "isVisible": false
+    },
+    "zoom": 1,
+    "isVisible": false
+  },
+  {
+    "id": "aiaon",
+    "nodeHashId": "aiaon",
+    "indexId": 64,
+    "nodeType": "CONTAINER Node",
+    "locator": "[_midscene_retrieve_task_id='aiaon']",
+    "attributes": {
+      "class": ".tool.icon-indicator.fa.fa-check.tooltipstered",
+      "nodeType": "CONTAINER Node",
+      "htmlTagName": "<span>"
+    },
+    "content": "",
+    "rect": {
+      "left": 1405,
+      "top": 1105,
+      "width": 24,
+      "height": 24,
+      "zoom": 1,
+      "isVisible": false
+    },
+    "center": [
+      1417,
+      1117
+    ],
+    "zoom": 1,
+    "isVisible": false
+  },
+  {
+    "id": "mdgma",
+    "indexId": 65,
+    "nodeHashId": "mdgma",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node",
+      "htmlTagName": "<span>"
+    },
+    "center": [
+      1005,
+      1141
+    ],
+    "content": "Normal",
+    "rect": {
+      "left": 981,
+      "top": 1132,
+      "width": 47,
+      "height": 17,
+      "zoom": 1,
+      "isVisible": false
+    },
+    "zoom": 1,
+    "isVisible": false
+  },
+  {
+    "id": "ogolm",
+    "indexId": 66,
+    "nodeHashId": "ogolm",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node",
+      "htmlTagName": "<span>"
+    },
+    "center": [
+      528,
+      1204
+    ],
+    "content": "Packages",
+    "rect": {
+      "left": 492,
+      "top": 1194,
+      "width": 71,
+      "height": 19,
+      "zoom": 1,
+      "isVisible": false
+    },
+    "zoom": 1,
+    "isVisible": false
+  },
+  {
+    "id": "fkkco",
+    "indexId": 67,
+    "nodeHashId": "fkkco",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node",
+      "htmlTagName": "<span>"
+    },
+    "center": [
+      581,
+      1203
+    ],
+    "content": "?",
+    "rect": {
+      "left": 578,
+      "top": 1196,
+      "width": 6,
+      "height": 14,
+      "zoom": 1,
+      "isVisible": false
+    },
+    "zoom": 1,
+    "isVisible": false
+  },
+  {
+    "id": "bpnhk",
+    "nodeHashId": "bpnhk",
+    "indexId": 68,
+    "nodeType": "CONTAINER Node",
+    "locator": "[_midscene_retrieve_task_id='bpnhk']",
+    "attributes": {
+      "class": ".tool.icon-indicator.fa.fa-check.tooltipstered",
+      "nodeType": "CONTAINER Node",
+      "htmlTagName": "<span>"
+    },
+    "content": "",
+    "rect": {
+      "left": 916,
+      "top": 1194,
+      "width": 24,
+      "height": 24,
+      "zoom": 1,
+      "isVisible": false
+    },
+    "center": [
+      928,
+      1206
+    ],
+    "zoom": 1,
+    "isVisible": false
+  },
+  {
+    "id": "acmpc",
+    "indexId": 69,
+    "nodeHashId": "acmpc",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node",
+      "htmlTagName": "<span>"
+    },
+    "center": [
+      516,
+      1230
+    ],
+    "content": "Normal",
+    "rect": {
+      "left": 492,
+      "top": 1221,
+      "width": 47,
+      "height": 17,
+      "zoom": 1,
+      "isVisible": false
+    },
+    "zoom": 1,
+    "isVisible": false
+  },
+  {
+    "id": "obepm",
+    "indexId": 70,
+    "nodeHashId": "obepm",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node",
+      "htmlTagName": "<span>"
+    },
+    "center": [
+      1004,
+      1204
+    ],
+    "content": "Pages",
+    "rect": {
+      "left": 981,
+      "top": 1194,
+      "width": 45,
+      "height": 19,
+      "zoom": 1,
+      "isVisible": false
+    },
+    "zoom": 1,
+    "isVisible": false
+  },
+  {
+    "id": "klobl",
+    "indexId": 71,
+    "nodeHashId": "klobl",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node",
+      "htmlTagName": "<span>"
+    },
+    "center": [
+      1044,
+      1203
+    ],
+    "content": "?",
+    "rect": {
+      "left": 1041,
+      "top": 1196,
+      "width": 6,
+      "height": 14,
+      "zoom": 1,
+      "isVisible": false
+    },
+    "zoom": 1,
+    "isVisible": false
+  },
+  {
+    "id": "gajfm",
+    "nodeHashId": "gajfm",
+    "indexId": 72,
+    "nodeType": "CONTAINER Node",
+    "locator": "[_midscene_retrieve_task_id='gajfm']",
+    "attributes": {
+      "class": ".tool.icon-indicator.fa.fa-check.tooltipstered",
+      "nodeType": "CONTAINER Node",
+      "htmlTagName": "<span>"
+    },
+    "content": "",
+    "rect": {
+      "left": 1405,
+      "top": 1194,
+      "width": 24,
+      "height": 24,
+      "zoom": 1,
+      "isVisible": false
+    },
+    "center": [
+      1417,
+      1206
+    ],
+    "zoom": 1,
+    "isVisible": false
+  },
+  {
+    "id": "oapik",
+    "indexId": 73,
+    "nodeHashId": "oapik",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node",
+      "htmlTagName": "<span>"
+    },
+    "center": [
+      1005,
+      1230
+    ],
+    "content": "Normal",
+    "rect": {
+      "left": 981,
+      "top": 1221,
+      "width": 47,
+      "height": 17,
+      "zoom": 1,
+      "isVisible": false
+    },
+    "zoom": 1,
+    "isVisible": false
+  },
+  {
+    "id": "kbonl",
+    "indexId": 74,
+    "nodeHashId": "kbonl",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node",
+      "htmlTagName": "<span>"
+    },
+    "center": [
+      538,
+      1294
+    ],
+    "content": "Codespaces",
+    "rect": {
+      "left": 492,
+      "top": 1284,
+      "width": 92,
+      "height": 19,
+      "zoom": 1,
+      "isVisible": false
+    },
+    "zoom": 1,
+    "isVisible": false
+  },
+  {
+    "id": "ikbbe",
+    "indexId": 75,
+    "nodeHashId": "ikbbe",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node",
+      "htmlTagName": "<span>"
+    },
+    "center": [
+      602,
+      1293
+    ],
+    "content": "?",
+    "rect": {
+      "left": 599,
+      "top": 1286,
+      "width": 6,
+      "height": 14,
+      "zoom": 1,
+      "isVisible": false
+    },
+    "zoom": 1,
+    "isVisible": false
+  },
+  {
+    "id": "adkof",
+    "nodeHashId": "adkof",
+    "indexId": 76,
+    "nodeType": "CONTAINER Node",
+    "locator": "[_midscene_retrieve_task_id='adkof']",
+    "attributes": {
+      "class": ".tool.icon-indicator.fa.fa-wrench.tooltipstered",
+      "nodeType": "CONTAINER Node",
+      "htmlTagName": "<span>"
+    },
+    "content": "",
+    "rect": {
+      "left": 916,
+      "top": 1283,
+      "width": 24,
+      "height": 24,
+      "zoom": 1,
+      "isVisible": false
+    },
+    "center": [
+      928,
+      1295
+    ],
+    "zoom": 1,
+    "isVisible": false
+  },
+  {
+    "id": "cifgm",
+    "indexId": 77,
+    "nodeHashId": "cifgm",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node",
+      "htmlTagName": "<span>"
+    },
+    "center": [
+      534,
+      1320
+    ],
+    "content": "Maintenance",
+    "rect": {
+      "left": 492,
+      "top": 1311,
+      "width": 83,
+      "height": 17,
+      "zoom": 1,
+      "isVisible": false
+    },
+    "zoom": 1,
+    "isVisible": false
+  },
+  {
+    "id": "kiice",
+    "indexId": 78,
+    "nodeHashId": "kiice",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node",
+      "htmlTagName": "<span>"
+    },
+    "center": [
+      1008,
+      1294
+    ],
+    "content": "Copilot",
+    "rect": {
+      "left": 981,
+      "top": 1284,
+      "width": 53,
+      "height": 19,
+      "zoom": 1,
+      "isVisible": false
+    },
+    "zoom": 1,
+    "isVisible": false
+  },
+  {
+    "id": "goimc",
+    "nodeHashId": "goimc",
+    "indexId": 79,
+    "nodeType": "CONTAINER Node",
+    "locator": "[_midscene_retrieve_task_id='goimc']",
+    "attributes": {
+      "class": ".tool.icon-indicator.fa.fa-check.tooltipstered",
+      "nodeType": "CONTAINER Node",
+      "htmlTagName": "<span>"
+    },
+    "content": "",
+    "rect": {
+      "left": 1405,
+      "top": 1283,
+      "width": 24,
+      "height": 24,
+      "zoom": 1,
+      "isVisible": false
+    },
+    "center": [
+      1417,
+      1295
+    ],
+    "zoom": 1,
+    "isVisible": false
+  },
+  {
+    "id": "nogcb",
+    "indexId": 80,
+    "nodeHashId": "nogcb",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node",
+      "htmlTagName": "<span>"
+    },
+    "center": [
+      1005,
+      1320
+    ],
+    "content": "Normal",
+    "rect": {
+      "left": 981,
+      "top": 1311,
+      "width": 47,
+      "height": 17,
+      "zoom": 1,
+      "isVisible": false
+    },
+    "zoom": 1,
+    "isVisible": false
+  },
+  {
+    "id": "onlib",
+    "indexId": 81,
+    "nodeHashId": "onlib",
+    "nodeType": "Anchor Node",
+    "locator": "[_midscene_retrieve_task_id='onlib']",
+    "attributes": {
+      "href": "/history",
+      "class": ".history-footer-link",
+      "htmlTagName": "<a>",
+      "nodeType": "Anchor Node"
+    },
     "content": "Incident History",
     "rect": {
       "left": 1326,
-      "top": 1068,
+      "top": 1409,
+      "width": 124,
+      "height": 21,
+      "zoom": 1,
+      "isVisible": false
+    },
+    "center": [
+      1388,
+      1420
+    ],
+    "zoom": 1,
+    "isVisible": false
+  },
+  {
+    "id": "ihdbi",
+    "indexId": 82,
+    "nodeHashId": "ihdbi",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node",
+      "htmlTagName": "<a>"
+    },
+    "center": [
+      1379,
+      1420
+    ],
+    "content": "Incident History",
+    "rect": {
+      "left": 1326,
+      "top": 1411,
       "width": 105,
       "height": 17,
-      "zoom": 1
+      "zoom": 1,
+      "isVisible": false
     },
     "zoom": 1,
-    "screenWidth": 1920,
-    "screenHeight": 1080
+    "isVisible": false
+  },
+  {
+    "id": "ijnif",
+    "indexId": 83,
+    "nodeHashId": "ijnif",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node",
+      "htmlTagName": "<p>"
+    },
+    "center": [
+      664,
+      1422
+    ],
+    "content": "For the status of GitHub Enterprise Cloud - EU, please visit:",
+    "rect": {
+      "left": 470,
+      "top": 1413,
+      "width": 387,
+      "height": 17,
+      "zoom": 1,
+      "isVisible": false
+    },
+    "zoom": 1,
+    "isVisible": false
+  },
+  {
+    "id": "aianc",
+    "indexId": 84,
+    "nodeHashId": "aianc",
+    "nodeType": "Anchor Node",
+    "locator": "[_midscene_retrieve_task_id='aianc']",
+    "attributes": {
+      "href": "https://eu.githubstatus.com",
+      "htmlTagName": "<a>",
+      "nodeType": "Anchor Node"
+    },
+    "content": "eu.githubstatus.com",
+    "rect": {
+      "left": 857,
+      "top": 1413,
+      "width": 132,
+      "height": 17,
+      "zoom": 1,
+      "isVisible": false
+    },
+    "center": [
+      923,
+      1422
+    ],
+    "zoom": 1,
+    "isVisible": false
+  },
+  {
+    "id": "aianc",
+    "indexId": 85,
+    "nodeHashId": "aianc",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node",
+      "htmlTagName": "<a>"
+    },
+    "center": [
+      923,
+      1422
+    ],
+    "content": "eu.githubstatus.com",
+    "rect": {
+      "left": 857,
+      "top": 1413,
+      "width": 132,
+      "height": 17,
+      "zoom": 1,
+      "isVisible": false
+    },
+    "zoom": 1,
+    "isVisible": false
+  },
+  {
+    "id": "fjnmg",
+    "indexId": 86,
+    "nodeHashId": "fjnmg",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node",
+      "htmlTagName": "<p>"
+    },
+    "center": [
+      683,
+      1446
+    ],
+    "content": "For the status of GitHub Enterprise Cloud - Australia, please visit:",
+    "rect": {
+      "left": 470,
+      "top": 1437,
+      "width": 425,
+      "height": 17,
+      "zoom": 1,
+      "isVisible": false
+    },
+    "zoom": 1,
+    "isVisible": false
+  },
+  {
+    "id": "dleke",
+    "indexId": 87,
+    "nodeHashId": "dleke",
+    "nodeType": "Anchor Node",
+    "locator": "[_midscene_retrieve_task_id='dleke']",
+    "attributes": {
+      "href": "https://au.githubstatus.com",
+      "htmlTagName": "<a>",
+      "nodeType": "Anchor Node"
+    },
+    "content": "au.githubstatus.com",
+    "rect": {
+      "left": 895,
+      "top": 1437,
+      "width": 132,
+      "height": 17,
+      "zoom": 1,
+      "isVisible": false
+    },
+    "center": [
+      961,
+      1446
+    ],
+    "zoom": 1,
+    "isVisible": false
+  },
+  {
+    "id": "dleke",
+    "indexId": 88,
+    "nodeHashId": "dleke",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node",
+      "htmlTagName": "<a>"
+    },
+    "center": [
+      961,
+      1446
+    ],
+    "content": "au.githubstatus.com",
+    "rect": {
+      "left": 895,
+      "top": 1437,
+      "width": 132,
+      "height": 17,
+      "zoom": 1,
+      "isVisible": false
+    },
+    "zoom": 1,
+    "isVisible": false
+  },
+  {
+    "id": "ajaek",
+    "indexId": 89,
+    "nodeHashId": "ajaek",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node",
+      "htmlTagName": "<p>"
+    },
+    "center": [
+      664,
+      1470
+    ],
+    "content": "For the status of GitHub Enterprise Cloud - US, please visit:",
+    "rect": {
+      "left": 470,
+      "top": 1461,
+      "width": 388,
+      "height": 17,
+      "zoom": 1,
+      "isVisible": false
+    },
+    "zoom": 1,
+    "isVisible": false
+  },
+  {
+    "id": "odjan",
+    "indexId": 90,
+    "nodeHashId": "odjan",
+    "nodeType": "Anchor Node",
+    "locator": "[_midscene_retrieve_task_id='odjan']",
+    "attributes": {
+      "href": "https://us.githubstatus.com/",
+      "htmlTagName": "<a>",
+      "nodeType": "Anchor Node"
+    },
+    "content": "us.githubstatus.com",
+    "rect": {
+      "left": 858,
+      "top": 1461,
+      "width": 131,
+      "height": 17,
+      "zoom": 1,
+      "isVisible": false
+    },
+    "center": [
+      924,
+      1470
+    ],
+    "zoom": 1,
+    "isVisible": false
+  },
+  {
+    "id": "odjan",
+    "indexId": 91,
+    "nodeHashId": "odjan",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node",
+      "htmlTagName": "<a>"
+    },
+    "center": [
+      924,
+      1470
+    ],
+    "content": "us.githubstatus.com",
+    "rect": {
+      "left": 858,
+      "top": 1461,
+      "width": 131,
+      "height": 17,
+      "zoom": 1,
+      "isVisible": false
+    },
+    "zoom": 1,
+    "isVisible": false
+  },
+  {
+    "id": "jbojp",
+    "indexId": 92,
+    "nodeHashId": "jbojp",
+    "nodeType": "Anchor Node",
+    "locator": "[_midscene_retrieve_task_id='jbojp']",
+    "attributes": {
+      "href": "https://github.com/",
+      "data-ga-click": "Footer, go to GitHub, text:GitHub",
+      "class": ".text-gray-dark",
+      "aria-label": "GitHub text logo",
+      "htmlTagName": "<a>",
+      "nodeType": "Anchor Node"
+    },
+    "content": "",
+    "rect": {
+      "left": 470,
+      "top": 1652,
+      "width": 90,
+      "height": 17,
+      "zoom": 1,
+      "isVisible": false
+    },
+    "center": [
+      515,
+      1661
+    ],
+    "zoom": 1,
+    "isVisible": false
+  },
+  {
+    "id": "ecejg",
+    "indexId": 93,
+    "nodeHashId": "ecejg",
+    "locator": "",
+    "attributes": {
+      "svgContent": "true",
+      "nodeType": "IMG Node",
+      "htmlTagName": "<a>"
+    },
+    "nodeType": "IMG Node",
+    "content": "",
+    "rect": {
+      "left": 470,
+      "top": 1637,
+      "width": 89,
+      "height": 24,
+      "zoom": 1,
+      "isVisible": false
+    },
+    "center": [
+      515,
+      1649
+    ],
+    "zoom": 1,
+    "isVisible": false
+  },
+  {
+    "id": "kigeb",
+    "indexId": 94,
+    "nodeHashId": "kigeb",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node",
+      "htmlTagName": "<h3>"
+    },
+    "center": [
+      599,
+      1717
+    ],
+    "content": "Subscribe to our developer newsletter",
+    "rect": {
+      "left": 470,
+      "top": 1708,
+      "width": 257,
+      "height": 17,
+      "zoom": 1,
+      "isVisible": false
+    },
+    "zoom": 1,
+    "isVisible": false
+  },
+  {
+    "id": "mfbjg",
+    "indexId": 95,
+    "nodeHashId": "mfbjg",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node",
+      "htmlTagName": "<p>"
+    },
+    "center": [
+      618,
+      1760
+    ],
+    "content": "Get tips, technical guides, and best practices. Twice a month. Right in your           inbox.",
+    "rect": {
+      "left": 470,
+      "top": 1741,
+      "width": 296,
+      "height": 38,
+      "zoom": 1,
+      "isVisible": false
+    },
+    "zoom": 1,
+    "isVisible": false
+  },
+  {
+    "id": "pelch",
+    "indexId": 96,
+    "nodeHashId": "pelch",
+    "nodeType": "Anchor Node",
+    "locator": "[_midscene_retrieve_task_id='pelch']",
+    "attributes": {
+      "href": "https://resources.github.com/newsletter/",
+      "class": ".btn.btn-muted.mb-4",
+      "htmlTagName": "<a>",
+      "nodeType": "Anchor Node"
+    },
+    "content": "Subscribe",
+    "rect": {
+      "left": 470,
+      "top": 1799,
+      "width": 65,
+      "height": 17,
+      "zoom": 1,
+      "isVisible": false
+    },
+    "center": [
+      503,
+      1808
+    ],
+    "zoom": 1,
+    "isVisible": false
+  },
+  {
+    "id": "pelch",
+    "indexId": 97,
+    "nodeHashId": "pelch",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node",
+      "htmlTagName": "<a>"
+    },
+    "center": [
+      503,
+      1808
+    ],
+    "content": "Subscribe",
+    "rect": {
+      "left": 470,
+      "top": 1799,
+      "width": 65,
+      "height": 17,
+      "zoom": 1,
+      "isVisible": false
+    },
+    "zoom": 1,
+    "isVisible": false
+  },
+  {
+    "id": "aimhp",
+    "indexId": 98,
+    "nodeHashId": "aimhp",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node",
+      "htmlTagName": "<h3>"
+    },
+    "center": [
+      851,
+      1656
+    ],
+    "content": "Product",
+    "rect": {
+      "left": 821,
+      "top": 1647,
+      "width": 59,
+      "height": 17,
+      "zoom": 1,
+      "isVisible": false
+    },
+    "zoom": 1,
+    "isVisible": false
+  },
+  {
+    "id": "ijcoe",
+    "indexId": 99,
+    "nodeHashId": "ijcoe",
+    "nodeType": "Anchor Node",
+    "locator": "[_midscene_retrieve_task_id='ijcoe']",
+    "attributes": {
+      "href": "https://github.com/features",
+      "data-ga-click": "Footer, go to features, text:features",
+      "class": ".link-gray",
+      "htmlTagName": "<a>",
+      "nodeType": "Anchor Node"
+    },
+    "content": "Features",
+    "rect": {
+      "left": 821,
+      "top": 1694,
+      "width": 56,
+      "height": 17,
+      "zoom": 1,
+      "isVisible": false
+    },
+    "center": [
+      849,
+      1703
+    ],
+    "zoom": 1,
+    "isVisible": false
+  },
+  {
+    "id": "ijcoe",
+    "indexId": 100,
+    "nodeHashId": "ijcoe",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node",
+      "htmlTagName": "<a>"
+    },
+    "center": [
+      849,
+      1703
+    ],
+    "content": "Features",
+    "rect": {
+      "left": 821,
+      "top": 1694,
+      "width": 56,
+      "height": 17,
+      "zoom": 1,
+      "isVisible": false
+    },
+    "zoom": 1,
+    "isVisible": false
+  },
+  {
+    "id": "gjjlc",
+    "indexId": 101,
+    "nodeHashId": "gjjlc",
+    "nodeType": "Anchor Node",
+    "locator": "[_midscene_retrieve_task_id='gjjlc']",
+    "attributes": {
+      "href": "https://github.com/enterprise",
+      "data-ga-click": "Footer, go to enterprise, text:enterprise",
+      "class": ".link-gray",
+      "htmlTagName": "<a>",
+      "nodeType": "Anchor Node"
+    },
+    "content": "Enterprise",
+    "rect": {
+      "left": 821,
+      "top": 1728,
+      "width": 66,
+      "height": 17,
+      "zoom": 1,
+      "isVisible": false
+    },
+    "center": [
+      854,
+      1737
+    ],
+    "zoom": 1,
+    "isVisible": false
+  },
+  {
+    "id": "gjjlc",
+    "indexId": 102,
+    "nodeHashId": "gjjlc",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node",
+      "htmlTagName": "<a>"
+    },
+    "center": [
+      854,
+      1737
+    ],
+    "content": "Enterprise",
+    "rect": {
+      "left": 821,
+      "top": 1728,
+      "width": 66,
+      "height": 17,
+      "zoom": 1,
+      "isVisible": false
+    },
+    "zoom": 1,
+    "isVisible": false
+  },
+  {
+    "id": "gljaj",
+    "indexId": 103,
+    "nodeHashId": "gljaj",
+    "nodeType": "Anchor Node",
+    "locator": "[_midscene_retrieve_task_id='gljaj']",
+    "attributes": {
+      "href": "https://github.com/features/copilot",
+      "ddata-ga-click": "Footer, go to copilot, text:copilot",
+      "class": ".link-gray",
+      "htmlTagName": "<a>",
+      "nodeType": "Anchor Node"
+    },
+    "content": "Copilot",
+    "rect": {
+      "left": 821,
+      "top": 1761,
+      "width": 46,
+      "height": 17,
+      "zoom": 1,
+      "isVisible": false
+    },
+    "center": [
+      844,
+      1770
+    ],
+    "zoom": 1,
+    "isVisible": false
+  },
+  {
+    "id": "gljaj",
+    "indexId": 104,
+    "nodeHashId": "gljaj",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node",
+      "htmlTagName": "<a>"
+    },
+    "center": [
+      844,
+      1770
+    ],
+    "content": "Copilot",
+    "rect": {
+      "left": 821,
+      "top": 1761,
+      "width": 46,
+      "height": 17,
+      "zoom": 1,
+      "isVisible": false
+    },
+    "zoom": 1,
+    "isVisible": false
+  },
+  {
+    "id": "cbaap",
+    "indexId": 105,
+    "nodeHashId": "cbaap",
+    "nodeType": "Anchor Node",
+    "locator": "[_midscene_retrieve_task_id='cbaap']",
+    "attributes": {
+      "href": "https://github.com/security",
+      "data-ga-click": "Footer, go to security, text:security",
+      "class": ".link-gray",
+      "htmlTagName": "<a>",
+      "nodeType": "Anchor Node"
+    },
+    "content": "Security",
+    "rect": {
+      "left": 821,
+      "top": 1795,
+      "width": 53,
+      "height": 17,
+      "zoom": 1,
+      "isVisible": false
+    },
+    "center": [
+      848,
+      1804
+    ],
+    "zoom": 1,
+    "isVisible": false
+  },
+  {
+    "id": "cbaap",
+    "indexId": 106,
+    "nodeHashId": "cbaap",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node",
+      "htmlTagName": "<a>"
+    },
+    "center": [
+      848,
+      1804
+    ],
+    "content": "Security",
+    "rect": {
+      "left": 821,
+      "top": 1795,
+      "width": 53,
+      "height": 17,
+      "zoom": 1,
+      "isVisible": false
+    },
+    "zoom": 1,
+    "isVisible": false
+  },
+  {
+    "id": "jaoob",
+    "indexId": 107,
+    "nodeHashId": "jaoob",
+    "nodeType": "Anchor Node",
+    "locator": "[_midscene_retrieve_task_id='jaoob']",
+    "attributes": {
+      "href": "https://github.com/pricing",
+      "data-ga-click": "Footer, go to pricing, text:pricing",
+      "class": ".link-gray",
+      "htmlTagName": "<a>",
+      "nodeType": "Anchor Node"
+    },
+    "content": "Pricing",
+    "rect": {
+      "left": 821,
+      "top": 1828,
+      "width": 45,
+      "height": 17,
+      "zoom": 1,
+      "isVisible": false
+    },
+    "center": [
+      844,
+      1837
+    ],
+    "zoom": 1,
+    "isVisible": false
+  },
+  {
+    "id": "jaoob",
+    "indexId": 108,
+    "nodeHashId": "jaoob",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node",
+      "htmlTagName": "<a>"
+    },
+    "center": [
+      844,
+      1837
+    ],
+    "content": "Pricing",
+    "rect": {
+      "left": 821,
+      "top": 1828,
+      "width": 45,
+      "height": 17,
+      "zoom": 1,
+      "isVisible": false
+    },
+    "zoom": 1,
+    "isVisible": false
+  },
+  {
+    "id": "kkiof",
+    "indexId": 109,
+    "nodeHashId": "kkiof",
+    "nodeType": "Anchor Node",
+    "locator": "[_midscene_retrieve_task_id='kkiof']",
+    "attributes": {
+      "href": "https://github.com/team",
+      "data-ga-click": "Footer, go to team, text:team",
+      "class": ".link-gray",
+      "htmlTagName": "<a>",
+      "nodeType": "Anchor Node"
+    },
+    "content": "Team",
+    "rect": {
+      "left": 821,
+      "top": 1862,
+      "width": 35,
+      "height": 17,
+      "zoom": 1,
+      "isVisible": false
+    },
+    "center": [
+      839,
+      1871
+    ],
+    "zoom": 1,
+    "isVisible": false
+  },
+  {
+    "id": "kkiof",
+    "indexId": 110,
+    "nodeHashId": "kkiof",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node",
+      "htmlTagName": "<a>"
+    },
+    "center": [
+      839,
+      1871
+    ],
+    "content": "Team",
+    "rect": {
+      "left": 821,
+      "top": 1862,
+      "width": 35,
+      "height": 17,
+      "zoom": 1,
+      "isVisible": false
+    },
+    "zoom": 1,
+    "isVisible": false
+  },
+  {
+    "id": "fldga",
+    "indexId": 111,
+    "nodeHashId": "fldga",
+    "nodeType": "Anchor Node",
+    "locator": "[_midscene_retrieve_task_id='fldga']",
+    "attributes": {
+      "href": "https://resources.github.com",
+      "data-ga-click": "Footer, go to resources, text:resources",
+      "class": ".link-gray",
+      "htmlTagName": "<a>",
+      "nodeType": "Anchor Node"
+    },
+    "content": "Resources",
+    "rect": {
+      "left": 821,
+      "top": 1895,
+      "width": 68,
+      "height": 17,
+      "zoom": 1,
+      "isVisible": false
+    },
+    "center": [
+      855,
+      1904
+    ],
+    "zoom": 1,
+    "isVisible": false
+  },
+  {
+    "id": "fldga",
+    "indexId": 112,
+    "nodeHashId": "fldga",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node",
+      "htmlTagName": "<a>"
+    },
+    "center": [
+      855,
+      1904
+    ],
+    "content": "Resources",
+    "rect": {
+      "left": 821,
+      "top": 1895,
+      "width": 68,
+      "height": 17,
+      "zoom": 1,
+      "isVisible": false
+    },
+    "zoom": 1,
+    "isVisible": false
+  },
+  {
+    "id": "fdgco",
+    "indexId": 113,
+    "nodeHashId": "fdgco",
+    "nodeType": "Anchor Node",
+    "locator": "[_midscene_retrieve_task_id='fdgco']",
+    "attributes": {
+      "href": "https://github.com/github/roadmap",
+      "data-ga-click": "Footer, go to roadmap, text:roadmap",
+      "class": ".link-gray",
+      "htmlTagName": "<a>",
+      "nodeType": "Anchor Node"
+    },
+    "content": "Roadmap",
+    "rect": {
+      "left": 821,
+      "top": 1929,
+      "width": 61,
+      "height": 17,
+      "zoom": 1,
+      "isVisible": false
+    },
+    "center": [
+      852,
+      1938
+    ],
+    "zoom": 1,
+    "isVisible": false
+  },
+  {
+    "id": "fdgco",
+    "indexId": 114,
+    "nodeHashId": "fdgco",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node",
+      "htmlTagName": "<a>"
+    },
+    "center": [
+      852,
+      1938
+    ],
+    "content": "Roadmap",
+    "rect": {
+      "left": 821,
+      "top": 1929,
+      "width": 61,
+      "height": 17,
+      "zoom": 1,
+      "isVisible": false
+    },
+    "zoom": 1,
+    "isVisible": false
+  },
+  {
+    "id": "akbge",
+    "indexId": 115,
+    "nodeHashId": "akbge",
+    "nodeType": "Anchor Node",
+    "locator": "[_midscene_retrieve_task_id='akbge']",
+    "attributes": {
+      "href": "https://resources.github.com/devops/tools/compare",
+      "data-ga-click": "Footer, go to compare, text:compare",
+      "class": ".link-gray",
+      "htmlTagName": "<a>",
+      "nodeType": "Anchor Node"
+    },
+    "content": "Compare GitHub",
+    "rect": {
+      "left": 821,
+      "top": 1962,
+      "width": 108,
+      "height": 17,
+      "zoom": 1,
+      "isVisible": false
+    },
+    "center": [
+      875,
+      1971
+    ],
+    "zoom": 1,
+    "isVisible": false
+  },
+  {
+    "id": "akbge",
+    "indexId": 116,
+    "nodeHashId": "akbge",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node",
+      "htmlTagName": "<a>"
+    },
+    "center": [
+      875,
+      1971
+    ],
+    "content": "Compare GitHub",
+    "rect": {
+      "left": 821,
+      "top": 1962,
+      "width": 108,
+      "height": 17,
+      "zoom": 1,
+      "isVisible": false
+    },
+    "zoom": 1,
+    "isVisible": false
+  },
+  {
+    "id": "ibelh",
+    "indexId": 117,
+    "nodeHashId": "ibelh",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node",
+      "htmlTagName": "<h3>"
+    },
+    "center": [
+      1018,
+      1656
+    ],
+    "content": "Platform",
+    "rect": {
+      "left": 984,
+      "top": 1647,
+      "width": 67,
+      "height": 17,
+      "zoom": 1,
+      "isVisible": false
+    },
+    "zoom": 1,
+    "isVisible": false
+  },
+  {
+    "id": "lilkh",
+    "indexId": 118,
+    "nodeHashId": "lilkh",
+    "nodeType": "Anchor Node",
+    "locator": "[_midscene_retrieve_task_id='lilkh']",
+    "attributes": {
+      "href": "https://docs.github.com/get-started/exploring-integrations/about-building-integrations",
+      "data-ga-click": "Footer, go to api, text:api",
+      "class": ".link-gray",
+      "htmlTagName": "<a>",
+      "nodeType": "Anchor Node"
+    },
+    "content": "Developer API",
+    "rect": {
+      "left": 984,
+      "top": 1694,
+      "width": 91,
+      "height": 17,
+      "zoom": 1,
+      "isVisible": false
+    },
+    "center": [
+      1030,
+      1703
+    ],
+    "zoom": 1,
+    "isVisible": false
+  },
+  {
+    "id": "lilkh",
+    "indexId": 119,
+    "nodeHashId": "lilkh",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node",
+      "htmlTagName": "<a>"
+    },
+    "center": [
+      1030,
+      1703
+    ],
+    "content": "Developer API",
+    "rect": {
+      "left": 984,
+      "top": 1694,
+      "width": 91,
+      "height": 17,
+      "zoom": 1,
+      "isVisible": false
+    },
+    "zoom": 1,
+    "isVisible": false
+  },
+  {
+    "id": "naldd",
+    "indexId": 120,
+    "nodeHashId": "naldd",
+    "nodeType": "Anchor Node",
+    "locator": "[_midscene_retrieve_task_id='naldd']",
+    "attributes": {
+      "href": "https://partner.github.com",
+      "data-ga-click": "Footer, go to partners, text:partners",
+      "class": ".link-gray",
+      "htmlTagName": "<a>",
+      "nodeType": "Anchor Node"
+    },
+    "content": "Partners",
+    "rect": {
+      "left": 984,
+      "top": 1728,
+      "width": 54,
+      "height": 17,
+      "zoom": 1,
+      "isVisible": false
+    },
+    "center": [
+      1011,
+      1737
+    ],
+    "zoom": 1,
+    "isVisible": false
+  },
+  {
+    "id": "naldd",
+    "indexId": 121,
+    "nodeHashId": "naldd",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node",
+      "htmlTagName": "<a>"
+    },
+    "center": [
+      1011,
+      1737
+    ],
+    "content": "Partners",
+    "rect": {
+      "left": 984,
+      "top": 1728,
+      "width": 54,
+      "height": 17,
+      "zoom": 1,
+      "isVisible": false
+    },
+    "zoom": 1,
+    "isVisible": false
+  },
+  {
+    "id": "njbpi",
+    "indexId": 122,
+    "nodeHashId": "njbpi",
+    "nodeType": "Anchor Node",
+    "locator": "[_midscene_retrieve_task_id='njbpi']",
+    "attributes": {
+      "href": "https://github.com/edu",
+      "data-ga-click": "Footer, go to education, text:education",
+      "class": ".link-gray",
+      "htmlTagName": "<a>",
+      "nodeType": "Anchor Node"
+    },
+    "content": "Education",
+    "rect": {
+      "left": 984,
+      "top": 1761,
+      "width": 64,
+      "height": 17,
+      "zoom": 1,
+      "isVisible": false
+    },
+    "center": [
+      1016,
+      1770
+    ],
+    "zoom": 1,
+    "isVisible": false
+  },
+  {
+    "id": "njbpi",
+    "indexId": 123,
+    "nodeHashId": "njbpi",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node",
+      "htmlTagName": "<a>"
+    },
+    "center": [
+      1016,
+      1770
+    ],
+    "content": "Education",
+    "rect": {
+      "left": 984,
+      "top": 1761,
+      "width": 64,
+      "height": 17,
+      "zoom": 1,
+      "isVisible": false
+    },
+    "zoom": 1,
+    "isVisible": false
+  },
+  {
+    "id": "ceika",
+    "indexId": 124,
+    "nodeHashId": "ceika",
+    "nodeType": "Anchor Node",
+    "locator": "[_midscene_retrieve_task_id='ceika']",
+    "attributes": {
+      "href": "https://cli.github.com",
+      "data-ga-click": "Footer, go to github cli, text:cli",
+      "class": ".link-gray",
+      "htmlTagName": "<a>",
+      "nodeType": "Anchor Node"
+    },
+    "content": "GitHub CLI",
+    "rect": {
+      "left": 984,
+      "top": 1795,
+      "width": 70,
+      "height": 17,
+      "zoom": 1,
+      "isVisible": false
+    },
+    "center": [
+      1019,
+      1804
+    ],
+    "zoom": 1,
+    "isVisible": false
+  },
+  {
+    "id": "ceika",
+    "indexId": 125,
+    "nodeHashId": "ceika",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node",
+      "htmlTagName": "<a>"
+    },
+    "center": [
+      1019,
+      1804
+    ],
+    "content": "GitHub CLI",
+    "rect": {
+      "left": 984,
+      "top": 1795,
+      "width": 70,
+      "height": 17,
+      "zoom": 1,
+      "isVisible": false
+    },
+    "zoom": 1,
+    "isVisible": false
+  },
+  {
+    "id": "bbggf",
+    "indexId": 126,
+    "nodeHashId": "bbggf",
+    "nodeType": "Anchor Node",
+    "locator": "[_midscene_retrieve_task_id='bbggf']",
+    "attributes": {
+      "href": "https://desktop.github.com",
+      "data-ga-click": "Footer, go to github desktop, text:desktop",
+      "class": ".link-gray",
+      "htmlTagName": "<a>",
+      "nodeType": "Anchor Node"
+    },
+    "content": "GitHub Desktop",
+    "rect": {
+      "left": 984,
+      "top": 1828,
+      "width": 103,
+      "height": 17,
+      "zoom": 1,
+      "isVisible": false
+    },
+    "center": [
+      1036,
+      1837
+    ],
+    "zoom": 1,
+    "isVisible": false
+  },
+  {
+    "id": "bbggf",
+    "indexId": 127,
+    "nodeHashId": "bbggf",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node",
+      "htmlTagName": "<a>"
+    },
+    "center": [
+      1036,
+      1837
+    ],
+    "content": "GitHub Desktop",
+    "rect": {
+      "left": 984,
+      "top": 1828,
+      "width": 103,
+      "height": 17,
+      "zoom": 1,
+      "isVisible": false
+    },
+    "zoom": 1,
+    "isVisible": false
+  },
+  {
+    "id": "hndkh",
+    "indexId": 128,
+    "nodeHashId": "hndkh",
+    "nodeType": "Anchor Node",
+    "locator": "[_midscene_retrieve_task_id='hndkh']",
+    "attributes": {
+      "href": "https://github.com/mobile",
+      "data-ga-click": "Footer, go to github mobile, text:mobile",
+      "class": ".link-gray",
+      "htmlTagName": "<a>",
+      "nodeType": "Anchor Node"
+    },
+    "content": "GitHub Mobile",
+    "rect": {
+      "left": 984,
+      "top": 1862,
+      "width": 92,
+      "height": 17,
+      "zoom": 1,
+      "isVisible": false
+    },
+    "center": [
+      1030,
+      1871
+    ],
+    "zoom": 1,
+    "isVisible": false
+  },
+  {
+    "id": "hndkh",
+    "indexId": 129,
+    "nodeHashId": "hndkh",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node",
+      "htmlTagName": "<a>"
+    },
+    "center": [
+      1030,
+      1871
+    ],
+    "content": "GitHub Mobile",
+    "rect": {
+      "left": 984,
+      "top": 1862,
+      "width": 92,
+      "height": 17,
+      "zoom": 1,
+      "isVisible": false
+    },
+    "zoom": 1,
+    "isVisible": false
+  },
+  {
+    "id": "amlbk",
+    "indexId": 130,
+    "nodeHashId": "amlbk",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node",
+      "htmlTagName": "<h3>"
+    },
+    "center": [
+      1177,
+      1656
+    ],
+    "content": "Support",
+    "rect": {
+      "left": 1147,
+      "top": 1647,
+      "width": 59,
+      "height": 17,
+      "zoom": 1,
+      "isVisible": false
+    },
+    "zoom": 1,
+    "isVisible": false
+  },
+  {
+    "id": "dilkd",
+    "indexId": 131,
+    "nodeHashId": "dilkd",
+    "nodeType": "Anchor Node",
+    "locator": "[_midscene_retrieve_task_id='dilkd']",
+    "attributes": {
+      "href": "https://docs.github.com",
+      "data-ga-click": "Footer, go to docs, text:docs",
+      "class": ".link-gray",
+      "htmlTagName": "<a>",
+      "nodeType": "Anchor Node"
+    },
+    "content": "Docs",
+    "rect": {
+      "left": 1147,
+      "top": 1694,
+      "width": 33,
+      "height": 17,
+      "zoom": 1,
+      "isVisible": false
+    },
+    "center": [
+      1164,
+      1703
+    ],
+    "zoom": 1,
+    "isVisible": false
+  },
+  {
+    "id": "dilkd",
+    "indexId": 132,
+    "nodeHashId": "dilkd",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node",
+      "htmlTagName": "<a>"
+    },
+    "center": [
+      1164,
+      1703
+    ],
+    "content": "Docs",
+    "rect": {
+      "left": 1147,
+      "top": 1694,
+      "width": 33,
+      "height": 17,
+      "zoom": 1,
+      "isVisible": false
+    },
+    "zoom": 1,
+    "isVisible": false
+  },
+  {
+    "id": "ofbbf",
+    "indexId": 133,
+    "nodeHashId": "ofbbf",
+    "nodeType": "Anchor Node",
+    "locator": "[_midscene_retrieve_task_id='ofbbf']",
+    "attributes": {
+      "href": "https://github.community",
+      "data-ga-click": "Footer, go to community, text:community",
+      "class": ".link-gray",
+      "htmlTagName": "<a>",
+      "nodeType": "Anchor Node"
+    },
+    "content": "Community Forum",
+    "rect": {
+      "left": 1147,
+      "top": 1728,
+      "width": 119,
+      "height": 17,
+      "zoom": 1,
+      "isVisible": false
+    },
+    "center": [
+      1207,
+      1737
+    ],
+    "zoom": 1,
+    "isVisible": false
+  },
+  {
+    "id": "ofbbf",
+    "indexId": 134,
+    "nodeHashId": "ofbbf",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node",
+      "htmlTagName": "<a>"
+    },
+    "center": [
+      1207,
+      1737
+    ],
+    "content": "Community Forum",
+    "rect": {
+      "left": 1147,
+      "top": 1728,
+      "width": 119,
+      "height": 17,
+      "zoom": 1,
+      "isVisible": false
+    },
+    "zoom": 1,
+    "isVisible": false
+  },
+  {
+    "id": "cmnpn",
+    "indexId": 135,
+    "nodeHashId": "cmnpn",
+    "nodeType": "Anchor Node",
+    "locator": "[_midscene_retrieve_task_id='cmnpn']",
+    "attributes": {
+      "href": "https://services.github.com",
+      "data-ga-click": "Footer, go to services, text:services",
+      "class": ".link-gray",
+      "htmlTagName": "<a>",
+      "nodeType": "Anchor Node"
+    },
+    "content": "Professional Services",
+    "rect": {
+      "left": 1147,
+      "top": 1761,
+      "width": 138,
+      "height": 17,
+      "zoom": 1,
+      "isVisible": false
+    },
+    "center": [
+      1216,
+      1770
+    ],
+    "zoom": 1,
+    "isVisible": false
+  },
+  {
+    "id": "cmnpn",
+    "indexId": 136,
+    "nodeHashId": "cmnpn",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node",
+      "htmlTagName": "<a>"
+    },
+    "center": [
+      1216,
+      1770
+    ],
+    "content": "Professional Services",
+    "rect": {
+      "left": 1147,
+      "top": 1761,
+      "width": 138,
+      "height": 17,
+      "zoom": 1,
+      "isVisible": false
+    },
+    "zoom": 1,
+    "isVisible": false
+  },
+  {
+    "id": "ndeli",
+    "indexId": 137,
+    "nodeHashId": "ndeli",
+    "nodeType": "Anchor Node",
+    "locator": "[_midscene_retrieve_task_id='ndeli']",
+    "attributes": {
+      "href": "https://skills.github.com",
+      "data-ga-click": "Footer, go to skills, text:skills",
+      "class": ".link-gray",
+      "htmlTagName": "<a>",
+      "nodeType": "Anchor Node"
+    },
+    "content": "Skills",
+    "rect": {
+      "left": 1147,
+      "top": 1795,
+      "width": 33,
+      "height": 17,
+      "zoom": 1,
+      "isVisible": false
+    },
+    "center": [
+      1164,
+      1804
+    ],
+    "zoom": 1,
+    "isVisible": false
+  },
+  {
+    "id": "ndeli",
+    "indexId": 138,
+    "nodeHashId": "ndeli",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node",
+      "htmlTagName": "<a>"
+    },
+    "center": [
+      1164,
+      1804
+    ],
+    "content": "Skills",
+    "rect": {
+      "left": 1147,
+      "top": 1795,
+      "width": 33,
+      "height": 17,
+      "zoom": 1,
+      "isVisible": false
+    },
+    "zoom": 1,
+    "isVisible": false
+  },
+  {
+    "id": "cgamd",
+    "indexId": 139,
+    "nodeHashId": "cgamd",
+    "nodeType": "Anchor Node",
+    "locator": "[_midscene_retrieve_task_id='cgamd']",
+    "attributes": {
+      "href": "https://support.github.com?tags=dotcom-footer",
+      "data-ga-click": "Footer, go to support, text:support",
+      "class": ".link-gray",
+      "htmlTagName": "<a>",
+      "nodeType": "Anchor Node"
+    },
+    "content": "Contact GitHub",
+    "rect": {
+      "left": 1147,
+      "top": 1828,
+      "width": 100,
+      "height": 17,
+      "zoom": 1,
+      "isVisible": false
+    },
+    "center": [
+      1197,
+      1837
+    ],
+    "zoom": 1,
+    "isVisible": false
+  },
+  {
+    "id": "cgamd",
+    "indexId": 140,
+    "nodeHashId": "cgamd",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node",
+      "htmlTagName": "<a>"
+    },
+    "center": [
+      1197,
+      1837
+    ],
+    "content": "Contact GitHub",
+    "rect": {
+      "left": 1147,
+      "top": 1828,
+      "width": 100,
+      "height": 17,
+      "zoom": 1,
+      "isVisible": false
+    },
+    "zoom": 1,
+    "isVisible": false
+  },
+  {
+    "id": "cikbn",
+    "indexId": 141,
+    "nodeHashId": "cikbn",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node",
+      "htmlTagName": "<h3>"
+    },
+    "center": [
+      1341,
+      1656
+    ],
+    "content": "Company",
+    "rect": {
+      "left": 1311,
+      "top": 1647,
+      "width": 59,
+      "height": 17,
+      "zoom": 1,
+      "isVisible": false
+    },
+    "zoom": 1,
+    "isVisible": false
+  },
+  {
+    "id": "headj",
+    "indexId": 142,
+    "nodeHashId": "headj",
+    "nodeType": "Anchor Node",
+    "locator": "[_midscene_retrieve_task_id='headj']",
+    "attributes": {
+      "href": "https://github.com/about/",
+      "data-ga-click": "Footer, go to support, text:support",
+      "class": ".link-gray",
+      "htmlTagName": "<a>",
+      "nodeType": "Anchor Node"
+    },
+    "content": "About",
+    "rect": {
+      "left": 1311,
+      "top": 1694,
+      "width": 39,
+      "height": 17,
+      "zoom": 1,
+      "isVisible": false
+    },
+    "center": [
+      1331,
+      1703
+    ],
+    "zoom": 1,
+    "isVisible": false
+  },
+  {
+    "id": "headj",
+    "indexId": 143,
+    "nodeHashId": "headj",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node",
+      "htmlTagName": "<a>"
+    },
+    "center": [
+      1331,
+      1703
+    ],
+    "content": "About",
+    "rect": {
+      "left": 1311,
+      "top": 1694,
+      "width": 39,
+      "height": 17,
+      "zoom": 1,
+      "isVisible": false
+    },
+    "zoom": 1,
+    "isVisible": false
+  },
+  {
+    "id": "iidfm",
+    "indexId": 144,
+    "nodeHashId": "iidfm",
+    "nodeType": "Anchor Node",
+    "locator": "[_midscene_retrieve_task_id='iidfm']",
+    "attributes": {
+      "href": "https://github.com/customer-stories?type=enterprise",
+      "data-ga-click": "Footer, go to customer-stories, text:customer-stories",
+      "class": ".link-gray",
+      "htmlTagName": "<a>",
+      "nodeType": "Anchor Node"
+    },
+    "content": "Customer stories",
+    "rect": {
+      "left": 1311,
+      "top": 1728,
+      "width": 110,
+      "height": 17,
+      "zoom": 1,
+      "isVisible": false
+    },
+    "center": [
+      1366,
+      1737
+    ],
+    "zoom": 1,
+    "isVisible": false
+  },
+  {
+    "id": "ejkfm",
+    "indexId": 145,
+    "nodeHashId": "ejkfm",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node",
+      "htmlTagName": "<a>"
+    },
+    "center": [
+      1366,
+      1737
+    ],
+    "content": "Customer               stories",
+    "rect": {
+      "left": 1311,
+      "top": 1728,
+      "width": 110,
+      "height": 17,
+      "zoom": 1,
+      "isVisible": false
+    },
+    "zoom": 1,
+    "isVisible": false
+  },
+  {
+    "id": "fppih",
+    "indexId": 146,
+    "nodeHashId": "fppih",
+    "nodeType": "Anchor Node",
+    "locator": "[_midscene_retrieve_task_id='fppih']",
+    "attributes": {
+      "href": "https://github.blog/",
+      "data-ga-click": "Footer, go to blog, text:blog",
+      "class": ".link-gray",
+      "htmlTagName": "<a>",
+      "nodeType": "Anchor Node"
+    },
+    "content": "Blog",
+    "rect": {
+      "left": 1311,
+      "top": 1761,
+      "width": 29,
+      "height": 17,
+      "zoom": 1,
+      "isVisible": false
+    },
+    "center": [
+      1326,
+      1770
+    ],
+    "zoom": 1,
+    "isVisible": false
+  },
+  {
+    "id": "fppih",
+    "indexId": 147,
+    "nodeHashId": "fppih",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node",
+      "htmlTagName": "<a>"
+    },
+    "center": [
+      1326,
+      1770
+    ],
+    "content": "Blog",
+    "rect": {
+      "left": 1311,
+      "top": 1761,
+      "width": 29,
+      "height": 17,
+      "zoom": 1,
+      "isVisible": false
+    },
+    "zoom": 1,
+    "isVisible": false
+  },
+  {
+    "id": "pcakb",
+    "indexId": 148,
+    "nodeHashId": "pcakb",
+    "nodeType": "Anchor Node",
+    "locator": "[_midscene_retrieve_task_id='pcakb']",
+    "attributes": {
+      "href": "https://github.com/readme",
+      "data-ga-click": "Footer, go to readme, text:readme",
+      "class": ".link-gray",
+      "htmlTagName": "<a>",
+      "nodeType": "Anchor Node"
+    },
+    "content": "The ReadME Project",
+    "rect": {
+      "left": 1311,
+      "top": 1795,
+      "width": 131,
+      "height": 17,
+      "zoom": 1,
+      "isVisible": false
+    },
+    "center": [
+      1377,
+      1804
+    ],
+    "zoom": 1,
+    "isVisible": false
+  },
+  {
+    "id": "pcakb",
+    "indexId": 149,
+    "nodeHashId": "pcakb",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node",
+      "htmlTagName": "<a>"
+    },
+    "center": [
+      1377,
+      1804
+    ],
+    "content": "The ReadME Project",
+    "rect": {
+      "left": 1311,
+      "top": 1795,
+      "width": 131,
+      "height": 17,
+      "zoom": 1,
+      "isVisible": false
+    },
+    "zoom": 1,
+    "isVisible": false
+  },
+  {
+    "id": "afana",
+    "indexId": 150,
+    "nodeHashId": "afana",
+    "nodeType": "Anchor Node",
+    "locator": "[_midscene_retrieve_task_id='afana']",
+    "attributes": {
+      "href": "https://github.careers/",
+      "data-ga-click": "Footer, go to careers, text:careers",
+      "class": ".link-gray",
+      "htmlTagName": "<a>",
+      "nodeType": "Anchor Node"
+    },
+    "content": "Careers",
+    "rect": {
+      "left": 1311,
+      "top": 1828,
+      "width": 50,
+      "height": 17,
+      "zoom": 1,
+      "isVisible": false
+    },
+    "center": [
+      1336,
+      1837
+    ],
+    "zoom": 1,
+    "isVisible": false
+  },
+  {
+    "id": "afana",
+    "indexId": 151,
+    "nodeHashId": "afana",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node",
+      "htmlTagName": "<a>"
+    },
+    "center": [
+      1336,
+      1837
+    ],
+    "content": "Careers",
+    "rect": {
+      "left": 1311,
+      "top": 1828,
+      "width": 50,
+      "height": 17,
+      "zoom": 1,
+      "isVisible": false
+    },
+    "zoom": 1,
+    "isVisible": false
+  },
+  {
+    "id": "elmmf",
+    "indexId": 152,
+    "nodeHashId": "elmmf",
+    "nodeType": "Anchor Node",
+    "locator": "[_midscene_retrieve_task_id='elmmf']",
+    "attributes": {
+      "href": "https://github.com/newsroom",
+      "data-ga-click": "Footer, go to newsroom, text:newsroom",
+      "class": ".link-gray",
+      "htmlTagName": "<a>",
+      "nodeType": "Anchor Node"
+    },
+    "content": "Newsroom",
+    "rect": {
+      "left": 1311,
+      "top": 1862,
+      "width": 69,
+      "height": 17,
+      "zoom": 1,
+      "isVisible": false
+    },
+    "center": [
+      1346,
+      1871
+    ],
+    "zoom": 1,
+    "isVisible": false
+  },
+  {
+    "id": "elmmf",
+    "indexId": 153,
+    "nodeHashId": "elmmf",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node",
+      "htmlTagName": "<a>"
+    },
+    "center": [
+      1346,
+      1871
+    ],
+    "content": "Newsroom",
+    "rect": {
+      "left": 1311,
+      "top": 1862,
+      "width": 69,
+      "height": 17,
+      "zoom": 1,
+      "isVisible": false
+    },
+    "zoom": 1,
+    "isVisible": false
+  },
+  {
+    "id": "mclap",
+    "indexId": 154,
+    "nodeHashId": "mclap",
+    "nodeType": "Anchor Node",
+    "locator": "[_midscene_retrieve_task_id='mclap']",
+    "attributes": {
+      "href": "https://github.com/about/diversity",
+      "data-ga-click": "Footer, go to diversity, text:diversity",
+      "class": ".link-gray",
+      "htmlTagName": "<a>",
+      "nodeType": "Anchor Node"
+    },
+    "content": "Inclusion",
+    "rect": {
+      "left": 1311,
+      "top": 1895,
+      "width": 57,
+      "height": 17,
+      "zoom": 1,
+      "isVisible": false
+    },
+    "center": [
+      1340,
+      1904
+    ],
+    "zoom": 1,
+    "isVisible": false
+  },
+  {
+    "id": "mclap",
+    "indexId": 155,
+    "nodeHashId": "mclap",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node",
+      "htmlTagName": "<a>"
+    },
+    "center": [
+      1340,
+      1904
+    ],
+    "content": "Inclusion",
+    "rect": {
+      "left": 1311,
+      "top": 1895,
+      "width": 57,
+      "height": 17,
+      "zoom": 1,
+      "isVisible": false
+    },
+    "zoom": 1,
+    "isVisible": false
+  },
+  {
+    "id": "kbebb",
+    "indexId": 156,
+    "nodeHashId": "kbebb",
+    "nodeType": "Anchor Node",
+    "locator": "[_midscene_retrieve_task_id='kbebb']",
+    "attributes": {
+      "href": "https://socialimpact.github.com/",
+      "data-ga-click": "Footer, go to socialimpact, text:socialimpact",
+      "class": ".link-gray",
+      "htmlTagName": "<a>",
+      "nodeType": "Anchor Node"
+    },
+    "content": "Social Impact",
+    "rect": {
+      "left": 1311,
+      "top": 1929,
+      "width": 87,
+      "height": 17,
+      "zoom": 1,
+      "isVisible": false
+    },
+    "center": [
+      1355,
+      1938
+    ],
+    "zoom": 1,
+    "isVisible": false
+  },
+  {
+    "id": "kbebb",
+    "indexId": 157,
+    "nodeHashId": "kbebb",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node",
+      "htmlTagName": "<a>"
+    },
+    "center": [
+      1355,
+      1938
+    ],
+    "content": "Social Impact",
+    "rect": {
+      "left": 1311,
+      "top": 1929,
+      "width": 87,
+      "height": 17,
+      "zoom": 1,
+      "isVisible": false
+    },
+    "zoom": 1,
+    "isVisible": false
+  },
+  {
+    "id": "dpcpi",
+    "indexId": 158,
+    "nodeHashId": "dpcpi",
+    "nodeType": "Anchor Node",
+    "locator": "[_midscene_retrieve_task_id='dpcpi']",
+    "attributes": {
+      "href": "https://shop.github.com/",
+      "data-ga-click": "Footer, go to shop, text:shop",
+      "class": ".link-gray",
+      "htmlTagName": "<a>",
+      "nodeType": "Anchor Node"
+    },
+    "content": "Shop",
+    "rect": {
+      "left": 1311,
+      "top": 1962,
+      "width": 33,
+      "height": 17,
+      "zoom": 1,
+      "isVisible": false
+    },
+    "center": [
+      1328,
+      1971
+    ],
+    "zoom": 1,
+    "isVisible": false
+  },
+  {
+    "id": "dpcpi",
+    "indexId": 159,
+    "nodeHashId": "dpcpi",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node",
+      "htmlTagName": "<a>"
+    },
+    "center": [
+      1328,
+      1971
+    ],
+    "content": "Shop",
+    "rect": {
+      "left": 1311,
+      "top": 1962,
+      "width": 33,
+      "height": 17,
+      "zoom": 1,
+      "isVisible": false
+    },
+    "zoom": 1,
+    "isVisible": false
+  },
+  {
+    "id": "pbopi",
+    "indexId": 160,
+    "nodeHashId": "pbopi",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node",
+      "htmlTagName": "<li>"
+    },
+    "center": [
+      477,
+      2101
+    ],
+    "content": "©",
+    "rect": {
+      "left": 470,
+      "top": 2094,
+      "width": 14,
+      "height": 14,
+      "zoom": 1,
+      "isVisible": false
+    },
+    "zoom": 1,
+    "isVisible": false
+  },
+  {
+    "id": "jkgdf",
+    "indexId": 161,
+    "nodeHashId": "jkgdf",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node",
+      "htmlTagName": "<li>"
+    },
+    "center": [
+      534,
+      2101
+    ],
+    "content": "2025 GitHub, Inc.",
+    "rect": {
+      "left": 484,
+      "top": 2094,
+      "width": 100,
+      "height": 14,
+      "zoom": 1,
+      "isVisible": false
+    },
+    "zoom": 1,
+    "isVisible": false
+  },
+  {
+    "id": "bfnfo",
+    "indexId": 162,
+    "nodeHashId": "bfnfo",
+    "nodeType": "Anchor Node",
+    "locator": "[_midscene_retrieve_task_id='bfnfo']",
+    "attributes": {
+      "href": "https://docs.github.com/site-policy/github-terms/github-terms-of-service/",
+      "data-ga-click": "Footer, go to terms, text:terms",
+      "class": ".link-gray",
+      "htmlTagName": "<a>",
+      "nodeType": "Anchor Node"
+    },
+    "content": "Terms",
+    "rect": {
+      "left": 600,
+      "top": 2094,
+      "width": 35,
+      "height": 14,
+      "zoom": 1,
+      "isVisible": false
+    },
+    "center": [
+      618,
+      2101
+    ],
+    "zoom": 1,
+    "isVisible": false
+  },
+  {
+    "id": "bfnfo",
+    "indexId": 163,
+    "nodeHashId": "bfnfo",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node",
+      "htmlTagName": "<a>"
+    },
+    "center": [
+      618,
+      2101
+    ],
+    "content": "Terms",
+    "rect": {
+      "left": 600,
+      "top": 2094,
+      "width": 35,
+      "height": 14,
+      "zoom": 1,
+      "isVisible": false
+    },
+    "zoom": 1,
+    "isVisible": false
+  },
+  {
+    "id": "nnbkc",
+    "indexId": 164,
+    "nodeHashId": "nnbkc",
+    "nodeType": "Anchor Node",
+    "locator": "[_midscene_retrieve_task_id='nnbkc']",
+    "attributes": {
+      "href": "https://help.github.com/articles/github-privacy-statement/",
+      "data-ga-click": "Footer, go to privacy, text:privacy",
+      "class": ".link-gray",
+      "htmlTagName": "<a>",
+      "nodeType": "Anchor Node"
+    },
+    "content": "Privacy",
+    "rect": {
+      "left": 651,
+      "top": 2094,
+      "width": 41,
+      "height": 14,
+      "zoom": 1,
+      "isVisible": false
+    },
+    "center": [
+      672,
+      2101
+    ],
+    "zoom": 1,
+    "isVisible": false
+  },
+  {
+    "id": "nnbkc",
+    "indexId": 165,
+    "nodeHashId": "nnbkc",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node",
+      "htmlTagName": "<a>"
+    },
+    "center": [
+      672,
+      2101
+    ],
+    "content": "Privacy",
+    "rect": {
+      "left": 651,
+      "top": 2094,
+      "width": 41,
+      "height": 14,
+      "zoom": 1,
+      "isVisible": false
+    },
+    "zoom": 1,
+    "isVisible": false
+  },
+  {
+    "id": "mfkjf",
+    "indexId": 166,
+    "nodeHashId": "mfkjf",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node",
+      "htmlTagName": "<li>"
+    },
+    "center": [
+      696,
+      2101
+    ],
+    "content": "(",
+    "rect": {
+      "left": 692,
+      "top": 2094,
+      "width": 8,
+      "height": 14,
+      "zoom": 1,
+      "isVisible": false
+    },
+    "zoom": 1,
+    "isVisible": false
+  },
+  {
+    "id": "negjk",
+    "indexId": 167,
+    "nodeHashId": "negjk",
+    "nodeType": "Anchor Node",
+    "locator": "[_midscene_retrieve_task_id='negjk']",
+    "attributes": {
+      "href": "https://github.com/github/site-policy/pull/582",
+      "class": ".link-gray",
+      "htmlTagName": "<a>",
+      "nodeType": "Anchor Node"
+    },
+    "content": "Updated 08/2022",
+    "rect": {
+      "left": 700,
+      "top": 2094,
+      "width": 100,
+      "height": 14,
+      "zoom": 1,
+      "isVisible": false
+    },
+    "center": [
+      750,
+      2101
+    ],
+    "zoom": 1,
+    "isVisible": false
+  },
+  {
+    "id": "lekcm",
+    "indexId": 168,
+    "nodeHashId": "lekcm",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node",
+      "htmlTagName": "<a>"
+    },
+    "center": [
+      726,
+      2101
+    ],
+    "content": "Updated",
+    "rect": {
+      "left": 700,
+      "top": 2094,
+      "width": 52,
+      "height": 14,
+      "zoom": 1,
+      "isVisible": false
+    },
+    "zoom": 1,
+    "isVisible": false
+  },
+  {
+    "id": "dekce",
+    "indexId": 169,
+    "nodeHashId": "dekce",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node",
+      "htmlTagName": "<time>"
+    },
+    "center": [
+      776,
+      2101
+    ],
+    "content": "08/2022",
+    "rect": {
+      "left": 752,
+      "top": 2094,
+      "width": 48,
+      "height": 14,
+      "zoom": 1,
+      "isVisible": false
+    },
+    "zoom": 1,
+    "isVisible": false
+  },
+  {
+    "id": "ljbop",
+    "indexId": 170,
+    "nodeHashId": "ljbop",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node",
+      "htmlTagName": "<li>"
+    },
+    "center": [
+      803,
+      2101
+    ],
+    "content": ")",
+    "rect": {
+      "left": 800,
+      "top": 2094,
+      "width": 5,
+      "height": 14,
+      "zoom": 1,
+      "isVisible": false
+    },
+    "zoom": 1,
+    "isVisible": false
+  },
+  {
+    "id": "ddonn",
+    "indexId": 171,
+    "nodeHashId": "ddonn",
+    "nodeType": "Anchor Node",
+    "locator": "[_midscene_retrieve_task_id='ddonn']",
+    "attributes": {
+      "href": "https://x.com/github",
+      "data-ga-click": "Footer, go to Twitter, text:twitter",
+      "aria-label": "GitHub X",
+      "style": "color: #959da5;",
+      "htmlTagName": "<a>",
+      "nodeType": "Anchor Node"
+    },
+    "content": "",
+    "rect": {
+      "left": 1198,
+      "top": 2091,
+      "width": 20,
+      "height": 20,
+      "zoom": 1,
+      "isVisible": false
+    },
+    "center": [
+      1208,
+      2101
+    ],
+    "zoom": 1,
+    "isVisible": false
+  },
+  {
+    "id": "ieeeo",
+    "indexId": 172,
+    "nodeHashId": "ieeeo",
+    "locator": "",
+    "attributes": {
+      "svgContent": "true",
+      "nodeType": "IMG Node",
+      "htmlTagName": "<a>"
+    },
+    "nodeType": "IMG Node",
+    "content": "",
+    "rect": {
+      "left": 1198,
+      "top": 2091,
+      "width": 19,
+      "height": 21,
+      "zoom": 1,
+      "isVisible": false
+    },
+    "center": [
+      1208,
+      2102
+    ],
+    "zoom": 1,
+    "isVisible": false
+  },
+  {
+    "id": "bhlip",
+    "indexId": 173,
+    "nodeHashId": "bhlip",
+    "nodeType": "Anchor Node",
+    "locator": "[_midscene_retrieve_task_id='bhlip']",
+    "attributes": {
+      "href": "https://www.facebook.com/GitHub",
+      "data-ga-click": "Footer, go to Facebook, text:facebook",
+      "aria-label": "GitHub Facebook",
+      "style": "color: #959da5;",
+      "htmlTagName": "<a>",
+      "nodeType": "Anchor Node"
+    },
+    "content": "",
+    "rect": {
+      "left": 1234,
+      "top": 2091,
+      "width": 20,
+      "height": 20,
+      "zoom": 1,
+      "isVisible": false
+    },
+    "center": [
+      1244,
+      2101
+    ],
+    "zoom": 1,
+    "isVisible": false
+  },
+  {
+    "id": "bhlip",
+    "indexId": 174,
+    "nodeHashId": "bhlip",
+    "locator": "",
+    "attributes": {
+      "svgContent": "true",
+      "nodeType": "IMG Node",
+      "htmlTagName": "<a>"
+    },
+    "nodeType": "IMG Node",
+    "content": "",
+    "rect": {
+      "left": 1234,
+      "top": 2091,
+      "width": 20,
+      "height": 20,
+      "zoom": 1,
+      "isVisible": false
+    },
+    "center": [
+      1244,
+      2101
+    ],
+    "zoom": 1,
+    "isVisible": false
+  },
+  {
+    "id": "cebfp",
+    "indexId": 175,
+    "nodeHashId": "cebfp",
+    "nodeType": "Anchor Node",
+    "locator": "[_midscene_retrieve_task_id='cebfp']",
+    "attributes": {
+      "href": "https://www.linkedin.com/company/github",
+      "data-ga-click": "Footer, go to Linkedin, text:linkedin",
+      "aria-label": "GitHub LinkedIn",
+      "style": "color: #959da5;",
+      "htmlTagName": "<a>",
+      "nodeType": "Anchor Node"
+    },
+    "content": "",
+    "rect": {
+      "left": 1270,
+      "top": 2091,
+      "width": 20,
+      "height": 20,
+      "zoom": 1,
+      "isVisible": false
+    },
+    "center": [
+      1280,
+      2101
+    ],
+    "zoom": 1,
+    "isVisible": false
+  },
+  {
+    "id": "cebfp",
+    "indexId": 176,
+    "nodeHashId": "cebfp",
+    "locator": "",
+    "attributes": {
+      "svgContent": "true",
+      "nodeType": "IMG Node",
+      "htmlTagName": "<a>"
+    },
+    "nodeType": "IMG Node",
+    "content": "",
+    "rect": {
+      "left": 1270,
+      "top": 2091,
+      "width": 20,
+      "height": 20,
+      "zoom": 1,
+      "isVisible": false
+    },
+    "center": [
+      1280,
+      2101
+    ],
+    "zoom": 1,
+    "isVisible": false
+  },
+  {
+    "id": "iibki",
+    "indexId": 177,
+    "nodeHashId": "iibki",
+    "nodeType": "Anchor Node",
+    "locator": "[_midscene_retrieve_task_id='iibki']",
+    "attributes": {
+      "href": "https://www.youtube.com/github",
+      "data-ga-click": "Footer, go to YouTube, text:youtube",
+      "aria-label": "GitHub YouTube",
+      "style": "color: #959da5;",
+      "htmlTagName": "<a>",
+      "nodeType": "Anchor Node"
+    },
+    "content": "",
+    "rect": {
+      "left": 1306,
+      "top": 2091,
+      "width": 20,
+      "height": 20,
+      "zoom": 1,
+      "isVisible": false
+    },
+    "center": [
+      1316,
+      2101
+    ],
+    "zoom": 1,
+    "isVisible": false
+  },
+  {
+    "id": "gimca",
+    "indexId": 178,
+    "nodeHashId": "gimca",
+    "locator": "",
+    "attributes": {
+      "svgContent": "true",
+      "nodeType": "IMG Node",
+      "htmlTagName": "<a>"
+    },
+    "nodeType": "IMG Node",
+    "content": "",
+    "rect": {
+      "left": 1306,
+      "top": 2094,
+      "width": 20,
+      "height": 14,
+      "zoom": 1,
+      "isVisible": false
+    },
+    "center": [
+      1316,
+      2101
+    ],
+    "zoom": 1,
+    "isVisible": false
+  },
+  {
+    "id": "dkebm",
+    "indexId": 179,
+    "nodeHashId": "dkebm",
+    "nodeType": "Anchor Node",
+    "locator": "[_midscene_retrieve_task_id='dkebm']",
+    "attributes": {
+      "href": "https://www.twitch.tv/github",
+      "data-ga-click": "Footer, go to Twitch, text:twitch",
+      "aria-label": "Twitch",
+      "style": "color: #959da5;",
+      "htmlTagName": "<a>",
+      "nodeType": "Anchor Node"
+    },
+    "content": "",
+    "rect": {
+      "left": 1342,
+      "top": 2091,
+      "width": 20,
+      "height": 20,
+      "zoom": 1,
+      "isVisible": false
+    },
+    "center": [
+      1352,
+      2101
+    ],
+    "zoom": 1,
+    "isVisible": false
+  },
+  {
+    "id": "mfind",
+    "indexId": 180,
+    "nodeHashId": "mfind",
+    "locator": "",
+    "attributes": {
+      "svgContent": "true",
+      "nodeType": "IMG Node",
+      "htmlTagName": "<a>"
+    },
+    "nodeType": "IMG Node",
+    "content": "",
+    "rect": {
+      "left": 1343,
+      "top": 2091,
+      "width": 17,
+      "height": 20,
+      "zoom": 1,
+      "isVisible": false
+    },
+    "center": [
+      1352,
+      2101
+    ],
+    "zoom": 1,
+    "isVisible": false
+  },
+  {
+    "id": "dfnlc",
+    "indexId": 181,
+    "nodeHashId": "dfnlc",
+    "nodeType": "Anchor Node",
+    "locator": "[_midscene_retrieve_task_id='dfnlc']",
+    "attributes": {
+      "href": "https://www.tiktok.com/@github",
+      "data-ga-click": "Footer, go to TikTok, text:tiktok",
+      "aria-label": "TikTok",
+      "style": "color: #959da5;",
+      "htmlTagName": "<a>",
+      "nodeType": "Anchor Node"
+    },
+    "content": "",
+    "rect": {
+      "left": 1378,
+      "top": 2091,
+      "width": 20,
+      "height": 20,
+      "zoom": 1,
+      "isVisible": false
+    },
+    "center": [
+      1388,
+      2101
+    ],
+    "zoom": 1,
+    "isVisible": false
+  },
+  {
+    "id": "apmgm",
+    "indexId": 182,
+    "nodeHashId": "apmgm",
+    "locator": "",
+    "attributes": {
+      "svgContent": "true",
+      "nodeType": "IMG Node",
+      "htmlTagName": "<a>"
+    },
+    "nodeType": "IMG Node",
+    "content": "",
+    "rect": {
+      "left": 1379,
+      "top": 2091,
+      "width": 17,
+      "height": 20,
+      "zoom": 1,
+      "isVisible": false
+    },
+    "center": [
+      1388,
+      2101
+    ],
+    "zoom": 1,
+    "isVisible": false
+  },
+  {
+    "id": "pfgah",
+    "indexId": 183,
+    "nodeHashId": "pfgah",
+    "nodeType": "Anchor Node",
+    "locator": "[_midscene_retrieve_task_id='pfgah']",
+    "attributes": {
+      "href": "https://github.com/github",
+      "data-ga-click": "Footer, go to github's org, text:github",
+      "aria-label": "GitHub.com",
+      "style": "color: #959da5;",
+      "htmlTagName": "<a>",
+      "nodeType": "Anchor Node"
+    },
+    "content": "",
+    "rect": {
+      "left": 1414,
+      "top": 2091,
+      "width": 20,
+      "height": 20,
+      "zoom": 1,
+      "isVisible": false
+    },
+    "center": [
+      1424,
+      2101
+    ],
+    "zoom": 1,
+    "isVisible": false
+  },
+  {
+    "id": "efcho",
+    "indexId": 184,
+    "nodeHashId": "efcho",
+    "locator": "",
+    "attributes": {
+      "svgContent": "true",
+      "nodeType": "IMG Node",
+      "htmlTagName": "<a>"
+    },
+    "nodeType": "IMG Node",
+    "content": "",
+    "rect": {
+      "left": 1414,
+      "top": 2092,
+      "width": 20,
+      "height": 20,
+      "zoom": 1,
+      "isVisible": false
+    },
+    "center": [
+      1424,
+      2102
+    ],
+    "zoom": 1,
+    "isVisible": false
   }
 ]

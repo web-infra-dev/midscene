@@ -1,424 +1,802 @@
 [
   {
-    "id": "fpael",
+    "id": "ndfac",
     "indexId": 0,
-    "nodeHashId": "fpael",
+    "nodeHashId": "ndfac",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
       "nodeType": "TEXT Node",
       "htmlTagName": "<h3>"
     },
-    "center": [51, 43],
+    "center": [
+      51,
+      43
+    ],
     "content": "React",
     "rect": {
       "left": 18,
       "top": 28,
       "width": 65,
       "height": 29,
-      "zoom": 1
+      "zoom": 1,
+      "isVisible": true
     },
     "zoom": 1,
-    "screenWidth": 1280,
-    "screenHeight": 720
+    "isVisible": true
   },
   {
-    "id": "bkdon",
+    "id": "nmkjd",
     "indexId": 1,
-    "nodeHashId": "bkdon",
+    "nodeHashId": "nmkjd",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
       "nodeType": "TEXT Node",
       "htmlTagName": "<h5>"
     },
-    "center": [37, 76],
+    "center": [
+      37,
+      76
+    ],
     "content": "React",
     "rect": {
       "left": 18,
       "top": 67,
       "width": 38,
       "height": 17,
-      "zoom": 1
+      "zoom": 1,
+      "isVisible": true
     },
     "zoom": 1,
-    "screenWidth": 1280,
-    "screenHeight": 720
+    "isVisible": true
   },
   {
-    "id": "opmfa",
+    "id": "hecff",
     "indexId": 2,
-    "nodeHashId": "opmfa",
-    "nodeType": "TEXT Node",
-    "locator": "",
+    "nodeHashId": "hecff",
+    "nodeType": "Anchor Node",
+    "locator": "[_midscene_retrieve_task_id='hecff']",
     "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<a>"
+      "href": "https://github.com/tastejs/todomvc/tree/gh-pages/examples/react",
+      "htmlTagName": "<a>",
+      "nodeType": "Anchor Node"
     },
-    "center": [40, 94],
     "content": "Source",
     "rect": {
       "left": 18,
       "top": 85,
       "width": 44,
       "height": 17,
-      "zoom": 1
+      "zoom": 1,
+      "isVisible": true
     },
+    "center": [
+      40,
+      94
+    ],
     "zoom": 1,
-    "screenWidth": 1280,
-    "screenHeight": 720
+    "isVisible": true
   },
   {
-    "id": "gepop",
+    "id": "hecff",
     "indexId": 3,
-    "nodeHashId": "gepop",
+    "nodeHashId": "hecff",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node",
+      "htmlTagName": "<a>"
+    },
+    "center": [
+      40,
+      94
+    ],
+    "content": "Source",
+    "rect": {
+      "left": 18,
+      "top": 85,
+      "width": 44,
+      "height": 17,
+      "zoom": 1,
+      "isVisible": true
+    },
+    "zoom": 1,
+    "isVisible": true
+  },
+  {
+    "id": "bpilf",
+    "indexId": 4,
+    "nodeHashId": "bpilf",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
       "nodeType": "TEXT Node",
       "htmlTagName": "<h5>"
     },
-    "center": [80, 122],
+    "center": [
+      80,
+      122
+    ],
     "content": "TypeScript + React",
     "rect": {
       "left": 18,
       "top": 113,
       "width": 123,
       "height": 17,
-      "zoom": 1
+      "zoom": 1,
+      "isVisible": true
     },
     "zoom": 1,
-    "screenWidth": 1280,
-    "screenHeight": 720
+    "isVisible": true
   },
   {
-    "id": "fpfeg",
-    "indexId": 4,
-    "nodeHashId": "fpfeg",
-    "nodeType": "TEXT Node",
-    "locator": "",
+    "id": "jcefc",
+    "indexId": 5,
+    "nodeHashId": "jcefc",
+    "nodeType": "Anchor Node",
+    "locator": "[_midscene_retrieve_task_id='jcefc']",
     "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<a>"
+      "class": ".demo-link",
+      "data-type": "local",
+      "href": "https://todomvc.com/examples/typescript-react",
+      "htmlTagName": "<a>",
+      "nodeType": "Anchor Node"
     },
-    "center": [37, 140],
     "content": "Demo",
     "rect": {
       "left": 18,
       "top": 131,
       "width": 37,
       "height": 17,
-      "zoom": 1
+      "zoom": 1,
+      "isVisible": true
     },
+    "center": [
+      37,
+      140
+    ],
     "zoom": 1,
-    "screenWidth": 1280,
-    "screenHeight": 720
+    "isVisible": true
   },
   {
-    "id": "benod",
-    "indexId": 5,
-    "nodeHashId": "benod",
+    "id": "jcefc",
+    "indexId": 6,
+    "nodeHashId": "jcefc",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node",
+      "htmlTagName": "<a>"
+    },
+    "center": [
+      37,
+      140
+    ],
+    "content": "Demo",
+    "rect": {
+      "left": 18,
+      "top": 131,
+      "width": 37,
+      "height": 17,
+      "zoom": 1,
+      "isVisible": true
+    },
+    "zoom": 1,
+    "isVisible": true
+  },
+  {
+    "id": "gahan",
+    "indexId": 7,
+    "nodeHashId": "gahan",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
       "nodeType": "TEXT Node",
       "htmlTagName": "<span>"
     },
-    "center": [59, 140],
+    "center": [
+      59,
+      140
+    ],
     "content": ",",
     "rect": {
       "left": 55,
       "top": 131,
       "width": 8,
       "height": 17,
-      "zoom": 1
+      "zoom": 1,
+      "isVisible": true
     },
     "zoom": 1,
-    "screenWidth": 1280,
-    "screenHeight": 720
+    "isVisible": true
   },
   {
-    "id": "fhaob",
-    "indexId": 6,
-    "nodeHashId": "fhaob",
-    "nodeType": "TEXT Node",
-    "locator": "",
+    "id": "bkehh",
+    "indexId": 8,
+    "nodeHashId": "bkehh",
+    "nodeType": "Anchor Node",
+    "locator": "[_midscene_retrieve_task_id='bkehh']",
     "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<a>"
+      "href": "https://github.com/tastejs/todomvc/tree/gh-pages/examples/typescript-react",
+      "htmlTagName": "<a>",
+      "nodeType": "Anchor Node"
     },
-    "center": [85, 140],
     "content": "Source",
     "rect": {
       "left": 63,
       "top": 131,
       "width": 44,
       "height": 17,
-      "zoom": 1
+      "zoom": 1,
+      "isVisible": true
     },
+    "center": [
+      85,
+      140
+    ],
     "zoom": 1,
-    "screenWidth": 1280,
-    "screenHeight": 720
+    "isVisible": true
   },
   {
-    "id": "elfjh",
-    "indexId": 7,
-    "nodeHashId": "elfjh",
+    "id": "bkehh",
+    "indexId": 9,
+    "nodeHashId": "bkehh",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node",
+      "htmlTagName": "<a>"
+    },
+    "center": [
+      85,
+      140
+    ],
+    "content": "Source",
+    "rect": {
+      "left": 63,
+      "top": 131,
+      "width": 44,
+      "height": 17,
+      "zoom": 1,
+      "isVisible": true
+    },
+    "zoom": 1,
+    "isVisible": true
+  },
+  {
+    "id": "amdal",
+    "indexId": 10,
+    "nodeHashId": "amdal",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
       "nodeType": "TEXT Node",
       "htmlTagName": "<p>"
     },
-    "center": [150, 271],
+    "center": [
+      150,
+      271
+    ],
     "content": "React is a JavaScript library for creating user interfaces. Its core principles are declarative code, efficiency, and flexibility. Simply specify what your component looks like and React will keep it up-to-date when the underlying data changes.",
     "rect": {
       "left": 28,
       "top": 203,
       "width": 244,
       "height": 135,
-      "zoom": 1
+      "zoom": 1,
+      "isVisible": true
     },
     "zoom": 1,
-    "screenWidth": 1280,
-    "screenHeight": 720
+    "isVisible": true
   },
   {
-    "id": "hkkka",
-    "indexId": 8,
-    "nodeHashId": "hkkka",
-    "nodeType": "TEXT Node",
-    "locator": "",
+    "id": "bpial",
+    "indexId": 11,
+    "nodeHashId": "bpial",
+    "nodeType": "Anchor Node",
+    "locator": "[_midscene_retrieve_task_id='bpial']",
     "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<a>"
+      "href": "http://facebook.github.io/react",
+      "htmlTagName": "<a>",
+      "nodeType": "Anchor Node"
     },
-    "center": [272, 379],
     "content": "React",
     "rect": {
       "left": 253,
       "top": 370,
       "width": 37,
       "height": 17,
-      "zoom": 1
+      "zoom": 1,
+      "isVisible": true
     },
+    "center": [
+      272,
+      379
+    ],
     "zoom": 1,
-    "screenWidth": 1280,
-    "screenHeight": 720
+    "isVisible": true
   },
   {
-    "id": "jkmjg",
-    "indexId": 9,
-    "nodeHashId": "jkmjg",
+    "id": "bpial",
+    "indexId": 12,
+    "nodeHashId": "bpial",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node",
+      "htmlTagName": "<a>"
+    },
+    "center": [
+      272,
+      379
+    ],
+    "content": "React",
+    "rect": {
+      "left": 253,
+      "top": 370,
+      "width": 37,
+      "height": 17,
+      "zoom": 1,
+      "isVisible": true
+    },
+    "zoom": 1,
+    "isVisible": true
+  },
+  {
+    "id": "kojnc",
+    "indexId": 13,
+    "nodeHashId": "kojnc",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
       "nodeType": "TEXT Node",
       "htmlTagName": "<h4>"
     },
-    "center": [94, 441],
+    "center": [
+      94,
+      441
+    ],
     "content": "Official Resources",
     "rect": {
       "left": 18,
       "top": 430,
       "width": 151,
       "height": 22,
-      "zoom": 1
+      "zoom": 1,
+      "isVisible": true
     },
     "zoom": 1,
-    "screenWidth": 1280,
-    "screenHeight": 720
+    "isVisible": true
   },
   {
-    "id": "coknk",
-    "indexId": 10,
-    "nodeHashId": "coknk",
-    "nodeType": "TEXT Node",
-    "locator": "",
+    "id": "cjkfl",
+    "indexId": 14,
+    "nodeHashId": "cjkfl",
+    "nodeType": "Anchor Node",
+    "locator": "[_midscene_retrieve_task_id='cjkfl']",
     "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<a>"
+      "href": "https://react.dev/learn",
+      "htmlTagName": "<a>",
+      "nodeType": "Anchor Node"
     },
-    "center": [78, 472],
     "content": "Quick Start",
     "rect": {
       "left": 43,
       "top": 463,
       "width": 70,
       "height": 17,
-      "zoom": 1
+      "zoom": 1,
+      "isVisible": true
     },
+    "center": [
+      78,
+      472
+    ],
     "zoom": 1,
-    "screenWidth": 1280,
-    "screenHeight": 720
+    "isVisible": true
   },
   {
-    "id": "obnba",
-    "indexId": 11,
-    "nodeHashId": "obnba",
+    "id": "cjkfl",
+    "indexId": 15,
+    "nodeHashId": "cjkfl",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
       "nodeType": "TEXT Node",
       "htmlTagName": "<a>"
     },
-    "center": [88, 492],
+    "center": [
+      78,
+      472
+    ],
+    "content": "Quick Start",
+    "rect": {
+      "left": 43,
+      "top": 463,
+      "width": 70,
+      "height": 17,
+      "zoom": 1,
+      "isVisible": true
+    },
+    "zoom": 1,
+    "isVisible": true
+  },
+  {
+    "id": "ojhep",
+    "indexId": 16,
+    "nodeHashId": "ojhep",
+    "nodeType": "Anchor Node",
+    "locator": "[_midscene_retrieve_task_id='ojhep']",
+    "attributes": {
+      "href": "https://react.dev/reference/react",
+      "htmlTagName": "<a>",
+      "nodeType": "Anchor Node"
+    },
     "content": "API Reference",
     "rect": {
       "left": 43,
       "top": 483,
       "width": 89,
       "height": 17,
-      "zoom": 1
+      "zoom": 1,
+      "isVisible": true
     },
+    "center": [
+      88,
+      492
+    ],
     "zoom": 1,
-    "screenWidth": 1280,
-    "screenHeight": 720
+    "isVisible": true
   },
   {
-    "id": "bkcjh",
-    "indexId": 12,
-    "nodeHashId": "bkcjh",
+    "id": "ojhep",
+    "indexId": 17,
+    "nodeHashId": "ojhep",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
       "nodeType": "TEXT Node",
       "htmlTagName": "<a>"
     },
-    "center": [78, 512],
+    "center": [
+      88,
+      492
+    ],
+    "content": "API Reference",
+    "rect": {
+      "left": 43,
+      "top": 483,
+      "width": 89,
+      "height": 17,
+      "zoom": 1,
+      "isVisible": true
+    },
+    "zoom": 1,
+    "isVisible": true
+  },
+  {
+    "id": "dbidp",
+    "indexId": 18,
+    "nodeHashId": "dbidp",
+    "nodeType": "Anchor Node",
+    "locator": "[_midscene_retrieve_task_id='dbidp']",
+    "attributes": {
+      "href": "https://petehuntsposts.quora.com/React-Under-the-Hood",
+      "htmlTagName": "<a>",
+      "nodeType": "Anchor Node"
+    },
     "content": "Philosophy",
     "rect": {
       "left": 43,
       "top": 503,
       "width": 69,
       "height": 17,
-      "zoom": 1
+      "zoom": 1,
+      "isVisible": true
     },
+    "center": [
+      78,
+      512
+    ],
     "zoom": 1,
-    "screenWidth": 1280,
-    "screenHeight": 720
+    "isVisible": true
   },
   {
-    "id": "eglfn",
-    "indexId": 13,
-    "nodeHashId": "eglfn",
+    "id": "dbidp",
+    "indexId": 19,
+    "nodeHashId": "dbidp",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
       "nodeType": "TEXT Node",
       "htmlTagName": "<a>"
     },
-    "center": [100, 532],
+    "center": [
+      78,
+      512
+    ],
+    "content": "Philosophy",
+    "rect": {
+      "left": 43,
+      "top": 503,
+      "width": 69,
+      "height": 17,
+      "zoom": 1,
+      "isVisible": true
+    },
+    "zoom": 1,
+    "isVisible": true
+  },
+  {
+    "id": "imnmf",
+    "indexId": 20,
+    "nodeHashId": "imnmf",
+    "nodeType": "Anchor Node",
+    "locator": "[_midscene_retrieve_task_id='imnmf']",
+    "attributes": {
+      "href": "https://react.dev/community",
+      "htmlTagName": "<a>",
+      "nodeType": "Anchor Node"
+    },
     "content": "React Community",
     "rect": {
       "left": 43,
       "top": 523,
       "width": 113,
       "height": 17,
-      "zoom": 1
+      "zoom": 1,
+      "isVisible": true
     },
+    "center": [
+      100,
+      532
+    ],
     "zoom": 1,
-    "screenWidth": 1280,
-    "screenHeight": 720
+    "isVisible": true
   },
   {
-    "id": "ceeap",
-    "indexId": 14,
-    "nodeHashId": "ceeap",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<h4>"
-    },
-    "center": [66, 583],
-    "content": "Community",
-    "rect": {
-      "left": 18,
-      "top": 572,
-      "width": 95,
-      "height": 22,
-      "zoom": 1
-    },
-    "zoom": 1,
-    "screenWidth": 1280,
-    "screenHeight": 720
-  },
-  {
-    "id": "ddhae",
-    "indexId": 15,
-    "nodeHashId": "ddhae",
+    "id": "imnmf",
+    "indexId": 21,
+    "nodeHashId": "imnmf",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
       "nodeType": "TEXT Node",
       "htmlTagName": "<a>"
     },
-    "center": [129, 614],
+    "center": [
+      100,
+      532
+    ],
+    "content": "React Community",
+    "rect": {
+      "left": 43,
+      "top": 523,
+      "width": 113,
+      "height": 17,
+      "zoom": 1,
+      "isVisible": true
+    },
+    "zoom": 1,
+    "isVisible": true
+  },
+  {
+    "id": "hpjii",
+    "indexId": 22,
+    "nodeHashId": "hpjii",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node",
+      "htmlTagName": "<h4>"
+    },
+    "center": [
+      66,
+      583
+    ],
+    "content": "Community",
+    "rect": {
+      "left": 18,
+      "top": 572,
+      "width": 95,
+      "height": 22,
+      "zoom": 1,
+      "isVisible": true
+    },
+    "zoom": 1,
+    "isVisible": true
+  },
+  {
+    "id": "hlkof",
+    "indexId": 23,
+    "nodeHashId": "hlkof",
+    "nodeType": "Anchor Node",
+    "locator": "[_midscene_retrieve_task_id='hlkof']",
+    "attributes": {
+      "href": "https://stackoverflow.com/questions/tagged/reactjs",
+      "htmlTagName": "<a>",
+      "nodeType": "Anchor Node"
+    },
     "content": "ReactJS on Stack Overflow",
     "rect": {
       "left": 43,
       "top": 605,
       "width": 172,
       "height": 17,
-      "zoom": 1
+      "zoom": 1,
+      "isVisible": true
     },
+    "center": [
+      129,
+      614
+    ],
     "zoom": 1,
-    "screenWidth": 1280,
-    "screenHeight": 720
+    "isVisible": true
   },
   {
-    "id": "nddcg",
-    "indexId": 16,
-    "nodeHashId": "nddcg",
+    "id": "hlkof",
+    "indexId": 24,
+    "nodeHashId": "hlkof",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node",
+      "htmlTagName": "<a>"
+    },
+    "center": [
+      129,
+      614
+    ],
+    "content": "ReactJS on Stack Overflow",
+    "rect": {
+      "left": 43,
+      "top": 605,
+      "width": 172,
+      "height": 17,
+      "zoom": 1,
+      "isVisible": true
+    },
+    "zoom": 1,
+    "isVisible": true
+  },
+  {
+    "id": "icpkg",
+    "indexId": 25,
+    "nodeHashId": "icpkg",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
       "nodeType": "TEXT Node",
       "htmlTagName": "<em>"
     },
-    "center": [149, 695],
+    "center": [
+      149,
+      695
+    ],
     "content": "If you have other helpful links to share, or find any of the links above no longer work, please",
     "rect": {
       "left": 18,
       "top": 677,
       "width": 261,
       "height": 36,
-      "zoom": 1
+      "zoom": 1,
+      "isVisible": true
     },
     "zoom": 1,
-    "screenWidth": 1280,
-    "screenHeight": 720
+    "isVisible": true
   },
   {
-    "id": "lnceo",
-    "indexId": 17,
-    "nodeHashId": "lnceo",
+    "id": "hafka",
+    "indexId": 26,
+    "nodeHashId": "hafka",
+    "nodeType": "Anchor Node",
+    "locator": "[_midscene_retrieve_task_id='hafka']",
+    "attributes": {
+      "href": "https://github.com/tastejs/todomvc/issues",
+      "htmlTagName": "<a>",
+      "nodeType": "Anchor Node"
+    },
+    "content": "let us know",
+    "rect": {
+      "left": 18,
+      "top": 716,
+      "width": 71,
+      "height": 17,
+      "zoom": 1,
+      "isVisible": false
+    },
+    "center": [
+      54,
+      725
+    ],
+    "zoom": 1,
+    "isVisible": false
+  },
+  {
+    "id": "hafka",
+    "indexId": 27,
+    "nodeHashId": "hafka",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node",
+      "htmlTagName": "<a>"
+    },
+    "center": [
+      54,
+      725
+    ],
+    "content": "let us know",
+    "rect": {
+      "left": 18,
+      "top": 716,
+      "width": 71,
+      "height": 17,
+      "zoom": 1,
+      "isVisible": false
+    },
+    "zoom": 1,
+    "isVisible": false
+  },
+  {
+    "id": "aehpb",
+    "indexId": 28,
+    "nodeHashId": "aehpb",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node",
+      "htmlTagName": "<em>"
+    },
+    "center": [
+      91,
+      725
+    ],
+    "content": ".",
+    "rect": {
+      "left": 89,
+      "top": 716,
+      "width": 4,
+      "height": 17,
+      "zoom": 1,
+      "isVisible": false
+    },
+    "zoom": 1,
+    "isVisible": false
+  },
+  {
+    "id": "ahcjm",
+    "indexId": 29,
+    "nodeHashId": "ahcjm",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
       "nodeType": "TEXT Node",
       "htmlTagName": "<h1>"
     },
-    "center": [790, 67],
+    "center": [
+      790,
+      67
+    ],
     "content": "todos",
     "rect": {
       "left": 696,
       "top": 19,
       "width": 188,
       "height": 95,
-      "zoom": 1
+      "zoom": 1,
+      "isVisible": true
     },
     "zoom": 1,
-    "screenWidth": 1280,
-    "screenHeight": 720
+    "isVisible": true
   },
   {
-    "id": "okgbn",
-    "nodeHashId": "okgbn",
-    "locator": "[_midscene_retrieve_task_id='okgbn']",
+    "id": "npdhm",
+    "nodeHashId": "npdhm",
+    "locator": "[_midscene_retrieve_task_id='npdhm']",
     "nodeType": "FORM_ITEM Node",
-    "indexId": 18,
+    "indexId": 30,
     "attributes": {
       "class": ".new-todo",
       "id": "todo-input",
@@ -434,42 +812,48 @@
       "top": 130,
       "width": 550,
       "height": 65,
-      "zoom": 1
+      "zoom": 1,
+      "isVisible": true
     },
-    "center": [790, 163],
+    "center": [
+      790,
+      163
+    ],
     "zoom": 1,
-    "screenWidth": 1280,
-    "screenHeight": 720
+    "isVisible": true
   },
   {
-    "id": "liecc",
-    "indexId": 19,
-    "nodeHashId": "liecc",
+    "id": "lgkba",
+    "indexId": 31,
+    "nodeHashId": "lgkba",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
       "nodeType": "TEXT Node",
       "htmlTagName": "<label>"
     },
-    "center": [1110, 140],
+    "center": [
+      1110,
+      140
+    ],
     "content": "New Todo Input",
     "rect": {
       "left": 1064,
       "top": 131,
       "width": 91,
       "height": 17,
-      "zoom": 1
+      "zoom": 1,
+      "isVisible": true
     },
     "zoom": 1,
-    "screenWidth": 1280,
-    "screenHeight": 720
+    "isVisible": true
   },
   {
-    "id": "ejffn",
-    "nodeHashId": "ejffn",
-    "locator": "[_midscene_retrieve_task_id='ejffn']",
+    "id": "iodjf",
+    "nodeHashId": "iodjf",
+    "locator": "[_midscene_retrieve_task_id='iodjf']",
     "nodeType": "FORM_ITEM Node",
-    "indexId": 20,
+    "indexId": 32,
     "attributes": {
       "class": ".toggle-all",
       "type": "checkbox",
@@ -484,19 +868,22 @@
       "top": 133,
       "width": 40,
       "height": 60,
-      "zoom": 1
+      "zoom": 1,
+      "isVisible": true
     },
-    "center": [539, 163],
+    "center": [
+      539,
+      163
+    ],
     "zoom": 1,
-    "screenWidth": 1280,
-    "screenHeight": 720
+    "isVisible": true
   },
   {
-    "id": "hbdoo",
-    "nodeHashId": "hbdoo",
-    "locator": "[_midscene_retrieve_task_id='hbdoo']",
+    "id": "kcjgf",
+    "nodeHashId": "kcjgf",
+    "locator": "[_midscene_retrieve_task_id='kcjgf']",
     "nodeType": "FORM_ITEM Node",
-    "indexId": 21,
+    "indexId": 33,
     "attributes": {
       "class": ".toggle",
       "type": "checkbox",
@@ -510,42 +897,48 @@
       "top": 205,
       "width": 40,
       "height": 40,
-      "zoom": 1
+      "zoom": 1,
+      "isVisible": true
     },
-    "center": [535, 225],
+    "center": [
+      535,
+      225
+    ],
     "zoom": 1,
-    "screenWidth": 1280,
-    "screenHeight": 720
+    "isVisible": true
   },
   {
-    "id": "ofnmb",
-    "indexId": 22,
-    "nodeHashId": "ofnmb",
+    "id": "eoahk",
+    "indexId": 34,
+    "nodeHashId": "eoahk",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
       "nodeType": "TEXT Node",
       "htmlTagName": "<label>"
     },
-    "center": [647, 225],
+    "center": [
+      647,
+      225
+    ],
     "content": "Learn Python",
     "rect": {
       "left": 575,
       "top": 211,
       "width": 143,
       "height": 28,
-      "zoom": 1
+      "zoom": 1,
+      "isVisible": true
     },
     "zoom": 1,
-    "screenWidth": 1280,
-    "screenHeight": 720
+    "isVisible": true
   },
   {
-    "id": "cdllc",
-    "nodeHashId": "cdllc",
-    "locator": "[_midscene_retrieve_task_id='cdllc']",
+    "id": "pdihc",
+    "nodeHashId": "pdihc",
+    "locator": "[_midscene_retrieve_task_id='pdihc']",
     "nodeType": "FORM_ITEM Node",
-    "indexId": 23,
+    "indexId": 35,
     "attributes": {
       "class": ".toggle",
       "type": "checkbox",
@@ -559,46 +952,52 @@
       "top": 265,
       "width": 40,
       "height": 40,
-      "zoom": 1
+      "zoom": 1,
+      "isVisible": true
     },
-    "center": [535, 285],
+    "center": [
+      535,
+      285
+    ],
     "zoom": 1,
-    "screenWidth": 1280,
-    "screenHeight": 720
+    "isVisible": true
   },
   {
-    "id": "idmhb",
-    "indexId": 24,
-    "nodeHashId": "idmhb",
+    "id": "adkca",
+    "indexId": 36,
+    "nodeHashId": "adkca",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
       "nodeType": "TEXT Node",
       "htmlTagName": "<label>"
     },
-    "center": [634, 285],
+    "center": [
+      634,
+      285
+    ],
     "content": "Learn Rust",
     "rect": {
       "left": 575,
       "top": 271,
       "width": 117,
       "height": 28,
-      "zoom": 1
+      "zoom": 1,
+      "isVisible": true
     },
     "zoom": 1,
-    "screenWidth": 1280,
-    "screenHeight": 720
+    "isVisible": true
   },
   {
-    "id": "jicbk",
-    "indexId": 25,
-    "nodeHashId": "jicbk",
+    "id": "fmgno",
+    "indexId": 37,
+    "nodeHashId": "fmgno",
     "nodeType": "BUTTON Node",
-    "locator": "[_midscene_retrieve_task_id='jicbk']",
+    "locator": "[_midscene_retrieve_task_id='fmgno']",
     "attributes": {
       "class": ".destroy",
       "data-testid": "todo-item-button",
-      "htmlTagName": "<div>",
+      "htmlTagName": "<button>",
       "nodeType": "BUTTON Node"
     },
     "content": "×",
@@ -607,19 +1006,22 @@
       "top": 265,
       "width": 40,
       "height": 40,
-      "zoom": 1
+      "zoom": 1,
+      "isVisible": true
     },
-    "center": [1035, 285],
+    "center": [
+      1035,
+      285
+    ],
     "zoom": 1,
-    "screenWidth": 1280,
-    "screenHeight": 720
+    "isVisible": true
   },
   {
-    "id": "kjccf",
-    "nodeHashId": "kjccf",
-    "locator": "[_midscene_retrieve_task_id='kjccf']",
+    "id": "jbhdi",
+    "nodeHashId": "jbhdi",
+    "locator": "[_midscene_retrieve_task_id='jbhdi']",
     "nodeType": "FORM_ITEM Node",
-    "indexId": 26,
+    "indexId": 38,
     "attributes": {
       "class": ".toggle",
       "type": "checkbox",
@@ -633,114 +1035,213 @@
       "top": 325,
       "width": 40,
       "height": 40,
-      "zoom": 1
+      "zoom": 1,
+      "isVisible": true
     },
-    "center": [535, 345],
+    "center": [
+      535,
+      345
+    ],
     "zoom": 1,
-    "screenWidth": 1280,
-    "screenHeight": 720
+    "isVisible": true
   },
   {
-    "id": "nlfin",
-    "indexId": 27,
-    "nodeHashId": "nlfin",
+    "id": "pnfml",
+    "indexId": 39,
+    "nodeHashId": "pnfml",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
       "nodeType": "TEXT Node",
       "htmlTagName": "<label>"
     },
-    "center": [620, 345],
+    "center": [
+      620,
+      345
+    ],
     "content": "Learn AI",
     "rect": {
       "left": 575,
       "top": 331,
       "width": 89,
       "height": 28,
-      "zoom": 1
+      "zoom": 1,
+      "isVisible": true
     },
     "zoom": 1,
-    "screenWidth": 1280,
-    "screenHeight": 720
+    "isVisible": true
   },
   {
-    "id": "fcnjd",
-    "indexId": 28,
-    "nodeHashId": "fcnjd",
+    "id": "fkiml",
+    "indexId": 40,
+    "nodeHashId": "fkiml",
+    "nodeType": "Anchor Node",
+    "locator": "[_midscene_retrieve_task_id='fkiml']",
+    "attributes": {
+      "class": ".selected",
+      "href": "#/",
+      "htmlTagName": "<a>",
+      "nodeType": "Anchor Node"
+    },
+    "content": "All",
+    "rect": {
+      "left": 700,
+      "top": 382,
+      "width": 30,
+      "height": 26,
+      "zoom": 1,
+      "isVisible": true
+    },
+    "center": [
+      715,
+      395
+    ],
+    "zoom": 1,
+    "isVisible": true
+  },
+  {
+    "id": "jilio",
+    "indexId": 41,
+    "nodeHashId": "jilio",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
       "nodeType": "TEXT Node",
       "htmlTagName": "<a>"
     },
-    "center": [715, 395],
+    "center": [
+      715,
+      395
+    ],
     "content": "All",
     "rect": {
       "left": 708,
       "top": 386,
       "width": 14,
       "height": 18,
-      "zoom": 1
+      "zoom": 1,
+      "isVisible": true
     },
     "zoom": 1,
-    "screenWidth": 1280,
-    "screenHeight": 720
+    "isVisible": true
   },
   {
-    "id": "ikfki",
-    "indexId": 29,
-    "nodeHashId": "ikfki",
+    "id": "gpgfl",
+    "indexId": 42,
+    "nodeHashId": "gpgfl",
+    "nodeType": "Anchor Node",
+    "locator": "[_midscene_retrieve_task_id='gpgfl']",
+    "attributes": {
+      "class": ".",
+      "href": "#/active",
+      "htmlTagName": "<a>",
+      "nodeType": "Anchor Node"
+    },
+    "content": "Active",
+    "rect": {
+      "left": 736,
+      "top": 382,
+      "width": 54,
+      "height": 26,
+      "zoom": 1,
+      "isVisible": true
+    },
+    "center": [
+      763,
+      395
+    ],
+    "zoom": 1,
+    "isVisible": true
+  },
+  {
+    "id": "jpgnn",
+    "indexId": 43,
+    "nodeHashId": "jpgnn",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
       "nodeType": "TEXT Node",
       "htmlTagName": "<a>"
     },
-    "center": [763, 395],
+    "center": [
+      763,
+      395
+    ],
     "content": "Active",
     "rect": {
       "left": 744,
       "top": 386,
       "width": 38,
       "height": 18,
-      "zoom": 1
+      "zoom": 1,
+      "isVisible": true
     },
     "zoom": 1,
-    "screenWidth": 1280,
-    "screenHeight": 720
+    "isVisible": true
   },
   {
-    "id": "ddapc",
-    "indexId": 30,
-    "nodeHashId": "ddapc",
+    "id": "fndgb",
+    "indexId": 44,
+    "nodeHashId": "fndgb",
+    "nodeType": "Anchor Node",
+    "locator": "[_midscene_retrieve_task_id='fndgb']",
+    "attributes": {
+      "class": ".",
+      "href": "#/completed",
+      "htmlTagName": "<a>",
+      "nodeType": "Anchor Node"
+    },
+    "content": "Completed",
+    "rect": {
+      "left": 795,
+      "top": 382,
+      "width": 85,
+      "height": 26,
+      "zoom": 1,
+      "isVisible": true
+    },
+    "center": [
+      838,
+      395
+    ],
+    "zoom": 1,
+    "isVisible": true
+  },
+  {
+    "id": "bppdl",
+    "indexId": 45,
+    "nodeHashId": "bppdl",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
       "nodeType": "TEXT Node",
       "htmlTagName": "<a>"
     },
-    "center": [838, 395],
+    "center": [
+      838,
+      395
+    ],
     "content": "Completed",
     "rect": {
       "left": 803,
       "top": 386,
       "width": 69,
       "height": 18,
-      "zoom": 1
+      "zoom": 1,
+      "isVisible": true
     },
     "zoom": 1,
-    "screenWidth": 1280,
-    "screenHeight": 720
+    "isVisible": true
   },
   {
-    "id": "iodmf",
-    "indexId": 31,
-    "nodeHashId": "iodmf",
+    "id": "nogga",
+    "indexId": 46,
+    "nodeHashId": "nogga",
     "nodeType": "BUTTON Node",
-    "locator": "[_midscene_retrieve_task_id='iodmf']",
+    "locator": "[_midscene_retrieve_task_id='nogga']",
     "attributes": {
       "class": ".clear-completed",
-      "htmlTagName": "<footer>",
+      "htmlTagName": "<button>",
       "nodeType": "BUTTON Node"
     },
     "content": "Clear completed",
@@ -749,103 +1250,145 @@
       "top": 385,
       "width": 103,
       "height": 19,
-      "zoom": 1
+      "zoom": 1,
+      "isVisible": true
     },
-    "center": [999, 395],
+    "center": [
+      999,
+      395
+    ],
     "zoom": 1,
-    "screenWidth": 1280,
-    "screenHeight": 720
+    "isVisible": true
   },
   {
-    "id": "ijiil",
-    "indexId": 32,
-    "nodeHashId": "ijiil",
+    "id": "ojnbc",
+    "indexId": 47,
+    "nodeHashId": "ojnbc",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
       "nodeType": "TEXT Node",
       "htmlTagName": "<p>"
     },
-    "center": [790, 486],
+    "center": [
+      790,
+      486
+    ],
     "content": "Double-click to edit a todo",
     "rect": {
       "left": 730,
       "top": 479,
       "width": 120,
       "height": 13,
-      "zoom": 1
+      "zoom": 1,
+      "isVisible": true
     },
     "zoom": 1,
-    "screenWidth": 1280,
-    "screenHeight": 720
+    "isVisible": true
   },
   {
-    "id": "lbkin",
-    "indexId": 33,
-    "nodeHashId": "lbkin",
+    "id": "jobjf",
+    "indexId": 48,
+    "nodeHashId": "jobjf",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
       "nodeType": "TEXT Node",
       "htmlTagName": "<p>"
     },
-    "center": [790, 508],
+    "center": [
+      790,
+      508
+    ],
     "content": "Created by the TodoMVC Team",
     "rect": {
       "left": 718,
       "top": 501,
       "width": 144,
       "height": 13,
-      "zoom": 1
+      "zoom": 1,
+      "isVisible": true
     },
     "zoom": 1,
-    "screenWidth": 1280,
-    "screenHeight": 720
+    "isVisible": true
   },
   {
-    "id": "odmdh",
-    "indexId": 34,
-    "nodeHashId": "odmdh",
+    "id": "imadi",
+    "indexId": 49,
+    "nodeHashId": "imadi",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
       "nodeType": "TEXT Node",
       "htmlTagName": "<p>"
     },
-    "center": [766, 530],
+    "center": [
+      766,
+      530
+    ],
     "content": "Part of",
     "rect": {
       "left": 749,
       "top": 523,
       "width": 33,
       "height": 13,
-      "zoom": 1
+      "zoom": 1,
+      "isVisible": true
     },
     "zoom": 1,
-    "screenWidth": 1280,
-    "screenHeight": 720
+    "isVisible": true
   },
   {
-    "id": "ahhbb",
-    "indexId": 35,
-    "nodeHashId": "ahhbb",
-    "nodeType": "TEXT Node",
-    "locator": "",
+    "id": "anpjf",
+    "indexId": 50,
+    "nodeHashId": "anpjf",
+    "nodeType": "Anchor Node",
+    "locator": "[_midscene_retrieve_task_id='anpjf']",
     "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<a>"
+      "href": "http://todomvc.com",
+      "htmlTagName": "<a>",
+      "nodeType": "Anchor Node"
     },
-    "center": [806, 530],
     "content": "TodoMVC",
     "rect": {
       "left": 782,
       "top": 523,
       "width": 48,
       "height": 13,
-      "zoom": 1
+      "zoom": 1,
+      "isVisible": true
+    },
+    "center": [
+      806,
+      530
+    ],
+    "zoom": 1,
+    "isVisible": true
+  },
+  {
+    "id": "anpjf",
+    "indexId": 51,
+    "nodeHashId": "anpjf",
+    "nodeType": "TEXT Node",
+    "locator": "",
+    "attributes": {
+      "nodeType": "TEXT Node",
+      "htmlTagName": "<a>"
+    },
+    "center": [
+      806,
+      530
+    ],
+    "content": "TodoMVC",
+    "rect": {
+      "left": 782,
+      "top": 523,
+      "width": 48,
+      "height": 13,
+      "zoom": 1,
+      "isVisible": true
     },
     "zoom": 1,
-    "screenWidth": 1280,
-    "screenHeight": 720
+    "isVisible": true
   }
 ]

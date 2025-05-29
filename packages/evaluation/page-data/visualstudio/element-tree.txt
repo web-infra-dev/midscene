@@ -1,129 +1,171 @@
+              <>
+                <a id="ignkj"  class=".navbar-brand" href="/" left="80" top="0" width="221" height="58">
+                  Visual Studio Code
                   <>
-                    <span id="fglbl"   left="116" top="17" width="170" height="24">
+                    <span id="ebaei" markerId="1"  left="116" top="17" width="170" height="24">
                       Visual Studio Code
                     </span>
                   </>
-                    <>
-                      <a id="hbbjm" markerId="1"  left="313" top="20" width="38" height="19">
+                </a>
+              </>
+                  <>
+                    <a id="ejnci" markerId="2" id="nav-docs" href="/docs" left="301" top="0" width="62" height="58">
+                      Docs
+                      <a id="bcnmm" markerId="3"  left="313" top="20" width="38" height="19">
                         Docs
                       </a>
-                    </>
-                    <>
-                      <a id="ldhod" markerId="2"  left="375" top="20" width="63" height="19">
+                    </a>
+                  </>
+                  <>
+                    <a id="fiaaf" markerId="4" id="nav-updates" href="/updates" left="363" top="0" width="87" height="58">
+                      Updates
+                      <a id="hlbpo" markerId="5"  left="375" top="20" width="63" height="19">
                         Updates
                       </a>
-                    </>
-                    <>
-                      <a id="njicg" markerId="3"  left="461" top="20" width="33" height="19">
+                    </a>
+                  </>
+                  <>
+                    <a id="bigdc" markerId="6" id="nav-blogs" href="/blogs" left="449" top="0" width="57" height="58">
+                      Blog
+                      <a id="lngkl" markerId="7"  left="461" top="20" width="33" height="19">
                         Blog
                       </a>
-                    </>
-                    <>
-                      <a id="bpelm" markerId="4"  left="519" top="20" width="25" height="19">
+                    </a>
+                  </>
+                  <>
+                    <a id="gbfgb" markerId="8" id="nav-extend" href="/api" left="507" top="0" width="49" height="58">
+                      API
+                      <a id="eopdb" markerId="9"  left="519" top="20" width="25" height="19">
                         API
                       </a>
-                    </>
-                    <>
-                      <a id="jdhej" markerId="5"  left="568" top="20" width="81" height="19">
+                    </a>
+                  </>
+                  <>
+                    <a id="eceik" markerId="10" href="https://marketplace.visualstudio.com/VSCode" target="_blank" rel="noopener" id="nav-extensions" left="556" top="0" width="105" height="58">
+                      Extensions
+                      <a id="gfihj" markerId="11"  left="568" top="20" width="81" height="19">
                         Extensions
                       </a>
-                    </>
-                    <>
-                      <a id="jfnal" markerId="6"  left="672" top="20" width="31" height="19">
+                    </a>
+                  </>
+                  <>
+                    <a id="cmgmj" markerId="12" id="nav-faqs" href="/docs/supporting/faq" left="660" top="0" width="55" height="58">
+                      FAQ
+                      <a id="cneeh" markerId="13"  left="672" top="20" width="31" height="19">
                         FAQ
                       </a>
-                    </>
-                    <>
-                      <a id="pnpcb" markerId="7"  left="727" top="20" width="109" height="19">
+                    </a>
+                  </>
+                  <>
+                    <a id="ejlcf" markerId="14" id="nav-copilot" href="/docs/copilot/overview" left="715" top="0" width="133" height="58">
+                      GitHub Copilot
+                      <a id="ipccb" markerId="15"  left="727" top="20" width="109" height="19">
                         GitHub Copilot
                       </a>
-                    </>
+                    </a>
+                  </>
                   <>
-                    <li id="copdb" markerId="8" type="button" class=".theme-switch" id="theme-toggle" left="849" top="13" width="32" height="32">
-                    </li>
+                    <button id="lpblh" markerId="16" type="button" class=".theme-switch" id="theme-toggle" left="849" top="13" width="32" height="32">
+                    </button>
                   </>
                       <>
-                        <input id="bminn" markerId="9" type="text" name="q" class=".search-box.form-control" placeholder="Search Docs" aria-label="Search text" undefined="" left="885" top="13" width="200" height="32">
+                        <input id="gbogj" markerId="17" type="text" name="q" class=".search-box.form-control" placeholder="Search Docs" aria-label="Search text" undefined="" left="885" top="13" width="200" height="32">
                           Search Docs
                         </input>
                         <>
-                          <span id="cipnh" markerId="10" tabindex="0" class=".btn" type="submit" aria-label="Search" left="892" top="19" width="28" height="20">
-                          </span>
+                          <button id="pemik" markerId="18" tabindex="0" class=".btn" type="submit" aria-label="Search" left="892" top="19" width="28" height="20">
+                          </button>
                         </>
                       </>
+                  <>
+                    <a id="aofic" markerId="19" class=".link-button" href="/Download" id="nav-download" left="1093" top="13" width="107" height="32">
+                      Download
                       <>
-                        <span id="opjng" markerId="11"  left="1109" top="20" width="75" height="19">
+                        <span id="mkdkp" markerId="20"  left="1109" top="20" width="75" height="19">
                           Download
                         </span>
                       </>
+                    </a>
+                  </>
           <>
-            <p id="befbo" markerId="12"  left="496" top="77" width="45" height="17">
-              🚀 Get
+            <p id="ncgcj" markerId="21"  left="532" top="70" width="25" height="17">
+              Try
             </p>
-            <>
-              <a id="hcbca" markerId="13"  left="541" top="77" width="130" height="17">
-                GitHub Copilot Free
+            <a id="gpkbc" markerId="22" class=".copilot-deep-link" href="vscode://GitHub.Copilot-Chat/chat?mode=agent&referrer=vscode-agentbanner" id="banner-link-updates" rel="noopener" left="557" top="70" width="79" height="17">
+              agent mode
+              <a id="gpkbc" markerId="23"  left="557" top="70" width="79" height="17">
+                agent mode
               </a>
-            </>
-            <p id="bjijb" markerId="14"  left="671" top="77" width="80" height="17">
+            </a>
+            <p id="jopoj" markerId="24"  left="635" top="70" width="80" height="17">
               in VS Code!
             </p>
           </>
         <>
-          <div id="jnkgi" markerId="15" aria-hidden="true" class=".glyph-icon" left="1241" top="73" width="15" height="21">
-          </div>
+          <span id="hfaog" markerId="25" aria-hidden="true" class=".glyph-icon" left="1241" top="66" width="15" height="21">
+          </span>
         </>
               <>
-                <h1 id="cphhj" markerId="16"  left="350" top="139" width="581" height="171">
+                <h1 id="cffkf" markerId="26"  left="350" top="125" width="581" height="171">
                   Your code editor. Redefined with AI.
                 </h1>
               </>
                   <>
-                    <div id="kacdo" markerId="17" type="button" class=".link-button.dlink" data-os="osx" id="download-buttons-osx" left="438" top="336" width="219" height="48">
+                    <button id="ioebn" markerId="27" type="button" class=".link-button.dlink" data-os="osx" id="download-buttons-osx" left="440" top="322" width="219" height="48">
                       Download for macOS
-                    </div>
-                    <>
-                      <a id="cjedj" markerId="18"  left="688" top="349" width="133" height="22">
-                        Get Copilot Free
+                    </button>
+                    <a id="kmfgi" markerId="28" class=".link-button.secondary.copilot-deep-link" href="vscode://GitHub.Copilot-Chat/chat?mode=agent&referrer=vscode-agentcta" rel="noopener" left="669" top="322" width="171" height="48">
+                      Try agent mode
+                      <a id="eofim" markerId="29"  left="690" top="335" width="129" height="22">
+                        Try agent mode
                       </a>
-                    </>
-                  </>
-                  <>
-                    <a id="aolaj" markerId="19"  left="523" top="394" width="26" height="14">
-                      Web
-                    </a>
-                  </>
-                  <p id="fjkhe" markerId="20"  left="549" top="394" width="7" height="14">
-                    ,
-                  </p>
-                  <>
-                    <a id="ighlp" markerId="21"  left="556" top="394" width="89" height="14">
-                      Insiders edition
-                    </a>
-                  </>
-                  <p id="cfbdk" markerId="22"  left="645" top="394" width="22" height="14">
-                    , or
-                  </p>
-                  <>
-                    <a id="llkjk" markerId="23"  left="667" top="394" width="90" height="14">
-                      other platforms
                     </a>
                   </>
                 <>
-                  <p id="dglpo" markerId="24"  left="466" top="423" width="184" height="13">
+                  <a id="mdlmm" markerId="30" href="https://vscode.dev/" target="_blank" rel="noopener" title="For quick code edits locally or remotely on GitHub and Azure Repos." id="download-buttons-web" left="523" top="380" width="26" height="14">
+                    Web
+                    <a id="mdlmm" markerId="31"  left="523" top="380" width="26" height="14">
+                      Web
+                    </a>
+                  </a>
+                  <p id="lecmc" markerId="32"  left="549" top="380" width="7" height="14">
+                    ,
+                  </p>
+                  <a id="ldeak" markerId="33" href="/insiders" id="download-buttons-insiders" left="556" top="380" width="89" height="14">
+                    Insiders edition
+                    <a id="ldeak" markerId="34"  left="556" top="380" width="89" height="14">
+                      Insiders edition
+                    </a>
+                  </a>
+                  <p id="adedb" markerId="35"  left="645" top="380" width="22" height="14">
+                    , or
+                  </p>
+                  <a id="niicc" markerId="36" href="/Download" left="667" top="380" width="90" height="14">
+                    other platforms
+                    <a id="niicc" markerId="37"  left="667" top="380" width="90" height="14">
+                      other platforms
+                    </a>
+                  </a>
+                </>
+                <>
+                  <p id="kbghl" markerId="38"  left="466" top="409" width="184" height="13">
                     By using VS Code, you agree to its
                   </p>
-                    <>
-                      <a id="mknif" markerId="25"  left="650" top="423" width="38" height="13">
+                  <>
+                    <a id="ooodk" markerId="39" href="https://code.visualstudio.com/license" target="_blank" rel="noopener" title="View the Visual Studio Code license." left="650" top="409" width="38" height="13">
+                      license
+                      <a id="ooodk" markerId="40"  left="650" top="409" width="38" height="13">
                         license
                       </a>
-                    </>
-                    <span id="lnfni" markerId="26"  left="688" top="423" width="26" height="13">
+                    </a>
+                    <span id="cendn" markerId="41"  left="688" top="409" width="26" height="13">
                       and
                     </span>
-                    <>
-                      <a id="ajndm" markerId="27"  left="714" top="423" width="96" height="13">
+                    <a id="ipgfk" markerId="42" href="https://go.microsoft.com/fwlink/?LinkId=521839" target="_blank" rel="noopener" title="View the Microsoft privacy statement." left="714" top="409" width="96" height="13">
+                      privacy statement
+                      <a id="ipgfk" markerId="43"  left="714" top="409" width="96" height="13">
                         privacy statement
                       </a>
-                    </>
+                    </a>
+                  </>
                 </>

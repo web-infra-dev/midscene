@@ -1,6 +1,7 @@
 import { PlaywrightWebPage } from '@midscene/web/playwright';
 import { test } from './fixture';
 import { generateExtractData, generateTestDataPath } from './utils';
+import 'dotenv/config';
 
 function sleep(time: number) {
   return new Promise((resolve) => {
