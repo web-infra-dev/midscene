@@ -41,12 +41,16 @@ interface FormData {
   canvasElements: CanvasElement[];
 }
 
+const IS_DEBUG_MODE = window.location.search.includes('debug');
+
 const App: React.FC = () => {
   const [form] = Form.useForm();
   const [optimizedEvents, setOptimizedEvents] = useState<RecordedEvent[]>([{
     type: 'navigation',
     url: window.location.href,
     timestamp: Date.now(),
+    pageWidth: window.innerWidth,
+    pageHeight: window.innerHeight,
   }]);
   const [rawEventsCount, setRawEventsCount] = useState(0);
   const [mergedEventsCount, setMergedEventsCount] = useState(0);
@@ -54,21 +58,25 @@ const App: React.FC = () => {
   const eventRecorderRef = useRef<EventRecorder | null>(null);
 
   useEffect(() => {
-    // eventRecorderRef.current = new EventRecorder((event: RecordedEvent) => {
-    //   setRawEventsCount((prev) => prev + 1);
-    //   setOptimizedEvents((prev) => {
-    //     const optimized = eventRecorderRef.current?.optimizeEvent(event, prev);
-    //     console.log('record', optimized)
-    //     return optimized || prev;
-    //   });
-    //   setMergedEventsCount(optimizedEvents.length);
-    // });
-    // eventRecorderRef.current.start();
-    // return () => {
-    //   if (eventRecorderRef.current) {
-    //     eventRecorderRef.current.stop();
-    //   }
-    // };
+    if (IS_DEBUG_MODE) {
+      eventRecorderRef.current = new EventRecorder((event: RecordedEvent) => {
+        setRawEventsCount((prev) => prev + 1);
+        setOptimizedEvents((prev) => {
+          const optimized = eventRecorderRef.current?.optimizeEvent(event, prev);
+          console.log('record', optimized)
+          return optimized || prev;
+        });
+        setMergedEventsCount(optimizedEvents.length);
+      });
+      eventRecorderRef.current.start();
+    }
+    return () => {
+      if (IS_DEBUG_MODE) {
+        if (eventRecorderRef.current) {
+          eventRecorderRef.current.stop();
+        }
+      }
+    };
   }, []);
 
   const onFinish = (values: FormData) => {
@@ -245,7 +253,7 @@ const App: React.FC = () => {
           </p>
         </div>
       </Card>
-      {/* <RecordTimeline events={optimizedEvents} /> */}
+      {IS_DEBUG_MODE && <RecordTimeline events={optimizedEvents} />}
     </div>
   );
 };

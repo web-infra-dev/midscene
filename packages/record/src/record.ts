@@ -31,6 +31,8 @@ export interface RecordedEvent {
   viewportY?: number;
   width?: number; // Element width
   height?: number; // Element height
+  pageWidth: number; // Page width
+  pageHeight: number; // Page height
 }
 
 // Event callback function type
@@ -41,16 +43,7 @@ const isSameInputTarget = (
   event1: RecordedEvent,
   event2: RecordedEvent,
 ): boolean => {
-  if (event1.targetTagName !== event2.targetTagName) {
-    return false;
-  }
-  if (event1.targetId && event2.targetId) {
-    return event1.targetId === event2.targetId;
-  }
-  if (!event1.targetId && !event2.targetId) {
-    return event1.targetTagName === event2.targetTagName;
-  }
-  return false;
+  return event1.element === event2.element;
 };
 
 // Check if it's the same scroll target
@@ -169,6 +162,8 @@ export class EventRecorder {
       viewportY: rect.top,
       width: rect.width, // Add width
       height: rect.height, // Add height
+      pageWidth: window.innerWidth,
+      pageHeight: window.innerHeight,
     };
 
     this.eventCallback(clickEvent);
@@ -207,6 +202,8 @@ export class EventRecorder {
           viewportY: rect.top,
           timestamp: Date.now(),
           element: target,
+          pageWidth: window.innerWidth,
+          pageHeight: window.innerHeight,
         };
         this.eventCallback(scrollEvent);
       }
@@ -231,6 +228,8 @@ export class EventRecorder {
       viewportY: rect.top,
       width: rect.width, // Add width
       height: rect.height, // Add height
+      pageWidth: window.innerWidth,
+      pageHeight: window.innerHeight,
     };
 
     this.eventCallback(inputEvent);
