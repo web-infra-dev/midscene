@@ -197,6 +197,7 @@ ${Object.keys(size)
   private async getScreenSize(): Promise<{
     override: string;
     physical: string;
+    orientation: number; // 0=portrait, 1=landscape, 2=reverse portrait, 3=reverse landscape
   }> {
     const adb = await this.getAdb();
     const stdout = await adb.shell(['wm', 'size']);
@@ -223,8 +224,22 @@ ${Object.keys(size)
       size.physical = physicalSize[1].trim();
     }
 
+    let orientation = 0;
+    try {
+      const orientationStdout = await adb.shell(
+        'dumpsys input | grep SurfaceOrientation',
+      );
+      const orientationMatch = orientationStdout.match(
+        /SurfaceOrientation:\s*(\d)/,
+      );
+      orientation = orientationMatch ? Number(orientationMatch[1]) : 0;
+      debugPage(`Screen orientation: ${orientation}`);
+    } catch (e) {
+      debugPage('Failed to get orientation, default to 0');
+    }
+
     if (size.override || size.physical) {
-      return size;
+      return { ...size, orientation };
     }
 
     throw new Error(`Failed to get screen size, output: ${stdout}`);
@@ -248,8 +263,11 @@ ${Object.keys(size)
     if (!match || match.length < 3) {
       throw new Error(`Unable to parse screen size: ${screenSize}`);
     }
-    const width = Number.parseInt(match[1], 10);
-    const height = Number.parseInt(match[2], 10);
+
+    const isLandscape =
+      screenSize.orientation === 1 || screenSize.orientation === 3;
+    const width = Number.parseInt(match[isLandscape ? 2 : 1], 10);
+    const height = Number.parseInt(match[isLandscape ? 1 : 2], 10);
 
     // Get device display density
     const densityNum = await adb.getScreenDensity();
