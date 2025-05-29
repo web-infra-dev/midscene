@@ -7,48 +7,21 @@ import type {
   MidsceneYamlFlowItem,
   scrollParam,
 } from './yaml';
+import type {
+  BaseElement,
+  ElementTreeNode,
+  Rect,
+  Size,
+} from '@midscene/shared/types';
+
+export type {
+  ElementTreeNode,
+  BaseElement,
+  Rect,
+  Size,
+  Point,
+} from '@midscene/shared/types';
 export * from './yaml';
-
-export interface Point {
-  left: number;
-  top: number;
-}
-
-export interface Size {
-  width: number; // device independent window size
-  height: number;
-  dpr?: number; // the scale factor of the screenshots
-}
-
-export type Rect = Point & Size & { zoom?: number };
-
-export abstract class BaseElement {
-  abstract id: string;
-
-  abstract indexId?: number; // markerId for web
-
-  abstract attributes: {
-    nodeType: NodeType;
-    [key: string]: string;
-  };
-
-  abstract content: string;
-
-  abstract rect: Rect;
-
-  abstract center: [number, number];
-
-  abstract locator?: string;
-
-  abstract xpaths?: string[];
-}
-
-export interface ElementTreeNode<
-  ElementType extends BaseElement = BaseElement,
-> {
-  node: ElementType | null;
-  children: ElementTreeNode<ElementType>[];
-}
 
 export type AIUsageInfo = Record<string, any> & {
   prompt_tokens: number;
@@ -413,7 +386,7 @@ export interface ExecutionTaskApply<
     param: TaskParam,
     context: ExecutorContext,
   ) => // biome-ignore lint/suspicious/noConfusingVoidType: <explanation>
-    | Promise<ExecutionTaskReturn<TaskOutput, TaskLog> | undefined | void>
+  | Promise<ExecutionTaskReturn<TaskOutput, TaskLog> | undefined | void>
     | undefined
     | void;
 }

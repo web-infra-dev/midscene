@@ -14,6 +14,7 @@ export interface ElementInfo {
   content: string;
   rect: { left: number; top: number; width: number; height: number };
   center: [number, number];
+  isVisible: boolean;
 }
 
 export interface ElementNode {
@@ -21,7 +22,13 @@ export interface ElementNode {
   children: ElementNode[];
 }
 
-export { descriptionOfTree, traverseTree, treeToList } from './tree';
+export {
+  descriptionOfTree,
+  traverseTree,
+  treeToList,
+  truncateText,
+  trimAttributes,
+} from './tree';
 
 export { extractTextWithPosition as webExtractTextWithPosition } from './web-extractor';
 

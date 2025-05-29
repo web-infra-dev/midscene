@@ -12,8 +12,9 @@ tasks:
   - name: extract items info
     flow:
       - aiQuery: >
-          {name: string, price: number, actionBtnName: string}[], return item name, price and the action button name on the lower right corner of each item (like 'Remove')
+          {name: string, price: number, actionBtnName: string, imageUrl: string}[], return item name, price and the action button name on the lower right corner of each item, and the image url of each item (like 'Remove')
         name: items
+        useDom: true
       - aiAssert: The price of 'Sauce Labs Fleece Jacket' is 49.99
 
   - name: run javascript code

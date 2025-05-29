@@ -6,6 +6,11 @@ export interface LocateOption {
   cacheable?: boolean; // user can set this param to false to disable the cache for a single agent api
 }
 
+export interface InsightExtractOption {
+  useDom?: boolean;
+  useScreenshot?: boolean;
+}
+
 export interface ReferenceImage {
   base64: string;
   rect?: Rect;
@@ -89,22 +94,22 @@ export interface MidsceneYamlFlowItemAIAssert {
   errorMessage?: string;
 }
 
-export interface MidsceneYamlFlowItemAIQuery {
+export interface MidsceneYamlFlowItemAIQuery extends InsightExtractOption {
   aiQuery: string;
   name?: string;
 }
 
-export interface MidsceneYamlFlowItemAINumber {
+export interface MidsceneYamlFlowItemAINumber extends InsightExtractOption {
   aiNumber: string;
   name?: string;
 }
 
-export interface MidsceneYamlFlowItemAINString {
+export interface MidsceneYamlFlowItemAINString extends InsightExtractOption {
   aiString: string;
   name?: string;
 }
 
-export interface MidsceneYamlFlowItemAIBoolean {
+export interface MidsceneYamlFlowItemAIBoolean extends InsightExtractOption {
   aiBoolean: string;
   name?: string;
 }

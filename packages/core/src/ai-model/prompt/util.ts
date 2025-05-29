@@ -133,6 +133,8 @@ export async function describeUserPage<
   opt?: {
     truncateTextLength?: number;
     filterNonTextContent?: boolean;
+    useDom?: boolean;
+    visibleOnly?: boolean;
   },
 ) {
   const { screenshotBase64 } = context;
@@ -157,17 +159,19 @@ export async function describeUserPage<
     }
   });
 
-  const contentTree = await descriptionOfTree(
-    treeRoot,
-    opt?.truncateTextLength,
-    opt?.filterNonTextContent,
-  );
+  let pageDescription = '';
+  if (opt?.useDom) {
+    const contentTree = await descriptionOfTree(
+      treeRoot,
+      opt?.truncateTextLength,
+      opt?.filterNonTextContent,
+      opt?.visibleOnly,
+    );
 
-  // if match by position, don't need to provide the page description
-  const sizeDescription = describeSize({ width, height });
-  const pageDescription = vlLocateMode()
-    ? ''
-    : `The size of the page: ${sizeDescription} \n Some of the elements are marked with a rectangle in the screenshot, some are not. \n The page elements tree:\n${contentTree}`;
+    // if match by position, don't need to provide the page description
+    const sizeDescription = describeSize({ width, height });
+    pageDescription = `The size of the page: ${sizeDescription} \n The page elements tree:\n${contentTree}`;
+  }
 
   return {
     description: pageDescription,
