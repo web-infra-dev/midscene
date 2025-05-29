@@ -9,6 +9,113 @@ import './record.less';
 
 const { Title, Text } = Typography;
 
+// Check if running in Chrome extension environment
+const isChromeExtension = (): boolean => {
+    try {
+        return !!(typeof chrome !== 'undefined' &&
+            chrome.runtime &&
+            chrome.runtime.id &&
+            chrome.tabs &&
+            chrome.scripting);
+    } catch (error) {
+        return false;
+    }
+};
+
+// Safe Chrome API wrappers
+const safeChromeAPI = {
+    tabs: {
+        query: (queryInfo: chrome.tabs.QueryInfo, callback: (tabs: chrome.tabs.Tab[]) => void) => {
+            if (isChromeExtension()) {
+                chrome.tabs.query(queryInfo, callback);
+            } else {
+                // Mock tab for non-extension environment
+                callback([{
+                    id: 1,
+                    title: 'Mock Tab (Chrome Extension Required)',
+                    url: window.location.href,
+                    active: true,
+                    highlighted: false,
+                    pinned: false,
+                    audible: false,
+                    discarded: false,
+                    autoDiscardable: true,
+                    mutedInfo: { muted: false },
+                    incognito: false,
+                    width: window.innerWidth,
+                    height: window.innerHeight,
+                    status: 'complete' as const,
+                    index: 0,
+                    windowId: 1,
+                    groupId: -1,
+                    openerTabId: undefined,
+                    favIconUrl: undefined,
+                    sessionId: undefined,
+                    pendingUrl: undefined,
+                    selected: false
+                } as chrome.tabs.Tab]);
+            }
+        },
+        sendMessage: async (tabId: number, message: any): Promise<any> => {
+            if (isChromeExtension()) {
+                return chrome.tabs.sendMessage(tabId, message);
+            } else {
+                throw new Error('Chrome extension API not available');
+            }
+        },
+        onUpdated: {
+            addListener: (callback: (tabId: number, changeInfo: chrome.tabs.TabChangeInfo, tab: chrome.tabs.Tab) => void) => {
+                if (isChromeExtension()) {
+                    chrome.tabs.onUpdated.addListener(callback);
+                }
+            },
+            removeListener: (callback: (tabId: number, changeInfo: chrome.tabs.TabChangeInfo, tab: chrome.tabs.Tab) => void) => {
+                if (isChromeExtension()) {
+                    chrome.tabs.onUpdated.removeListener(callback);
+                }
+            }
+        }
+    },
+    runtime: {
+        connect: (connectInfo?: chrome.runtime.ConnectInfo) => {
+            if (isChromeExtension()) {
+                return chrome.runtime.connect(connectInfo);
+            } else {
+                // Mock port for non-extension environment
+                return {
+                    onMessage: {
+                        addListener: () => { },
+                        removeListener: () => { }
+                    },
+                    disconnect: () => { },
+                    postMessage: () => { }
+                };
+            }
+        },
+        onMessage: {
+            addListener: (callback: (message: any, sender: chrome.runtime.MessageSender, sendResponse: (response?: any) => void) => void) => {
+                if (isChromeExtension()) {
+                    chrome.runtime.onMessage.addListener(callback);
+                }
+            },
+            removeListener: (callback: (message: any, sender: chrome.runtime.MessageSender, sendResponse: (response?: any) => void) => void) => {
+                if (isChromeExtension()) {
+                    chrome.runtime.onMessage.removeListener(callback);
+                }
+            }
+        }
+    },
+    scripting: {
+        executeScript: async (injection: any): Promise<any[]> => {
+            if (isChromeExtension()) {
+                return chrome.scripting.executeScript(injection);
+            } else {
+                throw new Error('Chrome extension API not available');
+            }
+        }
+    }
+};
+
 // Message types for content script communication
 interface RecordMessage {
     action: 'start' | 'stop' | 'event' | 'events';
@@ -28,6 +135,7 @@ const RecordList: React.FC<{
     onSelectSession: (session: RecordingSession) => void;
     onExportSession: (session: RecordingSession) => void;
     onViewDetail: (session: RecordingSession) => void;
+    isExtensionMode: boolean;
 }> = ({
     sessions,
     currentSessionId,
@@ -36,10 +144,21 @@ const RecordList: React.FC<{
     onDeleteSession,
     onSelectSession,
     onExportSession,
-    onViewDetail
+    onViewDetail,
+    isExtensionMode
 }) => {
         return (
             <div className="record-list-view">
+                {!isExtensionMode && (
+                    <Alert
+                        message="Limited Functionality"
+                        description="Recording features require Chrome extension environment. Only session management and event viewing are available."
+                        type="warning"
+                        showIcon
+                        style={{ marginBottom: '16px' }}
+                    />
+                )}
+
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
                     <Title level={3} style={{ margin: 0 }}>Recording Sessions</Title>
                     <Button
@@ -181,6 +300,7 @@ const RecordDetail: React.FC<{
     onStopRecording: () => void;
     onClearEvents: () => void;
     onExportEvents: () => void;
+    isExtensionMode: boolean;
 }> = ({
     session,
     events,
@@ -190,10 +310,21 @@ const RecordDetail: React.FC<{
     onStartRecording,
     onStopRecording,
     onClearEvents,
-    onExportEvents
+    onExportEvents,
+    isExtensionMode
 }) => {
         return (
             <div className="record-detail-view">
+                {!isExtensionMode && (
+                    <Alert
+                        message="Recording Disabled"
+                        description="Recording functionality is not available outside Chrome extension environment."
+                        type="warning"
+                        showIcon
+                        style={{ marginBottom: '16px' }}
+                    />
+                )}
+
                 {/* Header with back button and session info */}
                 <div className="detail-header">
                     <Button
@@ -257,6 +388,7 @@ const RecordDetail: React.FC<{
                 <div className="controls-section">
                     <div className="current-tab-info">
                         <Text strong>Current Tab:</Text> {currentTab?.title || 'No tab selected'}
+                        {!isExtensionMode && <Text type="secondary"> (Mock)</Text>}
                     </div>
                     <Space className="record-controls">
                         {!isRecording ? (
@@ -264,7 +396,7 @@ const RecordDetail: React.FC<{
                                 type="primary"
                                 icon={<PlayCircleOutlined />}
                                 onClick={onStartRecording}
-                                disabled={!currentTab}
+                                disabled={!currentTab || !isExtensionMode}
                             >
                                 Start Recording
                             </Button>
@@ -273,6 +405,7 @@ const RecordDetail: React.FC<{
                                 danger
                                 icon={<StopOutlined />}
                                 onClick={onStopRecording}
+                                disabled={!isExtensionMode}
                             >
                                 Stop Recording
                             </Button>
@@ -334,16 +467,31 @@ export default function Record() {
     const [selectedSession, setSelectedSession] = useState<RecordingSession | null>(null);
 
     const [currentTab, setCurrentTab] = useState<chrome.tabs.Tab | null>(null);
-    const [isInjected, setIsInjected] = useState(false);
     const [isCreateModalVisible, setIsCreateModalVisible] = useState(false);
     const [isEditModalVisible, setIsEditModalVisible] = useState(false);
     const [editingSession, setEditingSession] = useState<RecordingSession | null>(null);
     const [form] = Form.useForm();
     const [editForm] = Form.useForm();
 
+    // Check if we're in extension environment
+    const isExtensionMode = isChromeExtension();
+
+    // Generate default session name with current time
+    const generateDefaultSessionName = () => {
+        return new Date().toLocaleString('zh-CN', {
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit',
+            hour12: false
+        }).replace(/\//g, '-');
+    };
+
     // Get current active tab
     useEffect(() => {
-        chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+        safeChromeAPI.tabs.query({ active: true, currentWindow: true }, (tabs) => {
             if (tabs[0]) {
                 setCurrentTab(tabs[0]);
             }
@@ -362,24 +510,23 @@ export default function Record() {
 
     // Monitor tab updates (refresh, navigation, etc.)
     useEffect(() => {
-        const handleTabUpdate = (tabId: number, changeInfo: chrome.tabs.TabChangeInfo, tab: chrome.tabs.Tab) => {
+        const handleTabUpdate = (tabId: number, changeInfo: chrome.tabs.TabChangeInfo) => {
             if (currentTab?.id === tabId && changeInfo.status === 'loading' && isRecording) {
                 // Page is being refreshed or navigating away
                 setIsRecording(false);
-                setIsInjected(false);
                 message.warning('Recording stopped due to page refresh/navigation');
             }
         };
 
-        chrome.tabs.onUpdated.addListener(handleTabUpdate);
+        safeChromeAPI.tabs.onUpdated.addListener(handleTabUpdate);
 
-        return () => chrome.tabs.onUpdated.removeListener(handleTabUpdate);
+        return () => safeChromeAPI.tabs.onUpdated.removeListener(handleTabUpdate);
     }, [currentTab, isRecording, setIsRecording]);
 
     // Set up message listener for content script
     useEffect(() => {
         // Connect to service worker for receiving events
-        const port = chrome.runtime.connect({ name: 'record-events' });
+        const port = safeChromeAPI.runtime.connect({ name: 'record-events' });
 
         const handleMessage = (message: RecordMessage) => {
             console.log('Received message:', message);
@@ -406,8 +553,8 @@ export default function Record() {
         // Also keep the original listener for other messages
         const messageListener = (
             message: RecordMessage,
-            sender: chrome.runtime.MessageSender,
-            sendResponse: (response?: any) => void
+            _sender: chrome.runtime.MessageSender,
+            _sendResponse: (response?: any) => void
         ) => {
             console.log('Received message:', message);
             if (message.action === 'event' && message.data && !Array.isArray(message.data)) {
@@ -424,18 +571,20 @@ export default function Record() {
             }
         };
 
-        chrome.runtime.onMessage.addListener(messageListener);
+        safeChromeAPI.runtime.onMessage.addListener(messageListener);
 
         return () => {
             port.disconnect();
-            chrome.runtime.onMessage.removeListener(messageListener);
+            safeChromeAPI.runtime.onMessage.removeListener(messageListener);
         };
     }, [addEvent, setEvents]);
 
     // Check if content script is injected
     const checkContentScriptInjected = async (tabId: number): Promise<boolean> => {
+        if (!isExtensionMode) return false;
+
         try {
-            const response = await chrome.tabs.sendMessage(tabId, { action: 'ping' });
+            const response = await safeChromeAPI.tabs.sendMessage(tabId, { action: 'ping' });
             return response?.success === true;
         } catch (error) {
             return false;
@@ -444,7 +593,7 @@ export default function Record() {
 
     // Re-inject script if needed
     const ensureScriptInjected = async () => {
-        if (!currentTab?.id) return false;
+        if (!isExtensionMode || !currentTab?.id) return false;
 
         const isInjected = await checkContentScriptInjected(currentTab.id);
         if (!isInjected) {
@@ -455,6 +604,11 @@ export default function Record() {
 
     // Inject content script
     const injectScript = async () => {
+        if (!isExtensionMode) {
+            message.error('Chrome extension environment required for script injection');
+            return;
+        }
+
         if (!currentTab?.id) {
             message.error('No active tab found');
             return;
@@ -463,18 +617,17 @@ export default function Record() {
         try {
             console.log('injecting record script');
             // Inject the record script first
-            await chrome.scripting.executeScript({
+            await safeChromeAPI.scripting.executeScript({
                 target: { tabId: currentTab.id },
                 files: ['scripts/record-iife.js']
             });
 
             // Then inject the content script wrapper
-            await chrome.scripting.executeScript({
+            await safeChromeAPI.scripting.executeScript({
                 target: { tabId: currentTab.id },
                 files: ['scripts/event-recorder-bridge.js']
             });
 
-            setIsInjected(true);
             message.success('Recording script injected successfully');
         } catch (error) {
             console.error('Failed to inject script:', error);
@@ -602,9 +755,17 @@ export default function Record() {
 
     // Start recording
     const startRecording = async () => {
+        if (!isExtensionMode) {
+            message.error('Recording is only available in Chrome extension environment');
+            return;
+        }
+
         // Check if there's a current session
         if (!currentSessionId) {
             message.warning('Please create or select a recording session first');
+            form.setFieldsValue({
+                name: generateDefaultSessionName()
+            });
             setIsCreateModalVisible(true);
             return;
         }
@@ -632,7 +793,7 @@ export default function Record() {
 
         try {
             // Send message to content script to start recording
-            await chrome.tabs.sendMessage(currentTab.id, { action: 'start' });
+            await safeChromeAPI.tabs.sendMessage(currentTab.id, { action: 'start' });
             setIsRecording(true);
             clearEvents(); // Clear previous events for new recording
             message.success('Recording started');
@@ -644,6 +805,11 @@ export default function Record() {
 
     // Stop recording
     const stopRecording = async () => {
+        if (!isExtensionMode) {
+            setIsRecording(false);
+            return;
+        }
+
         if (!currentTab?.id) {
             message.error('No active tab found');
             return;
@@ -653,7 +819,7 @@ export default function Record() {
             // Check if content script is still available before sending message
             try {
                 // Send message to content script to stop recording
-                await chrome.tabs.sendMessage(currentTab.id, { action: 'stop' });
+                await safeChromeAPI.tabs.sendMessage(currentTab.id, { action: 'stop' });
                 message.success('Recording stopped');
             } catch (error: any) {
                 // If content script is not available, just stop recording on our side
@@ -753,12 +919,18 @@ export default function Record() {
                 <RecordList
                     sessions={sessions}
                     currentSessionId={currentSessionId}
-                    onCreateSession={() => setIsCreateModalVisible(true)}
+                    onCreateSession={() => {
+                        form.setFieldsValue({
+                            name: generateDefaultSessionName()
+                        });
+                        setIsCreateModalVisible(true);
+                    }}
                     onEditSession={handleEditSession}
                     onDeleteSession={handleDeleteSession}
                     onSelectSession={handleSelectSession}
                     onExportSession={exportSessionEvents}
                     onViewDetail={handleViewDetail}
+                    isExtensionMode={isExtensionMode}
                 />
             ) : (
                 selectedSession && (
@@ -772,6 +944,7 @@ export default function Record() {
                         onStopRecording={stopRecording}
                         onClearEvents={clearEvents}
                         onExportEvents={exportEvents}
+                        isExtensionMode={isExtensionMode}
                     />
                 )
             )}
@@ -791,6 +964,9 @@ export default function Record() {
                     form={form}
                     layout="vertical"
                     onFinish={handleCreateSession}
+                    initialValues={{
+                        name: generateDefaultSessionName()
+                    }}
                 >
                     <Form.Item
                         name="name"
@@ -875,4 +1051,4 @@ export default function Record() {
             </Modal>
         </div>
     );
-} 
+}

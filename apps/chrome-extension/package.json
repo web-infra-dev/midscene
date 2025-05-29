@@ -19,8 +19,8 @@
     "@midscene/shared": "workspace:*",
     "antd": "^5.21.6",
     "dayjs": "^1.11.11",
-    "react": "^19.1.0",
-    "react-dom": ">=19.1.0",
+    "react": "18.3.1",
+    "react-dom": "18.3.1",
     "zustand": "4.5.2"
   },
   "devDependencies": {
@@ -29,8 +29,8 @@
     "@rsbuild/plugin-node-polyfill": "1.3.0",
     "@rsbuild/plugin-react": "^1.3.1",
     "@types/chrome": "0.0.279",
-    "@types/react": "^19.1.4",
-    "@types/react-dom": "^19.1.3",
+    "@types/react": "^18.3.1",
+    "@types/react-dom": "^18.3.1",
     "less": "^4.2.0",
     "typescript": "^5.8.3",
     "archiver": "^6.0.0"

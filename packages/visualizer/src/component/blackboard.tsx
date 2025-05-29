@@ -84,7 +84,7 @@ export const Blackboard = (props: {
   highlightPoints?: [number, number][];
   hideController?: boolean;
   onCanvasClick?: (position: [number, number]) => void;
-}): JSX.Element => {
+}) => {
   const highlightElements: BaseElement[] = props.highlightElements || [];
   const highlightIds = highlightElements.map((e) => e.id);
   const highlightRect = props.highlightRect;
@@ -106,7 +106,7 @@ export const Blackboard = (props: {
   const [hoverElement, setHoverElement] = useState<BaseElement | null>(null);
 
   // key overlays
-  const pixiBgRef = useRef<PIXI.Sprite>();
+  const pixiBgRef = useRef<PIXI.Sprite | undefined>(undefined);
   const { markerVisible, setMarkerVisible, elementsVisible, setTextsVisible } =
     useBlackboardPreference();
 
