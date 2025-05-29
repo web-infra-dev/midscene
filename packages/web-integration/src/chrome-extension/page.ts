@@ -7,7 +7,7 @@
 
 import type { WebKeyInput } from '@/common/page';
 import { limitOpenNewTabScript } from '@/common/ui-utils';
-import type { AbstractPage } from '@/page';
+import type { AbstractPage, MouseButton } from '@/page';
 import type { ElementTreeNode, Point, Size } from '@midscene/core';
 import type { ElementInfo } from '@midscene/shared/extractor';
 import { treeToList } from '@midscene/shared/extractor';
@@ -510,7 +510,12 @@ export default class ChromeExtensionProxyPage implements AbstractPage {
   private latestMouseY = 100;
 
   mouse = {
-    click: async (x: number, y: number) => {
+    click: async (
+      x: number,
+      y: number,
+      options?: { button?: MouseButton; count?: number },
+    ) => {
+      const { button = 'left', count = 1 } = options || {};
       await this.mouse.move(x, y);
       // detect if the page is in mobile emulation mode
       if (this.isMobileEmulation === null) {
@@ -523,7 +528,7 @@ export default class ChromeExtensionProxyPage implements AbstractPage {
         this.isMobileEmulation = result?.result?.value;
       }
 
-      if (this.isMobileEmulation) {
+      if (this.isMobileEmulation && button === 'left') {
         // in mobile emulation mode, directly inject click event
         const touchPoints = [{ x: Math.round(x), y: Math.round(y) }];
         await this.sendCommandToDebugger('Input.dispatchTouchEvent', {
@@ -543,15 +548,15 @@ export default class ChromeExtensionProxyPage implements AbstractPage {
           type: 'mousePressed',
           x,
           y,
-          button: 'left',
-          clickCount: 1,
+          button,
+          clickCount: count,
         });
         await this.sendCommandToDebugger('Input.dispatchMouseEvent', {
           type: 'mouseReleased',
           x,
           y,
-          button: 'left',
-          clickCount: 1,
+          button,
+          clickCount: count,
         });
       }
     },
