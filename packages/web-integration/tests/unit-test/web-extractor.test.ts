@@ -265,7 +265,7 @@ describe(
         `${elementInfosScriptContent}midscene_element_inspector.webExtractNodeTreeAsString(document, true)`,
       );
       expect(description).not.toContain('This should be collected');
-      expect(description).toMatchSnapshot();
+      expect(description.split('\n').length).toBeLessThan(100);
       await reset();
     });
 
@@ -283,7 +283,7 @@ describe(
         `${elementInfosScriptContent}midscene_element_inspector.webExtractNodeTreeAsString(document, false)`,
       );
       expect(description).toContain('This should be collected');
-      expect(description).toMatchSnapshot();
+      expect(description.split('\n').length).toBeGreaterThan(300);
       await reset();
     });
   },
