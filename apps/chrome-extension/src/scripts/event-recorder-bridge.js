@@ -68,6 +68,8 @@ function sendEventsToExtension() {
         data: events.map(event => ({
             type: event.type,
             timestamp: event.timestamp,
+            x: event.x,
+            y: event.y,
             viewportX: event.viewportX,
             viewportY: event.viewportY,
             width: event.width,

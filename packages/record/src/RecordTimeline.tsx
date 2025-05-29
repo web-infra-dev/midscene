@@ -69,7 +69,7 @@ export const RecordTimeline = ({ events, onEventClick }: RecordTimelineProps) =>
 
         try {
             // 构造元素位置信息，符合 compositeElementInfoImg 的要求
-            const elementsPositionInfo = [{
+            const elementsPositionInfo: Parameters<typeof compositeElementInfoImg>[0]['elementsPositionInfo'] = [{
                 rect: {
                     left: event.viewportX,
                     top: event.viewportY,
@@ -78,6 +78,7 @@ export const RecordTimeline = ({ events, onEventClick }: RecordTimelineProps) =>
                 },
                 indexId: 1 // 给元素一个ID用于显示标签
             }];
+
             if (event.x && event.y) {
                 elementsPositionInfo.push({
                     rect: {
@@ -86,7 +87,6 @@ export const RecordTimeline = ({ events, onEventClick }: RecordTimelineProps) =>
                         width: 2,
                         height: 2
                     },
-                    indexId: 2 // 给元素一个ID用于显示标签
                 });
             }
 

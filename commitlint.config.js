@@ -7,7 +7,9 @@ function getSubdirectories(dir) {
   if (!fs.existsSync(dir)) return [];
 
   return fs
-    .readdirSync(dir, { withFileTypes: true })
+    .readdirSync(dir, {
+      withFileTypes: true
+    })
     .filter((dirent) => dirent.isDirectory())
     .map((dirent) => dirent.name);
 }
@@ -26,6 +28,7 @@ const allScopes = [
   'mcp',
   'blog',
   'bridge',
+  'record',
   // automatically added scopes
   ...appsScopes,
   ...packagesScopes,
