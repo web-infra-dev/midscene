@@ -52,9 +52,7 @@ export function PlaygroundPopup() {
       label: 'Record',
       icon: <VideoCameraOutlined />,
       children: (
-        <div className="popup-record-container">
-          <Record />
-        </div>
+        <Record />
       ),
     },
     {

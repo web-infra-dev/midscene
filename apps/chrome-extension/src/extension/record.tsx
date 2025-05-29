@@ -1,5 +1,5 @@
 /// <reference types="chrome" />
-import { DeleteOutlined, DownloadOutlined, EditOutlined, PlayCircleOutlined, PlusOutlined, StopOutlined } from '@ant-design/icons';
+import { ArrowLeftOutlined, DeleteOutlined, DownloadOutlined, EditOutlined, PlayCircleOutlined, PlusOutlined, StopOutlined } from '@ant-design/icons';
 import { RecordTimeline } from '@midscene/record';
 import { Alert, Button, Card, Divider, Empty, Form, Input, List, Modal, Popconfirm, Space, Tag, Typography, message } from 'antd';
 import type React from 'react';
@@ -15,6 +15,308 @@ interface RecordMessage {
     data?: RecordedEvent | RecordedEvent[];
 }
 
+// View modes
+type ViewMode = 'list' | 'detail';
+
+// Record List Component
+const RecordList: React.FC<{
+    sessions: RecordingSession[];
+    currentSessionId: string | null;
+    onCreateSession: () => void;
+    onEditSession: (session: RecordingSession) => void;
+    onDeleteSession: (sessionId: string) => void;
+    onSelectSession: (session: RecordingSession) => void;
+    onExportSession: (session: RecordingSession) => void;
+    onViewDetail: (session: RecordingSession) => void;
+}> = ({
+    sessions,
+    currentSessionId,
+    onCreateSession,
+    onEditSession,
+    onDeleteSession,
+    onSelectSession,
+    onExportSession,
+    onViewDetail
+}) => {
+        return (
+            <div className="record-list-view">
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                    <Title level={3} style={{ margin: 0 }}>Recording Sessions</Title>
+                    <Button
+                        type="primary"
+                        icon={<PlusOutlined />}
+                        onClick={onCreateSession}
+                    >
+                        New Session
+                    </Button>
+                </div>
+
+                {sessions.length === 0 ? (
+                    <div className="session-empty">
+                        <Empty
+                            description="No recording sessions yet"
+                            style={{ margin: '40px 0' }}
+                        >
+                            <Button
+                                type="primary"
+                                icon={<PlusOutlined />}
+                                onClick={onCreateSession}
+                            >
+                                Create First Session
+                            </Button>
+                        </Empty>
+                    </div>
+                ) : (
+                    <List
+                        className="session-list"
+                        grid={{ gutter: 16, column: 1 }}
+                        dataSource={sessions}
+                        renderItem={(session) => (
+                            <List.Item>
+                                <Card
+                                    size="small"
+                                    className={session.id === currentSessionId ? 'selected-session' : ''}
+                                    style={{
+                                        cursor: 'pointer',
+                                        border: session.id === currentSessionId ? '2px solid #1890ff' : '1px solid #d9d9d9'
+                                    }}
+                                    onClick={() => onViewDetail(session)}
+                                    actions={[
+                                        <Button
+                                            key="select"
+                                            type="text"
+                                            size="small"
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                onSelectSession(session);
+                                            }}
+                                            style={{ color: session.id === currentSessionId ? '#1890ff' : undefined }}
+                                        >
+                                            {session.id === currentSessionId ? 'Selected' : 'Select'}
+                                        </Button>,
+                                        <Button
+                                            key="edit"
+                                            type="text"
+                                            icon={<EditOutlined />}
+                                            size="small"
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                onEditSession(session);
+                                            }}
+                                        />,
+                                        <Button
+                                            key="download"
+                                            type="text"
+                                            icon={<DownloadOutlined />}
+                                            size="small"
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                onExportSession(session);
+                                            }}
+                                            disabled={session.events.length === 0}
+                                        />,
+                                        <Popconfirm
+                                            key="delete"
+                                            title="Delete session"
+                                            description="Are you sure you want to delete this session?"
+                                            onConfirm={(e) => {
+                                                e?.stopPropagation();
+                                                onDeleteSession(session.id);
+                                            }}
+                                            onCancel={(e) => e?.stopPropagation()}
+                                        >
+                                            <Button
+                                                type="text"
+                                                danger
+                                                icon={<DeleteOutlined />}
+                                                size="small"
+                                                onClick={(e) => e.stopPropagation()}
+                                            />
+                                        </Popconfirm>
+                                    ]}
+                                >
+                                    <Card.Meta
+                                        title={
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                <span>{session.name}</span>
+                                                <Space>
+                                                    <Tag color={session.status === 'recording' ? 'red' : session.status === 'completed' ? 'green' : 'default'}>
+                                                        {session.status}
+                                                    </Tag>
+                                                    {session.id === currentSessionId && (
+                                                        <Tag color="blue">Current</Tag>
+                                                    )}
+                                                </Space>
+                                            </div>
+                                        }
+                                        description={
+                                            <div className="session-meta">
+                                                {session.description && <div style={{ marginBottom: '4px' }}>{session.description}</div>}
+                                                <div className="session-details">
+                                                    Events: {session.events.length} |
+                                                    Created: {new Date(session.createdAt).toLocaleString()} |
+                                                    {session.duration && ` Duration: ${(session.duration / 1000).toFixed(1)}s |`}
+                                                    {session.url && ` URL: ${session.url.slice(0, 50)}${session.url.length > 50 ? '...' : ''}`}
+                                                </div>
+                                            </div>
+                                        }
+                                    />
+                                </Card>
+                            </List.Item>
+                        )}
+                    />
+                )}
+            </div>
+        );
+    };
+
+// Record Detail Component
+const RecordDetail: React.FC<{
+    session: RecordingSession;
+    events: RecordedEvent[];
+    isRecording: boolean;
+    currentTab: chrome.tabs.Tab | null;
+    onBack: () => void;
+    onStartRecording: () => void;
+    onStopRecording: () => void;
+    onClearEvents: () => void;
+    onExportEvents: () => void;
+}> = ({
+    session,
+    events,
+    isRecording,
+    currentTab,
+    onBack,
+    onStartRecording,
+    onStopRecording,
+    onClearEvents,
+    onExportEvents
+}) => {
+        return (
+            <div className="record-detail-view">
+                {/* Header with back button and session info */}
+                <div className="detail-header">
+                    <Button
+                        type="text"
+                        icon={<ArrowLeftOutlined />}
+                        onClick={onBack}
+                        className="back-button"
+                    >
+                        Back to Sessions
+                    </Button>
+                    <div className="session-title">
+                        <Title level={4}>{session.name}</Title>
+                        <Text type="secondary">{session.description}</Text>
+                    </div>
+                </div>
+
+                {/* Recording Status Indicator */}
+                <div className={`recording-status ${isRecording ? 'recording' : 'idle'}`}>
+                    {isRecording ? (
+                        <span>🔴 Recording in progress</span>
+                    ) : (
+                        <span>✅ Ready to record</span>
+                    )}
+                </div>
+
+                {/* Session Details */}
+                <Card size="small" className="session-info-card">
+                    <div className="session-info">
+                        <Space direction="vertical" size="small" style={{ width: '100%' }}>
+                            <div>
+                                <Text strong>Status: </Text>
+                                <Tag color={session.status === 'recording' ? 'red' : session.status === 'completed' ? 'green' : 'default'}>
+                                    {session.status}
+                                </Tag>
+                            </div>
+                            <div>
+                                <Text strong>Events: </Text>
+                                <Text>{session.events.length}</Text>
+                            </div>
+                            <div>
+                                <Text strong>Created: </Text>
+                                <Text>{new Date(session.createdAt).toLocaleString()}</Text>
+                            </div>
+                            {session.duration && (
+                                <div>
+                                    <Text strong>Duration: </Text>
+                                    <Text>{(session.duration / 1000).toFixed(1)}s</Text>
+                                </div>
+                            )}
+                            {session.url && (
+                                <div>
+                                    <Text strong>URL: </Text>
+                                    <Text>{session.url}</Text>
+                                </div>
+                            )}
+                        </Space>
+                    </div>
+                </Card>
+
+                {/* Recording Controls */}
+                <div className="controls-section">
+                    <div className="current-tab-info">
+                        <Text strong>Current Tab:</Text> {currentTab?.title || 'No tab selected'}
+                    </div>
+                    <Space className="record-controls">
+                        {!isRecording ? (
+                            <Button
+                                type="primary"
+                                icon={<PlayCircleOutlined />}
+                                onClick={onStartRecording}
+                                disabled={!currentTab}
+                            >
+                                Start Recording
+                            </Button>
+                        ) : (
+                            <Button
+                                danger
+                                icon={<StopOutlined />}
+                                onClick={onStopRecording}
+                            >
+                                Stop Recording
+                            </Button>
+                        )}
+
+                        <Button
+                            icon={<DeleteOutlined />}
+                            onClick={onClearEvents}
+                            disabled={events.length === 0 || isRecording}
+                        >
+                            Clear Events
+                        </Button>
+
+                        <Button
+                            icon={<DownloadOutlined />}
+                            onClick={onExportEvents}
+                            disabled={events.length === 0}
+                        >
+                            Export Events
+                        </Button>
+                    </Space>
+                </div>
+
+                <Divider />
+
+                {/* Events Display */}
+                <div className="events-section">
+                    <div className="events-header">
+                        <Title level={5}>
+                            Recorded Events ({events.length})
+                        </Title>
+                    </div>
+                    <div className={`events-container ${events.length === 0 ? 'empty' : ''}`}>
+                        {events.length === 0 ? (
+                            <Empty description="No events recorded yet" />
+                        ) : (
+                            <RecordTimeline events={events} />
+                        )}
+                    </div>
+                </div>
+            </div>
+        );
+    };
+
 export default function Record() {
     const { isRecording, events, setIsRecording, addEvent, clearEvents, setEvents } = useRecordStore();
     const {
@@ -26,6 +328,11 @@ export default function Record() {
         setCurrentSession,
         getCurrentSession
     } = useRecordingSessionStore();
+
+    // View state management
+    const [viewMode, setViewMode] = useState<ViewMode>('list');
+    const [selectedSession, setSelectedSession] = useState<RecordingSession | null>(null);
+
     const [currentTab, setCurrentTab] = useState<chrome.tabs.Tab | null>(null);
     const [isInjected, setIsInjected] = useState(false);
     const [isCreateModalVisible, setIsCreateModalVisible] = useState(false);
@@ -202,6 +509,10 @@ export default function Record() {
         setIsCreateModalVisible(false);
         form.resetFields();
         message.success(`Session "${values.name}" created successfully`);
+
+        // Switch to detail view for the new session
+        setSelectedSession(newSession);
+        setViewMode('detail');
     };
 
     // Edit session
@@ -224,6 +535,16 @@ export default function Record() {
             updatedAt: Date.now()
         });
 
+        // Update selectedSession if it's the one being edited
+        if (selectedSession?.id === editingSession.id) {
+            setSelectedSession({
+                ...editingSession,
+                name: values.name,
+                description: values.description,
+                updatedAt: Date.now()
+            });
+        }
+
         setIsEditModalVisible(false);
         setEditingSession(null);
         editForm.resetFields();
@@ -237,10 +558,15 @@ export default function Record() {
             setCurrentSession(null);
             clearEvents();
         }
+        // If we're viewing the deleted session, go back to list
+        if (selectedSession?.id === sessionId) {
+            setViewMode('list');
+            setSelectedSession(null);
+        }
         message.success('Session deleted successfully');
     };
 
-    // Select session
+    // Select session (set as current)
     const handleSelectSession = (session: RecordingSession) => {
         // Stop current recording if any
         if (isRecording) {
@@ -255,6 +581,23 @@ export default function Record() {
             clearEvents();
         }
         message.success(`Switched to session "${session.name}"`);
+    };
+
+    // View session detail
+    const handleViewDetail = (session: RecordingSession) => {
+        setSelectedSession(session);
+        setViewMode('detail');
+
+        // If not already the current session, switch to it
+        if (currentSessionId !== session.id) {
+            handleSelectSession(session);
+        }
+    };
+
+    // Go back to list view
+    const handleBackToList = () => {
+        setViewMode('list');
+        setSelectedSession(null);
     };
 
     // Start recording
@@ -338,6 +681,18 @@ export default function Record() {
                         duration,
                         updatedAt: Date.now()
                     });
+
+                    // Update selectedSession if it's the current one
+                    if (selectedSession?.id === currentSessionId) {
+                        setSelectedSession({
+                            ...selectedSession,
+                            status: 'completed',
+                            events: [...events],
+                            duration,
+                            updatedAt: Date.now()
+                        });
+                    }
+
                     message.success(`Recording saved to session "${session.name}"`);
                 }
             }
@@ -392,215 +747,34 @@ export default function Record() {
         message.success('Events exported successfully');
     };
 
-    const currentSession = getCurrentSession();
-
     return (
-        <div className="popup-record-container" style={{ padding: '16px' }}>
-            <Alert
-                message="Event Recording"
-                description="Manage recording sessions and capture user interactions on the current tab."
-                type="info"
-                style={{ marginBottom: '16px' }}
-            />
-
-            {/* Recording Status Indicator */}
-            {currentSession && (
-                <div className={`recording-status ${isRecording ? 'recording' : 'idle'}`}>
-                    {isRecording ? (
-                        <span>🔴 Recording in progress in session "{currentSession.name}"</span>
-                    ) : (
-                        <span>✅ Ready to record in session "{currentSession.name}"</span>
-                    )}
-                </div>
-            )}
-
-            {/* Session Management Section */}
-            <div style={{ marginBottom: '24px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-                    <Title level={4} style={{ margin: 0 }}>Recording Sessions</Title>
-                    <Button
-                        type="primary"
-                        icon={<PlusOutlined />}
-                        onClick={() => setIsCreateModalVisible(true)}
-                    >
-                        New Session
-                    </Button>
-                </div>
-
-                {sessions.length === 0 ? (
-                    <div className="session-empty">
-                        <Empty
-                            description="No recording sessions yet"
-                            style={{ margin: '20px 0' }}
-                        >
-                            <Button
-                                type="primary"
-                                icon={<PlusOutlined />}
-                                onClick={() => setIsCreateModalVisible(true)}
-                            >
-                                Create First Session
-                            </Button>
-                        </Empty>
-                    </div>
-                ) : (
-                    <List
-                        className="session-list"
-                        grid={{ gutter: 16, column: 1 }}
-                        dataSource={sessions}
-                        renderItem={(session) => (
-                            <List.Item>
-                                <Card
-                                    size="small"
-                                    className={session.id === currentSessionId ? 'selected-session' : ''}
-                                    style={{
-                                        cursor: 'pointer',
-                                        border: session.id === currentSessionId ? '2px solid #1890ff' : '1px solid #d9d9d9'
-                                    }}
-                                    onClick={() => handleSelectSession(session)}
-                                    actions={[
-                                        <Button
-                                            key="edit"
-                                            type="text"
-                                            icon={<EditOutlined />}
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                handleEditSession(session);
-                                            }}
-                                        />,
-                                        <Button
-                                            key="download"
-                                            type="text"
-                                            icon={<DownloadOutlined />}
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                exportSessionEvents(session);
-                                            }}
-                                            disabled={session.events.length === 0}
-                                        />,
-                                        <Popconfirm
-                                            key="delete"
-                                            title="Delete session"
-                                            description="Are you sure you want to delete this session?"
-                                            onConfirm={(e) => {
-                                                e?.stopPropagation();
-                                                handleDeleteSession(session.id);
-                                            }}
-                                            onCancel={(e) => e?.stopPropagation()}
-                                        >
-                                            <Button
-                                                type="text"
-                                                danger
-                                                icon={<DeleteOutlined />}
-                                                onClick={(e) => e.stopPropagation()}
-                                            />
-                                        </Popconfirm>
-                                    ]}
-                                >
-                                    <Card.Meta
-                                        title={
-                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                                <span>{session.name}</span>
-                                                <Space>
-                                                    <Tag color={session.status === 'recording' ? 'red' : session.status === 'completed' ? 'green' : 'default'}>
-                                                        {session.status}
-                                                    </Tag>
-                                                    {session.id === currentSessionId && (
-                                                        <Tag color="blue">Current</Tag>
-                                                    )}
-                                                </Space>
-                                            </div>
-                                        }
-                                        description={
-                                            <div className="session-meta">
-                                                {session.description && <div style={{ marginBottom: '4px' }}>{session.description}</div>}
-                                                <div className="session-details">
-                                                    Events: {session.events.length} |
-                                                    Created: {new Date(session.createdAt).toLocaleString()} |
-                                                    {session.duration && ` Duration: ${(session.duration / 1000).toFixed(1)}s |`}
-                                                    {session.url && ` URL: ${session.url.slice(0, 50)}${session.url.length > 50 ? '...' : ''}`}
-                                                </div>
-                                            </div>
-                                        }
-                                    />
-                                </Card>
-                            </List.Item>
-                        )}
+        <div className="popup-record-container">
+            {viewMode === 'list' ? (
+                <RecordList
+                    sessions={sessions}
+                    currentSessionId={currentSessionId}
+                    onCreateSession={() => setIsCreateModalVisible(true)}
+                    onEditSession={handleEditSession}
+                    onDeleteSession={handleDeleteSession}
+                    onSelectSession={handleSelectSession}
+                    onExportSession={exportSessionEvents}
+                    onViewDetail={handleViewDetail}
+                />
+            ) : (
+                selectedSession && (
+                    <RecordDetail
+                        session={selectedSession}
+                        events={events}
+                        isRecording={isRecording}
+                        currentTab={currentTab}
+                        onBack={handleBackToList}
+                        onStartRecording={startRecording}
+                        onStopRecording={stopRecording}
+                        onClearEvents={clearEvents}
+                        onExportEvents={exportEvents}
                     />
-                )}
-            </div>
-
-            <Divider className="section-divider" />
-
-            {/* Recording Controls Section */}
-            <div style={{ marginBottom: '16px' }}>
-                <div className="current-tab-info" style={{ marginBottom: '12px' }}>
-                    <Text strong>Current Tab:</Text> {currentTab?.title || 'No tab selected'}
-                    {currentSession && (
-                        <div style={{ marginTop: '4px' }}>
-                            <Text strong>Active Session:</Text> {currentSession.name}
-                        </div>
-                    )}
-                </div>
-                <Space className="record-controls">
-                    {!isRecording ? (
-                        <Button
-                            type="primary"
-                            icon={<PlayCircleOutlined />}
-                            onClick={startRecording}
-                            disabled={!currentTab || !currentSessionId}
-                        >
-                            Start Recording
-                        </Button>
-                    ) : (
-                        <Button
-                            danger
-                            icon={<StopOutlined />}
-                            onClick={stopRecording}
-                        >
-                            Stop Recording
-                        </Button>
-                    )}
-
-                    <Button
-                        icon={<DeleteOutlined />}
-                        onClick={clearEvents}
-                        disabled={events.length === 0 || isRecording}
-                    >
-                        Clear Events
-                    </Button>
-
-                    <Button
-                        icon={<DownloadOutlined />}
-                        onClick={exportEvents}
-                        disabled={events.length === 0}
-                    >
-                        Export Current
-                    </Button>
-                </Space>
-            </div>
-
-            <Divider className="section-divider" />
-
-            {/* Events Display Section */}
-            <div className="events-section">
-                <div className="events-header">
-                    <div className="events-title">
-                        Current Events ({events.length})
-                    </div>
-                    {currentSession && events.length > 0 && (
-                        <div className="events-meta">
-                            from session: {currentSession.name}
-                        </div>
-                    )}
-                </div>
-                <div className={`events-container ${events.length === 0 ? 'empty' : ''}`}>
-                    {events.length === 0 ? (
-                        <div>No events recorded yet</div>
-                    ) : (
-                        <RecordTimeline events={events} />
-                    )}
-                </div>
-            </div>
+                )
+            )}
 
             {/* Create Session Modal */}
             <Modal
