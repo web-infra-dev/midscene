@@ -31,7 +31,7 @@ Midscene 中每个 Agent 都有自己的构造函数。
 在 Midscene 中，你可以选择使用自动规划（Auto Planning）或即时操作（Instant Action）。
 
 * `agent.ai()` 是自动规划（Auto Planning）：Midscene 会自动规划操作步骤并执行。它更智能，更像流行的 AI Agent 风格，但可能较慢，且效果依赖于 AI 模型的质量。
-* `agent.aiTap()`, `agent.aiHover()`, `agent.aiInput()`, `agent.aiKeyboardPress()`, `agent.aiScroll()` 是即时操作（Instant Action）：Midscene 会直接执行指定的操作，而 AI 模型只负责底层任务，如定位元素等。这种接口形式更快、更可靠。当你完全确定自己想要执行的操作时，推荐使用这种接口形式。
+* `agent.aiTap()`, `agent.aiHover()`, `agent.aiInput()`, `agent.aiKeyboardPress()`, `agent.aiScroll()`, `agent.aiRightClick()` 是即时操作（Instant Action）：Midscene 会直接执行指定的操作，而 AI 模型只负责底层任务，如定位元素等。这种接口形式更快、更可靠。当你完全确定自己想要执行的操作时，推荐使用这种接口形式。
 
 :::
 
@@ -210,6 +210,34 @@ function aiScroll(scrollParam: PlanningActionParamScroll, locate?: string, optio
 
 ```typescript
 await agent.aiScroll({ direction: 'up', distance: 100, scrollType: 'once' }, '表单区域');
+```
+
+### `agent.aiRightClick()`
+
+右键点击某个元素。
+
+* 类型
+
+```typescript
+function aiRightClick(locate: string, options?: Object): Promise<void>;
+```
+
+* 参数：
+  * `locate: string` - 用自然语言描述的元素定位。
+  * `options?: Object` - 可选，一个配置对象，包含：
+    * `deepThink?: boolean` - 是否开启深度思考。如果为 true，Midscene 会调用 AI 模型两次以精确定位元素。
+    * `cacheable?: boolean` - 当启用 [缓存功能](./caching.mdx) 时，是否允许缓存当前 API 调用结果。默认值为 True
+
+* 返回值：
+  * `Promise<void>`
+
+* 示例：
+
+```typescript
+await agent.aiRightClick('页面顶部的文件名称');
+
+// 使用 deepThink 功能精确定位元素
+await agent.aiRightClick('页面顶部的文件名称', { deepThink: true });
 ```
 
 :::tip 关于 `deepThink` （深度思考）特性
