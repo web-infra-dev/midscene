@@ -282,6 +282,7 @@ export class PageAgent<PageType extends WebPage = WebPage> {
     const { executor, output } = await this.taskExecutor.runPlans(
       taskTitleStr('RightClick', locateParamStr(detailedLocateParam)),
       plans,
+      { cacheable: opt?.cacheable },
     );
     this.afterTaskRunning(executor);
     return output;

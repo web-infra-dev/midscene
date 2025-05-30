@@ -79,6 +79,9 @@ describe('PageAgent RightClick', () => {
     expect(mockTaskExecutor.runPlans).toHaveBeenCalledWith(
       'RightClick - context menu trigger',
       mockPlans,
+      {
+        cacheable: undefined,
+      },
     );
   });
 
