@@ -255,11 +255,14 @@ await agent.aiRightClick('页面顶部的文件名称', { deepThink: true });
 * 类型
 
 ```typescript
-function aiQuery<T>(dataShape: string | Object): Promise<T>;
+function aiQuery<T>(dataShape: string | Object, options?: Object): Promise<T>;
 ```
 
 * 参数：
   * `dataShape: T`: 描述预期的返回值格式。
+  * `options?: Object` - 可选，一个配置对象，包含：
+    * `domIncluded?: boolean` - 是否包含 DOM 结构，一般用于需要查询不可见的属性，比如图片的链接。默认值为 False
+    * `screenshotIncluded?: boolean` - 是否包含截图。默认值为 True。
 
 * 返回值：
   * 返回值可以是任何合法的基本类型，比如字符串、数字、JSON、数组等。
@@ -282,6 +285,9 @@ const dataB = await agent.aiQuery('string[]，列表中的任务名称');
 
 // dataC 将是一个包含对象的数组
 const dataC = await agent.aiQuery('{name: string, age: string}[], 表格中的数据记录');
+
+// 使用 domIncluded 功能查询不可见的属性
+const dataD = await agent.aiQuery('{name: string, age: string, avatarUrl: string}[], 表格中的数据记录', { domIncluded: true });
 ```
 
 此外，我们还提供了 `aiBoolean()`, `aiNumber()`, `aiString()` 三个便捷方法，用于直接提取布尔值、数字和字符串。
@@ -294,11 +300,14 @@ const dataC = await agent.aiQuery('{name: string, age: string}[], 表格中的�
 * 类型
 
 ```typescript
-function aiBoolean(prompt: string): Promise<boolean>;
+function aiBoolean(prompt: string, options?: Object): Promise<boolean>;
 ```
 
 * 参数：
   * `prompt: string` - 用自然语言描述的期望值。
+  * `options?: Object` - 可选，一个配置对象，包含：
+    * `domIncluded?: boolean` - 是否包含 DOM 结构，一般用于需要查询不可见的属性，比如图片的链接。默认值为 False
+    * `screenshotIncluded?: boolean` - 是否包含截图。默认值为 True。
 
 * 返回值：
   * 返回一个 Promise。当 AI 返回结果时解析为布尔值。
@@ -306,7 +315,10 @@ function aiBoolean(prompt: string): Promise<boolean>;
 * 示例：
 
 ```typescript
-const bool = await agent.aiBoolean('是否存在登录对话框');
+const boolA = await agent.aiBoolean('是否存在登录对话框');
+
+// 使用 domIncluded 功能查询不可见的属性
+const boolB = await agent.aiBoolean('忘记密码按钮是否存在链接', { domIncluded: true });
 ```
 
 ### `agent.aiNumber()`
@@ -316,11 +328,14 @@ const bool = await agent.aiBoolean('是否存在登录对话框');
 * 类型
 
 ```typescript
-function aiNumber(prompt: string): Promise<number>;
+function aiNumber(prompt: string, options?: Object): Promise<number>;
 ```
 
 * 参数：
   * `prompt: string` - 用自然语言描述的期望值。
+  * `options?: Object` - 可选，一个配置对象，包含：
+    * `domIncluded?: boolean` - 是否包含 DOM 结构，一般用于需要查询不可见的属性，比如图片的链接。默认值为 False
+    * `screenshotIncluded?: boolean` - 是否包含截图。默认值为 True。
 
 * 返回值：
   * 返回一个 Promise。当 AI 返回结果时解析为数字。
@@ -328,7 +343,10 @@ function aiNumber(prompt: string): Promise<number>;
 * 示例：
 
 ```typescript
-const number = await agent.aiNumber('账户剩余的积分');
+const numberA = await agent.aiNumber('账户剩余的积分');
+
+// 使用 domIncluded 功能查询不可见的属性
+const numberB = await agent.aiNumber('账户剩余的积分元素的 value 值', { domIncluded: true });
 ```
 
 ### `agent.aiString()`
@@ -338,11 +356,14 @@ const number = await agent.aiNumber('账户剩余的积分');
 * 类型
 
 ```typescript
-function aiString(prompt: string): Promise<string>;
+function aiString(prompt: string, options?: Object): Promise<string>;
 ```
 
 * 参数：
   * `prompt: string` - 用自然语言描述的期望值。
+  * `options?: Object` - 可选，一个配置对象，包含：
+    * `domIncluded?: boolean` - 是否包含 DOM 结构，一般用于需要查询不可见的属性，比如图片的链接。默认值为 False
+    * `screenshotIncluded?: boolean` - 是否包含截图。默认值为 True。
 
 * 返回值：
   * 返回一个 Promise。当 AI 返回结果时解析为字符串。
@@ -350,7 +371,10 @@ function aiString(prompt: string): Promise<string>;
 * 示例：
 
 ```typescript
-const string = await agent.aiString('当前列表的第一条记录的名称');
+const stringA = await agent.aiString('当前列表的第一条记录的名称');
+
+// 使用 domIncluded 功能查询不可见的属性
+const stringB = await agent.aiString('当前列表的第一条记录的跳转链接', { domIncluded: true });
 ```
 
 ## 更多方法
