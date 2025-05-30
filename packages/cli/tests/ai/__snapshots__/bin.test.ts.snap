@@ -7,6 +7,50 @@ exports[`bin > local server - evaluateJavaScript 1`] = `
 }
 `;
 
+exports[`bin > query with domIncluded 1`] = `
+{
+  "items": [
+    {
+      "actionBtnName": "Add to cart",
+      "imageUrl": "/static/media/sauce-backpack-1200x1500.0a0b85a3.jpg",
+      "name": "Sauce Labs Backpack",
+      "price": 29.99,
+    },
+    {
+      "actionBtnName": "Add to cart",
+      "imageUrl": "/static/media/bike-light-1200x1500.37c843b0.jpg",
+      "name": "Sauce Labs Bike Light",
+      "price": 9.99,
+    },
+    {
+      "actionBtnName": "Add to cart",
+      "imageUrl": "/static/media/bolt-shirt-1200x1500.c2599ac5.jpg",
+      "name": "Sauce Labs Bolt T-Shirt",
+      "price": 15.99,
+    },
+    {
+      "actionBtnName": "Add to cart",
+      "imageUrl": "/static/media/sauce-pullover-1200x1500.51d7ffaf.jpg",
+      "name": "Sauce Labs Fleece Jacket",
+      "price": 49.99,
+    },
+    {
+      "actionBtnName": "Add to cart",
+      "imageUrl": "/static/media/red-onesie-1200x1500.2ec615b2.jpg",
+      "name": "Sauce Labs Onesie",
+      "price": 7.99,
+    },
+    {
+      "actionBtnName": "Add to cart",
+      "imageUrl": "/static/media/red-tatt-1200x1500.30dadef4.jpg",
+      "name": "Test.allTheThings() T-Shirt (Red)",
+      "price": 15.99,
+    },
+  ],
+  "page-title": "Swag Labs",
+}
+`;
+
 exports[`bin > query with useDom 1`] = `
 {
   "items": [
