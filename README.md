@@ -40,7 +40,7 @@ Write Automation with Natural Language
 
 Web & Mobile App
 - **Web Automation 🖥️**: Either integrate with [Puppeteer](https://midscenejs.com/integrate-with-puppeteer.html), [Playwright](https://midscenejs.com/integrate-with-playwright.html) or use [Bridge Mode](https://midscenejs.com/bridge-mode-by-chrome-extension.html) to control your desktop browser.
-- **Android Automation 📱**: Use javascript SDK with [adb](https://midscenejs.com/integrate-with-android.html) to control your local Android device.
+- **Android Automation 📱**: Use [Javascript SDK](https://midscenejs.com/integrate-with-android.html) with adb to control your local Android device.
 
 Tools
 - **Visual Reports for Debugging 🎞️**: Through our test reports and Playground, you can easily understand, replay and debug the entire process.
