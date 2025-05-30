@@ -217,7 +217,7 @@ await agent.aiScroll({ direction: 'up', distance: 100, scrollType: 'once' }, 'Th
 
 ### `agent.aiRightClick()`
 
-Right-click on an element.
+Right-click on an element. Please note that Midscene cannot interact with the native context menu in browser after right-clicking. This interface is usually used for the element that listens to the right-click event by itself.
 
 * Type
 
@@ -264,8 +264,8 @@ function aiQuery<T>(dataShape: string | Object, options?: Object): Promise<T>;
 * Parameters:
   * `dataShape: T`: A description of the expected return format.
   * `options?: Object` - Optional, a configuration object containing:
-    * `domIncluded?: boolean` - Whether to include DOM structure, usually used for querying invisible attributes like image links. Default: False
-    * `screenshotIncluded?: boolean` - Whether to include screenshot. Default: True.
+    * `domIncluded?: boolean` - Whether to send simplified DOM information to the model, usually used for extracting invisible attributes like image links. Default: False
+    * `screenshotIncluded?: boolean` - Whether to send screenshot to the model. Default: True.
 
 * Return Value:
   * Returns any valid basic type, such as string, number, JSON, array, etc.
@@ -289,7 +289,7 @@ const dataB = await agent.aiQuery('string[], list of task names');
 // dataC will be an array of objects
 const dataC = await agent.aiQuery('{name: string, age: string}[], table data records');
 
-// Use domIncluded feature to query invisible attributes
+// Use domIncluded feature to extract invisible attributes
 const dataD = await agent.aiQuery('{name: string, age: string, avatarUrl: string}[], table data records', { domIncluded: true });
 ```
 
@@ -306,8 +306,8 @@ function aiBoolean(prompt: string, options?: Object): Promise<boolean>;
 * Parameters:
   * `prompt: string` - A natural language description of the expected value.
   * `options?: Object` - Optional, a configuration object containing:
-    * `domIncluded?: boolean` - Whether to include DOM structure, usually used for querying invisible attributes like image links. Default: False
-    * `screenshotIncluded?: boolean` - Whether to include screenshot. Default: True.
+    * `domIncluded?: boolean` - Whether to send simplified DOM information to the model, usually used for extracting invisible attributes like image links. Default: False
+    * `screenshotIncluded?: boolean` - Whether to send screenshot to the model. Default: True.
 * Return Value:
   * Returns a `Promise<boolean>` when AI returns a boolean value.
 
@@ -316,7 +316,7 @@ function aiBoolean(prompt: string, options?: Object): Promise<boolean>;
 ```typescript
 const boolA = await agent.aiBoolean('Whether there is a login dialog');
 
-// Use domIncluded feature to query invisible attributes
+// Use domIncluded feature to extract invisible attributes
 const boolB = await agent.aiBoolean('Whether the login button has a link', { domIncluded: true });
 ```
 
@@ -333,8 +333,8 @@ function aiNumber(prompt: string, options?: Object): Promise<number>;
 * Parameters:
   * `prompt: string` - A natural language description of the expected value.
   * `options?: Object` - Optional, a configuration object containing:
-    * `domIncluded?: boolean` - Whether to include DOM structure, usually used for querying invisible attributes like image links. Default: False
-    * `screenshotIncluded?: boolean` - Whether to include screenshot. Default: True.
+    * `domIncluded?: boolean` - Whether to send simplified DOM information to the model, usually used for extracting invisible attributes like image links. Default: False
+    * `screenshotIncluded?: boolean` - Whether to send screenshot to the model. Default: True.
 * Return Value:
   * Returns a `Promise<number>` when AI returns a number value.
 
@@ -343,7 +343,7 @@ function aiNumber(prompt: string, options?: Object): Promise<number>;
 ```typescript
 const numberA = await agent.aiNumber('The remaining points of the account');
 
-// Use domIncluded feature to query invisible attributes
+// Use domIncluded feature to extract invisible attributes
 const numberB = await agent.aiNumber('The value of the remaining points element', { domIncluded: true });
 ```
 
@@ -360,8 +360,8 @@ function aiString(prompt: string, options?: Object): Promise<string>;
 * Parameters:
   * `prompt: string` - A natural language description of the expected value.
   * `options?: Object` - Optional, a configuration object containing:
-    * `domIncluded?: boolean` - Whether to include DOM structure, usually used for querying invisible attributes like image links. Default: False
-    * `screenshotIncluded?: boolean` - Whether to include screenshot. Default: True.
+    * `domIncluded?: boolean` - Whether to send simplified DOM information to the model, usually used for extracting invisible attributes like image links. Default: False
+    * `screenshotIncluded?: boolean` - Whether to send screenshot to the model. Default: True.
 * Return Value:
   * Returns a `Promise<string>` when AI returns a string value.
 
@@ -370,7 +370,7 @@ function aiString(prompt: string, options?: Object): Promise<string>;
 ```typescript
 const stringA = await agent.aiString('The first item in the list');
 
-// Use domIncluded feature to query invisible attributes
+// Use domIncluded feature to extract invisible attributes
 const stringB = await agent.aiString('The link of the first item in the list', { domIncluded: true });
 ```
 

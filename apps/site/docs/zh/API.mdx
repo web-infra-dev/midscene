@@ -214,7 +214,7 @@ await agent.aiScroll({ direction: 'up', distance: 100, scrollType: 'once' }, '�
 
 ### `agent.aiRightClick()`
 
-右键点击某个元素。
+右键点击某个元素。请注意，Midscene 在右键点击后无法与浏览器原生上下文菜单交互。这个接口通常用于已经监听了右键点击事件的元素。
 
 * 类型
 
@@ -261,8 +261,8 @@ function aiQuery<T>(dataShape: string | Object, options?: Object): Promise<T>;
 * 参数：
   * `dataShape: T`: 描述预期的返回值格式。
   * `options?: Object` - 可选，一个配置对象，包含：
-    * `domIncluded?: boolean` - 是否包含 DOM 结构，一般用于需要查询不可见的属性，比如图片的链接。默认值为 False
-    * `screenshotIncluded?: boolean` - 是否包含截图。默认值为 True。
+    * `domIncluded?: boolean` - 是否向模型发送精简后的 DOM 信息，一般用于提取 UI 中不可见的属性，比如图片的链接。默认值为 False
+    * `screenshotIncluded?: boolean` - 是否向模型发送截图。默认值为 True。
 
 * 返回值：
   * 返回值可以是任何合法的基本类型，比如字符串、数字、JSON、数组等。
@@ -286,7 +286,7 @@ const dataB = await agent.aiQuery('string[]，列表中的任务名称');
 // dataC 将是一个包含对象的数组
 const dataC = await agent.aiQuery('{name: string, age: string}[], 表格中的数据记录');
 
-// 使用 domIncluded 功能查询不可见的属性
+// 使用 domIncluded 功能提取 UI 中不可见的属性
 const dataD = await agent.aiQuery('{name: string, age: string, avatarUrl: string}[], 表格中的数据记录', { domIncluded: true });
 ```
 
@@ -306,8 +306,8 @@ function aiBoolean(prompt: string, options?: Object): Promise<boolean>;
 * 参数：
   * `prompt: string` - 用自然语言描述的期望值。
   * `options?: Object` - 可选，一个配置对象，包含：
-    * `domIncluded?: boolean` - 是否包含 DOM 结构，一般用于需要查询不可见的属性，比如图片的链接。默认值为 False
-    * `screenshotIncluded?: boolean` - 是否包含截图。默认值为 True。
+    * `domIncluded?: boolean` - 是否向模型发送精简后的 DOM 信息，一般用于提取 UI 中不可见的属性，比如图片的链接。默认值为 False
+    * `screenshotIncluded?: boolean` - 是否向模型发送截图。默认值为 True。
 
 * 返回值：
   * 返回一个 Promise。当 AI 返回结果时解析为布尔值。
@@ -317,7 +317,7 @@ function aiBoolean(prompt: string, options?: Object): Promise<boolean>;
 ```typescript
 const boolA = await agent.aiBoolean('是否存在登录对话框');
 
-// 使用 domIncluded 功能查询不可见的属性
+// 使用 domIncluded 功能提取 UI 中不可见的属性
 const boolB = await agent.aiBoolean('忘记密码按钮是否存在链接', { domIncluded: true });
 ```
 
@@ -334,8 +334,8 @@ function aiNumber(prompt: string, options?: Object): Promise<number>;
 * 参数：
   * `prompt: string` - 用自然语言描述的期望值。
   * `options?: Object` - 可选，一个配置对象，包含：
-    * `domIncluded?: boolean` - 是否包含 DOM 结构，一般用于需要查询不可见的属性，比如图片的链接。默认值为 False
-    * `screenshotIncluded?: boolean` - 是否包含截图。默认值为 True。
+    * `domIncluded?: boolean` - 是否向模型发送精简后的 DOM 信息，一般用于提取 UI 中不可见的属性，比如图片的链接。默认值为 False
+    * `screenshotIncluded?: boolean` - 是否向模型发送截图。默认值为 True。
 
 * 返回值：
   * 返回一个 Promise。当 AI 返回结果时解析为数字。
@@ -345,7 +345,7 @@ function aiNumber(prompt: string, options?: Object): Promise<number>;
 ```typescript
 const numberA = await agent.aiNumber('账户剩余的积分');
 
-// 使用 domIncluded 功能查询不可见的属性
+// 使用 domIncluded 功能提取 UI 中不可见的属性
 const numberB = await agent.aiNumber('账户剩余的积分元素的 value 值', { domIncluded: true });
 ```
 
@@ -362,8 +362,8 @@ function aiString(prompt: string, options?: Object): Promise<string>;
 * 参数：
   * `prompt: string` - 用自然语言描述的期望值。
   * `options?: Object` - 可选，一个配置对象，包含：
-    * `domIncluded?: boolean` - 是否包含 DOM 结构，一般用于需要查询不可见的属性，比如图片的链接。默认值为 False
-    * `screenshotIncluded?: boolean` - 是否包含截图。默认值为 True。
+    * `domIncluded?: boolean` - 是否向模型发送精简后的 DOM 信息，一般用于提取 UI 中不可见的属性，比如图片的链接。默认值为 False
+    * `screenshotIncluded?: boolean` - 是否向模型发送截图。默认值为 True。
 
 * 返回值：
   * 返回一个 Promise。当 AI 返回结果时解析为字符串。
@@ -373,7 +373,7 @@ function aiString(prompt: string, options?: Object): Promise<string>;
 ```typescript
 const stringA = await agent.aiString('当前列表的第一条记录的名称');
 
-// 使用 domIncluded 功能查询不可见的属性
+// 使用 domIncluded 功能提取 UI 中不可见的属性
 const stringB = await agent.aiString('当前列表的第一条记录的跳转链接', { domIncluded: true });
 ```
 
