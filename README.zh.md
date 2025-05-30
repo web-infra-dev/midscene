@@ -66,9 +66,35 @@ Midscene.js 支持多模态 LLM 模型，如 `gpt-4o`，以及视觉语言模型
 
 更多信息请查看 [选择 AI 模型](https://midscenejs.com/zh/choose-a-model)。
 
+## 💡 两种风格的自动化
+
+### 自动规划
+
+Midscene 会自动规划步骤并执行。它可能较慢，并且深度依赖于 AI 模型的质量。
+
+```javascript
+await aiAction('click all the records one by one. If one record contains the text "completed", skip it');
+```
+
+### 工作流风格
+
+将复杂逻辑拆分为多个步骤，以提高自动化代码的稳定性。
+
+```javascript
+const recordList = await agent.aiQuery('string[], the record list')
+for (const record of recordList) {
+  const hasCompleted = await agent.aiBoolean(`check if the record contains the text "completed"`)
+  if (!hasCompleted) {
+    await agent.aiTap(record)
+  }
+}
+```
+
+> 有关工作流风格的更多详细信息，请参阅 [Blog - 使用 JavaScript 优化 AI 自动化代码
+](https://midscenejs.com/zh/blog-programming-practice-using-structured-api.html)
+
+
 ## 与其它工具的比较
-
-
 
 * **调试体验**: 你很快就会发现，调试和维护自动化脚本才是真正的痛点。无论模型多么强大，你仍然需要调试过程以确保其保持长期稳定。Midscene.js 提供了可视化报告、内置的 Playground 和 Chrome 插件，以调试整个运行过程。这是大多数开发者真正需要的特性，我们也在持续努力改进调试体验。
 

@@ -34,20 +34,21 @@ English | [简体中文](./README.zh.md)
 | Using midscene mcp to browse the page (https://www.saucedemo.com/), perform login, add products, place orders, and finally generate test cases based on mcp execution steps and playwright example | <video src="https://github.com/user-attachments/assets/5cab578d-feb3-4250-8c7e-6793fe38a5be" height="300" />        |
 
 ## 💡 Features
-Write Automation with Natural Language
+
+### Write Automation with Natural Language
 - Describe your goals and steps, and Midscene will plan and operate the user interface for you.
 - Use Javascript SDK or YAML to write your automation script.
 
-Web & Mobile App
+### Web & Mobile App
 - **Web Automation 🖥️**: Either integrate with [Puppeteer](https://midscenejs.com/integrate-with-puppeteer.html), [Playwright](https://midscenejs.com/integrate-with-playwright.html) or use [Bridge Mode](https://midscenejs.com/bridge-mode-by-chrome-extension.html) to control your desktop browser.
 - **Android Automation 📱**: Use [Javascript SDK](https://midscenejs.com/integrate-with-android.html) with adb to control your local Android device.
 
-Tools
+### Tools
 - **Visual Reports for Debugging 🎞️**: Through our test reports and Playground, you can easily understand, replay and debug the entire process.
 - [**Caching for Efficiency 🔄**](https://midscenejs.com/caching.html): Replay your script with cache and get the result faster.
 - [**MCP 🔗**](https://midscenejs.com/mcp.html): Allows other MCP Clients to directly use Midscene's capabilities.
 
-Three kinds of APIs
+### Three kinds of APIs
 - [Interaction API 🔗](https://midscenejs.com/api.html#interaction-methods): interact with the user interface.
 - [Data Extraction API 🔗](https://midscenejs.com/api.html#data-extraction): extract data from the user interface.
 - [Utility API 🔗](https://midscenejs.com/api.html#more-apis): utility functions like `aiAssert()`, `aiLocate()`, `aiWaitFor()`.
@@ -64,6 +65,33 @@ Midscene.js supports both multimodal LLMs like `gpt-4o`, and visual-language mod
 Visual-language models are recommended for UI automation.
 
 Read more about [Choose a model](https://midscenejs.com/choose-a-model)
+
+## 💡 Two Styles of Automation
+
+### Auto Planning
+
+Midscene will automatically plan the steps and execute them. It may be slower and heavily rely on the quality of the AI model.
+
+```javascript
+await aiAction('click all the records one by one. If one record contains the text "completed", skip it');
+```
+
+### Workflow Style
+
+Split complex logic into multiple steps to improve the stability of the automation code.
+
+```javascript
+const recordList = await agent.aiQuery('string[], the record list')
+for (const record of recordList) {
+  const hasCompleted = await agent.aiBoolean(`check if the record contains the text "completed"`)
+  if (!hasCompleted) {
+    await agent.aiTap(record)
+  }
+}
+```
+
+> For more details about the workflow style, please refer to [Blog - Use JavaScript to Optimize the AI Automation Code](https://midscenejs.com/blog-programming-practice-using-structured-api.html)
+
 
 ## 👀 Comparing to other projects
 
