@@ -15,7 +15,7 @@ English | [简体中文](./README.zh.md)
 
 <p align="center">
   <a href="https://www.npmjs.com/package/@midscene/web"><img src="https://img.shields.io/npm/v/@midscene/web?style=flat-square&color=00a8f0" alt="npm version" /></a>
-  <a href="https://huggingface.co/ByteDance-Seed/UI-TARS-1.5-7B"><img src="https://img.shields.io/badge/%F0%9F%A4%97-UI%20TARS%20Models-yellow" alt="huagging face model" /></a>
+  <a href="https://huggingface.co/ByteDance-Seed/UI-TARS-1.5-7B"><img src="https://img.shields.io/badge/%F0%9F%A4%97-UI%20TARS%20Models-yellow" alt="hugging face model" /></a>
   <a href="https://npm-compare.com/@midscene/web/#timeRange=THREE_YEARS"><img src="https://img.shields.io/npm/dm/@midscene/web.svg?style=flat-square&color=00a8f0" alt="downloads" /></a>
   <img src="https://img.shields.io/badge/License-MIT-blue.svg?style=flat-square&color=00a8f0" alt="License" />
   <a href="https://discord.gg/2JyBHxszE4"><img src="https://img.shields.io/discord/1328277792730779648?style=flat-square&color=7289DA&label=Discord&logo=discord&logoColor=white" alt="discord" /></a>
@@ -24,8 +24,6 @@ English | [简体中文](./README.zh.md)
     <img alt="Ask DeepWiki.com" src="https://devin.ai/assets/deepwiki-badge.png" style="height: 18px; vertical-align: middle;">
   </a>
 </p>
-
-Midscene.js allows AI to serve as your web and Android operator 🤖. Simply describe what you want to achieve in natural language, and it will assist you in operating the interface, validating content, and extracting data. Whether you seek a quick experience or in-depth development, you'll find it easy to get started.
 
 ## Showcases
 
@@ -36,59 +34,55 @@ Midscene.js allows AI to serve as your web and Android operator 🤖. Simply des
 | Control Maps App on Android (By Qwen-2.5-VL model)   | <video src="https://github.com/user-attachments/assets/1f5bab0e-4c28-44e1-b378-a38809b05a00" height="300" />        |
 | Using midscene mcp to browse the page (https://www.saucedemo.com/), perform login, add products, place orders, and finally generate test cases based on mcp execution steps and playwright example | <video src="https://github.com/user-attachments/assets/5cab578d-feb3-4250-8c7e-6793fe38a5be" height="300" />        |
 
-## 📢 2025 Feb: New open-source model choice - UI-TARS and Qwen2.5-VL
-
-Besides the default model *GPT-4o*, we have added two new recommended open-source models to Midscene.js: *UI-TARS* and *Qwen2.5-VL*. (Yes, Open Source models !) They are dedicated models for image recognition and UI automation, which are known for performing well in UI automation scenarios. Read more about it in [Choose a model](https://midscenejs.com/choose-a-model).
-
 ## 💡 Features
-- **Natural Language Interaction 👆**: Just describe your goals and steps, and Midscene will plan and operate the user interface for you.
-- **UI Automation 🤖**
-  - **Web Automation 🖥️**: Start in-browser experience immediately through [the Chrome extension](https://midscenejs.com/quick-experience.html), or integrate with [Puppeteer](https://midscenejs.com/integrate-with-puppeteer.html) and [Playwright](https://midscenejs.com/integrate-with-playwright.html).
+- Automation Script with Natural Language 👆
+  - Describe your goals and steps, and Midscene will plan and operate the user interface for you.
+  - Use Javascript SDK or YAML to write your automation script.
+- Web & Mobile App 🤖
+  - **Web Automation 🖥️**: Either integrate with [Puppeteer](https://midscenejs.com/integrate-with-puppeteer.html), [Playwright](https://midscenejs.com/integrate-with-playwright.html) or use [Bridge Mode](https://midscenejs.com/bridge-mode-by-chrome-extension.html) to control your desktop browser.
   - **Android Automation 📱**: Use [the Android playground](https://midscenejs.com/quick-experience-with-android.html) to start experience immediately, or integrate javascript SDK with [adb](https://midscenejs.com/integrate-with-android.html).
-- **MCP Integration 🔗**: Allows other MCP Clients to directly use Midscene's capabilities. For more details, please read [MCP Integration](https://midscenejs.com/zh/mcp.html).
-- **Visual Reports for Debugging 🎞️**: Through our test reports and Playground, you can easily understand, replay and debug the entire process.
-- **Support Caching 🔄**: The first time you execute a task through AI, it will be cached, and subsequent executions of the same task will significantly improve execution efficiency.
-- **Completely Open Source 🔥**: Experience a whole new automation development experience, enjoy!
-- **Understand UI, JSON Format Responses 🔍**: You can specify data format requirements and receive responses in JSON format.
-- **Intuitive Assertions 🤔**: Express your assertions in natural language, and AI will understand and process them.
+- Tools 🔧
+  - [**MCP 🔗**](https://midscenejs.com/zh/mcp.html): Allows other MCP Clients to directly use Midscene's capabilities.
+  - [**Visual Reports for Debugging 🎞️**](https://midscenejs.com/zh/mcp.html): Through our test reports and Playground, you can easily understand, replay and debug the entire process.
+  - [**Caching for efficiency 🔄**](https://midscenejs.com/zh/mcp.html): Replay your script with cache and get the result faster.
+- Three kinds of APIs 🔗
+  - [Interaction API](https://midscenejs.com/api.html#interaction-methods): interact with the user interface.
+  - [Data Extraction API](https://midscenejs.com/api.html#data-extraction): extract data from the user interface.
+  - [Utility API](https://midscenejs.com/api.html#more-apis): utility functions like `aiAssert()`, `aiLocate()`, `aiWaitFor()`.
+
+## Zero-code Quick Experience
+
+- **[Chrome Extension](https://midscenejs.com/quick-experience.html)**: Start in-browser experience immediately through [the Chrome extension](https://midscenejs.com/quick-experience.html), without writing any code.
+- **[Android Playground](https://midscenejs.com/quick-experience-with-android.html)**: There is also a built-in Android playground to control your local Android device.
 
 ## ✨ Model Choices
 
-You can use multimodal LLMs like `gpt-4o`, or visual-language models like `Qwen2.5-VL`, `gemini-2.5-pro` and `UI-TARS`. In which `UI-TARS` is an open-source model dedicated for UI automation.
+Midscene.js supports both multimodal LLMs like `gpt-4o`, and visual-language models like `Qwen2.5-VL`, `Doubao-1.5-thinking-vision-pro`, `gemini-2.5-pro` and `UI-TARS`. 
+
+Visual-language models are recommended for UI automation.
 
 Read more about [Choose a model](https://midscenejs.com/choose-a-model)
 
-## 👀 Comparing to ...
+## 👀 Comparing to other projects
 
 There are so many UI automation tools out there, and each one seems to be all-powerful. What's special about Midscene.js?
 
-* Debugging Experience: You will soon realize that debugging and maintaining automation scripts is the real challenge. No matter how magical the demo looks, ensuring stability over time requires careful debugging. Midscene.js offers a visualized report file, a built-in playground, and a Chrome Extension to simplify the debugging process. These are the tools most developers truly need, and we're continually working to improve the debugging experience.
+* **Debugging Experience**: You will soon realize that debugging and maintaining automation scripts is the real challenge. No matter how magical the demo looks, ensuring stability over time requires careful debugging. Midscene.js offers a visualized report file, a built-in playground, and a Chrome Extension to simplify the debugging process. These are the tools most developers truly need, and we're continually working to improve the debugging experience.
 
-* Open Source, Free, Deploy as you want: Midscene.js is an open-source project. It's decoupled from any cloud service and model provider, you can choose either public or private deployment. There is always a suitable plan for your business.
+* **Open Source, Free, Deploy as you want**: Midscene.js is an open-source project. It's decoupled from any cloud service and model provider, you can choose either public or private deployment. There is always a suitable plan for your business.
 
-* Integrate with Javascript: You can always bet on Javascript 😎
+* **Integrate with Javascript**: You can always bet on Javascript 😎
 
 ## 📄 Resources 
 
 * [Home Page: https://midscenejs.com](https://midscenejs.com/)
-* Web Browser Automation
-  * [Quick Experience By Chrome Extension](https://midscenejs.com/quick-experience.html)
-  * [Automate with Scripts in YAML](https://midscenejs.com/automate-with-scripts-in-yaml.html)
-  * [Bridge Mode by Chrome Extension](https://midscenejs.com/bridge-mode-by-chrome-extension.html)
-  * [Integrate with Puppeteer](https://midscenejs.com/integrate-with-puppeteer.html)
-  * [Integrate with Playwright](https://midscenejs.com/integrate-with-playwright.html)
-* Android Automation
-  * [Quick Experience by Android Playground](https://midscenejs.com/quick-experience-with-android.html)
-  * [Integrate with Android(adb)](https://midscenejs.com/integrate-with-android.html)
-* [API Reference](https://midscenejs.com/api.html)
-* [Choose a model](https://midscenejs.com/choose-a-model.html)
-* [Config Model and Provider](https://midscenejs.com/model-provider.html)
+* [GitHub: https://github.com/web-infra-dev/midscene](https://github.com/web-infra-dev/midscene)
 
 ## 🤝 Community
 
 * [Discord](https://discord.gg/2JyBHxszE4)
 * [Follow us on X](https://x.com/midscene_ai)
-* [Lark Group](https://applink.larkoffice.com/client/chat/chatter/add_by_link?link_token=291q2b25-e913-411a-8c51-191e59aab14d)
+* [Lark Group(飞书交流群)](https://applink.larkoffice.com/client/chat/chatter/add_by_link?link_token=291q2b25-e913-411a-8c51-191e59aab14d)
 
 
 ## 📝 Credits
