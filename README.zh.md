@@ -53,7 +53,7 @@ Web & Mobile App
   - [**数据提取 API 🔗**](https://midscenejs.com/zh/api.html#data-extraction): 从用户界面提取数据。
   - [**实用 API 🔗**](https://midscenejs.com/zh/api.html#more-apis): 实用函数，如 `aiAssert()` （断言）, `aiLocate()` （定位）, `aiWaitFor()` （等待）。
 
-## 无需代码，快速体验
+## 👉 无需代码，快速体验
 
 - **[Chrome 插件](https://midscenejs.com/zh/quick-experience.html)**: 通过 [Chrome 插件](https://midscenejs.com/zh/quick-experience.html) 立即开始体验，无需编写代码。
 - **[Android Playground](https://midscenejs.com/zh/quick-experience-with-android.html)**: 内置的 Android Playground 可以控制你的本地 Android 设备。
@@ -94,7 +94,7 @@ for (const record of recordList) {
 ](https://midscenejs.com/zh/blog-programming-practice-using-structured-api.html)
 
 
-## 与其它工具的比较
+## 👀 与其它工具的比较
 
 * **调试体验**: 你很快就会发现，调试和维护自动化脚本才是真正的痛点。无论模型多么强大，你仍然需要调试过程以确保其保持长期稳定。Midscene.js 提供了可视化报告、内置的 Playground 和 Chrome 插件，以调试整个运行过程。这是大多数开发者真正需要的特性，我们也在持续努力改进调试体验。
 

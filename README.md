@@ -53,7 +53,7 @@ English | [简体中文](./README.zh.md)
 - [Data Extraction API 🔗](https://midscenejs.com/api.html#data-extraction): extract data from the user interface.
 - [Utility API 🔗](https://midscenejs.com/api.html#more-apis): utility functions like `aiAssert()`, `aiLocate()`, `aiWaitFor()`.
 
-## Zero-code Quick Experience
+## 👉 Zero-code Quick Experience
 
 - **[Chrome Extension](https://midscenejs.com/quick-experience.html)**: Start in-browser experience immediately through [the Chrome Extension](https://midscenejs.com/quick-experience.html), without writing any code.
 - **[Android Playground](https://midscenejs.com/quick-experience-with-android.html)**: There is also a built-in Android playground to control your local Android device.
@@ -128,7 +128,7 @@ We would like to thank the following projects:
 - [Puppeteer](https://github.com/puppeteer/puppeteer) for browser automation and control.
 - [Playwright](https://github.com/microsoft/playwright) for browser automation and control and testing.
 
-## Citation
+## 📝 Citation
 
 If you use Midscene.js in your research or project, please cite:
 
