@@ -35,20 +35,20 @@
 
 ## 💡 特性
 
-用自然语言编写自动化脚本
+### 用自然语言编写自动化脚本
 - 描述你的目标和步骤，Midscene 会为你规划和操作用户界面。
 - 使用 Javascript SDK 或 YAML 格式编写自动化脚本。
 
-Web & Mobile App
+### Web & Mobile App
 - **Web 自动化 🖥️**: 使用 [Puppeteer](https://midscenejs.com/zh/integrate-with-puppeteer.html) 或 [Playwright](https://midscenejs.com/zh/integrate-with-playwright.html) 与 Midscene.js 集成，或者使用 [Chrome 插件桥接模式](https://midscenejs.com/zh/bridge-mode-by-chrome-extension.html) 来控制你的桌面浏览器。
 - **Android 自动化 📱**: 使用 [Javascript SDK](https://midscenejs.com/zh/integrate-with-android.html) 与 [adb](https://midscenejs.com/zh/integrate-with-android.html) 控制你的本地 Android 设备。
 
-工具
+### 工具
 - **用于调试的可视化报告 🎞️**: 通过我们的测试报告和 Playground，你可以轻松理解、回放和调试整个过程。
 - [**使用缓存，提高执行效率 🔄**](https://midscenejs.com/zh/caching.html): 使用缓存能力重放脚本，提高执行效率。
 - [**MCP 🔗**](https://midscenejs.com/zh/mcp.html): 允许其他 MCP Client 直接使用 Midscene 的能力。
 
-三种类型的 API
+### 三种类型的 API
   - [**交互 API 🔗**](https://midscenejs.com/zh/api.html#interaction-methods): 与用户界面交互。
   - [**数据提取 API 🔗**](https://midscenejs.com/zh/api.html#data-extraction): 从用户界面提取数据。
   - [**实用 API 🔗**](https://midscenejs.com/zh/api.html#more-apis): 实用函数，如 `aiAssert()` （断言）, `aiLocate()` （定位）, `aiWaitFor()` （等待）。
@@ -128,7 +128,7 @@ for (const record of recordList) {
 - [Puppeteer](https://github.com/puppeteer/puppeteer) 用于浏览器自动化与控制。
 - [Playwright](https://github.com/microsoft/playwright) 用于浏览器自动化与控制和测试。
 
-## 引用
+## 📝 引用
 
 如果您在研究或项目中使用了 Midscene.js，请引用：
 
