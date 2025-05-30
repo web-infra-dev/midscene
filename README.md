@@ -34,20 +34,23 @@ English | [简体中文](./README.zh.md)
 | Using midscene mcp to browse the page (https://www.saucedemo.com/), perform login, add products, place orders, and finally generate test cases based on mcp execution steps and playwright example | <video src="https://github.com/user-attachments/assets/5cab578d-feb3-4250-8c7e-6793fe38a5be" height="300" />        |
 
 ## 💡 Features
-- Write Automation with Natural Language
-  - Describe your goals and steps, and Midscene will plan and operate the user interface for you.
-  - Use Javascript SDK or YAML to write your automation script.
-- Web & Mobile App
-  - **Web Automation 🖥️**: Either integrate with [Puppeteer](https://midscenejs.com/integrate-with-puppeteer.html), [Playwright](https://midscenejs.com/integrate-with-playwright.html) or use [Bridge Mode](https://midscenejs.com/bridge-mode-by-chrome-extension.html) to control your desktop browser.
-  - **Android Automation 📱**: Use javascript SDK with [adb](https://midscenejs.com/integrate-with-android.html) to control your local Android device.
-- Tools
-  - **Visual Reports for Debugging 🎞️**: Through our test reports and Playground, you can easily understand, replay and debug the entire process.
-  - [**Caching for Efficiency 🔄**](https://midscenejs.com/caching.html): Replay your script with cache and get the result faster.
-  - [**MCP 🔗**](https://midscenejs.com/mcp.html): Allows other MCP Clients to directly use Midscene's capabilities.
-- Three kinds of APIs
-  - [Interaction API 🔗](https://midscenejs.com/api.html#interaction-methods): interact with the user interface.
-  - [Data Extraction API 🔗](https://midscenejs.com/api.html#data-extraction): extract data from the user interface.
-  - [Utility API 🔗](https://midscenejs.com/api.html#more-apis): utility functions like `aiAssert()`, `aiLocate()`, `aiWaitFor()`.
+Write Automation with Natural Language
+- Describe your goals and steps, and Midscene will plan and operate the user interface for you.
+- Use Javascript SDK or YAML to write your automation script.
+
+Web & Mobile App
+- **Web Automation 🖥️**: Either integrate with [Puppeteer](https://midscenejs.com/integrate-with-puppeteer.html), [Playwright](https://midscenejs.com/integrate-with-playwright.html) or use [Bridge Mode](https://midscenejs.com/bridge-mode-by-chrome-extension.html) to control your desktop browser.
+- **Android Automation 📱**: Use javascript SDK with [adb](https://midscenejs.com/integrate-with-android.html) to control your local Android device.
+
+Tools
+- **Visual Reports for Debugging 🎞️**: Through our test reports and Playground, you can easily understand, replay and debug the entire process.
+- [**Caching for Efficiency 🔄**](https://midscenejs.com/caching.html): Replay your script with cache and get the result faster.
+- [**MCP 🔗**](https://midscenejs.com/mcp.html): Allows other MCP Clients to directly use Midscene's capabilities.
+
+Three kinds of APIs
+- [Interaction API 🔗](https://midscenejs.com/api.html#interaction-methods): interact with the user interface.
+- [Data Extraction API 🔗](https://midscenejs.com/api.html#data-extraction): extract data from the user interface.
+- [Utility API 🔗](https://midscenejs.com/api.html#more-apis): utility functions like `aiAssert()`, `aiLocate()`, `aiWaitFor()`.
 
 ## Zero-code Quick Experience
 
