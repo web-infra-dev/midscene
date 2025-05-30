@@ -4,7 +4,11 @@ import path from 'node:path';
 import { type Point, type Size, getAIConfig } from '@midscene/core';
 import type { PageType } from '@midscene/core';
 import { getTmpFile, sleep } from '@midscene/core/utils';
-import { MIDSCENE_ADB_PATH } from '@midscene/shared/env';
+import {
+  MIDSCENE_ADB_PATH,
+  MIDSCENE_ADB_REMOTE_HOST,
+  MIDSCENE_ADB_REMOTE_PORT,
+} from '@midscene/shared/env';
 import type { ElementInfo } from '@midscene/shared/extractor';
 import { isValidPNGImageBuffer, resizeImg } from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
@@ -58,18 +62,19 @@ export class AndroidDevice implements AndroidDevicePage {
 
       try {
         const androidAdbPath = getAIConfig(MIDSCENE_ADB_PATH);
+        const remoteAdbHost = getAIConfig(MIDSCENE_ADB_REMOTE_HOST);
+        const remoteAdbPort = getAIConfig(MIDSCENE_ADB_REMOTE_PORT);
 
-        // If `androidAdbPath` exists, use `newADB()`
-        this.adb = androidAdbPath
-          ? await new ADB({
-              udid: this.deviceId,
-              adbExecTimeout: 60000,
-              executable: { path: androidAdbPath, defaultArgs: [] },
-            })
-          : await ADB.createADB({
-              udid: this.deviceId,
-              adbExecTimeout: 60000,
-            });
+        // 统一使用 new ADB
+        this.adb = await new ADB({
+          udid: this.deviceId,
+          adbExecTimeout: 60000,
+          executable: androidAdbPath
+            ? { path: androidAdbPath, defaultArgs: [] }
+            : undefined,
+          remoteAdbHost: remoteAdbHost || undefined,
+          remoteAdbPort: remoteAdbPort ? Number(remoteAdbPort) : undefined,
+        });
 
         const size = await this.getScreenSize();
         console.log(`
